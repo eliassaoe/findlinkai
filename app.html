@@ -243,11 +243,18 @@
             cursor: pointer;
             background: var(--gray-50);
             transition: all 0.2s ease;
+            position: relative;
         }
 
         .upload-area:hover {
             border-color: var(--primary);
             background: rgba(37, 99, 235, 0.05);
+        }
+
+        .upload-area.drag-over {
+            border-color: var(--primary);
+            background: rgba(37, 99, 235, 0.1);
+            transform: scale(1.02);
         }
 
         .upload-icon {
@@ -631,12 +638,12 @@
 
             <!-- Bulk Search -->
             <div id="bulkSearch" class="card hidden">
-                <div class="upload-area" onclick="document.getElementById('csvFile').click()">
+                <div class="upload-area" id="uploadArea">
                     <i class="fas fa-cloud-upload-alt upload-icon"></i>
-                    <div class="upload-text">Upload CSV File</div>
+                    <div class="upload-text">Drop your CSV file here or click to upload</div>
                     <div class="upload-subtext">CSV with company names (max 500)</div>
                     <input type="file" id="csvFile" accept=".csv" class="hidden">
-                    <button type="button" class="btn">
+                    <button type="button" class="btn" onclick="document.getElementById('csvFile').click()">
                         <i class="fas fa-file-csv"></i> Select File
                     </button>
                 </div>
@@ -693,6 +700,7 @@
         document.addEventListener('DOMContentLoaded', () => {
             checkAuth();
             setupFileUpload();
+            setupDragAndDrop();
             setupNavigation();
         });
 
@@ -819,6 +827,50 @@
                     handleFile(e.target.files[0]);
                 }
             });
+        }
+
+        function setupDragAndDrop() {
+            const uploadArea = document.getElementById('uploadArea');
+            
+            // Prevent default drag behaviors
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                uploadArea.addEventListener(eventName, preventDefaults, false);
+                document.body.addEventListener(eventName, preventDefaults, false);
+            });
+
+            // Highlight drop area when item is dragged over it
+            ['dragenter', 'dragover'].forEach(eventName => {
+                uploadArea.addEventListener(eventName, highlight, false);
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                uploadArea.addEventListener(eventName, unhighlight, false);
+            });
+
+            // Handle dropped files
+            uploadArea.addEventListener('drop', handleDrop, false);
+
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+
+            function highlight() {
+                uploadArea.classList.add('drag-over');
+            }
+
+            function unhighlight() {
+                uploadArea.classList.remove('drag-over');
+            }
+
+            function handleDrop(e) {
+                const dt = e.dataTransfer;
+                const files = dt.files;
+
+                if (files.length > 0) {
+                    handleFile(files[0]);
+                }
+            }
         }
 
         function handleFile(file) {
