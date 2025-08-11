@@ -596,75 +596,6 @@
       text-decoration: underline;
     }
 
-    /* Modal */
-    .modal-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0,0,0,0.5);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 1000;
-      padding: 1rem;
-    }
-
-    .modal {
-      background: white;
-      border-radius: 12px;
-      padding: 2rem;
-      width: 100%;
-      max-width: 400px;
-      max-height: 90vh;
-      overflow-y: auto;
-    }
-
-    .modal-header {
-      text-align: center;
-      margin-bottom: 1.5rem;
-    }
-
-    .modal-title {
-      font-size: 1.5rem;
-      font-weight: 600;
-      color: var(--gray-900);
-      margin-bottom: 0.5rem;
-    }
-
-    .modal-subtitle {
-      color: var(--gray-600);
-      font-size: 0.875rem;
-    }
-
-    .modal-form {
-      display: flex;
-      flex-direction: column;
-      gap: 1rem;
-    }
-
-    .modal-actions {
-      display: flex;
-      gap: 0.75rem;
-      margin-top: 1rem;
-    }
-
-    .modal-switch {
-      text-align: center;
-      margin-top: 1.5rem;
-      padding-top: 1.5rem;
-      border-top: 1px solid var(--gray-200);
-      color: var(--gray-600);
-      font-size: 0.875rem;
-    }
-
-    .modal-switch a {
-      color: var(--primary);
-      text-decoration: none;
-      font-weight: 500;
-    }
-
     /* Limit Warning */
     .limit-warning {
       background: var(--warning);
@@ -758,10 +689,6 @@
       
       .pricing-header h2 {
         font-size: 2rem;
-      }
-      
-      .modal-actions {
-        flex-direction: column;
       }
       
       .testimonial-author {
@@ -1049,51 +976,6 @@
     </div>
   </footer>
 
-  <!-- Auth Modals -->
-  <div id="authModal" class="modal-overlay hidden">
-    <div class="modal">
-      <!-- Login Form -->
-      <div id="loginForm">
-        <div class="modal-header">
-          <h2 class="modal-title">Welcome Back</h2>
-          <p class="modal-subtitle">Sign in to continue</p>
-        </div>
-        <form class="modal-form" onsubmit="login(event)">
-          <input type="email" placeholder="Email address" required id="loginEmail">
-          <input type="password" placeholder="Password" required id="loginPassword">
-          <div class="modal-actions">
-            <button type="button" class="btn btn-outline" onclick="hideModal()">Cancel</button>
-            <button type="submit" class="btn">Sign In</button>
-          </div>
-        </form>
-        <div class="modal-switch">
-          Don't have an account? <a href="#" onclick="switchAuthForm('signup')">Sign up</a>
-        </div>
-      </div>
-
-      <!-- Signup Form -->
-      <div id="signupForm" class="hidden">
-        <div class="modal-header">
-          <h2 class="modal-title">Get Started</h2>
-          <p class="modal-subtitle">Create your account</p>
-        </div>
-        <form class="modal-form" onsubmit="signup(event)">
-          <input type="text" placeholder="Full name" required id="signupName">
-          <input type="email" placeholder="Email address" required id="signupEmail">
-          <input type="password" placeholder="Create password" required id="signupPassword">
-          <input type="password" placeholder="Confirm password" required id="signupConfirmPassword">
-          <div class="modal-actions">
-            <button type="button" class="btn btn-outline" onclick="hideModal()">Cancel</button>
-            <button type="submit" class="btn">Create Account</button>
-          </div>
-        </form>
-        <div class="modal-switch">
-          Already have an account? <a href="#" onclick="switchAuthForm('login')">Sign in</a>
-        </div>
-      </div>
-    </div>
-  </div>
-
   <script>
     let currentMode = 'single';
     let csvData = [];
@@ -1137,72 +1019,11 @@
     }
 
     function showModal(type) {
-      document.getElementById('authModal').classList.remove('hidden');
-      switchAuthForm(type);
-    }
-
-    function hideModal() {
-      document.getElementById('authModal').classList.add('hidden');
-    }
-
-    function switchAuthForm(type) {
-      document.getElementById('loginForm').classList.toggle('hidden', type !== 'login');
-      document.getElementById('signupForm').classList.toggle('hidden', type !== 'signup');
-    }
-
-    function login(event) {
-      event.preventDefault();
-      const email = document.getElementById('loginEmail').value;
-      const userData = {
-        name: email.split('@')[0],
-        email: email,
-        isPremium: true
-      };
-      
-      localStorage.setItem('companyFinderUser', JSON.stringify(userData));
-      currentUser = userData;
-      searchCount = 0;
-      bulkSearchUsed = false;
-      localStorage.setItem('searchCount', '0');
-      localStorage.setItem('bulkSearchUsed', 'false');
-      
-      showUserInfo();
-      hideModal();
-      updateUI();
-      
-      alert('Welcome! You now have access to unlimited company URL searches with API access.');
-    }
-
-    function signup(event) {
-      event.preventDefault();
-      const name = document.getElementById('signupName').value;
-      const email = document.getElementById('signupEmail').value;
-      const password = document.getElementById('signupPassword').value;
-      const confirmPassword = document.getElementById('signupConfirmPassword').value;
-      
-      if (password !== confirmPassword) {
-        alert('Passwords do not match');
-        return;
+      if (type === 'signup') {
+        window.location.href = 'https://linkfinderai.com/sign-up';
+      } else if (type === 'login') {
+        window.location.href = 'https://linkfinderai.com/log-in';
       }
-      
-      const userData = {
-        name: name,
-        email: email,
-        isPremium: true
-      };
-      
-      localStorage.setItem('companyFinderUser', JSON.stringify(userData));
-      currentUser = userData;
-      searchCount = 0;
-      bulkSearchUsed = false;
-      localStorage.setItem('searchCount', '0');
-      localStorage.setItem('bulkSearchUsed', 'false');
-      
-      showUserInfo();
-      hideModal();
-      updateUI();
-      
-      alert('Account created! You now have access to unlimited company URL searches with API access.');
     }
 
     function logout() {
@@ -1583,12 +1404,6 @@
     }
 
     document.addEventListener('DOMContentLoaded', initApp);
-
-    document.addEventListener('click', (e) => {
-      if (e.target.classList.contains('modal-overlay')) {
-        hideModal();
-      }
-    });
   </script>
 </body>
 </html>
