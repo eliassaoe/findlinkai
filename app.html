@@ -1,0 +1,1027 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Link Finder AI - App</title>
+    <link rel="icon" href="https://i.ibb.co/jPjX9SSp/Screen-Shot-2025-03-28-at-8-16-15-PM.png">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-400: #9ca3af;
+            --gray-500: #6b7280;
+            --gray-600: #4b5563;
+            --gray-700: #374151;
+            --gray-800: #1f2937;
+            --gray-900: #111827;
+            --success: #10b981;
+            --error: #ef4444;
+            --warning: #f59e0b;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: white;
+            color: var(--gray-800);
+            line-height: 1.6;
+            font-size: 16px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 0 1rem;
+        }
+
+        /* Header */
+        .header {
+            padding: 1rem 0;
+            border-bottom: 1px solid var(--gray-200);
+            background: white;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--gray-900);
+            text-decoration: none;
+        }
+
+        .logo-icon {
+            width: 32px;
+            height: 32px;
+            background: var(--primary);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1rem;
+        }
+
+        .logo-text {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--gray-900);
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 0.875rem;
+        }
+
+        .credits {
+            background: var(--gray-100);
+            padding: 0.5rem 0.75rem;
+            border-radius: 1rem;
+            font-weight: 500;
+            color: var(--gray-700);
+            font-size: 0.75rem;
+        }
+
+        .btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-weight: 500;
+            cursor: pointer;
+            font-size: 0.875rem;
+            transition: all 0.2s ease;
+        }
+
+        .btn:hover {
+            background: var(--primary-hover);
+        }
+
+        .btn-outline {
+            background: transparent;
+            color: var(--primary);
+            border: 1px solid var(--gray-300);
+        }
+
+        .btn-outline:hover {
+            background: var(--gray-50);
+            border-color: var(--primary);
+        }
+
+        /* Main Content */
+        .main {
+            padding: 2rem 0;
+        }
+
+        .hero {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .hero h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--gray-900);
+            margin-bottom: 0.5rem;
+        }
+
+        .hero p {
+            color: var(--gray-600);
+            margin-bottom: 2rem;
+        }
+
+        /* Mode Toggle */
+        .mode-toggle {
+            margin-bottom: 2rem;
+        }
+
+        .mode-switch {
+            display: flex;
+            background: var(--gray-100);
+            border-radius: 8px;
+            padding: 0.25rem;
+        }
+
+        .mode-option {
+            flex: 1;
+            padding: 0.75rem;
+            border: none;
+            background: transparent;
+            border-radius: 6px;
+            font-weight: 500;
+            color: var(--gray-600);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 0.875rem;
+        }
+
+        .mode-option.active {
+            background: white;
+            color: var(--gray-900);
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        }
+
+        /* Card */
+        .card {
+            background: white;
+            border: 1px solid var(--gray-200);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+        }
+
+        /* Forms */
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: var(--gray-700);
+            font-size: 0.875rem;
+        }
+
+        .form-group input, 
+        .form-group textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--gray-300);
+            border-radius: 6px;
+            font-size: 1rem;
+            transition: border-color 0.2s ease;
+        }
+
+        .form-group input:focus, 
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .btn-full {
+            width: 100%;
+            padding: 0.875rem;
+            font-size: 1rem;
+            margin-top: 0.5rem;
+        }
+
+        /* Upload Area */
+        .upload-area {
+            border: 2px dashed var(--gray-300);
+            border-radius: 8px;
+            padding: 2rem 1rem;
+            text-align: center;
+            cursor: pointer;
+            background: var(--gray-50);
+            transition: all 0.2s ease;
+        }
+
+        .upload-area:hover {
+            border-color: var(--primary);
+            background: rgba(37, 99, 235, 0.05);
+        }
+
+        .upload-icon {
+            font-size: 2rem;
+            color: var(--gray-400);
+            margin-bottom: 1rem;
+        }
+
+        .upload-text {
+            font-weight: 500;
+            color: var(--gray-700);
+            margin-bottom: 0.5rem;
+        }
+
+        .upload-subtext {
+            color: var(--gray-500);
+            font-size: 0.875rem;
+            margin-bottom: 1rem;
+        }
+
+        /* Results */
+        .result-card {
+            background: var(--gray-50);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1rem;
+        }
+
+        .result-text {
+            width: 100%;
+            min-height: 80px;
+            padding: 0.75rem;
+            border: 1px solid var(--gray-300);
+            border-radius: 6px;
+            background: white;
+            resize: vertical;
+            font-family: inherit;
+            font-size: 0.875rem;
+        }
+
+        .result-link {
+            margin-top: 1rem;
+        }
+
+        .company-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: var(--primary);
+            color: white;
+            padding: 0.75rem 1rem;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 0.875rem;
+            transition: all 0.2s ease;
+        }
+
+        .company-link:hover {
+            background: var(--primary-hover);
+        }
+
+        /* Table */
+        .table-container {
+            background: white;
+            border: 1px solid var(--gray-200);
+            border-radius: 8px;
+            overflow-x: auto;
+            margin-top: 1rem;
+        }
+
+        .results-table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 400px;
+        }
+
+        .results-table th,
+        .results-table td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid var(--gray-200);
+            font-size: 0.875rem;
+        }
+
+        .results-table th {
+            background: var(--gray-50);
+            font-weight: 500;
+            color: var(--gray-700);
+        }
+
+        .status-badge {
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .status-success {
+            background: rgba(16,185,129,0.1);
+            color: var(--success);
+        }
+
+        .status-error {
+            background: rgba(239,68,68,0.1);
+            color: var(--error);
+        }
+
+        /* Progress */
+        .progress-container {
+            background: var(--gray-200);
+            height: 6px;
+            border-radius: 3px;
+            margin: 1rem 0;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: var(--primary);
+            transition: width 0.3s ease;
+            border-radius: 3px;
+        }
+
+        /* Alerts */
+        .alert {
+            padding: 1rem;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+            font-size: 0.875rem;
+            display: none;
+        }
+
+        .alert-success {
+            background: rgba(16,185,129,0.1);
+            border: 1px solid var(--success);
+            color: var(--success);
+        }
+
+        .alert-error {
+            background: rgba(239,68,68,0.1);
+            border: 1px solid var(--error);
+            color: var(--error);
+        }
+
+        .alert-warning {
+            background: rgba(245,158,11,0.1);
+            border: 1px solid var(--warning);
+            color: var(--warning);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* Loading */
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            display: none;
+        }
+
+        .loading i {
+            font-size: 2rem;
+            color: var(--primary);
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Navigation Menu */
+        .nav-menu {
+            background: white;
+            border-bottom: 1px solid var(--gray-200);
+            padding: 0.75rem 0;
+        }
+
+        .nav-tabs {
+            display: flex;
+            gap: 0.5rem;
+            overflow-x: auto;
+            padding-bottom: 0.25rem;
+        }
+
+        .nav-tab {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            background: transparent;
+            border: 1px solid var(--gray-200);
+            color: var(--gray-600);
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 0.875rem;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+            cursor: pointer;
+        }
+
+        .nav-tab:hover {
+            background: var(--gray-50);
+            border-color: var(--primary);
+            color: var(--gray-800);
+        }
+
+        .nav-tab.active {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+        }
+
+        .nav-tab i {
+            font-size: 0.875rem;
+        }
+
+        /* Mobile Optimizations */
+        @media (max-width: 640px) {
+            .container {
+                padding: 0 0.75rem;
+            }
+            
+            .hero h1 {
+                font-size: 1.5rem;
+            }
+            
+            .card {
+                padding: 1rem;
+            }
+            
+            .header-content {
+                gap: 0.75rem;
+            }
+            
+            .user-info {
+                gap: 0.5rem;
+            }
+            
+            .btn {
+                padding: 0.5rem 0.75rem;
+                font-size: 0.8rem;
+            }
+            
+            .upload-area {
+                padding: 1.5rem 0.75rem;
+            }
+            
+            .upload-icon {
+                font-size: 1.5rem;
+            }
+
+            /* Mobile navigation */
+            .nav-tabs {
+                gap: 0.25rem;
+            }
+
+            .nav-tab {
+                padding: 0.625rem 0.75rem;
+                font-size: 0.8rem;
+            }
+
+            .nav-tab i {
+                font-size: 0.8rem;
+            }
+            
+            /* Mobile table */
+            .results-table {
+                min-width: auto;
+            }
+            
+            .results-table thead {
+                display: none;
+            }
+            
+            .results-table,
+            .results-table tbody,
+            .results-table tr,
+            .results-table td {
+                display: block;
+                width: 100%;
+            }
+            
+            .results-table tr {
+                border: 1px solid var(--gray-200);
+                margin-bottom: 0.75rem;
+                padding: 0.75rem;
+                border-radius: 6px;
+                background: white;
+            }
+            
+            .results-table td {
+                border: none;
+                padding: 0.25rem 0;
+                position: relative;
+                padding-left: 40%;
+            }
+            
+            .results-table td:before {
+                content: attr(data-label) ": ";
+                position: absolute;
+                left: 0;
+                width: 35%;
+                font-weight: 600;
+                color: var(--gray-600);
+                font-size: 0.75rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <a href="#" class="logo">
+                    <div class="logo-icon">
+                        <i class="fas fa-search"></i>
+                    </div>
+                    <span class="logo-text">Link Finder AI</span>
+                </a>
+                
+                <div class="user-info">
+                    <div id="credits" class="credits">Unlimited</div>
+                    <button class="btn btn-outline" onclick="upgrade()">Upgrade</button>
+                    <button class="btn btn-outline" onclick="logout()">Logout</button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Navigation Menu -->
+    <nav class="nav-menu">
+        <div class="container">
+            <div class="nav-tabs">
+                <a href="#" class="nav-tab active" data-page="finder">
+                    <i class="fas fa-search"></i>
+                    Company URL Finder
+                </a>
+                <a href="#" class="nav-tab" data-page="api">
+                    <i class="fas fa-code"></i>
+                    API Access
+                </a>
+                <a href="#" class="nav-tab" data-page="account">
+                    <i class="fas fa-user"></i>
+                    Account
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="main">
+            <div class="hero">
+                <h1>Company URL Finder</h1>
+                <p>Find company URLs instantly for sales prospecting and lead generation</p>
+            </div>
+
+            <!-- Mode Toggle -->
+            <div class="mode-toggle">
+                <div class="mode-switch">
+                    <button class="mode-option active" onclick="switchMode('single')" id="singleMode">
+                        Single Search
+                    </button>
+                    <button class="mode-option" onclick="switchMode('bulk')" id="bulkMode">
+                        Bulk Search
+                    </button>
+                </div>
+            </div>
+
+            <!-- Alerts -->
+            <div id="alert" class="alert"></div>
+
+            <!-- Single Search -->
+            <div id="singleSearch" class="card">
+                <form onsubmit="findCompanyURL(event)">
+                    <div class="form-group">
+                        <label for="companyName">Company Name</label>
+                        <input type="text" id="companyName" placeholder="e.g., Tesla, Apple, Microsoft" required>
+                    </div>
+                    <button type="submit" class="btn btn-full">
+                        <i class="fas fa-search"></i> Find Company URL
+                    </button>
+                </form>
+            </div>
+
+            <!-- Bulk Search -->
+            <div id="bulkSearch" class="card hidden">
+                <div class="upload-area" onclick="document.getElementById('csvFile').click()">
+                    <i class="fas fa-cloud-upload-alt upload-icon"></i>
+                    <div class="upload-text">Upload CSV File</div>
+                    <div class="upload-subtext">CSV with company names (max 500)</div>
+                    <input type="file" id="csvFile" accept=".csv" class="hidden">
+                    <button type="button" class="btn">
+                        <i class="fas fa-file-csv"></i> Select File
+                    </button>
+                </div>
+
+                <div id="csvPreview" class="hidden">
+                    <h4 style="margin: 1rem 0 0.5rem; font-size: 0.875rem; color: var(--gray-700);">
+                        Preview (first 5 entries)
+                    </h4>
+                    <div id="previewTable"></div>
+                    <button onclick="processBulk()" class="btn btn-full" id="processBulkBtn">
+                        <i class="fas fa-play"></i> Process <span id="itemCount">0</span> Companies
+                    </button>
+                </div>
+            </div>
+
+            <!-- Loading -->
+            <div id="loading" class="loading">
+                <i class="fas fa-spinner"></i>
+                <p style="margin-top: 1rem;">Searching...</p>
+            </div>
+
+            <!-- Results -->
+            <div id="resultsSection" class="hidden">
+                <!-- Single Result -->
+                <div id="singleResult" class="result-card">
+                    <textarea id="resultText" class="result-text" readonly placeholder="Results will appear here..."></textarea>
+                    <div id="resultLink" class="result-link"></div>
+                </div>
+
+                <!-- Bulk Results -->
+                <div id="bulkResults" class="hidden">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <h4 style="font-size: 1rem; color: var(--gray-700);">Results</h4>
+                        <button onclick="downloadResults()" class="btn">
+                            <i class="fas fa-download"></i> Export
+                        </button>
+                    </div>
+                    <div id="progressContainer" class="progress-container hidden">
+                        <div id="progressBar" class="progress-bar" style="width: 0%"></div>
+                    </div>
+                    <div id="bulkResultsTable" class="table-container"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentMode = 'single';
+        let csvData = [];
+        let bulkResults = [];
+        let userToken = null;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            checkAuth();
+            setupFileUpload();
+            setupNavigation();
+        });
+
+        function setupNavigation() {
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                tab.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const page = e.target.closest('.nav-tab').dataset.page;
+                    navigateToPage(page);
+                });
+            });
+        }
+
+        function navigateToPage(page) {
+            // Update active tab
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelector(`[data-page="${page}"]`).classList.add('active');
+
+            // Navigate based on page
+            switch(page) {
+                case 'finder':
+                    // Stay on current page - this is the finder page
+                    break;
+                case 'api':
+                    window.location.href = `api.html?token=${userToken}`;
+                    break;
+                case 'account':
+                    window.location.href = `account.html?token=${userToken}`;
+                    break;
+            }
+        }
+
+        function checkAuth() {
+            const urlParams = new URLSearchParams(window.location.search);
+            let token = urlParams.get('token');
+            
+            if (!token) {
+                token = localStorage.getItem('linkFinderToken');
+            } else {
+                localStorage.setItem('linkFinderToken', token);
+            }
+            
+            if (!token) {
+                window.location.href = 'https://linkfinderai.com/';
+                return;
+            }
+
+            userToken = token;
+        }
+
+        function switchMode(mode) {
+            currentMode = mode;
+            
+            document.getElementById('singleMode').classList.toggle('active', mode === 'single');
+            document.getElementById('bulkMode').classList.toggle('active', mode === 'bulk');
+            
+            document.getElementById('singleSearch').classList.toggle('hidden', mode !== 'single');
+            document.getElementById('bulkSearch').classList.toggle('hidden', mode !== 'bulk');
+            
+            hideResults();
+        }
+
+        async function findCompanyURL(event) {
+            event.preventDefault();
+            
+            const companyName = document.getElementById('companyName').value.trim();
+            if (!companyName) return;
+
+            showLoading();
+            
+            try {
+                const response = await fetch('https://link-finder-company-url.hamoureliasse.workers.dev/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        type: 'company',
+                        company_name: companyName,
+                        is_bulk: false
+                    })
+                });
+
+                const data = await response.json();
+                hideLoading();
+
+                if (data && data.linkedin_url) {
+                    showSingleResult(companyName, data.linkedin_url);
+                } else {
+                    showSingleResult(companyName, 'Not found');
+                }
+
+            } catch (error) {
+                hideLoading();
+                showAlert('Search error. Please try again.', 'error');
+            }
+        }
+
+        function showSingleResult(companyName, url) {
+            const resultText = document.getElementById('resultText');
+            const resultLink = document.getElementById('resultLink');
+            
+            resultText.value = `Company: ${companyName}\nURL: ${url}`;
+            resultLink.innerHTML = '';
+            
+            if (url !== 'Not found') {
+                const link = document.createElement('a');
+                link.href = url.startsWith('http') ? url : 'https://' + url;
+                link.target = '_blank';
+                link.className = 'company-link';
+                link.innerHTML = '<i class="fas fa-external-link-alt"></i> Visit Website';
+                resultLink.appendChild(link);
+            }
+            
+            document.getElementById('resultsSection').classList.remove('hidden');
+            document.getElementById('singleResult').classList.remove('hidden');
+            document.getElementById('bulkResults').classList.add('hidden');
+        }
+
+        function setupFileUpload() {
+            const fileInput = document.getElementById('csvFile');
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    handleFile(e.target.files[0]);
+                }
+            });
+        }
+
+        function handleFile(file) {
+            if (!file.name.toLowerCase().endsWith('.csv')) {
+                showAlert('Please select a CSV file.', 'error');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = (e) => parseCSV(e.target.result);
+            reader.readAsText(file);
+        }
+
+        function parseCSV(csvText) {
+            const lines = csvText.split('\n').filter(line => line.trim());
+            if (lines.length < 2) {
+                showAlert('CSV must contain header and data rows.', 'error');
+                return;
+            }
+
+            const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+            csvData = [];
+
+            const companyIdx = headers.findIndex(h => 
+                ['company_name', 'company name', 'company', 'name'].includes(h.toLowerCase())
+            );
+            
+            if (companyIdx === -1) {
+                showAlert('CSV must contain a company_name column.', 'error');
+                return;
+            }
+
+            for (let i = 1; i < lines.length; i++) {
+                const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
+                if (values[companyIdx]) {
+                    csvData.push({ companyName: values[companyIdx] });
+                }
+            }
+
+            if (csvData.length === 0) {
+                showAlert('No valid data found.', 'error');
+                return;
+            }
+
+            if (csvData.length > 500) {
+                showAlert(`Too many entries (${csvData.length}). Maximum is 500.`, 'error');
+                return;
+            }
+
+            showPreview();
+        }
+
+        function showPreview() {
+            const preview = csvData.slice(0, 5);
+            let html = '<div style="background: var(--gray-50); padding: 0.75rem; border-radius: 6px; font-size: 0.875rem;">';
+            
+            preview.forEach(row => {
+                html += `<div style="padding: 0.25rem 0;">${row.companyName}</div>`;
+            });
+            
+            html += '</div>';
+            
+            document.getElementById('previewTable').innerHTML = html;
+            document.getElementById('itemCount').textContent = csvData.length;
+            document.getElementById('csvPreview').classList.remove('hidden');
+        }
+
+        async function processBulk() {
+            const btn = document.getElementById('processBulkBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+            
+            showProgress();
+            bulkResults = [];
+            
+            for (let i = 0; i < csvData.length; i++) {
+                const row = csvData[i];
+                
+                try {
+                    const response = await fetch('https://link-finder-company-url.hamoureliasse.workers.dev/', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            type: 'company',
+                            company_name: row.companyName,
+                            is_bulk: true
+                        })
+                    });
+
+                    const data = await response.json();
+                    bulkResults.push({
+                        companyName: row.companyName,
+                        url: data?.linkedin_url || 'Not found',
+                        status: data?.linkedin_url ? 'Found' : 'Not found'
+                    });
+
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                } catch (error) {
+                    bulkResults.push({
+                        companyName: row.companyName,
+                        url: 'Error',
+                        status: 'Error'
+                    });
+                }
+
+                updateProgress((i + 1) / csvData.length * 100);
+            }
+
+            showBulkResults();
+            btn.disabled = false;
+            btn.innerHTML = `<i class="fas fa-play"></i> Process ${csvData.length} Companies`;
+        }
+
+        function showProgress() {
+            document.getElementById('progressContainer').classList.remove('hidden');
+        }
+
+        function updateProgress(percent) {
+            document.getElementById('progressBar').style.width = `${percent}%`;
+        }
+
+        function showBulkResults() {
+            let html = '<table class="results-table"><thead><tr><th>Company</th><th>URL</th><th>Status</th></tr></thead><tbody>';
+
+            bulkResults.forEach(row => {
+                const statusClass = row.status === 'Found' ? 'status-success' : 'status-error';
+                let urlCell = row.url;
+                
+                if (row.url !== 'Not found' && row.url !== 'Error') {
+                    const url = row.url.startsWith('http') ? row.url : 'https://' + row.url;
+                    urlCell = `<a href="${url}" target="_blank" style="color: var(--primary);">${row.url}</a>`;
+                }
+
+                html += `<tr>
+                    <td data-label="Company">${row.companyName}</td>
+                    <td data-label="URL">${urlCell}</td>
+                    <td data-label="Status"><span class="status-badge ${statusClass}">${row.status}</span></td>
+                </tr>`;
+            });
+
+            html += '</tbody></table>';
+            
+            document.getElementById('bulkResultsTable').innerHTML = html;
+            document.getElementById('resultsSection').classList.remove('hidden');
+            document.getElementById('singleResult').classList.add('hidden');
+            document.getElementById('bulkResults').classList.remove('hidden');
+        }
+
+        function downloadResults() {
+            if (bulkResults.length === 0) return;
+
+            let csvContent = 'Company Name,Company URL,Status\n';
+            bulkResults.forEach(row => {
+                csvContent += `"${row.companyName}","${row.url}","${row.status}"\n`;
+            });
+
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `company_urls.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function showLoading() {
+            document.getElementById('loading').style.display = 'block';
+            hideResults();
+        }
+
+        function hideLoading() {
+            document.getElementById('loading').style.display = 'none';
+        }
+
+        function hideResults() {
+            document.getElementById('resultsSection').classList.add('hidden');
+        }
+
+        function showAlert(message, type) {
+            const alert = document.getElementById('alert');
+            alert.textContent = message;
+            alert.className = `alert alert-${type}`;
+            alert.style.display = 'block';
+            
+            setTimeout(() => {
+                alert.style.display = 'none';
+            }, 5000);
+        }
+
+        function upgrade() {
+            window.location.href = `https://linkfinderai.com/pricing?token=${userToken}`;
+        }
+
+        function logout() {
+            localStorage.removeItem('linkFinderToken');
+            window.location.href = 'https://linkfinderai.com/';
+        }
+    </script>
+</body>
+</html>
