@@ -146,6 +146,9 @@
       padding: 2rem;
       margin-bottom: 3rem;
       box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
     }
 
     /* Buttons */
@@ -234,7 +237,7 @@
       border-radius: 8px;
       padding: 0.25rem;
       width: 100%;
-      max-width: 400px;
+      max-width: 320px;
     }
 
     .mode-option {
@@ -1305,7 +1308,7 @@
       resultLink.innerHTML = '';
 
       try {
-        const response = await fetch('https://link-finder-company-url.hamoureliasse.workers.dev/', {
+        const response = await fetch('https://eliasse-n8n.onrender.com/webhook/1c41832b-fecf-4bbe-b054-3e9d1f2e231e', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(requestBody)
@@ -1317,7 +1320,12 @@
           resultText.value = `Found: ${data.linkedin_url}`;
           
           const link = document.createElement('a');
-          link.href = data.linkedin_url;
+          // Fix URL to ensure it has protocol
+          let url = data.linkedin_url;
+          if (!url.startsWith('http://') && !url.startsWith('https://')) {
+            url = 'https://' + url;
+          }
+          link.href = url;
           link.target = '_blank';
           link.rel = 'noopener noreferrer';
           link.className = 'company-link';
@@ -1519,9 +1527,18 @@
 
       bulkResults.forEach(row => {
         const statusClass = row.status === 'Found' ? 'status-success' : 'status-error';
-        const urlCell = row.companyUrl !== 'Not found' && row.companyUrl !== 'Error' ?
-          `<a href="${row.companyUrl}" target="_blank" style="color: var(--primary);">${row.companyUrl}</a>` :
-          row.companyUrl;
+        let urlCell;
+        
+        if (row.companyUrl !== 'Not found' && row.companyUrl !== 'Error') {
+          // Fix URL to ensure it has protocol
+          let url = row.companyUrl;
+          if (!url.startsWith('http://') && !url.startsWith('https://')) {
+            url = 'https://' + url;
+          }
+          urlCell = `<a href="${url}" target="_blank" style="color: var(--primary);">${row.companyUrl}</a>`;
+        } else {
+          urlCell = row.companyUrl;
+        }
 
         tableHTML += `<tr><td>${row.companyName}</td><td>${urlCell}</td><td><span class="status-badge ${statusClass}">${row.status}</span></td></tr>`;
       });
