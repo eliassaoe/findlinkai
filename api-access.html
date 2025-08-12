@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Access - Link Finder AI</title>
+    <link rel="icon" href="https://i.ibb.co/jPjX9SSp/Screen-Shot-2025-03-28-at-8-16-15-PM.png">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-400: #9ca3af;
+            --gray-500: #6b7280;
+            --gray-600: #4b5563;
+            --gray-700: #374151;
+            --gray-800: #1f2937;
+            --gray-900: #111827;
+            --success: #10b981;
+            --error: #ef4444;
+            --warning: #f59e0b;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: white;
+            color: var(--gray-800);
+            line-height: 1.6;
+            font-size: 16px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 0 1rem;
+        }
+
+        /* Header */
+        .header {
+            padding: 1rem 0;
+            border-bottom: 1px solid var(--gray-200);
+            background: white;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--gray-900);
+            text-decoration: none;
+        }
+
+        .logo-icon {
+            width: 32px;
+            height: 32px;
+            background: var(--primary);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1rem;
+        }
+
+        .logo-text {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--gray-900);
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 0.875rem;
+        }
+
+        .btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-weight: 500;
+            cursor: pointer;
+            font-size: 0.875rem;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-decoration: none;
+        }
+
+        .btn:hover {
+            background: var(--primary-hover);
+        }
+
+        .btn-outline {
+            background: transparent;
+            color: var(--primary);
+            border: 1px solid var(--gray-300);
+        }
+
+        .btn-outline:hover {
+            background: var(--gray-50);
+            border-color: var(--primary);
+        }
+
+        .btn-secondary {
+            background: var(--gray-600);
+        }
+
+        .btn-secondary:hover {
+            background: var(--gray-700);
+        }
+
+        .btn-success {
+            background: var(--success);
+        }
+
+        .btn-success:hover {
+            background: #059669;
+        }
+
+        /* Navigation Menu */
+        .nav-menu {
+            background: white;
+            border-bottom: 1px solid var(--gray-200);
+            padding: 0.75rem 0;
+        }
+
+        .nav-tabs {
+            display: flex;
+            gap: 0.5rem;
+            overflow-x: auto;
+            padding-bottom: 0.25rem;
+        }
+
+        .nav-tab {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            background: transparent;
+            border: 1px solid var(--gray-200);
+            color: var(--gray-600);
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 0.875rem;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+            cursor: pointer;
+        }
+
+        .nav-tab:hover {
+            background: var(--gray-50);
+            border-color: var(--primary);
+            color: var(--gray-800);
+        }
+
+        .nav-tab.active {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+        }
+
+        .nav-tab i {
+            font-size: 0.875rem;
+        }
+
+        /* Main Content */
+        .main {
+            padding: 2rem 0;
+        }
+
+        .page-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .page-header h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--gray-900);
+            margin-bottom: 0.5rem;
+        }
+
+        .page-header p {
+            color: var(--gray-600);
+            font-size: 1rem;
+        }
+
+        /* Cards */
+        .card {
+            background: white;
+            border: 1px solid var(--gray-200);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+        }
+
+        .card h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--gray-900);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .card p {
+            color: var(--gray-600);
+            margin-bottom: 1rem;
+            line-height: 1.6;
+        }
+
+        /* API Key Section */
+        .api-key-container {
+            background: var(--gray-50);
+            border: 1px solid var(--gray-200);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .api-key-label {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--gray-700);
+            margin-bottom: 0.5rem;
+        }
+
+        .api-key-input-group {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .api-key-input {
+            flex: 1;
+            padding: 0.75rem;
+            border: 1px solid var(--gray-300);
+            border-radius: 6px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.875rem;
+            background: white;
+            color: var(--gray-800);
+            user-select: all;
+        }
+
+        .api-key-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .copy-btn {
+            padding: 0.75rem;
+            min-width: 44px;
+        }
+
+        /* Documentation Section */
+        .doc-section {
+            text-align: center;
+        }
+
+        .doc-section .btn {
+            font-size: 1rem;
+            padding: 1rem 2rem;
+        }
+
+        /* Success Message */
+        .success-message {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid var(--success);
+            color: var(--success);
+            padding: 0.75rem 1rem;
+            border-radius: 6px;
+            margin-top: 0.5rem;
+            font-size: 0.875rem;
+            display: none;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .success-message.show {
+            display: flex;
+        }
+
+        /* Features List */
+        .features-list {
+            list-style: none;
+            margin: 1rem 0;
+        }
+
+        .features-list li {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.5rem;
+            padding: 0.5rem 0;
+            font-size: 0.875rem;
+        }
+
+        .features-list .check {
+            color: var(--success);
+            font-weight: 600;
+            margin-top: 0.1rem;
+        }
+
+        /* Mobile Optimizations */
+        @media (max-width: 640px) {
+            .container {
+                padding: 0 0.75rem;
+            }
+            
+            .page-header h1 {
+                font-size: 1.5rem;
+            }
+            
+            .card {
+                padding: 1rem;
+            }
+            
+            .header-content {
+                gap: 0.75rem;
+            }
+            
+            .user-info {
+                gap: 0.5rem;
+            }
+            
+            .nav-tabs {
+                gap: 0.25rem;
+            }
+
+            .nav-tab {
+                padding: 0.625rem 0.75rem;
+                font-size: 0.8rem;
+            }
+
+            .nav-tab i {
+                font-size: 0.8rem;
+            }
+
+            .api-key-input-group {
+                flex-direction: column;
+            }
+
+            .copy-btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <a href="#" class="logo">
+                    <div class="logo-icon">
+                        <i class="fas fa-search"></i>
+                    </div>
+                    <span class="logo-text">Link Finder AI</span>
+                </a>
+                
+                <div class="user-info">
+                    <button class="btn btn-outline" onclick="showPricingModal()">Upgrade</button>
+                    <button class="btn btn-outline" onclick="logout()">Logout</button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Navigation Menu -->
+    <nav class="nav-menu">
+        <div class="container">
+            <div class="nav-tabs">
+                <a href="#" class="nav-tab" data-page="finder">
+                    <i class="fas fa-search"></i>
+                    Company URL Finder
+                </a>
+                <a href="#" class="nav-tab active" data-page="api">
+                    <i class="fas fa-code"></i>
+                    API Access
+                </a>
+                <a href="#" class="nav-tab" data-page="account">
+                    <i class="fas fa-user"></i>
+                    Account
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="main">
+            <div class="page-header">
+                <h1>API Access</h1>
+                <p>Use our powerful API to integrate company URL finding into your applications</p>
+            </div>
+
+            <!-- API Key Card -->
+            <div class="card">
+                <h2>
+                    <i class="fas fa-key"></i>
+                    Your API Key
+                </h2>
+                <p>Use this API key to authenticate your requests. Keep it secure and don't share it publicly.</p>
+                
+                <div class="api-key-container">
+                    <div class="api-key-label">API Key</div>
+                    <div class="api-key-input-group">
+                        <input 
+                            type="text" 
+                            id="apiKeyInput" 
+                            class="api-key-input" 
+                            value="lf_api_Ko9F9EocMNVzjTtk_d8f9a2b1c3e4f5g6h7i8j9k0l1m2n3o4p5q6r7s8t9u0v1w2x3y4z5" 
+                            readonly
+                        >
+                        <button class="btn copy-btn" onclick="copyApiKey()">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
+                    <div id="copySuccess" class="success-message">
+                        <i class="fas fa-check"></i>
+                        API key copied to clipboard!
+                    </div>
+                </div>
+
+                <ul class="features-list">
+                    <li><span class="check">✓</span> Unlimited API calls with your subscription</li>
+                    <li><span class="check">✓</span> Rate limit: 10 requests per 30 seconds</li>
+                    <li><span class="check">✓</span> JSON responses with company URLs</li>
+                    <li><span class="check">✓</span> Support for both single and batch requests</li>
+                </ul>
+            </div>
+
+            <!-- Documentation Card -->
+            <div class="card">
+                <h2>
+                    <i class="fas fa-book"></i>
+                    API Documentation
+                </h2>
+                <p>Learn how to integrate our API with detailed documentation, code examples, and endpoint references.</p>
+                
+                <div class="doc-section">
+                    <a href="https://linkfinderai.com/api-documentation" target="_blank" class="btn">
+                        <i class="fas fa-external-link-alt"></i>
+                        View API Documentation
+                    </a>
+                </div>
+            </div>
+
+            <!-- Quick Start Card -->
+            <div class="card">
+                <h2>
+                    <i class="fas fa-rocket"></i>
+                    Quick Start Example
+                </h2>
+                <p>Here's a simple example of how to use our API to find a company URL:</p>
+                
+                <div class="api-key-container">
+                    <div class="api-key-label">cURL Example</div>
+                    <div class="api-key-input-group">
+                        <textarea 
+                            id="curlExample" 
+                            class="api-key-input" 
+                            readonly 
+                            rows="4" 
+                            style="resize: vertical; min-height: 100px;"
+                        >curl -X POST https://link-finder-company-url.hamoureliasse.workers.dev/ \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer lf_api_Ko9F9EocMNVzjTtk_d8f9a2b1c3e4f5g6h7i8j9k0l1m2n3o4p5q6r7s8t9u0v1w2x3y4z5" \
+  -d '{"type": "company", "company_name": "Tesla"}'</textarea>
+                        <button class="btn copy-btn" onclick="copyCurlExample()">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
+                    <div id="curlCopySuccess" class="success-message">
+                        <i class="fas fa-check"></i>
+                        Code example copied to clipboard!
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let userToken = null;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            checkAuth();
+            setupNavigation();
+        });
+
+        function checkAuth() {
+            const urlParams = new URLSearchParams(window.location.search);
+            let token = urlParams.get('token');
+            
+            if (!token) {
+                token = localStorage.getItem('linkFinderToken');
+            } else {
+                localStorage.setItem('linkFinderToken', token);
+            }
+            
+            if (!token) {
+                window.location.href = 'https://linkfinderai.com/';
+                return;
+            }
+
+            userToken = token;
+        }
+
+        function setupNavigation() {
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                tab.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const page = e.target.closest('.nav-tab').dataset.page;
+                    navigateToPage(page);
+                });
+            });
+        }
+
+        function navigateToPage(page) {
+            switch(page) {
+                case 'finder':
+                    window.location.href = `app?token=${userToken}`;
+                    break;
+                case 'api':
+                    // Stay on current page
+                    break;
+                case 'account':
+                    window.location.href = `account.html?token=${userToken}`;
+                    break;
+            }
+        }
+
+        function copyApiKey() {
+            const apiKeyInput = document.getElementById('apiKeyInput');
+            apiKeyInput.select();
+            apiKeyInput.setSelectionRange(0, 99999); // For mobile devices
+            
+            navigator.clipboard.writeText(apiKeyInput.value).then(() => {
+                showSuccessMessage('copySuccess');
+            }).catch(() => {
+                // Fallback for older browsers
+                document.execCommand('copy');
+                showSuccessMessage('copySuccess');
+            });
+        }
+
+        function copyCurlExample() {
+            const curlExample = document.getElementById('curlExample');
+            curlExample.select();
+            curlExample.setSelectionRange(0, 99999);
+            
+            navigator.clipboard.writeText(curlExample.value).then(() => {
+                showSuccessMessage('curlCopySuccess');
+            }).catch(() => {
+                document.execCommand('copy');
+                showSuccessMessage('curlCopySuccess');
+            });
+        }
+
+        function showSuccessMessage(elementId) {
+            const successMessage = document.getElementById(elementId);
+            successMessage.classList.add('show');
+            
+            setTimeout(() => {
+                successMessage.classList.remove('show');
+            }, 3000);
+        }
+
+        function showPricingModal() {
+            // This would show a pricing modal like in the main app
+            window.location.href = 'https://linkfinderai.com/pricing';
+        }
+
+        function logout() {
+            localStorage.removeItem('linkFinderToken');
+            window.location.href = 'https://linkfinderai.com/';
+        }
+    </script>
+</body>
+</html>
