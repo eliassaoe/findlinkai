@@ -336,7 +336,142 @@
             margin-top: 0.1rem;
         }
 
-        /* Mobile Optimizations */
+        /* Pricing Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+            padding: 1rem;
+        }
+
+        .modal-overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .pricing-modal {
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            max-width: 480px;
+            width: 100%;
+            position: relative;
+            transform: scale(0.9);
+            transition: transform 0.3s ease;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+
+        .modal-overlay.show .pricing-modal {
+            transform: scale(1);
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: var(--gray-100);
+            border: none;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--gray-500);
+            transition: all 0.2s ease;
+        }
+
+        .modal-close:hover {
+            background: var(--gray-200);
+            color: var(--gray-700);
+        }
+
+        .pricing-modal-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .pricing-modal-header h2 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--gray-900);
+            margin-bottom: 0.5rem;
+        }
+
+        .pricing-modal-header p {
+            color: var(--gray-600);
+            font-size: 1rem;
+        }
+
+        .pricing-modal-price {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .price-amount {
+            font-size: 3rem;
+            font-weight: 700;
+            color: var(--primary);
+            line-height: 1;
+        }
+
+        .price-period {
+            color: var(--gray-600);
+            font-size: 1rem;
+            margin-top: 0.25rem;
+        }
+
+        .pricing-modal-features {
+            list-style: none;
+            margin-bottom: 2rem;
+        }
+
+        .pricing-modal-features li {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            padding: 0.75rem 0;
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        .feature-check {
+            color: var(--success);
+            font-weight: 600;
+            font-size: 1rem;
+            margin-top: 0.1rem;
+        }
+
+        .pricing-modal-cta {
+            margin-bottom: 1rem;
+        }
+
+        .pricing-modal-cta .btn {
+            width: 100%;
+            padding: 1rem;
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        .pricing-modal-note {
+            text-align: center;
+            font-size: 0.8rem;
+            color: var(--gray-500);
+            font-style: italic;
+            border-top: 1px solid var(--gray-200);
+            padding-top: 1rem;
+        }
         @media (max-width: 640px) {
             .container {
                 padding: 0 0.75rem;
@@ -357,35 +492,67 @@
             .user-info {
                 gap: 0.5rem;
             }
+
+            .user-info .btn {
+                padding: 0.5rem 0.75rem;
+                font-size: 0.8rem;
+                min-height: 36px;
+            }
             
             .btn {
                 padding: 0.5rem 0.75rem;
                 font-size: 0.8rem;
             }
             
-            /* Mobile navigation */
+            /* Mobile navigation optimizations */
             .nav-tabs {
                 gap: 0.25rem;
+                -webkit-overflow-scrolling: touch;
             }
 
             .nav-tab {
                 padding: 0.625rem 0.75rem;
                 font-size: 0.8rem;
+                min-height: 40px;
+                flex-shrink: 0;
             }
 
             .nav-tab i {
                 font-size: 0.8rem;
             }
 
-            .api-key-input-group {
-                flex-direction: column;
-            }
-
+            /* Touch-friendly buttons */
             .copy-btn {
                 width: 100%;
                 padding: 0.75rem;
+                min-height: 44px;
             }
 
+            .btn {
+                min-height: 44px;
+                padding: 0.625rem 0.875rem;
+                font-size: 0.875rem;
+            }
+
+            /* Better input handling on mobile */
+            .api-key-input-group {
+                flex-direction: column;
+                gap: 0.75rem;
+            }
+
+            .api-key-input {
+                font-size: 16px; /* Prevents zoom on iOS */
+                padding: 0.75rem;
+                min-height: 44px;
+            }
+
+            textarea.api-key-input {
+                min-height: 100px;
+                font-size: 14px;
+                line-height: 1.4;
+            }
+
+            /* Content adjustments */
             .card h2 {
                 font-size: 1.125rem;
             }
@@ -408,23 +575,13 @@
                 width: 100%;
             }
 
-            .api-key-input {
-                font-size: 0.8rem;
-                padding: 0.625rem;
-            }
-
             .api-key-label {
-                font-size: 0.8rem;
+                font-size: 0.875rem;
             }
 
             .success-message {
                 font-size: 0.8rem;
                 padding: 0.625rem 0.875rem;
-            }
-
-            textarea.api-key-input {
-                min-height: 80px;
-                font-size: 0.75rem;
             }
         }
     </style>
@@ -561,6 +718,63 @@
         </div>
     </div>
 
+    <!-- Pricing Modal -->
+    <div id="pricingModal" class="modal-overlay">
+        <div class="pricing-modal">
+            <button class="modal-close" onclick="closePricingModal()">
+                <i class="fas fa-times"></i>
+            </button>
+            
+            <div class="pricing-modal-header">
+                <h2>Upgrade to Pro</h2>
+                <p>Unlimited access to all features</p>
+            </div>
+            
+            <div class="pricing-modal-price">
+                <div class="price-amount">$29</div>
+                <div class="price-period">per month</div>
+            </div>
+            
+            <ul class="pricing-modal-features">
+                <li>
+                    <span class="feature-check">✓</span>
+                    <span><strong>Unlimited</strong> company URL searches</span>
+                </li>
+                <li>
+                    <span class="feature-check">✓</span>
+                    <span>Batch processing (CSV upload)</span>
+                </li>
+                <li>
+                    <span class="feature-check">✓</span>
+                    <span>API access included</span>
+                </li>
+                <li>
+                    <span class="feature-check">✓</span>
+                    <span>Export results to CSV</span>
+                </li>
+                <li>
+                    <span class="feature-check">✓</span>
+                    <span>Priority support</span>
+                </li>
+                <li>
+                    <span class="feature-check">✓</span>
+                    <span>No credit limits</span>
+                </li>
+            </ul>
+            
+            <div class="pricing-modal-cta">
+                <button class="btn" onclick="window.location.href='https://linkfinderai.com/pricing?token=' + userToken">
+                    <i class="fas fa-rocket"></i>
+                    Get Started Now
+                </button>
+            </div>
+            
+            <div class="pricing-modal-note">
+                Rate limit: 10 searches per 30 seconds
+            </div>
+        </div>
+    </div>
+
     <script>
         let userToken = null;
 
@@ -568,7 +782,25 @@
         document.addEventListener('DOMContentLoaded', () => {
             checkAuth();
             setupNavigation();
+            setupModalEvents();
         });
+
+        function setupModalEvents() {
+            // Close modal when clicking outside
+            document.addEventListener('click', (e) => {
+                const modal = document.getElementById('pricingModal');
+                if (e.target === modal) {
+                    closePricingModal();
+                }
+            });
+
+            // Close modal with Escape key
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    closePricingModal();
+                }
+            });
+        }
 
         function checkAuth() {
             const urlParams = new URLSearchParams(window.location.search);
@@ -601,13 +833,13 @@
         function navigateToPage(page) {
             switch(page) {
                 case 'finder':
-                    window.location.href = `app?token=${userToken}`;
+                    window.location.href = `https://linkfinderai.com/app?token=${userToken}`;
                     break;
                 case 'api':
                     // Stay on current page
                     break;
                 case 'account':
-                    window.location.href = `account.html?token=${userToken}`;
+                    window.location.href = `https://linkfinderai.com/account?token=${userToken}`;
                     break;
             }
         }
@@ -649,8 +881,8 @@
         }
 
         function showPricingModal() {
-            // This would show a pricing modal like in the main app
-            window.location.href = 'https://linkfinderai.com/pricing';
+            document.getElementById('pricingModal').classList.add('show');
+            document.body.style.overflow = 'hidden';
         }
 
         function logout() {
