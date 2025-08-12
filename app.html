@@ -912,13 +912,180 @@
         let bulkResults = [];
         let userToken = null;
 
+        // Global functions - declared at global scope
+        function showPricingModal() {
+            document.getElementById('pricingModal').classList.add('show');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closePricingModal() {
+            document.getElementById('pricingModal').classList.remove('show');
+            document.body.style.overflow = '';
+        }
+
+        function upgrade() {
+            showPricingModal();
+        }
+
+        function logout() {
+            localStorage.removeItem('linkFinderToken');
+            window.location.href = 'https://linkfinderai.com/';
+        }
+
+        function switchMode(mode) {
+            currentMode = mode;
+            
+            document.getElementById('singleMode').classList.toggle('active', mode === 'single');
+            document.getElementById('bulkMode').classList.toggle('active', mode === 'bulk');
+            
+            document.getElementById('singleSearch').classList.toggle('hidden', mode !== 'single');
+            document.getElementById('bulkSearch').classList.toggle('hidden', mode !== 'bulk');
+            
+            hideResults();
+        }
+
+        async function findCompanyURL(event) {
+            event.preventDefault();
+            
+            const companyName = document.getElementById('companyName').value.trim();
+            if (!companyName) return;
+
+            showLoading();
+            
+            try {
+                const response = await fetch('https://link-finder-company-url.hamoureliasse.workers.dev/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        type: 'company',
+                        company_name: companyName,
+                        is_bulk: false
+                    })
+                });
+
+                const data = await response.json();
+                hideLoading();
+
+                if (data && data.linkedin_url) {
+                    showSingleResult(companyName, data.linkedin_url);
+                } else {
+                    showSingleResult(companyName, 'Not found');
+                }
+
+            } catch (error) {
+                hideLoading();
+                showAlert('Search error. Please try again.', 'error');
+            }
+        }
+
+        async function processBulk() {
+            const btn = document.getElementById('processBulkBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+            
+            // Hide the preview section to make results more visible
+            document.getElementById('csvPreview').classList.add('hidden');
+            
+            // Show results section immediately with empty table
+            document.getElementById('resultsSection').classList.remove('hidden');
+            document.getElementById('singleResult').classList.add('hidden');
+            document.getElementById('bulkResults').classList.remove('hidden');
+            
+            showProgress();
+            bulkResults = [];
+            
+            // Initialize empty table
+            initializeBulkResultsTable();
+            
+            for (let i = 0; i < csvData.length; i++) {
+                const row = csvData[i];
+                
+                // Add row with "Searching..." status first
+                const searchingResult = {
+                    companyName: row.companyName,
+                    url: 'Searching...',
+                    status: 'Processing'
+                };
+                bulkResults.push(searchingResult);
+                updateBulkResultsTable();
+                
+                try {
+                    // Individual API call for each company
+                    const response = await fetch('https://link-finder-company-url.hamoureliasse.workers.dev/', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            type: 'company',
+                            company_name: row.companyName,
+                            is_bulk: true
+                        })
+                    });
+
+                    const data = await response.json();
+                    
+                    // Update the result immediately after API response
+                    bulkResults[i] = {
+                        companyName: row.companyName,
+                        url: data?.linkedin_url || 'Not found',
+                        status: data?.linkedin_url ? 'Website found' : 'Not found'
+                    };
+
+                } catch (error) {
+                    console.error(`Error for ${row.companyName}:`, error);
+                    bulkResults[i] = {
+                        companyName: row.companyName,
+                        url: 'Error',
+                        status: 'Error'
+                    };
+                }
+
+                // Update progress bar and table after each API call
+                updateProgress((i + 1) / csvData.length * 100);
+                updateBulkResultsTable();
+                
+                // Small delay to avoid overwhelming the API
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+
+            btn.disabled = false;
+            btn.innerHTML = `<i class="fas fa-play"></i> Process ${csvData.length} Companies`;
+        }
+
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
             checkAuth();
             setupFileUpload();
             setupDragAndDrop();
             setupNavigation();
+            setupModalEvents();
         });
+
+        function setupModalEvents() {
+            // Close modal when clicking outside
+            document.addEventListener('click', (e) => {
+                const modal = document.getElementById('pricingModal');
+                if (e.target === modal) {
+                    closePricingModal();
+                }
+            });
+
+            // Close modal with Escape key
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    closePricingModal();
+                }
+            });
+        }
+
+        function showPricingModal() {
+            document.getElementById('pricingModal').classList.add('show');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closePricingModal() {
+            document.getElementById('pricingModal').classList.remove('show');
+            document.body.style.overflow = '';
+        }
 
         function setupNavigation() {
             document.querySelectorAll('.nav-tab').forEach(tab => {
@@ -967,18 +1134,6 @@
             }
 
             userToken = token;
-        }
-
-        function switchMode(mode) {
-            currentMode = mode;
-            
-            document.getElementById('singleMode').classList.toggle('active', mode === 'single');
-            document.getElementById('bulkMode').classList.toggle('active', mode === 'bulk');
-            
-            document.getElementById('singleSearch').classList.toggle('hidden', mode !== 'single');
-            document.getElementById('bulkSearch').classList.toggle('hidden', mode !== 'bulk');
-            
-            hideResults();
         }
 
         async function findCompanyURL(event) {
@@ -1154,79 +1309,6 @@
             document.getElementById('csvPreview').classList.remove('hidden');
         }
 
-        async function processBulk() {
-            const btn = document.getElementById('processBulkBtn');
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
-            
-            // Hide the preview section to make results more visible
-            document.getElementById('csvPreview').classList.add('hidden');
-            
-            // Show results section immediately with empty table
-            document.getElementById('resultsSection').classList.remove('hidden');
-            document.getElementById('singleResult').classList.add('hidden');
-            document.getElementById('bulkResults').classList.remove('hidden');
-            
-            showProgress();
-            bulkResults = [];
-            
-            // Initialize empty table
-            initializeBulkResultsTable();
-            
-            for (let i = 0; i < csvData.length; i++) {
-                const row = csvData[i];
-                
-                // Add row with "Searching..." status first
-                const searchingResult = {
-                    companyName: row.companyName,
-                    url: 'Searching...',
-                    status: 'Processing'
-                };
-                bulkResults.push(searchingResult);
-                updateBulkResultsTable();
-                
-                try {
-                    // Individual API call for each company
-                    const response = await fetch('https://link-finder-company-url.hamoureliasse.workers.dev/', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            type: 'company',
-                            company_name: row.companyName,
-                            is_bulk: true
-                        })
-                    });
-
-                    const data = await response.json();
-                    
-                    // Update the result immediately after API response
-                    bulkResults[i] = {
-                        companyName: row.companyName,
-                        url: data?.linkedin_url || 'Not found',
-                        status: data?.linkedin_url ? 'Website found' : 'Not found'
-                    };
-
-                } catch (error) {
-                    console.error(`Error for ${row.companyName}:`, error);
-                    bulkResults[i] = {
-                        companyName: row.companyName,
-                        url: 'Error',
-                        status: 'Error'
-                    };
-                }
-
-                // Update progress bar and table after each API call
-                updateProgress((i + 1) / csvData.length * 100);
-                updateBulkResultsTable();
-                
-                // Small delay to avoid overwhelming the API
-                await new Promise(resolve => setTimeout(resolve, 100));
-            }
-
-            btn.disabled = false;
-            btn.innerHTML = `<i class="fas fa-play"></i> Process ${csvData.length} Companies`;
-        }
-
         function showProgress() {
             document.getElementById('progressContainer').classList.remove('hidden');
             document.getElementById('progressBar').style.width = '0%';
@@ -1341,7 +1423,7 @@
         }
 
         function upgrade() {
-            window.location.href = `https://linkfinderai.com/pricing?token=${userToken}`;
+            showPricingModal();
         }
 
         function logout() {
