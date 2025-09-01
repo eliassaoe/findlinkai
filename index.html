@@ -998,14 +998,15 @@
     }
 
     function checkAuthState() {
-      const userData = localStorage.getItem('companyFinderUser');
-      if (userData) {
-        currentUser = JSON.parse(userData);
-        searchCount = parseInt(localStorage.getItem('searchCount') || '0');
-        bulkSearchUsed = localStorage.getItem('bulkSearchUsed') === 'true';
-        showUserInfo();
-      }
-    }
+  const userData = localStorage.getItem('companyFinderUser');
+  if (userData) {
+    currentUser = JSON.parse(userData);
+  }
+  searchCount = parseInt(localStorage.getItem('searchCount') || '0'); // ✅ restore
+  bulkSearchUsed = localStorage.getItem('bulkSearchUsed') === 'true';
+  showUserInfo();
+}
+
 
     function showUserInfo() {
       document.getElementById('authButtons').classList.add('hidden');
@@ -1053,18 +1054,14 @@
       return true;
     }
 
-    function updateSearchCount() {
-      if (!currentUser || !currentUser.isPremium) {
-        if (currentMode === 'bulk') {
-          bulkSearchUsed = true;
-          localStorage.setItem('bulkSearchUsed', 'true');
-        } else {
-          searchCount++;
-          localStorage.setItem('searchCount', searchCount.toString());
-          document.getElementById('searchCount').textContent = searchCount;
-        }
-      }
-    }
+    function updateSearchCount(increment = 1) {
+  if (!currentUser || !currentUser.isPremium) {
+    searchCount += increment;
+    localStorage.setItem('searchCount', searchCount); // ✅ always save
+    document.getElementById('searchCount').textContent = searchCount;
+  }
+}
+
 
     function updateUI() {
       const hasAccess = checkSearchLimit();
@@ -1404,6 +1401,8 @@
     }
 
     document.addEventListener('DOMContentLoaded', initApp);
+    checkAuthState();
+
   </script>
 </body>
 </html>
