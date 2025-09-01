@@ -964,19 +964,33 @@
         }
 
         async function fetchCredits() {
-    if (!userToken) return;
+    console.log('fetchCredits called, userToken:', userToken);
+    
+    if (!userToken) {
+        console.log('No token available');
+        return;
+    }
     
     try {
+        console.log('Sending request to credits API...');
         const response = await fetch('https://linkfinderaicredits.hamoureliasse.workers.dev/', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ token: userToken })
         });
 
+        console.log('Response received:', response.status);
+        
         if (response.ok) {
             const data = await response.json();
+            console.log('Credits data:', data);
             const credits = data.credits || 0;
             document.getElementById('creditsCount').textContent = credits;
+        } else {
+            console.error('API returned error:', response.status);
+            const errorText = await response.text();
+            console.error('Error details:', errorText);
+            document.getElementById('creditsCount').textContent = '?';
         }
     } catch (error) {
         console.error('Error fetching credits:', error);
