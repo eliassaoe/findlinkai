@@ -133,6 +133,23 @@
             background: var(--gray-700);
         }
 
+        .credits {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: var(--gray-100);
+    padding: 0.5rem 0.75rem;
+    border-radius: 1rem;
+    font-weight: 500;
+    color: var(--gray-700);
+    font-size: 0.875rem;
+}
+
+.credits i {
+    color: var(--warning);
+    font-size: 0.875rem;
+}
+
         /* Navigation Menu */
         .nav-menu {
             background: white;
@@ -529,10 +546,14 @@
                     <span class="logo-text">Link Finder AI</span>
                 </a>
                 
-                <div class="user-info">
-                    <button class="btn btn-outline" onclick="showPricingModal()">Upgrade</button>
-                    <button class="btn btn-outline" onclick="logout()">Logout</button>
-                </div>
+               <div class="user-info">
+    <div class="credits" id="creditsDisplay">
+        <i class="fas fa-coins"></i>
+        <span id="creditsCount">--</span> credits
+    </div>
+    <button class="btn btn-outline" onclick="showPricingModal()">Upgrade</button>
+    <button class="btn btn-outline" onclick="logout()">Logout</button>
+</div>
             </div>
         </div>
     </header>
@@ -672,6 +693,7 @@
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
             checkAuth();
+            fetchCredits();
             setupNavigation();
             setupModalEvents();
             loadUserPlan();
@@ -714,6 +736,27 @@
                 document.getElementById('priorityFeature').style.display = 'flex';
             }
         }
+
+        async function fetchCredits() {
+    if (!userToken) return;
+    
+    try {
+        const response = await fetch('https://linkfinderaicredits.hamoureliasse.workers.dev/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: userToken })
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            const credits = data.credits || 0;
+            document.getElementById('creditsCount').textContent = credits;
+        }
+    } catch (error) {
+        console.error('Error fetching credits:', error);
+        document.getElementById('creditsCount').textContent = '?';
+    }
+}
 
         function setupNavigation() {
             document.querySelectorAll('.nav-tab').forEach(tab => {
