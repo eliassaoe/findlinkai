@@ -833,14 +833,38 @@
         }
 
         function managePlan() {
-            if (isPremiumUser) {
-                // Redirect to billing portal for existing customers
-                window.location.href = `https://linkfinderai.com/billing?token=${userToken}`;
-            } else {
-                // Redirect to pricing page for free users
-                window.location.href = `https://linkfinderai.com/pricing?token=${userToken}`;
-            }
+    if (isPremiumUser) {
+        // Open Stripe portal for premium users
+        openStripePortal();
+    } else {
+        // Redirect to pricing page for free users
+        window.location.href = `https://linkfinderai.com/pricing?token=${userToken}`;
+    }
+}
+
+// Add this new function for LinkFinder AI Stripe portal
+async function openStripePortal() {
+    try {
+        const response = await fetch('https://manageplacelinkfinderai.hamoureliasse.workers.dev/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                token: userToken,
+                return_url: window.location.href 
+            })
+        });
+        
+        const data = await response.json();
+        if (data.url) {
+            window.location.href = data.url;
+        } else {
+            alert('Error opening billing portal. Please try again.');
         }
+    } catch (error) {
+        console.error('Error opening billing portal:', error);
+        alert('Error opening billing portal. Please try again.');
+    }
+}
 
         function logout() {
             localStorage.removeItem('linkFinderToken');
