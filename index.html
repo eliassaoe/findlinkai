@@ -997,14 +997,17 @@
       }
     }
 
-    function checkAuthState() {
+     function checkAuthState() {
   const userData = localStorage.getItem('companyFinderUser');
   if (userData) {
     currentUser = JSON.parse(userData);
+    // If user is logged in, redirect to app page with token
+    const token = currentUser.token || currentUser.access_token || 'default-token';
+    window.location.href = `https://linkfinderai.com/app?token=${token}`;
+    return; // Exit early to prevent further execution
   }
-  searchCount = parseInt(localStorage.getItem('searchCount') || '0'); // ✅ restore
+  searchCount = parseInt(localStorage.getItem('searchCount') || '0');
   bulkSearchUsed = localStorage.getItem('bulkSearchUsed') === 'true';
-  showUserInfo();
 }
 
 
