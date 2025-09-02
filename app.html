@@ -985,13 +985,13 @@
             const data = await response.json();
             console.log('Credits data:', data);
             const credits = data.credits || 0;
-            document.getElementById('creditsCount').textContent = credits;
-        } else {
-            console.error('API returned error:', response.status);
-            const errorText = await response.text();
-            console.error('Error details:', errorText);
-            document.getElementById('creditsCount').textContent = '?';
-        }
+            
+            // Display "Unlimited" for premium users (credits -1 or -2)
+            if (credits === -1 || credits === -2) {
+                document.getElementById('creditsCount').textContent = 'Unlimited';
+            } else {
+                document.getElementById('creditsCount').textContent = credits;
+            }
     } catch (error) {
         console.error('Error fetching credits:', error);
         document.getElementById('creditsCount').textContent = '?';
