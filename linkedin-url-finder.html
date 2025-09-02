@@ -982,6 +982,10 @@
     let searchCount = 0;
     let bulkSearchUsed = false;
 
+    // Worker URLs
+    const PROFILE_WORKER_URL = 'https://linkedinfinderlinkfinderai.hamoureliasse.workers.dev/';
+    const COMPANY_WORKER_URL = 'https://linkedincompanylinkfinderai.hamoureliasse.workers.dev/';
+
     // Switch between person/company search
     function switchSearchType(type) {
       currentSearchType = type;
@@ -1128,6 +1132,11 @@
       });
     }
 
+    // Get the appropriate worker URL
+    function getWorkerURL() {
+      return currentSearchType === 'person' ? PROFILE_WORKER_URL : COMPANY_WORKER_URL;
+    }
+
     // Find single profile
     async function findProfile() {
       if (!checkSearchLimit()) {
@@ -1171,13 +1180,23 @@
       resultLink.innerHTML = '';
 
       try {
-        const response = await fetch('https://eliasse-n8n.onrender.com/webhook/1c41832b-fecf-4bbe-b054-3e9d1f2e231e', {
+        const response = await fetch(getWorkerURL(), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(requestBody)
         });
 
         const data = await response.json();
+
+        if (response.status === 429) {
+          resultText.value = `⚠️ ${data.message || 'Rate limit exceeded'}`;
+          if (data.requires_signup) {
+            setTimeout(() => {
+              window.location.href = 'https://linkfinderai.com/sign-up';
+            }, 2000);
+          }
+          return;
+        }
 
         if (data && data.linkedin_url) {
           resultText.value = `✅ LinkedIn URL found:\n${data.linkedin_url}`;
@@ -1369,11 +1388,18 @@
       bulkResults = [];
       let processed = 0;
 
-      updateSearchCount();
+      // Mark bulk search as used
+      if (currentMode === 'bulk') {
+        bulkSearchUsed = true;
+        localStorage.setItem('bulkSearchUsed', 'true');
+      }
 
       for (const row of csvData) {
         try {
-          let requestBody = { type: currentSearchType };
+          let requestBody = { 
+            type: currentSearchType,
+            is_bulk: true
+          };
           
           if (currentSearchType === 'person') {
             requestBody.first_name = row.firstName;
@@ -1383,18 +1409,27 @@
             requestBody.company_name = row.companyName;
           }
 
-          const response = await fetch('https://eliasse-n8n.onrender.com/webhook/1c41832b-fecf-4bbe-b054-3e9d1f2e231e', {
+          const response = await fetch(getWorkerURL(), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(requestBody)
           });
 
           const data = await response.json();
-          bulkResults.push({
-            ...row,
-            linkedinUrl: data?.linkedin_url || 'Not found',
-            status: data?.linkedin_url ? 'Found' : 'Not found'
-          });
+          
+          if (response.status === 429) {
+            bulkResults.push({
+              ...row,
+              linkedinUrl: 'Rate limit exceeded',
+              status: 'Error'
+            });
+          } else {
+            bulkResults.push({
+              ...row,
+              linkedinUrl: data?.linkedin_url || 'Not found',
+              status: data?.linkedin_url ? 'Found' : 'Not found'
+            });
+          }
 
           await new Promise(resolve => setTimeout(resolve, 100));
         } catch (error) {
@@ -1428,7 +1463,7 @@
 
       bulkResults.forEach(row => {
         const statusClass = row.status === 'Found' ? 'status-success' : 'status-error';
-        const linkedinCell = row.linkedinUrl !== 'Not found' && row.linkedinUrl !== 'Error' ?
+        const linkedinCell = row.linkedinUrl !== 'Not found' && row.linkedinUrl !== 'Error' && row.linkedinUrl !== 'Rate limit exceeded' ?
           `<a href="${row.linkedinUrl}" target="_blank" style="color: var(--primary);">${row.linkedinUrl}</a>` :
           row.linkedinUrl;
 
