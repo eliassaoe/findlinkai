@@ -912,18 +912,41 @@
     function tryExample() {
       // Set example values
       document.getElementById('inputType').value = 'company_name';
-      document.getElementById('outputType').innerHTML = '<option value="">Select output type...</option>';
       
-      // Populate output options
-      const outputs = dataConfigurations.company_name.outputs;
-      for (const [key, label] of Object.entries(outputs)) {
-        const option = document.createElement('option');
-        option.value = key;
-        option.textContent = label;
-        document.getElementById('outputType').appendChild(option);
+      // Trigger the change event to populate the second dropdown
+      const inputTypeSelect = document.getElementById('inputType');
+      const event = new Event('change', { bubbles: true });
+      inputTypeSelect.dispatchEvent(event);
+      
+      // Set the output value after a small delay to ensure options are populated
+      setTimeout(() => {
+        document.getElementById('outputType').value = 'website';
+        const outputEvent = new Event('change', { bubbles: true });
+        document.getElementById('outputType').dispatchEvent(outputEvent);
+      }, 100);
+    }
+
+    function toggleFAQ(button) {
+      const answer = button.nextElementSibling;
+      const isActive = button.classList.contains('active');
+      
+      // Close all other FAQs
+      document.querySelectorAll('.faq-question').forEach(q => {
+        q.classList.remove('active');
+        q.nextElementSibling.classList.remove('show');
+      });
+      
+      // Open clicked FAQ if it wasn't active
+      if (!isActive) {
+        button.classList.add('active');
+        answer.classList.add('show');
       }
-      
-      document.getElementById('outputType').disabled = false;
-      document.getElementById('outputType').value = 'website';
-      
-      updateCTA('company_name',
+    }
+
+    // Initialize the page
+    document.addEventListener('DOMContentLoaded', function() {
+      setupDropdowns();
+    });
+  </script>
+</body>
+</html>
