@@ -623,34 +623,81 @@
             font-size: 1rem;
         }
 
-        .pricing-modal-price {
-            text-align: center;
+        .pricing-tier-selector {
             margin-bottom: 2rem;
         }
 
+        .pricing-tier-selector label {
+            display: block;
+            margin-bottom: 0.75rem;
+            font-weight: 600;
+            color: var(--gray-700);
+            font-size: 0.95rem;
+        }
+
+        .tier-select {
+            appearance: none;
+            width: 100%;
+            background: white;
+            border: 1px solid var(--gray-300);
+            border-radius: 8px;
+            padding: 1rem;
+            font-size: 0.95rem;
+            color: var(--gray-700);
+            cursor: pointer;
+            transition: border-color 0.2s ease;
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+            background-position: right 1rem center;
+            background-repeat: no-repeat;
+            background-size: 1.5em 1.5em;
+            padding-right: 3rem;
+        }
+
+        .tier-select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .tier-option {
+            padding: 0.5rem;
+        }
+
+        .pricing-modal-price {
+            text-align: center;
+            margin-bottom: 2rem;
+            padding: 1.5rem;
+            background: var(--gray-50);
+            border-radius: 12px;
+        }
+
         .price-amount {
-            font-size: 3rem;
+            font-size: 2.5rem;
             font-weight: 700;
             color: var(--primary);
             line-height: 1;
         }
 
-        .price-period {
+        .price-credits {
             color: var(--gray-600);
-            font-size: 1rem;
-            margin-top: 0.25rem;
+            font-size: 1.1rem;
+            margin-top: 0.5rem;
+            font-weight: 500;
         }
 
         .pricing-modal-features {
             list-style: none;
             margin-bottom: 2rem;
+            background: var(--gray-50);
+            padding: 1.5rem;
+            border-radius: 12px;
         }
 
         .pricing-modal-features li {
             display: flex;
             align-items: flex-start;
             gap: 0.75rem;
-            padding: 0.75rem 0;
+            padding: 0.5rem 0;
             font-size: 0.95rem;
             line-height: 1.5;
         }
@@ -690,7 +737,7 @@
             }
             
             .price-amount {
-                font-size: 2.5rem;
+                font-size: 2rem;
             }
             
             .pricing-modal-features li {
@@ -923,712 +970,4 @@
                 <!-- Bulk Results -->
                 <div id="bulkResults" class="hidden">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                        <h4 style="font-size: 1rem; color: var(--gray-700);">Results</h4>
-                        <button onclick="downloadResults()" class="btn">
-                            <i class="fas fa-download"></i> Export
-                        </button>
-                    </div>
-                    <div id="progressContainer" class="progress-container hidden">
-                        <div id="progressBar" class="progress-bar" style="width: 0%"></div>
-                    </div>
-                    <div id="bulkResultsTable" class="table-container"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Pricing Modal -->
-    <div id="pricingModal" class="modal-overlay">
-        <div class="pricing-modal">
-            <button class="modal-close" onclick="closePricingModal()">
-                <i class="fas fa-times"></i>
-            </button>
-            
-            <div class="pricing-modal-header">
-                <h2>Upgrade to Pro</h2>
-                <p>Unlimited access to all features</p>
-            </div>
-            
-            <div class="pricing-modal-price">
-                <div class="price-amount">$29</div>
-                <div class="price-period">per month</div>
-            </div>
-            
-            <ul class="pricing-modal-features">
-                <li>
-                    <span class="feature-check">✓</span>
-                    <span>Priority support</span>
-                </li>
-                <li>
-                    <span class="feature-check">✓</span>
-                    <span>No credit limits</span>
-                </li>
-            </ul>
-            
-            <div class="pricing-modal-cta">
-                <button class="btn" onclick="window.location.href='https://buy.stripe.com/8x28wP79XdBreig6sH8IU0Y?client_reference_id=' + userToken">
-                    <i class="fas fa-rocket"></i>
-                    Upgrade Now
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        let currentMode = 'single';
-        let csvData = [];
-        let bulkResults = [];
-        let userToken = null;
-        let currentInputType = '';
-        let currentOutputType = '';
-
-        // Data mapping configurations
-        const dataConfigurations = {
-            company_name: {
-                label: "Enter Company Name",
-                placeholder: "e.g., Tesla, Apple, Microsoft",
-                outputs: {
-                    website: "Company Website",
-                    phone: "Company Phone Number",
-                    linkedin_url: "Company LinkedIn URL",
-                    email: "Company Email",
-                    linkedin_info: "Company LinkedIn Information"
-                }
-            },
-            linkedin_company: {
-                label: "Enter LinkedIn Company URL",
-                placeholder: "e.g., linkedin.com/company/tesla",
-                outputs: {
-                    website: "Company Website",
-                    linkedin_info: "LinkedIn Information"
-                }
-            },
-            linkedin_profile: {
-                label: "Enter LinkedIn Profile URL", 
-                placeholder: "e.g., linkedin.com/in/john-doe",
-                outputs: {
-                    email: "Person Email",
-                    linkedin_info: "Person LinkedIn Information"
-                }
-            }
-        };
-
-        // Global functions - declared at global scope
-        function showPricingModal() {
-            document.getElementById('pricingModal').classList.add('show');
-            document.body.style.overflow = 'hidden';
-        }
-
-        function closePricingModal() {
-            document.getElementById('pricingModal').classList.remove('show');
-            document.body.style.overflow = '';
-        }
-
-        function logout() {
-            localStorage.removeItem('linkFinderToken');
-            window.location.href = 'https://linkfinderai.com/';
-        }
-
-        function switchMode(mode) {
-            currentMode = mode;
-            
-            document.getElementById('singleMode').classList.toggle('active', mode === 'single');
-            document.getElementById('bulkMode').classList.toggle('active', mode === 'bulk');
-            
-            if (currentInputType && currentOutputType) {
-                document.getElementById('singleSearch').classList.toggle('hidden', mode !== 'single');
-                document.getElementById('bulkSearch').classList.toggle('hidden', mode !== 'bulk');
-            }
-            
-            hideResults();
-        }
-
-        function setupDropdowns() {
-            const inputTypeSelect = document.getElementById('inputType');
-            const outputTypeSelect = document.getElementById('outputType');
-
-            inputTypeSelect.addEventListener('change', function() {
-                const selectedType = this.value;
-                outputTypeSelect.innerHTML = '<option value="">Select output type...</option>';
-                
-                if (selectedType && dataConfigurations[selectedType]) {
-                    outputTypeSelect.disabled = false;
-                    const outputs = dataConfigurations[selectedType].outputs;
-                    
-                    for (const [key, label] of Object.entries(outputs)) {
-                        const option = document.createElement('option');
-                        option.value = key;
-                        option.textContent = label;
-                        outputTypeSelect.appendChild(option);
-                    }
-                } else {
-                    outputTypeSelect.disabled = true;
-                    hideInputSections();
-                }
-            });
-
-            outputTypeSelect.addEventListener('change', function() {
-                if (this.value && inputTypeSelect.value) {
-                    configureEnrichment();
-                } else {
-                    hideInputSections();
-                }
-            });
-        }
-
-        function configureEnrichment() {
-            const inputType = document.getElementById('inputType').value;
-            const outputType = document.getElementById('outputType').value;
-            
-            if (!inputType || !outputType) return;
-
-            currentInputType = inputType;
-            currentOutputType = outputType;
-            
-            const config = dataConfigurations[inputType];
-            
-            // Update input field
-            document.getElementById('inputLabel').textContent = config.label;
-            document.getElementById('inputData').placeholder = config.placeholder;
-            
-            // Update upload subtext
-            document.getElementById('uploadSubtext').textContent = `CSV with ${config.label.toLowerCase().replace('enter ', '')} (max 500 rows)`;
-            
-            // Show mode toggle and input sections
-            document.getElementById('modeToggle').classList.remove('hidden');
-            showInputSections();
-        }
-
-        function showInputSections() {
-            if (currentMode === 'single') {
-                document.getElementById('singleSearch').classList.remove('hidden');
-                document.getElementById('bulkSearch').classList.add('hidden');
-            } else {
-                document.getElementById('singleSearch').classList.add('hidden');
-                document.getElementById('bulkSearch').classList.remove('hidden');
-            }
-        }
-
-        function hideInputSections() {
-            document.getElementById('modeToggle').classList.add('hidden');
-            document.getElementById('singleSearch').classList.add('hidden');
-            document.getElementById('bulkSearch').classList.add('hidden');
-        }
-
-        async function fetchCredits() {
-            console.log('fetchCredits called, userToken:', userToken);
-            
-            if (!userToken) {
-                console.log('No token available');
-                return;
-            }
-            
-            try {
-                console.log('Sending request to credits API...');
-                const response = await fetch('https://linkfinderaicredits.hamoureliasse.workers.dev/', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ token: userToken })
-                });
-
-                console.log('Response received:', response.status);
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    console.log('Credits data:', data);
-                    const credits = data.credits || 0;
-                    
-                    // Display "Unlimited" for premium users (credits -1 or -2)
-                    if (credits === -1 || credits === -2) {
-                        document.getElementById('creditsCount').textContent = '∞';
-                    } else {
-                        document.getElementById('creditsCount').textContent = credits;
-                    }
-                } else {
-                    console.error('API returned error:', response.status);
-                    const errorText = await response.text();
-                    console.error('Error details:', errorText);
-                    document.getElementById('creditsCount').textContent = '?';
-                }
-            } catch (error) {
-                console.error('Error fetching credits:', error);
-                document.getElementById('creditsCount').textContent = '?';
-            }
-        }
-
-        async function enrichData(event) {
-            event.preventDefault();
-            
-            const inputValue = document.getElementById('inputData').value.trim();
-            if (!inputValue) return;
-
-            showLoading();
-            
-            try {
-                const response = await fetch('https://linkfinderapp.hamoureliasse.workers.dev/', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        type: currentInputType,
-                        input_data: inputValue,
-                        output_type: currentOutputType,
-                        token: userToken,
-                        is_bulk: false
-                    })
-                });
-
-                const data = await response.json();
-                hideLoading();
-
-                if (data && data.result) {
-                    showSingleResult(inputValue, data.result);
-                } else {
-                    showSingleResult(inputValue, 'Not found');
-                }
-
-            } catch (error) {
-                hideLoading();
-                showAlert('Enrichment error. Please try again.', 'error');
-            }
-        }
-
-        async function processBulk() {
-            const btn = document.getElementById('processBulkBtn');
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
-            
-            // Hide the preview section to make results more visible
-            document.getElementById('csvPreview').classList.add('hidden');
-            
-            // Show results section immediately with empty table
-            document.getElementById('resultsSection').classList.remove('hidden');
-            document.getElementById('singleResult').classList.add('hidden');
-            document.getElementById('bulkResults').classList.remove('hidden');
-            
-            showProgress();
-            bulkResults = [];
-            
-            // Initialize empty table
-            initializeBulkResultsTable();
-            
-            for (let i = 0; i < csvData.length; i++) {
-                const row = csvData[i];
-                
-                // Add row with "Processing..." status first
-                const searchingResult = {
-                    inputData: row.inputData,
-                    result: 'Processing...',
-                    status: 'Processing'
-                };
-                bulkResults.push(searchingResult);
-                updateBulkResultsTable();
-                
-                try {
-                    // Individual API call for each item
-                    const response = await fetch('https://linkfinderapp.hamoureliasse.workers.dev/', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            type: currentInputType,
-                            input_data: row.inputData,
-                            output_type: currentOutputType,
-                            token: userToken,
-                            is_bulk: true
-                        })
-                    });
-
-                    const data = await response.json();
-                    
-                    // Update the result immediately after API response
-                    bulkResults[i] = {
-                        inputData: row.inputData,
-                        result: data?.result || 'Not found',
-                        status: data?.result ? 'Found' : 'Not found'
-                    };
-
-                } catch (error) {
-                    console.error(`Error for ${row.inputData}:`, error);
-                    bulkResults[i] = {
-                        inputData: row.inputData,
-                        result: 'Error',
-                        status: 'Error'
-                    };
-                }
-
-                // Update progress bar and table after each API call
-                updateProgress((i + 1) / csvData.length * 100);
-                updateBulkResultsTable();
-                
-                // Small delay to avoid overwhelming the API
-                await new Promise(resolve => setTimeout(resolve, 100));
-            }
-
-            btn.disabled = false;
-            btn.innerHTML = `<i class="fas fa-play"></i> Process ${csvData.length} Items`;
-        }
-
-        // Initialize
-        document.addEventListener('DOMContentLoaded', () => {
-            checkAuth();
-            fetchCredits(); 
-            setupFileUpload();
-            setupDragAndDrop();
-            setupNavigation();
-            setupModalEvents();
-            setupDropdowns();
-        });
-
-        function setupModalEvents() {
-            // Close modal when clicking outside
-            document.addEventListener('click', (e) => {
-                const modal = document.getElementById('pricingModal');
-                if (e.target === modal) {
-                    closePricingModal();
-                }
-            });
-
-            // Close modal with Escape key
-            document.addEventListener('keydown', (e) => {
-                if (e.key === 'Escape') {
-                    closePricingModal();
-                }
-            });
-        }
-
-        function setupNavigation() {
-            document.querySelectorAll('.nav-tab').forEach(tab => {
-                tab.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    const page = e.target.closest('.nav-tab').dataset.page;
-                    navigateToPage(page);
-                });
-            });
-        }
-
-        function navigateToPage(page) {
-            // Update active tab
-            document.querySelectorAll('.nav-tab').forEach(tab => {
-                tab.classList.remove('active');
-            });
-            document.querySelector(`[data-page="${page}"]`).classList.add('active');
-
-            // Navigate based on page
-            switch(page) {
-                case 'enrichment':
-                    // Stay on current page - this is the enrichment page
-                    break;
-                case 'api':
-                    console.log('Redirecting to API access page with token:', userToken);
-                    window.location.href = `https://linkfinderai.com/api-access?token=${userToken}`;
-                    break;
-                case 'account':
-                    window.location.href = `https://linkfinderai.com/account?token=${userToken}`;
-                    break;
-            }
-        }
-
-        function checkAuth() {
-            const urlParams = new URLSearchParams(window.location.search);
-            let token = urlParams.get('token');
-            
-            if (!token) {
-                token = localStorage.getItem('linkFinderToken');
-            } else {
-                localStorage.setItem('linkFinderToken', token);
-            }
-            
-            if (!token) {
-                window.location.href = 'https://linkfinderai.com/';
-                return;
-            }
-
-            userToken = token;
-        }
-
-        function showSingleResult(inputData, result) {
-            const resultText = document.getElementById('resultText');
-            const resultLink = document.getElementById('resultLink');
-            const config = dataConfigurations[currentInputType];
-            const outputLabel = config.outputs[currentOutputType];
-            
-            resultText.value = `Input: ${inputData}\n${outputLabel}: ${result}`;
-            resultLink.innerHTML = '';
-            
-            if (result !== 'Not found' && result.startsWith('http')) {
-                const link = document.createElement('a');
-                link.href = result.startsWith('http') ? result : 'https://' + result;
-                link.target = '_blank';
-                link.className = 'company-link';
-                link.innerHTML = '<i class="fas fa-external-link-alt"></i> Visit Link';
-                resultLink.appendChild(link);
-            }
-            
-            document.getElementById('resultsSection').classList.remove('hidden');
-            document.getElementById('singleResult').classList.remove('hidden');
-            document.getElementById('bulkResults').classList.add('hidden');
-        }
-
-        function setupFileUpload() {
-            const fileInput = document.getElementById('csvFile');
-            fileInput.addEventListener('change', (e) => {
-                if (e.target.files.length > 0) {
-                    handleFile(e.target.files[0]);
-                }
-            });
-        }
-
-        function setupDragAndDrop() {
-            const uploadArea = document.getElementById('uploadArea');
-            
-            // Prevent default drag behaviors
-            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-                uploadArea.addEventListener(eventName, preventDefaults, false);
-                document.body.addEventListener(eventName, preventDefaults, false);
-            });
-
-            // Highlight drop area when item is dragged over it
-            ['dragenter', 'dragover'].forEach(eventName => {
-                uploadArea.addEventListener(eventName, highlight, false);
-            });
-
-            ['dragleave', 'drop'].forEach(eventName => {
-                uploadArea.addEventListener(eventName, unhighlight, false);
-            });
-
-            // Handle dropped files
-            uploadArea.addEventListener('drop', handleDrop, false);
-
-            function preventDefaults(e) {
-                e.preventDefault();
-                e.stopPropagation();
-            }
-
-            function highlight() {
-                uploadArea.classList.add('drag-over');
-            }
-
-            function unhighlight() {
-                uploadArea.classList.remove('drag-over');
-            }
-
-            function handleDrop(e) {
-                const dt = e.dataTransfer;
-                const files = dt.files;
-
-                if (files.length > 0) {
-                    handleFile(files[0]);
-                }
-            }
-        }
-
-        function handleFile(file) {
-            if (!file.name.toLowerCase().endsWith('.csv')) {
-                showAlert('Please select a CSV file.', 'error');
-                return;
-            }
-
-            const reader = new FileReader();
-            reader.onload = (e) => parseCSV(e.target.result);
-            reader.readAsText(file);
-        }
-
-        function parseCSV(csvText) {
-            const lines = csvText.split('\n').filter(line => line.trim());
-            if (lines.length < 2) {
-                showAlert('CSV must contain header and data rows.', 'error');
-                return;
-            }
-
-            const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
-            csvData = [];
-
-            // Look for the appropriate column based on current input type
-            const config = dataConfigurations[currentInputType];
-            if (!config) {
-                showAlert('Please configure your input type first.', 'error');
-                return;
-            }
-
-            const possibleHeaders = {
-                'company_name': ['company_name', 'company name', 'company', 'name'],
-                'linkedin_company': ['linkedin_company', 'linkedin company', 'company_url', 'linkedin_url'],
-                'linkedin_profile': ['linkedin_profile', 'profile_url', 'linkedin_url', 'profile']
-            };
-
-            const searchHeaders = possibleHeaders[currentInputType] || [];
-            const dataIdx = headers.findIndex(h => 
-                searchHeaders.some(search => h.toLowerCase().includes(search.toLowerCase()))
-            );
-            
-            if (dataIdx === -1) {
-                showAlert(`CSV must contain a column for ${config.label.toLowerCase().replace('enter ', '')}.`, 'error');
-                return;
-            }
-
-            for (let i = 1; i < lines.length; i++) {
-                const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
-                if (values[dataIdx]) {
-                    csvData.push({ inputData: values[dataIdx] });
-                }
-            }
-
-            if (csvData.length === 0) {
-                showAlert('No valid data found.', 'error');
-                return;
-            }
-
-            if (csvData.length > 500) {
-                showAlert(`Too many entries (${csvData.length}). Maximum is 500.`, 'error');
-                return;
-            }
-
-            showPreview();
-        }
-
-        function showPreview() {
-            const preview = csvData.slice(0, 5);
-            let html = '<div style="background: var(--gray-50); padding: 0.75rem; border-radius: 6px; font-size: 0.875rem;">';
-            
-            preview.forEach(row => {
-                html += `<div style="padding: 0.25rem 0;">${row.inputData}</div>`;
-            });
-            
-            html += '</div>';
-            
-            document.getElementById('previewTable').innerHTML = html;
-            document.getElementById('itemCount').textContent = csvData.length;
-            document.getElementById('csvPreview').classList.remove('hidden');
-        }
-
-        function showProgress() {
-            document.getElementById('progressContainer').classList.remove('hidden');
-            document.getElementById('progressBar').style.width = '0%';
-        }
-
-        function updateProgress(percent) {
-            document.getElementById('progressBar').style.width = `${percent}%`;
-            
-            // Hide progress bar when complete
-            if (percent >= 100) {
-                setTimeout(() => {
-                    document.getElementById('progressContainer').classList.add('hidden');
-                }, 500);
-            }
-        }
-
-        function initializeBulkResultsTable() {
-            const config = dataConfigurations[currentInputType];
-            const outputLabel = config.outputs[currentOutputType];
-            
-            const html = `<table class="results-table">
-                <thead>
-                    <tr>
-                        <th>${config.label.replace('Enter ', '')}</th>
-                        <th>${outputLabel}</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-                </tbody>
-            </table>`;
-            
-            document.getElementById('bulkResultsTable').innerHTML = html;
-        }
-
-        function updateBulkResultsTable() {
-            const config = dataConfigurations[currentInputType];
-            const outputLabel = config.outputs[currentOutputType];
-            
-            let html = `<table class="results-table">
-                <thead>
-                    <tr>
-                        <th>${config.label.replace('Enter ', '')}</th>
-                        <th>${outputLabel}</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody>`;
-
-            bulkResults.forEach(row => {
-                let statusClass = '';
-                let statusText = row.status;
-                
-                if (row.status === 'Found') {
-                    statusClass = 'status-success';
-                } else if (row.status === 'Not found') {
-                    statusClass = 'status-error';
-                } else if (row.status === 'Error') {
-                    statusClass = 'status-error';
-                } else if (row.status === 'Processing') {
-                    statusClass = 'status-processing';
-                    statusText = 'Processing...';
-                }
-                
-                let resultCell = row.result;
-                
-                if (row.result !== 'Not found' && row.result !== 'Error' && row.result !== 'Processing...') {
-                    if (row.result.startsWith('http')) {
-                        resultCell = `<a href="${row.result}" target="_blank" style="color: var(--primary); text-decoration: none;">${row.result}</a>`;
-                    }
-                }
-
-                html += `<tr>
-                    <td data-label="${config.label.replace('Enter ', '')}">${row.inputData}</td>
-                    <td data-label="${outputLabel}">${resultCell}</td>
-                    <td data-label="Status"><span class="status-badge ${statusClass}">${statusText}</span></td>
-                </tr>`;
-            });
-
-            html += '</tbody></table>';
-            
-            document.getElementById('bulkResultsTable').innerHTML = html;
-        }
-
-        function downloadResults() {
-            if (bulkResults.length === 0) return;
-
-            const config = dataConfigurations[currentInputType];
-            const outputLabel = config.outputs[currentOutputType];
-            
-            let csvContent = `${config.label.replace('Enter ', '')},${outputLabel},Status\n`;
-            bulkResults.forEach(row => {
-                const finalStatus = row.status === 'Processing' ? 'Not found' : row.status;
-                const finalResult = row.result === 'Processing...' ? 'Not found' : row.result;
-                csvContent += `"${row.inputData}","${finalResult}","${finalStatus}"\n`;
-            });
-
-            const blob = new Blob([csvContent], { type: 'text/csv' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `enriched_data.csv`;
-            a.click();
-            URL.revokeObjectURL(url);
-        }
-
-        function showLoading() {
-            document.getElementById('loading').style.display = 'block';
-            hideResults();
-        }
-
-        function hideLoading() {
-            document.getElementById('loading').style.display = 'none';
-        }
-
-        function hideResults() {
-            document.getElementById('resultsSection').classList.add('hidden');
-        }
-
-        function showAlert(message, type) {
-            const alert = document.getElementById('alert');
-            alert.textContent = message;
-            alert.className = `alert alert-${type}`;
-            alert.style.display = 'block';
-            
-            setTimeout(() => {
-                alert.style.display = 'none';
-            }, 5000);
-        }
-    </script>
-</body>
-</html>>
+                        <h4 style="font-size: 1
