@@ -937,43 +937,65 @@
         </div>
     </div>
 
-    <!-- Pricing Modal -->
-    <div id="pricingModal" class="modal-overlay">
-        <div class="pricing-modal">
-            <button class="modal-close" onclick="closePricingModal()">
-                <i class="fas fa-times"></i>
-            </button>
-            
-            <div class="pricing-modal-header">
-                <h2>Upgrade to Pro</h2>
-                <p>Unlimited access to all features</p>
+   <!-- Pricing Modal -->
+<div id="pricingModal" class="modal-overlay">
+    <div class="pricing-modal">
+        <button class="modal-close" onclick="closePricingModal()">
+            <i class="fas fa-times"></i>
+        </button>
+        
+        <div class="pricing-modal-header">
+            <h2>Choose Your Plan</h2>
+            <p>Select the credits package that fits your needs</p>
+        </div>
+        
+        <div class="pricing-modal-content">
+            <div class="form-group">
+                <label for="tierSelect">Select Plan:</label>
+                <select id="tierSelect" class="form-select" onchange="updatePricing()">
+                    <option value="">Choose a plan...</option>
+                    <option value="starter" data-price="29" data-credits="10,000" data-link="your-stripe-link-1">Starter - 10,000 credits</option>
+                    <option value="professional" data-price="59" data-credits="25,000" data-link="your-stripe-link-2">Professional - 25,000 credits</option>
+                    <option value="enterprise" data-price="99" data-credits="50,000" data-link="your-stripe-link-3">Enterprise - 50,000 credits</option>
+                </select>
             </div>
             
-            <div class="pricing-modal-price">
-                <div class="price-amount">$29</div>
+            <div id="pricingDetails" class="pricing-modal-price" style="display: none;">
+                <div class="price-amount" id="priceAmount">$--</div>
                 <div class="price-period">per month</div>
+                <div style="margin-top: 1rem; color: var(--gray-600); font-size: 0.9rem;">
+                    <span id="creditsAmount">--</span> credits per month
+                </div>
             </div>
             
             <ul class="pricing-modal-features">
                 <li>
                     <span class="feature-check">✓</span>
-                    <span>Priority support</span>
+                    <span>All data enrichment features</span>
                 </li>
                 <li>
                     <span class="feature-check">✓</span>
-                    <span>No credit limits</span>
+                    <span>Bulk processing capability</span>
+                </li>
+                <li>
+                    <span class="feature-check">✓</span>
+                    <span>CSV export functionality</span>
+                </li>
+                <li>
+                    <span class="feature-check">✓</span>
+                    <span>API access</span>
                 </li>
             </ul>
             
             <div class="pricing-modal-cta">
-                <button class="btn" onclick="window.location.href='https://buy.stripe.com/8x28wP79XdBreig6sH8IU0Y?client_reference_id=' + userToken">
+                <button id="upgradeBtn" class="btn" onclick="proceedToCheckout()" disabled>
                     <i class="fas fa-rocket"></i>
-                    Upgrade Now
+                    Select a Plan
                 </button>
             </div>
         </div>
     </div>
-
+</div>
     <script>
         let currentMode = 'single';
         let csvData = [];
@@ -1618,6 +1640,39 @@
         function hideResults() {
             document.getElementById('resultsSection').classList.add('hidden');
         }
+
+        function updatePricing() {
+    const select = document.getElementById('tierSelect');
+    const option = select.selectedOptions[0];
+    const pricingDetails = document.getElementById('pricingDetails');
+    const upgradeBtn = document.getElementById('upgradeBtn');
+    
+    if (option.value) {
+        const price = option.dataset.price;
+        const credits = option.dataset.credits;
+        
+        document.getElementById('priceAmount').textContent = `$${price}`;
+        document.getElementById('creditsAmount').textContent = credits;
+        
+        pricingDetails.style.display = 'block';
+        upgradeBtn.disabled = false;
+        upgradeBtn.innerHTML = `<i class="fas fa-rocket"></i> Get ${credits} Credits/month - $${price}`;
+    } else {
+        pricingDetails.style.display = 'none';
+        upgradeBtn.disabled = true;
+        upgradeBtn.innerHTML = '<i class="fas fa-rocket"></i> Select a Plan';
+    }
+}
+
+function proceedToCheckout() {
+    const select = document.getElementById('tierSelect');
+    const option = select.selectedOptions[0];
+    
+    if (option.value) {
+        const stripeLink = option.dataset.link;
+        window.location.href = `${stripeLink}?client_reference_id=${userToken}`;
+    }
+}
 
         function showAlert(message, type) {
             const alert = document.getElementById('alert');
