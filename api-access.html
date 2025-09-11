@@ -391,6 +391,152 @@
             color: var(--gray-700);
         }
 
+        /* Pricing Modal */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+    padding: 1rem;
+}
+
+.modal-overlay.show {
+    opacity: 1;
+    visibility: visible;
+}
+
+.pricing-modal {
+    background: white;
+    border-radius: 16px;
+    padding: 2rem;
+    max-width: 480px;
+    width: 100%;
+    position: relative;
+    transform: scale(0.9);
+    transition: transform 0.3s ease;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.modal-overlay.show .pricing-modal {
+    transform: scale(1);
+}
+
+.modal-close {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: var(--gray-100);
+    border: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--gray-500);
+    transition: all 0.2s ease;
+}
+
+.modal-close:hover {
+    background: var(--gray-200);
+    color: var(--gray-700);
+}
+
+.pricing-modal-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.pricing-modal-header h2 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--gray-900);
+    margin-bottom: 0.5rem;
+}
+
+.pricing-modal-cta {
+    margin-bottom: 1rem;
+}
+
+.pricing-modal-cta .btn {
+    width: 100%;
+    padding: 1rem;
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.plan-selector {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2rem;
+    margin: 2rem 0;
+}
+
+.plan-nav-btn {
+    background: white;
+    border: 1px solid var(--gray-300);
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--gray-500);
+    transition: all 0.2s ease;
+}
+
+.plan-nav-btn:hover {
+    border-color: var(--gray-400);
+    color: var(--gray-700);
+}
+
+.plan-nav-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.plan-card {
+    background: white;
+    border: 2px solid var(--gray-200);
+    padding: 2rem;
+    border-radius: 12px;
+    text-align: center;
+    min-width: 200px;
+}
+
+.plan-name {
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--gray-600);
+    margin-bottom: 0.5rem;
+}
+
+.plan-price {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--gray-900);
+    margin-bottom: 0.5rem;
+}
+
+.plan-credits {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--gray-900);
+    margin-top: 0.25rem;
+}
+
         .pricing-modal-header {
             text-align: center;
             margin-bottom: 2rem;
@@ -668,59 +814,40 @@
             </div>
 
     <!-- Pricing Modal -->
-    <div id="pricingModal" class="modal-overlay">
-        <div class="pricing-modal">
-            <button class="modal-close" onclick="closePricingModal()">
-                <i class="fas fa-times"></i>
+<div id="pricingModal" class="modal-overlay">
+    <div class="pricing-modal">
+        <button class="modal-close" onclick="closePricingModal()">
+            <i class="fas fa-times"></i>
+        </button>
+        
+        <div class="pricing-modal-header">
+            <h2>Choose Plan</h2>
+        </div>
+        
+        <div class="plan-selector">
+            <button class="plan-nav-btn" onclick="previousPlan()" id="prevBtn">
+                <i class="fas fa-chevron-left"></i>
             </button>
             
-            <div class="pricing-modal-header">
-                <h2>Upgrade to Pro</h2>
-                <p>Unlimited access to all features</p>
+            <div class="plan-card" id="planCard">
+                <div class="plan-name" id="planName">Professional</div>
+                <div class="plan-price" id="priceAmount">$59</div>
+                <div class="plan-credits" id="planCredits">25,000 credits/month</div>
             </div>
             
-            <div class="pricing-modal-price">
-                <div class="price-amount">$29</div>
-                <div class="price-period">per month</div>
-            </div>
-            
-            <ul class="pricing-modal-features">
-                <li>
-                    <span class="feature-check">✓</span>
-                    <span><strong>Unlimited</strong> company URL searches</span>
-                </li>
-                <li>
-                    <span class="feature-check">✓</span>
-                    <span>Batch processing (CSV upload)</span>
-                </li>
-                <li>
-                    <span class="feature-check">✓</span>
-                    <span>API access included</span>
-                </li>
-                <li>
-                    <span class="feature-check">✓</span>
-                    <span>Export results to CSV</span>
-                </li>
-                <li>
-                    <span class="feature-check">✓</span>
-                    <span>Priority support</span>
-                </li>
-                <li>
-                    <span class="feature-check">✓</span>
-                    <span>No credit limits</span>
-                </li>
-            </ul>
-            
-            <div class="pricing-modal-cta">
-                <button class="btn" onclick="window.location.href='https://buy.stripe.com/8x28wP79XdBreig6sH8IU0Y?client_reference_id=' + userToken">
-                    <i class="fas fa-rocket"></i>
-                    Upgrade Now
-                </button>
-            </div>
-            
+            <button class="plan-nav-btn" onclick="nextPlan()" id="nextBtn">
+                <i class="fas fa-chevron-right"></i>
+            </button>
+        </div>
+        
+        <div class="pricing-modal-cta">
+            <button id="upgradeBtn" class="btn" onclick="proceedToCheckout()">
+                <span id="ctaText">Subscribe - $59/month</span>
+            </button>
         </div>
     </div>
-
+</div>
+            
     <script>
         let userToken = null;
 
@@ -827,10 +954,69 @@
             }, 3000);
         }
 
-        function showPricingModal() {
-            document.getElementById('pricingModal').classList.add('show');
-            document.body.style.overflow = 'hidden';
-        }
+        const plans = [
+    { name: 'Starter', price: 29, credits: '10,000', stripeLink: 'https://buy.stripe.com/00w5kD3XL9lb0rqaIX8IU0Z' },
+    { name: 'Professional', price: 59, credits: '25,000', stripeLink: 'https://buy.stripe.com/dRm9ATcuhgND3DC9ET8IU10' },
+    { name: 'Enterprise', price: 99, credits: '50,000', stripeLink: 'https://buy.stripe.com/cNi3cv3XLapf4HG9ET8IU12' }
+];
+
+let currentPlanIndex = 1;
+
+function updatePlanDisplay() {
+    const plan = plans[currentPlanIndex];
+    
+    document.getElementById('planName').textContent = plan.name;
+    document.getElementById('priceAmount').textContent = `$${plan.price}`;
+    document.getElementById('planCredits').textContent = `${plan.credits} credits/month`;
+    document.getElementById('ctaText').textContent = `Subscribe - $${plan.price}/month`;
+    
+    document.getElementById('prevBtn').disabled = currentPlanIndex === 0;
+    document.getElementById('nextBtn').disabled = currentPlanIndex === plans.length - 1;
+}
+
+function previousPlan() {
+    if (currentPlanIndex > 0) {
+        currentPlanIndex--;
+        updatePlanDisplay();
+    }
+}
+
+function nextPlan() {
+    if (currentPlanIndex < plans.length - 1) {
+        currentPlanIndex++;
+        updatePlanDisplay();
+    }
+}
+
+function proceedToCheckout() {
+    const plan = plans[currentPlanIndex];
+    window.location.href = `${plan.stripeLink}?client_reference_id=${userToken}`;
+}
+
+function showPricingModal() {
+    document.getElementById('pricingModal').classList.add('show');
+    document.body.style.overflow = 'hidden';
+    updatePlanDisplay();
+}
+
+function closePricingModal() {
+    document.getElementById('pricingModal').classList.remove('show');
+    document.body.style.overflow = '';
+}
+
+// Close modal when clicking outside or pressing Escape
+document.addEventListener('click', (e) => {
+    const modal = document.getElementById('pricingModal');
+    if (e.target === modal) {
+        closePricingModal();
+    }
+});
+
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        closePricingModal();
+    }
+});
 
         function logout() {
             localStorage.removeItem('LinkFinderToken');
