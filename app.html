@@ -1237,14 +1237,17 @@ async function enrichData(event) {
             });
         } else if (currentInputType === 'linkedin_company' && currentOutputType === 'linkedin_info') {
             // Use LinkedIn Company Scraper API
-            response = await fetch('https://linkedin-company-scraper.hamoureliasse.workers.dev/', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    linkedinUrl: inputValue,
-                    is_bulk: false
-                })
-            });
+            response = await fetch('https://linkfinderapp.hamoureliasse.workers.dev/', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+        type: currentInputType === 'linkedin_profile' ? 'linkedin_profile_to_linkedin_info' : 'linkedin_company_to_linkedin_info',
+        input_data: inputValue, // or row.inputData for bulk
+        output_type: currentOutputType,
+        token: userToken,
+        is_bulk: false // or true for bulk
+    })
+});
         } else {
             // Use general enrichment API for other types
             response = await fetch('https://linkfinderapp.hamoureliasse.workers.dev/', {
@@ -1311,17 +1314,28 @@ function formatLinkedInProfileData(data) {
 // Function to format LinkedIn company data
 function formatLinkedInCompanyData(data) {
     let result = '';
-    if (data.companyName) result += `Company Name: ${data.companyName}\n`;
+    if (data.name) result += `Company Name: ${data.name}\n`;  // Changed from data.companyName
     if (data.industry) result += `Industry: ${data.industry}\n`;
-    if (data.companySize) result += `Company Size: ${data.companySize}\n`;
-    if (data.location) result += `Location: ${data.location}\n`;
+    if (data.size) result += `Company Size: ${data.size}\n`;  // Changed from data.companySize
+    if (data.location && data.location !== 'Not specified') result += `Location: ${data.location}\n`;
     if (data.description) result += `Description: ${data.description}\n`;
     if (data.website && data.website !== 'Not found') result += `Website: ${data.website}\n`;
-    if (data.phone && data.phone !== 'Not found') result += `Phone: ${data.phone}\n`;
-    if (data.followers) result += `Followers: ${data.followers}\n`;
+    if (data.specialties) result += `Specialties: ${data.specialties}\n`;
     if (data.linkedinUrl) result += `LinkedIn URL: ${data.linkedinUrl}\n`;
     
     return result.trim() || 'Company data not available';
+}
+
+// Fix the company detection in enrichData
+else if (currentInputType === 'linkedin_company' && data.name) {  // Changed from data.companyName
+    const formattedResult = formatLinkedInCompanyData(data);
+    showSingleResult(inputValue, formattedResult);
+}
+
+// Fix the bulk company detection in processBulk
+else if (currentInputType === 'linkedin_company' && data.name) {  // Changed from data.companyName
+    formattedResult = formatLinkedInCompanyDataBulk(data);
+    hasData = true;
 }
 
 
@@ -1372,14 +1386,17 @@ function formatLinkedInCompanyData(data) {
                 });
             } else if (currentInputType === 'linkedin_company' && currentOutputType === 'linkedin_info') {
                 // Use LinkedIn Company Scraper API
-                response = await fetch('https://linkedin-company-scraper.hamoureliasse.workers.dev/', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        linkedinUrl: row.inputData,
-                        is_bulk: true
-                    })
-                });
+                response = await fetch('https://linkfinderapp.hamoureliasse.workers.dev/', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+        type: currentInputType === 'linkedin_profile' ? 'linkedin_profile_to_linkedin_info' : 'linkedin_company_to_linkedin_info',
+        input_data: inputValue, // or row.inputData for bulk
+        output_type: currentOutputType,
+        token: userToken,
+        is_bulk: true // or true for bulk
+    })
+});
             } else {
                 // Use general enrichment API for other types
                 response = await fetch('https://linkfinderapp.hamoureliasse.workers.dev/', {
@@ -1463,10 +1480,10 @@ function formatLinkedInProfileDataBulk(data) {
 // Format LinkedIn company data for bulk display (shorter version)
 function formatLinkedInCompanyDataBulk(data) {
     let parts = [];
-    if (data.companyName) parts.push(data.companyName);
+    if (data.name) parts.push(data.name);  // Changed from data.companyName
     if (data.industry) parts.push(data.industry);
-    if (data.location) parts.push(data.location);
-    if (data.companySize) parts.push(`${data.companySize} employees`);
+    if (data.location && data.location !== 'Not specified') parts.push(data.location);
+    if (data.size) parts.push(data.size);  // Changed from data.companySize
     
     return parts.join(' | ') || 'Company data found';
 }
@@ -1878,10 +1895,10 @@ function generateCombinationType(inputType, outputType) {
                         ${linkedinUrlDisplay}
                     </a>
                 </td>
-                <td data-label="Company Name">${data.companyName || 'Not found'}</td>
+                <td data-label="Company Name">${data.name || 'Not found'}</td>
                 <td data-label="Industry">${data.industry || 'Not found'}</td>
-                <td data-label="Company Size">${data.companySize || 'Not found'}</td>
-                <td data-label="Location">${data.location || 'Not found'}</td>
+                <td data-label="Company Size">${data.size || 'Not found'}</td>
+                <td data-label="Location">${(data.location && data.location !== 'Not specified') ? data.location : 'Not found'}</td>
                 <td data-label="Status"><span class="status-badge ${statusClass}">${statusText}</span></td>
             </tr>`;
         });
