@@ -1034,6 +1034,27 @@
         </div>
     </div>
 </div>
+
+    <!-- Insufficient Credits Modal -->
+<div id="insufficientCreditsModal" class="modal-overlay">
+    <div class="pricing-modal">
+        <button class="modal-close" onclick="closeInsufficientCreditsModal()">
+            <i class="fas fa-times"></i>
+        </button>
+        
+        <div class="pricing-modal-header">
+            <h2>Insufficient Credits</h2>
+            <p>You do not have sufficient credits. Upgrade your account for more.</p>
+        </div>
+        
+        <div class="pricing-modal-cta">
+            <button class="btn" onclick="showPricingFromInsufficientCredits()">
+                Upgrade Account
+            </button>
+        </div>
+    </div>
+</div>
+    
     <script>
         let currentMode = 'single';
         let csvData = [];
@@ -1263,6 +1284,12 @@ async function enrichData(event) {
         const data = await response.json();
         hideLoading();
 
+        // Check for insufficient credits error
+if (response.status === 403 && data.code === 403) {
+    showInsufficientCreditsModal();
+    return;
+}
+
         if (response.ok && data) {
             // Handle LinkedIn profile response format
             if (currentInputType === 'linkedin_profile' && data.name) {
@@ -1325,7 +1352,7 @@ function formatLinkedInCompanyData(data) {
 }
 
 
-        async function processBulk() {
+    async function processBulk() {
     const btn = document.getElementById('processBulkBtn');
     btn.disabled = true;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
@@ -1400,6 +1427,11 @@ function formatLinkedInCompanyData(data) {
                 
                 let formattedResult = '';
                 let hasData = false;
+
+                 if (response.status === 403 && data.code === 403) {
+    showInsufficientCreditsModal();
+    return;
+}
                 
                 // Handle different response formats
                 if (currentInputType === 'linkedin_profile' && data.name) {
@@ -2086,6 +2118,29 @@ function showPricingModal() {
     document.getElementById('pricingModal').classList.add('show');
     document.body.style.overflow = 'hidden';
     updatePlanDisplay();
+}
+
+        function showInsufficientCreditsModal() {
+    document.getElementById('insufficientCreditsModal').classList.add('show');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeInsufficientCreditsModal() {
+    document.getElementById('insufficientCreditsModal').classList.remove('show');
+    document.body.style.overflow = '';
+}
+
+function showPricingFromInsufficientCredits() {
+    closeInsufficientCreditsModal();
+    showPricingModal();
+}
+
+function handleApiError(response, data) {
+    if (response.status === 403 && data.code === 403) {
+        showInsufficientCreditsModal();
+        return true; // Handled
+    }
+    return false; // Not handled
 }
 
         function showAlert(message, type) {
