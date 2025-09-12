@@ -337,27 +337,67 @@
       margin: 0 auto;
     }
 
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 2rem;
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+
     .pricing-card {
       background: white;
       color: var(--gray-900);
       border-radius: 12px;
       padding: 2rem;
-      max-width: 400px;
-      margin: 0 auto;
       text-align: center;
+      position: relative;
+      border: 2px solid transparent;
+      transition: transform 0.3s ease, border-color 0.3s ease;
+    }
+
+    .pricing-card:hover {
+      transform: translateY(-5px);
+    }
+
+    .pricing-card.popular {
+      border-color: var(--primary);
+      transform: scale(1.05);
+    }
+
+    .pricing-card.popular::before {
+      content: "Most Popular";
+      position: absolute;
+      top: -12px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--primary);
+      color: white;
+      padding: 0.5rem 1rem;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    .pricing-plan-name {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--gray-900);
+      margin-bottom: 0.5rem;
     }
 
     .pricing-price {
       font-size: 3rem;
       font-weight: 700;
       color: var(--primary);
-      margin-bottom: 0.5rem;
+      margin-bottom: 0.25rem;
     }
 
-    .pricing-period {
+    .pricing-credits {
       color: var(--gray-600);
       margin-bottom: 2rem;
       font-size: 1rem;
+      font-weight: 500;
     }
 
     .pricing-features {
@@ -377,13 +417,6 @@
     .pricing-features .check {
       color: var(--success);
       font-weight: 600;
-    }
-
-    .pricing-note {
-      font-size: 0.75rem;
-      color: var(--gray-500);
-      margin-top: 1rem;
-      font-style: italic;
     }
 
     /* FAQ Section */
@@ -566,6 +599,15 @@
       .pricing-header h2 {
         font-size: 2rem;
       }
+
+      .pricing-grid {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+      }
+
+      .pricing-card.popular {
+        transform: none;
+      }
       
       .testimonial-author {
         flex-direction: column;
@@ -692,29 +734,57 @@
   <div class="pricing-section">
     <div class="container">
       <div class="pricing-header">
-        <h2>Simple Pricing</h2>
-        <p>Get access to comprehensive data enrichment with our professional plan</p>
+        <h2>Choose Your Plan</h2>
+        <p>All plans include the same powerful features - choose based on your usage needs</p>
       </div>
       
-      <div class="pricing-card">
-        <div class="pricing-price">$29</div>
-        <div class="pricing-period">per month</div>
-        
-        <ul class="pricing-features">
-          <li><span class="check">✓</span> <strong>Unlimited</strong> data enrichment</li>
-          <li><span class="check">✓</span> Batch processing (CSV upload)</li>
-          <li><span class="check">✓</span> API access included</li>
-          <li><span class="check">✓</span> Export results to CSV</li>
-          <li><span class="check">✓</span> Priority support</li>
-          <li><span class="check">✓</span> No credit limits</li>
-        </ul>
-        
-        <button class="btn btn-full" onclick="window.location.href='https://linkfinderai.com/sign-up'">
-          Get Started
-        </button>
-        
-        <div class="pricing-note">
-          *Rate limit: 10 requests per 30 seconds
+      <div class="pricing-grid">
+        <!-- Starter Plan -->
+        <div class="pricing-card">
+          <div class="pricing-plan-name">Starter</div>
+          <div class="pricing-price">$29</div>
+          <div class="pricing-credits">10,000 credits/month</div>
+          
+          <div class="pricing-features">
+            <span class="check">✓</span>
+            <span>All features</span>
+          </div>
+          
+          <button class="btn btn-full" onclick="window.location.href='https://linkfinderai.com/sign-up'">
+            Get Started
+          </button>
+        </div>
+
+        <!-- Professional Plan (Most Popular) -->
+        <div class="pricing-card popular">
+          <div class="pricing-plan-name">Professional</div>
+          <div class="pricing-price">$59</div>
+          <div class="pricing-credits">25,000 credits/month</div>
+          
+          <div class="pricing-features">
+            <span class="check">✓</span>
+            <span>All features</span>
+          </div>
+          
+          <button class="btn btn-full" onclick="window.location.href='https://linkfinderai.com/sign-up'">
+            Get Started
+          </button>
+        </div>
+
+        <!-- Enterprise Plan -->
+        <div class="pricing-card">
+          <div class="pricing-plan-name">Enterprise</div>
+          <div class="pricing-price">$99</div>
+          <div class="pricing-credits">50,000 credits/month</div>
+          
+          <div class="pricing-features">
+            <span class="check">✓</span>
+            <span>All features</span>
+          </div>
+          
+          <button class="btn btn-full" onclick="window.location.href='https://linkfinderai.com/sign-up'">
+            Get Started
+          </button>
         </div>
       </div>
     </div>
@@ -834,115 +904,3 @@
       company_name: {
         label: "Company Name",
         outputs: {
-          website: "Company Website",
-          phone: "Company Phone Number",
-          linkedin_url: "Company LinkedIn URL",
-          email: "Company Email",
-          linkedin_info: "Company LinkedIn Information"
-        }
-      },
-      linkedin_company: {
-        label: "LinkedIn Company URL",
-        outputs: {
-          website: "Company Website",
-          linkedin_info: "LinkedIn Information"
-        }
-      },
-      linkedin_profile: {
-        label: "LinkedIn Profile URL",
-        outputs: {
-          email: "Person Email",
-          linkedin_info: "Person LinkedIn Information"
-        }
-      }
-    };
-
-    function setupDropdowns() {
-      const inputTypeSelect = document.getElementById('inputType');
-      const outputTypeSelect = document.getElementById('outputType');
-      const ctaSection = document.getElementById('ctaSection');
-
-      inputTypeSelect.addEventListener('change', function() {
-        const selectedType = this.value;
-        outputTypeSelect.innerHTML = '<option value="">Select output type...</option>';
-        
-        if (selectedType && dataConfigurations[selectedType]) {
-          outputTypeSelect.disabled = false;
-          const outputs = dataConfigurations[selectedType].outputs;
-          
-          for (const [key, label] of Object.entries(outputs)) {
-            const option = document.createElement('option');
-            option.value = key;
-            option.textContent = label;
-            outputTypeSelect.appendChild(option);
-          }
-        } else {
-          outputTypeSelect.disabled = true;
-          ctaSection.classList.add('hidden');
-        }
-      });
-
-      outputTypeSelect.addEventListener('change', function() {
-        if (this.value && inputTypeSelect.value) {
-          updateCTA(inputTypeSelect.value, this.value);
-          ctaSection.classList.remove('hidden');
-        } else {
-          ctaSection.classList.add('hidden');
-        }
-      });
-    }
-
-    function updateCTA(inputType, outputType) {
-      const config = dataConfigurations[inputType];
-      const outputLabel = config.outputs[outputType];
-      
-      const ctaTitle = document.getElementById('ctaTitle');
-      const ctaDescription = document.getElementById('ctaDescription');
-      const ctaButton = document.getElementById('ctaButton');
-      
-      ctaTitle.textContent = `Start Finding ${outputLabel}`;
-      ctaDescription.textContent = `Sign up to enrich ${config.label.toLowerCase()} and find ${outputLabel.toLowerCase()} with our powerful enrichment tools.`;
-      ctaButton.innerHTML = `<i class="fas fa-rocket"></i> Sign up to enrich ${outputLabel.toLowerCase()}`;
-    }
-
-    function tryExample() {
-      // Set example values
-      document.getElementById('inputType').value = 'company_name';
-      
-      // Trigger the change event to populate the second dropdown
-      const inputTypeSelect = document.getElementById('inputType');
-      const event = new Event('change', { bubbles: true });
-      inputTypeSelect.dispatchEvent(event);
-      
-      // Set the output value after a small delay to ensure options are populated
-      setTimeout(() => {
-        document.getElementById('outputType').value = 'website';
-        const outputEvent = new Event('change', { bubbles: true });
-        document.getElementById('outputType').dispatchEvent(outputEvent);
-      }, 100);
-    }
-
-    function toggleFAQ(button) {
-      const answer = button.nextElementSibling;
-      const isActive = button.classList.contains('active');
-      
-      // Close all other FAQs
-      document.querySelectorAll('.faq-question').forEach(q => {
-        q.classList.remove('active');
-        q.nextElementSibling.classList.remove('show');
-      });
-      
-      // Open clicked FAQ if it wasn't active
-      if (!isActive) {
-        button.classList.add('active');
-        answer.classList.add('show');
-      }
-    }
-
-    // Initialize the page
-    document.addEventListener('DOMContentLoaded', function() {
-      setupDropdowns();
-    });
-  </script>
-</body>
-</html>
