@@ -1427,11 +1427,6 @@ function formatLinkedInCompanyData(data) {
                 
                 let formattedResult = '';
                 let hasData = false;
-
-                 if (response.status === 403 && data.code === 403) {
-    showInsufficientCreditsModal();
-    return;
-}
                 
                 // Handle different response formats
                 if (currentInputType === 'linkedin_profile' && data.name) {
@@ -1453,6 +1448,14 @@ function formatLinkedInCompanyData(data) {
                     rawData: data // Store raw data for CSV export
                 };
             } else {
+
+                const data = await response.json();
+
+                 if (response.status === 403 && data.code === 403) {
+        showInsufficientCreditsModal();
+        return;
+    }
+                
                 bulkResults[i] = {
                     inputData: row.inputData,
                     result: 'Not found',
