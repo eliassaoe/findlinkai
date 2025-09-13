@@ -1243,6 +1243,11 @@ async function enrichData(event) {
     showLoading();
     
     try {
+        console.log('=== DEBUG: Starting enrichData ===');
+        console.log('Input type:', currentInputType);
+        console.log('Output type:', currentOutputType);
+        console.log('Input value:', inputValue);
+        
         // Always use the main worker for all requests
         const response = await fetch('https://linkfinderapp.hamoureliasse.workers.dev/', {
             method: 'POST',
@@ -1256,17 +1261,27 @@ async function enrichData(event) {
             })
         });
 
+        console.log('Response status:', response.status);
+        console.log('Response ok:', response.ok);
+
         const data = await response.json();
+        console.log('Full response data:', data);
+        console.log('data.result:', data.result);
+        console.log('data.rawData:', data.rawData);
+        
         hideLoading();
 
         if (response.status === 403 && data.code === 403) {
+            console.log('Insufficient credits detected');
             showInsufficientCreditsModal();
             return;
         }
 
         if (response.ok && data && data.result) {
+            console.log('Success - showing result:', data.result);
             showSingleResult(inputValue, data.result);
         } else {
+            console.log('No result found - showing "Not found"');
             showSingleResult(inputValue, 'Not found');
         }
 
@@ -1276,7 +1291,6 @@ async function enrichData(event) {
         showAlert('Enrichment error. Please try again.', 'error');
     }
 }
-
 // Function to format LinkedIn profile data
 function formatLinkedInProfileData(data) {
     let result = '';
