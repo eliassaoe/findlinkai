@@ -1233,8 +1233,7 @@
             }
         }
 
-        // Updated enrichData function to handle LinkedIn properly
-async function enrichData(event) {
+  async function enrichData(event) {
     event.preventDefault();
     
     const inputValue = document.getElementById('inputData').value.trim();
@@ -1267,7 +1266,7 @@ async function enrichData(event) {
         const data = await response.json();
         console.log('Full response data:', data);
         console.log('data.result:', data.result);
-        console.log('data.rawData:', data.rawData);
+        console.log('data.name:', data.name);
         
         hideLoading();
 
@@ -1277,9 +1276,16 @@ async function enrichData(event) {
             return;
         }
 
-        if (response.ok && data && data.result) {
-            console.log('Success - showing result:', data.result);
-            showSingleResult(inputValue, data.result);
+        if (response.ok && data && (data.result || data.name)) {
+            // If it's LinkedIn data without a result field, format it
+            if (data.name && !data.result) {
+                const formattedResult = formatLinkedInCompanyData(data);
+                console.log('Success - showing formatted LinkedIn result:', formattedResult);
+                showSingleResult(inputValue, formattedResult);
+            } else {
+                console.log('Success - showing result:', data.result);
+                showSingleResult(inputValue, data.result);
+            }
         } else {
             console.log('No result found - showing "Not found"');
             showSingleResult(inputValue, 'Not found');
