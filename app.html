@@ -1387,81 +1387,40 @@ function formatLinkedInCompanyData(data) {
         updateBulkResultsTable();
         
         try {
-            let response;
-            
-            // Route to appropriate API based on input type
-            if (currentInputType === 'linkedin_profile' && currentOutputType === 'linkedin_info') {
-                // Use LinkedIn Profile Scraper API
-                response = await fetch('https://linkedin-profile-scraper.hamoureliasse.workers.dev/', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        linkedinUrl: row.inputData,
-                        is_bulk: true
-                    })
-                });
-            } else if (currentInputType === 'linkedin_company' && currentOutputType === 'linkedin_info') {
-                // Use LinkedIn Company Scraper API
-                response = await fetch('https://linkedin-company-scraper.hamoureliasse.workers.dev/', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        linkedinUrl: row.inputData,
-                        is_bulk: true
-                    })
-                });
-            } else {
-                // Use general enrichment API for other types
-                response = await fetch('https://linkfinderapp.hamoureliasse.workers.dev/', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        type: generateCombinationType(currentInputType, currentOutputType),
-                        input_data: row.inputData,
-                        output_type: currentOutputType,
-                        token: userToken,
-                        is_bulk: true
-                    })
-                });
-            }
+            // Always use the main worker for all requests
+            const response = await fetch('https://linkfinderapp.hamoureliasse.workers.dev/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    type: generateCombinationType(currentInputType, currentOutputType),
+                    input_data: row.inputData,
+                    output_type: currentOutputType,
+                    token: userToken,
+                    is_bulk: true
+                })
+            });
 
             if (response.ok) {
                 const data = await response.json();
                 
-                let formattedResult = '';
-                let hasData = false;
-                
-                // Handle different response formats
-                if (currentInputType === 'linkedin_profile' && data.name) {
-                    formattedResult = formatLinkedInProfileDataBulk(data);
-                    hasData = true;
-                } else if (currentInputType === 'linkedin_company' && data.name) {
-                    formattedResult = formatLinkedInCompanyDataBulk(data);
-                    hasData = true;
-                } else if (data.result) {
-                    formattedResult = data.result;
-                    hasData = true;
-                }
-                
                 // Update the result
                 bulkResults[i] = {
                     inputData: row.inputData,
-                    result: hasData ? formattedResult : 'Not found',
-                    status: hasData ? 'Found' : 'Not found',
+                    result: data.result || 'Not found',
+                    status: data.result ? 'Found' : 'Not found',
                     rawData: data // Store raw data for CSV export
                 };
             } else {
-
                 const data = await response.json();
 
                 console.log('Response status:', response.status);
-console.log('Response data:', data);
-console.log('Checking 403:', response.status === 403 && data.code === 403);
+                console.log('Response data:', data);
+                console.log('Checking 403:', response.status === 403 && data.code === 403);
 
-                 if (response.status === 403 && data.code === 403) {
-        showInsufficientCreditsModal();
-        return;
-    }
+                if (response.status === 403 && data.code === 403) {
+                    showInsufficientCreditsModal();
+                    return;
+                }
                 
                 bulkResults[i] = {
                     inputData: row.inputData,
