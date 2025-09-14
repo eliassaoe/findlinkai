@@ -1,0 +1,964 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Find Company Employees - LinkedIn Company Employees Scraper Tool</title>
+  <meta name="description" content="Find company employees instantly from LinkedIn. Extract employee data, contact details, and team structure with our advanced LinkedIn company employees scraper tool."/>
+  <meta name="keywords" content="find company employees, linkedin company employees scraper, employee data extraction, company team finder, linkedin business intelligence"/>
+  
+  <!-- Favicon -->
+  <link rel="icon" href="https://i.ibb.co/jPjX9SSp/Screen-Shot-2025-03-28-at-8-16-15-PM.png">
+  
+  <!-- Optimized Font Loading -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --gray-50: #f9fafb;
+      --gray-100: #f3f4f6;
+      --gray-200: #e5e7eb;
+      --gray-300: #d1d5db;
+      --gray-400: #9ca3af;
+      --gray-500: #6b7280;
+      --gray-600: #4b5563;
+      --gray-700: #374151;
+      --gray-800: #1f2937;
+      --gray-900: #111827;
+      --success: #10b981;
+      --error: #ef4444;
+      --warning: #f59e0b;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: white;
+      color: var(--gray-800);
+      line-height: 1.6;
+      font-size: 16px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 1rem;
+    }
+
+    /* Header */
+    .header {
+      border-bottom: 1px solid var(--gray-200);
+      padding: 1rem 0;
+      background: white;
+    }
+
+    .header-content {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      text-decoration: none;
+      color: var(--gray-900);
+    }
+
+    .logo-icon {
+      width: 32px;
+      height: 32px;
+      background: var(--primary);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 0.875rem;
+    }
+
+    .logo-text {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--gray-900);
+    }
+
+    .auth-buttons {
+      display: flex;
+      gap: 0.75rem;
+      align-items: center;
+    }
+
+    /* Hero Section */
+    .hero {
+      text-align: center;
+      padding: 4rem 0 3rem;
+    }
+
+    .hero h1 {
+      font-size: 3rem;
+      font-weight: 700;
+      color: var(--gray-900);
+      margin-bottom: 1rem;
+      line-height: 1.1;
+    }
+
+    .hero p {
+      font-size: 1.25rem;
+      color: var(--gray-600);
+      margin: 0 auto 2rem;
+      max-width: 600px;
+    }
+
+    /* Main Card */
+    .main-card {
+      background: white;
+      border: 1px solid var(--gray-200);
+      border-radius: 12px;
+      padding: 2rem;
+      margin-bottom: 3rem;
+      box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    /* Buttons */
+    .btn {
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 0.875rem 1.5rem;
+      border-radius: 8px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      text-decoration: none;
+      font-size: 0.875rem;
+      min-height: 44px;
+    }
+
+    .btn:hover {
+      background: var(--primary-hover);
+    }
+
+    .btn-outline {
+      background: transparent;
+      color: var(--primary);
+      border: 1px solid var(--gray-300);
+    }
+
+    .btn-outline:hover {
+      background: var(--gray-50);
+      border-color: var(--primary);
+    }
+
+    .btn-full {
+      width: 100%;
+      margin-bottom: 1rem;
+    }
+
+    .btn-secondary {
+      background: var(--gray-600);
+    }
+
+    .btn-secondary:hover {
+      background: var(--gray-700);
+    }
+
+    /* Forms */
+    .input-group {
+      margin-bottom: 1rem;
+    }
+
+    .input-group label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 500;
+      color: var(--gray-700);
+      font-size: 0.875rem;
+    }
+
+    .input-group input, 
+    .input-group select {
+      width: 100%;
+      padding: 0.875rem 1rem;
+      border: 1px solid var(--gray-300);
+      border-radius: 8px;
+      font-size: 0.875rem;
+      transition: border-color 0.2s ease;
+      background: white;
+    }
+
+    .input-group input:focus, 
+    .input-group select:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    .input-group input::placeholder {
+      color: var(--gray-400);
+    }
+
+    /* Results */
+    .results-section {
+      margin-top: 2rem;
+      padding-top: 2rem;
+      border-top: 1px solid var(--gray-200);
+    }
+
+    .company-header {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+      padding: 1rem;
+      background: var(--gray-50);
+      border-radius: 8px;
+    }
+
+    .company-avatar {
+      width: 60px;
+      height: 60px;
+      background: var(--primary);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 1.5rem;
+      font-weight: 600;
+    }
+
+    .company-info h3 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--gray-900);
+      margin-bottom: 0.25rem;
+    }
+
+    .company-info p {
+      color: var(--gray-600);
+      font-size: 0.875rem;
+    }
+
+    .employee-count {
+      color: var(--primary);
+      font-size: 0.875rem;
+      font-weight: 500;
+    }
+
+    .employee-list {
+      display: grid;
+      gap: 0.75rem;
+    }
+
+    .employee-item {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 1rem;
+      border: 1px solid var(--gray-200);
+      border-radius: 8px;
+      background: white;
+    }
+
+    .employee-avatar {
+      width: 40px;
+      height: 40px;
+      background: var(--success);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 0.875rem;
+      font-weight: 600;
+    }
+
+    .employee-info h4 {
+      font-weight: 600;
+      color: var(--gray-900);
+      font-size: 0.875rem;
+      margin-bottom: 0.25rem;
+    }
+
+    .employee-title {
+      color: var(--gray-600);
+      font-size: 0.75rem;
+    }
+
+    .employee-link {
+      margin-left: auto;
+      color: var(--primary);
+      text-decoration: none;
+      font-size: 0.875rem;
+      font-weight: 500;
+    }
+
+    .employee-link:hover {
+      text-decoration: underline;
+    }
+
+    .error-message {
+      color: var(--error);
+      background: rgba(239, 68, 68, 0.1);
+      padding: 1rem;
+      border-radius: 8px;
+      font-weight: 500;
+    }
+
+    .loading-message {
+      color: var(--primary);
+      background: rgba(37, 99, 235, 0.1);
+      padding: 1rem;
+      border-radius: 8px;
+      font-weight: 500;
+    }
+
+    /* Limit Warning */
+    .limit-warning {
+      background: var(--warning);
+      color: white;
+      padding: 1rem;
+      border-radius: 8px;
+      margin-bottom: 1.5rem;
+      text-align: center;
+      font-weight: 500;
+    }
+
+    .limit-warning h3 {
+      margin-bottom: 0.5rem;
+      font-size: 1rem;
+    }
+
+    .limit-warning p {
+      margin-bottom: 1rem;
+      font-size: 0.875rem;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    /* Pricing Section */
+    .pricing-section {
+      background: var(--gray-900);
+      color: white;
+      padding: 4rem 0;
+      margin-top: 3rem;
+    }
+
+    .pricing-header {
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+
+    .pricing-header h2 {
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+    }
+
+    .pricing-header p {
+      font-size: 1.125rem;
+      color: var(--gray-300);
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .pricing-card {
+      background: white;
+      color: var(--gray-900);
+      border-radius: 12px;
+      padding: 2rem;
+      max-width: 400px;
+      margin: 0 auto;
+      text-align: center;
+    }
+
+    .pricing-price {
+      font-size: 3rem;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 0.5rem;
+    }
+
+    .pricing-period {
+      color: var(--gray-600);
+      margin-bottom: 2rem;
+      font-size: 1rem;
+    }
+
+    .pricing-features {
+      list-style: none;
+      margin-bottom: 2rem;
+      text-align: left;
+    }
+
+    .pricing-features li {
+      padding: 0.5rem 0;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-size: 0.875rem;
+    }
+
+    .pricing-features .check {
+      color: var(--success);
+      font-weight: 600;
+    }
+
+    /* Testimonial */
+    .testimonial-section {
+      background: var(--gray-50);
+      padding: 3rem 0;
+    }
+
+    .testimonial-card {
+      background: white;
+      border-radius: 12px;
+      padding: 2rem;
+      max-width: 700px;
+      margin: 0 auto;
+      text-align: center;
+      border: 1px solid var(--gray-200);
+    }
+
+    .testimonial-quote {
+      font-size: 1.125rem;
+      color: var(--gray-700);
+      margin-bottom: 1.5rem;
+      font-style: italic;
+      line-height: 1.6;
+    }
+
+    .testimonial-author {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+    }
+
+    .testimonial-avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 600;
+      font-size: 0.875rem;
+    }
+
+    .testimonial-info h4 {
+      font-weight: 600;
+      color: var(--gray-900);
+      font-size: 0.875rem;
+    }
+
+    .testimonial-info p {
+      color: var(--gray-600);
+      font-size: 0.75rem;
+    }
+
+    /* FAQ */
+    .faq-section {
+      padding: 3rem 0;
+    }
+
+    .faq-header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .faq-header h2 {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--gray-900);
+      margin-bottom: 0.5rem;
+    }
+
+    .faq-list {
+      max-width: 700px;
+      margin: 0 auto;
+    }
+
+    .faq-item {
+      background: white;
+      border: 1px solid var(--gray-200);
+      border-radius: 8px;
+      margin-bottom: 0.75rem;
+    }
+
+    .faq-question {
+      padding: 1rem 1.5rem;
+      background: none;
+      border: none;
+      width: 100%;
+      text-align: left;
+      font-weight: 500;
+      color: var(--gray-900);
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: all 0.2s ease;
+      font-size: 0.875rem;
+    }
+
+    .faq-question:hover {
+      background: var(--gray-50);
+    }
+
+    .faq-question .icon {
+      color: var(--gray-400);
+      transition: transform 0.2s ease;
+    }
+
+    .faq-question.active .icon {
+      transform: rotate(180deg);
+    }
+
+    .faq-answer {
+      padding: 0 1.5rem 1rem;
+      color: var(--gray-600);
+      line-height: 1.6;
+      font-size: 0.875rem;
+      display: none;
+    }
+
+    .faq-answer.show {
+      display: block;
+    }
+
+    /* CTA Section */
+    .cta-section {
+      background: var(--primary);
+      color: white;
+      padding: 3rem 0;
+      text-align: center;
+    }
+
+    .cta-section h2 {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+    }
+
+    .cta-section p {
+      margin-bottom: 2rem;
+      font-size: 1rem;
+    }
+
+    .cta-section .btn {
+      background: white;
+      color: var(--primary);
+      font-weight: 600;
+    }
+
+    .cta-section .btn:hover {
+      background: var(--gray-100);
+    }
+
+    /* Footer */
+    .footer {
+      background: var(--gray-900);
+      color: var(--gray-300);
+      padding: 3rem 0 1rem;
+      margin-top: 3rem;
+    }
+
+    .footer-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr;
+      gap: 2rem;
+      margin-bottom: 2rem;
+    }
+
+    .footer-section h4.footer-heading {
+      color: white;
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+    }
+
+    .footer-logo {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .footer-logo .logo-icon {
+      width: 28px;
+      height: 28px;
+      background: var(--primary);
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 0.75rem;
+    }
+
+    .footer-logo .logo-text {
+      font-size: 1.125rem;
+      font-weight: 600;
+      color: white;
+    }
+
+    .footer-description {
+      color: var(--gray-400);
+      font-size: 0.875rem;
+      line-height: 1.6;
+      margin-bottom: 1.5rem;
+      max-width: 280px;
+    }
+
+    .footer-links {
+      list-style: none;
+      padding: 0;
+    }
+
+    .footer-links li {
+      margin-bottom: 0.5rem;
+    }
+
+    .footer-links a {
+      color: var(--gray-300);
+      text-decoration: none;
+      font-size: 0.875rem;
+      transition: color 0.2s ease;
+      display: block;
+    }
+
+    .footer-links a:hover {
+      color: white;
+    }
+
+    .footer-bottom {
+      border-top: 1px solid var(--gray-800);
+      padding-top: 1.5rem;
+      text-align: center;
+    }
+
+    .footer-bottom p {
+      color: var(--gray-400);
+      font-size: 0.875rem;
+      margin: 0;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .hero h1 {
+        font-size: 2.5rem;
+      }
+      
+      .pricing-header h2 {
+        font-size: 2rem;
+      }
+      
+      .testimonial-author {
+        flex-direction: column;
+        gap: 0.75rem;
+      }
+
+      .footer-grid {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+      }
+
+      .company-header {
+        flex-direction: column;
+        text-align: center;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .hero h1 {
+        font-size: 2rem;
+      }
+      
+      .container {
+        padding: 0 0.75rem;
+      }
+      
+      .main-card {
+        padding: 1.5rem;
+      }
+
+      .footer {
+        padding: 2rem 0 1rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="container">
+      <div class="header-content">
+        <a href="https://linkfinderai.com/" class="logo">
+          <div class="logo-icon">
+            <i class="fas fa-search"></i>
+          </div>
+          <span class="logo-text">Linkfinder AI</span>
+        </a>
+        
+        <div class="auth-buttons">
+          <button class="btn btn-outline" onclick="showModal('login')">
+            Login
+          </button>
+          <button class="btn" onclick="showModal('signup')">
+            Sign Up
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="hero">
+      <h1>Find Company Employees</h1>
+      <p>Discover and extract comprehensive employee data from any LinkedIn company page. Find company employees instantly with contact details, roles, and professional information using our advanced scraper tool.</p>
+    </div>
+
+    <!-- Limit Warning -->
+    <div id="limitWarning" class="limit-warning hidden">
+      <h3>Free searches used</h3>
+      <p>Sign up to continue finding company employees</p>
+      <button class="btn" onclick="showModal('signup')" style="background: white; color: var(--warning);">
+        Sign Up
+      </button>
+    </div>
+
+    <div class="main-card">
+      <div class="input-group">
+        <label for="companyInput">Company URL or Name</label>
+        <input type="text" id="companyInput" placeholder="Enter LinkedIn company URL or company name (e.g., https://linkedin.com/company/google or Google)" required>
+      </div>
+      
+      <div class="input-group">
+        <label for="maxEmployees">Maximum Employees to Find</label>
+        <select id="maxEmployees" required>
+          <option value="10">10 employees</option>
+          <option value="20">20 employees</option>
+          <option value="30">30 employees</option>
+          <option value="40">40 employees</option>
+          <option value="50">50 employees</option>
+          <option value="100" selected>100 employees</option>
+        </select>
+      </div>
+      
+      <button class="btn btn-full" onclick="findCompanyEmployees()">
+        <i class="fas fa-users"></i>
+        Find Company Employees
+      </button>
+      
+      <button class="btn-secondary btn btn-full" onclick="tryExample()">
+        Try Example
+      </button>
+
+      <!-- Results Section -->
+      <div id="resultsSection" class="results-section hidden">
+        <div id="loadingMessage" class="loading-message hidden">
+          <i class="fas fa-spinner fa-spin"></i> Finding company employees...
+        </div>
+        
+        <div id="errorMessage" class="error-message hidden"></div>
+        
+        <div id="companyResults" class="hidden">
+          <div id="companyHeader" class="company-header"></div>
+          <div id="employeeList" class="employee-list"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Testimonial Section -->
+  <div class="testimonial-section">
+    <div class="container">
+      <div class="testimonial-card">
+        <div class="testimonial-quote">
+          "Finding company employees has never been easier! This tool helped us identify key decision-makers at target companies in minutes. The employee data extraction is incredibly accurate and saves us hours of manual research."
+        </div>
+        <div class="testimonial-author">
+          <div class="testimonial-avatar">MJ</div>
+          <div class="testimonial-info">
+            <h4>Marcus Johnson</h4>
+            <p>Sales Director, SalesTech Solutions</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pricing Section -->
+  <div class="pricing-section">
+    <div class="container">
+      <div class="pricing-header">
+        <h2>Simple Pricing</h2>
+        <p>Get unlimited access to find company employees from any LinkedIn company page</p>
+      </div>
+      
+      <div class="pricing-card">
+        <div class="pricing-price">$29</div>
+        <div class="pricing-period">per month</div>
+        
+        <ul class="pricing-features">
+          <li><span class="check">✓</span> <strong>Unlimited</strong> company employee searches</li>
+          <li><span class="check">✓</span> Batch processing (CSV upload)</li>
+          <li><span class="check">✓</span> API access included</li>
+          <li><span class="check">✓</span> Export results to CSV</li>
+          <li><span class="check">✓</span> Complete employee profiles</li>
+          <li><span class="check">✓</span> Priority support</li>
+        </ul>
+        
+        <button class="btn btn-full" onclick="showModal('signup')">
+          Get Started
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- FAQ Section -->
+  <div class="faq-section">
+    <div class="container">
+      <div class="faq-header">
+        <h2>Frequently Asked Questions</h2>
+      </div>
+      
+      <div class="faq-list">
+        <div class="faq-item">
+          <button class="faq-question" onclick="toggleFAQ(this)">
+            How do I find company employees using this tool?
+            <i class="fas fa-chevron-down icon"></i>
+          </button>
+          <div class="faq-answer">
+            Simply enter a LinkedIn company URL or company name, select the maximum number of employees to find, and our tool will extract comprehensive employee data including names, job titles, and contact information.
+          </div>
+        </div>
+        
+        <div class="faq-item">
+          <button class="faq-question" onclick="toggleFAQ(this)">
+            What employee data can I extract from companies?
+            <i class="fas fa-chevron-down icon"></i>
+          </button>
+          <div class="faq-answer">
+            Our tool extracts employee names, job titles, departments, LinkedIn profiles, contact information, and professional details from any company's LinkedIn page to help you find company employees efficiently.
+          </div>
+        </div>
+        
+        <div class="faq-item">
+          <button class="faq-question" onclick="toggleFAQ(this)">
+            Is it legal to find company employees this way?
+            <i class="fas fa-chevron-down icon"></i>
+          </button>
+          <div class="faq-answer">
+            Yes, our service only extracts publicly available employee information from LinkedIn company pages in compliance with LinkedIn's terms of service and data protection regulations.
+          </div>
+        </div>
+        
+        <div class="faq-item">
+          <button class="faq-question" onclick="toggleFAQ(this)">
+            How accurate is the employee data extraction?
+            <i class="fas fa-chevron-down icon"></i>
+          </button>
+          <div class="faq-answer">
+            Our company employee finder maintains over 95% accuracy by extracting data directly from LinkedIn's structured company pages and validating employee information before delivery.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CTA Section -->
+  <div class="cta-section">
+    <div class="container">
+      <h2>Ready to Find Company Employees?</h2>
+      <p>Join thousands of sales professionals and recruiters who use our tool to find company employees and build their prospect lists</p>
+      <button class="btn" onclick="showModal('signup')">
+        Start Finding Employees Now
+      </button>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-grid">
+        <!-- Brand Section -->
+        <div class="footer-section">
+          <div class="footer-logo">
+            <div class="logo-icon">
+              <i class="fas fa-search"></i>
+            </div>
+            <span class="logo-text">LinkFinder AI</span>
+          </div>
+          <p class="footer-description">
+            Professional tools for extracting company data from LinkedIn. Streamline your business research and competitive intelligence.
+          </p>
+        </div>
+        
+        <!-- Tools Section -->
+        <div class="footer-section">
+          <h4 class="footer-heading">Our Tools</h4>
+          <ul class="footer-links">
+            <li><a href="https://linkfinderai.com/company-url-finder">Company URL Finder</a></li>
+            <li><a href="https://linkfinderai.com/linkedin-url-finder">LinkedIn URL Finder</a></li>
+            <li><a href="https://linkfinderai.com/company-phone-finder">Company Phone Finder</a></li>
+            <li><a href="https://linkfinderai.com/linkedin-company-scraper">LinkedIn Company Scraper</a></li>
+            <li><a href="https://linkfinderai.com/linkedin-profile-scraper">LinkedIn Profile Scraper</a></li>
+          </ul>
+        </div>
+        
+        <!-- Compare Section -->
+        <div class="footer-section">
+          <h4 class="footer-heading">Compare</h4>
+          <ul class="footer-links">
+            <li><a href="https://linkfinderai.com/apify-alternative">Apify Alternative</a></li>
+            <li><a href="https://linkfinderai.com/clay-alternative">Clay Alternative</a></li>
+            <li><a href="https://linkfinderai.com/coresignal-alternative">Coresignal Alternative</a></li>
+            <li><a href="https://linkfinderai.com/derrick-app-alternative">Derrick App Alternative</a></li>
+            <li><a href="https://linkfinderai.com/phantombuster-alternative">PhantomBuster Alternative</a></li>
+          </ul>
+        </div>
+        
+        <!-- Support Section -->
+        <div class="footer-section">
+          <h4 class="footer-heading">Support</h4>
+          <ul class="footer-links">
+            <li><a href="mailto:support@unlimited-leads.online">Contact Support</a></li>
+            <li><a href="https://linkfinderai.com/privacy">Privacy Policy</a></li>
+            <li><a href="https://linkfinderai.com/terms">Terms of Service</a></li>
+            <li><a href="https://linkfinderai.com/about-us">About Us</a></li>
+          </ul>
+        </div>
+      </div>
+      
+      <!-- Footer Bottom -->
+      <div class="footer-bottom">
+        <p>&copy; 2025 LinkFinderAI. All rights reserved.</p>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    let searchCount = 0
