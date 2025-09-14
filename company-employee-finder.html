@@ -1057,8 +1057,16 @@
 
         const data = await response.json();
 
-        if (data && (data.employees || data.companyName)) {
-          displayCompanyData(data);
+        // Handle raw n8n array response format
+        let employeeData;
+        if (Array.isArray(data) && data.length > 0) {
+          employeeData = data[0]; // Extract first object from array
+        } else {
+          employeeData = data;
+        }
+
+        if (employeeData && employeeData.employees && employeeData.employees.length > 0) {
+          displayCompanyData(employeeData);
           updateSearchCount();
         } else {
           showError(`No employee data found for: ${companyInput}`);
