@@ -1088,15 +1088,33 @@
       document.getElementById('errorMessage').classList.add('hidden');
       document.getElementById('companyResults').classList.remove('hidden');
       
-      const companyInitials = data.companyName ? data.companyName.split(' ').map(word => word[0]).join('').substring(0, 2).toUpperCase() : 'CO';
+      // Extract company name from employees data or use fallback
+      let companyName = data.companyName;
+      if (!companyName && data.employees && data.employees.length > 0) {
+        companyName = data.employees[0].company || 'Company';
+      }
+      if (!companyName) {
+        companyName = 'Company';
+      }
+      
+      const companyInitials = companyName.split(' ').map(word => word[0]).join('').substring(0, 2).toUpperCase();
+      
+      // Extract industry from first employee or use default
+      let industry = data.industry;
+      if (!industry && data.employees && data.employees.length > 0) {
+        industry = data.employees[0].industry || 'Technology';
+      }
+      if (!industry) {
+        industry = 'Industry not specified';
+      }
       
       // Company Header
       const companyHeader = document.getElementById('companyHeader');
       companyHeader.innerHTML = `
         <div class="company-avatar">${companyInitials}</div>
         <div class="company-info">
-          <h3>${data.companyName || 'Company'}</h3>
-          <p>${data.industry || 'Industry not specified'}</p>
+          <h3>${companyName}</h3>
+          <p>${industry}</p>
           <div class="employee-count">${data.employees ? data.employees.length : 0} employees found</div>
         </div>
       `;
