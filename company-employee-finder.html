@@ -1057,30 +1057,58 @@
 
         const data = await response.json();
         
-        // Debug: Log what we receive
+        // Console debugging
+        console.log('=== DEBUGGING START ===');
         console.log('Raw response from worker:', data);
+        console.log('Is response an array?', Array.isArray(data));
 
-        // Handle raw n8n array response format
         let employeeData;
-        if (Array.isArray(data) && data.length > 0) {
-          employeeData = data[0]; // Extract first object from array
-          console.log('Extracted employee data:', employeeData);
-        } else {
-          employeeData = data;
-          console.log('Using data as-is:', employeeData);
+        let employees = [];
+        let companyName = 'Company';
+        let industry = 'Technology';
+
+        // Handle both formats:
+        // Format 1: [{"employees": [...], "totalCount": 9}] (wrapped)
+        // Format 2: [{employee1}, {employee2}, ...] (direct array)
+        
+        if (Array.isArray(data)) {
+          if (data.length > 0 && data[0].employees) {
+            // Format 1: Wrapped format
+            console.log('Format 1: Wrapped format detected');
+            employeeData = data[0];
+            employees = employeeData.employees || [];
+            companyName = employeeData.companyName || (employees[0]?.company) || 'Company';
+            industry = employeeData.industry || (employees[0]?.industry) || 'Technology';
+          } else if (data.length > 0 && data[0].name) {
+            // Format 2: Direct employee array
+            console.log('Format 2: Direct employee array detected');
+            employees = data;
+            companyName = employees[0]?.company || 'Company';
+            industry = employees[0]?.industry || 'Technology';
+          }
         }
 
-        // Debug: Check the condition
-        console.log('employeeData exists:', !!employeeData);
-        console.log('employeeData.employees exists:', !!employeeData?.employees);
-        console.log('employeeData.employees.length:', employeeData?.employees?.length);
+        console.log('Final processed data:');
+        console.log('- Company name:', companyName);
+        console.log('- Industry:', industry);
+        console.log('- Employees count:', employees.length);
+        console.log('- First employee:', employees[0]);
 
-        if (employeeData && employeeData.employees && employeeData.employees.length > 0) {
-          console.log('SUCCESS: Displaying employee data');
-          displayCompanyData(employeeData);
+        if (employees && employees.length > 0) {
+          console.log('✅ SUCCESS: Found employees, displaying data');
+          
+          // Create unified data structure for display
+          const displayData = {
+            companyName: companyName,
+            industry: industry,
+            employees: employees
+          };
+          
+          displayCompanyData(displayData);
           updateSearchCount();
         } else {
-          console.log('FAILED: No employee data condition failed');
+          console.log('❌ FAILED: No employees found');
+          console.log('=== DEBUGGING END ===');
           showError(`No employee data found for: ${companyInput}`);
         }
       } catch (error) {
