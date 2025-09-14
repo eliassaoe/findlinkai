@@ -1273,6 +1273,14 @@
         
         hideLoading();
 
+        // Handle employees data (array format)
+        if (currentOutputType === 'employees' && Array.isArray(data) && data.length > 0) {
+            const formattedEmployees = formatEmployeesData(data);
+            console.log('Success - showing employees result:', formattedEmployees);
+            showSingleResult(inputValue, formattedEmployees);
+            return;
+        }
+
         if (response.status === 403 && data.code === 403) {
             console.log('Insufficient credits detected');
             showInsufficientCreditsModal();
@@ -1451,6 +1459,29 @@ function formatLinkedInCompanyDataBulk(data) {
     if (data.companySize) parts.push(`${data.companySize} employees`);
     
     return parts.join(' | ') || 'Company data found';
+}
+
+        function formatEmployeesData(employeesArray) {
+    let result = `Found ${employeesArray.length} employees:\n\n`;
+    
+    employeesArray.forEach((employee, index) => {
+        result += `${index + 1}. ${employee.name || 'Unknown Name'}\n`;
+        if (employee.jobTitle && employee.jobTitle !== 'Not specified') {
+            result += `   Job Title: ${employee.jobTitle}\n`;
+        }
+        if (employee.location && employee.location !== 'Not specified') {
+            result += `   Location: ${employee.location}\n`;
+        }
+        if (employee.industry && employee.industry !== 'Not specified') {
+            result += `   Industry: ${employee.industry}\n`;
+        }
+        if (employee.linkedinUrl) {
+            result += `   LinkedIn: ${employee.linkedinUrl}\n`;
+        }
+        result += `\n`;
+    });
+    
+    return result.trim();
 }
 
 
