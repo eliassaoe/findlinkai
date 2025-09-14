@@ -1,1179 +1,279 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Find Company Employees - LinkedIn Company Employees Scraper Tool</title>
-  <meta name="description" content="Find company employees instantly from LinkedIn. Extract employee data, contact details, and team structure with our advanced LinkedIn company employees scraper tool."/>
-  <meta name="keywords" content="find company employees, linkedin company employees scraper, employee data extraction, company team finder, linkedin business intelligence"/>
-  
-  <!-- Favicon -->
-  <link rel="icon" href="https://i.ibb.co/jPjX9SSp/Screen-Shot-2025-03-28-at-8-16-15-PM.png">
-  
-  <!-- Optimized Font Loading -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-
-  <style>
-    :root {
-      --primary: #2563eb;
-      --primary-hover: #1d4ed8;
-      --gray-50: #f9fafb;
-      --gray-100: #f3f4f6;
-      --gray-200: #e5e7eb;
-      --gray-300: #d1d5db;
-      --gray-400: #9ca3af;
-      --gray-500: #6b7280;
-      --gray-600: #4b5563;
-      --gray-700: #374151;
-      --gray-800: #1f2937;
-      --gray-900: #111827;
-      --success: #10b981;
-      --error: #ef4444;
-      --warning: #f59e0b;
+export default {
+  async fetch(request, env, ctx) {
+    const allowedOrigin = 'https://linkfinderai.com';
+    
+    // Handle CORS preflight requests
+    if (request.method === 'OPTIONS') {
+      return new Response(null, {
+        headers: {
+          'Access-Control-Allow-Origin': allowedOrigin,
+          'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type',
+        },
+      });
     }
 
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
+    // Check origin
+    const origin = request.headers.get('Origin');
+    if (origin && origin !== allowedOrigin) {
+      return new Response(JSON.stringify({ 
+        error: 'Forbidden', 
+        message: 'Access denied from this origin' 
+      }), {
+        status: 403,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+    }
+
+    try {
+      // Get client IP for rate limiting
+      const clientIP = request.headers.get('CF-Connecting-IP') || request.headers.get('X-Forwarded-For') || 'unknown';
+      
+      // Parse the incoming request body
+      const requestData = await request.json();
+      
+      // Validate required parameters - accept companyUrl, linkedin_url, or company_name
+      const companyUrl = requestData.companyUrl || requestData.linkedin_url || requestData.company_url;
+      const companyName = requestData.companyName || requestData.company_name;
+      const maxEmployees = requestData.maxEmployees || requestData.max_employees || "100";
+      
+      if (!companyUrl && !companyName) {
+        return new Response(JSON.stringify({ 
+          error: 'Missing required parameter', 
+          message: 'Please provide either companyUrl/linkedin_url or companyName/company_name' 
+        }), {
+          status: 400,
+          headers: {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': allowedOrigin,
+          },
+        });
+      }
+
+      // Validate LinkedIn URL format if provided
+      if (companyUrl && !isValidLinkedInCompanyUrl(companyUrl)) {
+        return new Response(JSON.stringify({ 
+          error: 'Invalid LinkedIn Company URL', 
+          message: 'Please provide a valid LinkedIn company URL (e.g., https://linkedin.com/company/company-name)' 
+        }), {
+          status: 400,
+          headers: {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': allowedOrigin,
+          },
+        });
+      }
+
+      // Determine if this is a bulk search (more than 50 employees)
+      const isBulkSearch = parseInt(maxEmployees) > 50;
+      
+      // Check rate limits
+      const rateLimitResult = await checkRateLimit(clientIP, isBulkSearch, env);
+      if (!rateLimitResult.allowed) {
+        return new Response(JSON.stringify({ 
+          error: 'Rate limit exceeded', 
+          message: rateLimitResult.message,
+          requires_signup: true
+        }), {
+          status: 429,
+          headers: {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': allowedOrigin,
+            'Retry-After': '3600' // Suggest waiting an hour before trying again
+          },
+        });
+      }
+
+      // Make POST request to the n8n webhook
+      const webhookUrl = 'https://eliasse-n8n.onrender.com/webhook/5d628924-9fc5-4864-be01-8b1731455185';
+      
+      // Prepare payload for webhook
+      const webhookPayload = {
+        maxEmployees: maxEmployees
+      };
+      
+      // Add either companyUrl or companyName to payload
+      if (companyUrl) {
+        webhookPayload.companyUrl = companyUrl;
+      } else {
+        webhookPayload.companyName = companyName;
+      }
+      
+      console.log('Sending to n8n webhook:', JSON.stringify(webhookPayload));
+      
+      const response = await fetch(webhookUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(webhookPayload)
+      });
+
+      // Check if the response is ok
+      if (!response.ok) {
+        console.error('Webhook response not ok:', response.status, response.statusText);
+        throw new Error(`Webhook responded with status: ${response.status}`);
+      }
+
+      // Get the JSON response
+      const data = await response.json();
+      console.log('Raw n8n response:', JSON.stringify(data));
+
+      // Update rate limit counters after successful request
+      await updateRateLimit(clientIP, isBulkSearch, env);
+
+      console.log('Sending to frontend:', JSON.stringify(data));
+      
+      // Return the raw data exactly as received from n8n
+      return new Response(JSON.stringify(data), {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': allowedOrigin,
+        },
+      });
+
+    } catch (error) {
+      console.error('Error in worker:', error);
+      
+      return new Response(JSON.stringify({ 
+        error: 'Internal server error', 
+        message: error.message 
+      }), {
+        status: 500,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': allowedOrigin,
+        },
+      });
+    }
+  },
+};
+
+// Helper function to extract company name from LinkedIn URL
+function extractCompanyNameFromUrl(url) {
+  if (!url) return null;
+  
+  try {
+    const urlObj = new URL(url);
+    const pathSegments = urlObj.pathname.split('/');
+    const companyIndex = pathSegments.indexOf('company');
+    
+    if (companyIndex !== -1 && pathSegments[companyIndex + 1]) {
+      // Convert kebab-case to Title Case
+      return pathSegments[companyIndex + 1]
+        .split('-')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+    }
+  } catch (error) {
+    console.error('Error extracting company name from URL:', error);
+  }
+  
+  return null;
+}
+
+// LinkedIn Company URL validation function
+function isValidLinkedInCompanyUrl(url) {
+  try {
+    const urlObj = new URL(url);
+    const hostname = urlObj.hostname.toLowerCase();
+    
+    // Check if it's a LinkedIn domain
+    const validDomains = ['linkedin.com', 'www.linkedin.com'];
+    if (!validDomains.includes(hostname)) {
+      return false;
     }
     
-    body {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-      background: white;
-      color: var(--gray-800);
-      line-height: 1.6;
-      font-size: 16px;
-    }
-
-    .container {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 0 1rem;
-    }
-
-    /* Header */
-    .header {
-      border-bottom: 1px solid var(--gray-200);
-      padding: 1rem 0;
-      background: white;
-    }
-
-    .header-content {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .logo {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      text-decoration: none;
-      color: var(--gray-900);
-    }
-
-    .logo-icon {
-      width: 32px;
-      height: 32px;
-      background: var(--primary);
-      border-radius: 6px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      font-size: 0.875rem;
-    }
-
-    .logo-text {
-      font-size: 1.25rem;
-      font-weight: 600;
-      color: var(--gray-900);
-    }
-
-    .auth-buttons {
-      display: flex;
-      gap: 0.75rem;
-      align-items: center;
-    }
-
-    /* Hero Section */
-    .hero {
-      text-align: center;
-      padding: 4rem 0 3rem;
-    }
-
-    .hero h1 {
-      font-size: 3rem;
-      font-weight: 700;
-      color: var(--gray-900);
-      margin-bottom: 1rem;
-      line-height: 1.1;
-    }
-
-    .hero p {
-      font-size: 1.25rem;
-      color: var(--gray-600);
-      margin: 0 auto 2rem;
-      max-width: 600px;
-    }
-
-    /* Main Card */
-    .main-card {
-      background: white;
-      border: 1px solid var(--gray-200);
-      border-radius: 12px;
-      padding: 2rem;
-      margin-bottom: 3rem;
-      box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
-      max-width: 600px;
-      margin-left: auto;
-      margin-right: auto;
-    }
-
-    /* Buttons */
-    .btn {
-      background: var(--primary);
-      color: white;
-      border: none;
-      padding: 0.875rem 1.5rem;
-      border-radius: 8px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.5rem;
-      text-decoration: none;
-      font-size: 0.875rem;
-      min-height: 44px;
-    }
-
-    .btn:hover {
-      background: var(--primary-hover);
-    }
-
-    .btn-outline {
-      background: transparent;
-      color: var(--primary);
-      border: 1px solid var(--gray-300);
-    }
-
-    .btn-outline:hover {
-      background: var(--gray-50);
-      border-color: var(--primary);
-    }
-
-    .btn-full {
-      width: 100%;
-      margin-bottom: 1rem;
-    }
-
-    .btn-secondary {
-      background: var(--gray-600);
-    }
-
-    .btn-secondary:hover {
-      background: var(--gray-700);
-    }
-
-    /* Forms */
-    .input-group {
-      margin-bottom: 1.5rem;
-    }
-
-    .input-group label {
-      display: block;
-      margin-bottom: 0.5rem;
-      font-weight: 500;
-      color: var(--gray-700);
-      font-size: 0.875rem;
-    }
-
-    .input-group input {
-      width: 100%;
-      padding: 0.875rem 1rem;
-      border: 1px solid var(--gray-300);
-      border-radius: 8px;
-      font-size: 0.875rem;
-      transition: border-color 0.2s ease;
-      background: white;
-    }
-
-    .input-group input:focus {
-      outline: none;
-      border-color: var(--primary);
-      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-    }
-
-    .input-group input::placeholder {
-      color: var(--gray-400);
-    }
-
-    /* Results */
-    .results-section {
-      margin-top: 2rem;
-      padding-top: 2rem;
-      border-top: 1px solid var(--gray-200);
-    }
-
-    .company-header {
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-      margin-bottom: 1.5rem;
-      padding: 1rem;
-      background: var(--gray-50);
-      border-radius: 8px;
-    }
-
-    .company-avatar {
-      width: 60px;
-      height: 60px;
-      background: var(--primary);
-      border-radius: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      font-size: 1.5rem;
-      font-weight: 600;
-    }
-
-    .company-info h3 {
-      font-size: 1.25rem;
-      font-weight: 600;
-      color: var(--gray-900);
-      margin-bottom: 0.25rem;
-    }
-
-    .company-info p {
-      color: var(--gray-600);
-      font-size: 0.875rem;
-    }
-
-    .employee-count {
-      color: var(--primary);
-      font-size: 0.875rem;
-      font-weight: 500;
-    }
-
-    .employee-list {
-      display: grid;
-      gap: 0.75rem;
-    }
-
-    .employee-item {
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-      padding: 1rem;
-      border: 1px solid var(--gray-200);
-      border-radius: 8px;
-      background: white;
-    }
-
-    .employee-avatar {
-      width: 40px;
-      height: 40px;
-      background: var(--success);
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      font-size: 0.875rem;
-      font-weight: 600;
-    }
-
-    .employee-info h4 {
-      font-weight: 600;
-      color: var(--gray-900);
-      font-size: 0.875rem;
-      margin-bottom: 0.25rem;
-    }
-
-    .employee-title {
-      color: var(--gray-600);
-      font-size: 0.75rem;
-    }
-
-    .employee-link {
-      margin-left: auto;
-      color: var(--primary);
-      text-decoration: none;
-      font-size: 0.875rem;
-      font-weight: 500;
-    }
-
-    .employee-link:hover {
-      text-decoration: underline;
-    }
-
-    .error-message {
-      color: var(--error);
-      background: rgba(239, 68, 68, 0.1);
-      padding: 1rem;
-      border-radius: 8px;
-      font-weight: 500;
-    }
-
-    .loading-message {
-      color: var(--primary);
-      background: rgba(37, 99, 235, 0.1);
-      padding: 1rem;
-      border-radius: 8px;
-      font-weight: 500;
-    }
-
-    /* Limit Warning */
-    .limit-warning {
-      background: var(--warning);
-      color: white;
-      padding: 1rem;
-      border-radius: 8px;
-      margin-bottom: 1.5rem;
-      text-align: center;
-      font-weight: 500;
-    }
-
-    .limit-warning h3 {
-      margin-bottom: 0.5rem;
-      font-size: 1rem;
-    }
-
-    .limit-warning p {
-      margin-bottom: 1rem;
-      font-size: 0.875rem;
-    }
-
-    .hidden {
-      display: none !important;
-    }
-
-    /* Pricing Section */
-    .pricing-section {
-      background: var(--gray-900);
-      color: white;
-      padding: 4rem 0;
-      margin-top: 3rem;
-    }
-
-    .pricing-header {
-      text-align: center;
-      margin-bottom: 3rem;
-    }
-
-    .pricing-header h2 {
-      font-size: 2.5rem;
-      font-weight: 700;
-      margin-bottom: 1rem;
-    }
-
-    .pricing-header p {
-      font-size: 1.125rem;
-      color: var(--gray-300);
-      max-width: 600px;
-      margin: 0 auto;
-    }
-
-    .pricing-card {
-      background: white;
-      color: var(--gray-900);
-      border-radius: 12px;
-      padding: 2rem;
-      max-width: 400px;
-      margin: 0 auto;
-      text-align: center;
-    }
-
-    .pricing-price {
-      font-size: 3rem;
-      font-weight: 700;
-      color: var(--primary);
-      margin-bottom: 0.5rem;
-    }
-
-    .pricing-period {
-      color: var(--gray-600);
-      margin-bottom: 2rem;
-      font-size: 1rem;
-    }
-
-    .pricing-features {
-      list-style: none;
-      margin-bottom: 2rem;
-      text-align: left;
-    }
-
-    .pricing-features li {
-      padding: 0.5rem 0;
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      font-size: 0.875rem;
-    }
-
-    .pricing-features .check {
-      color: var(--success);
-      font-weight: 600;
-    }
-
-    /* Testimonial */
-    .testimonial-section {
-      background: var(--gray-50);
-      padding: 3rem 0;
-    }
-
-    .testimonial-card {
-      background: white;
-      border-radius: 12px;
-      padding: 2rem;
-      max-width: 700px;
-      margin: 0 auto;
-      text-align: center;
-      border: 1px solid var(--gray-200);
-    }
-
-    .testimonial-quote {
-      font-size: 1.125rem;
-      color: var(--gray-700);
-      margin-bottom: 1.5rem;
-      font-style: italic;
-      line-height: 1.6;
-    }
-
-    .testimonial-author {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 1rem;
-    }
-
-    .testimonial-avatar {
-      width: 48px;
-      height: 48px;
-      border-radius: 50%;
-      background: var(--primary);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      font-weight: 600;
-      font-size: 0.875rem;
-    }
-
-    .testimonial-info h4 {
-      font-weight: 600;
-      color: var(--gray-900);
-      font-size: 0.875rem;
-    }
-
-    .testimonial-info p {
-      color: var(--gray-600);
-      font-size: 0.75rem;
-    }
-
-    /* FAQ */
-    .faq-section {
-      padding: 3rem 0;
-    }
-
-    .faq-header {
-      text-align: center;
-      margin-bottom: 2rem;
-    }
-
-    .faq-header h2 {
-      font-size: 2rem;
-      font-weight: 700;
-      color: var(--gray-900);
-      margin-bottom: 0.5rem;
-    }
-
-    .faq-list {
-      max-width: 700px;
-      margin: 0 auto;
-    }
-
-    .faq-item {
-      background: white;
-      border: 1px solid var(--gray-200);
-      border-radius: 8px;
-      margin-bottom: 0.75rem;
-    }
-
-    .faq-question {
-      padding: 1rem 1.5rem;
-      background: none;
-      border: none;
-      width: 100%;
-      text-align: left;
-      font-weight: 500;
-      color: var(--gray-900);
-      cursor: pointer;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      transition: all 0.2s ease;
-      font-size: 0.875rem;
-    }
-
-    .faq-question:hover {
-      background: var(--gray-50);
-    }
-
-    .faq-question .icon {
-      color: var(--gray-400);
-      transition: transform 0.2s ease;
-    }
-
-    .faq-question.active .icon {
-      transform: rotate(180deg);
-    }
-
-    .faq-answer {
-      padding: 0 1.5rem 1rem;
-      color: var(--gray-600);
-      line-height: 1.6;
-      font-size: 0.875rem;
-      display: none;
-    }
-
-    .faq-answer.show {
-      display: block;
-    }
-
-    /* CTA Section */
-    .cta-section {
-      background: var(--primary);
-      color: white;
-      padding: 3rem 0;
-      text-align: center;
-    }
-
-    .cta-section h2 {
-      font-size: 2rem;
-      font-weight: 700;
-      margin-bottom: 1rem;
-    }
-
-    .cta-section p {
-      margin-bottom: 2rem;
-      font-size: 1rem;
-    }
-
-    .cta-section .btn {
-      background: white;
-      color: var(--primary);
-      font-weight: 600;
-    }
-
-    .cta-section .btn:hover {
-      background: var(--gray-100);
-    }
-
-    /* Footer */
-    .footer {
-      background: var(--gray-900);
-      color: var(--gray-300);
-      padding: 3rem 0 1rem;
-      margin-top: 3rem;
-    }
-
-    .footer-grid {
-      display: grid;
-      grid-template-columns: 2fr 1fr 1fr 1fr;
-      gap: 2rem;
-      margin-bottom: 2rem;
-    }
-
-    .footer-section h4.footer-heading {
-      color: white;
-      font-size: 1rem;
-      font-weight: 600;
-      margin-bottom: 1rem;
-    }
-
-    .footer-logo {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      margin-bottom: 1rem;
-    }
-
-    .footer-logo .logo-icon {
-      width: 28px;
-      height: 28px;
-      background: var(--primary);
-      border-radius: 4px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      font-size: 0.75rem;
-    }
-
-    .footer-logo .logo-text {
-      font-size: 1.125rem;
-      font-weight: 600;
-      color: white;
-    }
-
-    .footer-description {
-      color: var(--gray-400);
-      font-size: 0.875rem;
-      line-height: 1.6;
-      margin-bottom: 1.5rem;
-      max-width: 280px;
-    }
-
-    .footer-links {
-      list-style: none;
-      padding: 0;
-    }
-
-    .footer-links li {
-      margin-bottom: 0.5rem;
-    }
-
-    .footer-links a {
-      color: var(--gray-300);
-      text-decoration: none;
-      font-size: 0.875rem;
-      transition: color 0.2s ease;
-      display: block;
-    }
-
-    .footer-links a:hover {
-      color: white;
-    }
-
-    .footer-bottom {
-      border-top: 1px solid var(--gray-800);
-      padding-top: 1.5rem;
-      text-align: center;
-    }
-
-    .footer-bottom p {
-      color: var(--gray-400);
-      font-size: 0.875rem;
-      margin: 0;
-    }
-
-    /* Responsive */
-    @media (max-width: 768px) {
-      .hero h1 {
-        font-size: 2.5rem;
+    // Check if it's a company URL (contains /company/)
+    const pathname = urlObj.pathname.toLowerCase();
+    return pathname.includes('/company/');
+    
+  } catch (error) {
+    return false;
+  }
+}
+
+// Rate limiting functions
+async function checkRateLimit(clientIP, isBulkSearch, env) {
+  if (!env.RATE_LIMIT_KV) {
+    return { allowed: true };
+  }
+
+  const individualKey = `company_individual:${clientIP}`;
+  const bulkKey = `company_bulk:${clientIP}`;
+
+  try {
+    const [individualCount, bulkCount] = await Promise.all([
+      env.RATE_LIMIT_KV.get(individualKey),
+      env.RATE_LIMIT_KV.get(bulkKey)
+    ]);
+
+    const currentIndividualCount = parseInt(individualCount) || 0;
+    const currentBulkCount = parseInt(bulkCount) || 0;
+
+    if (isBulkSearch) {
+      if (currentBulkCount >= 2) {
+        return { 
+          allowed: false, 
+          message: 'Free bulk company employees search limit reached (2 bulk searches per user). Please sign up for unlimited access.' 
+        };
       }
-      
-      .pricing-header h2 {
-        font-size: 2rem;
-      }
-      
-      .testimonial-author {
-        flex-direction: column;
-        gap: 0.75rem;
-      }
-
-      .footer-grid {
-        grid-template-columns: 1fr;
-        gap: 2rem;
-      }
-
-      .company-header {
-        flex-direction: column;
-        text-align: center;
+    } else {
+      if (currentIndividualCount >= 5) {
+        return { 
+          allowed: false, 
+          message: 'Free company employees search limit reached (5 searches per user). Please sign up for unlimited access.' 
+        };
       }
     }
 
-    @media (max-width: 640px) {
-      .hero h1 {
-        font-size: 2rem;
-      }
-      
-      .container {
-        padding: 0 0.75rem;
-      }
-      
-      .main-card {
-        padding: 1.5rem;
-      }
+    return { allowed: true };
+  } catch (error) {
+    console.error('Rate limit check error:', error);
+    return { allowed: true };
+  }
+}
 
-      .footer {
-        padding: 2rem 0 1rem;
-      }
+async function updateRateLimit(clientIP, isBulkSearch, env) {
+  if (!env.RATE_LIMIT_KV) {
+    return;
+  }
+
+  const individualKey = `company_individual:${clientIP}`;
+  const bulkKey = `company_bulk:${clientIP}`;
+
+  try {
+    if (isBulkSearch) {
+      const bulkCount = await env.RATE_LIMIT_KV.get(bulkKey);
+      const newBulkCount = (parseInt(bulkCount) || 0) + 1;
+      await env.RATE_LIMIT_KV.put(bulkKey, newBulkCount.toString(), { expirationTtl: 86400 });
+    } else {
+      const individualCount = await env.RATE_LIMIT_KV.get(individualKey);
+      const newIndividualCount = (parseInt(individualCount) || 0) + 1;
+      await env.RATE_LIMIT_KV.put(individualKey, newIndividualCount.toString(), { expirationTtl: 86400 });
     }
-  </style>
-</head>
-<body>
-  <header class="header">
-    <div class="container">
-      <div class="header-content">
-        <a href="https://linkfinderai.com/" class="logo">
-          <div class="logo-icon">
-            <i class="fas fa-search"></i>
-          </div>
-          <span class="logo-text">Linkfinder AI</span>
-        </a>
-        
-        <div class="auth-buttons">
-          <button class="btn btn-outline" onclick="showModal('login')">
-            Login
-          </button>
-          <button class="btn" onclick="showModal('signup')">
-            Sign Up
-          </button>
-        </div>
-      </div>
-    </div>
-  </header>
+  } catch (error) {
+    console.error('Rate limit update error:', error);
+  }
+}
 
-  <div class="container">
-    <div class="hero">
-      <h1>Find Company Employees</h1>
-      <p>Discover and extract comprehensive employee data from any LinkedIn company page. Find company employees instantly with contact details, roles, and professional information using our advanced scraper tool.</p>
-    </div>
+async function resetUserLimits(clientIP, env) {
+  if (!env.RATE_LIMIT_KV) {
+    return;
+  }
 
-    <!-- Limit Warning -->
-    <div id="limitWarning" class="limit-warning hidden">
-      <h3>Free searches used</h3>
-      <p>Sign up to continue finding company employees</p>
-      <button class="btn" onclick="showModal('signup')" style="background: white; color: var(--warning);">
-        Sign Up
-      </button>
-    </div>
+  const individualKey = `company_individual:${clientIP}`;
+  const bulkKey = `company_bulk:${clientIP}`;
 
-    <div class="main-card">
-      <div class="input-group">
-        <label for="companyInput">Company URL or Name</label>
-        <input type="text" id="companyInput" placeholder="Enter LinkedIn company URL or company name (e.g., https://linkedin.com/company/google or Google)" required>
-      </div>
-      
-      <button class="btn btn-full" onclick="findCompanyEmployees()">
-        <i class="fas fa-users"></i>
-        Find Company Employees
-      </button>
-      
-      <button class="btn-secondary btn btn-full" onclick="tryExample()">
-        Try Example
-      </button>
-
-      <!-- Results Section -->
-      <div id="resultsSection" class="results-section hidden">
-        <div id="loadingMessage" class="loading-message hidden">
-          <i class="fas fa-spinner fa-spin"></i> Finding company employees...
-        </div>
-        
-        <div id="errorMessage" class="error-message hidden"></div>
-        
-        <div id="companyResults" class="hidden">
-          <div id="companyHeader" class="company-header"></div>
-          <div id="employeeList" class="employee-list"></div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Testimonial Section -->
-  <div class="testimonial-section">
-    <div class="container">
-      <div class="testimonial-card">
-        <div class="testimonial-quote">
-          "Finding company employees has never been easier! This tool helped us identify key decision-makers at target companies in minutes. The employee data extraction is incredibly accurate and saves us hours of manual research."
-        </div>
-        <div class="testimonial-author">
-          <div class="testimonial-avatar">MJ</div>
-          <div class="testimonial-info">
-            <h4>Marcus Johnson</h4>
-            <p>Sales Director, SalesTech Solutions</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Pricing Section -->
-  <div class="pricing-section">
-    <div class="container">
-      <div class="pricing-header">
-        <h2>Simple Pricing</h2>
-        <p>Get unlimited access to find company employees from any LinkedIn company page</p>
-      </div>
-      
-      <div class="pricing-card">
-        <div class="pricing-price">$29</div>
-        <div class="pricing-period">per month</div>
-        
-        <ul class="pricing-features">
-          <li><span class="check">✓</span> <strong>Unlimited</strong> company employee searches</li>
-          <li><span class="check">✓</span> Batch processing (CSV upload)</li>
-          <li><span class="check">✓</span> API access included</li>
-          <li><span class="check">✓</span> Export results to CSV</li>
-          <li><span class="check">✓</span> Complete employee profiles</li>
-          <li><span class="check">✓</span> Priority support</li>
-        </ul>
-        
-        <button class="btn btn-full" onclick="showModal('signup')">
-          Get Started
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- FAQ Section -->
-  <div class="faq-section">
-    <div class="container">
-      <div class="faq-header">
-        <h2>Frequently Asked Questions</h2>
-      </div>
-      
-      <div class="faq-list">
-        <div class="faq-item">
-          <button class="faq-question" onclick="toggleFAQ(this)">
-            How do I find company employees using this tool?
-            <i class="fas fa-chevron-down icon"></i>
-          </button>
-          <div class="faq-answer">
-            Simply enter a LinkedIn company URL or company name and our tool will extract comprehensive employee data including names, job titles, and contact information.
-          </div>
-        </div>
-        
-        <div class="faq-item">
-          <button class="faq-question" onclick="toggleFAQ(this)">
-            What employee data can I extract from companies?
-            <i class="fas fa-chevron-down icon"></i>
-          </button>
-          <div class="faq-answer">
-            Our tool extracts employee names, job titles, departments, LinkedIn profiles, contact information, and professional details from any company's LinkedIn page to help you find company employees efficiently.
-          </div>
-        </div>
-        
-        <div class="faq-item">
-          <button class="faq-question" onclick="toggleFAQ(this)">
-            Is it legal to find company employees this way?
-            <i class="fas fa-chevron-down icon"></i>
-          </button>
-          <div class="faq-answer">
-            Yes, our service only extracts publicly available employee information from LinkedIn company pages in compliance with LinkedIn's terms of service and data protection regulations.
-          </div>
-        </div>
-        
-        <div class="faq-item">
-          <button class="faq-question" onclick="toggleFAQ(this)">
-            How accurate is the employee data extraction?
-            <i class="fas fa-chevron-down icon"></i>
-          </button>
-          <div class="faq-answer">
-            Our company employee finder maintains over 95% accuracy by extracting data directly from LinkedIn's structured company pages and validating employee information before delivery.
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- CTA Section -->
-  <div class="cta-section">
-    <div class="container">
-      <h2>Ready to Find Company Employees?</h2>
-      <p>Join thousands of sales professionals and recruiters who use our tool to find company employees and build their prospect lists</p>
-      <button class="btn" onclick="showModal('signup')">
-        Start Finding Employees Now
-      </button>
-    </div>
-  </div>
-
-  <footer class="footer">
-    <div class="container">
-      <div class="footer-grid">
-        <!-- Brand Section -->
-        <div class="footer-section">
-          <div class="footer-logo">
-            <div class="logo-icon">
-              <i class="fas fa-search"></i>
-            </div>
-            <span class="logo-text">LinkFinder AI</span>
-          </div>
-          <p class="footer-description">
-            Professional tools for extracting company data from LinkedIn. Streamline your business research and competitive intelligence.
-          </p>
-        </div>
-        
-        <!-- Tools Section -->
-        <div class="footer-section">
-          <h4 class="footer-heading">Our Tools</h4>
-          <ul class="footer-links">
-            <li><a href="https://linkfinderai.com/company-url-finder">Company URL Finder</a></li>
-            <li><a href="https://linkfinderai.com/linkedin-url-finder">LinkedIn URL Finder</a></li>
-            <li><a href="https://linkfinderai.com/company-phone-finder">Company Phone Finder</a></li>
-            <li><a href="https://linkfinderai.com/linkedin-company-scraper">LinkedIn Company Scraper</a></li>
-            <li><a href="https://linkfinderai.com/linkedin-profile-scraper">LinkedIn Profile Scraper</a></li>
-          </ul>
-        </div>
-        
-        <!-- Compare Section -->
-        <div class="footer-section">
-          <h4 class="footer-heading">Compare</h4>
-          <ul class="footer-links">
-            <li><a href="https://linkfinderai.com/apify-alternative">Apify Alternative</a></li>
-            <li><a href="https://linkfinderai.com/clay-alternative">Clay Alternative</a></li>
-            <li><a href="https://linkfinderai.com/coresignal-alternative">Coresignal Alternative</a></li>
-            <li><a href="https://linkfinderai.com/derrick-app-alternative">Derrick App Alternative</a></li>
-            <li><a href="https://linkfinderai.com/phantombuster-alternative">PhantomBuster Alternative</a></li>
-          </ul>
-        </div>
-        
-        <!-- Support Section -->
-        <div class="footer-section">
-          <h4 class="footer-heading">Support</h4>
-          <ul class="footer-links">
-            <li><a href="mailto:support@unlimited-leads.online">Contact Support</a></li>
-            <li><a href="https://linkfinderai.com/privacy">Privacy Policy</a></li>
-            <li><a href="https://linkfinderai.com/terms">Terms of Service</a></li>
-            <li><a href="https://linkfinderai.com/about-us">About Us</a></li>
-          </ul>
-        </div>
-      </div>
-      
-      <!-- Footer Bottom -->
-      <div class="footer-bottom">
-        <p>&copy; 2025 LinkFinderAI. All rights reserved.</p>
-      </div>
-    </div>
-  </footer>
-
-  <script>
-    let searchCount = 0;
-    let maxFreeSearches = 5;
-
-    function initApp() {
-      searchCount = parseInt(localStorage.getItem('companySearchCount') || '0');
-      updateUI();
-      
-      const companyInput = document.getElementById('companyInput');
-      if (companyInput) {
-        companyInput.addEventListener('keypress', (e) => {
-          if (e.key === 'Enter') findCompanyEmployees();
-        });
-      }
-    }
-
-    function showModal(type) {
-      if (type === 'signup') {
-        window.location.href = 'https://linkfinderai.com/sign-up';
-      } else if (type === 'login') {
-        window.location.href = 'https://linkfinderai.com/log-in';
-      }
-    }
-
-    function checkSearchLimit() {
-      return searchCount < maxFreeSearches;
-    }
-
-    function updateSearchCount() {
-      searchCount++;
-      localStorage.setItem('companySearchCount', searchCount);
-      updateUI();
-    }
-
-    function updateUI() {
-      const hasAccess = checkSearchLimit();
-      document.getElementById('limitWarning').classList.toggle('hidden', hasAccess);
-      
-      const findButton = document.querySelector('.btn-full');
-      if (findButton && !hasAccess) {
-        findButton.disabled = true;
-        findButton.style.opacity = '0.5';
-      }
-    }
-
-    function isValidLinkedInCompanyUrl(url) {
-      try {
-        const urlObj = new URL(url);
-        const hostname = urlObj.hostname.toLowerCase();
-        
-        const validDomains = ['linkedin.com', 'www.linkedin.com'];
-        if (!validDomains.includes(hostname)) {
-          return false;
-        }
-        
-        const pathname = urlObj.pathname.toLowerCase();
-        return pathname.includes('/company/');
-        
-      } catch (error) {
-        return false;
-      }
-    }
-
-    async function findCompanyEmployees() {
-      if (!checkSearchLimit()) {
-        showModal('signup');
-        return;
-      }
-
-      const companyInput = document.getElementById('companyInput').value.trim();
-      
-      if (!companyInput) {
-        alert('Please enter a company URL or name.');
-        return;
-      }
-
-      // Show results section and loading
-      showLoading();
-      
-      // Determine if input is URL or company name
-      const isUrl = companyInput.startsWith('http');
-      let requestBody = { 
-        maxEmployees: "100" // Default value
-      };
-
-      if (isUrl) {
-        if (!isValidLinkedInCompanyUrl(companyInput)) {
-          showError('Please enter a valid LinkedIn company URL (e.g., https://linkedin.com/company/google)');
-          return;
-        }
-        requestBody.companyUrl = companyInput;
-      } else {
-        requestBody.companyName = companyInput;
-      }
-
-      try {
-        const response = await fetch('https://linkedinai-company-employees.hamoureliasse.workers.dev/', {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          },
-          body: JSON.stringify(requestBody)
-        });
-
-        if (!response.ok) {
-          throw new Error(`Server responded with status: ${response.status}`);
-        }
-
-        const data = await response.json();
-
-        // Handle raw n8n array response format
-        let employeeData;
-        if (Array.isArray(data) && data.length > 0) {
-          employeeData = data[0]; // Extract first object from array
-        } else {
-          employeeData = data;
-        }
-
-        if (employeeData && employeeData.employees && employeeData.employees.length > 0) {
-          displayCompanyData(employeeData);
-          updateSearchCount();
-        } else {
-          showError(`No employee data found for: ${companyInput}`);
-        }
-      } catch (error) {
-        console.error('Error:', error);
-        showError('Error finding company employees. Please try again.');
-      }
-    }
-
-    function showLoading() {
-      document.getElementById('resultsSection').classList.remove('hidden');
-      document.getElementById('loadingMessage').classList.remove('hidden');
-      document.getElementById('errorMessage').classList.add('hidden');
-      document.getElementById('companyResults').classList.add('hidden');
-    }
-
-    function showError(message) {
-      document.getElementById('loadingMessage').classList.add('hidden');
-      document.getElementById('errorMessage').classList.remove('hidden');
-      document.getElementById('errorMessage').textContent = message;
-      document.getElementById('companyResults').classList.add('hidden');
-    }
-
-    function displayCompanyData(data) {
-      document.getElementById('loadingMessage').classList.add('hidden');
-      document.getElementById('errorMessage').classList.add('hidden');
-      document.getElementById('companyResults').classList.remove('hidden');
-      
-      // Extract company name from employees data or use fallback
-      let companyName = data.companyName;
-      if (!companyName && data.employees && data.employees.length > 0) {
-        companyName = data.employees[0].company || 'Company';
-      }
-      if (!companyName) {
-        companyName = 'Company';
-      }
-      
-      const companyInitials = companyName.split(' ').map(word => word[0]).join('').substring(0, 2).toUpperCase();
-      
-      // Extract industry from first employee or use default
-      let industry = data.industry;
-      if (!industry && data.employees && data.employees.length > 0) {
-        industry = data.employees[0].industry || 'Technology';
-      }
-      if (!industry) {
-        industry = 'Industry not specified';
-      }
-      
-      // Company Header
-      const companyHeader = document.getElementById('companyHeader');
-      companyHeader.innerHTML = `
-        <div class="company-avatar">${companyInitials}</div>
-        <div class="company-info">
-          <h3>${companyName}</h3>
-          <p>${industry}</p>
-          <div class="employee-count">${data.employees ? data.employees.length : 0} employees found</div>
-        </div>
-      `;
-      
-      // Employee List
-      const employeeList = document.getElementById('employeeList');
-      if (data.employees && data.employees.length > 0) {
-        let employeeHTML = '';
-        
-        data.employees.forEach(employee => {
-          const employeeInitials = employee.name ? employee.name.split(' ').map(word => word[0]).join('').substring(0, 2).toUpperCase() : 'EM';
-          
-          employeeHTML += `
-            <div class="employee-item">
-              <div class="employee-avatar">${employeeInitials}</div>
-              <div class="employee-info">
-                <h4>${employee.name || 'Unknown Employee'}</h4>
-                <div class="employee-title">${employee.jobTitle || employee.title || 'Position not specified'}</div>
-              </div>
-              ${employee.linkedinUrl ? `<a href="${employee.linkedinUrl}" target="_blank" class="employee-link">View Profile</a>` : ''}
-            </div>
-          `;
-        });
-        
-        employeeList.innerHTML = employeeHTML;
-      } else {
-        employeeList.innerHTML = '<div style="text-align: center; color: var(--gray-500); padding: 2rem;">No employees found for this company.</div>';
-      }
-    }
-
-    function tryExample() {
-      document.getElementById('companyInput').value = 'https://www.linkedin.com/company/google/';
-    }
-
-    function toggleFAQ(button) {
-      const answer = button.nextElementSibling;
-      const isActive = button.classList.contains('active');
-      
-      document.querySelectorAll('.faq-question').forEach(q => {
-        q.classList.remove('active');
-        q.nextElementSibling.classList.remove('show');
-      });
-      
-      if (!isActive) {
-        button.classList.add('active');
-        answer.classList.add('show');
-      }
-    }
-
-    // Initialize app when DOM is loaded
-    document.addEventListener('DOMContentLoaded', initApp);
-  </script>
-</body>
-</html>
+  try {
+    await Promise.all([
+      env.RATE_LIMIT_KV.delete(individualKey),
+      env.RATE_LIMIT_KV.delete(bulkKey)
+    ]);
+  } catch (error) {
+    console.error('Reset limits error:', error);
+  }
+}
