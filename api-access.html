@@ -391,7 +391,6 @@
             color: var(--gray-700);
         }
 
-        /* Pricing Modal */
 .modal-overlay {
     position: fixed;
     top: 0;
@@ -464,17 +463,49 @@
     margin-bottom: 0.5rem;
 }
 
-.pricing-modal-cta {
-    margin-bottom: 1rem;
+/* Billing Toggle */
+.billing-toggle {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 2rem;
+    background: var(--gray-100);
+    padding: 0.25rem;
+    border-radius: 8px;
 }
 
-.pricing-modal-cta .btn {
-    width: 100%;
-    padding: 1rem;
-    font-size: 1rem;
+.billing-btn {
+    flex: 1;
+    padding: 0.75rem;
+    border: none;
+    background: transparent;
+    border-radius: 6px;
+    font-weight: 500;
+    color: var(--gray-600);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.billing-btn.active {
+    background: white;
+    color: var(--gray-900);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.save-tag {
+    font-size: 0.75rem;
+    background: var(--success);
+    color: white;
+    padding: 0.2rem 0.4rem;
+    border-radius: 3px;
     font-weight: 600;
 }
 
+/* Plan Selector */
 .plan-selector {
     display: flex;
     align-items: center;
@@ -520,21 +551,62 @@
     font-size: 1rem;
     font-weight: 500;
     color: var(--gray-600);
-    margin-bottom: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.plan-price-container {
+    margin: 1rem 0;
 }
 
 .plan-price {
     font-size: 2.5rem;
     font-weight: 700;
-    color: var(--gray-900);
-    margin-bottom: 0.5rem;
+    color: var(--primary);
+    line-height: 1;
+}
+
+.price-period {
+    color: var(--gray-600);
+    font-size: 0.9rem;
+    margin: 0.5rem 0 1rem 0;
 }
 
 .plan-credits {
-    font-size: 1.1rem;
-    font-weight: 700;
+    font-size: 1rem;
+    font-weight: 600;
     color: var(--gray-900);
-    margin-top: 0.25rem;
+    background: var(--gray-50);
+    padding: 0.75rem;
+    border-radius: 6px;
+}
+
+.pricing-modal-cta {
+    margin-bottom: 1rem;
+}
+
+.pricing-modal-cta .btn {
+    width: 100%;
+    padding: 1rem;
+    font-size: 1rem;
+    font-weight: 600;
+    border-radius: 8px;
+}
+
+/* Mobile Optimizations */
+@media (max-width: 640px) {
+    .pricing-modal {
+        padding: 1.5rem;
+        margin: 1rem;
+    }
+    
+    .plan-price {
+        font-size: 2rem;
+    }
+    
+    .billing-btn {
+        padding: 0.625rem;
+        font-size: 0.85rem;
+    }
 }
 
         .pricing-modal-header {
@@ -813,7 +885,6 @@
                 </div>
             </div>
 
-    <!-- Pricing Modal -->
 <div id="pricingModal" class="modal-overlay">
     <div class="pricing-modal">
         <button class="modal-close" onclick="closePricingModal()">
@@ -821,7 +892,17 @@
         </button>
         
         <div class="pricing-modal-header">
-            <h2>Choose Plan</h2>
+            <h2>Choose Your Plan</h2>
+        </div>
+
+        <!-- Billing Toggle -->
+        <div class="billing-toggle">
+            <button class="billing-btn" id="monthlyBtn" onclick="setBilling('monthly')">
+                Monthly
+            </button>
+            <button class="billing-btn active" id="annualBtn" onclick="setBilling('annual')">
+                Annual <span class="save-tag">Save 20%</span>
+            </button>
         </div>
         
         <div class="plan-selector">
@@ -831,8 +912,11 @@
             
             <div class="plan-card" id="planCard">
                 <div class="plan-name" id="planName">Professional</div>
-                <div class="plan-price" id="priceAmount">$59</div>
-                <div class="plan-credits" id="planCredits">25,000 credits/month</div>
+                <div class="plan-price-container">
+                    <div class="plan-price" id="priceAmount">$47</div>
+                    <div class="price-period" id="pricePeriod">per month</div>
+                </div>
+                <div class="plan-credits" id="planCredits">300,000 credits/year</div>
             </div>
             
             <button class="plan-nav-btn" onclick="nextPlan()" id="nextBtn">
@@ -842,11 +926,12 @@
         
         <div class="pricing-modal-cta">
             <button id="upgradeBtn" class="btn" onclick="proceedToCheckout()">
-                <span id="ctaText">Subscribe - $59/month</span>
+                <span id="ctaText">Get Started - $47/month</span>
             </button>
         </div>
     </div>
 </div>
+
             
     <script>
         let userToken = null;
@@ -954,21 +1039,50 @@
             }, 3000);
         }
 
-        const plans = [
-    { name: 'Starter', price: 29, credits: '10,000', stripeLink: 'https://buy.stripe.com/00w5kD3XL9lb0rqaIX8IU0Z' },
-    { name: 'Professional', price: 59, credits: '25,000', stripeLink: 'https://buy.stripe.com/dRm9ATcuhgND3DC9ET8IU10' },
-    { name: 'Enterprise', price: 99, credits: '50,000', stripeLink: 'https://buy.stripe.com/cNi3cv3XLapf4HG9ET8IU12' }
+      const plans = [
+    { 
+        name: 'Starter', 
+        monthlyPrice: 29, 
+        credits: 120000, // 10k * 12
+        monthlyStripeLink: 'https://buy.stripe.com/00w5kD3XL9lb0rqaIX8IU0Z',
+        annualStripeLink: 'https://buy.stripe.com/6oUfZhfGtfJz0rqg3h8IU14'
+    },
+    { 
+        name: 'Professional', 
+        monthlyPrice: 59, 
+        credits: 300000, // 25k * 12
+        monthlyStripeLink: 'https://buy.stripe.com/dRm9ATcuhgND3DC9ET8IU10',
+        annualStripeLink: 'https://buy.stripe.com/4gMeVdfGt0OFb64dV98IU13'
+    },
+    { 
+        name: 'Enterprise', 
+        monthlyPrice: 99, 
+        credits: 600000, // 50k * 12
+        monthlyStripeLink: 'https://buy.stripe.com/cNi3cv3XLapf4HG9ET8IU12',
+        annualStripeLink: 'https://buy.stripe.com/9B614n9i5apf3DCg3h8IU15'
+    }
 ];
 
-let currentPlanIndex = 1;
+let currentPlanIndex = 1; // Start with Professional
+let isAnnualBilling = true;
 
 function updatePlanDisplay() {
     const plan = plans[currentPlanIndex];
     
     document.getElementById('planName').textContent = plan.name;
-    document.getElementById('priceAmount').textContent = `$${plan.price}`;
-    document.getElementById('planCredits').textContent = `${plan.credits} credits/month`;
-    document.getElementById('ctaText').textContent = `Subscribe - $${plan.price}/month`;
+    
+    if (isAnnualBilling) {
+        const monthlyEquivalent = Math.round(plan.monthlyPrice * 0.8);
+        document.getElementById('priceAmount').textContent = `$${monthlyEquivalent}`;
+        document.getElementById('pricePeriod').textContent = 'per month';
+        document.getElementById('planCredits').textContent = `${plan.credits.toLocaleString()} credits/year`;
+        document.getElementById('ctaText').textContent = `Get Started - $${monthlyEquivalent}/month`;
+    } else {
+        document.getElementById('priceAmount').textContent = `$${plan.monthlyPrice}`;
+        document.getElementById('pricePeriod').textContent = 'per month';
+        document.getElementById('planCredits').textContent = `${Math.round(plan.credits/12).toLocaleString()} credits/month`;
+        document.getElementById('ctaText').textContent = `Get Started - $${plan.monthlyPrice}/month`;
+    }
     
     document.getElementById('prevBtn').disabled = currentPlanIndex === 0;
     document.getElementById('nextBtn').disabled = currentPlanIndex === plans.length - 1;
@@ -988,20 +1102,41 @@ function nextPlan() {
     }
 }
 
+
 function proceedToCheckout() {
     const plan = plans[currentPlanIndex];
-    window.location.href = `${plan.stripeLink}?client_reference_id=${userToken}`;
+    const stripeLink = isAnnualBilling ? plan.annualStripeLink : plan.monthlyStripeLink;
+    
+    window.location.href = `${stripeLink}?client_reference_id=${userToken}`;
 }
 
 function showPricingModal() {
+    // Default to annual
+    isAnnualBilling = true;
+    
     document.getElementById('pricingModal').classList.add('show');
     document.body.style.overflow = 'hidden';
+    
+    // Set button states
+    document.getElementById('monthlyBtn').classList.remove('active');
+    document.getElementById('annualBtn').classList.add('active');
+    
     updatePlanDisplay();
 }
 
 function closePricingModal() {
     document.getElementById('pricingModal').classList.remove('show');
     document.body.style.overflow = '';
+}
+
+function setBilling(type) {
+    isAnnualBilling = (type === 'annual');
+    
+    // Update button states
+    document.getElementById('monthlyBtn').classList.toggle('active', !isAnnualBilling);
+    document.getElementById('annualBtn').classList.toggle('active', isAnnualBilling);
+    
+    updatePlanDisplay();
 }
 
 // Close modal when clicking outside or pressing Escape
