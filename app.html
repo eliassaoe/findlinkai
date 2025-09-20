@@ -1217,17 +1217,13 @@
 
         <!-- Billing Toggle -->
         <div class="billing-toggle">
-            <div class="toggle-container">
-                <span class="toggle-label monthly">Monthly</span>
-                <div class="toggle-switch" onclick="toggleBilling()">
-                    <div class="toggle-slider"></div>
-                </div>
-                <span class="toggle-label annual">
-                    Annual
-                    <span class="save-badge">Save 20%</span>
-                </span>
-            </div>
-        </div>
+    <button class="billing-btn" id="monthlyBtn" onclick="setBilling('monthly')">
+        Monthly
+    </button>
+    <button class="billing-btn active" id="annualBtn" onclick="setBilling('annual')">
+        Annual <span class="save-tag">Save 20%</span>
+    </button>
+</div>
         
         <div class="plan-selector">
             <button class="plan-nav-btn" onclick="previousPlan()" id="prevBtn">
@@ -1239,10 +1235,8 @@
                 <div class="plan-price-container">
                     <div class="plan-price" id="priceAmount">$590</div>
                     <div class="price-period" id="pricePeriod">per year</div>
-                    <div class="monthly-equivalent" id="monthlyEquivalent">$49/month</div>
-                    <div class="savings-highlight" id="savingsHighlight">Save $118 annually</div>
                 </div>
-                <div class="plan-credits" id="planCredits">25,000 credits/month</div>
+                <div class="plan-credits" id="planCredits">300,000 credits/year</div>
             </div>
             
             <button class="plan-nav-btn" onclick="nextPlan()" id="nextBtn">
@@ -2280,28 +2274,25 @@ function generateCombinationType(inputType, outputType) {
             document.getElementById('resultsSection').classList.add('hidden');
         }
 
-        const plans = [
+       const plans = [
     { 
         name: 'Starter', 
         monthlyPrice: 29, 
-        annualPrice: 278, // 20% discount
-        credits: '10,000', 
+        credits: 120000, // 10k * 12
         monthlyStripeLink: 'https://buy.stripe.com/00w5kD3XL9lb0rqaIX8IU0Z',
         annualStripeLink: 'https://buy.stripe.com/annual-starter-link'
     },
     { 
         name: 'Professional', 
         monthlyPrice: 59, 
-        annualPrice: 566, // 20% discount  
-        credits: '25,000', 
+        credits: 300000, // 25k * 12
         monthlyStripeLink: 'https://buy.stripe.com/dRm9ATcuhgND3DC9ET8IU10',
         annualStripeLink: 'https://buy.stripe.com/annual-professional-link'
     },
     { 
         name: 'Enterprise', 
         monthlyPrice: 99, 
-        annualPrice: 950, // 20% discount
-        credits: '50,000', 
+        credits: 600000, // 50k * 12
         monthlyStripeLink: 'https://buy.stripe.com/cNi3cv3XLapf4HG9ET8IU12',
         annualStripeLink: 'https://buy.stripe.com/annual-enterprise-link'
     }
@@ -2340,34 +2331,30 @@ function updatePlanDisplay() {
     const plan = plans[currentPlanIndex];
     
     document.getElementById('planName').textContent = plan.name;
-    document.getElementById('planCredits').textContent = `${plan.credits} credits/month`;
     
     if (isAnnualBilling) {
-        const monthlyEquivalent = Math.round(plan.annualPrice / 12);
-        const savings = (plan.monthlyPrice * 12) - plan.annualPrice;
-        
-        document.getElementById('priceAmount').textContent = `$${plan.annualPrice}`;
-        document.getElementById('pricePeriod').textContent = 'per year';
-        document.getElementById('monthlyEquivalent').textContent = `$${monthlyEquivalent}/month`;
-        document.getElementById('savingsHighlight').textContent = `Save $${savings} annually`;
-        document.getElementById('ctaText').textContent = `Get Started - $${plan.annualPrice}/year`;
-        
-        // Show annual-specific elements
-        document.getElementById('monthlyEquivalent').style.display = 'block';
-        document.getElementById('savingsHighlight').style.display = 'inline-block';
+        const monthlyEquivalent = Math.round(plan.monthlyPrice * 0.8);
+        document.getElementById('priceAmount').textContent = `$${monthlyEquivalent}`;
+        document.getElementById('pricePeriod').textContent = 'per month';
+        document.getElementById('planCredits').textContent = `${plan.credits.toLocaleString()} credits/year`;
+        document.getElementById('ctaText').textContent = `Get Started - $${monthlyEquivalent}/month`;
     } else {
         document.getElementById('priceAmount').textContent = `$${plan.monthlyPrice}`;
         document.getElementById('pricePeriod').textContent = 'per month';
+        document.getElementById('planCredits').textContent = `${Math.round(plan.credits/12).toLocaleString()} credits/month`;
         document.getElementById('ctaText').textContent = `Get Started - $${plan.monthlyPrice}/month`;
-        
-        // Hide annual-specific elements
-        document.getElementById('monthlyEquivalent').style.display = 'none';
-        document.getElementById('savingsHighlight').style.display = 'none';
     }
     
-    // Update navigation buttons
     document.getElementById('prevBtn').disabled = currentPlanIndex === 0;
     document.getElementById('nextBtn').disabled = currentPlanIndex === plans.length - 1;
+}
+function setBilling(type) {
+    isAnnualBilling = (type === 'annual');
+    
+    document.getElementById('monthlyBtn').classList.toggle('active', !isAnnualBilling);
+    document.getElementById('annualBtn').classList.toggle('active', isAnnualBilling);
+    
+    updatePlanDisplay();
 }
 
 function previousPlan() {
