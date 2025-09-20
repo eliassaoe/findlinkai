@@ -465,8 +465,43 @@
 
 .billing-toggle {
     display: flex;
+    gap: 0.5rem;
+    margin-bottom: 2rem;
+    background: var(--gray-100);
+    padding: 0.25rem;
+    border-radius: 8px;
+}
+
+.billing-btn {
+    flex: 1;
+    padding: 0.75rem;
+    border: none;
+    background: transparent;
+    border-radius: 6px;
+    font-weight: 500;
+    color: var(--gray-600);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
     justify-content: center;
-    margin: 2rem 0;
+    gap: 0.5rem;
+}
+
+.billing-btn.active {
+    background: white;
+    color: var(--gray-900);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.save-tag {
+    font-size: 0.75rem;
+    background: var(--success);
+    color: white;
+    padding: 0.2rem 0.4rem;
+    border-radius: 3px;
+    font-weight: 600;
 }
 
 .toggle-container {
@@ -2303,30 +2338,6 @@ function generateCombinationType(inputType, outputType) {
 let currentPlanIndex = 1; // Start with Professional
 let isAnnualBilling = true; // Default to annual
 
-function toggleBilling() {
-    isAnnualBilling = !isAnnualBilling;
-    
-    // Update toggle UI
-    const toggleSwitch = document.querySelector('.toggle-switch');
-    const monthlyLabel = document.querySelector('.toggle-label.monthly');
-    const annualLabel = document.querySelector('.toggle-label.annual');
-    const switchLink = document.getElementById('switchBillingLink');
-    
-    if (isAnnualBilling) {
-        toggleSwitch.classList.add('annual');
-        monthlyLabel.classList.remove('active');
-        annualLabel.classList.add('active');
-        switchLink.textContent = 'Switch to monthly billing';
-    } else {
-        toggleSwitch.classList.remove('annual');
-        monthlyLabel.classList.add('active');
-        annualLabel.classList.remove('active');
-        switchLink.textContent = 'Switch to annual billing (save 20%)';
-    }
-    
-    updatePlanDisplay();
-}
-
 function updatePlanDisplay() {
     const plan = plans[currentPlanIndex];
     
@@ -2351,6 +2362,7 @@ function updatePlanDisplay() {
 function setBilling(type) {
     isAnnualBilling = (type === 'annual');
     
+    // Update button states
     document.getElementById('monthlyBtn').classList.toggle('active', !isAnnualBilling);
     document.getElementById('annualBtn').classList.toggle('active', isAnnualBilling);
     
@@ -2378,28 +2390,17 @@ function proceedToCheckout() {
 }
 
 function showPricingModal() {
-    // Default to annual billing when opening modal
+    // Default to annual
     isAnnualBilling = true;
     
     document.getElementById('pricingModal').classList.add('show');
     document.body.style.overflow = 'hidden';
     
-    // Set initial toggle state
-    const toggleSwitch = document.querySelector('.toggle-switch');
-    const monthlyLabel = document.querySelector('.toggle-label.monthly');
-    const annualLabel = document.querySelector('.toggle-label.annual');
-    
-    toggleSwitch.classList.add('annual');
-    monthlyLabel.classList.remove('active');
-    annualLabel.classList.add('active');
+    // Set button states
+    document.getElementById('monthlyBtn').classList.remove('active');
+    document.getElementById('annualBtn').classList.add('active');
     
     updatePlanDisplay();
-}
-    function initializePricingModal() {
-    const annualLabel = document.querySelector('.toggle-label.annual');
-    if (annualLabel) {
-        annualLabel.classList.add('active');
-    }
 }
 
         function showInsufficientCreditsModal() {
