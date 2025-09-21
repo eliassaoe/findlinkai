@@ -1364,8 +1364,8 @@
         }
 
         function logout() {
-            localStorage.removeItem('linkFinderToken');
-            window.location.href = 'https://linkfinderai.com/';
+    localStorage.removeItem('linkFinderToken');
+    window.location.href = addGclid('https://linkfinderai.com/');
         }
 
         function switchMode(mode) {
@@ -1792,18 +1792,14 @@ function formatLinkedInCompanyDataBulk(data) {
 
             // Navigate based on page
             switch(page) {
-                case 'enrichment':
-                    // Stay on current page - this is the enrichment page
-                    break;
-                case 'api':
-                    console.log('Redirecting to API access page with token:', userToken);
-                    window.location.href = `https://linkfinderai.com/api-access?token=${userToken}`;
-                    break;
-                case 'account':
-                    window.location.href = `https://linkfinderai.com/account?token=${userToken}`;
-                    break;
-            }
-        }
+                 case 'api':
+                      window.location.href = addGclid(`https://linkfinderai.com/api-access?token=${userToken}`);
+                      break;
+                 case 'account':
+                      window.location.href = addGclid(`https://linkfinderai.com/account?token=${userToken}`);
+                      break;
+    }
+}
 
         function checkAuth() {
             const urlParams = new URLSearchParams(window.location.search);
@@ -2297,6 +2293,16 @@ function generateCombinationType(inputType, outputType) {
     a.click();
     URL.revokeObjectURL(url);
 }
+      // Extract GCLID from current URL once
+const urlParams = new URLSearchParams(window.location.search);
+const gclid = urlParams.get('gclid');
+
+// Helper function to add GCLID to URLs
+function addGclid(url) {
+    if (!gclid) return url;
+    const separator = url.includes('?') ? '&' : '?';
+    return `${url}${separator}gclid=${gclid}`;
+}
 
         function showLoading() {
             document.getElementById('loading').style.display = 'block';
@@ -2387,8 +2393,8 @@ function nextPlan() {
 
 function proceedToCheckout() {
     const plan = plans[currentPlanIndex];
-    const stripeLink = isAnnualBilling ? plan.annualStripeLink : plan.monthlyStripeLink;
-    window.location.href = `${stripeLink}?client_reference_id=${userToken}`;
+    const baseUrl = isAnnualBilling ? plan.annualStripeLink : plan.monthlyStripeLink;
+    window.location.href = addGclid(`${baseUrl}?client_reference_id=${userToken}`);
 }
 
 function showPricingModal() {
