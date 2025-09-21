@@ -946,6 +946,46 @@
       }, 100);
     }
 
+    // GCLID Preservation for Google Ads Attribution
+(function() {
+    // Capture GCLID from URL if present
+    const urlParams = new URLSearchParams(window.location.search);
+    const gclid = urlParams.get('gclid');
+    
+    if (gclid) {
+        // Store GCLID in localStorage for later use
+        localStorage.setItem('gclid', gclid);
+        console.log('GCLID captured and stored:', gclid);
+    }
+    
+    // Modify all sign-up buttons to preserve GCLID
+    function addGclidToSignupLinks() {
+        const storedGclid = localStorage.getItem('gclid');
+        if (storedGclid) {
+            // Update all sign-up buttons
+            document.querySelectorAll('[onclick*="sign-up"]').forEach(button => {
+                const currentOnclick = button.getAttribute('onclick');
+                if (currentOnclick && !currentOnclick.includes('gclid=')) {
+                    const newUrl = currentOnclick.includes('?') 
+                        ? currentOnclick.replace("'", `&gclid=${storedGclid}'`)
+                        : currentOnclick.replace("'", `?gclid=${storedGclid}'`);
+                    button.setAttribute('onclick', newUrl);
+                }
+            });
+        }
+    }
+    
+    // Run when page loads and when CTA section becomes visible
+    addGclidToSignupLinks();
+    
+    // Re-run when CTA section is updated
+    const observer = new MutationObserver(addGclidToSignupLinks);
+    const ctaSection = document.getElementById('ctaSection');
+    if (ctaSection) {
+        observer.observe(ctaSection, { childList: true, subtree: true });
+    }
+})();
+
     function toggleFAQ(button) {
       const answer = button.nextElementSibling;
       const isActive = button.classList.contains('active');
