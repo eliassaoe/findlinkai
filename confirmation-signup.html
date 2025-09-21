@@ -281,7 +281,14 @@
                     
                     // Redirect with YOUR server token
                     setTimeout(() => {
-                        window.location.href = `https://linkfinderai.com/app?token=${result.token}`;
+                        const storedGclid = localStorage.getItem('gclid');
+                        const appUrl = storedGclid 
+                           ? `https://linkfinderai.com/app?token=${result.token}&gclid=${storedGclid}`
+                           : `https://linkfinderai.com/app?token=${result.token}`;
+
+                        localStorage.removeItem('gclid');
+                        console.log('Redirecting to:', appUrl);
+                        window.location.href = appUrl;
                     }, 1500);
                 } else {
                     showError('Account with this email already exists. Please log in to access your account.');
