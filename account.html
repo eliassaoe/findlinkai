@@ -970,10 +970,10 @@
         function navigateToPage(page) {
             switch(page) {
                 case 'finder':
-                    window.location.href = `https://LinkFinderai.com/app?token=${userToken}`;
+                    window.location.href = addGclid(`https://LinkFinderai.com/app?token=${userToken}`);
                     break;
                 case 'api':
-                    window.location.href = `https://LinkFinderai.com/api-access?token=${userToken}`;
+                    window.location.href = addGclid(`https://LinkFinderai.com/api-access?token=${userToken}`);
                     break;
                 case 'account':
                     // Stay on current page
@@ -1119,8 +1119,8 @@ function nextPlan() {
 
 function proceedToCheckout() {
     const plan = plans[currentPlanIndex];
-    const stripeLink = isAnnualBilling ? plan.annualStripeLink : plan.monthlyStripeLink;
-    window.location.href = `${plan.stripeLink}?client_reference_id=${userToken}`;
+    const baseUrl = isAnnualBilling ? plan.annualStripeLink : plan.monthlyStripeLink;
+    window.location.href = addGclid(`${baseUrl}?client_reference_id=${userToken}`);
 }
 
 function showPricingModal() {
@@ -1167,11 +1167,21 @@ document.addEventListener('keydown', (e) => {
         closePricingModal();
     }
 });
+      // Extract GCLID from current URL once
+const urlParams = new URLSearchParams(window.location.search);
+const gclid = urlParams.get('gclid');
+
+// Helper function to add GCLID to URLs
+function addGclid(url) {
+    if (!gclid) return url;
+    const separator = url.includes('?') ? '&' : '?';
+    return `${url}${separator}gclid=${gclid}`;
+}
 
         function logout() {
-            localStorage.removeItem('LinkFinderToken');
-            window.location.href = 'https://LinkFinderai.com/';
-        }
+    localStorage.removeItem('linkFinderToken');
+    window.location.href = addGclid('https://linkfinderai.com/');
+}
     </script>
 </body>
 </html>
