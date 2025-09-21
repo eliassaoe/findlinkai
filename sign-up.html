@@ -309,27 +309,32 @@
             document.getElementById('message').style.display = 'none';
         }
 
-        // Google Sign Up - Redirect to confirmation page
         async function signUpWithGoogle() {
-            try {
-                hideMessage();
-
-                
-                const { data, error } = await supabase.auth.signInWithOAuth({
-                    provider: 'google',
-                    options: {
-                        redirectTo: `https://linkfinderai.com/confirmation-signup${window.location.search}`
-                    }
-                });
-                
-                if (error) {
-                    showMessage('Google sign up failed: ' + error.message);
-                }
-            } catch (error) {
-                showMessage('Google sign up error: ' + error.message);
-            }
+    try {
+        hideMessage();
+        
+        // Capture and store GCLID before OAuth
+        const urlParams = new URLSearchParams(window.location.search);
+        const gclid = urlParams.get('gclid');
+        if (gclid) {
+            localStorage.setItem('gclid', gclid);
+            console.log('GCLID stored:', gclid);
         }
 
+        const { data, error } = await supabase.auth.signInWithOAuth({
+            provider: 'google',
+            options: {
+                redirectTo: `https://linkfinderai.com/confirmation-signup`
+            }
+        });
+        
+        if (error) {
+            showMessage('Google sign up failed: ' + error.message);
+        }
+    } catch (error) {
+        showMessage('Google sign up error: ' + error.message);
+    }
+}
         // Email/Password Signup - POST to worker
         document.getElementById('signupForm').addEventListener('submit', async function(e) {
             e.preventDefault();
