@@ -631,7 +631,7 @@
           <button class="btn btn-outline" onclick="window.location.href='https://linkfinderai.com/log-in'">
             Login
           </button>
-          <button class="btn" onclick="window.location.href='https://linkfinderai.com/sign-up'">
+          <button class="btn" onclick="redirectToSignup()">
             Sign Up
           </button>
         </div>
@@ -670,7 +670,7 @@
       <div id="ctaSection" class="cta-section hidden">
         <h3 id="ctaTitle">Start Enriching Your Data</h3>
         <p id="ctaDescription">Sign up to start finding company data with our powerful enrichment tools.</p>
-        <button class="btn btn-full" id="ctaButton" onclick="window.location.href='https://linkfinderai.com/sign-up'">
+        <button class="btn btn-full" id="ctaButton" onclick="redirectToSignup()">
           <i class="fas fa-rocket"></i>
           Sign Up to Get Started
         </button>
@@ -716,7 +716,7 @@
           <li><span class="check">✓</span> All features</li>
         </ul>
         
-        <button class="btn btn-full" onclick="window.location.href='https://linkfinderai.com/sign-up'">
+        <button class="btn btn-full" onclick="redirectToSignup()">
           Get Started
         </button>
       </div>
@@ -946,45 +946,16 @@
       }, 100);
     }
 
-    // GCLID Preservation for Google Ads Attribution
-(function() {
-    // Capture GCLID from URL if present
+    function redirectToSignup() {
     const urlParams = new URLSearchParams(window.location.search);
     const gclid = urlParams.get('gclid');
     
-    if (gclid) {
-        // Store GCLID in localStorage for later use
-        localStorage.setItem('gclid', gclid);
-        console.log('GCLID captured and stored:', gclid);
-    }
-    
-    // Modify all sign-up buttons to preserve GCLID
-    function addGclidToSignupLinks() {
-        const storedGclid = localStorage.getItem('gclid');
-        if (storedGclid) {
-            // Update all sign-up buttons
-            document.querySelectorAll('[onclick*="sign-up"]').forEach(button => {
-                const currentOnclick = button.getAttribute('onclick');
-                if (currentOnclick && !currentOnclick.includes('gclid=')) {
-                    const newUrl = currentOnclick.includes('?') 
-                        ? currentOnclick.replace("'", `&gclid=${storedGclid}'`)
-                        : currentOnclick.replace("'", `?gclid=${storedGclid}'`);
-                    button.setAttribute('onclick', newUrl);
-                }
-            });
-        }
-    }
-    
-    // Run when page loads and when CTA section becomes visible
-    addGclidToSignupLinks();
-    
-    // Re-run when CTA section is updated
-    const observer = new MutationObserver(addGclidToSignupLinks);
-    const ctaSection = document.getElementById('ctaSection');
-    if (ctaSection) {
-        observer.observe(ctaSection, { childList: true, subtree: true });
-    }
-})();
+    const signupUrl = gclid 
+        ? `https://linkfinderai.com/sign-up?gclid=${gclid}`
+        : 'https://linkfinderai.com/sign-up';
+        
+    window.location.href = signupUrl;
+}
 
     function toggleFAQ(button) {
       const answer = button.nextElementSibling;
