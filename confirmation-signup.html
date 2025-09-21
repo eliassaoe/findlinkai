@@ -220,8 +220,16 @@
                 });
                 
                 if (!response.ok) {
-                    throw new Error(`Server error: ${response.status}`);
-                }
+    if (response.status === 409) {
+        // User already exists
+        return { 
+            success: false, 
+            error: 'Account with this email already exists. Please log in to access your account.',
+            showLoginLink: true 
+        };
+    }
+    throw new Error(`Server error: ${response.status}`);
+}
 
                 const serverData = await response.json();
                 console.log('✅ Signup server response:', serverData);
