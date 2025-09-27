@@ -1425,27 +1425,36 @@
         }
 
         function configureEnrichment() {
-            const inputType = document.getElementById('inputType').value;
-            const outputType = document.getElementById('outputType').value;
-            
-            if (!inputType || !outputType) return;
+    const inputType = document.getElementById('inputType').value;
+    const outputType = document.getElementById('outputType').value;
+    
+    if (!inputType || !outputType) return;
 
-            currentInputType = inputType;
-            currentOutputType = outputType;
-            
-            const config = dataConfigurations[inputType];
-            
-            // Update input field
-            document.getElementById('inputLabel').textContent = config.label;
-            document.getElementById('inputData').placeholder = config.placeholder;
-            
-            // Update upload subtext
-            document.getElementById('uploadSubtext').textContent = `CSV with ${config.label.toLowerCase().replace('enter ', '')} (max 500 rows)`;
-            
-            // Show mode toggle and input sections
-            document.getElementById('modeToggle').classList.remove('hidden');
-            showInputSections();
-        }
+    currentInputType = inputType;
+    currentOutputType = outputType;
+    
+    const config = dataConfigurations[inputType];
+    
+    // Update input field
+    document.getElementById('inputLabel').textContent = config.label;
+    document.getElementById('inputData').placeholder = config.placeholder;
+    
+    // Show/hide optional company field only for lead_full_name → linkedin_url combination
+    const optionalCompanyField = document.getElementById('optionalCompanyField');
+    if (inputType === 'lead_full_name' && outputType === 'linkedin_url') {
+        optionalCompanyField.classList.remove('hidden');
+    } else {
+        optionalCompanyField.classList.add('hidden');
+    }
+    
+    // Update upload subtext
+    document.getElementById('uploadSubtext').textContent = `CSV with ${config.label.toLowerCase().replace('enter ', '')} (max 500 rows)`;
+    
+    // Show mode toggle and input sections
+    document.getElementById('modeToggle').classList.remove('hidden');
+    showInputSections();
+}
+
 
         function showInputSections() {
             if (currentMode === 'single') {
@@ -1510,63 +1519,42 @@
     const inputValue = document.getElementById('inputData').value.trim();
     if (!inputValue) return;
 
+    // Get optional company name if it exists
+    const optionalCompany = document.getElementById('optionalCompanyName')?.value.trim() || '';
+
     showLoading();
     
     try {
-        console.log('=== DEBUG: Starting enrichData ===');
-        console.log('Input type:', currentInputType);
-        console.log('Output type:', currentOutputType);
-        console.log('Input value:', inputValue);
-        
-        // Always use the main worker for all requests
+        const requestBody = {
+            type: generateCombinationType(currentInputType, currentOutputType),
+            input_data: inputValue,
+            output_type: currentOutputType,
+            token: userToken,
+            is_bulk: false
+        };
+
+        // Add company name if provided for lead_full_name → linkedin_url searches
+        if (currentInputType === 'lead_full_name' && currentOutputType === 'linkedin_url' && optionalCompany) {
+            requestBody.company_name = optionalCompany;
+        }
+
         const response = await fetch('https://linkfinderapp.hamoureliasse.workers.dev/', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                type: generateCombinationType(currentInputType, currentOutputType),
-                input_data: inputValue,
-                output_type: currentOutputType,
-                token: userToken,
-                is_bulk: false
-            })
+            body: JSON.stringify(requestBody)
         });
 
-        console.log('Response status:', response.status);
-        console.log('Response ok:', response.ok);
-
         const data = await response.json();
-        console.log('Full response data:', data);
-        console.log('data.result:', data.result);
-        console.log('data.name:', data.name);
-        
         hideLoading();
 
-        // Handle employees data (array format)
-        if (currentOutputType === 'employees' && Array.isArray(data) && data.length > 0) {
-            const formattedEmployees = formatEmployeesData(data);
-            console.log('Success - showing employees result:', formattedEmployees);
-            showSingleResult(inputValue, formattedEmployees);
-            return;
-        }
-
         if (response.status === 403 && data.code === 403) {
-            console.log('Insufficient credits detected');
             showInsufficientCreditsModal();
             return;
         }
 
-        if (response.ok && data && (data.result || data.name)) {
-            // If it's LinkedIn data without a result field, format it
-            if (data.name && !data.result) {
-                const formattedResult = formatLinkedInCompanyData(data);
-                console.log('Success - showing formatted LinkedIn result:', formattedResult);
-                showSingleResult(inputValue, formattedResult);
-            } else {
-                console.log('Success - showing result:', data.result);
-                showSingleResult(inputValue, data.result);
-            }
+        if (response.ok && data && data.result) {
+            showSingleResult(inputValue, data.result);
         } else {
-            console.log('No result found - showing "Not found"');
             showSingleResult(inputValue, 'Not found');
         }
 
@@ -1576,6 +1564,7 @@
         showAlert('Enrichment error. Please try again.', 'error');
     }
 }
+
 // Function to format LinkedIn profile data
 function formatLinkedInProfileData(data) {
     let result = '';
@@ -1644,29 +1633,77 @@ function formatLinkedInCompanyData(data) {
         updateBulkResultsTable();
         
         try {
+            // Prepare request body
+            const requestBody = {
+                type: generateCombinationType(currentInputType, currentOutputType),
+                input_data: row.inputData,
+                output_type: currentOutputType,
+                token: userToken,
+                is_bulk: true
+            };
+
+            // Add company name if available for lead → linkedin searches
+            if (currentInputType === 'lead_full_name' && currentOutputType === 'linkedin_url' && row.companyName) {
+                requestBody.company_name = row.companyName;
+            }
+
             // Always use the main worker for all requests
             const response = await fetch('https://linkfinderapp.hamoureliasse.workers.dev/', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    type: generateCombinationType(currentInputType, currentOutputType),
-                    input_data: row.inputData,
-                    output_type: currentOutputType,
-                    token: userToken,
-                    is_bulk: true
-                })
+                body: JSON.stringify(requestBody)
             });
 
             if (response.ok) {
                 const data = await response.json();
                 
-                // Update the result
-                bulkResults[i] = {
-                    inputData: row.inputData,
-                    result: data.result || 'Not found',
-                    status: data.result ? 'Found' : 'Not found',
-                    rawData: data // Store raw data for CSV export
-                };
+                // Handle employees data (array format)
+                if (currentOutputType === 'employees' && Array.isArray(data) && data.length > 0) {
+                    const formattedEmployees = formatEmployeesData(data);
+                    bulkResults[i] = {
+                        inputData: row.inputData,
+                        result: formattedEmployees,
+                        status: 'Found',
+                        rawData: data
+                    };
+                }
+                // Handle LinkedIn profile data
+                else if (currentInputType === 'linkedin_profile' && currentOutputType === 'linkedin_info' && data.name) {
+                    const formattedResult = formatLinkedInProfileDataBulk(data);
+                    bulkResults[i] = {
+                        inputData: row.inputData,
+                        result: formattedResult,
+                        status: 'Found',
+                        rawData: data
+                    };
+                }
+                // Handle LinkedIn company data
+                else if (currentInputType === 'linkedin_company' && currentOutputType === 'linkedin_info' && data.name) {
+                    const formattedResult = formatLinkedInCompanyDataBulk(data);
+                    bulkResults[i] = {
+                        inputData: row.inputData,
+                        result: formattedResult,
+                        status: 'Found',
+                        rawData: data
+                    };
+                }
+                // Handle regular result field
+                else if (data.result) {
+                    bulkResults[i] = {
+                        inputData: row.inputData,
+                        result: data.result,
+                        status: data.result !== 'Not found' ? 'Found' : 'Not found',
+                        rawData: data
+                    };
+                }
+                // No result found
+                else {
+                    bulkResults[i] = {
+                        inputData: row.inputData,
+                        result: 'Not found',
+                        status: 'Not found'
+                    };
+                }
             } else {
                 const data = await response.json();
 
@@ -1676,6 +1713,8 @@ function formatLinkedInCompanyData(data) {
 
                 if (response.status === 403 && data.code === 403) {
                     showInsufficientCreditsModal();
+                    btn.disabled = false;
+                    btn.innerHTML = `<i class="fas fa-play"></i> Process Items`;
                     return;
                 }
                 
@@ -1915,60 +1954,76 @@ function formatLinkedInCompanyDataBulk(data) {
             reader.readAsText(file);
         }
 
-        function parseCSV(csvText) {
-            const lines = csvText.split('\n').filter(line => line.trim());
-            if (lines.length < 2) {
-                showAlert('CSV must contain header and data rows.', 'error');
-                return;
-            }
+       function parseCSV(csvText) {
+    const lines = csvText.split('\n').filter(line => line.trim());
+    if (lines.length < 2) {
+        showAlert('CSV must contain header and data rows.', 'error');
+        return;
+    }
 
-            const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
-            csvData = [];
+    const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+    csvData = [];
 
-            // Look for the appropriate column based on current input type
-            const config = dataConfigurations[currentInputType];
-            if (!config) {
-                showAlert('Please configure your input type first.', 'error');
-                return;
-            }
+    const config = dataConfigurations[currentInputType];
+    if (!config) {
+        showAlert('Please configure your input type first.', 'error');
+        return;
+    }
 
-            const possibleHeaders = {
-                'company_name': ['company_name', 'company name', 'company', 'name'],
-                'linkedin_company': ['linkedin_company', 'linkedin company', 'company_url', 'linkedin_url'],
-                'linkedin_profile': ['linkedin_profile', 'profile_url', 'linkedin_url', 'profile'],
-                'email': ['email', 'company_email', 'company email'],
-                'lead_full_name': ['lead_full_name', 'full_name', 'name', 'lead name', 'contact name'],
-            };
+    const possibleHeaders = {
+        'lead_full_name': ['lead_full_name', 'full_name', 'name', 'lead name', 'contact name'],
+        'company_name': ['company_name', 'company name', 'company', 'name'],
+        'linkedin_company': ['linkedin_company', 'linkedin company', 'company_url', 'linkedin_url'],
+        'linkedin_profile': ['linkedin_profile', 'profile_url', 'linkedin_url', 'profile'],
+        'email': ['email', 'company_email', 'company email'] 
+    };
 
-            const searchHeaders = possibleHeaders[currentInputType] || [];
-            const dataIdx = headers.findIndex(h => 
-                searchHeaders.some(search => h.toLowerCase().includes(search.toLowerCase()))
-            );
+    const searchHeaders = possibleHeaders[currentInputType] || [];
+    const dataIdx = headers.findIndex(h => 
+        searchHeaders.some(search => h.toLowerCase().includes(search.toLowerCase()))
+    );
+    
+    if (dataIdx === -1) {
+        showAlert(`CSV must contain a column for ${config.label.toLowerCase().replace('enter ', '')}.`, 'error');
+        return;
+    }
+
+    // For lead_full_name → linkedin_url, also look for optional company column
+    let companyIdx = -1;
+    if (currentInputType === 'lead_full_name' && currentOutputType === 'linkedin_url') {
+        const companyHeaders = ['company_name', 'company name', 'company', 'organization'];
+        companyIdx = headers.findIndex(h => 
+            companyHeaders.some(search => h.toLowerCase().includes(search.toLowerCase()))
+        );
+    }
+
+    for (let i = 1; i < lines.length; i++) {
+        const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
+        if (values[dataIdx]) {
+            const rowData = { inputData: values[dataIdx] };
             
-            if (dataIdx === -1) {
-                showAlert(`CSV must contain a column for ${config.label.toLowerCase().replace('enter ', '')}.`, 'error');
-                return;
+            // Add company name if available
+            if (companyIdx !== -1 && values[companyIdx]) {
+                rowData.companyName = values[companyIdx];
             }
-
-            for (let i = 1; i < lines.length; i++) {
-                const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
-                if (values[dataIdx]) {
-                    csvData.push({ inputData: values[dataIdx] });
-                }
-            }
-
-            if (csvData.length === 0) {
-                showAlert('No valid data found.', 'error');
-                return;
-            }
-
-            if (csvData.length > 500) {
-                showAlert(`Too many entries (${csvData.length}). Maximum is 500.`, 'error');
-                return;
-            }
-
-            showPreview();
+            
+            csvData.push(rowData);
         }
+    }
+
+    if (csvData.length === 0) {
+        showAlert('No valid data found.', 'error');
+        return;
+    }
+
+    if (csvData.length > 500) {
+        showAlert(`Too many entries (${csvData.length}). Maximum is 500.`, 'error');
+        return;
+    }
+
+    showPreview();
+}
+
 
         function showPreview() {
     const preview = csvData.slice(0, 5);
