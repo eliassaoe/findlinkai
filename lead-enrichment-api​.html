@@ -1,0 +1,1335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=AW-17588707745"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'AW-17588707745');
+</script>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Lead Enrichment API - Enrich Leads in Real-Time | LinkFinder AI</title>
+  <meta name="description" content="Powerful lead enrichment API for sales and marketing teams. Automatically enrich leads with emails, phone numbers, job titles, and company data. RESTful API with 95% accuracy."/>
+  <meta name="keywords" content="lead enrichment api, sales lead enrichment, lead data api, contact enrichment api, lead intelligence api, sales api"/>
+  
+  <!-- Favicon -->
+  <link rel="icon" href="https://i.ibb.co/jPjX9SSp/Screen-Shot-2025-03-28-at-8-16-15-PM.png">
+  
+  <!-- Optimized Font Loading -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --gray-50: #f9fafb;
+      --gray-100: #f3f4f6;
+      --gray-200: #e5e7eb;
+      --gray-300: #d1d5db;
+      --gray-400: #9ca3af;
+      --gray-500: #6b7280;
+      --gray-600: #4b5563;
+      --gray-700: #374151;
+      --gray-800: #1f2937;
+      --gray-900: #111827;
+      --success: #10b981;
+      --error: #ef4444;
+      --warning: #f59e0b;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: white;
+      color: var(--gray-800);
+      line-height: 1.6;
+      font-size: 16px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 1rem;
+    }
+
+    /* Header */
+    .header {
+      border-bottom: 1px solid var(--gray-200);
+      padding: 1rem 0;
+      background: white;
+    }
+
+    .header-content {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      text-decoration: none;
+      color: var(--gray-900);
+    }
+
+    .logo-icon {
+      width: 32px;
+      height: 32px;
+      background: var(--primary);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 0.875rem;
+    }
+
+    .logo-text {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--gray-900);
+    }
+
+    .auth-buttons {
+      display: flex;
+      gap: 0.75rem;
+      align-items: center;
+    }
+
+    /* Hero Section */
+    .hero {
+      text-align: center;
+      padding: 4rem 0 3rem;
+    }
+
+    .hero h1 {
+      font-size: 3rem;
+      font-weight: 700;
+      color: var(--gray-900);
+      margin-bottom: 1rem;
+      line-height: 1.1;
+    }
+
+    .hero .highlight {
+      color: var(--primary);
+    }
+
+    .hero p {
+      font-size: 1.25rem;
+      color: var(--gray-600);
+      margin: 0 auto 2rem;
+      max-width: 700px;
+    }
+
+    /* Buttons */
+    .btn {
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 0.875rem 1.5rem;
+      border-radius: 8px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      text-decoration: none;
+      font-size: 0.875rem;
+      min-height: 44px;
+    }
+
+    .btn:hover {
+      background: var(--primary-hover);
+      transform: translateY(-1px);
+    }
+
+    .btn-outline {
+      background: transparent;
+      color: var(--primary);
+      border: 1px solid var(--gray-300);
+    }
+
+    .btn-outline:hover {
+      background: var(--gray-50);
+      border-color: var(--primary);
+      transform: none;
+    }
+
+    .btn-large {
+      padding: 1.125rem 2rem;
+      font-size: 1.125rem;
+      min-height: 52px;
+    }
+
+    .btn-full {
+      width: 100%;
+      padding: 1rem 1.5rem;
+      font-size: 1rem;
+    }
+
+    /* Stats Section */
+    .stats-section {
+      background: var(--gray-900);
+      color: white;
+      padding: 3rem 0;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 2rem;
+      text-align: center;
+    }
+
+    .stat-item h3 {
+      font-size: 3rem;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 0.5rem;
+    }
+
+    .stat-item p {
+      color: var(--gray-300);
+      font-size: 1rem;
+    }
+
+    /* Features Section */
+    .features-section {
+      padding: 3rem 0;
+      background: var(--gray-50);
+    }
+
+    .section-header {
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+
+    .section-header h2 {
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: var(--gray-900);
+      margin-bottom: 1rem;
+    }
+
+    .section-header p {
+      font-size: 1.125rem;
+      color: var(--gray-600);
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 2rem;
+      margin-bottom: 2rem;
+    }
+
+    .feature-card {
+      background: white;
+      padding: 2rem;
+      border-radius: 12px;
+      border: 1px solid var(--gray-200);
+      transition: all 0.3s ease;
+    }
+
+    .feature-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+    }
+
+    .feature-icon {
+      width: 48px;
+      height: 48px;
+      background: rgba(37, 99, 235, 0.1);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--primary);
+      font-size: 1.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .feature-card h3 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--gray-900);
+      margin-bottom: 0.5rem;
+    }
+
+    .feature-card p {
+      color: var(--gray-600);
+      line-height: 1.6;
+    }
+
+    /* Enrichment Data Section */
+    .enrichment-data-section {
+      padding: 3rem 0;
+    }
+
+    .data-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .data-card {
+      background: white;
+      padding: 1.5rem;
+      border-radius: 8px;
+      border: 1px solid var(--gray-200);
+      transition: all 0.3s ease;
+    }
+
+    .data-card:hover {
+      border-color: var(--primary);
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.1);
+    }
+
+    .data-card h4 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--gray-900);
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .data-card .icon {
+      color: var(--primary);
+      font-size: 1.125rem;
+    }
+
+    .data-card ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    .data-card ul li {
+      padding: 0.375rem 0;
+      color: var(--gray-600);
+      font-size: 0.875rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .data-card ul li:before {
+      content: "✓";
+      color: var(--success);
+      font-weight: 600;
+    }
+
+    /* Use Cases Section */
+    .usecases-section {
+      padding: 3rem 0;
+      background: var(--gray-50);
+    }
+
+    .usecases-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .usecase-card {
+      background: white;
+      padding: 1.5rem;
+      border-radius: 8px;
+      border: 1px solid var(--gray-200);
+    }
+
+    .usecase-card h4 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--gray-900);
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .usecase-card .icon {
+      color: var(--success);
+    }
+
+    .usecase-card p {
+      color: var(--gray-600);
+      font-size: 0.875rem;
+    }
+
+    /* Workflow Section */
+    .workflow-section {
+      padding: 3rem 0;
+    }
+
+    .workflow-steps {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 2rem;
+      margin-top: 2rem;
+    }
+
+    .workflow-step {
+      text-align: center;
+      position: relative;
+    }
+
+    .step-number {
+      width: 60px;
+      height: 60px;
+      background: var(--primary);
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin: 0 auto 1rem;
+    }
+
+    .workflow-step h3 {
+      font-size: 1.125rem;
+      font-weight: 600;
+      color: var(--gray-900);
+      margin-bottom: 0.5rem;
+    }
+
+    .workflow-step p {
+      color: var(--gray-600);
+      font-size: 0.875rem;
+    }
+
+    /* Benefits Section */
+    .benefits-section {
+      padding: 3rem 0;
+      background: var(--gray-50);
+    }
+
+    .benefits-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 2rem;
+    }
+
+    .benefit-card {
+      text-align: center;
+      padding: 2rem;
+    }
+
+    .benefit-number {
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 0.5rem;
+    }
+
+    .benefit-card h4 {
+      font-size: 1.125rem;
+      font-weight: 600;
+      color: var(--gray-900);
+      margin-bottom: 0.5rem;
+    }
+
+    .benefit-card p {
+      color: var(--gray-600);
+      font-size: 0.875rem;
+    }
+
+    /* Testimonial Section */
+    .testimonial-section {
+      background: white;
+      padding: 3rem 0;
+    }
+
+    .testimonial-card {
+      background: var(--gray-50);
+      border-radius: 12px;
+      padding: 2rem;
+      max-width: 700px;
+      margin: 0 auto;
+      text-align: center;
+      border: 1px solid var(--gray-200);
+    }
+
+    .testimonial-quote {
+      font-size: 1.125rem;
+      color: var(--gray-700);
+      margin-bottom: 1.5rem;
+      font-style: italic;
+      line-height: 1.6;
+    }
+
+    .testimonial-author {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+    }
+
+    .testimonial-avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 600;
+      font-size: 0.875rem;
+    }
+
+    .testimonial-info h4 {
+      font-weight: 600;
+      color: var(--gray-900);
+      font-size: 0.875rem;
+    }
+
+    .testimonial-info p {
+      color: var(--gray-600);
+      font-size: 0.75rem;
+    }
+
+    /* Pricing Section */
+    .pricing-section {
+      background: var(--gray-900);
+      color: white;
+      padding: 4rem 0;
+    }
+
+    .pricing-header {
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+
+    .pricing-header h2 {
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+    }
+
+    .pricing-header p {
+      font-size: 1.125rem;
+      color: var(--gray-300);
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .pricing-card {
+      background: white;
+      color: var(--gray-900);
+      border-radius: 12px;
+      padding: 2rem;
+      max-width: 400px;
+      margin: 0 auto;
+      text-align: center;
+    }
+
+    .pricing-price {
+      font-size: 3rem;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 0.5rem;
+    }
+
+    .pricing-period {
+      color: var(--gray-600);
+      margin-bottom: 2rem;
+      font-size: 1rem;
+    }
+
+    .pricing-features {
+      list-style: none;
+      margin-bottom: 2rem;
+      text-align: left;
+    }
+
+    .pricing-features li {
+      padding: 0.5rem 0;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-size: 0.875rem;
+    }
+
+    .pricing-features .check {
+      color: var(--success);
+      font-weight: 600;
+    }
+
+    /* CTA Section */
+    .cta-section {
+      text-align: center;
+      padding: 4rem 0;
+      background: white;
+    }
+
+    .cta-section h2 {
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: var(--gray-900);
+      margin-bottom: 1rem;
+    }
+
+    .cta-section p {
+      font-size: 1.25rem;
+      color: var(--gray-600);
+      margin-bottom: 2rem;
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    /* FAQ Section */
+    .faq-section {
+      padding: 3rem 0;
+      background: var(--gray-50);
+    }
+
+    .faq-header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .faq-header h2 {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--gray-900);
+      margin-bottom: 0.5rem;
+    }
+
+    .faq-list {
+      max-width: 700px;
+      margin: 0 auto;
+    }
+
+    .faq-item {
+      background: white;
+      border: 1px solid var(--gray-200);
+      border-radius: 8px;
+      margin-bottom: 0.75rem;
+    }
+
+    .faq-question {
+      padding: 1rem 1.5rem;
+      background: none;
+      border: none;
+      width: 100%;
+      text-align: left;
+      font-weight: 500;
+      color: var(--gray-900);
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: all 0.2s ease;
+      font-size: 0.875rem;
+    }
+
+    .faq-question:hover {
+      background: var(--gray-50);
+    }
+
+    .faq-question .icon {
+      color: var(--gray-400);
+      transition: transform 0.2s ease;
+    }
+
+    .faq-question.active .icon {
+      transform: rotate(180deg);
+    }
+
+    .faq-answer {
+      padding: 0 1.5rem 1rem;
+      color: var(--gray-600);
+      line-height: 1.6;
+      font-size: 0.875rem;
+      display: none;
+    }
+
+    .faq-answer.show {
+      display: block;
+    }
+
+    /* Footer */
+    .footer {
+      background: var(--gray-900);
+      color: var(--gray-300);
+      padding: 3rem 0 1rem;
+      margin-top: 3rem;
+    }
+
+    .footer-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr;
+      gap: 2rem;
+      margin-bottom: 2rem;
+    }
+
+    .footer-section h4.footer-heading {
+      color: white;
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+    }
+
+    .footer-logo {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .footer-logo .logo-icon {
+      width: 28px;
+      height: 28px;
+      background: var(--primary);
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 0.75rem;
+    }
+
+    .footer-logo .logo-text {
+      font-size: 1.125rem;
+      font-weight: 600;
+      color: white;
+    }
+
+    .footer-description {
+      color: var(--gray-400);
+      font-size: 0.875rem;
+      line-height: 1.6;
+      margin-bottom: 1.5rem;
+      max-width: 280px;
+    }
+
+    .footer-links {
+      list-style: none;
+      padding: 0;
+    }
+
+    .footer-links li {
+      margin-bottom: 0.5rem;
+    }
+
+    .footer-links a {
+      color: var(--gray-300);
+      text-decoration: none;
+      font-size: 0.875rem;
+      transition: color 0.2s ease;
+      display: block;
+    }
+
+    .footer-links a:hover {
+      color: white;
+    }
+
+    .footer-bottom {
+      border-top: 1px solid var(--gray-800);
+      padding-top: 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .footer-bottom p {
+      color: var(--gray-400);
+      font-size: 0.875rem;
+      margin: 0;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .hero h1 {
+        font-size: 2.5rem;
+      }
+      
+      .section-header h2, .pricing-header h2 {
+        font-size: 2rem;
+      }
+
+      .features-grid, .usecases-grid, .data-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .footer-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 2rem;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .hero h1 {
+        font-size: 2rem;
+      }
+
+      .container {
+        padding: 0 0.75rem;
+      }
+
+      .footer-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .stats-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .workflow-steps {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="container">
+      <div class="header-content">
+        <a href="https://linkfinderai.com" class="logo">
+          <div class="logo-icon">
+            <i class="fas fa-search"></i>
+          </div>
+          <span class="logo-text">LinkFinder AI</span>
+        </a>
+        
+        <div class="auth-buttons">
+          <button class="btn btn-outline" onclick="window.location.href='https://linkfinderai.com/log-in'">
+            Login
+          </button>
+          <button class="btn" onclick="redirectToSignup()">
+            Sign Up
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="hero">
+      <h1>Transform Leads with Our <span class="highlight">Lead Enrichment API</span></h1>
+      <p>Automatically enrich sales leads in real-time with emails, phone numbers, job titles, and company intelligence. RESTful API with 95% accuracy and instant enrichment.</p>
+      <button class="btn btn-large" onclick="redirectToSignup()">
+        <i class="fas fa-users"></i>
+        Get API Access Now
+      </button>
+    </div>
+  </div>
+
+  <!-- Stats Section -->
+  <div class="stats-section">
+    <div class="container">
+      <div class="stats-grid">
+        <div class="stat-item">
+          <h3>95%+</h3>
+          <p>Data Accuracy</p>
+        </div>
+        <div class="stat-item">
+          <h3>25,000</h3>
+          <p>API Calls/Month</p>
+        </div>
+        <div class="stat-item">
+          <h3>60%+</h3>
+          <p>Email Discovery Rate</p>
+        </div>
+        <div class="stat-item">
+          <h3>RESTful</h3>
+          <p>API Architecture</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Features Section -->
+  <div class="features-section">
+    <div class="container">
+      <div class="section-header">
+        <h2>Complete Lead Enrichment API</h2>
+        <p>Everything sales and marketing teams need to enrich leads automatically</p>
+      </div>
+      
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon">
+            <i class="fas fa-zap"></i>
+          </div>
+          <h3>Real-Time Lead Enrichment</h3>
+          <p>Enrich leads instantly as they enter your system with our high-performance API. Get complete lead profiles in under 200ms for real-time sales workflows.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">
+            <i class="fas fa-envelope-open"></i>
+          </div>
+          <h3>Email & Phone Discovery</h3>
+          <p>Automatically find verified professional emails and direct phone numbers for your leads with 60%+ discovery rate and validation.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">
+            <i class="fas fa-briefcase"></i>
+          </div>
+          <h3>Job Title & Role Data</h3>
+          <p>Enrich leads with accurate job titles, seniority levels, departments, and roles to improve targeting and personalization.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">
+            <i class="fas fa-building"></i>
+          </div>
+          <h3>Company Intelligence</h3>
+          <p>Add firmographic data including company size, industry, revenue, location, and technologies to qualify leads effectively.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">
+            <i class="fas fa-layer-group"></i>
+          </div>
+          <h3>Bulk Lead Enrichment</h3>
+          <p>Enrich multiple leads simultaneously with batch API endpoints. Process up to 500 leads per request for efficient data enrichment.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">
+            <i class="fas fa-cogs"></i>
+          </div>
+          <h3>Easy CRM Integration</h3>
+          <p>Integrate lead enrichment directly into your CRM, marketing automation, or sales tools with our RESTful API and comprehensive documentation.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Enrichment Data Section -->
+  <div class="enrichment-data-section">
+    <div class="container">
+      <div class="section-header">
+        <h2>What Data Gets Enriched?</h2>
+        <p>Comprehensive lead intelligence from minimal input</p>
+      </div>
+      
+      <div class="data-grid">
+        <div class="data-card">
+          <h4><i class="fas fa-user icon"></i> Contact Information</h4>
+          <ul>
+            <li>Professional email address</li>
+            <li>Company phone number</li>
+            <li>LinkedIn profile URL</li>
+            <li>LinkedIn company URL</li>
+          </ul>
+        </div>
+
+        <div class="data-card">
+          <h4><i class="fas fa-id-card icon"></i> LinkedIn Profile Data</h4>
+          <ul>
+            <li>Full name and headline</li>
+            <li>Current job title</li>
+            <li>Company information</li>
+            <li>Location</li>
+            <li>Professional summary</li>
+          </ul>
+        </div>
+
+        <div class="data-card">
+          <h4><i class="fas fa-building icon"></i> Company Information</h4>
+          <ul>
+            <li>Company website</li>
+            <li>Company phone number</li>
+            <li>LinkedIn company page</li>
+            <li>Company email</li>
+          </ul>
+        </div>
+
+        <div class="data-card">
+          <h4><i class="fas fa-linkedin icon"></i> LinkedIn Intelligence</h4>
+          <ul>
+            <li>Complete profile information</li>
+            <li>Company details from LinkedIn</li>
+            <li>Professional connections</li>
+            <li>Industry information</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Workflow Section -->
+  <div class="workflow-section">
+    <div class="container">
+      <div class="section-header">
+        <h2>How Lead Enrichment API Works</h2>
+        <p>Simple integration for powerful lead enrichment</p>
+      </div>
+      
+      <div class="workflow-steps">
+        <div class="workflow-step">
+          <div class="step-number">1</div>
+          <h3>Send Lead Data</h3>
+          <p>Make an API call with basic lead information like name and company or email address.</p>
+        </div>
+
+        <div class="workflow-step">
+          <div class="step-number">2</div>
+          <h3>Instant Enrichment</h3>
+          <p>Our API enriches the lead in real-time, searching multiple verified data sources.</p>
+        </div>
+
+        <div class="workflow-step">
+          <div class="step-number">3</div>
+          <h3>Receive Complete Profile</h3>
+          <p>Get enriched lead data with emails, phone numbers, and LinkedIn information via JSON response.</p>
+        </div>
+
+        <div class="workflow-step">
+          <div class="step-number">4</div>
+          <h3>Use in Your Workflow</h3>
+          <p>Automatically update your CRM or trigger sales workflows with enriched lead data.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Use Cases Section -->
+  <div class="usecases-section">
+    <div class="container">
+      <div class="section-header">
+        <h2>API Use Cases</h2>
+        <p>Build powerful lead enrichment workflows with our API</p>
+      </div>
+      
+      <div class="usecases-grid">
+        <div class="usecase-card">
+          <h4><i class="fas fa-check-circle icon"></i> CRM Auto-Enrichment</h4>
+          <p>Automatically enrich new leads in your CRM with contact information and LinkedIn data.</p>
+        </div>
+
+        <div class="usecase-card">
+          <h4><i class="fas fa-check-circle icon"></i> Form Enhancement</h4>
+          <p>Capture minimal form data and auto-fill additional fields with enriched lead information.</p>
+        </div>
+
+        <div class="usecase-card">
+          <h4><i class="fas fa-check-circle icon"></i> Lead Scoring</h4>
+          <p>Enrich leads with company and profile data for accurate scoring and prioritization.</p>
+        </div>
+
+        <div class="usecase-card">
+          <h4><i class="fas fa-check-circle icon"></i> Email Outreach</h4>
+          <p>Find professional emails for leads to enable direct outreach campaigns.</p>
+        </div>
+
+        <div class="usecase-card">
+          <h4><i class="fas fa-check-circle icon"></i> Sales Intelligence</h4>
+          <p>Build sales tools that enrich prospect data with LinkedIn and company information.</p>
+        </div>
+
+        <div class="usecase-card">
+          <h4><i class="fas fa-check-circle icon"></i> Lead Qualification</h4>
+          <p>Automatically qualify inbound leads based on enriched company and profile data.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Benefits Section -->
+  <div class="benefits-section">
+    <div class="container">
+      <div class="section-header">
+        <h2>Why Choose Our Lead Enrichment API?</h2>
+        <p>Measurable improvements to your lead generation and sales process</p>
+      </div>
+      
+      <div class="benefits-grid">
+        <div class="benefit-card">
+          <div class="benefit-number">10x</div>
+          <h4>Faster Lead Enrichment</h4>
+          <p>Enrich leads automatically instead of manual research and data entry.</p>
+        </div>
+
+        <div class="benefit-card">
+          <div class="benefit-number">95%</div>
+          <h4>Data Accuracy</h4>
+          <p>High-quality, verified data ensures reliable lead enrichment results.</p>
+        </div>
+
+        <div class="benefit-card">
+          <div class="benefit-number">60%+</div>
+          <h4>Email Discovery</h4>
+          <p>Find verified professional emails for the majority of your leads.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Testimonial Section -->
+  <div class="testimonial-section">
+    <div class="container">
+      <div class="testimonial-card">
+        <div class="testimonial-quote">
+          "The lead enrichment API has been a game-changer for our sales team. We integrated it into our CRM and now every new lead is automatically enriched with emails, phone numbers, and LinkedIn data. Our connect rates have tripled and we're closing deals faster than ever."
+        </div>
+        <div class="testimonial-author">
+          <div class="testimonial-avatar">AL</div>
+          <div class="testimonial-info">
+            <h4>Amanda Lee</h4>
+            <p>Director of Sales Operations, CloudTech</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pricing Section -->
+  <div class="pricing-section">
+    <div class="container">
+      <div class="pricing-header">
+        <h2>Simple API Pricing</h2>
+        <p>Full lead enrichment API access included</p>
+      </div>
+      
+      <div class="pricing-card">
+        <div class="pricing-price">$59</div>
+        <div class="pricing-period">per month</div>
+        
+        <ul class="pricing-features">
+          <li><span class="check">✓</span> 25,000 API calls per month</li>
+          <li><span class="check">✓</span> Lead enrichment endpoints</li>
+          <li><span class="check">✓</span> Email & phone discovery</li>
+          <li><span class="check">✓</span> LinkedIn data extraction</li>
+          <li><span class="check">✓</span> Batch processing support</li>
+          <li><span class="check">✓</span> Complete API documentation</li>
+          <li><span class="check">✓</span> Developer support</li>
+        </ul>
+        
+        <button class="btn btn-full" onclick="redirectToSignup()">
+          Get API Access
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CTA Section -->
+  <div class="cta-section">
+    <div class="container">
+      <h2>Start Enriching Leads Today</h2>
+      <p>Get instant access to our lead enrichment API and start building powerful sales workflows with comprehensive documentation and support.</p>
+      <button class="btn btn-large" onclick="redirectToSignup()">
+        <i class="fas fa-users"></i>
+        Get Started Now
+      </button>
+    </div>
+  </div>
+
+  <!-- FAQ Section -->
+  <div class="faq-section">
+    <div class="container">
+      <div class="faq-header">
+        <h2>Frequently Asked Questions</h2>
+      </div>
+      
+      <div class="faq-list">
+        <div class="faq-item">
+          <button class="faq-question" onclick="toggleFAQ(this)">
+            What is a lead enrichment API?
+            <i class="fas fa-chevron-down icon"></i>
+          </button>
+          <div class="faq-answer">
+            A lead enrichment API is a programmatic interface that automatically enhances incomplete lead records by adding missing contact information, LinkedIn data, and company details. Our API enriches leads with emails, phone numbers, LinkedIn profiles, and company information through simple REST API calls.
+          </div>
+        </div>
+        
+        <div class="faq-item">
+          <button class="faq-question" onclick="toggleFAQ(this)">
+            What data can the API enrich for leads?
+            <i class="fas fa-chevron-down icon"></i>
+          </button>
+          <div class="faq-answer">
+            Our lead enrichment API can add professional email addresses, company phone numbers, LinkedIn profile URLs, LinkedIn company URLs, complete LinkedIn profile information, company details, and professional background data to your lead records.
+          </div>
+        </div>
+        
+        <div class="faq-item">
+          <button class="faq-question" onclick="toggleFAQ(this)">
+            How accurate is the lead enrichment data?
+            <i class="fas fa-chevron-down icon"></i>
+          </button>
+          <div class="faq-answer">
+            Our lead enrichment API maintains 95%+ accuracy by using verified data sources and advanced validation algorithms. We continuously update our databases to ensure you receive the most current and accurate lead information available.
+          </div>
+        </div>
+        
+        <div class="faq-item">
+          <button class="faq-question" onclick="toggleFAQ(this)">
+            Can I enrich multiple leads at once?
+            <i class="fas fa-chevron-down icon"></i>
+          </button>
+          <div class="faq-answer">
+            Yes! Our batch enrichment endpoint allows you to process multiple leads in a single API call. You can enrich up to 500 leads per batch request, making it efficient for large-scale lead enrichment operations.
+          </div>
+        </div>
+        
+        <div class="faq-item">
+          <button class="faq-question" onclick="toggleFAQ(this)">
+            What is the email discovery success rate?
+            <i class="fas fa-chevron-down icon"></i>
+          </button>
+          <div class="faq-answer">
+            Our lead enrichment API achieves over 60% success rate in discovering verified professional email addresses for leads. All discovered emails are automatically validated to ensure deliverability.
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-question" onclick="toggleFAQ(this)">
+            How do I integrate the API with my CRM?
+            <i class="fas fa-chevron-down icon"></i>
+          </button>
+          <div class="faq-answer">
+            Our RESTful API can be integrated with any CRM that supports webhooks or API calls. We provide comprehensive documentation with code examples to help you set up automatic lead enrichment workflows in your CRM system.
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-question" onclick="toggleFAQ(this)">
+            What programming languages are supported?
+            <i class="fas fa-chevron-down icon"></i>
+          </button>
+          <div class="faq-answer">
+            Our lead enrichment API is RESTful and can be used with any programming language that supports HTTP requests. We provide code examples for popular languages including Python, JavaScript, Node.js, PHP, Ruby, and Java.
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-question" onclick="toggleFAQ(this)">
+            Is API documentation available?
+            <i class="fas fa-chevron-down icon"></i>
+          </button>
+          <div class="faq-answer">
+            Yes! We provide complete API documentation with detailed endpoint descriptions, authentication guides, request/response schemas, error handling, and code examples in multiple languages to help you integrate quickly.
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-question" onclick="toggleFAQ(this)">
+            Is technical support included?
+            <i class="fas fa-chevron-down icon"></i>
+          </button>
+          <div class="faq-answer">
+            Yes! All API plans include developer support to help with integration, troubleshooting, and optimization. Our technical team is available to assist with any questions about implementing our lead enrichment API.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-grid">
+        <!-- Brand Section -->
+        <div class="footer-section">
+          <div class="footer-logo">
+            <div class="logo-icon">
+              <i class="fas fa-search"></i>
+            </div>
+            <span class="logo-text">LinkFinder AI</span>
+          </div>
+          <p class="footer-description">
+            Professional lead enrichment API for sales and marketing teams. Automatically enrich leads with emails, phone numbers, and LinkedIn data.
+          </p>
+        </div>
+        
+        <!-- Tools Section -->
+        <div class="footer-section">
+          <h4 class="footer-heading">Our Tools</h4>
+          <ul class="footer-links">
+            <li><a href="https://linkfinderai.com/linkedin-email-finder" title="Find emails from LinkedIn">LinkedIn Email Finder</a></li>
+            <li><a href="https://linkfinderai.com/linkedin-scraper" title="LinkedIn data scraper">LinkedIn Scraper</a></li>
+            <li><a href="https://linkfinderai.com/company-url-finder" title="Find company websites">Company URL Finder</a></li>
+            <li><a href="https://linkfinderai.com/company-phone-finder" title="Find company phone numbers">Company Phone Finder</a></li>
+            <li><a href="https://linkfinderai.com/linkedin-company-scraper" title="Extract LinkedIn company data">LinkedIn Company Scraper</a></li>
+            <li><a href="https://linkfinderai.com/linkedin-profile-scraper" title="Extract LinkedIn profile data">LinkedIn Profile Scraper</a></li>
+          </ul>
+        </div>
+        
+        <!-- Compare Section -->
+        <div class="footer-section">
+          <h4 class="footer-heading">Compare</h4>
+          <ul class="footer-links">
+            <li><a href="https://linkfinderai.com/clearbit-alternative" title="LinkFinder AI vs Clearbit">Clearbit Alternative</a></li>
+            <li><a href="https://linkfinderai.com/clay-alternative" title="LinkFinder AI vs Clay">Clay Alternative</a></li>
+            <li><a href="https://linkfinderai.com/phantombuster-alternative" title="LinkFinder AI vs PhantomBuster">PhantomBuster Alternative</a></li>
+            <li><a href="https://linkfinderai.com/apify-alternative" title="LinkFinder AI vs Apify">Apify Alternative</a></li>
+          </ul>
+        </div>
+        
+        <!-- Support Section -->
+        <div class="footer-section">
+          <h4 class="footer-heading">Support</h4>
+          <ul class="footer-links">
+            <li><a href="mailto:support@unlimited-leads.online" title="Email support">Contact Support</a></li>
+            <li><a href="https://linkfinderai.com/privacy" title="Privacy policy">Privacy Policy</a></li>
+            <li><a href="https://linkfinderai.com/terms" title="Terms of service">Terms of Service</a></li>
+            <li><a href="https://linkfinderai.com/about-us" title="About us">About Us</a></li>
+          </ul>
+        </div>
+      </div>
+      
+      <!-- Footer Bottom -->
+      <div class="footer-bottom">
+        <p>&copy; 2025 LinkFinderAI. All rights reserved.</p>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    function redirectToSignup() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const gclid = urlParams.get('gclid');
+      
+      const signupUrl = gclid 
+          ? `https://linkfinderai.com/sign-up?gclid=${gclid}`
+          : 'https://linkfinderai.com/sign-up';
+          
+      window.location.href = signupUrl;
+    }
+
+    function toggleFAQ(button) {
+      const answer = button.nextElementSibling;
+      const isActive = button.classList.contains('active');
+      
+      // Close all other FAQs
+      document.querySelectorAll('.faq-question').forEach(q => {
+        q.classList.remove('active');
+        q.nextElementSibling.classList.remove('show');
+      });
+      
+      // Open clicked FAQ if it wasn't active
+      if (!isActive) {
+        button.classList.add('active');
+        answer.classList.add('show');
+      }
+    }
+  </script>
+</body>
+</html>
