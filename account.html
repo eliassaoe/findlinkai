@@ -1019,13 +1019,45 @@
             }
         }
 
-        function managePlan() {
-    if (isPremiumUser) {
-        // Open Stripe portal for premium users
-        openStripePortal();
-    } else {
-        // Redirect to pricing page for free users
-        showPricingModal();
+async function managePlan() {
+    try {
+        // Show loading state
+        const manageBtn = event.target;
+        const originalText = manageBtn.innerHTML;
+        manageBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
+        manageBtn.disabled = true;
+
+        // Send request to worker
+        const response = await fetch('https://manage-plan-linkfinder.hamoureliasse.workers.dev/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                token: userToken
+            })
+        });
+        
+        const data = await response.json();
+        
+        // Reset button state
+        manageBtn.innerHTML = originalText;
+        manageBtn.disabled = false;
+        
+        // Check if URL is empty or not provided
+        if (!data.url || data.url === '') {
+            // Open upgrade modal for users without active subscription
+            showPricingModal();
+        } else {
+            // Redirect to Stripe management URL
+            window.location.href = data.url;
+        }
+    } catch (error) {
+        console.error('Error managing plan:', error);
+        alert('Error loading billing portal. Please try again.');
+        
+        // Reset button state on error
+        const manageBtn = event.target;
+        manageBtn.innerHTML = '<i class="fas fa-cog"></i> Manage Your Plan';
+        manageBtn.disabled = false;
     }
 }
 
