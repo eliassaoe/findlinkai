@@ -260,18 +260,6 @@
             font-weight: 500;
             color: var(--gray-700);
             margin-bottom: 0.5rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .security-indicator {
-            background: var(--success);
-            color: white;
-            font-size: 0.75rem;
-            padding: 0.2rem 0.5rem;
-            border-radius: 4px;
-            font-weight: 600;
         }
 
         .api-key-input-group {
@@ -301,33 +289,6 @@
         .copy-btn {
             padding: 0.75rem;
             min-width: 44px;
-        }
-
-        .api-key-actions {
-            display: flex;
-            gap: 0.5rem;
-            flex-wrap: wrap;
-        }
-
-        .toggle-btn {
-            background: var(--gray-100);
-            color: var(--gray-700);
-            border: 1px solid var(--gray-300);
-            padding: 0.5rem 0.75rem;
-            border-radius: 6px;
-            font-size: 0.75rem;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-
-        .toggle-btn:hover {
-            background: var(--gray-200);
-        }
-
-        .toggle-btn.active {
-            background: var(--primary);
-            color: white;
-            border-color: var(--primary);
         }
 
         /* Documentation Section */
@@ -696,17 +657,6 @@
                 padding: 0.625rem;
                 font-size: 0.85rem;
             }
-
-            .api-key-actions {
-                flex-direction: column;
-                gap: 0.5rem;
-            }
-
-            .toggle-btn {
-                width: 100%;
-                padding: 0.75rem;
-                text-align: center;
-            }
         }
     </style>
 </head>
@@ -758,16 +708,10 @@
                     <i class="fas fa-key"></i>
                     Your API Key
                 </h2>
-                <p>Use this API key to authenticate your requests. The key below is encrypted for security - when copied, it will provide the real token for API usage.</p>
+                <p>Use this API key to authenticate your requests. Keep it secure and don't share it publicly.</p>
                 
                 <div class="api-key-container">
-                    <div class="api-key-label">
-                        API Key 
-                        <span class="security-indicator">
-                            <i class="fas fa-shield-alt"></i>
-                            ENCRYPTED
-                        </span>
-                    </div>
+                    <div class="api-key-label">API Key</div>
                     <div class="api-key-input-group">
                         <input 
                             type="text" 
@@ -783,7 +727,7 @@
                     
                     <div id="copySuccess" class="success-message">
                         <i class="fas fa-check"></i>
-                        Encrypted API key copied to clipboard!
+                        API key copied to clipboard!
                     </div>
                 </div>
             </div>
@@ -853,8 +797,8 @@
 
             
     <script>
-        // ===== SYSTÈME DE CHIFFREMENT POUR API KEYS =====
-        function chiffrerToken(tokenReel) {
+        // ===== SYSTÈME DE TRANSFORMATION POUR API KEYS =====
+        function transformerToken(tokenReel) {
             let resultat = '';
             
             for (let i = 0; i < tokenReel.length; i++) {
@@ -875,10 +819,10 @@
             return resultat.slice(0, -1);
         }
 
-        function dechiffrerToken(tokenChiffre) {
+        function restaurerToken(tokenTransforme) {
             try {
                 // Séparer par "Z"
-                let parties = tokenChiffre.split('Z');
+                let parties = tokenTransforme.split('Z');
                 let resultat = '';
                 
                 for (let partie of parties) {
@@ -894,13 +838,13 @@
                 
                 return resultat;
             } catch (error) {
-                return "Erreur de déchiffrement du token";
+                return "Erreur de restauration du token";
             }
         }
 
         // ===== VARIABLES GLOBALES =====
         let userToken = null;
-        let encryptedToken = null;
+        let apiToken = null;
 
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
@@ -944,14 +888,11 @@
             // Stocker le vrai token (pour navigation)
             userToken = token;
             
-            // Chiffrer le token pour l'affichage et usage API
-            encryptedToken = chiffrerToken(token);
+            // Générer le token API
+            apiToken = transformerToken(token);
             
-            // Afficher le token chiffré
-            document.getElementById('apiKeyInput').value = encryptedToken;
-            
-            console.log('Token réel (pour identification):', userToken);
-            console.log('Token chiffré (pour API):', encryptedToken);
+            // Afficher le token API
+            document.getElementById('apiKeyInput').value = apiToken;
         }
 
         function setupNavigation() {
@@ -979,36 +920,22 @@
         }
 
         function copyApiKey() {
-            // Toujours copier le vrai token (pas le chiffré) pour usage API
-            const tokenToCopy = userToken;
+            // Copier le token API
+            const apiKeyInput = document.getElementById('apiKeyInput');
+            apiKeyInput.select();
+            apiKeyInput.setSelectionRange(0, 99999);
             
-            // Créer un élément temporaire pour la copie
-            const tempInput = document.createElement('input');
-            tempInput.value = tokenToCopy;
-            document.body.appendChild(tempInput);
-            tempInput.select();
-            tempInput.setSelectionRange(0, 99999);
-            
-            navigator.clipboard.writeText(tokenToCopy).then(() => {
-                showSuccessMessage('copySuccess', 'Real API key copied to clipboard!');
+            navigator.clipboard.writeText(apiToken).then(() => {
+                showSuccessMessage('copySuccess');
             }).catch(() => {
                 // Fallback pour navigateurs plus anciens
                 document.execCommand('copy');
-                showSuccessMessage('copySuccess', 'Real API key copied to clipboard!');
+                showSuccessMessage('copySuccess');
             });
-            
-            // Nettoyer l'élément temporaire
-            document.body.removeChild(tempInput);
         }
 
-        function showSuccessMessage(elementId, message) {
+        function showSuccessMessage(elementId) {
             const successMessage = document.getElementById(elementId);
-            const messageSpan = document.getElementById('copyMessage');
-            
-            if (messageSpan) {
-                messageSpan.textContent = message;
-            }
-            
             successMessage.classList.add('show');
             
             setTimeout(() => {
