@@ -116,6 +116,18 @@ gtag('event', 'conversion', {
     window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};
     plausible.init()
   </script>
+  <script>
+    // Simple tracking on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        try {
+            if (typeof window.plausible === 'function') {
+                window.plausible('new paid user');
+            }
+        } catch (e) {
+            // Ignore tracking errors
+        }
+    });
+  </script>
 </head>
 <body>
     <div class="container">
@@ -343,8 +355,17 @@ gtag('event', 'conversion', {
                     responseData = { message: await response.text() };
                 }
                 
-                // Success!
+                // Success! Track the conversion
                 log('🎉 LINKFINDER AI PAYMENT CONFIRMATION SUCCESSFUL');
+                
+                // Track new paid user in Plausible
+                try {
+                    if (typeof window.plausible === 'function') {
+                        window.plausible('new paid user');
+                    }
+                } catch (e) {
+                    // Ignore tracking errors - don't break payment flow
+                }
                 
                 spinnerElement.style.display = 'none';
                 statusElement.innerHTML = 'Payment confirmed!<br>Redirecting to LinkFinder AI...';
