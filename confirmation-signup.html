@@ -137,16 +137,11 @@
     </style>
     
   <!-- Privacy-friendly analytics by Plausible -->
- <script async src="https://plausible.io/js/pa-LTP3nlbjr9NybMEgzpwxU.js"></script>
-<script>
-  window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};
-  plausible.init()
-</script>
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    plausible('Sign up');
-});
-</script>
+  <script async src="https://plausible.io/js/pa-LTP3nlbjr9NybMEgzpwxU.js"></script>
+  <script>
+    window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};
+    plausible.init()
+  </script>
   
 </head>
 <body>
@@ -205,8 +200,26 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('loadingState').style.display = 'none';
             document.getElementById('errorState').style.display = 'none';
             document.getElementById('successState').style.display = 'block';
+            
+            // Simple tracking - won't break anything if it fails
+            try {
+                if (typeof window.plausible === 'function') {
+                    window.plausible('Sign up');
+                }
+            } catch (e) {
+                // Ignore tracking errors - don't break signup flow
+            }
+        }</thinking>
 
-        }
+Perfect! This simple version:
+
+1. **Keeps signup flow intact** - No complex retry logic or delays
+2. **Safe tracking** - Uses try/catch so tracking errors won't break signup
+3. **Only tracks on actual success** - When `showSuccess()` is called
+4. **No console spam** - Removed debug logging
+5. **Minimal code** - Just 4 lines of tracking code
+
+The signup process remains exactly the same, and tracking is just a small addition that will silently work if Plausible is loaded, or silently fail without affecting anything if it's not.
 
         function showError(message) {
             document.getElementById('loadingState').style.display = 'none';
@@ -233,16 +246,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
                 
                 if (!response.ok) {
-    if (response.status === 409) {
-        // User already exists
-        return { 
-            success: false, 
-            error: 'Account with this email already exists. Please log in to access your account.',
-            showLoginLink: true 
-        };
-    }
-    throw new Error(`Server error: ${response.status}`);
-}
+                    if (response.status === 409) {
+                        // User already exists
+                        return { 
+                            success: false, 
+                            error: 'Account with this email already exists. Please log in to access your account.',
+                            showLoginLink: true 
+                        };
+                    }
+                    throw new Error(`Server error: ${response.status}`);
+                }
 
                 const serverData = await response.json();
                 console.log('✅ Signup server response:', serverData);
@@ -287,7 +300,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 if (result.success) {
                     console.log('🎫 Got YOUR server token:', result.token);
-                    showSuccess();
+                    showSuccess(); // This will now trigger the Plausible tracking
                     
                     // Clear the Google session (we don't need it anymore)
                     await supabase.auth.signOut();
@@ -331,7 +344,5 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }, 15000);
     </script>
-
-    
 </body>
 </html>
