@@ -190,6 +190,10 @@
         // Your signup worker URL - UPDATE THIS WITH YOUR ACTUAL WORKER URL
         const WORKER_URL = 'https://linkfinderai-sign-up.hamoureliasse.workers.dev/';
         
+        console.log('🚀 DEBUG: Page loaded');
+        console.log('🔗 DEBUG: Worker URL:', WORKER_URL);
+        console.log('🌐 DEBUG: Current URL:', window.location.href);
+        
         // Initialize Supabase
         const supabase = window.supabase.createClient(
             'https://snxhsboboatjywgwdeds.supabase.co',
@@ -201,73 +205,80 @@
             document.getElementById('errorState').style.display = 'none';
             document.getElementById('successState').style.display = 'block';
             
+            console.log('✅ DEBUG: Showing success state');
+            
             // Simple tracking - won't break anything if it fails
             try {
                 if (typeof window.plausible === 'function') {
                     window.plausible('Sign up');
+                    console.log('📊 DEBUG: Plausible tracking sent');
                 }
             } catch (e) {
-                // Ignore tracking errors - don't break signup flow
+                console.log('⚠️ DEBUG: Plausible tracking failed:', e.message);
             }
-        }</thinking>
-
-Perfect! This simple version:
-
-1. **Keeps signup flow intact** - No complex retry logic or delays
-2. **Safe tracking** - Uses try/catch so tracking errors won't break signup
-3. **Only tracks on actual success** - When `showSuccess()` is called
-4. **No console spam** - Removed debug logging
-5. **Minimal code** - Just 4 lines of tracking code
-
-The signup process remains exactly the same, and tracking is just a small addition that will silently work if Plausible is loaded, or silently fail without affecting anything if it's not.
+        }
 
         function showError(message) {
             document.getElementById('loadingState').style.display = 'none';
             document.getElementById('successState').style.display = 'none';
             document.getElementById('errorState').style.display = 'block';
             document.getElementById('errorMessage').textContent = message;
+            
+            console.log('❌ DEBUG: Showing error:', message);
         }
 
         // Send email to YOUR server and get YOUR token
         async function sendEmailToServer(email) {
             try {
-                console.log('📤 Sending email to your signup server:', email);
+                console.log('📤 DEBUG: Sending email to worker:', email);
+                console.log('🔍 DEBUG: Posting to:', WORKER_URL);
+                
+                const requestBody = {
+                    email: email,
+                    provider: 'google',
+                    type: 'signup'
+                };
+                
+                console.log('📝 DEBUG: Request body:', requestBody);
                 
                 const response = await fetch(WORKER_URL, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({
-                        email: email,
-                        provider: 'google',
-                        type: 'signup'
-                    })
+                    body: JSON.stringify(requestBody)
                 });
                 
+                console.log('📊 DEBUG: Worker response status:', response.status);
+                console.log('📊 DEBUG: Worker response ok:', response.ok);
+                console.log('📊 DEBUG: Worker response headers:', [...response.headers.entries()]);
+                
                 if (!response.ok) {
+                    const responseText = await response.text();
+                    console.log('❌ DEBUG: Worker error response text:', responseText);
+                    
                     if (response.status === 409) {
-                        // User already exists
                         return { 
                             success: false, 
                             error: 'Account with this email already exists. Please log in to access your account.',
                             showLoginLink: true 
                         };
                     }
-                    throw new Error(`Server error: ${response.status}`);
+                    throw new Error(`Server error: ${response.status} - ${responseText}`);
                 }
 
                 const serverData = await response.json();
-                console.log('✅ Signup server response:', serverData);
+                console.log('✅ DEBUG: Worker success response:', serverData);
 
                 if (serverData.token) {
+                    console.log('🎫 DEBUG: Got token (first 20 chars):', serverData.token.substring(0, 20) + '...');
                     return { success: true, token: serverData.token };
                 } else {
                     throw new Error('No token received from server');
                 }
                 
             } catch (error) {
-                console.error('❌ Signup server error:', error);
+                console.log('❌ DEBUG: Worker request failed:', error);
                 return { success: false, error: error.message };
             }
         }
@@ -275,17 +286,85 @@ The signup process remains exactly the same, and tracking is just a small additi
         // Main processing function
         async function processGoogleSignup() {
             try {
-                console.log('🚀 Processing Google signup...');
+                console.log('🔄 DEBUG: Starting Google signup processing...');
                 
-                // Get the current session from Supabase (should have Google user data)
+                // Log URL parameters
+                const urlParams = new URLSearchParams(window.location.search);
+                const urlHash = window.location.hash;
+                console.log('🔍 DEBUG: URL params:', urlParams.toString());
+                console.log('🔍 DEBUG: URL hash:', urlHash);
+                
+                // Check for any error parameters
+                const errorParam = urlParams.get('error');
+                if (errorParam) {
+                    console.log('⚠️ DEBUG: Error parameter found:', errorParam);
+                }
+                
+                // Wait for session to be ready
+                console.log('⏳ DEBUG: Waiting 2 seconds for Supabase session...');
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                
+                // Get the current session from Supabase
                 const { data: { session }, error } = await supabase.auth.getSession();
+                
+                console.log('📋 DEBUG: Session error:', error ? error.message : 'None');
+                console.log('📋 DEBUG: Session exists:', !!session);
+                console.log('📋 DEBUG: User exists:', !!(session && session.user));
+                
+                if (session && session.user) {
+                    console.log('📧 DEBUG: User email:', session.user.email);
+                    console.log('🆔 DEBUG: User ID:', session.user.id);
+                    console.log('📅 DEBUG: Session created:', session.created_at);
+                    console.log('⏰ DEBUG: Session expires:', session.expires_at);
+                    console.log('🔑 DEBUG: Provider token exists:', !!session.provider_token);
+                }
                 
                 if (error) {
                     throw new Error('Failed to get Google session: ' + error.message);
                 }
                 
                 if (!session || !session.user) {
-                    throw new Error('No Google session found');
+                    console.log('❌ DEBUG: No session found, trying getUser()...');
+                    
+                    // Try alternative approach
+                    const { data: { user }, error: userError } = await supabase.auth.getUser();
+                    console.log('👤 DEBUG: getUser() error:', userError ? userError.message : 'None');
+                    console.log('👤 DEBUG: getUser() result exists:', !!user);
+                    
+                    if (!user) {
+                        throw new Error('No Google session or user found');
+                    }
+                    
+                    const email = user.email;
+                    if (!email) {
+                        throw new Error('No email found in Google account');
+                    }
+                    
+                    console.log('📧 DEBUG: Got email from getUser():', email);
+                    
+                    // Send to worker
+                    const result = await sendEmailToServer(email);
+                    
+                    if (result.success) {
+                        showSuccess();
+                        
+                        await supabase.auth.signOut();
+                        console.log('🚪 DEBUG: Signed out from Supabase');
+                        
+                        setTimeout(() => {
+                            const storedGclid = localStorage.getItem('gclid');
+                            const appUrl = storedGclid 
+                               ? `https://linkfinderai.com/app?token=${result.token}&gclid=${storedGclid}`
+                               : `https://linkfinderai.com/app?token=${result.token}`;
+
+                            localStorage.removeItem('gclid');
+                            console.log('🔄 DEBUG: Redirecting to:', appUrl);
+                            window.location.href = appUrl;
+                        }, 1500);
+                    } else {
+                        showError(result.error);
+                    }
+                    return;
                 }
                 
                 const email = session.user.email;
@@ -293,19 +372,17 @@ The signup process remains exactly the same, and tracking is just a small additi
                     throw new Error('No email found in Google account');
                 }
                 
-                console.log('📧 Got email from Google:', email);
+                console.log('📧 DEBUG: Got email from session:', email);
                 
-                // Send ONLY the email to your server (forget the Google token!)
+                // Send ONLY the email to your server
                 const result = await sendEmailToServer(email);
                 
                 if (result.success) {
-                    console.log('🎫 Got YOUR server token:', result.token);
-                    showSuccess(); // This will now trigger the Plausible tracking
+                    showSuccess();
                     
-                    // Clear the Google session (we don't need it anymore)
                     await supabase.auth.signOut();
+                    console.log('🚪 DEBUG: Signed out from Supabase');
                     
-                    // Redirect with YOUR server token
                     setTimeout(() => {
                         const storedGclid = localStorage.getItem('gclid');
                         const appUrl = storedGclid 
@@ -313,24 +390,31 @@ The signup process remains exactly the same, and tracking is just a small additi
                            : `https://linkfinderai.com/app?token=${result.token}`;
 
                         localStorage.removeItem('gclid');
-                        console.log('Redirecting to:', appUrl);
+                        console.log('🔄 DEBUG: Redirecting to:', appUrl);
                         window.location.href = appUrl;
                     }, 1500);
                 } else {
-                    showError('Account with this email already exists. Please log in to access your account.');
+                    showError(result.error);
                 }
                 
             } catch (error) {
-                console.error('❌ Google signup processing error:', error);
+                console.log('❌ DEBUG: Processing error:', error.message);
                 showError(error.message);
             }
         }
 
+        // Check immediate state
+        console.log('🔍 DEBUG: Checking immediate Supabase state...');
+        supabase.auth.getSession().then(({ data: { session }, error }) => {
+            console.log('📋 DEBUG: Immediate session check - Error:', error ? error.message : 'None');
+            console.log('📋 DEBUG: Immediate session check - Session exists:', !!session);
+        });
+
         // Start processing when page loads
         window.addEventListener('load', () => {
-            console.log('🔍 Page loaded, checking for Google session...');
+            console.log('📄 DEBUG: Page load event fired');
+            console.log('⏳ DEBUG: Waiting 1 second before processing...');
             
-            // Give Supabase time to process the OAuth callback
             setTimeout(() => {
                 processGoogleSignup();
             }, 1000);
@@ -340,9 +424,30 @@ The signup process remains exactly the same, and tracking is just a small additi
         setTimeout(() => {
             const loadingState = document.getElementById('loadingState');
             if (loadingState.style.display !== 'none') {
+                console.log('⏰ DEBUG: Timeout reached - showing error');
                 showError('Account creation timed out. Please try again.');
             }
         }, 15000);
+
+        // Log auth state changes
+        supabase.auth.onAuthStateChange((event, session) => {
+            console.log('🔄 DEBUG: Auth state change event:', event);
+            console.log('👤 DEBUG: New session exists:', !!session);
+            if (session && session.user) {
+                console.log('📧 DEBUG: Session user email:', session.user.email);
+            }
+        });
+
+        // Test worker connectivity immediately
+        console.log('🧪 DEBUG: Testing worker connectivity...');
+        fetch(WORKER_URL, { method: 'GET' })
+            .then(response => {
+                console.log('🧪 DEBUG: Worker connectivity test - Status:', response.status);
+                console.log('🧪 DEBUG: Worker connectivity test - OK:', response.ok);
+            })
+            .catch(error => {
+                console.log('🧪 DEBUG: Worker connectivity test - ERROR:', error.message);
+            });
     </script>
 </body>
 </html>
