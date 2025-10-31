@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -653,6 +654,89 @@
     display: flex;
     align-items: center;
     gap: 0.5rem;
+}
+
+.review-notification {
+    position: fixed;
+    bottom: 100px;
+    right: 20px;
+    background: white;
+    border-radius: 12px;
+    padding: 1.25rem;
+    width: 320px;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.4s ease;
+    z-index: 99998;
+    border: 1px solid #e5e7eb;
+    font-size: 0.875rem;
+    line-height: 1.5;
+}
+
+.review-notification.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.review-notification.hide {
+    opacity: 0;
+    transform: translateY(20px);
+}
+
+.review-notification-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.review-notification-close {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+    background: transparent;
+    border: none;
+    color: #9ca3af;
+    cursor: pointer;
+    font-size: 1.25rem;
+    line-height: 1;
+    padding: 0.25rem;
+}
+
+.review-notification-close:hover {
+    color: #6b7280;
+}
+
+.review-platforms {
+    margin: 0.75rem 0;
+    padding-left: 1.25rem;
+}
+
+.review-platforms li {
+    margin: 0.25rem 0;
+}
+
+.review-platforms a {
+    color: #2563eb;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.review-platforms a:hover {
+    text-decoration: underline;
+}
+
+.review-form-link {
+    color: #2563eb;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.review-form-link:hover {
+    text-decoration: underline;
 }
 
 .save-badge {
@@ -1369,6 +1453,25 @@
         </div>
     </div>
 
+<!-- Review Notification HTML -->
+<div id="reviewNotification" class="review-notification">
+    <button class="review-notification-close" onclick="closeReviewNotification()">×</button>
+    <div class="review-notification-header">
+        <span>👋</span> Hi there!
+    </div>
+    <div>
+        If you've found LinkFinder AI useful, please consider leaving us a review on Trustpilot:
+        <ul class="review-platforms">
+            <li><a href="https://trustpilot.com/evaluate/linkfinderai.com" target="_blank">Trustpilot</a></li>
+        </ul>
+        It only takes less than 1 minute !<br><br>
+        If you give us a review and provide us with the link to your review
+        <a href="https://form.typeform.com/to/UKRzccI3" class="review-form-link" onclick="openReviewForm(event)">in this form</a>, 
+        we will award you <strong>1000 credits</strong> on your account.<br><br>
+        Thank you in advance! 🙏
+    </div>
+</div>
+
    <!-- Pricing Modal -->
 <div id="pricingModal" class="modal-overlay">
     <div class="pricing-modal">
@@ -1436,6 +1539,8 @@
         </div>
     </div>
 </div>
+
+
     
     <script>
         let currentMode = 'single';
@@ -2582,6 +2687,46 @@ function handleApiError(response, data) {
                 alert.style.display = 'none';
             }, 5000);
         }
+
+function showReviewNotification() {
+    // Check if notification has been shown before
+    const hasSeenReview = sessionStorage.getItem('linkFinderReviewShown');
+    
+    if (!hasSeenReview) {
+        // Wait 45 seconds after page load
+        setTimeout(() => {
+            const notification = document.getElementById('reviewNotification');
+            notification.classList.add('show');
+            
+            // Mark as shown
+            sessionStorage.setItem('linkFinderReviewShown', 'true');
+            
+            // Auto-hide after 30 seconds
+            setTimeout(() => {
+                if (notification.classList.contains('show')) {
+                    closeReviewNotification();
+                }
+            }, 90000);
+        }, 10000);
+    }
+}
+
+function closeReviewNotification() {
+    const notification = document.getElementById('reviewNotification');
+    notification.classList.remove('show');
+    notification.classList.add('hide');
+}
+
+function openReviewForm(event) {
+    event.preventDefault();
+    window.open('https://form.typeform.com/to/UKRzccI3', '_blank');
+    closeReviewNotification();
+}
+
+// Initialize review notification when page loads
+document.addEventListener('DOMContentLoaded', () => {
+    showReviewNotification();
+});
     </script>
 
 <script type="module">
