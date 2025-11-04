@@ -2161,6 +2161,73 @@ function formatLinkedInCompanyDataBulk(data) {
             document.getElementById('bulkResults').classList.add('hidden');
         }
 
+      function showSingleResultAsTable(inputData, reactionsArray) {
+    const resultText = document.getElementById('resultText');
+    const resultLink = document.getElementById('resultLink');
+    const config = dataConfigurations[currentInputType];
+    const outputLabel = config.outputs[currentOutputType];
+    
+    // Hide textarea
+    resultText.style.display = 'none';
+    
+    // Create table for reactions with ALL fields
+    let tableHtml = `
+        <div style="margin-bottom: 1rem; padding: 1rem; background: var(--gray-50); border-radius: 8px;">
+            <strong>Input:</strong> ${inputData}<br>
+            <strong>${outputLabel}:</strong> Found ${reactionsArray.length} reactions
+        </div>
+        <div class="table-container">
+            <table class="results-table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Job Title</th>
+                        <th>Company</th>
+                        <th>Location</th>
+                        <th>Industry</th>
+                        <th>Website</th>
+                        <th>Email</th>
+                        <th>Education</th>
+                        <th>Headline</th>
+                        <th>LinkedIn</th>
+                    </tr>
+                </thead>
+                <tbody>`;
+    
+    // Add each reaction as a row with ALL fields
+    reactionsArray.forEach(reaction => {
+        const linkedinUrlDisplay = reaction.linkedinUrl && reaction.linkedinUrl.length > 30 
+            ? `${reaction.linkedinUrl.substring(0, 30)}...` 
+            : (reaction.linkedinUrl || 'Not specified');
+        
+        tableHtml += `<tr>
+            <td data-label="Name">${reaction.name || 'Not specified'}</td>
+            <td data-label="Job Title">${reaction.jobTitle || 'Not specified'}</td>
+            <td data-label="Company">${reaction.company || 'Not specified'}</td>
+            <td data-label="Location">${reaction.location || 'Not specified'}</td>
+            <td data-label="Industry">${reaction.industry || 'Not specified'}</td>
+            <td data-label="Website">${reaction.website || 'Not specified'}</td>
+            <td data-label="Email">${reaction.email || 'Not specified'}</td>
+            <td data-label="Education">${reaction.education || 'Not specified'}</td>
+            <td data-label="Headline">${reaction.headline ? (reaction.headline.length > 50 ? reaction.headline.substring(0, 50) + '...' : reaction.headline) : 'Not specified'}</td>
+            <td data-label="LinkedIn">
+                ${reaction.linkedinUrl ? `<a href="${reaction.linkedinUrl}" target="_blank" style="color: var(--primary); text-decoration: none;">${linkedinUrlDisplay}</a>` : 'Not specified'}
+            </td>
+        </tr>`;
+    });
+    
+    tableHtml += `
+                </tbody>
+            </table>
+        </div>`;
+    
+    resultLink.innerHTML = tableHtml;
+    
+    document.getElementById('resultsSection').classList.remove('hidden');
+    document.getElementById('singleResult').classList.remove('hidden');
+    document.getElementById('bulkResults').classList.add('hidden');
+}
+
         function setupFileUpload() {
             const fileInput = document.getElementById('csvFile');
             fileInput.addEventListener('change', (e) => {
@@ -2319,21 +2386,25 @@ function formatLinkedInCompanyDataBulk(data) {
     function initializeBulkResultsTable() {
     let html = '';
     
-    if (currentInputType === 'linkedin_post' && currentOutputType === 'post_reactions') {
-        html = `<table class="results-table">
-            <thead>
-                <tr>
-                    <th>Post URL</th>
-                    <th>Name</th>
-                    <th>Job Title</th>
-                    <th>Company</th>
-                    <th>Location</th>
-                    <th>LinkedIn</th>
-                </tr>
-            </thead>
-            <tbody></tbody>
-        </table>`;
-    } else if (currentInputType === 'linkedin_profile' && currentOutputType === 'linkedin_info') {
+    if (currentInputType === 'linkedin_post' && currentOutputType === 'reactions') {
+    html = `<table class="results-table">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Job Title</th>
+                <th>Company</th>
+                <th>Location</th>
+                <th>Industry</th>
+                <th>Website</th>
+                <th>Email</th>
+                <th>Education</th>
+                <th>Headline</th>
+                <th>LinkedIn</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>`;
+} else if (currentInputType === 'linkedin_profile' && currentOutputType === 'linkedin_info') {
         html = `<table class="results-table">
             <thead>
                 <tr>
@@ -2387,42 +2458,53 @@ function updateBulkResultsTable() {
     let html = '';
     
     // Handle LinkedIn Post Reactions with detailed table
-    if (currentInputType === 'linkedin_post' && currentOutputType === 'post_reactions') {
-        html = `<table class="results-table">
-            <thead>
-                <tr>
-                    <th>Name</th>
-                    <th>Job Title</th>
-                    <th>Company</th>
-                    <th>Location</th>
-                    <th>LinkedIn</th>
-                </tr>
-            </thead>
-            <tbody>`;
+    // Handle LinkedIn Post Reactions with detailed table
+if (currentInputType === 'linkedin_post' && currentOutputType === 'reactions') {
+    html = `<table class="results-table">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Job Title</th>
+                <th>Company</th>
+                <th>Location</th>
+                <th>Industry</th>
+                <th>Website</th>
+                <th>Email</th>
+                <th>Education</th>
+                <th>Headline</th>
+                <th>LinkedIn</th>
+            </tr>
+        </thead>
+        <tbody>`;
 
-        // Flatten all reactions from all posts
-        bulkResults.forEach(postResult => {
-            if (postResult.reactions && Array.isArray(postResult.reactions)) {
-                postResult.reactions.forEach(reaction => {
-                    const linkedinUrlDisplay = reaction.linkedinUrl && reaction.linkedinUrl.length > 30 
-                        ? `${reaction.linkedinUrl.substring(0, 30)}...` 
-                        : (reaction.linkedinUrl || 'N/A');
+    // Flatten all reactions from all posts
+    bulkResults.forEach(postResult => {
+        if (postResult.reactions && Array.isArray(postResult.reactions)) {
+            postResult.reactions.forEach(reaction => {
+                const linkedinUrlDisplay = reaction.linkedinUrl && reaction.linkedinUrl.length > 30 
+                    ? `${reaction.linkedinUrl.substring(0, 30)}...` 
+                    : (reaction.linkedinUrl || 'N/A');
 
-                    html += `<tr>
-                        <td data-label="Name">${reaction.name || 'Not specified'}</td>
-                        <td data-label="Job Title">${reaction.jobTitle || 'Not specified'}</td>
-                        <td data-label="Company">${reaction.company || 'Not specified'}</td>
-                        <td data-label="Location">${reaction.location || 'Not specified'}</td>
-                        <td data-label="LinkedIn">
-                            ${reaction.linkedinUrl ? `<a href="${reaction.linkedinUrl}" target="_blank" style="color: var(--primary); text-decoration: none;">${linkedinUrlDisplay}</a>` : 'Not specified'}
-                        </td>
-                    </tr>`;
-                });
-            }
-        });
+                html += `<tr>
+                    <td data-label="Name">${reaction.name || 'Not specified'}</td>
+                    <td data-label="Job Title">${reaction.jobTitle || 'Not specified'}</td>
+                    <td data-label="Company">${reaction.company || 'Not specified'}</td>
+                    <td data-label="Location">${reaction.location || 'Not specified'}</td>
+                    <td data-label="Industry">${reaction.industry || 'Not specified'}</td>
+                    <td data-label="Website">${reaction.website || 'Not specified'}</td>
+                    <td data-label="Email">${reaction.email || 'Not specified'}</td>
+                    <td data-label="Education">${reaction.education || 'Not specified'}</td>
+                    <td data-label="Headline">${reaction.headline ? (reaction.headline.length > 50 ? reaction.headline.substring(0, 50) + '...' : reaction.headline) : 'Not specified'}</td>
+                    <td data-label="LinkedIn">
+                        ${reaction.linkedinUrl ? `<a href="${reaction.linkedinUrl}" target="_blank" style="color: var(--primary); text-decoration: none;">${linkedinUrlDisplay}</a>` : 'Not specified'}
+                    </td>
+                </tr>`;
+            });
+        }
+    });
 
-        html += '</tbody></table>';
-    } 
+    html += '</tbody></table>';
+}
     // Handle LinkedIn Profile results with detailed table
     else if (currentInputType === 'linkedin_profile' && currentOutputType === 'linkedin_info') {
         html = `<table class="results-table">
