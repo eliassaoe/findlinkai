@@ -1626,6 +1626,27 @@
     }
 };
 
+      // Function to fetch with extended timeout
+async function fetchWithTimeout(url, options = {}, timeout = 180000) { // 3 minutes par défaut
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), timeout);
+    
+    try {
+        const response = await fetch(url, {
+            ...options,
+            signal: controller.signal
+        });
+        clearTimeout(id);
+        return response;
+    } catch (error) {
+        clearTimeout(id);
+        if (error.name === 'AbortError') {
+            throw new Error('Request timeout - please try again');
+        }
+        throw error;
+    }
+}
+
         // Global functions - declared at global scope
         function showPricingModal() {
             document.getElementById('pricingModal').classList.add('show');
@@ -1783,7 +1804,7 @@
         console.log('Output type:', currentOutputType);
         console.log('Input value:', inputValue);
         
-        const response = await fetch('https://linkfinderapp.hamoureliasse.workers.dev/', {
+        const response = await fetchWithTimeout('https://linkfinderapp.hamoureliasse.workers.dev/', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -1930,7 +1951,7 @@ function formatPostReactionsData(reactionsArray) {
         updateBulkResultsTable();
         
         try {
-            const response = await fetch('https://linkfinderapp.hamoureliasse.workers.dev/', {
+            const response = await fetchWithTimeout('https://linkfinderapp.hamoureliasse.workers.dev/', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
