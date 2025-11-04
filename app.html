@@ -1825,7 +1825,7 @@ async function fetchWithTimeout(url, options = {}, timeout = 180000) { // 3 minu
         hideLoading();
 
         // Handle post reactions data (array format)
-        if (currentOutputType === 'post_reactions' && Array.isArray(data) && data.length > 0) {
+        if (currentOutputType === 'reactions' && Array.isArray(data) && data.length > 0) {
             const formattedReactions = formatPostReactionsData(data);
             console.log('Success - showing post reactions:', formattedReactions);
             showSingleResult(inputValue, formattedReactions);
@@ -1967,7 +1967,7 @@ function formatPostReactionsData(reactionsArray) {
                 const data = await response.json();
                 
                 // Handle post reactions (array of reactions)
-                if (currentOutputType === 'post_reactions' && Array.isArray(data)) {
+                if (currentOutputType === 'reactions' && Array.isArray(data)) {
                     bulkResults[i] = {
                         inputData: row.inputData,
                         result: `${data.length} reactions found`,
@@ -2633,7 +2633,7 @@ if (currentInputType === 'linkedin_post' && currentOutputType === 'reactions') {
     let csvContent = '';
 
     // Handle LinkedIn Post Reactions export
-    if (currentInputType === 'linkedin_post' && currentOutputType === 'post_reactions') {
+    if (currentInputType === 'linkedin_post' && currentOutputType === 'reactions') {
         csvContent = 'Name,Job Title,Company,Location,Industry,Website,Email,Education,Headline,Comment,LinkedIn URL,Verified\n';
         
         bulkResults.forEach(postResult => {
@@ -2736,7 +2736,7 @@ if (currentInputType === 'linkedin_post' && currentOutputType === 'reactions') {
     // Generate filename based on enrichment type
     let filename = 'enriched_data';
     if (currentInputType === 'linkedin_post') {
-        filename = 'linkedin_post_reactions';
+        filename = 'linkedin_reactions';
     } else if (currentInputType === 'linkedin_profile') {
         filename = 'linkedin_profile_data';
     } else if (currentInputType === 'linkedin_company') {
