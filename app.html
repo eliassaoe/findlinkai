@@ -926,47 +926,111 @@
     }
 }
 
-        /* Results */
-        .result-card {
-            background: var(--gray-50);
-            border-radius: 8px;
-            padding: 1rem;
-            margin-top: 1rem;
-        }
+/* Results - Simple & Clear */
+.result-card {
+    background: white;
+    border: 1px solid var(--gray-200);
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-top: 1rem;
+}
 
-        .result-text {
-            width: 100%;
-            min-height: 80px;
-            padding: 0.75rem;
-            border: 1px solid var(--gray-300);
-            border-radius: 6px;
-            background: white;
-            resize: vertical;
-            font-family: inherit;
-            font-size: 0.875rem;
-        }
+.result-header {
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--gray-200);
+}
 
-        .result-link {
-            margin-top: 1rem;
-        }
+.result-header h3 {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--gray-900);
+    margin: 0 0 0.25rem 0;
+}
 
-        .company-link {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            background: var(--primary);
-            color: white;
-            padding: 0.75rem 1rem;
-            border-radius: 6px;
-            text-decoration: none;
-            font-weight: 500;
-            font-size: 0.875rem;
-            transition: all 0.2s ease;
-        }
+.result-header p {
+    font-size: 0.875rem;
+    color: var(--gray-600);
+    margin: 0;
+}
 
-        .company-link:hover {
-            background: var(--primary-hover);
-        }
+.result-grid {
+    display: grid;
+    gap: 1rem;
+}
+
+.result-item {
+    padding: 0.75rem 0;
+    border-bottom: 1px solid var(--gray-100);
+}
+
+.result-item:last-child {
+    border-bottom: none;
+}
+
+.result-label {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--gray-500);
+    margin-bottom: 0.25rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.result-value {
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--gray-900);
+    word-break: break-word;
+}
+
+.result-value a {
+    color: var(--primary);
+    text-decoration: none;
+}
+
+.result-value a:hover {
+    text-decoration: underline;
+}
+
+.result-value.highlight {
+    font-weight: 600;
+    color: var(--gray-900);
+}
+
+.result-text {
+    width: 100%;
+    min-height: 80px;
+    padding: 0.75rem;
+    border: 1px solid var(--gray-300);
+    border-radius: 6px;
+    background: white;
+    resize: vertical;
+    font-family: inherit;
+    font-size: 0.875rem;
+}
+
+.result-link {
+    margin-top: 1rem;
+}
+
+.company-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: var(--primary);
+    color: white;
+    padding: 0.75rem 1rem;
+    border-radius: 6px;
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 0.875rem;
+    transition: all 0.2s ease;
+}
+
+.company-link:hover {
+    background: var(--primary-hover);
+}
 
         /* Table */
         .table-container {
@@ -1849,13 +1913,11 @@ async function fetchWithTimeout(url, options = {}, timeout = 180000) { // 3 minu
 
         if (response.ok && data && (data.result || data.name)) {
             if (data.name && !data.result) {
-                const formattedResult = formatLinkedInCompanyData(data);
-                console.log('Success - showing formatted LinkedIn result:', formattedResult);
-                showSingleResult(inputValue, formattedResult);
-            } else {
-                console.log('Success - showing result:', data.result);
-                showSingleResult(inputValue, data.result);
-            }
+    const formattedResult = formatLinkedInCompanyData(data);
+    showSingleResult(inputValue, data);  // Pass raw data object
+} else {
+    showSingleResult(inputValue, data.result || 'Not found');
+}
         } else {
             console.log('No result found - showing "Not found"');
             showSingleResult(inputValue, 'Not found');
@@ -1881,7 +1943,7 @@ function formatLinkedInProfileData(data) {
     if (data.website && data.website !== 'Not found') result += `Website: ${data.website}\n`;
     if (data.linkedinUrl) result += `LinkedIn URL: ${data.linkedinUrl}\n`;
     
-    return result.trim() || 'Profile data not available';
+    return data;
 }
 
 // Function to format LinkedIn company data
@@ -1899,7 +1961,7 @@ function formatLinkedInCompanyData(data) {
     if (data.founded && data.founded !== 'Not specified') result += `Founded: ${data.founded}\n`;
     if (data.specialties) result += `Specialties: ${data.specialties}\n`;
     
-    return result.trim() || 'Company data not available';
+    return data;
 }
 
     // Format post reactions data for display
@@ -2140,27 +2202,196 @@ function formatLinkedInCompanyDataBulk(data) {
         }
 
         function showSingleResult(inputData, result) {
-            const resultText = document.getElementById('resultText');
-            const resultLink = document.getElementById('resultLink');
-            const config = dataConfigurations[currentInputType];
-            const outputLabel = config.outputs[currentOutputType];
-            
-            resultText.value = `Input: ${inputData}\n${outputLabel}: ${result}`;
-            resultLink.innerHTML = '';
-            
-            if (result !== 'Not found' && result.startsWith('http')) {
-                const link = document.createElement('a');
-                link.href = result.startsWith('http') ? result : 'https://' + result;
-                link.target = '_blank';
-                link.className = 'company-link';
-                link.innerHTML = '<i class="fas fa-external-link-alt"></i> Visit Link';
-                resultLink.appendChild(link);
-            }
-            
-            document.getElementById('resultsSection').classList.remove('hidden');
-            document.getElementById('singleResult').classList.remove('hidden');
-            document.getElementById('bulkResults').classList.add('hidden');
+    const resultText = document.getElementById('resultText');
+    const resultLink = document.getElementById('resultLink');
+    const singleResultDiv = document.getElementById('singleResult');
+    
+    // Clear previous results
+    resultText.style.display = 'none';
+    resultLink.innerHTML = '';
+    
+    const config = dataConfigurations[currentInputType];
+    const outputLabel = config.outputs[currentOutputType];
+    
+    // Check if we have structured LinkedIn data
+    let isLinkedInData = false;
+    let linkedInFields = null;
+    
+    try {
+        if (typeof result === 'string' && result.includes('{')) {
+            linkedInFields = JSON.parse(result);
+            isLinkedInData = true;
+        } else if (typeof result === 'object' && result !== null && result.name) {
+            linkedInFields = result;
+            isLinkedInData = true;
         }
+    } catch (e) {
+        isLinkedInData = false;
+    }
+    
+    // Build HTML
+    let html = '<div class="result-card">';
+    
+    // Header
+    html += `
+        <div class="result-header">
+            <div class="result-header-icon">
+                <i class="fas ${result === 'Not found' ? 'fa-times-circle' : 'fa-check-circle'}"></i>
+            </div>
+            <div class="result-header-text">
+                <h3>${result === 'Not found' ? 'No Data Found' : 'Data Found Successfully! ✨'}</h3>
+                <p>${inputData}</p>
+            </div>
+        </div>
+    `;
+    
+    // Content
+    if (isLinkedInData && linkedInFields) {
+        // Show ALL LinkedIn fields
+        html += '<div class="result-grid">';
+        
+        // Name
+        if (linkedInFields.name) {
+            html += `
+                <div class="result-item">
+                    <div class="result-label">Name</div>
+                    <div class="result-value highlight">${linkedInFields.name}</div>
+                </div>
+            `;
+        }
+        
+        // Email - IMPORTANT
+        if (linkedInFields.email && linkedInFields.email !== 'Not found') {
+            html += `
+                <div class="result-item" style="border-left-color: var(--success); background: #ecfdf5;">
+                    <div class="result-label">✉️ Email</div>
+                    <div class="result-value highlight">${linkedInFields.email}</div>
+                </div>
+            `;
+        }
+        
+        // Job Title
+        if (linkedInFields.jobTitle && linkedInFields.jobTitle !== 'Not specified') {
+            html += `
+                <div class="result-item">
+                    <div class="result-label">Job Title</div>
+                    <div class="result-value">${linkedInFields.jobTitle}</div>
+                </div>
+            `;
+        }
+        
+        // Company
+        if (linkedInFields.company && linkedInFields.company !== 'Not specified') {
+            html += `
+                <div class="result-item">
+                    <div class="result-label">Company</div>
+                    <div class="result-value">${linkedInFields.company}</div>
+                </div>
+            `;
+        }
+        
+        // Location
+        if (linkedInFields.location && linkedInFields.location !== 'Not specified') {
+            html += `
+                <div class="result-item">
+                    <div class="result-label">Location</div>
+                    <div class="result-value">${linkedInFields.location}</div>
+                </div>
+            `;
+        }
+        
+        // Industry
+        if (linkedInFields.industry && linkedInFields.industry !== 'Not specified') {
+            html += `
+                <div class="result-item">
+                    <div class="result-label">Industry</div>
+                    <div class="result-value">${linkedInFields.industry}</div>
+                </div>
+            `;
+        }
+        
+        // Website
+        if (linkedInFields.website && linkedInFields.website !== 'Not found' && linkedInFields.website !== 'Not specified') {
+            html += `
+                <div class="result-item">
+                    <div class="result-label">Website</div>
+                    <div class="result-value"><a href="https://${linkedInFields.website}" target="_blank">${linkedInFields.website}</a></div>
+                </div>
+            `;
+        }
+        
+        // Education
+        if (linkedInFields.education && linkedInFields.education !== 'Not specified') {
+            html += `
+                <div class="result-item">
+                    <div class="result-label">Education</div>
+                    <div class="result-value">${linkedInFields.education}</div>
+                </div>
+            `;
+        }
+        
+        // Headline
+        if (linkedInFields.headline && linkedInFields.headline !== 'Not specified') {
+            html += `
+                <div class="result-item">
+                    <div class="result-label">Headline</div>
+                    <div class="result-value">${linkedInFields.headline}</div>
+                </div>
+            `;
+        }
+        
+        // LinkedIn URL
+        if (linkedInFields.linkedinUrl) {
+            html += `
+                <div class="result-item">
+                    <div class="result-label">LinkedIn Profile</div>
+                    <div class="result-value"><a href="${linkedInFields.linkedinUrl}" target="_blank">${linkedInFields.linkedinUrl}</a></div>
+                </div>
+            `;
+        }
+        
+        // Verified
+        if (linkedInFields.verified) {
+            html += `
+                <div class="result-item">
+                    <div class="result-label">Verified</div>
+                    <div class="result-value">${linkedInFields.verified === 'true' || linkedInFields.verified === true ? '✓ Verified' : 'Not Verified'}</div>
+                </div>
+            `;
+        }
+        
+        html += '</div>';
+        
+    } else if (result !== 'Not found' && result.startsWith('http')) {
+        // Simple URL result
+        html += `
+            <div class="result-grid">
+                <div class="result-item">
+                    <div class="result-label">${outputLabel}</div>
+                    <div class="result-value"><a href="${result}" target="_blank">${result}</a></div>
+                </div>
+            </div>
+        `;
+    } else {
+        // Text result or not found
+        html += `
+            <div class="result-grid">
+                <div class="result-item">
+                    <div class="result-label">${outputLabel}</div>
+                    <div class="result-value">${result}</div>
+                </div>
+            </div>
+        `;
+    }
+    
+    html += '</div>';
+    
+    resultLink.innerHTML = html;
+    
+    document.getElementById('resultsSection').classList.remove('hidden');
+    document.getElementById('singleResult').classList.remove('hidden');
+    document.getElementById('bulkResults').classList.add('hidden');
+}
 
       function showSingleResultAsTable(inputData, reactionsArray) {
     const resultText = document.getElementById('resultText');
