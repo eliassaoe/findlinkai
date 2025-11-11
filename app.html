@@ -2673,14 +2673,17 @@ if (linkedInFields.specialties && linkedInFields.specialties !== 'Not specified'
             reader.readAsText(file);
         }
 
-        function parseCSV(csvText) {
+      function parseCSV(csvText) {
     const lines = csvText.split('\n').filter(line => line.trim());
     if (lines.length < 2) {
         showAlert('CSV must contain header and data rows.', 'error');
         return;
     }
 
-    const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+    // Clean headers but keep original for display, create lowercase version for matching
+    const rawHeaders = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+    const headers = rawHeaders.map(h => h.toLowerCase().replace(/\s+/g, ' ').trim());
+    
     csvData = [];
 
     const config = dataConfigurations[currentInputType];
@@ -2689,34 +2692,112 @@ if (linkedInFields.specialties && linkedInFields.specialties !== 'Not specified'
         return;
     }
 
+    // More comprehensive header variations (all in lowercase for matching)
     const possibleHeaders = {
-        'company_name': ['company_name', 'company name', 'company', 'name'],
-        'linkedin_company': ['linkedin_company', 'linkedin company', 'company_url', 'linkedin_url'],
-        'linkedin_profile': ['linkedin_profile', 'profile_url', 'linkedin_url', 'profile'],
-        'linkedin_post': ['linkedin_post', 'post_url', 'linkedin_post_url', 'post'],
-        'email': ['email', 'company_email', 'company email'],
-        'lead_full_name': ['lead_full_name', 'full_name', 'name', 'lead name', 'contact name'],
+        'company_name': ['company_name', 'company name', 'company', 'name', 'companyname'],
+        'linkedin_company': [
+            'linkedin_company',
+            'linkedin company',
+            'company_url',
+            'linkedin_url',
+            'linkedin company url',
+            'linkedin company page',
+            'company linkedin',
+            'company linkedin url',
+            'company url',
+            'company page',
+            'linkedin page',
+            'linkedincompany',
+            'linkedincompanyurl',
+            'company linkedin page'
+        ],
+        'linkedin_profile': [
+            'linkedin_profile',
+            'profile_url',
+            'linkedin_url',
+            'profile',
+            'linkedin profile url',
+            'linkedin profile page',
+            'profile linkedin',
+            'linkedinprofile',
+            'linkedinprofileurl'
+        ],
+        'linkedin_post': [
+            'linkedin_post',
+            'post_url',
+            'linkedin_post_url',
+            'post',
+            'linkedin post url',
+            'post linkedin',
+            'linkedinpost',
+            'linkedinposturl'
+        ],
+        'email': ['email', 'company_email', 'company email', 'e-mail', 'e mail', 'companyemail'],
+        'lead_full_name': [
+            'lead_full_name',
+            'full_name',
+            'name',
+            'lead name',
+            'contact name',
+            'fullname',
+            'lead',
+            'contact',
+            'leadfullname'
+        ],
     };
 
     const searchHeaders = possibleHeaders[currentInputType] || [];
-    const dataIdx = headers.findIndex(h => 
-        searchHeaders.some(search => h.toLowerCase().includes(search.toLowerCase()))
-    );
+    
+    // Case-insensitive matching
+    const dataIdx = headers.findIndex(h => {
+        const normalizedHeader = h.toLowerCase().replace(/\s+/g, ' ').trim();
+        
+        return searchHeaders.some(search => {
+            const normalizedSearch = search.toLowerCase().replace(/\s+/g, ' ').trim();
+            
+            // Check exact match
+            if (normalizedHeader === normalizedSearch) return true;
+            
+            // Check if header contains the search term
+            if (normalizedHeader.includes(normalizedSearch)) return true;
+            
+            // Check if search term contains the header (for shorter headers)
+            if (normalizedSearch.includes(normalizedHeader) && normalizedHeader.length > 3) return true;
+            
+            // Check without spaces/underscores
+            const headerNoSpaces = normalizedHeader.replace(/[\s_-]/g, '');
+            const searchNoSpaces = normalizedSearch.replace(/[\s_-]/g, '');
+            if (headerNoSpaces === searchNoSpaces) return true;
+            if (headerNoSpaces.includes(searchNoSpaces) && searchNoSpaces.length > 3) return true;
+            if (searchNoSpaces.includes(headerNoSpaces) && headerNoSpaces.length > 3) return true;
+            
+            return false;
+        });
+    });
     
     if (dataIdx === -1) {
-        showAlert(`CSV must contain a column for ${config.label.toLowerCase().replace('enter ', '')}.`, 'error');
+        // Show helpful error message with what was found
+        console.log('Available headers:', rawHeaders);
+        console.log('Normalized headers:', headers);
+        console.log('Looking for headers matching:', searchHeaders);
+        showAlert(
+            `CSV must contain a column for ${config.label.toLowerCase().replace('enter ', '')}. ` +
+            `Found columns: "${rawHeaders.join('", "')}"`, 
+            'error'
+        );
         return;
     }
 
+    // Parse data using the correct column index
     for (let i = 1; i < lines.length; i++) {
         const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
-        if (values[dataIdx]) {
-            csvData.push({ inputData: values[dataIdx] });
+        if (values[dataIdx] && values[dataIdx].trim()) {
+            csvData.push({ inputData: values[dataIdx].trim() });
         }
     }
 
     if (csvData.length === 0) {
-        showAlert('No valid data found.', 'error');
+        showAlert('No valid data found in the selected column.', 'error');
         return;
     }
 
@@ -2727,7 +2808,6 @@ if (linkedInFields.specialties && linkedInFields.specialties !== 'Not specified'
 
     showPreview();
 }
-
         function showPreview() {
     const preview = csvData.slice(0, 5);
     let html = '<div style="background: var(--gray-50); padding: 0.75rem; border-radius: 6px; font-size: 0.875rem;">';
