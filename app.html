@@ -1907,12 +1907,11 @@ async function fetchWithTimeout(url, options = {}, timeout = 180000) { // 3 minu
         }
 
         // Handle employees data (array format)
-        if (currentOutputType === 'employees' && Array.isArray(data) && data.length > 0) {
-            const formattedEmployees = formatEmployeesData(data);
-            console.log('Success - showing employees result:', formattedEmployees);
-            showSingleResult(inputValue, formattedEmployees);
-            return;
-        }
+if (currentOutputType === 'employees' && Array.isArray(data) && data.length > 0) {
+    console.log('Success - showing employees result');
+    showSingleResultEmployees(inputValue, data);
+    return;
+}
 
         if (response.status === 403 && data.code === 403) {
             console.log('Insufficient credits detected');
@@ -2111,27 +2110,8 @@ function formatLinkedInCompanyDataBulk(data) {
     return parts.join(' | ') || 'Company data found';
 }
 
-        function formatEmployeesData(employeesArray) {
-    let result = `Found ${employeesArray.length} employees:\n\n`;
-    
-    employeesArray.forEach((employee, index) => {
-        result += `${index + 1}. ${employee.name || 'Unknown Name'}\n`;
-        if (employee.jobTitle && employee.jobTitle !== 'Not specified') {
-            result += `   Job Title: ${employee.jobTitle}\n`;
-        }
-        if (employee.location && employee.location !== 'Not specified') {
-            result += `   Location: ${employee.location}\n`;
-        }
-        if (employee.industry && employee.industry !== 'Not specified') {
-            result += `   Industry: ${employee.industry}\n`;
-        }
-        if (employee.linkedinUrl) {
-            result += `   LinkedIn: ${employee.linkedinUrl}\n`;
-        }
-        result += `\n`;
-    });
-    
-    return result.trim();
+       function formatEmployeesData(employeesArray) {
+    return employeesArray; 
 }
 
 
@@ -2434,6 +2414,65 @@ if (linkedInFields.specialties && linkedInFields.specialties !== 'Not specified'
     }
     
     html += '</div>';
+    
+    resultLink.innerHTML = html;
+    
+    document.getElementById('resultsSection').classList.remove('hidden');
+    document.getElementById('singleResult').classList.remove('hidden');
+    document.getElementById('bulkResults').classList.add('hidden');
+}
+
+    function showSingleResultEmployees(inputData, employeesArray) {
+    const resultText = document.getElementById('resultText');
+    const resultLink = document.getElementById('resultLink');
+    
+    resultText.style.display = 'none';
+    resultLink.innerHTML = '';
+    
+    let html = '<div class="result-card">';
+    
+    // Header
+    html += `
+        <div class="result-header">
+            <h3>Found ${employeesArray.length} Employees ✨</h3>
+            <p>${inputData}</p>
+        </div>
+        <div class="result-grid">
+    `;
+    
+    // Display each employee
+    employeesArray.forEach((employee, index) => {
+        html += `
+            <div class="result-item" style="padding: 1rem; background: var(--gray-50); border-radius: 6px; margin-bottom: 0.5rem;">
+                <div style="font-weight: 600; color: var(--gray-900); margin-bottom: 0.5rem;">
+                    ${index + 1}. ${employee.name || 'Unknown'}
+                </div>
+                <div style="font-size: 0.875rem; color: var(--gray-700); line-height: 1.6;">
+        `;
+        
+        if (employee.jobTitle && employee.jobTitle !== 'Not specified') {
+            html += `<div><strong>Title:</strong> ${employee.jobTitle}</div>`;
+        }
+        if (employee.company && employee.company !== 'Not specified') {
+            html += `<div><strong>Company:</strong> ${employee.company}</div>`;
+        }
+        if (employee.location && employee.location !== 'Not specified') {
+            html += `<div><strong>Location:</strong> ${employee.location}</div>`;
+        }
+        if (employee.industry && employee.industry !== 'Not specified') {
+            html += `<div><strong>Industry:</strong> ${employee.industry}</div>`;
+        }
+        if (employee.linkedinUrl) {
+            html += `<div><strong>LinkedIn:</strong> <a href="${employee.linkedinUrl}" target="_blank">${employee.linkedinUrl}</a></div>`;
+        }
+        
+        html += `
+                </div>
+            </div>
+        `;
+    });
+    
+    html += '</div></div>';
     
     resultLink.innerHTML = html;
     
