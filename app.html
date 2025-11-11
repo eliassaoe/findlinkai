@@ -1899,12 +1899,11 @@ async function fetchWithTimeout(url, options = {}, timeout = 180000) { // 3 minu
         hideLoading();
 
         // Handle post reactions data (array format)
-        if (currentOutputType === 'reactions' && Array.isArray(data) && data.length > 0) {
-            const formattedReactions = formatPostReactionsData(data);
-            console.log('Success - showing post reactions:', formattedReactions);
-            showSingleResult(inputValue, formattedReactions);
-            return;
-        }
+if (currentOutputType === 'reactions' && Array.isArray(data) && data.length > 0) {
+    console.log('Success - showing post reactions');
+    showSingleResultReactions(inputValue, data);
+    return;
+}
 
         // Handle employees data (array format)
 if (currentOutputType === 'employees' && Array.isArray(data) && data.length > 0) {
@@ -2464,6 +2463,68 @@ if (linkedInFields.specialties && linkedInFields.specialties !== 'Not specified'
         }
         if (employee.linkedinUrl) {
             html += `<div><strong>LinkedIn:</strong> <a href="${employee.linkedinUrl}" target="_blank">${employee.linkedinUrl}</a></div>`;
+        }
+        
+        html += `
+                </div>
+            </div>
+        `;
+    });
+    
+    html += '</div></div>';
+    
+    resultLink.innerHTML = html;
+    
+    document.getElementById('resultsSection').classList.remove('hidden');
+    document.getElementById('singleResult').classList.remove('hidden');
+    document.getElementById('bulkResults').classList.add('hidden');
+}
+
+  function showSingleResultReactions(inputData, reactionsArray) {
+    const resultText = document.getElementById('resultText');
+    const resultLink = document.getElementById('resultLink');
+    
+    resultText.style.display = 'none';
+    resultLink.innerHTML = '';
+    
+    let html = '<div class="result-card">';
+    
+    // Header
+    html += `
+        <div class="result-header">
+            <h3>Found ${reactionsArray.length} Reactions ✨</h3>
+            <p>${inputData}</p>
+        </div>
+        <div class="result-grid">
+    `;
+    
+    // Display each reaction
+    reactionsArray.forEach((reaction, index) => {
+        html += `
+            <div class="result-item" style="padding: 1rem; background: var(--gray-50); border-radius: 6px; margin-bottom: 0.5rem;">
+                <div style="font-weight: 600; color: var(--gray-900); margin-bottom: 0.5rem;">
+                    ${index + 1}. ${reaction.name || 'Unknown'}
+                </div>
+                <div style="font-size: 0.875rem; color: var(--gray-700); line-height: 1.6;">
+        `;
+        
+        if (reaction.jobTitle && reaction.jobTitle !== 'Not specified') {
+            html += `<div><strong>Title:</strong> ${reaction.jobTitle}</div>`;
+        }
+        if (reaction.company && reaction.company !== 'Not specified') {
+            html += `<div><strong>Company:</strong> ${reaction.company}</div>`;
+        }
+        if (reaction.location && reaction.location !== 'Not specified') {
+            html += `<div><strong>Location:</strong> ${reaction.location}</div>`;
+        }
+        if (reaction.industry && reaction.industry !== 'Not specified') {
+            html += `<div><strong>Industry:</strong> ${reaction.industry}</div>`;
+        }
+        if (reaction.headline && reaction.headline !== 'Not specified') {
+            html += `<div><strong>Headline:</strong> ${reaction.headline}</div>`;
+        }
+        if (reaction.linkedinUrl) {
+            html += `<div><strong>LinkedIn:</strong> <a href="${reaction.linkedinUrl}" target="_blank">${reaction.linkedinUrl}</a></div>`;
         }
         
         html += `
