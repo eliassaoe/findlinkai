@@ -1899,8 +1899,26 @@ async function fetchWithTimeout(url, options = {}, timeout = 180000) { // 3 minu
         hideLoading();
 
         // Handle post reactions data (array format)
+// Handle post reactions data (array format)
 if (currentOutputType === 'reactions') {
-    const reactionsArray = data.reactions || data;
+    let reactionsArray = data.reactions || data;
+    
+    // Check if data is in wrong format (arrays inside object)
+    if (Array.isArray(reactionsArray) && reactionsArray.length === 1 && Array.isArray(reactionsArray[0].name)) {
+        const wrongFormat = reactionsArray[0];
+        const length = wrongFormat.name?.length || 0;
+        reactionsArray = [];
+        
+        for (let i = 0; i < length; i++) {
+            reactionsArray.push({
+                name: wrongFormat.name[i] || 'Not specified',
+                jobTitle: wrongFormat.jobTitle?.[i] || wrongFormat.title?.[i] || 'Not specified',
+                headline: wrongFormat.headline?.[i] || 'Not specified',
+                linkedinUrl: wrongFormat.linkedinUrl?.[i] || ''
+            });
+        }
+    }
+    
     if (Array.isArray(reactionsArray) && reactionsArray.length > 0) {
         showSingleResultReactions(inputValue, reactionsArray);
         return;
@@ -2039,57 +2057,57 @@ function formatPostReactionsData(reactionsArray) {
                 const data = await response.json();
                 
                 // Handle post reactions (array of reactions)
-                if (currentOutputType === 'reactions') {
-    const reactionsArray = data.reactions || data;
+                if (response.ok) {
+    const data = await response.json();
+    
+    // Handle post reactions
+    if (currentOutputType === 'reactions') {
+        let reactionsArray = data.reactions || data;
+        
+        // Flatten if needed
+        if (Array.isArray(reactionsArray) && reactionsArray.length === 1 && Array.isArray(reactionsArray[0].name)) {
+            const wrongFormat = reactionsArray[0];
+            const length = wrongFormat.name?.length || 0;
+            reactionsArray = [];
+            
+            for (let i = 0; i < length; i++) {
+                reactionsArray.push({
+                    name: wrongFormat.name[i] || 'Not specified',
+                    jobTitle: wrongFormat.jobTitle?.[i] || wrongFormat.title?.[i] || 'Not specified',
+                    headline: wrongFormat.headline?.[i] || 'Not specified',
+                    linkedinUrl: wrongFormat.linkedinUrl?.[i] || ''
+                });
+            }
+        }
+        
+        bulkResults[i] = {
+            inputData: row.inputData,
+            result: `${reactionsArray.length} reactions found`,
+            status: 'Found',
+            reactions: reactionsArray,
+            rawData: reactionsArray
+        };
+    } else {
+        bulkResults[i] = {
+            inputData: row.inputData,
+            result: data.result || 'Not found',
+            status: data.result ? 'Found' : 'Not found',
+            rawData: data
+        };
+    }
+} else {
+    const data = await response.json();
+    if (response.status === 403 && data.code === 403) {
+        showInsufficientCreditsModal();
+        return;
+    }
+    
     bulkResults[i] = {
         inputData: row.inputData,
-        result: `${reactionsArray.length} reactions found`,
-        status: 'Found',
-        reactions: reactionsArray,
-        rawData: reactionsArray
+        result: 'Not found',
+        status: 'Not found'
     };
-} else {
-                    bulkResults[i] = {
-                        inputData: row.inputData,
-                        result: data.result || 'Not found',
-                        status: data.result ? 'Found' : 'Not found',
-                        rawData: data
-                    };
-                }
-            } else {
-                const data = await response.json();
-
-                if (response.status === 403 && data.code === 403) {
-                    showInsufficientCreditsModal();
-                    return;
-                }
-                
-                bulkResults[i] = {
-                    inputData: row.inputData,
-                    result: 'Not found',
-                    status: 'Not found'
-                };
-            }
-
-        } catch (error) {
-            console.error(`Error for ${row.inputData}:`, error);
-            bulkResults[i] = {
-                inputData: row.inputData,
-                result: 'Error',
-                status: 'Error'
-            };
-        }
-
-        updateProgress((i + 1) / csvData.length * 100);
-        updateBulkResultsTable();
-        
-        await new Promise(resolve => setTimeout(resolve, 100));
-    }
-
-    btn.disabled = false;
-    btn.innerHTML = `<i class="fas fa-play"></i> Process Items`;
 }
-
         // Format LinkedIn profile data for bulk display (shorter version)
 function formatLinkedInProfileDataBulk(data) {
     let parts = [];
