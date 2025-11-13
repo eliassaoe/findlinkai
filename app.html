@@ -1899,10 +1899,12 @@ async function fetchWithTimeout(url, options = {}, timeout = 180000) { // 3 minu
         hideLoading();
 
         // Handle post reactions data (array format)
-if (currentOutputType === 'reactions' && Array.isArray(data) && data.length > 0) {
-    console.log('Success - showing post reactions');
-    showSingleResultReactions(inputValue, data);
-    return;
+if (currentOutputType === 'reactions') {
+    const reactionsArray = data.reactions || data;
+    if (Array.isArray(reactionsArray) && reactionsArray.length > 0) {
+        showSingleResultReactions(inputValue, reactionsArray);
+        return;
+    }
 }
 
         // Handle employees data (array format)
@@ -2037,15 +2039,16 @@ function formatPostReactionsData(reactionsArray) {
                 const data = await response.json();
                 
                 // Handle post reactions (array of reactions)
-                if (currentOutputType === 'reactions' && Array.isArray(data)) {
-                    bulkResults[i] = {
-                        inputData: row.inputData,
-                        result: `${data.length} reactions found`,
-                        status: 'Found',
-                        reactions: data,
-                        rawData: data
-                    };
-                } else {
+                if (currentOutputType === 'reactions') {
+    const reactionsArray = data.reactions || data;
+    bulkResults[i] = {
+        inputData: row.inputData,
+        result: `${reactionsArray.length} reactions found`,
+        status: 'Found',
+        reactions: reactionsArray,
+        rawData: reactionsArray
+    };
+} else {
                     bulkResults[i] = {
                         inputData: row.inputData,
                         result: data.result || 'Not found',
