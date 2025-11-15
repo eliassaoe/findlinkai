@@ -1648,7 +1648,8 @@
         let currentOutputType = '';
 
         // Data mapping configurations
-       const dataConfigurations = {
+       // Update the dataConfigurations to make the employee enrichments clearer
+const dataConfigurations = {
     lead_full_name: {
         label: "Enter Lead Full Name + Company Name",
         placeholder: "e.g., John Doe JP morgan, Sarah Smith Netflix, Michael Johnson Microsoft",
@@ -1663,7 +1664,8 @@
             website: "Company Website",
             phone: "Company Phone Number",
             linkedin_url: "Company LinkedIn URL",
-            employees: "Company Employees",
+            employees: "Company Employees List",
+            employee_count: "Employee Count",
             email: "Company Email" 
         }
     },
@@ -1671,15 +1673,16 @@
         label: "Enter LinkedIn Company URL",
         placeholder: "e.g., linkedin.com/company/tesla",
         outputs: {
-            linkedin_info: "Linkedin Data Scraping",
-            employees: "Company Employees"
+            linkedin_info: "LinkedIn Data Scraping",
+            employees: "Company Employees List",
+            employee_count: "Employee Count"
         }
     },
     linkedin_profile: {
         label: "Enter LinkedIn Profile URL", 
         placeholder: "e.g., linkedin.com/in/john-doe",
         outputs: {
-            linkedin_info: "Linkedin Data Scraping"
+            linkedin_info: "LinkedIn Data Scraping"
         }
     },
     linkedin_post: {
@@ -1904,6 +1907,12 @@ if (currentOutputType === 'reactions' && Array.isArray(data) && data.length > 0)
     showSingleResultReactions(inputValue, data);
     return;
 }
+      // Handle employee count (string like "143" or "1-10")
+if (currentOutputType === 'employee_count') {
+    console.log('Success - showing employee count');
+    showSingleResultEmployeeCount(inputValue, data);
+    return;
+}
 
         // Handle employees data (array format)
 if (currentOutputType === 'employees' && Array.isArray(data) && data.length > 0) {
@@ -1991,6 +2000,52 @@ function formatPostReactionsData(reactionsArray) {
     
     return result.trim();
 }
+      function showSingleResultEmployeeCount(inputData, count) {
+    const resultText = document.getElementById('resultText');
+    const resultLink = document.getElementById('resultLink');
+    
+    resultText.style.display = 'none';
+    resultLink.innerHTML = '';
+    
+    // Extract the count value (could be from data.result or directly from data)
+    const employeeCount = count.result || count || 'Not found';
+    
+    let html = '<div class="result-card">';
+    
+    // Header
+    html += `
+        <div class="result-header">
+            <div class="result-header-icon">
+                <i class="fas fa-users"></i>
+            </div>
+            <div class="result-header-text">
+                <h3>Employee Count Found ✨</h3>
+                <p>${inputData}</p>
+            </div>
+        </div>
+    `;
+    
+    // Big display for the count (as string - could be "143" or "1-10")
+    html += `
+        <div style="text-align: center; padding: 3rem 2rem; background: linear-gradient(135deg, var(--primary), var(--primary-hover)); border-radius: 12px; margin-top: 1rem;">
+            <div style="font-size: 0.875rem; font-weight: 600; color: rgba(255,255,255,0.9); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem;">
+                Employee Count
+            </div>
+            <div style="font-size: 4rem; font-weight: 700; color: white; line-height: 1;">
+                ${employeeCount}
+            </div>
+            ${employeeCount.includes('-') ? '<div style="font-size: 0.875rem; font-weight: 500; color: rgba(255,255,255,0.8); margin-top: 0.5rem;">employees</div>' : '<div style="font-size: 0.875rem; font-weight: 500; color: rgba(255,255,255,0.8); margin-top: 0.5rem;">employees</div>'}
+        </div>
+    `;
+    
+    html += '</div>';
+    
+    resultLink.innerHTML = html;
+    
+    document.getElementById('resultsSection').classList.remove('hidden');
+    document.getElementById('singleResult').classList.remove('hidden');
+    document.getElementById('bulkResults').classList.add('hidden');
+}
 
 
     async function processBulk() {
@@ -2035,6 +2090,17 @@ function formatPostReactionsData(reactionsArray) {
 
             if (response.ok) {
                 const data = await response.json();
+
+              if (currentOutputType === 'employee_count') {
+    const count = data.result || data || 'Not found';
+    bulkResults[i] = {
+        inputData: row.inputData,
+        result: count === 'Not found' ? count : `${count} employees`,
+        status: count === 'Not found' ? 'Not found' : 'Found',
+        employeeCount: count,
+        rawData: count
+    };
+}
                 
                 // Handle post reactions (array of reactions)
                 if (currentOutputType === 'reactions' && Array.isArray(data)) {
@@ -2847,6 +2913,21 @@ if (linkedInFields.specialties && linkedInFields.specialties !== 'Not specified'
     function initializeBulkResultsTable() {
     let html = '';
     
+    // Handle Employee Count table
+    if (currentOutputType === 'employee_count') {
+        const config = dataConfigurations[currentInputType];
+        html = `<table class="results-table">
+            <thead>
+                <tr>
+                    <th>${config.label.replace('Enter ', '')}</th>
+                    <th>Employee Count</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>`;
+    }
+    
     if (currentInputType === 'linkedin_post' && currentOutputType === 'reactions') {
     html = `<table class="results-table">
         <thead>
@@ -2918,8 +2999,44 @@ function generateCombinationType(inputType, outputType) {
 function updateBulkResultsTable() {
     let html = '';
     
-    // Handle LinkedIn Post Reactions with detailed table
-    // Handle LinkedIn Post Reactions with detailed table
+    // Handle Employee Count results
+    if (currentOutputType === 'employee_count') {
+        const config = dataConfigurations[currentInputType];
+        html = `<table class="results-table">
+            <thead>
+                <tr>
+                    <th>${config.label.replace('Enter ', '')}</th>
+                    <th>Employee Count</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>`;
+
+        bulkResults.forEach(row => {
+            let statusClass = '';
+            let statusText = row.status;
+            
+            if (row.status === 'Found') {
+                statusClass = 'status-success';
+            } else if (row.status === 'Not found') {
+                statusClass = 'status-error';
+            } else if (row.status === 'Error') {
+                statusClass = 'status-error';
+            } else if (row.status === 'Processing') {
+                statusClass = 'status-processing';
+                statusText = 'Processing...';
+            }
+
+            html += `<tr>
+                <td data-label="${config.label.replace('Enter ', '')}">${row.inputData}</td>
+                <td data-label="Employee Count">${row.result}</td>
+                <td data-label="Status"><span class="status-badge ${statusClass}">${statusText}</span></td>
+            </tr>`;
+        });
+
+        html += '</tbody></table>';
+    }
+  
 if (currentInputType === 'linkedin_post' && currentOutputType === 'reactions') {
     html = `<table class="results-table">
         <thead>
@@ -3093,7 +3210,17 @@ if (currentInputType === 'linkedin_post' && currentOutputType === 'reactions') {
     const config = dataConfigurations[currentInputType];
     let csvContent = '';
 
-    // Handle LinkedIn Post Reactions export
+    // Handle Employee Count export
+    if (currentOutputType === 'employee_count') {
+        csvContent = `${config.label.replace('Enter ', '')},Employee Count,Status\n`;
+        
+        bulkResults.forEach(row => {
+            const finalStatus = row.status === 'Processing' ? 'Not found' : row.status;
+            const employeeCount = row.employeeCount || 'Not found';
+            csvContent += `"${row.inputData}","${employeeCount}","${finalStatus}"\n`;
+        });
+    }
+   
     if (currentInputType === 'linkedin_post' && currentOutputType === 'reactions') {
         csvContent = 'Name,Job Title,Company,Location,Industry,Website,Email,Education,Headline,Comment,LinkedIn URL,Verified\n';
         
