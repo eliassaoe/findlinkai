@@ -15,6 +15,7 @@
     <link rel="icon" href="https://i.ibb.co/jPjX9SSp/Screen-Shot-2025-03-28-at-8-16-15-PM.png">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <link href="https://cdn.jsdelivr.net/npm/@n8n/chat/dist/style.css" rel="stylesheet"/>
 
     <style>
         :root {
@@ -140,15 +141,45 @@
         }
 
         .btn-outline {
-            background: transparent;
-            color: var(--primary);
-            border: 1px solid var(--gray-300);
-        }
+    background: transparent;
+    color: var(--primary);
+    border: 1px solid var(--gray-300);
+}
 
-        .btn-outline:hover {
-            background: var(--gray-50);
-            border-color: var(--primary);
-        }
+.btn-outline:hover {
+    background: var(--gray-50);
+    border-color: var(--primary);
+}
+
+/* Upgrade button - high visibility CTA */
+.btn-upgrade {
+    background: linear-gradient(135deg, #fb923c, #f97316);
+    color: white;
+    border: none;
+    padding: 0.625rem 1.25rem;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 0.875rem;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(251, 146, 60, 0.25);
+    animation: subtle-pulse 4s infinite;
+}
+
+.btn-upgrade:hover {
+    background: linear-gradient(135deg, #f97316, #ea580c);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(251, 146, 60, 0.35);
+}
+
+@keyframes subtle-pulse {
+    0%, 100% { 
+        box-shadow: 0 2px 8px rgba(251, 146, 60, 0.25);
+    }
+    50% { 
+        box-shadow: 0 3px 10px rgba(251, 146, 60, 0.35);
+    }
+}
 
         /* Navigation Menu */
         .nav-menu {
@@ -396,25 +427,610 @@
             margin-bottom: 1rem;
         }
 
-        /* Results */
-        .result-card {
-            background: var(--gray-50);
-            border-radius: 8px;
-            padding: 1rem;
-            margin-top: 1rem;
-        }
+        .plan-selector {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2rem;
+    margin: 2rem 0;
+}
+    
 
-        .result-text {
-            width: 100%;
-            min-height: 120px;
-            padding: 0.75rem;
-            border: 1px solid var(--gray-300);
-            border-radius: 6px;
-            background: white;
-            resize: vertical;
-            font-family: inherit;
-            font-size: 0.875rem;
-        }
+.plan-nav-btn {
+    background: white;
+    border: 1px solid var(--gray-300);
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--gray-500);
+    transition: all 0.2s ease;
+}
+
+.plan-nav-btn:hover {
+    border-color: var(--gray-400);
+    color: var(--gray-700);
+}
+
+.plan-nav-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.plan-card {
+    background: white;
+    border: 2px solid var(--gray-200);
+    padding: 2rem;
+    border-radius: 12px;
+    text-align: center;
+    min-width: 200px;
+}
+
+.plan-name {
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--gray-600);
+    margin-bottom: 0.5rem;
+}
+
+.plan-price {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--gray-900);
+    margin-bottom: 0.5rem;
+}
+
+.plan-credits {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--gray-900);
+    margin-top: 0.25rem;
+}
+
+         .pricing-modal {
+    background: white;
+    border-radius: 16px;
+    padding: 2rem;
+    max-width: 520px;
+    width: 100%;
+    position: relative;
+    transform: scale(0.9);
+    transition: transform 0.3s ease;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+/* Position chat widget en bas à droite */
+#n8n-chat {
+    position: fixed !important;
+    bottom: 20px !important;
+    right: 20px !important;
+    left: auto !important;
+    z-index: 9999 !important;
+}
+
+/* Force le chat widget au premier plan */
+#n8n-chat,
+#n8n-chat *,
+#n8n-chat input,
+#n8n-chat textarea {
+    z-index: 99999 !important;
+    pointer-events: auto !important;
+}
+
+#n8n-chat input:focus,
+#n8n-chat textarea:focus {
+    outline: 2px solid #007bff !important;
+    z-index: 100000 !important;
+}
+
+/* Personnalisation du chat widget - Branding UnlimitedLeads */
+:root {
+    /* Variables du chat - Couleurs de votre branding */
+    --chat--color--primary: #2563eb !important;
+    --chat--color--primary-shade-50: #1d4ed8 !important;
+    --chat--color--primary--shade-100: #1e40af !important;
+    --chat--color--secondary: #0ea5e9 !important;
+    --chat--color-secondary-shade-50: #0284c7 !important;
+    --chat--color-white: #ffffff !important;
+    --chat--color-light: #eff6ff !important;
+    --chat--color-light-shade-50: #dbeafe !important;
+    --chat--color-light-shade-100: #bfdbfe !important;
+    --chat--color-medium: #e5e7eb !important;
+    --chat--color-dark: #1f2937 !important;
+    --chat--color-disabled: #6b7280 !important;
+    --chat--color-typing: #374151 !important;
+
+    /* Tailles et espaces */
+    --chat--spacing: 1rem !important;
+    --chat--border-radius: 0.5rem !important;
+    --chat--transition-duration: 0.3s !important;
+
+    /* Fenêtre du chat */
+    --chat--window--width: 400px !important;
+    --chat--window--height: 600px !important;
+
+    /* Header personnalisé */
+    --chat--header--padding: 1.25rem !important;
+    --chat--header--background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
+    --chat--header--color: #ffffff !important;
+    --chat--header--border-bottom: 1px solid rgba(255,255,255,0.1) !important;
+    --chat--heading--font-size: 1.25rem !important;
+    --chat--subtitle--font-size: 0.875rem !important;
+    --chat--subtitle--line-height: 1.5 !important;
+
+    /* Messages */
+    --chat--message--font-size: 0.875rem !important;
+    --chat--message--padding: 0.75rem 1rem !important;
+    --chat--message--border-radius: 0.75rem !important;
+    --chat--message-line-height: 1.5 !important;
+    --chat--message--bot--background: #f8fafc !important;
+    --chat--message--bot--color: #1f2937 !important;
+    --chat--message--bot--border: 1px solid #e2e8f0 !important;
+    --chat--message--user--background: #2563eb !important;
+    --chat--message--user--color: #ffffff !important;
+    --chat--message--user--border: none !important;
+
+    /* Bouton toggle */
+    --chat--toggle--background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
+    --chat--toggle--hover--background: #1e40af !important;
+    --chat--toggle--active--background: #1e3a8a !important;
+    --chat--toggle--color: #ffffff !important;
+    --chat--toggle--size: 64px !important;
+}
+
+/* Style personnalisé pour le header */
+#n8n-chat .chat-header {
+    background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
+    border-bottom: 1px solid rgba(255,255,255,0.1) !important;
+}
+
+/* Icône AI dans le toggle button */
+#n8n-chat .chat-toggle::before {
+    content: '🤖' !important;
+    font-size: 28px !important;
+}
+
+/* Badge "AI Support" */
+#n8n-chat .chat-header::after {
+    position: absolute !important;
+    top: 0.5rem !important;
+    right: 0.5rem !important;
+    background: rgba(255,255,255,0.2) !important;
+    color: white !important;
+    padding: 0.25rem 0.5rem !important;
+    border-radius: 0.25rem !important;
+    font-size: 0.75rem !important;
+    font-weight: 600 !important;
+}
+
+/* Animation du toggle */
+#n8n-chat .chat-toggle {
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3) !important;
+    transition: all 0.3s ease !important;
+}
+
+#n8n-chat .chat-toggle:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 8px 20px rgba(37, 99, 235, 0.4) !important;
+}
+
+.billing-toggle {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 2rem;
+    background: var(--gray-100);
+    padding: 0.25rem;
+    border-radius: 8px;
+}
+
+.billing-btn {
+    flex: 1;
+    padding: 0.75rem;
+    border: none;
+    background: transparent;
+    border-radius: 6px;
+    font-weight: 500;
+    color: var(--gray-600);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.billing-btn.active {
+    background: white;
+    color: var(--gray-900);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.save-tag {
+    font-size: 0.75rem;
+    background: var(--success);
+    color: white;
+    padding: 0.2rem 0.4rem;
+    border-radius: 3px;
+    font-weight: 600;
+}
+
+.toggle-container {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    background: var(--gray-100);
+    padding: 0.5rem;
+    border-radius: 12px;
+}
+
+.toggle-label {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--gray-600);
+    transition: color 0.2s ease;
+}
+
+.toggle-label.active {
+    color: var(--gray-900);
+    font-weight: 600;
+}
+
+.toggle-label.annual {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.review-notification {
+    position: fixed;
+    bottom: 100px;
+    right: 20px;
+    background: white;
+    border-radius: 12px;
+    padding: 1.25rem;
+    width: 320px;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.4s ease;
+    z-index: 99998;
+    border: 1px solid #e5e7eb;
+    font-size: 0.875rem;
+    line-height: 1.5;
+}
+
+.review-notification.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.review-notification.hide {
+    opacity: 0;
+    transform: translateY(20px);
+}
+
+.review-notification-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.review-notification-close {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+    background: transparent;
+    border: none;
+    color: #9ca3af;
+    cursor: pointer;
+    font-size: 1.25rem;
+    line-height: 1;
+    padding: 0.25rem;
+}
+
+.review-notification-close:hover {
+    color: #6b7280;
+}
+
+.review-platforms {
+    margin: 0.75rem 0;
+    padding-left: 1.25rem;
+}
+
+.review-platforms li {
+    margin: 0.25rem 0;
+}
+
+.review-platforms a {
+    color: #2563eb;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.review-platforms a:hover {
+    text-decoration: underline;
+}
+
+.review-form-link {
+    color: #2563eb;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.review-form-link:hover {
+    text-decoration: underline;
+}
+
+.save-badge {
+    background: var(--success);
+    color: white;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.8; }
+}
+
+.toggle-switch {
+    width: 48px;
+    height: 24px;
+    background: var(--gray-300);
+    border-radius: 12px;
+    position: relative;
+    cursor: pointer;
+    transition: background 0.3s ease;
+}
+
+.toggle-switch.annual {
+    background: var(--success);
+}
+
+.toggle-slider {
+    width: 20px;
+    height: 20px;
+    background: white;
+    border-radius: 50%;
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    transition: transform 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.toggle-switch.annual .toggle-slider {
+    transform: translateX(24px);
+}
+
+.plan-price-container {
+    margin: 1rem 0;
+}
+
+.plan-price {
+    font-size: 2.8rem;
+    font-weight: 700;
+    color: var(--primary);
+    line-height: 1;
+}
+
+.price-period {
+    color: var(--gray-600);
+    font-size: 0.9rem;
+    margin-top: 0.25rem;
+}
+
+.monthly-equivalent {
+    font-size: 1.1rem;
+    color: var(--gray-700);
+    font-weight: 600;
+    margin-top: 0.5rem;
+}
+
+.savings-highlight {
+    background: linear-gradient(135deg, var(--success), #059669);
+    color: white;
+    font-size: 0.85rem;
+    font-weight: 600;
+    padding: 0.4rem 0.8rem;
+    border-radius: 6px;
+    margin-top: 0.5rem;
+    display: inline-block;
+    animation: gentle-bounce 3s infinite;
+}
+
+@keyframes gentle-bounce {
+    0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+    40% { transform: translateY(-3px); }
+    60% { transform: translateY(-2px); }
+}
+
+.switch-billing-link {
+    text-align: center;
+    margin-top: 1rem;
+}
+
+.switch-billing-link a {
+    color: var(--gray-500);
+    text-decoration: none;
+    font-size: 0.85rem;
+    border-bottom: 1px solid transparent;
+    transition: all 0.2s ease;
+}
+
+.switch-billing-link a:hover {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+}
+
+/* Plan card adjustments */
+.plan-card {
+    background: white;
+    border: 2px solid var(--primary);
+    padding: 2rem;
+    border-radius: 12px;
+    text-align: center;
+    min-width: 220px;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.1);
+}
+
+.plan-selector {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2rem;
+    margin: 2rem 0;
+}
+
+/* Mobile optimizations */
+@media (max-width: 640px) {
+    .pricing-modal {
+        padding: 1.5rem;
+        margin: 1rem;
+    }
+    
+    .toggle-container {
+        gap: 0.75rem;
+    }
+    
+    .toggle-label {
+        font-size: 0.8rem;
+    }
+    
+    .save-badge {
+        font-size: 0.7rem;
+        padding: 0.2rem 0.4rem;
+    }
+    
+    .plan-price {
+        font-size: 2.2rem;
+    }
+    
+    .monthly-equivalent {
+        font-size: 1rem;
+    }
+    
+    .savings-highlight {
+        font-size: 0.8rem;
+        padding: 0.3rem 0.6rem;
+    }
+}
+
+/* Results - Simple & Clear */
+.result-card {
+    background: white;
+    border: 1px solid var(--gray-200);
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-top: 1rem;
+}
+
+.result-header {
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--gray-200);
+}
+
+.result-header h3 {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--gray-900);
+    margin: 0 0 0.25rem 0;
+}
+
+.result-header p {
+    font-size: 0.875rem;
+    color: var(--gray-600);
+    margin: 0;
+}
+
+.result-grid {
+    display: grid;
+    gap: 1rem;
+}
+
+.result-item {
+    padding: 0.75rem 0;
+    border-bottom: 1px solid var(--gray-100);
+}
+
+.result-item:last-child {
+    border-bottom: none;
+}
+
+.result-label {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--gray-500);
+    margin-bottom: 0.25rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.result-value {
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--gray-900);
+    word-break: break-word;
+}
+
+.result-value a {
+    color: var(--primary);
+    text-decoration: none;
+}
+
+.result-value a:hover {
+    text-decoration: underline;
+}
+
+.result-value.highlight {
+    font-weight: 600;
+    color: var(--gray-900);
+}
+
+.result-text {
+    width: 100%;
+    min-height: 80px;
+    padding: 0.75rem;
+    border: 1px solid var(--gray-300);
+    border-radius: 6px;
+    background: white;
+    resize: vertical;
+    font-family: inherit;
+    font-size: 0.875rem;
+}
+
+.result-link {
+    margin-top: 1rem;
+}
+
+.company-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: var(--primary);
+    color: white;
+    padding: 0.75rem 1rem;
+    border-radius: 6px;
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 0.875rem;
+    transition: all 0.2s ease;
+}
+
+.company-link:hover {
+    background: var(--primary-hover);
+}
 
         /* Table */
         .table-container {
@@ -428,7 +1044,7 @@
         .results-table {
             width: 100%;
             border-collapse: collapse;
-            min-width: 600px;
+            min-width: 400px;
         }
 
         .results-table th,
@@ -531,11 +1147,157 @@
             100% { transform: rotate(360deg); }
         }
 
+        /* Pricing Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+            padding: 1rem;
+        }
+
+        .modal-overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .pricing-modal {
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            max-width: 480px;
+            width: 100%;
+            position: relative;
+            transform: scale(0.9);
+            transition: transform 0.3s ease;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+
+        .modal-overlay.show .pricing-modal {
+            transform: scale(1);
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: var(--gray-100);
+            border: none;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--gray-500);
+            transition: all 0.2s ease;
+        }
+
+        .modal-close:hover {
+            background: var(--gray-200);
+            color: var(--gray-700);
+        }
+
+        .pricing-modal-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .pricing-modal-header h2 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--gray-900);
+            margin-bottom: 0.5rem;
+        }
+
+        .pricing-modal-header p {
+            color: var(--gray-600);
+            font-size: 1rem;
+        }
+
+        .pricing-modal-price {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .price-amount {
+            font-size: 3rem;
+            font-weight: 700;
+            color: var(--primary);
+            line-height: 1;
+        }
+
+        .price-period {
+            color: var(--gray-600);
+            font-size: 1rem;
+            margin-top: 0.25rem;
+        }
+
+        .pricing-modal-features {
+            list-style: none;
+            margin-bottom: 2rem;
+        }
+
+        .pricing-modal-features li {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            padding: 0.75rem 0;
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        .feature-check {
+            color: var(--success);
+            font-weight: 600;
+            font-size: 1rem;
+            margin-top: 0.1rem;
+        }
+
+        .pricing-modal-cta {
+            margin-bottom: 1rem;
+        }
+
+        .pricing-modal-cta .btn {
+            width: 100%;
+            padding: 1rem;
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
         /* Mobile Optimizations */
-        @media (max-width: 768px) {
+        @media (max-width: 640px) {
             .form-grid {
                 grid-template-columns: 1fr;
                 gap: 1rem;
+            }
+            
+            .pricing-modal {
+                padding: 1.5rem;
+                margin: 1rem;
+            }
+            
+            .pricing-modal-header h2 {
+                font-size: 1.5rem;
+            }
+            
+            .price-amount {
+                font-size: 2.5rem;
+            }
+            
+            .pricing-modal-features li {
+                font-size: 0.9rem;
+                padding: 0.5rem 0;
             }
             
             .container {
@@ -579,6 +1341,51 @@
                 padding: 0.625rem 0.75rem;
                 font-size: 0.8rem;
             }
+
+            .nav-tab i {
+                font-size: 0.8rem;
+            }
+            
+            .results-table {
+                min-width: auto;
+            }
+            
+            .results-table thead {
+                display: none;
+            }
+            
+            .results-table,
+            .results-table tbody,
+            .results-table tr,
+            .results-table td {
+                display: block;
+                width: 100%;
+            }
+            
+            .results-table tr {
+                border: 1px solid var(--gray-200);
+                margin-bottom: 0.75rem;
+                padding: 0.75rem;
+                border-radius: 6px;
+                background: white;
+            }
+            
+            .results-table td {
+                border: none;
+                padding: 0.25rem 0;
+                position: relative;
+                padding-left: 40%;
+            }
+            
+            .results-table td:before {
+                content: attr(data-label) ": ";
+                position: absolute;
+                left: 0;
+                width: 35%;
+                font-weight: 600;
+                color: var(--gray-600);
+                font-size: 0.75rem;
+            }
         }
     </style>
   <!-- Privacy-friendly analytics by Plausible -->
@@ -595,7 +1402,7 @@
             <div class="header-content">
                 <a href="#" class="logo">
                     <div class="logo-icon">
-                        <i class="fas fa-database"></i>
+                        <i class="fas fa-search"></i>
                     </div>
                     <span class="logo-text">LinkFinder AI</span>
                 </a>
@@ -605,7 +1412,9 @@
                         <i class="fas fa-coins"></i>
                         <span id="creditsCount">--</span> credits
                     </div>
-                    <button class="btn btn-outline" onclick="showPricingModal()">Upgrade</button>
+                    <button class="btn btn-upgrade" onclick="showPricingModal()">
+    <i class="fas fa-rocket"></i> Upgrade
+</button>
                     <button class="btn btn-outline" onclick="logout()">Logout</button>
                 </div>
             </div>
@@ -617,7 +1426,7 @@
         <div class="container">
             <div class="nav-tabs">
                 <a href="#" class="nav-tab active" data-page="enrichment">
-                    <i class="fas fa-database"></i>
+                    <i class="fas fa-search"></i>
                     Data Enrichment
                 </a>
                 <a href="#" class="nav-tab" data-page="api">
@@ -634,10 +1443,6 @@
 
     <div class="container">
         <div class="main">
-            <div class="hero">
-                <h1>Data Enrichment Tool</h1>
-                <p>Enrich your data with comprehensive company information from multiple sources</p>
-            </div>
 
             <!-- Configuration Form -->
             <div class="config-form">
@@ -649,6 +1454,8 @@
                             <option value="company_name">Company Name</option>
                             <option value="linkedin_company">LinkedIn Company URL</option>
                             <option value="linkedin_profile">LinkedIn Profile URL</option>
+                            <option value="lead_full_name">Lead Full Name</option>
+                            <option value="linkedin_post">LinkedIn Post URL</option>
                         </select>
                     </div>
                     
@@ -694,7 +1501,7 @@
                 <div class="upload-area" id="uploadArea">
                     <i class="fas fa-cloud-upload-alt upload-icon"></i>
                     <div class="upload-text">Drop your CSV file here or click to upload</div>
-                    <div class="upload-subtext" id="uploadSubtext">CSV file (max 25 rows)</div>
+                    <div class="upload-subtext" id="uploadSubtext">CSV file (max 10000 rows)</div>
                     <input type="file" id="csvFile" accept=".csv" class="hidden">
                     <button type="button" class="btn" onclick="document.getElementById('csvFile').click()">
                         <i class="fas fa-file-csv"></i> Select File
@@ -707,7 +1514,7 @@
                     </h4>
                     <div id="previewTable"></div>
                     <button onclick="processBulk()" class="btn btn-full" id="processBulkBtn">
-                        <i class="fas fa-play"></i> Process <span id="itemCount">0</span> Items
+                        <i class="fas fa-play"></i> Process Items
                     </button>
                 </div>
             </div>
@@ -722,16 +1529,16 @@
             <div id="resultsSection" class="hidden">
                 <!-- Single Result -->
                 <div id="singleResult" class="result-card">
-                    <h4 style="margin-bottom: 0.5rem; font-size: 0.875rem; color: var(--gray-700);">Enrichment Results</h4>
                     <textarea id="resultText" class="result-text" readonly placeholder="Enriched data will appear here..."></textarea>
+                    <div id="resultLink" class="result-link"></div>
                 </div>
 
                 <!-- Bulk Results -->
                 <div id="bulkResults" class="hidden">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                        <h4 style="font-size: 1rem; color: var(--gray-700);">Enrichment Results</h4>
+                        <h4 style="font-size: 1rem; color: var(--gray-700);">Results</h4>
                         <button onclick="downloadResults()" class="btn">
-                            <i class="fas fa-download"></i> Export CSV
+                            <i class="fas fa-download"></i> Export
                         </button>
                     </div>
                     <div id="progressContainer" class="progress-container hidden">
@@ -743,6 +1550,95 @@
         </div>
     </div>
 
+<!-- Review Notification HTML -->
+<div id="reviewNotification" class="review-notification">
+    <button class="review-notification-close" onclick="closeReviewNotification()">×</button>
+    <div class="review-notification-header">
+        <span>👋</span> Hi there!
+    </div>
+    <div>
+        If you've found LinkFinder AI useful, please consider leaving us a review on Trustpilot:
+        <ul class="review-platforms">
+            <li><a href="https://trustpilot.com/evaluate/linkfinderai.com" target="_blank">Trustpilot</a></li>
+        </ul>
+        It only takes less than 1 minute !<br><br>
+        If you give us a review and provide us with the link to your review
+        <a href="https://form.typeform.com/to/UKRzccI3" class="review-form-link" onclick="openReviewForm(event)">in this form</a>, 
+        we will award you <strong>1000 credits</strong> on your account.<br><br>
+        Thank you in advance! 🙏
+    </div>
+</div>
+
+   <!-- Pricing Modal -->
+<div id="pricingModal" class="modal-overlay">
+    <div class="pricing-modal">
+        <button class="modal-close" onclick="closePricingModal()">
+            <i class="fas fa-times"></i>
+        </button>
+        
+        <div class="pricing-modal-header">
+            <h2>Choose Your Plan</h2>
+        </div>
+
+        <!-- Billing Toggle -->
+        <div class="billing-toggle">
+    <button class="billing-btn" id="monthlyBtn" onclick="setBilling('monthly')">
+        Monthly
+    </button>
+    <button class="billing-btn active" id="annualBtn" onclick="setBilling('annual')">
+        Annual <span class="save-tag">Save 20%</span>
+    </button>
+</div>
+        
+        <div class="plan-selector">
+            <button class="plan-nav-btn" onclick="previousPlan()" id="prevBtn">
+                <i class="fas fa-chevron-left"></i>
+            </button>
+            
+            <div class="plan-card" id="planCard">
+                <div class="plan-name" id="planName">Professional</div>
+                <div class="plan-price-container">
+                    <div class="plan-price" id="priceAmount">$590</div>
+                    <div class="price-period" id="pricePeriod">per year</div>
+                </div>
+                <div class="plan-credits" id="planCredits">300,000 credits/year</div>
+            </div>
+            
+            <button class="plan-nav-btn" onclick="nextPlan()" id="nextBtn">
+                <i class="fas fa-chevron-right"></i>
+            </button>
+        </div>
+        
+        <div class="pricing-modal-cta">
+            <button id="upgradeBtn" class="btn" onclick="proceedToCheckout()">
+                <span id="ctaText">Get Started - $590/year</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+    <!-- Insufficient Credits Modal -->
+<div id="insufficientCreditsModal" class="modal-overlay">
+    <div class="pricing-modal">
+        <button class="modal-close" onclick="closeInsufficientCreditsModal()">
+            <i class="fas fa-times"></i>
+        </button>
+        
+        <div class="pricing-modal-header">
+            <h2>Insufficient Credits</h2>
+            <p>You do not have sufficient credits. Upgrade your account for more.</p>
+        </div>
+        
+        <div class="pricing-modal-cta">
+            <button class="btn" onclick="showPricingFromInsufficientCredits()">
+                Upgrade Account
+            </button>
+        </div>
+    </div>
+</div>
+
+
+    
     <script>
         let currentMode = 'single';
         let csvData = [];
@@ -752,44 +1648,87 @@
         let currentOutputType = '';
 
         // Data mapping configurations
-        const dataConfigurations = {
-            company_name: {
-                label: "Enter Company Name",
-                placeholder: "e.g., Tesla, Apple, Microsoft",
-                outputs: {
-                    website: "Company Website",
-                    phone: "Company Phone Number",
-                    linkedin_url: "Company LinkedIn URL",
-                    email: "Company Email",
-                    linkedin_info: "Company LinkedIn Information"
-                }
-            },
-            linkedin_company: {
-                label: "Enter LinkedIn Company URL",
-                placeholder: "e.g., linkedin.com/company/tesla",
-                outputs: {
-                    website: "Company Website",
-                    linkedin_info: "LinkedIn Information"
-                }
-            },
-            linkedin_profile: {
-                label: "Enter LinkedIn Profile URL", 
-                placeholder: "e.g., linkedin.com/in/john-doe",
-                outputs: {
-                    email: "Person Email",
-                    linkedin_info: "Person LinkedIn Information"
-                }
-            }
-        };
+       // Update the dataConfigurations to make the employee enrichments clearer
+const dataConfigurations = {
+    lead_full_name: {
+        label: "Enter Lead Full Name + Company Name",
+        placeholder: "e.g., John Doe JP morgan, Sarah Smith Netflix, Michael Johnson Microsoft",
+        outputs: {
+            linkedin_url: "LinkedIn Profile URL"
+        }
+    },
+    company_name: {
+        label: "Enter Company Name",
+        placeholder: "e.g., Tesla, Apple, Microsoft",
+        outputs: {
+            website: "Company Website",
+            phone: "Company Phone Number",
+            linkedin_url: "Company LinkedIn URL",
+            employees: "Company Employees List",
+            employee_count: "Employee Count",
+            email: "Company Email" 
+        }
+    },
+    linkedin_company: {
+        label: "Enter LinkedIn Company URL",
+        placeholder: "e.g., linkedin.com/company/tesla",
+        outputs: {
+            linkedin_info: "LinkedIn Data Scraping",
+            employees: "Company Employees List",
+            employee_count: "Employee Count"
+        }
+    },
+    linkedin_profile: {
+        label: "Enter LinkedIn Profile URL", 
+        placeholder: "e.g., linkedin.com/in/john-doe",
+        outputs: {
+            linkedin_info: "LinkedIn Data Scraping"
+        }
+    },
+    linkedin_post: {
+        label: "Enter LinkedIn Post URL",
+        placeholder: "e.g., linkedin.com/feed/update/urn:li:activity:1234567890",
+        outputs: {
+            reactions: "Post Reactions Scraping"
+        }
+    }
+};
 
-        // Global functions
+      // Function to fetch with extended timeout
+async function fetchWithTimeout(url, options = {}, timeout = 180000) { // 3 minutes par défaut
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), timeout);
+    
+    try {
+        const response = await fetch(url, {
+            ...options,
+            signal: controller.signal
+        });
+        clearTimeout(id);
+        return response;
+    } catch (error) {
+        clearTimeout(id);
+        if (error.name === 'AbortError') {
+            throw new Error('Request timeout - please try again');
+        }
+        throw error;
+    }
+}
+
+        // Global functions - declared at global scope
         function showPricingModal() {
-            alert('Pricing modal would open here');
+            document.getElementById('pricingModal').classList.add('show');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closePricingModal() {
+            document.getElementById('pricingModal').classList.remove('show');
+            document.body.style.overflow = '';
         }
 
         function logout() {
-            localStorage.removeItem('linkFinderToken');
-            window.location.href = 'https://linkfinderai.com/';
+    localStorage.removeItem('linkFinderToken');
+    window.location.href = addGclid('https://linkfinderai.com/');
         }
 
         function switchMode(mode) {
@@ -855,7 +1794,7 @@
             document.getElementById('inputData').placeholder = config.placeholder;
             
             // Update upload subtext
-            document.getElementById('uploadSubtext').textContent = `CSV with ${config.label.toLowerCase().replace('enter ', '')} (max 25 rows)`;
+            document.getElementById('uploadSubtext').textContent = `CSV with ${config.label.toLowerCase().replace('enter ', '')} (max 10000 rows)`;
             
             // Show mode toggle and input sections
             document.getElementById('modeToggle').classList.remove('hidden');
@@ -878,38 +1817,1534 @@
             document.getElementById('bulkSearch').classList.add('hidden');
         }
 
-        async function enrichData(event) {
-            event.preventDefault();
+        async function fetchCredits() {
+            console.log('fetchCredits called, userToken:', userToken);
             
-            const inputValue = document.getElementById('inputData').value.trim();
-            if (!inputValue) return;
-
-            showLoading();
+            if (!userToken) {
+                console.log('No token available');
+                return;
+            }
             
             try {
-                // Simulate API call
-                await new Promise(resolve => setTimeout(resolve, 2000));
-                
-                hideLoading();
-                showSingleResult(inputValue, 'Sample enriched data result');
+                console.log('Sending request to credits API...');
+                const response = await fetch('https://linkfinderaicredits.hamoureliasse.workers.dev/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token: userToken })
+                });
 
+                console.log('Response received:', response.status);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('Credits data:', data);
+                    const credits = data.credits || 0;
+                    
+                    // Display "Unlimited" for premium users (credits -1 or -2)
+                    if (credits === -1 || credits === -2) {
+                        document.getElementById('creditsCount').textContent = '∞';
+                    } else {
+                        document.getElementById('creditsCount').textContent = credits;
+                    }
+                } else {
+                    console.error('API returned error:', response.status);
+                    const errorText = await response.text();
+                    console.error('Error details:', errorText);
+                    document.getElementById('creditsCount').textContent = '?';
+                }
             } catch (error) {
-                hideLoading();
-                showAlert('Enrichment error. Please try again.', 'error');
+                console.error('Error fetching credits:', error);
+                document.getElementById('creditsCount').textContent = '?';
             }
         }
 
-        function showSingleResult(inputData, result) {
-            const resultText = document.getElementById('resultText');
-            const config = dataConfigurations[currentInputType];
-            const outputLabel = config.outputs[currentOutputType];
-            
-            resultText.value = `Input: ${inputData}\n${outputLabel}: ${result}`;
-            
-            document.getElementById('resultsSection').classList.remove('hidden');
-            document.getElementById('singleResult').classList.remove('hidden');
-            document.getElementById('bulkResults').classList.add('hidden');
+  async function enrichData(event) {
+    event.preventDefault();
+    
+    const inputValue = document.getElementById('inputData').value.trim();
+    if (!inputValue) return;
+
+    // Validate LinkedIn URLs
+    const linkedInTypes = ['linkedin_company', 'linkedin_profile', 'linkedin_post'];
+    if (linkedInTypes.includes(currentInputType)) {
+        if (!inputValue.toLowerCase().includes('linkedin.com')) {
+            showAlert('Please enter a valid LinkedIn URL (must contain linkedin.com)', 'error');
+            return;
         }
+    }
+
+    showLoading();
+    
+    try {
+        console.log('=== DEBUG: Starting enrichData ===');
+        console.log('Input type:', currentInputType);
+        console.log('Output type:', currentOutputType);
+        console.log('Input value:', inputValue);
+        
+        const response = await fetchWithTimeout('https://linkfinderapp.hamoureliasse.workers.dev/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                type: generateCombinationType(currentInputType, currentOutputType),
+                input_data: inputValue,
+                output_type: currentOutputType,
+                token: userToken,
+                is_bulk: false
+            })
+        });
+
+        console.log('Response status:', response.status);
+        console.log('Response ok:', response.ok);
+
+        const data = await response.json();
+        console.log('Full response data:', data);
+        
+        hideLoading();
+
+        // Handle post reactions data (array format)
+if (currentOutputType === 'reactions' && Array.isArray(data) && data.length > 0) {
+    console.log('Success - showing post reactions');
+    showSingleResultReactions(inputValue, data);
+    return;
+}
+      // Handle employee count (string like "143" or "1-10")
+if (currentOutputType === 'employee_count') {
+    console.log('Success - showing employee count');
+    showSingleResultEmployeeCount(inputValue, data);
+    return;
+}
+
+        // Handle employees data (array format)
+if (currentOutputType === 'employees' && Array.isArray(data) && data.length > 0) {
+    console.log('Success - showing employees result');
+    showSingleResultEmployees(inputValue, data);
+    return;
+}
+
+        if (response.status === 403 && data.code === 403) {
+            console.log('Insufficient credits detected');
+            showInsufficientCreditsModal();
+            return;
+        }
+
+        if (response.ok && data && (data.result || data.name)) {
+            if (data.name && !data.result) {
+    const formattedResult = formatLinkedInCompanyData(data);
+    showSingleResult(inputValue, data);  // Pass raw data object
+} else {
+    showSingleResult(inputValue, data.result || 'Not found');
+}
+        } else {
+            console.log('No result found - showing "Not found"');
+            showSingleResult(inputValue, 'Not found');
+        }
+
+    } catch (error) {
+        console.error('Enrichment error:', error);
+        hideLoading();
+        showAlert('Enrichment error. Please try again.', 'error');
+    }
+}
+// Function to format LinkedIn profile data
+function formatLinkedInProfileData(data) {
+    let result = '';
+    if (data.name) result += `Name: ${data.name}\n`;
+    if (data.jobTitle) result += `Job Title: ${data.jobTitle}\n`;
+    if (data.company) result += `Company: ${data.company}\n`;
+    if (data.location) result += `Location: ${data.location}\n`;
+    if (data.industry) result += `Industry: ${data.industry}\n`;
+    if (data.headline) result += `Headline: ${data.headline}\n`;
+    if (data.education) result += `Education: ${data.education}\n`;
+    if (data.email && data.email !== 'Not found') result += `Email: ${data.email}\n`;
+    if (data.website && data.website !== 'Not found') result += `Website: ${data.website}\n`;
+    if (data.linkedinUrl) result += `LinkedIn URL: ${data.linkedinUrl}\n`;
+    
+    return data;
+}
+
+// Function to format LinkedIn company data
+function formatLinkedInCompanyData(data) {
+    let result = '';
+    if (data.name) result += `Company Name: ${data.name}\n`;
+    if (data.industry) result += `Industry: ${data.industry}\n`;
+    if (data.size) result += `Company Size: ${data.size}\n`;
+    if (data.location) result += `Location: ${data.location}\n`;
+    if (data.description) result += `Description: ${data.description}\n`;
+    if (data.website && data.website !== 'Not found') result += `Website: ${data.website}\n`;
+    if (data.phone && data.phone !== 'Not found') result += `Phone: ${data.phone}\n`;
+    if (data.followers) result += `Followers: ${data.followers}\n`;
+    if (data.linkedinUrl) result += `LinkedIn URL: ${data.linkedinUrl}\n`;
+    if (data.founded && data.founded !== 'Not specified') result += `Founded: ${data.founded}\n`;
+    if (data.specialties) result += `Specialties: ${data.specialties}\n`;
+    
+    return data;
+}
+
+    // Format post reactions data for display
+function formatPostReactionsData(reactionsArray) {
+    if (!Array.isArray(reactionsArray) || reactionsArray.length === 0) {
+        return 'No reactions found';
+    }
+    
+    let result = `Found ${reactionsArray.length} reactions:\n\n`;
+    
+    reactionsArray.forEach((reaction, index) => {
+        result += `${index + 1}. ${reaction.name || 'Unknown'}\n`;
+        if (reaction.jobTitle) result += `   Job Title: ${reaction.jobTitle}\n`;
+        if (reaction.company) result += `   Company: ${reaction.company}\n`;
+        if (reaction.location) result += `   Location: ${reaction.location}\n`;
+        if (reaction.linkedinUrl) result += `   LinkedIn: ${reaction.linkedinUrl}\n`;
+        if (reaction.comment) result += `   Comment: ${reaction.comment.substring(0, 100)}${reaction.comment.length > 100 ? '...' : ''}\n`;
+        result += `\n`;
+    });
+    
+    return result.trim();
+}
+      function showSingleResultEmployeeCount(inputData, count) {
+    const resultText = document.getElementById('resultText');
+    const resultLink = document.getElementById('resultLink');
+    
+    resultText.style.display = 'none';
+    resultLink.innerHTML = '';
+    
+    // Extract the count value (could be from data.result or directly from data)
+    const employeeCount = count.result || count || 'Not found';
+    
+    let html = '<div class="result-card">';
+    
+    // Header
+    html += `
+        <div class="result-header">
+            <div class="result-header-icon">
+                <i class="fas fa-users"></i>
+            </div>
+            <div class="result-header-text">
+                <h3>Employee Count Found ✨</h3>
+                <p>${inputData}</p>
+            </div>
+        </div>
+    `;
+    
+    // Big display for the count (as string - could be "143" or "1-10")
+    html += `
+        <div style="text-align: center; padding: 3rem 2rem; background: linear-gradient(135deg, var(--primary), var(--primary-hover)); border-radius: 12px; margin-top: 1rem;">
+            <div style="font-size: 0.875rem; font-weight: 600; color: rgba(255,255,255,0.9); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem;">
+                Employee Count
+            </div>
+            <div style="font-size: 4rem; font-weight: 700; color: white; line-height: 1;">
+                ${employeeCount}
+            </div>
+            ${employeeCount.includes('-') ? '<div style="font-size: 0.875rem; font-weight: 500; color: rgba(255,255,255,0.8); margin-top: 0.5rem;">employees</div>' : '<div style="font-size: 0.875rem; font-weight: 500; color: rgba(255,255,255,0.8); margin-top: 0.5rem;">employees</div>'}
+        </div>
+    `;
+    
+    html += '</div>';
+    
+    resultLink.innerHTML = html;
+    
+    document.getElementById('resultsSection').classList.remove('hidden');
+    document.getElementById('singleResult').classList.remove('hidden');
+    document.getElementById('bulkResults').classList.add('hidden');
+}
+
+
+    async function processBulk() {
+    const btn = document.getElementById('processBulkBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+    
+    document.getElementById('csvPreview').classList.add('hidden');
+    document.getElementById('resultsSection').classList.remove('hidden');
+    document.getElementById('singleResult').classList.add('hidden');
+    document.getElementById('bulkResults').classList.remove('hidden');
+    
+    showProgress();
+    bulkResults = [];
+    
+    initializeBulkResultsTable();
+    
+    for (let i = 0; i < csvData.length; i++) {
+        const row = csvData[i];
+        
+        const searchingResult = {
+            inputData: row.inputData,
+            result: 'Processing...',
+            status: 'Processing',
+            reactions: []
+        };
+        bulkResults.push(searchingResult);
+        updateBulkResultsTable();
+        
+        try {
+            const response = await fetchWithTimeout('https://linkfinderapp.hamoureliasse.workers.dev/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    type: generateCombinationType(currentInputType, currentOutputType),
+                    input_data: row.inputData,
+                    output_type: currentOutputType,
+                    token: userToken,
+                    is_bulk: true
+                })
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+
+              if (currentOutputType === 'employee_count') {
+    const count = data.result || data || 'Not found';
+    bulkResults[i] = {
+        inputData: row.inputData,
+        result: count === 'Not found' ? count : `${count} employees`,
+        status: count === 'Not found' ? 'Not found' : 'Found',
+        employeeCount: count,
+        rawData: count
+    };
+}
+                
+                // Handle post reactions (array of reactions)
+                if (currentOutputType === 'reactions' && Array.isArray(data)) {
+                    bulkResults[i] = {
+                        inputData: row.inputData,
+                        result: `${data.length} reactions found`,
+                        status: 'Found',
+                        reactions: data,
+                        rawData: data
+                    };
+                } else {
+                    bulkResults[i] = {
+                        inputData: row.inputData,
+                        result: data.result || 'Not found',
+                        status: data.result ? 'Found' : 'Not found',
+                        rawData: data
+                    };
+                }
+            } else {
+                const data = await response.json();
+
+                if (response.status === 403 && data.code === 403) {
+                    showInsufficientCreditsModal();
+                    return;
+                }
+                
+                bulkResults[i] = {
+                    inputData: row.inputData,
+                    result: 'Not found',
+                    status: 'Not found'
+                };
+            }
+
+        } catch (error) {
+            console.error(`Error for ${row.inputData}:`, error);
+            bulkResults[i] = {
+                inputData: row.inputData,
+                result: 'Error',
+                status: 'Error'
+            };
+        }
+
+        updateProgress((i + 1) / csvData.length * 100);
+        updateBulkResultsTable();
+        
+        await new Promise(resolve => setTimeout(resolve, 100));
+    }
+
+    btn.disabled = false;
+    btn.innerHTML = `<i class="fas fa-play"></i> Process Items`;
+}
+
+        // Format LinkedIn profile data for bulk display (shorter version)
+function formatLinkedInProfileDataBulk(data) {
+    let parts = [];
+    if (data.name) parts.push(data.name);
+    if (data.jobTitle) parts.push(data.jobTitle);
+    if (data.company) parts.push(data.company);
+    if (data.location) parts.push(data.location);
+    
+    return parts.join(' | ') || 'Profile data found';
+}
+
+// Format LinkedIn company data for bulk display (shorter version)
+function formatLinkedInCompanyDataBulk(data) {
+    let parts = [];
+    if (data.companyName) parts.push(data.companyName);
+    if (data.industry) parts.push(data.industry);
+    if (data.location) parts.push(data.location);
+    if (data.companySize) parts.push(`${data.companySize} employees`);
+    
+    return parts.join(' | ') || 'Company data found';
+}
+
+       function formatEmployeesData(employeesArray) {
+    return employeesArray; 
+}
+
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            checkAuth();
+            fetchCredits(); 
+            setupFileUpload();
+            setupDragAndDrop();
+            setupNavigation();
+            setupModalEvents();
+            setupDropdowns();
+            initializePricingModal();
+        });
+
+        function setupModalEvents() {
+            // Close modal when clicking outside
+            document.addEventListener('click', (e) => {
+                const modal = document.getElementById('pricingModal');
+                if (e.target === modal) {
+                    closePricingModal();
+                }
+            });
+
+            // Close modal with Escape key
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    closePricingModal();
+                }
+            });
+        }
+
+        function setupNavigation() {
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                tab.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const page = e.target.closest('.nav-tab').dataset.page;
+                    navigateToPage(page);
+                });
+            });
+        }
+
+        function navigateToPage(page) {
+            // Update active tab
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelector(`[data-page="${page}"]`).classList.add('active');
+
+            // Navigate based on page
+            switch(page) {
+                 case 'api':
+                      window.location.href = addGclid(`https://linkfinderai.com/api-access?token=${userToken}`);
+                      break;
+                 case 'account':
+                      window.location.href = addGclid(`https://linkfinderai.com/account?token=${userToken}`);
+                      break;
+    }
+}
+
+        function checkAuth() {
+            const urlParams = new URLSearchParams(window.location.search);
+            let token = urlParams.get('token');
+            
+            if (!token) {
+                token = localStorage.getItem('linkFinderToken');
+            } else {
+                localStorage.setItem('linkFinderToken', token);
+            }
+            
+            if (!token) {
+                window.location.href = 'https://linkfinderai.com/';
+                return;
+            }
+
+            userToken = token;
+        }
+
+        function showSingleResult(inputData, result) {
+    const resultText = document.getElementById('resultText');
+    const resultLink = document.getElementById('resultLink');
+    const singleResultDiv = document.getElementById('singleResult');
+    
+    // Clear previous results
+    resultText.style.display = 'none';
+    resultLink.innerHTML = '';
+    
+    const config = dataConfigurations[currentInputType];
+    const outputLabel = config.outputs[currentOutputType];
+    
+    // Check if we have structured LinkedIn data
+    let isLinkedInData = false;
+    let linkedInFields = null;
+    
+    try {
+        if (typeof result === 'string' && result.includes('{')) {
+            linkedInFields = JSON.parse(result);
+            isLinkedInData = true;
+        } else if (typeof result === 'object' && result !== null && result.name) {
+            linkedInFields = result;
+            isLinkedInData = true;
+        }
+    } catch (e) {
+        isLinkedInData = false;
+    }
+    
+    // Build HTML
+    let html = '<div class="result-card">';
+    
+    // Header
+    html += `
+        <div class="result-header">
+            <div class="result-header-icon">
+                <i class="fas ${result === 'Not found' ? 'fa-times-circle' : 'fa-check-circle'}"></i>
+            </div>
+            <div class="result-header-text">
+                <h3>${result === 'Not found' ? 'No Data Found' : 'Data Found Successfully! ✨'}</h3>
+                <p>${inputData}</p>
+            </div>
+        </div>
+    `;
+    
+    // Content
+    if (isLinkedInData && linkedInFields) {
+        // Show ALL LinkedIn fields
+        html += '<div class="result-grid">';
+        
+        // Name
+        if (linkedInFields.name) {
+            html += `
+                <div class="result-item">
+                    <div class="result-label">Name</div>
+                    <div class="result-value highlight">${linkedInFields.name}</div>
+                </div>
+            `;
+        }
+        
+        // Email - IMPORTANT
+        if (linkedInFields.email && linkedInFields.email !== 'Not found') {
+            html += `
+                <div class="result-item" style="border-left-color: var(--success); background: #ecfdf5;">
+                    <div class="result-label">✉️ Email</div>
+                    <div class="result-value highlight">${linkedInFields.email}</div>
+                </div>
+            `;
+        }
+        
+        // Job Title
+        if (linkedInFields.jobTitle && linkedInFields.jobTitle !== 'Not specified') {
+            html += `
+                <div class="result-item">
+                    <div class="result-label">Job Title</div>
+                    <div class="result-value">${linkedInFields.jobTitle}</div>
+                </div>
+            `;
+        }
+        
+        // Company
+        if (linkedInFields.company && linkedInFields.company !== 'Not specified') {
+            html += `
+                <div class="result-item">
+                    <div class="result-label">Company</div>
+                    <div class="result-value">${linkedInFields.company}</div>
+                </div>
+            `;
+        }
+        
+        // Location
+        if (linkedInFields.location && linkedInFields.location !== 'Not specified') {
+            html += `
+                <div class="result-item">
+                    <div class="result-label">Location</div>
+                    <div class="result-value">${linkedInFields.location}</div>
+                </div>
+            `;
+        }
+        
+        // Industry
+        if (linkedInFields.industry && linkedInFields.industry !== 'Not specified') {
+            html += `
+                <div class="result-item">
+                    <div class="result-label">Industry</div>
+                    <div class="result-value">${linkedInFields.industry}</div>
+                </div>
+            `;
+        }
+
+      // Description
+if (linkedInFields.description && linkedInFields.description !== 'Not specified') {
+    html += `
+        <div class="result-item">
+            <div class="result-label">Description</div>
+            <div class="result-value">${linkedInFields.description}</div>
+        </div>
+    `;
+}
+
+// Company Size
+if (linkedInFields.size && linkedInFields.size !== 'Not specified') {
+    html += `
+        <div class="result-item">
+            <div class="result-label">Company Size</div>
+            <div class="result-value">${linkedInFields.size}</div>
+        </div>
+    `;
+}
+
+// Founded
+if (linkedInFields.founded && linkedInFields.founded !== 'Not specified') {
+    html += `
+        <div class="result-item">
+            <div class="result-label">Founded</div>
+            <div class="result-value">${linkedInFields.founded}</div>
+        </div>
+    `;
+}
+
+// Specialties
+if (linkedInFields.specialties && linkedInFields.specialties !== 'Not specified') {
+    html += `
+        <div class="result-item">
+            <div class="result-label">Specialties</div>
+            <div class="result-value">${linkedInFields.specialties}</div>
+        </div>
+    `;
+}
+        
+        // Website
+        if (linkedInFields.website && linkedInFields.website !== 'Not found' && linkedInFields.website !== 'Not specified') {
+            html += `
+                <div class="result-item">
+                    <div class="result-label">Website</div>
+                    <div class="result-value"><a href="https://${linkedInFields.website}" target="_blank">${linkedInFields.website}</a></div>
+                </div>
+            `;
+        }
+        
+        // Education
+        if (linkedInFields.education && linkedInFields.education !== 'Not specified') {
+            html += `
+                <div class="result-item">
+                    <div class="result-label">Education</div>
+                    <div class="result-value">${linkedInFields.education}</div>
+                </div>
+            `;
+        }
+        
+        // Headline
+        if (linkedInFields.headline && linkedInFields.headline !== 'Not specified') {
+            html += `
+                <div class="result-item">
+                    <div class="result-label">Headline</div>
+                    <div class="result-value">${linkedInFields.headline}</div>
+                </div>
+            `;
+        }
+        
+        // LinkedIn URL
+        if (linkedInFields.linkedinUrl) {
+            html += `
+                <div class="result-item">
+                    <div class="result-label">LinkedIn Profile</div>
+                    <div class="result-value"><a href="${linkedInFields.linkedinUrl}" target="_blank">${linkedInFields.linkedinUrl}</a></div>
+                </div>
+            `;
+        }
+        
+        // Verified
+        if (linkedInFields.verified) {
+            html += `
+                <div class="result-item">
+                    <div class="result-label">Verified</div>
+                    <div class="result-value">${linkedInFields.verified === 'true' || linkedInFields.verified === true ? '✓ Verified' : 'Not Verified'}</div>
+                </div>
+            `;
+        }
+        
+        html += '</div>';
+        
+    } else if (result !== 'Not found' && result.startsWith('http')) {
+        // Simple URL result
+        html += `
+            <div class="result-grid">
+                <div class="result-item">
+                    <div class="result-label">${outputLabel}</div>
+                    <div class="result-value"><a href="${result}" target="_blank">${result}</a></div>
+                </div>
+            </div>
+        `;
+    } else {
+        // Text result or not found
+        html += `
+            <div class="result-grid">
+                <div class="result-item">
+                    <div class="result-label">${outputLabel}</div>
+                    <div class="result-value">${result}</div>
+                </div>
+            </div>
+        `;
+    }
+    
+    html += '</div>';
+    
+    resultLink.innerHTML = html;
+    
+    document.getElementById('resultsSection').classList.remove('hidden');
+    document.getElementById('singleResult').classList.remove('hidden');
+    document.getElementById('bulkResults').classList.add('hidden');
+}
+
+    function showSingleResultEmployees(inputData, employeesArray) {
+    const resultText = document.getElementById('resultText');
+    const resultLink = document.getElementById('resultLink');
+    
+    resultText.style.display = 'none';
+    resultLink.innerHTML = '';
+    
+    let html = '<div class="result-card">';
+    
+    // Header
+    html += `
+        <div class="result-header">
+            <h3>Found ${employeesArray.length} Employees ✨</h3>
+            <p>${inputData}</p>
+        </div>
+        <div class="result-grid">
+    `;
+    
+    // Display each employee
+    employeesArray.forEach((employee, index) => {
+        html += `
+            <div class="result-item" style="padding: 1rem; background: var(--gray-50); border-radius: 6px; margin-bottom: 0.5rem;">
+                <div style="font-weight: 600; color: var(--gray-900); margin-bottom: 0.5rem;">
+                    ${index + 1}. ${employee.name || 'Unknown'}
+                </div>
+                <div style="font-size: 0.875rem; color: var(--gray-700); line-height: 1.6;">
+        `;
+        
+        if (employee.jobTitle && employee.jobTitle !== 'Not specified') {
+            html += `<div><strong>Title:</strong> ${employee.jobTitle}</div>`;
+        }
+        if (employee.company && employee.company !== 'Not specified') {
+            html += `<div><strong>Company:</strong> ${employee.company}</div>`;
+        }
+        if (employee.location && employee.location !== 'Not specified') {
+            html += `<div><strong>Location:</strong> ${employee.location}</div>`;
+        }
+        if (employee.industry && employee.industry !== 'Not specified') {
+            html += `<div><strong>Industry:</strong> ${employee.industry}</div>`;
+        }
+        if (employee.linkedinUrl) {
+            html += `<div><strong>LinkedIn:</strong> <a href="${employee.linkedinUrl}" target="_blank">${employee.linkedinUrl}</a></div>`;
+        }
+        
+        html += `
+                </div>
+            </div>
+        `;
+    });
+    
+    html += '</div></div>';
+    
+    resultLink.innerHTML = html;
+    
+    document.getElementById('resultsSection').classList.remove('hidden');
+    document.getElementById('singleResult').classList.remove('hidden');
+    document.getElementById('bulkResults').classList.add('hidden');
+}
+
+  function showSingleResultReactions(inputData, reactionsArray) {
+    const resultText = document.getElementById('resultText');
+    const resultLink = document.getElementById('resultLink');
+    
+    resultText.style.display = 'none';
+    resultLink.innerHTML = '';
+    
+    let html = '<div class="result-card">';
+    
+    // Header
+    html += `
+        <div class="result-header">
+            <h3>Found ${reactionsArray.length} Reactions ✨</h3>
+            <p>${inputData}</p>
+        </div>
+        <div class="result-grid">
+    `;
+    
+    // Display each reaction
+    reactionsArray.forEach((reaction, index) => {
+        html += `
+            <div class="result-item" style="padding: 1rem; background: var(--gray-50); border-radius: 6px; margin-bottom: 0.5rem;">
+                <div style="font-weight: 600; color: var(--gray-900); margin-bottom: 0.5rem;">
+                    ${index + 1}. ${reaction.name || 'Unknown'}
+                </div>
+                <div style="font-size: 0.875rem; color: var(--gray-700); line-height: 1.6;">
+        `;
+        
+        if (reaction.jobTitle && reaction.jobTitle !== 'Not specified') {
+            html += `<div><strong>Title:</strong> ${reaction.jobTitle}</div>`;
+        }
+        if (reaction.company && reaction.company !== 'Not specified') {
+            html += `<div><strong>Company:</strong> ${reaction.company}</div>`;
+        }
+        if (reaction.location && reaction.location !== 'Not specified') {
+            html += `<div><strong>Location:</strong> ${reaction.location}</div>`;
+        }
+        if (reaction.industry && reaction.industry !== 'Not specified') {
+            html += `<div><strong>Industry:</strong> ${reaction.industry}</div>`;
+        }
+        if (reaction.headline && reaction.headline !== 'Not specified') {
+            html += `<div><strong>Headline:</strong> ${reaction.headline}</div>`;
+        }
+        if (reaction.linkedinUrl) {
+            html += `<div><strong>LinkedIn:</strong> <a href="${reaction.linkedinUrl}" target="_blank">${reaction.linkedinUrl}</a></div>`;
+        }
+        
+        html += `
+                </div>
+            </div>
+        `;
+    });
+    
+    html += '</div></div>';
+    
+    resultLink.innerHTML = html;
+    
+    document.getElementById('resultsSection').classList.remove('hidden');
+    document.getElementById('singleResult').classList.remove('hidden');
+    document.getElementById('bulkResults').classList.add('hidden');
+}
+
+      function showSingleResultAsTable(inputData, reactionsArray) {
+    const resultText = document.getElementById('resultText');
+    const resultLink = document.getElementById('resultLink');
+    const config = dataConfigurations[currentInputType];
+    const outputLabel = config.outputs[currentOutputType];
+    
+    // Hide textarea
+    resultText.style.display = 'none';
+    
+    // Create table for reactions with ALL fields
+    let tableHtml = `
+        <div style="margin-bottom: 1rem; padding: 1rem; background: var(--gray-50); border-radius: 8px;">
+            <strong>Input:</strong> ${inputData}<br>
+            <strong>${outputLabel}:</strong> Found ${reactionsArray.length} reactions
+        </div>
+        <div class="table-container">
+            <table class="results-table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Job Title</th>
+                        <th>Company</th>
+                        <th>Location</th>
+                        <th>Industry</th>
+                        <th>Website</th>
+                        <th>Email</th>
+                        <th>Education</th>
+                        <th>Headline</th>
+                        <th>LinkedIn</th>
+                    </tr>
+                </thead>
+                <tbody>`;
+    
+    // Add each reaction as a row with ALL fields
+    reactionsArray.forEach(reaction => {
+        const linkedinUrlDisplay = reaction.linkedinUrl && reaction.linkedinUrl.length > 30 
+            ? `${reaction.linkedinUrl.substring(0, 30)}...` 
+            : (reaction.linkedinUrl || 'Not specified');
+        
+        tableHtml += `<tr>
+            <td data-label="Name">${reaction.name || 'Not specified'}</td>
+            <td data-label="Job Title">${reaction.jobTitle || 'Not specified'}</td>
+            <td data-label="Company">${reaction.company || 'Not specified'}</td>
+            <td data-label="Location">${reaction.location || 'Not specified'}</td>
+            <td data-label="Industry">${reaction.industry || 'Not specified'}</td>
+            <td data-label="Website">${reaction.website || 'Not specified'}</td>
+            <td data-label="Email">${reaction.email || 'Not specified'}</td>
+            <td data-label="Education">${reaction.education || 'Not specified'}</td>
+            <td data-label="Headline">${reaction.headline ? (reaction.headline.length > 50 ? reaction.headline.substring(0, 50) + '...' : reaction.headline) : 'Not specified'}</td>
+            <td data-label="LinkedIn">
+                ${reaction.linkedinUrl ? `<a href="${reaction.linkedinUrl}" target="_blank" style="color: var(--primary); text-decoration: none;">${linkedinUrlDisplay}</a>` : 'Not specified'}
+            </td>
+        </tr>`;
+    });
+    
+    tableHtml += `
+                </tbody>
+            </table>
+        </div>`;
+    
+    resultLink.innerHTML = tableHtml;
+    
+    document.getElementById('resultsSection').classList.remove('hidden');
+    document.getElementById('singleResult').classList.remove('hidden');
+    document.getElementById('bulkResults').classList.add('hidden');
+}
+
+        function setupFileUpload() {
+            const fileInput = document.getElementById('csvFile');
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    handleFile(e.target.files[0]);
+                }
+            });
+        }
+
+        function setupDragAndDrop() {
+            const uploadArea = document.getElementById('uploadArea');
+            
+            // Prevent default drag behaviors
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                uploadArea.addEventListener(eventName, preventDefaults, false);
+                document.body.addEventListener(eventName, preventDefaults, false);
+            });
+
+            // Highlight drop area when item is dragged over it
+            ['dragenter', 'dragover'].forEach(eventName => {
+                uploadArea.addEventListener(eventName, highlight, false);
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                uploadArea.addEventListener(eventName, unhighlight, false);
+            });
+
+            // Handle dropped files
+            uploadArea.addEventListener('drop', handleDrop, false);
+
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+
+            function highlight() {
+                uploadArea.classList.add('drag-over');
+            }
+
+            function unhighlight() {
+                uploadArea.classList.remove('drag-over');
+            }
+
+            function handleDrop(e) {
+                const dt = e.dataTransfer;
+                const files = dt.files;
+
+                if (files.length > 0) {
+                    handleFile(files[0]);
+                }
+            }
+        }
+
+        function handleFile(file) {
+            if (!file.name.toLowerCase().endsWith('.csv')) {
+                showAlert('Please select a CSV file.', 'error');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = (e) => parseCSV(e.target.result);
+            reader.readAsText(file);
+        }
+
+      function parseCSV(csvText) {
+    const lines = csvText.split('\n').filter(line => line.trim());
+    if (lines.length < 2) {
+        showAlert('CSV must contain header and data rows.', 'error');
+        return;
+    }
+
+    // Clean headers but keep original for display, create lowercase version for matching
+    const rawHeaders = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+    const headers = rawHeaders.map(h => h.toLowerCase().replace(/\s+/g, ' ').trim());
+    
+    csvData = [];
+
+    const config = dataConfigurations[currentInputType];
+    if (!config) {
+        showAlert('Please configure your input type first.', 'error');
+        return;
+    }
+
+    // More comprehensive header variations (all in lowercase for matching)
+    const possibleHeaders = {
+        'company_name': ['company_name', 'company name', 'company', 'name', 'companyname'],
+        'linkedin_company': [
+            'linkedin_company',
+            'linkedin company',
+            'company_url',
+            'linkedin_url',
+            'linkedin company url',
+            'linkedin company page',
+            'company linkedin',
+            'company linkedin url',
+            'company url',
+            'company page',
+            'linkedin page',
+            'linkedincompany',
+            'linkedincompanyurl',
+            'company linkedin page'
+        ],
+        'linkedin_profile': [
+            'linkedin_profile',
+            'profile_url',
+            'linkedin_url',
+            'profile',
+            'linkedin profile url',
+            'linkedin profile page',
+            'profile linkedin',
+            'linkedinprofile',
+            'linkedinprofileurl'
+        ],
+        'linkedin_post': [
+            'linkedin_post',
+            'post_url',
+            'linkedin_post_url',
+            'post',
+            'linkedin post url',
+            'post linkedin',
+            'linkedinpost',
+            'linkedinposturl'
+        ],
+        'email': ['email', 'company_email', 'company email', 'e-mail', 'e mail', 'companyemail'],
+        'lead_full_name': [
+            'lead_full_name',
+            'full_name',
+            'name',
+            'lead name',
+            'contact name',
+            'fullname',
+            'lead',
+            'contact',
+            'leadfullname'
+        ],
+    };
+
+    const searchHeaders = possibleHeaders[currentInputType] || [];
+    
+    // Case-insensitive matching
+    const dataIdx = headers.findIndex(h => {
+        const normalizedHeader = h.toLowerCase().replace(/\s+/g, ' ').trim();
+        
+        return searchHeaders.some(search => {
+            const normalizedSearch = search.toLowerCase().replace(/\s+/g, ' ').trim();
+            
+            // Check exact match
+            if (normalizedHeader === normalizedSearch) return true;
+            
+            // Check if header contains the search term
+            if (normalizedHeader.includes(normalizedSearch)) return true;
+            
+            // Check if search term contains the header (for shorter headers)
+            if (normalizedSearch.includes(normalizedHeader) && normalizedHeader.length > 3) return true;
+            
+            // Check without spaces/underscores
+            const headerNoSpaces = normalizedHeader.replace(/[\s_-]/g, '');
+            const searchNoSpaces = normalizedSearch.replace(/[\s_-]/g, '');
+            if (headerNoSpaces === searchNoSpaces) return true;
+            if (headerNoSpaces.includes(searchNoSpaces) && searchNoSpaces.length > 3) return true;
+            if (searchNoSpaces.includes(headerNoSpaces) && headerNoSpaces.length > 3) return true;
+            
+            return false;
+        });
+    });
+    
+    if (dataIdx === -1) {
+        // Show helpful error message with what was found
+        console.log('Available headers:', rawHeaders);
+        console.log('Normalized headers:', headers);
+        console.log('Looking for headers matching:', searchHeaders);
+        showAlert(
+            `CSV must contain a column for ${config.label.toLowerCase().replace('enter ', '')}. ` +
+            `Found columns: "${rawHeaders.join('", "')}"`, 
+            'error'
+        );
+        return;
+    }
+
+    // Parse data using the correct column index
+    for (let i = 1; i < lines.length; i++) {
+        const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
+        if (values[dataIdx] && values[dataIdx].trim()) {
+            csvData.push({ inputData: values[dataIdx].trim() });
+        }
+    }
+
+    if (csvData.length === 0) {
+        showAlert('No valid data found in the selected column.', 'error');
+        return;
+    }
+
+    if (csvData.length > 10000) {
+        showAlert(`Too many entries (${csvData.length}). Maximum is 10000.`, 'error');
+        return;
+    }
+
+    showPreview();
+}
+        function showPreview() {
+    const preview = csvData.slice(0, 5);
+    let html = '<div style="background: var(--gray-50); padding: 0.75rem; border-radius: 6px; font-size: 0.875rem;">';
+    
+    preview.forEach(row => {
+        html += `<div style="padding: 0.25rem 0;">${row.inputData}</div>`;
+    });
+    
+    html += '</div>';
+    
+    document.getElementById('previewTable').innerHTML = html;
+    
+    // Check if element exists before setting textContent
+    const itemCountElement = document.getElementById('itemCount');
+    if (itemCountElement) {
+        itemCountElement.textContent = csvData.length;
+    }
+    
+    document.getElementById('csvPreview').classList.remove('hidden');
+}
+        function showProgress() {
+            document.getElementById('progressContainer').classList.remove('hidden');
+            document.getElementById('progressBar').style.width = '0%';
+        }
+
+        function updateProgress(percent) {
+            document.getElementById('progressBar').style.width = `${percent}%`;
+            
+            // Hide progress bar when complete
+            if (percent >= 100) {
+                setTimeout(() => {
+                    document.getElementById('progressContainer').classList.add('hidden');
+                }, 10000);
+            }
+        }
+
+    function initializeBulkResultsTable() {
+    let html = '';
+    
+    // Handle Employee Count table
+    if (currentOutputType === 'employee_count') {
+        const config = dataConfigurations[currentInputType];
+        html = `<table class="results-table">
+            <thead>
+                <tr>
+                    <th>${config.label.replace('Enter ', '')}</th>
+                    <th>Employee Count</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>`;
+    }
+    
+    if (currentInputType === 'linkedin_post' && currentOutputType === 'reactions') {
+    html = `<table class="results-table">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Job Title</th>
+                <th>Company</th>
+                <th>Location</th>
+                <th>Industry</th>
+                <th>Website</th>
+                <th>Email</th>
+                <th>Education</th>
+                <th>Headline</th>
+                <th>LinkedIn</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>`;
+} else if (currentInputType === 'linkedin_profile' && currentOutputType === 'linkedin_info') {
+        html = `<table class="results-table">
+            <thead>
+                <tr>
+                    <th>LinkedIn URL</th>
+                    <th>Name</th>
+                    <th>Job Title</th>
+                    <th>Company</th>
+                    <th>Location</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>`;
+    } else if (currentInputType === 'linkedin_company' && currentOutputType === 'linkedin_info') {
+        html = `<table class="results-table">
+            <thead>
+                <tr>
+                    <th>LinkedIn URL</th>
+                    <th>Company Name</th>
+                    <th>Industry</th>
+                    <th>Company Size</th>
+                    <th>Location</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>`;
+    } else {
+        const config = dataConfigurations[currentInputType];
+        const outputLabel = config.outputs[currentOutputType];
+        
+        html = `<table class="results-table">
+            <thead>
+                <tr>
+                    <th>${config.label.replace('Enter ', '')}</th>
+                    <th>${outputLabel}</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>`;
+    }
+    
+    document.getElementById('bulkResultsTable').innerHTML = html;
+}
+
+        // Function to generate combination type
+function generateCombinationType(inputType, outputType) {
+    return `${inputType}_to_${outputType}`;
+}
+
+function updateBulkResultsTable() {
+    let html = '';
+    
+    // Handle Employee Count results
+    if (currentOutputType === 'employee_count') {
+        const config = dataConfigurations[currentInputType];
+        html = `<table class="results-table">
+            <thead>
+                <tr>
+                    <th>${config.label.replace('Enter ', '')}</th>
+                    <th>Employee Count</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>`;
+
+        bulkResults.forEach(row => {
+            let statusClass = '';
+            let statusText = row.status;
+            
+            if (row.status === 'Found') {
+                statusClass = 'status-success';
+            } else if (row.status === 'Not found') {
+                statusClass = 'status-error';
+            } else if (row.status === 'Error') {
+                statusClass = 'status-error';
+            } else if (row.status === 'Processing') {
+                statusClass = 'status-processing';
+                statusText = 'Processing...';
+            }
+
+            html += `<tr>
+                <td data-label="${config.label.replace('Enter ', '')}">${row.inputData}</td>
+                <td data-label="Employee Count">${row.result}</td>
+                <td data-label="Status"><span class="status-badge ${statusClass}">${statusText}</span></td>
+            </tr>`;
+        });
+
+        html += '</tbody></table>';
+    }
+  
+if (currentInputType === 'linkedin_post' && currentOutputType === 'reactions') {
+    html = `<table class="results-table">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Job Title</th>
+                <th>Company</th>
+                <th>Location</th>
+                <th>Industry</th>
+                <th>Website</th>
+                <th>Email</th>
+                <th>Education</th>
+                <th>Headline</th>
+                <th>LinkedIn</th>
+            </tr>
+        </thead>
+        <tbody>`;
+
+    // Flatten all reactions from all posts
+    bulkResults.forEach(postResult => {
+        if (postResult.reactions && Array.isArray(postResult.reactions)) {
+            postResult.reactions.forEach(reaction => {
+                const linkedinUrlDisplay = reaction.linkedinUrl && reaction.linkedinUrl.length > 30 
+                    ? `${reaction.linkedinUrl.substring(0, 30)}...` 
+                    : (reaction.linkedinUrl || 'N/A');
+
+                html += `<tr>
+                    <td data-label="Name">${reaction.name || 'Not specified'}</td>
+                    <td data-label="Job Title">${reaction.jobTitle || 'Not specified'}</td>
+                    <td data-label="Company">${reaction.company || 'Not specified'}</td>
+                    <td data-label="Location">${reaction.location || 'Not specified'}</td>
+                    <td data-label="Industry">${reaction.industry || 'Not specified'}</td>
+                    <td data-label="Website">${reaction.website || 'Not specified'}</td>
+                    <td data-label="Email">${reaction.email || 'Not specified'}</td>
+                    <td data-label="Education">${reaction.education || 'Not specified'}</td>
+                    <td data-label="Headline">${reaction.headline ? (reaction.headline.length > 50 ? reaction.headline.substring(0, 50) + '...' : reaction.headline) : 'Not specified'}</td>
+                    <td data-label="LinkedIn">
+                        ${reaction.linkedinUrl ? `<a href="${reaction.linkedinUrl}" target="_blank" style="color: var(--primary); text-decoration: none;">${linkedinUrlDisplay}</a>` : 'Not specified'}
+                    </td>
+                </tr>`;
+            });
+        }
+    });
+
+    html += '</tbody></table>';
+}
+    // Handle LinkedIn Profile results with detailed table
+    else if (currentInputType === 'linkedin_profile' && currentOutputType === 'linkedin_info') {
+        html = `<table class="results-table">
+            <thead>
+                <tr>
+                    <th>LinkedIn URL</th>
+                    <th>Name</th>
+                    <th>Job Title</th>
+                    <th>Company</th>
+                    <th>Location</th>
+                </tr>
+            </thead>
+            <tbody>`;
+
+        bulkResults.forEach(row => {
+            const data = row.rawData || {};
+            const linkedinUrlDisplay = row.inputData.length > 30 
+                ? `${row.inputData.substring(0, 30)}...` 
+                : row.inputData;
+
+            html += `<tr>
+                <td data-label="LinkedIn URL">
+                    <a href="${row.inputData}" target="_blank" style="color: var(--primary); text-decoration: none;">
+                        ${linkedinUrlDisplay}
+                    </a>
+                </td>
+                <td data-label="Name">${data.name || 'Not found'}</td>
+                <td data-label="Job Title">${data.jobTitle || 'Not found'}</td>
+                <td data-label="Company">${data.company || 'Not found'}</td>
+                <td data-label="Location">${data.location || 'Not found'}</td>
+            </tr>`;
+        });
+
+        html += '</tbody></table>';
+    } 
+    // Handle LinkedIn Company results with detailed table
+    else if (currentInputType === 'linkedin_company' && currentOutputType === 'linkedin_info') {
+        html = `<table class="results-table">
+            <thead>
+                <tr>
+                    <th>LinkedIn URL</th>
+                    <th>Company Name</th>
+                    <th>Industry</th>
+                    <th>Company Size</th>
+                    <th>Location</th>
+                </tr>
+            </thead>
+            <tbody>`;
+
+        bulkResults.forEach(row => {
+            const data = row.rawData || {};
+            const linkedinUrlDisplay = row.inputData.length > 30 
+                ? `${row.inputData.substring(0, 30)}...` 
+                : row.inputData;
+
+            html += `<tr>
+                <td data-label="LinkedIn URL">
+                    <a href="${row.inputData}" target="_blank" style="color: var(--primary); text-decoration: none;">
+                        ${linkedinUrlDisplay}
+                    </a>
+                </td>
+                <td data-label="Company Name">${data.name || 'Not found'}</td>
+                <td data-label="Industry">${data.industry || 'Not found'}</td>
+                <td data-label="Company Size">${data.size || 'Not found'}</td>
+                <td data-label="Location">${data.location || 'Not found'}</td>
+            </tr>`;
+        });
+
+        html += '</tbody></table>';
+    } 
+    // Handle general enrichment results
+    else {
+        const config = dataConfigurations[currentInputType];
+        const outputLabel = config.outputs[currentOutputType];
+        
+        html = `<table class="results-table">
+            <thead>
+                <tr>
+                    <th>${config.label.replace('Enter ', '')}</th>
+                    <th>${outputLabel}</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>`;
+
+        bulkResults.forEach(row => {
+            let statusClass = '';
+            let statusText = row.status;
+            
+            if (row.status === 'Found') {
+                statusClass = 'status-success';
+            } else if (row.status === 'Not found') {
+                statusClass = 'status-error';
+            } else if (row.status === 'Error') {
+                statusClass = 'status-error';
+            } else if (row.status === 'Processing') {
+                statusClass = 'status-processing';
+                statusText = 'Processing...';
+            }
+            
+            let resultCell = row.result;
+            
+            if (row.result !== 'Not found' && row.result !== 'Error' && row.result !== 'Processing...') {
+                if (row.result.startsWith('http')) {
+                    resultCell = `<a href="${row.result}" target="_blank" style="color: var(--primary); text-decoration: none;">${row.result}</a>`;
+                }
+            }
+
+            html += `<tr>
+                <td data-label="${config.label.replace('Enter ', '')}">${row.inputData}</td>
+                <td data-label="${outputLabel}">${resultCell}</td>
+                <td data-label="Status"><span class="status-badge ${statusClass}">${statusText}</span></td>
+            </tr>`;
+        });
+
+        html += '</tbody></table>';
+    }
+    
+    document.getElementById('bulkResultsTable').innerHTML = html;
+}
+
+ function downloadResults() {
+    if (bulkResults.length === 0) return;
+
+    const config = dataConfigurations[currentInputType];
+    let csvContent = '';
+
+    // Handle Employee Count export
+    if (currentOutputType === 'employee_count') {
+        csvContent = `${config.label.replace('Enter ', '')},Employee Count,Status\n`;
+        
+        bulkResults.forEach(row => {
+            const finalStatus = row.status === 'Processing' ? 'Not found' : row.status;
+            const employeeCount = row.employeeCount || 'Not found';
+            csvContent += `"${row.inputData}","${employeeCount}","${finalStatus}"\n`;
+        });
+    }
+   
+    if (currentInputType === 'linkedin_post' && currentOutputType === 'reactions') {
+        csvContent = 'Name,Job Title,Company,Location,Industry,Website,Email,Education,Headline,Comment,LinkedIn URL,Verified\n';
+        
+        bulkResults.forEach(postResult => {
+            if (postResult.reactions && Array.isArray(postResult.reactions)) {
+                postResult.reactions.forEach(reaction => {
+                    const escapeCSV = (str) => {
+                        if (!str || str === 'Not found' || str === 'Not specified') return str;
+                        return `"${str.toString().replace(/"/g, '""')}"`;
+                    };
+
+                    const csvRow = [
+                        escapeCSV(reaction.name || 'Not specified'),
+                        escapeCSV(reaction.jobTitle || 'Not specified'),
+                        escapeCSV(reaction.company || 'Not specified'),
+                        escapeCSV(reaction.location || 'Not specified'),
+                        escapeCSV(reaction.industry || 'Not specified'),
+                        escapeCSV(reaction.website || 'Not specified'),
+                        escapeCSV(reaction.email || 'Not specified'),
+                        escapeCSV(reaction.education || 'Not specified'),
+                        escapeCSV(reaction.headline || 'Not specified'),
+                        escapeCSV(reaction.comment || 'Not specified'),
+                        escapeCSV(reaction.linkedinUrl || 'Not specified'),
+                        escapeCSV(reaction.verified || 'Not specified')
+                    ];
+                    
+                    csvContent += csvRow.join(',') + '\n';
+                });
+            }
+        });
+    }
+    // Handle LinkedIn Profile data export with detailed columns
+    else if (currentInputType === 'linkedin_profile' && currentOutputType === 'linkedin_info') {
+        csvContent = 'LinkedIn URL,Name,Job Title,Company,Location,Industry,Website,Email,Education,Headline,Status\n';
+        
+        bulkResults.forEach(row => {
+            const data = row.rawData || {};
+            const escapeCSV = (str) => {
+                if (!str || str === 'Not found' || str === 'Error' || str === 'Processing...') return str;
+                return `"${str.toString().replace(/"/g, '""')}"`;
+            };
+
+            const csvRow = [
+                escapeCSV(row.inputData),
+                escapeCSV(data.name || 'Not found'),
+                escapeCSV(data.jobTitle || 'Not found'),
+                escapeCSV(data.company || 'Not found'),
+                escapeCSV(data.location || 'Not found'),
+                escapeCSV(data.industry || 'Not found'),
+                escapeCSV(data.website || 'Not found'),
+                escapeCSV(data.email || 'Not found'),
+                escapeCSV(data.education || 'Not found'),
+                escapeCSV(data.headline || 'Not found')
+            ];
+            
+            csvContent += csvRow.join(',') + '\n';
+        });
+    } 
+    // Handle LinkedIn Company data export with detailed columns
+    else if (currentInputType === 'linkedin_company' && currentOutputType === 'linkedin_info') {
+        csvContent = 'LinkedIn URL,Company Name,Industry,Company Size,Location,Description,Website,Specialties,Status\n';
+        
+        bulkResults.forEach(row => {
+            const data = row.rawData || {};
+            const escapeCSV = (str) => {
+                if (!str || str === 'Not found' || str === 'Error' || str === 'Processing...' || str === 'Not specified') return str;
+                return `"${str.toString().replace(/"/g, '""')}"`;
+            };
+
+            const csvRow = [
+                escapeCSV(row.inputData),
+                escapeCSV(data.name || 'Not found'),
+                escapeCSV(data.industry || 'Not found'),
+                escapeCSV(data.size || 'Not found'),
+                escapeCSV(data.location || 'Not found'),
+                escapeCSV(data.description || 'Not found'),
+                escapeCSV(data.website || 'Not found'),
+                escapeCSV(data.specialties || 'Not found')
+            ];
+            
+            csvContent += csvRow.join(',') + '\n';
+        });
+    } 
+    // Handle general enrichment data export
+    else {
+        const outputLabel = config.outputs[currentOutputType];
+        csvContent = `${config.label.replace('Enter ', '')},${outputLabel},Status\n`;
+        
+        bulkResults.forEach(row => {
+            const finalStatus = row.status === 'Processing' ? 'Not found' : row.status;
+            const finalResult = row.result === 'Processing...' ? 'Not found' : row.result;
+            csvContent += `"${row.inputData}","${finalResult}","${finalStatus}"\n`;
+        });
+    }
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    
+    // Generate filename based on enrichment type
+    let filename = 'enriched_data';
+    if (currentInputType === 'linkedin_post') {
+        filename = 'linkedin_reactions';
+    } else if (currentInputType === 'linkedin_profile') {
+        filename = 'linkedin_profile_data';
+    } else if (currentInputType === 'linkedin_company') {
+        filename = 'linkedin_company_data';
+    }
+    
+    a.download = `${filename}_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+}
+      // Extract GCLID from current URL once
+const urlParams = new URLSearchParams(window.location.search);
+const gclid = urlParams.get('gclid');
+
+// Helper function to add GCLID to URLs
+function addGclid(url) {
+    if (!gclid) return url;
+    const separator = url.includes('?') ? '&' : '?';
+    return `${url}${separator}gclid=${gclid}`;
+}
 
         function showLoading() {
             document.getElementById('loading').style.display = 'block';
@@ -924,6 +3359,130 @@
             document.getElementById('resultsSection').classList.add('hidden');
         }
 
+       const plans = [
+    { 
+        name: 'Starter', 
+        monthlyPrice: 29, 
+        credits: 60000, // 5k * 12
+        monthlyStripeLink: 'https://buy.stripe.com/00w5kD3XL9lb0rqaIX8IU0Z',
+        annualStripeLink: 'https://buy.stripe.com/6oUfZhfGtfJz0rqg3h8IU14'
+    },
+    { 
+        name: 'Professional', 
+        monthlyPrice: 59, 
+        credits: 240000, // 25k * 12
+        monthlyStripeLink: 'https://buy.stripe.com/dRm9ATcuhgND3DC9ET8IU10',
+        annualStripeLink: 'https://buy.stripe.com/4gMeVdfGt0OFb64dV98IU13'
+    },
+    { 
+        name: 'Enterprise', 
+        monthlyPrice: 99, 
+        credits: 600000, // 50k * 12
+        monthlyStripeLink: 'https://buy.stripe.com/cNi3cv3XLapf4HG9ET8IU12',
+        annualStripeLink: 'https://buy.stripe.com/9B614n9i5apf3DCg3h8IU15'
+    },
+    { 
+        name: 'HyperGrowth', 
+        monthlyPrice: 299, 
+        credits: 3000000, // 250k * 12
+        monthlyStripeLink: 'https://buy.stripe.com/eVqaEX9i52WN4HGaIX8IU1d',
+        annualStripeLink: 'https://buy.stripe.com/9B68wPeCp0OF2zycR58IU1e'
+    }
+];
+
+    
+
+let currentPlanIndex = 2; // Start with Professional
+let isAnnualBilling = true; // Default to annual
+
+function updatePlanDisplay() {
+    const plan = plans[currentPlanIndex];
+    
+    document.getElementById('planName').textContent = plan.name;
+    
+    if (isAnnualBilling) {
+        const monthlyEquivalent = Math.round(plan.monthlyPrice * 0.8);
+        document.getElementById('priceAmount').textContent = `$${monthlyEquivalent}`;
+        document.getElementById('pricePeriod').textContent = 'per month';
+        document.getElementById('planCredits').textContent = `${plan.credits.toLocaleString()} credits/year`;
+        document.getElementById('ctaText').textContent = `Get Started - $${monthlyEquivalent}/month`;
+    } else {
+        document.getElementById('priceAmount').textContent = `$${plan.monthlyPrice}`;
+        document.getElementById('pricePeriod').textContent = 'per month';
+        document.getElementById('planCredits').textContent = `${Math.round(plan.credits/12).toLocaleString()} credits/month`;
+        document.getElementById('ctaText').textContent = `Get Started - $${plan.monthlyPrice}/month`;
+    }
+    
+    document.getElementById('prevBtn').disabled = currentPlanIndex === 0;
+    document.getElementById('nextBtn').disabled = currentPlanIndex === plans.length - 1;
+}
+function setBilling(type) {
+    isAnnualBilling = (type === 'annual');
+    
+    // Update button states
+    document.getElementById('monthlyBtn').classList.toggle('active', !isAnnualBilling);
+    document.getElementById('annualBtn').classList.toggle('active', isAnnualBilling);
+    
+    updatePlanDisplay();
+}
+
+function previousPlan() {
+    if (currentPlanIndex > 0) {
+        currentPlanIndex--;
+        updatePlanDisplay();
+    }
+}
+
+function nextPlan() {
+    if (currentPlanIndex < plans.length - 1) {
+        currentPlanIndex++;
+        updatePlanDisplay();
+    }
+}
+
+function proceedToCheckout() {
+    const plan = plans[currentPlanIndex];
+    const baseUrl = isAnnualBilling ? plan.annualStripeLink : plan.monthlyStripeLink;
+    window.location.href = addGclid(`${baseUrl}?client_reference_id=${userToken}`);
+}
+
+function showPricingModal() {
+    // Default to annual
+    isAnnualBilling = true;
+    
+    document.getElementById('pricingModal').classList.add('show');
+    document.body.style.overflow = 'hidden';
+    
+    // Set button states
+    document.getElementById('monthlyBtn').classList.remove('active');
+    document.getElementById('annualBtn').classList.add('active');
+    
+    updatePlanDisplay();
+}
+
+        function showInsufficientCreditsModal() {
+    document.getElementById('insufficientCreditsModal').classList.add('show');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeInsufficientCreditsModal() {
+    document.getElementById('insufficientCreditsModal').classList.remove('show');
+    document.body.style.overflow = '';
+}
+
+function showPricingFromInsufficientCredits() {
+    closeInsufficientCreditsModal();
+    showPricingModal();
+}
+
+function handleApiError(response, data) {
+    if (response.status === 403 && data.code === 403) {
+        showInsufficientCreditsModal();
+        return true; // Handled
+    }
+    return false; // Not handled
+}
+
         function showAlert(message, type) {
             const alert = document.getElementById('alert');
             alert.textContent = message;
@@ -935,20 +3494,73 @@
             }, 5000);
         }
 
-        // Placeholder functions for bulk processing
-        function processBulk() {
-            showAlert('Bulk processing would start here', 'success');
-        }
+function showReviewNotification() {
+    // Check if notification has been shown before
+    const hasSeenReview = sessionStorage.getItem('linkFinderReviewShown');
+    
+    if (!hasSeenReview) {
+        // Wait 45 seconds after page load
+        setTimeout(() => {
+            const notification = document.getElementById('reviewNotification');
+            notification.classList.add('show');
+            
+            // Mark as shown
+            sessionStorage.setItem('linkFinderReviewShown', 'true');
+            
+            // Auto-hide after 30 seconds
+            setTimeout(() => {
+                if (notification.classList.contains('show')) {
+                    closeReviewNotification();
+                }
+            }, 90000);
+        }, 10000);
+    }
+}
 
-        function downloadResults() {
-            showAlert('Results would be downloaded here', 'success');
-        }
+function closeReviewNotification() {
+    const notification = document.getElementById('reviewNotification');
+    notification.classList.remove('show');
+    notification.classList.add('hide');
+}
 
-        // Initialize
-        document.addEventListener('DOMContentLoaded', () => {
-            setupDropdowns();
-            userToken = 'demo-token';
-        });
+function openReviewForm(event) {
+    event.preventDefault();
+    window.open('https://form.typeform.com/to/UKRzccI3', '_blank');
+    closeReviewNotification();
+}
+
+// Initialize review notification when page loads
+document.addEventListener('DOMContentLoaded', () => {
+    showReviewNotification();
+});
     </script>
+
+<script type="module">
+    import { createChat } from 'https://cdn.jsdelivr.net/npm/@n8n/chat/dist/chat.bundle.es.js';
+    
+    createChat({
+        webhookUrl: 'https://eliasse-n8n.onrender.com/webhook/9f05ee7f-4c6d-4032-9181-bf90cc07b341/chat',
+        mode: 'window',
+        target: '#n8n-chat',
+        initialMessages: [
+            'Hi! I\'m your AI support assistant 🤖',
+            'How can I help you with LinkFinderAI today?'
+        ],
+        showWelcomeScreen: true,
+        i18n: {
+            en: {
+                title: 'AI Support Chat 🤖',
+                subtitle: 'Get instant help from our AI assistant',
+                getStarted: 'Start Chat',
+                inputPlaceholder: 'Ask me anything about LinkFinderAI...',
+            },
+        },
+        loadPreviousSession: false
+    });
+</script>
+
+  <!-- Div pour le chat widget -->
+<div id="n8n-chat"></div>
+  
 </body>
-</html>
+</html>>
