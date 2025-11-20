@@ -1216,18 +1216,23 @@
         let commenterHTML = '';
         
         data.commenters.forEach(commenter => {
-          // Extract name and title from headline/title field
+          // Extract name and title from title field
           let commenterName = commenter.name || 'Unknown Commenter';
-          let commenterTitle = commenter.title || commenter.headline || '';
+          let commenterTitle = commenter.headline || '';
           
-          // If name is not provided, try to extract from headline/title
-          if (commenterName === 'Unknown Commenter' && commenterTitle) {
-            const parts = commenterTitle.split(' - ');
+          // If name is not provided and title field exists, extract from title
+          if (commenter.title) {
+            const parts = commenter.title.split(' - ');
             if (parts.length > 1) {
               commenterName = parts[0].trim();
               commenterTitle = parts.slice(1).join(' - ').trim();
+            } else {
+              commenterName = commenter.title.trim();
             }
           }
+          
+          // Use snippet as additional info if available
+          const commenterSnippet = commenter.snippet || '';
           
           const commenterInitials = commenterName && commenterName !== 'Unknown Commenter'
             ? commenterName.split(' ').map(word => word[0]).join('').substring(0, 2).toUpperCase() 
@@ -1239,9 +1244,10 @@
               <div class="commenter-info">
                 <h4>${commenterName}</h4>
                 <div class="commenter-title">${commenterTitle || 'Position not specified'}</div>
+                ${commenterSnippet ? `<div class="comment-text">${commenterSnippet.substring(0, 100)}${commenterSnippet.length > 100 ? '...' : ''}</div>` : ''}
                 ${commenter.comment ? `<div class="comment-text">"${commenter.comment}"</div>` : ''}
               </div>
-              ${commenter.profileUrl ? `<a href="${commenter.profileUrl}" target="_blank" class="commenter-link">View Profile</a>` : ''}
+              ${commenter.link ? `<a href="${commenter.link}" target="_blank" class="commenter-link">View Profile</a>` : ''}
             </div>
           `;
         });
