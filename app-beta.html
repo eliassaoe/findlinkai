@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1501,7 +1502,7 @@
                 <div class="upload-area" id="uploadArea">
                     <i class="fas fa-cloud-upload-alt upload-icon"></i>
                     <div class="upload-text">Drop your CSV file here or click to upload</div>
-                    <div class="upload-subtext" id="uploadSubtext">CSV file (max 500 rows)</div>
+                    <div class="upload-subtext" id="uploadSubtext">CSV file (max 10000 rows)</div>
                     <input type="file" id="csvFile" accept=".csv" class="hidden">
                     <button type="button" class="btn" onclick="document.getElementById('csvFile').click()">
                         <i class="fas fa-file-csv"></i> Select File
@@ -1648,7 +1649,8 @@
         let currentOutputType = '';
 
         // Data mapping configurations
-       const dataConfigurations = {
+       // Update the dataConfigurations to make the employee enrichments clearer
+const dataConfigurations = {
     lead_full_name: {
         label: "Enter Lead Full Name + Company Name",
         placeholder: "e.g., John Doe JP morgan, Sarah Smith Netflix, Michael Johnson Microsoft",
@@ -1663,7 +1665,8 @@
             website: "Company Website",
             phone: "Company Phone Number",
             linkedin_url: "Company LinkedIn URL",
-            employees: "Company Employees",
+            employees: "Company Employees List",
+            employee_count: "Employee Count",
             email: "Company Email" 
         }
     },
@@ -1671,15 +1674,16 @@
         label: "Enter LinkedIn Company URL",
         placeholder: "e.g., linkedin.com/company/tesla",
         outputs: {
-            linkedin_info: "Linkedin Data Scraping",
-            employees: "Company Employees"
+            linkedin_info: "LinkedIn Data Scraping",
+            employees: "Company Employees List",
+            employee_count: "Employee Count"
         }
     },
     linkedin_profile: {
         label: "Enter LinkedIn Profile URL", 
         placeholder: "e.g., linkedin.com/in/john-doe",
         outputs: {
-            linkedin_info: "Linkedin Data Scraping"
+            linkedin_info: "LinkedIn Data Scraping"
         }
     },
     linkedin_post: {
@@ -1791,7 +1795,7 @@ async function fetchWithTimeout(url, options = {}, timeout = 180000) { // 3 minu
             document.getElementById('inputData').placeholder = config.placeholder;
             
             // Update upload subtext
-            document.getElementById('uploadSubtext').textContent = `CSV with ${config.label.toLowerCase().replace('enter ', '')} (max 500 rows)`;
+            document.getElementById('uploadSubtext').textContent = `CSV with ${config.label.toLowerCase().replace('enter ', '')} (max 10000 rows)`;
             
             // Show mode toggle and input sections
             document.getElementById('modeToggle').classList.remove('hidden');
@@ -1861,6 +1865,15 @@ async function fetchWithTimeout(url, options = {}, timeout = 180000) { // 3 minu
     const inputValue = document.getElementById('inputData').value.trim();
     if (!inputValue) return;
 
+    // Validate LinkedIn URLs
+    const linkedInTypes = ['linkedin_company', 'linkedin_profile', 'linkedin_post'];
+    if (linkedInTypes.includes(currentInputType)) {
+        if (!inputValue.toLowerCase().includes('linkedin.com')) {
+            showAlert('Please enter a valid LinkedIn URL (must contain linkedin.com)', 'error');
+            return;
+        }
+    }
+
     showLoading();
     
     try {
@@ -1890,20 +1903,24 @@ async function fetchWithTimeout(url, options = {}, timeout = 180000) { // 3 minu
         hideLoading();
 
         // Handle post reactions data (array format)
-        if (currentOutputType === 'reactions' && Array.isArray(data) && data.length > 0) {
-            const formattedReactions = formatPostReactionsData(data);
-            console.log('Success - showing post reactions:', formattedReactions);
-            showSingleResult(inputValue, formattedReactions);
-            return;
-        }
+if (currentOutputType === 'reactions' && Array.isArray(data) && data.length > 0) {
+    console.log('Success - showing post reactions');
+    showSingleResultReactions(inputValue, data);
+    return;
+}
+      // Handle employee count (string like "143" or "1-10")
+if (currentOutputType === 'employee_count') {
+    console.log('Success - showing employee count');
+    showSingleResultEmployeeCount(inputValue, data);
+    return;
+}
 
         // Handle employees data (array format)
-        if (currentOutputType === 'employees' && Array.isArray(data) && data.length > 0) {
-            const formattedEmployees = formatEmployeesData(data);
-            console.log('Success - showing employees result:', formattedEmployees);
-            showSingleResult(inputValue, formattedEmployees);
-            return;
-        }
+if (currentOutputType === 'employees' && Array.isArray(data) && data.length > 0) {
+    console.log('Success - showing employees result');
+    showSingleResultEmployees(inputValue, data);
+    return;
+}
 
         if (response.status === 403 && data.code === 403) {
             console.log('Insufficient credits detected');
@@ -1984,6 +2001,52 @@ function formatPostReactionsData(reactionsArray) {
     
     return result.trim();
 }
+      function showSingleResultEmployeeCount(inputData, count) {
+    const resultText = document.getElementById('resultText');
+    const resultLink = document.getElementById('resultLink');
+    
+    resultText.style.display = 'none';
+    resultLink.innerHTML = '';
+    
+    // Extract the count value (could be from data.result or directly from data)
+    const employeeCount = count.result || count || 'Not found';
+    
+    let html = '<div class="result-card">';
+    
+    // Header
+    html += `
+        <div class="result-header">
+            <div class="result-header-icon">
+                <i class="fas fa-users"></i>
+            </div>
+            <div class="result-header-text">
+                <h3>Employee Count Found ✨</h3>
+                <p>${inputData}</p>
+            </div>
+        </div>
+    `;
+    
+    // Big display for the count (as string - could be "143" or "1-10")
+    html += `
+        <div style="text-align: center; padding: 3rem 2rem; background: linear-gradient(135deg, var(--primary), var(--primary-hover)); border-radius: 12px; margin-top: 1rem;">
+            <div style="font-size: 0.875rem; font-weight: 600; color: rgba(255,255,255,0.9); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem;">
+                Employee Count
+            </div>
+            <div style="font-size: 4rem; font-weight: 700; color: white; line-height: 1;">
+                ${employeeCount}
+            </div>
+            ${employeeCount.includes('-') ? '<div style="font-size: 0.875rem; font-weight: 500; color: rgba(255,255,255,0.8); margin-top: 0.5rem;">employees</div>' : '<div style="font-size: 0.875rem; font-weight: 500; color: rgba(255,255,255,0.8); margin-top: 0.5rem;">employees</div>'}
+        </div>
+    `;
+    
+    html += '</div>';
+    
+    resultLink.innerHTML = html;
+    
+    document.getElementById('resultsSection').classList.remove('hidden');
+    document.getElementById('singleResult').classList.remove('hidden');
+    document.getElementById('bulkResults').classList.add('hidden');
+}
 
 
     async function processBulk() {
@@ -2028,6 +2091,17 @@ function formatPostReactionsData(reactionsArray) {
 
             if (response.ok) {
                 const data = await response.json();
+
+              if (currentOutputType === 'employee_count') {
+    const count = data.result || data || 'Not found';
+    bulkResults[i] = {
+        inputData: row.inputData,
+        result: count === 'Not found' ? count : `${count} employees`,
+        status: count === 'Not found' ? 'Not found' : 'Found',
+        employeeCount: count,
+        rawData: count
+    };
+}
                 
                 // Handle post reactions (array of reactions)
                 if (currentOutputType === 'reactions' && Array.isArray(data)) {
@@ -2102,27 +2176,8 @@ function formatLinkedInCompanyDataBulk(data) {
     return parts.join(' | ') || 'Company data found';
 }
 
-        function formatEmployeesData(employeesArray) {
-    let result = `Found ${employeesArray.length} employees:\n\n`;
-    
-    employeesArray.forEach((employee, index) => {
-        result += `${index + 1}. ${employee.name || 'Unknown Name'}\n`;
-        if (employee.jobTitle && employee.jobTitle !== 'Not specified') {
-            result += `   Job Title: ${employee.jobTitle}\n`;
-        }
-        if (employee.location && employee.location !== 'Not specified') {
-            result += `   Location: ${employee.location}\n`;
-        }
-        if (employee.industry && employee.industry !== 'Not specified') {
-            result += `   Industry: ${employee.industry}\n`;
-        }
-        if (employee.linkedinUrl) {
-            result += `   LinkedIn: ${employee.linkedinUrl}\n`;
-        }
-        result += `\n`;
-    });
-    
-    return result.trim();
+       function formatEmployeesData(employeesArray) {
+    return employeesArray; 
 }
 
 
@@ -2309,6 +2364,46 @@ function formatLinkedInCompanyDataBulk(data) {
                 </div>
             `;
         }
+
+      // Description
+if (linkedInFields.description && linkedInFields.description !== 'Not specified') {
+    html += `
+        <div class="result-item">
+            <div class="result-label">Description</div>
+            <div class="result-value">${linkedInFields.description}</div>
+        </div>
+    `;
+}
+
+// Company Size
+if (linkedInFields.size && linkedInFields.size !== 'Not specified') {
+    html += `
+        <div class="result-item">
+            <div class="result-label">Company Size</div>
+            <div class="result-value">${linkedInFields.size}</div>
+        </div>
+    `;
+}
+
+// Founded
+if (linkedInFields.founded && linkedInFields.founded !== 'Not specified') {
+    html += `
+        <div class="result-item">
+            <div class="result-label">Founded</div>
+            <div class="result-value">${linkedInFields.founded}</div>
+        </div>
+    `;
+}
+
+// Specialties
+if (linkedInFields.specialties && linkedInFields.specialties !== 'Not specified') {
+    html += `
+        <div class="result-item">
+            <div class="result-label">Specialties</div>
+            <div class="result-value">${linkedInFields.specialties}</div>
+        </div>
+    `;
+}
         
         // Website
         if (linkedInFields.website && linkedInFields.website !== 'Not found' && linkedInFields.website !== 'Not specified') {
@@ -2385,6 +2480,127 @@ function formatLinkedInCompanyDataBulk(data) {
     }
     
     html += '</div>';
+    
+    resultLink.innerHTML = html;
+    
+    document.getElementById('resultsSection').classList.remove('hidden');
+    document.getElementById('singleResult').classList.remove('hidden');
+    document.getElementById('bulkResults').classList.add('hidden');
+}
+
+    function showSingleResultEmployees(inputData, employeesArray) {
+    const resultText = document.getElementById('resultText');
+    const resultLink = document.getElementById('resultLink');
+    
+    resultText.style.display = 'none';
+    resultLink.innerHTML = '';
+    
+    let html = '<div class="result-card">';
+    
+    // Header
+    html += `
+        <div class="result-header">
+            <h3>Found ${employeesArray.length} Employees ✨</h3>
+            <p>${inputData}</p>
+        </div>
+        <div class="result-grid">
+    `;
+    
+    // Display each employee
+    employeesArray.forEach((employee, index) => {
+        html += `
+            <div class="result-item" style="padding: 1rem; background: var(--gray-50); border-radius: 6px; margin-bottom: 0.5rem;">
+                <div style="font-weight: 600; color: var(--gray-900); margin-bottom: 0.5rem;">
+                    ${index + 1}. ${employee.name || 'Unknown'}
+                </div>
+                <div style="font-size: 0.875rem; color: var(--gray-700); line-height: 1.6;">
+        `;
+        
+        if (employee.jobTitle && employee.jobTitle !== 'Not specified') {
+            html += `<div><strong>Title:</strong> ${employee.jobTitle}</div>`;
+        }
+        if (employee.company && employee.company !== 'Not specified') {
+            html += `<div><strong>Company:</strong> ${employee.company}</div>`;
+        }
+        if (employee.location && employee.location !== 'Not specified') {
+            html += `<div><strong>Location:</strong> ${employee.location}</div>`;
+        }
+        if (employee.industry && employee.industry !== 'Not specified') {
+            html += `<div><strong>Industry:</strong> ${employee.industry}</div>`;
+        }
+        if (employee.linkedinUrl) {
+            html += `<div><strong>LinkedIn:</strong> <a href="${employee.linkedinUrl}" target="_blank">${employee.linkedinUrl}</a></div>`;
+        }
+        
+        html += `
+                </div>
+            </div>
+        `;
+    });
+    
+    html += '</div></div>';
+    
+    resultLink.innerHTML = html;
+    
+    document.getElementById('resultsSection').classList.remove('hidden');
+    document.getElementById('singleResult').classList.remove('hidden');
+    document.getElementById('bulkResults').classList.add('hidden');
+}
+
+  function showSingleResultReactions(inputData, reactionsArray) {
+    const resultText = document.getElementById('resultText');
+    const resultLink = document.getElementById('resultLink');
+    
+    resultText.style.display = 'none';
+    resultLink.innerHTML = '';
+    
+    let html = '<div class="result-card">';
+    
+    // Header
+    html += `
+        <div class="result-header">
+            <h3>Found ${reactionsArray.length} Reactions ✨</h3>
+            <p>${inputData}</p>
+        </div>
+        <div class="result-grid">
+    `;
+    
+    // Display each reaction
+    reactionsArray.forEach((reaction, index) => {
+        html += `
+            <div class="result-item" style="padding: 1rem; background: var(--gray-50); border-radius: 6px; margin-bottom: 0.5rem;">
+                <div style="font-weight: 600; color: var(--gray-900); margin-bottom: 0.5rem;">
+                    ${index + 1}. ${reaction.name || 'Unknown'}
+                </div>
+                <div style="font-size: 0.875rem; color: var(--gray-700); line-height: 1.6;">
+        `;
+        
+        if (reaction.jobTitle && reaction.jobTitle !== 'Not specified') {
+            html += `<div><strong>Title:</strong> ${reaction.jobTitle}</div>`;
+        }
+        if (reaction.company && reaction.company !== 'Not specified') {
+            html += `<div><strong>Company:</strong> ${reaction.company}</div>`;
+        }
+        if (reaction.location && reaction.location !== 'Not specified') {
+            html += `<div><strong>Location:</strong> ${reaction.location}</div>`;
+        }
+        if (reaction.industry && reaction.industry !== 'Not specified') {
+            html += `<div><strong>Industry:</strong> ${reaction.industry}</div>`;
+        }
+        if (reaction.headline && reaction.headline !== 'Not specified') {
+            html += `<div><strong>Headline:</strong> ${reaction.headline}</div>`;
+        }
+        if (reaction.linkedinUrl) {
+            html += `<div><strong>LinkedIn:</strong> <a href="${reaction.linkedinUrl}" target="_blank">${reaction.linkedinUrl}</a></div>`;
+        }
+        
+        html += `
+                </div>
+            </div>
+        `;
+    });
+    
+    html += '</div></div>';
     
     resultLink.innerHTML = html;
     
@@ -2524,14 +2740,17 @@ function formatLinkedInCompanyDataBulk(data) {
             reader.readAsText(file);
         }
 
-        function parseCSV(csvText) {
+      function parseCSV(csvText) {
     const lines = csvText.split('\n').filter(line => line.trim());
     if (lines.length < 2) {
         showAlert('CSV must contain header and data rows.', 'error');
         return;
     }
 
-    const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+    // Clean headers but keep original for display, create lowercase version for matching
+    const rawHeaders = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+    const headers = rawHeaders.map(h => h.toLowerCase().replace(/\s+/g, ' ').trim());
+    
     csvData = [];
 
     const config = dataConfigurations[currentInputType];
@@ -2540,45 +2759,122 @@ function formatLinkedInCompanyDataBulk(data) {
         return;
     }
 
+    // More comprehensive header variations (all in lowercase for matching)
     const possibleHeaders = {
-        'company_name': ['company_name', 'company name', 'company', 'name'],
-        'linkedin_company': ['linkedin_company', 'linkedin company', 'company_url', 'linkedin_url'],
-        'linkedin_profile': ['linkedin_profile', 'profile_url', 'linkedin_url', 'profile'],
-        'linkedin_post': ['linkedin_post', 'post_url', 'linkedin_post_url', 'post'],
-        'email': ['email', 'company_email', 'company email'],
-        'lead_full_name': ['lead_full_name', 'full_name', 'name', 'lead name', 'contact name'],
+        'company_name': ['company_name', 'company name', 'company', 'name', 'companyname'],
+        'linkedin_company': [
+            'linkedin_company',
+            'linkedin company',
+            'company_url',
+            'linkedin_url',
+            'linkedin company url',
+            'linkedin company page',
+            'company linkedin',
+            'company linkedin url',
+            'company url',
+            'company page',
+            'linkedin page',
+            'linkedincompany',
+            'linkedincompanyurl',
+            'company linkedin page'
+        ],
+        'linkedin_profile': [
+            'linkedin_profile',
+            'profile_url',
+            'linkedin_url',
+            'profile',
+            'linkedin profile url',
+            'linkedin profile page',
+            'profile linkedin',
+            'linkedinprofile',
+            'linkedinprofileurl'
+        ],
+        'linkedin_post': [
+            'linkedin_post',
+            'post_url',
+            'linkedin_post_url',
+            'post',
+            'linkedin post url',
+            'post linkedin',
+            'linkedinpost',
+            'linkedinposturl'
+        ],
+        'email': ['email', 'company_email', 'company email', 'e-mail', 'e mail', 'companyemail'],
+        'lead_full_name': [
+            'lead_full_name',
+            'full_name',
+            'name',
+            'lead name',
+            'contact name',
+            'fullname',
+            'lead',
+            'contact',
+            'leadfullname'
+        ],
     };
 
     const searchHeaders = possibleHeaders[currentInputType] || [];
-    const dataIdx = headers.findIndex(h => 
-        searchHeaders.some(search => h.toLowerCase().includes(search.toLowerCase()))
-    );
+    
+    // Case-insensitive matching
+    const dataIdx = headers.findIndex(h => {
+        const normalizedHeader = h.toLowerCase().replace(/\s+/g, ' ').trim();
+        
+        return searchHeaders.some(search => {
+            const normalizedSearch = search.toLowerCase().replace(/\s+/g, ' ').trim();
+            
+            // Check exact match
+            if (normalizedHeader === normalizedSearch) return true;
+            
+            // Check if header contains the search term
+            if (normalizedHeader.includes(normalizedSearch)) return true;
+            
+            // Check if search term contains the header (for shorter headers)
+            if (normalizedSearch.includes(normalizedHeader) && normalizedHeader.length > 3) return true;
+            
+            // Check without spaces/underscores
+            const headerNoSpaces = normalizedHeader.replace(/[\s_-]/g, '');
+            const searchNoSpaces = normalizedSearch.replace(/[\s_-]/g, '');
+            if (headerNoSpaces === searchNoSpaces) return true;
+            if (headerNoSpaces.includes(searchNoSpaces) && searchNoSpaces.length > 3) return true;
+            if (searchNoSpaces.includes(headerNoSpaces) && headerNoSpaces.length > 3) return true;
+            
+            return false;
+        });
+    });
     
     if (dataIdx === -1) {
-        showAlert(`CSV must contain a column for ${config.label.toLowerCase().replace('enter ', '')}.`, 'error');
+        // Show helpful error message with what was found
+        console.log('Available headers:', rawHeaders);
+        console.log('Normalized headers:', headers);
+        console.log('Looking for headers matching:', searchHeaders);
+        showAlert(
+            `CSV must contain a column for ${config.label.toLowerCase().replace('enter ', '')}. ` +
+            `Found columns: "${rawHeaders.join('", "')}"`, 
+            'error'
+        );
         return;
     }
 
+    // Parse data using the correct column index
     for (let i = 1; i < lines.length; i++) {
         const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
-        if (values[dataIdx]) {
-            csvData.push({ inputData: values[dataIdx] });
+        if (values[dataIdx] && values[dataIdx].trim()) {
+            csvData.push({ inputData: values[dataIdx].trim() });
         }
     }
 
     if (csvData.length === 0) {
-        showAlert('No valid data found.', 'error');
+        showAlert('No valid data found in the selected column.', 'error');
         return;
     }
 
-    if (csvData.length > 500) {
-        showAlert(`Too many entries (${csvData.length}). Maximum is 500.`, 'error');
+    if (csvData.length > 10000) {
+        showAlert(`Too many entries (${csvData.length}). Maximum is 10000.`, 'error');
         return;
     }
 
     showPreview();
 }
-
         function showPreview() {
     const preview = csvData.slice(0, 5);
     let html = '<div style="background: var(--gray-50); padding: 0.75rem; border-radius: 6px; font-size: 0.875rem;">';
@@ -2611,12 +2907,27 @@ function formatLinkedInCompanyDataBulk(data) {
             if (percent >= 100) {
                 setTimeout(() => {
                     document.getElementById('progressContainer').classList.add('hidden');
-                }, 500);
+                }, 10000);
             }
         }
 
     function initializeBulkResultsTable() {
     let html = '';
+    
+    // Handle Employee Count table
+    if (currentOutputType === 'employee_count') {
+        const config = dataConfigurations[currentInputType];
+        html = `<table class="results-table">
+            <thead>
+                <tr>
+                    <th>${config.label.replace('Enter ', '')}</th>
+                    <th>Employee Count</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>`;
+    }
     
     if (currentInputType === 'linkedin_post' && currentOutputType === 'reactions') {
     html = `<table class="results-table">
@@ -2689,8 +3000,44 @@ function generateCombinationType(inputType, outputType) {
 function updateBulkResultsTable() {
     let html = '';
     
-    // Handle LinkedIn Post Reactions with detailed table
-    // Handle LinkedIn Post Reactions with detailed table
+    // Handle Employee Count results
+    if (currentOutputType === 'employee_count') {
+        const config = dataConfigurations[currentInputType];
+        html = `<table class="results-table">
+            <thead>
+                <tr>
+                    <th>${config.label.replace('Enter ', '')}</th>
+                    <th>Employee Count</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>`;
+
+        bulkResults.forEach(row => {
+            let statusClass = '';
+            let statusText = row.status;
+            
+            if (row.status === 'Found') {
+                statusClass = 'status-success';
+            } else if (row.status === 'Not found') {
+                statusClass = 'status-error';
+            } else if (row.status === 'Error') {
+                statusClass = 'status-error';
+            } else if (row.status === 'Processing') {
+                statusClass = 'status-processing';
+                statusText = 'Processing...';
+            }
+
+            html += `<tr>
+                <td data-label="${config.label.replace('Enter ', '')}">${row.inputData}</td>
+                <td data-label="Employee Count">${row.result}</td>
+                <td data-label="Status"><span class="status-badge ${statusClass}">${statusText}</span></td>
+            </tr>`;
+        });
+
+        html += '</tbody></table>';
+    }
+  
 if (currentInputType === 'linkedin_post' && currentOutputType === 'reactions') {
     html = `<table class="results-table">
         <thead>
@@ -2864,7 +3211,17 @@ if (currentInputType === 'linkedin_post' && currentOutputType === 'reactions') {
     const config = dataConfigurations[currentInputType];
     let csvContent = '';
 
-    // Handle LinkedIn Post Reactions export
+    // Handle Employee Count export
+    if (currentOutputType === 'employee_count') {
+        csvContent = `${config.label.replace('Enter ', '')},Employee Count,Status\n`;
+        
+        bulkResults.forEach(row => {
+            const finalStatus = row.status === 'Processing' ? 'Not found' : row.status;
+            const employeeCount = row.employeeCount || 'Not found';
+            csvContent += `"${row.inputData}","${employeeCount}","${finalStatus}"\n`;
+        });
+    }
+   
     if (currentInputType === 'linkedin_post' && currentOutputType === 'reactions') {
         csvContent = 'Name,Job Title,Company,Location,Industry,Website,Email,Education,Headline,Comment,LinkedIn URL,Verified\n';
         
