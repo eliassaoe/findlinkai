@@ -1186,7 +1186,7 @@
           id: id,
           iso: date.toISOString(),
           unix: date.getTime(),
-          formatted: date.toLocaleString('fr-FR', {
+          formatted: date.toLocaleString('en-US', {
             weekday: 'long',
             year: 'numeric',
             month: 'long',
@@ -1194,13 +1194,14 @@
             hour: '2-digit',
             minute: '2-digit',
             second: '2-digit',
-            timeZone: 'Europe/Paris'
+            timeZone: 'UTC',
+            timeZoneName: 'short'
           })
         };
       } catch (e) {
         return {
           success: false,
-          error: "Impossible de décoder l'ID",
+          error: "Unable to decode ID",
           details: e.message
         };
       }
@@ -1212,7 +1213,7 @@
       if (!id) {
         return {
           success: false,
-          error: "Impossible d'extraire l'ID"
+          error: "Unable to extract ID"
         };
       }
       
@@ -1229,15 +1230,15 @@
       const diffWeek = Math.floor(diffDay / 7);
       const diffMonth = Math.floor(diffDay / 30);
       
-      if (diffSec < 60) return `Il y a ${diffSec} seconde${diffSec > 1 ? 's' : ''}`;
-      if (diffMin < 60) return `Il y a ${diffMin} minute${diffMin > 1 ? 's' : ''}`;
-      if (diffHour < 24) return `Il y a ${diffHour} heure${diffHour > 1 ? 's' : ''}`;
-      if (diffDay < 7) return `Il y a ${diffDay} jour${diffDay > 1 ? 's' : ''}`;
-      if (diffWeek < 4) return `Il y a ${diffWeek} semaine${diffWeek > 1 ? 's' : ''}`;
-      if (diffMonth < 12) return `Il y a ${diffMonth} mois`;
+      if (diffSec < 60) return `${diffSec} second${diffSec > 1 ? 's' : ''} ago`;
+      if (diffMin < 60) return `${diffMin} minute${diffMin > 1 ? 's' : ''} ago`;
+      if (diffHour < 24) return `${diffHour} hour${diffHour > 1 ? 's' : ''} ago`;
+      if (diffDay < 7) return `${diffDay} day${diffDay > 1 ? 's' : ''} ago`;
+      if (diffWeek < 4) return `${diffWeek} week${diffWeek > 1 ? 's' : ''} ago`;
+      if (diffMonth < 12) return `${diffMonth} month${diffMonth > 1 ? 's' : ''} ago`;
       
       const diffYear = Math.floor(diffMonth / 12);
-      return `Il y a ${diffYear} an${diffYear > 1 ? 's' : ''}`;
+      return `${diffYear} year${diffYear > 1 ? 's' : ''} ago`;
     }
 
     function initApp() {
