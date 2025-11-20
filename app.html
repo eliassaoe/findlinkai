@@ -501,6 +501,17 @@
     transition: transform 0.3s ease;
     box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
 }
+      .result-grid > div[style*="border-top"] h4 {
+    font-size: 1rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.result-item[style*="grid-column"] {
+    grid-column: 1/-1;
+}
 
 /* Position chat widget en bas à droite */
 #n8n-chat {
@@ -2255,7 +2266,7 @@ function formatLinkedInCompanyDataBulk(data) {
             userToken = token;
         }
 
-        function showSingleResult(inputData, result) {
+function showSingleResult(inputData, result) {
     const resultText = document.getElementById('resultText');
     const resultLink = document.getElementById('resultLink');
     const singleResultDiv = document.getElementById('singleResult');
@@ -2304,22 +2315,17 @@ function formatLinkedInCompanyDataBulk(data) {
         // Show ALL LinkedIn fields
         html += '<div class="result-grid">';
         
+        // === PERSONAL INFORMATION SECTION ===
+        if (linkedInFields.name || linkedInFields.jobTitle || linkedInFields.headline) {
+            html += '<div style="grid-column: 1/-1; margin-top: 1rem; padding-top: 1rem; border-top: 2px solid var(--primary);"><h4 style="color: var(--primary); margin-bottom: 0.5rem;">👤 Personal Information</h4></div>';
+        }
+        
         // Name
         if (linkedInFields.name) {
             html += `
                 <div class="result-item">
                     <div class="result-label">Name</div>
                     <div class="result-value highlight">${linkedInFields.name}</div>
-                </div>
-            `;
-        }
-        
-        // Email - IMPORTANT
-        if (linkedInFields.email && linkedInFields.email !== 'Not found') {
-            html += `
-                <div class="result-item" style="border-left-color: var(--success); background: #ecfdf5;">
-                    <div class="result-label">✉️ Email</div>
-                    <div class="result-value highlight">${linkedInFields.email}</div>
                 </div>
             `;
         }
@@ -2334,12 +2340,12 @@ function formatLinkedInCompanyDataBulk(data) {
             `;
         }
         
-        // Company
-        if (linkedInFields.company && linkedInFields.company !== 'Not specified') {
+        // Headline
+        if (linkedInFields.headline && linkedInFields.headline !== 'Not specified') {
             html += `
                 <div class="result-item">
-                    <div class="result-label">Company</div>
-                    <div class="result-value">${linkedInFields.company}</div>
+                    <div class="result-label">Headline</div>
+                    <div class="result-value">${linkedInFields.headline}</div>
                 </div>
             `;
         }
@@ -2363,56 +2369,6 @@ function formatLinkedInCompanyDataBulk(data) {
                 </div>
             `;
         }
-
-      // Description
-if (linkedInFields.description && linkedInFields.description !== 'Not specified') {
-    html += `
-        <div class="result-item">
-            <div class="result-label">Description</div>
-            <div class="result-value">${linkedInFields.description}</div>
-        </div>
-    `;
-}
-
-// Company Size
-if (linkedInFields.size && linkedInFields.size !== 'Not specified') {
-    html += `
-        <div class="result-item">
-            <div class="result-label">Company Size</div>
-            <div class="result-value">${linkedInFields.size}</div>
-        </div>
-    `;
-}
-
-// Founded
-if (linkedInFields.founded && linkedInFields.founded !== 'Not specified') {
-    html += `
-        <div class="result-item">
-            <div class="result-label">Founded</div>
-            <div class="result-value">${linkedInFields.founded}</div>
-        </div>
-    `;
-}
-
-// Specialties
-if (linkedInFields.specialties && linkedInFields.specialties !== 'Not specified') {
-    html += `
-        <div class="result-item">
-            <div class="result-label">Specialties</div>
-            <div class="result-value">${linkedInFields.specialties}</div>
-        </div>
-    `;
-}
-        
-        // Website
-        if (linkedInFields.website && linkedInFields.website !== 'Not found' && linkedInFields.website !== 'Not specified') {
-            html += `
-                <div class="result-item">
-                    <div class="result-label">Website</div>
-                    <div class="result-value"><a href="https://${linkedInFields.website}" target="_blank">${linkedInFields.website}</a></div>
-                </div>
-            `;
-        }
         
         // Education
         if (linkedInFields.education && linkedInFields.education !== 'Not specified') {
@@ -2424,12 +2380,27 @@ if (linkedInFields.specialties && linkedInFields.specialties !== 'Not specified'
             `;
         }
         
-        // Headline
-        if (linkedInFields.headline && linkedInFields.headline !== 'Not specified') {
+        // === CONTACT INFORMATION SECTION ===
+        if (linkedInFields.email || linkedInFields.website || linkedInFields.linkedinUrl) {
+            html += '<div style="grid-column: 1/-1; margin-top: 1rem; padding-top: 1rem; border-top: 2px solid var(--success);"><h4 style="color: var(--success); margin-bottom: 0.5rem;">📧 Contact Information</h4></div>';
+        }
+        
+        // Email - IMPORTANT
+        if (linkedInFields.email && linkedInFields.email !== 'Not found') {
+            html += `
+                <div class="result-item" style="background: #ecfdf5; border-left: 3px solid var(--success);">
+                    <div class="result-label">✉️ Email</div>
+                    <div class="result-value highlight">${linkedInFields.email}</div>
+                </div>
+            `;
+        }
+        
+        // Website
+        if (linkedInFields.website && linkedInFields.website !== 'Not found' && linkedInFields.website !== 'Not specified') {
             html += `
                 <div class="result-item">
-                    <div class="result-label">Headline</div>
-                    <div class="result-value">${linkedInFields.headline}</div>
+                    <div class="result-label">Website</div>
+                    <div class="result-value"><a href="https://${linkedInFields.website}" target="_blank">${linkedInFields.website}</a></div>
                 </div>
             `;
         }
@@ -2450,6 +2421,81 @@ if (linkedInFields.specialties && linkedInFields.specialties !== 'Not specified'
                 <div class="result-item">
                     <div class="result-label">Verified</div>
                     <div class="result-value">${linkedInFields.verified === 'true' || linkedInFields.verified === true ? '✓ Verified' : 'Not Verified'}</div>
+                </div>
+            `;
+        }
+        
+        // === COMPANY INFORMATION SECTION ===
+        if (linkedInFields.company || linkedInFields.company_description || linkedInFields.company_size || linkedInFields.company_location || linkedInFields.founded || linkedInFields.company_linkedin_url) {
+            html += '<div style="grid-column: 1/-1; margin-top: 1rem; padding-top: 1rem; border-top: 2px solid var(--warning);"><h4 style="color: var(--warning); margin-bottom: 0.5rem;">🏢 Company Information</h4></div>';
+        }
+        
+        // Company Name
+        if (linkedInFields.company && linkedInFields.company !== 'Not specified') {
+            html += `
+                <div class="result-item">
+                    <div class="result-label">Company</div>
+                    <div class="result-value highlight">${linkedInFields.company}</div>
+                </div>
+            `;
+        }
+        
+        // Company Description
+        if (linkedInFields.company_description && linkedInFields.company_description !== 'Not specified') {
+            html += `
+                <div class="result-item" style="grid-column: 1/-1;">
+                    <div class="result-label">Company Description</div>
+                    <div class="result-value">${linkedInFields.company_description}</div>
+                </div>
+            `;
+        }
+        
+        // Company Size
+        if (linkedInFields.company_size && linkedInFields.company_size !== 'Not specified') {
+            html += `
+                <div class="result-item">
+                    <div class="result-label">Company Size</div>
+                    <div class="result-value">${linkedInFields.company_size}</div>
+                </div>
+            `;
+        }
+        
+        // Company Location
+        if (linkedInFields.company_location && linkedInFields.company_location !== 'Not specified') {
+            html += `
+                <div class="result-item">
+                    <div class="result-label">Company Location</div>
+                    <div class="result-value">${linkedInFields.company_location}</div>
+                </div>
+            `;
+        }
+        
+        // Founded Year
+        if (linkedInFields.founded && linkedInFields.founded !== 'Not specified') {
+            html += `
+                <div class="result-item">
+                    <div class="result-label">Founded</div>
+                    <div class="result-value">${linkedInFields.founded}</div>
+                </div>
+            `;
+        }
+        
+        // Company LinkedIn URL
+        if (linkedInFields.company_linkedin_url && linkedInFields.company_linkedin_url !== 'Not specified') {
+            html += `
+                <div class="result-item">
+                    <div class="result-label">Company LinkedIn</div>
+                    <div class="result-value"><a href="${linkedInFields.company_linkedin_url}" target="_blank">${linkedInFields.company_linkedin_url}</a></div>
+                </div>
+            `;
+        }
+        
+        // Company Specialties (si existant)
+        if (linkedInFields.specialties && linkedInFields.specialties !== 'Not specified') {
+            html += `
+                <div class="result-item" style="grid-column: 1/-1;">
+                    <div class="result-label">Specialties</div>
+                    <div class="result-value">${linkedInFields.specialties}</div>
                 </div>
             `;
         }
@@ -3084,40 +3130,47 @@ if (currentInputType === 'linkedin_post' && currentOutputType === 'reactions') {
     html += '</tbody></table>';
 }
     // Handle LinkedIn Profile results with detailed table
-    else if (currentInputType === 'linkedin_profile' && currentOutputType === 'linkedin_info') {
-        html = `<table class="results-table">
-            <thead>
-                <tr>
-                    <th>LinkedIn URL</th>
-                    <th>Name</th>
-                    <th>Job Title</th>
-                    <th>Company</th>
-                    <th>Location</th>
-                </tr>
-            </thead>
-            <tbody>`;
+   // Handle LinkedIn Profile results with detailed table
+else if (currentInputType === 'linkedin_profile' && currentOutputType === 'linkedin_info') {
+    html = `<table class="results-table">
+        <thead>
+            <tr>
+                <th>LinkedIn URL</th>
+                <th>Name</th>
+                <th>Job Title</th>
+                <th>Company</th>
+                <th>Location</th>
+                <th>Email</th>
+                <th>Company Size</th>
+                <th>Founded</th>
+            </tr>
+        </thead>
+        <tbody>`;
 
-        bulkResults.forEach(row => {
-            const data = row.rawData || {};
-            const linkedinUrlDisplay = row.inputData.length > 30 
-                ? `${row.inputData.substring(0, 30)}...` 
-                : row.inputData;
+    bulkResults.forEach(row => {
+        const data = row.rawData || {};
+        const linkedinUrlDisplay = row.inputData.length > 30 
+            ? `${row.inputData.substring(0, 30)}...` 
+            : row.inputData;
 
-            html += `<tr>
-                <td data-label="LinkedIn URL">
-                    <a href="${row.inputData}" target="_blank" style="color: var(--primary); text-decoration: none;">
-                        ${linkedinUrlDisplay}
-                    </a>
-                </td>
-                <td data-label="Name">${data.name || 'Not found'}</td>
-                <td data-label="Job Title">${data.jobTitle || 'Not found'}</td>
-                <td data-label="Company">${data.company || 'Not found'}</td>
-                <td data-label="Location">${data.location || 'Not found'}</td>
-            </tr>`;
-        });
+        html += `<tr>
+            <td data-label="LinkedIn URL">
+                <a href="${row.inputData}" target="_blank" style="color: var(--primary); text-decoration: none;">
+                    ${linkedinUrlDisplay}
+                </a>
+            </td>
+            <td data-label="Name">${data.name || 'Not found'}</td>
+            <td data-label="Job Title">${data.jobTitle || 'Not found'}</td>
+            <td data-label="Company">${data.company || 'Not found'}</td>
+            <td data-label="Location">${data.location || 'Not found'}</td>
+            <td data-label="Email">${data.email || 'Not found'}</td>
+            <td data-label="Company Size">${data.company_size || 'Not found'}</td>
+            <td data-label="Founded">${data.founded || 'Not found'}</td>
+        </tr>`;
+    });
 
-        html += '</tbody></table>';
-    } 
+    html += '</tbody></table>';
+}
     // Handle LinkedIn Company results with detailed table
     else if (currentInputType === 'linkedin_company' && currentOutputType === 'linkedin_info') {
         html = `<table class="results-table">
@@ -3252,33 +3305,38 @@ if (currentInputType === 'linkedin_post' && currentOutputType === 'reactions') {
             }
         });
     }
-    // Handle LinkedIn Profile data export with detailed columns
-    else if (currentInputType === 'linkedin_profile' && currentOutputType === 'linkedin_info') {
-        csvContent = 'LinkedIn URL,Name,Job Title,Company,Location,Industry,Website,Email,Education,Headline,Status\n';
-        
-        bulkResults.forEach(row => {
-            const data = row.rawData || {};
-            const escapeCSV = (str) => {
-                if (!str || str === 'Not found' || str === 'Error' || str === 'Processing...') return str;
-                return `"${str.toString().replace(/"/g, '""')}"`;
-            };
+   // Handle LinkedIn Profile data export with detailed columns
+else if (currentInputType === 'linkedin_profile' && currentOutputType === 'linkedin_info') {
+    csvContent = 'LinkedIn URL,Name,Job Title,Company,Location,Industry,Website,Email,Education,Headline,Company Description,Company Size,Company Location,Founded,Company LinkedIn URL,Status\n';
+    
+    bulkResults.forEach(row => {
+        const data = row.rawData || {};
+        const escapeCSV = (str) => {
+            if (!str || str === 'Not found' || str === 'Error' || str === 'Processing...' || str === 'Not specified') return str;
+            return `"${str.toString().replace(/"/g, '""')}"`;
+        };
 
-            const csvRow = [
-                escapeCSV(row.inputData),
-                escapeCSV(data.name || 'Not found'),
-                escapeCSV(data.jobTitle || 'Not found'),
-                escapeCSV(data.company || 'Not found'),
-                escapeCSV(data.location || 'Not found'),
-                escapeCSV(data.industry || 'Not found'),
-                escapeCSV(data.website || 'Not found'),
-                escapeCSV(data.email || 'Not found'),
-                escapeCSV(data.education || 'Not found'),
-                escapeCSV(data.headline || 'Not found')
-            ];
-            
-            csvContent += csvRow.join(',') + '\n';
-        });
-    } 
+        const csvRow = [
+            escapeCSV(row.inputData),
+            escapeCSV(data.name || 'Not found'),
+            escapeCSV(data.jobTitle || 'Not found'),
+            escapeCSV(data.company || 'Not found'),
+            escapeCSV(data.location || 'Not found'),
+            escapeCSV(data.industry || 'Not found'),
+            escapeCSV(data.website || 'Not found'),
+            escapeCSV(data.email || 'Not found'),
+            escapeCSV(data.education || 'Not found'),
+            escapeCSV(data.headline || 'Not found'),
+            escapeCSV(data.company_description || 'Not found'),
+            escapeCSV(data.company_size || 'Not found'),
+            escapeCSV(data.company_location || 'Not found'),
+            escapeCSV(data.founded || 'Not found'),
+            escapeCSV(data.company_linkedin_url || 'Not found')
+        ];
+        
+        csvContent += csvRow.join(',') + '\n';
+    });
+}
     // Handle LinkedIn Company data export with detailed columns
     else if (currentInputType === 'linkedin_company' && currentOutputType === 'linkedin_info') {
         csvContent = 'LinkedIn URL,Company Name,Industry,Company Size,Location,Description,Website,Specialties,Status\n';
