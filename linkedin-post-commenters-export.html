@@ -1031,7 +1031,7 @@
         <div class="footer-section">
           <h4 class="footer-heading">Support</h4>
           <ul class="footer-links">
-            <li><a href="mailto:support@linkfinderai.com" title="Email support">Contact Support</a></li>
+            <li><a href="/cdn-cgi/l/email-protection#afdcdadfdfc0dddbefc3c6c1c4c9c6c1cbcaddcec681ccc0c2" title="Email support">Contact Support</a></li>
             <li><a href="https://linkfinderai.com/privacy" title="Privacy policy">Privacy Policy</a></li>
             <li><a href="https://linkfinderai.com/terms" title="Terms of service">Terms of Service</a></li>
             <li><a href="https://linkfinderai.com/about-us" title="About us">About Us</a></li>
@@ -1046,7 +1046,7 @@
     </div>
   </footer>
 
-  <script>
+  <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
     let searchCount = 0;
     let maxFreeSearches = 5;
 
@@ -1216,16 +1216,29 @@
         let commenterHTML = '';
         
         data.commenters.forEach(commenter => {
-          const commenterInitials = commenter.name 
-            ? commenter.name.split(' ').map(word => word[0]).join('').substring(0, 2).toUpperCase() 
+          // Extract name and title from headline/title field
+          let commenterName = commenter.name || 'Unknown Commenter';
+          let commenterTitle = commenter.title || commenter.headline || '';
+          
+          // If name is not provided, try to extract from headline/title
+          if (commenterName === 'Unknown Commenter' && commenterTitle) {
+            const parts = commenterTitle.split(' - ');
+            if (parts.length > 1) {
+              commenterName = parts[0].trim();
+              commenterTitle = parts.slice(1).join(' - ').trim();
+            }
+          }
+          
+          const commenterInitials = commenterName && commenterName !== 'Unknown Commenter'
+            ? commenterName.split(' ').map(word => word[0]).join('').substring(0, 2).toUpperCase() 
             : 'CO';
           
           commenterHTML += `
             <div class="commenter-item">
               <div class="commenter-avatar">${commenterInitials}</div>
               <div class="commenter-info">
-                <h4>${commenter.name || 'Unknown Commenter'}</h4>
-                <div class="commenter-title">${commenter.headline || commenter.title || 'Position not specified'}</div>
+                <h4>${commenterName}</h4>
+                <div class="commenter-title">${commenterTitle || 'Position not specified'}</div>
                 ${commenter.comment ? `<div class="comment-text">"${commenter.comment}"</div>` : ''}
               </div>
               ${commenter.profileUrl ? `<a href="${commenter.profileUrl}" target="_blank" class="commenter-link">View Profile</a>` : ''}
@@ -1254,12 +1267,4 @@
       
       if (!isActive) {
         button.classList.add('active');
-        answer.classList.add('show');
-      }
-    }
-
-    // Initialize app when DOM is loaded
-    document.addEventListener('DOMContentLoaded', initApp);
-  </script>
-</body>
-</html>
+        answer.classList.ad
