@@ -2547,7 +2547,7 @@ if (linkedInFields.specialties && linkedInFields.specialties !== 'Not specified'
     document.getElementById('bulkResults').classList.add('hidden');
 }
 
-  function showSingleResultReactions(inputData, reactionsArray) {
+ function showSingleResultReactions(inputData, reactionsArray) {
     const resultText = document.getElementById('resultText');
     const resultLink = document.getElementById('resultLink');
     
@@ -2565,33 +2565,26 @@ if (linkedInFields.specialties && linkedInFields.specialties !== 'Not specified'
         <div class="result-grid">
     `;
     
-    // Display each reaction
+    // Display each reaction avec le format réel
     reactionsArray.forEach((reaction, index) => {
+        const name = reaction.title || reaction.name || 'Unknown';
+        const linkedinUrl = reaction.link || reaction.linkedinUrl || '#';
+        const snippet = reaction.snippet || '';
+        
         html += `
             <div class="result-item" style="padding: 1rem; background: var(--gray-50); border-radius: 6px; margin-bottom: 0.5rem;">
                 <div style="font-weight: 600; color: var(--gray-900); margin-bottom: 0.5rem;">
-                    ${index + 1}. ${reaction.name || 'Unknown'}
+                    ${index + 1}. ${name}
                 </div>
                 <div style="font-size: 0.875rem; color: var(--gray-700); line-height: 1.6;">
         `;
         
-        if (reaction.jobTitle && reaction.jobTitle !== 'Not specified') {
-            html += `<div><strong>Title:</strong> ${reaction.jobTitle}</div>`;
+        if (snippet) {
+            html += `<div><strong>Info:</strong> ${snippet}</div>`;
         }
-        if (reaction.company && reaction.company !== 'Not specified') {
-            html += `<div><strong>Company:</strong> ${reaction.company}</div>`;
-        }
-        if (reaction.location && reaction.location !== 'Not specified') {
-            html += `<div><strong>Location:</strong> ${reaction.location}</div>`;
-        }
-        if (reaction.industry && reaction.industry !== 'Not specified') {
-            html += `<div><strong>Industry:</strong> ${reaction.industry}</div>`;
-        }
-        if (reaction.headline && reaction.headline !== 'Not specified') {
-            html += `<div><strong>Headline:</strong> ${reaction.headline}</div>`;
-        }
-        if (reaction.linkedinUrl) {
-            html += `<div><strong>LinkedIn:</strong> <a href="${reaction.linkedinUrl}" target="_blank">${reaction.linkedinUrl}</a></div>`;
+        
+        if (linkedinUrl && linkedinUrl !== '#') {
+            html += `<div><strong>LinkedIn:</strong> <a href="${linkedinUrl}" target="_blank">${linkedinUrl}</a></div>`;
         }
         
         html += `
@@ -3000,39 +2993,35 @@ function generateCombinationType(inputType, outputType) {
 function updateBulkResultsTable() {
     let html = '';
     
-    // Handle Employee Count results
-    if (currentOutputType === 'employee_count') {
-        const config = dataConfigurations[currentInputType];
+    // ... autres conditions ...
+    
+    if (currentInputType === 'linkedin_post' && currentOutputType === 'reactions') {
         html = `<table class="results-table">
             <thead>
                 <tr>
-                    <th>${config.label.replace('Enter ', '')}</th>
-                    <th>Employee Count</th>
-                    <th>Status</th>
+                    <th>Name / Title</th>
+                    <th>LinkedIn Profile</th>
+                    <th>Snippet</th>
                 </tr>
             </thead>
             <tbody>`;
 
-        bulkResults.forEach(row => {
-            let statusClass = '';
-            let statusText = row.status;
-            
-            if (row.status === 'Found') {
-                statusClass = 'status-success';
-            } else if (row.status === 'Not found') {
-                statusClass = 'status-error';
-            } else if (row.status === 'Error') {
-                statusClass = 'status-error';
-            } else if (row.status === 'Processing') {
-                statusClass = 'status-processing';
-                statusText = 'Processing...';
+        bulkResults.forEach(postResult => {
+            if (postResult.reactions && Array.isArray(postResult.reactions)) {
+                postResult.reactions.forEach(reaction => {
+                    const name = reaction.title || reaction.name || 'Not specified';
+                    const linkedinUrl = reaction.link || reaction.linkedinUrl || '#';
+                    const snippet = reaction.snippet || 'N/A';
+                    
+                    html += `<tr>
+                        <td data-label="Name / Title">${name}</td>
+                        <td data-label="LinkedIn Profile">
+                            ${linkedinUrl !== '#' ? `<a href="${linkedinUrl}" target="_blank" style="color: var(--primary); text-decoration: none;">${linkedinUrl.substring(0, 50)}...</a>` : 'Not specified'}
+                        </td>
+                        <td data-label="Snippet">${snippet.substring(0, 100)}${snippet.length > 100 ? '...' : ''}</td>
+                    </tr>`;
+                });
             }
-
-            html += `<tr>
-                <td data-label="${config.label.replace('Enter ', '')}">${row.inputData}</td>
-                <td data-label="Employee Count">${row.result}</td>
-                <td data-label="Status"><span class="status-badge ${statusClass}">${statusText}</span></td>
-            </tr>`;
         });
 
         html += '</tbody></table>';
@@ -3222,37 +3211,32 @@ if (currentInputType === 'linkedin_post' && currentOutputType === 'reactions') {
         });
     }
    
-    if (currentInputType === 'linkedin_post' && currentOutputType === 'reactions') {
-        csvContent = 'Name,Job Title,Company,Location,Industry,Website,Email,Education,Headline,Comment,LinkedIn URL,Verified\n';
-        
-        bulkResults.forEach(postResult => {
-            if (postResult.reactions && Array.isArray(postResult.reactions)) {
-                postResult.reactions.forEach(reaction => {
-                    const escapeCSV = (str) => {
-                        if (!str || str === 'Not found' || str === 'Not specified') return str;
-                        return `"${str.toString().replace(/"/g, '""')}"`;
-                    };
+   if (currentInputType === 'linkedin_post' && currentOutputType === 'reactions') {
+    csvContent = 'Name/Title,LinkedIn URL,Snippet\n';
+    
+    bulkResults.forEach(postResult => {
+        if (postResult.reactions && Array.isArray(postResult.reactions)) {
+            postResult.reactions.forEach(reaction => {
+                const escapeCSV = (str) => {
+                    if (!str) return 'Not specified';
+                    return `"${str.toString().replace(/"/g, '""')}"`;
+                };
 
-                    const csvRow = [
-                        escapeCSV(reaction.name || 'Not specified'),
-                        escapeCSV(reaction.jobTitle || 'Not specified'),
-                        escapeCSV(reaction.company || 'Not specified'),
-                        escapeCSV(reaction.location || 'Not specified'),
-                        escapeCSV(reaction.industry || 'Not specified'),
-                        escapeCSV(reaction.website || 'Not specified'),
-                        escapeCSV(reaction.email || 'Not specified'),
-                        escapeCSV(reaction.education || 'Not specified'),
-                        escapeCSV(reaction.headline || 'Not specified'),
-                        escapeCSV(reaction.comment || 'Not specified'),
-                        escapeCSV(reaction.linkedinUrl || 'Not specified'),
-                        escapeCSV(reaction.verified || 'Not specified')
-                    ];
-                    
-                    csvContent += csvRow.join(',') + '\n';
-                });
-            }
-        });
-    }
+                const name = reaction.title || reaction.name || 'Not specified';
+                const linkedinUrl = reaction.link || reaction.linkedinUrl || 'Not specified';
+                const snippet = reaction.snippet || 'Not specified';
+
+                const csvRow = [
+                    escapeCSV(name),
+                    escapeCSV(linkedinUrl),
+                    escapeCSV(snippet)
+                ];
+                
+                csvContent += csvRow.join(',') + '\n';
+            });
+        }
+    });
+}
     // Handle LinkedIn Profile data export with detailed columns
     else if (currentInputType === 'linkedin_profile' && currentOutputType === 'linkedin_info') {
         csvContent = 'LinkedIn URL,Name,Job Title,Company,Location,Industry,Website,Email,Education,Headline,Status\n';
