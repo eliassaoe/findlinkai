@@ -1869,6 +1869,15 @@ async function fetchWithTimeout(url, options = {}, timeout = 180000) { // 3 minu
             }
         }
 
+      function parseReactionTitle(title) {
+    if (!title) return { name: 'Unknown', jobInfo: '' };
+    const parts = title.split(' - ');
+    return { 
+        name: parts[0].trim(), 
+        jobInfo: parts.slice(1).join(' - ').trim() 
+    };
+}
+
   async function enrichData(event) {
     event.preventDefault();
     
@@ -2592,7 +2601,7 @@ function showSingleResult(inputData, result) {
     document.getElementById('bulkResults').classList.add('hidden');
 }
 
-  function showSingleResultReactions(inputData, reactionsArray) {
+ function showSingleResultReactions(inputData, reactionsArray) {
     const resultText = document.getElementById('resultText');
     const resultLink = document.getElementById('resultLink');
     
@@ -2610,33 +2619,26 @@ function showSingleResult(inputData, result) {
         <div class="result-grid">
     `;
     
-    // Display each reaction
+    // Display each reaction with the correct structure
     reactionsArray.forEach((reaction, index) => {
+        const parsed = parseReactionTitle(reaction.title);
+        
         html += `
             <div class="result-item" style="padding: 1rem; background: var(--gray-50); border-radius: 6px; margin-bottom: 0.5rem;">
                 <div style="font-weight: 600; color: var(--gray-900); margin-bottom: 0.5rem;">
-                    ${index + 1}. ${reaction.name || 'Unknown'}
+                    ${index + 1}. ${parsed.name}
                 </div>
                 <div style="font-size: 0.875rem; color: var(--gray-700); line-height: 1.6;">
         `;
         
-        if (reaction.jobTitle && reaction.jobTitle !== 'Not specified') {
-            html += `<div><strong>Title:</strong> ${reaction.jobTitle}</div>`;
+        if (parsed.jobInfo) {
+            html += `<div><strong>Title:</strong> ${parsed.jobInfo}</div>`;
         }
-        if (reaction.company && reaction.company !== 'Not specified') {
-            html += `<div><strong>Company:</strong> ${reaction.company}</div>`;
+        if (reaction.snippet) {
+            html += `<div><strong>Info:</strong> ${reaction.snippet}</div>`;
         }
-        if (reaction.location && reaction.location !== 'Not specified') {
-            html += `<div><strong>Location:</strong> ${reaction.location}</div>`;
-        }
-        if (reaction.industry && reaction.industry !== 'Not specified') {
-            html += `<div><strong>Industry:</strong> ${reaction.industry}</div>`;
-        }
-        if (reaction.headline && reaction.headline !== 'Not specified') {
-            html += `<div><strong>Headline:</strong> ${reaction.headline}</div>`;
-        }
-        if (reaction.linkedinUrl) {
-            html += `<div><strong>LinkedIn:</strong> <a href="${reaction.linkedinUrl}" target="_blank">${reaction.linkedinUrl}</a></div>`;
+        if (reaction.link) {
+            html += `<div><strong>LinkedIn:</strong> <a href="${reaction.link}" target="_blank">${reaction.link}</a></div>`;
         }
         
         html += `
@@ -2980,14 +2982,8 @@ function showSingleResult(inputData, result) {
             <tr>
                 <th>Name</th>
                 <th>Job Title</th>
-                <th>Company</th>
-                <th>Location</th>
-                <th>Industry</th>
-                <th>Website</th>
-                <th>Email</th>
-                <th>Education</th>
-                <th>Headline</th>
-                <th>LinkedIn</th>
+                <th>Profile Info</th>
+                <th>LinkedIn URL</th>
             </tr>
         </thead>
         <tbody></tbody>
@@ -3089,14 +3085,8 @@ if (currentInputType === 'linkedin_post' && currentOutputType === 'reactions') {
             <tr>
                 <th>Name</th>
                 <th>Job Title</th>
-                <th>Company</th>
-                <th>Location</th>
-                <th>Industry</th>
-                <th>Website</th>
-                <th>Email</th>
-                <th>Education</th>
-                <th>Headline</th>
-                <th>LinkedIn</th>
+                <th>Profile Info</th>
+                <th>LinkedIn URL</th>
             </tr>
         </thead>
         <tbody>`;
@@ -3105,22 +3095,17 @@ if (currentInputType === 'linkedin_post' && currentOutputType === 'reactions') {
     bulkResults.forEach(postResult => {
         if (postResult.reactions && Array.isArray(postResult.reactions)) {
             postResult.reactions.forEach(reaction => {
-                const linkedinUrlDisplay = reaction.linkedinUrl && reaction.linkedinUrl.length > 30 
-                    ? `${reaction.linkedinUrl.substring(0, 30)}...` 
-                    : (reaction.linkedinUrl || 'N/A');
+                const parsed = parseReactionTitle(reaction.title);
+                const linkedinUrlDisplay = reaction.link && reaction.link.length > 50 
+                    ? `${reaction.link.substring(0, 50)}...` 
+                    : (reaction.link || 'N/A');
 
                 html += `<tr>
-                    <td data-label="Name">${reaction.name || 'Not specified'}</td>
-                    <td data-label="Job Title">${reaction.jobTitle || 'Not specified'}</td>
-                    <td data-label="Company">${reaction.company || 'Not specified'}</td>
-                    <td data-label="Location">${reaction.location || 'Not specified'}</td>
-                    <td data-label="Industry">${reaction.industry || 'Not specified'}</td>
-                    <td data-label="Website">${reaction.website || 'Not specified'}</td>
-                    <td data-label="Email">${reaction.email || 'Not specified'}</td>
-                    <td data-label="Education">${reaction.education || 'Not specified'}</td>
-                    <td data-label="Headline">${reaction.headline ? (reaction.headline.length > 50 ? reaction.headline.substring(0, 50) + '...' : reaction.headline) : 'Not specified'}</td>
-                    <td data-label="LinkedIn">
-                        ${reaction.linkedinUrl ? `<a href="${reaction.linkedinUrl}" target="_blank" style="color: var(--primary); text-decoration: none;">${linkedinUrlDisplay}</a>` : 'Not specified'}
+                    <td data-label="Name">${parsed.name}</td>
+                    <td data-label="Job Title">${parsed.jobInfo || 'Not specified'}</td>
+                    <td data-label="Profile Info">${reaction.snippet || 'Not specified'}</td>
+                    <td data-label="LinkedIn URL">
+                        ${reaction.link ? `<a href="${reaction.link}" target="_blank" style="color: var(--primary); text-decoration: none;">${linkedinUrlDisplay}</a>` : 'Not specified'}
                     </td>
                 </tr>`;
             });
@@ -3129,6 +3114,7 @@ if (currentInputType === 'linkedin_post' && currentOutputType === 'reactions') {
 
     html += '</tbody></table>';
 }
+
     // Handle LinkedIn Profile results with detailed table
    // Handle LinkedIn Profile results with detailed table
 else if (currentInputType === 'linkedin_profile' && currentOutputType === 'linkedin_info') {
@@ -3274,37 +3260,31 @@ else if (currentInputType === 'linkedin_profile' && currentOutputType === 'linke
         });
     }
    
-    if (currentInputType === 'linkedin_post' && currentOutputType === 'reactions') {
-        csvContent = 'Name,Job Title,Company,Location,Industry,Website,Email,Education,Headline,Comment,LinkedIn URL,Verified\n';
-        
-        bulkResults.forEach(postResult => {
-            if (postResult.reactions && Array.isArray(postResult.reactions)) {
-                postResult.reactions.forEach(reaction => {
-                    const escapeCSV = (str) => {
-                        if (!str || str === 'Not found' || str === 'Not specified') return str;
-                        return `"${str.toString().replace(/"/g, '""')}"`;
-                    };
+ if (currentInputType === 'linkedin_post' && currentOutputType === 'reactions') {
+    csvContent = 'Name,Job Title,Profile Info,LinkedIn URL\n';
+    
+    bulkResults.forEach(postResult => {
+        if (postResult.reactions && Array.isArray(postResult.reactions)) {
+            postResult.reactions.forEach(reaction => {
+                const parsed = parseReactionTitle(reaction.title);
+                
+                const escapeCSV = (str) => {
+                    if (!str || str === 'Not found' || str === 'Not specified') return str;
+                    return `"${str.toString().replace(/"/g, '""')}"`;
+                };
 
-                    const csvRow = [
-                        escapeCSV(reaction.name || 'Not specified'),
-                        escapeCSV(reaction.jobTitle || 'Not specified'),
-                        escapeCSV(reaction.company || 'Not specified'),
-                        escapeCSV(reaction.location || 'Not specified'),
-                        escapeCSV(reaction.industry || 'Not specified'),
-                        escapeCSV(reaction.website || 'Not specified'),
-                        escapeCSV(reaction.email || 'Not specified'),
-                        escapeCSV(reaction.education || 'Not specified'),
-                        escapeCSV(reaction.headline || 'Not specified'),
-                        escapeCSV(reaction.comment || 'Not specified'),
-                        escapeCSV(reaction.linkedinUrl || 'Not specified'),
-                        escapeCSV(reaction.verified || 'Not specified')
-                    ];
-                    
-                    csvContent += csvRow.join(',') + '\n';
-                });
-            }
-        });
-    }
+                const csvRow = [
+                    escapeCSV(parsed.name),
+                    escapeCSV(parsed.jobInfo || 'Not specified'),
+                    escapeCSV(reaction.snippet || 'Not specified'),
+                    escapeCSV(reaction.link || 'Not specified')
+                ];
+                
+                csvContent += csvRow.join(',') + '\n';
+            });
+        }
+    });
+}
    // Handle LinkedIn Profile data export with detailed columns
 else if (currentInputType === 'linkedin_profile' && currentOutputType === 'linkedin_info') {
     csvContent = 'LinkedIn URL,Name,Job Title,Company,Location,Industry,Website,Email,Education,Headline,Company Description,Company Size,Company Location,Founded,Company LinkedIn URL,Status\n';
