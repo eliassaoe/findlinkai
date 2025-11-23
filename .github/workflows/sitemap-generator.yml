@@ -3,8 +3,8 @@ name: Generate Sitemap
 on:
   push:
     branches:
-      - main  # Change si ta branche principale s'appelle 'master'
-  workflow_dispatch:  # Permet de lancer manuellement
+      - main
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -19,7 +19,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '18'  # Version plus récente
+          node-version: '18'
 
       - name: Create sitemap generation script
         run: |
@@ -33,7 +33,7 @@ jobs:
           const FILE_EXTENSIONS = ['.html', '.jsx', '.js', '.md'];
           const EXCLUDED_DIRS = ['.git', 'node_modules', '.github', '.next', 'public'];
           
-          // Pages à inclure manuellement (si tu as des routes dynamiques)
+          // Pages à inclure manuellement
           const MANUAL_PAGES = [
             '',  // Homepage
             'pricing',
@@ -48,7 +48,6 @@ jobs:
             'b2b-data-companies',
             'sign-up',
             'sign-in',
-            // Ajoute ici toutes tes autres pages
           ];
 
           function walkSync(dir, fileList = []) {
@@ -68,7 +67,6 @@ jobs:
                   let urlPath = path.relative(CONTENT_DIR, filePath);
                   urlPath = urlPath.split(path.sep).join('/');
                   
-                  // Nettoyer les extensions et chemins
                   urlPath = urlPath
                     .replace(/\.html$/, '')
                     .replace(/\.jsx$/, '')
@@ -97,7 +95,6 @@ jobs:
             let sitemap = '<?xml version="1.0" encoding="UTF-8"?>\n';
             sitemap += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
             
-            // Dédupliquer les URLs
             const uniqueUrls = [...new Map(urls.map(item => [item.url, item])).values()];
             
             uniqueUrls.forEach(item => {
@@ -115,21 +112,24 @@ jobs:
           try {
             console.log('🚀 Génération du sitemap pour LinkFinder AI...');
             
-            // Ajouter les pages manuelles
             const manualUrls = MANUAL_PAGES.map(page => ({
               url: BASE_URL + page,
               lastmod: new Date().toISOString().split('T')[0],
               priority: page === '' ? '1.0' : '0.8'
             }));
             
-            // Scanner les fichiers
             const scannedUrls = walkSync(CONTENT_DIR);
-            
-            // Combiner et générer
             const allUrls = [...manualUrls, ...scannedUrls];
             const sitemap = generateSitemap(allUrls);
             
-            fs.writeFileSync('public/sitemap.xml', sitemap);
+            // Créer le dossier public s'il n'existe pas
+            const outputDir = 'public';
+            if (!fs.existsSync(outputDir)) {
+              fs.mkdirSync(outputDir, { recursive: true });
+              console.log('📁 Dossier public/ créé');
+            }
+            
+            fs.writeFileSync(path.join(outputDir, 'sitemap.xml'), sitemap);
             console.log(`✅ Sitemap généré avec ${allUrls.length} URLs`);
             
             allUrls.forEach(item => console.log(` - ${item.url}`));
