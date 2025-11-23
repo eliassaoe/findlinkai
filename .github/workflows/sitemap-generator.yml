@@ -1,0 +1,151 @@
+name: Generate Sitemap
+
+on:
+  push:
+    branches:
+      - main  # Change si ta branche principale s'appelle 'master'
+  workflow_dispatch:  # Permet de lancer manuellement
+
+permissions:
+  contents: write
+
+jobs:
+  generate-sitemap:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'  # Version plus récente
+
+      - name: Create sitemap generation script
+        run: |
+          cat > generate-sitemap.js <<'EOL'
+          const fs = require('fs');
+          const path = require('path');
+
+          // Configuration
+          const BASE_URL = 'https://linkfinderai.com/';
+          const CONTENT_DIR = './';
+          const FILE_EXTENSIONS = ['.html', '.jsx', '.js', '.md'];
+          const EXCLUDED_DIRS = ['.git', 'node_modules', '.github', '.next', 'public'];
+          
+          // Pages à inclure manuellement (si tu as des routes dynamiques)
+          const MANUAL_PAGES = [
+            '',  // Homepage
+            'pricing',
+            'company-phone-finder',
+            'company-details-finder',
+            'linkedin-email-finder',
+            'linkedin-profile-scraper',
+            'linkedin-company-scraper',
+            'linkedin-url-finder',
+            'instagram-profile-url-finder',
+            'captain-data-alternative',
+            'b2b-data-companies',
+            'sign-up',
+            'sign-in',
+            // Ajoute ici toutes tes autres pages
+          ];
+
+          function walkSync(dir, fileList = []) {
+            if (!fs.existsSync(dir)) return fileList;
+            
+            const files = fs.readdirSync(dir);
+            
+            files.forEach(file => {
+              const filePath = path.join(dir, file);
+              
+              try {
+                const stat = fs.statSync(filePath);
+                
+                if (stat.isDirectory() && !EXCLUDED_DIRS.includes(file)) {
+                  fileList = walkSync(filePath, fileList);
+                } else if (stat.isFile() && FILE_EXTENSIONS.some(ext => file.endsWith(ext))) {
+                  let urlPath = path.relative(CONTENT_DIR, filePath);
+                  urlPath = urlPath.split(path.sep).join('/');
+                  
+                  // Nettoyer les extensions et chemins
+                  urlPath = urlPath
+                    .replace(/\.html$/, '')
+                    .replace(/\.jsx$/, '')
+                    .replace(/\.js$/, '')
+                    .replace(/\.md$/, '')
+                    .replace(/^pages\//, '')
+                    .replace(/^src\/pages\//, '')
+                    .replace(/index$/, '');
+                  
+                  const fullUrl = BASE_URL + urlPath;
+                  fileList.push({
+                    url: fullUrl,
+                    lastmod: new Date().toISOString().split('T')[0],
+                    priority: urlPath === '' ? '1.0' : '0.8'
+                  });
+                }
+              } catch (error) {
+                console.error(`Erreur: ${filePath}`, error.message);
+              }
+            });
+            
+            return fileList;
+          }
+
+          function generateSitemap(urls) {
+            let sitemap = '<?xml version="1.0" encoding="UTF-8"?>\n';
+            sitemap += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
+            
+            // Dédupliquer les URLs
+            const uniqueUrls = [...new Map(urls.map(item => [item.url, item])).values()];
+            
+            uniqueUrls.forEach(item => {
+              sitemap += '  <url>\n';
+              sitemap += `    <loc>${item.url}</loc>\n`;
+              sitemap += `    <lastmod>${item.lastmod}</lastmod>\n`;
+              sitemap += `    <priority>${item.priority || '0.8'}</priority>\n`;
+              sitemap += '  </url>\n';
+            });
+            
+            sitemap += '</urlset>';
+            return sitemap;
+          }
+
+          try {
+            console.log('🚀 Génération du sitemap pour LinkFinder AI...');
+            
+            // Ajouter les pages manuelles
+            const manualUrls = MANUAL_PAGES.map(page => ({
+              url: BASE_URL + page,
+              lastmod: new Date().toISOString().split('T')[0],
+              priority: page === '' ? '1.0' : '0.8'
+            }));
+            
+            // Scanner les fichiers
+            const scannedUrls = walkSync(CONTENT_DIR);
+            
+            // Combiner et générer
+            const allUrls = [...manualUrls, ...scannedUrls];
+            const sitemap = generateSitemap(allUrls);
+            
+            fs.writeFileSync('public/sitemap.xml', sitemap);
+            console.log(`✅ Sitemap généré avec ${allUrls.length} URLs`);
+            
+            allUrls.forEach(item => console.log(` - ${item.url}`));
+          } catch (error) {
+            console.error('❌ Erreur:', error);
+            process.exit(1);
+          }
+          EOL
+
+      - name: Generate sitemap
+        run: node generate-sitemap.js
+
+      - name: Commit and push sitemap
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add public/sitemap.xml
+          git commit -m "🤖 Auto-update sitemap" || echo "Aucun changement"
+          git push
