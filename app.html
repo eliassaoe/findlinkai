@@ -1885,13 +1885,23 @@ async function fetchWithTimeout(url, options = {}, timeout = 180000) { // 3 minu
     if (!inputValue) return;
 
     // Validate LinkedIn URLs
-    const linkedInTypes = ['linkedin_company', 'linkedin_profile', 'linkedin_post'];
-    if (linkedInTypes.includes(currentInputType)) {
-        if (!inputValue.toLowerCase().includes('linkedin.com')) {
-            showAlert('Please enter a valid LinkedIn URL (must contain linkedin.com)', 'error');
-            return;
-        }
+    // Validate LinkedIn URLs with specific format checks
+if (currentInputType === 'linkedin_profile') {
+    if (!inputValue.toLowerCase().includes('https://www.linkedin.com/in/')) {
+        showAlert('Please enter a valid LinkedIn Profile URL (must start with https://www.linkedin.com/in/)', 'error');
+        return;
     }
+} else if (currentInputType === 'linkedin_post') {
+    if (!inputValue.toLowerCase().includes('https://www.linkedin.com/posts/')) {
+        showAlert('Please enter a valid LinkedIn Post URL (must include https://www.linkedin.com/posts/)', 'error');
+        return;
+    }
+} else if (currentInputType === 'linkedin_company') {
+    if (!inputValue.toLowerCase().includes('https://www.linkedin.com/company/')) {
+        showAlert('Please enter a valid LinkedIn Company URL (must include https://www.linkedin.com/company/)', 'error');
+        return;
+    }
+}
 
     showLoading();
     
