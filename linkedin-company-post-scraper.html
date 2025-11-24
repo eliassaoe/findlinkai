@@ -1033,7 +1033,7 @@
 <div class="footer-section">
   <h4 class="footer-heading">Support</h4>
   <ul class="footer-links">
-    <li><a href="mailto:contact@linkfinderai.com">contact@linkfinderai.com</a></li>
+    <li><a href="/cdn-cgi/l/email-protection#0b6864657f6a687f4b676265606d62656f6e796a6225686466"><span class="__cf_email__" data-cfemail="70131f1e04111304301c191e1b16191e14150211195e131f1d">[email&#160;protected]</span></a></li>
     <li><a href="https://linkfinderai.com/api-documentation" title="API documentation">API documentation</a></li>
     <li><a href="https://linkfinderai.com/pricing" title="Pricing">Pricing</a></li>
     <li><a href="https://linkfinderai.com/privacy" title="Privacy policy">Privacy Policy</a></li>
@@ -1058,7 +1058,7 @@
     </div>
   </footer>
 
-  <script>
+  <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
     let searchCount = 0;
     let maxFreeSearches = 5;
 
@@ -1149,7 +1149,7 @@
             'Accept': 'application/json'
           },
           body: JSON.stringify({ 
-            company: companyInput
+            companyUrl: companyInput
           })
         });
 
@@ -1225,14 +1225,31 @@
         let postHTML = '';
         
         data.posts.forEach(post => {
-          const postContent = post.content || post.text || post.description || 'No content available';
-          const postDate = post.date || post.publishedAt || post.timestamp || 'Date not available';
-          const postUrl = post.url || post.link || '#';
+          const postContent = post.content || 'No content available';
+          
+          // Format date
+          let postDate = 'Date not available';
+          if (post.date) {
+            try {
+              const dateObj = new Date(post.date);
+              postDate = dateObj.toLocaleDateString('en-US', { 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+              });
+            } catch (e) {
+              postDate = post.date;
+            }
+          }
+          
+          const postUrl = post.url || '#';
           
           // Engagement metrics
-          const likes = post.likes || post.numLikes || 0;
-          const comments = post.comments || post.numComments || 0;
-          const shares = post.shares || post.numShares || 0;
+          const likes = post.likes || 0;
+          const comments = post.comments || 0;
+          const shares = post.shares || 0;
           
           postHTML += `
             <div class="post-item">
@@ -1278,15 +1295,3 @@
         q.classList.remove('active');
         q.nextElementSibling.classList.remove('show');
       });
-      
-      if (!isActive) {
-        button.classList.add('active');
-        answer.classList.add('show');
-      }
-    }
-
-    // Initialize app when DOM is loaded
-    document.addEventListener('DOMContentLoaded', initApp);
-  </script>
-</body>
-</html>
