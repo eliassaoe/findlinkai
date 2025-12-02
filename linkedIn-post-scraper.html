@@ -1,0 +1,1908 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=AW-17588707745"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'AW-17588707745');
+</script>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>LinkedIn Post Scraper - Extract Post Data Instantly</title>
+  <meta name="description" content="Extract comprehensive data from LinkedIn posts instantly. Get post content, engagement metrics, author details, and more with our advanced LinkedIn post scraper."/>
+  <meta name="keywords" content="linkedin post scraper, linkedin data extraction, post data scraper, linkedin engagement metrics"/>
+  
+  <!-- Favicon -->
+  <link rel="icon" href="https://i.ibb.co/jPjX9SSp/Screen-Shot-2025-03-28-at-8-16-15-PM.png">
+  
+  <!-- Optimized Font Loading -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --gray-50: #f9fafb;
+      --gray-100: #f3f4f6;
+      --gray-200: #e5e7eb;
+      --gray-300: #d1d5db;
+      --gray-400: #9ca3af;
+      --gray-500: #6b7280;
+      --gray-600: #4b5563;
+      --gray-700: #374151;
+      --gray-800: #1f2937;
+      --gray-900: #111827;
+      --success: #10b981;
+      --error: #ef4444;
+      --warning: #f59e0b;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: white;
+      color: var(--gray-800);
+      line-height: 1.6;
+      font-size: 16px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 1rem;
+    }
+
+    /* Header */
+    .header {
+      border-bottom: 1px solid var(--gray-200);
+      padding: 1rem 0;
+      background: white;
+    }
+
+    .header-content {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      text-decoration: none;
+      color: var(--gray-900);
+    }
+
+    .logo-icon {
+      width: 32px;
+      height: 32px;
+      background: var(--primary);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 0.875rem;
+    }
+
+    .logo-text {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--gray-900);
+    }
+
+    .auth-buttons {
+      display: flex;
+      gap: 0.75rem;
+      align-items: center;
+    }
+
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      font-size: 0.875rem;
+      color: var(--gray-600);
+    }
+
+    .usage-indicator {
+      background: var(--gray-100);
+      padding: 0.25rem 0.75rem;
+      border-radius: 1rem;
+      font-weight: 500;
+      color: var(--gray-700);
+      font-size: 0.75rem;
+    }
+
+    /* Hero Section */
+    .hero {
+      text-align: center;
+      padding: 4rem 0 3rem;
+    }
+
+    .hero h1 {
+      font-size: 3rem;
+      font-weight: 700;
+      color: var(--gray-900);
+      margin-bottom: 1rem;
+      line-height: 1.1;
+    }
+
+    .hero p {
+      font-size: 1.25rem;
+      color: var(--gray-600);
+      margin: 0 auto 2rem;
+      max-width: 600px;
+    }
+
+    /* Main Card */
+    .main-card {
+      background: white;
+      border: 1px solid var(--gray-200);
+      border-radius: 12px;
+      padding: 2rem;
+      margin-bottom: 3rem;
+      box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    /* Buttons */
+    .btn {
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 0.875rem 1.5rem;
+      border-radius: 8px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      text-decoration: none;
+      font-size: 0.875rem;
+      min-height: 44px;
+    }
+
+    .btn:hover {
+      background: var(--primary-hover);
+    }
+
+    .btn-outline {
+      background: transparent;
+      color: var(--primary);
+      border: 1px solid var(--gray-300);
+    }
+
+    .btn-outline:hover {
+      background: var(--gray-50);
+      border-color: var(--primary);
+    }
+
+    .btn-full {
+      width: 100%;
+      margin-bottom: 1rem;
+    }
+
+    .btn-secondary {
+      background: var(--gray-600);
+      margin-top: 0.75rem;
+    }
+
+    .btn-secondary:hover {
+      background: var(--gray-700);
+    }
+
+    /* Forms */
+    .input-group {
+      margin-bottom: 1rem;
+    }
+
+    .input-group input {
+      width: 100%;
+      padding: 0.875rem 1rem;
+      border: 1px solid var(--gray-300);
+      border-radius: 8px;
+      font-size: 0.875rem;
+      transition: border-color 0.2s ease;
+      background: white;
+    }
+
+    .input-group input:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    .input-group input::placeholder {
+      color: var(--gray-400);
+    }
+
+    /* Mode Toggle */
+    .mode-toggle {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 2rem;
+    }
+
+    .mode-switch {
+      display: flex;
+      background: var(--gray-100);
+      border-radius: 8px;
+      padding: 0.25rem;
+      width: 100%;
+      max-width: 320px;
+    }
+
+    .mode-option {
+      flex: 1;
+      padding: 0.75rem;
+      border: none;
+      background: transparent;
+      border-radius: 6px;
+      font-weight: 500;
+      color: var(--gray-600);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-size: 0.875rem;
+    }
+
+    .mode-option.active {
+      background: white;
+      color: var(--gray-900);
+      box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    }
+
+    /* Upload Area */
+    .upload-area {
+      border: 2px dashed var(--gray-300);
+      border-radius: 8px;
+      padding: 2rem;
+      text-align: center;
+      cursor: pointer;
+      background: var(--gray-50);
+      transition: all 0.2s ease;
+    }
+
+    .upload-area:hover {
+      border-color: var(--primary);
+      background: var(--primary);
+      background-opacity: 0.05;
+    }
+
+    .upload-icon {
+      font-size: 2rem;
+      color: var(--gray-400);
+      margin-bottom: 1rem;
+    }
+
+    .upload-text {
+      font-size: 1rem;
+      font-weight: 500;
+      color: var(--gray-700);
+      margin-bottom: 0.5rem;
+    }
+
+    .upload-subtext {
+      color: var(--gray-500);
+      margin-bottom: 1rem;
+      font-size: 0.875rem;
+    }
+
+    /* Results */
+    .results-section {
+      margin-top: 2rem;
+      padding-top: 2rem;
+      border-top: 1px solid var(--gray-200);
+    }
+
+    .result-card {
+      background: var(--gray-50);
+      border-radius: 8px;
+      padding: 1.5rem;
+    }
+
+    .post-data {
+      background: white;
+      border: 1px solid var(--gray-200);
+      border-radius: 8px;
+      padding: 1.5rem;
+      margin-top: 1rem;
+    }
+
+    .post-header {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--gray-200);
+    }
+
+    .author-avatar {
+      width: 60px;
+      height: 60px;
+      background: var(--primary);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 1.5rem;
+      font-weight: 600;
+    }
+
+    .author-info h3 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--gray-900);
+      margin-bottom: 0.25rem;
+    }
+
+    .author-title {
+      color: var(--gray-600);
+      font-size: 0.875rem;
+    }
+
+    .data-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .data-item {
+      background: var(--gray-50);
+      padding: 1rem;
+      border-radius: 6px;
+    }
+
+    .data-label {
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--gray-500);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 0.25rem;
+    }
+
+    .data-value {
+      font-size: 0.875rem;
+      color: var(--gray-900);
+      font-weight: 500;
+    }
+
+    .post-content {
+      background: var(--gray-50);
+      padding: 1rem;
+      border-radius: 6px;
+      margin-bottom: 1rem;
+    }
+
+    .post-content .data-label {
+      margin-bottom: 0.5rem;
+    }
+
+    .post-content .data-value {
+      line-height: 1.5;
+      white-space: pre-wrap;
+    }
+
+    .engagement-metrics {
+      display: flex;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+      padding: 1rem;
+      background: var(--gray-50);
+      border-radius: 6px;
+      margin-bottom: 1rem;
+    }
+
+    .metric-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .metric-item i {
+      color: var(--primary);
+      font-size: 1.125rem;
+    }
+
+    .metric-value {
+      font-weight: 600;
+      color: var(--gray-900);
+    }
+
+    .metric-label {
+      color: var(--gray-600);
+      font-size: 0.875rem;
+    }
+
+    .post-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: var(--primary);
+      color: white;
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      text-decoration: none;
+      font-weight: 500;
+      transition: all 0.2s ease;
+      font-size: 0.875rem;
+    }
+
+    .post-link:hover {
+      background: var(--primary-hover);
+    }
+
+    /* Pricing Section */
+    .pricing-section {
+      background: var(--gray-900);
+      color: white;
+      padding: 4rem 0;
+      margin-top: 3rem;
+    }
+
+    .pricing-header {
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+
+    .pricing-header h2 {
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+    }
+
+    .pricing-header p {
+      font-size: 1.125rem;
+      color: var(--gray-300);
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .pricing-card {
+      background: white;
+      color: var(--gray-900);
+      border-radius: 12px;
+      padding: 2rem;
+      max-width: 400px;
+      margin: 0 auto;
+      text-align: center;
+    }
+
+    .pricing-price {
+      font-size: 3rem;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 0.5rem;
+    }
+
+    .pricing-period {
+      color: var(--gray-600);
+      margin-bottom: 2rem;
+      font-size: 1rem;
+    }
+
+    .pricing-features {
+      list-style: none;
+      margin-bottom: 2rem;
+      text-align: left;
+    }
+
+    .pricing-features li {
+      padding: 0.5rem 0;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-size: 0.875rem;
+    }
+
+    .pricing-features .check {
+      color: var(--success);
+      font-weight: 600;
+    }
+
+    .pricing-note {
+      font-size: 0.75rem;
+      color: var(--gray-500);
+      margin-top: 1rem;
+      font-style: italic;
+    }
+
+    /* Testimonial */
+    .testimonial-section {
+      background: var(--gray-50);
+      padding: 3rem 0;
+    }
+
+    .testimonial-card {
+      background: white;
+      border-radius: 12px;
+      padding: 2rem;
+      max-width: 700px;
+      margin: 0 auto;
+      text-align: center;
+      border: 1px solid var(--gray-200);
+    }
+
+    .testimonial-quote {
+      font-size: 1.125rem;
+      color: var(--gray-700);
+      margin-bottom: 1.5rem;
+      font-style: italic;
+      line-height: 1.6;
+    }
+
+    .testimonial-author {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+    }
+
+    .testimonial-avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 600;
+      font-size: 0.875rem;
+    }
+
+    .testimonial-info h4 {
+      font-weight: 600;
+      color: var(--gray-900);
+      font-size: 0.875rem;
+    }
+
+    .testimonial-info p {
+      color: var(--gray-600);
+      font-size: 0.75rem;
+    }
+
+    /* FAQ */
+    .faq-section {
+      padding: 3rem 0;
+    }
+
+    .faq-header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .faq-header h2 {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--gray-900);
+      margin-bottom: 0.5rem;
+    }
+
+    .faq-list {
+      max-width: 700px;
+      margin: 0 auto;
+    }
+
+    .faq-item {
+      background: white;
+      border: 1px solid var(--gray-200);
+      border-radius: 8px;
+      margin-bottom: 0.75rem;
+    }
+
+    .faq-question {
+      padding: 1rem 1.5rem;
+      background: none;
+      border: none;
+      width: 100%;
+      text-align: left;
+      font-weight: 500;
+      color: var(--gray-900);
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: all 0.2s ease;
+      font-size: 0.875rem;
+    }
+
+    .faq-question:hover {
+      background: var(--gray-50);
+    }
+
+    .faq-question .icon {
+      color: var(--gray-400);
+      transition: transform 0.2s ease;
+    }
+
+    .faq-question.active .icon {
+      transform: rotate(180deg);
+    }
+
+    .faq-answer {
+      padding: 0 1.5rem 1rem;
+      color: var(--gray-600);
+      line-height: 1.6;
+      font-size: 0.875rem;
+      display: none;
+    }
+
+    .faq-answer.show {
+      display: block;
+    }
+
+    /* CTA Section */
+    .cta-section {
+      background: var(--primary);
+      color: white;
+      padding: 3rem 0;
+      text-align: center;
+    }
+
+    .cta-section h2 {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+    }
+
+    .cta-section p {
+      margin-bottom: 2rem;
+      font-size: 1rem;
+    }
+
+    .cta-section .btn {
+      background: white;
+      color: var(--primary);
+      font-weight: 600;
+    }
+
+    .cta-section .btn:hover {
+      background: var(--gray-100);
+    }
+
+    .footer {
+      background: var(--gray-900);
+      color: var(--gray-300);
+      padding: 3rem 0 1rem;
+      margin-top: 3rem;
+    }
+
+    .footer-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr;
+      gap: 2rem;
+      margin-bottom: 2rem;
+    }
+
+    .footer-section h4.footer-heading {
+      color: white;
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+    }
+
+    .footer-logo {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .footer-logo .logo-icon {
+      width: 28px;
+      height: 28px;
+      background: var(--primary);
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 0.75rem;
+    }
+
+    .footer-logo .logo-text {
+      font-size: 1.125rem;
+      font-weight: 600;
+      color: white;
+    }
+
+    .footer-description {
+      color: var(--gray-400);
+      font-size: 0.875rem;
+      line-height: 1.6;
+      margin-bottom: 1.5rem;
+      max-width: 280px;
+    }
+
+    .footer-links {
+      list-style: none;
+      padding: 0;
+    }
+
+    .footer-links li {
+      margin-bottom: 0.5rem;
+    }
+
+    .footer-links a {
+      color: var(--gray-300);
+      text-decoration: none;
+      font-size: 0.875rem;
+      transition: color 0.2s ease;
+      display: block;
+    }
+
+    .footer-links a:hover {
+      color: white;
+    }
+
+    .footer-bottom {
+      border-top: 1px solid var(--gray-800);
+      padding-top: 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .footer-bottom p {
+      color: var(--gray-400);
+      font-size: 0.875rem;
+      margin: 0;
+    }
+
+    .footer-social {
+      display: flex;
+      gap: 1rem;
+    }
+
+    .footer-social a {
+      color: var(--gray-400);
+      font-size: 1.125rem;
+      transition: color 0.2s ease;
+      text-decoration: none;
+    }
+
+    .footer-social a:hover {
+      color: var(--primary);
+    }
+
+    /* Limit Warning */
+    .limit-warning {
+      background: var(--warning);
+      color: white;
+      padding: 1rem;
+      border-radius: 8px;
+      margin-bottom: 1.5rem;
+      text-align: center;
+      font-weight: 500;
+    }
+
+    .limit-warning h3 {
+      margin-bottom: 0.5rem;
+      font-size: 1rem;
+    }
+
+    .limit-warning p {
+      margin-bottom: 1rem;
+      font-size: 0.875rem;
+    }
+
+    /* Table */
+    .table-container {
+      background: white;
+      border: 1px solid var(--gray-200);
+      border-radius: 8px;
+      overflow-x: auto;
+      margin-top: 1rem;
+    }
+
+    .results-table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 600px;
+    }
+
+    .results-table th,
+    .results-table td {
+      padding: 0.75rem;
+      text-align: left;
+      border-bottom: 1px solid var(--gray-200);
+      font-size: 0.875rem;
+    }
+
+    .results-table th {
+      background: var(--gray-50);
+      font-weight: 500;
+      color: var(--gray-700);
+    }
+
+    .status-badge {
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+
+    .status-success {
+      background: rgba(16,185,129,0.1);
+      color: var(--success);
+    }
+
+    .status-error {
+      background: rgba(239,68,68,0.1);
+      color: var(--error);
+    }
+
+    .progress-container {
+      background: var(--gray-200);
+      height: 6px;
+      border-radius: 3px;
+      margin: 1rem 0;
+    }
+
+    .progress-bar {
+      height: 100%;
+      background: var(--primary);
+      transition: width 0.3s ease;
+      border-radius: 3px;
+    }
+
+    .related-tools-section { background: var(--gray-50); padding: 3rem 0; }
+    .related-tools-header { text-align: center; margin-bottom: 3rem; }
+    .related-tools-header h2 { font-size: 2rem; font-weight: 700; color: var(--gray-900); margin-bottom: 0.75rem; }
+    .related-tools-header p { font-size: 1rem; color: var(--gray-600); max-width: 500px; margin: 0 auto; }
+    .related-tools-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; max-width: 900px; margin: 0 auto; }
+    .related-tool-card { background: white; border: 1px solid var(--gray-200); border-radius: 12px; padding: 2rem; text-align: center; transition: all 0.3s ease; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1); }
+    .related-tool-card:hover { transform: translateY(-4px); box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.1); border-color: var(--primary); }
+    .tool-icon { width: 60px; height: 60px; background: var(--primary); border-radius: 12px; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem; color: white; font-size: 1.5rem; }
+    .related-tool-card h3 { font-size: 1.125rem; font-weight: 600; color: var(--gray-900); margin-bottom: 0.75rem; }
+    .related-tool-card p { color: var(--gray-600); font-size: 0.875rem; line-height: 1.5; margin-bottom: 1.5rem; }
+    .tool-link { display: inline-flex; align-items: center; gap: 0.5rem; background: var(--primary); color: white; padding: 0.75rem 1.25rem; border-radius: 8px; text-decoration: none; font-weight: 500; font-size: 0.875rem; transition: all 0.2s ease; }
+    .tool-link:hover { background: var(--primary-hover); transform: translateX(2px); }
+    @media (max-width: 640px) { .related-tools-grid { grid-template-columns: 1fr; gap: 1rem; } .related-tool-card { padding: 1.5rem; } }
+
+    .hidden {
+      display: none !important;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .hero h1 {
+        font-size: 2.5rem;
+      }
+      
+      .pricing-header h2 {
+        font-size: 2rem;
+      }
+      
+      .testimonial-author {
+        flex-direction: column;
+        gap: 0.75rem;
+      }
+
+      .footer-grid {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+      }
+
+      .footer-bottom {
+        flex-direction: column;
+        text-align: center;
+      }
+
+      .data-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .engagement-metrics {
+        flex-direction: column;
+        gap: 0.75rem;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .hero h1 {
+        font-size: 2rem;
+      }
+      
+      .container {
+        padding: 0 0.75rem;
+      }
+      
+      .main-card {
+        padding: 1.5rem;
+      }
+
+      .footer-grid {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+      }
+
+      .footer {
+        padding: 2rem 0 1rem;
+      }
+    }
+  </style>
+  <!-- Privacy-friendly analytics by Plausible -->
+  <script async src="https://plausible.io/js/pa-LTP3nlbjr9NybMEgzpwxU.js"></script>
+  <script>
+    window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};
+    plausible.init()
+  </script>
+  <script async src="https://cdn.tolt.io/tolt.js" data-tolt="pk_CAtHKL6z3BUN8BWfHENpoM1e"></script>
+</head>
+<body>
+  <header class="header">
+    <div class="container">
+      <div class="header-content">
+        <a href="https://linkfinderai.com/" class="logo">
+          <div class="logo-icon">
+            <i class="fas fa-search"></i>
+          </div>
+          <span class="logo-text">Linkfinder AI</span>
+        </a>
+        
+        <div class="auth-buttons">
+          <div id="userInfo" class="user-info hidden">
+            <div class="usage-indicator">
+              <span id="searchCount">0</span>/10 searches
+            </div>
+            <button class="btn btn-outline" onclick="logout()">
+              Logout
+            </button>
+          </div>
+          <div id="authButtons">
+            <button class="btn btn-outline" onclick="showModal('login')">
+              Login
+            </button>
+            <button class="btn" onclick="showModal('signup')">
+              Sign Up
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="hero">
+      <h1>LinkedIn Post Scraper</h1>
+      <p>Extract comprehensive data from LinkedIn posts instantly. Get post content, engagement metrics, author details, comments, and more with our advanced LinkedIn post scraper.</p>
+    </div>
+
+    <!-- Limit Warning -->
+    <div id="limitWarning" class="limit-warning hidden">
+      <h3>Free searches used</h3>
+      <p>Sign up to continue scraping LinkedIn post data</p>
+      <button class="btn" onclick="window.location.href='https://linkfinderai.com/sign-up'" style="background: white; color: var(--warning);">
+        Sign Up
+      </button>
+    </div>
+
+    <div class="main-card">
+      <!-- Search Mode Toggle -->
+      <div class="mode-toggle">
+        <div class="mode-switch">
+          <button class="mode-option active" onclick="switchMode('single')" id="singleMode">
+            Single Search
+          </button>
+          <button class="mode-option" onclick="switchMode('bulk')" id="bulkMode">
+            Bulk Search
+          </button>
+        </div>
+      </div>
+
+      <!-- Single Search Form -->
+      <div id="singleSearchForm" class="form-section">
+        <div class="input-group">
+          <input type="text" id="linkedinUrl" placeholder="Enter LinkedIn post URL (e.g., https://linkedin.com/posts/...)" required>
+        </div>
+        <button class="btn btn-full" onclick="scrapePostData()">
+          <i class="fab fa-linkedin"></i>
+          Scrape Post Data
+        </button>
+        <button class="btn-secondary btn btn-full" onclick="tryExample()">
+          Try Example
+        </button>
+      </div>
+
+      <!-- Bulk Upload Form -->
+      <div id="bulkUploadForm" class="form-section hidden">
+        <div class="upload-area" id="uploadArea">
+          <i class="fas fa-cloud-upload-alt upload-icon"></i>
+          <div class="upload-text">Upload CSV File</div>
+          <div class="upload-subtext">Upload CSV with LinkedIn post URLs (max 25 posts)</div>
+          <input type="file" id="csvFile" accept=".csv" class="hidden">
+          <button class="btn" onclick="document.getElementById('csvFile').click()">
+            <i class="fas fa-file-csv"></i>
+            Select File
+          </button>
+        </div>
+
+        <!-- CSV Preview -->
+        <div id="csvPreview" class="hidden">
+          <h4 style="margin-bottom: 1rem; color: var(--gray-700); font-weight: 500;">Preview (first 5 entries)</h4>
+          <div id="previewTable" class="table-container"></div>
+          <div style="margin-top: 1rem; display: flex; flex-direction: column; gap: 0.75rem;">
+            <button class="btn btn-full" onclick="processBulkSearch()" id="processBulkBtn">
+              <i class="fas fa-play"></i>
+              Process <span id="itemCount">0</span> Posts
+            </button>
+            <button class="btn-secondary btn btn-full" onclick="downloadTemplate()">
+              <i class="fas fa-download"></i>
+              Download Template
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Results Section -->
+      <div id="resultsSection" class="results-section hidden">
+        <h3 style="margin-bottom: 1rem; color: var(--gray-700); font-weight: 600;">Results</h3>
+        
+        <!-- Single Result -->
+        <div id="singleResult" class="result-card">
+          <div id="postDataDisplay" class="post-data hidden"></div>
+          <div id="errorMessage" class="hidden" style="color: var(--error); font-weight: 500;"></div>
+        </div>
+
+        <!-- Bulk Results -->
+        <div id="bulkResults" class="hidden">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
+            <h4 style="color: var(--gray-700); font-weight: 600;">Batch Results</h4>
+            <button class="btn" onclick="downloadResults()" id="downloadBtn">
+              <i class="fas fa-download"></i>
+              Export CSV
+            </button>
+          </div>
+          <div class="progress-container">
+            <div id="progressBar" class="progress-bar" style="width: 0%"></div>
+          </div>
+          <div id="bulkResultsTable" class="table-container"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Testimonial Section -->
+  <div class="testimonial-section">
+    <div class="container">
+      <div class="testimonial-card">
+        <div class="testimonial-quote">
+          "This LinkedIn post scraper has revolutionized our social media analytics. We can now extract engagement data and content from hundreds of posts in minutes. It's been invaluable for our content strategy."
+        </div>
+        <div class="testimonial-author">
+          <div class="testimonial-avatar">MJ</div>
+          <div class="testimonial-info">
+            <h4>Michael Johnson</h4>
+            <p>Social Media Analyst, ContentPro</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Related Tools Section -->
+  <div class="related-tools-section">
+    <div class="container">
+      <div class="related-tools-header">
+        <h2>Related Tools</h2>
+        <p>Maximize your LinkedIn research with these specialized tools</p>
+      </div>
+      <div class="related-tools-grid">
+        <div class="related-tool-card">
+          <div class="tool-icon"><i class="fas fa-building"></i></div>
+          <h3>LinkedIn Company Scraper</h3>
+          <p>Extract comprehensive company data from LinkedIn profiles</p>
+          <a href="https://linkfinderai.com/linkedin-company-scraper" class="tool-link">Scrape Companies <i class="fas fa-arrow-right"></i></a>
+        </div>
+        <div class="related-tool-card">
+          <div class="tool-icon"><i class="fas fa-user"></i></div>
+          <h3>LinkedIn Profile Scraper</h3>
+          <p>Extract detailed information from LinkedIn profiles</p>
+          <a href="https://linkfinderai.com/linkedin-profile-scraper" class="tool-link">Scrape Profiles <i class="fas fa-arrow-right"></i></a>
+        </div>
+        <div class="related-tool-card">
+          <div class="tool-icon"><i class="fas fa-comments"></i></div>
+          <h3>Post Commenters Export</h3>
+          <p>Extract all commenters from LinkedIn posts</p>
+          <a href="https://linkfinderai.com/linkedin-post-commenters-export" class="tool-link">Export Commenters <i class="fas fa-arrow-right"></i></a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pricing Section -->
+  <div class="pricing-section">
+    <div class="container">
+      <div class="pricing-header">
+        <h2>Simple Pricing</h2>
+        <p>Get access to unlimited LinkedIn post data extraction with our professional plan</p>
+      </div>
+      
+      <div class="pricing-card">
+        <div class="pricing-price">$59</div>
+        <div class="pricing-period">per month</div>
+        
+        <ul class="pricing-features">
+          <li><span class="check">✓</span> 25,000 LinkedIn post scraping</li>
+          <li><span class="check">✓</span> Batch processing (CSV upload)</li>
+          <li><span class="check">✓</span> API access included</li>
+          <li><span class="check">✓</span> Export results to CSV</li>
+          <li><span class="check">✓</span> Complete post data & metrics</li>
+          <li><span class="check">✓</span> Priority support</li>
+        </ul>
+        
+        <button class="btn btn-full" onclick="window.location.href='https://linkfinderai.com/sign-up'">
+          Get Started
+        </button>
+        
+        <div class="pricing-note">
+          *Rate limit: 10 searches per 30 seconds
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FAQ Section -->
+  <div class="faq-section">
+    <div class="container">
+      <div class="faq-header">
+        <h2>Frequently Asked Questions</h2>
+      </div>
+      
+      <div class="faq-list">
+        <div class="faq-item">
+          <button class="faq-question" onclick="toggleFAQ(this)">
+            What data can I extract from LinkedIn posts?
+            <i class="fas fa-chevron-down icon"></i>
+          </button>
+          <div class="faq-answer">
+            Our scraper extracts comprehensive post data including content, author information, engagement metrics (likes, comments, shares), post date, media attachments, and comment details from LinkedIn posts.
+          </div>
+        </div>
+        
+        <div class="faq-item">
+          <button class="faq-question" onclick="toggleFAQ(this)">
+            Is this LinkedIn scraping legal and compliant?
+            <i class="fas fa-chevron-down icon"></i>
+          </button>
+          <div class="faq-answer">
+            Yes, our service only extracts publicly available information from LinkedIn posts in compliance with LinkedIn's terms of service and data protection regulations.
+          </div>
+        </div>
+        
+        <div class="faq-item">
+          <button class="faq-question" onclick="toggleFAQ(this)">
+            How accurate are the engagement metrics?
+            <i class="fas fa-chevron-down icon"></i>
+          </button>
+          <div class="faq-answer">
+            Our scraper maintains over 98% accuracy by extracting data directly from LinkedIn's posts at the time of scraping. Note that metrics may change as users continue to engage with posts.
+          </div>
+        </div>
+        
+        <div class="faq-item">
+          <button class="faq-question" onclick="toggleFAQ(this)">
+            Can I process multiple LinkedIn post URLs at once?
+            <i class="fas fa-chevron-down icon"></i>
+          </button>
+          <div class="faq-answer">
+            Yes! Upload a CSV file with up to 500 LinkedIn post URLs and our bulk processor will extract data from all posts automatically.
+          </div>
+        </div>
+        
+        <div class="faq-item">
+          <button class="faq-question" onclick="toggleFAQ(this)">
+            Do you provide API access for developers?
+            <i class="fas fa-chevron-down icon"></i>
+          </button>
+          <div class="faq-answer">
+            Yes! All paid plans include full API access with comprehensive documentation for integrating LinkedIn post data extraction into your applications.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CTA Section -->
+  <div class="cta-section">
+    <div class="container">
+      <h2>Ready to Extract LinkedIn Post Data?</h2>
+      <p>Join thousands of marketers and analysts who use our tool for comprehensive social media intelligence</p>
+      <button class="btn" onclick="window.location.href='https://linkfinderai.com/sign-up'">
+        Start Your Free Trial
+      </button>
+    </div>
+  </div>
+
+  <!-- Related Tools Mini Box -->
+  <div class="mini-related-box" style="max-width:600px;margin:40px auto;padding:20px;background:#f9fafb;border-radius:8px;border:1px solid #e5e7eb;">
+    <p style="margin:0 0 12px;font-size:14px;font-weight:600;color:#374151;">Related Tools:</p>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <a href="https://linkfinderai.com/linkedin-company-post-scraper" style="padding:8px 14px;background:white;border:1px solid #d1d5db;border-radius:6px;text-decoration:none;color:#2563eb;font-size:13px;">Company Posts</a>
+      <a href="https://linkfinderai.com/linkedin-post-commenters-export" style="padding:8px 14px;background:white;border:1px solid #d1d5db;border-radius:6px;text-decoration:none;color:#2563eb;font-size:13px;">Post Commenters</a>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-grid">
+        <!-- Brand Section -->
+        <div class="footer-section">
+          <div class="footer-logo">
+            <div class="logo-icon">
+              <i class="fas fa-search"></i>
+            </div>
+            <span class="logo-text">LinkFinder AI</span>
+          </div>
+          <p class="footer-description">
+            Professional tools for extracting data from LinkedIn. Streamline your business research and competitive intelligence.
+          </p>
+        </div>
+
+        <!-- Tools Section -->
+        <div class="footer-section">
+          <h4 class="footer-heading">Our Tools</h4>
+          <ul class="footer-links">
+            <li><a href="https://linkfinderai.com/company-url-finder" title="Find company websites and URLs">Company URL Finder</a></li>
+            <li><a href="https://linkfinderai.com/linkedin-url-finder" title="Find LinkedIn profile urls">LinkedIn URL Finder</a></li>
+            <li><a href="https://linkfinderai.com/company-phone-finder" title="Find company phone numbers">Company Phone Finder</a></li>
+            <li><a href="https://linkfinderai.com/company-employee-finder" title="Find company employees">Company Employee Finder</a></li>
+            <li><a href="https://linkfinderai.com/company-details-finder" title="Find comprehensive company details">Company Details Finder</a></li>
+            <li><a href="https://linkfinderai.com/find-company-employee-count" title="Find company employee count">Company Employee Count</a></li>
+            <li><a href="https://linkfinderai.com/linkedin-search-by-email" title="Search LinkedIn by email">LinkedIn Search by Email</a></li>
+            <li><a href="https://linkfinderai.com/linkedin-company-scraper" title="Extract LinkedIn company data">LinkedIn Company Scraper</a></li>
+            <li><a href="https://linkfinderai.com/linkedin-profile-scraper" title="Extract LinkedIn profile data">LinkedIn Profile Scraper</a></li>
+            <li><a href="https://linkfinderai.com/linkedin-email-finder" title="Find emails from LinkedIn profiles">LinkedIn Email Finder</a></li>
+            <li><a href="https://linkfinderai.com/instagram-profile-scraper" title="Extract Instagram profile data">Instagram Profile Scraper</a></li>
+            <li><a href="https://linkfinderai.com/instagram-profile-url-finder" title="Find Instagram profile urls">Instagram Url Finder</a></li>
+            <li><a href="https://linkfinderai.com/scrape-linkedIn-jobs" title="Extract Linkedin jobs data">Scrape Linkedin Jobs</a></li>
+            <li><a href="https://linkfinderai.com/linkedin-post-commenters-export" title="LinkedIn Post Commenters Export">LinkedIn Post Commenters Export</a></li>
+            <li><a href="https://linkfinderai.com/linkedin-post-date-extractor" title="LinkedIn Post Date Extractor">LinkedIn Post Date Extractor</a></li>
+            <li><a href="https://linkfinderai.com/linkedin-company-post-scraper" title="LinkedIn Company Post Scraper">LinkedIn Company Post Scraper</a></li>
+          </ul>
+        </div>
+
+        <!-- Compare Section -->
+        <div class="footer-section">
+          <h4 class="footer-heading">Compare</h4>
+          <ul class="footer-links">
+            <li><a href="https://linkfinderai.com/apify-alternative" title="LinkFinder AI vs Apify">Apify Alternative</a></li>
+            <li><a href="https://linkfinderai.com/clay-alternative" title="LinkFinder AI vs Clay">Clay Alternative</a></li>
+            <li><a href="https://linkfinderai.com/coresignal-alternative" title="LinkFinder AI vs Coresignal">Coresignal Alternative</a></li>
+            <li><a href="https://linkfinderai.com/derrick-app-alternative" title="LinkFinder AI vs Derrick App">Derrick App Alternative</a></li>
+            <li><a href="https://linkfinderai.com/phantombuster-alternative" title="LinkFinder AI vs PhantomBuster">PhantomBuster Alternative</a></li>
+            <li><a href="https://linkfinderai.com/captain-data-alternative" title="LinkFinder AI vs Captain Data">Captain Data Alternative</a></li>
+            <li><a href="https://linkfinderai.com/clearbit-alternative" title="LinkFinder AI vs Clearbit">Clearbit Alternative</a></li>
+            <li><a href="https://linkfinderai.com/scrapin-alternative" title="LinkFinder AI vs Scrapin">Scrapin Alternative</a></li>
+            <li><a href="https://linkfinderai.com/blog" title="Blog">Blog</a></li>
+          </ul>
+        </div>
+
+        <!-- Features Section -->
+        <div class="footer-section">
+          <h4 class="footer-heading">Features</h4>
+          <ul class="footer-links">
+            <li><a href="https://linkfinderai.com/b2b-data-enrichment" title="B2B data enrichment">B2B data enrichment</a></li>
+            <li><a href="https://linkfinderai.com/data-enrichment-api" title="Data enrichment API">Data enrichment API</a></li>
+            <li><a href="https://linkfinderai.com/data-enrichment-company" title="Data Enrichment Company">Data Enrichment Company</a></li>
+            <li><a href="https://linkfinderai.com/lead-enrichment-api" title="Lead Enrichment API">Lead Enrichment API</a></li>
+            <li><a href="https://linkfinderai.com/linkedin-scraper" title="Linkedin Scraper">Linkedin Scraper</a></li>
+            <li><a href="https://linkfinderai.com/b2b-data-companies" title="B2B Data Companies">B2B Data Companies</a></li>
+          </ul>
+        </div>
+
+        <!-- Support Section -->
+        <div class="footer-section">
+          <h4 class="footer-heading">Support</h4>
+          <ul class="footer-links">
+            <li><a href="mailto:support@linkfinderai.com">support@linkfinderai.com</a></li>
+            <li><a href="https://linkfinderai.com/api-documentation" title="API documentation">API documentation</a></li>
+            <li><a href="https://linkfinderai.com/pricing" title="Pricing">Pricing</a></li>
+            <li><a href="https://linkfinderai.com/privacy" title="Privacy policy">Privacy Policy</a></li>
+            <li><a href="https://linkfinderai.com/terms" title="Terms of service">Terms of Service</a></li>
+            <li><a href="https://linkfinderai.com/about-us" title="About us">About Us</a></li>
+            <li><a href="https://linkfinderai.com/blog" title="Blog">Blog</a></li>
+            <li><a href="https://calendly.com/hamoureliasse/compensated-interview-unlimited-leads-clone" title="Book a call with sales" target="_blank"><i class="fas fa-calendar-alt"></i> Book a Call</a></li>
+            <li><a href="https://www.linkedin.com/in/eliasse-hamour-08194821a/" title="Follow us on LinkedIn" target="_blank"><i class="fab fa-linkedin"></i> LinkedIn</a></li>
+            <li><a href="https://www.youtube.com/" title="Subscribe to our YouTube" target="_blank"><i class="fab fa-youtube"></i> YouTube</a></li>
+            <li><a href="https://trustpilot.com/review/linkfinderai.com" title="See our Trustpilot reviews" target="_blank"><i class="fab fa-trustpilot"></i> Trustpilot Reviews</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Footer Bottom -->
+      <div class="footer-bottom">
+        <p>&copy; 2025 LinkFinderAI. All rights reserved.</p>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    let currentMode = 'single';
+    let csvData = [];
+    let bulkResults = [];
+    let currentUser = null;
+    let searchCount = 0;
+    let bulkSearchUsed = false;
+
+    function initApp() {
+      setupFileUpload();
+      checkAuthState();
+      updateUI();
+      
+      const linkedinUrlInput = document.getElementById('linkedinUrl');
+      if (linkedinUrlInput) {
+        linkedinUrlInput.addEventListener('keypress', (e) => {
+          if (e.key === 'Enter') scrapePostData();
+        });
+      }
+    }
+
+    function checkAuthState() {
+      const userData = localStorage.getItem('postScraperUser');
+      if (userData) {
+        currentUser = JSON.parse(userData);
+        const token = currentUser.token || currentUser.access_token || 'default-token';
+        window.location.href = `https://linkfinderai.com/app?token=${token}`;
+        return;
+      }
+      searchCount = parseInt(localStorage.getItem('postSearchCount') || '0');
+      bulkSearchUsed = localStorage.getItem('postBulkSearchUsed') === 'true';
+    }
+
+    function showUserInfo() {
+      document.getElementById('authButtons').classList.add('hidden');
+      document.getElementById('userInfo').classList.remove('hidden');
+      document.getElementById('searchCount').textContent = searchCount;
+    }
+
+    function hideUserInfo() {
+      document.getElementById('authButtons').classList.remove('hidden');
+      document.getElementById('userInfo').classList.add('hidden');
+    }
+
+    function showModal(type) {
+      if (type === 'signup') {
+        window.location.href = 'https://linkfinderai.com/sign-up';
+      } else if (type === 'login') {
+        window.location.href = 'https://linkfinderai.com/log-in';
+      }
+    }
+
+    function logout() {
+      localStorage.removeItem('postScraperUser');
+      localStorage.removeItem('postSearchCount');
+      localStorage.removeItem('postBulkSearchUsed');
+      currentUser = null;
+      searchCount = 0;
+      bulkSearchUsed = false;
+      hideUserInfo();
+      updateUI();
+    }
+
+    function checkSearchLimit() {
+      if (currentUser && currentUser.isPremium) {
+        return true;
+      }
+      
+      if (currentMode === 'bulk' && bulkSearchUsed) {
+        return false;
+      }
+      
+      if (currentMode === 'single' && searchCount >= 10) {
+        return false;
+      }
+      
+      return true;
+    }
+
+    function updateSearchCount(increment = 1) {
+      if (!currentUser || !currentUser.isPremium) {
+        searchCount += increment;
+        localStorage.setItem('postSearchCount', searchCount);
+        document.getElementById('searchCount').textContent = searchCount;
+      }
+    }
+
+    function updateUI() {
+      const hasAccess = checkSearchLimit();
+      document.getElementById('limitWarning').classList.toggle('hidden', hasAccess);
+      
+      const searchButtons = document.querySelectorAll('.btn:not(.btn-outline)');
+      searchButtons.forEach(btn => {
+        if (!hasAccess && (btn.textContent.includes('Scrape') || btn.textContent.includes('Process'))) {
+          btn.disabled = true;
+          btn.style.opacity = '0.5';
+        } else {
+          btn.disabled = false;
+          btn.style.opacity = '1';
+        }
+      });
+    }
+
+    function switchMode(mode) {
+      currentMode = mode;
+      
+      document.getElementById('singleMode').classList.toggle('active', mode === 'single');
+      document.getElementById('bulkMode').classList.toggle('active', mode === 'bulk');
+      
+      document.getElementById('singleSearchForm').classList.toggle('hidden', mode !== 'single');
+      document.getElementById('bulkUploadForm').classList.toggle('hidden', mode !== 'bulk');
+      
+      resetResults();
+      updateUI();
+    }
+
+    function resetResults() {
+      document.getElementById('resultsSection').classList.add('hidden');
+      document.getElementById('singleResult').classList.remove('hidden');
+      document.getElementById('bulkResults').classList.add('hidden');
+      document.getElementById('postDataDisplay').classList.add('hidden');
+      document.getElementById('errorMessage').classList.add('hidden');
+    }
+
+    function isValidLinkedInPostUrl(url) {
+      try {
+        const urlObj = new URL(url);
+        const hostname = urlObj.hostname.toLowerCase();
+        
+        const validDomains = ['linkedin.com', 'www.linkedin.com'];
+        if (!validDomains.includes(hostname)) {
+          return false;
+        }
+        
+        const pathname = urlObj.pathname.toLowerCase();
+        return pathname.includes('/posts/') || pathname.includes('/feed/update/');
+        
+      } catch (error) {
+        return false;
+      }
+    }
+
+    async function scrapePostData() {
+      if (!checkSearchLimit()) {
+        window.location.href = 'https://linkfinderai.com/sign-up';
+        return;
+      }
+
+      const postDataDisplay = document.getElementById('postDataDisplay');
+      const errorMessage = document.getElementById('errorMessage');
+      const scrapeButton = document.querySelector('#singleSearchForm .btn-full');
+      
+      const linkedinUrl = document.getElementById('linkedinUrl').value.trim();
+      if (!linkedinUrl) {
+        alert('Please enter a LinkedIn post URL.');
+        return;
+      }
+
+      if (!isValidLinkedInPostUrl(linkedinUrl)) {
+        alert('Please enter a valid LinkedIn post URL (e.g., https://linkedin.com/posts/...)');
+        return;
+      }
+
+      const requestBody = { 
+        post_url: linkedinUrl,
+        is_bulk: false
+      };
+
+      // Show loading state
+      document.getElementById('resultsSection').classList.remove('hidden');
+      postDataDisplay.classList.add('hidden');
+      errorMessage.classList.remove('hidden');
+      errorMessage.textContent = 'Scraping LinkedIn post...';
+      
+      // Disable button and show loading
+      scrapeButton.disabled = true;
+      scrapeButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Scraping LinkedIn post...';
+
+      try {
+        const response = await fetch('https://linkedin-post-scraper-linkfinderai.hamoureliasse.workers.dev/', {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify(requestBody)
+        });
+
+        if (!response.ok) {
+          throw new Error(`Server responded with status: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        if (data && (data.content || data.author)) {
+          displayPostData(data);
+          updateSearchCount();
+          errorMessage.classList.add('hidden');
+        } else {
+          errorMessage.textContent = `No post data found for: ${linkedinUrl}`;
+          postDataDisplay.classList.add('hidden');
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        errorMessage.textContent = `Error scraping data from LinkedIn. Please try again.`;
+        postDataDisplay.classList.add('hidden');
+      } finally {
+        // Reset button state
+        scrapeButton.disabled = false;
+        scrapeButton.innerHTML = '<i class="fab fa-linkedin"></i> Scrape Post Data';
+      }
+      
+      updateUI();
+    }
+
+    function displayPostData(data) {
+      const postDataDisplay = document.getElementById('postDataDisplay');
+      
+      const authorInitials = data.author ? data.author.split(' ').map(word => word[0]).join('').substring(0, 2).toUpperCase() : 'AU';
+      
+      let html = `
+        <div class="post-header">
+          <div class="author-avatar">${authorInitials}</div>
+          <div class="author-info">
+            <h3>${data.author || 'Unknown Author'}</h3>
+            <div class="author-title">${data.author_title || 'LinkedIn User'}</div>
+          </div>
+        </div>
+      `;
+      
+      if (data.post_date || data.post_time) {
+        html += `
+          <div class="data-grid">
+            <div class="data-item">
+              <div class="data-label">Post Date</div>
+              <div class="data-value">${data.post_date || 'Not specified'}</div>
+            </div>
+            <div class="data-item">
+              <div class="data-label">Post Time</div>
+              <div class="data-value">${data.post_time || 'Not specified'}</div>
+            </div>
+          </div>
+        `;
+      }
+      
+      if (data.content) {
+        html += `
+          <div class="post-content">
+            <div class="data-label">Post Content</div>
+            <div class="data-value">${data.content}</div>
+          </div>
+        `;
+      }
+      
+      if (data.likes || data.comments || data.shares || data.reposts) {
+        html += `<div class="engagement-metrics">`;
+        
+        if (data.likes) {
+          html += `
+            <div class="metric-item">
+              <i class="fas fa-thumbs-up"></i>
+              <div>
+                <div class="metric-value">${data.likes}</div>
+                <div class="metric-label">Likes</div>
+              </div>
+            </div>
+          `;
+        }
+        
+        if (data.comments) {
+          html += `
+            <div class="metric-item">
+              <i class="fas fa-comment"></i>
+              <div>
+                <div class="metric-value">${data.comments}</div>
+                <div class="metric-label">Comments</div>
+              </div>
+            </div>
+          `;
+        }
+        
+        if (data.shares) {
+          html += `
+            <div class="metric-item">
+              <i class="fas fa-share"></i>
+              <div>
+                <div class="metric-value">${data.shares}</div>
+                <div class="metric-label">Shares</div>
+              </div>
+            </div>
+          `;
+        }
+        
+        if (data.reposts) {
+          html += `
+            <div class="metric-item">
+              <i class="fas fa-retweet"></i>
+              <div>
+                <div class="metric-value">${data.reposts}</div>
+                <div class="metric-label">Reposts</div>
+              </div>
+            </div>
+          `;
+        }
+        
+        html += `</div>`;
+      }
+      
+      if (data.post_url) {
+        html += `
+          <a href="${data.post_url}" target="_blank" class="post-link">
+            <i class="fab fa-linkedin"></i> View Post on LinkedIn
+          </a>
+        `;
+      }
+      
+      postDataDisplay.innerHTML = html;
+      postDataDisplay.classList.remove('hidden');
+    }
+
+    function tryExample() {
+      document.getElementById('linkedinUrl').value = 'https://www.linkedin.com/posts/example-post-url';
+    }
+
+    function toggleFAQ(button) {
+      const answer = button.nextElementSibling;
+      const isActive = button.classList.contains('active');
+      
+      document.querySelectorAll('.faq-question').forEach(q => {
+        q.classList.remove('active');
+        q.nextElementSibling.classList.remove('show');
+      });
+      
+      if (!isActive) {
+        button.classList.add('active');
+        answer.classList.add('show');
+      }
+    }
+
+    function setupFileUpload() {
+      const fileInput = document.getElementById('csvFile');
+      const uploadArea = document.getElementById('uploadArea');
+
+      fileInput.addEventListener('change', (e) => {
+        if (e.target.files.length > 0) {
+          handleFile(e.target.files[0]);
+        }
+      });
+
+      uploadArea.addEventListener('click', () => fileInput.click());
+
+      ['dragover', 'dragleave', 'drop'].forEach(eventName => {
+        uploadArea.addEventListener(eventName, (e) => e.preventDefault());
+      });
+
+      uploadArea.addEventListener('drop', (e) => {
+        if (e.dataTransfer.files.length > 0) {
+          handleFile(e.dataTransfer.files[0]);
+        }
+      });
+    }
+
+    function handleFile(file) {
+      if (!file.name.toLowerCase().endsWith('.csv')) {
+        alert('Please select a CSV file.');
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (e) => parseCSV(e.target.result);
+      reader.readAsText(file);
+    }
+
+    function parseCSV(csvText) {
+      const lines = csvText.split('\n').filter(line => line.trim());
+      if (lines.length < 2) {
+        alert('CSV must contain header and data rows.');
+        return;
+      }
+
+      const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+      csvData = [];
+
+      const urlIdx = findColumnIndex(headers, ['post_url', 'linkedin_url', 'url', 'post']);
+      
+      if (urlIdx === -1) {
+        alert('CSV must contain a post_url column.');
+        return;
+      }
+
+      for (let i = 1; i < lines.length; i++) {
+        const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
+        if (values[urlIdx] && isValidLinkedInPostUrl(values[urlIdx])) {
+          csvData.push({ post_url: values[urlIdx] });
+        }
+      }
+
+      if (csvData.length === 0) {
+        alert('No valid LinkedIn post URLs found.');
+        return;
+      }
+
+      if (csvData.length > 25) {
+        alert(`Too many entries (${csvData.length}). Maximum is 25.`);
+        return;
+      }
+
+      showPreview();
+    }
+
+    function findColumnIndex(headers, possibleNames) {
+      for (let i = 0; i < headers.length; i++) {
+        if (possibleNames.includes(headers[i].toLowerCase())) {
+          return i;
+        }
+      }
+      return -1;
+    }
+
+    function showPreview() {
+      const preview = csvData.slice(0, 5);
+      let tableHTML = '<table class="results-table"><thead><tr><th>LinkedIn Post URL</th></tr></thead><tbody>';
+
+      preview.forEach(row => {
+        tableHTML += `<tr><td>${row.post_url}</td></tr>`;
+      });
+
+      tableHTML += '</tbody></table>';
+      document.getElementById('previewTable').innerHTML = tableHTML;
+      document.getElementById('itemCount').textContent = csvData.length;
+      document.getElementById('csvPreview').classList.remove('hidden');
+    }
+
+    async function processBulkSearch() {
+      if (!checkSearchLimit()) {
+        window.location.href = 'https://linkfinderai.com/sign-up';
+        return;
+      }
+
+      document.getElementById('csvPreview').classList.add('hidden');
+
+      document.getElementById('resultsSection').classList.remove('hidden');
+      document.getElementById('singleResult').classList.add('hidden');
+      document.getElementById('bulkResults').classList.remove('hidden');
+
+      const processBtn = document.getElementById('processBulkBtn');
+      const progressBar = document.getElementById('progressBar');
+      
+      processBtn.disabled = true;
+      processBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+      
+      bulkResults = [];
+      let processed = 0;
+
+      updateSearchCount();
+
+      for (const row of csvData) {
+        try {
+          const requestBody = { 
+            post_url: row.post_url,
+            is_bulk: true
+          };
+
+          const response = await fetch('https://linkedin-post-scraper-linkfinderai.hamoureliasse.workers.dev/', {
+            method: 'POST',
+            headers: { 
+              'Content-Type': 'application/json',
+              'Accept': 'application/json'
+            },
+            body: JSON.stringify(requestBody)
+          });
+
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+
+          const data = await response.json();
+          bulkResults.push({
+            ...row,
+            author: data?.author || 'Not found',
+            content: data?.content ? data.content.substring(0, 100) + '...' : 'Not found',
+            likes: data?.likes || '0',
+            comments: data?.comments || '0',
+            status: (data?.author || data?.content) ? 'Success' : 'Not found'
+          });
+
+          await new Promise(resolve => setTimeout(resolve, 100));
+        } catch (error) {
+          console.error('Bulk search error:', error);
+          bulkResults.push({
+            ...row,
+            author: 'Error',
+            content: 'Error',
+            likes: 'Error',
+            comments: 'Error',
+            status: 'Error'
+          });
+        }
+
+        processed++;
+        const progress = (processed / csvData.length) * 100;
+        progressBar.style.width = `${progress}%`;
+        updateBulkResultsTable();
+      }
+
+      processBtn.disabled = false;
+      processBtn.innerHTML = `<i class="fas fa-play"></i> Process ${csvData.length} Posts`;
+      updateUI();
+    }
+
+    function updateBulkResultsTable() {
+      let tableHTML = '<table class="results-table"><thead><tr><th>Post URL</th><th>Author</th><th>Content Preview</th><th>Likes</th><th>Status</th></tr></thead><tbody>';
+
+      bulkResults.forEach(row => {
+        const statusClass = row.status === 'Success' ? 'status-success' : 'status-error';
+        
+        tableHTML += `<tr>
+          <td><a href="${row.post_url}" target="_blank" style="color: var(--primary);">${row.post_url.substring(0, 40)}...</a></td>
+          <td>${row.author}</td>
+          <td>${row.content}</td>
+          <td>${row.likes}</td>
+          <td><span class="status-badge ${statusClass}">${row.status}</span></td>
+        </tr>`;
+      });
+
+      tableHTML += '</tbody></table>';
+      document.getElementById('bulkResultsTable').innerHTML = tableHTML;
+    }
+
+    function downloadResults() {
+      if (bulkResults.length === 0) {
+        alert('No results to download.');
+        return;
+      }
+
+      let csvContent = 'Post URL,Author,Content,Likes,Comments,Status\n';
+      bulkResults.forEach(row => {
+        csvContent += `"${row.post_url}","${row.author}","${row.content}","${row.likes}","${row.comments}","${row.status}"\n`;
+      });
+
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `linkedin_post_data.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function downloadTemplate() {
+      const csvContent = 'post_url\nhttps://linkedin.com/posts/example-1\nhttps://linkedin.com/posts/example-2\nhttps://linkedin.com/posts/example-3';
+
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `linkedin_post_template.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    document.addEventListener('DOMContentLoaded', initApp);
+    checkAuthState();
+  </script>
+</body>
+</html>
