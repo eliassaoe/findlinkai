@@ -1,410 +1,558 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=AW-17588707745"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'AW-17588707745');
+    </script>
+    
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LinkedIn Post Scraper - LinkFinderAI</title>
+    <title>LinkedIn Post Scraper - Extract Post Data | LinkFinder AI</title>
+    <meta name="description" content="Extract detailed data from LinkedIn posts including content, engagement metrics, author info, and media. Supports single and bulk scraping."/>
+    
+    <!-- Favicon -->
+    <link rel="icon" href="https://i.ibb.co/jPjX9SSp/Screen-Shot-2025-03-28-at-8-16-15-PM.png">
+    
+    <!-- Optimized Font Loading -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        :root {
+          --primary: #2563eb;
+          --primary-hover: #1d4ed8;
+          --gray-50: #f9fafb;
+          --gray-100: #f3f4f6;
+          --gray-200: #e5e7eb;
+          --gray-300: #d1d5db;
+          --gray-400: #9ca3af;
+          --gray-500: #6b7280;
+          --gray-600: #4b5563;
+          --gray-700: #374151;
+          --gray-800: #1f2937;
+          --gray-900: #111827;
+          --success: #10b981;
+          --error: #ef4444;
+          --warning: #f59e0b;
         }
 
+        * {
+          margin: 0;
+          padding: 0;
+          box-sizing: border-box;
+        }
+        
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
+          font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+          background: white;
+          color: var(--gray-800);
+          line-height: 1.6;
+          font-size: 16px;
         }
 
         .container {
-            max-width: 1200px;
-            margin: 0 auto;
+          max-width: 1200px;
+          margin: 0 auto;
+          padding: 0 1rem;
         }
 
+        /* Header */
         .header {
-            text-align: center;
-            color: white;
-            margin-bottom: 40px;
+          border-bottom: 1px solid var(--gray-200);
+          padding: 1rem 0;
+          background: white;
         }
 
-        .header h1 {
-            font-size: 2.5rem;
-            margin-bottom: 10px;
-            font-weight: 700;
+        .header-content {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
         }
 
-        .header p {
-            font-size: 1.1rem;
-            opacity: 0.9;
+        .logo {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          text-decoration: none;
+          color: var(--gray-900);
         }
 
-        .card {
-            background: white;
-            border-radius: 16px;
-            padding: 30px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            margin-bottom: 30px;
+        .logo-icon {
+          width: 32px;
+          height: 32px;
+          background: var(--primary);
+          border-radius: 6px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: white;
+          font-size: 0.875rem;
         }
 
+        .logo-text {
+          font-size: 1.25rem;
+          font-weight: 600;
+          color: var(--gray-900);
+        }
+
+        .auth-buttons {
+          display: flex;
+          gap: 0.75rem;
+          align-items: center;
+        }
+
+        /* Hero Section */
+        .hero {
+          text-align: center;
+          padding: 4rem 0 3rem;
+        }
+
+        .hero h1 {
+          font-size: 3rem;
+          font-weight: 700;
+          color: var(--gray-900);
+          margin-bottom: 1rem;
+          line-height: 1.1;
+        }
+
+        .hero p {
+          font-size: 1.25rem;
+          color: var(--gray-600);
+          margin: 0 auto 2rem;
+          max-width: 600px;
+        }
+
+        /* Main Card */
+        .main-card {
+          background: white;
+          border: 1px solid var(--gray-200);
+          border-radius: 12px;
+          padding: 2rem;
+          margin-bottom: 3rem;
+          box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+          max-width: 800px;
+          margin-left: auto;
+          margin-right: auto;
+        }
+
+        /* Mode Tabs */
         .mode-tabs {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 30px;
-            background: #f1f5f9;
-            padding: 6px;
-            border-radius: 12px;
+          display: flex;
+          gap: 0.5rem;
+          margin-bottom: 2rem;
+          background: var(--gray-100);
+          padding: 0.25rem;
+          border-radius: 8px;
         }
 
         .mode-tab {
-            flex: 1;
-            padding: 12px 24px;
-            border: none;
-            background: transparent;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 1rem;
-            color: #64748b;
-            transition: all 0.3s;
+          flex: 1;
+          padding: 0.75rem 1.5rem;
+          border: none;
+          background: transparent;
+          border-radius: 6px;
+          cursor: pointer;
+          font-weight: 500;
+          font-size: 0.875rem;
+          color: var(--gray-600);
+          transition: all 0.2s;
         }
 
         .mode-tab.active {
-            background: white;
-            color: #2563eb;
-            box-shadow: 0 2px 8px rgba(37, 99, 235, 0.1);
+          background: white;
+          color: var(--primary);
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
         }
 
         .mode-content {
-            display: none;
+          display: none;
         }
 
         .mode-content.active {
-            display: block;
+          display: block;
         }
 
+        /* Buttons */
+        .btn {
+          background: var(--primary);
+          color: white;
+          border: none;
+          padding: 0.875rem 1.5rem;
+          border-radius: 8px;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.5rem;
+          text-decoration: none;
+          font-size: 0.875rem;
+          min-height: 44px;
+        }
+
+        .btn:hover:not(:disabled) {
+          background: var(--primary-hover);
+        }
+
+        .btn:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+
+        .btn-outline {
+          background: transparent;
+          color: var(--primary);
+          border: 1px solid var(--gray-300);
+        }
+
+        .btn-outline:hover {
+          background: var(--gray-50);
+          border-color: var(--primary);
+        }
+
+        .btn-full {
+          width: 100%;
+          margin-bottom: 1rem;
+        }
+
+        .btn-secondary {
+          background: var(--gray-600);
+        }
+
+        .btn-secondary:hover {
+          background: var(--gray-700);
+        }
+
+        /* Forms */
         .input-group {
-            margin-bottom: 20px;
+          margin-bottom: 1.5rem;
         }
 
         .input-group label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 600;
-            color: #1e293b;
+          display: block;
+          margin-bottom: 0.5rem;
+          font-weight: 500;
+          color: var(--gray-700);
+          font-size: 0.875rem;
         }
 
         .input-group input[type="text"],
         .input-group textarea {
-            width: 100%;
-            padding: 14px 18px;
-            border: 2px solid #e2e8f0;
-            border-radius: 10px;
-            font-size: 1rem;
-            font-family: 'Inter', sans-serif;
-            transition: all 0.3s;
+          width: 100%;
+          padding: 0.875rem 1rem;
+          border: 1px solid var(--gray-300);
+          border-radius: 8px;
+          font-size: 0.875rem;
+          transition: border-color 0.2s ease;
+          background: white;
+          font-family: 'Inter', sans-serif;
         }
 
-        .input-group input[type="text"]:focus,
+        .input-group input:focus,
         .input-group textarea:focus {
-            outline: none;
-            border-color: #2563eb;
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+          outline: none;
+          border-color: var(--primary);
+          box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
         }
 
         .input-group textarea {
-            min-height: 120px;
-            resize: vertical;
+          min-height: 100px;
+          resize: vertical;
         }
 
+        /* File Upload */
         .file-upload-area {
-            border: 2px dashed #cbd5e1;
-            border-radius: 12px;
-            padding: 40px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s;
-            background: #f8fafc;
+          border: 2px dashed var(--gray-300);
+          border-radius: 8px;
+          padding: 2rem;
+          text-align: center;
+          cursor: pointer;
+          transition: all 0.2s;
+          background: var(--gray-50);
         }
 
         .file-upload-area:hover {
-            border-color: #2563eb;
-            background: #eff6ff;
-        }
-
-        .file-upload-area.drag-over {
-            border-color: #2563eb;
-            background: #dbeafe;
+          border-color: var(--primary);
+          background: var(--gray-100);
         }
 
         .file-upload-area input[type="file"] {
-            display: none;
+          display: none;
         }
 
         .file-info {
-            margin-top: 15px;
-            padding: 12px;
-            background: #f1f5f9;
-            border-radius: 8px;
-            font-size: 0.9rem;
-            color: #475569;
+          margin-top: 1rem;
+          padding: 0.75rem;
+          background: var(--gray-100);
+          border-radius: 6px;
+          font-size: 0.875rem;
+          color: var(--gray-700);
         }
 
-        .btn {
-            width: 100%;
-            padding: 16px;
-            border: none;
-            border-radius: 10px;
-            font-size: 1.1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
+        /* Results */
+        .results-section {
+          margin-top: 2rem;
+          padding-top: 2rem;
+          border-top: 1px solid var(--gray-200);
         }
 
-        .btn-primary {
-            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-            color: white;
+        .post-card {
+          background: white;
+          border: 1px solid var(--gray-200);
+          border-radius: 12px;
+          padding: 1.5rem;
+          margin-bottom: 1.5rem;
+          transition: all 0.2s;
         }
 
-        .btn-primary:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 25px rgba(37, 99, 235, 0.3);
+        .post-card:hover {
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
         }
 
-        .btn-primary:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
-
-        .spinner {
-            border: 3px solid rgba(255, 255, 255, 0.3);
-            border-top: 3px solid white;
-            border-radius: 50%;
-            width: 20px;
-            height: 20px;
-            animation: spin 0.8s linear infinite;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .results {
-            margin-top: 30px;
-        }
-
-        .result-card {
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
-            border-radius: 12px;
-            padding: 24px;
-            margin-bottom: 20px;
-            transition: all 0.3s;
-        }
-
-        .result-card:hover {
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
-            transform: translateY(-2px);
-        }
-
-        .result-header {
-            display: flex;
-            align-items: start;
-            gap: 16px;
-            margin-bottom: 20px;
-            padding-bottom: 20px;
-            border-bottom: 1px solid #e2e8f0;
+        .post-header {
+          display: flex;
+          align-items: flex-start;
+          gap: 1rem;
+          margin-bottom: 1rem;
+          padding-bottom: 1rem;
+          border-bottom: 1px solid var(--gray-200);
         }
 
         .author-avatar {
-            width: 64px;
-            height: 64px;
-            border-radius: 50%;
-            object-fit: cover;
-            border: 3px solid white;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+          width: 48px;
+          height: 48px;
+          border-radius: 50%;
+          object-fit: cover;
+          border: 2px solid var(--gray-200);
         }
 
         .author-info h3 {
-            font-size: 1.3rem;
-            color: #1e293b;
-            margin-bottom: 4px;
+          font-size: 1rem;
+          font-weight: 600;
+          color: var(--gray-900);
+          margin-bottom: 0.25rem;
         }
 
         .author-stats {
-            display: flex;
-            gap: 16px;
-            margin-top: 8px;
-            font-size: 0.9rem;
-            color: #64748b;
+          display: flex;
+          gap: 1rem;
+          margin-top: 0.5rem;
+          font-size: 0.75rem;
+          color: var(--gray-600);
         }
 
-        .stat-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            background: white;
-            padding: 6px 12px;
-            border-radius: 8px;
-            font-weight: 500;
+        .stat-item {
+          display: flex;
+          align-items: center;
+          gap: 0.25rem;
         }
 
         .post-content {
-            margin-bottom: 20px;
+          margin-bottom: 1rem;
         }
 
         .post-text {
-            font-size: 1rem;
-            line-height: 1.7;
-            color: #334155;
-            margin-bottom: 16px;
+          font-size: 0.875rem;
+          line-height: 1.6;
+          color: var(--gray-700);
+          margin-bottom: 1rem;
+        }
+
+        .hashtags {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0.5rem;
+          margin-top: 0.75rem;
+        }
+
+        .hashtag {
+          background: var(--gray-100);
+          color: var(--gray-700);
+          padding: 0.25rem 0.75rem;
+          border-radius: 6px;
+          font-size: 0.75rem;
+          font-weight: 500;
         }
 
         .post-media {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 12px;
-            margin-top: 16px;
+          margin: 1rem 0;
         }
 
         .post-media img {
-            width: 100%;
-            height: 200px;
-            object-fit: cover;
-            border-radius: 10px;
-            cursor: pointer;
-            transition: all 0.3s;
+          width: 100%;
+          max-width: 500px;
+          height: auto;
+          border-radius: 8px;
+          cursor: pointer;
+          transition: transform 0.2s;
         }
 
         .post-media img:hover {
-            transform: scale(1.05);
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+          transform: scale(1.02);
         }
 
         .engagement-bar {
-            display: flex;
-            gap: 20px;
-            padding: 16px;
-            background: white;
-            border-radius: 10px;
-            margin-top: 16px;
+          display: flex;
+          gap: 1.5rem;
+          padding: 0.75rem 0;
+          border-top: 1px solid var(--gray-200);
+          font-size: 0.75rem;
         }
 
         .engagement-item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-weight: 600;
+          display: flex;
+          align-items: center;
+          gap: 0.375rem;
+          color: var(--gray-600);
         }
 
-        .engagement-item .icon {
-            font-size: 1.3rem;
+        .engagement-item i {
+          color: var(--primary);
         }
 
-        .metadata {
-            margin-top: 16px;
-            padding: 16px;
-            background: white;
-            border-radius: 10px;
-            font-size: 0.9rem;
-            color: #64748b;
+        .post-metadata {
+          margin-top: 1rem;
+          padding-top: 1rem;
+          border-top: 1px solid var(--gray-200);
+          display: grid;
+          gap: 0.5rem;
+          font-size: 0.75rem;
         }
 
         .metadata-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 8px 0;
-            border-bottom: 1px solid #f1f5f9;
-        }
-
-        .metadata-row:last-child {
-            border-bottom: none;
+          display: flex;
+          justify-content: space-between;
+          color: var(--gray-600);
         }
 
         .metadata-label {
-            font-weight: 600;
-            color: #475569;
+          font-weight: 500;
+          color: var(--gray-700);
         }
 
-        .tag {
-            display: inline-block;
-            background: #dbeafe;
-            color: #1e40af;
-            padding: 4px 12px;
-            border-radius: 6px;
-            font-size: 0.85rem;
-            margin-right: 6px;
-            margin-bottom: 6px;
+        .post-link-btn {
+          color: var(--primary);
+          text-decoration: none;
+          font-weight: 500;
+        }
+
+        .post-link-btn:hover {
+          text-decoration: underline;
+        }
+
+        .spinner {
+          border: 3px solid var(--gray-200);
+          border-top: 3px solid var(--primary);
+          border-radius: 50%;
+          width: 20px;
+          height: 20px;
+          animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
         }
 
         .error-message {
-            background: #fee;
-            color: #c00;
-            padding: 16px;
-            border-radius: 10px;
-            margin-top: 20px;
-            border-left: 4px solid #c00;
+          background: rgba(239, 68, 68, 0.1);
+          color: var(--error);
+          padding: 1rem;
+          border-radius: 8px;
+          font-size: 0.875rem;
+          border-left: 4px solid var(--error);
         }
 
         .success-message {
-            background: #d1fae5;
-            color: #065f46;
-            padding: 16px;
-            border-radius: 10px;
-            margin-top: 20px;
-            border-left: 4px solid #10b981;
+          background: rgba(16, 185, 129, 0.1);
+          color: var(--success);
+          padding: 1rem;
+          border-radius: 8px;
+          font-size: 0.875rem;
+          border-left: 4px solid var(--success);
+          margin-bottom: 1.5rem;
         }
 
         .info-box {
-            background: #eff6ff;
-            border: 1px solid #bfdbfe;
-            border-radius: 10px;
-            padding: 16px;
-            margin-bottom: 20px;
-            font-size: 0.95rem;
-            color: #1e40af;
+          background: var(--gray-50);
+          border: 1px solid var(--gray-200);
+          border-radius: 8px;
+          padding: 1rem;
+          margin-bottom: 1.5rem;
+          font-size: 0.875rem;
+          color: var(--gray-700);
         }
 
+        .hidden {
+          display: none !important;
+        }
+
+        /* Responsive */
         @media (max-width: 768px) {
-            .header h1 {
-                font-size: 2rem;
-            }
-            
-            .card {
-                padding: 20px;
-            }
-            
-            .result-header {
-                flex-direction: column;
-            }
-            
-            .author-stats {
-                flex-direction: column;
-                gap: 8px;
-            }
-            
-            .engagement-bar {
-                flex-direction: column;
-                gap: 12px;
-            }
+          .hero h1 {
+            font-size: 2rem;
+          }
+          
+          .main-card {
+            padding: 1.5rem;
+          }
+
+          .post-header {
+            flex-direction: column;
+          }
+
+          .author-stats {
+            flex-direction: column;
+            gap: 0.5rem;
+          }
         }
     </style>
+
+    <!-- Privacy-friendly analytics by Plausible -->
+    <script async src="https://plausible.io/js/pa-LTP3nlbjr9NybMEgzpwxU.js"></script>
+    <script>
+        window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};
+        plausible.init()
+    </script>
 </head>
 <body>
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <a href="https://linkfinderai.com/" class="logo">
+                    <div class="logo-icon">
+                        <i class="fas fa-search"></i>
+                    </div>
+                    <span class="logo-text">Linkfinder AI</span>
+                </a>
+                
+                <div class="auth-buttons">
+                    <a href="https://linkfinderai.com/log-in" class="btn btn-outline">
+                        Login
+                    </a>
+                    <a href="https://linkfinderai.com/sign-up" class="btn">
+                        Sign Up
+                    </a>
+                </div>
+            </div>
+        </div>
+    </header>
+
     <div class="container">
-        <div class="header">
-            <h1>🔗 LinkedIn Post Scraper</h1>
-            <p>Extract detailed data from LinkedIn posts - Powered by LinkFinderAI</p>
+        <div class="hero">
+            <h1>LinkedIn Post Scraper</h1>
+            <p>Extract detailed data from LinkedIn posts including content, author info, engagement metrics, and media</p>
         </div>
 
-        <div class="card">
+        <div class="main-card">
             <div class="mode-tabs">
                 <button class="mode-tab active" onclick="switchMode('single')">Single Post</button>
                 <button class="mode-tab" onclick="switchMode('bulk')">Bulk Upload</button>
@@ -413,7 +561,7 @@
             <!-- Single Post Mode -->
             <div id="single-mode" class="mode-content active">
                 <div class="info-box">
-                    💡 Enter a LinkedIn post URL to extract detailed information including author, content, engagement, and media.
+                    💡 Enter a LinkedIn post URL to extract detailed information
                 </div>
 
                 <form id="single-form">
@@ -427,19 +575,23 @@
                         >
                     </div>
 
-                    <button type="submit" class="btn btn-primary">
-                        <span id="single-btn-text">🚀 Scrape Post</span>
+                    <button type="submit" class="btn btn-full">
+                        <span id="single-btn-text"><i class="fas fa-download"></i> Scrape Post</span>
                         <div id="single-spinner" class="spinner" style="display: none;"></div>
+                    </button>
+
+                    <button type="button" class="btn-secondary btn btn-full" onclick="tryExample()">
+                        Try Example
                     </button>
                 </form>
 
-                <div id="single-results" class="results"></div>
+                <div id="single-results" class="results-section hidden"></div>
             </div>
 
             <!-- Bulk Upload Mode -->
             <div id="bulk-mode" class="mode-content">
                 <div class="info-box">
-                    📋 Upload a CSV file with LinkedIn post URLs (max 25 posts). CSV should have a column named "post_url".
+                    📋 Upload a CSV file with LinkedIn post URLs (max 25 posts)
                 </div>
 
                 <form id="bulk-form">
@@ -448,21 +600,21 @@
                         <div class="file-upload-area" id="drop-zone">
                             <input type="file" id="csv-file" accept=".csv" required>
                             <div>
-                                <p style="font-size: 3rem; margin-bottom: 10px;">📁</p>
-                                <p style="font-weight: 600; margin-bottom: 8px;">Click to upload or drag and drop</p>
-                                <p style="font-size: 0.9rem; color: #64748b;">CSV file (max 25 posts)</p>
+                                <p style="font-size: 2rem; margin-bottom: 0.5rem;">📁</p>
+                                <p style="font-weight: 500; margin-bottom: 0.5rem;">Click to upload or drag and drop</p>
+                                <p style="font-size: 0.75rem; color: var(--gray-500);">CSV file (max 25 posts)</p>
                             </div>
                         </div>
                         <div id="file-info" class="file-info" style="display: none;"></div>
                     </div>
 
-                    <button type="submit" class="btn btn-primary">
-                        <span id="bulk-btn-text">🚀 Scrape All Posts</span>
+                    <button type="submit" class="btn btn-full">
+                        <span id="bulk-btn-text"><i class="fas fa-download"></i> Scrape All Posts</span>
                         <div id="bulk-spinner" class="spinner" style="display: none;"></div>
                     </button>
                 </form>
 
-                <div id="bulk-results" class="results"></div>
+                <div id="bulk-results" class="results-section hidden"></div>
             </div>
         </div>
     </div>
@@ -472,12 +624,8 @@
 
         // Mode switching
         function switchMode(mode) {
-            document.querySelectorAll('.mode-tab').forEach(tab => {
-                tab.classList.remove('active');
-            });
-            document.querySelectorAll('.mode-content').forEach(content => {
-                content.classList.remove('active');
-            });
+            document.querySelectorAll('.mode-tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.mode-content').forEach(content => content.classList.remove('active'));
 
             if (mode === 'single') {
                 document.querySelector('.mode-tab:first-child').classList.add('active');
@@ -497,16 +645,16 @@
 
         dropZone.addEventListener('dragover', (e) => {
             e.preventDefault();
-            dropZone.classList.add('drag-over');
+            dropZone.style.borderColor = 'var(--primary)';
         });
 
         dropZone.addEventListener('dragleave', () => {
-            dropZone.classList.remove('drag-over');
+            dropZone.style.borderColor = 'var(--gray-300)';
         });
 
         dropZone.addEventListener('drop', (e) => {
             e.preventDefault();
-            dropZone.classList.remove('drag-over');
+            dropZone.style.borderColor = 'var(--gray-300)';
             const files = e.dataTransfer.files;
             if (files.length > 0 && files[0].name.endsWith('.csv')) {
                 fileInput.files = files;
@@ -522,9 +670,7 @@
 
         function showFileInfo(file) {
             fileInfo.style.display = 'block';
-            fileInfo.innerHTML = `
-                <strong>Selected:</strong> ${file.name} (${(file.size / 1024).toFixed(2)} KB)
-            `;
+            fileInfo.innerHTML = `<strong>Selected:</strong> ${file.name} (${(file.size / 1024).toFixed(2)} KB)`;
         }
 
         // Single post scraping
@@ -537,18 +683,16 @@
             const spinner = document.getElementById('single-spinner');
             const submitBtn = e.target.querySelector('button[type="submit"]');
 
-            // UI feedback
             btnText.style.display = 'none';
             spinner.style.display = 'block';
             submitBtn.disabled = true;
             resultsDiv.innerHTML = '';
+            resultsDiv.classList.remove('hidden');
 
             try {
                 const response = await fetch(WORKER_URL, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ post_url: postUrl })
                 });
 
@@ -561,13 +705,9 @@
                 displayResults([data], resultsDiv);
                 
             } catch (error) {
-                resultsDiv.innerHTML = `
-                    <div class="error-message">
-                        <strong>❌ Error:</strong> ${error.message}
-                    </div>
-                `;
+                resultsDiv.innerHTML = `<div class="error-message"><strong>❌ Error:</strong> ${error.message}</div>`;
             } finally {
-                btnText.style.display = 'block';
+                btnText.style.display = 'flex';
                 spinner.style.display = 'none';
                 submitBtn.disabled = false;
             }
@@ -585,6 +725,7 @@
 
             if (!fileInput.files || fileInput.files.length === 0) {
                 resultsDiv.innerHTML = '<div class="error-message">Please select a CSV file</div>';
+                resultsDiv.classList.remove('hidden');
                 return;
             }
 
@@ -592,11 +733,11 @@
             const formData = new FormData();
             formData.append('csv', file);
 
-            // UI feedback
             btnText.style.display = 'none';
             spinner.style.display = 'block';
             submitBtn.disabled = true;
             resultsDiv.innerHTML = '';
+            resultsDiv.classList.remove('hidden');
 
             try {
                 const response = await fetch(`${WORKER_URL}bulk`, {
@@ -611,24 +752,18 @@
                 }
 
                 if (data.results && data.results.length > 0) {
-                    displayResults(data.results, resultsDiv);
-                    
-                    const successMsg = document.createElement('div');
-                    successMsg.className = 'success-message';
-                    successMsg.innerHTML = `
-                        <strong>✅ Success!</strong> Scraped ${data.results.length} post(s) successfully.
+                    resultsDiv.innerHTML = `
+                        <div class="success-message">
+                            <strong>✅ Success!</strong> Scraped ${data.results.length} post(s) successfully.
+                        </div>
                     `;
-                    resultsDiv.insertBefore(successMsg, resultsDiv.firstChild);
+                    displayResults(data.results, resultsDiv);
                 }
                 
             } catch (error) {
-                resultsDiv.innerHTML = `
-                    <div class="error-message">
-                        <strong>❌ Error:</strong> ${error.message}
-                    </div>
-                `;
+                resultsDiv.innerHTML = `<div class="error-message"><strong>❌ Error:</strong> ${error.message}</div>`;
             } finally {
-                btnText.style.display = 'block';
+                btnText.style.display = 'flex';
                 spinner.style.display = 'none';
                 submitBtn.disabled = false;
             }
@@ -636,40 +771,34 @@
 
         // Display results
         function displayResults(results, container) {
-            container.innerHTML = '';
+            results.forEach((result) => {
+                const postCard = document.createElement('div');
+                postCard.className = 'post-card';
 
-            results.forEach((result, index) => {
-                const resultCard = document.createElement('div');
-                resultCard.className = 'result-card';
-
-                // Get author avatar (first image or default)
-                const authorAvatar = result.media?.images?.[0] || 'https://via.placeholder.com/64';
-
-                // Get main post image (second image if exists, or first)
+                // Get author avatar and main post image
+                const authorAvatar = result.media?.images?.[0] || 'https://via.placeholder.com/48';
                 const mainImage = result.media?.images?.[1] || result.media?.images?.[0];
 
-                resultCard.innerHTML = `
+                postCard.innerHTML = `
                     <!-- Header with author info -->
-                    <div class="result-header">
-                        <img src="${authorAvatar}" alt="${result.author?.name || 'Author'}" class="author-avatar" onerror="this.src='https://via.placeholder.com/64'">
+                    <div class="post-header">
+                        <img src="${authorAvatar}" alt="${result.author?.name || 'Author'}" class="author-avatar" onerror="this.src='https://via.placeholder.com/48'">
                         <div class="author-info">
                             <h3>${result.author?.name || 'Unknown Author'}</h3>
                             <div class="author-stats">
-                                ${result.author?.followers ? `<span class="stat-badge">👥 ${result.author.followers}</span>` : ''}
-                                ${result.author?.totalPosts ? `<span class="stat-badge">📝 ${result.author.totalPosts} posts</span>` : ''}
+                                ${result.author?.followers ? `<span class="stat-item"><i class="fas fa-users"></i> ${result.author.followers}</span>` : ''}
+                                ${result.author?.totalPosts ? `<span class="stat-item"><i class="fas fa-file-alt"></i> ${result.author.totalPosts} posts</span>` : ''}
                             </div>
                         </div>
                     </div>
 
                     <!-- Post content -->
                     <div class="post-content">
-                        ${result.content?.text ? `
-                            <div class="post-text">${escapeHtml(result.content.text)}</div>
-                        ` : ''}
-
+                        ${result.content?.text ? `<div class="post-text">${escapeHtml(result.content.text)}</div>` : ''}
+                        
                         ${result.content?.hashtags && result.content.hashtags.length > 0 ? `
-                            <div style="margin-top: 12px;">
-                                ${result.content.hashtags.map(tag => `<span class="tag">${escapeHtml(tag)}</span>`).join('')}
+                            <div class="hashtags">
+                                ${result.content.hashtags.map(tag => `<span class="hashtag">${escapeHtml(tag)}</span>`).join('')}
                             </div>
                         ` : ''}
                     </div>
@@ -686,13 +815,13 @@
                         <div class="engagement-bar">
                             ${result.engagement.reactions ? `
                                 <div class="engagement-item">
-                                    <span class="icon">❤️</span>
+                                    <i class="fas fa-thumbs-up"></i>
                                     <span>${result.engagement.reactions} reactions</span>
                                 </div>
                             ` : ''}
                             ${result.engagement.comments ? `
                                 <div class="engagement-item">
-                                    <span class="icon">💬</span>
+                                    <i class="fas fa-comment"></i>
                                     <span>${result.engagement.comments} comments</span>
                                 </div>
                             ` : ''}
@@ -700,43 +829,46 @@
                     ` : ''}
 
                     <!-- Metadata -->
-                    <div class="metadata">
+                    <div class="post-metadata">
                         ${result.metadata?.publishedDate ? `
                             <div class="metadata-row">
-                                <span class="metadata-label">📅 Published:</span>
+                                <span class="metadata-label">Published:</span>
                                 <span>${new Date(result.metadata.publishedDate).toLocaleString()}</span>
                             </div>
                         ` : ''}
                         ${result.postType ? `
                             <div class="metadata-row">
-                                <span class="metadata-label">📌 Type:</span>
+                                <span class="metadata-label">Type:</span>
                                 <span>${result.postType}</span>
                             </div>
                         ` : ''}
                         ${result.activityId ? `
                             <div class="metadata-row">
-                                <span class="metadata-label">🔑 Activity ID:</span>
+                                <span class="metadata-label">Activity ID:</span>
                                 <span>${result.activityId}</span>
                             </div>
                         ` : ''}
                         ${result.url ? `
                             <div class="metadata-row">
-                                <span class="metadata-label">🔗 URL:</span>
-                                <a href="${result.url}" target="_blank" style="color: #2563eb; text-decoration: none;">View on LinkedIn →</a>
+                                <span class="metadata-label">URL:</span>
+                                <a href="${result.url}" target="_blank" class="post-link-btn">View on LinkedIn <i class="fas fa-external-link-alt"></i></a>
                             </div>
                         ` : ''}
                     </div>
                 `;
 
-                container.appendChild(resultCard);
+                container.appendChild(postCard);
             });
         }
 
-        // Utility function to escape HTML
         function escapeHtml(text) {
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
+        }
+
+        function tryExample() {
+            document.getElementById('post-url').value = 'https://www.linkedin.com/posts/alanruchtein_77-ai-use-cases-every-seller-should-know-activity-7401604835722137600-dCH-';
         }
     </script>
 </body>
