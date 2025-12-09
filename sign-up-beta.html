@@ -34,11 +34,11 @@
     <title>Create Account - Link Finder AI</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
+        * { box-sizing: border-box; }
         
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #f8fafc;
             margin: 0;
             padding: 20px;
             min-height: 100vh;
@@ -47,60 +47,133 @@
             align-items: center;
         }
         
-        .signup-container {
-            display: flex;
-            max-width: 1100px;
-            width: 100%;
+        .container {
             background: #ffffff;
-            border-radius: 16px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            overflow: hidden;
-        }
-        
-        /* Left Side - Form */
-        .form-section {
-            flex: 1;
-            padding: 48px 40px;
-            max-width: 480px;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 440px;
+            border: 1px solid #e5e7eb;
         }
         
         .logo {
             display: flex;
             align-items: center;
-            gap: 10px;
+            justify-content: center;
+            gap: 0.5rem;
             margin-bottom: 32px;
         }
 
         .logo-icon {
-            width: 40px;
-            height: 40px;
+            width: 32px;
+            height: 32px;
             background: #2563eb;
-            border-radius: 8px;
+            border-radius: 6px;
             display: flex;
             align-items: center;
             justify-content: center;
             color: white;
+            font-size: 0.875rem;
         }
 
         .logo-text {
-            font-size: 1.5rem;
-            font-weight: 700;
+            font-size: 1.25rem;
+            font-weight: 600;
             color: #111827;
         }
         
         h1 {
+            text-align: center;
             color: #111827;
-            margin-bottom: 8px;
-            font-size: 32px;
-            font-weight: 700;
-            line-height: 1.2;
+            margin: 0 0 8px 0;
+            font-size: 28px;
+            font-weight: 600;
         }
         
         .subtitle {
+            text-align: center;
             color: #6b7280;
-            margin-bottom: 32px;
-            font-size: 16px;
+            margin-bottom: 28px;
+            font-size: 15px;
             line-height: 1.5;
+        }
+        
+        /* Trust Signals */
+        .trust-signals {
+            background: #f0f9ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 28px;
+        }
+
+        .trust-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #1e40af;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 10px;
+        }
+
+        .trust-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .trust-item svg {
+            flex-shrink: 0;
+        }
+        
+        /* Trustpilot Section */
+        .trustpilot-section {
+            text-align: center;
+            margin-bottom: 28px;
+            padding-bottom: 28px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .trustpilot-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        
+        .trustpilot-stars {
+            color: #00b67a;
+            font-size: 18px;
+            letter-spacing: 2px;
+        }
+        
+        .trustpilot-text {
+            color: #374151;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .testimonial {
+            background: #ffffff;
+            border-left: 3px solid #2563eb;
+            padding: 14px 16px;
+            text-align: left;
+            margin: 0 auto;
+            max-width: 100%;
+        }
+        
+        .testimonial-text {
+            color: #374151;
+            font-size: 14px;
+            line-height: 1.5;
+            font-style: italic;
+            margin-bottom: 8px;
+        }
+        
+        .testimonial-author {
+            color: #6b7280;
+            font-size: 13px;
+            font-weight: 500;
         }
         
         .form-group {
@@ -109,46 +182,43 @@
         
         label {
             display: block;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
             color: #374151;
-            font-weight: 600;
+            font-weight: 500;
             font-size: 14px;
         }
         
         input {
             width: 100%;
-            padding: 14px 16px;
-            border: 2px solid #e5e7eb;
-            border-radius: 8px;
+            padding: 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
             font-size: 15px;
-            transition: all 0.2s;
-            background: #ffffff;
+            transition: border-color 0.2s;
         }
         
         input:focus {
             outline: none;
             border-color: #2563eb;
-            box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
         }
         
         button {
             width: 100%;
-            padding: 14px;
+            padding: 12px;
             background: #2563eb;
             color: white;
             border: none;
-            border-radius: 8px;
-            font-size: 16px;
+            border-radius: 6px;
+            font-size: 15px;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.2s;
-            margin-bottom: 16px;
+            transition: background-color 0.2s;
+            margin-bottom: 12px;
         }
         
         button:hover:not(:disabled) {
             background: #1d4ed8;
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
         }
         
         button:disabled {
@@ -159,28 +229,24 @@
         .google-btn {
             background: #ffffff;
             color: #374151;
-            border: 2px solid #e5e7eb;
+            border: 1px solid #d1d5db;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 10px;
-            margin-bottom: 24px;
+            gap: 8px;
+            margin-bottom: 20px;
         }
         
         .google-btn:hover:not(:disabled) {
             background: #f9fafb;
-            border-color: #d1d5db;
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
         }
         
         .divider {
             text-align: center;
-            margin: 24px 0;
+            margin: 20px 0;
             position: relative;
             color: #9ca3af;
             font-size: 14px;
-            font-weight: 500;
         }
         
         .divider::before {
@@ -191,80 +257,54 @@
             right: 0;
             height: 1px;
             background: #e5e7eb;
-            z-index: 0;
         }
         
         .divider span {
             background: white;
-            padding: 0 16px;
+            padding: 0 12px;
             position: relative;
-            z-index: 1;
         }
         
         .message {
-            padding: 14px 16px;
-            border-radius: 8px;
-            margin-bottom: 20px;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 16px;
             font-size: 14px;
             display: none;
-            font-weight: 500;
         }
         
         .message.success {
             background: #d1fae5;
             color: #065f46;
-            border: 2px solid #10b981;
+            border: 1px solid #a7f3d0;
         }
         
         .message.error {
             background: #fee2e2;
             color: #991b1b;
-            border: 2px solid #ef4444;
+            border: 1px solid #fecaca;
         }
         
         .spinner {
-            width: 18px;
-            height: 18px;
+            width: 16px;
+            height: 16px;
             border: 2px solid rgba(255, 255, 255, 0.3);
             border-radius: 50%;
             border-top-color: #fff;
-            animation: spin 0.8s linear infinite;
+            animation: spin 1s linear infinite;
             display: inline-block;
-            margin-right: 8px;
+            margin-right: 6px;
         }
         
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
         
-        .trust-badges {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 16px;
-            padding: 16px;
-            background: #f9fafb;
-            border-radius: 8px;
-            margin-bottom: 24px;
-            flex-wrap: wrap;
-        }
-        
-        .trust-badge-item {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            color: #059669;
-            font-size: 13px;
-            font-weight: 500;
-        }
-        
-        .trust-badge-item svg {
-            flex-shrink: 0;
-        }
-        
         .login-link {
             text-align: center;
             margin-top: 24px;
+            padding-top: 24px;
+            border-top: 1px solid #e5e7eb;
             font-size: 14px;
             color: #6b7280;
         }
@@ -272,7 +312,7 @@
         .login-link a {
             color: #2563eb;
             text-decoration: none;
-            font-weight: 600;
+            font-weight: 500;
         }
         
         .login-link a:hover {
@@ -282,208 +322,38 @@
         .password-requirements {
             font-size: 12px;
             color: #6b7280;
-            margin-top: 6px;
-            line-height: 1.5;
+            margin-top: 4px;
+            line-height: 1.4;
         }
         
         .password-requirements.valid {
             color: #059669;
         }
         
-        .terms-text {
+        .terms-notice {
+            text-align: center;
             font-size: 12px;
             color: #9ca3af;
-            text-align: center;
             margin-top: 20px;
             line-height: 1.5;
         }
         
-        .terms-text a {
+        .terms-notice a {
             color: #2563eb;
             text-decoration: none;
         }
         
-        .terms-text a:hover {
+        .terms-notice a:hover {
             text-decoration: underline;
         }
         
-        /* Right Side - Social Proof */
-        .testimonial-section {
-            flex: 1;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            padding: 48px 40px;
-            color: white;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .testimonial-section::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: url('data:image/svg+xml,<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg"><rect width="2" height="2" fill="white" opacity="0.1"/></svg>') repeat;
-            opacity: 0.3;
-        }
-        
-        .testimonial-content {
-            position: relative;
-            z-index: 1;
-        }
-        
-        .social-proof-header {
-            margin-bottom: 32px;
-        }
-        
-        .social-proof-header h2 {
-            font-size: 28px;
-            font-weight: 700;
-            margin-bottom: 16px;
-            line-height: 1.3;
-        }
-        
-        .rating-badges {
-            display: flex;
-            gap: 20px;
-            margin-bottom: 32px;
-            flex-wrap: wrap;
-        }
-        
-        .rating-badge {
-            background: rgba(255, 255, 255, 0.15);
-            backdrop-filter: blur(10px);
-            padding: 12px 16px;
-            border-radius: 8px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-        
-        .rating-stars {
-            color: #fbbf24;
-            font-size: 16px;
-            margin-bottom: 4px;
-        }
-        
-        .rating-text {
-            font-size: 13px;
-            opacity: 0.9;
-            font-weight: 500;
-        }
-        
-        .testimonial-carousel {
-            position: relative;
-            overflow: hidden;
-            margin-bottom: 24px;
-        }
-        
-        .testimonial-track {
-            display: flex;
-            animation: scroll 30s linear infinite;
-            gap: 20px;
-        }
-        
-        .testimonial-track:hover {
-            animation-play-state: paused;
-        }
-        
-        @keyframes scroll {
-            0% { transform: translateX(0); }
-            100% { transform: translateX(calc(-100% - 20px)); }
-        }
-        
-        .testimonial-card {
-            min-width: 100%;
-            background: rgba(255, 255, 255, 0.15);
-            backdrop-filter: blur(10px);
-            padding: 24px;
-            border-radius: 12px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-        
-        .testimonial-stars {
-            color: #fbbf24;
-            font-size: 18px;
-            margin-bottom: 12px;
-        }
-        
-        .testimonial-text {
-            font-size: 16px;
-            line-height: 1.6;
-            margin-bottom: 16px;
-            opacity: 0.95;
-        }
-        
-        .testimonial-author {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-        
-        .author-avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.3);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            font-size: 16px;
-        }
-        
-        .author-info {
-            flex: 1;
-        }
-        
-        .author-name {
-            font-weight: 600;
-            font-size: 15px;
-        }
-        
-        .author-title {
-            font-size: 13px;
-            opacity: 0.8;
-        }
-        
-        /* Responsive */
-        @media (max-width: 968px) {
-            .signup-container {
-                flex-direction: column;
-            }
-            
-            .form-section {
-                max-width: 100%;
-            }
-            
-            .testimonial-section {
-                min-height: 400px;
-            }
-        }
-        
-        @media (max-width: 640px) {
-            body {
-                padding: 0;
-            }
-            
-            .signup-container {
-                border-radius: 0;
-                min-height: 100vh;
-            }
-            
-            .form-section {
-                padding: 32px 24px;
-            }
-            
-            .testimonial-section {
+        @media (max-width: 480px) {
+            .container {
                 padding: 32px 24px;
             }
             
             h1 {
-                font-size: 26px;
+                font-size: 24px;
             }
         }
     </style>
@@ -496,164 +366,98 @@
     <script async src="https://cdn.tolt.io/tolt.js" data-tolt="pk_CAtHKL6z3BUN8BWfHENpoM1e"></script>
 </head>
 <body>
-    <div class="signup-container">
-        <!-- Left Side - Form -->
-        <div class="form-section">
-            <div class="logo">
-                <div class="logo-icon">
-                    <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
-                    </svg>
-                </div>
-                <span class="logo-text">Link Finder AI</span>
-            </div>
-            
-            <h1>Welcome</h1>
-            <p class="subtitle">Join 2,500+ professionals finding LinkedIn URLs in seconds.</p>
-            
-            <!-- Trust Badges -->
-            <div class="trust-badges">
-                <div class="trust-badge-item">
-                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                    </svg>
-                    <span>No credit card required</span>
-                </div>
-                <div class="trust-badge-item">
-                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                    </svg>
-                    <span>14-day free trial</span>
-                </div>
-            </div>
-            
-            <!-- Message area -->
-            <div id="message" class="message"></div>
-            
-            <!-- Google Sign Up -->
-            <button class="google-btn" onclick="signUpWithGoogle()">
-                <svg width="20" height="20" viewBox="0 0 24 24">
-                    <path fill="#4285f4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                    <path fill="#34a853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                    <path fill="#fbbc05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                    <path fill="#ea4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+    <div class="container">
+        <div class="logo">
+            <div class="logo-icon">
+                <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
                 </svg>
-                Continue with Google
-            </button>
-            
-            <div class="divider">
-                <span>Or continue with email</span>
             </div>
-            
-            <!-- Email/Password Form -->
-            <form id="signupForm">
-                <div class="form-group">
-                    <label for="email">Email</label>
-                    <input type="email" id="email" required placeholder="name@company.com">
-                </div>
-                <div class="form-group">
-                    <label for="password">Password</label>
-                    <input type="password" id="password" required placeholder="Create a password">
-                    <div class="password-requirements" id="passwordReqs">
-                        Password must be 8 characters or more
-                    </div>
-                </div>
-                <button type="submit" id="submitButton">Continue</button>
-            </form>
-            
-            <div class="terms-text">
-                By continuing, you agree to our <a href="#">Terms</a> and <a href="#">Privacy Policy</a>.
+            <span class="logo-text">Link Finder AI</span>
+        </div>
+        
+        <h1>Welcome</h1>
+        <p class="subtitle">Join 2,500+ professionals finding LinkedIn URLs in seconds.</p>
+        
+        <!-- Trust Signals -->
+        <div class="trust-signals">
+            <div class="trust-item">
+                <svg width="18" height="18" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                </svg>
+                <span>No credit card required</span>
             </div>
-            
-            <div class="login-link">
-                Already have an account? <a href="https://linkfinderai.com/log-in">Sign in</a>
+            <div class="trust-item">
+                <svg width="18" height="18" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                </svg>
+                <span>14-day free trial</span>
+            </div>
+            <div class="trust-item">
+                <svg width="18" height="18" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                </svg>
+                <span>Setup in 30 seconds</span>
             </div>
         </div>
         
-        <!-- Right Side - Testimonials -->
-        <div class="testimonial-section">
-            <div class="testimonial-content">
-                <div class="social-proof-header">
-                    <h2>Trusted by thousands of professionals worldwide</h2>
+        <!-- Trustpilot Section -->
+        <div class="trustpilot-section">
+            <div class="trustpilot-badge">
+                <span class="trustpilot-stars">★★★★★</span>
+                <span class="trustpilot-text">4.5/5 on Trustpilot</span>
+            </div>
+            
+            <div class="testimonial">
+                <div class="testimonial-text">
+                    "LinkFinderAI saves me 10 hours per week on prospecting. The accuracy is incredible."
                 </div>
-                
-                <!-- Rating Badges -->
-                <div class="rating-badges">
-                    <div class="rating-badge">
-                        <div class="rating-stars">★★★★★</div>
-                        <div class="rating-text">4.5/5 on Trustpilot</div>
-                    </div>
-                    <div class="rating-badge">
-                        <div class="rating-stars">★★★★★</div>
-                        <div class="rating-text">100+ reviews</div>
-                    </div>
-                </div>
-                
-                <!-- Testimonial Carousel -->
-                <div class="testimonial-carousel">
-                    <div class="testimonial-track" id="testimonialTrack">
-                        <!-- Testimonial 1 -->
-                        <div class="testimonial-card">
-                            <div class="testimonial-stars">★★★★★</div>
-                            <div class="testimonial-text">
-                                "LinkFinderAI saves me 10 hours per week on prospecting. The LinkedIn URL finder is incredibly accurate and fast."
-                            </div>
-                            <div class="testimonial-author">
-                                <div class="author-avatar">SK</div>
-                                <div class="author-info">
-                                    <div class="author-name">Sarah K.</div>
-                                    <div class="author-title">Sales Manager</div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Testimonial 2 -->
-                        <div class="testimonial-card">
-                            <div class="testimonial-stars">★★★★★</div>
-                            <div class="testimonial-text">
-                                "Game changer for our recruitment process. We found 500+ qualified candidates in minutes instead of days."
-                            </div>
-                            <div class="testimonial-author">
-                                <div class="author-avatar">AR</div>
-                                <div class="author-info">
-                                    <div class="author-name">Alex R.</div>
-                                    <div class="author-title">Talent Acquisition Lead</div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Testimonial 3 -->
-                        <div class="testimonial-card">
-                            <div class="testimonial-stars">★★★★★</div>
-                            <div class="testimonial-text">
-                                "The API is incredibly fast and accurate. We integrated it into our CRM and it's been flawless."
-                            </div>
-                            <div class="testimonial-author">
-                                <div class="author-avatar">MK</div>
-                                <div class="author-info">
-                                    <div class="author-name">Maria K.</div>
-                                    <div class="author-title">Founder & CEO</div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Duplicate for seamless loop -->
-                        <div class="testimonial-card">
-                            <div class="testimonial-stars">★★★★★</div>
-                            <div class="testimonial-text">
-                                "LinkFinderAI saves me 10 hours per week on prospecting. The LinkedIn URL finder is incredibly accurate and fast."
-                            </div>
-                            <div class="testimonial-author">
-                                <div class="author-avatar">SK</div>
-                                <div class="author-info">
-                                    <div class="author-name">Sarah K.</div>
-                                    <div class="author-title">Sales Manager</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                <div class="testimonial-author">
+                    — Sarah K., Sales Manager
                 </div>
             </div>
+        </div>
+        
+        <!-- Message area -->
+        <div id="message" class="message"></div>
+        
+        <!-- Google Sign Up -->
+        <button class="google-btn" onclick="signUpWithGoogle()">
+            <svg width="20" height="20" viewBox="0 0 24 24">
+                <path fill="#4285f4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                <path fill="#34a853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                <path fill="#fbbc05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                <path fill="#ea4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+            </svg>
+            Continue with Google
+        </button>
+        
+        <div class="divider">
+            <span>Or continue with email</span>
+        </div>
+        
+        <!-- Email/Password Form -->
+        <form id="signupForm">
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" required placeholder="name@company.com">
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" required placeholder="Create a password">
+                <div class="password-requirements" id="passwordReqs">
+                    Password must be at least 8 characters long
+                </div>
+            </div>
+            <button type="submit" id="submitButton">Continue</button>
+        </form>
+        
+        <div class="terms-notice">
+            By continuing, you agree to our <a href="#">Terms</a> and <a href="#">Privacy Policy</a>.
+        </div>
+        
+        <div class="login-link">
+            Already have an account? <a href="https://linkfinderai.com/log-in">Sign in</a>
         </div>
     </div>
 
@@ -705,7 +509,7 @@
             }
         }
 
-        // Email/Password Signup - Removed confirm password requirement
+        // Email/Password Signup - NO CONFIRM PASSWORD
         document.getElementById('signupForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
@@ -801,7 +605,7 @@
                 requirements.textContent = '✓ Password meets requirements';
             } else {
                 requirements.classList.remove('valid');
-                requirements.textContent = 'Password must be 8 characters or more';
+                requirements.textContent = 'Password must be at least 8 characters long';
             }
         });
 
