@@ -522,78 +522,70 @@
             }
         }
 
-        // Email/Password Signup - FIXED VERSION WITHOUT CONFIRM PASSWORD
-        document.getElementById('signupForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            const email = document.getElementById('email').value.trim();
-            const password = document.getElementById('password').value;
-            const submitButton = document.getElementById('submitButton');
-            
-            // Validation
-            if (!email || !password) {
-                showMessage('Please fill in all fields');
-                return;
-            }
+      // Email/Password Signup - WITH EMAIL VERIFICATION
+document.getElementById('signupForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+    const submitButton = document.getElementById('submitButton');
+    
+    // Validation
+    if (!email || !password) {
+        showMessage('Please fill in all fields');
+        return;
+    }
 
-            if (password.length < 8) {
-                showMessage('Password must be at least 8 characters long');
-                return;
-            }
+    if (password.length < 8) {
+        showMessage('Password must be at least 8 characters long');
+        return;
+    }
 
-            // Email validation
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!emailRegex.test(email)) {
-                showMessage('Please enter a valid email address');
-                return;
-            }
-            
-            // Show loading
-            submitButton.innerHTML = '<span class="spinner"></span> Creating Account...';
-            submitButton.disabled = true;
-            hideMessage();
-            
-            try {
-                const response = await fetch(WORKER_URL, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        email: email,
-                        password: password,
-                        type: 'signup'
-                    })
-                });
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    
-                    if (data.token) {
-                        plausible('Signup Success', {props: {method: 'email'}});
-                        
-                        showMessage('Account created successfully! Redirecting...', 'success');
-                        setTimeout(() => {
-                            redirectToApp(data.token);
-                        }, 1000);
-                    } else {
-                        showMessage('Account created but no token received');
-                    }
-                } else {
-                    plausible('Signup Failed', {props: {method: 'email', reason: 'server_error'}});
-                    const errorData = await response.json().catch(() => ({}));
-                    showMessage(errorData.message || 'Failed to create account. Please try again.');
-                }
-            } catch (error) {
-                plausible('Signup Failed', {props: {method: 'email', reason: 'network_error'}});
-                showMessage('Connection error. Please try again.');
-                console.error('Signup error:', error);
-            } finally {
-                submitButton.innerHTML = 'Continue';
-                submitButton.disabled = false;
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+        showMessage('Please enter a valid email address');
+        return;
+    }
+    
+    // Show loading
+    submitButton.innerHTML = '<span class="spinner"></span> Creating Account...';
+    submitButton.disabled = true;
+    hideMessage();
+    
+    try {
+        // Sign up with Supabase directly (requires email confirmation)
+        const { data, error } = await supabase.auth.signUp({
+            email: email,
+            password: password,
+            options: {
+                emailRedirectTo: 'https://linkfinderai.com/confirmation-signup'
             }
         });
-
+        
+        if (error) {
+            plausible('Signup Failed', {props: {method: 'email', reason: 'supabase_error'}});
+            showMessage(error.message || 'Failed to create account. Please try again.');
+        } else {
+            plausible('Signup Success', {props: {method: 'email'}});
+            
+            // Hide the form and show verification message
+            document.getElementById('signupForm').style.display = 'none';
+            document.querySelector('.google-btn').style.display = 'none';
+            document.querySelector('.divider').style.display = 'none';
+            document.querySelector('.login-link').style.display = 'none';
+            
+            showVerificationMessage(email);
+        }
+    } catch (error) {
+        plausible('Signup Failed', {props: {method: 'email', reason: 'network_error'}});
+        showMessage('Connection error. Please try again.');
+        console.error('Signup error:', error);
+    } finally {
+        submitButton.innerHTML = 'Continue';
+        submitButton.disabled = false;
+    }
+});
         // Check for error in URL
         const urlParams = new URLSearchParams(window.location.search);
         const error = urlParams.get('error');
@@ -621,6 +613,95 @@
                 requirements.textContent = 'Password must be at least 8 characters long';
             }
         });
+
+        function showVerificationMessage(email) {
+    const container = document.querySelector('.container');
+    
+    // Create verification message HTML
+    const verificationHTML = `
+        <div style="text-align: center; padding: 20px 0;">
+            <!-- Email Icon -->
+            <div style="width: 80px; height: 80px; background: #dbeafe; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px;">
+                <svg width="40" height="40" fill="#2563eb" viewBox="0 0 20 20">
+                    <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"/>
+                    <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"/>
+                </svg>
+            </div>
+            
+            <!-- Main heading -->
+            <h2 style="color: #111827; font-size: 24px; font-weight: 600; margin: 0 0 12px 0;">
+                Check Your Email
+            </h2>
+            
+            <!-- Email address -->
+            <p style="color: #6b7280; font-size: 16px; margin: 0 0 24px 0; line-height: 1.5;">
+                We sent a verification link to<br>
+                <strong style="color: #111827;">${email}</strong>
+            </p>
+            
+            <!-- Instructions box -->
+            <div style="background: #f0f9ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 20px; text-align: left; margin-bottom: 24px;">
+                <div style="font-weight: 600; color: #1e40af; margin-bottom: 12px; font-size: 15px;">
+                    📧 Next Steps:
+                </div>
+                <ol style="margin: 0; padding-left: 20px; color: #374151; font-size: 14px; line-height: 1.8;">
+                    <li>Open your email inbox</li>
+                    <li>Look for an email from Link Finder AI</li>
+                    <li>Click the verification link in the email</li>
+                    <li>You'll be automatically signed in</li>
+                </ol>
+            </div>
+            
+            <!-- Tips -->
+            <div style="background: #fef3c7; border: 1px solid #fde68a; border-radius: 8px; padding: 16px; text-align: left; margin-bottom: 24px;">
+                <div style="display: flex; align-items: start; gap: 10px;">
+                    <span style="font-size: 18px;">💡</span>
+                    <div style="font-size: 13px; color: #78350f; line-height: 1.6;">
+                        <strong>Didn't receive the email?</strong><br>
+                        Check your spam folder or <a href="#" onclick="resendEmail('${email}'); return false;" style="color: #2563eb; text-decoration: underline;">click here to resend</a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Back button -->
+            <button onclick="location.reload()" style="background: white; color: #374151; border: 1px solid #d1d5db;">
+                ← Back to Sign Up
+            </button>
+        </div>
+    `;
+    
+    // Replace the h1 and insert verification message
+    const h1 = container.querySelector('h1');
+    h1.style.display = 'none';
+    
+    const messageDiv = document.getElementById('message');
+    messageDiv.insertAdjacentHTML('afterend', verificationHTML);
+}
+
+// Resend verification email function
+async function resendEmail(email) {
+    const submitButton = event.target;
+    submitButton.textContent = 'Sending...';
+    submitButton.disabled = true;
+    
+    try {
+        const { error } = await supabase.auth.resend({
+            type: 'signup',
+            email: email
+        });
+        
+        if (error) {
+            alert('Failed to resend email. Please try again.');
+        } else {
+            alert('Verification email sent! Please check your inbox.');
+        }
+    } catch (error) {
+        alert('Failed to resend email. Please try again.');
+    } finally {
+        submitButton.textContent = 'Resend Email';
+        submitButton.disabled = false;
+    }
+}
 
         function redirectToApp(token) {
             const urlParams = new URLSearchParams(window.location.search);
