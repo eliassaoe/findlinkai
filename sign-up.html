@@ -497,7 +497,6 @@
         async function signUpWithGoogle() {
     try {
         hideMessage();
-        console.log('Starting Google OAuth...');
         
         const urlParams = new URLSearchParams(window.location.search);
         const gclid = urlParams.get('gclid');
@@ -508,23 +507,23 @@
         const { data, error } = await supabaseClient.auth.signInWithOAuth({
             provider: 'google',
             options: {
-                redirectTo: `${window.location.origin}/confirmation-signup`
+                redirectTo: `${window.location.origin}/confirmation-signup`,
+                queryParams: {
+                    // LES DEUX pour forcer la sélection
+                    prompt: 'select_account consent',
+                    access_type: 'offline'
+                }
             }
         });
         
-        console.log('OAuth response:', { data, error });
-        
         if (error) {
-            console.error('Google OAuth error:', error);
             showMessage('Google sign up failed: ' + error.message);
         }
         
     } catch (error) {
-        console.error('Google sign up exception:', error);
         showMessage('Google sign up error: ' + error.message);
     }
 }
-
         // Email/Password Signup - FIXED VERSION WITHOUT CONFIRM PASSWORD
         document.getElementById('signupForm').addEventListener('submit', async function(e) {
             e.preventDefault();
