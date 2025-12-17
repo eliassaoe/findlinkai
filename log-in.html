@@ -303,118 +303,111 @@
         </div>
     </div>
 
-    <script>
-        // Your worker URL - UPDATE THIS WITH YOUR ACTUAL WORKER URL
-        const WORKER_URL = 'https://linkfinderai-login.hamoureliasse.workers.dev';
-        
-        // Initialize Supabase
-        const supabase = window.supabase.createClient(
-            'https://snxhsboboatjywgwdeds.supabase.co',
-            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNueGhzYm9ib2F0anl3Z3dkZWRzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYwMTY5NzgsImV4cCI6MjA2MTU5Mjk3OH0.qkoiXJoqujQ4iUByOqSAsacuJVtJx32j19PTuy7brMo'
-        );
+   <script>
+    const WORKER_URL = 'https://linkfinderai-login.hamoureliasse.workers.dev';
+    
+    // ✅ FIXED: Rename to avoid conflict
+    const supabaseClient = window.supabase.createClient(
+        'https://snxhsboboatjywgwdeds.supabase.co',
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNueGhzYm9ib2F0anl3Z3dkZWRzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYwMTY5NzgsImV4cCI6MjA2MTU5Mjk3OH0.qkoiXJoqujQ4iUByOqSAsacuJVtJx32j19PTuy7brMo'
+    );
 
-        // Show message to user
-        function showMessage(text, type = 'error') {
-            const messageEl = document.getElementById('message');
-            messageEl.textContent = text;
-            messageEl.className = `message ${type}`;
-            messageEl.style.display = 'block';
-        }
+    function showMessage(text, type = 'error') {
+        const messageEl = document.getElementById('message');
+        messageEl.textContent = text;
+        messageEl.className = `message ${type}`;
+        messageEl.style.display = 'block';
+    }
 
-        // Hide message
-        function hideMessage() {
-            document.getElementById('message').style.display = 'none';
-        }
+    function hideMessage() {
+        document.getElementById('message').style.display = 'none';
+    }
 
-        // Google Sign In - Simple redirect to confirmation page
-        async function signInWithGoogle() {
-            try {
-                hideMessage();
-                
-                const { data, error } = await supabase.auth.signInWithOAuth({
-                    provider: 'google',
-                    options: {
-                        redirectTo: `https://linkfinderai.com/confirmation-login`
-                    }
-                });
-                
-                if (error) {
-                    showMessage('Google sign in failed: ' + error.message);
-                }
-            } catch (error) {
-                showMessage('Google sign in error: ' + error.message);
-            }
-        }
-
-        // Email/Password Login - Simple POST to worker
-        document.getElementById('loginForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            const email = document.getElementById('email').value.trim();
-            const password = document.getElementById('password').value;
-            const submitButton = document.getElementById('submitButton');
-            
-            if (!email || !password) {
-                showMessage('Please fill in all fields');
-                return;
-            }
-            
-            // Show loading
-            submitButton.innerHTML = '<span class="spinner"></span> Signing In...';
-            submitButton.disabled = true;
+    async function signInWithGoogle() {
+        try {
             hideMessage();
             
-            try {
-                const response = await fetch(WORKER_URL, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        email: email,
-                        password: password,
-                        type: 'login'
-                    })
-                });
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    
-                    if (data.token) {
-                        showMessage('Login successful! Redirecting...', 'success');
-                        setTimeout(() => {
-                            window.location.href = `https://linkfinderai.com/app?token=${data.token}`;
-                        }, 1000);
-                    } else {
-                        showMessage('Login successful but no token received');
-                    }
-                } else {
-                    const errorData = await response.json().catch(() => ({}));
-                    showMessage(errorData.message || 'Invalid email or password');
+            // ✅ FIXED: Use supabaseClient
+            const { data, error } = await supabaseClient.auth.signInWithOAuth({
+                provider: 'google',
+                options: {
+                    redirectTo: `https://linkfinderai.com/confirmation-login`
                 }
-            } catch (error) {
-                showMessage('Connection error. Please try again.');
-                console.error('Login error:', error);
-            } finally {
-                // Reset button
-                submitButton.innerHTML = 'Sign In';
-                submitButton.disabled = false;
+            });
+            
+            if (error) {
+                showMessage('Google sign in failed: ' + error.message);
             }
-        });
-
-        // Check for error in URL (from Google auth redirects)
-        const urlParams = new URLSearchParams(window.location.search);
-        const error = urlParams.get('error');
-        if (error) {
-            const errorMessages = {
-                'google_auth_failed': 'Google authentication failed',
-                'no_auth_code': 'Google authentication cancelled',
-                'token_exchange_failed': 'Google login processing failed',
-                'no_email': 'Could not get email from Google account',
-                'callback_failed': 'Google login callback failed'
-            };
-            showMessage(errorMessages[error] || 'Login failed');
+        } catch (error) {
+            showMessage('Google sign in error: ' + error.message);
         }
-    </script>
+    }
+
+    document.getElementById('loginForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const email = document.getElementById('email').value.trim();
+        const password = document.getElementById('password').value;
+        const submitButton = document.getElementById('submitButton');
+        
+        if (!email || !password) {
+            showMessage('Please fill in all fields');
+            return;
+        }
+        
+        submitButton.innerHTML = '<span class="spinner"></span> Signing In...';
+        submitButton.disabled = true;
+        hideMessage();
+        
+        try {
+            const response = await fetch(WORKER_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    email: email,
+                    password: password,
+                    type: 'login'
+                })
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                
+                if (data.token) {
+                    showMessage('Login successful! Redirecting...', 'success');
+                    setTimeout(() => {
+                        window.location.href = `https://linkfinderai.com/app?token=${data.token}`;
+                    }, 1000);
+                } else {
+                    showMessage('Login successful but no token received');
+                }
+            } else {
+                const errorData = await response.json().catch(() => ({}));
+                showMessage(errorData.message || 'Invalid email or password');
+            }
+        } catch (error) {
+            showMessage('Connection error. Please try again.');
+            console.error('Login error:', error);
+        } finally {
+            submitButton.innerHTML = 'Sign In';
+            submitButton.disabled = false;
+        }
+    });
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const error = urlParams.get('error');
+    if (error) {
+        const errorMessages = {
+            'google_auth_failed': 'Google authentication failed',
+            'no_auth_code': 'Google authentication cancelled',
+            'token_exchange_failed': 'Google login processing failed',
+            'no_email': 'Could not get email from Google account',
+            'callback_failed': 'Google login callback failed'
+        };
+        showMessage(errorMessages[error] || 'Login failed');
+    }
+</script>
 </body>
 </html>
