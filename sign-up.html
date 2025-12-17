@@ -493,29 +493,35 @@ const supabaseClient = window.supabase.createClient(
         }
 
         async function signUpWithGoogle() {
-            try {
-                hideMessage();
-                
-                const urlParams = new URLSearchParams(window.location.search);
-                const gclid = urlParams.get('gclid');
-                if (gclid) {
-                    localStorage.setItem('gclid', gclid);
-                }
-
-                const { data, error } = await supabaseClient.auth.signInWithOAuth({
-                    provider: 'google',
-                    options: {
-                        redirectTo: `https://linkfinderai.com/confirmation-signup`
-                    }
-                });
-                
-                if (error) {
-                    showMessage('Google sign up failed: ' + error.message);
-                }
-            } catch (error) {
-                showMessage('Google sign up error: ' + error.message);
-            }
+    try {
+        hideMessage();
+        console.log('Starting Google OAuth...');
+        
+        const urlParams = new URLSearchParams(window.location.search);
+        const gclid = urlParams.get('gclid');
+        if (gclid) {
+            localStorage.setItem('gclid', gclid);
         }
+
+        const { data, error } = await supabaseClient.auth.signInWithOAuth({
+            provider: 'google',
+            options: {
+                redirectTo: `${window.location.origin}/confirmation-signup`
+            }
+        });
+        
+        console.log('OAuth response:', { data, error });
+        
+        if (error) {
+            console.error('Google OAuth error:', error);
+            showMessage('Google sign up failed: ' + error.message);
+        }
+        
+    } catch (error) {
+        console.error('Google sign up exception:', error);
+        showMessage('Google sign up error: ' + error.message);
+    }
+}
 
         // Email/Password Signup - FIXED VERSION WITHOUT CONFIRM PASSWORD
         document.getElementById('signupForm').addEventListener('submit', async function(e) {
