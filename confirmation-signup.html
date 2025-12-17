@@ -241,7 +241,7 @@
         console.log('🌐 DEBUG: Current URL:', window.location.href);
         
         // Initialize Supabase
-        const supabase = window.supabase.createClient(
+        const supabaseClient = window.supabase.createClient(
             'https://snxhsboboatjywgwdeds.supabase.co',
             'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNueGhzYm9ib2F0anl3Z3dkZWRzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYwMTY5NzgsImV4cCI6MjA2MTU5Mjk3OH0.qkoiXJoqujQ4iUByOqSAsacuJVtJx32j19PTuy7brMo'
         );
@@ -406,7 +406,7 @@
                 await new Promise(resolve => setTimeout(resolve, 2000));
                 
                 // Get the current session from Supabase
-                const { data: { session }, error } = await supabase.auth.getSession();
+                const { data: { session }, error } = await supabaseClient.auth.getSession();
                 
                 console.log('📋 DEBUG: Session error:', error ? error.message : 'None');
                 console.log('📋 DEBUG: Session exists:', !!session);
@@ -433,7 +433,7 @@
                 if (result.success) {
                     showSuccess();
                     
-                    await supabase.auth.signOut();
+                    await supabaseClient.auth.signOut();
                     console.log('🚪 DEBUG: Signed out from Supabase');
                     
                     setTimeout(() => {
@@ -476,7 +476,7 @@
         }, 15000);
 
         // Auth state change logging
-        supabase.auth.onAuthStateChange((event, session) => {
+        supabaseClient.auth.onAuthStateChange((event, session) => {
             console.log('🔄 DEBUG: Auth state change event:', event);
             console.log('👤 DEBUG: New session exists:', !!session);
         });
