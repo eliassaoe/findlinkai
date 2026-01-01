@@ -1507,6 +1507,44 @@ Professional tools for extracting company data from LinkedIn. Streamline your bu
         });
     }
 });
+
+// ===== AFFILIATE TRACKING =====
+  (function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const ref = urlParams.get('ref');
+    
+    if (ref) {
+      // Sauvegarder dans cookie (30 jours)
+      document.cookie = `ref=${ref}; max-age=2592000; path=/`;
+      console.log('Affiliate ref saved:', ref);
+      
+      // Fonction pour ajouter ref aux URLs
+      function addRefToLinks() {
+        // Tous les liens sign-up
+        document.querySelectorAll('a[href*="sign-up"]').forEach(link => {
+          const url = new URL(link.href);
+          url.searchParams.set('ref', ref);
+          link.href = url.toString();
+        });
+        
+        // Tous les liens log-in
+        document.querySelectorAll('a[href*="log-in"]').forEach(link => {
+          const url = new URL(link.href);
+          url.searchParams.set('ref', ref);
+          link.href = url.toString();
+        });
+      }
+      
+      // Exécuter maintenant
+      addRefToLinks();
+      
+      // Ré-exécuter si le DOM change (au cas où)
+      if (typeof MutationObserver !== 'undefined') {
+        const observer = new MutationObserver(addRefToLinks);
+        observer.observe(document.body, { childList: true, subtree: true });
+      }
+    }
+  })();
       
 </script>
     <!-- Div pour le chat widget -->
