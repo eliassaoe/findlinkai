@@ -562,22 +562,17 @@
                 <div id="alert" class="alert"></div>
 
                 <!-- Stats Grid -->
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-label">Total Earned</div>
-                        <div class="stat-value success" id="totalEarned">$0.00</div>
-                    </div>
-                    
-                    <div class="stat-card">
-                        <div class="stat-label">Already Paid</div>
-                        <div class="stat-value primary" id="alreadyPaid">$0.00</div>
-                    </div>
-                    
-                    <div class="stat-card">
-                        <div class="stat-label">Pending Payout</div>
-                        <div class="stat-value" id="pendingPayout">$0.00</div>
-                    </div>
-                </div>
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-label">Already Paid</div>
+        <div class="stat-value success" id="alreadyPaid">$0.00</div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-label">Pending Payout</div>
+        <div class="stat-value primary" id="pendingPayout">$0.00</div>
+    </div>
+</div>
 
                 <!-- Referral Link Card -->
                 <div class="card">
@@ -720,7 +715,6 @@
     try {
         console.log('Fetching referral data with token:', userToken);
         
-        // Call the Cloudflare Worker
         const response = await fetch('https://referral-program.hamoureliasse.workers.dev/', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -733,8 +727,7 @@
             const data = await response.json();
             console.log('Received data:', data);
             
-            // Direct string formatting - add $ prefix and keep as strings
-            document.getElementById('totalEarned').textContent = `$${data.totalEarned || '0.00'}`;
+            // Update only 2 stats
             document.getElementById('alreadyPaid').textContent = `$${data.alreadyPaid || '0.00'}`;
             document.getElementById('pendingPayout').textContent = `$${data.pendingPayout || '0.00'}`;
             
@@ -747,13 +740,10 @@
             }
         } else {
             console.error('Failed to fetch referral data, status:', response.status);
-            const errorText = await response.text();
-            console.error('Error response:', errorText);
         }
     } catch (error) {
         console.error('Error fetching referral data:', error);
     } finally {
-        // Hide loading, show content
         document.getElementById('loading').classList.add('hidden');
         document.getElementById('mainContent').classList.remove('hidden');
     }
