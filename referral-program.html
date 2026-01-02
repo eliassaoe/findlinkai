@@ -782,6 +782,39 @@
             }, 3000);
         }
 
+        async function fetchReferralData() {
+    try {
+        // Call the Cloudflare Worker
+        const response = await fetch('https://referral-program.hamoureliasse.workers.dev/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: userToken })
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            
+            // Update stats
+            document.getElementById('totalEarned').textContent = `$${(data.totalEarned || 0).toFixed(2)}`;
+            document.getElementById('alreadyPaid').textContent = `$${(data.alreadyPaid || 0).toFixed(2)}`;
+            document.getElementById('pendingPayout').textContent = `$${(data.pendingPayout || 0).toFixed(2)}`;
+            
+            // Update referral link
+            if (data.referralCode) {
+                document.getElementById('referralLink').value = `https://linkfinderai.com?ref=${data.referralCode}`;
+            }
+        } else {
+            console.error('Failed to fetch referral data');
+        }
+    } catch (error) {
+        console.error('Error fetching referral data:', error);
+    } finally {
+        // Hide loading, show content
+        document.getElementById('loading').classList.add('hidden');
+        document.getElementById('mainContent').classList.remove('hidden');
+    }
+}
+
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
             checkAuth();
