@@ -404,6 +404,12 @@
             display: none;
         }
 
+        .alert-error {
+    background: rgba(239,68,68,0.1);
+    border: 1px solid var(--error);
+    color: var(--error);
+         }
+
         .alert-success {
             background: rgba(16,185,129,0.1);
             border: 1px solid var(--success);
@@ -611,6 +617,40 @@
                     </ul>
                 </div>
 
+                <!-- PayPal Account Section -->
+<div class="card">
+    <h3>💳 PayPal Account</h3>
+    <p style="color: var(--gray-600); font-size: 0.9rem; margin-bottom: 1rem;">
+        Add your PayPal email to receive payouts. We'll send your commissions to this address.
+    </p>
+    
+    <div id="paypalDisplay" class="hidden">
+        <div style="display: flex; align-items: center; gap: 0.5rem; padding: 0.75rem; background: var(--gray-50); border-radius: 6px; margin-bottom: 1rem;">
+            <i class="fas fa-check-circle" style="color: var(--success);"></i>
+            <span style="font-weight: 500; color: var(--gray-700);">Current PayPal:</span>
+            <span id="currentPaypal" style="color: var(--primary); font-family: 'Monaco', 'Courier New', monospace;"></span>
+        </div>
+    </div>
+    
+    <div class="link-container">
+        <input 
+            type="email" 
+            class="link-input" 
+            id="paypalEmail" 
+            placeholder="your-email@example.com"
+            style="font-family: 'Inter', sans-serif;"
+        >
+        <button class="btn btn-copy" onclick="savePaypalEmail()" id="savePaypalBtn">
+            <i class="fas fa-save"></i>
+            <span id="saveText">Save</span>
+        </button>
+    </div>
+    
+    <p style="color: var(--gray-500); font-size: 0.8rem; margin-top: 0.75rem;">
+        <i class="fas fa-info-circle"></i> Make sure this email is associated with your PayPal account
+    </p>
+</div>
+
             </div>
         </div>
     </div>
@@ -727,7 +767,7 @@
             const data = await response.json();
             console.log('Received data:', data);
             
-            // Update only 2 stats
+            // Update stats
             document.getElementById('alreadyPaid').textContent = `$${data.alreadyPaid || '0.00'}`;
             document.getElementById('pendingPayout').textContent = `$${data.pendingPayout || '0.00'}`;
             
@@ -738,6 +778,14 @@
                 document.getElementById('referralLink').value = `https://linkfinderai.com?ref=${data.referralCode}`;
                 console.log('Referral link updated:', data.referralCode);
             }
+            
+            // Update PayPal email if exists
+            if (data.paypalEmail) {
+                document.getElementById('currentPaypal').textContent = data.paypalEmail;
+                document.getElementById('paypalDisplay').classList.remove('hidden');
+                document.getElementById('paypalEmail').value = data.paypalEmail;
+                console.log('PayPal email loaded:', data.paypalEmail);
+            }
         } else {
             console.error('Failed to fetch referral data, status:', response.status);
         }
@@ -747,6 +795,78 @@
         document.getElementById('loading').classList.add('hidden');
         document.getElementById('mainContent').classList.remove('hidden');
     }
+}
+
+async function savePaypalEmail() {
+    const paypalEmail = document.getElementById('paypalEmail').value.trim();
+    const saveBtn = document.getElementById('savePaypalBtn');
+    const saveText = document.getElementById('saveText');
+    
+    // Validate email
+    if (!paypalEmail) {
+        showAlert('Please enter a PayPal email address', 'error');
+        return;
+    }
+    
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(paypalEmail)) {
+        showAlert('Please enter a valid email address', 'error');
+        return;
+    }
+    
+    // Disable button while saving
+    saveBtn.disabled = true;
+    saveText.textContent = 'Saving...';
+    
+    try {
+        // Call the PayPal update worker
+        const response = await fetch('https://save-paypal.hamoureliasse.workers.dev/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                token: userToken,
+                paypalEmail: paypalEmail
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+            // Update display
+            document.getElementById('currentPaypal').textContent = paypalEmail;
+            document.getElementById('paypalDisplay').classList.remove('hidden');
+            
+            // Show success
+            saveBtn.classList.add('copied');
+            saveText.textContent = 'Saved!';
+            showAlert('PayPal email saved successfully!', 'success');
+            
+            // Reset button after 2 seconds
+            setTimeout(() => {
+                saveBtn.classList.remove('copied');
+                saveText.textContent = 'Save';
+                saveBtn.disabled = false;
+            }, 2000);
+        } else {
+            throw new Error(data.error || 'Failed to save PayPal email');
+        }
+    } catch (error) {
+        console.error('Error saving PayPal email:', error);
+        showAlert('Failed to save PayPal email. Please try again.', 'error');
+        saveBtn.disabled = false;
+        saveText.textContent = 'Save';
+    }
+}
+
+function showAlert(message, type) {
+    const alert = document.getElementById('alert');
+    alert.textContent = message;
+    alert.className = `alert alert-${type}`;
+    alert.style.display = 'block';
+    
+    setTimeout(() => {
+        alert.style.display = 'none';
+    }, 3000);
 }
         function copyReferralLink() {
             const input = document.getElementById('referralLink');
