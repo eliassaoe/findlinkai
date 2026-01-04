@@ -2326,7 +2326,6 @@ function formatLinkedInCompanyDataBulk(data) {
 function showSingleResult(inputData, result) {
     const resultText = document.getElementById('resultText');
     const resultLink = document.getElementById('resultLink');
-    const singleResultDiv = document.getElementById('singleResult');
     
     // Clear previous results
     resultText.style.display = 'none';
@@ -2354,35 +2353,67 @@ function showSingleResult(inputData, result) {
     // Build HTML
     let html = '<div class="result-card">';
     
-    // Header
+    // Header with profile picture if available
     html += `
         <div class="result-header">
-            <div class="result-header-icon">
-                <i class="fas ${result === 'Not found' ? 'fa-times-circle' : 'fa-check-circle'}"></i>
-            </div>
+            ${linkedInFields?.profilePic ? `
+                <img src="${linkedInFields.profilePic}" 
+                     alt="Profile" 
+                     style="width: 60px; height: 60px; border-radius: 50%; object-fit: cover; margin-right: 1rem;">
+            ` : `
+                <div class="result-header-icon">
+                    <i class="fas ${result === 'Not found' ? 'fa-times-circle' : 'fa-check-circle'}"></i>
+                </div>
+            `}
             <div class="result-header-text">
-                <h3>${result === 'Not found' ? 'No Data Found' : 'Data Found Successfully! ✨'}</h3>
+                <h3>${result === 'Not found' ? 'No Data Found' : 'Profile Data Found! ✨'}</h3>
                 <p>${inputData}</p>
             </div>
         </div>
     `;
     
+    // Background image if available
+    if (linkedInFields?.backgroundPic && linkedInFields.backgroundPic !== 'Not specified') {
+        html += `
+            <div style="margin: 1rem 0; border-radius: 8px; overflow: hidden; max-height: 200px;">
+                <img src="${linkedInFields.backgroundPic}" 
+                     alt="Background" 
+                     style="width: 100%; height: auto; object-fit: cover;">
+            </div>
+        `;
+    }
+    
     // Content
     if (isLinkedInData && linkedInFields) {
-        // Show ALL LinkedIn fields
         html += '<div class="result-grid">';
         
-        // === PERSONAL INFORMATION SECTION ===
+        // ==========================================
+        // SECTION 1: INFORMATIONS PERSONNELLES
+        // ==========================================
         if (linkedInFields.name || linkedInFields.jobTitle || linkedInFields.headline) {
-            html += '<div style="grid-column: 1/-1; margin-top: 1rem; padding-top: 1rem; border-top: 2px solid var(--primary);"><h4 style="color: var(--primary); margin-bottom: 0.5rem;">👤 Personal Information</h4></div>';
+            html += `
+                <div style="grid-column: 1/-1; margin-top: 1rem; padding-top: 1rem; border-top: 2px solid var(--primary);">
+                    <h4 style="color: var(--primary); margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fas fa-user"></i> Personal Information
+                    </h4>
+                </div>
+            `;
         }
         
-        // Name
+        // Name with premium/verified badges
         if (linkedInFields.name) {
             html += `
                 <div class="result-item">
                     <div class="result-label">Name</div>
-                    <div class="result-value highlight">${linkedInFields.name}</div>
+                    <div class="result-value highlight" style="display: flex; align-items: center; gap: 0.5rem;">
+                        ${linkedInFields.name}
+                        ${linkedInFields.idPremium === 'true' || linkedInFields.idPremium === true ? 
+                            '<span style="background: #fbbf24; color: white; font-size: 0.7rem; padding: 0.2rem 0.4rem; border-radius: 3px; font-weight: 600;">PREMIUM</span>' 
+                            : ''}
+                        ${linkedInFields.verified === 'true' || linkedInFields.verified === true ? 
+                            '<i class="fas fa-check-circle" style="color: var(--primary);"></i>' 
+                            : ''}
+                    </div>
                 </div>
             `;
         }
@@ -2400,19 +2431,31 @@ function showSingleResult(inputData, result) {
         // Headline
         if (linkedInFields.headline && linkedInFields.headline !== 'Not specified') {
             html += `
-                <div class="result-item">
+                <div class="result-item" style="grid-column: 1/-1;">
                     <div class="result-label">Headline</div>
                     <div class="result-value">${linkedInFields.headline}</div>
                 </div>
             `;
         }
         
-        // Location
+        // Location and Country
         if (linkedInFields.location && linkedInFields.location !== 'Not specified') {
             html += `
                 <div class="result-item">
                     <div class="result-label">Location</div>
-                    <div class="result-value">${linkedInFields.location}</div>
+                    <div class="result-value">
+                        <i class="fas fa-map-marker-alt" style="color: var(--primary); margin-right: 0.25rem;"></i>
+                        ${linkedInFields.location}
+                    </div>
+                </div>
+            `;
+        }
+        
+        if (linkedInFields.country && linkedInFields.country !== 'Not specified') {
+            html += `
+                <div class="result-item">
+                    <div class="result-label">Country</div>
+                    <div class="result-value">${linkedInFields.country}</div>
                 </div>
             `;
         }
@@ -2427,27 +2470,103 @@ function showSingleResult(inputData, result) {
             `;
         }
         
-        // Education
-        if (linkedInFields.education && linkedInFields.education !== 'Not specified') {
+        // ==========================================
+        // SECTION 2: STATISTIQUES LINKEDIN
+        // ==========================================
+        if (linkedInFields.connections || linkedInFields.followers) {
             html += `
-                <div class="result-item">
-                    <div class="result-label">Education</div>
-                    <div class="result-value">${linkedInFields.education}</div>
+                <div style="grid-column: 1/-1; margin-top: 1rem; padding-top: 1rem; border-top: 2px solid #3b82f6;">
+                    <h4 style="color: #3b82f6; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fab fa-linkedin"></i> LinkedIn Statistics
+                    </h4>
                 </div>
             `;
         }
         
-        // === CONTACT INFORMATION SECTION ===
-        if (linkedInFields.email || linkedInFields.website || linkedInFields.linkedinUrl) {
-            html += '<div style="grid-column: 1/-1; margin-top: 1rem; padding-top: 1rem; border-top: 2px solid var(--success);"><h4 style="color: var(--success); margin-bottom: 0.5rem;">📧 Contact Information</h4></div>';
+        // Connections
+        if (linkedInFields.connections && linkedInFields.connections !== 'Not specified') {
+            html += `
+                <div class="result-item">
+                    <div class="result-label">Connections</div>
+                    <div class="result-value">
+                        <i class="fas fa-users" style="color: #3b82f6; margin-right: 0.25rem;"></i>
+                        ${linkedInFields.connections}
+                    </div>
+                </div>
+            `;
         }
         
-        // Email - IMPORTANT
-        if (linkedInFields.email && linkedInFields.email !== 'Not found') {
+        // Followers
+        if (linkedInFields.followers && linkedInFields.followers !== 'Not specified') {
             html += `
-                <div class="result-item" style="background: #ecfdf5; border-left: 3px solid var(--success);">
-                    <div class="result-label">✉️ Email</div>
+                <div class="result-item">
+                    <div class="result-label">Followers</div>
+                    <div class="result-value">
+                        <i class="fas fa-user-friends" style="color: #3b82f6; margin-right: 0.25rem;"></i>
+                        ${linkedInFields.followers}
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Recommendations
+        if (linkedInFields.totalRecommendationsReceived && linkedInFields.totalRecommendationsReceived !== 'Not specified') {
+            html += `
+                <div class="result-item">
+                    <div class="result-label">Recommendations Received</div>
+                    <div class="result-value">
+                        <i class="fas fa-star" style="color: #fbbf24; margin-right: 0.25rem;"></i>
+                        ${linkedInFields.totalRecommendationsReceived}
+                    </div>
+                </div>
+            `;
+        }
+        
+        if (linkedInFields.totalRecommendationsGiven && linkedInFields.totalRecommendationsGiven !== 'Not specified') {
+            html += `
+                <div class="result-item">
+                    <div class="result-label">Recommendations Given</div>
+                    <div class="result-value">
+                        <i class="fas fa-star" style="color: #fbbf24; margin-right: 0.25rem;"></i>
+                        ${linkedInFields.totalRecommendationsGiven}
+                    </div>
+                </div>
+            `;
+        }
+        
+        // ==========================================
+        // SECTION 3: CONTACT INFORMATION
+        // ==========================================
+        if (linkedInFields.email || linkedInFields.mobileNumber || linkedInFields.website || linkedInFields.linkedinUrl) {
+            html += `
+                <div style="grid-column: 1/-1; margin-top: 1rem; padding-top: 1rem; border-top: 2px solid var(--success);">
+                    <h4 style="color: var(--success); margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fas fa-address-card"></i> Contact Information
+                    </h4>
+                </div>
+            `;
+        }
+        
+        // Email - HIGHLIGHTED
+        if (linkedInFields.email && linkedInFields.email !== 'Not found' && linkedInFields.email !== '') {
+            html += `
+                <div class="result-item" style="background: #ecfdf5; border-left: 3px solid var(--success); padding-left: 1rem;">
+                    <div class="result-label">
+                        <i class="fas fa-envelope" style="color: var(--success);"></i> Email
+                    </div>
                     <div class="result-value highlight">${linkedInFields.email}</div>
+                </div>
+            `;
+        }
+        
+        // Mobile Number - HIGHLIGHTED
+        if (linkedInFields.mobileNumber && linkedInFields.mobileNumber !== 'Not found' && linkedInFields.mobileNumber !== 'Not specified') {
+            html += `
+                <div class="result-item" style="background: #ecfdf5; border-left: 3px solid var(--success); padding-left: 1rem;">
+                    <div class="result-label">
+                        <i class="fas fa-phone" style="color: var(--success);"></i> Mobile Number
+                    </div>
+                    <div class="result-value highlight">${linkedInFields.mobileNumber}</div>
                 </div>
             `;
         }
@@ -2457,7 +2576,12 @@ function showSingleResult(inputData, result) {
             html += `
                 <div class="result-item">
                     <div class="result-label">Website</div>
-                    <div class="result-value"><a href="https://${linkedInFields.website}" target="_blank">${linkedInFields.website}</a></div>
+                    <div class="result-value">
+                        <a href="https://${linkedInFields.website}" target="_blank">
+                            <i class="fas fa-globe" style="margin-right: 0.25rem;"></i>
+                            ${linkedInFields.website}
+                        </a>
+                    </div>
                 </div>
             `;
         }
@@ -2467,117 +2591,166 @@ function showSingleResult(inputData, result) {
             html += `
                 <div class="result-item">
                     <div class="result-label">LinkedIn Profile</div>
-                    <div class="result-value"><a href="${linkedInFields.linkedinUrl}" target="_blank">${linkedInFields.linkedinUrl}</a></div>
+                    <div class="result-value">
+                        <a href="${linkedInFields.linkedinUrl}" target="_blank">
+                            <i class="fab fa-linkedin" style="margin-right: 0.25rem; color: #0077b5;"></i>
+                            ${linkedInFields.linkedinUrl}
+                        </a>
+                    </div>
                 </div>
             `;
         }
         
-        // Verified
-        if (linkedInFields.verified) {
+        // ==========================================
+        // SECTION 4: COMPANY INFORMATION
+        // ==========================================
+        if (linkedInFields.company || linkedInFields.company_description || linkedInFields.company_size) {
+            html += `
+                <div style="grid-column: 1/-1; margin-top: 1rem; padding-top: 1rem; border-top: 2px solid var(--warning);">
+                    <h4 style="color: var(--warning); margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fas fa-building"></i> Company Information
+                    </h4>
+                </div>
+            `;
+        }
+        
+        // Company Name
+        if (linkedInFields.company && linkedInFields.company !== 'Not specified') {
             html += `
                 <div class="result-item">
-                    <div class="result-label">Verified</div>
-                    <div class="result-value">${linkedInFields.verified === 'true' || linkedInFields.verified === true ? '✓ Verified' : 'Not Verified'}</div>
+                    <div class="result-label">Company</div>
+                    <div class="result-value highlight">${linkedInFields.company}</div>
                 </div>
             `;
         }
         
-        // === COMPANY INFORMATION SECTION ===
-if (linkedInFields.company || linkedInFields.company_description || linkedInFields.company_size || linkedInFields.company_location || linkedInFields.founded || linkedInFields.company_linkedin_url || linkedInFields.specialties) {
-    html += '<div style="grid-column: 1/-1; margin-top: 1rem; padding-top: 1rem; border-top: 2px solid var(--warning);"><h4 style="color: var(--warning); margin-bottom: 0.5rem;">🏢 Company Information</h4></div>';
-}
-
-// Company Name
-if (linkedInFields.company && linkedInFields.company !== 'Not specified') {
-    html += `
-        <div class="result-item">
-            <div class="result-label">Company</div>
-            <div class="result-value highlight">${linkedInFields.company}</div>
-        </div>
-    `;
-}
-
-// Industry
-if (linkedInFields.industry && linkedInFields.industry !== 'Not specified') {
-    html += `
-        <div class="result-item">
-            <div class="result-label">Industry</div>
-            <div class="result-value">${linkedInFields.industry}</div>
-        </div>
-    `;
-}
-
-// Company Size
-if (linkedInFields.company_size && linkedInFields.company_size !== 'Not specified') {
-    html += `
-        <div class="result-item">
-            <div class="result-label">Company Size</div>
-            <div class="result-value">${linkedInFields.company_size}</div>
-        </div>
-    `;
-}
-
-// Company Location
-if (linkedInFields.company_location && linkedInFields.company_location !== 'Not specified') {
-    html += `
-        <div class="result-item">
-            <div class="result-label">Company Location</div>
-            <div class="result-value">${linkedInFields.company_location}</div>
-        </div>
-    `;
-}
-
-// Founded Year
-if (linkedInFields.founded && linkedInFields.founded !== 'Not specified') {
-    html += `
-        <div class="result-item">
-            <div class="result-label">Founded</div>
-            <div class="result-value">${linkedInFields.founded}</div>
-        </div>
-    `;
-}
-
-// Company Description - ICI EN FULL WIDTH
-if (linkedInFields.company_description && linkedInFields.company_description !== 'Not specified') {
-    html += `
-        <div class="result-item" style="grid-column: 1/-1;">
-            <div class="result-label">Company Description</div>
-            <div class="result-value">${linkedInFields.company_description}</div>
-        </div>
-    `;
-}
-
-// Company Specialties - EN FULL WIDTH AUSSI
-if (linkedInFields.specialties && linkedInFields.specialties !== 'Not specified') {
-    html += `
-        <div class="result-item" style="grid-column: 1/-1;">
-            <div class="result-label">Specialties</div>
-            <div class="result-value">${linkedInFields.specialties}</div>
-        </div>
-    `;
-}
-
-// Company LinkedIn URL
-if (linkedInFields.company_linkedin_url && linkedInFields.company_linkedin_url !== 'Not specified') {
-    html += `
-        <div class="result-item">
-            <div class="result-label">Company LinkedIn</div>
-            <div class="result-value"><a href="${linkedInFields.company_linkedin_url}" target="_blank">${linkedInFields.company_linkedin_url}</a></div>
-        </div>
-    `;
-}
-
-// Followers (si c'est une company page)
-if (linkedInFields.followers && linkedInFields.followers !== 'Not specified') {
-    html += `
-        <div class="result-item">
-            <div class="result-label">Followers</div>
-            <div class="result-value">${linkedInFields.followers}</div>
-        </div>
-    `;
-}
+        // Company Size
+        if (linkedInFields.company_size && linkedInFields.company_size !== 'Not specified') {
+            html += `
+                <div class="result-item">
+                    <div class="result-label">Company Size</div>
+                    <div class="result-value">
+                        <i class="fas fa-users" style="color: var(--warning); margin-right: 0.25rem;"></i>
+                        ${linkedInFields.company_size}
+                    </div>
+                </div>
+            `;
+        }
         
-        html += '</div>';
+        // Company Location
+        if (linkedInFields.company_location && linkedInFields.company_location !== 'Not specified') {
+            html += `
+                <div class="result-item">
+                    <div class="result-label">Company Location</div>
+                    <div class="result-value">
+                        <i class="fas fa-map-marker-alt" style="color: var(--warning); margin-right: 0.25rem;"></i>
+                        ${linkedInFields.company_location}
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Founded Year
+        if (linkedInFields.founded && linkedInFields.founded !== 'Not specified') {
+            html += `
+                <div class="result-item">
+                    <div class="result-label">Founded</div>
+                    <div class="result-value">
+                        <i class="fas fa-calendar" style="color: var(--warning); margin-right: 0.25rem;"></i>
+                        ${linkedInFields.founded}
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Company Description - FULL WIDTH
+        if (linkedInFields.company_description && linkedInFields.company_description !== 'Not specified') {
+            html += `
+                <div class="result-item" style="grid-column: 1/-1;">
+                    <div class="result-label">Company Description</div>
+                    <div class="result-value" style="line-height: 1.6;">${linkedInFields.company_description}</div>
+                </div>
+            `;
+        }
+        
+        // Company LinkedIn URL
+        if (linkedInFields.company_linkedin_url && linkedInFields.company_linkedin_url !== 'Not specified') {
+            html += `
+                <div class="result-item">
+                    <div class="result-label">Company LinkedIn</div>
+                    <div class="result-value">
+                        <a href="${linkedInFields.company_linkedin_url}" target="_blank">
+                            <i class="fab fa-linkedin" style="margin-right: 0.25rem; color: #0077b5;"></i>
+                            ${linkedInFields.company_linkedin_url}
+                        </a>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // ==========================================
+        // SECTION 5: CAREER INFORMATION
+        // ==========================================
+        if (linkedInFields.firstRoleYear || linkedInFields.isCurrentlyEmployed || linkedInFields.isJobSeeker) {
+            html += `
+                <div style="grid-column: 1/-1; margin-top: 1rem; padding-top: 1rem; border-top: 2px solid #8b5cf6;">
+                    <h4 style="color: #8b5cf6; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fas fa-briefcase"></i> Career Information
+                    </h4>
+                </div>
+            `;
+        }
+        
+        // First Role Year
+        if (linkedInFields.firstRoleYear && linkedInFields.firstRoleYear !== 'Not specified') {
+            const currentYear = new Date().getFullYear();
+            const yearsExperience = currentYear - parseInt(linkedInFields.firstRoleYear);
+            html += `
+                <div class="result-item">
+                    <div class="result-label">Career Start</div>
+                    <div class="result-value">
+                        ${linkedInFields.firstRoleYear}
+                        ${yearsExperience > 0 ? `<span style="color: var(--gray-500); font-size: 0.875rem;"> (${yearsExperience} years experience)</span>` : ''}
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Employment Status
+        if (linkedInFields.isCurrentlyEmployed && linkedInFields.isCurrentlyEmployed !== 'Not specified') {
+            const isEmployed = linkedInFields.isCurrentlyEmployed === 'true' || linkedInFields.isCurrentlyEmployed === true;
+            html += `
+                <div class="result-item">
+                    <div class="result-label">Employment Status</div>
+                    <div class="result-value">
+                        <span style="color: ${isEmployed ? 'var(--success)' : 'var(--warning)'};">
+                            <i class="fas fa-circle" style="font-size: 0.5rem; margin-right: 0.5rem;"></i>
+                            ${isEmployed ? 'Currently Employed' : 'Open to Opportunities'}
+                        </span>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Job Seeker Status
+        if (linkedInFields.isJobSeeker && linkedInFields.isJobSeeker !== 'Not specified') {
+            const isSeeker = linkedInFields.isJobSeeker === 'true' || linkedInFields.isJobSeeker === true;
+            if (isSeeker) {
+                html += `
+                    <div class="result-item">
+                        <div class="result-label">Job Seeker</div>
+                        <div class="result-value">
+                            <span style="background: #dbeafe; color: #1e40af; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.875rem; font-weight: 500;">
+                                <i class="fas fa-search" style="margin-right: 0.25rem;"></i>
+                                Actively Looking
+                            </span>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+        
+        html += '</div>'; // Close result-grid
         
     } else if (result !== 'Not found' && result.startsWith('http')) {
         // Simple URL result
@@ -2601,7 +2774,7 @@ if (linkedInFields.followers && linkedInFields.followers !== 'Not specified') {
         `;
     }
     
-    html += '</div>';
+    html += '</div>'; // Close result-card
     
     resultLink.innerHTML = html;
     
@@ -2609,6 +2782,7 @@ if (linkedInFields.followers && linkedInFields.followers !== 'Not specified') {
     document.getElementById('singleResult').classList.remove('hidden');
     document.getElementById('bulkResults').classList.add('hidden');
 }
+
 
     function showSingleResultEmployees(inputData, employeesArray) {
     const resultText = document.getElementById('resultText');
@@ -3147,84 +3321,90 @@ function updateBulkResultsTable() {
         html += '</tbody></table>';
     }
   
-if (currentInputType === 'linkedin_post' && currentOutputType === 'reactions') {
-    html = `<table class="results-table">
-        <thead>
-            <tr>
-                <th>Name</th>
-                <th>Job Title</th>
-                <th>Profile Info</th>
-                <th>LinkedIn URL</th>
-            </tr>
-        </thead>
-        <tbody>`;
+    // Handle post reactions
+    if (currentInputType === 'linkedin_post' && currentOutputType === 'reactions') {
+        html = `<table class="results-table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Job Title</th>
+                    <th>Profile Info</th>
+                    <th>LinkedIn URL</th>
+                </tr>
+            </thead>
+            <tbody>`;
 
-    // Flatten all reactions from all posts
-    bulkResults.forEach(postResult => {
-        if (postResult.reactions && Array.isArray(postResult.reactions)) {
-            postResult.reactions.forEach(reaction => {
-                const parsed = parseReactionTitle(reaction.title);
-                const linkedinUrlDisplay = reaction.link && reaction.link.length > 50 
-                    ? `${reaction.link.substring(0, 50)}...` 
-                    : (reaction.link || 'N/A');
+        bulkResults.forEach(postResult => {
+            if (postResult.reactions && Array.isArray(postResult.reactions)) {
+                postResult.reactions.forEach(reaction => {
+                    const parsed = parseReactionTitle(reaction.title);
+                    const linkedinUrlDisplay = reaction.link && reaction.link.length > 50 
+                        ? `${reaction.link.substring(0, 50)}...` 
+                        : (reaction.link || 'N/A');
 
-                html += `<tr>
-                    <td data-label="Name">${parsed.name}</td>
-                    <td data-label="Job Title">${parsed.jobInfo || 'Not specified'}</td>
-                    <td data-label="Profile Info">${reaction.snippet || 'Not specified'}</td>
-                    <td data-label="LinkedIn URL">
-                        ${reaction.link ? `<a href="${reaction.link}" target="_blank" style="color: var(--primary); text-decoration: none;">${linkedinUrlDisplay}</a>` : 'Not specified'}
-                    </td>
-                </tr>`;
-            });
-        }
-    });
+                    html += `<tr>
+                        <td data-label="Name">${parsed.name}</td>
+                        <td data-label="Job Title">${parsed.jobInfo || 'Not specified'}</td>
+                        <td data-label="Profile Info">${reaction.snippet || 'Not specified'}</td>
+                        <td data-label="LinkedIn URL">
+                            ${reaction.link ? `<a href="${reaction.link}" target="_blank" style="color: var(--primary); text-decoration: none;">${linkedinUrlDisplay}</a>` : 'Not specified'}
+                        </td>
+                    </tr>`;
+                });
+            }
+        });
 
-    html += '</tbody></table>';
-}
+        html += '</tbody></table>';
+    }
 
+    // 👇 ICI C'EST LA PARTIE MODIFIÉE 👇
     // Handle LinkedIn Profile results with detailed table
-   // Handle LinkedIn Profile results with detailed table
-else if (currentInputType === 'linkedin_profile' && currentOutputType === 'linkedin_info') {
-    html = `<table class="results-table">
-        <thead>
-            <tr>
-                <th>LinkedIn URL</th>
-                <th>Name</th>
-                <th>Job Title</th>
-                <th>Company</th>
-                <th>Location</th>
-                <th>Email</th>
-                <th>Company Size</th>
-                <th>Founded</th>
-            </tr>
-        </thead>
-        <tbody>`;
+    else if (currentInputType === 'linkedin_profile' && currentOutputType === 'linkedin_info') {
+        html = `<table class="results-table">
+            <thead>
+                <tr>
+                    <th>LinkedIn URL</th>
+                    <th>Name</th>
+                    <th>Job Title</th>
+                    <th>Company</th>
+                    <th>Location</th>
+                    <th>Email</th>
+                    <th>Mobile</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>`;
 
-    bulkResults.forEach(row => {
-        const data = row.rawData || {};
-        const linkedinUrlDisplay = row.inputData.length > 30 
-            ? `${row.inputData.substring(0, 30)}...` 
-            : row.inputData;
+        bulkResults.forEach(row => {
+            const data = row.rawData || {};
+            const linkedinUrlDisplay = row.inputData.length > 30 
+                ? `${row.inputData.substring(0, 30)}...` 
+                : row.inputData;
 
-        html += `<tr>
-            <td data-label="LinkedIn URL">
-                <a href="${row.inputData}" target="_blank" style="color: var(--primary); text-decoration: none;">
-                    ${linkedinUrlDisplay}
-                </a>
-            </td>
-            <td data-label="Name">${data.name || 'Not found'}</td>
-            <td data-label="Job Title">${data.jobTitle || 'Not found'}</td>
-            <td data-label="Company">${data.company || 'Not found'}</td>
-            <td data-label="Location">${data.location || 'Not found'}</td>
-            <td data-label="Email">${data.email || 'Not found'}</td>
-            <td data-label="Company Size">${data.company_size || 'Not found'}</td>
-            <td data-label="Founded">${data.founded || 'Not found'}</td>
-        </tr>`;
-    });
+            html += `<tr>
+                <td data-label="LinkedIn URL">
+                    <a href="${row.inputData}" target="_blank" style="color: var(--primary); text-decoration: none;">
+                        ${linkedinUrlDisplay}
+                    </a>
+                </td>
+                <td data-label="Name">${data.name || 'Not found'}</td>
+                <td data-label="Job Title">${data.jobTitle || 'Not found'}</td>
+                <td data-label="Company">${data.company || 'Not found'}</td>
+                <td data-label="Location">${data.location || 'Not found'}</td>
+                <td data-label="Email">${data.email || 'Not found'}</td>
+                <td data-label="Mobile">${data.mobileNumber || 'Not found'}</td>
+                <td data-label="Status">
+                    <span class="status-badge ${row.status === 'Found' ? 'status-success' : 'status-error'}">
+                        ${row.status}
+                    </span>
+                </td>
+            </tr>`;
+        });
 
-    html += '</tbody></table>';
-}
+        html += '</tbody></table>';
+    }
+    // 👆 FIN DE LA PARTIE MODIFIÉE 👆
+    
     // Handle LinkedIn Company results with detailed table
     else if (currentInputType === 'linkedin_company' && currentOutputType === 'linkedin_info') {
         html = `<table class="results-table">
@@ -3310,6 +3490,7 @@ else if (currentInputType === 'linkedin_profile' && currentOutputType === 'linke
     
     document.getElementById('bulkResultsTable').innerHTML = html;
 }
+
 
  function downloadResults() {
     if (bulkResults.length === 0) return;
