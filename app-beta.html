@@ -198,6 +198,28 @@
     box-shadow: 0 4px 12px rgba(251, 146, 60, 0.35);
 }
 
+.credit-cost {
+    text-align: center;
+    padding: 0.75rem;
+    background: var(--gray-50);
+    border: 1px solid var(--gray-200);
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+    font-size: 0.875rem;
+    color: var(--gray-700);
+    display: none; /* Hidden by default */
+}
+
+.credit-cost i {
+    color: var(--warning);
+    margin-right: 0.25rem;
+}
+
+.credit-cost-value {
+    font-weight: 600;
+    color: var(--gray-900);
+}
+
 @keyframes subtle-pulse {
     0%, 100% { 
         box-shadow: 0 2px 8px rgba(251, 146, 60, 0.25);
@@ -1528,6 +1550,8 @@
                     </button>
                 </div>
             </div>
+
+            <div id="creditCost" class="credit-cost"></div>
 
             <!-- Single Search (Hidden initially) -->
             <div id="singleSearch" class="card hidden">
@@ -3828,6 +3852,72 @@ function openReviewForm(event) {
     event.preventDefault();
     window.open('https://form.typeform.com/to/UKRzccI3', '_blank');
     closeReviewNotification();
+}
+
+const creditCosts = {
+    'company_name_to_website': 1,
+    'company_name_to_phone': 1,
+    'company_name_to_linkedin_url': 1,
+    'company_name_to_employees': 1,
+    'company_name_to_employee_count': 1,
+    'company_name_to_email': 1,
+    'linkedin_company_to_linkedin_info': 5,
+    'linkedin_company_to_employees': 1,
+    'linkedin_company_to_employee_count': 1,
+    'linkedin_profile_to_linkedin_info': 10,
+    'lead_full_name_to_linkedin_url': 1,
+    'linkedin_post_to_reactions': 1
+};
+
+function getCreditCost(inputType, outputType) {
+    const combinationType = generateCombinationType(inputType, outputType);
+    return creditCosts[combinationType] || 1;
+}
+
+function updateCreditCostDisplay() {
+    const creditCostDiv = document.getElementById('creditCost');
+    
+    if (!currentInputType || !currentOutputType) {
+        creditCostDiv.style.display = 'none';
+        return;
+    }
+    
+    const cost = getCreditCost(currentInputType, currentOutputType);
+    const costText = cost === 1 ? '1 credit' : `${cost} credits`;
+    
+    creditCostDiv.innerHTML = `
+        <i class="fas fa-coins"></i>
+        Cost: <span class="credit-cost-value">${costText}</span> per enrichment
+    `;
+    creditCostDiv.style.display = 'block';
+}
+
+// Modifiez la fonction configureEnrichment existante
+function configureEnrichment() {
+    const inputType = document.getElementById('inputType').value;
+    const outputType = document.getElementById('outputType').value;
+    
+    if (!inputType || !outputType) return;
+
+    currentInputType = inputType;
+    currentOutputType = outputType;
+    
+    const config = dataConfigurations[inputType];
+    
+    // Update input field
+    document.getElementById('inputLabel').textContent = config.label;
+    document.getElementById('inputData').placeholder = config.placeholder;
+    
+    // Update upload subtext
+    document.getElementById('uploadSubtext').textContent = `CSV with ${config.label.toLowerCase().replace('enter ', '')} (max 10000 rows)`;
+    
+    // Show mode toggle and input sections
+    document.getElementById('modeToggle').classList.remove('hidden');
+    
+    // UPDATE: Show credit cost
+    updateCreditCostDisplay();
+    
+    showInputSections();
 }
 
 // Initialize review notification when page loads
