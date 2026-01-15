@@ -353,6 +353,12 @@
       border-radius: 4px;
     }
 
+    .comment-meta {
+      color: var(--gray-500);
+      font-size: 0.7rem;
+      margin-top: 0.25rem;
+    }
+
     .commenter-link {
       margin-left: auto;
       color: var(--primary);
@@ -1066,7 +1072,7 @@ Professional tools for extracting company data from LinkedIn. Streamline your bu
 <div class="footer-section">
 <h4 class="footer-heading">Support</h4>
 <ul class="footer-links">
-<li><a href="mailto:support@unlimited-leads.online">support@unlimited-leads.online</a></li>
+<li><a href="/cdn-cgi/l/email-protection#ee9d9b9e9e819c9aae9b80828783879a8b8ac3828b8f8a9dc081808287808b"><span class="__cf_email__" data-cfemail="f784828787988583b782999b9e9a9e839293da9b92969384d998999b9e9992">[email&#160;protected]</span></a></li>
 <li><a href="https://linkfinderai.com/api-documentation" title="API documentation">API documentation</a></li>
 <li><a href="https://linkfinderai.com/pricing" title="Pricing">Pricing</a></li>
 <li><a href="https://linkfinderai.com/privacy" title="Privacy policy">Privacy Policy</a></li>
@@ -1095,7 +1101,7 @@ Professional tools for extracting company data from LinkedIn. Streamline your bu
 </div>
 </footer>
 
-  <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+  <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
     let searchCount = 0;
     let maxFreeSearches = 5;
 
@@ -1161,6 +1167,22 @@ Professional tools for extracting company data from LinkedIn. Streamline your bu
       }
     }
 
+    function formatDateTime(datetime) {
+      if (!datetime) return '';
+      try {
+        const date = new Date(datetime);
+        return date.toLocaleString('en-US', { 
+          month: 'short', 
+          day: 'numeric', 
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+      } catch (e) {
+        return datetime;
+      }
+    }
+
     async function exportCommenters() {
       if (!checkSearchLimit()) {
         showModal('signup');
@@ -1204,16 +1226,25 @@ Professional tools for extracting company data from LinkedIn. Streamline your bu
         console.log('Raw response from worker:', data);
         console.log('Response type:', typeof data);
 
-        if (data && (Array.isArray(data) || data.commenters)) {
-          const commenters = Array.isArray(data) ? data : data.commenters;
+        // Handle the new response format - array of commenter objects
+        if (Array.isArray(data) && data.length > 0) {
+          console.log('✅ SUCCESS: Found commenters array, displaying data');
+          console.log('Commenters count:', data.length);
+          console.log('First commenter:', data[0]);
           
-          console.log('✅ SUCCESS: Found commenters, displaying data');
-          console.log('Commenters count:', commenters.length);
-          console.log('First commenter:', commenters[0]);
+          displayPostData({
+            postUrl: data[0].post_Link || postUrl,
+            commenters: data
+          });
+          updateSearchCount();
+        } else if (data && data.commenters && Array.isArray(data.commenters)) {
+          // Fallback for wrapped response
+          console.log('✅ SUCCESS: Found commenters in wrapped object, displaying data');
+          console.log('Commenters count:', data.commenters.length);
           
           displayPostData({
             postUrl: postUrl,
-            commenters: commenters
+            commenters: data.commenters
           });
           updateSearchCount();
         } else {
@@ -1259,29 +1290,18 @@ Professional tools for extracting company data from LinkedIn. Streamline your bu
         </div>
       `;
       
-      // Commenter List
+      // Commenter List - Updated to use new field names
       const commenterList = document.getElementById('commenterList');
       if (data.commenters && data.commenters.length > 0) {
         let commenterHTML = '';
         
         data.commenters.forEach(commenter => {
-          // Extract name and title from title field
-          let commenterName = commenter.name || 'Unknown Commenter';
-          let commenterTitle = commenter.headline || '';
-          
-          // If name is not provided and title field exists, extract from title
-          if (commenter.title) {
-            const parts = commenter.title.split(' - ');
-            if (parts.length > 1) {
-              commenterName = parts[0].trim();
-              commenterTitle = parts.slice(1).join(' - ').trim();
-            } else {
-              commenterName = commenter.title.trim();
-            }
-          }
-          
-          // Use snippet as additional info if available
-          const commenterSnippet = commenter.snippet || '';
+          // Map new field names to display
+          const commenterName = commenter.name || 'Unknown Commenter';
+          const commenterTitle = commenter.subtitle || '';
+          const commentText = commenter.content || '';
+          const profileUrl = commenter.url_profile || '';
+          const commentDate = commenter.datetime || '';
           
           const commenterInitials = commenterName && commenterName !== 'Unknown Commenter'
             ? commenterName.split(' ').map(word => word[0]).join('').substring(0, 2).toUpperCase() 
@@ -1293,10 +1313,10 @@ Professional tools for extracting company data from LinkedIn. Streamline your bu
               <div class="commenter-info">
                 <h4>${commenterName}</h4>
                 <div class="commenter-title">${commenterTitle || 'Position not specified'}</div>
-                ${commenterSnippet ? `<div class="comment-text">${commenterSnippet.substring(0, 100)}${commenterSnippet.length > 100 ? '...' : ''}</div>` : ''}
-                ${commenter.comment ? `<div class="comment-text">"${commenter.comment}"</div>` : ''}
+                ${commentText ? `<div class="comment-text">"${commentText}"</div>` : ''}
+                ${commentDate ? `<div class="comment-meta">Commented on ${formatDateTime(commentDate)}</div>` : ''}
               </div>
-              ${commenter.link ? `<a href="${commenter.link}" target="_blank" class="commenter-link">View Profile</a>` : ''}
+              ${profileUrl ? `<a href="${profileUrl}" target="_blank" class="commenter-link">View Profile</a>` : ''}
             </div>
           `;
         });
@@ -1308,7 +1328,7 @@ Professional tools for extracting company data from LinkedIn. Streamline your bu
     }
 
     function tryExample() {
-      document.getElementById('postInput').value = 'https://www.linkedin.com/feed/update/urn:li:activity:7000000000000000000';
+      document.getElementById('postInput').value = 'https://www.linkedin.com/posts/coldemailchris_this-free-course-covers-exactly-how-we-built-share-7414766152758947840-a-rO?utm_source=share';
     }
 
     function toggleFAQ(button) {
