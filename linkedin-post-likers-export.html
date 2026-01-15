@@ -37,9 +37,9 @@
 </script>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>LinkedIn Post Commenters Export - Extract Post Comments & Engagement Data</title>
-  <meta name="description" content="Export LinkedIn post commenters instantly. Extract commenter data, engagement insights, and audience information from any LinkedIn post with our advanced export tool."/>
-  <meta name="keywords" content="linkedin post commenters export, linkedin comment scraper, post engagement data, linkedin comments extraction, social media analytics"/>
+  <title>LinkedIn Post Likers Export - Extract Post Likes & Engagement Data</title>
+  <meta name="description" content="Export LinkedIn post likers instantly. Extract liker data, engagement insights, and audience information from any LinkedIn post with our advanced export tool."/>
+  <meta name="keywords" content="linkedin post likers export, linkedin likes scraper, post engagement data, linkedin likes extraction, social media analytics"/>
   
   <!-- Favicon -->
   <link rel="icon" href="https://i.ibb.co/jPjX9SSp/Screen-Shot-2025-03-28-at-8-16-15-PM.png">
@@ -67,6 +67,7 @@
       --success: #10b981;
       --error: #ef4444;
       --warning: #f59e0b;
+      --like-color: #0a66c2;
     }
 
     * {
@@ -268,7 +269,7 @@
     .post-icon {
       width: 60px;
       height: 60px;
-      background: var(--primary);
+      background: var(--like-color);
       border-radius: 12px;
       display: flex;
       align-items: center;
@@ -291,18 +292,18 @@
       margin-bottom: 0.5rem;
     }
 
-    .commenter-count {
-      color: var(--primary);
+    .liker-count {
+      color: var(--like-color);
       font-size: 0.875rem;
       font-weight: 500;
     }
 
-    .commenter-list {
+    .liker-list {
       display: grid;
       gap: 0.75rem;
     }
 
-    .commenter-item {
+    .liker-item {
       display: flex;
       align-items: center;
       gap: 1rem;
@@ -310,12 +311,18 @@
       border: 1px solid var(--gray-200);
       border-radius: 8px;
       background: white;
+      transition: all 0.2s ease;
     }
 
-    .commenter-avatar {
+    .liker-item:hover {
+      border-color: var(--like-color);
+      box-shadow: 0 2px 8px rgba(10, 102, 194, 0.1);
+    }
+
+    .liker-avatar {
       width: 40px;
       height: 40px;
-      background: var(--success);
+      background: var(--like-color);
       border-radius: 50%;
       display: flex;
       align-items: center;
@@ -326,49 +333,36 @@
       flex-shrink: 0;
     }
 
-    .commenter-info {
+    .liker-info {
       flex: 1;
     }
 
-    .commenter-info h4 {
+    .liker-info h4 {
       font-weight: 600;
       color: var(--gray-900);
       font-size: 0.875rem;
       margin-bottom: 0.25rem;
     }
 
-    .commenter-title {
+    .liker-title {
       color: var(--gray-600);
       font-size: 0.75rem;
-      margin-bottom: 0.5rem;
-    }
-
-    .comment-text {
-      color: var(--gray-700);
-      font-size: 0.75rem;
       line-height: 1.4;
-      margin-top: 0.5rem;
-      padding: 0.5rem;
-      background: var(--gray-50);
-      border-radius: 4px;
     }
 
-    .comment-meta {
-      color: var(--gray-500);
-      font-size: 0.7rem;
-      margin-top: 0.25rem;
-    }
-
-    .commenter-link {
+    .liker-link {
       margin-left: auto;
-      color: var(--primary);
+      color: var(--like-color);
       text-decoration: none;
       font-size: 0.875rem;
       font-weight: 500;
       flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
     }
 
-    .commenter-link:hover {
+    .liker-link:hover {
       text-decoration: underline;
     }
 
@@ -814,14 +808,14 @@
 
   <div class="container">
     <div class="hero">
-      <h1>LinkedIn Post Commenters Export</h1>
-      <p>Extract and export comprehensive commenter data from any LinkedIn post. Get engagement insights, commenter profiles, and audience intelligence with our advanced LinkedIn <a href="https://linkfinderai.com/linkedin-post-commenters-export">post commenters</a> export tool.</p>
+      <h1>LinkedIn Post Likers Export</h1>
+      <p>Extract and export comprehensive liker data from any LinkedIn post. Get engagement insights, liker profiles, and audience intelligence to identify potential prospects and build meaningful connections.</p>
     </div>
 
     <!-- Limit Warning -->
     <div id="limitWarning" class="limit-warning hidden">
       <h3>Free exports used</h3>
-      <p>Sign up to continue exporting LinkedIn post commenters</p>
+      <p>Sign up to continue exporting LinkedIn post likers</p>
       <button class="btn" onclick="showModal('signup')" style="background: white; color: var(--warning);">
         Sign Up
       </button>
@@ -830,12 +824,12 @@
     <div class="main-card">
       <div class="input-group">
         <label for="postInput">LinkedIn Post URL</label>
-        <input type="text" id="postInput" placeholder="Enter LinkedIn post URL (e.g., https://www.linkedin.com/feed/update/urn:li:activity:...)" required>
+        <input type="text" id="postInput" placeholder="Enter LinkedIn post URL (e.g., https://www.linkedin.com/posts/...)" required>
       </div>
       
-      <button class="btn btn-full" onclick="exportCommenters()">
-        <i class="fas fa-download"></i>
-        Export Post Commenters
+      <button class="btn btn-full" onclick="exportLikers()">
+        <i class="fas fa-heart"></i>
+        Export Post Likers
       </button>
       
       <button class="btn-secondary btn btn-full" onclick="tryExample()">
@@ -845,14 +839,14 @@
       <!-- Results Section -->
       <div id="resultsSection" class="results-section hidden">
         <div id="loadingMessage" class="loading-message hidden">
-          <i class="fas fa-spinner fa-spin"></i> Extracting post commenters...
+          <i class="fas fa-spinner fa-spin"></i> Extracting post likers...
         </div>
         
         <div id="errorMessage" class="error-message hidden"></div>
         
         <div id="postResults" class="hidden">
           <div id="postHeader" class="post-header"></div>
-          <div id="commenterList" class="commenter-list"></div>
+          <div id="likerList" class="liker-list"></div>
         </div>
       </div>
     </div>
@@ -863,13 +857,13 @@
     <div class="container">
       <div class="testimonial-card">
         <div class="testimonial-quote">
-          "Exporting LinkedIn post commenters has revolutionized our social selling strategy! We can now identify engaged prospects and build relationships with people who are already interested in our content. The export feature is incredibly powerful."
+          "Extracting LinkedIn post likers has transformed our lead generation strategy! We can now identify people who engage with industry content and reach out to them with highly targeted messaging. This tool is a game-changer for B2B sales."
         </div>
         <div class="testimonial-author">
-          <div class="testimonial-avatar">SK</div>
+          <div class="testimonial-avatar">MP</div>
           <div class="testimonial-info">
-            <h4>Sarah Kim</h4>
-            <p>Social Media Manager, GrowthLabs</p>
+            <h4>Michael Park</h4>
+            <p>Sales Director, TechVentures</p>
           </div>
         </div>
       </div>
@@ -885,16 +879,16 @@
       </div>
       <div class="related-tools-grid">
         <div class="related-tool-card">
+          <div class="tool-icon"><i class="fas fa-comments"></i></div>
+          <h3>LinkedIn Post Commenters Export</h3>
+          <p>Extract commenter data and engagement insights from posts</p>
+          <a href="https://linkfinderai.com/linkedin-post-commenters-export" class="tool-link">Export Commenters <i class="fas fa-arrow-right"></i></a>
+        </div>
+        <div class="related-tool-card">
           <div class="tool-icon"><i class="fas fa-user"></i></div>
           <h3>LinkedIn Profile Scraper</h3>
           <p>Extract detailed information from LinkedIn profiles</p>
           <a href="https://linkfinderai.com/linkedin-profile-scraper" class="tool-link">Scrape Profiles <i class="fas fa-arrow-right"></i></a>
-        </div>
-        <div class="related-tool-card">
-          <div class="tool-icon"><i class="fas fa-users"></i></div>
-          <h3>Find Company Employees</h3>
-          <p>Discover and extract employee data from companies</p>
-          <a href="https://linkfinderai.com/company-employee-finder" class="tool-link">Find Employees <i class="fas fa-arrow-right"></i></a>
         </div>
         <div class="related-tool-card">
           <div class="tool-icon"><i class="fas fa-building"></i></div>
@@ -911,7 +905,7 @@
     <div class="container">
       <div class="pricing-header">
         <h2>Simple Pricing</h2>
-        <p>Get unlimited access to export LinkedIn post commenters and engagement data</p>
+        <p>Get unlimited access to export LinkedIn post likers and engagement data</p>
       </div>
       
       <div class="pricing-card">
@@ -919,11 +913,11 @@
         <div class="pricing-period">per month</div>
         
         <ul class="pricing-features">
-          <li><span class="check">✓</span> 25,000 post commenter exports</li>
+          <li><span class="check">✓</span> 25,000 post liker exports</li>
           <li><span class="check">✓</span> Batch processing (CSV upload)</li>
           <li><span class="check">✓</span> API access included</li>
           <li><span class="check">✓</span> Export results to CSV</li>
-          <li><span class="check">✓</span> Complete commenter profiles</li>
+          <li><span class="check">✓</span> Complete liker profiles</li>
           <li><span class="check">✓</span> Priority support</li>
         </ul>
         
@@ -944,41 +938,51 @@
       <div class="faq-list">
         <div class="faq-item">
           <button class="faq-question" onclick="toggleFAQ(this)">
-            How do I export LinkedIn post commenters?
+            How do I export LinkedIn post likers?
             <i class="fas fa-chevron-down icon"></i>
           </button>
           <div class="faq-answer">
-            Simply paste any LinkedIn post URL into our tool and click "Export Post Commenters". Our system will extract all commenter data including names, profiles, job titles, and comments.
+            Simply paste any LinkedIn post URL into our tool and click "Export Post Likers". Our system will extract all liker data including names, profiles, job titles, and companies.
           </div>
         </div>
         
         <div class="faq-item">
           <button class="faq-question" onclick="toggleFAQ(this)">
-            What data can I extract from post commenters?
+            What data can I extract from post likers?
             <i class="fas fa-chevron-down icon"></i>
           </button>
           <div class="faq-answer">
-            Our tool extracts commenter names, LinkedIn profiles, job titles, companies, comment text, engagement metrics, and timestamps. This helps you identify engaged prospects and build relationships with your audience.
+            Our tool extracts liker names, LinkedIn profile URLs, job titles, and companies. This helps you identify engaged prospects who have shown interest in specific content or topics.
           </div>
         </div>
         
         <div class="faq-item">
           <button class="faq-question" onclick="toggleFAQ(this)">
-            Is it legal to export LinkedIn post commenters?
+            Is it legal to export LinkedIn post likers?
             <i class="fas fa-chevron-down icon"></i>
           </button>
           <div class="faq-answer">
-            Yes, our service only extracts publicly available comment data from LinkedIn posts in compliance with LinkedIn's terms of service and data protection regulations. All exported data is publicly visible on LinkedIn.
+            Yes, our service only extracts publicly available like data from LinkedIn posts in compliance with LinkedIn's terms of service and data protection regulations. All exported data is publicly visible on LinkedIn.
           </div>
         </div>
         
         <div class="faq-item">
           <button class="faq-question" onclick="toggleFAQ(this)">
-            Can I export commenters from any LinkedIn post?
+            Can I export likers from any LinkedIn post?
             <i class="fas fa-chevron-down icon"></i>
           </button>
           <div class="faq-answer">
-            Yes, you can export commenter data from any public LinkedIn post. Simply copy the post URL from your browser and paste it into our tool to start the export process.
+            Yes, you can export liker data from any public LinkedIn post. Simply copy the post URL from your browser and paste it into our tool to start the export process.
+          </div>
+        </div>
+        
+        <div class="faq-item">
+          <button class="faq-question" onclick="toggleFAQ(this)">
+            How can I use the exported liker data for lead generation?
+            <i class="fas fa-chevron-down icon"></i>
+          </button>
+          <div class="faq-answer">
+            Use the exported data to identify prospects who engage with relevant content in your industry. These individuals have demonstrated interest in specific topics, making them warm leads for targeted outreach and connection requests.
           </div>
         </div>
       </div>
@@ -988,7 +992,7 @@
   <!-- CTA Section -->
   <div class="cta-section">
     <div class="container">
-      <h2>Ready to Export Post Commenters?</h2>
+      <h2>Ready to Export Post Likers?</h2>
       <p>Join thousands of marketers and sales professionals who use our tool to identify engaged prospects from LinkedIn posts</p>
       <button class="btn" onclick="showModal('signup')">
         Start Exporting Now
@@ -1092,27 +1096,22 @@ Professional tools for extracting company data from LinkedIn. Streamline your bu
 <div class="footer-bottom">
 <p>&copy; 2025 LinkFinderAI. All rights reserved.</p>
 </div>
-
-
-
-
-
-
 </div>
 </footer>
 
-  <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+  <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script>
+  <script>
     let searchCount = 0;
     let maxFreeSearches = 5;
 
     function initApp() {
-      searchCount = parseInt(localStorage.getItem('postCommenterSearchCount') || '0');
+      searchCount = parseInt(localStorage.getItem('postLikerSearchCount') || '0');
       updateUI();
       
       const postInput = document.getElementById('postInput');
       if (postInput) {
         postInput.addEventListener('keypress', (e) => {
-          if (e.key === 'Enter') exportCommenters();
+          if (e.key === 'Enter') exportLikers();
         });
       }
     }
@@ -1131,7 +1130,7 @@ Professional tools for extracting company data from LinkedIn. Streamline your bu
 
     function updateSearchCount() {
       searchCount++;
-      localStorage.setItem('postCommenterSearchCount', searchCount);
+      localStorage.setItem('postLikerSearchCount', searchCount);
       updateUI();
     }
 
@@ -1167,23 +1166,7 @@ Professional tools for extracting company data from LinkedIn. Streamline your bu
       }
     }
 
-    function formatDateTime(datetime) {
-      if (!datetime) return '';
-      try {
-        const date = new Date(datetime);
-        return date.toLocaleString('en-US', { 
-          month: 'short', 
-          day: 'numeric', 
-          year: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit'
-        });
-      } catch (e) {
-        return datetime;
-      }
-    }
-
-    async function exportCommenters() {
+    async function exportLikers() {
       if (!checkSearchLimit()) {
         showModal('signup');
         return;
@@ -1197,7 +1180,7 @@ Professional tools for extracting company data from LinkedIn. Streamline your bu
       }
 
       if (!isValidLinkedInPostUrl(postUrl)) {
-        showError('Please enter a valid LinkedIn post URL (e.g., https://www.linkedin.com/feed/update/urn:li:activity:...)');
+        showError('Please enter a valid LinkedIn post URL (e.g., https://www.linkedin.com/posts/...)');
         return;
       }
 
@@ -1205,7 +1188,7 @@ Professional tools for extracting company data from LinkedIn. Streamline your bu
       showLoading();
 
       try {
-        const response = await fetch('https://linkedin-post-commenter-linkfinder-ai.hamoureliasse.workers.dev/', {
+        const response = await fetch('https://linkedin-post-likers-export.hamoureliasse.workers.dev/', {
           method: 'POST',
           headers: { 
             'Content-Type': 'application/json',
@@ -1226,35 +1209,35 @@ Professional tools for extracting company data from LinkedIn. Streamline your bu
         console.log('Raw response from worker:', data);
         console.log('Response type:', typeof data);
 
-        // Handle the new response format - array of commenter objects
+        // Handle the response format - array of liker objects
         if (Array.isArray(data) && data.length > 0) {
-          console.log('✅ SUCCESS: Found commenters array, displaying data');
-          console.log('Commenters count:', data.length);
-          console.log('First commenter:', data[0]);
+          console.log('✅ SUCCESS: Found likers array, displaying data');
+          console.log('Likers count:', data.length);
+          console.log('First liker:', data[0]);
           
           displayPostData({
             postUrl: data[0].post_Link || postUrl,
-            commenters: data
+            likers: data
           });
           updateSearchCount();
-        } else if (data && data.commenters && Array.isArray(data.commenters)) {
+        } else if (data && data.likers && Array.isArray(data.likers)) {
           // Fallback for wrapped response
-          console.log('✅ SUCCESS: Found commenters in wrapped object, displaying data');
-          console.log('Commenters count:', data.commenters.length);
+          console.log('✅ SUCCESS: Found likers in wrapped object, displaying data');
+          console.log('Likers count:', data.likers.length);
           
           displayPostData({
             postUrl: postUrl,
-            commenters: data.commenters
+            likers: data.likers
           });
           updateSearchCount();
         } else {
-          console.log('❌ FAILED: No commenters found');
+          console.log('❌ FAILED: No likers found');
           console.log('=== DEBUGGING END ===');
-          showError(`No commenter data found for this post.`);
+          showError(`No liker data found for this post.`);
         }
       } catch (error) {
         console.error('Error:', error);
-        showError('Error exporting post commenters. Please try again or check if the post URL is correct.');
+        showError('Error exporting post likers. Please try again or check if the post URL is correct.');
       }
     }
 
@@ -1281,49 +1264,45 @@ Professional tools for extracting company data from LinkedIn. Streamline your bu
       const postHeader = document.getElementById('postHeader');
       postHeader.innerHTML = `
         <div class="post-icon">
-          <i class="fas fa-comment-dots"></i>
+          <i class="fas fa-heart"></i>
         </div>
         <div class="post-info">
-          <h3>LinkedIn Post Comments</h3>
+          <h3>LinkedIn Post Likes</h3>
           <p>Post URL: ${data.postUrl.substring(0, 60)}...</p>
-          <div class="commenter-count">${data.commenters ? data.commenters.length : 0} commenters found</div>
+          <div class="liker-count">${data.likers ? data.likers.length : 0} likers found</div>
         </div>
       `;
       
-      // Commenter List - Updated to use new field names
-      const commenterList = document.getElementById('commenterList');
-      if (data.commenters && data.commenters.length > 0) {
-        let commenterHTML = '';
+      // Liker List - Updated to use new field names
+      const likerList = document.getElementById('likerList');
+      if (data.likers && data.likers.length > 0) {
+        let likerHTML = '';
         
-        data.commenters.forEach(commenter => {
-          // Map new field names to display
-          const commenterName = commenter.name || 'Unknown Commenter';
-          const commenterTitle = commenter.subtitle || '';
-          const commentText = commenter.content || '';
-          const profileUrl = commenter.url_profile || '';
-          const commentDate = commenter.datetime || '';
+        data.likers.forEach(liker => {
+          // Map field names to display
+          const likerName = liker.name || 'Unknown Liker';
+          const likerTitle = liker.subtitle || '';
+          const profileUrl = liker.url_profile || '';
           
-          const commenterInitials = commenterName && commenterName !== 'Unknown Commenter'
-            ? commenterName.split(' ').map(word => word[0]).join('').substring(0, 2).toUpperCase() 
-            : 'CO';
+          const likerInitials = likerName && likerName !== 'Unknown Liker'
+            ? likerName.split(' ').map(word => word[0]).join('').substring(0, 2).toUpperCase() 
+            : 'LI';
           
-          commenterHTML += `
-            <div class="commenter-item">
-              <div class="commenter-avatar">${commenterInitials}</div>
-              <div class="commenter-info">
-                <h4>${commenterName}</h4>
-                <div class="commenter-title">${commenterTitle || 'Position not specified'}</div>
-                ${commentText ? `<div class="comment-text">"${commentText}"</div>` : ''}
-                ${commentDate ? `<div class="comment-meta">Commented on ${formatDateTime(commentDate)}</div>` : ''}
+          likerHTML += `
+            <div class="liker-item">
+              <div class="liker-avatar">${likerInitials}</div>
+              <div class="liker-info">
+                <h4>${likerName}</h4>
+                <div class="liker-title">${likerTitle || 'Position not specified'}</div>
               </div>
-              ${profileUrl ? `<a href="${profileUrl}" target="_blank" class="commenter-link">View Profile</a>` : ''}
+              ${profileUrl ? `<a href="${profileUrl}" target="_blank" class="liker-link"><i class="fas fa-external-link-alt"></i> View Profile</a>` : ''}
             </div>
           `;
         });
         
-        commenterList.innerHTML = commenterHTML;
+        likerList.innerHTML = likerHTML;
       } else {
-        commenterList.innerHTML = '<div style="text-align: center; color: var(--gray-500); padding: 2rem;">No commenters found for this post.</div>';
+        likerList.innerHTML = '<div style="text-align: center; color: var(--gray-500); padding: 2rem;">No likers found for this post.</div>';
       }
     }
 
