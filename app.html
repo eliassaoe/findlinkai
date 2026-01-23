@@ -1571,7 +1571,7 @@
                 <div class="upload-area" id="uploadArea">
                     <i class="fas fa-cloud-upload-alt upload-icon"></i>
                     <div class="upload-text">Drop your CSV file here or click to upload</div>
-                    <div class="upload-subtext" id="uploadSubtext">CSV file (max 10000 rows)</div>
+                    <div class="upload-subtext" id="uploadSubtext">CSV file (max 1000 rows)</div>
                     <input type="file" id="csvFile" accept=".csv" class="hidden">
                     <button type="button" class="btn" onclick="document.getElementById('csvFile').click()">
                         <i class="fas fa-file-csv"></i> Select File
@@ -1864,7 +1864,7 @@ async function fetchWithTimeout(url, options = {}, timeout = 180000) { // 3 minu
             document.getElementById('inputData').placeholder = config.placeholder;
             
             // Update upload subtext
-            document.getElementById('uploadSubtext').textContent = `CSV with ${config.label.toLowerCase().replace('enter ', '')} (max 10000 rows)`;
+            document.getElementById('uploadSubtext').textContent = `CSV with ${config.label.toLowerCase().replace('enter ', '')} (max 1000 rows)`;
             
             // Show mode toggle and input sections
             document.getElementById('modeToggle').classList.remove('hidden');
@@ -2138,6 +2138,9 @@ function formatPostReactionsData(reactionsArray) {
 
 
     async function processBulk() {
+
+    showAlert('⚠️ Processing in progress - Please do not refresh or close this page until complete!', 'warning');
+    
     const btn = document.getElementById('processBulkBtn');
     btn.disabled = true;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
@@ -3181,8 +3184,8 @@ function showSingleResult(inputData, result) {
         return;
     }
 
-    if (csvData.length > 10000) {
-        showAlert(`Too many entries (${csvData.length}). Maximum is 10000.`, 'error');
+    if (csvData.length > 1000) {
+        showAlert(`Too many entries (${csvData.length}). Maximum is 1000.`, 'error');
         return;
     }
 
@@ -3220,7 +3223,7 @@ function showSingleResult(inputData, result) {
             if (percent >= 100) {
                 setTimeout(() => {
                     document.getElementById('progressContainer').classList.add('hidden');
-                }, 10000);
+                }, 1000);
             }
         }
 
@@ -3909,7 +3912,7 @@ function configureEnrichment() {
     document.getElementById('inputData').placeholder = config.placeholder;
     
     // Update upload subtext
-    document.getElementById('uploadSubtext').textContent = `CSV with ${config.label.toLowerCase().replace('enter ', '')} (max 10000 rows)`;
+    document.getElementById('uploadSubtext').textContent = `CSV with ${config.label.toLowerCase().replace('enter ', '')} (max 1000 rows)`;
     
     // Show mode toggle and input sections
     document.getElementById('modeToggle').classList.remove('hidden');
