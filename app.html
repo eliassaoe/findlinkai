@@ -2650,6 +2650,29 @@ function showSingleResult(inputData, result) {
                 </div>
             `;
         }
+
+        if (linkedInFields.company_email && linkedInFields.company_email !== 'Not found' && linkedInFields.company_email !== 'Not specified') {
+    html += `
+        <div class="result-item" style="background: #fef3c7; border-left: 3px solid var(--warning); padding-left: 1rem;">
+            <div class="result-label">
+                <i class="fas fa-envelope" style="color: var(--warning);"></i> Company Email
+            </div>
+            <div class="result-value highlight">${linkedInFields.company_email}</div>
+        </div>
+    `;
+}
+
+// ADD THIS: Company Phone - HIGHLIGHTED
+if (linkedInFields.company_phone && linkedInFields.company_phone !== 'Not found' && linkedInFields.company_phone !== 'Not specified') {
+    html += `
+        <div class="result-item" style="background: #fef3c7; border-left: 3px solid var(--warning); padding-left: 1rem;">
+            <div class="result-label">
+                <i class="fas fa-phone" style="color: var(--warning);"></i> Company Phone
+            </div>
+            <div class="result-value highlight">${linkedInFields.company_phone}</div>
+        </div>
+    `;
+}
         
         // Company Size
         if (linkedInFields.company_size && linkedInFields.company_size !== 'Not specified') {
@@ -3384,7 +3407,6 @@ function updateBulkResultsTable() {
         html += '</tbody></table>';
     }
 
-    // 👇 ICI C'EST LA PARTIE MODIFIÉE 👇
     // Handle LinkedIn Profile results with detailed table
     else if (currentInputType === 'linkedin_profile' && currentOutputType === 'linkedin_info') {
         html = `<table class="results-table">
@@ -3430,43 +3452,45 @@ function updateBulkResultsTable() {
 
         html += '</tbody></table>';
     }
-    // 👆 FIN DE LA PARTIE MODIFIÉE 👆
     
-    // Handle LinkedIn Company results with detailed table
-    else if (currentInputType === 'linkedin_company' && currentOutputType === 'linkedin_info') {
-        html = `<table class="results-table">
-            <thead>
-                <tr>
-                    <th>LinkedIn URL</th>
-                    <th>Company Name</th>
-                    <th>Industry</th>
-                    <th>Company Size</th>
-                    <th>Location</th>
-                </tr>
-            </thead>
-            <tbody>`;
+else if (currentInputType === 'linkedin_company' && currentOutputType === 'linkedin_info') {
+    html = `<table class="results-table">
+        <thead>
+            <tr>
+                <th>LinkedIn URL</th>
+                <th>Company Name</th>
+                <th>Industry</th>
+                <th>Company Size</th>
+                <th>Location</th>
+                <th>Company Email</th>
+                <th>Company Phone</th>
+            </tr>
+        </thead>
+        <tbody>`;
 
-        bulkResults.forEach(row => {
-            const data = row.rawData || {};
-            const linkedinUrlDisplay = row.inputData.length > 30 
-                ? `${row.inputData.substring(0, 30)}...` 
-                : row.inputData;
+    bulkResults.forEach(row => {
+        const data = row.rawData || {};
+        const linkedinUrlDisplay = row.inputData.length > 30 
+            ? `${row.inputData.substring(0, 30)}...` 
+            : row.inputData;
 
-            html += `<tr>
-                <td data-label="LinkedIn URL">
-                    <a href="${row.inputData}" target="_blank" style="color: var(--primary); text-decoration: none;">
-                        ${linkedinUrlDisplay}
-                    </a>
-                </td>
-                <td data-label="Company Name">${data.name || 'Not found'}</td>
-                <td data-label="Industry">${data.industry || 'Not found'}</td>
-                <td data-label="Company Size">${data.company_size || 'Not found'}</td>
-                <td data-label="Location">${data.location || 'Not found'}</td>
-            </tr>`;
-        });
+        html += `<tr>
+            <td data-label="LinkedIn URL">
+                <a href="${row.inputData}" target="_blank" style="color: var(--primary); text-decoration: none;">
+                    ${linkedinUrlDisplay}
+                </a>
+            </td>
+            <td data-label="Company Name">${data.name || 'Not found'}</td>
+            <td data-label="Industry">${data.industry || 'Not found'}</td>
+            <td data-label="Company Size">${data.company_size || data.size || 'Not found'}</td>
+            <td data-label="Location">${data.location || 'Not found'}</td>
+            <td data-label="Company Email">${data.company_email || 'Not found'}</td>
+            <td data-label="Company Phone">${data.company_phone || 'Not found'}</td>
+        </tr>`;
+    });
 
-        html += '</tbody></table>';
-    } 
+    html += '</tbody></table>';
+}
     // Handle general enrichment results
     else {
         const config = dataConfigurations[currentInputType];
@@ -3612,6 +3636,8 @@ else if (currentInputType === 'linkedin_profile' && currentOutputType === 'linke
                 escapeCSV(data.location || 'Not found'),
                 escapeCSV(data.description || 'Not found'),
                 escapeCSV(data.website || 'Not found'),
+                escapeCSV(data.company_email || 'Not found'),
+                escapeCSV(data.company_phone || 'Not found'),
                 escapeCSV(data.specialties || 'Not found')
             ];
             
