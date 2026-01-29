@@ -7,157 +7,112 @@
     <title>Workflows - LinkFinder AI</title>
     <meta name="description" content="Quickly grow your pipeline with our favorite n8n workflow combos and lead generation automation."/>
     
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
     <style>
-      /* Reset & Base Styles */
-      *, *::before, *::after {
-        box-sizing: border-box;
-        margin: 0;
-        padding: 0;
+      :root {
+        --primary: #2563eb;
+        --primary-hover: #1d4ed8;
+        --primary-light: #dbeafe;
+        --text-primary: #1e293b;
+        --text-secondary: #64748b;
+        --text-muted: #94a3b8;
+        --bg-primary: #ffffff;
+        --bg-secondary: #f8fafc;
+        --bg-tertiary: #f1f5f9;
+        --border-color: #e2e8f0;
+        --border-hover: #cbd5e1;
+        --card-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
+        --card-shadow-hover: 0 10px 40px rgba(0,0,0,0.12);
       }
 
-      :root {
-        --bg-primary: #0a0a0f;
-        --bg-secondary: #12121a;
-        --bg-card: #16161f;
-        --bg-card-hover: #1a1a25;
-        --text-primary: #ffffff;
-        --text-secondary: #a0a0b0;
-        --text-muted: #6b6b7b;
-        --accent-primary: #6366f1;
-        --accent-secondary: #8b5cf6;
-        --accent-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%);
-        --border-color: #2a2a3a;
-        --border-hover: #3a3a4a;
-        --success: #10b981;
-        --warning: #f59e0b;
-        --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
-        --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
-        --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5);
-        --shadow-glow: 0 0 40px rgba(99, 102, 241, 0.15);
-        --radius-sm: 8px;
-        --radius-md: 12px;
-        --radius-lg: 16px;
-        --radius-xl: 24px;
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
       }
 
       body {
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        background: var(--bg-primary);
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        background: var(--bg-secondary);
         color: var(--text-primary);
         line-height: 1.6;
         min-height: 100vh;
-        overflow-x: hidden;
       }
 
-      /* Animated Background */
-      .background-animation {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        z-index: -1;
-        overflow: hidden;
-      }
-
-      .background-animation::before {
-        content: '';
-        position: absolute;
-        top: -50%;
-        left: -50%;
-        width: 200%;
-        height: 200%;
-        background: 
-          radial-gradient(circle at 20% 80%, rgba(99, 102, 241, 0.08) 0%, transparent 50%),
-          radial-gradient(circle at 80% 20%, rgba(139, 92, 246, 0.08) 0%, transparent 50%),
-          radial-gradient(circle at 40% 40%, rgba(168, 85, 247, 0.05) 0%, transparent 40%);
-        animation: backgroundPulse 20s ease-in-out infinite;
-      }
-
-      @keyframes backgroundPulse {
-        0%, 100% { transform: translate(0, 0) scale(1); opacity: 1; }
-        33% { transform: translate(2%, -2%) scale(1.02); opacity: 0.8; }
-        66% { transform: translate(-1%, 1%) scale(0.98); opacity: 0.9; }
-      }
-
-      /* Navigation */
-      nav {
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        z-index: 1000;
-        padding: 1rem 2rem;
-        background: rgba(10, 10, 15, 0.8);
-        backdrop-filter: blur(20px);
+      .header {
+        background: var(--bg-primary);
         border-bottom: 1px solid var(--border-color);
+        padding: 1rem 2rem;
+        position: sticky;
+        top: 0;
+        z-index: 100;
       }
 
-      .nav-container {
+      .header-content {
         max-width: 1400px;
         margin: 0 auto;
         display: flex;
-        justify-content: space-between;
         align-items: center;
+        justify-content: space-between;
       }
 
       .logo {
         display: flex;
         align-items: center;
         gap: 0.75rem;
-        font-size: 1.5rem;
-        font-weight: 700;
-        color: var(--text-primary);
         text-decoration: none;
+        color: var(--text-primary);
       }
 
-      .logo-icon {
-        width: 40px;
-        height: 40px;
-        background: var(--accent-gradient);
-        border-radius: var(--radius-md);
-        display: flex;
-        align-items: center;
-        justify-content: center;
+      .logo img {
+        height: 36px;
+        width: auto;
+      }
+
+      .logo-text {
+        font-weight: 700;
         font-size: 1.25rem;
       }
 
-      .nav-links {
+      .header-nav {
         display: flex;
-        gap: 2rem;
         align-items: center;
+        gap: 2rem;
       }
 
-      .nav-links a {
+      .header-nav a {
         color: var(--text-secondary);
         text-decoration: none;
+        font-size: 0.938rem;
         font-weight: 500;
-        transition: color 0.2s ease;
-        font-size: 0.95rem;
+        transition: color 0.2s;
       }
 
-      .nav-links a:hover {
-        color: var(--text-primary);
+      .header-nav a:hover {
+        color: var(--primary);
       }
 
-      .nav-cta {
-        background: var(--accent-gradient);
-        color: white !important;
+      .btn-primary {
+        background: var(--primary);
+        color: white;
         padding: 0.625rem 1.25rem;
-        border-radius: var(--radius-md);
+        border-radius: 8px;
+        text-decoration: none;
         font-weight: 600;
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        font-size: 0.938rem;
+        transition: all 0.2s;
+        border: none;
+        cursor: pointer;
       }
 
-      .nav-cta:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 20px rgba(99, 102, 241, 0.4);
-      }
-
-      /* Main Content */
-      main {
-        padding-top: 100px;
-        min-height: 100vh;
+      .btn-primary:hover {
+        background: var(--primary-hover);
+        transform: translateY(-1px);
       }
 
       .container {
@@ -166,212 +121,207 @@
         padding: 2rem;
       }
 
-      /* Page Header */
-      .page-header {
+      .hero {
         text-align: center;
-        margin-bottom: 3rem;
-        animation: fadeInUp 0.6s ease-out;
+        padding: 3rem 0;
       }
 
-      .page-header h1 {
-        font-size: 3rem;
-        font-weight: 800;
-        margin-bottom: 1rem;
-        background: var(--accent-gradient);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
+      .hero h1 {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin-bottom: 0.75rem;
       }
 
-      .page-header p {
-        font-size: 1.25rem;
+      .hero p {
+        font-size: 1.125rem;
         color: var(--text-secondary);
         max-width: 600px;
         margin: 0 auto;
       }
 
-      /* Filters Section */
       .filters-section {
-        margin-bottom: 2rem;
-        animation: fadeInUp 0.6s ease-out 0.1s both;
-      }
-
-      .filters-container {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 1rem;
-        align-items: center;
-        justify-content: center;
+        background: var(--bg-primary);
+        border: 1px solid var(--border-color);
+        border-radius: 16px;
         padding: 1.5rem;
-        background: var(--bg-secondary);
-        border-radius: var(--radius-lg);
-        border: 1px solid var(--border-color);
+        margin-bottom: 2rem;
       }
 
-      .search-box {
-        flex: 1;
-        min-width: 250px;
-        max-width: 400px;
-        position: relative;
-      }
-
-      .search-box input {
-        width: 100%;
-        padding: 0.875rem 1rem 0.875rem 3rem;
-        background: var(--bg-card);
-        border: 1px solid var(--border-color);
-        border-radius: var(--radius-md);
-        color: var(--text-primary);
-        font-size: 0.95rem;
-        transition: border-color 0.2s ease, box-shadow 0.2s ease;
-      }
-
-      .search-box input:focus {
-        outline: none;
-        border-color: var(--accent-primary);
-        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
-      }
-
-      .search-box::before {
-        content: '🔍';
-        position: absolute;
-        left: 1rem;
-        top: 50%;
-        transform: translateY(-50%);
-        font-size: 1rem;
-      }
-
-      .filter-group {
+      .filters-header {
         display: flex;
-        gap: 0.5rem;
         align-items: center;
+        justify-content: space-between;
+        margin-bottom: 1rem;
       }
 
-      .filter-label {
-        font-size: 0.85rem;
-        color: var(--text-muted);
+      .filters-title {
+        font-weight: 600;
+        color: var(--text-primary);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
+      .clear-filters {
+        color: var(--primary);
+        font-size: 0.875rem;
+        cursor: pointer;
+        background: none;
+        border: none;
         font-weight: 500;
       }
 
-      .filter-select {
-        padding: 0.625rem 1rem;
-        background: var(--bg-card);
-        border: 1px solid var(--border-color);
-        border-radius: var(--radius-md);
-        color: var(--text-primary);
-        font-size: 0.9rem;
-        cursor: pointer;
-        transition: border-color 0.2s ease;
+      .clear-filters:hover {
+        text-decoration: underline;
       }
 
-      .filter-select:focus {
-        outline: none;
-        border-color: var(--accent-primary);
-      }
-
-      /* Stats Bar */
-      .stats-bar {
+      .filter-groups {
         display: flex;
-        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 1.5rem;
+      }
+
+      .filter-group {
+        flex: 1;
+        min-width: 200px;
+      }
+
+      .filter-group label {
+        display: block;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 0.5rem;
+      }
+
+      .filter-group select {
+        width: 100%;
+        padding: 0.625rem 1rem;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        font-size: 0.938rem;
+        color: var(--text-primary);
+        background: var(--bg-primary);
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+
+      .filter-group select:hover {
+        border-color: var(--border-hover);
+      }
+
+      .filter-group select:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px var(--primary-light);
+      }
+
+      .tactics-filter {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+      }
+
+      .tactic-tag {
+        padding: 0.375rem 0.875rem;
+        border: 1px solid var(--border-color);
+        border-radius: 20px;
+        font-size: 0.813rem;
+        color: var(--text-secondary);
+        background: var(--bg-primary);
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+
+      .tactic-tag:hover {
+        border-color: var(--primary);
+        color: var(--primary);
+      }
+
+      .tactic-tag.active {
+        background: var(--primary);
+        color: white;
+        border-color: var(--primary);
+      }
+
+      .sort-bar {
+        display: flex;
         align-items: center;
+        justify-content: space-between;
         margin-bottom: 1.5rem;
-        padding: 0 0.5rem;
-        animation: fadeInUp 0.6s ease-out 0.2s both;
       }
 
       .results-count {
-        font-size: 0.95rem;
+        font-size: 0.938rem;
         color: var(--text-secondary);
       }
 
       .results-count span {
-        color: var(--accent-primary);
         font-weight: 600;
+        color: var(--text-primary);
       }
 
       .sort-options {
         display: flex;
-        gap: 0.5rem;
         align-items: center;
+        gap: 0.5rem;
       }
 
-      .sort-btn {
-        padding: 0.5rem 1rem;
-        background: transparent;
-        border: 1px solid var(--border-color);
-        border-radius: var(--radius-sm);
+      .sort-options label {
+        font-size: 0.875rem;
         color: var(--text-secondary);
-        font-size: 0.85rem;
-        cursor: pointer;
-        transition: all 0.2s ease;
       }
 
-      .sort-btn:hover {
-        border-color: var(--border-hover);
+      .sort-options select {
+        padding: 0.5rem 0.75rem;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        font-size: 0.875rem;
         color: var(--text-primary);
+        background: var(--bg-primary);
+        cursor: pointer;
       }
 
-      .sort-btn.active {
-        background: var(--accent-primary);
-        border-color: var(--accent-primary);
-        color: white;
-      }
-
-      /* Workflows Grid */
       .workflows-grid {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
         gap: 1.5rem;
       }
 
-      /* Workflow Card */
       .workflow-card {
-        background: var(--bg-card);
+        background: var(--bg-primary);
         border: 1px solid var(--border-color);
-        border-radius: var(--radius-lg);
-        padding: 1.5rem;
+        border-radius: 16px;
+        padding: 1.75rem;
         transition: all 0.3s ease;
         cursor: pointer;
-        position: relative;
-        overflow: hidden;
-        animation: fadeInUp 0.5s ease-out both;
-      }
-
-      .workflow-card::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 3px;
-        background: var(--accent-gradient);
-        opacity: 0;
-        transition: opacity 0.3s ease;
+        text-decoration: none;
+        color: inherit;
+        display: flex;
+        flex-direction: column;
       }
 
       .workflow-card:hover {
-        transform: translateY(-4px);
-        border-color: var(--border-hover);
-        box-shadow: var(--shadow-lg), var(--shadow-glow);
-        background: var(--bg-card-hover);
+        border-color: var(--primary);
+        box-shadow: var(--card-shadow-hover);
+        transform: translateY(-2px);
       }
 
-      .workflow-card:hover::before {
-        opacity: 1;
-      }
-
-      .card-header {
+      .workflow-header {
         display: flex;
         align-items: flex-start;
         gap: 1rem;
         margin-bottom: 1rem;
       }
 
-      .card-icon {
+      .workflow-icon {
         width: 48px;
         height: 48px;
-        background: var(--bg-secondary);
-        border-radius: var(--radius-md);
+        background: var(--primary-light);
+        border-radius: 12px;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -379,339 +329,256 @@
         flex-shrink: 0;
       }
 
-      .card-title-section {
+      .workflow-title-section {
         flex: 1;
         min-width: 0;
       }
 
-      .card-title {
-        font-size: 1.1rem;
+      .workflow-title {
+        font-size: 1.063rem;
         font-weight: 600;
         color: var(--text-primary);
         margin-bottom: 0.25rem;
         line-height: 1.4;
       }
 
-      .card-pillar {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.375rem;
-        padding: 0.25rem 0.625rem;
-        background: rgba(99, 102, 241, 0.1);
-        border: 1px solid rgba(99, 102, 241, 0.2);
-        border-radius: var(--radius-sm);
+      .workflow-pillar {
         font-size: 0.75rem;
+        color: var(--primary);
         font-weight: 500;
-        color: var(--accent-primary);
-        text-transform: capitalize;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
       }
 
-      .card-description {
+      .workflow-description {
+        font-size: 0.938rem;
         color: var(--text-secondary);
-        font-size: 0.9rem;
         line-height: 1.6;
-        margin-bottom: 1rem;
+        margin-bottom: 1.25rem;
+        flex-grow: 1;
       }
 
-      .card-tags {
+      .workflow-meta {
         display: flex;
         flex-wrap: wrap;
         gap: 0.5rem;
         margin-bottom: 1rem;
       }
 
-      .tag {
+      .meta-tag {
         padding: 0.25rem 0.625rem;
-        background: var(--bg-secondary);
-        border-radius: var(--radius-sm);
-        font-size: 0.8rem;
+        background: var(--bg-tertiary);
+        border-radius: 6px;
+        font-size: 0.75rem;
         color: var(--text-secondary);
         font-weight: 500;
       }
 
-      .tag.platform {
-        background: rgba(16, 185, 129, 0.1);
-        color: var(--success);
-        border: 1px solid rgba(16, 185, 129, 0.2);
-      }
-
-      .tag.tactic {
-        background: rgba(245, 158, 11, 0.1);
-        color: var(--warning);
-        border: 1px solid rgba(245, 158, 11, 0.2);
-      }
-
-      .card-footer {
+      .workflow-footer {
         display: flex;
-        justify-content: space-between;
         align-items: center;
+        justify-content: space-between;
         padding-top: 1rem;
         border-top: 1px solid var(--border-color);
       }
 
-      .card-meta {
-        display: flex;
-        gap: 1rem;
-        font-size: 0.8rem;
+      .workflow-date {
+        font-size: 0.813rem;
         color: var(--text-muted);
       }
 
-      .card-meta span {
+      .workflow-arrow {
+        width: 32px;
+        height: 32px;
+        background: var(--bg-tertiary);
+        border-radius: 8px;
         display: flex;
         align-items: center;
-        gap: 0.375rem;
+        justify-content: center;
+        color: var(--text-secondary);
+        transition: all 0.2s;
       }
 
-      .view-btn {
-        padding: 0.5rem 1rem;
-        background: var(--accent-gradient);
-        border: none;
-        border-radius: var(--radius-sm);
+      .workflow-card:hover .workflow-arrow {
+        background: var(--primary);
         color: white;
-        font-size: 0.85rem;
-        font-weight: 600;
-        cursor: pointer;
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
       }
 
-      .view-btn:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
-      }
-
-      /* Empty State */
       .empty-state {
         text-align: center;
         padding: 4rem 2rem;
         color: var(--text-secondary);
       }
 
-      .empty-state-icon {
-        font-size: 4rem;
+      .empty-state i {
+        font-size: 3rem;
+        color: var(--text-muted);
         margin-bottom: 1rem;
-        opacity: 0.5;
       }
 
       .empty-state h3 {
-        font-size: 1.5rem;
+        font-size: 1.25rem;
         color: var(--text-primary);
         margin-bottom: 0.5rem;
       }
 
-      /* Footer */
-      footer {
-        background: var(--bg-secondary);
-        border-top: 1px solid var(--border-color);
-        padding: 3rem 2rem;
+      .cta-section {
+        background: linear-gradient(135deg, var(--primary) 0%, #1e40af 100%);
+        padding: 4rem 2rem;
+        text-align: center;
         margin-top: 4rem;
       }
 
-      .footer-content {
-        max-width: 1400px;
-        margin: 0 auto;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 2rem;
+      .cta-section h2 {
+        color: white;
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 0.75rem;
       }
 
-      .footer-brand {
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
+      .cta-section p {
+        color: rgba(255,255,255,0.85);
+        font-size: 1.125rem;
+        margin-bottom: 1.5rem;
       }
 
-      .footer-links {
-        display: flex;
-        gap: 2rem;
+      .cta-section .btn-primary {
+        background: white;
+        color: var(--primary);
+        padding: 0.875rem 2rem;
+        font-size: 1rem;
       }
 
-      .footer-links a {
-        color: var(--text-secondary);
-        text-decoration: none;
-        font-size: 0.9rem;
-        transition: color 0.2s ease;
+      .cta-section .btn-primary:hover {
+        background: var(--bg-secondary);
+        transform: translateY(-2px);
       }
 
-      .footer-links a:hover {
-        color: var(--text-primary);
-      }
-
-      .footer-copy {
+      .footer {
+        background: var(--bg-primary);
+        border-top: 1px solid var(--border-color);
+        padding: 2rem;
+        text-align: center;
         color: var(--text-muted);
-        font-size: 0.85rem;
+        font-size: 0.875rem;
       }
 
-      /* Animations */
-      @keyframes fadeInUp {
-        from {
-          opacity: 0;
-          transform: translateY(20px);
-        }
-        to {
-          opacity: 1;
-          transform: translateY(0);
-        }
-      }
-
-      /* Responsive */
       @media (max-width: 768px) {
-        .nav-links {
+        .header-nav {
           display: none;
         }
 
-        .page-header h1 {
-          font-size: 2rem;
-        }
-
-        .filters-container {
-          flex-direction: column;
-        }
-
-        .search-box {
-          width: 100%;
-          max-width: none;
+        .hero h1 {
+          font-size: 1.875rem;
         }
 
         .workflows-grid {
           grid-template-columns: 1fr;
         }
 
-        .footer-content {
+        .filter-groups {
           flex-direction: column;
-          text-align: center;
         }
-      }
 
-      /* Mobile menu button */
-      .mobile-menu-btn {
-        display: none;
-        background: none;
-        border: none;
-        color: var(--text-primary);
-        font-size: 1.5rem;
-        cursor: pointer;
-      }
-
-      @media (max-width: 768px) {
-        .mobile-menu-btn {
-          display: block;
+        .container {
+          padding: 1rem;
         }
       }
     </style>
   </head>
-
   <body>
-    <div class="background-animation"></div>
-    
-    <nav>
-      <div class="nav-container">
+    <header class="header">
+      <div class="header-content">
         <a href="/" class="logo">
-          <div class="logo-icon">🔗</div>
-          LinkFinder AI
+          <img src="https://i.ibb.co/4RYNvvJm/logo-removebg-preview.png" alt="LinkFinder AI">
+          <span class="logo-text">LinkFinder AI</span>
         </a>
-        <div class="nav-links">
-          <a href="/">Home</a>
+        <nav class="header-nav">
+          <a href="/#features">Features</a>
+          <a href="/#pricing">Pricing</a>
           <a href="/workflows">Workflows</a>
-          <a href="/api">API Docs</a>
-          <a href="/pricing">Pricing</a>
-          <a href="/login" class="nav-cta">Get Started</a>
-        </div>
-        <button class="mobile-menu-btn">☰</button>
+          <a href="https://docs.linkfinderai.com">Docs</a>
+          <a href="https://app.linkfinderai.com" class="btn-primary">Get Started</a>
+        </nav>
       </div>
-    </nav>
+    </header>
 
-    <main>
-      <div class="container">
-        <div class="page-header">
-          <h1>🚀 LinkFinder AI Workflows</h1>
-          <p>Production-ready automation workflows to accelerate your LinkedIn prospecting and lead generation.</p>
+    <div class="container">
+      <div class="hero">
+        <h1>n8n Workflows</h1>
+        <p>Quickly grow your pipeline with our favorite n8n workflow combos and lead generation automation.</p>
+      </div>
+
+      <div class="filters-section">
+        <div class="filters-header">
+          <span class="filters-title">
+            <i class="fas fa-filter"></i> Filters
+          </span>
+          <button class="clear-filters" onclick="clearFilters()">Clear all</button>
         </div>
-
-        <div class="filters-section">
-          <div class="filters-container">
-            <div class="search-box">
-              <input type="text" placeholder="Search workflows..." id="searchInput" onkeyup="applyFilters()">
-            </div>
-            
-            <div class="filter-group">
-              <span class="filter-label">Pillar:</span>
-              <select class="filter-select" id="pillarFilter" onchange="applyFilters()">
-                <option value="">All Pillars</option>
-                <option value="lead-generation">Lead Generation</option>
-                <option value="sales-outreach">Sales Outreach</option>
-                <option value="social-selling">Social Selling</option>
-                <option value="brand-authority">Brand Authority</option>
-              </select>
-            </div>
-
-            <div class="filter-group">
-              <span class="filter-label">Platform:</span>
-              <select class="filter-select" id="platformFilter" onchange="applyFilters()">
-                <option value="">All Platforms</option>
-                <option value="LinkedIn">LinkedIn</option>
-                <option value="n8n">n8n</option>
-                <option value="HubSpot">HubSpot</option>
-                <option value="Salesforce">Salesforce</option>
-                <option value="Google Sheets">Google Sheets</option>
-                <option value="Airtable">Airtable</option>
-              </select>
-            </div>
-
-            <div class="filter-group">
-              <span class="filter-label">Tactic:</span>
-              <select class="filter-select" id="tacticFilter" onchange="applyFilters()">
-                <option value="">All Tactics</option>
-                <option value="intent-signals">Intent Signals</option>
-                <option value="ai-insights">AI Insights</option>
-                <option value="lead-scoring">Lead Scoring</option>
-                <option value="crm-enrichment">CRM Enrichment</option>
-                <option value="automation">Automation</option>
-              </select>
+        <div class="filter-groups">
+          <div class="filter-group">
+            <label>Pillar</label>
+            <select id="pillarFilter" onchange="applyFilters()">
+              <option value="all">All Pillars</option>
+              <option value="lead-generation">Lead Generation</option>
+              <option value="sales-outreach">Sales Outreach</option>
+              <option value="social-selling">Social Selling</option>
+              <option value="brand-authority">Brand Authority</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label>Platform</label>
+            <select id="platformFilter" onchange="applyFilters()">
+              <option value="all">All Platforms</option>
+              <option value="LinkedIn">LinkedIn</option>
+              <option value="HubSpot">HubSpot</option>
+              <option value="Salesforce">Salesforce</option>
+              <option value="Google Sheets">Google Sheets</option>
+              <option value="n8n">n8n</option>
+            </select>
+          </div>
+          <div class="filter-group" style="flex: 2;">
+            <label>Tactics</label>
+            <div class="tactics-filter" id="tacticsFilter">
+              <span class="tactic-tag" data-tactic="intent-signals" onclick="toggleTactic(this)">Intent Signals</span>
+              <span class="tactic-tag" data-tactic="ai-insights" onclick="toggleTactic(this)">AI Insights</span>
+              <span class="tactic-tag" data-tactic="lead-scoring" onclick="toggleTactic(this)">Lead Scoring</span>
+              <span class="tactic-tag" data-tactic="crm-enrichment" onclick="toggleTactic(this)">CRM Enrichment</span>
+              <span class="tactic-tag" data-tactic="automation" onclick="toggleTactic(this)">Automation</span>
             </div>
           </div>
         </div>
+      </div>
 
-        <div class="stats-bar">
-          <div class="results-count">
-            Showing <span id="resultsCount">0</span> workflows
-          </div>
-          <div class="sort-options">
-            <button class="sort-btn active" onclick="setSortBy('popularity')">🔥 Popular</button>
-            <button class="sort-btn" onclick="setSortBy('date')">🕐 Recent</button>
-            <button class="sort-btn" onclick="setSortBy('title')">🔤 A-Z</button>
-          </div>
+      <div class="sort-bar">
+        <div class="results-count">
+          Showing <span id="resultsCount">0</span> workflows
         </div>
-
-        <div class="workflows-grid" id="workflowsGrid">
-          <!-- Workflows will be rendered here -->
-        </div>
-
-        <div class="empty-state" id="emptyState" style="display: none;">
-          <div class="empty-state-icon">🔍</div>
-          <h3>No workflows found</h3>
-          <p>Try adjusting your filters or search terms.</p>
+        <div class="sort-options">
+          <label>Sort by:</label>
+          <select id="sortSelect" onchange="applyFilters()">
+            <option value="newest">Newest First</option>
+            <option value="oldest">Oldest First</option>
+            <option value="popular">Most Popular</option>
+            <option value="alpha">A-Z</option>
+          </select>
         </div>
       </div>
-    </main>
 
-    <footer>
-      <div class="footer-content">
-        <div class="footer-brand">
-          <div class="logo-icon">🔗</div>
-          <span style="font-weight: 600;">LinkFinder AI</span>
-        </div>
-        <div class="footer-links">
-          <a href="/privacy">Privacy</a>
-          <a href="/terms">Terms</a>
-          <a href="/contact">Contact</a>
-          <a href="https://twitter.com/linkfinderai">Twitter</a>
-        </div>
-        <div class="footer-copy">
-          © 2026 LinkFinder AI. All rights reserved.
-        </div>
+      <div class="workflows-grid" id="workflowsGrid">
+        <!-- Workflows will be rendered here -->
       </div>
+    </div>
+
+    <div class="cta-section">
+      <h2>Ready to automate your lead generation?</h2>
+      <p>Get started with LinkFinder AI and access all these workflows today.</p>
+      <a href="https://app.linkfinderai.com" class="btn-primary">Start Free Trial</a>
+    </div>
+
+    <footer class="footer">
+      <p>&copy; 2025 LinkFinder AI. All rights reserved.</p>
     </footer>
 
     <script>
@@ -742,103 +609,121 @@
         }
       ];
 
-      let filters = { pillar: '', platform: '', tactic: '', search: '' };
-      let sortBy = 'popularity';
+      let currentFilters = {
+        pillar: 'all',
+        platform: 'all',
+        tactics: []
+      };
 
-      function applyFilters() {
-        filters.search = document.getElementById('searchInput').value.toLowerCase();
-        filters.pillar = document.getElementById('pillarFilter').value;
-        filters.platform = document.getElementById('platformFilter').value;
-        filters.tactic = document.getElementById('tacticFilter').value;
-        renderWorkflows();
+      function init() {
+        renderWorkflows(workflows);
       }
 
-      function setSortBy(sort) {
-        sortBy = sort;
-        document.querySelectorAll('.sort-btn').forEach(btn => btn.classList.remove('active'));
-        event.target.classList.add('active');
-        renderWorkflows();
-      }
+      function renderWorkflows(workflowsToRender) {
+        const grid = document.getElementById('workflowsGrid');
+        const count = document.getElementById('resultsCount');
+        
+        count.textContent = workflowsToRender.length;
 
-      function filterWorkflows() {
-        return workflows.filter(workflow => {
-          const matchesSearch = !filters.search || 
-            workflow.title.toLowerCase().includes(filters.search) ||
-            workflow.description.toLowerCase().includes(filters.search);
-          
-          const matchesPillar = !filters.pillar || workflow.pillar === filters.pillar;
-          const matchesPlatform = !filters.platform || workflow.platforms.includes(filters.platform);
-          const matchesTactic = !filters.tactic || workflow.tactics.includes(filters.tactic);
+        if (workflowsToRender.length === 0) {
+          grid.innerHTML = `
+            <div class="empty-state" style="grid-column: 1 / -1;">
+              <i class="fas fa-search"></i>
+              <h3>No workflows found</h3>
+              <p>Try adjusting your filters to find what you're looking for.</p>
+            </div>
+          `;
+          return;
+        }
 
-          return matchesSearch && matchesPillar && matchesPlatform && matchesTactic;
-        });
-      }
-
-      function sortWorkflows(workflowList) {
-        return [...workflowList].sort((a, b) => {
-          if (sortBy === 'popularity') return b.popularity - a.popularity;
-          if (sortBy === 'date') return new Date(b.date) - new Date(a.date);
-          if (sortBy === 'title') return a.title.localeCompare(b.title);
-          return 0;
-        });
+        grid.innerHTML = workflowsToRender.map(workflow => `
+          <a href="${workflow.url}" class="workflow-card">
+            <div class="workflow-header">
+              <div class="workflow-icon">${workflow.icon}</div>
+              <div class="workflow-title-section">
+                <h3 class="workflow-title">${workflow.title.replace(workflow.icon + ' ', '')}</h3>
+                <span class="workflow-pillar">${formatPillar(workflow.pillar)}</span>
+              </div>
+            </div>
+            <p class="workflow-description">${workflow.description}</p>
+            <div class="workflow-meta">
+              ${workflow.platforms.map(p => `<span class="meta-tag">${p}</span>`).join('')}
+            </div>
+            <div class="workflow-footer">
+              <span class="workflow-date">${formatDate(workflow.date)}</span>
+              <div class="workflow-arrow">
+                <i class="fas fa-arrow-right"></i>
+              </div>
+            </div>
+          </a>
+        `).join('');
       }
 
       function formatPillar(pillar) {
         return pillar.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
       }
 
-      function formatTactic(tactic) {
-        return tactic.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+      function formatDate(dateStr) {
+        const date = new Date(dateStr);
+        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
       }
 
-      function renderWorkflows() {
-        const filtered = filterWorkflows();
-        const sorted = sortWorkflows(filtered);
+      function applyFilters() {
+        currentFilters.pillar = document.getElementById('pillarFilter').value;
+        currentFilters.platform = document.getElementById('platformFilter').value;
         
-        document.getElementById('resultsCount').textContent = sorted.length;
-        
-        const grid = document.getElementById('workflowsGrid');
-        const emptyState = document.getElementById('emptyState');
+        let filtered = workflows.filter(workflow => {
+          if (currentFilters.pillar !== 'all' && workflow.pillar !== currentFilters.pillar) return false;
+          if (currentFilters.platform !== 'all' && !workflow.platforms.includes(currentFilters.platform)) return false;
+          if (currentFilters.tactics.length > 0 && !currentFilters.tactics.some(t => workflow.tactics.includes(t))) return false;
+          return true;
+        });
 
-        if (sorted.length === 0) {
-          grid.style.display = 'none';
-          emptyState.style.display = 'block';
-          return;
+        const sortBy = document.getElementById('sortSelect').value;
+        filtered = sortWorkflows(filtered, sortBy);
+
+        renderWorkflows(filtered);
+      }
+
+      function sortWorkflows(workflowsList, sortBy) {
+        const sorted = [...workflowsList];
+        switch(sortBy) {
+          case 'newest':
+            return sorted.sort((a, b) => new Date(b.date) - new Date(a.date));
+          case 'oldest':
+            return sorted.sort((a, b) => new Date(a.date) - new Date(b.date));
+          case 'popular':
+            return sorted.sort((a, b) => b.popularity - a.popularity);
+          case 'alpha':
+            return sorted.sort((a, b) => a.title.localeCompare(b.title));
+          default:
+            return sorted;
         }
-
-        grid.style.display = 'grid';
-        emptyState.style.display = 'none';
-
-        grid.innerHTML = sorted.map((workflow, index) => `
-          <div class="workflow-card" style="animation-delay: ${index * 0.05}s" onclick="window.location.href='${workflow.url}'">
-            <div class="card-header">
-              <div class="card-icon">${workflow.icon}</div>
-              <div class="card-title-section">
-                <h3 class="card-title">${workflow.title}</h3>
-                <span class="card-pillar">${formatPillar(workflow.pillar)}</span>
-              </div>
-            </div>
-            
-            <p class="card-description">${workflow.description}</p>
-            
-            <div class="card-tags">
-              ${workflow.platforms.map(p => `<span class="tag platform">${p}</span>`).join('')}
-              ${workflow.tactics.slice(0, 2).map(t => `<span class="tag tactic">${formatTactic(t)}</span>`).join('')}
-            </div>
-            
-            <div class="card-footer">
-              <div class="card-meta">
-                <span>📅 ${new Date(workflow.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
-                <span>🔥 ${workflow.popularity}% popular</span>
-              </div>
-              <button class="view-btn">View →</button>
-            </div>
-          </div>
-        `).join('');
       }
 
-      // Initialize
-      renderWorkflows();
+      function toggleTactic(element) {
+        const tactic = element.dataset.tactic;
+        element.classList.toggle('active');
+        
+        if (currentFilters.tactics.includes(tactic)) {
+          currentFilters.tactics = currentFilters.tactics.filter(t => t !== tactic);
+        } else {
+          currentFilters.tactics.push(tactic);
+        }
+        
+        applyFilters();
+      }
+
+      function clearFilters() {
+        document.getElementById('pillarFilter').value = 'all';
+        document.getElementById('platformFilter').value = 'all';
+        document.querySelectorAll('.tactic-tag').forEach(tag => tag.classList.remove('active'));
+        currentFilters = { pillar: 'all', platform: 'all', tactics: [] };
+        document.getElementById('sortSelect').value = 'newest';
+        applyFilters();
+      }
+
+      init();
     </script>
   </body>
 </html>
