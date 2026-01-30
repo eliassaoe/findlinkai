@@ -1,0 +1,868 @@
+```html
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" href="https://i.ibb.co/jPjX9SSp/Screen-Shot-2025-03-28-at-8-16-15-PM.png">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>LinkedIn Job Scraper to Sales Intelligence - LinkFinder AI</title>
+    <meta name="description" content="Automatically scrape LinkedIn job postings to identify companies with hiring intent, then enrich them with website, phone, email, and employee data for targeted sales outreach."/>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+    <style>
+      :root {
+        --primary: #2563eb;
+        --primary-hover: #1d4ed8;
+        --gray-50: #f9fafb;
+        --gray-100: #f3f4f6;
+        --gray-200: #e5e7eb;
+        --gray-300: #d1d5db;
+        --gray-400: #9ca3af;
+        --gray-500: #6b7280;
+        --gray-600: #4b5563;
+        --gray-700: #374151;
+        --gray-800: #1f2937;
+        --gray-900: #111827;
+        --success: #10b981;
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      
+      body {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        background: white;
+        color: var(--gray-800);
+        line-height: 1.6;
+        font-size: 16px;
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 1rem;
+      }
+
+      .header {
+        border-bottom: 1px solid var(--gray-200);
+        padding: 1rem 0;
+        background: white;
+        position: sticky;
+        top: 0;
+        z-index: 50;
+      }
+
+      .header-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 2rem;
+      }
+
+      .logo {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        text-decoration: none;
+        color: var(--gray-900);
+      }
+
+      .logo-icon {
+        width: 32px;
+        height: 32px;
+        background: var(--primary);
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 0.875rem;
+      }
+
+      .logo-text {
+        font-size: 1.25rem;
+        font-weight: 600;
+      }
+
+      .nav-menu {
+        display: flex;
+        gap: 2rem;
+        align-items: center;
+      }
+
+      .nav-menu a {
+        color: var(--gray-700);
+        text-decoration: none;
+        font-size: 0.875rem;
+        font-weight: 500;
+        transition: color 0.2s ease;
+      }
+
+      .nav-menu a:hover {
+        color: var(--primary);
+      }
+
+      .auth-buttons {
+        display: flex;
+        gap: 0.75rem;
+      }
+
+      .btn {
+        background: var(--primary);
+        color: white;
+        border: none;
+        padding: 0.875rem 1.5rem;
+        border-radius: 8px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        text-decoration: none;
+        font-size: 0.875rem;
+      }
+
+      .btn:hover {
+        background: var(--primary-hover);
+      }
+
+      .btn-outline {
+        background: transparent;
+        color: var(--primary);
+        border: 1px solid var(--gray-300);
+      }
+
+      .btn-outline:hover {
+        background: var(--gray-50);
+        border-color: var(--primary);
+      }
+
+      .back-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: var(--gray-600);
+        text-decoration: none;
+        font-size: 0.875rem;
+        padding: 1.5rem 0 0.5rem;
+        transition: color 0.2s ease;
+      }
+
+      .back-link:hover {
+        color: var(--primary);
+      }
+
+      .workflow-hero {
+        padding: 2rem 0 3rem;
+      }
+
+      .workflow-title {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: var(--gray-900);
+        margin-bottom: 1rem;
+        line-height: 1.2;
+      }
+
+      .workflow-description {
+        font-size: 1.125rem;
+        color: var(--gray-600);
+        margin-bottom: 2rem;
+        max-width: 700px;
+      }
+
+      .workflow-meta {
+        display: flex;
+        gap: 1.5rem;
+        flex-wrap: wrap;
+        margin-bottom: 2rem;
+      }
+
+      .meta-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1rem;
+        background: var(--gray-100);
+        border-radius: 6px;
+        font-size: 0.875rem;
+        color: var(--gray-700);
+      }
+
+      .meta-icon {
+        color: var(--primary);
+      }
+
+      .download-btn {
+        background: var(--primary);
+        color: white;
+        border: none;
+        padding: 1rem 2rem;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.75rem;
+        text-decoration: none;
+        font-size: 1rem;
+      }
+
+      .download-btn:hover {
+        background: var(--primary-hover);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+      }
+
+      .workflow-image-section {
+        margin: 3rem 0;
+        text-align: center;
+      }
+
+      .workflow-image {
+        width: 100%;
+        max-width: 500px;
+        height: auto;
+        border-radius: 12px;
+        border: 1px solid var(--gray-200);
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+      }
+
+      .workflow-image:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+      }
+
+      .about-section {
+        background: var(--gray-50);
+        border-radius: 12px;
+        padding: 2rem;
+        margin: 3rem 0;
+      }
+
+      .about-section h2 {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: var(--gray-900);
+        margin-bottom: 1rem;
+      }
+
+      .about-content {
+        color: var(--gray-700);
+        line-height: 1.8;
+        font-size: 1rem;
+      }
+
+      .about-content p {
+        margin-bottom: 1rem;
+      }
+
+      .steps-section {
+        padding: 3rem 0;
+      }
+
+      .steps-header {
+        text-align: center;
+        margin-bottom: 3rem;
+      }
+
+      .steps-header h2 {
+        font-size: 2rem;
+        font-weight: 700;
+        color: var(--gray-900);
+        margin-bottom: 0.5rem;
+      }
+
+      .steps-header p {
+        font-size: 1.125rem;
+        color: var(--gray-600);
+      }
+
+      .steps-grid {
+        display: grid;
+        gap: 2rem;
+        max-width: 900px;
+        margin: 0 auto;
+      }
+
+      .step-card {
+        background: white;
+        border: 1px solid var(--gray-200);
+        border-radius: 12px;
+        padding: 2rem;
+        display: flex;
+        gap: 1.5rem;
+        transition: all 0.3s ease;
+      }
+
+      .step-card:hover {
+        border-color: var(--primary);
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.1);
+      }
+
+      .step-number {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        background: var(--primary);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        font-weight: 700;
+        flex-shrink: 0;
+      }
+
+      .step-content h3 {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: var(--gray-900);
+        margin-bottom: 0.5rem;
+      }
+
+      .step-content p {
+        color: var(--gray-600);
+        line-height: 1.6;
+      }
+
+      .nodes-section {
+        background: var(--gray-900);
+        color: white;
+        padding: 4rem 0;
+      }
+
+      .nodes-header {
+        text-align: center;
+        margin-bottom: 3rem;
+      }
+
+      .nodes-header h2 {
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+      }
+
+      .nodes-header p {
+        font-size: 1.125rem;
+        color: var(--gray-300);
+      }
+
+      .nodes-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+        max-width: 1000px;
+        margin: 0 auto;
+      }
+
+      .node-card {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        padding: 1.5rem;
+        text-align: center;
+        transition: all 0.3s ease;
+      }
+
+      .node-card:hover {
+        background: rgba(255, 255, 255, 0.08);
+        border-color: var(--primary);
+        transform: translateY(-2px);
+      }
+
+      .node-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        background: var(--primary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1rem;
+        font-size: 1.25rem;
+      }
+
+      .node-card h3 {
+        font-size: 1rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+      }
+
+      .node-card p {
+        font-size: 0.875rem;
+        color: var(--gray-300);
+      }
+
+      .use-cases-section {
+        padding: 4rem 0;
+        background: var(--gray-50);
+      }
+
+      .use-cases-header {
+        text-align: center;
+        margin-bottom: 3rem;
+      }
+
+      .use-cases-header h2 {
+        font-size: 2rem;
+        font-weight: 700;
+        color: var(--gray-900);
+        margin-bottom: 0.5rem;
+      }
+
+      .use-cases-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 2rem;
+      }
+
+      .use-case-card {
+        background: white;
+        border: 1px solid var(--gray-200);
+        border-radius: 12px;
+        padding: 2rem;
+      }
+
+      .use-case-icon {
+        width: 56px;
+        height: 56px;
+        border-radius: 12px;
+        background: linear-gradient(135deg, var(--primary), var(--primary-hover));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 1.5rem;
+        margin-bottom: 1rem;
+      }
+
+      .use-case-card h3 {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: var(--gray-900);
+        margin-bottom: 0.75rem;
+      }
+
+      .use-case-card p {
+        color: var(--gray-600);
+        line-height: 1.6;
+      }
+
+      .cta-section {
+        background: var(--primary);
+        color: white;
+        padding: 4rem 0;
+        text-align: center;
+      }
+
+      .cta-content h2 {
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 1rem;
+      }
+
+      .cta-content p {
+        font-size: 1.125rem;
+        margin-bottom: 2rem;
+        opacity: 0.9;
+      }
+
+      .btn-white {
+        background: white;
+        color: var(--primary);
+      }
+
+      .btn-white:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(255, 255, 255, 0.3);
+      }
+
+      .footer {
+        background: var(--gray-900);
+        color: var(--gray-300);
+        padding: 3rem 0 1rem;
+      }
+
+      .footer-grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr 1fr 1fr;
+        gap: 2rem;
+        margin-bottom: 2rem;
+      }
+
+      .footer-section h4 {
+        color: white;
+        font-size: 1rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+      }
+
+      .footer-logo {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+      }
+
+      .footer-description {
+        color: var(--gray-400);
+        font-size: 0.875rem;
+        line-height: 1.6;
+      }
+
+      .footer-links {
+        list-style: none;
+      }
+
+      .footer-links li {
+        margin-bottom: 0.5rem;
+      }
+
+      .footer-links a {
+        color: var(--gray-300);
+        text-decoration: none;
+        font-size: 0.875rem;
+        transition: color 0.2s ease;
+      }
+
+      .footer-links a:hover {
+        color: white;
+      }
+
+      .footer-bottom {
+        text-align: center;
+        padding-top: 2rem;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        color: var(--gray-400);
+        font-size: 0.875rem;
+      }
+
+      @media (max-width: 768px) {
+        .workflow-title {
+          font-size: 2rem;
+        }
+        .workflow-image {
+          border-radius: 8px;
+        }
+        .footer-grid {
+          grid-template-columns: 1fr 1fr;
+        }
+        .nodes-grid {
+          grid-template-columns: 1fr;
+        }
+        .nav-menu {
+          display: none;
+        }
+      }
+
+      @media (max-width: 640px) {
+        .footer-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="header">
+      <div class="container">
+        <div class="header-content">
+          <a href="https://linkfinderai.com/" class="logo">
+            <div class="logo-icon">
+              <i class="fas fa-search"></i>
+            </div>
+            <span class="logo-text">LinkFinder AI</span>
+          </a>
+          
+          <nav class="nav-menu">
+            <a href="https://linkfinderai.com/pricing">Pricing</a>
+            <a href="https://linkfinderai.com/api-documentation">API Documentation</a>
+            <a href="https://linkfinderai.com/blog">Blog</a>
+          </nav>
+
+          <div class="auth-buttons">
+            <a href="https://linkfinderai.com/log-in" class="btn btn-outline">Login</a>
+            <a href="https://linkfinderai.com/sign-up" class="btn">Sign Up</a>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <div class="container">
+      <a href="https://linkfinderai.com/workflows" class="back-link">
+        <i class="fas fa-arrow-left"></i>
+        Back to Workflows
+      </a>
+
+      <div class="workflow-hero">
+        <h1 class="workflow-title">🔍 LinkedIn Job Scraper → Sales Intelligence</h1>
+        <p class="workflow-description">
+          Automatically scrape LinkedIn for companies posting specific job titles, identify hiring intent as a buying signal, and enrich each company with complete contact data including website, phone, email, and employee count for targeted sales outreach at scale.
+        </p>
+
+        <div class="workflow-meta">
+          <div class="meta-item">
+            <i class="fas fa-layer-group meta-icon"></i>
+            <span>Sales Intelligence & Lead Generation</span>
+          </div>
+          <div class="meta-item">
+            <i class="fas fa-robot meta-icon"></i>
+            <span>Hiring Intent Signals</span>
+          </div>
+          <div class="meta-item">
+            <i class="fas fa-chart-line meta-icon"></i>
+            <span>50-100+ Companies Per Run</span>
+          </div>
+        </div>
+
+        <button class="download-btn" onclick="downloadWorkflow()">
+          <i class="fas fa-download"></i>
+          Download Workflow
+        </button>
+      </div>
+
+      <div class="workflow-image-section">
+        <img src="https://media.licdn.com/dms/image/v2/D4E10AQHaxPphdLbo7g/image-shrink_1280/B4EZvSb6QAHoAc-/0/1768762090951?e=1770372000&v=beta&t=nuPYt9PAUakaCjH-iijx5c4sJcVcijTk9EkRxMnERhM" alt="LinkedIn Job Scraper to Sales Intelligence Workflow Diagram" class="workflow-image">
+      </div>
+
+      <div class="about-section">
+        <h2>About this workflow</h2>
+        <div class="about-content">
+          <p>Finding companies that are actively hiring is one of the strongest buying signals in B2B sales. When a company posts job openings, it indicates growth, budget availability, and potential need for new tools and services. However, manually tracking these signals across LinkedIn and then finding contact information is incredibly time-consuming.</p>
+          <p>This workflow automates the entire process by leveraging Apify's LinkedIn Job Scraper to identify companies posting specific job titles, then enriching each company with LinkFinder AI's powerful data services. You get complete contact profiles including company website, phone number, email address, and employee count—everything you need for effective outreach.</p>
+          <p>Built for scale, this workflow processes 50-100+ companies in batches, completing the entire enrichment process in just 4-6 minutes. Simply configure your target job keywords and location in Google Sheets, and the workflow automatically triggers, scrapes LinkedIn, deduplicates companies, and delivers a fully enriched sales list ready for your CRM or outreach campaigns.</p>
+        </div>
+      </div>
+
+      <div class="steps-section">
+        <div class="steps-header">
+          <h2>Step-by-step guide</h2>
+          <p>Set up this workflow in minutes with these simple steps</p>
+        </div>
+
+        <div class="steps-grid">
+          <div class="step-card">
+            <div class="step-number">1</div>
+            <div class="step-content">
+              <h3>Get your API keys</h3>
+              <p>Sign up at linkfinderai.com to get your LinkFinder AI API key, and get your Apify API key from console.apify.com/account/integrations. You'll need both to enable job scraping and company enrichment.</p>
+            </div>
+          </div>
+
+          <div class="step-card">
+            <div class="step-number">2</div>
+            <div class="step-content">
+              <h3>Import the workflow to n8n</h3>
+              <p>Download the JSON file and import it into your n8n instance. Replace YOUR_APIFY_API_KEY in the Apify node URL and YOUR_LINKFINDER_API_KEY in the Authorization header of all four LinkFinder AI nodes.</p>
+            </div>
+          </div>
+
+          <div class="step-card">
+            <div class="step-number">3</div>
+            <div class="step-content">
+              <h3>Configure Google Sheets trigger</h3>
+              <p>Connect your Google Sheets account and create a sheet with columns for job keywords, location, and max records. Each new row you add will trigger the workflow to scrape and enrich companies matching those criteria.</p>
+            </div>
+          </div>
+
+          <div class="step-card">
+            <div class="step-number">4</div>
+            <div class="step-content">
+              <h3>Test and activate</h3>
+              <p>Run a test with sample job keywords like "Sales Manager" in a specific location. Verify that companies are scraped, deduplicated, and enriched with all contact data. Once validated, activate the workflow for automated processing.</p>
+            </div>
+          </div>
+
+          <div class="step-card">
+            <div class="step-number">5</div>
+            <div class="step-content">
+              <h3>Review enriched company data</h3>
+              <p>Access your aggregated results containing company names, websites, phone numbers, emails, employee counts, job titles posted, and hiring signals. Export to your CRM or use for targeted outreach campaigns.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="nodes-section">
+      <div class="container">
+        <div class="nodes-header">
+          <h2>LinkFinder AI Services Used</h2>
+          <p>This workflow leverages 4 powerful enrichment services</p>
+        </div>
+
+        <div class="nodes-grid">
+          <div class="node-card">
+            <div class="node-icon">
+              <i class="fas fa-globe"></i>
+            </div>
+            <h3>Company Website</h3>
+            <p>Finds the official company website from the company name for direct outreach and research.</p>
+          </div>
+
+          <div class="node-card">
+            <div class="node-icon">
+              <i class="fas fa-phone"></i>
+            </div>
+            <h3>Company Phone</h3>
+            <p>Retrieves company phone numbers for direct sales calls and multi-channel outreach strategies.</p>
+          </div>
+
+          <div class="node-card">
+            <div class="node-icon">
+              <i class="fas fa-users"></i>
+            </div>
+            <h3>Employee Count</h3>
+            <p>Gets company size data to help qualify leads and prioritize outreach based on company scale.</p>
+          </div>
+
+          <div class="node-card">
+            <div class="node-icon">
+              <i class="fas fa-envelope"></i>
+            </div>
+            <h3>Company Email</h3>
+            <p>Finds company email addresses for email outreach campaigns and lead nurturing sequences.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="use-cases-section">
+      <div class="container">
+        <div class="use-cases-header">
+          <h2>Perfect for</h2>
+        </div>
+
+        <div class="use-cases-grid">
+          <div class="use-case-card">
+            <div class="use-case-icon">
+              <i class="fas fa-chart-line"></i>
+            </div>
+            <h3>Sales Teams</h3>
+            <p>Identify companies with hiring intent as a buying signal and get complete contact data for targeted outreach. Build prospect lists of companies actively growing and likely to invest in new solutions.</p>
+          </div>
+
+          <div class="use-case-card">
+            <div class="use-case-icon">
+              <i class="fas fa-user-tie"></i>
+            </div>
+            <h3>Recruiters</h3>
+            <p>Track which companies are hiring for specific roles and gather company contact information for business development. Identify potential clients who need recruiting services based on their job postings.</p>
+          </div>
+
+          <div class="use-case-card">
+            <div class="use-case-icon">
+              <i class="fas fa-briefcase"></i>
+            </div>
+            <h3>B2B Companies</h3>
+            <p>Monitor competitor hiring patterns and identify companies expanding into areas where your product or service could help. Use hiring signals to time your outreach perfectly.</p>
+          </div>
+
+          <div class="use-case-card">
+            <div class="use-case-icon">
+              <i class="fas fa-rocket"></i>
+            </div>
+            <h3>Growth Teams</h3>
+            <p>Scale lead generation by automatically building enriched company lists based on job market signals. Process hundreds of companies weekly without manual research or data entry.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <section class="cta-section">
+      <div class="container">
+        <div class="cta-content">
+          <h2>Ready to automate your lead enrichment?</h2>
+          <p>Get your API key and start processing leads with hiring intent signals today.</p>
+          <a href="https://linkfinderai.com/sign-up" class="btn btn-white">
+            <i class="fas fa-rocket"></i>
+            Get Started Free
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <div class="container">
+        <div class="footer-grid">
+          <div class="footer-section">
+            <div class="footer-logo">
+              <div class="logo-icon">
+                <i class="fas fa-search"></i>
+              </div>
+              <span class="logo-text">LinkFinder AI</span>
+            </div>
+            <p class="footer-description">
+              Professional tools for extracting company data from LinkedIn. Streamline your business research and competitive intelligence.
+            </p>
+          </div>
+
+          <div class="footer-section">
+            <h4>Product</h4>
+            <ul class="footer-links">
+              <li><a href="https://linkfinderai.com/pricing">Pricing</a></li>
+              <li><a href="https://linkfinderai.com/api-documentation">API Docs</a></li>
+              <li><a href="https://linkfinderai.com/blog">Blog</a></li>
+            </ul>
+          </div>
+
+          <div class="footer-section">
+            <h4>Resources</h4>
+            <ul class="footer-links">
+              <li><a href="https://linkfinderai.com/workflows">Workflows</a></li>
+              <li><a href="https://linkfinderai.com/about-us">About Us</a></li>
+            </ul>
+          </div>
+
+          <div class="footer-section">
+            <h4>Support</h4>
+            <ul class="footer-links">
+              <li><a href="https://linkfinderai.com/privacy">Privacy Policy</a></li>
+              <li><a href="https://linkfinderai.com/terms">Terms of Service</a></li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="footer-bottom">
+          <p>&copy; 2026 LinkFinder AI. All rights reserved.</p>
+        </div>
+      </div>
+    </footer>
+
+    <script>
+      async function downloadWorkflow() {
+        const workflowData = `{"name":"LinkedIn Job Scraper → Sales Intelligence","nodes":[{"parameters":{"content":"## 🔍 LinkedIn Job Scraper → Sales Intelligence Workflow\\n\\n**What it does:** Scrapes LinkedIn for companies posting specific jobs, identifies buying signals, enriches MULTIPLE companies with contact data\\n\\n**Input:** Job title keywords (processes 50-100+ companies per run)\\n\\n**Output:** Enriched company list with website, phone, email, employee count for ALL companies\\n\\n**Scalability:** Processes 40-50 companies in batches, ~4-6 minutes total\\n\\n**Setup:**\\n1. Get Apify API key from https://console.apify.com/account/integrations\\n2. Get LinkFinder AI key from https://linkfinderai.com\\n3. Replace YOUR_APIFY_API_KEY in Node 3\\n4. Replace YOUR_LINKFINDER_API_KEY in Nodes 7-10\\n5. Configure Google Sheets connection\\n6. Edit job search parameters in Node 2\\n7. Test the workflow\\n\\n**Services used:** Apify LinkedIn Job Scraper, company_name_to_website, company_name_to_phone, company_name_to_employee_count, company_name_to_email\\n\\n**Perfect for:** Sales teams identifying companies actively hiring (buying signal), building targeted outreach lists at scale","height":420,"width":380,"color":4},"type":"n8n-nodes-base.stickyNote","typeVersion":1,"position":[0,0],"name":"📖 Documentation","id":"3e3ba859-7d2f-4589-b79b-9b72c7a74c8e"},{"parameters":{"method":"POST","url":"https://api.apify.com/v2/acts/ivanvs~linkedin-job-scraper/run-sync-get-dataset-items?token=ENTER_API_KEY","sendHeaders":true,"headerParameters":{"parameters":[{"name":"Content-Type","value":"application/json"}]},"sendBody":true,"specifyBody":"json","jsonBody":"={\\n    \\"datePosted\\": \\"1 week\\",\\n    \\"extractCompanyData\\": false,\\n    \\"keywords\\": \\"{{ $json['keywords (job title)'] }}\\",\\n    \\"location\\": \\"{{ $json.location }}\\",\\n    \\"maxRecords\\": {{ $json['max records'] }}\\n}","options":{}},"type":"n8n-nodes-base.httpRequest","typeVersion":4.2,"position":[1328,224],"name":"Apify - Start Job Scraper","id":"7c2ee858-0257-44d4-a106-b12c1a92f361"},{"parameters":{"mode":"runOnceForEachItem","jsCode":"// This runs for EACH item individually\\n// We'll just pass through and dedupe later\\n\\nconst job = $input.item.json;\\nconst companyName = job.company?.name || '';\\n\\nreturn {\\n  company_name: companyName,\\n  company_url: job.company?.url || '',\\n  job_title: job.title || '',\\n  location: job.location?.city && job.location?.region \\n    ? \\`\\${job.location.city}, \\${job.location.region}\\` \\n    : '',\\n  posted_date: job.datePosted || '',\\n  job_url: job.url || '',\\n  employment_type: job.employmentType || '',\\n  applicants: job.applicants || 0\\n};"},"type":"n8n-nodes-base.code","typeVersion":2,"position":[1536,224],"name":"Dedupe Companies","id":"46c6bd1e-9974-4786-890b-6cf73e7816b5"},{"parameters":{"options":{}},"type":"n8n-nodes-base.splitInBatches","typeVersion":3,"position":[1760,224],"name":"Loop Each Company","id":"76e29500-0cd9-4bca-ad37-0782152c69ba"},{"parameters":{"method":"POST","url":"https://api.linkfinderai.com","sendHeaders":true,"headerParameters":{"parameters":[{"name":"Content-Type","value":"application/json"},{"name":"Authorization","value":"Bearer ENTER_API_KEY"}]},"sendBody":true,"bodyParameters":{"parameters":[{"name":"type","value":"company_name_to_website"},{"name":"input_data","value":"={{ $json.company_name }}"}]},"options":{"timeout":30000}},"type":"n8n-nodes-base.httpRequest","typeVersion":4.2,"position":[2144,224],"name":"LinkFinder AI - Get Website","id":"bb718f2f-55d0-4ce9-9395-2212ab53bbd7","continueOnFail":true},{"parameters":{"method":"POST","url":"https://api.linkfinderai.com","sendHeaders":true,"headerParameters":{"parameters":[{"name":"Content-Type","value":"application/json"},{"name":"Authorization","value":"Bearer ENTER_API_KEY"}]},"sendBody":true,"bodyParameters":{"parameters":[{"name":"type","value":"company_name_to_phone"},{"name":"input_data","value":"={{ $('Loop Each Company').item.json.company_name }}"}]},"options":{"timeout":30000}},"type":"n8n-nodes-base.httpRequest","typeVersion":4.2,"position":[2400,224],"name":"LinkFinder AI - Get Phone","id":"79293270-57fd-4dd7-b3aa-4755251cd021","continueOnFail":true},{"parameters":{"method":"POST","url":"https://api.linkfinderai.com","sendHeaders":true,"headerParameters":{"parameters":[{"name":"Content-Type","value":"application/json"},{"name":"Authorization","value":"Bearer ENTER_API_KEY"}]},"sendBody":true,"bodyParameters":{"parameters":[{"name":"type","value":"company_name_to_employee_count"},{"name":"input_data","value":"={{ $('Loop Each Company').item.json.company_name }}"}]},"options":{"timeout":30000}},"type":"n8n-nodes-base.httpRequest","typeVersion":4.2,"position":[2624,224],"name":"LinkFinder AI - Get Employee Count","id":"8a0c171f-0108-45c9-88f4-18442c8c07f8","continueOnFail":true},{"parameters":{"method":"POST","url":"https://api.linkfinderai.com","sendHeaders":true,"headerParameters":{"parameters":[{"name":"Content-Type","value":"application/json"},{"name":"Authorization","value":"Bearer ENTER_API_KEY"}]},"sendBody":true,"bodyParameters":{"parameters":[{"name":"type","value":"company_name_to_email"},{"name":"input_data","value":"={{ $('Loop Each Company').item.json.company_name }}"}]},"options":{"timeout":30000}},"type":"n8n-nodes-base.httpRequest","typeVersion":4.2,"position":[2848,224],"name":"LinkFinder AI - Get Email","id":"8691ee0d-c0f9-4970-8ed5-7f7d03e7dcac","continueOnFail":true},{"parameters":{"jsCode":"const companyData = $('Loop Each Company').item.json;\\nconst websiteResponse = $('LinkFinder AI - Get Website').item.json;\\nconst phoneResponse = $('LinkFinder AI - Get Phone').item.json;\\nconst employeeCountResponse = $('LinkFinder AI - Get Employee Count').item.json;\\nconst emailResponse = $('LinkFinder AI - Get Email').item.json;\\n\\nconst website = websiteResponse?.result || '';\\nconst phone = phoneResponse?.result || '';\\nconst employeeCount = employeeCountResponse?.result || '';\\nconst email = emailResponse?.result || '';\\n\\nreturn {\\n  json: {\\n    company_name: companyData.company_name,\\n    company_website: website,\\n    company_phone: phone,\\n    company_email: email,\\n    employee_count: employeeCount,\\n    total_jobs: companyData.total_jobs,\\n    job_titles: companyData.job_titles,\\n    locations: companyData.locations,\\n    linkedin_url: companyData.company_linkedin_url,\\n    found_date: new Date().toISOString().split('T')[0],\\n    hiring_signal: \\`Hiring \\${companyData.total_jobs} positions\\`\\n  }\\n};"},"type":"n8n-nodes-base.code","typeVersion":2,"position":[3056,224],"name":"Merge Company Data","id":"9b9a5902-dcb8-44a1-94f6-5dc3ddc811bc"},{"parameters":{"aggregate":"aggregateAllItemData","options":{}},"type":"n8n-nodes-base.aggregate","typeVersion":1,"position":[2608,-128],"name":"Aggregate Results","id":"0031a0af-193e-415d-92cf-21ae5a7e937a"},{"parameters":{"pollTimes":{"item":[{"mode":"everyMinute"}]},"documentId":{"__rl":true,"value":"1LWL22mLoNrvwDsqiWD44P4cXLyI1caCqpNE0rhBZdZ4","mode":"list","cachedResultName":"linkedin jobs","cachedResultUrl":"https://docs.google.com/spreadsheets/d/1LWL22mLoNrvwDsqiWD44P4cXLyI1caCqpNE0rhBZdZ4/edit?usp=drivesdk"},"sheetName":{"__rl":true,"value":"gid=0","mode":"list","cachedResultName":"Feuille 1","cachedResultUrl":"https://docs.google.com/spreadsheets/d/1LWL22mLoNrvwDsqiWD44P4cXLyI1caCqpNE0rhBZdZ4/edit#gid=0"},"event":"rowAdded","options":{}},"type":"n8n-nodes-base.googleSheetsTrigger","typeVersion":1,"position":[1104,224],"id":"e0dac88c-2e02-4baa-a12e-8b00dc52d7fb","name":"Google Sheets Trigger","credentials":{"googleSheetsTriggerOAuth2Api":{"id":"mi5z7FRamyMvmQoQ","name":"Google Sheets Trigger account"}}},{"parameters":{"content":"🔥 LinkedIn Job Scraper → Sales Intelligence Workflow\\n\\n📋 What This Does:\\n\\nScrapes LinkedIn for companies posting specific job titles\\nIdentifies companies actively hiring (= buying signal)\\nEnriches each company with LinkFinder AI (website, phone, LinkedIn)\\nExports actionable sales list to Google Sheets\\nSends Slack notification\\n\\n\\n🛠️ Tools Needed:\\n\\nn8n (self-hosted or cloud)\\nApify account + API key (free $5/month credits)\\nLinkFinder AI API key\\nGoogle Sheets\\nSlack (optional)\\n\\n\\n⚙️ Setup Instructions:\\n1. Get Apify API Key:\\n\\nGo to: https://console.apify.com/account/integrations\\nCopy your API token\\n\\n2. Get LinkFinder AI API Key:\\n\\nGo to: https://linkfinderai.com\\nGet your API key from account settings","height":420,"width":380,"color":4},"type":"n8n-nodes-base.stickyNote","typeVersion":1,"position":[592,-336],"name":"📖 Documentation1","id":"5a5cb4e2-7404-4688-acb6-290f273dba23"},{"parameters":{"content":"FIND YOUR APIFY API KEY AND ADD IT IN THE URL FOR THIS NODE : apify.com","height":80,"width":380,"color":4},"type":"n8n-nodes-base.stickyNote","typeVersion":1,"position":[1216,52],"name":"📖 Documentation2","id":"7611bbf1-e461-4c24-ac86-cb1d119e1687"},{"parameters":{"content":"FIND YOUR Linkfinder AI API KEY AND ADD IT IN THE AUTHORIZATION HEADER : linkfinderai.com","height":80,"width":380,"color":4},"type":"n8n-nodes-base.stickyNote","typeVersion":1,"position":[2432,80],"name":"📖 Documentation3","id":"4ba6db8a-64e3-436f-a71f-56926c2fd584"}],"pinData":{},"connections":{"Apify - Start Job Scraper":{"main":[[{"node":"Dedupe Companies","type":"main","index":0}]]},"Dedupe Companies":{"main":[[{"node":"Loop Each Company","type":"main","index":0}]]},"Loop Each Company":{"main":[[{"node":"Aggregate Results","type":"main","index":0}],[{"node":"LinkFinder AI - Get Website","type":"main","index":0}]]},"LinkFinder AI - Get Website":{"main":[[{"node":"LinkFinder AI - Get Phone","type":"main","index":0}]]},"LinkFinder AI - Get Phone":{"main":[[{"node":"LinkFinder AI - Get Employee Count","type":"main","index":0}]]},"LinkFinder AI - Get Employee Count":{"main":[[{"node":"LinkFinder AI - Get Email","type":"main","index":0}]]},"LinkFinder AI - Get Email":{"main":[[{"node":"Merge Company Data","type":"main","index":0}]]},"Merge Company Data":{"main":[[{"node":"Loop Each Company","type":"main","index":0}]]},"Aggregate Results":{"main":[[]]},"Google Sheets Trigger":{"main":[[{"node":"Apify - Start Job Scraper","type":"main","index":0}]]}},"active":false,"settings":{"executionOrder":"v1","callerPolicy":"workflowsFromSameOwner","executionTimeout":-1,"availableInMCP":false},"versionId":"f2595f25-733f-4150-8a4c-45af7b382e25","meta":{"templateCredsSetupCompleted":true,"instanceId":"0ba15c473753d92c71f15fc9391d54bb141d91f940c0582da38b60426c3c2f10"},"id":"nhoBkTJq1VeXO3TT","tags":[]}`;
+        
+        try {
+          const blob = new Blob([workflowData], { type: 'application/json' });
+          const downloadUrl = window.URL.createObjectURL(blob);
+          
+          const a = document.createElement('a');
+          a.href = downloadUrl;
+          a.download = 'linkedin-job-scraper-sales-intelligence.json';
+          document.body.appendChild(a);
+          a.click();
+          
+          window.URL.revokeObjectURL(downloadUrl);
+          document.body.removeChild(a);
+        } catch (error) {
+          console.error('Download failed:', error);
+          alert('Failed to download workflow. Please try again.');
+        }
+      }
+    </script>
+  </body>
+</html>
+```
