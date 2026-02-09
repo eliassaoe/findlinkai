@@ -1462,86 +1462,126 @@
 }
 
         async function submitTechnicalIssue() {
-            const issue = document.getElementById('technicalIssueText').value.trim();
-            if (!issue) {
-                alert('Please describe the technical issue');
-                return;
-            }
-            
+    const issue = document.getElementById('technicalIssueText').value.trim();
+    if (!issue) {
+        alert('Please describe the technical issue');
+        return;
+    }
+    
+    // Debug: vérifier le token
+    console.log('User Token:', userToken);
+    
+    if (!userToken) {
+        alert('Session expired. Please refresh the page.');
+        return;
+    }
+    
+    const payload = {
+        token: userToken,
+        issue: issue,
+        type: 'technical_issue',
+        reason: selectedCancellationReason
+    };
+    
+    // Debug: afficher le payload
+    console.log('Sending payload:', payload);
+    
+    try {
+        const response = await fetch(FEEDBACK_ENDPOINT, {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload)
+        });
+        
+        // Debug: afficher la réponse brute
+        const responseText = await response.text();
+        console.log('Response status:', response.status);
+        console.log('Response body:', responseText);
+        
+        if (response.ok) {
             try {
-                const response = await fetch(FEEDBACK_ENDPOINT, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        token: userToken,
-                        type: 'technical_issue',
-                        content: issue,
+                if (window.posthog) {
+                    posthog.capture('technical_issue_submitted', { 
                         reason: selectedCancellationReason,
-                        timestamp: new Date().toISOString()
-                    })
-                });
-                
-                if (response.ok) {
-                    try {
-                        if (window.posthog) {
-                            posthog.capture('technical_issue_submitted', { 
-                                reason: selectedCancellationReason,
-                                issue: issue 
-                            });
-                        }
-                    } catch (e) {}
-                    
-                    alert('Priority support ticket created! Our technical team will contact you within 2 hours.');
-                    closeCancellationModal();
-                } else {
-                    alert('There was an error submitting your issue. Please try again or contact support.');
+                        issue: issue 
+                    });
                 }
-            } catch (error) {
-                console.error('Error submitting technical issue:', error);
-                alert('There was an error submitting your issue. Please try again or contact support.');
-            }
+            } catch (e) {}
+            
+            alert('Priority support ticket created! Our technical team will contact you within 2 hours.');
+            closeCancellationModal();
+        } else {
+            console.error('Request failed:', response.status, responseText);
+            alert('There was an error submitting your issue. Please check the console for details.');
         }
+    } catch (error) {
+        console.error('Network error:', error);
+        alert('Network error. Please check your connection.');
+    }
+}
 
         async function submitOtherFeedback() {
-            const feedback = document.getElementById('otherReasonText').value.trim();
-            if (!feedback) {
-                alert('Please share your feedback');
-                return;
-            }
-            
+    const feedback = document.getElementById('otherReasonText').value.trim();
+    if (!feedback) {
+        alert('Please share your feedback');
+        return;
+    }
+    
+    // Debug: vérifier le token
+    console.log('User Token:', userToken);
+    
+    if (!userToken) {
+        alert('Session expired. Please refresh the page.');
+        return;
+    }
+    
+    const payload = {
+        token: userToken,
+        feedback: feedback,
+        type: 'other_feedback',
+        reason: selectedCancellationReason
+    };
+    
+    // Debug: afficher le payload
+    console.log('Sending payload:', payload);
+    
+    try {
+        const response = await fetch(FEEDBACK_ENDPOINT, {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload)
+        });
+        
+        // Debug: afficher la réponse brute
+        const responseText = await response.text();
+        console.log('Response status:', response.status);
+        console.log('Response body:', responseText);
+        
+        if (response.ok) {
             try {
-                const response = await fetch(FEEDBACK_ENDPOINT, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        token: userToken,
-                        type: 'other_feedback',
-                        content: feedback,
+                if (window.posthog) {
+                    posthog.capture('other_feedback_submitted', { 
                         reason: selectedCancellationReason,
-                        timestamp: new Date().toISOString()
-                    })
-                });
-                
-                if (response.ok) {
-                    try {
-                        if (window.posthog) {
-                            posthog.capture('other_feedback_submitted', { 
-                                reason: selectedCancellationReason,
-                                feedback: feedback 
-                            });
-                        }
-                    } catch (e) {}
-                    
-                    alert('Thank you for your feedback. Our team will reach out within 24 hours to discuss your situation.');
-                    closeCancellationModal();
-                } else {
-                    alert('There was an error submitting your feedback. Please try again or contact support.');
+                        feedback: feedback 
+                    });
                 }
-            } catch (error) {
-                console.error('Error submitting feedback:', error);
-                alert('There was an error submitting your feedback. Please try again or contact support.');
-            }
+            } catch (e) {}
+            
+            alert('Thank you for your feedback. Our team will reach out within 24 hours to discuss your situation.');
+            closeCancellationModal();
+        } else {
+            console.error('Request failed:', response.status, responseText);
+            alert('There was an error submitting your feedback. Please check the console for details.');
         }
+    } catch (error) {
+        console.error('Network error:', error);
+        alert('Network error. Please check your connection.');
+    }
+}
 
         function trackSolution(solution) {
             try {
