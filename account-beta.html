@@ -1077,6 +1077,7 @@
         let userToken = null;
         let selectedCancellationReason = null;
         const CALENDLY_LINK = 'https://calendly.com/hamoureliasse/compensated-interview-unlimited-leads-clone';
+        const FEEDBACK_ENDPOINT = 'https://linkfinder-request-feature.hamoureliasse.workers.dev/';
 
         const urlParams = new URLSearchParams(window.location.search);
         const gclid = urlParams.get('gclid');
@@ -1407,16 +1408,37 @@
             }
             
             try {
-                if (window.posthog) {
-                    posthog.capture('feature_request_submitted', { 
+                const response = await fetch(FEEDBACK_ENDPOINT, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        token: userToken,
+                        type: 'feature_request',
+                        content: feature,
                         reason: selectedCancellationReason,
-                        feature: feature 
-                    });
+                        timestamp: new Date().toISOString()
+                    })
+                });
+                
+                if (response.ok) {
+                    try {
+                        if (window.posthog) {
+                            posthog.capture('feature_request_submitted', { 
+                                reason: selectedCancellationReason,
+                                feature: feature 
+                            });
+                        }
+                    } catch (e) {}
+                    
+                    alert('Thank you! We\'ve received your feature request. Our product team will review it and keep you updated.');
+                    closeCancellationModal();
+                } else {
+                    alert('There was an error submitting your request. Please try again or contact support.');
                 }
-            } catch (e) {}
-            
-            alert('Thank you! We\'ve received your feature request. Our product team will review it and keep you updated.');
-            closeCancellationModal();
+            } catch (error) {
+                console.error('Error submitting feature request:', error);
+                alert('There was an error submitting your request. Please try again or contact support.');
+            }
         }
 
         async function submitTechnicalIssue() {
@@ -1427,16 +1449,37 @@
             }
             
             try {
-                if (window.posthog) {
-                    posthog.capture('technical_issue_submitted', { 
+                const response = await fetch(FEEDBACK_ENDPOINT, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        token: userToken,
+                        type: 'technical_issue',
+                        content: issue,
                         reason: selectedCancellationReason,
-                        issue: issue 
-                    });
+                        timestamp: new Date().toISOString()
+                    })
+                });
+                
+                if (response.ok) {
+                    try {
+                        if (window.posthog) {
+                            posthog.capture('technical_issue_submitted', { 
+                                reason: selectedCancellationReason,
+                                issue: issue 
+                            });
+                        }
+                    } catch (e) {}
+                    
+                    alert('Priority support ticket created! Our technical team will contact you within 2 hours.');
+                    closeCancellationModal();
+                } else {
+                    alert('There was an error submitting your issue. Please try again or contact support.');
                 }
-            } catch (e) {}
-            
-            alert('Priority support ticket created! Our technical team will contact you within 2 hours.');
-            closeCancellationModal();
+            } catch (error) {
+                console.error('Error submitting technical issue:', error);
+                alert('There was an error submitting your issue. Please try again or contact support.');
+            }
         }
 
         async function submitOtherFeedback() {
@@ -1447,16 +1490,37 @@
             }
             
             try {
-                if (window.posthog) {
-                    posthog.capture('other_feedback_submitted', { 
+                const response = await fetch(FEEDBACK_ENDPOINT, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        token: userToken,
+                        type: 'other_feedback',
+                        content: feedback,
                         reason: selectedCancellationReason,
-                        feedback: feedback 
-                    });
+                        timestamp: new Date().toISOString()
+                    })
+                });
+                
+                if (response.ok) {
+                    try {
+                        if (window.posthog) {
+                            posthog.capture('other_feedback_submitted', { 
+                                reason: selectedCancellationReason,
+                                feedback: feedback 
+                            });
+                        }
+                    } catch (e) {}
+                    
+                    alert('Thank you for your feedback. Our team will reach out within 24 hours to discuss your situation.');
+                    closeCancellationModal();
+                } else {
+                    alert('There was an error submitting your feedback. Please try again or contact support.');
                 }
-            } catch (e) {}
-            
-            alert('Thank you for your feedback. Our team will reach out within 24 hours to discuss your situation.');
-            closeCancellationModal();
+            } catch (error) {
+                console.error('Error submitting feedback:', error);
+                alert('There was an error submitting your feedback. Please try again or contact support.');
+            }
         }
 
         function trackSolution(solution) {
