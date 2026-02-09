@@ -565,9 +565,9 @@
 .feedback-button {
     position: fixed;
     bottom: 20px;
-    right: 100px; /* Positioned to the left of chat widget */
-    width: 60px;
-    height: 60px;
+    right: 100px;
+    width: 48px;  /* Plus petit */
+    height: 48px; /* Plus petit */
     background: linear-gradient(135deg, #f97316, #ea580c);
     border-radius: 50%;
     display: flex;
@@ -579,7 +579,7 @@
     z-index: 9998;
     border: none;
     color: white;
-    font-size: 24px;
+    font-size: 18px; /* Plus petite icône */
 }
 
 .feedback-button:hover {
@@ -775,11 +775,11 @@
 /* Mobile adjustments */
 @media (max-width: 640px) {
     .feedback-button {
-        width: 50px;
-        height: 50px;
+        width: 44px;  /* Encore plus petit sur mobile */
+        height: 44px;
         right: 85px;
         bottom: 20px;
-        font-size: 20px;
+        font-size: 16px;
     }
     
     .feedback-modal {
@@ -4216,19 +4216,15 @@ async function submitFeedback(event) {
     const successMsg = document.getElementById('feedbackSuccessMessage');
     const errorMsg = document.getElementById('feedbackErrorMessage');
     
-    // Hide previous messages
     successMsg.classList.remove('show');
     errorMsg.classList.remove('show');
     
-    // Disable submit button
     submitBtn.disabled = true;
     submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
     
-    // Get form data
+    // Données simplifiées - seulement type et message
     const feedbackData = {
         type: document.getElementById('feedbackType').value,
-        email: document.getElementById('feedbackEmail').value || 'Not provided',
-        subject: document.getElementById('feedbackSubject').value,
         message: document.getElementById('feedbackMessage').value,
         user_token: userToken || 'Anonymous',
         timestamp: new Date().toISOString(),
@@ -4245,13 +4241,9 @@ async function submitFeedback(event) {
         });
         
         if (response.ok) {
-            // Show success message
             successMsg.classList.add('show');
-            
-            // Reset form
             document.getElementById('feedbackForm').reset();
             
-            // Close modal after 2 seconds
             setTimeout(() => {
                 closeFeedbackModal();
             }, 2000);
@@ -4263,7 +4255,6 @@ async function submitFeedback(event) {
         console.error('Feedback submission error:', error);
         errorMsg.classList.add('show');
     } finally {
-        // Re-enable submit button
         submitBtn.disabled = false;
         submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> <span>Submit Feedback</span>';
     }
@@ -4317,7 +4308,7 @@ document.addEventListener('keydown', (e) => {
 
 <!-- Feedback Button -->
 <button class="feedback-button" onclick="showFeedbackModal()" title="Send Feedback">
-    <i class="fas fa-comment-dots"></i>
+    <i class="fas fa-lightbulb"></i> <!-- Icône différente : ampoule pour idées/feedback -->
 </button>
 
 <!-- Feedback Modal -->
@@ -4346,57 +4337,38 @@ document.addEventListener('keydown', (e) => {
         </div>
 
         <form id="feedbackForm" onsubmit="submitFeedback(event)">
-            <div class="feedback-form-group">
-                <label for="feedbackType">Type *</label>
-                <select id="feedbackType" required>
-                    <option value="">Select type...</option>
-                    <option value="feature">Feature Request</option>
-                    <option value="bug">Bug Report</option>
-                    <option value="feedback">General Feedback</option>
-                    <option value="issue">Technical Issue</option>
-                    <option value="other">Other</option>
-                </select>
-            </div>
+    <div class="feedback-form-group">
+        <label for="feedbackType">Type *</label>
+        <select id="feedbackType" required>
+            <option value="">Select type...</option>
+            <option value="feature">Feature Request</option>
+            <option value="bug">Bug Report</option>
+            <option value="feedback">General Feedback</option>
+            <option value="issue">Technical Issue</option>
+            <option value="other">Other</option>
+        </select>
+    </div>
 
             <div class="feedback-form-group">
-                <label for="feedbackEmail">Your Email (optional)</label>
-                <input 
-                    type="email" 
-                    id="feedbackEmail" 
-                    placeholder="your@email.com"
-                >
-            </div>
+        <label for="feedbackMessage">Message *</label>
+        <textarea 
+            id="feedbackMessage" 
+            placeholder="Tell us more about your feedback or issue..."
+            required
+            maxlength="2000"
+        ></textarea>
+    </div>
 
-            <div class="feedback-form-group">
-                <label for="feedbackSubject">Subject *</label>
-                <input 
-                    type="text" 
-                    id="feedbackSubject" 
-                    placeholder="Brief description..."
-                    required
-                    maxlength="200"
-                >
-            </div>
-
-            <div class="feedback-form-group">
-                <label for="feedbackMessage">Message *</label>
-                <textarea 
-                    id="feedbackMessage" 
-                    placeholder="Tell us more about your feedback or issue..."
-                    required
-                    maxlength="2000"
-                ></textarea>
-            </div>
-
+            
             <div class="feedback-form-actions">
-                <button type="button" class="feedback-cancel-btn" onclick="closeFeedbackModal()">
-                    Cancel
-                </button>
-                <button type="submit" class="feedback-submit-btn" id="feedbackSubmitBtn">
-                    <i class="fas fa-paper-plane"></i>
-                    <span>Submit Feedback</span>
-                </button>
-            </div>
+        <button type="button" class="feedback-cancel-btn" onclick="closeFeedbackModal()">
+            Cancel
+        </button>
+        <button type="submit" class="feedback-submit-btn" id="feedbackSubmitBtn">
+            <i class="fas fa-paper-plane"></i>
+            <span>Submit Feedback</span>
+        </button>
+    </div>
         </form>
     </div>
 </div>
