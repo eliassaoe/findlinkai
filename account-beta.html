@@ -1401,45 +1401,65 @@
         }
 
         async function submitFeatureRequest() {
-            const feature = document.getElementById('featureRequestText').value.trim();
-            if (!feature) {
-                alert('Please describe the feature you need');
-                return;
-            }
-            
+    const feature = document.getElementById('featureRequestText').value.trim();
+    if (!feature) {
+        alert('Please describe the feature you need');
+        return;
+    }
+    
+    // Debug: vérifier le token
+    console.log('User Token:', userToken);
+    
+    if (!userToken) {
+        alert('Session expired. Please refresh the page.');
+        return;
+    }
+    
+    const payload = {
+        token: userToken,
+        feature: feature,
+        type: 'feature_request',
+        reason: selectedCancellationReason
+    };
+    
+    // Debug: afficher le payload
+    console.log('Sending payload:', payload);
+    
+    try {
+        const response = await fetch(FEEDBACK_ENDPOINT, {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload)
+        });
+        
+        // Debug: afficher la réponse brute
+        const responseText = await response.text();
+        console.log('Response status:', response.status);
+        console.log('Response body:', responseText);
+        
+        if (response.ok) {
             try {
-                const response = await fetch(FEEDBACK_ENDPOINT, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        token: userToken,
-                        type: 'feature_request',
-                        content: feature,
+                if (window.posthog) {
+                    posthog.capture('feature_request_submitted', { 
                         reason: selectedCancellationReason,
-                        timestamp: new Date().toISOString()
-                    })
-                });
-                
-                if (response.ok) {
-                    try {
-                        if (window.posthog) {
-                            posthog.capture('feature_request_submitted', { 
-                                reason: selectedCancellationReason,
-                                feature: feature 
-                            });
-                        }
-                    } catch (e) {}
-                    
-                    alert('Thank you! We\'ve received your feature request. Our product team will review it and keep you updated.');
-                    closeCancellationModal();
-                } else {
-                    alert('There was an error submitting your request. Please try again or contact support.');
+                        feature: feature 
+                    });
                 }
-            } catch (error) {
-                console.error('Error submitting feature request:', error);
-                alert('There was an error submitting your request. Please try again or contact support.');
-            }
+            } catch (e) {}
+            
+            alert('Thank you! We\'ve received your feature request. Our product team will review it and keep you updated.');
+            closeCancellationModal();
+        } else {
+            console.error('Request failed:', response.status, responseText);
+            alert('There was an error submitting your request. Please check the console for details.');
         }
+    } catch (error) {
+        console.error('Network error:', error);
+        alert('Network error. Please check your connection.');
+    }
+}
 
         async function submitTechnicalIssue() {
             const issue = document.getElementById('technicalIssueText').value.trim();
