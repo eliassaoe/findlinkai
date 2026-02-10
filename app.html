@@ -1949,6 +1949,7 @@
         let userToken = null;
         let currentInputType = '';
         let currentOutputType = '';
+        let isBulkProcessing = false;
 
         // Data mapping configurations
        // Update the dataConfigurations to make the employee enrichments clearer
@@ -2371,6 +2372,9 @@ function formatPostReactionsData(reactionsArray) {
 
 
     async function processBulk() {
+    // Enable refresh warning
+    isBulkProcessing = true;
+    setupRefreshWarning();
 
     showAlert('⚠️ Processing in progress - Please do not refresh or close this page until complete!', 'warning');
     
@@ -2388,94 +2392,100 @@ function formatPostReactionsData(reactionsArray) {
     
     initializeBulkResultsTable();
     
-    for (let i = 0; i < csvData.length; i++) {
-        const row = csvData[i];
-        
-        const searchingResult = {
-            inputData: row.inputData,
-            result: 'Processing...',
-            status: 'Processing',
-            reactions: []
-        };
-        bulkResults.push(searchingResult);
-        updateBulkResultsTable();
-        
-        try {
-            const response = await fetchWithTimeout('https://linkfinderapp.hamoureliasse.workers.dev/', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    type: generateCombinationType(currentInputType, currentOutputType),
-                    input_data: row.inputData,
-                    output_type: currentOutputType,
-                    token: userToken,
-                    is_bulk: true
-                })
-            });
+    try {
+        for (let i = 0; i < csvData.length; i++) {
+            const row = csvData[i];
+            
+            const searchingResult = {
+                inputData: row.inputData,
+                result: 'Processing...',
+                status: 'Processing',
+                reactions: []
+            };
+            bulkResults.push(searchingResult);
+            updateBulkResultsTable();
+            
+            try {
+                const response = await fetchWithTimeout('https://linkfinderapp.hamoureliasse.workers.dev/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        type: generateCombinationType(currentInputType, currentOutputType),
+                        input_data: row.inputData,
+                        output_type: currentOutputType,
+                        token: userToken,
+                        is_bulk: true
+                    })
+                });
 
-            if (response.ok) {
-                const data = await response.json();
+                if (response.ok) {
+                    const data = await response.json();
 
-              if (currentOutputType === 'employee_count') {
-    const count = data.result || data || 'Not found';
-    bulkResults[i] = {
-        inputData: row.inputData,
-        result: count === 'Not found' ? count : `${count} employees`,
-        status: count === 'Not found' ? 'Not found' : 'Found',
-        employeeCount: count,
-        rawData: count
-    };
-}
-                
-                // Handle post reactions (array of reactions)
-                if (currentOutputType === 'reactions' && Array.isArray(data)) {
-                    bulkResults[i] = {
-                        inputData: row.inputData,
-                        result: `${data.length} reactions found`,
-                        status: 'Found',
-                        reactions: data,
-                        rawData: data
-                    };
+                    if (currentOutputType === 'employee_count') {
+                        const count = data.result || data || 'Not found';
+                        bulkResults[i] = {
+                            inputData: row.inputData,
+                            result: count === 'Not found' ? count : `${count} employees`,
+                            status: count === 'Not found' ? 'Not found' : 'Found',
+                            employeeCount: count,
+                            rawData: count
+                        };
+                    }
+                    
+                    // Handle post reactions (array of reactions)
+                    if (currentOutputType === 'reactions' && Array.isArray(data)) {
+                        bulkResults[i] = {
+                            inputData: row.inputData,
+                            result: `${data.length} reactions found`,
+                            status: 'Found',
+                            reactions: data,
+                            rawData: data
+                        };
+                    } else {
+                        bulkResults[i] = {
+                            inputData: row.inputData,
+                            result: data.result || 'Not found',
+                            status: data.result ? 'Found' : 'Not found',
+                            rawData: data
+                        };
+                    }
                 } else {
+                    const data = await response.json();
+
+                    if (response.status === 403 && data.code === 403) {
+                        showInsufficientCreditsModal();
+                        return;
+                    }
+                    
                     bulkResults[i] = {
                         inputData: row.inputData,
-                        result: data.result || 'Not found',
-                        status: data.result ? 'Found' : 'Not found',
-                        rawData: data
+                        result: 'Not found',
+                        status: 'Not found'
                     };
                 }
-            } else {
-                const data = await response.json();
 
-                if (response.status === 403 && data.code === 403) {
-                    showInsufficientCreditsModal();
-                    return;
-                }
-                
+            } catch (error) {
+                console.error(`Error for ${row.inputData}:`, error);
                 bulkResults[i] = {
                     inputData: row.inputData,
-                    result: 'Not found',
-                    status: 'Not found'
+                    result: 'Error',
+                    status: 'Error'
                 };
             }
 
-        } catch (error) {
-            console.error(`Error for ${row.inputData}:`, error);
-            bulkResults[i] = {
-                inputData: row.inputData,
-                result: 'Error',
-                status: 'Error'
-            };
+            updateProgress((i + 1) / csvData.length * 100);
+            updateBulkResultsTable();
+            
+            await new Promise(resolve => setTimeout(resolve, 100));
         }
-
-        updateProgress((i + 1) / csvData.length * 100);
-        updateBulkResultsTable();
+    } finally {
+        // Disable refresh warning when complete (success or error)
+        isBulkProcessing = false;
+        removeRefreshWarning();
         
-        await new Promise(resolve => setTimeout(resolve, 100));
+        btn.disabled = false;
+        btn.innerHTML = `<i class="fas fa-play"></i> Process Items`;
     }
-
-    btn.disabled = false;
-    btn.innerHTML = `<i class="fas fa-play"></i> Process Items`;
 }
 
         // Format LinkedIn profile data for bulk display (shorter version)
@@ -2504,6 +2514,22 @@ function formatLinkedInCompanyDataBulk(data) {
     return employeesArray; 
 }
 
+// Refresh warning functions
+function setupRefreshWarning() {
+    window.addEventListener('beforeunload', handleBeforeUnload);
+}
+
+function removeRefreshWarning() {
+    window.removeEventListener('beforeunload', handleBeforeUnload);
+}
+
+function handleBeforeUnload(e) {
+    if (isBulkProcessing) {
+        e.preventDefault();
+        e.returnValue = ''; // Chrome requires returnValue to be set
+        return ''; // For older browsers
+    }
+}
 
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
