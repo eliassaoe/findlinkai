@@ -9,6 +9,7 @@
         person_profiles: 'identified_only',
     })
 </script>
+    <script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
     <script>
         (function(w,d,t,r,u)
         {
@@ -3937,29 +3938,29 @@ function addGclid(url) {
         name: 'Starter', 
         monthlyPrice: 29, 
         credits: 60000,
-        monthlyGumroadLink: 'https://linkfinderai.gumroad.com/l/txudoe',
-        annualGumroadLink: 'https://linkfinderai.gumroad.com/l/hescr' // Pour l'instant même lien, tu changeras après
+        monthlyPriceId: 'pri_01kh3v1vx0r64ceqx1hy1tj7y2',  // REPLACE with your actual Paddle price ID
+        annualPriceId: 'pri_01kh3wrpg0nkspfey59wbyt2ym'     // REPLACE with your actual Paddle price ID
     },
     { 
         name: 'Professional', 
         monthlyPrice: 59, 
         credits: 240000,
-        monthlyGumroadLink: 'https://linkfinderai.gumroad.com/l/ouvehf',
-        annualGumroadLink: 'https://linkfinderai.gumroad.com/l/eadfhi' // Tu changeras après
+        monthlyPriceId: 'pri_01kh3v2w6k89f84bq1xe5g1rgr',  // REPLACE
+        annualPriceId: 'pri_01kh3wt0h6nv6qxwkv19m77xy9'     // REPLACE
     },
     { 
         name: 'Enterprise', 
         monthlyPrice: 99, 
         credits: 600000,
-        monthlyGumroadLink: 'https://linkfinderai.gumroad.com/l/oukgp',
-        annualGumroadLink: 'https://linkfinderai.gumroad.com/l/gtwsp' // Tu changeras après
+        monthlyPriceId: 'pri_01kh3v3ccattkrjqmdcaah3r82',  // REPLACE
+        annualPriceId: 'pri_01kh3x02xc2agx68y2enze5993'     // REPLACE
     },
     { 
         name: 'HyperGrowth', 
         monthlyPrice: 299, 
         credits: 3000000,
-        monthlyGumroadLink: 'https://linkfinderai.gumroad.com/l/tbwevi',
-        annualGumroadLink: 'https://linkfinderai.gumroad.com/l/yxvmqg' // Tu changeras après
+        monthlyPriceId: 'pri_01kh3tzph7m9gdc55f7xyshjem',  // You already have this one!
+        annualPriceId: 'pri_01kh3wvy59zgd48xfn65er564v'  // REPLACE
     }
 ];
     
@@ -4014,10 +4015,29 @@ function nextPlan() {
 
 function proceedToCheckout() {
     const plan = plans[currentPlanIndex];
+    const priceId = isAnnualBilling ? plan.annualPriceId : plan.monthlyPriceId;
     
-    // Utilise Gumroad
-    const baseUrl = isAnnualBilling ? plan.annualGumroadLink : plan.monthlyGumroadLink;
-    window.location.href = addGclid(`${baseUrl}?wanted=true&user_id=${userToken}`);
+    // Open Paddle checkout
+    Paddle.Checkout.open({
+        items: [
+            {
+                priceId: priceId,
+                quantity: 1
+            }
+        ],
+        customData: {
+            user_token: userToken  // Pass user token for linking subscription
+        },
+        customer: {
+            email: null  // Let user enter their email
+        },
+        settings: {
+            displayMode: 'overlay',
+            theme: 'light',
+            locale: 'en',
+            successUrl: addGclid(`https://linkfinderai.com/account?token=${userToken}&status=success`),
+        }
+    });
 }
 
 function showPricingModal() {
@@ -4371,6 +4391,33 @@ document.addEventListener('keydown', (e) => {
         </form>
     </div>
 </div>
+
+    <script>
+// Initialize Paddle - REPLACE 'YOUR_CLIENT_TOKEN_HERE' with your actual Paddle client token
+Paddle.Environment.set('production'); // Use 'sandbox' for testing
+Paddle.Initialize({ 
+    token: 'live_c55ce208e87e8d15ad602c80f68',  // Get this from Paddle Dashboard > Developer Tools > Authentication
+    eventCallback: function(data) {
+        console.log('Paddle event:', data);
+        
+        // Track successful checkout
+        if (data.name === 'checkout.completed') {
+            console.log('Checkout completed!', data);
+            
+            // Optional: Send conversion event to your analytics
+            try {
+                window.uetq = window.uetq || [];
+                window.uetq.push('event', 'purchase', {
+                    revenue_value: data.data.totals.total,
+                    currency: 'USD'
+                });
+            } catch (e) {
+                console.log('Analytics tracking failed:', e);
+            }
+        }
+    }
+});
+</script>
         
 </body>
 </html>>
