@@ -9,7 +9,6 @@
         person_profiles: 'identified_only',
     })
 </script>
-    <script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
     <script>
         (function(w,d,t,r,u)
         {
@@ -1796,6 +1795,33 @@
                         <label for="inputData" id="inputLabel">Enter Company Name</label>
                         <input type="text" id="inputData" placeholder="e.g., Tesla, Apple, Microsoft" required>
                     </div>
+                    <!-- Dans #singleSearch, avant le bouton submit -->
+<div id="employeeFilters" class="hidden">
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+        <div class="form-group">
+            <label>Department</label>
+            <select id="departmentFilter">
+                <option value="">All Departments</option>
+                <option value="engineering">Engineering</option>
+                <option value="sales">Sales</option>
+                <option value="marketing">Marketing</option>
+                <option value="finance">Finance</option>
+                <option value="hr">HR</option>
+                <option value="operations">Operations</option>
+                <option value="product">Product</option>
+                <option value="design">Design</option>
+                <option value="legal">Legal</option>
+                <option value="customer success">Customer Success</option>
+                <option value="it">IT</option>
+                <option value="data">Data</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Number of Employees</label>
+            <input type="number" id="maxEmployees" placeholder="e.g. 50" min="1" max="1000">
+        </div>
+    </div>
+</div>
                     <button type="submit" class="btn btn-full">
                         <i class="fas fa-magic"></i> Enrich Data
                     </button>
@@ -1950,6 +1976,7 @@
         let userToken = null;
         let currentInputType = '';
         let currentOutputType = '';
+        let isBulkProcessing = false;
 
         // Data mapping configurations
        // Update the dataConfigurations to make the employee enrichments clearer
@@ -2085,6 +2112,12 @@ async function fetchWithTimeout(url, options = {}, timeout = 180000) { // 3 minu
         function configureEnrichment() {
             const inputType = document.getElementById('inputType').value;
             const outputType = document.getElementById('outputType').value;
+
+            if (currentOutputType === 'employees') {
+    document.getElementById('employeeFilters').classList.remove('hidden');
+} else {
+    document.getElementById('employeeFilters').classList.add('hidden');
+}
             
             if (!inputType || !outputType) return;
 
@@ -2176,9 +2209,14 @@ if (credits < 0) {
     
     const inputValue = document.getElementById('inputData').value.trim();
     if (!inputValue) return;
+    let inputToSend = inputValue;
 
-    // Validate LinkedIn URLs
-    // Validate LinkedIn URLs with specific format checks
+if (currentOutputType === 'employees') {
+    const dept = document.getElementById('departmentFilter')?.value || '';
+    const max = document.getElementById('maxEmployees')?.value || '';
+    inputToSend = `${inputValue}/${dept}/${max}`;
+}
+      
 if (currentInputType === 'linkedin_profile') {
     if (!inputValue.toLowerCase().includes('linkedin.com/in/')) {
         showAlert('Please enter a valid LinkedIn Profile URL (must start with linkedin.com/in/)', 'error');
@@ -2372,6 +2410,9 @@ function formatPostReactionsData(reactionsArray) {
 
 
     async function processBulk() {
+    // Enable refresh warning
+    isBulkProcessing = true;
+    setupRefreshWarning();
 
     showAlert('⚠️ Processing in progress - Please do not refresh or close this page until complete!', 'warning');
     
@@ -2389,94 +2430,107 @@ function formatPostReactionsData(reactionsArray) {
     
     initializeBulkResultsTable();
     
-    for (let i = 0; i < csvData.length; i++) {
-        const row = csvData[i];
-        
-        const searchingResult = {
-            inputData: row.inputData,
-            result: 'Processing...',
-            status: 'Processing',
-            reactions: []
-        };
-        bulkResults.push(searchingResult);
-        updateBulkResultsTable();
-        
-        try {
-            const response = await fetchWithTimeout('https://linkfinderapp.hamoureliasse.workers.dev/', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    type: generateCombinationType(currentInputType, currentOutputType),
-                    input_data: row.inputData,
-                    output_type: currentOutputType,
-                    token: userToken,
-                    is_bulk: true
-                })
-            });
+    try {
+        for (let i = 0; i < csvData.length; i++) {
+            const row = csvData[i];
+            
+            const searchingResult = {
+                inputData: row.inputData,
+                result: 'Processing...',
+                status: 'Processing',
+                reactions: []
+            };
+            bulkResults.push(searchingResult);
+            updateBulkResultsTable();
 
-            if (response.ok) {
-                const data = await response.json();
+            let inputToSend = row.inputData;
+        if (currentOutputType === 'employees') {
+            const dept = document.getElementById('departmentFilter')?.value || '';
+            const max = document.getElementById('maxEmployees')?.value || '';
+            inputToSend = `${row.inputData}/${dept}/${max}`;
+        }
+            
+            try {
+                const response = await fetchWithTimeout('https://linkfinderapp.hamoureliasse.workers.dev/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        type: generateCombinationType(currentInputType, currentOutputType),
+                        input_data: inputToSend,
+                        output_type: currentOutputType,
+                        token: userToken,
+                        is_bulk: true
+                    })
+                });
 
-              if (currentOutputType === 'employee_count') {
-    const count = data.result || data || 'Not found';
-    bulkResults[i] = {
-        inputData: row.inputData,
-        result: count === 'Not found' ? count : `${count} employees`,
-        status: count === 'Not found' ? 'Not found' : 'Found',
-        employeeCount: count,
-        rawData: count
-    };
-}
-                
-                // Handle post reactions (array of reactions)
-                if (currentOutputType === 'reactions' && Array.isArray(data)) {
-                    bulkResults[i] = {
-                        inputData: row.inputData,
-                        result: `${data.length} reactions found`,
-                        status: 'Found',
-                        reactions: data,
-                        rawData: data
-                    };
+                if (response.ok) {
+                    const data = await response.json();
+
+                    if (currentOutputType === 'employee_count') {
+                        const count = data.result || data || 'Not found';
+                        bulkResults[i] = {
+                            inputData: row.inputData,
+                            result: count === 'Not found' ? count : `${count} employees`,
+                            status: count === 'Not found' ? 'Not found' : 'Found',
+                            employeeCount: count,
+                            rawData: count
+                        };
+                    }
+                    
+                    // Handle post reactions (array of reactions)
+                    if (currentOutputType === 'reactions' && Array.isArray(data)) {
+                        bulkResults[i] = {
+                            inputData: row.inputData,
+                            result: `${data.length} reactions found`,
+                            status: 'Found',
+                            reactions: data,
+                            rawData: data
+                        };
+                    } else {
+                        bulkResults[i] = {
+                            inputData: row.inputData,
+                            result: data.result || 'Not found',
+                            status: data.result ? 'Found' : 'Not found',
+                            rawData: data
+                        };
+                    }
                 } else {
+                    const data = await response.json();
+
+                    if (response.status === 403 && data.code === 403) {
+                        showInsufficientCreditsModal();
+                        return;
+                    }
+                    
                     bulkResults[i] = {
                         inputData: row.inputData,
-                        result: data.result || 'Not found',
-                        status: data.result ? 'Found' : 'Not found',
-                        rawData: data
+                        result: 'Not found',
+                        status: 'Not found'
                     };
                 }
-            } else {
-                const data = await response.json();
 
-                if (response.status === 403 && data.code === 403) {
-                    showInsufficientCreditsModal();
-                    return;
-                }
-                
+            } catch (error) {
+                console.error(`Error for ${row.inputData}:`, error);
                 bulkResults[i] = {
                     inputData: row.inputData,
-                    result: 'Not found',
-                    status: 'Not found'
+                    result: 'Error',
+                    status: 'Error'
                 };
             }
 
-        } catch (error) {
-            console.error(`Error for ${row.inputData}:`, error);
-            bulkResults[i] = {
-                inputData: row.inputData,
-                result: 'Error',
-                status: 'Error'
-            };
+            updateProgress((i + 1) / csvData.length * 100);
+            updateBulkResultsTable();
+            
+            await new Promise(resolve => setTimeout(resolve, 100));
         }
-
-        updateProgress((i + 1) / csvData.length * 100);
-        updateBulkResultsTable();
+    } finally {
+        // Disable refresh warning when complete (success or error)
+        isBulkProcessing = false;
+        removeRefreshWarning();
         
-        await new Promise(resolve => setTimeout(resolve, 100));
+        btn.disabled = false;
+        btn.innerHTML = `<i class="fas fa-play"></i> Process Items`;
     }
-
-    btn.disabled = false;
-    btn.innerHTML = `<i class="fas fa-play"></i> Process Items`;
 }
 
         // Format LinkedIn profile data for bulk display (shorter version)
@@ -2505,6 +2559,22 @@ function formatLinkedInCompanyDataBulk(data) {
     return employeesArray; 
 }
 
+// Refresh warning functions
+function setupRefreshWarning() {
+    window.addEventListener('beforeunload', handleBeforeUnload);
+}
+
+function removeRefreshWarning() {
+    window.removeEventListener('beforeunload', handleBeforeUnload);
+}
+
+function handleBeforeUnload(e) {
+    if (isBulkProcessing) {
+        e.preventDefault();
+        e.returnValue = ''; // Chrome requires returnValue to be set
+        return ''; // For older browsers
+    }
+}
 
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
@@ -3096,21 +3166,20 @@ if (linkedInFields.company_phone && linkedInFields.company_phone !== 'Not found'
                 <div style="font-size: 0.875rem; color: var(--gray-700); line-height: 1.6;">
         `;
         
-        if (employee.jobTitle && employee.jobTitle !== 'Not specified') {
-            html += `<div><strong>Title:</strong> ${employee.jobTitle}</div>`;
-        }
-        if (employee.company && employee.company !== 'Not specified') {
-            html += `<div><strong>Company:</strong> ${employee.company}</div>`;
-        }
-        if (employee.location && employee.location !== 'Not specified') {
-            html += `<div><strong>Location:</strong> ${employee.location}</div>`;
-        }
-        if (employee.industry && employee.industry !== 'Not specified') {
-            html += `<div><strong>Industry:</strong> ${employee.industry}</div>`;
-        }
-        if (employee.linkedinUrl) {
-            html += `<div><strong>LinkedIn:</strong> <a href="${employee.linkedinUrl}" target="_blank">${employee.linkedinUrl}</a></div>`;
-        }
+        if (employee.jobTitle)    html += `<div><strong>Title:</strong> ${employee.jobTitle}</div>`;
+if (employee.email)       html += `<div><strong>Email:</strong> <span style="color:var(--success);font-weight:600;">${employee.email}</span></div>`;
+if (employee.company)     html += `<div><strong>Company:</strong> ${employee.company}</div>`;
+if (employee.department)  html += `<div><strong>Department:</strong> ${employee.department}</div>`;
+if (employee.industry)    html += `<div><strong>Industry:</strong> ${employee.industry}</div>`;
+if (employee.city || employee.country) {
+    const location = [employee.city, employee.state, employee.country].filter(Boolean).join(', ');
+    html += `<div><strong>Location:</strong> ${location}</div>`;
+}
+if (employee.headline)    html += `<div><strong>Headline:</strong> ${employee.headline}</div>`;
+if (employee.employmentType && employee.employmentType !== 'Not specified')
+                          html += `<div><strong>Employment:</strong> ${employee.employmentType}</div>`;
+if (employee.linkedinUrl) html += `<div><strong>LinkedIn:</strong> <a href="${employee.linkedinUrl}" target="_blank">${employee.linkedinUrl}</a></div>`;
+if (employee.companylinkedinurl) html += `<div><strong>Company LinkedIn:</strong> <a href="${employee.companylinkedinurl}" target="_blank">${employee.companylinkedinurl}</a></div>`;
         
         html += `
                 </div>
@@ -3501,6 +3570,24 @@ if (linkedInFields.company_phone && linkedInFields.company_phone !== 'Not found'
             <tbody></tbody>
         </table>`;
     }
+
+    if (currentOutputType === 'employees') {
+    html = `<table class="results-table">
+        <thead>
+            <tr>
+                <th>Input</th>
+                <th>Name</th>
+                <th>Job Title</th>
+                <th>Email</th>
+                <th>Company</th>
+                <th>Location</th>
+                <th>LinkedIn</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>`;
+}
     
     if (currentInputType === 'linkedin_post' && currentOutputType === 'reactions') {
     html = `<table class="results-table">
@@ -3878,6 +3965,37 @@ else if (currentInputType === 'linkedin_profile' && currentOutputType === 'linke
             csvContent += csvRow.join(',') + '\n';
         });
     } 
+
+    else if (currentOutputType === 'employees') {
+    csvContent = 'Input,Name,Job Title,Email,Company,Department,Industry,City,State,Country,Headline,Employment Type,LinkedIn URL,Company LinkedIn URL\n';
+    
+    bulkResults.forEach(row => {
+        const employees = row.employees || [];
+        if (employees.length === 0) {
+            csvContent += `"${row.inputData}","Not found","","","","","","","","","","","",""\n`;
+        } else {
+            employees.forEach(emp => {
+                const escape = (v) => v ? `"${String(v).replace(/"/g, '""')}"` : '""';
+                csvContent += [
+                    escape(row.inputData),
+                    escape(emp.name),
+                    escape(emp.jobTitle),
+                    escape(emp.email),
+                    escape(emp.company),
+                    escape(emp.department),
+                    escape(emp.industry),
+                    escape(emp.city),
+                    escape(emp.state),
+                    escape(emp.country),
+                    escape(emp.headline),
+                    escape(emp.employmentType),
+                    escape(emp.linkedinUrl),
+                    escape(emp.companylinkedinurl)
+                ].join(',') + '\n';
+            });
+        }
+    });
+}
     // Handle general enrichment data export
     else {
         const outputLabel = config.outputs[currentOutputType];
@@ -3938,29 +4056,29 @@ function addGclid(url) {
         name: 'Starter', 
         monthlyPrice: 29, 
         credits: 60000,
-        monthlyPriceId: 'pri_01kh3v1vx0r64ceqx1hy1tj7y2',  // REPLACE with your actual Paddle price ID
-        annualPriceId: 'pri_01kh3wrpg0nkspfey59wbyt2ym'     // REPLACE with your actual Paddle price ID
+        monthlyGumroadLink: 'https://linkfinderai.gumroad.com/l/txudoe',
+        annualGumroadLink: 'https://linkfinderai.gumroad.com/l/hescr' // Pour l'instant même lien, tu changeras après
     },
     { 
         name: 'Professional', 
         monthlyPrice: 59, 
         credits: 240000,
-        monthlyPriceId: 'pri_01kh3v2w6k89f84bq1xe5g1rgr',  // REPLACE
-        annualPriceId: 'pri_01kh3wt0h6nv6qxwkv19m77xy9'     // REPLACE
+        monthlyGumroadLink: 'https://linkfinderai.gumroad.com/l/ouvehf',
+        annualGumroadLink: 'https://linkfinderai.gumroad.com/l/eadfhi' // Tu changeras après
     },
     { 
         name: 'Enterprise', 
         monthlyPrice: 99, 
         credits: 600000,
-        monthlyPriceId: 'pri_01kh3v3ccattkrjqmdcaah3r82',  // REPLACE
-        annualPriceId: 'pri_01kh3x02xc2agx68y2enze5993'     // REPLACE
+        monthlyGumroadLink: 'https://linkfinderai.gumroad.com/l/oukgp',
+        annualGumroadLink: 'https://linkfinderai.gumroad.com/l/gtwsp' // Tu changeras après
     },
     { 
         name: 'HyperGrowth', 
         monthlyPrice: 299, 
         credits: 3000000,
-        monthlyPriceId: 'pri_01kh3tzph7m9gdc55f7xyshjem',  // You already have this one!
-        annualPriceId: 'pri_01kh3wvy59zgd48xfn65er564v'  // REPLACE
+        monthlyGumroadLink: 'https://linkfinderai.gumroad.com/l/tbwevi',
+        annualGumroadLink: 'https://linkfinderai.gumroad.com/l/yxvmqg' // Tu changeras après
     }
 ];
     
@@ -4015,23 +4133,12 @@ function nextPlan() {
 
 function proceedToCheckout() {
     const plan = plans[currentPlanIndex];
-    const priceId = isAnnualBilling ? plan.annualPriceId : plan.monthlyPriceId;
     
-    Paddle.Checkout.open({
-        items: [{ priceId: priceId, quantity: 1 }],
-        
-        customData: {
-            user_token: userToken 
-        },
-        
-        settings: {
-            displayMode: 'overlay',
-            theme: 'light',
-            successUrl: `https://linkfinderai.com/account?token=${userToken}&status=success`
-        }
-    });
+    // Utilise Gumroad
+    const baseUrl = isAnnualBilling ? plan.annualGumroadLink : plan.monthlyGumroadLink;
+    window.location.href = addGclid(`${baseUrl}?wanted=true&user_id=${userToken}`);
 }
-        
+
 function showPricingModal() {
 
      try {
@@ -4383,33 +4490,6 @@ document.addEventListener('keydown', (e) => {
         </form>
     </div>
 </div>
-
-    <script>
-// Initialize Paddle - REPLACE 'YOUR_CLIENT_TOKEN_HERE' with your actual Paddle client token
-Paddle.Environment.set('production'); // Use 'sandbox' for testing
-Paddle.Initialize({ 
-    token: 'live_c55ce208e87e8d15ad602c80f68',  // Get this from Paddle Dashboard > Developer Tools > Authentication
-    eventCallback: function(data) {
-        console.log('Paddle event:', data);
-        
-        // Track successful checkout
-        if (data.name === 'checkout.completed') {
-            console.log('Checkout completed!', data);
-            
-            // Optional: Send conversion event to your analytics
-            try {
-                window.uetq = window.uetq || [];
-                window.uetq.push('event', 'purchase', {
-                    revenue_value: data.data.totals.total,
-                    currency: 'USD'
-                });
-            } catch (e) {
-                console.log('Analytics tracking failed:', e);
-            }
-        }
-    }
-});
-</script>
         
 </body>
 </html>>
