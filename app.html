@@ -3121,21 +3121,20 @@ if (linkedInFields.company_phone && linkedInFields.company_phone !== 'Not found'
                 <div style="font-size: 0.875rem; color: var(--gray-700); line-height: 1.6;">
         `;
         
-        if (employee.jobTitle && employee.jobTitle !== 'Not specified') {
-            html += `<div><strong>Title:</strong> ${employee.jobTitle}</div>`;
-        }
-        if (employee.company && employee.company !== 'Not specified') {
-            html += `<div><strong>Company:</strong> ${employee.company}</div>`;
-        }
-        if (employee.location && employee.location !== 'Not specified') {
-            html += `<div><strong>Location:</strong> ${employee.location}</div>`;
-        }
-        if (employee.industry && employee.industry !== 'Not specified') {
-            html += `<div><strong>Industry:</strong> ${employee.industry}</div>`;
-        }
-        if (employee.linkedinUrl) {
-            html += `<div><strong>LinkedIn:</strong> <a href="${employee.linkedinUrl}" target="_blank">${employee.linkedinUrl}</a></div>`;
-        }
+        if (employee.jobTitle)    html += `<div><strong>Title:</strong> ${employee.jobTitle}</div>`;
+if (employee.email)       html += `<div><strong>Email:</strong> <span style="color:var(--success);font-weight:600;">${employee.email}</span></div>`;
+if (employee.company)     html += `<div><strong>Company:</strong> ${employee.company}</div>`;
+if (employee.department)  html += `<div><strong>Department:</strong> ${employee.department}</div>`;
+if (employee.industry)    html += `<div><strong>Industry:</strong> ${employee.industry}</div>`;
+if (employee.city || employee.country) {
+    const location = [employee.city, employee.state, employee.country].filter(Boolean).join(', ');
+    html += `<div><strong>Location:</strong> ${location}</div>`;
+}
+if (employee.headline)    html += `<div><strong>Headline:</strong> ${employee.headline}</div>`;
+if (employee.employmentType && employee.employmentType !== 'Not specified')
+                          html += `<div><strong>Employment:</strong> ${employee.employmentType}</div>`;
+if (employee.linkedinUrl) html += `<div><strong>LinkedIn:</strong> <a href="${employee.linkedinUrl}" target="_blank">${employee.linkedinUrl}</a></div>`;
+if (employee.companylinkedinurl) html += `<div><strong>Company LinkedIn:</strong> <a href="${employee.companylinkedinurl}" target="_blank">${employee.companylinkedinurl}</a></div>`;
         
         html += `
                 </div>
@@ -3903,6 +3902,37 @@ else if (currentInputType === 'linkedin_profile' && currentOutputType === 'linke
             csvContent += csvRow.join(',') + '\n';
         });
     } 
+
+    else if (currentOutputType === 'employees') {
+    csvContent = 'Input,Name,Job Title,Email,Company,Department,Industry,City,State,Country,Headline,Employment Type,LinkedIn URL,Company LinkedIn URL\n';
+    
+    bulkResults.forEach(row => {
+        const employees = row.employees || [];
+        if (employees.length === 0) {
+            csvContent += `"${row.inputData}","Not found","","","","","","","","","","","",""\n`;
+        } else {
+            employees.forEach(emp => {
+                const escape = (v) => v ? `"${String(v).replace(/"/g, '""')}"` : '""';
+                csvContent += [
+                    escape(row.inputData),
+                    escape(emp.name),
+                    escape(emp.jobTitle),
+                    escape(emp.email),
+                    escape(emp.company),
+                    escape(emp.department),
+                    escape(emp.industry),
+                    escape(emp.city),
+                    escape(emp.state),
+                    escape(emp.country),
+                    escape(emp.headline),
+                    escape(emp.employmentType),
+                    escape(emp.linkedinUrl),
+                    escape(emp.companylinkedinurl)
+                ].join(',') + '\n';
+            });
+        }
+    });
+}
     // Handle general enrichment data export
     else {
         const outputLabel = config.outputs[currentOutputType];
