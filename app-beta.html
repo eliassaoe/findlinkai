@@ -2191,30 +2191,6 @@ async function fetchWithTimeout(url, options = {}, timeout = 180000) { // 3 minu
     }
 }
 
-        function configureEnrichment() {
-            const inputType = document.getElementById('inputType').value;
-            const outputType = document.getElementById('outputType').value;
-            
-            if (!inputType || !outputType) return;
-
-            currentInputType = inputType;
-            currentOutputType = outputType;
-            
-            const config = dataConfigurations[inputType];
-            
-            // Update input field
-            document.getElementById('inputLabel').textContent = config.label;
-            document.getElementById('inputData').placeholder = config.placeholder;
-            
-            // Update upload subtext
-            document.getElementById('uploadSubtext').textContent = `CSV with ${config.label.toLowerCase().replace('enter ', '')} (max 10000 rows)`;
-            
-            // Show mode toggle and input sections
-            document.getElementById('modeToggle').classList.remove('hidden');
-            updateOptionalFields();
-            showInputSections();
-        }
-
         function showInputSections() {
             if (currentMode === 'single') {
                 document.getElementById('singleSearch').classList.remove('hidden');
@@ -2313,12 +2289,8 @@ if (currentInputType === 'linkedin_profile') {
         console.log('Input type:', currentInputType);
         console.log('Output type:', currentOutputType);
         console.log('Input value:', inputValue);
-        
-        const response = await fetchWithTimeout('https://linkfinderapp.hamoureliasse.workers.dev/', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            // Build optional suffix for company_domain → employees
-let finalInputValue = inputValue;
+
+        let finalInputValue = inputValue;
 if (currentInputType === 'company_domain' && currentOutputType === 'employees') {
     const dept = document.getElementById('optionalDepartment').value.trim();
     const empCount = document.getElementById('optionalEmployeeCount').value.trim();
@@ -2327,6 +2299,11 @@ if (currentInputType === 'company_domain' && currentOutputType === 'employees') 
     finalInputValue = `${inputValue}/${deptPart}/${countPart}`;
 }
 
+        
+        const response = await fetchWithTimeout('https://linkfinderapp.hamoureliasse.workers.dev/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            // Build optional suffix for company_domain → employees
 body: JSON.stringify({
     type: generateCombinationType(currentInputType, currentOutputType),
     input_data: finalInputValue,
