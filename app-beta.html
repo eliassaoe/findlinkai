@@ -198,6 +198,48 @@
     box-shadow: 0 4px 12px rgba(251, 146, 60, 0.35);
 }
 
+.optional-fields {
+    display: none;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--gray-200);
+}
+
+.optional-fields.visible {
+    display: grid;
+}
+
+.optional-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--gray-500);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.25rem;
+}
+
+.optional-badge {
+    display: inline-block;
+    font-size: 0.7rem;
+    background: var(--gray-100);
+    color: var(--gray-500);
+    padding: 0.1rem 0.4rem;
+    border-radius: 3px;
+    margin-left: 0.4rem;
+    font-weight: 500;
+    text-transform: none;
+    letter-spacing: 0;
+    vertical-align: middle;
+}
+
+@media (max-width: 640px) {
+    .optional-fields {
+        grid-template-columns: 1fr;
+    }
+}
+
 .credit-cost {
     text-align: center;
     padding: 0.75rem;
@@ -1755,6 +1797,7 @@
                         <select id="inputType" class="form-select">
                             <option value="">Select data type...</option>
                             <option value="company_name">Company Name</option>
+                            <option value="company_domain">Company Domain</option>
                             <option value="linkedin_company">LinkedIn Company URL</option>
                             <option value="linkedin_profile">LinkedIn Profile URL</option>
                             <option value="lead_full_name">Lead Full Name</option>
@@ -1795,33 +1838,52 @@
                         <label for="inputData" id="inputLabel">Enter Company Name</label>
                         <input type="text" id="inputData" placeholder="e.g., Tesla, Apple, Microsoft" required>
                     </div>
-                    <!-- Dans #singleSearch, avant le bouton submit -->
-<div id="employeeFilters" class="hidden">
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
-        <div class="form-group">
-            <label>Department</label>
-            <select id="departmentFilter">
-                <option value="">All Departments</option>
-                <option value="engineering">Engineering</option>
-                <option value="sales">Sales</option>
-                <option value="marketing">Marketing</option>
-                <option value="finance">Finance</option>
-                <option value="hr">HR</option>
-                <option value="operations">Operations</option>
-                <option value="product">Product</option>
-                <option value="design">Design</option>
-                <option value="legal">Legal</option>
-                <option value="customer success">Customer Success</option>
-                <option value="it">IT</option>
-                <option value="data">Data</option>
-            </select>
-        </div>
-        <div class="form-group">
-            <label>Number of Employees</label>
-            <input type="number" id="maxEmployees" placeholder="e.g. 50" min="1" max="1000">
-        </div>
+
+                    <!-- Optional fields for company_domain → employees -->
+<div class="optional-fields" id="optionalEmployeeFields">
+    <div class="form-group" style="margin-bottom: 0;">
+        <label class="optional-label">
+            Department
+            <span class="optional-badge">optional</span>
+        </label>
+        <select id="optionalDepartment" class="form-select">
+            <option value="">All departments</option>
+            <option value="Engineering">Engineering</option>
+            <option value="Sales">Sales</option>
+            <option value="Marketing">Marketing</option>
+            <option value="Human Resources">Human Resources</option>
+            <option value="Finance">Finance</option>
+            <option value="Operations">Operations</option>
+            <option value="Product Management">Product Management</option>
+            <option value="Design">Design</option>
+            <option value="Customer Success">Customer Success</option>
+            <option value="Legal">Legal</option>
+            <option value="Executive">Executive</option>
+            <option value="IT">IT</option>
+            <option value="Research & Development">Research & Development</option>
+            <option value="Business Development">Business Development</option>
+            <option value="Accounting">Accounting</option>
+            <option value="Supply Chain">Supply Chain</option>
+            <option value="Data & Analytics">Data & Analytics</option>
+        </select>
+    </div>
+
+    <div class="form-group" style="margin-bottom: 0;">
+        <label class="optional-label">
+            Number of employees
+            <span class="optional-badge">optional</span>
+        </label>
+        <input
+            type="number"
+            id="optionalEmployeeCount"
+            placeholder="e.g. 25"
+            min="1"
+            max="1000"
+            style="width: 100%; padding: 0.75rem; border: 1px solid var(--gray-300); border-radius: 6px; font-size: 0.875rem;"
+        >
     </div>
 </div>
+                    
                     <button type="submit" class="btn btn-full">
                         <i class="fas fa-magic"></i> Enrich Data
                     </button>
@@ -1995,11 +2057,17 @@ const dataConfigurations = {
             website: "Company Website",
             phone: "Company Phone Number",
             linkedin_url: "Company LinkedIn URL",
-            employees: "Company Employees List",
             employee_count: "Employee Count",
             email: "Company Email" 
         }
     },
+    company_domain: {
+    label: "Enter Company Domain",
+    placeholder: "e.g., tesla.com, apple.com, microsoft.com",
+    outputs: {
+        employees: "Company Employees List"
+    }
+},
     linkedin_company: {
         label: "Enter LinkedIn Company URL",
         placeholder: "e.g., linkedin.com/company/tesla",
@@ -2109,15 +2177,23 @@ async function fetchWithTimeout(url, options = {}, timeout = 180000) { // 3 minu
             });
         }
 
+        function updateOptionalFields() {
+    const fields = document.getElementById('optionalEmployeeFields');
+    const isEmployees = currentInputType === 'company_domain' && currentOutputType === 'employees';
+
+    if (isEmployees) {
+        fields.classList.add('visible');
+    } else {
+        fields.classList.remove('visible');
+        // Reset values when hidden so they don't bleed into other enrichments
+        document.getElementById('optionalDepartment').value = '';
+        document.getElementById('optionalEmployeeCount').value = '';
+    }
+}
+
         function configureEnrichment() {
             const inputType = document.getElementById('inputType').value;
             const outputType = document.getElementById('outputType').value;
-
-            if (currentOutputType === 'employees') {
-    document.getElementById('employeeFilters').classList.remove('hidden');
-} else {
-    document.getElementById('employeeFilters').classList.add('hidden');
-}
             
             if (!inputType || !outputType) return;
 
@@ -2135,6 +2211,7 @@ async function fetchWithTimeout(url, options = {}, timeout = 180000) { // 3 minu
             
             // Show mode toggle and input sections
             document.getElementById('modeToggle').classList.remove('hidden');
+            updateOptionalFields();
             showInputSections();
         }
 
@@ -2209,14 +2286,9 @@ if (credits < 0) {
     
     const inputValue = document.getElementById('inputData').value.trim();
     if (!inputValue) return;
-    let inputToSend = inputValue;
 
-if (currentOutputType === 'employees') {
-    const dept = document.getElementById('departmentFilter')?.value || '';
-    const max = document.getElementById('maxEmployees')?.value || '';
-    inputToSend = `${inputValue}/${dept}/${max}`;
-}
-      
+    // Validate LinkedIn URLs
+    // Validate LinkedIn URLs with specific format checks
 if (currentInputType === 'linkedin_profile') {
     if (!inputValue.toLowerCase().includes('linkedin.com/in/')) {
         showAlert('Please enter a valid LinkedIn Profile URL (must start with linkedin.com/in/)', 'error');
@@ -2245,13 +2317,23 @@ if (currentInputType === 'linkedin_profile') {
         const response = await fetchWithTimeout('https://linkfinderapp.hamoureliasse.workers.dev/', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                type: generateCombinationType(currentInputType, currentOutputType),
-                input_data: inputValue,
-                output_type: currentOutputType,
-                token: userToken,
-                is_bulk: false
-            })
+            // Build optional suffix for company_domain → employees
+let finalInputValue = inputValue;
+if (currentInputType === 'company_domain' && currentOutputType === 'employees') {
+    const dept = document.getElementById('optionalDepartment').value.trim();
+    const empCount = document.getElementById('optionalEmployeeCount').value.trim();
+    const deptPart  = dept     || 'all';
+    const countPart = empCount || 'all';
+    finalInputValue = `${inputValue}/${deptPart}/${countPart}`;
+}
+
+body: JSON.stringify({
+    type: generateCombinationType(currentInputType, currentOutputType),
+    input_data: finalInputValue,
+    output_type: currentOutputType,
+    token: userToken,
+    is_bulk: false
+})
         });
 
         console.log('Response status:', response.status);
@@ -2442,13 +2524,6 @@ function formatPostReactionsData(reactionsArray) {
             };
             bulkResults.push(searchingResult);
             updateBulkResultsTable();
-
-            let inputToSend = row.inputData;
-        if (currentOutputType === 'employees') {
-            const dept = document.getElementById('departmentFilter')?.value || '';
-            const max = document.getElementById('maxEmployees')?.value || '';
-            inputToSend = `${row.inputData}/${dept}/${max}`;
-        }
             
             try {
                 const response = await fetchWithTimeout('https://linkfinderapp.hamoureliasse.workers.dev/', {
@@ -2456,7 +2531,7 @@ function formatPostReactionsData(reactionsArray) {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         type: generateCombinationType(currentInputType, currentOutputType),
-                        input_data: inputToSend,
+                        input_data: row.inputData,
                         output_type: currentOutputType,
                         token: userToken,
                         is_bulk: true
@@ -3404,6 +3479,7 @@ if (employee.companylinkedinurl) html += `<div><strong>Company LinkedIn:</strong
     // More comprehensive header variations (all in lowercase for matching)
     const possibleHeaders = {
         'company_name': ['company_name', 'company name', 'company', 'name', 'companyname'],
+        'company_domain': ['company_domain', 'domain', 'company domain', 'website', 'url', 'companydomain'],
         'linkedin_company': [
             'linkedin_company',
             'linkedin company',
@@ -3570,24 +3646,6 @@ if (employee.companylinkedinurl) html += `<div><strong>Company LinkedIn:</strong
             <tbody></tbody>
         </table>`;
     }
-
-    if (currentOutputType === 'employees') {
-    html = `<table class="results-table">
-        <thead>
-            <tr>
-                <th>Input</th>
-                <th>Name</th>
-                <th>Job Title</th>
-                <th>Email</th>
-                <th>Company</th>
-                <th>Location</th>
-                <th>LinkedIn</th>
-                <th>Status</th>
-            </tr>
-        </thead>
-        <tbody></tbody>
-    </table>`;
-}
     
     if (currentInputType === 'linkedin_post' && currentOutputType === 'reactions') {
     html = `<table class="results-table">
@@ -4247,6 +4305,7 @@ const creditCosts = {
     'linkedin_company_to_employee_count': 1,
     'linkedin_profile_to_linkedin_info': 10,
     'lead_full_name_to_linkedin_url': 1,
+    'company_domain_to_employees': 1,
     'linkedin_post_to_reactions': 1
 };
 
