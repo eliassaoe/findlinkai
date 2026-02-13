@@ -2490,8 +2490,7 @@ function formatPostReactionsData(reactionsArray) {
 }
 
 
-    async function processBulk() {
-    // Enable refresh warning
+async function processBulk() {
     isBulkProcessing = true;
     setupRefreshWarning();
 
@@ -2515,13 +2514,12 @@ function formatPostReactionsData(reactionsArray) {
         for (let i = 0; i < csvData.length; i++) {
             const row = csvData[i];
             
-            const searchingResult = {
+            bulkResults.push({
                 inputData: row.inputData,
                 result: 'Processing...',
                 status: 'Processing',
                 reactions: []
-            };
-            bulkResults.push(searchingResult);
+            });
             updateBulkResultsTable();
             
             try {
@@ -2549,10 +2547,16 @@ function formatPostReactionsData(reactionsArray) {
                             employeeCount: count,
                             rawData: count
                         };
-                    }
-                    
-                    // Handle post reactions (array of reactions)
-                    if (currentOutputType === 'reactions' && Array.isArray(data)) {
+                    } else if (currentOutputType === 'employees' && (Array.isArray(data) || (data.employees && Array.isArray(data.employees)))) {
+                        const employees = Array.isArray(data) ? data : data.employees;
+                        bulkResults[i] = {
+                            inputData: row.inputData,
+                            result: `${employees.length} employees found`,
+                            status: employees.length > 0 ? 'Found' : 'Not found',
+                            employees: employees,
+                            rawData: data
+                        };
+                    } else if (currentOutputType === 'reactions' && Array.isArray(data)) {
                         bulkResults[i] = {
                             inputData: row.inputData,
                             result: `${data.length} reactions found`,
@@ -2568,6 +2572,7 @@ function formatPostReactionsData(reactionsArray) {
                             rawData: data
                         };
                     }
+
                 } else {
                     const data = await response.json();
 
@@ -2598,7 +2603,6 @@ function formatPostReactionsData(reactionsArray) {
             await new Promise(resolve => setTimeout(resolve, 100));
         }
     } finally {
-        // Disable refresh warning when complete (success or error)
         isBulkProcessing = false;
         removeRefreshWarning();
         
@@ -2606,7 +2610,6 @@ function formatPostReactionsData(reactionsArray) {
         btn.innerHTML = `<i class="fas fa-play"></i> Process Items`;
     }
 }
-
         // Format LinkedIn profile data for bulk display (shorter version)
 function formatLinkedInProfileDataBulk(data) {
     let parts = [];
