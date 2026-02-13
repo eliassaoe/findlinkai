@@ -4322,13 +4322,22 @@ function updateCreditCostDisplay() {
         return;
     }
     
-    const cost = getCreditCost(currentInputType, currentOutputType);
-    const costText = cost === 1 ? '1 credit' : `${cost} credits`;
+    const isEmployees = currentOutputType === 'employees';
     
-    creditCostDiv.innerHTML = `
-        <i class="fas fa-coins"></i>
-        Cost: <span class="credit-cost-value">${costText}</span> per enrichment
-    `;
+    if (isEmployees) {
+        creditCostDiv.innerHTML = `
+            <i class="fas fa-coins"></i>
+            Cost: <span class="credit-cost-value">1 credit per 2 employees found</span>
+        `;
+    } else {
+        const cost = getCreditCost(currentInputType, currentOutputType);
+        const costText = cost === 1 ? '1 credit' : `${cost} credits`;
+        creditCostDiv.innerHTML = `
+            <i class="fas fa-coins"></i>
+            Cost: <span class="credit-cost-value">${costText}</span> per enrichment
+        `;
+    }
+    
     creditCostDiv.style.display = 'block';
 }
 
