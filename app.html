@@ -1831,43 +1831,56 @@
             <input type="text" id="inputData" placeholder="e.g., Tesla, Apple, Microsoft" required>
         </div>
 
-        <!-- Optional filters for employee scraping -->
         <div class="optional-fields" id="optionalEmployeeFields">
-            <div class="form-group" style="margin-bottom: 0;">
-                <label class="optional-label">Department <span class="optional-badge">optional</span></label>
-                <select id="optionalDepartment" class="form-select">
-                    <option value="">All departments</option>
-                    <option value="Engineering">Engineering</option>
-                    <option value="Sales">Sales</option>
-                    <option value="Marketing">Marketing</option>
-                    <option value="Human Resources">Human Resources</option>
-                    <option value="Finance">Finance</option>
-                    <option value="Operations">Operations</option>
-                    <option value="Product Management">Product Management</option>
-                    <option value="Design">Design</option>
-                    <option value="Customer Success">Customer Success</option>
-                    <option value="Legal">Legal</option>
-                    <option value="Executive">Executive</option>
-                    <option value="IT">IT</option>
-                    <option value="Research & Development">Research & Development</option>
-                    <option value="Business Development">Business Development</option>
-                    <option value="Accounting">Accounting</option>
-                    <option value="Supply Chain">Supply Chain</option>
-                    <option value="Data & Analytics">Data & Analytics</option>
-                </select>
-            </div>
-            <div class="form-group" style="margin-bottom: 0;">
-                <label class="optional-label">Number of employees <span class="optional-badge">optional</span></label>
-                <input
-                    type="number"
-                    id="optionalEmployeeCount"
-                    placeholder="e.g. 25"
-                    min="1"
-                    max="10000"
-                    style="width:100%; padding:0.75rem; border:1px solid var(--gray-300); border-radius:6px; font-size:0.875rem;"
-                >
-            </div>
-        </div>
+    <div class="form-group" style="margin-bottom: 0;">
+        <label class="optional-label">Department <span class="optional-badge">optional</span></label>
+        <select id="optionalDepartment" class="form-select">
+            <option value="">All departments</option>
+            <option value="marketing">Marketing</option>
+            <option value="finance">Finance</option>
+            <option value="education">Education</option>
+            <option value="design">Design</option>
+            <option value="engineering_technical">Engineering & Technical</option>
+            <option value="product">Product</option>
+            <option value="c_suite">C-Suite</option>
+            <option value="human_resources">Human Resources</option>
+            <option value="information_technology">Information Technology</option>
+            <option value="legal">Legal</option>
+            <option value="medical_health">Medical & Health</option>
+            <option value="operations">Operations</option>
+            <option value="sales">Sales</option>
+            <option value="consulting">Consulting</option>
+        </select>
+    </div>
+    <div class="form-group" style="margin-bottom: 0;">
+        <label class="optional-label">Seniority <span class="optional-badge">optional</span></label>
+        <select id="optionalSeniority" class="form-select">
+            <option value="">All levels</option>
+            <option value="founder">Founder</option>
+            <option value="owner">Owner</option>
+            <option value="c_suite">C-Suite</option>
+            <option value="director">Director</option>
+            <option value="partner">Partner</option>
+            <option value="vp">VP</option>
+            <option value="head">Head</option>
+            <option value="manager">Manager</option>
+            <option value="senior">Senior</option>
+            <option value="entry">Entry</option>
+            <option value="intern">Intern</option>
+        </select>
+    </div>
+    <div class="form-group" style="margin-bottom: 0;">
+        <label class="optional-label">Number of employees <span class="optional-badge">optional</span></label>
+        <input
+            type="number"
+            id="optionalEmployeeCount"
+            placeholder="e.g. 25"
+            min="1"
+            max="10000"
+            style="width:100%; padding:0.75rem; border:1px solid var(--gray-300); border-radius:6px; font-size:0.875rem;"
+        >
+    </div>
+</div>
 
         <button type="submit" class="btn btn-full">
             <i class="fas fa-magic"></i> Enrich Data
@@ -2171,6 +2184,7 @@ async function fetchWithTimeout(url, options = {}, timeout = 180000) { // 3 minu
     } else {
         fields.classList.remove('visible');
         document.getElementById('optionalDepartment').value = '';
+        document.getElementById('optionalSeniority').value = ''; 
         document.getElementById('optionalEmployeeCount').value = '';
     }
 }
@@ -2303,15 +2317,19 @@ if (currentInputType === 'linkedin_profile') {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
     type: generateCombinationType(currentInputType, currentOutputType),
-    input_data: (() => {
-        if (currentOutputType === 'employees' &&
-            (currentInputType === 'company_domain' || currentInputType === 'linkedin_company')) {
-            const dept  = document.getElementById('optionalDepartment').value.trim();
-            const count = document.getElementById('optionalEmployeeCount').value.trim();
-            return `${inputValue}/${dept || 'all'}/${count || 'all'}`;
-        }
-        return inputValue;
-    })(),
+    input_data: inputValue,
+    department: (currentOutputType === 'employees' &&
+        (currentInputType === 'company_domain' || currentInputType === 'linkedin_company'))
+        ? (document.getElementById('optionalDepartment').value.trim() || 'all')
+        : undefined,
+    seniority: (currentOutputType === 'employees' &&
+        (currentInputType === 'company_domain' || currentInputType === 'linkedin_company'))
+        ? (document.getElementById('optionalSeniority').value.trim() || 'all')
+        : undefined,
+    employee_count: (currentOutputType === 'employees' &&
+    (currentInputType === 'company_domain' || currentInputType === 'linkedin_company'))
+    ? (parseInt(document.getElementById('optionalEmployeeCount').value) || null)
+    : undefined,
     output_type: currentOutputType,
     token: userToken,
     is_bulk: false
@@ -4304,13 +4322,22 @@ function updateCreditCostDisplay() {
         return;
     }
     
-    const cost = getCreditCost(currentInputType, currentOutputType);
-    const costText = cost === 1 ? '1 credit' : `${cost} credits`;
+    const isEmployees = currentOutputType === 'employees';
     
-    creditCostDiv.innerHTML = `
-        <i class="fas fa-coins"></i>
-        Cost: <span class="credit-cost-value">${costText}</span> per enrichment
-    `;
+    if (isEmployees) {
+        creditCostDiv.innerHTML = `
+            <i class="fas fa-coins"></i>
+            Cost: <span class="credit-cost-value">0.5 credit per 1 employee found</span>
+        `;
+    } else {
+        const cost = getCreditCost(currentInputType, currentOutputType);
+        const costText = cost === 1 ? '1 credit' : `${cost} credits`;
+        creditCostDiv.innerHTML = `
+            <i class="fas fa-coins"></i>
+            Cost: <span class="credit-cost-value">${costText}</span> per enrichment
+        `;
+    }
+    
     creditCostDiv.style.display = 'block';
 }
 
