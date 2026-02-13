@@ -2303,15 +2303,15 @@ if (currentInputType === 'linkedin_profile') {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
     type: generateCombinationType(currentInputType, currentOutputType),
-    input_data: (() => {
-        if (currentOutputType === 'employees' &&
-            (currentInputType === 'company_domain' || currentInputType === 'linkedin_company')) {
-            const dept  = document.getElementById('optionalDepartment').value.trim();
-            const count = document.getElementById('optionalEmployeeCount').value.trim();
-            return `${inputValue}/${dept || 'all'}/${count || 'all'}`;
-        }
-        return inputValue;
-    })(),
+    input_data: inputValue,
+    department: (currentOutputType === 'employees' &&
+        (currentInputType === 'company_domain' || currentInputType === 'linkedin_company'))
+        ? (document.getElementById('optionalDepartment').value.trim() || 'all')
+        : undefined,
+    employee_count: (currentOutputType === 'employees' &&
+        (currentInputType === 'company_domain' || currentInputType === 'linkedin_company'))
+        ? (document.getElementById('optionalEmployeeCount').value.trim() || 'all')
+        : undefined,
     output_type: currentOutputType,
     token: userToken,
     is_bulk: false
