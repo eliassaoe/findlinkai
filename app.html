@@ -198,6 +198,40 @@
     box-shadow: 0 4px 12px rgba(251, 146, 60, 0.35);
 }
 
+.optional-fields {
+    display: none;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--gray-200);
+}
+.optional-fields.visible { display: grid; }
+.optional-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--gray-500);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.25rem;
+}
+.optional-badge {
+    display: inline-block;
+    font-size: 0.7rem;
+    background: var(--gray-100);
+    color: var(--gray-500);
+    padding: 0.1rem 0.4rem;
+    border-radius: 3px;
+    margin-left: 0.4rem;
+    font-weight: 500;
+    text-transform: none;
+    letter-spacing: 0;
+    vertical-align: middle;
+}
+@media (max-width: 640px) {
+    .optional-fields { grid-template-columns: 1fr; }
+}
+
 .credit-cost {
     text-align: center;
     padding: 0.75rem;
@@ -1789,19 +1823,57 @@
 
             <div id="creditCost" class="credit-cost"></div>
 
-            <!-- Single Search (Hidden initially) -->
-            <div id="singleSearch" class="card hidden">
-                <form onsubmit="enrichData(event)">
-                    <div class="form-group">
-                        <label for="inputData" id="inputLabel">Enter Company Name</label>
-                        <input type="text" id="inputData" placeholder="e.g., Tesla, Apple, Microsoft" required>
-                    </div>
-                    <button type="submit" class="btn btn-full">
-                        <i class="fas fa-magic"></i> Enrich Data
-                    </button>
-                </form>
-            </div>
+           <!-- Single Search (Hidden initially) -->
+<div id="singleSearch" class="card hidden">
+    <form onsubmit="enrichData(event)">
+        <div class="form-group">
+            <label for="inputData" id="inputLabel">Enter Company Name</label>
+            <input type="text" id="inputData" placeholder="e.g., Tesla, Apple, Microsoft" required>
+        </div>
 
+        <!-- Optional filters for employee scraping -->
+        <div class="optional-fields" id="optionalEmployeeFields">
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="optional-label">Department <span class="optional-badge">optional</span></label>
+                <select id="optionalDepartment" class="form-select">
+                    <option value="">All departments</option>
+                    <option value="Engineering">Engineering</option>
+                    <option value="Sales">Sales</option>
+                    <option value="Marketing">Marketing</option>
+                    <option value="Human Resources">Human Resources</option>
+                    <option value="Finance">Finance</option>
+                    <option value="Operations">Operations</option>
+                    <option value="Product Management">Product Management</option>
+                    <option value="Design">Design</option>
+                    <option value="Customer Success">Customer Success</option>
+                    <option value="Legal">Legal</option>
+                    <option value="Executive">Executive</option>
+                    <option value="IT">IT</option>
+                    <option value="Research & Development">Research & Development</option>
+                    <option value="Business Development">Business Development</option>
+                    <option value="Accounting">Accounting</option>
+                    <option value="Supply Chain">Supply Chain</option>
+                    <option value="Data & Analytics">Data & Analytics</option>
+                </select>
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="optional-label">Number of employees <span class="optional-badge">optional</span></label>
+                <input
+                    type="number"
+                    id="optionalEmployeeCount"
+                    placeholder="e.g. 25"
+                    min="1"
+                    max="10000"
+                    style="width:100%; padding:0.75rem; border:1px solid var(--gray-300); border-radius:6px; font-size:0.875rem;"
+                >
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-full">
+            <i class="fas fa-magic"></i> Enrich Data
+        </button>
+    </form>
+</div>
             <!-- Bulk Search (Hidden initially) -->
             <div id="bulkSearch" class="card hidden">
                 <div class="upload-area" id="uploadArea">
@@ -2089,6 +2161,20 @@ async function fetchWithTimeout(url, options = {}, timeout = 180000) { // 3 minu
             });
         }
 
+        function updateOptionalFields() {
+    const fields = document.getElementById('optionalEmployeeFields');
+    const isEmployees = currentOutputType === 'employees' &&
+        (currentInputType === 'company_domain' || currentInputType === 'linkedin_company');
+
+    if (isEmployees) {
+        fields.classList.add('visible');
+    } else {
+        fields.classList.remove('visible');
+        document.getElementById('optionalDepartment').value = '';
+        document.getElementById('optionalEmployeeCount').value = '';
+    }
+}
+
         function configureEnrichment() {
             const inputType = document.getElementById('inputType').value;
             const outputType = document.getElementById('outputType').value;
@@ -2109,6 +2195,7 @@ async function fetchWithTimeout(url, options = {}, timeout = 180000) { // 3 minu
             
             // Show mode toggle and input sections
             document.getElementById('modeToggle').classList.remove('hidden');
+            updateOptionalFields();
             showInputSections();
         }
 
@@ -2215,12 +2302,20 @@ if (currentInputType === 'linkedin_profile') {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                type: generateCombinationType(currentInputType, currentOutputType),
-                input_data: inputValue,
-                output_type: currentOutputType,
-                token: userToken,
-                is_bulk: false
-            })
+    type: generateCombinationType(currentInputType, currentOutputType),
+    input_data: (() => {
+        if (currentOutputType === 'employees' &&
+            (currentInputType === 'company_domain' || currentInputType === 'linkedin_company')) {
+            const dept  = document.getElementById('optionalDepartment').value.trim();
+            const count = document.getElementById('optionalEmployeeCount').value.trim();
+            return `${inputValue}/${dept || 'all'}/${count || 'all'}`;
+        }
+        return inputValue;
+    })(),
+    output_type: currentOutputType,
+    token: userToken,
+    is_bulk: false
+})
         });
 
         console.log('Response status:', response.status);
@@ -4243,7 +4338,7 @@ function configureEnrichment() {
     
     // UPDATE: Show credit cost
     updateCreditCostDisplay();
-    
+    updateOptionalFields();
     showInputSections();
 }
 
