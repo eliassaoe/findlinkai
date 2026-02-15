@@ -4196,7 +4196,13 @@ function proceedToCheckout() {
     
     // Utilise Gumroad
     const baseUrl = isAnnualBilling ? plan.annualGumroadLink : plan.monthlyGumroadLink;
-    window.location.href = addGclid(`${baseUrl}?wanted=true&user_id=${userToken}`);
+    const url = addGclid(`${baseUrl}?wanted=true&user_id=${userToken}`);
+    
+    if (currentMode === 'bulk' && isBulkProcessing) {
+        window.open(url, '_blank');
+    } else {
+        window.location.href = url;
+    }
 }
 
 function showPricingModal() {
