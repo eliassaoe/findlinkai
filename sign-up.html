@@ -102,6 +102,18 @@
         .form-group {
             margin-bottom: 20px;
         }
+
+        /* Two column layout for first/last name */
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .form-row .form-group {
+            margin-bottom: 0;
+        }
         
         label {
             display: block;
@@ -357,6 +369,10 @@
             h1 {
                 font-size: 24px;
             }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
     <!-- Privacy-friendly analytics by Plausible -->
@@ -385,13 +401,32 @@
        
         <!-- Email/Password Form -->
         <form id="signupForm">
+
+            <!-- First Name + Last Name row -->
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="firstName">First Name</label>
+                    <input type="text" id="firstName" required placeholder="John" autocomplete="given-name">
+                </div>
+                <div class="form-group">
+                    <label for="lastName">Last Name</label>
+                    <input type="text" id="lastName" required placeholder="Smith" autocomplete="family-name">
+                </div>
+            </div>
+
+            <!-- Company Name -->
             <div class="form-group">
-                <label for="email">Email</label>
-                <input type="email" id="email" required placeholder="name@company.com">
+                <label for="companyName">Company Name</label>
+                <input type="text" id="companyName" required placeholder="Acme Inc." autocomplete="organization">
+            </div>
+
+            <div class="form-group">
+                <label for="email">Work Email</label>
+                <input type="email" id="email" required placeholder="name@company.com" autocomplete="email">
             </div>
             <div class="form-group">
                 <label for="password">Password</label>
-                <input type="password" id="password" required placeholder="Create a password">
+                <input type="password" id="password" required placeholder="Create a password" autocomplete="new-password">
                 <div class="password-requirements" id="passwordReqs">
                     Password must be at least 8 characters long
                 </div>
@@ -462,10 +497,11 @@
     'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNueGhzYm9ib2F0anl3Z3dkZWRzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYwMTY5NzgsImV4cCI6MjA2MTU5Mjk3OH0.qkoiXJoqujQ4iUByOqSAsacuJVtJx32j19PTuy7brMo'
 );
 
-// Nettoyer la session au chargement de la page sign-up
+// Clear session on signup page load
 (async () => {
     await supabaseClient.auth.signOut();
 })();
+
         // Show message to user
         function showMessage(text, type = 'error') {
             const messageEl = document.getElementById('message');
@@ -494,7 +530,6 @@
             options: {
                 redirectTo: `${window.location.origin}/confirmation-signup`,
                 queryParams: {
-                    // LES DEUX pour forcer la sélection
                     prompt: 'select_account consent',
                     access_type: 'offline'
                 }
@@ -509,12 +544,16 @@
         showMessage('Google sign up error: ' + error.message);
     }
 }
-        // Email/Password Signup - FIXED VERSION WITHOUT CONFIRM PASSWORD
+
+        // Email/Password Signup
         document.getElementById('signupForm').addEventListener('submit', async function(e) {
     e.preventDefault();
     
-    const email = document.getElementById('email').value.trim();
-    const password = document.getElementById('password').value;
+    const firstName   = document.getElementById('firstName').value.trim();
+    const lastName    = document.getElementById('lastName').value.trim();
+    const companyName = document.getElementById('companyName').value.trim();
+    const email       = document.getElementById('email').value.trim();
+    const password    = document.getElementById('password').value;
     const submitButton = document.getElementById('submitButton');
     
     // Get the ref parameter from URL
@@ -522,7 +561,7 @@
     const refId = urlParams.get('ref');
     
     // Validation
-    if (!email || !password) {
+    if (!firstName || !lastName || !companyName || !email || !password) {
         showMessage('Please fill in all fields');
         return;
     }
@@ -551,10 +590,13 @@
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                email: email,
-                password: password,
-                type: 'signup',
-                ref: refId || null
+                email:        email,
+                password:     password,
+                firstName:    firstName,
+                lastName:     lastName,
+                companyName:  companyName,
+                type:         'signup',
+                ref:          refId || null
             })
         });
                 
