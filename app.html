@@ -4023,31 +4023,32 @@ else if (currentInputType === 'linkedin_profile' && currentOutputType === 'linke
 }
     // Handle LinkedIn Company data export with detailed columns
     else if (currentInputType === 'linkedin_company' && currentOutputType === 'linkedin_info') {
-        csvContent = 'LinkedIn URL,Company Name,Industry,Company Size,Location,Description,Website,Specialties,Status\n';
-        
-        bulkResults.forEach(row => {
-            const data = row.rawData || {};
-            const escapeCSV = (str) => {
-                if (!str || str === 'Not found' || str === 'Error' || str === 'Processing...' || str === 'Not specified') return str;
-                return `"${str.toString().replace(/"/g, '""')}"`;
-            };
+    // ✅ Header now matches all 10 data fields
+    csvContent = 'LinkedIn URL,Company Name,Industry,Company Size,Location,Description,Website,Company Email,Company Phone,Specialties\n';
+    
+    bulkResults.forEach(row => {
+        const data = row.rawData || {};
+        const escapeCSV = (str) => {
+            if (!str || str === 'Not found' || str === 'Error' || str === 'Processing...' || str === 'Not specified') return str;
+            return `"${str.toString().replace(/"/g, '""')}"`;
+        };
 
-            const csvRow = [
-                escapeCSV(row.inputData),
-                escapeCSV(data.name || 'Not found'),
-                escapeCSV(data.industry || 'Not found'),
-                escapeCSV(data.size || 'Not found'),
-                escapeCSV(data.location || 'Not found'),
-                escapeCSV(data.description || 'Not found'),
-                escapeCSV(data.website || 'Not found'),
-                escapeCSV(data.company_email || 'Not found'),
-                escapeCSV(data.company_phone || 'Not found'),
-                escapeCSV(data.specialties || 'Not found')
-            ];
-            
-            csvContent += csvRow.join(',') + '\n';
-        });
-    } 
+        const csvRow = [
+            escapeCSV(row.inputData),
+            escapeCSV(data.name || 'Not found'),
+            escapeCSV(data.industry || 'Not found'),
+            escapeCSV(data.company_size || 'Not found'),       // ✅ was data.size
+            escapeCSV(data.location || 'Not found'),
+            escapeCSV(data.company_description || 'Not found'), // ✅ was data.description
+            escapeCSV(data.website || 'Not found'),
+            escapeCSV(data.company_email || 'Not found'),       // ✅ now in correct column
+            escapeCSV(data.company_phone || 'Not found'),       // ✅ now in correct column
+            escapeCSV(data.specialties || 'Not found')          // ✅ now in correct position
+        ];
+        
+        csvContent += csvRow.join(',') + '\n';
+    });
+}
 
     else if (currentOutputType === 'employees') {
     csvContent = 'Input,Name,Job Title,Email,Company,Department,Industry,City,State,Country,Headline,Employment Type,LinkedIn URL,Company LinkedIn URL\n';
