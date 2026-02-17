@@ -2204,7 +2204,9 @@ async function fetchWithTimeout(url, options = {}, timeout = 180000) { // 3 minu
             document.getElementById('inputData').placeholder = config.placeholder;
             
             // Update upload subtext
-            document.getElementById('uploadSubtext').textContent = `CSV with ${config.label.toLowerCase().replace('enter ', '')} (max 10000 rows)`;
+            document.getElementById('uploadSubtext').textContent = currentInputType === 'lead_full_name'
+    ? 'CSV with columns: name (required), company (optional) — max 10000 rows'
+    : `CSV with ${config.label.toLowerCase().replace('enter ', '')} (max 10000 rows)`;
             
             // Show mode toggle and input sections
             document.getElementById('modeToggle').classList.remove('hidden');
@@ -3482,17 +3484,16 @@ if (employee.companylinkedinurl) html += `<div><strong>Company LinkedIn:</strong
             reader.readAsText(file);
         }
 
-      function parseCSV(csvText) {
+    function parseCSV(csvText) {
     const lines = csvText.split('\n').filter(line => line.trim());
     if (lines.length < 2) {
         showAlert('CSV must contain header and data rows.', 'error');
         return;
     }
 
-    // Clean headers but keep original for display, create lowercase version for matching
     const rawHeaders = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
     const headers = rawHeaders.map(h => h.toLowerCase().replace(/\s+/g, ' ').trim());
-    
+
     csvData = [];
 
     const config = dataConfigurations[currentInputType];
@@ -3501,109 +3502,84 @@ if (employee.companylinkedinurl) html += `<div><strong>Company LinkedIn:</strong
         return;
     }
 
-    // More comprehensive header variations (all in lowercase for matching)
     const possibleHeaders = {
         'company_name': ['company_name', 'company name', 'company', 'name', 'companyname'],
         'company_domain': ['company_domain', 'domain', 'company domain', 'website', 'url', 'companydomain'],
         'linkedin_company': [
-            'linkedin_company',
-            'linkedin company',
-            'company_url',
-            'linkedin_url',
-            'linkedin company url',
-            'linkedin company page',
-            'company linkedin',
-            'company linkedin url',
-            'company url',
-            'company page',
-            'linkedin page',
-            'linkedincompany',
-            'linkedincompanyurl',
-            'company linkedin page'
+            'linkedin_company', 'linkedin company', 'company_url', 'linkedin_url',
+            'linkedin company url', 'linkedin company page', 'company linkedin',
+            'company linkedin url', 'company url', 'company page', 'linkedin page',
+            'linkedincompany', 'linkedincompanyurl', 'company linkedin page'
         ],
         'linkedin_profile': [
-            'linkedin_profile',
-            'profile_url',
-            'linkedin_url',
-            'profile',
-            'linkedin profile url',
-            'linkedin profile page',
-            'profile linkedin',
-            'linkedinprofile',
-            'linkedinprofileurl'
+            'linkedin_profile', 'profile_url', 'linkedin_url', 'profile',
+            'linkedin profile url', 'linkedin profile page', 'profile linkedin',
+            'linkedinprofile', 'linkedinprofileurl'
         ],
         'linkedin_post': [
-            'linkedin_post',
-            'post_url',
-            'linkedin_post_url',
-            'post',
-            'linkedin post url',
-            'post linkedin',
-            'linkedinpost',
-            'linkedinposturl'
+            'linkedin_post', 'post_url', 'linkedin_post_url', 'post',
+            'linkedin post url', 'post linkedin', 'linkedinpost', 'linkedinposturl'
         ],
         'email': ['email', 'company_email', 'company email', 'e-mail', 'e mail', 'companyemail'],
         'lead_full_name': [
-            'lead_full_name',
-            'full_name',
-            'name',
-            'lead name',
-            'contact name',
-            'fullname',
-            'lead',
-            'contact',
-            'leadfullname'
+            'lead_full_name', 'full_name', 'name', 'lead name', 'contact name',
+            'fullname', 'lead', 'contact', 'leadfullname', 'first name', 'firstname',
+            'last name', 'lastname', 'full name'
         ],
     };
 
+    // Company name column variations (for lead_full_name secondary column)
+    const companyNameHeaders = [
+        'company', 'company_name', 'company name', 'companyname',
+        'organization', 'org', 'employer', 'firm'
+    ];
+
+    const headerMatchScore = (header, candidates) => {
+        const h = header.toLowerCase().replace(/[\s_-]/g, '');
+        for (const c of candidates) {
+            const n = c.toLowerCase().replace(/[\s_-]/g, '');
+            if (h === n) return 2;
+            if (h.includes(n) && n.length > 3) return 1;
+            if (n.includes(h) && h.length > 3) return 1;
+        }
+        return 0;
+    };
+
     const searchHeaders = possibleHeaders[currentInputType] || [];
-    
-    // Case-insensitive matching
-    const dataIdx = headers.findIndex(h => {
-        const normalizedHeader = h.toLowerCase().replace(/\s+/g, ' ').trim();
-        
-        return searchHeaders.some(search => {
-            const normalizedSearch = search.toLowerCase().replace(/\s+/g, ' ').trim();
-            
-            // Check exact match
-            if (normalizedHeader === normalizedSearch) return true;
-            
-            // Check if header contains the search term
-            if (normalizedHeader.includes(normalizedSearch)) return true;
-            
-            // Check if search term contains the header (for shorter headers)
-            if (normalizedSearch.includes(normalizedHeader) && normalizedHeader.length > 3) return true;
-            
-            // Check without spaces/underscores
-            const headerNoSpaces = normalizedHeader.replace(/[\s_-]/g, '');
-            const searchNoSpaces = normalizedSearch.replace(/[\s_-]/g, '');
-            if (headerNoSpaces === searchNoSpaces) return true;
-            if (headerNoSpaces.includes(searchNoSpaces) && searchNoSpaces.length > 3) return true;
-            if (searchNoSpaces.includes(headerNoSpaces) && headerNoSpaces.length > 3) return true;
-            
-            return false;
-        });
-    });
-    
+
+    const dataIdx = headers.findIndex(h => headerMatchScore(h, searchHeaders) > 0);
+
     if (dataIdx === -1) {
-        // Show helpful error message with what was found
-        console.log('Available headers:', rawHeaders);
-        console.log('Normalized headers:', headers);
-        console.log('Looking for headers matching:', searchHeaders);
         showAlert(
             `CSV must contain a column for ${config.label.toLowerCase().replace('enter ', '')}. ` +
-            `Found columns: "${rawHeaders.join('", "')}"`, 
+            `Found columns: "${rawHeaders.join('", "')}"`,
             'error'
         );
         return;
     }
 
-    // Parse data using the correct column index
+    // For lead_full_name: also look for an optional company column (different from name column)
+    let companyIdx = -1;
+    if (currentInputType === 'lead_full_name') {
+        companyIdx = headers.findIndex((h, i) => i !== dataIdx && headerMatchScore(h, companyNameHeaders) > 0);
+    }
+
     for (let i = 1; i < lines.length; i++) {
         const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
-        if (values[dataIdx] && values[dataIdx].trim()) {
-            csvData.push({ inputData: values[dataIdx].trim() });
+        const nameVal = values[dataIdx] ? values[dataIdx].trim() : '';
+        if (!nameVal) continue;
+
+        let inputData = nameVal;
+        let companyVal = '';
+
+        if (currentInputType === 'lead_full_name' && companyIdx !== -1) {
+            companyVal = values[companyIdx] ? values[companyIdx].trim() : '';
+            if (companyVal) {
+                inputData = `${nameVal} ${companyVal}`;
+            }
         }
+
+        csvData.push({ inputData, name: nameVal, company: companyVal });
     }
 
     if (csvData.length === 0) {
@@ -3621,21 +3597,39 @@ if (employee.companylinkedinurl) html += `<div><strong>Company LinkedIn:</strong
         function showPreview() {
     const preview = csvData.slice(0, 5);
     let html = '<div style="background: var(--gray-50); padding: 0.75rem; border-radius: 6px; font-size: 0.875rem;">';
-    
-    preview.forEach(row => {
-        html += `<div style="padding: 0.25rem 0;">${row.inputData}</div>`;
-    });
-    
-    html += '</div>';
-    
-    document.getElementById('previewTable').innerHTML = html;
-    
-    // Check if element exists before setting textContent
-    const itemCountElement = document.getElementById('itemCount');
-    if (itemCountElement) {
-        itemCountElement.textContent = csvData.length;
+
+    // Check if we have company data for lead_full_name
+    const hasCompany = currentInputType === 'lead_full_name' && preview.some(r => r.company);
+
+    if (hasCompany) {
+        html += `<div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem; font-weight:600; color:var(--gray-500); font-size:0.75rem; text-transform:uppercase; margin-bottom:0.5rem; padding-bottom:0.25rem; border-bottom:1px solid var(--gray-200);">
+            <span>Name</span><span>Company</span>
+        </div>`;
+        preview.forEach(row => {
+            html += `<div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem; padding:0.25rem 0;">
+                <span>${row.name}</span>
+                <span style="color:var(--gray-500);">${row.company || '—'}</span>
+            </div>`;
+        });
+    } else {
+        preview.forEach(row => {
+            html += `<div style="padding: 0.25rem 0;">${row.inputData}</div>`;
+        });
     }
-    
+
+    html += '</div>';
+
+    if (hasCompany) {
+        html += `<p style="font-size:0.75rem; color:var(--success); margin-top:0.5rem;">
+            <i class="fas fa-check-circle"></i> Company column detected — will be combined with name automatically.
+        </p>`;
+    }
+
+    document.getElementById('previewTable').innerHTML = html;
+
+    const itemCountElement = document.getElementById('itemCount');
+    if (itemCountElement) itemCountElement.textContent = csvData.length;
+
     document.getElementById('csvPreview').classList.remove('hidden');
 }
         function showProgress() {
@@ -4390,7 +4384,9 @@ function configureEnrichment() {
     document.getElementById('inputData').placeholder = config.placeholder;
     
     // Update upload subtext
-    document.getElementById('uploadSubtext').textContent = `CSV with ${config.label.toLowerCase().replace('enter ', '')} (max 10000 rows)`;
+    document.getElementById('uploadSubtext').textContent = currentInputType === 'lead_full_name'
+    ? 'CSV with columns: name (required), company (optional) — max 10000 rows'
+    : `CSV with ${config.label.toLowerCase().replace('enter ', '')} (max 10000 rows)`;
     
     // Show mode toggle and input sections
     document.getElementById('modeToggle').classList.remove('hidden');
