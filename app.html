@@ -1816,7 +1816,7 @@ src="https://www.facebook.com/tr?id=2717863625238535&ev=PageView&noscript=1"
                     
                     <div class="form-field">
                         <label class="form-label">I want to find</label>
-                        <select id="outputType" class="form-select" disabled>
+                        <select id="outputType" class="form-select">
                             <option value="">Select first option...</option>
                         </select>
                     </div>
@@ -2157,38 +2157,91 @@ async function fetchWithTimeout(url, options = {}, timeout = 180000) { // 3 minu
             hideResults();
         }
 
-        function setupDropdowns() {
-            const inputTypeSelect = document.getElementById('inputType');
-            const outputTypeSelect = document.getElementById('outputType');
+       function populateOutputOptions(filterInputType) {
+    const outputTypeSelect = document.getElementById('outputType');
+    outputTypeSelect.innerHTML = '<option value="">Select output type...</option>';
 
-            inputTypeSelect.addEventListener('change', function() {
-                const selectedType = this.value;
-                outputTypeSelect.innerHTML = '<option value="">Select output type...</option>';
-                
-                if (selectedType && dataConfigurations[selectedType]) {
-                    outputTypeSelect.disabled = false;
-                    const outputs = dataConfigurations[selectedType].outputs;
-                    
-                    for (const [key, label] of Object.entries(outputs)) {
-                        const option = document.createElement('option');
-                        option.value = key;
-                        option.textContent = label;
-                        outputTypeSelect.appendChild(option);
-                    }
-                } else {
-                    outputTypeSelect.disabled = true;
-                    hideInputSections();
-                }
-            });
+    for (const [inputType, config] of Object.entries(dataConfigurations)) {
+        if (filterInputType && inputType !== filterInputType) continue;
+        for (const [outputKey, outputLabel] of Object.entries(config.outputs)) {
+            const option = document.createElement('option');
+            option.value = inputType + '__' + outputKey;
+            option.textContent = outputLabel;
+            outputTypeSelect.appendChild(option);
+        }
+    }
+}
 
-            outputTypeSelect.addEventListener('change', function() {
-                if (this.value && inputTypeSelect.value) {
+function setupDropdowns() {
+    const inputTypeSelect = document.getElementById('inputType');
+    const outputTypeSelect = document.getElementById('outputType');
+
+    // Populate output dropdown with all options on init
+    populateOutputOptions(null);
+
+    inputTypeSelect.addEventListener('change', function() {
+        const selectedType = this.value;
+        const previousOutput = outputTypeSelect.value; // may be compound key
+
+        if (selectedType && dataConfigurations[selectedType]) {
+            populateOutputOptions(selectedType);
+
+            if (previousOutput) {
+                const [prevInput] = previousOutput.split('__');
+                if (prevInput === selectedType) {
+                    // Previous output is still compatible — keep it
+                    outputTypeSelect.value = previousOutput;
+                    currentInputType = selectedType;
+                    currentOutputType = previousOutput.split('__')[1];
                     configureEnrichment();
                 } else {
+                    // Not compatible — clear output selection
+                    outputTypeSelect.value = '';
+                    currentInputType = selectedType;
+                    currentOutputType = '';
                     hideInputSections();
+                    document.getElementById('modeToggle').classList.add('hidden');
+                    document.getElementById('creditCost').style.display = 'none';
                 }
-            });
+            } else {
+                currentInputType = selectedType;
+            }
+        } else {
+            // Input cleared — restore all output options
+            populateOutputOptions(null);
+            currentInputType = '';
+            currentOutputType = '';
+            hideInputSections();
+            document.getElementById('modeToggle').classList.add('hidden');
+            document.getElementById('creditCost').style.display = 'none';
         }
+    });
+
+    outputTypeSelect.addEventListener('change', function() {
+        const val = this.value;
+
+        if (!val) {
+            currentOutputType = '';
+            hideInputSections();
+            document.getElementById('modeToggle').classList.add('hidden');
+            document.getElementById('creditCost').style.display = 'none';
+            return;
+        }
+
+        const [inferredInput, inferredOutput] = val.split('__');
+        currentInputType = inferredInput;
+        currentOutputType = inferredOutput;
+
+        // Sync the "I have" dropdown
+        inputTypeSelect.value = inferredInput;
+
+        // Re-filter output options to match input (keeps list clean)
+        populateOutputOptions(inferredInput);
+        outputTypeSelect.value = val; // restore selection after repopulate
+
+        configureEnrichment();
+    });
+}
 
         function updateOptionalFields() {
     const fields = document.getElementById('optionalEmployeeFields');
@@ -4386,15 +4439,9 @@ function updateCreditCostDisplay() {
 
 // Modifiez la fonction configureEnrichment existante
 function configureEnrichment() {
-    const inputType = document.getElementById('inputType').value;
-    const outputType = document.getElementById('outputType').value;
-    
-    if (!inputType || !outputType) return;
+    if (!currentInputType || !currentOutputType) return;
 
-    currentInputType = inputType;
-    currentOutputType = outputType;
-    
-    const config = dataConfigurations[inputType];
+    const config = dataConfigurations[currentInputType];
     
     // Update input field
     document.getElementById('inputLabel').textContent = config.label;
