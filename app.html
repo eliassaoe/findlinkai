@@ -3275,6 +3275,42 @@ if (linkedInFields.company_phone && linkedInFields.company_phone !== 'Not found'
                 `;
             }
         }
+
+        // ==========================================
+// SECTION 6: EXPERIENCES
+// ==========================================
+if (linkedInFields.experiences && linkedInFields.experiences.length > 0) {
+    html += `
+        <div style="grid-column: 1/-1; margin-top: 1rem; padding-top: 1rem; border-top: 2px solid #0ea5e9;">
+            <h4 style="color: #0ea5e9; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem;">
+                <i class="fas fa-briefcase"></i> Work Experience (${linkedInFields.experiences.length})
+            </h4>
+        </div>
+    `;
+
+    linkedInFields.experiences.forEach((exp, index) => {
+        html += `
+            <div class="result-item" style="grid-column: 1/-1; padding: 0.75rem; background: var(--gray-50); border-radius: 8px; border-left: 3px solid #0ea5e9;">
+                <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.4rem;">
+                    <div style="font-weight: 600; color: var(--gray-900);">${exp.title || 'Unknown Title'}</div>
+                </div>
+                <div style="font-size: 0.875rem; color: var(--gray-600); line-height: 1.6;">
+                    ${exp.companyName ? `
+                        <span style="font-weight: 500; color: var(--gray-800);">
+                            <i class="fas fa-building" style="margin-right: 0.25rem; color: #0ea5e9;"></i>
+                            ${exp.companyLink 
+                                ? `<a href="${exp.companyLink}" target="_blank" style="color: #0ea5e9; text-decoration: none;">${exp.companyName}</a>`
+                                : exp.companyName
+                            }
+                        </span>
+                    ` : ''}
+                    ${exp.industry ? `<div><i class="fas fa-tag" style="margin-right: 0.25rem;"></i>${exp.industry}</div>` : ''}
+                    ${exp.website ? `<div><a href="${exp.website}" target="_blank"><i class="fas fa-globe" style="margin-right: 0.25rem;"></i>${exp.website}</a></div>` : ''}
+                </div>
+            </div>
+        `;
+    });
+}
         
         html += '</div>'; // Close result-grid
         
@@ -4055,7 +4091,7 @@ else if (currentInputType === 'linkedin_company' && currentOutputType === 'linke
 }
    // Handle LinkedIn Profile data export with detailed columns
 else if (currentInputType === 'linkedin_profile' && currentOutputType === 'linkedin_info') {
-    csvContent = 'LinkedIn URL,Name,Job Title,Company,Location,Industry,Website,Email,Education,Headline,Company Description,Company Size,Company Location,Founded,Company LinkedIn URL,Status\n';
+    csvContent = 'LinkedIn URL,Name,Job Title,Company,Location,Industry,Website,Email,Education,Headline,Company Description,Company Size,Company Location,Founded,Company LinkedIn URL,Experiences,Status\n';
     
     bulkResults.forEach(row => {
         const data = row.rawData || {};
@@ -4079,7 +4115,8 @@ else if (currentInputType === 'linkedin_profile' && currentOutputType === 'linke
             escapeCSV(data.company_size || 'Not found'),
             escapeCSV(data.company_location || 'Not found'),
             escapeCSV(data.founded || 'Not found'),
-            escapeCSV(data.company_linkedin_url || 'Not found')
+            escapeCSV(data.company_linkedin_url || 'Not found'),
+            escapeCSV(data.experiences ? JSON.stringify(data.experiences) : 'Not found')
         ];
         
         csvContent += csvRow.join(',') + '\n';
