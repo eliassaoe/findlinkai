@@ -3103,115 +3103,143 @@ function showSingleResult(inputData, result) {
             `;
         }
         
-        // ==========================================
-        // SECTION 4: COMPANY INFORMATION
-        // ==========================================
-        if (linkedInFields.company || linkedInFields.company_description || linkedInFields.company_size) {
-            html += `
-                <div style="grid-column: 1/-1; margin-top: 1rem; padding-top: 1rem; border-top: 2px solid var(--warning);">
-                    <h4 style="color: var(--warning); margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
-                        <i class="fas fa-building"></i> Company Information
-                    </h4>
-                </div>
-            `;
-        }
-        
-        // Company Name
-        if (linkedInFields.company && linkedInFields.company !== 'Not specified') {
-            html += `
-                <div class="result-item">
-                    <div class="result-label">Company</div>
-                    <div class="result-value highlight">${linkedInFields.company}</div>
-                </div>
-            `;
-        }
+// ==========================================
+// SECTION 4: COMPANY INFORMATION
+// ==========================================
+if (linkedInFields.name || linkedInFields.company_description || linkedInFields.company_size || linkedInFields.tagline) {
+    html += `
+        <div style="grid-column: 1/-1; margin-top: 1rem; padding-top: 1rem; border-top: 2px solid var(--warning);">
+            <h4 style="color: var(--warning); margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                <i class="fas fa-building"></i> Company Information
+            </h4>
+        </div>
+    `;
+}
 
-        if (linkedInFields.company_email && linkedInFields.company_email !== 'Not found' && linkedInFields.company_email !== 'Not specified') {
+// Logo + Company Name side by side
+if (linkedInFields.logo || linkedInFields.name) {
+    html += `
+        <div class="result-item" style="grid-column: 1/-1; display: flex; align-items: center; gap: 1rem;">
+            ${linkedInFields.logo ? `<img src="${linkedInFields.logo}" alt="Company Logo" style="width:60px;height:60px;border-radius:8px;object-fit:contain;border:1px solid var(--gray-200);padding:4px;background:white;">` : ''}
+            <div>
+                ${linkedInFields.name ? `<div style="font-size:1.125rem;font-weight:700;color:var(--gray-900);">${linkedInFields.name}</div>` : ''}
+                ${linkedInFields.tagline && linkedInFields.tagline !== 'Not specified' ? `<div style="font-size:0.875rem;color:var(--gray-500);font-style:italic;margin-top:0.2rem;">${linkedInFields.tagline}</div>` : ''}
+            </div>
+        </div>
+    `;
+}
+
+// Company Email
+if (linkedInFields.company_email && linkedInFields.company_email !== 'Not found' && linkedInFields.company_email !== 'Not specified') {
     html += `
         <div class="result-item" style="background: #fef3c7; border-left: 3px solid var(--warning); padding-left: 1rem;">
-            <div class="result-label">
-                <i class="fas fa-envelope" style="color: var(--warning);"></i> Company Email
-            </div>
+            <div class="result-label"><i class="fas fa-envelope" style="color: var(--warning);"></i> Company Email</div>
             <div class="result-value highlight">${linkedInFields.company_email}</div>
         </div>
     `;
 }
 
-// ADD THIS: Company Phone - HIGHLIGHTED
+// Company Phone
 if (linkedInFields.company_phone && linkedInFields.company_phone !== 'Not found' && linkedInFields.company_phone !== 'Not specified') {
     html += `
         <div class="result-item" style="background: #fef3c7; border-left: 3px solid var(--warning); padding-left: 1rem;">
-            <div class="result-label">
-                <i class="fas fa-phone" style="color: var(--warning);"></i> Company Phone
-            </div>
+            <div class="result-label"><i class="fas fa-phone" style="color: var(--warning);"></i> Company Phone</div>
             <div class="result-value highlight">${linkedInFields.company_phone}</div>
         </div>
     `;
 }
-        
-        // Company Size
-        if (linkedInFields.company_size && linkedInFields.company_size !== 'Not specified') {
-            html += `
-                <div class="result-item">
-                    <div class="result-label">Company Size</div>
-                    <div class="result-value">
-                        <i class="fas fa-users" style="color: var(--warning); margin-right: 0.25rem;"></i>
-                        ${linkedInFields.company_size}
-                    </div>
-                </div>
-            `;
-        }
-        
-        // Company Location
-        if (linkedInFields.company_location && linkedInFields.company_location !== 'Not specified') {
-            html += `
-                <div class="result-item">
-                    <div class="result-label">Company Location</div>
-                    <div class="result-value">
-                        <i class="fas fa-map-marker-alt" style="color: var(--warning); margin-right: 0.25rem;"></i>
-                        ${linkedInFields.company_location}
-                    </div>
-                </div>
-            `;
-        }
-        
-        // Founded Year
-        if (linkedInFields.founded && linkedInFields.founded !== 'Not specified') {
-            html += `
-                <div class="result-item">
-                    <div class="result-label">Founded</div>
-                    <div class="result-value">
-                        <i class="fas fa-calendar" style="color: var(--warning); margin-right: 0.25rem;"></i>
-                        ${linkedInFields.founded}
-                    </div>
-                </div>
-            `;
-        }
-        
-        // Company Description - FULL WIDTH
-        if (linkedInFields.company_description && linkedInFields.company_description !== 'Not specified') {
-            html += `
-                <div class="result-item" style="grid-column: 1/-1;">
-                    <div class="result-label">Company Description</div>
-                    <div class="result-value" style="line-height: 1.6;">${linkedInFields.company_description}</div>
-                </div>
-            `;
-        }
-        
-        // Company LinkedIn URL
-        if (linkedInFields.company_linkedin_url && linkedInFields.company_linkedin_url !== 'Not specified') {
-            html += `
-                <div class="result-item">
-                    <div class="result-label">Company LinkedIn</div>
-                    <div class="result-value">
-                        <a href="${linkedInFields.company_linkedin_url}" target="_blank">
-                            <i class="fab fa-linkedin" style="margin-right: 0.25rem; color: #0077b5;"></i>
-                            ${linkedInFields.company_linkedin_url}
-                        </a>
-                    </div>
-                </div>
-            `;
-        }
+
+// Company Size
+if (linkedInFields.company_size && linkedInFields.company_size !== 'Not specified') {
+    html += `
+        <div class="result-item">
+            <div class="result-label">Employees</div>
+            <div class="result-value">
+                <i class="fas fa-users" style="color: var(--warning); margin-right: 0.25rem;"></i>
+                ${Number(linkedInFields.company_size).toLocaleString()}
+            </div>
+        </div>
+    `;
+}
+
+// Follower Count
+if (linkedInFields.followerCount && linkedInFields.followerCount !== 'Not specified') {
+    html += `
+        <div class="result-item">
+            <div class="result-label">LinkedIn Followers</div>
+            <div class="result-value">
+                <i class="fab fa-linkedin" style="color: #0077b5; margin-right: 0.25rem;"></i>
+                ${Number(linkedInFields.followerCount).toLocaleString()}
+            </div>
+        </div>
+    `;
+}
+
+// Location: City, Country, Postal Code
+const locationParts = [linkedInFields.city, linkedInFields.country].filter(p => p && p !== 'Not specified');
+if (locationParts.length > 0 || linkedInFields.postalCode) {
+    html += `
+        <div class="result-item">
+            <div class="result-label">Headquarters</div>
+            <div class="result-value">
+                <i class="fas fa-map-marker-alt" style="color: var(--warning); margin-right: 0.25rem;"></i>
+                ${locationParts.join(', ')}${linkedInFields.postalCode && linkedInFields.postalCode !== 'Not specified' ? ` (${linkedInFields.postalCode})` : ''}
+            </div>
+        </div>
+    `;
+}
+
+// Founded
+if (linkedInFields.foundedOn && linkedInFields.foundedOn !== 'Not specified') {
+    html += `
+        <div class="result-item">
+            <div class="result-label">Founded</div>
+            <div class="result-value">
+                <i class="fas fa-calendar" style="color: var(--warning); margin-right: 0.25rem;"></i>
+                ${linkedInFields.foundedOn}
+            </div>
+        </div>
+    `;
+}
+
+// Website
+if (linkedInFields.website && linkedInFields.website !== 'Not found' && linkedInFields.website !== 'Not specified') {
+    html += `
+        <div class="result-item">
+            <div class="result-label">Website</div>
+            <div class="result-value">
+                <a href="${linkedInFields.website}" target="_blank">
+                    <i class="fas fa-globe" style="margin-right: 0.25rem;"></i>${linkedInFields.website}
+                </a>
+            </div>
+        </div>
+    `;
+}
+
+// Company Description — full width
+if (linkedInFields.company_description && linkedInFields.company_description !== 'Not specified') {
+    html += `
+        <div class="result-item" style="grid-column: 1/-1;">
+            <div class="result-label">About</div>
+            <div class="result-value" style="line-height: 1.6;">${linkedInFields.company_description}</div>
+        </div>
+    `;
+}
+
+// LinkedIn URL
+if (linkedInFields.linkedinUrl) {
+    html += `
+        <div class="result-item">
+            <div class="result-label">LinkedIn Page</div>
+            <div class="result-value">
+                <a href="${linkedInFields.linkedinUrl}" target="_blank">
+                    <i class="fab fa-linkedin" style="margin-right: 0.25rem; color: #0077b5;"></i>
+                    ${linkedInFields.linkedinUrl}
+                </a>
+            </div>
+        </div>
+    `;
+}
         
         // ==========================================
         // SECTION 5: CAREER INFORMATION
@@ -4013,32 +4041,34 @@ else if (currentInputType === 'linkedin_company' && currentOutputType === 'linke
                 <th>LinkedIn URL</th>
                 <th>Company Name</th>
                 <th>Industry</th>
-                <th>Company Size</th>
-                <th>Location</th>
+                <th>Employees</th>
+                <th>Followers</th>
+                <th>City</th>
+                <th>Country</th>
+                <th>Founded</th>
                 <th>Company Email</th>
                 <th>Company Phone</th>
+                <th>Website</th>
             </tr>
         </thead>
         <tbody>`;
 
     bulkResults.forEach(row => {
         const data = row.rawData || {};
-        const linkedinUrlDisplay = row.inputData.length > 30 
-            ? `${row.inputData.substring(0, 30)}...` 
-            : row.inputData;
+        const urlShort = row.inputData.length > 35 ? row.inputData.substring(0, 35) + '...' : row.inputData;
 
         html += `<tr>
-            <td data-label="LinkedIn URL">
-                <a href="${row.inputData}" target="_blank" style="color: var(--primary); text-decoration: none;">
-                    ${linkedinUrlDisplay}
-                </a>
-            </td>
+            <td data-label="LinkedIn URL"><a href="${row.inputData}" target="_blank" style="color:var(--primary);text-decoration:none;">${urlShort}</a></td>
             <td data-label="Company Name">${data.name || 'Not found'}</td>
             <td data-label="Industry">${data.industry || 'Not found'}</td>
-            <td data-label="Company Size">${data.company_size || data.size || 'Not found'}</td>
-            <td data-label="Location">${data.location || 'Not found'}</td>
+            <td data-label="Employees">${data.company_size ? Number(data.company_size).toLocaleString() : 'Not found'}</td>
+            <td data-label="Followers">${data.followerCount ? Number(data.followerCount).toLocaleString() : 'Not found'}</td>
+            <td data-label="City">${data.city || 'Not found'}</td>
+            <td data-label="Country">${data.country || 'Not found'}</td>
+            <td data-label="Founded">${data.foundedOn || 'Not found'}</td>
             <td data-label="Company Email">${data.company_email || 'Not found'}</td>
             <td data-label="Company Phone">${data.company_phone || 'Not found'}</td>
+            <td data-label="Website">${data.website || 'Not found'}</td>
         </tr>`;
     });
 
