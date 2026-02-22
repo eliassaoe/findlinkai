@@ -4205,31 +4205,33 @@ else if (currentInputType === 'linkedin_profile' && currentOutputType === 'linke
         csvContent += csvRow.join(',') + '\n';
     });
 }
-    // Handle LinkedIn Company data export with detailed columns
-    else if (currentInputType === 'linkedin_company' && currentOutputType === 'linkedin_info') {
-    // ✅ Header now matches all 10 data fields
-    csvContent = 'LinkedIn URL,Company Name,Industry,Company Size,Location,Description,Website,Company Email,Company Phone,Specialties\n';
-    
+else if (currentInputType === 'linkedin_company' && currentOutputType === 'linkedin_info') {
+    csvContent = 'LinkedIn URL,Company Name,Tagline,Industry,Employees,Followers,City,Country,Postal Code,Founded,Website,Company Email,Company Phone,Description\n';
+
     bulkResults.forEach(row => {
         const data = row.rawData || {};
         const escapeCSV = (str) => {
-            if (!str || str === 'Not found' || str === 'Error' || str === 'Processing...' || str === 'Not specified') return str;
+            if (!str || str === 'Not found' || str === 'Not specified') return str || '';
             return `"${str.toString().replace(/"/g, '""')}"`;
         };
 
         const csvRow = [
             escapeCSV(row.inputData),
-            escapeCSV(data.name || 'Not found'),
-            escapeCSV(data.industry || 'Not found'),
-            escapeCSV(data.company_size || 'Not found'),       // ✅ was data.size
-            escapeCSV(data.location || 'Not found'),
-            escapeCSV(data.company_description || 'Not found'), // ✅ was data.description
-            escapeCSV(data.website || 'Not found'),
-            escapeCSV(data.company_email || 'Not found'),       // ✅ now in correct column
-            escapeCSV(data.company_phone || 'Not found'),       // ✅ now in correct column
-            escapeCSV(data.specialties || 'Not found')          // ✅ now in correct position
+            escapeCSV(data.name),
+            escapeCSV(data.tagline),
+            escapeCSV(data.industry),
+            escapeCSV(data.company_size),
+            escapeCSV(data.followerCount),
+            escapeCSV(data.city),
+            escapeCSV(data.country),
+            escapeCSV(data.postalCode),
+            escapeCSV(data.foundedOn),
+            escapeCSV(data.website),
+            escapeCSV(data.company_email),
+            escapeCSV(data.company_phone),
+            escapeCSV(data.company_description)
         ];
-        
+
         csvContent += csvRow.join(',') + '\n';
     });
 }
