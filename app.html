@@ -1883,6 +1883,7 @@ src="https://www.facebook.com/tr?id=2717863625238535&ev=PageView&noscript=1"
                             <option value="linkedin_profile">LinkedIn Profile URL</option>
                             <option value="lead_full_name">Lead Full Name</option>
                             <option value="linkedin_post">LinkedIn Post URL</option>
+                            <option value="instagram_profile">Instagram Profile URL</option>
                         </select>
                     </div>
                     
@@ -2168,11 +2169,25 @@ const dataConfigurations = {
             linkedin_info: "LinkedIn Data Scraping"
         }
     },
+    instagram_profile: {
+    label: "Enter Instagram Profile URL",
+    placeholder: "e.g., https://www.instagram.com/username",
+    outputs: {
+        instagram_info: "Instagram Profile Data"
+    }
+},
     linkedin_post: {
         label: "Enter LinkedIn Post URL",
         placeholder: "e.g., linkedin.com/feed/update/urn:li:activity:1234567890",
         outputs: {
-            reactions: "Post Reactions Scraping"
+            reactions: "Post Reactions Scraping",
+            instagram_profile: {          // ← ça doit être là
+        label: "Enter Instagram Profile URL",
+        placeholder: "e.g., https://www.instagram.com/username",
+        outputs: {
+            instagram_info: "Instagram Profile Data"
+        }
+    }
         }
     }
 };
@@ -2241,6 +2256,91 @@ async function fetchWithTimeout(url, options = {}, timeout = 180000) { // 3 minu
             outputTypeSelect.appendChild(option);
         }
     }
+}
+
+function showSingleResultInstagram(inputData, data) {
+    const resultText = document.getElementById('resultText');
+    const resultLink = document.getElementById('resultLink');
+    resultText.style.display = 'none';
+    resultLink.innerHTML = '';
+
+    if (!data || (!data.fullName && !data.username)) {
+        resultLink.innerHTML = '<div class="result-card"><div class="result-header"><h3>No profile found</h3><p>' + inputData + '</p></div></div>';
+        document.getElementById('resultsSection').classList.remove('hidden');
+        document.getElementById('singleResult').classList.remove('hidden');
+        document.getElementById('bulkResults').classList.add('hidden');
+        return;
+    }
+
+    const fmt = n => {
+        if (!n && n !== 0) return 'N/A';
+        if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
+        if (n >= 1000) return (n / 1000).toFixed(1) + 'K';
+        return n.toLocaleString();
+    };
+
+    const initials = data.fullName
+        ? data.fullName.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase()
+        : (data.username ? data.username[0].toUpperCase() : 'IG');
+
+    const avatarHtml = data.profilePicUrl
+        ? `<img src="${data.profilePicUrl}" style="width:64px;height:64px;border-radius:50%;object-fit:cover;border:2px solid var(--gray-200);" onerror="this.style.display='none'">`
+        : `<div style="width:64px;height:64px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;color:white;font-size:1.5rem;font-weight:700;">${initials}</div>`;
+
+    let badges = '';
+    if (data.verified) badges += `<span style="background:#dbeafe;color:#1d4ed8;font-size:0.7rem;font-weight:600;padding:0.15rem 0.5rem;border-radius:3px;">✓ Verified</span>`;
+    if (data.isBusinessAccount) badges += `<span style="background:#fef3c7;color:#92400e;font-size:0.7rem;font-weight:600;padding:0.15rem 0.5rem;border-radius:3px;">Business</span>`;
+    if (data.private) badges += `<span style="background:#fee2e2;color:#991b1b;font-size:0.7rem;font-weight:600;padding:0.15rem 0.5rem;border-radius:3px;">🔒 Private</span>`;
+
+    let postsHtml = '';
+    if (Array.isArray(data.latestPosts) && data.latestPosts.length > 0) {
+        const thumbs = data.latestPosts.slice(0, 9).map(post => {
+            const type = post.type === 'Video' ? '▶' : post.type === 'Sidecar' ? '⧉' : '';
+            return `<a href="${post.url}" target="_blank" style="position:relative;display:block;aspect-ratio:1;border-radius:6px;overflow:hidden;background:var(--gray-100);">
+                <img src="${post.displayUrl}" style="width:100%;height:100%;object-fit:cover;" loading="lazy">
+                ${type ? `<span style="position:absolute;top:4px;right:4px;background:rgba(0,0,0,0.6);color:white;font-size:0.65rem;padding:1px 4px;border-radius:3px;">${type}</span>` : ''}
+            </a>`;
+        }).join('');
+        postsHtml = `<div class="result-item" style="grid-column:1/-1;">
+            <div class="result-label">Latest Posts</div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0.5rem;margin-top:0.5rem;">${thumbs}</div>
+        </div>`;
+    }
+
+    let externalLinks = '';
+    if (Array.isArray(data.externalUrls) && data.externalUrls.length > 0) {
+        data.externalUrls.forEach(u => {
+            const href = typeof u === 'string' ? u : (u.url || '');
+            if (href) externalLinks += `<a href="${href}" target="_blank" style="color:var(--primary);font-size:0.875rem;">${href}</a> `;
+        });
+    }
+
+    resultLink.innerHTML = `
+        <div class="result-card">
+            <div class="result-header">
+                <div style="display:flex;align-items:center;gap:1rem;">
+                    ${avatarHtml}
+                    <div>
+                        <h3 style="display:flex;align-items:center;gap:0.5rem;">${data.fullName || data.username} ${badges}</h3>
+                        <p>@${data.username || ''}</p>
+                        ${data.isBusinessAccount && data.businessCategoryName ? `<div style="font-size:0.75rem;color:var(--gray-500);">${data.businessCategoryName}</div>` : ''}
+                    </div>
+                </div>
+            </div>
+            <div class="result-grid">
+                <div class="result-item"><div class="result-label">Followers</div><div class="result-value highlight">${fmt(data.followersCount)}</div></div>
+                <div class="result-item"><div class="result-label">Following</div><div class="result-value">${fmt(data.followsCount)}</div></div>
+                <div class="result-item"><div class="result-label">Posts</div><div class="result-value">${fmt(data.postsCount)}</div></div>
+                ${data.biography ? `<div class="result-item" style="grid-column:1/-1;"><div class="result-label">Bio</div><div class="result-value" style="white-space:pre-line;">${data.biography}</div></div>` : ''}
+                ${externalLinks ? `<div class="result-item" style="grid-column:1/-1;"><div class="result-label">External Link</div><div class="result-value">${externalLinks}</div></div>` : ''}
+                <div class="result-item" style="grid-column:1/-1;"><div class="result-label">Profile</div><div class="result-value"><a href="${data.url || inputData}" target="_blank"><i class="fab fa-instagram"></i> View on Instagram</a></div></div>
+                ${postsHtml}
+            </div>
+        </div>`;
+
+    document.getElementById('resultsSection').classList.remove('hidden');
+    document.getElementById('singleResult').classList.remove('hidden');
+    document.getElementById('bulkResults').classList.add('hidden');
 }
 
 function setupDropdowns() {
@@ -2429,6 +2529,11 @@ if (credits < 0) {
 
     // Validate LinkedIn URLs
     // Validate LinkedIn URLs with specific format checks
+      if (currentOutputType === 'instagram_info' && data) {
+    const profile = Array.isArray(data) ? data[0] : data;
+    showSingleResultInstagram(inputValue, profile);
+    return;
+}
 if (currentInputType === 'linkedin_profile') {
     if (!inputValue.toLowerCase().includes('linkedin.com/in/')) {
         showAlert('Please enter a valid LinkedIn Profile URL (must start with linkedin.com/in/)', 'error');
@@ -2439,6 +2544,13 @@ if (currentInputType === 'linkedin_profile') {
         showAlert('Please enter a valid LinkedIn Post URL (must include linkedin.com/posts/)', 'error');
         return;
     }
+    
+} else if (currentInputType === 'instagram_profile') {
+    if (!inputValue.toLowerCase().includes('instagram.com/')) {
+        showAlert('Please enter a valid Instagram Profile URL', 'error');
+        return;
+    }
+}
 } else if (currentInputType === 'linkedin_company') {
     if (!inputValue.toLowerCase().includes('linkedin.com/company/')) {
         showAlert('Please enter a valid LinkedIn Company URL (must include linkedin.com/company/)', 'error');
@@ -2454,7 +2566,11 @@ if (currentInputType === 'linkedin_profile') {
         console.log('Output type:', currentOutputType);
         console.log('Input value:', inputValue);
         
-        const response = await fetchWithTimeout('https://linkfinderapp.hamoureliasse.workers.dev/', {
+        const apiUrl = currentInputType === 'instagram_profile'
+    ? 'https://linkfinder-instagram-scraper.hamoureliasse.workers.dev/'
+    : 'https://linkfinderapp.hamoureliasse.workers.dev/';
+
+const response = await fetchWithTimeout(apiUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -4594,6 +4710,7 @@ const creditCosts = {
     'linkedin_company_to_employees': 1,
     'linkedin_company_to_employee_count': 1,
     'linkedin_profile_to_linkedin_info': 10,
+    'instagram_profile_to_instagram_info': 5,
     'lead_full_name_to_linkedin_url': 1,
     'company_domain_to_employees': 1,
     'linkedin_post_to_reactions': 1
