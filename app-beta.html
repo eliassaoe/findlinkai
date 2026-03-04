@@ -2428,37 +2428,33 @@ if (credits < 0) {
         jobInfo: parts.slice(1).join(' - ').trim() 
     };
 }
-
-  async function enrichData(event) {
+async function enrichData(event) {
     event.preventDefault();
     
     const inputValue = document.getElementById('inputData').value.trim();
     if (!inputValue) return;
 
-    // Validate LinkedIn URLs
-    // Validate LinkedIn URLs with specific format checks
-if (currentInputType === 'linkedin_profile') {
-    if (!inputValue.toLowerCase().includes('linkedin.com/in/')) {
-        showAlert('Please enter a valid LinkedIn Profile URL (must start with linkedin.com/in/)', 'error');
-        return;
+    if (currentInputType === 'linkedin_profile') {
+        if (!inputValue.toLowerCase().includes('linkedin.com/in/')) {
+            showAlert('Please enter a valid LinkedIn Profile URL (must start with linkedin.com/in/)', 'error');
+            return;
+        }
+    } else if (currentInputType === 'linkedin_post') {
+        if (!inputValue.toLowerCase().includes('linkedin.com/posts/')) {
+            showAlert('Please enter a valid LinkedIn Post URL (must include linkedin.com/posts/)', 'error');
+            return;
+        }
+    } else if (currentInputType === 'instagram_profile') {
+        if (!inputValue.toLowerCase().includes('instagram.com/')) {
+            showAlert('Please enter a valid Instagram Profile URL', 'error');
+            return;
+        }
+    } else if (currentInputType === 'linkedin_company') {
+        if (!inputValue.toLowerCase().includes('linkedin.com/company/')) {
+            showAlert('Please enter a valid LinkedIn Company URL (must include linkedin.com/company/)', 'error');
+            return;
+        }
     }
-} else if (currentInputType === 'linkedin_post') {
-    if (!inputValue.toLowerCase().includes('linkedin.com/posts/')) {
-        showAlert('Please enter a valid LinkedIn Post URL (must include linkedin.com/posts/)', 'error');
-        return;
-    }
-} else if (currentInputType === 'instagram_profile') {
-    if (!inputValue.toLowerCase().includes('instagram.com/')) {
-        showAlert('Please enter a valid Instagram Profile URL', 'error');
-        return;
-    }
-}
-} else if (currentInputType === 'linkedin_company') {
-    if (!inputValue.toLowerCase().includes('linkedin.com/company/')) {
-        showAlert('Please enter a valid LinkedIn Company URL (must include linkedin.com/company/)', 'error');
-        return;
-    }
-}
 
     showLoading();
     
@@ -2469,31 +2465,31 @@ if (currentInputType === 'linkedin_profile') {
         console.log('Input value:', inputValue);
         
         const apiUrl = currentInputType === 'instagram_profile'
-    ? 'https://linkfinder-instagram-scraper.hamoureliasse.workers.dev/'
-    : 'https://linkfinderapp.hamoureliasse.workers.dev/';
+            ? 'https://linkfinder-instagram-scraper.hamoureliasse.workers.dev/'
+            : 'https://linkfinderapp.hamoureliasse.workers.dev/';
 
-const response = await fetchWithTimeout(apiUrl, {
+        const response = await fetchWithTimeout(apiUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-    type: generateCombinationType(currentInputType, currentOutputType),
-    input_data: inputValue,
-    department: (currentOutputType === 'employees' &&
-        (currentInputType === 'company_domain' || currentInputType === 'linkedin_company'))
-        ? (document.getElementById('optionalDepartment').value.trim() || 'all')
-        : undefined,
-    seniority: (currentOutputType === 'employees' &&
-        (currentInputType === 'company_domain' || currentInputType === 'linkedin_company'))
-        ? (document.getElementById('optionalSeniority').value.trim() || 'all')
-        : undefined,
-    employee_count: (currentOutputType === 'employees' &&
-    (currentInputType === 'company_domain' || currentInputType === 'linkedin_company'))
-    ? (parseInt(document.getElementById('optionalEmployeeCount').value) || null)
-    : undefined,
-    output_type: currentOutputType,
-    token: userToken,
-    is_bulk: false
-})
+                type: generateCombinationType(currentInputType, currentOutputType),
+                input_data: inputValue,
+                department: (currentOutputType === 'employees' &&
+                    (currentInputType === 'company_domain' || currentInputType === 'linkedin_company'))
+                    ? (document.getElementById('optionalDepartment').value.trim() || 'all')
+                    : undefined,
+                seniority: (currentOutputType === 'employees' &&
+                    (currentInputType === 'company_domain' || currentInputType === 'linkedin_company'))
+                    ? (document.getElementById('optionalSeniority').value.trim() || 'all')
+                    : undefined,
+                employee_count: (currentOutputType === 'employees' &&
+                    (currentInputType === 'company_domain' || currentInputType === 'linkedin_company'))
+                    ? (parseInt(document.getElementById('optionalEmployeeCount').value) || null)
+                    : undefined,
+                output_type: currentOutputType,
+                token: userToken,
+                is_bulk: false
+            })
         });
 
         console.log('Response status:', response.status);
@@ -2505,30 +2501,28 @@ const response = await fetchWithTimeout(apiUrl, {
         hideLoading();
 
         if (currentOutputType === 'instagram_info' && data) {
-    const profile = Array.isArray(data) ? data[0] : data;
-    showSingleResultInstagram(inputValue, profile);
-    return;
-}
+            const profile = Array.isArray(data) ? data[0] : data;
+            showSingleResultInstagram(inputValue, profile);
+            return;
+        }
 
-        // Handle post reactions data (array format)
-if (currentOutputType === 'reactions' && Array.isArray(data) && data.length > 0) {
-    console.log('Success - showing post reactions');
-    showSingleResultReactions(inputValue, data);
-    return;
-}
-      // Handle employee count (string like "143" or "1-10")
-if (currentOutputType === 'employee_count') {
-    console.log('Success - showing employee count');
-    showSingleResultEmployeeCount(inputValue, data);
-    return;
-}
+        if (currentOutputType === 'reactions' && Array.isArray(data) && data.length > 0) {
+            console.log('Success - showing post reactions');
+            showSingleResultReactions(inputValue, data);
+            return;
+        }
 
-        // Handle employees data (array format)
-if (currentOutputType === 'employees' && Array.isArray(data) && data.length > 0) {
-    console.log('Success - showing employees result');
-    showSingleResultEmployees(inputValue, data);
-    return;
-}
+        if (currentOutputType === 'employee_count') {
+            console.log('Success - showing employee count');
+            showSingleResultEmployeeCount(inputValue, data);
+            return;
+        }
+
+        if (currentOutputType === 'employees' && Array.isArray(data) && data.length > 0) {
+            console.log('Success - showing employees result');
+            showSingleResultEmployees(inputValue, data);
+            return;
+        }
 
         if (response.status === 403 && data.code === 403) {
             console.log('Insufficient credits detected');
@@ -2538,11 +2532,11 @@ if (currentOutputType === 'employees' && Array.isArray(data) && data.length > 0)
 
         if (response.ok && data && (data.result || data.name)) {
             if (data.name && !data.result) {
-    const formattedResult = formatLinkedInCompanyData(data);
-    showSingleResult(inputValue, data);  // Pass raw data object
-} else {
-    showSingleResult(inputValue, data.result || 'Not found');
-}
+                formatLinkedInCompanyData(data);
+                showSingleResult(inputValue, data);
+            } else {
+                showSingleResult(inputValue, data.result || 'Not found');
+            }
         } else {
             console.log('No result found - showing "Not found"');
             showSingleResult(inputValue, 'Not found');
