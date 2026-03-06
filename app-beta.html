@@ -1816,7 +1816,7 @@ fbq("track", "PageView");
 src="https://www.facebook.com/tr?id=2717863625238535&ev=PageView&noscript=1"
 /></noscript>
 <!-- End Meta Pixel Code -->
-<link rel="canonical" href="https://linkfinderai.com/app-beta" />
+<link rel="canonical" href="https://linkfinderai.com/app" />
 </head>
 <body>
     <header class="header">
@@ -1884,7 +1884,6 @@ src="https://www.facebook.com/tr?id=2717863625238535&ev=PageView&noscript=1"
                             <option value="linkedin_profile">LinkedIn Profile URL</option>
                             <option value="lead_full_name">Lead Full Name</option>
                             <option value="linkedin_post">LinkedIn Post URL</option>
-                            <option value="instagram_profile">Instagram Profile URL</option>
                         </select>
                     </div>
                     
@@ -2127,6 +2126,7 @@ src="https://www.facebook.com/tr?id=2717863625238535&ev=PageView&noscript=1"
         let currentInputType = '';
         let currentOutputType = '';
         let isBulkProcessing = false;
+        let currentCredits = null;
 
         // Data mapping configurations
        // Update the dataConfigurations to make the employee enrichments clearer
@@ -2170,13 +2170,6 @@ const dataConfigurations = {
             linkedin_info: "LinkedIn Data Scraping"
         }
     },
-    instagram_profile: {
-    label: "Enter Instagram Profile URL",
-    placeholder: "e.g., https://www.instagram.com/username",
-    outputs: {
-        instagram_info: "Instagram Profile Data"
-    }
-},
     linkedin_post: {
         label: "Enter LinkedIn Post URL",
         placeholder: "e.g., linkedin.com/feed/update/urn:li:activity:1234567890",
@@ -2401,14 +2394,9 @@ function setupDropdowns() {
                 if (response.ok) {
                     const data = await response.json();
                     console.log('Credits data:', data);
-                    const credits = data.credits || 0;
-
-// Don't allow negative credits to display
-if (credits < 0) {
-    document.getElementById('creditsCount').textContent = '0';
-} else {
-    document.getElementById('creditsCount').textContent = credits;
-}
+                    const credits = Math.max(0, data.credits || 0);
+currentCredits = credits;
+document.getElementById('creditsCount').textContent = credits;
                 } else {
                     console.error('API returned error:', response.status);
                     const errorText = await response.text();
@@ -2421,6 +2409,12 @@ if (credits < 0) {
             }
         }
 
+        function deductCredits(amount) {
+    if (currentCredits === null) return; // Not yet loaded
+    currentCredits = Math.max(0, currentCredits - amount);
+    document.getElementById('creditsCount').textContent = Math.round(currentCredits * 10) / 10;
+}
+
       function parseReactionTitle(title) {
     if (!title) return { name: 'Unknown', jobInfo: '' };
     const parts = title.split(' - ');
@@ -2429,33 +2423,36 @@ if (credits < 0) {
         jobInfo: parts.slice(1).join(' - ').trim() 
     };
 }
-async function enrichData(event) {
+
+  async function enrichData(event) {
     event.preventDefault();
-    
+ 
+    posthog.capture('enrich_started', {
+        input_type: currentInputType,
+        output_type: currentOutputType
+    });
+      
     const inputValue = document.getElementById('inputData').value.trim();
     if (!inputValue) return;
 
-    if (currentInputType === 'linkedin_profile') {
-        if (!inputValue.toLowerCase().includes('linkedin.com/in/')) {
-            showAlert('Please enter a valid LinkedIn Profile URL (must start with linkedin.com/in/)', 'error');
-            return;
-        }
-    } else if (currentInputType === 'linkedin_post') {
-        if (!inputValue.toLowerCase().includes('linkedin.com/posts/')) {
-            showAlert('Please enter a valid LinkedIn Post URL (must include linkedin.com/posts/)', 'error');
-            return;
-        }
-    } else if (currentInputType === 'instagram_profile') {
-        if (!inputValue.toLowerCase().includes('instagram.com/')) {
-            showAlert('Please enter a valid Instagram Profile URL', 'error');
-            return;
-        }
-    } else if (currentInputType === 'linkedin_company') {
-        if (!inputValue.toLowerCase().includes('linkedin.com/company/')) {
-            showAlert('Please enter a valid LinkedIn Company URL (must include linkedin.com/company/)', 'error');
-            return;
-        }
+    // Validate LinkedIn URLs
+    // Validate LinkedIn URLs with specific format checks
+if (currentInputType === 'linkedin_profile') {
+    if (!inputValue.toLowerCase().includes('linkedin.com/in/')) {
+        showAlert('Please enter a valid LinkedIn Profile URL (must start with linkedin.com/in/)', 'error');
+        return;
     }
+} else if (currentInputType === 'linkedin_post') {
+    if (!inputValue.toLowerCase().includes('linkedin.com/posts/')) {
+        showAlert('Please enter a valid LinkedIn Post URL (must include linkedin.com/posts/)', 'error');
+        return;
+    }
+} else if (currentInputType === 'linkedin_company') {
+    if (!inputValue.toLowerCase().includes('linkedin.com/company/')) {
+        showAlert('Please enter a valid LinkedIn Company URL (must include linkedin.com/company/)', 'error');
+        return;
+    }
+}
 
     showLoading();
     
@@ -2465,30 +2462,28 @@ async function enrichData(event) {
         console.log('Output type:', currentOutputType);
         console.log('Input value:', inputValue);
         
-        const apiUrl = 'https://linkfinderapp.hamoureliasse.workers.dev/';
-
-        const response = await fetchWithTimeout(apiUrl, {
+        const response = await fetchWithTimeout('https://linkfinderapp.hamoureliasse.workers.dev/', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                type: generateCombinationType(currentInputType, currentOutputType),
-                input_data: inputValue,
-                department: (currentOutputType === 'employees' &&
-                    (currentInputType === 'company_domain' || currentInputType === 'linkedin_company'))
-                    ? (document.getElementById('optionalDepartment').value.trim() || 'all')
-                    : undefined,
-                seniority: (currentOutputType === 'employees' &&
-                    (currentInputType === 'company_domain' || currentInputType === 'linkedin_company'))
-                    ? (document.getElementById('optionalSeniority').value.trim() || 'all')
-                    : undefined,
-                employee_count: (currentOutputType === 'employees' &&
-                    (currentInputType === 'company_domain' || currentInputType === 'linkedin_company'))
-                    ? (parseInt(document.getElementById('optionalEmployeeCount').value) || null)
-                    : undefined,
-                output_type: currentOutputType,
-                token: userToken,
-                is_bulk: false
-            })
+    type: generateCombinationType(currentInputType, currentOutputType),
+    input_data: inputValue,
+    department: (currentOutputType === 'employees' &&
+        (currentInputType === 'company_domain' || currentInputType === 'linkedin_company'))
+        ? (document.getElementById('optionalDepartment').value.trim() || 'all')
+        : undefined,
+    seniority: (currentOutputType === 'employees' &&
+        (currentInputType === 'company_domain' || currentInputType === 'linkedin_company'))
+        ? (document.getElementById('optionalSeniority').value.trim() || 'all')
+        : undefined,
+    employee_count: (currentOutputType === 'employees' &&
+    (currentInputType === 'company_domain' || currentInputType === 'linkedin_company'))
+    ? (parseInt(document.getElementById('optionalEmployeeCount').value) || null)
+    : undefined,
+    output_type: currentOutputType,
+    token: userToken,
+    is_bulk: false
+})
         });
 
         console.log('Response status:', response.status);
@@ -2499,29 +2494,28 @@ async function enrichData(event) {
         
         hideLoading();
 
-        if (currentOutputType === 'instagram_info' && data) {
-            const profile = Array.isArray(data) ? data[0] : data;
-            showSingleResultInstagram(inputValue, profile);
-            return;
-        }
+        // Handle post reactions data (array format)
+if (currentOutputType === 'reactions' && Array.isArray(data) && data.length > 0) {
+    console.log('Success - showing post reactions');
+    deductCredits(data.length);
+    showSingleResultReactions(inputValue, data);
+    return;
+}
+      // Handle employee count (string like "143" or "1-10")
+if (currentOutputType === 'employee_count') {
+    console.log('Success - showing employee count');
+    deductCredits(getCreditCost(currentInputType, currentOutputType));
+    showSingleResultEmployeeCount(inputValue, data);
+    return;
+}
 
-        if (currentOutputType === 'reactions' && Array.isArray(data) && data.length > 0) {
-            console.log('Success - showing post reactions');
-            showSingleResultReactions(inputValue, data);
-            return;
-        }
-
-        if (currentOutputType === 'employee_count') {
-            console.log('Success - showing employee count');
-            showSingleResultEmployeeCount(inputValue, data);
-            return;
-        }
-
-        if (currentOutputType === 'employees' && Array.isArray(data) && data.length > 0) {
-            console.log('Success - showing employees result');
-            showSingleResultEmployees(inputValue, data);
-            return;
-        }
+        // Handle employees data (array format)
+if (currentOutputType === 'employees' && Array.isArray(data) && data.length > 0) {
+    console.log('Success - showing employees result');
+    deductCredits(data.length * 0.5);
+    showSingleResultEmployees(inputValue, data);
+    return;
+}
 
         if (response.status === 403 && data.code === 403) {
             console.log('Insufficient credits detected');
@@ -2530,12 +2524,13 @@ async function enrichData(event) {
         }
 
         if (response.ok && data && (data.result || data.name)) {
+            deductCredits(getCreditCost(currentInputType, currentOutputType));
             if (data.name && !data.result) {
-                formatLinkedInCompanyData(data);
-                showSingleResult(inputValue, data);
-            } else {
-                showSingleResult(inputValue, data.result || 'Not found');
-            }
+    const formattedResult = formatLinkedInCompanyData(data);
+    showSingleResult(inputValue, data);  // Pass raw data object
+} else {
+    showSingleResult(inputValue, data.result || 'Not found');
+}
         } else {
             console.log('No result found - showing "Not found"');
             showSingleResult(inputValue, 'Not found');
@@ -2696,57 +2691,63 @@ async function processBulk() {
                 });
 
                 if (response.ok) {
-                    const data = await response.json();
+    const data = await response.json();
 
-                    if (currentOutputType === 'employee_count') {
-                        const count = data.result || data || 'Not found';
-                        bulkResults[i] = {
-                            inputData: row.inputData,
-                            result: count === 'Not found' ? count : `${count} employees`,
-                            status: count === 'Not found' ? 'Not found' : 'Found',
-                            employeeCount: count,
-                            rawData: count
-                        };
-                    } else if (currentOutputType === 'employees' && (Array.isArray(data) || (data.employees && Array.isArray(data.employees)))) {
-                        const employees = Array.isArray(data) ? data : data.employees;
-                        bulkResults[i] = {
-                            inputData: row.inputData,
-                            result: `${employees.length} employees found`,
-                            status: employees.length > 0 ? 'Found' : 'Not found',
-                            employees: employees,
-                            rawData: data
-                        };
-                    } else if (currentOutputType === 'reactions' && Array.isArray(data)) {
-                        bulkResults[i] = {
-                            inputData: row.inputData,
-                            result: `${data.length} reactions found`,
-                            status: 'Found',
-                            reactions: data,
-                            rawData: data
-                        };
-                    } else {
-                        bulkResults[i] = {
-                            inputData: row.inputData,
-                            result: data.result || 'Not found',
-                            status: data.result ? 'Found' : 'Not found',
-                            rawData: data
-                        };
-                    }
+    if (currentOutputType === 'employee_count') {
+        const count = data.result || data || 'Not found';
+        bulkResults[i] = {
+            inputData: row.inputData,
+            result: count === 'Not found' ? count : `${count} employees`,
+            status: count === 'Not found' ? 'Not found' : 'Found',
+            employeeCount: count,
+            rawData: count
+        };
+        if (count !== 'Not found') deductCredits(getCreditCost(currentInputType, currentOutputType));
 
-                } else {
-                    const data = await response.json();
+    } else if (currentOutputType === 'employees' && (Array.isArray(data) || (data.employees && Array.isArray(data.employees)))) {
+        const employees = Array.isArray(data) ? data : data.employees;
+        bulkResults[i] = {
+            inputData: row.inputData,
+            result: `${employees.length} employees found`,
+            status: employees.length > 0 ? 'Found' : 'Not found',
+            employees: employees,
+            rawData: data
+        };
+        if (employees.length > 0) deductCredits(employees.length * 0.5);
 
-                    if (response.status === 403 && data.code === 403) {
-                        showInsufficientCreditsModal();
-                        return;
-                    }
-                    
-                    bulkResults[i] = {
-                        inputData: row.inputData,
-                        result: 'Not found',
-                        status: 'Not found'
-                    };
-                }
+    } else if (currentOutputType === 'reactions' && Array.isArray(data)) {
+        bulkResults[i] = {
+            inputData: row.inputData,
+            result: `${data.length} reactions found`,
+            status: 'Found',
+            reactions: data,
+            rawData: data
+        };
+        deductCredits(data.length);
+
+    } else {
+        bulkResults[i] = {
+            inputData: row.inputData,
+            result: data.result || 'Not found',
+            status: data.result ? 'Found' : 'Not found',
+            rawData: data
+        };
+        if (data.result) deductCredits(getCreditCost(currentInputType, currentOutputType));
+    }
+
+} else {
+    const data = await response.json();
+    if (response.status === 403 && data.code === 403) {
+        showInsufficientCreditsModal();
+        return;
+    }
+    
+    bulkResults[i] = {
+        inputData: row.inputData,
+        result: 'Not found',
+        status: 'Not found'
+    };
+}
 
             } catch (error) {
                 console.error(`Error for ${row.inputData}:`, error);
@@ -2889,6 +2890,15 @@ function handleBeforeUnload(e) {
             }
 
             userToken = token;
+
+            // ✅ ADD THIS BLOCK
+    const action = urlParams.get('action');
+if (action === 'buy_credits') {
+    setTimeout(() => openBuyCreditsModal(), 500);
+} else if (action === 'upgrade') {
+    setTimeout(() => showPricingModal(), 500);
+}
+            
         }
 
 function showSingleResult(inputData, result) {
@@ -4613,7 +4623,6 @@ const creditCosts = {
     'linkedin_profile_to_linkedin_info': 10,
     'lead_full_name_to_linkedin_url': 1,
     'company_domain_to_employees': 1,
-    'instagram_profile_to_instagram_info': 5,
     'linkedin_post_to_reactions': 1
 };
 
@@ -4686,91 +4695,6 @@ function showFeedbackModal() {
     // Clear previous messages
     document.getElementById('feedbackSuccessMessage').classList.remove('show');
     document.getElementById('feedbackErrorMessage').classList.remove('show');
-}
-
-function showSingleResultInstagram(inputData, data) {
-    const resultText = document.getElementById('resultText');
-    const resultLink = document.getElementById('resultLink');
-    resultText.style.display = 'none';
-    resultLink.innerHTML = '';
-
-    if (!data || (!data.fullName && !data.username)) {
-        resultLink.innerHTML = '<div class="result-card"><div class="result-header"><h3>No profile found</h3><p>' + inputData + '</p></div></div>';
-        document.getElementById('resultsSection').classList.remove('hidden');
-        document.getElementById('singleResult').classList.remove('hidden');
-        document.getElementById('bulkResults').classList.add('hidden');
-        return;
-    }
-
-    const fmt = n => {
-        if (!n && n !== 0) return 'N/A';
-        if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
-        if (n >= 1000) return (n / 1000).toFixed(1) + 'K';
-        return n.toLocaleString();
-    };
-
-    const initials = data.fullName
-        ? data.fullName.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase()
-        : (data.username ? data.username[0].toUpperCase() : 'IG');
-
-    const avatarHtml = data.profilePicUrl
-        ? `<img src="${data.profilePicUrl}" style="width:64px;height:64px;border-radius:50%;object-fit:cover;border:2px solid var(--gray-200);" onerror="this.style.display='none'">`
-        : `<div style="width:64px;height:64px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;color:white;font-size:1.5rem;font-weight:700;">${initials}</div>`;
-
-    let badges = '';
-    if (data.verified) badges += `<span style="background:#dbeafe;color:#1d4ed8;font-size:0.7rem;font-weight:600;padding:0.15rem 0.5rem;border-radius:3px;">✓ Verified</span>`;
-    if (data.isBusinessAccount) badges += `<span style="background:#fef3c7;color:#92400e;font-size:0.7rem;font-weight:600;padding:0.15rem 0.5rem;border-radius:3px;">Business</span>`;
-    if (data.private) badges += `<span style="background:#fee2e2;color:#991b1b;font-size:0.7rem;font-weight:600;padding:0.15rem 0.5rem;border-radius:3px;">🔒 Private</span>`;
-
-    let postsHtml = '';
-    if (Array.isArray(data.latestPosts) && data.latestPosts.length > 0) {
-        const thumbs = data.latestPosts.slice(0, 9).map(post => {
-            const type = post.type === 'Video' ? '▶' : post.type === 'Sidecar' ? '⧉' : '';
-            return `<a href="${post.url}" target="_blank" style="position:relative;display:block;aspect-ratio:1;border-radius:6px;overflow:hidden;background:var(--gray-100);">
-                <img src="${post.displayUrl}" style="width:100%;height:100%;object-fit:cover;" loading="lazy">
-                ${type ? `<span style="position:absolute;top:4px;right:4px;background:rgba(0,0,0,0.6);color:white;font-size:0.65rem;padding:1px 4px;border-radius:3px;">${type}</span>` : ''}
-            </a>`;
-        }).join('');
-        postsHtml = `<div class="result-item" style="grid-column:1/-1;">
-            <div class="result-label">Latest Posts</div>
-            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0.5rem;margin-top:0.5rem;">${thumbs}</div>
-        </div>`;
-    }
-
-    let externalLinks = '';
-    if (Array.isArray(data.externalUrls) && data.externalUrls.length > 0) {
-        data.externalUrls.forEach(u => {
-            const href = typeof u === 'string' ? u : (u.url || '');
-            if (href) externalLinks += `<a href="${href}" target="_blank" style="color:var(--primary);font-size:0.875rem;">${href}</a> `;
-        });
-    }
-
-    resultLink.innerHTML = `
-        <div class="result-card">
-            <div class="result-header">
-                <div style="display:flex;align-items:center;gap:1rem;">
-                    ${avatarHtml}
-                    <div>
-                        <h3 style="display:flex;align-items:center;gap:0.5rem;">${data.fullName || data.username} ${badges}</h3>
-                        <p>@${data.username || ''}</p>
-                        ${data.isBusinessAccount && data.businessCategoryName ? `<div style="font-size:0.75rem;color:var(--gray-500);">${data.businessCategoryName}</div>` : ''}
-                    </div>
-                </div>
-            </div>
-            <div class="result-grid">
-                <div class="result-item"><div class="result-label">Followers</div><div class="result-value highlight">${fmt(data.followersCount)}</div></div>
-                <div class="result-item"><div class="result-label">Following</div><div class="result-value">${fmt(data.followsCount)}</div></div>
-                <div class="result-item"><div class="result-label">Posts</div><div class="result-value">${fmt(data.postsCount)}</div></div>
-                ${data.biography ? `<div class="result-item" style="grid-column:1/-1;"><div class="result-label">Bio</div><div class="result-value" style="white-space:pre-line;">${data.biography}</div></div>` : ''}
-                ${externalLinks ? `<div class="result-item" style="grid-column:1/-1;"><div class="result-label">External Link</div><div class="result-value">${externalLinks}</div></div>` : ''}
-                <div class="result-item" style="grid-column:1/-1;"><div class="result-label">Profile</div><div class="result-value"><a href="${data.url || inputData}" target="_blank"><i class="fab fa-instagram"></i> View on Instagram</a></div></div>
-                ${postsHtml}
-            </div>
-        </div>`;
-
-    document.getElementById('resultsSection').classList.remove('hidden');
-    document.getElementById('singleResult').classList.remove('hidden');
-    document.getElementById('bulkResults').classList.add('hidden');
 }
 
 function closeFeedbackModal() {
@@ -5043,7 +4967,7 @@ document.addEventListener('click', (e) => {
             required
             maxlength="2000"
         ></textarea>
-    </div>
+    </div> 
 
             
             <div class="feedback-form-actions">
