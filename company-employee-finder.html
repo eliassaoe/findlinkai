@@ -322,6 +322,7 @@
       color: white;
       font-size: 0.875rem;
       font-weight: 600;
+      flex-shrink: 0;
     }
 
     .employee-info h4 {
@@ -336,12 +337,19 @@
       font-size: 0.75rem;
     }
 
+    .employee-meta {
+      color: var(--gray-400);
+      font-size: 0.7rem;
+      margin-top: 0.2rem;
+    }
+
     .employee-link {
       margin-left: auto;
       color: var(--primary);
       text-decoration: none;
       font-size: 0.875rem;
       font-weight: 500;
+      flex-shrink: 0;
     }
 
     .employee-link:hover {
@@ -1085,11 +1093,6 @@ Professional tools for extracting company data from LinkedIn. Streamline your bu
 <p>&copy; 2025 LinkFinderAI. All rights reserved.</p>
 </div>
 
-
-
-
-
-
 </div>
 </footer>
 
@@ -1127,7 +1130,7 @@ Professional tools for extracting company data from LinkedIn. Streamline your bu
       updateUI();
     }
 
-        function updateUI() {
+    function updateUI() {
       const hasAccess = checkSearchLimit();
       if (!hasAccess) {
         const modal = document.getElementById('limitModal');
@@ -1166,13 +1169,11 @@ Professional tools for extracting company data from LinkedIn. Streamline your bu
         return;
       }
 
-      // Show results section and loading
       showLoading();
       
-      // Determine if input is URL or company name
       const isUrl = companyInput.startsWith('http');
       let requestBody = { 
-        maxEmployees: "100" // Default value
+        maxEmployees: "100"
       };
 
       if (isUrl) {
@@ -1201,33 +1202,28 @@ Professional tools for extracting company data from LinkedIn. Streamline your bu
 
         const data = await response.json();
         
-        // Console debugging
         console.log('=== DEBUGGING START ===');
         console.log('Raw response from worker:', data);
         console.log('Is response an array?', Array.isArray(data));
 
-        let employeeData;
         let employees = [];
         let companyName = 'Company';
         let industry = 'Technology';
 
-        // Handle both formats:
-        // Format 1: [{"employees": [...], "totalCount": 9}] (wrapped)
-        // Format 2: [{employee1}, {employee2}, ...] (direct array)
-        
         if (Array.isArray(data)) {
           if (data.length > 0 && data[0].employees) {
-            // Format 1: Wrapped format
-            console.log('Format 1: Wrapped format detected');
-            employeeData = data[0];
+            // Format: wrapped { employees: [...], ... }
+            console.log('Format: Wrapped format detected');
+            const employeeData = data[0];
             employees = employeeData.employees || [];
-            companyName = employeeData.companyName || (employees[0]?.company) || 'Company';
-            industry = employeeData.industry || (employees[0]?.industry) || 'Technology';
-          } else if (data.length > 0 && data[0].name) {
-            // Format 2: Direct employee array
-            console.log('Format 2: Direct employee array detected');
+            companyName = employeeData.companyName || employees[0]?.company_name || employees[0]?.company || 'Company';
+            industry = employeeData.industry || employees[0]?.industry || 'Technology';
+          } else if (data.length > 0) {
+            // Format: flat array of employee objects (new server format)
+            console.log('Format: Flat employee array detected');
             employees = data;
-            companyName = employees[0]?.company || 'Company';
+            // Support both new (snake_case) and old (camelCase) field names
+            companyName = employees[0]?.company_name || employees[0]?.company || 'Company';
             industry = employees[0]?.industry || 'Technology';
           }
         }
@@ -1237,22 +1233,12 @@ Professional tools for extracting company data from LinkedIn. Streamline your bu
         console.log('- Industry:', industry);
         console.log('- Employees count:', employees.length);
         console.log('- First employee:', employees[0]);
+        console.log('=== DEBUGGING END ===');
 
         if (employees && employees.length > 0) {
-          console.log('✅ SUCCESS: Found employees, displaying data');
-          
-          // Create unified data structure for display
-          const displayData = {
-            companyName: companyName,
-            industry: industry,
-            employees: employees
-          };
-          
-          displayCompanyData(displayData);
+          displayCompanyData({ companyName, industry, employees });
           updateSearchCount();
         } else {
-          console.log('❌ FAILED: No employees found');
-          console.log('=== DEBUGGING END ===');
           showError(`No employee data found for: ${companyInput}`);
         }
       } catch (error) {
@@ -1275,65 +1261,57 @@ Professional tools for extracting company data from LinkedIn. Streamline your bu
       document.getElementById('companyResults').classList.add('hidden');
     }
 
+    function getInitials(fullName) {
+      if (!fullName) return '??';
+      return fullName.trim().split(/\s+/).map(w => w[0]).join('').substring(0, 2).toUpperCase();
+    }
+
     function displayCompanyData(data) {
       document.getElementById('loadingMessage').classList.add('hidden');
       document.getElementById('errorMessage').classList.add('hidden');
       document.getElementById('companyResults').classList.remove('hidden');
-      
-      // Extract company name from employees data or use fallback
-      let companyName = data.companyName;
-      if (!companyName && data.employees && data.employees.length > 0) {
-        companyName = data.employees[0].company || 'Company';
-      }
-      if (!companyName) {
-        companyName = 'Company';
-      }
-      
-      const companyInitials = companyName.split(' ').map(word => word[0]).join('').substring(0, 2).toUpperCase();
-      
-      // Extract industry from first employee or use default
-      let industry = data.industry;
-      if (!industry && data.employees && data.employees.length > 0) {
-        industry = data.employees[0].industry || 'Technology';
-      }
-      if (!industry) {
-        industry = 'Industry not specified';
-      }
-      
+
+      const companyName = data.companyName || 'Company';
+      const industry = data.industry || 'Industry not specified';
+      const employees = data.employees || [];
+
       // Company Header
       const companyHeader = document.getElementById('companyHeader');
       companyHeader.innerHTML = `
-        <div class="company-avatar">${companyInitials}</div>
+        <div class="company-avatar">${getInitials(companyName)}</div>
         <div class="company-info">
           <h3>${companyName}</h3>
           <p>${industry}</p>
-          <div class="employee-count">${data.employees ? data.employees.length : 0} employees found</div>
+          <div class="employee-count">${employees.length} employees found</div>
         </div>
       `;
-      
+
       // Employee List
       const employeeList = document.getElementById('employeeList');
-      if (data.employees && data.employees.length > 0) {
-        let employeeHTML = '';
-        
-        data.employees.forEach(employee => {
-          const employeeInitials = employee.name ? employee.name.split(' ').map(word => word[0]).join('').substring(0, 2).toUpperCase() : 'EM';
-          
-          employeeHTML += `
+      if (employees.length > 0) {
+        employeeList.innerHTML = employees.map(employee => {
+          // Support both new snake_case fields and old camelCase fields
+          const name      = employee.full_name   || employee.name       || 'Unknown Employee';
+          const title     = employee.job_title   || employee.jobTitle   || employee.title || 'Position not specified';
+          const linkedIn  = employee.linkedin_profile || employee.linkedinUrl || '';
+          const city      = employee.city        || '';
+          const country   = employee.country     || '';
+          const location  = [city, country].filter(Boolean).join(', ');
+
+          return `
             <div class="employee-item">
-              <div class="employee-avatar">${employeeInitials}</div>
+              <div class="employee-avatar">${getInitials(name)}</div>
               <div class="employee-info">
-                <h4>${employee.name || 'Unknown Employee'}</h4>
-                <div class="employee-title">${employee.jobTitle || employee.title || 'Position not specified'}</div>
+                <h4>${name}</h4>
+                <div class="employee-title">${title}</div>
+                ${location ? `<div class="employee-meta"><i class="fas fa-map-marker-alt" style="font-size:0.65rem;"></i> ${location}</div>` : ''}
               </div>
-              ${employee.linkedinUrl ? `<a href="${employee.linkedinUrl}" target="_blank" class="employee-link">View Profile</a>` : ''}
+              ${linkedIn ? `<a href="${linkedIn}" target="_blank" class="employee-link"><i class="fab fa-linkedin"></i> Profile</a>` : ''}
             </div>
           `;
-        });
-        
-        employeeList.innerHTML = employeeHTML;
+        }).join('');
       } else {
-        employeeList.innerHTML = '<div style="text-align: center; color: var(--gray-500); padding: 2rem;">No employees found for this company.</div>';
+        employeeList.innerHTML = '<div style="text-align:center;color:var(--gray-500);padding:2rem;">No employees found for this company.</div>';
       }
     }
 
@@ -1356,7 +1334,6 @@ Professional tools for extracting company data from LinkedIn. Streamline your bu
       }
     }
 
-    // Initialize app when DOM is loaded
     document.addEventListener('DOMContentLoaded', initApp);
   </script>
 
