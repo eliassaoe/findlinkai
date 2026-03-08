@@ -1811,6 +1811,28 @@ s.parentNode.insertBefore(t,s)}(window, document,"script",
 "https://connect.facebook.net/en_US/fbevents.js");
 fbq("init", "2717863625238535");
 fbq("track", "PageView");
+// Capture fbc et fbp
+function getCookie(name) {
+    return document.cookie.split('; ')
+        .find(row => row.startsWith(name + '='))
+        ?.split('=')[1] || null;
+}
+
+function getFbc() {
+    let fbc = getCookie('_fbc');
+    if (!fbc) {
+        const fbclid = new URLSearchParams(window.location.search).get('fbclid');
+        if (fbclid) {
+            fbc = `fb.1.${Date.now()}.${fbclid}`;
+            document.cookie = `_fbc=${fbc}; path=/; max-age=7776000`;
+        }
+    }
+    return fbc;
+}
+
+function getFbp() {
+    return getCookie('_fbp');
+}
 </script>
 <noscript><img height="1" width="1" style="display:none"
 src="https://www.facebook.com/tr?id=2717863625238535&ev=PageView&noscript=1"
@@ -4490,10 +4512,13 @@ function nextPlan() {
 
 function proceedToCheckout() {
     const plan = plans[currentPlanIndex];
-    
-    // Utilise Gumroad
     const baseUrl = isAnnualBilling ? plan.annualGumroadLink : plan.monthlyGumroadLink;
-    const url = addGclid(`${baseUrl}?wanted=true&user_id=${userToken}`);
+    
+    const fbc = getFbc();
+    const fbp = getFbp();
+    let url = addGclid(`${baseUrl}?wanted=true&user_id=${userToken}`);
+    if (fbc) url += `&fbc=${encodeURIComponent(fbc)}`;
+    if (fbp) url += `&fbp=${encodeURIComponent(fbp)}`;
     
     if (currentMode === 'bulk' && isBulkProcessing) {
         window.open(url, '_blank');
@@ -4821,11 +4846,14 @@ const creditPackLinks = {
 
 function buyCredits(pack, price) {
     const baseUrl = creditPackLinks[pack];
-    if (!baseUrl || baseUrl.includes('YOUR_')) {
-        alert('Top-up links coming soon! Contact support to add credits manually.');
-        return;
-    }
-    const url = addGclid(`${baseUrl}?wanted=true&user_id=${userToken}`);
+    if (!baseUrl) return;
+    
+    const fbc = getFbc();
+    const fbp = getFbp();
+    let url = addGclid(`${baseUrl}?wanted=true&user_id=${userToken}`);
+    if (fbc) url += `&fbc=${encodeURIComponent(fbc)}`;
+    if (fbp) url += `&fbp=${encodeURIComponent(fbp)}`;
+    
     window.location.href = url;
 }
 
