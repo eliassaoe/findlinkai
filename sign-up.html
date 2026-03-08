@@ -399,6 +399,28 @@ fbq("track", "PageView");
 src="https://www.facebook.com/tr?id=2717863625238535&ev=PageView&noscript=1"
 /></noscript>
 <!-- End Meta Pixel Code -->
+
+<script>
+function getCookie(name) {
+    return document.cookie.split('; ')
+        .find(row => row.startsWith(name + '='))
+        ?.split('=')[1] || null;
+}
+function getFbc() {
+    let fbc = getCookie('_fbc');
+    if (!fbc) {
+        const fbclid = new URLSearchParams(window.location.search).get('fbclid');
+        if (fbclid) {
+            fbc = `fb.1.${Date.now()}.${fbclid}`;
+            document.cookie = `_fbc=${fbc}; path=/; max-age=7776000`;
+        }
+    }
+    return fbc;
+}
+function getFbp() {
+    return getCookie('_fbp');
+}
+</script>
 <link rel="canonical" href="https://linkfinderai.com/sign-up" />
 </head>
 <body>
@@ -608,14 +630,16 @@ src="https://www.facebook.com/tr?id=2717863625238535&ev=PageView&noscript=1"
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                email:        email,
-                password:     password,
-                firstName:    firstName,
-                lastName:     lastName,
-                companyName:  companyName,
-                type:         'signup',
-                ref:          refId || null
-            })
+    email:        email,
+    password:     password,
+    firstName:    firstName,
+    lastName:     lastName,
+    companyName:  companyName,
+    type:         'signup',
+    ref:          refId || null,
+    fbc:          getFbc() || null,
+    fbp:          getFbp() || null
+})
         });
                 
                 if (response.ok) {
