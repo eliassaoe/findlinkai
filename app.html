@@ -1811,28 +1811,6 @@ s.parentNode.insertBefore(t,s)}(window, document,"script",
 "https://connect.facebook.net/en_US/fbevents.js");
 fbq("init", "2717863625238535");
 fbq("track", "PageView");
-// Capture fbc et fbp
-function getCookie(name) {
-    return document.cookie.split('; ')
-        .find(row => row.startsWith(name + '='))
-        ?.split('=')[1] || null;
-}
-
-function getFbc() {
-    let fbc = getCookie('_fbc');
-    if (!fbc) {
-        const fbclid = new URLSearchParams(window.location.search).get('fbclid');
-        if (fbclid) {
-            fbc = `fb.1.${Date.now()}.${fbclid}`;
-            document.cookie = `_fbc=${fbc}; path=/; max-age=7776000`;
-        }
-    }
-    return fbc;
-}
-
-function getFbp() {
-    return getCookie('_fbp');
-}
 </script>
 <noscript><img height="1" width="1" style="display:none"
 src="https://www.facebook.com/tr?id=2717863625238535&ev=PageView&noscript=1"
@@ -2148,6 +2126,7 @@ src="https://www.facebook.com/tr?id=2717863625238535&ev=PageView&noscript=1"
         let currentInputType = '';
         let currentOutputType = '';
         let isBulkProcessing = false;
+        let currentCredits = null;
 
         // Data mapping configurations
        // Update the dataConfigurations to make the employee enrichments clearer
@@ -2415,14 +2394,9 @@ function setupDropdowns() {
                 if (response.ok) {
                     const data = await response.json();
                     console.log('Credits data:', data);
-                    const credits = data.credits || 0;
-
-// Don't allow negative credits to display
-if (credits < 0) {
-    document.getElementById('creditsCount').textContent = '0';
-} else {
-    document.getElementById('creditsCount').textContent = credits;
-}
+                    const credits = Math.max(0, data.credits || 0);
+currentCredits = credits;
+document.getElementById('creditsCount').textContent = credits;
                 } else {
                     console.error('API returned error:', response.status);
                     const errorText = await response.text();
@@ -2434,6 +2408,12 @@ if (credits < 0) {
                 document.getElementById('creditsCount').textContent = '?';
             }
         }
+
+        function deductCredits(amount) {
+    if (currentCredits === null) return; // Not yet loaded
+    currentCredits = Math.max(0, currentCredits - amount);
+    document.getElementById('creditsCount').textContent = Math.round(currentCredits * 10) / 10;
+}
 
       function parseReactionTitle(title) {
     if (!title) return { name: 'Unknown', jobInfo: '' };
@@ -2517,12 +2497,14 @@ if (currentInputType === 'linkedin_profile') {
         // Handle post reactions data (array format)
 if (currentOutputType === 'reactions' && Array.isArray(data) && data.length > 0) {
     console.log('Success - showing post reactions');
+    deductCredits(data.length);
     showSingleResultReactions(inputValue, data);
     return;
 }
       // Handle employee count (string like "143" or "1-10")
 if (currentOutputType === 'employee_count') {
     console.log('Success - showing employee count');
+    deductCredits(getCreditCost(currentInputType, currentOutputType));
     showSingleResultEmployeeCount(inputValue, data);
     return;
 }
@@ -2530,6 +2512,7 @@ if (currentOutputType === 'employee_count') {
         // Handle employees data (array format)
 if (currentOutputType === 'employees' && Array.isArray(data) && data.length > 0) {
     console.log('Success - showing employees result');
+    deductCredits(data.length * 0.5);
     showSingleResultEmployees(inputValue, data);
     return;
 }
@@ -2541,6 +2524,7 @@ if (currentOutputType === 'employees' && Array.isArray(data) && data.length > 0)
         }
 
         if (response.ok && data && (data.result || data.name)) {
+            deductCredits(getCreditCost(currentInputType, currentOutputType));
             if (data.name && !data.result) {
     const formattedResult = formatLinkedInCompanyData(data);
     showSingleResult(inputValue, data);  // Pass raw data object
@@ -2707,57 +2691,63 @@ async function processBulk() {
                 });
 
                 if (response.ok) {
-                    const data = await response.json();
+    const data = await response.json();
 
-                    if (currentOutputType === 'employee_count') {
-                        const count = data.result || data || 'Not found';
-                        bulkResults[i] = {
-                            inputData: row.inputData,
-                            result: count === 'Not found' ? count : `${count} employees`,
-                            status: count === 'Not found' ? 'Not found' : 'Found',
-                            employeeCount: count,
-                            rawData: count
-                        };
-                    } else if (currentOutputType === 'employees' && (Array.isArray(data) || (data.employees && Array.isArray(data.employees)))) {
-                        const employees = Array.isArray(data) ? data : data.employees;
-                        bulkResults[i] = {
-                            inputData: row.inputData,
-                            result: `${employees.length} employees found`,
-                            status: employees.length > 0 ? 'Found' : 'Not found',
-                            employees: employees,
-                            rawData: data
-                        };
-                    } else if (currentOutputType === 'reactions' && Array.isArray(data)) {
-                        bulkResults[i] = {
-                            inputData: row.inputData,
-                            result: `${data.length} reactions found`,
-                            status: 'Found',
-                            reactions: data,
-                            rawData: data
-                        };
-                    } else {
-                        bulkResults[i] = {
-                            inputData: row.inputData,
-                            result: data.result || 'Not found',
-                            status: data.result ? 'Found' : 'Not found',
-                            rawData: data
-                        };
-                    }
+    if (currentOutputType === 'employee_count') {
+        const count = data.result || data || 'Not found';
+        bulkResults[i] = {
+            inputData: row.inputData,
+            result: count === 'Not found' ? count : `${count} employees`,
+            status: count === 'Not found' ? 'Not found' : 'Found',
+            employeeCount: count,
+            rawData: count
+        };
+        if (count !== 'Not found') deductCredits(getCreditCost(currentInputType, currentOutputType));
 
-                } else {
-                    const data = await response.json();
+    } else if (currentOutputType === 'employees' && (Array.isArray(data) || (data.employees && Array.isArray(data.employees)))) {
+        const employees = Array.isArray(data) ? data : data.employees;
+        bulkResults[i] = {
+            inputData: row.inputData,
+            result: `${employees.length} employees found`,
+            status: employees.length > 0 ? 'Found' : 'Not found',
+            employees: employees,
+            rawData: data
+        };
+        if (employees.length > 0) deductCredits(employees.length * 0.5);
 
-                    if (response.status === 403 && data.code === 403) {
-                        showInsufficientCreditsModal();
-                        return;
-                    }
-                    
-                    bulkResults[i] = {
-                        inputData: row.inputData,
-                        result: 'Not found',
-                        status: 'Not found'
-                    };
-                }
+    } else if (currentOutputType === 'reactions' && Array.isArray(data)) {
+        bulkResults[i] = {
+            inputData: row.inputData,
+            result: `${data.length} reactions found`,
+            status: 'Found',
+            reactions: data,
+            rawData: data
+        };
+        deductCredits(data.length);
+
+    } else {
+        bulkResults[i] = {
+            inputData: row.inputData,
+            result: data.result || 'Not found',
+            status: data.result ? 'Found' : 'Not found',
+            rawData: data
+        };
+        if (data.result) deductCredits(getCreditCost(currentInputType, currentOutputType));
+    }
+
+} else {
+    const data = await response.json();
+    if (response.status === 403 && data.code === 403) {
+        showInsufficientCreditsModal();
+        return;
+    }
+    
+    bulkResults[i] = {
+        inputData: row.inputData,
+        result: 'Not found',
+        status: 'Not found'
+    };
+}
 
             } catch (error) {
                 console.error(`Error for ${row.inputData}:`, error);
@@ -2895,14 +2885,9 @@ function handleBeforeUnload(e) {
             }
             
             if (!token) {
-    const fbc = getFbc();
-    const fbp = getFbp();
-    let url = addGclid('https://linkfinderai.com/');
-    if (fbc) url += `&fbc=${encodeURIComponent(fbc)}`;
-    if (fbp) url += `&fbp=${encodeURIComponent(fbp)}`;
-    window.location.href = url;
-    return;
-}
+                window.location.href = 'https://linkfinderai.com/';
+                return;
+            }
 
             userToken = token;
 
@@ -4517,13 +4502,10 @@ function nextPlan() {
 
 function proceedToCheckout() {
     const plan = plans[currentPlanIndex];
-    const baseUrl = isAnnualBilling ? plan.annualGumroadLink : plan.monthlyGumroadLink;
     
-    const fbc = getFbc();
-    const fbp = getFbp();
-    let url = addGclid(`${baseUrl}?wanted=true&user_id=${userToken}`);
-    if (fbc) url += `&fbc=${encodeURIComponent(fbc)}`;
-    if (fbp) url += `&fbp=${encodeURIComponent(fbp)}`;
+    // Utilise Gumroad
+    const baseUrl = isAnnualBilling ? plan.annualGumroadLink : plan.monthlyGumroadLink;
+    const url = addGclid(`${baseUrl}?wanted=true&user_id=${userToken}`);
     
     if (currentMode === 'bulk' && isBulkProcessing) {
         window.open(url, '_blank');
@@ -4843,22 +4825,19 @@ function closeBuyCreditsModal() {
 
 // Replace these Gumroad links with your actual top-up product links
 const creditPackLinks = {
-    'starter': 'https://linkfinderai.gumroad.com/l/evkit',
-    'popular': 'https://linkfinderai.gumroad.com/l/avpnoy',
-    'growth':  'https://linkfinderai.gumroad.com/l/vwwvxi',
-    'pro':     'https://linkfinderai.gumroad.com/l/ryedf',
+    'starter': 'https://linkfinderai.gumroad.com/l/evkit?wanted=true',
+    'popular': 'https://linkfinderai.gumroad.com/l/avpnoy?wanted=true',
+    'growth':  'https://linkfinderai.gumroad.com/l/vwwvxi?wanted=true',
+    'pro':     'https://linkfinderai.gumroad.com/l/ryedf?wanted=true',
 };
 
 function buyCredits(pack, price) {
     const baseUrl = creditPackLinks[pack];
-    if (!baseUrl) return;
-    
-    const fbc = getFbc();
-    const fbp = getFbp();
-    let url = addGclid(`${baseUrl}?wanted=true&user_id=${userToken}`);
-    if (fbc) url += `&fbc=${encodeURIComponent(fbc)}`;
-    if (fbp) url += `&fbp=${encodeURIComponent(fbp)}`;
-    
+    if (!baseUrl || baseUrl.includes('YOUR_')) {
+        alert('Top-up links coming soon! Contact support to add credits manually.');
+        return;
+    }
+    const url = addGclid(`${baseUrl}?wanted=true&user_id=${userToken}`);
     window.location.href = url;
 }
 
