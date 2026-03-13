@@ -3,36 +3,62 @@
   "meta": { "templateCredsSetupCompleted": false },
   "nodes": [
     {
-      "id": "node-trigger",
-      "name": "Manual Trigger",
-      "type": "n8n-nodes-base.manualTrigger",
+      "id": "node-sticky",
+      "name": "📌 API Key",
+      "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
-      "position": [80, 300],
-      "parameters": {}
+      "position": [80, 80],
+      "parameters": {
+        "content": "## 🔑 API Key Setup\n\nFind your API key in the **API Access** section of your [linkfinderai.com](https://linkfinderai.com) account.\n\nThen replace `{{Insert-api-key}}` in every **Linkfinder** node with your actual key.",
+        "height": 160,
+        "width": 340
+      }
     },
     {
-      "id": "node-read",
-      "name": "Read Domains from Sheet",
-      "type": "n8n-nodes-base.googleSheets",
-      "typeVersion": 4,
-      "position": [300, 300],
+      "id": "node-form",
+      "name": "On Form Submission",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2,
+      "position": [80, 320],
       "parameters": {
-        "operation": "read",
-        "documentId": { "__rl": true, "value": "YOUR_SPREADSHEET_ID", "mode": "id" },
-        "sheetName": { "__rl": true, "value": "Sheet1", "mode": "name" },
-        "filtersUI": {}
-      },
-      "credentials": {
-        "googleSheetsOAuth2Api": { "id": "CRED_SHEETS", "name": "Google Sheets account" }
-      },
-      "notes": "📋 Sheet1 must have a column named 'domain'\nExamples: tesla.com, apple.com, stripe.com"
+        "formTitle": "Employee List Extractor",
+        "formDescription": "Extract all employees from a list of company domains.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Domains",
+              "fieldType": "textarea",
+              "requiredField": true,
+              "placeholder": "tesla.com\nstripe.com\nnotion.so",
+              "fieldDescription": "One domain per line"
+            },
+            {
+              "fieldLabel": "Max results per domain",
+              "fieldType": "number",
+              "requiredField": false,
+              "placeholder": "50"
+            }
+          ]
+        },
+        "responseMode": "onReceived"
+      }
+    },
+    {
+      "id": "node-split",
+      "name": "Split into Individual Domains",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [300, 320],
+      "parameters": {
+        "jsCode": "const raw      = $input.first().json['Domains'] || '';\nconst maxCount = parseInt($input.first().json['Max results per domain'] || '50');\n\nreturn raw.split('\\n').map(d => d.trim()).filter(d => d)\n  .map(domain => ({ json: { domain, employee_count: maxCount } }));"
+      }
     },
     {
       "id": "node-batch",
       "name": "One Domain at a Time",
       "type": "n8n-nodes-base.splitInBatches",
       "typeVersion": 3,
-      "position": [520, 300],
+      "position": [520, 320],
       "parameters": { "batchSize": 1, "options": {} }
     },
     {
@@ -40,72 +66,49 @@
       "name": "Linkfinder — Get All Employees",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [740, 300],
+      "position": [740, 320],
       "parameters": {
         "method": "POST",
         "url": "https://api.linkfinderai.com",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "Bearer {{Insert-api-key}}" },
+            { "name": "Content-Type",  "value": "application/json" }
+          ]
+        },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"type\": \"company_domain_to_employees\",\n  \"input_data\": \"{{ $json.domain }}\",\n  \"employee_count\": 50\n}",
+        "jsonBody": "={\n  \"type\": \"company_domain_to_employees\",\n  \"input_data\": \"{{ $json.domain }}\",\n  \"employee_count\": {{ $json.employee_count }}\n}",
         "options": { "timeout": 120000 }
-      },
-      "credentials": {
-        "httpHeaderAuth": { "id": "CRED_API", "name": "Linkfinder API Key" }
-      },
-      "notes": "🔑 HTTP Header Auth credential:\n  Name:  Authorization\n  Value: Bearer YOUR_API_KEY\n\n💡 Increase employee_count up to 100 for larger companies"
-    },
-    {
-      "id": "node-flatten",
-      "name": "Flatten Employee Rows",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [960, 300],
-      "parameters": {
-        "jsCode": "// The API returns { result: [...employees], status: 'success' }\nconst response = $input.first().json;\nconst employees = response.result;\nconst domain = $('Read Domains from Sheet').first().json.domain;\n\nif (!Array.isArray(employees) || employees.length === 0) {\n  return [{ json: {\n    domain,\n    name: 'No employees found',\n    jobTitle: '', email: '', linkedinUrl: '',\n    company: '', department: '', city: '', country: '', headline: ''\n  }}];\n}\n\nreturn employees.map(emp => ({\n  json: {\n    domain,\n    name:          emp.name          || '',\n    jobTitle:      emp.jobTitle       || emp.job_title    || '',\n    email:         emp.email          || '',\n    linkedinUrl:   emp.linkedinUrl    || emp.linkedin_url || '',\n    company:       emp.company        || '',\n    department:    emp.department     || '',\n    city:          emp.city           || '',\n    country:       emp.country        || '',\n    headline:      emp.headline       || ''\n  }\n}));"
       }
     },
     {
-      "id": "node-write",
-      "name": "Append Employees to Sheet",
-      "type": "n8n-nodes-base.googleSheets",
-      "typeVersion": 4,
-      "position": [1180, 300],
+      "id": "node-format",
+      "name": "Format Employee Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [960, 320],
       "parameters": {
-        "operation": "append",
-        "documentId": { "__rl": true, "value": "YOUR_SPREADSHEET_ID", "mode": "id" },
-        "sheetName": { "__rl": true, "value": "Results", "mode": "name" },
-        "columns": {
-          "mappingMode": "defineBelow",
-          "value": {
-            "domain":      "={{ $json.domain }}",
-            "name":        "={{ $json.name }}",
-            "jobTitle":    "={{ $json.jobTitle }}",
-            "email":       "={{ $json.email }}",
-            "linkedinUrl": "={{ $json.linkedinUrl }}",
-            "company":     "={{ $json.company }}",
-            "department":  "={{ $json.department }}",
-            "city":        "={{ $json.city }}",
-            "country":     "={{ $json.country }}",
-            "headline":    "={{ $json.headline }}"
-          }
-        },
-        "options": {}
-      },
-      "credentials": {
-        "googleSheetsOAuth2Api": { "id": "CRED_SHEETS", "name": "Google Sheets account" }
-      },
-      "notes": "📋 Create a 'Results' tab with these exact headers in row 1:\ndomain | name | jobTitle | email | linkedinUrl | company | department | city | country | headline"
+        "jsCode": "const response  = $input.first().json;\nconst employees = response.result || response;\nconst domain    = $('One Domain at a Time').first().json.domain;\n\nif (!Array.isArray(employees) || employees.length === 0)\n  return [{ json: { domain, status: 'no_results' } }];\n\nreturn employees.map(emp => ({ json: {\n  domain,\n  name:         emp.name        || '',\n  job_title:    emp.jobTitle     || emp.job_title    || '',\n  email:        emp.email        || '',\n  linkedin_url: emp.linkedinUrl  || emp.linkedin_url || '',\n  company:      emp.company      || '',\n  department:   emp.department   || '',\n  city:         emp.city         || '',\n  country:      emp.country      || ''\n}}));"
+      }
+    },
+    {
+      "id": "node-destination",
+      "name": "→ Connect Your CRM Here",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [1180, 320],
+      "parameters": {},
+      "notes": "📤 Connect your destination here:\n• HubSpot → 'Create/Update Contact'\n• Pipedrive → 'Create Person'\n• Salesforce → 'Create Record'\n• Airtable, Notion, HTTP webhook..."
     }
   ],
   "connections": {
-    "Manual Trigger":               { "main": [[{ "node": "Read Domains from Sheet",      "type": "main", "index": 0 }]] },
-    "Read Domains from Sheet":      { "main": [[{ "node": "One Domain at a Time",          "type": "main", "index": 0 }]] },
-    "One Domain at a Time":         { "main": [[{ "node": "Linkfinder — Get All Employees","type": "main", "index": 0 }]] },
-    "Linkfinder — Get All Employees":{ "main": [[{ "node": "Flatten Employee Rows",        "type": "main", "index": 0 }]] },
-    "Flatten Employee Rows":        { "main": [[{ "node": "Append Employees to Sheet",     "type": "main", "index": 0 }]] },
-    "Append Employees to Sheet":    { "main": [[{ "node": "One Domain at a Time",          "type": "main", "index": 0 }]] }
+    "On Form Submission":            { "main": [[{ "node": "Split into Individual Domains",  "type": "main", "index": 0 }]] },
+    "Split into Individual Domains": { "main": [[{ "node": "One Domain at a Time",           "type": "main", "index": 0 }]] },
+    "One Domain at a Time":          { "main": [[{ "node": "Linkfinder — Get All Employees", "type": "main", "index": 0 }]] },
+    "Linkfinder — Get All Employees":{ "main": [[{ "node": "Format Employee Data",           "type": "main", "index": 0 }]] },
+    "Format Employee Data":          { "main": [[{ "node": "→ Connect Your CRM Here",        "type": "main", "index": 0 }]] }
   },
   "settings": { "executionOrder": "v1" }
 }
