@@ -269,7 +269,62 @@
         box-shadow: 0 3px 10px rgba(251, 146, 60, 0.35);
     }
 }
-
+/* Automation nudge strip */
+.automation-nudge {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    background: #f8faff;
+    border: 1px solid #bfdbfe;
+    border-radius: 10px;
+    padding: 0.875rem 1.125rem;
+    margin-top: 1rem;
+    flex-wrap: wrap;
+    animation: nudge-in 0.35s ease;
+}
+@keyframes nudge-in {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+.nudge-left { display: flex; align-items: center; gap: 0.75rem; }
+.nudge-icon { font-size: 1.1rem; flex-shrink: 0; }
+.nudge-title { font-size: 0.825rem; font-weight: 600; color: var(--gray-900); }
+.nudge-sub   { font-size: 0.72rem; color: var(--gray-500); margin-top: 0.1rem; }
+.nudge-platforms { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+.nudge-btn {
+    display: inline-flex; align-items: center; gap: 0.3rem;
+    padding: 0.3rem 0.65rem; border-radius: 5px; font-size: 0.72rem;
+    font-weight: 600; text-decoration: none; cursor: pointer;
+    transition: opacity 0.15s, transform 0.15s; white-space: nowrap;
+    font-family: inherit; border: 1px solid transparent;
+}
+.nudge-btn:hover { opacity: 0.8; transform: translateY(-1px); }
+.nudge-n8n    { background: #fdf2f5; color: #ea4b71; border-color: rgba(234,75,113,0.2); }
+.nudge-make   { background: #f5f0fd; color: #6d28d9; border-color: rgba(109,40,217,0.18); }
+.nudge-zapier { background: #fff3ee; color: #ff4a00; border-color: rgba(255,74,0,0.18); }
+.nudge-api    { background: #eff6ff; color: #2563eb; border-color: rgba(37,99,235,0.2); }
+.nudge-logo { width: 13px; height: 13px; border-radius: 2px; display: inline-flex; align-items: center; justify-content: center; font-size: 0.55rem; font-weight: 900; color: white; flex-shrink: 0; }
+.nudge-logo-n8n    { background: #ea4b71; }
+.nudge-logo-make   { background: #6d28d9; }
+.nudge-logo-zapier { background: #ff4a00; }
+.mode-option-automate {
+    flex: 1; padding: 0.75rem; border: none; background: transparent;
+    border-radius: 6px; font-weight: 600; color: var(--primary);
+    cursor: pointer; transition: all 0.2s ease; font-size: 0.8rem;
+    display: flex; align-items: center; justify-content: center;
+    gap: 0.35rem; font-family: inherit; border-left: 1px solid var(--gray-200);
+}
+.mode-option-automate:hover { background: #eff6ff; }
+.bulk-api-hint {
+    text-align: center; margin-top: 0.875rem;
+    font-size: 0.775rem; color: var(--gray-400);
+}
+.bulk-api-hint a {
+    color: var(--primary); text-decoration: none; font-weight: 500;
+    border-bottom: 1px dashed rgba(37,99,235,0.3);
+}
+.bulk-api-hint a:hover { border-bottom-color: var(--primary); }
         /* Navigation Menu */
         .nav-menu {
             background: white;
@@ -1989,6 +2044,10 @@ src="https://www.facebook.com/tr?id=2717863625238535&ev=PageView&noscript=1"
                     </button>
                 </div>
 
+                <div class="bulk-api-hint">
+    <a href="#" onclick="navigateToPage('api'); return false;">connect via API</a> and enrich leads automatically
+</div>
+
                 <div id="csvPreview" class="hidden">
                     <h4 style="margin: 1rem 0 0.5rem; font-size: 0.875rem; color: var(--gray-700);">
                         Preview (first 5 entries)
@@ -2025,6 +2084,7 @@ src="https://www.facebook.com/tr?id=2717863625238535&ev=PageView&noscript=1"
                     <div id="progressContainer" class="progress-container hidden">
                         <div id="progressBar" class="progress-bar" style="width: 0%"></div>
                     </div>
+                    <div id="automationNudge" style="display:none;"></div>
                     <div id="bulkResultsTable" class="table-container"></div>
                 </div>
             </div>
@@ -2642,6 +2702,7 @@ function formatPostReactionsData(reactionsArray) {
     document.getElementById('resultsSection').classList.remove('hidden');
     document.getElementById('singleResult').classList.remove('hidden');
     document.getElementById('bulkResults').classList.add('hidden');
+    showAutomationNudge(currentInputType, currentOutputType);
 }
 
 
@@ -2769,6 +2830,7 @@ async function processBulk() {
         
         btn.disabled = false;
         btn.innerHTML = `<i class="fas fa-play"></i> Process Items`;
+        showAutomationNudge(currentInputType, currentOutputType);
     }
 }
         // Format LinkedIn profile data for bulk display (shorter version)
@@ -2795,6 +2857,47 @@ function formatLinkedInCompanyDataBulk(data) {
 
        function formatEmployeesData(employeesArray) {
     return employeesArray; 
+}
+
+function goToAutomate() {
+    window.location.href = addGclid(`https://linkfinderai.com/app-workflows?token=${userToken}`);
+}
+
+function showAutomationNudge(inputType, outputType) {
+    const el = document.getElementById('automationNudge');
+    if (!el) return;
+    const messages = {
+        'company_domain__employees':       { title: 'Automate prospect extraction',  sub: 'Pull fresh prospects every week — zero manual work' },
+        'linkedin_profile__linkedin_info': { title: 'Enrich leads as they come in',  sub: 'Trigger this when a new contact hits your CRM' },
+        'linkedin_company__linkedin_info': { title: 'Automate company research',      sub: 'Enrich new accounts added to your pipeline' },
+        'linkedin_post__reactions':        { title: 'Monitor posts automatically',    sub: 'Extract warm leads every time you publish' },
+        'lead_full_name__linkedin_url':    { title: 'Enrich your CRM automatically',  sub: 'Run this when new contacts are created' },
+        'company_name__website':           { title: 'Automate company data lookup',   sub: 'Run on every new lead in your workflow' },
+        'company_name__email':             { title: 'Find emails automatically',      sub: 'Trigger from your CRM or outreach tool' },
+        'company_name__phone':             { title: 'Automate phone lookups',         sub: 'Plug directly into your outbound workflow' },
+        'company_name__linkedin_url':      { title: 'Build lists automatically',      sub: 'Run on new company lists as they come in' },
+    };
+    const key = `${inputType}__${outputType}`;
+    const msg = messages[key] || { title: 'Automate this step', sub: 'Run it in n8n, Make, or Zapier — no manual CSV' };
+    const wUrl = addGclid(`https://linkfinderai.com/app-workflows?token=${userToken}`);
+    const aUrl = addGclid(`https://linkfinderai.com/api-access?token=${userToken}`);
+    el.innerHTML = `
+        <div class="automation-nudge">
+            <div class="nudge-left">
+                <span class="nudge-icon">⚡</span>
+                <div>
+                    <div class="nudge-title">${msg.title}</div>
+                    <div class="nudge-sub">${msg.sub}</div>
+                </div>
+            </div>
+            <div class="nudge-platforms">
+                <a href="${wUrl}" class="nudge-btn nudge-n8n"><span class="nudge-logo nudge-logo-n8n">n</span> n8n</a>
+                <a href="${wUrl}" class="nudge-btn nudge-make"><span class="nudge-logo nudge-logo-make">M</span> Make</a>
+                <a href="${wUrl}" class="nudge-btn nudge-zapier"><span class="nudge-logo nudge-logo-zapier">Z</span> Zapier</a>
+                <a href="${aUrl}" class="nudge-btn nudge-api">&lt;/&gt; API</a>
+            </div>
+        </div>`;
+    el.style.display = 'block';
 }
 
 // Refresh warning functions
@@ -3519,6 +3622,7 @@ if (linkedInFields.experiences && linkedInFields.experiences.length > 0) {
     document.getElementById('resultsSection').classList.remove('hidden');
     document.getElementById('singleResult').classList.remove('hidden');
     document.getElementById('bulkResults').classList.add('hidden');
+    showAutomationNudge(currentInputType, currentOutputType);
 }
 
 
@@ -3578,6 +3682,7 @@ if (employee.companylinkedinurl) html += `<div><strong>Company LinkedIn:</strong
     document.getElementById('resultsSection').classList.remove('hidden');
     document.getElementById('singleResult').classList.remove('hidden');
     document.getElementById('bulkResults').classList.add('hidden');
+    showAutomationNudge(currentInputType, currentOutputType);
 }
 
  function showSingleResultReactions(inputData, reactionsArray) {
@@ -3633,6 +3738,7 @@ if (employee.companylinkedinurl) html += `<div><strong>Company LinkedIn:</strong
     document.getElementById('resultsSection').classList.remove('hidden');
     document.getElementById('singleResult').classList.remove('hidden');
     document.getElementById('bulkResults').classList.add('hidden');
+    showAutomationNudge(currentInputType, currentOutputType);
 }
 
       function showSingleResultAsTable(inputData, reactionsArray) {
@@ -4417,8 +4523,10 @@ function addGclid(url) {
         }
 
         function hideResults() {
-            document.getElementById('resultsSection').classList.add('hidden');
-        }
+    document.getElementById('resultsSection').classList.add('hidden');
+    const nudge = document.getElementById('automationNudge');
+    if (nudge) { nudge.style.display = 'none'; nudge.innerHTML = ''; }
+}
 
        const plans = [
     { 
