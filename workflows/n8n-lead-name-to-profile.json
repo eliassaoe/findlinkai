@@ -1,38 +1,58 @@
 {
-  "name": "LinkFinder AI — Lead Name + Company → LinkedIn URL → Full Profile",
+  "name": "LinkFinder AI — Lead Name + Company → LinkedIn → Full Profile",
   "meta": { "templateCredsSetupCompleted": false },
   "nodes": [
     {
-      "id": "node-trigger",
-      "name": "Manual Trigger",
-      "type": "n8n-nodes-base.manualTrigger",
+      "id": "node-sticky",
+      "name": "📌 API Key",
+      "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
-      "position": [80, 300],
-      "parameters": {}
+      "position": [80, 80],
+      "parameters": {
+        "content": "## 🔑 API Key Setup\n\nFind your API key in the **API Access** section of your [linkfinderai.com](https://linkfinderai.com) account.\n\nThen replace `{{Insert-api-key}}` in every **Linkfinder** node with your actual key.",
+        "height": 160,
+        "width": 340
+      }
     },
     {
-      "id": "node-read",
-      "name": "Read Leads from Sheet",
-      "type": "n8n-nodes-base.googleSheets",
-      "typeVersion": 4,
-      "position": [300, 300],
+      "id": "node-form",
+      "name": "On Form Submission",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2,
+      "position": [80, 320],
       "parameters": {
-        "operation": "read",
-        "documentId": { "__rl": true, "value": "YOUR_SPREADSHEET_ID", "mode": "id" },
-        "sheetName": { "__rl": true, "value": "Sheet1", "mode": "name" },
-        "filtersUI": {}
-      },
-      "credentials": {
-        "googleSheetsOAuth2Api": { "id": "CRED_SHEETS", "name": "Google Sheets account" }
-      },
-      "notes": "📋 Sheet1 must have two columns:\n  'full_name'    — e.g. Bill Gates\n  'company_name' — e.g. Microsoft\n\nThey will be combined as 'Bill Gates Microsoft'"
+        "formTitle": "Lead Enrichment — Name to Full Profile",
+        "formDescription": "Enter leads as 'Full Name, Company' — one per line.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Leads",
+              "fieldType": "textarea",
+              "requiredField": true,
+              "placeholder": "Bill Gates, Microsoft\nElon Musk, Tesla\nSam Altman, OpenAI",
+              "fieldDescription": "Format: Full Name, Company — one per line"
+            }
+          ]
+        },
+        "responseMode": "onReceived"
+      }
+    },
+    {
+      "id": "node-split",
+      "name": "Split into Individual Leads",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [300, 320],
+      "parameters": {
+        "jsCode": "const raw = $input.first().json['Leads'] || '';\nreturn raw.split('\\n').map(l => l.trim()).filter(l => l)\n  .map(line => {\n    const parts = line.split(',');\n    const full_name    = (parts[0] || '').trim();\n    const company_name = (parts[1] || '').trim();\n    return { json: { full_name, company_name, search_query: `${full_name} ${company_name}`.trim() } };\n  });"
+      }
     },
     {
       "id": "node-batch",
       "name": "One Lead at a Time",
       "type": "n8n-nodes-base.splitInBatches",
       "typeVersion": 3,
-      "position": [520, 300],
+      "position": [520, 320],
       "parameters": { "batchSize": 1, "options": {} }
     },
     {
@@ -40,73 +60,67 @@
       "name": "Linkfinder — Find LinkedIn URL",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [740, 300],
+      "position": [740, 320],
       "parameters": {
         "method": "POST",
         "url": "https://api.linkfinderai.com",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "Bearer {{Insert-api-key}}" },
+            { "name": "Content-Type",  "value": "application/json" }
+          ]
+        },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"type\": \"lead_full_name_to_linkedin_url\",\n  \"input_data\": \"{{ $json.full_name }} {{ $json.company_name }}\"\n}",
+        "jsonBody": "={\n  \"type\": \"lead_full_name_to_linkedin_url\",\n  \"input_data\": \"{{ $json.search_query }}\"\n}",
         "options": { "timeout": 60000 }
-      },
-      "credentials": {
-        "httpHeaderAuth": { "id": "CRED_API", "name": "Linkfinder API Key" }
-      },
-      "notes": "🔑 HTTP Header Auth credential:\n  Name:  Authorization\n  Value: Bearer YOUR_API_KEY\n\nStep 1: Combines full_name + company_name to find the LinkedIn profile URL"
+      }
     },
     {
       "id": "node-check",
       "name": "URL Found?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [960, 300],
+      "position": [960, 320],
       "parameters": {
         "conditions": {
           "options": { "caseSensitive": false, "leftValue": "", "typeValidation": "strict" },
-          "conditions": [
-            {
-              "id": "cond-1",
-              "leftValue": "={{ $json.status }}",
-              "rightValue": "success",
-              "operator": { "type": "string", "operation": "equals" }
-            }
-          ],
+          "conditions": [{ "id": "c1", "leftValue": "={{ $json.status }}", "rightValue": "success", "operator": { "type": "string", "operation": "equals" } }],
           "combinator": "and"
-        },
-        "options": {}
+        }
       }
     },
     {
       "id": "node-scrape",
-      "name": "Linkfinder — Scrape Profile",
+      "name": "Linkfinder — Scrape Full Profile",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [1180, 200],
+      "position": [1180, 220],
       "parameters": {
         "method": "POST",
         "url": "https://api.linkfinderai.com",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "Bearer {{Insert-api-key}}" },
+            { "name": "Content-Type",  "value": "application/json" }
+          ]
+        },
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={\n  \"type\": \"linkedin_profile_to_linkedin_info\",\n  \"input_data\": \"{{ $json.result }}\"\n}",
         "options": { "timeout": 120000 }
-      },
-      "credentials": {
-        "httpHeaderAuth": { "id": "CRED_API", "name": "Linkfinder API Key" }
-      },
-      "notes": "Step 2: Uses the LinkedIn URL from step 1 to scrape the full profile"
+      }
     },
     {
       "id": "node-extract",
       "name": "Extract Profile Fields",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1400, 200],
+      "position": [1400, 220],
       "parameters": {
-        "jsCode": "const response   = $input.first().json;\nconst data       = response.result || response;\nconst lead       = $('Read Leads from Sheet').first().json;\nconst linkedinUrl= $('Linkfinder — Find LinkedIn URL').first().json.result || '';\n\nconst currentYear   = new Date().getFullYear();\nconst firstYear     = parseInt(data.firstRoleYear || data.first_role_year || 0);\n\nreturn [{ json: {\n  input_name:      lead.full_name        || '',\n  input_company:   lead.company_name     || '',\n  name:            data.name             || lead.full_name || '',\n  job_title:       data.jobTitle         || data.job_title || '',\n  company:         data.company          || lead.company_name || '',\n  headline:        data.headline         || '',\n  location:        data.location         || '',\n  country:         data.country          || '',\n  industry:        data.industry         || '',\n  email:           data.email            || '',\n  mobile:          data.mobileNumber     || data.mobile       || '',\n  connections:     data.connections      || '',\n  followers:       data.followers        || '',\n  is_employed:     data.isCurrentlyEmployed !== undefined ? String(data.isCurrentlyEmployed) : '',\n  years_experience:firstYear ? String(currentYear - firstYear) : '',\n  linkedin_url:    linkedinUrl\n}}];"
+        "jsCode": "const response     = $input.first().json;\nconst data         = response.result || response;\nconst lead         = $('One Lead at a Time').first().json;\nconst linkedin_url = $('Linkfinder — Find LinkedIn URL').first().json.result || '';\n\nconst currentYear  = new Date().getFullYear();\nconst firstYear    = parseInt(data.firstRoleYear || 0);\n\nreturn [{ json: {\n  input_name:       lead.full_name     || '',\n  input_company:    lead.company_name  || '',\n  name:             data.name          || lead.full_name || '',\n  job_title:        data.jobTitle       || data.job_title || '',\n  company:          data.company        || lead.company_name || '',\n  headline:         data.headline       || '',\n  location:         data.location       || '',\n  country:          data.country        || '',\n  industry:         data.industry       || '',\n  email:            data.email          || '',\n  mobile:           data.mobileNumber   || '',\n  connections:      data.connections    || '',\n  is_employed:      data.isCurrentlyEmployed != null ? String(data.isCurrentlyEmployed) : '',\n  years_experience: firstYear ? String(currentYear - firstYear) : '',\n  linkedin_url\n}}];"
       }
     },
     {
@@ -114,74 +128,44 @@
       "name": "Log Not Found",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1180, 420],
+      "position": [1180, 440],
       "parameters": {
-        "jsCode": "const lead = $('Read Leads from Sheet').first().json;\nreturn [{ json: {\n  input_name:    lead.full_name    || '',\n  input_company: lead.company_name || '',\n  name: 'LinkedIn URL not found',\n  job_title:'', company:'', headline:'', location:'',\n  country:'', industry:'', email:'', mobile:'',\n  connections:'', followers:'', is_employed:'',\n  years_experience:'', linkedin_url:''\n}}];"
+        "jsCode": "const lead = $('One Lead at a Time').first().json;\nreturn [{ json: { input_name: lead.full_name || '', input_company: lead.company_name || '', status: 'linkedin_url_not_found' } }];"
       }
     },
     {
       "id": "node-merge",
-      "name": "Merge Found + Not Found",
+      "name": "Merge Results",
       "type": "n8n-nodes-base.merge",
       "typeVersion": 3,
-      "position": [1620, 300],
+      "position": [1620, 320],
       "parameters": { "mode": "passThrough", "output": "all" }
     },
     {
-      "id": "node-write",
-      "name": "Append to Results Sheet",
-      "type": "n8n-nodes-base.googleSheets",
-      "typeVersion": 4,
-      "position": [1840, 300],
-      "parameters": {
-        "operation": "append",
-        "documentId": { "__rl": true, "value": "YOUR_SPREADSHEET_ID", "mode": "id" },
-        "sheetName": { "__rl": true, "value": "Results", "mode": "name" },
-        "columns": {
-          "mappingMode": "defineBelow",
-          "value": {
-            "input_name":       "={{ $json.input_name }}",
-            "input_company":    "={{ $json.input_company }}",
-            "name":             "={{ $json.name }}",
-            "job_title":        "={{ $json.job_title }}",
-            "company":          "={{ $json.company }}",
-            "headline":         "={{ $json.headline }}",
-            "location":         "={{ $json.location }}",
-            "country":          "={{ $json.country }}",
-            "industry":         "={{ $json.industry }}",
-            "email":            "={{ $json.email }}",
-            "mobile":           "={{ $json.mobile }}",
-            "connections":      "={{ $json.connections }}",
-            "followers":        "={{ $json.followers }}",
-            "is_employed":      "={{ $json.is_employed }}",
-            "years_experience": "={{ $json.years_experience }}",
-            "linkedin_url":     "={{ $json.linkedin_url }}"
-          }
-        },
-        "options": {}
-      },
-      "credentials": {
-        "googleSheetsOAuth2Api": { "id": "CRED_SHEETS", "name": "Google Sheets account" }
-      },
-      "notes": "📋 Create a 'Results' tab with headers:\ninput_name | input_company | name | job_title | company | headline | location | country | industry | email | mobile | connections | followers | is_employed | years_experience | linkedin_url"
+      "id": "node-destination",
+      "name": "→ Connect Your CRM Here",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [1840, 320],
+      "parameters": {},
+      "notes": "📤 Connect your destination here:\n• HubSpot → 'Create/Update Contact'\n• Pipedrive → 'Create Person'\n• Salesforce → 'Create Record'\n• Airtable, Notion, HTTP webhook..."
     }
   ],
   "connections": {
-    "Manual Trigger":                    { "main": [[{ "node": "Read Leads from Sheet",              "type": "main", "index": 0 }]] },
-    "Read Leads from Sheet":             { "main": [[{ "node": "One Lead at a Time",                 "type": "main", "index": 0 }]] },
-    "One Lead at a Time":                { "main": [[{ "node": "Linkfinder — Find LinkedIn URL",     "type": "main", "index": 0 }]] },
-    "Linkfinder — Find LinkedIn URL":    { "main": [[{ "node": "URL Found?",                         "type": "main", "index": 0 }]] },
+    "On Form Submission":              { "main": [[{ "node": "Split into Individual Leads",     "type": "main", "index": 0 }]] },
+    "Split into Individual Leads":     { "main": [[{ "node": "One Lead at a Time",               "type": "main", "index": 0 }]] },
+    "One Lead at a Time":              { "main": [[{ "node": "Linkfinder — Find LinkedIn URL",   "type": "main", "index": 0 }]] },
+    "Linkfinder — Find LinkedIn URL":  { "main": [[{ "node": "URL Found?",                       "type": "main", "index": 0 }]] },
     "URL Found?": {
       "main": [
-        [{ "node": "Linkfinder — Scrape Profile", "type": "main", "index": 0 }],
-        [{ "node": "Log Not Found",               "type": "main", "index": 0 }]
+        [{ "node": "Linkfinder — Scrape Full Profile", "type": "main", "index": 0 }],
+        [{ "node": "Log Not Found",                    "type": "main", "index": 0 }]
       ]
     },
-    "Linkfinder — Scrape Profile":       { "main": [[{ "node": "Extract Profile Fields",   "type": "main", "index": 0 }]] },
-    "Extract Profile Fields":            { "main": [[{ "node": "Merge Found + Not Found",   "type": "main", "index": 0 }]] },
-    "Log Not Found":                     { "main": [[{ "node": "Merge Found + Not Found",   "type": "main", "index": 1 }]] },
-    "Merge Found + Not Found":           { "main": [[{ "node": "Append to Results Sheet",   "type": "main", "index": 0 }]] },
-    "Append to Results Sheet":           { "main": [[{ "node": "One Lead at a Time",         "type": "main", "index": 0 }]] }
+    "Linkfinder — Scrape Full Profile":{ "main": [[{ "node": "Extract Profile Fields", "type": "main", "index": 0 }]] },
+    "Extract Profile Fields":          { "main": [[{ "node": "Merge Results",           "type": "main", "index": 0 }]] },
+    "Log Not Found":                   { "main": [[{ "node": "Merge Results",           "type": "main", "index": 1 }]] },
+    "Merge Results":                   { "main": [[{ "node": "→ Connect Your CRM Here", "type": "main", "index": 0 }]] }
   },
   "settings": { "executionOrder": "v1" }
 }
