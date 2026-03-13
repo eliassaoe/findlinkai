@@ -1,0 +1,118 @@
+{
+  "name": "LinkFinder AI — LinkedIn Profiles → Full Scrape",
+  "meta": { "templateCredsSetupCompleted": false },
+  "nodes": [
+    {
+      "id": "node-trigger",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [80, 300],
+      "parameters": {}
+    },
+    {
+      "id": "node-read",
+      "name": "Read Profile URLs from Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [300, 300],
+      "parameters": {
+        "operation": "read",
+        "documentId": { "__rl": true, "value": "YOUR_SPREADSHEET_ID", "mode": "id" },
+        "sheetName": { "__rl": true, "value": "Sheet1", "mode": "name" },
+        "filtersUI": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": { "id": "CRED_SHEETS", "name": "Google Sheets account" }
+      },
+      "notes": "📋 Sheet1 must have a column named 'linkedin_url'\nExample: https://linkedin.com/in/bill-gates"
+    },
+    {
+      "id": "node-batch",
+      "name": "One Profile at a Time",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [520, 300],
+      "parameters": { "batchSize": 1, "options": {} }
+    },
+    {
+      "id": "node-api",
+      "name": "Linkfinder — Scrape Profile",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [740, 300],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.linkfinderai.com",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"type\": \"linkedin_profile_to_linkedin_info\",\n  \"input_data\": \"{{ $json.linkedin_url }}\"\n}",
+        "options": { "timeout": 120000 }
+      },
+      "credentials": {
+        "httpHeaderAuth": { "id": "CRED_API", "name": "Linkfinder API Key" }
+      },
+      "notes": "🔑 HTTP Header Auth credential:\n  Name:  Authorization\n  Value: Bearer YOUR_API_KEY"
+    },
+    {
+      "id": "node-extract",
+      "name": "Extract Profile Fields",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [960, 300],
+      "parameters": {
+        "jsCode": "const response   = $input.first().json;\nconst data       = response.result || response;\nconst inputUrl   = $('Read Profile URLs from Sheet').first().json.linkedin_url;\n\nif (!data || !data.name || response.status === 'error') {\n  return [{ json: {\n    input_url: inputUrl, name: 'Not found',\n    job_title: '', company: '', headline: '', location: '',\n    country: '', industry: '', email: '', mobile: '', website: '',\n    connections: '', followers: '', is_employed: '',\n    is_job_seeker: '', years_experience: '', linkedin_url: ''\n  }}];\n}\n\nconst currentYear = new Date().getFullYear();\nconst firstYear   = parseInt(data.firstRoleYear || data.first_role_year || 0);\n\nreturn [{ json: {\n  input_url:       inputUrl,\n  name:            data.name              || '',\n  job_title:       data.jobTitle          || data.job_title       || '',\n  company:         data.company           || '',\n  headline:        data.headline          || '',\n  location:        data.location          || '',\n  country:         data.country           || '',\n  industry:        data.industry          || '',\n  email:           data.email             || '',\n  mobile:          data.mobileNumber      || data.mobile          || '',\n  website:         data.website           || '',\n  connections:     data.connections       || '',\n  followers:       data.followers         || '',\n  is_employed:     data.isCurrentlyEmployed !== undefined ? String(data.isCurrentlyEmployed) : '',\n  is_job_seeker:   data.isJobSeeker        !== undefined ? String(data.isJobSeeker)        : '',\n  years_experience:firstYear ? String(currentYear - firstYear) : '',\n  linkedin_url:    data.linkedinUrl       || data.linkedin_url    || inputUrl\n}}];"
+      }
+    },
+    {
+      "id": "node-write",
+      "name": "Append to Results Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [1180, 300],
+      "parameters": {
+        "operation": "append",
+        "documentId": { "__rl": true, "value": "YOUR_SPREADSHEET_ID", "mode": "id" },
+        "sheetName": { "__rl": true, "value": "Results", "mode": "name" },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "input_url":        "={{ $json.input_url }}",
+            "name":             "={{ $json.name }}",
+            "job_title":        "={{ $json.job_title }}",
+            "company":          "={{ $json.company }}",
+            "headline":         "={{ $json.headline }}",
+            "location":         "={{ $json.location }}",
+            "country":          "={{ $json.country }}",
+            "industry":         "={{ $json.industry }}",
+            "email":            "={{ $json.email }}",
+            "mobile":           "={{ $json.mobile }}",
+            "website":          "={{ $json.website }}",
+            "connections":      "={{ $json.connections }}",
+            "followers":        "={{ $json.followers }}",
+            "is_employed":      "={{ $json.is_employed }}",
+            "is_job_seeker":    "={{ $json.is_job_seeker }}",
+            "years_experience": "={{ $json.years_experience }}",
+            "linkedin_url":     "={{ $json.linkedin_url }}"
+          }
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": { "id": "CRED_SHEETS", "name": "Google Sheets account" }
+      },
+      "notes": "📋 Create a 'Results' tab with headers:\ninput_url | name | job_title | company | headline | location | country | industry | email | mobile | website | connections | followers | is_employed | is_job_seeker | years_experience | linkedin_url"
+    }
+  ],
+  "connections": {
+    "Manual Trigger":               { "main": [[{ "node": "Read Profile URLs from Sheet", "type": "main", "index": 0 }]] },
+    "Read Profile URLs from Sheet": { "main": [[{ "node": "One Profile at a Time",        "type": "main", "index": 0 }]] },
+    "One Profile at a Time":        { "main": [[{ "node": "Linkfinder — Scrape Profile",  "type": "main", "index": 0 }]] },
+    "Linkfinder — Scrape Profile":  { "main": [[{ "node": "Extract Profile Fields",       "type": "main", "index": 0 }]] },
+    "Extract Profile Fields":       { "main": [[{ "node": "Append to Results Sheet",      "type": "main", "index": 0 }]] },
+    "Append to Results Sheet":      { "main": [[{ "node": "One Profile at a Time",        "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" }
+}
