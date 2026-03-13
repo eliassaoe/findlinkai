@@ -1,132 +1,268 @@
 {
-  "name": "LinkFinder AI — Domain → Targeted Prospects (Dept + Seniority)",
-  "meta": { "templateCredsSetupCompleted": false },
+  "name": "LinkFinder AI — Domain → Targeted Prospects",
   "nodes": [
     {
-      "id": "node-trigger",
-      "name": "Manual Trigger",
-      "type": "n8n-nodes-base.manualTrigger",
+      "parameters": {
+        "content": "## 🔑 API Key Setup\n\nFind your API key in the **API Access** section of your [linkfinderai.com](https://linkfinderai.com) account.\n\nThen replace `{{Insert-api-key}}` in every **Linkfinder** node with your actual key.",
+        "height": 192,
+        "width": 340
+      },
+      "id": "24771504-7675-4e8e-85d6-fd4a5bc3a7b1",
+      "name": "📌 API Key",
+      "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
-      "position": [80, 300],
-      "parameters": {}
+      "position": [
+        624,
+        0
+      ]
     },
     {
-      "id": "node-config",
-      "name": "Set Target Filters",
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3,
-      "position": [280, 300],
       "parameters": {
-        "mode": "manual",
-        "duplicateItem": false,
-        "assignments": {
-          "assignments": [
-            { "id": "dept",     "name": "department",     "value": "sales",    "type": "string" },
-            { "id": "seniority","name": "seniority",      "value": "director", "type": "string" },
-            { "id": "maxcount", "name": "employee_count", "value": 10,         "type": "number" }
+        "path": "9c5ff08b-8b53-4fd0-96f3-3616fdb4675b",
+        "formTitle": "Targeted Prospect Finder",
+        "formDescription": "Extract prospects from company domains filtered by department and seniority.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Domains",
+              "fieldType": "textarea",
+              "placeholder": "tesla.com\nstripe.com\nnotion.so",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Department",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "sales"
+                  },
+                  {
+                    "option": "marketing"
+                  },
+                  {
+                    "option": "engineering_technical"
+                  },
+                  {
+                    "option": "product"
+                  },
+                  {
+                    "option": "c_suite"
+                  },
+                  {
+                    "option": "finance"
+                  },
+                  {
+                    "option": "human_resources"
+                  },
+                  {
+                    "option": "operations"
+                  },
+                  {
+                    "option": "information_technology"
+                  },
+                  {
+                    "option": "legal"
+                  }
+                ]
+              }
+            },
+            {
+              "fieldLabel": "Seniority",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "director"
+                  },
+                  {
+                    "option": "vp"
+                  },
+                  {
+                    "option": "c_suite"
+                  },
+                  {
+                    "option": "founder"
+                  },
+                  {
+                    "option": "owner"
+                  },
+                  {
+                    "option": "partner"
+                  },
+                  {
+                    "option": "head"
+                  },
+                  {
+                    "option": "manager"
+                  },
+                  {
+                    "option": "senior"
+                  },
+                  {
+                    "option": "entry"
+                  }
+                ]
+              }
+            },
+            {
+              "fieldLabel": "Max results per domain",
+              "fieldType": "number",
+              "placeholder": "10"
+            }
           ]
-        }
-      },
-      "notes": "✏️ CUSTOMIZE YOUR ICP HERE:\n\n── department ──────────────────\n  marketing\n  sales\n  engineering_technical\n  product\n  c_suite\n  finance\n  human_resources\n  operations\n  information_technology\n  legal\n  consulting\n\n── seniority ───────────────────\n  founder\n  owner\n  c_suite\n  director\n  partner\n  vp\n  head\n  manager\n  senior\n  entry\n\n── employee_count ──────────────\n  Max results per domain (1–100)"
-    },
-    {
-      "id": "node-read",
-      "name": "Read Domains from Sheet",
-      "type": "n8n-nodes-base.googleSheets",
-      "typeVersion": 4,
-      "position": [500, 300],
-      "parameters": {
-        "operation": "read",
-        "documentId": { "__rl": true, "value": "YOUR_SPREADSHEET_ID", "mode": "id" },
-        "sheetName": { "__rl": true, "value": "Sheet1", "mode": "name" },
-        "filtersUI": {}
-      },
-      "credentials": {
-        "googleSheetsOAuth2Api": { "id": "CRED_SHEETS", "name": "Google Sheets account" }
-      },
-      "notes": "📋 Sheet1 must have a column named 'domain'\nExamples: tesla.com, apple.com, stripe.com"
-    },
-    {
-      "id": "node-batch",
-      "name": "One Domain at a Time",
-      "type": "n8n-nodes-base.splitInBatches",
-      "typeVersion": 3,
-      "position": [720, 300],
-      "parameters": { "batchSize": 1, "options": {} }
-    },
-    {
-      "id": "node-api",
-      "name": "Linkfinder — Get Targeted Employees",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4,
-      "position": [940, 300],
-      "parameters": {
-        "method": "POST",
-        "url": "https://api.linkfinderai.com",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={\n  \"type\": \"company_domain_to_employees\",\n  \"input_data\": \"{{ $json.domain }}\",\n  \"department\": \"{{ $('Set Target Filters').first().json.department }}\",\n  \"seniority\": \"{{ $('Set Target Filters').first().json.seniority }}\",\n  \"employee_count\": {{ $('Set Target Filters').first().json.employee_count }}\n}",
-        "options": { "timeout": 120000 }
-      },
-      "credentials": {
-        "httpHeaderAuth": { "id": "CRED_API", "name": "Linkfinder API Key" }
-      },
-      "notes": "🔑 HTTP Header Auth credential:\n  Name:  Authorization\n  Value: Bearer YOUR_API_KEY"
-    },
-    {
-      "id": "node-flatten",
-      "name": "Flatten Prospect Rows",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [1160, 300],
-      "parameters": {
-        "jsCode": "const response = $input.first().json;\nconst employees = response.result;\nconst domain = $('Read Domains from Sheet').first().json.domain;\nconst dept     = $('Set Target Filters').first().json.department;\nconst seniority= $('Set Target Filters').first().json.seniority;\n\nif (!Array.isArray(employees) || employees.length === 0) {\n  return [{ json: {\n    domain, name: 'No results', jobTitle: '', email: '',\n    linkedinUrl: '', company: '', department: dept,\n    city: '', country: '', headline: '', companyLinkedinUrl: ''\n  }}];\n}\n\nreturn employees.map(emp => ({\n  json: {\n    domain,\n    name:               emp.name             || '',\n    jobTitle:           emp.jobTitle          || emp.job_title     || '',\n    email:              emp.email             || '',\n    linkedinUrl:        emp.linkedinUrl       || emp.linkedin_url  || '',\n    company:            emp.company           || '',\n    department:         emp.department        || dept,\n    city:               emp.city              || '',\n    country:            emp.country           || '',\n    headline:           emp.headline          || '',\n    companyLinkedinUrl: emp.companyLinkedinUrl || emp.companylinkedinurl || ''\n  }\n}));"
-      }
-    },
-    {
-      "id": "node-write",
-      "name": "Append Prospects to Sheet",
-      "type": "n8n-nodes-base.googleSheets",
-      "typeVersion": 4,
-      "position": [1380, 300],
-      "parameters": {
-        "operation": "append",
-        "documentId": { "__rl": true, "value": "YOUR_SPREADSHEET_ID", "mode": "id" },
-        "sheetName": { "__rl": true, "value": "Prospects", "mode": "name" },
-        "columns": {
-          "mappingMode": "defineBelow",
-          "value": {
-            "domain":             "={{ $json.domain }}",
-            "name":               "={{ $json.name }}",
-            "jobTitle":           "={{ $json.jobTitle }}",
-            "email":              "={{ $json.email }}",
-            "linkedinUrl":        "={{ $json.linkedinUrl }}",
-            "company":            "={{ $json.company }}",
-            "department":         "={{ $json.department }}",
-            "city":               "={{ $json.city }}",
-            "country":            "={{ $json.country }}",
-            "headline":           "={{ $json.headline }}",
-            "companyLinkedinUrl": "={{ $json.companyLinkedinUrl }}"
-          }
         },
         "options": {}
       },
-      "credentials": {
-        "googleSheetsOAuth2Api": { "id": "CRED_SHEETS", "name": "Google Sheets account" }
+      "id": "2f8ff760-a364-4247-8419-a8e54eaac158",
+      "name": "On Form Submission",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2,
+      "position": [
+        0,
+        240
+      ],
+      "webhookId": "9c5ff08b-8b53-4fd0-96f3-3616fdb4675b"
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw       = $input.first().json['Domains'] || '';\nconst dept      = $input.first().json['Department'] || 'sales';\nconst seniority = $input.first().json['Seniority']  || 'director';\nconst maxCount  = parseInt($input.first().json['Max results per domain'] || '10');\n\nreturn raw.split('\\n').map(d => d.trim()).filter(d => d)\n  .map(domain => ({ json: { domain, department: dept, seniority, employee_count: maxCount } }));"
       },
-      "notes": "📋 Create a 'Prospects' tab with these exact headers:\ndomain | name | jobTitle | email | linkedinUrl | company | department | city | country | headline | companyLinkedinUrl"
+      "id": "f486687d-ada0-41b9-abaa-4641a5c1f800",
+      "name": "Split into Individual Domains",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "ae903809-2d3f-45c4-9b6d-4f1b605d2446",
+      "name": "One Domain at a Time",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        448,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.linkfinderai.com",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{Insert-api-key}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"type\": \"company_domain_to_employees\",\n  \"input_data\": \"{{ $json.domain }}\",\n  \"department\": \"{{ $json.department }}\",\n  \"seniority\": \"{{ $json.seniority }}\",\n  \"employee_count\": {{ $json.employee_count }}\n}",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "id": "8174ae2f-3d9a-4218-9ec7-ae6aeb72fc33",
+      "name": "Linkfinder — Get Targeted Employees",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        768,
+        240
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "1c818c2a-ab52-45d7-9a0c-7091447a6037",
+      "name": "→ Connect Your CRM Here",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1104,
+        240
+      ],
+      "notes": "📤 Connect your destination here:\n• HubSpot → 'Create/Update Contact'\n• Pipedrive → 'Create Person'\n• Salesforce → 'Create Record'\n• Airtable, Notion, HTTP webhook..."
     }
   ],
+  "pinData": {},
   "connections": {
-    "Manual Trigger":                    { "main": [[{ "node": "Set Target Filters",                  "type": "main", "index": 0 }]] },
-    "Set Target Filters":                { "main": [[{ "node": "Read Domains from Sheet",             "type": "main", "index": 0 }]] },
-    "Read Domains from Sheet":           { "main": [[{ "node": "One Domain at a Time",                "type": "main", "index": 0 }]] },
-    "One Domain at a Time":              { "main": [[{ "node": "Linkfinder — Get Targeted Employees", "type": "main", "index": 0 }]] },
-    "Linkfinder — Get Targeted Employees":{ "main": [[{ "node": "Flatten Prospect Rows",             "type": "main", "index": 0 }]] },
-    "Flatten Prospect Rows":             { "main": [[{ "node": "Append Prospects to Sheet",          "type": "main", "index": 0 }]] },
-    "Append Prospects to Sheet":         { "main": [[{ "node": "One Domain at a Time",               "type": "main", "index": 0 }]] }
+    "On Form Submission": {
+      "main": [
+        [
+          {
+            "node": "Split into Individual Domains",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split into Individual Domains": {
+      "main": [
+        [
+          {
+            "node": "One Domain at a Time",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "One Domain at a Time": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Linkfinder — Get Targeted Employees",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Linkfinder — Get Targeted Employees": {
+      "main": [
+        [
+          {
+            "node": "→ Connect Your CRM Here",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "→ Connect Your CRM Here": {
+      "main": [
+        [
+          {
+            "node": "One Domain at a Time",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
   },
-  "settings": { "executionOrder": "v1" }
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "df037c9f-baf0-40e0-b96e-5c9723f08cdf",
+  "meta": {
+    "instanceId": "0ba15c473753d92c71f15fc9391d54bb141d91f940c0582da38b60426c3c2f10"
+  },
+  "id": "VruAmpigF1bmqGdW",
+  "tags": []
 }
