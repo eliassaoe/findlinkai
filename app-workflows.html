@@ -60,16 +60,22 @@
     .badge-new   { background: #dbeafe; color: #1e40af; }
     .badge-chain { background: #f3e8ff; color: #6b21a8; }
 
-    .workflow-card p { font-size: 0.825rem; color: var(--gray-500); line-height: 1.55; margin-bottom: 1rem; }
+    /* PhantomBuster-style card body */
+    .card-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem 1.25rem; margin: 0.875rem 0 1rem; }
+    .meta-label { font-size: 0.62rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--gray-400); margin-bottom: 0.35rem; }
+    .meta-input { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.8rem; font-weight: 500; color: var(--gray-700); background: var(--gray-50); border: 1px solid var(--gray-200); border-radius: 6px; padding: 0.3rem 0.6rem; }
+    .meta-input i { font-size: 0.68rem; color: var(--gray-400); }
+    .meta-bullets { list-style: none; display: flex; flex-direction: column; gap: 0.3rem; }
+    .meta-bullets li { display: flex; align-items: center; gap: 0.45rem; font-size: 0.8rem; color: var(--gray-700); font-weight: 500; line-height: 1.3; }
+    .meta-bullets li::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: var(--primary); flex-shrink: 0; opacity: 0.55; }
 
-    .workflow-flow { display: flex; align-items: center; gap: 0.375rem; flex-wrap: wrap; margin-bottom: 1.125rem; }
-    .flow-pill { display: flex; align-items: center; gap: 0.3rem; background: var(--gray-50); border: 1px solid var(--gray-200); border-radius: 6px; padding: 0.3rem 0.625rem; font-size: 0.75rem; font-weight: 500; color: var(--gray-700); }
-    .flow-pill i { font-size: 0.7rem; color: var(--gray-400); }
-    .flow-arrow { color: var(--gray-300); font-size: 0.8rem; }
-
-    .card-bottom { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding-top: 1rem; border-top: 1px solid var(--gray-100); flex-wrap: wrap; }
+    .card-bottom { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding-top: 0.875rem; border-top: 1px solid var(--gray-100); flex-wrap: wrap; }
     .credit-cost { font-size: 0.775rem; color: var(--gray-400); display: flex; align-items: center; gap: 0.35rem; }
     .credit-cost i { font-size: 0.7rem; }
+
+    /* Import label */
+    .import-block { display: flex; flex-direction: column; align-items: flex-end; gap: 0.3rem; }
+    .import-label { font-size: 0.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--gray-400); }
 
     .platform-btns { display: flex; gap: 0.4rem; flex-wrap: wrap; }
     .btn-plat { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.375rem 0.75rem; border-radius: 6px; font-size: 0.775rem; font-weight: 600; text-decoration: none; cursor: pointer; transition: opacity 0.15s, transform 0.15s; white-space: nowrap; font-family: inherit; }
@@ -156,20 +162,30 @@
                     <h3>Extract targeted prospects from a company</h3>
                     <span class="badge badge-hot">⭐ Most popular</span>
                 </div>
-                <p>Feed a list of domains and pull only the people matching your ICP — e.g. Sales Directors, Marketing VPs, or C-Suite. Filter by department and seniority.</p>
-                <div class="workflow-flow">
-                    <div class="flow-pill"><i class="fas fa-globe"></i> Domain list</div>
-                    <span class="flow-arrow">→</span>
-                    <div class="flow-pill"><i class="fas fa-sliders-h"></i> Dept + Seniority</div>
-                    <span class="flow-arrow">→</span>
-                    <div class="flow-pill"><i class="fas fa-users"></i> Prospects + emails</div>
+                <div class="card-meta">
+                    <div>
+                        <div class="meta-label">Input</div>
+                        <span class="meta-input"><i class="fas fa-globe"></i> Company domains</span>
+                    </div>
+                    <div>
+                        <div class="meta-label">You get</div>
+                        <ul class="meta-bullets">
+                            <li>Name &amp; job title</li>
+                            <li>Email address</li>
+                            <li>LinkedIn URL</li>
+                            <li>Filter by dept &amp; seniority</li>
+                        </ul>
+                    </div>
                 </div>
                 <div class="card-bottom">
                     <div class="credit-cost"><i class="fas fa-bolt"></i> 0.5 credits / employee</div>
-                    <div class="platform-btns">
-                        <a href="workflows/n8n-targeted-prospects.json" download class="btn-plat btn-n8n" onclick="trackDownload('targeted-prospects')"><span class="plat-logo logo-n8n">n</span> n8n</a>
-                        <span class="btn-plat btn-make soon"><span class="plat-logo logo-make">M</span> Make</span>
-                        <span class="btn-plat btn-zapier soon"><span class="plat-logo logo-zapier">Z</span> Zapier</span>
+                    <div class="import-block">
+                        <div class="import-label">Import</div>
+                        <div class="platform-btns">
+                            <a href="workflows/n8n-targeted-prospects.json" download class="btn-plat btn-n8n" onclick="trackDownload('targeted-prospects')"><span class="plat-logo logo-n8n">n</span> n8n</a>
+                            <span class="btn-plat btn-make soon"><span class="plat-logo logo-make">M</span> Make</span>
+                            <span class="btn-plat btn-zapier soon"><span class="plat-logo logo-zapier">Z</span> Zapier</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -179,20 +195,30 @@
                 <div class="card-top">
                     <h3>Extract all employees from a company</h3>
                 </div>
-                <p>Extract every available employee from a list of company domains — name, job title, email, LinkedIn URL, city, department — with no filters applied.</p>
-                <div class="workflow-flow">
-                    <div class="flow-pill"><i class="fas fa-globe"></i> Domain list</div>
-                    <span class="flow-arrow">→</span>
-                    <div class="flow-pill"><i class="fas fa-search"></i> Linkfinder</div>
-                    <span class="flow-arrow">→</span>
-                    <div class="flow-pill"><i class="fas fa-users"></i> Employee list</div>
+                <div class="card-meta">
+                    <div>
+                        <div class="meta-label">Input</div>
+                        <span class="meta-input"><i class="fas fa-globe"></i> Company domains</span>
+                    </div>
+                    <div>
+                        <div class="meta-label">You get</div>
+                        <ul class="meta-bullets">
+                            <li>Full employee list</li>
+                            <li>Name, title &amp; email</li>
+                            <li>Department &amp; city</li>
+                            <li>No filters applied</li>
+                        </ul>
+                    </div>
                 </div>
                 <div class="card-bottom">
                     <div class="credit-cost"><i class="fas fa-bolt"></i> 0.5 credits / employee</div>
-                    <div class="platform-btns">
-                        <a href="workflows/n8n-domain-to-all-employees.json" download class="btn-plat btn-n8n" onclick="trackDownload('domain-to-all-employees')"><span class="plat-logo logo-n8n">n</span> n8n</a>
-                        <span class="btn-plat btn-make soon"><span class="plat-logo logo-make">M</span> Make</span>
-                        <span class="btn-plat btn-zapier soon"><span class="plat-logo logo-zapier">Z</span> Zapier</span>
+                    <div class="import-block">
+                        <div class="import-label">Import</div>
+                        <div class="platform-btns">
+                            <a href="workflows/n8n-domain-to-all-employees.json" download class="btn-plat btn-n8n" onclick="trackDownload('domain-to-all-employees')"><span class="plat-logo logo-n8n">n</span> n8n</a>
+                            <span class="btn-plat btn-make soon"><span class="plat-logo logo-make">M</span> Make</span>
+                            <span class="btn-plat btn-zapier soon"><span class="plat-logo logo-zapier">Z</span> Zapier</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -202,20 +228,30 @@
                 <div class="card-top">
                     <h3>Enrich a list of companies</h3>
                 </div>
-                <p>Feed a list of company names and enrich each one with website, email, phone, LinkedIn URL, and headcount — all in parallel, merged into one row per company.</p>
-                <div class="workflow-flow">
-                    <div class="flow-pill"><i class="fas fa-building"></i> Company names</div>
-                    <span class="flow-arrow">→</span>
-                    <div class="flow-pill"><i class="fas fa-search"></i> 5× Linkfinder</div>
-                    <span class="flow-arrow">→</span>
-                    <div class="flow-pill"><i class="fas fa-table"></i> 1 enriched row</div>
+                <div class="card-meta">
+                    <div>
+                        <div class="meta-label">Input</div>
+                        <span class="meta-input"><i class="fas fa-building"></i> Company names</span>
+                    </div>
+                    <div>
+                        <div class="meta-label">You get</div>
+                        <ul class="meta-bullets">
+                            <li>Website &amp; email</li>
+                            <li>Phone &amp; LinkedIn URL</li>
+                            <li>Employee headcount</li>
+                            <li>1 row per company</li>
+                        </ul>
+                    </div>
                 </div>
                 <div class="card-bottom">
                     <div class="credit-cost"><i class="fas fa-bolt"></i> 5 credits / company</div>
-                    <div class="platform-btns">
-                        <a href="workflows/n8n-company-full-enrichment.json" download class="btn-plat btn-n8n" onclick="trackDownload('company-full-enrichment')"><span class="plat-logo logo-n8n">n</span> n8n</a>
-                        <span class="btn-plat btn-make soon"><span class="plat-logo logo-make">M</span> Make</span>
-                        <span class="btn-plat btn-zapier soon"><span class="plat-logo logo-zapier">Z</span> Zapier</span>
+                    <div class="import-block">
+                        <div class="import-label">Import</div>
+                        <div class="platform-btns">
+                            <a href="workflows/n8n-company-full-enrichment.json" download class="btn-plat btn-n8n" onclick="trackDownload('company-full-enrichment')"><span class="plat-logo logo-n8n">n</span> n8n</a>
+                            <span class="btn-plat btn-make soon"><span class="plat-logo logo-make">M</span> Make</span>
+                            <span class="btn-plat btn-zapier soon"><span class="plat-logo logo-zapier">Z</span> Zapier</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -231,20 +267,30 @@
                 <div class="card-top">
                     <h3>Scrape LinkedIn company pages</h3>
                 </div>
-                <p>Feed a list of LinkedIn company URLs and extract full data: size, industry, HQ, description, email, phone, followers, and founding year.</p>
-                <div class="workflow-flow">
-                    <div class="flow-pill"><i class="fab fa-linkedin"></i> Company URLs</div>
-                    <span class="flow-arrow">→</span>
-                    <div class="flow-pill"><i class="fas fa-search"></i> Linkfinder</div>
-                    <span class="flow-arrow">→</span>
-                    <div class="flow-pill"><i class="fas fa-building"></i> Company data</div>
+                <div class="card-meta">
+                    <div>
+                        <div class="meta-label">Input</div>
+                        <span class="meta-input"><i class="fab fa-linkedin"></i> Company URLs</span>
+                    </div>
+                    <div>
+                        <div class="meta-label">You get</div>
+                        <ul class="meta-bullets">
+                            <li>Industry &amp; size</li>
+                            <li>HQ &amp; founding year</li>
+                            <li>Email, phone &amp; followers</li>
+                            <li>Full company profile</li>
+                        </ul>
+                    </div>
                 </div>
                 <div class="card-bottom">
                     <div class="credit-cost"><i class="fas fa-bolt"></i> 5 credits / company</div>
-                    <div class="platform-btns">
-                        <a href="workflows/n8n-linkedin-company-scrape.json" download class="btn-plat btn-n8n" onclick="trackDownload('linkedin-company-scrape')"><span class="plat-logo logo-n8n">n</span> n8n</a>
-                        <span class="btn-plat btn-make soon"><span class="plat-logo logo-make">M</span> Make</span>
-                        <span class="btn-plat btn-zapier soon"><span class="plat-logo logo-zapier">Z</span> Zapier</span>
+                    <div class="import-block">
+                        <div class="import-label">Import</div>
+                        <div class="platform-btns">
+                            <a href="workflows/n8n-linkedin-company-scrape.json" download class="btn-plat btn-n8n" onclick="trackDownload('linkedin-company-scrape')"><span class="plat-logo logo-n8n">n</span> n8n</a>
+                            <span class="btn-plat btn-make soon"><span class="plat-logo logo-make">M</span> Make</span>
+                            <span class="btn-plat btn-zapier soon"><span class="plat-logo logo-zapier">Z</span> Zapier</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -254,20 +300,30 @@
                 <div class="card-top">
                     <h3>Scrape LinkedIn profiles</h3>
                 </div>
-                <p>Scrape a list of LinkedIn profile URLs and extract all available data: job title, company, email, mobile, connections, employment status, years of experience.</p>
-                <div class="workflow-flow">
-                    <div class="flow-pill"><i class="fab fa-linkedin"></i> Profile URLs</div>
-                    <span class="flow-arrow">→</span>
-                    <div class="flow-pill"><i class="fas fa-search"></i> Linkfinder</div>
-                    <span class="flow-arrow">→</span>
-                    <div class="flow-pill"><i class="fas fa-id-card"></i> Profile data</div>
+                <div class="card-meta">
+                    <div>
+                        <div class="meta-label">Input</div>
+                        <span class="meta-input"><i class="fab fa-linkedin"></i> Profile URLs</span>
+                    </div>
+                    <div>
+                        <div class="meta-label">You get</div>
+                        <ul class="meta-bullets">
+                            <li>Job title &amp; company</li>
+                            <li>Email &amp; mobile</li>
+                            <li>Connections &amp; experience</li>
+                            <li>Employment status</li>
+                        </ul>
+                    </div>
                 </div>
                 <div class="card-bottom">
                     <div class="credit-cost"><i class="fas fa-bolt"></i> 10 credits / profile</div>
-                    <div class="platform-btns">
-                        <a href="workflows/n8n-linkedin-profile-scrape.json" download class="btn-plat btn-n8n" onclick="trackDownload('linkedin-profile-scrape')"><span class="plat-logo logo-n8n">n</span> n8n</a>
-                        <span class="btn-plat btn-make soon"><span class="plat-logo logo-make">M</span> Make</span>
-                        <span class="btn-plat btn-zapier soon"><span class="plat-logo logo-zapier">Z</span> Zapier</span>
+                    <div class="import-block">
+                        <div class="import-label">Import</div>
+                        <div class="platform-btns">
+                            <a href="workflows/n8n-linkedin-profile-scrape.json" download class="btn-plat btn-n8n" onclick="trackDownload('linkedin-profile-scrape')"><span class="plat-logo logo-n8n">n</span> n8n</a>
+                            <span class="btn-plat btn-make soon"><span class="plat-logo logo-make">M</span> Make</span>
+                            <span class="btn-plat btn-zapier soon"><span class="plat-logo logo-zapier">Z</span> Zapier</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -278,20 +334,30 @@
                     <h3>Find anyone's full profile from their name</h3>
                     <span class="badge badge-chain">2-step</span>
                 </div>
-                <p>Only have a name and company? This workflow first finds the LinkedIn URL, then scrapes the full profile — with a fallback row if no match is found.</p>
-                <div class="workflow-flow">
-                    <div class="flow-pill"><i class="fas fa-user"></i> Name + Company</div>
-                    <span class="flow-arrow">→</span>
-                    <div class="flow-pill"><i class="fab fa-linkedin"></i> LinkedIn URL</div>
-                    <span class="flow-arrow">→</span>
-                    <div class="flow-pill"><i class="fas fa-id-card"></i> Full profile</div>
+                <div class="card-meta">
+                    <div>
+                        <div class="meta-label">Input</div>
+                        <span class="meta-input"><i class="fas fa-user"></i> Name + company</span>
+                    </div>
+                    <div>
+                        <div class="meta-label">You get</div>
+                        <ul class="meta-bullets">
+                            <li>LinkedIn URL (auto-found)</li>
+                            <li>Full profile scraped</li>
+                            <li>Email &amp; job title</li>
+                            <li>Fallback if no match</li>
+                        </ul>
+                    </div>
                 </div>
                 <div class="card-bottom">
                     <div class="credit-cost"><i class="fas fa-bolt"></i> 11 credits / lead</div>
-                    <div class="platform-btns">
-                        <a href="workflows/n8n-lead-name-to-profile.json" download class="btn-plat btn-n8n" onclick="trackDownload('lead-name-to-profile')"><span class="plat-logo logo-n8n">n</span> n8n</a>
-                        <span class="btn-plat btn-make soon"><span class="plat-logo logo-make">M</span> Make</span>
-                        <span class="btn-plat btn-zapier soon"><span class="plat-logo logo-zapier">Z</span> Zapier</span>
+                    <div class="import-block">
+                        <div class="import-label">Import</div>
+                        <div class="platform-btns">
+                            <a href="workflows/n8n-lead-name-to-profile.json" download class="btn-plat btn-n8n" onclick="trackDownload('lead-name-to-profile')"><span class="plat-logo logo-n8n">n</span> n8n</a>
+                            <span class="btn-plat btn-make soon"><span class="plat-logo logo-make">M</span> Make</span>
+                            <span class="btn-plat btn-zapier soon"><span class="plat-logo logo-zapier">Z</span> Zapier</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -302,20 +368,30 @@
                     <h3>Enrich everyone who reacted to a post</h3>
                     <span class="badge badge-chain">2-step</span>
                 </div>
-                <p>Enter a LinkedIn post URL, extract everyone who reacted, then scrape each reactor's full profile — email, company, job title, and location.</p>
-                <div class="workflow-flow">
-                    <div class="flow-pill"><i class="fab fa-linkedin"></i> Post URL</div>
-                    <span class="flow-arrow">→</span>
-                    <div class="flow-pill"><i class="fas fa-heart"></i> Reactor list</div>
-                    <span class="flow-arrow">→</span>
-                    <div class="flow-pill"><i class="fas fa-id-card"></i> Full profiles</div>
+                <div class="card-meta">
+                    <div>
+                        <div class="meta-label">Input</div>
+                        <span class="meta-input"><i class="fab fa-linkedin"></i> Post URL</span>
+                    </div>
+                    <div>
+                        <div class="meta-label">You get</div>
+                        <ul class="meta-bullets">
+                            <li>Every reactor listed</li>
+                            <li>Email &amp; job title</li>
+                            <li>Company &amp; location</li>
+                            <li>Ready for warm outreach</li>
+                        </ul>
+                    </div>
                 </div>
                 <div class="card-bottom">
                     <div class="credit-cost"><i class="fas fa-bolt"></i> 1 + 10 credits / reactor</div>
-                    <div class="platform-btns">
-                        <a href="workflows/n8n-reactions-to-profiles.json" download class="btn-plat btn-n8n" onclick="trackDownload('reactions-to-profiles')"><span class="plat-logo logo-n8n">n</span> n8n</a>
-                        <span class="btn-plat btn-make soon"><span class="plat-logo logo-make">M</span> Make</span>
-                        <span class="btn-plat btn-zapier soon"><span class="plat-logo logo-zapier">Z</span> Zapier</span>
+                    <div class="import-block">
+                        <div class="import-label">Import</div>
+                        <div class="platform-btns">
+                            <a href="workflows/n8n-reactions-to-profiles.json" download class="btn-plat btn-n8n" onclick="trackDownload('reactions-to-profiles')"><span class="plat-logo logo-n8n">n</span> n8n</a>
+                            <span class="btn-plat btn-make soon"><span class="plat-logo logo-make">M</span> Make</span>
+                            <span class="btn-plat btn-zapier soon"><span class="plat-logo logo-zapier">Z</span> Zapier</span>
+                        </div>
                     </div>
                 </div>
             </div>
