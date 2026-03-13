@@ -1,0 +1,189 @@
+{
+  "name": "LinkFinder AI — Company Name → Full Enrichment",
+  "meta": { "templateCredsSetupCompleted": false },
+  "nodes": [
+    {
+      "id": "node-trigger",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [80, 300],
+      "parameters": {}
+    },
+    {
+      "id": "node-read",
+      "name": "Read Companies from Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [300, 300],
+      "parameters": {
+        "operation": "read",
+        "documentId": { "__rl": true, "value": "YOUR_SPREADSHEET_ID", "mode": "id" },
+        "sheetName": { "__rl": true, "value": "Sheet1", "mode": "name" },
+        "filtersUI": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": { "id": "CRED_SHEETS", "name": "Google Sheets account" }
+      },
+      "notes": "📋 Sheet1 must have a column named 'company_name'\nExample values: Tesla, Stripe, OpenAI"
+    },
+    {
+      "id": "node-batch",
+      "name": "One Company at a Time",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [520, 300],
+      "parameters": { "batchSize": 1, "options": {} }
+    },
+    {
+      "id": "node-website",
+      "name": "Get Website",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [740, 160],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.linkfinderai.com",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"type\": \"company_name_to_website\",\n  \"input_data\": \"{{ $json.company_name }}\"\n}",
+        "options": { "timeout": 60000 }
+      },
+      "credentials": { "httpHeaderAuth": { "id": "CRED_API", "name": "Linkfinder API Key" } }
+    },
+    {
+      "id": "node-email",
+      "name": "Get Email",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [740, 300],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.linkfinderai.com",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"type\": \"company_name_to_email\",\n  \"input_data\": \"{{ $('One Company at a Time').first().json.company_name }}\"\n}",
+        "options": { "timeout": 60000 }
+      },
+      "credentials": { "httpHeaderAuth": { "id": "CRED_API", "name": "Linkfinder API Key" } }
+    },
+    {
+      "id": "node-phone",
+      "name": "Get Phone",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [740, 440],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.linkfinderai.com",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"type\": \"company_name_to_phone\",\n  \"input_data\": \"{{ $('One Company at a Time').first().json.company_name }}\"\n}",
+        "options": { "timeout": 60000 }
+      },
+      "credentials": { "httpHeaderAuth": { "id": "CRED_API", "name": "Linkfinder API Key" } }
+    },
+    {
+      "id": "node-linkedin",
+      "name": "Get LinkedIn URL",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [740, 580],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.linkfinderai.com",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"type\": \"company_name_to_linkedin_url\",\n  \"input_data\": \"{{ $('One Company at a Time').first().json.company_name }}\"\n}",
+        "options": { "timeout": 60000 }
+      },
+      "credentials": { "httpHeaderAuth": { "id": "CRED_API", "name": "Linkfinder API Key" } }
+    },
+    {
+      "id": "node-headcount",
+      "name": "Get Employee Count",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [740, 720],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.linkfinderai.com",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"type\": \"company_name_to_employee_count\",\n  \"input_data\": \"{{ $('One Company at a Time').first().json.company_name }}\"\n}",
+        "options": { "timeout": 60000 }
+      },
+      "credentials": { "httpHeaderAuth": { "id": "CRED_API", "name": "Linkfinder API Key" } }
+    },
+    {
+      "id": "node-merge",
+      "name": "Merge All Results",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [980, 440],
+      "parameters": {
+        "jsCode": "// Pull results from each parallel branch\nconst companyName = $('One Company at a Time').first().json.company_name;\nconst website     = $('Get Website').first().json.result      || '';\nconst email       = $('Get Email').first().json.result        || '';\nconst phone       = $('Get Phone').first().json.result        || '';\nconst linkedinUrl = $('Get LinkedIn URL').first().json.result || '';\nconst headcount   = $('Get Employee Count').first().json.result || '';\n\nreturn [{ json: { companyName, website, email, phone, linkedinUrl, headcount } }];"
+      },
+      "notes": "Collects all 5 API results for this company into one row"
+    },
+    {
+      "id": "node-write",
+      "name": "Append to Results Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [1200, 440],
+      "parameters": {
+        "operation": "append",
+        "documentId": { "__rl": true, "value": "YOUR_SPREADSHEET_ID", "mode": "id" },
+        "sheetName": { "__rl": true, "value": "Results", "mode": "name" },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "companyName": "={{ $json.companyName }}",
+            "website":     "={{ $json.website }}",
+            "email":       "={{ $json.email }}",
+            "phone":       "={{ $json.phone }}",
+            "linkedinUrl": "={{ $json.linkedinUrl }}",
+            "headcount":   "={{ $json.headcount }}"
+          }
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": { "id": "CRED_SHEETS", "name": "Google Sheets account" }
+      },
+      "notes": "📋 Create a 'Results' tab with headers:\ncompanyName | website | email | phone | linkedinUrl | headcount"
+    }
+  ],
+  "connections": {
+    "Manual Trigger":            { "main": [[{ "node": "Read Companies from Sheet", "type": "main", "index": 0 }]] },
+    "Read Companies from Sheet": { "main": [[{ "node": "One Company at a Time",    "type": "main", "index": 0 }]] },
+    "One Company at a Time": {
+      "main": [[
+        { "node": "Get Website",        "type": "main", "index": 0 },
+        { "node": "Get Email",          "type": "main", "index": 0 },
+        { "node": "Get Phone",          "type": "main", "index": 0 },
+        { "node": "Get LinkedIn URL",   "type": "main", "index": 0 },
+        { "node": "Get Employee Count", "type": "main", "index": 0 }
+      ]]
+    },
+    "Get Website":        { "main": [[{ "node": "Merge All Results", "type": "main", "index": 0 }]] },
+    "Get Email":          { "main": [[{ "node": "Merge All Results", "type": "main", "index": 1 }]] },
+    "Get Phone":          { "main": [[{ "node": "Merge All Results", "type": "main", "index": 2 }]] },
+    "Get LinkedIn URL":   { "main": [[{ "node": "Merge All Results", "type": "main", "index": 3 }]] },
+    "Get Employee Count": { "main": [[{ "node": "Merge All Results", "type": "main", "index": 4 }]] },
+    "Merge All Results":  { "main": [[{ "node": "Append to Results Sheet", "type": "main", "index": 0 }]] },
+    "Append to Results Sheet": { "main": [[{ "node": "One Company at a Time", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" }
+}
