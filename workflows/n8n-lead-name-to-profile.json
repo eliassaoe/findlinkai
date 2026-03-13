@@ -1,26 +1,24 @@
 {
   "name": "LinkFinder AI — Lead Name + Company → LinkedIn → Full Profile",
-  "meta": { "templateCredsSetupCompleted": false },
   "nodes": [
     {
-      "id": "node-sticky",
+      "parameters": {
+        "content": "## 🔑 API Key Setup\n\nFind your API key in the **API Access** section of your [linkfinderai.com](https://linkfinderai.com) account.\n\nThen replace `{{Insert-api-key}}` in every **Linkfinder** node with your actual key.",
+        "height": 192,
+        "width": 340
+      },
+      "id": "978117da-1fa6-459e-9f4e-37fc8729707a",
       "name": "📌 API Key",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
-      "position": [80, 80],
-      "parameters": {
-        "content": "## 🔑 API Key Setup\n\nFind your API key in the **API Access** section of your [linkfinderai.com](https://linkfinderai.com) account.\n\nThen replace `{{Insert-api-key}}` in every **Linkfinder** node with your actual key.",
-        "height": 160,
-        "width": 340
-      }
+      "position": [
+        544,
+        0
+      ]
     },
     {
-      "id": "node-form",
-      "name": "On Form Submission",
-      "type": "n8n-nodes-base.formTrigger",
-      "typeVersion": 2,
-      "position": [80, 320],
       "parameters": {
+        "path": "02d73536-fe20-4577-86e9-19dc475eba12",
         "formTitle": "Lead Enrichment — Name to Full Profile",
         "formDescription": "Enter leads as 'Full Name, Company' — one per line.",
         "formFields": {
@@ -28,144 +26,257 @@
             {
               "fieldLabel": "Leads",
               "fieldType": "textarea",
-              "requiredField": true,
               "placeholder": "Bill Gates, Microsoft\nElon Musk, Tesla\nSam Altman, OpenAI",
-              "fieldDescription": "Format: Full Name, Company — one per line"
+              "requiredField": true
             }
           ]
         },
-        "responseMode": "onReceived"
-      }
+        "options": {}
+      },
+      "id": "4ad5fe7d-6dc1-47ea-ae0d-9788039f235a",
+      "name": "On Form Submission",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2,
+      "position": [
+        0,
+        240
+      ],
+      "webhookId": "02d73536-fe20-4577-86e9-19dc475eba12"
     },
     {
-      "id": "node-split",
+      "parameters": {
+        "jsCode": "const raw = $input.first().json['Leads'] || '';\nreturn raw.split('\\n').map(l => l.trim()).filter(l => l)\n  .map(line => {\n    const parts = line.split(',');\n    const full_name    = (parts[0] || '').trim();\n    const company_name = (parts[1] || '').trim();\n    return { json: { full_name, company_name, search_query: `${full_name} ${company_name}`.trim() } };\n  });"
+      },
+      "id": "7036217d-b004-4b53-a891-a4f2d0cde1b4",
       "name": "Split into Individual Leads",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [300, 320],
-      "parameters": {
-        "jsCode": "const raw = $input.first().json['Leads'] || '';\nreturn raw.split('\\n').map(l => l.trim()).filter(l => l)\n  .map(line => {\n    const parts = line.split(',');\n    const full_name    = (parts[0] || '').trim();\n    const company_name = (parts[1] || '').trim();\n    return { json: { full_name, company_name, search_query: `${full_name} ${company_name}`.trim() } };\n  });"
-      }
+      "position": [
+        224,
+        240
+      ]
     },
     {
-      "id": "node-batch",
+      "parameters": {
+        "options": {}
+      },
+      "id": "829ea9df-b1f2-438d-8b23-30e392debafa",
       "name": "One Lead at a Time",
       "type": "n8n-nodes-base.splitInBatches",
       "typeVersion": 3,
-      "position": [520, 320],
-      "parameters": { "batchSize": 1, "options": {} }
+      "position": [
+        448,
+        240
+      ]
     },
     {
-      "id": "node-find-url",
-      "name": "Linkfinder — Find LinkedIn URL",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4,
-      "position": [740, 320],
       "parameters": {
         "method": "POST",
         "url": "https://api.linkfinderai.com",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Authorization", "value": "Bearer {{Insert-api-key}}" },
-            { "name": "Content-Type",  "value": "application/json" }
+            {
+              "name": "Authorization",
+              "value": "Bearer {{Insert-api-key}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
           ]
         },
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={\n  \"type\": \"lead_full_name_to_linkedin_url\",\n  \"input_data\": \"{{ $json.search_query }}\"\n}",
-        "options": { "timeout": 60000 }
-      }
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "df4200cf-ba22-46a5-a40f-fed31e49951d",
+      "name": "Linkfinder — Find LinkedIn URL",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        672,
+        240
+      ]
     },
     {
-      "id": "node-check",
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "success",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "4b6e5e0f-cf82-4c85-bdc8-451be837bce2",
       "name": "URL Found?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [960, 320],
-      "parameters": {
-        "conditions": {
-          "options": { "caseSensitive": false, "leftValue": "", "typeValidation": "strict" },
-          "conditions": [{ "id": "c1", "leftValue": "={{ $json.status }}", "rightValue": "success", "operator": { "type": "string", "operation": "equals" } }],
-          "combinator": "and"
-        }
-      }
+      "position": [
+        880,
+        240
+      ]
     },
     {
-      "id": "node-scrape",
-      "name": "Linkfinder — Scrape Full Profile",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4,
-      "position": [1180, 220],
       "parameters": {
         "method": "POST",
         "url": "https://api.linkfinderai.com",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Authorization", "value": "Bearer {{Insert-api-key}}" },
-            { "name": "Content-Type",  "value": "application/json" }
+            {
+              "name": "Authorization",
+              "value": "Bearer {{Insert-api-key}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
           ]
         },
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={\n  \"type\": \"linkedin_profile_to_linkedin_info\",\n  \"input_data\": \"{{ $json.result }}\"\n}",
-        "options": { "timeout": 120000 }
-      }
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "id": "229a22fa-cfac-4c20-a441-a8ccece2ad8e",
+      "name": "Linkfinder — Scrape Full Profile",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1184,
+        224
+      ]
     },
     {
-      "id": "node-extract",
-      "name": "Extract Profile Fields",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [1400, 220],
-      "parameters": {
-        "jsCode": "const response     = $input.first().json;\nconst data         = response.result || response;\nconst lead         = $('One Lead at a Time').first().json;\nconst linkedin_url = $('Linkfinder — Find LinkedIn URL').first().json.result || '';\n\nconst currentYear  = new Date().getFullYear();\nconst firstYear    = parseInt(data.firstRoleYear || 0);\n\nreturn [{ json: {\n  input_name:       lead.full_name     || '',\n  input_company:    lead.company_name  || '',\n  name:             data.name          || lead.full_name || '',\n  job_title:        data.jobTitle       || data.job_title || '',\n  company:          data.company        || lead.company_name || '',\n  headline:         data.headline       || '',\n  location:         data.location       || '',\n  country:          data.country        || '',\n  industry:         data.industry       || '',\n  email:            data.email          || '',\n  mobile:           data.mobileNumber   || '',\n  connections:      data.connections    || '',\n  is_employed:      data.isCurrentlyEmployed != null ? String(data.isCurrentlyEmployed) : '',\n  years_experience: firstYear ? String(currentYear - firstYear) : '',\n  linkedin_url\n}}];"
-      }
-    },
-    {
-      "id": "node-not-found",
-      "name": "Log Not Found",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [1180, 440],
-      "parameters": {
-        "jsCode": "const lead = $('One Lead at a Time').first().json;\nreturn [{ json: { input_name: lead.full_name || '', input_company: lead.company_name || '', status: 'linkedin_url_not_found' } }];"
-      }
-    },
-    {
-      "id": "node-merge",
-      "name": "Merge Results",
-      "type": "n8n-nodes-base.merge",
-      "typeVersion": 3,
-      "position": [1620, 320],
-      "parameters": { "mode": "passThrough", "output": "all" }
-    },
-    {
-      "id": "node-destination",
+      "parameters": {},
+      "id": "db67bb83-f37a-449d-9cb4-cf7d54f5dfc8",
       "name": "→ Connect Your CRM Here",
       "type": "n8n-nodes-base.noOp",
       "typeVersion": 1,
-      "position": [1840, 320],
-      "parameters": {},
+      "position": [
+        1552,
+        224
+      ],
       "notes": "📤 Connect your destination here:\n• HubSpot → 'Create/Update Contact'\n• Pipedrive → 'Create Person'\n• Salesforce → 'Create Record'\n• Airtable, Notion, HTTP webhook..."
     }
   ],
+  "pinData": {},
   "connections": {
-    "On Form Submission":              { "main": [[{ "node": "Split into Individual Leads",     "type": "main", "index": 0 }]] },
-    "Split into Individual Leads":     { "main": [[{ "node": "One Lead at a Time",               "type": "main", "index": 0 }]] },
-    "One Lead at a Time":              { "main": [[{ "node": "Linkfinder — Find LinkedIn URL",   "type": "main", "index": 0 }]] },
-    "Linkfinder — Find LinkedIn URL":  { "main": [[{ "node": "URL Found?",                       "type": "main", "index": 0 }]] },
-    "URL Found?": {
+    "On Form Submission": {
       "main": [
-        [{ "node": "Linkfinder — Scrape Full Profile", "type": "main", "index": 0 }],
-        [{ "node": "Log Not Found",                    "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Split into Individual Leads",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
-    "Linkfinder — Scrape Full Profile":{ "main": [[{ "node": "Extract Profile Fields", "type": "main", "index": 0 }]] },
-    "Extract Profile Fields":          { "main": [[{ "node": "Merge Results",           "type": "main", "index": 0 }]] },
-    "Log Not Found":                   { "main": [[{ "node": "Merge Results",           "type": "main", "index": 1 }]] },
-    "Merge Results":                   { "main": [[{ "node": "→ Connect Your CRM Here", "type": "main", "index": 0 }]] }
+    "Split into Individual Leads": {
+      "main": [
+        [
+          {
+            "node": "One Lead at a Time",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "One Lead at a Time": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Linkfinder — Find LinkedIn URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Linkfinder — Find LinkedIn URL": {
+      "main": [
+        [
+          {
+            "node": "URL Found?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "URL Found?": {
+      "main": [
+        [
+          {
+            "node": "Linkfinder — Scrape Full Profile",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "One Lead at a Time",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Linkfinder — Scrape Full Profile": {
+      "main": [
+        [
+          {
+            "node": "→ Connect Your CRM Here",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "→ Connect Your CRM Here": {
+      "main": [
+        [
+          {
+            "node": "One Lead at a Time",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
   },
-  "settings": { "executionOrder": "v1" }
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "d469799c-8d0e-43ff-89c0-7ce9e9315f73",
+  "meta": {
+    "instanceId": "0ba15c473753d92c71f15fc9391d54bb141d91f940c0582da38b60426c3c2f10"
+  },
+  "id": "N6qHFFEW1wPRVOxG",
+  "tags": []
 }
