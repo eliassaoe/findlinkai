@@ -1,0 +1,144 @@
+{
+  "name": "LinkFinder AI — Post Reactions → Scrape Every Reactor's Profile",
+  "meta": { "templateCredsSetupCompleted": false },
+  "nodes": [
+    {
+      "id": "node-trigger",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [80, 300],
+      "parameters": {}
+    },
+    {
+      "id": "node-set-url",
+      "name": "Set Post URL",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3,
+      "position": [280, 300],
+      "parameters": {
+        "mode": "manual",
+        "duplicateItem": false,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "post-url",
+              "name": "post_url",
+              "value": "https://www.linkedin.com/feed/update/urn:li:activity:YOUR_ACTIVITY_ID",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "notes": "✏️ Paste your LinkedIn post URL here.\nFormat: https://www.linkedin.com/feed/update/urn:li:activity:1234567890\n\nYou can find it by clicking '... → Copy link to post' on any LinkedIn post."
+    },
+    {
+      "id": "node-reactions",
+      "name": "Linkfinder — Get Reactions",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [500, 300],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.linkfinderai.com",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"type\": \"linkedin_post_to_reactions\",\n  \"input_data\": \"{{ $json.post_url }}\"\n}",
+        "options": { "timeout": 120000 }
+      },
+      "credentials": {
+        "httpHeaderAuth": { "id": "CRED_API", "name": "Linkfinder API Key" }
+      },
+      "notes": "🔑 HTTP Header Auth credential:\n  Name:  Authorization\n  Value: Bearer YOUR_API_KEY\n\nStep 1: Gets the list of people who reacted to the post"
+    },
+    {
+      "id": "node-parse-reactions",
+      "name": "Parse Reaction List",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [720, 300],
+      "parameters": {
+        "jsCode": "const response = $input.first().json;\nconst reactions = response.result || response;\n\nif (!Array.isArray(reactions) || reactions.length === 0) {\n  return [{ json: { linkedin_url: '', name: 'No reactions found', job_info: '' } }];\n}\n\n// Extract LinkedIn URL from each reactor\nreturn reactions\n  .filter(r => r.link && r.link.includes('linkedin.com/in/'))\n  .map(r => {\n    const parts = (r.title || '').split(' - ');\n    return {\n      json: {\n        linkedin_url: r.link  || '',\n        name:         (parts[0] || '').trim(),\n        job_info:     parts.slice(1).join(' - ').trim()\n      }\n    };\n  });"
+      }
+    },
+    {
+      "id": "node-scrape",
+      "name": "Linkfinder — Scrape Each Profile",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [940, 300],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.linkfinderai.com",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"type\": \"linkedin_profile_to_linkedin_info\",\n  \"input_data\": \"{{ $json.linkedin_url }}\"\n}",
+        "options": { "timeout": 120000 }
+      },
+      "credentials": {
+        "httpHeaderAuth": { "id": "CRED_API", "name": "Linkfinder API Key" }
+      },
+      "notes": "Step 2: Scrapes each reactor's full LinkedIn profile.\n\n⚠️ Each profile costs credits. If you have many reactors, reduce the list in the previous node or use the simple reactions workflow instead."
+    },
+    {
+      "id": "node-extract",
+      "name": "Extract Profile Fields",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1160, 300],
+      "parameters": {
+        "jsCode": "const response     = $input.first().json;\nconst data         = response.result || response;\nconst reactor      = $('Parse Reaction List').first().json;\n\nconst currentYear  = new Date().getFullYear();\nconst firstYear    = parseInt(data.firstRoleYear || data.first_role_year || 0);\n\nreturn [{ json: {\n  reaction_name:     reactor.name         || '',\n  reaction_job_info: reactor.job_info     || '',\n  name:              data.name            || reactor.name || '',\n  job_title:         data.jobTitle        || data.job_title || '',\n  company:           data.company         || '',\n  headline:          data.headline        || '',\n  location:          data.location        || '',\n  country:           data.country         || '',\n  industry:          data.industry        || '',\n  email:             data.email           || '',\n  mobile:            data.mobileNumber    || data.mobile  || '',\n  connections:       data.connections     || '',\n  is_employed:       data.isCurrentlyEmployed !== undefined ? String(data.isCurrentlyEmployed) : '',\n  years_experience:  firstYear ? String(currentYear - firstYear) : '',\n  linkedin_url:      data.linkedinUrl     || data.linkedin_url || reactor.linkedin_url\n}}];"
+      }
+    },
+    {
+      "id": "node-write",
+      "name": "Append to Leads Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [1380, 300],
+      "parameters": {
+        "operation": "append",
+        "documentId": { "__rl": true, "value": "YOUR_SPREADSHEET_ID", "mode": "id" },
+        "sheetName": { "__rl": true, "value": "ReactorProfiles", "mode": "name" },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "reaction_name":     "={{ $json.reaction_name }}",
+            "reaction_job_info": "={{ $json.reaction_job_info }}",
+            "name":              "={{ $json.name }}",
+            "job_title":         "={{ $json.job_title }}",
+            "company":           "={{ $json.company }}",
+            "headline":          "={{ $json.headline }}",
+            "location":          "={{ $json.location }}",
+            "country":           "={{ $json.country }}",
+            "industry":          "={{ $json.industry }}",
+            "email":             "={{ $json.email }}",
+            "mobile":            "={{ $json.mobile }}",
+            "connections":       "={{ $json.connections }}",
+            "is_employed":       "={{ $json.is_employed }}",
+            "years_experience":  "={{ $json.years_experience }}",
+            "linkedin_url":      "={{ $json.linkedin_url }}"
+          }
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": { "id": "CRED_SHEETS", "name": "Google Sheets account" }
+      },
+      "notes": "📋 Create a 'ReactorProfiles' tab with headers:\nreaction_name | reaction_job_info | name | job_title | company | headline | location | country | industry | email | mobile | connections | is_employed | years_experience | linkedin_url"
+    }
+  ],
+  "connections": {
+    "Manual Trigger":                    { "main": [[{ "node": "Set Post URL",                       "type": "main", "index": 0 }]] },
+    "Set Post URL":                      { "main": [[{ "node": "Linkfinder — Get Reactions",         "type": "main", "index": 0 }]] },
+    "Linkfinder — Get Reactions":        { "main": [[{ "node": "Parse Reaction List",               "type": "main", "index": 0 }]] },
+    "Parse Reaction List":               { "main": [[{ "node": "Linkfinder — Scrape Each Profile",  "type": "main", "index": 0 }]] },
+    "Linkfinder — Scrape Each Profile":  { "main": [[{ "node": "Extract Profile Fields",            "type": "main", "index": 0 }]] },
+    "Extract Profile Fields":            { "main": [[{ "node": "Append to Leads Sheet",             "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" }
+}
