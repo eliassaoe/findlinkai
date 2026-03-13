@@ -1,0 +1,132 @@
+{
+  "name": "LinkFinder AI — Domain → Targeted Prospects (Dept + Seniority)",
+  "meta": { "templateCredsSetupCompleted": false },
+  "nodes": [
+    {
+      "id": "node-trigger",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [80, 300],
+      "parameters": {}
+    },
+    {
+      "id": "node-config",
+      "name": "Set Target Filters",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3,
+      "position": [280, 300],
+      "parameters": {
+        "mode": "manual",
+        "duplicateItem": false,
+        "assignments": {
+          "assignments": [
+            { "id": "dept",     "name": "department",     "value": "sales",    "type": "string" },
+            { "id": "seniority","name": "seniority",      "value": "director", "type": "string" },
+            { "id": "maxcount", "name": "employee_count", "value": 10,         "type": "number" }
+          ]
+        }
+      },
+      "notes": "✏️ CUSTOMIZE YOUR ICP HERE:\n\n── department ──────────────────\n  marketing\n  sales\n  engineering_technical\n  product\n  c_suite\n  finance\n  human_resources\n  operations\n  information_technology\n  legal\n  consulting\n\n── seniority ───────────────────\n  founder\n  owner\n  c_suite\n  director\n  partner\n  vp\n  head\n  manager\n  senior\n  entry\n\n── employee_count ──────────────\n  Max results per domain (1–100)"
+    },
+    {
+      "id": "node-read",
+      "name": "Read Domains from Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [500, 300],
+      "parameters": {
+        "operation": "read",
+        "documentId": { "__rl": true, "value": "YOUR_SPREADSHEET_ID", "mode": "id" },
+        "sheetName": { "__rl": true, "value": "Sheet1", "mode": "name" },
+        "filtersUI": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": { "id": "CRED_SHEETS", "name": "Google Sheets account" }
+      },
+      "notes": "📋 Sheet1 must have a column named 'domain'\nExamples: tesla.com, apple.com, stripe.com"
+    },
+    {
+      "id": "node-batch",
+      "name": "One Domain at a Time",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [720, 300],
+      "parameters": { "batchSize": 1, "options": {} }
+    },
+    {
+      "id": "node-api",
+      "name": "Linkfinder — Get Targeted Employees",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [940, 300],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.linkfinderai.com",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"type\": \"company_domain_to_employees\",\n  \"input_data\": \"{{ $json.domain }}\",\n  \"department\": \"{{ $('Set Target Filters').first().json.department }}\",\n  \"seniority\": \"{{ $('Set Target Filters').first().json.seniority }}\",\n  \"employee_count\": {{ $('Set Target Filters').first().json.employee_count }}\n}",
+        "options": { "timeout": 120000 }
+      },
+      "credentials": {
+        "httpHeaderAuth": { "id": "CRED_API", "name": "Linkfinder API Key" }
+      },
+      "notes": "🔑 HTTP Header Auth credential:\n  Name:  Authorization\n  Value: Bearer YOUR_API_KEY"
+    },
+    {
+      "id": "node-flatten",
+      "name": "Flatten Prospect Rows",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1160, 300],
+      "parameters": {
+        "jsCode": "const response = $input.first().json;\nconst employees = response.result;\nconst domain = $('Read Domains from Sheet').first().json.domain;\nconst dept     = $('Set Target Filters').first().json.department;\nconst seniority= $('Set Target Filters').first().json.seniority;\n\nif (!Array.isArray(employees) || employees.length === 0) {\n  return [{ json: {\n    domain, name: 'No results', jobTitle: '', email: '',\n    linkedinUrl: '', company: '', department: dept,\n    city: '', country: '', headline: '', companyLinkedinUrl: ''\n  }}];\n}\n\nreturn employees.map(emp => ({\n  json: {\n    domain,\n    name:               emp.name             || '',\n    jobTitle:           emp.jobTitle          || emp.job_title     || '',\n    email:              emp.email             || '',\n    linkedinUrl:        emp.linkedinUrl       || emp.linkedin_url  || '',\n    company:            emp.company           || '',\n    department:         emp.department        || dept,\n    city:               emp.city              || '',\n    country:            emp.country           || '',\n    headline:           emp.headline          || '',\n    companyLinkedinUrl: emp.companyLinkedinUrl || emp.companylinkedinurl || ''\n  }\n}));"
+      }
+    },
+    {
+      "id": "node-write",
+      "name": "Append Prospects to Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [1380, 300],
+      "parameters": {
+        "operation": "append",
+        "documentId": { "__rl": true, "value": "YOUR_SPREADSHEET_ID", "mode": "id" },
+        "sheetName": { "__rl": true, "value": "Prospects", "mode": "name" },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "domain":             "={{ $json.domain }}",
+            "name":               "={{ $json.name }}",
+            "jobTitle":           "={{ $json.jobTitle }}",
+            "email":              "={{ $json.email }}",
+            "linkedinUrl":        "={{ $json.linkedinUrl }}",
+            "company":            "={{ $json.company }}",
+            "department":         "={{ $json.department }}",
+            "city":               "={{ $json.city }}",
+            "country":            "={{ $json.country }}",
+            "headline":           "={{ $json.headline }}",
+            "companyLinkedinUrl": "={{ $json.companyLinkedinUrl }}"
+          }
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": { "id": "CRED_SHEETS", "name": "Google Sheets account" }
+      },
+      "notes": "📋 Create a 'Prospects' tab with these exact headers:\ndomain | name | jobTitle | email | linkedinUrl | company | department | city | country | headline | companyLinkedinUrl"
+    }
+  ],
+  "connections": {
+    "Manual Trigger":                    { "main": [[{ "node": "Set Target Filters",                  "type": "main", "index": 0 }]] },
+    "Set Target Filters":                { "main": [[{ "node": "Read Domains from Sheet",             "type": "main", "index": 0 }]] },
+    "Read Domains from Sheet":           { "main": [[{ "node": "One Domain at a Time",                "type": "main", "index": 0 }]] },
+    "One Domain at a Time":              { "main": [[{ "node": "Linkfinder — Get Targeted Employees", "type": "main", "index": 0 }]] },
+    "Linkfinder — Get Targeted Employees":{ "main": [[{ "node": "Flatten Prospect Rows",             "type": "main", "index": 0 }]] },
+    "Flatten Prospect Rows":             { "main": [[{ "node": "Append Prospects to Sheet",          "type": "main", "index": 0 }]] },
+    "Append Prospects to Sheet":         { "main": [[{ "node": "One Domain at a Time",               "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" }
+}
