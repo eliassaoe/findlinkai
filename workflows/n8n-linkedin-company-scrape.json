@@ -3,36 +3,56 @@
   "meta": { "templateCredsSetupCompleted": false },
   "nodes": [
     {
-      "id": "node-trigger",
-      "name": "Manual Trigger",
-      "type": "n8n-nodes-base.manualTrigger",
+      "id": "node-sticky",
+      "name": "📌 API Key",
+      "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
-      "position": [80, 300],
-      "parameters": {}
+      "position": [80, 80],
+      "parameters": {
+        "content": "## 🔑 API Key Setup\n\nFind your API key in the **API Access** section of your [linkfinderai.com](https://linkfinderai.com) account.\n\nThen replace `{{Insert-api-key}}` in every **Linkfinder** node with your actual key.",
+        "height": 160,
+        "width": 340
+      }
     },
     {
-      "id": "node-read",
-      "name": "Read Company URLs from Sheet",
-      "type": "n8n-nodes-base.googleSheets",
-      "typeVersion": 4,
-      "position": [300, 300],
+      "id": "node-form",
+      "name": "On Form Submission",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2,
+      "position": [80, 320],
       "parameters": {
-        "operation": "read",
-        "documentId": { "__rl": true, "value": "YOUR_SPREADSHEET_ID", "mode": "id" },
-        "sheetName": { "__rl": true, "value": "Sheet1", "mode": "name" },
-        "filtersUI": {}
-      },
-      "credentials": {
-        "googleSheetsOAuth2Api": { "id": "CRED_SHEETS", "name": "Google Sheets account" }
-      },
-      "notes": "📋 Sheet1 must have a column named 'linkedin_url'\nExample: https://linkedin.com/company/tesla"
+        "formTitle": "LinkedIn Company Scraper",
+        "formDescription": "Scrape full data from LinkedIn company pages.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "LinkedIn Company URLs",
+              "fieldType": "textarea",
+              "requiredField": true,
+              "placeholder": "https://linkedin.com/company/tesla\nhttps://linkedin.com/company/stripe",
+              "fieldDescription": "One URL per line"
+            }
+          ]
+        },
+        "responseMode": "onReceived"
+      }
+    },
+    {
+      "id": "node-split",
+      "name": "Split into Individual URLs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [300, 320],
+      "parameters": {
+        "jsCode": "const raw = $input.first().json['LinkedIn Company URLs'] || '';\nreturn raw.split('\\n').map(u => u.trim()).filter(u => u)\n  .map(linkedin_url => ({ json: { linkedin_url } }));"
+      }
     },
     {
       "id": "node-batch",
       "name": "One URL at a Time",
       "type": "n8n-nodes-base.splitInBatches",
       "typeVersion": 3,
-      "position": [520, 300],
+      "position": [520, 320],
       "parameters": { "batchSize": 1, "options": {} }
     },
     {
@@ -40,76 +60,49 @@
       "name": "Linkfinder — Scrape Company",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [740, 300],
+      "position": [740, 320],
       "parameters": {
         "method": "POST",
         "url": "https://api.linkfinderai.com",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "Bearer {{Insert-api-key}}" },
+            { "name": "Content-Type",  "value": "application/json" }
+          ]
+        },
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={\n  \"type\": \"linkedin_company_to_linkedin_info\",\n  \"input_data\": \"{{ $json.linkedin_url }}\"\n}",
         "options": { "timeout": 120000 }
-      },
-      "credentials": {
-        "httpHeaderAuth": { "id": "CRED_API", "name": "Linkfinder API Key" }
-      },
-      "notes": "🔑 HTTP Header Auth credential:\n  Name:  Authorization\n  Value: Bearer YOUR_API_KEY"
-    },
-    {
-      "id": "node-extract",
-      "name": "Extract Company Fields",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [960, 300],
-      "parameters": {
-        "jsCode": "const response   = $input.first().json;\nconst data       = response.result || response;\nconst inputUrl   = $('Read Company URLs from Sheet').first().json.linkedin_url;\n\nif (!data || response.status === 'error') {\n  return [{ json: {\n    input_url: inputUrl, name: 'Not found',\n    tagline: '', industry: '', company_size: '', follower_count: '',\n    city: '', country: '', founded_on: '', website: '',\n    company_email: '', company_phone: '', description: '', linkedin_url: ''\n  }}];\n}\n\nreturn [{ json: {\n  input_url:     inputUrl,\n  name:          data.name           || '',\n  tagline:       data.tagline        || '',\n  industry:      data.industry       || '',\n  company_size:  data.company_size   || data.companySize   || '',\n  follower_count:data.followerCount  || data.follower_count|| '',\n  city:          data.city           || '',\n  country:       data.country        || '',\n  founded_on:    data.foundedOn      || data.founded_on    || '',\n  website:       data.website        || '',\n  company_email: data.company_email  || data.companyEmail  || '',\n  company_phone: data.company_phone  || data.companyPhone  || '',\n  description:   (data.company_description || data.description || '').substring(0, 500),\n  linkedin_url:  data.linkedinUrl    || data.linkedin_url  || inputUrl\n}}];"
       }
     },
     {
-      "id": "node-write",
-      "name": "Append to Results Sheet",
-      "type": "n8n-nodes-base.googleSheets",
-      "typeVersion": 4,
-      "position": [1180, 300],
+      "id": "node-format",
+      "name": "Extract Company Fields",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [960, 320],
       "parameters": {
-        "operation": "append",
-        "documentId": { "__rl": true, "value": "YOUR_SPREADSHEET_ID", "mode": "id" },
-        "sheetName": { "__rl": true, "value": "Results", "mode": "name" },
-        "columns": {
-          "mappingMode": "defineBelow",
-          "value": {
-            "input_url":     "={{ $json.input_url }}",
-            "name":          "={{ $json.name }}",
-            "tagline":       "={{ $json.tagline }}",
-            "industry":      "={{ $json.industry }}",
-            "company_size":  "={{ $json.company_size }}",
-            "follower_count":"={{ $json.follower_count }}",
-            "city":          "={{ $json.city }}",
-            "country":       "={{ $json.country }}",
-            "founded_on":    "={{ $json.founded_on }}",
-            "website":       "={{ $json.website }}",
-            "company_email": "={{ $json.company_email }}",
-            "company_phone": "={{ $json.company_phone }}",
-            "description":   "={{ $json.description }}",
-            "linkedin_url":  "={{ $json.linkedin_url }}"
-          }
-        },
-        "options": {}
-      },
-      "credentials": {
-        "googleSheetsOAuth2Api": { "id": "CRED_SHEETS", "name": "Google Sheets account" }
-      },
-      "notes": "📋 Create a 'Results' tab with headers:\ninput_url | name | tagline | industry | company_size | follower_count | city | country | founded_on | website | company_email | company_phone | description | linkedin_url"
+        "jsCode": "const response  = $input.first().json;\nconst data      = response.result || response;\nconst input_url = $('One URL at a Time').first().json.linkedin_url;\n\nif (!data || response.status === 'error')\n  return [{ json: { input_url, status: 'error' } }];\n\nreturn [{ json: {\n  input_url,\n  name:          data.name           || '',\n  tagline:       data.tagline        || '',\n  industry:      data.industry       || '',\n  company_size:  data.company_size   || data.companySize    || '',\n  follower_count:data.followerCount  || data.follower_count || '',\n  city:          data.city           || '',\n  country:       data.country        || '',\n  founded_on:    data.foundedOn      || data.founded_on     || '',\n  website:       data.website        || '',\n  company_email: data.company_email  || data.companyEmail   || '',\n  company_phone: data.company_phone  || data.companyPhone   || '',\n  description:   (data.company_description || data.description || '').substring(0, 500),\n  linkedin_url:  data.linkedinUrl    || input_url\n}}];"
+      }
+    },
+    {
+      "id": "node-destination",
+      "name": "→ Connect Your CRM Here",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [1180, 320],
+      "parameters": {},
+      "notes": "📤 Connect your destination here:\n• HubSpot → 'Create/Update Company'\n• Pipedrive → 'Create Organization'\n• Salesforce → 'Create Account'\n• Airtable, Notion, HTTP webhook..."
     }
   ],
   "connections": {
-    "Manual Trigger":               { "main": [[{ "node": "Read Company URLs from Sheet", "type": "main", "index": 0 }]] },
-    "Read Company URLs from Sheet": { "main": [[{ "node": "One URL at a Time",            "type": "main", "index": 0 }]] },
-    "One URL at a Time":            { "main": [[{ "node": "Linkfinder — Scrape Company",  "type": "main", "index": 0 }]] },
-    "Linkfinder — Scrape Company":  { "main": [[{ "node": "Extract Company Fields",       "type": "main", "index": 0 }]] },
-    "Extract Company Fields":       { "main": [[{ "node": "Append to Results Sheet",      "type": "main", "index": 0 }]] },
-    "Append to Results Sheet":      { "main": [[{ "node": "One URL at a Time",            "type": "main", "index": 0 }]] }
+    "On Form Submission":        { "main": [[{ "node": "Split into Individual URLs",  "type": "main", "index": 0 }]] },
+    "Split into Individual URLs":{ "main": [[{ "node": "One URL at a Time",           "type": "main", "index": 0 }]] },
+    "One URL at a Time":         { "main": [[{ "node": "Linkfinder — Scrape Company", "type": "main", "index": 0 }]] },
+    "Linkfinder — Scrape Company":{ "main": [[{ "node": "Extract Company Fields",    "type": "main", "index": 0 }]] },
+    "Extract Company Fields":    { "main": [[{ "node": "→ Connect Your CRM Here",    "type": "main", "index": 0 }]] }
   },
   "settings": { "executionOrder": "v1" }
 }
