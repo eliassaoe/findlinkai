@@ -380,13 +380,66 @@ const API_URL     = 'https://linkfinderapp.hamoureliasse.workers.dev/';
 const CREDITS_URL = 'https://linkfinderaicredits.hamoureliasse.workers.dev/';
 
 const CONFIGS = {
-  company_name:     {label:'Company Name',         out:{website:'Company Website',phone:'Company Phone',linkedin_url:'Company LinkedIn URL',email:'Company Email'}},
-  linkedin_company: {label:'LinkedIn Company URL', out:{employee_count:'Employee Count'}},
-  lead_full_name:   {label:'Lead Full Name',       out:{linkedin_url:'LinkedIn Profile URL'}}
+  company_name: {label:'Company Name', out:{
+    website:     'Company Website',
+    phone:       'Company Phone',
+    linkedin_url:'Company LinkedIn URL',
+    email:       'Company Email'
+  }},
+  linkedin_profile: {label:'LinkedIn Profile URL', out:{
+    lp_name:     'Full Name',
+    lp_jobtitle: 'Job Title',
+    lp_company:  'Current Company',
+    lp_location: 'Location',
+    lp_email:    'Email',
+    lp_phone:    'Phone Number',
+    lp_headline: 'Headline',
+    lp_industry: 'Industry',
+    lp_linkedin: 'LinkedIn URL'
+  }},
+  linkedin_company: {label:'LinkedIn Company URL', out:{
+    lc_name:        'Company Name',
+    lc_industry:    'Industry',
+    lc_size:        'Employee Count',
+    lc_location:    'Location',
+    lc_website:     'Website',
+    lc_founded:     'Founded Year',
+    lc_description: 'Description',
+    lc_email:       'Company Email',
+    lc_phone:       'Company Phone',
+    lc_followers:   'Followers Count'
+  }},
+  lead_full_name: {label:'Lead Full Name', out:{
+    linkedin_url:'LinkedIn Profile URL'
+  }}
 };
+
+// Cost per enrichment — LinkedIn scraping is per-profile (all fields same call)
 const COSTS = {
-  company_name_to_website:1,company_name_to_phone:1,company_name_to_linkedin_url:1,company_name_to_email:1,
-  linkedin_company_to_employee_count:1,lead_full_name_to_linkedin_url:1
+  company_name_to_website:1, company_name_to_phone:1,
+  company_name_to_linkedin_url:1, company_name_to_email:1,
+  linkedin_profile_to_lp_name:10, linkedin_profile_to_lp_jobtitle:10,
+  linkedin_profile_to_lp_company:10, linkedin_profile_to_lp_location:10,
+  linkedin_profile_to_lp_email:10, linkedin_profile_to_lp_phone:10,
+  linkedin_profile_to_lp_headline:10, linkedin_profile_to_lp_industry:10,
+  linkedin_profile_to_lp_linkedin:10,
+  linkedin_company_to_lc_name:5, linkedin_company_to_lc_industry:5,
+  linkedin_company_to_lc_size:5, linkedin_company_to_lc_location:5,
+  linkedin_company_to_lc_website:5, linkedin_company_to_lc_founded:5,
+  linkedin_company_to_lc_description:5, linkedin_company_to_lc_email:5,
+  linkedin_company_to_lc_phone:5, linkedin_company_to_lc_followers:5,
+  lead_full_name_to_linkedin_url:1
+};
+
+// Maps each output key to the field to extract from the API response
+const FIELD_MAP = {
+  lp_name:'name', lp_jobtitle:'jobTitle', lp_company:'company',
+  lp_location:'location', lp_email:'email', lp_phone:'mobileNumber',
+  lp_headline:'headline', lp_industry:'industry', lp_linkedin:'linkedinUrl',
+  lc_name:'name', lc_industry:'industry', lc_size:'company_size',
+  lc_location:'location', lc_website:'website', lc_founded:'foundedOn',
+  lc_description:'company_description', lc_email:'company_email',
+  lc_phone:'company_phone', lc_followers:'followerCount'
 };
 
 /* ── STATE ── */
@@ -915,11 +968,32 @@ async function runEnrich(colId){
 
 async function callAPI(value,inputType,outputType){
   const type=`${inputType}_to_${outputType}`,cost=COSTS[type]||1;
+
+  // Determine the real API type for LinkedIn scraping
+  let apiType=type;
+  if(outputType.startsWith('lp_')) apiType='linkedin_profile_to_linkedin_info';
+  if(outputType.startsWith('lc_')) apiType='linkedin_company_to_linkedin_info';
+
   try{
-    const r=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type,input_data:value,output_type:outputType,token:userToken,is_bulk:true}),signal:AbortSignal.timeout(180000)});
+    const r=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({type:apiType,input_data:value,output_type:'linkedin_info',token:userToken,is_bulk:true}),
+      signal:AbortSignal.timeout(180000)});
     if(r.status===403)return{ok:false,creditErr:true};
     const d=await r.json();
+
+    // LinkedIn profile/company — extract single field
+    if(outputType.startsWith('lp_')||outputType.startsWith('lc_')){
+      if(!d||!d.name) return{ok:false,display:null,cost:0};
+      const field=FIELD_MAP[outputType];
+      const val=d[field];
+      const display=val&&val!=='Not found'&&val!=='Not specified'?String(val):null;
+      return{ok:!!display,display,cost};
+    }
+
+    // employee_count (legacy, kept for safety)
     if(outputType==='employee_count'&&d){const v=d.result||d;return{ok:!!v,display:String(v)+' employees',cost};}
+
+    // Generic single-value
     if(d?.result)return{ok:true,display:d.result,cost};
     return{ok:false,display:null,cost:0};
   }catch(err){if(err.name==='AbortError')return{ok:false,display:'Timeout',cost:0};throw err;}
