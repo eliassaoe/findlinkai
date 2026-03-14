@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LinkFinder AI - AI Columns</title>
+<link rel="icon" href="https://i.ibb.co/jPjX9SSp/Screen-Shot-2025-03-28-at-8-16-15-PM.png">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+<style>
+    :root {
+        --primary: #2563eb;
+        --primary-hover: #1d4ed8;
+        --gray-50: #f9fafb;
+        --gray-100: #f3f4f6;
+        --gray-200: #e5e7eb;
+        --gray-300: #d1d5db;
+        --gray-400: #9ca3af;
+        --gray-500: #6b7280;
+        --gray-600: #4b5563;
+        --gray-700: #374151;
+        --gray-800: #1f2937;
+        --gray-900: #111827;
+        --success: #10b981;
+        --error: #ef4444;
+        --warning: #f59e0b;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        background: white;
+        color: var(--gray-800);
+        line-height: 1.6;
+        font-size: 16px;
+    }
+    .container { max-width: 600px; margin: 0 auto; padding: 0 1rem; }
+
+    /* ── Header (identical to original) ── */
+    .header {
+        padding: 1rem 0;
+        border-bottom: 1px solid var(--gray-200);
+        background: white;
+        position: sticky; top: 0; z-index: 100;
+    }
+    .header-content { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; }
+    .logo { display: flex; align-items: center; gap: 0.5rem; color: var(--gray-900); text-decoration: none; }
+    .logo-icon { width: 32px; height: 32px; background: var(--primary); border-radius: 6px; display: flex; align-items: center; justify-content: center; color: white; font-size: 1rem; }
+    .logo-text { font-size: 1.25rem; font-weight: 600; color: var(--gray-900); }
+    .user-info { display: flex; align-items: center; gap: 0.75rem; font-size: 0.875rem; }
+    .credits { display: flex; align-items: center; gap: 0.5rem; background: var(--gray-100); padding: 0.5rem 0.75rem; border-radius: 1rem; font-weight: 500; color: var(--gray-700); font-size: 0.875rem; }
+    .credits i { color: var(--warning); font-size: 0.875rem; }
+    .btn { background: var(--primary); color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; font-weight: 500; cursor: pointer; font-size: 0.875rem; transition: all 0.2s ease; font-family: inherit; }
+    .btn:hover { background: var(--primary-hover); }
+    .btn-outline { background: transparent; color: var(--primary); border: 1px solid var(--gray-300); }
+    .btn-outline:hover { background: var(--gray-50); border-color: var(--primary); }
+    .btn-buy-inline { background: linear-gradient(135deg, #fb923c, #f97316); border: none; color: white; font-weight: 700; font-size: 0.7rem; cursor: pointer; padding: 0.25rem 0.5rem; border-radius: 4px; transition: all 0.2s ease; white-space: nowrap; font-family: inherit; margin-left: 0.35rem; }
+    .btn-buy-inline:hover { background: linear-gradient(135deg, #f97316, #ea580c); }
+
+    /* ── Nav (identical to original) ── */
+    .nav-menu { background: white; border-bottom: 1px solid var(--gray-200); padding: 0.75rem 0; }
+    .nav-tabs { display: flex; gap: 0.5rem; overflow-x: auto; padding-bottom: 0.25rem; }
+    .nav-tab { display: flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1rem; border-radius: 8px; background: transparent; border: 1px solid var(--gray-200); color: var(--gray-600); text-decoration: none; font-weight: 500; font-size: 0.875rem; transition: all 0.2s ease; white-space: nowrap; cursor: pointer; font-family: inherit; }
+    .nav-tab:hover { background: var(--gray-50); border-color: var(--primary); color: var(--gray-800); }
+    .nav-tab.active { background: var(--primary); border-color: var(--primary); color: white; }
+    .nav-tab i { font-size: 0.875rem; }
+
+    /* ── Main ── */
+    .main { padding: 2rem 0; }
+
+    /* ── Card (identical to original) ── */
+    .card { background: white; border: 1px solid var(--gray-200); border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: 0 1px 3px 0 rgba(0,0,0,0.1); }
+
+    /* ── Upload area (identical to original) ── */
+    .upload-area { border: 2px dashed var(--gray-300); border-radius: 8px; padding: 2rem 1rem; text-align: center; cursor: pointer; background: var(--gray-50); transition: all 0.2s ease; }
+    .upload-area:hover, .upload-area.drag-over { border-color: var(--primary); background: rgba(37,99,235,0.05); }
+    .upload-area.drag-over { transform: scale(1.02); }
+    .upload-icon { font-size: 2rem; color: var(--gray-400); margin-bottom: 1rem; }
+    .upload-text { font-weight: 500; color: var(--gray-700); margin-bottom: 0.5rem; }
+    .upload-subtext { color: var(--gray-500); font-size: 0.875rem; margin-bottom: 1rem; }
+
+    /* ── Alert (identical to original) ── */
+    .alert { padding: 1rem; border-radius: 6px; margin-bottom: 1rem; font-size: 0.875rem; display: none; }
+    .alert-success { background: rgba(16,185,129,0.1); border: 1px solid var(--success); color: var(--success); }
+    .alert-error { background: rgba(239,68,68,0.1); border: 1px solid var(--error); color: var(--error); }
+    .alert-warning { background: rgba(245,158,11,0.1); border: 1px solid var(--warning); color: var(--warning); }
+
+    /* ── Sheet toolbar ── */
+    .sheet-toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; gap: 0.75rem; flex-wrap: wrap; }
+    .sheet-info {}
+    .sheet-title { font-size: 0.9rem; font-weight: 600; color: var(--gray-900); }
+    .sheet-meta { font-size: 0.75rem; color: var(--gray-500); margin-top: 0.125rem; }
+    .sheet-btns { display: flex; gap: 0.5rem; align-items: center; }
+
+    .btn-ghost { background: white; color: var(--gray-600); border: 1px solid var(--gray-300); padding: 0.5rem 0.875rem; border-radius: 6px; font-weight: 500; cursor: pointer; font-size: 0.825rem; transition: all 0.15s; display: flex; align-items: center; gap: 0.375rem; font-family: inherit; }
+    .btn-ghost:hover { background: var(--gray-50); border-color: var(--gray-400); }
+
+    .btn-enrich { background: var(--primary); color: white; border: none; padding: 0.5rem 1.125rem; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 0.875rem; transition: all 0.2s ease; display: flex; align-items: center; gap: 0.5rem; font-family: inherit; }
+    .btn-enrich:hover { background: var(--primary-hover); box-shadow: 0 4px 12px rgba(37,99,235,0.25); }
+    .btn-enrich:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; }
+
+    /* ── Progress ── */
+    .progress-wrap { background: var(--gray-200); height: 3px; border-radius: 2px; overflow: hidden; margin-bottom: 0.375rem; display: none; }
+    .progress-fill { height: 100%; background: var(--primary); border-radius: 2px; transition: width 0.3s ease; width: 0%; }
+    .progress-lbl { font-size: 0.75rem; color: var(--gray-500); text-align: right; margin-bottom: 0.75rem; display: none; }
+
+    /* ── Table ── */
+    .table-wrap { overflow-x: auto; border-radius: 8px; border: 1px solid var(--gray-200); }
+    .sheet { width: 100%; border-collapse: collapse; font-size: 0.825rem; min-width: 400px; }
+    .sheet th { background: var(--gray-50); padding: 0.6rem 0.75rem; text-align: left; font-size: 0.7rem; font-weight: 700; color: var(--gray-600); border-bottom: 1px solid var(--gray-200); white-space: nowrap; text-transform: uppercase; letter-spacing: 0.04em; }
+    .sheet th.ec-col { background: #eff6ff; color: var(--primary); }
+    .col-hd { display: flex; align-items: center; gap: 0.35rem; }
+    .sheet td { padding: 0.6rem 0.75rem; border-bottom: 1px solid var(--gray-100); color: var(--gray-700); max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .sheet td.ec-col { background: #fafcff; }
+    .sheet tr:last-child td { border-bottom: none; }
+    .sheet tr:hover td { background: var(--gray-50); }
+    .sheet tr:hover td.ec-col { background: #eff6ff; }
+    .idx-col { width: 36px; min-width: 36px; text-align: center; color: var(--gray-400); font-size: 0.7rem; }
+
+    /* cell states */
+    .c-idle { color: var(--gray-300); }
+    .c-loading { color: var(--primary); display: inline-flex; align-items: center; gap: 0.35rem; }
+    .c-done { color: var(--gray-800); }
+    .c-notfound { color: var(--gray-400); font-style: italic; font-size: 0.75rem; }
+    .c-error { color: var(--error); font-size: 0.75rem; }
+
+    .spin { display: inline-block; width: 10px; height: 10px; border: 1.5px solid rgba(37,99,235,0.2); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.7s linear infinite; flex-shrink: 0; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .badge { font-size: 0.6rem; font-weight: 700; padding: 0.1rem 0.35rem; border-radius: 3px; text-transform: uppercase; letter-spacing: 0.04em; }
+    .badge-new     { background: var(--primary); color: white; }
+    .badge-done    { background: #d1fae5; color: #065f46; }
+    .badge-partial { background: #fef3c7; color: #92400e; }
+    .badge-running { background: #dbeafe; color: var(--primary); }
+
+    /* ── Modal ── */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; opacity: 0; visibility: hidden; transition: all 0.25s; padding: 1rem; }
+    .modal-overlay.show { opacity: 1; visibility: visible; }
+    .modal { background: white; border-radius: 14px; padding: 1.75rem; width: 100%; max-width: 480px; position: relative; transform: scale(0.93) translateY(8px); transition: transform 0.25s; box-shadow: 0 20px 40px -8px rgba(0,0,0,0.2); }
+    .modal-overlay.show .modal { transform: scale(1) translateY(0); }
+    .modal-close { position: absolute; top: 1rem; right: 1rem; background: var(--gray-100); border: none; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--gray-500); font-size: 0.75rem; transition: background 0.15s; }
+    .modal-close:hover { background: var(--gray-200); }
+    .modal-title { font-size: 1.1rem; font-weight: 700; color: var(--gray-900); margin-bottom: 0.25rem; }
+    .modal-sub { font-size: 0.825rem; color: var(--gray-500); margin-bottom: 1.5rem; line-height: 1.5; }
+
+    .form-group { margin-bottom: 1rem; }
+    .form-label { display: block; font-size: 0.875rem; font-weight: 600; color: var(--gray-700); margin-bottom: 0.4rem; }
+    .form-label em { font-weight: 400; color: var(--gray-400); font-style: normal; margin-left: 0.25rem; font-size: 0.8rem; }
+    .form-select { width: 100%; appearance: none; background: white; border: 1px solid var(--gray-300); border-radius: 6px; padding: 0.75rem; font-size: 0.875rem; color: var(--gray-700); cursor: pointer; transition: border-color 0.2s; background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e"); background-position: right 0.5rem center; background-repeat: no-repeat; background-size: 1.5em 1.5em; padding-right: 2.5rem; font-family: inherit; }
+    .form-select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+    .form-select:disabled { background-color: var(--gray-100); color: var(--gray-400); cursor: not-allowed; }
+
+    .cost-box { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 0.75rem 1rem; font-size: 0.825rem; color: var(--gray-700); display: none; margin-top: 0.25rem; margin-bottom: 1rem; }
+    .cost-box i { color: var(--warning); margin-right: 0.25rem; }
+
+    .modal-footer { display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 1.5rem; }
+    .btn-cancel { background: white; color: var(--gray-700); border: 1px solid var(--gray-300); padding: 0.625rem 1.25rem; border-radius: 6px; font-weight: 500; cursor: pointer; font-size: 0.875rem; font-family: inherit; transition: background 0.15s; }
+    .btn-cancel:hover { background: var(--gray-50); }
+    .btn-ok { background: var(--primary); color: white; border: none; padding: 0.625rem 1.25rem; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 0.875rem; font-family: inherit; transition: background 0.15s; display: flex; align-items: center; gap: 0.375rem; }
+    .btn-ok:hover { background: var(--primary-hover); }
+    .btn-ok:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* ── Mobile ── */
+    @media (max-width: 640px) {
+        .nav-tabs { gap: 0.25rem; }
+        .nav-tab { padding: 0.625rem 0.75rem; font-size: 0.8rem; }
+        .nav-tab i { font-size: 0.8rem; }
+        .card { padding: 1rem; }
+        .sheet-toolbar { flex-direction: column; align-items: flex-start; }
+        .sheet-btns { width: 100%; }
+        .btn-enrich { flex: 1; justify-content: center; }
+    }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="header">
+    <div class="container">
+        <div class="header-content">
+            <a href="#" class="logo">
+                <div class="logo-icon"><i class="fas fa-search"></i></div>
+                <span class="logo-text">LinkFinder AI</span>
+            </a>
+            <div class="user-info">
+                <div class="credits" id="creditsDisplay">
+                    <i class="fas fa-coins"></i>
+                    <span id="creditsCount">--</span> credits
+                    <button class="btn-buy-inline" onclick="goToBuy()">Buy credits</button>
+                </div>
+                <button class="btn btn-outline" onclick="logout()">Logout</button>
+            </div>
+        </div>
+    </div>
+</header>
+
+<!-- NAV -->
+<nav class="nav-menu">
+    <div class="container">
+        <div class="nav-tabs">
+            <button class="nav-tab" onclick="nav('enrichment')"><i class="fas fa-search"></i> Data Enrichment</button>
+            <button class="nav-tab active"><i class="fas fa-table"></i> AI Columns</button>
+            <button class="nav-tab" onclick="nav('api')"><i class="fas fa-code"></i> API Access</button>
+            <button class="nav-tab" onclick="nav('account')"><i class="fas fa-user"></i> Account</button>
+        </div>
+    </div>
+</nav>
+
+<div class="container">
+    <div class="main">
+        <div id="alert" class="alert"></div>
+
+        <!-- IMPORT CARD -->
+        <div id="importCard" class="card">
+            <div class="upload-area" id="dropZone" onclick="document.getElementById('csvFile').click()">
+                <i class="fas fa-table upload-icon"></i>
+                <div class="upload-text">Drop your CSV here or click to upload</div>
+                <div class="upload-subtext">CSV with headers · max 10 000 rows</div>
+                <button type="button" class="btn" onclick="event.stopPropagation(); document.getElementById('csvFile').click()">
+                    <i class="fas fa-file-csv"></i> Select CSV
+                </button>
+            </div>
+            <input type="file" id="csvFile" accept=".csv" style="display:none">
+        </div>
+
+        <!-- SHEET CARD -->
+        <div id="sheetCard" class="card" style="display:none;">
+            <div class="sheet-toolbar">
+                <div class="sheet-info">
+                    <div class="sheet-title" id="sheetTitle"></div>
+                    <div class="sheet-meta" id="sheetMeta"></div>
+                </div>
+                <div class="sheet-btns">
+                    <button class="btn-ghost" onclick="resetTable()"><i class="fas fa-upload"></i> New CSV</button>
+                    <button class="btn-ghost" onclick="exportCSV()"><i class="fas fa-download"></i> Export</button>
+                    <button class="btn-enrich" id="enrichBtn" onclick="openModal()">
+                        <i class="fas fa-magic"></i> Enrich
+                    </button>
+                </div>
+            </div>
+            <div class="progress-wrap" id="progressWrap"><div class="progress-fill" id="progressFill"></div></div>
+            <div class="progress-lbl" id="progressLbl"></div>
+            <div class="table-wrap">
+                <table class="sheet" id="theSheet">
+                    <thead id="sheetHead"></thead>
+                    <tbody id="sheetBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- ENRICH MODAL -->
+<div id="enrichModal" class="modal-overlay">
+    <div class="modal">
+        <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
+        <div class="modal-title"><i class="fas fa-magic" style="color:var(--primary);margin-right:.375rem;"></i>Enrich your data</div>
+        <div class="modal-sub">Select your source column, what type of data it contains, and what you want to find.</div>
+
+        <div class="form-group">
+            <label class="form-label">I have <em>(which column?)</em></label>
+            <select class="form-select" id="mCol" onchange="onColChange()">
+                <option value="">Select a column…</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Which contains <em>(data type)</em></label>
+            <select class="form-select" id="mType" onchange="onTypeChange()">
+                <option value="">Select type…</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">I want to find</label>
+            <select class="form-select" id="mOutput" disabled onchange="onOutputChange()">
+                <option value="">Select input type first…</option>
+            </select>
+        </div>
+
+        <div class="cost-box" id="costBox">
+            <i class="fas fa-coins"></i> <span id="costText"></span>
+        </div>
+
+        <div class="modal-footer">
+            <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+            <button class="btn-ok" id="modalOk" disabled onclick="confirmEnrich()">
+                <i class="fas fa-play"></i> Start Enrichment
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+const API_URL     = 'https://linkfinderapp.hamoureliasse.workers.dev/';
+const CREDITS_URL = 'https://linkfinderaicredits.hamoureliasse.workers.dev/';
+const STORE_KEY   = 'lf_ai_cols_v1';
+
+const CONFIGS = {
+    company_name:     { label:'Company Name',         out:{ website:'Company Website', phone:'Company Phone', linkedin_url:'Company LinkedIn URL', email:'Company Email' } },
+    company_domain:   { label:'Company Domain',       out:{ employees:'Employees List' } },
+    linkedin_company: { label:'LinkedIn Company URL', out:{ linkedin_info:'LinkedIn Company Data', employee_count:'Employee Count' } },
+    linkedin_profile: { label:'LinkedIn Profile URL', out:{ linkedin_info:'LinkedIn Profile Data' } },
+    linkedin_post:    { label:'LinkedIn Post URL',    out:{ reactions:'Post Reactions' } },
+    lead_full_name:   { label:'Lead Full Name',       out:{ linkedin_url:'LinkedIn Profile URL' } }
+};
+
+const COSTS = {
+    company_name_to_website:1, company_name_to_phone:1, company_name_to_linkedin_url:1, company_name_to_email:1,
+    company_domain_to_employees:.5, linkedin_company_to_linkedin_info:5, linkedin_company_to_employee_count:1,
+    linkedin_profile_to_linkedin_info:10, linkedin_post_to_reactions:1, lead_full_name_to_linkedin_url:1
+};
+
+let userToken = null, credits = null, tbl = null, busy = false;
+
+/* ── INIT ── */
+document.addEventListener('DOMContentLoaded', () => {
+    const p = new URLSearchParams(window.location.search);
+    userToken = p.get('token') || localStorage.getItem('linkFinderToken');
+    if (!userToken) { window.location.href='https://linkfinderai.com/'; return; }
+    localStorage.setItem('linkFinderToken', userToken);
+    fetchCredits();
+    bindDrop();
+    loadSaved();
+});
+
+function logout()  { localStorage.removeItem('linkFinderToken'); window.location.href='https://linkfinderai.com/'; }
+function goToBuy() { window.location.href=`https://linkfinderai.com/app?token=${userToken}&action=buy_credits`; }
+function nav(page) {
+    const m = {enrichment:'app', api:'api-access', account:'account'};
+    window.location.href = `https://linkfinderai.com/${m[page]}?token=${userToken}`;
+}
+
+async function fetchCredits() {
+    try {
+        const r = await fetch(CREDITS_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:userToken})});
+        if (r.ok) { const d=await r.json(); credits=Math.max(0,d.credits||0); document.getElementById('creditsCount').textContent=credits; }
+    } catch(e){}
+}
+function deductCredits(n) {
+    if (credits===null) return;
+    credits = Math.max(0, credits-n);
+    document.getElementById('creditsCount').textContent = Math.round(credits*10)/10;
+}
+
+/* ── PERSISTENCE ── */
+function save() { try { localStorage.setItem(STORE_KEY, JSON.stringify(tbl)); } catch(e){} }
+function loadSaved() {
+    try { const r=localStorage.getItem(STORE_KEY); if(r){tbl=JSON.parse(r); renderSheet();} } catch(e){}
+}
+
+/* ── CSV ── */
+function bindDrop() {
+    const dz=document.getElementById('dropZone'), fi=document.getElementById('csvFile');
+    dz.addEventListener('dragover', e=>{e.preventDefault(); dz.classList.add('drag-over');});
+    dz.addEventListener('dragleave', ()=>dz.classList.remove('drag-over'));
+    dz.addEventListener('drop', e=>{e.preventDefault(); dz.classList.remove('drag-over'); if(e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);});
+    fi.addEventListener('change', e=>{if(e.target.files[0]) handleFile(e.target.files[0]); fi.value='';});
+}
+function handleFile(file) {
+    if (!file.name.toLowerCase().endsWith('.csv')) { showAlert('Please select a CSV file.','error'); return; }
+    const r=new FileReader(); r.onload=e=>parseCSV(e.target.result, file.name); r.readAsText(file);
+}
+function parseCSV(text, fname) {
+    const lines=text.split('\n').filter(l=>l.trim());
+    if (lines.length<2) { showAlert('CSV must have headers and at least one row.','error'); return; }
+    const headers=splitLine(lines[0]);
+    const rows=[];
+    for (let i=1;i<Math.min(lines.length,10001);i++) {
+        const vals=splitLine(lines[i]), data={};
+        headers.forEach((h,j)=>{ data[h]=vals[j]||''; });
+        rows.push({id:'r'+i, data, enrich:{}});
+    }
+    if (!rows.length) { showAlert('No data rows found.','error'); return; }
+    tbl = {name:fname.replace(/\.csv$/i,'').replace(/[_-]/g,' '), headers, rows, enrichCols:[]};
+    save(); renderSheet();
+    showAlert(`Imported ${rows.length.toLocaleString()} rows successfully.`,'success');
+}
+function splitLine(line) {
+    const res=[]; let cur='', q=false;
+    for (let i=0;i<line.length;i++) {
+        const c=line[i];
+        if(c==='"'){ if(q&&line[i+1]==='"'){cur+='"';i++;} else q=!q; }
+        else if(c===','&&!q){ res.push(cur.trim()); cur=''; }
+        else cur+=c;
+    }
+    res.push(cur.trim()); return res;
+}
+function resetTable() {
+    if (!confirm('Clear the current table and import a new CSV?')) return;
+    tbl=null; save();
+    document.getElementById('sheetCard').style.display='none';
+    document.getElementById('importCard').style.display='block';
+}
+
+/* ── RENDER ── */
+function renderSheet() {
+    if (!tbl) return;
+    document.getElementById('importCard').style.display='none';
+    document.getElementById('sheetCard').style.display='block';
+    document.getElementById('sheetTitle').textContent = tbl.name;
+    renderMeta();
+
+    // Head
+    document.getElementById('sheetHead').innerHTML = `<tr>
+        <th class="idx-col">#</th>
+        ${tbl.headers.map(h=>`<th>${esc(h)}</th>`).join('')}
+        ${tbl.enrichCols.map(ec=>`<th class="ec-col"><div class="col-hd"><i class="fas fa-magic" style="font-size:.6rem;"></i>${esc(ec.label)}&nbsp;${badge(ec)}</div></th>`).join('')}
+    </tr>`;
+
+    // Body
+    document.getElementById('sheetBody').innerHTML = tbl.rows.map((row,i)=>`
+        <tr>
+            <td class="idx-col">${i+1}</td>
+            ${tbl.headers.map(h=>`<td title="${escA(row.data[h]||'')}">${esc(row.data[h]||'')}</td>`).join('')}
+            ${tbl.enrichCols.map(ec=>`<td class="ec-col" id="c_${row.id}_${ec.key}">${cellHtml(row.enrich[ec.key])}</td>`).join('')}
+        </tr>`).join('');
+}
+
+function renderMeta() {
+    const ec=tbl.enrichCols.length;
+    document.getElementById('sheetMeta').textContent =
+        `${tbl.rows.length.toLocaleString()} rows · ${tbl.headers.length} columns${ec?' · '+ec+' enrichment col'+(ec>1?'s':''):''}`;
+}
+
+function badge(ec) {
+    const done=tbl.rows.filter(r=>r.enrich[ec.key]?.status==='done').length, total=tbl.rows.length;
+    if (!done) return `<span class="badge badge-new">New</span>`;
+    if (done===total) return `<span class="badge badge-done">✓ Done</span>`;
+    return `<span class="badge badge-partial">${done}/${total}</span>`;
+}
+
+function cellHtml(e) {
+    if (!e||e.status==='idle') return `<span class="c-idle">—</span>`;
+    if (e.status==='loading') return `<span class="c-loading"><span class="spin"></span>Enriching…</span>`;
+    if (e.status==='done') return `<span class="c-done" title="${escA(e.value||'')}">${esc(e.value||'')}</span>`;
+    if (e.status==='notfound') return `<span class="c-notfound">Not found</span>`;
+    return `<span class="c-error"><i class="fas fa-exclamation-circle"></i> ${esc(e.value||'Error')}</span>`;
+}
+
+function patchCell(rowIdx, key) {
+    const row=tbl.rows[rowIdx];
+    if (!row) return;
+    const el=document.getElementById(`c_${row.id}_${key}`);
+    if (el) el.innerHTML=cellHtml(row.enrich[key]);
+}
+
+function refreshHead() {
+    document.getElementById('sheetHead').innerHTML = `<tr>
+        <th class="idx-col">#</th>
+        ${tbl.headers.map(h=>`<th>${esc(h)}</th>`).join('')}
+        ${tbl.enrichCols.map(ec=>`<th class="ec-col"><div class="col-hd"><i class="fas fa-magic" style="font-size:.6rem;"></i>${esc(ec.label)}&nbsp;${badge(ec)}</div></th>`).join('')}
+    </tr>`;
+}
+
+/* ── MODAL ── */
+function openModal() {
+    if (!tbl) return;
+
+    // Populate source columns
+    const mc=document.getElementById('mCol');
+    mc.innerHTML='<option value="">Select a column…</option>';
+    tbl.headers.forEach(h=>{ mc.innerHTML+=`<option value="${escA(h)}">${esc(h)}</option>`; });
+
+    // Populate input types
+    const mt=document.getElementById('mType');
+    mt.innerHTML='<option value="">Select type…</option>';
+    Object.entries(CONFIGS).forEach(([k,v])=>{ mt.innerHTML+=`<option value="${k}">${v.label}</option>`; });
+
+    document.getElementById('mOutput').innerHTML='<option value="">Select input type first…</option>';
+    document.getElementById('mOutput').disabled=true;
+    document.getElementById('costBox').style.display='none';
+    document.getElementById('modalOk').disabled=true;
+
+    autoDetect();
+    document.getElementById('enrichModal').classList.add('show');
+}
+function closeModal() { document.getElementById('enrichModal').classList.remove('show'); }
+
+function autoDetect() {
+    const patMap = {
+        company_name:    ['company','company_name','organization','company name'],
+        company_domain:  ['domain','website','url','company_domain'],
+        linkedin_company:['linkedin_company','company_linkedin','company page','linkedin company'],
+        linkedin_profile:['linkedin','linkedin_url','linkedin_profile','profile_url','profile'],
+        linkedin_post:   ['post','post_url','linkedin_post'],
+        lead_full_name:  ['name','full_name','full name','first name','contact','lead']
+    };
+    for (const h of tbl.headers) {
+        const n=h.toLowerCase().trim();
+        for (const [type,pats] of Object.entries(patMap)) {
+            if (pats.some(p=>n===p||n.includes(p))) {
+                document.getElementById('mCol').value=h;
+                document.getElementById('mType').value=type;
+                onTypeChange(true);
+                return;
+            }
+        }
+    }
+}
+
+function onColChange()  { updateCostBox(); }
+function onTypeChange(fromAuto=false) {
+    const t=document.getElementById('mType').value;
+    const mo=document.getElementById('mOutput');
+    document.getElementById('costBox').style.display='none';
+    document.getElementById('modalOk').disabled=true;
+    if (!t) { mo.innerHTML='<option value="">Select input type first…</option>'; mo.disabled=true; return; }
+    mo.innerHTML='<option value="">Select what to find…</option>';
+    Object.entries(CONFIGS[t].out).forEach(([k,v])=>{ mo.innerHTML+=`<option value="${k}">${v}</option>`; });
+    mo.disabled=false;
+    // auto-select if single option
+    if (Object.keys(CONFIGS[t].out).length===1) { mo.value=Object.keys(CONFIGS[t].out)[0]; updateCostBox(); }
+}
+function onOutputChange() { updateCostBox(); }
+
+function updateCostBox() {
+    const col=document.getElementById('mCol').value;
+    const it=document.getElementById('mType').value;
+    const ot=document.getElementById('mOutput').value;
+    document.getElementById('modalOk').disabled = !col||!it||!ot;
+    if (!col||!it||!ot) { document.getElementById('costBox').style.display='none'; return; }
+    const cost=COSTS[`${it}_to_${ot}`]||1;
+    const n=tbl.rows.length;
+    const label=CONFIGS[it].out[ot];
+    const costLine = ot==='employees'
+        ? `~0.5 credit per employee found`
+        : `${cost} credit${cost!==1?'s':''} × ${n.toLocaleString()} rows ≈ ${(cost*n).toLocaleString()} credits`;
+    document.getElementById('costText').innerHTML=`Enriching <strong>${label}</strong> from <strong>${esc(col)}</strong> — ${costLine}`;
+    document.getElementById('costBox').style.display='block';
+}
+
+function confirmEnrich() {
+    const col=document.getElementById('mCol').value;
+    const it=document.getElementById('mType').value;
+    const ot=document.getElementById('mOutput').value;
+    if (!col||!it||!ot) return;
+    const label=CONFIGS[it].out[ot];
+    const key='ec_'+Date.now();
+    tbl.enrichCols.push({key, srcCol:col, inputType:it, outputType:ot, label});
+    tbl.rows.forEach(r=>{ r.enrich[key]={status:'idle',value:null}; });
+    closeModal();
+    renderSheet();
+    runEnrich(key);
+}
+
+/* ── ENGINE ── */
+async function runEnrich(key) {
+    if (busy) { showAlert('An enrichment is already running, please wait.','error'); return; }
+    const ec=tbl.enrichCols.find(c=>c.key===key);
+    if (!ec) return;
+    busy=true;
+    document.getElementById('enrichBtn').disabled=true;
+    document.getElementById('progressWrap').style.display='block';
+    document.getElementById('progressLbl').style.display='block';
+
+    let done=0, total=tbl.rows.length;
+
+    for (let i=0;i<tbl.rows.length;i++) {
+        const row=tbl.rows[i];
+        if (row.enrich[key]?.status==='done') { done++; setProgress(done,total); continue; }
+
+        const val=(row.data[ec.srcCol]||'').trim();
+        if (!val) { row.enrich[key]={status:'notfound',value:null}; patchCell(i,key); done++; setProgress(done,total); continue; }
+
+        row.enrich[key]={status:'loading',value:null}; patchCell(i,key);
+
+        try {
+            const res=await callAPI(val, ec.inputType, ec.outputType);
+            if (res.creditErr) {
+                row.enrich[key]={status:'error',value:'No credits'}; patchCell(i,key);
+                busy=false; document.getElementById('enrichBtn').disabled=false;
+                save(); refreshHead(); renderMeta(); hideProgress();
+                showAlert('Insufficient credits — please top up your account.','error');
+                return;
+            }
+            if (res.ok) { row.enrich[key]={status:'done',value:res.display}; deductCredits(res.cost); done++; }
+            else row.enrich[key]={status:'notfound',value:null};
+        } catch(err) {
+            row.enrich[key]={status:'error',value:err.message||'Error'};
+        }
+
+        patchCell(i,key);
+        setProgress(done,total);
+        await sleep(120);
+    }
+
+    busy=false;
+    document.getElementById('enrichBtn').disabled=false;
+    save(); refreshHead(); renderMeta(); hideProgress();
+    showAlert(`Enrichment complete — ${done.toLocaleString()} / ${total.toLocaleString()} rows enriched.`,'success');
+}
+
+async function callAPI(value, inputType, outputType) {
+    const type=`${inputType}_to_${outputType}`, cost=COSTS[type]||1;
+    try {
+        const r=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({type,input_data:value,output_type:outputType,token:userToken,is_bulk:true}),
+            signal:AbortSignal.timeout(180000)});
+        if (r.status===403) return {ok:false,creditErr:true};
+        const d=await r.json();
+        if (outputType==='employees'&&Array.isArray(d)) { const n=d.length; return {ok:n>0,display:`${n} employees`,cost:n*.5}; }
+        if (outputType==='reactions'&&Array.isArray(d)) { return {ok:d.length>0,display:`${d.length} reactions`,cost:d.length}; }
+        if (outputType==='linkedin_info'&&d?.name) {
+            const display=inputType==='linkedin_profile'
+                ? [d.name,d.jobTitle,d.company].filter(Boolean).join(' · ')
+                : [d.name,d.industry,d.city||d.location].filter(Boolean).join(' · ');
+            return {ok:true,display,cost};
+        }
+        if (outputType==='employee_count'&&d) { const v=d.result||d; return {ok:!!v,display:String(v)+' employees',cost}; }
+        if (d?.result) return {ok:true,display:d.result,cost};
+        return {ok:false,display:null,cost:0};
+    } catch(err) {
+        if (err.name==='AbortError') return {ok:false,display:'Timeout',cost:0};
+        throw err;
+    }
+}
+
+/* ── EXPORT ── */
+function exportCSV() {
+    if (!tbl) return;
+    const hdrs=[...tbl.headers,...tbl.enrichCols.map(ec=>ec.label)];
+    let csv=hdrs.map(h=>`"${h.replace(/"/g,'""')}"`).join(',')+'\n';
+    tbl.rows.forEach(row=>{
+        const vals=[
+            ...tbl.headers.map(h=>{ const v=row.data[h]||''; return `"${v.toString().replace(/"/g,'""')}"` ;}),
+            ...tbl.enrichCols.map(ec=>{ const e=row.enrich[ec.key]; const v=e?.status==='done'?e.value||'':''; return `"${v.toString().replace(/"/g,'""')}"` ;})
+        ];
+        csv+=vals.join(',')+'\n';
+    });
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'}));
+    a.download=`${(tbl.name||'enriched').replace(/[^a-z0-9]/gi,'_')}_${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+}
+
+/* ── HELPERS ── */
+function sleep(ms) { return new Promise(r=>setTimeout(r,ms)); }
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function escA(s) { return String(s||'').replace(/'/g,'&#039;').replace(/"/g,'&quot;'); }
+
+function setProgress(done,total) {
+    const pct=total?Math.round(done/total*100):0;
+    document.getElementById('progressFill').style.width=pct+'%';
+    document.getElementById('progressLbl').textContent=`Enriching… ${done.toLocaleString()} / ${total.toLocaleString()} rows`;
+}
+function hideProgress() {
+    setTimeout(()=>{ document.getElementById('progressWrap').style.display='none'; document.getElementById('progressLbl').style.display='none'; },2000);
+}
+
+let alertT=null;
+function showAlert(msg,type='info') {
+    const a=document.getElementById('alert');
+    a.textContent=msg; a.className=`alert alert-${type}`; a.style.display='block';
+    if(alertT) clearTimeout(alertT);
+    alertT=setTimeout(()=>a.style.display='none',5000);
+}
+
+// Close modal on outside click
+document.addEventListener('click', e=>{
+    if (e.target===document.getElementById('enrichModal')) closeModal();
+});
+document.addEventListener('keydown', e=>{ if (e.key==='Escape') closeModal(); });
+</script>
+</body>
+</html>
