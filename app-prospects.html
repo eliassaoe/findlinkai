@@ -366,19 +366,19 @@ body{font-family:'Inter',-apple-system,sans-serif;background:white;color:var(--g
       </div>
       <div class="step-connector" id="conn1"></div>
 
-      <!-- Step 2: data type -->
+      <!-- Step 2: source column -->
       <div class="form-step locked" id="fStep2" data-step="2">
-        <label class="form-label">Which comes from <em>(data type)</em></label>
-        <select class="form-select" id="mType" onchange="onMTypeChange()"><option value="">Select type…</option></select>
-        <div class="form-step-hint">What kind of data will you provide as input?</div>
-      </div>
-      <div class="step-connector" id="conn2"></div>
-
-      <!-- Step 3: source column -->
-      <div class="form-step locked" id="fStep3" data-step="3">
         <label class="form-label">I have <em>(source column)</em></label>
         <select class="form-select" id="mCol" onchange="onMColChange()"><option value="">Select a column…</option></select>
         <div class="form-step-hint">Pick the column that contains this data.</div>
+      </div>
+      <div class="step-connector" id="conn2"></div>
+
+      <!-- Step 3: data type -->
+      <div class="form-step locked" id="fStep3" data-step="3">
+        <label class="form-label">Which contains <em>(data type)</em></label>
+        <select class="form-select" id="mType" onchange="onMTypeChange()"><option value="">Select type…</option></select>
+        <div class="form-step-hint">What kind of data is in that column?</div>
       </div>
 
       <div class="cost-box" id="costBox"><i class="fas fa-coins"></i><span id="costText"></span></div>
@@ -934,30 +934,8 @@ function autoDetectEnrich(){
 function onMOutputChange(){
   const ot=document.getElementById('mOutput').value;
   if(!ot){setStep(1);return;}
-  // Unlock step 2 — populate compatible input types for this output
+  // Unlock step 2 — show source columns
   setStep(2);
-  // Build list of input types that have this output key
-  const mt=document.getElementById('mType');
-  mt.innerHTML='<option value="">Select type…</option>';
-  Object.entries(CONFIGS).forEach(([inputType,cfg])=>{
-    if(cfg.out[ot]) mt.innerHTML+=`<option value="${inputType}">${cfg.label}</option>`;
-  });
-  // Reset step 3
-  const mc=document.getElementById('mCol');
-  mc.innerHTML='<option value="">Select a column…</option>';
-  document.getElementById('costBox').style.display='none';
-  document.getElementById('enrichOkBtn').disabled=true;
-  // Auto-select if only one compatible input type
-  const compatTypes=Object.entries(CONFIGS).filter(([,cfg])=>cfg.out[ot]);
-  if(compatTypes.length===1){mt.value=compatTypes[0][0];onMTypeChange();}
-}
-
-function onMTypeChange(){
-  const ot=document.getElementById('mOutput').value;
-  const it=document.getElementById('mType').value;
-  if(!ot||!it){return;}
-  // Unlock step 3 — populate source columns
-  setStep(3);
   const t=tbl();
   const mc=document.getElementById('mCol');
   mc.innerHTML='<option value="">Select a column…</option>';
@@ -968,43 +946,67 @@ function onMTypeChange(){
     doneCols.forEach(c=>{mc.innerHTML+=`<option value="ec:${c.id}">✦ ${esc(c.label)}</option>`;});
     mc.innerHTML+=`</optgroup>`;
   }
+  // Reset step 3
+  document.getElementById('mType').innerHTML='<option value="">Select type…</option>';
   document.getElementById('costBox').style.display='none';
   document.getElementById('enrichOkBtn').disabled=true;
-  // Auto-detect matching column
-  autoDetectCol(it);
+  // Auto-detect compatible column
+  autoDetectCol(ot);
 }
 
-function autoDetectCol(inputType){
+function onMColChange(){
+  const ot=document.getElementById('mOutput').value;
+  const colVal=document.getElementById('mCol').value;
+  if(!ot||!colVal){return;}
+  // Unlock step 3 — show compatible input types for this output
+  setStep(3);
+  const mt=document.getElementById('mType');
+  mt.innerHTML='<option value="">Select type…</option>';
+  Object.entries(CONFIGS).forEach(([inputType,cfg])=>{
+    if(cfg.out[ot]) mt.innerHTML+=`<option value="${inputType}">${cfg.label}</option>`;
+  });
+  document.getElementById('costBox').style.display='none';
+  document.getElementById('enrichOkBtn').disabled=true;
+  // Auto-select if only one compatible type
+  const compatTypes=Object.entries(CONFIGS).filter(([,cfg])=>cfg.out[ot]);
+  if(compatTypes.length===1){mt.value=compatTypes[0][0];onMTypeChange();}
+}
+
+function onMTypeChange(){
+  const v=document.getElementById('mType').value;
+  if(v) setStep(4);
+  updateCostBox();
+}
+
+function autoDetectCol(ot){
+  // Find which input types support this output, then look for a matching column
+  const compatTypes=Object.entries(CONFIGS).filter(([,cfg])=>cfg.out[ot]).map(([k])=>k);
   const pm={
     company_name:['company','company_name','organization'],
     linkedin_company:['linkedin_company','company_linkedin','company page'],
     linkedin_profile:['linkedin','linkedin_url','profile_url','profile'],
     lead_full_name:['name','full_name','full name','contact','lead']
   };
-  const pats=pm[inputType]||[];
   const t=tbl();
-  for(const col of t.cols.filter(c=>c.type==='base')){
-    const n=col.label.toLowerCase().trim();
-    if(pats.some(p=>n===p||n.includes(p))){
-      document.getElementById('mCol').value=`base:${col.id}`;
-      onMColChange();
-      return;
+  for(const inputType of compatTypes){
+    const pats=pm[inputType]||[];
+    for(const col of t.cols.filter(c=>c.type==='base')){
+      const n=col.label.toLowerCase().trim();
+      if(pats.some(p=>n===p||n.includes(p))){
+        document.getElementById('mCol').value=`base:${col.id}`;
+        onMColChange();
+        return;
+      }
     }
   }
 }
 
-function onMColChange(){
-  const v=document.getElementById('mCol').value;
-  if(v) setStep(4);
-  updateCostBox();
-}
-
 function updateCostBox(){
   const ot=document.getElementById('mOutput').value;
-  const it=document.getElementById('mType').value;
   const colVal=document.getElementById('mCol').value;
-  document.getElementById('enrichOkBtn').disabled=!ot||!it||!colVal;
-  if(!ot||!it||!colVal){document.getElementById('costBox').style.display='none';return;}
+  const it=document.getElementById('mType').value;
+  document.getElementById('enrichOkBtn').disabled=!ot||!colVal||!it;
+  if(!ot||!colVal||!it){document.getElementById('costBox').style.display='none';return;}
   const colLabel=resolveColLabel(colVal);
   const cost=COSTS[`${it}_to_${ot}`]||1;
   const n=tbl().rows.length;
