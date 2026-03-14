@@ -7,6 +7,7 @@
 <link rel="icon" href="https://i.ibb.co/jPjX9SSp/Screen-Shot-2025-03-28-at-8-16-15-PM.png">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <style>
 :root {
   --primary:#2563eb; --primary-hover:#1d4ed8; --primary-light:#eff6ff; --primary-mid:#dbeafe;
@@ -20,7 +21,7 @@
 body{font-family:'Inter',-apple-system,sans-serif;background:white;color:var(--gray-800);font-size:16px;line-height:1.6;}
 .container{max-width:600px;margin:0 auto;padding:0 1rem;}
 
-/* ── Header ── identical to original */
+/* ── Header ── */
 .header{padding:1rem 0;border-bottom:1px solid var(--gray-200);background:white;position:sticky;top:0;z-index:200;}
 .header-content{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;}
 .logo{display:flex;align-items:center;gap:.5rem;color:var(--gray-900);text-decoration:none;}
@@ -36,7 +37,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:white;color:var(--g
 .btn-buy-inline{background:linear-gradient(135deg,#fb923c,#f97316);border:none;color:white;font-weight:700;font-size:.7rem;cursor:pointer;padding:.25rem .5rem;border-radius:4px;white-space:nowrap;font-family:inherit;margin-left:.35rem;}
 .btn-buy-inline:hover{background:linear-gradient(135deg,#f97316,#ea580c);}
 
-/* ── Nav ── identical to original */
+/* ── Nav ── */
 .nav-menu{background:white;border-bottom:1px solid var(--gray-200);padding:.75rem 0;}
 .nav-tabs{display:flex;gap:.5rem;overflow-x:auto;padding-bottom:.25rem;}
 .nav-tab{display:flex;align-items:center;gap:.5rem;padding:.75rem 1rem;border-radius:8px;background:transparent;border:1px solid var(--gray-200);color:var(--gray-600);text-decoration:none;font-weight:500;font-size:.875rem;transition:all .2s;white-space:nowrap;cursor:pointer;font-family:inherit;}
@@ -46,13 +47,28 @@ body{font-family:'Inter',-apple-system,sans-serif;background:white;color:var(--g
 
 /* ── Main ── */
 .main{padding:1.5rem 0 2rem;}
-
-/* ── Alert ── */
 .alert{padding:1rem;border-radius:6px;margin-bottom:1rem;font-size:.875rem;display:none;}
 .alert-success{background:rgba(16,185,129,.1);border:1px solid var(--success);color:var(--success);}
 .alert-error{background:rgba(239,68,68,.1);border:1px solid var(--error);color:var(--error);}
 
-/* ── Home screen (no table) ── */
+/* ── Table tabs bar ── */
+.tabs-bar{display:flex;align-items:center;gap:0;margin-bottom:1rem;border-bottom:2px solid var(--gray-200);overflow-x:auto;padding-bottom:0;}
+.tab-item{display:flex;align-items:center;gap:.4rem;padding:.5rem .875rem;font-size:.8rem;font-weight:500;color:var(--gray-500);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;white-space:nowrap;transition:all .15s;background:none;border-top:none;border-left:none;border-right:none;font-family:inherit;}
+.tab-item:hover{color:var(--gray-800);}
+.tab-item.active{color:var(--primary);border-bottom-color:var(--primary);font-weight:600;}
+.tab-item i{font-size:.65rem;}
+.tab-del{background:none;border:none;cursor:pointer;color:var(--gray-300);font-size:.65rem;padding:.1rem .2rem;border-radius:3px;margin-left:.1rem;transition:color .12s;line-height:1;}
+.tab-del:hover{color:var(--error);}
+.tab-new-btn{display:flex;align-items:center;gap:.3rem;padding:.5rem .625rem;font-size:.775rem;font-weight:500;color:var(--gray-400);cursor:pointer;border:none;background:none;font-family:inherit;white-space:nowrap;transition:color .12s;flex-shrink:0;margin-left:.25rem;}
+.tab-new-btn:hover{color:var(--primary);}
+
+/* ── Saving indicator ── */
+.save-dot{width:7px;height:7px;border-radius:50%;background:var(--gray-300);margin-left:.375rem;flex-shrink:0;transition:background .3s;}
+.save-dot.saving{background:var(--warning);animation:pulse .8s ease infinite;}
+.save-dot.saved{background:var(--success);}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
+
+/* ── Home screen ── */
 .home-screen{display:flex;flex-direction:column;gap:1rem;}
 .home-title{font-size:1.1rem;font-weight:700;color:var(--gray-900);margin-bottom:.25rem;}
 .home-sub{font-size:.875rem;color:var(--gray-500);margin-bottom:.75rem;}
@@ -64,15 +80,12 @@ body{font-family:'Inter',-apple-system,sans-serif;background:white;color:var(--g
 .home-option-sub{font-size:.775rem;color:var(--gray-500);line-height:1.4;}
 .upload-area{border:2px dashed var(--gray-300);border-radius:8px;padding:1.75rem 1rem;text-align:center;cursor:pointer;background:var(--gray-50);transition:all .2s;}
 .upload-area:hover,.upload-area.drag-over{border-color:var(--primary);background:var(--primary-light);}
-.upload-area.drag-over{transform:scale(1.01);}
 .upload-area i{font-size:1.75rem;color:var(--gray-400);display:block;margin-bottom:.75rem;}
 .upload-area p{font-size:.875rem;color:var(--gray-600);}
 .upload-area strong{color:var(--primary);}
 
-/* ── Sheet wrapper ── */
+/* ── Sheet page ── */
 .sheet-page{display:none;flex-direction:column;}
-
-/* ── Sheet toolbar ── */
 .sheet-toolbar{display:flex;align-items:center;gap:.625rem;margin-bottom:.875rem;flex-wrap:wrap;}
 .table-name{font-size:.9rem;font-weight:700;color:var(--gray-900);background:transparent;border:none;outline:none;padding:.2rem .3rem;border-radius:4px;font-family:inherit;min-width:80px;max-width:200px;}
 .table-name:hover{background:var(--gray-100);}
@@ -82,10 +95,6 @@ body{font-family:'Inter',-apple-system,sans-serif;background:white;color:var(--g
 .toolbar-space{flex:1;}
 .btn-toolbar{background:white;border:1px solid var(--gray-300);color:var(--gray-600);padding:.4rem .75rem;border-radius:6px;font-size:.775rem;font-weight:500;cursor:pointer;display:flex;align-items:center;gap:.35rem;transition:all .15s;font-family:inherit;}
 .btn-toolbar:hover{background:var(--gray-50);border-color:var(--gray-400);}
-.btn-toolbar-primary{background:var(--primary);color:white;border-color:var(--primary);}
-.btn-toolbar-primary:hover{background:var(--primary-hover);border-color:var(--primary-hover);}
-
-/* ── Progress bar ── */
 .progress-wrap{height:3px;background:var(--gray-200);border-radius:2px;overflow:hidden;display:none;margin-bottom:.375rem;}
 .progress-fill{height:100%;background:var(--primary);transition:width .3s;border-radius:2px;width:0%;}
 .progress-lbl{font-size:.72rem;color:var(--gray-500);text-align:right;display:none;margin-bottom:.625rem;}
@@ -93,18 +102,12 @@ body{font-family:'Inter',-apple-system,sans-serif;background:white;color:var(--g
 /* ── Grid ── */
 .grid-outer{overflow-x:auto;border:1px solid var(--gray-200);border-radius:8px;}
 .grid{border-collapse:collapse;font-size:.8rem;min-width:100%;width:max-content;}
-
-/* Index column */
 .grid .idx-th{background:var(--gray-50);width:40px;min-width:40px;border-bottom:1px solid var(--gray-200);border-right:1px solid var(--gray-200);position:sticky;left:0;z-index:20;}
 .grid .idx-td{background:white;width:40px;min-width:40px;text-align:center;color:var(--gray-400);font-size:.7rem;border-bottom:1px solid var(--gray-100);border-right:1px solid var(--gray-200);position:sticky;left:0;z-index:10;}
 .grid tr:hover .idx-td{background:var(--gray-50);}
-
-/* Base column header */
 .col-th{background:var(--gray-50);border-bottom:1px solid var(--gray-200);border-right:1px solid var(--gray-200);padding:0;white-space:nowrap;min-width:160px;}
 .col-th-inner{display:flex;align-items:center;gap:.35rem;padding:.5rem .75rem;height:36px;}
 .col-th-label{font-size:.7rem;font-weight:700;color:var(--gray-600);text-transform:uppercase;letter-spacing:.05em;flex:1;overflow:hidden;text-overflow:ellipsis;}
-
-/* Enrichment column header */
 .enrich-th{background:#eff6ff;border-bottom:1px solid var(--gray-200);border-right:1px solid var(--gray-200);padding:0;white-space:nowrap;min-width:200px;}
 .enrich-th-inner{display:flex;align-items:center;gap:.35rem;padding:0 .5rem 0 .75rem;height:36px;}
 .enrich-th-label{font-size:.7rem;font-weight:700;color:var(--primary);text-transform:uppercase;letter-spacing:.05em;flex:1;overflow:hidden;text-overflow:ellipsis;}
@@ -113,23 +116,15 @@ body{font-family:'Inter',-apple-system,sans-serif;background:white;color:var(--g
 .badge-running{background:var(--primary-mid);color:var(--primary);}
 .badge-done   {background:#d1fae5;color:#065f46;}
 .badge-partial{background:#fef3c7;color:#92400e;}
-
-/* ▶ Run button on enrichment header */
 .run-btn{background:none;border:none;cursor:pointer;padding:.25rem .375rem;border-radius:4px;color:var(--primary);font-size:.7rem;transition:all .12s;display:flex;align-items:center;gap:.2rem;font-family:inherit;font-weight:600;white-space:nowrap;flex-shrink:0;}
 .run-btn:hover{background:var(--primary-mid);}
 .run-btn:disabled{opacity:.4;cursor:not-allowed;}
 .run-btn i{font-size:.65rem;}
-
-/* Spinner */
 .spin{display:inline-block;width:10px;height:10px;border:1.5px solid rgba(37,99,235,.2);border-top-color:var(--primary);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0;}
 @keyframes spin{to{transform:rotate(360deg);}}
-
-/* Base cells */
 .base-td{border-bottom:1px solid var(--gray-100);border-right:1px solid var(--gray-200);padding:0;height:var(--row-h);min-width:160px;max-width:260px;}
 .base-td-inner{width:100%;height:100%;padding:.5rem .75rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.8rem;color:var(--gray-800);}
 .base-td-input{width:100%;height:100%;padding:.5rem .75rem;border:none;outline:2px solid var(--primary);outline-offset:-2px;background:var(--primary-light);font-size:.8rem;color:var(--gray-900);font-family:inherit;border-radius:0;}
-
-/* Enrichment cells */
 .enrich-td{border-bottom:1px solid var(--gray-100);border-right:1px solid var(--gray-200);height:var(--row-h);padding:.5rem .75rem;background:#fafcff;font-size:.8rem;min-width:200px;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .enrich-td.s-idle{color:var(--gray-300);}
 .enrich-td.s-loading{color:var(--primary);}
@@ -137,18 +132,12 @@ body{font-family:'Inter',-apple-system,sans-serif;background:white;color:var(--g
 .enrich-td.s-notfound{color:var(--gray-400);font-style:italic;}
 .enrich-td.s-error{color:var(--error);font-size:.75rem;}
 .c-loading-inner{display:flex;align-items:center;gap:.35rem;}
-
-/* Add column button (last th) */
 .add-col-th{background:white;border-bottom:1px solid var(--gray-200);padding:0;width:44px;min-width:44px;}
 .add-col-btn{width:100%;height:36px;display:flex;align-items:center;justify-content:center;background:none;border:none;cursor:pointer;color:var(--gray-400);font-size:.9rem;transition:all .12s;}
 .add-col-btn:hover{background:var(--gray-100);color:var(--gray-700);}
-
-/* Add row row */
 .add-row-tr td{border-bottom:none;height:32px;}
 .add-row-btn{background:none;border:none;cursor:pointer;color:var(--gray-400);font-size:.75rem;padding:.4rem .75rem;display:flex;align-items:center;gap:.35rem;transition:color .12s;font-family:inherit;}
 .add-row-btn:hover{color:var(--primary);}
-
-/* ── Completion bar ── */
 .completion-bar{display:flex;align-items:center;gap:.75rem;margin-top:.625rem;font-size:.75rem;color:var(--gray-500);}
 .completion-track{flex:1;height:4px;background:var(--gray-200);border-radius:2px;overflow:hidden;}
 .completion-fill{height:100%;background:var(--success);border-radius:2px;transition:width .4s;}
@@ -162,16 +151,12 @@ body{font-family:'Inter',-apple-system,sans-serif;background:white;color:var(--g
 .modal-close:hover{background:var(--gray-200);}
 .modal-title{font-size:1.05rem;font-weight:700;color:var(--gray-900);margin-bottom:.25rem;}
 .modal-sub{font-size:.8rem;color:var(--gray-500);margin-bottom:1.375rem;line-height:1.5;}
-
-/* Modal type picker */
 .type-pick{display:grid;grid-template-columns:1fr 1fr;gap:.625rem;margin-bottom:1.25rem;}
 .type-opt{border:2px solid var(--gray-200);border-radius:8px;padding:.875rem .75rem;cursor:pointer;transition:all .15s;background:white;text-align:left;font-family:inherit;}
 .type-opt:hover{border-color:var(--primary);background:var(--primary-light);}
-.type-opt.selected{border-color:var(--primary);background:var(--primary-light);}
 .type-opt i{font-size:1rem;color:var(--primary);display:block;margin-bottom:.375rem;}
 .type-opt-title{font-size:.8rem;font-weight:600;color:var(--gray-900);}
 .type-opt-sub{font-size:.72rem;color:var(--gray-500);margin-top:.15rem;line-height:1.3;}
-
 .form-group{margin-bottom:1rem;}
 .form-label{display:block;font-size:.875rem;font-weight:600;color:var(--gray-700);margin-bottom:.375rem;}
 .form-label em{font-weight:400;color:var(--gray-400);font-style:normal;font-size:.8rem;margin-left:.25rem;}
@@ -180,10 +165,8 @@ body{font-family:'Inter',-apple-system,sans-serif;background:white;color:var(--g
 .form-select{appearance:none;background-image:url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");background-position:right .5rem center;background-repeat:no-repeat;background-size:1.5em 1.5em;padding-right:2.5rem;}
 .form-select:disabled{background-color:var(--gray-100);color:var(--gray-400);cursor:not-allowed;}
 .form-select optgroup{font-weight:600;color:var(--gray-400);}
-
 .cost-box{background:#eff6ff;border:1px solid #bfdbfe;border-radius:7px;padding:.7rem .875rem;font-size:.8rem;color:var(--gray-700);display:none;margin-bottom:.875rem;}
 .cost-box i{color:var(--warning);margin-right:.25rem;}
-
 .modal-footer{display:flex;gap:.5rem;justify-content:flex-end;margin-top:1.375rem;}
 .btn-cancel{background:white;color:var(--gray-700);border:1px solid var(--gray-300);padding:.6rem 1.125rem;border-radius:6px;font-weight:500;cursor:pointer;font-size:.875rem;font-family:inherit;transition:background .15s;}
 .btn-cancel:hover{background:var(--gray-50);}
@@ -191,9 +174,9 @@ body{font-family:'Inter',-apple-system,sans-serif;background:white;color:var(--g
 .btn-ok:hover{background:var(--primary-hover);}
 .btn-ok:disabled{opacity:.4;cursor:not-allowed;}
 
-/* ── New table modal ── */
-.or-divider{display:flex;align-items:center;gap:.75rem;margin:1rem 0;color:var(--gray-400);font-size:.8rem;}
-.or-divider::before,.or-divider::after{content:'';flex:1;height:1px;background:var(--gray-200);}
+/* Loading overlay */
+.loading-screen{display:none;text-align:center;padding:3rem 1rem;color:var(--gray-500);font-size:.875rem;}
+.loading-screen i{font-size:1.5rem;color:var(--primary);display:block;margin-bottom:.75rem;animation:spin .7s linear infinite;}
 
 @media(max-width:640px){
   .nav-tabs{gap:.25rem;} .nav-tab{padding:.625rem .75rem;font-size:.8rem;} .nav-tab i{font-size:.8rem;}
@@ -204,7 +187,6 @@ body{font-family:'Inter',-apple-system,sans-serif;background:white;color:var(--g
 </head>
 <body>
 
-<!-- HEADER -->
 <header class="header">
   <div class="container">
     <div class="header-content">
@@ -224,7 +206,6 @@ body{font-family:'Inter',-apple-system,sans-serif;background:white;color:var(--g
   </div>
 </header>
 
-<!-- NAV -->
 <nav class="nav-menu">
   <div class="container">
     <div class="nav-tabs">
@@ -240,8 +221,14 @@ body{font-family:'Inter',-apple-system,sans-serif;background:white;color:var(--g
   <div class="main">
     <div id="alert" class="alert"></div>
 
-    <!-- HOME SCREEN -->
-    <div id="homeScreen">
+    <!-- Loading -->
+    <div id="loadingScreen" class="loading-screen" style="display:block;">
+      <i class="fas fa-spinner"></i>
+      Loading your tables…
+    </div>
+
+    <!-- Home (no tables) -->
+    <div id="homeScreen" style="display:none;">
       <div class="home-title">AI Columns</div>
       <div class="home-sub">Build a spreadsheet, add enrichment columns, and let AI fill every row.</div>
       <div class="home-options">
@@ -256,40 +243,41 @@ body{font-family:'Inter',-apple-system,sans-serif;background:white;color:var(--g
           <div class="home-option-sub">Upload an existing list of leads or companies</div>
         </button>
       </div>
-      <input type="file" id="csvFile" accept=".csv" style="display:none">
-      <!-- drag zone hidden but covers the card area -->
-      <div id="dropZone" style="display:none"></div>
     </div>
 
-    <!-- SHEET PAGE -->
-    <div id="sheetPage" class="sheet-page">
-      <div class="sheet-toolbar">
-        <input class="table-name" id="tableName" value="My Table" onchange="onNameChange()" onblur="onNameChange()">
-        <div class="toolbar-sep"></div>
-        <span class="toolbar-pill" id="rowCountPill">0 rows</span>
-        <span class="toolbar-pill" id="colCountPill">0 cols</span>
-        <div class="toolbar-space"></div>
-        <button class="btn-toolbar" onclick="openImportSheet()"><i class="fas fa-upload"></i> Import CSV</button>
-        <button class="btn-toolbar" onclick="exportCSV()"><i class="fas fa-download"></i> Export</button>
-        <button class="btn-toolbar" onclick="resetTable()"><i class="fas fa-trash-alt"></i></button>
-      </div>
+    <!-- Tables area (tabs + sheet) -->
+    <div id="tablesArea" style="display:none;">
+      <!-- Tabs bar -->
+      <div class="tabs-bar" id="tabsBar"></div>
 
-      <div class="progress-wrap" id="progressWrap"><div class="progress-fill" id="progressFill"></div></div>
-      <div class="progress-lbl" id="progressLbl"></div>
-
-      <div class="grid-outer">
-        <table class="grid" id="theGrid">
-          <thead id="gridHead"></thead>
-          <tbody id="gridBody"></tbody>
-        </table>
-      </div>
-
-      <div class="completion-bar" id="completionBar" style="display:none;">
-        <span id="completionTxt">0% enriched</span>
-        <div class="completion-track"><div class="completion-fill" id="completionFill" style="width:0%"></div></div>
+      <!-- Sheet page -->
+      <div id="sheetPage" class="sheet-page">
+        <div class="sheet-toolbar">
+          <input class="table-name" id="tableName" value="My Table" onchange="onNameChange()" onblur="onNameChange()">
+          <div class="save-dot" id="saveDot" title="Saved"></div>
+          <div class="toolbar-sep"></div>
+          <span class="toolbar-pill" id="rowCountPill">0 rows</span>
+          <span class="toolbar-pill" id="colCountPill">0 cols</span>
+          <div class="toolbar-space"></div>
+          <button class="btn-toolbar" onclick="openImportSheet()"><i class="fas fa-upload"></i> Import CSV</button>
+          <button class="btn-toolbar" onclick="exportCSV()"><i class="fas fa-download"></i> Export</button>
+        </div>
+        <div class="progress-wrap" id="progressWrap"><div class="progress-fill" id="progressFill"></div></div>
+        <div class="progress-lbl" id="progressLbl"></div>
+        <div class="grid-outer">
+          <table class="grid" id="theGrid">
+            <thead id="gridHead"></thead>
+            <tbody id="gridBody"></tbody>
+          </table>
+        </div>
+        <div class="completion-bar" id="completionBar" style="display:none;">
+          <span id="completionTxt">0% enriched</span>
+          <div class="completion-track"><div class="completion-fill" id="completionFill" style="width:0%"></div></div>
+        </div>
       </div>
     </div>
 
+    <input type="file" id="csvFile" accept=".csv" style="display:none">
   </div>
 </div>
 
@@ -316,8 +304,6 @@ body{font-family:'Inter',-apple-system,sans-serif;background:white;color:var(--g
     <button class="modal-close" onclick="closeModal('addColModal')"><i class="fas fa-times"></i></button>
     <div class="modal-title" id="addColTitle">Add column</div>
     <div class="modal-sub" id="addColSub">Choose what kind of column to add.</div>
-
-    <!-- Step 1: type picker -->
     <div id="stepType">
       <div class="type-pick">
         <button class="type-opt" onclick="pickColType('base')">
@@ -332,8 +318,6 @@ body{font-family:'Inter',-apple-system,sans-serif;background:white;color:var(--g
         </button>
       </div>
     </div>
-
-    <!-- Step 2a: base column name -->
     <div id="stepBase" style="display:none;">
       <div class="form-group">
         <label class="form-label">Column name</label>
@@ -344,36 +328,25 @@ body{font-family:'Inter',-apple-system,sans-serif;background:white;color:var(--g
         <button class="btn-ok" onclick="confirmBaseCol()"><i class="fas fa-plus"></i> Add column</button>
       </div>
     </div>
-
-    <!-- Step 2b: enrichment config -->
     <div id="stepEnrich" style="display:none;">
       <div class="form-group">
         <label class="form-label">I have <em>(source column)</em></label>
-        <select class="form-select" id="mCol" onchange="onMColChange()">
-          <option value="">Select a column…</option>
-        </select>
+        <select class="form-select" id="mCol" onchange="onMColChange()"><option value="">Select a column…</option></select>
       </div>
       <div class="form-group">
         <label class="form-label">Which contains <em>(data type)</em></label>
-        <select class="form-select" id="mType" onchange="onMTypeChange()">
-          <option value="">Select type…</option>
-        </select>
+        <select class="form-select" id="mType" onchange="onMTypeChange()"><option value="">Select type…</option></select>
       </div>
       <div class="form-group">
         <label class="form-label">I want to find</label>
-        <select class="form-select" id="mOutput" disabled onchange="onMOutputChange()">
-          <option value="">Select input type first…</option>
-        </select>
+        <select class="form-select" id="mOutput" disabled onchange="onMOutputChange()"><option value="">Select input type first…</option></select>
       </div>
       <div class="cost-box" id="costBox"><i class="fas fa-coins"></i><span id="costText"></span></div>
       <div class="modal-footer">
         <button class="btn-cancel" onclick="closeModal('addColModal')">Cancel</button>
-        <button class="btn-ok" id="enrichOkBtn" disabled onclick="confirmEnrichCol()">
-          <i class="fas fa-plus"></i> Add column
-        </button>
+        <button class="btn-ok" id="enrichOkBtn" disabled onclick="confirmEnrichCol()"><i class="fas fa-plus"></i> Add column</button>
       </div>
     </div>
-
   </div>
 </div>
 
@@ -382,7 +355,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:white;color:var(--g
   <div class="modal" style="max-width:420px;">
     <button class="modal-close" onclick="closeModal('importSheetModal')"><i class="fas fa-times"></i></button>
     <div class="modal-title">Import CSV</div>
-    <div class="modal-sub">Replaces the current rows with the CSV data. Enrichment columns are kept.</div>
+    <div class="modal-sub">Replaces current rows. Enrichment columns are kept.</div>
     <div class="upload-area" id="sheetDropZone" onclick="document.getElementById('sheetCsvFile').click()">
       <i class="fas fa-file-csv"></i>
       <p>Drop CSV here or <strong>click to browse</strong></p>
@@ -392,10 +365,19 @@ body{font-family:'Inter',-apple-system,sans-serif;background:white;color:var(--g
 </div>
 
 <script>
-/* ── CONFIG ── */
+/* ══════════════════════════════════════════════
+   SUPABASE CONFIG
+   → Replace these two values with your project
+══════════════════════════════════════════════ */
+const SUPABASE_URL      = 'https://snxhsboboatjywgwdeds.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_RKidGRs4ch1ixmRfXoYSww_UsQMSe5w';
+const TABLE_NAME        = 'ai_columns_tables';
+
+/* ══════════════════════════════════════════════
+   APP CONFIG
+══════════════════════════════════════════════ */
 const API_URL     = 'https://linkfinderapp.hamoureliasse.workers.dev/';
 const CREDITS_URL = 'https://linkfinderaicredits.hamoureliasse.workers.dev/';
-const STORE_KEY   = 'lf_ai_cols_v2';
 
 const CONFIGS = {
   company_name:     {label:'Company Name',         out:{website:'Company Website',phone:'Company Phone',linkedin_url:'Company LinkedIn URL',email:'Company Email'}},
@@ -408,26 +390,28 @@ const COSTS = {
 };
 
 /* ── STATE ── */
-let userToken=null, credits=null;
-// tbl = {name, cols:[{id,type:'base'|'enrich',label,srcColId?,inputType?,outputType?}], rows:[{id,data:{colId:val},enrich:{colId:{status,value}}}]}
-let tbl=null, busyCols=new Set();
+let sb=null, userToken=null, credits=null;
+let tables={};        // {id: {id,user_token,name,cols,rows,updated_at}}
+let activeId=null;
+let busyCols=new Set();
+let saveTimer=null;
 
 /* ── INIT ── */
-document.addEventListener('DOMContentLoaded',()=>{
+document.addEventListener('DOMContentLoaded', async ()=>{
   const p=new URLSearchParams(window.location.search);
   userToken=p.get('token')||localStorage.getItem('linkFinderToken');
-  if (!userToken){window.location.href='https://linkfinderai.com/';return;}
+  if(!userToken){window.location.href='https://linkfinderai.com/';return;}
   localStorage.setItem('linkFinderToken',userToken);
+
+  // Init Supabase
+  sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
   fetchCredits();
-  bindGlobalDrop();
   bindCsvInputs();
-  loadSaved();
-  document.addEventListener('click',e=>{
-    if(e.target.classList.contains('modal-overlay')) closeModal(e.target.id);
-  });
-  document.addEventListener('keydown',e=>{
-    if(e.key==='Escape') document.querySelectorAll('.modal-overlay.show').forEach(m=>m.classList.remove('show'));
-  });
+  document.addEventListener('click',e=>{if(e.target.classList.contains('modal-overlay'))closeModal(e.target.id);});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.modal-overlay.show').forEach(m=>m.classList.remove('show'));});
+
+  await loadAllTables();
 });
 
 function logout(){localStorage.removeItem('linkFinderToken');window.location.href='https://linkfinderai.com/';}
@@ -443,23 +427,173 @@ function deductCredits(n){
   document.getElementById('creditsCount').textContent=Math.round(credits*10)/10;
 }
 
-/* ── PERSISTENCE ── */
-function save(){try{localStorage.setItem(STORE_KEY,JSON.stringify(tbl));}catch(e){}}
-function loadSaved(){
-  try{const r=localStorage.getItem(STORE_KEY);if(r&&r!=='null'){tbl=JSON.parse(r);showSheet();}}catch(e){}
+/* ══════════════════════════════════════════════
+   SUPABASE PERSISTENCE
+══════════════════════════════════════════════ */
+async function loadAllTables(){
+  document.getElementById('loadingScreen').style.display='block';
+  try{
+    const {data,error}=await sb.from(TABLE_NAME)
+      .select('id,name,cols,rows,updated_at')
+      .eq('user_token',userToken)
+      .order('updated_at',{ascending:false});
+
+    if(error) throw error;
+
+    tables={};
+    (data||[]).forEach(t=>{tables[t.id]=t;});
+  }catch(e){
+    console.error('Supabase load error:',e);
+    // Fallback to localStorage if Supabase not configured yet
+    if(SUPABASE_URL==='YOUR_SUPABASE_URL'){
+      const raw=localStorage.getItem('lf_ai_cols_fallback');
+      if(raw){try{const arr=JSON.parse(raw);arr.forEach(t=>{tables[t.id]=t;});}catch(e){}}
+    }
+  }finally{
+    document.getElementById('loadingScreen').style.display='none';
+  }
+
+  const ids=Object.keys(tables);
+  if(ids.length){
+    renderTabsBar();
+    setActive(ids[0]);
+  } else {
+    showHomeScreen();
+  }
 }
 
-/* ── DROP / FILE BINDINGS ── */
-function bindGlobalDrop(){
-  const body=document.body;
-  body.addEventListener('dragover',e=>{e.preventDefault();});
-  body.addEventListener('drop',e=>{
-    e.preventDefault();
-    if(e.dataTransfer.files[0]&&e.dataTransfer.files[0].name.endsWith('.csv')&&!tbl){
-      handleCsvFile(e.dataTransfer.files[0],false);
-    }
-  });
+/* Debounced save — fires 1.2s after last change */
+function scheduleSave(){
+  setSaveDot('saving');
+  if(saveTimer) clearTimeout(saveTimer);
+  saveTimer=setTimeout(()=>saveActiveTable(),1200);
 }
+
+async function saveActiveTable(){
+  if(!activeId||!tables[activeId]) return;
+  const tbl=tables[activeId];
+  tbl.updated_at=new Date().toISOString();
+
+  // Supabase upsert
+  try{
+    if(SUPABASE_URL!=='YOUR_SUPABASE_URL'){
+      const {error}=await sb.from(TABLE_NAME).upsert({
+        id:tbl.id, user_token:userToken,
+        name:tbl.name, cols:tbl.cols, rows:tbl.rows,
+        updated_at:tbl.updated_at
+      },{onConflict:'id'});
+      if(error) throw error;
+    } else {
+      // Fallback localStorage
+      localStorage.setItem('lf_ai_cols_fallback', JSON.stringify(Object.values(tables)));
+    }
+    setSaveDot('saved');
+  }catch(e){
+    console.error('Save error:',e);
+    setSaveDot('idle');
+    showAlert('Could not save — check your Supabase config.','error');
+  }
+}
+
+async function deleteTableFromDB(id){
+  try{
+    if(SUPABASE_URL!=='YOUR_SUPABASE_URL'){
+      await sb.from(TABLE_NAME).delete().eq('id',id).eq('user_token',userToken);
+    }
+  }catch(e){console.error('Delete error:',e);}
+}
+
+function setSaveDot(state){
+  const d=document.getElementById('saveDot');if(!d)return;
+  d.className='save-dot '+state;
+  d.title=state==='saving'?'Saving…':state==='saved'?'All changes saved':'';
+}
+
+/* ══════════════════════════════════════════════
+   TABLE MANAGEMENT
+══════════════════════════════════════════════ */
+function setActive(id){
+  activeId=id;
+  renderTabsBar();
+  showSheetPage();
+}
+
+function showHomeScreen(){
+  document.getElementById('homeScreen').style.display='block';
+  document.getElementById('tablesArea').style.display='none';
+}
+function showSheetPage(){
+  document.getElementById('homeScreen').style.display='none';
+  document.getElementById('tablesArea').style.display='block';
+  document.getElementById('sheetPage').style.display='flex';
+  document.getElementById('sheetPage').style.flexDirection='column';
+  const tbl=tables[activeId];
+  document.getElementById('tableName').value=tbl.name;
+  renderGrid();
+}
+
+function renderTabsBar(){
+  const bar=document.getElementById('tabsBar');
+  const ids=Object.keys(tables);
+  // sort by updated_at desc so newest is first
+  ids.sort((a,b)=>new Date(tables[b].updated_at||0)-new Date(tables[a].updated_at||0));
+
+  bar.innerHTML=ids.map(id=>`
+    <button class="tab-item${id===activeId?' active':''}" onclick="setActive('${id}')">
+      <i class="fas fa-table"></i>
+      ${esc(tables[id].name)}
+      <button class="tab-del" onclick="deleteTab(event,'${id}')" title="Delete table"><i class="fas fa-times"></i></button>
+    </button>`).join('')+
+    `<button class="tab-new-btn" onclick="openNewTableModal()"><i class="fas fa-plus"></i> New table</button>
+     <button class="tab-new-btn" onclick="document.getElementById('csvFile').click()"><i class="fas fa-upload"></i> Import CSV</button>`;
+}
+
+async function deleteTab(e,id){
+  e.stopPropagation();
+  if(!confirm('Delete this table? All data will be permanently lost.')) return;
+  await deleteTableFromDB(id);
+  delete tables[id];
+  const ids=Object.keys(tables);
+  if(ids.length){
+    activeId=ids[0];
+    renderTabsBar();
+    showSheetPage();
+  } else {
+    activeId=null;
+    document.getElementById('tablesArea').style.display='none';
+    showHomeScreen();
+    renderTabsBar();
+  }
+}
+
+function openNewTableModal(){
+  document.getElementById('newTableName').value='My Table';
+  openModal('newTableModal');
+  setTimeout(()=>document.getElementById('newTableName').focus(),250);
+}
+async function createEmptyTable(){
+  const name=document.getElementById('newTableName').value.trim()||'My Table';
+  const id='tbl_'+uid();
+  const tbl={id,user_token:userToken,name,cols:[],rows:[],updated_at:new Date().toISOString()};
+  tables[id]=tbl;
+  activeId=id;
+  renderTabsBar();
+  showSheetPage();
+  closeModal('newTableModal');
+  await saveActiveTable();
+}
+
+function onNameChange(){
+  if(!activeId)return;
+  const v=document.getElementById('tableName').value.trim()||'My Table';
+  tables[activeId].name=v;
+  renderTabsBar();
+  scheduleSave();
+}
+
+/* ══════════════════════════════════════════════
+   CSV IMPORT
+══════════════════════════════════════════════ */
 function bindCsvInputs(){
   document.getElementById('csvFile').addEventListener('change',e=>{if(e.target.files[0])handleCsvFile(e.target.files[0],false);e.target.value='';});
   document.getElementById('sheetCsvFile').addEventListener('change',e=>{if(e.target.files[0])handleCsvFile(e.target.files[0],true);e.target.value='';});
@@ -467,18 +601,16 @@ function bindCsvInputs(){
   sdz.addEventListener('dragover',e=>{e.preventDefault();sdz.classList.add('drag-over');});
   sdz.addEventListener('dragleave',()=>sdz.classList.remove('drag-over'));
   sdz.addEventListener('drop',e=>{e.preventDefault();sdz.classList.remove('drag-over');if(e.dataTransfer.files[0])handleCsvFile(e.dataTransfer.files[0],true);});
+  // global drop when no table open
+  document.body.addEventListener('dragover',e=>e.preventDefault());
+  document.body.addEventListener('drop',e=>{
+    e.preventDefault();
+    if(e.dataTransfer.files[0]?.name.endsWith('.csv')&&!activeId) handleCsvFile(e.dataTransfer.files[0],false);
+  });
 }
 
-/* ── NEW TABLE ── */
-function openNewTableModal(){openModal('newTableModal');setTimeout(()=>document.getElementById('newTableName').focus(),250);}
-function createEmptyTable(){
-  const name=document.getElementById('newTableName').value.trim()||'My Table';
-  tbl={name,cols:[],rows:[]};
-  save();showSheet();closeModal('newTableModal');
-}
-
-/* ── CSV IMPORT ── */
 function openImportSheet(){openModal('importSheetModal');}
+
 function handleCsvFile(file,intoExisting){
   const r=new FileReader();r.onload=e=>parseCSV(e.target.result,file.name,intoExisting);r.readAsText(file);
 }
@@ -486,8 +618,9 @@ function parseCSV(text,fname,intoExisting){
   const lines=text.split('\n').filter(l=>l.trim());
   if(lines.length<2){showAlert('CSV must have headers and at least one row.','error');return;}
   const headers=splitLine(lines[0]);
-  if(intoExisting&&tbl){
-    // Keep existing enrichment cols, create base cols for each CSV header
+
+  if(intoExisting&&activeId){
+    const tbl=tables[activeId];
     const existingEnrich=tbl.cols.filter(c=>c.type==='enrich');
     const baseCols=headers.map(h=>({id:'bc_'+uid(),type:'base',label:h}));
     tbl.cols=[...baseCols,...existingEnrich];
@@ -500,19 +633,25 @@ function parseCSV(text,fname,intoExisting){
     }
     closeModal('importSheetModal');
   } else {
-    tbl={name:fname.replace(/\.csv$/i,'').replace(/[_-]/g,' '),cols:[],rows:[]};
+    const id='tbl_'+uid();
     const cols=headers.map(h=>({id:'bc_'+uid(),type:'base',label:h}));
-    tbl.cols=cols;
+    const rows=[];
     for(let i=1;i<Math.min(lines.length,10001);i++){
       const vals=splitLine(lines[i]),data={};
       cols.forEach((c,j)=>{data[c.id]=vals[j]||'';});
-      tbl.rows.push({id:'r_'+uid(),data,enrich:{}});
+      rows.push({id:'r_'+uid(),data,enrich:{}});
     }
+    const tbl={id,user_token:userToken,name:fname.replace(/\.csv$/i,'').replace(/[_-]/g,' '),cols,rows,updated_at:new Date().toISOString()};
+    tables[id]=tbl;
+    activeId=id;
+    renderTabsBar();
   }
-  save();showSheet();
-  showAlert(`Imported ${tbl.rows.length.toLocaleString()} rows.`,'success');
-  autoDetectAndSuggest();
+
+  showSheetPage();
+  showAlert(`Imported ${tables[activeId].rows.length.toLocaleString()} rows.`,'success');
+  scheduleSave();
 }
+
 function splitLine(line){
   const res=[];let cur='',q=false;
   for(let i=0;i<line.length;i++){
@@ -524,149 +663,116 @@ function splitLine(line){
   res.push(cur.trim());return res;
 }
 
-/* ── SHOW SHEET ── */
-function showSheet(){
-  document.getElementById('homeScreen').style.display='none';
-  document.getElementById('sheetPage').style.display='flex';
-  document.getElementById('sheetPage').style.flexDirection='column';
-  document.getElementById('tableName').value=tbl.name;
-  renderGrid();
-}
-function resetTable(){
-  if(!confirm('Delete this table? All data will be lost.'))return;
-  tbl=null;save();
-  document.getElementById('sheetPage').style.display='none';
-  document.getElementById('homeScreen').style.display='block';
-}
-function onNameChange(){if(tbl){tbl.name=document.getElementById('tableName').value.trim()||'My Table';save();}}
+/* ══════════════════════════════════════════════
+   RENDER GRID
+══════════════════════════════════════════════ */
+function tbl(){return tables[activeId];}
 
-/* ── RENDER GRID ── */
 function renderGrid(){
-  if(!tbl)return;
-  const baseCols=tbl.cols.filter(c=>c.type==='base');
-  const enrichCols=tbl.cols.filter(c=>c.type==='enrich');
+  const t=tbl();if(!t)return;
+  const baseCols=t.cols.filter(c=>c.type==='base');
+  const enrichCols=t.cols.filter(c=>c.type==='enrich');
 
-  // pills
-  document.getElementById('rowCountPill').textContent=tbl.rows.length+' row'+(tbl.rows.length!==1?'s':'');
-  document.getElementById('colCountPill').textContent=tbl.cols.length+' col'+(tbl.cols.length!==1?'s':'');
+  document.getElementById('rowCountPill').textContent=t.rows.length+' row'+(t.rows.length!==1?'s':'');
+  document.getElementById('colCountPill').textContent=t.cols.length+' col'+(t.cols.length!==1?'s':'');
 
-  // HEAD
-  let head=`<tr>
+  document.getElementById('gridHead').innerHTML=`<tr>
     <th class="idx-th"><div style="height:36px;display:flex;align-items:center;justify-content:center;font-size:.65rem;color:var(--gray-400);">#</div></th>
     ${baseCols.map(c=>`<th class="col-th"><div class="col-th-inner"><i class="fas fa-align-left" style="font-size:.6rem;color:var(--gray-400);"></i><span class="col-th-label">${esc(c.label)}</span></div></th>`).join('')}
-    ${enrichCols.map(c=>`<th class="enrich-th" id="eth_${c.id}"><div class="enrich-th-inner">
+    ${enrichCols.map(c=>`<th class="enrich-th" id="eth_${c.id}">
+      <div class="enrich-th-inner">
         <i class="fas fa-magic" style="font-size:.6rem;color:var(--primary);flex-shrink:0;"></i>
         <span class="enrich-th-label">${esc(c.label)}</span>
         ${renderBadge(c)}
-        <button class="run-btn" id="runBtn_${c.id}" onclick="runEnrich('${c.id}')" title="Run enrichment" ${busyCols.has(c.id)?'disabled':''}>
+        <button class="run-btn" id="runBtn_${c.id}" onclick="runEnrich('${c.id}')" ${busyCols.has(c.id)?'disabled':''}>
           ${busyCols.has(c.id)?`<span class="spin"></span>`:`<i class="fas fa-play"></i> Run`}
         </button>
       </div></th>`).join('')}
     <th class="add-col-th"><button class="add-col-btn" onclick="openAddColModal()" title="Add column"><i class="fas fa-plus"></i></button></th>
   </tr>`;
-  document.getElementById('gridHead').innerHTML=head;
 
-  // BODY
-  let body=tbl.rows.map((row,i)=>`
-    <tr id="tr_${row.id}">
+  document.getElementById('gridBody').innerHTML=
+    t.rows.map((row,i)=>`<tr id="tr_${row.id}">
       <td class="idx-td">${i+1}</td>
       ${baseCols.map(c=>`<td class="base-td" ondblclick="editCell(this,'${row.id}','${c.id}')"><div class="base-td-inner" title="${escA(row.data[c.id]||'')}">${esc(row.data[c.id]||'')}</div></td>`).join('')}
       ${enrichCols.map(c=>`<td class="enrich-td ${cellClass(row.enrich[c.id])}" id="ec_${row.id}_${c.id}" title="${escA(cellVal(row.enrich[c.id]))}">${cellInner(row.enrich[c.id])}</td>`).join('')}
       <td style="border-bottom:1px solid var(--gray-100);"></td>
-    </tr>`).join('');
+    </tr>`).join('')+
+    `<tr class="add-row-tr"><td></td><td colspan="${t.cols.length+1}"><button class="add-row-btn" onclick="addRow()"><i class="fas fa-plus"></i> Add row</button></td></tr>`;
 
-  // Add row button
-  body+=`<tr class="add-row-tr">
-    <td></td>
-    <td colspan="${tbl.cols.length+1}">
-      <button class="add-row-btn" onclick="addRow()"><i class="fas fa-plus"></i> Add row</button>
-    </td>
-  </tr>`;
-
-  document.getElementById('gridBody').innerHTML=body;
   updateCompletionBar();
 }
 
 function renderBadge(col){
-  if(busyCols.has(col.id)) return `<span class="enrich-th-badge badge-running">Running</span>`;
-  const done=tbl.rows.filter(r=>r.enrich[col.id]?.status==='done').length;
-  const total=tbl.rows.length;
-  if(!total||!done) return `<span class="enrich-th-badge badge-idle">Idle</span>`;
-  if(done===total) return `<span class="enrich-th-badge badge-done">✓ Done</span>`;
-  return `<span class="enrich-th-badge badge-partial">${done}/${total}</span>`;
+  const t=tbl();if(!t)return'';
+  if(busyCols.has(col.id))return`<span class="enrich-th-badge badge-running">Running</span>`;
+  const done=t.rows.filter(r=>r.enrich[col.id]?.status==='done').length;
+  const total=t.rows.length;
+  if(!total||!done)return`<span class="enrich-th-badge badge-idle">Idle</span>`;
+  if(done===total)return`<span class="enrich-th-badge badge-done">✓ Done</span>`;
+  return`<span class="enrich-th-badge badge-partial">${done}/${total}</span>`;
 }
-
-function cellClass(e){
-  if(!e||e.status==='idle') return 's-idle';
-  if(e.status==='loading')  return 's-loading';
-  if(e.status==='done')     return 's-done';
-  if(e.status==='notfound') return 's-notfound';
-  return 's-error';
-}
-function cellVal(e){
-  if(!e||e.status==='idle')     return '';
-  if(e.status==='loading')      return 'Enriching…';
-  if(e.status==='done')         return e.value||'';
-  if(e.status==='notfound')     return 'Not found';
-  return e.value||'Error';
-}
+function cellClass(e){if(!e||e.status==='idle')return 's-idle';if(e.status==='loading')return 's-loading';if(e.status==='done')return 's-done';if(e.status==='notfound')return 's-notfound';return 's-error';}
+function cellVal(e){if(!e||e.status==='idle')return'';if(e.status==='loading')return'Enriching…';if(e.status==='done')return e.value||'';if(e.status==='notfound')return'Not found';return e.value||'Error';}
 function cellInner(e){
-  if(!e||e.status==='idle')     return `<span>—</span>`;
-  if(e.status==='loading')      return `<span class="c-loading-inner"><span class="spin"></span>Enriching…</span>`;
-  if(e.status==='done')         return `<span>${esc(e.value||'')}</span>`;
-  if(e.status==='notfound')     return `<span>Not found</span>`;
-  return `<span><i class="fas fa-exclamation-circle"></i> ${esc(e.value||'Error')}</span>`;
+  if(!e||e.status==='idle')return`<span>—</span>`;
+  if(e.status==='loading')return`<span class="c-loading-inner"><span class="spin"></span>Enriching…</span>`;
+  if(e.status==='done')return`<span>${esc(e.value||'')}</span>`;
+  if(e.status==='notfound')return`<span>Not found</span>`;
+  return`<span><i class="fas fa-exclamation-circle"></i> ${esc(e.value||'Error')}</span>`;
 }
-
 function patchEnrichCell(rowId,colId){
-  const row=tbl.rows.find(r=>r.id===rowId);if(!row)return;
+  const t=tbl();if(!t)return;
+  const row=t.rows.find(r=>r.id===rowId);if(!row)return;
   const td=document.getElementById(`ec_${rowId}_${colId}`);if(!td)return;
   td.className=`enrich-td ${cellClass(row.enrich[colId])}`;
   td.title=escA(cellVal(row.enrich[colId]));
   td.innerHTML=cellInner(row.enrich[colId]);
 }
 function patchColHeader(colId){
-  const col=tbl.cols.find(c=>c.id===colId);if(!col)return;
+  const t=tbl();if(!t)return;
+  const col=t.cols.find(c=>c.id===colId);if(!col)return;
   const th=document.getElementById(`eth_${colId}`);if(!th)return;
   th.querySelector('.enrich-th-label').textContent=col.label;
-  const oldBadge=th.querySelector('.enrich-th-badge');if(oldBadge)oldBadge.outerHTML=renderBadge(col);
+  const ob=th.querySelector('.enrich-th-badge');if(ob)ob.outerHTML=renderBadge(col);
   const btn=th.querySelector('.run-btn');
   if(btn){btn.disabled=busyCols.has(colId);btn.innerHTML=busyCols.has(colId)?`<span class="spin"></span>`:`<i class="fas fa-play"></i> Run`;}
 }
-
 function updateCompletionBar(){
-  const enrichCols=tbl.cols.filter(c=>c.type==='enrich');
-  if(!enrichCols.length||!tbl.rows.length){document.getElementById('completionBar').style.display='none';return;}
-  const total=enrichCols.length*tbl.rows.length;
-  const done=enrichCols.reduce((s,c)=>s+tbl.rows.filter(r=>r.enrich[c.id]?.status==='done').length,0);
+  const t=tbl();if(!t)return;
+  const enrichCols=t.cols.filter(c=>c.type==='enrich');
+  if(!enrichCols.length||!t.rows.length){document.getElementById('completionBar').style.display='none';return;}
+  const total=enrichCols.length*t.rows.length;
+  const done=enrichCols.reduce((s,c)=>s+t.rows.filter(r=>r.enrich[c.id]?.status==='done').length,0);
   const pct=total?Math.round(done/total*100):0;
   document.getElementById('completionBar').style.display='flex';
   document.getElementById('completionTxt').textContent=`${pct}% of enrichments complete`;
   document.getElementById('completionFill').style.width=pct+'%';
 }
 
-/* ── EDITABLE BASE CELLS ── */
+/* ── Editable cells ── */
 function editCell(td,rowId,colId){
-  const row=tbl.rows.find(r=>r.id===rowId);if(!row)return;
+  const t=tbl();const row=t.rows.find(r=>r.id===rowId);if(!row)return;
   const inp=document.createElement('input');
   inp.className='base-td-input';inp.value=row.data[colId]||'';
   td.innerHTML='';td.appendChild(inp);inp.focus();inp.select();
-  const commit=()=>{row.data[colId]=inp.value;save();td.innerHTML=`<div class="base-td-inner" title="${escA(inp.value)}">${esc(inp.value)}</div>`;td.ondblclick=()=>editCell(td,rowId,colId);};
+  const commit=()=>{row.data[colId]=inp.value;scheduleSave();td.innerHTML=`<div class="base-td-inner" title="${escA(inp.value)}">${esc(inp.value)}</div>`;td.ondblclick=()=>editCell(td,rowId,colId);};
   inp.addEventListener('blur',commit);
   inp.addEventListener('keydown',e=>{if(e.key==='Enter')inp.blur();if(e.key==='Escape'){inp.value=row.data[colId]||'';inp.blur();}});
 }
 
-/* ── ADD ROW ── */
+/* ── Add row ── */
 function addRow(){
+  const t=tbl();if(!t)return;
   const data={},enrich={};
-  tbl.cols.forEach(c=>{if(c.type==='base')data[c.id]='';else enrich[c.id]={status:'idle',value:null};});
-  tbl.rows.push({id:'r_'+uid(),data,enrich});
-  save();renderGrid();
-  // Scroll to bottom
-  document.getElementById('gridBody').lastElementChild?.scrollIntoView({block:'nearest'});
+  t.cols.forEach(c=>{if(c.type==='base')data[c.id]='';else enrich[c.id]={status:'idle',value:null};});
+  t.rows.push({id:'r_'+uid(),data,enrich});
+  scheduleSave();renderGrid();
 }
 
-/* ── ADD COLUMN MODAL ── */
+/* ══════════════════════════════════════════════
+   ADD COLUMN MODAL
+══════════════════════════════════════════════ */
 function openAddColModal(){
   document.getElementById('addColTitle').textContent='Add column';
   document.getElementById('addColSub').textContent='Choose what kind of column to add.';
@@ -675,12 +781,11 @@ function openAddColModal(){
   document.getElementById('stepEnrich').style.display='none';
   openModal('addColModal');
 }
-
 function pickColType(type){
   document.getElementById('stepType').style.display='none';
   if(type==='base'){
     document.getElementById('addColTitle').textContent='Text column';
-    document.getElementById('addColSub').textContent='Name your column. You can type data directly into each cell.';
+    document.getElementById('addColSub').textContent='Name your column.';
     document.getElementById('stepBase').style.display='block';
     document.getElementById('baseColName').value='';
     setTimeout(()=>document.getElementById('baseColName').focus(),50);
@@ -691,89 +796,55 @@ function pickColType(type){
     document.getElementById('stepEnrich').style.display='block';
   }
 }
-
 function confirmBaseCol(){
-  const name=document.getElementById('baseColName').value.trim();
-  if(!name){document.getElementById('baseColName').focus();return;}
+  const name=document.getElementById('baseColName').value.trim();if(!name)return;
+  const t=tbl();
   const col={id:'bc_'+uid(),type:'base',label:name};
-  tbl.cols.push(col);
-  tbl.rows.forEach(r=>{r.data[col.id]='';});
-  save();closeModal('addColModal');renderGrid();
+  t.cols.push(col);t.rows.forEach(r=>{r.data[col.id]='';});
+  scheduleSave();closeModal('addColModal');renderGrid();
 }
 
-/* ── ENRICH FORM ── */
+/* ── Enrich form ── */
 function populateEnrichForm(){
-  // Source columns = base cols + done enrichment cols
+  const t=tbl();
   const mc=document.getElementById('mCol');
   mc.innerHTML='<option value="">Select a column…</option>';
-  const baseCols=tbl.cols.filter(c=>c.type==='base');
-  baseCols.forEach(c=>{mc.innerHTML+=`<option value="base:${c.id}">${esc(c.label)}</option>`;});
-  const doneCols=tbl.cols.filter(c=>c.type==='enrich'&&tbl.rows.some(r=>r.enrich[c.id]?.status==='done'));
+  t.cols.filter(c=>c.type==='base').forEach(c=>{mc.innerHTML+=`<option value="base:${c.id}">${esc(c.label)}</option>`;});
+  const doneCols=t.cols.filter(c=>c.type==='enrich'&&t.rows.some(r=>r.enrich[c.id]?.status==='done'));
   if(doneCols.length){
     mc.innerHTML+=`<optgroup label="Enriched columns">`;
     doneCols.forEach(c=>{mc.innerHTML+=`<option value="ec:${c.id}">✦ ${esc(c.label)}</option>`;});
     mc.innerHTML+=`</optgroup>`;
   }
-
-  // Input types
   const mt=document.getElementById('mType');
   mt.innerHTML='<option value="">Select type…</option>';
   Object.entries(CONFIGS).forEach(([k,v])=>{mt.innerHTML+=`<option value="${k}">${v.label}</option>`;});
-
   document.getElementById('mOutput').innerHTML='<option value="">Select input type first…</option>';
   document.getElementById('mOutput').disabled=true;
   document.getElementById('costBox').style.display='none';
   document.getElementById('enrichOkBtn').disabled=true;
-
   autoDetectEnrich();
 }
-
 function autoDetectEnrich(){
-  const patMap={
-    company_name:['company','company_name','organization','company name'],
-    company_domain:['domain','website','url','company_domain'],
-    linkedin_company:['linkedin_company','company_linkedin','company page','linkedin company'],
-    linkedin_profile:['linkedin','linkedin_url','linkedin_profile','profile_url','profile'],
-    linkedin_post:['post','post_url','linkedin_post'],
-    lead_full_name:['name','full_name','full name','first name','contact','lead']
-  };
-  for(const col of tbl.cols.filter(c=>c.type==='base')){
+  const t=tbl();
+  const pm={company_name:['company','company_name','organization'],company_domain:['domain','website','url'],linkedin_company:['linkedin_company','company_linkedin','company page'],lead_full_name:['name','full_name','full name','contact','lead']};
+  for(const col of t.cols.filter(c=>c.type==='base')){
     const n=col.label.toLowerCase().trim();
-    for(const [type,pats] of Object.entries(patMap)){
-      if(pats.some(p=>n===p||n.includes(p))){
-        document.getElementById('mCol').value=`base:${col.id}`;
-        document.getElementById('mType').value=type;
-        onMTypeChange(true);return;
-      }
-    }
-  }
-  // also check enriched cols
-  for(const col of tbl.cols.filter(c=>c.type==='enrich'&&tbl.rows.some(r=>r.enrich[c.id]?.status==='done'))){
-    const n=col.label.toLowerCase().trim();
-    for(const [type,pats] of Object.entries(patMap)){
-      if(pats.some(p=>n===p||n.includes(p))){
-        document.getElementById('mCol').value=`ec:${col.id}`;
-        document.getElementById('mType').value=type;
-        onMTypeChange(true);return;
-      }
-    }
+    for(const [type,pats] of Object.entries(pm)){if(pats.some(p=>n===p||n.includes(p))){document.getElementById('mCol').value=`base:${col.id}`;document.getElementById('mType').value=type;onMTypeChange(true);return;}}
   }
 }
-
 function onMColChange(){updateCostBox();}
-function onMTypeChange(fromAuto=false){
-  const t=document.getElementById('mType').value;
+function onMTypeChange(){
+  const t2=document.getElementById('mType').value;
   const mo=document.getElementById('mOutput');
-  document.getElementById('costBox').style.display='none';
-  document.getElementById('enrichOkBtn').disabled=true;
-  if(!t){mo.innerHTML='<option value="">Select input type first…</option>';mo.disabled=true;return;}
+  document.getElementById('costBox').style.display='none';document.getElementById('enrichOkBtn').disabled=true;
+  if(!t2){mo.innerHTML='<option value="">Select input type first…</option>';mo.disabled=true;return;}
   mo.innerHTML='<option value="">Select what to find…</option>';
-  Object.entries(CONFIGS[t].out).forEach(([k,v])=>{mo.innerHTML+=`<option value="${k}">${v}</option>`;});
+  Object.entries(CONFIGS[t2].out).forEach(([k,v])=>{mo.innerHTML+=`<option value="${k}">${v}</option>`;});
   mo.disabled=false;
-  if(Object.keys(CONFIGS[t].out).length===1){mo.value=Object.keys(CONFIGS[t].out)[0];updateCostBox();}
+  if(Object.keys(CONFIGS[t2].out).length===1){mo.value=Object.keys(CONFIGS[t2].out)[0];updateCostBox();}
 }
 function onMOutputChange(){updateCostBox();}
-
 function updateCostBox(){
   const colVal=document.getElementById('mCol').value;
   const it=document.getElementById('mType').value;
@@ -782,162 +853,118 @@ function updateCostBox(){
   if(!colVal||!it||!ot){document.getElementById('costBox').style.display='none';return;}
   const colLabel=resolveColLabel(colVal);
   const cost=COSTS[`${it}_to_${ot}`]||1;
-  const n=tbl.rows.length;
+  const n=tbl().rows.length;
   const outLabel=CONFIGS[it].out[ot];
-  const costLine=ot==='employees'?'~0.5 credit per employee found'
-    :`${cost} credit${cost!==1?'s':''} × ${n.toLocaleString()} rows ≈ ${(cost*n).toLocaleString()} credits`;
+  const costLine=`${cost} credit${cost!==1?'s':''} × ${n.toLocaleString()} rows ≈ ${(cost*n).toLocaleString()} credits`;
   document.getElementById('costText').innerHTML=`<strong>${outLabel}</strong> from <strong>${esc(colLabel)}</strong> — ${costLine}`;
   document.getElementById('costBox').style.display='block';
 }
-
 function resolveColLabel(colVal){
-  if(!colVal) return '';
-  if(colVal.startsWith('base:')){const c=tbl.cols.find(x=>x.id===colVal.slice(5));return c?c.label:'';}
-  if(colVal.startsWith('ec:'))  {const c=tbl.cols.find(x=>x.id===colVal.slice(3));return c?'✦ '+c.label:'';}
+  const t=tbl();if(!colVal||!t)return'';
+  if(colVal.startsWith('base:')){const c=t.cols.find(x=>x.id===colVal.slice(5));return c?c.label:'';}
+  if(colVal.startsWith('ec:'))  {const c=t.cols.find(x=>x.id===colVal.slice(3));return c?'✦ '+c.label:'';}
   return colVal;
 }
 function resolveRowValue(row,colVal){
-  if(!colVal) return '';
-  if(colVal.startsWith('base:')){return (row.data[colVal.slice(5)]||'').trim();}
+  if(!colVal)return'';
+  if(colVal.startsWith('base:')){return(row.data[colVal.slice(5)]||'').trim();}
   if(colVal.startsWith('ec:'))  {const e=row.enrich[colVal.slice(3)];return e?.status==='done'?(e.value||'').trim():'';}
-  return '';
+  return'';
 }
-
 function confirmEnrichCol(){
   const colVal=document.getElementById('mCol').value;
   const it=document.getElementById('mType').value;
   const ot=document.getElementById('mOutput').value;
-  if(!colVal||!it||!ot) return;
-  const label=CONFIGS[it].out[ot];
-  const col={id:'ec_'+uid(),type:'enrich',label,srcColVal:colVal,inputType:it,outputType:ot};
-  tbl.cols.push(col);
-  tbl.rows.forEach(r=>{r.enrich[col.id]={status:'idle',value:null};});
-  save();closeModal('addColModal');renderGrid();
-  // Auto-run immediately
+  if(!colVal||!it||!ot)return;
+  const t=tbl();
+  const col={id:'ec_'+uid(),type:'enrich',label:CONFIGS[it].out[ot],srcColVal:colVal,inputType:it,outputType:ot};
+  t.cols.push(col);t.rows.forEach(r=>{r.enrich[col.id]={status:'idle',value:null};});
+  closeModal('addColModal');renderGrid();
   runEnrich(col.id);
 }
 
-/* ── ENRICHMENT ENGINE ── */
+/* ══════════════════════════════════════════════
+   ENRICHMENT ENGINE
+══════════════════════════════════════════════ */
 async function runEnrich(colId){
-  if(busyCols.has(colId)){return;}
-  const col=tbl.cols.find(c=>c.id===colId);if(!col||col.type!=='enrich')return;
-
-  busyCols.add(colId);
-  patchColHeader(colId);
+  if(busyCols.has(colId))return;
+  const t=tbl();const col=t.cols.find(c=>c.id===colId);if(!col||col.type!=='enrich')return;
+  busyCols.add(colId);patchColHeader(colId);
   document.getElementById('progressWrap').style.display='block';
   document.getElementById('progressLbl').style.display='block';
-
-  let done=0,total=tbl.rows.length;
-
-  for(let i=0;i<tbl.rows.length;i++){
-    const row=tbl.rows[i];
+  let done=0,total=t.rows.length;
+  for(let i=0;i<t.rows.length;i++){
+    const row=t.rows[i];
     if(row.enrich[colId]?.status==='done'){done++;setProgress(done,total);continue;}
-
     const val=resolveRowValue(row,col.srcColVal);
     if(!val){row.enrich[colId]={status:'notfound',value:null};patchEnrichCell(row.id,colId);done++;setProgress(done,total);continue;}
-
     row.enrich[colId]={status:'loading',value:null};patchEnrichCell(row.id,colId);
-
     try{
       const res=await callAPI(val,col.inputType,col.outputType);
-      if(res.creditErr){
-        row.enrich[colId]={status:'error',value:'No credits'};patchEnrichCell(row.id,colId);
-        busyCols.delete(colId);patchColHeader(colId);
-        save();hideProgress();updateCompletionBar();
-        showAlert('Insufficient credits — please top up your account.','error');return;
-      }
+      if(res.creditErr){row.enrich[colId]={status:'error',value:'No credits'};patchEnrichCell(row.id,colId);busyCols.delete(colId);patchColHeader(colId);scheduleSave();hideProgress();updateCompletionBar();showAlert('Insufficient credits — please top up your account.','error');return;}
       if(res.ok){row.enrich[colId]={status:'done',value:res.display};deductCredits(res.cost);done++;}
       else row.enrich[colId]={status:'notfound',value:null};
     }catch(err){row.enrich[colId]={status:'error',value:err.message||'Error'};}
-
     patchEnrichCell(row.id,colId);setProgress(done,total);
     await sleep(120);
   }
-
-  busyCols.delete(colId);
-  patchColHeader(colId);
-  save();hideProgress();updateCompletionBar();
+  busyCols.delete(colId);patchColHeader(colId);
+  scheduleSave();hideProgress();updateCompletionBar();
   showAlert(`Enrichment complete — ${done.toLocaleString()} / ${total.toLocaleString()} rows enriched.`,'success');
 }
 
 async function callAPI(value,inputType,outputType){
   const type=`${inputType}_to_${outputType}`,cost=COSTS[type]||1;
   try{
-    const r=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({type,input_data:value,output_type:outputType,token:userToken,is_bulk:true}),
-      signal:AbortSignal.timeout(180000)});
+    const r=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type,input_data:value,output_type:outputType,token:userToken,is_bulk:true}),signal:AbortSignal.timeout(180000)});
     if(r.status===403)return{ok:false,creditErr:true};
     const d=await r.json();
-    if(outputType==='employees'&&Array.isArray(d)){const n=d.length;return{ok:n>0,display:`${n} employees`,cost:n*.5};}
-    if(outputType==='reactions'&&Array.isArray(d)){return{ok:d.length>0,display:`${d.length} reactions`,cost:d.length};}
-    if(outputType==='linkedin_info'&&d?.name){
-      const display=inputType==='linkedin_profile'
-        ?[d.name,d.jobTitle,d.company].filter(Boolean).join(' · ')
-        :[d.name,d.industry,d.city||d.location].filter(Boolean).join(' · ');
-      return{ok:true,display,cost};
-    }
     if(outputType==='employee_count'&&d){const v=d.result||d;return{ok:!!v,display:String(v)+' employees',cost};}
     if(d?.result)return{ok:true,display:d.result,cost};
     return{ok:false,display:null,cost:0};
-  }catch(err){
-    if(err.name==='AbortError')return{ok:false,display:'Timeout',cost:0};
-    throw err;
-  }
+  }catch(err){if(err.name==='AbortError')return{ok:false,display:'Timeout',cost:0};throw err;}
 }
 
-/* ── AUTO-DETECT AFTER IMPORT ── */
-function autoDetectAndSuggest(){
-  // If no enrichment columns yet, we just show the grid; user can click + to add
-}
-
-/* ── EXPORT ── */
+/* ── Export ── */
 function exportCSV(){
-  if(!tbl)return;
-  const hdrs=tbl.cols.map(c=>c.label);
+  const t=tbl();if(!t)return;
+  const hdrs=t.cols.map(c=>c.label);
   let csv=hdrs.map(h=>`"${h.replace(/"/g,'""')}"`).join(',')+'\n';
-  tbl.rows.forEach(row=>{
-    const vals=tbl.cols.map(col=>{
+  t.rows.forEach(row=>{
+    const vals=t.cols.map(col=>{
       let v='';
       if(col.type==='base')v=row.data[col.id]||'';
       else{const e=row.enrich[col.id];v=e?.status==='done'?e.value||'':(e?.status==='notfound'?'Not found':'');}
-      return `"${v.toString().replace(/"/g,'""')}"`;
+      return`"${v.toString().replace(/"/g,'""')}"`;
     });
     csv+=vals.join(',')+'\n';
   });
   const a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'}));
-  a.download=`${(tbl.name||'enriched').replace(/[^a-z0-9]/gi,'_')}_${new Date().toISOString().slice(0,10)}.csv`;
+  a.download=`${(t.name||'enriched').replace(/[^a-z0-9]/gi,'_')}_${new Date().toISOString().slice(0,10)}.csv`;
   a.click();
 }
 
-/* ── PROGRESS ── */
+/* ── Progress ── */
 function setProgress(done,total){
   const pct=total?Math.round(done/total*100):0;
   document.getElementById('progressFill').style.width=pct+'%';
   document.getElementById('progressLbl').textContent=`Enriching… ${done.toLocaleString()} / ${total.toLocaleString()} rows`;
 }
-function hideProgress(){
-  setTimeout(()=>{
-    document.getElementById('progressWrap').style.display='none';
-    document.getElementById('progressLbl').style.display='none';
-  },1800);
-}
+function hideProgress(){setTimeout(()=>{document.getElementById('progressWrap').style.display='none';document.getElementById('progressLbl').style.display='none';},1800);}
 
-/* ── MODAL HELPERS ── */
+/* ── Modals ── */
 function openModal(id){document.getElementById(id).classList.add('show');}
 function closeModal(id){document.getElementById(id).classList.remove('show');}
 
-/* ── UTILS ── */
-let _uid=0;
-function uid(){return Date.now().toString(36)+'_'+(++_uid);}
+/* ── Utils ── */
+let _uid=0;function uid(){return Date.now().toString(36)+'_'+(++_uid);}
 function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function escA(s){return String(s||'').replace(/'/g,'&#039;').replace(/"/g,'&quot;');}
-
 let alertT=null;
 function showAlert(msg,type='success'){
-  const a=document.getElementById('alert');
-  a.textContent=msg;a.className=`alert alert-${type}`;a.style.display='block';
+  const a=document.getElementById('alert');a.textContent=msg;a.className=`alert alert-${type}`;a.style.display='block';
   if(alertT)clearTimeout(alertT);alertT=setTimeout(()=>a.style.display='none',5000);
 }
 </script>
