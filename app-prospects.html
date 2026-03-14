@@ -99,10 +99,28 @@ body{font-family:'Inter',-apple-system,sans-serif;background:white;color:var(--g
 .progress-fill{height:100%;background:var(--primary);transition:width .3s;border-radius:2px;width:0%;}
 .progress-lbl{font-size:.72rem;color:var(--gray-500);text-align:right;display:none;margin-bottom:.625rem;}
 
-/* ── Grid ── */
-.grid-outer{overflow-x:auto;border:1px solid var(--gray-200);border-radius:8px;}
-.grid{border-collapse:collapse;font-size:.8rem;min-width:100%;width:max-content;}
-.grid .idx-th{background:var(--gray-50);width:40px;min-width:40px;border-bottom:1px solid var(--gray-200);border-right:1px solid var(--gray-200);position:sticky;left:0;z-index:20;}
+/* ── Grid wrapper — resizable both axes ── */
+.grid-outer{
+  overflow:auto;
+  border:1px solid var(--gray-200);
+  border-radius:8px;
+  resize:both;
+  min-height:160px;
+  max-height:80vh;
+  min-width:200px;
+  /* let it grow beyond the 600px container */
+  width:100%;
+  box-sizing:border-box;
+  position:relative;
+}
+/* Widen the page container when grid is wider than 600px */
+.container{max-width:600px;margin:0 auto;padding:0 1rem;transition:max-width .2s;}
+.container.wide{max-width:98vw;}
+
+.grid{border-collapse:collapse;font-size:.8rem;width:max-content;min-width:100%;}
+/* Sticky header inside scrollable container */
+.grid thead{position:sticky;top:0;z-index:30;}
+.grid .idx-th{background:var(--gray-50);width:40px;min-width:40px;border-bottom:1px solid var(--gray-200);border-right:1px solid var(--gray-200);position:sticky;left:0;z-index:40;}
 .grid .idx-td{background:white;width:40px;min-width:40px;text-align:center;color:var(--gray-400);font-size:.7rem;border-bottom:1px solid var(--gray-100);border-right:1px solid var(--gray-200);position:sticky;left:0;z-index:10;}
 .grid tr:hover .idx-td{background:var(--gray-50);}
 .col-th{background:var(--gray-50);border-bottom:1px solid var(--gray-200);border-right:1px solid var(--gray-200);padding:0;white-space:nowrap;min-width:160px;}
@@ -157,7 +175,16 @@ body{font-family:'Inter',-apple-system,sans-serif;background:white;color:var(--g
 .type-opt i{font-size:1rem;color:var(--primary);display:block;margin-bottom:.375rem;}
 .type-opt-title{font-size:.8rem;font-weight:600;color:var(--gray-900);}
 .type-opt-sub{font-size:.72rem;color:var(--gray-500);margin-top:.15rem;line-height:1.3;}
-.form-group{margin-bottom:1rem;}
+.form-step{position:relative;padding-left:2rem;margin-bottom:1.125rem;}
+.form-step::before{content:attr(data-step);position:absolute;left:0;top:.65rem;width:20px;height:20px;border-radius:50%;background:var(--gray-200);color:var(--gray-500);font-size:.65rem;font-weight:700;display:flex;align-items:center;justify-content:center;transition:all .2s;flex-shrink:0;line-height:1;}
+.form-step.active::before{background:var(--primary);color:white;}
+.form-step.done::before{background:var(--success);color:white;content:'✓';}
+.form-step.locked .form-label{color:var(--gray-400);}
+.form-step.locked .form-select{opacity:.45;pointer-events:none;cursor:not-allowed;}
+.step-connector{width:2px;height:14px;background:var(--gray-200);margin-left:.5625rem;margin-bottom:.25rem;transition:background .2s;}
+.step-connector.done{background:var(--success);}
+.form-step-hint{font-size:.72rem;color:var(--gray-400);margin-top:.25rem;display:none;}
+.form-step.active .form-step-hint{display:block;}
 .form-label{display:block;font-size:.875rem;font-weight:600;color:var(--gray-700);margin-bottom:.375rem;}
 .form-label em{font-weight:400;color:var(--gray-400);font-style:normal;font-size:.8rem;margin-left:.25rem;}
 .form-input,.form-select{width:100%;border:1px solid var(--gray-300);border-radius:6px;padding:.7rem .75rem;font-size:.875rem;color:var(--gray-800);transition:border-color .15s;font-family:inherit;background:white;}
@@ -264,7 +291,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:white;color:var(--g
         </div>
         <div class="progress-wrap" id="progressWrap"><div class="progress-fill" id="progressFill"></div></div>
         <div class="progress-lbl" id="progressLbl"></div>
-        <div class="grid-outer">
+        <div class="grid-outer" id="gridOuter">
           <table class="grid" id="theGrid">
             <thead id="gridHead"></thead>
             <tbody id="gridBody"></tbody>
@@ -329,18 +356,30 @@ body{font-family:'Inter',-apple-system,sans-serif;background:white;color:var(--g
       </div>
     </div>
     <div id="stepEnrich" style="display:none;">
-      <div class="form-group">
+
+      <!-- Step 1: what to find -->
+      <div class="form-step active" id="fStep1" data-step="1">
+        <label class="form-label">I want to find</label>
+        <select class="form-select" id="mOutput" onchange="onMOutputChange()"><option value="">Select what to find…</option></select>
+        <div class="form-step-hint">Start by choosing what data you want to enrich.</div>
+      </div>
+      <div class="step-connector" id="conn1"></div>
+
+      <!-- Step 2: data type -->
+      <div class="form-step locked" id="fStep2" data-step="2">
+        <label class="form-label">Which comes from <em>(data type)</em></label>
+        <select class="form-select" id="mType" onchange="onMTypeChange()"><option value="">Select type…</option></select>
+        <div class="form-step-hint">What kind of data will you provide as input?</div>
+      </div>
+      <div class="step-connector" id="conn2"></div>
+
+      <!-- Step 3: source column -->
+      <div class="form-step locked" id="fStep3" data-step="3">
         <label class="form-label">I have <em>(source column)</em></label>
         <select class="form-select" id="mCol" onchange="onMColChange()"><option value="">Select a column…</option></select>
+        <div class="form-step-hint">Pick the column that contains this data.</div>
       </div>
-      <div class="form-group">
-        <label class="form-label">Which contains <em>(data type)</em></label>
-        <select class="form-select" id="mType" onchange="onMTypeChange()"><option value="">Select type…</option></select>
-      </div>
-      <div class="form-group">
-        <label class="form-label">I want to find</label>
-        <select class="form-select" id="mOutput" disabled onchange="onMOutputChange()"><option value="">Select input type first…</option></select>
-      </div>
+
       <div class="cost-box" id="costBox"><i class="fas fa-coins"></i><span id="costText"></span></div>
       <div class="modal-footer">
         <button class="btn-cancel" onclick="closeModal('addColModal')">Cancel</button>
@@ -754,6 +793,7 @@ function renderGrid(){
     `<tr class="add-row-tr"><td></td><td colspan="${t.cols.length+1}"><button class="add-row-btn" onclick="addRow()"><i class="fas fa-plus"></i> Add row</button></td></tr>`;
 
   updateCompletionBar();
+  watchGridResize();
 }
 
 function renderBadge(col){
@@ -857,8 +897,66 @@ function confirmBaseCol(){
   scheduleSave();closeModal('addColModal');renderGrid();
 }
 
-/* ── Enrich form ── */
+/* ── Enrich form — stepped onboarding ── */
+function setStep(n){
+  [1,2,3].forEach(i=>{
+    const s=document.getElementById('fStep'+i);
+    const c=document.getElementById('conn'+i);
+    if(!s)return;
+    if(i<n){s.className='form-step done';if(c)c.className='step-connector done';}
+    else if(i===n){s.className='form-step active';if(c)c.className='step-connector';}
+    else{s.className='form-step locked';if(c)c.className='step-connector';}
+  });
+}
+
 function populateEnrichForm(){
+  // Step 1: populate "I want to find" with all possible outputs, grouped by input type
+  const mo=document.getElementById('mOutput');
+  mo.innerHTML='<option value="">Select what to find…</option>';
+  Object.entries(CONFIGS).forEach(([,cfg])=>{
+    mo.innerHTML+=`<optgroup label="${cfg.label}">`;
+    Object.entries(cfg.out).forEach(([k,v])=>{mo.innerHTML+=`<option value="${k}">${v}</option>`;});
+    mo.innerHTML+=`</optgroup>`;
+  });
+  // Reset steps 2+3
+  document.getElementById('mType').innerHTML='<option value="">Select type…</option>';
+  document.getElementById('mCol').innerHTML='<option value="">Select a column…</option>';
+  document.getElementById('costBox').style.display='none';
+  document.getElementById('enrichOkBtn').disabled=true;
+  setStep(1);
+}
+
+function autoDetectEnrich(){
+  // No auto-detect needed — user must start by choosing what to find
+}
+
+function onMOutputChange(){
+  const ot=document.getElementById('mOutput').value;
+  if(!ot){setStep(1);return;}
+  // Unlock step 2 — populate compatible input types for this output
+  setStep(2);
+  // Build list of input types that have this output key
+  const mt=document.getElementById('mType');
+  mt.innerHTML='<option value="">Select type…</option>';
+  Object.entries(CONFIGS).forEach(([inputType,cfg])=>{
+    if(cfg.out[ot]) mt.innerHTML+=`<option value="${inputType}">${cfg.label}</option>`;
+  });
+  // Reset step 3
+  const mc=document.getElementById('mCol');
+  mc.innerHTML='<option value="">Select a column…</option>';
+  document.getElementById('costBox').style.display='none';
+  document.getElementById('enrichOkBtn').disabled=true;
+  // Auto-select if only one compatible input type
+  const compatTypes=Object.entries(CONFIGS).filter(([,cfg])=>cfg.out[ot]);
+  if(compatTypes.length===1){mt.value=compatTypes[0][0];onMTypeChange();}
+}
+
+function onMTypeChange(){
+  const ot=document.getElementById('mOutput').value;
+  const it=document.getElementById('mType').value;
+  if(!ot||!it){return;}
+  // Unlock step 3 — populate source columns
+  setStep(3);
   const t=tbl();
   const mc=document.getElementById('mCol');
   mc.innerHTML='<option value="">Select a column…</option>';
@@ -869,41 +967,43 @@ function populateEnrichForm(){
     doneCols.forEach(c=>{mc.innerHTML+=`<option value="ec:${c.id}">✦ ${esc(c.label)}</option>`;});
     mc.innerHTML+=`</optgroup>`;
   }
-  const mt=document.getElementById('mType');
-  mt.innerHTML='<option value="">Select type…</option>';
-  Object.entries(CONFIGS).forEach(([k,v])=>{mt.innerHTML+=`<option value="${k}">${v.label}</option>`;});
-  document.getElementById('mOutput').innerHTML='<option value="">Select input type first…</option>';
-  document.getElementById('mOutput').disabled=true;
   document.getElementById('costBox').style.display='none';
   document.getElementById('enrichOkBtn').disabled=true;
-  autoDetectEnrich();
+  // Auto-detect matching column
+  autoDetectCol(it);
 }
-function autoDetectEnrich(){
+
+function autoDetectCol(inputType){
+  const pm={
+    company_name:['company','company_name','organization'],
+    linkedin_company:['linkedin_company','company_linkedin','company page'],
+    linkedin_profile:['linkedin','linkedin_url','profile_url','profile'],
+    lead_full_name:['name','full_name','full name','contact','lead']
+  };
+  const pats=pm[inputType]||[];
   const t=tbl();
-  const pm={company_name:['company','company_name','organization'],company_domain:['domain','website','url'],linkedin_company:['linkedin_company','company_linkedin','company page'],lead_full_name:['name','full_name','full name','contact','lead']};
   for(const col of t.cols.filter(c=>c.type==='base')){
     const n=col.label.toLowerCase().trim();
-    for(const [type,pats] of Object.entries(pm)){if(pats.some(p=>n===p||n.includes(p))){document.getElementById('mCol').value=`base:${col.id}`;document.getElementById('mType').value=type;onMTypeChange(true);return;}}
+    if(pats.some(p=>n===p||n.includes(p))){
+      document.getElementById('mCol').value=`base:${col.id}`;
+      onMColChange();
+      return;
+    }
   }
 }
-function onMColChange(){updateCostBox();}
-function onMTypeChange(){
-  const t2=document.getElementById('mType').value;
-  const mo=document.getElementById('mOutput');
-  document.getElementById('costBox').style.display='none';document.getElementById('enrichOkBtn').disabled=true;
-  if(!t2){mo.innerHTML='<option value="">Select input type first…</option>';mo.disabled=true;return;}
-  mo.innerHTML='<option value="">Select what to find…</option>';
-  Object.entries(CONFIGS[t2].out).forEach(([k,v])=>{mo.innerHTML+=`<option value="${k}">${v}</option>`;});
-  mo.disabled=false;
-  if(Object.keys(CONFIGS[t2].out).length===1){mo.value=Object.keys(CONFIGS[t2].out)[0];updateCostBox();}
+
+function onMColChange(){
+  const v=document.getElementById('mCol').value;
+  if(v) setStep(4);
+  updateCostBox();
 }
-function onMOutputChange(){updateCostBox();}
+
 function updateCostBox(){
-  const colVal=document.getElementById('mCol').value;
-  const it=document.getElementById('mType').value;
   const ot=document.getElementById('mOutput').value;
-  document.getElementById('enrichOkBtn').disabled=!colVal||!it||!ot;
-  if(!colVal||!it||!ot){document.getElementById('costBox').style.display='none';return;}
+  const it=document.getElementById('mType').value;
+  const colVal=document.getElementById('mCol').value;
+  document.getElementById('enrichOkBtn').disabled=!ot||!it||!colVal;
+  if(!ot||!it||!colVal){document.getElementById('costBox').style.display='none';return;}
   const colLabel=resolveColLabel(colVal);
   const cost=COSTS[`${it}_to_${ot}`]||1;
   const n=tbl().rows.length;
@@ -925,10 +1025,10 @@ function resolveRowValue(row,colVal){
   return'';
 }
 function confirmEnrichCol(){
-  const colVal=document.getElementById('mCol').value;
-  const it=document.getElementById('mType').value;
   const ot=document.getElementById('mOutput').value;
-  if(!colVal||!it||!ot)return;
+  const it=document.getElementById('mType').value;
+  const colVal=document.getElementById('mCol').value;
+  if(!ot||!it||!colVal)return;
   const t=tbl();
   const col={id:'ec_'+uid(),type:'enrich',label:CONFIGS[it].out[ot],srcColVal:colVal,inputType:it,outputType:ot};
   t.cols.push(col);t.rows.forEach(r=>{r.enrich[col.id]={status:'idle',value:null};});
@@ -1030,6 +1130,17 @@ function hideProgress(){setTimeout(()=>{document.getElementById('progressWrap').
 /* ── Modals ── */
 function openModal(id){document.getElementById(id).classList.add('show');}
 function closeModal(id){document.getElementById(id).classList.remove('show');}
+
+/* ── Widen container when grid-outer is resized beyond 600px ── */
+function watchGridResize(){
+  const go=document.getElementById('gridOuter');
+  if(!go||!window.ResizeObserver)return;
+  new ResizeObserver(()=>{
+    const container=document.querySelector('.container');
+    if(!container)return;
+    container.classList.toggle('wide', go.offsetWidth > 560);
+  }).observe(go);
+}
 
 /* ── Utils ── */
 let _uid=0;function uid(){return Date.now().toString(36)+'_'+(++_uid);}
