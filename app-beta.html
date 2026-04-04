@@ -2044,13 +2044,6 @@ src="https://www.facebook.com/tr?id=2717863625238535&ev=PageView&noscript=1"
                     </button>
                 </div>
 
-                <div id="columnGuide" style="display:none; margin-top:0.875rem; background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px; padding:0.875rem 1rem;">
-    <div style="font-size:0.7rem; font-weight:700; color:#1e40af; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:0.6rem;">
-        <i class="fas fa-table" style="margin-right:0.35rem;"></i>Required CSV format
-    </div>
-    <div id="columnGuideContent"></div>
-</div>
-
                 <div class="bulk-api-hint">
     Running this regularly?  <a href="#" onclick="navigateToPage('api'); return false;">connect via API</a> and automate it
 </div>
@@ -2294,8 +2287,6 @@ async function fetchWithTimeout(url, options = {}, timeout = 180000) { // 3 minu
                 document.getElementById('singleSearch').classList.toggle('hidden', mode !== 'single');
                 document.getElementById('bulkSearch').classList.toggle('hidden', mode !== 'bulk');
             }
-            if (currentMode === 'bulk') updateColumnGuide();
-else document.getElementById('columnGuide').style.display = 'none';
             
             hideResults();
         }
@@ -2417,18 +2408,13 @@ function setupDropdowns() {
             document.getElementById('inputData').placeholder = config.placeholder;
             
             // Update upload subtext
-            // REMPLACER la ligne uploadSubtext par :
-const isLeadToLinkedin = currentInputType === 'lead_full_name' && currentOutputType === 'linkedin_url';
-document.getElementById('uploadSubtext').textContent = isLeadToLinkedin
-    ? 'CSV with columns: name (required), company (required) — max 10000 rows'
-    : currentInputType === 'lead_full_name'
-        ? 'CSV with columns: name (required), company (optional) — max 10000 rows'
-        : `CSV with ${config.label.toLowerCase().replace('enter ', '')} (max 10000 rows)`;
+            document.getElementById('uploadSubtext').textContent = currentInputType === 'lead_full_name'
+    ? 'CSV with columns: name (required), company (optional) — max 10000 rows'
+    : `CSV with ${config.label.toLowerCase().replace('enter ', '')} (max 10000 rows)`;
             
             // Show mode toggle and input sections
             document.getElementById('modeToggle').classList.remove('hidden');
             updateOptionalFields();
-            updateColumnGuide();
             showInputSections();
         }
 
@@ -4803,9 +4789,12 @@ function configureEnrichment() {
     document.getElementById('inputData').placeholder = config.placeholder;
     
     // Update upload subtext
-    document.getElementById('uploadSubtext').textContent = currentInputType === 'lead_full_name'
-    ? 'CSV with columns: name (required), company (optional) — max 10000 rows'
-    : `CSV with ${config.label.toLowerCase().replace('enter ', '')} (max 10000 rows)`;
+const isLeadToLinkedin = currentInputType === 'lead_full_name' && currentOutputType === 'linkedin_url';
+document.getElementById('uploadSubtext').textContent = isLeadToLinkedin
+    ? 'CSV with columns: name (required), company (required) — max 10000 rows'
+    : currentInputType === 'lead_full_name'
+        ? 'CSV with columns: name (required), company (optional) — max 10000 rows'
+        : `CSV with ${config.label.toLowerCase().replace('enter ', '')} (max 10000 rows)`;
     
     // Show mode toggle and input sections
     document.getElementById('modeToggle').classList.remove('hidden');
@@ -4945,52 +4934,6 @@ btn.innerHTML = '...';
         btn.innerHTML = originalContent;
         btn.disabled = false;
     }
-}
-
-function updateColumnGuide() {
-    const guide = document.getElementById('columnGuide');
-    const content = document.getElementById('columnGuideContent');
-    if (!guide || !content) return;
-
-    if (!currentInputType) { guide.style.display = 'none'; return; }
-
-    const isLeadToLinkedin = currentInputType === 'lead_full_name' && currentOutputType === 'linkedin_url';
-
-    const configs = {
-        company_name:      { cols: [{ name: 'company_name', required: true }],  example: 'Apple\nTesla\nMicrosoft' },
-        company_domain:    { cols: [{ name: 'domain', required: true }],         example: 'apple.com\ntesla.com' },
-        linkedin_company:  { cols: [{ name: 'linkedin_company_url', required: true }], example: 'linkedin.com/company/apple' },
-        linkedin_profile:  { cols: [{ name: 'linkedin_profile_url', required: true }], example: 'linkedin.com/in/john-doe' },
-        linkedin_post:     { cols: [{ name: 'linkedin_post_url', required: true }],    example: 'linkedin.com/posts/...' },
-        lead_full_name:    isLeadToLinkedin
-            ? { cols: [{ name: 'name', required: true }, { name: 'company', required: true }],  example: 'name,company\nJohn Doe,Apple\nSarah Smith,Tesla' }
-            : { cols: [{ name: 'name', required: true }, { name: 'company', required: false }], example: 'name,company\nJohn Doe,Apple\nSarah Smith,Tesla' }
-    };
-
-    const info = configs[currentInputType];
-    if (!info) { guide.style.display = 'none'; return; }
-
-    let html = '<div style="display:flex; flex-wrap:wrap; gap:0.5rem; margin-bottom:0.75rem;">';
-    info.cols.forEach(col => {
-        const color = col.required ? '#1e40af' : '#6b7280';
-        const bg    = col.required ? '#dbeafe' : '#f3f4f6';
-        const label = col.required ? 'required' : 'optional';
-        html += `
-            <div style="display:inline-flex; align-items:center; gap:0.4rem; background:${bg}; border-radius:5px; padding:0.35rem 0.65rem;">
-                <code style="font-size:0.8rem; font-weight:700; color:${color};">${col.name}</code>
-                <span style="font-size:0.65rem; font-weight:600; color:${color}; opacity:0.75; text-transform:uppercase;">${label}</span>
-            </div>`;
-    });
-    html += '</div>';
-
-    // Mini CSV preview
-    html += `
-        <div style="background:white; border:1px solid #bfdbfe; border-radius:5px; padding:0.5rem 0.75rem; font-family:monospace; font-size:0.75rem; color:#374151; white-space:pre; line-height:1.6;">
-${info.example}
-        </div>`;
-
-    content.innerHTML = html;
-    guide.style.display = 'block';
 }
 
 function openBuyCreditsModal() {
