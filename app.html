@@ -3950,8 +3950,19 @@ if (employee.companylinkedinurl) html += `<div><strong>Company LinkedIn:</strong
     // For lead_full_name: also look for an optional company column (different from name column)
     let companyIdx = -1;
     if (currentInputType === 'lead_full_name') {
-        companyIdx = headers.findIndex((h, i) => i !== dataIdx && headerMatchScore(h, companyNameHeaders) > 0);
+    companyIdx = headers.findIndex((h, i) => i !== dataIdx && headerMatchScore(h, companyNameHeaders) > 0);
+
+    // Company obligatoire pour lead → LinkedIn URL
+    if (currentOutputType === 'linkedin_url' && companyIdx === -1) {
+        showAlert(
+            `A "company" column is required to find LinkedIn profiles. ` +
+            `Please add a column named "company" to your CSV. ` +
+            `Found columns: "${rawHeaders.join('", "')}"`,
+            'error'
+        );
+        return;
     }
+}
 
     for (let i = 1; i < lines.length; i++) {
         const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
@@ -4778,9 +4789,12 @@ function configureEnrichment() {
     document.getElementById('inputData').placeholder = config.placeholder;
     
     // Update upload subtext
-    document.getElementById('uploadSubtext').textContent = currentInputType === 'lead_full_name'
-    ? 'CSV with columns: name (required), company (optional) — max 10000 rows'
-    : `CSV with ${config.label.toLowerCase().replace('enter ', '')} (max 10000 rows)`;
+const isLeadToLinkedin = currentInputType === 'lead_full_name' && currentOutputType === 'linkedin_url';
+document.getElementById('uploadSubtext').textContent = isLeadToLinkedin
+    ? 'CSV with columns: name (required), company (required) — max 10000 rows'
+    : currentInputType === 'lead_full_name'
+        ? 'CSV with columns: name (required), company (optional) — max 10000 rows'
+        : `CSV with ${config.label.toLowerCase().replace('enter ', '')} (max 10000 rows)`;
     
     // Show mode toggle and input sections
     document.getElementById('modeToggle').classList.remove('hidden');
