@@ -269,7 +269,62 @@
         box-shadow: 0 3px 10px rgba(251, 146, 60, 0.35);
     }
 }
-
+/* Automation nudge strip */
+.automation-nudge {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    background: #f8faff;
+    border: 1px solid #bfdbfe;
+    border-radius: 10px;
+    padding: 0.875rem 1.125rem;
+    margin-top: 1rem;
+    flex-wrap: wrap;
+    animation: nudge-in 0.35s ease;
+}
+@keyframes nudge-in {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+.nudge-left { display: flex; align-items: center; gap: 0.75rem; }
+.nudge-icon { font-size: 1.1rem; flex-shrink: 0; }
+.nudge-title { font-size: 0.825rem; font-weight: 600; color: var(--gray-900); }
+.nudge-sub   { font-size: 0.72rem; color: var(--gray-500); margin-top: 0.1rem; }
+.nudge-platforms { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+.nudge-btn {
+    display: inline-flex; align-items: center; gap: 0.3rem;
+    padding: 0.3rem 0.65rem; border-radius: 5px; font-size: 0.72rem;
+    font-weight: 600; text-decoration: none; cursor: pointer;
+    transition: opacity 0.15s, transform 0.15s; white-space: nowrap;
+    font-family: inherit; border: 1px solid transparent;
+}
+.nudge-btn:hover { opacity: 0.8; transform: translateY(-1px); }
+.nudge-n8n    { background: #fdf2f5; color: #ea4b71; border-color: rgba(234,75,113,0.2); }
+.nudge-make   { background: #f5f0fd; color: #6d28d9; border-color: rgba(109,40,217,0.18); }
+.nudge-zapier { background: #fff3ee; color: #ff4a00; border-color: rgba(255,74,0,0.18); }
+.nudge-api    { background: #eff6ff; color: #2563eb; border-color: rgba(37,99,235,0.2); }
+.nudge-logo { width: 13px; height: 13px; border-radius: 2px; display: inline-flex; align-items: center; justify-content: center; font-size: 0.55rem; font-weight: 900; color: white; flex-shrink: 0; }
+.nudge-logo-n8n    { background: #ea4b71; }
+.nudge-logo-make   { background: #6d28d9; }
+.nudge-logo-zapier { background: #ff4a00; }
+.mode-option-automate {
+    flex: 1; padding: 0.75rem; border: none; background: transparent;
+    border-radius: 6px; font-weight: 600; color: var(--primary);
+    cursor: pointer; transition: all 0.2s ease; font-size: 0.8rem;
+    display: flex; align-items: center; justify-content: center;
+    gap: 0.35rem; font-family: inherit; border-left: 1px solid var(--gray-200);
+}
+.mode-option-automate:hover { background: #eff6ff; }
+.bulk-api-hint {
+    text-align: center; margin-top: 0.875rem;
+    font-size: 0.775rem; color: var(--gray-400);
+}
+.bulk-api-hint a {
+    color: var(--primary); text-decoration: none; font-weight: 500;
+    border-bottom: 1px dashed rgba(37,99,235,0.3);
+}
+.bulk-api-hint a:hover { border-bottom-color: var(--primary); }
         /* Navigation Menu */
         .nav-menu {
             background: white;
@@ -1852,6 +1907,10 @@ src="https://www.facebook.com/tr?id=2717863625238535&ev=PageView&noscript=1"
                     <i class="fas fa-search"></i>
                     Data Enrichment
                 </a>
+                 <a href="#" class="nav-tab" data-page="columns">
+                    <i class="fas fa-table"></i>
+                    AI Columns
+                </a>
                 <a href="#" class="nav-tab" data-page="api">
                     <i class="fas fa-code"></i>
                     API Access
@@ -1859,10 +1918,6 @@ src="https://www.facebook.com/tr?id=2717863625238535&ev=PageView&noscript=1"
                 <a href="#" class="nav-tab" data-page="account">
                     <i class="fas fa-user"></i>
                     Account
-                </a>
-                <a href="#" class="nav-tab" data-page="referral">
-                    <i class="fas fa-gift"></i>
-                    Referral
                 </a>
             </div>
         </div>
@@ -1989,6 +2044,17 @@ src="https://www.facebook.com/tr?id=2717863625238535&ev=PageView&noscript=1"
                     </button>
                 </div>
 
+                <div id="columnGuide" style="display:none; margin-top:0.875rem; background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px; padding:0.875rem 1rem;">
+    <div style="font-size:0.7rem; font-weight:700; color:#1e40af; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:0.6rem;">
+        <i class="fas fa-table" style="margin-right:0.35rem;"></i>Required CSV format
+    </div>
+    <div id="columnGuideContent"></div>
+</div>
+
+                <div class="bulk-api-hint">
+    Running this regularly?  <a href="#" onclick="navigateToPage('api'); return false;">connect via API</a> and automate it
+</div>
+
                 <div id="csvPreview" class="hidden">
                     <h4 style="margin: 1rem 0 0.5rem; font-size: 0.875rem; color: var(--gray-700);">
                         Preview (first 5 entries)
@@ -2025,8 +2091,10 @@ src="https://www.facebook.com/tr?id=2717863625238535&ev=PageView&noscript=1"
                     <div id="progressContainer" class="progress-container hidden">
                         <div id="progressBar" class="progress-bar" style="width: 0%"></div>
                     </div>
+                    
                     <div id="bulkResultsTable" class="table-container"></div>
                 </div>
+                <div id="automationNudge" style="display:none;"></div>
             </div>
         </div>
     </div>
@@ -2226,6 +2294,8 @@ async function fetchWithTimeout(url, options = {}, timeout = 180000) { // 3 minu
                 document.getElementById('singleSearch').classList.toggle('hidden', mode !== 'single');
                 document.getElementById('bulkSearch').classList.toggle('hidden', mode !== 'bulk');
             }
+            if (currentMode === 'bulk') updateColumnGuide();
+else document.getElementById('columnGuide').style.display = 'none';
             
             hideResults();
         }
@@ -2347,13 +2417,18 @@ function setupDropdowns() {
             document.getElementById('inputData').placeholder = config.placeholder;
             
             // Update upload subtext
-            document.getElementById('uploadSubtext').textContent = currentInputType === 'lead_full_name'
-    ? 'CSV with columns: name (required), company (optional) — max 10000 rows'
-    : `CSV with ${config.label.toLowerCase().replace('enter ', '')} (max 10000 rows)`;
+            // REMPLACER la ligne uploadSubtext par :
+const isLeadToLinkedin = currentInputType === 'lead_full_name' && currentOutputType === 'linkedin_url';
+document.getElementById('uploadSubtext').textContent = isLeadToLinkedin
+    ? 'CSV with columns: name (required), company (required) — max 10000 rows'
+    : currentInputType === 'lead_full_name'
+        ? 'CSV with columns: name (required), company (optional) — max 10000 rows'
+        : `CSV with ${config.label.toLowerCase().replace('enter ', '')} (max 10000 rows)`;
             
             // Show mode toggle and input sections
             document.getElementById('modeToggle').classList.remove('hidden');
             updateOptionalFields();
+            updateColumnGuide();
             showInputSections();
         }
 
@@ -2642,6 +2717,7 @@ function formatPostReactionsData(reactionsArray) {
     document.getElementById('resultsSection').classList.remove('hidden');
     document.getElementById('singleResult').classList.remove('hidden');
     document.getElementById('bulkResults').classList.add('hidden');
+    
 }
 
 
@@ -2769,6 +2845,7 @@ async function processBulk() {
         
         btn.disabled = false;
         btn.innerHTML = `<i class="fas fa-play"></i> Process Items`;
+        
     }
 }
         // Format LinkedIn profile data for bulk display (shorter version)
@@ -2795,6 +2872,47 @@ function formatLinkedInCompanyDataBulk(data) {
 
        function formatEmployeesData(employeesArray) {
     return employeesArray; 
+}
+
+function goToAutomate() {
+    window.location.href = addGclid(`https://linkfinderai.com/app-workflows?token=${userToken}`);
+}
+
+function showAutomationNudge(inputType, outputType) {
+    const el = document.getElementById('automationNudge');
+    if (!el) return;
+    const messages = {
+        'company_domain__employees':       { title: 'Automate prospect extraction',  sub: 'Pull fresh prospects every week — zero manual work' },
+        'linkedin_profile__linkedin_info': { title: 'Enrich leads as they come in',  sub: 'Trigger this when a new contact hits your CRM' },
+        'linkedin_company__linkedin_info': { title: 'Automate company research',      sub: 'Enrich new accounts added to your pipeline' },
+        'linkedin_post__reactions':        { title: 'Monitor posts automatically',    sub: 'Extract warm leads every time you publish' },
+        'lead_full_name__linkedin_url':    { title: 'Enrich your CRM automatically',  sub: 'Run this when new contacts are created' },
+        'company_name__website':           { title: 'Automate company data lookup',   sub: 'Run on every new lead in your workflow' },
+        'company_name__email':             { title: 'Find emails automatically',      sub: 'Trigger from your CRM or outreach tool' },
+        'company_name__phone':             { title: 'Automate phone lookups',         sub: 'Plug directly into your outbound workflow' },
+        'company_name__linkedin_url':      { title: 'Build lists automatically',      sub: 'Run on new company lists as they come in' },
+    };
+    const key = `${inputType}__${outputType}`;
+    const msg = messages[key] || { title: 'Automate this step', sub: 'Run it in n8n, Make, or Zapier — no manual CSV' };
+    const wUrl = addGclid(`https://linkfinderai.com/app-workflows?token=${userToken}`);
+    const aUrl = addGclid(`https://linkfinderai.com/api-access?token=${userToken}`);
+    el.innerHTML = `
+        <div class="automation-nudge">
+            <div class="nudge-left">
+                <span class="nudge-icon">⚡</span>
+                <div>
+                    <div class="nudge-title">${msg.title}</div>
+                    <div class="nudge-sub">${msg.sub}</div>
+                </div>
+            </div>
+            <div class="nudge-platforms">
+                <a href="${wUrl}" class="nudge-btn nudge-n8n"><span class="nudge-logo nudge-logo-n8n">n</span> n8n</a>
+                <a href="${wUrl}" class="nudge-btn nudge-make"><span class="nudge-logo nudge-logo-make">M</span> Make</a>
+                <a href="https://zapier.com/developer/public-invite/235719/7244430282f42f35ad6bd25db6ac39bf/" target="_blank" class="nudge-btn nudge-zapier"><span class="nudge-logo nudge-logo-zapier">Z</span> Zapier</a>
+                <a href="${aUrl}" class="nudge-btn nudge-api">&lt;/&gt; API</a>
+            </div>
+        </div>`;
+    el.style.display = 'block';
 }
 
 // Refresh warning functions
@@ -2868,8 +2986,8 @@ function handleBeforeUnload(e) {
                  case 'account':
                       window.location.href = addGclid(`https://linkfinderai.com/account?token=${userToken}`);
                       break;
-                case 'referral':
-                    window.location.href = addGclid(`https://linkfinderai.com/referral-program?token=${userToken}`);
+                case 'columns':
+                    window.location.href = addGclid(`https://linkfinderai.com/app-prospects?token=${userToken}`);
                     break;
     }
 }
@@ -3519,6 +3637,7 @@ if (linkedInFields.experiences && linkedInFields.experiences.length > 0) {
     document.getElementById('resultsSection').classList.remove('hidden');
     document.getElementById('singleResult').classList.remove('hidden');
     document.getElementById('bulkResults').classList.add('hidden');
+    
 }
 
 
@@ -3578,6 +3697,7 @@ if (employee.companylinkedinurl) html += `<div><strong>Company LinkedIn:</strong
     document.getElementById('resultsSection').classList.remove('hidden');
     document.getElementById('singleResult').classList.remove('hidden');
     document.getElementById('bulkResults').classList.add('hidden');
+    
 }
 
  function showSingleResultReactions(inputData, reactionsArray) {
@@ -3633,6 +3753,7 @@ if (employee.companylinkedinurl) html += `<div><strong>Company LinkedIn:</strong
     document.getElementById('resultsSection').classList.remove('hidden');
     document.getElementById('singleResult').classList.remove('hidden');
     document.getElementById('bulkResults').classList.add('hidden');
+    
 }
 
       function showSingleResultAsTable(inputData, reactionsArray) {
@@ -3843,8 +3964,19 @@ if (employee.companylinkedinurl) html += `<div><strong>Company LinkedIn:</strong
     // For lead_full_name: also look for an optional company column (different from name column)
     let companyIdx = -1;
     if (currentInputType === 'lead_full_name') {
-        companyIdx = headers.findIndex((h, i) => i !== dataIdx && headerMatchScore(h, companyNameHeaders) > 0);
+    companyIdx = headers.findIndex((h, i) => i !== dataIdx && headerMatchScore(h, companyNameHeaders) > 0);
+
+    // Company obligatoire pour lead → LinkedIn URL
+    if (currentOutputType === 'linkedin_url' && companyIdx === -1) {
+        showAlert(
+            `A "company" column is required to find LinkedIn profiles. ` +
+            `Please add a column named "company" to your CSV. ` +
+            `Found columns: "${rawHeaders.join('", "')}"`,
+            'error'
+        );
+        return;
     }
+}
 
     for (let i = 1; i < lines.length; i++) {
         const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
@@ -4383,7 +4515,7 @@ else if (currentInputType === 'linkedin_company' && currentOutputType === 'linke
     a.href = url;
     
     // Generate filename based on enrichment type
-    let filename = 'enriched_data';
+    let filename = 'linkfinder_ai_enriched_data';
     if (currentInputType === 'linkedin_post') {
         filename = 'linkedin_reactions';
     } else if (currentInputType === 'linkedin_profile') {
@@ -4417,8 +4549,10 @@ function addGclid(url) {
         }
 
         function hideResults() {
-            document.getElementById('resultsSection').classList.add('hidden');
-        }
+    document.getElementById('resultsSection').classList.add('hidden');
+    const nudge = document.getElementById('automationNudge');
+    if (nudge) { nudge.style.display = 'none'; nudge.innerHTML = ''; }
+}
 
        const plans = [
     { 
@@ -4813,6 +4947,52 @@ btn.innerHTML = '...';
     }
 }
 
+function updateColumnGuide() {
+    const guide = document.getElementById('columnGuide');
+    const content = document.getElementById('columnGuideContent');
+    if (!guide || !content) return;
+
+    if (!currentInputType) { guide.style.display = 'none'; return; }
+
+    const isLeadToLinkedin = currentInputType === 'lead_full_name' && currentOutputType === 'linkedin_url';
+
+    const configs = {
+        company_name:      { cols: [{ name: 'company_name', required: true }],  example: 'Apple\nTesla\nMicrosoft' },
+        company_domain:    { cols: [{ name: 'domain', required: true }],         example: 'apple.com\ntesla.com' },
+        linkedin_company:  { cols: [{ name: 'linkedin_company_url', required: true }], example: 'linkedin.com/company/apple' },
+        linkedin_profile:  { cols: [{ name: 'linkedin_profile_url', required: true }], example: 'linkedin.com/in/john-doe' },
+        linkedin_post:     { cols: [{ name: 'linkedin_post_url', required: true }],    example: 'linkedin.com/posts/...' },
+        lead_full_name:    isLeadToLinkedin
+            ? { cols: [{ name: 'name', required: true }, { name: 'company', required: true }],  example: 'name,company\nJohn Doe,Apple\nSarah Smith,Tesla' }
+            : { cols: [{ name: 'name', required: true }, { name: 'company', required: false }], example: 'name,company\nJohn Doe,Apple\nSarah Smith,Tesla' }
+    };
+
+    const info = configs[currentInputType];
+    if (!info) { guide.style.display = 'none'; return; }
+
+    let html = '<div style="display:flex; flex-wrap:wrap; gap:0.5rem; margin-bottom:0.75rem;">';
+    info.cols.forEach(col => {
+        const color = col.required ? '#1e40af' : '#6b7280';
+        const bg    = col.required ? '#dbeafe' : '#f3f4f6';
+        const label = col.required ? 'required' : 'optional';
+        html += `
+            <div style="display:inline-flex; align-items:center; gap:0.4rem; background:${bg}; border-radius:5px; padding:0.35rem 0.65rem;">
+                <code style="font-size:0.8rem; font-weight:700; color:${color};">${col.name}</code>
+                <span style="font-size:0.65rem; font-weight:600; color:${color}; opacity:0.75; text-transform:uppercase;">${label}</span>
+            </div>`;
+    });
+    html += '</div>';
+
+    // Mini CSV preview
+    html += `
+        <div style="background:white; border:1px solid #bfdbfe; border-radius:5px; padding:0.5rem 0.75rem; font-family:monospace; font-size:0.75rem; color:#374151; white-space:pre; line-height:1.6;">
+${info.example}
+        </div>`;
+
+    content.innerHTML = html;
+    guide.style.display = 'block';
+}
+
 function openBuyCreditsModal() {
     document.getElementById('buyCreditsModal').classList.add('show');
     document.body.style.overflow = 'hidden';
@@ -4903,13 +5083,84 @@ document.addEventListener('click', (e) => {
                 <div class="credit-pack-price">$79</div>
                 <div class="credit-pack-per">$0.0079 / credit</div>
             </div>
-            <div class="credit-pack" onclick="buyCredits('pro', 79)">
+        <div class="credit-pack" onclick="buyCredits('pro', 79)">
                 <div class="credit-pack-amount">25,000</div>
                 <div class="credit-pack-label">credits</div>
                 <div class="credit-pack-price">$189</div>
                 <div class="credit-pack-per">$0.00756 / credit</div>
             </div>
         </div>
+
+        <!-- Upgrade Plan Banner -->
+        <div
+            onclick="closeBuyCreditsModal(); showPricingModal();"
+            style="
+                margin-top: 0.5rem;
+                background: linear-gradient(135deg, #1e40af, #2563eb);
+                border-radius: 12px;
+                padding: 1.25rem 1.5rem;
+                cursor: pointer;
+                transition: all 0.2s ease;
+                position: relative;
+                overflow: hidden;
+            "
+            onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 20px rgba(37,99,235,0.4)'"
+            onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'"
+        >
+            <!-- Background shine effect -->
+            <div style="
+                position: absolute; top: -20px; right: -20px;
+                width: 100px; height: 100px;
+                background: rgba(255,255,255,0.07);
+                border-radius: 50%;
+            "></div>
+            <div style="
+                position: absolute; bottom: -30px; right: 60px;
+                width: 80px; height: 80px;
+                background: rgba(255,255,255,0.05);
+                border-radius: 50%;
+            "></div>
+
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; position: relative;">
+                <div>
+                    <div style="
+                        font-size: 0.65rem;
+                        font-weight: 700;
+                        text-transform: uppercase;
+                        letter-spacing: 0.08em;
+                        color: #93c5fd;
+                        margin-bottom: 0.3rem;
+                    ">Better value</div>
+                    <div style="
+                        font-size: 1rem;
+                        font-weight: 700;
+                        color: white;
+                        margin-bottom: 0.25rem;
+                    ">Upgrade or Change Plan</div>
+                    <div style="
+                        font-size: 0.8rem;
+                        color: #bfdbfe;
+                        line-height: 1.4;
+                    ">Get monthly credits at up to <strong style="color:white;">5× cheaper</strong> per credit</div>
+                </div>
+                <div style="
+                    background: white;
+                    color: #2563eb;
+                    font-weight: 700;
+                    font-size: 0.8rem;
+                    padding: 0.6rem 1rem;
+                    border-radius: 8px;
+                    white-space: nowrap;
+                    flex-shrink: 0;
+                    display: flex;
+                    align-items: center;
+                    gap: 0.4rem;
+                ">
+                    See Plans <i class="fas fa-arrow-right"></i>
+                </div>
+            </div>
+        </div>
+
     </div>
 </div>
 
