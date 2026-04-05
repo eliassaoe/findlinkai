@@ -10,133 +10,101 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <style>
 :root {
-  --primary: #2563eb;
-  --primary-hover: #1d4ed8;
-  --gray-50: #f9fafb;
-  --gray-100: #f3f4f6;
-  --gray-200: #e5e7eb;
-  --gray-300: #d1d5db;
-  --gray-400: #9ca3af;
-  --gray-500: #6b7280;
-  --gray-600: #4b5563;
-  --gray-700: #374151;
-  --gray-800: #1f2937;
-  --gray-900: #111827;
-  --success: #10b981;
-  --error: #ef4444;
-  --warning: #f59e0b;
+  --primary:#2563eb; --primary-hover:#1d4ed8;
+  --gray-50:#f9fafb; --gray-100:#f3f4f6; --gray-200:#e5e7eb; --gray-300:#d1d5db;
+  --gray-400:#9ca3af; --gray-500:#6b7280; --gray-600:#4b5563; --gray-700:#374151;
+  --gray-800:#1f2937; --gray-900:#111827;
+  --success:#10b981; --error:#ef4444; --warning:#f59e0b;
 }
-* { margin: 0; padding: 0; box-sizing: border-box; }
-body { font-family: 'Inter', -apple-system, sans-serif; background: white; color: var(--gray-800); line-height: 1.6; font-size: 16px; }
-.container { max-width: 600px; margin: 0 auto; padding: 0 1rem; }
-
-/* Header */
-.header { padding: 1rem 0; border-bottom: 1px solid var(--gray-200); background: white; position: sticky; top: 0; z-index: 100; }
-.header-content { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; }
-.logo { display: flex; align-items: center; gap: .5rem; color: var(--gray-900); text-decoration: none; }
-.logo-icon { width: 32px; height: 32px; background: var(--primary); border-radius: 6px; display: flex; align-items: center; justify-content: center; color: white; font-size: 1rem; }
-.logo-text { font-size: 1.25rem; font-weight: 600; }
-.user-info { display: flex; align-items: center; gap: .75rem; font-size: .875rem; }
-.credits { display: flex; align-items: center; gap: .5rem; background: var(--gray-100); padding: .5rem .75rem; border-radius: 1rem; font-weight: 500; color: var(--gray-700); font-size: .875rem; }
-.credits i { color: var(--warning); }
-.btn { background: var(--primary); color: white; border: none; padding: .5rem 1rem; border-radius: 6px; font-weight: 500; cursor: pointer; font-size: .875rem; transition: all .2s; font-family: inherit; }
-.btn:hover { background: var(--primary-hover); }
-.btn-outline { background: transparent; color: var(--primary); border: 1px solid var(--gray-300); }
-.btn-outline:hover { background: var(--gray-50); border-color: var(--primary); }
-.btn-buy-inline { background: linear-gradient(135deg,#fb923c,#f97316); border: none; color: white; font-weight: 700; font-size: .7rem; cursor: pointer; padding: .25rem .5rem; border-radius: 4px; white-space: nowrap; font-family: inherit; margin-left: .35rem; }
-
-/* Nav */
-.nav-menu { background: white; border-bottom: 1px solid var(--gray-200); padding: .75rem 0; }
-.nav-tabs { display: flex; gap: .5rem; overflow-x: auto; padding-bottom: .25rem; }
-.nav-tab { display: flex; align-items: center; gap: .5rem; padding: .75rem 1rem; border-radius: 8px; background: transparent; border: 1px solid var(--gray-200); color: var(--gray-600); text-decoration: none; font-weight: 500; font-size: .875rem; transition: all .2s; white-space: nowrap; cursor: pointer; font-family: inherit; }
-.nav-tab:hover { background: var(--gray-50); border-color: var(--primary); color: var(--gray-800); }
-.nav-tab.active { background: var(--primary); border-color: var(--primary); color: white; }
-.nav-tab i { font-size: .875rem; }
-
-/* Main */
-.main { padding: 2rem 0; }
-
-/* Search card */
-.search-card { background: white; border: 1px solid var(--gray-200); border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,.1); }
-.search-label { font-size: .875rem; font-weight: 600; color: var(--gray-700); margin-bottom: .5rem; display: block; }
-.search-wrap { display: flex; gap: .5rem; }
-.search-input { flex: 1; padding: .75rem 1rem; border: 1px solid var(--gray-300); border-radius: 6px; font-size: .875rem; color: var(--gray-800); font-family: inherit; transition: border-color .2s; }
-.search-input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37,99,235,.1); }
-.search-input::placeholder { color: var(--gray-400); }
-.btn-search { background: var(--primary); color: white; border: none; padding: .75rem 1.25rem; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: .875rem; font-family: inherit; white-space: nowrap; transition: all .2s; display: flex; align-items: center; gap: .375rem; }
-.btn-search:hover { background: var(--primary-hover); }
-.btn-search:disabled { opacity: .5; cursor: not-allowed; }
-.hint-row { display: flex; gap: .5rem; flex-wrap: wrap; margin-top: .75rem; }
-.hint { font-size: .75rem; color: var(--gray-500); background: var(--gray-100); border: 1px solid var(--gray-200); padding: .25rem .625rem; border-radius: 999px; cursor: pointer; transition: all .15s; }
-.hint:hover { border-color: var(--primary); color: var(--primary); background: #eff6ff; }
-.search-options { display: flex; align-items: center; gap: 1rem; margin-top: .875rem; flex-wrap: wrap; }
-.count-wrap { display: flex; align-items: center; gap: .5rem; }
-.count-label { font-size: .775rem; font-weight: 500; color: var(--gray-600); white-space: nowrap; }
-.count-input { width: 70px; padding: .375rem .5rem; border: 1px solid var(--gray-300); border-radius: 6px; font-size: .8rem; color: var(--gray-800); font-family: inherit; text-align: center; transition: border-color .2s; }
-.count-input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37,99,235,.1); }
-.cost-hint { font-size: .75rem; color: var(--gray-400); margin-left: auto; }
-.cost-hint strong { color: var(--warning); }
-
-/* Loading */
-.loading-state { text-align: center; padding: 2.5rem 1rem; display: none; }
-.loading-state i { font-size: 1.5rem; color: var(--primary); animation: spin .8s linear infinite; display: block; margin-bottom: .75rem; }
-@keyframes spin { to { transform: rotate(360deg); } }
-.loading-state p { font-size: .875rem; color: var(--gray-600); }
-.loading-step { font-size: .775rem; color: var(--gray-400); margin-top: .375rem; }
-
-/* Results header */
-.results-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; flex-wrap: wrap; gap: .5rem; }
-.results-title { font-size: .9rem; font-weight: 600; color: var(--gray-700); display: flex; align-items: center; gap: .5rem; }
-.count-badge { background: #eff6ff; color: var(--primary); border: 1px solid #bfdbfe; padding: .15rem .5rem; border-radius: 999px; font-size: .72rem; font-weight: 700; }
-.results-actions { display: flex; gap: .5rem; }
-.btn-sm { background: white; border: 1px solid var(--gray-300); color: var(--gray-600); padding: .4rem .875rem; border-radius: 6px; font-size: .775rem; font-weight: 500; cursor: pointer; font-family: inherit; display: flex; align-items: center; gap: .375rem; transition: all .15s; }
-.btn-sm:hover { background: var(--gray-50); border-color: var(--gray-400); }
-.btn-sm.primary { background: var(--primary); border-color: var(--primary); color: white; }
-.btn-sm.primary:hover { background: var(--primary-hover); }
-
-/* Lead cards */
-.leads-list { display: flex; flex-direction: column; gap: .5rem; }
-.lead-card { background: white; border: 1px solid var(--gray-200); border-radius: 8px; padding: .875rem 1rem; display: flex; align-items: center; gap: .875rem; transition: border-color .15s; }
-.lead-card:hover { border-color: var(--gray-300); }
-.lead-avatar { width: 36px; height: 36px; border-radius: 8px; background: #eff6ff; border: 1px solid #dbeafe; display: flex; align-items: center; justify-content: center; font-size: .75rem; font-weight: 700; color: var(--primary); flex-shrink: 0; font-family: 'Inter', monospace; }
-.lead-avatar.dim { background: var(--gray-100); border-color: var(--gray-200); color: var(--gray-400); }
-.lead-info { flex: 1; min-width: 0; }
-.lead-name { font-size: .875rem; font-weight: 600; color: var(--gray-900); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.lead-name.dim { color: var(--gray-400); }
-.lead-sub { font-size: .775rem; color: var(--gray-500); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: .1rem; }
-.lead-sub.loading { color: var(--gray-400); display: flex; align-items: center; gap: .375rem; }
-.mini-spin { width: 11px; height: 11px; border: 1.5px solid var(--gray-200); border-top-color: var(--primary); border-radius: 50%; animation: spin .7s linear infinite; flex-shrink: 0; }
-.lead-li { width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--gray-200); background: white; display: flex; align-items: center; justify-content: center; color: var(--gray-400); font-size: .75rem; text-decoration: none; flex-shrink: 0; transition: all .15s; }
-.lead-li:hover { border-color: #0077b5; color: #0077b5; }
-
-/* Past searches */
-.past-section { margin-top: 2rem; display: none; }
-.section-label { font-size: .72rem; font-weight: 600; color: var(--gray-400); text-transform: uppercase; letter-spacing: .07em; margin-bottom: .75rem; display: flex; align-items: center; gap: .5rem; }
-.section-label::after { content: ''; flex: 1; height: 1px; background: var(--gray-200); }
-.past-item { display: flex; align-items: center; gap: .75rem; padding: .75rem; border: 1px solid var(--gray-200); border-radius: 8px; cursor: pointer; transition: all .15s; margin-bottom: .375rem; }
-.past-item:hover { border-color: var(--gray-300); background: var(--gray-50); }
-.past-icon { width: 28px; height: 28px; border-radius: 6px; background: var(--gray-100); display: flex; align-items: center; justify-content: center; color: var(--gray-400); font-size: .7rem; flex-shrink: 0; }
-.past-query { font-size: .825rem; font-weight: 500; color: var(--gray-800); flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.past-meta { font-size: .72rem; color: var(--gray-400); text-align: right; flex-shrink: 0; }
-.past-count { color: var(--primary); font-weight: 600; display: block; }
-
-/* Empty */
-.empty-state { text-align: center; padding: 3rem 1rem; }
-.empty-state i { font-size: 1.75rem; color: var(--gray-300); display: block; margin-bottom: .875rem; }
-.empty-state h3 { font-size: .875rem; font-weight: 600; color: var(--gray-700); margin-bottom: .35rem; }
-.empty-state p { font-size: .8rem; color: var(--gray-400); }
-
-/* Alert */
-.alert { padding: .875rem 1rem; border-radius: 6px; margin-bottom: 1rem; font-size: .875rem; display: none; }
-.alert-error { background: rgba(239,68,68,.08); border: 1px solid var(--error); color: var(--error); }
-.alert-success { background: rgba(16,185,129,.08); border: 1px solid var(--success); color: var(--success); }
-
-.hidden { display: none !important; }
-
-@media (max-width: 640px) {
-  .nav-tab { padding: .625rem .75rem; font-size: .8rem; }
-  .search-wrap { flex-direction: column; }
-  .btn-search { justify-content: center; }
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Inter',-apple-system,sans-serif;background:white;color:var(--gray-800);line-height:1.6;font-size:16px;}
+.container{max-width:600px;margin:0 auto;padding:0 1rem;}
+.header{padding:1rem 0;border-bottom:1px solid var(--gray-200);background:white;position:sticky;top:0;z-index:100;}
+.header-content{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;}
+.logo{display:flex;align-items:center;gap:.5rem;color:var(--gray-900);text-decoration:none;}
+.logo-icon{width:32px;height:32px;background:var(--primary);border-radius:6px;display:flex;align-items:center;justify-content:center;color:white;font-size:1rem;}
+.logo-text{font-size:1.25rem;font-weight:600;}
+.user-info{display:flex;align-items:center;gap:.75rem;font-size:.875rem;}
+.credits{display:flex;align-items:center;gap:.5rem;background:var(--gray-100);padding:.5rem .75rem;border-radius:1rem;font-weight:500;color:var(--gray-700);font-size:.875rem;}
+.credits i{color:var(--warning);}
+.btn{background:var(--primary);color:white;border:none;padding:.5rem 1rem;border-radius:6px;font-weight:500;cursor:pointer;font-size:.875rem;transition:all .2s;font-family:inherit;}
+.btn:hover{background:var(--primary-hover);}
+.btn-outline{background:transparent;color:var(--primary);border:1px solid var(--gray-300);}
+.btn-outline:hover{background:var(--gray-50);border-color:var(--primary);}
+.btn-buy-inline{background:linear-gradient(135deg,#fb923c,#f97316);border:none;color:white;font-weight:700;font-size:.7rem;cursor:pointer;padding:.25rem .5rem;border-radius:4px;white-space:nowrap;font-family:inherit;margin-left:.35rem;}
+.nav-menu{background:white;border-bottom:1px solid var(--gray-200);padding:.75rem 0;}
+.nav-tabs{display:flex;gap:.5rem;overflow-x:auto;padding-bottom:.25rem;}
+.nav-tab{display:flex;align-items:center;gap:.5rem;padding:.75rem 1rem;border-radius:8px;background:transparent;border:1px solid var(--gray-200);color:var(--gray-600);text-decoration:none;font-weight:500;font-size:.875rem;transition:all .2s;white-space:nowrap;cursor:pointer;font-family:inherit;}
+.nav-tab:hover{background:var(--gray-50);border-color:var(--primary);color:var(--gray-800);}
+.nav-tab.active{background:var(--primary);border-color:var(--primary);color:white;}
+.nav-tab i{font-size:.875rem;}
+.main{padding:2rem 0;}
+.search-card{background:white;border:1px solid var(--gray-200);border-radius:12px;padding:1.5rem;margin-bottom:1.5rem;box-shadow:0 1px 3px rgba(0,0,0,.1);}
+.search-label{font-size:.875rem;font-weight:600;color:var(--gray-700);margin-bottom:.5rem;display:block;}
+.search-wrap{display:flex;gap:.5rem;}
+.search-input{flex:1;padding:.75rem 1rem;border:1px solid var(--gray-300);border-radius:6px;font-size:.875rem;color:var(--gray-800);font-family:inherit;transition:border-color .2s;}
+.search-input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(37,99,235,.1);}
+.search-input::placeholder{color:var(--gray-400);}
+.btn-search{background:var(--primary);color:white;border:none;padding:.75rem 1.25rem;border-radius:6px;font-weight:600;cursor:pointer;font-size:.875rem;font-family:inherit;white-space:nowrap;transition:all .2s;display:flex;align-items:center;gap:.375rem;}
+.btn-search:hover{background:var(--primary-hover);}
+.btn-search:disabled{opacity:.5;cursor:not-allowed;}
+.hint-row{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.75rem;}
+.hint{font-size:.75rem;color:var(--gray-500);background:var(--gray-100);border:1px solid var(--gray-200);padding:.25rem .625rem;border-radius:999px;cursor:pointer;transition:all .15s;}
+.hint:hover{border-color:var(--primary);color:var(--primary);background:#eff6ff;}
+.search-bottom{display:flex;align-items:center;gap:1rem;margin-top:.75rem;padding-top:.75rem;border-top:1px solid var(--gray-100);flex-wrap:wrap;}
+.count-wrap{display:flex;align-items:center;gap:.5rem;}
+.count-label{font-size:.775rem;font-weight:500;color:var(--gray-600);white-space:nowrap;}
+.count-input{width:70px;padding:.375rem .5rem;border:1px solid var(--gray-300);border-radius:6px;font-size:.8rem;color:var(--gray-800);font-family:inherit;text-align:center;transition:border-color .2s;}
+.count-input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(37,99,235,.1);}
+.cost-hint{font-size:.75rem;color:var(--gray-400);margin-left:auto;}
+.cost-hint b{color:var(--warning);}
+.loading-state{text-align:center;padding:2.5rem 1rem;display:none;}
+.loading-state i{font-size:1.5rem;color:var(--primary);animation:spin .8s linear infinite;display:block;margin-bottom:.75rem;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.loading-state p{font-size:.875rem;color:var(--gray-600);}
+.loading-step{font-size:.775rem;color:var(--gray-400);margin-top:.375rem;}
+.results-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:.5rem;}
+.results-title{font-size:.9rem;font-weight:600;color:var(--gray-700);display:flex;align-items:center;gap:.5rem;}
+.count-badge{background:#eff6ff;color:var(--primary);border:1px solid #bfdbfe;padding:.15rem .5rem;border-radius:999px;font-size:.72rem;font-weight:700;}
+.results-actions{display:flex;gap:.5rem;}
+.btn-sm{background:white;border:1px solid var(--gray-300);color:var(--gray-600);padding:.4rem .875rem;border-radius:6px;font-size:.775rem;font-weight:500;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:.375rem;transition:all .15s;}
+.btn-sm:hover{background:var(--gray-50);border-color:var(--gray-400);}
+.btn-sm.primary{background:var(--primary);border-color:var(--primary);color:white;}
+.btn-sm.primary:hover{background:var(--primary-hover);}
+.leads-list{display:flex;flex-direction:column;gap:.5rem;}
+.lead-card{background:white;border:1px solid var(--gray-200);border-radius:8px;padding:.875rem 1rem;display:flex;align-items:center;gap:.875rem;transition:border-color .15s;}
+.lead-card:hover{border-color:var(--gray-300);}
+.lead-avatar{width:36px;height:36px;border-radius:8px;background:#eff6ff;border:1px solid #dbeafe;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700;color:var(--primary);flex-shrink:0;}
+.lead-avatar.dim{background:var(--gray-100);border-color:var(--gray-200);color:var(--gray-400);}
+.lead-info{flex:1;min-width:0;}
+.lead-name{font-size:.875rem;font-weight:600;color:var(--gray-900);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.lead-name.dim{color:var(--gray-400);}
+.lead-sub{font-size:.775rem;color:var(--gray-500);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:.1rem;}
+.lead-sub.loading{color:var(--gray-400);display:flex;align-items:center;gap:.375rem;}
+.mini-spin{width:11px;height:11px;border:1.5px solid var(--gray-200);border-top-color:var(--primary);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0;}
+.lead-li{width:28px;height:28px;border-radius:6px;border:1px solid var(--gray-200);background:white;display:flex;align-items:center;justify-content:center;color:var(--gray-400);font-size:.75rem;text-decoration:none;flex-shrink:0;transition:all .15s;}
+.lead-li:hover{border-color:#0077b5;color:#0077b5;}
+.past-section{margin-top:2rem;display:none;}
+.section-label{font-size:.72rem;font-weight:600;color:var(--gray-400);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.75rem;display:flex;align-items:center;gap:.5rem;}
+.section-label::after{content:'';flex:1;height:1px;background:var(--gray-200);}
+.past-item{display:flex;align-items:center;gap:.75rem;padding:.75rem;border:1px solid var(--gray-200);border-radius:8px;cursor:pointer;transition:all .15s;margin-bottom:.375rem;}
+.past-item:hover{border-color:var(--gray-300);background:var(--gray-50);}
+.past-icon{width:28px;height:28px;border-radius:6px;background:var(--gray-100);display:flex;align-items:center;justify-content:center;color:var(--gray-400);font-size:.7rem;flex-shrink:0;}
+.past-query{font-size:.825rem;font-weight:500;color:var(--gray-800);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.past-meta{font-size:.72rem;color:var(--gray-400);text-align:right;flex-shrink:0;}
+.past-count{color:var(--primary);font-weight:600;display:block;}
+.empty-state{text-align:center;padding:3rem 1rem;}
+.empty-state i{font-size:1.75rem;color:var(--gray-300);display:block;margin-bottom:.875rem;}
+.empty-state h3{font-size:.875rem;font-weight:600;color:var(--gray-700);margin-bottom:.35rem;}
+.empty-state p{font-size:.8rem;color:var(--gray-400);}
+.alert{padding:.875rem 1rem;border-radius:6px;margin-bottom:1rem;font-size:.875rem;display:none;}
+.alert-error{background:rgba(239,68,68,.08);border:1px solid var(--error);color:var(--error);}
+.alert-success{background:rgba(16,185,129,.08);border:1px solid var(--success);color:var(--success);}
+.hidden{display:none!important;}
+@media(max-width:640px){
+  .nav-tab{padding:.625rem .75rem;font-size:.8rem;}
+  .search-wrap{flex-direction:column;}
+  .btn-search{justify-content:center;}
 }
 </style>
 </head>
@@ -175,49 +143,39 @@ body { font-family: 'Inter', -apple-system, sans-serif; background: white; color
 
 <div class="container">
   <div class="main">
-
     <div id="alert" class="alert"></div>
 
-    <!-- Search -->
     <div class="search-card">
-      <label class="search-label">Describe the leads you're looking for</label>
+      <label class="search-label">Describe the leads you are looking for</label>
       <div class="search-wrap">
-        <input
-          type="text"
-          class="search-input"
-          id="searchInput"
+        <input type="text" class="search-input" id="searchInput"
           placeholder="e.g. CEO at SaaS startup in Paris, VP Sales in London..."
-          onkeydown="if(event.key==='Enter') startSearch()"
-        />
+          onkeydown="if(event.key==='Enter') startSearch()"/>
         <button class="btn-search" id="searchBtn" onclick="startSearch()">
           <i class="fas fa-search"></i> Find Leads
         </button>
       </div>
-      <div class="search-options">
-        <div class="hint-row" style="margin-top:0;flex:1;">
-          <span class="hint" onclick="fillHint('VP Sales at B2B SaaS in United States')">VP Sales · B2B SaaS · US</span>
-          <span class="hint" onclick="fillHint('Founder at startup in London')">Founder · Startup · London</span>
-          <span class="hint" onclick="fillHint('Head of Marketing at agency in Paris')">Head of Marketing · Paris</span>
-          <span class="hint" onclick="fillHint('CTO at fintech company')">CTO · Fintech</span>
-        </div>
+      <div class="hint-row">
+        <span class="hint" onclick="fillHint('VP Sales at B2B SaaS in United States')">VP Sales · B2B SaaS · US</span>
+        <span class="hint" onclick="fillHint('Founder at startup in London')">Founder · Startup · London</span>
+        <span class="hint" onclick="fillHint('Head of Marketing at agency in Paris')">Head of Marketing · Paris</span>
+        <span class="hint" onclick="fillHint('CTO at fintech company')">CTO · Fintech</span>
       </div>
-      <div class="search-options" style="margin-top:.75rem;border-top:1px solid var(--gray-100);padding-top:.75rem;">
+      <div class="search-bottom">
         <div class="count-wrap">
           <label class="count-label">Max profiles</label>
           <input type="number" class="count-input" id="maxProfiles" value="10" min="1" max="100" onchange="updateCostHint()">
         </div>
-        <div class="cost-hint" id="costHint"><strong>10 credits</strong> · 10 credits per profile</div>
+        <div class="cost-hint" id="costHint"><b>100 credits</b> &middot; 10 credits per profile</div>
       </div>
     </div>
 
-    <!-- Loading -->
     <div class="loading-state" id="loadingState">
       <i class="fas fa-spinner"></i>
       <p>Finding matching profiles...</p>
       <div class="loading-step" id="loadingStep"></div>
     </div>
 
-    <!-- Results -->
     <div id="resultsSection" class="hidden">
       <div class="results-header">
         <div class="results-title">
@@ -232,122 +190,112 @@ body { font-family: 'Inter', -apple-system, sans-serif; background: white; color
       <div class="leads-list" id="leadsList"></div>
     </div>
 
-    <!-- Empty + past -->
     <div id="emptySection">
       <div class="empty-state">
         <i class="fas fa-user-friends"></i>
         <h3>Find your ideal leads</h3>
-        <p>Describe who you're looking for and we'll surface matching LinkedIn profiles.</p>
+        <p>Describe who you are looking for and we will surface matching LinkedIn profiles.</p>
       </div>
-
       <div class="past-section" id="pastSection">
         <div class="section-label"><i class="fas fa-clock" style="font-size:.65rem;"></i> Recent searches</div>
         <div id="pastList"></div>
       </div>
     </div>
-
   </div>
 </div>
 
 <script>
-const SUPABASE_URL      = 'https://snxhsboboatjywgwdeds.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_RKidGRs4ch1ixmRfXoYSww_UsQMSe5w';
-const API_URL           = 'https://linkfinderapp.hamoureliasse.workers.dev/';
-const CREDITS_URL       = 'https://linkfinderaicredits.hamoureliasse.workers.dev/';
+var SUPABASE_URL      = 'https://snxhsboboatjywgwdeds.supabase.co';
+var SUPABASE_ANON_KEY = 'sb_publishable_RKidGRs4ch1ixmRfXoYSww_UsQMSe5w';
+var API_URL           = 'https://linkfinderapp.hamoureliasse.workers.dev/';
+var CREDITS_URL       = 'https://linkfinderaicredits.hamoureliasse.workers.dev/';
 
-let sb = null, userToken = null;
-let currentLeads = [], currentQuery = '', pastSearches = [];
+var sb = null, userToken = null;
+var currentLeads = [], currentQuery = '', pastSearches = [];
 
-document.addEventListener('DOMContentLoaded', async () => {
-  const p = new URLSearchParams(window.location.search);
+document.addEventListener('DOMContentLoaded', function() {
+  var p = new URLSearchParams(window.location.search);
   userToken = p.get('token') || localStorage.getItem('linkFinderToken');
   if (!userToken) { window.location.href = 'https://linkfinderai.com/'; return; }
   localStorage.setItem('linkFinderToken', userToken);
   sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   fetchCredits();
-  await loadPastSearches();
+  loadPastSearches();
 });
 
 function logout() { localStorage.removeItem('linkFinderToken'); window.location.href = 'https://linkfinderai.com/'; }
-function goToBuy() { window.location.href = `https://linkfinderai.com/app?token=${userToken}&action=buy_credits`; }
+function goToBuy() { window.location.href = 'https://linkfinderai.com/app?token=' + userToken + '&action=buy_credits'; }
 function nav(p) {
-  const m = { enrichment:'app', aicolumns:'app-prospects', api:'api-access', account:'account' };
-  window.location.href = `https://linkfinderai.com/${m[p]}?token=${userToken}`;
+  var m = { enrichment:'app', aicolumns:'app-prospects', api:'api-access', account:'account' };
+  window.location.href = 'https://linkfinderai.com/' + m[p] + '?token=' + userToken;
 }
 
-async function fetchCredits() {
-  try {
-    const r = await fetch(CREDITS_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({token: userToken}) });
-    if (r.ok) { const d = await r.json(); document.getElementById('creditsCount').textContent = Math.max(0, d.credits||0); }
-  } catch(e) {}
+function fetchCredits() {
+  fetch(CREDITS_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({token: userToken}) })
+    .then(function(r) { return r.json(); })
+    .then(function(d) { document.getElementById('creditsCount').textContent = Math.max(0, d.credits||0); })
+    .catch(function() {});
 }
 
-/* ── SUPABASE
-   Required table: linkedin_lead_searches
-   Columns: id uuid PK default gen_random_uuid(),
-            user_token text, query text,
-            leads jsonb, created_at timestamptz default now()
-   Index: create index on linkedin_lead_searches(user_token);
-── */
-async function loadPastSearches() {
-  try {
-    const { data, error } = await sb.from('linkedin_lead_searches')
-      .select('id,query,leads,created_at')
-      .eq('user_token', userToken)
-      .order('created_at', { ascending: false })
-      .limit(10);
-    if (error) throw error;
-    pastSearches = data || [];
-    renderPast();
-  } catch(e) { pastSearches = []; }
-}
-
-async function saveSearch(query, leads) {
-  try {
-    await sb.from('linkedin_lead_searches').insert({ user_token: userToken, query, leads, created_at: new Date().toISOString() });
-    pastSearches.unshift({ query, leads, created_at: new Date().toISOString() });
-    renderPast();
-  } catch(e) {}
-}
-
-// Normalize fr.linkedin.com/in/x → https://www.linkedin.com/in/x
 function normalizeUrl(url) {
-  return (url || '')
-    .split('?')[0]
-    .replace(/\/$/, '')
+  return (url || '').split('?')[0].replace(/\/$/, '')
     .replace(/^https?:\/\/[a-z]{2}\.linkedin\.com/, 'https://www.linkedin.com')
     .replace(/^https?:\/\/linkedin\.com/, 'https://www.linkedin.com');
 }
 
-async function getSeenUrls() {
-  try {
-    const { data } = await sb.from('linkedin_lead_searches').select('leads').eq('user_token', userToken);
-    const seen = new Set();
-    (data||[]).forEach(r => (r.leads||[]).forEach(l => {
-      if (l.linkedin_url) seen.add(normalizeUrl(l.linkedin_url));
-    }));
-    return seen;
-  } catch(e) { return new Set(); }
+function loadPastSearches() {
+  sb.from('linkedin_lead_searches')
+    .select('id,query,leads,created_at')
+    .eq('user_token', userToken)
+    .order('created_at', { ascending: false })
+    .limit(10)
+    .then(function(res) {
+      pastSearches = res.data || [];
+      renderPast();
+    })
+    .catch(function() { pastSearches = []; });
+}
+
+function saveSearch(query, leads) {
+  return sb.from('linkedin_lead_searches')
+    .insert({ user_token: userToken, query: query, leads: leads, created_at: new Date().toISOString() })
+    .then(function() {
+      pastSearches.unshift({ query: query, leads: leads, created_at: new Date().toISOString() });
+      renderPast();
+    })
+    .catch(function() {});
+}
+
+function getSeenUrls() {
+  return sb.from('linkedin_lead_searches').select('leads').eq('user_token', userToken)
+    .then(function(res) {
+      var seen = new Set();
+      (res.data || []).forEach(function(r) {
+        (r.leads || []).forEach(function(l) {
+          if (l.linkedin_url) seen.add(normalizeUrl(l.linkedin_url));
+        });
+      });
+      return seen;
+    })
+    .catch(function() { return new Set(); });
 }
 
 function renderPast() {
-  const section = document.getElementById('pastSection');
-  const list = document.getElementById('pastList');
+  var section = document.getElementById('pastSection');
+  var list = document.getElementById('pastList');
   if (!pastSearches.length) { section.style.display = 'none'; return; }
   section.style.display = 'block';
-  list.innerHTML = pastSearches.slice(0,8).map((s,i) => `
-    <div class="past-item" onclick="loadPast(${i})">
-      <div class="past-icon"><i class="fas fa-search"></i></div>
-      <div class="past-query">${esc(s.query)}</div>
-      <div class="past-meta">
-        <span class="past-count">${(s.leads||[]).length} leads</span>
-        <span>${timeAgo(s.created_at)}</span>
-      </div>
-    </div>`).join('');
+  list.innerHTML = pastSearches.slice(0,8).map(function(s, i) {
+    return '<div class="past-item" onclick="loadPast(' + i + ')">' +
+      '<div class="past-icon"><i class="fas fa-search"></i></div>' +
+      '<div class="past-query">' + esc(s.query) + '</div>' +
+      '<div class="past-meta"><span class="past-count">' + ((s.leads||[]).length) + ' leads</span><span>' + timeAgo(s.created_at) + '</span></div>' +
+      '</div>';
+  }).join('');
 }
 
 function loadPast(i) {
-  const s = pastSearches[i];
+  var s = pastSearches[i];
   if (!s) return;
   document.getElementById('searchInput').value = s.query;
   currentQuery = s.query;
@@ -356,9 +304,8 @@ function loadPast(i) {
 }
 
 function updateCostHint() {
-  const max = parseInt(document.getElementById('maxProfiles').value) || 10;
-  const clamped = Math.min(Math.max(max, 1), 100);
-  document.getElementById('costHint').innerHTML = `<strong>${clamped * 10} credits</strong> · 10 credits per profile`;
+  var max = Math.min(Math.max(parseInt(document.getElementById('maxProfiles').value) || 10, 1), 100);
+  document.getElementById('costHint').innerHTML = '<b>' + (max * 10) + ' credits</b> &middot; 10 credits per profile';
 }
 
 function fillHint(text) {
@@ -374,16 +321,16 @@ function resetSearch() {
   renderPast();
 }
 
-async function startSearch() {
-  const query = document.getElementById('searchInput').value.trim();
+function startSearch() {
+  var query = document.getElementById('searchInput').value.trim();
   if (!query) return;
   currentQuery = query;
 
-  const maxProfiles = Math.min(Math.max(parseInt(document.getElementById('maxProfiles').value) || 10, 1), 100);
-  const estimatedCost = maxProfiles * 10;
-  const currentCredits = parseInt(document.getElementById('creditsCount').textContent) || 0;
+  var maxProfiles = Math.min(Math.max(parseInt(document.getElementById('maxProfiles').value) || 10, 1), 100);
+  var estimatedCost = maxProfiles * 10;
+  var currentCredits = parseInt(document.getElementById('creditsCount').textContent) || 0;
   if (currentCredits < estimatedCost) {
-    showAlert(`Not enough credits — this search needs ${estimatedCost} credits, you have ${currentCredits}`, 'error');
+    showAlert('Not enough credits - this search needs ' + estimatedCost + ' credits, you have ' + currentCredits, 'error');
     return;
   }
 
@@ -391,17 +338,16 @@ async function startSearch() {
   document.getElementById('loadingState').style.display = 'block';
   document.getElementById('emptySection').style.display = 'none';
   document.getElementById('resultsSection').classList.add('hidden');
-  setStep('Scanning LinkedIn profiles...');
+  document.getElementById('loadingStep').textContent = 'Scanning LinkedIn profiles...';
 
-  try {
-    const seenUrls = await getSeenUrls();
-    setStep('Removing profiles you\'ve already seen...');
-    const urls = await fetchProfileUrls(query, seenUrls, maxProfiles);
-
+  getSeenUrls().then(function(seenUrls) {
+    document.getElementById('loadingStep').textContent = 'Removing profiles you have already seen...';
+    return fetchProfileUrls(query, seenUrls, maxProfiles);
+  }).then(function(urls) {
     if (!urls.length) {
       document.getElementById('loadingState').style.display = 'none';
       document.getElementById('emptySection').style.display = 'block';
-      showAlert('No new profiles found — try different keywords', 'error');
+      showAlert('No new profiles found - try different keywords', 'error');
       document.getElementById('searchBtn').disabled = false;
       return;
     }
@@ -411,223 +357,191 @@ async function startSearch() {
     document.getElementById('emptySection').style.display = 'none';
     document.getElementById('leadsList').innerHTML = '';
     document.getElementById('resultsCount').textContent = urls.length;
+    currentLeads = [];
 
-    currentLeads = []; // reset so export works from first result
-    for (let i = 0; i < urls.length; i++) {
-      const url = urls[i];
-      const cardId = 'lc' + i;
-      appendLoadingCard(cardId, url);
-      try {
-        const p = await enrichProfile(url);
-        if (p && p.name && p.name !== 'Not found') {
-          currentLeads.push(p); // add immediately so export works mid-enrichment
-        }
-        updateCard(cardId, p);
-      } catch(e) { updateCardError(cardId, url); }
-      document.getElementById('resultsCount').textContent = currentLeads.length;
-    }
+    var chain = Promise.resolve();
+    urls.forEach(function(url, i) {
+      chain = chain.then(function() {
+        var cardId = 'lc' + i;
+        appendLoadingCard(cardId, url);
+        return enrichProfile(url).then(function(p) {
+          if (p && p.name && p.name !== 'Not found') {
+            currentLeads.push(p);
+          }
+          updateCard(cardId, p);
+          document.getElementById('resultsCount').textContent = currentLeads.length;
+        }).catch(function() { updateCardError(cardId, url); });
+      });
+    });
 
-    if (currentLeads.length) await saveSearch(query, currentLeads);
-
-  } catch(e) {
+    return chain.then(function() {
+      if (currentLeads.length) return saveSearch(query, currentLeads);
+    });
+  }).catch(function() {
     document.getElementById('loadingState').style.display = 'none';
     document.getElementById('emptySection').style.display = 'block';
-    showAlert('Something went wrong — please try again', 'error');
-  }
-
-  document.getElementById('searchBtn').disabled = false;
+    showAlert('Something went wrong - please try again', 'error');
+  }).then(function() {
+    document.getElementById('searchBtn').disabled = false;
+  });
 }
 
-function setStep(txt) { document.getElementById('loadingStep').textContent = txt; }
-
-async function fetchProfileUrls(query, seenUrls, maxProfiles = 10) {
-  try {
-    const r = await fetch(API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ type: 'google_search_linkedin', input_data: `site:linkedin.com/in ${query}`, token: userToken }),
-      signal: AbortSignal.timeout(30000)
-    });
+function fetchProfileUrls(query, seenUrls, maxProfiles) {
+  return fetch(API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ type: 'google_search_linkedin', input_data: 'site:linkedin.com/in ' + query, token: userToken })
+  }).then(function(r) {
     if (!r.ok) throw new Error();
-    const d = await r.json();
-
-    // Handle array of {linkedin_url} objects or flat array of strings
-    const raw = Array.isArray(d) ? d : (d.urls || d.results || []);
-    const urls = [];
-    const dedup = new Set();
-
-    raw.forEach(item => {
-      const rawUrl = typeof item === 'string' ? item : (item.linkedin_url || '');
+    return r.json();
+  }).then(function(d) {
+    var raw = Array.isArray(d) ? d : (d.urls || d.results || []);
+    var urls = [];
+    var dedup = new Set();
+    raw.forEach(function(item) {
+      var rawUrl = typeof item === 'string' ? item : (item.linkedin_url || '');
       if (!rawUrl.includes('linkedin.com/in/') || rawUrl.includes('#')) return;
-      const clean = normalizeUrl(rawUrl);
+      var clean = normalizeUrl(rawUrl);
       if (!dedup.has(clean) && !seenUrls.has(clean)) {
         dedup.add(clean);
         urls.push(clean);
       }
     });
-
     return urls.slice(0, maxProfiles);
-  } catch(e) {
-    return [];
-  }
+  }).catch(function() { return []; });
 }
 
-async function enrichProfile(url) {
-  try {
-    const r = await fetch(API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ type: 'linkedin_profile_to_linkedin_info', input_data: url, output_type: 'linkedin_info', token: userToken, is_bulk: true }),
-      signal: AbortSignal.timeout(60000)
-    });
+function enrichProfile(url) {
+  return fetch(API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ type: 'linkedin_profile_to_linkedin_info', input_data: url, output_type: 'linkedin_info', token: userToken, is_bulk: true })
+  }).then(function(r) {
     if (!r.ok) return { linkedin_url: url, name: nameFromUrl(url) };
-    const d = await r.json();
-
-    // Format experiences same way as main app: "title@company@start@end@location@country@size@stillWorking"
-    let experiencesStr = 'Not found';
+    return r.json();
+  }).then(function(d) {
+    var expStr = 'Not found';
     if (d.experiences && Array.isArray(d.experiences) && d.experiences.length) {
-      experiencesStr = d.experiences.map(e =>
-        `${e.title||''}@${e.companyName||''}@${e.jobStartedOn||''}@${e.jobEndedOn||'present'}@${e.jobLocation||''}@${e.jobLocationCountry||''}@${e.companySize||''}@${e.jobStillWorking??''}`
-      ).join(' | ');
+      expStr = d.experiences.map(function(e) {
+        return (e.title||'') + '@' + (e.companyName||'') + '@' + (e.jobStartedOn||'') + '@' + (e.jobEndedOn||'present') + '@' + (e.jobLocation||'') + '@' + (e.jobLocationCountry||'') + '@' + (e.companySize||'') + '@' + (e.jobStillWorking != null ? e.jobStillWorking : '');
+      }).join(' | ');
     }
-
     return {
-      linkedin_url:        url,
-      name:                d.name        || nameFromUrl(url),
-      job_title:           d.jobTitle    || 'Not found',
-      company:             d.company     || 'Not found',
-      location:            d.location    || 'Not found',
-      industry:            d.industry    || 'Not found',
-      website:             d.website     || 'Not found',
-      email:               d.email       || 'Not found',
-      education:           d.education   || 'Not found',
-      headline:            d.headline    || 'Not found',
-      company_description: d.company_description || 'Not found',
-      company_size:        d.company_size        || 'Not found',
-      company_location:    d.company_location    || 'Not found',
-      founded:             d.foundedOn           || 'Not found',
-      company_linkedin_url:d.company_linkedin_url|| 'Not found',
-      experiences:         experiencesStr,
+      linkedin_url:         url,
+      name:                 d.name                || nameFromUrl(url),
+      job_title:            d.jobTitle             || 'Not found',
+      company:              d.company              || 'Not found',
+      location:             d.location             || 'Not found',
+      industry:             d.industry             || 'Not found',
+      website:              d.website              || 'Not found',
+      email:                d.email                || 'Not found',
+      education:            d.education            || 'Not found',
+      headline:             d.headline             || 'Not found',
+      company_description:  d.company_description  || 'Not found',
+      company_size:         d.company_size         || 'Not found',
+      company_location:     d.company_location     || 'Not found',
+      founded:              d.foundedOn            || 'Not found',
+      company_linkedin_url: d.company_linkedin_url || 'Not found',
+      experiences:          expStr
     };
-  } catch(e) { return { linkedin_url: url, name: nameFromUrl(url) }; }
+  }).catch(function() { return { linkedin_url: url, name: nameFromUrl(url) }; });
 }
 
 function appendLoadingCard(id, url) {
-  const el = document.createElement('div');
-  el.className = 'lead-card'; el.id = id;
-  el.innerHTML = `
-    <div class="lead-avatar dim">?</div>
-    <div class="lead-info">
-      <div class="lead-name dim">${esc(nameFromUrl(url))}</div>
-      <div class="lead-sub loading"><div class="mini-spin"></div>Enriching profile...</div>
-    </div>
-    <a href="${url}" target="_blank" class="lead-li"><i class="fab fa-linkedin-in"></i></a>`;
+  var el = document.createElement('div');
+  el.className = 'lead-card';
+  el.id = id;
+  el.innerHTML = '<div class="lead-avatar dim">?</div>' +
+    '<div class="lead-info">' +
+      '<div class="lead-name dim">' + esc(nameFromUrl(url)) + '</div>' +
+      '<div class="lead-sub loading"><div class="mini-spin"></div>Enriching profile...</div>' +
+    '</div>' +
+    '<a href="' + url + '" target="_blank" class="lead-li"><i class="fab fa-linkedin-in"></i></a>';
   document.getElementById('leadsList').appendChild(el);
 }
 
 function updateCard(id, p) {
-  const el = document.getElementById(id);
+  var el = document.getElementById(id);
   if (!el) return;
-  const sub = [p.job_title, p.company].filter(Boolean).join(' · ');
-  el.innerHTML = `
-    <div class="lead-avatar">${initials(p.name)}</div>
-    <div class="lead-info">
-      <div class="lead-name">${esc(p.name)}</div>
-      ${sub ? `<div class="lead-sub">${esc(sub)}</div>` : ''}
-    </div>
-    <a href="${p.linkedin_url}" target="_blank" class="lead-li"><i class="fab fa-linkedin-in"></i></a>`;
+  var sub = [p.job_title, p.company].filter(function(x) { return x && x !== 'Not found'; }).join(' · ');
+  el.innerHTML = '<div class="lead-avatar">' + initials(p.name) + '</div>' +
+    '<div class="lead-info">' +
+      '<div class="lead-name">' + esc(p.name) + '</div>' +
+      (sub ? '<div class="lead-sub">' + esc(sub) + '</div>' : '') +
+    '</div>' +
+    '<a href="' + p.linkedin_url + '" target="_blank" class="lead-li"><i class="fab fa-linkedin-in"></i></a>';
 }
 
 function updateCardError(id, url) {
-  const el = document.getElementById(id);
+  var el = document.getElementById(id);
   if (!el) return;
-  el.innerHTML = `
-    <div class="lead-avatar dim">${initials(nameFromUrl(url))}</div>
-    <div class="lead-info">
-      <div class="lead-name dim">${esc(nameFromUrl(url))}</div>
-      <div class="lead-sub" style="color:var(--gray-400);">Data unavailable</div>
-    </div>
-    <a href="${url}" target="_blank" class="lead-li"><i class="fab fa-linkedin-in"></i></a>`;
+  el.innerHTML = '<div class="lead-avatar dim">' + initials(nameFromUrl(url)) + '</div>' +
+    '<div class="lead-info">' +
+      '<div class="lead-name dim">' + esc(nameFromUrl(url)) + '</div>' +
+      '<div class="lead-sub" style="color:var(--gray-400);">Data unavailable</div>' +
+    '</div>' +
+    '<a href="' + url + '" target="_blank" class="lead-li"><i class="fab fa-linkedin-in"></i></a>';
 }
 
 function showStoredResults(leads) {
   document.getElementById('emptySection').style.display = 'none';
   document.getElementById('resultsSection').classList.remove('hidden');
   document.getElementById('resultsCount').textContent = leads.length;
-  document.getElementById('leadsList').innerHTML = leads.map(p => {
-    const sub = [p.job_title, p.company].filter(Boolean).join(' · ');
-    return `<div class="lead-card">
-      <div class="lead-avatar">${initials(p.name)}</div>
-      <div class="lead-info">
-        <div class="lead-name">${esc(p.name||'Unknown')}</div>
-        ${sub ? `<div class="lead-sub">${esc(sub)}</div>` : ''}
-      </div>
-      <a href="${p.linkedin_url}" target="_blank" class="lead-li"><i class="fab fa-linkedin-in"></i></a>
-    </div>`;
+  document.getElementById('leadsList').innerHTML = leads.map(function(p) {
+    var sub = [p.job_title, p.company].filter(function(x) { return x && x !== 'Not found'; }).join(' · ');
+    return '<div class="lead-card">' +
+      '<div class="lead-avatar">' + initials(p.name) + '</div>' +
+      '<div class="lead-info">' +
+        '<div class="lead-name">' + esc(p.name || 'Unknown') + '</div>' +
+        (sub ? '<div class="lead-sub">' + esc(sub) + '</div>' : '') +
+      '</div>' +
+      '<a href="' + p.linkedin_url + '" target="_blank" class="lead-li"><i class="fab fa-linkedin-in"></i></a>' +
+      '</div>';
   }).join('');
 }
 
 function exportCSV() {
   if (!currentLeads.length) return;
-  const headers = [
-    'LinkedIn URL','Name','Job Title','Company','Location','Industry',
-    'Website','Email','Education','Headline','Company Description',
-    'Company Size','Company Location','Founded','Company LinkedIn URL',
-    'Experiences','Status'
-  ];
-  const e = v => `"${String(v||'Not found').replace(/"/g,'""')}"`;
-  let csv = headers.join(',') + '
-';
-  currentLeads.forEach(l => {
+  var NL = '\n';
+  var headers = ['LinkedIn URL','Name','Job Title','Company','Location','Industry','Website','Email','Education','Headline','Company Description','Company Size','Company Location','Founded','Company LinkedIn URL','Experiences','Status'];
+  function q(v) { return '"' + String(v || 'Not found').replace(/"/g, '""') + '"'; }
+  var csv = headers.join(',') + NL;
+  currentLeads.forEach(function(l) {
     csv += [
-      e(l.linkedin_url),
-      e(l.name),
-      e(l.job_title),
-      e(l.company),
-      e(l.location),
-      e(l.industry),
-      e(l.website),
-      e(l.email),
-      e(l.education),
-      e(l.headline),
-      e(l.company_description),
-      e(l.company_size),
-      e(l.company_location),
-      e(l.founded),
-      e(l.company_linkedin_url),
-      e(l.experiences),
-      'Found'
-    ].join(',') + '
-';
+      q(l.linkedin_url), q(l.name), q(l.job_title), q(l.company),
+      q(l.location), q(l.industry), q(l.website), q(l.email),
+      q(l.education), q(l.headline), q(l.company_description),
+      q(l.company_size), q(l.company_location), q(l.founded),
+      q(l.company_linkedin_url), q(l.experiences), 'Found'
+    ].join(',') + NL;
   });
-  const a = document.createElement('a');
+  var a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv;charset=utf-8;'}));
-  a.download = `leads_${currentQuery.replace(/[^a-z0-9]/gi,'_').slice(0,30)}_${new Date().toISOString().slice(0,10)}.csv`;
+  a.download = 'leads_' + currentQuery.replace(/[^a-z0-9]/gi,'_').slice(0,30) + '_' + new Date().toISOString().slice(0,10) + '.csv';
   a.click();
 }
 
-
 function nameFromUrl(url) {
-  try { return (url.split('/in/')[1]||'').split('?')[0].replace(/-/g,' ').replace(/\b\w/g,c=>c.toUpperCase()).slice(0,30)||'Profile'; }
+  try { return (url.split('/in/')[1]||'').split('?')[0].replace(/-/g,' ').replace(/\b\w/g,function(c){return c.toUpperCase();}).slice(0,30)||'Profile'; }
   catch(e) { return 'Profile'; }
 }
 function initials(name) {
   if (!name) return '?';
-  const p = name.trim().split(' ');
+  var p = name.trim().split(' ');
   return p.length >= 2 ? (p[0][0]+p[1][0]).toUpperCase() : (p[0][0]||'?').toUpperCase();
 }
 function timeAgo(d) {
-  const diff = Date.now() - new Date(d).getTime();
-  const m = Math.floor(diff/60000), h = Math.floor(m/60), day = Math.floor(h/24);
+  var diff = Date.now() - new Date(d).getTime();
+  var m = Math.floor(diff/60000), h = Math.floor(m/60), day = Math.floor(h/24);
   if (day > 0) return day+'d ago'; if (h > 0) return h+'h ago'; if (m > 0) return m+'m ago'; return 'just now';
 }
 function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-let alertT = null;
-function showAlert(msg, type='success') {
-  const a = document.getElementById('alert');
-  a.textContent = msg; a.className = `alert alert-${type}`; a.style.display = 'block';
+var alertT = null;
+function showAlert(msg, type) {
+  var a = document.getElementById('alert');
+  a.textContent = msg; a.className = 'alert alert-' + (type||'success'); a.style.display = 'block';
   if (alertT) clearTimeout(alertT);
-  alertT = setTimeout(() => a.style.display = 'none', 4000);
+  alertT = setTimeout(function() { a.style.display = 'none'; }, 4000);
 }
 </script>
 </body>
