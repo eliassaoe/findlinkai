@@ -482,8 +482,34 @@ async function enrichProfile(url) {
     });
     if (!r.ok) return { linkedin_url: url, name: nameFromUrl(url) };
     const d = await r.json();
-    return { linkedin_url: url, name: d.name || nameFromUrl(url), job_title: d.jobTitle || '', company: d.company || '', location: d.location || '', email: d.email || '' };
-  } catch(e) { return { linkedin_url: url, name: nameFromUrl(url), job_title:'', company:'' }; }
+
+    // Format experiences same way as main app: "title@company@start@end@location@country@size@stillWorking"
+    let experiencesStr = 'Not found';
+    if (d.experiences && Array.isArray(d.experiences) && d.experiences.length) {
+      experiencesStr = d.experiences.map(e =>
+        `${e.title||''}@${e.companyName||''}@${e.jobStartedOn||''}@${e.jobEndedOn||'present'}@${e.jobLocation||''}@${e.jobLocationCountry||''}@${e.companySize||''}@${e.jobStillWorking??''}`
+      ).join(' | ');
+    }
+
+    return {
+      linkedin_url:        url,
+      name:                d.name        || nameFromUrl(url),
+      job_title:           d.jobTitle    || 'Not found',
+      company:             d.company     || 'Not found',
+      location:            d.location    || 'Not found',
+      industry:            d.industry    || 'Not found',
+      website:             d.website     || 'Not found',
+      email:               d.email       || 'Not found',
+      education:           d.education   || 'Not found',
+      headline:            d.headline    || 'Not found',
+      company_description: d.company_description || 'Not found',
+      company_size:        d.company_size        || 'Not found',
+      company_location:    d.company_location    || 'Not found',
+      founded:             d.foundedOn           || 'Not found',
+      company_linkedin_url:d.company_linkedin_url|| 'Not found',
+      experiences:         experiencesStr,
+    };
+  } catch(e) { return { linkedin_url: url, name: nameFromUrl(url) }; }
 }
 
 function appendLoadingCard(id, url) {
@@ -543,17 +569,43 @@ function showStoredResults(leads) {
 
 function exportCSV() {
   if (!currentLeads.length) return;
-  let csv = 'Name,Job Title,Company,Location,Email,LinkedIn URL\n';
+  const headers = [
+    'LinkedIn URL','Name','Job Title','Company','Location','Industry',
+    'Website','Email','Education','Headline','Company Description',
+    'Company Size','Company Location','Founded','Company LinkedIn URL',
+    'Experiences','Status'
+  ];
+  const e = v => `"${String(v||'Not found').replace(/"/g,'""')}"`;
+  let csv = headers.join(',') + '
+';
   currentLeads.forEach(l => {
-    csv += [l.name||'', l.job_title||'', l.company||'', l.location||'', l.email||'', l.linkedin_url||'']
-      .map(v => `"${String(v).replace(/"/g,'""')}"`)
-      .join(',') + '\n';
+    csv += [
+      e(l.linkedin_url),
+      e(l.name),
+      e(l.job_title),
+      e(l.company),
+      e(l.location),
+      e(l.industry),
+      e(l.website),
+      e(l.email),
+      e(l.education),
+      e(l.headline),
+      e(l.company_description),
+      e(l.company_size),
+      e(l.company_location),
+      e(l.founded),
+      e(l.company_linkedin_url),
+      e(l.experiences),
+      'Found'
+    ].join(',') + '
+';
   });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv;charset=utf-8;'}));
   a.download = `leads_${currentQuery.replace(/[^a-z0-9]/gi,'_').slice(0,30)}_${new Date().toISOString().slice(0,10)}.csv`;
   a.click();
 }
+
 
 function nameFromUrl(url) {
   try { return (url.split('/in/')[1]||'').split('?')[0].replace(/-/g,' ').replace(/\b\w/g,c=>c.toUpperCase()).slice(0,30)||'Profile'; }
