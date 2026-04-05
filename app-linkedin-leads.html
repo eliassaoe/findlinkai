@@ -294,11 +294,22 @@ async function saveSearch(query, leads) {
   } catch(e) {}
 }
 
+// Normalize fr.linkedin.com/in/x → https://www.linkedin.com/in/x
+function normalizeUrl(url) {
+  return (url || '')
+    .split('?')[0]
+    .replace(/\/$/, '')
+    .replace(/^https?:\/\/[a-z]{2}\.linkedin\.com/, 'https://www.linkedin.com')
+    .replace(/^https?:\/\/linkedin\.com/, 'https://www.linkedin.com');
+}
+
 async function getSeenUrls() {
   try {
     const { data } = await sb.from('linkedin_lead_searches').select('leads').eq('user_token', userToken);
     const seen = new Set();
-    (data||[]).forEach(r => (r.leads||[]).forEach(l => l.linkedin_url && seen.add(l.linkedin_url)));
+    (data||[]).forEach(r => (r.leads||[]).forEach(l => {
+      if (l.linkedin_url) seen.add(normalizeUrl(l.linkedin_url));
+    }));
     return seen;
   } catch(e) { return new Set(); }
 }
@@ -408,13 +419,25 @@ async function fetchProfileUrls(query, seenUrls) {
     });
     if (!r.ok) throw new Error();
     const d = await r.json();
-    return (d.urls || d.results || [])
-      .filter(u => u && u.includes('linkedin.com/in/') && !seenUrls.has(u))
-      .slice(0, 25);
+
+    // Handle array of {linkedin_url} objects or flat array of strings
+    const raw = Array.isArray(d) ? d : (d.urls || d.results || []);
+    const urls = [];
+    const dedup = new Set();
+
+    raw.forEach(item => {
+      const rawUrl = typeof item === 'string' ? item : (item.linkedin_url || '');
+      if (!rawUrl.includes('linkedin.com/in/') || rawUrl.includes('#')) return;
+      const clean = normalizeUrl(rawUrl);
+      if (!dedup.has(clean) && !seenUrls.has(clean)) {
+        dedup.add(clean);
+        urls.push(clean);
+      }
+    });
+
+    return urls.slice(0, 25);
   } catch(e) {
-    // Demo fallback
-    return ['https://linkedin.com/in/demo-1','https://linkedin.com/in/demo-2','https://linkedin.com/in/demo-3']
-      .filter(u => !seenUrls.has(u));
+    return [];
   }
 }
 
