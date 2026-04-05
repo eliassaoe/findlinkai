@@ -69,6 +69,13 @@ body { font-family: 'Inter', -apple-system, sans-serif; background: white; color
 .hint-row { display: flex; gap: .5rem; flex-wrap: wrap; margin-top: .75rem; }
 .hint { font-size: .75rem; color: var(--gray-500); background: var(--gray-100); border: 1px solid var(--gray-200); padding: .25rem .625rem; border-radius: 999px; cursor: pointer; transition: all .15s; }
 .hint:hover { border-color: var(--primary); color: var(--primary); background: #eff6ff; }
+.search-options { display: flex; align-items: center; gap: 1rem; margin-top: .875rem; flex-wrap: wrap; }
+.count-wrap { display: flex; align-items: center; gap: .5rem; }
+.count-label { font-size: .775rem; font-weight: 500; color: var(--gray-600); white-space: nowrap; }
+.count-input { width: 70px; padding: .375rem .5rem; border: 1px solid var(--gray-300); border-radius: 6px; font-size: .8rem; color: var(--gray-800); font-family: inherit; text-align: center; transition: border-color .2s; }
+.count-input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37,99,235,.1); }
+.cost-hint { font-size: .75rem; color: var(--gray-400); margin-left: auto; }
+.cost-hint strong { color: var(--warning); }
 
 /* Loading */
 .loading-state { text-align: center; padding: 2.5rem 1rem; display: none; }
@@ -186,11 +193,20 @@ body { font-family: 'Inter', -apple-system, sans-serif; background: white; color
           <i class="fas fa-search"></i> Find Leads
         </button>
       </div>
-      <div class="hint-row">
-        <span class="hint" onclick="fillHint('VP Sales at B2B SaaS in United States')">VP Sales · B2B SaaS · US</span>
-        <span class="hint" onclick="fillHint('Founder at startup in London')">Founder · Startup · London</span>
-        <span class="hint" onclick="fillHint('Head of Marketing at agency in Paris')">Head of Marketing · Paris</span>
-        <span class="hint" onclick="fillHint('CTO at fintech company')">CTO · Fintech</span>
+      <div class="search-options">
+        <div class="hint-row" style="margin-top:0;flex:1;">
+          <span class="hint" onclick="fillHint('VP Sales at B2B SaaS in United States')">VP Sales · B2B SaaS · US</span>
+          <span class="hint" onclick="fillHint('Founder at startup in London')">Founder · Startup · London</span>
+          <span class="hint" onclick="fillHint('Head of Marketing at agency in Paris')">Head of Marketing · Paris</span>
+          <span class="hint" onclick="fillHint('CTO at fintech company')">CTO · Fintech</span>
+        </div>
+      </div>
+      <div class="search-options" style="margin-top:.75rem;border-top:1px solid var(--gray-100);padding-top:.75rem;">
+        <div class="count-wrap">
+          <label class="count-label">Max profiles</label>
+          <input type="number" class="count-input" id="maxProfiles" value="10" min="1" max="100" onchange="updateCostHint()">
+        </div>
+        <div class="cost-hint" id="costHint"><strong>10 credits</strong> · 10 credits per profile</div>
       </div>
     </div>
 
@@ -339,6 +355,12 @@ function loadPast(i) {
   showStoredResults(currentLeads);
 }
 
+function updateCostHint() {
+  const max = parseInt(document.getElementById('maxProfiles').value) || 10;
+  const clamped = Math.min(Math.max(max, 1), 100);
+  document.getElementById('costHint').innerHTML = `<strong>${clamped * 10} credits</strong> · 10 credits per profile`;
+}
+
 function fillHint(text) {
   document.getElementById('searchInput').value = text;
   document.getElementById('searchInput').focus();
@@ -357,6 +379,14 @@ async function startSearch() {
   if (!query) return;
   currentQuery = query;
 
+  const maxProfiles = Math.min(Math.max(parseInt(document.getElementById('maxProfiles').value) || 10, 1), 100);
+  const estimatedCost = maxProfiles * 10;
+  const currentCredits = parseInt(document.getElementById('creditsCount').textContent) || 0;
+  if (currentCredits < estimatedCost) {
+    showAlert(`Not enough credits — this search needs ${estimatedCost} credits, you have ${currentCredits}`, 'error');
+    return;
+  }
+
   document.getElementById('searchBtn').disabled = true;
   document.getElementById('loadingState').style.display = 'block';
   document.getElementById('emptySection').style.display = 'none';
@@ -366,7 +396,7 @@ async function startSearch() {
   try {
     const seenUrls = await getSeenUrls();
     setStep('Removing profiles you\'ve already seen...');
-    const urls = await fetchProfileUrls(query, seenUrls);
+    const urls = await fetchProfileUrls(query, seenUrls, maxProfiles);
 
     if (!urls.length) {
       document.getElementById('loadingState').style.display = 'none';
@@ -382,20 +412,21 @@ async function startSearch() {
     document.getElementById('leadsList').innerHTML = '';
     document.getElementById('resultsCount').textContent = urls.length;
 
-    const enriched = [];
+    currentLeads = []; // reset so export works from first result
     for (let i = 0; i < urls.length; i++) {
       const url = urls[i];
       const cardId = 'lc' + i;
       appendLoadingCard(cardId, url);
       try {
         const p = await enrichProfile(url);
-        enriched.push(p);
+        if (p && p.name && p.name !== 'Not found') {
+          currentLeads.push(p); // add immediately so export works mid-enrichment
+        }
         updateCard(cardId, p);
       } catch(e) { updateCardError(cardId, url); }
+      document.getElementById('resultsCount').textContent = currentLeads.length;
     }
 
-    currentLeads = enriched.filter(l => l && l.name && l.name !== 'Not found');
-    document.getElementById('resultsCount').textContent = currentLeads.length;
     if (currentLeads.length) await saveSearch(query, currentLeads);
 
   } catch(e) {
@@ -409,7 +440,7 @@ async function startSearch() {
 
 function setStep(txt) { document.getElementById('loadingStep').textContent = txt; }
 
-async function fetchProfileUrls(query, seenUrls) {
+async function fetchProfileUrls(query, seenUrls, maxProfiles = 10) {
   try {
     const r = await fetch(API_URL, {
       method: 'POST',
@@ -435,7 +466,7 @@ async function fetchProfileUrls(query, seenUrls) {
       }
     });
 
-    return urls.slice(0, 25);
+    return urls.slice(0, maxProfiles);
   } catch(e) {
     return [];
   }
