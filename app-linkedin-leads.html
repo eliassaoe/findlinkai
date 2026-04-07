@@ -31,7 +31,8 @@ body{font-family:'Inter',-apple-system,sans-serif;background:white;color:var(--g
 .btn:hover{background:var(--primary-hover);}
 .btn-outline{background:transparent;color:var(--primary);border:1px solid var(--gray-300);}
 .btn-outline:hover{background:var(--gray-50);border-color:var(--primary);}
-.btn-buy-inline{background:linear-gradient(135deg,#fb923c,#f97316);border:none;color:white;font-weight:700;font-size:.7rem;cursor:pointer;padding:.25rem .5rem;border-radius:4px;white-space:nowrap;font-family:inherit;margin-left:.35rem;}
+.btn-upgrade{background:linear-gradient(135deg,#fb923c,#f97316);border:none;color:white;font-weight:700;font-size:.7rem;cursor:pointer;padding:.25rem .5rem;border-radius:4px;white-space:nowrap;font-family:inherit;margin-left:.35rem;transition:opacity .15s;}
+.btn-upgrade:hover{opacity:.85;}
 .nav-menu{background:white;border-bottom:1px solid var(--gray-200);padding:.75rem 0;}
 .nav-tabs{display:flex;gap:.5rem;overflow-x:auto;padding-bottom:.25rem;}
 .nav-tab{display:flex;align-items:center;gap:.5rem;padding:.75rem 1rem;border-radius:8px;background:transparent;border:1px solid var(--gray-200);color:var(--gray-600);text-decoration:none;font-weight:500;font-size:.875rem;transition:all .2s;white-space:nowrap;cursor:pointer;font-family:inherit;}
@@ -101,18 +102,43 @@ body{font-family:'Inter',-apple-system,sans-serif;background:white;color:var(--g
 .alert-error{background:rgba(239,68,68,.08);border:1px solid var(--error);color:var(--error);}
 .alert-success{background:rgba(16,185,129,.08);border:1px solid var(--success);color:var(--success);}
 .hidden{display:none!important;}
+
+/* ── Plans modal ── */
+.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;display:flex;align-items:center;justify-content:center;padding:1rem;}
+.modal-backdrop.hidden{display:none!important;}
+.modal{background:white;border-radius:16px;width:100%;max-width:560px;padding:2rem 1.75rem;position:relative;max-height:90vh;overflow-y:auto;}
+.modal-close{position:absolute;top:1rem;right:1rem;background:none;border:none;font-size:1.1rem;color:var(--gray-400);cursor:pointer;line-height:1;padding:.25rem;}
+.modal-close:hover{color:var(--gray-700);}
+.modal-title{font-size:1.25rem;font-weight:700;color:var(--gray-900);margin-bottom:.35rem;}
+.modal-sub{font-size:.875rem;color:var(--gray-500);margin-bottom:1.75rem;}
+.plans-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.75rem;}
+.plan-card{border:1.5px solid var(--gray-200);border-radius:12px;padding:1.25rem 1rem;display:flex;flex-direction:column;gap:.5rem;position:relative;transition:border-color .2s;}
+.plan-card:hover{border-color:var(--gray-400);}
+.plan-card.featured{border-color:var(--primary);border-width:2px;}
+.plan-badge{position:absolute;top:-11px;left:50%;transform:translateX(-50%);background:var(--primary);color:white;font-size:.65rem;font-weight:700;padding:.2rem .6rem;border-radius:999px;white-space:nowrap;letter-spacing:.04em;}
+.plan-name{font-size:.8rem;font-weight:700;color:var(--gray-700);text-transform:uppercase;letter-spacing:.05em;}
+.plan-price{font-size:1.5rem;font-weight:700;color:var(--gray-900);line-height:1;}
+.plan-price span{font-size:.8rem;font-weight:400;color:var(--gray-400);}
+.plan-credits{font-size:.75rem;color:var(--primary);font-weight:600;margin-bottom:.25rem;}
+.plan-features{list-style:none;display:flex;flex-direction:column;gap:.35rem;margin:.5rem 0;flex:1;}
+.plan-features li{font-size:.75rem;color:var(--gray-600);display:flex;align-items:flex-start;gap:.375rem;}
+.plan-features li i{color:var(--success);font-size:.7rem;margin-top:.2rem;flex-shrink:0;}
+.btn-plan{width:100%;padding:.625rem;border-radius:8px;font-size:.8rem;font-weight:600;cursor:pointer;font-family:inherit;border:1.5px solid var(--primary);background:white;color:var(--primary);transition:all .2s;margin-top:auto;}
+.btn-plan:hover{background:var(--primary);color:white;}
+.plan-card.featured .btn-plan{background:var(--primary);color:white;}
+.plan-card.featured .btn-plan:hover{background:var(--primary-hover);}
+.modal-footer{font-size:.75rem;color:var(--gray-400);text-align:center;margin-top:1.25rem;}
+
 @media(max-width:640px){
   .nav-tab{padding:.625rem .75rem;font-size:.8rem;}
   .search-wrap{flex-direction:column;}
   .btn-search{justify-content:center;}
+  .plans-grid{grid-template-columns:1fr;}
+  .plan-card.featured{order:-1;}
 }
 </style>
 </head>
 <body>
-<!-- Google Tag Manager (noscript) -->
-<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-TL7WVD2N"
-height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
-<!-- End Google Tag Manager (noscript) -->
 
 <header class="header">
   <div class="container">
@@ -125,7 +151,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         <div class="credits">
           <i class="fas fa-coins"></i>
           <span id="creditsCount">--</span> credits
-          <button class="btn-buy-inline" onclick="goToBuy()">Buy credits</button>
+          <button class="btn-upgrade" onclick="openPlansModal()">Upgrade</button>
         </div>
         <button class="btn btn-outline" onclick="logout()">Logout</button>
       </div>
@@ -207,11 +233,77 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   </div>
 </div>
 
+<!-- Plans Modal -->
+<div class="modal-backdrop hidden" id="plansModal" onclick="handleBackdropClick(event)">
+  <div class="modal">
+    <button class="modal-close" onclick="closePlansModal()"><i class="fas fa-times"></i></button>
+    <div class="modal-title">Choose your plan</div>
+    <div class="modal-sub">Get more credits every month and unlock advanced features.</div>
+    <div class="plans-grid">
+
+      <!-- Starter -->
+      <div class="plan-card">
+        <div class="plan-name">Starter</div>
+        <div class="plan-price">$29<span>/mo</span></div>
+        <div class="plan-credits">500 credits / month</div>
+        <ul class="plan-features">
+          <li><i class="fas fa-check"></i>50 LinkedIn profiles</li>
+          <li><i class="fas fa-check"></i>CSV export</li>
+          <li><i class="fas fa-check"></i>Email support</li>
+          <li><i class="fas fa-check"></i>Credits roll over 1 month</li>
+        </ul>
+        <button class="btn-plan" onclick="selectPlan('starter')">Get Starter</button>
+      </div>
+
+      <!-- Pro (featured) -->
+      <div class="plan-card featured">
+        <div class="plan-badge">Most popular</div>
+        <div class="plan-name">Pro</div>
+        <div class="plan-price">$79<span>/mo</span></div>
+        <div class="plan-credits">2 000 credits / month</div>
+        <ul class="plan-features">
+          <li><i class="fas fa-check"></i>200 LinkedIn profiles</li>
+          <li><i class="fas fa-check"></i>CSV export</li>
+          <li><i class="fas fa-check"></i>API access</li>
+          <li><i class="fas fa-check"></i>Priority support</li>
+          <li><i class="fas fa-check"></i>Credits roll over 3 months</li>
+        </ul>
+        <button class="btn-plan" onclick="selectPlan('pro')">Get Pro</button>
+      </div>
+
+      <!-- Business -->
+      <div class="plan-card">
+        <div class="plan-name">Business</div>
+        <div class="plan-price">$199<span>/mo</span></div>
+        <div class="plan-credits">6 000 credits / month</div>
+        <ul class="plan-features">
+          <li><i class="fas fa-check"></i>600 LinkedIn profiles</li>
+          <li><i class="fas fa-check"></i>CSV export</li>
+          <li><i class="fas fa-check"></i>Full API access</li>
+          <li><i class="fas fa-check"></i>Dedicated support</li>
+          <li><i class="fas fa-check"></i>Credits roll over 6 months</li>
+          <li><i class="fas fa-check"></i>Team seats (up to 5)</li>
+        </ul>
+        <button class="btn-plan" onclick="selectPlan('business')">Get Business</button>
+      </div>
+
+    </div>
+    <div class="modal-footer">Cancel any time &middot; Billed monthly &middot; Secure checkout via Stripe</div>
+  </div>
+</div>
+
 <script>
 var SUPABASE_URL      = 'https://snxhsboboatjywgwdeds.supabase.co';
 var SUPABASE_ANON_KEY = 'sb_publishable_RKidGRs4ch1ixmRfXoYSww_UsQMSe5w';
 var API_URL           = 'https://linkfinderapp.hamoureliasse.workers.dev/';
 var CREDITS_URL       = 'https://linkfinderaicredits.hamoureliasse.workers.dev/';
+
+/* Update these to your actual Stripe payment links / checkout URLs */
+var PLAN_URLS = {
+  starter:  'https://linkfinderai.com/checkout?plan=starter&token=',
+  pro:      'https://linkfinderai.com/checkout?plan=pro&token=',
+  business: 'https://linkfinderai.com/checkout?plan=business&token='
+};
 
 var sb = null, userToken = null;
 var currentLeads = [], currentQuery = '', pastSearches = [];
@@ -226,8 +318,24 @@ document.addEventListener('DOMContentLoaded', function() {
   loadPastSearches();
 });
 
+/* ── Modal ── */
+function openPlansModal() {
+  document.getElementById('plansModal').classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+}
+function closePlansModal() {
+  document.getElementById('plansModal').classList.add('hidden');
+  document.body.style.overflow = '';
+}
+function handleBackdropClick(e) {
+  if (e.target === document.getElementById('plansModal')) closePlansModal();
+}
+function selectPlan(plan) {
+  var url = PLAN_URLS[plan] + encodeURIComponent(userToken || '');
+  window.location.href = url;
+}
+
 function logout() { localStorage.removeItem('linkFinderToken'); window.location.href = 'https://linkfinderai.com/'; }
-function goToBuy() { window.location.href = 'https://linkfinderai.com/app?token=' + userToken + '&action=buy_credits'; }
 function nav(p) {
   var m = { enrichment:'app', aicolumns:'app-prospects', api:'api-access', account:'account' };
   window.location.href = 'https://linkfinderai.com/' + m[p] + '?token=' + userToken;
@@ -252,10 +360,7 @@ function loadPastSearches() {
     .eq('user_token', userToken)
     .order('created_at', { ascending: false })
     .limit(10)
-    .then(function(res) {
-      pastSearches = res.data || [];
-      renderPast();
-    })
+    .then(function(res) { pastSearches = res.data || []; renderPast(); })
     .catch(function() { pastSearches = []; });
 }
 
@@ -333,7 +438,8 @@ function startSearch() {
   var estimatedCost = maxProfiles * 10;
   var currentCredits = parseInt(document.getElementById('creditsCount').textContent) || 0;
   if (currentCredits < estimatedCost) {
-    showAlert('Not enough credits - this search needs ' + estimatedCost + ' credits, you have ' + currentCredits, 'error');
+    showAlert('Not enough credits — this search needs ' + estimatedCost + ' credits, you have ' + currentCredits + '. Upgrade your plan to get more.', 'error');
+    setTimeout(openPlansModal, 1800);
     return;
   }
 
@@ -368,9 +474,7 @@ function startSearch() {
         var cardId = 'lc' + i;
         appendLoadingCard(cardId, url);
         return enrichProfile(url).then(function(p) {
-          if (p && p.name && p.name !== 'Not found') {
-            currentLeads.push(p);
-          }
+          if (p && p.name && p.name !== 'Not found') currentLeads.push(p);
           updateCard(cardId, p);
           document.getElementById('resultsCount').textContent = currentLeads.length;
         }).catch(function() { updateCardError(cardId, url); });
@@ -399,16 +503,12 @@ function fetchProfileUrls(query, seenUrls, maxProfiles) {
     return r.json();
   }).then(function(d) {
     var raw = Array.isArray(d) ? d : (d.urls || d.results || []);
-    var urls = [];
-    var dedup = new Set();
+    var urls = [], dedup = new Set();
     raw.forEach(function(item) {
       var rawUrl = typeof item === 'string' ? item : (item.linkedin_url || '');
       if (!rawUrl.includes('linkedin.com/in/') || rawUrl.includes('#')) return;
       var clean = normalizeUrl(rawUrl);
-      if (!dedup.has(clean) && !seenUrls.has(clean)) {
-        dedup.add(clean);
-        urls.push(clean);
-      }
+      if (!dedup.has(clean) && !seenUrls.has(clean)) { dedup.add(clean); urls.push(clean); }
     });
     return urls.slice(0, maxProfiles);
   }).catch(function() { return []; });
@@ -452,37 +552,28 @@ function enrichProfile(url) {
 
 function appendLoadingCard(id, url) {
   var el = document.createElement('div');
-  el.className = 'lead-card';
-  el.id = id;
+  el.className = 'lead-card'; el.id = id;
   el.innerHTML = '<div class="lead-avatar dim">?</div>' +
-    '<div class="lead-info">' +
-      '<div class="lead-name dim">' + esc(nameFromUrl(url)) + '</div>' +
-      '<div class="lead-sub loading"><div class="mini-spin"></div>Enriching profile...</div>' +
-    '</div>' +
+    '<div class="lead-info"><div class="lead-name dim">' + esc(nameFromUrl(url)) + '</div>' +
+    '<div class="lead-sub loading"><div class="mini-spin"></div>Enriching profile...</div></div>' +
     '<a href="' + url + '" target="_blank" class="lead-li"><i class="fab fa-linkedin-in"></i></a>';
   document.getElementById('leadsList').appendChild(el);
 }
 
 function updateCard(id, p) {
-  var el = document.getElementById(id);
-  if (!el) return;
+  var el = document.getElementById(id); if (!el) return;
   var sub = [p.job_title, p.company].filter(function(x) { return x && x !== 'Not found'; }).join(' · ');
   el.innerHTML = '<div class="lead-avatar">' + initials(p.name) + '</div>' +
-    '<div class="lead-info">' +
-      '<div class="lead-name">' + esc(p.name) + '</div>' +
-      (sub ? '<div class="lead-sub">' + esc(sub) + '</div>' : '') +
-    '</div>' +
+    '<div class="lead-info"><div class="lead-name">' + esc(p.name) + '</div>' +
+    (sub ? '<div class="lead-sub">' + esc(sub) + '</div>' : '') + '</div>' +
     '<a href="' + p.linkedin_url + '" target="_blank" class="lead-li"><i class="fab fa-linkedin-in"></i></a>';
 }
 
 function updateCardError(id, url) {
-  var el = document.getElementById(id);
-  if (!el) return;
+  var el = document.getElementById(id); if (!el) return;
   el.innerHTML = '<div class="lead-avatar dim">' + initials(nameFromUrl(url)) + '</div>' +
-    '<div class="lead-info">' +
-      '<div class="lead-name dim">' + esc(nameFromUrl(url)) + '</div>' +
-      '<div class="lead-sub" style="color:var(--gray-400);">Data unavailable</div>' +
-    '</div>' +
+    '<div class="lead-info"><div class="lead-name dim">' + esc(nameFromUrl(url)) + '</div>' +
+    '<div class="lead-sub" style="color:var(--gray-400);">Data unavailable</div></div>' +
     '<a href="' + url + '" target="_blank" class="lead-li"><i class="fab fa-linkedin-in"></i></a>';
 }
 
@@ -494,10 +585,8 @@ function showStoredResults(leads) {
     var sub = [p.job_title, p.company].filter(function(x) { return x && x !== 'Not found'; }).join(' · ');
     return '<div class="lead-card">' +
       '<div class="lead-avatar">' + initials(p.name) + '</div>' +
-      '<div class="lead-info">' +
-        '<div class="lead-name">' + esc(p.name || 'Unknown') + '</div>' +
-        (sub ? '<div class="lead-sub">' + esc(sub) + '</div>' : '') +
-      '</div>' +
+      '<div class="lead-info"><div class="lead-name">' + esc(p.name || 'Unknown') + '</div>' +
+      (sub ? '<div class="lead-sub">' + esc(sub) + '</div>' : '') + '</div>' +
       '<a href="' + p.linkedin_url + '" target="_blank" class="lead-li"><i class="fab fa-linkedin-in"></i></a>' +
       '</div>';
   }).join('');
@@ -510,13 +599,7 @@ function exportCSV() {
   function q(v) { return '"' + String(v || 'Not found').replace(/"/g, '""') + '"'; }
   var csv = headers.join(',') + NL;
   currentLeads.forEach(function(l) {
-    csv += [
-      q(l.linkedin_url), q(l.name), q(l.job_title), q(l.company),
-      q(l.location), q(l.industry), q(l.website), q(l.email),
-      q(l.education), q(l.headline), q(l.company_description),
-      q(l.company_size), q(l.company_location), q(l.founded),
-      q(l.company_linkedin_url), q(l.experiences), 'Found'
-    ].join(',') + NL;
+    csv += [q(l.linkedin_url),q(l.name),q(l.job_title),q(l.company),q(l.location),q(l.industry),q(l.website),q(l.email),q(l.education),q(l.headline),q(l.company_description),q(l.company_size),q(l.company_location),q(l.founded),q(l.company_linkedin_url),q(l.experiences),'Found'].join(',') + NL;
   });
   var a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv;charset=utf-8;'}));
@@ -544,7 +627,7 @@ function showAlert(msg, type) {
   var a = document.getElementById('alert');
   a.textContent = msg; a.className = 'alert alert-' + (type||'success'); a.style.display = 'block';
   if (alertT) clearTimeout(alertT);
-  alertT = setTimeout(function() { a.style.display = 'none'; }, 4000);
+  alertT = setTimeout(function() { a.style.display = 'none'; }, 5000);
 }
 </script>
 </body>
