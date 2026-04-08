@@ -98,8 +98,6 @@ body{font-family:'Inter',-apple-system,sans-serif;background:white;color:var(--g
 .alert-success{background:rgba(16,185,129,.08);border:1px solid var(--success);color:var(--success);}
 .alert-warning{background:rgba(245,158,11,.08);border:1px solid var(--warning);color:var(--warning);}
 .hidden{display:none!important;}
-
-/* ── Pricing Modal — identical to enrichment page ── */
 .modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:1000;opacity:0;visibility:hidden;transition:all .3s ease;padding:1rem;}
 .modal-overlay.show{opacity:1;visibility:visible;}
 .pricing-modal{background:white;border-radius:16px;padding:2rem;max-width:480px;width:100%;position:relative;transform:scale(.9);transition:transform .3s ease;box-shadow:0 20px 25px -5px rgba(0,0,0,.1),0 10px 10px -5px rgba(0,0,0,.04);}
@@ -125,7 +123,6 @@ body{font-family:'Inter',-apple-system,sans-serif;background:white;color:var(--g
 .plan-credits-txt{font-size:1.1rem;font-weight:700;color:var(--gray-900);margin-top:.25rem;}
 .pricing-modal-cta{margin-bottom:1rem;}
 .pricing-modal-cta .btn{width:100%;padding:1rem;font-size:1rem;font-weight:600;}
-
 @media(max-width:640px){
   .nav-tab{padding:.625rem .75rem;font-size:.8rem;}
   .search-wrap{flex-direction:column;}
@@ -171,7 +168,6 @@ body{font-family:'Inter',-apple-system,sans-serif;background:white;color:var(--g
 <div class="container">
   <div class="main">
     <div id="alert" class="alert"></div>
-
     <div class="search-card">
       <label class="search-label">Describe the leads you are looking for</label>
       <div class="search-wrap">
@@ -228,7 +224,6 @@ body{font-family:'Inter',-apple-system,sans-serif;background:white;color:var(--g
   </div>
 </div>
 
-<!-- ── Pricing Modal (same as enrichment page) ── -->
 <div id="pricingModal" class="modal-overlay">
   <div class="pricing-modal">
     <button class="modal-close" onclick="closePricingModal()"><i class="fas fa-times"></i></button>
@@ -240,7 +235,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:white;color:var(--g
     <div class="plan-selector">
       <button class="plan-nav-btn" onclick="previousPlan()" id="prevBtn"><i class="fas fa-chevron-left"></i></button>
       <div class="plan-card-inner">
-        <div class="plan-name-label"  id="planName">Professional</div>
+        <div class="plan-name-label" id="planName">Professional</div>
         <div class="plan-price-wrap">
           <div class="plan-price-big" id="priceAmount">$71</div>
           <div class="plan-period-txt" id="pricePeriod">per month</div>
@@ -255,7 +250,6 @@ body{font-family:'Inter',-apple-system,sans-serif;background:white;color:var(--g
   </div>
 </div>
 
-<!-- ── Insufficient Credits Modal (same as enrichment page) ── -->
 <div id="insufficientCreditsModal" class="modal-overlay">
   <div class="pricing-modal">
     <button class="modal-close" onclick="closeInsufficientCreditsModal()"><i class="fas fa-times"></i></button>
@@ -276,10 +270,12 @@ var API_URL           = 'https://linkfinderapp.hamoureliasse.workers.dev/';
 var CREDITS_URL       = 'https://linkfinderaicredits.hamoureliasse.workers.dev/';
 var SUB_CHECK_URL     = 'https://scalelinkfinderai-production.up.railway.app/webhook/a30d8fea-5360-4003-be0d-9cea914390b0';
 
+// ← Replace with your filter worker URL once deployed
+var FILTER_WORKER_URL = 'https://titleleads.hamoureliasse.workers.dev/';
+
 var sb = null, userToken = null, currentCredits = null;
 var currentLeads = [], currentQuery = '', pastSearches = [];
 
-/* ── Plans — same data as enrichment page ── */
 var plans = [
   { name:'Starter',      monthlyPrice:49,  credits:60000,
     monthlyLink:'https://linkfinderai.gumroad.com/l/txudoe',
@@ -294,17 +290,15 @@ var plans = [
     monthlyLink:'https://linkfinderai.gumroad.com/l/tbwevi',
     annualLink: 'https://linkfinderai.gumroad.com/l/dilhpd' }
 ];
-var currentPlanIndex = 1; // default: Professional
+var currentPlanIndex = 1;
 var isAnnualBilling  = true;
 
-/* ── gclid helper ── */
 var gclid = new URLSearchParams(window.location.search).get('gclid');
 function addGclid(url){
   if(!gclid) return url;
   return url + (url.includes('?') ? '&' : '?') + 'gclid=' + gclid;
 }
 
-/* ── Init ── */
 document.addEventListener('DOMContentLoaded', function(){
   var p = new URLSearchParams(window.location.search);
   userToken = p.get('token') || localStorage.getItem('linkFinderToken');
@@ -313,14 +307,11 @@ document.addEventListener('DOMContentLoaded', function(){
   sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   fetchCredits();
   loadPastSearches();
-  updatePlanDisplay(); // set correct default display
-
+  updatePlanDisplay();
   var action = p.get('action');
   if(action === 'buy_credits' || action === 'upgrade'){
     setTimeout(function(){ handleAddCredits(); }, 500);
   }
-
-  /* close modals on backdrop click */
   document.addEventListener('click', function(e){
     if(e.target === document.getElementById('pricingModal')) closePricingModal();
     if(e.target === document.getElementById('insufficientCreditsModal')) closeInsufficientCreditsModal();
@@ -330,14 +321,12 @@ document.addEventListener('DOMContentLoaded', function(){
   });
 });
 
-/* ── Auth / Nav ── */
 function logout(){ localStorage.removeItem('linkFinderToken'); window.location.href = 'https://linkfinderai.com/'; }
 function nav(page){
   var m = { enrichment:'app', api:'api-access', account:'account' };
   window.location.href = addGclid('https://linkfinderai.com/' + m[page] + '?token=' + userToken);
 }
 
-/* ── Credits ── */
 function fetchCredits(){
   fetch(CREDITS_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:userToken})})
     .then(function(r){return r.json();})
@@ -352,7 +341,6 @@ function deductCredits(n){
   document.getElementById('creditsCount').textContent = Math.round(currentCredits*10)/10;
 }
 
-/* ── handleAddCredits: check sub → always show plans modal (no one-time credits) ── */
 async function handleAddCredits(){
   var btn = document.getElementById('buyCreditsBtn');
   var orig = btn.innerHTML;
@@ -360,17 +348,11 @@ async function handleAddCredits(){
   btn.disabled = true;
   try {
     await fetch(SUB_CHECK_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:userToken})});
-    // Whether subscriber or not, show the plans modal only
     showPricingModal();
-  } catch(e){
-    showPricingModal();
-  } finally {
-    btn.innerHTML = orig;
-    btn.disabled = false;
-  }
+  } catch(e){ showPricingModal(); }
+  finally { btn.innerHTML = orig; btn.disabled = false; }
 }
 
-/* ── Pricing Modal ── */
 function showPricingModal(){
   isAnnualBilling = true;
   document.getElementById('monthlyBtn').classList.remove('active');
@@ -384,59 +366,122 @@ function closePricingModal(){
   document.body.style.overflow = '';
 }
 function setBilling(type){
-  isAnnualBilling = (type === 'annual');
-  document.getElementById('monthlyBtn').classList.toggle('active', !isAnnualBilling);
-  document.getElementById('annualBtn').classList.toggle('active',  isAnnualBilling);
+  isAnnualBilling = (type==='annual');
+  document.getElementById('monthlyBtn').classList.toggle('active',!isAnnualBilling);
+  document.getElementById('annualBtn').classList.toggle('active',isAnnualBilling);
   updatePlanDisplay();
 }
 function updatePlanDisplay(){
-  var plan = plans[currentPlanIndex];
-  document.getElementById('planName').textContent = plan.name;
+  var plan=plans[currentPlanIndex];
+  document.getElementById('planName').textContent=plan.name;
   if(isAnnualBilling){
-    var mo = Math.round(plan.monthlyPrice * 0.8);
-    document.getElementById('priceAmount').textContent  = '$' + mo;
-    document.getElementById('pricePeriod').textContent  = 'per month';
-    document.getElementById('planCredits').textContent  = plan.credits.toLocaleString() + ' credits/year';
-    document.getElementById('ctaText').textContent      = 'Get Started - $' + mo + '/month';
+    var mo=Math.round(plan.monthlyPrice*0.8);
+    document.getElementById('priceAmount').textContent='$'+mo;
+    document.getElementById('pricePeriod').textContent='per month';
+    document.getElementById('planCredits').textContent=plan.credits.toLocaleString()+' credits/year';
+    document.getElementById('ctaText').textContent='Get Started - $'+mo+'/month';
   } else {
-    document.getElementById('priceAmount').textContent  = '$' + plan.monthlyPrice;
-    document.getElementById('pricePeriod').textContent  = 'per month';
-    document.getElementById('planCredits').textContent  = Math.round(plan.credits/12).toLocaleString() + ' credits/month';
-    document.getElementById('ctaText').textContent      = 'Get Started - $' + plan.monthlyPrice + '/month';
+    document.getElementById('priceAmount').textContent='$'+plan.monthlyPrice;
+    document.getElementById('pricePeriod').textContent='per month';
+    document.getElementById('planCredits').textContent=Math.round(plan.credits/12).toLocaleString()+' credits/month';
+    document.getElementById('ctaText').textContent='Get Started - $'+plan.monthlyPrice+'/month';
   }
-  document.getElementById('prevBtn').disabled = (currentPlanIndex === 0);
-  document.getElementById('nextBtn').disabled = (currentPlanIndex === plans.length - 1);
+  document.getElementById('prevBtn').disabled=(currentPlanIndex===0);
+  document.getElementById('nextBtn').disabled=(currentPlanIndex===plans.length-1);
 }
-function previousPlan(){ if(currentPlanIndex > 0){ currentPlanIndex--; updatePlanDisplay(); } }
-function nextPlan(){ if(currentPlanIndex < plans.length-1){ currentPlanIndex++; updatePlanDisplay(); } }
+function previousPlan(){ if(currentPlanIndex>0){currentPlanIndex--;updatePlanDisplay();} }
+function nextPlan(){ if(currentPlanIndex<plans.length-1){currentPlanIndex++;updatePlanDisplay();} }
 function proceedToCheckout(){
-  var plan = plans[currentPlanIndex];
-  var base = isAnnualBilling ? plan.annualLink : plan.monthlyLink;
-  window.location.href = addGclid(base + '?wanted=true&user_id=' + userToken);
+  var plan=plans[currentPlanIndex];
+  var base=isAnnualBilling?plan.annualLink:plan.monthlyLink;
+  window.location.href=addGclid(base+'?wanted=true&user_id='+userToken);
 }
-
-/* ── Insufficient Credits Modal ── */
 function showInsufficientCreditsModal(){
   document.getElementById('insufficientCreditsModal').classList.add('show');
-  document.body.style.overflow = 'hidden';
+  document.body.style.overflow='hidden';
 }
 function closeInsufficientCreditsModal(){
   document.getElementById('insufficientCreditsModal').classList.remove('show');
-  document.body.style.overflow = '';
+  document.body.style.overflow='';
 }
-function showPricingFromInsufficient(){
-  closeInsufficientCreditsModal();
-  showPricingModal();
-}
+function showPricingFromInsufficient(){ closeInsufficientCreditsModal(); showPricingModal(); }
 
-/* ── URL normalisation ── */
 function normalizeUrl(url){
   return (url||'').split('?')[0].replace(/\/$/,'')
     .replace(/^https?:\/\/[a-z]{2}\.linkedin\.com/,'https://www.linkedin.com')
     .replace(/^https?:\/\/linkedin\.com/,'https://www.linkedin.com');
 }
 
-/* ── Supabase helpers ── */
+// ── SIZE RANGE MAP ────────────────────────────────────────────────────────────
+var SIZE_RANGE_MAX = {
+  '1-10':10,'2-10':10,'0-1':1,
+  '11-20':20,'21-50':50,'51-100':100,
+  '101-200':200,'201-500':500,
+  '501-1000':1000,'1001-5000':5000,
+  '5001-10000':10000,'10001+':999999,'10001-0':999999
+};
+
+// ── AI FILTER EXTRACTION via worker (API key stays server-side) ───────────────
+async function extractFiltersWithAI(query) {
+  try {
+    var response = await fetch(FILTER_WORKER_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query: query })
+    });
+    var filters = await response.json();
+    return {
+      titles: Array.isArray(filters.titles)
+        ? filters.titles.map(function(t){ return t.toLowerCase(); })
+        : [],
+      maxSize: filters.maxSize || null,
+      locationKeywords: Array.isArray(filters.locationKeywords)
+        ? filters.locationKeywords.map(function(l){ return l.toLowerCase(); })
+        : []
+    };
+  } catch(e) {
+    // Worker failed — apply no filters, still show results
+    return { titles: [], maxSize: null, locationKeywords: [] };
+  }
+}
+
+// ── POST-ENRICHMENT FILTER ────────────────────────────────────────────────────
+function matchesFilters(p, filters) {
+  // Size check
+  if (filters.maxSize !== null) {
+    var size = (p.company_size || '').trim();
+    if (size && size !== 'Not found') {
+      var sizeMax = SIZE_RANGE_MAX[size];
+      if (sizeMax !== undefined && sizeMax > filters.maxSize) return false;
+    }
+  }
+
+  // Location check
+  if (filters.locationKeywords.length > 0) {
+    var profileLoc = (p.location || '').toLowerCase();
+    if (profileLoc && profileLoc !== 'not found') {
+      var locMatch = filters.locationKeywords.some(function(kw){
+        return profileLoc.includes(kw);
+      });
+      if (!locMatch) return false;
+    }
+  }
+
+  // Title check
+  if (filters.titles.length > 0) {
+    var jobTitle  = (p.job_title  || '').toLowerCase();
+    var headline  = (p.headline   || '').toLowerCase();
+    var combined  = jobTitle + ' ' + headline;
+    var titleMatch = filters.titles.some(function(t){
+      return combined.includes(t);
+    });
+    if (!titleMatch) return false;
+  }
+
+  return true;
+}
+
+// ── SUPABASE ──────────────────────────────────────────────────────────────────
 function loadPastSearches(){
   sb.from('linkedin_lead_searches').select('id,query,leads,created_at')
     .eq('user_token',userToken).order('created_at',{ascending:false}).limit(10)
@@ -453,12 +498,14 @@ function getSeenUrls(){
   return sb.from('linkedin_lead_searches').select('leads').eq('user_token',userToken)
     .then(function(res){
       var seen=new Set();
-      (res.data||[]).forEach(function(r){(r.leads||[]).forEach(function(l){if(l.linkedin_url) seen.add(normalizeUrl(l.linkedin_url));});});
+      (res.data||[]).forEach(function(r){
+        (r.leads||[]).forEach(function(l){ if(l.linkedin_url) seen.add(normalizeUrl(l.linkedin_url)); });
+      });
       return seen;
     }).catch(function(){ return new Set(); });
 }
 
-/* ── Past searches UI ── */
+// ── PAST SEARCHES UI ──────────────────────────────────────────────────────────
 function renderPast(){
   var section=document.getElementById('pastSection');
   var list=document.getElementById('pastList');
@@ -479,7 +526,7 @@ function loadPast(i){
   showStoredResults(currentLeads);
 }
 
-/* ── Search controls ── */
+// ── SEARCH CONTROLS ───────────────────────────────────────────────────────────
 function updateCostHint(){
   var max=Math.min(Math.max(parseInt(document.getElementById('maxProfiles').value)||10,1),100);
   document.getElementById('costHint').innerHTML='<b>'+(max*10)+' credits</b> &middot; 10 credits per profile';
@@ -492,8 +539,8 @@ function resetSearch(){
   currentLeads=[]; renderPast();
 }
 
-/* ── Main search ── */
-function startSearch(){
+// ── MAIN SEARCH ───────────────────────────────────────────────────────────────
+async function startSearch(){
   var query=document.getElementById('searchInput').value.trim();
   if(!query) return;
   currentQuery=query;
@@ -504,46 +551,68 @@ function startSearch(){
     setTimeout(showInsufficientCreditsModal,1800);
     return;
   }
+
   document.getElementById('searchBtn').disabled=true;
   document.getElementById('loadingState').style.display='block';
   document.getElementById('emptySection').style.display='none';
   document.getElementById('resultsSection').classList.add('hidden');
+
+  // Step 1 — AI extracts filters from the query
+  document.getElementById('loadingStep').textContent='Understanding your search...';
+  var filters = await extractFiltersWithAI(query);
+
+  // Step 2 — get seen URLs
   document.getElementById('loadingStep').textContent='Scanning LinkedIn profiles...';
-  getSeenUrls().then(function(seenUrls){
-    document.getElementById('loadingStep').textContent='Removing profiles you have already seen...';
-    return fetchProfileUrls(query,seenUrls,maxProfiles);
-  }).then(function(urls){
-    if(!urls.length){
-      document.getElementById('loadingState').style.display='none';
-      document.getElementById('emptySection').style.display='block';
-      showAlert('No new profiles found — try different keywords','error');
-      document.getElementById('searchBtn').disabled=false;
-      return;
-    }
-    document.getElementById('loadingState').style.display='none';
-    document.getElementById('resultsSection').classList.remove('hidden');
-    document.getElementById('emptySection').style.display='none';
-    document.getElementById('leadsList').innerHTML='';
-    document.getElementById('resultsCount').textContent=urls.length;
-    currentLeads=[];
-    var chain=Promise.resolve();
-    urls.forEach(function(url,i){
-      chain=chain.then(function(){
-        var id='lc'+i;
-        appendLoadingCard(id,url);
-        return enrichProfile(url).then(function(p){
-          if(p&&p.name&&p.name!=='Not found') currentLeads.push(p);
-          updateCard(id,p);
-          document.getElementById('resultsCount').textContent=currentLeads.length;
-        }).catch(function(){ updateCardError(id,url); });
-      });
-    });
-    return chain.then(function(){ if(currentLeads.length) return saveSearch(query,currentLeads); });
-  }).catch(function(){
+  var seenUrls = await getSeenUrls();
+
+  document.getElementById('loadingStep').textContent='Removing profiles you have already seen...';
+
+  // Step 3 — fetch 2x URLs to compensate for post-filter losses
+  var urls = await fetchProfileUrls(query, seenUrls, maxProfiles * 2);
+
+  if(!urls.length){
     document.getElementById('loadingState').style.display='none';
     document.getElementById('emptySection').style.display='block';
-    showAlert('Something went wrong — please try again','error');
-  }).then(function(){ document.getElementById('searchBtn').disabled=false; });
+    showAlert('No new profiles found — try different keywords','error');
+    document.getElementById('searchBtn').disabled=false;
+    return;
+  }
+
+  document.getElementById('loadingState').style.display='none';
+  document.getElementById('resultsSection').classList.remove('hidden');
+  document.getElementById('emptySection').style.display='none';
+  document.getElementById('leadsList').innerHTML='';
+  document.getElementById('resultsCount').textContent='0';
+  currentLeads=[];
+
+  // Step 4 — enrich + filter one by one
+  var chain=Promise.resolve();
+  urls.forEach(function(url,i){
+    chain=chain.then(function(){
+      if(currentLeads.length >= maxProfiles) return; // enough leads found
+      var id='lc'+i;
+      appendLoadingCard(id,url);
+      return enrichProfile(url).then(function(p){
+        if(p && p.name && p.name !== 'Not found'){
+          if(matchesFilters(p, filters)){
+            currentLeads.push(p);
+            updateCard(id, p);
+          } else {
+            // Filtered out — remove card silently
+            var el=document.getElementById(id);
+            if(el) el.remove();
+          }
+        } else {
+          updateCardError(id, url);
+        }
+        document.getElementById('resultsCount').textContent=currentLeads.length;
+      }).catch(function(){ updateCardError(id,url); });
+    });
+  });
+
+  await chain;
+  if(currentLeads.length) await saveSearch(query, currentLeads);
+  document.getElementById('searchBtn').disabled=false;
 }
 
 function fetchProfileUrls(query,seenUrls,maxProfiles){
@@ -575,27 +644,27 @@ function enrichProfile(url){
       }).join(' | ');
     }
     return {
-  linkedin_url: url,
-  name: d.name || nameFromUrl(url),
-  job_title: d.jobTitle || 'Not found',
-  company: d.company || 'Not found',
-  location: d.location || 'Not found',
-  industry: d.industry || 'Not found',
-  website: d.creatorwebsite || d.website || 'Not found',        // ← fixed
-  email: d.email || d.mobileNumber || 'Not found',
-  education: d.education || 'Not found',
-  headline: d.headline || 'Not found',
-  company_description: d.about || d.company_description || 'Not found',  // ← fixed
-  company_size: d.company_size || 'Not found',
-  company_location: d.company_location || 'Not found',
-  founded: d.founded || d.foundedOn || 'Not found',             // ← fixed
-  company_linkedin_url: d.company_linkedin_url || 'Not found',
-  experiences: expStr
-};
+      linkedin_url: url,
+      name: d.name || nameFromUrl(url),
+      job_title: d.jobTitle || 'Not found',
+      company: d.company || 'Not found',
+      location: d.location || 'Not found',
+      industry: d.industry || 'Not found',
+      website: d.creatorwebsite || d.website || 'Not found',
+      email: d.email || d.mobileNumber || 'Not found',
+      education: d.education || 'Not found',
+      headline: d.headline || 'Not found',
+      company_description: d.about || d.company_description || 'Not found',
+      company_size: d.company_size || 'Not found',
+      company_location: d.company_location || 'Not found',
+      founded: d.founded || d.foundedOn || 'Not found',
+      company_linkedin_url: d.company_linkedin_url || 'Not found',
+      experiences: expStr
+    };
   }).catch(function(){ return {linkedin_url:url,name:nameFromUrl(url)}; });
 }
 
-/* ── Card rendering ── */
+// ── CARD RENDERING ────────────────────────────────────────────────────────────
 function appendLoadingCard(id,url){
   var el=document.createElement('div'); el.className='lead-card'; el.id=id;
   el.innerHTML='<div class="lead-avatar dim">?</div>'+
@@ -630,7 +699,7 @@ function showStoredResults(leads){
   }).join('');
 }
 
-/* ── Export ── */
+// ── EXPORT ────────────────────────────────────────────────────────────────────
 function exportCSV(){
   if(!currentLeads.length) return;
   var NL='\n';
@@ -648,7 +717,7 @@ function exportCSV(){
   a.click();
 }
 
-/* ── Utilities ── */
+// ── UTILITIES ─────────────────────────────────────────────────────────────────
 function nameFromUrl(url){
   try{return (url.split('/in/')[1]||'').split('?')[0].replace(/-/g,' ').replace(/\b\w/g,function(c){return c.toUpperCase();}).slice(0,30)||'Profile';}
   catch(e){return 'Profile';}
