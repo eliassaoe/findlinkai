@@ -71,10 +71,8 @@ body{font-family:'Inter',-apple-system,sans-serif;background:white;color:var(--g
 .leads-list{display:flex;flex-direction:column;gap:.5rem;}
 .lead-card{background:white;border:1px solid var(--gray-200);border-radius:8px;padding:.875rem 1rem;display:flex;align-items:center;gap:.875rem;}
 .lead-avatar{width:36px;height:36px;border-radius:8px;background:#eff6ff;border:1px solid #dbeafe;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700;color:var(--primary);flex-shrink:0;}
-.lead-avatar.dim{background:var(--gray-100);border-color:var(--gray-200);color:var(--gray-400);}
 .lead-info{flex:1;min-width:0;}
 .lead-name{font-size:.875rem;font-weight:600;color:var(--gray-900);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.lead-name.dim{color:var(--gray-400);}
 .lead-sub{font-size:.775rem;color:var(--gray-500);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:.1rem;}
 .lead-email{font-size:.72rem;color:var(--success);margin-top:.1rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .lead-li{width:28px;height:28px;border-radius:6px;border:1px solid var(--gray-200);background:white;display:flex;align-items:center;justify-content:center;color:var(--gray-400);font-size:.75rem;text-decoration:none;flex-shrink:0;transition:all .15s;}
@@ -223,7 +221,6 @@ body{font-family:'Inter',-apple-system,sans-serif;background:white;color:var(--g
   </div>
 </div>
 
-<!-- Pricing Modal -->
 <div id="pricingModal" class="modal-overlay">
   <div class="pricing-modal">
     <button class="modal-close" onclick="closePricingModal()"><i class="fas fa-times"></i></button>
@@ -250,7 +247,6 @@ body{font-family:'Inter',-apple-system,sans-serif;background:white;color:var(--g
   </div>
 </div>
 
-<!-- Insufficient Credits Modal -->
 <div id="insufficientCreditsModal" class="modal-overlay">
   <div class="pricing-modal">
     <button class="modal-close" onclick="closeInsufficientCreditsModal()"><i class="fas fa-times"></i></button>
@@ -267,15 +263,9 @@ body{font-family:'Inter',-apple-system,sans-serif;background:white;color:var(--g
 <script>
 var SUPABASE_URL      = 'https://snxhsboboatjywgwdeds.supabase.co';
 var SUPABASE_ANON_KEY = 'sb_publishable_RKidGRs4ch1ixmRfXoYSww_UsQMSe5w';
+var API_URL           = 'https://linkfinderapp.hamoureliasse.workers.dev/';
 var CREDITS_URL       = 'https://linkfinderaicredits.hamoureliasse.workers.dev/';
 var SUB_CHECK_URL     = 'https://scalelinkfinderai-production.up.railway.app/webhook/a30d8fea-5360-4003-be0d-9cea914390b0';
-
-// Worker that converts natural language query → Apify JSON body
-var FILTER_WORKER_URL = 'https://titleleads.hamoureliasse.workers.dev/';
-
-// Worker that receives Apify JSON body → calls Apify actor → returns leads array
-// ← Replace with your Apify proxy worker URL
-var API_URL = 'https://linkfinderapp.hamoureliasse.workers.dev/';
 
 var sb = null, userToken = null, currentCredits = null;
 var currentLeads = [], currentQuery = '', pastSearches = [];
@@ -376,37 +366,37 @@ function setBilling(type){
   updatePlanDisplay();
 }
 function updatePlanDisplay(){
-  var plan=plans[currentPlanIndex];
-  document.getElementById('planName').textContent=plan.name;
+  var plan = plans[currentPlanIndex];
+  document.getElementById('planName').textContent = plan.name;
   if(isAnnualBilling){
-    var mo=Math.round(plan.monthlyPrice*0.8);
-    document.getElementById('priceAmount').textContent='$'+mo;
-    document.getElementById('pricePeriod').textContent='per month';
-    document.getElementById('planCredits').textContent=plan.credits.toLocaleString()+' credits/year';
-    document.getElementById('ctaText').textContent='Get Started - $'+mo+'/month';
+    var mo = Math.round(plan.monthlyPrice*0.8);
+    document.getElementById('priceAmount').textContent = '$'+mo;
+    document.getElementById('pricePeriod').textContent = 'per month';
+    document.getElementById('planCredits').textContent = plan.credits.toLocaleString()+' credits/year';
+    document.getElementById('ctaText').textContent = 'Get Started - $'+mo+'/month';
   } else {
-    document.getElementById('priceAmount').textContent='$'+plan.monthlyPrice;
-    document.getElementById('pricePeriod').textContent='per month';
-    document.getElementById('planCredits').textContent=Math.round(plan.credits/12).toLocaleString()+' credits/month';
-    document.getElementById('ctaText').textContent='Get Started - $'+plan.monthlyPrice+'/month';
+    document.getElementById('priceAmount').textContent = '$'+plan.monthlyPrice;
+    document.getElementById('pricePeriod').textContent = 'per month';
+    document.getElementById('planCredits').textContent = Math.round(plan.credits/12).toLocaleString()+' credits/month';
+    document.getElementById('ctaText').textContent = 'Get Started - $'+plan.monthlyPrice+'/month';
   }
-  document.getElementById('prevBtn').disabled=(currentPlanIndex===0);
-  document.getElementById('nextBtn').disabled=(currentPlanIndex===plans.length-1);
+  document.getElementById('prevBtn').disabled = (currentPlanIndex===0);
+  document.getElementById('nextBtn').disabled = (currentPlanIndex===plans.length-1);
 }
 function previousPlan(){ if(currentPlanIndex>0){currentPlanIndex--;updatePlanDisplay();} }
 function nextPlan(){ if(currentPlanIndex<plans.length-1){currentPlanIndex++;updatePlanDisplay();} }
 function proceedToCheckout(){
-  var plan=plans[currentPlanIndex];
-  var base=isAnnualBilling?plan.annualLink:plan.monthlyLink;
-  window.location.href=addGclid(base+'?wanted=true&user_id='+userToken);
+  var plan = plans[currentPlanIndex];
+  var base = isAnnualBilling ? plan.annualLink : plan.monthlyLink;
+  window.location.href = addGclid(base+'?wanted=true&user_id='+userToken);
 }
 function showInsufficientCreditsModal(){
   document.getElementById('insufficientCreditsModal').classList.add('show');
-  document.body.style.overflow='hidden';
+  document.body.style.overflow = 'hidden';
 }
 function closeInsufficientCreditsModal(){
   document.getElementById('insufficientCreditsModal').classList.remove('show');
-  document.body.style.overflow='';
+  document.body.style.overflow = '';
 }
 function showPricingFromInsufficient(){ closeInsufficientCreditsModal(); showPricingModal(); }
 
@@ -414,11 +404,8 @@ function showPricingFromInsufficient(){ closeInsufficientCreditsModal(); showPri
 function mapApifyLead(item){
   var firstName = item.first_name || '';
   var lastName  = item.last_name  || '';
-  var fullName  = item.full_name  || (firstName + ' ' + lastName).trim() || 'Unknown';
-
+  var fullName  = item.full_name  || (firstName+' '+lastName).trim() || 'Unknown';
   var locationParts = [item.city, item.state, item.country].filter(function(x){ return x && x.trim(); });
-  var location = locationParts.join(', ') || 'Not found';
-
   return {
     full_name:                    fullName,
     first_name:                   firstName,
@@ -432,7 +419,7 @@ function mapApifyLead(item){
     city:                         item.city                         || 'Not found',
     state:                        item.state                        || 'Not found',
     country:                      item.country                      || 'Not found',
-    location:                     location,
+    location:                     locationParts.join(', ')          || 'Not found',
     seniority_level:              item.seniority_level              || 'Not found',
     functional_level:             item.functional_level             || 'Not found',
     company_name:                 item.company_name                 || 'Not found',
@@ -455,34 +442,6 @@ function mapApifyLead(item){
   };
 }
 
-// ── STEP 1 — Convert query to Apify JSON body via AI worker ──────────────────
-async function buildApifyBody(query, maxProfiles){
-  var response = await fetch(FILTER_WORKER_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ query: query })
-  });
-  var raw = await response.text();
-  var body = JSON.parse(raw);
-  body.fetch_count = maxProfiles;
-  return body;
-}
-
-async function fetchLeadsFromApify(apifyBody){
-  var response = await fetch(API_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      type: 'apify_leads_finder',
-      input_data: apifyBody,
-      token: userToken
-    })
-  });
-  if(!response.ok) throw new Error('Request failed: ' + response.status);
-  var data = await response.json();
-  return Array.isArray(data) ? data : (data.items || data.results || []);
-}
-
 // ── SUPABASE ──────────────────────────────────────────────────────────────────
 function loadPastSearches(){
   sb.from('linkedin_lead_searches').select('id,query,leads,created_at')
@@ -499,11 +458,11 @@ function saveSearch(query,leads){
 
 // ── PAST SEARCHES UI ──────────────────────────────────────────────────────────
 function renderPast(){
-  var section=document.getElementById('pastSection');
-  var list=document.getElementById('pastList');
+  var section = document.getElementById('pastSection');
+  var list    = document.getElementById('pastList');
   if(!pastSearches.length){ section.style.display='none'; return; }
-  section.style.display='block';
-  list.innerHTML=pastSearches.slice(0,8).map(function(s,i){
+  section.style.display = 'block';
+  list.innerHTML = pastSearches.slice(0,8).map(function(s,i){
     return '<div class="past-item" onclick="loadPast('+i+')">'+
       '<div class="past-icon"><i class="fas fa-search"></i></div>'+
       '<div class="past-query">'+esc(s.query)+'</div>'+
@@ -512,23 +471,23 @@ function renderPast(){
   }).join('');
 }
 function loadPast(i){
-  var s=pastSearches[i]; if(!s) return;
-  document.getElementById('searchInput').value=s.query;
-  currentQuery=s.query; currentLeads=s.leads||[];
+  var s = pastSearches[i]; if(!s) return;
+  document.getElementById('searchInput').value = s.query;
+  currentQuery = s.query; currentLeads = s.leads||[];
   showStoredResults(currentLeads);
 }
 
 // ── SEARCH CONTROLS ───────────────────────────────────────────────────────────
 function updateCostHint(){
-  var max=Math.min(Math.max(parseInt(document.getElementById('maxProfiles').value)||10,1),100);
-  document.getElementById('costHint').innerHTML='<b>'+(max*10)+' credits</b> &middot; 10 credits per profile';
+  var max = Math.min(Math.max(parseInt(document.getElementById('maxProfiles').value)||10,1),100);
+  document.getElementById('costHint').innerHTML = '<b>'+(max*10)+' credits</b> &middot; 10 credits per profile';
 }
 function fillHint(t){ document.getElementById('searchInput').value=t; document.getElementById('searchInput').focus(); }
 function resetSearch(){
   document.getElementById('resultsSection').classList.add('hidden');
-  document.getElementById('emptySection').style.display='block';
-  document.getElementById('searchInput').value='';
-  currentLeads=[]; renderPast();
+  document.getElementById('emptySection').style.display = 'block';
+  document.getElementById('searchInput').value = '';
+  currentLeads = []; renderPast();
 }
 
 // ── MAIN SEARCH ───────────────────────────────────────────────────────────────
@@ -551,15 +510,24 @@ async function startSearch(){
   document.getElementById('emptySection').style.display = 'none';
   document.getElementById('resultsSection').classList.add('hidden');
   document.getElementById('leadsList').innerHTML = '';
+  document.getElementById('loadingStep').textContent = 'Searching the database...';
 
   try {
-    // Step 1 — AI generates Apify filters
-    document.getElementById('loadingStep').textContent = 'Understanding your search...';
-    var apifyBody = await buildApifyBody(query, maxProfiles);
+    var response = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: 'apify_leads_finder',
+        input_data: query,
+        fetch_count: maxProfiles,
+        token: userToken
+      })
+    });
 
-    // Step 2 — Fetch leads from Apify
-    document.getElementById('loadingStep').textContent = 'Searching the database...';
-    var rawLeads = await fetchLeadsFromApify(apifyBody);
+    if(!response.ok) throw new Error('Request failed: ' + response.status);
+
+    var data = await response.json();
+    var rawLeads = Array.isArray(data) ? data : (data.items || data.results || []);
 
     if(!rawLeads.length){
       document.getElementById('loadingState').style.display = 'none';
@@ -569,7 +537,6 @@ async function startSearch(){
       return;
     }
 
-    // Step 3 — Map + display
     currentLeads = rawLeads.slice(0, maxProfiles).map(mapApifyLead);
     deductCredits(currentLeads.length * 10);
 
@@ -595,8 +562,8 @@ async function startSearch(){
 function renderLeadCard(p){
   var sub = [p.job_title, p.company_name].filter(function(x){ return x && x !== 'Not found'; }).join(' · ');
   var hasEmail = p.email && p.email !== 'Not found';
-  var liHref = p.linkedin ? ' href="'+p.linkedin+'" target="_blank"' : '';
-  var liColor = p.linkedin ? '' : ' style="opacity:.3;pointer-events:none;"';
+  var liHref  = p.linkedin ? ' href="'+p.linkedin+'" target="_blank"' : '';
+  var liStyle = p.linkedin ? '' : ' style="opacity:.3;pointer-events:none;"';
   return '<div class="lead-card">'+
     '<div class="lead-avatar">'+initials(p.full_name)+'</div>'+
     '<div class="lead-info">'+
@@ -604,7 +571,7 @@ function renderLeadCard(p){
       (sub ? '<div class="lead-sub">'+esc(sub)+'</div>' : '')+
       (hasEmail ? '<div class="lead-email"><i class="fas fa-envelope" style="font-size:.65rem;margin-right:.25rem;"></i>'+esc(p.email)+'</div>' : '')+
     '</div>'+
-    '<a'+liHref+' class="lead-li"'+liColor+'><i class="fab fa-linkedin-in"></i></a>'+
+    '<a'+liHref+' class="lead-li"'+liStyle+'><i class="fab fa-linkedin-in"></i></a>'+
   '</div>';
 }
 
@@ -658,8 +625,8 @@ function initials(name){
   return p.length >= 2 ? (p[0][0]+p[p.length-1][0]).toUpperCase() : (p[0][0]||'?').toUpperCase();
 }
 function timeAgo(d){
-  var diff=Date.now()-new Date(d).getTime();
-  var m=Math.floor(diff/60000),h=Math.floor(m/60),day=Math.floor(h/24);
+  var diff = Date.now()-new Date(d).getTime();
+  var m = Math.floor(diff/60000), h = Math.floor(m/60), day = Math.floor(h/24);
   if(day>0) return day+'d ago'; if(h>0) return h+'h ago'; if(m>0) return m+'m ago'; return 'just now';
 }
 function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
@@ -670,10 +637,6 @@ function showAlert(msg,type){
   if(alertT) clearTimeout(alertT);
   alertT = setTimeout(function(){ a.style.display='none'; }, 5000);
 }
-
-// Pricing modal helpers
-function previousPlan(){ if(currentPlanIndex>0){currentPlanIndex--;updatePlanDisplay();} }
-function nextPlan(){ if(currentPlanIndex<plans.length-1){currentPlanIndex++;updatePlanDisplay();} }
 </script>
 </body>
 </html>
