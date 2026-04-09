@@ -55,14 +55,15 @@
 
         .api-card { background: white; border: 1px solid var(--gray-200); border-radius: 8px; padding: 1.5rem; margin-bottom: 1.5rem; transition: all 0.2s ease; }
         .api-card:hover { box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1); }
-        .api-title { color: var(--primary); font-size: 1.125rem; font-weight: 600; margin-bottom: 0.5rem; }
+        .api-card.featured { border-color: var(--primary); box-shadow: 0 0 0 1px var(--primary), 0 4px 16px rgba(37,99,235,.1); }
+        .api-title { color: var(--primary); font-size: 1.125rem; font-weight: 600; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem; }
+        .api-title-badge { font-size: 0.65rem; font-weight: 700; padding: 0.2rem 0.55rem; border-radius: 999px; background: #eff6ff; color: var(--primary); border: 1px solid #bfdbfe; letter-spacing: 0.03em; text-transform: uppercase; }
         .api-description { color: var(--gray-600); margin-bottom: 1rem; font-size: 0.875rem; }
 
         .code-section { margin-bottom: 1rem; }
         .code-label { font-size: 0.75rem; font-weight: 500; color: var(--gray-700); margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.05em; }
         .code-block { background: var(--gray-900); color: var(--gray-100); padding: 1rem; border-radius: 6px; font-family: 'Monaco', 'Courier New', monospace; font-size: 0.75rem; white-space: pre-wrap; overflow-x: auto; border: 1px solid var(--gray-700); line-height: 1.4; }
 
-        /* Optional param tag */
         .param-list { margin: 0.75rem 0 1rem; display: flex; flex-direction: column; gap: 0.4rem; }
         .param-row { display: flex; align-items: baseline; gap: 0.5rem; font-size: 0.8125rem; }
         .param-name { font-family: 'Monaco', 'Courier New', monospace; color: var(--gray-900); font-weight: 600; font-size: 0.75rem; }
@@ -75,6 +76,9 @@
         .response-title { font-size: 1.25rem; font-weight: 600; color: var(--gray-900); margin-bottom: 1rem; }
         .example-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem; }
         .example-item h4 { font-size: 0.875rem; font-weight: 600; color: var(--gray-700); margin-bottom: 0.5rem; }
+
+        /* Lead finder response sample spans full width */
+        .example-grid.full { grid-template-columns: 1fr; }
 
         .contact-section { background: var(--gray-900); color: white; padding: 2rem; text-align: center; border-radius: 8px; margin-top: 3rem; }
         .contact-section h3 { font-size: 1.25rem; font-weight: 600; margin-bottom: 0.5rem; }
@@ -92,13 +96,11 @@
             .api-card { padding: 1rem; }
         }
     </style>
-<link rel="canonical" href="https://linkfinderai.com/api-documentation" />
+    <link rel="canonical" href="https://linkfinderai.com/api-documentation" />
 </head>
 <body>
-<!-- Google Tag Manager (noscript) -->
 <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-TL7WVD2N"
 height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
-<!-- End Google Tag Manager (noscript) -->
 
     <div class="container">
         <div class="hero">
@@ -291,7 +293,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                     </div>
                 </div>
 
-                <!-- 8 — FIXED -->
+                <!-- 8 -->
                 <div class="api-card">
                     <div class="api-title">8. Company Domain to Employees</div>
                     <div class="api-description">Extract a filtered list of employees from a company domain</div>
@@ -431,6 +433,83 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
        "type": "instagram_profile_to_instagram_info",
        "input_data": "https://www.instagram.com/username"
      }'</div>
+                    </div>
+                </div>
+
+                <!-- 13 — AI Lead Finder -->
+                <div class="api-card featured">
+                    <div class="api-title">
+                        13. AI LinkedIn Lead Finder
+                        <span class="api-title-badge">New</span>
+                    </div>
+                    <div class="api-description">Describe the type of leads you are looking for in plain language and get back a list of matching LinkedIn profiles complete with contact details, company data, and email addresses. The AI interprets your query and searches the database for the best matches.</div>
+
+                    <div class="param-list">
+                        <div class="param-row">
+                            <span class="param-name">input_data</span>
+                            <span class="param-badge required">required</span>
+                            <span class="param-desc">Natural language description of the leads you want (e.g. "VP Sales at B2B SaaS in the US")</span>
+                        </div>
+                        <div class="param-row">
+                            <span class="param-name">fetch_count</span>
+                            <span class="param-badge optional">optional</span>
+                            <span class="param-desc">Maximum number of profiles to return. Defaults to 10, max 100. Each profile costs 1 credit.</span>
+                        </div>
+                    </div>
+
+                    <div class="code-section">
+                        <div class="code-label">Request Body</div>
+                        <div class="code-block">{
+  "type": "apify_leads_finder",
+  "input_data": "VP Sales at B2B SaaS startup in the United States",
+  "fetch_count": 10
+}</div>
+                    </div>
+
+                    <div class="code-section">
+                        <div class="code-label">Curl Example</div>
+                        <div class="code-block">curl -X POST "https://api.linkfinderai.com" \
+     -H "Content-Type: application/json" \
+     -H "Authorization: Bearer YOUR_API_KEY" \
+     -d '{
+       "type": "apify_leads_finder",
+       "input_data": "VP Sales at B2B SaaS startup in the United States",
+       "fetch_count": 10
+     }'</div>
+                    </div>
+
+                    <div class="code-section">
+                        <div class="code-label">Response — Array of lead objects</div>
+                        <div class="code-block">[
+  {
+    "full_name": "Sarah Mitchell",
+    "first_name": "Sarah",
+    "last_name": "Mitchell",
+    "job_title": "VP of Sales",
+    "headline": "VP of Sales @ CloudCore | B2B SaaS | Revenue Growth",
+    "seniority_level": "vp",
+    "functional_level": "sales",
+    "email": "s.mitchell@cloudcore.io",
+    "personal_email": "",
+    "mobile_number": "",
+    "linkedin": "https://linkedin.com/in/sarah-mitchell-sales",
+    "city": "Austin",
+    "state": "Texas",
+    "country": "United States",
+    "company_name": "CloudCore",
+    "company_domain": "cloudcore.io",
+    "company_website": "https://cloudcore.io",
+    "company_linkedin": "https://linkedin.com/company/cloudcore",
+    "company_size": "51-200",
+    "industry": "Software",
+    "company_founded_year": "2018",
+    "company_description": "CloudCore is a B2B SaaS platform for...",
+    "company_city": "Austin",
+    "company_state": "Texas",
+    "company_country": "United States"
+  },
+  { "..." : "next lead object" }
+]</div>
                     </div>
                 </div>
 
