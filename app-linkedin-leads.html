@@ -162,6 +162,16 @@ body{font-family:'Inter',-apple-system,sans-serif;background:white;color:var(--g
 .plan-credits-txt{font-size:1.1rem;font-weight:700;color:var(--gray-900);margin-top:.25rem;}
 .pricing-modal-cta{margin-bottom:1rem;}
 .pricing-modal-cta .btn{width:100%;padding:1rem;font-size:1rem;font-weight:600;}
+/* Export dropdown */
+.export-wrap{position:relative;}
+.export-main{display:flex;align-items:center;gap:.375rem;}
+.export-menu{position:absolute;top:calc(100% + 6px);right:0;background:white;border:1px solid var(--gray-200);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.1);min-width:190px;z-index:200;overflow:hidden;opacity:0;visibility:hidden;transform:translateY(-4px);transition:opacity .15s,transform .15s,visibility .15s;}
+.export-menu.open{opacity:1;visibility:visible;transform:translateY(0);}
+.export-option{display:flex;align-items:center;gap:.625rem;width:100%;padding:.65rem .875rem;background:none;border:none;cursor:pointer;font-size:.8rem;font-family:inherit;color:var(--gray-700);text-align:left;transition:background .12s;}
+.export-option:hover{background:var(--gray-50);}
+.export-option span{flex:1;}
+.export-option-count{font-size:.72rem;font-weight:600;color:var(--gray-400);background:var(--gray-100);padding:.1rem .4rem;border-radius:999px;flex:0 0 auto;}
+.export-option-count--green{color:#065f46;background:#d1fae5;}
 @media(max-width:640px){
   .nav-tab{padding:.625rem .75rem;font-size:.8rem;}
   .search-wrap{flex-direction:column;}
@@ -247,7 +257,24 @@ body{font-family:'Inter',-apple-system,sans-serif;background:white;color:var(--g
           <button class="btn-verify" id="verifyAllBtn" onclick="verifyAllEmails()">
             <i class="fas fa-shield-alt" style="font-size:.65rem;"></i> Verify emails
           </button>
-          <button class="btn-sm primary" onclick="exportCSV()"><i class="fas fa-download" style="font-size:.65rem;"></i> Export CSV</button>
+          <div class="export-wrap" id="exportWrap">
+            <button class="btn-sm primary export-main" onclick="toggleExportMenu(event)">
+              <i class="fas fa-download" style="font-size:.65rem;"></i> Export CSV
+              <i class="fas fa-chevron-down" style="font-size:.6rem;margin-left:.15rem;" id="exportChevron"></i>
+            </button>
+            <div class="export-menu" id="exportMenu">
+              <button class="export-option" onclick="exportCSV('all')">
+                <i class="fas fa-users" style="font-size:.7rem;color:var(--primary);"></i>
+                <span>All leads</span>
+                <span class="export-option-count" id="exportCountAll"></span>
+              </button>
+              <button class="export-option" onclick="exportCSV('valid')">
+                <i class="fas fa-check-circle" style="font-size:.7rem;color:var(--email-valid);"></i>
+                <span>Valid emails only</span>
+                <span class="export-option-count export-option-count--green" id="exportCountValid"></span>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -752,7 +779,7 @@ async function verifyAllEmails(){
   // Restore button
   btn.disabled = false;
   btn.classList.remove('verifying');
-  btn.innerHTML = '<i class="fas fa-shield-alt" style="font-size:.65rem;"></i> Verify';
+  btn.innerHTML = '<i class="fas fa-shield-alt" style="font-size:.65rem;"></i> Re-verify';
 
   isVerifying = false;
   showAlert('Email verification complete — ' + done + ' emails checked.', 'success');
@@ -819,9 +846,67 @@ function showStoredResults(leads){
   btn.innerHTML = '<i class="fas fa-shield-alt" style="font-size:.65rem;"></i> Verify emails';
 }
 
-/* ── EXPORT (includes verification_status column) ────────────────────────── */
-function exportCSV(){
+/* ── EXPORT DROPDOWN ─────────────────────────────────────────────────────── */
+function toggleExportMenu(e){
+  e.stopPropagation();
+  var menu = document.getElementById('exportMenu');
+  var chevron = document.getElementById('exportChevron');
+  var isOpen = menu.classList.contains('open');
+  // Update counts before showing
+  if(!isOpen) refreshExportCounts();
+  menu.classList.toggle('open', !isOpen);
+  chevron.style.transform = isOpen ? '' : 'rotate(180deg)';
+}
+function closeExportMenu(){
+  var menu = document.getElementById('exportMenu');
+  var chevron = document.getElementById('exportChevron');
+  if(menu){ menu.classList.remove('open'); }
+  if(chevron){ chevron.style.transform = ''; }
+}
+document.addEventListener('click', function(e){
+  if(!e.target.closest('#exportWrap')) closeExportMenu();
+});
+
+function refreshExportCounts(){
+  var total = currentLeads.length;
+  var validCount = currentLeads.filter(function(l, i){
+    return l.email && verificationState[i] && verificationState[i].status === 'valid';
+  }).length;
+  document.getElementById('exportCountAll').textContent   = total;
+  document.getElementById('exportCountValid').textContent = validCount;
+  // Dim the valid option when no verified leads exist
+  var validBtn = document.querySelector('.export-option:nth-child(2)');
+  if(validBtn) validBtn.style.opacity = validCount === 0 ? '.45' : '1';
+}
+
+/* ── EXPORT CSV ──────────────────────────────────────────────────────────── */
+function exportCSV(filter){
+  closeExportMenu();
   if(!currentLeads.length) return;
+  filter = filter || 'all';
+
+  var leadsToExport = currentLeads.filter(function(l, i){
+    if(filter === 'valid'){
+      return l.email && verificationState[i] && verificationState[i].status === 'valid';
+    }
+    return true;
+  });
+
+  if(!leadsToExport.length){
+    showAlert('No valid leads to export — run email verification first.', 'warning');
+    return;
+  }
+
+  // Build index map so we can still look up verificationState by original index
+  var indexMap = [];
+  currentLeads.forEach(function(l, i){
+    if(filter === 'valid'){
+      if(l.email && verificationState[i] && verificationState[i].status === 'valid') indexMap.push(i);
+    } else {
+      indexMap.push(i);
+    }
+  });
+
   var NL = '\n';
   var headers = [
     'Full Name','First Name','Last Name','Job Title','Headline','Seniority Level','Functional Level',
@@ -834,7 +919,8 @@ function exportCSV(){
   ];
   function q(v){ return '"'+String(v||'').replace(/"/g,'""')+'"'; }
   var csv = headers.join(',') + NL;
-  currentLeads.forEach(function(l, i){
+  leadsToExport.forEach(function(l, n){
+    var i  = indexMap[n];
     var vs = (verificationState[i] && verificationState[i].status) || 'unverified';
     csv += [
       q(l.full_name), q(l.first_name), q(l.last_name), q(l.job_title), q(l.headline),
@@ -848,9 +934,10 @@ function exportCSV(){
       q(l.keywords), q(l.company_technologies)
     ].join(',') + NL;
   });
+  var suffix = filter === 'valid' ? '_valid_only' : '';
   var a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'}));
-  a.download = 'leads_'+currentQuery.replace(/[^a-z0-9]/gi,'_').slice(0,30)+'_'+new Date().toISOString().slice(0,10)+'.csv';
+  a.download = 'leads_'+currentQuery.replace(/[^a-z0-9]/gi,'_').slice(0,30)+suffix+'_'+new Date().toISOString().slice(0,10)+'.csv';
   a.click();
 }
 
