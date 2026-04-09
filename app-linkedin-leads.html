@@ -186,7 +186,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:white;color:var(--g
           <label class="count-label">Max profiles</label>
           <input type="number" class="count-input" id="maxProfiles" value="10" min="1" max="100" onchange="updateCostHint()">
         </div>
-        <div class="cost-hint" id="costHint"><b>100 credits</b> &middot; 10 credits per profile</div>
+        <div class="cost-hint" id="costHint"><b>10 credits</b> &middot; 1 credits per profile</div>
       </div>
     </div>
 
@@ -482,7 +482,7 @@ function loadPast(i){
 // ── SEARCH CONTROLS ───────────────────────────────────────────────────────────
 function updateCostHint(){
   var max = Math.min(Math.max(parseInt(document.getElementById('maxProfiles').value)||10,1),100);
-  document.getElementById('costHint').innerHTML = '<b>'+(max*10)+' credits</b> &middot; 10 credits per profile';
+  document.getElementById('costHint').innerHTML = '<b>'+(max)+' credits</b> &middot; 1 credit per profile';
 }
 function fillHint(t){ document.getElementById('searchInput').value=t; document.getElementById('searchInput').focus(); }
 function resetSearch(){
@@ -499,7 +499,7 @@ async function startSearch(){
   currentQuery = query;
 
   var maxProfiles = Math.min(Math.max(parseInt(document.getElementById('maxProfiles').value)||10,1),100);
-  var cost = maxProfiles * 10;
+  var cost = maxProfiles * 1;
 
   if(currentCredits !== null && currentCredits < cost){
     showAlert('Not enough credits — this search needs '+cost+' credits.','error');
@@ -540,7 +540,7 @@ async function startSearch(){
     }
 
     currentLeads = rawLeads.slice(0, maxProfiles).map(mapApifyLead);
-    deductCredits(currentLeads.length * 10);
+    deductCredits(currentLeads.length * 1);
 
     document.getElementById('loadingState').style.display = 'none';
     document.getElementById('resultsSection').classList.remove('hidden');
