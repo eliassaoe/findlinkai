@@ -400,45 +400,47 @@ function closeInsufficientCreditsModal(){
 }
 function showPricingFromInsufficient(){ closeInsufficientCreditsModal(); showPricingModal(); }
 
-// ── FIELD MAPPING — Apify output → display object ────────────────────────────
+// ── FIELD MAPPING — null-safe, no "Not found" fallbacks ──────────────────────
+function val(v){ return (v === null || v === undefined) ? '' : String(v); }
+
 function mapApifyLead(item){
-  var firstName = item.first_name || '';
-  var lastName  = item.last_name  || '';
-  var fullName  = item.full_name  || (firstName+' '+lastName).trim() || 'Unknown';
-  var locationParts = [item.city, item.state, item.country].filter(function(x){ return x && x.trim(); });
+  var firstName = val(item.first_name);
+  var lastName  = val(item.last_name);
+  var fullName  = val(item.full_name) || (firstName+' '+lastName).trim() || 'Unknown';
+  var locationParts = [item.city, item.state, item.country].filter(function(x){ return x && String(x).trim(); });
   return {
-    full_name:                    fullName,
-    first_name:                   firstName,
-    last_name:                    lastName,
-    job_title:                    item.job_title                    || 'Not found',
-    headline:                     item.headline                     || 'Not found',
-    email:                        item.email                        || 'Not found',
-    mobile_number:                item.mobile_number                || 'Not found',
-    personal_email:               item.personal_email               || 'Not found',
-    linkedin:                     item.linkedin                     || '',
-    city:                         item.city                         || 'Not found',
-    state:                        item.state                        || 'Not found',
-    country:                      item.country                      || 'Not found',
-    location:                     locationParts.join(', ')          || 'Not found',
-    seniority_level:              item.seniority_level              || 'Not found',
-    functional_level:             item.functional_level             || 'Not found',
-    company_name:                 item.company_name                 || 'Not found',
-    company_domain:               item.company_domain               || 'Not found',
-    company_website:              item.company_website              || 'Not found',
-    company_linkedin:             item.company_linkedin             || 'Not found',
-    company_size:                 item.company_size                 || 'Not found',
-    industry:                     item.industry                     || 'Not found',
-    company_description:          item.company_description          || 'Not found',
-    company_annual_revenue:       item.company_annual_revenue       || 'Not found',
-    company_annual_revenue_clean: item.company_annual_revenue_clean || 'Not found',
-    company_total_funding:        item.company_total_funding        || 'Not found',
-    company_total_funding_clean:  item.company_total_funding_clean  || 'Not found',
-    company_founded_year:         item.company_founded_year         || 'Not found',
-    company_phone:                item.company_phone                || 'Not found',
-    company_full_address:         item.company_full_address         || 'Not found',
-    company_market_cap:           item.company_market_cap           || 'Not found',
-    keywords:                     item.keywords                     || 'Not found',
-    company_technologies:         item.company_technologies         || 'Not found'
+    full_name:              fullName,
+    first_name:             firstName,
+    last_name:              lastName,
+    job_title:              val(item.job_title),
+    headline:               val(item.headline),
+    seniority_level:        val(item.seniority_level),
+    functional_level:       val(item.functional_level),
+    email:                  val(item.email),
+    mobile_number:          val(item.mobile_number),
+    personal_email:         val(item.personal_email),
+    linkedin:               val(item.linkedin),
+    city:                   val(item.city),
+    state:                  val(item.state),
+    country:                val(item.country),
+    location:               locationParts.join(', '),
+    company_name:           val(item.company_name),
+    company_domain:         val(item.company_domain),
+    company_website:        val(item.company_website),
+    company_linkedin:       val(item.company_linkedin),
+    company_size:           val(item.company_size),
+    industry:               val(item.industry),
+    company_description:    val(item.company_description),
+    company_founded_year:   val(item.company_founded_year),
+    company_phone:          val(item.company_phone),
+    company_street_address: val(item.company_street_address),
+    company_full_address:   val(item.company_full_address),
+    company_city:           val(item.company_city),
+    company_state:          val(item.company_state),
+    company_country:        val(item.company_country),
+    company_postal_code:    val(item.company_postal_code),
+    keywords:               val(item.keywords),
+    company_technologies:   val(item.company_technologies)
   };
 }
 
@@ -560,8 +562,7 @@ async function startSearch(){
 
 // ── CARD RENDERING ────────────────────────────────────────────────────────────
 function renderLeadCard(p){
-  var sub = [p.job_title, p.company_name].filter(function(x){ return x && x !== 'Not found'; }).join(' · ');
-  var hasEmail = p.email && p.email !== 'Not found';
+  var sub = [p.job_title, p.company_name].filter(function(x){ return x && x.trim(); }).join(' · ');
   var liHref  = p.linkedin ? ' href="'+p.linkedin+'" target="_blank"' : '';
   var liStyle = p.linkedin ? '' : ' style="opacity:.3;pointer-events:none;"';
   return '<div class="lead-card">'+
@@ -569,7 +570,7 @@ function renderLeadCard(p){
     '<div class="lead-info">'+
       '<div class="lead-name">'+esc(p.full_name)+'</div>'+
       (sub ? '<div class="lead-sub">'+esc(sub)+'</div>' : '')+
-      (hasEmail ? '<div class="lead-email"><i class="fas fa-envelope" style="font-size:.65rem;margin-right:.25rem;"></i>'+esc(p.email)+'</div>' : '')+
+      (p.email ? '<div class="lead-email"><i class="fas fa-envelope" style="font-size:.65rem;margin-right:.25rem;"></i>'+esc(p.email)+'</div>' : '')+
     '</div>'+
     '<a'+liHref+' class="lead-li"'+liStyle+'><i class="fab fa-linkedin-in"></i></a>'+
   '</div>';
@@ -591,12 +592,11 @@ function exportCSV(){
     'Email','Mobile Number','Personal Email','LinkedIn URL',
     'City','State','Country',
     'Company Name','Company Domain','Company Website','Company LinkedIn','Company Size',
-    'Industry','Company Description',
-    'Annual Revenue','Annual Revenue (Clean)','Total Funding','Total Funding (Clean)',
-    'Founded Year','Company Phone','Company Full Address','Market Cap',
+    'Industry','Company Description','Founded Year','Company Phone',
+    'Street Address','Full Address','Company City','Company State','Company Country','Postal Code',
     'Keywords','Technologies'
   ];
-  function q(v){ return '"'+String(v||'Not found').replace(/"/g,'""')+'"'; }
+  function q(v){ return '"'+String(v||'').replace(/"/g,'""')+'"'; }
   var csv = headers.join(',') + NL;
   currentLeads.forEach(function(l){
     csv += [
@@ -605,10 +605,9 @@ function exportCSV(){
       q(l.email), q(l.mobile_number), q(l.personal_email), q(l.linkedin),
       q(l.city), q(l.state), q(l.country),
       q(l.company_name), q(l.company_domain), q(l.company_website), q(l.company_linkedin), q(l.company_size),
-      q(l.industry), q(l.company_description),
-      q(l.company_annual_revenue), q(l.company_annual_revenue_clean),
-      q(l.company_total_funding), q(l.company_total_funding_clean),
-      q(l.company_founded_year), q(l.company_phone), q(l.company_full_address), q(l.company_market_cap),
+      q(l.industry), q(l.company_description), q(l.company_founded_year), q(l.company_phone),
+      q(l.company_street_address), q(l.company_full_address),
+      q(l.company_city), q(l.company_state), q(l.company_country), q(l.company_postal_code),
       q(l.keywords), q(l.company_technologies)
     ].join(',') + NL;
   });
