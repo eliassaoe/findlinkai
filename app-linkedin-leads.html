@@ -15,6 +15,10 @@
   --gray-400:#9ca3af; --gray-500:#6b7280; --gray-600:#4b5563; --gray-700:#374151;
   --gray-800:#1f2937; --gray-900:#111827;
   --success:#10b981; --error:#ef4444; --warning:#f59e0b;
+  --email-valid:#10b981;
+  --email-invalid:#ef4444;
+  --email-unknown:#f59e0b;
+  --email-unverified:#9ca3af;
 }
 *{margin:0;padding:0;box-sizing:border-box;}
 body{font-family:'Inter',-apple-system,sans-serif;background:white;color:var(--gray-800);line-height:1.6;font-size:16px;}
@@ -64,19 +68,57 @@ body{font-family:'Inter',-apple-system,sans-serif;background:white;color:var(--g
 .results-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:.5rem;}
 .results-title{font-size:.9rem;font-weight:600;color:var(--gray-700);display:flex;align-items:center;gap:.5rem;}
 .count-badge{background:#eff6ff;color:var(--primary);border:1px solid #bfdbfe;padding:.15rem .5rem;border-radius:999px;font-size:.72rem;font-weight:700;}
-.results-actions{display:flex;gap:.5rem;}
+.results-actions{display:flex;gap:.5rem;flex-wrap:wrap;}
 .btn-sm{background:white;border:1px solid var(--gray-300);color:var(--gray-600);padding:.4rem .875rem;border-radius:6px;font-size:.775rem;font-weight:500;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:.375rem;transition:all .15s;}
 .btn-sm:hover{background:var(--gray-50);}
 .btn-sm.primary{background:var(--primary);border-color:var(--primary);color:white;}
+.btn-sm:disabled{opacity:.5;cursor:not-allowed;}
+/* Verify button states */
+.btn-verify{background:white;border:1px solid var(--gray-300);color:var(--gray-600);padding:.4rem .875rem;border-radius:6px;font-size:.775rem;font-weight:500;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:.375rem;transition:all .15s;}
+.btn-verify:hover:not(:disabled){background:#fffbeb;border-color:var(--warning);color:#92400e;}
+.btn-verify:disabled{opacity:.5;cursor:not-allowed;}
+.btn-verify.verifying{background:#eff6ff;border-color:var(--primary);color:var(--primary);}
+.btn-verify.verifying i{animation:spin .8s linear infinite;}
+/* Verification legend */
+.verify-legend{display:flex;align-items:center;gap:.875rem;flex-wrap:wrap;padding:.625rem .875rem;background:var(--gray-50);border:1px solid var(--gray-200);border-radius:8px;margin-bottom:1rem;font-size:.72rem;color:var(--gray-500);}
+.legend-item{display:flex;align-items:center;gap:.3rem;}
+.legend-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.legend-dot.valid{background:var(--email-valid);}
+.legend-dot.invalid{background:var(--email-invalid);}
+.legend-dot.unknown{background:var(--email-unknown);}
+.legend-dot.unverified{background:var(--email-unverified);}
+/* Verification progress bar */
+.verify-progress-wrap{margin-bottom:.875rem;display:none;}
+.verify-progress-label{font-size:.75rem;color:var(--gray-500);margin-bottom:.375rem;display:flex;justify-content:space-between;}
+.verify-progress-bar{height:4px;background:var(--gray-200);border-radius:999px;overflow:hidden;}
+.verify-progress-fill{height:100%;background:var(--primary);border-radius:999px;transition:width .3s ease;}
+/* Lead cards */
 .leads-list{display:flex;flex-direction:column;gap:.5rem;}
-.lead-card{background:white;border:1px solid var(--gray-200);border-radius:8px;padding:.875rem 1rem;display:flex;align-items:center;gap:.875rem;}
+.lead-card{background:white;border:1px solid var(--gray-200);border-radius:8px;padding:.875rem 1rem;display:flex;align-items:center;gap:.875rem;transition:border-color .2s;}
 .lead-avatar{width:36px;height:36px;border-radius:8px;background:#eff6ff;border:1px solid #dbeafe;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700;color:var(--primary);flex-shrink:0;}
 .lead-info{flex:1;min-width:0;}
 .lead-name{font-size:.875rem;font-weight:600;color:var(--gray-900);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .lead-sub{font-size:.775rem;color:var(--gray-500);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:.1rem;}
-.lead-email{font-size:.72rem;color:var(--success);margin-top:.1rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+/* Email row with status dot */
+.lead-email-row{display:flex;align-items:center;gap:.375rem;margin-top:.15rem;}
+.email-status-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;transition:background .3s;}
+.email-status-dot.valid{background:var(--email-valid);}
+.email-status-dot.invalid{background:var(--email-invalid);}
+.email-status-dot.unknown{background:var(--email-unknown);}
+.email-status-dot.unverified{background:var(--email-unverified);}
+.lead-email{font-size:.72rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:color .3s;}
+.lead-email.valid{color:var(--email-valid);}
+.lead-email.invalid{color:var(--email-invalid);text-decoration:line-through;text-decoration-color:rgba(239,68,68,.4);}
+.lead-email.unknown{color:#92400e;}
+.lead-email.unverified{color:var(--gray-400);}
+/* No email placeholder */
+.lead-no-email{font-size:.72rem;color:var(--gray-300);font-style:italic;margin-top:.15rem;}
 .lead-li{width:28px;height:28px;border-radius:6px;border:1px solid var(--gray-200);background:white;display:flex;align-items:center;justify-content:center;color:var(--gray-400);font-size:.75rem;text-decoration:none;flex-shrink:0;transition:all .15s;}
 .lead-li:hover{border-color:#0077b5;color:#0077b5;}
+/* Spinning indicator on a card while its email is being verified */
+.lead-card.verifying-card{border-color:#bfdbfe;background:#f8faff;}
+.lead-card.verifying-card .email-status-dot{animation:pulse .9s ease-in-out infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.35;}}
 .past-section{margin-top:2rem;display:none;}
 .section-label{font-size:.72rem;font-weight:600;color:var(--gray-400);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.75rem;display:flex;align-items:center;gap:.5rem;}
 .section-label::after{content:'';flex:1;height:1px;background:var(--gray-200);}
@@ -127,6 +169,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:white;color:var(--g
   .pricing-modal{padding:1.5rem;}
   .pricing-modal-header h2{font-size:1.5rem;}
   .plan-price-big{font-size:2.2rem;}
+  .results-actions{gap:.375rem;}
 }
 </style>
 </head>
@@ -201,9 +244,33 @@ body{font-family:'Inter',-apple-system,sans-serif;background:white;color:var(--g
         <div class="results-title">Leads found <span class="count-badge" id="resultsCount">0</span></div>
         <div class="results-actions">
           <button class="btn-sm" onclick="resetSearch()"><i class="fas fa-redo" style="font-size:.65rem;"></i> New</button>
+          <button class="btn-verify" id="verifyAllBtn" onclick="verifyAllEmails()">
+            <i class="fas fa-shield-alt" style="font-size:.65rem;"></i> Verify emails
+          </button>
           <button class="btn-sm primary" onclick="exportCSV()"><i class="fas fa-download" style="font-size:.65rem;"></i> Export CSV</button>
         </div>
       </div>
+
+      <!-- Verification legend -->
+      <div class="verify-legend" id="verifyLegend" style="display:none;">
+        <span style="font-weight:600;color:var(--gray-600);">Email status:</span>
+        <span class="legend-item"><span class="legend-dot valid"></span> Valid</span>
+        <span class="legend-item"><span class="legend-dot invalid"></span> Invalid</span>
+        <span class="legend-item"><span class="legend-dot unknown"></span> Unknown</span>
+        <span class="legend-item"><span class="legend-dot unverified"></span> Not verified</span>
+      </div>
+
+      <!-- Progress bar (shown during verification) -->
+      <div class="verify-progress-wrap" id="verifyProgressWrap">
+        <div class="verify-progress-label">
+          <span id="verifyProgressLabel">Verifying emails...</span>
+          <span id="verifyProgressCount"></span>
+        </div>
+        <div class="verify-progress-bar">
+          <div class="verify-progress-fill" id="verifyProgressFill" style="width:0%"></div>
+        </div>
+      </div>
+
       <div class="leads-list" id="leadsList"></div>
     </div>
 
@@ -221,6 +288,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:white;color:var(--g
   </div>
 </div>
 
+<!-- Pricing modal -->
 <div id="pricingModal" class="modal-overlay">
   <div class="pricing-modal">
     <button class="modal-close" onclick="closePricingModal()"><i class="fas fa-times"></i></button>
@@ -247,6 +315,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:white;color:var(--g
   </div>
 </div>
 
+<!-- Insufficient credits modal -->
 <div id="insufficientCreditsModal" class="modal-overlay">
   <div class="pricing-modal">
     <button class="modal-close" onclick="closeInsufficientCreditsModal()"><i class="fas fa-times"></i></button>
@@ -269,6 +338,11 @@ var SUB_CHECK_URL     = 'https://scalelinkfinderai-production.up.railway.app/web
 
 var sb = null, userToken = null, currentCredits = null;
 var currentLeads = [], currentQuery = '', pastSearches = [];
+
+/* ── VERIFICATION STATE ──────────────────────────────────────────────────── */
+// Map from index → { status: 'unverified'|'valid'|'invalid'|'unknown', result: raw string }
+var verificationState = {};
+var isVerifying = false;
 
 var plans = [
   { name:'Starter',      monthlyPrice:49,  credits:60000,
@@ -400,7 +474,7 @@ function closeInsufficientCreditsModal(){
 }
 function showPricingFromInsufficient(){ closeInsufficientCreditsModal(); showPricingModal(); }
 
-// ── FIELD MAPPING — null-safe, no "Not found" fallbacks ──────────────────────
+/* ── FIELD MAPPING ───────────────────────────────────────────────────────── */
 function val(v){ return (v === null || v === undefined) ? '' : String(v); }
 
 function mapApifyLead(item){
@@ -444,7 +518,7 @@ function mapApifyLead(item){
   };
 }
 
-// ── SUPABASE ──────────────────────────────────────────────────────────────────
+/* ── SUPABASE ────────────────────────────────────────────────────────────── */
 function loadPastSearches(){
   sb.from('linkedin_lead_searches').select('id,query,leads,created_at')
     .eq('user_token',userToken).order('created_at',{ascending:false}).limit(10)
@@ -458,7 +532,7 @@ function saveSearch(query,leads){
     .catch(function(){});
 }
 
-// ── PAST SEARCHES UI ──────────────────────────────────────────────────────────
+/* ── PAST SEARCHES UI ────────────────────────────────────────────────────── */
 function renderPast(){
   var section = document.getElementById('pastSection');
   var list    = document.getElementById('pastList');
@@ -476,10 +550,11 @@ function loadPast(i){
   var s = pastSearches[i]; if(!s) return;
   document.getElementById('searchInput').value = s.query;
   currentQuery = s.query; currentLeads = s.leads||[];
+  verificationState = {};
   showStoredResults(currentLeads);
 }
 
-// ── SEARCH CONTROLS ───────────────────────────────────────────────────────────
+/* ── SEARCH CONTROLS ─────────────────────────────────────────────────────── */
 function updateCostHint(){
   var max = Math.min(Math.max(parseInt(document.getElementById('maxProfiles').value)||10,1),100);
   document.getElementById('costHint').innerHTML = '<b>'+(max)+' credits</b> &middot; 1 credit per profile';
@@ -489,14 +564,17 @@ function resetSearch(){
   document.getElementById('resultsSection').classList.add('hidden');
   document.getElementById('emptySection').style.display = 'block';
   document.getElementById('searchInput').value = '';
-  currentLeads = []; renderPast();
+  currentLeads = [];
+  verificationState = {};
+  renderPast();
 }
 
-// ── MAIN SEARCH ───────────────────────────────────────────────────────────────
+/* ── MAIN SEARCH ─────────────────────────────────────────────────────────── */
 async function startSearch(){
   var query = document.getElementById('searchInput').value.trim();
   if(!query) return;
   currentQuery = query;
+  verificationState = {};
 
   var maxProfiles = Math.min(Math.max(parseInt(document.getElementById('maxProfiles').value)||10,1),100);
   var cost = maxProfiles * 1;
@@ -548,6 +626,10 @@ async function startSearch(){
     document.getElementById('resultsCount').textContent = currentLeads.length;
     document.getElementById('leadsList').innerHTML = currentLeads.map(renderLeadCard).join('');
 
+    // Hide legend & progress until verification starts
+    document.getElementById('verifyLegend').style.display = 'none';
+    document.getElementById('verifyProgressWrap').style.display = 'none';
+
     await saveSearch(query, currentLeads);
 
   } catch(err){
@@ -560,36 +642,190 @@ async function startSearch(){
   document.getElementById('searchBtn').disabled = false;
 }
 
-// ── CARD RENDERING ────────────────────────────────────────────────────────────
-function renderLeadCard(p){
+/* ── EMAIL VERIFICATION ──────────────────────────────────────────────────── */
+
+/**
+ * Determine verification status from the API response object.
+ * email_result === 'ok'        → valid (green)
+ * email_result === 'catch_all' → unknown (yellow)
+ * anything else                → invalid (red)
+ */
+function parseVerificationResult(item){
+  if(!item) return 'unknown';
+  var r = String(item.email_result || '').toLowerCase().trim();
+  if(r === 'ok') return 'valid';
+  if(r === 'catch_all') return 'unknown';
+  return 'invalid';
+}
+
+async function verifyAllEmails(){
+  if(isVerifying) return;
+
+  // Collect indices of leads that have an email and are not yet verified
+  var targets = [];
+  for(var i=0; i<currentLeads.length; i++){
+    if(currentLeads[i].email && (!verificationState[i] || verificationState[i].status === 'unverified')){
+      targets.push(i);
+    }
+  }
+
+  if(!targets.length){
+    showAlert('All emails have already been verified.', 'warning');
+    return;
+  }
+
+  isVerifying = true;
+
+  // Update button state
+  var btn = document.getElementById('verifyAllBtn');
+  btn.disabled = true;
+  btn.classList.add('verifying');
+  btn.innerHTML = '<i class="fas fa-spinner" style="font-size:.65rem;"></i> Verifying...';
+
+  // Show legend and progress bar
+  document.getElementById('verifyLegend').style.display = 'flex';
+  var progressWrap = document.getElementById('verifyProgressWrap');
+  progressWrap.style.display = 'block';
+  var progressFill  = document.getElementById('verifyProgressFill');
+  var progressLabel = document.getElementById('verifyProgressLabel');
+  var progressCount = document.getElementById('verifyProgressCount');
+
+  var done = 0;
+  var total = targets.length;
+
+  function updateProgress(){
+    var pct = total > 0 ? Math.round((done/total)*100) : 0;
+    progressFill.style.width = pct + '%';
+    progressCount.textContent = done + ' / ' + total;
+  }
+  updateProgress();
+
+  // Verify one by one
+  for(var t=0; t<targets.length; t++){
+    var idx = targets[t];
+    var lead = currentLeads[idx];
+
+    progressLabel.textContent = 'Verifying ' + (lead.email || '—') + '…';
+
+    // Mark card as actively verifying
+    var card = document.getElementById('lead-card-' + idx);
+    if(card) card.classList.add('verifying-card');
+
+    var status = 'unknown'; // fallback if request fails
+
+    try {
+      var resp = await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'email_leads_verification',
+          email: lead.email,
+          token: userToken
+        })
+      });
+
+      if(resp.ok){
+        var result = await resp.json();
+        // Server may return an array or a single object
+        var item = Array.isArray(result) ? result[0] : result;
+        status = parseVerificationResult(item);
+      }
+    } catch(e){
+      console.error('Verification error for', lead.email, e);
+      status = 'unknown';
+    }
+
+    verificationState[idx] = { status: status };
+
+    // Update the card's email display in place (no full re-render)
+    updateEmailDisplay(idx, status);
+
+    // Remove verifying highlight
+    if(card) card.classList.remove('verifying-card');
+
+    done++;
+    updateProgress();
+  }
+
+  progressLabel.textContent = 'Verification complete';
+
+  // Restore button
+  btn.disabled = false;
+  btn.classList.remove('verifying');
+  btn.innerHTML = '<i class="fas fa-shield-alt" style="font-size:.65rem;"></i> Re-verify';
+
+  isVerifying = false;
+  showAlert('Email verification complete — ' + done + ' emails checked.', 'success');
+}
+
+/**
+ * Update only the email status dot and text color for a single card,
+ * without re-rendering the whole list.
+ */
+function updateEmailDisplay(idx, status){
+  var dot   = document.getElementById('email-dot-' + idx);
+  var text  = document.getElementById('email-text-' + idx);
+  if(!dot || !text) return;
+
+  dot.className = 'email-status-dot ' + status;
+  text.className = 'lead-email ' + status;
+}
+
+/* ── CARD RENDERING ──────────────────────────────────────────────────────── */
+function renderLeadCard(p, idx){
   var sub = [p.job_title, p.company_name].filter(function(x){ return x && x.trim(); }).join(' · ');
   var liHref  = p.linkedin ? ' href="'+p.linkedin+'" target="_blank"' : '';
   var liStyle = p.linkedin ? '' : ' style="opacity:.3;pointer-events:none;"';
-  return '<div class="lead-card">'+
+
+  var status = (verificationState[idx] && verificationState[idx].status) || 'unverified';
+
+  var emailHtml = '';
+  if(p.email){
+    emailHtml =
+      '<div class="lead-email-row">'+
+        '<span class="email-status-dot '+status+'" id="email-dot-'+idx+'"></span>'+
+        '<span class="lead-email '+status+'" id="email-text-'+idx+'">'+
+          '<i class="fas fa-envelope" style="font-size:.6rem;margin-right:.2rem;"></i>'+esc(p.email)+
+        '</span>'+
+      '</div>';
+  } else {
+    emailHtml = '<div class="lead-no-email">No email found</div>';
+  }
+
+  return '<div class="lead-card" id="lead-card-'+idx+'">'+
     '<div class="lead-avatar">'+initials(p.full_name)+'</div>'+
     '<div class="lead-info">'+
       '<div class="lead-name">'+esc(p.full_name)+'</div>'+
       (sub ? '<div class="lead-sub">'+esc(sub)+'</div>' : '')+
-      (p.email ? '<div class="lead-email"><i class="fas fa-envelope" style="font-size:.65rem;margin-right:.25rem;"></i>'+esc(p.email)+'</div>' : '')+
+      emailHtml+
     '</div>'+
     '<a'+liHref+' class="lead-li"'+liStyle+'><i class="fab fa-linkedin-in"></i></a>'+
   '</div>';
 }
 
 function showStoredResults(leads){
+  verificationState = {};
   document.getElementById('emptySection').style.display = 'none';
   document.getElementById('resultsSection').classList.remove('hidden');
   document.getElementById('resultsCount').textContent = leads.length;
   document.getElementById('leadsList').innerHTML = leads.map(renderLeadCard).join('');
+  document.getElementById('verifyLegend').style.display = 'none';
+  document.getElementById('verifyProgressWrap').style.display = 'none';
+
+  // Reset verify button
+  var btn = document.getElementById('verifyAllBtn');
+  btn.disabled = false;
+  btn.classList.remove('verifying');
+  btn.innerHTML = '<i class="fas fa-shield-alt" style="font-size:.65rem;"></i> Verify emails';
 }
 
-// ── EXPORT ────────────────────────────────────────────────────────────────────
+/* ── EXPORT (includes verification_status column) ────────────────────────── */
 function exportCSV(){
   if(!currentLeads.length) return;
   var NL = '\n';
   var headers = [
     'Full Name','First Name','Last Name','Job Title','Headline','Seniority Level','Functional Level',
-    'Email','Mobile Number','Personal Email','LinkedIn URL',
+    'Email','Email Verification','Mobile Number','Personal Email','LinkedIn URL',
     'City','State','Country',
     'Company Name','Company Domain','Company Website','Company LinkedIn','Company Size',
     'Industry','Company Description','Founded Year','Company Phone',
@@ -598,11 +834,12 @@ function exportCSV(){
   ];
   function q(v){ return '"'+String(v||'').replace(/"/g,'""')+'"'; }
   var csv = headers.join(',') + NL;
-  currentLeads.forEach(function(l){
+  currentLeads.forEach(function(l, i){
+    var vs = (verificationState[i] && verificationState[i].status) || 'unverified';
     csv += [
       q(l.full_name), q(l.first_name), q(l.last_name), q(l.job_title), q(l.headline),
       q(l.seniority_level), q(l.functional_level),
-      q(l.email), q(l.mobile_number), q(l.personal_email), q(l.linkedin),
+      q(l.email), q(vs), q(l.mobile_number), q(l.personal_email), q(l.linkedin),
       q(l.city), q(l.state), q(l.country),
       q(l.company_name), q(l.company_domain), q(l.company_website), q(l.company_linkedin), q(l.company_size),
       q(l.industry), q(l.company_description), q(l.company_founded_year), q(l.company_phone),
@@ -617,7 +854,7 @@ function exportCSV(){
   a.click();
 }
 
-// ── UTILITIES ─────────────────────────────────────────────────────────────────
+/* ── UTILITIES ───────────────────────────────────────────────────────────── */
 function initials(name){
   if(!name) return '?';
   var p = name.trim().split(' ');
