@@ -157,16 +157,24 @@ body{font-family:'Inter',-apple-system,sans-serif;background:white;color:var(--g
 .billing-btn{flex:1;padding:.75rem;border:none;background:transparent;border-radius:6px;font-weight:500;color:var(--gray-600);cursor:pointer;transition:all .2s;font-size:.9rem;display:flex;align-items:center;justify-content:center;gap:.5rem;font-family:inherit;}
 .billing-btn.active{background:white;color:var(--gray-900);box-shadow:0 1px 3px rgba(0,0,0,.1);}
 .save-tag{font-size:.75rem;background:var(--success);color:white;padding:.2rem .4rem;border-radius:3px;font-weight:600;}
-.plan-selector{display:flex;align-items:center;justify-content:center;gap:2rem;margin:2rem 0;}
-.plan-nav-btn{background:white;border:1px solid var(--gray-300);width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--gray-500);transition:all .2s;}
-.plan-nav-btn:hover{border-color:var(--gray-400);color:var(--gray-700);}
-.plan-nav-btn:disabled{opacity:.3;cursor:not-allowed;}
-.plan-card-inner{background:white;border:2px solid var(--primary);padding:2rem;border-radius:12px;text-align:center;min-width:220px;box-shadow:0 4px 12px rgba(37,99,235,.1);}
-.plan-name-label{font-size:1rem;font-weight:500;color:var(--gray-600);margin-bottom:.5rem;}
-.plan-price-wrap{margin:1rem 0;}
-.plan-price-big{font-size:2.8rem;font-weight:700;color:var(--primary);line-height:1;}
-.plan-period-txt{color:var(--gray-600);font-size:.9rem;margin-top:.25rem;}
-.plan-credits-txt{font-size:1.1rem;font-weight:700;color:var(--gray-900);margin-top:.25rem;}
+.plans-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:0.75rem;margin:0.25rem 0 0.75rem;}
+.plan-item{border:2px solid var(--gray-200);border-radius:12px;padding:1.25rem 0.875rem;text-align:center;position:relative;transition:border-color .2s,box-shadow .2s;display:flex;flex-direction:column;}
+.plan-item:hover{border-color:var(--primary);box-shadow:0 4px 16px rgba(37,99,235,0.1);}
+.plan-item-popular{border-color:var(--primary);background:#f0f5ff;box-shadow:0 4px 16px rgba(37,99,235,0.12);}
+.plan-popular-badge{position:absolute;top:-11px;left:50%;transform:translateX(-50%);background:var(--primary);color:white;font-size:0.62rem;font-weight:700;padding:0.2rem 0.55rem;border-radius:4px;white-space:nowrap;text-transform:uppercase;letter-spacing:0.06em;}
+.plan-item-name{font-size:0.72rem;font-weight:700;color:var(--gray-500);text-transform:uppercase;letter-spacing:0.07em;margin-top:0.5rem;}
+.plan-item-price{display:flex;align-items:baseline;justify-content:center;gap:0.1rem;margin:0.5rem 0 0;}
+.plan-item-amount{font-size:1.85rem;font-weight:700;color:var(--gray-900);line-height:1;}
+.plan-item-period{font-size:0.75rem;color:var(--gray-500);font-weight:500;}
+.plan-item-annual{font-size:0.67rem;color:var(--gray-400);margin-top:0.2rem;min-height:0.9rem;}
+.plan-item-credits{font-size:0.73rem;font-weight:600;color:var(--gray-700);margin-top:0.5rem;}
+.plan-item-per-credit{font-size:0.67rem;color:var(--gray-400);background:var(--gray-100);border-radius:4px;padding:0.18rem 0.4rem;display:inline-block;margin:0.35rem auto 0;}
+.plan-item-cta{width:100%;padding:0.6rem;border-radius:7px;border:1.5px solid var(--gray-300);background:white;color:var(--gray-700);font-weight:600;font-size:0.76rem;cursor:pointer;transition:all .2s;font-family:inherit;margin-top:0.875rem;}
+.plan-item-cta:hover{background:var(--gray-50);border-color:var(--primary);color:var(--primary);}
+.plan-item-cta-popular{background:var(--primary);border-color:var(--primary);color:white;}
+.plan-item-cta-popular:hover{background:var(--primary-hover);border-color:var(--primary-hover);color:white;}
+@media(max-width:700px){.plans-grid{grid-template-columns:repeat(2,1fr);}}
+@media(max-width:420px){.plans-grid{grid-template-columns:1fr;}}
 .pricing-modal-cta{margin-bottom:1rem;}
 .pricing-modal-cta .btn{width:100%;padding:1rem;font-size:1rem;font-weight:600;}
 /* Export dropdown */
@@ -324,28 +332,15 @@ body{font-family:'Inter',-apple-system,sans-serif;background:white;color:var(--g
 
 <!-- Pricing modal -->
 <div id="pricingModal" class="modal-overlay">
-  <div class="pricing-modal">
+  <div class="pricing-modal" style="max-width:900px;width:min(900px,calc(100vw - 2rem));">
     <button class="modal-close" onclick="closePricingModal()"><i class="fas fa-times"></i></button>
     <div class="pricing-modal-header"><h2>Choose Your Plan</h2></div>
     <div class="billing-toggle">
       <button class="billing-btn" id="monthlyBtn" onclick="setBilling('monthly')">Monthly</button>
       <button class="billing-btn active" id="annualBtn" onclick="setBilling('annual')">Annual <span class="save-tag">Save 20%</span></button>
     </div>
-    <div class="plan-selector">
-      <button class="plan-nav-btn" onclick="previousPlan()" id="prevBtn"><i class="fas fa-chevron-left"></i></button>
-      <div class="plan-card-inner">
-        <div class="plan-name-label" id="planName">Professional</div>
-        <div class="plan-price-wrap">
-          <div class="plan-price-big" id="priceAmount">$71</div>
-          <div class="plan-period-txt" id="pricePeriod">per month</div>
-        </div>
-        <div class="plan-credits-txt" id="planCredits">240,000 credits/year</div>
-      </div>
-      <button class="plan-nav-btn" onclick="nextPlan()" id="nextBtn"><i class="fas fa-chevron-right"></i></button>
-    </div>
-    <div class="pricing-modal-cta">
-      <button class="btn" onclick="proceedToCheckout()"><span id="ctaText">Get Started - $71/month</span></button>
-    </div>
+    <div class="plans-grid" id="plansGrid"></div>
+    <p style="text-align:center;font-size:0.72rem;color:var(--gray-500);margin-top:0.5rem;">Cancel anytime &nbsp;·&nbsp; No questions asked</p>
   </div>
 </div>
 
@@ -392,111 +387,37 @@ var plans = [
     monthlyLink:'https://linkfinderai.gumroad.com/l/tbwevi',
     annualLink: 'https://linkfinderai.gumroad.com/l/dilhpd' }
 ];
-var currentPlanIndex = 1;
-var isAnnualBilling  = true;
+var isAnnualBilling = true;
 
-var gclid = new URLSearchParams(window.location.search).get('gclid');
-function addGclid(url){
-  if(!gclid) return url;
-  return url + (url.includes('?') ? '&' : '?') + 'gclid=' + gclid;
-}
-
-document.addEventListener('DOMContentLoaded', function(){
-  var p = new URLSearchParams(window.location.search);
-  userToken = p.get('token') || localStorage.getItem('linkFinderToken');
-  if(!userToken){ window.location.href = 'https://linkfinderai.com/'; return; }
-  localStorage.setItem('linkFinderToken', userToken);
-  sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  fetchCredits();
-  loadPastSearches();
-  updatePlanDisplay();
-  var action = p.get('action');
-  if(action === 'buy_credits' || action === 'upgrade'){
-    setTimeout(function(){ handleAddCredits(); }, 500);
-  }
-  document.addEventListener('click', function(e){
-    if(e.target === document.getElementById('pricingModal')) closePricingModal();
-    if(e.target === document.getElementById('insufficientCreditsModal')) closeInsufficientCreditsModal();
-  });
-  document.addEventListener('keydown', function(e){
-    if(e.key === 'Escape'){ closePricingModal(); closeInsufficientCreditsModal(); }
-  });
-});
-
-function logout(){ localStorage.removeItem('linkFinderToken'); window.location.href = 'https://linkfinderai.com/'; }
-function nav(page){
-  var m = { enrichment:'app', api:'api-access', account:'account' };
-  window.location.href = addGclid('https://linkfinderai.com/' + m[page] + '?token=' + userToken);
+function renderPlansGrid() {
+  var grid = document.getElementById('plansGrid');
+  if (!grid) return;
+  grid.innerHTML = plans.map(function(plan, index) {
+    var isPopular = plan.name === 'Professional';
+    var monthlyEquiv = isAnnualBilling ? Math.round(plan.monthlyPrice * 0.8) : plan.monthlyPrice;
+    var annualTotal  = Math.round(plan.monthlyPrice * 0.8 * 12);
+    var creditsLabel = isAnnualBilling
+      ? plan.credits.toLocaleString() + ' credits/yr'
+      : Math.round(plan.credits / 12).toLocaleString() + ' credits/mo';
+    var totalForCalc   = isAnnualBilling ? annualTotal : plan.monthlyPrice;
+    var creditsForCalc = isAnnualBilling ? plan.credits : Math.round(plan.credits / 12);
+    var perCredit = (totalForCalc / creditsForCalc).toFixed(4);
+    return '<div class="plan-item ' + (isPopular ? 'plan-item-popular' : '') + '">'
+      + (isPopular ? '<div class="plan-popular-badge">Most Popular</div>' : '')
+      + '<div class="plan-item-name">' + plan.name + '</div>'
+      + '<div class="plan-item-price"><span class="plan-item-amount">$' + monthlyEquiv + '</span><span class="plan-item-period">/mo</span></div>'
+      + (isAnnualBilling ? '<div class="plan-item-annual">billed $' + annualTotal + '/year</div>' : '<div class="plan-item-annual">&nbsp;</div>')
+      + '<div class="plan-item-credits">' + creditsLabel + '</div>'
+      + '<div class="plan-item-per-credit">&asymp; $' + perCredit + ' / credit</div>'
+      + '<button class="plan-item-cta ' + (isPopular ? 'plan-item-cta-popular' : '') + '" onclick="proceedToCheckoutDirect(' + index + ')">Get Started</button>'
+      + '</div>';
+  }).join('');
 }
 
-function fetchCredits(){
-  fetch(CREDITS_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:userToken})})
-    .then(function(r){return r.json();})
-    .then(function(d){
-      currentCredits = Math.max(0, d.credits||0);
-      document.getElementById('creditsCount').textContent = currentCredits;
-    }).catch(function(){});
-}
-function deductCredits(n){
-  if(currentCredits===null) return;
-  currentCredits = Math.max(0, currentCredits - n);
-  document.getElementById('creditsCount').textContent = Math.round(currentCredits*10)/10;
-}
-
-async function handleAddCredits(){
-  var btn = document.getElementById('buyCreditsBtn');
-  var orig = btn.innerHTML;
-  btn.innerHTML = '...';
-  btn.disabled = true;
-  try {
-    await fetch(SUB_CHECK_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:userToken})});
-    showPricingModal();
-  } catch(e){ showPricingModal(); }
-  finally { btn.innerHTML = orig; btn.disabled = false; }
-}
-
-function showPricingModal(){
-  isAnnualBilling = true;
-  document.getElementById('monthlyBtn').classList.remove('active');
-  document.getElementById('annualBtn').classList.add('active');
-  updatePlanDisplay();
-  document.getElementById('pricingModal').classList.add('show');
-  document.body.style.overflow = 'hidden';
-}
-function closePricingModal(){
-  document.getElementById('pricingModal').classList.remove('show');
-  document.body.style.overflow = '';
-}
-function setBilling(type){
-  isAnnualBilling = (type==='annual');
-  document.getElementById('monthlyBtn').classList.toggle('active',!isAnnualBilling);
-  document.getElementById('annualBtn').classList.toggle('active',isAnnualBilling);
-  updatePlanDisplay();
-}
-function updatePlanDisplay(){
-  var plan = plans[currentPlanIndex];
-  document.getElementById('planName').textContent = plan.name;
-  if(isAnnualBilling){
-    var mo = Math.round(plan.monthlyPrice*0.8);
-    document.getElementById('priceAmount').textContent = '$'+mo;
-    document.getElementById('pricePeriod').textContent = 'per month';
-    document.getElementById('planCredits').textContent = plan.credits.toLocaleString()+' credits/year';
-    document.getElementById('ctaText').textContent = 'Get Started - $'+mo+'/month';
-  } else {
-    document.getElementById('priceAmount').textContent = '$'+plan.monthlyPrice;
-    document.getElementById('pricePeriod').textContent = 'per month';
-    document.getElementById('planCredits').textContent = Math.round(plan.credits/12).toLocaleString()+' credits/month';
-    document.getElementById('ctaText').textContent = 'Get Started - $'+plan.monthlyPrice+'/month';
-  }
-  document.getElementById('prevBtn').disabled = (currentPlanIndex===0);
-  document.getElementById('nextBtn').disabled = (currentPlanIndex===plans.length-1);
-}
-function previousPlan(){ if(currentPlanIndex>0){currentPlanIndex--;updatePlanDisplay();} }
-function nextPlan(){ if(currentPlanIndex<plans.length-1){currentPlanIndex++;updatePlanDisplay();} }
-function proceedToCheckout(){
-  var plan = plans[currentPlanIndex];
+function proceedToCheckoutDirect(index) {
+  var plan = plans[index];
   var base = isAnnualBilling ? plan.annualLink : plan.monthlyLink;
-  window.location.href = addGclid(base+'?wanted=true&user_id='+userToken);
+  window.location.href = addGclid(base + '?wanted=true&user_id=' + userToken);
 }
 function showInsufficientCreditsModal(){
   document.getElementById('insufficientCreditsModal').classList.add('show');
@@ -967,6 +888,83 @@ function showAlert(msg,type){
   if(alertT) clearTimeout(alertT);
   alertT = setTimeout(function(){ a.style.display='none'; }, 5000);
 }
+
+var gclid = new URLSearchParams(window.location.search).get('gclid');
+function addGclid(url){
+  if(!gclid) return url;
+  return url + (url.includes('?') ? '&' : '?') + 'gclid=' + gclid;
+}
+
+function logout(){ localStorage.removeItem('linkFinderToken'); window.location.href = 'https://linkfinderai.com/'; }
+
+function nav(page){
+  var m = { enrichment:'app', api:'api-access', account:'account' };
+  window.location.href = addGclid('https://linkfinderai.com/' + m[page] + '?token=' + userToken);
+}
+
+function fetchCredits(){
+  fetch(CREDITS_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:userToken})})
+    .then(function(r){return r.json();})
+    .then(function(d){ currentCredits=Math.max(0,d.credits||0); document.getElementById('creditsCount').textContent=currentCredits; })
+    .catch(function(){});
+}
+
+function deductCredits(n){
+  if(currentCredits===null) return;
+  currentCredits=Math.max(0,currentCredits-n);
+  document.getElementById('creditsCount').textContent=Math.round(currentCredits*10)/10;
+}
+
+function setBilling(type){
+  isAnnualBilling=(type==='annual');
+  document.getElementById('monthlyBtn').classList.toggle('active',!isAnnualBilling);
+  document.getElementById('annualBtn').classList.toggle('active',isAnnualBilling);
+  renderPlansGrid();
+}
+
+function showPricingModal(){
+  isAnnualBilling=true;
+  document.getElementById('monthlyBtn').classList.remove('active');
+  document.getElementById('annualBtn').classList.add('active');
+  document.getElementById('pricingModal').classList.add('show');
+  document.body.style.overflow='hidden';
+  renderPlansGrid();
+}
+
+function closePricingModal(){
+  document.getElementById('pricingModal').classList.remove('show');
+  document.body.style.overflow='';
+}
+
+async function handleAddCredits(){
+  var btn=document.getElementById('buyCreditsBtn');
+  var orig=btn.innerHTML; btn.innerHTML='...'; btn.disabled=true;
+  try{
+    await fetch(SUB_CHECK_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:userToken})});
+    showPricingModal();
+  }catch(e){ showPricingModal(); }
+  finally{ btn.innerHTML=orig; btn.disabled=false; }
+}
+
+document.addEventListener('DOMContentLoaded', function(){
+  var p=new URLSearchParams(window.location.search);
+  userToken=p.get('token')||localStorage.getItem('linkFinderToken');
+  if(!userToken){ window.location.href='https://linkfinderai.com/'; return; }
+  localStorage.setItem('linkFinderToken',userToken);
+  sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+  fetchCredits();
+  loadPastSearches();
+  var action=p.get('action');
+  if(action==='buy_credits'||action==='upgrade'){ setTimeout(function(){ handleAddCredits(); },500); }
+  document.addEventListener('click',function(e){
+    if(e.target===document.getElementById('pricingModal')) closePricingModal();
+    if(e.target===document.getElementById('insufficientCreditsModal')) closeInsufficientCreditsModal();
+  });
+  document.addEventListener('keydown',function(e){
+    if(e.key==='Escape'){ closePricingModal(); closeInsufficientCreditsModal(); }
+  });
+});
+  
 </script>
 </body>
 </html>
