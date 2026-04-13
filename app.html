@@ -150,125 +150,6 @@
             font-size: 0.875rem;
         }
 
-        /* First enrichment upsell modal */
-.upsell-overlay {
-    position: fixed;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
-    background: rgba(0,0,0,0.45);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 2000;
-    opacity: 0;
-    visibility: hidden;
-    transition: all 0.3s ease;
-    padding: 1rem;
-}
-.upsell-overlay.show {
-    opacity: 1;
-    visibility: visible;
-}
-.upsell-modal {
-    background: white;
-    border-radius: 16px;
-    padding: 2rem;
-    max-width: 420px;
-    width: 100%;
-    position: relative;
-    transform: scale(0.9);
-    transition: transform 0.3s ease;
-    box-shadow: 0 20px 40px rgba(0,0,0,0.15);
-    text-align: center;
-}
-.upsell-overlay.show .upsell-modal {
-    transform: scale(1);
-}
-.upsell-emoji {
-    font-size: 2.5rem;
-    margin-bottom: 0.75rem;
-}
-.upsell-title {
-    font-size: 1.25rem;
-    font-weight: 700;
-    color: var(--gray-900);
-    margin-bottom: 0.5rem;
-}
-.upsell-subtitle {
-    font-size: 0.875rem;
-    color: var(--gray-500);
-    margin-bottom: 1.5rem;
-    line-height: 1.5;
-}
-.upsell-cta {
-    width: 100%;
-    padding: 0.875rem;
-    background: linear-gradient(135deg, #2563eb, #1d4ed8);
-    color: white;
-    border: none;
-    border-radius: 8px;
-    font-size: 1rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    font-family: inherit;
-    margin-bottom: 0.75rem;
-}
-.upsell-cta:hover {
-    background: linear-gradient(135deg, #1d4ed8, #1e40af);
-    transform: translateY(-1px);
-}
-.upsell-dismiss {
-    background: none;
-    border: none;
-    color: var(--gray-400);
-    font-size: 0.8rem;
-    cursor: pointer;
-    font-family: inherit;
-    padding: 0.25rem;
-}
-.upsell-dismiss:hover { color: var(--gray-600); }
-
-/* Zero credits banner */
-.zero-credits-banner {
-    display: none;
-    background: linear-gradient(135deg, #fef3c7, #fde68a);
-    border: 1px solid #f59e0b;
-    border-radius: 10px;
-    padding: 1rem 1.25rem;
-    margin-bottom: 1.5rem;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-    flex-wrap: wrap;
-}
-.zero-credits-banner.show {
-    display: flex;
-}
-.zero-credits-text {
-    font-size: 0.875rem;
-    font-weight: 600;
-    color: #92400e;
-}
-.zero-credits-text span {
-    font-weight: 400;
-    color: #b45309;
-}
-.zero-credits-btn {
-    background: #f59e0b;
-    color: white;
-    border: none;
-    padding: 0.5rem 1rem;
-    border-radius: 6px;
-    font-weight: 700;
-    font-size: 0.8rem;
-    cursor: pointer;
-    font-family: inherit;
-    white-space: nowrap;
-    transition: all 0.2s ease;
-}
-.zero-credits-btn:hover { background: #d97706; }
-
         .btn {
             background: var(--primary);
             color: white;
@@ -2214,7 +2095,7 @@ src="https://www.facebook.com/tr?id=2717863625238535&ev=PageView&noscript=1"
 </div>
    <!-- Pricing Modal -->
 <div id="pricingModal" class="modal-overlay">
-    <div class="pricing-modal" style="max-width:900px;width:min(900px,calc(100vw - 2rem));">
+    <div class="pricing-modal">
         <button class="modal-close" onclick="closePricingModal()">
             <i class="fas fa-times"></i>
         </button>
@@ -2342,34 +2223,6 @@ async function fetchWithTimeout(url, options = {}, timeout = 180000) { // 3 minu
             throw new Error('Request timeout - please try again');
         }
         throw error;
-    }
-}
-
-        // ── First-enrichment upsell ──────────────────────────────
-function showUpsellModal() {
-    document.getElementById('upsellModal').classList.add('show');
-    document.body.style.overflow = 'hidden';
-}
-function closeUpsellModal() {
-    document.getElementById('upsellModal').classList.remove('show');
-    document.body.style.overflow = '';
-    sessionStorage.setItem('upsellShown', 'true');
-}
-function maybeShowUpsell() {
-    const alreadyShown = sessionStorage.getItem('upsellShown');
-    if (!alreadyShown) {
-        setTimeout(() => showUpsellModal(), 1200);
-    }
-}
-
-// ── Zero credits banner ──────────────────────────────────
-function updateZeroCreditsBanner() {
-    const banner = document.getElementById('zeroCreditsBanner');
-    if (!banner) return;
-    if (currentCredits !== null && currentCredits <= 0) {
-        banner.classList.add('show');
-    } else {
-        banner.classList.remove('show');
     }
 }
 
@@ -2570,7 +2423,6 @@ function setupDropdowns() {
                     const credits = Math.max(0, data.credits || 0);
 currentCredits = credits;
 document.getElementById('creditsCount').textContent = credits;
-updateZeroCreditsBanner();
                 } else {
                     console.error('API returned error:', response.status);
                     const errorText = await response.text();
@@ -2587,7 +2439,6 @@ updateZeroCreditsBanner();
     if (currentCredits === null) return; // Not yet loaded
     currentCredits = Math.max(0, currentCredits - amount);
     document.getElementById('creditsCount').textContent = Math.round(currentCredits * 10) / 10;
-    updateZeroCreditsBanner();
 }
 
       function parseReactionTitle(title) {
@@ -2817,8 +2668,6 @@ function formatPostReactionsData(reactionsArray) {
     document.getElementById('resultsSection').classList.remove('hidden');
     document.getElementById('singleResult').classList.remove('hidden');
     document.getElementById('bulkResults').classList.add('hidden');
-
-    maybeShowUpsell();
     
 }
 
@@ -3738,7 +3587,6 @@ if (linkedInFields.experiences && linkedInFields.experiences.length > 0) {
     document.getElementById('resultsSection').classList.remove('hidden');
     document.getElementById('singleResult').classList.remove('hidden');
     document.getElementById('bulkResults').classList.add('hidden');
-    maybeShowUpsell();
     
 }
 
@@ -3799,7 +3647,6 @@ if (employee.companylinkedinurl) html += `<div><strong>Company LinkedIn:</strong
     document.getElementById('resultsSection').classList.remove('hidden');
     document.getElementById('singleResult').classList.remove('hidden');
     document.getElementById('bulkResults').classList.add('hidden');
-    maybeShowUpsell();
     
 }
 
@@ -3856,8 +3703,6 @@ if (employee.companylinkedinurl) html += `<div><strong>Company LinkedIn:</strong
     document.getElementById('resultsSection').classList.remove('hidden');
     document.getElementById('singleResult').classList.remove('hidden');
     document.getElementById('bulkResults').classList.add('hidden');
-
-    maybeShowUpsell();
     
 }
 
@@ -5168,25 +5013,6 @@ document.addEventListener('click', (e) => {
             </div>
         </div>
 
-    </div>
-</div>
-
-    <!-- First Enrichment Upsell Modal -->
-<div id="upsellModal" class="upsell-overlay">
-    <div class="upsell-modal">
-        <div class="upsell-emoji">🎉</div>
-        <div class="upsell-title">Your first enrichment worked!</div>
-        <div class="upsell-subtitle">
-            You just found real data in seconds.<br>
-            Get more credits and keep going.
-        </div>
-        <button class="upsell-cta" onclick="closeUpsellModal(); handleAddCredits();">
-            Get More Credits →
-        </button>
-        <br>
-        <button class="upsell-dismiss" onclick="closeUpsellModal()">
-            Maybe later
-        </button>
     </div>
 </div>
 
