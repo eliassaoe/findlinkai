@@ -150,6 +150,125 @@
             font-size: 0.875rem;
         }
 
+        /* First enrichment upsell modal */
+.upsell-overlay {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0,0,0,0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+    padding: 1rem;
+}
+.upsell-overlay.show {
+    opacity: 1;
+    visibility: visible;
+}
+.upsell-modal {
+    background: white;
+    border-radius: 16px;
+    padding: 2rem;
+    max-width: 420px;
+    width: 100%;
+    position: relative;
+    transform: scale(0.9);
+    transition: transform 0.3s ease;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+    text-align: center;
+}
+.upsell-overlay.show .upsell-modal {
+    transform: scale(1);
+}
+.upsell-emoji {
+    font-size: 2.5rem;
+    margin-bottom: 0.75rem;
+}
+.upsell-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--gray-900);
+    margin-bottom: 0.5rem;
+}
+.upsell-subtitle {
+    font-size: 0.875rem;
+    color: var(--gray-500);
+    margin-bottom: 1.5rem;
+    line-height: 1.5;
+}
+.upsell-cta {
+    width: 100%;
+    padding: 0.875rem;
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: inherit;
+    margin-bottom: 0.75rem;
+}
+.upsell-cta:hover {
+    background: linear-gradient(135deg, #1d4ed8, #1e40af);
+    transform: translateY(-1px);
+}
+.upsell-dismiss {
+    background: none;
+    border: none;
+    color: var(--gray-400);
+    font-size: 0.8rem;
+    cursor: pointer;
+    font-family: inherit;
+    padding: 0.25rem;
+}
+.upsell-dismiss:hover { color: var(--gray-600); }
+
+/* Zero credits banner */
+.zero-credits-banner {
+    display: none;
+    background: linear-gradient(135deg, #fef3c7, #fde68a);
+    border: 1px solid #f59e0b;
+    border-radius: 10px;
+    padding: 1rem 1.25rem;
+    margin-bottom: 1.5rem;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+.zero-credits-banner.show {
+    display: flex;
+}
+.zero-credits-text {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #92400e;
+}
+.zero-credits-text span {
+    font-weight: 400;
+    color: #b45309;
+}
+.zero-credits-btn {
+    background: #f59e0b;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    font-weight: 700;
+    font-size: 0.8rem;
+    cursor: pointer;
+    font-family: inherit;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+}
+.zero-credits-btn:hover { background: #d97706; }
+
         .btn {
             background: var(--primary);
             color: white;
@@ -571,68 +690,52 @@
             margin-bottom: 1rem;
         }
 
-        .plan-selector {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 2rem;
-    margin: 2rem 0;
-}
-    
+ .pricing-modal-wide { max-width: 860px !important; }
 
-.plan-nav-btn {
-    background: white;
-    border: 1px solid var(--gray-300);
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    color: var(--gray-500);
-    transition: all 0.2s ease;
+.plans-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.75rem;
+    margin: 0.25rem 0 0.75rem;
 }
-
-.plan-nav-btn:hover {
-    border-color: var(--gray-400);
-    color: var(--gray-700);
-}
-
-.plan-nav-btn:disabled {
-    opacity: 0.3;
-    cursor: not-allowed;
-}
-
-.plan-card {
-    background: white;
+.plan-item {
     border: 2px solid var(--gray-200);
-    padding: 2rem;
     border-radius: 12px;
+    padding: 1.25rem 0.875rem;
     text-align: center;
-    min-width: 200px;
+    position: relative;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    display: flex;
+    flex-direction: column;
 }
-
-.plan-name {
-    font-size: 1rem;
-    font-weight: 500;
-    color: var(--gray-600);
-    margin-bottom: 0.5rem;
+.plan-item:hover { border-color: var(--primary); box-shadow: 0 4px 16px rgba(37,99,235,0.1); }
+.plan-item-popular { border-color: var(--primary); background: #f0f5ff; box-shadow: 0 4px 16px rgba(37,99,235,0.12); }
+.plan-popular-badge {
+    position: absolute; top: -11px; left: 50%; transform: translateX(-50%);
+    background: var(--primary); color: white; font-size: 0.62rem; font-weight: 700;
+    padding: 0.2rem 0.55rem; border-radius: 4px; white-space: nowrap;
+    text-transform: uppercase; letter-spacing: 0.06em;
 }
-
-.plan-price {
-    font-size: 2.5rem;
-    font-weight: 700;
-    color: var(--gray-900);
-    margin-bottom: 0.5rem;
+.plan-item-name { font-size: 0.72rem; font-weight: 700; color: var(--gray-500); text-transform: uppercase; letter-spacing: 0.07em; margin-top: 0.5rem; }
+.plan-item-price { display: flex; align-items: baseline; justify-content: center; gap: 0.1rem; margin: 0.5rem 0 0; }
+.plan-item-amount { font-size: 1.85rem; font-weight: 700; color: var(--gray-900); line-height: 1; }
+.plan-item-period { font-size: 0.75rem; color: var(--gray-500); font-weight: 500; }
+.plan-item-annual { font-size: 0.67rem; color: var(--gray-400); margin-top: 0.2rem; min-height: 0.9rem; }
+.plan-item-credits { font-size: 0.73rem; font-weight: 600; color: var(--gray-700); margin-top: 0.5rem; }
+.plan-item-per-credit {
+    font-size: 0.67rem; color: var(--gray-400); background: var(--gray-100);
+    border-radius: 4px; padding: 0.18rem 0.4rem; display: inline-block; margin: 0.35rem auto 0;
 }
-
-.plan-credits {
-    font-size: 1.1rem;
-    font-weight: 700;
-    color: var(--gray-900);
-    margin-top: 0.25rem;
+.plan-item-cta {
+    width: 100%; padding: 0.6rem; border-radius: 7px; border: 1.5px solid var(--gray-300);
+    background: white; color: var(--gray-700); font-weight: 600; font-size: 0.76rem;
+    cursor: pointer; transition: all 0.2s ease; font-family: inherit; margin-top: 0.875rem;
 }
+.plan-item-cta:hover { background: var(--gray-50); border-color: var(--primary); color: var(--primary); }
+.plan-item-cta-popular { background: var(--primary); border-color: var(--primary); color: white; }
+.plan-item-cta-popular:hover { background: var(--primary-hover); border-color: var(--primary-hover); color: white; }
+@media (max-width: 700px) { .plans-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 420px) { .plans-grid { grid-template-columns: 1fr; } }
 
          .pricing-modal {
     background: white;
@@ -2111,13 +2214,14 @@ src="https://www.facebook.com/tr?id=2717863625238535&ev=PageView&noscript=1"
 </div>
    <!-- Pricing Modal -->
 <div id="pricingModal" class="modal-overlay">
-    <div class="pricing-modal">
+    <div class="pricing-modal" style="max-width:900px;width:min(900px,calc(100vw - 2rem));">
         <button class="modal-close" onclick="closePricingModal()">
             <i class="fas fa-times"></i>
         </button>
         
-        <div class="pricing-modal-header">
+       <div class="pricing-modal-header">
             <h2>Choose Your Plan</h2>
+            <p style="color:var(--gray-500);font-size:0.875rem;margin-top:0.25rem;">Cancel anytime &nbsp;·&nbsp; No questions asked</p>
         </div>
 
         <!-- Billing Toggle -->
@@ -2130,38 +2234,18 @@ src="https://www.facebook.com/tr?id=2717863625238535&ev=PageView&noscript=1"
     </button>
 </div>
         
-        <div class="plan-selector">
-            <button class="plan-nav-btn" onclick="previousPlan()" id="prevBtn">
-                <i class="fas fa-chevron-left"></i>
-            </button>
-            
-            <div class="plan-card" id="planCard">
-                <div class="plan-name" id="planName">Professional</div>
-                <div class="plan-price-container">
-                    <div class="plan-price" id="priceAmount">$590</div>
-                    <div class="price-period" id="pricePeriod">per year</div>
-                </div>
-                <div class="plan-credits" id="planCredits">300,000 credits/year</div>
-            </div>
-            
-            <button class="plan-nav-btn" onclick="nextPlan()" id="nextBtn">
-                <i class="fas fa-chevron-right"></i>
-            </button>
-        </div>
-        
-        <div class="pricing-modal-cta">
-            <button id="upgradeBtn" class="btn" onclick="proceedToCheckout()">
-                <span id="ctaText">Get Started - $590/year</span>
-            </button>
-        </div>
+        <div class="plans-grid" id="plansGrid"></div>
+        <p style="text-align:center;font-size:0.72rem;color:var(--gray-400);margin-top:0.5rem;">
+            Prices in USD &nbsp;·&nbsp; Secure payment &nbsp;·&nbsp; Cancel anytime
+        </p>
     </div>
 </div>
 
     <!-- Insufficient Credits Modal -->
 <div id="insufficientCreditsModal" class="modal-overlay">
     <div class="pricing-modal">
-        <button class="modal-close" onclick="closeInsufficientCreditsModal()">
-            <i class="fas fa-times"></i>
+        <div class="pricing-modal pricing-modal-wide">
+        <button class="modal-close" onclick="closePricingModal()">
         </button>
         
         <div class="pricing-modal-header">
@@ -2258,6 +2342,34 @@ async function fetchWithTimeout(url, options = {}, timeout = 180000) { // 3 minu
             throw new Error('Request timeout - please try again');
         }
         throw error;
+    }
+}
+
+        // ── First-enrichment upsell ──────────────────────────────
+function showUpsellModal() {
+    document.getElementById('upsellModal').classList.add('show');
+    document.body.style.overflow = 'hidden';
+}
+function closeUpsellModal() {
+    document.getElementById('upsellModal').classList.remove('show');
+    document.body.style.overflow = '';
+    sessionStorage.setItem('upsellShown', 'true');
+}
+function maybeShowUpsell() {
+    const alreadyShown = sessionStorage.getItem('upsellShown');
+    if (!alreadyShown) {
+        setTimeout(() => showUpsellModal(), 1200);
+    }
+}
+
+// ── Zero credits banner ──────────────────────────────────
+function updateZeroCreditsBanner() {
+    const banner = document.getElementById('zeroCreditsBanner');
+    if (!banner) return;
+    if (currentCredits !== null && currentCredits <= 0) {
+        banner.classList.add('show');
+    } else {
+        banner.classList.remove('show');
     }
 }
 
@@ -2458,6 +2570,7 @@ function setupDropdowns() {
                     const credits = Math.max(0, data.credits || 0);
 currentCredits = credits;
 document.getElementById('creditsCount').textContent = credits;
+updateZeroCreditsBanner();
                 } else {
                     console.error('API returned error:', response.status);
                     const errorText = await response.text();
@@ -2474,6 +2587,7 @@ document.getElementById('creditsCount').textContent = credits;
     if (currentCredits === null) return; // Not yet loaded
     currentCredits = Math.max(0, currentCredits - amount);
     document.getElementById('creditsCount').textContent = Math.round(currentCredits * 10) / 10;
+    updateZeroCreditsBanner();
 }
 
       function parseReactionTitle(title) {
@@ -2703,6 +2817,8 @@ function formatPostReactionsData(reactionsArray) {
     document.getElementById('resultsSection').classList.remove('hidden');
     document.getElementById('singleResult').classList.remove('hidden');
     document.getElementById('bulkResults').classList.add('hidden');
+
+    maybeShowUpsell();
     
 }
 
@@ -2927,7 +3043,6 @@ function handleBeforeUnload(e) {
             setupNavigation();
             setupModalEvents();
             setupDropdowns();
-            initializePricingModal();
         });
 
         function setupModalEvents() {
@@ -3623,6 +3738,7 @@ if (linkedInFields.experiences && linkedInFields.experiences.length > 0) {
     document.getElementById('resultsSection').classList.remove('hidden');
     document.getElementById('singleResult').classList.remove('hidden');
     document.getElementById('bulkResults').classList.add('hidden');
+    maybeShowUpsell();
     
 }
 
@@ -3683,6 +3799,7 @@ if (employee.companylinkedinurl) html += `<div><strong>Company LinkedIn:</strong
     document.getElementById('resultsSection').classList.remove('hidden');
     document.getElementById('singleResult').classList.remove('hidden');
     document.getElementById('bulkResults').classList.add('hidden');
+    maybeShowUpsell();
     
 }
 
@@ -3739,6 +3856,8 @@ if (employee.companylinkedinurl) html += `<div><strong>Company LinkedIn:</strong
     document.getElementById('resultsSection').classList.remove('hidden');
     document.getElementById('singleResult').classList.remove('hidden');
     document.getElementById('bulkResults').classList.add('hidden');
+
+    maybeShowUpsell();
     
 }
 
@@ -4540,93 +4659,44 @@ function addGclid(url) {
     if (nudge) { nudge.style.display = 'none'; nudge.innerHTML = ''; }
 }
 
-       const plans = [
-    { 
-        name: 'Starter', 
-        monthlyPrice: 49, 
-        credits: 60000,
-        monthlyGumroadLink: 'https://linkfinderai.gumroad.com/l/txudoe',
-        annualGumroadLink: 'https://linkfinderai.gumroad.com/l/hescr' // Pour l'instant même lien, tu changeras après
-    },
-    { 
-        name: 'Professional', 
-        monthlyPrice: 89, 
-        credits: 240000,
-        monthlyGumroadLink: 'https://linkfinderai.gumroad.com/l/ouvehf',
-        annualGumroadLink: 'https://linkfinderai.gumroad.com/l/eadfhi' // Tu changeras après
-    },
-    { 
-        name: 'Enterprise', 
-        monthlyPrice: 149, 
-        credits: 600000,
-        monthlyGumroadLink: 'https://linkfinderai.gumroad.com/l/oukgp',
-        annualGumroadLink: 'https://linkfinderai.gumroad.com/l/gtwsp' // Tu changeras après
-    },
-    { 
-        name: 'HyperGrowth', 
-        monthlyPrice: 299, 
-        credits: 3000000,
-        monthlyGumroadLink: 'https://linkfinderai.gumroad.com/l/tbwevi',
-        annualGumroadLink: 'https://linkfinderai.gumroad.com/l/dilhpd' // Tu changeras après
-    }
+const plans = [
+    { name: 'Starter',     monthlyPrice: 49,  credits: 60000,   monthlyGumroadLink: 'https://linkfinderai.gumroad.com/l/txudoe', annualGumroadLink: 'https://linkfinderai.gumroad.com/l/hescr'  },
+    { name: 'Professional',monthlyPrice: 89,  credits: 240000,  monthlyGumroadLink: 'https://linkfinderai.gumroad.com/l/ouvehf', annualGumroadLink: 'https://linkfinderai.gumroad.com/l/eadfhi' },
+    { name: 'Enterprise',  monthlyPrice: 149, credits: 600000,  monthlyGumroadLink: 'https://linkfinderai.gumroad.com/l/oukgp',  annualGumroadLink: 'https://linkfinderai.gumroad.com/l/gtwsp'  },
+    { name: 'HyperGrowth', monthlyPrice: 299, credits: 3000000, monthlyGumroadLink: 'https://linkfinderai.gumroad.com/l/tbwevi', annualGumroadLink: 'https://linkfinderai.gumroad.com/l/dilhpd' }
 ];
-    
 
-let currentPlanIndex = 2; // Start with Professional
-let isAnnualBilling = true; // Default to annual
+let isAnnualBilling = true;
 
-function updatePlanDisplay() {
-    const plan = plans[currentPlanIndex];
-    
-    document.getElementById('planName').textContent = plan.name;
-    
-    if (isAnnualBilling) {
-        const monthlyEquivalent = Math.round(plan.monthlyPrice * 0.8);
-        document.getElementById('priceAmount').textContent = `$${monthlyEquivalent}`;
-        document.getElementById('pricePeriod').textContent = 'per month';
-        document.getElementById('planCredits').textContent = `${plan.credits.toLocaleString()} credits/year`;
-        document.getElementById('ctaText').textContent = `Get Started - $${monthlyEquivalent}/month`;
-    } else {
-        document.getElementById('priceAmount').textContent = `$${plan.monthlyPrice}`;
-        document.getElementById('pricePeriod').textContent = 'per month';
-        document.getElementById('planCredits').textContent = `${Math.round(plan.credits/12).toLocaleString()} credits/month`;
-        document.getElementById('ctaText').textContent = `Get Started - $${plan.monthlyPrice}/month`;
-    }
-    
-    document.getElementById('prevBtn').disabled = currentPlanIndex === 0;
-    document.getElementById('nextBtn').disabled = currentPlanIndex === plans.length - 1;
-}
-function setBilling(type) {
-    isAnnualBilling = (type === 'annual');
-    
-    // Update button states
-    document.getElementById('monthlyBtn').classList.toggle('active', !isAnnualBilling);
-    document.getElementById('annualBtn').classList.toggle('active', isAnnualBilling);
-    
-    updatePlanDisplay();
+function renderPlansGrid() {
+    const grid = document.getElementById('plansGrid');
+    if (!grid) return;
+    grid.innerHTML = plans.map(function(plan, index) {
+        const isPopular = plan.name === 'Professional';
+        const monthlyEquiv = isAnnualBilling ? Math.round(plan.monthlyPrice * 0.8) : plan.monthlyPrice;
+        const annualTotal  = Math.round(plan.monthlyPrice * 0.8 * 12);
+        const creditsLabel = isAnnualBilling
+            ? plan.credits.toLocaleString() + ' credits/yr'
+            : Math.round(plan.credits / 12).toLocaleString() + ' credits/mo';
+        const totalForCalc   = isAnnualBilling ? annualTotal : plan.monthlyPrice;
+        const creditsForCalc = isAnnualBilling ? plan.credits : Math.round(plan.credits / 12);
+        const perCredit = (totalForCalc / creditsForCalc).toFixed(4);
+        return '<div class="plan-item ' + (isPopular ? 'plan-item-popular' : '') + '">'
+            + (isPopular ? '<div class="plan-popular-badge">Most Popular</div>' : '')
+            + '<div class="plan-item-name">' + plan.name + '</div>'
+            + '<div class="plan-item-price"><span class="plan-item-amount">$' + monthlyEquiv + '</span><span class="plan-item-period">/mo</span></div>'
+            + (isAnnualBilling ? '<div class="plan-item-annual">billed $' + annualTotal + '/year</div>' : '<div class="plan-item-annual">&nbsp;</div>')
+            + '<div class="plan-item-credits">' + creditsLabel + '</div>'
+            + '<div class="plan-item-per-credit">&asymp; $' + perCredit + ' / credit</div>'
+            + '<button class="plan-item-cta ' + (isPopular ? 'plan-item-cta-popular' : '') + '" onclick="proceedToCheckoutDirect(' + index + ')">Get Started</button>'
+            + '</div>';
+    }).join('');
 }
 
-function previousPlan() {
-    if (currentPlanIndex > 0) {
-        currentPlanIndex--;
-        updatePlanDisplay();
-    }
-}
-
-function nextPlan() {
-    if (currentPlanIndex < plans.length - 1) {
-        currentPlanIndex++;
-        updatePlanDisplay();
-    }
-}
-
-function proceedToCheckout() {
-    const plan = plans[currentPlanIndex];
-    
-    // Utilise Gumroad
+function proceedToCheckoutDirect(index) {
+    const plan = plans[index];
     const baseUrl = isAnnualBilling ? plan.annualGumroadLink : plan.monthlyGumroadLink;
-    const url = addGclid(`${baseUrl}?wanted=true&user_id=${userToken}`);
-    
+    const url = addGclid(baseUrl + '?wanted=true&user_id=' + userToken);
     if (currentMode === 'bulk' && isBulkProcessing) {
         window.open(url, '_blank');
     } else {
@@ -4634,27 +4704,21 @@ function proceedToCheckout() {
     }
 }
 
-function showPricingModal() {
+function setBilling(type) {
+    isAnnualBilling = (type === 'annual');
+    document.getElementById('monthlyBtn').classList.toggle('active', !isAnnualBilling);
+    document.getElementById('annualBtn').classList.toggle('active', isAnnualBilling);
+    renderPlansGrid();
+}
 
-     try {
-        window.uetq = window.uetq || [];
-        window.uetq.push('event', 'begin_checkout', {});
-        console.log('📊 Bing UET begin_checkout event tracked');
-    } catch (e) {
-        console.log('⚠️ Bing UET tracking failed:', e.message);
-    }
-    
-    // Default to annual
+function showPricingModal() {
+    try { window.uetq = window.uetq || []; window.uetq.push('event', 'begin_checkout', {}); } catch(e) {}
     isAnnualBilling = true;
-    
-    document.getElementById('pricingModal').classList.add('show');
-    document.body.style.overflow = 'hidden';
-    
-    // Set button states
     document.getElementById('monthlyBtn').classList.remove('active');
     document.getElementById('annualBtn').classList.add('active');
-    
-    updatePlanDisplay();
+    document.getElementById('pricingModal').classList.add('show');
+    document.body.style.overflow = 'hidden';
+    renderPlansGrid();
 }
 
         function showInsufficientCreditsModal() {
@@ -5104,6 +5168,25 @@ document.addEventListener('click', (e) => {
             </div>
         </div>
 
+    </div>
+</div>
+
+    <!-- First Enrichment Upsell Modal -->
+<div id="upsellModal" class="upsell-overlay">
+    <div class="upsell-modal">
+        <div class="upsell-emoji">🎉</div>
+        <div class="upsell-title">Your first enrichment worked!</div>
+        <div class="upsell-subtitle">
+            You just found real data in seconds.<br>
+            Get more credits and keep going.
+        </div>
+        <button class="upsell-cta" onclick="closeUpsellModal(); handleAddCredits();">
+            Get More Credits →
+        </button>
+        <br>
+        <button class="upsell-dismiss" onclick="closeUpsellModal()">
+            Maybe later
+        </button>
     </div>
 </div>
 
