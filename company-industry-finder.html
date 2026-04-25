@@ -649,9 +649,7 @@
       const hq = (d.locations || []).find(l => l.headquarter) || (d.locations || [])[0];
       const hqText = hq ? [hq.city, (hq.parsed && hq.parsed.country) || hq.country].filter(Boolean).join(', ') : null;
 
-      const empCount = d.employeeCount ? d.employeeCount.toLocaleString() : null;
-      const founded  = (d.foundedOn && d.foundedOn.year) ? String(d.foundedOn.year) : (d.founded ? String(d.founded) : null);
-      const desc     = d.description ? d.description.slice(0, 300) + (d.description.length > 300 ? '\u2026' : '') : null;
+      const founded = (d.foundedOn && d.foundedOn.year) ? String(d.foundedOn.year) : (d.founded ? String(d.founded) : null);
 
       // Extract industry from industries array
       const ind = (d.industries || [])[0] || null;
@@ -660,19 +658,13 @@
       const industryHierarchy = ind ? ind.hierarchy : null;
 
       const fields = [
-        { icon: 'fa-building',       label: 'Company',          value: d.name || rawName,                   link: null },
-        { icon: 'fa-briefcase',      label: 'Industry',         value: industryName,                        link: null },
-        { icon: 'fa-industry',       label: 'Industry Title',   value: industryTitle,                       link: null },
-        { icon: 'fa-sitemap',        label: 'Hierarchy',        value: industryHierarchy,                   link: null },
-        { icon: 'fa-tag',            label: 'Tagline',          value: d.tagline || null,                   link: null },
-        { icon: 'fa-globe',          label: 'Website',          value: d.website || null,                   link: d.website || null },
-        { icon: 'fa-linkedin',       label: 'LinkedIn',         value: d.linkedinUrl ? 'View profile' : null, link: d.linkedinUrl || null },
-        { icon: 'fa-phone',          label: 'Phone',            value: d.phone || null,                     link: null },
-        { icon: 'fa-map-marker-alt', label: 'Headquarters',     value: hqText,                              link: null },
-        { icon: 'fa-users',          label: 'Employees',        value: empCount,                            link: null },
-        { icon: 'fa-calendar',       label: 'Founded',          value: founded,                             link: null },
-        { icon: 'fa-heart',          label: 'Followers',        value: d.followerCount ? d.followerCount.toLocaleString() : null, link: null },
-        { icon: 'fa-circle-info',    label: 'Description',      value: desc,                                link: null },
+        { icon: 'fa-building',       label: 'Company',      value: d.name || rawName,  link: null },
+        { icon: 'fa-briefcase',      label: 'Industry',     value: industryName,        link: null },
+        { icon: 'fa-industry',       label: 'Sub-industry', value: industryTitle,       link: null },
+        { icon: 'fa-sitemap',        label: 'Hierarchy',    value: industryHierarchy,   link: null },
+        { icon: 'fa-map-marker-alt', label: 'Headquarters', value: hqText,              link: null },
+        { icon: 'fa-calendar',       label: 'Founded',      value: founded,             link: null },
+        { icon: 'fa-globe',          label: 'Website',      value: d.website || null,   link: d.website || null },
       ];
 
       document.getElementById('contactInfo').innerHTML = fields
