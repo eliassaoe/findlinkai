@@ -642,18 +642,37 @@
     }
 
     function renderResult(d, rawName) {
+      // Support array-wrapped response from n8n
+      if (Array.isArray(d)) d = d[0];
+
+      // Extract headquarters from locations array
+      const hq = (d.locations || []).find(l => l.headquarter) || (d.locations || [])[0];
+      const hqText = hq ? [hq.city, (hq.parsed && hq.parsed.country) || hq.country].filter(Boolean).join(', ') : null;
+
+      const empCount = d.employeeCount ? d.employeeCount.toLocaleString() : null;
+      const founded  = (d.foundedOn && d.foundedOn.year) ? String(d.foundedOn.year) : (d.founded ? String(d.founded) : null);
+      const desc     = d.description ? d.description.slice(0, 300) + (d.description.length > 300 ? '\u2026' : '') : null;
+
+      // Extract industry from industries array
+      const ind = (d.industries || [])[0] || null;
+      const industryName      = ind ? ind.name : null;
+      const industryTitle     = ind ? ind.title : null;
+      const industryHierarchy = ind ? ind.hierarchy : null;
+
       const fields = [
-        { icon: 'fa-building',     label: 'Company',         value: d.company || rawName },
-        { icon: 'fa-layer-group',  label: 'Sector',          value: d.sector },
-        { icon: 'fa-object-group', label: 'Industry Group',  value: d.industryGroup },
-        { icon: 'fa-briefcase',    label: 'Industry',        value: d.industry },
-        { icon: 'fa-sitemap',      label: 'Sub-industry',    value: d.subIndustry },
-        { icon: 'fa-barcode',      label: 'SIC Code',        value: d.sicCode ? `${d.sicCode} — ${d.sicDescription || ''}` : null },
-        { icon: 'fa-hashtag',      label: 'NAICS Code',      value: d.naicsCode ? `${d.naicsCode} — ${d.naicsDescription || ''}` : null },
-        { icon: 'fa-globe',        label: 'Headquarters',    value: d.headquartersCountry },
-        { icon: 'fa-building-flag','label': 'Public / Private', value: d.publicOrPrivate },
-        { icon: 'fa-calendar',     label: 'Founded',         value: d.founded },
-        { icon: 'fa-circle-info',  label: 'Description',     value: d.description },
+        { icon: 'fa-building',       label: 'Company',          value: d.name || rawName,                   link: null },
+        { icon: 'fa-briefcase',      label: 'Industry',         value: industryName,                        link: null },
+        { icon: 'fa-industry',       label: 'Industry Title',   value: industryTitle,                       link: null },
+        { icon: 'fa-sitemap',        label: 'Hierarchy',        value: industryHierarchy,                   link: null },
+        { icon: 'fa-tag',            label: 'Tagline',          value: d.tagline || null,                   link: null },
+        { icon: 'fa-globe',          label: 'Website',          value: d.website || null,                   link: d.website || null },
+        { icon: 'fa-linkedin',       label: 'LinkedIn',         value: d.linkedinUrl ? 'View profile' : null, link: d.linkedinUrl || null },
+        { icon: 'fa-phone',          label: 'Phone',            value: d.phone || null,                     link: null },
+        { icon: 'fa-map-marker-alt', label: 'Headquarters',     value: hqText,                              link: null },
+        { icon: 'fa-users',          label: 'Employees',        value: empCount,                            link: null },
+        { icon: 'fa-calendar',       label: 'Founded',          value: founded,                             link: null },
+        { icon: 'fa-heart',          label: 'Followers',        value: d.followerCount ? d.followerCount.toLocaleString() : null, link: null },
+        { icon: 'fa-circle-info',    label: 'Description',      value: desc,                                link: null },
       ];
 
       document.getElementById('contactInfo').innerHTML = fields
@@ -662,7 +681,9 @@
           <div class="contact-item">
             <i class="fas ${f.icon}"></i>
             <strong>${f.label}</strong>
-            <span>${f.value}</span>
+            ${f.link
+              ? `<a href="${f.link}" target="_blank" rel="noopener" style="color:var(--primary);font-weight:500;">${f.value}</a>`
+              : `<span>${f.value}</span>`}
           </div>`)
         .join('');
     }
@@ -724,7 +745,23 @@
       for (const row of csvData) {
         try {
           const d = await lookupIndustry(row.companyName, true);
-          bulkResults.push({ company: row.companyName, sector: d.sector || 'Not found', industry: d.industry || 'Not found', subIndustry: d.subIndustry || 'Not found', sicCode: d.sicCode || 'Not found', naicsCode: d.naicsCode || 'Not found', status: (d.sector || d.industry) ? 'Found' : 'Not found' });
+          const _d = Array.isArray(d) ? d[0] : d;
+          const _hq = (_d.locations || []).find(l => l.headquarter) || (_d.locations || [])[0];
+          const _hqText = _hq ? [_hq.city, (_hq.parsed && _hq.parsed.country) || _hq.country].filter(Boolean).join(', ') : 'Not found';
+          const _founded = (_d.foundedOn && _d.foundedOn.year) ? String(_d.foundedOn.year) : 'Not found';
+          const _ind = (_d.industries || [])[0] || null;
+          bulkResults.push({
+            company:  row.companyName,
+            name:     _d.name || row.companyName,
+            industry: _ind ? _ind.name : 'Not found',
+            hierarchy:_ind ? _ind.hierarchy : 'Not found',
+            website:  _d.website || 'Not found',
+            hq:       _hqText,
+            employees:_d.employeeCount ? _d.employeeCount.toLocaleString() : 'Not found',
+            founded:  _founded,
+            linkedin: _d.linkedinUrl || 'Not found',
+            status:   _d.name ? 'Found' : 'Not found'
+          });
         } catch {
           bulkResults.push({ company: row.companyName, sector: 'Error', industry: 'Error', subIndustry: 'Error', sicCode: 'Error', naicsCode: 'Error', status: 'Error' });
         }
@@ -741,10 +778,11 @@
     }
 
     function renderBulkTable() {
-      let html = `<table class="results-table"><thead><tr><th>Company</th><th>Sector</th><th>Industry</th><th>Sub-Industry</th><th>SIC</th><th>NAICS</th><th>Status</th></tr></thead><tbody>`;
+      let html = `<table class="results-table"><thead><tr><th>Company</th><th>Name</th><th>Industry</th><th>Headquarters</th><th>Employees</th><th>Founded</th><th>Website</th><th>Status</th></tr></thead><tbody>`;
       bulkResults.forEach(r => {
         const cls = r.status === 'Found' ? 'status-success' : 'status-error';
-        html += `<tr><td>${r.company}</td><td>${r.sector}</td><td>${r.industry}</td><td>${r.subIndustry}</td><td>${r.sicCode}</td><td>${r.naicsCode}</td><td><span class="status-badge ${cls}">${r.status}</span></td></tr>`;
+        const site = r.website !== 'Not found' ? `<a href="${r.website}" target="_blank" style="color:var(--primary);">${r.website}</a>` : 'Not found';
+        html += `<tr><td>${r.company}</td><td>${r.name}</td><td>${r.industry}</td><td>${r.hq}</td><td>${r.employees}</td><td>${r.founded}</td><td>${site}</td><td><span class="status-badge ${cls}">${r.status}</span></td></tr>`;
       });
       html += '</tbody></table>';
       document.getElementById('bulkResultsTable').innerHTML = html;
@@ -752,8 +790,8 @@
 
     function downloadResults() {
       if (!bulkResults.length) { alert('No results to download.'); return; }
-      let csv = 'Company,Sector,Industry,Sub-Industry,SIC Code,NAICS Code,Status\n';
-      bulkResults.forEach(r => { csv += `"${r.company}","${r.sector}","${r.industry}","${r.subIndustry}","${r.sicCode}","${r.naicsCode}","${r.status}"\n`; });
+      let csv = 'Company,Name,Industry,Industry Hierarchy,Headquarters,Employees,Founded,Website,LinkedIn,Status\n';
+      bulkResults.forEach(r => { csv += `"${r.company}","${r.name}","${r.industry}","${r.hierarchy}","${r.hq}","${r.employees}","${r.founded}","${r.website}","${r.linkedin}","${r.status}"\n`; });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
       a.download = 'industry_results.csv';
