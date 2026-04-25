@@ -622,41 +622,23 @@
       }
     }
 
-    async function lookupIndustry(companyName) {
-      const prompt = `You are a business data API. Given a company name, return ONLY a valid JSON object with these fields (no markdown, no extra text):
-{
-  "company": "official company name",
-  "sector": "GICS sector",
-  "industryGroup": "GICS industry group",
-  "industry": "GICS industry",
-  "subIndustry": "GICS sub-industry",
-  "sicCode": "4-digit SIC code as string",
-  "sicDescription": "SIC description",
-  "naicsCode": "6-digit NAICS code as string",
-  "naicsDescription": "NAICS description",
-  "headquartersCountry": "Country name",
-  "publicOrPrivate": "Public or Private",
-  "founded": "year as string or null",
-  "description": "One concise sentence describing what this company does."
-}
-Company: ${companyName}
-Return only the JSON. No explanation. Use null for unknown fields.`;
-
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
+    async function lookupIndustry(companyName, isBulk = false) {
+      const res = await fetch('https://industry-lookup.hamoureliasse.workers.dev/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 1000,
-          messages: [{ role: 'user', content: prompt }]
-        })
+        body: JSON.stringify({ companyName: companyName, is_bulk: isBulk })
       });
 
-      if (!res.ok) throw new Error('API error');
-      const resp = await res.json();
-      const text = resp.content.map(b => b.text || '').join('').trim()
-        .replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```\s*$/i, '');
-      return JSON.parse(text);
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        if (res.status === 429 && err.requires_signup) {
+          document.getElementById('limitModal').style.display = 'flex';
+          throw new Error('Rate limit exceeded');
+        }
+        throw new Error(`Worker error: ${res.status}`);
+      }
+
+      return await res.json();
     }
 
     function renderResult(d, rawName) {
@@ -741,7 +723,7 @@ Return only the JSON. No explanation. Use null for unknown fields.`;
 
       for (const row of csvData) {
         try {
-          const d = await lookupIndustry(row.companyName);
+          const d = await lookupIndustry(row.companyName, true);
           bulkResults.push({ company: row.companyName, sector: d.sector || 'Not found', industry: d.industry || 'Not found', subIndustry: d.subIndustry || 'Not found', sicCode: d.sicCode || 'Not found', naicsCode: d.naicsCode || 'Not found', status: (d.sector || d.industry) ? 'Found' : 'Not found' });
         } catch {
           bulkResults.push({ company: row.companyName, sector: 'Error', industry: 'Error', subIndustry: 'Error', sicCode: 'Error', naicsCode: 'Error', status: 'Error' });
