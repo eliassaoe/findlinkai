@@ -1337,6 +1337,7 @@ Professional tools for extracting company data from LinkedIn. Streamline your bu
       setupFileUpload();
       checkAuthState();
       updateUI();
+      updateSearchCounter();
       
       // Add enter key support
       ['firstName', 'lastName', 'personCompany', 'companyName'].forEach(id => {
@@ -1836,6 +1837,40 @@ Professional tools for extracting company data from LinkedIn. Streamline your bu
       if (!isActive) {
         button.classList.add('active');
         answer.classList.add('show');
+      }
+    }
+
+
+    function updateSearchCounter() {
+      const limit = posthog.getFeatureFlag("search-limit-test") === "test" ? 5 : 10;
+      const remaining = limit - searchCount;
+      const badge = document.getElementById("searchRemainingBadge");
+      if (!badge) return;
+
+      if (remaining <= 0 || searchCount === 0) {
+        badge.style.display = "none";
+        return;
+      }
+
+      badge.style.display = "block";
+
+      if (remaining <= 1) {
+        badge.style.background = "#fef2f2";
+        badge.style.color = "#dc2626";
+        badge.style.border = "1px solid #fecaca";
+        badge.textContent = "⚠️ Last search — upgrade for unlimited";
+      } else if (remaining <= 2) {
+        badge.style.background = "#fff7ed";
+        badge.style.color = "#ea580c";
+        badge.style.border = "1px solid #fed7aa";
+        badge.textContent = `🔥 Only ${remaining} searches left — upgrade now`;
+      } else if (remaining <= Math.ceil(limit * 0.4)) {
+        badge.style.background = "#fefce8";
+        badge.style.color = "#ca8a04";
+        badge.style.border = "1px solid #fde68a";
+        badge.textContent = `⚡ ${remaining} searches remaining`;
+      } else {
+        badge.style.display = "none";
       }
     }
 
