@@ -1025,7 +1025,8 @@ src="https://www.facebook.com/tr?id=2717863625238535&ev=PageView&noscript=1"
     </div>
   </div>
 
- <div id="turnstile-widget" style="position:fixed; bottom:0; right:0; opacity:0; pointer-events:none;"></div>
+  <!-- ✅ Invisible Turnstile widget — renders silently, no UI shown to user -->
+  <div id="turnstile-widget" style="display:none;"></div>
 
   <!-- Testimonial Section -->
   <div class="testimonial-section">
@@ -1295,9 +1296,8 @@ src="https://www.facebook.com/tr?id=2717863625238535&ev=PageView&noscript=1"
         return;
       }
       turnstile.render('#turnstile-widget', {
-  sitekey: TURNSTILE_SITE_KEY,
-  size: 'invisible',
-  callback: function(token) {
+        sitekey: TURNSTILE_SITE_KEY,
+        callback: function(token) {
           turnstileToken = token; // token is ready, searches can proceed
         },
         'expired-callback': function() {
@@ -1320,8 +1320,8 @@ src="https://www.facebook.com/tr?id=2717863625238535&ev=PageView&noscript=1"
     async function getToken() {
       // If token already ready, return it immediately
       if (turnstileToken) return turnstileToken;
-      // Otherwise wait up to 5 seconds for Turnstile to generate one
-      return new Promise((resolve, reject) => {
+      // Otherwise wait up to 5 seconds, then fail open (don't block the search)
+      return new Promise((resolve) => {
         let attempts = 0;
         const interval = setInterval(() => {
           if (turnstileToken) {
@@ -1329,7 +1329,7 @@ src="https://www.facebook.com/tr?id=2717863625238535&ev=PageView&noscript=1"
             resolve(turnstileToken);
           } else if (++attempts > 50) {
             clearInterval(interval);
-            reject(new Error('Turnstile token not ready'));
+            resolve(null); // ✅ fail open — search proceeds without token
           }
         }, 100);
       });
@@ -1460,7 +1460,7 @@ src="https://www.facebook.com/tr?id=2717863625238535&ev=PageView&noscript=1"
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'X-Turnstile-Token': token  // ✅ replaces x-api-secret
+            ...(token && { 'X-Turnstile-Token': token }) // ✅ only send if token exists
           },
           body: JSON.stringify({
             type: 'company',
@@ -1610,7 +1610,7 @@ src="https://www.facebook.com/tr?id=2717863625238535&ev=PageView&noscript=1"
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'X-Turnstile-Token': token  // ✅ replaces x-api-secret
+              ...(token && { 'X-Turnstile-Token': token }) // ✅ only send if token exists
             },
             body: JSON.stringify({
               type: 'company',
