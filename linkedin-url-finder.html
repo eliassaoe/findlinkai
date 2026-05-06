@@ -400,7 +400,7 @@ body {
 <div class="container">
   <div class="hero">
     <h1>LinkedIn Profile URL Finder</h1>
-    <p>Find any <a href="https://linkfinderai.com/linkedin-profile-scraper" style="color:var(--primary);">LinkedIn profile</a> URL instantly — enter a name and company, get the URL in seconds. No login required.</p>
+    <p>Find any <a href="https://linkfinderai.com/linkedin-profile-scraper" style="color:var(--primary);">LinkedIn profile</a> or company URL in seconds — enter a name and company, get the URL instantly. Free to try, no login required. Used by sales teams to enrich thousands of leads per month.</p>
     <div class="hero-stats">
       <div class="hero-stat"><i class="fas fa-check-circle"></i> 95% accuracy rate</div>
       <div class="hero-stat"><i class="fas fa-check-circle"></i> 50K+ API calls daily</div>
@@ -448,6 +448,9 @@ body {
         <button class="btn btn-full" onclick="findProfile()">
           <i class="fas fa-search"></i> Find LinkedIn Profile
         </button>
+        <div style="text-align:center;font-size:0.75rem;color:var(--gray-400);margin:-0.25rem 0 0.875rem;">
+          ✓ Free to use &nbsp;·&nbsp; ✓ No login required &nbsp;·&nbsp; ✓ 95% accuracy
+        </div>
         <button class="btn-secondary btn" onclick="tryExample()">
           <i class="fas fa-magic"></i> Try Example
         </button>
@@ -502,10 +505,18 @@ body {
           </div>
           <div id="resultContent"></div>
         </div>
-        <!-- Upsell banner after search #3 (FIX #3) -->
-        <div id="upsellBanner" class="upsell-banner hidden">
-          <div class="upsell-text">⚡ Need more? Get <span>25,000 searches/month</span> + API access + bulk upload</div>
-          <a href="https://linkfinderai.com/sign-up" onclick="trackUpgrade('upsell_banner')">Upgrade $59/mo →</a>
+        <!-- Save result CTA — shown after first success -->
+        <div id="upsellBanner" class="hidden" style="margin-top:1rem;">
+          <div style="background:#f0fdf4;border:1.5px solid #86efac;border-radius:12px;padding:1.25rem 1.5rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;">
+            <div>
+              <div style="font-size:0.9375rem;font-weight:600;color:#15803d;margin-bottom:0.25rem;">💾 Save this result &amp; search again for free</div>
+              <div style="font-size:0.8125rem;color:#166534;">Create your free account — no credit card, takes 30 seconds</div>
+            </div>
+            <a href="https://linkfinderai.com/sign-up" onclick="trackUpgrade('save_result_cta')"
+              style="background:#16a34a;color:white;padding:0.625rem 1.25rem;border-radius:8px;font-weight:600;font-size:0.875rem;text-decoration:none;white-space:nowrap;flex-shrink:0;">
+              Save &amp; Continue Free →
+            </a>
+          </div>
         </div>
       </div>
 
@@ -565,32 +576,6 @@ body {
         <p>Scrape LinkedIn safely — no account needed, anti-ban protection</p>
         <a href="https://linkfinderai.com/linkedin-scraper" class="tool-link">LinkedIn Scraper <i class="fas fa-arrow-right"></i></a>
       </div>
-    </div>
-  </div>
-</div>
-
-<!-- Pricing -->
-<div class="pricing-section">
-  <div class="container">
-    <div class="pricing-header">
-      <h2>Simple Pricing</h2>
-      <p>Unlimited LinkedIn URL searches, API access, and bulk processing for one flat rate</p>
-    </div>
-    <div class="pricing-card">
-      <div class="pricing-price">$59</div>
-      <div class="pricing-period">per month — cancel anytime</div>
-      <ul class="pricing-features">
-        <li><span class="check">✓</span> 25,000 LinkedIn URL searches</li>
-        <li><span class="check">✓</span> Bulk processing (CSV upload)</li>
-        <li><span class="check">✓</span> Full API access included</li>
-        <li><span class="check">✓</span> Export results to CSV</li>
-        <li><span class="check">✓</span> n8n, Make & Zapier templates</li>
-        <li><span class="check">✓</span> Priority support</li>
-      </ul>
-      <button class="btn btn-full" onclick="window.location.href='https://linkfinderai.com/sign-up'">
-        Start Free Trial — No Card Required
-      </button>
-      <div class="pricing-note">Rate limit: 10 requests per 30 seconds</div>
     </div>
   </div>
 </div>
@@ -857,8 +842,10 @@ body {
 
   // ── FIX #3: UPSELL AFTER SEARCH #3 ──
   function maybeShowUpsell() {
-    if (searchCount >= 3) {
-      document.getElementById('upsellBanner').classList.remove('hidden');
+    // Show after first successful result for non-logged-in users
+    if (!currentUser || !currentUser.isPremium) {
+      const banner = document.getElementById('upsellBanner');
+      if (banner) banner.classList.remove('hidden');
     }
   }
 
