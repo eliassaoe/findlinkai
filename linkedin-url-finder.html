@@ -518,6 +518,13 @@ body {
             </a>
           </div>
         </div>
+        <!-- FIX 3: Related tools nudge — shown on failed search -->
+        <div id="failedSearchNudge" style="display:none;margin-top:0.75rem;padding:0.875rem 1rem;background:var(--gray-50);border:1px solid var(--gray-200);border-radius:8px;font-size:0.8125rem;color:var(--gray-600);">
+          <strong style="color:var(--gray-800);display:block;margin-bottom:0.375rem;">Not what you were looking for?</strong>
+          Try <a href="https://linkfinderai.com/linkedin-profile-scraper" style="color:var(--primary);">LinkedIn Profile Scraper</a> &nbsp;·&nbsp;
+          <a href="https://linkfinderai.com/linkedin-search-by-email" style="color:var(--primary);">Search by Email</a> &nbsp;·&nbsp;
+          <a href="https://linkfinderai.com/linkedin-email-finder" style="color:var(--primary);">Email Finder</a>
+        </div>
       </div>
 
       <!-- Bulk results -->
@@ -915,6 +922,8 @@ body {
     document.getElementById('resultLabel').className = 'result-label error-label';
     document.getElementById('resultLabel').innerHTML = '<i class="fas fa-times-circle"></i> Not Found';
     document.getElementById('resultContent').innerHTML = `<div style="color:var(--gray-600);font-size:0.875rem;">No LinkedIn URL found for <strong>${searchTerm}</strong>. Try checking the spelling or company name.</div>`;
+    const _n = document.getElementById('failedSearchNudge');
+    if (_n) _n.style.display = 'block';
   }
 
   function copyURL(url, btn) {
@@ -942,17 +951,45 @@ body {
       const firstName = document.getElementById('firstName').value.trim();
       const lastName = document.getElementById('lastName').value.trim();
       const company = document.getElementById('personCompany').value.trim();
-      if (!firstName || !lastName || !company) { alert('Please enter first name, last name, and company name.'); return; }
+      if (!firstName || !lastName || !company) {
+        // Highlight empty fields visually instead of alert
+        const highlight = (id) => {
+          const el = document.getElementById(id);
+          el.style.borderColor = '#ef4444';
+          el.style.boxShadow = '0 0 0 3px rgba(239,68,68,0.1)';
+          el.addEventListener('input', function(){ this.style.borderColor=''; this.style.boxShadow=''; }, {once:true});
+        };
+        if (!firstName) { highlight('firstName'); document.getElementById('firstName').focus(); }
+        if (!lastName) highlight('lastName');
+        if (!company) highlight('personCompany');
+        return;
+      }
       requestBody.first_name = firstName;
       requestBody.last_name = lastName;
       requestBody.company_name = company;
       searchTerm = `${firstName} ${lastName} at ${company}`;
     } else {
       const companyName = document.getElementById('companyName').value.trim();
-      if (!companyName) { alert('Please enter a company name.'); return; }
+      if (!companyName) {
+        const el = document.getElementById('companyName');
+        el.style.borderColor = '#ef4444';
+        el.style.boxShadow = '0 0 0 3px rgba(239,68,68,0.1)';
+        el.focus();
+        el.addEventListener('input', function(){ this.style.borderColor=''; this.style.boxShadow=''; }, {once:true});
+        return;
+      }
       requestBody.company_name = companyName;
       searchTerm = companyName;
     }
+
+    // FIX: disable button immediately to stop rage-clicks
+    const _btn = document.querySelector('button.btn-full[onclick="findProfile()"]');
+    if (_btn) { _btn.disabled = true; _btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Searching...'; }
+    const _restoreBtn = () => { if (_btn) { _btn.disabled = false; _btn.innerHTML = '<i class="fas fa-search"></i> Find LinkedIn Profile'; } };
+
+    // Reset failed nudge
+    const _nudge = document.getElementById('failedSearchNudge');
+    if (_nudge) _nudge.style.display = 'none';
 
     showLoadingResult(searchTerm);
 
@@ -975,6 +1012,7 @@ body {
       }
 
       if (data && data.linkedin_url) {
+        _restoreBtn();
         showSuccessResult(data.linkedin_url, searchTerm);
         updateSearchCount();
         showUpgradeBar();
@@ -984,11 +1022,13 @@ body {
         localStorage.setItem('lf_searchType', 'linkedin');
         try { if (typeof posthog !== 'undefined') posthog.capture('linkedin_url_found', { search_type: currentSearchType, search_count: searchCount }); } catch(e) {}
       } else {
+        _restoreBtn();
         showErrorResult(searchTerm);
         updateSearchCount();
       }
     } catch (error) {
       console.error('Error:', error);
+      _restoreBtn();
       showErrorResult(searchTerm);
     }
   }
