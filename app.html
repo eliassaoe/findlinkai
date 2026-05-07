@@ -196,6 +196,13 @@
         .pricing-faq{display:flex;gap:1rem;flex-wrap:wrap;justify-content:center;margin-top:0.75rem;padding:0.75rem 1rem;background:var(--gray-50);border-radius:8px;}
         .pricing-faq-item{font-size:0.72rem;color:var(--gray-500);display:flex;align-items:center;gap:0.3rem;}
         .pricing-faq-item i{color:var(--success);}
+        /* Inline credit wall — mid-task paywall, keeps full modal one click away */
+        .credit-wall-inline{display:none;background:#fef3c7;border:1.5px solid #f59e0b;border-radius:10px;padding:1rem 1.25rem;margin-top:1rem;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;}
+        .credit-wall-inline.show{display:flex;}
+        .credit-wall-text{font-size:0.875rem;color:#92400e;font-weight:500;}
+        .credit-wall-text span{display:block;font-size:0.775rem;font-weight:400;color:#b45309;margin-top:0.2rem;}
+        .credit-wall-btn{background:#f59e0b;color:white;border:none;padding:0.5rem 1rem;border-radius:6px;font-weight:600;font-size:0.8125rem;cursor:pointer;white-space:nowrap;font-family:inherit;transition:background 0.2s;}
+        .credit-wall-btn:hover{background:#d97706;}
         .review-notification{position:fixed;bottom:100px;right:20px;background:white;border-radius:12px;padding:1.25rem;width:320px;box-shadow:0 10px 25px -5px rgba(0,0,0,0.15);opacity:0;transform:translateY(20px);transition:all 0.4s ease;z-index:99998;border:1px solid #e5e7eb;font-size:0.875rem;line-height:1.5;}
         .review-notification.show{opacity:1;transform:translateY(0);}
         .review-notification.hide{opacity:0;transform:translateY(20px);}
@@ -481,6 +488,17 @@
                     <div id="bulkResultsTable" class="table-container"></div>
                 </div>
                 <div id="automationNudge" style="display:none;"></div>
+
+                <!-- FIX: inline credit wall — shown mid-task instead of jarring full modal -->
+                <div class="credit-wall-inline" id="creditWallInline">
+                  <div class="credit-wall-text">
+                    You've run out of credits
+                    <span>Add credits to continue — your data and settings are saved.</span>
+                  </div>
+                  <button class="credit-wall-btn" onclick="document.getElementById('creditWallInline').classList.remove('show');handleAddCredits();">
+                    Add Credits →
+                  </button>
+                </div>
             </div>
         </div>
     </div>
@@ -506,6 +524,23 @@
         <div class="pricing-modal-header">
             <h2>Choose Your Plan</h2>
             <p style="color:var(--gray-500);font-size:0.875rem;margin-top:0.25rem;">Cancel anytime &nbsp;·&nbsp; No questions asked</p>
+            <!-- FIX: cost-per-lookup anchor — gives users a reference point not just tiers -->
+            <div style="display:flex;justify-content:center;gap:1.25rem;flex-wrap:wrap;margin-top:1rem;padding:0.75rem 1rem;background:var(--gray-50);border-radius:8px;border:1px solid var(--gray-200);">
+              <div style="text-align:center;">
+                <div style="font-size:1rem;font-weight:600;color:var(--gray-900);">$0.01</div>
+                <div style="font-size:0.7rem;color:var(--gray-500);">per LinkedIn URL lookup</div>
+              </div>
+              <div style="width:1px;background:var(--gray-200);"></div>
+              <div style="text-align:center;">
+                <div style="font-size:1rem;font-weight:600;color:var(--gray-900);">$0.10</div>
+                <div style="font-size:0.7rem;color:var(--gray-500);">per full profile scrape</div>
+              </div>
+              <div style="width:1px;background:var(--gray-200);"></div>
+              <div style="text-align:center;">
+                <div style="font-size:1rem;font-weight:600;color:var(--gray-900);">$0.005</div>
+                <div style="font-size:0.7rem;color:var(--gray-500);">per company lookup</div>
+              </div>
+            </div>
         </div>
         <div class="billing-toggle">
             <button class="billing-btn" id="monthlyBtn" onclick="setBilling('monthly')">Monthly</button>
@@ -684,8 +719,20 @@ function closePricingModal() {
 }
 
 function showInsufficientCreditsModal() {
-    document.getElementById('insufficientCreditsModal').classList.add('show');
-    document.body.style.overflow = 'hidden';
+    // FIX: if user is mid-task, show inline wall instead of jarring full modal
+    const inlineWall = document.getElementById('creditWallInline');
+    const resultsVisible = !document.getElementById('resultsSection').classList.contains('hidden');
+    if (inlineWall && (resultsVisible || hasActivated)) {
+        document.getElementById('resultsSection').classList.remove('hidden');
+        document.getElementById('singleResult').classList.remove('hidden');
+        inlineWall.classList.add('show');
+        inlineWall.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        try { posthog.capture('credit_wall_shown', { source: 'inline', has_activated: hasActivated }); } catch(e) {}
+    } else {
+        // First-time or no context — show full modal
+        document.getElementById('insufficientCreditsModal').classList.add('show');
+        document.body.style.overflow = 'hidden';
+    }
 }
 
 function closeInsufficientCreditsModal() {
@@ -865,7 +912,25 @@ function parseReactionTitle(title) {
 
 async function enrichData(event) {
     event.preventDefault();
+    hasActivated = true;
     posthog.capture('enrich_started', { input_type: currentInputType, output_type: currentOutputType });
+
+    // FIX: disable button immediately to prevent rage-clicks
+    const enrichBtn = event.target.querySelector('button[type="submit"]') || document.querySelector('#singleSearch button[type="submit"]');
+    if (enrichBtn) {
+        enrichBtn.disabled = true;
+        enrichBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enriching...';
+    }
+    const restoreBtn = () => {
+        if (enrichBtn) {
+            enrichBtn.disabled = false;
+            enrichBtn.innerHTML = '<i class="fas fa-magic"></i> Enrich Data';
+        }
+    };
+
+    // Hide inline credit wall on new attempt
+    const inlineWall = document.getElementById('creditWallInline');
+    if (inlineWall) inlineWall.classList.remove('show');
     const inputValue = document.getElementById('inputData').value.trim();
     if (!inputValue) return;
     if (currentInputType === 'linkedin_profile' && !inputValue.toLowerCase().includes('linkedin.com/in/')) {
@@ -891,22 +956,23 @@ async function enrichData(event) {
         const data = await response.json();
         hideLoading();
         if (currentOutputType === 'reactions' && Array.isArray(data) && data.length > 0) {
-            deductCredits(data.length); showSingleResultReactions(inputValue, data); return;
+            restoreBtn(); deductCredits(data.length); showSingleResultReactions(inputValue, data); return;
         }
         if (currentOutputType === 'employee_count') {
-            deductCredits(getCreditCost(currentInputType, currentOutputType)); showSingleResultEmployeeCount(inputValue, data); return;
+            restoreBtn(); deductCredits(getCreditCost(currentInputType, currentOutputType)); showSingleResultEmployeeCount(inputValue, data); return;
         }
         if (currentOutputType === 'employees' && Array.isArray(data) && data.length > 0) {
-            deductCredits(data.length * 0.5); showSingleResultEmployees(inputValue, data); return;
+            restoreBtn(); deductCredits(data.length * 0.5); showSingleResultEmployees(inputValue, data); return;
         }
-        if (response.status === 403 && data.code === 403) { showInsufficientCreditsModal(); return; }
+        if (response.status === 403 && data.code === 403) { restoreBtn(); showInsufficientCreditsModal(); return; }
         if (response.ok && data && (data.result || data.name)) {
+            restoreBtn();
             deductCredits(getCreditCost(currentInputType, currentOutputType));
             if (data.name && !data.result) { showSingleResult(inputValue, data); }
             else { showSingleResult(inputValue, data.result || 'Not found'); }
-        } else { showSingleResult(inputValue, 'Not found'); }
+        } else { restoreBtn(); showSingleResult(inputValue, 'Not found'); }
     } catch (error) {
-        hideLoading(); showAlert('Enrichment error. Please try again.', 'error');
+        restoreBtn(); hideLoading(); showAlert('Enrichment error. Please try again.', 'error');
     }
 }
 
@@ -1481,9 +1547,9 @@ async function submitFeedback(event) {
     finally { submitBtn.disabled = false; submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> <span>Submit Feedback</span>'; }
 }
 
-// PATCH: Fix upgrade event tracking (was firing 0 events)
+// PATCH: Fix upgrade event tracking
 async function handleAddCredits() {
-    try { posthog.capture('upgrade_clicked', { source: 'buy_credits_btn', credits_remaining: currentCredits }); } catch(e) {}
+    try { posthog.capture('upgrade_clicked', { source: 'buy_credits_btn', credits_remaining: currentCredits, has_activated: hasActivated }); } catch(e) {}
     try { if (typeof plausible !== 'undefined') plausible('Upgrade Click', { props: { source: 'buy_credits_btn' } }); } catch(e) {}
     const btn = document.getElementById('buyCreditsBtn');
     const originalContent = btn.innerHTML;
@@ -1607,7 +1673,6 @@ function parseReactionTitle(title) {
     </div>
 </div>
 
-<!-- PATCH: Post-modal back-to-app toast -->
 <div id="modalToast" class="modal-toast">
   <span>✓ You're all set</span>
   <a onclick="document.getElementById('modalToast').classList.remove('show')">Dismiss</a>
