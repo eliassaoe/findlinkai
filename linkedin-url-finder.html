@@ -385,7 +385,7 @@ body {
       </a>
       <div class="auth-buttons">
         <div id="userInfo" class="user-info hidden">
-          <div class="usage-indicator"><span id="searchCount">0</span>/10 searches</div>
+          <div class="usage-indicator"><span id="searchCount">0</span>/3 searches</div>
           <button class="btn btn-outline" onclick="logout()">Logout</button>
         </div>
         <div id="authButtons">
@@ -408,7 +408,12 @@ body {
     </div>
   </div>
 
-  <div class="main-card">
+  <div class="credits-counter-bar">
+      <span class="credits-counter" id="creditsCounter">
+        <i class="fas fa-search"></i> <span id="creditsLeft">3</span> free searches remaining
+      </span>
+    </div>
+    <div class="main-card">
 
     <!-- Search type toggle -->
     <div class="search-toggle">
@@ -509,7 +514,7 @@ body {
         <div id="upsellBanner" class="hidden" style="margin-top:1rem;">
           <div style="background:#f0fdf4;border:1.5px solid #86efac;border-radius:12px;padding:1.25rem 1.5rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;">
             <div>
-              <div style="font-size:0.9375rem;font-weight:600;color:#15803d;margin-bottom:0.25rem;">💾 Save this result &amp; search again for free</div>
+              <div style="font-size:0.9375rem;font-weight:600;color:#15803d;margin-bottom:0.25rem;">💾 Save this result &amp; get 20 more free searches</div>
               <div style="font-size:0.8125rem;color:#166534;">Create your free account — no credit card, takes 30 seconds</div>
             </div>
             <a href="https://linkfinderai.com/sign-up" onclick="trackUpgrade('save_result_cta')"
@@ -618,7 +623,7 @@ body {
           Is there a free trial?
           <i class="fas fa-chevron-down icon"></i>
         </button>
-        <div class="faq-answer">Yes — you get 10 free searches to try the tool before signing up. No credit card required.</div>
+        <div class="faq-answer">Yes — you get 3 free searches without an account. Create a free account to unlock 20 more searches at no cost, still no credit card required.</div>
       </div>
       <div class="faq-item">
         <button class="faq-question" onclick="toggleFAQ(this)">
@@ -717,9 +722,9 @@ body {
 <div id="limitModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:9999;align-items:center;justify-content:center;padding:1rem;">
   <div style="background:white;border-radius:16px;padding:2.5rem;max-width:480px;width:100%;text-align:center;box-shadow:0 25px 50px rgba(0,0,0,0.3);">
     <div style="font-size:3rem;margin-bottom:1rem;">🎉</div>
-    <h2 id="limitModalTitle" style="font-size:1.75rem;font-weight:700;color:#111827;margin-bottom:0.75rem;">You've seen what LinkFinder can do</h2>
-    <p id="limitModalDesc" style="color:#6b7280;margin-bottom:2rem;font-size:1rem;">You've used your free searches. Sign up to keep going — no credit card required.</p>
-    <a href="https://linkfinderai.com/sign-up" onclick="trackUpgrade('limit_modal')" style="display:block;background:#2563eb;color:white;padding:1rem;border-radius:8px;font-weight:600;font-size:1rem;text-decoration:none;margin-bottom:0.75rem;" id="limitModalCta">Try for free →</a>
+    <h2 id="limitModalTitle" style="font-size:1.75rem;font-weight:700;color:#111827;margin-bottom:0.75rem;">You found real LinkedIn profiles</h2>
+    <p id="limitModalDesc" style="color:#6b7280;margin-bottom:2rem;font-size:1rem;">Create a free account to unlock 20 more searches — no credit card needed. You'll also get bulk search, API access, and all enrichment tools.</p>
+    <a href="https://linkfinderai.com/sign-up" onclick="trackUpgrade('limit_modal')" style="display:block;background:#2563eb;color:white;padding:1rem;border-radius:8px;font-weight:600;font-size:1rem;text-decoration:none;margin-bottom:0.75rem;" id="limitModalCta">Get 20 More Free Searches →</a>
     <p style="font-size:0.75rem;color:#9ca3af;">Free to start — No credit card required</p>
   </div>
 </div>
@@ -776,9 +781,20 @@ body {
   }
 
   // ── FIX #1: SAFE POSTHOG WRAPPER ──
+  
+    function updateCreditsDisplay() {
+      var left = Math.max(0, 3 - searchCount);
+      var el = document.getElementById('creditsLeft');
+      var display = document.getElementById('creditsCounter');
+      if (el) el.textContent = left;
+      if (display) {
+        display.className = 'credits-counter' + (left === 0 ? ' empty' : left <= 1 ? ' low' : '');
+      }
+    }
+
   function getSearchLimit() {
     try {
-      return (typeof posthog !== 'undefined' && posthog.getFeatureFlag && posthog.getFeatureFlag("search-limit-test") === "test") ? 5 : 10;
+      return 3;
     } catch(e) { return 10; }
   }
 
@@ -792,7 +808,7 @@ body {
   function updateSearchCount(increment = 1) {
     if (!currentUser || !currentUser.isPremium) {
       searchCount += increment;
-      localStorage.setItem('searchCount', searchCount);
+      localStorage.setItem('searchCount', searchCount); updateCreditsDisplay();
       const el = document.getElementById('searchCount');
       if (el) el.textContent = searchCount;
     }
