@@ -457,6 +457,11 @@ src="https://www.facebook.com/tr?id=2717863625238535&ev=PageView&noscript=1"
                 
                 if (result.success) {
                     showSuccess();
+
+                    try {
+        posthog.identify(result.token, { email: email, signup_method: 'google' });
+        posthog.capture('signup_success', { method: 'google' });
+    } catch(e) {}
                     
                     await supabaseClient.auth.signOut();
                     console.log('🚪 DEBUG: Signed out from Supabase');
