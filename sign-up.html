@@ -371,6 +371,7 @@ button:disabled{opacity:0.6;cursor:not-allowed;}
         const data = await response.json();
         if (data.token) {
           try { plausible('Signup Success', {props:{method:'email'}}); } catch(e) {}
+          try { posthog.identify(data.token, {email: email, name: firstName + ' ' + lastName, signup_method: 'email'}); } catch(e) {}
           try { posthog.capture('signup_success', {method:'email'}); } catch(e) {}
           localStorage.removeItem('lf_lastSearch');
           localStorage.removeItem('lf_searchType');
