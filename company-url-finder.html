@@ -245,7 +245,7 @@ body {
       </a>
       <div class="auth-buttons">
         <div id="userInfo" class="user-info hidden">
-          <div class="usage-indicator"><span id="searchCount">0</span>/10 searches</div>
+          <div class="usage-indicator"><span id="searchCount">0</span>/3 searches</div>
           <button class="btn btn-outline" onclick="logout()">Logout</button>
         </div>
         <div id="authButtons">
@@ -263,7 +263,12 @@ body {
     <p><a href="https://linkfinderai.com/company-details-finder" style="color:var(--primary);">Find company</a> URLs and websites instantly. Perfect for sales prospecting, lead generation, and business research.</p>
   </div>
 
-  <div class="main-card">
+  <div class="credits-counter-bar">
+      <span class="credits-counter" id="creditsCounter">
+        <i class="fas fa-search"></i> <span id="creditsLeft">3</span> free searches remaining
+      </span>
+    </div>
+    <div class="main-card">
     <div class="mode-toggle">
       <div class="mode-switch">
         <button class="mode-option active" onclick="switchMode('single')" id="singleMode">Single Search</button>
@@ -325,10 +330,10 @@ body {
         <!-- FIX: save CTA shown after first result -->
         <div id="saveCta" class="save-cta hidden">
           <div class="save-cta-text">
-            <strong>💾 Save this result &amp; search again for free</strong>
+            <strong>💾 Save this result &amp; get 20 more free searches</strong>
             <span>Create your free account — no credit card, takes 30 seconds</span>
           </div>
-          <a href="https://linkfinderai.com/sign-up" onclick="trackEvent('save_cta_clicked')">Save &amp; Continue Free →</a>
+          <a href="https://linkfinderai.com/sign-up" onclick="trackEvent('save_cta_clicked')">Get 20 More Free Searches →</a>
         </div>
         <!-- FIX 3: Related tools nudge — shown on failed search -->
         <div id="failedSearchNudge" style="display:none;margin-top:0.75rem;padding:0.875rem 1rem;background:var(--gray-50);border:1px solid var(--gray-200);border-radius:8px;font-size:0.8125rem;color:var(--gray-600);">
@@ -448,7 +453,7 @@ body {
         <button class="faq-question" onclick="toggleFAQ(this)">
           Is there a free trial? <i class="fas fa-chevron-down icon"></i>
         </button>
-        <div class="faq-answer">Yes! You get 10 free searches to test our service before signing up. No credit card required for the trial.</div>
+        <div class="faq-answer">Yes — you get 3 free searches without an account. Create a free account to unlock 20 more searches at no cost, still no credit card required.</div>
       </div>
     </div>
   </div>
@@ -535,9 +540,9 @@ body {
 <div id="limitModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:9999;align-items:center;justify-content:center;padding:1rem;">
   <div style="background:white;border-radius:16px;padding:2.5rem;max-width:480px;width:100%;text-align:center;box-shadow:0 25px 50px rgba(0,0,0,0.3);">
     <div style="font-size:3rem;margin-bottom:1rem;">🎉</div>
-    <h2 id="limitModalTitle" style="font-size:1.75rem;font-weight:700;color:#111827;margin-bottom:0.75rem;">You've seen what LinkFinder can do</h2>
-    <p id="limitModalDesc" style="color:#6b7280;margin-bottom:2rem;font-size:1rem;">You've used your free searches. Sign up to keep going — no credit card required.</p>
-    <a href="https://linkfinderai.com/sign-up" id="limitModalCta" style="display:block;background:#2563eb;color:white;padding:1rem;border-radius:8px;font-weight:600;font-size:1rem;text-decoration:none;margin-bottom:0.75rem;">Try for free →</a>
+    <h2 id="limitModalTitle" style="font-size:1.75rem;font-weight:700;color:#111827;margin-bottom:0.75rem;">You found real company websites</h2>
+    <p id="limitModalDesc" style="color:#6b7280;margin-bottom:2rem;font-size:1rem;">Create a free account to unlock 20 more searches — no credit card needed. You'll also get bulk search, API access, and all enrichment tools.</p>
+    <a href="https://linkfinderai.com/sign-up" id="limitModalCta" style="display:block;background:#2563eb;color:white;padding:1rem;border-radius:8px;font-weight:600;font-size:1rem;text-decoration:none;margin-bottom:0.75rem;">Get 20 More Free Searches →</a>
     <p style="font-size:0.75rem;color:#9ca3af;">Free to start — No credit card required</p>
   </div>
 </div>
@@ -614,9 +619,20 @@ body {
   }
 
   // FIX #1: Safe PostHog wrapper
+  
+    function updateCreditsDisplay() {
+      var left = Math.max(0, 3 - searchCount);
+      var el = document.getElementById('creditsLeft');
+      var display = document.getElementById('creditsCounter');
+      if (el) el.textContent = left;
+      if (display) {
+        display.className = 'credits-counter' + (left === 0 ? ' empty' : left <= 1 ? ' low' : '');
+      }
+    }
+
   function getSearchLimit() {
     try {
-      return (typeof posthog !== 'undefined' && posthog.getFeatureFlag && posthog.getFeatureFlag("search-limit-test") === "test") ? 5 : 10;
+      return 3;
     } catch(e) { return 10; }
   }
 
@@ -630,7 +646,7 @@ body {
   function updateSearchCount(increment = 1) {
     if (!currentUser || !currentUser.isPremium) {
       searchCount += increment;
-      localStorage.setItem('searchCount', searchCount);
+      localStorage.setItem('searchCount', searchCount); updateCreditsDisplay();
       const el = document.getElementById('searchCount');
       if (el) el.textContent = searchCount;
     }
