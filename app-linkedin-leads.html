@@ -234,6 +234,53 @@ body{font-family:'Inter',-apple-system,sans-serif;background:white;color:var(--g
 <div class="container">
   <div class="main">
     <div id="alert" class="alert"></div>
+
+    <!-- Sample results preview — shows users what they'll get before searching -->
+    <div id="samplePreview" style="margin-bottom:1.5rem;">
+      <div style="font-size:0.75rem;font-weight:600;color:var(--gray-400);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.75rem;display:flex;align-items:center;gap:0.5rem;">
+        Example results
+        <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--gray-300);">— your searches will look like this</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:0.5rem;opacity:0.65;pointer-events:none;user-select:none;">
+        <div class="lead-card">
+          <div class="lead-avatar">SJ</div>
+          <div class="lead-info">
+            <div class="lead-name">Sarah Johnson</div>
+            <div class="lead-sub">VP Sales · Salesforce</div>
+            <div class="lead-email-row">
+              <span class="email-status-dot valid"></span>
+              <span class="lead-email valid"><i class="fas fa-envelope" style="font-size:.6rem;margin-right:.2rem;"></i>s.johnson@salesforce.com</span>
+            </div>
+          </div>
+          <a class="lead-li" style="opacity:.3;pointer-events:none;"><i class="fab fa-linkedin-in"></i></a>
+        </div>
+        <div class="lead-card">
+          <div class="lead-avatar">MC</div>
+          <div class="lead-info">
+            <div class="lead-name">Mark Chen</div>
+            <div class="lead-sub">Head of Growth · Stripe</div>
+            <div class="lead-email-row">
+              <span class="email-status-dot valid"></span>
+              <span class="lead-email valid"><i class="fas fa-envelope" style="font-size:.6rem;margin-right:.2rem;"></i>m.chen@stripe.com</span>
+            </div>
+          </div>
+          <a class="lead-li" style="opacity:.3;pointer-events:none;"><i class="fab fa-linkedin-in"></i></a>
+        </div>
+        <div class="lead-card">
+          <div class="lead-avatar">AL</div>
+          <div class="lead-info">
+            <div class="lead-name">Alice Laurent</div>
+            <div class="lead-sub">Founder · Series A Fintech · Paris</div>
+            <div class="lead-email-row">
+              <span class="email-status-dot unknown"></span>
+              <span class="lead-email unknown"><i class="fas fa-envelope" style="font-size:.6rem;margin-right:.2rem;"></i>a.laurent@fintechco.io</span>
+            </div>
+          </div>
+          <a class="lead-li" style="opacity:.3;pointer-events:none;"><i class="fab fa-linkedin-in"></i></a>
+        </div>
+      </div>
+    </div>
+
     <div class="search-card">
       <label class="search-label">Describe the leads you are looking for</label>
       <div class="search-wrap">
@@ -506,6 +553,7 @@ async function startSearch(){
   document.getElementById('resultsSection').classList.add('hidden');
   document.getElementById('leadsList').innerHTML='';
   document.getElementById('loadingStep').textContent='Searching the database...';
+  var sp=document.getElementById('samplePreview');if(sp) sp.style.display='none';
 
   try{if(typeof posthog!=='undefined') posthog.capture('leads_search_started',{query:query,max_profiles:maxProfiles});}catch(e){}
 
@@ -533,6 +581,7 @@ async function startSearch(){
     document.getElementById('leadsList').innerHTML=currentLeads.map(renderLeadCard).join('');
     document.getElementById('verifyLegend').style.display='none';
     document.getElementById('verifyProgressWrap').style.display='none';
+    var sp=document.getElementById('samplePreview');if(sp) sp.style.display='none';
 
     try{if(typeof posthog!=='undefined') posthog.capture('leads_search_completed',{query:query,results:currentLeads.length});}catch(e){}
     await saveSearch(query,currentLeads);
