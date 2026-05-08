@@ -639,23 +639,28 @@ function renderPlansGrid() {
             + (isAnnualBilling ? '<div class="plan-item-annual">billed $' + annualTotal + '/year</div>' : '<div class="plan-item-annual">&nbsp;</div>')
             + '<div class="plan-item-credits">' + creditsLabel + '</div>'
             + '<div class="plan-item-per-credit">&asymp; $' + perCredit + ' / credit</div>'
-            + '<button class="plan-item-cta ' + (isPopular ? 'plan-item-cta-popular' : '') + '" onclick="proceedToCheckoutDirect(' + index + ')">Get Started</button>'
+            + '<button class="plan-item-cta ' + (isPopular ? 'plan-item-cta-popular' : '') + '" onclick="proceedToCheckoutDirect(' + index + ', this)">Get Started</button>'
             + '</div>';
     }).join('');
 }
 
-// PATCH: track plan selection
-function proceedToCheckoutDirect(index) {
+function proceedToCheckoutDirect(index, btnEl) {
     const plan = plans[index];
-    try { posthog.capture('plan_selected', { plan: plan.name, billing: isAnnualBilling ? 'annual' : 'monthly', price: isAnnualBilling ? Math.round(plan.monthlyPrice * 0.8) : plan.monthlyPrice }); } catch(e) {}
+    
+    // Loading state
+    if (btnEl) { btnEl.textContent = 'Opening checkout...'; btnEl.disabled = true; }
+    setTimeout(() => { if (btnEl) { btnEl.textContent = 'Get Started'; btnEl.disabled = false; } }, 5000);
+
+    try { posthog.capture('plan_selected', { plan: plan.name, billing: isAnnualBilling ? 'annual' : 'monthly' }); } catch(e) {}
     try { if (typeof plausible !== 'undefined') plausible('Plan Selected', { props: { plan: plan.name } }); } catch(e) {}
+
+    if (!userToken) { alert('Session expired — please refresh and try again.'); return; }
+
     const baseUrl = isAnnualBilling ? plan.annualGumroadLink : plan.monthlyGumroadLink;
     const url = addGclid(baseUrl + '?wanted=true&user_id=' + userToken);
-    if (currentMode === 'bulk' && isBulkProcessing) {
-        window.open(url, '_blank');
-    } else {
-        window.location.href = url;
-    }
+
+    const w = window.open(url, '_blank');
+    if (!w || w.closed) window.location.href = url;
 }
 
 function setBilling(type) {
