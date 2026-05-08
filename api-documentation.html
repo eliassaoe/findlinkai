@@ -8,13 +8,14 @@
     <link rel="icon" href="https://i.ibb.co/jPjX9SSp/Screen-Shot-2025-03-28-at-8-16-15-PM.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-
+    <link rel="canonical" href="https://linkfinderai.com/api-documentation" />
     <style>
         :root {
             --primary: #2563eb;
             --primary-hover: #1d4ed8;
+            --primary-light: #eff6ff;
             --gray-50: #f9fafb;
             --gray-100: #f3f4f6;
             --gray-200: #e5e7eb;
@@ -28,528 +29,839 @@
             --success: #10b981;
             --error: #ef4444;
             --warning: #f59e0b;
+            --code-bg: #0f172a;
+            --code-text: #e2e8f0;
+            --code-comment: #64748b;
+            --code-key: #7dd3fc;
+            --code-string: #86efac;
+            --code-method: #f472b6;
+            --sidebar-w: 260px;
         }
-
         * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: 'Inter', -apple-system, sans-serif; background: white; color: var(--gray-800); line-height: 1.6; font-size: 15px; }
 
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: white;
-            color: var(--gray-800);
-            line-height: 1.6;
-            font-size: 16px;
+        /* ── LAYOUT ── */
+        .layout { display: flex; min-height: 100vh; }
+
+        /* ── SIDEBAR ── */
+        .sidebar {
+            width: var(--sidebar-w);
+            flex-shrink: 0;
+            background: var(--gray-900);
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            overflow-y: auto;
+            padding: 1.5rem 0;
+            scrollbar-width: thin;
+            scrollbar-color: var(--gray-700) transparent;
         }
-
-        .container { max-width: 1200px; margin: 0 auto; padding: 0 1rem; }
-
-        .hero { text-align: center; padding: 4rem 0 2rem; }
-        .hero h1 { font-size: 2.5rem; font-weight: 700; color: var(--gray-900); margin-bottom: 1rem; line-height: 1.1; }
-        .hero p { font-size: 1.125rem; color: var(--gray-600); margin: 0 auto 2rem; max-width: 600px; }
-
-        .main-content { max-width: 900px; margin: 0 auto; padding-bottom: 3rem; }
-        .section { margin-bottom: 3rem; }
-        .section-title { font-size: 1.5rem; font-weight: 600; color: var(--gray-900); margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; }
-
-        .auth-section { background: var(--gray-50); border: 1px solid var(--gray-200); border-radius: 8px; padding: 1.5rem; margin-bottom: 2rem; }
-        .endpoint-badge { background: var(--primary); color: white; padding: 0.5rem 1rem; border-radius: 6px; font-family: 'Inter', monospace; font-size: 0.875rem; font-weight: 500; display: inline-block; margin: 1rem 0; }
-
-        .api-card { background: white; border: 1px solid var(--gray-200); border-radius: 8px; padding: 1.5rem; margin-bottom: 1.5rem; transition: all 0.2s ease; }
-        .api-card:hover { box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1); }
-        .api-card.featured { border-color: var(--primary); box-shadow: 0 0 0 1px var(--primary), 0 4px 16px rgba(37,99,235,.1); }
-        .api-title { color: var(--primary); font-size: 1.125rem; font-weight: 600; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem; }
-        .api-title-badge { font-size: 0.65rem; font-weight: 700; padding: 0.2rem 0.55rem; border-radius: 999px; background: #eff6ff; color: var(--primary); border: 1px solid #bfdbfe; letter-spacing: 0.03em; text-transform: uppercase; }
-        .api-description { color: var(--gray-600); margin-bottom: 1rem; font-size: 0.875rem; }
-
-        .code-section { margin-bottom: 1rem; }
-        .code-label { font-size: 0.75rem; font-weight: 500; color: var(--gray-700); margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.05em; }
-        .code-block { background: var(--gray-900); color: var(--gray-100); padding: 1rem; border-radius: 6px; font-family: 'Monaco', 'Courier New', monospace; font-size: 0.75rem; white-space: pre-wrap; overflow-x: auto; border: 1px solid var(--gray-700); line-height: 1.4; }
-
-        .param-list { margin: 0.75rem 0 1rem; display: flex; flex-direction: column; gap: 0.4rem; }
-        .param-row { display: flex; align-items: baseline; gap: 0.5rem; font-size: 0.8125rem; }
-        .param-name { font-family: 'Monaco', 'Courier New', monospace; color: var(--gray-900); font-weight: 600; font-size: 0.75rem; }
-        .param-badge { font-size: 0.65rem; font-weight: 600; padding: 0.1rem 0.4rem; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.03em; }
-        .param-badge.required { background: #fef2f2; color: var(--error); }
-        .param-badge.optional { background: #f0fdf4; color: var(--success); }
-        .param-desc { color: var(--gray-500); font-size: 0.78rem; }
-
-        .response-section { background: var(--gray-50); border: 1px solid var(--gray-200); border-radius: 8px; padding: 1.5rem; margin-top: 2rem; }
-        .response-title { font-size: 1.25rem; font-weight: 600; color: var(--gray-900); margin-bottom: 1rem; }
-        .example-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem; }
-        .example-item h4 { font-size: 0.875rem; font-weight: 600; color: var(--gray-700); margin-bottom: 0.5rem; }
-
-        /* Lead finder response sample spans full width */
-        .example-grid.full { grid-template-columns: 1fr; }
-
-        .contact-section { background: var(--gray-900); color: white; padding: 2rem; text-align: center; border-radius: 8px; margin-top: 3rem; }
-        .contact-section h3 { font-size: 1.25rem; font-weight: 600; margin-bottom: 0.5rem; }
-        .contact-section p { color: var(--gray-300); font-size: 0.875rem; }
-        .contact-section a { color: white; text-decoration: underline; }
-
-        @media (max-width: 768px) {
-            .hero h1 { font-size: 2rem; }
-            .example-grid { grid-template-columns: 1fr; }
-            .container { padding: 0 0.75rem; }
+        .sidebar-logo {
+            display: flex; align-items: center; gap: 0.5rem;
+            padding: 0 1.25rem 1.5rem;
+            border-bottom: 1px solid var(--gray-800);
+            text-decoration: none;
         }
-        @media (max-width: 640px) {
-            .hero h1 { font-size: 1.75rem; }
-            .main-content { padding: 0 0.5rem; }
-            .api-card { padding: 1rem; }
+        .logo-icon { width: 28px; height: 28px; background: var(--primary); border-radius: 5px; display: flex; align-items: center; justify-content: center; color: white; font-size: 0.75rem; flex-shrink: 0; }
+        .logo-text { font-size: 1rem; font-weight: 600; color: white; }
+        .sidebar-section { padding: 1.25rem 1.25rem 0.25rem; }
+        .sidebar-section-label { font-size: 0.6875rem; font-weight: 600; color: var(--gray-500); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.5rem; }
+        .sidebar-link {
+            display: flex; align-items: center; gap: 0.5rem;
+            padding: 0.4rem 0.75rem; border-radius: 6px; margin-bottom: 2px;
+            text-decoration: none; font-size: 0.8125rem; color: var(--gray-400);
+            transition: all 0.15s;
+        }
+        .sidebar-link:hover { background: var(--gray-800); color: white; }
+        .sidebar-link.active { background: var(--primary); color: white; }
+        .sidebar-link i { width: 14px; text-align: center; font-size: 0.75rem; flex-shrink: 0; }
+        .sidebar-badge { margin-left: auto; font-size: 0.6rem; font-weight: 700; padding: 0.1rem 0.35rem; border-radius: 4px; background: var(--primary); color: white; text-transform: uppercase; }
+
+        /* ── MAIN ── */
+        .main { flex: 1; min-width: 0; }
+
+        /* ── TOP HEADER ── */
+        .top-header { background: white; border-bottom: 1px solid var(--gray-200); padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 10; }
+        .top-header-title { font-size: 0.9375rem; font-weight: 600; color: var(--gray-900); }
+        .header-actions { display: flex; gap: 0.75rem; align-items: center; }
+        .btn-sm { padding: 0.5rem 1rem; border-radius: 6px; font-size: 0.8125rem; font-weight: 600; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 0.375rem; transition: all 0.15s; border: none; }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: var(--primary-hover); }
+        .btn-ghost { background: var(--gray-100); color: var(--gray-700); }
+        .btn-ghost:hover { background: var(--gray-200); }
+
+        /* ── CONTENT ── */
+        .content { padding: 2.5rem 2.5rem 4rem; max-width: 860px; }
+
+        /* ── SECTIONS ── */
+        .doc-section { margin-bottom: 3.5rem; scroll-margin-top: 80px; }
+        .section-heading { font-size: 1.5rem; font-weight: 700; color: var(--gray-900); margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.625rem; padding-bottom: 0.75rem; border-bottom: 2px solid var(--gray-100); }
+        .section-heading i { color: var(--primary); font-size: 1.125rem; }
+        .section-sub { color: var(--gray-600); margin-bottom: 1.5rem; font-size: 0.9375rem; }
+
+        /* ── QUICK START ── */
+        .quickstart-steps { display: flex; flex-direction: column; gap: 1rem; margin-bottom: 1.5rem; }
+        .qs-step { display: flex; gap: 1rem; align-items: flex-start; }
+        .qs-num { width: 28px; height: 28px; border-radius: 50%; background: var(--primary); color: white; font-size: 0.8125rem; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px; }
+        .qs-body h4 { font-size: 0.9375rem; font-weight: 600; color: var(--gray-900); margin-bottom: 0.25rem; }
+        .qs-body p { font-size: 0.875rem; color: var(--gray-600); }
+        .qs-body a { color: var(--primary); text-decoration: none; font-weight: 500; }
+
+        /* ── INFO BOXES ── */
+        .info-box { border-radius: 8px; padding: 0.875rem 1.125rem; margin-bottom: 1.25rem; display: flex; gap: 0.75rem; font-size: 0.875rem; }
+        .info-box i { flex-shrink: 0; margin-top: 2px; font-size: 0.875rem; }
+        .info-box.blue { background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; }
+        .info-box.blue i { color: var(--primary); }
+        .info-box.green { background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; }
+        .info-box.green i { color: var(--success); }
+        .info-box.yellow { background: #fffbeb; border: 1px solid #fde68a; color: #92400e; }
+        .info-box.yellow i { color: var(--warning); }
+
+        /* ── STATS ROW ── */
+        .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1.5rem; }
+        .stat-card { background: var(--gray-50); border: 1px solid var(--gray-200); border-radius: 8px; padding: 1rem 1.25rem; text-align: center; }
+        .stat-card .val { font-size: 1.375rem; font-weight: 700; color: var(--primary); }
+        .stat-card .lbl { font-size: 0.75rem; color: var(--gray-500); margin-top: 2px; }
+
+        /* ── CODE TABS ── */
+        .code-block-wrap { border-radius: 8px; overflow: hidden; border: 1px solid var(--gray-700); margin-bottom: 1rem; }
+        .code-tabs { display: flex; background: #1e293b; border-bottom: 1px solid var(--gray-700); padding: 0 0.75rem; }
+        .code-tab { padding: 0.5rem 0.75rem; font-size: 0.75rem; font-weight: 500; color: var(--gray-500); cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.15s; background: none; border-left: none; border-right: none; border-top: none; font-family: 'Inter', sans-serif; }
+        .code-tab.active { color: white; border-bottom-color: var(--primary); }
+        .code-tab:hover:not(.active) { color: var(--gray-300); }
+        .code-pane { display: none; }
+        .code-pane.active { display: block; }
+        .code-block {
+            background: var(--code-bg); color: var(--code-text);
+            padding: 1.125rem 1.25rem; font-family: 'JetBrains Mono', 'Courier New', monospace;
+            font-size: 0.78125rem; white-space: pre; overflow-x: auto; line-height: 1.65;
+            margin: 0;
+        }
+        .code-block .cm { color: var(--code-comment); }
+        .code-block .ky { color: var(--code-key); }
+        .code-block .st { color: var(--code-string); }
+        .code-block .mt { color: var(--code-method); }
+        .code-block .nm { color: #fbbf24; }
+
+        /* inline code */
+        code { font-family: 'JetBrains Mono', monospace; font-size: 0.8125em; background: var(--gray-100); padding: 0.1em 0.4em; border-radius: 4px; color: var(--gray-900); }
+
+        /* ── ENDPOINT CARDS ── */
+        .endpoint-card { border: 1px solid var(--gray-200); border-radius: 10px; margin-bottom: 1.25rem; overflow: hidden; }
+        .endpoint-card.featured { border-color: var(--primary); box-shadow: 0 0 0 1px var(--primary), 0 4px 16px rgba(37,99,235,.08); }
+        .endpoint-header { padding: 1rem 1.25rem; background: var(--gray-50); border-bottom: 1px solid var(--gray-200); display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; cursor: pointer; user-select: none; }
+        .endpoint-card.featured .endpoint-header { background: #eff6ff; border-bottom-color: #bfdbfe; }
+        .endpoint-title-row { display: flex; align-items: center; gap: 0.625rem; flex-wrap: wrap; }
+        .method-badge { font-size: 0.6875rem; font-weight: 700; padding: 0.2rem 0.5rem; border-radius: 4px; background: #dcfce7; color: #166534; font-family: 'JetBrains Mono', monospace; }
+        .endpoint-name { font-size: 0.9375rem; font-weight: 600; color: var(--gray-900); }
+        .new-badge { font-size: 0.625rem; font-weight: 700; padding: 0.15rem 0.45rem; border-radius: 4px; background: var(--primary); color: white; text-transform: uppercase; letter-spacing: 0.04em; }
+        .credit-pill { font-size: 0.6875rem; font-weight: 600; color: var(--gray-500); background: white; border: 1px solid var(--gray-200); border-radius: 99px; padding: 0.15rem 0.6rem; margin-left: auto; white-space: nowrap; flex-shrink: 0; }
+        .endpoint-desc { font-size: 0.8125rem; color: var(--gray-600); margin-top: 0.25rem; }
+        .endpoint-chevron { color: var(--gray-400); transition: transform 0.2s; font-size: 0.75rem; flex-shrink: 0; margin-top: 4px; }
+        .endpoint-card.open .endpoint-chevron { transform: rotate(180deg); }
+        .endpoint-body { display: none; padding: 1.25rem; border-top: 1px solid var(--gray-100); }
+        .endpoint-card.open .endpoint-body { display: block; }
+
+        /* params table */
+        .params-table { width: 100%; border-collapse: collapse; margin-bottom: 1rem; font-size: 0.8125rem; }
+        .params-table th { padding: 0.5rem 0.75rem; text-align: left; font-size: 0.6875rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--gray-500); background: var(--gray-50); border-bottom: 1px solid var(--gray-200); }
+        .params-table td { padding: 0.625rem 0.75rem; border-bottom: 1px solid var(--gray-100); vertical-align: top; }
+        .params-table tr:last-child td { border-bottom: none; }
+        .param-req { font-size: 0.65rem; font-weight: 600; padding: 0.1rem 0.35rem; border-radius: 4px; text-transform: uppercase; }
+        .param-req.req { background: #fef2f2; color: var(--error); }
+        .param-req.opt { background: #f0fdf4; color: var(--success); }
+
+        /* ── RESPONSE GRID ── */
+        .response-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+        .response-grid h4 { font-size: 0.8125rem; font-weight: 600; color: var(--gray-700); margin-bottom: 0.5rem; }
+
+        /* ── INTEGRATIONS ── */
+        .integration-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+        .integration-card { border: 1px solid var(--gray-200); border-radius: 10px; padding: 1.25rem; text-align: center; transition: all 0.2s; }
+        .integration-card:hover { border-color: var(--primary); box-shadow: 0 4px 12px rgba(37,99,235,.08); transform: translateY(-2px); }
+        .integration-card.coming-soon { opacity: 0.6; }
+        .integration-icon { font-size: 1.75rem; margin-bottom: 0.625rem; }
+        .integration-name { font-size: 0.9375rem; font-weight: 600; color: var(--gray-900); margin-bottom: 0.25rem; }
+        .integration-status { font-size: 0.75rem; color: var(--gray-500); }
+        .integration-status.live { color: var(--success); font-weight: 500; }
+        .integration-status.soon { color: var(--warning); font-weight: 500; }
+        .integration-card a { text-decoration: none; color: inherit; display: block; }
+
+        /* ── RATE LIMIT TABLE ── */
+        .rate-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; border: 1px solid var(--gray-200); border-radius: 8px; overflow: hidden; }
+        .rate-table th { padding: 0.75rem 1rem; text-align: left; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--gray-500); background: var(--gray-50); }
+        .rate-table td { padding: 0.75rem 1rem; border-top: 1px solid var(--gray-100); }
+        .rate-table tr:hover td { background: var(--gray-50); }
+
+        /* ── ERRORS TABLE ── */
+        .errors-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+        .errors-table th { padding: 0.625rem 0.875rem; text-align: left; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--gray-500); background: var(--gray-50); border-bottom: 1px solid var(--gray-200); }
+        .errors-table td { padding: 0.625rem 0.875rem; border-bottom: 1px solid var(--gray-100); vertical-align: top; }
+        .http-code { font-family: 'JetBrains Mono', monospace; font-weight: 600; font-size: 0.875rem; }
+        .http-code.err4 { color: #dc2626; }
+        .http-code.err5 { color: #9333ea; }
+        .http-code.ok { color: var(--success); }
+
+        @media (max-width: 900px) {
+            .sidebar { display: none; }
+            .content { padding: 1.5rem; }
+            .stats-row { grid-template-columns: repeat(3, 1fr); }
+            .response-grid { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 600px) {
+            .stats-row { grid-template-columns: 1fr; }
+            .top-header { padding: 0.875rem 1rem; }
+            .content { padding: 1rem; }
         }
     </style>
-    <link rel="canonical" href="https://linkfinderai.com/api-documentation" />
 </head>
 <body>
-<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-TL7WVD2N"
-height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-TL7WVD2N" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
-    <div class="container">
-        <div class="hero">
-            <h1>API Documentation</h1>
-            <p>Complete guide for LinkFinder AI data enrichment services</p>
+<div class="layout">
+
+    <!-- ══ SIDEBAR ══ -->
+    <nav class="sidebar">
+        <a href="https://linkfinderai.com" class="sidebar-logo">
+            <div class="logo-icon"><i class="fas fa-search"></i></div>
+            <span class="logo-text">LinkFinder AI</span>
+        </a>
+
+        <div class="sidebar-section">
+            <div class="sidebar-section-label">Getting started</div>
+            <a href="#quickstart" class="sidebar-link"><i class="fas fa-rocket"></i> Quick Start</a>
+            <a href="#auth" class="sidebar-link"><i class="fas fa-key"></i> Authentication</a>
+            <a href="#credits" class="sidebar-link"><i class="fas fa-coins"></i> Credits & Limits</a>
+            <a href="#errors" class="sidebar-link"><i class="fas fa-exclamation-circle"></i> Error Codes</a>
         </div>
 
-        <div class="main-content">
-            <div class="auth-section">
-                <h2 class="section-title">
-                    <i class="fas fa-key"></i>
-                    Authentication
-                </h2>
-                <p><strong>Include your API key in the Authorization header:</strong></p>
-                <div class="code-block">Authorization: Bearer YOUR_API_KEY</div>
+        <div class="sidebar-section">
+            <div class="sidebar-section-label">Endpoints</div>
+            <a href="#lead-finder" class="sidebar-link"><i class="fas fa-magic"></i> AI Lead Finder <span class="sidebar-badge">New</span></a>
+            <a href="#company" class="sidebar-link"><i class="fas fa-building"></i> Company Enrichment</a>
+            <a href="#linkedin" class="sidebar-link"><i class="fab fa-linkedin"></i> LinkedIn Scraping</a>
+            <a href="#instagram" class="sidebar-link"><i class="fab fa-instagram"></i> Instagram Scraping</a>
+        </div>
+
+        <div class="sidebar-section">
+            <div class="sidebar-section-label">Integrations</div>
+            <a href="#zapier" class="sidebar-link"><i class="fas fa-bolt"></i> Zapier</a>
+            <a href="#zapier" class="sidebar-link"><i class="fas fa-network-wired"></i> Make / n8n</a>
+            <a href="#zapier" class="sidebar-link"><i class="fas fa-database"></i> HubSpot / Salesforce</a>
+        </div>
+
+        <div class="sidebar-section">
+            <a href="https://linkfinderai.com/pricing" class="sidebar-link"><i class="fas fa-credit-card"></i> Pricing</a>
+            <a href="mailto:support@unlimited-leads.online" class="sidebar-link"><i class="fas fa-envelope"></i> Support</a>
+        </div>
+    </nav>
+
+    <!-- ══ MAIN ══ -->
+    <div class="main">
+        <div class="top-header">
+            <span class="top-header-title">API Documentation</span>
+            <div class="header-actions">
+                <a href="https://linkfinderai.com/sign-up" class="btn-sm btn-ghost"><i class="fas fa-key"></i> Get API Key</a>
+                <a href="https://linkfinderai.com/pricing" class="btn-sm btn-primary"><i class="fas fa-arrow-up-right-from-square"></i> View Plans</a>
             </div>
+        </div>
 
-            <div class="section">
-                <h2 class="section-title">
-                    <i class="fas fa-globe"></i>
-                    Base Endpoint
-                </h2>
-                <div class="endpoint-badge">POST https://api.linkfinderai.com</div>
-            </div>
+        <div class="content">
 
-            <div class="section">
-                <h2 class="section-title">
-                    <i class="fas fa-cogs"></i>
-                    Available Services
-                </h2>
+            <!-- ══ QUICK START ══ -->
+            <div class="doc-section" id="quickstart">
+                <h2 class="section-heading"><i class="fas fa-rocket"></i> Quick Start</h2>
+                <p class="section-sub">Make your first API call in under 2 minutes.</p>
 
-                <!-- 1 -->
-                <div class="api-card">
-                    <div class="api-title">1. Company Name to Website</div>
-                    <div class="api-description">Find a company's official website from its name</div>
-                    <div class="code-section">
-                        <div class="code-label">Request Body</div>
-                        <div class="code-block">{
-  "type": "company_name_to_website",
-  "input_data": "Tesla"
-}</div>
-                    </div>
-                    <div class="code-section">
-                        <div class="code-label">Curl Example</div>
-                        <div class="code-block">curl -X POST "https://api.linkfinderai.com" \
-     -H "Content-Type: application/json" \
-     -H "Authorization: Bearer YOUR_API_KEY" \
-     -d '{
-       "type": "company_name_to_website",
-       "input_data": "Tesla"
-     }'</div>
-                    </div>
+                <div class="stats-row">
+                    <div class="stat-card"><div class="val">1</div><div class="lbl">Endpoint for everything</div></div>
+                    <div class="stat-card"><div class="val">1 credit</div><div class="lbl">Per enrichment request</div></div>
+                    <div class="stat-card"><div class="val">~3 sec</div><div class="lbl">Average response time</div></div>
                 </div>
 
-                <!-- 2 -->
-                <div class="api-card">
-                    <div class="api-title">2. Company Name to Phone</div>
-                    <div class="api-description">Get company contact phone number</div>
-                    <div class="code-section">
-                        <div class="code-label">Request Body</div>
-                        <div class="code-block">{
-  "type": "company_name_to_phone",
-  "input_data": "Tesla"
-}</div>
-                    </div>
-                    <div class="code-section">
-                        <div class="code-label">Curl Example</div>
-                        <div class="code-block">curl -X POST "https://api.linkfinderai.com" \
-     -H "Content-Type: application/json" \
-     -H "Authorization: Bearer YOUR_API_KEY" \
-     -d '{
-       "type": "company_name_to_phone",
-       "input_data": "Tesla"
-     }'</div>
-                    </div>
-                </div>
-
-                <!-- 3 -->
-                <div class="api-card">
-                    <div class="api-title">3. Company Name to Email</div>
-                    <div class="api-description">Get company contact email address</div>
-                    <div class="code-section">
-                        <div class="code-label">Request Body</div>
-                        <div class="code-block">{
-  "type": "company_name_to_email",
-  "input_data": "Tesla"
-}</div>
-                    </div>
-                    <div class="code-section">
-                        <div class="code-label">Curl Example</div>
-                        <div class="code-block">curl -X POST "https://api.linkfinderai.com" \
-     -H "Content-Type: application/json" \
-     -H "Authorization: Bearer YOUR_API_KEY" \
-     -d '{
-       "type": "company_name_to_email",
-       "input_data": "Tesla"
-     }'</div>
-                    </div>
-                </div>
-
-                <!-- 4 -->
-                <div class="api-card">
-                    <div class="api-title">4. Company Name to Employee Count</div>
-                    <div class="api-description">Get the total number of employees at a company</div>
-                    <div class="code-section">
-                        <div class="code-label">Request Body</div>
-                        <div class="code-block">{
-  "type": "company_name_to_employee_count",
-  "input_data": "Tesla"
-}</div>
-                    </div>
-                    <div class="code-section">
-                        <div class="code-label">Curl Example</div>
-                        <div class="code-block">curl -X POST "https://api.linkfinderai.com" \
-     -H "Content-Type: application/json" \
-     -H "Authorization: Bearer YOUR_API_KEY" \
-     -d '{
-       "type": "company_name_to_employee_count",
-       "input_data": "Tesla"
-     }'</div>
-                    </div>
-                </div>
-
-                <!-- 5 -->
-                <div class="api-card">
-                    <div class="api-title">5. Company Name to LinkedIn URL</div>
-                    <div class="api-description">Find company's LinkedIn profile URL</div>
-                    <div class="code-section">
-                        <div class="code-label">Request Body</div>
-                        <div class="code-block">{
-  "type": "company_name_to_linkedin_url",
-  "input_data": "Tesla"
-}</div>
-                    </div>
-                    <div class="code-section">
-                        <div class="code-label">Curl Example</div>
-                        <div class="code-block">curl -X POST "https://api.linkfinderai.com" \
-     -H "Content-Type: application/json" \
-     -H "Authorization: Bearer YOUR_API_KEY" \
-     -d '{
-       "type": "company_name_to_linkedin_url",
-       "input_data": "Tesla"
-     }'</div>
-                    </div>
-                </div>
-
-                <!-- 6 -->
-                <div class="api-card">
-                    <div class="api-title">6. LinkedIn Company URL to Data Scraping</div>
-                    <div class="api-description">Extract detailed company data from LinkedIn company pages</div>
-                    <div class="code-section">
-                        <div class="code-label">Request Body</div>
-                        <div class="code-block">{
-  "type": "linkedin_company_to_linkedin_info",
-  "input_data": "https://linkedin.com/company/tesla"
-}</div>
-                    </div>
-                    <div class="code-section">
-                        <div class="code-label">Curl Example</div>
-                        <div class="code-block">curl -X POST "https://api.linkfinderai.com" \
-     -H "Content-Type: application/json" \
-     -H "Authorization: Bearer YOUR_API_KEY" \
-     -d '{
-       "type": "linkedin_company_to_linkedin_info",
-       "input_data": "https://linkedin.com/company/tesla"
-     }'</div>
-                    </div>
-                </div>
-
-                <!-- 7 -->
-                <div class="api-card">
-                    <div class="api-title">7. LinkedIn Company URL to Employee Count</div>
-                    <div class="api-description">Get the total number of employees from a LinkedIn company page</div>
-                    <div class="code-section">
-                        <div class="code-label">Request Body</div>
-                        <div class="code-block">{
-  "type": "linkedin_company_to_employee_count",
-  "input_data": "https://linkedin.com/company/tesla"
-}</div>
-                    </div>
-                    <div class="code-section">
-                        <div class="code-label">Curl Example</div>
-                        <div class="code-block">curl -X POST "https://api.linkfinderai.com" \
-     -H "Content-Type: application/json" \
-     -H "Authorization: Bearer YOUR_API_KEY" \
-     -d '{
-       "type": "linkedin_company_to_employee_count",
-       "input_data": "https://linkedin.com/company/tesla"
-     }'</div>
-                    </div>
-                </div>
-
-                <!-- 8 -->
-                <div class="api-card">
-                    <div class="api-title">8. Company Domain to Employees</div>
-                    <div class="api-description">Extract a filtered list of employees from a company domain</div>
-                    <div class="param-list">
-                        <div class="param-row">
-                            <span class="param-name">input_data</span>
-                            <span class="param-badge required">required</span>
-                            <span class="param-desc">Company domain (e.g. tesla.com)</span>
-                        </div>
-                        <div class="param-row">
-                            <span class="param-name">department</span>
-                            <span class="param-badge optional">optional</span>
-                            <span class="param-desc">Filter by department (e.g. "marketing", "engineering")</span>
-                        </div>
-                        <div class="param-row">
-                            <span class="param-name">seniority</span>
-                            <span class="param-badge optional">optional</span>
-                            <span class="param-desc">Filter by seniority level (e.g. "director", "manager")</span>
-                        </div>
-                        <div class="param-row">
-                            <span class="param-name">employee_count</span>
-                            <span class="param-badge optional">optional</span>
-                            <span class="param-desc">Max number of results to return</span>
+                <div class="quickstart-steps">
+                    <div class="qs-step">
+                        <div class="qs-num">1</div>
+                        <div class="qs-body">
+                            <h4>Get your API key</h4>
+                            <p><a href="https://linkfinderai.com/sign-up">Sign up</a> for a free trial — your API key is in your dashboard under Settings → API Key. You get 100 free credits to start.</p>
                         </div>
                     </div>
-                    <div class="code-section">
-                        <div class="code-label">Request Body</div>
-                        <div class="code-block">{
-  "type": "company_domain_to_employees",
-  "input_data": "tesla.com",
-  "department": "marketing",
-  "seniority": "director",
-  "employee_count": 20
-}</div>
-                    </div>
-                    <div class="code-section">
-                        <div class="code-label">Curl Example</div>
-                        <div class="code-block">curl -X POST "https://api.linkfinderai.com" \
-     -H "Content-Type: application/json" \
-     -H "Authorization: Bearer YOUR_API_KEY" \
-     -d '{
-       "type": "company_domain_to_employees",
-       "input_data": "tesla.com",
-       "department": "marketing",
-       "seniority": "director",
-       "employee_count": 20
-     }'</div>
-                    </div>
-                </div>
-
-                <!-- 9 -->
-                <div class="api-card">
-                    <div class="api-title">9. LinkedIn Profile URL to Data Scraping</div>
-                    <div class="api-description">Extract comprehensive profile data from individual LinkedIn profiles</div>
-                    <div class="code-section">
-                        <div class="code-label">Request Body</div>
-                        <div class="code-block">{
-  "type": "linkedin_profile_to_linkedin_info",
-  "input_data": "https://linkedin.com/in/john-doe"
-}</div>
-                    </div>
-                    <div class="code-section">
-                        <div class="code-label">Curl Example</div>
-                        <div class="code-block">curl -X POST "https://api.linkfinderai.com" \
-     -H "Content-Type: application/json" \
-     -H "Authorization: Bearer YOUR_API_KEY" \
-     -d '{
-       "type": "linkedin_profile_to_linkedin_info",
-       "input_data": "https://linkedin.com/in/john-doe"
-     }'</div>
-                    </div>
-                </div>
-
-                <!-- 10 -->
-                <div class="api-card">
-                    <div class="api-title">10. Lead Full Name to LinkedIn Profile URL</div>
-                    <div class="api-description">Find LinkedIn Profile URL from lead full name and company name</div>
-                    <div class="code-section">
-                        <div class="code-label">Request Body</div>
-                        <div class="code-block">{
-  "type": "lead_full_name_to_linkedin_url",
-  "input_data": "Bill Gates Microsoft"
-}</div>
-                    </div>
-                    <div class="code-section">
-                        <div class="code-label">Curl Example</div>
-                        <div class="code-block">curl -X POST "https://api.linkfinderai.com" \
-     -H "Content-Type: application/json" \
-     -H "Authorization: Bearer YOUR_API_KEY" \
-     -d '{
-       "type": "lead_full_name_to_linkedin_url",
-       "input_data": "Bill Gates Microsoft"
-     }'</div>
-                    </div>
-                </div>
-
-                <!-- 11 -->
-                <div class="api-card">
-                    <div class="api-title">11. LinkedIn Post URL to Reactions</div>
-                    <div class="api-description">Scrape the people who reacted to a LinkedIn post</div>
-                    <div class="code-section">
-                        <div class="code-label">Request Body</div>
-                        <div class="code-block">{
-  "type": "linkedin_post_to_reactions",
-  "input_data": "https://www.linkedin.com/feed/update/urn:li:activity:1234567890"
-}</div>
-                    </div>
-                    <div class="code-section">
-                        <div class="code-label">Curl Example</div>
-                        <div class="code-block">curl -X POST "https://api.linkfinderai.com" \
-     -H "Content-Type: application/json" \
-     -H "Authorization: Bearer YOUR_API_KEY" \
-     -d '{
-       "type": "linkedin_post_to_reactions",
-       "input_data": "https://www.linkedin.com/feed/update/urn:li:activity:1234567890"
-     }'</div>
-                    </div>
-                </div>
-
-                <!-- 12 -->
-                <div class="api-card">
-                    <div class="api-title">12. Instagram Profile URL to Data Scraping</div>
-                    <div class="api-description">Extract detailed profile data from an Instagram account including followers, bio, latest posts, and more</div>
-                    <div class="code-section">
-                        <div class="code-label">Request Body</div>
-                        <div class="code-block">{
-  "type": "instagram_profile_to_instagram_info",
-  "input_data": "https://www.instagram.com/username"
-}</div>
-                    </div>
-                    <div class="code-section">
-                        <div class="code-label">Curl Example</div>
-                        <div class="code-block">curl -X POST "https://api.linkfinderai.com" \
-     -H "Content-Type: application/json" \
-     -H "Authorization: Bearer YOUR_API_KEY" \
-     -d '{
-       "type": "instagram_profile_to_instagram_info",
-       "input_data": "https://www.instagram.com/username"
-     }'</div>
-                    </div>
-                </div>
-
-                <!-- 13 — AI Lead Finder -->
-                <div class="api-card featured">
-                    <div class="api-title">
-                        13. AI LinkedIn Lead Finder
-                        <span class="api-title-badge">New</span>
-                    </div>
-                    <div class="api-description">Describe the type of leads you are looking for in plain language and get back a list of matching LinkedIn profiles complete with contact details, company data, and email addresses. The AI interprets your query and searches the database for the best matches.</div>
-
-                    <div class="param-list">
-                        <div class="param-row">
-                            <span class="param-name">input_data</span>
-                            <span class="param-badge required">required</span>
-                            <span class="param-desc">Natural language description of the leads you want (e.g. "VP Sales at B2B SaaS in the US")</span>
-                        </div>
-                        <div class="param-row">
-                            <span class="param-name">fetch_count</span>
-                            <span class="param-badge optional">optional</span>
-                            <span class="param-desc">Maximum number of profiles to return. Defaults to 10, max 100. Each profile costs 1 credit.</span>
+                    <div class="qs-step">
+                        <div class="qs-num">2</div>
+                        <div class="qs-body">
+                            <h4>Make your first call</h4>
+                            <p>All requests go to one endpoint: <code>POST https://api.linkfinderai.com</code>. Change the <code>type</code> field to select the enrichment you need.</p>
                         </div>
                     </div>
-
-                    <div class="code-section">
-                        <div class="code-label">Request Body</div>
-                        <div class="code-block">{
-  "type": "leads_finder_ai",
-  "input_data": "VP Sales at B2B SaaS startup in the United States",
-  "fetch_count": 10
-}</div>
+                    <div class="qs-step">
+                        <div class="qs-num">3</div>
+                        <div class="qs-body">
+                            <h4>Handle the response</h4>
+                            <p>Every response includes a <code>status</code> field (<code>"success"</code> or <code>"error"</code>) and a <code>result</code> field with your data.</p>
+                        </div>
                     </div>
+                </div>
 
-                    <div class="code-section">
-                        <div class="code-label">Curl Example</div>
-                        <div class="code-block">curl -X POST "https://api.linkfinderai.com" \
+                <div class="code-block-wrap">
+                    <div class="code-tabs">
+                        <button class="code-tab active" onclick="switchTab(this, 'qs-curl')">cURL</button>
+                        <button class="code-tab" onclick="switchTab(this, 'qs-python')">Python</button>
+                        <button class="code-tab" onclick="switchTab(this, 'qs-node')">Node.js</button>
+                        <button class="code-tab" onclick="switchTab(this, 'qs-response')">Response</button>
+                    </div>
+                    <div id="qs-curl" class="code-pane active">
+<pre class="code-block"><span class="cm"># Find a company's website — your first API call</span>
+curl -X POST "https://api.linkfinderai.com" \
      -H "Content-Type: application/json" \
-     -H "Authorization: Bearer YOUR_API_KEY" \
+     -H "Authorization: Bearer <span class="st">YOUR_API_KEY</span>" \
      -d '{
-       "type": "leads_finder_ai",
-       "input_data": "VP Sales at B2B SaaS startup in the United States",
-       "fetch_count": 10
-     }'</div>
+       <span class="ky">"type"</span>: <span class="st">"company_name_to_website"</span>,
+       <span class="ky">"input_data"</span>: <span class="st">"Tesla"</span>
+     }'</pre>
                     </div>
+                    <div id="qs-python" class="code-pane">
+<pre class="code-block"><span class="cm">import</span> requests
 
-                    <div class="code-section">
-                        <div class="code-label">Response — Array of lead objects</div>
-                        <div class="code-block">[
-  {
-    "full_name": "Sarah Mitchell",
-    "first_name": "Sarah",
-    "last_name": "Mitchell",
-    "job_title": "VP of Sales",
-    "headline": "VP of Sales @ CloudCore | B2B SaaS | Revenue Growth",
-    "seniority_level": "vp",
-    "functional_level": "sales",
-    "email": "s.mitchell@cloudcore.io",
-    "personal_email": "",
-    "mobile_number": "",
-    "linkedin": "https://linkedin.com/in/sarah-mitchell-sales",
-    "city": "Austin",
-    "state": "Texas",
-    "country": "United States",
-    "company_name": "CloudCore",
-    "company_domain": "cloudcore.io",
-    "company_website": "https://cloudcore.io",
-    "company_linkedin": "https://linkedin.com/company/cloudcore",
-    "company_size": "51-200",
-    "industry": "Software",
-    "company_founded_year": "2018",
-    "company_description": "CloudCore is a B2B SaaS platform for...",
-    "company_city": "Austin",
-    "company_state": "Texas",
-    "company_country": "United States"
+API_KEY = <span class="st">"YOUR_API_KEY"</span>
+
+response = requests.post(
+    <span class="st">"https://api.linkfinderai.com"</span>,
+    headers={
+        <span class="ky">"Authorization"</span>: f<span class="st">"Bearer {API_KEY}"</span>,
+        <span class="ky">"Content-Type"</span>: <span class="st">"application/json"</span>,
+    },
+    json={
+        <span class="ky">"type"</span>: <span class="st">"company_name_to_website"</span>,
+        <span class="ky">"input_data"</span>: <span class="st">"Tesla"</span>,
+    }
+)
+
+data = response.json()
+<span class="cm">print</span>(data[<span class="st">"result"</span>])  <span class="cm"># "tesla.com"</span></pre>
+                    </div>
+                    <div id="qs-node" class="code-pane">
+<pre class="code-block"><span class="cm">const</span> API_KEY = <span class="st">"YOUR_API_KEY"</span>;
+
+<span class="cm">const</span> response = <span class="cm">await</span> fetch(<span class="st">"https://api.linkfinderai.com"</span>, {
+  method: <span class="st">"POST"</span>,
+  headers: {
+    <span class="ky">"Authorization"</span>: `Bearer ${API_KEY}`,
+    <span class="ky">"Content-Type"</span>: <span class="st">"application/json"</span>,
   },
-  { "..." : "next lead object" }
-]</div>
+  body: JSON.stringify({
+    <span class="ky">type</span>: <span class="st">"company_name_to_website"</span>,
+    <span class="ky">input_data</span>: <span class="st">"Tesla"</span>,
+  }),
+});
+
+<span class="cm">const</span> data = <span class="cm">await</span> response.json();
+console.log(data.result); <span class="cm">// "tesla.com"</span></pre>
+                    </div>
+                    <div id="qs-response" class="code-pane">
+<pre class="code-block"><span class="cm">// Success</span>
+{
+  <span class="ky">"result"</span>: <span class="st">"tesla.com"</span>,
+  <span class="ky">"status"</span>: <span class="st">"success"</span>
+}
+
+<span class="cm">// Not found</span>
+{
+  <span class="ky">"result"</span>: <span class="nm">null</span>,
+  <span class="ky">"status"</span>: <span class="st">"error"</span>,
+  <span class="ky">"message"</span>: <span class="st">"Company not found"</span>
+}</pre>
                     </div>
                 </div>
 
+                <div class="info-box blue">
+                    <i class="fas fa-info-circle"></i>
+                    <div>Every request costs <strong>1 credit</strong> regardless of endpoint — including failed lookups where no data is found. Check your remaining credits in your dashboard.</div>
+                </div>
             </div>
 
-            <div class="response-section">
-                <h2 class="response-title">
-                    <i class="fas fa-code"></i>
-                    Response Format
-                </h2>
-                <div class="example-grid">
-                    <div class="example-item">
-                        <h4>Success Response</h4>
-                        <div class="code-block">{
-  "result": "tesla.com",
-  "status": "success"
-}</div>
+            <!-- ══ AUTH ══ -->
+            <div class="doc-section" id="auth">
+                <h2 class="section-heading"><i class="fas fa-key"></i> Authentication</h2>
+                <p class="section-sub">Pass your API key in the <code>Authorization</code> header on every request.</p>
+
+                <div class="code-block-wrap">
+                    <div class="code-tabs">
+                        <button class="code-tab active" onclick="switchTab(this, 'auth-header')">Header</button>
+                        <button class="code-tab" onclick="switchTab(this, 'auth-python')">Python</button>
+                        <button class="code-tab" onclick="switchTab(this, 'auth-node')">Node.js</button>
                     </div>
-                    <div class="example-item">
-                        <h4>Error Response</h4>
-                        <div class="code-block">{
-  "result": null,
-  "status": "error",
-  "message": "Company not found"
-}</div>
+                    <div id="auth-header" class="code-pane active">
+<pre class="code-block">Authorization: Bearer <span class="st">YOUR_API_KEY</span></pre>
+                    </div>
+                    <div id="auth-python" class="code-pane">
+<pre class="code-block">headers = {<span class="ky">"Authorization"</span>: <span class="st">"Bearer YOUR_API_KEY"</span>}</pre>
+                    </div>
+                    <div id="auth-node" class="code-pane">
+<pre class="code-block">headers: { <span class="ky">"Authorization"</span>: <span class="st">`Bearer ${API_KEY}`</span> }</pre>
+                    </div>
+                </div>
+
+                <div class="info-box yellow">
+                    <i class="fas fa-triangle-exclamation"></i>
+                    <div>Never expose your API key in client-side JavaScript or public repositories. Rotate it immediately in your dashboard if compromised.</div>
+                </div>
+            </div>
+
+            <!-- ══ CREDITS & LIMITS ══ -->
+            <div class="doc-section" id="credits">
+                <h2 class="section-heading"><i class="fas fa-coins"></i> Credits & Rate Limits</h2>
+                <p class="section-sub">1 credit = 1 API request, regardless of endpoint. Credits reset at the start of each billing cycle.</p>
+
+                <table class="rate-table" style="margin-bottom:1.25rem">
+                    <thead>
+                        <tr><th>Plan</th><th>Credits / month</th><th>Requests / second</th><th>Batch size</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>Starter</td><td>5,000</td><td>5 req/s</td><td>Up to 500 URLs</td></tr>
+                        <tr><td>Professional</td><td>20,000</td><td>10 req/s</td><td>Up to 500 URLs</td></tr>
+                        <tr><td>Enterprise</td><td>50,000</td><td>20 req/s</td><td>Up to 500 URLs</td></tr>
+                        <tr><td>HyperGrowth</td><td>250,000</td><td>50 req/s</td><td>Up to 500 URLs</td></tr>
+                    </tbody>
+                </table>
+
+                <div class="info-box green">
+                    <i class="fas fa-circle-check"></i>
+                    <div>If you exceed your rate limit, requests return <code>429 Too Many Requests</code>. Implement exponential backoff — wait 1s, then 2s, then 4s between retries.</div>
+                </div>
+            </div>
+
+            <!-- ══ AI LEAD FINDER — promoted to top ══ -->
+            <div class="doc-section" id="lead-finder">
+                <h2 class="section-heading"><i class="fas fa-magic"></i> AI Lead Finder <span style="font-size:0.625rem;font-weight:700;padding:0.2rem 0.5rem;border-radius:4px;background:var(--primary);color:white;text-transform:uppercase;margin-left:4px;vertical-align:middle">New</span></h2>
+                <p class="section-sub">Describe the leads you want in plain English. Get back a list of matching LinkedIn profiles with full contact details and company data.</p>
+
+                <div class="info-box blue">
+                    <i class="fas fa-lightbulb"></i>
+                    <div>This is the most powerful endpoint. Instead of looking up one profile at a time, describe your ideal customer in natural language and get up to 100 matching leads in one call. Each profile costs 1 credit.</div>
+                </div>
+
+                <div class="endpoint-card featured open">
+                    <div class="endpoint-header" onclick="toggleEndpoint(this)">
+                        <div>
+                            <div class="endpoint-title-row">
+                                <span class="method-badge">POST</span>
+                                <span class="endpoint-name">leads_finder_ai</span>
+                                <span class="new-badge">New</span>
+                            </div>
+                            <div class="endpoint-desc">Natural language lead search — returns full profiles with email, LinkedIn, and company data</div>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:.5rem">
+                            <span class="credit-pill">1 credit / profile</span>
+                            <i class="fas fa-chevron-up endpoint-chevron"></i>
+                        </div>
+                    </div>
+                    <div class="endpoint-body">
+                        <table class="params-table">
+                            <thead><tr><th>Parameter</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+                            <tbody>
+                                <tr>
+                                    <td><code>input_data</code></td>
+                                    <td><code>string</code></td>
+                                    <td><span class="param-req req">Required</span></td>
+                                    <td>Natural language description of your target leads</td>
+                                </tr>
+                                <tr>
+                                    <td><code>fetch_count</code></td>
+                                    <td><code>integer</code></td>
+                                    <td><span class="param-req opt">Optional</span></td>
+                                    <td>Number of profiles to return. Default: 10. Max: 100.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <div class="code-block-wrap">
+                            <div class="code-tabs">
+                                <button class="code-tab active" onclick="switchTab(this, 'lf-curl')">cURL</button>
+                                <button class="code-tab" onclick="switchTab(this, 'lf-python')">Python</button>
+                                <button class="code-tab" onclick="switchTab(this, 'lf-node')">Node.js</button>
+                                <button class="code-tab" onclick="switchTab(this, 'lf-response')">Response</button>
+                            </div>
+                            <div id="lf-curl" class="code-pane active">
+<pre class="code-block">curl -X POST "https://api.linkfinderai.com" \
+     -H "Content-Type: application/json" \
+     -H "Authorization: Bearer <span class="st">YOUR_API_KEY</span>" \
+     -d '{
+       <span class="ky">"type"</span>: <span class="st">"leads_finder_ai"</span>,
+       <span class="ky">"input_data"</span>: <span class="st">"VP Sales at B2B SaaS startup in the United States"</span>,
+       <span class="ky">"fetch_count"</span>: <span class="nm">10</span>
+     }'</pre>
+                            </div>
+                            <div id="lf-python" class="code-pane">
+<pre class="code-block">response = requests.post(
+    <span class="st">"https://api.linkfinderai.com"</span>,
+    headers={<span class="ky">"Authorization"</span>: f<span class="st">"Bearer {API_KEY}"</span>},
+    json={
+        <span class="ky">"type"</span>: <span class="st">"leads_finder_ai"</span>,
+        <span class="ky">"input_data"</span>: <span class="st">"VP Sales at B2B SaaS startup in the United States"</span>,
+        <span class="ky">"fetch_count"</span>: <span class="nm">10</span>,
+    }
+)
+leads = response.json()
+<span class="cm">for</span> lead <span class="cm">in</span> leads:
+    <span class="cm">print</span>(lead[<span class="st">"full_name"</span>], lead[<span class="st">"email"</span>])</pre>
+                            </div>
+                            <div id="lf-node" class="code-pane">
+<pre class="code-block"><span class="cm">const</span> leads = <span class="cm">await</span> fetch(<span class="st">"https://api.linkfinderai.com"</span>, {
+  method: <span class="st">"POST"</span>,
+  headers: {
+    <span class="ky">"Authorization"</span>: `Bearer ${API_KEY}`,
+    <span class="ky">"Content-Type"</span>: <span class="st">"application/json"</span>,
+  },
+  body: JSON.stringify({
+    <span class="ky">type</span>: <span class="st">"leads_finder_ai"</span>,
+    <span class="ky">input_data</span>: <span class="st">"VP Sales at B2B SaaS startup in the United States"</span>,
+    <span class="ky">fetch_count</span>: <span class="nm">10</span>,
+  }),
+}).then(r => r.json());
+
+leads.forEach(lead => console.log(lead.full_name, lead.email));</pre>
+                            </div>
+                            <div id="lf-response" class="code-pane">
+<pre class="code-block"><span class="cm">// Returns an array of lead objects</span>
+[
+  {
+    <span class="ky">"full_name"</span>: <span class="st">"Sarah Mitchell"</span>,
+    <span class="ky">"job_title"</span>: <span class="st">"VP of Sales"</span>,
+    <span class="ky">"seniority_level"</span>: <span class="st">"vp"</span>,
+    <span class="ky">"email"</span>: <span class="st">"sarah@cloudcore.io"</span>,
+    <span class="ky">"linkedin"</span>: <span class="st">"https://linkedin.com/in/sarah-mitchell-sales"</span>,
+    <span class="ky">"company_name"</span>: <span class="st">"CloudCore"</span>,
+    <span class="ky">"company_domain"</span>: <span class="st">"cloudcore.io"</span>,
+    <span class="ky">"company_size"</span>: <span class="st">"51-200"</span>,
+    <span class="ky">"industry"</span>: <span class="st">"Software"</span>,
+    <span class="ky">"city"</span>: <span class="st">"Austin"</span>,
+    <span class="ky">"state"</span>: <span class="st">"Texas"</span>,
+    <span class="ky">"country"</span>: <span class="st">"United States"</span>
+  },
+  { <span class="cm">/* next lead... */</span> }
+]</pre>
+                            </div>
+                        </div>
+
+                        <div class="info-box blue" style="margin-top:.75rem">
+                            <i class="fas fa-pen-to-square"></i>
+                            <div><strong>Prompt tips:</strong> Be specific about role, seniority, industry, and geography. "Head of Marketing at e-commerce company in Europe with 50–200 employees" returns better results than "marketing person".</div>
+                        </div>
                     </div>
                 </div>
             </div>
+
+            <!-- ══ COMPANY ENRICHMENT ══ -->
+            <div class="doc-section" id="company">
+                <h2 class="section-heading"><i class="fas fa-building"></i> Company Enrichment</h2>
+                <p class="section-sub">Look up company details from a name or domain. Each request costs 1 credit.</p>
+
+                <!-- Company → Website -->
+                <div class="endpoint-card">
+                    <div class="endpoint-header" onclick="toggleEndpoint(this)">
+                        <div>
+                            <div class="endpoint-title-row"><span class="method-badge">POST</span><span class="endpoint-name">company_name_to_website</span></div>
+                            <div class="endpoint-desc">Find a company's official website from its name</div>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:.5rem"><span class="credit-pill">1 credit</span><i class="fas fa-chevron-down endpoint-chevron"></i></div>
+                    </div>
+                    <div class="endpoint-body">
+                        <div class="code-block-wrap">
+                            <div class="code-tabs"><button class="code-tab active" onclick="switchTab(this,'c1-curl')">cURL</button><button class="code-tab" onclick="switchTab(this,'c1-py')">Python</button></div>
+                            <div id="c1-curl" class="code-pane active"><pre class="code-block">curl -X POST "https://api.linkfinderai.com" \
+     -H "Content-Type: application/json" \
+     -H "Authorization: Bearer <span class="st">YOUR_API_KEY</span>" \
+     -d '{"type": <span class="st">"company_name_to_website"</span>, "input_data": <span class="st">"Tesla"</span>}'</pre></div>
+                            <div id="c1-py" class="code-pane"><pre class="code-block">requests.post(url, headers=headers, json={
+    <span class="ky">"type"</span>: <span class="st">"company_name_to_website"</span>,
+    <span class="ky">"input_data"</span>: <span class="st">"Tesla"</span>
+})</pre></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Company → Phone -->
+                <div class="endpoint-card">
+                    <div class="endpoint-header" onclick="toggleEndpoint(this)">
+                        <div><div class="endpoint-title-row"><span class="method-badge">POST</span><span class="endpoint-name">company_name_to_phone</span></div><div class="endpoint-desc">Get company contact phone number from company name</div></div>
+                        <div style="display:flex;align-items:center;gap:.5rem"><span class="credit-pill">1 credit</span><i class="fas fa-chevron-down endpoint-chevron"></i></div>
+                    </div>
+                    <div class="endpoint-body"><div class="code-block-wrap"><div class="code-tabs"><button class="code-tab active" onclick="switchTab(this,'c2-curl')">cURL</button></div><div id="c2-curl" class="code-pane active"><pre class="code-block">curl -X POST "https://api.linkfinderai.com" \
+     -H "Content-Type: application/json" \
+     -H "Authorization: Bearer <span class="st">YOUR_API_KEY</span>" \
+     -d '{"type": <span class="st">"company_name_to_phone"</span>, "input_data": <span class="st">"Tesla"</span>}'</pre></div></div></div>
+                </div>
+
+                <!-- Company → Email -->
+                <div class="endpoint-card">
+                    <div class="endpoint-header" onclick="toggleEndpoint(this)">
+                        <div><div class="endpoint-title-row"><span class="method-badge">POST</span><span class="endpoint-name">company_name_to_email</span></div><div class="endpoint-desc">Get company contact email address from company name</div></div>
+                        <div style="display:flex;align-items:center;gap:.5rem"><span class="credit-pill">1 credit</span><i class="fas fa-chevron-down endpoint-chevron"></i></div>
+                    </div>
+                    <div class="endpoint-body"><div class="code-block-wrap"><div class="code-tabs"><button class="code-tab active" onclick="switchTab(this,'c3-curl')">cURL</button></div><div id="c3-curl" class="code-pane active"><pre class="code-block">curl -X POST "https://api.linkfinderai.com" \
+     -H "Content-Type: application/json" \
+     -H "Authorization: Bearer <span class="st">YOUR_API_KEY</span>" \
+     -d '{"type": <span class="st">"company_name_to_email"</span>, "input_data": <span class="st">"Tesla"</span>}'</pre></div></div></div>
+                </div>
+
+                <!-- Company → Employee Count -->
+                <div class="endpoint-card">
+                    <div class="endpoint-header" onclick="toggleEndpoint(this)">
+                        <div><div class="endpoint-title-row"><span class="method-badge">POST</span><span class="endpoint-name">company_name_to_employee_count</span></div><div class="endpoint-desc">Get total employee count from company name</div></div>
+                        <div style="display:flex;align-items:center;gap:.5rem"><span class="credit-pill">1 credit</span><i class="fas fa-chevron-down endpoint-chevron"></i></div>
+                    </div>
+                    <div class="endpoint-body"><div class="code-block-wrap"><div class="code-tabs"><button class="code-tab active" onclick="switchTab(this,'c4-curl')">cURL</button></div><div id="c4-curl" class="code-pane active"><pre class="code-block">curl -X POST "https://api.linkfinderai.com" \
+     -H "Content-Type: application/json" \
+     -H "Authorization: Bearer <span class="st">YOUR_API_KEY</span>" \
+     -d '{"type": <span class="st">"company_name_to_employee_count"</span>, "input_data": <span class="st">"Tesla"</span>}'</pre></div></div></div>
+                </div>
+
+                <!-- Company → LinkedIn URL -->
+                <div class="endpoint-card">
+                    <div class="endpoint-header" onclick="toggleEndpoint(this)">
+                        <div><div class="endpoint-title-row"><span class="method-badge">POST</span><span class="endpoint-name">company_name_to_linkedin_url</span></div><div class="endpoint-desc">Find company LinkedIn profile URL from company name</div></div>
+                        <div style="display:flex;align-items:center;gap:.5rem"><span class="credit-pill">1 credit</span><i class="fas fa-chevron-down endpoint-chevron"></i></div>
+                    </div>
+                    <div class="endpoint-body"><div class="code-block-wrap"><div class="code-tabs"><button class="code-tab active" onclick="switchTab(this,'c5-curl')">cURL</button></div><div id="c5-curl" class="code-pane active"><pre class="code-block">curl -X POST "https://api.linkfinderai.com" \
+     -H "Content-Type: application/json" \
+     -H "Authorization: Bearer <span class="st">YOUR_API_KEY</span>" \
+     -d '{"type": <span class="st">"company_name_to_linkedin_url"</span>, "input_data": <span class="st">"Tesla"</span>}'</pre></div></div></div>
+                </div>
+
+                <!-- Domain → Employees -->
+                <div class="endpoint-card">
+                    <div class="endpoint-header" onclick="toggleEndpoint(this)">
+                        <div><div class="endpoint-title-row"><span class="method-badge">POST</span><span class="endpoint-name">company_domain_to_employees</span></div><div class="endpoint-desc">Get a filtered list of employees from a company domain — filter by department and seniority</div></div>
+                        <div style="display:flex;align-items:center;gap:.5rem"><span class="credit-pill">1 credit / employee</span><i class="fas fa-chevron-down endpoint-chevron"></i></div>
+                    </div>
+                    <div class="endpoint-body">
+                        <table class="params-table">
+                            <thead><tr><th>Parameter</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+                            <tbody>
+                                <tr><td><code>input_data</code></td><td><code>string</code></td><td><span class="param-req req">Required</span></td><td>Company domain e.g. <code>tesla.com</code></td></tr>
+                                <tr><td><code>department</code></td><td><code>string</code></td><td><span class="param-req opt">Optional</span></td><td>Filter by department e.g. <code>"marketing"</code>, <code>"engineering"</code></td></tr>
+                                <tr><td><code>seniority</code></td><td><code>string</code></td><td><span class="param-req opt">Optional</span></td><td>Filter by seniority e.g. <code>"director"</code>, <code>"manager"</code></td></tr>
+                                <tr><td><code>employee_count</code></td><td><code>integer</code></td><td><span class="param-req opt">Optional</span></td><td>Max results to return</td></tr>
+                            </tbody>
+                        </table>
+                        <div class="code-block-wrap"><div class="code-tabs"><button class="code-tab active" onclick="switchTab(this,'c6-curl')">cURL</button></div><div id="c6-curl" class="code-pane active"><pre class="code-block">curl -X POST "https://api.linkfinderai.com" \
+     -H "Content-Type: application/json" \
+     -H "Authorization: Bearer <span class="st">YOUR_API_KEY</span>" \
+     -d '{
+       <span class="ky">"type"</span>: <span class="st">"company_domain_to_employees"</span>,
+       <span class="ky">"input_data"</span>: <span class="st">"tesla.com"</span>,
+       <span class="ky">"department"</span>: <span class="st">"marketing"</span>,
+       <span class="ky">"seniority"</span>: <span class="st">"director"</span>,
+       <span class="ky">"employee_count"</span>: <span class="nm">20</span>
+     }'</pre></div></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ══ LINKEDIN SCRAPING ══ -->
+            <div class="doc-section" id="linkedin">
+                <h2 class="section-heading"><i class="fab fa-linkedin"></i> LinkedIn Scraping</h2>
+                <p class="section-sub">Scrape LinkedIn profiles, company pages, and posts without using your own LinkedIn account. Zero ban risk.</p>
+
+                <div class="endpoint-card">
+                    <div class="endpoint-header" onclick="toggleEndpoint(this)">
+                        <div><div class="endpoint-title-row"><span class="method-badge">POST</span><span class="endpoint-name">linkedin_profile_to_linkedin_info</span></div><div class="endpoint-desc">Extract full profile data from a LinkedIn profile URL</div></div>
+                        <div style="display:flex;align-items:center;gap:.5rem"><span class="credit-pill">1 credit</span><i class="fas fa-chevron-down endpoint-chevron"></i></div>
+                    </div>
+                    <div class="endpoint-body"><div class="code-block-wrap"><div class="code-tabs"><button class="code-tab active" onclick="switchTab(this,'l1-curl')">cURL</button><button class="code-tab" onclick="switchTab(this,'l1-py')">Python</button></div>
+                    <div id="l1-curl" class="code-pane active"><pre class="code-block">curl -X POST "https://api.linkfinderai.com" \
+     -H "Content-Type: application/json" \
+     -H "Authorization: Bearer <span class="st">YOUR_API_KEY</span>" \
+     -d '{"type": <span class="st">"linkedin_profile_to_linkedin_info"</span>, "input_data": <span class="st">"https://linkedin.com/in/john-doe"</span>}'</pre></div>
+                    <div id="l1-py" class="code-pane"><pre class="code-block">requests.post(url, headers=headers, json={
+    <span class="ky">"type"</span>: <span class="st">"linkedin_profile_to_linkedin_info"</span>,
+    <span class="ky">"input_data"</span>: <span class="st">"https://linkedin.com/in/john-doe"</span>
+})</pre></div></div></div>
+                </div>
+
+                <div class="endpoint-card">
+                    <div class="endpoint-header" onclick="toggleEndpoint(this)">
+                        <div><div class="endpoint-title-row"><span class="method-badge">POST</span><span class="endpoint-name">linkedin_company_to_linkedin_info</span></div><div class="endpoint-desc">Extract detailed company data from a LinkedIn company page URL</div></div>
+                        <div style="display:flex;align-items:center;gap:.5rem"><span class="credit-pill">1 credit</span><i class="fas fa-chevron-down endpoint-chevron"></i></div>
+                    </div>
+                    <div class="endpoint-body"><div class="code-block-wrap"><div class="code-tabs"><button class="code-tab active" onclick="switchTab(this,'l2-curl')">cURL</button></div><div id="l2-curl" class="code-pane active"><pre class="code-block">curl -X POST "https://api.linkfinderai.com" \
+     -H "Content-Type: application/json" \
+     -H "Authorization: Bearer <span class="st">YOUR_API_KEY</span>" \
+     -d '{"type": <span class="st">"linkedin_company_to_linkedin_info"</span>, "input_data": <span class="st">"https://linkedin.com/company/tesla"</span>}'</pre></div></div></div>
+                </div>
+
+                <div class="endpoint-card">
+                    <div class="endpoint-header" onclick="toggleEndpoint(this)">
+                        <div><div class="endpoint-title-row"><span class="method-badge">POST</span><span class="endpoint-name">linkedin_company_to_employee_count</span></div><div class="endpoint-desc">Get employee count from a LinkedIn company page URL</div></div>
+                        <div style="display:flex;align-items:center;gap:.5rem"><span class="credit-pill">1 credit</span><i class="fas fa-chevron-down endpoint-chevron"></i></div>
+                    </div>
+                    <div class="endpoint-body"><div class="code-block-wrap"><div class="code-tabs"><button class="code-tab active" onclick="switchTab(this,'l3-curl')">cURL</button></div><div id="l3-curl" class="code-pane active"><pre class="code-block">curl -X POST "https://api.linkfinderai.com" \
+     -H "Content-Type: application/json" \
+     -H "Authorization: Bearer <span class="st">YOUR_API_KEY</span>" \
+     -d '{"type": <span class="st">"linkedin_company_to_employee_count"</span>, "input_data": <span class="st">"https://linkedin.com/company/tesla"</span>}'</pre></div></div></div>
+                </div>
+
+                <div class="endpoint-card">
+                    <div class="endpoint-header" onclick="toggleEndpoint(this)">
+                        <div><div class="endpoint-title-row"><span class="method-badge">POST</span><span class="endpoint-name">lead_full_name_to_linkedin_url</span></div><div class="endpoint-desc">Find a person's LinkedIn URL from their full name and company</div></div>
+                        <div style="display:flex;align-items:center;gap:.5rem"><span class="credit-pill">1 credit</span><i class="fas fa-chevron-down endpoint-chevron"></i></div>
+                    </div>
+                    <div class="endpoint-body"><div class="code-block-wrap"><div class="code-tabs"><button class="code-tab active" onclick="switchTab(this,'l4-curl')">cURL</button></div><div id="l4-curl" class="code-pane active"><pre class="code-block">curl -X POST "https://api.linkfinderai.com" \
+     -H "Content-Type: application/json" \
+     -H "Authorization: Bearer <span class="st">YOUR_API_KEY</span>" \
+     -d '{"type": <span class="st">"lead_full_name_to_linkedin_url"</span>, "input_data": <span class="st">"Bill Gates Microsoft"</span>}'</pre></div></div></div>
+                </div>
+
+                <div class="endpoint-card">
+                    <div class="endpoint-header" onclick="toggleEndpoint(this)">
+                        <div><div class="endpoint-title-row"><span class="method-badge">POST</span><span class="endpoint-name">linkedin_post_to_reactions</span></div><div class="endpoint-desc">Get a list of people who reacted to a LinkedIn post</div></div>
+                        <div style="display:flex;align-items:center;gap:.5rem"><span class="credit-pill">1 credit / profile</span><i class="fas fa-chevron-down endpoint-chevron"></i></div>
+                    </div>
+                    <div class="endpoint-body"><div class="code-block-wrap"><div class="code-tabs"><button class="code-tab active" onclick="switchTab(this,'l5-curl')">cURL</button></div><div id="l5-curl" class="code-pane active"><pre class="code-block">curl -X POST "https://api.linkfinderai.com" \
+     -H "Content-Type: application/json" \
+     -H "Authorization: Bearer <span class="st">YOUR_API_KEY</span>" \
+     -d '{"type": <span class="st">"linkedin_post_to_reactions"</span>, "input_data": <span class="st">"https://www.linkedin.com/feed/update/urn:li:activity:1234567890"</span>}'</pre></div></div></div>
+                </div>
+            </div>
+
+            <!-- ══ INSTAGRAM ══ -->
+            <div class="doc-section" id="instagram">
+                <h2 class="section-heading"><i class="fab fa-instagram"></i> Instagram Scraping</h2>
+                <p class="section-sub">Extract profile data from public Instagram accounts.</p>
+                <div class="endpoint-card">
+                    <div class="endpoint-header" onclick="toggleEndpoint(this)">
+                        <div><div class="endpoint-title-row"><span class="method-badge">POST</span><span class="endpoint-name">instagram_profile_to_instagram_info</span></div><div class="endpoint-desc">Extract followers, bio, posts, and profile details from any public Instagram account</div></div>
+                        <div style="display:flex;align-items:center;gap:.5rem"><span class="credit-pill">1 credit</span><i class="fas fa-chevron-down endpoint-chevron"></i></div>
+                    </div>
+                    <div class="endpoint-body"><div class="code-block-wrap"><div class="code-tabs"><button class="code-tab active" onclick="switchTab(this,'ig-curl')">cURL</button><button class="code-tab" onclick="switchTab(this,'ig-py')">Python</button></div>
+                    <div id="ig-curl" class="code-pane active"><pre class="code-block">curl -X POST "https://api.linkfinderai.com" \
+     -H "Content-Type: application/json" \
+     -H "Authorization: Bearer <span class="st">YOUR_API_KEY</span>" \
+     -d '{"type": <span class="st">"instagram_profile_to_instagram_info"</span>, "input_data": <span class="st">"https://www.instagram.com/username"</span>}'</pre></div>
+                    <div id="ig-py" class="code-pane"><pre class="code-block">requests.post(url, headers=headers, json={
+    <span class="ky">"type"</span>: <span class="st">"instagram_profile_to_instagram_info"</span>,
+    <span class="ky">"input_data"</span>: <span class="st">"https://www.instagram.com/username"</span>
+})</pre></div></div></div>
+                </div>
+            </div>
+
+            <!-- ══ ERRORS ══ -->
+            <div class="doc-section" id="errors">
+                <h2 class="section-heading"><i class="fas fa-exclamation-circle"></i> Error Codes</h2>
+                <p class="section-sub">All errors return a JSON body with <code>status: "error"</code> and a <code>message</code> field.</p>
+                <table class="errors-table">
+                    <thead><tr><th>HTTP Code</th><th>Meaning</th><th>What to do</th></tr></thead>
+                    <tbody>
+                        <tr><td><span class="http-code ok">200</span></td><td>Success</td><td>Check <code>result</code> field — may be <code>null</code> if data wasn't found (still costs 1 credit)</td></tr>
+                        <tr><td><span class="http-code err4">401</span></td><td>Unauthorized</td><td>Missing or invalid API key — check your Authorization header</td></tr>
+                        <tr><td><span class="http-code err4">402</span></td><td>Insufficient credits</td><td>Top up credits or wait for next billing cycle</td></tr>
+                        <tr><td><span class="http-code err4">422</span></td><td>Invalid request</td><td>Check the <code>type</code> value and <code>input_data</code> format</td></tr>
+                        <tr><td><span class="http-code err4">429</span></td><td>Rate limit exceeded</td><td>Implement exponential backoff — wait 1s, 2s, 4s between retries</td></tr>
+                        <tr><td><span class="http-code err5">500</span></td><td>Server error</td><td>Retry after 30 seconds. If persistent, contact support</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- ══ INTEGRATIONS ══ -->
+            <div class="doc-section" id="zapier">
+                <h2 class="section-heading"><i class="fas fa-bolt"></i> Integrations</h2>
+                <p class="section-sub">Connect LinkFinder AI to your CRM, automation tools, and data pipelines. No code required for Zapier and Make.</p>
+
+                <div class="info-box blue" style="margin-bottom:1.5rem">
+                    <i class="fas fa-rocket"></i>
+                    <div><strong>Zapier is the fastest path to CRM integration.</strong> One Zapier connection unlocks HubSpot, Salesforce, Pipedrive, Airtable, Google Sheets, and 6,000+ other apps — without writing custom integration code for each one.</div>
+                </div>
+
+                <div class="integration-grid">
+                    <div class="integration-card">
+                        <div class="integration-icon">⚡</div>
+                        <div class="integration-name">Zapier</div>
+                        <div class="integration-status soon">Coming soon</div>
+                    </div>
+                    <div class="integration-card">
+                        <div class="integration-icon">🔧</div>
+                        <div class="integration-name">Make (Integromat)</div>
+                        <div class="integration-status soon">Coming soon</div>
+                    </div>
+                    <div class="integration-card coming-soon">
+                        <div class="integration-icon">🟠</div>
+                        <div class="integration-name">HubSpot</div>
+                        <div class="integration-status soon">Planned</div>
+                    </div>
+                    <div class="integration-card coming-soon">
+                        <div class="integration-icon">☁️</div>
+                        <div class="integration-name">Salesforce</div>
+                        <div class="integration-status soon">Planned</div>
+                    </div>
+                    <div class="integration-card coming-soon">
+                        <div class="integration-icon">🔵</div>
+                        <div class="integration-name">Pipedrive</div>
+                        <div class="integration-status soon">Planned</div>
+                    </div>
+                    <div class="integration-card coming-soon">
+                        <div class="integration-icon">🌊</div>
+                        <div class="integration-name">n8n</div>
+                        <div class="integration-status soon">Planned</div>
+                    </div>
+                </div>
+
+                <p style="font-size:0.875rem;color:var(--gray-600);margin-bottom:1.25rem">In the meantime, you can use the REST API directly with any HTTP action in Zapier or Make — no native integration needed.</p>
+
+                <div class="code-block-wrap">
+                    <div class="code-tabs"><button class="code-tab active" onclick="switchTab(this,'zap-curl')">Zapier HTTP Action</button><button class="code-tab" onclick="switchTab(this,'zap-make')">Make HTTP Module</button></div>
+                    <div id="zap-curl" class="code-pane active"><pre class="code-block"><span class="cm"># In Zapier: "Webhooks by Zapier" → POST action</span>
+URL:     https://api.linkfinderai.com
+Method:  POST
+Headers: Authorization: Bearer YOUR_API_KEY
+         Content-Type: application/json
+Body:    {"type": "company_name_to_website", "input_data": "{{company_name}}"}</pre></div>
+                    <div id="zap-make" class="code-pane"><pre class="code-block"><span class="cm"># In Make: HTTP → Make a request module</span>
+URL:     https://api.linkfinderai.com
+Method:  POST
+Headers: Authorization: Bearer YOUR_API_KEY
+Body:    JSON - {"type": "company_name_to_website", "input_data": "{{company}}"}</pre></div>
+                </div>
+
+                <div class="info-box green" style="margin-top:.75rem">
+                    <i class="fas fa-envelope"></i>
+                    <div>Want a native integration built faster? <a href="mailto:support@unlimited-leads.online" style="color:#166534;font-weight:600">Email us</a> — we prioritise integrations based on customer demand.</div>
+                </div>
+            </div>
+
         </div>
     </div>
+</div>
 
-    <div class="contact-section">
-        <div class="container">
-            <h3>
-                <i class="fas fa-question-circle"></i>
-                Need Help?
-            </h3>
-            <p>Questions or issues? Contact us at <strong><a href="mailto:support@unlimited-leads.online">support@unlimited-leads.online</a></strong></p>
-        </div>
-    </div>
+<script>
+function switchTab(btn, paneId) {
+    const wrap = btn.closest('.code-block-wrap');
+    wrap.querySelectorAll('.code-tab').forEach(t => t.classList.remove('active'));
+    wrap.querySelectorAll('.code-pane').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById(paneId).classList.add('active');
+}
 
+function toggleEndpoint(header) {
+    const card = header.closest('.endpoint-card');
+    card.classList.toggle('open');
+}
+
+// Highlight active sidebar link on scroll
+const sections = document.querySelectorAll('.doc-section');
+const links = document.querySelectorAll('.sidebar-link');
+const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+        if (entry.isIntersecting) {
+            links.forEach(l => l.classList.remove('active'));
+            const id = entry.target.id;
+            const active = document.querySelector(`.sidebar-link[href="#${id}"]`);
+            if (active) active.classList.add('active');
+        }
+    });
+}, { rootMargin: '-20% 0px -70% 0px' });
+sections.forEach(s => observer.observe(s));
+</script>
 </body>
 </html>
