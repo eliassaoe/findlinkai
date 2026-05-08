@@ -844,7 +844,7 @@ async function enrichData(event) {
         if (currentOutputType==='reactions'&&Array.isArray(data)&&data.length>0) { deductCredits(data.length); showSingleResultReactions(inputValue,data); return; }
         if (currentOutputType==='employee_count') { deductCredits(getCreditCost(currentInputType,currentOutputType)); showSingleResultEmployeeCount(inputValue,data); return; }
         if (currentOutputType==='employees'&&Array.isArray(data)&&data.length>0) { deductCredits(data.length*0.5); showSingleResultEmployees(inputValue,data); return; }
-        if (response.status===403&&data.code===403) { showInsufficientCreditsModal(); return; }
+        if (response.status===403&&data.code===403) {  try { posthog.capture('credits_exhausted', { input_type: currentInputType, output_type: currentOutputType, credits_remaining: currentCredits }); } catch(e) {} showInsufficientCreditsModal(); return; }
         if (response.ok&&data&&(data.result||data.name)) {
             deductCredits(getCreditCost(currentInputType,currentOutputType));
             if (data.name&&!data.result) showSingleResult(inputValue,data);
@@ -906,8 +906,12 @@ async function processBulk() {
                         if(data.result) deductCredits(getCreditCost(currentInputType,currentOutputType));
                     }
                 } else {
-                    const data=await response.json();
-                    if(response.status===403&&data.code===403){showInsufficientCreditsModal();return;}
+    const data = await response.json();
+    if (response.status === 403 && data.code === 403) {
+        try { posthog.capture('credits_exhausted', { source: 'bulk', input_type: currentInputType, output_type: currentOutputType, credits_remaining: currentCredits }); } catch(e) {}
+        showInsufficientCreditsModal();
+        return;
+    }
                     bulkResults[i]={inputData:row.inputData,result:'Not found',status:'Not found'};
                 }
             } catch(e) { bulkResults[i]={inputData:row.inputData,result:'Error',status:'Error'}; }
