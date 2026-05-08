@@ -870,31 +870,63 @@ function parseReactionTitle(title) {
 
 async function enrichData(event) {
     event.preventDefault();
-    posthog.capture('enrich_started', { input_type: currentInputType, output_type: currentOutputType });
+ 
+    const submitBtn = event.target.querySelector('button[type="submit"]');
+    const originalBtnHTML = submitBtn.innerHTML;
+ 
+    // Disable immediately — prevents duplicate submissions
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Finding results…';
+    submitBtn.style.opacity = '0.8';
+ 
+    const restoreBtn = () => {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalBtnHTML;
+        submitBtn.style.opacity = '';
+    };
+ 
+    try {
+        posthog.capture('enrich_started', { input_type: currentInputType, output_type: currentOutputType });
+    } catch(e) {}
+ 
     const inputValue = document.getElementById('inputData').value.trim();
-    if (!inputValue) return;
+    if (!inputValue) { restoreBtn(); return; }
+ 
     if (currentInputType === 'linkedin_profile' && !inputValue.toLowerCase().includes('linkedin.com/in/')) {
-        showAlert('Please enter a valid LinkedIn Profile URL (must start with linkedin.com/in/)', 'error'); return;
+        showAlert('Please enter a valid LinkedIn Profile URL (must start with linkedin.com/in/)', 'error');
+        restoreBtn(); return;
     } else if (currentInputType === 'linkedin_post' && !inputValue.toLowerCase().includes('linkedin.com/posts/')) {
-        showAlert('Please enter a valid LinkedIn Post URL (must include linkedin.com/posts/)', 'error'); return;
+        showAlert('Please enter a valid LinkedIn Post URL (must include linkedin.com/posts/)', 'error');
+        restoreBtn(); return;
     } else if (currentInputType === 'linkedin_company' && !inputValue.toLowerCase().includes('linkedin.com/company/')) {
-        showAlert('Please enter a valid LinkedIn Company URL (must include linkedin.com/company/)', 'error'); return;
+        showAlert('Please enter a valid LinkedIn Company URL (must include linkedin.com/company/)', 'error');
+        restoreBtn(); return;
     }
+ 
     showLoading();
+ 
     try {
         const response = await fetchWithTimeout('https://linkfinderapp.hamoureliasse.workers.dev/', {
-            method: 'POST', headers: {'Content-Type':'application/json'},
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 type: generateCombinationType(currentInputType, currentOutputType),
                 input_data: inputValue,
-                department: (currentOutputType === 'employees' && (currentInputType === 'company_domain' || currentInputType === 'linkedin_company')) ? (document.getElementById('optionalDepartment').value.trim() || 'all') : undefined,
-                seniority: (currentOutputType === 'employees' && (currentInputType === 'company_domain' || currentInputType === 'linkedin_company')) ? (document.getElementById('optionalSeniority').value.trim() || 'all') : undefined,
-                employee_count: (currentOutputType === 'employees' && (currentInputType === 'company_domain' || currentInputType === 'linkedin_company')) ? (parseInt(document.getElementById('optionalEmployeeCount').value) || null) : undefined,
-                output_type: currentOutputType, token: userToken, is_bulk: false
+                department: (currentOutputType === 'employees' && (currentInputType === 'company_domain' || currentInputType === 'linkedin_company'))
+                    ? (document.getElementById('optionalDepartment').value.trim() || 'all') : undefined,
+                seniority: (currentOutputType === 'employees' && (currentInputType === 'company_domain' || currentInputType === 'linkedin_company'))
+                    ? (document.getElementById('optionalSeniority').value.trim() || 'all') : undefined,
+                employee_count: (currentOutputType === 'employees' && (currentInputType === 'company_domain' || currentInputType === 'linkedin_company'))
+                    ? (parseInt(document.getElementById('optionalEmployeeCount').value) || null) : undefined,
+                output_type: currentOutputType,
+                token: userToken,
+                is_bulk: false
             })
         });
+ 
         const data = await response.json();
         hideLoading();
+ 
         if (currentOutputType === 'reactions' && Array.isArray(data) && data.length > 0) {
             deductCredits(data.length); showSingleResultReactions(inputValue, data); return;
         }
@@ -909,9 +941,18 @@ async function enrichData(event) {
             deductCredits(getCreditCost(currentInputType, currentOutputType));
             if (data.name && !data.result) { showSingleResult(inputValue, data); }
             else { showSingleResult(inputValue, data.result || 'Not found'); }
-        } else { showSingleResult(inputValue, 'Not found'); }
+        } else {
+            showSingleResult(inputValue, 'Not found');
+        }
+ 
+        // Show automation nudge after successful result
+        showAutomationNudge(currentInputType, currentOutputType);
+ 
     } catch (error) {
-        hideLoading(); showAlert('Enrichment error. Please try again.', 'error');
+        hideLoading();
+        showAlert('Enrichment error — please try again.', 'error');
+    } finally {
+        restoreBtn();
     }
 }
 
