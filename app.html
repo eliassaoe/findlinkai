@@ -646,36 +646,22 @@ function renderPlansGrid() {
 
 function proceedToCheckoutDirect(index, btnEl) {
     const plan = plans[index];
- 
-    if (btnEl) {
-        btnEl.textContent = 'Opening checkout…';
-        btnEl.disabled = true;
-        setTimeout(() => {
-            btnEl.textContent = 'Get Started';
-            btnEl.disabled = false;
-        }, 5000);
-    }
- 
-    try { posthog.capture('plan_selected', { plan: plan.name, billing: isAnnualBilling ? 'annual' : 'monthly', credits_remaining: currentCredits }); } catch(e) {}
+    
+    // Loading state
+    if (btnEl) { btnEl.textContent = 'Opening checkout...'; btnEl.disabled = true; }
+    setTimeout(() => { if (btnEl) { btnEl.textContent = 'Get Started'; btnEl.disabled = false; } }, 5000);
+
+    try { posthog.capture('plan_selected', { plan: plan.name, billing: isAnnualBilling ? 'annual' : 'monthly' }); } catch(e) {}
     try { if (typeof plausible !== 'undefined') plausible('Plan Selected', { props: { plan: plan.name } }); } catch(e) {}
- 
-    if (!userToken) {
-        alert('Session expired — please refresh and try again.');
-        if (btnEl) { btnEl.textContent = 'Get Started'; btnEl.disabled = false; }
-        return;
-    }
- 
+
+    if (!userToken) { alert('Session expired — please refresh and try again.'); return; }
+
     const baseUrl = isAnnualBilling ? plan.annualGumroadLink : plan.monthlyGumroadLink;
     const url = addGclid(baseUrl + '?wanted=true&user_id=' + userToken);
- 
-    // window.open first — avoids CSP navigation blocks on window.location.href
+
     const w = window.open(url, '_blank');
-    if (!w || w.closed || typeof w.closed === 'undefined') {
-        // Popup blocked — fall back to same-tab redirect
-        window.location.href = url;
-    }
+    if (!w || w.closed) window.location.href = url;
 }
- 
 
 function setBilling(type) {
     isAnnualBilling = (type === 'annual');
@@ -1315,40 +1301,24 @@ function showPreview() {
     const preview = csvData.slice(0, 5);
     let html = '<div style="background:var(--gray-50);padding:0.75rem;border-radius:6px;font-size:0.875rem;">';
     const hasCompany = currentInputType === 'lead_full_name' && preview.some(r => r.company);
- 
     if (hasCompany) {
         html += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;font-weight:600;color:var(--gray-500);font-size:0.75rem;text-transform:uppercase;margin-bottom:0.5rem;padding-bottom:0.25rem;border-bottom:1px solid var(--gray-200);"><span>Name</span><span>Company</span></div>`;
-        preview.forEach(row => {
-            html += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;padding:0.25rem 0;"><span>${row.name}</span><span style="color:var(--gray-500);">${row.company || '—'}</span></div>`;
-        });
+        preview.forEach(row => { html += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;padding:0.25rem 0;"><span>${row.name}</span><span style="color:var(--gray-500);">${row.company || '—'}</span></div>`; });
     } else {
         preview.forEach(row => { html += `<div style="padding:0.25rem 0;">${row.inputData}</div>`; });
     }
     html += '</div>';
- 
-    // Success confirmation banner — was completely missing, caused bulk abandonment
-    const successBanner = `
-        <div style="display:flex;align-items:center;gap:0.625rem;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1rem;">
-            <i class="fas fa-check-circle" style="color:#10b981;font-size:1rem;flex-shrink:0;"></i>
-            <div>
-                <div style="font-weight:600;color:#065f46;font-size:0.875rem;">
-                    CSV uploaded — ${csvData.length} row${csvData.length === 1 ? '' : 's'} ready to process
-                </div>
-                <div style="font-size:0.75rem;color:#047857;margin-top:1px;">
-                    Showing first 5 rows below. Click Process to start.
-                </div>
-            </div>
-        </div>`;
- 
-    if (hasCompany) {
-        html += `<p style="font-size:0.75rem;color:var(--success);margin-top:0.5rem;margin-bottom:0.75rem;"><i class="fas fa-check-circle"></i> Company column detected — will be combined with name automatically.</p>`;
-    }
- 
-    document.getElementById('previewTable').innerHTML = successBanner + html;
+    if (hasCompany) html += `<p style="font-size:0.75rem;color:var(--success);margin-top:0.5rem;"><i class="fas fa-check-circle"></i> Company column detected — will be combined with name automatically.</p>`;
+    document.getElementById('previewTable').innerHTML = html;
+    const itemCountElement = document.getElementById('itemCount');
+    if (itemCountElement) itemCountElement.textContent = csvData.length;
     document.getElementById('csvPreview').classList.remove('hidden');
- 
-    // Scroll to preview so user sees the confirmation
-    document.getElementById('csvPreview').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function showProgress() { document.getElementById('progressContainer').classList.remove('hidden'); document.getElementById('progressBar').style.width = '0%'; }
+function updateProgress(percent) {
+    document.getElementById('progressBar').style.width = `${percent}%`;
+    if (percent >= 100) setTimeout(() => document.getElementById('progressContainer').classList.add('hidden'), 10000);
 }
 
 function initializeBulkResultsTable() {
@@ -1581,33 +1551,6 @@ const creditPackLinks = {
     'growth':  'https://linkfinderai.gumroad.com/l/vwwvxi?wanted=true',
     'pro':     'https://linkfinderai.gumroad.com/l/ryedf?wanted=true',
 };
-
-function downloadExampleCSV() {
-    const config = dataConfigurations[currentInputType];
-    if (!config) { showAlert('Please select an input type first.', 'error'); return; }
- 
-    const examples = {
-        'company_name':      'company_name\nTesla\nApple\nMicrosoft\nStripe\nNotion',
-        'company_domain':    'company_domain\ntesla.com\napple.com\nmicrosoft.com\nstripe.com\nnotion.so',
-        'linkedin_company':  'linkedin_company_url\nhttps://linkedin.com/company/tesla\nhttps://linkedin.com/company/apple\nhttps://linkedin.com/company/microsoft',
-        'linkedin_profile':  'linkedin_profile_url\nhttps://linkedin.com/in/satya-nadella\nhttps://linkedin.com/in/jeff-weiner',
-        'linkedin_post':     'linkedin_post_url\nhttps://www.linkedin.com/posts/example-post-url',
-        'email':             'email\njohn.doe@tesla.com\njane.smith@apple.com',
-        'lead_full_name':    'name,company\nSatya Nadella,Microsoft\nJeff Weiner,LinkedIn\nSarah Johnson,Salesforce',
-    };
- 
-    const csvContent = examples[currentInputType] || 'input\nexample_value';
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `example_${currentInputType}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
- 
-    try { posthog.capture('example_csv_downloaded', { input_type: currentInputType }); } catch(e) {}
-}
-    
 function buyCredits(pack, price) {
     const baseUrl = creditPackLinks[pack];
     if (!baseUrl) { alert('Contact support to add credits manually.'); return; }
