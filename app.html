@@ -311,7 +311,8 @@
     <div class="container">
         <div class="nav-tabs">
             <a href="#" class="nav-tab active" data-page="enrichment"><i class="fas fa-search"></i> Data Enrichment</a>
-            <a href="#" class="nav-tab" data-page="leads"><i class="fas fa-users"></i> LinkedIn Leads</a>
+            <!-- FIX 3: SOON badge stops rage-clicks on unbuilt feature -->
+            <a href="#" class="nav-tab" data-page="leads"><i class="fas fa-users"></i> LinkedIn Leads <span style="font-size:0.65rem;background:#f59e0b;color:white;padding:0.1rem 0.35rem;border-radius:3px;margin-left:0.25rem;font-weight:700;">SOON</span></a>
             <a href="#" class="nav-tab" data-page="api"><i class="fas fa-code"></i> API Access</a>
             <a href="#" class="nav-tab" data-page="account"><i class="fas fa-user"></i> Account</a>
         </div>
@@ -364,7 +365,8 @@
                 </div>
                 <div class="form-field">
                     <label class="form-label">I want to find</label>
-                    <select id="outputType" class="form-select">
+                    <!-- FIX 6b: starts disabled — enabled by setupDropdowns when inputType chosen -->
+                    <select id="outputType" class="form-select" disabled>
                         <option value="">Select first option...</option>
                     </select>
                 </div>
@@ -443,7 +445,6 @@
                 <input type="file" id="csvFile" accept=".csv" class="hidden">
                 <button type="button" class="btn" onclick="document.getElementById('csvFile').click()"><i class="fas fa-file-csv"></i> Select File</button>
             </div>
-            <!-- PATCH: Example CSV download + API hint row -->
             <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem;margin-top:0.875rem;">
                 <div class="bulk-api-hint" style="margin-top:0;">
                     Running this regularly? <a href="#" onclick="navigateToPage('api');return false;">connect via API</a> and automate it
@@ -457,7 +458,8 @@
             </div>
             <div id="csvPreview" class="hidden">
                 <div id="previewTable"></div>
-                <button onclick="processBulk()" class="btn btn-full" id="processBulkBtn"><i class="fas fa-play"></i> Process Items</button>
+                <!-- FIX 2: starts disabled — enabled by showPreview() after CSV validated -->
+                <button onclick="processBulk()" class="btn btn-full" id="processBulkBtn" disabled style="opacity:0.5;"><i class="fas fa-upload"></i> Upload a CSV file first</button>
             </div>
         </div>
 
@@ -663,7 +665,6 @@ function renderPlansGrid() {
     }).join('');
 }
 
-// PATCH: Fixed checkout — loading state + window.open + null check
 function proceedToCheckoutDirect(index, btnEl) {
     const plan = plans[index];
     if (btnEl) { btnEl.textContent = 'Opening checkout…'; btnEl.disabled = true; setTimeout(() => { btnEl.textContent = 'Get Started'; btnEl.disabled = false; }, 5000); }
@@ -676,21 +677,25 @@ function proceedToCheckoutDirect(index, btnEl) {
     if (!w || w.closed || typeof w.closed==='undefined') window.location.href = url;
 }
 
+// FIX 2: Track billing toggle + remember user's preference
 function setBilling(type) {
     isAnnualBilling = (type==='annual');
     document.getElementById('monthlyBtn').classList.toggle('active', !isAnnualBilling);
     document.getElementById('annualBtn').classList.toggle('active', isAnnualBilling);
     renderPlansGrid();
+    try { posthog.capture('billing_toggle', { selected: type }); } catch(e) {}
 }
 
+// FIX 1: Don't reset billing preference to annual on every open
 function showPricingModal() {
     try { window.uetq=window.uetq||[]; window.uetq.push('event','begin_checkout',{}); } catch(e) {}
-    isAnnualBilling = true;
-    document.getElementById('monthlyBtn').classList.remove('active');
-    document.getElementById('annualBtn').classList.add('active');
+    // Respect user's last billing toggle — don't reset to annual every time
+    document.getElementById('monthlyBtn').classList.toggle('active', !isAnnualBilling);
+    document.getElementById('annualBtn').classList.toggle('active', isAnnualBilling);
     document.getElementById('pricingModal').classList.add('show');
     document.body.style.overflow = 'hidden';
     renderPlansGrid();
+    try { posthog.capture('pricing_modal_opened', { credits_remaining: currentCredits }); } catch(e) {}
 }
 
 function closePricingModal() {
@@ -735,6 +740,8 @@ function setupDropdowns() {
     const outputSel = document.getElementById('outputType');
     populateOutputOptions(null);
     inputSel.addEventListener('change', function() {
+        // FIX 6b: Enable output selector only when input type is chosen — stops rage-clicks
+        outputSel.disabled = !this.value;
         const sel = this.value;
         const prev = outputSel.value;
         if (sel && dataConfigurations[sel]) {
@@ -811,7 +818,6 @@ function parseReactionTitle(title) {
     return {name:parts[0].trim(), jobInfo:parts.slice(1).join(' - ').trim()};
 }
 
-// PATCH: Enrich button — loading state + duplicate prevention
 async function enrichData(event) {
     event.preventDefault();
     const submitBtn = event.target.querySelector('button[type="submit"]');
@@ -844,7 +850,7 @@ async function enrichData(event) {
         if (currentOutputType==='reactions'&&Array.isArray(data)&&data.length>0) { deductCredits(data.length); showSingleResultReactions(inputValue,data); return; }
         if (currentOutputType==='employee_count') { deductCredits(getCreditCost(currentInputType,currentOutputType)); showSingleResultEmployeeCount(inputValue,data); return; }
         if (currentOutputType==='employees'&&Array.isArray(data)&&data.length>0) { deductCredits(data.length*0.5); showSingleResultEmployees(inputValue,data); return; }
-        if (response.status===403&&data.code===403) {  try { posthog.capture('credits_exhausted', { input_type: currentInputType, output_type: currentOutputType, credits_remaining: currentCredits }); } catch(e) {} showInsufficientCreditsModal(); return; }
+        if (response.status===403&&data.code===403) { try { posthog.capture('credits_exhausted', { input_type: currentInputType, output_type: currentOutputType, credits_remaining: currentCredits }); } catch(e) {} showInsufficientCreditsModal(); return; }
         if (response.ok&&data&&(data.result||data.name)) {
             deductCredits(getCreditCost(currentInputType,currentOutputType));
             if (data.name&&!data.result) showSingleResult(inputValue,data);
@@ -906,12 +912,12 @@ async function processBulk() {
                         if(data.result) deductCredits(getCreditCost(currentInputType,currentOutputType));
                     }
                 } else {
-    const data = await response.json();
-    if (response.status === 403 && data.code === 403) {
-        try { posthog.capture('credits_exhausted', { source: 'bulk', input_type: currentInputType, output_type: currentOutputType, credits_remaining: currentCredits }); } catch(e) {}
-        showInsufficientCreditsModal();
-        return;
-    }
+                    const data = await response.json();
+                    if (response.status === 403 && data.code === 403) {
+                        try { posthog.capture('credits_exhausted', { source: 'bulk', input_type: currentInputType, output_type: currentOutputType, credits_remaining: currentCredits }); } catch(e) {}
+                        showInsufficientCreditsModal();
+                        return;
+                    }
                     bulkResults[i]={inputData:row.inputData,result:'Not found',status:'Not found'};
                 }
             } catch(e) { bulkResults[i]={inputData:row.inputData,result:'Error',status:'Error'}; }
@@ -945,6 +951,12 @@ function handleBeforeUnload(e){if(isBulkProcessing){e.preventDefault();e.returnV
 document.addEventListener('DOMContentLoaded',()=>{
     checkAuth(); fetchCredits(); setupFileUpload(); setupDragAndDrop();
     setupNavigation(); setupModalEvents(); setupDropdowns(); showReviewNotification();
+    // FIX 2: Process Items disabled until CSV is successfully loaded
+    const pb=document.getElementById('processBulkBtn');
+    pb.disabled=true; pb.style.opacity='0.5';
+    pb.innerHTML='<i class="fas fa-upload"></i> Upload a CSV file first';
+    // FIX 6b: Output selector disabled until input type is chosen
+    document.getElementById('outputType').disabled=true;
 });
 
 function setupModalEvents(){
@@ -969,12 +981,23 @@ function navigateToPage(page){
     switch(page){
         case 'api': window.location.href=addGclid(`https://linkfinderai.com/api-access?token=${userToken}`); break;
         case 'account': window.location.href=addGclid(`https://linkfinderai.com/account?token=${userToken}`); break;
-        case 'leads': window.location.href=addGclid(`https://linkfinderai.com/app-linkedin-leads?token=${userToken}`); break;
+        // FIX 3: Show toast instead of redirecting to unbuilt page
+        case 'leads':
+            showAlert('LinkedIn Leads is launching soon — you\'ll be notified by email!', 'warning');
+            document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+            document.querySelector('[data-page="enrichment"]').classList.add('active');
+            try { posthog.capture('leads_tab_clicked_waitlist'); } catch(e) {}
+            break;
     }
 }
 
+// FIX 9: Catch OAuth server errors before auth flow
 function checkAuth(){
     const p=new URLSearchParams(window.location.search);
+    if(p.get('error')==='server_error'||p.get('error_description')){
+        window.location.href='https://linkfinderai.com/?auth_error=1';
+        return;
+    }
     let token=p.get('token');
     if(!token){token=localStorage.getItem('linkFinderToken');}
     else{localStorage.setItem('linkFinderToken',token);}
@@ -1131,7 +1154,6 @@ function parseCSV(csvText){
     showPreview();
 }
 
-// PATCH: Success confirmation banner — scrollIntoView REMOVED (was breaking progress bar)
 function showPreview(){
     const preview=csvData.slice(0,5);
     const hasCompany=currentInputType==='lead_full_name'&&preview.some(r=>r.company);
@@ -1144,11 +1166,14 @@ function showPreview(){
     }
     previewHtml+='</div>';
     if(hasCompany) previewHtml+=`<p style="font-size:0.75rem;color:var(--success);margin-top:0.5rem;margin-bottom:0.75rem;"><i class="fas fa-check-circle"></i> Company column detected — will be combined with name automatically.</p>`;
-
     const successBanner=`<div style="display:flex;align-items:center;gap:0.625rem;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1rem;"><i class="fas fa-check-circle" style="color:#10b981;font-size:1rem;flex-shrink:0;"></i><div><div style="font-weight:600;color:#065f46;font-size:0.875rem;">CSV uploaded — ${csvData.length} row${csvData.length===1?'':'s'} ready to process</div><div style="font-size:0.75rem;color:#047857;margin-top:1px;">Showing first 5 rows below. Click Process to start.</div></div></div>`;
-
     document.getElementById('previewTable').innerHTML=successBanner+previewHtml;
+    // FIX 2: Enable Process Items now that CSV is confirmed valid
+    const btn=document.getElementById('processBulkBtn');
+    btn.disabled=false; btn.style.opacity='1';
+    btn.innerHTML=`<i class="fas fa-play"></i> Process ${csvData.length} items`;
     document.getElementById('csvPreview').classList.remove('hidden');
+    try { posthog.capture('csv_uploaded', { row_count: csvData.length, input_type: currentInputType }); } catch(e) {}
 }
 
 function initializeBulkResultsTable(){
@@ -1273,7 +1298,6 @@ function closeBuyCreditsModal(){document.getElementById('buyCreditsModal').class
 
 const creditPackLinks={'starter':'https://linkfinderai.gumroad.com/l/evkit?wanted=true','popular':'https://linkfinderai.gumroad.com/l/avpnoy?wanted=true','growth':'https://linkfinderai.gumroad.com/l/vwwvxi?wanted=true','pro':'https://linkfinderai.gumroad.com/l/ryedf?wanted=true'};
 
-// PATCH: Example CSV download
 function downloadExampleCSV(){
     const config=dataConfigurations[currentInputType];
     if(!config){showAlert('Please select an input type first.','error');return;}
@@ -1290,15 +1314,27 @@ function buyCredits(pack,price){
     window.location.href=addGclid(`${baseUrl}?wanted=true&user_id=${userToken}`);
 }
 
+// FIX 4+5: Fixed focus timing + auto-submit on quickstart
 function quickStart(inputType,outputType,exampleData){
     const qs=document.getElementById('quickstartSection');if(qs)qs.style.display='none';
     const inputSel=document.getElementById('inputType');inputSel.value=inputType;inputSel.dispatchEvent(new Event('change'));
     setTimeout(()=>{
         const outputSel=document.getElementById('outputType');outputSel.value=inputType+'__'+outputType;outputSel.dispatchEvent(new Event('change'));
         setTimeout(()=>{
-            const f=document.getElementById('inputData');if(f&&exampleData){f.value=exampleData;f.focus();f.select();}
+            const f=document.getElementById('inputData');
+            if(f&&exampleData){
+                f.value=exampleData;
+                // FIX 4: Extra delay ensures DOM is fully settled before focus
+                setTimeout(()=>{f.focus();f.select();},150);
+            }
             const eb=document.querySelector('#singleSearch button[type="submit"]');
-            if(eb){eb.style.transition='box-shadow 0.3s ease';eb.style.boxShadow='0 0 0 4px rgba(37,99,235,0.35)';setTimeout(()=>{eb.style.boxShadow='';},2500);}
+            if(eb){
+                eb.style.transition='box-shadow 0.3s ease';
+                eb.style.boxShadow='0 0 0 4px rgba(37,99,235,0.35)';
+                setTimeout(()=>{eb.style.boxShadow='';},2500);
+                // FIX 5: Auto-submit — delivers on "click to try instantly" promise
+                setTimeout(()=>{eb.click();},300);
+            }
         },120);
     },60);
     try{posthog.capture('quickstart_used',{input_type:inputType,output_type:outputType});}catch(e){}
