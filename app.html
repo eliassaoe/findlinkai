@@ -846,14 +846,15 @@ async function enrichData(event) {
         });
         const data = await response.json();
         hideLoading();
-        if (currentOutputType==='reactions'&&Array.isArray(data)&&data.length>0) { deductCredits(data.length); showSingleResultReactions(inputValue,data); return; }
-        if (currentOutputType==='employee_count') { deductCredits(getCreditCost(currentInputType,currentOutputType)); showSingleResultEmployeeCount(inputValue,data); return; }
-        if (currentOutputType==='employees'&&Array.isArray(data)&&data.length>0) { deductCredits(data.length*0.5); showSingleResultEmployees(inputValue,data); return; }
+        if (currentOutputType==='reactions'&&Array.isArray(data)&&data.length>0) { deductCredits(data.length); showSingleResultReactions(inputValue,data); checkEnrichmentMilestone(); return; }
+        if (currentOutputType==='employee_count') { deductCredits(getCreditCost(currentInputType,currentOutputType)); showSingleResultEmployeeCount(inputValue,data); checkEnrichmentMilestone(); return; }
+        if (currentOutputType==='employees'&&Array.isArray(data)&&data.length>0) { deductCredits(data.length*0.5); showSingleResultEmployees(inputValue,data); checkEnrichmentMilestone(); return; }
         if (response.status===403&&data.code===403) { try { posthog.capture('credits_exhausted', { input_type: currentInputType, output_type: currentOutputType, credits_remaining: currentCredits }); } catch(e) {} showInsufficientCreditsModal(); return; }
         if (response.ok&&data&&(data.result||data.name)) {
             deductCredits(getCreditCost(currentInputType,currentOutputType));
             if (data.name&&!data.result) showSingleResult(inputValue,data);
             else showSingleResult(inputValue, data.result||'Not found');
+            checkEnrichmentMilestone();
         } else { showSingleResult(inputValue,'Not found'); }
         showAutomationNudge(currentInputType, currentOutputType);
     } catch(error) { hideLoading(); showAlert('Enrichment error — please try again.','error'); }
@@ -1276,12 +1277,41 @@ async function submitFeedback(event){
     finally{btn.disabled=false;btn.innerHTML='<i class="fas fa-paper-plane"></i><span>Submit Feedback</span>';}
 }
 
+// Shared upgrade-intent worker — handles both credits_exhausted and three_enrichments
+const UPGRADE_INTENT_WORKER = 'https://upgrade-intent.hamoureliasse.workers.dev/';
+
+async function fireUpgradeIntent(trigger, extras = {}) {
+    try {
+        await fetch(UPGRADE_INTENT_WORKER, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: userToken, trigger, ...extras })
+        });
+    } catch(e) {} // fire-and-forget, never block the UI
+}
+
+// Enrichment counter — fires webhook at #3, once per user (stored in localStorage)
+function checkEnrichmentMilestone() {
+    const key = 'lf_enrich_count';
+    const firedKey = 'lf_three_enrich_fired';
+    const n = parseInt(localStorage.getItem(key) || '0') + 1;
+    localStorage.setItem(key, n);
+    if (n === 3 && !localStorage.getItem(firedKey)) {
+        localStorage.setItem(firedKey, '1');
+        fireUpgradeIntent('three_enrichments', {
+            enrich_count: n,
+            credits_remaining: currentCredits
+        });
+        try { posthog.capture('three_enrichments_milestone', { credits_remaining: currentCredits }); } catch(e) {}
+    }
+}
+
 async function handleAddCredits(){
     try{posthog.capture('upgrade_clicked',{source:'buy_credits_btn',credits_remaining:currentCredits});}catch(e){}
     try{if(typeof plausible!=='undefined')plausible('Upgrade Click',{props:{source:'buy_credits_btn'}});}catch(e){}
     const btn=document.getElementById('buyCreditsBtn');
     const orig=btn.innerHTML;btn.innerHTML='...';btn.disabled=true;
-    try{const r=await fetch('https://scalelinkfinderai-production.up.railway.app/webhook/a30d8fea-5360-4003-be0d-9cea914390b0',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:userToken})});const d=await r.json();if(d.issub===true)openBuyCreditsModal();else showPricingModal();}
+    try{const r=await fetch(UPGRADE_INTENT_WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:userToken,trigger:'credits_exhausted',credits_remaining:currentCredits})});const d=await r.json();if(d.issub===true)openBuyCreditsModal();else showPricingModal();}
     catch(e){showPricingModal();}
     finally{btn.innerHTML=orig;btn.disabled=false;}
 }
