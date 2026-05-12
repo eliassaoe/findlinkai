@@ -83,6 +83,16 @@
     .nudge-logo-make{background:#6d28d9;}
     .nudge-logo-zapier{background:#ff4a00;}
     .bulk-api-hint{text-align:center;margin-top:0.875rem;font-size:0.775rem;color:var(--gray-400);}
+    .soft-paywall{display:flex;align-items:center;justify-content:space-between;gap:1rem;background:linear-gradient(135deg,#fffbeb,#fef3c7);border:1.5px solid #f59e0b;border-radius:12px;padding:1rem 1.25rem;margin-top:1rem;flex-wrap:wrap;animation:nudge-in 0.4s ease;}
+    .soft-paywall-left{display:flex;align-items:center;gap:0.75rem;}
+    .soft-paywall-icon{font-size:1.25rem;flex-shrink:0;}
+    .soft-paywall-title{font-size:0.875rem;font-weight:700;color:#92400e;margin-bottom:0.15rem;}
+    .soft-paywall-sub{font-size:0.75rem;color:#b45309;line-height:1.4;}
+    .soft-paywall-actions{display:flex;align-items:center;gap:0.5rem;flex-shrink:0;}
+    .soft-paywall-cta{background:linear-gradient(135deg,#f59e0b,#d97706);color:white;border:none;padding:0.6rem 1.25rem;border-radius:7px;font-weight:700;font-size:0.8rem;cursor:pointer;white-space:nowrap;font-family:inherit;transition:all 0.2s ease;}
+    .soft-paywall-cta:hover{background:linear-gradient(135deg,#d97706,#b45309);transform:translateY(-1px);box-shadow:0 4px 12px rgba(245,158,11,0.35);}
+    .soft-paywall-dismiss{background:transparent;border:none;color:#b45309;cursor:pointer;font-size:1.1rem;padding:0.25rem;opacity:0.5;transition:opacity 0.2s;line-height:1;}
+    .soft-paywall-dismiss:hover{opacity:1;}
     .bulk-api-hint a{color:var(--primary);text-decoration:none;font-weight:500;border-bottom:1px dashed rgba(37,99,235,0.3);}
     .bulk-api-hint a:hover{border-bottom-color:var(--primary);}
     .nav-menu{background:white;border-bottom:1px solid var(--gray-200);padding:0.75rem 0;}
@@ -483,6 +493,7 @@
                 <div id="bulkResultsTable" class="table-container"></div>
             </div>
             <div id="automationNudge" style="display:none;"></div>
+            <div id="softPaywallNudge" style="display:none;"></div>
         </div>
     </div>
 </div>
@@ -846,14 +857,15 @@ async function enrichData(event) {
         });
         const data = await response.json();
         hideLoading();
-        if (currentOutputType==='reactions'&&Array.isArray(data)&&data.length>0) { deductCredits(data.length); showSingleResultReactions(inputValue,data); return; }
-        if (currentOutputType==='employee_count') { deductCredits(getCreditCost(currentInputType,currentOutputType)); showSingleResultEmployeeCount(inputValue,data); return; }
-        if (currentOutputType==='employees'&&Array.isArray(data)&&data.length>0) { deductCredits(data.length*0.5); showSingleResultEmployees(inputValue,data); return; }
+        if (currentOutputType==='reactions'&&Array.isArray(data)&&data.length>0) { deductCredits(data.length); showSingleResultReactions(inputValue,data); const n=incrementEnrichmentCount(); if(n>=PAYWALL_THRESHOLD) showSoftPaywall(n); return; }
+        if (currentOutputType==='employee_count') { deductCredits(getCreditCost(currentInputType,currentOutputType)); showSingleResultEmployeeCount(inputValue,data); const n=incrementEnrichmentCount(); if(n>=PAYWALL_THRESHOLD) showSoftPaywall(n); return; }
+        if (currentOutputType==='employees'&&Array.isArray(data)&&data.length>0) { deductCredits(data.length*0.5); showSingleResultEmployees(inputValue,data); const n=incrementEnrichmentCount(); if(n>=PAYWALL_THRESHOLD) showSoftPaywall(n); return; }
         if (response.status===403&&data.code===403) { try { posthog.capture('credits_exhausted', { input_type: currentInputType, output_type: currentOutputType, credits_remaining: currentCredits }); } catch(e) {} showInsufficientCreditsModal(); return; }
         if (response.ok&&data&&(data.result||data.name)) {
             deductCredits(getCreditCost(currentInputType,currentOutputType));
             if (data.name&&!data.result) showSingleResult(inputValue,data);
             else showSingleResult(inputValue, data.result||'Not found');
+            const n=incrementEnrichmentCount(); if(n>=PAYWALL_THRESHOLD) showSoftPaywall(n);
         } else { showSingleResult(inputValue,'Not found'); }
         showAutomationNudge(currentInputType, currentOutputType);
     } catch(error) { hideLoading(); showAlert('Enrichment error — please try again.','error'); }
@@ -1236,6 +1248,64 @@ function hideResults(){
     document.getElementById('resultsSection').classList.add('hidden');
     const nudge=document.getElementById('automationNudge');
     if(nudge){nudge.style.display='none';nudge.innerHTML='';}
+    const paywall=document.getElementById('softPaywallNudge');
+    if(paywall){paywall.style.display='none';}
+}
+
+// SOFT PAYWALL — tracks enrichments in localStorage, nudges at #3+
+const PAYWALL_THRESHOLD = 3;
+const PAYWALL_DISMISSED_KEY = 'lf_paywall_dismissed';
+
+function getEnrichmentCount() {
+    return parseInt(localStorage.getItem('lf_enrich_count') || '0');
+}
+
+function incrementEnrichmentCount() {
+    const n = getEnrichmentCount() + 1;
+    localStorage.setItem('lf_enrich_count', n);
+    return n;
+}
+
+function showSoftPaywall(count) {
+    const el = document.getElementById('softPaywallNudge');
+    if (!el) return;
+    // Don't show if dismissed this session, or if user is already a subscriber
+    if (sessionStorage.getItem(PAYWALL_DISMISSED_KEY)) return;
+    const remaining = currentCredits !== null ? currentCredits : '?';
+    const messages = [
+        { title: `You've run ${count} enrichments — nice work.`, sub: `You have ~${remaining} free credits left. Upgrade to 60,000/month from $49 and never slow down.` },
+        { title: 'Enrichment #' + count + ' done.', sub: `Scale this with a plan — process thousands of records automatically from $49/mo.` },
+        { title: 'Getting value from LinkFinder?', sub: `Upgrade now to 60k credits/month, bulk enrichment, and API access from $49/mo.` },
+    ];
+    const msg = messages[Math.min(count - PAYWALL_THRESHOLD, messages.length - 1)];
+    el.innerHTML = `
+        <div class="soft-paywall">
+            <div class="soft-paywall-left">
+                <span class="soft-paywall-icon">⚡</span>
+                <div>
+                    <div class="soft-paywall-title">${msg.title}</div>
+                    <div class="soft-paywall-sub">${msg.sub}</div>
+                </div>
+            </div>
+            <div class="soft-paywall-actions">
+                <button class="soft-paywall-cta" onclick="softPaywallUpgrade()">Upgrade from $49/mo</button>
+                <button class="soft-paywall-dismiss" onclick="dismissSoftPaywall()" title="Dismiss">✕</button>
+            </div>
+        </div>`;
+    el.style.display = 'block';
+    try { posthog.capture('soft_paywall_shown', { enrich_count: count, credits_remaining: currentCredits }); } catch(e) {}
+}
+
+function softPaywallUpgrade() {
+    try { posthog.capture('soft_paywall_clicked', { enrich_count: getEnrichmentCount(), credits_remaining: currentCredits }); } catch(e) {}
+    handleAddCredits();
+}
+
+function dismissSoftPaywall() {
+    sessionStorage.setItem(PAYWALL_DISMISSED_KEY, '1');
+    const el = document.getElementById('softPaywallNudge');
+    if (el) el.style.display = 'none';
+    try { posthog.capture('soft_paywall_dismissed', { enrich_count: getEnrichmentCount() }); } catch(e) {}
 }
 
 const creditCosts={'company_name_to_website':1,'company_name_to_phone':1,'company_name_to_linkedin_url':1,'email_to_linkedin_url':1,'company_name_to_employees':1,'company_name_to_employee_count':1,'company_name_to_email':1,'linkedin_company_to_linkedin_info':5,'linkedin_company_to_employees':1,'linkedin_company_to_employee_count':1,'linkedin_profile_to_linkedin_info':10,'lead_full_name_to_linkedin_url':1,'linkedin_profile_to_email':1,'company_domain_to_employees':1,'linkedin_post_to_reactions':1,'linkedin_profile_to_phone':1};
