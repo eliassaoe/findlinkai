@@ -217,7 +217,6 @@
     </style>
 </head>
 <body>
-<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-TL7WVD2N" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
 <div class="layout">
 
@@ -232,7 +231,7 @@
             <div class="sidebar-section-label">Getting started</div>
             <a href="#quickstart" class="sidebar-link"><i class="fas fa-rocket"></i> Quick Start</a>
             <a href="#auth" class="sidebar-link"><i class="fas fa-key"></i> Authentication</a>
-            <a href="#credits" class="sidebar-link"><i class="fas fa-coins"></i> Credits & Limits</a>
+            <a href="#credits" class="sidebar-link"><i class="fas fa-coins"></i> Credits &amp; Limits</a>
             <a href="#errors" class="sidebar-link"><i class="fas fa-exclamation-circle"></i> Error Codes</a>
         </div>
 
@@ -253,7 +252,7 @@
 
         <div class="sidebar-section">
             <a href="https://linkfinderai.com/pricing" class="sidebar-link"><i class="fas fa-credit-card"></i> Pricing</a>
-            <a href="mailto:support@unlimited-leads.online" class="sidebar-link"><i class="fas fa-envelope"></i> Support</a>
+            <a href="mailto:support@linkfinderai.com" class="sidebar-link"><i class="fas fa-envelope"></i> Support</a>
         </div>
     </nav>
 
@@ -411,7 +410,7 @@ console.log(data.result); <span class="cm">// "tesla.com"</span></pre>
 
             <!-- ══ CREDITS & LIMITS ══ -->
             <div class="doc-section" id="credits">
-                <h2 class="section-heading"><i class="fas fa-coins"></i> Credits & Rate Limits</h2>
+                <h2 class="section-heading"><i class="fas fa-coins"></i> Credits &amp; Rate Limits</h2>
                 <p class="section-sub">1 credit = 1 API request, regardless of endpoint. Credits reset at the start of each billing cycle.</p>
 
                 <table class="rate-table" style="margin-bottom:1.25rem">
@@ -432,7 +431,7 @@ console.log(data.result); <span class="cm">// "tesla.com"</span></pre>
                 </div>
             </div>
 
-            <!-- ══ AI LEAD FINDER — promoted to top ══ -->
+            <!-- ══ AI LEAD FINDER ══ -->
             <div class="doc-section" id="lead-finder">
                 <h2 class="section-heading"><i class="fas fa-magic"></i> AI Lead Finder <span style="font-size:0.625rem;font-weight:700;padding:0.2rem 0.5rem;border-radius:4px;background:var(--primary);color:white;text-transform:uppercase;margin-left:4px;vertical-align:middle">New</span></h2>
                 <p class="section-sub">Describe the leads you want in plain English. Get back a list of matching LinkedIn profiles with full contact details and company data.</p>
@@ -665,6 +664,7 @@ leads.forEach(lead => console.log(lead.full_name, lead.email));</pre>
                 <h2 class="section-heading"><i class="fab fa-linkedin"></i> LinkedIn Scraping</h2>
                 <p class="section-sub">Scrape LinkedIn profiles, company pages, and posts without using your own LinkedIn account. Zero ban risk.</p>
 
+                <!-- LinkedIn Profile → Info -->
                 <div class="endpoint-card">
                     <div class="endpoint-header" onclick="toggleEndpoint(this)">
                         <div><div class="endpoint-title-row"><span class="method-badge">POST</span><span class="endpoint-name">linkedin_profile_to_linkedin_info</span></div><div class="endpoint-desc">Extract full profile data from a LinkedIn profile URL</div></div>
@@ -681,6 +681,101 @@ leads.forEach(lead => console.log(lead.full_name, lead.email));</pre>
 })</pre></div></div></div>
                 </div>
 
+                <!-- ✦ NEW: LinkedIn Profile → Email -->
+                <div class="endpoint-card">
+                    <div class="endpoint-header" onclick="toggleEndpoint(this)">
+                        <div><div class="endpoint-title-row"><span class="method-badge">POST</span><span class="endpoint-name">linkedin_profile_to_email</span></div><div class="endpoint-desc">Find a person's professional email address from their LinkedIn profile URL</div></div>
+                        <div style="display:flex;align-items:center;gap:.5rem"><span class="credit-pill">1 credit</span><i class="fas fa-chevron-down endpoint-chevron"></i></div>
+                    </div>
+                    <div class="endpoint-body">
+                        <table class="params-table">
+                            <thead><tr><th>Parameter</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+                            <tbody>
+                                <tr><td><code>input_data</code></td><td><code>string</code></td><td><span class="param-req req">Required</span></td><td>Full LinkedIn profile URL e.g. <code>https://linkedin.com/in/john-doe</code></td></tr>
+                            </tbody>
+                        </table>
+                        <div class="code-block-wrap">
+                            <div class="code-tabs">
+                                <button class="code-tab active" onclick="switchTab(this,'l-pe-curl')">cURL</button>
+                                <button class="code-tab" onclick="switchTab(this,'l-pe-py')">Python</button>
+                                <button class="code-tab" onclick="switchTab(this,'l-pe-response')">Response</button>
+                            </div>
+                            <div id="l-pe-curl" class="code-pane active"><pre class="code-block">curl -X POST "https://api.linkfinderai.com" \
+     -H "Content-Type: application/json" \
+     -H "Authorization: Bearer <span class="st">YOUR_API_KEY</span>" \
+     -d '{
+       <span class="ky">"type"</span>: <span class="st">"linkedin_profile_to_email"</span>,
+       <span class="ky">"input_data"</span>: <span class="st">"https://linkedin.com/in/john-doe"</span>
+     }'</pre></div>
+                            <div id="l-pe-py" class="code-pane"><pre class="code-block">response = requests.post(url, headers=headers, json={
+    <span class="ky">"type"</span>: <span class="st">"linkedin_profile_to_email"</span>,
+    <span class="ky">"input_data"</span>: <span class="st">"https://linkedin.com/in/john-doe"</span>
+})
+<span class="cm">print</span>(response.json()[<span class="st">"result"</span>])  <span class="cm"># "john.doe@company.com"</span></pre></div>
+                            <div id="l-pe-response" class="code-pane"><pre class="code-block"><span class="cm">// Success</span>
+{
+  <span class="ky">"result"</span>: <span class="st">"john.doe@company.com"</span>,
+  <span class="ky">"status"</span>: <span class="st">"success"</span>
+}
+
+<span class="cm">// Not found</span>
+{
+  <span class="ky">"result"</span>: <span class="nm">null</span>,
+  <span class="ky">"status"</span>: <span class="st">"error"</span>,
+  <span class="ky">"message"</span>: <span class="st">"Email not found"</span>
+}</pre></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ✦ NEW: LinkedIn Profile → Phone -->
+                <div class="endpoint-card">
+                    <div class="endpoint-header" onclick="toggleEndpoint(this)">
+                        <div><div class="endpoint-title-row"><span class="method-badge">POST</span><span class="endpoint-name">linkedin_profile_to_phone</span></div><div class="endpoint-desc">Find a person's phone number from their LinkedIn profile URL</div></div>
+                        <div style="display:flex;align-items:center;gap:.5rem"><span class="credit-pill">1 credit</span><i class="fas fa-chevron-down endpoint-chevron"></i></div>
+                    </div>
+                    <div class="endpoint-body">
+                        <table class="params-table">
+                            <thead><tr><th>Parameter</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+                            <tbody>
+                                <tr><td><code>input_data</code></td><td><code>string</code></td><td><span class="param-req req">Required</span></td><td>Full LinkedIn profile URL e.g. <code>https://linkedin.com/in/john-doe</code></td></tr>
+                            </tbody>
+                        </table>
+                        <div class="code-block-wrap">
+                            <div class="code-tabs">
+                                <button class="code-tab active" onclick="switchTab(this,'l-pp-curl')">cURL</button>
+                                <button class="code-tab" onclick="switchTab(this,'l-pp-py')">Python</button>
+                                <button class="code-tab" onclick="switchTab(this,'l-pp-response')">Response</button>
+                            </div>
+                            <div id="l-pp-curl" class="code-pane active"><pre class="code-block">curl -X POST "https://api.linkfinderai.com" \
+     -H "Content-Type: application/json" \
+     -H "Authorization: Bearer <span class="st">YOUR_API_KEY</span>" \
+     -d '{
+       <span class="ky">"type"</span>: <span class="st">"linkedin_profile_to_phone"</span>,
+       <span class="ky">"input_data"</span>: <span class="st">"https://linkedin.com/in/john-doe"</span>
+     }'</pre></div>
+                            <div id="l-pp-py" class="code-pane"><pre class="code-block">response = requests.post(url, headers=headers, json={
+    <span class="ky">"type"</span>: <span class="st">"linkedin_profile_to_phone"</span>,
+    <span class="ky">"input_data"</span>: <span class="st">"https://linkedin.com/in/john-doe"</span>
+})
+<span class="cm">print</span>(response.json()[<span class="st">"result"</span>])  <span class="cm"># "+1 415 555 0198"</span></pre></div>
+                            <div id="l-pp-response" class="code-pane"><pre class="code-block"><span class="cm">// Success</span>
+{
+  <span class="ky">"result"</span>: <span class="st">"+1 415 555 0198"</span>,
+  <span class="ky">"status"</span>: <span class="st">"success"</span>
+}
+
+<span class="cm">// Not found</span>
+{
+  <span class="ky">"result"</span>: <span class="nm">null</span>,
+  <span class="ky">"status"</span>: <span class="st">"error"</span>,
+  <span class="ky">"message"</span>: <span class="st">"Phone not found"</span>
+}</pre></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- LinkedIn Company → Info -->
                 <div class="endpoint-card">
                     <div class="endpoint-header" onclick="toggleEndpoint(this)">
                         <div><div class="endpoint-title-row"><span class="method-badge">POST</span><span class="endpoint-name">linkedin_company_to_linkedin_info</span></div><div class="endpoint-desc">Extract detailed company data from a LinkedIn company page URL</div></div>
@@ -692,6 +787,7 @@ leads.forEach(lead => console.log(lead.full_name, lead.email));</pre>
      -d '{"type": <span class="st">"linkedin_company_to_linkedin_info"</span>, "input_data": <span class="st">"https://linkedin.com/company/tesla"</span>}'</pre></div></div></div>
                 </div>
 
+                <!-- LinkedIn Company → Employee Count -->
                 <div class="endpoint-card">
                     <div class="endpoint-header" onclick="toggleEndpoint(this)">
                         <div><div class="endpoint-title-row"><span class="method-badge">POST</span><span class="endpoint-name">linkedin_company_to_employee_count</span></div><div class="endpoint-desc">Get employee count from a LinkedIn company page URL</div></div>
@@ -703,6 +799,7 @@ leads.forEach(lead => console.log(lead.full_name, lead.email));</pre>
      -d '{"type": <span class="st">"linkedin_company_to_employee_count"</span>, "input_data": <span class="st">"https://linkedin.com/company/tesla"</span>}'</pre></div></div></div>
                 </div>
 
+                <!-- Full Name → LinkedIn URL -->
                 <div class="endpoint-card">
                     <div class="endpoint-header" onclick="toggleEndpoint(this)">
                         <div><div class="endpoint-title-row"><span class="method-badge">POST</span><span class="endpoint-name">lead_full_name_to_linkedin_url</span></div><div class="endpoint-desc">Find a person's LinkedIn URL from their full name and company</div></div>
@@ -714,6 +811,54 @@ leads.forEach(lead => console.log(lead.full_name, lead.email));</pre>
      -d '{"type": <span class="st">"lead_full_name_to_linkedin_url"</span>, "input_data": <span class="st">"Bill Gates Microsoft"</span>}'</pre></div></div></div>
                 </div>
 
+                <!-- ✦ NEW: Email → LinkedIn URL -->
+                <div class="endpoint-card">
+                    <div class="endpoint-header" onclick="toggleEndpoint(this)">
+                        <div><div class="endpoint-title-row"><span class="method-badge">POST</span><span class="endpoint-name">email_to_linkedin_url</span></div><div class="endpoint-desc">Reverse-lookup a person's LinkedIn profile URL from their email address</div></div>
+                        <div style="display:flex;align-items:center;gap:.5rem"><span class="credit-pill">1 credit</span><i class="fas fa-chevron-down endpoint-chevron"></i></div>
+                    </div>
+                    <div class="endpoint-body">
+                        <table class="params-table">
+                            <thead><tr><th>Parameter</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+                            <tbody>
+                                <tr><td><code>input_data</code></td><td><code>string</code></td><td><span class="param-req req">Required</span></td><td>Professional email address e.g. <code>john.doe@company.com</code></td></tr>
+                            </tbody>
+                        </table>
+                        <div class="code-block-wrap">
+                            <div class="code-tabs">
+                                <button class="code-tab active" onclick="switchTab(this,'l-el-curl')">cURL</button>
+                                <button class="code-tab" onclick="switchTab(this,'l-el-py')">Python</button>
+                                <button class="code-tab" onclick="switchTab(this,'l-el-response')">Response</button>
+                            </div>
+                            <div id="l-el-curl" class="code-pane active"><pre class="code-block">curl -X POST "https://api.linkfinderai.com" \
+     -H "Content-Type: application/json" \
+     -H "Authorization: Bearer <span class="st">YOUR_API_KEY</span>" \
+     -d '{
+       <span class="ky">"type"</span>: <span class="st">"email_to_linkedin_url"</span>,
+       <span class="ky">"input_data"</span>: <span class="st">"john.doe@company.com"</span>
+     }'</pre></div>
+                            <div id="l-el-py" class="code-pane"><pre class="code-block">response = requests.post(url, headers=headers, json={
+    <span class="ky">"type"</span>: <span class="st">"email_to_linkedin_url"</span>,
+    <span class="ky">"input_data"</span>: <span class="st">"john.doe@company.com"</span>
+})
+<span class="cm">print</span>(response.json()[<span class="st">"result"</span>])  <span class="cm"># "https://linkedin.com/in/john-doe"</span></pre></div>
+                            <div id="l-el-response" class="code-pane"><pre class="code-block"><span class="cm">// Success</span>
+{
+  <span class="ky">"result"</span>: <span class="st">"https://linkedin.com/in/john-doe"</span>,
+  <span class="ky">"status"</span>: <span class="st">"success"</span>
+}
+
+<span class="cm">// Not found</span>
+{
+  <span class="ky">"result"</span>: <span class="nm">null</span>,
+  <span class="ky">"status"</span>: <span class="st">"error"</span>,
+  <span class="ky">"message"</span>: <span class="st">"LinkedIn profile not found"</span>
+}</pre></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- LinkedIn Post → Reactions -->
                 <div class="endpoint-card">
                     <div class="endpoint-header" onclick="toggleEndpoint(this)">
                         <div><div class="endpoint-title-row"><span class="method-badge">POST</span><span class="endpoint-name">linkedin_post_to_reactions</span></div><div class="endpoint-desc">Get a list of people who reacted to a LinkedIn post</div></div>
@@ -826,7 +971,7 @@ Body:    JSON - {"type": "company_name_to_website", "input_data": "{{company}}"}
 
                 <div class="info-box green" style="margin-top:.75rem">
                     <i class="fas fa-envelope"></i>
-                    <div>Want a native integration built faster? <a href="mailto:support@unlimited-leads.online" style="color:#166534;font-weight:600">Email us</a> — we prioritise integrations based on customer demand.</div>
+                    <div>Want a native integration built faster? <a href="mailto:support@linkfinderai.com" style="color:#166534;font-weight:600">Email us</a> — we prioritise integrations based on customer demand.</div>
                 </div>
             </div>
 
