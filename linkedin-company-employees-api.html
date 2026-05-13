@@ -1,0 +1,876 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','GTM-TL7WVD2N');</script>
+  <script>
+    !function(t,e){var o,n,p,r;e.__SV||(window.posthog&&window.posthog.__loaded)||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]),t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}(p=t.createElement("script")).type="text/javascript",p.crossOrigin="anonymous",p.async=!0,p.src=s.api_host.replace(".i.posthog.com","-assets.i.posthog.com")+"/static/array.js",(r=t.getElementsByTagName("script")[0]).parentNode.insertBefore(p,r);var u=e;for(void 0!==a?u=e[a]=[]:a="posthog",u.people=u.people||[],u.toString=function(t){var e="posthog";return"posthog"!==a&&(e+="."+a),t||(e+=" (stub)"),e},u.people.toString=function(){return u.toString(1)+".people (stub)"},o="init zr Wr fi Br Gr ci Nr Hr capture Ui calculateEventProperties Kr register register_once register_for_session unregister unregister_for_session Zr getFeatureFlag getFeatureFlagPayload isFeatureEnabled reloadFeatureFlags updateEarlyAccessFeatureEnrollment getEarlyAccessFeatures on onFeatureFlags onSurveysLoaded onSessionId getSurveys getActiveMatchingSurveys renderSurvey displaySurvey cancelPendingSurvey canRenderSurvey canRenderSurveyAsync identify setPersonProperties group resetGroups setPersonPropertiesForFlags resetPersonPropertiesForFlags setGroupPropertiesForFlags resetGroupPropertiesForFlags reset get_distinct_id getGroups get_session_id get_session_replay_url alias set_config startSessionRecording stopSessionRecording sessionRecordingStarted captureException loadToolbar get_property getSessionProperty Xr Jr createPersonProfile Qr jr ts opt_in_capturing opt_out_capturing has_opted_in_capturing has_opted_out_capturing get_explicit_consent_status is_capturing clear_opt_in_out_capturing Vr debug O Yr getPageViewId captureTraceFeedback captureTraceMetric Or".split(" "),n=0;n<o.length;n++)g(u,o[n]);e._i.push([i,s,a])},e.__SV=1)}(document,window.posthog||[]);
+    posthog.init('phc_HqgzMyWAMtzH7K5j9CLw0dijB0I9W1VjPkkyzg9KOFG',{api_host:'https://us.i.posthog.com',defaults:'2025-11-30',person_profiles:'identified_only'})
+  </script>
+  <meta charset="utf-8"/>
+  <link rel="icon" href="https://i.ibb.co/jPjX9SSp/Screen-Shot-2025-03-28-at-8-16-15-PM.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>LinkedIn Company Employees API — Extract All Employees from Any Company | LinkFinder AI</title>
+  <meta name="description" content="Extract every employee from any LinkedIn company page via API. Get names, job titles, LinkedIn URLs and verified emails. Plug into n8n, Make or Zapier. Zero ban risk."/>
+  <meta name="keywords" content="linkedin company employees api, extract employees linkedin, linkedin employees extractor, linkedin company employees finder, linkedin employees api"/>
+  <link rel="canonical" href="https://linkfinderai.com/linkedin-company-employees-api"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+  <link href="https://cdn.jsdelivr.net/npm/@n8n/chat/dist/style.css" rel="stylesheet"/>
+  <style>
+    :root {
+      --primary: #2563eb; --primary-hover: #1d4ed8;
+      --gray-50: #f9fafb; --gray-100: #f3f4f6; --gray-200: #e5e7eb; --gray-300: #d1d5db;
+      --gray-400: #9ca3af; --gray-500: #6b7280; --gray-600: #4b5563; --gray-700: #374151;
+      --gray-800: #1f2937; --gray-900: #111827;
+      --success: #10b981; --error: #ef4444; --warning: #f59e0b; --tp-green: #00b67a;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background: white; color: var(--gray-800); line-height: 1.6; font-size: 16px; }
+    .container { max-width: 1200px; margin: 0 auto; padding: 0 1rem; }
+    .header { border-bottom: 1px solid var(--gray-200); padding: 1rem 0; background: white; position: sticky; top: 0; z-index: 50; }
+    .header-content { display: flex; justify-content: space-between; align-items: center; gap: 2rem; }
+    .logo { display: flex; align-items: center; gap: 0.5rem; text-decoration: none; color: var(--gray-900); flex-shrink: 0; }
+    .logo-icon { width: 32px; height: 32px; background: var(--primary); border-radius: 6px; display: flex; align-items: center; justify-content: center; color: white; font-size: 0.875rem; }
+    .logo-text { font-size: 1.25rem; font-weight: 600; color: var(--gray-900); }
+    .nav-menu { display: flex; gap: 2rem; align-items: center; flex: 1; justify-content: center; }
+    .nav-menu a { color: var(--gray-700); text-decoration: none; font-size: 0.875rem; font-weight: 500; transition: color 0.2s; white-space: nowrap; }
+    .nav-menu a:hover { color: var(--primary); }
+    .auth-buttons { display: flex; gap: 0.75rem; align-items: center; flex-shrink: 0; }
+    .btn { background: var(--primary); color: white; border: none; padding: 0.875rem 1.5rem; border-radius: 8px; font-weight: 500; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; text-decoration: none; font-size: 0.875rem; min-height: 44px; }
+    .btn:hover { background: var(--primary-hover); transform: translateY(-1px); }
+    .btn-outline { background: transparent; color: var(--primary); border: 1px solid var(--gray-300); }
+    .btn-outline:hover { background: var(--gray-50); border-color: var(--primary); transform: none; }
+    .btn-large { padding: 1rem 2.5rem; font-size: 1rem; font-weight: 600; }
+    .btn-white { background: white; color: var(--primary); border: 1px solid var(--gray-200); }
+    .btn-white:hover { background: var(--gray-50); }
+    .btn-full { width: 100%; padding: 1rem 1.5rem; font-size: 1rem; margin-bottom: 1rem; }
+
+    /* BREADCRUMB */
+    .breadcrumb { padding: 0.75rem 0; font-size: 0.8rem; color: var(--gray-400); border-bottom: 1px solid var(--gray-100); }
+    .breadcrumb a { color: var(--gray-400); text-decoration: none; }
+    .breadcrumb a:hover { color: var(--primary); }
+    .breadcrumb span { margin: 0 0.4rem; }
+
+    /* HERO */
+    .hero { text-align: center; padding: 4.5rem 0 2.5rem; }
+    .hero-tag { display: inline-flex; align-items: center; gap: 0.5rem; background: #eff6ff; color: var(--primary); font-size: 0.8rem; font-weight: 600; padding: 0.35rem 0.875rem; border-radius: 100px; border: 1px solid #bfdbfe; margin-bottom: 1.5rem; text-transform: uppercase; letter-spacing: 0.04em; }
+    .hero h1 { font-size: 3.5rem; font-weight: 700; color: var(--gray-900); margin-bottom: 1.25rem; line-height: 1.1; }
+    .hero h1 span { color: var(--primary); }
+    .hero p { font-size: 1.2rem; color: var(--gray-500); margin: 0 auto 2.5rem; max-width: 600px; line-height: 1.7; }
+    .hero-ctas { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; margin-bottom: 1.25rem; }
+    .hero-social-proof { font-size: 0.825rem; color: var(--gray-400); display: flex; align-items: center; justify-content: center; gap: 1rem; flex-wrap: wrap; }
+    .hero-social-proof-item { display: flex; align-items: center; gap: 0.35rem; }
+    .hero-social-proof-item i { color: var(--success); font-size: 0.75rem; }
+
+    /* STATS BAR */
+    .stats-bar { background: var(--gray-900); padding: 2rem 0; }
+    .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2rem; max-width: 800px; margin: 0 auto; text-align: center; }
+    .stat-number { font-size: 2rem; font-weight: 700; color: white; line-height: 1; margin-bottom: 0.35rem; }
+    .stat-label { font-size: 0.8rem; color: var(--gray-400); font-weight: 500; }
+
+    /* DEMO CARD */
+    .demo-section { padding: 3.5rem 0 5rem; background: var(--gray-50); border-bottom: 1px solid var(--gray-200); }
+    .demo-section-title { text-align: center; font-size: 1.75rem; font-weight: 700; color: var(--gray-900); margin-bottom: 0.5rem; }
+    .demo-section-sub { text-align: center; color: var(--gray-500); margin-bottom: 2rem; font-size: 0.95rem; }
+    .demo-card { background: white; border: 1px solid var(--gray-200); border-radius: 12px; padding: 2rem; max-width: 680px; margin: 0 auto; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+    .demo-input-row { display: flex; gap: 0.75rem; margin-bottom: 1.25rem; }
+    .demo-input { flex: 1; border: 1px solid var(--gray-300); border-radius: 6px; padding: 0.75rem 1rem; font-size: 0.9rem; color: var(--gray-700); font-family: 'Inter', sans-serif; transition: border-color 0.2s; }
+    .demo-input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+    .demo-run-btn { background: var(--primary); color: white; border: none; border-radius: 6px; padding: 0.75rem 1.25rem; font-size: 0.875rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; white-space: nowrap; transition: all 0.2s; font-family: 'Inter', sans-serif; }
+    .demo-run-btn:hover { background: var(--primary-hover); }
+    .demo-results { display: none; }
+    .demo-results.show { display: block; }
+    .results-meta { display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; color: var(--gray-400); margin-bottom: 0.75rem; }
+    .results-meta strong { color: var(--gray-700); }
+    .results-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+    .results-table th { text-align: left; padding: 0.5rem 0.75rem; background: var(--gray-50); color: var(--gray-500); font-weight: 500; font-size: 0.75rem; border-bottom: 1px solid var(--gray-200); }
+    .results-table td { padding: 0.6rem 0.75rem; border-bottom: 1px solid var(--gray-100); color: var(--gray-700); }
+    .results-table tr:last-child td { border-bottom: none; }
+    .results-table tr:hover td { background: #f8faff; }
+    .td-name { font-weight: 500; color: var(--gray-900); }
+    .td-link a { color: var(--primary); font-size: 0.75rem; }
+    .td-email { font-family: monospace; font-size: 0.75rem; }
+    .td-email.blur { filter: blur(4px); color: var(--gray-300); user-select: none; }
+    .demo-notice { margin-top: 1rem; padding: 0.875rem 1rem; background: #eff6ff; border-radius: 8px; border: 1px solid #bfdbfe; font-size: 0.8rem; color: #1e40af; display: flex; align-items: center; gap: 0.75rem; }
+    .demo-notice a { color: var(--primary); font-weight: 600; margin-left: auto; white-space: nowrap; }
+    .demo-tabs { display: flex; border-bottom: 1px solid var(--gray-200); margin-bottom: 0; margin-top: 1.5rem; }
+    .demo-tab { padding: 0.6rem 1rem; font-size: 0.8rem; font-weight: 500; color: var(--gray-500); cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.15s; }
+    .demo-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+    .code-block { display: none; background: var(--gray-900); border-radius: 0 0 8px 8px; padding: 1.25rem; margin-top: 0; overflow-x: auto; }
+    .code-block.active { display: block; }
+    .code-block pre { font-family: 'Courier New', monospace; font-size: 0.78rem; line-height: 1.7; color: #e2e8f0; }
+    .code-key { color: #93c5fd; }
+    .code-str { color: #86efac; }
+    .code-cmt { color: #64748b; }
+    .demo-cta-row { display: flex; gap: 0.75rem; margin-top: 1.25rem; }
+    .demo-cta-row .btn { flex: 1; justify-content: center; }
+
+    /* VALUE PROPS */
+    .value-section { padding: 5rem 0; }
+    .value-section.alt { background: var(--gray-50); }
+    .value-inner { display: grid; grid-template-columns: 1fr 1fr; gap: 5rem; align-items: center; max-width: 1000px; margin: 0 auto; }
+    .value-inner.reverse { direction: rtl; }
+    .value-inner.reverse > * { direction: ltr; }
+    .value-tag { display: inline-block; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--primary); margin-bottom: 1rem; }
+    .value-inner h2 { font-size: 2rem; font-weight: 700; color: var(--gray-900); margin-bottom: 1rem; line-height: 1.2; }
+    .value-inner p { font-size: 1rem; color: var(--gray-500); line-height: 1.7; margin-bottom: 1.5rem; }
+    .value-list { list-style: none; display: flex; flex-direction: column; gap: 0.75rem; }
+    .value-list li { display: flex; align-items: flex-start; gap: 0.625rem; font-size: 0.9rem; color: var(--gray-700); }
+    .value-list li i { color: var(--success); margin-top: 0.2rem; flex-shrink: 0; }
+    .value-link { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.875rem; font-weight: 600; color: var(--primary); text-decoration: none; margin-top: 1.5rem; border-bottom: 1px solid transparent; transition: border-color 0.2s; }
+    .value-link:hover { border-bottom-color: var(--primary); }
+    .value-visual { background: white; border: 1px solid var(--gray-200); border-radius: 12px; padding: 1.5rem; box-shadow: 0 4px 24px rgba(0,0,0,0.06); }
+    .workflow-node { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem; border-radius: 8px; background: var(--gray-50); border: 1px solid var(--gray-200); margin-bottom: 0.5rem; font-size: 0.85rem; font-weight: 500; color: var(--gray-700); }
+    .workflow-node-icon { width: 32px; height: 32px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 900; color: white; flex-shrink: 0; }
+    .node-n8n { background: #ea4b71; }
+    .node-lf { background: var(--primary); }
+    .node-crm { background: #0f9d58; }
+    .node-arrow { text-align: center; color: var(--gray-300); font-size: 0.75rem; margin: 0.25rem 0; }
+    .node-badge { margin-left: auto; font-size: 0.7rem; background: #dcfce7; color: #16a34a; padding: 0.15rem 0.5rem; border-radius: 3px; font-weight: 600; }
+
+    /* USE CASES */
+    .use-cases-section { padding: 5rem 0; background: var(--gray-50); }
+    .section-header { text-align: center; margin-bottom: 3rem; }
+    .section-header h2 { font-size: 2.25rem; font-weight: 700; color: var(--gray-900); margin-bottom: 0.5rem; }
+    .section-header p { color: var(--gray-500); max-width: 520px; margin: 0 auto; }
+    .use-cases-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.25rem; }
+    .use-case-card { background: white; border: 1px solid var(--gray-200); border-radius: 10px; padding: 1.5rem; }
+    .use-case-icon { width: 40px; height: 40px; background: #eff6ff; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: var(--primary); margin-bottom: 1rem; font-size: 1.1rem; }
+    .use-case-card h3 { font-size: 0.95rem; font-weight: 600; color: var(--gray-900); margin-bottom: 0.5rem; }
+    .use-case-card p { font-size: 0.85rem; color: var(--gray-500); line-height: 1.6; }
+
+    /* PROCESS */
+    .process-section { background: var(--gray-900); color: white; padding: 5rem 0; }
+    .process-title { text-align: center; font-size: 2.25rem; font-weight: 700; margin-bottom: 0.75rem; }
+    .process-subtitle { text-align: center; font-size: 1rem; color: var(--gray-400); margin-bottom: 3rem; max-width: 500px; margin-left: auto; margin-right: auto; }
+    .process-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2rem; max-width: 900px; margin: 0 auto; }
+    .process-step { text-align: center; }
+    .step-number { width: 48px; height: 48px; border-radius: 50%; background: var(--primary); color: white; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; font-weight: 700; margin: 0 auto 1.25rem; }
+    .step-title { font-size: 1.1rem; font-weight: 600; margin-bottom: 0.75rem; }
+    .step-description { color: var(--gray-400); font-size: 0.9rem; line-height: 1.6; }
+
+    /* INTEGRATIONS */
+    .integrations-section { padding: 3.5rem 0; background: var(--gray-50); border-bottom: 1px solid var(--gray-200); }
+    .integrations-title { text-align: center; font-size: 0.875rem; font-weight: 600; color: var(--gray-500); margin-bottom: 1.5rem; text-transform: uppercase; letter-spacing: 0.06em; }
+    .integrations-logos { display: flex; gap: 1.25rem; justify-content: center; flex-wrap: wrap; align-items: center; }
+    .integration-pill { display: flex; align-items: center; gap: 0.5rem; background: white; border: 1px solid var(--gray-200); border-radius: 8px; padding: 0.625rem 1.125rem; font-size: 0.875rem; font-weight: 600; color: var(--gray-700); }
+    .integration-pill .dot { width: 10px; height: 10px; border-radius: 50%; }
+
+    /* COMPARISON */
+    .comparison-section { background: white; padding: 5rem 0; }
+    .comparison-title { text-align: center; font-size: 2.25rem; font-weight: 700; color: var(--gray-900); margin-bottom: 0.75rem; }
+    .comparison-sub { text-align: center; color: var(--gray-500); margin-bottom: 3rem; }
+    .comparison-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; max-width: 900px; margin: 0 auto 3rem; }
+    .comparison-column h3 { text-align: center; font-size: 1.1rem; font-weight: 600; margin-bottom: 1.5rem; color: var(--gray-900); padding: 0.75rem; border-radius: 8px; }
+    .col-bad h3 { background: #fef2f2; color: var(--error); }
+    .col-good h3 { background: #f0fdf4; color: #16a34a; }
+    .comparison-item { display: flex; align-items: flex-start; gap: 0.75rem; margin-bottom: 1rem; padding: 0.875rem 1rem; background: var(--gray-50); border-radius: 8px; }
+    .comparison-item i { margin-top: 0.15rem; flex-shrink: 0; }
+    .comparison-item span { font-size: 0.875rem; color: var(--gray-700); line-height: 1.5; }
+    .mid-cta { text-align: center; padding: 2rem; background: #eff6ff; border-radius: 12px; max-width: 900px; margin: 0 auto; border: 1px solid #bfdbfe; }
+    .mid-cta p { font-size: 1rem; color: var(--gray-700); margin-bottom: 1.25rem; font-weight: 500; }
+    .mid-cta-sub { font-size: 0.8rem; color: var(--gray-400); margin-top: 0.75rem; }
+
+    /* TRUSTPILOT */
+    .testimonials-section { background: var(--gray-50); padding: 5rem 0; }
+    .testimonials-title { text-align: center; font-size: 2.25rem; font-weight: 700; color: var(--gray-900); margin-bottom: 0.75rem; }
+    .testimonials-subtitle { text-align: center; font-size: 1rem; color: var(--gray-500); margin-bottom: 2rem; }
+    .tp-badge-link { display: flex; flex-direction: column; align-items: center; gap: 6px; background: white; border: 1px solid var(--gray-200); border-radius: 10px; padding: 12px 20px; text-decoration: none; transition: box-shadow 0.2s; margin: 0 auto 2.5rem; width: fit-content; }
+    .tp-badge-link:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.1); }
+    .tp-wordmark { font-size: 0.9rem; font-weight: 700; color: var(--gray-900); }
+    .tp-stars-row { display: flex; align-items: center; gap: 8px; }
+    .tp-stars { display: flex; gap: 3px; }
+    .tp-star { width: 20px; height: 20px; background: var(--tp-green); border-radius: 2px; display: flex; align-items: center; justify-content: center; }
+    .tp-star.half { background: #73cf11; }
+    .tp-star svg { width: 11px; fill: white; }
+    .tp-score-text { font-size: 0.8rem; color: var(--gray-500); }
+    .tp-score-text strong { color: var(--gray-800); }
+    .reviews-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.25rem; max-width: 900px; margin: 0 auto 2rem; }
+    .review-card { background: white; border: 1px solid var(--gray-200); border-radius: 12px; padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem; box-shadow: 0 2px 4px rgba(0,0,0,0.04); }
+    .r-stars { display: flex; gap: 3px; }
+    .r-star { width: 16px; height: 16px; background: var(--tp-green); border-radius: 2px; display: flex; align-items: center; justify-content: center; }
+    .r-star svg { width: 9px; fill: white; }
+    .r-quote { font-size: 0.875rem; color: var(--gray-700); line-height: 1.6; font-style: italic; flex: 1; }
+    .r-author { display: flex; align-items: center; gap: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--gray-100); }
+    .r-avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--primary); color: white; font-size: 0.75rem; font-weight: 600; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .r-name { font-size: 0.875rem; font-weight: 600; color: var(--gray-900); }
+    .r-date { font-size: 0.75rem; color: var(--gray-400); }
+    .tp-cta { text-align: center; }
+    .tp-cta-link { display: inline-flex; align-items: center; gap: 6px; font-size: 0.875rem; font-weight: 600; color: var(--tp-green); border: 1.5px solid var(--tp-green); border-radius: 100px; padding: 9px 20px; text-decoration: none; transition: background 0.2s, color 0.2s; }
+    .tp-cta-link:hover { background: var(--tp-green); color: white; }
+
+    /* FAQ */
+    .faq-section { padding: 5rem 0; }
+    .faq-header { text-align: center; margin-bottom: 3rem; }
+    .faq-header h2 { font-size: 2.25rem; font-weight: 700; color: var(--gray-900); margin-bottom: 0.5rem; }
+    .faq-header p { color: var(--gray-500); }
+    .faq-list { max-width: 800px; margin: 0 auto; }
+    .faq-item { background: white; border: 1px solid var(--gray-200); border-radius: 8px; margin-bottom: 0.75rem; }
+    .faq-question { padding: 1rem 1.5rem; background: none; border: none; width: 100%; text-align: left; font-weight: 500; color: var(--gray-900); cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-size: 0.875rem; font-family: 'Inter', sans-serif; }
+    .faq-question:hover { background: var(--gray-50); }
+    .faq-question .icon { color: var(--gray-400); transition: transform 0.2s; }
+    .faq-question.active .icon { transform: rotate(180deg); }
+    .faq-answer { padding: 0 1.5rem 1rem; color: var(--gray-600); line-height: 1.6; font-size: 0.875rem; display: none; }
+    .faq-answer.show { display: block; }
+
+    /* CTA */
+    .cta-section { background: var(--primary); color: white; padding: 5rem 0; text-align: center; }
+    .cta-content h2 { font-size: 2.5rem; font-weight: 700; margin-bottom: 1rem; }
+    .cta-content p { font-size: 1.125rem; margin-bottom: 2rem; opacity: 0.9; max-width: 550px; margin-left: auto; margin-right: auto; }
+
+    /* FOOTER */
+    .footer { background: var(--gray-900); color: var(--gray-300); padding: 3rem 0 1rem; }
+    .footer-grid { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 2rem; margin-bottom: 2rem; }
+    .footer-section h4 { color: white; font-size: 1rem; font-weight: 600; margin-bottom: 1rem; }
+    .footer-logo { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem; }
+    .footer-description { color: var(--gray-400); font-size: 0.875rem; line-height: 1.6; margin-bottom: 1.5rem; max-width: 280px; }
+    .footer-links { list-style: none; padding: 0; }
+    .footer-links li { margin-bottom: 0.5rem; }
+    .footer-links a { color: var(--gray-300); text-decoration: none; font-size: 0.875rem; transition: color 0.2s; display: block; }
+    .footer-links a:hover { color: white; }
+    #n8n-chat { position: fixed !important; bottom: 20px !important; right: 20px !important; left: auto !important; z-index: 9999 !important; }
+    :root { --chat--color--primary: #2563eb !important; --chat--window--width: 400px !important; --chat--window--height: 600px !important; --chat--header--background: linear-gradient(135deg,#2563eb,#1d4ed8) !important; --chat--header--color: #fff !important; --chat--message--user--background: #2563eb !important; --chat--message--user--color: #fff !important; --chat--toggle--background: linear-gradient(135deg,#2563eb,#1d4ed8) !important; --chat--toggle--color: #fff !important; --chat--toggle--size: 56px !important; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner { width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: spin 0.8s linear infinite; display: inline-block; }
+    @media (max-width: 768px) {
+      .hero h1 { font-size: 2.25rem; }
+      .value-inner { grid-template-columns: 1fr; gap: 2rem; }
+      .value-inner.reverse { direction: ltr; }
+      .use-cases-grid { grid-template-columns: 1fr; }
+      .comparison-grid { grid-template-columns: 1fr; }
+      .process-steps { grid-template-columns: 1fr; }
+      .reviews-grid { grid-template-columns: 1fr; }
+      .footer-grid { grid-template-columns: 1fr 1fr; }
+      .nav-menu { display: none; }
+      .stats-grid { grid-template-columns: repeat(2,1fr); }
+      .demo-input-row { flex-direction: column; }
+    }
+    @media (max-width: 640px) {
+      .hero h1 { font-size: 1.875rem; }
+      .container { padding: 0 0.75rem; }
+      .footer-grid { grid-template-columns: 1fr; }
+      .hero-ctas { flex-direction: column; align-items: center; }
+    }
+  </style>
+  <script async src="https://cdn.tolt.io/tolt.js" data-tolt="pk_CAtHKL6z3BUN8BWfHENpoM1e"></script>
+  <script>!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version="2.0";n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,"script","https://connect.facebook.net/en_US/fbevents.js");fbq("init","2717863625238535");fbq("track","PageView");</script>
+</head>
+<body>
+<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-TL7WVD2N" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+
+<!-- HEADER -->
+<header class="header">
+  <div class="container">
+    <div class="header-content">
+      <a href="https://linkfinderai.com" class="logo">
+        <div class="logo-icon"><i class="fas fa-search"></i></div>
+        <span class="logo-text">LinkFinder AI</span>
+      </a>
+      <nav class="nav-menu">
+        <a href="https://linkfinderai.com/pricing">Pricing</a>
+        <a href="https://linkfinderai.com/api-documentation">API Documentation</a>
+        <a href="https://linkfinderai.com/blog">Blog</a>
+      </nav>
+      <div class="auth-buttons">
+        <a href="https://linkfinderai.com/log-in" class="btn btn-outline">Login</a>
+        <a href="https://linkfinderai.com/sign-up" class="btn">Start Free Trial</a>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- BREADCRUMB -->
+<div class="breadcrumb">
+  <div class="container">
+    <a href="https://linkfinderai.com">LinkFinder AI</a><span>›</span>
+    <a href="https://linkfinderai.com/#tools">Tools</a><span>›</span>
+    LinkedIn Company Employees API
+  </div>
+</div>
+
+<!-- HERO -->
+<div class="container">
+  <div class="hero">
+    <div class="hero-tag"><i class="fas fa-code"></i> API Endpoint · n8n · Make · Zapier</div>
+    <h1>LinkedIn Company<br><span>Employees API</span></h1>
+    <p>Input a company name or LinkedIn URL. Get back every employee — name, job title, LinkedIn profile URL and verified email — delivered directly into your workflow. Zero ban risk.</p>
+    <div class="hero-ctas">
+      <a href="https://linkfinderai.com/sign-up" class="btn btn-large" onclick="posthog.capture('hero_cta_clicked')">
+        <i class="fas fa-rocket"></i> Get free API key
+      </a>
+      <a href="https://linkfinderai.com/api-documentation" class="btn btn-outline btn-large">
+        <i class="fas fa-book"></i> API Documentation
+      </a>
+    </div>
+    <div class="hero-social-proof">
+      <div class="hero-social-proof-item"><i class="fas fa-check-circle"></i><span>No LinkedIn account needed</span></div>
+      <div class="hero-social-proof-item"><i class="fas fa-check-circle"></i><span>Zero ban risk</span></div>
+      <div class="hero-social-proof-item"><i class="fas fa-check-circle"></i><span>Works in n8n, Make, Zapier</span></div>
+      <div class="hero-social-proof-item"><i class="fas fa-check-circle"></i><span>Free tool: <a href="https://linkfinderai.com/linkedin-company-scraper" style="color:var(--primary);font-weight:600;">try in browser →</a></span></div>
+    </div>
+  </div>
+</div>
+
+<!-- STATS BAR -->
+<section class="stats-bar">
+  <div class="container">
+    <div class="stats-grid">
+      <div><div class="stat-number">1 credit</div><div class="stat-label">full employee list</div></div>
+      <div><div class="stat-number">~3 sec</div><div class="stat-label">avg response time</div></div>
+      <div><div class="stat-number">95%</div><div class="stat-label">data accuracy</div></div>
+      <div><div class="stat-number">0%</div><div class="stat-label">ban risk</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- DEMO -->
+<section class="demo-section">
+  <div class="container">
+    <div class="demo-section-title">Try it — live demo</div>
+    <div class="demo-section-sub">Enter any company name. See exactly what the API returns.</div>
+    <div class="demo-card">
+      <div class="demo-input-row">
+        <input class="demo-input" id="companyInput" type="text" placeholder="Company name e.g. Stripe, Salesforce, HubSpot" value="Stripe">
+        <button class="demo-run-btn" id="runDemo">
+          <span id="runBtnText"><i class="fas fa-play"></i> Extract employees</span>
+        </button>
+      </div>
+      <div class="demo-results" id="demoResults">
+        <div class="results-meta">
+          <span>Showing <strong id="resultCount">6</strong> of <strong id="totalCount">2,847</strong> employees returned</span>
+          <span>Emails visible after sign-up</span>
+        </div>
+        <table class="results-table">
+          <thead><tr><th>Name</th><th>Current title</th><th>LinkedIn URL</th><th>Email (after enrichment)</th></tr></thead>
+          <tbody id="resultsBody"></tbody>
+        </table>
+        <div class="demo-notice">
+          <i class="fas fa-info-circle"></i>
+          <span><strong>Step 1</strong> returns names + LinkedIn URLs for all employees (1 credit total). <strong>Step 2</strong> enriches each profile you care about with a verified email (1 credit each). Filter by title first.</span>
+          <a href="https://linkfinderai.com/sign-up">Get API key free →</a>
+        </div>
+      </div>
+
+      <!-- Code tabs -->
+      <div class="demo-tabs">
+        <div class="demo-tab active" data-tab="curl">cURL</div>
+        <div class="demo-tab" data-tab="python">Python</div>
+        <div class="demo-tab" data-tab="node">Node.js</div>
+        <div class="demo-tab" data-tab="response">Response</div>
+      </div>
+      <div class="code-block active" id="tab-curl">
+        <pre><span class="code-cmt"># Step 1 — Get all employees from a LinkedIn company page</span>
+curl -X POST <span class="code-str">"https://api.linkfinderai.com"</span> \
+     -H <span class="code-str">"Authorization: Bearer YOUR_API_KEY"</span> \
+     -H <span class="code-str">"Content-Type: application/json"</span> \
+     -d <span class="code-str">'{"type":"linkedin_company_to_employees","input_data":"https://linkedin.com/company/stripe"}'</span>
+
+<span class="code-cmt"># Step 2 — Enrich each employee with verified email</span>
+curl -X POST <span class="code-str">"https://api.linkfinderai.com"</span> \
+     -H <span class="code-str">"Authorization: Bearer YOUR_API_KEY"</span> \
+     -H <span class="code-str">"Content-Type: application/json"</span> \
+     -d <span class="code-str">'{"type":"linkedin_profile_to_linkedin_info","input_data":"https://linkedin.com/in/jane-smith"}'</span></pre>
+      </div>
+      <div class="code-block" id="tab-python">
+        <pre><span class="code-key">import</span> requests
+
+API_KEY = <span class="code-str">"YOUR_API_KEY"</span>
+H = {<span class="code-str">"Authorization"</span>: <span class="code-str">f"Bearer {API_KEY}"</span>, <span class="code-str">"Content-Type"</span>: <span class="code-str">"application/json"</span>}
+
+<span class="code-cmt"># Get all employees</span>
+r = requests.post(<span class="code-str">"https://api.linkfinderai.com"</span>, headers=H, json={
+    <span class="code-str">"type"</span>: <span class="code-str">"linkedin_company_to_employees"</span>,
+    <span class="code-str">"input_data"</span>: <span class="code-str">"https://linkedin.com/company/stripe"</span>
+})
+employees = r.json()[<span class="code-str">"result"</span>]
+
+<span class="code-cmt"># Filter to Sales VPs only, then enrich</span>
+targets = [e <span class="code-key">for</span> e <span class="code-key">in</span> employees <span class="code-key">if</span> <span class="code-str">"VP"</span> <span class="code-key">in</span> e[<span class="code-str">"jobTitle"</span>]]
+<span class="code-key">for</span> emp <span class="code-key">in</span> targets:
+    enriched = requests.post(<span class="code-str">"https://api.linkfinderai.com"</span>, headers=H, json={
+        <span class="code-str">"type"</span>: <span class="code-str">"linkedin_profile_to_linkedin_info"</span>,
+        <span class="code-str">"input_data"</span>: emp[<span class="code-str">"linkedinUrl"</span>]
+    }).json()[<span class="code-str">"result"</span>]
+    print(enriched[<span class="code-str">"email"</span>], enriched[<span class="code-str">"name"</span>])</pre>
+      </div>
+      <div class="code-block" id="tab-node">
+        <pre><span class="code-key">const</span> post = (body) => fetch(<span class="code-str">'https://api.linkfinderai.com'</span>, {
+  method: <span class="code-str">'POST'</span>,
+  headers: { <span class="code-str">'Authorization'</span>: <span class="code-str">`Bearer ${API_KEY}`</span>, <span class="code-str">'Content-Type'</span>: <span class="code-str">'application/json'</span> },
+  body: JSON.stringify(body)
+}).then(r => r.json());
+
+<span class="code-cmt">// Get all employees then filter before enriching</span>
+<span class="code-key">const</span> { result: employees } = <span class="code-key">await</span> post({
+  type: <span class="code-str">'linkedin_company_to_employees'</span>,
+  input_data: <span class="code-str">'https://linkedin.com/company/stripe'</span>
+});
+
+<span class="code-key">const</span> targets = employees.filter(e => e.jobTitle.includes(<span class="code-str">'Sales'</span>));
+<span class="code-key">for</span> (<span class="code-key">const</span> emp <span class="code-key">of</span> targets) {
+  <span class="code-key">const</span> { result } = <span class="code-key">await</span> post({
+    type: <span class="code-str">'linkedin_profile_to_linkedin_info'</span>,
+    input_data: emp.linkedinUrl
+  });
+  console.log(result.email, result.name);
+}</pre>
+      </div>
+      <div class="code-block" id="tab-response">
+        <pre>{
+  <span class="code-key">"status"</span>: <span class="code-str">"success"</span>,
+  <span class="code-key">"result"</span>: [
+    {
+      <span class="code-key">"name"</span>: <span class="code-str">"Jane Smith"</span>,
+      <span class="code-key">"jobTitle"</span>: <span class="code-str">"Head of Sales, EMEA"</span>,
+      <span class="code-key">"linkedinUrl"</span>: <span class="code-str">"https://linkedin.com/in/jane-smith"</span>,
+      <span class="code-key">"company"</span>: <span class="code-str">"Stripe"</span>,
+      <span class="code-key">"location"</span>: <span class="code-str">"London, UK"</span>
+    },
+    <span class="code-cmt">// ... all employees</span>
+  ]
+}</pre>
+      </div>
+
+      <div class="demo-cta-row">
+        <a href="https://linkfinderai.com/sign-up" class="btn" onclick="posthog.capture('demo_cta_clicked')"><i class="fas fa-rocket"></i> Get free API key</a>
+        <a href="https://linkfinderai.com/api-documentation" class="btn btn-outline"><i class="fas fa-book"></i> Full docs</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- VALUE PROP 1 -->
+<section class="value-section">
+  <div class="container">
+    <div class="value-inner">
+      <div>
+        <span class="value-tag">Target account prospecting</span>
+        <h2>Build your ICP list from any company — automatically</h2>
+        <p>Drop a company URL into n8n. The API returns every employee. Filter by title. Enrich the ones that match your ICP with verified emails. The whole thing runs in under 3 minutes with zero manual work.</p>
+        <ul class="value-list">
+          <li><i class="fas fa-check"></i> Extract every employee from any company page</li>
+          <li><i class="fas fa-check"></i> Filter by job title before enriching — saves credits</li>
+          <li><i class="fas fa-check"></i> Get verified email, LinkedIn URL, job title, location</li>
+          <li><i class="fas fa-check"></i> No LinkedIn account, no browser, zero ban risk</li>
+        </ul>
+        <a href="https://linkfinderai.com/sign-up" class="value-link">Start free trial <i class="fas fa-arrow-right"></i></a>
+      </div>
+      <div class="value-visual">
+        <div style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--gray-400);margin-bottom:0.875rem;">n8n workflow — runs in under 3 min</div>
+        <div class="workflow-node"><div class="workflow-node-icon node-n8n">n</div><div><div style="font-size:0.8rem;font-weight:600;">Company name input</div><div style="font-size:0.72rem;color:var(--gray-400);">e.g. "Stripe" from your Google Sheet</div></div></div>
+        <div class="node-arrow">↓</div>
+        <div class="workflow-node"><div class="workflow-node-icon node-lf"><i class="fas fa-search" style="font-size:0.8rem;"></i></div><div><div style="font-size:0.8rem;font-weight:600;">company_name_to_linkedin_url</div><div style="font-size:0.72rem;color:var(--gray-400);">Finds the LinkedIn company page</div></div></div>
+        <div class="node-arrow">↓</div>
+        <div class="workflow-node"><div class="workflow-node-icon node-lf"><i class="fas fa-users" style="font-size:0.8rem;"></i></div><div><div style="font-size:0.8rem;font-weight:600;">linkedin_company_to_employees</div><div style="font-size:0.72rem;color:var(--gray-400);">Returns full employee list</div></div><span class="node-badge">2,847 employees</span></div>
+        <div class="node-arrow">↓</div>
+        <div class="workflow-node" style="background:#fef3c7;border-color:#fde68a;"><div class="workflow-node-icon" style="background:#d97706;"><i class="fas fa-filter" style="font-size:0.8rem;"></i></div><div><div style="font-size:0.8rem;font-weight:600;color:#92400e;">Filter: title contains "Sales" or "VP"</div><div style="font-size:0.72rem;color:#d97706;">Keeps only your ICP — 47 people</div></div></div>
+        <div class="node-arrow">↓</div>
+        <div class="workflow-node"><div class="workflow-node-icon node-lf"><i class="fas fa-envelope" style="font-size:0.8rem;"></i></div><div><div style="font-size:0.8rem;font-weight:600;">linkedin_profile_to_linkedin_info</div><div style="font-size:0.72rem;color:var(--gray-400);">Verified email for each target</div></div><span class="node-badge">47 emails</span></div>
+        <div class="node-arrow">↓</div>
+        <div class="workflow-node"><div class="workflow-node-icon node-crm"><i class="fas fa-table" style="font-size:0.8rem;"></i></div><div><div style="font-size:0.8rem;font-weight:600;">Google Sheets / HubSpot</div><div style="font-size:0.72rem;color:var(--gray-400);">Ready to contact</div></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- VALUE PROP 2 -->
+<section class="value-section alt">
+  <div class="container">
+    <div class="value-inner reverse">
+      <div>
+        <span class="value-tag">Weekly automation</span>
+        <h2>New employees from your target accounts — every Monday</h2>
+        <p>Set up the workflow once. Every Monday morning it runs against your target account list, extracts new hires and decision-makers, enriches emails, and drops them in your CRM. You wake up to fresh pipeline.</p>
+        <ul class="value-list">
+          <li><i class="fas fa-check"></i> Schedule trigger — runs without you touching anything</li>
+          <li><i class="fas fa-check"></i> Processes a list of 50+ companies in one run</li>
+          <li><i class="fas fa-check"></i> Deduplicates against existing CRM records</li>
+          <li><i class="fas fa-check"></i> Detects new hires and role changes automatically</li>
+        </ul>
+        <a href="https://linkfinderai.com/sign-up" class="value-link">Download n8n template <i class="fas fa-arrow-right"></i></a>
+      </div>
+      <div class="value-visual">
+        <div style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--gray-400);margin-bottom:0.875rem;">Every Monday, automatically</div>
+        <div class="workflow-node"><div class="workflow-node-icon node-n8n">n</div><div><div style="font-size:0.8rem;font-weight:600;">Schedule Trigger — Mon 8am</div><div style="font-size:0.72rem;color:var(--gray-400);">Set it once, forget it</div></div></div>
+        <div class="node-arrow">↓</div>
+        <div class="workflow-node"><div class="workflow-node-icon node-crm"><i class="fas fa-table" style="font-size:0.8rem;"></i></div><div><div style="font-size:0.8rem;font-weight:600;">Google Sheets — Target Accounts</div><div style="font-size:0.72rem;color:var(--gray-400);">Your list of 50 dream accounts</div></div></div>
+        <div class="node-arrow">↓</div>
+        <div class="workflow-node"><div class="workflow-node-icon node-lf"><i class="fas fa-users" style="font-size:0.8rem;"></i></div><div><div style="font-size:0.8rem;font-weight:600;">linkedin_company_to_employees</div><div style="font-size:0.72rem;color:var(--gray-400);">Runs for each account</div></div><span class="node-badge">847 people</span></div>
+        <div class="node-arrow">↓</div>
+        <div class="workflow-node"><div class="workflow-node-icon node-crm"><i class="fas fa-database" style="font-size:0.8rem;"></i></div><div><div style="font-size:0.8rem;font-weight:600;">HubSpot / Pipedrive</div><div style="font-size:0.72rem;color:var(--gray-400);">New ICP contacts created</div></div></div>
+        <div style="margin-top:1rem;padding:0.75rem;background:#eff6ff;border-radius:6px;font-size:0.8rem;color:#1e40af;border:1px solid #bfdbfe;"><strong>"Haven't built a list manually in 3 months."</strong><br><span style="color:#60a5fa;font-size:0.7rem;">— James M., set it up once on a Sunday</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- USE CASES -->
+<section class="use-cases-section">
+  <div class="container">
+    <div class="section-header">
+      <h2>How teams use this</h2>
+      <p>Sales, recruiting, and growth teams use this endpoint to build precise, verified prospect lists in minutes. <a href="https://linkfinderai.com/linkedin-company-scraper" style="color:var(--primary);">Want to try it manually first? Free browser tool →</a></p>
+    </div>
+    <div class="use-cases-grid">
+      <div class="use-case-card">
+        <div class="use-case-icon"><i class="fas fa-crosshairs"></i></div>
+        <h3>ABM prospecting</h3>
+        <p>Build contact maps of your 50 dream accounts. Extract every decision-maker, filter by seniority, enrich with emails. All in one workflow.</p>
+      </div>
+      <div class="use-case-card">
+        <div class="use-case-icon"><i class="fas fa-user-tie"></i></div>
+        <h3>Competitor talent mapping</h3>
+        <p>Extract your competitor's entire sales or engineering org. Identify key players for recruiting or partnership discussions.</p>
+      </div>
+      <div class="use-case-card">
+        <div class="use-case-icon"><i class="fas fa-sync-alt"></i></div>
+        <h3>CRM auto-enrichment</h3>
+        <p>Take a list of company domains from your CRM, run extraction weekly, and keep contact records fresh with no manual uploads.</p>
+      </div>
+      <div class="use-case-card">
+        <div class="use-case-icon"><i class="fas fa-briefcase"></i></div>
+        <h3>New hire detection</h3>
+        <p>Re-run on your top accounts monthly. New employees show up automatically — warm re-engagement opportunity the moment they join.</p>
+      </div>
+      <div class="use-case-card">
+        <div class="use-case-icon"><i class="fas fa-chart-line"></i></div>
+        <h3>Agency client delivery</h3>
+        <p>Build verified B2B lead lists for clients at scale. Filter by job title for each ICP without any manual LinkedIn browsing.</p>
+      </div>
+      <div class="use-case-card">
+        <div class="use-case-icon"><i class="fas fa-database"></i></div>
+        <h3>Data pipeline enrichment</h3>
+        <p>Any HTTP request triggers it. Plug it into Clay, n8n, Make, Zapier or your own backend — the API handles the rest.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PROCESS -->
+<section class="process-section">
+  <div class="container">
+    <h2 class="process-title">Up and running in 5 minutes</h2>
+    <p class="process-subtitle">Sign up, get your API key, paste it into your workflow. That's it.</p>
+    <div class="process-steps">
+      <div class="process-step"><div class="step-number">1</div><h3 class="step-title">Get your API key</h3><p class="step-description">Sign up free. Your API key is in the dashboard under Settings. 25 free credits included — no credit card required.</p></div>
+      <div class="process-step"><div class="step-number">2</div><h3 class="step-title">Import the n8n template</h3><p class="step-description">Download the ready-to-use workflow JSON. Replace YOUR_API_KEY with yours. One HTTP Request node, done.</p></div>
+      <div class="process-step"><div class="step-number">3</div><h3 class="step-title">Employees arrive automatically</h3><p class="step-description">Run it manually first to test. Then add a schedule trigger and let it run every week without touching anything.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- INTEGRATIONS -->
+<section class="integrations-section">
+  <div class="container">
+    <div class="integrations-title">Works with your existing stack</div>
+    <div class="integrations-logos">
+      <div class="integration-pill"><div class="dot" style="background:#ea4b71;"></div> n8n</div>
+      <div class="integration-pill"><div class="dot" style="background:#6d28d9;"></div> Make</div>
+      <div class="integration-pill"><div class="dot" style="background:#ff4a00;"></div> Zapier</div>
+      <div class="integration-pill"><div class="dot" style="background:#0f9d58;"></div> Google Sheets</div>
+      <div class="integration-pill"><div class="dot" style="background:#ff7a59;"></div> HubSpot</div>
+      <div class="integration-pill"><div class="dot" style="background:#e8912d;"></div> Clay</div>
+      <div class="integration-pill"><div class="dot" style="background:#2563eb;"></div> REST API</div>
+    </div>
+  </div>
+</section>
+
+<!-- COMPARISON -->
+<section class="comparison-section">
+  <div class="container">
+    <h2 class="comparison-title">Stop building lists manually</h2>
+    <p class="comparison-sub">Every hour on LinkedIn is an hour your competitors spend on closing.</p>
+    <div class="comparison-grid">
+      <div class="comparison-column col-bad">
+        <h3>Without the API</h3>
+        <div class="comparison-item"><i class="fas fa-times" style="color:var(--error);"></i><span>Manually searching LinkedIn for each company's employees</span></div>
+        <div class="comparison-item"><i class="fas fa-times" style="color:var(--error);"></i><span>Copy-pasting names and titles into a spreadsheet one by one</span></div>
+        <div class="comparison-item"><i class="fas fa-times" style="color:var(--error);"></i><span>Risk of LinkedIn restrictions on your personal account</span></div>
+        <div class="comparison-item"><i class="fas fa-times" style="color:var(--error);"></i><span>Stale data — by the time you use it, roles have changed</span></div>
+      </div>
+      <div class="comparison-column col-good">
+        <h3>With LinkFinder AI API</h3>
+        <div class="comparison-item"><i class="fas fa-check" style="color:var(--success);"></i><span>Full employee list from any company in one API call</span></div>
+        <div class="comparison-item"><i class="fas fa-check" style="color:var(--success);"></i><span>Runs automatically in n8n, Make, or Zapier on a schedule</span></div>
+        <div class="comparison-item"><i class="fas fa-check" style="color:var(--success);"></i><span>No LinkedIn account used — zero ban risk ever</span></div>
+        <div class="comparison-item"><i class="fas fa-check" style="color:var(--success);"></i><span>Fresh data pulled live at the time of the request</span></div>
+      </div>
+    </div>
+    <div class="mid-cta">
+      <p>Ready to automate your prospecting?</p>
+      <a href="https://linkfinderai.com/sign-up" class="btn btn-large" onclick="posthog.capture('mid_page_cta_clicked')">
+        <i class="fas fa-rocket"></i> Get free API key
+      </a>
+      <div class="mid-cta-sub">No credit card · 25 free credits · Setup in 5 minutes</div>
+    </div>
+  </div>
+</section>
+
+<!-- TRUSTPILOT -->
+<section class="testimonials-section">
+  <div class="container">
+    <h2 class="testimonials-title">Trusted by sales teams worldwide</h2>
+    <p class="testimonials-subtitle">Real reviews from verified customers — unfiltered.</p>
+    <a href="https://www.trustpilot.com/review/linkfinderai.com" target="_blank" rel="noopener" class="tp-badge-link">
+      <span class="tp-wordmark">★ Trustpilot</span>
+      <div class="tp-stars-row">
+        <div class="tp-stars">
+          <div class="tp-star"><svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg></div>
+          <div class="tp-star"><svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg></div>
+          <div class="tp-star"><svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg></div>
+          <div class="tp-star"><svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg></div>
+          <div class="tp-star half"><svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg></div>
+        </div>
+        <span class="tp-score-text"><strong>4.5</strong></span>
+      </div>
+    </a>
+    <div class="reviews-grid">
+      <div class="review-card">
+        <div class="r-stars"><div class="r-star"><svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg></div><div class="r-star"><svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg></div><div class="r-star"><svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg></div><div class="r-star"><svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg></div><div class="r-star"><svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg></div></div>
+        <p class="r-quote">"Very useful API for scraping LinkedIn without ban. Works like a charm. Amazingly fast and gives crazy correct data."</p>
+        <div class="r-author"><div class="r-avatar">AA</div><div><div class="r-name">Anbarasu A.</div><div class="r-date">Nov 2025 · Verified</div></div></div>
+      </div>
+      <div class="review-card">
+        <div class="r-stars"><div class="r-star"><svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg></div><div class="r-star"><svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg></div><div class="r-star"><svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg></div><div class="r-star"><svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg></div><div class="r-star"><svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg></div></div>
+        <p class="r-quote">"Clean, easy to navigate, and delivers exactly what it promises. Saves a significant amount of manual effort. Well-built and focused on solving a real problem."</p>
+        <div class="r-author"><div class="r-avatar">NA</div><div><div class="r-name">Nishan Ameen</div><div class="r-date">Feb 2026 · Verified</div></div></div>
+      </div>
+      <div class="review-card">
+        <div class="r-stars"><div class="r-star"><svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg></div><div class="r-star"><svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg></div><div class="r-star"><svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg></div><div class="r-star"><svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg></div><div class="r-star"><svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg></div></div>
+        <p class="r-quote">"Does what I need, costs way less. I click around, get my results, move on. No tutorials needed, no feature bloat."</p>
+        <div class="r-author"><div class="r-avatar">SW</div><div><div class="r-name">Shaker Workday</div><div class="r-date">Jan 2026 · Verified</div></div></div>
+      </div>
+      <div class="review-card">
+        <div class="r-stars"><div class="r-star"><svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg></div><div class="r-star"><svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg></div><div class="r-star"><svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg></div><div class="r-star"><svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg></div><div class="r-star"><svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg></div></div>
+        <p class="r-quote">"So far everything has been very simple. No complex startups and all documentation is simple to follow. Does exactly what I was looking for."</p>
+        <div class="r-author"><div class="r-avatar">ZF</div><div><div class="r-name">Zachary Ferguson</div><div class="r-date">Nov 2025 · Verified</div></div></div>
+      </div>
+    </div>
+    <div class="tp-cta"><a href="https://www.trustpilot.com/review/linkfinderai.com" target="_blank" rel="noopener" class="tp-cta-link">Read all reviews on Trustpilot &rarr;</a></div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="faq-section">
+  <div class="container">
+    <div class="faq-header">
+      <h2>Frequently asked questions</h2>
+      <p>Everything you need to know before plugging this into your stack.</p>
+    </div>
+    <div class="faq-list">
+      <div class="faq-item"><button class="faq-question" onclick="toggleFAQ(this)">What's the difference between this and the free LinkedIn Company Scraper tool?<i class="fas fa-chevron-down icon"></i></button><div class="faq-answer">The <a href="https://linkfinderai.com/linkedin-company-scraper" style="color:var(--primary);">free browser tool</a> lets you extract employees manually — great for a one-off lookup. This API endpoint is for automation: plug it into n8n, Make, or Zapier and run it on a schedule, against a list of 50 companies, or triggered by any event in your workflow. If you're doing this more than once a week, the API saves you hours.</div></div>
+      <div class="faq-item"><button class="faq-question" onclick="toggleFAQ(this)">Does this use my LinkedIn account?<i class="fas fa-chevron-down icon"></i></button><div class="faq-answer">No. LinkFinder AI uses its own proprietary infrastructure. Your LinkedIn account is never connected or used. You can extract thousands of employee profiles with zero risk of restriction or ban to your personal account — ever.</div></div>
+      <div class="faq-item"><button class="faq-question" onclick="toggleFAQ(this)">How much does it cost to extract employees from a company?<i class="fas fa-chevron-down icon"></i></button><div class="faq-answer">The employee list extraction (names, titles, LinkedIn URLs) costs 1 credit for the entire company regardless of how many employees are returned — whether that's 5 or 50,000. Email enrichment via the linkedin_profile_to_linkedin_info endpoint costs 1 credit per individual profile. The best practice is to filter by job title after the first call and only enrich the profiles that match your ICP.</div></div>
+      <div class="faq-item"><button class="faq-question" onclick="toggleFAQ(this)">How do I use this in n8n?<i class="fas fa-chevron-down icon"></i></button><div class="faq-answer">Add an HTTP Request node. Set method to POST, URL to https://api.linkfinderai.com, add an Authorization header with your API key, and a JSON body with type: "linkedin_company_to_employees" and input_data set to the LinkedIn company URL. The response will contain the full employee array ready to loop through.</div></div>
+      <div class="faq-item"><button class="faq-question" onclick="toggleFAQ(this)">Is there a free trial?<i class="fas fa-chevron-down icon"></i></button><div class="faq-answer">Yes. Every new account includes 25 free credits on sign-up — no credit card required. That's enough to extract employees from several companies and test the full workflow before committing to a plan.</div></div>
+      <div class="faq-item"><button class="faq-question" onclick="toggleFAQ(this)">How accurate is the data?<i class="fas fa-chevron-down icon"></i></button><div class="faq-answer">We maintain 95%+ accuracy. Data is pulled live from LinkedIn at request time rather than from a static database, which means you get current information including recent job changes, new hires, and up-to-date titles.</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- FINAL CTA -->
+<section class="cta-section">
+  <div class="container">
+    <div class="cta-content">
+      <h2>Start extracting employees via API.</h2>
+      <p>25 free credits on sign-up. No credit card. Plug into n8n in 5 minutes and run your first extraction today.</p>
+      <a href="https://linkfinderai.com/sign-up" class="btn btn-white btn-large" onclick="posthog.capture('final_cta_clicked')">Get free API key</a>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-section">
+        <div class="footer-logo"><div class="logo-icon"><i class="fas fa-search"></i></div><span class="logo-text">LinkFinder AI</span></div>
+        <p class="footer-description">Professional tools for extracting company data from LinkedIn. Streamline your business research and competitive intelligence.</p>
+      </div>
+      <div class="footer-section">
+        <h4>Our Tools</h4>
+        <ul class="footer-links">
+          <li><a href="https://linkfinderai.com/company-url-finder">Company URL Finder</a></li>
+          <li><a href="https://linkfinderai.com/linkedin-url-finder">LinkedIn URL Finder</a></li>
+          <li><a href="https://linkfinderai.com/company-phone-finder">Company Phone Finder</a></li>
+          <li><a href="https://linkfinderai.com/linkedin-phone-number-finder">Find phone number from LinkedIn profile</a></li>
+          <li><a href="https://linkfinderai.com/company-employee-finder">Company Employee Finder</a></li>
+          <li><a href="https://linkfinderai.com/company-details-finder">Company Details Finder</a></li>
+          <li><a href="https://linkfinderai.com/find-company-employee-count">Company Employee Count</a></li>
+          <li><a href="https://linkfinderai.com/linkedin-search-by-email">LinkedIn Search by Email</a></li>
+          <li><a href="https://linkfinderai.com/linkedin-company-scraper">LinkedIn Company Scraper</a></li>
+          <li><a href="https://linkfinderai.com/linkedin-profile-scraper">LinkedIn Profile Scraper</a></li>
+          <li><a href="https://linkfinderai.com/linkedin-email-finder">LinkedIn Email Finder</a></li>
+          <li><a href="https://linkfinderai.com/instagram-profile-scraper">Instagram Profile Scraper</a></li>
+          <li><a href="https://linkfinderai.com/instagram-profile-url-finder">Instagram URL Finder</a></li>
+          <li><a href="https://linkfinderai.com/scrape-linkedIn-jobs">Scrape LinkedIn Jobs</a></li>
+          <li><a href="https://linkfinderai.com/linkedin-post-commenters-export">LinkedIn Post Commenters Export</a></li>
+          <li><a href="https://linkfinderai.com/linkedin-post-date-extractor">LinkedIn Post Date Extractor</a></li>
+          <li><a href="https://linkfinderai.com/linkedin-company-post-scraper">LinkedIn Company Post Scraper</a></li>
+          <li><a href="https://linkfinderai.com/linkedIn-post-scraper">LinkedIn Post Scraper</a></li>
+          <li><a href="https://linkfinderai.com/email-extractor-from-website">Email Extractor</a></li>
+          <li><a href="https://linkfinderai.com/company-description-finder">Company Description Finder</a></li>
+          <li><a href="https://linkfinderai.com/company-founded-year">Company Founded Year</a></li>
+          <li><a href="https://linkfinderai.com/company-industry-finder">Company Industry Finder</a></li>
+          <li><a href="https://linkfinderai.com/company-tech-stack-finder">Company Tech Stack Finder</a></li>
+          <li><a href="https://linkfinderai.com/linkedin-company-employees-finder">LinkedIn Company Employees Finder</a></li>
+          <li><a href="https://linkfinderai.com/free-linkedin-sales-navigator-scraper">Free LinkedIn Sales Navigator Scraper</a></li>
+        </ul>
+      </div>
+      <div class="footer-section">
+        <h4>Compare</h4>
+        <ul class="footer-links">
+          <li><a href="https://linkfinderai.com/apify-alternative">Apify Alternative</a></li>
+          <li><a href="https://linkfinderai.com/clay-alternative">Clay Alternative</a></li>
+          <li><a href="https://linkfinderai.com/coresignal-alternative">Coresignal Alternative</a></li>
+          <li><a href="https://linkfinderai.com/derrick-app-alternative">Derrick App Alternative</a></li>
+          <li><a href="https://linkfinderai.com/phantombuster-alternative">PhantomBuster Alternative</a></li>
+          <li><a href="https://linkfinderai.com/captain-data-alternative">Captain Data Alternative</a></li>
+          <li><a href="https://linkfinderai.com/clearbit-alternative">Clearbit Alternative</a></li>
+          <li><a href="https://linkfinderai.com/scrapin-alternative">Scrapin Alternative</a></li>
+          <li><a href="https://linkfinderai.com/apollo-alternative">Apollo Alternative</a></li>
+          <li><a href="https://linkfinderai.com/hunter-alternative">Hunter Alternative</a></li>
+          <li><a href="https://linkfinderai.com/blog">Blog</a></li>
+        </ul>
+      </div>
+      <div class="footer-section">
+        <h4>Features</h4>
+        <ul class="footer-links">
+          <li><a href="https://linkfinderai.com/b2b-data-enrichment">B2B data enrichment</a></li>
+          <li><a href="https://linkfinderai.com/data-enrichment-api">Data enrichment API</a></li>
+          <li><a href="https://linkfinderai.com/lead-enrichment-api">Lead Enrichment API</a></li>
+          <li><a href="https://linkfinderai.com/contact-enrichment-api">Contact Enrichment API</a></li>
+          <li><a href="https://linkfinderai.com/email-enrichment-api">Email Enrichment API</a></li>
+          <li><a href="https://linkfinderai.com/company-enrichment-api">Company Enrichment API</a></li>
+          <li><a href="https://linkfinderai.com/lead-generation-api">Lead Generation API</a></li>
+          <li><a href="https://linkfinderai.com/linkedin-scraper">Linkedin Scraper</a></li>
+          <li><a href="https://linkfinderai.com/b2b-data-companies">B2B Data Companies</a></li>
+        </ul>
+        <h4 style="margin-top:1.5rem">Support</h4>
+        <ul class="footer-links">
+          <li><a href="https://linkfinderai.com/api-documentation">API documentation</a></li>
+          <li><a href="https://linkfinderai.com/pricing">Pricing</a></li>
+          <li><a href="https://linkfinderai.com/privacy">Privacy Policy</a></li>
+          <li><a href="https://linkfinderai.com/terms">Terms of Service</a></li>
+          <li><a href="https://linkfinderai.com/about-us">About Us</a></li>
+          <li><a href="https://linkfinderai.com/blog">Blog</a></li>
+          <li><a href="https://calendly.com/hamoureliasse/compensated-interview-unlimited-leads-clone" target="_blank"><i class="fas fa-calendar-alt"></i> Book a Call</a></li>
+          <li><a href="https://www.linkedin.com/in/eliasse-hamour-08194821a/" target="_blank"><i class="fab fa-linkedin"></i> LinkedIn</a></li>
+          <li><a href="https://trustpilot.com/review/linkfinderai.com" target="_blank"><i class="fas fa-star"></i> Trustpilot Reviews</a></li>
+        </ul>
+      </div>
+    </div>
+    <div style="border-top:1px solid var(--gray-800);padding-top:1.5rem;">
+      <p>&copy; 2025 LinkFinderAI. All rights reserved.</p>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // Demo simulation
+  const mockData = {
+    stripe: { total: 2847, employees: [
+      { name: 'Jane Smith', title: 'Head of Sales, EMEA', url: 'linkedin.com/in/jane-smith', email: 'j.smith@stripe.com' },
+      { name: 'Marcus Chen', title: 'Senior Account Executive', url: 'linkedin.com/in/marcus-chen', email: 'm.chen@stripe.com' },
+      { name: 'Priya Patel', title: 'VP of Growth', url: 'linkedin.com/in/priya-patel', email: 'p.patel@stripe.com' },
+      { name: 'Tom Walker', title: 'Sales Development Rep', url: 'linkedin.com/in/tom-walker', email: 't.walker@stripe.com' },
+      { name: 'Anna Kowalski', title: 'Director of Marketing', url: 'linkedin.com/in/anna-kowalski', email: 'a.kowalski@stripe.com' },
+      { name: 'David Lee', title: 'Head of Partnerships', url: 'linkedin.com/in/david-lee', email: 'd.lee@stripe.com' },
+    ]},
+    salesforce: { total: 71204, employees: [
+      { name: 'Rachel Torres', title: 'Enterprise Account Executive', url: 'linkedin.com/in/rachel-torres', email: 'r.torres@salesforce.com' },
+      { name: 'James Okafor', title: 'VP Commercial Sales', url: 'linkedin.com/in/james-okafor', email: 'j.okafor@salesforce.com' },
+      { name: 'Emma Lindqvist', title: 'SDR Team Lead', url: 'linkedin.com/in/emma-lindqvist', email: 'e.lindqvist@salesforce.com' },
+      { name: 'Ryan Park', title: 'Director of Revenue Operations', url: 'linkedin.com/in/ryan-park', email: 'r.park@salesforce.com' },
+      { name: 'Sofia Marchetti', title: 'Growth Marketing Manager', url: 'linkedin.com/in/sofia-marchetti', email: 's.marchetti@salesforce.com' },
+      { name: 'Ben Williams', title: 'Head of Enterprise Sales', url: 'linkedin.com/in/ben-williams', email: 'b.williams@salesforce.com' },
+    ]},
+    hubspot: { total: 8340, employees: [
+      { name: 'Lena Fischer', title: 'Mid-Market Account Executive', url: 'linkedin.com/in/lena-fischer', email: 'l.fischer@hubspot.com' },
+      { name: 'Carlos Ruiz', title: 'VP of Sales', url: 'linkedin.com/in/carlos-ruiz', email: 'c.ruiz@hubspot.com' },
+      { name: 'Mei Zhou', title: 'Principal Product Manager', url: 'linkedin.com/in/mei-zhou', email: 'm.zhou@hubspot.com' },
+      { name: 'Owen Bradley', title: 'Sales Engineer', url: 'linkedin.com/in/owen-bradley', email: 'o.bradley@hubspot.com' },
+      { name: 'Fatima Al-Hassan', title: 'Director of Demand Gen', url: 'linkedin.com/in/fatima-alhassan', email: 'f.alhassan@hubspot.com' },
+      { name: 'Kyle Nguyen', title: 'SDR Manager', url: 'linkedin.com/in/kyle-nguyen', email: 'k.nguyen@hubspot.com' },
+    ]}
+  };
+
+  function getCompanyData(input) {
+    const s = input.toLowerCase().trim();
+    if (s.includes('stripe')) return mockData.stripe;
+    if (s.includes('salesforce')) return mockData.salesforce;
+    if (s.includes('hubspot')) return mockData.hubspot;
+    const domain = s.split('.')[0] || s.split('/').pop() || s;
+    return { total: Math.floor(Math.random() * 900) + 100, employees: [
+      { name: 'Alex Johnson', title: 'VP of Sales', url: `linkedin.com/in/alex-johnson-${domain}`, email: `a.johnson@${domain}.com` },
+      { name: 'Sarah Kim', title: 'Head of Growth', url: `linkedin.com/in/sarah-kim-${domain}`, email: `s.kim@${domain}.com` },
+      { name: 'Michael Brown', title: 'CEO', url: `linkedin.com/in/michael-brown-${domain}`, email: `m.brown@${domain}.com` },
+      { name: 'Lisa Zhang', title: 'Director of Marketing', url: `linkedin.com/in/lisa-zhang-${domain}`, email: `l.zhang@${domain}.com` },
+      { name: 'Carlos Rivera', title: 'Account Executive', url: `linkedin.com/in/carlos-rivera-${domain}`, email: `c.rivera@${domain}.com` },
+      { name: 'Aisha Okonkwo', title: 'Business Development Lead', url: `linkedin.com/in/aisha-okonkwo-${domain}`, email: `a.okonkwo@${domain}.com` },
+    ]};
+  }
+
+  document.getElementById('runDemo').addEventListener('click', function() {
+    const input = document.getElementById('companyInput').value.trim();
+    if (!input) return;
+    const btn = this;
+    btn.innerHTML = '<span class="spinner"></span> Extracting...';
+    btn.disabled = true;
+    setTimeout(() => {
+      const data = getCompanyData(input);
+      const tbody = document.getElementById('resultsBody');
+      tbody.innerHTML = '';
+      data.employees.forEach((emp, i) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td class="td-name">${emp.name}</td><td>${emp.title}</td><td class="td-link"><a href="https://${emp.url}" target="_blank">${emp.url}</a></td><td class="td-email${i >= 2 ? ' blur' : ''}">${emp.email}</td>`;
+        tbody.appendChild(tr);
+      });
+      document.getElementById('resultCount').textContent = data.employees.length;
+      document.getElementById('totalCount').textContent = data.total.toLocaleString();
+      document.getElementById('demoResults').classList.add('show');
+      btn.innerHTML = '<i class="fas fa-play"></i> Extract employees';
+      btn.disabled = false;
+      try { posthog.capture('demo_run', { company: input }); } catch(e) {}
+    }, 1200);
+  });
+
+  document.getElementById('companyInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') document.getElementById('runDemo').click();
+  });
+
+  // Code tabs
+  document.querySelectorAll('.demo-tab').forEach(tab => {
+    tab.addEventListener('click', function() {
+      document.querySelectorAll('.demo-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.code-block').forEach(c => c.classList.remove('active'));
+      this.classList.add('active');
+      document.getElementById('tab-' + this.dataset.tab).classList.add('active');
+    });
+  });
+
+  // FAQ
+  function toggleFAQ(button) {
+    const answer = button.nextElementSibling;
+    const isOpen = button.classList.contains('active');
+    document.querySelectorAll('.faq-question').forEach(q => { q.classList.remove('active'); q.nextElementSibling.classList.remove('show'); });
+    if (!isOpen) { button.classList.add('active'); answer.classList.add('show'); }
+  }
+</script>
+
+<script type="module">
+  import { createChat } from 'https://cdn.jsdelivr.net/npm/@n8n/chat/dist/chat.bundle.es.js';
+  createChat({
+    webhookUrl: 'https://eliasse-n8n.onrender.com/webhook/9f05ee7f-4c6d-4032-9181-bf90cc07b341/chat',
+    mode: 'window', target: '#n8n-chat',
+    initialMessages: ['Hi! I\'m your AI support assistant 🤖', 'How can I help you with LinkFinderAI today?'],
+    showWelcomeScreen: true,
+    i18n: { en: { title: 'AI Support Chat 🤖', subtitle: 'Get instant help from our AI assistant', getStarted: 'Start Chat', inputPlaceholder: 'Ask me anything about LinkFinderAI...' } },
+    loadPreviousSession: false
+  });
+</script>
+<div id="n8n-chat"></div>
+</body>
+</html>
