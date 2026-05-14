@@ -908,14 +908,25 @@ async function processBulk() {
                         bulkResults[i]={inputData:row.inputData,result:`${data.length} reactions found`,status:'Found',reactions:data,rawData:data};
                         deductCredits(data.length);
                     } else {
-                        // Parse rawData if result is a JSON string (e.g. linkedin_company workflow)
-                        let parsedRaw = data;
-                        if (typeof data.result === 'string' && data.result.startsWith('{')) {
-                            try { parsedRaw = JSON.parse(data.result); } catch(e) {}
-                        }
-                        bulkResults[i]={inputData:row.inputData,result:data.result||'Not found',status:data.result?'Found':'Not found',rawData:parsedRaw};
-                        if(data.result) deductCredits(getCreditCost(currentInputType,currentOutputType));
-                    }
+    // Server returns profile directly OR wrapped in result field
+    let parsedRaw = data;
+    if (typeof data.result === 'string' && data.result.startsWith('{')) {
+        try { parsedRaw = JSON.parse(data.result); } catch(e) {}
+    } else if (data.result && typeof data.result === 'object') {
+        parsedRaw = data.result;
+    }
+    // Detect if we got real profile data (server returns directly, no result wrapper)
+    const hasProfileData = !!(parsedRaw.name || parsedRaw.jobTitle || parsedRaw.company);
+    const resultValue = data.result || (hasProfileData ? parsedRaw.name || 'Found' : 'Not found');
+    const statusValue = (data.result || hasProfileData) ? 'Found' : 'Not found';
+    bulkResults[i]={
+        inputData: row.inputData,
+        result: resultValue,
+        status: statusValue,
+        rawData: parsedRaw
+    };
+    if (data.result || hasProfileData) deductCredits(getCreditCost(currentInputType,currentOutputType));
+}
                 } else {
                     const data = await response.json();
                     if (response.status === 403 && data.code === 403) {
