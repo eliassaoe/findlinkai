@@ -171,6 +171,36 @@
     #n8n-chat input:focus,#n8n-chat textarea:focus{outline:2px solid #007bff !important;z-index:100000 !important;}
     :root{--chat--color--primary:#2563eb !important;--chat--color--primary-shade-50:#1d4ed8 !important;--chat--toggle--size:64px !important;}
     .billing-toggle{display:flex;gap:0.5rem;margin-bottom:2rem;background:var(--gray-100);padding:0.25rem;border-radius:8px;}
+        /* ROI badge on each plan card */
+    .plan-roi-badge {
+        font-size: 0.62rem;
+        font-weight: 700;
+        background: #dcfce7;
+        color: #15803d;
+        border-radius: 4px;
+        padding: 0.18rem 0.45rem;
+        display: inline-block;
+        margin: 0.3rem auto 0;
+        letter-spacing: 0.01em;
+    }
+    /* Green ROI comparison banner inside the pricing modal */
+    .roi-banner {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+        border: 1px solid #bbf7d0;
+        border-radius: 10px;
+        padding: 0.65rem 1rem;
+        margin-bottom: 1.25rem;
+        font-size: 0.78rem;
+        color: #14532d;
+        font-weight: 500;
+    }
+    .roi-banner strong { color: #166534; }
+    .roi-sep { color: #86efac; margin: 0 0.25rem; }
     .billing-btn{flex:1;padding:0.75rem;border:none;background:transparent;border-radius:6px;font-weight:500;color:var(--gray-600);cursor:pointer;transition:all 0.2s ease;font-size:0.9rem;display:flex;align-items:center;justify-content:center;gap:0.5rem;}
     .billing-btn.active{background:white;color:var(--gray-900);box-shadow:0 1px 3px rgba(0,0,0,0.1);}
     .save-tag{font-size:0.75rem;background:var(--success);color:white;padding:0.2rem 0.4rem;border-radius:3px;font-weight:600;}
@@ -282,6 +312,7 @@
 <script async src="https://cdn.tolt.io/tolt.js" data-tolt="pk_CAtHKL6z3BUN8BWfHENpoM1e"></script>
 <script>!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version="2.0";n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,"script","https://connect.facebook.net/en_US/fbevents.js");fbq("init","2717863625238535");fbq("track","PageView");</script>
 <link rel="canonical" href="https://linkfinderai.com/app" />
+<script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
 </head>
 <body>
 
@@ -364,7 +395,8 @@
                 </div>
                 <div class="form-field">
                     <label class="form-label">I want to find</label>
-                    <select id="outputType" class="form-select">
+                    <!-- FIX 6b: starts disabled — enabled by setupDropdowns when inputType chosen -->
+                    <select id="outputType" class="form-select" disabled>
                         <option value="">Select first option...</option>
                     </select>
                 </div>
@@ -443,7 +475,6 @@
                 <input type="file" id="csvFile" accept=".csv" class="hidden">
                 <button type="button" class="btn" onclick="document.getElementById('csvFile').click()"><i class="fas fa-file-csv"></i> Select File</button>
             </div>
-            <!-- PATCH: Example CSV download + API hint row -->
             <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem;margin-top:0.875rem;">
                 <div class="bulk-api-hint" style="margin-top:0;">
                     Running this regularly? <a href="#" onclick="navigateToPage('api');return false;">connect via API</a> and automate it
@@ -457,7 +488,8 @@
             </div>
             <div id="csvPreview" class="hidden">
                 <div id="previewTable"></div>
-                <button onclick="processBulk()" class="btn btn-full" id="processBulkBtn"><i class="fas fa-play"></i> Process Items</button>
+                <!-- FIX 2: starts disabled — enabled by showPreview() after CSV validated -->
+                <button onclick="processBulk()" class="btn btn-full" id="processBulkBtn" disabled style="opacity:0.5;"><i class="fas fa-upload"></i> Upload a CSV file first</button>
             </div>
         </div>
 
@@ -663,7 +695,6 @@ function renderPlansGrid() {
     }).join('');
 }
 
-// PATCH: Fixed checkout — loading state + window.open + null check
 function proceedToCheckoutDirect(index, btnEl) {
     const plan = plans[index];
     if (btnEl) { btnEl.textContent = 'Opening checkout…'; btnEl.disabled = true; setTimeout(() => { btnEl.textContent = 'Get Started'; btnEl.disabled = false; }, 5000); }
@@ -676,21 +707,25 @@ function proceedToCheckoutDirect(index, btnEl) {
     if (!w || w.closed || typeof w.closed==='undefined') window.location.href = url;
 }
 
+// FIX 2: Track billing toggle + remember user's preference
 function setBilling(type) {
     isAnnualBilling = (type==='annual');
     document.getElementById('monthlyBtn').classList.toggle('active', !isAnnualBilling);
     document.getElementById('annualBtn').classList.toggle('active', isAnnualBilling);
     renderPlansGrid();
+    try { posthog.capture('billing_toggle', { selected: type }); } catch(e) {}
 }
 
+// FIX 1: Don't reset billing preference to annual on every open
 function showPricingModal() {
     try { window.uetq=window.uetq||[]; window.uetq.push('event','begin_checkout',{}); } catch(e) {}
-    isAnnualBilling = true;
-    document.getElementById('monthlyBtn').classList.remove('active');
-    document.getElementById('annualBtn').classList.add('active');
+    // Respect user's last billing toggle — don't reset to annual every time
+    document.getElementById('monthlyBtn').classList.toggle('active', !isAnnualBilling);
+    document.getElementById('annualBtn').classList.toggle('active', isAnnualBilling);
     document.getElementById('pricingModal').classList.add('show');
     document.body.style.overflow = 'hidden';
     renderPlansGrid();
+    try { posthog.capture('pricing_modal_opened', { credits_remaining: currentCredits }); } catch(e) {}
 }
 
 function closePricingModal() {
@@ -735,6 +770,8 @@ function setupDropdowns() {
     const outputSel = document.getElementById('outputType');
     populateOutputOptions(null);
     inputSel.addEventListener('change', function() {
+        // FIX 6b: Enable output selector only when input type is chosen — stops rage-clicks
+        outputSel.disabled = !this.value;
         const sel = this.value;
         const prev = outputSel.value;
         if (sel && dataConfigurations[sel]) {
@@ -811,7 +848,6 @@ function parseReactionTitle(title) {
     return {name:parts[0].trim(), jobInfo:parts.slice(1).join(' - ').trim()};
 }
 
-// PATCH: Enrich button — loading state + duplicate prevention
 async function enrichData(event) {
     event.preventDefault();
     const submitBtn = event.target.querySelector('button[type="submit"]');
@@ -841,14 +877,15 @@ async function enrichData(event) {
         });
         const data = await response.json();
         hideLoading();
-        if (currentOutputType==='reactions'&&Array.isArray(data)&&data.length>0) { deductCredits(data.length); showSingleResultReactions(inputValue,data); return; }
-        if (currentOutputType==='employee_count') { deductCredits(getCreditCost(currentInputType,currentOutputType)); showSingleResultEmployeeCount(inputValue,data); return; }
-        if (currentOutputType==='employees'&&Array.isArray(data)&&data.length>0) { deductCredits(data.length*0.5); showSingleResultEmployees(inputValue,data); return; }
-        if (response.status===403&&data.code===403) { showInsufficientCreditsModal(); return; }
+        if (currentOutputType==='reactions'&&Array.isArray(data)&&data.length>0) { deductCredits(data.length); showSingleResultReactions(inputValue,data); checkEnrichmentMilestone(); return; }
+        if (currentOutputType==='employee_count') { deductCredits(getCreditCost(currentInputType,currentOutputType)); showSingleResultEmployeeCount(inputValue,data); checkEnrichmentMilestone(); return; }
+        if (currentOutputType==='employees'&&Array.isArray(data)&&data.length>0) { deductCredits(data.length*0.5); showSingleResultEmployees(inputValue,data); checkEnrichmentMilestone(); return; }
+        if (response.status===403&&data.code===403) { try { posthog.capture('credits_exhausted', { input_type: currentInputType, output_type: currentOutputType, credits_remaining: currentCredits }); } catch(e) {} showInsufficientCreditsModal(); return; }
         if (response.ok&&data&&(data.result||data.name)) {
             deductCredits(getCreditCost(currentInputType,currentOutputType));
             if (data.name&&!data.result) showSingleResult(inputValue,data);
             else showSingleResult(inputValue, data.result||'Not found');
+            checkEnrichmentMilestone();
         } else { showSingleResult(inputValue,'Not found'); }
         showAutomationNudge(currentInputType, currentOutputType);
     } catch(error) { hideLoading(); showAlert('Enrichment error — please try again.','error'); }
@@ -902,12 +939,32 @@ async function processBulk() {
                         bulkResults[i]={inputData:row.inputData,result:`${data.length} reactions found`,status:'Found',reactions:data,rawData:data};
                         deductCredits(data.length);
                     } else {
-                        bulkResults[i]={inputData:row.inputData,result:data.result||'Not found',status:data.result?'Found':'Not found',rawData:data};
-                        if(data.result) deductCredits(getCreditCost(currentInputType,currentOutputType));
-                    }
+    // Server returns profile directly OR wrapped in result field
+    let parsedRaw = data;
+    if (typeof data.result === 'string' && data.result.startsWith('{')) {
+        try { parsedRaw = JSON.parse(data.result); } catch(e) {}
+    } else if (data.result && typeof data.result === 'object') {
+        parsedRaw = data.result;
+    }
+    // Detect if we got real profile data (server returns directly, no result wrapper)
+    const hasProfileData = !!(parsedRaw.name || parsedRaw.jobTitle || parsedRaw.company);
+    const resultValue = data.result || (hasProfileData ? parsedRaw.name || 'Found' : 'Not found');
+    const statusValue = (data.result || hasProfileData) ? 'Found' : 'Not found';
+    bulkResults[i]={
+        inputData: row.inputData,
+        result: resultValue,
+        status: statusValue,
+        rawData: parsedRaw
+    };
+    if (data.result || hasProfileData) deductCredits(getCreditCost(currentInputType,currentOutputType));
+}
                 } else {
-                    const data=await response.json();
-                    if(response.status===403&&data.code===403){showInsufficientCreditsModal();return;}
+                    const data = await response.json();
+                    if (response.status === 403 && data.code === 403) {
+                        try { posthog.capture('credits_exhausted', { source: 'bulk', input_type: currentInputType, output_type: currentOutputType, credits_remaining: currentCredits }); } catch(e) {}
+                        showInsufficientCreditsModal();
+                        return;
+                    }
                     bulkResults[i]={inputData:row.inputData,result:'Not found',status:'Not found'};
                 }
             } catch(e) { bulkResults[i]={inputData:row.inputData,result:'Error',status:'Error'}; }
@@ -941,6 +998,12 @@ function handleBeforeUnload(e){if(isBulkProcessing){e.preventDefault();e.returnV
 document.addEventListener('DOMContentLoaded',()=>{
     checkAuth(); fetchCredits(); setupFileUpload(); setupDragAndDrop();
     setupNavigation(); setupModalEvents(); setupDropdowns(); showReviewNotification();
+    // FIX 2: Process Items disabled until CSV is successfully loaded
+    const pb=document.getElementById('processBulkBtn');
+    pb.disabled=true; pb.style.opacity='0.5';
+    pb.innerHTML='<i class="fas fa-upload"></i> Upload a CSV file first';
+    // FIX 6b: Output selector disabled until input type is chosen
+    document.getElementById('outputType').disabled=true;
 });
 
 function setupModalEvents(){
@@ -969,8 +1032,13 @@ function navigateToPage(page){
     }
 }
 
+// FIX 9: Catch OAuth server errors before auth flow
 function checkAuth(){
     const p=new URLSearchParams(window.location.search);
+    if(p.get('error')==='server_error'||p.get('error_description')){
+        window.location.href='https://linkfinderai.com/?auth_error=1';
+        return;
+    }
     let token=p.get('token');
     if(!token){token=localStorage.getItem('linkFinderToken');}
     else{localStorage.setItem('linkFinderToken',token);}
@@ -1127,7 +1195,6 @@ function parseCSV(csvText){
     showPreview();
 }
 
-// PATCH: Success confirmation banner — scrollIntoView REMOVED (was breaking progress bar)
 function showPreview(){
     const preview=csvData.slice(0,5);
     const hasCompany=currentInputType==='lead_full_name'&&preview.some(r=>r.company);
@@ -1140,11 +1207,14 @@ function showPreview(){
     }
     previewHtml+='</div>';
     if(hasCompany) previewHtml+=`<p style="font-size:0.75rem;color:var(--success);margin-top:0.5rem;margin-bottom:0.75rem;"><i class="fas fa-check-circle"></i> Company column detected — will be combined with name automatically.</p>`;
-
     const successBanner=`<div style="display:flex;align-items:center;gap:0.625rem;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1rem;"><i class="fas fa-check-circle" style="color:#10b981;font-size:1rem;flex-shrink:0;"></i><div><div style="font-weight:600;color:#065f46;font-size:0.875rem;">CSV uploaded — ${csvData.length} row${csvData.length===1?'':'s'} ready to process</div><div style="font-size:0.75rem;color:#047857;margin-top:1px;">Showing first 5 rows below. Click Process to start.</div></div></div>`;
-
     document.getElementById('previewTable').innerHTML=successBanner+previewHtml;
+    // FIX 2: Enable Process Items now that CSV is confirmed valid
+    const btn=document.getElementById('processBulkBtn');
+    btn.disabled=false; btn.style.opacity='1';
+    btn.innerHTML=`<i class="fas fa-play"></i> Process ${csvData.length} items`;
     document.getElementById('csvPreview').classList.remove('hidden');
+    try { posthog.capture('csv_uploaded', { row_count: csvData.length, input_type: currentInputType }); } catch(e) {}
 }
 
 function initializeBulkResultsTable(){
@@ -1178,7 +1248,7 @@ function updateBulkResultsTable(){
         html+='</tbody></table>';
     } else if(currentInputType==='linkedin_company'&&currentOutputType==='linkedin_info'){
         html=`<table class="results-table"><thead><tr><th>LinkedIn URL</th><th>Company Name</th><th>Industry</th><th>Employees</th><th>Followers</th><th>City</th><th>Country</th><th>Founded</th><th>Company Email</th><th>Company Phone</th><th>Website</th></tr></thead><tbody>`;
-        bulkResults.forEach(row=>{const d=row.rawData||{};const us=row.inputData.length>35?row.inputData.substring(0,35)+'...':row.inputData;html+=`<tr><td><a href="${row.inputData}" target="_blank" style="color:var(--primary);text-decoration:none;">${us}</a></td><td>${d.name||'Not found'}</td><td>${d.industry||'Not found'}</td><td>${d.company_size?Number(d.company_size).toLocaleString():'Not found'}</td><td>${d.followerCount?Number(d.followerCount).toLocaleString():'Not found'}</td><td>${d.city||'Not found'}</td><td>${d.country||'Not found'}</td><td>${d.foundedOn||'Not found'}</td><td>${d.company_email||'Not found'}</td><td>${d.company_phone||'Not found'}</td><td>${d.website||'Not found'}</td></tr>`;});
+        bulkResults.forEach(row=>{const d=row.rawData||{};const us=row.inputData.length>35?row.inputData.substring(0,35)+'...':row.inputData;const followers=d.followerCount?Number(String(d.followerCount).replace(/,/g,'')).toLocaleString():'Not found';const empSize=d.company_size!=null&&d.company_size!==''&&d.company_size!==0?String(d.company_size):'Not found';html+=`<tr><td><a href="${row.inputData}" target="_blank" style="color:var(--primary);text-decoration:none;">${us}</a></td><td>${d.name||'Not found'}</td><td>${d.industry||'Not found'}</td><td>${empSize}</td><td>${followers}</td><td>${d.city||'Not found'}</td><td>${d.country||'Not found'}</td><td>${d.foundedOn||'Not found'}</td><td>${d.company_email||'Not found'}</td><td>${d.company_phone||'Not found'}</td><td>${d.website||'Not found'}</td></tr>`;});
         html+='</tbody></table>';
     } else {
         const c=dataConfigurations[currentInputType];const ol=c.outputs[currentOutputType];
@@ -1195,7 +1265,7 @@ function downloadResults(){
     if(currentOutputType==='employee_count'){csv=`${c.label.replace('Enter ','')},Employee Count,Status\n`;bulkResults.forEach(r=>{csv+=`"${r.inputData}","${r.employeeCount||'Not found'}","${r.status==='Processing'?'Not found':r.status}"\n`;});}
     else if(currentInputType==='linkedin_post'&&currentOutputType==='reactions'){csv='Name,Job Title,Profile Info,LinkedIn URL\n';bulkResults.forEach(pr=>{if(pr.reactions&&Array.isArray(pr.reactions)){pr.reactions.forEach(r=>{const p=parseReactionTitle(r.title);const esc=(s)=>(!s||s==='Not found'||s==='Not specified')?s:`"${s.toString().replace(/"/g,'""')}"`;csv+=[esc(p.name),esc(p.jobInfo||'Not specified'),esc(r.snippet||'Not specified'),esc(r.link||'Not specified')].join(',')+'\n';});}});}
     else if(currentInputType==='linkedin_profile'&&currentOutputType==='linkedin_info'){csv='LinkedIn URL,Name,Job Title,Company,Location,Industry,Website,Email,Education,Headline,Status\n';bulkResults.forEach(r=>{const d=r.rawData||{};const esc=(s)=>(!s||s==='Not found'||s==='Not specified')?(s||''):`"${s.toString().replace(/"/g,'""')}"`;csv+=[esc(r.inputData),esc(d.name),esc(d.jobTitle),esc(d.company),esc(d.location),esc(d.industry),esc(d.website),esc(d.email),esc(d.education),esc(d.headline),r.status].join(',')+'\n';});}
-    else if(currentInputType==='linkedin_company'&&currentOutputType==='linkedin_info'){csv='LinkedIn URL,Company Name,Industry,Employees,Followers,City,Country,Founded,Website,Company Email,Company Phone,Description\n';bulkResults.forEach(r=>{const d=r.rawData||{};const esc=(s)=>(!s||s==='Not found'||s==='Not specified')?(s||''):`"${s.toString().replace(/"/g,'""')}"`;csv+=[esc(r.inputData),esc(d.name),esc(d.industry),esc(d.company_size),esc(d.followerCount),esc(d.city),esc(d.country),esc(d.foundedOn),esc(d.website),esc(d.company_email),esc(d.company_phone),esc(d.company_description)].join(',')+'\n';});}
+    else if(currentInputType==='linkedin_company'&&currentOutputType==='linkedin_info'){csv='LinkedIn URL,Company Name,Industry,Employees,Followers,City,Country,Founded,Website,Company Email,Company Phone,Description\n';bulkResults.forEach(r=>{const d=r.rawData||{};const esc=(s)=>(!s||s==='Not found'||s==='Not specified')?(s||''):`"${s.toString().replace(/"/g,'""')}"`;const followers=d.followerCount?Number(String(d.followerCount).replace(/,/g,'')).toLocaleString():'';const empSize=d.company_size!=null&&d.company_size!==''&&d.company_size!==0?String(d.company_size):'';csv+=[esc(r.inputData),esc(d.name),esc(d.industry),esc(empSize),esc(followers),esc(d.city),esc(d.country),esc(d.foundedOn),esc(d.website),esc(d.company_email),esc(d.company_phone),esc(d.company_description)].join(',')+'\n';});}
     else if(currentOutputType==='employees'){csv='Input,Name,Job Title,Email,Company,Department,Industry,City,State,Country,Headline,Employment Type,LinkedIn URL,Company LinkedIn URL\n';bulkResults.forEach(r=>{const emps=r.employees||[];if(emps.length===0){csv+=`"${r.inputData}","Not found","","","","","","","","","","","",""\n`;}else{emps.forEach(e=>{const esc=(v)=>v?`"${String(v).replace(/"/g,'""')}"`:' ""';csv+=[esc(r.inputData),esc(e.name),esc(e.jobTitle),esc(e.email),esc(e.company),esc(e.department),esc(e.industry),esc(e.city),esc(e.state),esc(e.country),esc(e.headline),esc(e.employmentType),esc(e.linkedinUrl),esc(e.companylinkedinurl)].join(',')+'\n';});}});}
     else{const ol=c.outputs[currentOutputType];csv=`${c.label.replace('Enter ','')},${ol},Status\n`;bulkResults.forEach(r=>{csv+=`"${r.inputData}","${r.result==='Processing...'?'Not found':r.result}","${r.status==='Processing'?'Not found':r.status}"\n`;});}
     const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
@@ -1254,12 +1324,41 @@ async function submitFeedback(event){
     finally{btn.disabled=false;btn.innerHTML='<i class="fas fa-paper-plane"></i><span>Submit Feedback</span>';}
 }
 
+// Shared upgrade-intent worker — handles both credits_exhausted and three_enrichments
+const UPGRADE_INTENT_WORKER = 'https://upgrade-intent.hamoureliasse.workers.dev/';
+
+async function fireUpgradeIntent(trigger, extras = {}) {
+    try {
+        await fetch(UPGRADE_INTENT_WORKER, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: userToken, trigger, ...extras })
+        });
+    } catch(e) {} // fire-and-forget, never block the UI
+}
+
+// Enrichment counter — fires webhook at #3, once per user (stored in localStorage)
+function checkEnrichmentMilestone() {
+    const key = 'lf_enrich_count';
+    const firedKey = 'lf_three_enrich_fired';
+    const n = parseInt(localStorage.getItem(key) || '0') + 1;
+    localStorage.setItem(key, n);
+    if (n === 3 && !localStorage.getItem(firedKey)) {
+        localStorage.setItem(firedKey, '1');
+        fireUpgradeIntent('three_enrichments', {
+            enrich_count: n,
+            credits_remaining: currentCredits
+        });
+        try { posthog.capture('three_enrichments_milestone', { credits_remaining: currentCredits }); } catch(e) {}
+    }
+}
+
 async function handleAddCredits(){
     try{posthog.capture('upgrade_clicked',{source:'buy_credits_btn',credits_remaining:currentCredits});}catch(e){}
     try{if(typeof plausible!=='undefined')plausible('Upgrade Click',{props:{source:'buy_credits_btn'}});}catch(e){}
     const btn=document.getElementById('buyCreditsBtn');
     const orig=btn.innerHTML;btn.innerHTML='...';btn.disabled=true;
-    try{const r=await fetch('https://scalelinkfinderai-production.up.railway.app/webhook/a30d8fea-5360-4003-be0d-9cea914390b0',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:userToken})});const d=await r.json();if(d.issub===true)openBuyCreditsModal();else showPricingModal();}
+    try{const r=await fetch(UPGRADE_INTENT_WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:userToken,trigger:'credits_exhausted',credits_remaining:currentCredits})});const d=await r.json();if(d.issub===true)openBuyCreditsModal();else showPricingModal();}
     catch(e){showPricingModal();}
     finally{btn.innerHTML=orig;btn.disabled=false;}
 }
@@ -1269,7 +1368,6 @@ function closeBuyCreditsModal(){document.getElementById('buyCreditsModal').class
 
 const creditPackLinks={'starter':'https://linkfinderai.gumroad.com/l/evkit?wanted=true','popular':'https://linkfinderai.gumroad.com/l/avpnoy?wanted=true','growth':'https://linkfinderai.gumroad.com/l/vwwvxi?wanted=true','pro':'https://linkfinderai.gumroad.com/l/ryedf?wanted=true'};
 
-// PATCH: Example CSV download
 function downloadExampleCSV(){
     const config=dataConfigurations[currentInputType];
     if(!config){showAlert('Please select an input type first.','error');return;}
@@ -1286,15 +1384,27 @@ function buyCredits(pack,price){
     window.location.href=addGclid(`${baseUrl}?wanted=true&user_id=${userToken}`);
 }
 
+// FIX 4+5: Fixed focus timing + auto-submit on quickstart
 function quickStart(inputType,outputType,exampleData){
     const qs=document.getElementById('quickstartSection');if(qs)qs.style.display='none';
     const inputSel=document.getElementById('inputType');inputSel.value=inputType;inputSel.dispatchEvent(new Event('change'));
     setTimeout(()=>{
         const outputSel=document.getElementById('outputType');outputSel.value=inputType+'__'+outputType;outputSel.dispatchEvent(new Event('change'));
         setTimeout(()=>{
-            const f=document.getElementById('inputData');if(f&&exampleData){f.value=exampleData;f.focus();f.select();}
+            const f=document.getElementById('inputData');
+            if(f&&exampleData){
+                f.value=exampleData;
+                // FIX 4: Extra delay ensures DOM is fully settled before focus
+                setTimeout(()=>{f.focus();f.select();},150);
+            }
             const eb=document.querySelector('#singleSearch button[type="submit"]');
-            if(eb){eb.style.transition='box-shadow 0.3s ease';eb.style.boxShadow='0 0 0 4px rgba(37,99,235,0.35)';setTimeout(()=>{eb.style.boxShadow='';},2500);}
+            if(eb){
+                eb.style.transition='box-shadow 0.3s ease';
+                eb.style.boxShadow='0 0 0 4px rgba(37,99,235,0.35)';
+                setTimeout(()=>{eb.style.boxShadow='';},2500);
+                // FIX 5: Auto-submit — delivers on "click to try instantly" promise
+                setTimeout(()=>{eb.click();},300);
+            }
         },120);
     },60);
     try{posthog.capture('quickstart_used',{input_type:inputType,output_type:outputType});}catch(e){}
