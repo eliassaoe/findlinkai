@@ -540,6 +540,13 @@
             <h2>Choose Your Plan</h2>
             <p style="color:var(--gray-500);font-size:0.875rem;margin-top:0.25rem;">Cancel anytime &nbsp;·&nbsp; No questions asked</p>
         </div>
+
+        <div class="roi-banner">
+            <span>🏆 Apollo/ZoomInfo charge <strong>$0.10–0.50/contact</strong></span>
+            <span class="roi-sep">|</span>
+            <span>LinkFinder AI: from <strong>$0.001/credit — up to 99% cheaper</strong></span>
+        </div>
+        
         <div class="billing-toggle">
             <button class="billing-btn" id="monthlyBtn" onclick="setBilling('monthly')">Monthly</button>
             <button class="billing-btn active" id="annualBtn" onclick="setBilling('annual')">Annual <span class="save-tag">Save 20%</span></button>
@@ -1366,22 +1373,139 @@ async function handleAddCredits(){
 function openBuyCreditsModal(){document.getElementById('buyCreditsModal').classList.add('show');document.body.style.overflow='hidden';}
 function closeBuyCreditsModal(){document.getElementById('buyCreditsModal').classList.remove('show');document.body.style.overflow='';}
 
-const creditPackLinks={'starter':'https://linkfinderai.gumroad.com/l/evkit?wanted=true','popular':'https://linkfinderai.gumroad.com/l/avpnoy?wanted=true','growth':'https://linkfinderai.gumroad.com/l/vwwvxi?wanted=true','pro':'https://linkfinderai.gumroad.com/l/ryedf?wanted=true'};
-
-function downloadExampleCSV(){
-    const config=dataConfigurations[currentInputType];
-    if(!config){showAlert('Please select an input type first.','error');return;}
-    const examples={'company_name':'company_name\nTesla\nApple\nMicrosoft\nStripe\nNotion','company_domain':'company_domain\ntesla.com\napple.com\nmicrosoft.com\nstripe.com\nnotion.so','linkedin_company':'linkedin_company_url\nhttps://linkedin.com/company/tesla\nhttps://linkedin.com/company/apple\nhttps://linkedin.com/company/microsoft','linkedin_profile':'linkedin_profile_url\nhttps://linkedin.com/in/satya-nadella\nhttps://linkedin.com/in/jeff-weiner','linkedin_post':'linkedin_post_url\nhttps://www.linkedin.com/posts/example-post-url','email':'email\njohn.doe@tesla.com\njane.smith@apple.com','lead_full_name':'name,company\nSatya Nadella,Microsoft\nJeff Weiner,LinkedIn\nSarah Johnson,Salesforce'};
-    const csvContent=examples[currentInputType]||'input\nexample_value';
-    const blob=new Blob([csvContent],{type:'text/csv;charset=utf-8;'});
-    const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`example_${currentInputType}.csv`;a.click();URL.revokeObjectURL(url);
-    try{posthog.capture('example_csv_downloaded',{input_type:currentInputType});}catch(e){}
+const PADDLE_CLIENT_TOKEN = 'YOUR_CLIENT_TOKEN_HERE'; // live_xxx
+const PADDLE_SANDBOX      = false; // flip to true while testing
+ 
+const PRICE_IDS = {
+    starter_monthly:     'pro_01krrpgy59z6zc4b7p2f4bqf22',
+    pro_monthly:         'pro_01krrphss761ekznyd0zd3wzed',
+    enterprise_monthly:  'pro_01krrpymscn3rz53zy0awcjyja',
+    hypergrowth_monthly: 'pro_01krrpm1269er8zs2a63s7snbx',
+    starter_annual:      'pro_01krrpnfbeqk82r8k8axgyccax',
+    pro_annual:          'pro_01krrppg9csdj90fwbewsp8pgb',
+    enterprise_annual:   'pro_01krrpq5q6epsrn8avngv7zzqn',
+    hypergrowth_annual:  'pro_01krrpqs77n4jh1qsqqnc4eqf3',
+    credits_1k:          'pri_REPLACE_CREDITS_1K',
+    credits_5k:          'pri_REPLACE_CREDITS_5K',
+    credits_10k:         'pri_REPLACE_CREDITS_10K',
+    credits_25k:         'pri_REPLACE_CREDITS_25K',
+};
+ 
+if (PADDLE_SANDBOX) Paddle.Environment.set('sandbox');
+Paddle.Initialize({ token: PADDLE_CLIENT_TOKEN });
+ 
+/* Single entry point for every purchase — overlay stays in-app */
+function openPaddleCheckout(priceId, btnEl) {
+    if (!priceId || priceId.startsWith('pri_REPLACE')) {
+        alert('⚠️ Add your real Paddle Price IDs (pri_xxx) to the PRICE_IDS block at the top of this script.');
+        if (btnEl) { btnEl.textContent = 'Get Started'; btnEl.disabled = false; }
+        return;
+    }
+    Paddle.Checkout.open({
+        items: [{ priceId: priceId, quantity: 1 }],
+        settings: { theme: 'light', locale: 'en', allowLogout: false },
+        customData: { user_token: userToken || '' },
+        eventCallback: function(event) {
+            if (event.name === 'checkout.completed') {
+                if (btnEl) { btnEl.textContent = 'Get Started'; btnEl.disabled = false; }
+                closePricingModal();
+                closeBuyCreditsModal();
+                const toast = document.getElementById('modalToast');
+                if (toast) { toast.classList.add('show'); setTimeout(() => toast.classList.remove('show'), 5000); }
+                setTimeout(() => fetchCredits(), 3000); // refresh credit count
+                try { posthog.capture('checkout_completed', { priceId }); } catch(e) {}
+                try { if (typeof fbq !== 'undefined') fbq('track', 'Purchase'); } catch(e) {}
+            }
+            if (event.name === 'checkout.closed' || event.name === 'checkout.error') {
+                if (btnEl) { btnEl.textContent = 'Get Started'; btnEl.disabled = false; }
+            }
+        }
+    });
 }
-
-function buyCredits(pack,price){
-    const baseUrl=creditPackLinks[pack];
-    if(!baseUrl){alert('Contact support to add credits manually.');return;}
-    window.location.href=addGclid(`${baseUrl}?wanted=true&user_id=${userToken}`);
+ 
+/* ── Plans — Gumroad links replaced with Paddle Price IDs ── */
+const INDUSTRY_AVG_PER_CREDIT = 0.15; // Apollo benchmark for ROI badge
+ 
+const plans = [
+    { name:'Starter',     monthlyPrice:49,  credits:60000,   monthlyPriceId: PRICE_IDS.starter_monthly,     annualPriceId: PRICE_IDS.starter_annual },
+    { name:'Professional',monthlyPrice:89,  credits:240000,  monthlyPriceId: PRICE_IDS.pro_monthly,         annualPriceId: PRICE_IDS.pro_annual },
+    { name:'Enterprise',  monthlyPrice:149, credits:600000,  monthlyPriceId: PRICE_IDS.enterprise_monthly,  annualPriceId: PRICE_IDS.enterprise_annual },
+    { name:'HyperGrowth', monthlyPrice:299, credits:3000000, monthlyPriceId: PRICE_IDS.hypergrowth_monthly, annualPriceId: PRICE_IDS.hypergrowth_annual },
+];
+let isAnnualBilling = true;
+ 
+/* ── Plan card renderer with "Save X% vs Apollo" ROI badge ── */
+function renderPlansGrid() {
+    const grid = document.getElementById('plansGrid');
+    if (!grid) return;
+    grid.innerHTML = plans.map(function(plan, index) {
+        const isPopular      = plan.name === 'Professional';
+        const monthlyEquiv   = isAnnualBilling ? Math.round(plan.monthlyPrice * 0.8) : plan.monthlyPrice;
+        const annualTotal    = Math.round(plan.monthlyPrice * 0.8 * 12);
+        const creditsLabel   = isAnnualBilling ? plan.credits.toLocaleString()+' credits/yr' : Math.round(plan.credits/12).toLocaleString()+' credits/mo';
+        const totalForCalc   = isAnnualBilling ? annualTotal : plan.monthlyPrice;
+        const creditsForCalc = isAnnualBilling ? plan.credits : Math.round(plan.credits/12);
+        const perCredit      = (totalForCalc / creditsForCalc).toFixed(4);
+        const savingsPct     = Math.round((1 - parseFloat(perCredit) / INDUSTRY_AVG_PER_CREDIT) * 100);
+        return '<div class="plan-item '+(isPopular?'plan-item-popular':'')+'">'
+            + (isPopular ? '<div class="plan-popular-badge">Most Popular</div>' : '')
+            + '<div class="plan-item-name">'+plan.name+'</div>'
+            + '<div class="plan-item-price"><span class="plan-item-amount">$'+monthlyEquiv+'</span><span class="plan-item-period">/mo</span></div>'
+            + (isAnnualBilling ? '<div class="plan-item-annual">billed $'+annualTotal+'/year</div>' : '<div class="plan-item-annual">&nbsp;</div>')
+            + '<div class="plan-item-credits">'+creditsLabel+'</div>'
+            + '<div class="plan-item-per-credit">&asymp; $'+perCredit+' / credit</div>'
+            + '<div class="plan-roi-badge">Save '+savingsPct+'% vs Apollo</div>'
+            + '<button class="plan-item-cta '+(isPopular?'plan-item-cta-popular':'')+'" onclick="proceedToCheckoutDirect('+index+', this)">Get Started</button>'
+            + '</div>';
+    }).join('');
+}
+ 
+/* ── Checkout — opens Paddle overlay, user never leaves the app ── */
+function proceedToCheckoutDirect(index, btnEl) {
+    const plan    = plans[index];
+    const priceId = isAnnualBilling ? plan.annualPriceId : plan.monthlyPriceId;
+    if (btnEl) { btnEl.textContent = 'Opening…'; btnEl.disabled = true; }
+    try { posthog.capture('plan_selected', { plan: plan.name, billing: isAnnualBilling ? 'annual' : 'monthly', credits_remaining: currentCredits }); } catch(e) {}
+    try { if (typeof plausible !== 'undefined') plausible('Plan Selected', { props: { plan: plan.name } }); } catch(e) {}
+    try { window.uetq = window.uetq || []; window.uetq.push('event', 'begin_checkout', {}); } catch(e) {}
+    openPaddleCheckout(priceId, btnEl);
+}
+ 
+function setBilling(type) {
+    isAnnualBilling = (type === 'annual');
+    document.getElementById('monthlyBtn').classList.toggle('active', !isAnnualBilling);
+    document.getElementById('annualBtn').classList.toggle('active', isAnnualBilling);
+    renderPlansGrid();
+    try { posthog.capture('billing_toggle', { selected: type }); } catch(e) {}
+}
+ 
+function showPricingModal() {
+    try { window.uetq = window.uetq || []; window.uetq.push('event', 'begin_checkout', {}); } catch(e) {}
+    document.getElementById('monthlyBtn').classList.toggle('active', !isAnnualBilling);
+    document.getElementById('annualBtn').classList.toggle('active', isAnnualBilling);
+    document.getElementById('pricingModal').classList.add('show');
+    document.body.style.overflow = 'hidden';
+    renderPlansGrid();
+    try { posthog.capture('pricing_modal_opened', { credits_remaining: currentCredits }); } catch(e) {}
+}
+ 
+function closePricingModal() {
+    document.getElementById('pricingModal').classList.remove('show');
+    document.body.style.overflow = '';
+    const toast = document.getElementById('modalToast');
+    if (toast) { toast.classList.add('show'); setTimeout(() => toast.classList.remove('show'), 4000); }
+}
+ 
+/* ── One-time credit packs via Paddle ── */
+function buyCredits(pack) {
+    const packPriceIds = {
+        starter: PRICE_IDS.credits_1k,
+        popular: PRICE_IDS.credits_5k,
+        growth:  PRICE_IDS.credits_10k,
+        pro:     PRICE_IDS.credits_25k,
+    };
+    try { posthog.capture('credit_pack_selected', { pack, credits_remaining: currentCredits }); } catch(e) {}
+    openPaddleCheckout(packPriceIds[pack], null);
 }
 
 // FIX 4+5: Fixed focus timing + auto-submit on quickstart
