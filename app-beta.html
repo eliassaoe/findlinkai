@@ -656,6 +656,7 @@ let currentOutputType = '';
 let isBulkProcessing = false;
 let currentCredits = null;
 let isExistingSubscriber = false;
+let currentPlanNumber = null;
 
 const dataConfigurations = {
     lead_full_name: { label:"Enter Lead Full Name + Company Name", placeholder:"e.g., John Doe JP morgan, Sarah Smith Netflix, Michael Johnson Microsoft", outputs:{linkedin_url:"LinkedIn Profile URL"} },
@@ -743,6 +744,15 @@ let isAnnualBilling = true;
 function renderPlansGrid() {
     const grid = document.getElementById('plansGrid');
     if (!grid) return;
+
+    // Map plan numbers to plan index + billing
+    // 1=starter monthly, 2=pro monthly, 3=enterprise monthly, 4=hypergrowth monthly
+    // 5=starter annual,  6=pro annual,  7=enterprise annual,  8=hypergrowth annual
+    const planNumToIndex = { 1:0, 2:1, 3:2, 4:3, 5:0, 6:1, 7:2, 8:3 };
+    const planNumIsAnnual = { 1:false, 2:false, 3:false, 4:false, 5:true, 6:true, 7:true, 8:true };
+    const currentIndex  = currentPlanNumber ? (planNumToIndex[currentPlanNumber] ?? null) : null;
+    const currentIsAnn  = currentPlanNumber ? (planNumIsAnnual[currentPlanNumber] ?? null) : null;
+
     grid.innerHTML = plans.map(function(plan, index) {
         const isPopular      = plan.name === 'Professional';
         const monthlyEquiv   = isAnnualBilling ? Math.round(plan.monthlyPrice * 0.8) : plan.monthlyPrice;
@@ -752,16 +762,43 @@ function renderPlansGrid() {
         const creditsForCalc = isAnnualBilling ? plan.credits : Math.round(plan.credits/12);
         const perCredit      = (totalForCalc / creditsForCalc).toFixed(4);
         const savingsPct     = Math.round((1 - parseFloat(perCredit) / INDUSTRY_AVG_PER_CREDIT) * 100);
-        const ctaLabel = isExistingSubscriber ? 'Switch to ' + plan.name : 'Get Started';
-        return '<div class="plan-item '+(isPopular?'plan-item-popular':'')+'">'
-            + (isPopular ? '<div class="plan-popular-badge">Most Popular</div>' : '')
+
+        // Determine CTA label and state
+        let ctaLabel = 'Get Started';
+        let isCurrentPlan = false;
+        let ctaClass = 'plan-item-cta' + (isPopular ? ' plan-item-cta-popular' : '');
+
+        if (isExistingSubscriber && currentIndex !== null) {
+            const sameIndex = index === currentIndex;
+            const sameBilling = isAnnualBilling === currentIsAnn;
+            if (sameIndex && sameBilling) {
+                ctaLabel = 'Current Plan';
+                isCurrentPlan = true;
+            } else if (sameIndex && !sameBilling) {
+                ctaLabel = isAnnualBilling ? 'Switch to Annual' : 'Switch to Monthly';
+            } else if (index > currentIndex) {
+                ctaLabel = 'Upgrade to ' + plan.name;
+            } else {
+                ctaLabel = 'Downgrade to ' + plan.name;
+            }
+        }
+
+        const currentBadge = isCurrentPlan
+            ? '<div style="background:#dcfce7;color:#15803d;font-size:0.62rem;font-weight:700;padding:0.2rem 0.55rem;border-radius:4px;margin-bottom:0.35rem;display:inline-block;text-transform:uppercase;letter-spacing:0.05em;">✓ Your plan</div>'
+            : '';
+
+        const ctaDisabled = isCurrentPlan ? 'disabled style="opacity:0.5;cursor:not-allowed;"' : '';
+
+        return '<div class="plan-item '+(isPopular && !isCurrentPlan ?'plan-item-popular':'')+'">'
+            + (isPopular && !isCurrentPlan ? '<div class="plan-popular-badge">Most Popular</div>' : '')
             + '<div class="plan-item-name">'+plan.name+'</div>'
             + '<div class="plan-item-price"><span class="plan-item-amount">$'+monthlyEquiv+'</span><span class="plan-item-period">/mo</span></div>'
             + (isAnnualBilling ? '<div class="plan-item-annual">billed $'+annualTotal+'/year</div>' : '<div class="plan-item-annual">&nbsp;</div>')
             + '<div class="plan-item-credits">'+creditsLabel+'</div>'
             + '<div class="plan-item-per-credit">&asymp; $'+perCredit+' / credit</div>'
             + '<div class="plan-roi-badge">Save '+savingsPct+'% vs Apollo</div>'
-            + '<button class="plan-item-cta '+(isPopular?'plan-item-cta-popular':'')+'" onclick="proceedToCheckoutDirect('+index+', this)">'+ctaLabel+'</button>'
+            + currentBadge
+            + '<button class="'+ctaClass+'" onclick="proceedToCheckoutDirect('+index+', this)" '+ctaDisabled+'>'+ctaLabel+'</button>'
             + '</div>';
     }).join('');
 }
@@ -1391,7 +1428,7 @@ async function handleAddCredits(){
     try{if(typeof plausible!=='undefined')plausible('Upgrade Click',{props:{source:'buy_credits_btn'}});}catch(e){}
     const btn=document.getElementById('buyCreditsBtn');
     const orig=btn.innerHTML;btn.innerHTML='...';btn.disabled=true;
-    try{const r=await fetch(UPGRADE_INTENT_WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:userToken,trigger:'credits_exhausted',credits_remaining:currentCredits})});const d=await r.json();if(d.issub===true){isExistingSubscriber=true;openBuyCreditsModal();}else{isExistingSubscriber=false;showPricingModal();}}
+    try{const r=await fetch(UPGRADE_INTENT_WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:userToken,trigger:'credits_exhausted',credits_remaining:currentCredits})});const d=await r.json();if(d.issub===true){isExistingSubscriber=true;currentPlanNumber=d.plan||null;openBuyCreditsModal();}else{isExistingSubscriber=false;currentPlanNumber=null;showPricingModal();}}
     catch(e){showPricingModal();}
     finally{btn.innerHTML=orig;btn.disabled=false;}
 }
