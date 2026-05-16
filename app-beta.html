@@ -657,6 +657,7 @@ let isBulkProcessing = false;
 let currentCredits = null;
 let isExistingSubscriber = false;
 let currentPlanNumber = null;
+let currentSubscriptionId = null;
 
 const dataConfigurations = {
     lead_full_name: { label:"Enter Lead Full Name + Company Name", placeholder:"e.g., John Doe JP morgan, Sarah Smith Netflix, Michael Johnson Microsoft", outputs:{linkedin_url:"LinkedIn Profile URL"} },
@@ -807,10 +808,36 @@ function proceedToCheckoutDirect(index, btnEl) {
     const plan    = plans[index];
     const priceId = isAnnualBilling ? plan.annualPriceId : plan.monthlyPriceId;
     if (btnEl) { btnEl.textContent = 'Opening\u2026'; btnEl.disabled = true; }
-    try { posthog.capture('plan_selected', { plan: plan.name, billing: isAnnualBilling ? 'annual' : 'monthly', credits_remaining: currentCredits }); } catch(e) {}
+    try { posthog.capture('plan_selected', { plan: plan.name, billing: isAnnualBilling ? 'annual' : 'monthly', credits_remaining: currentCredits, is_subscriber: isExistingSubscriber }); } catch(e) {}
     try { if (typeof plausible !== 'undefined') plausible('Plan Selected', { props: { plan: plan.name } }); } catch(e) {}
     try { window.uetq = window.uetq || []; window.uetq.push('event', 'begin_checkout', {}); } catch(e) {}
-    openPaddleCheckout(priceId, btnEl);
+
+    // Existing subscriber with a subscription_id → use Paddle's native plan change
+    // which shows the prorated amount correctly instead of full price
+    if (isExistingSubscriber && currentSubscriptionId) {
+        Paddle.Checkout.open({
+            subscriptionId: currentSubscriptionId,
+            items: [{ priceId: priceId, quantity: 1 }],
+            settings: { theme: 'light', locale: 'en', allowLogout: false },
+            eventCallback: function(event) {
+                if (event.name === 'checkout.completed') {
+                    if (btnEl) { btnEl.textContent = 'Done'; btnEl.disabled = false; }
+                    closePricingModal();
+                    const toast = document.getElementById('modalToast');
+                    if (toast) { toast.classList.add('show'); setTimeout(() => toast.classList.remove('show'), 5000); }
+                    setTimeout(() => fetchCredits(), 3000);
+                    try { posthog.capture('plan_changed', { plan: plan.name, priceId }); } catch(e) {}
+                    try { if (typeof fbq !== 'undefined') fbq('track', 'Purchase'); } catch(e) {}
+                }
+                if (event.name === 'checkout.closed' || event.name === 'checkout.error') {
+                    if (btnEl) { btnEl.textContent = 'Upgrade to ' + plan.name; btnEl.disabled = false; }
+                }
+            }
+        });
+    } else {
+        // New customer → regular checkout
+        openPaddleCheckout(priceId, btnEl);
+    }
 }
 
 function setBilling(type) {
@@ -1428,7 +1455,7 @@ async function handleAddCredits(){
     try{if(typeof plausible!=='undefined')plausible('Upgrade Click',{props:{source:'buy_credits_btn'}});}catch(e){}
     const btn=document.getElementById('buyCreditsBtn');
     const orig=btn.innerHTML;btn.innerHTML='...';btn.disabled=true;
-    try{const r=await fetch(UPGRADE_INTENT_WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:userToken,trigger:'credits_exhausted',credits_remaining:currentCredits})});const d=await r.json();if(d.issub===true){isExistingSubscriber=true;currentPlanNumber=d.plan||null;openBuyCreditsModal();}else{isExistingSubscriber=false;currentPlanNumber=null;showPricingModal();}}
+    try{const r=await fetch(UPGRADE_INTENT_WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:userToken,trigger:'credits_exhausted',credits_remaining:currentCredits})});const d=await r.json();if(d.issub===true){isExistingSubscriber=true;currentPlanNumber=d.plan||null;currentSubscriptionId=d.subscription_id||null;openBuyCreditsModal();}else{isExistingSubscriber=false;currentPlanNumber=null;currentSubscriptionId=null;showPricingModal();}}
     catch(e){showPricingModal();}
     finally{btn.innerHTML=orig;btn.disabled=false;}
 }
