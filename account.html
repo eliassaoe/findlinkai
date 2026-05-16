@@ -1797,25 +1797,31 @@ case 'referral':
         }
 
         async function managePlanDirectly() {
-            try {
-                const response = await fetch('https://manage-plan-linkfinder.hamoureliasse.workers.dev/', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'X-API-Secret': 'lf_sk_8x9k2mNpQr7' },
-                    body: JSON.stringify({ token: userToken })
-                });
-                
-                const data = await response.json();
-                
-                if (!data.url || data.url === '') {
-                    showPricingModal();
-                } else {
-                    window.location.href = data.url;
-                }
-            } catch (error) {
-                console.error('Error managing plan:', error);
-                alert('Error loading billing portal. Please try again.');
-            }
+    try {
+        const response = await fetch('https://manage-plan-linkfinder.hamoureliasse.workers.dev/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-API-Secret': 'lf_sk_8x9k2mNpQr7' },
+            body: JSON.stringify({ token: userToken })
+        });
+        const data = await response.json();
+
+        // If server returns an email → Paddle customer
+        // If server returns a URL/token (no @) → Gumroad customer
+        // If nothing → not a subscriber
+        const value = data.email || data.url || '';
+
+        if (!value) {
+            showPricingModal();
+        } else if (value.includes('@')) {
+            openPaddlePortal(value);   // Paddle: open customer.paddle.com
+        } else {
+            window.location.href = value;  // Gumroad: redirect to portal URL
         }
+    } catch (error) {
+        console.error('Error managing plan:', error);
+        alert('Error loading billing portal. Please try again.');
+    }
+}
 
         /* Buy credits modal + subscription check */
 async function handleAddCredits() {
