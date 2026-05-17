@@ -638,7 +638,9 @@ async function handleAddCredits() {
 
 /* ── Manage Plan button — always shows save/cancellation flow ── */
 async function managePlan() {
-  // Silently pre-fetch subscriber data so proceedToCancellation routes to correct portal
+  const btn = document.querySelector('.manage-btn');
+  const orig = btn ? btn.innerHTML : '';
+  if (btn) { btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...'; btn.disabled = true; }
   try {
     const r = await fetch(UPGRADE_INTENT_URL, {
       method: 'POST',
@@ -650,10 +652,19 @@ async function managePlan() {
       isExistingSubscriber  = true;
       currentPlanNumber     = d.plan || null;
       currentSubscriptionId = d.subscription_id || null;
+      if (btn) { btn.innerHTML = orig; btn.disabled = false; }
+      showCancellationFlow();
+    } else {
+      isExistingSubscriber  = false;
+      currentPlanNumber     = null;
+      currentSubscriptionId = null;
+      if (btn) { btn.innerHTML = orig; btn.disabled = false; }
+      showPricingModal();
     }
-  } catch(e) {}
-  // Always show the save/cancellation flow
-  showCancellationFlow();
+  } catch(e) {
+    if (btn) { btn.innerHTML = orig; btn.disabled = false; }
+    showPricingModal();
+  }
 }
 
 async function managePlanDirectly() {
@@ -856,6 +867,16 @@ async function retentionAction(action) {
   const btn    = document.getElementById(btnId);
   const status = document.getElementById(statusId);
 
+  // Wait up to 5s for subscription ID to be fetched
+  if (!currentSubscriptionId) {
+    let waited = 0;
+    await new Promise(resolve => {
+      const interval = setInterval(() => {
+        waited += 200;
+        if (currentSubscriptionId || waited >= 5000) { clearInterval(interval); resolve(); }
+      }, 200);
+    });
+  }
   if (!currentSubscriptionId) {
     alert('Could not find your subscription ID. Please contact support.');
     return;
