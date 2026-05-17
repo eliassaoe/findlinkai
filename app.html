@@ -280,6 +280,15 @@
         .results-table td{border:none;padding:0.25rem 0;position:relative;padding-left:40%;}
         .results-table td:before{content:attr(data-label) ": ";position:absolute;left:0;width:35%;font-weight:600;color:var(--gray-600);font-size:0.75rem;}
     }
+    @media(max-width:700px){
+    .billing-toggle{flex-direction:column;}
+    .billing-btn{width:100%;text-align:center;}
+    .plans-grid{grid-template-columns:1fr 1fr;}
+}
+@media(max-width:420px){
+    .plans-grid{grid-template-columns:1fr;}
+}
+    
 </style>
 <script async src="https://plausible.io/js/pa-LTP3nlbjr9NybMEgzpwxU.js"></script>
 <script>window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};plausible.init()</script>
@@ -513,8 +522,8 @@
             <p id="pricingModalSubtitle" style="color:var(--gray-500);font-size:0.875rem;margin-top:0.25rem;">Cancel anytime &nbsp;·&nbsp; No questions asked</p>
         </div>
         <div class="billing-toggle">
-            <button class="billing-btn" id="monthlyBtn" onclick="setBilling('monthly')">Monthly</button>
-            <button class="billing-btn active" id="annualBtn" onclick="setBilling('annual')">Annual <span class="save-tag">Save 20%</span></button>
+            <button type="button" class="billing-btn active" id="monthlyBtn" onclick="setBilling('monthly')">Monthly</button>
+            <button type="button" class="billing-btn" id="annualBtn" onclick="setBilling('annual')">Annual <span class="save-tag">Save 20%</span></button>
         </div>
         <div class="plans-grid" id="plansGrid"></div>
         <div class="pricing-faq">
@@ -735,8 +744,9 @@ const plans = [
     { name:'Enterprise',  monthlyPrice:149, credits:600000,  monthlyPriceId: PRICE_IDS.enterprise_monthly,  annualPriceId: PRICE_IDS.enterprise_annual },
     { name:'HyperGrowth', monthlyPrice:299, credits:3000000, monthlyPriceId: PRICE_IDS.hypergrowth_monthly, annualPriceId: PRICE_IDS.hypergrowth_annual },
 ];
-let isAnnualBilling = true;
-
+    
+let isAnnualBilling = false;
+    
 function renderPlansGrid() {
     const grid = document.getElementById('plansGrid');
     if (!grid) return;
@@ -1445,12 +1455,23 @@ function checkEnrichmentMilestone() {
 }
 
 async function handleAddCredits(){
+
+    if(!userToken){
+        window.location.href='https://linkfinderai.com/sign-in';
+        return;
+    }
     try{posthog.capture('upgrade_clicked',{source:'buy_credits_btn',credits_remaining:currentCredits});}catch(e){}
     try{if(typeof plausible!=='undefined')plausible('Upgrade Click',{props:{source:'buy_credits_btn'}});}catch(e){}
     const btn=document.getElementById('buyCreditsBtn');
     const orig=btn.innerHTML;btn.innerHTML='...';btn.disabled=true;
     try{const r=await fetch(UPGRADE_INTENT_WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:userToken,trigger:'credits_exhausted',credits_remaining:currentCredits})});const d=await r.json();if(d.issub===true){isExistingSubscriber=true;currentPlanNumber=d.plan||null;currentSubscriptionId=d.subscription_id||null;openBuyCreditsModal();}else{isExistingSubscriber=false;currentPlanNumber=null;currentSubscriptionId=null;showPricingModal();}}
-    catch(e){showPricingModal();}
+    catch(e){
+    if(!userToken){
+        window.location.href='https://linkfinderai.com/sign-in';
+        return;
+    }
+    showPricingModal();
+}
     finally{btn.innerHTML=orig;btn.disabled=false;}
 }
 
