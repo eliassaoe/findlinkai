@@ -115,7 +115,7 @@
     .upload-icon{font-size:2rem;color:var(--gray-400);margin-bottom:1rem;}
     .upload-text{font-weight:500;color:var(--gray-700);margin-bottom:0.5rem;}
     .upload-subtext{color:var(--gray-500);font-size:0.875rem;margin-bottom:1rem;}
-    .plans-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:0.75rem;margin:0.25rem 0 0.75rem;}
+    .plans-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:0.75rem;margin:0.25rem 0 0.75rem;}
     .plan-item{border:2px solid var(--gray-200);border-radius:12px;padding:1.25rem 0.875rem;text-align:center;position:relative;transition:border-color .2s,box-shadow .2s;display:flex;flex-direction:column;}
     .plan-item:hover{border-color:var(--primary);box-shadow:0 4px 16px rgba(37,99,235,0.1);}
     .plan-item-popular{border-color:var(--primary);background:#f0f5ff;box-shadow:0 4px 16px rgba(37,99,235,0.12);}
@@ -739,10 +739,9 @@ function openPaddleCheckout(priceId, btnEl) {
 const INDUSTRY_AVG_PER_CREDIT = 0.15;
 
 const plans = [
-    { name:'Starter',     monthlyPrice:49,  credits:60000,   monthlyPriceId: PRICE_IDS.starter_monthly,     annualPriceId: PRICE_IDS.starter_annual },
-    { name:'Professional',monthlyPrice:89,  credits:240000,  monthlyPriceId: PRICE_IDS.pro_monthly,         annualPriceId: PRICE_IDS.pro_annual },
-    { name:'Enterprise',  monthlyPrice:149, credits:600000,  monthlyPriceId: PRICE_IDS.enterprise_monthly,  annualPriceId: PRICE_IDS.enterprise_annual },
-    { name:'HyperGrowth', monthlyPrice:299, credits:3000000, monthlyPriceId: PRICE_IDS.hypergrowth_monthly, annualPriceId: PRICE_IDS.hypergrowth_annual },
+    { name:'Starter',     monthlyPrice:49,  credits:60000,  monthlyPriceId: PRICE_IDS.starter_monthly,    annualPriceId: PRICE_IDS.starter_annual },
+    { name:'Professional',monthlyPrice:89,  credits:240000, monthlyPriceId: PRICE_IDS.pro_monthly,        annualPriceId: PRICE_IDS.pro_annual },
+    { name:'Enterprise',  monthlyPrice:149, credits:600000, monthlyPriceId: PRICE_IDS.enterprise_monthly, annualPriceId: PRICE_IDS.enterprise_annual },
 ];
     
 let isAnnualBilling = false;
@@ -852,21 +851,26 @@ function setBilling(type) {
     try { posthog.capture('billing_toggle', { selected: type }); } catch(e) {}
 }
 
-function showPricingModal() {
+function showPricingModal(trigger) {
     try { window.uetq = window.uetq || []; window.uetq.push('event', 'begin_checkout', {}); } catch(e) {}
     document.getElementById('monthlyBtn').classList.toggle('active', !isAnnualBilling);
     document.getElementById('annualBtn').classList.toggle('active', isAnnualBilling);
-    // Update header based on subscriber status
     const modalTitle = document.getElementById('pricingModalTitle');
     const modalSubtitle = document.getElementById('pricingModalSubtitle');
-    if (modalTitle) modalTitle.textContent = isExistingSubscriber ? 'Change Your Plan' : 'Choose Your Plan';
-    if (modalSubtitle) modalSubtitle.textContent = isExistingSubscriber
-        ? 'Paddle will prorate the difference automatically — no extra steps needed.'
-        : 'Cancel anytime · No questions asked';
+    if (isExistingSubscriber) {
+        if (modalTitle) modalTitle.textContent = 'Change Your Plan';
+        if (modalSubtitle) modalSubtitle.textContent = 'Paddle will prorate the difference automatically.';
+    } else if (trigger === 'credits_exhausted') {
+        if (modalTitle) modalTitle.textContent = "You're out of credits";
+        if (modalSubtitle) modalSubtitle.textContent = 'Pick a plan to keep enriching — takes 30 seconds.';
+    } else {
+        if (modalTitle) modalTitle.textContent = 'Choose Your Plan';
+        if (modalSubtitle) modalSubtitle.textContent = 'Cancel anytime · No questions asked';
+    }
     document.getElementById('pricingModal').classList.add('show');
     document.body.style.overflow = 'hidden';
     renderPlansGrid();
-    try { posthog.capture('pricing_modal_opened', { credits_remaining: currentCredits, is_subscriber: isExistingSubscriber }); } catch(e) {}
+    try { posthog.capture('pricing_modal_opened', { credits_remaining: currentCredits, is_subscriber: isExistingSubscriber, trigger: trigger || 'manual' }); } catch(e) {}
 }
 
 function closePricingModal() {
