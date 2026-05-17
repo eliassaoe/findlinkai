@@ -288,6 +288,13 @@
 @media(max-width:420px){
     .plans-grid{grid-template-columns:1fr;}
 }
+
+.nps-widget{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:white;border:1px solid var(--gray-200);border-radius:12px;padding:1.25rem 1.5rem;width:400px;max-width:calc(100vw - 2rem);box-shadow:0 8px 24px rgba(0,0,0,0.12);z-index:9997;animation:nudge-in 0.3s ease;}
+.nps-scores{display:flex;gap:5px;margin:12px 0 6px;}
+.nps-btn{flex:1;padding:7px 0;border-radius:6px;border:1px solid var(--gray-200);background:white;font-size:12px;font-weight:500;cursor:pointer;color:var(--gray-600);transition:all 0.15s;font-family:inherit;}
+.nps-btn:hover{border-color:var(--primary);color:var(--primary);}
+.nps-btn.selected{background:var(--primary);border-color:var(--primary);color:white;}
+@media(max-width:480px){.nps-widget{width:calc(100vw - 2rem);bottom:80px;}}
     
 </style>
 <script async src="https://plausible.io/js/pa-LTP3nlbjr9NybMEgzpwxU.js"></script>
@@ -1451,11 +1458,12 @@ function checkEnrichmentMilestone() {
     const key = 'lf_enrich_count'; const firedKey = 'lf_three_enrich_fired';
     const n = parseInt(localStorage.getItem(key) || '0') + 1;
     localStorage.setItem(key, n);
-    if (n === 3 && !localStorage.getItem(firedKey)) {
-        localStorage.setItem(firedKey, '1');
-        fireUpgradeIntent('three_enrichments', { enrich_count: n, credits_remaining: currentCredits });
-        try { posthog.capture('three_enrichments_milestone', { credits_remaining: currentCredits }); } catch(e) {}
-    }
+   if (n === 3 && !localStorage.getItem(firedKey)) {
+    localStorage.setItem(firedKey, '1');
+    fireUpgradeIntent('three_enrichments', { enrich_count: n, credits_remaining: currentCredits });
+    try { posthog.capture('three_enrichments_milestone', { credits_remaining: currentCredits }); } catch(e) {}
+    showNPS();
+}
 }
 
 async function handleAddCredits(){
@@ -1541,6 +1549,63 @@ function updateProgress(percent){
     if(percent>=100) setTimeout(()=>document.getElementById('progressContainer').classList.add('hidden'),10000);
 }
 
+let npsScore = null;
+
+function initNPS() {
+    const scores = document.getElementById('npsScores');
+    if (!scores || scores.children.length > 0) return;
+    for (let i = 1; i <= 10; i++) {
+        const b = document.createElement('button');
+        b.className = 'nps-btn';
+        b.textContent = i;
+        b.onclick = () => {
+            npsScore = i;
+            document.querySelectorAll('.nps-btn').forEach(x => x.classList.remove('selected'));
+            b.classList.add('selected');
+        };
+        scores.appendChild(b);
+    }
+}
+
+function showNPS() {
+    if (sessionStorage.getItem('lf_nps_shown')) return;
+    initNPS();
+    setTimeout(() => {
+        const widget = document.getElementById('npsWidget');
+        if (widget) {
+            widget.style.display = 'block';
+            sessionStorage.setItem('lf_nps_shown', '1');
+            try { posthog.capture('nps_shown', { credits_remaining: currentCredits }); } catch(e) {}
+        }
+    }, 2000);
+}
+
+async function submitNPS() {
+    if (!npsScore) {
+        document.getElementById('npsScores').style.outline = '2px solid var(--error)';
+        setTimeout(() => document.getElementById('npsScores').style.outline = '', 1500);
+        return;
+    }
+    const feedback = document.getElementById('npsFeedback').value.trim();
+    document.getElementById('npsStep1').style.display = 'none';
+    document.getElementById('npsStep2').style.display = 'block';
+    setTimeout(() => { document.getElementById('npsWidget').style.display = 'none'; }, 3000);
+    try {
+        await fetch('https://linkfinder-request-feature.hamoureliasse.workers.dev/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                type: 'nps',
+                message: `Score: ${npsScore}/10${feedback ? ' | Feedback: ' + feedback : ''}`,
+                user_token: userToken || 'Anonymous',
+                timestamp: new Date().toISOString(),
+                page: window.location.href
+            })
+        });
+    } catch(e) {}
+    try { posthog.capture('nps_submitted', { score: npsScore, has_feedback: !!feedback, credits_remaining: currentCredits }); } catch(e) {}
+}
+
 </script>
 
 <script type="module">
@@ -1554,6 +1619,32 @@ function updateProgress(percent){
         loadPreviousSession: false
     });
 </script>
+
+<!-- NPS Widget -->
+<div id="npsWidget" class="nps-widget" style="display:none;">
+  <button onclick="document.getElementById('npsWidget').style.display='none'"
+    style="position:absolute;top:10px;right:12px;background:none;border:none;cursor:pointer;color:var(--gray-400);font-size:1.25rem;line-height:1;padding:0;">×</button>
+  <div id="npsStep1">
+    <p style="font-weight:600;color:var(--gray-900);font-size:0.875rem;margin:0 0 3px;">How useful is LinkFinder AI so far?</p>
+    <p style="font-size:0.75rem;color:var(--gray-500);margin:0 0 12px;">Takes 20 seconds — helps us improve</p>
+    <div class="nps-scores" id="npsScores"></div>
+    <div style="display:flex;justify-content:space-between;margin-bottom:12px;">
+      <span style="font-size:0.7rem;color:var(--gray-400);">Not useful</span>
+      <span style="font-size:0.7rem;color:var(--gray-400);">Very useful</span>
+    </div>
+    <textarea id="npsFeedback" placeholder="What could we do better? (optional)"
+      style="width:100%;padding:8px 10px;border:1px solid var(--gray-300);border-radius:6px;font-size:0.8rem;resize:none;height:68px;font-family:inherit;box-sizing:border-box;color:var(--gray-800);"></textarea>
+    <button onclick="submitNPS()"
+      style="width:100%;margin-top:8px;padding:9px;border-radius:6px;border:1px solid var(--gray-300);background:white;font-size:0.8rem;font-weight:600;cursor:pointer;font-family:inherit;color:var(--gray-700);">
+      Send feedback
+    </button>
+  </div>
+  <div id="npsStep2" style="display:none;text-align:center;padding:1rem 0;">
+    <div style="font-size:1.5rem;margin-bottom:8px;">✓</div>
+    <p style="font-weight:600;color:var(--gray-900);font-size:0.875rem;margin:0 0 4px;">Thanks for the feedback!</p>
+    <p style="font-size:0.75rem;color:var(--gray-500);margin:0;">We read every response and use it to improve.</p>
+  </div>
+</div>
 
 </body>
 </html>
