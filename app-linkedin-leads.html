@@ -14,6 +14,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
 <style>
 :root {
   --primary:#2563eb; --primary-hover:#1d4ed8;
@@ -151,10 +152,10 @@ body{font-family:'Inter',-apple-system,sans-serif;background:white;color:var(--g
 .modal-overlay.show .pricing-modal{transform:scale(1);}
 .modal-close{position:absolute;top:1rem;right:1rem;background:var(--gray-100);border:none;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--gray-500);transition:all .2s;}
 .modal-close:hover{background:var(--gray-200);color:var(--gray-700);}
-.pricing-modal-header{text-align:center;margin-bottom:2rem;}
+.pricing-modal-header{text-align:center;margin-bottom:1.5rem;}
 .pricing-modal-header h2{font-size:1.75rem;font-weight:700;color:var(--gray-900);margin-bottom:.5rem;}
-.pricing-modal-header p{color:var(--gray-600);font-size:1rem;}
-.billing-toggle{display:flex;gap:.5rem;margin-bottom:2rem;background:var(--gray-100);padding:.25rem;border-radius:8px;}
+.pricing-modal-header p{color:var(--gray-500);font-size:0.875rem;margin-top:0.25rem;}
+.billing-toggle{display:flex;gap:.5rem;margin-bottom:1.5rem;background:var(--gray-100);padding:.25rem;border-radius:8px;}
 .billing-btn{flex:1;padding:.75rem;border:none;background:transparent;border-radius:6px;font-weight:500;color:var(--gray-600);cursor:pointer;transition:all .2s;font-size:.9rem;display:flex;align-items:center;justify-content:center;gap:.5rem;font-family:inherit;}
 .billing-btn.active{background:white;color:var(--gray-900);box-shadow:0 1px 3px rgba(0,0,0,.1);}
 .save-tag{font-size:.75rem;background:var(--success);color:white;padding:.2rem .4rem;border-radius:3px;font-weight:600;}
@@ -187,6 +188,19 @@ body{font-family:'Inter',-apple-system,sans-serif;background:white;color:var(--g
 .export-option span{flex:1;}
 .export-option-count{font-size:.72rem;font-weight:600;color:var(--gray-400);background:var(--gray-100);padding:.1rem .4rem;border-radius:999px;flex:0 0 auto;}
 .export-option-count--green{color:#065f46;background:#d1fae5;}
+/* Buy credits modal */
+.buy-credits-grid{display:grid;grid-template-columns:1fr 1fr;gap:0.875rem;margin-bottom:1.5rem;}
+.credit-pack{border:2px solid var(--gray-200);border-radius:10px;padding:1.125rem 0.875rem;text-align:center;cursor:pointer;transition:all 0.2s ease;position:relative;}
+.credit-pack:hover{border-color:var(--primary);background:rgba(37,99,235,0.04);}
+.credit-pack.popular{border-color:var(--primary);background:rgba(37,99,235,0.04);}
+.credit-pack-badge{position:absolute;top:-10px;left:50%;transform:translateX(-50%);background:var(--primary);color:white;font-size:0.65rem;font-weight:700;padding:0.2rem 0.5rem;border-radius:3px;white-space:nowrap;text-transform:uppercase;letter-spacing:0.04em;}
+.credit-pack-amount{font-size:1.2rem;font-weight:700;color:var(--gray-900);margin-bottom:0.2rem;}
+.credit-pack-label{font-size:0.75rem;color:var(--gray-500);margin-bottom:0.6rem;}
+.credit-pack-price{font-size:1.5rem;font-weight:700;color:var(--primary);}
+.credit-pack-per{font-size:0.7rem;color:var(--gray-400);margin-top:0.15rem;}
+.modal-toast{position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%) translateY(100px);background:var(--gray-900);color:white;padding:0.75rem 1.25rem;border-radius:8px;font-size:0.875rem;font-weight:500;z-index:9999;transition:transform 0.35s ease;display:flex;align-items:center;gap:0.75rem;box-shadow:0 4px 16px rgba(0,0,0,0.25);pointer-events:none;}
+.modal-toast.show{transform:translateX(-50%) translateY(0);pointer-events:auto;}
+.modal-toast a{color:#93c5fd;text-decoration:none;font-weight:600;cursor:pointer;}
 @media(max-width:640px){
   .nav-tab{padding:.625rem .75rem;font-size:.8rem;}
   .search-wrap{flex-direction:column;}
@@ -194,6 +208,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:white;color:var(--g
   .pricing-modal{padding:1.5rem;}
   .pricing-modal-header h2{font-size:1.5rem;}
   .results-actions{gap:.375rem;}
+  .buy-credits-grid{grid-template-columns:1fr;}
 }
 </style>
 </head>
@@ -259,7 +274,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:white;color:var(--g
       </div>
     </div>
 
-    <!-- Sample results — shows users what they'll get before searching -->
+    <!-- Sample results preview -->
     <div id="samplePreview" style="margin-bottom:1.5rem;">
       <div style="font-size:0.75rem;font-weight:600;color:var(--gray-400);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.75rem;display:flex;align-items:center;gap:0.5rem;">
         Example results
@@ -385,11 +400,13 @@ body{font-family:'Inter',-apple-system,sans-serif;background:white;color:var(--g
   </div>
 </div>
 
+<!-- Pricing Modal -->
 <div id="pricingModal" class="modal-overlay">
   <div class="pricing-modal" style="max-width:900px;width:min(900px,calc(100vw - 2rem));">
     <button class="modal-close" onclick="closePricingModal()"><i class="fas fa-times"></i></button>
     <div class="pricing-modal-header">
-      <h2>Choose Your Plan</h2>
+      <h2 id="pricingModalTitle">Choose Your Plan</h2>
+      <p id="pricingModalSubtitle" style="color:var(--gray-500);font-size:0.875rem;margin-top:0.25rem;">Cancel anytime &nbsp;·&nbsp; No questions asked</p>
     </div>
     <div class="billing-toggle">
       <button class="billing-btn" id="monthlyBtn" onclick="setBilling('monthly')">Monthly</button>
@@ -400,12 +417,13 @@ body{font-family:'Inter',-apple-system,sans-serif;background:white;color:var(--g
       <div class="pricing-faq-item"><i class="fas fa-check-circle"></i> Credits never expire</div>
       <div class="pricing-faq-item"><i class="fas fa-check-circle"></i> Cancel anytime, no questions</div>
       <div class="pricing-faq-item"><i class="fas fa-check-circle"></i> Upgrade or downgrade freely</div>
-      <div class="pricing-faq-item"><i class="fas fa-check-circle"></i> Secure payment via Gumroad</div>
+      <div class="pricing-faq-item"><i class="fas fa-check-circle"></i> Secure payment</div>
     </div>
-    <p style="text-align:center;font-size:0.72rem;color:var(--gray-500);margin-top:0.5rem;">Cancel anytime &nbsp;·&nbsp; No questions asked</p>
+    <p style="text-align:center;font-size:0.72rem;color:var(--gray-400);margin-top:0.75rem;">Prices in USD · Secure payment · Cancel anytime</p>
   </div>
 </div>
 
+<!-- Insufficient Credits Modal -->
 <div id="insufficientCreditsModal" class="modal-overlay">
   <div class="pricing-modal">
     <button class="modal-close" onclick="closeInsufficientCreditsModal()"><i class="fas fa-times"></i></button>
@@ -422,365 +440,579 @@ body{font-family:'Inter',-apple-system,sans-serif;background:white;color:var(--g
   </div>
 </div>
 
+<!-- Buy Credits Modal -->
+<div id="buyCreditsModal" class="modal-overlay">
+  <div class="pricing-modal" style="max-width:460px;">
+    <button class="modal-close" onclick="closeBuyCreditsModal()"><i class="fas fa-times"></i></button>
+
+    <!-- Change plan banner (shown for subscribers only) -->
+    <div id="changePlanBanner" onclick="closeBuyCreditsModal();isExistingSubscriber=true;showPricingModal();"
+      style="display:none;background:linear-gradient(135deg,#1e40af,#2563eb);border-radius:12px;padding:1rem 1.25rem;cursor:pointer;margin-bottom:1.25rem;transition:opacity 0.2s;"
+      onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:1rem;">
+        <div>
+          <div style="font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#93c5fd;margin-bottom:0.2rem;">Already subscribed</div>
+          <div style="font-size:0.95rem;font-weight:700;color:white;">Change or upgrade my plan</div>
+          <div style="font-size:0.75rem;color:#bfdbfe;margin-top:0.15rem;">You'll only be charged the difference — no extra steps needed.</div>
+        </div>
+        <div style="background:white;color:#2563eb;font-weight:700;font-size:0.8rem;padding:0.5rem 0.875rem;border-radius:7px;white-space:nowrap;flex-shrink:0;">
+          See Plans <i class="fas fa-arrow-right"></i>
+        </div>
+      </div>
+    </div>
+
+    <div class="pricing-modal-header" style="margin-bottom:1.25rem;">
+      <h2>🪙 Buy More Credits</h2>
+      <p>One-time purchase — credits never expire</p>
+    </div>
+
+    <div class="buy-credits-grid">
+      <div class="credit-pack" onclick="buyCredits('starter')">
+        <div class="credit-pack-amount">1,000</div>
+        <div class="credit-pack-label">credits</div>
+        <div class="credit-pack-price">$9</div>
+        <div class="credit-pack-per">$0.009 / credit</div>
+      </div>
+      <div class="credit-pack popular" onclick="buyCredits('popular')">
+        <div class="credit-pack-badge">Most Popular</div>
+        <div class="credit-pack-amount">5,000</div>
+        <div class="credit-pack-label">credits</div>
+        <div class="credit-pack-price">$38</div>
+        <div class="credit-pack-per">$0.0076 / credit</div>
+      </div>
+      <div class="credit-pack" onclick="buyCredits('growth')">
+        <div class="credit-pack-amount">10,000</div>
+        <div class="credit-pack-label">credits</div>
+        <div class="credit-pack-price">$79</div>
+        <div class="credit-pack-per">$0.0079 / credit</div>
+      </div>
+      <div class="credit-pack" onclick="buyCredits('pro')">
+        <div class="credit-pack-amount">25,000</div>
+        <div class="credit-pack-label">credits</div>
+        <div class="credit-pack-price">$189</div>
+        <div class="credit-pack-per">$0.00756 / credit</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="modalToast" class="modal-toast">
+  <span>✓ You're all set</span>
+  <a onclick="document.getElementById('modalToast').classList.remove('show')">Dismiss</a>
+</div>
+
 <script>
 var SUPABASE_URL      = 'https://snxhsboboatjywgwdeds.supabase.co';
 var SUPABASE_ANON_KEY = 'sb_publishable_RKidGRs4ch1ixmRfXoYSww_UsQMSe5w';
 var API_URL           = 'https://linkfinderapp.hamoureliasse.workers.dev/';
 var CREDITS_URL       = 'https://linkfinderaicredits.hamoureliasse.workers.dev/';
-var SUB_CHECK_URL     = 'https://scalelinkfinderai-production.up.railway.app/webhook/a30d8fea-5360-4003-be0d-9cea914390b0';
+var UPGRADE_INTENT_WORKER = 'https://upgrade-intent.hamoureliasse.workers.dev/';
 
 var sb=null, userToken=null, currentCredits=null;
 var currentLeads=[], currentQuery='', pastSearches=[];
 var verificationState={};
 var isVerifying=false;
 
-var plans=[
-  {name:'Starter',monthlyPrice:49,credits:60000,monthlyLink:'https://linkfinderai.gumroad.com/l/txudoe',annualLink:'https://linkfinderai.gumroad.com/l/hescr'},
-  {name:'Professional',monthlyPrice:89,credits:240000,monthlyLink:'https://linkfinderai.gumroad.com/l/ouvehf',annualLink:'https://linkfinderai.gumroad.com/l/eadfhi'},
-  {name:'Enterprise',monthlyPrice:149,credits:600000,monthlyLink:'https://linkfinderai.gumroad.com/l/oukgp',annualLink:'https://linkfinderai.gumroad.com/l/gtwsp'},
-  {name:'HyperGrowth',monthlyPrice:299,credits:3000000,monthlyLink:'https://linkfinderai.gumroad.com/l/tbwevi',annualLink:'https://linkfinderai.gumroad.com/l/dilhpd'}
-];
-var isAnnualBilling=true;
+// Subscriber state
+var isExistingSubscriber = false;
+var currentPlanNumber    = null;
+var currentSubscriptionId = null;
 
-function renderPlansGrid(){
-  var grid=document.getElementById('plansGrid');
-  if(!grid) return;
-  grid.innerHTML=plans.map(function(plan,index){
-    var isPopular=plan.name==='Professional';
-    var monthlyEquiv=isAnnualBilling?Math.round(plan.monthlyPrice*0.8):plan.monthlyPrice;
-    var annualTotal=Math.round(plan.monthlyPrice*0.8*12);
-    var creditsLabel=isAnnualBilling?plan.credits.toLocaleString()+' credits/yr':Math.round(plan.credits/12).toLocaleString()+' credits/mo';
-    var totalForCalc=isAnnualBilling?annualTotal:plan.monthlyPrice;
-    var creditsForCalc=isAnnualBilling?plan.credits:Math.round(plan.credits/12);
-    var perCredit=(totalForCalc/creditsForCalc).toFixed(4);
-    return '<div class="plan-item '+(isPopular?'plan-item-popular':'')+'">'+
-      (isPopular?'<div class="plan-popular-badge">Most Popular</div>':'')+
-      '<div class="plan-item-name">'+plan.name+'</div>'+
-      '<div class="plan-item-price"><span class="plan-item-amount">$'+monthlyEquiv+'</span><span class="plan-item-period">/mo</span></div>'+
-      (isAnnualBilling?'<div class="plan-item-annual">billed $'+annualTotal+'/year</div>':'<div class="plan-item-annual">&nbsp;</div>')+
-      '<div class="plan-item-credits">'+creditsLabel+'</div>'+
-      '<div class="plan-item-per-credit">&asymp; $'+perCredit+' / credit</div>'+
-      '<button class="plan-item-cta '+(isPopular?'plan-item-cta-popular':'')+'" onclick="proceedToCheckoutDirect('+index+')">Get Started</button>'+
+/* ═══════════════════════════════════════════
+   PADDLE — same credentials as app-final
+═══════════════════════════════════════════ */
+var PADDLE_CLIENT_TOKEN = 'live_7dfae08063d5734fb2abd6373e3';
+var PRICE_IDS = {
+  starter_monthly:     'pri_01krrtbr6q0k0qg9xm0ms9e1b4',
+  pro_monthly:         'pri_01krrtdbmhyvayzrcm0x0xm0h8',
+  enterprise_monthly:  'pri_01krrtezpv12b4qaycvhrq7v9j',
+  hypergrowth_monthly: 'pri_01krrtggp5zyexxtjd39bg9wp1',
+  starter_annual:      'pri_01krrtjfasxfzfaefn82vv4xqa',
+  pro_annual:          'pri_01krrtnb6jfewb4m652zsdv6t3',
+  enterprise_annual:   'pri_01krrtq4v86zfv0dj5dbw7zbd6',
+  hypergrowth_annual:  'pri_01krrtr82ajr9ssg7eavsmd36j',
+  credits_1k:          'pri_REPLACE_CREDITS_1K',
+  credits_5k:          'pri_REPLACE_CREDITS_5K',
+  credits_10k:         'pri_REPLACE_CREDITS_10K',
+  credits_25k:         'pri_REPLACE_CREDITS_25K',
+};
+
+Paddle.Initialize({ token: PADDLE_CLIENT_TOKEN });
+
+var plans = [
+  { name:'Starter',     monthlyPrice:49,  credits:60000,   monthlyPriceId: PRICE_IDS.starter_monthly,     annualPriceId: PRICE_IDS.starter_annual },
+  { name:'Professional',monthlyPrice:89,  credits:240000,  monthlyPriceId: PRICE_IDS.pro_monthly,         annualPriceId: PRICE_IDS.pro_annual },
+  { name:'Enterprise',  monthlyPrice:149, credits:600000,  monthlyPriceId: PRICE_IDS.enterprise_monthly,  annualPriceId: PRICE_IDS.enterprise_annual },
+  { name:'HyperGrowth', monthlyPrice:299, credits:3000000, monthlyPriceId: PRICE_IDS.hypergrowth_monthly, annualPriceId: PRICE_IDS.hypergrowth_annual },
+];
+var isAnnualBilling = true;
+
+// plan number → index & billing (same mapping as app-final)
+var planNumToIndex  = { 1:0, 2:1, 3:2, 4:3, 5:0, 6:1, 7:2, 8:3 };
+var planNumIsAnnual = { 1:false, 2:false, 3:false, 4:false, 5:true, 6:true, 7:true, 8:true };
+
+function renderPlansGrid() {
+  var grid = document.getElementById('plansGrid');
+  if (!grid) return;
+  var currentIndex = currentPlanNumber ? (planNumToIndex[currentPlanNumber] || null) : null;
+  var currentIsAnn = currentPlanNumber ? (planNumIsAnnual[currentPlanNumber] || false) : null;
+
+  grid.innerHTML = plans.map(function(plan, index) {
+    var isPopular    = plan.name === 'Professional';
+    var monthlyEquiv = isAnnualBilling ? Math.round(plan.monthlyPrice * 0.8) : plan.monthlyPrice;
+    var annualTotal  = Math.round(plan.monthlyPrice * 0.8 * 12);
+    var creditsLabel = isAnnualBilling ? plan.credits.toLocaleString()+' credits/yr' : Math.round(plan.credits/12).toLocaleString()+' credits/mo';
+    var totalForCalc   = isAnnualBilling ? annualTotal : plan.monthlyPrice;
+    var creditsForCalc = isAnnualBilling ? plan.credits : Math.round(plan.credits/12);
+    var perCredit = (totalForCalc / creditsForCalc).toFixed(4);
+
+    var ctaLabel = 'Get Started';
+    var isCurrentPlan = false;
+
+    if (isExistingSubscriber && currentIndex !== null) {
+      var sameIndex   = index === currentIndex;
+      var sameBilling = isAnnualBilling === currentIsAnn;
+      if (sameIndex && sameBilling) {
+        ctaLabel = 'Current Plan';
+        isCurrentPlan = true;
+      } else if (sameIndex && !sameBilling) {
+        ctaLabel = isAnnualBilling ? 'Switch to Annual' : 'Switch to Monthly';
+      } else if (index > currentIndex) {
+        ctaLabel = 'Upgrade to ' + plan.name;
+      } else {
+        ctaLabel = 'Downgrade to ' + plan.name;
+      }
+    }
+
+    var currentBadge = isCurrentPlan
+      ? '<div style="background:#dcfce7;color:#15803d;font-size:0.62rem;font-weight:700;padding:0.2rem 0.55rem;border-radius:4px;margin-bottom:0.35rem;display:inline-block;text-transform:uppercase;letter-spacing:0.05em;">✓ Your plan</div>'
+      : '';
+    var ctaDisabled  = isCurrentPlan ? 'disabled style="opacity:0.5;cursor:not-allowed;"' : '';
+    var ctaClass     = 'plan-item-cta' + (isPopular && !isCurrentPlan ? ' plan-item-cta-popular' : '');
+
+    return '<div class="plan-item ' + (isPopular && !isCurrentPlan ? 'plan-item-popular' : '') + '">' +
+      (isPopular && !isCurrentPlan ? '<div class="plan-popular-badge">Most Popular</div>' : '') +
+      '<div class="plan-item-name">' + plan.name + '</div>' +
+      '<div class="plan-item-price"><span class="plan-item-amount">$' + monthlyEquiv + '</span><span class="plan-item-period">/mo</span></div>' +
+      (isAnnualBilling ? '<div class="plan-item-annual">billed $' + annualTotal + '/year</div>' : '<div class="plan-item-annual">&nbsp;</div>') +
+      '<div class="plan-item-credits">' + creditsLabel + '</div>' +
+      '<div class="plan-item-per-credit">&asymp; $' + perCredit + ' / credit</div>' +
+      currentBadge +
+      '<button class="' + ctaClass + '" onclick="proceedToCheckoutDirect(' + index + ', this)" ' + ctaDisabled + '>' + ctaLabel + '</button>' +
       '</div>';
   }).join('');
 }
 
-function proceedToCheckoutDirect(index){
-  var plan=plans[index];
-  try{if(typeof posthog!=='undefined') posthog.capture('plan_selected',{plan:plan.name,billing:isAnnualBilling?'annual':'monthly',page:'linkedin_leads'});}catch(e){}
-  var base=isAnnualBilling?plan.annualLink:plan.monthlyLink;
-  window.location.href=addGclid(base+'?wanted=true&user_id='+userToken);
+function proceedToCheckoutDirect(index, btnEl) {
+  var plan    = plans[index];
+  var priceId = isAnnualBilling ? plan.annualPriceId : plan.monthlyPriceId;
+  if (btnEl) { btnEl.textContent = 'Opening…'; btnEl.disabled = true; }
+  try { if (typeof posthog !== 'undefined') posthog.capture('plan_selected', { plan: plan.name, billing: isAnnualBilling ? 'annual' : 'monthly', page: 'linkedin_leads', is_subscriber: isExistingSubscriber }); } catch(e) {}
+
+  if (isExistingSubscriber && currentSubscriptionId) {
+    // Subscriber → Paddle plan change (shows prorated amount)
+    Paddle.Checkout.open({
+      subscriptionId: currentSubscriptionId,
+      items: [{ priceId: priceId, quantity: 1 }],
+      settings: { theme: 'light', locale: 'en', allowLogout: false },
+      eventCallback: function(event) {
+        if (event.name === 'checkout.completed') {
+          if (btnEl) { btnEl.textContent = 'Done'; btnEl.disabled = false; }
+          closePricingModal();
+          showToast();
+          setTimeout(function() { fetchCredits(); }, 3000);
+        }
+        if (event.name === 'checkout.closed' || event.name === 'checkout.error') {
+          if (btnEl) { btnEl.textContent = 'Upgrade to ' + plan.name; btnEl.disabled = false; }
+        }
+      }
+    });
+  } else {
+    // New customer → regular checkout
+    openPaddleCheckout(priceId, btnEl);
+  }
 }
+
+function openPaddleCheckout(priceId, btnEl) {
+  if (!priceId || priceId.startsWith('pri_REPLACE')) {
+    alert('⚠️ Credit pack price IDs not set yet.');
+    if (btnEl) { btnEl.disabled = false; }
+    return;
+  }
+  Paddle.Checkout.open({
+    items: [{ priceId: priceId, quantity: 1 }],
+    settings: { theme: 'light', locale: 'en', allowLogout: false },
+    customData: { user_token: userToken || '' },
+    eventCallback: function(event) {
+      if (event.name === 'checkout.completed') {
+        if (btnEl) { btnEl.disabled = false; }
+        closePricingModal();
+        closeBuyCreditsModal();
+        showToast();
+        setTimeout(function() { fetchCredits(); }, 3000);
+      }
+      if (event.name === 'checkout.closed' || event.name === 'checkout.error') {
+        if (btnEl) { btnEl.disabled = false; }
+      }
+    }
+  });
+}
+
+function buyCredits(pack) {
+  var packPriceIds = {
+    starter: PRICE_IDS.credits_1k,
+    popular: PRICE_IDS.credits_5k,
+    growth:  PRICE_IDS.credits_10k,
+    pro:     PRICE_IDS.credits_25k,
+  };
+  openPaddleCheckout(packPriceIds[pack], null);
+}
+
+function showToast() {
+  var toast = document.getElementById('modalToast');
+  if (toast) { toast.classList.add('show'); setTimeout(function() { toast.classList.remove('show'); }, 5000); }
+}
+
+function setBilling(type) {
+  isAnnualBilling = (type === 'annual');
+  document.getElementById('monthlyBtn').classList.toggle('active', !isAnnualBilling);
+  document.getElementById('annualBtn').classList.toggle('active', isAnnualBilling);
+  renderPlansGrid();
+}
+
+function showPricingModal() {
+  document.getElementById('monthlyBtn').classList.toggle('active', !isAnnualBilling);
+  document.getElementById('annualBtn').classList.toggle('active', isAnnualBilling);
+  var modalTitle    = document.getElementById('pricingModalTitle');
+  var modalSubtitle = document.getElementById('pricingModalSubtitle');
+  if (modalTitle)    modalTitle.textContent    = isExistingSubscriber ? 'Change Your Plan' : 'Choose Your Plan';
+  if (modalSubtitle) modalSubtitle.textContent = isExistingSubscriber
+    ? "You'll only be charged the difference — no extra steps needed."
+    : 'Cancel anytime · No questions asked';
+  document.getElementById('pricingModal').classList.add('show');
+  document.body.style.overflow = 'hidden';
+  renderPlansGrid();
+}
+
+function closePricingModal() { document.getElementById('pricingModal').classList.remove('show'); document.body.style.overflow = ''; }
+
+function openBuyCreditsModal() {
+  var banner = document.getElementById('changePlanBanner');
+  if (banner) banner.style.display = isExistingSubscriber ? 'block' : 'none';
+  document.getElementById('buyCreditsModal').classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+function closeBuyCreditsModal() { document.getElementById('buyCreditsModal').classList.remove('show'); document.body.style.overflow = ''; }
 
 function showInsufficientCreditsModal(){
-  var wall=document.getElementById('creditWallInline');
-  var resultsVisible=!document.getElementById('resultsSection').classList.contains('hidden');
-  if(wall&&resultsVisible){wall.classList.add('show');wall.scrollIntoView({behavior:'smooth',block:'nearest'});}
-  else{document.getElementById('insufficientCreditsModal').classList.add('show');document.body.style.overflow='hidden';}
+  var wall = document.getElementById('creditWallInline');
+  var resultsVisible = !document.getElementById('resultsSection').classList.contains('hidden');
+  if (wall && resultsVisible) { wall.classList.add('show'); wall.scrollIntoView({behavior:'smooth',block:'nearest'}); }
+  else { document.getElementById('insufficientCreditsModal').classList.add('show'); document.body.style.overflow = 'hidden'; }
 }
-function closeInsufficientCreditsModal(){document.getElementById('insufficientCreditsModal').classList.remove('show');document.body.style.overflow='';}
-function showPricingFromInsufficient(){closeInsufficientCreditsModal();showPricingModal();}
+function closeInsufficientCreditsModal() { document.getElementById('insufficientCreditsModal').classList.remove('show'); document.body.style.overflow = ''; }
+function showPricingFromInsufficient() { closeInsufficientCreditsModal(); handleAddCredits(); }
 
-function val(v){return(v===null||v===undefined)?'':String(v);}
-
-function mapApifyLead(item){
-  var firstName=val(item.first_name),lastName=val(item.last_name);
-  var fullName=val(item.full_name)||(firstName+' '+lastName).trim()||'Unknown';
-  var locationParts=[item.city,item.state,item.country].filter(function(x){return x&&String(x).trim();});
-  return{full_name:fullName,first_name:firstName,last_name:lastName,job_title:val(item.job_title),headline:val(item.headline),seniority_level:val(item.seniority_level),functional_level:val(item.functional_level),email:val(item.email),mobile_number:val(item.mobile_number),personal_email:val(item.personal_email),linkedin:val(item.linkedin),city:val(item.city),state:val(item.state),country:val(item.country),location:locationParts.join(', '),company_name:val(item.company_name),company_domain:val(item.company_domain),company_website:val(item.company_website),company_linkedin:val(item.company_linkedin),company_size:val(item.company_size),industry:val(item.industry),company_description:val(item.company_description),company_founded_year:val(item.company_founded_year),company_phone:val(item.company_phone),company_street_address:val(item.company_street_address),company_full_address:val(item.company_full_address),company_city:val(item.company_city),company_state:val(item.company_state),company_country:val(item.company_country),company_postal_code:val(item.company_postal_code),keywords:val(item.keywords),company_technologies:val(item.company_technologies)};
+async function handleAddCredits() {
+  try { if (typeof posthog !== 'undefined') posthog.capture('upgrade_clicked', { source:'buy_credits_btn', credits_remaining:currentCredits, page:'linkedin_leads' }); } catch(e) {}
+  var btn = document.getElementById('buyCreditsBtn');
+  var orig = btn.innerHTML; btn.innerHTML = '...'; btn.disabled = true;
+  try {
+    var r = await fetch(UPGRADE_INTENT_WORKER, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: userToken, trigger: 'buy_credits_btn', credits_remaining: currentCredits })
+    });
+    var d = await r.json();
+    if (d.issub === true) {
+      isExistingSubscriber  = true;
+      currentPlanNumber     = d.plan || null;
+      currentSubscriptionId = d.subscription_id || null;
+      openBuyCreditsModal();
+    } else {
+      isExistingSubscriber  = false;
+      currentPlanNumber     = null;
+      currentSubscriptionId = null;
+      showPricingModal();
+    }
+  } catch(e) { showPricingModal(); }
+  finally { btn.innerHTML = orig; btn.disabled = false; }
 }
 
-function loadPastSearches(){
-  sb.from('linkedin_lead_searches').select('id,query,leads,created_at').eq('user_token',userToken).order('created_at',{ascending:false}).limit(10)
-    .then(function(res){pastSearches=res.data||[];renderPast();}).catch(function(){pastSearches=[];});
-}
-function saveSearch(query,leads){
-  return sb.from('linkedin_lead_searches').insert({user_token:userToken,query:query,leads:leads,created_at:new Date().toISOString()})
-    .then(function(){pastSearches.unshift({query:query,leads:leads,created_at:new Date().toISOString()});renderPast();}).catch(function(){});
+/* ═══ rest of page logic (unchanged) ═══ */
+
+var gclid = new URLSearchParams(window.location.search).get('gclid');
+function addGclid(url) { if (!gclid) return url; return url + (url.includes('?') ? '&' : '?') + 'gclid=' + gclid; }
+function logout() { localStorage.removeItem('linkFinderToken'); window.location.href = 'https://linkfinderai.com/'; }
+function nav(page) { var m = {enrichment:'app', api:'api-access', account:'account'}; window.location.href = addGclid('https://linkfinderai.com/' + m[page] + '?token=' + userToken); }
+
+function updateLowCreditsWarning(credits) {
+  var bar = document.getElementById('lowCreditsBar'); if (!bar) return;
+  if (credits !== null && credits <= 10 && credits >= 0) {
+    bar.style.display = 'block'; bar.classList.add('urgent');
+    bar.innerHTML = '🔴 Only ' + credits + ' credit' + (credits === 1 ? '' : 's') + ' remaining — <a onclick="handleAddCredits()">add credits now</a> or searches will stop.';
+  } else if (credits !== null && credits <= 100) {
+    bar.style.display = 'block'; bar.classList.remove('urgent');
+    bar.innerHTML = '⚠️ Running low — ' + credits + ' credits left. <a onclick="handleAddCredits()">Add more now</a>.';
+  } else { bar.style.display = 'none'; bar.innerHTML = ''; }
 }
 
-function renderPast(){
-  var section=document.getElementById('pastSection'),list=document.getElementById('pastList');
-  if(!pastSearches.length){section.style.display='none';return;}
-  section.style.display='block';
-  list.innerHTML=pastSearches.slice(0,8).map(function(s,i){
-    return '<div class="past-item" onclick="loadPast('+i+')"><div class="past-icon"><i class="fas fa-search"></i></div><div class="past-query">'+esc(s.query)+'</div><div class="past-meta"><span class="past-count">'+((s.leads||[]).length)+' leads</span><span>'+timeAgo(s.created_at)+'</span></div></div>';
+function fetchCredits() {
+  fetch(CREDITS_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({token:userToken}) })
+    .then(function(r) { return r.json(); })
+    .then(function(d) { currentCredits = Math.max(0, d.credits || 0); document.getElementById('creditsCount').textContent = currentCredits; updateLowCreditsWarning(currentCredits); })
+    .catch(function() {});
+}
+
+function deductCredits(n) {
+  if (currentCredits === null) return;
+  currentCredits = Math.max(0, currentCredits - n);
+  document.getElementById('creditsCount').textContent = Math.round(currentCredits * 10) / 10;
+  updateLowCreditsWarning(currentCredits);
+}
+
+function val(v) { return (v === null || v === undefined) ? '' : String(v); }
+
+function mapApifyLead(item) {
+  var firstName = val(item.first_name), lastName = val(item.last_name);
+  var fullName = val(item.full_name) || (firstName + ' ' + lastName).trim() || 'Unknown';
+  var locationParts = [item.city, item.state, item.country].filter(function(x) { return x && String(x).trim(); });
+  return { full_name:fullName, first_name:firstName, last_name:lastName, job_title:val(item.job_title), headline:val(item.headline), seniority_level:val(item.seniority_level), functional_level:val(item.functional_level), email:val(item.email), mobile_number:val(item.mobile_number), personal_email:val(item.personal_email), linkedin:val(item.linkedin), city:val(item.city), state:val(item.state), country:val(item.country), location:locationParts.join(', '), company_name:val(item.company_name), company_domain:val(item.company_domain), company_website:val(item.company_website), company_linkedin:val(item.company_linkedin), company_size:val(item.company_size), industry:val(item.industry), company_description:val(item.company_description), company_founded_year:val(item.company_founded_year), company_phone:val(item.company_phone), company_street_address:val(item.company_street_address), company_full_address:val(item.company_full_address), company_city:val(item.company_city), company_state:val(item.company_state), company_country:val(item.company_country), company_postal_code:val(item.company_postal_code), keywords:val(item.keywords), company_technologies:val(item.company_technologies) };
+}
+
+function loadPastSearches() {
+  sb.from('linkedin_lead_searches').select('id,query,leads,created_at').eq('user_token', userToken).order('created_at', {ascending:false}).limit(10)
+    .then(function(res) { pastSearches = res.data || []; renderPast(); }).catch(function() { pastSearches = []; });
+}
+function saveSearch(query, leads) {
+  return sb.from('linkedin_lead_searches').insert({ user_token:userToken, query:query, leads:leads, created_at:new Date().toISOString() })
+    .then(function() { pastSearches.unshift({ query:query, leads:leads, created_at:new Date().toISOString() }); renderPast(); }).catch(function() {});
+}
+
+function renderPast() {
+  var section = document.getElementById('pastSection'), list = document.getElementById('pastList');
+  if (!pastSearches.length) { section.style.display = 'none'; return; }
+  section.style.display = 'block';
+  list.innerHTML = pastSearches.slice(0, 8).map(function(s, i) {
+    return '<div class="past-item" onclick="loadPast(' + i + ')"><div class="past-icon"><i class="fas fa-search"></i></div><div class="past-query">' + esc(s.query) + '</div><div class="past-meta"><span class="past-count">' + ((s.leads || []).length) + ' leads</span><span>' + timeAgo(s.created_at) + '</span></div></div>';
   }).join('');
 }
-function loadPast(i){
-  var s=pastSearches[i];if(!s)return;
-  document.getElementById('searchInput').value=s.query;
-  currentQuery=s.query;currentLeads=s.leads||[];verificationState={};
+function loadPast(i) {
+  var s = pastSearches[i]; if (!s) return;
+  document.getElementById('searchInput').value = s.query;
+  currentQuery = s.query; currentLeads = s.leads || []; verificationState = {};
   showStoredResults(currentLeads);
 }
 
-function updateCostHint(){
-  var max=Math.min(Math.max(parseInt(document.getElementById('maxProfiles').value)||10,1),100);
-  document.getElementById('costHint').innerHTML='<b>'+(max)+' credits</b> &middot; 1 credit per profile';
+function updateCostHint() {
+  var max = Math.min(Math.max(parseInt(document.getElementById('maxProfiles').value) || 10, 1), 100);
+  document.getElementById('costHint').innerHTML = '<b>' + max + ' credits</b> &middot; 1 credit per profile';
 }
-function fillHint(t){document.getElementById('searchInput').value=t;document.getElementById('searchInput').focus();}
-function resetSearch(){
+function fillHint(t) { document.getElementById('searchInput').value = t; document.getElementById('searchInput').focus(); }
+function resetSearch() {
   document.getElementById('resultsSection').classList.add('hidden');
-  document.getElementById('emptySection').style.display='block';
-  document.getElementById('searchInput').value='';
-  currentLeads=[];verificationState={};
+  document.getElementById('emptySection').style.display = 'block';
+  document.getElementById('searchInput').value = '';
+  currentLeads = []; verificationState = {};
   document.getElementById('creditWallInline').classList.remove('show');
   renderPast();
 }
 
-async function startSearch(){
-  var query=document.getElementById('searchInput').value.trim();
-  if(!query) return;
-  currentQuery=query;verificationState={};
-
-  var maxProfiles=Math.min(Math.max(parseInt(document.getElementById('maxProfiles').value)||10,1),100);
-  var cost=maxProfiles*1;
-
-  if(currentCredits!==null&&currentCredits<cost){
-    showAlert('Not enough credits — this search needs '+cost+' credits.','error');
-    var wall=document.getElementById('creditWallInline');
-    if(wall){wall.classList.add('show');}else{setTimeout(showInsufficientCreditsModal,1800);}
+async function startSearch() {
+  var query = document.getElementById('searchInput').value.trim();
+  if (!query) return;
+  currentQuery = query; verificationState = {};
+  var maxProfiles = Math.min(Math.max(parseInt(document.getElementById('maxProfiles').value) || 10, 1), 100);
+  var cost = maxProfiles * 1;
+  if (currentCredits !== null && currentCredits < cost) {
+    showAlert('Not enough credits — this search needs ' + cost + ' credits.', 'error');
+    var wall = document.getElementById('creditWallInline');
+    if (wall) { wall.classList.add('show'); } else { setTimeout(showInsufficientCreditsModal, 1800); }
     return;
   }
-
-  var searchBtn=document.getElementById('searchBtn');
-  searchBtn.disabled=true;
-  searchBtn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Searching...';
+  var searchBtn = document.getElementById('searchBtn');
+  searchBtn.disabled = true; searchBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Searching...';
   document.getElementById('creditWallInline').classList.remove('show');
-  document.getElementById('loadingState').style.display='block';
-  document.getElementById('emptySection').style.display='none';
+  document.getElementById('loadingState').style.display = 'block';
+  document.getElementById('emptySection').style.display = 'none';
   document.getElementById('resultsSection').classList.add('hidden');
-  document.getElementById('leadsList').innerHTML='';
-  document.getElementById('loadingStep').textContent='Searching the database...';
-  var sp=document.getElementById('samplePreview');if(sp) sp.style.display='none';
-
-  try{if(typeof posthog!=='undefined') posthog.capture('leads_search_started',{query:query,max_profiles:maxProfiles});}catch(e){}
-
-  try{
-    var response=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'application/json','X-API-Secret':'lf_sk_8x9k2mNpQr7'},body:JSON.stringify({type:'leads_finder_ai',input_data:query,fetch_count:maxProfiles,token:userToken})});
-    if(!response.ok) throw new Error('Request failed: '+response.status);
-    var data=await response.json();
-    var rawLeads=Array.isArray(data)?data:(data.items||data.results||[]);
-
-    if(!rawLeads.length){
-      document.getElementById('loadingState').style.display='none';
-      document.getElementById('emptySection').style.display='block';
-      showAlert('No leads found — try broader filters or different keywords.','error');
-      searchBtn.disabled=false;searchBtn.innerHTML='<i class="fas fa-search"></i> Find Leads';
+  document.getElementById('leadsList').innerHTML = '';
+  document.getElementById('loadingStep').textContent = 'Searching the database...';
+  var sp = document.getElementById('samplePreview'); if (sp) sp.style.display = 'none';
+  try { if (typeof posthog !== 'undefined') posthog.capture('leads_search_started', { query:query, max_profiles:maxProfiles }); } catch(e) {}
+  try {
+    var response = await fetch(API_URL, { method:'POST', headers:{'Content-Type':'application/json','X-API-Secret':'lf_sk_8x9k2mNpQr7'}, body:JSON.stringify({ type:'leads_finder_ai', input_data:query, fetch_count:maxProfiles, token:userToken }) });
+    if (!response.ok) throw new Error('Request failed: ' + response.status);
+    var data = await response.json();
+    var rawLeads = Array.isArray(data) ? data : (data.items || data.results || []);
+    if (!rawLeads.length) {
+      document.getElementById('loadingState').style.display = 'none';
+      document.getElementById('emptySection').style.display = 'block';
+      showAlert('No leads found — try broader filters or different keywords.', 'error');
+      searchBtn.disabled = false; searchBtn.innerHTML = '<i class="fas fa-search"></i> Find Leads';
       return;
     }
-
-    currentLeads=rawLeads.slice(0,maxProfiles).map(mapApifyLead);
-    deductCredits(currentLeads.length*1);
-
-    document.getElementById('loadingState').style.display='none';
+    currentLeads = rawLeads.slice(0, maxProfiles).map(mapApifyLead);
+    deductCredits(currentLeads.length * 1);
+    document.getElementById('loadingState').style.display = 'none';
     document.getElementById('resultsSection').classList.remove('hidden');
-    document.getElementById('emptySection').style.display='none';
-    document.getElementById('resultsCount').textContent=currentLeads.length;
-    document.getElementById('leadsList').innerHTML=currentLeads.map(renderLeadCard).join('');
-    document.getElementById('verifyLegend').style.display='none';
-    document.getElementById('verifyProgressWrap').style.display='none';
-    var sp=document.getElementById('samplePreview');if(sp) sp.style.display='none';
-
-    try{if(typeof posthog!=='undefined') posthog.capture('leads_search_completed',{query:query,results:currentLeads.length});}catch(e){}
-    await saveSearch(query,currentLeads);
-
-  }catch(err){
-    document.getElementById('loadingState').style.display='none';
-    document.getElementById('emptySection').style.display='block';
-    showAlert('Something went wrong — please try again.','error');
+    document.getElementById('emptySection').style.display = 'none';
+    document.getElementById('resultsCount').textContent = currentLeads.length;
+    document.getElementById('leadsList').innerHTML = currentLeads.map(renderLeadCard).join('');
+    document.getElementById('verifyLegend').style.display = 'none';
+    document.getElementById('verifyProgressWrap').style.display = 'none';
+    try { if (typeof posthog !== 'undefined') posthog.capture('leads_search_completed', { query:query, results:currentLeads.length }); } catch(e) {}
+    await saveSearch(query, currentLeads);
+  } catch(err) {
+    document.getElementById('loadingState').style.display = 'none';
+    document.getElementById('emptySection').style.display = 'block';
+    showAlert('Something went wrong — please try again.', 'error');
     console.error(err);
   }
-
-  searchBtn.disabled=false;searchBtn.innerHTML='<i class="fas fa-search"></i> Find Leads';
+  searchBtn.disabled = false; searchBtn.innerHTML = '<i class="fas fa-search"></i> Find Leads';
 }
 
-function parseVerificationResult(item){
-  if(!item) return 'unknown';
-  var r=String(item.email_result||'').toLowerCase().trim();
-  if(r==='ok') return 'valid';
-  if(r==='catch_all') return 'unknown';
+function parseVerificationResult(item) {
+  if (!item) return 'unknown';
+  var r = String(item.email_result || '').toLowerCase().trim();
+  if (r === 'ok') return 'valid';
+  if (r === 'catch_all') return 'unknown';
   return 'invalid';
 }
 
-async function verifyAllEmails(){
-  if(isVerifying) return;
-  var targets=[];
-  for(var i=0;i<currentLeads.length;i++){if(currentLeads[i].email&&(!verificationState[i]||verificationState[i].status==='unverified')) targets.push(i);}
-  if(!targets.length){showAlert('All emails have already been verified.','warning');return;}
-  isVerifying=true;
-  var btn=document.getElementById('verifyAllBtn');
-  btn.disabled=true;btn.classList.add('verifying');btn.innerHTML='<i class="fas fa-spinner" style="font-size:.65rem;"></i> Verifying...';
-  document.getElementById('verifyLegend').style.display='flex';
-  var progressWrap=document.getElementById('verifyProgressWrap');progressWrap.style.display='block';
-  var progressFill=document.getElementById('verifyProgressFill');
-  var progressLabel=document.getElementById('verifyProgressLabel');
-  var progressCount=document.getElementById('verifyProgressCount');
-  var done=0,total=targets.length;
-  function updateProgress(){var pct=total>0?Math.round((done/total)*100):0;progressFill.style.width=pct+'%';progressCount.textContent=done+' / '+total;}
+async function verifyAllEmails() {
+  if (isVerifying) return;
+  var targets = [];
+  for (var i = 0; i < currentLeads.length; i++) { if (currentLeads[i].email && (!verificationState[i] || verificationState[i].status === 'unverified')) targets.push(i); }
+  if (!targets.length) { showAlert('All emails have already been verified.', 'warning'); return; }
+  isVerifying = true;
+  var btn = document.getElementById('verifyAllBtn');
+  btn.disabled = true; btn.classList.add('verifying'); btn.innerHTML = '<i class="fas fa-spinner" style="font-size:.65rem;"></i> Verifying...';
+  document.getElementById('verifyLegend').style.display = 'flex';
+  var progressWrap = document.getElementById('verifyProgressWrap'); progressWrap.style.display = 'block';
+  var progressFill = document.getElementById('verifyProgressFill');
+  var progressLabel = document.getElementById('verifyProgressLabel');
+  var progressCount = document.getElementById('verifyProgressCount');
+  var done = 0, total = targets.length;
+  function updateProgress() { var pct = total > 0 ? Math.round((done / total) * 100) : 0; progressFill.style.width = pct + '%'; progressCount.textContent = done + ' / ' + total; }
   updateProgress();
-  for(var t=0;t<targets.length;t++){
-    var idx=targets[t],lead=currentLeads[idx];
-    progressLabel.textContent='Verifying '+(lead.email||'—')+'…';
-    var card=document.getElementById('lead-card-'+idx);if(card) card.classList.add('verifying-card');
-    var status='unknown';
-    try{
-      var resp=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'application/json','X-API-Secret':'lf_sk_8x9k2mNpQr7'},body:JSON.stringify({type:'email_leads_verification',email:lead.email,token:userToken})});
-      if(resp.ok){var result=await resp.json();var item=Array.isArray(result)?result[0]:result;status=parseVerificationResult(item);}
-    }catch(e){console.error('Verification error for',lead.email,e);status='unknown';}
-    verificationState[idx]={status:status};
-    updateEmailDisplay(idx,status);
-    if(card) card.classList.remove('verifying-card');
-    done++;updateProgress();
+  for (var t = 0; t < targets.length; t++) {
+    var idx = targets[t], lead = currentLeads[idx];
+    progressLabel.textContent = 'Verifying ' + (lead.email || '—') + '…';
+    var card = document.getElementById('lead-card-' + idx); if (card) card.classList.add('verifying-card');
+    var status = 'unknown';
+    try {
+      var resp = await fetch(API_URL, { method:'POST', headers:{'Content-Type':'application/json','X-API-Secret':'lf_sk_8x9k2mNpQr7'}, body:JSON.stringify({ type:'email_leads_verification', email:lead.email, token:userToken }) });
+      if (resp.ok) { var result = await resp.json(); var item = Array.isArray(result) ? result[0] : result; status = parseVerificationResult(item); }
+    } catch(e) { status = 'unknown'; }
+    verificationState[idx] = { status:status };
+    updateEmailDisplay(idx, status);
+    if (card) card.classList.remove('verifying-card');
+    done++; updateProgress();
   }
-  progressLabel.textContent='Verification complete';
-  btn.disabled=false;btn.classList.remove('verifying');btn.innerHTML='<i class="fas fa-shield-alt" style="font-size:.65rem;"></i> Re-verify';
-  isVerifying=false;
-  showAlert('Email verification complete — '+done+' emails checked.','success');
+  progressLabel.textContent = 'Verification complete';
+  btn.disabled = false; btn.classList.remove('verifying'); btn.innerHTML = '<i class="fas fa-shield-alt" style="font-size:.65rem;"></i> Re-verify';
+  isVerifying = false;
+  showAlert('Email verification complete — ' + done + ' emails checked.', 'success');
 }
 
-function updateEmailDisplay(idx,status){
-  var dot=document.getElementById('email-dot-'+idx),text=document.getElementById('email-text-'+idx);
-  if(!dot||!text) return;
-  dot.className='email-status-dot '+status;text.className='lead-email '+status;
+function updateEmailDisplay(idx, status) {
+  var dot = document.getElementById('email-dot-' + idx), text = document.getElementById('email-text-' + idx);
+  if (!dot || !text) return;
+  dot.className = 'email-status-dot ' + status; text.className = 'lead-email ' + status;
 }
 
-function renderLeadCard(p,idx){
-  var sub=[p.job_title,p.company_name].filter(function(x){return x&&x.trim();}).join(' · ');
-  var liHref=p.linkedin?' href="'+p.linkedin+'" target="_blank"':'';
-  var liStyle=p.linkedin?'':' style="opacity:.3;pointer-events:none;"';
-  var status=(verificationState[idx]&&verificationState[idx].status)||'unverified';
-  var emailHtml=p.email
-    ?'<div class="lead-email-row"><span class="email-status-dot '+status+'" id="email-dot-'+idx+'"></span><span class="lead-email '+status+'" id="email-text-'+idx+'"><i class="fas fa-envelope" style="font-size:.6rem;margin-right:.2rem;"></i>'+esc(p.email)+'</span></div>'
-    :'<div class="lead-no-email">No email found</div>';
-  return '<div class="lead-card" id="lead-card-'+idx+'">'+
-    '<div class="lead-avatar">'+initials(p.full_name)+'</div>'+
-    '<div class="lead-info"><div class="lead-name">'+esc(p.full_name)+'</div>'+(sub?'<div class="lead-sub">'+esc(sub)+'</div>':'')+emailHtml+'</div>'+
-    '<a'+liHref+' class="lead-li"'+liStyle+'><i class="fab fa-linkedin-in"></i></a>'+
-  '</div>';
+function renderLeadCard(p, idx) {
+  var sub = [p.job_title, p.company_name].filter(function(x) { return x && x.trim(); }).join(' · ');
+  var liHref = p.linkedin ? ' href="' + p.linkedin + '" target="_blank"' : '';
+  var liStyle = p.linkedin ? '' : ' style="opacity:.3;pointer-events:none;"';
+  var status = (verificationState[idx] && verificationState[idx].status) || 'unverified';
+  var emailHtml = p.email
+    ? '<div class="lead-email-row"><span class="email-status-dot ' + status + '" id="email-dot-' + idx + '"></span><span class="lead-email ' + status + '" id="email-text-' + idx + '"><i class="fas fa-envelope" style="font-size:.6rem;margin-right:.2rem;"></i>' + esc(p.email) + '</span></div>'
+    : '<div class="lead-no-email">No email found</div>';
+  return '<div class="lead-card" id="lead-card-' + idx + '">' +
+    '<div class="lead-avatar">' + initials(p.full_name) + '</div>' +
+    '<div class="lead-info"><div class="lead-name">' + esc(p.full_name) + '</div>' + (sub ? '<div class="lead-sub">' + esc(sub) + '</div>' : '') + emailHtml + '</div>' +
+    '<a' + liHref + ' class="lead-li"' + liStyle + '><i class="fab fa-linkedin-in"></i></a>' +
+    '</div>';
 }
 
-function showStoredResults(leads){
-  verificationState={};
-  document.getElementById('emptySection').style.display='none';
+function showStoredResults(leads) {
+  verificationState = {};
+  document.getElementById('emptySection').style.display = 'none';
   document.getElementById('resultsSection').classList.remove('hidden');
-  document.getElementById('resultsCount').textContent=leads.length;
-  document.getElementById('leadsList').innerHTML=leads.map(renderLeadCard).join('');
-  document.getElementById('verifyLegend').style.display='none';
-  document.getElementById('verifyProgressWrap').style.display='none';
+  document.getElementById('resultsCount').textContent = leads.length;
+  document.getElementById('leadsList').innerHTML = leads.map(renderLeadCard).join('');
+  document.getElementById('verifyLegend').style.display = 'none';
+  document.getElementById('verifyProgressWrap').style.display = 'none';
   document.getElementById('creditWallInline').classList.remove('show');
-  var btn=document.getElementById('verifyAllBtn');
-  btn.disabled=false;btn.classList.remove('verifying');btn.innerHTML='<i class="fas fa-shield-alt" style="font-size:.65rem;"></i> Verify emails';
+  var btn = document.getElementById('verifyAllBtn');
+  btn.disabled = false; btn.classList.remove('verifying'); btn.innerHTML = '<i class="fas fa-shield-alt" style="font-size:.65rem;"></i> Verify emails';
 }
 
-function toggleExportMenu(e){
+function toggleExportMenu(e) {
   e.stopPropagation();
-  var menu=document.getElementById('exportMenu'),chevron=document.getElementById('exportChevron');
-  var isOpen=menu.classList.contains('open');
-  if(!isOpen) refreshExportCounts();
-  menu.classList.toggle('open',!isOpen);chevron.style.transform=isOpen?'':'rotate(180deg)';
+  var menu = document.getElementById('exportMenu'), chevron = document.getElementById('exportChevron');
+  var isOpen = menu.classList.contains('open');
+  if (!isOpen) refreshExportCounts();
+  menu.classList.toggle('open', !isOpen); chevron.style.transform = isOpen ? '' : 'rotate(180deg)';
 }
-function closeExportMenu(){
-  var menu=document.getElementById('exportMenu'),chevron=document.getElementById('exportChevron');
-  if(menu) menu.classList.remove('open');if(chevron) chevron.style.transform='';
+function closeExportMenu() {
+  var menu = document.getElementById('exportMenu'), chevron = document.getElementById('exportChevron');
+  if (menu) menu.classList.remove('open'); if (chevron) chevron.style.transform = '';
 }
-document.addEventListener('click',function(e){if(!e.target.closest('#exportWrap')) closeExportMenu();});
+document.addEventListener('click', function(e) { if (!e.target.closest('#exportWrap')) closeExportMenu(); });
 
-function refreshExportCounts(){
-  var total=currentLeads.length;
-  var validCount=currentLeads.filter(function(l,i){return l.email&&verificationState[i]&&verificationState[i].status==='valid';}).length;
-  document.getElementById('exportCountAll').textContent=total;
-  document.getElementById('exportCountValid').textContent=validCount;
-  var validBtn=document.querySelector('.export-option:nth-child(2)');
-  if(validBtn) validBtn.style.opacity=validCount===0?'.45':'1';
+function refreshExportCounts() {
+  var total = currentLeads.length;
+  var validCount = currentLeads.filter(function(l, i) { return l.email && verificationState[i] && verificationState[i].status === 'valid'; }).length;
+  document.getElementById('exportCountAll').textContent = total;
+  document.getElementById('exportCountValid').textContent = validCount;
 }
 
-function exportCSV(filter){
-  closeExportMenu();if(!currentLeads.length) return;filter=filter||'all';
-  var leadsToExport=currentLeads.filter(function(l,i){if(filter==='valid') return l.email&&verificationState[i]&&verificationState[i].status==='valid';return true;});
-  if(!leadsToExport.length){showAlert('No valid leads to export — run email verification first.','warning');return;}
-  var indexMap=[];
-  currentLeads.forEach(function(l,i){if(filter==='valid'){if(l.email&&verificationState[i]&&verificationState[i].status==='valid') indexMap.push(i);}else{indexMap.push(i);}});
-  var NL='\n';
-  var headers=['Full Name','First Name','Last Name','Job Title','Headline','Seniority Level','Functional Level','Email','Email Verification','Mobile Number','Personal Email','LinkedIn URL','City','State','Country','Company Name','Company Domain','Company Website','Company LinkedIn','Company Size','Industry','Company Description','Founded Year','Company Phone','Street Address','Full Address','Company City','Company State','Company Country','Postal Code','Keywords','Technologies'];
-  function q(v){return'"'+String(v||'').replace(/"/g,'""')+'"';}
-  var csv=headers.join(',')+NL;
-  leadsToExport.forEach(function(l,n){
-    var i=indexMap[n],vs=(verificationState[i]&&verificationState[i].status)||'unverified';
-    csv+=[q(l.full_name),q(l.first_name),q(l.last_name),q(l.job_title),q(l.headline),q(l.seniority_level),q(l.functional_level),q(l.email),q(vs),q(l.mobile_number),q(l.personal_email),q(l.linkedin),q(l.city),q(l.state),q(l.country),q(l.company_name),q(l.company_domain),q(l.company_website),q(l.company_linkedin),q(l.company_size),q(l.industry),q(l.company_description),q(l.company_founded_year),q(l.company_phone),q(l.company_street_address),q(l.company_full_address),q(l.company_city),q(l.company_state),q(l.company_country),q(l.company_postal_code),q(l.keywords),q(l.company_technologies)].join(',')+NL;
+function exportCSV(filter) {
+  closeExportMenu(); if (!currentLeads.length) return; filter = filter || 'all';
+  var leadsToExport = currentLeads.filter(function(l, i) { if (filter === 'valid') return l.email && verificationState[i] && verificationState[i].status === 'valid'; return true; });
+  if (!leadsToExport.length) { showAlert('No valid leads to export — run email verification first.', 'warning'); return; }
+  var indexMap = [];
+  currentLeads.forEach(function(l, i) { if (filter === 'valid') { if (l.email && verificationState[i] && verificationState[i].status === 'valid') indexMap.push(i); } else { indexMap.push(i); } });
+  var NL = '\n';
+  var headers = ['Full Name','First Name','Last Name','Job Title','Headline','Seniority Level','Functional Level','Email','Email Verification','Mobile Number','Personal Email','LinkedIn URL','City','State','Country','Company Name','Company Domain','Company Website','Company LinkedIn','Company Size','Industry','Company Description','Founded Year','Company Phone','Street Address','Full Address','Company City','Company State','Company Country','Postal Code','Keywords','Technologies'];
+  function q(v) { return '"' + String(v || '').replace(/"/g, '""') + '"'; }
+  var csv = headers.join(',') + NL;
+  leadsToExport.forEach(function(l, n) {
+    var i = indexMap[n], vs = (verificationState[i] && verificationState[i].status) || 'unverified';
+    csv += [q(l.full_name),q(l.first_name),q(l.last_name),q(l.job_title),q(l.headline),q(l.seniority_level),q(l.functional_level),q(l.email),q(vs),q(l.mobile_number),q(l.personal_email),q(l.linkedin),q(l.city),q(l.state),q(l.country),q(l.company_name),q(l.company_domain),q(l.company_website),q(l.company_linkedin),q(l.company_size),q(l.industry),q(l.company_description),q(l.company_founded_year),q(l.company_phone),q(l.company_street_address),q(l.company_full_address),q(l.company_city),q(l.company_state),q(l.company_country),q(l.company_postal_code),q(l.keywords),q(l.company_technologies)].join(',') + NL;
   });
-  var suffix=filter==='valid'?'_valid_only':'';
-  var a=document.createElement('a');
-  a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'}));
-  a.download='leads_'+currentQuery.replace(/[^a-z0-9]/gi,'_').slice(0,30)+suffix+'_'+new Date().toISOString().slice(0,10)+'.csv';
+  var suffix = filter === 'valid' ? '_valid_only' : '';
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], { type:'text/csv;charset=utf-8;' }));
+  a.download = 'leads_' + currentQuery.replace(/[^a-z0-9]/gi, '_').slice(0, 30) + suffix + '_' + new Date().toISOString().slice(0, 10) + '.csv';
   a.click();
 }
 
-function initials(name){if(!name) return '?';var p=name.trim().split(' ');return p.length>=2?(p[0][0]+p[p.length-1][0]).toUpperCase():(p[0][0]||'?').toUpperCase();}
-function timeAgo(d){var diff=Date.now()-new Date(d).getTime();var m=Math.floor(diff/60000),h=Math.floor(m/60),day=Math.floor(h/24);if(day>0) return day+'d ago';if(h>0) return h+'h ago';if(m>0) return m+'m ago';return 'just now';}
-function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
-var alertT=null;
-function showAlert(msg,type){var a=document.getElementById('alert');a.textContent=msg;a.className='alert alert-'+(type||'success');a.style.display='block';if(alertT) clearTimeout(alertT);alertT=setTimeout(function(){a.style.display='none';},5000);}
+function initials(name) { if (!name) return '?'; var p = name.trim().split(' '); return p.length >= 2 ? (p[0][0] + p[p.length-1][0]).toUpperCase() : (p[0][0] || '?').toUpperCase(); }
+function timeAgo(d) { var diff = Date.now() - new Date(d).getTime(); var m = Math.floor(diff / 60000), h = Math.floor(m / 60), day = Math.floor(h / 24); if (day > 0) return day + 'd ago'; if (h > 0) return h + 'h ago'; if (m > 0) return m + 'm ago'; return 'just now'; }
+function esc(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+var alertT = null;
+function showAlert(msg, type) { var a = document.getElementById('alert'); a.textContent = msg; a.className = 'alert alert-' + (type || 'success'); a.style.display = 'block'; if (alertT) clearTimeout(alertT); alertT = setTimeout(function() { a.style.display = 'none'; }, 5000); }
 
-var gclid=new URLSearchParams(window.location.search).get('gclid');
-function addGclid(url){if(!gclid) return url;return url+(url.includes('?')?'&':'?')+'gclid='+gclid;}
-function logout(){localStorage.removeItem('linkFinderToken');window.location.href='https://linkfinderai.com/';}
-function nav(page){var m={enrichment:'app',api:'api-access',account:'account'};window.location.href=addGclid('https://linkfinderai.com/'+m[page]+'?token='+userToken);}
-
-function updateLowCreditsWarning(credits){
-  var bar=document.getElementById('lowCreditsBar');if(!bar) return;
-  if(credits!==null&&credits<=10&&credits>=0){
-    bar.style.display='block';bar.classList.add('urgent');
-    bar.innerHTML='🔴 Only '+credits+' credit'+(credits===1?'':'s')+' remaining — <a onclick="handleAddCredits()">add credits now</a> or searches will stop.';
-  }else if(credits!==null&&credits<=100){
-    bar.style.display='block';bar.classList.remove('urgent');
-    bar.innerHTML='⚠️ Running low — '+credits+' credits left. <a onclick="handleAddCredits()">Add more now</a>.';
-  }else{bar.style.display='none';bar.innerHTML='';}
-}
-
-function fetchCredits(){
-  fetch(CREDITS_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:userToken})})
-    .then(function(r){return r.json();})
-    .then(function(d){currentCredits=Math.max(0,d.credits||0);document.getElementById('creditsCount').textContent=currentCredits;updateLowCreditsWarning(currentCredits);})
-    .catch(function(){});
-}
-
-function deductCredits(n){
-  if(currentCredits===null) return;
-  currentCredits=Math.max(0,currentCredits-n);
-  document.getElementById('creditsCount').textContent=Math.round(currentCredits*10)/10;
-  updateLowCreditsWarning(currentCredits);
-}
-
-function setBilling(type){isAnnualBilling=(type==='annual');document.getElementById('monthlyBtn').classList.toggle('active',!isAnnualBilling);document.getElementById('annualBtn').classList.toggle('active',isAnnualBilling);renderPlansGrid();}
-function showPricingModal(){isAnnualBilling=true;document.getElementById('monthlyBtn').classList.remove('active');document.getElementById('annualBtn').classList.add('active');document.getElementById('pricingModal').classList.add('show');document.body.style.overflow='hidden';renderPlansGrid();}
-function closePricingModal(){document.getElementById('pricingModal').classList.remove('show');document.body.style.overflow='';}
-
-async function handleAddCredits(){
-  try{if(typeof posthog!=='undefined') posthog.capture('upgrade_clicked',{source:'buy_credits_btn',credits_remaining:currentCredits,page:'linkedin_leads'});}catch(e){}
-  var btn=document.getElementById('buyCreditsBtn');
-  var orig=btn.innerHTML;btn.innerHTML='...';btn.disabled=true;
-  try{
-    await fetch(SUB_CHECK_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:userToken})});
-    showPricingModal();
-  }catch(e){showPricingModal();}
-  finally{btn.innerHTML=orig;btn.disabled=false;}
-}
-
-document.addEventListener('DOMContentLoaded',function(){
-  var p=new URLSearchParams(window.location.search);
-  userToken=p.get('token')||localStorage.getItem('linkFinderToken');
-  if(!userToken){window.location.href='https://linkfinderai.com/';return;}
-  localStorage.setItem('linkFinderToken',userToken);
-  sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
-  fetchCredits();loadPastSearches();
-  var action=p.get('action');
-  if(action==='buy_credits'||action==='upgrade'){setTimeout(function(){handleAddCredits();},500);}
-  document.addEventListener('click',function(e){
-    if(e.target===document.getElementById('pricingModal')) closePricingModal();
-    if(e.target===document.getElementById('insufficientCreditsModal')) closeInsufficientCreditsModal();
+document.addEventListener('DOMContentLoaded', function() {
+  var p = new URLSearchParams(window.location.search);
+  userToken = p.get('token') || localStorage.getItem('linkFinderToken');
+  if (!userToken) { window.location.href = 'https://linkfinderai.com/'; return; }
+  localStorage.setItem('linkFinderToken', userToken);
+  sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  fetchCredits(); loadPastSearches();
+  var action = p.get('action');
+  if (action === 'buy_credits' || action === 'upgrade') { setTimeout(function() { handleAddCredits(); }, 500); }
+  document.addEventListener('click', function(e) {
+    if (e.target === document.getElementById('pricingModal'))            closePricingModal();
+    if (e.target === document.getElementById('insufficientCreditsModal')) closeInsufficientCreditsModal();
+    if (e.target === document.getElementById('buyCreditsModal'))          closeBuyCreditsModal();
   });
-  document.addEventListener('keydown',function(e){if(e.key==='Escape'){closePricingModal();closeInsufficientCreditsModal();}});
+  document.addEventListener('keydown', function(e) { if (e.key === 'Escape') { closePricingModal(); closeInsufficientCreditsModal(); closeBuyCreditsModal(); } });
 });
 </script>
 </body>
