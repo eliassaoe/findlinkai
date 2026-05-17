@@ -654,10 +654,24 @@ async function managePlanDirectly() {
       body: JSON.stringify({ token: userToken })
     });
     const d = await r.json();
-    const value = d.email || d.url || '';
-    if (!value)            showPricingModal();
-    else if (value.includes('@')) window.open('https://customer.paddle.com/subscriptions?email=' + encodeURIComponent(value), '_blank');
-    else window.location.href = value;
+    if (d.subscription_id) {
+      // Paddle subscriber — open subscription management overlay
+      Paddle.Checkout.open({
+        subscriptionId: d.subscription_id,
+        settings: { theme: 'light', locale: 'en', allowLogout: false },
+        eventCallback: function(event) {
+          if (event.name === 'checkout.completed' || event.name === 'checkout.closed') {
+            fetchCredits();
+          }
+        }
+      });
+    } else if (d.url) {
+      // Gumroad subscriber — redirect to their portal URL
+      window.location.href = d.url;
+    } else {
+      // No subscription — show pricing
+      showPricingModal();
+    }
   } catch(e) {
     alert('Error loading billing portal. Please try again.');
   }
