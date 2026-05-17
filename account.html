@@ -654,10 +654,11 @@ async function managePlanDirectly() {
       body: JSON.stringify({ token: userToken })
     });
     const d = await r.json();
-    if (d.subscription_id) {
+    const val = d.subscription_id || d.url || '';
+    if (val.startsWith('sub_')) {
       // Paddle subscriber — open subscription management overlay
       Paddle.Checkout.open({
-        subscriptionId: d.subscription_id,
+        subscriptionId: val,
         settings: { theme: 'light', locale: 'en', allowLogout: false },
         eventCallback: function(event) {
           if (event.name === 'checkout.completed' || event.name === 'checkout.closed') {
@@ -665,9 +666,9 @@ async function managePlanDirectly() {
           }
         }
       });
-    } else if (d.url) {
+    } else if (val.startsWith('http')) {
       // Gumroad subscriber — redirect to their portal URL
-      window.location.href = d.url;
+      window.location.href = val;
     } else {
       // No subscription — show pricing
       showPricingModal();
