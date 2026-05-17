@@ -367,7 +367,13 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
         <h2>Thank you for your feedback</h2>
         <p>We appreciate you taking the time</p>
       </div>
-      <button class="btn" onclick="proceedToCancellation()" style="width:100%;margin-top:1rem;">Continue to Billing Portal</button>
+      <div style="background:var(--gray-50);border:1px solid var(--gray-200);border-radius:10px;padding:1.25rem;margin-top:1rem;text-align:center;">
+        <p style="font-size:.875rem;color:var(--gray-600);margin-bottom:1rem;">Your subscription will remain active until the end of your current billing period.</p>
+        <button id="confirmCancelBtn" class="btn btn-danger" onclick="confirmCancel()" style="width:100%;display:flex;justify-content:center;">
+          <i class="fas fa-times-circle"></i> Cancel my subscription
+        </button>
+        <p style="font-size:.75rem;color:var(--gray-400);margin-top:.75rem;">Or <a href="#" onclick="closeCancellationModal();isExistingSubscriber=true;showPricingModal();return false;" style="color:var(--primary);">downgrade to a cheaper plan</a> instead</p>
+      </div>
     </div>
   </div>
 </div>
@@ -794,6 +800,38 @@ function declineAllSolutions() {
 }
 
 function proceedToCancellation() { managePlanDirectly(); }
+
+async function confirmCancel() {
+  const btn = document.getElementById('confirmCancelBtn');
+  if (!currentSubscriptionId) {
+    alert('Could not find your subscription. Please contact support@linkfinderai.com');
+    return;
+  }
+  if (!confirm('Are you sure you want to cancel? Your access continues until the end of your billing period.')) return;
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Cancelling...';
+  btn.disabled = true;
+  try {
+    const r = await fetch('https://cancel-subscription.hamoureliasse.workers.dev/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ subscription_id: currentSubscriptionId })
+    });
+    const d = await r.json();
+    if (d.ok) {
+      closeCancellationModal();
+      alert('Your subscription has been cancelled. You will keep access until the end of your current billing period.');
+      try { posthog.capture('subscription_cancelled', { subscription_id: currentSubscriptionId }); } catch(e) {}
+    } else {
+      btn.innerHTML = '<i class="fas fa-times-circle"></i> Cancel my subscription';
+      btn.disabled = false;
+      alert('Something went wrong. Please try again or contact support@linkfinderai.com');
+    }
+  } catch(e) {
+    btn.innerHTML = '<i class="fas fa-times-circle"></i> Cancel my subscription';
+    btn.disabled = false;
+    alert('Network error. Please try again.');
+  }
+}
 
 document.addEventListener('DOMContentLoaded', () => {
   checkAuth();
