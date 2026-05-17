@@ -626,9 +626,9 @@ async function handleAddCredits() {
   finally { btn.innerHTML = orig; btn.disabled = false; }
 }
 
-/* ── Manage Plan button ── */
+/* ── Manage Plan button — always shows save/cancellation flow ── */
 async function managePlan() {
-  // First check if subscriber so we can route correctly
+  // Silently pre-fetch subscriber data so proceedToCancellation routes to correct portal
   try {
     const r = await fetch(UPGRADE_INTENT_URL, {
       method: 'POST',
@@ -640,12 +640,9 @@ async function managePlan() {
       isExistingSubscriber  = true;
       currentPlanNumber     = d.plan || null;
       currentSubscriptionId = d.subscription_id || null;
-      // Subscriber: show change plan modal instead of cancellation flow
-      showPricingModal();
-      return;
     }
   } catch(e) {}
-  // Not a subscriber or error: show cancellation/upgrade flow
+  // Always show the save/cancellation flow
   showCancellationFlow();
 }
 
