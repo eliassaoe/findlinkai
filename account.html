@@ -343,6 +343,14 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
           <div class="reason-icon">⏸️</div>
           <div class="reason-text"><strong>I'm not using it enough</strong><span>I don't have time right now</span></div>
         </div>
+        <div class="reason-option" onclick="selectReason('tooExpensive',event)">
+          <div class="reason-icon">💸</div>
+          <div class="reason-text"><strong>It's too expensive</strong><span>Doesn't fit my budget right now</span></div>
+        </div>
+        <div class="reason-option" onclick="selectReason('competitor',event)">
+          <div class="reason-icon">🔄</div>
+          <div class="reason-text"><strong>Found a cheaper alternative</strong><span>Another tool is more affordable</span></div>
+        </div>
         <div class="reason-option" onclick="selectReason('missingFeature',event)">
           <div class="reason-icon">🔧</div>
           <div class="reason-text"><strong>Missing a feature I need</strong><span>The tool doesn't do what I expected</span></div>
@@ -350,10 +358,6 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
         <div class="reason-option" onclick="selectReason('technical',event)">
           <div class="reason-icon">🐛</div>
           <div class="reason-text"><strong>Technical issues</strong><span>I'm experiencing bugs or problems</span></div>
-        </div>
-        <div class="reason-option" onclick="selectReason('competitor',event)">
-          <div class="reason-icon">🔄</div>
-          <div class="reason-text"><strong>Switching to another tool</strong><span>I found a better alternative</span></div>
         </div>
         <div class="reason-option" onclick="selectReason('other',event)">
           <div class="reason-icon">💬</div>
@@ -723,43 +727,86 @@ function selectReason(reason, event) {
 function showSolutionForReason(reason) {
   const step2 = document.getElementById('step2');
   const solutionMap = {
+
     notUsing: `
-      <div class="flow-header"><h2>Let's Get You Back on Track 🎯</h2><p>We have resources to help you get maximum value</p></div>
+      <div class="flow-header"><h2>No worries — pause instead ⏸️</h2><p>Take a break without losing your account</p></div>
       <div class="solution-card">
-        <h3><i class="fas fa-video"></i> Free 1-on-1 Setup Session</h3>
-        <p>Book a 30-minute call with our team. We'll help you:</p>
-        <ul class="solution-features">
-          <li><i class="fas fa-check"></i> Set up your first workflow properly</li>
-          <li><i class="fas fa-check"></i> Integrate with your existing tools</li>
-          <li><i class="fas fa-check"></i> Create a custom plan for your use case</li>
-        </ul>
-        <a href="${CALENDLY_LINK}" target="_blank" class="btn btn-success" style="width:100%;"><i class="fas fa-calendar"></i> Book Free Setup Call</a>
+        <h3><i class="fas fa-pause-circle"></i> Freeze your subscription for 1 month</h3>
+        <p>We'll pause your billing for 30 days and resume automatically. Your credits and data stay safe — no charges until you're back.</p>
+        <button id="pauseBtn" onclick="retentionAction('pause')" class="btn btn-success" style="width:100%;margin-bottom:.75rem;"><i class="fas fa-pause"></i> Pause billing for 1 month — free</button>
+        <div id="pauseStatus" style="display:none;text-align:center;font-size:.85rem;color:var(--success);margin-top:.5rem;"></div>
       </div>
-      <div class="btn-group"><button class="btn" onclick="closeCancellationModal()">I'll Try These Solutions</button><button class="btn btn-danger" onclick="declineAllSolutions()">No, Continue to Cancel</button></div>`,
+      <div class="solution-card">
+        <h3><i class="fas fa-video"></i> Or book a free setup call</h3>
+        <p>30 minutes with our team — we'll set everything up for you.</p>
+        <a href="${CALENDLY_LINK}" target="_blank" class="btn" style="width:100%;"><i class="fas fa-calendar"></i> Book Free Setup Call</a>
+      </div>
+      <div class="btn-group"><button class="btn btn-danger" onclick="declineAllSolutions()">No, Continue to Cancel</button></div>`,
+
     missingFeature: `
       <div class="flow-header"><h2>Tell Us What You Need 🔧</h2><p>Your feedback shapes our roadmap</p></div>
       <div class="solution-card">
-        <h3><i class="fas fa-lightbulb"></i> Request Your Feature</h3>
+        <h3><i class="fas fa-lightbulb"></i> Request your feature</h3>
+        <p>We ship new features every week based on user requests. Tell us what's missing:</p>
         <textarea id="featureRequestText" class="feedback-textarea" placeholder="What feature would make LinkFinder AI perfect for you?"></textarea>
-        <button onclick="submitFeatureRequest()" class="btn btn-success" style="width:100%;"><i class="fas fa-paper-plane"></i> Submit Feature Request</button>
+        <button onclick="submitFeatureRequest()" class="btn btn-success" style="width:100%;"><i class="fas fa-paper-plane"></i> Submit — we'll notify you when it ships</button>
+      </div>
+      <div class="solution-card">
+        <h3><i class="fas fa-phone"></i> Talk to our product team</h3>
+        <p>We might already have a workaround or it could be on our roadmap.</p>
+        <a href="${CALENDLY_LINK}" target="_blank" class="btn" style="width:100%;"><i class="fas fa-calendar"></i> Book Product Call</a>
       </div>
       <div class="btn-group"><button class="btn btn-danger" onclick="declineAllSolutions()">No, Continue to Cancel</button></div>`,
+
     technical: `
       <div class="flow-header"><h2>Let's Fix This Right Now 🛠️</h2><p>We take technical issues seriously</p></div>
       <div class="solution-card">
-        <h3><i class="fas fa-headset"></i> Immediate Priority Support</h3>
+        <h3><i class="fas fa-headset"></i> Priority support — 2 hour response</h3>
+        <p>Describe your issue and our technical team will fix it fast:</p>
         <textarea id="technicalIssueText" class="feedback-textarea" placeholder="What's not working? Be as specific as possible..."></textarea>
         <button onclick="submitTechnicalIssue()" class="btn btn-success" style="width:100%;"><i class="fas fa-ambulance"></i> Get Immediate Help</button>
       </div>
-      <div class="btn-group"><button class="btn btn-danger" onclick="declineAllSolutions()">No, Continue to Cancel</button></div>`,
-    competitor: `
-      <div class="flow-header"><h2>Let's Compare Honestly ⚖️</h2><p>We're confident in our value</p></div>
       <div class="solution-card">
-        <h3><i class="fas fa-handshake"></i> Talk to Our Team</h3>
-        <p>Found a better deal elsewhere? Let's chat. We might be able to match or beat it.</p>
-        <a href="${CALENDLY_LINK}" target="_blank" class="btn btn-success" style="width:100%;"><i class="fas fa-phone"></i> Discuss Your Options</a>
+        <h3><i class="fas fa-video"></i> Live troubleshooting call</h3>
+        <p>We'll screenshare and fix it together.</p>
+        <a href="${CALENDLY_LINK}" target="_blank" class="btn" style="width:100%;"><i class="fas fa-calendar-check"></i> Book Emergency Call</a>
       </div>
       <div class="btn-group"><button class="btn btn-danger" onclick="declineAllSolutions()">No, Continue to Cancel</button></div>`,
+
+    competitor: `
+      <div class="flow-header"><h2>We'll beat their price 💰</h2><p>Seriously — let us prove it</p></div>
+      <div class="solution-card">
+        <h3><i class="fas fa-tag"></i> Get 30% off for 3 months</h3>
+        <p>Stay on LinkFinder AI at a price that beats most competitors. Applied to your next 3 billing cycles — no strings attached.</p>
+        <button id="discountBtn" onclick="retentionAction('discount')" class="btn btn-success" style="width:100%;margin-bottom:.75rem;"><i class="fas fa-percent"></i> Apply 30% discount now</button>
+        <div id="discountStatus" style="display:none;text-align:center;font-size:.85rem;color:var(--success);margin-top:.5rem;"></div>
+      </div>
+      <div class="solution-card">
+        <h3><i class="fas fa-chart-bar"></i> Compare us fairly</h3>
+        <ul class="solution-features">
+          <li><i class="fas fa-check"></i> More accurate data than most alternatives</li>
+          <li><i class="fas fa-check"></i> Native Zapier, n8n & Google Sheets integration</li>
+          <li><i class="fas fa-check"></i> Credits never expire</li>
+        </ul>
+        <a href="${CALENDLY_LINK}" target="_blank" class="btn" style="width:100%;"><i class="fas fa-phone"></i> Talk to our team</a>
+      </div>
+      <div class="btn-group"><button class="btn btn-danger" onclick="declineAllSolutions()">No, Continue to Cancel</button></div>`,
+
+    tooExpensive: `
+      <div class="flow-header"><h2>Let's make it affordable 💸</h2><p>Two options to lower your bill right now</p></div>
+      <div class="solution-card">
+        <h3><i class="fas fa-tag"></i> Get 30% off for 3 months</h3>
+        <p>Stay on your current plan at 30% off for the next 3 billing cycles.</p>
+        <button id="discountBtn" onclick="retentionAction('discount')" class="btn btn-success" style="width:100%;margin-bottom:.75rem;"><i class="fas fa-percent"></i> Apply 30% discount now</button>
+        <div id="discountStatus" style="display:none;text-align:center;font-size:.85rem;color:var(--success);margin-top:.5rem;"></div>
+      </div>
+      <div class="solution-card">
+        <h3><i class="fas fa-arrow-down"></i> Or downgrade to a cheaper plan</h3>
+        <p>Keep access at a lower monthly cost — you can always upgrade later.</p>
+        <button onclick="closeCancellationModal();isExistingSubscriber=true;showPricingModal();" class="btn" style="width:100%;"><i class="fas fa-layer-group"></i> See cheaper plans</button>
+      </div>
+      <div class="btn-group"><button class="btn btn-danger" onclick="declineAllSolutions()">No, Continue to Cancel</button></div>`,
+
     other: `
       <div class="flow-header"><h2>Help Us Understand 💬</h2><p>Your feedback is invaluable</p></div>
       <div class="solution-card">
@@ -801,6 +848,53 @@ function declineAllSolutions() {
 
 function proceedToCancellation() { managePlanDirectly(); }
 
+const CANCEL_WORKER = 'https://cancel-subscription.hamoureliasse.workers.dev/';
+
+async function retentionAction(action) {
+  const btnId   = action === 'pause' ? 'pauseBtn' : 'discountBtn';
+  const statusId = action === 'pause' ? 'pauseStatus' : 'discountStatus';
+  const btn    = document.getElementById(btnId);
+  const status = document.getElementById(statusId);
+
+  if (!currentSubscriptionId) {
+    alert('Could not find your subscription ID. Please contact support.');
+    return;
+  }
+
+  const labels = {
+    pause:    { loading: 'Pausing…', success: '✓ Billing paused for 1 month — you will be resumed automatically.' },
+    discount: { loading: 'Applying discount…', success: '✓ 30% discount applied to your next 3 billing cycles!' },
+  };
+
+  btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${labels[action].loading}`;
+  btn.disabled = true;
+
+  try {
+    const r = await fetch(CANCEL_WORKER, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action, subscription_id: currentSubscriptionId })
+    });
+    const d = await r.json();
+    if (d.ok) {
+      btn.style.display = 'none';
+      status.textContent = labels[action].success;
+      status.style.display = 'block';
+      try { posthog.capture('retention_' + action, { subscription_id: currentSubscriptionId }); } catch(e) {}
+      // Close modal after 3 seconds
+      setTimeout(() => closeCancellationModal(), 3000);
+    } else {
+      btn.disabled = false;
+      btn.innerHTML = action === 'pause' ? '<i class="fas fa-pause"></i> Pause billing for 1 month — free' : '<i class="fas fa-percent"></i> Apply 30% discount now';
+      alert('Something went wrong. Please try again.');
+    }
+  } catch(e) {
+    btn.disabled = false;
+    btn.innerHTML = action === 'pause' ? '<i class="fas fa-pause"></i> Pause billing for 1 month — free' : '<i class="fas fa-percent"></i> Apply 30% discount now';
+    alert('Network error. Please try again.');
+  }
+}
+
 async function confirmCancel() {
   const btn = document.getElementById('confirmCancelBtn');
   if (!currentSubscriptionId) {
@@ -811,10 +905,10 @@ async function confirmCancel() {
   btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Cancelling...';
   btn.disabled = true;
   try {
-    const r = await fetch('https://cancel-subscription.hamoureliasse.workers.dev/', {
+    const r = await fetch(CANCEL_WORKER, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ subscription_id: currentSubscriptionId })
+      body: JSON.stringify({ action: 'cancel', subscription_id: currentSubscriptionId })
     });
     const d = await r.json();
     if (d.ok) {
