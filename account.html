@@ -83,7 +83,7 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
 .billing-btn{flex:1;padding:.75rem;border:none;background:transparent;border-radius:6px;font-weight:500;color:var(--gray-600);cursor:pointer;transition:all .2s ease;font-size:.9rem;display:flex;align-items:center;justify-content:center;gap:.5rem;font-family:inherit;}
 .billing-btn.active{background:white;color:var(--gray-900);box-shadow:0 1px 3px rgba(0,0,0,.1);}
 .save-tag{font-size:.75rem;background:var(--success);color:white;padding:.2rem .4rem;border-radius:3px;font-weight:600;}
-.plans-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:.75rem;margin:.25rem 0 .75rem;}
+.plans-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:0.75rem;margin:0.25rem 0 0.75rem;}
 .plan-item{border:2px solid var(--gray-200);border-radius:12px;padding:1.25rem .875rem;text-align:center;position:relative;transition:border-color .2s,box-shadow .2s;display:flex;flex-direction:column;}
 .plan-item:hover{border-color:var(--primary);box-shadow:0 4px 16px rgba(37,99,235,.1);}
 .plan-item-popular{border-color:var(--primary);background:#f0f5ff;box-shadow:0 4px 16px rgba(37,99,235,.12);}
@@ -432,10 +432,9 @@ const PRICE_IDS = {
 Paddle.Initialize({ token: PADDLE_CLIENT_TOKEN });
 
 const plans = [
-  { name:'Starter',     monthlyPrice:49,  credits:60000,   monthlyPriceId: PRICE_IDS.starter_monthly,     annualPriceId: PRICE_IDS.starter_annual },
-  { name:'Professional',monthlyPrice:89,  credits:240000,  monthlyPriceId: PRICE_IDS.pro_monthly,         annualPriceId: PRICE_IDS.pro_annual },
-  { name:'Enterprise',  monthlyPrice:149, credits:600000,  monthlyPriceId: PRICE_IDS.enterprise_monthly,  annualPriceId: PRICE_IDS.enterprise_annual },
-  { name:'HyperGrowth', monthlyPrice:299, credits:3000000, monthlyPriceId: PRICE_IDS.hypergrowth_monthly, annualPriceId: PRICE_IDS.hypergrowth_annual },
+    { name:'Starter',     monthlyPrice:49,  credits:60000,  monthlyPriceId: PRICE_IDS.starter_monthly,    annualPriceId: PRICE_IDS.starter_annual },
+    { name:'Professional',monthlyPrice:89,  credits:240000, monthlyPriceId: PRICE_IDS.pro_monthly,        annualPriceId: PRICE_IDS.pro_annual },
+    { name:'Enterprise',  monthlyPrice:149, credits:600000, monthlyPriceId: PRICE_IDS.enterprise_monthly, annualPriceId: PRICE_IDS.enterprise_annual },
 ];
 let isAnnualBilling = true;
 
@@ -564,19 +563,26 @@ function setBilling(type) {
   renderPlansGrid();
 }
 
-function showPricingModal() {
-  try { window.uetq = window.uetq || []; window.uetq.push('event', 'begin_checkout', {}); } catch(e) {}
-  document.getElementById('monthlyBtn').classList.toggle('active', !isAnnualBilling);
-  document.getElementById('annualBtn').classList.toggle('active', isAnnualBilling);
-  const modalTitle    = document.getElementById('pricingModalTitle');
-  const modalSubtitle = document.getElementById('pricingModalSubtitle');
-  if (modalTitle)    modalTitle.textContent    = isExistingSubscriber ? 'Change Your Plan' : 'Choose Your Plan';
-  if (modalSubtitle) modalSubtitle.textContent = isExistingSubscriber
-    ? "You'll only be charged the difference — no extra steps needed."
-    : 'Cancel anytime · No questions asked';
-  document.getElementById('pricingModal').classList.add('show');
-  document.body.style.overflow = 'hidden';
-  renderPlansGrid();
+function showPricingModal(trigger) {
+    try { window.uetq = window.uetq || []; window.uetq.push('event', 'begin_checkout', {}); } catch(e) {}
+    document.getElementById('monthlyBtn').classList.toggle('active', !isAnnualBilling);
+    document.getElementById('annualBtn').classList.toggle('active', isAnnualBilling);
+    const modalTitle = document.getElementById('pricingModalTitle');
+    const modalSubtitle = document.getElementById('pricingModalSubtitle');
+    if (isExistingSubscriber) {
+        if (modalTitle) modalTitle.textContent = 'Change Your Plan';
+        if (modalSubtitle) modalSubtitle.textContent = 'Paddle will prorate the difference automatically.';
+    } else if (trigger === 'credits_exhausted') {
+        if (modalTitle) modalTitle.textContent = "You're out of credits";
+        if (modalSubtitle) modalSubtitle.textContent = 'Pick a plan to keep enriching — takes 30 seconds.';
+    } else {
+        if (modalTitle) modalTitle.textContent = 'Choose Your Plan';
+        if (modalSubtitle) modalSubtitle.textContent = 'Cancel anytime · No questions asked';
+    }
+    document.getElementById('pricingModal').classList.add('show');
+    document.body.style.overflow = 'hidden';
+    renderPlansGrid();
+    try { posthog.capture('pricing_modal_opened', { credits_remaining: currentCredits, is_subscriber: isExistingSubscriber, trigger: trigger || 'manual' }); } catch(e) {}
 }
 function closePricingModal() { document.getElementById('pricingModal').classList.remove('show'); document.body.style.overflow = ''; }
 
