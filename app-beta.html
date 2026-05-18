@@ -468,10 +468,9 @@
         </div>
 
         <div id="resultsSection" class="hidden">
-            <div id="historySavedNotice" style="display:none;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:0.625rem 1rem;margin-bottom:0.75rem;">
-                <a onclick="navigateToPage('history')" style="font-size:0.8125rem;font-weight:600;color:#15803d;cursor:pointer;display:inline-flex;align-items:center;gap:0.4rem;text-decoration:none;">
-                    <i class="fas fa-check-circle" style="color:var(--success);"></i>
-                    Enrichment saved to your history — view all →
+            <div id="historySavedNotice" style="display:none;margin-bottom:0.5rem;">
+                <a onclick="navigateToPage('history')" style="font-size:0.75rem;color:var(--success);cursor:pointer;display:inline-flex;align-items:center;gap:0.3rem;text-decoration:none;font-weight:500;">
+                    <i class="fas fa-check-circle" style="font-size:0.7rem;"></i> Saved to history →
                 </a>
             </div>
             <div id="singleResult" class="result-card">
@@ -488,7 +487,6 @@
                 </div>
                 <div id="bulkResultsTable" class="table-container"></div>
             </div>
-            <div id="automationNudge" style="display:none;"></div>
         </div>
     </div>
 </div>
@@ -858,7 +856,6 @@ async function enrichData(event) {
             else showSingleResult(inputValue, data.result||'Not found');
         } else { showSingleResult(inputValue,'Not found'); }
         showHistorySaved();
-        showAutomationNudge(currentInputType, currentOutputType);
     } catch(error) { hideLoading(); showAlert('Enrichment error — please try again.','error'); }
     finally { restoreBtn(); }
 }
@@ -930,17 +927,6 @@ async function processBulk() {
 }
 
 function goToAutomate(){window.location.href=addGclid(`https://linkfinderai.com/app-workflows?token=${userToken}`);}
-
-function showAutomationNudge(inputType,outputType){
-    const el=document.getElementById('automationNudge'); if(!el)return;
-    const messages={'company_domain__employees':{title:'Automate prospect extraction',sub:'Pull fresh prospects every week'},'linkedin_profile__linkedin_info':{title:'Enrich leads as they come in',sub:'Trigger when a new contact hits your CRM'},'linkedin_company__linkedin_info':{title:'Automate company research',sub:'Enrich new accounts added to your pipeline'},'linkedin_post__reactions':{title:'Monitor posts automatically',sub:'Extract warm leads every time you publish'},'lead_full_name__linkedin_url':{title:'Enrich your CRM automatically',sub:'Run this when new contacts are created'},'company_name__website':{title:'Automate company data lookup',sub:'Run on every new lead in your workflow'},'company_name__email':{title:'Find emails automatically',sub:'Trigger from your CRM or outreach tool'},'company_name__phone':{title:'Automate phone lookups',sub:'Plug directly into your outbound workflow'},'company_name__linkedin_url':{title:'Build lists automatically',sub:'Run on new company lists as they come in'}};
-    const key=`${inputType}__${outputType}`;
-    const msg=messages[key]||{title:'Automate this step',sub:'Run it in n8n, Make, or Zapier'};
-    const wUrl=addGclid(`https://linkfinderai.com/app-workflows?token=${userToken}`);
-    const aUrl=addGclid(`https://linkfinderai.com/api-access?token=${userToken}`);
-    el.innerHTML=`<div class="automation-nudge"><div class="nudge-left"><span class="nudge-icon">⚡</span><div><div class="nudge-title">${msg.title}</div><div class="nudge-sub">${msg.sub}</div></div></div><div class="nudge-platforms"><a href="${wUrl}" class="nudge-btn nudge-n8n"><span class="nudge-logo nudge-logo-n8n">n</span> n8n</a><a href="${wUrl}" class="nudge-btn nudge-make"><span class="nudge-logo nudge-logo-make">M</span> Make</a><a href="https://zapier.com/developer/public-invite/235719/7244430282f42f35ad6bd25db6ac39bf/" target="_blank" class="nudge-btn nudge-zapier"><span class="nudge-logo nudge-logo-zapier">Z</span> Zapier</a><a href="${aUrl}" class="nudge-btn nudge-api">&lt;/&gt; API</a></div></div>`;
-    el.style.display='block';
-}
 
 function setupRefreshWarning(){window.addEventListener('beforeunload',handleBeforeUnload);}
 function removeRefreshWarning(){window.removeEventListener('beforeunload',handleBeforeUnload);}
@@ -1222,8 +1208,6 @@ function showLoading(){document.getElementById('loading').style.display='block';
 function hideLoading(){document.getElementById('loading').style.display='none';}
 function hideResults(){
     document.getElementById('resultsSection').classList.add('hidden');
-    const nudge=document.getElementById('automationNudge');
-    if(nudge){nudge.style.display='none';nudge.innerHTML='';}
 }
 
 const creditCosts={'company_name_to_website':1,'company_name_to_phone':1,'company_name_to_linkedin_url':1,'email_to_linkedin_url':1,'company_name_to_employees':1,'company_name_to_employee_count':1,'company_name_to_email':1,'linkedin_company_to_linkedin_info':5,'linkedin_company_to_employees':1,'linkedin_company_to_employee_count':1,'linkedin_profile_to_linkedin_info':10,'lead_full_name_to_linkedin_url':1,'linkedin_profile_to_email':1,'company_domain_to_employees':1,'linkedin_post_to_reactions':1,'linkedin_profile_to_phone':1};
