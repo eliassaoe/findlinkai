@@ -319,13 +319,14 @@
             </a>
             <div class="user-info">
                 <div class="credits" id="creditsDisplay">
-                    <i class="fas fa-coins"></i>
-                    <span id="creditsCount">--</span> credits
-                    <span class="credits-divider">|</span>
-                    <button class="btn-buy-inline" onclick="handleAddCredits()" id="buyCreditsBtn">Buy credits</button>
-                </div>
-                <button class="btn btn-outline btn-logout" onclick="logout()">Logout</button>
-            </div>
+    <i class="fas fa-coins"></i>
+    <span id="creditsCount">--</span> credits
+    <span class="credits-divider">|</span>
+    <button class="btn-buy-inline" onclick="handleAddCredits()" id="buyCreditsBtn">Buy credits</button>
+    <button class="btn-buy-inline" onclick="showAutoTopupModal()" id="autoTopupBtn"
+        style="background:linear-gradient(135deg,#6366f1,#4f46e5);margin-left:0.25rem;"
+        title="Auto top-up settings">⚡</button>
+</div>
         </div>
     </div>
 </header>
@@ -1496,27 +1497,25 @@ function checkEnrichmentMilestone() {
 }
 }
 
-async function handleAddCredits(){
+async function handleAddCredits() {
+    if (!userToken) { window.location.href = 'https://linkfinderai.com/sign-in'; return; }
+    try { posthog.capture('upgrade_clicked', { source: 'buy_credits_btn', credits_remaining: currentCredits }); } catch(e) {}
+    try { if (typeof plausible !== 'undefined') plausible('Upgrade Click', { props: { source: 'buy_credits_btn' } }); } catch(e) {}
 
-    if(!userToken){
-        window.location.href='https://linkfinderai.com/sign-in';
-        return;
-    }
-    try{posthog.capture('upgrade_clicked',{source:'buy_credits_btn',credits_remaining:currentCredits});}catch(e){}
-    try{if(typeof plausible!=='undefined')plausible('Upgrade Click',{props:{source:'buy_credits_btn'}});}catch(e){}
-    const btn=document.getElementById('buyCreditsBtn');
-    const orig=btn.innerHTML;btn.innerHTML='...';btn.disabled=true;
-    try{const r=await fetch(UPGRADE_INTENT_WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:userToken,trigger:'credits_exhausted',credits_remaining:currentCredits})});const d=await r.json();if(d.issub===true){isExistingSubscriber=true;currentPlanNumber=d.plan||null;currentSubscriptionId=d.subscription_id||null;openBuyCreditsModal();}else{isExistingSubscriber=false;currentPlanNumber=null;currentSubscriptionId=null;showPricingModal('credits_exhausted');}}
-    catch(e){
-    if(!userToken){
-        window.location.href='https://linkfinderai.com/sign-in';
-        return;
-    }
-    showPricingModal();
+    const btn = document.getElementById('buyCreditsBtn');
+    const orig = btn.innerHTML; btn.innerHTML = '...'; btn.disabled = true;
+    try {
+        const r = await fetch(UPGRADE_INTENT_WORKER, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: userToken, trigger: 'credits_exhausted', credits_remaining: currentCredits }) });
+        const d = await r.json();
+        if (d.issub === true) {
+            isExistingSubscriber = true;
+            currentPlanNumber = d.plan || null;
+            currentSubscriptionId = d.subscription_id || null;
+        }
+    } catch(e) {}
+    finally { btn.innerHTML = orig; btn.disabled = false; }
+    showPricingModal('credits_exhausted');
 }
-    finally{btn.innerHTML=orig;btn.disabled=false;}
-}
-
 function openBuyCreditsModal(){
     // Show "change plan" banner only for existing subscribers
     const banner = document.getElementById('changePlanBanner');
@@ -1672,6 +1671,97 @@ function updatePhCountdown() {
 updatePhCountdown();
 setInterval(updatePhCountdown, 60000);
 
+let selectedTopupPack = 'credits_5k';
+
+function showAutoTopupModal() {
+    // Load saved settings
+    const enabled = localStorage.getItem('lf_autotopup_enabled') === '1';
+    const pack = localStorage.getItem('lf_autotopup_pack') || 'credits_5k';
+    selectedTopupPack = pack;
+
+    document.getElementById('autoTopupToggle').checked = enabled;
+    updateAutoTopupUI(enabled);
+    selectTopupAmount(pack, null, null, true);
+
+    document.getElementById('autoTopupModal').classList.add('show');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeAutoTopupModal() {
+    document.getElementById('autoTopupModal').classList.remove('show');
+    document.body.style.overflow = '';
+}
+
+function toggleAutoTopup(enabled) {
+    updateAutoTopupUI(enabled);
+}
+
+function updateAutoTopupUI(enabled) {
+    const slider = document.getElementById('autoTopupSlider');
+    const thumb = document.getElementById('autoTopupThumb');
+    const settings = document.getElementById('autoTopupSettings');
+    const msg = document.getElementById('autoTopupDisabledMsg');
+    const btn = document.getElementById('autoTopupBtn');
+
+    if (enabled) {
+        slider.style.background = '#6366f1';
+        thumb.style.transform = 'translateX(20px)';
+        settings.style.display = 'block';
+        msg.style.display = 'none';
+        btn.style.background = 'linear-gradient(135deg,#6366f1,#4f46e5)';
+        btn.title = 'Auto top-up: ON';
+    } else {
+        slider.style.background = 'var(--gray-300)';
+        thumb.style.transform = 'translateX(0)';
+        settings.style.display = 'none';
+        msg.style.display = 'block';
+        btn.style.background = 'linear-gradient(135deg,#9ca3af,#6b7280)';
+        btn.title = 'Auto top-up: OFF';
+    }
+}
+
+function selectTopupAmount(pack, label, price, silent) {
+    selectedTopupPack = pack;
+    document.querySelectorAll('.topup-option').forEach(el => {
+        el.style.border = '2px solid var(--gray-200)';
+        el.style.background = 'white';
+    });
+    const selected = document.getElementById('topup_' + pack);
+    if (selected) {
+        selected.style.border = '2px solid var(--primary)';
+        selected.style.background = '#f0f5ff';
+    }
+    const labelMap = { credits_1k: '1,000 credits', credits_5k: '5,000 credits' };
+    const lbl = document.getElementById('topupAmountLabel');
+    if (lbl) lbl.textContent = labelMap[pack] || label;
+}
+
+function saveAutoTopup() {
+    const enabled = document.getElementById('autoTopupToggle').checked;
+    localStorage.setItem('lf_autotopup_enabled', enabled ? '1' : '0');
+    localStorage.setItem('lf_autotopup_pack', selectedTopupPack);
+    updateAutoTopupUI(enabled);
+    closeAutoTopupModal();
+
+    // Show confirmation toast
+    const toast = document.getElementById('modalToast');
+    toast.querySelector('span').textContent = enabled ? '⚡ Auto top-up enabled' : 'Auto top-up disabled';
+    toast.classList.add('show');
+    setTimeout(() => { toast.classList.remove('show'); toast.querySelector('span').textContent = '✓ You\'re all set'; }, 3000);
+
+    try { posthog.capture('autotopup_saved', { enabled, pack: selectedTopupPack }); } catch(e) {}
+}
+
+// Init auto top-up button state on load
+document.addEventListener('DOMContentLoaded', () => {
+    const enabled = localStorage.getItem('lf_autotopup_enabled') === '1';
+    const btn = document.getElementById('autoTopupBtn');
+    if (btn && !enabled) {
+        btn.style.background = 'linear-gradient(135deg,#9ca3af,#6b7280)';
+        btn.title = 'Auto top-up: OFF';
+    }
+});
+
 </script>
 
 <script type="module">
@@ -1710,6 +1800,65 @@ setInterval(updatePhCountdown, 60000);
     <p style="font-weight:600;color:var(--gray-900);font-size:0.875rem;margin:0 0 4px;">Thanks for the feedback!</p>
     <p style="font-size:0.75rem;color:var(--gray-500);margin:0;">We read every response and use it to improve.</p>
   </div>
+</div>
+
+<!-- Auto Top-Up Modal -->
+<div id="autoTopupModal" class="modal-overlay">
+    <div class="pricing-modal" style="max-width:420px;">
+        <button class="modal-close" onclick="closeAutoTopupModal()"><i class="fas fa-times"></i></button>
+        <div style="text-align:center;margin-bottom:1.5rem;">
+            <div style="font-size:2rem;margin-bottom:0.5rem;">⚡</div>
+            <h2 style="font-size:1.5rem;font-weight:700;color:var(--gray-900);margin-bottom:0.25rem;">Auto Top-Up</h2>
+            <p style="color:var(--gray-500);font-size:0.875rem;">Never run out of credits mid-enrichment</p>
+        </div>
+
+        <!-- Toggle -->
+        <div style="display:flex;align-items:center;justify-content:space-between;background:var(--gray-50);border:1px solid var(--gray-200);border-radius:10px;padding:1rem 1.25rem;margin-bottom:1.25rem;">
+            <div>
+                <div style="font-weight:600;color:var(--gray-900);font-size:0.875rem;">Enable auto top-up</div>
+                <div style="font-size:0.75rem;color:var(--gray-500);margin-top:0.15rem;">Automatically adds credits when you run out</div>
+            </div>
+            <label style="position:relative;display:inline-block;width:44px;height:24px;flex-shrink:0;">
+                <input type="checkbox" id="autoTopupToggle" onchange="toggleAutoTopup(this.checked)"
+                    style="opacity:0;width:0;height:0;position:absolute;">
+                <span id="autoTopupSlider" style="position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:var(--gray-300);border-radius:24px;transition:0.3s;">
+                    <span style="position:absolute;content:'';height:18px;width:18px;left:3px;bottom:3px;background:white;border-radius:50%;transition:0.3s;display:block;" id="autoTopupThumb"></span>
+                </span>
+            </label>
+        </div>
+
+        <!-- Settings (shown when enabled) -->
+        <div id="autoTopupSettings" style="display:none;">
+            <div style="margin-bottom:1rem;">
+                <label style="font-size:0.8rem;font-weight:600;color:var(--gray-700);display:block;margin-bottom:0.5rem;">Top-up amount</label>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;">
+                    <div class="topup-option" onclick="selectTopupAmount('credits_1k','1,000 credits','$9')" id="topup_credits_1k"
+                        style="border:2px solid var(--gray-200);border-radius:8px;padding:0.75rem;text-align:center;cursor:pointer;transition:all 0.15s;">
+                        <div style="font-weight:700;color:var(--gray-900);font-size:0.875rem;">1,000 credits</div>
+                        <div style="font-size:1.1rem;font-weight:700;color:var(--primary);">$9</div>
+                    </div>
+                    <div class="topup-option selected-topup" onclick="selectTopupAmount('credits_5k','5,000 credits','$38')" id="topup_credits_5k"
+                        style="border:2px solid var(--primary);background:#f0f5ff;border-radius:8px;padding:0.75rem;text-align:center;cursor:pointer;transition:all 0.15s;">
+                        <div style="font-weight:700;color:var(--gray-900);font-size:0.875rem;">5,000 credits</div>
+                        <div style="font-size:1.1rem;font-weight:700;color:var(--primary);">$38</div>
+                    </div>
+                </div>
+            </div>
+
+            <div style="background:linear-gradient(135deg,#eff6ff,#dbeafe);border:1px solid #bfdbfe;border-radius:8px;padding:0.875rem;margin-bottom:1.25rem;font-size:0.8rem;color:#1e40af;">
+                <i class="fas fa-info-circle" style="margin-right:0.375rem;"></i>
+                When your credits hit 0, we'll automatically charge your saved card and add <strong id="topupAmountLabel">5,000 credits</strong> to your account.
+            </div>
+
+            <button onclick="saveAutoTopup()" class="btn btn-full" style="padding:0.875rem;font-size:0.9rem;font-weight:600;background:linear-gradient(135deg,#6366f1,#4f46e5);">
+                <i class="fas fa-check"></i> Save settings
+            </button>
+        </div>
+
+        <div id="autoTopupDisabledMsg" style="text-align:center;padding:0.5rem 0;font-size:0.8rem;color:var(--gray-400);">
+            Enable auto top-up to configure settings
+        </div>
+    </div>
 </div>
 
 </body>
