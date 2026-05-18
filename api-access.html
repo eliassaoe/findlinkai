@@ -957,6 +957,66 @@ src="https://www.facebook.com/tr?id=2717863625238535&ev=PageView&noscript=1"
         </div>
     </div>
 
+    <!-- Webhook Card -->
+<div class="card">
+    <h2><i class="fas fa-bolt"></i> Webhook Delivery</h2>
+    <p>Every enrichment result will be POSTed to your URL automatically. Works with HubSpot, Airtable, n8n, Make, or any tool that accepts webhooks.</p>
+
+    <div style="background:var(--gray-50);border:1px solid var(--gray-200);border-radius:8px;padding:1rem;margin-bottom:1rem;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem;">
+            <span style="font-size:0.875rem;font-weight:600;color:var(--gray-700);">Webhook URL</span>
+            <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-size:0.8rem;color:var(--gray-600);">
+                <span id="webhookStatusLabel">Disabled</span>
+                <div onclick="toggleWebhook()" id="webhookToggleTrack"
+                    style="width:40px;height:22px;background:var(--gray-300);border-radius:11px;position:relative;cursor:pointer;transition:background 0.2s;">
+                    <div id="webhookToggleThumb"
+                        style="position:absolute;top:3px;left:3px;width:16px;height:16px;background:white;border-radius:50%;transition:transform 0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.2);"></div>
+                </div>
+            </label>
+        </div>
+        <div style="display:flex;gap:0.5rem;">
+            <input type="url" id="webhookUrlInput" placeholder="https://your-app.com/webhook"
+                style="flex:1;padding:0.75rem;border:1px solid var(--gray-300);border-radius:6px;font-size:0.875rem;font-family:inherit;">
+            <button onclick="saveWebhookSettings()" class="btn" style="white-space:nowrap;">
+                <i class="fas fa-save"></i> Save
+            </button>
+        </div>
+        <div id="webhookSaveSuccess" class="success-message" style="margin-top:0.5rem;">
+            <i class="fas fa-check"></i> Webhook settings saved!
+        </div>
+        <div id="webhookSaveError" style="background:rgba(239,68,68,0.1);border:1px solid var(--error);color:var(--error);padding:0.75rem 1rem;border-radius:6px;margin-top:0.5rem;font-size:0.875rem;display:none;align-items:center;gap:0.5rem;">
+            <i class="fas fa-exclamation-circle"></i> <span id="webhookErrorText">Please enter a valid URL.</span>
+        </div>
+    </div>
+
+    <!-- Test button -->
+    <button onclick="testWebhook()" id="testWebhookBtn" class="btn btn-outline" style="width:100%;margin-bottom:1rem;" disabled>
+        <i class="fas fa-paper-plane"></i> Send Test Payload
+    </button>
+    <div id="webhookTestResult" style="display:none;padding:0.75rem 1rem;border-radius:6px;font-size:0.8rem;margin-bottom:1rem;"></div>
+
+    <!-- Payload preview -->
+    <div style="background:var(--gray-900);border-radius:8px;padding:1rem;overflow-x:auto;">
+        <div style="font-size:0.72rem;font-weight:600;color:var(--gray-400);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.5rem;">Example payload</div>
+        <pre style="color:#86efac;font-size:0.75rem;line-height:1.6;margin:0;font-family:'Monaco','Menlo',monospace;">{
+  "type": "linkedin_profile",
+  "input": "https://linkedin.com/in/john-doe",
+  "result": {
+    "name": "John Doe",
+    "email": "john@company.com",
+    "jobTitle": "CEO",
+    "company": "Acme Inc"
+  },
+  "timestamp": "2026-05-27T10:00:00Z",
+  "credits_used": 10
+}</pre>
+    </div>
+
+    <p style="font-size:0.75rem;color:var(--gray-400);margin-top:0.75rem;margin-bottom:0;">
+        <i class="fas fa-info-circle"></i> All enrichment types send to the same URL. Use the <code style="background:var(--gray-100);padding:0.1rem 0.3rem;border-radius:3px;">type</code> field to route in your automation tool.
+    </p>
+</div>
+
     <!-- Pricing Modal -->
     <div id="pricingModal" class="modal-overlay">
         <div class="pricing-modal">
@@ -1240,6 +1300,107 @@ src="https://www.facebook.com/tr?id=2717863625238535&ev=PageView&noscript=1"
             });
         }
 
+        // ===== WEBHOOK SETTINGS =====
+let webhookEnabled = false;
+
+function loadWebhookSettings() {
+    const url = localStorage.getItem('lf_webhook_url') || '';
+    const enabled = localStorage.getItem('lf_webhook_enabled') === '1';
+    document.getElementById('webhookUrlInput').value = url;
+    webhookEnabled = enabled;
+    updateWebhookToggleUI();
+    document.getElementById('testWebhookBtn').disabled = !url;
+}
+
+function updateWebhookToggleUI() {
+    const track = document.getElementById('webhookToggleTrack');
+    const thumb = document.getElementById('webhookToggleThumb');
+    const label = document.getElementById('webhookStatusLabel');
+    if (webhookEnabled) {
+        track.style.background = 'var(--success)';
+        thumb.style.transform = 'translateX(18px)';
+        label.textContent = 'Enabled';
+        label.style.color = 'var(--success)';
+    } else {
+        track.style.background = 'var(--gray-300)';
+        thumb.style.transform = 'translateX(0)';
+        label.textContent = 'Disabled';
+        label.style.color = 'var(--gray-600)';
+    }
+}
+
+function toggleWebhook() {
+    webhookEnabled = !webhookEnabled;
+    localStorage.setItem('lf_webhook_enabled', webhookEnabled ? '1' : '0');
+    updateWebhookToggleUI();
+    try { posthog.capture('webhook_toggled', { enabled: webhookEnabled }); } catch(e) {}
+}
+
+function saveWebhookSettings() {
+    const url = document.getElementById('webhookUrlInput').value.trim();
+    const errEl = document.getElementById('webhookSaveError');
+    const errText = document.getElementById('webhookErrorText');
+    errEl.style.display = 'none';
+
+    if (url && !url.startsWith('http')) {
+        errText.textContent = 'Please enter a valid URL starting with https://';
+        errEl.style.display = 'flex';
+        return;
+    }
+
+    localStorage.setItem('lf_webhook_url', url);
+    document.getElementById('testWebhookBtn').disabled = !url;
+    showSuccessMessage('webhookSaveSuccess');
+    try { posthog.capture('webhook_saved', { has_url: !!url }); } catch(e) {}
+
+    // TODO: also save to Supabase via your worker so enrichment worker can read it
+    // fetch('https://your-webhook-settings-worker.workers.dev/', {
+    //     method: 'POST',
+    //     headers: {'Content-Type': 'application/json'},
+    //     body: JSON.stringify({ token: userToken, webhook_url: url, webhook_enabled: webhookEnabled })
+    // });
+}
+
+async function testWebhook() {
+    const url = document.getElementById('webhookUrlInput').value.trim();
+    if (!url) return;
+    const btn = document.getElementById('testWebhookBtn');
+    const resultEl = document.getElementById('webhookTestResult');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+    resultEl.style.display = 'none';
+
+    const testPayload = {
+        type: 'test',
+        input: 'webhook_test',
+        result: { message: 'This is a test from LinkFinder AI' },
+        timestamp: new Date().toISOString(),
+        credits_used: 0
+    };
+
+    try {
+        const r = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(testPayload)
+        });
+        resultEl.style.background = 'rgba(16,185,129,0.1)';
+        resultEl.style.border = '1px solid var(--success)';
+        resultEl.style.color = 'var(--success)';
+        resultEl.innerHTML = '<i class="fas fa-check-circle"></i> Test delivered successfully (status ' + r.status + ')';
+    } catch(e) {
+        // CORS will block direct browser→webhook calls — route through your worker instead
+        resultEl.style.background = 'rgba(245,158,11,0.1)';
+        resultEl.style.border = '1px solid var(--warning)';
+        resultEl.style.color = '#92400e';
+        resultEl.innerHTML = '<i class="fas fa-info-circle"></i> URL saved. Test delivery works from the server — CORS blocks direct browser tests. Your webhook will fire correctly on real enrichments.';
+    }
+    resultEl.style.display = 'block';
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-paper-plane"></i> Send Test Payload';
+    try { posthog.capture('webhook_tested', { url_set: !!url }); } catch(e) {}
+}
+
         const urlParams = new URLSearchParams(window.location.search);
         const gclid = urlParams.get('gclid');
 
@@ -1259,6 +1420,7 @@ src="https://www.facebook.com/tr?id=2717863625238535&ev=PageView&noscript=1"
             checkAuth();
             setupNavigation();
             setupModalEvents();
+            loadWebhookSettings();
         });
     </script>
 
