@@ -295,6 +295,10 @@
 .nps-btn:hover{border-color:var(--primary);color:var(--primary);}
 .nps-btn.selected{background:var(--primary);border-color:var(--primary);color:white;}
 @media(max-width:480px){.nps-widget{width:calc(100vw - 2rem);bottom:80px;}}
+
+.ph-banner{background:linear-gradient(135deg,#ff6154,#ff4d3d);padding:0.625rem 1rem;text-align:center;font-size:0.8125rem;font-weight:500;color:white;display:flex;align-items:center;justify-content:center;gap:0.75rem;flex-wrap:wrap;}
+.ph-banner-close{background:none;border:none;color:rgba(255,255,255,0.7);cursor:pointer;font-size:1.25rem;line-height:1;padding:0 0 0 0.5rem;flex-shrink:0;}
+@media(max-width:640px){.ph-banner{font-size:0.75rem;}}
     
 </style>
 <script async src="https://plausible.io/js/pa-LTP3nlbjr9NybMEgzpwxU.js"></script>
@@ -305,6 +309,21 @@
 <script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
 </head>
 <body>
+
+
+<!-- PH Launch Banner -->
+<div id="phBanner" class="ph-banner" style="flex-direction:column;gap:0.5rem;padding:0.75rem 1rem;">
+  <div style="display:flex;align-items:center;justify-content:center;gap:0.75rem;flex-wrap:wrap;">
+    <span>🚀 We're launching on Product Hunt in <strong id="phCountdown">8 days</strong>!</span>
+    <a href="https://www.producthunt.com/products/link-finder?launch=linkfinder-ai-2-0" target="_blank" rel="noopener noreferrer" style="background:none;padding:0;">
+      <img alt="LinkFinder AI 2.0 on Product Hunt" width="200" height="43" src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1149928&theme=light&t=1779113599500" style="vertical-align:middle;display:block;">
+    </a>
+    <button class="ph-banner-close" onclick="closePhBanner()" aria-label="Dismiss">×</button>
+  </div>
+  <div style="font-size:0.75rem;color:rgba(255,255,255,0.9);text-align:center;">
+    🎁 Upvote on launch day → get <strong>1 free month of Starter</strong> ($49 value) — email us your PH username after upvoting
+  </div>
+</div>
 
 <header class="header">
     <div class="container">
@@ -1605,6 +1624,42 @@ async function submitNPS() {
     } catch(e) {}
     try { posthog.capture('nps_submitted', { score: npsScore, has_feedback: !!feedback, credits_remaining: currentCredits }); } catch(e) {}
 }
+
+function closePhBanner() {
+    document.getElementById('phBanner').style.display = 'none';
+    sessionStorage.setItem('ph_banner_closed', '1');
+}
+
+function updatePhCountdown() {
+    if (sessionStorage.getItem('ph_banner_closed')) {
+        const b = document.getElementById('phBanner');
+        if (b) b.style.display = 'none';
+        return;
+    }
+    const launch = new Date('2026-05-26T07:01:00Z');// 12:01am PST
+    const now = new Date();
+    const diff = launch - now;
+    if (diff <= 0) {
+        const banner = document.getElementById('phBanner');
+        if (banner) banner.innerHTML = `
+            <div style="display:flex;align-items:center;justify-content:center;gap:0.75rem;flex-wrap:wrap;">
+                <span>🎉 We're live on Product Hunt today!</span>
+                <a href="https://www.producthunt.com/products/link-finder?launch=linkfinder-ai-2-0" target="_blank" rel="noopener noreferrer"
+                   style="background:rgba(255,255,255,0.25);padding:0.3rem 0.875rem;border-radius:20px;color:white;font-weight:700;text-decoration:none;">
+                   ↑ Upvote us — get 1 free month of Starter
+                </a>
+                <button class="ph-banner-close" onclick="closePhBanner()">×</button>
+            </div>`;
+        return;
+    }
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const el = document.getElementById('phCountdown');
+    if (el) el.textContent = days > 0 ? `${days}d ${hours}h` : `${hours}h`;
+}
+
+updatePhCountdown();
+setInterval(updatePhCountdown, 60000);
 
 </script>
 
