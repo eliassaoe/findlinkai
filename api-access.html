@@ -956,64 +956,52 @@ src="https://www.facebook.com/tr?id=2717863625238535&ev=PageView&noscript=1"
             </div>
         </div>
     </div>
-
-    <!-- Webhook Card -->
+<!-- Webhook Card -->
 <div class="card">
     <h2><i class="fas fa-bolt"></i> Webhook Delivery</h2>
     <p>Every enrichment result will be POSTed to your URL automatically. Works with HubSpot, Airtable, n8n, Make, or any tool that accepts webhooks.</p>
 
-    <div style="background:var(--gray-50);border:1px solid var(--gray-200);border-radius:8px;padding:1rem;margin-bottom:1rem;">
+    <div class="api-key-container">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem;">
-            <span style="font-size:0.875rem;font-weight:600;color:var(--gray-700);">Webhook URL</span>
-            <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-size:0.8rem;color:var(--gray-600);">
-                <span id="webhookStatusLabel">Disabled</span>
-                <div onclick="toggleWebhook()" id="webhookToggleTrack"
-                    style="width:40px;height:22px;background:var(--gray-300);border-radius:11px;position:relative;cursor:pointer;transition:background 0.2s;">
-                    <div id="webhookToggleThumb"
-                        style="position:absolute;top:3px;left:3px;width:16px;height:16px;background:white;border-radius:50%;transition:transform 0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.2);"></div>
+            <div class="api-key-label">Webhook URL</div>
+            <div style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;" onclick="toggleWebhook()">
+                <span id="webhookStatusLabel" style="font-size:0.8rem;color:var(--gray-500);">Disabled</span>
+                <div id="webhookToggleTrack" style="width:40px;height:22px;background:var(--gray-300);border-radius:11px;position:relative;transition:background 0.2s;flex-shrink:0;">
+                    <div id="webhookToggleThumb" style="position:absolute;top:3px;left:3px;width:16px;height:16px;background:white;border-radius:50%;transition:transform 0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.2);"></div>
                 </div>
-            </label>
+            </div>
         </div>
-        <div style="display:flex;gap:0.5rem;">
-            <input type="url" id="webhookUrlInput" placeholder="https://your-app.com/webhook"
-                style="flex:1;padding:0.75rem;border:1px solid var(--gray-300);border-radius:6px;font-size:0.875rem;font-family:inherit;">
-            <button onclick="saveWebhookSettings()" class="btn" style="white-space:nowrap;">
-                <i class="fas fa-save"></i> Save
-            </button>
+        <div class="api-key-input-group">
+            <input type="url" id="webhookUrlInput" placeholder="https://your-app.com/webhook" class="api-key-input" style="font-family:inherit;">
+            <button onclick="saveWebhookSettings()" class="btn copy-btn"><i class="fas fa-save"></i></button>
         </div>
-        <div id="webhookSaveSuccess" class="success-message" style="margin-top:0.5rem;">
+        <div id="webhookSaveSuccess" class="success-message">
             <i class="fas fa-check"></i> Webhook settings saved!
         </div>
-        <div id="webhookSaveError" style="background:rgba(239,68,68,0.1);border:1px solid var(--error);color:var(--error);padding:0.75rem 1rem;border-radius:6px;margin-top:0.5rem;font-size:0.875rem;display:none;align-items:center;gap:0.5rem;">
+        <div id="webhookSaveError" class="success-message" style="background:rgba(239,68,68,0.1);border-color:var(--error);color:var(--error);display:none;">
             <i class="fas fa-exclamation-circle"></i> <span id="webhookErrorText">Please enter a valid URL.</span>
         </div>
     </div>
 
-    <!-- Test button -->
     <button onclick="testWebhook()" id="testWebhookBtn" class="btn btn-outline" style="width:100%;margin-bottom:1rem;" disabled>
         <i class="fas fa-paper-plane"></i> Send Test Payload
     </button>
-    <div id="webhookTestResult" style="display:none;padding:0.75rem 1rem;border-radius:6px;font-size:0.8rem;margin-bottom:1rem;"></div>
 
-    <!-- Payload preview -->
-    <div style="background:var(--gray-900);border-radius:8px;padding:1rem;overflow-x:auto;">
-        <div style="font-size:0.72rem;font-weight:600;color:var(--gray-400);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.5rem;">Example payload</div>
-        <pre style="color:#86efac;font-size:0.75rem;line-height:1.6;margin:0;font-family:'Monaco','Menlo',monospace;">{
+    <div id="webhookTestResult" class="success-message" style="display:none;margin-bottom:1rem;"></div>
+
+    <div class="api-key-container" style="background:var(--gray-900);border-color:var(--gray-700);">
+        <div class="api-key-label" style="color:var(--gray-400);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.05em;">Example payload</div>
+        <pre style="color:#86efac;font-size:0.75rem;line-height:1.6;margin:0;font-family:'Monaco','Menlo',monospace;overflow-x:auto;">{
   "type": "linkedin_profile",
-  "input": "https://linkedin.com/in/john-doe",
-  "result": {
-    "name": "John Doe",
-    "email": "john@company.com",
-    "jobTitle": "CEO",
-    "company": "Acme Inc"
-  },
+  "input": "linkedin.com/in/john-doe",
+  "result": { "name": "John Doe", "email": "john@co.com" },
   "timestamp": "2026-05-27T10:00:00Z",
   "credits_used": 10
 }</pre>
     </div>
 
     <p style="font-size:0.75rem;color:var(--gray-400);margin-top:0.75rem;margin-bottom:0;">
-        <i class="fas fa-info-circle"></i> All enrichment types send to the same URL. Use the <code style="background:var(--gray-100);padding:0.1rem 0.3rem;border-radius:3px;">type</code> field to route in your automation tool.
+        <i class="fas fa-info-circle"></i> All enrichment types send to the same URL. Filter by <code style="background:var(--gray-100);color:var(--gray-700);padding:0.1rem 0.3rem;border-radius:3px;">type</code> in your automation tool.
     </p>
 </div>
 
