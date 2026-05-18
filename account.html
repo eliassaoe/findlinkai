@@ -273,61 +273,6 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
   </div>
 </div>
 
-<!-- Buy Credits Modal -->
-<div id="buyCreditsModal" class="modal-overlay">
-  <div class="pricing-modal" style="max-width:460px;">
-    <button class="modal-close" onclick="closeBuyCreditsModal()"><i class="fas fa-times"></i></button>
-
-    <!-- Subscriber: change plan banner -->
-    <div id="changePlanBanner" onclick="closeBuyCreditsModal();isExistingSubscriber=true;showPricingModal();"
-      style="display:none;background:linear-gradient(135deg,#1e40af,#2563eb);border-radius:12px;padding:1rem 1.25rem;cursor:pointer;margin-bottom:1.25rem;transition:opacity .2s;"
-      onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:1rem;">
-        <div>
-          <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#93c5fd;margin-bottom:.2rem;">Already subscribed</div>
-          <div style="font-size:.95rem;font-weight:700;color:white;">Change or upgrade my plan</div>
-          <div style="font-size:.75rem;color:#bfdbfe;margin-top:.15rem;">You'll only be charged the difference — no extra steps needed.</div>
-        </div>
-        <div style="background:white;color:#2563eb;font-weight:700;font-size:.8rem;padding:.5rem .875rem;border-radius:7px;white-space:nowrap;flex-shrink:0;">
-          See Plans <i class="fas fa-arrow-right"></i>
-        </div>
-      </div>
-    </div>
-
-    <div class="pricing-modal-header" style="margin-bottom:1.25rem;">
-      <h2>🪙 Buy More Credits</h2>
-      <p>One-time purchase — credits never expire</p>
-    </div>
-    <div class="buy-credits-grid">
-      <div class="credit-pack" onclick="buyCredits('starter')">
-        <div class="credit-pack-amount">1,000</div>
-        <div class="credit-pack-label">credits</div>
-        <div class="credit-pack-price">$9</div>
-        <div class="credit-pack-per">$0.009 / credit</div>
-      </div>
-      <div class="credit-pack popular" onclick="buyCredits('popular')">
-        <div class="credit-pack-badge">Most Popular</div>
-        <div class="credit-pack-amount">5,000</div>
-        <div class="credit-pack-label">credits</div>
-        <div class="credit-pack-price">$38</div>
-        <div class="credit-pack-per">$0.0076 / credit</div>
-      </div>
-      <div class="credit-pack" onclick="buyCredits('growth')">
-        <div class="credit-pack-amount">10,000</div>
-        <div class="credit-pack-label">credits</div>
-        <div class="credit-pack-price">$79</div>
-        <div class="credit-pack-per">$0.0079 / credit</div>
-      </div>
-      <div class="credit-pack" onclick="buyCredits('pro')">
-        <div class="credit-pack-amount">25,000</div>
-        <div class="credit-pack-label">credits</div>
-        <div class="credit-pack-price">$189</div>
-        <div class="credit-pack-per">$0.00756 / credit</div>
-      </div>
-    </div>
-  </div>
-</div>
-
 <!-- Cancellation Modal -->
 <div id="cancellationModal" class="modal-overlay">
   <div class="cancellation-modal">
@@ -540,16 +485,6 @@ function openPaddleCheckout(priceId, btnEl) {
   });
 }
 
-function buyCredits(pack) {
-  const packPriceIds = {
-    starter: PRICE_IDS.credits_1k,
-    popular: PRICE_IDS.credits_5k,
-    growth:  PRICE_IDS.credits_10k,
-    pro:     PRICE_IDS.credits_25k,
-  };
-  openPaddleCheckout(packPriceIds[pack], null);
-}
-
 function showToast() {
   const toast = document.getElementById('modalToast');
   if (toast) { toast.classList.add('show'); setTimeout(() => toast.classList.remove('show'), 5000); }
@@ -585,13 +520,6 @@ function showPricingModal(trigger) {
 }
 function closePricingModal() { document.getElementById('pricingModal').classList.remove('show'); document.body.style.overflow = ''; }
 
-function openBuyCreditsModal() {
-  const banner = document.getElementById('changePlanBanner');
-  if (banner) banner.style.display = isExistingSubscriber ? 'block' : 'none';
-  document.getElementById('buyCreditsModal').classList.add('show');
-  document.body.style.overflow = 'hidden';
-}
-function closeBuyCreditsModal() { document.getElementById('buyCreditsModal').classList.remove('show'); document.body.style.overflow = ''; }
 
 /* ── Credits ── FIXED: no X-API-Secret header (that was causing the ?) */
 async function fetchCredits() {
@@ -626,17 +554,10 @@ async function handleAddCredits() {
       body: JSON.stringify({ token: userToken, trigger: 'buy_credits_btn', credits_remaining: currentCredits })
     });
     const d = await r.json();
-    if (d.issub === true) {
-      isExistingSubscriber  = true;
-      currentPlanNumber     = d.plan || null;
-      currentSubscriptionId = d.subscription_id || null;
-      openBuyCreditsModal();
-    } else {
-      isExistingSubscriber  = false;
-      currentPlanNumber     = null;
-      currentSubscriptionId = null;
-      showPricingModal();
-    }
+    isExistingSubscriber  = d.issub === true;
+    currentPlanNumber     = d.plan || null;
+    currentSubscriptionId = d.subscription_id || null;
+    showPricingModal('credits_exhausted');
   } catch(e) { showPricingModal(); }
   finally { btn.innerHTML = orig; btn.disabled = false; }
 }
