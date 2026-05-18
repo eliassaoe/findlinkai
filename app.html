@@ -335,7 +335,7 @@
 <div id="annualBanner" style="display:none;background:linear-gradient(135deg,#f0fdf4,#dcfce7);border-bottom:1px solid #bbf7d0;padding:0.5rem 1rem;text-align:center;font-size:0.8rem;color:#166534;font-weight:500;">
   💡 You're on monthly — <strong>switch to annual and save 40%</strong> ($240/year) 
   <button onclick="isAnnualBilling=true;showPricingModal();" style="background:#16a34a;color:white;border:none;padding:0.2rem 0.75rem;border-radius:4px;font-size:0.75rem;font-weight:600;cursor:pointer;margin-left:0.5rem;font-family:inherit;">Switch now</button>
-  <button onclick="this.parentElement.style.display='none';sessionStorage.setItem('annual_banner_dismissed','1')" style="background:none;border:none;color:#166534;cursor:pointer;margin-left:0.5rem;font-size:1rem;">×</button>
+  <button onclick="this.parentElement.style.display='none';localStorage.setItem('annual_banner_dismissed','1')" style="background:none;border:none;color:#166534;cursor:pointer;margin-left:0.5rem;font-size:1rem;">×</button>
 </div>
 
 <nav class="nav-menu">
@@ -1206,7 +1206,7 @@ function checkAuth(){
             currentPlanNumber = d.plan || null;
             currentSubscriptionId = d.subscription_id || null;
             // Plans 1-3 are monthly, 5-7 are annual
-            if (currentPlanNumber && currentPlanNumber <= 3 && !sessionStorage.getItem('annual_banner_dismissed')) {
+            if (currentPlanNumber && currentPlanNumber <= 3 && !localStorage.getItem('annual_banner_dismissed')) {
                 document.getElementById('annualBanner').style.display = 'block';
             }
         }
@@ -1455,13 +1455,13 @@ function updateCreditCostDisplay(){
 
 function showReviewNotification(){
     if(window.innerWidth<=640) return;
-    if(!sessionStorage.getItem('linkFinderReviewShown')){
-        setTimeout(()=>{
-            document.getElementById('reviewNotification').classList.add('show');
-            sessionStorage.setItem('linkFinderReviewShown','true');
-            setTimeout(()=>{if(document.getElementById('reviewNotification').classList.contains('show'))closeReviewNotification();},90000);
-        },10000);
-    }
+    const shown = parseInt(localStorage.getItem('lf_review_shown') || '0');
+    if(shown >= 2) return;
+    setTimeout(()=>{
+        document.getElementById('reviewNotification').classList.add('show');
+        localStorage.setItem('lf_review_shown', shown + 1);
+        setTimeout(()=>{if(document.getElementById('reviewNotification').classList.contains('show'))closeReviewNotification();},90000);
+    },10000);
 }
 function closeReviewNotification(){document.getElementById('reviewNotification').classList.remove('show');document.getElementById('reviewNotification').classList.add('hide');}
 function openReviewForm(event){event.preventDefault();window.open('https://form.typeform.com/to/UKRzccI3','_blank');closeReviewNotification();}
@@ -1485,10 +1485,10 @@ async function fireUpgradeIntent(trigger, extras = {}) {
     try { await fetch(UPGRADE_INTENT_WORKER, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: userToken, trigger, ...extras }) }); } catch(e) {}
 }
 function checkEnrichmentMilestone() {
-    const key = 'lf_enrich_count'; const firedKey = 'lf_three_enrich_fired';
+    const key = 'lf_enrich_count'; const firedKey = 'lf_ten_enrich_fired';
     const n = parseInt(localStorage.getItem(key) || '0') + 1;
     localStorage.setItem(key, n);
-   if (n === 3 && !localStorage.getItem(firedKey)) {
+   if (n === 10 && !localStorage.getItem(firedKey)) {
     localStorage.setItem(firedKey, '1');
     fireUpgradeIntent('three_enrichments', { enrich_count: n, credits_remaining: currentCredits });
     try { posthog.capture('three_enrichments_milestone', { credits_remaining: currentCredits }); } catch(e) {}
