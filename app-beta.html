@@ -487,6 +487,10 @@
                     <i class="fas fa-check-circle" style="font-size:0.7rem;"></i> Saved to history →
                 </a>
             </div>
+            <div id="singleResult" class="result-card">
+                <textarea id="resultText" class="result-text" readonly placeholder="Enriched data will appear here..."></textarea>
+                <div id="resultLink" class="result-link"></div>
+            </div>
             <div id="csatWidget" class="csat-widget">
                 <span class="csat-label">Was this result useful?</span>
                 <div class="csat-btns">
@@ -500,10 +504,6 @@
                     <button class="csat-reason" onclick="csatReason('too_slow')">Too slow</button>
                     <button class="csat-reason" onclick="csatReason('other')">Other</button>
                 </div>
-            </div>
-            <div id="singleResult" class="result-card">
-                <textarea id="resultText" class="result-text" readonly placeholder="Enriched data will appear here..."></textarea>
-                <div id="resultLink" class="result-link"></div>
             </div>
             <div id="bulkResults" class="hidden">
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
@@ -1262,7 +1262,7 @@ function csatReason(reason){
     document.getElementById('csatThanks').style.display='inline';
     setTimeout(()=>hideCSAT(),2000);
     try{posthog.capture('csat_reason',{reason,input_type:currentInputType,output_type:currentOutputType});}catch(e){}
-    try{fetch('https://linkfinder-request-feature.hamoureliasse.workers.dev/',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'csat_negative',message:`CSAT negative: ${reason} | type: ${currentInputType}_to_${currentOutputType}`,user_token:userToken||'Anonymous',timestamp:new Date().toISOString(),page:window.location.href})});}catch(e){}
+    
 }
 function showLoading(){document.getElementById('loading').style.display='block';hideResults();const n=document.getElementById('historySavedNotice');if(n)n.style.display='none';hideCSAT();}
 function hideLoading(){document.getElementById('loading').style.display='none';}
