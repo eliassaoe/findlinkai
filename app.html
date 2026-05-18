@@ -329,8 +329,14 @@
         </div>
     </div>
 </header>
-
+    
 <div id="lowCreditsBar" class="low-credits-bar"></div>
+
+<div id="annualBanner" style="display:none;background:linear-gradient(135deg,#f0fdf4,#dcfce7);border-bottom:1px solid #bbf7d0;padding:0.5rem 1rem;text-align:center;font-size:0.8rem;color:#166534;font-weight:500;">
+  💡 You're on monthly — <strong>switch to annual and save 40%</strong> ($240/year) 
+  <button onclick="isAnnualBilling=true;showPricingModal();" style="background:#16a34a;color:white;border:none;padding:0.2rem 0.75rem;border-radius:4px;font-size:0.75rem;font-weight:600;cursor:pointer;margin-left:0.5rem;font-family:inherit;">Switch now</button>
+  <button onclick="this.parentElement.style.display='none';sessionStorage.setItem('annual_banner_dismissed','1')" style="background:none;border:none;color:#166534;cursor:pointer;margin-left:0.5rem;font-size:1rem;">×</button>
+</div>
 
 <nav class="nav-menu">
     <div class="container">
@@ -534,7 +540,7 @@
         </div>
         <div class="billing-toggle">
             <button type="button" class="billing-btn active" id="monthlyBtn" onclick="setBilling('monthly')">Monthly</button>
-            <button type="button" class="billing-btn" id="annualBtn" onclick="setBilling('annual')">Annual <span class="save-tag">Save 20%</span></button>
+            <button type="button" class="billing-btn" id="annualBtn" onclick="setBilling('annual')">Annual <span class="save-tag">Save 40%</span></button>
         </div>
         <div class="plans-grid" id="plansGrid"></div>
         <div class="pricing-faq">
@@ -771,8 +777,8 @@ function renderPlansGrid() {
 
     grid.innerHTML = plans.map(function(plan, index) {
         const isPopular      = plan.name === 'Professional';
-        const monthlyEquiv   = isAnnualBilling ? Math.round(plan.monthlyPrice * 0.8) : plan.monthlyPrice;
-        const annualTotal    = Math.round(plan.monthlyPrice * 0.8 * 12);
+        const monthlyEquiv   = isAnnualBilling ? Math.round(plan.monthlyPrice * 0.6) : plan.monthlyPrice;
+        const annualTotal    = Math.round(plan.monthlyPrice * 0.6 * 12);
         const creditsLabel   = isAnnualBilling ? plan.credits.toLocaleString()+' credits/yr' : Math.round(plan.credits/12).toLocaleString()+' credits/mo';
         const totalForCalc   = isAnnualBilling ? annualTotal : plan.monthlyPrice;
         const creditsForCalc = isAnnualBilling ? plan.credits : Math.round(plan.credits/12);
@@ -990,7 +996,7 @@ async function fetchCredits() {
         else { document.getElementById('creditsCount').textContent='?'; }
     } catch(e) { document.getElementById('creditsCount').textContent='?'; }
 }
-
+    
 function deductCredits(amount) {
     if (currentCredits===null) return;
     currentCredits = Math.max(0, currentCredits-amount);
@@ -1186,6 +1192,26 @@ function checkAuth(){
     const action=p.get('action');
     if(action==='buy_credits') setTimeout(()=>openBuyCreditsModal(),500);
     else if(action==='upgrade') setTimeout(()=>showPricingModal(),500);
+
+    // Silently check subscription status on load
+    fetch(UPGRADE_INTENT_WORKER, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({token: userToken, trigger: 'page_load'})
+    })
+    .then(r => r.json())
+    .then(d => {
+        if (d.issub === true) {
+            isExistingSubscriber = true;
+            currentPlanNumber = d.plan || null;
+            currentSubscriptionId = d.subscription_id || null;
+            // Plans 1-3 are monthly, 5-7 are annual
+            if (currentPlanNumber && currentPlanNumber <= 3 && !sessionStorage.getItem('annual_banner_dismissed')) {
+                document.getElementById('annualBanner').style.display = 'block';
+            }
+        }
+    })
+    .catch(() => {});
 }
 
 function showSingleResult(inputData,result){
@@ -1621,7 +1647,7 @@ function updatePhCountdown() {
         if (b) b.style.display = 'none';
         return;
     }
-    const launch = new Date('2026-05-26T07:01:00Z');// 12:01am PST
+    const launch = new Date('2026-05-27T07:01:00Z');// 12:01am PST
     const now = new Date();
     const diff = launch - now;
     if (diff <= 0) {
