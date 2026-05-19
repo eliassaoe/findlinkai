@@ -115,7 +115,7 @@
     .upload-icon{font-size:2rem;color:var(--gray-400);margin-bottom:1rem;}
     .upload-text{font-weight:500;color:var(--gray-700);margin-bottom:0.5rem;}
     .upload-subtext{color:var(--gray-500);font-size:0.875rem;margin-bottom:1rem;}
-    .plans-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:0.75rem;margin:0.25rem 0 0.75rem;}
+    .plans-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:0.75rem;margin:0.25rem 0 0.75rem;}
     .plan-item{border:2px solid var(--gray-200);border-radius:12px;padding:1.25rem 0.875rem;text-align:center;position:relative;transition:border-color .2s,box-shadow .2s;display:flex;flex-direction:column;}
     .plan-item:hover{border-color:var(--primary);box-shadow:0 4px 16px rgba(37,99,235,0.1);}
     .plan-item-popular{border-color:var(--primary);background:#f0f5ff;box-shadow:0 4px 16px rgba(37,99,235,0.12);}
@@ -535,7 +535,7 @@
 
 <!-- Pricing Modal -->
 <div id="pricingModal" class="modal-overlay">
-    <div class="pricing-modal" style="max-width:900px;width:min(900px,calc(100vw - 2rem));">
+    <div class="pricing-modal" style="max-width:760px;width:min(760px,calc(100vw - 2rem));">
         <button class="modal-close" onclick="closePricingModal()"><i class="fas fa-times"></i></button>
         <div class="pricing-modal-header">
             <h2>Choose Your Plan</h2>
@@ -543,7 +543,7 @@
         </div>
         <div class="billing-toggle">
             <button class="billing-btn" id="monthlyBtn" onclick="setBilling('monthly')">Monthly</button>
-            <button class="billing-btn active" id="annualBtn" onclick="setBilling('annual')">Annual <span class="save-tag">Save 20%</span></button>
+            <button class="billing-btn active" id="annualBtn" onclick="setBilling('annual')">Annual <span class="save-tag">Save 40%</span></button>
         </div>
         <div class="plans-grid" id="plansGrid"></div>
         <div class="pricing-faq">
@@ -665,21 +665,22 @@ const urlParams = new URLSearchParams(window.location.search);
 const gclid = urlParams.get('gclid');
 function addGclid(url) { if(!gclid) return url; return url+(url.includes('?')?'&':'?')+'gclid='+gclid; }
 
+// PATCH: HyperGrowth plan removed
 const plans = [
     {name:'Starter',    monthlyPrice:49,  credits:60000,   monthlyGumroadLink:'https://linkfinderai.gumroad.com/l/txudoe', annualGumroadLink:'https://linkfinderai.gumroad.com/l/hescr'},
     {name:'Professional',monthlyPrice:89, credits:240000,  monthlyGumroadLink:'https://linkfinderai.gumroad.com/l/ouvehf', annualGumroadLink:'https://linkfinderai.gumroad.com/l/eadfhi'},
-    {name:'Enterprise', monthlyPrice:149, credits:600000,  monthlyGumroadLink:'https://linkfinderai.gumroad.com/l/oukgp',  annualGumroadLink:'https://linkfinderai.gumroad.com/l/gtwsp'},
-    {name:'HyperGrowth',monthlyPrice:299, credits:3000000, monthlyGumroadLink:'https://linkfinderai.gumroad.com/l/tbwevi', annualGumroadLink:'https://linkfinderai.gumroad.com/l/dilhpd'}
+    {name:'Enterprise', monthlyPrice:149, credits:600000,  monthlyGumroadLink:'https://linkfinderai.gumroad.com/l/oukgp',  annualGumroadLink:'https://linkfinderai.gumroad.com/l/gtwsp'}
 ];
 let isAnnualBilling = true;
 
+// PATCH: 40% annual discount (multiplier 0.6 instead of 0.8)
 function renderPlansGrid() {
     const grid = document.getElementById('plansGrid');
     if (!grid) return;
     grid.innerHTML = plans.map(function(plan, index) {
         const isPopular = plan.name === 'Professional';
-        const monthlyEquiv = isAnnualBilling ? Math.round(plan.monthlyPrice * 0.8) : plan.monthlyPrice;
-        const annualTotal = Math.round(plan.monthlyPrice * 0.8 * 12);
+        const monthlyEquiv = isAnnualBilling ? Math.round(plan.monthlyPrice * 0.6) : plan.monthlyPrice;
+        const annualTotal = Math.round(plan.monthlyPrice * 0.6 * 12);
         const creditsLabel = isAnnualBilling ? plan.credits.toLocaleString()+' credits/yr' : Math.round(plan.credits/12).toLocaleString()+' credits/mo';
         const totalForCalc = isAnnualBilling ? annualTotal : plan.monthlyPrice;
         const creditsForCalc = isAnnualBilling ? plan.credits : Math.round(plan.credits/12);
