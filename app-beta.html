@@ -1018,17 +1018,20 @@ async function enrichData(event) {
         });
         const data = await response.json();
         hideLoading();
-        if (currentOutputType==='reactions'&&Array.isArray(data)&&data.length>0) { deductCredits(data.length); showSingleResultReactions(inputValue,data); checkEnrichmentMilestone(); showHistorySaved(); return; }
-        if (currentOutputType==='employee_count') { deductCredits(getCreditCost(currentInputType,currentOutputType)); showSingleResultEmployeeCount(inputValue,data); checkEnrichmentMilestone(); showHistorySaved(); return; }
-        if (currentOutputType==='employees'&&Array.isArray(data)&&data.length>0) { deductCredits(data.length*0.5); showSingleResultEmployees(inputValue,data); checkEnrichmentMilestone(); showHistorySaved(); return; }
+        if (currentOutputType==='reactions'&&Array.isArray(data)&&data.length>0) { deductCredits(data.length); showSingleResultReactions(inputValue,data); checkEnrichmentMilestone(); return; }
+        if (currentOutputType==='employee_count') { deductCredits(getCreditCost(currentInputType,currentOutputType)); showSingleResultEmployeeCount(inputValue,data); checkEnrichmentMilestone(); return; }
+        if (currentOutputType==='employees'&&Array.isArray(data)&&data.length>0) { deductCredits(data.length*0.5); showSingleResultEmployees(inputValue,data); checkEnrichmentMilestone(); return; }
         if (response.status===403&&data.code===403) { try { posthog.capture('credits_exhausted', { input_type: currentInputType, output_type: currentOutputType, credits_remaining: currentCredits }); } catch(e) {} showInsufficientCreditsModal(); return; }
         if (response.ok&&data&&(data.result||data.name)) {
             deductCredits(getCreditCost(currentInputType,currentOutputType));
             if (data.name&&!data.result) showSingleResult(inputValue,data);
             else showSingleResult(inputValue, data.result||'Not found');
             checkEnrichmentMilestone();
-            showHistorySaved();
-        } else { showSingleResult(inputValue,'Not found'); showHistorySaved(); }
+        } else {
+    showSingleResult(inputValue,'Not found');
+    try{posthog.capture('enrichment_not_found',{input_type:currentInputType,output_type:currentOutputType});}catch(e){}
+}
+        showHistorySaved();
         showAutomationNudge(currentInputType, currentOutputType);
     } catch(error) { hideLoading(); showAlert('Enrichment error \u2014 please try again.','error'); }
     finally { restoreBtn(); }
@@ -1193,6 +1196,226 @@ function checkAuth(){
         }
     })
     .catch(() => {});
+}
+
+function showSingleResult(inputData,result){
+    const resultText=document.getElementById('resultText');
+    const resultLink=document.getElementById('resultLink');
+    resultText.style.display='none'; resultLink.innerHTML='';
+    const config=dataConfigurations[currentInputType];
+    const outputLabel=config.outputs[currentOutputType];
+    let isLinkedInData=false,linkedInFields=null;
+    try{if(typeof result==='string'&&result.includes('{')){linkedInFields=JSON.parse(result);isLinkedInData=true;}else if(typeof result==='object'&&result!==null&&result.name){linkedInFields=result;isLinkedInData=true;}}catch(e){isLinkedInData=false;}
+    let html='<div class="result-card">';
+    html+=`<div class="result-header">${linkedInFields?.profilePic?`<img src="${linkedInFields.profilePic}" alt="Profile" style="width:60px;height:60px;border-radius:50%;object-fit:cover;margin-right:1rem;">`:`<div class="result-header-icon"><i class="fas ${result==='Not found'?'fa-times-circle':'fa-check-circle'}"></i></div>`}<div class="result-header-text"><h3>${result==='Not found'?'No Data Found':'Profile Data Found! \u2728'}</h3><p>${inputData}</p></div></div>`;
+    if(linkedInFields?.backgroundPic&&linkedInFields.backgroundPic!=='Not specified'){html+=`<div style="margin:1rem 0;border-radius:8px;overflow:hidden;max-height:200px;"><img src="${linkedInFields.backgroundPic}" alt="Background" style="width:100%;height:auto;object-fit:cover;"></div>`;}
+    if(isLinkedInData&&linkedInFields){
+        html+='<div class="result-grid">';
+        if(linkedInFields.name||linkedInFields.jobTitle||linkedInFields.headline){html+=`<div style="grid-column:1/-1;margin-top:1rem;padding-top:1rem;border-top:2px solid var(--primary);"><h4 style="color:var(--primary);margin-bottom:0.5rem;display:flex;align-items:center;gap:0.5rem;"><i class="fas fa-user"></i> Personal Information</h4></div>`;}
+        if(linkedInFields.name) html+=`<div class="result-item"><div class="result-label">Name</div><div class="result-value highlight">${linkedInFields.name}${linkedInFields.idPremium==='true'||linkedInFields.idPremium===true?' <span style="background:#fbbf24;color:white;font-size:0.7rem;padding:0.2rem 0.4rem;border-radius:3px;font-weight:600;">PREMIUM</span>':''}</div></div>`;
+        if(linkedInFields.jobTitle&&linkedInFields.jobTitle!=='Not specified') html+=`<div class="result-item"><div class="result-label">Job Title</div><div class="result-value">${linkedInFields.jobTitle}</div></div>`;
+        if(linkedInFields.headline&&linkedInFields.headline!=='Not specified') html+=`<div class="result-item" style="grid-column:1/-1;"><div class="result-label">Headline</div><div class="result-value">${linkedInFields.headline}</div></div>`;
+        if(linkedInFields.location&&linkedInFields.location!=='Not specified') html+=`<div class="result-item"><div class="result-label">Location</div><div class="result-value"><i class="fas fa-map-marker-alt" style="color:var(--primary);margin-right:0.25rem;"></i>${linkedInFields.location}</div></div>`;
+        if(linkedInFields.country&&linkedInFields.country!=='Not specified') html+=`<div class="result-item"><div class="result-label">Country</div><div class="result-value">${linkedInFields.country}</div></div>`;
+        if(linkedInFields.industry&&linkedInFields.industry!=='Not specified') html+=`<div class="result-item"><div class="result-label">Industry</div><div class="result-value">${linkedInFields.industry}</div></div>`;
+        if(linkedInFields.about&&linkedInFields.about!=='Not specified') html+=`<div class="result-item" style="grid-column:1/-1;"><div class="result-label">About</div><div class="result-value" style="line-height:1.6;white-space:pre-line;">${linkedInFields.about}</div></div>`;
+        if(linkedInFields.connections||linkedInFields.followers) html+=`<div style="grid-column:1/-1;margin-top:1rem;padding-top:1rem;border-top:2px solid #3b82f6;"><h4 style="color:#3b82f6;margin-bottom:0.5rem;display:flex;align-items:center;gap:0.5rem;"><i class="fab fa-linkedin"></i> LinkedIn Statistics</h4></div>`;
+        if(linkedInFields.connections&&linkedInFields.connections!=='Not specified') html+=`<div class="result-item"><div class="result-label">Connections</div><div class="result-value"><i class="fas fa-users" style="color:#3b82f6;margin-right:0.25rem;"></i>${linkedInFields.connections}</div></div>`;
+        if(linkedInFields.followers&&linkedInFields.followers!=='Not specified') html+=`<div class="result-item"><div class="result-label">Followers</div><div class="result-value"><i class="fas fa-user-friends" style="color:#3b82f6;margin-right:0.25rem;"></i>${linkedInFields.followers}</div></div>`;
+        if(linkedInFields.email||linkedInFields.mobileNumber||linkedInFields.website||linkedInFields.linkedinUrl) html+=`<div style="grid-column:1/-1;margin-top:1rem;padding-top:1rem;border-top:2px solid var(--success);"><h4 style="color:var(--success);margin-bottom:0.5rem;display:flex;align-items:center;gap:0.5rem;"><i class="fas fa-address-card"></i> Contact Information</h4></div>`;
+        if(linkedInFields.email&&linkedInFields.email!=='Not found'&&linkedInFields.email!=='') html+=`<div class="result-item" style="background:#ecfdf5;border-left:3px solid var(--success);padding-left:1rem;"><div class="result-label"><i class="fas fa-envelope" style="color:var(--success);"></i> Email</div><div class="result-value highlight">${linkedInFields.email}</div></div>`;
+        if(linkedInFields.mobileNumber&&linkedInFields.mobileNumber!=='Not found'&&linkedInFields.mobileNumber!=='Not specified') html+=`<div class="result-item" style="background:#ecfdf5;border-left:3px solid var(--success);padding-left:1rem;"><div class="result-label"><i class="fas fa-phone" style="color:var(--success);"></i> Mobile Number</div><div class="result-value highlight">${linkedInFields.mobileNumber}</div></div>`;
+        if(linkedInFields.website&&linkedInFields.website!=='Not found'&&linkedInFields.website!=='Not specified') html+=`<div class="result-item"><div class="result-label">Website</div><div class="result-value"><a href="https://${linkedInFields.website}" target="_blank"><i class="fas fa-globe" style="margin-right:0.25rem;"></i>${linkedInFields.website}</a></div></div>`;
+        if(linkedInFields.linkedinUrl) html+=`<div class="result-item"><div class="result-label">LinkedIn Profile</div><div class="result-value"><a href="${linkedInFields.linkedinUrl}" target="_blank"><i class="fab fa-linkedin" style="margin-right:0.25rem;color:#0077b5;"></i>${linkedInFields.linkedinUrl}</a></div></div>`;
+        if(linkedInFields.name||linkedInFields.company_description||linkedInFields.company_size||linkedInFields.tagline) html+=`<div style="grid-column:1/-1;margin-top:1rem;padding-top:1rem;border-top:2px solid var(--warning);"><h4 style="color:var(--warning);margin-bottom:0.5rem;display:flex;align-items:center;gap:0.5rem;"><i class="fas fa-building"></i> Company Information</h4></div>`;
+        if(linkedInFields.logo||linkedInFields.name) html+=`<div class="result-item" style="grid-column:1/-1;display:flex;align-items:center;gap:1rem;">${linkedInFields.logo?`<img src="${linkedInFields.logo}" alt="Company Logo" style="width:60px;height:60px;border-radius:8px;object-fit:contain;border:1px solid var(--gray-200);padding:4px;background:white;">`:''}<div>${linkedInFields.name?`<div style="font-size:1.125rem;font-weight:700;color:var(--gray-900);">${linkedInFields.name}</div>`:''}${linkedInFields.tagline&&linkedInFields.tagline!=='Not specified'?`<div style="font-size:0.875rem;color:var(--gray-500);font-style:italic;margin-top:0.2rem;">${linkedInFields.tagline}</div>`:''}</div></div>`;
+        if(linkedInFields.company_email&&linkedInFields.company_email!=='Not found'&&linkedInFields.company_email!=='Not specified') html+=`<div class="result-item" style="background:#fef3c7;border-left:3px solid var(--warning);padding-left:1rem;"><div class="result-label"><i class="fas fa-envelope" style="color:var(--warning);"></i> Company Email</div><div class="result-value highlight">${linkedInFields.company_email}</div></div>`;
+        if(linkedInFields.company_phone&&linkedInFields.company_phone!=='Not found'&&linkedInFields.company_phone!=='Not specified') html+=`<div class="result-item" style="background:#fef3c7;border-left:3px solid var(--warning);padding-left:1rem;"><div class="result-label"><i class="fas fa-phone" style="color:var(--warning);"></i> Company Phone</div><div class="result-value highlight">${linkedInFields.company_phone}</div></div>`;
+        if(linkedInFields.company_size&&linkedInFields.company_size!=='Not specified') html+=`<div class="result-item"><div class="result-label">Employees</div><div class="result-value"><i class="fas fa-users" style="color:var(--warning);margin-right:0.25rem;"></i>${Number(linkedInFields.company_size).toLocaleString()}</div></div>`;
+        if(linkedInFields.followerCount&&linkedInFields.followerCount!=='Not specified') html+=`<div class="result-item"><div class="result-label">LinkedIn Followers</div><div class="result-value"><i class="fab fa-linkedin" style="color:#0077b5;margin-right:0.25rem;"></i>${Number(linkedInFields.followerCount).toLocaleString()}</div></div>`;
+        const locationParts=[linkedInFields.city,linkedInFields.country].filter(p=>p&&p!=='Not specified');
+        if(locationParts.length>0||linkedInFields.postalCode) html+=`<div class="result-item"><div class="result-label">Headquarters</div><div class="result-value"><i class="fas fa-map-marker-alt" style="color:var(--warning);margin-right:0.25rem;"></i>${locationParts.join(', ')}${linkedInFields.postalCode&&linkedInFields.postalCode!=='Not specified'?` (${linkedInFields.postalCode})`:''}</div></div>`;
+        if(linkedInFields.foundedOn&&linkedInFields.foundedOn!=='Not specified') html+=`<div class="result-item"><div class="result-label">Founded</div><div class="result-value"><i class="fas fa-calendar" style="color:var(--warning);margin-right:0.25rem;"></i>${linkedInFields.foundedOn}</div></div>`;
+        if(linkedInFields.company_description&&linkedInFields.company_description!=='Not specified') html+=`<div class="result-item" style="grid-column:1/-1;"><div class="result-label">About</div><div class="result-value" style="line-height:1.6;">${linkedInFields.company_description}</div></div>`;
+        if(linkedInFields.experiences&&linkedInFields.experiences.length>0){
+            html+=`<div style="grid-column:1/-1;margin-top:1rem;padding-top:1rem;border-top:2px solid #0ea5e9;"><h4 style="color:#0ea5e9;margin-bottom:0.75rem;display:flex;align-items:center;gap:0.5rem;"><i class="fas fa-briefcase"></i> Work Experience (${linkedInFields.experiences.length})</h4></div>`;
+            linkedInFields.experiences.forEach(exp=>{
+                html+=`<div class="result-item" style="grid-column:1/-1;padding:0.75rem;background:var(--gray-50);border-radius:8px;border-left:3px solid #0ea5e9;"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.4rem;"><div style="font-weight:600;color:var(--gray-900);">${exp.title||'Unknown Title'}</div>${exp.jobStillWorking?'<span style="background:#dcfce7;color:#16a34a;font-size:0.7rem;padding:0.15rem 0.5rem;border-radius:3px;font-weight:600;">Current</span>':''}</div><div style="font-size:0.875rem;color:var(--gray-600);line-height:1.8;">${exp.companyName?`<div><i class="fas fa-building" style="margin-right:0.25rem;color:#0ea5e9;"></i><span style="font-weight:500;color:var(--gray-800);">${exp.companyLink?`<a href="${exp.companyLink}" target="_blank" style="color:#0ea5e9;text-decoration:none;">${exp.companyName}</a>`:exp.companyName}</span></div>`:''}${exp.jobStartedOn?`<div><i class="fas fa-calendar" style="margin-right:0.25rem;color:#0ea5e9;"></i>${exp.jobStartedOn}${exp.jobEndedOn?` \u2192 ${exp.jobEndedOn}`:''}</div>`:''}${exp.jobDescription?`<div style="margin-top:0.5rem;padding-top:0.5rem;border-top:1px solid var(--gray-200);font-size:0.8rem;color:var(--gray-600);">${exp.jobDescription.length>200?exp.jobDescription.substring(0,200)+'...':exp.jobDescription}</div>`:''}</div></div>`;
+            });
+        }
+        html+='</div>';
+    } else if(result!=='Not found'&&result.startsWith&&result.startsWith('http')){
+        html+=`<div class="result-grid"><div class="result-item"><div class="result-label">${outputLabel}</div><div class="result-value"><a href="${result}" target="_blank">${result}</a></div></div></div>`;
+    } else {
+        html+=`<div class="result-grid"><div class="result-item"><div class="result-label">${outputLabel}</div><div class="result-value">${result}</div></div></div>`;
+    }
+    html+='</div>';
+    resultLink.innerHTML=html;
+    document.getElementById('resultsSection').classList.remove('hidden');
+    document.getElementById('singleResult').classList.remove('hidden');
+    document.getElementById('bulkResults').classList.add('hidden');
+}
+
+function showSingleResultEmployees(inputData,employeesArray){
+    document.getElementById('resultText').style.display='none';
+    let html=`<div class="result-card"><div class="result-header"><h3>Found ${employeesArray.length} Employees \u2728</h3><p>${inputData}</p></div><div class="result-grid">`;
+    employeesArray.forEach((emp,i)=>{
+        html+=`<div class="result-item" style="padding:1rem;background:var(--gray-50);border-radius:6px;margin-bottom:0.5rem;"><div style="font-weight:600;color:var(--gray-900);margin-bottom:0.5rem;">${i+1}. ${emp.name||'Unknown'}</div><div style="font-size:0.875rem;color:var(--gray-700);line-height:1.6;">`;
+        if(emp.jobTitle) html+=`<div><strong>Title:</strong> ${emp.jobTitle}</div>`;
+        if(emp.email) html+=`<div><strong>Email:</strong> <span style="color:var(--success);font-weight:600;">${emp.email}</span></div>`;
+        if(emp.company) html+=`<div><strong>Company:</strong> ${emp.company}</div>`;
+        if(emp.linkedinUrl) html+=`<div><strong>LinkedIn:</strong> <a href="${emp.linkedinUrl}" target="_blank">${emp.linkedinUrl}</a></div>`;
+        html+='</div></div>';
+    });
+    html+='</div></div>';
+    document.getElementById('resultLink').innerHTML=html;
+    document.getElementById('resultsSection').classList.remove('hidden');
+    document.getElementById('singleResult').classList.remove('hidden');
+    document.getElementById('bulkResults').classList.add('hidden');
+}
+
+function showSingleResultReactions(inputData,reactionsArray){
+    document.getElementById('resultText').style.display='none';
+    let html=`<div class="result-card"><div class="result-header"><h3>Found ${reactionsArray.length} Reactions \u2728</h3><p>${inputData}</p></div><div class="result-grid">`;
+    reactionsArray.forEach((reaction,i)=>{
+        const parsed=parseReactionTitle(reaction.title);
+        html+=`<div class="result-item" style="padding:1rem;background:var(--gray-50);border-radius:6px;margin-bottom:0.5rem;"><div style="font-weight:600;color:var(--gray-900);margin-bottom:0.5rem;">${i+1}. ${parsed.name}</div><div style="font-size:0.875rem;color:var(--gray-700);line-height:1.6;">`;
+        if(parsed.jobInfo) html+=`<div><strong>Title:</strong> ${parsed.jobInfo}</div>`;
+        if(reaction.snippet) html+=`<div><strong>Info:</strong> ${reaction.snippet}</div>`;
+        if(reaction.link) html+=`<div><strong>LinkedIn:</strong> <a href="${reaction.link}" target="_blank">${reaction.link}</a></div>`;
+        html+='</div></div>';
+    });
+    html+='</div></div>';
+    document.getElementById('resultLink').innerHTML=html;
+    document.getElementById('resultsSection').classList.remove('hidden');
+    document.getElementById('singleResult').classList.remove('hidden');
+    document.getElementById('bulkResults').classList.add('hidden');
+}
+
+function setupFileUpload(){
+    document.getElementById('csvFile').addEventListener('change',(e)=>{if(e.target.files.length>0)handleFile(e.target.files[0]);});
+}
+function setupDragAndDrop(){
+    const ua=document.getElementById('uploadArea');
+    ['dragenter','dragover','dragleave','drop'].forEach(e=>{ua.addEventListener(e,pD,false);document.body.addEventListener(e,pD,false);});
+    ['dragenter','dragover'].forEach(e=>ua.addEventListener(e,()=>ua.classList.add('drag-over'),false));
+    ['dragleave','drop'].forEach(e=>ua.addEventListener(e,()=>ua.classList.remove('drag-over'),false));
+    ua.addEventListener('drop',(e)=>{const files=e.dataTransfer.files;if(files.length>0)handleFile(files[0]);},false);
+    function pD(e){e.preventDefault();e.stopPropagation();}
+}
+function handleFile(file){
+    if(!file.name.toLowerCase().endsWith('.csv')){showAlert('Please select a CSV file.','error');return;}
+    const reader=new FileReader();
+    reader.onload=(e)=>parseCSV(e.target.result);
+    reader.readAsText(file);
+}
+function parseCSV(csvText){
+    const lines=csvText.split('\n').filter(l=>l.trim());
+    if(lines.length<2){showAlert('CSV must contain header and data rows.','error');return;}
+    const rawHeaders=lines[0].split(',').map(h=>h.trim().replace(/"/g,''));
+    const headers=rawHeaders.map(h=>h.toLowerCase().replace(/\s+/g,' ').trim());
+    csvData=[];
+    const config=dataConfigurations[currentInputType];
+    if(!config){showAlert('Please configure your input type first.','error');return;}
+    const possibleHeaders={'company_name':['company_name','company name','company','name','companyname'],'company_domain':['company_domain','domain','company domain','website','url','companydomain'],'linkedin_company':['linkedin_company','linkedin company','company_url','linkedin_url','company linkedin url','linkedincompany'],'linkedin_profile':['linkedin_profile','profile_url','linkedin_url','profile','linkedin profile url','linkedinprofile'],'linkedin_post':['linkedin_post','post_url','linkedin_post_url','post','linkedin post url','linkedinpost'],'email':['email','company_email','company email','e-mail','companyemail'],'lead_full_name':['lead_full_name','full_name','name','lead name','contact name','fullname','lead','contact']};
+    const companyNameHeaders=['company','company_name','company name','companyname','organization','org','employer','firm'];
+    const hScore=(header,candidates)=>{const h=header.toLowerCase().replace(/[\s_-]/g,'');for(const c of candidates){const n=c.toLowerCase().replace(/[\s_-]/g,'');if(h===n)return 2;if(h.includes(n)&&n.length>3)return 1;if(n.includes(h)&&h.length>3)return 1;}return 0;};
+    const searchHeaders=possibleHeaders[currentInputType]||[];
+    const dataIdx=headers.findIndex(h=>hScore(h,searchHeaders)>0);
+    if(dataIdx===-1){showAlert(`CSV must contain a column for ${config.label.toLowerCase().replace('enter ','')}. Found columns: "${rawHeaders.join('", "')}"`, 'error');return;}
+    let companyIdx=-1;
+    if(currentInputType==='lead_full_name'){
+        companyIdx=headers.findIndex((h,i)=>i!==dataIdx&&hScore(h,companyNameHeaders)>0);
+        if(currentOutputType==='linkedin_url'&&companyIdx===-1){showAlert(`A "company" column is required to find LinkedIn profiles. Found columns: "${rawHeaders.join('", "')}"`, 'error');return;}
+    }
+    for(let i=1;i<lines.length;i++){
+        const values=lines[i].split(',').map(v=>v.trim().replace(/"/g,''));
+        const nameVal=values[dataIdx]?values[dataIdx].trim():'';
+        if(!nameVal) continue;
+        let inputData=nameVal,companyVal='';
+        if(currentInputType==='lead_full_name'&&companyIdx!==-1){companyVal=values[companyIdx]?values[companyIdx].trim():'';if(companyVal)inputData=`${nameVal} ${companyVal}`;}
+        csvData.push({inputData,name:nameVal,company:companyVal});
+    }
+    if(csvData.length===0){showAlert('No valid data found in the selected column.','error');return;}
+    if(csvData.length>10000){showAlert(`Too many entries (${csvData.length}). Maximum is 10000.`,'error');return;}
+    showPreview();
+}
+function showPreview(){
+    const preview=csvData.slice(0,5);
+    const hasCompany=currentInputType==='lead_full_name'&&preview.some(r=>r.company);
+    let previewHtml='<div style="background:var(--gray-50);padding:0.75rem;border-radius:6px;font-size:0.875rem;">';
+    if(hasCompany){
+        previewHtml+=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;font-weight:600;color:var(--gray-500);font-size:0.75rem;text-transform:uppercase;margin-bottom:0.5rem;padding-bottom:0.25rem;border-bottom:1px solid var(--gray-200);"><span>Name</span><span>Company</span></div>`;
+        preview.forEach(row=>{previewHtml+=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;padding:0.25rem 0;"><span>${row.name}</span><span style="color:var(--gray-500);">${row.company||'\u2014'}</span></div>`;});
+    } else {
+        preview.forEach(row=>{previewHtml+=`<div style="padding:0.25rem 0;">${row.inputData}</div>`;});
+    }
+    previewHtml+='</div>';
+    if(hasCompany) previewHtml+=`<p style="font-size:0.75rem;color:var(--success);margin-top:0.5rem;margin-bottom:0.75rem;"><i class="fas fa-check-circle"></i> Company column detected \u2014 will be combined with name automatically.</p>`;
+    const successBanner=`<div style="display:flex;align-items:center;gap:0.625rem;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1rem;"><i class="fas fa-check-circle" style="color:#10b981;font-size:1rem;flex-shrink:0;"></i><div><div style="font-weight:600;color:#065f46;font-size:0.875rem;">CSV uploaded \u2014 ${csvData.length} row${csvData.length===1?'':'s'} ready to process</div><div style="font-size:0.75rem;color:#047857;margin-top:1px;">Showing first 5 rows below. Click Process to start.</div></div></div>`;
+    document.getElementById('previewTable').innerHTML=successBanner+previewHtml;
+    const btn=document.getElementById('processBulkBtn');
+    btn.disabled=false; btn.style.opacity='1';
+    btn.innerHTML=`<i class="fas fa-play"></i> Process ${csvData.length} items`;
+    document.getElementById('csvPreview').classList.remove('hidden');
+    try { posthog.capture('csv_uploaded', { row_count: csvData.length, input_type: currentInputType }); } catch(e) {}
+}
+function initializeBulkResultsTable(){
+    let html='';
+    if(currentInputType==='linkedin_post'&&currentOutputType==='reactions'){html=`<table class="results-table"><thead><tr><th>Name</th><th>Job Title</th><th>Profile Info</th><th>LinkedIn URL</th></tr></thead><tbody></tbody></table>`;}
+    else if(currentInputType==='linkedin_profile'&&currentOutputType==='linkedin_info'){html=`<table class="results-table"><thead><tr><th>LinkedIn URL</th><th>Name</th><th>Job Title</th><th>Company</th><th>Location</th></tr></thead><tbody></tbody></table>`;}
+    else if(currentInputType==='linkedin_company'&&currentOutputType==='linkedin_info'){html=`<table class="results-table"><thead><tr><th>LinkedIn URL</th><th>Company Name</th><th>Industry</th><th>Company Size</th><th>Location</th></tr></thead><tbody></tbody></table>`;}
+    else if(currentOutputType==='employee_count'){const c=dataConfigurations[currentInputType];html=`<table class="results-table"><thead><tr><th>${c.label.replace('Enter ','')}</th><th>Employee Count</th><th>Status</th></tr></thead><tbody></tbody></table>`;}
+    else{const c=dataConfigurations[currentInputType];const ol=c.outputs[currentOutputType];html=`<table class="results-table"><thead><tr><th>${c.label.replace('Enter ','')}</th><th>${ol}</th><th>Status</th></tr></thead><tbody></tbody></table>`;}
+    document.getElementById('bulkResultsTable').innerHTML=html;
+}
+function generateCombinationType(inputType,outputType){return `${inputType}_to_${outputType}`;}
+function updateBulkResultsTable(){
+    let html='';
+    const sc=(s)=>s==='Found'?'status-success':s==='Processing'?'status-processing':'status-error';
+    const st=(s)=>s==='Processing'?'Processing...':s;
+    if(currentOutputType==='employee_count'){
+        const c=dataConfigurations[currentInputType];
+        html=`<table class="results-table"><thead><tr><th>${c.label.replace('Enter ','')}</th><th>Employee Count</th><th>Status</th></tr></thead><tbody>`;
+        bulkResults.forEach(row=>{html+=`<tr><td>${row.inputData}</td><td>${row.result}</td><td><span class="status-badge ${sc(row.status)}">${st(row.status)}</span></td></tr>`;});
+        html+='</tbody></table>';
+    } else if(currentInputType==='linkedin_post'&&currentOutputType==='reactions'){
+        html=`<table class="results-table"><thead><tr><th>Name</th><th>Job Title</th><th>Profile Info</th><th>LinkedIn URL</th></tr></thead><tbody>`;
+        bulkResults.forEach(pr=>{if(pr.reactions&&Array.isArray(pr.reactions)){pr.reactions.forEach(r=>{const p=parseReactionTitle(r.title);const ud=r.link&&r.link.length>50?r.link.substring(0,50)+'...':(r.link||'N/A');html+=`<tr><td>${p.name}</td><td>${p.jobInfo||'Not specified'}</td><td>${r.snippet||'Not specified'}</td><td>${r.link?`<a href="${r.link}" target="_blank" style="color:var(--primary);text-decoration:none;">${ud}</a>`:'Not specified'}</td></tr>`;});}});
+        html+='</tbody></table>';
+    } else if(currentInputType==='linkedin_profile'&&currentOutputType==='linkedin_info'){
+        html=`<table class="results-table"><thead><tr><th>LinkedIn URL</th><th>Name</th><th>Job Title</th><th>Company</th><th>Location</th><th>Email</th><th>Mobile</th><th>Status</th></tr></thead><tbody>`;
+        bulkResults.forEach(row=>{const d=row.rawData||{};const ud=row.inputData.length>30?row.inputData.substring(0,30)+'...':row.inputData;html+=`<tr><td><a href="${row.inputData}" target="_blank" style="color:var(--primary);text-decoration:none;">${ud}</a></td><td>${d.name||'Not found'}</td><td>${d.jobTitle||'Not found'}</td><td>${d.company||'Not found'}</td><td>${d.location||'Not found'}</td><td>${d.email||'Not found'}</td><td>${d.mobileNumber||'Not found'}</td><td><span class="status-badge ${sc(row.status)}">${row.status}</span></td></tr>`;});
+        html+='</tbody></table>';
+    } else if(currentInputType==='linkedin_company'&&currentOutputType==='linkedin_info'){
+        html=`<table class="results-table"><thead><tr><th>LinkedIn URL</th><th>Company Name</th><th>Industry</th><th>Employees</th><th>Followers</th><th>City</th><th>Country</th><th>Founded</th><th>Company Email</th><th>Company Phone</th><th>Website</th></tr></thead><tbody>`;
+        bulkResults.forEach(row=>{const d=row.rawData||{};const us=row.inputData.length>35?row.inputData.substring(0,35)+'...':row.inputData;const followers=d.followerCount?Number(String(d.followerCount).replace(/,/g,'')).toLocaleString():'Not found';const empSize=d.company_size!=null&&d.company_size!==''&&d.company_size!==0?String(d.company_size):'Not found';html+=`<tr><td><a href="${row.inputData}" target="_blank" style="color:var(--primary);text-decoration:none;">${us}</a></td><td>${d.name||'Not found'}</td><td>${d.industry||'Not found'}</td><td>${empSize}</td><td>${followers}</td><td>${d.city||'Not found'}</td><td>${d.country||'Not found'}</td><td>${d.foundedOn||'Not found'}</td><td>${d.company_email||'Not found'}</td><td>${d.company_phone||'Not found'}</td><td>${d.website||'Not found'}</td></tr>`;});
+        html+='</tbody></table>';
+    } else {
+        const c=dataConfigurations[currentInputType];const ol=c.outputs[currentOutputType];
+        html=`<table class="results-table"><thead><tr><th>${c.label.replace('Enter ','')}</th><th>${ol}</th><th>Status</th></tr></thead><tbody>`;
+        bulkResults.forEach(row=>{let rc=row.result;if(row.result!=='Not found'&&row.result!=='Error'&&row.result!=='Processing...'&&row.result.startsWith&&row.result.startsWith('http')){rc=`<a href="${row.result}" target="_blank" style="color:var(--primary);text-decoration:none;">${row.result}</a>`;}html+=`<tr><td>${row.inputData}</td><td>${rc}</td><td><span class="status-badge ${sc(row.status)}">${st(row.status)}</span></td></tr>`;});
+        html+='</tbody></table>';
+    }
+    document.getElementById('bulkResultsTable').innerHTML=html;
+}
+function downloadResults(){
+    if(bulkResults.length===0) return;
+    const c=dataConfigurations[currentInputType];let csv='';
+    if(currentOutputType==='employee_count'){csv=`${c.label.replace('Enter ','')},Employee Count,Status\n`;bulkResults.forEach(r=>{csv+=`"${r.inputData}","${r.employeeCount||'Not found'}","${r.status==='Processing'?'Not found':r.status}"\n`;});}
+    else if(currentInputType==='linkedin_post'&&currentOutputType==='reactions'){csv='Name,Job Title,Profile Info,LinkedIn URL\n';bulkResults.forEach(pr=>{if(pr.reactions&&Array.isArray(pr.reactions)){pr.reactions.forEach(r=>{const p=parseReactionTitle(r.title);const esc=(s)=>(!s||s==='Not found'||s==='Not specified')?s:`"${s.toString().replace(/"/g,'""')}"`;csv+=[esc(p.name),esc(p.jobInfo||'Not specified'),esc(r.snippet||'Not specified'),esc(r.link||'Not specified')].join(',')+'\n';});}});}
+    else if(currentInputType==='linkedin_profile'&&currentOutputType==='linkedin_info'){csv='LinkedIn URL,Name,Job Title,Company,Location,Industry,Website,Email,Education,Headline,Status\n';bulkResults.forEach(r=>{const d=r.rawData||{};const esc=(s)=>(!s||s==='Not found'||s==='Not specified')?(s||''):`"${s.toString().replace(/"/g,'""')}"`;csv+=[esc(r.inputData),esc(d.name),esc(d.jobTitle),esc(d.company),esc(d.location),esc(d.industry),esc(d.website),esc(d.email),esc(d.education),esc(d.headline),r.status].join(',')+'\n';});}
+    else if(currentInputType==='linkedin_company'&&currentOutputType==='linkedin_info'){csv='LinkedIn URL,Company Name,Industry,Employees,Followers,City,Country,Founded,Website,Company Email,Company Phone,Description\n';bulkResults.forEach(r=>{const d=r.rawData||{};const esc=(s)=>(!s||s==='Not found'||s==='Not specified')?(s||''):`"${s.toString().replace(/"/g,'""')}"`;const followers=d.followerCount?Number(String(d.followerCount).replace(/,/g,'')).toLocaleString():'';const empSize=d.company_size!=null&&d.company_size!==''&&d.company_size!==0?String(d.company_size):'';csv+=[esc(r.inputData),esc(d.name),esc(d.industry),esc(empSize),esc(followers),esc(d.city),esc(d.country),esc(d.foundedOn),esc(d.website),esc(d.company_email),esc(d.company_phone),esc(d.company_description)].join(',')+'\n';});}
+    else if(currentOutputType==='employees'){csv='Input,Name,Job Title,Email,Company,Department,Industry,City,State,Country,Headline,Employment Type,LinkedIn URL,Company LinkedIn URL\n';bulkResults.forEach(r=>{const emps=r.employees||[];if(emps.length===0){csv+=`"${r.inputData}","Not found","","","","","","","","","","","",""\n`;}else{emps.forEach(e=>{const esc=(v)=>v?`"${String(v).replace(/"/g,'""')}"`:' ""';csv+=[esc(r.inputData),esc(e.name),esc(e.jobTitle),esc(e.email),esc(e.company),esc(e.department),esc(e.industry),esc(e.city),esc(e.state),esc(e.country),esc(e.headline),esc(e.employmentType),esc(e.linkedinUrl),esc(e.companylinkedinurl)].join(',')+'\n';});}});}
+    else{const ol=c.outputs[currentOutputType];csv=`${c.label.replace('Enter ','')},${ol},Status\n`;bulkResults.forEach(r=>{csv+=`"${r.inputData}","${r.result==='Processing...'?'Not found':r.result}","${r.status==='Processing'?'Not found':r.status}"\n`;});}
+    const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+    const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;
+    let fn='linkfinder_ai_enriched_data';
+    if(currentInputType==='linkedin_post') fn='linkedin_reactions';
+    else if(currentInputType==='linkedin_profile') fn='linkedin_profile_data';
+    else if(currentInputType==='linkedin_company') fn='linkedin_company_data';
+    a.download=`${fn}_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();URL.revokeObjectURL(url);
 }
 
 function showHistorySaved(){const n=document.getElementById('historySavedNotice');if(n)n.style.display='block';showCSAT();}
