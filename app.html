@@ -299,6 +299,21 @@
 .ph-banner{background:linear-gradient(135deg,#ff6154,#da4f3f);padding:0.5rem 1rem;text-align:center;font-size:0.8125rem;font-weight:500;color:white;display:flex;align-items:center;justify-content:center;gap:1rem;}
 .ph-banner-close{background:none;border:none;color:rgba(255,255,255,0.8);cursor:pointer;font-size:1.25rem;line-height:1;padding:0;flex-shrink:0;}
 @media(max-width:640px){.ph-banner{font-size:0.75rem;}}
+
+.csat-widget{display:none;align-items:center;gap:0.75rem;margin-top:0.875rem;padding:0.5rem 0.875rem;background:var(--gray-50);border-radius:8px;border:1px solid var(--gray-200);flex-wrap:wrap;}
+.csat-widget.show{display:flex;}
+.csat-label{font-size:0.775rem;color:var(--gray-500);font-weight:500;}
+.csat-btns{display:flex;gap:0.375rem;}
+.csat-btn{background:white;border:1px solid var(--gray-200);border-radius:6px;padding:0.3rem 0.6rem;cursor:pointer;font-size:0.9rem;transition:all 0.15s;line-height:1;}
+.csat-btn:hover{border-color:var(--gray-400);transform:scale(1.1);}
+.csat-btn.selected-up{background:#ecfdf5;border-color:var(--success);}
+.csat-btn.selected-down{background:#fef2f2;border-color:var(--error);}
+.csat-followup{display:none;width:100%;flex-wrap:wrap;gap:0.375rem;padding-top:0.375rem;}
+.csat-followup.show{display:flex;}
+.csat-reason{background:white;border:1px solid var(--gray-200);border-radius:999px;padding:0.25rem 0.625rem;font-size:0.72rem;color:var(--gray-600);cursor:pointer;font-family:inherit;transition:all 0.15s;}
+.csat-reason:hover{border-color:var(--error);color:var(--error);}
+.csat-reason.selected{background:#fef2f2;border-color:var(--error);color:var(--error);}
+.csat-thanks{font-size:0.775rem;color:var(--gray-400);font-style:italic;}
     
 </style>
 <script async src="https://plausible.io/js/pa-LTP3nlbjr9NybMEgzpwxU.js"></script>
@@ -353,6 +368,7 @@
             <a href="#" class="nav-tab active" data-page="enrichment"><i class="fas fa-search"></i> Data Enrichment</a>
             <a href="#" class="nav-tab" data-page="leads"><i class="fas fa-users"></i> LinkedIn Leads</a>
             <a href="#" class="nav-tab" data-page="api"><i class="fas fa-code"></i> API Access</a>
+            <a href="#" class="nav-tab" data-page="history"><i class="fas fa-history"></i> History</a>
             <a href="#" class="nav-tab" data-page="account"><i class="fas fa-user"></i> Account</a>
         </div>
     </div>
@@ -506,9 +522,28 @@
         </div>
 
         <div id="resultsSection" class="hidden">
+            <div id="historySavedNotice" style="display:none;margin-bottom:0.5rem;">
+                <a onclick="navigateToPage('history')" style="font-size:0.75rem;color:var(--success);cursor:pointer;display:inline-flex;align-items:center;gap:0.3rem;text-decoration:none;font-weight:500;">
+                    <i class="fas fa-check-circle" style="font-size:0.7rem;"></i> Saved to history →
+                </a>
+            </div>
             <div id="singleResult" class="result-card">
                 <textarea id="resultText" class="result-text" readonly placeholder="Enriched data will appear here..."></textarea>
                 <div id="resultLink" class="result-link"></div>
+            </div>
+            <div id="csatWidget" class="csat-widget">
+                <span class="csat-label">Was this result useful?</span>
+                <div class="csat-btns">
+                    <button class="csat-btn" id="csatUp" onclick="csatVote(true)" title="Yes">👍</button>
+                    <button class="csat-btn" id="csatDown" onclick="csatVote(false)" title="No">👎</button>
+                </div>
+                <span class="csat-thanks" id="csatThanks">Thanks for the feedback!</span>
+                <div class="csat-followup" id="csatFollowup">
+                    <button class="csat-reason" onclick="csatReason('wrong_result')">Wrong result</button>
+                    <button class="csat-reason" onclick="csatReason('empty_result')">Empty result</button>
+                    <button class="csat-reason" onclick="csatReason('too_slow')">Too slow</button>
+                    <button class="csat-reason" onclick="csatReason('other')">Other</button>
+                </div>
             </div>
             <div id="bulkResults" class="hidden">
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
@@ -992,7 +1027,11 @@ async function enrichData(event) {
             if (data.name&&!data.result) showSingleResult(inputValue,data);
             else showSingleResult(inputValue, data.result||'Not found');
             checkEnrichmentMilestone();
-        } else { showSingleResult(inputValue,'Not found'); }
+        } } else {
+    showSingleResult(inputValue,'Not found');
+    try{posthog.capture('enrichment_not_found',{input_type:currentInputType,output_type:currentOutputType});}catch(e){}
+}
+        showHistorySaved();
         showAutomationNudge(currentInputType, currentOutputType);
     } catch(error) { hideLoading(); showAlert('Enrichment error \u2014 please try again.','error'); }
     finally { restoreBtn(); }
@@ -1122,6 +1161,7 @@ function navigateToPage(page){
         case 'api': window.location.href=addGclid(`https://linkfinderai.com/api-access?token=${userToken}`); break;
         case 'account': window.location.href=addGclid(`https://linkfinderai.com/account?token=${userToken}`); break;
         case 'leads': window.location.href=addGclid(`https://linkfinderai.com/app-linkedin-leads?token=${userToken}`); break;
+        case 'history': window.location.href=addGclid(`https://linkfinderai.com/history?token=${userToken}`); break;
     }
 }
 
@@ -1378,7 +1418,40 @@ function downloadResults(){
     a.click();URL.revokeObjectURL(url);
 }
 
-function showLoading(){document.getElementById('loading').style.display='block';hideResults();}
+function showHistorySaved(){const n=document.getElementById('historySavedNotice');if(n)n.style.display='block';showCSAT();}
+function showCSAT(){
+    const w=document.getElementById('csatWidget');if(!w)return;
+    w.classList.add('show');
+    document.getElementById('csatUp').classList.remove('selected-up');
+    document.getElementById('csatDown').classList.remove('selected-down');
+    document.getElementById('csatFollowup').classList.remove('show');
+    document.getElementById('csatThanks').style.display='none';
+    document.querySelectorAll('.csat-reason').forEach(r=>r.classList.remove('selected'));
+}
+function hideCSAT(){const w=document.getElementById('csatWidget');if(w)w.classList.remove('show');}
+function csatVote(positive){
+    document.getElementById('csatUp').classList.toggle('selected-up', positive);
+    document.getElementById('csatDown').classList.toggle('selected-down', !positive);
+    if(positive){
+        document.getElementById('csatThanks').style.display='inline';
+        document.getElementById('csatFollowup').classList.remove('show');
+        setTimeout(()=>hideCSAT(),2000);
+        try{posthog.capture('csat_vote',{result:'positive',input_type:currentInputType,output_type:currentOutputType});}catch(e){}
+    } else {
+        document.getElementById('csatFollowup').classList.add('show');
+        document.getElementById('csatThanks').style.display='none';
+        try{posthog.capture('csat_vote',{result:'negative',input_type:currentInputType,output_type:currentOutputType});}catch(e){}
+    }
+}
+function csatReason(reason){
+    document.querySelectorAll('.csat-reason').forEach(r=>r.classList.remove('selected'));
+    event.target.classList.add('selected');
+    document.getElementById('csatThanks').style.display='inline';
+    setTimeout(()=>hideCSAT(),2000);
+    try{posthog.capture('csat_reason',{reason,input_type:currentInputType,output_type:currentOutputType});}catch(e){}
+}
+
+function showLoading(){document.getElementById('loading').style.display='block';hideResults();const n=document.getElementById('historySavedNotice');if(n)n.style.display='none';hideCSAT();}
 function hideLoading(){document.getElementById('loading').style.display='none';}
 function hideResults(){
     document.getElementById('resultsSection').classList.add('hidden');
