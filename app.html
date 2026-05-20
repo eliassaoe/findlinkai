@@ -996,7 +996,7 @@ function openPaddleCheckout(priceId, btnEl) {
         settings: { theme: 'light', locale: 'en', allowLogout: false },
         customData: { 
     user_token: userToken || '',
-    referrer_token: getRefCookie()
+    referrer_token: window.currentUserReferredBy || null 
 },
         eventCallback: function(event) {
             if (event.name === 'checkout.completed') {
@@ -1103,7 +1103,7 @@ function proceedToCheckoutDirect(index, btnEl) {
             settings: { theme: 'light', locale: 'en', allowLogout: false },
             customData: {                                    // ← add this
         user_token: userToken || '',
-        referrer_token: getRefCookie()
+        referrer_token: window.currentUserReferredBy || null
     },
             eventCallback: function(event) {
                 if (event.name === 'checkout.completed') {
@@ -1481,6 +1481,7 @@ function checkAuth(){
                 document.getElementById('annualBanner').style.display = 'block';
             }
         }
+        window.currentUserReferredBy = d.refered_by || null;
     })
     .catch(() => {});
 }
