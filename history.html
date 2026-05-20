@@ -469,20 +469,79 @@ function updateStats() {
 
 function exportAll() {
     if (!filteredHistory.length) return;
-    const headers = ['Timestamp','Type','Input','Result','Credits Used'];
-    const rows = filteredHistory.map(item => [
-        new Date(item.timestamp).toISOString(),
-        item.type || '',
-        item.input || '',
-        typeof item.result === 'object' ? JSON.stringify(item.result) : (item.result || ''),
-        item.credits_used || 1
+
+    const unwrap = r => (r && typeof r === 'object' && !Array.isArray(r)
+        && Object.keys(r).length === 1 && 'result' in r) ? unwrap(r.result) : r;
+
+    // Flatten nested objects with dotted-ish keys; keep nested arrays as JSON
+    const flatten = (obj, prefix = '') => {
+        const out = {};
+        if (obj == null) return out;
+        if (typeof obj !== 'object') { out[prefix || 'value'] = obj; return out; }
+        for (const k of Object.keys(obj)) {
+            const v = obj[k];
+            const key = prefix ? `${prefix}_${k}` : k;
+            if (v == null) out[key] = '';
+            else if (Array.isArray(v)) out[key] = JSON.stringify(v);
+            else if (typeof v === 'object') Object.assign(out, flatten(v, key));
+            else out[key] = v;
+        }
+        return out;
+    };
+
+    // Expand each history item into one or more rows
+    const expanded = [];
+    for (const item of filteredHistory) {
+        const base = {
+            Timestamp: new Date(item.timestamp).toISOString(),
+            Type: item.type || '',
+            Input: item.input || '',
+            'Credits Used': item.credits_used || 1
+        };
+        const r = unwrap(item.result);
+
+        if (Array.isArray(r)) {
+            // employees list, post reactions → one row per entry
+            if (!r.length) { expanded.push({ base, data: {} }); continue; }
+            for (const entry of r) {
+                if (entry == null) continue;
+                const data = (typeof entry === 'object' && !Array.isArray(entry))
+                    ? flatten(entry) : { value: entry };
+                expanded.push({ base, data });
+            }
+        } else if (r && typeof r === 'object') {
+            // profile / company scraping → one row, fully flattened
+            expanded.push({ base, data: flatten(r) });
+        } else {
+            expanded.push({ base, data: r != null ? { value: r } : {} });
+        }
+    }
+
+    // Collect result columns in first-seen order
+    const resultKeys = [];
+    const seen = new Set();
+    for (const { data } of expanded) {
+        for (const k of Object.keys(data)) {
+            if (!seen.has(k)) { seen.add(k); resultKeys.push(k); }
+        }
+    }
+
+    const baseHeaders = ['Timestamp', 'Type', 'Input', 'Credits Used'];
+    const headers = [...baseHeaders, ...resultKeys];
+
+    const rows = expanded.map(({ base, data }) => [
+        ...baseHeaders.map(h => base[h]),
+        ...resultKeys.map(k => data[k] !== undefined ? data[k] : '')
     ]);
-    const csv = [headers, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+
+    const esc = v => `"${String(v == null ? '' : v).replace(/"/g, '""').replace(/\r?\n/g, ' ')}"`;
+    const csv = [headers, ...rows].map(r => r.map(esc).join(',')).join('\n');
+
     const a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv;charset=utf-8;'}));
-    a.download = `linkfinder_history_${new Date().toISOString().slice(0,10)}.csv`;
+    a.href = URL.createObjectURL(new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' }));
+    a.download = `linkfinder_history_${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
-    try { posthog.capture('history_exported', {count: filteredHistory.length}); } catch(e) {}
+    try { posthog.capture('history_exported', { count: filteredHistory.length }); } catch (e) {}
 }
 
 async function fetchCredits() {
