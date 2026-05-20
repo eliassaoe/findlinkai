@@ -525,6 +525,13 @@
 #n8n-chat .chat-footer-marker {
     display: none !important;
 }
+
+.saved-pill{display:inline-flex;align-items:center;gap:0.375rem;background:#dcfce7;color:#15803d;border:1px solid #bbf7d0;padding:0.35rem 0.75rem;border-radius:999px;font-size:0.78rem;font-weight:600;cursor:pointer;transition:all 0.2s ease;text-decoration:none;font-family:inherit;animation:saved-in 0.35s ease;margin-bottom:1rem;}
+.saved-pill:hover{background:#bbf7d0;color:#14532d;transform:translateY(-1px);box-shadow:0 2px 6px rgba(21,128,61,0.15);}
+.saved-pill i{font-size:0.7rem;}
+.saved-pill .saved-arrow{font-size:0.65rem;opacity:0.7;margin-left:0.15rem;transition:transform 0.2s ease;}
+.saved-pill:hover .saved-arrow{transform:translateX(2px);opacity:1;}
+@keyframes saved-in{from{opacity:0;transform:translateY(-4px);}to{opacity:1;transform:translateY(0);}}
  
     
 </style>
@@ -1304,15 +1311,16 @@ async function enrichData(event) {
         });
         const data = await response.json();
         hideLoading();
-        if (currentOutputType==='reactions'&&Array.isArray(data)&&data.length>0) { deductCredits(data.length); showSingleResultReactions(inputValue,data); checkEnrichmentMilestone(); return; }
-        if (currentOutputType==='employee_count') { deductCredits(getCreditCost(currentInputType,currentOutputType)); showSingleResultEmployeeCount(inputValue,data); checkEnrichmentMilestone(); return; }
-        if (currentOutputType==='employees'&&Array.isArray(data)&&data.length>0) { deductCredits(data.length*0.5); showSingleResultEmployees(inputValue,data); checkEnrichmentMilestone(); return; }
+        if (currentOutputType==='reactions'&&Array.isArray(data)&&data.length>0) { deductCredits(data.length); showSingleResultReactions(inputValue,data); checkEnrichmentMilestone(); showSavedPill(); return; }
+        if (currentOutputType==='employee_count') { deductCredits(getCreditCost(currentInputType,currentOutputType)); showSingleResultEmployeeCount(inputValue,data); checkEnrichmentMilestone(); showSavedPill(); return; }
+        if (currentOutputType==='employees'&&Array.isArray(data)&&data.length>0) { deductCredits(data.length*0.5); showSingleResultEmployees(inputValue,data); checkEnrichmentMilestone(); showSavedPill(); return; }
         if (response.status===403&&data.code===403) { try { posthog.capture('credits_exhausted', { input_type: currentInputType, output_type: currentOutputType, credits_remaining: currentCredits }); } catch(e) {} showInsufficientCreditsModal(); return; }
         if (response.ok&&data&&(data.result||data.name)) {
             deductCredits(getCreditCost(currentInputType,currentOutputType));
             if (data.name&&!data.result) showSingleResult(inputValue,data);
             else showSingleResult(inputValue, data.result||'Not found');
             checkEnrichmentMilestone();
+            showSavedPill();
         } else { showSingleResult(inputValue,'Not found'); }
         // showAutomationNudge(currentInputType, currentOutputType);
     } catch(error) { hideLoading(); showAlert('Enrichment error \u2014 please try again.','error'); }
@@ -1392,6 +1400,7 @@ async function processBulk() {
     } finally {
         isBulkProcessing=false; removeRefreshWarning();
         btn.disabled=false; btn.innerHTML='<i class="fas fa-play"></i> Process Items';
+        if (bulkResults.length > 0) showSavedPill(); 
     }
 }
 
@@ -1712,6 +1721,25 @@ function hideResults(){
     document.getElementById('resultsSection').classList.add('hidden');
     const nudge=document.getElementById('automationNudge');
     if(nudge){nudge.style.display='none';nudge.innerHTML='';}
+}
+
+function showSavedPill(targetEl) {
+    // Remove any existing pill first to avoid duplicates
+    document.querySelectorAll('.saved-pill').forEach(el => el.remove());
+    
+    const pill = document.createElement('a');
+    pill.className = 'saved-pill';
+    pill.href = '#';
+    pill.innerHTML = '<i class="fas fa-check-circle"></i> Saved to history <span class="saved-arrow">→</span>';
+    pill.onclick = (e) => {
+        e.preventDefault();
+        try { posthog.capture('saved_pill_clicked', { input_type: currentInputType, output_type: currentOutputType }); } catch(e) {}
+        window.location.href = addGclid(`https://linkfinderai.com/history?token=${userToken}`);
+    };
+    
+    // Insert at the top of the results section
+    const resultsSection = document.getElementById('resultsSection');
+    resultsSection.insertBefore(pill, resultsSection.firstChild);
 }
 
 const creditCosts={'company_name_to_website':1,'company_name_to_phone':1,'company_name_to_linkedin_url':1,'email_to_linkedin_url':1,'company_name_to_employees':1,'company_name_to_employee_count':1,'company_name_to_email':1,'linkedin_company_to_linkedin_info':5,'linkedin_company_to_employees':1,'linkedin_company_to_employee_count':1,'linkedin_profile_to_linkedin_info':10,'lead_full_name_to_linkedin_url':1,'linkedin_profile_to_email':1,'company_domain_to_employees':1,'linkedin_post_to_reactions':1,'linkedin_profile_to_phone':1};
