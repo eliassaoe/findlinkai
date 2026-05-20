@@ -714,7 +714,7 @@
             </div>
             <label class="ref-field-label" for="referralLink">Your invite link</label>
             <div class="ref-input-row">
-                <input type="text" id="referralLink" class="ref-input" readonly value="https://linkfinderai.com?ref=YOUR_CODE">
+                <input type="text" id="referralLink" class="ref-input" readonly value="">
                 <button class="ref-action-btn" id="refCopyBtn" onclick="copyReferralLink()">
                     <i class="fas fa-copy"></i><span id="refCopyText">Copy</span>
                 </button>
@@ -1756,6 +1756,12 @@ let refDataLoaded = false;
 function openReferralModal() {
     document.getElementById('referralModal').classList.add('show');
     document.body.style.overflow = 'hidden';
+
+    // Set the link immediately from userToken
+    if (userToken) {
+        document.getElementById('referralLink').value = `https://linkfinderai.com?ref=${userToken}`;
+    }
+
     if (!refDataLoaded) { fetchReferralData(); refDataLoaded = true; }
     try { posthog.capture('referral_modal_opened', { credits_remaining: currentCredits }); } catch(e) {}
 }
@@ -1793,7 +1799,6 @@ async function fetchReferralData() {
             const data = await response.json();
             document.getElementById('alreadyPaid').textContent = `$${data.alreadyPaid || '0.00'}`;
             document.getElementById('pendingPayout').textContent = `$${data.pendingPayout || '0.00'}`;
-            if (data.referralCode) document.getElementById('referralLink').value = `https://linkfinderai.com?ref=${data.referralCode}`;
             if (data.paypalEmail) {
                 document.getElementById('currentPaypal').textContent = data.paypalEmail;
                 document.getElementById('paypalDisplay').classList.add('show');
