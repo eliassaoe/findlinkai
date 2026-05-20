@@ -194,8 +194,6 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};
     plausible.init()
   </script>
-  
-  <script async src="https://cdn.tolt.io/tolt.js" data-tolt="pk_CAtHKL6z3BUN8BWfHENpoM1e"></script>
 <!-- Meta Pixel Code -->
 <script>
 !function(f,b,e,v,n,t,s)
@@ -367,16 +365,23 @@ src="https://www.facebook.com/tr?id=2717863625238535&ev=PageView&noscript=1"
         }
 
         // Send email to YOUR server and get YOUR token
-        async function sendEmailToServer(email) {
-            try {
-                console.log('📤 DEBUG: Sending email to worker:', email);
-                console.log('🔍 DEBUG: Posting to:', WORKER_URL);
-                
-                const requestBody = {
-                    email: email,
-                    provider: 'google',
-                    type: 'signup'
-                };
+       async function sendEmailToServer(email) {
+    try {
+        console.log('📤 DEBUG: Sending email to worker:', email);
+        console.log('🔍 DEBUG: Posting to:', WORKER_URL);
+        
+        // Read tracking data saved before the Google OAuth redirect
+        const requestBody = {
+            email: email,
+            provider: 'google',
+            type: 'signup',
+            ref:   localStorage.getItem('lf_ref') || null,
+            gclid: localStorage.getItem('gclid')  || null,
+            fbc:   getCookie('_fbc') || null,
+            fbp:   getCookie('_fbp') || null
+        };
+        
+        console.log('📝 DEBUG: Request body:', requestBody);
                 
                 console.log('📝 DEBUG: Request body:', requestBody);
                 
@@ -420,6 +425,10 @@ src="https://www.facebook.com/tr?id=2717863625238535&ev=PageView&noscript=1"
                 return { success: false, error: error.message };
             }
         }
+
+        function getCookie(name) {
+    return document.cookie.split('; ').find(r => r.startsWith(name + '='))?.split('=')[1] || null;
+}
 
         // Main processing function
         async function processGoogleSignup() {
@@ -473,6 +482,7 @@ src="https://www.facebook.com/tr?id=2717863625238535&ev=PageView&noscript=1"
                            : `https://linkfinderai.com/app?token=${result.token}`;
 
                         localStorage.removeItem('gclid');
+                        localStorage.removeItem('lf_ref'); 
                         console.log('🔄 DEBUG: Redirecting to:', appUrl);
                         window.location.href = appUrl;
                     }, 1500);
