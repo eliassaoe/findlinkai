@@ -539,7 +539,7 @@
 <script>window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};plausible.init()</script>
 <script>!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version="2.0";n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,"script","https://connect.facebook.net/en_US/fbevents.js");fbq("init","2717863625238535");fbq("track","PageView");</script>
 <link rel="canonical" href="https://linkfinderai.com/app" />
-<script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
+
 </head>
 <body>
 
@@ -969,65 +969,29 @@ function getRefCookie() {
 }
 
 /* ═══════════════════════════════════════════════════════════
-   PADDLE — live credentials, all Price IDs filled in
+   GUMROAD — reverted from Paddle
 ═══════════════════════════════════════════════════════════ */
-const PADDLE_CLIENT_TOKEN = 'live_7dfae08063d5734fb2abd6373e3';
-const PADDLE_SANDBOX      = false;
-
-const PRICE_IDS = {
-    starter_monthly:     'pri_01krrtbr6q0k0qg9xm0ms9e1b4',
-    pro_monthly:         'pri_01krrtdbmhyvayzrcm0x0xm0h8',
-    enterprise_monthly:  'pri_01krrtezpv12b4qaycvhrq7v9j',
-    hypergrowth_monthly: 'pri_01krrtggp5zyexxtjd39bg9wp1',
-    starter_annual:      'pri_01krrtjfasxfzfaefn82vv4xqa',
-    pro_annual:          'pri_01krrtnb6jfewb4m652zsdv6t3',
-    enterprise_annual:   'pri_01krrtq4v86zfv0dj5dbw7zbd6',
-    hypergrowth_annual:  'pri_01krrtr82ajr9ssg7eavsmd36j',
-    credits_1k:          'pri_01krtfkzz9c4dykmthgxe0f0gc',
-    credits_5k:          'pri_01krtfnf6j5b59rn9atdz0jgdv',
-    credits_10k:         'pri_01krtfpfy4h9y53q11carqrmpv',
-    credits_25k:         'pri_01krtfqg8mpvzpg21g4et5g6c2',
+const GUMROAD_LINKS = {
+    starter_monthly:     'https://linkfinderai.gumroad.com/l/txudoe',
+    starter_annual:      'https://linkfinderai.gumroad.com/l/hescr',
+    pro_monthly:         'https://linkfinderai.gumroad.com/l/ouvehf',
+    pro_annual:          'https://linkfinderai.gumroad.com/l/eadfhi',
+    enterprise_monthly:  'https://linkfinderai.gumroad.com/l/oukgp',
+    enterprise_annual:   'https://linkfinderai.gumroad.com/l/gtwsp',
+    hypergrowth_monthly: 'https://linkfinderai.gumroad.com/l/tbwevi',
+    hypergrowth_annual:  'https://linkfinderai.gumroad.com/l/dilhpd',
+    credits_1k:          'https://linkfinderai.gumroad.com/l/evkit',
+    credits_5k:          'https://linkfinderai.gumroad.com/l/avpnoy',
+    credits_10k:         'https://linkfinderai.gumroad.com/l/vwwvxi',
+    credits_25k:         'https://linkfinderai.gumroad.com/l/ryedf',
 };
-
-if (PADDLE_SANDBOX) Paddle.Environment.set('sandbox');
-Paddle.Initialize({ token: PADDLE_CLIENT_TOKEN });
-
-function openPaddleCheckout(priceId, btnEl) {
-    if (!priceId || priceId.startsWith('pri_REPLACE')) {
-        alert('\u26a0\ufe0f Add your Paddle Price IDs (pri_xxx) to PRICE_IDS in the script.');
-        if (btnEl) { btnEl.textContent = 'Get Started'; btnEl.disabled = false; }
-        return;
-    }
-    Paddle.Checkout.open({
-        items: [{ priceId: priceId, quantity: 1 }],
-        settings: { theme: 'light', locale: 'en', allowLogout: false },
-        customData: { 
-    user_token: userToken || '',
-    referrer_token: window.currentUserReferredBy || null 
-},
-        eventCallback: function(event) {
-            if (event.name === 'checkout.completed') {
-                if (btnEl) { btnEl.textContent = 'Get Started'; btnEl.disabled = false; }
-                closePricingModal();
-                const toast = document.getElementById('modalToast');
-                if (toast) { toast.classList.add('show'); setTimeout(() => toast.classList.remove('show'), 5000); }
-                setTimeout(() => fetchCredits(), 3000);
-                try { posthog.capture('checkout_completed', { priceId }); } catch(e) {}
-                try { if (typeof fbq !== 'undefined') fbq('track', 'Purchase'); } catch(e) {}
-            }
-            if (event.name === 'checkout.closed' || event.name === 'checkout.error') {
-                if (btnEl) { btnEl.textContent = 'Get Started'; btnEl.disabled = false; }
-            }
-        }
-    });
-}
 
 const INDUSTRY_AVG_PER_CREDIT = 0.15;
 
 const plans = [
-    { name:'Starter',     monthlyPrice:49,  credits:60000,  monthlyPriceId: PRICE_IDS.starter_monthly,    annualPriceId: PRICE_IDS.starter_annual },
-    { name:'Professional',monthlyPrice:89,  credits:240000, monthlyPriceId: PRICE_IDS.pro_monthly,        annualPriceId: PRICE_IDS.pro_annual },
-    { name:'Enterprise',  monthlyPrice:149, credits:600000, monthlyPriceId: PRICE_IDS.enterprise_monthly, annualPriceId: PRICE_IDS.enterprise_annual },
+    { name:'Starter',     monthlyPrice:49,  credits:60000,  monthlyLink: GUMROAD_LINKS.starter_monthly,    annualLink: GUMROAD_LINKS.starter_annual },
+    { name:'Professional',monthlyPrice:89,  credits:240000, monthlyLink: GUMROAD_LINKS.pro_monthly,        annualLink: GUMROAD_LINKS.pro_annual },
+    { name:'Enterprise',  monthlyPrice:149, credits:600000, monthlyLink: GUMROAD_LINKS.enterprise_monthly, annualLink: GUMROAD_LINKS.enterprise_annual },
 ];
     
 let isAnnualBilling = false;
@@ -1094,43 +1058,14 @@ function renderPlansGrid() {
 }
 
 function proceedToCheckoutDirect(index, btnEl) {
-    const plan    = plans[index];
-    const priceId = isAnnualBilling ? plan.annualPriceId : plan.monthlyPriceId;
-    if (btnEl) { btnEl.textContent = 'Opening\u2026'; btnEl.disabled = true; }
+    const plan = plans[index];
+    const baseUrl = isAnnualBilling ? plan.annualLink : plan.monthlyLink;
+    if (btnEl) { btnEl.textContent = 'Opening…'; btnEl.disabled = true; }
     try { posthog.capture('plan_selected', { plan: plan.name, billing: isAnnualBilling ? 'annual' : 'monthly', credits_remaining: currentCredits, is_subscriber: isExistingSubscriber }); } catch(e) {}
     try { if (typeof plausible !== 'undefined') plausible('Plan Selected', { props: { plan: plan.name } }); } catch(e) {}
     try { window.uetq = window.uetq || []; window.uetq.push('event', 'begin_checkout', {}); } catch(e) {}
-
-    // Existing subscriber with a subscription_id → use Paddle's native plan change
-    // which shows the prorated amount correctly instead of full price
-    if (isExistingSubscriber && currentSubscriptionId) {
-        Paddle.Checkout.open({
-            subscriptionId: currentSubscriptionId,
-            items: [{ priceId: priceId, quantity: 1 }],
-            settings: { theme: 'light', locale: 'en', allowLogout: false },
-            customData: {                                    // ← add this
-        user_token: userToken || '',
-        referrer_token: window.currentUserReferredBy || null
-    },
-            eventCallback: function(event) {
-                if (event.name === 'checkout.completed') {
-                    if (btnEl) { btnEl.textContent = 'Done'; btnEl.disabled = false; }
-                    closePricingModal();
-                    const toast = document.getElementById('modalToast');
-                    if (toast) { toast.classList.add('show'); setTimeout(() => toast.classList.remove('show'), 5000); }
-                    setTimeout(() => fetchCredits(), 3000);
-                    try { posthog.capture('plan_changed', { plan: plan.name, priceId }); } catch(e) {}
-                    try { if (typeof fbq !== 'undefined') fbq('track', 'Purchase'); } catch(e) {}
-                }
-                if (event.name === 'checkout.closed' || event.name === 'checkout.error') {
-                    if (btnEl) { btnEl.textContent = 'Upgrade to ' + plan.name; btnEl.disabled = false; }
-                }
-            }
-        });
-    } else {
-        // New customer → regular checkout
-        openPaddleCheckout(priceId, btnEl);
-    }
+    const url = addGclid(baseUrl + '?wanted=true&user_id=' + (userToken || ''));
+    window.location.href = url;
 }
 
 function setBilling(type) {
