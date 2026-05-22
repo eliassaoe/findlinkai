@@ -539,8 +539,7 @@
 <script>window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};plausible.init()</script>
 <script>!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version="2.0";n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,"script","https://connect.facebook.net/en_US/fbevents.js");fbq("init","2717863625238535");fbq("track","PageView");</script>
 <link rel="canonical" href="https://linkfinderai.com/app" />
-<script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
-<!-- softened-tool-page-v1 -->
+
 </head>
 <body>
 
@@ -606,7 +605,7 @@
                 </div>
                 <div class="qs-card" onclick="quickStart('linkedin_profile','linkedin_info','https://www.linkedin.com/in/satya-nadella/')">
                     <div class="qs-card-icon">👤</div>
-                    <div class="qs-card-title">Look up business contacts Profile</div>
+                    <div class="qs-card-title">Look up LinkedIn Profile</div>
                     <div class="qs-card-sub">LinkedIn URL → full profile data</div>
                 </div>
                 <div class="qs-card" onclick="quickStart('company_domain','employees','stripe.com')">
@@ -769,7 +768,7 @@
         It only takes less than 1 minute!<br><br>
         If you give us a review and provide us with the link to your review
         <a href="https://form.typeform.com/to/UKRzccI3" class="review-form-link" onclick="openReviewForm(event)">in this form</a>,
-        we will award you <strong>1000 credits</strong> on your .<br><br>
+        we will award you <strong>1000 credits</strong> on your account.<br><br>
         Thank you in advance! 🙏
     </div>
 </div>
@@ -803,7 +802,7 @@
         <button class="modal-close" onclick="closeInsufficientCreditsModal()"><i class="fas fa-times"></i></button>
         <div class="pricing-modal-header">
             <h2>Insufficient Credits</h2>
-            <p>You do not have sufficient credits. Upgrade your  for more.</p>
+            <p>You do not have sufficient credits. Upgrade for more.</p>
         </div>
         <div class="pricing-modal-cta">
             <button class="btn" onclick="showPricingFromInsufficientCredits()">Upgrade </button>
@@ -948,9 +947,9 @@ const dataConfigurations = {
     company_name: { label:"Enter Company Name", placeholder:"e.g., Tesla, Apple, Microsoft", outputs:{website:"Company Website",phone:"Company Phone Number",linkedin_url:"Company LinkedIn URL",email:"Company Email"} },
     email: { label:"Enter Email Address", placeholder:"e.g., john.doe@company.com", outputs:{linkedin_url:"LinkedIn Profile URL"} },
     company_domain: { label:"Enter Company Domain", placeholder:"e.g., tesla.com, apple.com, microsoft.com", outputs:{employees:"Company Employees List"} },
-    linkedin_company: { label:"Enter LinkedIn Company URL", placeholder:"e.g., linkedin.com/company/tesla", outputs:{linkedin_info:"LinkedIn Data lookup",employee_count:"Employee Count"} },
-    linkedin_profile: { label:"Enter LinkedIn Profile URL", placeholder:"e.g., linkedin.com/in/john-doe", outputs:{linkedin_info:"LinkedIn Data lookup",phone:"Phone Number",email:"Email Address"} },
-    linkedin_post: { label:"Enter LinkedIn Post URL", placeholder:"e.g., linkedin.com/feed/update/urn:li:activity:1234567890", outputs:{reactions:"Post Reactions lookup"} },
+    linkedin_company: { label:"Enter LinkedIn Company URL", placeholder:"e.g., linkedin.com/company/tesla", outputs:{linkedin_info:"LinkedIn Profile Data",employee_count:"Employee Count"} },
+    linkedin_profile: { label:"Enter LinkedIn Profile URL", placeholder:"e.g., linkedin.com/in/john-doe", outputs:{linkedin_info:"LinkedIn Profile Data",phone:"Phone Number",email:"Email Address"} },
+    linkedin_post: { label:"Enter LinkedIn Post URL", placeholder:"e.g., linkedin.com/feed/update/urn:li:activity:1234567890", outputs:{reactions:"Post Reactions"} },
 };
 
 async function fetchWithTimeout(url, options={}, timeout=180000) {
@@ -970,69 +969,29 @@ function getRefCookie() {
 }
 
 /* ═══════════════════════════════════════════════════════════
-   PADDLE — live credentials, all Price IDs filled in
+   STRIPE CHECKOUT — full migration from Gumroad
 ═══════════════════════════════════════════════════════════ */
-const PADDLE_CLIENT_TOKEN = 'live_7dfae08063d5734fb2abd6373e3';
-const PADDLE_SANDBOX      = false;
 
-const PRICE_IDS = {
-    starter_monthly:     'pri_01krrtbr6q0k0qg9xm0ms9e1b4',
-    pro_monthly:         'pri_01krrtdbmhyvayzrcm0x0xm0h8',
-    enterprise_monthly:  'pri_01krrtezpv12b4qaycvhrq7v9j',
-    hypergrowth_monthly: 'pri_01krrtggp5zyexxtjd39bg9wp1',
-    starter_annual:      'pri_01krrtjfasxfzfaefn82vv4xqa',
-    pro_annual:          'pri_01krrtnb6jfewb4m652zsdv6t3',
-    enterprise_annual:   'pri_01krrtq4v86zfv0dj5dbw7zbd6',
-    hypergrowth_annual:  'pri_01krrtr82ajr9ssg7eavsmd36j',
-    credits_1k:          'pri_01krtfkzz9c4dykmthgxe0f0gc',
-    credits_5k:          'pri_01krtfnf6j5b59rn9atdz0jgdv',
-    credits_10k:         'pri_01krtfpfy4h9y53q11carqrmpv',
-    credits_25k:         'pri_01krtfqg8mpvzpg21g4et5g6c2',
+const STRIPE_CHECKOUT_WORKER = 'https://linkfinder-stripe-checkout.hamoureliasse.workers.dev/';
+
+// Maps plan index + billing cycle to the plan key the checkout worker expects.
+// These keys must match the PRICE_IDS map in the stripe-checkout worker.
+const PLAN_KEYS = {
+    0: { monthly: 'starter_monthly',    annual: 'starter_annual' },
+    1: { monthly: 'pro_monthly',        annual: 'pro_annual' },
+    2: { monthly: 'enterprise_monthly', annual: 'enterprise_annual' },
 };
-
-if (PADDLE_SANDBOX) Paddle.Environment.set('sandbox');
-Paddle.Initialize({ token: PADDLE_CLIENT_TOKEN });
-
-function openPaddleCheckout(priceId, btnEl) {
-    if (!priceId || priceId.startsWith('pri_REPLACE')) {
-        alert('\u26a0\ufe0f Add your Paddle Price IDs (pri_xxx) to PRICE_IDS in the script.');
-        if (btnEl) { btnEl.textContent = 'Get Started'; btnEl.disabled = false; }
-        return;
-    }
-    Paddle.Checkout.open({
-        items: [{ priceId: priceId, quantity: 1 }],
-        settings: { theme: 'light', locale: 'en', allowLogout: false },
-        customData: { 
-    user_token: userToken || '',
-    referrer_token: window.currentUserReferredBy || null 
-},
-        eventCallback: function(event) {
-            if (event.name === 'checkout.completed') {
-                if (btnEl) { btnEl.textContent = 'Get Started'; btnEl.disabled = false; }
-                closePricingModal();
-                const toast = document.getElementById('modalToast');
-                if (toast) { toast.classList.add('show'); setTimeout(() => toast.classList.remove('show'), 5000); }
-                setTimeout(() => fetchCredits(), 3000);
-                try { posthog.capture('checkout_completed', { priceId }); } catch(e) {}
-                try { if (typeof fbq !== 'undefined') fbq('track', 'Purchase'); } catch(e) {}
-            }
-            if (event.name === 'checkout.closed' || event.name === 'checkout.error') {
-                if (btnEl) { btnEl.textContent = 'Get Started'; btnEl.disabled = false; }
-            }
-        }
-    });
-}
 
 const INDUSTRY_AVG_PER_CREDIT = 0.15;
 
 const plans = [
-    { name:'Starter',     monthlyPrice:49,  credits:60000,  monthlyPriceId: PRICE_IDS.starter_monthly,    annualPriceId: PRICE_IDS.starter_annual },
-    { name:'Professional',monthlyPrice:89,  credits:240000, monthlyPriceId: PRICE_IDS.pro_monthly,        annualPriceId: PRICE_IDS.pro_annual },
-    { name:'Enterprise',  monthlyPrice:149, credits:600000, monthlyPriceId: PRICE_IDS.enterprise_monthly, annualPriceId: PRICE_IDS.enterprise_annual },
+    { name:'Starter',     monthlyPrice:49,  credits:60000 },
+    { name:'Professional',monthlyPrice:89,  credits:240000 },
+    { name:'Enterprise',  monthlyPrice:149, credits:600000 },
 ];
-    
+
 let isAnnualBilling = false;
-    
+
 function renderPlansGrid() {
     const grid = document.getElementById('plansGrid');
     if (!grid) return;
@@ -1094,46 +1053,94 @@ function renderPlansGrid() {
     }).join('');
 }
 
-function proceedToCheckoutDirect(index, btnEl) {
-    const plan    = plans[index];
-    const priceId = isAnnualBilling ? plan.annualPriceId : plan.monthlyPriceId;
-    if (btnEl) { btnEl.textContent = 'Opening\u2026'; btnEl.disabled = true; }
-    try { posthog.capture('plan_selected', { plan: plan.name, billing: isAnnualBilling ? 'annual' : 'monthly', credits_remaining: currentCredits, is_subscriber: isExistingSubscriber }); } catch(e) {}
-    try { if (typeof plausible !== 'undefined') plausible('Plan Selected', { props: { plan: plan.name } }); } catch(e) {}
-    try { window.uetq = window.uetq || []; window.uetq.push('event', 'begin_checkout', {}); } catch(e) {}
+async function proceedToCheckoutDirect(index, btnEl) {
+    const plan = plans[index];
+    const planKey = PLAN_KEYS[index][isAnnualBilling ? 'annual' : 'monthly'];
+    const originalText = btnEl ? btnEl.textContent : '';
+    if (btnEl) { btnEl.textContent = 'Opening checkout…'; btnEl.disabled = true; }
 
-    // Existing subscriber with a subscription_id → use Paddle's native plan change
-    // which shows the prorated amount correctly instead of full price
-    if (isExistingSubscriber && currentSubscriptionId) {
-        Paddle.Checkout.open({
-            subscriptionId: currentSubscriptionId,
-            items: [{ priceId: priceId, quantity: 1 }],
-            settings: { theme: 'light', locale: 'en', allowLogout: false },
-            customData: {                                    // ← add this
-        user_token: userToken || '',
-        referrer_token: window.currentUserReferredBy || null
-    },
-            eventCallback: function(event) {
-                if (event.name === 'checkout.completed') {
-                    if (btnEl) { btnEl.textContent = 'Done'; btnEl.disabled = false; }
-                    closePricingModal();
-                    const toast = document.getElementById('modalToast');
-                    if (toast) { toast.classList.add('show'); setTimeout(() => toast.classList.remove('show'), 5000); }
-                    setTimeout(() => fetchCredits(), 3000);
-                    try { posthog.capture('plan_changed', { plan: plan.name, priceId }); } catch(e) {}
-                    try { if (typeof fbq !== 'undefined') fbq('track', 'Purchase'); } catch(e) {}
-                }
-                if (event.name === 'checkout.closed' || event.name === 'checkout.error') {
-                    if (btnEl) { btnEl.textContent = 'Upgrade to ' + plan.name; btnEl.disabled = false; }
-                }
-            }
+    // Fire analytics BEFORE network request — we capture intent even if checkout fails
+    try {
+        posthog.capture('plan_selected', {
+            plan: plan.name,
+            billing: isAnnualBilling ? 'annual' : 'monthly',
+            credits_remaining: currentCredits,
+            is_subscriber: isExistingSubscriber,
+            processor: 'stripe',
         });
-    } else {
-        // New customer → regular checkout
-        openPaddleCheckout(priceId, btnEl);
+    } catch(e) {}
+    try { if (typeof plausible !== 'undefined') plausible('Plan Selected', { props: { plan: plan.name, processor: 'stripe' } }); } catch(e) {}
+    try { window.uetq = window.uetq || []; window.uetq.push('event', 'begin_checkout', {}); } catch(e) {}
+    try { fbq('track', 'InitiateCheckout', { value: plan.monthlyPrice, currency: 'USD', content_name: plan.name }); } catch(e) {}
+
+    try {
+        const response = await fetch(STRIPE_CHECKOUT_WORKER, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                userToken: userToken,
+                email: window.currentUserEmail || undefined,
+                planKey: planKey,
+                isUpgrade: isExistingSubscriber && currentSubscriptionId ? true : false,
+                existingSubscriptionId: currentSubscriptionId || undefined,
+            }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error || ('Checkout failed: ' + response.status));
+        }
+
+        // Existing subscriber upgrade was applied in-place — no Stripe Checkout redirect
+        if (data.upgraded) {
+            try {
+                posthog.capture('subscription_upgraded_inline', {
+                    plan: plan.name,
+                    billing: isAnnualBilling ? 'annual' : 'monthly',
+                });
+            } catch(e) {}
+            closePricingModal();
+            alert('Plan changed to ' + plan.name + '. Your new credits will appear in a moment.');
+            setTimeout(() => fetchCredits(), 2500);
+            if (btnEl) {
+                btnEl.disabled = false;
+                if (originalText) btnEl.textContent = originalText;
+            }
+            return;
+        }
+
+        // New checkout — redirect to Stripe-hosted page
+        if (data.url) {
+            try {
+                posthog.capture('checkout_redirect', {
+                    plan: plan.name,
+                    processor: 'stripe',
+                    session_id: data.sessionId,
+                });
+            } catch(e) {}
+            window.location.href = addGclid(data.url);
+            return;
+        }
+
+        throw new Error('No checkout URL returned');
+    } catch (err) {
+        console.error('Checkout error:', err);
+        try { posthog.captureException(err); } catch(e) {}
+        try {
+            posthog.capture('checkout_error', {
+                plan: plan.name,
+                error: err.message || String(err),
+            });
+        } catch(e) {}
+        alert('Could not open checkout. Please try again or email support@linkfinderai.com');
+        if (btnEl) {
+            btnEl.disabled = false;
+            if (originalText) btnEl.textContent = originalText;
+        }
     }
 }
-
+    
 function setBilling(type) {
     isAnnualBilling = (type === 'annual');
     document.getElementById('monthlyBtn').classList.toggle('active', !isAnnualBilling);
@@ -1474,6 +1481,31 @@ function checkAuth(){
     if(action==='buy_credits') setTimeout(()=>showPricingModal(),500);
     else if(action==='upgrade') setTimeout(()=>showPricingModal(),500);
 
+    const checkoutResult = p.get('checkout');
+const sessionId = p.get('session_id');
+if (checkoutResult === 'success' && sessionId) {
+    // Webhook needs a moment to fire and provision credits — refresh after 3s
+    setTimeout(() => fetchCredits(), 3000);
+    setTimeout(() => fetchCredits(), 8000); // safety net
+
+    try { posthog.capture('subscription_started', { processor: 'stripe', session_id: sessionId }); } catch(e) {}
+    try { if (typeof plausible !== 'undefined') plausible('Purchase'); } catch(e) {}
+    try { fbq('track', 'Purchase', { currency: 'USD' }); } catch(e) {}
+    try { window.uetq = window.uetq || []; window.uetq.push('event', 'purchase', {}); } catch(e) {}
+    try { gtag('event', 'conversion', { send_to: 'AW-17588707745/REPLACE_WITH_PURCHASE_LABEL' }); } catch(e) {}
+
+    // Clean URL so refresh doesn't re-fire pixels
+    const cleanUrl = window.location.pathname + '?token=' + userToken;
+    window.history.replaceState({}, '', cleanUrl);
+
+    alert('Welcome! Your subscription is active. Credits will appear shortly.');
+}
+if (checkoutResult === 'canceled') {
+    try { posthog.capture('checkout_canceled', { processor: 'stripe' }); } catch(e) {}
+    const cleanUrl = window.location.pathname + '?token=' + userToken;
+    window.history.replaceState({}, '', cleanUrl);
+}
+
     // Silently check subscription status on load
     fetch(UPGRADE_INTENT_WORKER, {
         method: 'POST',
@@ -1492,6 +1524,7 @@ function checkAuth(){
             }
         }
         window.currentUserReferredBy = d.refered_by || null;
+        window.currentUserEmail = d.email || null; 
     })
     .catch(() => {});
 }
