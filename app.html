@@ -539,6 +539,7 @@
 <script>window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};plausible.init()</script>
 <script>!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version="2.0";n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,"script","https://connect.facebook.net/en_US/fbevents.js");fbq("init","2717863625238535");fbq("track","PageView");</script>
 <link rel="canonical" href="https://linkfinderai.com/app" />
+<script src="https://gumroad.com/js/gumroad.js" defer></script>
 
 </head>
 <body>
@@ -605,7 +606,7 @@
                 </div>
                 <div class="qs-card" onclick="quickStart('linkedin_profile','linkedin_info','https://www.linkedin.com/in/satya-nadella/')">
                     <div class="qs-card-icon">👤</div>
-                    <div class="qs-card-title">Scrape LinkedIn Profile</div>
+                    <div class="qs-card-title">Look up LinkedIn Profile</div>
                     <div class="qs-card-sub">LinkedIn URL → full profile data</div>
                 </div>
                 <div class="qs-card" onclick="quickStart('company_domain','employees','stripe.com')">
@@ -768,7 +769,7 @@
         It only takes less than 1 minute!<br><br>
         If you give us a review and provide us with the link to your review
         <a href="https://form.typeform.com/to/UKRzccI3" class="review-form-link" onclick="openReviewForm(event)">in this form</a>,
-        we will award you <strong>1000 credits</strong> on your .<br><br>
+        we will award you <strong>1000 credits</strong> on your account.<br><br>
         Thank you in advance! 🙏
     </div>
 </div>
@@ -802,7 +803,7 @@
         <button class="modal-close" onclick="closeInsufficientCreditsModal()"><i class="fas fa-times"></i></button>
         <div class="pricing-modal-header">
             <h2>Insufficient Credits</h2>
-            <p>You do not have sufficient credits. Upgrade your  for more.</p>
+            <p>You do not have sufficient credits. Upgrade for more.</p>
         </div>
         <div class="pricing-modal-cta">
             <button class="btn" onclick="showPricingFromInsufficientCredits()">Upgrade </button>
@@ -947,9 +948,9 @@ const dataConfigurations = {
     company_name: { label:"Enter Company Name", placeholder:"e.g., Tesla, Apple, Microsoft", outputs:{website:"Company Website",phone:"Company Phone Number",linkedin_url:"Company LinkedIn URL",email:"Company Email"} },
     email: { label:"Enter Email Address", placeholder:"e.g., john.doe@company.com", outputs:{linkedin_url:"LinkedIn Profile URL"} },
     company_domain: { label:"Enter Company Domain", placeholder:"e.g., tesla.com, apple.com, microsoft.com", outputs:{employees:"Company Employees List"} },
-    linkedin_company: { label:"Enter LinkedIn Company URL", placeholder:"e.g., linkedin.com/company/tesla", outputs:{linkedin_info:"LinkedIn Data Scraping",employee_count:"Employee Count"} },
-    linkedin_profile: { label:"Enter LinkedIn Profile URL", placeholder:"e.g., linkedin.com/in/john-doe", outputs:{linkedin_info:"LinkedIn Data Scraping",phone:"Phone Number",email:"Email Address"} },
-    linkedin_post: { label:"Enter LinkedIn Post URL", placeholder:"e.g., linkedin.com/feed/update/urn:li:activity:1234567890", outputs:{reactions:"Post Reactions Scraping"} },
+    linkedin_company: { label:"Enter LinkedIn Company URL", placeholder:"e.g., linkedin.com/company/tesla", outputs:{linkedin_info:"LinkedIn Profile Data",employee_count:"Employee Count"} },
+    linkedin_profile: { label:"Enter LinkedIn Profile URL", placeholder:"e.g., linkedin.com/in/john-doe", outputs:{linkedin_info:"LinkedIn Profile Data",phone:"Phone Number",email:"Email Address"} },
+    linkedin_post: { label:"Enter LinkedIn Post URL", placeholder:"e.g., linkedin.com/feed/update/urn:li:activity:1234567890", outputs:{reactions:"Post Reactions"} },
 };
 
 async function fetchWithTimeout(url, options={}, timeout=180000) {
@@ -1060,12 +1061,53 @@ function renderPlansGrid() {
 function proceedToCheckoutDirect(index, btnEl) {
     const plan = plans[index];
     const baseUrl = isAnnualBilling ? plan.annualLink : plan.monthlyLink;
+    const originalText = btnEl ? btnEl.textContent : '';
     if (btnEl) { btnEl.textContent = 'Opening…'; btnEl.disabled = true; }
     try { posthog.capture('plan_selected', { plan: plan.name, billing: isAnnualBilling ? 'annual' : 'monthly', credits_remaining: currentCredits, is_subscriber: isExistingSubscriber }); } catch(e) {}
     try { if (typeof plausible !== 'undefined') plausible('Plan Selected', { props: { plan: plan.name } }); } catch(e) {}
     try { window.uetq = window.uetq || []; window.uetq.push('event', 'begin_checkout', {}); } catch(e) {}
-    const url = addGclid(baseUrl + '?wanted=true&user_id=' + (userToken || ''));
-    window.location.href = url;
+ 
+    // Build URL with auto-trigger to payment form + prefill where available
+    const params = new URLSearchParams();
+    params.set('wanted', 'true');                              // skip product description, jump straight to payment form
+    if (userToken) params.set('user_id', userToken);
+    if (window.currentUserEmail) params.set('email', window.currentUserEmail);
+ 
+    const url = addGclid(baseUrl + '?' + params.toString());
+ 
+    openGumroadOverlay(url, btnEl, originalText);
+}
+ 
+function openGumroadOverlay(url, btnEl, originalText) {
+    // Open Gumroad checkout as overlay on linkfinderai.com (no full redirect = better conversion)
+    const link = document.createElement('a');
+    link.className = 'gumroad-button';
+    link.href = url;
+    link.setAttribute('data-gumroad-single-product', 'true');
+    link.style.cssText = 'position:absolute;left:-9999px;top:-9999px;visibility:hidden;';
+    document.body.appendChild(link);
+ 
+    // Trigger the overlay
+    setTimeout(() => { link.click(); }, 50);
+ 
+    // Clean up the hidden anchor after overlay opens
+    setTimeout(() => { if (link.parentNode) link.parentNode.removeChild(link); }, 2000);
+ 
+    // Fallback: if Gumroad overlay didn't load within 2s (script blocked, etc.), redirect normally
+    setTimeout(() => {
+        const overlayLoaded = document.querySelector('iframe[src*="gumroad.com"], .gumroad-overlay');
+        if (!overlayLoaded) {
+            window.location.href = url;
+        }
+    }, 2000);
+ 
+    // Restore button state after overlay has had time to render
+    setTimeout(() => {
+        if (btnEl) {
+            btnEl.disabled = false;
+            if (originalText) btnEl.textContent = originalText;
+        }
+    }, 3000);
 }
 
 function setBilling(type) {
@@ -1426,6 +1468,7 @@ function checkAuth(){
             }
         }
         window.currentUserReferredBy = d.refered_by || null;
+        window.currentUserEmail = d.email || null; 
     })
     .catch(() => {});
 }
