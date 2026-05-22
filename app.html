@@ -814,16 +814,6 @@
     </div>
 </div>
 
-<!-- Pre-rendered Gumroad anchors so gumroad.js binds at page load -->
-<div id="gumroadAnchors" style="position:absolute;left:-9999px;top:-9999px;visibility:hidden;" aria-hidden="true">
-    <a class="gumroad-button" id="gr-starter-monthly"    href="https://linkfinderai.gumroad.com/l/txudoe">_</a>
-    <a class="gumroad-button" id="gr-starter-annual"     href="https://linkfinderai.gumroad.com/l/hescr">_</a>
-    <a class="gumroad-button" id="gr-pro-monthly"        href="https://linkfinderai.gumroad.com/l/ouvehf">_</a>
-    <a class="gumroad-button" id="gr-pro-annual"         href="https://linkfinderai.gumroad.com/l/eadfhi">_</a>
-    <a class="gumroad-button" id="gr-enterprise-monthly" href="https://linkfinderai.gumroad.com/l/oukgp">_</a>
-    <a class="gumroad-button" id="gr-enterprise-annual"  href="https://linkfinderai.gumroad.com/l/gtwsp">_</a>
-</div>
-
 <div id="n8n-chat"></div>
 
 <button class="feedback-button" onclick="showFeedbackModal()" title="Send Feedback"><i class="fas fa-lightbulb"></i></button>
@@ -1070,36 +1060,22 @@ function renderPlansGrid() {
 
 function proceedToCheckoutDirect(index, btnEl) {
     const plan = plans[index];
+    const baseUrl = isAnnualBilling ? plan.annualLink : plan.monthlyLink;
     const originalText = btnEl ? btnEl.textContent : '';
     if (btnEl) { btnEl.textContent = 'Opening…'; btnEl.disabled = true; }
     try { posthog.capture('plan_selected', { plan: plan.name, billing: isAnnualBilling ? 'annual' : 'monthly', credits_remaining: currentCredits, is_subscriber: isExistingSubscriber }); } catch(e) {}
     try { if (typeof plausible !== 'undefined') plausible('Plan Selected', { props: { plan: plan.name } }); } catch(e) {}
     try { window.uetq = window.uetq || []; window.uetq.push('event', 'begin_checkout', {}); } catch(e) {}
-
-    // Find pre-rendered Gumroad anchor (created in HTML before gumroad.js loaded)
-    const planSlug    = plan.name === 'Professional' ? 'pro' : plan.name.toLowerCase();
-    const billingSlug = isAnnualBilling ? 'annual' : 'monthly';
-    const anchor      = document.getElementById('gr-' + planSlug + '-' + billingSlug);
-
-    // Build checkout URL with prefill params
-    const baseUrl = isAnnualBilling ? plan.annualLink : plan.monthlyLink;
-    const params  = new URLSearchParams();
-    params.set('wanted', 'true');
-    if (userToken)               params.set('user_id', userToken);
+ 
+    // Build URL with auto-trigger to payment form + prefill where available
+    const params = new URLSearchParams();
+    params.set('wanted', 'true');                              // skip product description, jump straight to payment form
+    if (userToken) params.set('user_id', userToken);
     if (window.currentUserEmail) params.set('email', window.currentUserEmail);
+ 
     const url = addGclid(baseUrl + '?' + params.toString());
-
-    if (!anchor) {
-        window.location.href = url;
-        return;
-    }
-
-    anchor.href = url;
-    anchor.click();
-
-    setTimeout(() => {
-        if (btnEl) { btnEl.disabled = false; if (originalText) btnEl.textContent = originalText; }
-    }, 2500);
+ 
+    openGumroadOverlay(url, btnEl, originalText);
 }
  
 function openGumroadOverlay(url, btnEl, originalText) {
