@@ -1843,7 +1843,7 @@ function downloadExampleCSV(){
     try{posthog.capture('example_csv_downloaded',{input_type:currentInputType});}catch(e){}
 }
 
-function quickStart(inputType,outputType,exampleData){
+function quickStart(inputType,outputType,exampleData,employeeCount){
     const qs=document.getElementById('quickstartSection');if(qs)qs.style.display='none';
     const inputSel=document.getElementById('inputType');inputSel.value=inputType;inputSel.dispatchEvent(new Event('change'));
     setTimeout(()=>{
@@ -1851,6 +1851,11 @@ function quickStart(inputType,outputType,exampleData){
         setTimeout(()=>{
             const f=document.getElementById('inputData');
             if(f&&exampleData){f.value=exampleData;setTimeout(()=>{f.focus();f.select();},150);}
+            // NEW: prefill employee count if supplied
+            if(employeeCount){
+                const ec=document.getElementById('optionalEmployeeCount');
+                if(ec) ec.value=employeeCount;
+            }
             const eb=document.querySelector('#singleSearch button[type="submit"]');
             if(eb){eb.style.transition='box-shadow 0.3s ease';eb.style.boxShadow='0 0 0 4px rgba(37,99,235,0.35)';setTimeout(()=>{eb.style.boxShadow='';},2500);setTimeout(()=>{eb.click();},300);}
         },120);
