@@ -20,6 +20,7 @@
 <link rel="icon" href="https://i.ibb.co/jPjX9SSp/Screen-Shot-2025-03-28-at-8-16-15-PM.png">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+<script src="https://cdn.jsdelivr.net/npm/dodopayments-checkout@latest/dist/index.js"></script>
 <link href="https://cdn.jsdelivr.net/npm/@n8n/chat/dist/style.css" rel="stylesheet"/>
 <style>
     :root {
@@ -981,23 +982,17 @@ function getRefCookie() {
     return match ? match[1] : null;
 }
 
-const DODO_LINKS = {
-    starter_monthly:     'https://checkout.dodopayments.com/buy/pdt_0NfjWCynK6nUBQy3sPgoh',
-    starter_annual:      'https://checkout.dodopayments.com/buy/pdt_0NfjX823TyK165XHjFgwU',
-    pro_monthly:         'https://checkout.dodopayments.com/buy/pdt_0NfjWjuYJncPwImbCl8If',
-    pro_annual:          'https://checkout.dodopayments.com/buy/pdt_0NfjXH2JPN8dxAzSHcosG',
-    enterprise_monthly:  'https://checkout.dodopayments.com/buy/pdt_0NfjWwmZZngo8ens4ikDc',
-    enterprise_annual:   'https://checkout.dodopayments.com/buy/pdt_0NfjXa7uoIa637QWGzlCn',
-};
+// Cloudflare Worker that creates Dodo Checkout Sessions
+// Update this URL after deploying dodo-checkout-worker.js
+const DODO_CHECKOUT_WORKER = 'https://dodo-checkout.hamoureliasse.workers.dev/';
 
 const INDUSTRY_AVG_PER_CREDIT = 0.15;
 
 const plans = [
-    { name:'Starter',     monthlyPrice:49,  credits:60000,  monthlyLink: DODO_LINKS.starter_monthly,    annualLink: DODO_LINKS.starter_annual },
-    { name:'Professional',monthlyPrice:89,  credits:240000, monthlyLink: DODO_LINKS.pro_monthly,        annualLink: DODO_LINKS.pro_annual },
-    { name:'Enterprise',  monthlyPrice:149, credits:600000, monthlyLink: DODO_LINKS.enterprise_monthly, annualLink: DODO_LINKS.enterprise_annual },
+    { name:'Starter',      key:'starter',    monthlyPrice:49,  credits:60000  },
+    { name:'Professional', key:'pro',        monthlyPrice:89,  credits:240000 },
+    { name:'Enterprise',   key:'enterprise', monthlyPrice:149, credits:600000 },
 ];
-    
 let isAnnualBilling = false;
     
 function renderPlansGrid() {
@@ -1061,37 +1056,75 @@ function renderPlansGrid() {
     }).join('');
 }
 
-function proceedToCheckoutDirect(index, btnEl) {
+function handleDodoCheckoutEvent(event) {
+    if (!event || !event.event_type) return;
+    switch (event.event_type) {
+        case 'checkout.opened':
+            try { posthog.capture('checkout_overlay_opened'); } catch(e) {}
+            break;
+        case 'checkout.closed':
+            try { posthog.capture('checkout_overlay_closed'); } catch(e) {}
+            break;
+        case 'checkout.redirect':
+            // Payment complete — Dodo redirects to return_url
+            try { posthog.capture('checkout_payment_success'); } catch(e) {}
+            break;
+        case 'checkout.error':
+            console.error('Dodo checkout error:', event.data?.message);
+            showAlert('Payment error: ' + (event.data?.message || 'Please try again.'), 'error');
+            try { posthog.capture('checkout_overlay_error', { message: event.data?.message }); } catch(e) {}
+            break;
+    }
+}
+
+async function proceedToCheckoutDirect(index, btnEl) {
     const plan = plans[index];
-    const baseUrl = isAnnualBilling ? plan.annualLink : plan.monthlyLink;
+    const planKey = plan.key + (isAnnualBilling ? '_annual' : '_monthly');
     const originalText = btnEl ? btnEl.textContent : '';
     if (btnEl) { btnEl.textContent = 'Opening…'; btnEl.disabled = true; }
+
     try { posthog.capture('plan_selected', { plan: plan.name, billing: isAnnualBilling ? 'annual' : 'monthly', credits_remaining: currentCredits, is_subscriber: isExistingSubscriber }); } catch(e) {}
     try { if (typeof plausible !== 'undefined') plausible('Plan Selected', { props: { plan: plan.name } }); } catch(e) {}
     try { window.uetq = window.uetq || []; window.uetq.push('event', 'begin_checkout', {}); } catch(e) {}
 
-    // Build Dodo checkout URL with metadata for webhook identification
-    const params = new URLSearchParams();
-    
-    // CRITICAL: pass user_token in metadata so the webhook knows who to credit
-    if (userToken) params.set('metadata_user_token', userToken);
-    if (window.currentUserEmail) params.set('email', window.currentUserEmail);
-    
-    // Optional plan label for analytics
-    params.set('metadata_plan', plan.name.toLowerCase() + (isAnnualBilling ? '_annual' : '_monthly'));
-    
-    const url = addGclid(baseUrl + '?' + params.toString());
+    try {
+        const resp = await fetch(DODO_CHECKOUT_WORKER, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                plan: planKey,
+                user_token: userToken,
+                email: window.currentUserEmail || undefined,
+                ref_token: getRefCookie() || undefined,
+            }),
+        });
 
-    // Full redirect to Dodo checkout
-    window.location.href = url;
+        const data = await resp.json();
 
-    // Restore button state if redirect doesn't happen
-    setTimeout(() => {
+        if (!resp.ok || !data.checkout_url) {
+            throw new Error(data.error || 'Checkout creation failed');
+        }
+
+        // Open overlay if SDK loaded, else full redirect fallback
+        if (window.DodoPaymentsCheckout && window.DodoPaymentsCheckout.Checkout) {
+            window.DodoPaymentsCheckout.Checkout.open({ checkoutUrl: data.checkout_url });
+            if (btnEl) {
+                btnEl.disabled = false;
+                btnEl.textContent = originalText;
+            }
+        } else {
+            // Fallback: full redirect to hosted Dodo page
+            window.location.href = data.checkout_url;
+        }
+    } catch (e) {
+        console.error('Checkout error:', e);
+        showAlert('Could not open checkout. Please try again or email support@linkfinderai.com.', 'error');
         if (btnEl) {
             btnEl.disabled = false;
-            if (originalText) btnEl.textContent = originalText;
+            btnEl.textContent = originalText;
         }
-    }, 3000);
+        try { posthog.capture('checkout_error', { message: e.message, plan: planKey }); } catch(_) {}
+    }
 }
 
 function setBilling(type) {
@@ -1407,6 +1440,18 @@ document.addEventListener('DOMContentLoaded',()=>{
     pb.disabled=true; pb.style.opacity='0.5';
     pb.innerHTML='<i class="fas fa-upload"></i> Upload a CSV file first';
     document.getElementById('outputType').disabled=true;
+    // Initialize Dodo Payments Checkout SDK (for overlay)
+    if (window.DodoPaymentsCheckout) {
+        try {
+            window.DodoPaymentsCheckout.Initialize({
+                mode: 'test', // change to 'live' once you switch Dodo to live mode
+                displayType: 'overlay',
+                onEvent: handleDodoCheckoutEvent,
+            });
+        } catch(e) {
+            console.warn('Dodo SDK init failed:', e);
+        }
+    }
 });
 
 function setupModalEvents(){
