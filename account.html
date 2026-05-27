@@ -21,7 +21,7 @@ posthog.init('phc_HqgzMyWAMtzH7K5j9CLw0dijB0I9W1VjPkkyzg9KOFG',{api_host:'https:
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
 <link href="https://cdn.jsdelivr.net/npm/@n8n/chat/dist/style.css" rel="stylesheet"/>
-<script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dodopayments-checkout@latest/dist/index.js"></script>
 <script async src="https://plausible.io/js/pa-LTP3nlbjr9NybMEgzpwxU.js"></script>
 <script>window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};plausible.init()</script>
 <script async src="https://cdn.tolt.io/tolt.js" data-tolt="pk_CAtHKL6z3BUN8BWfHENpoM1e"></script>
@@ -331,6 +331,7 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
 let userToken = null;
 let selectedCancellationReason = null;
 let currentCredits = null;
+let currentUserEmail = null;
 
 // Subscriber state
 let isExistingSubscriber  = false;
@@ -348,35 +349,42 @@ const gclid     = urlParams.get('gclid');
 function addGclid(url) { if (!gclid) return url; return url + (url.includes('?') ? '&' : '?') + 'gclid=' + gclid; }
 
 /* ══════════════════════════════════════════════
-   PADDLE — same credentials as app-final
+   DODO PAYMENTS — overlay checkout
 ══════════════════════════════════════════════ */
-const PADDLE_CLIENT_TOKEN = 'live_7dfae08063d5734fb2abd6373e3';
-const PRICE_IDS = {
-  starter_monthly:     'pri_01krrtbr6q0k0qg9xm0ms9e1b4',
-  pro_monthly:         'pri_01krrtdbmhyvayzrcm0x0xm0h8',
-  enterprise_monthly:  'pri_01krrtezpv12b4qaycvhrq7v9j',
-  hypergrowth_monthly: 'pri_01krrtggp5zyexxtjd39bg9wp1',
-  starter_annual:      'pri_01krrtjfasxfzfaefn82vv4xqa',
-  pro_annual:          'pri_01krrtnb6jfewb4m652zsdv6t3',
-  enterprise_annual:   'pri_01krrtq4v86zfv0dj5dbw7zbd6',
-  hypergrowth_annual:  'pri_01krrtr82ajr9ssg7eavsmd36j',
-  credits_1k:          'pri_01krtfkzz9c4dykmthgxe0f0gc',
-  credits_5k:          'pri_01krtfnf6j5b59rn9atdz0jgdv',
-  credits_10k:         'pri_01krtfpfy4h9y53q11carqrmpv',
-  credits_25k:         'pri_01krtfqg8mpvzpg21g4et5g6c2',
-};
-
-Paddle.Initialize({ token: PADDLE_CLIENT_TOKEN });
+const DODO_CHECKOUT_WORKER = 'https://dodo-checkout.hamoureliasse.workers.dev/';
 
 const plans = [
-    { name:'Starter',     monthlyPrice:49,  credits:60000,  monthlyPriceId: PRICE_IDS.starter_monthly,    annualPriceId: PRICE_IDS.starter_annual },
-    { name:'Professional',monthlyPrice:89,  credits:240000, monthlyPriceId: PRICE_IDS.pro_monthly,        annualPriceId: PRICE_IDS.pro_annual },
-    { name:'Enterprise',  monthlyPrice:149, credits:600000, monthlyPriceId: PRICE_IDS.enterprise_monthly, annualPriceId: PRICE_IDS.enterprise_annual },
+    { name:'Starter',      key:'starter',    monthlyPrice:49,  credits:60000  },
+    { name:'Professional', key:'pro',        monthlyPrice:89,  credits:240000 },
+    { name:'Enterprise',   key:'enterprise', monthlyPrice:149, credits:600000 },
 ];
 let isAnnualBilling = true;
 
 const planNumToIndex  = { 1:0, 2:1, 3:2, 4:3, 5:0, 6:1, 7:2, 8:3 };
 const planNumIsAnnual = { 1:false, 2:false, 3:false, 4:false, 5:true, 6:true, 7:true, 8:true };
+
+function handleDodoCheckoutEvent(event) {
+  if (!event || !event.event_type) return;
+  switch (event.event_type) {
+    case 'checkout.opened':
+      try { posthog.capture('checkout_overlay_opened', { page:'account' }); } catch(e) {}
+      break;
+    case 'checkout.closed':
+      try { posthog.capture('checkout_overlay_closed', { page:'account' }); } catch(e) {}
+      break;
+    case 'checkout.redirect':
+      try { posthog.capture('checkout_payment_success', { page:'account' }); } catch(e) {}
+      try { fbq('track', 'Purchase'); } catch(e) {}
+      closePricingModal();
+      showToast();
+      setTimeout(() => fetchCredits(), 3000);
+      break;
+    case 'checkout.error':
+      console.error('Dodo checkout error:', event.data && event.data.message);
+      alert('Payment error: ' + ((event.data && event.data.message) || 'Please try again.'));
+      break;
+  }
+}
 
 function renderPlansGrid() {
   const grid = document.getElementById('plansGrid');
@@ -424,58 +432,51 @@ function renderPlansGrid() {
   }).join('');
 }
 
-function proceedToCheckoutDirect(index, btnEl) {
+async function proceedToCheckoutDirect(index, btnEl) {
   const plan    = plans[index];
-  const priceId = isAnnualBilling ? plan.annualPriceId : plan.monthlyPriceId;
+  const planKey = plan.key + (isAnnualBilling ? '_annual' : '_monthly');
+  const originalText = btnEl ? btnEl.textContent : '';
   if (btnEl) { btnEl.textContent = 'Opening…'; btnEl.disabled = true; }
+
   try { posthog.capture('plan_selected', { plan: plan.name, billing: isAnnualBilling ? 'annual' : 'monthly', page: 'account', is_subscriber: isExistingSubscriber }); } catch(e) {}
+  try { window.uetq = window.uetq || []; window.uetq.push('event', 'begin_checkout', {}); } catch(e) {}
 
-  if (isExistingSubscriber && currentSubscriptionId) {
-    Paddle.Checkout.open({
-      subscriptionId: currentSubscriptionId,
-      items: [{ priceId: priceId, quantity: 1 }],
-      settings: { theme: 'light', locale: 'en', allowLogout: false },
-      eventCallback: function(event) {
-        if (event.name === 'checkout.completed') {
-          if (btnEl) { btnEl.textContent = 'Done'; btnEl.disabled = false; }
-          closePricingModal();
-          showToast();
-          setTimeout(() => fetchCredits(), 3000);
-          try { posthog.capture('plan_changed', { plan: plan.name, priceId }); } catch(e) {}
-        }
-        if (event.name === 'checkout.closed' || event.name === 'checkout.error') {
-          if (btnEl) { btnEl.textContent = 'Upgrade to ' + plan.name; btnEl.disabled = false; }
-        }
-      }
+  try {
+    const resp = await fetch(DODO_CHECKOUT_WORKER, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        plan: planKey,
+        user_token: userToken,
+        email: currentUserEmail || undefined,
+        ref_token: (function() {
+          const m = document.cookie.match(/(?:^|;\s*)lf_ref=([^;]+)/);
+          return m ? m[1] : undefined;
+        })(),
+      }),
     });
-  } else {
-    openPaddleCheckout(priceId, btnEl);
-  }
-}
-
-function openPaddleCheckout(priceId, btnEl) {
-  if (!priceId || priceId.startsWith('pri_REPLACE')) {
-    alert('⚠️ Credit pack price IDs not set yet.');
-    if (btnEl) btnEl.disabled = false;
-    return;
-  }
-  Paddle.Checkout.open({
-    items: [{ priceId: priceId, quantity: 1 }],
-    settings: { theme: 'light', locale: 'en', allowLogout: false },
-    customData: { user_token: userToken || '' },
-    eventCallback: function(event) {
-      if (event.name === 'checkout.completed') {
-        if (btnEl) btnEl.disabled = false;
-        closePricingModal(); closeBuyCreditsModal();
-        showToast();
-        setTimeout(() => fetchCredits(), 3000);
-        try { fbq('track', 'Purchase'); } catch(e) {}
-      }
-      if (event.name === 'checkout.closed' || event.name === 'checkout.error') {
-        if (btnEl) btnEl.disabled = false;
-      }
+    const data = await resp.json();
+    if (!resp.ok || !data.checkout_url) {
+      throw new Error(data.error || 'Checkout creation failed');
     }
-  });
+    if (window.DodoPaymentsCheckout && window.DodoPaymentsCheckout.DodoPayments && window.DodoPaymentsCheckout.DodoPayments.Checkout) {
+      window.DodoPaymentsCheckout.DodoPayments.Checkout.open({ checkoutUrl: data.checkout_url });
+      if (btnEl) {
+        btnEl.disabled = false;
+        btnEl.textContent = originalText;
+      }
+    } else {
+      window.location.href = data.checkout_url;
+    }
+  } catch (e) {
+    console.error('Checkout error:', e);
+    alert('Could not open checkout. Please try again or email support@linkfinderai.com.');
+    if (btnEl) {
+      btnEl.disabled = false;
+      btnEl.textContent = originalText;
+    }
+    try { posthog.capture('checkout_error', { message: e.message, plan: planKey, page: 'account' }); } catch(_) {}
+  }
 }
 
 function showToast() {
@@ -498,7 +499,7 @@ function showPricingModal(trigger) {
     const modalSubtitle = document.getElementById('pricingModalSubtitle');
     if (isExistingSubscriber) {
         if (modalTitle) modalTitle.textContent = 'Change Your Plan';
-        if (modalSubtitle) modalSubtitle.textContent = 'Paddle will prorate the difference automatically.';
+        if (modalSubtitle) modalSubtitle.textContent = 'You will only be charged the difference — no extra steps needed.';
     } else if (trigger === 'credits_exhausted') {
         if (modalTitle) modalTitle.textContent = "You're out of credits";
         if (modalSubtitle) modalSubtitle.textContent = 'Pick a plan to keep enriching — takes 30 seconds.';
@@ -514,7 +515,7 @@ function showPricingModal(trigger) {
 function closePricingModal() { document.getElementById('pricingModal').classList.remove('show'); document.body.style.overflow = ''; }
 
 
-/* ── Credits ── FIXED: no X-API-Secret header (that was causing the ?) */
+/* ── Credits ── */
 async function fetchCredits() {
   if (!userToken) return;
   try {
@@ -550,6 +551,7 @@ async function handleAddCredits() {
     isExistingSubscriber  = d.issub === true;
     currentPlanNumber     = d.plan || null;
     currentSubscriptionId = d.subscription_id || null;
+    if (d.email) currentUserEmail = d.email;
     showPricingModal('credits_exhausted');
   } catch(e) { showPricingModal(); }
   finally { btn.innerHTML = orig; btn.disabled = false; }
@@ -571,6 +573,7 @@ async function managePlan() {
       isExistingSubscriber  = true;
       currentPlanNumber     = d.plan || null;
       currentSubscriptionId = d.subscription_id || null;
+      if (d.email) currentUserEmail = d.email;
       if (btn) { btn.innerHTML = orig; btn.disabled = false; }
       showCancellationFlow();
     } else {
@@ -595,19 +598,8 @@ async function managePlanDirectly() {
     });
     const d = await r.json();
     const val = d.subscription_id || d.url || '';
-    if (val.startsWith('sub_')) {
-      // Paddle subscriber — open subscription management overlay
-      Paddle.Checkout.open({
-        subscriptionId: val,
-        settings: { theme: 'light', locale: 'en', allowLogout: false },
-        eventCallback: function(event) {
-          if (event.name === 'checkout.completed' || event.name === 'checkout.closed') {
-            fetchCredits();
-          }
-        }
-      });
-    } else if (val.startsWith('http')) {
-      // Gumroad subscriber — redirect to their portal URL
+    if (val.startsWith('http')) {
+      // Customer portal URL (Dodo, Gumroad, etc.) — redirect
       window.location.href = val;
     } else {
       // No subscription — show pricing
@@ -870,13 +862,46 @@ async function confirmCancel() {
 document.addEventListener('DOMContentLoaded', () => {
   checkAuth();
   fetchCredits();
+
+  // Init Dodo Payments SDK (overlay)
+  if (window.DodoPaymentsCheckout && window.DodoPaymentsCheckout.DodoPayments) {
+    try {
+      window.DodoPaymentsCheckout.DodoPayments.Initialize({
+        mode: 'live',
+        displayType: 'overlay',
+        onEvent: handleDodoCheckoutEvent,
+      });
+    } catch (e) {
+      console.warn('Dodo SDK init failed:', e);
+    }
+  }
+
+  // Pre-fetch subscriber status so the manage button and grid know the state
+  if (userToken) {
+    fetch(UPGRADE_INTENT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: userToken, trigger: 'page_load' })
+    })
+    .then(r => r.json())
+    .then(d => {
+      if (d.issub === true) {
+        isExistingSubscriber  = true;
+        currentPlanNumber     = d.plan || null;
+        currentSubscriptionId = d.subscription_id || null;
+      }
+      if (d.email) currentUserEmail = d.email;
+    })
+    .catch(() => {});
+  }
+
   // Modal close on backdrop click
   ['pricingModal','buyCreditsModal','cancellationModal'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.addEventListener('click', e => { if (e.target === el) { el.classList.remove('show'); document.body.style.overflow = ''; } });
   });
   document.addEventListener('keydown', e => {
-    if (e.key === 'Escape') { ['pricingModal','buyCreditsModal','cancellationModal'].forEach(id => { document.getElementById(id).classList.remove('show'); }); document.body.style.overflow = ''; }
+    if (e.key === 'Escape') { ['pricingModal','buyCreditsModal','cancellationModal'].forEach(id => { const el = document.getElementById(id); if (el) el.classList.remove('show'); }); document.body.style.overflow = ''; }
   });
 });
 </script>
