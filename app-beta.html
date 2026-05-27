@@ -1106,8 +1106,8 @@ async function proceedToCheckoutDirect(index, btnEl) {
         }
 
         // Open overlay if SDK loaded, else full redirect fallback
-        if (window.DodoPaymentsCheckout && window.DodoPaymentsCheckout.Checkout) {
-            window.DodoPaymentsCheckout.Checkout.open({ checkoutUrl: data.checkout_url });
+        if (window.DodoPaymentsCheckout && window.DodoPaymentsCheckout.DodoPayments && window.DodoPaymentsCheckout.DodoPayments.Checkout) {
+            window.DodoPaymentsCheckout.DodoPayments.Checkout.open({ checkoutUrl: data.checkout_url });
             if (btnEl) {
                 btnEl.disabled = false;
                 btnEl.textContent = originalText;
@@ -1441,10 +1441,11 @@ document.addEventListener('DOMContentLoaded',()=>{
     pb.innerHTML='<i class="fas fa-upload"></i> Upload a CSV file first';
     document.getElementById('outputType').disabled=true;
     // Initialize Dodo Payments Checkout SDK (for overlay)
-    if (window.DodoPaymentsCheckout) {
+
+    if (window.DodoPaymentsCheckout && window.DodoPaymentsCheckout.DodoPayments) {
         try {
-            window.DodoPaymentsCheckout.Initialize({
-                mode: 'test', // change to 'live' once you switch Dodo to live mode
+            window.DodoPaymentsCheckout.DodoPayments.Initialize({
+                mode: 'live',
                 displayType: 'overlay',
                 onEvent: handleDodoCheckoutEvent,
             });
