@@ -15,7 +15,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
 <link href="https://cdn.jsdelivr.net/npm/@n8n/chat/dist/style.css" rel="stylesheet"/>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dodopayments-checkout@latest/dist/index.js"></script>
 <style>
 :root {
   --primary:#2563eb; --primary-hover:#1d4ed8;
@@ -716,31 +716,35 @@ var currentPlanNumber    = null;
 var currentSubscriptionId = null;
 
 /* ═══════════════════════════════════════════
-   PADDLE — same credentials as app-final
+   DODO PAYMENTS — overlay checkout
 ═══════════════════════════════════════════ */
-var PADDLE_CLIENT_TOKEN = 'live_7dfae08063d5734fb2abd6373e3';
-var PRICE_IDS = {
-  starter_monthly:     'pri_01krrtbr6q0k0qg9xm0ms9e1b4',
-  pro_monthly:         'pri_01krrtdbmhyvayzrcm0x0xm0h8',
-  enterprise_monthly:  'pri_01krrtezpv12b4qaycvhrq7v9j',
-  hypergrowth_monthly: 'pri_01krrtggp5zyexxtjd39bg9wp1',
-  starter_annual:      'pri_01krrtjfasxfzfaefn82vv4xqa',
-  pro_annual:          'pri_01krrtnb6jfewb4m652zsdv6t3',
-  enterprise_annual:   'pri_01krrtq4v86zfv0dj5dbw7zbd6',
-  hypergrowth_annual:  'pri_01krrtr82ajr9ssg7eavsmd36j',
-  credits_1k:          'pri_01krtfkzz9c4dykmthgxe0f0gc',
-  credits_5k:          'pri_01krtfnf6j5b59rn9atdz0jgdv',
-  credits_10k:         'pri_01krtfpfy4h9y53q11carqrmpv',
-  credits_25k:         'pri_01krtfqg8mpvzpg21g4et5g6c2',
-};
-
-Paddle.Initialize({ token: PADDLE_CLIENT_TOKEN });
+var DODO_CHECKOUT_WORKER = 'https://dodo-checkout.hamoureliasse.workers.dev/';
 
 var plans = [
-    { name:'Starter',     monthlyPrice:49,  credits:60000,  monthlyPriceId: PRICE_IDS.starter_monthly,    annualPriceId: PRICE_IDS.starter_annual },
-    { name:'Professional',monthlyPrice:89,  credits:240000, monthlyPriceId: PRICE_IDS.pro_monthly,        annualPriceId: PRICE_IDS.pro_annual },
-    { name:'Enterprise',  monthlyPrice:149, credits:600000, monthlyPriceId: PRICE_IDS.enterprise_monthly, annualPriceId: PRICE_IDS.enterprise_annual },
+  { name:'Starter',      key:'starter',    monthlyPrice:49,  credits:60000  },
+  { name:'Professional', key:'pro',        monthlyPrice:89,  credits:240000 },
+  { name:'Enterprise',   key:'enterprise', monthlyPrice:149, credits:600000 },
 ];
+
+function handleDodoCheckoutEvent(event) {
+  if (!event || !event.event_type) return;
+  switch (event.event_type) {
+    case 'checkout.opened':
+      try { if (typeof posthog !== 'undefined') posthog.capture('checkout_overlay_opened', { page:'linkedin_leads' }); } catch(e) {}
+      break;
+    case 'checkout.closed':
+      try { if (typeof posthog !== 'undefined') posthog.capture('checkout_overlay_closed', { page:'linkedin_leads' }); } catch(e) {}
+      break;
+    case 'checkout.redirect':
+      try { if (typeof posthog !== 'undefined') posthog.capture('checkout_payment_success', { page:'linkedin_leads' }); } catch(e) {}
+      setTimeout(function() { fetchCredits(); }, 3000);
+      break;
+    case 'checkout.error':
+      console.error('Dodo checkout error:', event.data && event.data.message);
+      showAlert('Payment error: ' + ((event.data && event.data.message) || 'Please try again.'), 'error');
+      break;
+  }
+}
 var isAnnualBilling = false;
 
 // plan number → index & billing (same mapping as app-final)
@@ -799,59 +803,51 @@ function renderPlansGrid() {
   }).join('');
 }
 
-function proceedToCheckoutDirect(index, btnEl) {
-  var plan    = plans[index];
-  var priceId = isAnnualBilling ? plan.annualPriceId : plan.monthlyPriceId;
+async function proceedToCheckoutDirect(index, btnEl) {
+  var plan = plans[index];
+  var planKey = plan.key + (isAnnualBilling ? '_annual' : '_monthly');
+  var originalText = btnEl ? btnEl.textContent : '';
   if (btnEl) { btnEl.textContent = 'Opening…'; btnEl.disabled = true; }
+
   try { if (typeof posthog !== 'undefined') posthog.capture('plan_selected', { plan: plan.name, billing: isAnnualBilling ? 'annual' : 'monthly', page: 'linkedin_leads', is_subscriber: isExistingSubscriber }); } catch(e) {}
+  try { window.uetq = window.uetq || []; window.uetq.push('event', 'begin_checkout', {}); } catch(e) {}
 
-  if (isExistingSubscriber && currentSubscriptionId) {
-    // Subscriber → Paddle plan change (shows prorated amount)
-    Paddle.Checkout.open({
-      subscriptionId: currentSubscriptionId,
-      items: [{ priceId: priceId, quantity: 1 }],
-      settings: { theme: 'light', locale: 'en', allowLogout: false },
-      eventCallback: function(event) {
-        if (event.name === 'checkout.completed') {
-          if (btnEl) { btnEl.textContent = 'Done'; btnEl.disabled = false; }
-          closePricingModal();
-          showToast();
-          setTimeout(function() { fetchCredits(); }, 3000);
-        }
-        if (event.name === 'checkout.closed' || event.name === 'checkout.error') {
-          if (btnEl) { btnEl.textContent = 'Upgrade to ' + plan.name; btnEl.disabled = false; }
-        }
-      }
+  try {
+    var resp = await fetch(DODO_CHECKOUT_WORKER, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        plan: planKey,
+        user_token: userToken,
+        email: window.currentUserEmail || undefined,
+        ref_token: (function() {
+          var m = document.cookie.match(/(?:^|;\s*)lf_ref=([^;]+)/);
+          return m ? m[1] : undefined;
+        })(),
+      }),
     });
-  } else {
-    // New customer → regular checkout
-    openPaddleCheckout(priceId, btnEl);
-  }
-}
-
-function openPaddleCheckout(priceId, btnEl) {
-  if (!priceId || priceId.startsWith('pri_REPLACE')) {
-    alert('⚠️ Credit pack price IDs not set yet.');
-    if (btnEl) { btnEl.disabled = false; }
-    return;
-  }
-  Paddle.Checkout.open({
-    items: [{ priceId: priceId, quantity: 1 }],
-    settings: { theme: 'light', locale: 'en', allowLogout: false },
-    customData: { user_token: userToken || '' },
-    eventCallback: function(event) {
-      if (event.name === 'checkout.completed') {
-        if (btnEl) { btnEl.disabled = false; }
-        closePricingModal();
-        closeBuyCreditsModal();
-        showToast();
-        setTimeout(function() { fetchCredits(); }, 3000);
-      }
-      if (event.name === 'checkout.closed' || event.name === 'checkout.error') {
-        if (btnEl) { btnEl.disabled = false; }
-      }
+    var data = await resp.json();
+    if (!resp.ok || !data.checkout_url) {
+      throw new Error(data.error || 'Checkout creation failed');
     }
-  });
+    if (window.DodoPaymentsCheckout && window.DodoPaymentsCheckout.DodoPayments && window.DodoPaymentsCheckout.DodoPayments.Checkout) {
+      window.DodoPaymentsCheckout.DodoPayments.Checkout.open({ checkoutUrl: data.checkout_url });
+      if (btnEl) {
+        btnEl.disabled = false;
+        btnEl.textContent = originalText;
+      }
+    } else {
+      window.location.href = data.checkout_url;
+    }
+  } catch (e) {
+    console.error('Checkout error:', e);
+    showAlert('Could not open checkout. Please try again or email support@linkfinderai.com.', 'error');
+    if (btnEl) {
+      btnEl.disabled = false;
+      btnEl.textContent = originalText;
+    }
+    try { if (typeof posthog !== 'undefined') posthog.capture('checkout_error', { message: e.message, plan: planKey, page: 'linkedin_leads' }); } catch(_) {}
+  }
 }
 
 function showToast() {
@@ -874,7 +870,7 @@ function showPricingModal(trigger) {
     const modalSubtitle = document.getElementById('pricingModalSubtitle');
     if (isExistingSubscriber) {
         if (modalTitle) modalTitle.textContent = 'Change Your Plan';
-        if (modalSubtitle) modalSubtitle.textContent = 'Paddle will prorate the difference automatically.';
+        if (modalSubtitle) modalSubtitle.textContent = 'You will only be charged the difference — no extra steps needed.';
     } else if (trigger === 'credits_exhausted') {
         if (modalTitle) modalTitle.textContent = "You're out of credits";
         if (modalSubtitle) modalSubtitle.textContent = 'Pick a plan to keep enriching — takes 30 seconds.';
@@ -1183,6 +1179,37 @@ document.addEventListener('DOMContentLoaded', function() {
   localStorage.setItem('linkFinderToken', userToken);
   sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   fetchCredits(); loadPastSearches();
+
+  // Init Dodo Payments SDK (overlay)
+  if (window.DodoPaymentsCheckout && window.DodoPaymentsCheckout.DodoPayments) {
+    try {
+      window.DodoPaymentsCheckout.DodoPayments.Initialize({
+        mode: 'live',
+        displayType: 'overlay',
+        onEvent: handleDodoCheckoutEvent,
+      });
+    } catch (e) {
+      console.warn('Dodo SDK init failed:', e);
+    }
+  }
+
+  // Pre-fetch subscriber status so plan grid renders correctly
+  fetch(UPGRADE_INTENT_WORKER, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token: userToken, trigger: 'page_load' })
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(d) {
+    if (d.issub === true) {
+      isExistingSubscriber  = true;
+      currentPlanNumber     = d.plan || null;
+      currentSubscriptionId = d.subscription_id || null;
+    }
+    window.currentUserEmail = d.email || null;
+  })
+  .catch(function() {});
+
   var action = p.get('action');
   if (action === 'buy_credits' || action === 'upgrade') { setTimeout(function() { handleAddCredits(); }, 500); }
   document.addEventListener('click', function(e) {
