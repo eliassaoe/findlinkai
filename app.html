@@ -20,6 +20,7 @@
 <link rel="icon" href="https://i.ibb.co/jPjX9SSp/Screen-Shot-2025-03-28-at-8-16-15-PM.png">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+<script src="https://cdn.jsdelivr.net/npm/dodopayments-checkout@latest/dist/index.js"></script>
 <link href="https://cdn.jsdelivr.net/npm/@n8n/chat/dist/style.css" rel="stylesheet"/>
 <style>
     :root {
@@ -57,7 +58,6 @@
     .credits-divider{display:none;}
     .btn-buy-inline{background:linear-gradient(135deg,#fb923c,#f97316);border:none;color:white;font-weight:700;font-size:0.7rem;cursor:pointer;padding:0.25rem 0.5rem;border-radius:4px;transition:all 0.2s ease;white-space:nowrap;font-family:inherit;margin-left:0.35rem;box-shadow:0 1px 4px rgba(249,115,22,0.4);text-transform:uppercase;letter-spacing:0.03em;}
     .btn-buy-inline:hover{background:linear-gradient(135deg,#f97316,#ea580c);box-shadow:0 2px 6px rgba(249,115,22,0.5);transform:translateY(-1px);}
-    .optional-fields{display:none;grid-template-columns:1fr 1fr;gap:1rem;margin-top:1rem;padding-top:1rem;border-top:1px solid var(--gray-200);}
     .optional-fields.visible{display:grid;}
     .optional-label{font-size:0.75rem;font-weight:600;color:var(--gray-500);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.25rem;}
     .optional-badge{display:inline-block;font-size:0.7rem;background:var(--gray-100);color:var(--gray-500);padding:0.1rem 0.4rem;border-radius:3px;margin-left:0.4rem;font-weight:500;text-transform:none;letter-spacing:0;vertical-align:middle;}
@@ -526,6 +526,17 @@
     display: none !important;
 }
 
+.optional-fields{
+    display:none;
+    grid-template-columns:1fr 1fr 1fr;
+    gap:1rem;
+    margin-bottom:1rem;       /* was margin-top */
+    padding:1rem;
+    border:1px solid var(--gray-200);
+    border-radius:8px;
+    background:var(--gray-50);
+}
+
 .saved-pill{display:inline-flex;align-items:center;gap:0.375rem;background:#dcfce7;color:#15803d;border:1px solid #bbf7d0;padding:0.35rem 0.75rem;border-radius:999px;font-size:0.78rem;font-weight:600;cursor:pointer;transition:all 0.2s ease;text-decoration:none;font-family:inherit;animation:saved-in 0.35s ease;margin-bottom:1rem;}
 .saved-pill:hover{background:#bbf7d0;color:#14532d;transform:translateY(-1px);box-shadow:0 2px 6px rgba(21,128,61,0.15);}
 .saved-pill i{font-size:0.7rem;}
@@ -539,7 +550,6 @@
 <script>window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};plausible.init()</script>
 <script>!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version="2.0";n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,"script","https://connect.facebook.net/en_US/fbevents.js");fbq("init","2717863625238535");fbq("track","PageView");</script>
 <link rel="canonical" href="https://linkfinderai.com/app" />
-<script src="https://gumroad.com/js/gumroad.js" defer></script>
 
 </head>
 <body>
@@ -567,10 +577,10 @@
 <div id="lowCreditsBar" class="low-credits-bar"></div>
 
 <div id="phBanner" class="ph-banner">
-    <span>🚀 We're LIVE on Product Hunt — <strong>upvote us & get 2,000 free credits!</strong></span>
-    <a href="https://www.producthunt.com/products/link-finder?utm_source=other&utm_medium=social" target="_blank" rel="noopener noreferrer"
+    <span>🚀 We're launching on Product Hunt May 27 — <strong>upvote us & get 2,000 free credits!</strong></span>
+    <a href="https://chat.whatsapp.com/KROoXn864Fp830AoT9PE3M" target="_blank" rel="noopener noreferrer"
        style="background:rgba(255,255,255,0.25);padding:0.25rem 0.75rem;border-radius:20px;color:white;font-weight:700;text-decoration:none;white-space:nowrap;">
-       ↑ Upvote now →
+       Join WhatsApp →
     </a>
     <button class="ph-banner-close" onclick="closePhBanner()">×</button>
 </div>
@@ -648,22 +658,9 @@
 
         <div id="alert" class="alert"></div>
 
-        <div id="modeToggle" class="mode-toggle hidden">
-            <div class="mode-switch">
-                <button class="mode-option active" onclick="switchMode('single')" id="singleMode">Single Enrichment</button>
-                <button class="mode-option" onclick="switchMode('bulk')" id="bulkMode">Bulk Enrichment</button>
-            </div>
-        </div>
 
-        <div id="creditCost" class="credit-cost"></div>
 
-        <div id="singleSearch" class="card hidden">
-            <form onsubmit="enrichData(event)">
-                <div class="form-group">
-                    <label for="inputData" id="inputLabel">Enter Company Name</label>
-                    <input type="text" id="inputData" placeholder="e.g., Tesla, Apple, Microsoft" required>
-                </div>
-                <div class="optional-fields" id="optionalEmployeeFields">
+        <div class="optional-fields" id="optionalEmployeeFields">
                     <div class="form-group" style="margin-bottom:0;">
                         <label class="optional-label">Department <span class="optional-badge">optional</span></label>
                         <select id="optionalDepartment" class="form-select">
@@ -705,6 +702,22 @@
                         <label class="optional-label">Number of employees <span class="optional-badge">optional</span></label>
                         <input type="number" id="optionalEmployeeCount" placeholder="e.g. 25" min="1" max="10000" style="width:100%;padding:0.75rem;border:1px solid var(--gray-300);border-radius:6px;font-size:0.875rem;">
                     </div>
+                </div>
+        
+        <div id="modeToggle" class="mode-toggle hidden">
+            <div class="mode-switch">
+                <button class="mode-option active" onclick="switchMode('single')" id="singleMode">Single Enrichment</button>
+                <button class="mode-option" onclick="switchMode('bulk')" id="bulkMode">Bulk Enrichment</button>
+            </div>
+        </div>
+
+        <div id="creditCost" class="credit-cost"></div>
+
+        <div id="singleSearch" class="card hidden">
+            <form onsubmit="enrichData(event)">
+                <div class="form-group">
+                    <label for="inputData" id="inputLabel">Enter Company Name</label>
+                    <input type="text" id="inputData" placeholder="e.g., Tesla, Apple, Microsoft" required>
                 </div>
                 <button type="submit" class="btn btn-full"><i class="fas fa-magic"></i> Enrich Data</button>
             </form>
@@ -969,32 +982,17 @@ function getRefCookie() {
     return match ? match[1] : null;
 }
 
-/* ═══════════════════════════════════════════════════════════
-   GUMROAD — reverted from Paddle
-═══════════════════════════════════════════════════════════ */
-const GUMROAD_LINKS = {
-    starter_monthly:     'https://linkfinderai.gumroad.com/l/txudoe',
-    starter_annual:      'https://linkfinderai.gumroad.com/l/hescr',
-    pro_monthly:         'https://linkfinderai.gumroad.com/l/ouvehf',
-    pro_annual:          'https://linkfinderai.gumroad.com/l/eadfhi',
-    enterprise_monthly:  'https://linkfinderai.gumroad.com/l/oukgp',
-    enterprise_annual:   'https://linkfinderai.gumroad.com/l/gtwsp',
-    hypergrowth_monthly: 'https://linkfinderai.gumroad.com/l/tbwevi',
-    hypergrowth_annual:  'https://linkfinderai.gumroad.com/l/dilhpd',
-    credits_1k:          'https://linkfinderai.gumroad.com/l/evkit',
-    credits_5k:          'https://linkfinderai.gumroad.com/l/avpnoy',
-    credits_10k:         'https://linkfinderai.gumroad.com/l/vwwvxi',
-    credits_25k:         'https://linkfinderai.gumroad.com/l/ryedf',
-};
+// Cloudflare Worker that creates Dodo Checkout Sessions
+// Update this URL after deploying dodo-checkout-worker.js
+const DODO_CHECKOUT_WORKER = 'https://dodo-checkout.hamoureliasse.workers.dev/';
 
 const INDUSTRY_AVG_PER_CREDIT = 0.15;
 
 const plans = [
-    { name:'Starter',     monthlyPrice:49,  credits:60000,  monthlyLink: GUMROAD_LINKS.starter_monthly,    annualLink: GUMROAD_LINKS.starter_annual },
-    { name:'Professional',monthlyPrice:89,  credits:240000, monthlyLink: GUMROAD_LINKS.pro_monthly,        annualLink: GUMROAD_LINKS.pro_annual },
-    { name:'Enterprise',  monthlyPrice:149, credits:600000, monthlyLink: GUMROAD_LINKS.enterprise_monthly, annualLink: GUMROAD_LINKS.enterprise_annual },
+    { name:'Starter',      key:'starter',    monthlyPrice:49,  credits:60000  },
+    { name:'Professional', key:'pro',        monthlyPrice:89,  credits:240000 },
+    { name:'Enterprise',   key:'enterprise', monthlyPrice:149, credits:600000 },
 ];
-    
 let isAnnualBilling = false;
     
 function renderPlansGrid() {
@@ -1058,56 +1056,75 @@ function renderPlansGrid() {
     }).join('');
 }
 
-function proceedToCheckoutDirect(index, btnEl) {
+function handleDodoCheckoutEvent(event) {
+    if (!event || !event.event_type) return;
+    switch (event.event_type) {
+        case 'checkout.opened':
+            try { posthog.capture('checkout_overlay_opened'); } catch(e) {}
+            break;
+        case 'checkout.closed':
+            try { posthog.capture('checkout_overlay_closed'); } catch(e) {}
+            break;
+        case 'checkout.redirect':
+            // Payment complete — Dodo redirects to return_url
+            try { posthog.capture('checkout_payment_success'); } catch(e) {}
+            break;
+        case 'checkout.error':
+            console.error('Dodo checkout error:', event.data?.message);
+            showAlert('Payment error: ' + (event.data?.message || 'Please try again.'), 'error');
+            try { posthog.capture('checkout_overlay_error', { message: event.data?.message }); } catch(e) {}
+            break;
+    }
+}
+
+async function proceedToCheckoutDirect(index, btnEl) {
     const plan = plans[index];
-    const baseUrl = isAnnualBilling ? plan.annualLink : plan.monthlyLink;
+    const planKey = plan.key + (isAnnualBilling ? '_annual' : '_monthly');
     const originalText = btnEl ? btnEl.textContent : '';
     if (btnEl) { btnEl.textContent = 'Opening…'; btnEl.disabled = true; }
+
     try { posthog.capture('plan_selected', { plan: plan.name, billing: isAnnualBilling ? 'annual' : 'monthly', credits_remaining: currentCredits, is_subscriber: isExistingSubscriber }); } catch(e) {}
     try { if (typeof plausible !== 'undefined') plausible('Plan Selected', { props: { plan: plan.name } }); } catch(e) {}
     try { window.uetq = window.uetq || []; window.uetq.push('event', 'begin_checkout', {}); } catch(e) {}
- 
-    // Build URL with auto-trigger to payment form + prefill where available
-    const params = new URLSearchParams();
-    params.set('wanted', 'true');                              // skip product description, jump straight to payment form
-    if (userToken) params.set('user_id', userToken);
-    if (window.currentUserEmail) params.set('email', window.currentUserEmail);
- 
-    const url = addGclid(baseUrl + '?' + params.toString());
- 
-    openGumroadOverlay(url, btnEl, originalText);
-}
- 
-function openGumroadOverlay(url, btnEl, originalText) {
-    // Open Gumroad checkout as overlay on linkfinderai.com (no full redirect = better conversion)
-    const link = document.createElement('a');
-    link.className = 'gumroad-button';
-    link.href = url;
-    link.setAttribute('data-gumroad-single-product', 'true');
-    link.style.cssText = 'position:absolute;left:-9999px;top:-9999px;visibility:hidden;';
-    document.body.appendChild(link);
- 
-    // Trigger the overlay
-    setTimeout(() => { link.click(); }, 50);
- 
-    // Clean up the hidden anchor after overlay opens
-    setTimeout(() => { if (link.parentNode) link.parentNode.removeChild(link); }, 2000);
- 
-    // Fallback: if Gumroad overlay didn't load within 2s (script blocked, etc.), redirect normally
-    setTimeout(() => {
-        const overlayLoaded = document.querySelector('iframe[src*="gumroad.com"], .gumroad-overlay');
-        if (!overlayLoaded) {
-            window.location.href = url;
+
+    try {
+        const resp = await fetch(DODO_CHECKOUT_WORKER, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                plan: planKey,
+                user_token: userToken,
+                email: window.currentUserEmail || undefined,
+                ref_token: getRefCookie() || undefined,
+            }),
+        });
+
+        const data = await resp.json();
+
+        if (!resp.ok || !data.checkout_url) {
+            throw new Error(data.error || 'Checkout creation failed');
         }
-    }, 2000);
- 
-    // Restore button state after overlay has had time to render
-    setTimeout(() => {
+
+        // Open overlay if SDK loaded, else full redirect fallback
+        if (window.DodoPaymentsCheckout && window.DodoPaymentsCheckout.DodoPayments && window.DodoPaymentsCheckout.DodoPayments.Checkout) {
+            window.DodoPaymentsCheckout.DodoPayments.Checkout.open({ checkoutUrl: data.checkout_url });
+            if (btnEl) {
+                btnEl.disabled = false;
+                btnEl.textContent = originalText;
+            }
+        } else {
+            // Fallback: full redirect to hosted Dodo page
+            window.location.href = data.checkout_url;
+        }
+    } catch (e) {
+        console.error('Checkout error:', e);
+        showAlert('Could not open checkout. Please try again or email support@linkfinderai.com.', 'error');
         if (btnEl) {
             btnEl.disabled = false;
-            if (originalText) btnEl.textContent = originalText;
+            btnEl.textContent = originalText;
         }
-    }, 3000);
+        try { posthog.capture('checkout_error', { message: e.message, plan: planKey }); } catch(_) {}
+    }
 }
 
 function setBilling(type) {
@@ -1220,7 +1237,9 @@ function configureEnrichment() {
     document.getElementById('uploadSubtext').textContent = isLeadToLi
         ? 'CSV with columns: name (required), company (required) — max 10000 rows'
         : currentInputType==='lead_full_name' ? 'CSV with columns: name (required), company (optional) — max 10000 rows'
-        : `CSV with ${config.label.toLowerCase().replace('enter ','')} (max 10000 rows)`;
+       : (currentOutputType === 'employees' && (currentInputType === 'company_domain' || currentInputType === 'linkedin_company'))
+    ? `CSV with ${config.label.toLowerCase().replace('enter ','')} (required) — optional columns: department, seniority, employee_count. Max 10000 rows.`
+    : `CSV with ${config.label.toLowerCase().replace('enter ','')} (max 10000 rows)`;
     document.getElementById('modeToggle').classList.remove('hidden');
     updateCreditCostDisplay();
     updateOptionalFields();
@@ -1334,9 +1353,25 @@ async function processBulk() {
             updateBulkResultsTable();
             try {
                 const response = await fetchWithTimeout('https://linkfinderapp.hamoureliasse.workers.dev/', {
-                    method:'POST',headers:{'Content-Type':'application/json'},
-                    body:JSON.stringify({type:generateCombinationType(currentInputType,currentOutputType),input_data:row.inputData,output_type:currentOutputType,token:userToken,is_bulk:true})
-                });
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+        type: generateCombinationType(currentInputType, currentOutputType),
+        input_data: row.inputData,
+        department: (currentOutputType === 'employees' && (currentInputType === 'company_domain' || currentInputType === 'linkedin_company'))
+            ? (row.department || document.getElementById('optionalDepartment').value.trim() || 'all')
+            : undefined,
+        seniority: (currentOutputType === 'employees' && (currentInputType === 'company_domain' || currentInputType === 'linkedin_company'))
+            ? (row.seniority || document.getElementById('optionalSeniority').value.trim() || 'all')
+            : undefined,
+        employee_count: (currentOutputType === 'employees' && (currentInputType === 'company_domain' || currentInputType === 'linkedin_company'))
+            ? (row.employee_count || parseInt(document.getElementById('optionalEmployeeCount').value) || null)
+            : undefined,
+        output_type: currentOutputType,
+        token: userToken,
+        is_bulk: true
+    })
+});
                 if (response.ok) {
                     const data = await response.json();
                     if (currentOutputType==='employee_count') {
@@ -1405,6 +1440,19 @@ document.addEventListener('DOMContentLoaded',()=>{
     pb.disabled=true; pb.style.opacity='0.5';
     pb.innerHTML='<i class="fas fa-upload"></i> Upload a CSV file first';
     document.getElementById('outputType').disabled=true;
+    // Initialize Dodo Payments Checkout SDK (for overlay)
+
+    if (window.DodoPaymentsCheckout && window.DodoPaymentsCheckout.DodoPayments) {
+        try {
+            window.DodoPaymentsCheckout.DodoPayments.Initialize({
+                mode: 'live',
+                displayType: 'overlay',
+                onEvent: handleDodoCheckoutEvent,
+            });
+        } catch(e) {
+            console.warn('Dodo SDK init failed:', e);
+        }
+    }
 });
 
 function setupModalEvents(){
@@ -1598,6 +1646,9 @@ function parseCSV(csvText){
     const searchHeaders=possibleHeaders[currentInputType]||[];
     const dataIdx=headers.findIndex(h=>hScore(h,searchHeaders)>0);
     if(dataIdx===-1){showAlert(`CSV must contain a column for ${config.label.toLowerCase().replace('enter ','')}. Found columns: "${rawHeaders.join('", "')}"`, 'error');return;}
+    const deptIdx = headers.findIndex(h => ['department', 'dept'].includes(h));
+    const senIdx  = headers.findIndex(h => ['seniority', 'level'].includes(h));
+    const countIdx = headers.findIndex(h => ['employee_count', 'count', 'limit'].includes(h));
     let companyIdx=-1;
     if(currentInputType==='lead_full_name'){
         companyIdx=headers.findIndex((h,i)=>i!==dataIdx&&hScore(h,companyNameHeaders)>0);
@@ -1609,7 +1660,14 @@ function parseCSV(csvText){
         if(!nameVal) continue;
         let inputData=nameVal,companyVal='';
         if(currentInputType==='lead_full_name'&&companyIdx!==-1){companyVal=values[companyIdx]?values[companyIdx].trim():'';if(companyVal)inputData=`${nameVal} ${companyVal}`;}
-        csvData.push({inputData,name:nameVal,company:companyVal});
+        csvData.push({
+    inputData,
+    name: nameVal,
+    company: companyVal,
+    department: deptIdx !== -1 ? (values[deptIdx] || '').trim() : '',
+    seniority:  senIdx !== -1 ? (values[senIdx] || '').trim() : '',
+    employee_count: countIdx !== -1 ? (parseInt(values[countIdx]) || null) : null,
+});
     }
     if(csvData.length===0){showAlert('No valid data found in the selected column.','error');return;}
     if(csvData.length>10000){showAlert(`Too many entries (${csvData.length}). Maximum is 10000.`,'error');return;}
@@ -1795,14 +1853,14 @@ async function handleAddCredits() {
 function downloadExampleCSV(){
     const config=dataConfigurations[currentInputType];
     if(!config){showAlert('Please select an input type first.','error');return;}
-    const examples={'company_name':'company_name\nTesla\nApple\nMicrosoft\nStripe\nNotion','company_domain':'company_domain\ntesla.com\napple.com\nmicrosoft.com\nstripe.com\nnotion.so','linkedin_company':'linkedin_company_url\nhttps://linkedin.com/company/tesla\nhttps://linkedin.com/company/apple\nhttps://linkedin.com/company/microsoft','linkedin_profile':'linkedin_profile_url\nhttps://linkedin.com/in/satya-nadella\nhttps://linkedin.com/in/jeff-weiner','linkedin_post':'linkedin_post_url\nhttps://www.linkedin.com/posts/example-post-url','email':'email\njohn.doe@tesla.com\njane.smith@apple.com','lead_full_name':'name,company\nSatya Nadella,Microsoft\nJeff Weiner,LinkedIn\nSarah Johnson,Salesforce'};
+    const examples={'company_name':'company_name\nTesla\nApple\nMicrosoft\nStripe\nNotion','company_domain':'company_domain\ntesla.com\napple.com\nmicrosoft.com\nstripe.com\nnotion.so','linkedin_company':'linkedin_company_url\nhttps://linkedin.com/company/tesla\nhttps://linkedin.com/company/apple\nhttps://linkedin.com/company/microsoft','linkedin_profile':'linkedin_profile_url\nhttps://linkedin.com/in/satya-nadella\nhttps://linkedin.com/in/jeff-weiner','linkedin_post':'linkedin_post_url\nhttps://www.linkedin.com/posts/example-post-url','email':'email\njohn.doe@tesla.com\njane.smith@apple.com','lead_full_name':'name,company\nSatya Nadella,Microsoft\nJeff Weiner,LinkedIn\nSarah Johnson,Salesforce','company_domain': 'company_domain,department,seniority,employee_count\nstripe.com,engineering_technical,senior,25\nnotion.so,sales,manager,10\nairbnb.com,,,50\ntesla.com,,,',};
     const csvContent=examples[currentInputType]||'input\nexample_value';
     const blob=new Blob([csvContent],{type:'text/csv;charset=utf-8;'});
     const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`example_${currentInputType}.csv`;a.click();URL.revokeObjectURL(url);
     try{posthog.capture('example_csv_downloaded',{input_type:currentInputType});}catch(e){}
 }
 
-function quickStart(inputType,outputType,exampleData){
+function quickStart(inputType,outputType,exampleData,employeeCount){
     const qs=document.getElementById('quickstartSection');if(qs)qs.style.display='none';
     const inputSel=document.getElementById('inputType');inputSel.value=inputType;inputSel.dispatchEvent(new Event('change'));
     setTimeout(()=>{
@@ -1810,6 +1868,11 @@ function quickStart(inputType,outputType,exampleData){
         setTimeout(()=>{
             const f=document.getElementById('inputData');
             if(f&&exampleData){f.value=exampleData;setTimeout(()=>{f.focus();f.select();},150);}
+            // NEW: prefill employee count if supplied
+            if(employeeCount){
+                const ec=document.getElementById('optionalEmployeeCount');
+                if(ec) ec.value=employeeCount;
+            }
             const eb=document.querySelector('#singleSearch button[type="submit"]');
             if(eb){eb.style.transition='box-shadow 0.3s ease';eb.style.boxShadow='0 0 0 4px rgba(37,99,235,0.35)';setTimeout(()=>{eb.style.boxShadow='';},2500);setTimeout(()=>{eb.click();},300);}
         },120);
@@ -1895,6 +1958,37 @@ function closePhBanner() {
     document.getElementById('phBanner').style.display = 'none';
     sessionStorage.setItem('ph_banner_closed', '1');
 }
+
+function updatePhCountdown() {
+    if (sessionStorage.getItem('ph_banner_closed')) {
+        const b = document.getElementById('phBanner');
+        if (b) b.style.display = 'none';
+        return;
+    }
+    const launch = new Date('2026-05-27T07:01:00Z');// 12:01am PST
+    const now = new Date();
+    const diff = launch - now;
+    if (diff <= 0) {
+        const banner = document.getElementById('phBanner');
+        if (banner) banner.innerHTML = `
+            <div style="display:flex;align-items:center;justify-content:center;gap:0.75rem;flex-wrap:wrap;">
+                <span>🎉 We're live on Product Hunt today!</span>
+                <a href="https://www.producthunt.com/products/link-finder?launch=linkfinder-ai-2-0" target="_blank" rel="noopener noreferrer"
+                   style="background:rgba(255,255,255,0.25);padding:0.3rem 0.875rem;border-radius:20px;color:white;font-weight:700;text-decoration:none;">
+                   ↑ Upvote us — get 1 free month of Starter
+                </a>
+                <button class="ph-banner-close" onclick="closePhBanner()">×</button>
+            </div>`;
+        return;
+    }
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const el = document.getElementById('phCountdown');
+    if (el) el.textContent = days > 0 ? `${days}d ${hours}h` : `${hours}h`;
+}
+
+updatePhCountdown();
+setInterval(updatePhCountdown, 60000);
 
 let refDataLoaded = false;
  
