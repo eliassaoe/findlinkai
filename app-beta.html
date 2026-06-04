@@ -280,7 +280,7 @@
     .loading{text-align:center;padding:2rem;display:none;}
     .loading i{font-size:2rem;color:var(--primary);animation:spin 1s linear infinite;}
     @keyframes spin{0%{transform:rotate(0deg);}100%{transform:rotate(360deg);}}
-    .modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:1000;opacity:0;visibility:hidden;transition:all 0.3s ease;padding:1rem;}
+    .modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:10000;opacity:0;visibility:hidden;transition:all 0.3s ease;padding:1rem;}
     .modal-overlay.show{opacity:1;visibility:visible;}
     .pricing-modal{background:white;border-radius:16px;padding:2rem;max-width:480px;width:100%;position:relative;transform:scale(0.9);transition:transform 0.3s ease;box-shadow:0 20px 25px -5px rgba(0,0,0,0.1),0 10px 10px -5px rgba(0,0,0,0.04);}
     .modal-overlay.show .pricing-modal{transform:scale(1);}
@@ -575,16 +575,7 @@
 </header>
     
 <div id="lowCreditsBar" class="low-credits-bar"></div>
-
-<div id="phBanner" class="ph-banner">
-    <span>🚀 We're launching on Product Hunt May 27 — <strong>upvote us & get 2,000 free credits!</strong></span>
-    <a href="https://chat.whatsapp.com/KROoXn864Fp830AoT9PE3M" target="_blank" rel="noopener noreferrer"
-       style="background:rgba(255,255,255,0.25);padding:0.25rem 0.75rem;border-radius:20px;color:white;font-weight:700;text-decoration:none;white-space:nowrap;">
-       Join WhatsApp →
-    </a>
-    <button class="ph-banner-close" onclick="closePhBanner()">×</button>
-</div>
-
+    
 <div id="annualBanner" style="display:none;background:linear-gradient(135deg,#f0fdf4,#dcfce7);border-bottom:1px solid #bbf7d0;padding:0.5rem 1rem;text-align:center;font-size:0.8rem;color:#166534;font-weight:500;">
   💡 You're on monthly — <strong>switch to annual and save 40%</strong> ($240/year) 
   <button onclick="isAnnualBilling=true;showPricingModal();" style="background:#16a34a;color:white;border:none;padding:0.2rem 0.75rem;border-radius:4px;font-size:0.75rem;font-weight:600;cursor:pointer;margin-left:0.5rem;font-family:inherit;">Switch now</button>
@@ -806,7 +797,7 @@
             <div class="pricing-faq-item"><i class="fas fa-check-circle"></i> Secure payment</div>
         </div>
         <p style="text-align:center;font-size:0.72rem;color:var(--gray-400);margin-top:0.75rem;">Prices in USD · Secure payment · Cancel anytime</p>
-        <p style="text-align:center;font-size:0.75rem;color:var(--gray-500);margin-top:0.375rem;">Not sure which plan? <a href="mailto:support@linkfinderai.com" style="color:var(--primary);font-weight:500;">Email us</a> — we'll recommend the right one.</p>
+        <p style="text-align:center;font-size:0.75rem;color:var(--gray-500);margin-top:0.375rem;">Need more credits? <a href="mailto:support@linkfinderai.com" style="color:var(--primary);font-weight:500;">Email us</a> — we'll set up a custom plan for you.</p>
     </div>
 </div>
 
@@ -825,6 +816,17 @@
             Want to cancel your subscription? <a href="mailto:support@linkfinderai.com?subject=Please cancel my LinkFinder AI subscription" style="color:var(--gray-500);text-decoration:underline;">Email us</a> and we'll handle it right away.
         </p>
     </div>
+</div>
+<div id="topupModal" class="modal-overlay">
+  <div class="pricing-modal">
+    <button class="modal-close" onclick="closeTopupModal()"><i class="fas fa-times"></i></button>
+    <div class="pricing-modal-header">
+      <h2>Top up credits</h2>
+      <p>One-time purchase — these credits never expire.</p>
+    </div>
+    <div class="buy-credits-grid" id="topupGrid"></div>
+    <p style="text-align:center;font-size:0.72rem;color:var(--gray-400);">One-time payment · Secure checkout · Added to your balance instantly</p>
+  </div>
 </div>
 
 <div id="n8n-chat"></div>
@@ -1125,6 +1127,181 @@ async function proceedToCheckoutDirect(index, btnEl) {
         }
         try { posthog.capture('checkout_error', { message: e.message, plan: planKey }); } catch(_) {}
     }
+}
+
+(function () {
+  'use strict';
+ 
+  // ----- Credit packs -------------------------------------------------------
+  // Priced ABOVE your plan per-credit rate on purpose: top-ups are for
+  // convenience/overflow; subscribing stays the cheaper path. Edit freely.
+  var topupPacks = [
+    { key: 'topup_5k',  credits: 5000,  price: 39 },
+    { key: 'topup_15k', credits: 15000, price: 99, popular: true },
+    { key: 'topup_50k', credits: 50000, price: 299 }
+  ];
+ 
+  // ----- Inject the modal markup once ---------------------------------------
+  function ensureModal() {
+    if (document.getElementById('topupModal')) return;
+    var html =
+      '<div id="topupModal" class="modal-overlay">' +
+        '<div class="pricing-modal">' +
+          '<button class="modal-close" id="topupCloseBtn"><i class="fas fa-times"></i></button>' +
+          '<div class="pricing-modal-header">' +
+            '<h2>Top up credits</h2>' +
+            '<p style="color:var(--gray-500);font-size:0.875rem;margin-top:0.25rem;">One-time purchase — added to your balance instantly.</p>' +
+          '</div>' +
+          '<div class="buy-credits-grid" id="topupGrid"></div>' +
+          '<p style="text-align:center;font-size:0.72rem;color:var(--gray-400);margin-top:0.25rem;">One-time payment · Secure checkout</p>' +
+          '<p style="text-align:center;font-size:0.8rem;color:var(--gray-500);margin-top:0.75rem;">' +
+            'Need more every month? <a href="#" id="topupChangePlanLink" style="color:var(--primary);font-weight:500;">Change your plan</a>' +
+          '</p>' +
+        '</div>' +
+      '</div>';
+    var wrap = document.createElement('div');
+    wrap.innerHTML = html;
+    document.body.appendChild(wrap.firstChild);
+ 
+    // Wire up close + change-plan + backdrop + Esc
+    document.getElementById('topupCloseBtn').addEventListener('click', close);
+    document.getElementById('topupChangePlanLink').addEventListener('click', function (e) {
+      e.preventDefault();
+      close();
+      if (typeof showPricingModal === 'function') showPricingModal();
+    });
+    document.addEventListener('click', function (e) {
+      if (e.target === document.getElementById('topupModal')) close();
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') close();
+    });
+  }
+ 
+  // ----- Render the packs ---------------------------------------------------
+  function renderGrid() {
+    var grid = document.getElementById('topupGrid');
+    if (!grid) return;
+    grid.innerHTML = topupPacks.map(function (p, i) {
+      var per = (p.price / p.credits).toFixed(4);
+      return '<div class="credit-pack' + (p.popular ? ' popular' : '') + '" data-i="' + i + '">' +
+        (p.popular ? '<div class="credit-pack-badge">Best value</div>' : '') +
+        '<div class="credit-pack-amount">' + p.credits.toLocaleString() + '</div>' +
+        '<div class="credit-pack-label">credits</div>' +
+        '<div class="credit-pack-price">$' + p.price + '</div>' +
+        '<div class="credit-pack-per">$' + per + ' / credit</div>' +
+      '</div>';
+    }).join('');
+ 
+    Array.prototype.forEach.call(grid.querySelectorAll('.credit-pack'), function (el) {
+      el.addEventListener('click', function () {
+        checkout(parseInt(el.getAttribute('data-i'), 10), el);
+      });
+    });
+  }
+ 
+  // ----- Open / close -------------------------------------------------------
+  function open() {
+    ensureModal();
+    renderGrid();
+    document.getElementById('topupModal').classList.add('show');
+    document.body.style.overflow = 'hidden';
+    try { posthog.capture('topup_modal_opened', { credits_remaining: window.currentCredits }); } catch (e) {}
+  }
+ 
+  function close() {
+    var m = document.getElementById('topupModal');
+    if (m) m.classList.remove('show');
+    document.body.style.overflow = '';
+  }
+ 
+  // ----- Checkout (reuses your existing Dodo worker + overlay) --------------
+  async function checkout(index, el) {
+    var pack = topupPacks[index];
+    if (el) { el.style.pointerEvents = 'none'; el.style.opacity = '0.6'; }
+    try { posthog.capture('topup_selected', { pack: pack.key, credits: pack.credits }); } catch (e) {}
+ 
+    try {
+      // DODO_CHECKOUT_WORKER, userToken, currentUserEmail come from your app's main script
+      var resp = await fetch(DODO_CHECKOUT_WORKER, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          plan: pack.key,            // worker maps this to the one-time product
+          type: 'topup',             // tells the worker: one-time, not subscription
+          credits: pack.credits,     // passed through to the webhook metadata
+          user_token: userToken,
+          email: window.currentUserEmail || undefined
+        })
+      });
+      var data = await resp.json();
+      if (!resp.ok || !data.checkout_url) throw new Error(data.error || 'Checkout creation failed');
+ 
+      if (window.DodoPaymentsCheckout && window.DodoPaymentsCheckout.DodoPayments && window.DodoPaymentsCheckout.DodoPayments.Checkout) {
+        window.DodoPaymentsCheckout.DodoPayments.Checkout.open({ checkoutUrl: data.checkout_url });
+        if (el) { el.style.pointerEvents = ''; el.style.opacity = ''; }
+        // Refresh balance shortly after the overlay completes (webhook may lag a moment)
+        setTimeout(function () { if (typeof fetchCredits === 'function') fetchCredits(); }, 4000);
+        setTimeout(function () { if (typeof fetchCredits === 'function') fetchCredits(); }, 9000);
+      } else {
+        window.location.href = data.checkout_url; // fallback: hosted page
+      }
+    } catch (e) {
+      if (typeof showAlert === 'function') {
+        showAlert('Could not open checkout. Please try again or email support@linkfinderai.com.', 'error');
+      }
+      if (el) { el.style.pointerEvents = ''; el.style.opacity = ''; }
+      try { posthog.capture('topup_error', { message: e.message, pack: pack.key }); } catch (_) {}
+    }
+  }
+ 
+  // Expose a tiny public API so your handleAddCredits() can call LFTopup.open()
+  window.LFTopup = { open: open, close: close, packs: topupPacks };
+})();
+ 
+function renderTopupGrid(){
+  document.getElementById('topupGrid').innerHTML = topupPacks.map(function(p,i){
+    const per = (p.price / p.credits).toFixed(4);
+    return '<div class="credit-pack'+(p.popular?' popular':'')+'" onclick="proceedToTopupCheckout('+i+', this)">'
+      + (p.popular ? '<div class="credit-pack-badge">Best value</div>' : '')
+      + '<div class="credit-pack-amount">'+p.credits.toLocaleString()+'</div>'
+      + '<div class="credit-pack-label">credits</div>'
+      + '<div class="credit-pack-price">$'+p.price+'</div>'
+      + '<div class="credit-pack-per">$'+per+' / credit</div>'
+      + '</div>';
+  }).join('');
+}
+
+function openTopupModal(){ renderTopupGrid(); document.getElementById('topupModal').classList.add('show'); document.body.style.overflow='hidden'; }
+function closeTopupModal(){ document.getElementById('topupModal').classList.remove('show'); document.body.style.overflow=''; }
+
+async function proceedToTopupCheckout(index, el){
+  const pack = topupPacks[index];
+  if (el){ el.style.pointerEvents='none'; el.style.opacity='0.6'; }
+  try { posthog.capture('topup_selected', { pack: pack.key, credits: pack.credits }); } catch(e){}
+  try {
+    const resp = await fetch(DODO_CHECKOUT_WORKER, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        plan: pack.key,            // worker maps this to the one-time product
+        type: 'topup',             // tells the worker: one-time, not subscription
+        credits: pack.credits,     // passed through to webhook metadata
+        user_token: userToken,
+        email: window.currentUserEmail || undefined,
+      }),
+    });
+    const data = await resp.json();
+    if (!resp.ok || !data.checkout_url) throw new Error(data.error || 'Checkout failed');
+    if (window.DodoPaymentsCheckout?.DodoPayments?.Checkout) {
+      window.DodoPaymentsCheckout.DodoPayments.Checkout.open({ checkoutUrl: data.checkout_url });
+    } else {
+      window.location.href = data.checkout_url;
+    }
+  } catch(e){
+    showAlert('Could not open checkout. Please try again.', 'error');
+    if (el){ el.style.pointerEvents=''; el.style.opacity=''; }
+  }
 }
 
 function setBilling(type) {
@@ -1847,7 +2024,8 @@ async function handleAddCredits() {
         }
     } catch(e) {}
     finally { btn.innerHTML = orig; btn.disabled = false; }
-    showPricingModal('credits_exhausted');
+    if (isExistingSubscriber) openTopupModal();
+else showPricingModal('credits_exhausted');
 }
 
 function downloadExampleCSV(){
@@ -2170,5 +2348,6 @@ function showRefAlert(message, type) {
   </div>
 </div>
 
+<script src="topup-addon.js"></script>
 </body>
 </html>
