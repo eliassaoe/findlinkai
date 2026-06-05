@@ -1074,6 +1074,18 @@ async function proceedToCheckoutDirect(index, btnEl) {
     const originalText = btnEl ? btnEl.textContent : '';
     if (btnEl) { btnEl.textContent = 'Opening…'; btnEl.disabled = true; }
 
+    // NEW: Wait for email to be loaded (max 3 seconds)
+    if (!window.currentUserEmail) {
+        let attempts = 0;
+        while (!window.currentUserEmail && attempts < 30) {
+            await new Promise(r => setTimeout(r, 100));
+            attempts++;
+        }
+        if (!window.currentUserEmail) {
+            console.warn('Email not loaded after 3s, proceeding without it');
+        }
+    }
+
     try { posthog.capture('plan_selected', { plan: plan.name, billing: isAnnualBilling ? 'annual' : 'monthly', credits_remaining: currentCredits, is_subscriber: isExistingSubscriber }); } catch(e) {}
     try { if (typeof plausible !== 'undefined') plausible('Plan Selected', { props: { plan: plan.name } }); } catch(e) {}
     try { window.uetq = window.uetq || []; window.uetq.push('event', 'begin_checkout', {}); } catch(e) {}
