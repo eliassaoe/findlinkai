@@ -14,7 +14,7 @@ ORG = {
     "@type": "Organization",
     "name": "LinkFinderAI",
     "url": SITE_URL,
-    "logo": f"{SITE_URL}/logo.png",          # change to your real logo path
+    "logo": "https://i.ibb.co/jPjX9SSp/Screen-Shot-2025-03-28-at-8-16-15-PM.png",          # change to your real logo path
     "sameAs": [                              # add your real profile URLs
         # "https://www.tiktok.com/@yourhandle",
         # "https://www.linkedin.com/company/linkfinderai",
