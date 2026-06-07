@@ -161,6 +161,13 @@
     .feedback-success-message.show{display:flex;}
     .feedback-error-message{background:rgba(239,68,68,0.1);border:1px solid var(--error);color:var(--error);padding:1rem;border-radius:6px;margin-bottom:1rem;display:none;align-items:center;gap:0.5rem;font-size:0.875rem;}
     .feedback-error-message.show{display:flex;}
+    .mode-segment{position:relative;display:flex;background:var(--gray-100);border-radius:10px;padding:0.3rem;margin-bottom:1rem;}
+.mode-segment-thumb{position:absolute;top:0.3rem;bottom:0.3rem;left:0.3rem;width:calc(50% - 0.3rem);background:white;border-radius:7px;box-shadow:0 1px 3px rgba(0,0,0,0.12);transition:transform 0.25s cubic-bezier(0.4,0,0.2,1),background 0.25s ease;z-index:1;}
+.mode-segment.payg .mode-segment-thumb{transform:translateX(100%);background:var(--success);}
+.mode-seg-btn{position:relative;z-index:2;flex:1;display:flex;align-items:center;justify-content:center;gap:0.45rem;padding:0.7rem;border:none;background:transparent;border-radius:7px;font-weight:600;font-size:0.9rem;color:var(--gray-500);cursor:pointer;transition:color 0.2s ease;font-family:inherit;}
+.mode-seg-btn.active{color:var(--gray-900);}
+.mode-segment.payg .mode-seg-btn.active{color:white;}
+.mode-seg-btn i{font-size:0.85rem;}
     @media(max-width:640px){
         .feedback-button{width:44px;height:44px;right:85px;bottom:20px;font-size:16px;}
         .feedback-modal{padding:1.5rem;margin:1rem;}
@@ -786,9 +793,14 @@
             <h2 id="pricingModalTitle">Choose Your Plan</h2>
             <p id="pricingModalSubtitle" style="color:var(--gray-500);font-size:0.875rem;margin-top:0.25rem;">Cancel anytime &nbsp;·&nbsp; No questions asked</p>
         </div>
-        <div class="billing-toggle" id="pricingModeToggle">
-            <button type="button" class="billing-btn active" id="modeSubBtn" onclick="setPricingMode('subscription')">Subscription</button>
-            <button type="button" class="billing-btn" id="modePaygBtn" onclick="setPricingMode('payg')">Pay as you go</button>
+        <div class="mode-segment" id="pricingModeToggle" role="tablist" aria-label="Pricing type">
+            <span class="mode-segment-thumb" id="modeSegThumb"></span>
+            <button type="button" class="mode-seg-btn active" id="modeSubBtn" role="tab" aria-selected="true" onclick="setPricingMode('subscription')">
+                <i class="fas fa-rotate"></i> Subscription
+            </button>
+            <button type="button" class="mode-seg-btn" id="modePaygBtn" role="tab" aria-selected="false" onclick="setPricingMode('payg')">
+                <i class="fas fa-infinity"></i> Pay as you go
+            </button>
         </div>
         <div class="billing-toggle" id="billingToggle">
             <button type="button" class="billing-btn active" id="monthlyBtn" onclick="setBilling('monthly')">Monthly</button>
@@ -1061,8 +1073,11 @@ let pricingMode = 'subscription'; // 'subscription' | 'payg'
 
 function setPricingMode(mode) {
     pricingMode = mode;
-    document.getElementById('modeSubBtn').classList.toggle('active', mode === 'subscription');
+   document.getElementById('modeSubBtn').classList.toggle('active', mode === 'subscription');
     document.getElementById('modePaygBtn').classList.toggle('active', mode === 'payg');
+    document.getElementById('pricingModeToggle').classList.toggle('payg', mode === 'payg');
+    document.getElementById('modeSubBtn').setAttribute('aria-selected', mode === 'subscription');
+    document.getElementById('modePaygBtn').setAttribute('aria-selected', mode === 'payg');
     document.getElementById('billingToggle').style.display = (mode === 'payg') ? 'none' : 'flex';
 
     const title = document.getElementById('pricingModalTitle');
