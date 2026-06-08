@@ -2,65 +2,301 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>LinkedIn Data, Scraping &amp; APIs | LinkFinder AI</title>
-  <meta name="description" content="LinkedIn Data, Scraping &amp; APIs — guides, tools and APIs from LinkFinder AI.">
+  <meta name="description" content="The complete LinkedIn data toolkit: profile and company scrapers, enrichment APIs, email and phone finders, post and engagement tools — built for sales, marketing and recruiting.">
   <link rel="canonical" href="https://linkfinderai.com/clusters/linkedin.html">
+
+  <!-- TODO: paste your standard analytics head block here (GTM, gtag, PostHog, Meta Pixel, Plausible, Tolt) -->
+
+  <link rel="icon" href="https://i.ibb.co/jPjX9SSp/Screen-Shot-2025-03-28-at-8-16-15-PM.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <style>
+    :root {
+      --primary: #2563eb; --primary-hover: #1d4ed8;
+      --gray-50: #f9fafb; --gray-100: #f3f4f6; --gray-200: #e5e7eb; --gray-300: #d1d5db;
+      --gray-400: #9ca3af; --gray-500: #6b7280; --gray-600: #4b5563; --gray-700: #374151;
+      --gray-800: #1f2937; --gray-900: #111827;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background: white; color: var(--gray-800); line-height: 1.6; font-size: 16px; }
+    .container { max-width: 1200px; margin: 0 auto; padding: 0 1rem; }
+    a { color: var(--primary); }
+
+    .header { border-bottom: 1px solid var(--gray-200); padding: 1rem 0; background: white; }
+    .header-content { display: flex; justify-content: space-between; align-items: center; }
+    .logo { display: flex; align-items: center; gap: 0.5rem; text-decoration: none; color: var(--gray-900); }
+    .logo-icon { width: 32px; height: 32px; background: var(--primary); border-radius: 6px; display: flex; align-items: center; justify-content: center; color: white; font-size: 0.875rem; }
+    .logo-text { font-size: 1.25rem; font-weight: 600; color: var(--gray-900); }
+    .auth-buttons { display: flex; gap: 0.75rem; align-items: center; }
+
+    .btn { background: var(--primary); color: white; border: none; padding: 0.875rem 1.5rem; border-radius: 8px; font-weight: 500; cursor: pointer; transition: all 0.2s ease; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; text-decoration: none; font-size: 0.875rem; min-height: 44px; }
+    .btn:hover { background: var(--primary-hover); transform: translateY(-1px); }
+    .btn-outline { background: transparent; color: var(--primary); border: 1px solid var(--gray-300); }
+    .btn-outline:hover { background: var(--gray-50); border-color: var(--primary); transform: none; }
+    .btn-large { padding: 1.125rem 2rem; font-size: 1.125rem; min-height: 52px; }
+
+    .breadcrumb { padding: 1rem 0 0; font-size: 0.8125rem; color: var(--gray-500); }
+    .breadcrumb a { text-decoration: none; }
+    .breadcrumb a:hover { text-decoration: underline; }
+
+    .hero { padding: 2.5rem 0 1.5rem; max-width: 820px; }
+    .hero h1 { font-size: 2.75rem; font-weight: 700; color: var(--gray-900); margin-bottom: 1rem; line-height: 1.1; }
+    .hero .highlight { color: var(--primary); }
+    .hero p { font-size: 1.2rem; color: var(--gray-600); }
+
+    .intro { padding: 1.5rem 0 2rem; max-width: 820px; }
+    .intro p { color: var(--gray-700); margin-bottom: 1rem; }
+
+    .section { padding: 2.25rem 0; border-top: 1px solid var(--gray-100); }
+    .section:first-of-type { border-top: none; }
+    .section-header { margin-bottom: 1.25rem; max-width: 760px; }
+    .section-header h2 { font-size: 1.6rem; font-weight: 700; color: var(--gray-900); margin-bottom: 0.35rem; display: flex; align-items: center; gap: 0.6rem; }
+    .section-header h2 .ico { color: var(--primary); font-size: 1.3rem; }
+    .section-header p { font-size: 0.98rem; color: var(--gray-600); }
+
+    .link-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 0.75rem; }
+    .link-card { display: flex; align-items: center; gap: 0.6rem; padding: 0.85rem 1rem; background: white; border: 1px solid var(--gray-200); border-radius: 10px; color: var(--gray-700); text-decoration: none; font-size: 0.9rem; font-weight: 500; transition: all 0.2s ease; }
+    .link-card:hover { border-color: var(--primary); color: var(--primary); box-shadow: 0 4px 12px rgba(37,99,235,0.1); transform: translateY(-2px); }
+    .link-card i { color: var(--gray-400); font-size: 0.8rem; transition: color 0.2s ease; }
+    .link-card:hover i { color: var(--primary); }
+
+    .cta { text-align: center; padding: 3.5rem 0; background: var(--gray-50); margin-top: 1.5rem; }
+    .cta h2 { font-size: 2rem; font-weight: 700; color: var(--gray-900); margin-bottom: 0.75rem; }
+    .cta p { font-size: 1.15rem; color: var(--gray-600); margin: 0 auto 1.75rem; max-width: 560px; }
+
+    .footer { background: var(--gray-900); color: var(--gray-300); padding: 3rem 0 1rem; }
+    .footer-grid { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 2rem; margin-bottom: 2rem; }
+    .footer-section h4 { color: white; font-size: 1rem; font-weight: 600; margin-bottom: 1rem; }
+    .footer-logo { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem; }
+    .footer-logo .logo-icon { width: 28px; height: 28px; border-radius: 4px; }
+    .footer-logo .logo-text { font-size: 1.125rem; font-weight: 600; color: white; }
+    .footer-description { color: var(--gray-400); font-size: 0.875rem; line-height: 1.6; margin-bottom: 1.5rem; max-width: 280px; }
+    .footer-links { list-style: none; padding: 0; }
+    .footer-links li { margin-bottom: 0.5rem; }
+    .footer-links a { color: var(--gray-300); text-decoration: none; font-size: 0.875rem; transition: color 0.2s ease; display: block; }
+    .footer-links a:hover { color: white; }
+    .footer-bottom { border-top: 1px solid var(--gray-800); padding-top: 1.5rem; }
+    .footer-bottom p { color: var(--gray-400); font-size: 0.875rem; margin: 0; }
+    .legal-line { color: var(--gray-500); font-size: 0.78rem; margin-top: 0.5rem; }
+
+    @media (max-width: 768px) { .hero h1 { font-size: 2.25rem; } .footer-grid { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 640px) { .hero h1 { font-size: 1.9rem; } .footer-grid { grid-template-columns: 1fr; } }
+  </style>
+
+  <script type="application/ld+json">
+  { "@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [
+    { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://linkfinderai.com" },
+    { "@type": "ListItem", "position": 2, "name": "LinkedIn Data, Scraping & APIs", "item": "https://linkfinderai.com/clusters/linkedin.html" } ] }
+  </script>
+  <script type="application/ld+json">
+  { "@context": "https://schema.org", "@type": "CollectionPage", "name": "LinkedIn Data, Scraping & APIs",
+    "url": "https://linkfinderai.com/clusters/linkedin.html",
+    "description": "Profile and company scrapers, enrichment APIs, email and phone finders, and post/engagement tools for LinkedIn data.",
+    "isPartOf": { "@type": "WebSite", "name": "LinkFinder AI", "url": "https://linkfinderai.com" } }
+  </script>
 </head>
 <body>
-  <h1>LinkedIn Data, Scraping &amp; APIs</h1>
-  <p>Replace this with 2-3 paragraphs of original overview content.</p>
-  <ul>
-    <li><a href="https://linkfinderai.com/app-linkedin-leads.html">App LinkedIn Leads</a></li>
-    <li><a href="https://linkfinderai.com/best-crm-integration-with-linkedin.html">Best CRM Integration With LinkedIn</a></li>
-    <li><a href="https://linkfinderai.com/best-linkedin-api.html">Best LinkedIn API</a></li>
-    <li><a href="https://linkfinderai.com/best-linkedin-email-extractor.html">Best LinkedIn Email Extractor</a></li>
-    <li><a href="https://linkfinderai.com/best-linkedin-scrapers.html">Best LinkedIn Scrapers</a></li>
-    <li><a href="https://linkfinderai.com/best-linkedin-scraping-api.html">Best LinkedIn Scraping API</a></li>
-    <li><a href="https://linkfinderai.com/best-platforms-for-automatic-linkedin-profile-enrichment-in-crms.html">Best Platforms For Automatic LinkedIn Profile Enrichment In Crms</a></li>
-    <li><a href="https://linkfinderai.com/enriches-crm-contacts-with-fresh-linkedin-and-company-data.html">Enriches CRM Contacts With Fresh LinkedIn And Company Data</a></li>
-    <li><a href="https://linkfinderai.com/workflow/enriches-crm-contacts-with-fresh-linkedin-and-company-data.html">Enriches CRM Contacts With Fresh LinkedIn And Company Data</a></li>
-    <li><a href="https://linkfinderai.com/export-linkedin-group-members.html">Export LinkedIn Group Members</a></li>
-    <li><a href="https://linkfinderai.com/extract-full-name-from-linkedin-profile.html">Extract Full Name From LinkedIn Profile</a></li>
-    <li><a href="https://linkfinderai.com/extract-job-title-from-linkedin-url.html">Extract Job Title From LinkedIn URL</a></li>
-    <li><a href="https://linkfinderai.com/extract-name-from-linkedin-url.html">Extract Name From LinkedIn URL</a></li>
-    <li><a href="https://linkfinderai.com/linkedin-api.html">LinkedIn API</a></li>
-    <li><a href="https://linkfinderai.com/linkedin-company-employees-api.html">LinkedIn Company Employees API</a></li>
-    <li><a href="https://linkfinderai.com/linkedin-company-employees-finder.html">LinkedIn Company Employees Finder</a></li>
-    <li><a href="https://linkfinderai.com/linkedin-company-post-scraper.html">LinkedIn Company Post Scraper</a></li>
-    <li><a href="https://linkfinderai.com/linkedin-company-scraper.html">LinkedIn Company Scraper</a></li>
-    <li><a href="https://linkfinderai.com/linkedin-company-scraper-api.html">LinkedIn Company Scraper API</a></li>
-    <li><a href="https://linkfinderai.com/linkedin-email-finder.html">LinkedIn Email Finder</a></li>
-    <li><a href="https://linkfinderai.com/linkedin-email-finder-api.html">LinkedIn Email Finder API</a></li>
-    <li><a href="https://linkfinderai.com/linkedIn-enrichment-google-sheets.html">LinkedIn Enrichment Google Sheets</a></li>
-    <li><a href="https://linkfinderai.com/linkedin-job-posts-into-enriched-sales-leads.html">LinkedIn Job Posts Into Enriched Sales Leads</a></li>
-    <li><a href="https://linkfinderai.com/workflow/linkedin-job-posts-into-enriched-sales-leads.html">LinkedIn Job Posts Into Enriched Sales Leads</a></li>
-    <li><a href="https://linkfinderai.com/linkedin-job-scraper.html">LinkedIn Job Scraper</a></li>
-    <li><a href="https://linkfinderai.com/linkedin-phone-number-finder.html">LinkedIn Phone Number Finder</a></li>
-    <li><a href="https://linkfinderai.com/linkedin-phone-number-finder-api.html">LinkedIn Phone Number Finder API</a></li>
-    <li><a href="https://linkfinderai.com/linkedin-post-commenters-export.html">LinkedIn Post Commenters Export</a></li>
-    <li><a href="https://linkfinderai.com/linkedin-post-date-extractor.html">LinkedIn Post Date Extractor</a></li>
-    <li><a href="https://linkfinderai.com/linkedin-post-likers-export.html">LinkedIn Post Likers Export</a></li>
-    <li><a href="https://linkfinderai.com/linkedIn-post-scraper.html">LinkedIn Post Scraper</a></li>
-    <li><a href="https://linkfinderai.com/linkedin-post-scraper-api.html">LinkedIn Post Scraper API</a></li>
-    <li><a href="https://linkfinderai.com/linkedin-profile-data-extraction.html">LinkedIn Profile Data Extraction</a></li>
-    <li><a href="https://linkfinderai.com/linkedin-profile-data-extraction-api.html">LinkedIn Profile Data Extraction API</a></li>
-    <li><a href="https://linkfinderai.com/linkedin-profile-scraper.html">LinkedIn Profile Scraper</a></li>
-    <li><a href="https://linkfinderai.com/linkedIn-profile-scraper-api.html">LinkedIn Profile Scraper API</a></li>
-    <li><a href="https://linkfinderai.com/linkedin-profile-scraper-api.html">LinkedIn Profile Scraper API</a></li>
-    <li><a href="https://linkfinderai.com/linkedin-scraper.html">LinkedIn Scraper</a></li>
-    <li><a href="https://linkfinderai.com/linkedin-scraper-python.html">LinkedIn Scraper Python</a></li>
-    <li><a href="https://linkfinderai.com/linkedin-scraping-api.html">LinkedIn Scraping API</a></li>
-    <li><a href="https://linkfinderai.com/linkedin-search-by-email.html">LinkedIn Search By Email</a></li>
-    <li><a href="https://linkfinderai.com/linkedin-search-by-email-api.html">LinkedIn Search By Email API</a></li>
-    <li><a href="https://linkfinderai.com/linkedin-url-finder.html">LinkedIn URL Finder</a></li>
-    <li><a href="https://linkfinderai.com/linkedin-url-finder-lp.html">LinkedIn URL Finder</a></li>
-    <li><a href="https://linkfinderai.com/linkedin-url-finder-api.html">LinkedIn URL Finder API</a></li>
-    <li><a href="https://linkfinderai.com/n8n-linkedin-automation.html">n8n LinkedIn Automation</a></li>
-    <li><a href="https://linkfinderai.com/rapid-api-linkedin.html">Rapid API LinkedIn</a></li>
-    <li><a href="https://linkfinderai.com/workflow/recruits-affiliate-partners-from-linkedin-engagement-data.html">Recruits Affiliate Partners From LinkedIn Engagement Data</a></li>
-    <li><a href="https://linkfinderai.com/scrape-linkedIn-jobs.html">Scrape LinkedIn Jobs</a></li>
-    <li><a href="https://linkfinderai.com/workflow/turn-linkedin-post-engagement-into-enriched-lead-lists.html">Turn LinkedIn Post Engagement Into Enriched Lead Lists</a></li>
-    <li><a href="https://linkfinderai.com/​linkedin-comment-scraper.html">​linkedin Comment Scraper</a></li>
-  </ul>
+
+  <header class="header">
+    <div class="container">
+      <div class="header-content">
+        <a href="https://linkfinderai.com" class="logo">
+          <div class="logo-icon"><i class="fas fa-search"></i></div>
+          <span class="logo-text">LinkFinder AI</span>
+        </a>
+        <div class="auth-buttons">
+          <button class="btn btn-outline" onclick="window.location.href='https://linkfinderai.com/log-in'">Login</button>
+          <button class="btn" onclick="redirectToSignup()">Try for free</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="container">
+    <nav class="breadcrumb" aria-label="Breadcrumb">
+      <a href="https://linkfinderai.com">Home</a> &nbsp;/&nbsp; LinkedIn Data, Scraping &amp; APIs
+    </nav>
+
+    <div class="hero">
+      <h1>LinkedIn <span class="highlight">Data, Scraping &amp; APIs</span></h1>
+      <p>Everything we build for extracting and enriching LinkedIn data — profile and company scrapers, developer APIs, email and phone finders, and tools for turning posts and engagement into leads.</p>
+    </div>
+
+    <div class="intro">
+      <p>LinkedIn is the richest source of B2B contact data on the web, but it's locked behind a UI that isn't built for collecting data at scale. The tools below close that gap: they pull structured information — names, titles, companies, emails, phone numbers, post engagement — from LinkedIn profiles, companies, and posts, and hand it back in a clean, usable format.</p>
+      <p>Whether you need a one-off lookup, a bulk export, or a developer API to wire LinkedIn data into your own product, there's a tool here for it. They all run on the same engine behind our <a href="https://linkfinderai.com/data-enrichment-api.html">Data Enrichment API</a>, so accuracy stays consistent across every use case. Pick the category that matches what you're trying to do.</p>
+    </div>
+  </div>
+
+  <div class="container">
+
+    <section class="section">
+      <div class="section-header">
+        <h2><i class="fas fa-spider ico"></i> Scrapers</h2>
+        <p>Pull structured data from LinkedIn profiles, companies, posts, and job listings.</p>
+      </div>
+      <div class="link-grid">
+        <a class="link-card" href="https://linkfinderai.com/linkedin-scraper.html">LinkedIn Scraper <i class="fas fa-arrow-right"></i></a>
+        <a class="link-card" href="https://linkfinderai.com/linkedin-scraper-python.html">LinkedIn Scraper (Python) <i class="fas fa-arrow-right"></i></a>
+        <a class="link-card" href="https://linkfinderai.com/linkedin-profile-scraper.html">LinkedIn Profile Scraper <i class="fas fa-arrow-right"></i></a>
+        <a class="link-card" href="https://linkfinderai.com/linkedin-company-scraper.html">LinkedIn Company Scraper <i class="fas fa-arrow-right"></i></a>
+        <a class="link-card" href="https://linkfinderai.com/linkedin-company-post-scraper.html">LinkedIn Company Post Scraper <i class="fas fa-arrow-right"></i></a>
+        <a class="link-card" href="https://linkfinderai.com/linkedIn-post-scraper.html">LinkedIn Post Scraper <i class="fas fa-arrow-right"></i></a>
+        <a class="link-card" href="https://linkfinderai.com/linkedin-job-scraper.html">LinkedIn Job Scraper <i class="fas fa-arrow-right"></i></a>
+        <a class="link-card" href="https://linkfinderai.com/scrape-linkedIn-jobs.html">Scrape LinkedIn Jobs <i class="fas fa-arrow-right"></i></a>
+        <a class="link-card" href="https://linkfinderai.com/linkedin-comment-scraper.html">LinkedIn Comment Scraper <i class="fas fa-arrow-right"></i></a>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-header">
+        <h2><i class="fas fa-code ico"></i> APIs</h2>
+        <p>Developer endpoints to integrate LinkedIn data directly into your product or stack.</p>
+      </div>
+      <div class="link-grid">
+        <a class="link-card" href="https://linkfinderai.com/linkedin-api.html">LinkedIn API <i class="fas fa-arrow-right"></i></a>
+        <a class="link-card" href="https://linkfinderai.com/linkedin-scraping-api.html">LinkedIn Scraping API <i class="fas fa-arrow-right"></i></a>
+        <a class="link-card" href="https://linkfinderai.com/linkedin-company-scraper-api.html">LinkedIn Company Scraper API <i class="fas fa-arrow-right"></i></a>
+        <a class="link-card" href="https://linkfinderai.com/linkedin-company-employees-api.html">LinkedIn Company Employees API <i class="fas fa-arrow-right"></i></a>
+        <a class="link-card" href="https://linkfinderai.com/linkedin-post-scraper-api.html">LinkedIn Post Scraper API <i class="fas fa-arrow-right"></i></a>
+        <a class="link-card" href="https://linkfinderai.com/linkedin-profile-scraper-api.html">LinkedIn Profile Scraper API <i class="fas fa-arrow-right"></i></a>
+        <a class="link-card" href="https://linkfinderai.com/linkedin-profile-data-extraction-api.html">LinkedIn Profile Data Extraction API <i class="fas fa-arrow-right"></i></a>
+        <a class="link-card" href="https://linkfinderai.com/linkedin-email-finder-api.html">LinkedIn Email Finder API <i class="fas fa-arrow-right"></i></a>
+        <a class="link-card" href="https://linkfinderai.com/linkedin-phone-number-finder-api.html">LinkedIn Phone Number Finder API <i class="fas fa-arrow-right"></i></a>
+        <a class="link-card" href="https://linkfinderai.com/linkedin-search-by-email-api.html">LinkedIn Search by Email API <i class="fas fa-arrow-right"></i></a>
+        <a class="link-card" href="https://linkfinderai.com/linkedin-url-finder-api.html">LinkedIn URL Finder API <i class="fas fa-arrow-right"></i></a>
+        <a class="link-card" href="https://linkfinderai.com/rapid-api-linkedin.html">RapidAPI LinkedIn <i class="fas fa-arrow-right"></i></a>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-header">
+        <h2><i class="fas fa-magnifying-glass ico"></i> Finders &amp; extractors</h2>
+        <p>Find emails, phone numbers, and profile URLs, or pull specific fields from a profile.</p>
+      </div>
+      <div class="link-grid">
+        <a class="link-card" href="https://linkfinderai.com/linkedin-email-finder.html">LinkedIn Email Finder <i class="fas fa-arrow-right"></i></a>
+        <a class="link-card" href="https://linkfinderai.com/linkedin-phone-number-finder.html">LinkedIn Phone Number Finder <i class="fas fa-arrow-right"></i></a>
+        <a class="link-card" href="https://linkfinderai.com/linkedin-url-finder.html">LinkedIn URL Finder <i class="fas fa-arrow-right"></i></a>
+        <a class="link-card" href="https://linkfinderai.com/linkedin-search-by-email.html">LinkedIn Search by Email <i class="fas fa-arrow-right"></i></a>
+        <a class="link-card" href="https://linkfinderai.com/linkedin-company-employees-finder.html">LinkedIn Company Employees Finder <i class="fas fa-arrow-right"></i></a>
+        <a class="link-card" href="https://linkfinderai.com/linkedin-profile-data-extraction.html">LinkedIn Profile Data Extraction <i class="fas fa-arrow-right"></i></a>
+        <a class="link-card" href="https://linkfinderai.com/extract-full-name-from-linkedin-profile.html">Extract Full Name from Profile <i class="fas fa-arrow-right"></i></a>
+        <a class="link-card" href="https://linkfinderai.com/extract-job-title-from-linkedin-url.html">Extract Job Title from URL <i class="fas fa-arrow-right"></i></a>
+        <a class="link-card" href="https://linkfinderai.com/extract-name-from-linkedin-url.html">Extract Name from URL <i class="fas fa-arrow-right"></i></a>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-header">
+        <h2><i class="fas fa-thumbs-up ico"></i> Posts &amp; engagement</h2>
+        <p>Turn likers, commenters, and group members into exportable lead lists.</p>
+      </div>
+      <div class="link-grid">
+        <a class="link-card" href="https://linkfinderai.com/linkedin-post-commenters-export.html">LinkedIn Post Commenters Export <i class="fas fa-arrow-right"></i></a>
+        <a class="link-card" href="https://linkfinderai.com/linkedin-post-likers-export.html">LinkedIn Post Likers Export <i class="fas fa-arrow-right"></i></a>
+        <a class="link-card" href="https://linkfinderai.com/linkedin-post-date-extractor.html">LinkedIn Post Date Extractor <i class="fas fa-arrow-right"></i></a>
+        <a class="link-card" href="https://linkfinderai.com/export-linkedin-group-members.html">Export LinkedIn Group Members <i class="fas fa-arrow-right"></i></a>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-header">
+        <h2><i class="fas fa-sync-alt ico"></i> Enrichment &amp; automation</h2>
+        <p>Push fresh LinkedIn data into Sheets, your CRM, or automated lead-gen workflows.</p>
+      </div>
+      <div class="link-grid">
+        <a class="link-card" href="https://linkfinderai.com/linkedIn-enrichment-google-sheets.html">LinkedIn Enrichment for Google Sheets <i class="fas fa-arrow-right"></i></a>
+        <a class="link-card" href="https://linkfinderai.com/n8n-linkedin-automation.html">n8n LinkedIn Automation <i class="fas fa-arrow-right"></i></a>
+        <a class="link-card" href="https://linkfinderai.com/workflow/enriches-crm-contacts-with-fresh-linkedin-and-company-data.html">Enrich CRM Contacts with Fresh Data <i class="fas fa-arrow-right"></i></a>
+        <a class="link-card" href="https://linkfinderai.com/workflow/linkedin-job-posts-into-enriched-sales-leads.html">Job Posts into Sales Leads <i class="fas fa-arrow-right"></i></a>
+        <a class="link-card" href="https://linkfinderai.com/workflow/recruits-affiliate-partners-from-linkedin-engagement-data.html">Recruit Partners from Engagement <i class="fas fa-arrow-right"></i></a>
+        <a class="link-card" href="https://linkfinderai.com/workflow/turn-linkedin-post-engagement-into-enriched-lead-lists.html">Post Engagement into Lead Lists <i class="fas fa-arrow-right"></i></a>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-header">
+        <h2><i class="fas fa-star ico"></i> Guides &amp; comparisons</h2>
+        <p>How to choose the right tool, and how the options stack up.</p>
+      </div>
+      <div class="link-grid">
+        <a class="link-card" href="https://linkfinderai.com/best-linkedin-scrapers.html">Best LinkedIn Scrapers <i class="fas fa-arrow-right"></i></a>
+        <a class="link-card" href="https://linkfinderai.com/best-linkedin-api.html">Best LinkedIn API <i class="fas fa-arrow-right"></i></a>
+        <a class="link-card" href="https://linkfinderai.com/best-linkedin-scraping-api.html">Best LinkedIn Scraping API <i class="fas fa-arrow-right"></i></a>
+        <a class="link-card" href="https://linkfinderai.com/best-linkedin-email-extractor.html">Best LinkedIn Email Extractor <i class="fas fa-arrow-right"></i></a>
+        <a class="link-card" href="https://linkfinderai.com/best-crm-integration-with-linkedin.html">Best CRM Integration with LinkedIn <i class="fas fa-arrow-right"></i></a>
+        <a class="link-card" href="https://linkfinderai.com/best-platforms-for-automatic-linkedin-profile-enrichment-in-crms.html">Best LinkedIn Profile Enrichment for CRMs <i class="fas fa-arrow-right"></i></a>
+      </div>
+    </section>
+
+  </div>
+
+  <section class="cta">
+    <div class="container">
+      <h2>Start pulling LinkedIn data</h2>
+      <p>Try any of these tools free — no setup, no credit card required to get started.</p>
+      <button class="btn btn-large" onclick="redirectToSignup()"><i class="fab fa-linkedin"></i> Get started free</button>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-section">
+          <div class="footer-logo">
+            <div class="logo-icon"><i class="fas fa-search"></i></div>
+            <span class="logo-text">Linkfinder AI</span>
+          </div>
+          <p class="footer-description">B2B contact data enrichment for sales, marketing, and recruitment teams. Verified business intelligence at scale.</p>
+        </div>
+        <div class="footer-section">
+          <h4>Product</h4>
+          <ul class="footer-links">
+            <li><a href="https://linkfinderai.com/pricing">Pricing</a></li>
+            <li><a href="https://linkfinderai.com/api-documentation">API Documentation</a></li>
+            <li><a href="https://linkfinderai.com/b2b-data-enrichment">B2B Data Enrichment</a></li>
+            <li><a href="https://linkfinderai.com/data-enrichment-api">Data Enrichment API</a></li>
+            <li><a href="https://linkfinderai.com/blog">Blog</a></li>
+          </ul>
+        </div>
+        <div class="footer-section">
+          <h4>Company</h4>
+          <ul class="footer-links">
+            <li><a href="https://linkfinderai.com/about-us">About Us</a></li>
+            <li><a href="https://linkfinderai.com/mention-legales">Legal Information</a></li>
+            <li><a href="https://linkfinderai.com/privacy">Privacy Policy</a></li>
+            <li><a href="https://linkfinderai.com/terms">Terms of Service</a></li>
+            <li><a href="https://linkfinderai.com/refund-policy">Refund Policy</a></li>
+          </ul>
+        </div>
+        <div class="footer-section">
+          <h4>Support</h4>
+          <ul class="footer-links">
+            <li><a href="mailto:support@linkfinderai.com">support@linkfinderai.com</a></li>
+            <li><a href="https://www.linkedin.com/in/eliasse-hamour-08194821a/" target="_blank" rel="noopener"><i class="fab fa-linkedin"></i> LinkedIn</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>&copy; 2026 Linkfinder AI &mdash; Eliasse Hamour. All rights reserved.</p>
+        <p class="legal-line">SIRET 937 788 172 00016 &mdash; VAT FR02937788172 &mdash; 26 Rue de la Coopération, 93240 Stains, France</p>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    function redirectToSignup() {
+      const gclid = new URLSearchParams(window.location.search).get('gclid');
+      window.location.href = gclid
+        ? `https://linkfinderai.com/sign-up?gclid=${gclid}`
+        : 'https://linkfinderai.com/sign-up';
+    }
+  </script>
 </body>
 </html>
