@@ -1,114 +1,106 @@
 name: Generate Sitemap
-
 on:
   push:
     branches:
       - main
   workflow_dispatch:
-
 permissions:
   contents: write
-
 jobs:
   generate-sitemap:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
-
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '16'
-
       - name: Create sitemap generation script
         run: |
           cat > generate-sitemap.js <<'EOL'
           const fs = require('fs');
           const path = require('path');
-          
+
           // Configuration
           const BASE_URL = 'https://linkfinderai.com/';
           const CONTENT_DIR = './';
-          const FILE_EXTENSIONS = ['.html', '.md', '.txt'];
+          const FILE_EXTENSIONS = ['.html']; // only real pages (dropped .txt/.md)
           const EXCLUDED_DIRS = ['.git', 'node_modules', '.github'];
-          
-          // Fonction pour parcourir les répertoires
+
+          // Pages you block in robots.txt — KEEP THIS LIST IN SYNC WITH robots.txt
+          const EXCLUDED_PREFIXES = [
+            'account', 'app', 'beta-index', 'confirmation-login', 'confirmation-signup',
+            'end-of-bookmarks-bar', 'log-in', 'redeem-code', 'reset-password',
+            'say-goodbye', 'sign-up', 'update-password', 'upgrade-confirmation',
+          ];
+          // Specific files to never include
+          const EXCLUDED_FILES = ['sitemap.xml', 'robots.txt'];
+
+          function isExcluded(urlPath) {
+            const base = urlPath.split('/').pop(); // filename only
+            if (base.startsWith('.')) return true; // skips broken ".html" etc.
+            if (EXCLUDED_FILES.includes(base)) return true;
+            // match robots.txt-style prefixes against the path
+            return EXCLUDED_PREFIXES.some(p => urlPath.startsWith(p));
+          }
+
           function walkSync(dir, fileList = []) {
             if (!fs.existsSync(dir)) return fileList;
-            
             const files = fs.readdirSync(dir);
-            
             files.forEach(file => {
+              if (file.startsWith('.')) return; // skip dotfiles/dirs
               const filePath = path.join(dir, file);
-              
               try {
                 const stat = fs.statSync(filePath);
-                
                 if (stat.isDirectory() && !EXCLUDED_DIRS.includes(file)) {
                   fileList = walkSync(filePath, fileList);
                 } else if (stat.isFile() && FILE_EXTENSIONS.some(ext => file.endsWith(ext))) {
-                  // Convertir le chemin relatif en URL
-                  let urlPath = path.relative(CONTENT_DIR, filePath);
-                  
-                  // Remplacer les backslash par des forward slash
-                  urlPath = urlPath.split(path.sep).join('/');
-                  
-                  // Ajouter l'URL au sitemap
-                  const fullUrl = BASE_URL + urlPath;
+                  let urlPath = path.relative(CONTENT_DIR, filePath).split(path.sep).join('/');
+                  if (isExcluded(urlPath)) return; // <-- filtering happens here
                   fileList.push({
-                    url: fullUrl,
+                    url: BASE_URL + urlPath,
                     lastmod: new Date().toISOString().split('T')[0]
                   });
                 }
               } catch (error) {
-                console.error(`Erreur lors du traitement de ${filePath}:`, error.message);
+                console.error(`Error processing ${filePath}:`, error.message);
               }
             });
-            
             return fileList;
           }
-          
-          // Génération du sitemap XML
+
           function generateSitemap(urls) {
+            urls.sort((a, b) => a.url.localeCompare(b.url));
             let sitemap = '<?xml version="1.0" encoding="UTF-8"?>\n';
             sitemap += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
-            
             urls.forEach(item => {
               sitemap += '  <url>\n';
               sitemap += `    <loc>${item.url}</loc>\n`;
               sitemap += `    <lastmod>${item.lastmod}</lastmod>\n`;
               sitemap += '  </url>\n';
             });
-            
             sitemap += '</urlset>';
             return sitemap;
           }
-          
-          // Exécution principale
+
           try {
-            console.log('Génération du sitemap...');
+            console.log('Generating sitemap...');
             const urls = walkSync(CONTENT_DIR);
-            const sitemap = generateSitemap(urls);
-            
-            fs.writeFileSync('sitemap.xml', sitemap);
-            console.log(`Sitemap généré avec ${urls.length} URLs.`);
-            
-            // Log les URLs pour débogage
+            fs.writeFileSync('sitemap.xml', generateSitemap(urls));
+            console.log(`Sitemap generated with ${urls.length} URLs.`);
             urls.forEach(item => console.log(` - ${item.url}`));
           } catch (error) {
-            console.error('Erreur:', error);
+            console.error('Error:', error);
             process.exit(1);
           }
           EOL
-
       - name: Generate sitemap
         run: node generate-sitemap.js
-
       - name: Commit and push sitemap
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
           git add sitemap.xml
-          git commit -m "Mise à jour automatique du sitemap" || echo "Pas de changements à commiter"
+          git commit -m "Automatic sitemap update" || echo "No changes to commit"
           git push
