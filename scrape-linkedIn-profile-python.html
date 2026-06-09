@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>How to Scrape a LinkedIn Profile in Python (2026 Tutorial) — LinkFinder AI</title>
+  <meta name="description" content="Scrape a LinkedIn profile in Python without getting blocked. Pull structured profile data — name, title, company, location — plus email and phone using a REST API, with bulk scraping and rate-limit handling."/>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+  <style>
+    :root {
+      --primary-color: #2563eb;
+      --primary-dark: #1e40af;
+      --success-color: #10b981;
+      --text-dark: #1f2937;
+      --text-gray: #6b7280;
+      --border-color: #e5e7eb;
+      --bg-light: #f9fafb;
+      --code-bg: #0f172a;
+      --code-bar: #1e293b;
+      --code-text: #e2e8f0;
+      --code-dim: #94a3b8;
+      --mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Monaco, Consolas, monospace;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      line-height: 1.6;
+      color: var(--text-dark);
+      background: #ffffff;
+    }
+    .container { max-width: 1100px; margin: 0 auto; padding: 0 2rem; }
+
+    /* Header */
+    .header {
+      background: white;
+      border-bottom: 1px solid var(--border-color);
+      position: sticky; top: 0; z-index: 1000;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    .header-content {
+      max-width: 1100px; margin: 0 auto; padding: 1rem 2rem;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .logo {
+      font-size: 1.5rem; font-weight: 800; color: var(--primary-color);
+      text-decoration: none; display: flex; align-items: center; gap: 0.5rem;
+    }
+    .logo i { font-size: 1.75rem; }
+    .btn {
+      padding: 0.625rem 1.5rem; border-radius: 0.5rem; text-decoration: none;
+      font-weight: 600; transition: all 0.2s; display: inline-block; font-size: 0.9375rem;
+    }
+    .btn-outline { background: transparent; color: var(--primary-color); border: 2px solid var(--primary-color); margin-right: 0.75rem; }
+    .btn-outline:hover { background: var(--primary-color); color: white; }
+    .btn:not(.btn-outline) { background: var(--primary-color); color: white; border: 2px solid var(--primary-color); }
+    .btn:not(.btn-outline):hover { background: var(--primary-dark); border-color: var(--primary-dark); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3); }
+
+    /* Hero */
+    .hero {
+      background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+      color: white; padding: 4rem 0; text-align: center;
+    }
+    .hero .eyebrow {
+      display: inline-block; font-family: var(--mono); font-size: 0.8125rem;
+      letter-spacing: 0.08em; text-transform: uppercase; font-weight: 600;
+      background: rgba(255,255,255,0.15); padding: 0.4rem 0.9rem; border-radius: 999px; margin-bottom: 1.25rem;
+    }
+    .hero h1 { font-size: 3rem; font-weight: 800; margin-bottom: 1rem; line-height: 1.2; }
+    .hero p { font-size: 1.2rem; opacity: 0.95; max-width: 720px; margin: 0 auto; }
+    .hero a { color: white; }
+
+    /* Article */
+    .article { padding: 3.5rem 0; }
+    .intro-text { font-size: 1.0625rem; line-height: 1.85; margin-bottom: 2.5rem; }
+    .intro-text p { margin-bottom: 1.25rem; }
+
+    /* On this page */
+    .toc {
+      background: var(--bg-light); border: 1px solid var(--border-color);
+      border-radius: 0.9rem; padding: 1.75rem 2rem; margin-bottom: 3rem;
+    }
+    .toc h2 { font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-gray); margin-bottom: 1rem; }
+    .toc ol { list-style: none; counter-reset: toc; display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem 2rem; }
+    .toc li { counter-increment: toc; }
+    .toc a { text-decoration: none; color: var(--text-dark); font-weight: 500; display: flex; gap: 0.7rem; align-items: baseline; }
+    .toc a:hover { color: var(--primary-color); }
+    .toc a::before {
+      content: counter(toc, decimal-leading-zero); font-family: var(--mono);
+      font-size: 0.8rem; color: var(--primary-color); font-weight: 600;
+    }
+
+    /* Step blocks */
+    .step { margin: 3.25rem 0; scroll-margin-top: 90px; }
+    .step-head { display: flex; align-items: center; gap: 1rem; margin-bottom: 1.25rem; }
+    .step-num {
+      flex: none; width: 2.6rem; height: 2.6rem; border-radius: 0.7rem;
+      background: var(--primary-color); color: white; display: flex; align-items: center;
+      justify-content: center; font-family: var(--mono); font-weight: 600; font-size: 1.05rem;
+    }
+    .step h2 { font-size: 1.6rem; font-weight: 700; line-height: 1.25; }
+    .step p { margin: 1rem 0 1.25rem; line-height: 1.8; font-size: 1.0625rem; }
+    .step h3 { font-size: 1.15rem; font-weight: 700; margin: 1.75rem 0 0.75rem; }
+    .step ul { margin: 1rem 0 1.25rem 1.4rem; }
+    .step li { margin-bottom: 0.6rem; line-height: 1.7; }
+    code.inline {
+      font-family: var(--mono); font-size: 0.86em; background: #eef2ff;
+      color: var(--primary-dark); padding: 0.15em 0.4em; border-radius: 0.35em;
+    }
+
+    /* Code blocks with language tabs */
+    .code-tabs { margin: 1.5rem 0; border-radius: 0.75rem; overflow: hidden; border: 1px solid var(--code-bar); background: var(--code-bg); }
+    .code-tabbar { display: flex; align-items: center; background: var(--code-bar); padding: 0 0.4rem; }
+    .code-tab {
+      font-family: var(--mono); font-size: 0.8rem; font-weight: 500; color: var(--code-dim);
+      background: transparent; border: none; padding: 0.7rem 1rem; cursor: pointer;
+      border-bottom: 2px solid transparent; transition: color 0.15s, border-color 0.15s;
+    }
+    .code-tab:hover { color: var(--code-text); }
+    .code-tab.active { color: #fff; border-bottom-color: #60a5fa; }
+    .code-copy {
+      margin-left: auto; font-family: var(--mono); font-size: 0.74rem; color: var(--code-dim);
+      background: transparent; border: 1px solid #334155; border-radius: 0.4rem;
+      padding: 0.3rem 0.7rem; cursor: pointer; transition: all 0.15s;
+    }
+    .code-copy:hover { color: #fff; border-color: #475569; }
+    .code-pane { display: none; margin: 0; }
+    .code-pane.active { display: block; }
+    .code-pane pre {
+      margin: 0; padding: 1.25rem 1.4rem; overflow-x: auto;
+      font-family: var(--mono); font-size: 0.86rem; line-height: 1.7; color: var(--code-text);
+      tab-size: 2;
+    }
+    .code-pane pre code { font-family: inherit; white-space: pre; }
+
+    /* Callouts */
+    .note, .warn {
+      border-radius: 0.7rem; padding: 1.1rem 1.3rem; margin: 1.5rem 0; font-size: 0.97rem; line-height: 1.7;
+      display: flex; gap: 0.8rem;
+    }
+    .note { background: #eff6ff; border-left: 4px solid var(--primary-color); }
+    .warn { background: #fffbeb; border-left: 4px solid #f59e0b; }
+    .note i { color: var(--primary-color); margin-top: 0.2rem; }
+    .warn i { color: #d97706; margin-top: 0.2rem; }
+    .note strong, .warn strong { font-weight: 700; }
+
+    /* Tables */
+    .table-wrapper { overflow-x: auto; border: 1px solid var(--border-color); border-radius: 0.75rem; margin: 1.5rem 0; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.94rem; }
+    th { background: var(--bg-light); padding: 0.85rem 1rem; text-align: left; font-weight: 600; border-bottom: 2px solid var(--border-color); }
+    td { padding: 0.85rem 1rem; border-bottom: 1px solid var(--border-color); vertical-align: top; }
+    tr:last-child td { border-bottom: none; }
+    td code, th code { font-family: var(--mono); font-size: 0.85em; background: #f1f5f9; padding: 0.1em 0.35em; border-radius: 0.3em; }
+    .pill { font-family: var(--mono); font-size: 0.78rem; font-weight: 600; padding: 0.15rem 0.5rem; border-radius: 0.35rem; }
+    .pill-ok { background: #d1fae5; color: #065f46; }
+    .pill-err { background: #fee2e2; color: #991b1b; }
+
+    /* CTA */
+    .cta-box {
+      background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+      color: white; padding: 3rem; border-radius: 1rem; text-align: center; margin: 3.5rem 0 1rem;
+    }
+    .cta-box h2 { color: white; margin-bottom: 1rem; font-size: 1.75rem; }
+    .cta-box p { color: white; opacity: 0.92; margin: 1rem auto; max-width: 600px; }
+    .cta-box .btn { background: white; color: var(--primary-color); font-size: 1.05rem; padding: 0.875rem 2rem; margin-top: 1rem; }
+    .cta-box .btn:hover { background: var(--bg-light); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.15); }
+    .cta-fine { font-size: 0.85rem; margin-top: 1rem; opacity: 0.8; }
+
+    /* Related */
+    .related-pages-box { max-width: 760px; margin: 3rem auto 0; padding: 24px; background: #fef3c7; border-left: 4px solid #f59e0b; border-radius: 8px; }
+    .related-pages-box p { margin: 0 0 16px; font-size: 15px; font-weight: 600; color: #78350f; }
+    .related-pages-box .links { display: flex; flex-direction: column; gap: 10px; }
+    .related-pages-box a { padding: 12px 16px; background: white; border: 1px solid #fde68a; border-radius: 6px; text-decoration: none; color: #b45309; font-size: 14px; transition: all 0.2s; display: block; }
+    .related-pages-box a:hover { border-color: #f59e0b; }
+
+    /* Footer */
+    .footer { background: var(--text-dark); color: white; padding: 3rem 0 1.5rem; margin-top: 4rem; }
+    .footer-content { max-width: 1100px; margin: 0 auto 2rem; padding: 0 2rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 2rem; }
+    .footer h4 { margin-bottom: 1rem; font-size: 1.125rem; }
+    .footer p.fdesc { color: rgba(255,255,255,0.75); font-size: 0.95rem; }
+    .footer-links { list-style: none; }
+    .footer-links li { margin-bottom: 0.5rem; }
+    .footer-links a { color: rgba(255,255,255,0.8); text-decoration: none; transition: color 0.2s; }
+    .footer-links a:hover { color: white; }
+    .footer-bottom { text-align: center; padding: 2rem 2rem 0; border-top: 1px solid rgba(255,255,255,0.1); color: rgba(255,255,255,0.6); max-width: 1100px; margin: 0 auto; }
+    .footer-bottom .legal-line { color: #6b7280; font-size: 0.78rem; margin-top: 0.5rem; }
+
+    @media (max-width: 768px) {
+      .hero h1 { font-size: 2rem; }
+      .toc ol { grid-template-columns: 1fr; }
+      .cta-box { padding: 2rem 1.5rem; }
+      .step h2 { font-size: 1.35rem; }
+    }
+  </style>
+
+  <link rel="canonical" href="https://linkfinderai.com/scrape-linkedin-profile-python" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "HowTo",
+    "name": "How to scrape a LinkedIn profile in Python",
+    "description": "Step-by-step guide to scraping LinkedIn profile data in Python using a REST API — without a headless browser or ban risk. Fetch a profile, parse the structured fields, resolve URLs from a name or email, scrape in bulk, and append email and phone.",
+    "step": [
+      { "@type": "HowToStep", "name": "Get your API key", "url": "https://linkfinderai.com/scrape-linkedin-profile-python#step-1" },
+      { "@type": "HowToStep", "name": "Scrape your first profile in Python", "url": "https://linkfinderai.com/scrape-linkedin-profile-python#step-2" },
+      { "@type": "HowToStep", "name": "Read the profile data", "url": "https://linkfinderai.com/scrape-linkedin-profile-python#step-3" },
+      { "@type": "HowToStep", "name": "Scrape from just a name or email", "url": "https://linkfinderai.com/scrape-linkedin-profile-python#step-4" },
+      { "@type": "HowToStep", "name": "Scrape a list of profiles in bulk", "url": "https://linkfinderai.com/scrape-linkedin-profile-python#step-5" },
+      { "@type": "HowToStep", "name": "Also pull email, phone and company data", "url": "https://linkfinderai.com/scrape-linkedin-profile-python#step-6" }
+    ]
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://linkfinderai.com" },
+      { "@type": "ListItem", "position": 2, "name": "Scrape a LinkedIn Profile in Python", "item": "https://linkfinderai.com/scrape-linkedin-profile-python" }
+    ]
+  }
+  </script>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-content">
+    <a href="https://linkfinderai.com" class="logo"><i class="fas fa-search"></i> LinkFinder AI</a>
+    <div>
+      <a href="https://linkfinderai.com/api-documentation" class="btn btn-outline">API Docs</a>
+      <a href="https://linkfinderai.com/sign-up" class="btn">Get API key</a>
+    </div>
+  </div>
+</header>
+
+<div class="hero">
+  <div class="container">
+    <span class="eyebrow">Python Tutorial</span>
+    <h1>How to Scrape a LinkedIn Profile in Python</h1>
+    <p>Pull a profile's name, title, company, and location into clean structured data with a few lines of Python — no headless browser, no proxies, and no account-ban risk. Each call is <a href="https://linkfinderai.com/api-documentation">1 credit</a>.</p>
+  </div>
+</div>
+
+<article class="article">
+  <div class="container">
+
+    <div class="intro-text">
+      <p>"Scraping a LinkedIn profile in Python" usually means one thing: you have a profile URL (or a name, or an email) and you want the structured data behind it — full name, headline, job title, company, location — in a dict you can drop into a database or CRM.</p>
+      <p>The DIY route is harder than it looks. LinkedIn blocks unauthenticated requests, renders profiles with JavaScript so plain <code class="inline">requests</code> + <code class="inline">BeautifulSoup</code> returns almost nothing, rate-limits and bans datacenter IPs, and — most importantly — automating a logged-in account is the fastest way to get that account restricted. Maintaining a Selenium fleet with rotating proxies is a project in itself, and a brittle one.</p>
+      <p>This tutorial takes the reliable path instead: a single REST endpoint that returns the parsed profile for a URL. No browser to drive, no session to keep alive, no ban risk on your own account. Everything below is Python-first (with cURL and Node alternates), runs against <code class="inline">POST https://api.linkfinderai.com</code>, and costs 1 credit per call — including lookups that come back empty. The free tier's 100 credits is enough to follow the whole guide.</p>
+    </div>
+
+    <nav class="toc" aria-label="On this page">
+      <h2>What you'll build</h2>
+      <ol>
+        <li><a href="#step-1">Get your API key</a></li>
+        <li><a href="#step-2">Scrape your first profile</a></li>
+        <li><a href="#step-3">Read the profile data</a></li>
+        <li><a href="#step-4">Scrape from a name or email</a></li>
+        <li><a href="#step-5">Scrape a list in bulk</a></li>
+        <li><a href="#step-6">Pull email, phone &amp; company</a></li>
+      </ol>
+    </nav>
+
+    <div class="warn" style="margin-bottom:2.5rem;">
+      <i class="fas fa-triangle-exclamation"></i>
+      <div><strong>Why the hard way breaks.</strong> A naive scrape like the snippet below doesn't get you profile data — it gets you blocked. LinkedIn returns an <code class="inline">HTTP 999</code> or a login wall for unauthenticated requests, the real content is JS-rendered, and scripting a logged-in session risks your account. The API approach sidesteps all of it.
+      <div class="code-tabs" style="margin-top:1rem;">
+        <div class="code-tabbar">
+          <button class="code-tab active" data-lang="python">Python — the blocked approach</button>
+          <button class="code-copy" type="button">Copy</button>
+        </div>
+        <div class="code-pane active" data-lang="python"><pre><code>import requests
+
+# Plain GET against a public profile — this does NOT work
+resp = requests.get("https://www.linkedin.com/in/john-doe")
+print(resp.status_code)   # 999  (LinkedIn blocks the request)
+print("name" in resp.text)  # False — content is JS-rendered behind auth</code></pre></div>
+      </div>
+      </div>
+    </div>
+
+    <!-- STEP 1 -->
+    <section class="step" id="step-1">
+      <div class="step-head"><span class="step-num">1</span><h2>Get your API key</h2></div>
+      <p><a href="https://linkfinderai.com/sign-up">Create a free account</a> and copy your key from the dashboard under <strong>Settings → API Key</strong>. You get 100 credits to start — enough to scrape ~100 profiles while you test.</p>
+      <p>Keep the key out of your code. Set it as an environment variable and read it at runtime so it never lands in a commit or a notebook you share.</p>
+      <div class="code-tabs">
+        <div class="code-tabbar">
+          <button class="code-tab active" data-lang="bash">bash</button>
+          <button class="code-tab" data-lang="python">Python</button>
+          <button class="code-copy" type="button">Copy</button>
+        </div>
+        <div class="code-pane active" data-lang="bash"><pre><code># Add to your shell profile or a .env file (never commit it)
+export LINKFINDER_API_KEY="lf_live_your_key_here"</code></pre></div>
+        <div class="code-pane" data-lang="python"><pre><code>import os
+API_KEY = os.environ["LINKFINDER_API_KEY"]
+BASE_URL = "https://api.linkfinderai.com"</code></pre></div>
+      </div>
+    </section>
+
+    <!-- STEP 2 -->
+    <section class="step" id="step-2">
+      <div class="step-head"><span class="step-num">2</span><h2>Scrape your first profile</h2></div>
+      <p>One <code class="inline">POST</code>, two fields. Set <code class="inline">type</code> to <code class="inline">linkedin_profile_to_linkedin_info</code> and pass the profile URL as <code class="inline">input_data</code>. The API does the heavy lifting server-side and hands you parsed JSON — no browser, no proxy, no login.</p>
+      <div class="code-tabs">
+        <div class="code-tabbar">
+          <button class="code-tab active" data-lang="python">Python</button>
+          <button class="code-tab" data-lang="curl">cURL</button>
+          <button class="code-tab" data-lang="node">Node.js</button>
+          <button class="code-copy" type="button">Copy</button>
+        </div>
+        <div class="code-pane active" data-lang="python"><pre><code>import os, requests
+
+API_KEY = os.environ["LINKFINDER_API_KEY"]
+
+resp = requests.post(
+    "https://api.linkfinderai.com",
+    headers={
+        "Authorization": f"Bearer {API_KEY}",
+        "Content-Type": "application/json",
+    },
+    json={
+        "type": "linkedin_profile_to_linkedin_info",
+        "input_data": "https://linkedin.com/in/john-doe",
+    },
+    timeout=30,
+)
+
+data = resp.json()
+if data["status"] == "success":
+    profile = data["result"]
+    print(profile["full_name"], "—", profile["job_title"], "@", profile["company_name"])
+else:
+    print("No data:", data.get("message"))</code></pre></div>
+        <div class="code-pane" data-lang="curl"><pre><code>curl -X POST "https://api.linkfinderai.com" \
+     -H "Content-Type: application/json" \
+     -H "Authorization: Bearer $LINKFINDER_API_KEY" \
+     -d '{
+       "type": "linkedin_profile_to_linkedin_info",
+       "input_data": "https://linkedin.com/in/john-doe"
+     }'</code></pre></div>
+        <div class="code-pane" data-lang="node"><pre><code>const API_KEY = process.env.LINKFINDER_API_KEY;
+
+const resp = await fetch("https://api.linkfinderai.com", {
+  method: "POST",
+  headers: {
+    "Authorization": `Bearer ${API_KEY}`,
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    type: "linkedin_profile_to_linkedin_info",
+    input_data: "https://linkedin.com/in/john-doe",
+  }),
+});
+
+const data = await resp.json();
+if (data.status === "success") {
+  const p = data.result;
+  console.log(`${p.full_name} — ${p.job_title} @ ${p.company_name}`);
+}</code></pre></div>
+      </div>
+      <div class="note"><i class="fas fa-circle-info"></i><div>The same endpoint scrapes a <em>company</em> page too — swap the type to <code class="inline">linkedin_company_to_linkedin_info</code> and pass a <code class="inline">https://linkedin.com/company/...</code> URL.</div></div>
+    </section>
+
+    <!-- STEP 3 -->
+    <section class="step" id="step-3">
+      <div class="step-head"><span class="step-num">3</span><h2>Read the profile data</h2></div>
+      <p>Every response wraps your data in a <code class="inline">status</code> + <code class="inline">result</code> envelope. Branch on <code class="inline">status</code> first — a <code class="inline">200</code> can still come back <code class="inline">"error"</code> with a <code class="inline">null</code> result if the profile couldn't be resolved. On success, <code class="inline">result</code> is the parsed profile:</p>
+      <div class="code-tabs">
+        <div class="code-tabbar">
+          <button class="code-tab active" data-lang="json">Profile (success)</button>
+          <button class="code-tab" data-lang="empty">Not found</button>
+          <button class="code-copy" type="button">Copy</button>
+        </div>
+        <div class="code-pane active" data-lang="json"><pre><code>{
+  "status": "success",
+  "result": {
+    "full_name": "Sarah Mitchell",
+    "job_title": "VP of Sales",
+    "seniority_level": "vp",
+    "company_name": "CloudCore",
+    "company_domain": "cloudcore.io",
+    "company_size": "51-200",
+    "industry": "Software",
+    "city": "Austin",
+    "state": "Texas",
+    "country": "United States",
+    "linkedin": "https://linkedin.com/in/sarah-mitchell-sales"
+  }
+}</code></pre></div>
+        <div class="code-pane" data-lang="empty"><pre><code>{
+  "result": null,
+  "status": "error",
+  "message": "Profile not found"
+}</code></pre></div>
+      </div>
+      <p>From here it's plain Python — index into the dict, write to a CSV, or insert into your database. The exact field list lives in the <a href="https://linkfinderai.com/api-documentation">API docs</a>; treat any field defensively with <code class="inline">.get()</code> since not every profile exposes every attribute.</p>
+      <div class="warn"><i class="fas fa-triangle-exclamation"></i><div>A lookup that returns <code class="inline">null</code> still costs <strong>1 credit</strong>. De-duplicate your URL list and cache results so you never pay twice for the same profile.</div></div>
+    </section>
+
+    <!-- STEP 4 -->
+    <section class="step" id="step-4">
+      <div class="step-head"><span class="step-num">4</span><h2>Scrape from just a name or email</h2></div>
+      <p>Often you don't have the profile URL yet — only a name and company, or an email from a signup form. Resolve the URL first, then scrape it. A small helper keeps every call to one line:</p>
+      <div class="code-tabs">
+        <div class="code-tabbar">
+          <button class="code-tab active" data-lang="python">Python</button>
+          <button class="code-copy" type="button">Copy</button>
+        </div>
+        <div class="code-pane active" data-lang="python"><pre><code>import os, requests
+
+API_KEY = os.environ["LINKFINDER_API_KEY"]
+BASE_URL = "https://api.linkfinderai.com"
+
+def call(enrichment_type, input_data, **extra):
+    """One request = one credit. Returns the result or None."""
+    resp = requests.post(
+        BASE_URL,
+        headers={"Authorization": f"Bearer {API_KEY}",
+                 "Content-Type": "application/json"},
+        json={"type": enrichment_type, "input_data": input_data, **extra},
+        timeout=30,
+    )
+    resp.raise_for_status()
+    data = resp.json()
+    return data.get("result") if data.get("status") == "success" else None
+
+# From a name + company
+url = call("lead_full_name_to_linkedin_url", "Sarah Mitchell CloudCore")
+
+# ...or reverse-lookup the URL from an email
+url = url or call("email_to_linkedin_url", "sarah@cloudcore.io")
+
+# Then scrape the profile behind it
+profile = call("linkedin_profile_to_linkedin_info", url) if url else None
+print(profile)</code></pre></div>
+      </div>
+      <p>That's the building block for the rest of the guide — every scrape is just <code class="inline">call("linkedin_profile_to_linkedin_info", some_url)</code>.</p>
+    </section>
+
+    <!-- STEP 5 -->
+    <section class="step" id="step-5">
+      <div class="step-head"><span class="step-num">5</span><h2>Scrape a list of profiles in bulk</h2></div>
+      <p>Reading a CSV of profile URLs and scraping each row is the common job. Two things matter at volume: stay under your plan's requests-per-second limit, and retry transient failures instead of crashing halfway through. Here's a bulk scraper that does both.</p>
+      <div class="code-tabs">
+        <div class="code-tabbar">
+          <button class="code-tab active" data-lang="python">Python</button>
+          <button class="code-copy" type="button">Copy</button>
+        </div>
+        <div class="code-pane active" data-lang="python"><pre><code>import os, csv, time, requests
+
+API_KEY = os.environ["LINKFINDER_API_KEY"]
+BASE_URL = "https://api.linkfinderai.com"
+
+INPUT = "profiles.csv"        # one column: linkedin_url
+OUTPUT = "profiles_scraped.csv"
+REQS_PER_SEC = 5              # match your plan (Starter = 5/s)
+DELAY = 1.0 / REQS_PER_SEC
+
+def scrape(url, max_retries=4):
+    delay = 1.0
+    for _ in range(max_retries):
+        resp = requests.post(
+            BASE_URL,
+            headers={"Authorization": f"Bearer {API_KEY}",
+                     "Content-Type": "application/json"},
+            json={"type": "linkedin_profile_to_linkedin_info",
+                  "input_data": url},
+            timeout=30,
+        )
+        if resp.status_code in (429, 500):   # back off: 1s -> 2s -> 4s -> 8s
+            time.sleep(delay); delay *= 2; continue
+        if resp.status_code == 402:
+            raise RuntimeError("Out of credits — top up to continue.")
+        resp.raise_for_status()
+        data = resp.json()
+        return data.get("result") if data.get("status") == "success" else None
+    return None  # gave up after repeated rate limiting
+
+FIELDS = ["full_name", "job_title", "company_name", "industry", "city", "country", "linkedin"]
+
+with open(INPUT, newline="") as f_in, open(OUTPUT, "w", newline="") as f_out:
+    reader = csv.DictReader(f_in)
+    writer = csv.DictWriter(f_out, fieldnames=FIELDS, extrasaction="ignore")
+    writer.writeheader()
+
+    for row in reader:
+        profile = scrape(row["linkedin_url"])
+        if profile:
+            writer.writerow(profile)
+            print("scraped:", profile.get("full_name"))
+        else:
+            print("skipped:", row["linkedin_url"])
+        time.sleep(DELAY)     # stay under the rate limit
+
+print("Done.")</code></pre></div>
+      </div>
+      <p>The codes you'll actually hit, and how the script handles each:</p>
+      <div class="table-wrapper">
+        <table>
+          <thead><tr><th>Code</th><th>Meaning</th><th>What to do</th></tr></thead>
+          <tbody>
+            <tr><td><span class="pill pill-ok">200</span></td><td>Success</td><td>Check <code>result</code> — may be <code>null</code> (still 1 credit)</td></tr>
+            <tr><td><span class="pill pill-err">401</span></td><td>Unauthorized</td><td>Missing/invalid key — check the <code>Authorization</code> header</td></tr>
+            <tr><td><span class="pill pill-err">402</span></td><td>Insufficient credits</td><td>Top up or wait for the next billing cycle</td></tr>
+            <tr><td><span class="pill pill-err">422</span></td><td>Invalid request</td><td>Verify the <code>type</code> and <code>input_data</code> format</td></tr>
+            <tr><td><span class="pill pill-err">429</span></td><td>Rate limit exceeded</td><td>Back off exponentially: 1s, 2s, 4s</td></tr>
+            <tr><td><span class="pill pill-err">500</span></td><td>Server error</td><td>Retry after ~30s; contact support if it persists</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="table-wrapper">
+        <table>
+          <thead><tr><th>Plan</th><th>Credits / mo</th><th>Requests / sec</th><th>Batch size</th></tr></thead>
+          <tbody>
+            <tr><td>Starter</td><td>5,000</td><td>5 req/s</td><td>Up to 500</td></tr>
+            <tr><td>Professional</td><td>20,000</td><td>10 req/s</td><td>Up to 500</td></tr>
+            <tr><td>Enterprise</td><td>50,000</td><td>20 req/s</td><td>Up to 500</td></tr>
+            <tr><td>HyperGrowth</td><td>250,000</td><td>50 req/s</td><td>Up to 500</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- STEP 6 -->
+    <section class="step" id="step-6">
+      <div class="step-head"><span class="step-num">6</span><h2>Also pull email, phone &amp; company data</h2></div>
+      <p>Scraping the profile gives you the firmographics. To turn it into a contactable record, add two more one-credit calls off the same URL — and pull the full company page if you want headcount and industry detail:</p>
+      <div class="code-tabs">
+        <div class="code-tabbar">
+          <button class="code-tab active" data-lang="python">Python</button>
+          <button class="code-copy" type="button">Copy</button>
+        </div>
+        <div class="code-pane active" data-lang="python"><pre><code># Reuse the call() helper from Step 4
+url = "https://linkedin.com/in/sarah-mitchell-sales"
+
+record = {
+    "profile": call("linkedin_profile_to_linkedin_info", url),
+    "email":   call("linkedin_profile_to_email", url),   # verified work email
+    "phone":   call("linkedin_profile_to_phone", url),   # direct number
+}
+
+# Optional: scrape the company page behind the profile
+domain = record["profile"].get("company_domain") if record["profile"] else None
+if domain:
+    record["company"] = call("company_name_to_employee_count", domain)
+
+print(record["email"], record["phone"])</code></pre></div>
+      </div>
+      <p>That's four calls (four credits) for a complete contact: full profile, email, phone, and company size. Each is the same <code class="inline">POST</code> with a different <code class="inline">type</code> — there's no separate endpoint to learn.</p>
+      <div class="note"><i class="fas fa-circle-info"></i><div>Need to scrape <em>and</em> source at once? The <code class="inline">leads_finder_ai</code> endpoint takes a plain-English description ("VP Sales at B2B SaaS in the US") and returns up to 100 fully-scraped profiles in a single call — see the <a href="https://linkfinderai.com/api-documentation">docs</a>.</div></div>
+    </section>
+
+    <div class="cta-box">
+      <h2>Start scraping profiles in Python today</h2>
+      <p>Skip the proxies, the headless browsers, and the banned accounts. Get structured LinkedIn profile data from one REST call — 100 free credits, an API on every plan, flat 1-credit pricing.</p>
+      <a href="https://linkfinderai.com/sign-up" class="btn">Get your API key</a>
+      <p class="cta-fine">No credit card required • API on every plan • Flat pricing • Cancel anytime</p>
+    </div>
+
+    <div class="related-pages-box">
+      <p>🔗 Keep reading:</p>
+      <div class="links">
+        <a href="https://linkfinderai.com/how-to-enrich-leads-with-api">→ How to enrich leads with an API</a>
+        <a href="https://linkfinderai.com/best-linkedin-api">→ Best LinkedIn APIs</a>
+        <a href="https://linkfinderai.com/data-enrichment-api">→ Data enrichment API overview</a>
+        <a href="https://linkfinderai.com/api-documentation">→ Full API documentation</a>
+      </div>
+    </div>
+
+  </div>
+</article>
+
+<footer class="footer">
+  <div class="footer-content">
+    <div>
+      <a href="https://linkfinderai.com" class="logo" style="margin-bottom:1rem;"><i class="fas fa-search"></i> LinkFinder AI</a>
+      <p class="fdesc">B2B contact data enrichment for sales, marketing, and recruitment teams. Verified business intelligence at scale.</p>
+    </div>
+    <div>
+      <h4>Product</h4>
+      <ul class="footer-links">
+        <li><a href="https://linkfinderai.com/pricing">Pricing</a></li>
+        <li><a href="https://linkfinderai.com/api-documentation">API Documentation</a></li>
+        <li><a href="https://linkfinderai.com/b2b-data-enrichment">B2B Data Enrichment</a></li>
+        <li><a href="https://linkfinderai.com/data-enrichment-api">Data Enrichment API</a></li>
+        <li><a href="https://linkfinderai.com/blog">Blog</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4>Company</h4>
+      <ul class="footer-links">
+        <li><a href="https://linkfinderai.com/about-us">About Us</a></li>
+        <li><a href="https://linkfinderai.com/mentions-legales">Legal Information</a></li>
+        <li><a href="https://linkfinderai.com/privacy">Privacy Policy</a></li>
+        <li><a href="https://linkfinderai.com/terms">Terms of Service</a></li>
+        <li><a href="https://linkfinderai.com/refund-policy">Refund Policy</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4>Support</h4>
+      <ul class="footer-links">
+        <li><a href="mailto:support@linkfinderai.com">support@linkfinderai.com</a></li>
+        <li><a href="https://trustpilot.com/review/linkfinderai.com" target="_blank" rel="noopener"><i class="fab fa-trustpilot"></i> Trustpilot Reviews</a></li>
+        <li><a href="https://www.linkedin.com/in/eliasse-hamour-08194821a/" target="_blank" rel="noopener"><i class="fab fa-linkedin"></i> LinkedIn</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <p>&copy; 2026 Linkfinder AI &mdash; Eliasse Hamour. All rights reserved.</p>
+    <p class="legal-line">SIRET 937 788 172 00016 &mdash; VAT FR02937788172 &mdash; 26 Rue de la Coopération, 93240 Stains, France</p>
+  </div>
+</footer>
+
+<script>
+  // Language tabs
+  document.querySelectorAll('.code-tabs').forEach(function (group) {
+    var tabs = group.querySelectorAll('.code-tab');
+    var panes = group.querySelectorAll('.code-pane');
+    tabs.forEach(function (tab) {
+      tab.addEventListener('click', function () {
+        var lang = tab.getAttribute('data-lang');
+        tabs.forEach(function (t) { t.classList.toggle('active', t.getAttribute('data-lang') === lang); });
+        panes.forEach(function (p) { p.classList.toggle('active', p.getAttribute('data-lang') === lang); });
+      });
+    });
+    // Copy button copies the visible pane
+    var copyBtn = group.querySelector('.code-copy');
+    if (copyBtn) {
+      copyBtn.addEventListener('click', function () {
+        var active = group.querySelector('.code-pane.active code');
+        if (!active) return;
+        var text = active.innerText;
+        var done = function () {
+          var old = copyBtn.textContent;
+          copyBtn.textContent = 'Copied';
+          setTimeout(function () { copyBtn.textContent = old; }, 1400);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(done).catch(function () {});
+        }
+      });
+    }
+  });
+</script>
+</body>
+</html>
