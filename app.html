@@ -1514,23 +1514,54 @@ function navigateToPage(page){
     }
 }
 
-function checkAuth(){
+const UTM_KEYS = ['utm_source','utm_medium','utm_campaign','utm_term','utm_content','gclid','fbclid'];
 
-     const refParam = new URLSearchParams(window.location.search).get('ref');
+function captureUTMs() {
+    const params = new URLSearchParams(window.location.search);
+    const utms = {};
+    UTM_KEYS.forEach(k => { const v = params.get(k); if (v) utms[k] = v; });
+    if (Object.keys(utms).length) {
+        try { localStorage.setItem('lf_utms', JSON.stringify(utms)); } catch(e) {}
+        try {
+            posthog.register(utms);
+            posthog.setPersonProperties(utms, utms);
+            posthog.capture('utm_landing', utms);
+        } catch(e) {}
+    }
+    return utms;
+}
+
+function checkAuth(){
+    const utms = captureUTMs();
+    const utmQS = new URLSearchParams(utms).toString();
+    const withUtms = (url) => utmQS ? url + (url.includes('?') ? '&' : '?') + utmQS : url;
+
+    const refParam = new URLSearchParams(window.location.search).get('ref');
     if (refParam) {
         document.cookie = `lf_ref=${refParam}; max-age=${90*86400}; path=/; domain=.linkfinderai.com`;
     }
     const p=new URLSearchParams(window.location.search);
-    if(p.get('error')==='server_error'||p.get('error_description')){window.location.href='https://linkfinderai.com/?auth_error=1';return;}
+    if(p.get('error')==='server_error'||p.get('error_description')){window.location.href=withUtms('https://linkfinderai.com/?auth_error=1');return;}
     let token=p.get('token');
     if(!token){token=localStorage.getItem('linkFinderToken');}
     else{localStorage.setItem('linkFinderToken',token);}
-    if(!token){window.location.href='https://linkfinderai.com/';return;}
+    if(!token){window.location.href=withUtms('https://linkfinderai.com/');return;}
     userToken=token;
+
+    // Re-attach UTMs saved before a prior redirect (homepage -> login -> /app)
+    if (!Object.keys(utms).length) {
+        try {
+            const saved = JSON.parse(localStorage.getItem('lf_utms') || '{}');
+            if (Object.keys(saved).length) {
+                posthog.register(saved);
+                posthog.setPersonProperties(saved, saved);
+            }
+        } catch(e) {}
+    }
+
     const action=p.get('action');
     if(action==='buy_credits') setTimeout(()=>showPricingModal(),500);
     else if(action==='upgrade') setTimeout(()=>showPricingModal(),500);
-
     // Silently check subscription status on load
     fetch(UPGRADE_INTENT_WORKER, {
         method: 'POST',
