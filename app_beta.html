@@ -640,10 +640,10 @@
                     <div class="qs-card-title">Look up LinkedIn Profile</div>
                     <div class="qs-card-sub">LinkedIn URL → full profile data</div>
                 </div>
-                <div class="qs-card" onclick="quickStart('company_name','email','Stripe')">
-    <div class="qs-card-icon">✉️</div>
-    <div class="qs-card-title">Find Company Email</div>
-    <div class="qs-card-sub">Company name → contact email</div>
+                <div class="qs-card" onclick="quickStart('company_domain','employees','stripe.com',null,false)">
+    <div class="qs-card-icon">👥</div>
+    <div class="qs-card-title">Get Company Employees</div>
+    <div class="qs-card-sub">Domain → employees list with emails</div>
 </div>
                 <div class="qs-card" onclick="quickStart('company_name','website','Stripe')">
                     <div class="qs-card-icon">🌐</div>
@@ -1924,7 +1924,8 @@ function downloadExampleCSV(){
     try{posthog.capture('example_csv_downloaded',{input_type:currentInputType});}catch(e){}
 }
 
-function quickStart(inputType,outputType,exampleData,employeeCount){
+function quickStart(inputType,outputType,exampleData,employeeCount,autoRun){
+    if(autoRun===undefined) autoRun=true;   // existing cards keep auto-running
     const qs=document.getElementById('quickstartSection');if(qs)qs.style.display='none';
     const inputSel=document.getElementById('inputType');inputSel.value=inputType;inputSel.dispatchEvent(new Event('change'));
     setTimeout(()=>{
@@ -1932,18 +1933,21 @@ function quickStart(inputType,outputType,exampleData,employeeCount){
         setTimeout(()=>{
             const f=document.getElementById('inputData');
             if(f&&exampleData){f.value=exampleData;setTimeout(()=>{f.focus();f.select();},150);}
-            // NEW: prefill employee count if supplied
             if(employeeCount){
                 const ec=document.getElementById('optionalEmployeeCount');
                 if(ec) ec.value=employeeCount;
             }
             const eb=document.querySelector('#singleSearch button[type="submit"]');
-            if(eb){eb.style.transition='box-shadow 0.3s ease';eb.style.boxShadow='0 0 0 4px rgba(37,99,235,0.35)';setTimeout(()=>{eb.style.boxShadow='';},2500);setTimeout(()=>{eb.click();},300);}
+            if(eb){
+                eb.style.transition='box-shadow 0.3s ease';
+                eb.style.boxShadow='0 0 0 4px rgba(37,99,235,0.35)';
+                setTimeout(()=>{eb.style.boxShadow='';},2500);
+                if(autoRun){ setTimeout(()=>{eb.click();},300); }   // only auto-run when allowed
+            }
         },120);
     },60);
     try{posthog.capture('quickstart_used',{input_type:inputType,output_type:outputType});}catch(e){}
 }
-
 function updateLowCreditsWarning(credits){
     const bar=document.getElementById('lowCreditsBar');if(!bar)return;
     if(credits!==null&&credits<=10&&credits>=0){bar.style.display='block';bar.classList.add('urgent');bar.innerHTML='\ud83d\udd34 Only '+credits+' credit'+(credits===1?'':'s')+' remaining \u2014 <a onclick="handleAddCredits()">add credits now</a> or enrichments will stop.';}
