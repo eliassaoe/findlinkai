@@ -161,13 +161,6 @@
     .feedback-success-message.show{display:flex;}
     .feedback-error-message{background:rgba(239,68,68,0.1);border:1px solid var(--error);color:var(--error);padding:1rem;border-radius:6px;margin-bottom:1rem;display:none;align-items:center;gap:0.5rem;font-size:0.875rem;}
     .feedback-error-message.show{display:flex;}
-    .mode-segment{position:relative;display:flex;background:var(--gray-100);border-radius:10px;padding:0.3rem;margin-bottom:1rem;}
-.mode-segment-thumb{position:absolute;top:0.3rem;bottom:0.3rem;left:0.3rem;width:calc(50% - 0.3rem);background:white;border-radius:7px;box-shadow:0 1px 3px rgba(0,0,0,0.12);transition:transform 0.25s cubic-bezier(0.4,0,0.2,1),background 0.25s ease;z-index:1;}
-.mode-segment.payg .mode-segment-thumb{transform:translateX(100%);background:var(--success);}
-.mode-seg-btn{position:relative;z-index:2;flex:1;display:flex;align-items:center;justify-content:center;gap:0.45rem;padding:0.7rem;border:none;background:transparent;border-radius:7px;font-weight:600;font-size:0.9rem;color:var(--gray-500);cursor:pointer;transition:color 0.2s ease;font-family:inherit;}
-.mode-seg-btn.active{color:var(--gray-900);}
-.mode-segment.payg .mode-seg-btn.active{color:white;}
-.mode-seg-btn i{font-size:0.85rem;}
     @media(max-width:640px){
         .feedback-button{width:44px;height:44px;right:85px;bottom:20px;font-size:16px;}
         .feedback-modal{padding:1.5rem;margin:1rem;}
@@ -582,8 +575,8 @@
     {
       "@type": "ListItem",
       "position": 2,
-      "name": "App Beta",
-      "item": "https://linkfinderai.com/app_beta"
+      "name": "App",
+      "item": "https://linkfinderai.com/app"
     }
   ]
 }
@@ -647,11 +640,11 @@
                     <div class="qs-card-title">Look up LinkedIn Profile</div>
                     <div class="qs-card-sub">LinkedIn URL → full profile data</div>
                 </div>
-                <div class="qs-card" onclick="quickStart('company_domain','employees','stripe.com')">
-                    <div class="qs-card-icon">👥</div>
-                    <div class="qs-card-title">Get Company Employees</div>
-                    <div class="qs-card-sub">Domain → employees list with emails</div>
-                </div>
+                <div class="qs-card" onclick="quickStart('company_name','email','Stripe')">
+    <div class="qs-card-icon">✉️</div>
+    <div class="qs-card-title">Find Company Email</div>
+    <div class="qs-card-sub">Company name → contact email</div>
+</div>
                 <div class="qs-card" onclick="quickStart('company_name','website','Stripe')">
                     <div class="qs-card-icon">🌐</div>
                     <div class="qs-card-title">Find Company Website</div>
@@ -823,16 +816,7 @@
             <h2 id="pricingModalTitle">Choose Your Plan</h2>
             <p id="pricingModalSubtitle" style="color:var(--gray-500);font-size:0.875rem;margin-top:0.25rem;">Cancel anytime &nbsp;·&nbsp; No questions asked</p>
         </div>
-        <div class="mode-segment" id="pricingModeToggle" role="tablist" aria-label="Pricing type">
-            <span class="mode-segment-thumb" id="modeSegThumb"></span>
-            <button type="button" class="mode-seg-btn active" id="modeSubBtn" role="tab" aria-selected="true" onclick="setPricingMode('subscription')">
-                <i class="fas fa-rotate"></i> Subscription
-            </button>
-            <button type="button" class="mode-seg-btn" id="modePaygBtn" role="tab" aria-selected="false" onclick="setPricingMode('payg')">
-                <i class="fas fa-infinity"></i> Pay as you go
-            </button>
-        </div>
-        <div class="billing-toggle" id="billingToggle">
+        <div class="billing-toggle">
             <button type="button" class="billing-btn active" id="monthlyBtn" onclick="setBilling('monthly')">Monthly</button>
             <button type="button" class="billing-btn" id="annualBtn" onclick="setBilling('annual')">Annual <span class="save-tag">Save 40%</span></button>
         </div>
@@ -1035,7 +1019,6 @@ let isAnnualBilling = false;
 function renderPlansGrid() {
     const grid = document.getElementById('plansGrid');
     if (!grid) return;
-    if (pricingMode === 'payg') { renderPacksGrid(grid); return; }
 
     // Map plan numbers to plan index + billing
     // 1=starter monthly, 2=pro monthly, 3=enterprise monthly, 4=hypergrowth monthly
@@ -1092,94 +1075,6 @@ function renderPlansGrid() {
             + '<button class="'+ctaClass+'" onclick="proceedToCheckoutDirect('+index+', this)" '+ctaDisabled+'>'+ctaLabel+'</button>'
             + '</div>';
     }).join('');
-}
-
-const creditPacks = [
-    { name:'Quick', key:'pack_quick', credits:1000,  price:19  },
-    { name:'Power', key:'pack_power', credits:3000,  price:54, popular:true },
-    { name:'Pro',   key:'pack_pro',   credits:10000, price:159 },
-];
-let pricingMode = 'subscription'; // 'subscription' | 'payg'
-
-function setPricingMode(mode) {
-    pricingMode = mode;
-   document.getElementById('modeSubBtn').classList.toggle('active', mode === 'subscription');
-    document.getElementById('modePaygBtn').classList.toggle('active', mode === 'payg');
-    document.getElementById('pricingModeToggle').classList.toggle('payg', mode === 'payg');
-    document.getElementById('modeSubBtn').setAttribute('aria-selected', mode === 'subscription');
-    document.getElementById('modePaygBtn').setAttribute('aria-selected', mode === 'payg');
-    document.getElementById('billingToggle').style.display = (mode === 'payg') ? 'none' : 'flex';
-
-    const title = document.getElementById('pricingModalTitle');
-    const sub = document.getElementById('pricingModalSubtitle');
-    if (mode === 'payg') {
-        if (title) title.textContent = 'Buy credits';
-        if (sub) sub.textContent = 'Credits never expire · pay once, use anytime';
-    } else {
-        if (title) title.textContent = isExistingSubscriber ? 'Change Your Plan' : 'Choose Your Plan';
-        if (sub) sub.textContent = isExistingSubscriber ? 'You will only be charged the difference — no extra steps needed.' : 'Cancel anytime · No questions asked';
-    }
-    renderPlansGrid();
-    try { posthog.capture('pricing_mode_switched', { mode: mode, credits_remaining: currentCredits, is_subscriber: isExistingSubscriber }); } catch(e) {}
-}
-
-function renderPacksGrid(grid) {
-    grid.innerHTML = creditPacks.map(function(pack, index) {
-        const perCredit = (pack.price / pack.credits).toFixed(4);
-        const isPopular = !!pack.popular;
-        return '<div class="plan-item '+(isPopular?'plan-item-popular':'')+'">'
-            + (isPopular ? '<div class="plan-popular-badge">Best Value</div>' : '')
-            + '<div class="plan-item-name">'+pack.name+'</div>'
-            + '<div class="plan-item-price"><span class="plan-item-amount">$'+pack.price+'</span></div>'
-            + '<div class="plan-item-annual" style="color:#15803d;font-weight:600;">&check; never expires</div>'
-            + '<div class="plan-item-credits">'+pack.credits.toLocaleString()+' credits</div>'
-            + '<div class="plan-item-per-credit">&asymp; $'+perCredit+' / credit</div>'
-            + '<button class="plan-item-cta'+(isPopular?' plan-item-cta-popular':'')+'" onclick="proceedToPackCheckout('+index+', this)">Buy credits</button>'
-            + '</div>';
-    }).join('');
-}
-
-async function proceedToPackCheckout(index, btnEl) {
-    const pack = creditPacks[index];
-    const originalText = btnEl ? btnEl.textContent : '';
-    if (btnEl) { btnEl.textContent = 'Opening…'; btnEl.disabled = true; }
-
-    if (!window.currentUserEmail) {
-        let attempts = 0;
-        while (!window.currentUserEmail && attempts < 30) { await new Promise(r => setTimeout(r, 100)); attempts++; }
-    }
-
-    try { posthog.capture('pack_selected', { pack: pack.name, credits: pack.credits, price: pack.price, credits_remaining: currentCredits, is_subscriber: isExistingSubscriber }); } catch(e) {}
-    try { if (typeof plausible !== 'undefined') plausible('Pack Selected', { props: { pack: pack.name } }); } catch(e) {}
-    try { window.uetq = window.uetq || []; window.uetq.push('event', 'begin_checkout', {}); } catch(e) {}
-
-    try {
-        const resp = await fetch(DODO_CHECKOUT_WORKER, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                plan: pack.key,
-                mode: 'one_time',
-                user_token: userToken,
-                email: window.currentUserEmail || undefined,
-                ref_token: getRefCookie() || undefined,
-            }),
-        });
-        const data = await resp.json();
-        if (!resp.ok || !data.checkout_url) throw new Error(data.error || 'Checkout creation failed');
-
-        if (window.DodoPaymentsCheckout && window.DodoPaymentsCheckout.DodoPayments && window.DodoPaymentsCheckout.DodoPayments.Checkout) {
-            window.DodoPaymentsCheckout.DodoPayments.Checkout.open({ checkoutUrl: data.checkout_url });
-            if (btnEl) { btnEl.disabled = false; btnEl.textContent = originalText; }
-        } else {
-            window.location.href = data.checkout_url;
-        }
-    } catch (e) {
-        console.error('Pack checkout error:', e);
-        showAlert('Could not open checkout. Please try again or email support@linkfinderai.com.', 'error');
-        if (btnEl) { btnEl.disabled = false; btnEl.textContent = originalText; }
-        try { posthog.capture('checkout_error', { message: e.message, plan: pack.key }); } catch(_) {}
-    }
 }
 
 function handleDodoCheckoutEvent(event) {
@@ -1619,23 +1514,54 @@ function navigateToPage(page){
     }
 }
 
-function checkAuth(){
+const UTM_KEYS = ['utm_source','utm_medium','utm_campaign','utm_term','utm_content','gclid','fbclid'];
 
-     const refParam = new URLSearchParams(window.location.search).get('ref');
+function captureUTMs() {
+    const params = new URLSearchParams(window.location.search);
+    const utms = {};
+    UTM_KEYS.forEach(k => { const v = params.get(k); if (v) utms[k] = v; });
+    if (Object.keys(utms).length) {
+        try { localStorage.setItem('lf_utms', JSON.stringify(utms)); } catch(e) {}
+        try {
+            posthog.register(utms);
+            posthog.setPersonProperties(utms, utms);
+            posthog.capture('utm_landing', utms);
+        } catch(e) {}
+    }
+    return utms;
+}
+
+function checkAuth(){
+    const utms = captureUTMs();
+    const utmQS = new URLSearchParams(utms).toString();
+    const withUtms = (url) => utmQS ? url + (url.includes('?') ? '&' : '?') + utmQS : url;
+
+    const refParam = new URLSearchParams(window.location.search).get('ref');
     if (refParam) {
         document.cookie = `lf_ref=${refParam}; max-age=${90*86400}; path=/; domain=.linkfinderai.com`;
     }
     const p=new URLSearchParams(window.location.search);
-    if(p.get('error')==='server_error'||p.get('error_description')){window.location.href='https://linkfinderai.com/?auth_error=1';return;}
+    if(p.get('error')==='server_error'||p.get('error_description')){window.location.href=withUtms('https://linkfinderai.com/?auth_error=1');return;}
     let token=p.get('token');
     if(!token){token=localStorage.getItem('linkFinderToken');}
     else{localStorage.setItem('linkFinderToken',token);}
-    if(!token){window.location.href='https://linkfinderai.com/';return;}
+    if(!token){window.location.href=withUtms('https://linkfinderai.com/');return;}
     userToken=token;
+
+    // Re-attach UTMs saved before a prior redirect (homepage -> login -> /app)
+    if (!Object.keys(utms).length) {
+        try {
+            const saved = JSON.parse(localStorage.getItem('lf_utms') || '{}');
+            if (Object.keys(saved).length) {
+                posthog.register(saved);
+                posthog.setPersonProperties(saved, saved);
+            }
+        } catch(e) {}
+    }
+
     const action=p.get('action');
     if(action==='buy_credits') setTimeout(()=>showPricingModal(),500);
     else if(action==='upgrade') setTimeout(()=>showPricingModal(),500);
-
     // Silently check subscription status on load
     fetch(UPGRADE_INTENT_WORKER, {
         method: 'POST',
