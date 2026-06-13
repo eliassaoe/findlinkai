@@ -635,10 +635,10 @@
                     <div class="qs-card-title">Find LinkedIn Profile URL</div>
                     <div class="qs-card-sub">Name + Company → LinkedIn URL</div>
                 </div>
-                <div class="qs-card" onclick="quickStart('linkedin_profile','linkedin_info','https://www.linkedin.com/in/satya-nadella/')">
-                    <div class="qs-card-icon">👤</div>
-                    <div class="qs-card-title">Look up LinkedIn Profile</div>
-                    <div class="qs-card-sub">LinkedIn URL → full profile data</div>
+                <div class="qs-card" onclick="quickStartBulk('lead_full_name','linkedin_url')">
+                    <div class="qs-card-icon">📤</div>
+                    <div class="qs-card-title">Enrich a whole list (CSV)</div>
+                    <div class="qs-card-sub">Upload a CSV → LinkedIn URLs in bulk</div>
                 </div>
                 <div class="qs-card" onclick="quickStart('company_domain','employees',null,false)">
     <div class="qs-card-icon">👥</div>
@@ -1922,6 +1922,20 @@ function downloadExampleCSV(){
     const blob=new Blob([csvContent],{type:'text/csv;charset=utf-8;'});
     const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`example_${currentInputType}.csv`;a.click();URL.revokeObjectURL(url);
     try{posthog.capture('example_csv_downloaded',{input_type:currentInputType});}catch(e){}
+}
+
+function quickStartBulk(inputType,outputType){
+    const qs=document.getElementById('quickstartSection'); if(qs) qs.style.display='none';
+    const inputSel=document.getElementById('inputType'); inputSel.value=inputType; inputSel.dispatchEvent(new Event('change'));
+    setTimeout(()=>{
+        const outputSel=document.getElementById('outputType'); outputSel.value=inputType+'__'+outputType; outputSel.dispatchEvent(new Event('change'));
+        setTimeout(()=>{
+            switchMode('bulk');
+            const ua=document.getElementById('uploadArea');
+            if(ua){ ua.scrollIntoView({behavior:'smooth',block:'center'}); ua.style.transition='box-shadow 0.3s ease'; ua.style.boxShadow='0 0 0 4px rgba(37,99,235,0.35)'; setTimeout(()=>{ua.style.boxShadow='';},2500); }
+        },120);
+    },60);
+    try{posthog.capture('quickstart_bulk_used',{input_type:inputType,output_type:outputType});}catch(e){}
 }
 
 function quickStartBulk(inputType,outputType){
