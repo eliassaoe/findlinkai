@@ -727,8 +727,8 @@
         
         <div id="modeToggle" class="mode-toggle hidden">
             <div class="mode-switch">
-                <button class="mode-option active" onclick="switchMode('single')" id="singleMode">Single Enrichment</button>
-                <button class="mode-option" onclick="switchMode('bulk')" id="bulkMode">Bulk Enrichment</button>
+                <button class="mode-option active" onclick="switchMode('single')" id="singleMode">Single lookup</button>
+                <button class="mode-option" onclick="switchMode('bulk')" id="bulkMode">📤 Upload CSV (bulk)</button>
             </div>
         </div>
 
@@ -745,12 +745,12 @@
         </div>
 
         <div id="bulkSearch" class="card hidden">
-            <div class="upload-area" id="uploadArea">
+            <div class="upload-area" id="uploadArea" onclick="document.getElementById('csvFile').click()">
                 <i class="fas fa-cloud-upload-alt upload-icon"></i>
                 <div class="upload-text">Drop your CSV file here or click to upload</div>
                 <div class="upload-subtext" id="uploadSubtext">CSV file (max 10000 rows)</div>
                 <input type="file" id="csvFile" accept=".csv" class="hidden">
-                <button type="button" class="btn" onclick="document.getElementById('csvFile').click()"><i class="fas fa-file-csv"></i> Select File</button>
+                <button type="button" class="btn" onclick="event.stopPropagation();document.getElementById('csvFile').click()"><i class="fas fa-file-csv"></i> Select File</button>
             </div>
             <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem;margin-top:0.875rem;">
                 <div class="bulk-api-hint" style="margin-top:0;">
@@ -1924,6 +1924,20 @@ function downloadExampleCSV(){
     try{posthog.capture('example_csv_downloaded',{input_type:currentInputType});}catch(e){}
 }
 
+function quickStartBulk(inputType,outputType){
+    const qs=document.getElementById('quickstartSection'); if(qs) qs.style.display='none';
+    const inputSel=document.getElementById('inputType'); inputSel.value=inputType; inputSel.dispatchEvent(new Event('change'));
+    setTimeout(()=>{
+        const outputSel=document.getElementById('outputType'); outputSel.value=inputType+'__'+outputType; outputSel.dispatchEvent(new Event('change'));
+        setTimeout(()=>{
+            switchMode('bulk');
+            const ua=document.getElementById('uploadArea');
+            if(ua){ ua.scrollIntoView({behavior:'smooth',block:'center'}); ua.style.transition='box-shadow 0.3s ease'; ua.style.boxShadow='0 0 0 4px rgba(37,99,235,0.35)'; setTimeout(()=>{ua.style.boxShadow='';},2500); }
+        },120);
+    },60);
+    try{posthog.capture('quickstart_bulk_used',{input_type:inputType,output_type:outputType});}catch(e){}
+}
+
 function quickStart(inputType,outputType,exampleData,employeeCount,autoRun){
     if(autoRun===undefined) autoRun=true;   // existing cards keep auto-running
     const qs=document.getElementById('quickstartSection');if(qs)qs.style.display='none';
@@ -1957,7 +1971,8 @@ function updateLowCreditsWarning(credits){
 
 function showAlert(message,type){
     const a=document.getElementById('alert');a.textContent=message;a.className=`alert alert-${type}`;a.style.display='block';
-    setTimeout(()=>{a.style.display='none';},5000);
+    clearTimeout(a._t);
+    a._t=setTimeout(()=>{a.style.display='none';},type==='error'?12000:5000);
 }
 function showProgress(){document.getElementById('progressContainer').classList.remove('hidden');document.getElementById('progressBar').style.width='0%';}
 function updateProgress(percent){
