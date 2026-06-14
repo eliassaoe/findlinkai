@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>LinkedIn Scraping Without Getting Banned (2026 Guide) — LinkFinder AI</title>
+  <meta name="description" content="A practical 2026 guide to LinkedIn scraping without getting banned: why accounts get flagged, the legal and ToS reality, rate limiting and human-like patterns, proxies and fingerprinting, handling CAPTCHAs, and the compliant API alternative."/>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+  <style>
+    :root {
+      --primary-color: #2563eb;
+      --primary-dark: #1e40af;
+      --success-color: #10b981;
+      --text-dark: #1f2937;
+      --text-gray: #6b7280;
+      --border-color: #e5e7eb;
+      --bg-light: #f9fafb;
+      --code-bg: #0f172a;
+      --code-bar: #1e293b;
+      --code-text: #e2e8f0;
+      --code-dim: #94a3b8;
+      --mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Monaco, Consolas, monospace;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      line-height: 1.6;
+      color: var(--text-dark);
+      background: #ffffff;
+    }
+    .container { max-width: 1100px; margin: 0 auto; padding: 0 2rem; }
+
+    /* Header */
+    .header {
+      background: white;
+      border-bottom: 1px solid var(--border-color);
+      position: sticky; top: 0; z-index: 1000;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    .header-content {
+      max-width: 1100px; margin: 0 auto; padding: 1rem 2rem;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .logo {
+      font-size: 1.5rem; font-weight: 800; color: var(--primary-color);
+      text-decoration: none; display: flex; align-items: center; gap: 0.5rem;
+    }
+    .logo i { font-size: 1.75rem; }
+    .btn {
+      padding: 0.625rem 1.5rem; border-radius: 0.5rem; text-decoration: none;
+      font-weight: 600; transition: all 0.2s; display: inline-block; font-size: 0.9375rem;
+    }
+    .btn-outline { background: transparent; color: var(--primary-color); border: 2px solid var(--primary-color); margin-right: 0.75rem; }
+    .btn-outline:hover { background: var(--primary-color); color: white; }
+    .btn:not(.btn-outline) { background: var(--primary-color); color: white; border: 2px solid var(--primary-color); }
+    .btn:not(.btn-outline):hover { background: var(--primary-dark); border-color: var(--primary-dark); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3); }
+
+    /* Hero */
+    .hero {
+      background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+      color: white; padding: 4rem 0; text-align: center;
+    }
+    .hero .eyebrow {
+      display: inline-block; font-family: var(--mono); font-size: 0.8125rem;
+      letter-spacing: 0.08em; text-transform: uppercase; font-weight: 600;
+      background: rgba(255,255,255,0.15); padding: 0.4rem 0.9rem; border-radius: 999px; margin-bottom: 1.25rem;
+    }
+    .hero h1 { font-size: 3rem; font-weight: 800; margin-bottom: 1rem; line-height: 1.2; }
+    .hero p { font-size: 1.2rem; opacity: 0.95; max-width: 720px; margin: 0 auto; }
+    .hero a { color: white; }
+
+    /* Article */
+    .article { padding: 3.5rem 0; }
+    .intro-text { font-size: 1.0625rem; line-height: 1.85; margin-bottom: 2.5rem; }
+    .intro-text p { margin-bottom: 1.25rem; }
+
+    /* On this page */
+    .toc {
+      background: var(--bg-light); border: 1px solid var(--border-color);
+      border-radius: 0.9rem; padding: 1.75rem 2rem; margin-bottom: 3rem;
+    }
+    .toc h2 { font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-gray); margin-bottom: 1rem; }
+    .toc ol { list-style: none; counter-reset: toc; display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem 2rem; }
+    .toc li { counter-increment: toc; }
+    .toc a { text-decoration: none; color: var(--text-dark); font-weight: 500; display: flex; gap: 0.7rem; align-items: baseline; }
+    .toc a:hover { color: var(--primary-color); }
+    .toc a::before {
+      content: counter(toc, decimal-leading-zero); font-family: var(--mono);
+      font-size: 0.8rem; color: var(--primary-color); font-weight: 600;
+    }
+
+    /* Step blocks */
+    .step { margin: 3.25rem 0; scroll-margin-top: 90px; }
+    .step-head { display: flex; align-items: center; gap: 1rem; margin-bottom: 1.25rem; }
+    .step-num {
+      flex: none; width: 2.6rem; height: 2.6rem; border-radius: 0.7rem;
+      background: var(--primary-color); color: white; display: flex; align-items: center;
+      justify-content: center; font-family: var(--mono); font-weight: 600; font-size: 1.05rem;
+    }
+    .step h2 { font-size: 1.6rem; font-weight: 700; line-height: 1.25; }
+    .step p { margin: 1rem 0 1.25rem; line-height: 1.8; font-size: 1.0625rem; }
+    .step h3 { font-size: 1.15rem; font-weight: 700; margin: 1.75rem 0 0.75rem; }
+    .step ul { margin: 1rem 0 1.25rem 1.4rem; }
+    .step li { margin-bottom: 0.6rem; line-height: 1.7; }
+    code.inline {
+      font-family: var(--mono); font-size: 0.86em; background: #eef2ff;
+      color: var(--primary-dark); padding: 0.15em 0.4em; border-radius: 0.35em;
+    }
+
+    /* Code blocks with language tabs */
+    .code-tabs { margin: 1.5rem 0; border-radius: 0.75rem; overflow: hidden; border: 1px solid var(--code-bar); background: var(--code-bg); }
+    .code-tabbar { display: flex; align-items: center; background: var(--code-bar); padding: 0 0.4rem; }
+    .code-tab {
+      font-family: var(--mono); font-size: 0.8rem; font-weight: 500; color: var(--code-dim);
+      background: transparent; border: none; padding: 0.7rem 1rem; cursor: pointer;
+      border-bottom: 2px solid transparent; transition: color 0.15s, border-color 0.15s;
+    }
+    .code-tab:hover { color: var(--code-text); }
+    .code-tab.active { color: #fff; border-bottom-color: #60a5fa; }
+    .code-copy {
+      margin-left: auto; font-family: var(--mono); font-size: 0.74rem; color: var(--code-dim);
+      background: transparent; border: 1px solid #334155; border-radius: 0.4rem;
+      padding: 0.3rem 0.7rem; cursor: pointer; transition: all 0.15s;
+    }
+    .code-copy:hover { color: #fff; border-color: #475569; }
+    .code-pane { display: none; margin: 0; }
+    .code-pane.active { display: block; }
+    .code-pane pre {
+      margin: 0; padding: 1.25rem 1.4rem; overflow-x: auto;
+      font-family: var(--mono); font-size: 0.86rem; line-height: 1.7; color: var(--code-text);
+      tab-size: 2;
+    }
+    .code-pane pre code { font-family: inherit; white-space: pre; }
+
+    /* Callouts */
+    .note, .warn {
+      border-radius: 0.7rem; padding: 1.1rem 1.3rem; margin: 1.5rem 0; font-size: 0.97rem; line-height: 1.7;
+      display: flex; gap: 0.8rem;
+    }
+    .note { background: #eff6ff; border-left: 4px solid var(--primary-color); }
+    .warn { background: #fffbeb; border-left: 4px solid #f59e0b; }
+    .note i { color: var(--primary-color); margin-top: 0.2rem; }
+    .warn i { color: #d97706; margin-top: 0.2rem; }
+    .note strong, .warn strong { font-weight: 700; }
+
+    /* Tables */
+    .table-wrapper { overflow-x: auto; border: 1px solid var(--border-color); border-radius: 0.75rem; margin: 1.5rem 0; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.94rem; }
+    th { background: var(--bg-light); padding: 0.85rem 1rem; text-align: left; font-weight: 600; border-bottom: 2px solid var(--border-color); }
+    td { padding: 0.85rem 1rem; border-bottom: 1px solid var(--border-color); vertical-align: top; }
+    tr:last-child td { border-bottom: none; }
+    td code, th code { font-family: var(--mono); font-size: 0.85em; background: #f1f5f9; padding: 0.1em 0.35em; border-radius: 0.3em; }
+    .pill { font-family: var(--mono); font-size: 0.78rem; font-weight: 600; padding: 0.15rem 0.5rem; border-radius: 0.35rem; }
+    .pill-ok { background: #d1fae5; color: #065f46; }
+    .pill-err { background: #fee2e2; color: #991b1b; }
+    .pill-warn { background: #fef3c7; color: #92400e; }
+
+    /* CTA */
+    .cta-box {
+      background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+      color: white; padding: 3rem; border-radius: 1rem; text-align: center; margin: 3.5rem 0 1rem;
+    }
+    .cta-box h2 { color: white; margin-bottom: 1rem; font-size: 1.75rem; }
+    .cta-box p { color: white; opacity: 0.92; margin: 1rem auto; max-width: 600px; }
+    .cta-box .btn { background: white; color: var(--primary-color); font-size: 1.05rem; padding: 0.875rem 2rem; margin-top: 1rem; }
+    .cta-box .btn:hover { background: var(--bg-light); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.15); }
+    .cta-fine { font-size: 0.85rem; margin-top: 1rem; opacity: 0.8; }
+
+    /* Related */
+    .related-pages-box { max-width: 760px; margin: 3rem auto 0; padding: 24px; background: #fef3c7; border-left: 4px solid #f59e0b; border-radius: 8px; }
+    .related-pages-box p { margin: 0 0 16px; font-size: 15px; font-weight: 600; color: #78350f; }
+    .related-pages-box .links { display: flex; flex-direction: column; gap: 10px; }
+    .related-pages-box a { padding: 12px 16px; background: white; border: 1px solid #fde68a; border-radius: 6px; text-decoration: none; color: #b45309; font-size: 14px; transition: all 0.2s; display: block; }
+    .related-pages-box a:hover { border-color: #f59e0b; }
+
+    /* Footer */
+    .footer { background: var(--text-dark); color: white; padding: 3rem 0 1.5rem; margin-top: 4rem; }
+    .footer-content { max-width: 1100px; margin: 0 auto 2rem; padding: 0 2rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 2rem; }
+    .footer h4 { margin-bottom: 1rem; font-size: 1.125rem; }
+    .footer p.fdesc { color: rgba(255,255,255,0.75); font-size: 0.95rem; }
+    .footer-links { list-style: none; }
+    .footer-links li { margin-bottom: 0.5rem; }
+    .footer-links a { color: rgba(255,255,255,0.8); text-decoration: none; transition: color 0.2s; }
+    .footer-links a:hover { color: white; }
+    .footer-bottom { text-align: center; padding: 2rem 2rem 0; border-top: 1px solid rgba(255,255,255,0.1); color: rgba(255,255,255,0.6); max-width: 1100px; margin: 0 auto; }
+    .footer-bottom .legal-line { color: #6b7280; font-size: 0.78rem; margin-top: 0.5rem; }
+
+    @media (max-width: 768px) {
+      .hero h1 { font-size: 2rem; }
+      .toc ol { grid-template-columns: 1fr; }
+      .cta-box { padding: 2rem 1.5rem; }
+      .step h2 { font-size: 1.35rem; }
+    }
+  </style>
+
+  <link rel="canonical" href="https://linkfinderai.com/linkedin-scraping-without-getting-banned" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "HowTo",
+    "name": "How to scrape LinkedIn without getting banned",
+    "description": "A practical guide to reducing the risk of account bans when collecting LinkedIn data: understand detection signals, respect the ToS and legal limits, throttle and humanize requests, manage fingerprints and proxies, handle CAPTCHAs, and use a compliant data API instead.",
+    "step": [
+      { "@type": "HowToStep", "name": "Understand why LinkedIn bans accounts", "url": "https://linkfinderai.com/linkedin-scraping-without-getting-banned#step-1" },
+      { "@type": "HowToStep", "name": "Know the legal and ToS reality", "url": "https://linkfinderai.com/linkedin-scraping-without-getting-banned#step-2" },
+      { "@type": "HowToStep", "name": "Throttle and humanize your requests", "url": "https://linkfinderai.com/linkedin-scraping-without-getting-banned#step-3" },
+      { "@type": "HowToStep", "name": "Manage fingerprints, sessions and proxies", "url": "https://linkfinderai.com/linkedin-scraping-without-getting-banned#step-4" },
+      { "@type": "HowToStep", "name": "Detect blocks and back off gracefully", "url": "https://linkfinderai.com/linkedin-scraping-without-getting-banned#step-5" },
+      { "@type": "HowToStep", "name": "Use a compliant data API instead", "url": "https://linkfinderai.com/linkedin-scraping-without-getting-banned#step-6" },
+      { "@type": "HowToStep", "name": "Stay compliant for the long run", "url": "https://linkfinderai.com/linkedin-scraping-without-getting-banned#step-7" }
+    ]
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://linkfinderai.com" },
+      { "@type": "ListItem", "position": 2, "name": "LinkedIn Scraping Without Getting Banned", "item": "https://linkfinderai.com/linkedin-scraping-without-getting-banned" }
+    ]
+  }
+  </script>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-content">
+    <a href="https://linkfinderai.com" class="logo"><i class="fas fa-search"></i> LinkFinder AI</a>
+    <div>
+      <a href="https://linkfinderai.com/api-documentation" class="btn btn-outline">API Docs</a>
+      <a href="https://linkfinderai.com/sign-up" class="btn">Get API key</a>
+    </div>
+  </div>
+</header>
+
+<div class="hero">
+  <div class="container">
+    <span class="eyebrow">Developer Guide</span>
+    <h1>LinkedIn Scraping Without Getting Banned</h1>
+    <p>Why accounts get flagged, what's actually allowed, and how to collect LinkedIn data at scale without burning your profile — plus the compliant <a href="https://linkfinderai.com/api-documentation">API route</a> that sidesteps the risk entirely.</p>
+  </div>
+</div>
+
+<article class="article">
+  <div class="container">
+
+    <div class="intro-text">
+      <p>If you've ever woken up to a "Your account has been restricted" email, you already know the core problem with scraping LinkedIn: the data is valuable, but the platform is very good at spotting automation and very willing to suspend the accounts behind it. Getting banned isn't bad luck — it's the predictable result of behavior that doesn't look human.</p>
+      <p>This guide breaks down the practical ways teams reduce ban risk: understanding the detection signals, staying inside what's legally and contractually defensible, throttling and humanizing requests, managing sessions and fingerprints, and backing off the moment LinkedIn pushes back. It ends with the honest conclusion most engineers reach eventually — that the lowest-risk way to get LinkedIn data is to not run the scraper yourself, and to call a compliant data API instead.</p>
+      <p>Read it as risk reduction, not a guarantee. There is no technique that makes scraping LinkedIn "safe" — there are only choices that make a ban more or less likely.</p>
+    </div>
+
+    <div class="warn"><i class="fas fa-triangle-exclamation"></i><div><strong>Read this first.</strong> Scraping LinkedIn while logged in violates LinkedIn's <a href="https://www.linkedin.com/legal/user-agreement">User Agreement</a>, which prohibits automated data collection. Bans, legal exposure, and loss of your account are real outcomes. Nothing here is legal advice — talk to a lawyer about your specific use case, and prefer official or licensed data sources wherever you can.</div></div>
+
+    <nav class="toc" aria-label="On this page">
+      <h2>What this guide covers</h2>
+      <ol>
+        <li><a href="#step-1">Why LinkedIn bans accounts</a></li>
+        <li><a href="#step-2">The legal &amp; ToS reality</a></li>
+        <li><a href="#step-3">Throttle &amp; humanize requests</a></li>
+        <li><a href="#step-4">Fingerprints, sessions &amp; proxies</a></li>
+        <li><a href="#step-5">Detect blocks &amp; back off</a></li>
+        <li><a href="#step-6">Use a compliant API instead</a></li>
+        <li><a href="#step-7">Stay compliant long-term</a></li>
+      </ol>
+    </nav>
+
+    <!-- STEP 1 -->
+    <section class="step" id="step-1">
+      <div class="step-head"><span class="step-num">1</span><h2>Understand why LinkedIn bans accounts</h2></div>
+      <p>You can't avoid detection you don't understand. LinkedIn doesn't ban "scraping" in the abstract — it bans <em>patterns</em> that no human would produce. The faster you stop looking like a script, the longer an account survives. The main signals it watches:</p>
+      <ul>
+        <li><strong>Volume and velocity.</strong> A human views maybe a few dozen profiles a day. Hundreds of profile loads per hour, or a perfectly steady one-every-three-seconds cadence, is the single loudest tell.</li>
+        <li><strong>No "human noise."</strong> Real sessions have scrolling, idle gaps, mistyped searches, profile dwell time, and visits that go nowhere. Scrapers fetch exactly what they want and leave.</li>
+        <li><strong>Browser &amp; TLS fingerprints.</strong> Headless browsers, missing fonts, automation flags (<code class="inline">navigator.webdriver</code>), and unusual TLS handshakes are detectable independent of your IP.</li>
+        <li><strong>IP reputation.</strong> Datacenter IP ranges, sudden geography jumps, and many accounts sharing one address all raise scores.</li>
+        <li><strong>Account age &amp; graph.</strong> A brand-new account with no connections doing heavy lookups is far more suspicious than an established one behaving normally.</li>
+      </ul>
+      <p>The takeaway: bans are a <em>risk score</em>, not a single trigger. Every step below is about keeping that score low.</p>
+      <div class="note"><i class="fas fa-circle-info"></i><div>LinkedIn escalates gradually — a CAPTCHA, then a temporary restriction, then a permanent ban. Treat the <em>first</em> friction signal as a stop sign, not an obstacle to push through.</div></div>
+    </section>
+
+    <!-- STEP 2 -->
+    <section class="step" id="step-2">
+      <div class="step-head"><span class="step-num">2</span><h2>Know the legal &amp; ToS reality</h2></div>
+      <p>"Public data is fair game" is half-true and frequently overstated. Two different things are at play and people constantly confuse them:</p>
+      <h3>Scraping public data vs. breaching a contract</h3>
+      <p>In the U.S., the <em>hiQ Labs v. LinkedIn</em> litigation signaled that scraping <strong>publicly accessible</strong> data is unlikely to violate the Computer Fraud and Abuse Act (the anti-hacking statute). But that is not the same as it being allowed. LinkedIn's User Agreement separately prohibits automated collection, so scraping <strong>while logged in</strong> can be a breach of contract and grounds for a ban or a civil claim — even if it isn't a "hacking" crime.</p>
+      <h3>Privacy law still applies</h3>
+      <p>If you collect personal data on EU/UK residents, the GDPR applies regardless of whether the data was "public." You generally need a lawful basis, and individuals have rights over that data. California's CCPA/CPRA and similar laws create comparable obligations. Public ≠ unregulated.</p>
+      <div class="table-wrapper">
+        <table>
+          <thead><tr><th>Activity</th><th>Risk profile</th><th>Notes</th></tr></thead>
+          <tbody>
+            <tr><td>Reading public pages logged out</td><td><span class="pill pill-warn">Gray</span></td><td>Lower CFAA risk per hiQ; still rate-limited &amp; fingerprinted</td></tr>
+            <tr><td>Scraping while logged in</td><td><span class="pill pill-err">High</span></td><td>Breaches the User Agreement — primary cause of bans</td></tr>
+            <tr><td>Reselling scraped personal data</td><td><span class="pill pill-err">High</span></td><td>Privacy-law exposure (GDPR/CCPA), contractual risk</td></tr>
+            <tr><td>Official LinkedIn APIs / partner programs</td><td><span class="pill pill-ok">Low</span></td><td>Sanctioned but narrow scope &amp; approval-gated</td></tr>
+            <tr><td>Licensed third-party data API</td><td><span class="pill pill-ok">Low</span></td><td>Provider carries the collection burden &amp; compliance</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="warn"><i class="fas fa-triangle-exclamation"></i><div>Laws and case outcomes vary by jurisdiction and change over time. This is general information, not legal advice. If your business depends on this data, get a lawyer to review your specific approach before you build on it.</div></div>
+    </section>
+
+    <!-- STEP 3 -->
+    <section class="step" id="step-3">
+      <div class="step-head"><span class="step-num">3</span><h2>Throttle and humanize your requests</h2></div>
+      <p>If you do collect data, the highest-leverage thing you can do is slow down and add variance. A predictable robot is the easiest thing in the world to flag. Two rules drive everything: <strong>low volume</strong> and <strong>randomized timing</strong>.</p>
+      <ul>
+        <li>Keep daily volume conservative and ramp slowly — sudden spikes look like exactly what they are.</li>
+        <li>Randomize delays between actions instead of using a fixed sleep. Humans are jittery, not metronomic.</li>
+        <li>Add idle gaps, occasional backtracking, and varied navigation so a session isn't a straight line to a target.</li>
+        <li>Run during plausible waking hours for the account's timezone, not 24/7.</li>
+      </ul>
+      <p>A randomized, jittered delay is the bare minimum — never <code class="inline">sleep(3)</code> in a tight loop:</p>
+      <div class="code-tabs">
+        <div class="code-tabbar">
+          <button class="code-tab active" data-lang="python">Python</button>
+          <button class="code-tab" data-lang="node">Node.js</button>
+          <button class="code-copy" type="button">Copy</button>
+        </div>
+        <div class="code-pane active" data-lang="python"><pre><code>import random, time
+
+def human_delay(base=8.0, jitter=6.0):
+    """Randomized pause. Real users don't act on a fixed clock."""
+    time.sleep(base + random.uniform(0, jitter))
+
+def maybe_idle(probability=0.15):
+    """Occasionally 'get distracted' for a longer stretch."""
+    if random.random() < probability:
+        time.sleep(random.uniform(30, 120))
+
+for profile in profiles:           # keep this list SMALL per day
+    visit(profile)
+    maybe_idle()                   # human noise
+    human_delay()                  # 8-14s between actions, randomized</code></pre></div>
+        <div class="code-pane" data-lang="node"><pre><code>const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+async function humanDelay(base = 8000, jitter = 6000) {
+  // Randomized pause — real users don't act on a fixed clock.
+  await sleep(base + Math.random() * jitter);
+}
+
+async function maybeIdle(p = 0.15) {
+  // Occasionally "get distracted" for a longer stretch.
+  if (Math.random() < p) await sleep(30000 + Math.random() * 90000);
+}
+
+for (const profile of profiles) {  // keep this list SMALL per day
+  await visit(profile);
+  await maybeIdle();               // human noise
+  await humanDelay();              // 8-14s between actions
+}</code></pre></div>
+      </div>
+      <div class="note"><i class="fas fa-circle-info"></i><div>The cheapest insurance is collecting less. De-duplicate your target list, cache anything you've already fetched, and only re-visit profiles when the data is genuinely stale. Fewer requests = fewer chances to get caught.</div></div>
+    </section>
+
+    <!-- STEP 4 -->
+    <section class="step" id="step-4">
+      <div class="step-head"><span class="step-num">4</span><h2>Manage fingerprints, sessions and proxies</h2></div>
+      <p>Throttling protects you against volume detection; fingerprint and IP hygiene protect you against everything else. The goal is consistency — a session that looks like one ordinary person on one ordinary device.</p>
+      <h3>Browser fingerprint</h3>
+      <ul>
+        <li>Use a real, automation-hardened browser rather than a raw headless one. Stealth-oriented automation toolkits (e.g. Playwright/Puppeteer with anti-detection patches) remove the obvious <code class="inline">webdriver</code> flags.</li>
+        <li>Keep the user-agent, timezone, locale, and viewport <em>internally consistent</em>. A US English UA reporting a Moscow timezone is a contradiction.</li>
+        <li>Don't randomize the fingerprint mid-session — humans don't change devices between two page loads.</li>
+      </ul>
+      <h3>Sessions</h3>
+      <ul>
+        <li>Pin one identity to one IP, one fingerprint, and one set of cookies. Mixing them is a classic giveaway.</li>
+        <li>Persist and reuse cookies so you aren't re-authenticating constantly, which itself looks abnormal.</li>
+        <li>Never run many accounts from one machine or one IP — co-location links them, so one ban can cascade.</li>
+      </ul>
+      <h3>Proxies</h3>
+      <ul>
+        <li>Prefer reputable residential IPs over datacenter ranges, which are widely flagged.</li>
+        <li>Keep geography stable per session — no teleporting between countries between requests.</li>
+        <li>Only use proxies you have a clear right to use; cheap pools are often built on compromised devices.</li>
+      </ul>
+      <div class="warn"><i class="fas fa-triangle-exclamation"></i><div>None of this defeats detection — it only lowers your score. LinkedIn invests heavily in anti-automation and the cat-and-mouse game tilts toward them over time. Treat every account you automate as disposable, and never automate an account you can't afford to lose.</div></div>
+    </section>
+
+    <!-- STEP 5 -->
+    <section class="step" id="step-5">
+      <div class="step-head"><span class="step-num">5</span><h2>Detect blocks and back off gracefully</h2></div>
+      <p>Bans are usually preceded by warnings. The single biggest difference between a script that survives and one that gets nuked is whether it <strong>stops</strong> when LinkedIn pushes back. Watch for these signals and treat each as escalating friction:</p>
+      <div class="table-wrapper">
+        <table>
+          <thead><tr><th>Signal</th><th>What it means</th><th>What to do</th></tr></thead>
+          <tbody>
+            <tr><td><span class="pill pill-warn">CAPTCHA / checkpoint</span></td><td>You've been flagged as automated</td><td>Stop this account immediately — do not "solve and continue"</td></tr>
+            <tr><td><span class="pill pill-warn">Auth wall on public pages</span></td><td>IP/session under suspicion</td><td>Pause, rotate session, cut volume hard</td></tr>
+            <tr><td><span class="pill pill-err">429 / throttling</span></td><td>Rate limit hit</td><td>Exponential backoff, then reduce target volume</td></tr>
+            <tr><td><span class="pill pill-err">999 status code</span></td><td>LinkedIn's anti-bot block</td><td>Stop; the IP/fingerprint is burned</td></tr>
+            <tr><td><span class="pill pill-err">Restriction email</span></td><td>Account action taken</td><td>Cease all automation on it permanently</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Encode that as a hard circuit-breaker — when a block signal appears, the right move is to halt, not to retry harder:</p>
+      <div class="code-tabs">
+        <div class="code-tabbar">
+          <button class="code-tab active" data-lang="python">Python</button>
+          <button class="code-copy" type="button">Copy</button>
+        </div>
+        <div class="code-pane active" data-lang="python"><pre><code>import time
+
+BLOCK_SIGNALS = {429, 999}     # throttled or anti-bot blocked
+
+def fetch_with_circuit_breaker(fetch, target, max_backoff=2):
+    delay = 30.0
+    for attempt in range(max_backoff):
+        status, body = fetch(target)
+
+        # Hard stop: a CAPTCHA/checkpoint means you're flagged.
+        if looks_like_captcha(body):
+            raise SystemExit("Checkpoint detected — STOP. Burning this "
+                             "account is not worth one more profile.")
+
+        if status in BLOCK_SIGNALS:
+            time.sleep(delay)      # 30s -> 60s, then give up
+            delay *= 2
+            continue
+
+        return body                # success
+
+    # Don't push through a block — that's how temporary turns permanent.
+    raise SystemExit("Repeated blocks — pausing the run entirely.")</code></pre></div>
+      </div>
+      <div class="note"><i class="fas fa-circle-info"></i><div>The instinct to "just solve the CAPTCHA and keep going" is exactly what converts a recoverable warning into a permanent ban. When in doubt, stop and walk away from that identity.</div></div>
+    </section>
+
+    <!-- STEP 6 -->
+    <section class="step" id="step-6">
+      <div class="step-head"><span class="step-num">6</span><h2>Use a compliant data API instead</h2></div>
+      <p>Here's the honest conclusion most teams reach after a few burned accounts: maintaining a stealth scraping stack is a full-time arms race, and the cheapest, lowest-risk way to get LinkedIn-style data is to <strong>not scrape it yourself</strong>. A licensed data API moves the collection burden — and the ban risk — off your shoulders entirely.</p>
+      <p>Instead of driving a browser through someone's profile, you make one request and get a structured record back. No proxies, no fingerprints, no checkpoints, no disposable accounts:</p>
+      <div class="code-tabs">
+        <div class="code-tabbar">
+          <button class="code-tab active" data-lang="curl">cURL</button>
+          <button class="code-tab" data-lang="python">Python</button>
+          <button class="code-tab" data-lang="node">Node.js</button>
+          <button class="code-copy" type="button">Copy</button>
+        </div>
+        <div class="code-pane active" data-lang="curl"><pre><code>curl -X POST "https://api.linkfinderai.com" \
+     -H "Content-Type: application/json" \
+     -H "Authorization: Bearer $LINKFINDER_API_KEY" \
+     -d '{
+       "type": "linkedin_profile_to_linkedin_info",
+       "input_data": "https://linkedin.com/in/john-doe"
+     }'</code></pre></div>
+        <div class="code-pane" data-lang="python"><pre><code>import os, requests
+
+API_KEY = os.environ["LINKFINDER_API_KEY"]
+
+resp = requests.post(
+    "https://api.linkfinderai.com",
+    headers={
+        "Authorization": f"Bearer {API_KEY}",
+        "Content-Type": "application/json",
+    },
+    json={
+        "type": "linkedin_profile_to_linkedin_info",
+        "input_data": "https://linkedin.com/in/john-doe",
+    },
+)
+
+data = resp.json()
+print(data["status"], data["result"])  # full_name, job_title, company_name, ...</code></pre></div>
+        <div class="code-pane" data-lang="node"><pre><code>const API_KEY = process.env.LINKFINDER_API_KEY;
+
+const resp = await fetch("https://api.linkfinderai.com", {
+  method: "POST",
+  headers: {
+    "Authorization": `Bearer ${API_KEY}`,
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    type: "linkedin_profile_to_linkedin_info",
+    input_data: "https://linkedin.com/in/john-doe",
+  }),
+});
+
+const data = await resp.json();
+console.log(data.status, data.result); // { full_name, job_title, company_name, ... }</code></pre></div>
+      </div>
+      <p>Why this wins on every axis that matters when your goal is the <em>data</em>, not the scraping:</p>
+      <div class="table-wrapper">
+        <table>
+          <thead><tr><th>Concern</th><th>DIY scraping</th><th>Data API</th></tr></thead>
+          <tbody>
+            <tr><td>Account bans</td><td><span class="pill pill-err">Your accounts at risk</span></td><td><span class="pill pill-ok">None — no account needed</span></td></tr>
+            <tr><td>Proxies &amp; fingerprints</td><td>You maintain them</td><td>Handled for you</td></tr>
+            <tr><td>CAPTCHAs &amp; checkpoints</td><td>Constant firefighting</td><td>Not your problem</td></tr>
+            <tr><td>Maintenance</td><td>Breaks on every UI change</td><td>Stable endpoint &amp; schema</td></tr>
+            <tr><td>Cost model</td><td>Hidden (infra + lost accounts)</td><td>Predictable per request</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="note"><i class="fas fa-circle-info"></i><div>You still own compliance for how you <em>use</em> the data (GDPR/CCPA, outreach consent, suppression lists). A reputable provider reduces collection risk — it doesn't exempt you from privacy law.</div></div>
+    </section>
+
+    <!-- STEP 7 -->
+    <section class="step" id="step-7">
+      <div class="step-head"><span class="step-num">7</span><h2>Stay compliant for the long run</h2></div>
+      <p>Whatever route you choose, the teams that don't get burned share the same habits. Treat these as standing policy, not one-time setup:</p>
+      <ul>
+        <li><strong>Collect the minimum.</strong> Only the fields and people you actually need. Less data is less risk, legally and operationally.</li>
+        <li><strong>Honor deletion and opt-outs.</strong> Maintain a suppression list and remove anyone who asks. This is a legal obligation under GDPR/CCPA, not a courtesy.</li>
+        <li><strong>Document your lawful basis.</strong> Know <em>why</em> you're allowed to hold each person's data, and write it down before regulators or a customer asks.</li>
+        <li><strong>Prefer sanctioned sources.</strong> Official APIs, partner programs, and licensed providers over self-run scrapers, every time it's an option.</li>
+        <li><strong>Re-verify, don't re-scrape.</strong> People change jobs constantly. Refresh stale records through a stable API rather than re-running a fragile crawler.</li>
+      </ul>
+      <p>Scraping LinkedIn "without getting banned" ultimately isn't a clever trick — it's a decision about how much risk you want to carry. Lowering it means looking more human and collecting less; eliminating it means not running the scraper at all.</p>
+    </section>
+
+    <div class="cta-box">
+      <h2>Skip the bans. Get the data.</h2>
+      <p>Pull structured LinkedIn-style contact and company data from one endpoint — no proxies, no checkpoints, no disposable accounts. Try it free with 100 credits.</p>
+      <a href="https://linkfinderai.com/sign-up" class="btn">Get your API key</a>
+      <p class="cta-fine">No credit card required • API on every plan • Flat pricing • Cancel anytime</p>
+    </div>
+
+    <div class="related-pages-box">
+      <p>🔗 Keep reading:</p>
+      <div class="links">
+        <a href="https://linkfinderai.com/how-to-enrich-leads-with-api">→ How to enrich leads with an API</a>
+        <a href="https://linkfinderai.com/data-enrichment-api">→ Data enrichment API overview</a>
+        <a href="https://linkfinderai.com/best-b2b-data-api">→ Best B2B data APIs in 2026</a>
+        <a href="https://linkfinderai.com/api-documentation">→ Full API documentation</a>
+      </div>
+    </div>
+
+  </div>
+</article>
+
+<footer class="footer">
+  <div class="footer-content">
+    <div>
+      <a href="https://linkfinderai.com" class="logo" style="margin-bottom:1rem;"><i class="fas fa-search"></i> LinkFinder AI</a>
+      <p class="fdesc">B2B contact data enrichment for sales, marketing, and recruitment teams. Verified business intelligence at scale.</p>
+    </div>
+    <div>
+      <h4>Product</h4>
+      <ul class="footer-links">
+        <li><a href="https://linkfinderai.com/pricing">Pricing</a></li>
+        <li><a href="https://linkfinderai.com/api-documentation">API Documentation</a></li>
+        <li><a href="https://linkfinderai.com/b2b-data-enrichment">B2B Data Enrichment</a></li>
+        <li><a href="https://linkfinderai.com/data-enrichment-api">Data Enrichment API</a></li>
+        <li><a href="https://linkfinderai.com/blog">Blog</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4>Company</h4>
+      <ul class="footer-links">
+        <li><a href="https://linkfinderai.com/about-us">About Us</a></li>
+        <li><a href="https://linkfinderai.com/mentions-legales">Legal Information</a></li>
+        <li><a href="https://linkfinderai.com/privacy">Privacy Policy</a></li>
+        <li><a href="https://linkfinderai.com/terms">Terms of Service</a></li>
+        <li><a href="https://linkfinderai.com/refund-policy">Refund Policy</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4>Support</h4>
+      <ul class="footer-links">
+        <li><a href="mailto:support@linkfinderai.com">support@linkfinderai.com</a></li>
+        <li><a href="https://trustpilot.com/review/linkfinderai.com" target="_blank" rel="noopener"><i class="fab fa-trustpilot"></i> Trustpilot Reviews</a></li>
+        <li><a href="https://www.linkedin.com/in/eliasse-hamour-08194821a/" target="_blank" rel="noopener"><i class="fab fa-linkedin"></i> LinkedIn</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <p>&copy; 2026 Linkfinder AI &mdash; Eliasse Hamour. All rights reserved.</p>
+    <p class="legal-line">SIRET 937 788 172 00016 &mdash; VAT FR02937788172 &mdash; 26 Rue de la Coopération, 93240 Stains, France</p>
+  </div>
+</footer>
+
+<script>
+  // Language tabs
+  document.querySelectorAll('.code-tabs').forEach(function (group) {
+    var tabs = group.querySelectorAll('.code-tab');
+    var panes = group.querySelectorAll('.code-pane');
+    tabs.forEach(function (tab) {
+      tab.addEventListener('click', function () {
+        var lang = tab.getAttribute('data-lang');
+        tabs.forEach(function (t) { t.classList.toggle('active', t.getAttribute('data-lang') === lang); });
+        panes.forEach(function (p) { p.classList.toggle('active', p.getAttribute('data-lang') === lang); });
+      });
+    });
+    // Copy button copies the visible pane
+    var copyBtn = group.querySelector('.code-copy');
+    if (copyBtn) {
+      copyBtn.addEventListener('click', function () {
+        var active = group.querySelector('.code-pane.active code');
+        if (!active) return;
+        var text = active.innerText;
+        var done = function () {
+          var old = copyBtn.textContent;
+          copyBtn.textContent = 'Copied';
+          setTimeout(function () { copyBtn.textContent = old; }, 1400);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(done).catch(function () {});
+        }
+      });
+    }
+  });
+</script>
+</body>
+</html>
