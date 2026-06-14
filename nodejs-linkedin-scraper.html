@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Node.js LinkedIn Scraper: How to Build One (and Why You Probably Shouldn't) — LinkFinder AI</title>
+  <meta name="description" content="A 2026 developer guide to building a Node.js LinkedIn scraper: the HTTP vs headless-browser approaches, a public-page parsing example, the auth walls, fingerprinting, bans and maintenance that break DIY scrapers, the ToS reality, and the compliant API alternative you call from Node."/>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+  <style>
+    :root {
+      --primary-color: #2563eb;
+      --primary-dark: #1e40af;
+      --success-color: #10b981;
+      --text-dark: #1f2937;
+      --text-gray: #6b7280;
+      --border-color: #e5e7eb;
+      --bg-light: #f9fafb;
+      --code-bg: #0f172a;
+      --code-bar: #1e293b;
+      --code-text: #e2e8f0;
+      --code-dim: #94a3b8;
+      --mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Monaco, Consolas, monospace;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      line-height: 1.6;
+      color: var(--text-dark);
+      background: #ffffff;
+    }
+    .container { max-width: 1100px; margin: 0 auto; padding: 0 2rem; }
+
+    /* Header */
+    .header {
+      background: white;
+      border-bottom: 1px solid var(--border-color);
+      position: sticky; top: 0; z-index: 1000;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    .header-content {
+      max-width: 1100px; margin: 0 auto; padding: 1rem 2rem;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .logo {
+      font-size: 1.5rem; font-weight: 800; color: var(--primary-color);
+      text-decoration: none; display: flex; align-items: center; gap: 0.5rem;
+    }
+    .logo i { font-size: 1.75rem; }
+    .btn {
+      padding: 0.625rem 1.5rem; border-radius: 0.5rem; text-decoration: none;
+      font-weight: 600; transition: all 0.2s; display: inline-block; font-size: 0.9375rem;
+    }
+    .btn-outline { background: transparent; color: var(--primary-color); border: 2px solid var(--primary-color); margin-right: 0.75rem; }
+    .btn-outline:hover { background: var(--primary-color); color: white; }
+    .btn:not(.btn-outline) { background: var(--primary-color); color: white; border: 2px solid var(--primary-color); }
+    .btn:not(.btn-outline):hover { background: var(--primary-dark); border-color: var(--primary-dark); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3); }
+
+    /* Hero */
+    .hero {
+      background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+      color: white; padding: 4rem 0; text-align: center;
+    }
+    .hero .eyebrow {
+      display: inline-block; font-family: var(--mono); font-size: 0.8125rem;
+      letter-spacing: 0.08em; text-transform: uppercase; font-weight: 600;
+      background: rgba(255,255,255,0.15); padding: 0.4rem 0.9rem; border-radius: 999px; margin-bottom: 1.25rem;
+    }
+    .hero h1 { font-size: 3rem; font-weight: 800; margin-bottom: 1rem; line-height: 1.2; }
+    .hero p { font-size: 1.2rem; opacity: 0.95; max-width: 720px; margin: 0 auto; }
+    .hero a { color: white; }
+
+    /* Article */
+    .article { padding: 3.5rem 0; }
+    .intro-text { font-size: 1.0625rem; line-height: 1.85; margin-bottom: 2.5rem; }
+    .intro-text p { margin-bottom: 1.25rem; }
+
+    /* On this page */
+    .toc {
+      background: var(--bg-light); border: 1px solid var(--border-color);
+      border-radius: 0.9rem; padding: 1.75rem 2rem; margin-bottom: 3rem;
+    }
+    .toc h2 { font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-gray); margin-bottom: 1rem; }
+    .toc ol { list-style: none; counter-reset: toc; display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem 2rem; }
+    .toc li { counter-increment: toc; }
+    .toc a { text-decoration: none; color: var(--text-dark); font-weight: 500; display: flex; gap: 0.7rem; align-items: baseline; }
+    .toc a:hover { color: var(--primary-color); }
+    .toc a::before {
+      content: counter(toc, decimal-leading-zero); font-family: var(--mono);
+      font-size: 0.8rem; color: var(--primary-color); font-weight: 600;
+    }
+
+    /* Step blocks */
+    .step { margin: 3.25rem 0; scroll-margin-top: 90px; }
+    .step-head { display: flex; align-items: center; gap: 1rem; margin-bottom: 1.25rem; }
+    .step-num {
+      flex: none; width: 2.6rem; height: 2.6rem; border-radius: 0.7rem;
+      background: var(--primary-color); color: white; display: flex; align-items: center;
+      justify-content: center; font-family: var(--mono); font-weight: 600; font-size: 1.05rem;
+    }
+    .step h2 { font-size: 1.6rem; font-weight: 700; line-height: 1.25; }
+    .step p { margin: 1rem 0 1.25rem; line-height: 1.8; font-size: 1.0625rem; }
+    .step h3 { font-size: 1.15rem; font-weight: 700; margin: 1.75rem 0 0.75rem; }
+    .step ul { margin: 1rem 0 1.25rem 1.4rem; }
+    .step li { margin-bottom: 0.6rem; line-height: 1.7; }
+    code.inline {
+      font-family: var(--mono); font-size: 0.86em; background: #eef2ff;
+      color: var(--primary-dark); padding: 0.15em 0.4em; border-radius: 0.35em;
+    }
+
+    /* Code blocks with language tabs */
+    .code-tabs { margin: 1.5rem 0; border-radius: 0.75rem; overflow: hidden; border: 1px solid var(--code-bar); background: var(--code-bg); }
+    .code-tabbar { display: flex; align-items: center; background: var(--code-bar); padding: 0 0.4rem; }
+    .code-tab {
+      font-family: var(--mono); font-size: 0.8rem; font-weight: 500; color: var(--code-dim);
+      background: transparent; border: none; padding: 0.7rem 1rem; cursor: pointer;
+      border-bottom: 2px solid transparent; transition: color 0.15s, border-color 0.15s;
+    }
+    .code-tab:hover { color: var(--code-text); }
+    .code-tab.active { color: #fff; border-bottom-color: #60a5fa; }
+    .code-copy {
+      margin-left: auto; font-family: var(--mono); font-size: 0.74rem; color: var(--code-dim);
+      background: transparent; border: 1px solid #334155; border-radius: 0.4rem;
+      padding: 0.3rem 0.7rem; cursor: pointer; transition: all 0.15s;
+    }
+    .code-copy:hover { color: #fff; border-color: #475569; }
+    .code-pane { display: none; margin: 0; }
+    .code-pane.active { display: block; }
+    .code-pane pre {
+      margin: 0; padding: 1.25rem 1.4rem; overflow-x: auto;
+      font-family: var(--mono); font-size: 0.86rem; line-height: 1.7; color: var(--code-text);
+      tab-size: 2;
+    }
+    .code-pane pre code { font-family: inherit; white-space: pre; }
+
+    /* Callouts */
+    .note, .warn {
+      border-radius: 0.7rem; padding: 1.1rem 1.3rem; margin: 1.5rem 0; font-size: 0.97rem; line-height: 1.7;
+      display: flex; gap: 0.8rem;
+    }
+    .note { background: #eff6ff; border-left: 4px solid var(--primary-color); }
+    .warn { background: #fffbeb; border-left: 4px solid #f59e0b; }
+    .note i { color: var(--primary-color); margin-top: 0.2rem; }
+    .warn i { color: #d97706; margin-top: 0.2rem; }
+    .note strong, .warn strong { font-weight: 700; }
+
+    /* Tables */
+    .table-wrapper { overflow-x: auto; border: 1px solid var(--border-color); border-radius: 0.75rem; margin: 1.5rem 0; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.94rem; }
+    th { background: var(--bg-light); padding: 0.85rem 1rem; text-align: left; font-weight: 600; border-bottom: 2px solid var(--border-color); }
+    td { padding: 0.85rem 1rem; border-bottom: 1px solid var(--border-color); vertical-align: top; }
+    tr:last-child td { border-bottom: none; }
+    td code, th code { font-family: var(--mono); font-size: 0.85em; background: #f1f5f9; padding: 0.1em 0.35em; border-radius: 0.3em; }
+    .pill { font-family: var(--mono); font-size: 0.78rem; font-weight: 600; padding: 0.15rem 0.5rem; border-radius: 0.35rem; }
+    .pill-ok { background: #d1fae5; color: #065f46; }
+    .pill-err { background: #fee2e2; color: #991b1b; }
+    .pill-warn { background: #fef3c7; color: #92400e; }
+
+    /* CTA */
+    .cta-box {
+      background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+      color: white; padding: 3rem; border-radius: 1rem; text-align: center; margin: 3.5rem 0 1rem;
+    }
+    .cta-box h2 { color: white; margin-bottom: 1rem; font-size: 1.75rem; }
+    .cta-box p { color: white; opacity: 0.92; margin: 1rem auto; max-width: 600px; }
+    .cta-box .btn { background: white; color: var(--primary-color); font-size: 1.05rem; padding: 0.875rem 2rem; margin-top: 1rem; }
+    .cta-box .btn:hover { background: var(--bg-light); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.15); }
+    .cta-fine { font-size: 0.85rem; margin-top: 1rem; opacity: 0.8; }
+
+    /* Related */
+    .related-pages-box { max-width: 760px; margin: 3rem auto 0; padding: 24px; background: #fef3c7; border-left: 4px solid #f59e0b; border-radius: 8px; }
+    .related-pages-box p { margin: 0 0 16px; font-size: 15px; font-weight: 600; color: #78350f; }
+    .related-pages-box .links { display: flex; flex-direction: column; gap: 10px; }
+    .related-pages-box a { padding: 12px 16px; background: white; border: 1px solid #fde68a; border-radius: 6px; text-decoration: none; color: #b45309; font-size: 14px; transition: all 0.2s; display: block; }
+    .related-pages-box a:hover { border-color: #f59e0b; }
+
+    /* Footer */
+    .footer { background: var(--text-dark); color: white; padding: 3rem 0 1.5rem; margin-top: 4rem; }
+    .footer-content { max-width: 1100px; margin: 0 auto 2rem; padding: 0 2rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 2rem; }
+    .footer h4 { margin-bottom: 1rem; font-size: 1.125rem; }
+    .footer p.fdesc { color: rgba(255,255,255,0.75); font-size: 0.95rem; }
+    .footer-links { list-style: none; }
+    .footer-links li { margin-bottom: 0.5rem; }
+    .footer-links a { color: rgba(255,255,255,0.8); text-decoration: none; transition: color 0.2s; }
+    .footer-links a:hover { color: white; }
+    .footer-bottom { text-align: center; padding: 2rem 2rem 0; border-top: 1px solid rgba(255,255,255,0.1); color: rgba(255,255,255,0.6); max-width: 1100px; margin: 0 auto; }
+    .footer-bottom .legal-line { color: #6b7280; font-size: 0.78rem; margin-top: 0.5rem; }
+
+    @media (max-width: 768px) {
+      .hero h1 { font-size: 2rem; }
+      .toc ol { grid-template-columns: 1fr; }
+      .cta-box { padding: 2rem 1.5rem; }
+      .step h2 { font-size: 1.35rem; }
+    }
+  </style>
+
+  <link rel="canonical" href="https://linkfinderai.com/nodejs-linkedin-scraper" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "HowTo",
+    "name": "How to build a Node.js LinkedIn scraper",
+    "description": "A developer guide to building a Node.js LinkedIn scraper: choosing between HTTP and headless-browser approaches, parsing a public page, understanding the auth walls, fingerprinting, bans and maintenance that break DIY scrapers, the ToS reality, and the compliant API alternative you call from Node.",
+    "step": [
+      { "@type": "HowToStep", "name": "Understand what a Node.js LinkedIn scraper does", "url": "https://linkfinderai.com/nodejs-linkedin-scraper#step-1" },
+      { "@type": "HowToStep", "name": "Set up the Node.js project", "url": "https://linkfinderai.com/nodejs-linkedin-scraper#step-2" },
+      { "@type": "HowToStep", "name": "Fetch and parse a public page", "url": "https://linkfinderai.com/nodejs-linkedin-scraper#step-3" },
+      { "@type": "HowToStep", "name": "Know what breaks a DIY scraper", "url": "https://linkfinderai.com/nodejs-linkedin-scraper#step-4" },
+      { "@type": "HowToStep", "name": "Understand the legal and ToS reality", "url": "https://linkfinderai.com/nodejs-linkedin-scraper#step-5" },
+      { "@type": "HowToStep", "name": "Call a compliant API from Node instead", "url": "https://linkfinderai.com/nodejs-linkedin-scraper#step-6" },
+      { "@type": "HowToStep", "name": "Decide whether to build or buy", "url": "https://linkfinderai.com/nodejs-linkedin-scraper#step-7" }
+    ]
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://linkfinderai.com" },
+      { "@type": "ListItem", "position": 2, "name": "Node.js LinkedIn Scraper", "item": "https://linkfinderai.com/nodejs-linkedin-scraper" }
+    ]
+  }
+  </script>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-content">
+    <a href="https://linkfinderai.com" class="logo"><i class="fas fa-search"></i> LinkFinder AI</a>
+    <div>
+      <a href="https://linkfinderai.com/api-documentation" class="btn btn-outline">API Docs</a>
+      <a href="https://linkfinderai.com/sign-up" class="btn">Get API key</a>
+    </div>
+  </div>
+</header>
+
+<div class="hero">
+  <div class="container">
+    <span class="eyebrow">Developer Guide</span>
+    <h1>Node.js LinkedIn Scraper</h1>
+    <p>What it takes to build one in Node, the parts that quietly break it, and the compliant <a href="https://linkfinderai.com/api-documentation">API you call from the same fetch()</a> when you'd rather have the data than maintain a scraper.</p>
+  </div>
+</div>
+
+<article class="article">
+  <div class="container">
+
+    <div class="intro-text">
+      <p>"Node.js LinkedIn scraper" is one of those searches where the tutorial you find rarely matches the thing you actually ship. The toy version — fetch a URL, parse some HTML — works for about a day. The production version is a never-ending fight against auth walls, fingerprinting, rate limits, layout changes, and the very real risk of getting an account banned or worse.</p>
+      <p>This guide is honest about both. It shows how a Node scraper is structured, walks through parsing a genuinely public page, and then lays out exactly what breaks once you scale: the things that turn a weekend script into an unpaid full-time job. It ends where most teams end up — calling a compliant data API from Node and skipping the scraper entirely, because the goal was always the data, not the act of scraping.</p>
+      <p>Examples are in Node.js. Read this as engineering judgement, not a green light: there is no Node trick that makes scraping LinkedIn risk-free.</p>
+    </div>
+
+    <div class="warn"><i class="fas fa-triangle-exclamation"></i><div><strong>Read this first.</strong> Automated collection of LinkedIn data while logged in violates LinkedIn's <a href="https://www.linkedin.com/legal/user-agreement">User Agreement</a>. It can get your account banned and create legal exposure. Nothing here is legal advice — consult a lawyer for your use case, and prefer official APIs or licensed data sources wherever possible.</div></div>
+
+    <nav class="toc" aria-label="On this page">
+      <h2>What this guide covers</h2>
+      <ol>
+        <li><a href="#step-1">What a Node scraper does</a></li>
+        <li><a href="#step-2">Set up the project</a></li>
+        <li><a href="#step-3">Fetch &amp; parse a public page</a></li>
+        <li><a href="#step-4">What breaks a DIY scraper</a></li>
+        <li><a href="#step-5">The legal &amp; ToS reality</a></li>
+        <li><a href="#step-6">Call a compliant API from Node</a></li>
+        <li><a href="#step-7">Build vs. buy</a></li>
+      </ol>
+    </nav>
+
+    <!-- STEP 1 -->
+    <section class="step" id="step-1">
+      <div class="step-head"><span class="step-num">1</span><h2>Understand what a Node.js LinkedIn scraper does</h2></div>
+      <p>At its core, any scraper does three things: fetch a page, extract structured data from the markup, and store it. In Node there are two fundamentally different ways to do the fetch, and the choice dictates everything else.</p>
+      <div class="table-wrapper">
+        <table>
+          <thead><tr><th>Approach</th><th>How it works</th><th>Trade-off</th></tr></thead>
+          <tbody>
+            <tr><td>HTTP request + parser</td><td><code>fetch</code>/<code>axios</code> + <code>cheerio</code> to read the raw HTML</td><td>Fast &amp; light, but fails on JS-rendered content and is trivially fingerprinted</td></tr>
+            <tr><td>Headless browser</td><td><code>puppeteer</code>/<code>playwright</code> drives a real Chromium</td><td>Renders everything &amp; looks more human, but is heavy, slow, and still detectable</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>The naïve HTTP approach works on simple sites. On LinkedIn it mostly returns an auth wall or a login redirect, because the valuable content sits behind a session and is rendered client-side. That pushes most people toward a headless browser — which is where the cost, fragility, and ban risk all spike. Understanding that fork up front saves you from building the wrong thing twice.</p>
+    </section>
+
+    <!-- STEP 2 -->
+    <section class="step" id="step-2">
+      <div class="step-head"><span class="step-num">2</span><h2>Set up the Node.js project</h2></div>
+      <p>You'll need Node 18+ (for built-in <code class="inline">fetch</code>) and a couple of packages. Cheerio parses HTML server-side; Playwright is here so you can see what a headless approach costs you in the next steps.</p>
+      <div class="code-tabs">
+        <div class="code-tabbar">
+          <button class="code-tab active" data-lang="bash">bash</button>
+          <button class="code-tab" data-lang="node">package.json</button>
+          <button class="code-copy" type="button">Copy</button>
+        </div>
+        <div class="code-pane active" data-lang="bash"><pre><code>mkdir linkedin-data &amp;&amp; cd linkedin-data
+npm init -y
+npm install cheerio playwright
+npx playwright install chromium     # downloads a real browser
+
+# keep your config out of source control
+echo "LINKFINDER_API_KEY=lf_live_your_key_here" > .env
+echo ".env" >> .gitignore</code></pre></div>
+        <div class="code-pane" data-lang="node"><pre><code>{
+  "name": "linkedin-data",
+  "type": "module",
+  "engines": { "node": ">=18" },
+  "dependencies": {
+    "cheerio": "^1.0.0",
+    "playwright": "^1.44.0"
+  }
+}</code></pre></div>
+      </div>
+      <div class="note"><i class="fas fa-circle-info"></i><div>Use <code class="inline">"type": "module"</code> so you can use top-level <code class="inline">await</code> and modern <code class="inline">import</code> syntax, which keeps the async scraping code far cleaner than callbacks.</div></div>
+    </section>
+
+    <!-- STEP 3 -->
+    <section class="step" id="step-3">
+      <div class="step-head"><span class="step-num">3</span><h2>Fetch and parse a public page</h2></div>
+      <p>Here's the canonical "scraper" everyone starts with: fetch a public, logged-out URL and pull structured fields out of the HTML with Cheerio. This is the legitimate, low-risk shape of scraping — reading public markup, identifying yourself honestly, and parsing what's returned.</p>
+      <div class="code-tabs">
+        <div class="code-tabbar">
+          <button class="code-tab active" data-lang="node">scrape.js</button>
+          <button class="code-copy" type="button">Copy</button>
+        </div>
+        <div class="code-pane active" data-lang="node"><pre><code>import * as cheerio from "cheerio";
+
+async function fetchPublic(url) {
+  const resp = await fetch(url, {
+    headers: {
+      // Identify yourself honestly; don't impersonate a logged-in user.
+      "User-Agent": "MyResearchBot/1.0 (+https://example.com/bot)",
+      "Accept": "text/html",
+    },
+  });
+
+  if (resp.status === 999 || resp.redirected) {
+    // 999 = LinkedIn's anti-bot block; a redirect usually means an auth wall.
+    throw new Error(`Blocked or gated (status ${resp.status}). Stop here.`);
+  }
+  return resp.text();
+}
+
+function parseOpenGraph(html) {
+  const $ = cheerio.load(html);
+  // Public pages expose basic Open Graph tags — the safe, intended surface.
+  return {
+    title: $('meta[property="og:title"]').attr("content") || null,
+    description: $('meta[property="og:description"]').attr("content") || null,
+    url: $('meta[property="og:url"]').attr("content") || null,
+  };
+}
+
+const html = await fetchPublic("https://www.linkedin.com/company/example");
+console.log(parseOpenGraph(html));</code></pre></div>
+      </div>
+      <p>Run this and you'll quickly meet the wall: on most profile and people URLs, LinkedIn returns a login gate or a <code class="inline">999</code> status instead of the data. That's not a bug to engineer around — it's the platform telling you that surface isn't open to automation. The moment your answer to that wall is "log in and drive a headless browser through it," you've crossed from reading public data into ToS-violating territory, and into the failure modes in the next step.</p>
+      <div class="warn"><i class="fas fa-triangle-exclamation"></i><div>Always check <code class="inline">robots.txt</code> and the ToS for any path you fetch, and never feed session cookies from a logged-in account into a scraper. That single decision is what turns "reading a public page" into "automating an account that can be banned."</div></div>
+    </section>
+
+    <!-- STEP 4 -->
+    <section class="step" id="step-4">
+      <div class="step-head"><span class="step-num">4</span><h2>Know what breaks a DIY scraper</h2></div>
+      <p>The reason "Node.js LinkedIn scraper" tutorials don't survive contact with production is that the fetch was never the hard part. Here's what actually consumes the time and burns the accounts:</p>
+      <ul>
+        <li><strong>Auth walls.</strong> The valuable data requires a logged-in session — which means automating a real account, which violates the ToS and puts that account at risk.</li>
+        <li><strong>Fingerprinting.</strong> Headless Chromium leaks automation flags (<code class="inline">navigator.webdriver</code>), unusual TLS handshakes, and missing browser quirks. Detection is independent of your IP.</li>
+        <li><strong>Bans &amp; checkpoints.</strong> CAPTCHAs, <code class="inline">999</code> blocks, and account restrictions escalate quickly once you're flagged. Pushing through a CAPTCHA is how a warning becomes permanent.</li>
+        <li><strong>Layout churn.</strong> Selectors break whenever the front-end changes. A scraper that worked Monday silently returns empty fields Friday.</li>
+        <li><strong>Infrastructure.</strong> Proxies, browser pools, retry queues, and monitoring — you end up maintaining a small distributed system to fetch some text.</li>
+      </ul>
+      <p>Add it up and a "simple scraper" becomes an arms race against a company that invests heavily in stopping exactly what you're doing. The cost isn't the code; it's the perpetual maintenance and the accounts you lose along the way.</p>
+      <div class="note"><i class="fas fa-circle-info"></i><div>We cover the ban-avoidance side in depth in <a href="https://linkfinderai.com/linkedin-scraping-without-getting-banned">LinkedIn scraping without getting banned</a> — but the short version is that these techniques reduce risk, never eliminate it.</div></div>
+    </section>
+
+    <!-- STEP 5 -->
+    <section class="step" id="step-5">
+      <div class="step-head"><span class="step-num">5</span><h2>Understand the legal &amp; ToS reality</h2></div>
+      <p>Two separate things get conflated constantly, and the distinction matters for what you build:</p>
+      <ul>
+        <li><strong>Scraping public data</strong> — In the U.S., the <em>hiQ v. LinkedIn</em> litigation signaled that scraping <em>publicly accessible</em> data is unlikely to violate the anti-hacking statute (the CFAA). That's about criminal hacking liability, not permission.</li>
+        <li><strong>Breaching the contract</strong> — LinkedIn's User Agreement separately prohibits automated collection. Scraping <em>while logged in</em> can be a breach of that contract and grounds for a ban or civil claim, even if it isn't "hacking."</li>
+        <li><strong>Privacy law</strong> — If you collect personal data on EU/UK or California residents, GDPR and CCPA/CPRA apply regardless of whether the data was public. Public ≠ unregulated.</li>
+      </ul>
+      <div class="warn"><i class="fas fa-triangle-exclamation"></i><div>Laws and case outcomes vary by jurisdiction and change over time. This is general information, not legal advice. If your product depends on this data, have a lawyer review your specific approach before you build on it.</div></div>
+    </section>
+
+    <!-- STEP 6 -->
+    <section class="step" id="step-6">
+      <div class="step-head"><span class="step-num">6</span><h2>Call a compliant API from Node instead</h2></div>
+      <p>Here's the punchline most engineers reach after the third banned account: if you want the <em>data</em>, you don't need a scraper at all. A licensed data API gives you structured records from the same <code class="inline">fetch()</code> you already wrote — no Playwright, no proxies, no fingerprints, no disposable accounts, no broken selectors.</p>
+      <div class="code-tabs">
+        <div class="code-tabbar">
+          <button class="code-tab active" data-lang="node">enrich.js</button>
+          <button class="code-tab" data-lang="bash">cURL</button>
+          <button class="code-copy" type="button">Copy</button>
+        </div>
+        <div class="code-pane active" data-lang="node"><pre><code>const API_KEY = process.env.LINKFINDER_API_KEY;
+const BASE_URL = "https://api.linkfinderai.com";
+
+async function call(type, input_data, extra = {}) {
+  const resp = await fetch(BASE_URL, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ type, input_data, ...extra }),
+  });
+  const data = await resp.json();
+  return data.status === "success" ? data.result : null;
+}
+
+// Resolve a profile, then append the fields you need.
+const url = await call("lead_full_name_to_linkedin_url", "Sarah Mitchell CloudCore");
+const profile = url && await call("linkedin_profile_to_linkedin_info", url);
+const email   = url && await call("linkedin_profile_to_email", url);
+
+console.log({ url, email, profile });</code></pre></div>
+        <div class="code-pane" data-lang="bash"><pre><code>curl -X POST "https://api.linkfinderai.com" \
+     -H "Content-Type: application/json" \
+     -H "Authorization: Bearer $LINKFINDER_API_KEY" \
+     -d '{
+       "type": "linkedin_profile_to_linkedin_info",
+       "input_data": "https://linkedin.com/in/sarah-mitchell-sales"
+     }'</code></pre></div>
+      </div>
+      <p>Same language, same <code class="inline">fetch</code>, a tiny fraction of the code — and none of the moving parts that break. Each request is a flat 1 credit, including misses, so cost is predictable instead of "however many accounts we burned this month."</p>
+      <div class="table-wrapper">
+        <table>
+          <thead><tr><th>Concern</th><th>Node scraper (DIY)</th><th>API from Node</th></tr></thead>
+          <tbody>
+            <tr><td>Account bans</td><td><span class="pill pill-err">Your accounts at risk</span></td><td><span class="pill pill-ok">No account needed</span></td></tr>
+            <tr><td>Headless browser / proxies</td><td>You build &amp; maintain</td><td>Not needed</td></tr>
+            <tr><td>CAPTCHAs &amp; <code>999</code> blocks</td><td>Constant firefighting</td><td>Gone</td></tr>
+            <tr><td>Selector / layout churn</td><td>Breaks on every UI change</td><td>Stable JSON schema</td></tr>
+            <tr><td>Lines of code</td><td>Hundreds, growing</td><td>~10</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- STEP 7 -->
+    <section class="step" id="step-7">
+      <div class="step-head"><span class="step-num">7</span><h2>Decide whether to build or buy</h2></div>
+      <p>There's a narrow case for rolling your own and a much wider case for not. Be honest about which one you're in:</p>
+      <h3>Maybe build it yourself if…</h3>
+      <ul>
+        <li>You only ever touch genuinely public, logged-out pages and stay within <code class="inline">robots.txt</code> and the ToS.</li>
+        <li>The volume is tiny and one-off, and a broken run costs you nothing.</li>
+        <li>Scraping <em>is</em> the product and you're prepared to staff the arms race.</li>
+      </ul>
+      <h3>Buy / use an API if…</h3>
+      <ul>
+        <li>You want the <em>data</em>, reliably, and don't care how it arrives.</li>
+        <li>You need volume, freshness, or structured output you can build on.</li>
+        <li>You don't want your accounts, your IPs, or your legal posture exposed.</li>
+      </ul>
+      <p>For the overwhelming majority of sales, marketing, and recruiting use cases, the second list wins. The scraper is a means to an end, and the API delivers that end without the maintenance tax or the ban risk.</p>
+      <div class="note"><i class="fas fa-circle-info"></i><div>Whichever route you choose, you still own how you <em>use</em> the data — GDPR/CCPA, outreach consent, and suppression lists are on you. An API lowers collection risk; it doesn't exempt you from privacy law.</div></div>
+    </section>
+
+    <div class="cta-box">
+      <h2>Skip the scraper. Keep the fetch().</h2>
+      <p>Get structured LinkedIn-style contact and company data from one Node-friendly endpoint — no headless browser, no proxies, no banned accounts. Try it free with 100 credits.</p>
+      <a href="https://linkfinderai.com/sign-up" class="btn">Get your API key</a>
+      <p class="cta-fine">No credit card required • API on every plan • Flat pricing • Cancel anytime</p>
+    </div>
+
+    <div class="related-pages-box">
+      <p>🔗 Keep reading:</p>
+      <div class="links">
+        <a href="https://linkfinderai.com/linkedin-scraping-without-getting-banned">→ LinkedIn scraping without getting banned</a>
+        <a href="https://linkfinderai.com/how-to-enrich-leads-with-api">→ How to enrich leads with an API</a>
+        <a href="https://linkfinderai.com/bulk-linkedin-enrichment">→ Bulk LinkedIn enrichment</a>
+        <a href="https://linkfinderai.com/api-documentation">→ Full API documentation</a>
+      </div>
+    </div>
+
+  </div>
+</article>
+
+<footer class="footer">
+  <div class="footer-content">
+    <div>
+      <a href="https://linkfinderai.com" class="logo" style="margin-bottom:1rem;"><i class="fas fa-search"></i> LinkFinder AI</a>
+      <p class="fdesc">B2B contact data enrichment for sales, marketing, and recruitment teams. Verified business intelligence at scale.</p>
+    </div>
+    <div>
+      <h4>Product</h4>
+      <ul class="footer-links">
+        <li><a href="https://linkfinderai.com/pricing">Pricing</a></li>
+        <li><a href="https://linkfinderai.com/api-documentation">API Documentation</a></li>
+        <li><a href="https://linkfinderai.com/b2b-data-enrichment">B2B Data Enrichment</a></li>
+        <li><a href="https://linkfinderai.com/data-enrichment-api">Data Enrichment API</a></li>
+        <li><a href="https://linkfinderai.com/blog">Blog</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4>Company</h4>
+      <ul class="footer-links">
+        <li><a href="https://linkfinderai.com/about-us">About Us</a></li>
+        <li><a href="https://linkfinderai.com/mentions-legales">Legal Information</a></li>
+        <li><a href="https://linkfinderai.com/privacy">Privacy Policy</a></li>
+        <li><a href="https://linkfinderai.com/terms">Terms of Service</a></li>
+        <li><a href="https://linkfinderai.com/refund-policy">Refund Policy</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4>Support</h4>
+      <ul class="footer-links">
+        <li><a href="mailto:support@linkfinderai.com">support@linkfinderai.com</a></li>
+        <li><a href="https://trustpilot.com/review/linkfinderai.com" target="_blank" rel="noopener"><i class="fab fa-trustpilot"></i> Trustpilot Reviews</a></li>
+        <li><a href="https://www.linkedin.com/in/eliasse-hamour-08194821a/" target="_blank" rel="noopener"><i class="fab fa-linkedin"></i> LinkedIn</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <p>&copy; 2026 Linkfinder AI &mdash; Eliasse Hamour. All rights reserved.</p>
+    <p class="legal-line">SIRET 937 788 172 00016 &mdash; VAT FR02937788172 &mdash; 26 Rue de la Coopération, 93240 Stains, France</p>
+  </div>
+</footer>
+
+<script>
+  // Language tabs
+  document.querySelectorAll('.code-tabs').forEach(function (group) {
+    var tabs = group.querySelectorAll('.code-tab');
+    var panes = group.querySelectorAll('.code-pane');
+    tabs.forEach(function (tab) {
+      tab.addEventListener('click', function () {
+        var lang = tab.getAttribute('data-lang');
+        tabs.forEach(function (t) { t.classList.toggle('active', t.getAttribute('data-lang') === lang); });
+        panes.forEach(function (p) { p.classList.toggle('active', p.getAttribute('data-lang') === lang); });
+      });
+    });
+    // Copy button copies the visible pane
+    var copyBtn = group.querySelector('.code-copy');
+    if (copyBtn) {
+      copyBtn.addEventListener('click', function () {
+        var active = group.querySelector('.code-pane.active code');
+        if (!active) return;
+        var text = active.innerText;
+        var done = function () {
+          var old = copyBtn.textContent;
+          copyBtn.textContent = 'Copied';
+          setTimeout(function () { copyBtn.textContent = old; }, 1400);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(done).catch(function () {});
+        }
+      });
+    }
+  });
+</script>
+</body>
+</html>
