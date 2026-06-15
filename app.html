@@ -1077,6 +1077,28 @@ function renderPlansGrid() {
     }).join('');
 }
 
+// --- Google Ads conversion (Subscribe) ---
+const GADS_SEND_TO = 'AW-17588707745/KiBgCNfoupwcEKHD-cJB';
+
+function fireGoogleAdsConversion(event) {
+    try {
+        if (typeof gtag !== 'function') return;
+        window.__lfCheckout = window.__lfCheckout || {};
+        if (window.__lfCheckout.fired) return;            // fire once per checkout
+        const c = window.__lfCheckout;
+        const txnId = (event && event.data && (event.data.payment_id || event.data.subscription_id || event.data.id)) || undefined;
+        gtag('event', 'conversion', {
+            send_to: GADS_SEND_TO,
+            value: c.value || 1.0,
+            currency: 'EUR',
+            transaction_id: txnId
+        });
+        c.fired = true;
+    } catch (e) {
+        console.warn('Google Ads conversion fire failed:', e);
+    }
+}
+
 function handleDodoCheckoutEvent(event) {
     if (!event || !event.event_type) return;
     switch (event.event_type) {
@@ -1089,6 +1111,7 @@ function handleDodoCheckoutEvent(event) {
         case 'checkout.redirect':
             // Payment complete — Dodo redirects to return_url
             try { posthog.capture('checkout_payment_success'); } catch(e) {}
+            fireGoogleAdsConversion(event);
             break;
         case 'checkout.error':
             console.error('Dodo checkout error:', event.data?.message);
@@ -1101,6 +1124,8 @@ function handleDodoCheckoutEvent(event) {
 async function proceedToCheckoutDirect(index, btnEl) {
     const plan = plans[index];
     const planKey = plan.key + (isAnnualBilling ? '_annual' : '_monthly');
+    const conversionValue = isAnnualBilling ? Math.round(plan.monthlyPrice * 0.6 * 12) : plan.monthlyPrice;
+    window.__lfCheckout = { value: conversionValue, currency: 'EUR', plan: plan.name, fired: false };
     const originalText = btnEl ? btnEl.textContent : '';
     if (btnEl) { btnEl.textContent = 'Opening…'; btnEl.disabled = true; }
 
