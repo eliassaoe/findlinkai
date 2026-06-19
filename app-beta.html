@@ -899,9 +899,12 @@
         <div class="pricing-modal-cta">
             <button class="btn" onclick="showPricingFromInsufficientCredits()">Upgrade </button>
         </div>
-        <p style="text-align:center;font-size:0.8rem;color:var(--gray-400);margin-top:0.75rem;">
-            Want to cancel your subscription? <a href="mailto:support@linkfinderai.com?subject=Please cancel my LinkFinder AI subscription" style="color:var(--gray-500);text-decoration:underline;">Email us</a> and we'll handle it right away.
-        </p>
+    </div>
+</div>
+
+<div id="creditExhaustionModal" class="modal-overlay">
+    <div class="pricing-modal" style="max-width:480px">
+        <div id="creditExhaustionContent"></div>
     </div>
 </div>
 
@@ -1283,6 +1286,101 @@ function closePricingModal() {
 function showInsufficientCreditsModal() { document.getElementById('insufficientCreditsModal').classList.add('show'); document.body.style.overflow='hidden'; }
 function closeInsufficientCreditsModal() { document.getElementById('insufficientCreditsModal').classList.remove('show'); document.body.style.overflow=''; }
 async function showPricingFromInsufficientCredits() { closeInsufficientCreditsModal(); await handleAddCredits(); }
+function showCreditExhaustionModal() {
+    if (localStorage.getItem('exhaustion_modal_shown')) { showInsufficientCreditsModal(); return; }
+    localStorage.setItem('exhaustion_modal_shown', '1');
+
+    renderExhaustionMainView();
+
+    document.getElementById('creditExhaustionModal').classList.add('show');
+    document.body.style.overflow = 'hidden';
+
+    try { posthog.capture('exhaustion_modal_shown', { variant: 'single_enrichment' }); } catch(e) {}
+}
+
+function renderExhaustionMainView() {
+    document.getElementById('creditExhaustionContent').innerHTML = `
+        <div style="text-align:center">
+            <h2>🎯 You've used all your free credits</h2>
+            <p style="margin:20px 0;color:var(--gray-600);">Upgrade to keep going. Pro users find 500+ leads per month.</p>
+
+            <button class="btn btn-full" onclick="exhaustionUpgradeClicked('full_price')">
+                🚀 Unlock Pro — $29/month
+            </button>
+            <p style="font-size:13px;color:#6b7280;margin-top:8px">Cancel anytime · Instant access</p>
+
+            <a href="#" onclick="showRetentionOffer();return false;" style="display:block;margin-top:16px;color:#6b7280;font-size:0.875rem;">
+                Not now
+            </a>
+        </div>
+    `;
+}
+
+function exhaustionUpgradeClicked(offerType) {
+    try { posthog.capture('exhaustion_modal_upgrade_clicked', { offer: offerType }); } catch(e) {}
+    closeCreditExhaustionModal();
+    showPricingModal('credits_exhausted');
+}
+
+function showRetentionOffer() {
+    try { posthog.capture('exhaustion_modal_dismissed', { retention_offer_shown: true }); } catch(e) {}
+
+    let expiry = localStorage.getItem('retention_offer_expiry');
+    if (!expiry || parseInt(expiry, 10) < Date.now()) {
+        expiry = Date.now() + 24 * 60 * 60 * 1000;
+        localStorage.setItem('retention_offer_expiry', String(expiry));
+    } else {
+        expiry = parseInt(expiry, 10);
+    }
+
+    document.getElementById('creditExhaustionContent').innerHTML = `
+        <div style="text-align:center">
+            <h2>Wait — here's a one-time offer</h2>
+            <p style="margin:16px 0 4px;font-size:1.25rem;font-weight:700;color:var(--gray-900);">
+                Get your first month for $19 <span style="text-decoration:line-through;color:var(--gray-400);font-weight:500;">$29</span>
+            </p>
+            <p style="font-size:0.875rem;color:var(--gray-500);margin-bottom:20px;">
+                34% off · expires in <span id="retentionCountdown">24:00:00</span>
+            </p>
+            <button class="btn btn-full" onclick="exhaustionUpgradeClicked('retention_discount')">
+                Claim offer — $19 first month
+            </button>
+            <a href="#" onclick="fullyDismissExhaustionModal();return false;" style="display:block;margin-top:16px;color:#6b7280;font-size:0.875rem;">
+                No thanks, I'll pass on this offer →
+            </a>
+        </div>
+    `;
+
+    startRetentionCountdown(expiry);
+}
+
+let retentionCountdownInterval = null;
+function startRetentionCountdown(expiry) {
+    if (retentionCountdownInterval) clearInterval(retentionCountdownInterval);
+    function tick() {
+        const remaining = expiry - Date.now();
+        const el = document.getElementById('retentionCountdown');
+        if (!el) { clearInterval(retentionCountdownInterval); return; }
+        if (remaining <= 0) { el.textContent = '00:00:00'; clearInterval(retentionCountdownInterval); return; }
+        const h = String(Math.floor(remaining / 3600000)).padStart(2, '0');
+        const m = String(Math.floor((remaining % 3600000) / 60000)).padStart(2, '0');
+        const s = String(Math.floor((remaining % 60000) / 1000)).padStart(2, '0');
+        el.textContent = `${h}:${m}:${s}`;
+    }
+    tick();
+    retentionCountdownInterval = setInterval(tick, 1000);
+}
+
+function fullyDismissExhaustionModal() {
+    try { posthog.capture('exhaustion_modal_fully_dismissed', { offer_seen: true }); } catch(e) {}
+    closeCreditExhaustionModal();
+}
+
+function closeCreditExhaustionModal() {
+    document.getElementById('creditExhaustionModal').classList.remove('show');
+    document.body.style.overflow = '';
+    if (retentionCountdownInterval) { clearInterval(retentionCountdownInterval); retentionCountdownInterval = null; }
+}
 function logout() { localStorage.removeItem('linkFinderToken'); window.location.href=addGclid('https://linkfinderai.com/'); }
 
 function switchMode(mode) {
@@ -1426,7 +1524,7 @@ async function enrichData(event) {
         if (currentOutputType==='reactions'&&Array.isArray(data)&&data.length>0) { deductCredits(data.length); showSingleResultReactions(inputValue,data); checkEnrichmentMilestone(); showSavedPill(); return; }
         if (currentOutputType==='employee_count') { deductCredits(getCreditCost(currentInputType,currentOutputType)); showSingleResultEmployeeCount(inputValue,data); checkEnrichmentMilestone(); showSavedPill(); return; }
         if (currentOutputType==='employees'&&Array.isArray(data)&&data.length>0) { deductCredits(data.length*0.5); showSingleResultEmployees(inputValue,data); checkEnrichmentMilestone(); showSavedPill(); return; }
-        if (response.status===403&&data.code===403) { try { posthog.capture('credits_exhausted', { input_type: currentInputType, output_type: currentOutputType, credits_remaining: currentCredits }); } catch(e) {} showInsufficientCreditsModal(); return; }
+        if (response.status===403&&data.code===403) { try { posthog.capture('credits_exhausted', { input_type: currentInputType, output_type: currentOutputType, credits_remaining: currentCredits }); } catch(e) {} showCreditExhaustionModal(); return; }
         if (response.ok&&data&&(data.result||data.name)) {
             deductCredits(getCreditCost(currentInputType,currentOutputType));
             if (data.name&&!data.result) showSingleResult(inputValue,data);
@@ -1624,7 +1722,7 @@ async function processBulk() {
                     const data = await response.json();
                     if (response.status === 403 && data.code === 403) {
                         try { posthog.capture('credits_exhausted', { source: 'bulk', input_type: currentInputType, output_type: currentOutputType, credits_remaining: currentCredits }); } catch(e) {}
-                        showInsufficientCreditsModal();
+                        showCreditExhaustionModal();
                         return;
                     }
                     bulkResults[i]={inputData:row.inputData,result:'Not found',status:'Not found'};
