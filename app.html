@@ -249,6 +249,13 @@
     .review-platforms a{color:#2563eb;text-decoration:none;font-weight:500;}
     .review-form-link{color:#2563eb;text-decoration:none;font-weight:500;}
     .result-card{background:white;border:1px solid var(--gray-200);border-radius:8px;padding:1.5rem;margin-top:1rem;}
+    /* === Partial Results / Blur Hook === */
+.blurred-row {
+    filter: blur(4.5px);
+    pointer-events: none;
+    user-select: none;
+    opacity: 0.55;
+}
     /* === LinkedIn Profile Card === */
 .lip-card{background:white;border:1px solid var(--gray-200);border-radius:14px;overflow:hidden;}
 .lip-banner{height:110px;background:linear-gradient(135deg,#dbeafe,#bfdbfe);background-size:cover;background-position:center;}
@@ -1420,6 +1427,39 @@ async function enrichData(event) {
         });
         const data = await response.json();
         hideLoading();
+        
+        // --- 1. PAYWALL & TEASER HOOK ---
+        if (data && data.isTeaser) {
+            // Handle teaser formatting for profile object payloads
+            if (data.result && typeof data.result === 'object') {
+                showSingleResult(inputValue, data.result);
+            } else {
+                showSingleResult(inputValue, data.result || 'Not found');
+            }
+            
+            // Apply the blur overlay wrapper dynamically to the result target container
+            const resultCard = document.querySelector('.lip-card') || document.getElementById('resultLink');
+            if (resultCard) {
+                resultCard.classList.add('blurred-row');
+                
+                // Add a visual locked status banner over or beneath the container
+                resultCard.insertAdjacentHTML('afterend', `
+                    <div style="text-align:center; padding:1.5rem; background:#f8fafc; border:1px dashed var(--gray-300); border-radius:12px; margin-top:1rem;">
+                        <p style="font-size:0.875rem; color:var(--gray-700); font-weight:600; margin-bottom:0.75rem;">
+                            🔒 Upgrade your plan to unlock full search metrics
+                        </p>
+                        <button class="btn" onclick="showPricingModal('paywall_teaser')">Unlock Results</button>
+                    </div>
+                `);
+            }
+            
+            // Seamlessly open the standard pricing flow overlay
+            showPricingModal('paywall_teaser');
+            restoreBtn();
+            return;
+        }
+
+        // --- 2. REGULAR FULL PROCESSING ENRICHMENT FLOW ---
         if (currentOutputType==='reactions'&&Array.isArray(data)&&data.length>0) { deductCredits(data.length); showSingleResultReactions(inputValue,data); checkEnrichmentMilestone(); showSavedPill(); return; }
         if (currentOutputType==='employee_count') { deductCredits(getCreditCost(currentInputType,currentOutputType)); showSingleResultEmployeeCount(inputValue,data); checkEnrichmentMilestone(); showSavedPill(); return; }
         if (currentOutputType==='employees'&&Array.isArray(data)&&data.length>0) { deductCredits(data.length*0.5); showSingleResultEmployees(inputValue,data); checkEnrichmentMilestone(); showSavedPill(); return; }
