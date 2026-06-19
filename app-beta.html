@@ -864,7 +864,16 @@
         Thank you in advance! 🙏
     </div>
 </div>
+    
+<div id="creditExhaustionModal" class="modal-overlay">
 
+    <div class="pricing-modal" style="max-width:480px">
+
+        <div id="creditExhaustionContent"></div>
+
+    </div>
+
+</div>
 <!-- Pricing Modal -->
 <div id="pricingModal" class="modal-overlay">
     <div class="pricing-modal" style="max-width:900px;width:min(900px,calc(100vw - 2rem));">
@@ -1030,6 +1039,11 @@ let currentInputType = '';
 let currentOutputType = '';
 let isBulkProcessing = false;
 let currentCredits = null;
+window.creditExhaustionStats = {
+    linkedinProfiles: 0,
+    emailsVerified: 0,
+    companyUrlsFound: 0
+};
 let isExistingSubscriber = false;
 let currentPlanNumber = null;
 let currentSubscriptionId = null;
@@ -1249,6 +1263,92 @@ function setBilling(type) {
     document.getElementById('annualBtn').classList.toggle('active', isAnnualBilling);
     renderPlansGrid();
     try { posthog.capture('billing_toggle', { selected: type }); } catch(e) {}
+}
+
+function showCreditExhaustionModal() {
+
+    if(localStorage.getItem('exhaustion_modal_shown'))
+        return;
+
+    localStorage.setItem(
+        'exhaustion_modal_shown',
+        '1'
+    );
+
+    const stats = window.creditExhaustionStats;
+
+    document.getElementById(
+        'creditExhaustionContent'
+    ).innerHTML = `
+        <div style="text-align:center">
+
+            <h2>🎯 You've used all your free credits</h2>
+
+            <div style="
+                background:#f9fafb;
+                padding:16px;
+                border-radius:12px;
+                margin:20px 0;
+                text-align:left;
+            ">
+
+                ${
+                    stats.linkedinProfiles
+                    ? `<p>✓ ${stats.linkedinProfiles} LinkedIn profiles found</p>`
+                    : ''
+                }
+
+                ${
+                    stats.emailsVerified
+                    ? `<p>✓ ${stats.emailsVerified} emails verified</p>`
+                    : ''
+                }
+
+                ${
+                    stats.companyUrlsFound
+                    ? `<p>✓ ${stats.companyUrlsFound} company URLs found</p>`
+                    : ''
+                }
+
+            </div>
+
+            <p>
+                Pro users find 500+ leads per month.
+            </p>
+
+            <button
+                class="btn btn-full"
+                onclick="showPricingModal('credits_exhausted')"
+            >
+                Unlock Pro — $29/month
+            </button>
+
+            <p style="font-size:13px;color:#6b7280;margin-top:8px">
+                Cancel anytime · Instant access
+            </p>
+
+            <a
+                href="#"
+                onclick="showRetentionOffer();return false;"
+                style="
+                    display:block;
+                    margin-top:16px;
+                    color:#6b7280;
+                "
+            >
+                Not now
+            </a>
+
+        </div>
+    `;
+
+    document
+      .getElementById('creditExhaustionModal')
+      .classList.add('show');
+
+    posthog.capture(
+        'exhaustion_modal_shown'
+    );
 }
 
 function showPricingModal(trigger) {
@@ -1624,7 +1724,7 @@ async function processBulk() {
                     const data = await response.json();
                     if (response.status === 403 && data.code === 403) {
                         try { posthog.capture('credits_exhausted', { source: 'bulk', input_type: currentInputType, output_type: currentOutputType, credits_remaining: currentCredits }); } catch(e) {}
-                        showInsufficientCreditsModal();
+                        showCreditExhaustionModal();
                         return;
                     }
                     bulkResults[i]={inputData:row.inputData,result:'Not found',status:'Not found'};
@@ -2036,6 +2136,10 @@ function hideResults(){
     if(nudge){nudge.style.display='none';nudge.innerHTML='';}
 }
 
+try {
+    window.creditExhaustionStats.linkedinProfiles++;
+} catch(e){}
+
 function showSavedPill(targetEl) {
     // Remove any existing pill first to avoid duplicates
     document.querySelectorAll('.saved-pill').forEach(el => el.remove());
@@ -2124,7 +2228,7 @@ async function handleAddCredits() {
         }
     } catch(e) {}
     finally { btn.innerHTML = orig; btn.disabled = false; }
-    showPricingModal('credits_exhausted');
+    showCreditExhaustionModal();
 }
 
 function downloadExampleCSV(){
