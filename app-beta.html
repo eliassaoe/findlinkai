@@ -1380,6 +1380,14 @@ function closePricingModal() {
     if (toast) { toast.classList.add('show'); setTimeout(() => toast.classList.remove('show'), 4000); }
 }
 
+function closeCreditExhaustionModal() {
+    document
+      .getElementById('creditExhaustionModal')
+      .classList.remove('show');
+
+    document.body.style.overflow = '';
+}
+
 function showInsufficientCreditsModal() { document.getElementById('insufficientCreditsModal').classList.add('show'); document.body.style.overflow='hidden'; }
 function closeInsufficientCreditsModal() { document.getElementById('insufficientCreditsModal').classList.remove('show'); document.body.style.overflow=''; }
 async function showPricingFromInsufficientCredits() { closeInsufficientCreditsModal(); await handleAddCredits(); }
@@ -1526,11 +1534,12 @@ async function enrichData(event) {
         if (currentOutputType==='reactions'&&Array.isArray(data)&&data.length>0) { deductCredits(data.length); showSingleResultReactions(inputValue,data); checkEnrichmentMilestone(); showSavedPill(); return; }
         if (currentOutputType==='employee_count') { deductCredits(getCreditCost(currentInputType,currentOutputType)); showSingleResultEmployeeCount(inputValue,data); checkEnrichmentMilestone(); showSavedPill(); return; }
         if (currentOutputType==='employees'&&Array.isArray(data)&&data.length>0) { deductCredits(data.length*0.5); showSingleResultEmployees(inputValue,data); checkEnrichmentMilestone(); showSavedPill(); return; }
-        if (response.status===403&&data.code===403) { try { posthog.capture('credits_exhausted', { input_type: currentInputType, output_type: currentOutputType, credits_remaining: currentCredits }); } catch(e) {} showInsufficientCreditsModal(); return; }
+        if (response.status===403&&data.code===403) { try { posthog.capture('credits_exhausted', { input_type: currentInputType, output_type: currentOutputType, credits_remaining: currentCredits }); } catch(e) {} showCreditExhaustionModal(); return; }
         if (response.ok&&data&&(data.result||data.name)) {
             deductCredits(getCreditCost(currentInputType,currentOutputType));
             if (data.name&&!data.result) showSingleResult(inputValue,data);
             else showSingleResult(inputValue, data.result||'Not found');
+            window.creditExhaustionStats.linkedinProfiles++;
             checkEnrichmentMilestone();
             showSavedPill();
         } else { showSingleResult(inputValue,'Not found'); }
@@ -1785,6 +1794,10 @@ function setupModalEvents(){
         if(e.target===document.getElementById('pricingModal')) closePricingModal();
         if(e.target===document.getElementById('insufficientCreditsModal')) closeInsufficientCreditsModal();
         if(e.target===document.getElementById('feedbackModal')) closeFeedbackModal();
+        if (e.target ===document.getElementById('creditExhaustionModal');
+){
+    closeCreditExhaustionModal();
+}
     });
     document.addEventListener('keydown',(e)=>{if(e.key==='Escape'){closePricingModal();closeInsufficientCreditsModal();}});
 }
