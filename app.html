@@ -888,23 +888,60 @@
     </div>
 </div>
 
-<!-- Insufficient Credits Modal -->
+<!-- Enhanced Insufficient Credits Modal -->
 <div id="insufficientCreditsModal" class="modal-overlay">
-    <div class="pricing-modal">
-        <button class="modal-close" onclick="closeInsufficientCreditsModal()"><i class="fas fa-times"></i></button>
+    <div class="pricing-modal" style="max-width: 520px;">
+        <button class="modal-close" onclick="closeInsufficientCreditsModal()">
+            <i class="fas fa-times"></i>
+        </button>
         <div class="pricing-modal-header">
-            <h2>Insufficient Credits</h2>
-            <p>You do not have sufficient credits. Upgrade for more.</p>
+            <div style="display: flex; align-items: center; justify-content: center; gap: 0.75rem; margin-bottom: 0.5rem;">
+                <i class="fas fa-coins" style="font-size: 2rem; color: #f59e0b;"></i>
+            </div>
+            <h2 style="font-size: 1.5rem; font-weight: 700; color: var(--gray-900); margin-bottom: 0.5rem;">
+                You've used all your credits
+            </h2>
+            <p style="color: var(--gray-600); font-size: 1rem; max-width: 400px; margin: 0 auto;">
+                Upgrade your plan to unlock more enrichments and keep going.
+            </p>
         </div>
-        <div class="pricing-modal-cta">
-            <button class="btn" onclick="showPricingFromInsufficientCredits()">Upgrade </button>
+
+        <!-- Plan Benefits Indicator -->
+        <div style="background: linear-gradient(135deg, #f0f9ff, #dbeafe); border: 1px solid #93c5fd; border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem;">
+            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                <i class="fas fa-gem" style="color: var(--primary);"></i>
+                <span style="font-weight: 600; color: var(--gray-800);">Unlock more with an upgrade:</span>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; font-size: 0.875rem; color: var(--gray-700);">
+                <div style="display: flex; align-items: center; gap: 0.375rem;">
+                    <i class="fas fa-check-circle" style="color: var(--success);"></i>
+                    <span>10x more credits</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 0.375rem;">
+                    <i class="fas fa-check-circle" style="color: var(--success);"></i>
+                    <span>Bulk enrichment</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 0.375rem;">
+                    <i class="fas fa-check-circle" style="color: var(--success);"></i>
+                    <span>API access</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 0.375rem;">
+                    <i class="fas fa-check-circle" style="color: var(--success);"></i>
+                    <span>Priority support</span>
+                </div>
+            </div>
         </div>
-        <p style="text-align:center;font-size:0.8rem;color:var(--gray-400);margin-top:0.75rem;">
-            Want to cancel your subscription? <a href="mailto:support@linkfinderai.com?subject=Please cancel my LinkFinder AI subscription" style="color:var(--gray-500);text-decoration:underline;">Email us</a> and we'll handle it right away.
-        </p>
+
+        <div style="display: flex; gap: 0.75rem;">
+            <button class="btn" onclick="upgradeFromCreditsExhausted()" style="flex: 1; padding: 0.875rem; font-size: 1rem; font-weight: 600;">
+                <i class="fas fa-rocket"></i> Upgrade now
+            </button>
+            <button class="btn btn-outline" onclick="closeInsufficientCreditsModal()" style="flex: 0 0 auto; padding: 0.875rem 1.5rem;">
+                Maybe later
+            </button>
+        </div>
     </div>
 </div>
-
 <div id="n8n-chat"></div>
 
 <button class="feedback-button" onclick="showFeedbackModal()" title="Send Feedback"><i class="fas fa-lightbulb"></i></button>
@@ -1280,7 +1317,43 @@ function closePricingModal() {
     if (toast) { toast.classList.add('show'); setTimeout(() => toast.classList.remove('show'), 4000); }
 }
 
-function showInsufficientCreditsModal() { document.getElementById('insufficientCreditsModal').classList.add('show'); document.body.style.overflow='hidden'; }
+let creditsExhaustedTrigger = null; // Add this at top of file with other variables
+
+function showInsufficientCreditsModal(trigger = 'single_enrichment') {
+    creditsExhaustedTrigger = trigger;
+    document.getElementById('insufficientCreditsModal').classList.add('show');
+    document.body.style.overflow = 'hidden';
+    
+    // Fire analytics event
+    try {
+        posthog.capture('credits_exhausted_modal_shown', {
+            trigger: trigger,
+            credits_remaining: currentCredits,
+            is_subscriber: isExistingSubscriber,
+            is_enhanced: true
+        });
+    } catch(e) {}
+}
+
+function closeInsufficientCreditsModal() {
+    document.getElementById('insufficientCreditsModal').classList.remove('show');
+    document.body.style.overflow = '';
+}
+
+async function upgradeFromCreditsExhausted() {
+    // Fire enhanced analytics event
+    try {
+        posthog.capture('credits_exhausted_modal_upgraded', {
+            trigger: creditsExhaustedTrigger,
+            credits_remaining: currentCredits,
+            is_subscriber: isExistingSubscriber,
+            is_enhanced: true
+        });
+    } catch(e) {}
+    
+    closeInsufficientCreditsModal();
+    await handleAddCredits();
+}
 function closeInsufficientCreditsModal() { document.getElementById('insufficientCreditsModal').classList.remove('show'); document.body.style.overflow=''; }
 async function showPricingFromInsufficientCredits() { closeInsufficientCreditsModal(); await handleAddCredits(); }
 function logout() { localStorage.removeItem('linkFinderToken'); window.location.href=addGclid('https://linkfinderai.com/'); }
@@ -1426,7 +1499,11 @@ async function enrichData(event) {
         if (currentOutputType==='reactions'&&Array.isArray(data)&&data.length>0) { deductCredits(data.length); showSingleResultReactions(inputValue,data); checkEnrichmentMilestone(); showSavedPill(); return; }
         if (currentOutputType==='employee_count') { deductCredits(getCreditCost(currentInputType,currentOutputType)); showSingleResultEmployeeCount(inputValue,data); checkEnrichmentMilestone(); showSavedPill(); return; }
         if (currentOutputType==='employees'&&Array.isArray(data)&&data.length>0) { deductCredits(data.length*0.5); showSingleResultEmployees(inputValue,data); checkEnrichmentMilestone(); showSavedPill(); return; }
-        if (response.status===403&&data.code===403) { try { posthog.capture('credits_exhausted', { input_type: currentInputType, output_type: currentOutputType, credits_remaining: currentCredits }); } catch(e) {} showInsufficientCreditsModal(); return; }
+        if (response.status===403&&data.code===403) { 
+    try { posthog.capture('credits_exhausted', { input_type: currentInputType, output_type: currentOutputType, credits_remaining: currentCredits }); } catch(e) {} 
+    showInsufficientCreditsModal('single_enrichment'); 
+    return; 
+}
         if (response.ok&&data&&(data.result||data.name)) {
             deductCredits(getCreditCost(currentInputType,currentOutputType));
             if (data.name&&!data.result) showSingleResult(inputValue,data);
@@ -1564,81 +1641,348 @@ async function processBulk() {
     isBulkProcessing = true;
     setupRefreshWarning();
     showAlert('\u26a0\ufe0f Processing in progress - Please do not refresh or close this page until complete!','warning');
+    
     const btn = document.getElementById('processBulkBtn');
-    btn.disabled=true; btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Processing...';
+    btn.disabled=true; 
+    btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Processing...';
     document.getElementById('csvPreview').classList.add('hidden');
     document.getElementById('resultsSection').classList.remove('hidden');
     document.getElementById('singleResult').classList.add('hidden');
     document.getElementById('bulkResults').classList.remove('hidden');
-    showProgress(); bulkResults=[]; initializeBulkResultsTable();
-    try {
-        for (let i=0; i<csvData.length; i++) {
-            const row = csvData[i];
-            bulkResults.push({inputData:row.inputData,result:'Processing...',status:'Processing',reactions:[]});
-            updateBulkResultsTable();
-            try {
-                const response = await fetchWithTimeout('https://linkfinderapp.hamoureliasse.workers.dev/', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-        type: generateCombinationType(currentInputType, currentOutputType),
-        input_data: row.inputData,
-        department: (currentOutputType === 'employees' && (currentInputType === 'company_domain' || currentInputType === 'linkedin_company'))
-            ? (row.department || document.getElementById('optionalDepartment').value.trim() || 'all')
-            : undefined,
-        seniority: (currentOutputType === 'employees' && (currentInputType === 'company_domain' || currentInputType === 'linkedin_company'))
-            ? (row.seniority || document.getElementById('optionalSeniority').value.trim() || 'all')
-            : undefined,
-        employee_count: (currentOutputType === 'employees' && (currentInputType === 'company_domain' || currentInputType === 'linkedin_company'))
-            ? (row.employee_count || parseInt(document.getElementById('optionalEmployeeCount').value) || null)
-            : undefined,
-        output_type: currentOutputType,
-        token: userToken,
-        is_bulk: true
-    })
-});
-                if (response.ok) {
-                    const data = await response.json();
-                    if (currentOutputType==='employee_count') {
-                        const count=data.result||data||'Not found';
-                        bulkResults[i]={inputData:row.inputData,result:count==='Not found'?count:`${count} employees`,status:count==='Not found'?'Not found':'Found',employeeCount:count,rawData:count};
-                        if(count!=='Not found') deductCredits(getCreditCost(currentInputType,currentOutputType));
-                    } else if (currentOutputType==='employees'&&(Array.isArray(data)||(data.employees&&Array.isArray(data.employees)))) {
-                        const employees=Array.isArray(data)?data:data.employees;
-                        bulkResults[i]={inputData:row.inputData,result:`${employees.length} employees found`,status:employees.length>0?'Found':'Not found',employees,rawData:data};
-                        if(employees.length>0) deductCredits(employees.length*0.5);
-                    } else if (currentOutputType==='reactions'&&Array.isArray(data)) {
-                        bulkResults[i]={inputData:row.inputData,result:`${data.length} reactions found`,status:'Found',reactions:data,rawData:data};
-                        deductCredits(data.length);
-                    } else {
-                        let parsedRaw = data;
-                        if (typeof data.result === 'string' && data.result.startsWith('{')) { try { parsedRaw = JSON.parse(data.result); } catch(e) {} }
-                        else if (data.result && typeof data.result === 'object') { parsedRaw = data.result; }
-                        const hasProfileData = !!(parsedRaw.name || parsedRaw.jobTitle || parsedRaw.company);
-                        const resultValue = data.result || (hasProfileData ? parsedRaw.name || 'Found' : 'Not found');
-                        const statusValue = (data.result || hasProfileData) ? 'Found' : 'Not found';
-                        bulkResults[i]={inputData:row.inputData,result:resultValue,status:statusValue,rawData:parsedRaw};
-                        if (data.result || hasProfileData) deductCredits(getCreditCost(currentInputType,currentOutputType));
-                    }
-                } else {
-                    const data = await response.json();
-                    if (response.status === 403 && data.code === 403) {
-                        try { posthog.capture('credits_exhausted', { source: 'bulk', input_type: currentInputType, output_type: currentOutputType, credits_remaining: currentCredits }); } catch(e) {}
-                        showInsufficientCreditsModal();
-                        return;
-                    }
-                    bulkResults[i]={inputData:row.inputData,result:'Not found',status:'Not found'};
-                }
-            } catch(e) { bulkResults[i]={inputData:row.inputData,result:'Error',status:'Error'}; }
-            updateProgress((i+1)/csvData.length*100);
-            updateBulkResultsTable();
-            await new Promise(r=>setTimeout(r,100));
+    showProgress();
+    bulkResults = [];
+    initializeBulkResultsTable();
+    
+    let creditsConsumed = 0;
+    let processedCount = 0;
+    let creditsExhausted = false;
+    let processedWithCredits = 0;
+    
+    for (let i = 0; i < csvData.length; i++) {
+        // Check if we have enough credits before processing
+        if (!creditsExhausted) {
+            if (currentCredits < 1) {
+                creditsExhausted = true;
+                processedWithCredits = processedCount;
+                
+                // Fire analytics event for gated results shown
+                try {
+                    posthog.capture('bulk_results_gated_shown', {
+                        total_rows: csvData.length,
+                        processed_rows: processedCount,
+                        locked_rows: csvData.length - processedCount,
+                        credits_remaining: currentCredits,
+                        input_type: currentInputType,
+                        output_type: currentOutputType
+                    });
+                } catch(e) {}
+                
+                // Render gated results
+                renderGatedResults(processedCount);
+                
+                // Show inline upgrade banner
+                showUpgradeBanner(processedCount, csvData.length);
+                
+                // Stop processing but keep the table visible
+                break;
+            }
         }
-    } finally {
-        isBulkProcessing=false; removeRefreshWarning();
-        btn.disabled=false; btn.innerHTML='<i class="fas fa-play"></i> Process Items';
-        if (bulkResults.length > 0) showSavedPill(); 
+        
+        const row = csvData[i];
+        bulkResults.push({
+            inputData: row.inputData,
+            result: 'Processing...',
+            status: 'Processing',
+            reactions: [],
+            isLocked: false
+        });
+        updateBulkResultsTable();
+        
+        try {
+            const response = await fetchWithTimeout('https://linkfinderapp.hamoureliasse.workers.dev/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    type: generateCombinationType(currentInputType, currentOutputType),
+                    input_data: row.inputData,
+                    department: (currentOutputType === 'employees' && (currentInputType === 'company_domain' || currentInputType === 'linkedin_company'))
+                        ? (row.department || document.getElementById('optionalDepartment').value.trim() || 'all')
+                        : undefined,
+                    seniority: (currentOutputType === 'employees' && (currentInputType === 'company_domain' || currentInputType === 'linkedin_company'))
+                        ? (row.seniority || document.getElementById('optionalSeniority').value.trim() || 'all')
+                        : undefined,
+                    employee_count: (currentOutputType === 'employees' && (currentInputType === 'company_domain' || currentInputType === 'linkedin_company'))
+                        ? (row.employee_count || parseInt(document.getElementById('optionalEmployeeCount').value) || null)
+                        : undefined,
+                    output_type: currentOutputType,
+                    token: userToken,
+                    is_bulk: true
+                })
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                if (currentOutputType === 'employee_count') {
+                    const count = data.result || data || 'Not found';
+                    bulkResults[i] = {
+                        inputData: row.inputData,
+                        result: count === 'Not found' ? count : `${count} employees`,
+                        status: count === 'Not found' ? 'Not found' : 'Found',
+                        employeeCount: count,
+                        rawData: count,
+                        isLocked: false
+                    };
+                    if (count !== 'Not found') {
+                        creditsConsumed += getCreditCost(currentInputType, currentOutputType);
+                        deductCredits(getCreditCost(currentInputType, currentOutputType));
+                    }
+                } else if (currentOutputType === 'employees' && (Array.isArray(data) || (data.employees && Array.isArray(data.employees)))) {
+                    const employees = Array.isArray(data) ? data : data.employees;
+                    const cost = employees.length * 0.5;
+                    bulkResults[i] = {
+                        inputData: row.inputData,
+                        result: `${employees.length} employees found`,
+                        status: employees.length > 0 ? 'Found' : 'Not found',
+                        employees: employees,
+                        rawData: data,
+                        isLocked: false
+                    };
+                    if (employees.length > 0) {
+                        creditsConsumed += cost;
+                        deductCredits(cost);
+                    }
+                } else if (currentOutputType === 'reactions' && Array.isArray(data)) {
+                    const cost = data.length;
+                    bulkResults[i] = {
+                        inputData: row.inputData,
+                        result: `${data.length} reactions found`,
+                        status: 'Found',
+                        reactions: data,
+                        rawData: data,
+                        isLocked: false
+                    };
+                    creditsConsumed += cost;
+                    deductCredits(cost);
+                } else {
+                    let parsedRaw = data;
+                    if (typeof data.result === 'string' && data.result.startsWith('{')) {
+                        try { parsedRaw = JSON.parse(data.result); } catch(e) {}
+                    } else if (data.result && typeof data.result === 'object') {
+                        parsedRaw = data.result;
+                    }
+                    const hasProfileData = !!(parsedRaw.name || parsedRaw.jobTitle || parsedRaw.company);
+                    const resultValue = data.result || (hasProfileData ? parsedRaw.name || 'Found' : 'Not found');
+                    const statusValue = (data.result || hasProfileData) ? 'Found' : 'Not found';
+                    bulkResults[i] = {
+                        inputData: row.inputData,
+                        result: resultValue,
+                        status: statusValue,
+                        rawData: parsedRaw,
+                        isLocked: false
+                    };
+                    if (data.result || hasProfileData) {
+                        creditsConsumed += getCreditCost(currentInputType, currentOutputType);
+                        deductCredits(getCreditCost(currentInputType, currentOutputType));
+                    }
+                }
+            } else {
+                const data = await response.json();
+                if (response.status === 403 && data.code === 403) {
+                    creditsExhausted = true;
+                    processedWithCredits = processedCount;
+                    
+                    try {
+                        posthog.capture('bulk_results_gated_shown', {
+                            total_rows: csvData.length,
+                            processed_rows: processedCount,
+                            locked_rows: csvData.length - processedCount,
+                            credits_remaining: currentCredits,
+                            input_type: currentInputType,
+                            output_type: currentOutputType
+                        });
+                    } catch(e) {}
+                    
+                    renderGatedResults(processedCount);
+                    showUpgradeBanner(processedCount, csvData.length);
+                    break;
+                }
+                bulkResults[i] = {
+                    inputData: row.inputData,
+                    result: 'Not found',
+                    status: 'Not found',
+                    isLocked: false
+                };
+            }
+        } catch(e) {
+            bulkResults[i] = {
+                inputData: row.inputData,
+                result: 'Error',
+                status: 'Error',
+                isLocked: false
+            };
+        }
+        processedCount++;
+        updateProgress((i + 1) / csvData.length * 100);
+        updateBulkResultsTable();
+        await new Promise(r => setTimeout(r, 100));
     }
+    
+    if (!creditsExhausted && processedCount === csvData.length) {
+        const banner = document.getElementById('upgradeBanner');
+        if (banner) banner.style.display = 'none';
+        if (currentCredits !== null && currentCredits < 50) {
+            updateLowCreditsWarning(currentCredits);
+        }
+    }
+    
+    isBulkProcessing = false;
+    removeRefreshWarning();
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-play"></i> Process Items';
+    if (bulkResults.length > 0) showSavedPill();
+}
+
+// Add these new functions after processBulk
+
+function renderGatedResults(processedCount) {
+    const table = document.getElementById('bulkResultsTable');
+    const c = dataConfigurations[currentInputType];
+    const ol = c.outputs[currentOutputType];
+    
+    let headers = [];
+    let rowRenderer = null;
+    
+    if (currentOutputType === 'employee_count') {
+        headers = [c.label.replace('Enter ', ''), 'Employee Count', 'Status'];
+        rowRenderer = (row, index) => {
+            const isLocked = index >= processedCount;
+            return `<tr style="${isLocked ? 'opacity: 0.6; filter: blur(2px);' : ''}">
+                <td>${isLocked ? '<i class="fas fa-lock" style="color: var(--gray-400);"></i>' : ''}${row.inputData}</td>
+                <td>${isLocked ? '••••••' : row.result}</td>
+                <td>${isLocked ? '<span class="status-badge" style="background: var(--gray-100); color: var(--gray-500);">Locked</span>' : `<span class="status-badge ${row.status === 'Found' ? 'status-success' : 'status-error'}">${row.status}</span>`}
+            </tr>`;
+        };
+    } else if (currentInputType === 'linkedin_profile' && currentOutputType === 'linkedin_info') {
+        headers = ['LinkedIn URL', 'Name', 'Job Title', 'Company', 'Location', 'Status'];
+        rowRenderer = (row, index) => {
+            const isLocked = index >= processedCount;
+            const d = row.rawData || {};
+            return `<tr style="${isLocked ? 'opacity: 0.6; filter: blur(2px);' : ''}">
+                <td>${isLocked ? '<i class="fas fa-lock" style="color: var(--gray-400);"></i>' : `<a href="${row.inputData}" target="_blank">${row.inputData.substring(0, 30)}...</a>`}</td>
+                <td>${isLocked ? '••••••' : (d.name || 'Not found')}</td>
+                <td>${isLocked ? '••••••' : (d.jobTitle || 'Not found')}</td>
+                <td>${isLocked ? '••••••' : (d.company || 'Not found')}</td>
+                <td>${isLocked ? '••••••' : (d.location || 'Not found')}</td>
+                <td>${isLocked ? '<span class="status-badge" style="background: var(--gray-100); color: var(--gray-500);">Locked</span>' : `<span class="status-badge ${row.status === 'Found' ? 'status-success' : 'status-error'}">${row.status}</span>`}
+            </tr>`;
+        };
+    } else {
+        headers = [c.label.replace('Enter ', ''), ol, 'Status'];
+        rowRenderer = (row, index) => {
+            const isLocked = index >= processedCount;
+            return `<tr style="${isLocked ? 'opacity: 0.6; filter: blur(2px);' : ''}">
+                <td>${isLocked ? '<i class="fas fa-lock" style="color: var(--gray-400); margin-right: 0.375rem;"></i>' : ''}${row.inputData}</td>
+                <td>${isLocked ? '••••••' : row.result}</td>
+                <td>${isLocked ? '<span class="status-badge" style="background: var(--gray-100); color: var(--gray-500);">Locked</span>' : `<span class="status-badge ${row.status === 'Found' ? 'status-success' : 'status-error'}">${row.status}</span>`}
+            </tr>`;
+        };
+    }
+    
+    let html = `<table class="results-table">
+        <thead>
+            <tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr>
+        </thead>
+        <tbody>`;
+    
+    bulkResults.forEach((row, index) => {
+        html += rowRenderer(row, index);
+    });
+    
+    html += '</tbody></table>';
+    table.innerHTML = html;
+}
+
+function showUpgradeBanner(processedCount, totalCount) {
+    // Remove existing banner if any
+    const existingBanner = document.getElementById('upgradeBanner');
+    if (existingBanner) existingBanner.remove();
+    
+    const banner = document.createElement('div');
+    banner.id = 'upgradeBanner';
+    banner.style.cssText = `
+        background: linear-gradient(135deg, #fffbeb, #fef3c7);
+        border: 2px solid #f59e0b;
+        border-radius: 10px;
+        padding: 1rem 1.25rem;
+        margin: 1rem 0;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 1rem;
+    `;
+    
+    const lockedCount = totalCount - processedCount;
+    banner.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <i class="fas fa-lock" style="color: #f59e0b; font-size: 1.25rem;"></i>
+            <div>
+                <div style="font-weight: 600; color: var(--gray-800);">
+                    Upgrade to see all ${totalCount} results
+                </div>
+                <div style="font-size: 0.875rem; color: var(--gray-600);">
+                    ${processedCount} results available · ${lockedCount} locked
+                </div>
+            </div>
+        </div>
+        <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <button onclick="handleUpgradeFromBulk()" style="
+                background: var(--primary);
+                color: white;
+                border: none;
+                padding: 0.625rem 1.25rem;
+                border-radius: 6px;
+                font-weight: 600;
+                cursor: pointer;
+                font-size: 0.875rem;
+                transition: all 0.2s ease;
+                font-family: inherit;
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+            " onmouseover="this.style.background='var(--primary-hover)'" onmouseout="this.style.background='var(--primary)'">
+                <i class="fas fa-rocket"></i> Upgrade
+            </button>
+            <button onclick="this.closest('#upgradeBanner').style.display='none'" style="
+                background: transparent;
+                border: none;
+                color: var(--gray-400);
+                cursor: pointer;
+                font-size: 1.25rem;
+                padding: 0 0.5rem;
+            ">×</button>
+        </div>
+    `;
+    
+    // Insert after the results table
+    const tableContainer = document.getElementById('bulkResultsTable');
+    tableContainer.parentNode.insertBefore(banner, tableContainer.nextSibling);
+}
+
+async function handleUpgradeFromBulk() {
+    // Fire analytics event
+    try {
+        posthog.capture('bulk_results_upgrade_cta_clicked', {
+            credits_remaining: currentCredits,
+            input_type: currentInputType,
+            output_type: currentOutputType,
+            total_rows: csvData.length,
+            processed_rows: bulkResults.filter(r => r.status !== 'Locked').length
+        });
+    } catch(e) {}
+    
+    // Open the upgrade modal
+    await handleAddCredits();
 }
 
 function goToAutomate(){window.location.href=addGclid(`https://linkfinderai.com/app-workflows?token=${userToken}`);}
