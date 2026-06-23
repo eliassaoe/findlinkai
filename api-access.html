@@ -55,6 +55,24 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     .copy-btn{padding:0.625rem 0.75rem;min-width:40px;}
     .success-message{background:rgba(16,185,129,0.1);border:1px solid var(--success);color:var(--success);padding:0.625rem 0.875rem;border-radius:6px;margin-top:0.5rem;font-size:0.8rem;display:none;align-items:center;gap:0.5rem;}
     .success-message.show{display:flex;}
+    .atu-row{display:flex;align-items:center;gap:0.75rem;margin-bottom:0.75rem;flex-wrap:wrap;}
+    .atu-threshold-input{display:flex;align-items:center;gap:0.5rem;flex:1;min-width:160px;}
+    .atu-threshold-input input{flex:1;padding:0.625rem 0.75rem;border:1px solid var(--gray-300);border-radius:6px;font-size:0.875rem;}
+    .atu-threshold-input input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(37,99,235,0.1);}
+    .atu-packs{display:grid;grid-template-columns:repeat(3,1fr);gap:0.5rem;margin-bottom:0.75rem;}
+    .atu-pack{border:1.5px solid var(--gray-200);border-radius:8px;padding:0.625rem 0.5rem;text-align:center;cursor:pointer;transition:all 0.15s ease;}
+    .atu-pack:hover{border-color:var(--primary);background:var(--gray-50);}
+    .atu-pack.selected{border-color:var(--primary);background:rgba(37,99,235,0.06);}
+    .atu-pack-credits{font-size:0.85rem;font-weight:600;color:var(--gray-900);}
+    .atu-pack-price{font-size:0.75rem;color:var(--gray-500);margin-top:0.1rem;}
+    .atu-card-on-file{display:flex;align-items:center;gap:0.5rem;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.25);border-radius:6px;padding:0.6rem 0.75rem;margin-bottom:0.75rem;font-size:0.8rem;color:var(--gray-700);}
+    .atu-status-pill{font-size:0.68rem;font-weight:600;padding:0.15rem 0.5rem;border-radius:999px;margin-left:auto;}
+    .atu-status-pill.active{background:#dcfce7;color:#15803d;}
+    .atu-status-pill.pending{background:#fef3c7;color:#92400e;}
+    .atu-status-pill.failed{background:#fee2e2;color:#991b1b;}
+    .atu-change-card{margin-left:0.4rem;color:var(--primary);font-weight:600;cursor:pointer;font-size:0.76rem;background:none;border:none;font-family:inherit;text-decoration:underline;}
+    .atu-summary{font-size:0.75rem;color:var(--gray-500);margin-bottom:0.75rem;line-height:1.5;}
+    @media(max-width:640px){.atu-packs{grid-template-columns:1fr;}.atu-row{flex-direction:column;align-items:stretch;}}
     .card-footer-row{display:flex;align-items:center;justify-content:space-between;gap:0.75rem;flex-wrap:wrap;}
     .card-footer-row p{margin-bottom:0;font-size:0.75rem;color:var(--gray-400);}
     .modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:1000;opacity:0;visibility:hidden;transition:all 0.3s ease;padding:1rem;}
@@ -182,6 +200,72 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     onclick="try{posthog.capture('docs_link_clicked',{source:'api_access_page'})}catch(e){}">
     <i class="fas fa-book"></i> View API Docs
 </a>
+            </div>
+        </div>
+
+        <!-- Auto Top-Up Card -->
+        <div class="card">
+            <h2><i class="fas fa-sync-alt"></i> Auto Top-Up</h2>
+            <p>Automatically buy more credits before you run out — never get rate-limited mid-integration. Especially useful if you're calling the API on a schedule.</p>
+
+            <div class="api-key-container">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.5rem;">
+                    <div class="api-key-label" style="margin-bottom:0;">Auto top-up</div>
+                    <div style="display:flex;align-items:center;gap:0.4rem;cursor:pointer;" onclick="toggleAutoTopup()">
+                        <span id="atuStatusLabel" style="font-size:0.75rem;color:var(--gray-500);">Disabled</span>
+                        <div id="atuToggleTrack" style="width:36px;height:20px;background:var(--gray-300);border-radius:10px;position:relative;transition:background 0.2s;flex-shrink:0;">
+                            <div id="atuToggleThumb" style="position:absolute;top:2px;left:2px;width:16px;height:16px;background:white;border-radius:50%;transition:transform 0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.2);"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="atuBody" style="display:none;">
+
+                    <div id="atuCardOnFile" class="atu-card-on-file" style="display:none;">
+                        <i class="fas fa-credit-card" style="color:var(--success);"></i>
+                        <span>Card on file</span>
+                        <span id="atuStatusPill" class="atu-status-pill active">Active</span>
+                        <button class="atu-change-card" onclick="atuChangeCard()">Update</button>
+                    </div>
+
+                    <div class="atu-row">
+                        <div class="atu-threshold-input">
+                            <i class="fas fa-coins" style="color:var(--warning);"></i>
+                            <input type="number" id="atuThreshold" placeholder="Top up below this many credits" min="1">
+                        </div>
+                    </div>
+
+                    <div class="api-key-label" style="margin-bottom:0.5rem;">Top-up pack</div>
+                    <div class="atu-packs" id="atuPacksGrid">
+                        <div class="atu-pack" data-pack="small" onclick="atuSelectPack('small')">
+                            <div class="atu-pack-credits">5,000</div>
+                            <div class="atu-pack-price">$19</div>
+                        </div>
+                        <div class="atu-pack" data-pack="medium" onclick="atuSelectPack('medium')">
+                            <div class="atu-pack-credits">25,000</div>
+                            <div class="atu-pack-price">$79</div>
+                        </div>
+                        <div class="atu-pack" data-pack="large" onclick="atuSelectPack('large')">
+                            <div class="atu-pack-credits">60,000</div>
+                            <div class="atu-pack-price">$149</div>
+                        </div>
+                    </div>
+
+                    <div class="atu-summary">
+                        When your balance drops below <strong id="atuSummaryThreshold">your threshold</strong>, we'll charge your card on file for <strong id="atuSummaryPack">a credit pack</strong> automatically. You'll get an email receipt every time, and can disable this anytime.
+                    </div>
+
+                    <button onclick="saveAutoTopupSettings()" id="atuSaveBtn" class="btn" style="width:100%;">
+                        <i class="fas fa-save"></i> Save auto top-up settings
+                    </button>
+                </div>
+            </div>
+
+            <div id="atuSaveSuccess" class="success-message">
+                <i class="fas fa-check"></i> Saved!
+            </div>
+            <div id="atuSaveError" class="success-message" style="background:rgba(239,68,68,0.1);border-color:var(--error);color:var(--error);">
+                <i class="fas fa-exclamation-circle"></i> <span id="atuErrorText">Please set a threshold and pack first.</span>
             </div>
         </div>
 
@@ -392,6 +476,129 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
         try{posthog.capture('webhook_tested',{url_set:!!url});}catch(e){}
     }
 
+    // ===== AUTO TOP-UP =====
+    const ATU_SETTINGS_WORKER_URL='https://auto-topup-settings.hamoureliasse.workers.dev/';
+    const ATU_AUTHORIZE_WORKER_URL='https://auto-topup-authorize.hamoureliasse.workers.dev/';
+    let atuSettings={enabled:false,threshold:null,pack_key:null,dodo_subscription_id:null,status:'disabled'};
+    let atuSelectedPack=null;
+
+    async function loadAutoTopupSettings(){
+        try{
+            const r=await fetch(ATU_SETTINGS_WORKER_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'get',token:userToken})});
+            const d=await r.json();
+            atuSettings=d.settings||atuSettings;
+        }catch(e){console.warn('Could not load auto top-up settings',e);}
+        atuRenderFromSettings();
+    }
+
+    function atuRenderFromSettings(){
+        const enabled=!!atuSettings.enabled;
+        document.getElementById('atuBody').style.display=enabled?'block':'none';
+        updateAtuToggleUI(enabled);
+
+        if(atuSettings.threshold)document.getElementById('atuThreshold').value=atuSettings.threshold;
+        if(atuSettings.pack_key)atuSelectPack(atuSettings.pack_key);
+
+        const cardBlock=document.getElementById('atuCardOnFile');
+        const pill=document.getElementById('atuStatusPill');
+        if(atuSettings.dodo_subscription_id){
+            cardBlock.style.display='flex';
+            if(atuSettings.status==='card_failed'){
+                pill.className='atu-status-pill failed';pill.textContent='Card declined';
+                document.getElementById('atuErrorText').textContent='Your last auto top-up charge failed. Update your card to re-enable.';
+                document.getElementById('atuSaveError').classList.add('show');
+            }else if(atuSettings.status==='active'){
+                pill.className='atu-status-pill active';pill.textContent='Active';
+            }else{
+                pill.className='atu-status-pill pending';pill.textContent='Pending';
+            }
+        }else{
+            cardBlock.style.display='none';
+        }
+        atuUpdateSummary();
+    }
+
+    function updateAtuToggleUI(enabled){
+        const track=document.getElementById('atuToggleTrack');
+        const thumb=document.getElementById('atuToggleThumb');
+        const label=document.getElementById('atuStatusLabel');
+        if(enabled){track.style.background='var(--success)';thumb.style.transform='translateX(16px)';label.textContent='Enabled';label.style.color='var(--success)';}
+        else{track.style.background='var(--gray-300)';thumb.style.transform='translateX(0)';label.textContent='Disabled';label.style.color='var(--gray-500)';}
+    }
+
+    function toggleAutoTopup(){
+        const enabling=document.getElementById('atuBody').style.display==='none';
+        document.getElementById('atuBody').style.display=enabling?'block':'none';
+        updateAtuToggleUI(enabling);
+        if(!enabling){
+            // Turning off — persist immediately, no need to wait for Save button
+            fetch(ATU_SETTINGS_WORKER_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'save',token:userToken,enabled:false})}).catch(()=>{});
+            try{posthog.capture('auto_topup_toggled',{enabled:false});}catch(e){}
+        }else if(enabling){
+            document.getElementById('atuThreshold').focus();
+        }
+    }
+
+    function atuSelectPack(packKey){
+        atuSelectedPack=packKey;
+        document.querySelectorAll('.atu-pack').forEach(el=>el.classList.toggle('selected',el.dataset.pack===packKey));
+        atuUpdateSummary();
+    }
+
+    function atuUpdateSummary(){
+        const threshold=document.getElementById('atuThreshold').value;
+        document.getElementById('atuSummaryThreshold').textContent=threshold?threshold+' credits':'your threshold';
+        const labels={small:'5,000 credits ($19)',medium:'25,000 credits ($79)',large:'60,000 credits ($149)'};
+        document.getElementById('atuSummaryPack').textContent=labels[atuSelectedPack]||'a credit pack';
+    }
+    document.addEventListener('input',(e)=>{if(e.target&&e.target.id==='atuThreshold')atuUpdateSummary();});
+
+    async function saveAutoTopupSettings(){
+        const threshold=parseInt(document.getElementById('atuThreshold').value,10);
+        const errEl=document.getElementById('atuSaveError');
+        errEl.classList.remove('show');
+        if(!threshold||threshold<=0){document.getElementById('atuErrorText').textContent='Please enter a valid credit threshold.';errEl.classList.add('show');return;}
+        if(!atuSelectedPack){document.getElementById('atuErrorText').textContent='Please choose a top-up pack.';errEl.classList.add('show');return;}
+
+        const btn=document.getElementById('atuSaveBtn');
+        const original=btn.innerHTML;
+        btn.disabled=true;btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Saving...';
+
+        try{
+            const r=await fetch(ATU_SETTINGS_WORKER_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'save',token:userToken,enabled:true,threshold,pack_key:atuSelectedPack})});
+            const d=await r.json();
+            if(!r.ok)throw new Error(d.error||'Save failed');
+            atuSettings=d.settings;
+            try{posthog.capture('auto_topup_saved',{threshold,pack_key:atuSelectedPack});}catch(e){}
+
+            if(!atuSettings.dodo_subscription_id){
+                await atuAuthorizeCard();
+            }else{
+                showSuccessMessage('atuSaveSuccess');
+            }
+        }catch(e){
+            document.getElementById('atuErrorText').textContent='Could not save settings. Please try again.';
+            errEl.classList.add('show');
+        }finally{
+            btn.disabled=false;btn.innerHTML=original;
+        }
+    }
+
+    async function atuAuthorizeCard(){
+        try{
+            const resp=await fetch(ATU_AUTHORIZE_WORKER_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:userToken,return_url:window.location.href.split('?')[0]+'?token='+userToken+'&atu_linked=1'})});
+            const data=await resp.json();
+            if(!resp.ok||!data.checkout_url)throw new Error(data.error||'Could not start card setup');
+            window.location.href=data.checkout_url;
+        }catch(e){
+            document.getElementById('atuErrorText').textContent='Could not open card setup. Please try again or contact support.';
+            document.getElementById('atuSaveError').classList.add('show');
+        }
+    }
+
+    function atuChangeCard(){atuAuthorizeCard();}
+
+
     const urlParams=new URLSearchParams(window.location.search);
     const gclid=urlParams.get('gclid');
     function addGclid(url){if(!gclid)return url;return url+(url.includes('?')?'&':'?')+'gclid='+gclid;}
@@ -402,6 +609,13 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
         setupNavigation();
         setupModalEvents();
         loadWebhookSettings();
+        loadAutoTopupSettings();
+        const p=new URLSearchParams(window.location.search);
+        if(p.get('atu_linked')==='1'){
+            // Card authorization just completed — settings worker is linked via webhook,
+            // but refresh here too so the UI reflects it without waiting on webhook latency.
+            setTimeout(()=>{loadAutoTopupSettings();showSuccessMessage('atuSaveSuccess');},1200);
+        }
     });
 </script>
 
