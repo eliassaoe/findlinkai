@@ -2117,7 +2117,11 @@ function checkAuth(){
         }
         window.currentUserReferredBy = d.refered_by || null;
         window.currentUserEmail = d.email || null; 
-    })
+        
+    if (d.email) {
+        try { posthog.identify(userToken, { email: d.email }); } catch(e) {}
+    }
+})
     .catch(() => {});
 }
 
