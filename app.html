@@ -2353,8 +2353,10 @@ function updateBulkResultsTable(){
     }
     document.getElementById('bulkResultsTable').innerHTML=html;
 }
-function downloadResults(){
+async function downloadResults(){
     if(bulkResults.length===0) return;
+    const allowed = await ensureSubscribedForExport();
+    if (!allowed) return;
     const c=dataConfigurations[currentInputType];let csv='';
     if(currentOutputType==='employee_count'){csv=`${c.label.replace('Enter ','')},Employee Count,Status\n`;bulkResults.forEach(r=>{csv+=`"${r.inputData}","${r.employeeCount||'Not found'}","${r.status==='Processing'?'Not found':r.status}"\n`;});}
     else if(currentInputType==='linkedin_post'&&currentOutputType==='reactions'){csv='Name,Job Title,Profile Info,LinkedIn URL\n';bulkResults.forEach(pr=>{if(pr.reactions&&Array.isArray(pr.reactions)){pr.reactions.forEach(r=>{const p=parseReactionTitle(r.title);const esc=(s)=>(!s||s==='Not found'||s==='Not specified')?s:`"${s.toString().replace(/"/g,'""')}"`;csv+=[esc(p.name),esc(p.jobInfo||'Not specified'),esc(r.snippet||'Not specified'),esc(r.link||'Not specified')].join(',')+'\n';});}});}
@@ -2453,6 +2455,61 @@ function checkEnrichmentMilestone() {
 }
 }
 
+// --- Export gate helper ---
+// Returns true if export should proceed, false if it was blocked (and the
+// upgrade modal was shown). Does NOT touch the credits-exhausted gate logic.
+async function ensureSubscribedForExport() {
+    // If we haven't resolved subscription status yet, check once before deciding.
+    // (isExistingSubscriber is normally set on page load from UPGRADE_INTENT_WORKER.)
+    if (isExistingSubscriber !== true) {
+        try {
+            const r = await fetch(UPGRADE_INTENT_WORKER, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token: userToken, trigger: 'export_check' })
+            });
+            const d = await r.json();
+            if (d && d.issub === true) {
+                isExistingSubscriber = true;
+                currentPlanNumber = d.plan || null;
+                currentSubscriptionId = d.subscription_id || null;
+            }
+        } catch (e) {
+            // If the check fails, fall through and treat as not subscribed —
+            // err on the side of gating rather than leaking a free export.
+        }
+    }
+
+    if (isExistingSubscriber === true) {
+        return true; // paid user — export proceeds exactly as before
+    }
+
+    // Free user: block export, fire the same analytics event used for the
+    // bulk results gate, and show the same upgrade modal.
+    const resultCount = bulkResults.filter(r => r.status === 'Found').length || bulkResults.length;
+
+    try {
+        posthog.capture('bulk_results_gated_shown', {
+            total_rows: csvData.length,
+            processed_rows: bulkResults.length,
+            locked_rows: 0,
+            credits_remaining: currentCredits,
+            input_type: currentInputType,
+            output_type: currentOutputType,
+            gate_reason: 'export_requires_subscription'
+        });
+    } catch (e) {}
+
+    showExportUpgradeMessage(resultCount);
+    showPricingModal('export_gated');
+
+    return false;
+}
+
+function showExportUpgradeMessage(resultCount) {
+    showAlert(`Exporting results requires a subscription. Your ${resultCount} result${resultCount === 1 ? '' : 's'} are ready to download.`, 'warning');
+}
+    
 async function handleAddCredits() {
     if (!userToken) { window.location.href = 'https://linkfinderai.com/sign-in'; return; }
     try { posthog.capture('upgrade_clicked', { source: 'buy_credits_btn', credits_remaining: currentCredits }); } catch(e) {}
