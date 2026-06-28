@@ -306,49 +306,6 @@
     .lip-avatar,.lip-avatar-placeholder{width:76px;height:76px;}
     .lip-contact{grid-template-columns:1fr;}
 }
-
-/* === LinkedIn Company Card === */
-.lic-card{background:white;border:1px solid var(--gray-200);border-radius:14px;overflow:hidden;}
-.lic-banner{height:110px;background:linear-gradient(135deg,#fef3c7,#fde68a);background-size:cover;background-position:center;}
-.lic-header{padding:0 1.5rem 1.25rem;margin-top:-40px;display:flex;align-items:flex-end;gap:1rem;flex-wrap:wrap;}
-.lic-logo{width:84px;height:84px;border-radius:14px;border:4px solid white;object-fit:contain;background:white;box-shadow:0 2px 8px rgba(0,0,0,0.15);flex-shrink:0;}
-.lic-logo-placeholder{width:84px;height:84px;border-radius:14px;border:4px solid white;background:var(--warning);display:flex;align-items:center;justify-content:center;color:white;font-size:1.6rem;font-weight:700;flex-shrink:0;box-shadow:0 2px 8px rgba(0,0,0,0.15);}
-.lic-name-block{padding-top:0.4rem;min-width:0;}
-.lic-name{font-size:1.3rem;font-weight:700;color:var(--gray-900);display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;line-height:1.3;}
-.lic-tagline{color:var(--gray-600);font-size:0.875rem;margin-top:0.2rem;font-style:italic;}
-.lic-meta{display:flex;gap:1rem;flex-wrap:wrap;margin-top:0.5rem;font-size:0.8rem;color:var(--gray-500);}
-.lic-meta span{display:flex;align-items:center;gap:0.35rem;}
-.lic-meta i{color:var(--warning);width:14px;text-align:center;}
-
-.lic-stats{display:flex;gap:0.625rem;padding:0 1.5rem 1.25rem;flex-wrap:wrap;}
-.lic-stat{background:var(--gray-50);border:1px solid var(--gray-200);border-radius:8px;padding:0.5rem 1.125rem;text-align:center;min-width:88px;}
-.lic-stat-num{font-size:1.15rem;font-weight:700;color:var(--gray-900);}
-.lic-stat-label{font-size:0.66rem;color:var(--gray-500);text-transform:uppercase;letter-spacing:0.04em;margin-top:0.1rem;}
-
-.lic-contact{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:0.625rem;padding:1.25rem 1.5rem;background:var(--gray-50);border-top:1px solid var(--gray-200);border-bottom:1px solid var(--gray-200);}
-.lic-contact-item{display:flex;align-items:center;gap:0.625rem;background:white;border:1px solid var(--gray-200);border-radius:8px;padding:0.625rem 0.75rem;min-width:0;}
-.lic-contact-icon{width:30px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:0.8rem;}
-.lic-contact-text{overflow:hidden;min-width:0;}
-.lic-contact-label{font-size:0.66rem;color:var(--gray-500);text-transform:uppercase;letter-spacing:0.03em;}
-.lic-contact-value{font-size:0.84rem;font-weight:600;color:var(--gray-900);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.lic-contact-value a{color:var(--primary);text-decoration:none;}
-
-.lic-section{padding:1.375rem 1.5rem;border-bottom:1px solid var(--gray-100);}
-.lic-section:last-child{border-bottom:none;}
-.lic-section-title{font-size:0.92rem;font-weight:700;color:var(--gray-900);display:flex;align-items:center;gap:0.5rem;margin-bottom:0.875rem;}
-.lic-section-title i{color:var(--warning);font-size:0.82rem;width:16px;text-align:center;}
-.lic-about-text{font-size:0.875rem;color:var(--gray-700);line-height:1.7;white-space:pre-line;}
-
-.lic-specialties{display:flex;flex-wrap:wrap;gap:0.5rem;}
-.lic-specialty-tag{background:#fef3c7;color:#92400e;font-size:0.78rem;font-weight:500;padding:0.3rem 0.7rem;border-radius:999px;}
-
-.lic-empty{font-size:0.8rem;color:var(--gray-400);font-style:italic;}
-
-@media(max-width:480px){
-    .lic-header{margin-top:-32px;}
-    .lic-logo,.lic-logo-placeholder{width:72px;height:72px;}
-    .lic-contact{grid-template-columns:1fr;}
-}
     .result-header{margin-bottom:1.5rem;padding-bottom:1rem;border-bottom:1px solid var(--gray-200);}
     .result-header h3{font-size:1.125rem;font-weight:600;color:var(--gray-900);margin:0 0 0.25rem 0;}
     .result-header p{font-size:0.875rem;color:var(--gray-600);margin:0;}
@@ -1671,89 +1628,6 @@ function buildLinkedInPersonCardHTML(d, inputUrl){
     return html;
 }
 
-function licEsc(str){ return lipEsc(str); }
-function licEmpty(v){ return lipEmpty(v); }
-function licInitials(name){ if(licEmpty(name)) return '?'; return name.trim().split(/\s+/).slice(0,2).map(p=>p[0].toUpperCase()).join(''); }
-
-// Normalizes "specialities" whether it arrives as an array, a comma-separated
-// string, or is missing entirely.
-function licSpecialtiesList(d){
-    const raw = d.specialities || d.specialties;
-    if (!raw) return [];
-    if (Array.isArray(raw)) return raw.map(s=>String(s).trim()).filter(Boolean);
-    if (typeof raw === 'string') return raw.split(',').map(s=>s.trim()).filter(Boolean);
-    return [];
-}
-
-function buildLinkedInCompanyCardHTML(d, inputUrl){
-    // 'picture' is the new logo field from the server; fall back to legacy 'logo'.
-    const logoUrl = !licEmpty(d.picture) ? d.picture : d.logo;
-    const hasLogo = !licEmpty(logoUrl);
-    // 'background_cover_image_url' is the new banner field from the server.
-    const bannerUrl = d.background_cover_image_url || d.backgroundPic;
-    const hasBanner = !licEmpty(bannerUrl);
-
-    const companyName = d.name || d.company || 'Unknown company';
-
-    let html = '<div class="lic-card">';
-    html += `<div class="lic-banner" style="${hasBanner?`background-image:url('${bannerUrl}')`:''}"></div>`;
-
-    // Header: logo + name + tagline + meta
-    html += '<div class="lic-header">';
-    html += hasLogo
-        ? `<img class="lic-logo" src="${logoUrl}" alt="${licEsc(companyName)}">`
-        : `<div class="lic-logo-placeholder">${licInitials(companyName)}</div>`;
-    html += '<div class="lic-name-block">';
-    html += `<div class="lic-name">${licEsc(companyName)}</div>`;
-    if (!licEmpty(d.tagline)) html += `<div class="lic-tagline">${licEsc(d.tagline)}</div>`;
-    let metaParts = [];
-    if (!licEmpty(d.industry)) metaParts.push(`<span><i class="fas fa-industry"></i>${licEsc(d.industry)}</span>`);
-    const locationParts=[d.city,d.country].filter(p=>p&&!licEmpty(p));
-    if (locationParts.length) metaParts.push(`<span><i class="fas fa-map-marker-alt"></i>${licEsc(locationParts.join(', '))}</span>`);
-    if (!licEmpty(d.foundedOn)) metaParts.push(`<span><i class="fas fa-calendar"></i>Founded ${licEsc(d.foundedOn)}</span>`);
-    if (metaParts.length) html += `<div class="lic-meta">${metaParts.join('')}</div>`;
-    html += '</div></div>';
-
-    // Stats pills
-    let stats = [];
-    if (!licEmpty(d.company_size)) stats.push({num:Number(d.company_size).toLocaleString(), label:'Employees'});
-    if (!licEmpty(d.followerCount)) stats.push({num:Number(String(d.followerCount).replace(/,/g,'')).toLocaleString(), label:'Followers'});
-    if (stats.length){
-        html += '<div class="lic-stats">' + stats.map(s=>
-            `<div class="lic-stat"><div class="lic-stat-num">${licEsc(s.num)}</div><div class="lic-stat-label">${s.label}</div></div>`
-        ).join('') + '</div>';
-    }
-
-    // Contact chips
-    let contacts = [];
-    if (!licEmpty(d.company_email)) contacts.push({fa:'fas',icon:'fa-envelope',bg:'#ecfdf5',color:'#10b981',label:'Email',value:licEsc(d.company_email)});
-    if (!licEmpty(d.company_phone)) contacts.push({fa:'fas',icon:'fa-phone',bg:'#ecfdf5',color:'#10b981',label:'Phone',value:licEsc(d.company_phone)});
-    if (!licEmpty(d.website)) contacts.push({fa:'fas',icon:'fa-globe',bg:'#eff6ff',color:'#2563eb',label:'Website',value:`<a href="https://${d.website}" target="_blank">${licEsc(d.website)}</a>`});
-    const liUrl = d.linkedinUrl || inputUrl;
-    if (!licEmpty(liUrl)) contacts.push({fa:'fab',icon:'fa-linkedin',bg:'#eff6ff',color:'#0077b5',label:'LinkedIn',value:`<a href="${liUrl}" target="_blank">View company</a>`});
-    if (contacts.length){
-        html += '<div class="lic-contact">' + contacts.map(c=>
-            `<div class="lic-contact-item"><div class="lic-contact-icon" style="background:${c.bg};color:${c.color};"><i class="${c.fa} ${c.icon}"></i></div><div class="lic-contact-text"><div class="lic-contact-label">${c.label}</div><div class="lic-contact-value">${c.value}</div></div></div>`
-        ).join('') + '</div>';
-    }
-
-    // About
-    if (!licEmpty(d.company_description)){
-        html += `<div class="lic-section"><div class="lic-section-title"><i class="fas fa-align-left"></i>About</div><div class="lic-about-text">${licEsc(d.company_description)}</div></div>`;
-    }
-
-    // Specialities
-    const specialties = licSpecialtiesList(d);
-    if (specialties.length){
-        html += `<div class="lic-section"><div class="lic-section-title"><i class="fas fa-star"></i>Specialties (${specialties.length})</div><div class="lic-specialties">`
-              + specialties.map(s=>`<span class="lic-specialty-tag">${licEsc(s)}</span>`).join('')
-              + '</div></div>';
-    }
-
-    html += '</div>';
-    return html;
-}
-
 function showSingleResultEmployeeCount(inputData, count) {
     document.getElementById('resultText').style.display='none';
     const employeeCount = count.result||count||'Not found';
@@ -2262,13 +2136,6 @@ function showSingleResult(inputData,result){
         document.getElementById('bulkResults').classList.add('hidden');
         return;
     }
-    if (isLinkedInData && currentInputType === 'linkedin_company') {
-        document.getElementById('resultLink').innerHTML = buildLinkedInCompanyCardHTML(linkedInFields, inputData);
-        document.getElementById('resultsSection').classList.remove('hidden');
-        document.getElementById('singleResult').classList.remove('hidden');
-        document.getElementById('bulkResults').classList.add('hidden');
-        return;
-    }
     let html='<div class="result-card">';
     html+=`<div class="result-header">${linkedInFields?.profilePic?`<img src="${linkedInFields.profilePic}" alt="Profile" style="width:60px;height:60px;border-radius:50%;object-fit:cover;margin-right:1rem;">`:`<div class="result-header-icon"><i class="fas ${result==='Not found'?'fa-times-circle':'fa-check-circle'}"></i></div>`}<div class="result-header-text"><h3>${result==='Not found'?'No Data Found':'Profile Data Found! \u2728'}</h3><p>${inputData}</p></div></div>`;
     if(linkedInFields?.backgroundPic&&linkedInFields.backgroundPic!=='Not specified'){html+=`<div style="margin:1rem 0;border-radius:8px;overflow:hidden;max-height:200px;"><img src="${linkedInFields.backgroundPic}" alt="Background" style="width:100%;height:auto;object-fit:cover;"></div>`;}
@@ -2486,8 +2353,10 @@ function updateBulkResultsTable(){
     }
     document.getElementById('bulkResultsTable').innerHTML=html;
 }
-function downloadResults(){
+async function downloadResults(){
     if(bulkResults.length===0) return;
+    const allowed = await ensureSubscribedForExport();
+    if (!allowed) return;
     const c=dataConfigurations[currentInputType];let csv='';
     if(currentOutputType==='employee_count'){csv=`${c.label.replace('Enter ','')},Employee Count,Status\n`;bulkResults.forEach(r=>{csv+=`"${r.inputData}","${r.employeeCount||'Not found'}","${r.status==='Processing'?'Not found':r.status}"\n`;});}
     else if(currentInputType==='linkedin_post'&&currentOutputType==='reactions'){csv='Name,Job Title,Profile Info,LinkedIn URL\n';bulkResults.forEach(pr=>{if(pr.reactions&&Array.isArray(pr.reactions)){pr.reactions.forEach(r=>{const p=parseReactionTitle(r.title);const esc=(s)=>(!s||s==='Not found'||s==='Not specified')?s:`"${s.toString().replace(/"/g,'""')}"`;csv+=[esc(p.name),esc(p.jobInfo||'Not specified'),esc(r.snippet||'Not specified'),esc(r.link||'Not specified')].join(',')+'\n';});}});}
@@ -2586,6 +2455,61 @@ function checkEnrichmentMilestone() {
 }
 }
 
+// --- Export gate helper ---
+// Returns true if export should proceed, false if it was blocked (and the
+// upgrade modal was shown). Does NOT touch the credits-exhausted gate logic.
+async function ensureSubscribedForExport() {
+    // If we haven't resolved subscription status yet, check once before deciding.
+    // (isExistingSubscriber is normally set on page load from UPGRADE_INTENT_WORKER.)
+    if (isExistingSubscriber !== true) {
+        try {
+            const r = await fetch(UPGRADE_INTENT_WORKER, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token: userToken, trigger: 'export_check' })
+            });
+            const d = await r.json();
+            if (d && d.issub === true) {
+                isExistingSubscriber = true;
+                currentPlanNumber = d.plan || null;
+                currentSubscriptionId = d.subscription_id || null;
+            }
+        } catch (e) {
+            // If the check fails, fall through and treat as not subscribed —
+            // err on the side of gating rather than leaking a free export.
+        }
+    }
+
+    if (isExistingSubscriber === true) {
+        return true; // paid user — export proceeds exactly as before
+    }
+
+    // Free user: block export, fire the same analytics event used for the
+    // bulk results gate, and show the same upgrade modal.
+    const resultCount = bulkResults.filter(r => r.status === 'Found').length || bulkResults.length;
+
+    try {
+        posthog.capture('bulk_results_gated_shown', {
+            total_rows: csvData.length,
+            processed_rows: bulkResults.length,
+            locked_rows: 0,
+            credits_remaining: currentCredits,
+            input_type: currentInputType,
+            output_type: currentOutputType,
+            gate_reason: 'export_requires_subscription'
+        });
+    } catch (e) {}
+
+    showExportUpgradeMessage(resultCount);
+    showPricingModal('export_gated');
+
+    return false;
+}
+
+function showExportUpgradeMessage(resultCount) {
+    showAlert(`Exporting results requires a subscription. Your ${resultCount} result${resultCount === 1 ? '' : 's'} are ready to download.`, 'warning');
+}
+    
 async function handleAddCredits() {
     if (!userToken) { window.location.href = 'https://linkfinderai.com/sign-in'; return; }
     try { posthog.capture('upgrade_clicked', { source: 'buy_credits_btn', credits_remaining: currentCredits }); } catch(e) {}
