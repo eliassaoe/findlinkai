@@ -1199,21 +1199,75 @@ function handleDodoCheckoutEvent(event) {
         case 'checkout.opened':
             try { posthog.capture('checkout_overlay_opened'); } catch(e) {}
             break;
+        case 'checkout.payment_page_opened':
+            try { posthog.capture('checkout_payment_page_opened'); } catch(e) {}
+            break;
         case 'checkout.closed':
             try { posthog.capture('checkout_overlay_closed'); } catch(e) {}
             break;
         case 'checkout.redirect':
-        case 'checkout.completed':
-        case 'checkout.success':
-            try { posthog.capture('checkout_payment_success'); } catch(e) {}
-            fireGoogleAdsConversion(event);
+            // Only means "about to redirect" — NOT confirmed payment.
+            // Real success/failure is read from return_url params instead.
+            try { posthog.capture('checkout_redirect_started'); } catch(e) {}
             break;
         case 'checkout.error':
             console.error('Dodo checkout error:', event.data?.message);
             showAlert('Payment error: ' + (event.data?.message || 'Please try again.'), 'error');
             try { posthog.capture('checkout_overlay_error', { message: event.data?.message }); } catch(e) {}
             break;
+        case 'checkout.link_expired':
+            showAlert('Your checkout session expired. Please try again.', 'warning');
+            try { posthog.capture('checkout_link_expired'); } catch(e) {}
+            break;
     }
+}
+
+function handleDodoReturnStatus() {
+    const params = new URLSearchParams(window.location.search);
+    const dodoStatus = params.get('status');
+    const paymentId = params.get('payment_id');
+    const subscriptionId = params.get('subscription_id');
+
+    if (!dodoStatus) return; // normal page load, not a checkout return
+
+    if (dodoStatus === 'succeeded' || dodoStatus === 'active') {
+        showAlert('Payment successful! Your plan is now active.', 'success');
+        try {
+            posthog.capture('checkout_payment_success', {
+                payment_id: paymentId, subscription_id: subscriptionId, status: dodoStatus
+            });
+        } catch(e) {}
+        fireGoogleAdsConversion({ data: { payment_id: paymentId, subscription_id: subscriptionId } });
+
+        fetch(UPGRADE_INTENT_WORKER, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: userToken, trigger: 'checkout_return' })
+        })
+        .then(r => r.json())
+        .then(d => {
+            if (d.issub === true) {
+                isExistingSubscriber = true;
+                currentPlanNumber = d.plan || null;
+                currentSubscriptionId = d.subscription_id || null;
+            }
+            fetchCredits();
+        })
+        .catch(() => {});
+    } else {
+        showAlert('Payment did not complete. Please try again or contact support.', 'error');
+        try {
+            posthog.capture('checkout_payment_failed', {
+                payment_id: paymentId, subscription_id: subscriptionId, status: dodoStatus
+            });
+        } catch(e) {}
+    }
+
+    params.delete('status');
+    params.delete('payment_id');
+    params.delete('subscription_id');
+    const cleanUrl = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
+    window.history.replaceState({}, '', cleanUrl);
 }
 
 async function proceedToCheckoutDirect(index, btnEl) {
@@ -2005,6 +2059,7 @@ function handleBeforeUnload(e){if(isBulkProcessing){e.preventDefault();e.returnV
 document.addEventListener('DOMContentLoaded',()=>{
     checkAuth(); fetchCredits(); setupFileUpload(); setupDragAndDrop();
     setupNavigation(); setupModalEvents(); setupDropdowns(); showReviewNotification();
+    handleDodoReturnStatus();
     const pb=document.getElementById('processBulkBtn');
     pb.disabled=true; pb.style.opacity='0.5';
     pb.innerHTML='<i class="fas fa-upload"></i> Upload a CSV file first';
