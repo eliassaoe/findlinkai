@@ -68,6 +68,18 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
 .integration-arrow{color:var(--gray-400);font-size:.875rem;}
 .manage-btn{width:auto;max-width:280px;margin:1rem auto 0;display:block;padding:.625rem 1rem;font-size:.85rem;font-weight:500;background:white;color:var(--primary);border:1px solid var(--gray-300);}
 .manage-btn:hover{background:var(--gray-50);border-color:var(--primary);}
+/* Billing section */
+.billing-section{margin-bottom:2rem;}
+.billing-card{background:white;border:1px solid var(--gray-200);border-radius:8px;padding:1.25rem;}
+.billing-row{display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;padding:.75rem 0;border-bottom:1px solid var(--gray-100);}
+.billing-row:last-child{border-bottom:none;padding-bottom:0;}
+.billing-row:first-child{padding-top:0;}
+.billing-row-info{display:flex;align-items:center;gap:.75rem;}
+.billing-row-icon{width:40px;height:40px;display:flex;align-items:center;justify-content:center;border-radius:6px;font-size:1.1rem;background:var(--gray-100);color:var(--gray-600);flex-shrink:0;}
+.billing-row-details h3{font-size:.9rem;font-weight:600;color:var(--gray-900);margin-bottom:.125rem;}
+.billing-row-details p{font-size:.8rem;color:var(--gray-500);}
+.btn-billing-manage{background:white;color:var(--gray-700);border:1px solid var(--gray-300);padding:.5rem .875rem;font-size:.8rem;font-weight:500;white-space:nowrap;}
+.btn-billing-manage:hover{background:var(--gray-50);border-color:var(--primary);color:var(--primary);}
 /* Modals */
 .modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:1000;opacity:0;visibility:hidden;transition:all .3s ease;padding:1rem;}
 .modal-overlay.show{opacity:1;visibility:visible;}
@@ -165,6 +177,8 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
   .btn-group{flex-direction:column;}
   .btn-group .btn{min-width:100%;}
   .buy-credits-grid{grid-template-columns:1fr;}
+  .billing-row{flex-direction:column;align-items:flex-start;}
+  .btn-billing-manage{width:100%;}
 }
 </style>
 <script type="application/ld+json">
@@ -233,6 +247,37 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
 
 <div class="container">
   <div class="main">
+
+    <div class="billing-section">
+      <div class="section-title">Billing</div>
+      <div class="billing-card">
+        <div class="billing-row">
+          <div class="billing-row-info">
+            <div class="billing-row-icon"><i class="fas fa-credit-card"></i></div>
+            <div class="billing-row-details">
+              <h3>Payment method &amp; billing details</h3>
+              <p>Update your card, billing address, and view invoices</p>
+            </div>
+          </div>
+          <button class="btn btn-billing-manage" onclick="openBillingPortal()" id="billingPortalBtn">
+            <i class="fas fa-external-link-alt"></i> Manage billing
+          </button>
+        </div>
+        <div class="billing-row">
+          <div class="billing-row-info">
+            <div class="billing-row-icon"><i class="fas fa-file-invoice-dollar"></i></div>
+            <div class="billing-row-details">
+              <h3>Plan &amp; subscription</h3>
+              <p id="currentPlanLabel">Manage, upgrade, or cancel your plan</p>
+            </div>
+          </div>
+          <button class="btn manage-btn" style="margin:0;max-width:none;" onclick="managePlan()">
+            <i class="fas fa-cog"></i> Manage Your Plan
+          </button>
+        </div>
+      </div>
+    </div>
+
     <div class="integrations-section">
       <div class="section-title">Integrations</div>
       <div class="integrations-grid">
@@ -267,9 +312,6 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
       </div>
     </div>
 
-    <button class="btn manage-btn" onclick="managePlan()">
-      <i class="fas fa-cog"></i> Manage Your Plan
-    </button>
   </div>
 </div>
 
@@ -373,6 +415,8 @@ const FEEDBACK_ENDPOINT   = 'https://linkfinder-request-feature.hamoureliasse.wo
 const UPGRADE_INTENT_URL  = 'https://upgrade-intent.hamoureliasse.workers.dev/';
 const MANAGE_PLAN_URL     = 'https://manage-plan-linkfinder.hamoureliasse.workers.dev/';
 const CREDITS_URL         = 'https://linkfinderaicredits.hamoureliasse.workers.dev/';
+// NEW: dedicated worker that creates a Dodo customer-portal session
+const BILLING_PORTAL_URL  = 'https://billing-portal-linkfinder.hamoureliasse.workers.dev/';
 
 const urlParams = new URLSearchParams(window.location.search);
 const gclid     = urlParams.get('gclid');
@@ -597,6 +641,39 @@ async function handleAddCredits() {
     showPricingModal('credits_exhausted');
   } catch(e) { showPricingModal(); }
   finally { btn.innerHTML = orig; btn.disabled = false; }
+}
+
+/* ── NEW: Manage billing button — opens the Dodo customer portal ── */
+async function openBillingPortal() {
+  const btn = document.getElementById('billingPortalBtn');
+  const orig = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading…';
+  try { posthog.capture('billing_portal_clicked', { credits_remaining: currentCredits, is_subscriber: isExistingSubscriber }); } catch(e) {}
+  try {
+    const r = await fetch(BILLING_PORTAL_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: userToken })
+    });
+    const d = await r.json();
+    if (r.ok && d.url) {
+      window.location.href = d.url;
+      return; // page is navigating away
+    }
+    if (d.error === 'no_customer') {
+      // No Dodo customer yet (never checked out) — send them to plans instead
+      showPricingModal();
+    } else {
+      alert('Could not open the billing portal. Please try again or email support@linkfinderai.com.');
+    }
+  } catch (e) {
+    console.error('Billing portal error:', e);
+    alert('Network error. Please try again.');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = orig;
+  }
 }
 
 /* ── Manage Plan button — always shows save/cancellation flow ── */
@@ -918,7 +995,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Pre-fetch subscriber status so the manage button and grid know the state
+  // Pre-fetch subscriber status so the manage button, grid, and plan label know the state
   if (userToken) {
     fetch(UPGRADE_INTENT_URL, {
       method: 'POST',
@@ -931,6 +1008,8 @@ document.addEventListener('DOMContentLoaded', () => {
         isExistingSubscriber  = true;
         currentPlanNumber     = d.plan || null;
         currentSubscriptionId = d.subscription_id || null;
+        const label = document.getElementById('currentPlanLabel');
+        if (label) label.textContent = 'Manage, upgrade, or cancel your current plan';
       }
       if (d.email) currentUserEmail = d.email;
     })
