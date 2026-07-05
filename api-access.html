@@ -37,6 +37,9 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     .btn-outline{background:transparent;color:var(--primary);border:1px solid var(--gray-300);}
     .btn-outline:hover{background:var(--gray-50);border-color:var(--primary);}
     .btn-sm{padding:0.375rem 0.75rem;font-size:0.8rem;}
+    .btn:disabled{opacity:0.6;cursor:not-allowed;}
+    .btn-danger-outline{background:transparent;color:var(--error);border:1px solid var(--gray-300);}
+    .btn-danger-outline:hover{background:rgba(239,68,68,0.06);border-color:var(--error);}
     .nav-menu{background:white;border-bottom:1px solid var(--gray-200);padding:0.75rem 0;}
     .nav-tabs{display:flex;gap:0.5rem;overflow-x:auto;padding-bottom:0.25rem;}
     .nav-tab{display:flex;align-items:center;gap:0.5rem;padding:0.75rem 1rem;border-radius:8px;background:transparent;border:1px solid var(--gray-200);color:var(--gray-600);text-decoration:none;font-weight:500;font-size:0.875rem;transition:all 0.2s ease;white-space:nowrap;cursor:pointer;min-height:44px;justify-content:center;}
@@ -188,9 +191,16 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
                 <div class="api-key-input-group">
                     <input type="text" id="apiKeyInput" class="api-key-input" value="" readonly>
                     <button class="btn copy-btn" onclick="copyApiKey()" title="Copy"><i class="fas fa-copy"></i></button>
+                    <button class="btn btn-danger-outline copy-btn" id="resetApiKeyBtn" onclick="resetApiKey()" title="Reset API Key"><i class="fas fa-rotate-right"></i></button>
                 </div>
                 <div id="copySuccess" class="success-message">
                     <i class="fas fa-check"></i> Copied to clipboard!
+                </div>
+                <div id="resetKeySuccess" class="success-message">
+                    <i class="fas fa-check"></i> API key reset — your old key no longer works.
+                </div>
+                <div id="resetKeyError" class="success-message" style="background:rgba(239,68,68,0.1);border-color:var(--error);color:var(--error);">
+                    <i class="fas fa-exclamation-circle"></i> <span id="resetKeyErrorText">Could not reset your API key. Please try again.</span>
                 </div>
             </div>
             <div class="card-footer-row">
@@ -307,7 +317,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
                 <pre style="color:#86efac;font-size:0.72rem;line-height:1.5;margin:0;font-family:'Monaco','Menlo',monospace;overflow-x:auto;">{
   "type": "linkedin_profile",
   "input": "linkedin.com/in/john-doe",
-  "result": { "name": "John Doe", "email": "john@co.com" },
+  "result": { "name": "John Doe", "email": "<a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="610b0e090f21020e4f020e0c">[email&#160;protected]</a>" },
   "timestamp": "2026-05-27T10:00:00Z",
   "credits_used": 10
 }</pre>
@@ -348,7 +358,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 
 <div id="n8n-chat"></div>
 
-<script>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
     function transformerToken(t){let r='';for(let i=0;i<t.length;i++){let c=t.charCodeAt(i);c+=7;r+=c.toString(16).padStart(2,'0')+'Z';}return r.slice(0,-1);}
 
     let userToken=null,apiToken=null;
@@ -404,6 +414,40 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
         try{plausible('API Key Copied');}catch(e){}
     }
     function showSuccessMessage(id){const el=document.getElementById(id);el.classList.add('show');setTimeout(()=>el.classList.remove('show'),3000);}
+
+    // ===== RESET API KEY =====
+    const RESET_API_KEY_WORKER_URL='https://reset-api-key.hamoureliasse.workers.dev/';
+
+    async function resetApiKey(){
+        const confirmed=window.confirm('Reset your API key? Your current key will stop working immediately and any integrations using it will need to be updated.');
+        if(!confirmed)return;
+
+        document.getElementById('resetKeySuccess').classList.remove('show');
+        document.getElementById('resetKeyError').classList.remove('show');
+
+        const btn=document.getElementById('resetApiKeyBtn');
+        const original=btn.innerHTML;
+        btn.disabled=true;btn.innerHTML='<i class="fas fa-spinner fa-spin"></i>';
+
+        try{
+            const r=await fetch(RESET_API_KEY_WORKER_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'reset',token:userToken})});
+            const d=await r.json();
+            if(!r.ok||!d.new_token)throw new Error(d.error||'Reset failed');
+
+            userToken=d.new_token;
+            apiToken=transformerToken(userToken);
+            localStorage.setItem('LinkFinderToken',userToken);
+            document.getElementById('apiKeyInput').value=apiToken;
+
+            showSuccessMessage('resetKeySuccess');
+            try{posthog.capture('api_key_reset',{source:'api_access_page'});}catch(e){}
+        }catch(e){
+            document.getElementById('resetKeyErrorText').textContent='Could not reset your API key. Please try again.';
+            showSuccessMessage('resetKeyError');
+        }finally{
+            btn.disabled=false;btn.innerHTML=original;
+        }
+    }
 
     function setupModalEvents(){
         document.addEventListener('click',(e)=>{if(e.target===document.getElementById('pricingModal'))closePricingModal();});
@@ -631,5 +675,6 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     });
 </script>
 
+<script defer src="https://static.cloudflareinsights.com/beacon.min.js/v4513226cdae34746b4dedf0b4dfa099e1781791509496" integrity="sha512-ZE9pZaUXND66v380QUtch/5sE9tPFh2zg45pR2PB0CVkCtOREv2AJKkSidISWkysEuQ0EH8faUU5du78bx87UQ==" data-cf-beacon='{"version":"2024.11.0","token":"65876f1658f043398c2cc2e58509dcd8","r":1,"server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
 </body>
 </html>
