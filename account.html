@@ -649,6 +649,16 @@ async function openBillingPortal() {
   const orig = btn.innerHTML;
   btn.disabled = true;
   btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading…';
+
+  // Wait up to 3 seconds for the email to finish loading in the background
+  if (!currentUserEmail) {
+    let attempts = 0;
+    while (!currentUserEmail && attempts < 30) {
+      await new Promise(r => setTimeout(r, 100));
+      attempts++;
+    }
+  }
+
   try { posthog.capture('billing_portal_clicked', { credits_remaining: currentCredits, is_subscriber: isExistingSubscriber }); } catch(e) {}
   try {
     const r = await fetch(BILLING_PORTAL_URL, {
