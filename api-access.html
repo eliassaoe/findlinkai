@@ -439,6 +439,13 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
             localStorage.setItem('LinkFinderToken',userToken);
             document.getElementById('apiKeyInput').value=apiToken;
 
+            // Keep the address bar in sync so a refresh/bookmark doesn't
+            // re-read the now-invalid old token from the URL and clobber
+            // the localStorage value we just updated.
+            const newUrl=new URL(window.location.href);
+            newUrl.searchParams.set('token',userToken);
+            window.history.replaceState({},'',newUrl.toString());
+
             showSuccessMessage('resetKeySuccess');
             try{posthog.capture('api_key_reset',{source:'api_access_page'});}catch(e){}
         }catch(e){
