@@ -479,153 +479,13 @@ console.log(data.result); <span class="cm">// "tesla.com"</span></pre>
                 </div>
             </div>
 
-            <!-- ══ SYNC VS ASYNC (NEW, CRITICAL SECTION) ══ -->
+            <!-- ══ SYNC VS ASYNC ══ -->
             <div class="doc-section" id="async">
                 <h2 class="section-heading"><i class="fas fa-clock-rotate-left"></i> Sync vs Async Requests</h2>
-                <p class="section-sub"><strong>Read this before integrating.</strong> Most endpoints respond immediately. Two endpoints always respond asynchronously and require a follow-up call to get your result.</p>
-
-                <div class="async-banner">
-                    <i class="fas fa-triangle-exclamation icon"></i>
-                    <div>
-                        <div class="title">These 2 endpoints are always async — no exceptions:</div>
-                        <p><code>linkedin_profile_to_email</code> and <code>linkedin_profile_to_linkedin_info</code> involve live scraping and never return your data in the initial response. They always return a <code>job_id</code> immediately (HTTP <code>202</code>), and you poll a second endpoint to retrieve the result. Every other endpoint on this page responds synchronously with your data in a single call.</p>
-                    </div>
-                </div>
-
-                <table class="rate-table" style="margin-bottom:1.25rem">
-                    <thead>
-                        <tr><th>Behavior</th><th>Applies to</th><th>What you get back</th></tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td><span class="sync-tag"><i class="fas fa-bolt"></i> Sync</span></td>
-                            <td>All endpoints except the 2 below</td>
-                            <td>Your result, directly, in the same response (usually &lt;3s)</td>
-                        </tr>
-                        <tr>
-                            <td><span class="async-tag"><i class="fas fa-hourglass-half"></i> Always async</span></td>
-                            <td><code>linkedin_profile_to_email</code><br><code>linkedin_profile_to_linkedin_info</code></td>
-                            <td>A <code>job_id</code> immediately — poll <code>/status/:job_id</code> for the result</td>
-                        </tr>
-                    </tbody>
-                </table>
-
-                <h3 style="font-size:1.0625rem; font-weight:600; margin-bottom:0.75rem; color:var(--gray-900)">How the async flow works</h3>
-
-                <div class="flow-steps">
-                    <div class="flow-step">
-                        <div class="flow-num">1</div>
-                        <div class="flow-body">
-                            <h5>Call the endpoint as normal</h5>
-                            <p>Same request shape as any other endpoint — <code>type</code> + <code>input_data</code>, same auth header.</p>
-                        </div>
-                    </div>
-                    <div class="flow-step">
-                        <div class="flow-num">2</div>
-                        <div class="flow-body">
-                            <h5>Receive HTTP 202 immediately</h5>
-                            <p>The response body contains <code>job_id</code>, <code>status: "processing"</code>, and <code>poll_url</code>. No result is included yet — this is expected, not an error.</p>
-                        </div>
-                    </div>
-                    <div class="flow-step">
-                        <div class="flow-num">3</div>
-                        <div class="flow-body">
-                            <h5>Poll the status endpoint</h5>
-                            <p>Send <code>GET</code> requests to <code>poll_url</code> every 3–5 seconds until <code>status</code> changes to <code>"done"</code> or <code>"error"</code>.</p>
-                        </div>
-                    </div>
-                    <div class="flow-step">
-                        <div class="flow-num">4</div>
-                        <div class="flow-body">
-                            <h5>Read your result</h5>
-                            <p>Once <code>status: "done"</code>, the <code>data</code> field contains your result, in the same shape as a normal sync response. Job results are kept for <strong>10 minutes</strong> — poll before then.</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="code-block-wrap">
-                    <div class="code-tabs">
-                        <button class="code-tab active" onclick="switchTab(this, 'async-step1')">1. Initial call</button>
-                        <button class="code-tab" onclick="switchTab(this, 'async-step2')">2. Poll for result</button>
-                        <button class="code-tab" onclick="switchTab(this, 'async-python')">Full Python example</button>
-                    </div>
-                    <div id="async-step1" class="code-pane active">
-<pre class="code-block"><span class="cm"># Step 1 — call as usual. This always returns 202, never the result directly.</span>
-curl -X POST "https://api.linkfinderai.com" \
-     -H "Content-Type: application/json" \
-     -H "Authorization: Bearer <span class="st">YOUR_API_KEY</span>" \
-     -d '{
-       <span class="ky">"type"</span>: <span class="st">"linkedin_profile_to_email"</span>,
-       <span class="ky">"input_data"</span>: <span class="st">"https://linkedin.com/in/john-doe"</span>
-     }'
-
-<span class="cm"># Response — HTTP 202</span>
-{
-  <span class="ky">"job_id"</span>: <span class="st">"55600ed5-a150-4a69-aa3d-9d11baf11fe5"</span>,
-  <span class="ky">"status"</span>: <span class="st">"processing"</span>,
-  <span class="ky">"poll_url"</span>: <span class="st">"/status/55600ed5-a150-4a69-aa3d-9d11baf11fe5"</span>
-}</pre>
-                    </div>
-                    <div id="async-step2" class="code-pane">
-<pre class="code-block"><span class="cm"># Step 2 — poll every few seconds until status is "done"</span>
-curl "https://api.linkfinderai.com/status/55600ed5-a150-4a69-aa3d-9d11baf11fe5" \
-     -H "Authorization: Bearer <span class="st">YOUR_API_KEY</span>"
-
-<span class="cm"># While still running</span>
-{ <span class="ky">"status"</span>: <span class="st">"processing"</span> }
-
-<span class="cm">// Once complete</span>
-{
-  <span class="ky">"status"</span>: <span class="st">"done"</span>,
-  <span class="ky">"http_status"</span>: <span class="nm">200</span>,
-  <span class="ky">"data"</span>: {
-    <span class="ky">"result"</span>: <span class="st">"john.doe@company.com"</span>,
-    <span class="ky">"status"</span>: <span class="st">"success"</span>
-  }
-}
-
-<span class="cm">// If the lookup failed</span>
-{
-  <span class="ky">"status"</span>: <span class="st">"error"</span>,
-  <span class="ky">"message"</span>: <span class="st">"Email not found"</span>
-}</pre>
-                    </div>
-                    <div id="async-python" class="code-pane">
-<pre class="code-block"><span class="cm">import</span> requests, time
-
-API_KEY = <span class="st">"YOUR_API_KEY"</span>
-BASE = <span class="st">"https://api.linkfinderai.com"</span>
-headers = {<span class="ky">"Authorization"</span>: f<span class="st">"Bearer {API_KEY}"</span>, <span class="ky">"Content-Type"</span>: <span class="st">"application/json"</span>}
-
-<span class="cm"># Step 1: kick off the async job</span>
-r = requests.post(BASE, headers=headers, json={
-    <span class="ky">"type"</span>: <span class="st">"linkedin_profile_to_email"</span>,
-    <span class="ky">"input_data"</span>: <span class="st">"https://linkedin.com/in/john-doe"</span>
-})
-job = r.json()
-job_id = job[<span class="st">"job_id"</span>]
-
-<span class="cm"># Step 2: poll until done</span>
-<span class="cm">while</span> <span class="nm">True</span>:
-    time.sleep(<span class="nm">3</span>)
-    status = requests.get(f<span class="st">"{BASE}/status/{job_id}"</span>, headers=headers).json()
-    <span class="cm">if</span> status[<span class="st">"status"</span>] == <span class="st">"done"</span>:
-        <span class="cm">print</span>(status[<span class="st">"data"</span>][<span class="st">"result"</span>])
-        <span class="cm">break</span>
-    <span class="cm">elif</span> status[<span class="st">"status"</span>] == <span class="st">"error"</span>:
-        <span class="cm">print</span>(<span class="st">"Failed:"</span>, status[<span class="st">"message"</span>])
-        <span class="cm">break</span></pre>
-                    </div>
-                </div>
-
-                <div class="info-box purple">
-                    <i class="fas fa-circle-info"></i>
-                    <div><strong>Why these two are async:</strong> finding an email or full profile from a LinkedIn URL requires live scraping, which can occasionally take longer than a normal HTTP request allows. Rather than risk a timeout with no result, these endpoints always hand you a <code>job_id</code> immediately so you never lose a lookup to a slow response.</div>
-                </div>
-
+                <p class="section-sub">Most endpoints respond immediately with your data. Two endpoints — <code>linkedin_profile_to_email</code> and <code>linkedin_profile_to_linkedin_info</code> — always return a <code>job_id</code> instead, which you then poll for the result. Look for the <span class="sync-tag"><i class="fas fa-bolt"></i> Sync</span> / <span class="async-tag"><i class="fas fa-hourglass-half"></i> Async</span> tag on each endpoint below; the async ones show the exact request + poll calls side by side right in their section.</p>
                 <div class="info-box yellow">
                     <i class="fas fa-triangle-exclamation"></i>
-                    <div><strong>Common integration mistake:</strong> treating the <code>202</code> response as an error. It isn't — <code>status: "processing"</code> with a <code>job_id</code> is the expected, successful response for these two endpoints. Your integration must poll <code>poll_url</code> to get the actual result.</div>
+                    <div>A <code>202</code> response with <code>status: "processing"</code> is not an error — it's the expected response for the two async endpoints. Poll the returned <code>poll_url</code> until <code>status</code> is <code>"done"</code>. Job results expire after <strong>10 minutes</strong>.</div>
                 </div>
             </div>
 
@@ -893,26 +753,34 @@ leads.forEach(lead => console.log(lead.full_name, lead.email));</pre>
                         <div style="display:flex;align-items:center;gap:.5rem"><span class="credit-pill">1 credit</span><i class="fas fa-chevron-down endpoint-chevron"></i></div>
                     </div>
                     <div class="endpoint-body">
-                        <div class="async-banner" style="margin-bottom:1rem">
-                            <i class="fas fa-hourglass-half icon"></i>
-                            <div><p style="color:#5b21b6"><strong>This endpoint is always async.</strong> The call below returns a <code>job_id</code>, not your data. See <a href="#async" style="color:#5b21b6;font-weight:700;text-decoration:underline">Sync vs Async</a> for the full polling flow.</p></div>
-                        </div>
-                        <div class="code-block-wrap"><div class="code-tabs"><button class="code-tab active" onclick="switchTab(this,'l1-curl')">cURL</button><button class="code-tab" onclick="switchTab(this,'l1-py')">Python</button><button class="code-tab" onclick="switchTab(this,'l1-response')">Response</button></div>
-                        <div id="l1-curl" class="code-pane active"><pre class="code-block">curl -X POST "https://api.linkfinderai.com" \
+                        <p style="font-size:0.8125rem;color:#5b21b6;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:6px;padding:0.6rem 0.875rem;margin-bottom:1rem"><i class="fas fa-hourglass-half"></i> <strong>Always async</strong> — this call returns a <code>job_id</code>, then you poll for the result. Request and poll shown side by side below.</p>
+                        <div class="response-grid">
+                            <div>
+                                <h4>1. Make the request</h4>
+                                <pre class="code-block" style="border-radius:8px">curl -X POST "https://api.linkfinderai.com" \
      -H "Content-Type: application/json" \
      -H "Authorization: Bearer <span class="st">YOUR_API_KEY</span>" \
-     -d '{"type": <span class="st">"linkedin_profile_to_linkedin_info"</span>, "input_data": <span class="st">"https://linkedin.com/in/john-doe"</span>}'</pre></div>
-                        <div id="l1-py" class="code-pane"><pre class="code-block">requests.post(url, headers=headers, json={
-    <span class="ky">"type"</span>: <span class="st">"linkedin_profile_to_linkedin_info"</span>,
-    <span class="ky">"input_data"</span>: <span class="st">"https://linkedin.com/in/john-doe"</span>
-})
-<span class="cm"># Returns 202 with a job_id — poll /status/:job_id for the actual profile data</span></pre></div>
-                        <div id="l1-response" class="code-pane"><pre class="code-block"><span class="cm">// Immediate response — HTTP 202 (always, this endpoint never returns data directly)</span>
+     -d '{"type": <span class="st">"linkedin_profile_to_linkedin_info"</span>, "input_data": <span class="st">"https://linkedin.com/in/john-doe"</span>}'
+
+<span class="cm">// Returns immediately:</span>
 {
   <span class="ky">"job_id"</span>: <span class="st">"c9f1e2a0-..."</span>,
   <span class="ky">"status"</span>: <span class="st">"processing"</span>,
   <span class="ky">"poll_url"</span>: <span class="st">"/status/c9f1e2a0-..."</span>
-}</pre></div></div>
+}</pre>
+                            </div>
+                            <div>
+                                <h4>2. Poll for the result</h4>
+                                <pre class="code-block" style="border-radius:8px">curl "https://api.linkfinderai.com/status/c9f1e2a0-..." \
+     -H "Authorization: Bearer <span class="st">YOUR_API_KEY</span>"
+
+<span class="cm">// Repeat every 3-5s until:</span>
+{
+  <span class="ky">"status"</span>: <span class="st">"done"</span>,
+  <span class="ky">"data"</span>: { <span class="ky">"result"</span>: {<span class="cm">...</span>}, <span class="ky">"status"</span>: <span class="st">"success"</span> }
+}</pre>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -923,24 +791,17 @@ leads.forEach(lead => console.log(lead.full_name, lead.email));</pre>
                         <div style="display:flex;align-items:center;gap:.5rem"><span class="credit-pill">1 credit</span><i class="fas fa-chevron-down endpoint-chevron"></i></div>
                     </div>
                     <div class="endpoint-body">
-                        <div class="async-banner" style="margin-bottom:1rem">
-                            <i class="fas fa-hourglass-half icon"></i>
-                            <div><p style="color:#5b21b6"><strong>This endpoint is always async.</strong> The call below returns a <code>job_id</code>, not your email result directly. See <a href="#async" style="color:#5b21b6;font-weight:700;text-decoration:underline">Sync vs Async</a> for the full polling flow.</p></div>
-                        </div>
                         <table class="params-table">
                             <thead><tr><th>Parameter</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
                             <tbody>
                                 <tr><td><code>input_data</code></td><td><code>string</code></td><td><span class="param-req req">Required</span></td><td>Full LinkedIn profile URL e.g. <code>https://linkedin.com/in/john-doe</code></td></tr>
                             </tbody>
                         </table>
-                        <div class="code-block-wrap">
-                            <div class="code-tabs">
-                                <button class="code-tab active" onclick="switchTab(this,'l-pe-curl')">1. Initial call</button>
-                                <button class="code-tab" onclick="switchTab(this,'l-pe-py')">2. Poll for result</button>
-                                <button class="code-tab" onclick="switchTab(this,'l-pe-response')">Full example (Python)</button>
-                            </div>
-                            <div id="l-pe-curl" class="code-pane active"><pre class="code-block"><span class="cm"># Always returns 202 — never the email directly</span>
-curl -X POST "https://api.linkfinderai.com" \
+                        <p style="font-size:0.8125rem;color:#5b21b6;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:6px;padding:0.6rem 0.875rem;margin-bottom:1rem"><i class="fas fa-hourglass-half"></i> <strong>Always async</strong> — this call returns a <code>job_id</code>, then you poll for the result. Request and poll shown side by side below.</p>
+                        <div class="response-grid">
+                            <div>
+                                <h4>1. Make the request</h4>
+                                <pre class="code-block" style="border-radius:8px">curl -X POST "https://api.linkfinderai.com" \
      -H "Content-Type: application/json" \
      -H "Authorization: Bearer <span class="st">YOUR_API_KEY</span>" \
      -d '{
@@ -948,40 +809,25 @@ curl -X POST "https://api.linkfinderai.com" \
        <span class="ky">"input_data"</span>: <span class="st">"https://linkedin.com/in/john-doe"</span>
      }'
 
-<span class="cm"># Response — HTTP 202</span>
+<span class="cm">// Returns immediately:</span>
 {
   <span class="ky">"job_id"</span>: <span class="st">"55600ed5-..."</span>,
   <span class="ky">"status"</span>: <span class="st">"processing"</span>,
   <span class="ky">"poll_url"</span>: <span class="st">"/status/55600ed5-..."</span>
-}</pre></div>
-                            <div id="l-pe-py" class="code-pane"><pre class="code-block"><span class="cm"># Poll this URL every 3-5 seconds</span>
-curl "https://api.linkfinderai.com/status/55600ed5-..." \
+}</pre>
+                            </div>
+                            <div>
+                                <h4>2. Poll for the result</h4>
+                                <pre class="code-block" style="border-radius:8px">curl "https://api.linkfinderai.com/status/55600ed5-..." \
      -H "Authorization: Bearer <span class="st">YOUR_API_KEY</span>"
 
-<span class="cm"># While processing</span>
-{ <span class="ky">"status"</span>: <span class="st">"processing"</span> }
-
-<span class="cm">// Once done</span>
+<span class="cm">// Repeat every 3-5s until:</span>
 {
   <span class="ky">"status"</span>: <span class="st">"done"</span>,
   <span class="ky">"http_status"</span>: <span class="nm">200</span>,
   <span class="ky">"data"</span>: { <span class="ky">"result"</span>: <span class="st">"john.doe@company.com"</span>, <span class="ky">"status"</span>: <span class="st">"success"</span> }
-}</pre></div>
-                            <div id="l-pe-response" class="code-pane"><pre class="code-block"><span class="cm">import</span> requests, time
-headers = {<span class="ky">"Authorization"</span>: f<span class="st">"Bearer {API_KEY}"</span>}
-
-r = requests.post(<span class="st">"https://api.linkfinderai.com"</span>, headers=headers, json={
-    <span class="ky">"type"</span>: <span class="st">"linkedin_profile_to_email"</span>,
-    <span class="ky">"input_data"</span>: <span class="st">"https://linkedin.com/in/john-doe"</span>
-})
-job_id = r.json()[<span class="st">"job_id"</span>]
-
-<span class="cm">while</span> <span class="nm">True</span>:
-    time.sleep(<span class="nm">3</span>)
-    s = requests.get(f<span class="st">"https://api.linkfinderai.com/status/{job_id}"</span>, headers=headers).json()
-    <span class="cm">if</span> s[<span class="st">"status"</span>] == <span class="st">"done"</span>:
-        <span class="cm">print</span>(s[<span class="st">"data"</span>][<span class="st">"result"</span>])  <span class="cm"># "john.doe@company.com"</span>
-        <span class="cm">break</span></pre></div>
+}</pre>
+                            </div>
                         </div>
                     </div>
                 </div>
