@@ -35,6 +35,7 @@
             --code-key: #7dd3fc;
             --code-string: #86efac;
             --code-method: #f472b6;
+            --async: #7c3aed;
             --sidebar-w: 260px;
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -77,6 +78,7 @@
         .sidebar-link.active { background: var(--primary); color: white; }
         .sidebar-link i { width: 14px; text-align: center; font-size: 0.75rem; flex-shrink: 0; }
         .sidebar-badge { margin-left: auto; font-size: 0.6rem; font-weight: 700; padding: 0.1rem 0.35rem; border-radius: 4px; background: var(--primary); color: white; text-transform: uppercase; }
+        .sidebar-badge.async { background: var(--async); }
 
         /* ── MAIN ── */
         .main { flex: 1; min-width: 0; }
@@ -117,6 +119,32 @@
         .info-box.green i { color: var(--success); }
         .info-box.yellow { background: #fffbeb; border: 1px solid #fde68a; color: #92400e; }
         .info-box.yellow i { color: var(--warning); }
+        .info-box.purple { background: #f5f3ff; border: 1px solid #ddd6fe; color: #5b21b6; }
+        .info-box.purple i { color: var(--async); }
+
+        /* ── ASYNC BANNER (endpoint-level) ── */
+        .async-banner {
+            background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
+            border: 1.5px solid var(--async);
+            border-radius: 8px;
+            padding: 1rem 1.125rem;
+            margin-bottom: 1.25rem;
+            display: flex;
+            gap: 0.75rem;
+        }
+        .async-banner i.icon { color: var(--async); font-size: 1.125rem; flex-shrink: 0; margin-top: 1px; }
+        .async-banner .title { font-weight: 700; color: #5b21b6; font-size: 0.9375rem; margin-bottom: 0.25rem; display: flex; align-items: center; gap: 0.5rem; }
+        .async-banner p { font-size: 0.84375rem; color: #5b21b6; }
+        .async-tag {
+            display: inline-flex; align-items: center; gap: 0.3rem;
+            font-size: 0.6875rem; font-weight: 700; padding: 0.2rem 0.55rem; border-radius: 5px;
+            background: var(--async); color: white; text-transform: uppercase; letter-spacing: 0.04em;
+        }
+        .sync-tag {
+            display: inline-flex; align-items: center; gap: 0.3rem;
+            font-size: 0.6875rem; font-weight: 700; padding: 0.2rem 0.55rem; border-radius: 5px;
+            background: var(--success); color: white; text-transform: uppercase; letter-spacing: 0.04em;
+        }
 
         /* ── STATS ROW ── */
         .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1.5rem; }
@@ -150,8 +178,10 @@
         /* ── ENDPOINT CARDS ── */
         .endpoint-card { border: 1px solid var(--gray-200); border-radius: 10px; margin-bottom: 1.25rem; overflow: hidden; }
         .endpoint-card.featured { border-color: var(--primary); box-shadow: 0 0 0 1px var(--primary), 0 4px 16px rgba(37,99,235,.08); }
+        .endpoint-card.is-async { border-color: var(--async); box-shadow: 0 0 0 1px var(--async), 0 4px 16px rgba(124,58,237,.1); }
         .endpoint-header { padding: 1rem 1.25rem; background: var(--gray-50); border-bottom: 1px solid var(--gray-200); display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; cursor: pointer; user-select: none; }
         .endpoint-card.featured .endpoint-header { background: #eff6ff; border-bottom-color: #bfdbfe; }
+        .endpoint-card.is-async .endpoint-header { background: #f5f3ff; border-bottom-color: #ddd6fe; }
         .endpoint-title-row { display: flex; align-items: center; gap: 0.625rem; flex-wrap: wrap; }
         .method-badge { font-size: 0.6875rem; font-weight: 700; padding: 0.2rem 0.5rem; border-radius: 4px; background: #dcfce7; color: #166534; font-family: 'JetBrains Mono', monospace; }
         .endpoint-name { font-size: 0.9375rem; font-weight: 600; color: var(--gray-900); }
@@ -175,6 +205,14 @@
         /* ── RESPONSE GRID ── */
         .response-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
         .response-grid h4 { font-size: 0.8125rem; font-weight: 600; color: var(--gray-700); margin-bottom: 0.5rem; }
+
+        /* ── ASYNC FLOW DIAGRAM ── */
+        .flow-steps { display: flex; flex-direction: column; gap: 0; margin-bottom: 1.25rem; border: 1px solid var(--gray-200); border-radius: 10px; overflow: hidden; }
+        .flow-step { display: flex; gap: 0.875rem; padding: 0.9rem 1.125rem; align-items: flex-start; background: white; }
+        .flow-step:not(:last-child) { border-bottom: 1px dashed var(--gray-200); }
+        .flow-num { width: 24px; height: 24px; border-radius: 50%; background: var(--async); color: white; font-size: 0.75rem; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
+        .flow-body h5 { font-size: 0.875rem; font-weight: 600; color: var(--gray-900); margin-bottom: 0.15rem; }
+        .flow-body p { font-size: 0.8125rem; color: var(--gray-600); }
 
         /* ── INTEGRATIONS ── */
         .integration-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
@@ -202,6 +240,7 @@
         .http-code.err4 { color: #dc2626; }
         .http-code.err5 { color: #9333ea; }
         .http-code.ok { color: var(--success); }
+        .http-code.async { color: var(--async); }
 
         @media (max-width: 900px) {
             .sidebar { display: none; }
@@ -262,6 +301,7 @@
             <div class="sidebar-section-label">Getting started</div>
             <a href="#quickstart" class="sidebar-link"><i class="fas fa-rocket"></i> Quick Start</a>
             <a href="#auth" class="sidebar-link"><i class="fas fa-key"></i> Authentication</a>
+            <a href="#async" class="sidebar-link"><i class="fas fa-clock-rotate-left"></i> Sync vs Async <span class="sidebar-badge async">Read me</span></a>
             <a href="#credits" class="sidebar-link"><i class="fas fa-coins"></i> Credits &amp; Limits</a>
             <a href="#errors" class="sidebar-link"><i class="fas fa-exclamation-circle"></i> Error Codes</a>
         </div>
@@ -329,7 +369,7 @@
                         <div class="qs-num">3</div>
                         <div class="qs-body">
                             <h4>Handle the response</h4>
-                            <p>Every response includes a <code>status</code> field (<code>"success"</code> or <code>"error"</code>) and a <code>result</code> field with your data.</p>
+                            <p>Every response includes a <code>status</code> field (<code>"success"</code> or <code>"error"</code>) and a <code>result</code> field with your data. <strong>Two endpoints respond differently</strong> — see <a href="#async">Sync vs Async</a> below.</p>
                         </div>
                     </div>
                 </div>
@@ -439,6 +479,156 @@ console.log(data.result); <span class="cm">// "tesla.com"</span></pre>
                 </div>
             </div>
 
+            <!-- ══ SYNC VS ASYNC (NEW, CRITICAL SECTION) ══ -->
+            <div class="doc-section" id="async">
+                <h2 class="section-heading"><i class="fas fa-clock-rotate-left"></i> Sync vs Async Requests</h2>
+                <p class="section-sub"><strong>Read this before integrating.</strong> Most endpoints respond immediately. Two endpoints always respond asynchronously and require a follow-up call to get your result.</p>
+
+                <div class="async-banner">
+                    <i class="fas fa-triangle-exclamation icon"></i>
+                    <div>
+                        <div class="title">These 2 endpoints are always async — no exceptions:</div>
+                        <p><code>linkedin_profile_to_email</code> and <code>linkedin_profile_to_linkedin_info</code> involve live scraping and never return your data in the initial response. They always return a <code>job_id</code> immediately (HTTP <code>202</code>), and you poll a second endpoint to retrieve the result. Every other endpoint on this page responds synchronously with your data in a single call.</p>
+                    </div>
+                </div>
+
+                <table class="rate-table" style="margin-bottom:1.25rem">
+                    <thead>
+                        <tr><th>Behavior</th><th>Applies to</th><th>What you get back</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><span class="sync-tag"><i class="fas fa-bolt"></i> Sync</span></td>
+                            <td>All endpoints except the 2 below</td>
+                            <td>Your result, directly, in the same response (usually &lt;3s)</td>
+                        </tr>
+                        <tr>
+                            <td><span class="async-tag"><i class="fas fa-hourglass-half"></i> Always async</span></td>
+                            <td><code>linkedin_profile_to_email</code><br><code>linkedin_profile_to_linkedin_info</code></td>
+                            <td>A <code>job_id</code> immediately — poll <code>/status/:job_id</code> for the result</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3 style="font-size:1.0625rem; font-weight:600; margin-bottom:0.75rem; color:var(--gray-900)">How the async flow works</h3>
+
+                <div class="flow-steps">
+                    <div class="flow-step">
+                        <div class="flow-num">1</div>
+                        <div class="flow-body">
+                            <h5>Call the endpoint as normal</h5>
+                            <p>Same request shape as any other endpoint — <code>type</code> + <code>input_data</code>, same auth header.</p>
+                        </div>
+                    </div>
+                    <div class="flow-step">
+                        <div class="flow-num">2</div>
+                        <div class="flow-body">
+                            <h5>Receive HTTP 202 immediately</h5>
+                            <p>The response body contains <code>job_id</code>, <code>status: "processing"</code>, and <code>poll_url</code>. No result is included yet — this is expected, not an error.</p>
+                        </div>
+                    </div>
+                    <div class="flow-step">
+                        <div class="flow-num">3</div>
+                        <div class="flow-body">
+                            <h5>Poll the status endpoint</h5>
+                            <p>Send <code>GET</code> requests to <code>poll_url</code> every 3–5 seconds until <code>status</code> changes to <code>"done"</code> or <code>"error"</code>.</p>
+                        </div>
+                    </div>
+                    <div class="flow-step">
+                        <div class="flow-num">4</div>
+                        <div class="flow-body">
+                            <h5>Read your result</h5>
+                            <p>Once <code>status: "done"</code>, the <code>data</code> field contains your result, in the same shape as a normal sync response. Job results are kept for <strong>10 minutes</strong> — poll before then.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="code-block-wrap">
+                    <div class="code-tabs">
+                        <button class="code-tab active" onclick="switchTab(this, 'async-step1')">1. Initial call</button>
+                        <button class="code-tab" onclick="switchTab(this, 'async-step2')">2. Poll for result</button>
+                        <button class="code-tab" onclick="switchTab(this, 'async-python')">Full Python example</button>
+                    </div>
+                    <div id="async-step1" class="code-pane active">
+<pre class="code-block"><span class="cm"># Step 1 — call as usual. This always returns 202, never the result directly.</span>
+curl -X POST "https://api.linkfinderai.com" \
+     -H "Content-Type: application/json" \
+     -H "Authorization: Bearer <span class="st">YOUR_API_KEY</span>" \
+     -d '{
+       <span class="ky">"type"</span>: <span class="st">"linkedin_profile_to_email"</span>,
+       <span class="ky">"input_data"</span>: <span class="st">"https://linkedin.com/in/john-doe"</span>
+     }'
+
+<span class="cm"># Response — HTTP 202</span>
+{
+  <span class="ky">"job_id"</span>: <span class="st">"55600ed5-a150-4a69-aa3d-9d11baf11fe5"</span>,
+  <span class="ky">"status"</span>: <span class="st">"processing"</span>,
+  <span class="ky">"poll_url"</span>: <span class="st">"/status/55600ed5-a150-4a69-aa3d-9d11baf11fe5"</span>
+}</pre>
+                    </div>
+                    <div id="async-step2" class="code-pane">
+<pre class="code-block"><span class="cm"># Step 2 — poll every few seconds until status is "done"</span>
+curl "https://api.linkfinderai.com/status/55600ed5-a150-4a69-aa3d-9d11baf11fe5" \
+     -H "Authorization: Bearer <span class="st">YOUR_API_KEY</span>"
+
+<span class="cm"># While still running</span>
+{ <span class="ky">"status"</span>: <span class="st">"processing"</span> }
+
+<span class="cm">// Once complete</span>
+{
+  <span class="ky">"status"</span>: <span class="st">"done"</span>,
+  <span class="ky">"http_status"</span>: <span class="nm">200</span>,
+  <span class="ky">"data"</span>: {
+    <span class="ky">"result"</span>: <span class="st">"john.doe@company.com"</span>,
+    <span class="ky">"status"</span>: <span class="st">"success"</span>
+  }
+}
+
+<span class="cm">// If the lookup failed</span>
+{
+  <span class="ky">"status"</span>: <span class="st">"error"</span>,
+  <span class="ky">"message"</span>: <span class="st">"Email not found"</span>
+}</pre>
+                    </div>
+                    <div id="async-python" class="code-pane">
+<pre class="code-block"><span class="cm">import</span> requests, time
+
+API_KEY = <span class="st">"YOUR_API_KEY"</span>
+BASE = <span class="st">"https://api.linkfinderai.com"</span>
+headers = {<span class="ky">"Authorization"</span>: f<span class="st">"Bearer {API_KEY}"</span>, <span class="ky">"Content-Type"</span>: <span class="st">"application/json"</span>}
+
+<span class="cm"># Step 1: kick off the async job</span>
+r = requests.post(BASE, headers=headers, json={
+    <span class="ky">"type"</span>: <span class="st">"linkedin_profile_to_email"</span>,
+    <span class="ky">"input_data"</span>: <span class="st">"https://linkedin.com/in/john-doe"</span>
+})
+job = r.json()
+job_id = job[<span class="st">"job_id"</span>]
+
+<span class="cm"># Step 2: poll until done</span>
+<span class="cm">while</span> <span class="nm">True</span>:
+    time.sleep(<span class="nm">3</span>)
+    status = requests.get(f<span class="st">"{BASE}/status/{job_id}"</span>, headers=headers).json()
+    <span class="cm">if</span> status[<span class="st">"status"</span>] == <span class="st">"done"</span>:
+        <span class="cm">print</span>(status[<span class="st">"data"</span>][<span class="st">"result"</span>])
+        <span class="cm">break</span>
+    <span class="cm">elif</span> status[<span class="st">"status"</span>] == <span class="st">"error"</span>:
+        <span class="cm">print</span>(<span class="st">"Failed:"</span>, status[<span class="st">"message"</span>])
+        <span class="cm">break</span></pre>
+                    </div>
+                </div>
+
+                <div class="info-box purple">
+                    <i class="fas fa-circle-info"></i>
+                    <div><strong>Why these two are async:</strong> finding an email or full profile from a LinkedIn URL requires live scraping, which can occasionally take longer than a normal HTTP request allows. Rather than risk a timeout with no result, these endpoints always hand you a <code>job_id</code> immediately so you never lose a lookup to a slow response.</div>
+                </div>
+
+                <div class="info-box yellow">
+                    <i class="fas fa-triangle-exclamation"></i>
+                    <div><strong>Common integration mistake:</strong> treating the <code>202</code> response as an error. It isn't — <code>status: "processing"</code> with a <code>job_id</code> is the expected, successful response for these two endpoints. Your integration must poll <code>poll_url</code> to get the actual result.</div>
+                </div>
+            </div>
+
             <!-- ══ CREDITS & LIMITS ══ -->
             <div class="doc-section" id="credits">
                 <h2 class="section-heading"><i class="fas fa-coins"></i> Credits &amp; Rate Limits</h2>
@@ -479,6 +669,7 @@ console.log(data.result); <span class="cm">// "tesla.com"</span></pre>
                                 <span class="method-badge">POST</span>
                                 <span class="endpoint-name">leads_finder_ai</span>
                                 <span class="new-badge">New</span>
+                                <span class="sync-tag"><i class="fas fa-bolt"></i> Sync</span>
                             </div>
                             <div class="endpoint-desc">Natural language lead search — returns full profiles with email, LinkedIn, and company data</div>
                         </div>
@@ -586,13 +777,13 @@ leads.forEach(lead => console.log(lead.full_name, lead.email));</pre>
             <!-- ══ COMPANY ENRICHMENT ══ -->
             <div class="doc-section" id="company">
                 <h2 class="section-heading"><i class="fas fa-building"></i> Company Enrichment</h2>
-                <p class="section-sub">Look up company details from a name or domain. Each request costs 1 credit.</p>
+                <p class="section-sub">Look up company details from a name or domain. Each request costs 1 credit. All endpoints in this section are <span class="sync-tag"><i class="fas fa-bolt"></i> Sync</span>.</p>
 
                 <!-- Company → Website -->
                 <div class="endpoint-card">
                     <div class="endpoint-header" onclick="toggleEndpoint(this)">
                         <div>
-                            <div class="endpoint-title-row"><span class="method-badge">POST</span><span class="endpoint-name">company_name_to_website</span></div>
+                            <div class="endpoint-title-row"><span class="method-badge">POST</span><span class="endpoint-name">company_name_to_website</span><span class="sync-tag"><i class="fas fa-bolt"></i> Sync</span></div>
                             <div class="endpoint-desc">Find a company's official website from its name</div>
                         </div>
                         <div style="display:flex;align-items:center;gap:.5rem"><span class="credit-pill">1 credit</span><i class="fas fa-chevron-down endpoint-chevron"></i></div>
@@ -615,7 +806,7 @@ leads.forEach(lead => console.log(lead.full_name, lead.email));</pre>
                 <!-- Company → Phone -->
                 <div class="endpoint-card">
                     <div class="endpoint-header" onclick="toggleEndpoint(this)">
-                        <div><div class="endpoint-title-row"><span class="method-badge">POST</span><span class="endpoint-name">company_name_to_phone</span></div><div class="endpoint-desc">Get company contact phone number from company name</div></div>
+                        <div><div class="endpoint-title-row"><span class="method-badge">POST</span><span class="endpoint-name">company_name_to_phone</span><span class="sync-tag"><i class="fas fa-bolt"></i> Sync</span></div><div class="endpoint-desc">Get company contact phone number from company name</div></div>
                         <div style="display:flex;align-items:center;gap:.5rem"><span class="credit-pill">1 credit</span><i class="fas fa-chevron-down endpoint-chevron"></i></div>
                     </div>
                     <div class="endpoint-body"><div class="code-block-wrap"><div class="code-tabs"><button class="code-tab active" onclick="switchTab(this,'c2-curl')">cURL</button></div><div id="c2-curl" class="code-pane active"><pre class="code-block">curl -X POST "https://api.linkfinderai.com" \
@@ -627,7 +818,7 @@ leads.forEach(lead => console.log(lead.full_name, lead.email));</pre>
                 <!-- Company → Email -->
                 <div class="endpoint-card">
                     <div class="endpoint-header" onclick="toggleEndpoint(this)">
-                        <div><div class="endpoint-title-row"><span class="method-badge">POST</span><span class="endpoint-name">company_name_to_email</span></div><div class="endpoint-desc">Get company contact email address from company name</div></div>
+                        <div><div class="endpoint-title-row"><span class="method-badge">POST</span><span class="endpoint-name">company_name_to_email</span><span class="sync-tag"><i class="fas fa-bolt"></i> Sync</span></div><div class="endpoint-desc">Get company contact email address from company name</div></div>
                         <div style="display:flex;align-items:center;gap:.5rem"><span class="credit-pill">1 credit</span><i class="fas fa-chevron-down endpoint-chevron"></i></div>
                     </div>
                     <div class="endpoint-body"><div class="code-block-wrap"><div class="code-tabs"><button class="code-tab active" onclick="switchTab(this,'c3-curl')">cURL</button></div><div id="c3-curl" class="code-pane active"><pre class="code-block">curl -X POST "https://api.linkfinderai.com" \
@@ -639,7 +830,7 @@ leads.forEach(lead => console.log(lead.full_name, lead.email));</pre>
                 <!-- Company → Employee Count -->
                 <div class="endpoint-card">
                     <div class="endpoint-header" onclick="toggleEndpoint(this)">
-                        <div><div class="endpoint-title-row"><span class="method-badge">POST</span><span class="endpoint-name">company_name_to_employee_count</span></div><div class="endpoint-desc">Get total employee count from company name</div></div>
+                        <div><div class="endpoint-title-row"><span class="method-badge">POST</span><span class="endpoint-name">company_name_to_employee_count</span><span class="sync-tag"><i class="fas fa-bolt"></i> Sync</span></div><div class="endpoint-desc">Get total employee count from company name</div></div>
                         <div style="display:flex;align-items:center;gap:.5rem"><span class="credit-pill">1 credit</span><i class="fas fa-chevron-down endpoint-chevron"></i></div>
                     </div>
                     <div class="endpoint-body"><div class="code-block-wrap"><div class="code-tabs"><button class="code-tab active" onclick="switchTab(this,'c4-curl')">cURL</button></div><div id="c4-curl" class="code-pane active"><pre class="code-block">curl -X POST "https://api.linkfinderai.com" \
@@ -651,7 +842,7 @@ leads.forEach(lead => console.log(lead.full_name, lead.email));</pre>
                 <!-- Company → LinkedIn URL -->
                 <div class="endpoint-card">
                     <div class="endpoint-header" onclick="toggleEndpoint(this)">
-                        <div><div class="endpoint-title-row"><span class="method-badge">POST</span><span class="endpoint-name">company_name_to_linkedin_url</span></div><div class="endpoint-desc">Find company LinkedIn profile URL from company name</div></div>
+                        <div><div class="endpoint-title-row"><span class="method-badge">POST</span><span class="endpoint-name">company_name_to_linkedin_url</span><span class="sync-tag"><i class="fas fa-bolt"></i> Sync</span></div><div class="endpoint-desc">Find company LinkedIn profile URL from company name</div></div>
                         <div style="display:flex;align-items:center;gap:.5rem"><span class="credit-pill">1 credit</span><i class="fas fa-chevron-down endpoint-chevron"></i></div>
                     </div>
                     <div class="endpoint-body"><div class="code-block-wrap"><div class="code-tabs"><button class="code-tab active" onclick="switchTab(this,'c5-curl')">cURL</button></div><div id="c5-curl" class="code-pane active"><pre class="code-block">curl -X POST "https://api.linkfinderai.com" \
@@ -663,7 +854,7 @@ leads.forEach(lead => console.log(lead.full_name, lead.email));</pre>
                 <!-- Domain → Employees -->
                 <div class="endpoint-card">
                     <div class="endpoint-header" onclick="toggleEndpoint(this)">
-                        <div><div class="endpoint-title-row"><span class="method-badge">POST</span><span class="endpoint-name">company_domain_to_employees</span></div><div class="endpoint-desc">Get a filtered list of employees from a company domain — filter by department and seniority</div></div>
+                        <div><div class="endpoint-title-row"><span class="method-badge">POST</span><span class="endpoint-name">company_domain_to_employees</span><span class="sync-tag"><i class="fas fa-bolt"></i> Sync</span></div><div class="endpoint-desc">Get a filtered list of employees from a company domain — filter by department and seniority</div></div>
                         <div style="display:flex;align-items:center;gap:.5rem"><span class="credit-pill">1 credit / employee</span><i class="fas fa-chevron-down endpoint-chevron"></i></div>
                     </div>
                     <div class="endpoint-body">
@@ -693,32 +884,49 @@ leads.forEach(lead => console.log(lead.full_name, lead.email));</pre>
             <!-- ══ LINKEDIN SCRAPING ══ -->
             <div class="doc-section" id="linkedin">
                 <h2 class="section-heading"><i class="fab fa-linkedin"></i> B2B Data Lookup</h2>
-                <p class="section-sub">Look up business contacts profiles, company pages, and posts without using your own LinkedIn account. Zero ban risk.</p>
+                <p class="section-sub">Look up business contacts profiles, company pages, and posts without using your own LinkedIn account. Zero ban risk. <strong>Two endpoints below are async</strong> — look for the purple <span class="async-tag"><i class="fas fa-hourglass-half"></i> Async</span> tag.</p>
 
                 <!-- LinkedIn Profile → Info -->
-                <div class="endpoint-card">
+                <div class="endpoint-card is-async">
                     <div class="endpoint-header" onclick="toggleEndpoint(this)">
-                        <div><div class="endpoint-title-row"><span class="method-badge">POST</span><span class="endpoint-name">linkedin_profile_to_linkedin_info</span></div><div class="endpoint-desc">Extract full profile data from a LinkedIn profile URL</div></div>
-                        <div style="display:flex;align-items:center;gap:.5rem"><span class="credit-pill">1 credit</span><i class="fas fa-chevron-down endpoint-chevron"></i></div>
-                    </div>
-                    <div class="endpoint-body"><div class="code-block-wrap"><div class="code-tabs"><button class="code-tab active" onclick="switchTab(this,'l1-curl')">cURL</button><button class="code-tab" onclick="switchTab(this,'l1-py')">Python</button></div>
-                    <div id="l1-curl" class="code-pane active"><pre class="code-block">curl -X POST "https://api.linkfinderai.com" \
-     -H "Content-Type: application/json" \
-     -H "Authorization: Bearer <span class="st">YOUR_API_KEY</span>" \
-     -d '{"type": <span class="st">"linkedin_profile_to_linkedin_info"</span>, "input_data": <span class="st">"https://linkedin.com/in/john-doe"</span>}'</pre></div>
-                    <div id="l1-py" class="code-pane"><pre class="code-block">requests.post(url, headers=headers, json={
-    <span class="ky">"type"</span>: <span class="st">"linkedin_profile_to_linkedin_info"</span>,
-    <span class="ky">"input_data"</span>: <span class="st">"https://linkedin.com/in/john-doe"</span>
-})</pre></div></div></div>
-                </div>
-
-                <!-- ✦ NEW: LinkedIn Profile → Email -->
-                <div class="endpoint-card">
-                    <div class="endpoint-header" onclick="toggleEndpoint(this)">
-                        <div><div class="endpoint-title-row"><span class="method-badge">POST</span><span class="endpoint-name">linkedin_profile_to_email</span></div><div class="endpoint-desc">Find a person's professional email address from their LinkedIn profile URL</div></div>
+                        <div><div class="endpoint-title-row"><span class="method-badge">POST</span><span class="endpoint-name">linkedin_profile_to_linkedin_info</span><span class="async-tag"><i class="fas fa-hourglass-half"></i> Async</span></div><div class="endpoint-desc">Extract full profile data from a LinkedIn profile URL</div></div>
                         <div style="display:flex;align-items:center;gap:.5rem"><span class="credit-pill">1 credit</span><i class="fas fa-chevron-down endpoint-chevron"></i></div>
                     </div>
                     <div class="endpoint-body">
+                        <div class="async-banner" style="margin-bottom:1rem">
+                            <i class="fas fa-hourglass-half icon"></i>
+                            <div><p style="color:#5b21b6"><strong>This endpoint is always async.</strong> The call below returns a <code>job_id</code>, not your data. See <a href="#async" style="color:#5b21b6;font-weight:700;text-decoration:underline">Sync vs Async</a> for the full polling flow.</p></div>
+                        </div>
+                        <div class="code-block-wrap"><div class="code-tabs"><button class="code-tab active" onclick="switchTab(this,'l1-curl')">cURL</button><button class="code-tab" onclick="switchTab(this,'l1-py')">Python</button><button class="code-tab" onclick="switchTab(this,'l1-response')">Response</button></div>
+                        <div id="l1-curl" class="code-pane active"><pre class="code-block">curl -X POST "https://api.linkfinderai.com" \
+     -H "Content-Type: application/json" \
+     -H "Authorization: Bearer <span class="st">YOUR_API_KEY</span>" \
+     -d '{"type": <span class="st">"linkedin_profile_to_linkedin_info"</span>, "input_data": <span class="st">"https://linkedin.com/in/john-doe"</span>}'</pre></div>
+                        <div id="l1-py" class="code-pane"><pre class="code-block">requests.post(url, headers=headers, json={
+    <span class="ky">"type"</span>: <span class="st">"linkedin_profile_to_linkedin_info"</span>,
+    <span class="ky">"input_data"</span>: <span class="st">"https://linkedin.com/in/john-doe"</span>
+})
+<span class="cm"># Returns 202 with a job_id — poll /status/:job_id for the actual profile data</span></pre></div>
+                        <div id="l1-response" class="code-pane"><pre class="code-block"><span class="cm">// Immediate response — HTTP 202 (always, this endpoint never returns data directly)</span>
+{
+  <span class="ky">"job_id"</span>: <span class="st">"c9f1e2a0-..."</span>,
+  <span class="ky">"status"</span>: <span class="st">"processing"</span>,
+  <span class="ky">"poll_url"</span>: <span class="st">"/status/c9f1e2a0-..."</span>
+}</pre></div></div>
+                    </div>
+                </div>
+
+                <!-- ✦ NEW: LinkedIn Profile → Email -->
+                <div class="endpoint-card is-async">
+                    <div class="endpoint-header" onclick="toggleEndpoint(this)">
+                        <div><div class="endpoint-title-row"><span class="method-badge">POST</span><span class="endpoint-name">linkedin_profile_to_email</span><span class="async-tag"><i class="fas fa-hourglass-half"></i> Async</span></div><div class="endpoint-desc">Find a person's professional email address from their LinkedIn profile URL</div></div>
+                        <div style="display:flex;align-items:center;gap:.5rem"><span class="credit-pill">1 credit</span><i class="fas fa-chevron-down endpoint-chevron"></i></div>
+                    </div>
+                    <div class="endpoint-body">
+                        <div class="async-banner" style="margin-bottom:1rem">
+                            <i class="fas fa-hourglass-half icon"></i>
+                            <div><p style="color:#5b21b6"><strong>This endpoint is always async.</strong> The call below returns a <code>job_id</code>, not your email result directly. See <a href="#async" style="color:#5b21b6;font-weight:700;text-decoration:underline">Sync vs Async</a> for the full polling flow.</p></div>
+                        </div>
                         <table class="params-table">
                             <thead><tr><th>Parameter</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
                             <tbody>
@@ -727,34 +935,53 @@ leads.forEach(lead => console.log(lead.full_name, lead.email));</pre>
                         </table>
                         <div class="code-block-wrap">
                             <div class="code-tabs">
-                                <button class="code-tab active" onclick="switchTab(this,'l-pe-curl')">cURL</button>
-                                <button class="code-tab" onclick="switchTab(this,'l-pe-py')">Python</button>
-                                <button class="code-tab" onclick="switchTab(this,'l-pe-response')">Response</button>
+                                <button class="code-tab active" onclick="switchTab(this,'l-pe-curl')">1. Initial call</button>
+                                <button class="code-tab" onclick="switchTab(this,'l-pe-py')">2. Poll for result</button>
+                                <button class="code-tab" onclick="switchTab(this,'l-pe-response')">Full example (Python)</button>
                             </div>
-                            <div id="l-pe-curl" class="code-pane active"><pre class="code-block">curl -X POST "https://api.linkfinderai.com" \
+                            <div id="l-pe-curl" class="code-pane active"><pre class="code-block"><span class="cm"># Always returns 202 — never the email directly</span>
+curl -X POST "https://api.linkfinderai.com" \
      -H "Content-Type: application/json" \
      -H "Authorization: Bearer <span class="st">YOUR_API_KEY</span>" \
      -d '{
        <span class="ky">"type"</span>: <span class="st">"linkedin_profile_to_email"</span>,
        <span class="ky">"input_data"</span>: <span class="st">"https://linkedin.com/in/john-doe"</span>
-     }'</pre></div>
-                            <div id="l-pe-py" class="code-pane"><pre class="code-block">response = requests.post(url, headers=headers, json={
+     }'
+
+<span class="cm"># Response — HTTP 202</span>
+{
+  <span class="ky">"job_id"</span>: <span class="st">"55600ed5-..."</span>,
+  <span class="ky">"status"</span>: <span class="st">"processing"</span>,
+  <span class="ky">"poll_url"</span>: <span class="st">"/status/55600ed5-..."</span>
+}</pre></div>
+                            <div id="l-pe-py" class="code-pane"><pre class="code-block"><span class="cm"># Poll this URL every 3-5 seconds</span>
+curl "https://api.linkfinderai.com/status/55600ed5-..." \
+     -H "Authorization: Bearer <span class="st">YOUR_API_KEY</span>"
+
+<span class="cm"># While processing</span>
+{ <span class="ky">"status"</span>: <span class="st">"processing"</span> }
+
+<span class="cm">// Once done</span>
+{
+  <span class="ky">"status"</span>: <span class="st">"done"</span>,
+  <span class="ky">"http_status"</span>: <span class="nm">200</span>,
+  <span class="ky">"data"</span>: { <span class="ky">"result"</span>: <span class="st">"john.doe@company.com"</span>, <span class="ky">"status"</span>: <span class="st">"success"</span> }
+}</pre></div>
+                            <div id="l-pe-response" class="code-pane"><pre class="code-block"><span class="cm">import</span> requests, time
+headers = {<span class="ky">"Authorization"</span>: f<span class="st">"Bearer {API_KEY}"</span>}
+
+r = requests.post(<span class="st">"https://api.linkfinderai.com"</span>, headers=headers, json={
     <span class="ky">"type"</span>: <span class="st">"linkedin_profile_to_email"</span>,
     <span class="ky">"input_data"</span>: <span class="st">"https://linkedin.com/in/john-doe"</span>
 })
-<span class="cm">print</span>(response.json()[<span class="st">"result"</span>])  <span class="cm"># "john.doe@company.com"</span></pre></div>
-                            <div id="l-pe-response" class="code-pane"><pre class="code-block"><span class="cm">// Success</span>
-{
-  <span class="ky">"result"</span>: <span class="st">"john.doe@company.com"</span>,
-  <span class="ky">"status"</span>: <span class="st">"success"</span>
-}
+job_id = r.json()[<span class="st">"job_id"</span>]
 
-<span class="cm">// Not found</span>
-{
-  <span class="ky">"result"</span>: <span class="nm">null</span>,
-  <span class="ky">"status"</span>: <span class="st">"error"</span>,
-  <span class="ky">"message"</span>: <span class="st">"Email not found"</span>
-}</pre></div>
+<span class="cm">while</span> <span class="nm">True</span>:
+    time.sleep(<span class="nm">3</span>)
+    s = requests.get(f<span class="st">"https://api.linkfinderai.com/status/{job_id}"</span>, headers=headers).json()
+    <span class="cm">if</span> s[<span class="st">"status"</span>] == <span class="st">"done"</span>:
+        <span class="cm">print</span>(s[<span class="st">"data"</span>][<span class="st">"result"</span>])  <span class="cm"># "john.doe@company.com"</span>
+        <span class="cm">break</span></pre></div>
                         </div>
                     </div>
                 </div>
@@ -762,7 +989,7 @@ leads.forEach(lead => console.log(lead.full_name, lead.email));</pre>
                 <!-- ✦ NEW: LinkedIn Profile → Phone -->
                 <div class="endpoint-card">
                     <div class="endpoint-header" onclick="toggleEndpoint(this)">
-                        <div><div class="endpoint-title-row"><span class="method-badge">POST</span><span class="endpoint-name">linkedin_profile_to_phone</span></div><div class="endpoint-desc">Find a person's phone number from their LinkedIn profile URL</div></div>
+                        <div><div class="endpoint-title-row"><span class="method-badge">POST</span><span class="endpoint-name">linkedin_profile_to_phone</span><span class="sync-tag"><i class="fas fa-bolt"></i> Sync</span></div><div class="endpoint-desc">Find a person's phone number from their LinkedIn profile URL</div></div>
                         <div style="display:flex;align-items:center;gap:.5rem"><span class="credit-pill">1 credit</span><i class="fas fa-chevron-down endpoint-chevron"></i></div>
                     </div>
                     <div class="endpoint-body">
@@ -803,13 +1030,17 @@ leads.forEach(lead => console.log(lead.full_name, lead.email));</pre>
   <span class="ky">"message"</span>: <span class="st">"Phone not found"</span>
 }</pre></div>
                         </div>
+                        <div class="info-box blue" style="margin-top:.75rem">
+                            <i class="fas fa-circle-info"></i>
+                            <div>This endpoint is normally sync and resolves quickly. In rare cases where a lookup takes unusually long, you may receive a <code>202</code> with a <code>job_id</code> instead — if so, follow the same polling flow described in <a href="#async">Sync vs Async</a>.</div>
+                        </div>
                     </div>
                 </div>
 
                 <!-- LinkedIn Company → Info -->
                 <div class="endpoint-card">
                     <div class="endpoint-header" onclick="toggleEndpoint(this)">
-                        <div><div class="endpoint-title-row"><span class="method-badge">POST</span><span class="endpoint-name">linkedin_company_to_linkedin_info</span></div><div class="endpoint-desc">Extract detailed company data from a LinkedIn company page URL</div></div>
+                        <div><div class="endpoint-title-row"><span class="method-badge">POST</span><span class="endpoint-name">linkedin_company_to_linkedin_info</span><span class="sync-tag"><i class="fas fa-bolt"></i> Sync</span></div><div class="endpoint-desc">Extract detailed company data from a LinkedIn company page URL</div></div>
                         <div style="display:flex;align-items:center;gap:.5rem"><span class="credit-pill">1 credit</span><i class="fas fa-chevron-down endpoint-chevron"></i></div>
                     </div>
                     <div class="endpoint-body"><div class="code-block-wrap"><div class="code-tabs"><button class="code-tab active" onclick="switchTab(this,'l2-curl')">cURL</button></div><div id="l2-curl" class="code-pane active"><pre class="code-block">curl -X POST "https://api.linkfinderai.com" \
@@ -821,7 +1052,7 @@ leads.forEach(lead => console.log(lead.full_name, lead.email));</pre>
                 <!-- LinkedIn Company → Employee Count -->
                 <div class="endpoint-card">
                     <div class="endpoint-header" onclick="toggleEndpoint(this)">
-                        <div><div class="endpoint-title-row"><span class="method-badge">POST</span><span class="endpoint-name">linkedin_company_to_employee_count</span></div><div class="endpoint-desc">Get employee count from a LinkedIn company page URL</div></div>
+                        <div><div class="endpoint-title-row"><span class="method-badge">POST</span><span class="endpoint-name">linkedin_company_to_employee_count</span><span class="sync-tag"><i class="fas fa-bolt"></i> Sync</span></div><div class="endpoint-desc">Get employee count from a LinkedIn company page URL</div></div>
                         <div style="display:flex;align-items:center;gap:.5rem"><span class="credit-pill">1 credit</span><i class="fas fa-chevron-down endpoint-chevron"></i></div>
                     </div>
                     <div class="endpoint-body"><div class="code-block-wrap"><div class="code-tabs"><button class="code-tab active" onclick="switchTab(this,'l3-curl')">cURL</button></div><div id="l3-curl" class="code-pane active"><pre class="code-block">curl -X POST "https://api.linkfinderai.com" \
@@ -833,7 +1064,7 @@ leads.forEach(lead => console.log(lead.full_name, lead.email));</pre>
                 <!-- Full Name → LinkedIn URL -->
                 <div class="endpoint-card">
                     <div class="endpoint-header" onclick="toggleEndpoint(this)">
-                        <div><div class="endpoint-title-row"><span class="method-badge">POST</span><span class="endpoint-name">lead_full_name_to_linkedin_url</span></div><div class="endpoint-desc">Find a person's LinkedIn URL from their full name and company</div></div>
+                        <div><div class="endpoint-title-row"><span class="method-badge">POST</span><span class="endpoint-name">lead_full_name_to_linkedin_url</span><span class="sync-tag"><i class="fas fa-bolt"></i> Sync</span></div><div class="endpoint-desc">Find a person's LinkedIn URL from their full name and company</div></div>
                         <div style="display:flex;align-items:center;gap:.5rem"><span class="credit-pill">1 credit</span><i class="fas fa-chevron-down endpoint-chevron"></i></div>
                     </div>
                     <div class="endpoint-body"><div class="code-block-wrap"><div class="code-tabs"><button class="code-tab active" onclick="switchTab(this,'l4-curl')">cURL</button></div><div id="l4-curl" class="code-pane active"><pre class="code-block">curl -X POST "https://api.linkfinderai.com" \
@@ -845,7 +1076,7 @@ leads.forEach(lead => console.log(lead.full_name, lead.email));</pre>
                 <!-- ✦ NEW: Email → LinkedIn URL -->
                 <div class="endpoint-card">
                     <div class="endpoint-header" onclick="toggleEndpoint(this)">
-                        <div><div class="endpoint-title-row"><span class="method-badge">POST</span><span class="endpoint-name">email_to_linkedin_url</span></div><div class="endpoint-desc">Reverse-lookup a person's LinkedIn profile URL from their email address</div></div>
+                        <div><div class="endpoint-title-row"><span class="method-badge">POST</span><span class="endpoint-name">email_to_linkedin_url</span><span class="sync-tag"><i class="fas fa-bolt"></i> Sync</span></div><div class="endpoint-desc">Reverse-lookup a person's LinkedIn profile URL from their email address</div></div>
                         <div style="display:flex;align-items:center;gap:.5rem"><span class="credit-pill">1 credit</span><i class="fas fa-chevron-down endpoint-chevron"></i></div>
                     </div>
                     <div class="endpoint-body">
@@ -892,7 +1123,7 @@ leads.forEach(lead => console.log(lead.full_name, lead.email));</pre>
                 <!-- LinkedIn Post → Reactions -->
                 <div class="endpoint-card">
                     <div class="endpoint-header" onclick="toggleEndpoint(this)">
-                        <div><div class="endpoint-title-row"><span class="method-badge">POST</span><span class="endpoint-name">linkedin_post_to_reactions</span></div><div class="endpoint-desc">Get a list of people who reacted to a LinkedIn post</div></div>
+                        <div><div class="endpoint-title-row"><span class="method-badge">POST</span><span class="endpoint-name">linkedin_post_to_reactions</span><span class="sync-tag"><i class="fas fa-bolt"></i> Sync</span></div><div class="endpoint-desc">Get a list of people who reacted to a LinkedIn post</div></div>
                         <div style="display:flex;align-items:center;gap:.5rem"><span class="credit-pill">1 credit / profile</span><i class="fas fa-chevron-down endpoint-chevron"></i></div>
                     </div>
                     <div class="endpoint-body"><div class="code-block-wrap"><div class="code-tabs"><button class="code-tab active" onclick="switchTab(this,'l5-curl')">cURL</button></div><div id="l5-curl" class="code-pane active"><pre class="code-block">curl -X POST "https://api.linkfinderai.com" \
@@ -908,7 +1139,7 @@ leads.forEach(lead => console.log(lead.full_name, lead.email));</pre>
                 <p class="section-sub">Extract profile data from public Instagram accounts.</p>
                 <div class="endpoint-card">
                     <div class="endpoint-header" onclick="toggleEndpoint(this)">
-                        <div><div class="endpoint-title-row"><span class="method-badge">POST</span><span class="endpoint-name">instagram_profile_to_instagram_info</span></div><div class="endpoint-desc">Extract followers, bio, posts, and profile details from any public Instagram account</div></div>
+                        <div><div class="endpoint-title-row"><span class="method-badge">POST</span><span class="endpoint-name">instagram_profile_to_instagram_info</span><span class="sync-tag"><i class="fas fa-bolt"></i> Sync</span></div><div class="endpoint-desc">Extract followers, bio, posts, and profile details from any public Instagram account</div></div>
                         <div style="display:flex;align-items:center;gap:.5rem"><span class="credit-pill">1 credit</span><i class="fas fa-chevron-down endpoint-chevron"></i></div>
                     </div>
                     <div class="endpoint-body"><div class="code-block-wrap"><div class="code-tabs"><button class="code-tab active" onclick="switchTab(this,'ig-curl')">cURL</button><button class="code-tab" onclick="switchTab(this,'ig-py')">Python</button></div>
@@ -931,8 +1162,10 @@ leads.forEach(lead => console.log(lead.full_name, lead.email));</pre>
                     <thead><tr><th>HTTP Code</th><th>Meaning</th><th>What to do</th></tr></thead>
                     <tbody>
                         <tr><td><span class="http-code ok">200</span></td><td>Success</td><td>Check <code>result</code> field — may be <code>null</code> if data wasn't found (still costs 1 credit)</td></tr>
+                        <tr><td><span class="http-code async">202</span></td><td>Accepted — processing async</td><td><strong>Not an error.</strong> Save the <code>job_id</code> and poll <code>poll_url</code> until <code>status</code> is <code>"done"</code> or <code>"error"</code>. Always returned by <code>linkedin_profile_to_email</code> and <code>linkedin_profile_to_linkedin_info</code>.</td></tr>
                         <tr><td><span class="http-code err4">401</span></td><td>Unauthorized</td><td>Missing or invalid API key — check your Authorization header</td></tr>
                         <tr><td><span class="http-code err4">402</span></td><td>Insufficient credits</td><td>Top up credits or wait for next billing cycle</td></tr>
+                        <tr><td><span class="http-code err4">404</span></td><td>Job not found or expired</td><td>On <code>/status/:job_id</code> — job results expire after 10 minutes. Poll sooner next time.</td></tr>
                         <tr><td><span class="http-code err4">422</span></td><td>Invalid request</td><td>Check the <code>type</code> value and <code>input_data</code> format</td></tr>
                         <tr><td><span class="http-code err4">429</span></td><td>Rate limit exceeded</td><td>Implement exponential backoff — wait 1s, 2s, 4s between retries</td></tr>
                         <tr><td><span class="http-code err5">500</span></td><td>Server error</td><td>Retry after 30 seconds. If persistent, contact support</td></tr>
@@ -948,6 +1181,11 @@ leads.forEach(lead => console.log(lead.full_name, lead.email));</pre>
                 <div class="info-box blue" style="margin-bottom:1.5rem">
                     <i class="fas fa-rocket"></i>
                     <div><strong>Zapier is the fastest path to CRM integration.</strong> One Zapier connection unlocks HubSpot, Salesforce, Pipedrive, Airtable, Google Sheets, and 6,000+ other apps — without writing custom integration code for each one.</div>
+                </div>
+
+                <div class="info-box yellow" style="margin-bottom:1.5rem">
+                    <i class="fas fa-triangle-exclamation"></i>
+                    <div><strong>Note for no-code users:</strong> <code>linkedin_profile_to_email</code> and <code>linkedin_profile_to_linkedin_info</code> require polling and are harder to wire up in Zapier/Make without a native integration. For these two, add a "Delay" step followed by a second HTTP GET call to the <code>poll_url</code>, repeated until <code>status</code> is <code>"done"</code>. All other endpoints work in a single step.</div>
                 </div>
 
                 <div class="integration-grid">
