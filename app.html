@@ -1571,7 +1571,94 @@ async function enrichData(event) {
     finally { restoreBtn(); }
 }
 
-function formatLinkedInCompanyData(data){return data;}
+function cipFounded(f){
+    if (lipEmpty(f)) return '';
+    if (typeof f === 'object') {
+        if (!f.year) return '';
+        return f.month ? `${f.month}/${f.year}` : `${f.year}`;
+    }
+    return f;
+}
+
+function formatLinkedInCompanyData(d, inputUrl){
+    const hasLogo = !lipEmpty(d.logo);
+    const hasBanner = !lipEmpty(d.background_cover_image_url);
+
+    let html = '<div class="lip-card">';
+    html += `<div class="lip-banner" style="${hasBanner?`background-image:url('${d.background_cover_image_url}')`:''}"></div>`;
+
+    html += '<div class="lip-header">';
+    html += hasLogo
+        ? `<img class="lip-avatar" src="${d.logo}" alt="${lipEsc(d.name)}" style="border-radius:14px;object-fit:contain;background:white;">`
+        : `<div class="lip-avatar-placeholder" style="border-radius:14px;">${lipInitials(d.name)}</div>`;
+    html += '<div class="lip-name-block">';
+    html += `<div class="lip-name">${lipEsc(d.name)||'Unknown Company'}`;
+    if (!lipEmpty(d.companyType)) html += `<span class="lip-premium" style="background:var(--gray-700);">${lipEsc(d.companyType)}</span>`;
+    html += '</div>';
+    if (!lipEmpty(d.tagline)) html += `<div class="lip-headline">${lipEsc(d.tagline)}</div>`;
+    let metaParts = [];
+    const loc = [d.city, d.country].filter(p=>!lipEmpty(p)).join(', ');
+    if (loc) metaParts.push(`<span><i class="fas fa-map-marker-alt"></i>${lipEsc(loc)}</span>`);
+    if (!lipEmpty(d.industry)) metaParts.push(`<span><i class="fas fa-industry"></i>${lipEsc(d.industry)}</span>`);
+    const founded = cipFounded(d.foundedOn);
+    if (founded) metaParts.push(`<span><i class="fas fa-calendar"></i>Founded ${lipEsc(founded)}</span>`);
+    if (metaParts.length) html += `<div class="lip-meta">${metaParts.join('')}</div>`;
+    html += '</div></div>';
+
+    let stats = [];
+    if (!lipEmpty(d.employeeCount)) stats.push({num: Number(d.employeeCount).toLocaleString(), label:'Employees'});
+    else if (!lipEmpty(d.employeeCountRange)) stats.push({num: d.employeeCountRange, label:'Employee Range'});
+    if (!lipEmpty(d.followerCount)) stats.push({num: Number(d.followerCount).toLocaleString(), label:'Followers'});
+    if (Array.isArray(d.all_locations) && d.all_locations.length) stats.push({num: d.all_locations.length, label:'Offices'});
+    if (stats.length){
+        html += '<div class="lip-stats">' + stats.map(s=>
+            `<div class="lip-stat"><div class="lip-stat-num">${s.num}</div><div class="lip-stat-label">${s.label}</div></div>`
+        ).join('') + '</div>';
+    }
+
+    let contacts = [];
+    if (!lipEmpty(d.company_email)) contacts.push({icon:'fa-envelope',bg:'#ecfdf5',color:'#10b981',label:'Company Email',value:lipEsc(d.company_email)});
+    if (!lipEmpty(d.company_phone)) contacts.push({icon:'fa-phone',bg:'#ecfdf5',color:'#10b981',label:'Company Phone',value:lipEsc(d.company_phone)});
+    if (!lipEmpty(d.website)) contacts.push({icon:'fa-globe',bg:'#eff6ff',color:'#2563eb',label:'Website',value:`<a href="https://${lipEsc(d.website).replace(/^https?:\/\//,'')}" target="_blank">${lipEsc(d.website)}</a>`});
+    const liUrl = d.linkedinUrl || inputUrl;
+    if (!lipEmpty(liUrl)) contacts.push({icon:'fa-linkedin',fa:'fab',bg:'#eff6ff',color:'#0077b5',label:'LinkedIn',value:`<a href="${liUrl}" target="_blank">View company page</a>`});
+    if (contacts.length){
+        html += '<div class="lip-contact">' + contacts.map(c=>
+            `<div class="lip-contact-item"><div class="lip-contact-icon" style="background:${c.bg};color:${c.color};"><i class="${c.fa||'fas'} ${c.icon}"></i></div><div class="lip-contact-text"><div class="lip-contact-label">${c.label}</div><div class="lip-contact-value">${c.value}</div></div></div>`
+        ).join('') + '</div>';
+    }
+
+    if (!lipEmpty(d.company_description)){
+        html += `<div class="lip-section"><div class="lip-section-title"><i class="fas fa-align-left"></i>About</div><div class="lip-about-text">${lipEsc(d.company_description)}</div></div>`;
+    }
+
+    if (Array.isArray(d.all_locations) && d.all_locations.length){
+        html += `<div class="lip-section"><div class="lip-section-title"><i class="fas fa-building"></i>Office Locations (${d.all_locations.length})</div><div class="lip-timeline">`;
+        d.all_locations.forEach(loc=>{
+            const parts = [loc.geographicArea, loc.city, loc.country].filter(p=>!lipEmpty(p));
+            html += `<div class="lip-tl-item ${loc.isHq?'current':''}"><div class="lip-tl-dot"></div>`;
+            html += `<div class="lip-tl-title">${lipEsc(parts.join(', '))||'Unknown location'}${loc.isHq?'<span class="lip-tl-current-badge">HQ</span>':''}</div>`;
+            html += '</div>';
+        });
+        html += '</div></div>';
+    }
+
+    if (Array.isArray(d.specialties) && d.specialties.length){
+        html += `<div class="lip-section"><div class="lip-section-title"><i class="fas fa-tags"></i>Specialties (${d.specialties.length})</div><div class="lip-skills">`
+              + d.specialties.map(s=>`<span class="lip-skill-tag">${lipEsc(s)}</span>`).join('')
+              + '</div></div>';
+    }
+
+    if (!lipEmpty(d.universalName) || !lipEmpty(d.id)){
+        html += `<div class="lip-section" style="padding-top:0.75rem;padding-bottom:0.875rem;"><div style="font-size:0.7rem;color:var(--gray-400);">
+            ${!lipEmpty(d.universalName)?`slug: ${lipEsc(d.universalName)}`:''}${(!lipEmpty(d.universalName)&&!lipEmpty(d.id))?' · ':''}${!lipEmpty(d.id)?`id: ${lipEsc(d.id)}`:''}
+        </div></div>`;
+    }
+
+    html += '</div>';
+    return html;
+}
+
 function formatLinkedInProfileData(data){return data;}
 
 function lipEsc(str){ if(str===undefined||str===null) return ''; return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
@@ -2196,6 +2283,13 @@ function showSingleResult(inputData,result){
         document.getElementById('bulkResults').classList.add('hidden');
         return;
     }
+    if (isLinkedInData && currentInputType === 'linkedin_company') {
+    document.getElementById('resultLink').innerHTML = formatLinkedInCompanyData(linkedInFields, inputData);
+    document.getElementById('resultsSection').classList.remove('hidden');
+    document.getElementById('singleResult').classList.remove('hidden');
+    document.getElementById('bulkResults').classList.add('hidden');
+    return;
+}
     let html='<div class="result-card">';
     html+=`<div class="result-header">${linkedInFields?.profilePic?`<img src="${linkedInFields.profilePic}" alt="Profile" style="width:60px;height:60px;border-radius:50%;object-fit:cover;margin-right:1rem;">`:`<div class="result-header-icon"><i class="fas ${result==='Not found'?'fa-times-circle':'fa-check-circle'}"></i></div>`}<div class="result-header-text"><h3>${result==='Not found'?'No Data Found':'Profile Data Found! \u2728'}</h3><p>${inputData}</p></div></div>`;
     if(linkedInFields?.backgroundPic&&linkedInFields.backgroundPic!=='Not specified'){html+=`<div style="margin:1rem 0;border-radius:8px;overflow:hidden;max-height:200px;"><img src="${linkedInFields.backgroundPic}" alt="Background" style="width:100%;height:auto;object-fit:cover;"></div>`;}
