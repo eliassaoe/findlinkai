@@ -270,6 +270,8 @@
 .emp-company-row{display:flex;align-items:center;gap:0.6rem;margin-top:0.65rem;padding-top:0.6rem;border-top:1px solid var(--gray-100);font-size:0.76rem;color:var(--gray-600);flex-wrap:wrap;}
 .emp-company-row strong{color:var(--gray-800);font-weight:600;}
 .emp-company-row a{color:var(--primary);text-decoration:none;}
+.emp-email-chip{display:inline-flex;align-items:center;gap:0.4rem;background:#ecfdf5;border:1px solid #a7f3d0;color:#047857;font-size:0.8rem;font-weight:600;padding:0.3rem 0.65rem;border-radius:6px;margin-top:0.55rem;}
+.emp-email-chip i{color:var(--success);font-size:0.78rem;}
 @media(max-width:480px){
     .emp-meta{gap:0.5rem;}
 }
@@ -2403,9 +2405,13 @@ function buildEmployeeCardHTML(emp, index){
     if (!empEmpty(emp.headline) && emp.headline !== emp.jobTitle) html += `<div class="emp-headline">${empEsc(emp.headline)}</div>`;
     html += '</div></div>';
 
-    // Meta row: contact + location
+    // Email — highlighted separately, like the profile card treatment
+    if (!empEmpty(emp.email)){
+        html += `<div class="emp-email-chip"><i class="fas fa-envelope"></i><span>${empEsc(emp.email)}</span></div>`;
+    }
+
+    // Meta row: everything else (phone, location, industry, twitter, linkedin)
     let metaItems = [];
-    if (!empEmpty(emp.email)) metaItems.push(`<span><i class="fas fa-envelope"></i>${empEsc(emp.email)}</span>`);
     if (!empEmpty(emp.mobileNumber)) metaItems.push(`<span><i class="fas fa-phone"></i>${empEsc(emp.mobileNumber)}</span>`);
     if (!empEmpty(loc)) metaItems.push(`<span><i class="fas fa-map-marker-alt"></i>${empEsc(loc)}</span>`);
     if (!empEmpty(emp.industry)) metaItems.push(`<span><i class="fas fa-industry"></i>${empEsc(emp.industry)}</span>`);
