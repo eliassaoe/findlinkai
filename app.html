@@ -687,7 +687,7 @@
         <div class="quickstart-section" id="quickstartSection">
             <div class="quickstart-label">Popular searches — click to try instantly</div>
             <div class="quickstart-grid">
-                <div class="qs-card" onclick="quickStart('lead_full_name','linkedin_url','Sarah Johnson Salesforce')">
+                <div class="qs-card" onclick="quickStart('lead_full_name','linkedin_url','Sarah Johnson',null,true,'Salesforce')">
                     <div class="qs-card-icon">🔗</div>
                     <div class="qs-card-title">Find LinkedIn Profile URL</div>
                     <div class="qs-card-sub">Name + Company → LinkedIn URL</div>
@@ -792,14 +792,28 @@
         <div id="creditCost" class="credit-cost"></div>
 
         <div id="singleSearch" class="card hidden">
-            <form onsubmit="enrichData(event)">
-                <div class="form-group">
-                    <label for="inputData" id="inputLabel">Enter Company Name</label>
-                    <input type="text" id="inputData" placeholder="e.g., Tesla, Apple, Microsoft" required>
-                </div>
-                <button type="submit" class="btn btn-full"><i class="fas fa-magic"></i> Enrich Data</button>
-            </form>
+    <form onsubmit="enrichData(event)">
+        <div class="form-group">
+            <label for="inputData" id="inputLabel">Enter Company Name</label>
+            <input type="text" id="inputData" placeholder="e.g., Tesla, Apple, Microsoft" required>
         </div>
+        <div id="leadExtraFields" style="display:none;">
+            <div class="form-group">
+                <label for="leadCompany">Company Name</label>
+                <input type="text" id="leadCompany" placeholder="e.g., Salesforce">
+            </div>
+            <div class="form-group">
+                <label for="leadLocation">Location <span class="optional-badge">optional</span></label>
+                <input type="text" id="leadLocation" placeholder="e.g., San Francisco, CA">
+            </div>
+            <div class="form-group">
+                <label for="leadJobTitle">Job Title <span class="optional-badge">optional</span></label>
+                <input type="text" id="leadJobTitle" placeholder="e.g., VP of Sales">
+            </div>
+        </div>
+        <button type="submit" class="btn btn-full"><i class="fas fa-magic"></i> Enrich Data</button>
+    </form>
+</div>
 
         <div id="bulkSearch" class="card hidden">
             <div class="upload-area" id="uploadArea" onclick="document.getElementById('csvFile').click()">
@@ -1478,8 +1492,14 @@ function configureEnrichment() {
     document.getElementById('inputLabel').textContent = config.label;
     document.getElementById('inputData').placeholder = config.placeholder;
     const isLeadToLi = currentInputType==='lead_full_name'&&currentOutputType==='linkedin_url';
+    document.getElementById('leadExtraFields').style.display = isLeadToLi ? 'block' : 'none';
+    document.getElementById('leadCompany').required = isLeadToLi;
+    if (isLeadToLi) {
+        document.getElementById('inputLabel').textContent = 'Enter Full Name';
+        document.getElementById('inputData').placeholder = 'e.g., Sarah Johnson';
+    }
     document.getElementById('uploadSubtext').textContent = isLeadToLi
-        ? 'CSV with columns: name (required), company (required) — max 10000 rows'
+        ? 'CSV with columns: name (required), company (required), location (optional), job_title (optional) — max 10000 rows'
         : currentInputType==='lead_full_name' ? 'CSV with columns: name (required), company (optional) — max 10000 rows'
        : (currentOutputType === 'employees' && (currentInputType === 'company_domain' || currentInputType === 'linkedin_company'))
     ? `CSV with ${config.label.toLowerCase().replace('enter ','')} (required) — optional columns: department, seniority, employee_count. Max 10000 rows.`
@@ -1532,7 +1552,16 @@ async function enrichData(event) {
     const restoreBtn = () => { submitBtn.disabled=false; submitBtn.innerHTML=originalBtnHTML; submitBtn.style.opacity=''; };
     try { posthog.capture('enrich_started',{input_type:currentInputType,output_type:currentOutputType}); } catch(e) {}
     const inputValue = document.getElementById('inputData').value.trim();
-    if (!inputValue) { restoreBtn(); return; }
+if (!inputValue) { restoreBtn(); return; }
+
+let effectiveInputValue = inputValue;
+if (currentInputType === 'lead_full_name' && currentOutputType === 'linkedin_url') {
+    const leadCompany = document.getElementById('leadCompany').value.trim();
+    const leadLocation = document.getElementById('leadLocation').value.trim();
+    const leadJobTitle = document.getElementById('leadJobTitle').value.trim();
+    if (!leadCompany) { showAlert('Company name is required.', 'error'); restoreBtn(); return; }
+    effectiveInputValue = [inputValue, leadCompany, leadLocation, leadJobTitle].filter(Boolean).join(' ');
+}
     if (currentInputType==='linkedin_profile' && !inputValue.toLowerCase().includes('linkedin.com/in/')) { showAlert('Please enter a valid LinkedIn Profile URL (must start with linkedin.com/in/)','error'); restoreBtn(); return; }
     if (currentInputType==='linkedin_post' && !inputValue.toLowerCase().includes('linkedin.com/posts/')) { showAlert('Please enter a valid LinkedIn Post URL (must include linkedin.com/posts/)','error'); restoreBtn(); return; }
     if (currentInputType==='linkedin_company' && !inputValue.toLowerCase().includes('linkedin.com/company/')) { showAlert('Please enter a valid LinkedIn Company URL (must include linkedin.com/company/)','error'); restoreBtn(); return; }
@@ -1542,7 +1571,7 @@ async function enrichData(event) {
             method:'POST', headers:{'Content-Type':'application/json'},
             body: JSON.stringify({
                 type: generateCombinationType(currentInputType, currentOutputType),
-                input_data: inputValue,
+                input_data: effectiveInputValue,
                 department: (currentOutputType==='employees'&&(currentInputType==='company_domain'||currentInputType==='linkedin_company'))?(document.getElementById('optionalDepartment').value.trim()||'all'):undefined,
                 seniority: (currentOutputType==='employees'&&(currentInputType==='company_domain'||currentInputType==='linkedin_company'))?(document.getElementById('optionalSeniority').value.trim()||'all'):undefined,
                 employee_count: (currentOutputType==='employees'&&(currentInputType==='company_domain'||currentInputType==='linkedin_company'))?(parseInt(document.getElementById('optionalEmployeeCount').value)||null):undefined,
@@ -2440,21 +2469,32 @@ function parseCSV(csvText){
     const deptIdx = headers.findIndex(h => ['department', 'dept'].includes(h));
     const senIdx  = headers.findIndex(h => ['seniority', 'level'].includes(h));
     const countIdx = headers.findIndex(h => ['employee_count', 'count', 'limit'].includes(h));
-    let companyIdx=-1;
+    const locationHeaders = ['location','city','loc'];
+    const jobTitleHeaders = ['job_title','jobtitle','title','position','job title'];
+    let companyIdx=-1, locationIdx=-1, jobTitleIdx=-1;
     if(currentInputType==='lead_full_name'){
         companyIdx=headers.findIndex((h,i)=>i!==dataIdx&&hScore(h,companyNameHeaders)>0);
         if(currentOutputType==='linkedin_url'&&companyIdx===-1){showAlert(`A "company" column is required to find LinkedIn profiles. Found columns: "${rawHeaders.join('", "')}"`, 'error');return;}
+        locationIdx=headers.findIndex((h,i)=>i!==dataIdx&&i!==companyIdx&&hScore(h,locationHeaders)>0);
+        jobTitleIdx=headers.findIndex((h,i)=>i!==dataIdx&&i!==companyIdx&&i!==locationIdx&&hScore(h,jobTitleHeaders)>0);
     }
     for(let i=1;i<lines.length;i++){
         const values=lines[i].split(',').map(v=>v.trim().replace(/"/g,''));
         const nameVal=values[dataIdx]?values[dataIdx].trim():'';
         if(!nameVal) continue;
-        let inputData=nameVal,companyVal='';
-        if(currentInputType==='lead_full_name'&&companyIdx!==-1){companyVal=values[companyIdx]?values[companyIdx].trim():'';if(companyVal)inputData=`${nameVal} ${companyVal}`;}
+        let inputData=nameVal, companyVal='', locationVal='', jobTitleVal='';
+        if(currentInputType==='lead_full_name'){
+            companyVal   = companyIdx!==-1   ? (values[companyIdx]||'').trim()   : '';
+            locationVal  = locationIdx!==-1  ? (values[locationIdx]||'').trim()  : '';
+            jobTitleVal  = jobTitleIdx!==-1  ? (values[jobTitleIdx]||'').trim()  : '';
+            inputData = [nameVal, companyVal, locationVal, jobTitleVal].filter(Boolean).join(' ');
+        }
         csvData.push({
     inputData,
     name: nameVal,
     company: companyVal,
+    location: locationVal,
+    job_title: jobTitleVal,
     department: deptIdx !== -1 ? (values[deptIdx] || '').trim() : '',
     seniority:  senIdx !== -1 ? (values[senIdx] || '').trim() : '',
     employee_count: countIdx !== -1 ? (parseInt(values[countIdx]) || null) : null,
@@ -2466,16 +2506,33 @@ function parseCSV(csvText){
 }
 function showPreview(){
     const preview=csvData.slice(0,5);
-    const hasCompany=currentInputType==='lead_full_name'&&preview.some(r=>r.company);
-    let previewHtml='<div style="background:var(--gray-50);padding:0.75rem;border-radius:6px;font-size:0.875rem;">';
+    const isLead=currentInputType==='lead_full_name';
+    const hasCompany=isLead&&preview.some(r=>r.company);
+    const hasLocation=isLead&&preview.some(r=>r.location);
+    const hasJobTitle=isLead&&preview.some(r=>r.job_title);
+    let previewHtml='<div style="background:var(--gray-50);padding:0.75rem;border-radius:6px;font-size:0.875rem;overflow-x:auto;">';
     if(hasCompany){
-        previewHtml+=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;font-weight:600;color:var(--gray-500);font-size:0.75rem;text-transform:uppercase;margin-bottom:0.5rem;padding-bottom:0.25rem;border-bottom:1px solid var(--gray-200);"><span>Name</span><span>Company</span></div>`;
-        preview.forEach(row=>{previewHtml+=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;padding:0.25rem 0;"><span>${row.name}</span><span style="color:var(--gray-500);">${row.company||'\u2014'}</span></div>`;});
+        const cols=['Name','Company'];
+        if(hasLocation) cols.push('Location');
+        if(hasJobTitle) cols.push('Job Title');
+        const tmpl=cols.map(()=>'1fr').join(' ');
+        previewHtml+=`<div style="display:grid;grid-template-columns:${tmpl};gap:0.5rem;font-weight:600;color:var(--gray-500);font-size:0.75rem;text-transform:uppercase;margin-bottom:0.5rem;padding-bottom:0.25rem;border-bottom:1px solid var(--gray-200);min-width:${cols.length*140}px;">${cols.map(c=>`<span>${c}</span>`).join('')}</div>`;
+        preview.forEach(row=>{
+            let cells=[`<span>${row.name}</span>`,`<span style="color:var(--gray-500);">${row.company||'\u2014'}</span>`];
+            if(hasLocation) cells.push(`<span style="color:var(--gray-500);">${row.location||'\u2014'}</span>`);
+            if(hasJobTitle) cells.push(`<span style="color:var(--gray-500);">${row.job_title||'\u2014'}</span>`);
+            previewHtml+=`<div style="display:grid;grid-template-columns:${tmpl};gap:0.5rem;padding:0.25rem 0;min-width:${cols.length*140}px;">${cells.join('')}</div>`;
+        });
     } else {
         preview.forEach(row=>{previewHtml+=`<div style="padding:0.25rem 0;">${row.inputData}</div>`;});
     }
     previewHtml+='</div>';
-    if(hasCompany) previewHtml+=`<p style="font-size:0.75rem;color:var(--success);margin-top:0.5rem;margin-bottom:0.75rem;"><i class="fas fa-check-circle"></i> Company column detected \u2014 will be combined with name automatically.</p>`;
+    if(hasCompany){
+        const detected=['Company'];
+        if(hasLocation) detected.push('Location');
+        if(hasJobTitle) detected.push('Job Title');
+        previewHtml+=`<p style="font-size:0.75rem;color:var(--success);margin-top:0.5rem;margin-bottom:0.75rem;"><i class="fas fa-check-circle"></i> ${detected.join(', ')} column${detected.length>1?'s':''} detected \u2014 will be combined with name automatically.</p>`;
+    }
     const successBanner=`<div style="display:flex;align-items:center;gap:0.625rem;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1rem;"><i class="fas fa-check-circle" style="color:#10b981;font-size:1rem;flex-shrink:0;"></i><div><div style="font-weight:600;color:#065f46;font-size:0.875rem;">CSV uploaded \u2014 ${csvData.length} row${csvData.length===1?'':'s'} ready to process</div><div style="font-size:0.75rem;color:#047857;margin-top:1px;">Showing first 5 rows below. Click Process to start.</div></div></div>`;
     document.getElementById('previewTable').innerHTML=successBanner+previewHtml;
     const btn=document.getElementById('processBulkBtn');
@@ -2720,7 +2777,7 @@ async function handleAddCredits() {
 function downloadExampleCSV(){
     const config=dataConfigurations[currentInputType];
     if(!config){showAlert('Please select an input type first.','error');return;}
-    const examples={'company_name':'company_name\nTesla\nApple\nMicrosoft\nStripe\nNotion','company_domain':'company_domain\ntesla.com\napple.com\nmicrosoft.com\nstripe.com\nnotion.so','linkedin_company':'linkedin_company_url\nhttps://linkedin.com/company/tesla\nhttps://linkedin.com/company/apple\nhttps://linkedin.com/company/microsoft','linkedin_profile':'linkedin_profile_url\nhttps://linkedin.com/in/satya-nadella\nhttps://linkedin.com/in/jeff-weiner','linkedin_post':'linkedin_post_url\nhttps://www.linkedin.com/posts/example-post-url','email':'email\njohn.doe@tesla.com\njane.smith@apple.com','lead_full_name':'name,company\nSatya Nadella,Microsoft\nJeff Weiner,LinkedIn\nSarah Johnson,Salesforce','company_domain': 'company_domain,department,seniority,employee_count\nstripe.com,engineering_technical,senior,25\nnotion.so,sales,manager,10\nairbnb.com,,,50\ntesla.com,,,',};
+    const examples={'company_name':'company_name\nTesla\nApple\nMicrosoft\nStripe\nNotion','company_domain':'company_domain\ntesla.com\napple.com\nmicrosoft.com\nstripe.com\nnotion.so','linkedin_company':'linkedin_company_url\nhttps://linkedin.com/company/tesla\nhttps://linkedin.com/company/apple\nhttps://linkedin.com/company/microsoft','linkedin_profile':'linkedin_profile_url\nhttps://linkedin.com/in/satya-nadella\nhttps://linkedin.com/in/jeff-weiner','linkedin_post':'linkedin_post_url\nhttps://www.linkedin.com/posts/example-post-url','email':'email\njohn.doe@tesla.com\njane.smith@apple.com','lead_full_name':'name,company,location,job_title\nSatya Nadella,Microsoft,Redmond WA,CEO\nJeff Weiner,LinkedIn,Sunnyvale CA,Chairman\nSarah Johnson,Salesforce,,','company_domain': 'company_domain,department,seniority,employee_count\nstripe.com,engineering_technical,senior,25\nnotion.so,sales,manager,10\nairbnb.com,,,50\ntesla.com,,,',};
     const csvContent=examples[currentInputType]||'input\nexample_value';
     const blob=new Blob([csvContent],{type:'text/csv;charset=utf-8;'});
     const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`example_${currentInputType}.csv`;a.click();URL.revokeObjectURL(url);
@@ -2755,7 +2812,7 @@ function quickStartBulk(inputType,outputType){
     try{posthog.capture('quickstart_bulk_used',{input_type:inputType,output_type:outputType});}catch(e){}
 }
 
-function quickStart(inputType,outputType,exampleData,employeeCount,autoRun){
+function quickStart(inputType,outputType,exampleData,employeeCount,autoRun,exampleCompany){
     if(autoRun===undefined) autoRun=true;   // existing cards keep auto-running
     const qs=document.getElementById('quickstartSection');if(qs)qs.style.display='none';
     const inputSel=document.getElementById('inputType');inputSel.value=inputType;inputSel.dispatchEvent(new Event('change'));
@@ -2764,6 +2821,10 @@ function quickStart(inputType,outputType,exampleData,employeeCount,autoRun){
         setTimeout(()=>{
             const f=document.getElementById('inputData');
             if(f&&exampleData){f.value=exampleData;setTimeout(()=>{f.focus();f.select();},150);}
+            if(inputType==='lead_full_name'&&outputType==='linkedin_url'&&exampleCompany){
+                const cf=document.getElementById('leadCompany');
+                if(cf) cf.value=exampleCompany;
+            }
             if(employeeCount){
                 const ec=document.getElementById('optionalEmployeeCount');
                 if(ec) ec.value=employeeCount;
