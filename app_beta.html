@@ -2506,16 +2506,33 @@ function parseCSV(csvText){
 }
 function showPreview(){
     const preview=csvData.slice(0,5);
-    const hasCompany=currentInputType==='lead_full_name'&&preview.some(r=>r.company);
-    let previewHtml='<div style="background:var(--gray-50);padding:0.75rem;border-radius:6px;font-size:0.875rem;">';
+    const isLead=currentInputType==='lead_full_name';
+    const hasCompany=isLead&&preview.some(r=>r.company);
+    const hasLocation=isLead&&preview.some(r=>r.location);
+    const hasJobTitle=isLead&&preview.some(r=>r.job_title);
+    let previewHtml='<div style="background:var(--gray-50);padding:0.75rem;border-radius:6px;font-size:0.875rem;overflow-x:auto;">';
     if(hasCompany){
-        previewHtml+=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;font-weight:600;color:var(--gray-500);font-size:0.75rem;text-transform:uppercase;margin-bottom:0.5rem;padding-bottom:0.25rem;border-bottom:1px solid var(--gray-200);"><span>Name</span><span>Company</span></div>`;
-        preview.forEach(row=>{previewHtml+=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;padding:0.25rem 0;"><span>${row.name}</span><span style="color:var(--gray-500);">${row.company||'\u2014'}</span></div>`;});
+        const cols=['Name','Company'];
+        if(hasLocation) cols.push('Location');
+        if(hasJobTitle) cols.push('Job Title');
+        const tmpl=cols.map(()=>'1fr').join(' ');
+        previewHtml+=`<div style="display:grid;grid-template-columns:${tmpl};gap:0.5rem;font-weight:600;color:var(--gray-500);font-size:0.75rem;text-transform:uppercase;margin-bottom:0.5rem;padding-bottom:0.25rem;border-bottom:1px solid var(--gray-200);min-width:${cols.length*140}px;">${cols.map(c=>`<span>${c}</span>`).join('')}</div>`;
+        preview.forEach(row=>{
+            let cells=[`<span>${row.name}</span>`,`<span style="color:var(--gray-500);">${row.company||'\u2014'}</span>`];
+            if(hasLocation) cells.push(`<span style="color:var(--gray-500);">${row.location||'\u2014'}</span>`);
+            if(hasJobTitle) cells.push(`<span style="color:var(--gray-500);">${row.job_title||'\u2014'}</span>`);
+            previewHtml+=`<div style="display:grid;grid-template-columns:${tmpl};gap:0.5rem;padding:0.25rem 0;min-width:${cols.length*140}px;">${cells.join('')}</div>`;
+        });
     } else {
         preview.forEach(row=>{previewHtml+=`<div style="padding:0.25rem 0;">${row.inputData}</div>`;});
     }
     previewHtml+='</div>';
-    if(hasCompany) previewHtml+=`<p style="font-size:0.75rem;color:var(--success);margin-top:0.5rem;margin-bottom:0.75rem;"><i class="fas fa-check-circle"></i> Company column detected \u2014 will be combined with name automatically.</p>`;
+    if(hasCompany){
+        const detected=['Company'];
+        if(hasLocation) detected.push('Location');
+        if(hasJobTitle) detected.push('Job Title');
+        previewHtml+=`<p style="font-size:0.75rem;color:var(--success);margin-top:0.5rem;margin-bottom:0.75rem;"><i class="fas fa-check-circle"></i> ${detected.join(', ')} column${detected.length>1?'s':''} detected \u2014 will be combined with name automatically.</p>`;
+    }
     const successBanner=`<div style="display:flex;align-items:center;gap:0.625rem;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1rem;"><i class="fas fa-check-circle" style="color:#10b981;font-size:1rem;flex-shrink:0;"></i><div><div style="font-weight:600;color:#065f46;font-size:0.875rem;">CSV uploaded \u2014 ${csvData.length} row${csvData.length===1?'':'s'} ready to process</div><div style="font-size:0.75rem;color:#047857;margin-top:1px;">Showing first 5 rows below. Click Process to start.</div></div></div>`;
     document.getElementById('previewTable').innerHTML=successBanner+previewHtml;
     const btn=document.getElementById('processBulkBtn');
