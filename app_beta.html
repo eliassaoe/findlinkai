@@ -324,6 +324,12 @@
     .results-table th,.results-table td{padding:0.75rem;text-align:left;border-bottom:1px solid var(--gray-200);font-size:0.875rem;}
     .results-table th{background:var(--gray-50);font-weight:500;color:var(--gray-700);}
     .status-badge{padding:0.25rem 0.5rem;border-radius:4px;font-size:0.75rem;font-weight:500;}
+    .confidence-badge{padding:0.2rem 0.55rem;border-radius:4px;font-size:0.72rem;font-weight:600;text-transform:capitalize;}
+    .confidence-high{background:rgba(16,185,129,0.12);color:var(--success);}
+    .confidence-medium{background:rgba(37,99,235,0.12);color:var(--primary);}
+    .confidence-medium_unverified_name{background:rgba(245,158,11,0.12);color:var(--warning);}
+    .confidence-low{background:rgba(245,158,11,0.12);color:var(--warning);}
+    .confidence-no_match{background:rgba(239,68,68,0.12);color:var(--error);}
     .status-success{background:rgba(16,185,129,0.1);color:var(--success);}
     .status-error{background:rgba(239,68,68,0.1);color:var(--error);}
     .status-processing{background:rgba(37,99,235,0.1);color:var(--primary);}
@@ -850,16 +856,24 @@
                 <textarea id="resultText" class="result-text" readonly placeholder="Enriched data will appear here..."></textarea>
                 <div id="resultLink" class="result-link"></div>
             </div>
-            <div id="bulkResults" class="hidden">
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
-                    <h4 style="font-size:1rem;color:var(--gray-700);">Results</h4>
-                    <button onclick="downloadResults()" class="btn"><i class="fas fa-download"></i> Export</button>
-                </div>
-                <div id="progressContainer" class="progress-container hidden">
-                    <div id="progressBar" class="progress-bar" style="width:0%"></div>
-                </div>
-                <div id="bulkResultsTable" class="table-container"></div>
-            </div>
+            <!-- REPLACE this whole block: -->
+<div id="bulkResults" class="hidden">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+        <h4 style="font-size:1rem;color:var(--gray-700);">Results</h4>
+        <button onclick="downloadResults()" class="btn"><i class="fas fa-download"></i> Export</button>
+    </div>
+    <div id="confidenceFilterBar" style="display:none;align-items:center;gap:0.75rem;margin-bottom:0.75rem;">
+        <span style="font-size:0.8rem;color:var(--gray-600);font-weight:500;">Show:</span>
+        <select id="confidenceFilter" onchange="currentConfidenceFilter=this.value;updateBulkResultsTable();" style="padding:0.4rem 0.6rem;border:1px solid var(--gray-300);border-radius:6px;font-size:0.8rem;">
+            <option value="all">All results</option>
+            <option value="high">High confidence only</option>
+        </select>
+    </div>
+    <div id="progressContainer" class="progress-container hidden">
+        <div id="progressBar" class="progress-bar" style="width:0%"></div>
+    </div>
+    <div id="bulkResultsTable" class="table-container"></div>
+</div>
             <div id="automationNudge" style="display:none;"></div>
         </div>
     </div>
@@ -1085,6 +1099,7 @@ let currentCredits = null;
 let isExistingSubscriber = false;
 let currentPlanNumber = null;
 let currentSubscriptionId = null;
+let currentConfidenceFilter = 'all';
 
 const dataConfigurations = {
     lead_full_name: { label:"Enter Lead Full Name + Company Name", placeholder:"e.g., John Doe JP morgan, Sarah Smith Netflix, Michael Johnson Microsoft", outputs:{linkedin_url:"LinkedIn Profile URL"} },
@@ -1591,7 +1606,7 @@ if (currentInputType === 'lead_full_name' && currentOutputType === 'linkedin_url
         if (response.ok&&data&&(data.result||data.name)) {
             deductCredits(getCreditCost(currentInputType,currentOutputType));
             if (data.name&&!data.result) showSingleResult(inputValue,data);
-            else showSingleResult(inputValue, data.result||'Not found');
+            else showSingleResult(inputValue, data.result||'Not found', data.confidence);
             checkEnrichmentMilestone();
             showSavedPill();
         } else { showSingleResult(inputValue,'Not found'); }
@@ -1832,7 +1847,7 @@ async function processBulk() {
     for (let i = 0; i < csvData.length; i++) {
         // Check if we have enough credits before processing
         if (!creditsExhausted) {
-            if (currentCredits < 1) {
+            if (currentCredits !== null && currentCredits < 1) {
                 creditsExhausted = true;
                 processedWithCredits = processedCount;
                 
@@ -1949,6 +1964,7 @@ async function processBulk() {
                         result: resultValue,
                         status: statusValue,
                         rawData: parsedRaw,
+                        confidence: data.confidence,
                         isLocked: false
                     };
                     if (data.result || hasProfileData) {
@@ -2297,7 +2313,7 @@ function checkAuth(){
     .catch(() => {});
 }
 
-function showSingleResult(inputData,result){
+function showSingleResult(inputData,result,confidence){
     const resultText=document.getElementById('resultText');
     const resultLink=document.getElementById('resultLink');
     resultText.style.display='none'; resultLink.innerHTML='';
@@ -2372,7 +2388,8 @@ function showSingleResult(inputData,result){
     html+='</div>';
 }
     } else if(result!=='Not found'&&result.startsWith&&result.startsWith('http')){
-        html+=`<div class="result-grid"><div class="result-item"><div class="result-label">${outputLabel}</div><div class="result-value"><a href="${result}" target="_blank">${result}</a></div></div></div>`;
+        const badge = confidence ? `<span class="confidence-badge confidence-${confidence}">${confidence.replace(/_/g,' ')}</span>` : '';
+        html+=`<div class="result-grid"><div class="result-item"><div class="result-label">${outputLabel}</div><div class="result-value">${badge} <a href="${result}" target="_blank">${result}</a></div></div></div>`;
     } else {
         html+=`<div class="result-grid"><div class="result-item"><div class="result-label">${outputLabel}</div><div class="result-value">${result}</div></div></div>`;
     }
@@ -2542,12 +2559,18 @@ function showPreview(){
     try { posthog.capture('csv_uploaded', { row_count: csvData.length, input_type: currentInputType }); } catch(e) {}
 }
 function initializeBulkResultsTable(){
+    document.getElementById('confidenceFilterBar').style.display = currentInputType === 'email' ? 'flex' : 'none';
     let html='';
     if(currentInputType==='linkedin_post'&&currentOutputType==='reactions'){html=`<table class="results-table"><thead><tr><th>Name</th><th>Job Title</th><th>Profile Info</th><th>LinkedIn URL</th></tr></thead><tbody></tbody></table>`;}
     else if(currentInputType==='linkedin_profile'&&currentOutputType==='linkedin_info'){html=`<table class="results-table"><thead><tr><th>LinkedIn URL</th><th>Name</th><th>Job Title</th><th>Company</th><th>Location</th></tr></thead><tbody></tbody></table>`;}
     else if(currentInputType==='linkedin_company'&&currentOutputType==='linkedin_info'){html=`<table class="results-table"><thead><tr><th>LinkedIn URL</th><th>Company Name</th><th>Industry</th><th>Company Size</th><th>Location</th></tr></thead><tbody></tbody></table>`;}
     else if(currentOutputType==='employee_count'){const c=dataConfigurations[currentInputType];html=`<table class="results-table"><thead><tr><th>${c.label.replace('Enter ','')}</th><th>Employee Count</th><th>Status</th></tr></thead><tbody></tbody></table>`;}
-    else{const c=dataConfigurations[currentInputType];const ol=c.outputs[currentOutputType];html=`<table class="results-table"><thead><tr><th>${c.label.replace('Enter ','')}</th><th>${ol}</th><th>Status</th></tr></thead><tbody></tbody></table>`;}
+    else{
+    const c=dataConfigurations[currentInputType];
+    const ol=c.outputs[currentOutputType];
+    const showConf = currentInputType === 'email';
+    html=`<table class="results-table"><thead><tr><th>${c.label.replace('Enter ','')}</th><th>${ol}</th>${showConf?'<th>Confidence</th>':''}<th>Status</th></tr></thead><tbody></tbody></table>`;
+}
     document.getElementById('bulkResultsTable').innerHTML=html;
 }
 function generateCombinationType(inputType,outputType){return `${inputType}_to_${outputType}`;}
@@ -2573,11 +2596,18 @@ function updateBulkResultsTable(){
         bulkResults.forEach(row=>{const d=row.rawData||{};const us=row.inputData.length>35?row.inputData.substring(0,35)+'...':row.inputData;const followers=d.followerCount?Number(String(d.followerCount).replace(/,/g,'')).toLocaleString():'Not found';const empSize=d.company_size!=null&&d.company_size!==''&&d.company_size!==0?String(d.company_size):'Not found';html+=`<tr><td><a href="${row.inputData}" target="_blank" style="color:var(--primary);text-decoration:none;">${us}</a></td><td>${d.name||'Not found'}</td><td>${d.industry||'Not found'}</td><td>${empSize}</td><td>${followers}</td><td>${d.city||'Not found'}</td><td>${d.country||'Not found'}</td><td>${d.foundedOn||'Not found'}</td><td>${d.company_email||'Not found'}</td><td>${d.company_phone||'Not found'}</td><td>${d.website||'Not found'}</td></tr>`;});
         html+='</tbody></table>';
     } else {
-        const c=dataConfigurations[currentInputType];const ol=c.outputs[currentOutputType];
-        html=`<table class="results-table"><thead><tr><th>${c.label.replace('Enter ','')}</th><th>${ol}</th><th>Status</th></tr></thead><tbody>`;
-        bulkResults.forEach(row=>{let rc=row.result;if(row.result!=='Not found'&&row.result!=='Error'&&row.result!=='Processing...'&&row.result.startsWith&&row.result.startsWith('http')){rc=`<a href="${row.result}" target="_blank" style="color:var(--primary);text-decoration:none;">${row.result}</a>`;}html+=`<tr><td>${row.inputData}</td><td>${rc}</td><td><span class="status-badge ${sc(row.status)}">${st(row.status)}</span></td></tr>`;});
-        html+='</tbody></table>';
-    }
+    const c=dataConfigurations[currentInputType];const ol=c.outputs[currentOutputType];
+    const showConf = currentInputType === 'email';
+    html=`<table class="results-table"><thead><tr><th>${c.label.replace('Enter ','')}</th><th>${ol}</th>${showConf?'<th>Confidence</th>':''}<th>Status</th></tr></thead><tbody>`;
+    bulkResults.forEach(row=>{
+        if (currentConfidenceFilter === 'high' && showConf && row.confidence !== 'medium') return;
+        let rc=row.result;
+        if(row.result!=='Not found'&&row.result!=='Error'&&row.result!=='Processing...'&&row.result.startsWith&&row.result.startsWith('http')){rc=`<a href="${row.result}" target="_blank" style="color:var(--primary);text-decoration:none;">${row.result}</a>`;}
+        const confCell = showConf ? `<td>${row.confidence?`<span class="confidence-badge confidence-${row.confidence}">${row.confidence.replace(/_/g,' ')}</span>`:'—'}</td>` : '';
+        html+=`<tr><td>${row.inputData}</td><td>${rc}</td>${confCell}<td><span class="status-badge ${sc(row.status)}">${st(row.status)}</span></td></tr>`;
+    });
+    html+='</tbody></table>';
+}
     document.getElementById('bulkResultsTable').innerHTML=html;
 }
 async function downloadResults(){
@@ -2647,7 +2677,7 @@ function showSavedPill(targetEl) {
     resultsSection.insertBefore(pill, resultsSection.firstChild);
 }
 
-const creditCosts={'company_name_to_website':1,'company_name_to_phone':1,'company_name_to_linkedin_url':1,'email_to_linkedin_url':1,'company_name_to_employees':1,'company_name_to_employee_count':1,'company_name_to_email':1,'linkedin_company_to_linkedin_info':5,'linkedin_company_to_employees':1,'linkedin_company_to_employee_count':1,'linkedin_profile_to_linkedin_info':10,'lead_full_name_to_linkedin_url':1,'linkedin_profile_to_email':10,'company_domain_to_employees':1,'linkedin_post_to_reactions':1,'linkedin_profile_to_phone':20};
+const creditCosts={'company_name_to_website':1,'company_name_to_phone':1,'company_name_to_linkedin_url':1,'email_to_linkedin_url':1,'company_name_to_employees':1,'company_name_to_employee_count':1,'company_name_to_email':1,'linkedin_company_to_linkedin_info':6,'linkedin_company_to_employees':1,'linkedin_company_to_employee_count':1,'linkedin_profile_to_linkedin_info':10,'lead_full_name_to_linkedin_url':1,'linkedin_profile_to_email':10,'company_domain_to_employees':1,'linkedin_post_to_reactions':1,'linkedin_profile_to_phone':50};
 function getCreditCost(inputType,outputType){return creditCosts[generateCombinationType(inputType,outputType)]||1;}
 
 function updateCreditCostDisplay(){
