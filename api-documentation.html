@@ -374,7 +374,7 @@
                         <div class="qs-num">3</div>
                         <div class="qs-body">
                             <h4>Handle the response</h4>
-                            <p>Every response includes a <code>status</code> field (<code>"success"</code> or <code>"error"</code>) and a <code>result</code> field with your data. <strong>Two endpoints respond differently</strong> — see <a href="#async">Sync vs Async</a> below.</p>
+                            <p>Every response includes a <code>status</code> field (<code>"success"</code> or <code>"error"</code>) and a <code>result</code> field with your data. <strong>Some requests respond differently</strong> — see <a href="#async">Sync vs Async</a> below.</p>
                         </div>
                     </div>
                 </div>
@@ -487,10 +487,14 @@ console.log(data.result); <span class="cm">// "tesla.com"</span></pre>
             <!-- ══ SYNC VS ASYNC ══ -->
             <div class="doc-section" id="async">
                 <h2 class="section-heading"><i class="fas fa-clock-rotate-left"></i> Sync vs Async Requests</h2>
-                <p class="section-sub">Most endpoints respond immediately with your data. Two endpoints — <code>linkedin_profile_to_email</code> and <code>linkedin_profile_to_linkedin_info</code> — always return a <code>job_id</code> instead, which you then poll for the result. Look for the <span class="sync-tag"><i class="fas fa-bolt"></i> Sync</span> / <span class="async-tag"><i class="fas fa-hourglass-half"></i> Async</span> tag on each endpoint below; the async ones show the exact request + poll calls side by side right in their section.</p>
+                <p class="section-sub">Most endpoints respond immediately with your data. Two endpoints — <code>linkedin_profile_to_linkedin_info</code> and <code>company_domain_to_employees</code> — always return a <code>job_id</code> instead, which you then poll for the result. Look for the <span class="sync-tag"><i class="fas fa-bolt"></i> Sync</span> / <span class="async-tag"><i class="fas fa-hourglass-half"></i> Async</span> tag on each endpoint below; the async ones show the exact request + poll calls side by side right in their section.</p>
                 <div class="info-box yellow">
                     <i class="fas fa-triangle-exclamation"></i>
-                    <div>A <code>202</code> response with <code>status: "processing"</code> is not an error — it's the expected response for the two async endpoints. Poll the returned <code>poll_url</code> until <code>status</code> is <code>"done"</code>. Job results expire after <strong>10 minutes</strong>.</div>
+                    <div>A <code>202</code> response with <code>status: "processing"</code> is not an error — it's the expected response for the two always-async endpoints. Poll the returned <code>poll_url</code> until <code>status</code> is <code>"done"</code>. Job results expire after <strong>10 minutes</strong>.</div>
+                </div>
+                <div class="info-box purple">
+                    <i class="fas fa-circle-info"></i>
+                    <div><strong>Any endpoint can occasionally respond this way.</strong> Every request — not just the two always-async ones — races against a ~27 second window on our side. If the lookup hasn't finished by then, you'll get the same <code>202</code> / <code>job_id</code> / <code>poll_url</code> shape instead of an immediate result, even for endpoints tagged <span class="sync-tag" style="vertical-align:middle"><i class="fas fa-bolt"></i> Sync</span>. Don't assume a fixed response shape based on endpoint name alone — always check whether the response contains a <code>job_id</code> before parsing it as a final result.</div>
                 </div>
             </div>
 
@@ -642,7 +646,7 @@ leads.forEach(lead => console.log(lead.full_name, lead.email));</pre>
             <!-- ══ COMPANY ENRICHMENT ══ -->
             <div class="doc-section" id="company">
                 <h2 class="section-heading"><i class="fas fa-building"></i> Company Enrichment</h2>
-                <p class="section-sub">Look up company details from a name or domain. Each request costs 1 credit. All endpoints in this section are <span class="sync-tag"><i class="fas fa-bolt"></i> Sync</span>.</p>
+                <p class="section-sub">Look up company details from a name or domain. Each request costs 1 credit. All endpoints in this section are <span class="sync-tag"><i class="fas fa-bolt"></i> Sync</span>, except <code>company_domain_to_employees</code> below, which is always <span class="async-tag"><i class="fas fa-hourglass-half"></i> Async</span>.</p>
 
                 <!-- Company → Website -->
                 <div class="endpoint-card">
@@ -717,9 +721,9 @@ leads.forEach(lead => console.log(lead.full_name, lead.email));</pre>
                 </div>
 
                 <!-- Domain → Employees -->
-                <div class="endpoint-card">
+                <div class="endpoint-card is-async">
                     <div class="endpoint-header" onclick="toggleEndpoint(this)">
-                        <div><div class="endpoint-title-row"><span class="method-badge">POST</span><span class="endpoint-name">company_domain_to_employees</span><span class="sync-tag"><i class="fas fa-bolt"></i> Sync</span></div><div class="endpoint-desc">Get a filtered list of employees from a company domain — filter by department and seniority</div></div>
+                        <div><div class="endpoint-title-row"><span class="method-badge">POST</span><span class="endpoint-name">company_domain_to_employees</span><span class="async-tag"><i class="fas fa-hourglass-half"></i> Async</span></div><div class="endpoint-desc">Get a filtered list of employees from a company domain — filter by department and seniority</div></div>
                         <div style="display:flex;align-items:center;gap:.5rem"><span class="credit-pill">1 credit / employee</span><i class="fas fa-chevron-down endpoint-chevron"></i></div>
                     </div>
                     <div class="endpoint-body">
@@ -732,7 +736,11 @@ leads.forEach(lead => console.log(lead.full_name, lead.email));</pre>
                                 <tr><td><code>employee_count</code></td><td><code>integer</code></td><td><span class="param-req opt">Optional</span></td><td>Max results to return</td></tr>
                             </tbody>
                         </table>
-                        <div class="code-block-wrap"><div class="code-tabs"><button class="code-tab active" onclick="switchTab(this,'c6-curl')">cURL</button></div><div id="c6-curl" class="code-pane active"><pre class="code-block">curl -X POST "https://api.linkfinderai.com" \
+                        <p style="font-size:0.8125rem;color:#5b21b6;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:6px;padding:0.6rem 0.875rem;margin-bottom:1rem"><i class="fas fa-hourglass-half"></i> <strong>Always async</strong> — this call returns a <code>job_id</code>, then you poll for the result. Request and poll shown side by side below.</p>
+                        <div class="step-stack">
+                            <div>
+                                <h4><span class="step-circle">1</span> Make the request</h4>
+                                <pre class="code-block" style="border-radius:8px">curl -X POST "https://api.linkfinderai.com" \
      -H "Content-Type: application/json" \
      -H "Authorization: Bearer <span class="st">YOUR_API_KEY</span>" \
      -d '{
@@ -741,7 +749,28 @@ leads.forEach(lead => console.log(lead.full_name, lead.email));</pre>
        <span class="ky">"department"</span>: <span class="st">"marketing"</span>,
        <span class="ky">"seniority"</span>: <span class="st">"director"</span>,
        <span class="ky">"employee_count"</span>: <span class="nm">20</span>
-     }'</pre></div></div>
+     }'
+
+<span class="cm">// Returns immediately:</span>
+{
+  <span class="ky">"job_id"</span>: <span class="st">"a12f3e90-..."</span>,
+  <span class="ky">"status"</span>: <span class="st">"processing"</span>,
+  <span class="ky">"poll_url"</span>: <span class="st">"https://api.linkfinderai.com/status/a12f3e90-..."</span>
+}</pre>
+                            </div>
+                            <div>
+                                <h4><span class="step-circle">2</span> Poll for the result</h4>
+                                <pre class="code-block" style="border-radius:8px">curl "https://api.linkfinderai.com/status/a12f3e90-..." \
+     -H "Authorization: Bearer <span class="st">YOUR_API_KEY</span>"
+
+<span class="cm">// Repeat every 3-5s until:</span>
+{
+  <span class="ky">"status"</span>: <span class="st">"done"</span>,
+  <span class="ky">"http_status"</span>: <span class="nm">200</span>,
+  <span class="ky">"data"</span>: { <span class="ky">"result"</span>: [ <span class="cm">/* employees */</span> ], <span class="ky">"status"</span>: <span class="st">"success"</span> }
+}</pre>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -749,7 +778,7 @@ leads.forEach(lead => console.log(lead.full_name, lead.email));</pre>
             <!-- ══ LINKEDIN SCRAPING ══ -->
             <div class="doc-section" id="linkedin">
                 <h2 class="section-heading"><i class="fab fa-linkedin"></i> B2B Data Lookup</h2>
-                <p class="section-sub">Look up business contacts profiles, company pages, and posts without using your own LinkedIn account. Zero ban risk. <strong>Two endpoints below are async</strong> — look for the purple <span class="async-tag"><i class="fas fa-hourglass-half"></i> Async</span> tag.</p>
+                <p class="section-sub">Look up business contacts profiles, company pages, and posts without using your own LinkedIn account. Zero ban risk. <strong>One endpoint below is always async</strong> — look for the purple <span class="async-tag"><i class="fas fa-hourglass-half"></i> Async</span> tag.</p>
 
                 <!-- LinkedIn Profile → Info -->
                 <div class="endpoint-card is-async">
@@ -789,10 +818,10 @@ leads.forEach(lead => console.log(lead.full_name, lead.email));</pre>
                     </div>
                 </div>
 
-                <!-- ✦ NEW: LinkedIn Profile → Email -->
-                <div class="endpoint-card is-async">
+                <!-- LinkedIn Profile → Email -->
+                <div class="endpoint-card">
                     <div class="endpoint-header" onclick="toggleEndpoint(this)">
-                        <div><div class="endpoint-title-row"><span class="method-badge">POST</span><span class="endpoint-name">linkedin_profile_to_email</span><span class="async-tag"><i class="fas fa-hourglass-half"></i> Async</span></div><div class="endpoint-desc">Find a person's professional email address from their LinkedIn profile URL</div></div>
+                        <div><div class="endpoint-title-row"><span class="method-badge">POST</span><span class="endpoint-name">linkedin_profile_to_email</span><span class="sync-tag"><i class="fas fa-bolt"></i> Sync</span></div><div class="endpoint-desc">Find a person's professional email address from their LinkedIn profile URL</div></div>
                         <div style="display:flex;align-items:center;gap:.5rem"><span class="credit-pill">1 credit</span><i class="fas fa-chevron-down endpoint-chevron"></i></div>
                     </div>
                     <div class="endpoint-body">
@@ -802,42 +831,45 @@ leads.forEach(lead => console.log(lead.full_name, lead.email));</pre>
                                 <tr><td><code>input_data</code></td><td><code>string</code></td><td><span class="param-req req">Required</span></td><td>Full LinkedIn profile URL e.g. <code>https://linkedin.com/in/john-doe</code></td></tr>
                             </tbody>
                         </table>
-                        <p style="font-size:0.8125rem;color:#5b21b6;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:6px;padding:0.6rem 0.875rem;margin-bottom:1rem"><i class="fas fa-hourglass-half"></i> <strong>Always async</strong> — this call returns a <code>job_id</code>, then you poll for the result. Request and poll shown side by side below.</p>
-                        <div class="step-stack">
-                            <div>
-                                <h4><span class="step-circle">1</span> Make the request</h4>
-                                <pre class="code-block" style="border-radius:8px">curl -X POST "https://api.linkfinderai.com" \
+                        <div class="code-block-wrap">
+                            <div class="code-tabs">
+                                <button class="code-tab active" onclick="switchTab(this,'l-pe-curl')">cURL</button>
+                                <button class="code-tab" onclick="switchTab(this,'l-pe-py')">Python</button>
+                                <button class="code-tab" onclick="switchTab(this,'l-pe-response')">Response</button>
+                            </div>
+                            <div id="l-pe-curl" class="code-pane active"><pre class="code-block">curl -X POST "https://api.linkfinderai.com" \
      -H "Content-Type: application/json" \
      -H "Authorization: Bearer <span class="st">YOUR_API_KEY</span>" \
      -d '{
        <span class="ky">"type"</span>: <span class="st">"linkedin_profile_to_email"</span>,
        <span class="ky">"input_data"</span>: <span class="st">"https://linkedin.com/in/john-doe"</span>
-     }'
-
-<span class="cm">// Returns immediately:</span>
+     }'</pre></div>
+                            <div id="l-pe-py" class="code-pane"><pre class="code-block">response = requests.post(url, headers=headers, json={
+    <span class="ky">"type"</span>: <span class="st">"linkedin_profile_to_email"</span>,
+    <span class="ky">"input_data"</span>: <span class="st">"https://linkedin.com/in/john-doe"</span>
+})
+<span class="cm">print</span>(response.json()[<span class="st">"result"</span>])  <span class="cm"># "john.doe@company.com"</span></pre></div>
+                            <div id="l-pe-response" class="code-pane"><pre class="code-block"><span class="cm">// Success</span>
 {
-  <span class="ky">"job_id"</span>: <span class="st">"55600ed5-..."</span>,
-  <span class="ky">"status"</span>: <span class="st">"processing"</span>,
-  <span class="ky">"poll_url"</span>: <span class="st">"https://api.linkfinderai.com/status/55600ed5-..."</span>
-}</pre>
-                            </div>
-                            <div>
-                                <h4><span class="step-circle">2</span> Poll for the result</h4>
-                                <pre class="code-block" style="border-radius:8px">curl "https://api.linkfinderai.com/status/55600ed5-..." \
-     -H "Authorization: Bearer <span class="st">YOUR_API_KEY</span>"
+  <span class="ky">"result"</span>: <span class="st">"john.doe@company.com"</span>,
+  <span class="ky">"status"</span>: <span class="st">"success"</span>
+}
 
-<span class="cm">// Repeat every 3-5s until:</span>
+<span class="cm">// Not found</span>
 {
-  <span class="ky">"status"</span>: <span class="st">"done"</span>,
-  <span class="ky">"http_status"</span>: <span class="nm">200</span>,
-  <span class="ky">"data"</span>: { <span class="ky">"result"</span>: <span class="st">"john.doe@company.com"</span>, <span class="ky">"status"</span>: <span class="st">"success"</span> }
-}</pre>
-                            </div>
+  <span class="ky">"result"</span>: <span class="nm">null</span>,
+  <span class="ky">"status"</span>: <span class="st">"error"</span>,
+  <span class="ky">"message"</span>: <span class="st">"Email not found"</span>
+}</pre></div>
+                        </div>
+                        <div class="info-box blue" style="margin-top:.75rem">
+                            <i class="fas fa-circle-info"></i>
+                            <div>This endpoint is normally sync and resolves quickly. In rare cases where a lookup takes unusually long, you may receive a <code>202</code> with a <code>job_id</code> instead — if so, follow the same polling flow described in <a href="#async">Sync vs Async</a>.</div>
                         </div>
                     </div>
                 </div>
 
-                <!-- ✦ NEW: LinkedIn Profile → Phone -->
+                <!-- LinkedIn Profile → Phone -->
                 <div class="endpoint-card">
                     <div class="endpoint-header" onclick="toggleEndpoint(this)">
                         <div><div class="endpoint-title-row"><span class="method-badge">POST</span><span class="endpoint-name">linkedin_profile_to_phone</span><span class="sync-tag"><i class="fas fa-bolt"></i> Sync</span></div><div class="endpoint-desc">Find a person's phone number from their LinkedIn profile URL</div></div>
@@ -924,7 +956,7 @@ leads.forEach(lead => console.log(lead.full_name, lead.email));</pre>
      -d '{"type": <span class="st">"lead_full_name_to_linkedin_url"</span>, "input_data": <span class="st">"Bill Gates Microsoft"</span>}'</pre></div></div></div>
                 </div>
 
-                <!-- ✦ NEW: Email → LinkedIn URL -->
+                <!-- Email → LinkedIn URL -->
                 <div class="endpoint-card">
                     <div class="endpoint-header" onclick="toggleEndpoint(this)">
                         <div><div class="endpoint-title-row"><span class="method-badge">POST</span><span class="endpoint-name">email_to_linkedin_url</span><span class="sync-tag"><i class="fas fa-bolt"></i> Sync</span></div><div class="endpoint-desc">Reverse-lookup a person's LinkedIn profile URL from their email address</div></div>
@@ -1013,7 +1045,7 @@ leads.forEach(lead => console.log(lead.full_name, lead.email));</pre>
                     <thead><tr><th>HTTP Code</th><th>Meaning</th><th>What to do</th></tr></thead>
                     <tbody>
                         <tr><td><span class="http-code ok">200</span></td><td>Success</td><td>Check <code>result</code> field — may be <code>null</code> if data wasn't found (still costs 1 credit)</td></tr>
-                        <tr><td><span class="http-code async">202</span></td><td>Accepted — processing async</td><td><strong>Not an error.</strong> Save the <code>job_id</code> and poll <code>poll_url</code> until <code>status</code> is <code>"done"</code> or <code>"error"</code>. Always returned by <code>linkedin_profile_to_email</code> and <code>linkedin_profile_to_linkedin_info</code>.</td></tr>
+                        <tr><td><span class="http-code async">202</span></td><td>Accepted — processing async</td><td><strong>Not an error.</strong> Save the <code>job_id</code> and poll <code>poll_url</code> until <code>status</code> is <code>"done"</code> or <code>"error"</code>. Always returned by <code>linkedin_profile_to_linkedin_info</code> and <code>company_domain_to_employees</code> — and may occasionally be returned by any other endpoint if it takes longer than ~27 seconds to resolve.</td></tr>
                         <tr><td><span class="http-code err4">401</span></td><td>Unauthorized</td><td>Missing or invalid API key — check your Authorization header</td></tr>
                         <tr><td><span class="http-code err4">402</span></td><td>Insufficient credits</td><td>Top up credits or wait for next billing cycle</td></tr>
                         <tr><td><span class="http-code err4">404</span></td><td>Job not found or expired</td><td>On <code>/status/:job_id</code> — job results expire after 10 minutes. Poll sooner next time.</td></tr>
@@ -1036,7 +1068,7 @@ leads.forEach(lead => console.log(lead.full_name, lead.email));</pre>
 
                 <div class="info-box yellow" style="margin-bottom:1.5rem">
                     <i class="fas fa-triangle-exclamation"></i>
-                    <div><strong>Note for no-code users:</strong> <code>linkedin_profile_to_email</code> and <code>linkedin_profile_to_linkedin_info</code> require polling and are harder to wire up in Zapier/Make without a native integration. For these two, add a "Delay" step followed by a second HTTP GET call to the <code>poll_url</code>, repeated until <code>status</code> is <code>"done"</code>. All other endpoints work in a single step.</div>
+                    <div><strong>Note for no-code users:</strong> <code>linkedin_profile_to_linkedin_info</code> and <code>company_domain_to_employees</code> require polling and are harder to wire up in Zapier/Make without a native integration. For these two, add a "Delay" step followed by a second HTTP GET call to the <code>poll_url</code>, repeated until <code>status</code> is <code>"done"</code>. Every other endpoint can also occasionally fall back to this same job_id/poll shape if a lookup runs long, so it's worth adding the same Delay + poll pattern as a fallback branch even on your "single step" Zaps.</div>
                 </div>
 
                 <div class="integration-grid">
