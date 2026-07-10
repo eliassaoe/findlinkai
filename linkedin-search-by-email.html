@@ -700,11 +700,11 @@ async function findLinkedInProfile() {
   resultLink.innerHTML = '';
 
   try {
-    const response = await fetch('https://linkfinder-email-to-linkedin.hamoureliasse.workers.dev/', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-API-Secret': 'lf_sk_8x9k2mNpQr7' },
-      body: JSON.stringify({ email: email, is_bulk: false })
-    });
+    const response = await fetch('https://linkfinder-free-tools.hamoureliasse.workers.dev/', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json', 'X-API-Secret': 'lf_sk_8x9k2mNpQr7' },
+  body: JSON.stringify({ type: 'profile_search_by_email', email: email, is_bulk: false })
+});
     const data = await response.json();
 
     if (data && data.linkedin_url) {
@@ -824,11 +824,11 @@ async function processBulkSearch() {
   bulkResults = []; let processed = 0;
   for (const row of csvData) {
     try {
-      const response = await fetch('https://linkfinder-email-to-linkedin.hamoureliasse.workers.dev/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-API-Secret': 'lf_sk_8x9k2mNpQr7' },
-        body: JSON.stringify({ email: row.email })
-      });
+      const response = await fetch('https://linkfinder-free-tools.hamoureliasse.workers.dev/', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json', 'X-API-Secret': 'lf_sk_8x9k2mNpQr7' },
+  body: JSON.stringify({ type: 'profile_search_by_email', email: row.email, is_bulk: true })
+});
       const data = await response.json();
       bulkResults.push({ ...row, linkedinUrl: data?.linkedin_url || 'Not found', status: data?.linkedin_url ? 'Found' : 'Not found' });
       await new Promise(function(r) { setTimeout(r, 100); });
