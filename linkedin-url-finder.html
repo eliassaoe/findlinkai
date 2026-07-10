@@ -902,8 +902,7 @@ body {
   let bulkSearchUsed = false;
   let upgradeBarShown = false;
 
-  const PROFILE_WORKER_URL = 'https://linkedinfinderlinkfinderai.hamoureliasse.workers.dev/';
-  const COMPANY_WORKER_URL = 'https://linkfinder-ai-linkedin-company-url.hamoureliasse.workers.dev/';
+const WORKER_URL = 'https://linkfinder-free-tools.hamoureliasse.workers.dev/';
 
   // ── INIT ──
   function initApp() {
@@ -1122,7 +1121,9 @@ body {
       return;
     }
 
-    let requestBody = { type: currentSearchType };
+    let requestBody = { 
+  type: currentSearchType === 'person' ? 'professional_profile_finder' : 'company_linkedin_finder'
+};
     let searchTerm = '';
 
     if (currentSearchType === 'person') {
@@ -1172,8 +1173,7 @@ body {
     showLoadingResult(searchTerm);
 
     try {
-      const workerURL = currentSearchType === 'person' ? PROFILE_WORKER_URL : COMPANY_WORKER_URL;
-      const response = await fetch(workerURL, {
+      const response = await fetch(WORKER_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-API-Secret': 'lf_sk_8x9k2mNpQr7' },
         body: JSON.stringify(requestBody)
@@ -1301,16 +1301,17 @@ body {
     bulkSearchUsed = true;
     localStorage.setItem('bulkSearchUsed', 'true');
 
-    const workerURL = currentSearchType === 'person' ? PROFILE_WORKER_URL : COMPANY_WORKER_URL;
-
     for (const row of csvData) {
       try {
-        let body = { type: currentSearchType, is_bulk: true };
+        let body = { 
+  type: currentSearchType === 'person' ? 'professional_profile_finder' : 'company_linkedin_finder',
+  is_bulk: true 
+};
         if (currentSearchType === 'person') {
           body.first_name = row.firstName; body.last_name = row.lastName; body.company_name = row.companyName;
         } else { body.company_name = row.companyName; }
 
-        const res = await fetch(workerURL, {
+        const res = await fetch(WORKER_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'X-API-Secret': 'lf_sk_8x9k2mNpQr7' },
           body: JSON.stringify(body)
