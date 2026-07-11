@@ -1433,7 +1433,7 @@ src="https://www.facebook.com/tr?id=2717863625238535&ev=PageView&noscript=1"
       setupFileUpload();
       checkAuthState();
       updateUI();
-      updateSearchCounter();
+
       
       const companyInput = document.getElementById('companyInput');
       if (companyInput) {
@@ -1507,7 +1507,6 @@ src="https://www.facebook.com/tr?id=2717863625238535&ev=PageView&noscript=1"
         localStorage.setItem('employeeSearchCount', searchCount);
         document.getElementById('searchCount').textContent = searchCount;
       }
-      updateSearchCounter();
     }
 
         function updateUI() {
@@ -1556,20 +1555,21 @@ src="https://www.facebook.com/tr?id=2717863625238535&ev=PageView&noscript=1"
       }
 
       const requestBody = { 
-        companyName: companyInput,
-        is_bulk: false
-      };
+  type: 'employee_count_lookup',
+  company_name: companyInput,
+  is_bulk: false
+};
 
       document.getElementById('resultsSection').classList.remove('hidden');
       resultText.value = `Searching for employee count: ${companyInput}...`;
       resultDisplay.innerHTML = '';
 
       try {
-        const response = await fetch('https://linkfinder-company-employee-count.hamoureliasse.workers.dev/', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'X-API-Secret': 'lf_sk_8x9k2mNpQr7' },
-          body: JSON.stringify(requestBody)
-        });
+        const response = await fetch('https://linkfinder-free-tools.hamoureliasse.workers.dev/', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json', 'X-API-Secret': 'lf_sk_8x9k2mNpQr7' },
+  body: JSON.stringify(requestBody)
+});
 
         const data = await response.json();
 
@@ -1733,8 +1733,9 @@ src="https://www.facebook.com/tr?id=2717863625238535&ev=PageView&noscript=1"
       for (const row of csvData) {
         try {
           const requestBody = { 
-            companyName: row.companyName
-          };
+  type: 'employee_count_lookup',
+  company_name: row.companyName
+};
 
           const response = await fetch('https://linkfinder-company-employee-count.hamoureliasse.workers.dev/', {
             method: 'POST',
