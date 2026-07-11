@@ -799,9 +799,9 @@
 
         <div id="singleSearch" class="card hidden">
     <form onsubmit="enrichData(event)">
-        <div class="form-group">
+        <div class="form-group" id="mainInputGroup">
             <label for="inputData" id="inputLabel">Enter Company Name</label>
-            <input type="text" id="inputData" placeholder="e.g., Tesla, Apple, Microsoft" required>
+            <input type="text" id="inputData" placeholder="e.g., Tesla, Apple, Microsoft">
         </div>
         <div id="leadExtraFields" style="display:none;">
             <div class="form-group">
@@ -815,6 +815,20 @@
             <div class="form-group">
                 <label for="leadJobTitle">Job Title <span class="optional-badge">optional</span></label>
                 <input type="text" id="leadJobTitle" placeholder="e.g., VP of Sales">
+            </div>
+        </div>
+        <div id="emailLeadFields" style="display:none;">
+            <div class="form-group">
+                <label for="leadFirstName">First Name</label>
+                <input type="text" id="leadFirstName" placeholder="e.g., Sarah">
+            </div>
+            <div class="form-group">
+                <label for="leadLastName">Last Name</label>
+                <input type="text" id="leadLastName" placeholder="e.g., Johnson">
+            </div>
+            <div class="form-group">
+                <label for="leadDomain">Company Domain</label>
+                <input type="text" id="leadDomain" placeholder="e.g., tesla.com">
             </div>
         </div>
         <button type="submit" class="btn btn-full"><i class="fas fa-magic"></i> Enrich Data</button>
@@ -1506,32 +1520,32 @@ function configureEnrichment() {
     const config = dataConfigurations[currentInputType];
     document.getElementById('inputLabel').textContent = config.label;
     document.getElementById('inputData').placeholder = config.placeholder;
-    const needsCompany = currentInputType==='lead_full_name'&&(currentOutputType==='linkedin_url'||currentOutputType==='email');
-    const showLocationJobTitle = currentInputType==='lead_full_name'&&currentOutputType==='linkedin_url';
 
-    document.getElementById('leadExtraFields').style.display = needsCompany ? 'block' : 'none';
-    document.getElementById('leadCompany').required = needsCompany;
-    document.getElementById('leadLocation').closest('.form-group').style.display = showLocationJobTitle ? 'block' : 'none';
-    document.getElementById('leadJobTitle').closest('.form-group').style.display = showLocationJobTitle ? 'block' : 'none';
+    const isEmailLookup = currentInputType==='lead_full_name'&&currentOutputType==='email';
+    const isLinkedinLookup = currentInputType==='lead_full_name'&&currentOutputType==='linkedin_url';
 
-    const leadCompanyLabel = document.querySelector('label[for="leadCompany"]');
-    if (currentOutputType === 'email') {
-        leadCompanyLabel.textContent = 'Company Domain';
-        document.getElementById('leadCompany').placeholder = 'e.g., tesla.com';
-    } else {
-        leadCompanyLabel.textContent = 'Company Name';
-        document.getElementById('leadCompany').placeholder = 'e.g., Salesforce';
-    }
+    // Main "Enter Full Name" field — hidden for email lookup, shown otherwise
+    document.getElementById('mainInputGroup').style.display = isEmailLookup ? 'none' : 'block';
+    document.getElementById('inputData').required = !isEmailLookup;
 
-    if (needsCompany) {
+    // LinkedIn lookup fields (company + optional location/job title)
+    document.getElementById('leadExtraFields').style.display = isLinkedinLookup ? 'block' : 'none';
+    document.getElementById('leadCompany').required = isLinkedinLookup;
+
+    // Email lookup fields (first name, last name, domain)
+    document.getElementById('emailLeadFields').style.display = isEmailLookup ? 'block' : 'none';
+    document.getElementById('leadFirstName').required = isEmailLookup;
+    document.getElementById('leadLastName').required = isEmailLookup;
+    document.getElementById('leadDomain').required = isEmailLookup;
+
+    if (isLinkedinLookup) {
         document.getElementById('inputLabel').textContent = 'Enter Full Name';
         document.getElementById('inputData').placeholder = 'e.g., Sarah Johnson';
     }
 
-    document.getElementById('uploadSubtext').textContent = showLocationJobTitle
+    document.getElementById('uploadSubtext').textContent = isLinkedinLookup
         ? 'CSV with columns: name (required), company (required), location (optional), job_title (optional) — max 10000 rows'
-        : currentOutputType==='email' ? 'CSV with columns: name (required), company_domain (required) — max 10000 rows'
-        : currentInputType==='lead_full_name' ? 'CSV with columns: name (required), company (required) — max 10000 rows'
+        : isEmailLookup ? 'CSV with columns: first_name (required), last_name (required), domain (required) — max 10000 rows'
        : (currentOutputType === 'employees' && (currentInputType === 'company_domain' || currentInputType === 'linkedin_company'))
     ? `CSV with ${config.label.toLowerCase().replace('enter ','')} (required) — optional columns: department, seniority, employee_count. Max 10000 rows.`
     : `CSV with ${config.label.toLowerCase().replace('enter ','')} (max 10000 rows)`;
@@ -1582,27 +1596,38 @@ async function enrichData(event) {
     submitBtn.style.opacity = '0.8';
     const restoreBtn = () => { submitBtn.disabled=false; submitBtn.innerHTML=originalBtnHTML; submitBtn.style.opacity=''; };
     try { posthog.capture('enrich_started',{input_type:currentInputType,output_type:currentOutputType}); } catch(e) {}
-    const inputValue = document.getElementById('inputData').value.trim();
-if (!inputValue) { restoreBtn(); return; }
 
-let effectiveInputValue = inputValue;
-let leadFirstName, leadLastName, leadDomain;
-if (currentInputType === 'lead_full_name' && (currentOutputType === 'linkedin_url' || currentOutputType === 'email')) {
-    const leadCompany = document.getElementById('leadCompany').value.trim();
-    if (!leadCompany) { showAlert(currentOutputType==='email' ? 'Company domain is required.' : 'Company name is required.', 'error'); restoreBtn(); return; }
+    const isEmailLookup = currentInputType === 'lead_full_name' && currentOutputType === 'email';
 
-    if (currentOutputType === 'linkedin_url') {
-        const leadLocation = document.getElementById('leadLocation').value.trim();
-        const leadJobTitle = document.getElementById('leadJobTitle').value.trim();
-        effectiveInputValue = [inputValue, leadCompany, leadLocation, leadJobTitle].filter(Boolean).join(' ');
+    let inputValue = '';
+    let effectiveInputValue = '';
+    let leadFirstName, leadLastName, leadDomain;
+
+    if (isEmailLookup) {
+        leadFirstName = document.getElementById('leadFirstName').value.trim();
+        leadLastName = document.getElementById('leadLastName').value.trim();
+        leadDomain = document.getElementById('leadDomain').value.trim().toLowerCase().replace(/^https?:\/\//,'').replace(/^www\./,'').replace(/\/.*$/,'');
+
+        if (!leadFirstName || leadFirstName.includes(' ')) { showAlert('First name is required and must be a single word.', 'error'); restoreBtn(); return; }
+        if (!leadLastName || leadLastName.includes(' ')) { showAlert('Last name is required and must be a single word.', 'error'); restoreBtn(); return; }
+        if (!leadDomain) { showAlert('Company domain is required.', 'error'); restoreBtn(); return; }
+
+        inputValue = `${leadFirstName} ${leadLastName}`;
+        effectiveInputValue = `${leadFirstName} ${leadLastName} ${leadDomain}`;
     } else {
-        const nameParts = inputValue.split(/\s+/);
-        leadFirstName = nameParts[0] || '';
-        leadLastName = nameParts.slice(1).join(' ') || '';
-        leadDomain = leadCompany.toLowerCase().replace(/^https?:\/\//,'').replace(/^www\./,'').replace(/\/.*$/,'');
-        effectiveInputValue = [leadFirstName, leadLastName, leadDomain].filter(Boolean).join(' ');
+        inputValue = document.getElementById('inputData').value.trim();
+        if (!inputValue) { restoreBtn(); return; }
+        effectiveInputValue = inputValue;
+
+        if (currentInputType === 'lead_full_name' && currentOutputType === 'linkedin_url') {
+            const leadCompany = document.getElementById('leadCompany').value.trim();
+            const leadLocation = document.getElementById('leadLocation').value.trim();
+            const leadJobTitle = document.getElementById('leadJobTitle').value.trim();
+            if (!leadCompany) { showAlert('Company name is required.', 'error'); restoreBtn(); return; }
+            effectiveInputValue = [inputValue, leadCompany, leadLocation, leadJobTitle].filter(Boolean).join(' ');
+        }
     }
-}
+
     if (currentInputType==='linkedin_profile' && !inputValue.toLowerCase().includes('linkedin.com/in/')) { showAlert('Please enter a valid LinkedIn Profile URL (must start with linkedin.com/in/)','error'); restoreBtn(); return; }
     if (currentInputType==='linkedin_post' && !inputValue.toLowerCase().includes('linkedin.com/posts/')) { showAlert('Please enter a valid LinkedIn Post URL (must include linkedin.com/posts/)','error'); restoreBtn(); return; }
     if (currentInputType==='linkedin_company' && !inputValue.toLowerCase().includes('linkedin.com/company/')) { showAlert('Please enter a valid LinkedIn Company URL (must include linkedin.com/company/)','error'); restoreBtn(); return; }
