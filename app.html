@@ -1102,7 +1102,7 @@ let currentSubscriptionId = null;
 let currentConfidenceFilter = 'all';
 
 const dataConfigurations = {
-    lead_full_name: { label:"Enter Lead Full Name + Company Name", placeholder:"e.g., John Doe JP morgan, Sarah Smith Netflix, Michael Johnson Microsoft", outputs:{linkedin_url:"LinkedIn Profile URL"} },
+    lead_full_name: { label:"Enter Lead Full Name + Company Name", placeholder:"e.g., John Doe JP morgan, Sarah Smith Netflix, Michael Johnson Microsoft", outputs:{linkedin_url:"LinkedIn Profile URL", email:"Verified Email"} },
     company_name: { label:"Enter Company Name", placeholder:"e.g., Tesla, Apple, Microsoft", outputs:{website:"Company Website",phone:"Company Phone Number",linkedin_url:"Company LinkedIn URL",email:"Company Email"} },
     email: { label:"Enter Email Address", placeholder:"e.g., john.doe@company.com", outputs:{linkedin_url:"LinkedIn Profile URL"} },
     company_domain: { label:"Enter Company Domain", placeholder:"e.g., tesla.com, apple.com, microsoft.com", outputs:{employees:"Company Employees List"} },
@@ -1506,7 +1506,7 @@ function configureEnrichment() {
     const config = dataConfigurations[currentInputType];
     document.getElementById('inputLabel').textContent = config.label;
     document.getElementById('inputData').placeholder = config.placeholder;
-    const isLeadToLi = currentInputType==='lead_full_name'&&currentOutputType==='linkedin_url';
+    const isLeadToLi = currentInputType==='lead_full_name'&&(currentOutputType==='linkedin_url'||currentOutputType==='email');
     document.getElementById('leadExtraFields').style.display = isLeadToLi ? 'block' : 'none';
     document.getElementById('leadCompany').required = isLeadToLi;
     if (isLeadToLi) {
@@ -1570,7 +1570,7 @@ async function enrichData(event) {
 if (!inputValue) { restoreBtn(); return; }
 
 let effectiveInputValue = inputValue;
-if (currentInputType === 'lead_full_name' && currentOutputType === 'linkedin_url') {
+if (currentInputType === 'lead_full_name' && (currentOutputType === 'linkedin_url' || currentOutputType === 'email')) {
     const leadCompany = document.getElementById('leadCompany').value.trim();
     const leadLocation = document.getElementById('leadLocation').value.trim();
     const leadJobTitle = document.getElementById('leadJobTitle').value.trim();
@@ -2491,7 +2491,7 @@ function parseCSV(csvText){
     let companyIdx=-1, locationIdx=-1, jobTitleIdx=-1;
     if(currentInputType==='lead_full_name'){
         companyIdx=headers.findIndex((h,i)=>i!==dataIdx&&hScore(h,companyNameHeaders)>0);
-        if(currentOutputType==='linkedin_url'&&companyIdx===-1){showAlert(`A "company" column is required to find LinkedIn profiles. Found columns: "${rawHeaders.join('", "')}"`, 'error');return;}
+        if((currentOutputType==='linkedin_url'||currentOutputType==='email')&&companyIdx===-1){showAlert(`A "company" column is required to find emails. Found columns: "${rawHeaders.join('", "')}"`, 'error');return;}
         locationIdx=headers.findIndex((h,i)=>i!==dataIdx&&i!==companyIdx&&hScore(h,locationHeaders)>0);
         jobTitleIdx=headers.findIndex((h,i)=>i!==dataIdx&&i!==companyIdx&&i!==locationIdx&&hScore(h,jobTitleHeaders)>0);
     }
@@ -2677,7 +2677,7 @@ function showSavedPill(targetEl) {
     resultsSection.insertBefore(pill, resultsSection.firstChild);
 }
 
-const creditCosts={'company_name_to_website':1,'company_name_to_phone':1,'company_name_to_linkedin_url':1,'email_to_linkedin_url':1,'company_name_to_employees':1,'company_name_to_employee_count':1,'company_name_to_email':1,'linkedin_company_to_linkedin_info':6,'linkedin_company_to_employees':1,'linkedin_company_to_employee_count':1,'linkedin_profile_to_linkedin_info':10,'lead_full_name_to_linkedin_url':1,'linkedin_profile_to_email':10,'company_domain_to_employees':1,'linkedin_post_to_reactions':1,'linkedin_profile_to_phone':50};
+const creditCosts={'company_name_to_website':1,'company_name_to_phone':1,'company_name_to_linkedin_url':1,'email_to_linkedin_url':1,'company_name_to_employees':1,'company_name_to_employee_count':1,'company_name_to_email':1,'linkedin_company_to_linkedin_info':6,'linkedin_company_to_employees':1,'linkedin_company_to_employee_count':1,'linkedin_profile_to_linkedin_info':10,'lead_full_name_to_linkedin_url':1,'linkedin_profile_to_email':10,'company_domain_to_employees':1,'linkedin_post_to_reactions':1,'linkedin_profile_to_phone':50, 'lead_full_name_to_email':3,};
 function getCreditCost(inputType,outputType){return creditCosts[generateCombinationType(inputType,outputType)]||1;}
 
 function updateCreditCostDisplay(){
