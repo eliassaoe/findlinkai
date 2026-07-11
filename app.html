@@ -1506,16 +1506,32 @@ function configureEnrichment() {
     const config = dataConfigurations[currentInputType];
     document.getElementById('inputLabel').textContent = config.label;
     document.getElementById('inputData').placeholder = config.placeholder;
-    const isLeadToLi = currentInputType==='lead_full_name'&&(currentOutputType==='linkedin_url'||currentOutputType==='email');
-    document.getElementById('leadExtraFields').style.display = isLeadToLi ? 'block' : 'none';
-    document.getElementById('leadCompany').required = isLeadToLi;
-    if (isLeadToLi) {
+    const needsCompany = currentInputType==='lead_full_name'&&(currentOutputType==='linkedin_url'||currentOutputType==='email');
+    const showLocationJobTitle = currentInputType==='lead_full_name'&&currentOutputType==='linkedin_url';
+
+    document.getElementById('leadExtraFields').style.display = needsCompany ? 'block' : 'none';
+    document.getElementById('leadCompany').required = needsCompany;
+    document.getElementById('leadLocation').closest('.form-group').style.display = showLocationJobTitle ? 'block' : 'none';
+    document.getElementById('leadJobTitle').closest('.form-group').style.display = showLocationJobTitle ? 'block' : 'none';
+
+    const leadCompanyLabel = document.querySelector('label[for="leadCompany"]');
+    if (currentOutputType === 'email') {
+        leadCompanyLabel.textContent = 'Company Domain';
+        document.getElementById('leadCompany').placeholder = 'e.g., tesla.com';
+    } else {
+        leadCompanyLabel.textContent = 'Company Name';
+        document.getElementById('leadCompany').placeholder = 'e.g., Salesforce';
+    }
+
+    if (needsCompany) {
         document.getElementById('inputLabel').textContent = 'Enter Full Name';
         document.getElementById('inputData').placeholder = 'e.g., Sarah Johnson';
     }
-    document.getElementById('uploadSubtext').textContent = isLeadToLi
+
+    document.getElementById('uploadSubtext').textContent = showLocationJobTitle
         ? 'CSV with columns: name (required), company (required), location (optional), job_title (optional) — max 10000 rows'
-        : currentInputType==='lead_full_name' ? 'CSV with columns: name (required), company (optional) — max 10000 rows'
+        : currentOutputType==='email' ? 'CSV with columns: name (required), company_domain (required) — max 10000 rows'
+        : currentInputType==='lead_full_name' ? 'CSV with columns: name (required), company (required) — max 10000 rows'
        : (currentOutputType === 'employees' && (currentInputType === 'company_domain' || currentInputType === 'linkedin_company'))
     ? `CSV with ${config.label.toLowerCase().replace('enter ','')} (required) — optional columns: department, seniority, employee_count. Max 10000 rows.`
     : `CSV with ${config.label.toLowerCase().replace('enter ','')} (max 10000 rows)`;
@@ -1570,12 +1586,22 @@ async function enrichData(event) {
 if (!inputValue) { restoreBtn(); return; }
 
 let effectiveInputValue = inputValue;
+let leadFirstName, leadLastName, leadDomain;
 if (currentInputType === 'lead_full_name' && (currentOutputType === 'linkedin_url' || currentOutputType === 'email')) {
     const leadCompany = document.getElementById('leadCompany').value.trim();
-    const leadLocation = document.getElementById('leadLocation').value.trim();
-    const leadJobTitle = document.getElementById('leadJobTitle').value.trim();
-    if (!leadCompany) { showAlert('Company name is required.', 'error'); restoreBtn(); return; }
-    effectiveInputValue = [inputValue, leadCompany, leadLocation, leadJobTitle].filter(Boolean).join(' ');
+    if (!leadCompany) { showAlert(currentOutputType==='email' ? 'Company domain is required.' : 'Company name is required.', 'error'); restoreBtn(); return; }
+
+    if (currentOutputType === 'linkedin_url') {
+        const leadLocation = document.getElementById('leadLocation').value.trim();
+        const leadJobTitle = document.getElementById('leadJobTitle').value.trim();
+        effectiveInputValue = [inputValue, leadCompany, leadLocation, leadJobTitle].filter(Boolean).join(' ');
+    } else {
+        const nameParts = inputValue.split(/\s+/);
+        leadFirstName = nameParts[0] || '';
+        leadLastName = nameParts.slice(1).join(' ') || '';
+        leadDomain = leadCompany.toLowerCase().replace(/^https?:\/\//,'').replace(/^www\./,'').replace(/\/.*$/,'');
+        effectiveInputValue = [leadFirstName, leadLastName, leadDomain].filter(Boolean).join(' ');
+    }
 }
     if (currentInputType==='linkedin_profile' && !inputValue.toLowerCase().includes('linkedin.com/in/')) { showAlert('Please enter a valid LinkedIn Profile URL (must start with linkedin.com/in/)','error'); restoreBtn(); return; }
     if (currentInputType==='linkedin_post' && !inputValue.toLowerCase().includes('linkedin.com/posts/')) { showAlert('Please enter a valid LinkedIn Post URL (must include linkedin.com/posts/)','error'); restoreBtn(); return; }
@@ -1587,6 +1613,9 @@ if (currentInputType === 'lead_full_name' && (currentOutputType === 'linkedin_ur
             body: JSON.stringify({
                 type: generateCombinationType(currentInputType, currentOutputType),
                 input_data: effectiveInputValue,
+                first_name: leadFirstName,
+                last_name: leadLastName,
+                domain: leadDomain,
                 department: (currentOutputType==='employees'&&(currentInputType==='company_domain'||currentInputType==='linkedin_company'))?(document.getElementById('optionalDepartment').value.trim()||'all'):undefined,
                 seniority: (currentOutputType==='employees'&&(currentInputType==='company_domain'||currentInputType==='linkedin_company'))?(document.getElementById('optionalSeniority').value.trim()||'all'):undefined,
                 employee_count: (currentOutputType==='employees'&&(currentInputType==='company_domain'||currentInputType==='linkedin_company'))?(parseInt(document.getElementById('optionalEmployeeCount').value)||null):undefined,
@@ -1885,12 +1914,22 @@ async function processBulk() {
         updateBulkResultsTable();
         
         try {
+            let bulkFirstName, bulkLastName, bulkDomain;
+            if (currentInputType === 'lead_full_name' && currentOutputType === 'email') {
+                const nameParts = (row.name || '').trim().split(/\s+/);
+                bulkFirstName = nameParts[0] || '';
+                bulkLastName = nameParts.slice(1).join(' ') || '';
+                bulkDomain = (row.company || '').toLowerCase().replace(/^https?:\/\//,'').replace(/^www\./,'').replace(/\/.*$/,'');
+            }
             const response = await fetchWithTimeout('https://linkfinderapp.hamoureliasse.workers.dev/', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     type: generateCombinationType(currentInputType, currentOutputType),
                     input_data: row.inputData,
+                    first_name: bulkFirstName,
+                    last_name: bulkLastName,
+                    domain: bulkDomain,
                     department: (currentOutputType === 'employees' && (currentInputType === 'company_domain' || currentInputType === 'linkedin_company'))
                         ? (row.department || document.getElementById('optionalDepartment').value.trim() || 'all')
                         : undefined,
