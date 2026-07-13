@@ -799,9 +799,9 @@
 
         <div id="singleSearch" class="card hidden">
     <form onsubmit="enrichData(event)">
-        <div class="form-group">
+        <div class="form-group" id="mainInputGroup">
             <label for="inputData" id="inputLabel">Enter Company Name</label>
-            <input type="text" id="inputData" placeholder="e.g., Tesla, Apple, Microsoft" required>
+            <input type="text" id="inputData" placeholder="e.g., Tesla, Apple, Microsoft">
         </div>
         <div id="leadExtraFields" style="display:none;">
             <div class="form-group">
@@ -815,6 +815,20 @@
             <div class="form-group">
                 <label for="leadJobTitle">Job Title <span class="optional-badge">optional</span></label>
                 <input type="text" id="leadJobTitle" placeholder="e.g., VP of Sales">
+            </div>
+        </div>
+        <div id="emailLeadFields" style="display:none;">
+            <div class="form-group">
+                <label for="leadFirstName">First Name</label>
+                <input type="text" id="leadFirstName" placeholder="e.g., Sarah">
+            </div>
+            <div class="form-group">
+                <label for="leadLastName">Last Name</label>
+                <input type="text" id="leadLastName" placeholder="e.g., Johnson">
+            </div>
+            <div class="form-group">
+                <label for="leadDomain">Company Domain</label>
+                <input type="text" id="leadDomain" placeholder="e.g., tesla.com">
             </div>
         </div>
         <button type="submit" class="btn btn-full"><i class="fas fa-magic"></i> Enrich Data</button>
@@ -903,9 +917,10 @@
             <p id="pricingModalSubtitle" style="color:var(--gray-500);font-size:0.875rem;margin-top:0.25rem;">Cancel anytime &nbsp;·&nbsp; No questions asked</p>
         </div>
         <div class="billing-toggle">
-            <button type="button" class="billing-btn active" id="monthlyBtn" onclick="setBilling('monthly')">Monthly</button>
-            <button type="button" class="billing-btn" id="annualBtn" onclick="setBilling('annual')">Annual <span class="save-tag">Save 40%</span></button>
-        </div>
+    <button type="button" class="billing-btn" id="paygBtn" onclick="setBilling('payg')">Pay as you go</button>
+    <button type="button" class="billing-btn active" id="monthlyBtn" onclick="setBilling('monthly')">Monthly</button>
+    <button type="button" class="billing-btn" id="annualBtn" onclick="setBilling('annual')">Annual <span class="save-tag">Save 40%</span></button>
+</div>
         <div class="plans-grid" id="plansGrid"></div>
         <div class="pricing-faq">
             <div class="pricing-faq-item"><i class="fas fa-check-circle"></i> Cancel anytime, no questions</div>
@@ -1100,9 +1115,10 @@ let isExistingSubscriber = false;
 let currentPlanNumber = null;
 let currentSubscriptionId = null;
 let currentConfidenceFilter = 'all';
+let billingMode = 'monthly';
 
 const dataConfigurations = {
-    lead_full_name: { label:"Enter Lead Full Name + Company Name", placeholder:"e.g., John Doe JP morgan, Sarah Smith Netflix, Michael Johnson Microsoft", outputs:{linkedin_url:"LinkedIn Profile URL"} },
+    lead_full_name: { label:"Enter Lead Full Name + Company Name", placeholder:"e.g., John Doe JP morgan, Sarah Smith Netflix, Michael Johnson Microsoft", outputs:{linkedin_url:"LinkedIn Profile URL", email:"Verified Email"} },
     company_name: { label:"Enter Company Name", placeholder:"e.g., Tesla, Apple, Microsoft", outputs:{website:"Company Website",phone:"Company Phone Number",linkedin_url:"Company LinkedIn URL",email:"Company Email"} },
     email: { label:"Enter Email Address", placeholder:"e.g., john.doe@company.com", outputs:{linkedin_url:"LinkedIn Profile URL"} },
     company_domain: { label:"Enter Company Domain", placeholder:"e.g., tesla.com, apple.com, microsoft.com", outputs:{employees:"Company Employees List"} },
@@ -1144,9 +1160,15 @@ function renderPlansGrid() {
     const grid = document.getElementById('plansGrid');
     if (!grid) return;
 
+    // NEW: PAYG branch — render credit packs instead of subscription plans
+    if (billingMode === 'payg') {
+        grid.innerHTML = renderPaygCards();
+        return;
+    }
+
+    const isAnnual = (billingMode === 'annual'); // local alias, replaces the old global boolean everywhere below
+
     // Map plan numbers to plan index + billing
-    // 1=starter monthly, 2=pro monthly, 3=enterprise monthly, 4=hypergrowth monthly
-    // 5=starter annual,  6=pro annual,  7=enterprise annual,  8=hypergrowth annual
     const planNumToIndex = { 1:0, 2:1, 3:2, 4:3, 5:0, 6:1, 7:2, 8:3 };
     const planNumIsAnnual = { 1:false, 2:false, 3:false, 4:false, 5:true, 6:true, 7:true, 8:true };
     const currentIndex  = currentPlanNumber ? (planNumToIndex[currentPlanNumber] ?? null) : null;
@@ -1154,49 +1176,65 @@ function renderPlansGrid() {
 
     grid.innerHTML = plans.map(function(plan, index) {
         const isPopular      = plan.name === 'Professional';
-        const monthlyEquiv   = isAnnualBilling ? Math.round(plan.monthlyPrice * 0.6) : plan.monthlyPrice;
+        const monthlyEquiv   = isAnnual ? Math.round(plan.monthlyPrice * 0.6) : plan.monthlyPrice;
         const annualTotal    = Math.round(plan.monthlyPrice * 0.6 * 12);
-        const creditsLabel   = isAnnualBilling ? plan.credits.toLocaleString()+' credits/yr' : Math.round(plan.credits/12).toLocaleString()+' credits/mo';
-        const totalForCalc   = isAnnualBilling ? annualTotal : plan.monthlyPrice;
-        const creditsForCalc = isAnnualBilling ? plan.credits : Math.round(plan.credits/12);
+        const creditsLabel   = isAnnual ? plan.credits.toLocaleString()+' credits/yr' : Math.round(plan.credits/12).toLocaleString()+' credits/mo';
+        const totalForCalc   = isAnnual ? annualTotal : plan.monthlyPrice;
+        const creditsForCalc = isAnnual ? plan.credits : Math.round(plan.credits/12);
         const perCredit      = (totalForCalc / creditsForCalc).toFixed(4);
         const savingsPct     = Math.round((1 - parseFloat(perCredit) / INDUSTRY_AVG_PER_CREDIT) * 100);
 
-        // Determine CTA label and state
         let ctaLabel = 'Get Started';
         let isCurrentPlan = false;
         let ctaClass = 'plan-item-cta' + (isPopular ? ' plan-item-cta-popular' : '');
-
         if (isExistingSubscriber && currentIndex !== null) {
             const sameIndex = index === currentIndex;
-            const sameBilling = isAnnualBilling === currentIsAnn;
+            const sameBilling = isAnnual === currentIsAnn;
             if (sameIndex && sameBilling) {
                 ctaLabel = 'Current Plan';
                 isCurrentPlan = true;
             } else if (sameIndex && !sameBilling) {
-                ctaLabel = isAnnualBilling ? 'Switch to Annual' : 'Switch to Monthly';
+                ctaLabel = isAnnual ? 'Switch to Annual' : 'Switch to Monthly';
             } else if (index > currentIndex) {
                 ctaLabel = 'Upgrade to ' + plan.name;
             } else {
                 ctaLabel = 'Downgrade to ' + plan.name;
             }
         }
-
         const currentBadge = isCurrentPlan
             ? '<div style="background:#dcfce7;color:#15803d;font-size:0.62rem;font-weight:700;padding:0.2rem 0.55rem;border-radius:4px;margin-bottom:0.35rem;display:inline-block;text-transform:uppercase;letter-spacing:0.05em;">✓ Your plan</div>'
             : '';
-
         const ctaDisabled = isCurrentPlan ? 'disabled style="opacity:0.5;cursor:not-allowed;"' : '';
-
         return '<div class="plan-item '+(isPopular && !isCurrentPlan ?'plan-item-popular':'')+'">'
             + (isPopular && !isCurrentPlan ? '<div class="plan-popular-badge">Most Popular</div>' : '')
             + '<div class="plan-item-name">'+plan.name+'</div>'
             + '<div class="plan-item-price"><span class="plan-item-amount">$'+monthlyEquiv+'</span><span class="plan-item-period">/mo</span></div>'
-            + (isAnnualBilling ? '<div class="plan-item-annual">billed $'+annualTotal+'/year</div>' : '<div class="plan-item-annual">&nbsp;</div>')
+            + (isAnnual ? '<div class="plan-item-annual">billed $'+annualTotal+'/year</div>' : '<div class="plan-item-annual">&nbsp;</div>')
             + '<div class="plan-item-credits">'+creditsLabel+'</div>'
             + '<div class="plan-item-per-credit">&asymp; $'+perCredit+' / credit</div>'
             + currentBadge
             + '<button class="'+ctaClass+'" onclick="proceedToCheckoutDirect('+index+', this)" '+ctaDisabled+'>'+ctaLabel+'</button>'
+            + '</div>';
+    }).join('');
+}
+
+// NEW: PAYG card renderer — reuses your exact plan-item-* class names so styling matches automatically
+function renderPaygCards() {
+   const packs = [
+    { name: 'Pay As You Go — Small',  credits: 1000,  price: 25,  perCredit: '0.0250' },
+    { name: 'Pay As You Go — Medium', credits: 3500,  price: 75,  perCredit: '0.0214', featured: true },
+    { name: 'Pay As You Go — Large',  credits: 10000, price: 200, perCredit: '0.0200' }
+];
+
+    return packs.map(function(pack, index) {
+        return '<div class="plan-item '+(pack.featured ? 'plan-item-popular' : '')+'">'
+            + (pack.featured ? '<div class="plan-popular-badge">Best Value</div>' : '')
+            + '<div class="plan-item-name">'+pack.name+'</div>'
+            + '<div class="plan-item-price"><span class="plan-item-amount">$'+pack.price+'</span></div>'
+            + '<div class="plan-item-annual">one-time, no subscription</div>'
+            + '<div class="plan-item-credits">'+pack.credits.toLocaleString()+' credits</div>'
+            + '<div class="plan-item-per-credit">&asymp; $'+pack.perCredit+' / credit</div>'
+            + '<button class="plan-item-cta'+(pack.featured ? ' plan-item-cta-popular' : '')+'" onclick="proceedToPaygCheckout('+index+', this)">Buy Credits</button>'
             + '</div>';
     }).join('');
 }
@@ -1302,8 +1340,8 @@ function handleDodoReturnStatus() {
 
 async function proceedToCheckoutDirect(index, btnEl) {
     const plan = plans[index];
-    const planKey = plan.key + (isAnnualBilling ? '_annual' : '_monthly');
-    const conversionValue = isAnnualBilling ? Math.round(plan.monthlyPrice * 0.6 * 12) : plan.monthlyPrice;
+    const planKey = plan.key + (billingMode === 'annual' ? '_annual' : '_monthly');
+const conversionValue = billingMode === 'annual' ? Math.round(plan.monthlyPrice * 0.6 * 12) : plan.monthlyPrice;
     window.__lfCheckout = { value: conversionValue, currency: 'EUR', plan: plan.name, fired: false };
     const originalText = btnEl ? btnEl.textContent : '';
     if (btnEl) { btnEl.textContent = 'Opening…'; btnEl.disabled = true; }
@@ -1364,14 +1402,66 @@ async function proceedToCheckoutDirect(index, btnEl) {
     }
 }
 
+async function proceedToPaygCheckout(index, btnEl) {
+    const packs = [
+        { key: 'payg_small',  name: 'pdt_0Nj62gByZ53OzYoz3bCBr',  price: 25  },
+        { key: 'payg_medium', name: 'pdt_0Nj62kQhG7EzZWogTmjfE', price: 75  },
+        { key: 'payg_large',  name: 'pdt_0Nj62scEtjXTicj4P2thT',  price: 200 }
+    ];
+    const pack = packs[index];
+
+    window.__lfCheckout = { value: pack.price, currency: 'EUR', plan: pack.name, fired: false };
+    const originalText = btnEl ? btnEl.textContent : '';
+    if (btnEl) { btnEl.textContent = 'Opening…'; btnEl.disabled = true; }
+
+    if (!window.currentUserEmail) {
+        let attempts = 0;
+        while (!window.currentUserEmail && attempts < 5) {
+            await new Promise(r => setTimeout(r, 100));
+            attempts++;
+        }
+    }
+
+    try { posthog.capture('plan_selected', { plan: pack.name, billing: 'payg', credits_remaining: currentCredits, is_subscriber: isExistingSubscriber }); } catch(e) {}
+    try { if (typeof plausible !== 'undefined') plausible('Plan Selected', { props: { plan: pack.name } }); } catch(e) {}
+    try { window.uetq = window.uetq || []; window.uetq.push('event', 'begin_checkout', {}); } catch(e) {}
+
+    try {
+        const resp = await fetch(DODO_CHECKOUT_WORKER, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                plan: pack.key, // e.g. "payg_small" — ⚠️ see note below
+                user_token: userToken,
+                email: window.currentUserEmail || undefined,
+                ref_token: getRefCookie() || undefined,
+            }),
+        });
+        const data = await resp.json();
+        if (!resp.ok || !data.checkout_url) throw new Error(data.error || 'Checkout creation failed');
+
+        if (window.DodoPaymentsCheckout?.DodoPayments?.Checkout) {
+            window.DodoPaymentsCheckout.DodoPayments.Checkout.open({ checkoutUrl: data.checkout_url });
+            if (btnEl) { btnEl.disabled = false; btnEl.textContent = originalText; }
+        } else {
+            window.location.href = data.checkout_url;
+        }
+    } catch (e) {
+        console.error('Checkout error:', e);
+        showAlert('Could not open checkout. Please try again or email support@linkfinderai.com.', 'error');
+        if (btnEl) { btnEl.disabled = false; btnEl.textContent = originalText; }
+        try { posthog.capture('checkout_error', { message: e.message, plan: pack.key }); } catch(_) {}
+    }
+}
+
 function setBilling(type) {
-    isAnnualBilling = (type === 'annual');
-    document.getElementById('monthlyBtn').classList.toggle('active', !isAnnualBilling);
-    document.getElementById('annualBtn').classList.toggle('active', isAnnualBilling);
+    billingMode = type; // 'payg' | 'monthly' | 'annual'
+    document.getElementById('paygBtn').classList.toggle('active', billingMode === 'payg');
+    document.getElementById('monthlyBtn').classList.toggle('active', billingMode === 'monthly');
+    document.getElementById('annualBtn').classList.toggle('active', billingMode === 'annual');
     renderPlansGrid();
     try { posthog.capture('billing_toggle', { selected: type }); } catch(e) {}
 }
-
 function showPricingModal(trigger) {
     try { window.uetq = window.uetq || []; window.uetq.push('event', 'begin_checkout', {}); } catch(e) {}
     document.getElementById('monthlyBtn').classList.toggle('active', !isAnnualBilling);
@@ -1506,16 +1596,32 @@ function configureEnrichment() {
     const config = dataConfigurations[currentInputType];
     document.getElementById('inputLabel').textContent = config.label;
     document.getElementById('inputData').placeholder = config.placeholder;
-    const isLeadToLi = currentInputType==='lead_full_name'&&currentOutputType==='linkedin_url';
-    document.getElementById('leadExtraFields').style.display = isLeadToLi ? 'block' : 'none';
-    document.getElementById('leadCompany').required = isLeadToLi;
-    if (isLeadToLi) {
+
+    const isEmailLookup = currentInputType==='lead_full_name'&&currentOutputType==='email';
+    const isLinkedinLookup = currentInputType==='lead_full_name'&&currentOutputType==='linkedin_url';
+
+    // Main "Enter Full Name" field — hidden for email lookup, shown otherwise
+    document.getElementById('mainInputGroup').style.display = isEmailLookup ? 'none' : 'block';
+    document.getElementById('inputData').required = !isEmailLookup;
+
+    // LinkedIn lookup fields (company + optional location/job title)
+    document.getElementById('leadExtraFields').style.display = isLinkedinLookup ? 'block' : 'none';
+    document.getElementById('leadCompany').required = isLinkedinLookup;
+
+    // Email lookup fields (first name, last name, domain)
+    document.getElementById('emailLeadFields').style.display = isEmailLookup ? 'block' : 'none';
+    document.getElementById('leadFirstName').required = isEmailLookup;
+    document.getElementById('leadLastName').required = isEmailLookup;
+    document.getElementById('leadDomain').required = isEmailLookup;
+
+    if (isLinkedinLookup) {
         document.getElementById('inputLabel').textContent = 'Enter Full Name';
         document.getElementById('inputData').placeholder = 'e.g., Sarah Johnson';
     }
-    document.getElementById('uploadSubtext').textContent = isLeadToLi
+
+    document.getElementById('uploadSubtext').textContent = isLinkedinLookup
         ? 'CSV with columns: name (required), company (required), location (optional), job_title (optional) — max 10000 rows'
-        : currentInputType==='lead_full_name' ? 'CSV with columns: name (required), company (optional) — max 10000 rows'
+        : isEmailLookup ? 'CSV with columns: first_name (required), last_name (required), domain (required) — max 10000 rows'
        : (currentOutputType === 'employees' && (currentInputType === 'company_domain' || currentInputType === 'linkedin_company'))
     ? `CSV with ${config.label.toLowerCase().replace('enter ','')} (required) — optional columns: department, seniority, employee_count. Max 10000 rows.`
     : `CSV with ${config.label.toLowerCase().replace('enter ','')} (max 10000 rows)`;
@@ -1566,17 +1672,38 @@ async function enrichData(event) {
     submitBtn.style.opacity = '0.8';
     const restoreBtn = () => { submitBtn.disabled=false; submitBtn.innerHTML=originalBtnHTML; submitBtn.style.opacity=''; };
     try { posthog.capture('enrich_started',{input_type:currentInputType,output_type:currentOutputType}); } catch(e) {}
-    const inputValue = document.getElementById('inputData').value.trim();
-if (!inputValue) { restoreBtn(); return; }
 
-let effectiveInputValue = inputValue;
-if (currentInputType === 'lead_full_name' && currentOutputType === 'linkedin_url') {
-    const leadCompany = document.getElementById('leadCompany').value.trim();
-    const leadLocation = document.getElementById('leadLocation').value.trim();
-    const leadJobTitle = document.getElementById('leadJobTitle').value.trim();
-    if (!leadCompany) { showAlert('Company name is required.', 'error'); restoreBtn(); return; }
-    effectiveInputValue = [inputValue, leadCompany, leadLocation, leadJobTitle].filter(Boolean).join(' ');
-}
+    const isEmailLookup = currentInputType === 'lead_full_name' && currentOutputType === 'email';
+
+    let inputValue = '';
+    let effectiveInputValue = '';
+    let leadFirstName, leadLastName, leadDomain;
+
+    if (isEmailLookup) {
+        leadFirstName = document.getElementById('leadFirstName').value.trim();
+        leadLastName = document.getElementById('leadLastName').value.trim();
+        leadDomain = document.getElementById('leadDomain').value.trim().toLowerCase().replace(/^https?:\/\//,'').replace(/^www\./,'').replace(/\/.*$/,'');
+
+        if (!leadFirstName || leadFirstName.includes(' ')) { showAlert('First name is required and must be a single word.', 'error'); restoreBtn(); return; }
+        if (!leadLastName || leadLastName.includes(' ')) { showAlert('Last name is required and must be a single word.', 'error'); restoreBtn(); return; }
+        if (!leadDomain) { showAlert('Company domain is required.', 'error'); restoreBtn(); return; }
+
+        inputValue = `${leadFirstName} ${leadLastName}`;
+        effectiveInputValue = `${leadFirstName} ${leadLastName} ${leadDomain}`;
+    } else {
+        inputValue = document.getElementById('inputData').value.trim();
+        if (!inputValue) { restoreBtn(); return; }
+        effectiveInputValue = inputValue;
+
+        if (currentInputType === 'lead_full_name' && currentOutputType === 'linkedin_url') {
+            const leadCompany = document.getElementById('leadCompany').value.trim();
+            const leadLocation = document.getElementById('leadLocation').value.trim();
+            const leadJobTitle = document.getElementById('leadJobTitle').value.trim();
+            if (!leadCompany) { showAlert('Company name is required.', 'error'); restoreBtn(); return; }
+            effectiveInputValue = [inputValue, leadCompany, leadLocation, leadJobTitle].filter(Boolean).join(' ');
+        }
+    }
+
     if (currentInputType==='linkedin_profile' && !inputValue.toLowerCase().includes('linkedin.com/in/')) { showAlert('Please enter a valid LinkedIn Profile URL (must start with linkedin.com/in/)','error'); restoreBtn(); return; }
     if (currentInputType==='linkedin_post' && !inputValue.toLowerCase().includes('linkedin.com/posts/')) { showAlert('Please enter a valid LinkedIn Post URL (must include linkedin.com/posts/)','error'); restoreBtn(); return; }
     if (currentInputType==='linkedin_company' && !inputValue.toLowerCase().includes('linkedin.com/company/')) { showAlert('Please enter a valid LinkedIn Company URL (must include linkedin.com/company/)','error'); restoreBtn(); return; }
@@ -1587,6 +1714,9 @@ if (currentInputType === 'lead_full_name' && currentOutputType === 'linkedin_url
             body: JSON.stringify({
                 type: generateCombinationType(currentInputType, currentOutputType),
                 input_data: effectiveInputValue,
+                first_name: leadFirstName,
+                last_name: leadLastName,
+                domain: leadDomain,
                 department: (currentOutputType==='employees'&&(currentInputType==='company_domain'||currentInputType==='linkedin_company'))?(document.getElementById('optionalDepartment').value.trim()||'all'):undefined,
                 seniority: (currentOutputType==='employees'&&(currentInputType==='company_domain'||currentInputType==='linkedin_company'))?(document.getElementById('optionalSeniority').value.trim()||'all'):undefined,
                 employee_count: (currentOutputType==='employees'&&(currentInputType==='company_domain'||currentInputType==='linkedin_company'))?(parseInt(document.getElementById('optionalEmployeeCount').value)||null):undefined,
@@ -1885,12 +2015,22 @@ async function processBulk() {
         updateBulkResultsTable();
         
         try {
+            let bulkFirstName, bulkLastName, bulkDomain;
+            if (currentInputType === 'lead_full_name' && currentOutputType === 'email') {
+                const nameParts = (row.name || '').trim().split(/\s+/);
+                bulkFirstName = nameParts[0] || '';
+                bulkLastName = nameParts.slice(1).join(' ') || '';
+                bulkDomain = (row.company || '').toLowerCase().replace(/^https?:\/\//,'').replace(/^www\./,'').replace(/\/.*$/,'');
+            }
             const response = await fetchWithTimeout('https://linkfinderapp.hamoureliasse.workers.dev/', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     type: generateCombinationType(currentInputType, currentOutputType),
                     input_data: row.inputData,
+                    first_name: bulkFirstName,
+                    last_name: bulkLastName,
+                    domain: bulkDomain,
                     department: (currentOutputType === 'employees' && (currentInputType === 'company_domain' || currentInputType === 'linkedin_company'))
                         ? (row.department || document.getElementById('optionalDepartment').value.trim() || 'all')
                         : undefined,
@@ -2491,7 +2631,7 @@ function parseCSV(csvText){
     let companyIdx=-1, locationIdx=-1, jobTitleIdx=-1;
     if(currentInputType==='lead_full_name'){
         companyIdx=headers.findIndex((h,i)=>i!==dataIdx&&hScore(h,companyNameHeaders)>0);
-        if(currentOutputType==='linkedin_url'&&companyIdx===-1){showAlert(`A "company" column is required to find LinkedIn profiles. Found columns: "${rawHeaders.join('", "')}"`, 'error');return;}
+        if((currentOutputType==='linkedin_url'||currentOutputType==='email')&&companyIdx===-1){showAlert(`A "company" column is required to find emails. Found columns: "${rawHeaders.join('", "')}"`, 'error');return;}
         locationIdx=headers.findIndex((h,i)=>i!==dataIdx&&i!==companyIdx&&hScore(h,locationHeaders)>0);
         jobTitleIdx=headers.findIndex((h,i)=>i!==dataIdx&&i!==companyIdx&&i!==locationIdx&&hScore(h,jobTitleHeaders)>0);
     }
@@ -2677,7 +2817,7 @@ function showSavedPill(targetEl) {
     resultsSection.insertBefore(pill, resultsSection.firstChild);
 }
 
-const creditCosts={'company_name_to_website':1,'company_name_to_phone':1,'company_name_to_linkedin_url':1,'email_to_linkedin_url':1,'company_name_to_employees':1,'company_name_to_employee_count':1,'company_name_to_email':1,'linkedin_company_to_linkedin_info':6,'linkedin_company_to_employees':1,'linkedin_company_to_employee_count':1,'linkedin_profile_to_linkedin_info':10,'lead_full_name_to_linkedin_url':1,'linkedin_profile_to_email':10,'company_domain_to_employees':1,'linkedin_post_to_reactions':1,'linkedin_profile_to_phone':50};
+const creditCosts={'company_name_to_website':1,'company_name_to_phone':1,'company_name_to_linkedin_url':1,'email_to_linkedin_url':1,'company_name_to_employees':1,'company_name_to_employee_count':1,'company_name_to_email':1,'linkedin_company_to_linkedin_info':6,'linkedin_company_to_employees':1,'linkedin_company_to_employee_count':1,'linkedin_profile_to_linkedin_info':10,'lead_full_name_to_linkedin_url':1,'linkedin_profile_to_email':10,'company_domain_to_employees':1,'linkedin_post_to_reactions':1,'linkedin_profile_to_phone':50, 'lead_full_name_to_email':7,};
 function getCreditCost(inputType,outputType){return creditCosts[generateCombinationType(inputType,outputType)]||1;}
 
 function updateCreditCostDisplay(){
