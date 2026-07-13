@@ -989,6 +989,10 @@
     <button type="button" class="billing-btn active" id="monthlyBtn" onclick="setBilling('monthly')">Monthly</button>
     <button type="button" class="billing-btn" id="annualBtn" onclick="setBilling('annual')">Annual <span class="save-tag">Save 40%</span></button>
 </div>
+        <div id="paygNeverExpireBanner" class="roi-banner" style="display:none;">
+            <i class="fas fa-infinity" style="color:#16a34a;"></i>
+            <span><strong>Credits never expire</strong> — buy once, use whenever you need them.</span>
+        </div>
         <div class="plans-grid" id="plansGrid"></div>
         <div class="pricing-faq">
             <div class="pricing-faq-item"><i class="fas fa-check-circle"></i> Cancel anytime, no questions</div>
@@ -1315,7 +1319,7 @@ function renderPaygCards() {
             + (pack.featured ? '<div class="plan-popular-badge">Best Value</div>' : '')
             + '<div class="plan-item-name">'+pack.name+'</div>'
             + '<div class="plan-item-price"><span class="plan-item-amount">$'+pack.price+'</span></div>'
-            + '<div class="plan-item-annual">one-time, no subscription</div>'
+            + '<div class="plan-item-annual">one-time · never expires</div>'
             + '<div class="plan-item-credits">'+pack.credits.toLocaleString()+' credits</div>'
             + '<div class="plan-item-per-credit">&asymp; $'+pack.perCredit+' / credit</div>'
             + '<button class="plan-item-cta'+(pack.featured ? ' plan-item-cta-popular' : '')+'" onclick="proceedToPaygCheckout('+index+', this)">Buy Credits</button>'
@@ -1542,13 +1546,18 @@ function setBilling(type) {
     document.getElementById('paygBtn').classList.toggle('active', billingMode === 'payg');
     document.getElementById('monthlyBtn').classList.toggle('active', billingMode === 'monthly');
     document.getElementById('annualBtn').classList.toggle('active', billingMode === 'annual');
+    const neverExpireBanner = document.getElementById('paygNeverExpireBanner');
+    if (neverExpireBanner) neverExpireBanner.style.display = (billingMode === 'payg') ? 'flex' : 'none';
     renderPlansGrid();
     try { posthog.capture('billing_toggle', { selected: type }); } catch(e) {}
 }
 function showPricingModal(trigger) {
     try { window.uetq = window.uetq || []; window.uetq.push('event', 'begin_checkout', {}); } catch(e) {}
-    document.getElementById('monthlyBtn').classList.toggle('active', !isAnnualBilling);
-    document.getElementById('annualBtn').classList.toggle('active', isAnnualBilling);
+    document.getElementById('paygBtn').classList.toggle('active', billingMode === 'payg');
+    document.getElementById('monthlyBtn').classList.toggle('active', billingMode === 'monthly');
+    document.getElementById('annualBtn').classList.toggle('active', billingMode === 'annual');
+    const neverExpireBanner = document.getElementById('paygNeverExpireBanner');
+    if (neverExpireBanner) neverExpireBanner.style.display = (billingMode === 'payg') ? 'flex' : 'none';
     const modalTitle = document.getElementById('pricingModalTitle');
     const modalSubtitle = document.getElementById('pricingModalSubtitle');
     if (isExistingSubscriber) {
