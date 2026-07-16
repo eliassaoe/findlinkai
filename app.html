@@ -248,7 +248,10 @@
     .review-platforms li{margin:0.25rem 0;}
     .review-platforms a{color:#2563eb;text-decoration:none;font-weight:500;}
     .review-form-link{color:#2563eb;text-decoration:none;font-weight:500;}
-    .result-card{background:white;border:1px solid var(--gray-200);border-radius:8px;padding:1.5rem;margin-top:1rem;}
+    .result-card{background:white;border:1px solid var(--gray-200);border-radius:8px;padding:1.5rem;margin-top:1rem;animation:result-in 0.35s ease;}
+    @keyframes result-in{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+    .success-toast{position:fixed;top:1.25rem;left:50%;transform:translateX(-50%) translateY(-20px);background:var(--success);color:white;padding:0.75rem 1.25rem;border-radius:8px;font-size:0.875rem;font-weight:600;z-index:10002;display:flex;align-items:center;gap:0.5rem;box-shadow:0 4px 16px rgba(16,185,129,0.35);opacity:0;transition:all 0.3s ease;pointer-events:none;}
+    .success-toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
     /* === LinkedIn Profile Card === */
 .lip-card{background:white;border:1px solid var(--gray-200);border-radius:14px;overflow:hidden;}
 .lip-banner{height:110px;background:linear-gradient(135deg,#dbeafe,#bfdbfe);background-size:cover;background-position:center;}
@@ -736,6 +739,7 @@
 </header>
     
 <div id="lowCreditsBar" class="low-credits-bar"></div>
+<div id="closedWithoutPurchaseBanner" class="low-credits-bar" style="display:none;"></div>
     
 <div id="annualBanner" style="display:none;background:linear-gradient(135deg,#f0fdf4,#dcfce7);border-bottom:1px solid #bbf7d0;padding:0.5rem 1rem;text-align:center;font-size:0.8rem;color:#166534;font-weight:500;">
   💡 You're on monthly — <strong>switch to annual and save 40%</strong> ($240/year) 
@@ -771,7 +775,7 @@
                     <div class="qs-card-title">Enrich a whole list (CSV)</div>
                     <div class="qs-card-sub">Upload a CSV → LinkedIn URLs in bulk</div>
                 </div>
-                <div class="qs-card" onclick="quickStart('company_domain','employees',null,false)">
+                <div class="qs-card" onclick="quickStart('company_domain','employees',null,null,false)">
     <div class="qs-card-icon">👥</div>
     <div class="qs-card-title">Get Company Employees</div>
     <div class="qs-card-sub">Domain → employees list with emails</div>
@@ -861,9 +865,14 @@
                 <button class="mode-option active" onclick="switchMode('single')" id="singleMode">Single lookup</button>
                 <button class="mode-option" onclick="switchMode('bulk')" id="bulkMode">📤 Upload CSV (bulk)</button>
             </div>
+            <div style="display:flex;gap:1rem;margin-top:0.5rem;font-size:0.75rem;color:var(--gray-500);">
+                <div style="flex:1;"><strong style="color:var(--gray-600);">Single</strong> — look up one contact or company at a time</div>
+                <div style="flex:1;"><strong style="color:var(--gray-600);">Bulk</strong> — upload a CSV to enrich multiple rows at once</div>
+            </div>
         </div>
 
         <div id="creditCost" class="credit-cost"></div>
+        <div id="affordabilityWarning" style="display:none;background:#fef3c7;border:1px solid var(--warning);color:#92400e;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1rem;font-size:0.8125rem;"></div>
 
         <div id="singleSearch" class="card hidden">
     <form onsubmit="enrichData(event)">
@@ -1293,6 +1302,12 @@ function renderPlansGrid() {
             ? '<div style="background:#dcfce7;color:#15803d;font-size:0.62rem;font-weight:700;padding:0.2rem 0.55rem;border-radius:4px;margin-bottom:0.35rem;display:inline-block;text-transform:uppercase;letter-spacing:0.05em;">✓ Your plan</div>'
             : '';
         const ctaDisabled = isCurrentPlan ? 'disabled style="opacity:0.5;cursor:not-allowed;"' : '';
+        const anchorCredits = isAnnual ? plan.credits : Math.round(plan.credits/12);
+        const anchorLinkedIn = anchorCredits.toLocaleString();
+        const anchorPhone = Math.floor(anchorCredits/50).toLocaleString();
+        const periodWord = isAnnual ? 'year' : 'month';
+        const anchorPrice = isAnnual ? annualTotal : monthlyEquiv;
+        const valueAnchor = '<div style="font-size:0.68rem;color:var(--gray-500);line-height:1.4;margin-top:0.5rem;padding-top:0.5rem;border-top:1px dashed var(--gray-200);">$'+anchorPrice+'/'+periodWord+' &asymp; '+anchorLinkedIn+' enrichments<br>(~'+anchorLinkedIn+' LinkedIn URLs or ~'+anchorPhone+' phone lookups)</div>';
         return '<div class="plan-item '+(isPopular && !isCurrentPlan ?'plan-item-popular':'')+'">'
             + (isPopular && !isCurrentPlan ? '<div class="plan-popular-badge">Most Popular</div>' : '')
             + '<div class="plan-item-name">'+plan.name+'</div>'
@@ -1300,6 +1315,7 @@ function renderPlansGrid() {
             + (isAnnual ? '<div class="plan-item-annual">billed $'+annualTotal+'/year</div>' : '<div class="plan-item-annual">&nbsp;</div>')
             + '<div class="plan-item-credits">'+creditsLabel+'</div>'
             + '<div class="plan-item-per-credit">&asymp; $'+perCredit+' / credit</div>'
+            + valueAnchor
             + currentBadge
             + '<button class="'+ctaClass+'" onclick="proceedToCheckoutDirect('+index+', this)" '+ctaDisabled+'>'+ctaLabel+'</button>'
             + '</div>';
@@ -1581,6 +1597,18 @@ function closePricingModal() {
     document.body.style.overflow = '';
     const toast = document.getElementById('modalToast');
     if (toast) { toast.classList.add('show'); setTimeout(() => toast.classList.remove('show'), 4000); }
+    if (!isExistingSubscriber && !sessionStorage.getItem('lf_closed_wo_purchase_shown')) {
+        const remaining = currentCredits !== null ? Math.round(currentCredits*10)/10 : null;
+        const bar = document.getElementById('closedWithoutPurchaseBanner');
+        if (bar) {
+            bar.innerHTML = (remaining !== null
+                ? `You're ${remaining} credit${remaining===1?'':'s'} away from running out. <a onclick="showPricingModal('banner_reopen')">Upgrade to keep going &rarr;</a>`
+                : `Keep enrichments flowing. <a onclick="showPricingModal('banner_reopen')">Upgrade to keep going &rarr;</a>`
+            ) + ' <a onclick="document.getElementById(\'closedWithoutPurchaseBanner\').style.display=\'none\'" style="margin-left:0.75rem;color:inherit;">Dismiss</a>';
+            bar.style.display = 'block';
+        }
+        sessionStorage.setItem('lf_closed_wo_purchase_shown', '1');
+    }
 }
 
 let creditsExhaustedTrigger = null; // Add this at top of file with other variables
@@ -1679,6 +1707,7 @@ function switchMode(mode) {
         document.getElementById('bulkSearch').classList.toggle('hidden', mode!=='bulk');
     }
     hideResults();
+    updateSubmitButtonState();
 }
 
 function populateOutputOptions(filterInputType) {
@@ -1767,6 +1796,7 @@ function configureEnrichment() {
     updateCreditCostDisplay();
     updateOptionalFields();
     showInputSections();
+    updateSubmitButtonState();
 }
 
 function showInputSections() {
@@ -1784,7 +1814,7 @@ async function fetchCredits() {
     if (!userToken) return;
     try {
         const r = await fetch('https://linkfinderaicredits.hamoureliasse.workers.dev/', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:userToken})});
-        if (r.ok) { const d=await r.json(); const c=Math.max(0,d.credits||0); currentCredits=c; document.getElementById('creditsCount').textContent=c; updateLowCreditsWarning(c); }
+        if (r.ok) { const d=await r.json(); const c=Math.max(0,d.credits||0); currentCredits=c; document.getElementById('creditsCount').textContent=c; updateLowCreditsWarning(c); updateAffordabilityWarning(); }
         else { document.getElementById('creditsCount').textContent='?'; }
     } catch(e) { document.getElementById('creditsCount').textContent='?'; }
 }
@@ -1799,12 +1829,61 @@ function deductCredits(amount) {
     document.getElementById('creditsCount').textContent = Math.round(currentCredits*10)/10;
     sessionCreditsUsed += amount;
     sessionActionsCount += 1;
+    updateAffordabilityWarning();
 }
 
 function parseReactionTitle(title) {
     if (!title) return {name:'Unknown',jobInfo:''};
     const parts = title.split(' - ');
     return {name:parts[0].trim(), jobInfo:parts.slice(1).join(' - ').trim()};
+}
+
+function updateSubmitButtonState(){
+    const btn=document.querySelector('#singleSearch button[type="submit"]');
+    if(!btn) return;
+    const isEmailLookup = currentInputType==='lead_full_name'&&currentOutputType==='email';
+    const isLinkedinLookup = currentInputType==='lead_full_name'&&currentOutputType==='linkedin_url';
+    let valid=true, missing='';
+    if(!currentInputType||!currentOutputType){ valid=false; missing='an input and output type'; }
+    else if(isEmailLookup){
+        const fn=document.getElementById('leadFirstName').value.trim();
+        const ln=document.getElementById('leadLastName').value.trim();
+        const dm=document.getElementById('leadDomain').value.trim();
+        if(!fn||!ln||!dm){ valid=false; missing='first name, last name, and domain'; }
+    } else {
+        const v=document.getElementById('inputData').value.trim();
+        if(!v){ valid=false; missing=dataConfigurations[currentInputType]?dataConfigurations[currentInputType].label.replace('Enter ','').toLowerCase():'a value'; }
+        else if(isLinkedinLookup && !document.getElementById('leadCompany').value.trim()){ valid=false; missing='a company name'; }
+    }
+    btn.disabled = !valid || btn.dataset.insufficientCredits === '1';
+    btn.style.opacity = btn.disabled ? '0.5' : '';
+    btn.style.cursor = btn.disabled ? 'not-allowed' : '';
+    btn.title = !valid ? `Enter ${missing} above to continue.` : (btn.dataset.insufficientCredits==='1' ? 'Not enough credits. Click Buy more above.' : '');
+}
+document.addEventListener('input', function(e){
+    if(['inputData','leadFirstName','leadLastName','leadDomain','leadCompany','leadLocation','leadJobTitle'].includes(e.target.id)) updateSubmitButtonState();
+});
+
+function updateAffordabilityWarning(){
+    const warnEl=document.getElementById('affordabilityWarning');
+    const btn=document.querySelector('#singleSearch button[type="submit"]');
+    if(!warnEl) return;
+    if(!currentInputType||!currentOutputType||currentOutputType==='employees'||currentCredits===null){
+        warnEl.style.display='none';
+        if(btn) btn.dataset.insufficientCredits='0';
+        updateSubmitButtonState();
+        return;
+    }
+    const cost=getCreditCost(currentInputType,currentOutputType);
+    if(currentCredits<cost){
+        warnEl.innerHTML=`<i class="fas fa-exclamation-triangle" style="margin-right:0.375rem;"></i>You need ${cost} credit${cost===1?'':'s'} for this lookup. You have ${Math.round(currentCredits*10)/10}. <a href="#" onclick="handleAddCredits();return false;" style="color:var(--primary);font-weight:600;">Buy credits</a>`;
+        warnEl.style.display='block';
+        if(btn) btn.dataset.insufficientCredits='1';
+    } else {
+        warnEl.style.display='none';
+        if(btn) btn.dataset.insufficientCredits='0';
+    }
+    updateSubmitButtonState();
 }
 
 async function enrichData(event) {
@@ -1814,8 +1893,17 @@ async function enrichData(event) {
     submitBtn.disabled = true;
     submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Finding results\u2026';
     submitBtn.style.opacity = '0.8';
-    const restoreBtn = () => { submitBtn.disabled=false; submitBtn.innerHTML=originalBtnHTML; submitBtn.style.opacity=''; };
+    const restoreBtn = () => { submitBtn.innerHTML=originalBtnHTML; submitBtn.style.opacity=''; updateSubmitButtonState(); };
     try { posthog.capture('enrich_started',{input_type:currentInputType,output_type:currentOutputType}); } catch(e) {}
+
+    if (currentOutputType !== 'employees' && currentCredits !== null) {
+        const upfrontCost = getCreditCost(currentInputType, currentOutputType);
+        if (currentCredits < upfrontCost) {
+            showAlert(`You need ${upfrontCost} credit${upfrontCost===1?'':'s'} for this lookup. You have ${Math.round(currentCredits*10)/10}.`, 'error');
+            restoreBtn();
+            return;
+        }
+    }
 
     const isEmailLookup = currentInputType === 'lead_full_name' && currentOutputType === 'email';
 
@@ -1836,7 +1924,7 @@ async function enrichData(event) {
         effectiveInputValue = `${leadFirstName} ${leadLastName} ${leadDomain}`;
     } else {
         inputValue = document.getElementById('inputData').value.trim();
-        if (!inputValue) { restoreBtn(); return; }
+        if (!inputValue) { showAlert('Please enter a value before running this enrichment.', 'error'); restoreBtn(); return; }
         effectiveInputValue = inputValue;
 
         if (currentInputType === 'lead_full_name' && currentOutputType === 'linkedin_url') {
@@ -1869,9 +1957,9 @@ async function enrichData(event) {
         });
         const data = await response.json();
         hideLoading();
-        if (currentOutputType==='reactions'&&Array.isArray(data)&&data.length>0) { deductCredits(data.length); showSingleResultReactions(inputValue,data); checkEnrichmentMilestone(); showSavedPill(); return; }
-        if (currentOutputType==='employee_count') { deductCredits(getCreditCost(currentInputType,currentOutputType)); showSingleResultEmployeeCount(inputValue,data); checkEnrichmentMilestone(); showSavedPill(); return; }
-        if (currentOutputType==='employees'&&Array.isArray(data)&&data.length>0) { deductCredits(data.length*0.5); showSingleResultEmployees(inputValue,data); checkEnrichmentMilestone(); showSavedPill(); return; }
+        if (currentOutputType==='reactions'&&Array.isArray(data)&&data.length>0) { deductCredits(data.length); showSingleResultReactions(inputValue,data); checkEnrichmentMilestone(); showSavedPill(); showSuccessToast('Result found'); return; }
+        if (currentOutputType==='employee_count') { deductCredits(getCreditCost(currentInputType,currentOutputType)); showSingleResultEmployeeCount(inputValue,data); checkEnrichmentMilestone(); showSavedPill(); showSuccessToast('Result found'); return; }
+        if (currentOutputType==='employees'&&Array.isArray(data)&&data.length>0) { deductCredits(data.length*0.5); showSingleResultEmployees(inputValue,data); checkEnrichmentMilestone(); showSavedPill(); showSuccessToast('Result found'); return; }
         if (response.status===403&&data.code===403) { 
     try { posthog.capture('credits_exhausted', { input_type: currentInputType, output_type: currentOutputType, credits_remaining: currentCredits }); } catch(e) {} 
     showInsufficientCreditsModal('single_enrichment'); 
@@ -1883,6 +1971,7 @@ async function enrichData(event) {
             else showSingleResult(inputValue, data.result||'Not found', data.confidence);
             checkEnrichmentMilestone();
             showSavedPill();
+            showSuccessToast('Result found');
         } else { showSingleResult(inputValue,'Not found'); }
         // showAutomationNudge(currentInputType, currentOutputType);
     } catch(error) { hideLoading(); showAlert('Enrichment error \u2014 please try again.','error'); }
@@ -2622,7 +2711,9 @@ function showSingleResult(inputData,result,confidence){
     return;
 }
     let html='<div class="result-card">';
-    html+=`<div class="result-header">${linkedInFields?.profilePic?`<img src="${linkedInFields.profilePic}" alt="Profile" style="width:60px;height:60px;border-radius:50%;object-fit:cover;margin-right:1rem;">`:`<div class="result-header-icon"><i class="fas ${result==='Not found'?'fa-times-circle':'fa-check-circle'}"></i></div>`}<div class="result-header-text"><h3>${result==='Not found'?'No Data Found':'Profile Data Found! \u2728'}</h3><p>${inputData}</p></div></div>`;
+    const notFoundSuggestions={'linkedin_profile':'Check that the LinkedIn URL is correct and points to a real profile.','linkedin_company':'Check that the LinkedIn company URL is correct.','linkedin_post':'Check that the post URL is correct and the post is still public.','company_domain':'Try the company\u2019s root domain (e.g. acme.com, not www.acme.com/about).','email':'Double check the email address for typos.','company_name':'Try the full legal or common name of the company.','lead_full_name':'Try adding the company name, or double-check the spelling.'};
+    const suggestionText = notFoundSuggestions[currentInputType] || 'Try a different input type or double-check your input.';
+    html+=`<div class="result-header">${linkedInFields?.profilePic?`<img src="${linkedInFields.profilePic}" alt="Profile" style="width:60px;height:60px;border-radius:50%;object-fit:cover;margin-right:1rem;">`:`<div class="result-header-icon"><i class="fas ${result==='Not found'?'fa-times-circle':'fa-check-circle'}"></i></div>`}<div class="result-header-text"><h3>${result==='Not found'?'No result found for this input':'Profile Data Found! \u2728'}</h3><p>${inputData}</p>${result==='Not found'?`<p style="margin-top:0.35rem;font-size:0.8rem;color:var(--gray-500);"><i class="fas fa-lightbulb" style="color:var(--warning);margin-right:0.25rem;"></i>${suggestionText}</p>`:''}</div></div>`;
     if(linkedInFields?.backgroundPic&&linkedInFields.backgroundPic!=='Not specified'){html+=`<div style="margin:1rem 0;border-radius:8px;overflow:hidden;max-height:200px;"><img src="${linkedInFields.backgroundPic}" alt="Background" style="width:100%;height:auto;object-fit:cover;"></div>`;}
     if(isLinkedInData&&linkedInFields){
         html+='<div class="result-grid">';
@@ -2968,10 +3059,11 @@ function getCreditCost(inputType,outputType){return creditCosts[generateCombinat
 
 function updateCreditCostDisplay(){
     const div=document.getElementById('creditCost');
-    if(!currentInputType||!currentOutputType){div.style.display='none';return;}
+    if(!currentInputType||!currentOutputType){div.style.display='none';updateAffordabilityWarning();return;}
     if(currentOutputType==='employees'){div.innerHTML=`<i class="fas fa-coins"></i>Cost: <span class="credit-cost-value">0.5 credit per 1 employee found</span>`;}
     else{const cost=getCreditCost(currentInputType,currentOutputType);div.innerHTML=`<i class="fas fa-coins"></i>Cost: <span class="credit-cost-value">${cost===1?'1 credit':cost+' credits'}</span> per enrichment`;}
     div.style.display='block';
+    updateAffordabilityWarning();
 }
 
 function showReviewNotification(){
@@ -3145,12 +3237,13 @@ function quickStart(inputType,outputType,exampleData,employeeCount,autoRun,examp
                 const ec=document.getElementById('optionalEmployeeCount');
                 if(ec) ec.value=employeeCount;
             }
+            updateSubmitButtonState();
             const eb=document.querySelector('#singleSearch button[type="submit"]');
             if(eb){
                 eb.style.transition='box-shadow 0.3s ease';
                 eb.style.boxShadow='0 0 0 4px rgba(37,99,235,0.35)';
                 setTimeout(()=>{eb.style.boxShadow='';},2500);
-                if(autoRun){ setTimeout(()=>{eb.click();},300); }   // only auto-run when allowed
+                if(autoRun){ setTimeout(()=>{updateSubmitButtonState();eb.click();},300); }   // only auto-run when allowed
             }
         },120);
     },60);
@@ -3163,6 +3256,14 @@ function updateLowCreditsWarning(credits){
     else{bar.style.display='none';bar.innerHTML='';}
 }
 
+function showSuccessToast(message){
+    let el=document.getElementById('successToast');
+    if(!el){el=document.createElement('div');el.id='successToast';el.className='success-toast';document.body.appendChild(el);}
+    el.innerHTML=`<i class="fas fa-check-circle"></i> ${message}`;
+    el.classList.add('show');
+    clearTimeout(el._t);
+    el._t=setTimeout(()=>el.classList.remove('show'),2500);
+}
 function showAlert(message,type){
     const a=document.getElementById('alert');a.textContent=message;a.className=`alert alert-${type}`;a.style.display='block';
     clearTimeout(a._t);
