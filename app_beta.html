@@ -1899,7 +1899,8 @@ async function enrichData(event) {
     if (currentOutputType !== 'employees' && currentCredits !== null) {
         const upfrontCost = getCreditCost(currentInputType, currentOutputType);
         if (currentCredits < upfrontCost) {
-            showAlert(`You need ${upfrontCost} credit${upfrontCost===1?'':'s'} for this lookup. You have ${Math.round(currentCredits*10)/10}.`, 'error');
+            try { posthog.capture('credits_exhausted', { input_type: currentInputType, output_type: currentOutputType, credits_remaining: currentCredits }); } catch(e) {}
+            showInsufficientCreditsModal('single_enrichment');
             restoreBtn();
             return;
         }
