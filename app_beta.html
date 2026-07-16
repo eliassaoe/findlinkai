@@ -775,7 +775,7 @@
                     <div class="qs-card-title">Enrich a whole list (CSV)</div>
                     <div class="qs-card-sub">Upload a CSV → LinkedIn URLs in bulk</div>
                 </div>
-                <div class="qs-card" onclick="quickStart('company_domain','employees',null,false)">
+                <div class="qs-card" onclick="quickStart('company_domain','employees',null,null,false)">
     <div class="qs-card-icon">👥</div>
     <div class="qs-card-title">Get Company Employees</div>
     <div class="qs-card-sub">Domain → employees list with emails</div>
@@ -802,14 +802,12 @@
                         <option value="lead_full_name">Lead Full Name</option>
                         <option value="linkedin_post">LinkedIn Post URL</option>
                     </select>
-                    <div id="inputTypeHint" style="font-size:0.75rem;color:var(--gray-500);margin-top:0.375rem;">Pick the data you're starting with, e.g. a LinkedIn profile URL like linkedin.com/in/john-doe</div>
                 </div>
                 <div class="form-field">
                     <label class="form-label">I want to find</label>
                     <select id="outputType" class="form-select" disabled>
                         <option value="">Select first option...</option>
                     </select>
-                    <div id="outputTypeHint" style="font-size:0.75rem;color:var(--gray-500);margin-top:0.375rem;">What do you want to find?</div>
                 </div>
             </div>
         </div>
@@ -1765,10 +1763,6 @@ function configureEnrichment() {
     const config = dataConfigurations[currentInputType];
     document.getElementById('inputLabel').textContent = config.label;
     document.getElementById('inputData').placeholder = config.placeholder;
-    const inputHintEl = document.getElementById('inputTypeHint');
-    if (inputHintEl) inputHintEl.textContent = 'Paste ' + config.placeholder.replace(/^e\.g\.,?\s*/i,'e.g. ');
-    const outputHintEl = document.getElementById('outputTypeHint');
-    if (outputHintEl) outputHintEl.textContent = 'You selected: ' + (config.outputs[currentOutputType] || 'an output');
 
     const isEmailLookup = currentInputType==='lead_full_name'&&currentOutputType==='email';
     const isLinkedinLookup = currentInputType==='lead_full_name'&&currentOutputType==='linkedin_url';
@@ -3243,12 +3237,13 @@ function quickStart(inputType,outputType,exampleData,employeeCount,autoRun,examp
                 const ec=document.getElementById('optionalEmployeeCount');
                 if(ec) ec.value=employeeCount;
             }
+            updateSubmitButtonState();
             const eb=document.querySelector('#singleSearch button[type="submit"]');
             if(eb){
                 eb.style.transition='box-shadow 0.3s ease';
                 eb.style.boxShadow='0 0 0 4px rgba(37,99,235,0.35)';
                 setTimeout(()=>{eb.style.boxShadow='';},2500);
-                if(autoRun){ setTimeout(()=>{eb.click();},300); }   // only auto-run when allowed
+                if(autoRun){ setTimeout(()=>{updateSubmitButtonState();eb.click();},300); }   // only auto-run when allowed
             }
         },120);
     },60);
