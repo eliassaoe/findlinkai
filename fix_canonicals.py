@@ -70,7 +70,7 @@ def normalize(url):
     return url.rstrip("/").lower()
 
 
-def scan_file(path):
+def scan_file(path, root):
     html = path.read_text(encoding="utf-8", errors="ignore")
     canonical = find_canonical(html)
     breadcrumb = find_breadcrumb_url(html)
@@ -85,6 +85,7 @@ def scan_file(path):
 
     return {
         "path": path,
+        "root": root,
         "canonical": canonical,
         "breadcrumb": breadcrumb,
         "status": status,
@@ -111,11 +112,55 @@ def fix_file(result, dry_run=False):
     return True
 
 
+def guess_url_from_path(path, root, base_url):
+    """Fallback URL guess when there's no breadcrumb to trust: strip the
+    extension, treat index.html as the directory root, join with base_url."""
+    rel = path.relative_to(root)
+    parts = list(rel.parts)
+    if parts[-1].lower() == "index.html":
+        parts = parts[:-1]
+    else:
+        parts[-1] = re.sub(r"\.html?$", "", parts[-1], flags=re.IGNORECASE)
+    url_path = "/".join(p for p in parts if p)
+    return base_url.rstrip("/") + "/" + url_path if url_path else base_url.rstrip("/") + "/"
+
+
+def add_missing_canonical(result, base_url, dry_run=False):
+    """Insert a <link rel="canonical"> tag into <head> for a page that has
+    none. Prefers the breadcrumb URL; falls back to a filename-based guess
+    (flagged as GUESSED so it gets manual review, not blind trust)."""
+    html = result["html"]
+    source = "breadcrumb"
+    url = result["breadcrumb"]
+    if not url:
+        url = guess_url_from_path(result["path"], result["root"], base_url)
+        source = "GUESSED"
+
+    tag = f'  <link rel="canonical" href="{url}"/>\n'
+    head_close = re.search(r"</head\s*>", html, re.IGNORECASE)
+    if not head_close:
+        return None  # no </head> found, don't guess where to insert
+
+    new_html = html[:head_close.start()] + tag + html[head_close.start():]
+
+    if not dry_run:
+        backup_path = result["path"].with_suffix(result["path"].suffix + ".bak")
+        backup_path.write_text(html, encoding="utf-8")
+        result["path"].write_text(new_html, encoding="utf-8")
+
+    return {"url": url, "source": source}
+
+
 def main():
+
+
+
     ap = argparse.ArgumentParser(description="Find/fix canonical vs breadcrumb URL mismatches.")
     ap.add_argument("root", help="Directory to scan recursively for .html files")
     ap.add_argument("--fix", action="store_true", help="Rewrite canonical tags to match breadcrumb URL")
-    ap.add_argument("--dry-run", action="store_true", help="With --fix, show changes without writing files")
+    ap.add_argument("--add-missing", action="store_true", help="Insert a canonical tag on pages that have none")
+    ap.add_argument("--base-url", default="https://linkfinderai.com", help="Base URL for filename-guessed canonicals")
+    ap.add_argument("--dry-run", action="store_true", help="With --fix/--add-missing, show changes without writing files")
     ap.add_argument("--ext", default=".html", help="File extension to scan (default: .html)")
     args = ap.parse_args()
 
@@ -129,7 +174,7 @@ def main():
         print(f"No {args.ext} files found under {root}")
         sys.exit(0)
 
-    results = [scan_file(f) for f in files]
+    results = [scan_file(f, root) for f in files]
 
     mismatches = [r for r in results if r["status"] == "MISMATCH"]
     matches = [r for r in results if r["status"] == "MATCH"]
@@ -180,6 +225,33 @@ def main():
         if mismatches:
             print(f"Run again with --fix to correct the {len(mismatches)} mismatch(es) automatically.")
             print(f"Add --dry-run first if you want to preview changes without writing anything.")
+
+    if args.add_missing:
+        if not no_canonical:
+            print("Nothing to add — no pages missing a canonical tag.")
+            return
+        mode = "DRY RUN — no files written" if args.dry_run else "WRITING NEW CANONICAL TAGS"
+        print(f"\n--- {mode} ---")
+        guessed = []
+        for r in no_canonical:
+            outcome = add_missing_canonical(r, args.base_url, dry_run=args.dry_run)
+            if outcome is None:
+                print(f"   SKIPPED (no </head> found): {r['path'].relative_to(root)}")
+                continue
+            tag = "breadcrumb" if outcome["source"] == "breadcrumb" else "GUESSED — review this one"
+            print(f"   added [{tag}]: {r['path'].relative_to(root)}  ->  {outcome['url']}")
+            if outcome["source"] == "GUESSED":
+                guessed.append(r["path"].relative_to(root))
+        if not args.dry_run:
+            print(f"\nDone. {len(no_canonical)} file(s) updated. Originals saved as .html.bak.")
+        if guessed:
+            print(f"\n⚠️  {len(guessed)} file(s) had no breadcrumb either, so the URL was GUESSED from the filename.")
+            print("   Manually verify these before trusting them:")
+            for g in guessed:
+                print(f"     {g}")
+    elif not args.fix:
+        if no_canonical:
+            print(f"{len(no_canonical)} page(s) have no canonical tag at all. Run with --add-missing to insert one.")
 
 
 if __name__ == "__main__":
