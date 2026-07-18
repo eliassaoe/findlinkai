@@ -2177,11 +2177,21 @@ function buildLinkedInPersonCardHTML(d, inputUrl){
     return html;
 }
 
+function scrollToResults() {
+    const el = document.getElementById('resultsSection');
+    if (!el) return;
+    // Small delay lets the DOM paint the new content first so the scroll lands correctly
+    setTimeout(() => {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 60);
+}
+
 function showSingleResultEmployeeCount(inputData, count) {
     document.getElementById('resultText').style.display='none';
     const employeeCount = count.result||count||'Not found';
     document.getElementById('resultLink').innerHTML=`<div class="result-card"><div class="result-header"><h3>Employee Count Found \u2728</h3><p>${inputData}</p></div><div style="text-align:center;padding:3rem 2rem;background:linear-gradient(135deg,var(--primary),var(--primary-hover));border-radius:12px;margin-top:1rem;"><div style="font-size:0.875rem;font-weight:600;color:rgba(255,255,255,0.9);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.5rem;">Employee Count</div><div style="font-size:4rem;font-weight:700;color:white;line-height:1;">${employeeCount}</div><div style="font-size:0.875rem;font-weight:500;color:rgba(255,255,255,0.8);margin-top:0.5rem;">employees</div></div></div>`;
     document.getElementById('resultsSection').classList.remove('hidden');
+    scrollToResults();
     document.getElementById('singleResult').classList.remove('hidden');
     document.getElementById('bulkResults').classList.add('hidden');
 }
@@ -2196,6 +2206,7 @@ async function processBulk() {
     btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Processing...';
     document.getElementById('csvPreview').classList.add('hidden');
     document.getElementById('resultsSection').classList.remove('hidden');
+    scrollToResults();
     document.getElementById('singleResult').classList.add('hidden');
     document.getElementById('bulkResults').classList.remove('hidden');
     showProgress();
@@ -2699,6 +2710,7 @@ function showSingleResult(inputData,result,confidence){
     if (isLinkedInData && currentInputType === 'linkedin_profile') {
         document.getElementById('resultLink').innerHTML = buildLinkedInPersonCardHTML(linkedInFields, inputData);
         document.getElementById('resultsSection').classList.remove('hidden');
+        scrollToResults();
         document.getElementById('singleResult').classList.remove('hidden');
         document.getElementById('bulkResults').classList.add('hidden');
         return;
@@ -2706,6 +2718,7 @@ function showSingleResult(inputData,result,confidence){
     if (isLinkedInData && currentInputType === 'linkedin_company') {
     document.getElementById('resultLink').innerHTML = formatLinkedInCompanyData(linkedInFields, inputData);
     document.getElementById('resultsSection').classList.remove('hidden');
+    scrollToResults();
     document.getElementById('singleResult').classList.remove('hidden');
     document.getElementById('bulkResults').classList.add('hidden');
     return;
@@ -2773,6 +2786,7 @@ function showSingleResult(inputData,result,confidence){
     html+='</div>';
     resultLink.innerHTML=html;
     document.getElementById('resultsSection').classList.remove('hidden');
+    scrollToResults();
     document.getElementById('singleResult').classList.remove('hidden');
     document.getElementById('bulkResults').classList.add('hidden');
 }
@@ -2825,6 +2839,7 @@ function showSingleResultEmployees(inputData,employeesArray){
     html+='</div></div>';
     document.getElementById('resultLink').innerHTML=html;
     document.getElementById('resultsSection').classList.remove('hidden');
+    scrollToResults();
     document.getElementById('singleResult').classList.remove('hidden');
     document.getElementById('bulkResults').classList.add('hidden');
 }
