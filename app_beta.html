@@ -383,7 +383,7 @@
     .cim-modal{
         background:#fff;
         width:100%;
-        max-width:560px;
+        max-width:580px;
         border-radius:12px;
         box-shadow:0 20px 40px -8px rgba(0,0,0,0.18), 0 8px 16px -4px rgba(0,0,0,0.08);
         padding:1.75rem 1.75rem 1.5rem;
@@ -449,6 +449,35 @@
     @media (max-width:480px){
         .cim-modal{ max-width:92%; padding:1.5rem 1.25rem 1.25rem; }
         .cim-tiers{ flex-direction:column; }
+    }
+
+    /* ===== Unified upgrade modal: tabs + monthly plan cards ===== */
+    .cim-exhausted-banner{ display:flex; align-items:center; justify-content:space-between; gap:0.75rem; background:#fffbeb; border:1px solid #fde68a; color:#92400e; font-size:0.8rem; font-weight:600; padding:0.6rem 0.875rem; border-radius:8px; margin:0 0 1rem; }
+    .cim-exhausted-banner-close{ background:none; border:none; color:#92400e; font-size:1.1rem; cursor:pointer; line-height:1; padding:0 0.25rem; flex-shrink:0; }
+    .upgrade-tabs{ display:flex; gap:0.25rem; background:var(--gray-100); padding:0.25rem; border-radius:8px; margin-bottom:1.25rem; }
+    .upgrade-tab{ flex:1; padding:0.7rem; border:none; background:transparent; border-radius:6px; font-weight:600; color:var(--gray-500); cursor:pointer; transition:all 0.2s ease; font-size:0.875rem; font-family:inherit; }
+    .upgrade-tab.active{ background:#fff; color:var(--gray-900); box-shadow:0 1px 3px rgba(0,0,0,0.1); }
+    .upgrade-tab-panel.hidden{ display:none; }
+    .upgrade-billing-toggle{ margin-bottom:1.25rem; }
+    .cim-upsell-banner{ cursor:pointer; transition:background 120ms ease, border-color 120ms ease; }
+    .cim-upsell-banner:hover{ background:#eff6ff; border-color:#bfdbfe; }
+    .cim-upsell-banner:focus-visible{ outline:2px solid var(--primary); outline-offset:2px; }
+    .cim-payg-nudge-wrap{ margin-top:0.25rem; }
+    .cim-payg-nudge-wrap .cim-divider-row{ margin-bottom:0.75rem; }
+    .cim-payg-nudge{ display:block; width:100%; text-align:center; font-weight:500; }
+    .plan-item-label{ font-size:0.68rem; color:var(--gray-400); margin-top:0.15rem; }
+    .plan-item-features{ list-style:none; padding:0; margin:0.75rem 0 0; text-align:left; font-size:0.72rem; color:var(--gray-600); line-height:1.65; }
+    .plan-item-features li{ display:flex; gap:0.4rem; align-items:flex-start; }
+    .plan-item-features li::before{ content:'✓'; color:var(--success); font-weight:700; flex-shrink:0; }
+    .plan-item-note{ font-size:0.65rem; color:var(--gray-400); margin-top:0.5rem; text-align:center; }
+    @media (max-width:640px){
+        .plans-grid{ grid-template-columns:1fr; }
+        .cim-payg-btn, .plan-item-cta{ min-height:52px; font-size:0.9rem; }
+    }
+    @media (max-width:640px){
+        .cim-overlay{ align-items:flex-end; padding:0; }
+        .cim-modal{ max-width:100%; width:100%; border-radius:16px 16px 0 0; max-height:92vh; transform:translateY(100%); }
+        .cim-overlay.show .cim-modal{ transform:translateY(0); }
     }
 
     @media(max-width:640px){
@@ -759,7 +788,7 @@
     
 <div id="annualBanner" style="display:none;background:linear-gradient(135deg,#f0fdf4,#dcfce7);border-bottom:1px solid #bbf7d0;padding:0.5rem 1rem;text-align:center;font-size:0.8rem;color:#166534;font-weight:500;">
   💡 You're on monthly — <strong>switch to annual and save 40%</strong> ($240/year) 
-  <button onclick="isAnnualBilling=true;showPricingModal();" style="background:#16a34a;color:white;border:none;padding:0.2rem 0.75rem;border-radius:4px;font-size:0.75rem;font-weight:600;cursor:pointer;margin-left:0.5rem;font-family:inherit;">Switch now</button>
+  <button onclick="showUpgradeModal('annual_switch', {forceMonthlyTab:true})" style="background:#16a34a;color:white;border:none;padding:0.2rem 0.75rem;border-radius:4px;font-size:0.75rem;font-weight:600;cursor:pointer;margin-left:0.5rem;font-family:inherit;">Switch now</button>
   <button onclick="this.parentElement.style.display='none';localStorage.setItem('annual_banner_dismissed','1')" style="background:none;border:none;color:#166534;cursor:pointer;margin-left:0.5rem;font-size:1rem;">×</button>
 </div>
 
@@ -1001,80 +1030,80 @@
     </div>
 </div>
 
-<!-- Pricing Modal -->
-<div id="pricingModal" class="modal-overlay">
-    <div class="pricing-modal" style="max-width:900px;width:min(900px,calc(100vw - 2rem));">
-        <button class="modal-close" onclick="closePricingModal()"><i class="fas fa-times"></i></button>
-        <div class="pricing-modal-header">
-            <h2 id="pricingModalTitle">Choose Your Plan</h2>
-            <p id="pricingModalSubtitle" style="color:var(--gray-500);font-size:0.875rem;margin-top:0.25rem;">Cancel anytime &nbsp;·&nbsp; No questions asked</p>
-        </div>
-        <div class="billing-toggle">
-    <button type="button" class="billing-btn" id="paygBtn" onclick="setBilling('payg')">Pay as you go</button>
-    <button type="button" class="billing-btn active" id="monthlyBtn" onclick="setBilling('monthly')">Monthly</button>
-    <button type="button" class="billing-btn" id="annualBtn" onclick="setBilling('annual')">Annual <span class="save-tag">Save 40%</span></button>
-</div>
-        <div id="paygNeverExpireBanner" class="roi-banner" style="display:none;">
-            <i class="fas fa-infinity" style="color:#16a34a;"></i>
-            <span><strong>Credits never expire</strong> — buy once, use whenever you need them.</span>
-        </div>
-        <div class="plans-grid" id="plansGrid"></div>
-        <div class="pricing-faq">
-            <div class="pricing-faq-item"><i class="fas fa-check-circle"></i> Cancel anytime, no questions</div>
-            <div class="pricing-faq-item"><i class="fas fa-check-circle"></i> Upgrade or downgrade freely</div>
-            <div class="pricing-faq-item"><i class="fas fa-check-circle"></i> Secure payment</div>
-        </div>
-        <p style="text-align:center;font-size:0.72rem;color:var(--gray-400);margin-top:0.75rem;">Prices in USD · Secure payment · Cancel anytime</p>
-        <p style="text-align:center;font-size:0.75rem;color:var(--gray-500);margin-top:0.375rem;">Need more credits? <a href="mailto:support@linkfinderai.com" style="color:var(--primary);font-weight:500;">Email us</a> — we'll set up a custom plan for you.</p>
-    </div>
-</div>
+<!-- Unified Upgrade Modal: "Buy Credits" (default) + "Monthly Plans" tabs -->
+<div id="upgradeModal" class="cim-overlay">
+    <div class="cim-modal" id="upgradeModalInner" role="dialog" aria-modal="true" aria-labelledby="cimHeadline">
+        <button class="modal-close" onclick="closeUpgradeModal()" aria-label="Close"><i class="fas fa-times"></i></button>
 
-<!-- Out-of-credits / Buy-credits modal: PAYG-first, subscription subordinate -->
-<div id="insufficientCreditsModal" class="cim-overlay">
-    <div class="cim-modal" role="dialog" aria-modal="true" aria-labelledby="cimHeadline">
-        <button class="modal-close" onclick="closeInsufficientCreditsModal()" aria-label="Close"><i class="fas fa-times"></i></button>
-
-        <div class="cim-usage-context-wrap">
-            <span class="cim-usage-context" id="cimUsageContext"></span>
+        <div class="cim-exhausted-banner" id="cimExhaustedBanner" style="display:none;">
+            <span>⚡ You've run out of credits — buy more to continue</span>
+            <button type="button" class="cim-exhausted-banner-close" onclick="document.getElementById('cimExhaustedBanner').style.display='none'" aria-label="Dismiss">×</button>
         </div>
 
-        <div class="cim-eyebrow" id="cimEyebrow">No subscription required</div>
-        <h2 class="cim-headline" id="cimHeadline">Get more credits — buy once, use anytime</h2>
-        <p class="cim-subtext" id="cimSubtext">Credits never expire. No commitment, no monthly fees.</p>
+        <div class="upgrade-tabs">
+            <button type="button" class="upgrade-tab active" id="tabBtnPayg" onclick="switchModalTab('buy_credits')">Buy Credits</button>
+            <button type="button" class="upgrade-tab" id="tabBtnMonthly" onclick="switchModalTab('monthly_plans')">Monthly Plans</button>
+        </div>
 
-        <div class="cim-payg-grid" id="cimTiers">
-            <div class="cim-payg-option" data-index="0" data-credits="1000" data-price="25" data-plan="small">
-                <div class="cim-payg-price">$25</div>
-                <div class="cim-payg-credits">1,000 credits</div>
-                <div class="cim-payg-per">$0.025/credit</div>
-                <button class="cim-payg-btn" onclick="cimBuyTier(0, this)">Buy for $25</button>
+        <!-- TAB 1: Buy Credits -->
+        <div class="upgrade-tab-panel" id="panelPayg">
+            <div class="cim-usage-context-wrap">
+                <span class="cim-usage-context" id="cimUsageContext"></span>
             </div>
-            <div class="cim-payg-option cim-payg-featured" data-index="1" data-credits="3500" data-price="75" data-plan="medium">
-                <span class="cim-payg-badge">Best value</span>
-                <div class="cim-payg-price">$75</div>
-                <div class="cim-payg-credits">3,500 credits</div>
-                <div class="cim-payg-per">$0.021/credit</div>
-                <button class="cim-payg-btn cim-payg-btn-primary" onclick="cimBuyTier(1, this)">Buy for $75</button>
-            </div>
-            <div class="cim-payg-option" data-index="2" data-credits="10000" data-price="200" data-plan="large">
-                <div class="cim-payg-price">$200</div>
-                <div class="cim-payg-credits">10,000 credits</div>
-                <div class="cim-payg-per">$0.020/credit</div>
-                <button class="cim-payg-btn" onclick="cimBuyTier(2, this)">Buy for $200</button>
-            </div>
-        </div>
 
-        <div class="cim-sub-section" id="cimSubSection">
-            <div class="cim-divider-row">
-                <span class="cim-divider-line"></span>
-                <span class="cim-divider-label">Or save more with a monthly plan</span>
-                <span class="cim-divider-line"></span>
-            </div>
-            <div class="cim-upsell-banner">
-                <div class="cim-upsell-text">💡 Use credits regularly? The <strong>$49/month</strong> plan gives you <strong>5,000 credits every month</strong> — 5x more than the $25 pack for the same price.</div>
-                <div class="cim-sub-link-wrap">
-                    <button type="button" class="cim-sub-link" onclick="cimSeeSubscriptionPlans()">See all subscription plans →</button>
+            <div class="cim-eyebrow" id="cimEyebrow">No subscription required</div>
+            <h2 class="cim-headline" id="cimHeadline">Get more credits — buy once, use anytime</h2>
+            <p class="cim-subtext" id="cimSubtext">Credits never expire. No commitment, no monthly fees.</p>
+
+            <div class="cim-payg-grid" id="cimTiers">
+                <div class="cim-payg-option" data-index="0" data-credits="1000" data-price="25" data-plan="small">
+                    <div class="cim-payg-price">$25</div>
+                    <div class="cim-payg-credits">1,000 credits</div>
+                    <div class="cim-payg-per">$0.025/credit</div>
+                    <button class="cim-payg-btn" onclick="cimBuyTier(0, this)">Buy for $25</button>
                 </div>
+                <div class="cim-payg-option cim-payg-featured" data-index="1" data-credits="3500" data-price="75" data-plan="medium">
+                    <span class="cim-payg-badge">Best value</span>
+                    <div class="cim-payg-price">$75</div>
+                    <div class="cim-payg-credits">3,500 credits</div>
+                    <div class="cim-payg-per">$0.021/credit</div>
+                    <button class="cim-payg-btn cim-payg-btn-primary" onclick="cimBuyTier(1, this)">Buy for $75</button>
+                </div>
+                <div class="cim-payg-option" data-index="2" data-credits="10000" data-price="200" data-plan="large">
+                    <div class="cim-payg-price">$200</div>
+                    <div class="cim-payg-credits">10,000 credits</div>
+                    <div class="cim-payg-per">$0.020/credit</div>
+                    <button class="cim-payg-btn" onclick="cimBuyTier(2, this)">Buy for $200</button>
+                </div>
+            </div>
+
+            <div class="cim-sub-section" id="cimSubSection">
+                <div class="cim-divider-row">
+                    <span class="cim-divider-line"></span>
+                    <span class="cim-divider-label">Or save more with a monthly plan</span>
+                    <span class="cim-divider-line"></span>
+                </div>
+                <div class="cim-upsell-banner" id="cimUpsellNudge" onclick="subscriptionNudgeClicked()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();subscriptionNudgeClicked();}" role="button" tabindex="0">
+                    <div class="cim-upsell-text">💡 Use credits regularly? The <strong>$49/month</strong> plan gives you <strong>5,000 credits every month</strong> — 5x more than the $25 pack for the same price.</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 2: Monthly Plans -->
+        <div class="upgrade-tab-panel hidden" id="panelMonthly">
+            <h2 class="cim-headline">Simple monthly plans</h2>
+            <p class="cim-subtext">Everything included. Cancel anytime.</p>
+
+            <div class="billing-toggle upgrade-billing-toggle">
+                <button type="button" class="billing-btn active" id="modalMonthlyBtn" onclick="setModalBilling('monthly')">Monthly</button>
+                <button type="button" class="billing-btn" id="modalAnnualBtn" onclick="setModalBilling('annual')">Annual <span class="save-tag">Save 40%</span></button>
+            </div>
+
+            <div class="plans-grid" id="monthlyPlansGrid"></div>
+
+            <div class="cim-payg-nudge-wrap">
+                <div class="cim-divider-row"><span class="cim-divider-line"></span></div>
+                <button type="button" class="cim-sub-link cim-payg-nudge" onclick="switchModalTab('buy_credits')">Not ready for a subscription? &rarr; Buy one-time credits instead</button>
             </div>
         </div>
 
@@ -1087,7 +1116,7 @@
         <p class="cim-social-proof">Trusted by sales teams and founders across 40+ countries</p>
 
         <div class="cim-dismiss-wrap">
-            <button class="cim-dismiss" onclick="closeInsufficientCreditsModal()">Maybe later</button>
+            <button class="cim-dismiss" onclick="dismissUpgradeModal()">Maybe later</button>
         </div>
 
     </div>
@@ -1221,7 +1250,9 @@ let isExistingSubscriber = false;
 let currentPlanNumber = null;
 let currentSubscriptionId = null;
 let currentConfidenceFilter = 'all';
-let billingMode = 'monthly';
+let activeUpgradeTab = 'buy_credits'; // 'buy_credits' | 'monthly_plans'
+let modalBillingMode = 'monthly';      // 'monthly' | 'annual' — Monthly Plans tab only
+let upgradeModalTrigger = null;
 
 const dataConfigurations = {
     lead_full_name: { label:"Enter Lead Full Name + Company Name", placeholder:"e.g., John Doe JP morgan, Sarah Smith Netflix, Michael Johnson Microsoft", outputs:{linkedin_url:"LinkedIn Profile URL", email:"Verified Email"} },
@@ -1256,101 +1287,58 @@ const DODO_CHECKOUT_WORKER = 'https://dodo-checkout.hamoureliasse.workers.dev/';
 const INDUSTRY_AVG_PER_CREDIT = 0.15;
 
 const plans = [
-    { name:'Starter',      key:'starter',    monthlyPrice:49,  credits:60000  },
-    { name:'Professional', key:'pro',        monthlyPrice:89,  credits:240000 },
-    { name:'Enterprise',   key:'enterprise', monthlyPrice:149, credits:600000 },
+    { name:'Starter',      key:'starter',    monthlyPrice:49,  credits:60000,  label:'Solo prospectors' },
+    { name:'Professional', key:'pro',        monthlyPrice:89,  credits:240000, label:'Sales teams & founders' },
+    { name:'Enterprise',   key:'enterprise', monthlyPrice:149, credits:600000, label:'Agencies & ops teams' },
 ];
-let isAnnualBilling = false;
-    
-function renderPlansGrid() {
-    const grid = document.getElementById('plansGrid');
+const PLAN_FEATURES = ['All enrichment features', 'Full REST API access', 'Batch CSV processing', 'Email + phone discovery'];
+const PLAN_ANALYTICS_NAME = { starter:'starter', pro:'professional', enterprise:'enterprise' };
+
+function renderMonthlyPlansGrid() {
+    const grid = document.getElementById('monthlyPlansGrid');
     if (!grid) return;
 
-    // NEW: PAYG branch — render credit packs instead of subscription plans
-    if (billingMode === 'payg') {
-        grid.innerHTML = renderPaygCards();
-        return;
-    }
-
-    const isAnnual = (billingMode === 'annual'); // local alias, replaces the old global boolean everywhere below
-
-    // Map plan numbers to plan index + billing
-    const planNumToIndex = { 1:0, 2:1, 3:2, 4:3, 5:0, 6:1, 7:2, 8:3 };
-    const planNumIsAnnual = { 1:false, 2:false, 3:false, 4:false, 5:true, 6:true, 7:true, 8:true };
-    const currentIndex  = currentPlanNumber ? (planNumToIndex[currentPlanNumber] ?? null) : null;
-    const currentIsAnn  = currentPlanNumber ? (planNumIsAnnual[currentPlanNumber] ?? null) : null;
+    const isAnnual = (modalBillingMode === 'annual');
+    const featuresHtml = '<ul class="plan-item-features">' + PLAN_FEATURES.map(f => '<li>' + f + '</li>').join('') + '</ul>';
 
     grid.innerHTML = plans.map(function(plan, index) {
         const isPopular      = plan.name === 'Professional';
+        const monthlyCredits = Math.round(plan.credits / 12);
         const monthlyEquiv   = isAnnual ? Math.round(plan.monthlyPrice * 0.6) : plan.monthlyPrice;
         const annualTotal    = Math.round(plan.monthlyPrice * 0.6 * 12);
-        const creditsLabel   = isAnnual ? plan.credits.toLocaleString()+' credits/yr' : Math.round(plan.credits/12).toLocaleString()+' credits/mo';
-        const totalForCalc   = isAnnual ? annualTotal : plan.monthlyPrice;
-        const creditsForCalc = isAnnual ? plan.credits : Math.round(plan.credits/12);
-        const perCredit      = (totalForCalc / creditsForCalc).toFixed(4);
-        const savingsPct     = Math.round((1 - parseFloat(perCredit) / INDUSTRY_AVG_PER_CREDIT) * 100);
+        const perCredit      = (monthlyEquiv / monthlyCredits).toFixed(4);
+        // Existing subscribers only reach this tab via the "switch billing period" flow — keep the copy honest for them
+        const ctaLabel       = isExistingSubscriber ? 'Switch to this plan' : 'Start free trial &rarr;';
+        const noteHtml       = isExistingSubscriber ? '' : '<div class="plan-item-note">25 free credits &middot; No credit card required</div>';
 
-        let ctaLabel = 'Get Started';
-        let isCurrentPlan = false;
-        let ctaClass = 'plan-item-cta' + (isPopular ? ' plan-item-cta-popular' : '');
-        if (isExistingSubscriber && currentIndex !== null) {
-            const sameIndex = index === currentIndex;
-            const sameBilling = isAnnual === currentIsAnn;
-            if (sameIndex && sameBilling) {
-                ctaLabel = 'Current Plan';
-                isCurrentPlan = true;
-            } else if (sameIndex && !sameBilling) {
-                ctaLabel = isAnnual ? 'Switch to Annual' : 'Switch to Monthly';
-            } else if (index > currentIndex) {
-                ctaLabel = 'Upgrade to ' + plan.name;
-            } else {
-                ctaLabel = 'Downgrade to ' + plan.name;
-            }
-        }
-        const currentBadge = isCurrentPlan
-            ? '<div style="background:#dcfce7;color:#15803d;font-size:0.62rem;font-weight:700;padding:0.2rem 0.55rem;border-radius:4px;margin-bottom:0.35rem;display:inline-block;text-transform:uppercase;letter-spacing:0.05em;">✓ Your plan</div>'
-            : '';
-        const ctaDisabled = isCurrentPlan ? 'disabled style="opacity:0.5;cursor:not-allowed;"' : '';
-        const anchorCredits = isAnnual ? plan.credits : Math.round(plan.credits/12);
-        const anchorLinkedIn = anchorCredits.toLocaleString();
-        const anchorPhone = Math.floor(anchorCredits/50).toLocaleString();
-        const periodWord = isAnnual ? 'year' : 'month';
-        const anchorPrice = isAnnual ? annualTotal : monthlyEquiv;
-        const valueAnchor = '<div style="font-size:0.68rem;color:var(--gray-500);line-height:1.4;margin-top:0.5rem;padding-top:0.5rem;border-top:1px dashed var(--gray-200);">$'+anchorPrice+'/'+periodWord+' &asymp; '+anchorLinkedIn+' enrichments<br>(~'+anchorLinkedIn+' LinkedIn URLs or ~'+anchorPhone+' phone lookups)</div>';
-        return '<div class="plan-item '+(isPopular && !isCurrentPlan ?'plan-item-popular':'')+'">'
-            + (isPopular && !isCurrentPlan ? '<div class="plan-popular-badge">Most Popular</div>' : '')
+        return '<div class="plan-item '+(isPopular ? 'plan-item-popular' : '')+'">'
+            + (isPopular ? '<div class="plan-popular-badge">Most Popular</div>' : '')
             + '<div class="plan-item-name">'+plan.name+'</div>'
+            + '<div class="plan-item-label">'+plan.label+'</div>'
             + '<div class="plan-item-price"><span class="plan-item-amount">$'+monthlyEquiv+'</span><span class="plan-item-period">/mo</span></div>'
             + (isAnnual ? '<div class="plan-item-annual">billed $'+annualTotal+'/year</div>' : '<div class="plan-item-annual">&nbsp;</div>')
-            + '<div class="plan-item-credits">'+creditsLabel+'</div>'
+            + '<div class="plan-item-credits">'+monthlyCredits.toLocaleString()+' credits/month</div>'
             + '<div class="plan-item-per-credit">&asymp; $'+perCredit+' / credit</div>'
-            + valueAnchor
-            + currentBadge
-            + '<button class="'+ctaClass+'" onclick="proceedToCheckoutDirect('+index+', this)" '+ctaDisabled+'>'+ctaLabel+'</button>'
+            + featuresHtml
+            + '<button class="plan-item-cta'+(isPopular ? ' plan-item-cta-popular' : '')+'" onclick="subscriptionPlanCtaClicked('+index+', this)">'+ctaLabel+'</button>'
+            + noteHtml
             + '</div>';
     }).join('');
 }
 
-// NEW: PAYG card renderer — reuses your exact plan-item-* class names so styling matches automatically
-function renderPaygCards() {
-   const packs = [
-    { name: 'Pay As You Go — Small',  credits: 1000,  price: 25,  perCredit: '0.0250' },
-    { name: 'Pay As You Go — Medium', credits: 3500,  price: 75,  perCredit: '0.0214', featured: true },
-    { name: 'Pay As You Go — Large',  credits: 10000, price: 200, perCredit: '0.0200' }
-];
-
-    return packs.map(function(pack, index) {
-        return '<div class="plan-item '+(pack.featured ? 'plan-item-popular' : '')+'">'
-            + (pack.featured ? '<div class="plan-popular-badge">Best Value</div>' : '')
-            + '<div class="plan-item-name">'+pack.name+'</div>'
-            + '<div class="plan-item-price"><span class="plan-item-amount">$'+pack.price+'</span></div>'
-            + '<div class="plan-item-annual">one-time · never expires</div>'
-            + '<div class="plan-item-credits">'+pack.credits.toLocaleString()+' credits</div>'
-            + '<div class="plan-item-per-credit">&asymp; $'+pack.perCredit+' / credit</div>'
-            + '<button class="plan-item-cta'+(pack.featured ? ' plan-item-cta-popular' : '')+'" onclick="proceedToPaygCheckout('+index+', this)">Buy Credits</button>'
-            + '</div>';
-    }).join('');
+function applyModalBilling(type, opts) {
+    opts = opts || {};
+    modalBillingMode = type;
+    const monthlyBtn = document.getElementById('modalMonthlyBtn');
+    const annualBtn = document.getElementById('modalAnnualBtn');
+    if (monthlyBtn) monthlyBtn.classList.toggle('active', type === 'monthly');
+    if (annualBtn) annualBtn.classList.toggle('active', type === 'annual');
+    renderMonthlyPlansGrid();
+    if (!opts.silent) {
+        try { posthog.capture('billing_toggle', { selected: type }); } catch(e) {}
+    }
 }
+function setModalBilling(type) { applyModalBilling(type); }
 
 // --- Google Ads conversion (Subscribe) ---
 const GADS_SEND_TO = 'AW-17588707745/KiBgCNfoupwcEKHD-cJB';
@@ -1451,10 +1439,22 @@ function handleDodoReturnStatus() {
     window.history.replaceState({}, '', cleanUrl);
 }
 
+// Fires the spec's subscription_plan_clicked event, then hands off to the existing checkout function
+function subscriptionPlanCtaClicked(index, btnEl) {
+    const plan = plans[index];
+    try {
+        posthog.capture('subscription_plan_clicked', {
+            plan: PLAN_ANALYTICS_NAME[plan.key] || plan.key,
+            billing: modalBillingMode
+        });
+    } catch(e) {}
+    proceedToCheckoutDirect(index, btnEl);
+}
+
 async function proceedToCheckoutDirect(index, btnEl) {
     const plan = plans[index];
-    const planKey = plan.key + (billingMode === 'annual' ? '_annual' : '_monthly');
-const conversionValue = billingMode === 'annual' ? Math.round(plan.monthlyPrice * 0.6 * 12) : plan.monthlyPrice;
+    const planKey = plan.key + (modalBillingMode === 'annual' ? '_annual' : '_monthly');
+    const conversionValue = modalBillingMode === 'annual' ? Math.round(plan.monthlyPrice * 0.6 * 12) : plan.monthlyPrice;
     window.__lfCheckout = { value: conversionValue, currency: 'EUR', plan: plan.name, fired: false };
     const originalText = btnEl ? btnEl.textContent : '';
     if (btnEl) { btnEl.textContent = 'Opening…'; btnEl.disabled = true; }
@@ -1471,7 +1471,7 @@ const conversionValue = billingMode === 'annual' ? Math.round(plan.monthlyPrice 
         }
     }
 
-    try { posthog.capture('plan_selected', { plan: plan.name, billing: isAnnualBilling ? 'annual' : 'monthly', credits_remaining: currentCredits, is_subscriber: isExistingSubscriber }); } catch(e) {}
+    try { posthog.capture('plan_selected', { plan: plan.name, billing: modalBillingMode, credits_remaining: currentCredits, is_subscriber: isExistingSubscriber }); } catch(e) {}
     try { if (typeof plausible !== 'undefined') plausible('Plan Selected', { props: { plan: plan.name } }); } catch(e) {}
     try { window.uetq = window.uetq || []; window.uetq.push('event', 'begin_checkout', {}); } catch(e) {}
 
@@ -1566,82 +1566,54 @@ async function proceedToPaygCheckout(index, btnEl) {
     }
 }
 
-function setBilling(type) {
-    billingMode = type; // 'payg' | 'monthly' | 'annual'
-    document.getElementById('paygBtn').classList.toggle('active', billingMode === 'payg');
-    document.getElementById('monthlyBtn').classList.toggle('active', billingMode === 'monthly');
-    document.getElementById('annualBtn').classList.toggle('active', billingMode === 'annual');
-    const neverExpireBanner = document.getElementById('paygNeverExpireBanner');
-    if (neverExpireBanner) neverExpireBanner.style.display = (billingMode === 'payg') ? 'flex' : 'none';
-    renderPlansGrid();
-    try { posthog.capture('billing_toggle', { selected: type }); } catch(e) {}
+// Maps the many specific call-site triggers down to the 3 canonical sources the spec tracks
+function normalizeUpgradeSource(trigger) {
+    const map = {
+        single_enrichment: 'credits_exhausted',
+        credits_exhausted: 'credits_exhausted',
+        buy_credits_btn: 'upgrade_clicked',
+        buy_credits_link: 'upgrade_clicked',
+        upgrade_link: 'upgrade_clicked',
+        banner_reopen: 'upgrade_clicked',
+        annual_switch: 'upgrade_clicked',
+        export_gated: 'export_gate',
+        export_gate: 'export_gate'
+    };
+    return map[trigger] || 'upgrade_clicked';
 }
-function showPricingModal(trigger) {
+
+function showUpgradeModal(trigger, opts) {
+    opts = opts || {};
+    upgradeModalTrigger = trigger || 'manual';
+    const source = normalizeUpgradeSource(upgradeModalTrigger);
+
     try { window.uetq = window.uetq || []; window.uetq.push('event', 'begin_checkout', {}); } catch(e) {}
-    document.getElementById('paygBtn').classList.toggle('active', billingMode === 'payg');
-    document.getElementById('monthlyBtn').classList.toggle('active', billingMode === 'monthly');
-    document.getElementById('annualBtn').classList.toggle('active', billingMode === 'annual');
-    const neverExpireBanner = document.getElementById('paygNeverExpireBanner');
-    if (neverExpireBanner) neverExpireBanner.style.display = (billingMode === 'payg') ? 'flex' : 'none';
-    const modalTitle = document.getElementById('pricingModalTitle');
-    const modalSubtitle = document.getElementById('pricingModalSubtitle');
-    if (isExistingSubscriber) {
-        if (modalTitle) modalTitle.textContent = 'Change Your Plan';
-        if (modalSubtitle) modalSubtitle.textContent = 'You will only be charged the difference — no extra steps needed.';
-    } else if (trigger === 'credits_exhausted') {
-        if (modalTitle) modalTitle.textContent = "You're out of credits";
-        if (modalSubtitle) modalSubtitle.textContent = 'Pick a plan to keep enriching — takes 30 seconds.';
-    } else {
-        if (modalTitle) modalTitle.textContent = 'Choose Your Plan';
-        if (modalSubtitle) modalSubtitle.textContent = 'Cancel anytime · No questions asked';
-    }
-    document.getElementById('pricingModal').classList.add('show');
-    document.body.style.overflow = 'hidden';
-    renderPlansGrid();
-    try { posthog.capture('pricing_modal_opened', { credits_remaining: currentCredits, is_subscriber: isExistingSubscriber, trigger: trigger || 'manual' }); } catch(e) {}
-}
 
-function closePricingModal() {
-    document.getElementById('pricingModal').classList.remove('show');
-    document.body.style.overflow = '';
-    const toast = document.getElementById('modalToast');
-    if (toast) { toast.classList.add('show'); setTimeout(() => toast.classList.remove('show'), 4000); }
-    if (!isExistingSubscriber && !sessionStorage.getItem('lf_closed_wo_purchase_shown')) {
-        const remaining = currentCredits !== null ? Math.round(currentCredits*10)/10 : null;
-        const bar = document.getElementById('closedWithoutPurchaseBanner');
-        if (bar) {
-            bar.innerHTML = (remaining !== null
-                ? `You're ${remaining} credit${remaining===1?'':'s'} away from running out. <a onclick="showPricingModal('banner_reopen')">Upgrade to keep going &rarr;</a>`
-                : `Keep enrichments flowing. <a onclick="showPricingModal('banner_reopen')">Upgrade to keep going &rarr;</a>`
-            ) + ' <a onclick="document.getElementById(\'closedWithoutPurchaseBanner\').style.display=\'none\'" style="margin-left:0.75rem;color:inherit;">Dismiss</a>';
-            bar.style.display = 'block';
-        }
-        sessionStorage.setItem('lf_closed_wo_purchase_shown', '1');
-    }
-}
-
-let creditsExhaustedTrigger = null; // Add this at top of file with other variables
-
-function showInsufficientCreditsModal(trigger = 'single_enrichment') {
-    creditsExhaustedTrigger = trigger;
-
-    const modalEl = document.querySelector('#insufficientCreditsModal .cim-modal');
+    const modalInner = document.getElementById('upgradeModalInner');
+    const monthlyTabBtn = document.getElementById('tabBtnMonthly');
     const eyebrowEl = document.getElementById('cimEyebrow');
     const headlineEl = document.getElementById('cimHeadline');
     const subtextEl = document.getElementById('cimSubtext');
+    const exhaustedBanner = document.getElementById('cimExhaustedBanner');
 
-    // Existing subscribers just get a PAYG top-up — no subscription upsell needed
-    if (isExistingSubscriber) {
-        if (modalEl) modalEl.classList.add('subscriber-mode');
+    // Existing subscribers just get a PAYG top-up — no subscription upsell needed,
+    // unless this is the explicit "switch billing period" flow (forceMonthlyTab).
+    const hideMonthlyTab = isExistingSubscriber && !opts.forceMonthlyTab;
+    if (monthlyTabBtn) monthlyTabBtn.style.display = hideMonthlyTab ? 'none' : '';
+
+    if (isExistingSubscriber && !opts.forceMonthlyTab) {
+        if (modalInner) modalInner.classList.add('subscriber-mode');
         if (eyebrowEl) eyebrowEl.style.display = 'none';
         if (headlineEl) headlineEl.textContent = 'Add more credits to your account';
-        if (subtextEl) subtextEl.textContent = 'Credits never expire — top up anytime, on top of your plan.';
+        if (subtextEl) subtextEl.textContent = 'Top up your account — credits stack with your monthly plan.';
     } else {
-        if (modalEl) modalEl.classList.remove('subscriber-mode');
+        if (modalInner) modalInner.classList.remove('subscriber-mode');
         if (eyebrowEl) { eyebrowEl.style.display = ''; eyebrowEl.textContent = 'No subscription required'; }
         if (headlineEl) headlineEl.textContent = 'Get more credits — buy once, use anytime';
         if (subtextEl) subtextEl.textContent = 'Credits never expire. No commitment, no monthly fees.';
     }
+
+    if (exhaustedBanner) exhaustedBanner.style.display = (source === 'credits_exhausted') ? 'flex' : 'none';
 
     // Show real usage context if we know how many credits/actions happened this session
     const ctxEl = document.getElementById('cimUsageContext');
@@ -1655,56 +1627,82 @@ function showInsufficientCreditsModal(trigger = 'single_enrichment') {
         }
     }
 
-    document.getElementById('insufficientCreditsModal').classList.add('show');
+    // Reset to spec defaults every time the modal opens (Buy Credits + Monthly billing),
+    // unless the caller explicitly asked to land on Monthly Plans (annual-switch flow)
+    applyModalBilling(opts.forceMonthlyTab ? 'annual' : 'monthly', { silent: true });
+    switchModalTab(opts.forceMonthlyTab ? 'monthly_plans' : 'buy_credits', true);
+
+    document.getElementById('upgradeModal').classList.add('show');
     document.body.style.overflow = 'hidden';
 
     try {
         posthog.capture('pricing_modal_opened', {
+            source: source,
             credits_remaining: currentCredits,
-            is_subscriber: isExistingSubscriber,
-            trigger: trigger || 'manual',
-            variant: 'payg_first'
-        });
-    } catch(e) {}
-    try {
-        posthog.capture('credits_exhausted_modal_shown', {
-            trigger: trigger,
-            credits_remaining: currentCredits,
-            is_subscriber: isExistingSubscriber,
-            is_enhanced: true
+            is_subscriber: isExistingSubscriber
         });
     } catch(e) {}
 }
 
-function closeInsufficientCreditsModal() {
-    document.getElementById('insufficientCreditsModal').classList.remove('show');
+function closeUpgradeModal() {
+    document.getElementById('upgradeModal').classList.remove('show');
     document.body.style.overflow = '';
+    const toast = document.getElementById('modalToast');
+    if (toast) { toast.classList.add('show'); setTimeout(() => toast.classList.remove('show'), 4000); }
+    if (!isExistingSubscriber && !sessionStorage.getItem('lf_closed_wo_purchase_shown')) {
+        const remaining = currentCredits !== null ? Math.round(currentCredits*10)/10 : null;
+        const bar = document.getElementById('closedWithoutPurchaseBanner');
+        if (bar) {
+            bar.innerHTML = (remaining !== null
+                ? `You're ${remaining} credit${remaining===1?'':'s'} away from running out. <a onclick="showUpgradeModal('banner_reopen')">Upgrade to keep going &rarr;</a>`
+                : `Keep enrichments flowing. <a onclick="showUpgradeModal('banner_reopen')">Upgrade to keep going &rarr;</a>`
+            ) + ' <a onclick="document.getElementById(\'closedWithoutPurchaseBanner\').style.display=\'none\'" style="margin-left:0.75rem;color:inherit;">Dismiss</a>';
+            bar.style.display = 'block';
+        }
+        sessionStorage.setItem('lf_closed_wo_purchase_shown', '1');
+    }
+}
+
+// "Maybe later" — closes the modal and records the dismissal + which tab was active
+function dismissUpgradeModal() {
+    try { posthog.capture('pricing_modal_dismissed', { active_tab: activeUpgradeTab }); } catch(e) {}
+    closeUpgradeModal();
+}
+
+function switchModalTab(tab, silent) {
+    activeUpgradeTab = tab;
+    const paygPanel = document.getElementById('panelPayg');
+    const monthlyPanel = document.getElementById('panelMonthly');
+    const tabBtnPayg = document.getElementById('tabBtnPayg');
+    const tabBtnMonthly = document.getElementById('tabBtnMonthly');
+    if (paygPanel) paygPanel.classList.toggle('hidden', tab !== 'buy_credits');
+    if (monthlyPanel) monthlyPanel.classList.toggle('hidden', tab !== 'monthly_plans');
+    if (tabBtnPayg) tabBtnPayg.classList.toggle('active', tab === 'buy_credits');
+    if (tabBtnMonthly) tabBtnMonthly.classList.toggle('active', tab === 'monthly_plans');
+    if (tab === 'monthly_plans') renderMonthlyPlansGrid();
+    if (!silent) {
+        try { posthog.capture('pricing_modal_tab_switched', { tab: tab }); } catch(e) {}
+    }
 }
 
 // Each PAYG card buys directly — no separate select-then-confirm step
 async function cimBuyTier(index, btnEl) {
     const planNames = ['small', 'medium', 'large'];
+    const amounts = [25, 75, 200];
     try {
         posthog.capture('payg_card_clicked', {
             plan: planNames[index] || String(index),
-            trigger: creditsExhaustedTrigger,
-            credits_remaining: currentCredits,
-            is_subscriber: isExistingSubscriber
+            amount: amounts[index]
         });
     } catch(e) {}
     // Reuses the existing PAYG checkout flow (packs are Small/Medium/Large at index 0/1/2)
     await proceedToPaygCheckout(index, btnEl);
 }
 
-function cimSeeSubscriptionPlans() {
-    try {
-        posthog.capture('subscription_upsell_clicked', {
-            trigger: creditsExhaustedTrigger,
-            credits_remaining: currentCredits
-        });
-    } catch(e) {}
-    closeInsufficientCreditsModal();
-    showPricingModal('credits_exhausted');
+// Clicking the subscription nudge box (Buy Credits tab) switches to Monthly Plans
+function subscriptionNudgeClicked() {
+    try { posthog.capture('pricing_modal_subscription_nudge_clicked', {}); } catch(e) {}
+    switchModalTab('monthly_plans');
 }
 
 function logout() { localStorage.removeItem('linkFinderToken'); window.location.href=addGclid('https://linkfinderai.com/'); }
@@ -1973,7 +1971,7 @@ async function enrichData(event) {
         if (currentOutputType==='employees'&&Array.isArray(data)&&data.length>0) { deductCredits(data.length*0.5); showSingleResultEmployees(inputValue,data); checkEnrichmentMilestone(); showSavedPill(); showSuccessToast('Result found'); return; }
         if (response.status===403&&data.code===403) { 
     try { posthog.capture('credits_exhausted', { input_type: currentInputType, output_type: currentOutputType, credits_remaining: currentCredits }); } catch(e) {} 
-    showInsufficientCreditsModal('single_enrichment'); 
+    showUpgradeModal('single_enrichment'); 
     return; 
 }
         if (response.ok&&data&&(data.result||data.name)) {
@@ -2609,13 +2607,12 @@ document.addEventListener('DOMContentLoaded',()=>{
 
 function setupModalEvents(){
     document.addEventListener('click',(e)=>{
-        if(e.target===document.getElementById('pricingModal')) closePricingModal();
-        // Intentionally NOT closing insufficientCreditsModal on outside-click: this is a
+        // Intentionally NOT closing upgradeModal on outside-click: this is a
         // high-intent conversion moment, and an accidental tap near the edge (especially on
-        // mobile) shouldn't lose it. "Maybe later" and Escape are the only exits.
+        // mobile) shouldn't lose it. "Maybe later", the X button, and Escape are the only exits.
         if(e.target===document.getElementById('feedbackModal')) closeFeedbackModal();
     });
-    document.addEventListener('keydown',(e)=>{if(e.key==='Escape'){closePricingModal();closeInsufficientCreditsModal();}});
+    document.addEventListener('keydown',(e)=>{if(e.key==='Escape'){closeUpgradeModal();}});
 }
 
 function setupNavigation(){
@@ -2681,8 +2678,8 @@ function checkAuth(){
     }
 
     const action=p.get('action');
-    if(action==='buy_credits') setTimeout(()=>showInsufficientCreditsModal('buy_credits_link'),500);
-    else if(action==='upgrade') setTimeout(()=>showInsufficientCreditsModal('upgrade_link'),500);
+    if(action==='buy_credits') setTimeout(()=>showUpgradeModal('buy_credits_link'),500);
+    else if(action==='upgrade') setTimeout(()=>showUpgradeModal('upgrade_link'),500);
     // Silently check subscription status on load
     fetch(UPGRADE_INTENT_WORKER, {
         method: 'POST',
@@ -3181,7 +3178,7 @@ async function ensureSubscribedForExport() {
     } catch (e) {}
 
     showExportUpgradeMessage(resultCount);
-    showPricingModal('export_gated');
+    showUpgradeModal('export_gated');
 
     return false;
 }
@@ -3205,7 +3202,7 @@ async function handleAddCredits() {
         }
     } catch(e) {}
     finally { btn.innerHTML = orig; btn.disabled = false; }
-    showInsufficientCreditsModal('buy_credits_btn');
+    showUpgradeModal('buy_credits_btn');
 }
 
 function downloadExampleCSV(){
