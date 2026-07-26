@@ -1493,6 +1493,7 @@ const conversionValue = billingMode === 'annual' ? Math.round(plan.monthlyPrice 
             }
         } else {
             // Fallback: full redirect to hosted Dodo page
+            try { posthog.capture('checkout_redirect_fallback_used', { plan: planKey || pack.key }); } catch(e) {}
             window.location.href = data.checkout_url;
         }
     } catch (e) {
@@ -1547,6 +1548,7 @@ async function proceedToPaygCheckout(index, btnEl) {
             window.DodoPaymentsCheckout.DodoPayments.Checkout.open({ checkoutUrl: data.checkout_url });
             if (btnEl) { btnEl.disabled = false; btnEl.textContent = originalText; }
         } else {
+            try { posthog.capture('checkout_redirect_fallback_used', { plan: planKey || pack.key }); } catch(e) {}
             window.location.href = data.checkout_url;
         }
     } catch (e) {
