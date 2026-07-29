@@ -1056,7 +1056,7 @@
         </div>
 
         <h2 class="cim-headline" id="cimHeadline">You're out of credits</h2>
-        <p class="cim-subtext">Top up instantly to keep enriching — no subscription needed.</p>
+        <p class="cim-subtext">You clearly get value out of this — top up instantly and keep going, no subscription needed.</p>
 
         <div class="cim-payg-card">
             <div class="cim-payg-tag">Quick top-up</div>
@@ -1292,6 +1292,14 @@ function renderPlansGrid() {
     const currentIndex  = currentPlanNumber ? (planNumToIndex[currentPlanNumber] ?? null) : null;
     const currentIsAnn  = currentPlanNumber ? (planNumIsAnnual[currentPlanNumber] ?? null) : null;
 
+    // Usage-based recommendation: point people at the plan sized for what they
+    // actually do, instead of letting three equally-weighted options stall them.
+    const lifetimeEnrichments = parseInt(localStorage.getItem('lf_enrich_count') || '0');
+    let recommendedIndex = 0; // Starter
+    if (lifetimeEnrichments > 150) recommendedIndex = 2;      // Enterprise
+    else if (lifetimeEnrichments > 30) recommendedIndex = 1;  // Professional
+    const socialProof = ['Used by solo founders and small teams', 'Used by 40+ sales teams', 'Used by agencies running high-volume outreach'];
+
     grid.innerHTML = plans.map(function(plan, index) {
         const isPopular      = plan.name === 'Professional';
         const monthlyEquiv   = isAnnual ? Math.round(plan.monthlyPrice * 0.6) : plan.monthlyPrice;
@@ -1321,7 +1329,9 @@ function renderPlansGrid() {
         }
         const currentBadge = isCurrentPlan
             ? '<div style="background:#dcfce7;color:#15803d;font-size:0.62rem;font-weight:700;padding:0.2rem 0.55rem;border-radius:4px;margin-bottom:0.35rem;display:inline-block;text-transform:uppercase;letter-spacing:0.05em;">✓ Your plan</div>'
-            : '';
+            : (index === recommendedIndex && lifetimeEnrichments > 0
+                ? '<div style="background:#eff6ff;color:#2563eb;font-size:0.62rem;font-weight:700;padding:0.2rem 0.55rem;border-radius:4px;margin-bottom:0.35rem;display:inline-block;text-transform:uppercase;letter-spacing:0.05em;">Recommended for you</div>'
+                : '');
         const ctaDisabled = isCurrentPlan ? 'disabled style="opacity:0.5;cursor:not-allowed;"' : '';
         const anchorCredits = isAnnual ? plan.credits : Math.round(plan.credits/12);
         const anchorLinkedIn = anchorCredits.toLocaleString();
@@ -1329,14 +1339,16 @@ function renderPlansGrid() {
         const periodWord = isAnnual ? 'year' : 'month';
         const anchorPrice = isAnnual ? annualTotal : monthlyEquiv;
         const valueAnchor = '<div style="font-size:0.68rem;color:var(--gray-500);line-height:1.4;margin-top:0.5rem;padding-top:0.5rem;border-top:1px dashed var(--gray-200);">$'+anchorPrice+'/'+periodWord+' &asymp; '+anchorLinkedIn+' enrichments<br>(~'+anchorLinkedIn+' LinkedIn URLs or ~'+anchorPhone+' phone lookups)</div>';
+        const socialProofLine = '<div style="font-size:0.68rem;color:var(--gray-400);margin-top:0.35rem;">'+socialProof[index]+'</div>';
         return '<div class="plan-item '+(isPopular && !isCurrentPlan ?'plan-item-popular':'')+'">'
-            + (isPopular && !isCurrentPlan ? '<div class="plan-popular-badge">Most Popular</div>' : '')
+            + (isPopular && !isCurrentPlan && !(index === recommendedIndex && lifetimeEnrichments > 0) ? '<div class="plan-popular-badge">Most Popular</div>' : '')
             + '<div class="plan-item-name">'+plan.name+'</div>'
             + '<div class="plan-item-price"><span class="plan-item-amount">$'+monthlyEquiv+'</span><span class="plan-item-period">/mo</span></div>'
             + (isAnnual ? '<div class="plan-item-annual">billed $'+annualTotal+'/year</div>' : '<div class="plan-item-annual">&nbsp;</div>')
             + '<div class="plan-item-credits">'+creditsLabel+'</div>'
             + '<div class="plan-item-per-credit">&asymp; $'+perCredit+' / credit</div>'
             + valueAnchor
+            + socialProofLine
             + currentBadge
             + '<button class="'+ctaClass+'" onclick="proceedToCheckoutDirect('+index+', this)" '+ctaDisabled+'>'+ctaLabel+'</button>'
             + '</div>';
@@ -1652,12 +1664,15 @@ function showInsufficientCreditsModal(trigger = 'single_enrichment') {
         if (cta && defaultTier) cta.textContent = cimFormatCta(defaultTier.dataset.credits, defaultTier.dataset.price);
     }
 
-    // Show real usage context if we know how many credits/actions happened this session
-    const ctxEl = document.getElementById('cimUsageContext');
+      const ctxEl = document.getElementById('cimUsageContext');
     if (ctxEl) {
-        if (sessionCreditsUsed > 0) {
+        const lifetimeEnrichments = parseInt(localStorage.getItem('lf_enrich_count') || '0');
+        if (sessionActionsCount >= 3) {
             const creditsLabel = (Math.round(sessionCreditsUsed * 10) / 10).toLocaleString();
             ctxEl.textContent = `You've used ${creditsLabel} credit${sessionCreditsUsed === 1 ? '' : 's'} enriching ${sessionActionsCount} lead${sessionActionsCount === 1 ? '' : 's'} today`;
+            ctxEl.classList.add('show');
+        } else if (lifetimeEnrichments > 0) {
+            ctxEl.textContent = `You've enriched ${lifetimeEnrichments.toLocaleString()} lead${lifetimeEnrichments === 1 ? '' : 's'} with LinkFinder AI`;
             ctxEl.classList.add('show');
         } else {
             ctxEl.classList.remove('show');
@@ -3025,10 +3040,16 @@ function updateBulkResultsTable(){
 }
     document.getElementById('bulkResultsTable').innerHTML=html;
 }
-async function downloadResults(){
+async function downloadResults(isPreviewOnly){
     if(bulkResults.length===0) return;
-    const allowed = await ensureSubscribedForExport();
-    if (!allowed) return;
+    if (!isPreviewOnly) {
+        const allowed = await ensureSubscribedForExport();
+        if (!allowed) return; // ensureSubscribedForExport re-invokes downloadResults(true) itself for free users
+    }
+    const fullResults = bulkResults;
+    if (isPreviewOnly) {
+        bulkResults = bulkResults.slice(0, 5);
+    }
     const c=dataConfigurations[currentInputType];let csv='';
     if(currentOutputType==='employee_count'){csv=`${c.label.replace('Enter ','')},Employee Count,Status\n`;bulkResults.forEach(r=>{csv+=`"${r.inputData}","${r.employeeCount||'Not found'}","${r.status==='Processing'?'Not found':r.status}"\n`;});}
     else if(currentInputType==='linkedin_post'&&currentOutputType==='reactions'){csv='Name,Job Title,Profile Info,LinkedIn URL\n';bulkResults.forEach(pr=>{if(pr.reactions&&Array.isArray(pr.reactions)){pr.reactions.forEach(r=>{const p=parseReactionTitle(r.title);const esc=(s)=>(!s||s==='Not found'||s==='Not specified')?s:`"${s.toString().replace(/"/g,'""')}"`;csv+=[esc(p.name),esc(p.jobInfo||'Not specified'),esc(r.snippet||'Not specified'),esc(r.link||'Not specified')].join(',')+'\n';});}});}
@@ -3061,8 +3082,9 @@ async function downloadResults(){
     if(currentInputType==='linkedin_post') fn='linkedin_reactions';
     else if(currentInputType==='linkedin_profile') fn='linkedin_profile_data';
     else if(currentInputType==='linkedin_company') fn='linkedin_company_data';
-    a.download=`${fn}_${new Date().toISOString().split('T')[0]}.csv`;
+    a.download=`${fn}_${new Date().toISOString().split('T')[0]}${isPreviewOnly ? '_preview' : ''}.csv`;
     a.click();URL.revokeObjectURL(url);
+    if (isPreviewOnly) bulkResults = fullResults; // restore full in-memory results for the table view
 }
 
 function showLoading(){document.getElementById('loading').style.display='block';hideResults();}
@@ -3162,38 +3184,20 @@ function updateExportGateNotice(){
 async function ensureSubscribedForExport() {
     // If we haven't resolved subscription status yet, check once before deciding.
     // (isExistingSubscriber is normally set on page load from UPGRADE_INTENT_WORKER.)
-    if (isExistingSubscriber !== true) {
-        try {
-            const r = await fetch(UPGRADE_INTENT_WORKER, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ token: userToken, trigger: 'export_check' })
-            });
-            const d = await r.json();
-            if (d && d.issub === true) {
-                isExistingSubscriber = true;
-                currentPlanNumber = d.plan || null;
-                currentSubscriptionId = d.subscription_id || null;
-            }
-        } catch (e) {
-            // If the check fails, fall through and treat as not subscribed —
-            // err on the side of gating rather than leaking a free export.
-        }
-    }
-
-    if (isExistingSubscriber === true) {
+   if (isExistingSubscriber === true) {
         return true; // paid user — export proceeds exactly as before
     }
 
-    // Free user: block export, fire the same analytics event used for the
-    // bulk results gate, and show the same upgrade modal.
+    // Free user: don't block outright — give them a real, working 5-row preview
+    // so the export isn't a total dead end, then gate the rest.
     const resultCount = bulkResults.filter(r => r.status === 'Found').length || bulkResults.length;
+    const PREVIEW_ROW_LIMIT = 5;
 
     try {
         posthog.capture('bulk_results_gated_shown', {
             total_rows: csvData.length,
             processed_rows: bulkResults.length,
-            locked_rows: 0,
+            locked_rows: Math.max(0, bulkResults.length - PREVIEW_ROW_LIMIT),
             credits_remaining: currentCredits,
             input_type: currentInputType,
             output_type: currentOutputType,
@@ -3201,14 +3205,16 @@ async function ensureSubscribedForExport() {
         });
     } catch (e) {}
 
-    showExportUpgradeMessage(resultCount);
+    showExportUpgradeMessage(resultCount, PREVIEW_ROW_LIMIT);
     showPricingModal('export_gated');
+    downloadResults(true); // proceed with a preview-only export (see downloadResults change below)
 
     return false;
 }
 
-function showExportUpgradeMessage(resultCount) {
-    showAlert(`Exporting results requires a subscription. Your ${resultCount} result${resultCount === 1 ? '' : 's'} are ready to download.`, 'warning');
+function showExportUpgradeMessage(resultCount, previewLimit) {
+    const shown = Math.min(resultCount, previewLimit || resultCount);
+    showAlert(`Exporting all ${resultCount} results requires a subscription. Downloading a free preview of your first ${shown} result${shown === 1 ? '' : 's'} now.`, 'warning');
 }
     
 async function handleAddCredits() {
