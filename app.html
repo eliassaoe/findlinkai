@@ -930,6 +930,10 @@
 </div>
 
         <div id="bulkSearch" class="card hidden">
+            <div id="exportGateNotice" style="display:flex;align-items:center;gap:0.625rem;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1rem;font-size:0.8125rem;color:#1e40af;">
+                <i class="fas fa-circle-info" style="flex-shrink:0;"></i>
+                <span id="exportGateNoticeText">Exporting bulk results to CSV requires a subscription plan. Credits still cover processing — <a href="#" onclick="showPricingModal('export_gate_notice');return false;" style="color:inherit;font-weight:700;text-decoration:underline;">see plans</a>.</span>
+            </div>
             <div class="upload-area" id="uploadArea" onclick="document.getElementById('csvFile').click()">
                 <i class="fas fa-cloud-upload-alt upload-icon"></i>
                 <div class="upload-text">Drop your CSV file here or click to upload</div>
@@ -1010,10 +1014,10 @@
             <h2 id="pricingModalTitle">Choose Your Plan</h2>
             <p id="pricingModalSubtitle" style="color:var(--gray-500);font-size:0.875rem;margin-top:0.25rem;">Cancel anytime &nbsp;·&nbsp; No questions asked</p>
         </div>
-       <div class="billing-toggle">
-    <button type="button" class="billing-btn active" id="paygBtn" onclick="setBilling('payg')">Pay as you go</button>
-    <button type="button" class="billing-btn" id="monthlyBtn" onclick="setBilling('monthly')">Monthly</button>
+      <div class="billing-toggle">
+    <button type="button" class="billing-btn active" id="monthlyBtn" onclick="setBilling('monthly')">Monthly</button>
     <button type="button" class="billing-btn" id="annualBtn" onclick="setBilling('annual')">Annual <span class="save-tag">Save 40%</span></button>
+    <button type="button" class="billing-btn" id="paygBtn" onclick="setBilling('payg')">Pay as you go</button>
 </div>
         <div id="paygNeverExpireBanner" class="roi-banner" style="display:none;">
             <i class="fas fa-infinity" style="color:#16a34a;"></i>
@@ -1229,7 +1233,7 @@ let isExistingSubscriber = false;
 let currentPlanNumber = null;
 let currentSubscriptionId = null;
 let currentConfidenceFilter = 'all';
-let billingMode = 'payg';
+let billingMode = 'monthly';
 
 const dataConfigurations = {
     lead_full_name: { label:"Enter Lead Full Name + Company Name", placeholder:"e.g., John Doe JP morgan, Sarah Smith Netflix, Michael Johnson Microsoft", outputs:{linkedin_url:"LinkedIn Profile URL", email:"Verified Email"} },
@@ -1510,7 +1514,7 @@ const conversionValue = billingMode === 'annual' ? Math.round(plan.monthlyPrice 
             }
         } else {
             // Fallback: full redirect to hosted Dodo page
-            try { posthog.capture('checkout_redirect_fallback_used', { plan: planKey || pack.key }); } catch(e) {}
+            try { posthog.capture('checkout_redirect_fallback_used', { plan: planKey }); } catch(e) {}
             window.location.href = data.checkout_url;
         }
     } catch (e) {
@@ -1561,11 +1565,11 @@ async function proceedToPaygCheckout(index, btnEl) {
         const data = await resp.json();
         if (!resp.ok || !data.checkout_url) throw new Error(data.error || 'Checkout creation failed');
 
-        if (window.DodoPaymentsCheckout?.DodoPayments?.Checkout) {
+       if (window.DodoPaymentsCheckout?.DodoPayments?.Checkout) {
             window.DodoPaymentsCheckout.DodoPayments.Checkout.open({ checkoutUrl: data.checkout_url });
             if (btnEl) { btnEl.disabled = false; btnEl.textContent = originalText; }
         } else {
-            try { posthog.capture('checkout_redirect_fallback_used', { plan: planKey || pack.key }); } catch(e) {}
+            try { posthog.capture('checkout_redirect_fallback_used', { plan: pack.key }); } catch(e) {}
             window.location.href = data.checkout_url;
         }
     } catch (e) {
@@ -1575,7 +1579,6 @@ async function proceedToPaygCheckout(index, btnEl) {
         try { posthog.capture('checkout_error', { message: e.message, plan: pack.key }); } catch(_) {}
     }
 }
-
 function setBilling(type) {
     billingMode = type; // 'payg' | 'monthly' | 'annual'
     document.getElementById('paygBtn').classList.toggle('active', billingMode === 'payg');
@@ -2708,6 +2711,7 @@ function checkAuth(){
                 document.getElementById('annualBanner').style.display = 'block';
             }
         }
+        updateExportGateNotice();
         window.currentUserReferredBy = d.refered_by || null;
         window.currentUserEmail = d.email || null; 
         
@@ -3145,8 +3149,16 @@ function checkEnrichmentMilestone() {
 }
 
 // --- Export gate helper ---
-// Returns true if export should proceed, false if it was blocked (and the
-// upgrade modal was shown). Does NOT touch the credits-exhausted gate logic.
+
+
+function updateExportGateNotice(){
+    const notice = document.getElementById('exportGateNotice');
+    if (!notice) return;
+    // Once we've confirmed the user IS subscribed, hide the notice entirely.
+    notice.style.display = isExistingSubscriber === true ? 'none' : 'flex';
+}
+
+    
 async function ensureSubscribedForExport() {
     // If we haven't resolved subscription status yet, check once before deciding.
     // (isExistingSubscriber is normally set on page load from UPGRADE_INTENT_WORKER.)
