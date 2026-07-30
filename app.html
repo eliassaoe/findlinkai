@@ -707,11 +707,17 @@
 .otp-header h2{font-size:1.4rem;font-weight:700;color:var(--gray-900);margin:0 0 0.4rem;}
 .otp-header p{font-size:0.875rem;color:var(--gray-500);margin:0;}
 .otp-earned-pill{display:inline-flex;align-items:center;gap:0.4rem;margin-top:0.875rem;background:#ecfdf5;color:#10b981;font-weight:600;font-size:0.8rem;padding:0.35rem 0.85rem;border-radius:999px;}
+.otp-progress-wrap{margin-bottom:1.25rem;}
+.otp-progress-track{background:var(--gray-200);height:6px;border-radius:3px;overflow:hidden;}
+.otp-progress-fill{height:100%;background:var(--primary);border-radius:3px;transition:width 0.3s ease;}
+.otp-progress-label{text-align:center;font-size:0.72rem;color:var(--gray-500);margin-top:0.4rem;}
+.otp-task-realvalue{font-size:0.72rem;color:var(--primary);font-weight:600;margin-top:0.15rem;}
 .otp-task-list{display:flex;flex-direction:column;gap:0.75rem;}
 .otp-task-row{border:1px solid var(--gray-200);border-radius:10px;padding:0.875rem 1rem;transition:border-color 0.15s ease,background 0.15s ease;}
 .otp-status-completed{background:#f0fdf4;border-color:#bbf7d0;}
 .otp-status-pending{background:#fffbeb;border-color:#fde68a;}
 .otp-task-main{display:flex;align-items:flex-start;justify-content:space-between;gap:0.75rem;}
+.otp-task-text{display:flex;flex-direction:column;min-width:0;}
 .otp-task-label{font-weight:600;font-size:0.9rem;color:var(--gray-900);}
 .otp-task-sub{font-weight:400;font-size:0.76rem;color:var(--gray-500);margin-top:0.15rem;}
 .otp-task-badge{flex-shrink:0;font-size:0.72rem;font-weight:700;color:var(--primary);background:rgba(37,99,235,0.08);padding:0.25rem 0.55rem;border-radius:6px;white-space:nowrap;}
@@ -1155,6 +1161,10 @@
             <h2 id="otpTitle"></h2>
             <p id="otpSubtitle"></p>
             <div class="otp-earned-pill hidden" id="otpEarnedPill"><i class="fas fa-coins"></i> <span id="otpEarnedAmount">0</span> credits earned so far</div>
+        </div>
+        <div class="otp-progress-wrap">
+            <div class="otp-progress-track"><div class="otp-progress-fill" id="otpProgressBar" style="width:0%"></div></div>
+            <div class="otp-progress-label" id="otpProgressLabel">0 of 6 tasks completed</div>
         </div>
         <div class="otp-task-list" id="otpTaskList"></div>
         <div class="otp-loading-note hidden" id="otpLoadingNote">Loading your progress&hellip;</div>
@@ -3664,20 +3674,31 @@ const OTP_LINKS = {
 };
 
 const OTP_TASKS = [
-    { name: 'youtube_subscribe', kind: 'honor', label: 'Subscribe to our YouTube channel', credits: 100, linkUrl: OTP_LINKS.youtube, linkLabel: 'Open channel', checkboxLabel: 'I subscribed' },
-    { name: 'twitter_follow', kind: 'honor', label: 'Follow us on Twitter/X', credits: 50, linkUrl: OTP_LINKS.twitter, linkLabel: 'Open profile', checkboxLabel: "I'm following" },
-    { name: 'linkedin_share', kind: 'url', label: 'Share on LinkedIn', credits: 150, placeholder: 'Paste your LinkedIn post URL' },
-    { name: 'g2_review', kind: 'url', label: 'Leave a G2 review', credits: 1000, placeholder: 'Paste your G2 review URL', linkUrl: OTP_LINKS.g2, linkLabel: 'Write a review on G2', pendingCopy: 'Pending review',
+    { name: 'youtube_subscribe', kind: 'honor', label: 'Subscribe to our YouTube channel', credits: 100, realValue: '= 100 LinkedIn profiles', linkUrl: OTP_LINKS.youtube, linkLabel: 'Open channel', checkboxLabel: 'I subscribed' },
+    { name: 'twitter_follow', kind: 'honor', label: 'Follow us on Twitter/X', credits: 50, realValue: '= 50 LinkedIn profiles', linkUrl: OTP_LINKS.twitter, linkLabel: 'Open profile', checkboxLabel: "I'm following" },
+    { name: 'linkedin_share', kind: 'url', label: 'Share on LinkedIn', credits: 150, realValue: '= 150 LinkedIn profiles', placeholder: 'Paste your LinkedIn post URL' },
+    { name: 'referral', kind: 'referral', label: 'Refer a friend', credits: 300, realValue: '= 300 LinkedIn profiles', sub: 'Credited automatically each time someone signs up with your link' },
+    { name: 'trustpilot_review', kind: 'url', label: 'Leave a Trustpilot review', credits: 500, realValue: '= 50 emails', placeholder: 'Paste your Trustpilot review URL', linkUrl: OTP_LINKS.trustpilot, linkLabel: 'Write a review on Trustpilot', pendingCopy: 'Pending approval',
       disclosureNote: 'Please include this line in your review: \u201cI received account credits for this review.\u201d Required for compliance \u2014 reviews without it can\u2019t be approved.' },
-    { name: 'trustpilot_review', kind: 'url', label: 'Leave a Trustpilot review', credits: 1000, placeholder: 'Paste your Trustpilot review URL', linkUrl: OTP_LINKS.trustpilot, linkLabel: 'Write a review on Trustpilot', pendingCopy: 'Pending review',
+    { name: 'g2_review', kind: 'url', label: 'Leave a G2 review', credits: 1000, realValue: '= 100 emails or 1,000 LinkedIn profiles', placeholder: 'Paste your G2 review URL', linkUrl: OTP_LINKS.g2, linkLabel: 'Write a review on G2', pendingCopy: 'Pending approval',
       disclosureNote: 'Please include this line in your review: \u201cI received account credits for this review.\u201d Required for compliance \u2014 reviews without it can\u2019t be approved.' },
-    { name: 'referral', kind: 'referral', label: 'Refer a friend', credits: 300, sub: 'Credited automatically each time someone signs up with your link' },
 ];
 
-const OTP_COPY = {
-    low_conversion: { title: 'Unlock your free credits', subtitle: 'Complete any of these to start earning \u2014 takes less than a minute each.' },
-    standard: { title: 'Enjoying LinkFinder? Earn bonus credits', subtitle: 'A few quick ways to top up your balance.' },
-};
+function otpCopy() {
+    const balance = currentCredits !== null ? Math.round(currentCredits * 10) / 10 : null;
+    if (otpGeoTier === 'low_conversion') {
+        return {
+            title: 'Unlock your free credits',
+            subtitle: 'Complete tasks below to earn credits and start finding LinkedIn profiles and emails for free.',
+        };
+    }
+    return {
+        title: 'Enjoying LinkFinder AI? Earn bonus credits',
+        subtitle: balance !== null
+            ? `You have ${balance.toLocaleString()} credits. Complete tasks below to earn more.`
+            : 'Complete tasks below to earn more credits.',
+    };
+}
 
 let otpGeoTier = 'standard';
 let otpCompletions = [];
@@ -3743,13 +3764,13 @@ async function maybeShowOnboardingTasksPopup(trigger) {
     renderOnboardingTasksPopup();
     document.getElementById('onboardingTasksModal').classList.add('show');
     document.body.style.overflow = 'hidden';
-    try { posthog.capture('onboarding_task_popup_shown', { geo_tier: otpGeoTier, trigger }); } catch(e) {}
+    try { posthog.capture('onboarding_popup_shown', { geo_tier: otpGeoTier, trigger }); } catch(e) {}
 }
 
 function otpEsc(str){ return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
 function renderOnboardingTasksPopup() {
-    const copy = OTP_COPY[otpGeoTier] || OTP_COPY.standard;
+    const copy = otpCopy();
     document.getElementById('otpTitle').textContent = copy.title;
     document.getElementById('otpSubtitle').textContent = copy.subtitle;
 
@@ -3758,9 +3779,24 @@ function renderOnboardingTasksPopup() {
     if (earned > 0) { pill.classList.remove('hidden'); document.getElementById('otpEarnedAmount').textContent = earned.toLocaleString(); }
     else { pill.classList.add('hidden'); }
 
+    const completedCount = OTP_TASKS.filter(t => otpStatusFor(t.name) === 'completed').length;
+    const totalCount = OTP_TASKS.length;
+    const progressBar = document.getElementById('otpProgressBar');
+    const progressLabel = document.getElementById('otpProgressLabel');
+    if (progressBar) progressBar.style.width = `${Math.round((completedCount / totalCount) * 100)}%`;
+    if (progressLabel) progressLabel.textContent = `${completedCount} of ${totalCount} tasks completed`;
+
     const referralLink = `https://linkfinderai.com?ref=${userToken}`;
+
+    // Reorder: incomplete/pending tasks first (in config order), completed ones move to the bottom.
+    const orderedTasks = [...OTP_TASKS].sort((a, b) => {
+        const aDone = otpStatusFor(a.name) === 'completed' ? 1 : 0;
+        const bDone = otpStatusFor(b.name) === 'completed' ? 1 : 0;
+        return aDone - bDone;
+    });
+
     const list = document.getElementById('otpTaskList');
-    list.innerHTML = OTP_TASKS.map(task => {
+    list.innerHTML = orderedTasks.map(task => {
         const status = otpStatusFor(task.name);
         const isBusy = otpBusyTask === task.name;
         let actionHtml = '';
@@ -3768,10 +3804,10 @@ function renderOnboardingTasksPopup() {
         if (status === 'completed') {
             actionHtml = `<span class="otp-check"><i class="fas fa-check-circle"></i> Done</span>`;
         } else if (status === 'pending') {
-            actionHtml = `<span class="otp-pending-badge"><i class="fas fa-clock"></i> ${otpEsc(task.pendingCopy || 'Pending review')}</span>`;
+            actionHtml = `<span class="otp-pending-badge"><i class="fas fa-clock"></i> ${otpEsc(task.pendingCopy || 'Pending approval')}</span>`;
         } else if (task.kind === 'honor') {
             actionHtml = `<div class="otp-honor-row">
-                <a href="${task.linkUrl}" target="_blank" rel="noreferrer" class="otp-link-btn">${otpEsc(task.linkLabel)}</a>
+                <a href="${task.linkUrl}" target="_blank" rel="noreferrer" class="otp-link-btn" onclick="otpTrackStarted('${task.name}')">${otpEsc(task.linkLabel)}</a>
                 <label class="otp-checkbox-label">
                     <input type="checkbox" ${isBusy?'disabled':''} onchange="if(this.checked) otpCompleteHonorTask('${task.name}')">
                     ${isBusy ? 'Saving\u2026' : otpEsc(task.checkboxLabel)}
@@ -3779,9 +3815,9 @@ function renderOnboardingTasksPopup() {
             </div>`;
         } else if (task.kind === 'url') {
             actionHtml = `<div class="otp-url-row">
-                ${task.linkUrl ? `<a href="${task.linkUrl}" target="_blank" rel="noreferrer" class="otp-link-btn otp-link-btn-block">${otpEsc(task.linkLabel)}</a>` : ''}
+                ${task.linkUrl ? `<a href="${task.linkUrl}" target="_blank" rel="noreferrer" class="otp-link-btn otp-link-btn-block" onclick="otpTrackStarted('${task.name}')">${otpEsc(task.linkLabel)}</a>` : ''}
                 <div class="otp-input-row">
-                    <input type="text" id="otp-input-${task.name}" placeholder="${otpEsc(task.placeholder)}" ${isBusy?'disabled':''}>
+                    <input type="text" id="otp-input-${task.name}" placeholder="${otpEsc(task.placeholder)}" ${isBusy?'disabled':''} onfocus="otpTrackStarted('${task.name}')">
                     <button class="otp-submit-btn" ${isBusy?'disabled':''} onclick="otpSubmitUrlTask('${task.name}')">${isBusy?'Submitting\u2026':'Submit'}</button>
                 </div>
                 ${task.disclosureNote ? `<div class="otp-disclosure-note"><i class="fas fa-circle-info"></i> ${otpEsc(task.disclosureNote)}</div>` : ''}
@@ -3795,12 +3831,25 @@ function renderOnboardingTasksPopup() {
 
         return `<div class="otp-task-row otp-status-${status}" id="otp-row-${task.name}">
             <div class="otp-task-main">
-                <div class="otp-task-label">${otpEsc(task.label)}${task.sub?`<div class="otp-task-sub">${otpEsc(task.sub)}</div>`:''}</div>
+                <div class="otp-task-text">
+                    <div class="otp-task-label">${otpEsc(task.label)}${task.sub?`<div class="otp-task-sub">${otpEsc(task.sub)}</div>`:''}</div>
+                    ${task.realValue ? `<div class="otp-task-realvalue">${otpEsc(task.realValue)}</div>` : ''}
+                </div>
                 <div class="otp-task-badge">+${task.credits.toLocaleString()} credits</div>
             </div>
             <div class="otp-task-action">${actionHtml}<div class="otp-field-error hidden" id="otp-error-${task.name}"></div></div>
         </div>`;
     }).join('');
+}
+
+// Fires onboarding_task_started once per task per popup session (external
+// link click or first focus on a URL field) — separate signal from actually
+// completing the task.
+const otpStartedTasks = new Set();
+function otpTrackStarted(taskName) {
+    if (otpStartedTasks.has(taskName)) return;
+    otpStartedTasks.add(taskName);
+    try { posthog.capture('onboarding_task_started', { task_name: taskName, geo_tier: otpGeoTier }); } catch(e) {}
 }
 
 function otpShowFieldError(taskName, message) {
@@ -3823,7 +3872,7 @@ async function otpCompleteHonorTask(taskName) {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Could not complete task');
         otpCompletions.push({ task_name: taskName, status: 'completed', credits: task.credits });
-        try { posthog.capture('onboarding_task_completed', { task_name: taskName }); posthog.capture('onboarding_credits_earned', { amount: task.credits }); } catch(e) {}
+        try { posthog.capture('onboarding_task_completed', { task_name: taskName, geo_tier: otpGeoTier, credits_awarded: task.credits }); } catch(e) {}
         addCredits(task.credits);
     } catch (e) {
         otpBusyTask = null;
@@ -3858,10 +3907,10 @@ async function otpSubmitUrlTask(taskName) {
 
         if (isReview) {
             otpCompletions.push({ task_name: taskName, status: 'pending', credits: 0 });
-            try { posthog.capture('onboarding_task_completed', { task_name: taskName, status: 'pending' }); } catch(e) {}
+            try { posthog.capture('onboarding_task_pending', { task_name: taskName, geo_tier: otpGeoTier }); } catch(e) {}
         } else {
             otpCompletions.push({ task_name: taskName, status: 'completed', credits: task.credits });
-            try { posthog.capture('onboarding_task_completed', { task_name: taskName }); posthog.capture('onboarding_credits_earned', { amount: task.credits }); } catch(e) {}
+            try { posthog.capture('onboarding_task_completed', { task_name: taskName, geo_tier: otpGeoTier, credits_awarded: task.credits }); } catch(e) {}
             addCredits(task.credits);
         }
     } catch (e) {
@@ -3877,14 +3926,16 @@ async function otpSubmitUrlTask(taskName) {
 function otpCopyReferralLink(link) {
     navigator.clipboard?.writeText(link);
     otpCopyState = 'copied';
-    try { posthog.capture('onboarding_task_completed', { task_name: 'referral_link_copied' }); } catch(e) {}
+    try { posthog.capture('onboarding_referral_link_copied', { geo_tier: otpGeoTier }); } catch(e) {}
     renderOnboardingTasksPopup();
     setTimeout(() => { otpCopyState = 'idle'; renderOnboardingTasksPopup(); }, 2000);
 }
 
 function dismissOnboardingTasksPopup() {
     const earned = otpEarnedTotal();
-    try { posthog.capture('onboarding_task_popup_dismissed', { geo_tier: otpGeoTier, credits_earned_so_far: earned }); } catch(e) {}
+    const completedCount = OTP_TASKS.filter(t => otpStatusFor(t.name) === 'completed').length;
+    try { posthog.capture('onboarding_popup_dismissed', { geo_tier: otpGeoTier, tasks_completed_before_dismiss: completedCount }); } catch(e) {}
+    try { posthog.capture('onboarding_credits_earned_total', { total_credits_earned: earned }); } catch(e) {}
     document.getElementById('onboardingTasksModal').classList.remove('show');
     document.body.style.overflow = '';
     localStorage.setItem('lf_onboarding_popup_seen', '1');
