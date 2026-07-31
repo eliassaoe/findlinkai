@@ -2832,7 +2832,9 @@ function checkAuth(){
         if (otpGeoTier === 'low_conversion') {
             const reopenBtn = document.getElementById('reopenTasksBtn');
             if (reopenBtn) reopenBtn.style.display = '';
-            maybeShowOnboardingTasksPopup('page_load');
+            // No longer auto-shown on page load — the fab lets them open it
+            // early if they want, but the popup itself waits until they've
+            // gotten some real value first (see checkEnrichmentMilestone()).
         } else {
             showReviewNotification();
         }
@@ -3266,6 +3268,17 @@ function checkEnrichmentMilestone() {
     const n = parseInt(localStorage.getItem(key) || '0') + 1;
     localStorage.setItem(key, n);
     maybeShowReferralNudge();
+    // Low-conversion geo: wait until the 2nd enrichment before auto-showing
+    // the task popup, so people experience real value first. Before that,
+    // they can still open it early anytime via the "Tasks" fab.
+    // Uses a dedicated fired-flag (not an exact n===2 match) so it still
+    // fires correctly even if lf_enrich_count was already above 2 from
+    // earlier testing/usage.
+    const otpMilestoneFiredKey = 'lf_otp_milestone_fired';
+    if (n >= 2 && !localStorage.getItem(otpMilestoneFiredKey)) {
+        localStorage.setItem(otpMilestoneFiredKey, '1');
+        setTimeout(() => maybeShowOnboardingTasksPopup('second_enrichment'), 1200);
+    }
    if (n === 10 && !localStorage.getItem(firedKey)) {
     localStorage.setItem(firedKey, '1');
     fireUpgradeIntent('three_enrichments', { enrich_count: n, credits_remaining: currentCredits });
@@ -3762,10 +3775,13 @@ function otpFetchStatus() {
     return otpStatusPromise;
 }
 
-// Only called for low_conversion geo (India/Bangladesh/Nigeria) — see the
+// Only relevant for low_conversion geo (India/Bangladesh/Nigeria) — see the
 // geo branch in checkAuth(). Standard geo gets the corner review popup
-// instead (showReviewNotification()). Never shows twice — gated by
-// localStorage as an immediate guard plus a server-side flag.
+// instead (showReviewNotification()). Auto-fires after the 3rd enrichment
+// (checkEnrichmentMilestone()) so people get real value first; can also be
+// opened early anytime via the "Tasks" fab (openOnboardingTasksPopupManually).
+// Never auto-shows twice — gated by localStorage as an immediate guard plus
+// a server-side flag.
 async function maybeShowOnboardingTasksPopup(trigger) {
     if (localStorage.getItem('lf_onboarding_popup_seen')) return;
     if (otpGeoTier !== 'low_conversion') return;
