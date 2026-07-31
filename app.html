@@ -2916,7 +2916,11 @@ function showSingleResult(inputData,result,confidence){
 
 function showSingleResultEmployees(inputData,employeesArray){
     document.getElementById('resultText').style.display='none';
-    let html=`<div class="result-card"><div class="result-header"><h3>Found ${employeesArray.length} Employees ✨</h3><p>${inputData}</p></div><div class="result-grid">`;
+    window.currentSingleEmployeesExport = { inputData, employeesArray }; // NEW: stash for export
+    let html=`<div class="result-card"><div class="result-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.75rem;">
+        <div><h3>Found ${employeesArray.length} Employees ✨</h3><p>${inputData}</p></div>
+        <button class="btn" onclick="exportCurrentSingleEmployeesCSV()"><i class="fas fa-download"></i> Export CSV</button>
+    </div><div class="result-grid">`;
     employeesArray.forEach((emp,i)=>{
         const dept = Array.isArray(emp.department) ? emp.department.join(', ') : emp.department;
         const loc = [emp.city, emp.state, emp.country].filter(Boolean).join(', ');
@@ -3170,6 +3174,34 @@ async function downloadResults(isPreviewOnly){
     a.download=`${fn}_${new Date().toISOString().split('T')[0]}${isPreviewOnly ? '_preview' : ''}.csv`;
     a.click();URL.revokeObjectURL(url);
     if (isPreviewOnly) bulkResults = fullResults; // restore full in-memory results for the table view
+}
+
+function exportCurrentSingleEmployeesCSV(){
+    const data = window.currentSingleEmployeesExport;
+    if(!data || !data.employeesArray || !data.employeesArray.length){
+        showAlert('No employee data to export.','error');
+        return;
+    }
+    const { inputData, employeesArray } = data;
+    const esc=(v)=>v?`"${String(Array.isArray(v)?v.join('; '):v).replace(/"/g,'""')}"`:'""';
+    let csv='Input,Name,Job Title,Seniority,Headline,Department,Industry,Email,Mobile,Twitter,City,State,Country,LinkedIn URL,Company,Company Website,Company Phone,Company Size,Company City,Company State,Company Country,Company LinkedIn URL\n';
+    employeesArray.forEach(e=>{
+        csv+=[
+            esc(inputData), esc(e.name), esc(e.jobTitle), esc(e.seniority), esc(e.headline),
+            esc(e.department), esc(e.industry), esc(e.email), esc(e.mobileNumber), esc(e.twitter),
+            esc(e.city), esc(e.state), esc(e.country), esc(e.linkedinUrl),
+            esc(e.company), esc(e.companyWebsite), esc(e.companyPhone), esc(e.companySize),
+            esc(e.companyCity), esc(e.companyState), esc(e.companyCountry), esc(e.companyLinkedinUrl)
+        ].join(',')+'\n';
+    });
+    const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;
+    a.download=`employees_${(inputData||'export').replace(/[^a-z0-9]+/gi,'_').toLowerCase()}_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    try{ posthog.capture('single_employees_export_csv', { employee_count: employeesArray.length, input_data: inputData }); }catch(e){}
 }
 
 function showLoading(){document.getElementById('loading').style.display='block';hideResults();}
