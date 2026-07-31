@@ -2819,7 +2819,19 @@ function checkAuth(){
     }
     // India/Bangladesh/Nigeria get the full task-based earn-credits popup.
     // Everyone else gets the simpler corner G2/Trustpilot review nudge instead.
+    //
+    // Testing override: append ?geo_test=low_conversion or ?geo_test=standard
+    // to the URL to preview either branch locally without needing a real IP
+    // from those countries. This ONLY overrides which popup you see in this
+    // browser session — it does not affect real geo detection, signup
+    // credits, or anything server-side. Remember to also clear
+    // localStorage.lf_onboarding_popup_seen between tests (see console).
+    const geoTestOverride = new URLSearchParams(window.location.search).get('geo_test');
     otpFetchStatus().then(() => {
+        if (geoTestOverride === 'low_conversion' || geoTestOverride === 'standard') {
+            console.log(`[geo_test] Overriding geo_tier from "${otpGeoTier}" to "${geoTestOverride}" for this session only.`);
+            otpGeoTier = geoTestOverride;
+        }
         if (otpGeoTier === 'low_conversion') {
             const reopenBtn = document.getElementById('reopenTasksBtn');
             if (reopenBtn) reopenBtn.style.display = '';
