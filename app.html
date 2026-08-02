@@ -975,6 +975,10 @@
         </div>
         <button type="submit" class="btn btn-full"><i class="fas fa-magic"></i> Enrich Data</button>
     </form>
+    <div id="zeroCreditsInline" class="hidden" style="background:#fef3c7;border:1px solid var(--warning);border-radius:8px;padding:1rem;margin-top:1rem;text-align:center;">
+        <p style="font-size:0.875rem;color:#92400e;margin-bottom:0.75rem;">You've used all your free credits. Upgrade to run more enrichments.</p>
+        <button type="button" class="btn" onclick="handleAddCredits()"><i class="fas fa-bolt"></i> Upgrade now</button>
+    </div>
 </div>
 
         <div id="bulkSearch" class="card hidden">
@@ -1304,6 +1308,8 @@ let currentPlanNumber = null;
 let currentSubscriptionId = null;
 let currentConfidenceFilter = 'all';
 let billingMode = 'monthly';
+let firstSuccessPromptsFired = false;
+let startingCredits = null; // captured on first non-zero balance; powers the 20% low-credit threshold
 
 const dataConfigurations = {
     lead_full_name: { label:"Enter Lead Full Name + Company Name", placeholder:"e.g., John Doe JP morgan, Sarah Smith Netflix, Michael Johnson Microsoft", outputs:{linkedin_url:"LinkedIn Profile URL", email:"Verified Email"} },
@@ -1926,7 +1932,16 @@ async function fetchCredits() {
     if (!userToken) return;
     try {
         const r = await fetch('https://linkfinderaicredits.hamoureliasse.workers.dev/', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:userToken})});
-        if (r.ok) { const d=await r.json(); const c=Math.max(0,d.credits||0); currentCredits=c; document.getElementById('creditsCount').textContent=c; updateLowCreditsWarning(c); updateAffordabilityWarning(); }
+        if (r.ok) {
+            const d=await r.json();
+            const c=Math.max(0,d.credits||0);
+            currentCredits=c;
+            if (startingCredits === null && c > 0) startingCredits = c;
+            document.getElementById('creditsCount').textContent=c;
+            updateLowCreditsWarning(c);
+            updateZeroCreditsState(c);
+            updateAffordabilityWarning();
+        }
         else { document.getElementById('creditsCount').textContent='?'; }
     } catch(e) { document.getElementById('creditsCount').textContent='?'; }
 }
@@ -1942,6 +1957,8 @@ function deductCredits(amount) {
     sessionCreditsUsed += amount;
     sessionActionsCount += 1;
     updateAffordabilityWarning();
+    updateLowCreditsWarning(currentCredits);
+    updateZeroCreditsState(currentCredits);
 }
 
 // Used by bonus-credit sources (onboarding tasks, referrals) — deliberately
@@ -1953,6 +1970,7 @@ function addCredits(amount) {
     document.getElementById('creditsCount').textContent = Math.round(currentCredits*10)/10;
     updateAffordabilityWarning();
     updateLowCreditsWarning(currentCredits);
+    updateZeroCreditsState(currentCredits);
 }
 
 function parseReactionTitle(title) {
@@ -1998,6 +2016,7 @@ function updateAffordabilityWarning(){
         return;
     }
     const cost=getCreditCost(currentInputType,currentOutputType);
+    if(currentCredits<=0){ warnEl.style.display='none'; if(btn) btn.dataset.insufficientCredits='1'; updateSubmitButtonState(); return; } // zeroCreditsInline banner covers this case instead
     if(currentCredits<cost){
         warnEl.innerHTML=`<i class="fas fa-exclamation-triangle" style="margin-right:0.375rem;"></i>You need ${cost} credit${cost===1?'':'s'} for this lookup. You have ${Math.round(currentCredits*10)/10}. <a href="#" onclick="handleAddCredits();return false;" style="color:var(--primary);font-weight:600;">Buy credits</a>`;
         warnEl.style.display='block';
@@ -2080,12 +2099,15 @@ async function enrichData(event) {
         });
         const data = await response.json();
         hideLoading();
-        if (currentOutputType==='reactions'&&Array.isArray(data)&&data.length>0) { deductCredits(data.length); showSingleResultReactions(inputValue,data); checkEnrichmentMilestone(); showSavedPill(); showSuccessToast('Result found'); return; }
-        if (currentOutputType==='employee_count') { deductCredits(getCreditCost(currentInputType,currentOutputType)); showSingleResultEmployeeCount(inputValue,data); checkEnrichmentMilestone(); showSavedPill(); showSuccessToast('Result found'); return; }
-        if (currentOutputType==='employees'&&Array.isArray(data)&&data.length>0) { deductCredits(data.length*0.5); showSingleResultEmployees(inputValue,data); checkEnrichmentMilestone(); showSavedPill(); showSuccessToast('Result found'); return; }
+        if (currentOutputType==='reactions'&&Array.isArray(data)&&data.length>0) { deductCredits(data.length); showSingleResultReactions(inputValue,data); checkEnrichmentMilestone(); maybeTriggerFirstSuccessPrompts(); showSavedPill(); showSuccessToast('Result found'); return; }
+        if (currentOutputType==='employee_count') { deductCredits(getCreditCost(currentInputType,currentOutputType)); showSingleResultEmployeeCount(inputValue,data); checkEnrichmentMilestone(); maybeTriggerFirstSuccessPrompts(); showSavedPill(); showSuccessToast('Result found'); return; }
+        if (currentOutputType==='employees'&&Array.isArray(data)&&data.length>0) { deductCredits(data.length*0.5); showSingleResultEmployees(inputValue,data); checkEnrichmentMilestone(); maybeTriggerFirstSuccessPrompts(); showSavedPill(); showSuccessToast('Result found'); return; }
         if (response.status===403&&data.code===403) { 
     try { posthog.capture('credits_exhausted', { input_type: currentInputType, output_type: currentOutputType, credits_remaining: currentCredits }); } catch(e) {} 
-    showInsufficientCreditsModal('single_enrichment'); 
+    currentCredits = 0;
+    document.getElementById('creditsCount').textContent = '0';
+    updateLowCreditsWarning(0);
+    updateZeroCreditsState(0);
     return; 
 }
         if (response.ok&&data&&(data.result||data.name)) {
@@ -2093,6 +2115,7 @@ async function enrichData(event) {
             if (data.name&&!data.result) showSingleResult(inputValue,data);
             else showSingleResult(inputValue, data.result||'Not found', data.confidence);
             checkEnrichmentMilestone();
+            maybeTriggerFirstSuccessPrompts();
             showSavedPill();
             showSuccessToast('Result found');
         } else { showSingleResult(inputValue,'Not found'); }
@@ -2534,6 +2557,10 @@ async function processBulk() {
     btn.disabled = false;
     btn.innerHTML = '<i class="fas fa-play"></i> Process Items';
     if (bulkResults.length > 0) showSavedPill();
+    if (bulkResults.some(r => r.status === 'Found')) {
+        checkEnrichmentMilestone();
+        maybeTriggerFirstSuccessPrompts();
+    }
 }
 
 // Add these new functions after processBulk
@@ -2722,12 +2749,9 @@ document.addEventListener('DOMContentLoaded',()=>{
 function setupModalEvents(){
     document.addEventListener('click',(e)=>{
         if(e.target===document.getElementById('pricingModal')) closePricingModal();
-        // Intentionally NOT closing insufficientCreditsModal on outside-click: this is a
-        // high-intent conversion moment, and an accidental tap near the edge (especially on
-        // mobile) shouldn't lose it. "Maybe later" and Escape are the only exits.
         if(e.target===document.getElementById('feedbackModal')) closeFeedbackModal();
     });
-    document.addEventListener('keydown',(e)=>{if(e.key==='Escape'){closePricingModal();closeInsufficientCreditsModal();}});
+    document.addEventListener('keydown',(e)=>{if(e.key==='Escape'){closePricingModal();}});
 }
 
 function setupNavigation(){
@@ -2834,14 +2858,9 @@ function checkAuth(){
             console.log(`[geo_test] Overriding geo_tier from "${otpGeoTier}" to "${geoTestOverride}" for this session only.`);
             otpGeoTier = geoTestOverride;
         }
-        if (otpGeoTier === 'low_conversion') {
+                if (otpGeoTier === 'low_conversion') {
             const reopenBtn = document.getElementById('reopenTasksBtn');
             if (reopenBtn) reopenBtn.style.display = '';
-            // No longer auto-shown on page load — the fab lets them open it
-            // early if they want, but the popup itself waits until they've
-            // gotten some real value first (see checkEnrichmentMilestone()).
-        } else {
-            showReviewNotification();
         }
     });
 })
@@ -3268,6 +3287,20 @@ const UPGRADE_INTENT_WORKER = 'https://upgrade-intent.hamoureliasse.workers.dev/
 async function fireUpgradeIntent(trigger, extras = {}) {
     try { await fetch(UPGRADE_INTENT_WORKER, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: userToken, trigger, ...extras }) }); } catch(e) {}
 }
+
+// Fires once, only after the user has an actual successful, error-free result
+// rendered on screen — never on page load, never mid-request.
+async function maybeTriggerFirstSuccessPrompts() {
+    if (firstSuccessPromptsFired) return;
+    firstSuccessPromptsFired = true;
+    await otpFetchStatus(); // make sure otpGeoTier is resolved before deciding
+    if (otpGeoTier !== 'low_conversion') {
+        showReviewNotification();
+    }
+    // low_conversion geo's onboarding popup is already gated inside
+    // checkEnrichmentMilestone() (fires on the 2nd successful enrichment).
+}
+
 function checkEnrichmentMilestone() {
     const key = 'lf_enrich_count'; const firedKey = 'lf_ten_enrich_fired';
     const n = parseInt(localStorage.getItem(key) || '0') + 1;
@@ -3425,13 +3458,30 @@ function quickStart(inputType,outputType,exampleData,employeeCount,autoRun,examp
     },60);
     try{posthog.capture('quickstart_used',{input_type:inputType,output_type:outputType});}catch(e){}
 }
-function updateLowCreditsWarning(credits){
-    const bar=document.getElementById('lowCreditsBar');if(!bar)return;
-    if(credits!==null&&credits<=10&&credits>=0){bar.style.display='block';bar.classList.add('urgent');bar.innerHTML='\ud83d\udd34 Only '+credits+' credit'+(credits===1?'':'s')+' remaining \u2014 <a onclick="handleAddCredits()">add credits now</a> or enrichments will stop.';}
-    else if(credits!==null&&credits<=100){bar.style.display='block';bar.classList.remove('urgent');bar.innerHTML='\u26a0\ufe0f Running low \u2014 '+credits+' credits left. <a onclick="handleAddCredits()">Add more now</a>.';}
-    else{bar.style.display='none';bar.innerHTML='';}
+    
+function updateZeroCreditsState(credits){
+    const inline = document.getElementById('zeroCreditsInline');
+    const submitBtn = document.querySelector('#singleSearch button[type="submit"]');
+    const isZero = credits !== null && credits <= 0;
+    if (inline) inline.classList.toggle('hidden', !isZero);
+    if (submitBtn) submitBtn.style.display = isZero ? 'none' : '';
 }
 
+function updateLowCreditsWarning(credits){
+    const bar=document.getElementById('lowCreditsBar');if(!bar)return;
+    if (credits === null || credits <= 0) { bar.style.display='none'; bar.innerHTML=''; return; }
+    const threshold = startingCredits ? startingCredits * 0.2 : 20;
+    if (credits <= threshold) {
+        bar.style.display='block';
+        bar.classList.remove('urgent');
+        const rounded = Math.round(credits*10)/10;
+        bar.innerHTML = `You have ${rounded} credit${rounded===1?'':'s'} left \u2014 <a onclick="handleAddCredits()">upgrade to keep going</a>`;
+    } else {
+        bar.style.display='none';
+        bar.innerHTML='';
+    }
+}
+    
 function showSuccessToast(message){
     let el=document.getElementById('successToast');
     if(!el){el=document.createElement('div');el.id='successToast';el.className='success-toast';document.body.appendChild(el);}
