@@ -1671,7 +1671,8 @@ function setBilling(type) {
     renderPlansGrid();
     try { posthog.capture('billing_toggle', { selected: type }); } catch(e) {}
 }
-function showPricingModal(trigger) {
+    
+function showPricingModal(trigger, extra) {
     try { window.uetq = window.uetq || []; window.uetq.push('event', 'begin_checkout', {}); } catch(e) {}
     document.getElementById('paygBtn').classList.toggle('active', billingMode === 'payg');
     document.getElementById('monthlyBtn').classList.toggle('active', billingMode === 'monthly');
@@ -1686,6 +1687,10 @@ function showPricingModal(trigger) {
     } else if (trigger === 'credits_exhausted') {
         if (modalTitle) modalTitle.textContent = "You're out of credits";
         if (modalSubtitle) modalSubtitle.textContent = 'Pick a plan to keep enriching — takes 30 seconds.';
+    } else if (trigger === 'export_gated') {
+        const n = (extra && extra.totalRows) || bulkResults.length;
+        if (modalTitle) modalTitle.textContent = "You've previewed 5 results";
+        if (modalSubtitle) modalSubtitle.textContent = `Upgrade to export all ${n.toLocaleString()} rows`;
     } else {
         if (modalTitle) modalTitle.textContent = 'Choose Your Plan';
         if (modalSubtitle) modalSubtitle.textContent = 'Cancel anytime · No questions asked';
@@ -3289,32 +3294,39 @@ function checkEnrichmentMilestone() {
 
 // --- Export gate helper ---
 
-
 function updateExportGateNotice(){
+    // The gate is now only ever surfaced reactively, at the moment a free user
+    // explicitly tries to export beyond the 5-row preview (see
+    // ensureSubscribedForExport). We no longer warn about it up front.
     const notice = document.getElementById('exportGateNotice');
     if (!notice) return;
-    // Once we've confirmed the user IS subscribed, hide the notice entirely.
-    notice.style.display = isExistingSubscriber === true ? 'none' : 'flex';
+    notice.style.display = 'none';
 }
 
     
+const EXPORT_PREVIEW_ROW_LIMIT = 5;
+
 async function ensureSubscribedForExport() {
-    // If we haven't resolved subscription status yet, check once before deciding.
-    // (isExistingSubscriber is normally set on page load from UPGRADE_INTENT_WORKER.)
-   if (isExistingSubscriber === true) {
-        return true; // paid user — export proceeds exactly as before
+    // Paid users always get the full export, exactly as before.
+    if (isExistingSubscriber === true) {
+        return true;
     }
 
-    // Free user: don't block outright — give them a real, working 5-row preview
-    // so the export isn't a total dead end, then gate the rest.
-    const resultCount = bulkResults.filter(r => r.status === 'Found').length || bulkResults.length;
-    const PREVIEW_ROW_LIMIT = 5;
+    const totalRows = bulkResults.length;
 
+    // Free users can export up to the preview limit with zero friction —
+    // no modal, no alert, nothing blocking. This is the "taste the value" path.
+    if (totalRows <= EXPORT_PREVIEW_ROW_LIMIT) {
+        return true;
+    }
+
+    // Only now — once they've explicitly tried to export more than the free
+    // preview — do we show the gate.
     try {
         posthog.capture('bulk_results_gated_shown', {
             total_rows: csvData.length,
             processed_rows: bulkResults.length,
-            locked_rows: Math.max(0, bulkResults.length - PREVIEW_ROW_LIMIT),
+            locked_rows: Math.max(0, totalRows - EXPORT_PREVIEW_ROW_LIMIT),
             credits_remaining: currentCredits,
             input_type: currentInputType,
             output_type: currentOutputType,
@@ -3322,16 +3334,10 @@ async function ensureSubscribedForExport() {
         });
     } catch (e) {}
 
-    showExportUpgradeMessage(resultCount, PREVIEW_ROW_LIMIT);
-    showPricingModal('export_gated');
-    downloadResults(true); // proceed with a preview-only export (see downloadResults change below)
+    showPricingModal('export_gated', { totalRows });
+    downloadResults(true); // hand them the free 5-row preview export immediately
 
     return false;
-}
-
-function showExportUpgradeMessage(resultCount, previewLimit) {
-    const shown = Math.min(resultCount, previewLimit || resultCount);
-    showAlert(`Exporting all ${resultCount} results requires a subscription. Downloading a free preview of your first ${shown} result${shown === 1 ? '' : 's'} now.`, 'warning');
 }
     
 async function handleAddCredits() {
