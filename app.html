@@ -2217,6 +2217,26 @@ function lipEsc(str){ if(str===undefined||str===null) return ''; return String(s
 function lipEmpty(v){ return v===undefined||v===null||v===''||v==='Not specified'||v==='Not found'; }
 function lipInitials(name){ if(lipEmpty(name)) return '?'; return name.trim().split(/\s+/).slice(0,2).map(p=>p[0].toUpperCase()).join(''); }
 
+function csvFormatEducation(edu) {
+    if (!Array.isArray(edu) || edu.length === 0) return '';
+    return edu.map(e => [e.school, e.degree, e.fieldOfStudy].filter(Boolean).join(' - ')).join(' | ');
+}
+function csvFormatExperiences(exp) {
+    if (!Array.isArray(exp) || exp.length === 0) return '';
+    return exp.map(e => {
+        const dates = [e.jobStartedOn, e.jobEndedOn || (e.jobStillWorking ? 'Present' : '')].filter(Boolean).join(' to ');
+        return [e.title, e.companyName, dates].filter(Boolean).join(' @ ');
+    }).join(' | ');
+}
+function csvFormatSkills(skills) {
+    if (!Array.isArray(skills) || skills.length === 0) return '';
+    return skills.map(s => s.name || s).join(', ');
+}
+function csvCurrentExp(exp) {
+    if (!Array.isArray(exp) || exp.length === 0) return null;
+    return exp.find(e => e.jobStillWorking) || exp[0];
+}
+    
 function buildLinkedInPersonCardHTML(d, inputUrl){
     const hasPhoto = !lipEmpty(d.profilePic);
     const hasBanner = !lipEmpty(d.backgroundPic);
@@ -3147,8 +3167,12 @@ function updateBulkResultsTable(){
         bulkResults.forEach(pr=>{if(pr.reactions&&Array.isArray(pr.reactions)){pr.reactions.forEach(r=>{const p=parseReactionTitle(r.title);const ud=r.link&&r.link.length>50?r.link.substring(0,50)+'...':(r.link||'N/A');html+=`<tr><td>${p.name}</td><td>${p.jobInfo||'Not specified'}</td><td>${r.snippet||'Not specified'}</td><td>${r.link?`<a href="${r.link}" target="_blank" style="color:var(--primary);text-decoration:none;">${ud}</a>`:'Not specified'}</td></tr>`;});}});
         html+='</tbody></table>';
     } else if(currentInputType==='linkedin_profile'&&currentOutputType==='linkedin_info'){
-        html=`<table class="results-table"><thead><tr><th>LinkedIn URL</th><th>Name</th><th>Job Title</th><th>Company</th><th>Location</th><th>Email</th><th>Mobile</th><th>Status</th></tr></thead><tbody>`;
-        bulkResults.forEach(row=>{const d=row.rawData||{};const ud=row.inputData.length>30?row.inputData.substring(0,30)+'...':row.inputData;html+=`<tr><td><a href="${row.inputData}" target="_blank" style="color:var(--primary);text-decoration:none;">${ud}</a></td><td>${d.name||'Not found'}</td><td>${d.jobTitle||'Not found'}</td><td>${d.company||'Not found'}</td><td>${d.location||'Not found'}</td><td>${d.email||'Not found'}</td><td>${d.mobileNumber||'Not found'}</td><td><span class="status-badge ${sc(row.status)}">${row.status}</span></td></tr>`;});
+        html=`<table class="results-table"><thead><tr><th>LinkedIn URL</th><th>Name</th><th>Title</th><th>Company</th><th>Location</th><th>Email</th><th>Mobile</th><th>Status</th></tr></thead><tbody>`;
+        bulkResults.forEach(row=>{
+            const d=row.rawData||{}; const cur=csvCurrentExp(d.experiences);
+            const ud=row.inputData.length>30?row.inputData.substring(0,30)+'...':row.inputData;
+            html+=`<tr><td><a href="${row.inputData}" target="_blank" style="color:var(--primary);text-decoration:none;">${ud}</a></td><td>${d.name||'Not found'}</td><td>${(cur&&cur.title)||d.jobTitle||'Not found'}</td><td>${(cur&&cur.companyName)||'Not found'}</td><td>${d.location||'Not found'}</td><td>${d.email||'Not found'}</td><td>${d.mobileNumber||'Not found'}</td><td><span class="status-badge ${sc(row.status)}">${row.status}</span></td></tr>`;
+        });
         html+='</tbody></table>';
     } else if(currentInputType==='linkedin_company'&&currentOutputType==='linkedin_info'){
         html=`<table class="results-table"><thead><tr><th>LinkedIn URL</th><th>Company Name</th><th>Industry</th><th>Employees</th><th>Followers</th><th>City</th><th>Country</th><th>Founded</th><th>Company Email</th><th>Company Phone</th><th>Website</th></tr></thead><tbody>`;
@@ -3182,8 +3206,24 @@ async function downloadResults(isPreviewOnly){
     const c=dataConfigurations[currentInputType];let csv='';
     if(currentOutputType==='employee_count'){csv=`${c.label.replace('Enter ','')},Employee Count,Status\n`;bulkResults.forEach(r=>{csv+=`"${r.inputData}","${r.employeeCount||'Not found'}","${r.status==='Processing'?'Not found':r.status}"\n`;});}
     else if(currentInputType==='linkedin_post'&&currentOutputType==='reactions'){csv='Name,Job Title,Profile Info,LinkedIn URL\n';bulkResults.forEach(pr=>{if(pr.reactions&&Array.isArray(pr.reactions)){pr.reactions.forEach(r=>{const p=parseReactionTitle(r.title);const esc=(s)=>(!s||s==='Not found'||s==='Not specified')?s:`"${s.toString().replace(/"/g,'""')}"`;csv+=[esc(p.name),esc(p.jobInfo||'Not specified'),esc(r.snippet||'Not specified'),esc(r.link||'Not specified')].join(',')+'\n';});}});}
-    else if(currentInputType==='linkedin_profile'&&currentOutputType==='linkedin_info'){csv='LinkedIn URL,Name,Job Title,Company,Location,Industry,Website,Email,Education,Headline,Status\n';bulkResults.forEach(r=>{const d=r.rawData||{};const esc=(s)=>(!s||s==='Not found'||s==='Not specified')?(s||''):`"${s.toString().replace(/"/g,'""')}"`;csv+=[esc(r.inputData),esc(d.name),esc(d.jobTitle),esc(d.company),esc(d.location),esc(d.industry),esc(d.website),esc(d.email),esc(d.education),esc(d.headline),r.status].join(',')+'\n';});}
-    else if(currentInputType==='linkedin_company'&&currentOutputType==='linkedin_info'){csv='LinkedIn URL,Company Name,Industry,Employees,Followers,City,Country,Founded,Website,Company Email,Company Phone,Description\n';bulkResults.forEach(r=>{const d=r.rawData||{};const esc=(s)=>(!s||s==='Not found'||s==='Not specified')?(s||''):`"${s.toString().replace(/"/g,'""')}"`;const followers=d.followerCount?Number(String(d.followerCount).replace(/,/g,'')).toLocaleString():'';const empSize=d.company_size!=null&&d.company_size!==''&&d.company_size!==0?String(d.company_size):'';csv+=[esc(r.inputData),esc(d.name),esc(d.industry),esc(empSize),esc(followers),esc(d.city),esc(d.country),esc(d.foundedOn),esc(d.website),esc(d.company_email),esc(d.company_phone),esc(d.company_description)].join(',')+'\n';});}
+    else if(currentInputType==='linkedin_profile'&&currentOutputType==='linkedin_info'){
+    csv='LinkedIn URL,Name,Headline,Current Title,Current Company,Location,Country,Industry,Connections,Followers,Website,Email,Mobile,About,Education,Experience,Skills,Status\n';
+    bulkResults.forEach(r=>{
+        const d=r.rawData||{};
+        const cur=csvCurrentExp(d.experiences);
+        const esc=(s)=>(!s||s==='Not found'||s==='Not specified')?'':`"${s.toString().replace(/"/g,'""')}"`;
+        csv+=[
+            esc(r.inputData), esc(d.name), esc(d.headline),
+            esc((cur&&cur.title)||d.jobTitle), esc(cur&&cur.companyName),
+            esc(d.location), esc(d.country), esc(d.industry),
+            esc(d.connections), esc(d.followers),
+            esc(d.website), esc(d.email), esc(d.mobileNumber), esc(d.about),
+            esc(csvFormatEducation(d.education)), esc(csvFormatExperiences(d.experiences)), esc(csvFormatSkills(d.skills)),
+            r.status
+        ].join(',')+'\n';
+    });
+}
+    else if(currentInputType==='linkedin_company'&&currentOutputType==='linkedin_info'){csv='LinkedIn URL,Company Name,Industry,Employees,Followers,City,Country,Founded,Website,Company Email,Company Phone,Description\n';bulkResults.forEach(r=>{const d=r.rawData||{};const esc=(s)=>(!s||s==='Not found'||s==='Not specified')?(s||''):`"${s.toString().replace(/"/g,'""')}"`;const followers=d.followerCount?Number(String(d.followerCount).replace(/,/g,'')).toLocaleString():'';const empSize=d.company_size!=null&&d.company_size!==''&&d.company_size!==0?String(d.company_size):'';csv+=[esc(r.inputData),esc(d.name),esc(d.industry),esc(empSize),esc(followers),esc(d.city),esc(d.country),esc(cipFounded(d.foundedOn)),esc(d.website),esc(d.company_email),esc(d.company_phone),esc(d.company_description)].join(',')+'\n';});}
     else if(currentOutputType==='employees'){
     csv='Input,Name,Job Title,Seniority,Headline,Department,Industry,Email,Mobile,Twitter,City,State,Country,LinkedIn URL,Company,Company Website,Company Phone,Company Size,Company City,Company State,Company Country,Company LinkedIn URL\n';
     bulkResults.forEach(r=>{
