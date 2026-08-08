@@ -1475,10 +1475,50 @@ function fireGoogleAdsConversion(event) {
     }
 }
 
+function backupAuthToken() {
+    if (userToken) localStorage.setItem('lf_token_backup', userToken);
+}
+function restoreAuthSessionIfNeeded() {
+    const current = localStorage.getItem('linkFinderToken');
+    const backup = localStorage.getItem('lf_token_backup');
+    if (backup && current !== backup) {
+        localStorage.setItem('linkFinderToken', backup);
+        userToken = backup;
+        console.warn('Auth token was modified during checkout — restored from backup.');
+        try { posthog.capture('auth_token_restored_after_checkout'); } catch(e) {}
+    }
+}
+
+function showCheckoutError(message, opts = {}) {
+    let el = document.getElementById('checkoutErrorToast');
+    if (!el) {
+        el = document.createElement('div');
+        el.id = 'checkoutErrorToast';
+        el.style.cssText = 'position:fixed;top:1.25rem;left:50%;transform:translateX(-50%);background:#111827;color:white;padding:1rem 1.25rem;border-radius:10px;z-index:10060;max-width:420px;width:calc(100% - 2rem);box-shadow:0 10px 30px rgba(0,0,0,0.3);font-size:0.875rem;line-height:1.5;';
+        document.body.appendChild(el);
+    }
+    const retryBtn = opts.onRetry ? `<button id="checkoutErrorRetryBtn" style="margin-top:0.6rem;margin-right:0.5rem;background:#2563eb;color:white;border:none;padding:0.45rem 0.9rem;border-radius:6px;font-weight:600;cursor:pointer;font-family:inherit;">Retry</button>` : '';
+    const fallbackLink = opts.checkoutUrl ? `<a href="${opts.checkoutUrl}" target="_blank" rel="noopener" style="color:#93c5fd;font-weight:600;margin-top:0.6rem;display:inline-block;">Or open payment page directly &rarr;</a>` : '';
+    el.innerHTML = `<div style="display:flex;gap:0.6rem;align-items:flex-start;">
+        <i class="fas fa-exclamation-triangle" style="color:#f59e0b;margin-top:0.15rem;"></i>
+        <div><div>${message}</div><div>${retryBtn}${fallbackLink}</div></div>
+        <button onclick="document.getElementById('checkoutErrorToast').remove()" style="background:none;border:none;color:#9ca3af;cursor:pointer;font-size:1.1rem;margin-left:auto;">&times;</button>
+    </div>`;
+    if (opts.onRetry) document.getElementById('checkoutErrorRetryBtn').onclick = () => { el.remove(); opts.onRetry(); };
+    try {
+        fetch('https://linkfinder-request-feature.hamoureliasse.workers.dev/', {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({ type:'checkout_error_log', message, user_token: userToken||'Anonymous', timestamp: new Date().toISOString(), page: window.location.href })
+        }).catch(()=>{});
+    } catch(e) {}
+}
+
 function handleDodoCheckoutEvent(event) {
     if (!event || !event.event_type) return;
     switch (event.event_type) {
         case 'checkout.opened':
+            window.__lfCheckout = window.__lfCheckout || {};
+            window.__lfCheckout.overlayOpened = true;
             try { posthog.capture('checkout_overlay_opened'); } catch(e) {}
             break;
         case 'checkout.payment_page_opened':
@@ -1486,6 +1526,8 @@ function handleDodoCheckoutEvent(event) {
             break;
         case 'checkout.closed':
             try { posthog.capture('checkout_overlay_closed'); } catch(e) {}
+            restoreAuthSessionIfNeeded();
+            fetchCredits();
             break;
         case 'checkout.redirect':
             // Only means "about to redirect" — NOT confirmed payment.
@@ -1494,7 +1536,7 @@ function handleDodoCheckoutEvent(event) {
             break;
         case 'checkout.error':
             console.error('Dodo checkout error:', event.data?.message);
-            showAlert('Payment error: ' + (event.data?.message || 'Please try again.'), 'error');
+            showCheckoutError('Payment error: ' + (event.data?.message || 'Please try again.'));
             try { posthog.capture('checkout_overlay_error', { message: event.data?.message }); } catch(e) {}
             break;
         case 'checkout.link_expired':
@@ -1553,10 +1595,12 @@ function handleDodoReturnStatus() {
 }
 
 async function proceedToCheckoutDirect(index, btnEl) {
+    if (!userToken) { showAlert('Please log in to continue to checkout.', 'error'); return; }
     const plan = plans[index];
     const planKey = plan.key + (billingMode === 'annual' ? '_annual' : '_monthly');
 const conversionValue = billingMode === 'annual' ? Math.round(plan.monthlyPrice * 0.6 * 12) : plan.monthlyPrice;
-    window.__lfCheckout = { value: conversionValue, currency: 'EUR', plan: plan.name, fired: false };
+    window.__lfCheckout = { value: conversionValue, currency: 'EUR', plan: plan.name, fired: false, overlayOpened: false };
+    backupAuthToken();
     const originalText = btnEl ? btnEl.textContent : '';
     if (btnEl) { btnEl.textContent = 'Opening…'; btnEl.disabled = true; }
 
@@ -1606,9 +1650,9 @@ const conversionValue = billingMode === 'annual' ? Math.round(plan.monthlyPrice 
             try { posthog.capture('checkout_redirect_fallback_used', { plan: planKey }); } catch(e) {}
             window.location.href = data.checkout_url;
         }
-    } catch (e) {
+    } } catch (e) {
         console.error('Checkout error:', e);
-        showAlert('Could not open checkout. Please try again or email support@linkfinderai.com.', 'error');
+        showCheckoutError('We could not open checkout.', { onRetry: () => proceedToCheckoutDirect(index, btnEl) });
         if (btnEl) {
             btnEl.disabled = false;
             btnEl.textContent = originalText;
@@ -1617,6 +1661,7 @@ const conversionValue = billingMode === 'annual' ? Math.round(plan.monthlyPrice 
     }
 }
 async function proceedToPaygCheckout(index, btnEl) {
+    if (!userToken) { showAlert('Please log in to continue to checkout.', 'error'); return; }
     const packs = [
         { key: 'payg_small',  name: 'Pay As You Go — Small',  price: 25  },
         { key: 'payg_medium', name: 'Pay As You Go — Medium', price: 75  },
@@ -1624,7 +1669,8 @@ async function proceedToPaygCheckout(index, btnEl) {
     ];
     const pack = packs[index];
 
-    window.__lfCheckout = { value: pack.price, currency: 'EUR', plan: pack.name, fired: false };
+    window.__lfCheckout = { value: pack.price, currency: 'EUR', plan: pack.name, fired: false, overlayOpened: false };
+    backupAuthToken();
     const originalText = btnEl ? btnEl.textContent : '';
     if (btnEl) { btnEl.textContent = 'Opening…'; btnEl.disabled = true; }
 
@@ -1657,13 +1703,21 @@ async function proceedToPaygCheckout(index, btnEl) {
        if (window.DodoPaymentsCheckout?.DodoPayments?.Checkout) {
             window.DodoPaymentsCheckout.DodoPayments.Checkout.open({ checkoutUrl: data.checkout_url });
             if (btnEl) { btnEl.disabled = false; btnEl.textContent = originalText; }
+            setTimeout(() => {
+                if (!window.__lfCheckout?.overlayOpened) {
+                    showCheckoutError('Checkout is taking longer than expected to open.', {
+                        checkoutUrl: data.checkout_url,
+                        onRetry: () => proceedToPaygCheckout(index, btnEl)
+                    });
+                }
+            }, 5000);
         } else {
             try { posthog.capture('checkout_redirect_fallback_used', { plan: pack.key }); } catch(e) {}
             window.location.href = data.checkout_url;
         }
     } catch (e) {
         console.error('Checkout error:', e);
-        showAlert('Could not open checkout. Please try again or email support@linkfinderai.com.', 'error');
+        showCheckoutError('We could not open checkout.', { onRetry: () => proceedToPaygCheckout(index, btnEl) });
         if (btnEl) { btnEl.disabled = false; btnEl.textContent = originalText; }
         try { posthog.capture('checkout_error', { message: e.message, plan: pack.key }); } catch(_) {}
     }
@@ -2109,6 +2163,7 @@ async function enrichData(event) {
     document.getElementById('creditsCount').textContent = '0';
     updateLowCreditsWarning(0);
     updateZeroCreditsState(0);
+    showAlert("You're out of credits. Your inputs are still here — upgrade below to keep going.", 'warning');
     return; 
 }
         if (response.ok&&data&&(data.result||data.name)) {
@@ -2819,8 +2874,13 @@ function checkAuth(){
     if (refParam) {
         document.cookie = `lf_ref=${refParam}; max-age=${90*86400}; path=/; domain=.linkfinderai.com`;
     }
-    const p=new URLSearchParams(window.location.search);
-    if(p.get('error')==='server_error'||p.get('error_description')){window.location.href=withUtms('https://linkfinderai.com/?auth_error=1');return;}
+   const p=new URLSearchParams(window.location.search);
+    const hasExistingToken = !!localStorage.getItem('linkFinderToken');
+    const looksLikeDodoReturn = p.has('status') || p.has('payment_id') || p.has('subscription_id');
+    if(!hasExistingToken && !looksLikeDodoReturn && (p.get('error')==='server_error'||p.get('error_description'))){
+        window.location.href=withUtms('https://linkfinderai.com/?auth_error=1');
+        return;
+    }
     let token=p.get('token');
     if(!token){token=localStorage.getItem('linkFinderToken');}
     else{localStorage.setItem('linkFinderToken',token);}
