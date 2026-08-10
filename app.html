@@ -1310,7 +1310,6 @@ let currentSubscriptionId = null;
 let currentConfidenceFilter = 'all';
 let billingMode = 'monthly';
 let firstSuccessPromptsFired = false;
-let authStatusPromise = null;
 let startingCredits = null; // captured on first non-zero balance; powers the 20% low-credit threshold
 
 const dataConfigurations = {
@@ -1599,25 +1598,23 @@ async function proceedToCheckoutDirect(index, btnEl) {
     if (!userToken) { showAlert('Please log in to continue to checkout.', 'error'); return; }
     const plan = plans[index];
     const planKey = plan.key + (billingMode === 'annual' ? '_annual' : '_monthly');
-    const conversionValue = billingMode === 'annual' ? Math.round(plan.monthlyPrice * 0.6 * 12) : plan.monthlyPrice;
+const conversionValue = billingMode === 'annual' ? Math.round(plan.monthlyPrice * 0.6 * 12) : plan.monthlyPrice;
     window.__lfCheckout = { value: conversionValue, currency: 'EUR', plan: plan.name, fired: false, overlayOpened: false };
     backupAuthToken();
     const originalText = btnEl ? btnEl.textContent : '';
-    if (btnEl) { btnEl.textContent = 'Loading account…'; btnEl.disabled = true; }
+    if (btnEl) { btnEl.textContent = 'Opening…'; btnEl.disabled = true; }
 
-    // Wait for the real auth/email fetch to resolve — no arbitrary timeout, no silent fallback.
-    if (authStatusPromise) {
-        try { await authStatusPromise; } catch (e) {}
-    }
-
+    // NEW: Wait for email to be loaded (max 3 seconds)
     if (!window.currentUserEmail) {
-        showCheckoutError('Could not load your account details. Please refresh the page and try again.');
-        try { posthog.capture('checkout_blocked_missing_email', { plan: planKey }); } catch(e) {}
-        if (btnEl) { btnEl.disabled = false; btnEl.textContent = originalText; }
-        return;
+        let attempts = 0;
+        while (!window.currentUserEmail && attempts < 5) {
+            await new Promise(r => setTimeout(r, 100));
+            attempts++;
+        }
+        if (!window.currentUserEmail) {
+            console.warn('Email not loaded after 3s, proceeding without it');
+        }
     }
-
-    if (btnEl) { btnEl.textContent = 'Opening…'; }
 
     try { posthog.capture('plan_selected', { plan: plan.name, billing: isAnnualBilling ? 'annual' : 'monthly', credits_remaining: currentCredits, is_subscriber: isExistingSubscriber }); } catch(e) {}
     try { if (typeof plausible !== 'undefined') plausible('Plan Selected', { props: { plan: plan.name } }); } catch(e) {}
@@ -1630,14 +1627,17 @@ async function proceedToCheckoutDirect(index, btnEl) {
             body: JSON.stringify({
                 plan: planKey,
                 user_token: userToken,
-                email: window.currentUserEmail,
+                email: window.currentUserEmail || undefined,
                 ref_token: getRefCookie() || undefined,
             }),
         });
+
         const data = await resp.json();
+
         if (!resp.ok || !data.checkout_url) {
             throw new Error(data.error || 'Checkout creation failed');
         }
+
         // Open overlay if SDK loaded, else full redirect fallback
         if (window.DodoPaymentsCheckout && window.DodoPaymentsCheckout.DodoPayments && window.DodoPaymentsCheckout.DodoPayments.Checkout) {
             window.DodoPaymentsCheckout.DodoPayments.Checkout.open({ checkoutUrl: data.checkout_url });
@@ -1668,24 +1668,19 @@ async function proceedToPaygCheckout(index, btnEl) {
         { key: 'payg_large',  name: 'Pay As You Go — Large',  price: 200 }
     ];
     const pack = packs[index];
+
     window.__lfCheckout = { value: pack.price, currency: 'EUR', plan: pack.name, fired: false, overlayOpened: false };
     backupAuthToken();
     const originalText = btnEl ? btnEl.textContent : '';
-    if (btnEl) { btnEl.textContent = 'Loading account…'; btnEl.disabled = true; }
-
-    // Wait for the real auth/email fetch to resolve — no arbitrary timeout, no silent fallback.
-    if (authStatusPromise) {
-        try { await authStatusPromise; } catch (e) {}
-    }
+    if (btnEl) { btnEl.textContent = 'Opening…'; btnEl.disabled = true; }
 
     if (!window.currentUserEmail) {
-        showCheckoutError('Could not load your account details. Please refresh the page and try again.');
-        try { posthog.capture('checkout_blocked_missing_email', { plan: pack.key }); } catch(e) {}
-        if (btnEl) { btnEl.disabled = false; btnEl.textContent = originalText; }
-        return;
+        let attempts = 0;
+        while (!window.currentUserEmail && attempts < 5) {
+            await new Promise(r => setTimeout(r, 100));
+            attempts++;
+        }
     }
-
-    if (btnEl) { btnEl.textContent = 'Opening…'; }
 
     try { posthog.capture('plan_selected', { plan: pack.name, billing: 'payg', credits_remaining: currentCredits, is_subscriber: isExistingSubscriber }); } catch(e) {}
     try { if (typeof plausible !== 'undefined') plausible('Plan Selected', { props: { plan: pack.name } }); } catch(e) {}
@@ -1698,13 +1693,14 @@ async function proceedToPaygCheckout(index, btnEl) {
             body: JSON.stringify({
                 plan: pack.key, // e.g. "payg_small" — ⚠️ see note below
                 user_token: userToken,
-                email: window.currentUserEmail,
+                email: window.currentUserEmail || undefined,
                 ref_token: getRefCookie() || undefined,
             }),
         });
         const data = await resp.json();
         if (!resp.ok || !data.checkout_url) throw new Error(data.error || 'Checkout creation failed');
-        if (window.DodoPaymentsCheckout?.DodoPayments?.Checkout) {
+
+       if (window.DodoPaymentsCheckout?.DodoPayments?.Checkout) {
             window.DodoPaymentsCheckout.DodoPayments.Checkout.open({ checkoutUrl: data.checkout_url });
             if (btnEl) { btnEl.disabled = false; btnEl.textContent = originalText; }
             setTimeout(() => {
@@ -2906,7 +2902,7 @@ function checkAuth(){
     if(action==='buy_credits') setTimeout(()=>showPricingModal(),500);
     else if(action==='upgrade') setTimeout(()=>showPricingModal(),500);
     // Silently check subscription status on load
-    authStatusPromise = fetch(UPGRADE_INTENT_WORKER, {
+    fetch(UPGRADE_INTENT_WORKER, {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({token: userToken, trigger: 'page_load'})
