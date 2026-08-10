@@ -1360,9 +1360,26 @@ async function waitForUserEmail(maxMs = 5000, intervalMs = 150) {
 
     return null;
 }
-
 async function createCheckoutSessionViaWorker(planKey, email) {
     const requestId = crypto.randomUUID();
+
+    // Build payload first so we can conditionally include email
+    const payload = {
+        plan: planKey,
+        user_token: userToken,
+        ref_token: getRefCookie() || undefined,
+        force_new_session: true,
+        request_id: requestId,
+        requested_at: new Date().toISOString()
+    };
+
+    // Only send email if it's a non-empty valid string
+    if (typeof email === 'string') {
+        const normalizedEmail = email.trim().toLowerCase();
+        if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+            payload.email = normalizedEmail;
+        }
+    }
 
     const resp = await fetch(DODO_CHECKOUT_WORKER, {
         method: 'POST',
@@ -1371,15 +1388,7 @@ async function createCheckoutSessionViaWorker(planKey, email) {
             'Cache-Control': 'no-store'
         },
         cache: 'no-store',
-        body: JSON.stringify({
-            plan: planKey,
-            user_token: userToken,
-            email,
-            ref_token: getRefCookie() || undefined,
-            force_new_session: true,
-            request_id: requestId,
-            requested_at: new Date().toISOString()
-        }),
+        body: JSON.stringify(payload),
     });
 
     const data = await resp.json().catch(() => ({}));
@@ -1387,11 +1396,12 @@ async function createCheckoutSessionViaWorker(planKey, email) {
     if (!resp.ok) {
         throw new Error(data?.error || `Checkout session failed (${resp.status})`);
     }
+
     if (!data.checkout_url || !validateCheckoutUrl(data.checkout_url)) {
         throw new Error('Invalid checkout_url returned by worker');
     }
 
-    // env mismatch safety (your new worker returns env)
+    // env mismatch safety (your worker should return env)
     if (data.env && data.env !== CHECKOUT_MODE) {
         throw new Error(`Env mismatch: SDK=${CHECKOUT_MODE}, worker=${data.env}`);
     }
@@ -1672,7 +1682,11 @@ async function launchCheckout({ planKey, analyticsPlanName, value, billingLabel,
 
     try {
         const email = await waitForUserEmail(5000, 150);
-        if (!email) throw new Error('Could not load account email');
+if (!email) {
+  try { posthog.capture('checkout_email_missing_proceeding'); } catch (e) {}
+}
+
+const data = await createCheckoutSessionViaWorker(planKey, email || undefined);
 
         window.__lfCheckout = { value, currency: 'USD', plan: analyticsPlanName, fired: false, overlayOpened: false };
         backupAuthToken();
