@@ -20,7 +20,8 @@
 <link rel="icon" href="https://i.ibb.co/jPjX9SSp/Screen-Shot-2025-03-28-at-8-16-15-PM.png">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-<script src="https://cdn.jsdelivr.net/npm/dodopayments-checkout@latest/dist/index.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dodopayments-checkout@1.9.8/dist/index.js"></script>
+
 <link href="https://cdn.jsdelivr.net/npm/@n8n/chat/dist/style.css" rel="stylesheet"/>
 <style>
     :root {
@@ -808,7 +809,7 @@
     
 <div id="annualBanner" style="display:none;background:linear-gradient(135deg,#f0fdf4,#dcfce7);border-bottom:1px solid #bbf7d0;padding:0.5rem 1rem;text-align:center;font-size:0.8rem;color:#166534;font-weight:500;">
   💡 You're on monthly — <strong>switch to annual and save 40%</strong> ($240/year) 
-  <button onclick="isAnnualBilling=true;showPricingModal();" style="background:#16a34a;color:white;border:none;padding:0.2rem 0.75rem;border-radius:4px;font-size:0.75rem;font-weight:600;cursor:pointer;margin-left:0.5rem;font-family:inherit;">Switch now</button>
+  <button onclick="setBilling('annual');showPricingModal();" style="background:#16a34a;color:white;border:none;padding:0.2rem 0.75rem;border-radius:4px;font-size:0.75rem;font-weight:600;cursor:pointer;margin-left:0.5rem;font-family:inherit;">Switch now</button>
   <button onclick="this.parentElement.style.display='none';localStorage.setItem('annual_banner_dismissed','1')" style="background:none;border:none;color:#166534;cursor:pointer;margin-left:0.5rem;font-size:1rem;">×</button>
 </div>
 
@@ -1312,6 +1313,93 @@ let billingMode = 'monthly';
 let firstSuccessPromptsFired = false;
 let startingCredits = null; // captured on first non-zero balance; powers the 20% low-credit threshold
 
+// ===== Bulletproof Checkout Controls =====
+const CHECKOUT_MODE = 'live'; // MUST match worker env in production
+const CHECKOUT_OPEN_TIMEOUT_MS = 5000;
+const CHECKOUT_PAGE_TIMEOUT_MS = 12000;
+
+let checkoutInFlight = false;
+let checkoutOverlayOpened = false;
+let checkoutPaymentPageOpened = false;
+let lastCheckoutUrl = null;
+let lastCheckoutAttemptId = null;
+
+function validateCheckoutUrl(url) {
+    try {
+        const u = new URL(url);
+        return u.protocol === 'https:' && u.hostname.includes('dodopayments.com');
+    } catch {
+        return false;
+    }
+}
+
+async function waitForUserEmail(maxMs = 5000, intervalMs = 150) {
+    const start = Date.now();
+
+    while (Date.now() - start < maxMs) {
+        if (window.currentUserEmail && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(window.currentUserEmail)) {
+            return window.currentUserEmail.trim().toLowerCase();
+        }
+        await new Promise(r => setTimeout(r, intervalMs));
+    }
+
+    // one fallback pull
+    try {
+        const r = await fetch(UPGRADE_INTENT_WORKER, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+            cache: 'no-store',
+            body: JSON.stringify({ token: userToken, trigger: 'checkout_prefetch_email' })
+        });
+        const d = await r.json();
+        if (d?.email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d.email)) {
+            window.currentUserEmail = d.email.trim().toLowerCase();
+            return window.currentUserEmail;
+        }
+    } catch (_) {}
+
+    return null;
+}
+
+async function createCheckoutSessionViaWorker(planKey, email) {
+    const requestId = crypto.randomUUID();
+
+    const resp = await fetch(DODO_CHECKOUT_WORKER, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Cache-Control': 'no-store'
+        },
+        cache: 'no-store',
+        body: JSON.stringify({
+            plan: planKey,
+            user_token: userToken,
+            email,
+            ref_token: getRefCookie() || undefined,
+            force_new_session: true,
+            request_id: requestId,
+            requested_at: new Date().toISOString()
+        }),
+    });
+
+    const data = await resp.json().catch(() => ({}));
+
+    if (!resp.ok) {
+        throw new Error(data?.error || `Checkout session failed (${resp.status})`);
+    }
+    if (!data.checkout_url || !validateCheckoutUrl(data.checkout_url)) {
+        throw new Error('Invalid checkout_url returned by worker');
+    }
+
+    // env mismatch safety (your new worker returns env)
+    if (data.env && data.env !== CHECKOUT_MODE) {
+        throw new Error(`Env mismatch: SDK=${CHECKOUT_MODE}, worker=${data.env}`);
+    }
+
+    return { ...data, requestId };
+}
+
+
 const dataConfigurations = {
     lead_full_name: { label:"Enter Lead Full Name + Company Name", placeholder:"e.g., John Doe JP morgan, Sarah Smith Netflix, Michael Johnson Microsoft", outputs:{linkedin_url:"LinkedIn Profile URL", email:"Verified Email"} },
     company_name: { label:"Enter Company Name", placeholder:"e.g., Tesla, Apple, Microsoft", outputs:{website:"Company Website",phone:"Company Phone Number",linkedin_url:"Company LinkedIn URL",email:"Company Email"} },
@@ -1466,7 +1554,7 @@ function fireGoogleAdsConversion(event) {
         gtag('event', 'conversion', {
             send_to: GADS_SEND_TO,
             value: c.value || 1.0,
-            currency: 'EUR',
+            currency: 'USD',
             transaction_id: txnId
         });
         c.fired = true;
@@ -1515,38 +1603,132 @@ function showCheckoutError(message, opts = {}) {
 
 function handleDodoCheckoutEvent(event) {
     if (!event || !event.event_type) return;
+
     switch (event.event_type) {
         case 'checkout.opened':
-            window.__lfCheckout = window.__lfCheckout || {};
-            window.__lfCheckout.overlayOpened = true;
+            checkoutOverlayOpened = true;
             try { posthog.capture('checkout_overlay_opened'); } catch(e) {}
             break;
+
         case 'checkout.payment_page_opened':
+            checkoutPaymentPageOpened = true;
             try { posthog.capture('checkout_payment_page_opened'); } catch(e) {}
             break;
+
         case 'checkout.closed':
             try { posthog.capture('checkout_overlay_closed'); } catch(e) {}
+
+            // critical guard: overlay closed before page loaded
+            if (checkoutOverlayOpened && !checkoutPaymentPageOpened) {
+                showCheckoutError(
+                    'Checkout closed before payment page loaded.',
+                    {
+                        checkoutUrl: lastCheckoutUrl || undefined,
+                        onRetry: () => {
+                            // reopen direct link fallback
+                            if (lastCheckoutUrl) window.location.href = lastCheckoutUrl;
+                        }
+                    }
+                );
+                try { posthog.capture('checkout_closed_before_page_opened'); } catch(e) {}
+            }
+
             restoreAuthSessionIfNeeded();
             fetchCredits();
+            checkoutInFlight = false;
             break;
+
         case 'checkout.redirect':
-            // Only means "about to redirect" — NOT confirmed payment.
-            // Real success/failure is read from return_url params instead.
             try { posthog.capture('checkout_redirect_started'); } catch(e) {}
             break;
+
         case 'checkout.error':
             console.error('Dodo checkout error:', event.data?.message);
             showCheckoutError('Payment error: ' + (event.data?.message || 'Please try again.'));
             try { posthog.capture('checkout_overlay_error', { message: event.data?.message }); } catch(e) {}
+            checkoutInFlight = false;
             break;
+
         case 'checkout.link_expired':
             showAlert('Your checkout session expired. Please try again.', 'warning');
             try { posthog.capture('checkout_link_expired'); } catch(e) {}
+            checkoutInFlight = false;
             break;
     }
 }
 
+async function launchCheckout({ planKey, analyticsPlanName, value, billingLabel, btnEl }) {
+    if (!userToken) { showAlert('Please log in to continue to checkout.', 'error'); return; }
+    if (checkoutInFlight) return;
+
+    checkoutInFlight = true;
+    checkoutOverlayOpened = false;
+    checkoutPaymentPageOpened = false;
+    lastCheckoutUrl = null;
+    lastCheckoutAttemptId = crypto.randomUUID();
+
+    const originalText = btnEl ? btnEl.textContent : '';
+    if (btnEl) { btnEl.textContent = 'Opening…'; btnEl.disabled = true; }
+
+    try {
+        const email = await waitForUserEmail(5000, 150);
+        if (!email) throw new Error('Could not load account email');
+
+        window.__lfCheckout = { value, currency: 'USD', plan: analyticsPlanName, fired: false, overlayOpened: false };
+        backupAuthToken();
+
+        try { posthog.capture('plan_selected', { plan: analyticsPlanName, billing: billingLabel, credits_remaining: currentCredits, is_subscriber: isExistingSubscriber }); } catch(e) {}
+        try { if (typeof plausible !== 'undefined') plausible('Plan Selected', { props: { plan: analyticsPlanName } }); } catch(e) {}
+
+        const data = await createCheckoutSessionViaWorker(planKey, email);
+        lastCheckoutUrl = data.checkout_url;
+
+        // watchdog #1: overlay must open quickly
+        setTimeout(() => {
+            if (!checkoutOverlayOpened && checkoutInFlight) {
+                showCheckoutError('Checkout is taking too long to open.', {
+                    checkoutUrl: lastCheckoutUrl,
+                    onRetry: () => launchCheckout({ planKey, analyticsPlanName, value, billingLabel, btnEl })
+                });
+            }
+        }, CHECKOUT_OPEN_TIMEOUT_MS);
+
+        // watchdog #2: payment page must load soon
+        setTimeout(() => {
+            if (checkoutOverlayOpened && !checkoutPaymentPageOpened && checkoutInFlight) {
+                showCheckoutError('Payment page failed to load in overlay.', {
+                    checkoutUrl: lastCheckoutUrl
+                });
+                try { posthog.capture('checkout_page_load_timeout'); } catch(e) {}
+            }
+        }, CHECKOUT_PAGE_TIMEOUT_MS);
+
+        if (window.DodoPaymentsCheckout?.DodoPayments?.Checkout) {
+            window.DodoPaymentsCheckout.DodoPayments.Checkout.open({ checkoutUrl: data.checkout_url });
+        } else {
+            // hard fallback
+            window.location.href = data.checkout_url;
+        }
+
+    } catch (e) {
+        console.error('Checkout error:', e);
+        showCheckoutError(e.message || 'We could not open checkout.', {
+            onRetry: () => launchCheckout({ planKey, analyticsPlanName, value, billingLabel, btnEl }),
+            checkoutUrl: lastCheckoutUrl || undefined
+        });
+        try { posthog.capture('checkout_error', { message: e.message, plan: planKey }); } catch(_) {}
+        checkoutInFlight = false;
+    } finally {
+        if (btnEl) {
+            btnEl.disabled = false;
+            btnEl.textContent = originalText;
+        }
+    }
+}
+
+
 function handleDodoReturnStatus() {
+    checkoutInFlight = false;
     const params = new URLSearchParams(window.location.search);
     const dodoStatus = params.get('status');
     const paymentId = params.get('payment_id');
@@ -1595,73 +1777,22 @@ function handleDodoReturnStatus() {
 }
 
 async function proceedToCheckoutDirect(index, btnEl) {
-    if (!userToken) { showAlert('Please log in to continue to checkout.', 'error'); return; }
     const plan = plans[index];
     const planKey = plan.key + (billingMode === 'annual' ? '_annual' : '_monthly');
-const conversionValue = billingMode === 'annual' ? Math.round(plan.monthlyPrice * 0.6 * 12) : plan.monthlyPrice;
-    window.__lfCheckout = { value: conversionValue, currency: 'EUR', plan: plan.name, fired: false, overlayOpened: false };
-    backupAuthToken();
-    const originalText = btnEl ? btnEl.textContent : '';
-    if (btnEl) { btnEl.textContent = 'Opening…'; btnEl.disabled = true; }
+    const conversionValue = billingMode === 'annual'
+        ? Math.round(plan.monthlyPrice * 0.6 * 12)
+        : plan.monthlyPrice;
 
-    // NEW: Wait for email to be loaded (max 3 seconds)
-    if (!window.currentUserEmail) {
-        let attempts = 0;
-        while (!window.currentUserEmail && attempts < 5) {
-            await new Promise(r => setTimeout(r, 100));
-            attempts++;
-        }
-        if (!window.currentUserEmail) {
-            console.warn('Email not loaded after 3s, proceeding without it');
-        }
-    }
-
-    try { posthog.capture('plan_selected', { plan: plan.name, billing: isAnnualBilling ? 'annual' : 'monthly', credits_remaining: currentCredits, is_subscriber: isExistingSubscriber }); } catch(e) {}
-    try { if (typeof plausible !== 'undefined') plausible('Plan Selected', { props: { plan: plan.name } }); } catch(e) {}
-    try { window.uetq = window.uetq || []; window.uetq.push('event', 'begin_checkout', {}); } catch(e) {}
-
-    try {
-        const resp = await fetch(DODO_CHECKOUT_WORKER, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                plan: planKey,
-                user_token: userToken,
-                email: window.currentUserEmail || undefined,
-                ref_token: getRefCookie() || undefined,
-            }),
-        });
-
-        const data = await resp.json();
-
-        if (!resp.ok || !data.checkout_url) {
-            throw new Error(data.error || 'Checkout creation failed');
-        }
-
-        // Open overlay if SDK loaded, else full redirect fallback
-        if (window.DodoPaymentsCheckout && window.DodoPaymentsCheckout.DodoPayments && window.DodoPaymentsCheckout.DodoPayments.Checkout) {
-            window.DodoPaymentsCheckout.DodoPayments.Checkout.open({ checkoutUrl: data.checkout_url });
-            if (btnEl) {
-                btnEl.disabled = false;
-                btnEl.textContent = originalText;
-            }
-        } else {
-            // Fallback: full redirect to hosted Dodo page
-            try { posthog.capture('checkout_redirect_fallback_used', { plan: planKey }); } catch(e) {}
-            window.location.href = data.checkout_url;
-        }
-    }  catch (e) {
-        console.error('Checkout error:', e);
-        showCheckoutError('We could not open checkout.', { onRetry: () => proceedToCheckoutDirect(index, btnEl) });
-        if (btnEl) {
-            btnEl.disabled = false;
-            btnEl.textContent = originalText;
-        }
-        try { posthog.capture('checkout_error', { message: e.message, plan: planKey }); } catch(_) {}
-    }
+    await launchCheckout({
+        planKey,
+        analyticsPlanName: plan.name,
+        value: conversionValue,
+        billingLabel: billingMode,
+        btnEl
+    });
 }
+
 async function proceedToPaygCheckout(index, btnEl) {
-    if (!userToken) { showAlert('Please log in to continue to checkout.', 'error'); return; }
     const packs = [
         { key: 'payg_small',  name: 'Pay As You Go — Small',  price: 25  },
         { key: 'payg_medium', name: 'Pay As You Go — Medium', price: 75  },
@@ -1669,59 +1800,15 @@ async function proceedToPaygCheckout(index, btnEl) {
     ];
     const pack = packs[index];
 
-    window.__lfCheckout = { value: pack.price, currency: 'EUR', plan: pack.name, fired: false, overlayOpened: false };
-    backupAuthToken();
-    const originalText = btnEl ? btnEl.textContent : '';
-    if (btnEl) { btnEl.textContent = 'Opening…'; btnEl.disabled = true; }
-
-    if (!window.currentUserEmail) {
-        let attempts = 0;
-        while (!window.currentUserEmail && attempts < 5) {
-            await new Promise(r => setTimeout(r, 100));
-            attempts++;
-        }
-    }
-
-    try { posthog.capture('plan_selected', { plan: pack.name, billing: 'payg', credits_remaining: currentCredits, is_subscriber: isExistingSubscriber }); } catch(e) {}
-    try { if (typeof plausible !== 'undefined') plausible('Plan Selected', { props: { plan: pack.name } }); } catch(e) {}
-    try { window.uetq = window.uetq || []; window.uetq.push('event', 'begin_checkout', {}); } catch(e) {}
-
-    try {
-        const resp = await fetch(DODO_CHECKOUT_WORKER, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                plan: pack.key, // e.g. "payg_small" — ⚠️ see note below
-                user_token: userToken,
-                email: window.currentUserEmail || undefined,
-                ref_token: getRefCookie() || undefined,
-            }),
-        });
-        const data = await resp.json();
-        if (!resp.ok || !data.checkout_url) throw new Error(data.error || 'Checkout creation failed');
-
-       if (window.DodoPaymentsCheckout?.DodoPayments?.Checkout) {
-            window.DodoPaymentsCheckout.DodoPayments.Checkout.open({ checkoutUrl: data.checkout_url });
-            if (btnEl) { btnEl.disabled = false; btnEl.textContent = originalText; }
-            setTimeout(() => {
-                if (!window.__lfCheckout?.overlayOpened) {
-                    showCheckoutError('Checkout is taking longer than expected to open.', {
-                        checkoutUrl: data.checkout_url,
-                        onRetry: () => proceedToPaygCheckout(index, btnEl)
-                    });
-                }
-            }, 5000);
-        } else {
-            try { posthog.capture('checkout_redirect_fallback_used', { plan: pack.key }); } catch(e) {}
-            window.location.href = data.checkout_url;
-        }
-    } catch (e) {
-        console.error('Checkout error:', e);
-        showCheckoutError('We could not open checkout.', { onRetry: () => proceedToPaygCheckout(index, btnEl) });
-        if (btnEl) { btnEl.disabled = false; btnEl.textContent = originalText; }
-        try { posthog.capture('checkout_error', { message: e.message, plan: pack.key }); } catch(_) {}
-    }
+    await launchCheckout({
+        planKey: pack.key,
+        analyticsPlanName: pack.name,
+        value: pack.price,
+        billingLabel: 'payg',
+        btnEl
+    });
 }
+
 function setBilling(type) {
     billingMode = type; // 'payg' | 'monthly' | 'annual'
     document.getElementById('paygBtn').classList.toggle('active', billingMode === 'payg');
@@ -2813,10 +2900,11 @@ document.addEventListener('DOMContentLoaded',()=>{
     if (window.DodoPaymentsCheckout && window.DodoPaymentsCheckout.DodoPayments) {
         try {
             window.DodoPaymentsCheckout.DodoPayments.Initialize({
-                mode: 'live',
-                displayType: 'overlay',
-                onEvent: handleDodoCheckoutEvent,
-            });
+    mode: CHECKOUT_MODE, // single source of truth
+    displayType: 'overlay',
+    onEvent: handleDodoCheckoutEvent,
+});
+
         } catch(e) {
             console.warn('Dodo SDK init failed:', e);
         }
@@ -3501,6 +3589,7 @@ async function ensureSubscribedForExport() {
 }
     
 async function handleAddCredits() {
+    if (checkoutInFlight) return;
     if (!userToken) { window.location.href = 'https://linkfinderai.com/sign-in'; return; }
     try { posthog.capture('upgrade_clicked', { source: 'buy_credits_btn', credits_remaining: currentCredits }); } catch(e) {}
     const btn = document.getElementById('buyCreditsBtn');
@@ -3526,20 +3615,6 @@ function downloadExampleCSV(){
     const blob=new Blob([csvContent],{type:'text/csv;charset=utf-8;'});
     const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`example_${currentInputType}.csv`;a.click();URL.revokeObjectURL(url);
     try{posthog.capture('example_csv_downloaded',{input_type:currentInputType});}catch(e){}
-}
-
-function quickStartBulk(inputType,outputType){
-    const qs=document.getElementById('quickstartSection'); if(qs) qs.style.display='none';
-    const inputSel=document.getElementById('inputType'); inputSel.value=inputType; inputSel.dispatchEvent(new Event('change'));
-    setTimeout(()=>{
-        const outputSel=document.getElementById('outputType'); outputSel.value=inputType+'__'+outputType; outputSel.dispatchEvent(new Event('change'));
-        setTimeout(()=>{
-            switchMode('bulk');
-            const ua=document.getElementById('uploadArea');
-            if(ua){ ua.scrollIntoView({behavior:'smooth',block:'center'}); ua.style.transition='box-shadow 0.3s ease'; ua.style.boxShadow='0 0 0 4px rgba(37,99,235,0.35)'; setTimeout(()=>{ua.style.boxShadow='';},2500); }
-        },120);
-    },60);
-    try{posthog.capture('quickstart_bulk_used',{input_type:inputType,output_type:outputType});}catch(e){}
 }
 
 function quickStartBulk(inputType,outputType){
