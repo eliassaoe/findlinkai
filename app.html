@@ -1327,11 +1327,16 @@ let lastCheckoutAttemptId = null;
 function validateCheckoutUrl(url) {
     try {
         const u = new URL(url);
-        return u.protocol === 'https:' && u.hostname.includes('dodopayments.com');
+        return (
+            u.protocol === 'https:' &&
+            (u.hostname === 'checkout.dodopayments.com' ||
+             u.hostname.endsWith('.dodopayments.com'))
+        );
     } catch {
         return false;
     }
 }
+
 
 async function waitForUserEmail(maxMs = 5000, intervalMs = 150) {
     const start = Date.now();
@@ -1668,7 +1673,10 @@ function handleDodoCheckoutEvent(event) {
 }
 
 async function launchCheckout({ planKey, analyticsPlanName, value, billingLabel, btnEl }) {
-    if (!userToken) { showAlert('Please log in to continue to checkout.', 'error'); return; }
+    if (!userToken) {
+        showAlert('Please log in to continue to checkout.', 'error');
+        return;
+    }
     if (checkoutInFlight) return;
 
     checkoutInFlight = true;
@@ -1678,26 +1686,42 @@ async function launchCheckout({ planKey, analyticsPlanName, value, billingLabel,
     lastCheckoutAttemptId = crypto.randomUUID();
 
     const originalText = btnEl ? btnEl.textContent : '';
-    if (btnEl) { btnEl.textContent = 'Opening…'; btnEl.disabled = true; }
+    if (btnEl) {
+        btnEl.textContent = 'Opening…';
+        btnEl.disabled = true;
+    }
 
     try {
-        const email = await waitForUserEmail(5000, 150);
-if (!email) {
-  try { posthog.capture('checkout_email_missing_proceeding'); } catch (e) {}
-}
+        // Email optional: do NOT block checkout if missing
+        const email = await waitForUserEmail(4000, 150);
+        if (!email) {
+            try { posthog.capture('checkout_email_missing_proceeding'); } catch (e) {}
+        }
 
-const data = await createCheckoutSessionViaWorker(planKey, email || undefined);
+        window.__lfCheckout = {
+            value,
+            currency: 'USD',
+            plan: analyticsPlanName,
+            fired: false,
+            overlayOpened: false
+        };
 
-        window.__lfCheckout = { value, currency: 'USD', plan: analyticsPlanName, fired: false, overlayOpened: false };
         backupAuthToken();
 
-        try { posthog.capture('plan_selected', { plan: analyticsPlanName, billing: billingLabel, credits_remaining: currentCredits, is_subscriber: isExistingSubscriber }); } catch(e) {}
-        try { if (typeof plausible !== 'undefined') plausible('Plan Selected', { props: { plan: analyticsPlanName } }); } catch(e) {}
+        try {
+            posthog.capture('plan_selected', {
+                plan: analyticsPlanName,
+                billing: billingLabel,
+                credits_remaining: currentCredits,
+                is_subscriber: isExistingSubscriber
+            });
+        } catch (e) {}
 
-        const data = await createCheckoutSessionViaWorker(planKey, email);
+        // Pass email if present; worker accepts missing email
+        const data = await createCheckoutSessionViaWorker(planKey, email || undefined);
         lastCheckoutUrl = data.checkout_url;
 
-        // watchdog #1: overlay must open quickly
+        // Watchdog 1: overlay should open
         setTimeout(() => {
             if (!checkoutOverlayOpened && checkoutInFlight) {
                 showCheckoutError('Checkout is taking too long to open.', {
@@ -1707,20 +1731,22 @@ const data = await createCheckoutSessionViaWorker(planKey, email || undefined);
             }
         }, CHECKOUT_OPEN_TIMEOUT_MS);
 
-        // watchdog #2: payment page must load soon
+        // Watchdog 2: payment page should load
         setTimeout(() => {
             if (checkoutOverlayOpened && !checkoutPaymentPageOpened && checkoutInFlight) {
                 showCheckoutError('Payment page failed to load in overlay.', {
                     checkoutUrl: lastCheckoutUrl
                 });
-                try { posthog.capture('checkout_page_load_timeout'); } catch(e) {}
+                try { posthog.capture('checkout_page_load_timeout'); } catch (e) {}
             }
         }, CHECKOUT_PAGE_TIMEOUT_MS);
 
-        if (window.DodoPaymentsCheckout?.DodoPayments?.Checkout) {
-            window.DodoPaymentsCheckout.DodoPayments.Checkout.open({ checkoutUrl: data.checkout_url });
+        if (window.DodoPaymentsCheckout?.DodoPayments?.Checkout?.open) {
+            window.DodoPaymentsCheckout.DodoPayments.Checkout.open({
+                checkoutUrl: data.checkout_url
+            });
         } else {
-            // hard fallback
+            // Hard fallback
             window.location.href = data.checkout_url;
         }
 
@@ -1730,7 +1756,7 @@ const data = await createCheckoutSessionViaWorker(planKey, email || undefined);
             onRetry: () => launchCheckout({ planKey, analyticsPlanName, value, billingLabel, btnEl }),
             checkoutUrl: lastCheckoutUrl || undefined
         });
-        try { posthog.capture('checkout_error', { message: e.message, plan: planKey }); } catch(_) {}
+        try { posthog.capture('checkout_error', { message: e.message, plan: planKey }); } catch (_) {}
         checkoutInFlight = false;
     } finally {
         if (btnEl) {
@@ -1739,6 +1765,7 @@ const data = await createCheckoutSessionViaWorker(planKey, email || undefined);
         }
     }
 }
+
 
 
 function handleDodoReturnStatus() {
