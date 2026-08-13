@@ -20,21 +20,11 @@ export class LinkFinderApiError extends Error {
   }
 }
 
-function getApiKey(): string {
-  const key = process.env.LINKFINDER_API_KEY;
-  if (!key) {
-    throw new LinkFinderApiError(
-      "LINKFINDER_API_KEY is not set. Get a key at https://linkfinderai.com and set it as an environment variable for this MCP server.",
-    );
-  }
-  return key;
-}
-
 function getBaseUrl(): string {
   return process.env.LINKFINDER_API_BASE_URL?.replace(/\/+$/, "") || DEFAULT_BASE_URL;
 }
 
-async function request(path: string, init: RequestInit): Promise<{ status: number; body: any }> {
+async function request(apiKey: string, path: string, init: RequestInit): Promise<{ status: number; body: any }> {
   const url = `${getBaseUrl()}${path}`;
   let response: Response;
   try {
@@ -42,7 +32,7 @@ async function request(path: string, init: RequestInit): Promise<{ status: numbe
       ...init,
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${getApiKey()}`,
+        Authorization: `Bearer ${apiKey}`,
         ...(init.headers || {}),
       },
     });
@@ -93,8 +83,8 @@ export interface EnrichmentResult {
   message?: string;
 }
 
-export async function pollJob(jobId: string): Promise<EnrichmentResult> {
-  const { status, body } = await request(`/status/${encodeURIComponent(jobId)}`, { method: "GET" });
+export async function pollJob(apiKey: string, jobId: string): Promise<EnrichmentResult> {
+  const { status, body } = await request(apiKey, `/status/${encodeURIComponent(jobId)}`, { method: "GET" });
 
   if (status === 404) {
     return {
@@ -128,6 +118,7 @@ async function sleep(ms: number): Promise<void> {
  * the check_job_status tool.
  */
 export async function callLinkFinder(
+  apiKey: string,
   type: EnrichmentType,
   inputData: string,
   fetchCount?: number,
@@ -135,7 +126,7 @@ export async function callLinkFinder(
   const payload: Record<string, unknown> = { type, input_data: inputData };
   if (fetchCount !== undefined) payload.fetch_count = fetchCount;
 
-  const { status, body } = await request("/", {
+  const { status, body } = await request(apiKey, "/", {
     method: "POST",
     body: JSON.stringify(payload),
   });
@@ -153,7 +144,7 @@ export async function callLinkFinder(
     const deadline = Date.now() + MAX_AUTO_POLL_MS;
     while (Date.now() < deadline) {
       await sleep(POLL_INTERVAL_MS);
-      const polled = await pollJob(jobId);
+      const polled = await pollJob(apiKey, jobId);
       if (polled.status !== "processing") {
         return polled;
       }
