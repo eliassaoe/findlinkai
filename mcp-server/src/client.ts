@@ -5,10 +5,21 @@ const MAX_AUTO_POLL_MS = 55_000;
 export type EnrichmentType =
   | "leads_finder_ai"
   | "company_name_to_website"
+  | "company_name_to_phone"
+  | "company_name_to_email"
+  | "company_name_to_employee_count"
+  | "company_name_to_linkedin_url"
   | "company_domain_to_employees"
   | "linkedin_profile_to_linkedin_info"
-  | "b2b_data_lookup"
-  | "instagram_lookup";
+  | "linkedin_profile_to_email"
+  | "linkedin_profile_to_phone"
+  | "linkedin_company_to_linkedin_info"
+  | "linkedin_company_to_employee_count"
+  | "linkedin_company_to_employees"
+  | "lead_full_name_to_linkedin_url"
+  | "email_to_linkedin_url"
+  | "linkedin_post_to_reactions"
+  | "b2b_data_lookup";
 
 export class LinkFinderApiError extends Error {
   constructor(
@@ -121,10 +132,14 @@ export async function callLinkFinder(
   apiKey: string,
   type: EnrichmentType,
   inputData: string,
-  fetchCount?: number,
+  extraFields?: Record<string, unknown>,
 ): Promise<EnrichmentResult> {
   const payload: Record<string, unknown> = { type, input_data: inputData };
-  if (fetchCount !== undefined) payload.fetch_count = fetchCount;
+  if (extraFields) {
+    for (const [key, value] of Object.entries(extraFields)) {
+      if (value !== undefined) payload[key] = value;
+    }
+  }
 
   const { status, body } = await request(apiKey, "/", {
     method: "POST",
