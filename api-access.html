@@ -16,7 +16,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','AW-17588707745');</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>API Access - LinkFinder AI</title>
+<title>API & MCP - LinkFinder AI</title>
 <link rel="icon" href="https://i.ibb.co/jPjX9SSp/Screen-Shot-2025-03-28-at-8-16-15-PM.png">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
@@ -145,7 +145,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     {
       "@type": "ListItem",
       "position": 2,
-      "name": "Api Access",
+      "name": "API & MCP",
       "item": "https://linkfinderai.com/api-access"
     }
   ]
@@ -175,7 +175,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     <div class="container">
         <div class="nav-tabs">
             <a href="#" class="nav-tab" data-page="finder"><i class="fas fa-search"></i> Data Enrichment</a>
-            <a href="#" class="nav-tab active" data-page="api"><i class="fas fa-code"></i> API Access</a>
+            <a href="#" class="nav-tab active" data-page="api"><i class="fas fa-code"></i> API & MCP</a>
             <a href="#" class="nav-tab" data-page="history"><i class="fas fa-history"></i> History</a>
             <a href="#" class="nav-tab" data-page="account"><i class="fas fa-user"></i> Account</a>
         </div>
@@ -212,6 +212,25 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     onclick="try{posthog.capture('docs_link_clicked',{source:'api_access_page'})}catch(e){}">
     <i class="fas fa-book"></i> View API Docs
 </a>
+            </div>
+        </div>
+
+        <!-- MCP Server Card -->
+        <div class="card">
+            <h2><i class="fas fa-plug"></i> MCP Server</h2>
+            <p>Connect LinkFinder AI directly to Claude, ChatGPT, Cowork, or any MCP-compatible AI tool — no code required. Your API key is already included in the URL below.</p>
+            <div class="api-key-container">
+                <div class="api-key-label">MCP Server URL</div>
+                <div class="api-key-input-group">
+                    <input type="text" id="mcpUrlInput" class="api-key-input" value="" readonly>
+                    <button class="btn copy-btn" onclick="copyMcpUrl()" title="Copy"><i class="fas fa-copy"></i></button>
+                </div>
+                <div id="mcpCopySuccess" class="success-message">
+                    <i class="fas fa-check"></i> Copied to clipboard!
+                </div>
+            </div>
+            <div class="card-footer-row">
+                <p>Paste this URL into your AI tool's MCP or connector settings (no OAuth setup needed).</p>
             </div>
         </div>
 
@@ -364,6 +383,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     function transformerToken(t){let r='';for(let i=0;i<t.length;i++){let c=t.charCodeAt(i);c+=7;r+=c.toString(16).padStart(2,'0')+'Z';}return r.slice(0,-1);}
 
     let userToken=null,apiToken=null;
+    const MCP_SERVER_URL='https://linkfinderai-mcp-production.up.railway.app/mcp/';
 
     const plans=[
         {name:'Starter',monthlyPrice:29,credits:60000,monthlyGumroadLink:'https://linkfinderai.gumroad.com/l/txudoe',annualGumroadLink:'https://linkfinderai.gumroad.com/l/hescr'},
@@ -395,6 +415,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
         if(!token){window.location.href='https://LinkFinderai.com/';return;}
         userToken=token;apiToken=transformerToken(token);
         document.getElementById('apiKeyInput').value=apiToken;
+        document.getElementById('mcpUrlInput').value=MCP_SERVER_URL+apiToken;
     }
 
     function setupNavigation(){
@@ -414,6 +435,13 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
         navigator.clipboard.writeText(apiToken).then(()=>showSuccessMessage('copySuccess')).catch(()=>{document.execCommand('copy');showSuccessMessage('copySuccess');});
         try{posthog.capture('api_key_copied',{source:'api_access_page'});}catch(e){}
         try{plausible('API Key Copied');}catch(e){}
+    }
+    function copyMcpUrl(){
+        const el=document.getElementById('mcpUrlInput');el.select();el.setSelectionRange(0,99999);
+        const url=MCP_SERVER_URL+apiToken;
+        navigator.clipboard.writeText(url).then(()=>showSuccessMessage('mcpCopySuccess')).catch(()=>{document.execCommand('copy');showSuccessMessage('mcpCopySuccess');});
+        try{posthog.capture('mcp_url_copied',{source:'api_access_page'});}catch(e){}
+        try{plausible('MCP URL Copied');}catch(e){}
     }
     function showSuccessMessage(id){const el=document.getElementById(id);el.classList.add('show');setTimeout(()=>el.classList.remove('show'),3000);}
 
@@ -440,6 +468,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
             apiToken=transformerToken(userToken);
             localStorage.setItem('LinkFinderToken',userToken);
             document.getElementById('apiKeyInput').value=apiToken;
+            document.getElementById('mcpUrlInput').value=MCP_SERVER_URL+apiToken;
 
             // Keep the address bar in sync so a refresh/bookmark doesn't
             // re-read the now-invalid old token from the URL and clobber
