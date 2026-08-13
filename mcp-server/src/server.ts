@@ -40,17 +40,23 @@ function toToolResult(result: EnrichmentResult) {
   };
 }
 
-async function runLookup(type: EnrichmentType, inputData: string, fetchCount?: number) {
-  const result = await callLinkFinder(type, inputData, fetchCount);
-  return toToolResult(result);
-}
-
-export function createServer(): McpServer {
+/**
+ * Builds an MCP server bound to a single resolved LinkFinder AI API key.
+ * Callers are responsible for resolving that key per connection (env var
+ * for a local single-user process, an incoming Authorization header for a
+ * shared multi-tenant HTTP deployment) — see index.ts.
+ */
+export function createServer(apiKey: string): McpServer {
   const server = new McpServer({
     name: "linkfinderai-mcp-server",
     version: "1.0.0",
     title: "LinkFinder AI",
   });
+
+  async function runLookup(type: EnrichmentType, inputData: string, fetchCount?: number) {
+    const result = await callLinkFinder(apiKey, type, inputData, fetchCount);
+    return toToolResult(result);
+  }
 
   server.registerTool(
     "find_company_website",
@@ -145,7 +151,7 @@ export function createServer(): McpServer {
         job_id: z.string().min(1).describe("The job_id returned by a previous LinkFinder AI tool call."),
       },
     },
-    async ({ job_id }) => toToolResult(await pollJob(job_id)),
+    async ({ job_id }) => toToolResult(await pollJob(apiKey, job_id)),
   );
 
   return server;
