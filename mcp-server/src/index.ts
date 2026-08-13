@@ -2,8 +2,15 @@
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import express from "express";
-import { randomUUID } from "node:crypto";
+import { randomUUID, webcrypto } from "node:crypto";
 import { createServer } from "./server.js";
+
+// The MCP SDK expects the Web Crypto API as a global (standard on Node 19+).
+// Polyfill it on older Node runtimes so this doesn't depend on which Node
+// version a given host (e.g. Railway) happens to provision.
+if (!(globalThis as any).crypto) {
+  (globalThis as any).crypto = webcrypto;
+}
 
 async function runStdio(): Promise<void> {
   const apiKey = process.env.LINKFINDER_API_KEY;
@@ -52,8 +59,6 @@ async function runHttp(): Promise<void> {
       return;
     }
 
-    // Stateless: a fresh server + transport per request avoids cross-request
-    // session bleed and keeps this easy to run behind a load balancer.
     const server = createServer(apiKey);
     const transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: () => randomUUID(),
