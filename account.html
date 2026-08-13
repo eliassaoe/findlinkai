@@ -286,6 +286,13 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
           </div>
           <i class="fas fa-arrow-right integration-arrow"></i>
         </a>
+        <a href="#" onclick="connectHubspot();return false;" class="integration-card" id="hubspotIntegrationCard">
+          <div class="integration-info">
+            <div class="integration-icon" style="background:#ff7a59;color:white;"><i class="fab fa-hubspot"></i></div>
+            <div class="integration-details"><h3>HubSpot</h3><p id="hubspotCardSubtitle">Enrich HubSpot companies &amp; contacts</p></div>
+          </div>
+          <i class="fas fa-arrow-right integration-arrow"></i>
+        </a>
         <a href="#" onclick="navigateToPage('workflows');return false;" class="integration-card">
           <div class="integration-info">
             <div class="integration-icon" style="background:#ea4b71;color:white;"><span style="font-weight:900;font-size:1rem;">n</span></div>
@@ -1045,6 +1052,62 @@ createChat({
   i18n: { en: { title:'AI Support Chat 🤖', subtitle:'Get instant help from our AI assistant', getStarted:'Start Chat', inputPlaceholder:'Ask me anything about LinkFinderAI...' } },
   loadPreviousSession: false
 });
+</script>
+
+<script type="module">
+import Nango from 'https://esm.sh/@nangohq/frontend@0.58.4';
+
+const NANGO_API_URL = 'https://api.nango.dev';
+const NANGO_CONNECT_UI_URL = 'https://connect.nango.dev';
+// Backend endpoint that creates a short-lived Nango Connect Session (see nango-connect-session-worker.js).
+// Replace with the real deployed URL once that worker is live.
+const CONNECT_SESSION_URL = 'https://nango-connect-session.hamoureliasse.workers.dev/';
+
+const nangoClient = new Nango({ host: NANGO_API_URL, publicKey: 'empty' });
+
+window.connectHubspot = function connectHubspot() {
+  const card = document.getElementById('hubspotIntegrationCard');
+  const subtitle = document.getElementById('hubspotCardSubtitle');
+  const defaultSubtitle = 'Enrich HubSpot companies & contacts';
+  if (card) card.style.opacity = '0.6';
+  if (subtitle) subtitle.textContent = 'Opening HubSpot connect…';
+
+  const connectUI = nangoClient.openConnectUI({
+    apiURL: NANGO_API_URL,
+    baseURL: NANGO_CONNECT_UI_URL,
+    onEvent: (event) => {
+      if (event.type === 'connect') {
+        if (card) card.style.opacity = '1';
+        if (subtitle) subtitle.textContent = 'Connected ✓';
+        try { posthog.capture('hubspot_connected'); } catch(e) {}
+        showToast();
+      } else if (event.type === 'close') {
+        if (card) card.style.opacity = '1';
+        if (subtitle && subtitle.textContent === 'Opening HubSpot connect…') subtitle.textContent = defaultSubtitle;
+      } else if (event.type === 'error') {
+        if (card) card.style.opacity = '1';
+        if (subtitle) subtitle.textContent = defaultSubtitle;
+        alert('Could not connect HubSpot: ' + ((event.payload && event.payload.errorMessage) || 'please try again.'));
+      }
+    }
+  });
+
+  fetch(CONNECT_SESSION_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token: userToken, integration: 'hubspot' })
+  })
+    .then(r => r.json())
+    .then(d => {
+      if (!d.connectSession) throw new Error(d.error || 'no_session');
+      connectUI.setSessionToken(d.connectSession);
+    })
+    .catch(() => {
+      if (card) card.style.opacity = '1';
+      if (subtitle) subtitle.textContent = defaultSubtitle;
+      alert('Could not start the HubSpot connection. Please try again.');
+    });
+};
 </script>
 </body>
 </html>
