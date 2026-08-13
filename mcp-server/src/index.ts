@@ -1,11 +1,16 @@
-cat > src/index.ts <<'EOF'
 #!/usr/bin/env node
-import "./crypto-polyfill.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import express from "express";
-import { randomUUID } from "node:crypto";
+import { randomUUID, webcrypto } from "node:crypto";
 import { createServer } from "./server.js";
+
+// The MCP SDK expects the Web Crypto API as a global (standard on Node 19+).
+// Polyfill it on older Node runtimes so this doesn't depend on which Node
+// version a given host (e.g. Railway) happens to provision.
+if (!(globalThis as any).crypto) {
+  (globalThis as any).crypto = webcrypto;
+}
 
 async function runStdio(): Promise<void> {
   const apiKey = process.env.LINKFINDER_API_KEY;
@@ -22,14 +27,19 @@ async function runStdio(): Promise<void> {
   console.error("LinkFinder AI MCP server running on stdio");
 }
 
+/**
+ * Resolves the LinkFinder AI API key for one HTTP connection. Each client
+ * is expected to send its own key as a bearer token, so a single hosted
+ * deployment can serve many LinkFinder AI customers, each billed against
+ * their own account. LINKFINDER_API_KEY (if set on the server) is only a
+ * fallback for single-tenant self-hosted deployments.
+ */
 function resolveApiKeyFromRequest(req: express.Request): string | undefined {
   const authHeader = req.header("authorization");
   if (authHeader?.toLowerCase().startsWith("bearer ")) {
     const token = authHeader.slice(7).trim();
     if (token) return token;
   }
-  const pathKey = req.params.apiKey;
-  if (typeof pathKey === "string" && pathKey) return pathKey;
   return process.env.LINKFINDER_API_KEY;
 }
 
@@ -39,12 +49,12 @@ async function runHttp(): Promise<void> {
 
   const port = Number(process.env.PORT) || 3000;
 
-  const handleMcpRequest: express.RequestHandler = async (req, res) => {
+  app.post("/mcp", async (req, res) => {
     const apiKey = resolveApiKeyFromRequest(req);
     if (!apiKey) {
       res.status(401).json({
         error:
-          'Missing LinkFinder AI API key. Pass it as "Authorization: Bearer <your LinkFinder AI API key>", or connect to "/mcp/<your LinkFinder AI API key>" instead of "/mcp".',
+          'Missing LinkFinder AI API key. Pass it as "Authorization: Bearer <your LinkFinder AI API key>" when connecting this MCP server.',
       });
       return;
     }
@@ -59,12 +69,9 @@ async function runHttp(): Promise<void> {
     });
     await server.connect(transport);
     await transport.handleRequest(req, res, req.body);
-  };
+  });
 
-  app.post("/mcp", handleMcpRequest);
-  app.post("/mcp/:apiKey", handleMcpRequest);
-
-  app.get(["/mcp", "/mcp/:apiKey"], (_req, res) => {
+  app.get("/mcp", (_req, res) => {
     res.status(405).json({ error: "Method not allowed. Use POST for MCP requests." });
   });
 
@@ -86,6 +93,3 @@ if (transportMode === "http") {
     process.exit(1);
   });
 }
-EOF
-
-npm run build
