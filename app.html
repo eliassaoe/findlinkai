@@ -2265,6 +2265,7 @@ async function enrichData(event) {
     if (currentInputType==='linkedin_profile' && !inputValue.toLowerCase().includes('linkedin.com/in/')) { showAlert('Please enter a valid LinkedIn Profile URL (must start with linkedin.com/in/)','error'); restoreBtn(); return; }
     if (currentInputType==='linkedin_post' && !inputValue.toLowerCase().includes('linkedin.com/posts/')) { showAlert('Please enter a valid LinkedIn Post URL (must include linkedin.com/posts/)','error'); restoreBtn(); return; }
     if (currentInputType==='linkedin_company' && !inputValue.toLowerCase().includes('linkedin.com/company/')) { showAlert('Please enter a valid LinkedIn Company URL (must include linkedin.com/company/)','error'); restoreBtn(); return; }
+    if (currentInputType==='company_domain' && !inputValue.includes('.')) { showAlert('Invalid input — please enter a valid domain (e.g., tesla.com)','error'); restoreBtn(); return; }
     showLoading();
     try {
         const response = await fetchWithTimeout('https://linkfinderapp.hamoureliasse.workers.dev/', {
@@ -3501,7 +3502,7 @@ function showSavedPill(targetEl) {
     resultsSection.insertBefore(pill, resultsSection.firstChild);
 }
 
-const creditCosts={'company_name_to_website':1,'company_name_to_phone':1,'company_name_to_linkedin_url':1,'email_to_linkedin_url':1,'company_name_to_employees':1,'company_name_to_employee_count':1,'company_name_to_email':1,'linkedin_company_to_linkedin_info':6,'linkedin_company_to_employees':1,'linkedin_company_to_employee_count':1,'linkedin_profile_to_linkedin_info':10,'lead_full_name_to_linkedin_url':1,'linkedin_profile_to_email':10,'company_domain_to_employees':1,'linkedin_post_to_reactions':1,'linkedin_profile_to_phone':50, 'lead_full_name_to_email':7,};
+const creditCosts={'company_name_to_website':1,'company_name_to_phone':1,'company_name_to_linkedin_url':1,'email_to_linkedin_url':4,'company_name_to_employees':1,'company_name_to_employee_count':1,'company_name_to_email':1,'linkedin_company_to_linkedin_info':6,'linkedin_company_to_employees':1,'linkedin_company_to_employee_count':1,'linkedin_profile_to_linkedin_info':10,'lead_full_name_to_linkedin_url':1,'linkedin_profile_to_email':10,'company_domain_to_employees':1,'linkedin_post_to_reactions':1,'linkedin_profile_to_phone':50, 'lead_full_name_to_email':7,};
 function getCreditCost(inputType,outputType){return creditCosts[generateCombinationType(inputType,outputType)]||1;}
 
 function updateCreditCostDisplay(){
