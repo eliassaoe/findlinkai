@@ -554,6 +554,25 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     .quick-table th, .quick-table td { border: 1px solid var(--gray-200); padding: 0.75rem; text-align: left; }
     .quick-table th { background: var(--gray-50); color: var(--gray-900); }
     .quick-table tr.highlight-row td { background: rgba(37,99,235,0.05); font-weight: 600; }
+
+    .quiz-card { max-width: 640px; margin: 0 auto; background: white; border: 1px solid var(--gray-200); border-radius: 16px; padding: 2.25rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.06); }
+    .quiz-progress { display: flex; gap: 0.4rem; margin-bottom: 1.75rem; }
+    .quiz-dot { flex: 1; height: 4px; border-radius: 2px; background: var(--gray-200); transition: background 0.2s ease; }
+    .quiz-dot.done { background: var(--primary); }
+    .quiz-step { display: none; }
+    .quiz-step.active { display: block; }
+    .quiz-question { font-size: 1.25rem; font-weight: 700; color: var(--gray-900); margin-bottom: 1.25rem; }
+    .quiz-options { display: flex; flex-direction: column; gap: 0.75rem; }
+    .quiz-option { text-align: left; background: white; border: 1.5px solid var(--gray-200); border-radius: 10px; padding: 1rem 1.25rem; font-size: 0.9375rem; font-weight: 500; color: var(--gray-700); cursor: pointer; transition: all 0.15s ease; font-family: inherit; }
+    .quiz-option:hover { border-color: var(--primary); background: rgba(37,99,235,0.04); }
+    .quiz-back { margin-top: 1.5rem; background: none; border: none; color: var(--gray-500); font-size: 0.875rem; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem; font-family: inherit; }
+    .quiz-back:hover { color: var(--primary); }
+    .quiz-result { display: none; text-align: center; }
+    .quiz-result.active { display: block; }
+    .quiz-result .result-badge { display: inline-block; background: var(--success); color: white; padding: 0.3rem 0.9rem; border-radius: 999px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 1rem; }
+    .quiz-result h3 { font-size: 1.5rem; font-weight: 700; color: var(--gray-900); margin-bottom: 0.75rem; }
+    .quiz-result p { color: var(--gray-600); font-size: 0.9375rem; margin-bottom: 1.5rem; line-height: 1.7; }
+    .quiz-restart { margin-top: 1rem; background: none; border: none; color: var(--gray-500); font-size: 0.8125rem; cursor: pointer; text-decoration: underline; font-family: inherit; }
   </style>
   <!-- Privacy-friendly analytics by Plausible -->
   <script async src="https://plausible.io/js/pa-LTP3nlbjr9NybMEgzpwxU.js"></script>
@@ -702,6 +721,58 @@ src="https://www.facebook.com/tr?id=2717863625238535&ev=PageView&noscript=1"
       <p style="max-width:760px;">ContactOut is a fast, well-liked Chrome extension for finding emails and phones from LinkedIn. It also has one well-documented issue: its "unlimited" paid plans are governed by a fair-use policy — buried in the Terms of Use, not the pricing page — that caps usage at roughly 2,000 emails and 1,000 phone numbers a month, with export quotas that bind even lower. Here are 5 real alternatives, ranked and compared honestly, starting with the one we make.</p>
     </div>
 
+    <div class="content-section" id="quiz" style="padding-top:0;">
+      <h2 style="text-align:center;">Find Your Best ContactOut Alternative in 30 Seconds</h2>
+      <p style="text-align:center;margin:0 auto 2rem;">Three quick questions — get a straight answer, not a sales pitch.</p>
+      <div class="quiz-card">
+        <div class="quiz-progress">
+          <div class="quiz-dot" data-dot="1"></div>
+          <div class="quiz-dot" data-dot="2"></div>
+          <div class="quiz-dot" data-dot="3"></div>
+        </div>
+
+        <div class="quiz-step active" data-step="1">
+          <div class="quiz-question">What's your team size?</div>
+          <div class="quiz-options">
+            <button class="quiz-option" onclick="quizAnswer('size','solo')">Solo / freelancer</button>
+            <button class="quiz-option" onclick="quizAnswer('size','small')">2–10 people</button>
+            <button class="quiz-option" onclick="quizAnswer('size','mid')">11–50 people</button>
+            <button class="quiz-option" onclick="quizAnswer('size','large')">50+ people</button>
+          </div>
+        </div>
+
+        <div class="quiz-step" data-step="2">
+          <div class="quiz-question">What do you need most?</div>
+          <div class="quiz-options">
+            <button class="quiz-option" onclick="quizAnswer('need','limits')">Honest, published usage limits</button>
+            <button class="quiz-option" onclick="quizAnswer('need','outreach')">A database plus outreach sequencing built in</button>
+            <button class="quiz-option" onclick="quizAnswer('need','phone')">Phone-number accuracy for cold calling</button>
+            <button class="quiz-option" onclick="quizAnswer('need','email')">Just verified emails at the lowest cost</button>
+          </div>
+          <button class="quiz-back" onclick="quizBack()"><i class="fas fa-arrow-left"></i> Back</button>
+        </div>
+
+        <div class="quiz-step" data-step="3">
+          <div class="quiz-question">What's your monthly budget?</div>
+          <div class="quiz-options">
+            <button class="quiz-option" onclick="quizAnswer('budget','low')">Under $50/mo</button>
+            <button class="quiz-option" onclick="quizAnswer('budget','mid')">$50–500/mo</button>
+            <button class="quiz-option" onclick="quizAnswer('budget','high')">$500–5,000/mo</button>
+            <button class="quiz-option" onclick="quizAnswer('budget','enterprise')">$5,000+/mo (enterprise)</button>
+          </div>
+          <button class="quiz-back" onclick="quizBack()"><i class="fas fa-arrow-left"></i> Back</button>
+        </div>
+
+        <div class="quiz-result" data-step="result">
+          <div class="result-badge">Your match</div>
+          <h3 id="quizResultTitle">—</h3>
+          <p id="quizResultText">—</p>
+          <a href="https://linkfinderai.com/sign-up" id="quizResultCta" class="btn"><i class="fas fa-rocket"></i> Try LinkFinder AI Free</a>
+          <div><button class="quiz-restart" onclick="quizRestart()">Start over</button></div>
+        </div>
+      </div>
+    </div>
+
     <table class="quick-table">
       <thead>
         <tr><th>Tool</th><th>Best for</th><th>Starting price</th><th>Free tier</th></tr>
@@ -757,6 +828,7 @@ src="https://www.facebook.com/tr?id=2717863625238535&ev=PageView&noscript=1"
       </div>
       <p>LinkFinder AI covers email finder, LinkedIn profile enrichment, company data, and phone lookup, with the credit limit you see at signup being the actual limit — no fair-use policy buried in the Terms of Use, no export ceiling below your lookup allowance, and no per-seat data silo. Pricing is flat: $49, $89, or $149 a month for a fixed number of credits, plus PAYG packs from $25 that never expire.</p>
       <p><strong>Why it's here:</strong> if you got burned by ContactOut's "unlimited" plan hitting an undisclosed 2,000-email ceiling, or by exports capping out well before your lookup allowance did, this removes both problems directly.</p>
+      <p><strong>Tradeoff:</strong> LinkFinder AI doesn't have ContactOut's dedicated ATS integrations (Greenhouse, Lever, Workday, Bullhorn), so recruiting teams with an ATS-centric workflow may still find ContactOut faster to plug in day one.</p>
       <button class="btn" onclick="window.location.href='https://linkfinderai.com/sign-up'">Try LinkFinder AI free →</button>
     </div>
 
@@ -861,22 +933,6 @@ src="https://www.facebook.com/tr?id=2717863625238535&ev=PageView&noscript=1"
     <h3>Is LinkFinder AI GDPR compliant?</h3>
     <p>Yes. LinkFinder AI is based and operated in France within the EU and built to GDPR requirements from the ground up.</p>
   </div>
-
-<div class="mini-related-box" style="max-width:600px;margin:40px auto;padding:20px;background:#f9fafb;border-radius:8px;border:1px solid #e5e7eb;">
-<p style="margin:0 0 12px;font-size:14px;font-weight:600;color:#374151;">Related Tools:</p>
-<div style="display:flex;gap:10px;flex-wrap:wrap;">
-<a href="https://linkfinderai.com/linkedin-url-finder" style="padding:8px 14px;background:white;border:1px solid #d1d5db;border-radius:6px;text-decoration:none;color:#2563eb;font-size:13px;">Linkedin lookup</a>
-<a href="https://linkfinderai.com/b2b-data-enrichment" style="padding:8px 14px;background:white;border:1px solid #d1d5db;border-radius:6px;text-decoration:none;color:#2563eb;font-size:13px;">Data Enrichment</a>
-</div></div>
-
-
-<div class="related-pages-box" style="max-width:700px;margin:40px auto;padding:24px;background:#fef3c7;border-left:4px solid #f59e0b;border-radius:8px;">
-<p style="margin:0 0 16px;font-size:15px;font-weight:600;color:#78350f;">🔗 Related Comparisons:</p>
-<div style="display:flex;flex-direction:column;gap:10px;">
-<a href="https://linkfinderai.com/lusha-alternative" style="padding:12px 16px;background:white;border:1px solid #fde68a;border-radius:6px;text-decoration:none;color:#b45309;font-size:14px;transition:all 0.2s;display:block;">→ Lusha alternative</a>
-<a href="https://linkfinderai.com/zoominfo-alternative" style="padding:12px 16px;background:white;border:1px solid #fde68a;border-radius:6px;text-decoration:none;color:#b45309;font-size:14px;transition:all 0.2s;display:block;">→ ZoomInfo alternative</a>
-<a href="https://linkfinderai.com/kaspr-alternative" style="padding:12px 16px;background:white;border:1px solid #fde68a;border-radius:6px;text-decoration:none;color:#b45309;font-size:14px;transition:all 0.2s;display:block;">→ Kaspr alternative</a>
-</div></div>
 
 <!-- CLUSTER-LINKS:START -->
   <style>.lf-rel{max-width:1200px;margin:3rem auto 1rem;padding:0 1rem;font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;}.lf-rel__title{font-size:1.25rem;font-weight:600;color:#111827;margin:0 0 .25rem;}.lf-rel__sub{font-size:.875rem;color:#6b7280;margin:0 0 1.25rem;}.lf-rel__sub a{color:#2563eb;text-decoration:none;font-weight:500;}.lf-rel__grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:.75rem;}.lf-rel__card{display:block;padding:.85rem 1rem;background:#fff;border:1px solid #e5e7eb;border-radius:10px;color:#374151;text-decoration:none;font-size:.9rem;font-weight:500;transition:all .2s ease;}.lf-rel__card:hover{border-color:#2563eb;color:#2563eb;box-shadow:0 4px 12px rgba(37,99,235,.1);transform:translateY(-2px);}</style>
@@ -996,5 +1052,60 @@ src="https://www.facebook.com/tr?id=2717863625238535&ev=PageView&noscript=1"
       </div>
     </footer>
 
+<script>
+  const quizState = { size: null, need: null, budget: null };
+  let quizStepIndex = 1;
+
+  function quizShowStep(n) {
+    document.querySelectorAll('.quiz-step').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.quiz-result').forEach(el => el.classList.remove('active'));
+    const target = document.querySelector('.quiz-step[data-step="' + n + '"]');
+    if (target) target.classList.add('active');
+    document.querySelectorAll('.quiz-dot').forEach(dot => { dot.classList.toggle('done', parseInt(dot.dataset.dot, 10) < n); });
+  }
+
+  function quizAnswer(key, value) {
+    quizState[key] = value;
+    if (quizStepIndex < 3) { quizStepIndex += 1; quizShowStep(quizStepIndex); } else { quizShowResult(); }
+  }
+
+  function quizBack() { if (quizStepIndex > 1) { quizStepIndex -= 1; quizShowStep(quizStepIndex); } }
+
+  function quizRestart() {
+    quizState.size = null; quizState.need = null; quizState.budget = null;
+    quizStepIndex = 1;
+    quizShowStep(1);
+  }
+
+  function quizShowResult() {
+    document.querySelectorAll('.quiz-dot').forEach(dot => dot.classList.add('done'));
+    document.querySelectorAll('.quiz-step').forEach(el => el.classList.remove('active'));
+    const result = document.querySelector('.quiz-result');
+    result.classList.add('active');
+
+    const titleEl = document.getElementById('quizResultTitle');
+    const textEl = document.getElementById('quizResultText');
+    const ctaEl = document.getElementById('quizResultCta');
+    const { need, budget, size } = quizState;
+
+    if (need === 'outreach') {
+      titleEl.textContent = 'Apollo.io is your best fit';
+      textEl.textContent = "You want a contact database plus built-in sequencing and a dialer, not just lookups — that's Apollo's core strength over ContactOut. If you also want honest, published usage limits for the data layer itself, pair it with LinkFinder AI.";
+      ctaEl.textContent = 'See Apollo vs LinkFinder AI';
+      ctaEl.href = 'https://linkfinderai.com/apollo-api-alternative.html';
+    } else if (need === 'phone') {
+      titleEl.textContent = 'Lusha is worth a look';
+      textEl.textContent = "Cold-calling teams that need phone-number accuracy above all else tend to rate Lusha highest for that specific job. Just watch its own credit-rollover fine print — see the full comparison against LinkFinder AI first.";
+      ctaEl.textContent = 'See Lusha vs LinkFinder AI';
+      ctaEl.href = 'https://linkfinderai.com/lusha-alternative.html';
+    } else {
+      const sizeText = size === 'solo' ? 'as a solo user' : size === 'large' ? 'for a larger team' : 'for your team';
+      titleEl.textContent = 'LinkFinder AI is your best fit';
+      textEl.textContent = 'Based on what you need ' + sizeText + ', LinkFinder AI gives you the published limit as the actual limit — no fair-use policy buried in the Terms of Use like ContactOut, and no export ceiling below your lookup allowance.';
+      ctaEl.textContent = 'Try LinkFinder AI Free';
+      ctaEl.href = 'https://linkfinderai.com/sign-up';
+    }
+  }
+</script>
 </body>
 </html>
