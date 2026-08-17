@@ -106,6 +106,17 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
 .settings-save-msg{margin-left:.75rem;font-size:.8rem;color:var(--success);}
 .settings-save-msg.error{color:var(--error);}
 
+/* Pending job-change review */
+.pending-item{border:1px solid var(--gray-200);border-radius:8px;padding:.875rem 1rem;margin-bottom:.75rem;}
+.pending-item:last-child{margin-bottom:0;}
+.pending-name{font-size:.9rem;font-weight:700;color:var(--gray-900);margin-bottom:.5rem;}
+.pending-diff{font-size:.82rem;color:var(--gray-600);line-height:1.7;}
+.pending-diff .old{color:var(--gray-400);text-decoration:line-through;}
+.pending-diff .new{color:var(--success);font-weight:600;}
+.pending-actions{display:flex;gap:.5rem;margin-top:.75rem;}
+.btn-approve{background:var(--success);color:white;border:none;padding:.4rem .85rem;border-radius:6px;font-size:.8rem;font-weight:600;cursor:pointer;font-family:inherit;}
+.btn-dismiss{background:var(--gray-100);color:var(--gray-600);border:none;padding:.4rem .85rem;border-radius:6px;font-size:.8rem;font-weight:600;cursor:pointer;font-family:inherit;}
+
 @media(max-width:640px){
     .conn-row{flex-direction:column;align-items:flex-start;}
     .conn-actions{width:100%;}
@@ -223,6 +234,10 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
                         <select id="field_phone_prop" class="prop-input"><option value="">Loading properties…</option></select>
                     </div>
                 </div>
+                <div class="field-row" data-field="jobChangeTracking">
+                    <label class="field-toggle"><input type="checkbox" id="jobChangeTrackingEnabled"> <strong>Track job changes</strong> <span class="field-cost">1 credit / check</span></label>
+                    <p class="field-hint">Re-checks contacts that already have a LinkedIn URL on file and flags it if their job title or company changed. Never writes automatically — every detected change waits for your approval below.</p>
+                </div>
             </div>
             <div class="max-per-run-row">
                 <label for="maxPerRunInput">Max contacts checked per weekly run</label>
@@ -237,6 +252,11 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
                 <i class="fas fa-save"></i> Save settings
             </button>
             <span id="settingsSaveMsg" class="settings-save-msg"></span>
+        </div>
+
+        <div class="card hidden" id="pendingChangesCard">
+            <h2><i class="fas fa-user-clock"></i> Job Changes Detected <span id="pendingCount" class="field-cost"></span></h2>
+            <div id="pendingChangesList"></div>
         </div>
 
         <div class="card">
@@ -264,6 +284,12 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
                     <div class="step-body">
                         <h3>Found values are written straight back to HubSpot</h3>
                         <p>Only into empty fields. Anything already in HubSpot — whether you or a teammate entered it — is never touched or overwritten.</p>
+                    </div>
+                </li>
+                <li>
+                    <div class="step-body">
+                        <h3>Optional: get flagged when someone changes jobs</h3>
+                        <p>If enabled, contacts with a LinkedIn URL on file get re-checked, and any job title or company change shows up above for you to approve or dismiss — this is the only thing here that ever touches an already-filled field, and only after you say yes.</p>
                     </div>
                 </li>
             </ol>
@@ -423,6 +449,8 @@ function populateSettings(settings) {
     }
     const maxEl = document.getElementById('maxPerRunInput');
     if (maxEl && settings.maxPerRun) maxEl.value = settings.maxPerRun;
+    const jctEl = document.getElementById('jobChangeTrackingEnabled');
+    if (jctEl) jctEl.checked = !!(settings.jobChangeTracking && settings.jobChangeTracking.enabled);
 }
 
 window.saveSettings = async function saveSettings() {
@@ -431,6 +459,7 @@ window.saveSettings = async function saveSettings() {
     const settings = {
         maxPerRun: parseInt(document.getElementById('maxPerRunInput').value, 10) || 25,
         fields: {},
+        jobChangeTracking: { enabled: document.getElementById('jobChangeTrackingEnabled').checked },
     };
     for (const key of ['email', 'linkedin_url', 'phone']) {
         settings.fields[key] = {
@@ -475,7 +504,63 @@ async function renderConnected(d) {
     await loadHubspotProperties();
     populateSettings(d.settings);
     renderSyncResult(d.lastSyncResult, d.lastSyncedAt);
+    loadPendingChanges();
 }
+
+async function loadPendingChanges() {
+    try {
+        const r = await fetch(WORKER_URL + 'pending-changes', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: userToken })
+        });
+        const d = await r.json().catch(() => ({}));
+        const pending = (d && d.pending) || [];
+        const card = document.getElementById('pendingChangesCard');
+        const list = document.getElementById('pendingChangesList');
+        if (!pending.length) { card.classList.add('hidden'); return; }
+
+        card.classList.remove('hidden');
+        document.getElementById('pendingCount').textContent = `(${pending.length})`;
+        list.innerHTML = pending.map(p => {
+            const jobDiff = p.oldJobTitle !== p.newJobTitle
+                ? `<div>Title: <span class="old">${esc(p.oldJobTitle || '(empty)')}</span> &rarr; <span class="new">${esc(p.newJobTitle)}</span></div>` : '';
+            const companyDiff = p.oldCompany !== p.newCompany
+                ? `<div>Company: <span class="old">${esc(p.oldCompany || '(empty)')}</span> &rarr; <span class="new">${esc(p.newCompany)}</span></div>` : '';
+            return `<div class="pending-item" data-contact="${p.contactId}">
+                <div class="pending-name">${esc(p.name)}</div>
+                <div class="pending-diff">${jobDiff}${companyDiff}</div>
+                <div class="pending-actions">
+                    <button class="btn-approve" onclick="resolveChange('${p.contactId}', true)"><i class="fas fa-check"></i> Approve</button>
+                    <button class="btn-dismiss" onclick="resolveChange('${p.contactId}', false)">Dismiss</button>
+                </div>
+            </div>`;
+        }).join('');
+    } catch (e) {}
+}
+
+function esc(s) { return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+window.resolveChange = async function resolveChange(contactId, approve) {
+    const item = document.querySelector(`.pending-item[data-contact="${contactId}"]`);
+    if (item) item.style.opacity = '0.5';
+    try {
+        const r = await fetch(WORKER_URL + 'resolve-change', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: userToken, contactId, approve })
+        });
+        const d = await r.json().catch(() => ({}));
+        if (r.ok && d.ok) {
+            try { posthog.capture('job_change_resolved', { action: d.action }); } catch(e) {}
+            loadPendingChanges();
+        } else {
+            if (item) item.style.opacity = '1';
+            alert(d.error || 'Could not update. Please try again.');
+        }
+    } catch (e) {
+        if (item) item.style.opacity = '1';
+        alert('Network error. Please try again.');
+    }
+};
 
 function renderNotConnected() {
     document.getElementById('connSubtitle').textContent = 'Not connected';
