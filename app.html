@@ -1872,6 +1872,14 @@ function setBilling(type) {
     
 function showPricingModal(trigger, extra) {
     try { window.uetq = window.uetq || []; window.uetq.push('event', 'begin_checkout', {}); } catch(e) {}
+    // Someone clicking "buy credits" wants more credits now, not necessarily a
+    // monthly commitment - default them to the $25 one-time PAYG pack instead
+    // of leading with the $49/mo subscription (the modal's default). Excludes
+    // export_gated, since PAYG credits don't unlock bulk export - only a
+    // subscription does (see exportGateNoticeText copy).
+    if (!isExistingSubscriber && trigger === 'buy_credits_btn') {
+        billingMode = 'payg';
+    }
     document.getElementById('paygBtn').classList.toggle('active', billingMode === 'payg');
     document.getElementById('monthlyBtn').classList.toggle('active', billingMode === 'monthly');
     document.getElementById('annualBtn').classList.toggle('active', billingMode === 'annual');
