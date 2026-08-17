@@ -343,13 +343,32 @@ function renderSyncResult(result, lastSyncedAt) {
     if (!result) { document.getElementById('syncResults').classList.add('hidden'); return; }
     document.getElementById('syncResults').classList.remove('hidden');
     document.getElementById('statProcessed').textContent = result.processed;
-    document.getElementById('statFilled').textContent = result.filledTotal != null ? result.filledTotal
+    const filledTotal = result.filledTotal != null ? result.filledTotal
         : Object.values(result.filled || {}).reduce((a,b) => a+b, 0);
-    const breakdown = Object.entries(result.filled || {})
+    document.getElementById('statFilled').textContent = filledTotal;
+
+    const lines = [];
+    const filledParts = Object.entries(result.filled || {})
         .filter(([,n]) => n > 0)
-        .map(([k,n]) => `${n} ${FIELD_LABELS[k] || k}${n===1?'':'s'}`)
-        .join(' · ');
-    document.getElementById('syncBreakdown').textContent = breakdown;
+        .map(([k,n]) => `${n} ${FIELD_LABELS[k] || k}${n===1?'':'s'}`);
+    if (filledParts.length) lines.push(filledParts.join(' · '));
+
+    // Explain a zero-fill result instead of leaving it a mystery — shows why
+    // contacts were checked but nothing got written back.
+    if (filledTotal === 0 && result.processed > 0) {
+        const s = result.skipped || {};
+        const nm = result.noMatch || {};
+        const reasons = [];
+        if (s.noDomainForEmail) reasons.push(`${s.noDomainForEmail} missing a website property (needed for email)`);
+        if (s.noCompanyForLinkedin) reasons.push(`${s.noCompanyForLinkedin} missing a company name (needed for LinkedIn URL)`);
+        if (s.alreadyComplete) reasons.push(`${s.alreadyComplete} already had every tracked field filled`);
+        const noMatchTotal = (nm.email||0) + (nm.linkedin_url||0) + (nm.phone||0);
+        if (noMatchTotal) reasons.push(`${noMatchTotal} lookup(s) ran but found no match`);
+        if (reasons.length) lines.push('Nothing filled — ' + reasons.join('; ') + '.');
+        else lines.push('Nothing filled this run.');
+    }
+
+    document.getElementById('syncBreakdown').textContent = lines.join(' ');
     document.getElementById('syncMeta').textContent = lastSyncedAt ? 'Last synced ' + timeAgo(lastSyncedAt) : '';
 }
 
