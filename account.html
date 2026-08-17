@@ -961,8 +961,11 @@ function showPricingModal(trigger, extra) {
     try { window.uetq = window.uetq || []; window.uetq.push('event', 'begin_checkout', {}); } catch(e) {}
     // Someone clicking "buy credits" wants more credits now, not necessarily a
     // monthly commitment - default them to the $25 one-time PAYG pack instead
-    // of leading with the $49/mo subscription (the modal's default).
-    if (!isExistingSubscriber && trigger === 'buy_credits_btn') {
+    // of leading with the $49/mo subscription (the modal's default). Applies
+    // to subscribers too - "buy credits" is a distinct ask from "manage my
+    // plan," and the modal title below still correctly says "Change Your
+    // Plan" for subscribers regardless of which tab is showing.
+    if (trigger === 'buy_credits_btn') {
         billingMode = 'payg';
     }
     document.getElementById('paygBtn').classList.toggle('active', billingMode === 'payg');
@@ -1051,7 +1054,7 @@ async function handleAddCredits() {
     if (d.email) window.currentUserEmail = d.email;
     updateManagePlanButton();
     showPricingModal('buy_credits_btn');
-  } catch(e) { showPricingModal(); }
+  } catch(e) { showPricingModal('buy_credits_btn'); }
   finally { btn.innerHTML = orig; btn.disabled = false; }
 }
 
