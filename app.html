@@ -227,6 +227,18 @@
     .low-credits-bar{display:none;background:linear-gradient(90deg,#fef3c7,#fde68a);border-bottom:1px solid #f59e0b;padding:0.5rem 1rem;text-align:center;font-size:0.8125rem;font-weight:500;color:#92400e;}
     .low-credits-bar.urgent{background:linear-gradient(90deg,#fee2e2,#fecaca);border-bottom-color:#ef4444;color:#991b1b;}
     .low-credits-bar a{color:inherit;font-weight:700;text-decoration:underline;cursor:pointer;}
+    .save-alert-container{margin-top:1rem;padding-top:1rem;border-top:1px dashed var(--gray-200);}
+    .save-alert-container.hidden{display:none;}
+    .save-alert-btn{background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe;padding:0.5rem 0.875rem;border-radius:8px;font-size:0.8125rem;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:0.4rem;font-family:inherit;transition:background .15s;}
+    .save-alert-btn:hover{background:#dbeafe;}
+    .save-alert-btn.saved{background:#dcfce7;color:#15803d;border-color:#bbf7d0;cursor:default;}
+    .saved-searches-list{max-height:60vh;overflow-y:auto;}
+    .saved-search-item{display:flex;justify-content:space-between;align-items:center;gap:0.75rem;padding:0.75rem 0;border-bottom:1px solid var(--gray-100);}
+    .saved-search-item:last-child{border-bottom:none;}
+    .saved-search-item-label{font-size:0.875rem;font-weight:500;color:var(--gray-900);}
+    .saved-search-item-meta{font-size:0.75rem;color:var(--gray-500);margin-top:0.15rem;}
+    .saved-search-remove-btn{background:none;border:none;color:var(--gray-400);cursor:pointer;font-size:0.9rem;padding:0.25rem;flex-shrink:0;}
+    .saved-search-remove-btn:hover{color:var(--error);}
     .quickstart-section{margin-bottom:1.5rem;}
     .quickstart-label{font-size:0.75rem;font-weight:600;color:var(--gray-400);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.75rem;}
     .quickstart-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:0.625rem;}
@@ -801,6 +813,7 @@
     <span class="credits-divider">|</span>
     <button class="btn-buy-inline" onclick="handleAddCredits()" id="buyCreditsBtn">Buy credits</button>
 </div>
+<button class="btn btn-outline" onclick="openSavedSearchesModal()" title="Saved searches &amp; alerts" style="padding:0.5rem 0.75rem;"><i class="fas fa-bell"></i></button>
 <button class="btn btn-outline btn-logout" onclick="logout()">Logout</button>
             </div>
         </div>
@@ -1023,6 +1036,7 @@
             <div id="singleResult" class="result-card">
                 <textarea id="resultText" class="result-text" readonly placeholder="Enriched data will appear here..."></textarea>
                 <div id="resultLink" class="result-link"></div>
+                <div id="saveAlertContainer" class="save-alert-container hidden"></div>
             </div>
             <!-- REPLACE this whole block: -->
 <div id="bulkResults" class="hidden">
@@ -1091,6 +1105,17 @@
 </div>
 
 <!-- Out-of-credits modal: PAYG-first, subscription subordinate -->
+<div id="savedSearchesModal" class="modal-overlay">
+  <div class="pricing-modal" style="max-width:520px;width:min(520px,calc(100vw - 2rem));">
+    <button class="modal-close" onclick="closeSavedSearchesModal()"><i class="fas fa-times"></i></button>
+    <div class="pricing-modal-header">
+      <h2><i class="fas fa-bell" style="color:#2563eb;"></i> Saved Searches</h2>
+      <p style="color:var(--gray-500);font-size:0.875rem;margin-top:0.25rem;">Get a weekly email if any of these results change</p>
+    </div>
+    <div id="savedSearchesList" class="saved-searches-list"></div>
+  </div>
+</div>
+
 <div id="insufficientCreditsModal" class="cim-overlay">
     <div class="cim-modal" role="dialog" aria-modal="true" aria-labelledby="cimHeadline">
 
@@ -3120,6 +3145,8 @@ function showSingleResult(inputData,result,confidence){
         scrollToResults();
         document.getElementById('singleResult').classList.remove('hidden');
         document.getElementById('bulkResults').classList.add('hidden');
+        captureSearchForAlerts(inputData);
+        renderSaveAlertButton();
         return;
     }
     if (isLinkedInData && currentInputType === 'linkedin_company') {
@@ -3128,6 +3155,8 @@ function showSingleResult(inputData,result,confidence){
     scrollToResults();
     document.getElementById('singleResult').classList.remove('hidden');
     document.getElementById('bulkResults').classList.add('hidden');
+    captureSearchForAlerts(inputData);
+    renderSaveAlertButton();
     return;
 }
     let html='<div class="result-card">';
@@ -3196,6 +3225,13 @@ function showSingleResult(inputData,result,confidence){
     scrollToResults();
     document.getElementById('singleResult').classList.remove('hidden');
     document.getElementById('bulkResults').classList.add('hidden');
+    if (result !== 'Not found') {
+        captureSearchForAlerts(inputData);
+        renderSaveAlertButton();
+    } else {
+        const c = document.getElementById('saveAlertContainer');
+        if (c) c.classList.add('hidden');
+    }
 }
 
 function showSingleResultEmployees(inputData,employeesArray){
@@ -3570,6 +3606,120 @@ async function submitFeedback(event){
 const UPGRADE_INTENT_WORKER = 'https://upgrade-intent.hamoureliasse.workers.dev/';
 async function fireUpgradeIntent(trigger, extras = {}) {
     try { await fetch(UPGRADE_INTENT_WORKER, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: userToken, trigger, ...extras }) }); } catch(e) {}
+}
+
+// Retention feature: save a search, get a weekly email if the result changes.
+// PostHog retention data showed ~90-95% of signups never return after week 1,
+// uniformly across every cohort - nothing in the product pulled anyone back.
+// TODO: update this URL once saved-search-alerts-worker.js is deployed.
+const SAVED_SEARCH_ALERTS_WORKER = 'https://saved-search-alerts.hamoureliasse.workers.dev/';
+let lastSearchForAlerts = null; // params of the most recent successful single search
+
+function captureSearchForAlerts(inputData) {
+    lastSearchForAlerts = {
+        type: generateCombinationType(currentInputType, currentOutputType),
+        input_data: inputData,
+        output_type: currentOutputType,
+        label: `${currentOutputType.replace(/_/g,' ')} for "${inputData}"`,
+    };
+    if (currentInputType === 'lead_full_name' && currentOutputType === 'email') {
+        const parts = inputData.split(' ');
+        lastSearchForAlerts.first_name = parts[0];
+        lastSearchForAlerts.last_name = parts.slice(1).join(' ');
+    }
+}
+
+function renderSaveAlertButton() {
+    const container = document.getElementById('saveAlertContainer');
+    if (!container || !lastSearchForAlerts) return;
+    container.classList.remove('hidden');
+    container.innerHTML = `<button class="save-alert-btn" id="saveAlertBtn" onclick="saveCurrentSearchForAlerts()">
+        <i class="fas fa-bell"></i> Get a weekly email if this changes
+    </button>
+    <span style="font-size:0.72rem;color:var(--gray-400);margin-left:0.5rem;">Uses 1 credit per weekly check</span>`;
+}
+
+async function saveCurrentSearchForAlerts() {
+    if (!lastSearchForAlerts || !userToken) return;
+    const btn = document.getElementById('saveAlertBtn');
+    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving…'; }
+    try {
+        const r = await fetch(SAVED_SEARCH_ALERTS_WORKER + 'save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: userToken, email: window.currentUserEmail || undefined, ...lastSearchForAlerts })
+        });
+        const d = await r.json().catch(() => ({}));
+        if (r.ok && d.ok) {
+            if (btn) { btn.classList.add('saved'); btn.innerHTML = '<i class="fas fa-check"></i> Saved — you\'ll get weekly alerts'; }
+            try { posthog.capture('saved_search_created', { output_type: lastSearchForAlerts.output_type }); } catch(e) {}
+        } else {
+            if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-bell"></i> Get a weekly email if this changes'; }
+            showAlert(d.error || 'Could not save this search. Please try again.', 'error');
+        }
+    } catch (e) {
+        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-bell"></i> Get a weekly email if this changes'; }
+        showAlert('Network error saving this search. Please try again.', 'error');
+    }
+}
+
+function timeAgo(dateStr) {
+    const diffMs = Date.now() - new Date(dateStr).getTime();
+    const mins = Math.floor(diffMs / 60000);
+    if (mins < 60) return `${mins}m ago`;
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return `${hours}h ago`;
+    return `${Math.floor(hours / 24)}d ago`;
+}
+
+async function openSavedSearchesModal() {
+    document.getElementById('savedSearchesModal').classList.add('show');
+    document.body.style.overflow = 'hidden';
+    try { posthog.capture('saved_searches_modal_opened'); } catch(e) {}
+    const list = document.getElementById('savedSearchesList');
+    list.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--gray-400);"><i class="fas fa-spinner fa-spin"></i></div>';
+    try {
+        const r = await fetch(SAVED_SEARCH_ALERTS_WORKER + 'list', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: userToken })
+        });
+        const d = await r.json().catch(() => ({}));
+        const searches = (d && d.searches) || [];
+        if (!searches.length) {
+            list.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--gray-400);font-size:0.875rem;">No saved searches yet. Run a search, then click "Get a weekly email if this changes" on the result.</div>';
+            return;
+        }
+        list.innerHTML = searches.map(s => `
+            <div class="saved-search-item" data-id="${s.id}">
+                <div>
+                    <div class="saved-search-item-label">${s.label}</div>
+                    <div class="saved-search-item-meta">${s.last_checked_at ? 'Last checked ' + timeAgo(s.last_checked_at) : 'Not checked yet'}</div>
+                </div>
+                <button class="saved-search-remove-btn" onclick="removeSavedSearch('${s.id}')"><i class="fas fa-trash"></i></button>
+            </div>
+        `).join('');
+    } catch (e) {
+        list.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--error);font-size:0.875rem;">Could not load saved searches. Please try again.</div>';
+    }
+}
+
+function closeSavedSearchesModal() {
+    document.getElementById('savedSearchesModal').classList.remove('show');
+    document.body.style.overflow = '';
+}
+
+async function removeSavedSearch(id) {
+    try {
+        await fetch(SAVED_SEARCH_ALERTS_WORKER + 'remove', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: userToken, id })
+        });
+        try { posthog.capture('saved_search_removed'); } catch(e) {}
+        const el = document.querySelector(`.saved-search-item[data-id="${id}"]`);
+        if (el) el.remove();
+    } catch (e) {}
 }
 
 // Fires once, only after the user has an actual successful, error-free result
