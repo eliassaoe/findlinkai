@@ -180,7 +180,7 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
                         <i class="fas fa-link"></i> Connect HubSpot
                     </button>
                     <button class="btn btn-sm hidden" id="syncNowBtn" onclick="syncNow()">
-                        <i class="fas fa-sync-alt"></i> Sync now
+                        <i class="fas fa-sync-alt"></i> Enrich now
                     </button>
                 </div>
             </div>
@@ -200,7 +200,7 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
             <h2><i class="fas fa-sliders-h"></i> What to sync</h2>
             <div class="field-rows" id="fieldRows">
                 <div class="field-row" data-field="email">
-                    <label class="field-toggle"><input type="checkbox" id="field_email_enabled"> <strong>Email</strong> <span class="field-cost">1 credit</span></label>
+                    <label class="field-toggle"><input type="checkbox" id="field_email_enabled"> <strong>Email</strong> <span class="field-cost">10 credits</span></label>
                     <p class="field-hint">Found from the contact's name + company domain.</p>
                     <div class="field-prop-row">
                         <span>HubSpot property:</span>
@@ -226,8 +226,12 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
             </div>
             <div class="max-per-run-row">
                 <label for="maxPerRunInput">Max contacts checked per weekly run</label>
-                <input type="number" id="maxPerRunInput" min="1" max="100" value="25">
-                <span class="field-hint">Caps weekly credit spend. Hard limit of 100.</span>
+                <input type="number" id="maxPerRunInput" min="1" max="1000" value="25">
+                <span class="field-hint">Caps weekly credit spend. Hard limit of 1000.</span>
+            </div>
+            <div class="cost-note" style="margin-top:.75rem;">
+                <i class="fas fa-triangle-exclamation"></i>
+                <div>At real per-lookup rates (10 credits/email, 50 credits/phone), a large run adds up fast — e.g. 200 contacts with phone enabled could use up to 12,000 credits in one week. Start low and raise it once you've seen a run's real cost.</div>
             </div>
             <button class="btn btn-sm" id="saveSettingsBtn" onclick="saveSettings()" style="margin-top:1rem;">
                 <i class="fas fa-save"></i> Save settings
@@ -553,7 +557,7 @@ window.syncNow = async function syncNow() {
     const btn = document.getElementById('syncNowBtn');
     const orig = btn.innerHTML;
     btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Syncing…';
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enriching…';
     try {
         const r = await fetch(WORKER_URL + 'sync-now', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
