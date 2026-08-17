@@ -129,6 +129,21 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
 .export-btn{display:flex;align-items:center;gap:.375rem;padding:.5rem .875rem;border:1px solid var(--gray-200);border-radius:6px;background:white;color:var(--gray-600);font-size:.8rem;font-weight:500;cursor:pointer;font-family:inherit;transition:all .15s;}
 .export-btn:hover{background:var(--gray-50);border-color:var(--gray-300);}
 
+/* Saved search alerts */
+.track-alert-btn{background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe;}
+.track-alert-btn:hover{background:#dbeafe;}
+.track-alert-btn.saved{background:#dcfce7;color:#15803d;border-color:#bbf7d0;cursor:default;}
+.track-alert-btn.saved:hover{background:#dcfce7;}
+.saved-searches-list{max-height:60vh;overflow-y:auto;}
+.saved-search-item{display:flex;justify-content:space-between;align-items:center;gap:.75rem;padding:.75rem 0;border-bottom:1px solid var(--gray-100);}
+.saved-search-item:last-child{border-bottom:none;}
+.saved-search-item-label{font-size:.875rem;font-weight:500;color:var(--gray-900);}
+.saved-search-item-meta{font-size:.75rem;color:var(--gray-500);margin-top:.15rem;}
+.saved-search-remove-btn{background:none;border:none;color:var(--gray-400);cursor:pointer;font-size:.9rem;padding:.25rem;flex-shrink:0;}
+.saved-search-remove-btn:hover{color:var(--error);}
+.saved-searches-empty{text-align:center;padding:2rem 1rem;color:var(--gray-400);font-size:.825rem;}
+.alerts-note{font-size:.7rem;color:var(--gray-400);padding:.75rem 1.25rem 0;}
+
 /* Pagination */
 .pagination{display:flex;align-items:center;justify-content:center;gap:.5rem;margin-top:1.25rem;}
 .page-btn{padding:.4rem .75rem;border:1px solid var(--gray-200);border-radius:6px;background:white;color:var(--gray-600);font-size:.8rem;cursor:pointer;font-family:inherit;transition:all .15s;}
@@ -297,6 +312,9 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
                     <div class="page-title"><i class="fas fa-history"></i> Enrichment History</div>
                     <div class="page-meta" id="pageMeta">Your complete enrichment log</div>
                 </div>
+                <button class="export-btn" onclick="openSavedSearchesModal()" title="Saved searches &amp; alerts">
+                    <i class="fas fa-bell"></i> Alerts
+                </button>
                 <button class="export-btn" onclick="exportAll()">
                     <i class="fas fa-download"></i> Export all
                 </button>
@@ -372,9 +390,28 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
         </div>
         <div class="modal-body" id="modalBody"></div>
         <div class="modal-footer">
+            <button class="export-btn track-alert-btn" id="modalTrackBtn" onclick="trackActiveItemForAlerts()"><i class="fas fa-bell"></i> Get weekly alerts</button>
             <button class="export-btn" id="modalCopyBtn" onclick="copyDetailJson()"><i class="fas fa-copy"></i> Copy JSON</button>
             <button class="btn" id="modalExportBtn" onclick="exportSingle()"><i class="fas fa-download"></i> Export this row</button>
         </div>
+    </div>
+</div>
+
+<!-- Saved searches / alerts modal -->
+<div id="savedSearchesModal" class="modal-overlay hidden" onclick="if(event.target===this) closeSavedSearchesModal()">
+    <div class="modal-panel">
+        <div class="modal-header">
+            <div class="modal-icon" style="background:#eff6ff;color:#2563eb;"><i class="fas fa-bell"></i></div>
+            <div class="modal-title-wrap">
+                <div class="modal-title">Saved Searches &amp; Alerts</div>
+                <div class="modal-subtitle">Get a weekly email when a tracked search changes</div>
+            </div>
+            <button class="modal-close" onclick="closeSavedSearchesModal()"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body">
+            <div id="savedSearchesList" class="saved-searches-list"></div>
+        </div>
+        <div class="alerts-note" style="padding-bottom:1rem;">Each weekly check uses 1 credit per tracked search.</div>
     </div>
 </div>
 
@@ -383,6 +420,7 @@ const SUPABASE_URL = 'https://snxhsboboatjywgwdeds.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_RKidGRs4ch1ixmRfXoYSww_UsQMSe5w';
 const CREDITS_URL = 'https://linkfinderaicredits.hamoureliasse.workers.dev/';
 const UPGRADE_INTENT_WORKER = 'https://upgrade-intent.hamoureliasse.workers.dev/';
+const SAVED_SEARCH_ALERTS_WORKER = 'https://saved-search-alerts.hamoureliasse.workers.dev/';
 const PAGE_SIZE = 25;
 
 let userToken = null;
@@ -695,6 +733,11 @@ function openDetail(globalIdx) {
 
     document.getElementById('modalBody').innerHTML = bodyHtml;
 
+    const trackBtn = document.getElementById('modalTrackBtn');
+    trackBtn.classList.remove('saved');
+    trackBtn.disabled = false;
+    trackBtn.innerHTML = '<i class="fas fa-bell"></i> Get weekly alerts';
+
     const overlay = document.getElementById('detailModal');
     overlay.classList.remove('hidden');
     requestAnimationFrame(() => overlay.classList.add('open'));
@@ -712,7 +755,9 @@ function closeDetail() {
 }
 
 document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && activeDetailItem) closeDetail();
+    if (e.key !== 'Escape') return;
+    if (activeDetailItem) closeDetail();
+    if (!document.getElementById('savedSearchesModal').classList.contains('hidden')) closeSavedSearchesModal();
 });
 
 function toggleRawJson() {
@@ -819,6 +864,116 @@ function exportAll() {
     try { posthog.capture('history_exported', { count: filteredHistory.length }); } catch (e) {}
 }
 
+/* ---------------------------------------------------------------------
+   Saved searches / weekly change alerts — retention feature.
+   Turns any past history row into a tracked search that re-runs weekly
+   and emails the user if the result changed.
+--------------------------------------------------------------------- */
+function buildAlertsPayload(item) {
+    const info = getTypeInfo(item.type);
+    const payload = {
+        type: item.type,
+        input_data: item.input,
+        output_type: item.type.includes('_to_') ? item.type.slice(item.type.indexOf('_to_') + 4) : item.type,
+        label: `${info.label} for "${item.input}"`,
+    };
+    if (item.type === 'lead_full_name_to_email' || item.type === 'lead_full_name_to_linkedin_url') {
+        const parts = (item.input || '').split(' ');
+        payload.first_name = parts[0];
+        payload.last_name = parts.slice(1).join(' ');
+    }
+    if (item.type === 'company_domain_to_employees') {
+        payload.domain = item.input;
+    }
+    return payload;
+}
+
+async function trackActiveItemForAlerts() {
+    if (!activeDetailItem || !userToken) return;
+    const btn = document.getElementById('modalTrackBtn');
+    if (btn.classList.contains('saved')) return;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving…';
+    try {
+        const r = await fetch(SAVED_SEARCH_ALERTS_WORKER + 'save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: userToken, email: window.currentUserEmail || undefined, ...buildAlertsPayload(activeDetailItem) })
+        });
+        const d = await r.json().catch(() => ({}));
+        if (r.ok && d.ok) {
+            btn.classList.add('saved');
+            btn.innerHTML = '<i class="fas fa-check"></i> Tracking — weekly alerts on';
+            try { posthog.capture('saved_search_created', { type: activeDetailItem.type, source: 'history' }); } catch(e) {}
+        } else {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-bell"></i> Get weekly alerts';
+        }
+    } catch (e) {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-bell"></i> Get weekly alerts';
+    }
+}
+
+async function openSavedSearchesModal() {
+    const overlay = document.getElementById('savedSearchesModal');
+    overlay.classList.remove('hidden');
+    requestAnimationFrame(() => overlay.classList.add('open'));
+    document.body.style.overflow = 'hidden';
+    try { posthog.capture('saved_searches_modal_opened', { source: 'history' }); } catch(e) {}
+
+    const list = document.getElementById('savedSearchesList');
+    list.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--gray-400);"><i class="fas fa-spinner fa-spin"></i></div>';
+    try {
+        const r = await fetch(SAVED_SEARCH_ALERTS_WORKER + 'list', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: userToken })
+        });
+        const d = await r.json().catch(() => ({}));
+        const searches = (d && d.searches) || [];
+        if (!searches.length) {
+            list.innerHTML = '<div class="saved-searches-empty">No saved searches yet. Open any row below and click "Get weekly alerts" to track it.</div>';
+            return;
+        }
+        list.innerHTML = searches.map(s => `
+            <div class="saved-search-item" data-id="${s.id}">
+                <div>
+                    <div class="saved-search-item-label">${esc(s.label)}</div>
+                    <div class="saved-search-item-meta">${s.last_checked_at ? 'Last checked ' + timeAgo(s.last_checked_at) : 'Not checked yet'}</div>
+                </div>
+                <button class="saved-search-remove-btn" onclick="removeSavedSearch('${s.id}')"><i class="fas fa-trash"></i></button>
+            </div>
+        `).join('');
+    } catch (e) {
+        list.innerHTML = '<div class="saved-searches-empty" style="color:var(--error);">Could not load saved searches. Please try again.</div>';
+    }
+}
+
+function closeSavedSearchesModal() {
+    const overlay = document.getElementById('savedSearchesModal');
+    overlay.classList.remove('open');
+    document.body.style.overflow = '';
+    setTimeout(() => overlay.classList.add('hidden'), 200);
+}
+
+async function removeSavedSearch(id) {
+    try {
+        await fetch(SAVED_SEARCH_ALERTS_WORKER + 'remove', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: userToken, id })
+        });
+        try { posthog.capture('saved_search_removed', { source: 'history' }); } catch(e) {}
+        const el = document.querySelector(`.saved-search-item[data-id="${id}"]`);
+        if (el) el.remove();
+        const list = document.getElementById('savedSearchesList');
+        if (list && !list.querySelector('.saved-search-item')) {
+            list.innerHTML = '<div class="saved-searches-empty">No saved searches yet. Open any row below and click "Get weekly alerts" to track it.</div>';
+        }
+    } catch (e) {}
+}
+
 async function fetchCredits() {
     try {
         const r = await fetch(CREDITS_URL, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:userToken})});
@@ -836,6 +991,7 @@ async function loadHistory() {
         });
         const d = await r.json();
         isSubscriber = d.issub === true;
+        if (d.email) window.currentUserEmail = d.email;
     } catch(e) { isSubscriber = false; }
 
     document.getElementById('loadingState').classList.add('hidden');
