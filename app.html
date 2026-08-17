@@ -1678,8 +1678,12 @@ function handleDodoCheckoutEvent(event) {
 }
 
 async function launchCheckout({ planKey, analyticsPlanName, value, billingLabel, btnEl }) {
-    if (!userToken) {
+    // Matches the checkout worker's own validation (user_token.length < 8) so a
+    // short/corrupted token fails fast client-side with a clear message instead
+    // of round-tripping to the worker and surfacing as a generic checkout_error.
+    if (!userToken || typeof userToken !== 'string' || userToken.length < 8) {
         showAlert('Please log in to continue to checkout.', 'error');
+        try { posthog.capture('checkout_blocked_invalid_token'); } catch(e) {}
         return;
     }
     if (checkoutInFlight) return;
