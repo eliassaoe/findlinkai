@@ -3692,7 +3692,11 @@ async function handleAddCredits() {
     const btn = document.getElementById('buyCreditsBtn');
     const orig = btn.innerHTML; btn.innerHTML = '...'; btn.disabled = true;
     try {
-        const r = await fetch(UPGRADE_INTENT_WORKER, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: userToken, trigger: 'credits_exhausted', credits_remaining: currentCredits }) });
+        // Was hardcoded 'credits_exhausted' here, mislabeling every click of this
+        // always-visible header button (even from users with thousands of credits
+        // left) as a credit-exhaustion event - corrupting the pricing_modal_opened
+        // trigger breakdown in analytics and any backend logic keyed off it.
+        const r = await fetch(UPGRADE_INTENT_WORKER, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: userToken, trigger: 'buy_credits_btn', credits_remaining: currentCredits }) });
         const d = await r.json();
         if (d.issub === true) {
             isExistingSubscriber = true;
@@ -3701,7 +3705,7 @@ async function handleAddCredits() {
         }
     } catch(e) {}
     finally { btn.innerHTML = orig; btn.disabled = false; }
-    showPricingModal('credits_exhausted');
+    showPricingModal('buy_credits_btn');
 }
 
 function downloadExampleCSV(){
