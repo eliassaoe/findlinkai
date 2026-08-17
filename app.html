@@ -809,6 +809,7 @@
     
 <div id="lowCreditsBar" class="low-credits-bar"></div>
 <div id="closedWithoutPurchaseBanner" class="low-credits-bar" style="display:none;"></div>
+<div id="milestoneUpgradeBanner" class="low-credits-bar" style="display:none;"></div>
     
 <div id="annualBanner" style="display:none;background:linear-gradient(135deg,#f0fdf4,#dcfce7);border-bottom:1px solid #bbf7d0;padding:0.5rem 1rem;text-align:center;font-size:0.8rem;color:#166534;font-weight:500;">
   💡 You're on monthly — <strong>switch to annual and save 40%</strong> ($240/year) 
@@ -3583,6 +3584,17 @@ function checkEnrichmentMilestone() {
     fireUpgradeIntent('three_enrichments', { enrich_count: n, credits_remaining: currentCredits });
     try { posthog.capture('three_enrichments_milestone', { credits_remaining: currentCredits }); } catch(e) {}
     showNPS();
+    // Proven-value moment with no other upgrade surface: this is the only place
+    // in the app that nudges non-subscribers who haven't hit a credits/export
+    // gate yet (most signups never trigger those gates before going quiet).
+    if (!isExistingSubscriber) {
+        const bar = document.getElementById('milestoneUpgradeBanner');
+        if (bar) {
+            bar.innerHTML = `You've enriched ${n} leads with LinkFinder AI — nice. <a onclick="try{posthog.capture('milestone_upgrade_banner_clicked')}catch(e){}; showPricingModal('milestone_nudge')">See plans &rarr;</a> <a onclick="document.getElementById('milestoneUpgradeBanner').style.display='none'" style="margin-left:0.75rem;color:inherit;">Dismiss</a>`;
+            bar.style.display = 'block';
+            try { posthog.capture('milestone_upgrade_banner_shown', { enrich_count: n }); } catch(e) {}
+        }
+    }
 }
 }
 
