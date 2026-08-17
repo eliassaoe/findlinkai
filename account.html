@@ -1507,13 +1507,23 @@ window.connectHubspot = function connectHubspot() {
         if (subtitle) subtitle.textContent = 'Connected ✓';
         try { posthog.capture('hubspot_connected'); } catch(e) {}
         showToast();
-        const connectionId = event.payload && event.payload.connectionId;
+        // TEMP DEBUG: log the full payload so we can see the real shape
+        // Nango sends — remove this line once finalize-connection is
+        // confirmed working end to end.
+        console.log('[hubspot connect] event.payload:', JSON.stringify(event.payload));
+        const connectionId = event.payload && (event.payload.connectionId || event.payload.connection_id
+          || (event.payload.connection && event.payload.connection.connectionId));
+        console.log('[hubspot connect] resolved connectionId:', connectionId);
         if (connectionId) {
           fetch(CONNECT_SESSION_URL + 'finalize-connection', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ token: userToken, connectionId })
-          }).catch(() => {});
+          })
+            .then(r => r.json().then(d => console.log('[hubspot connect] finalize-connection response:', r.status, d)))
+            .catch(e => console.error('[hubspot connect] finalize-connection request failed:', e));
+        } else {
+          console.error('[hubspot connect] no connectionId found in event.payload — check the logged payload above');
         }
       } else if (event.type === 'close') {
         if (card) card.style.opacity = '1';
