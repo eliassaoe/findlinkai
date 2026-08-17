@@ -204,7 +204,7 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
                     <p class="field-hint">Found from the contact's name + company domain.</p>
                     <div class="field-prop-row">
                         <span>HubSpot property:</span>
-                        <input type="text" id="field_email_prop" class="prop-input" placeholder="email">
+                        <select id="field_email_prop" class="prop-input"><option value="">Loading properties…</option></select>
                     </div>
                 </div>
                 <div class="field-row" data-field="linkedin_url">
@@ -212,7 +212,7 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
                     <p class="field-hint">Found from the contact's name + company name.</p>
                     <div class="field-prop-row">
                         <span>HubSpot property:</span>
-                        <input type="text" id="field_linkedin_url_prop" class="prop-input" placeholder="linkedinbio">
+                        <select id="field_linkedin_url_prop" class="prop-input"><option value="">Loading properties…</option></select>
                     </div>
                 </div>
                 <div class="field-row" data-field="phone">
@@ -220,7 +220,7 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
                     <p class="field-hint">Needs a LinkedIn URL first — reuses one already on file, or finds one along the way (extra credit only when that's needed).</p>
                     <div class="field-prop-row">
                         <span>HubSpot property:</span>
-                        <input type="text" id="field_phone_prop" class="prop-input" placeholder="phone">
+                        <select id="field_phone_prop" class="prop-input"><option value="">Loading properties…</option></select>
                     </div>
                 </div>
             </div>
@@ -372,6 +372,29 @@ function renderSyncResult(result, lastSyncedAt) {
     document.getElementById('syncMeta').textContent = lastSyncedAt ? 'Last synced ' + timeAgo(lastSyncedAt) : '';
 }
 
+let hubspotPropertiesLoaded = false;
+
+async function loadHubspotProperties() {
+    if (hubspotPropertiesLoaded) return;
+    try {
+        const r = await fetch(WORKER_URL + 'list-properties', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: userToken })
+        });
+        const d = await r.json().catch(() => ({}));
+        const properties = (d && d.properties) || [];
+        for (const key of ['email', 'linkedin_url', 'phone']) {
+            const sel = document.getElementById(`field_${key}_prop`);
+            if (!sel) continue;
+            sel.innerHTML = properties.map(p => `<option value="${p.name}">${p.label}</option>`).join('');
+        }
+        hubspotPropertiesLoaded = true;
+    } catch (e) {
+        // Selects keep their "Loading properties…" placeholder — populateSettings
+        // still adds the currently-saved value as a fallback option below.
+    }
+}
+
 function populateSettings(settings) {
     if (!settings) return;
     for (const key of ['email', 'linkedin_url', 'phone']) {
@@ -379,7 +402,20 @@ function populateSettings(settings) {
         const enabledEl = document.getElementById(`field_${key}_enabled`);
         const propEl = document.getElementById(`field_${key}_prop`);
         if (enabledEl) enabledEl.checked = !!(f && f.enabled);
-        if (propEl && f && f.hubspotProperty) propEl.value = f.hubspotProperty;
+        if (propEl && f && f.hubspotProperty) {
+            const exists = Array.from(propEl.options).some(o => o.value === f.hubspotProperty);
+            if (!exists) {
+                // Currently-configured property wasn't in the fetched list (e.g.
+                // properties failed to load, or it's a value set before this
+                // dropdown existed) — keep it as a fallback option instead of
+                // silently discarding the user's setting.
+                const opt = document.createElement('option');
+                opt.value = f.hubspotProperty;
+                opt.textContent = f.hubspotProperty + ' (current)';
+                propEl.insertBefore(opt, propEl.firstChild);
+            }
+            propEl.value = f.hubspotProperty;
+        }
     }
     const maxEl = document.getElementById('maxPerRunInput');
     if (maxEl && settings.maxPerRun) maxEl.value = settings.maxPerRun;
@@ -424,7 +460,7 @@ window.saveSettings = async function saveSettings() {
     }
 };
 
-function renderConnected(d) {
+async function renderConnected(d) {
     document.getElementById('connSubtitle').textContent = 'Connected · connected ' + timeAgo(d.connectedAt);
     document.getElementById('connSubtitle').classList.add('connected');
     document.getElementById('connectBtn').classList.add('hidden');
@@ -432,6 +468,7 @@ function renderConnected(d) {
     document.getElementById('disconnectBtn').classList.remove('hidden');
     document.getElementById('settingsCard').classList.remove('hidden');
 
+    await loadHubspotProperties();
     populateSettings(d.settings);
     renderSyncResult(d.lastSyncResult, d.lastSyncedAt);
 }
