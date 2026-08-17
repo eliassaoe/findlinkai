@@ -493,6 +493,10 @@ console.log(data.result); <span class="cm">// "tesla.com"</span></pre>
                     <i class="fas fa-triangle-exclamation"></i>
                     <div>A <code>202</code> response with <code>status: "processing"</code> is not an error — it's the expected response for the always-async endpoint. Poll the returned <code>poll_url</code> until <code>status</code> is <code>"done"</code>. Job results expire after <strong>10 minutes</strong>.</div>
                 </div>
+                <div class="info-box blue">
+                    <i class="fas fa-clock"></i>
+                    <div><code>linkedin_profile_to_linkedin_info</code> triggers a live LinkedIn scrape, which normally takes about <strong>one minute</strong>. Wait ~60s before your first poll, then poll every <strong>10-15s</strong> after that — polling immediately or more frequently will just return <code>"status": "processing"</code> until the scrape finishes, and can trip our rate limits.</div>
+                </div>
                 <div class="info-box purple">
                     <i class="fas fa-circle-info"></i>
                     <div><strong>Any endpoint can occasionally respond this way.</strong> Every request — not just the always-async one — races against a ~27 second window on our side. If the lookup hasn't finished by then, you'll get the same <code>202</code> / <code>job_id</code> / <code>poll_url</code> shape instead of an immediate result, even for endpoints tagged <span class="sync-tag" style="vertical-align:middle"><i class="fas fa-bolt"></i> Sync</span>. This is most likely on <code>company_domain_to_employees</code>, since bulk employee lookups can take longer than average. Don't assume a fixed response shape based on endpoint name alone — always check whether the response contains a <code>job_id</code> before parsing it as a final result.</div>
@@ -791,12 +795,16 @@ leads.forEach(lead => console.log(lead.full_name, lead.email));</pre>
                                 <pre class="code-block" style="border-radius:8px">curl "https://api.linkfinderai.com/status/c9f1e2a0-..." \
      -H "Authorization: Bearer <span class="st">YOUR_API_KEY</span>"
 
-<span class="cm">// Repeat every 3-5s until:</span>
+<span class="cm">// Wait ~60s before your first poll, then repeat every 10-15s until:</span>
 {
   <span class="ky">"status"</span>: <span class="st">"done"</span>,
   <span class="ky">"data"</span>: { <span class="ky">"result"</span>: {<span class="cm">...</span>}, <span class="ky">"status"</span>: <span class="st">"success"</span> }
 }</pre>
                             </div>
+                        </div>
+                        <div class="info-box blue" style="margin-top:.75rem">
+                            <i class="fas fa-circle-info"></i>
+                            <div>The <code>result</code> object can include company, education history, experience history, follower count, headline, job title, location, email, mobile number, and website — each field is only present when it was publicly discoverable for that profile. If contact data (email/phone) is your primary goal, the dedicated <code>linkedin_profile_to_email</code> and <code>linkedin_profile_to_phone</code> endpoints are purpose-built for that and may find results this endpoint doesn't.</div>
                         </div>
                     </div>
                 </div>
