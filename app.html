@@ -2303,14 +2303,21 @@ async function enrichData(event) {
         if (currentOutputType==='reactions'&&Array.isArray(data)&&data.length>0) { deductCredits(data.length); showSingleResultReactions(inputValue,data); checkEnrichmentMilestone(); maybeTriggerFirstSuccessPrompts(); showSavedPill(); showSuccessToast('Result found'); return; }
         if (currentOutputType==='employee_count') { deductCredits(getCreditCost(currentInputType,currentOutputType)); showSingleResultEmployeeCount(inputValue,data); checkEnrichmentMilestone(); maybeTriggerFirstSuccessPrompts(); showSavedPill(); showSuccessToast('Result found'); return; }
         if (currentOutputType==='employees'&&Array.isArray(data)&&data.length>0) { deductCredits(data.length*0.5); showSingleResultEmployees(inputValue,data); checkEnrichmentMilestone(); maybeTriggerFirstSuccessPrompts(); showSavedPill(); showSuccessToast('Result found'); return; }
-        if (response.status===403&&data.code===403) { 
-    try { posthog.capture('credits_exhausted', { input_type: currentInputType, output_type: currentOutputType, credits_remaining: currentCredits }); } catch(e) {} 
+        if (response.status===403&&data.code===403) {
+    try { posthog.capture('credits_exhausted', { input_type: currentInputType, output_type: currentOutputType, credits_remaining: currentCredits }); } catch(e) {}
     currentCredits = 0;
     document.getElementById('creditsCount').textContent = '0';
     updateLowCreditsWarning(0);
     updateZeroCreditsState(0);
-    showAlert("You're out of credits. Your inputs are still here — upgrade below to keep going.", 'warning');
-    return; 
+    // Was just a passive toast the user could dismiss and forget - this modal
+    // (tier selection, usage context, no-subscription-needed messaging) already
+    // existed fully built but was never wired up to the actual exhaustion event.
+    if (!isExistingSubscriber) {
+        showInsufficientCreditsModal('single_enrichment');
+    } else {
+        showAlert("You're out of credits. Your inputs are still here — upgrade below to keep going.", 'warning');
+    }
+    return;
 }
         if (response.ok&&data&&(data.result||data.name)) {
             deductCredits(getCreditCost(currentInputType,currentOutputType));
