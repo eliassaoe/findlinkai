@@ -478,7 +478,35 @@ button#submitButton:disabled{opacity:0.6;cursor:not-allowed;}
           showMessage('Account created! Redirecting to your dashboard...', 'success');
           setTimeout(() => redirectToApp(data.token), 800);
         } else {
-          showMessage('Account created but something went wrong. Please try <a href="https://linkfinderai.com/log-in" style="color:#991b1b;font-weight:600;">signing in</a>.');
+          // Account was created server-side (response.ok) but no token came back -
+          // previously this fired neither signup_success nor signup_failed, an
+          // invisible gap that (per PostHog) accounted for a large share of
+          // submitted signups. Try a recovery login with the same credentials
+          // instead of stranding the user on a dead-end message.
+          try { posthog.capture('signup_success_no_token', {method:'email'}); } catch(e) {}
+          try {
+            const loginResp = await fetch('https://linkfinderai-login.hamoureliasse.workers.dev', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'X-API-Secret': window.LF_API_KEY },
+              body: JSON.stringify({ email, password, type: 'login' })
+            });
+            const loginData = await loginResp.json().catch(() => ({}));
+            if (loginResp.ok && loginData.token) {
+              try { plausible('Signup Success', {props:{method:'email'}}); } catch(e) {}
+              try { posthog.identify(loginData.token, {email, signup_method:'email'}); } catch(e) {}
+              try { posthog.capture('signup_success', {method:'email', recovered_via_login: true}); } catch(e) {}
+              localStorage.removeItem('lf_lastSearch');
+              localStorage.removeItem('lf_searchType');
+              showMessage('Account created! Redirecting to your dashboard...', 'success');
+              setTimeout(() => redirectToApp(loginData.token), 800);
+            } else {
+              try { posthog.capture('signup_failed', {method:'email', reason:'no_token_recovery_failed'}); } catch(e) {}
+              showMessage('Account created but something went wrong. Please try <a href="https://linkfinderai.com/log-in" style="color:#991b1b;font-weight:600;">signing in</a>.');
+            }
+          } catch(recoveryErr) {
+            try { posthog.capture('signup_failed', {method:'email', reason:'no_token_recovery_error'}); } catch(e) {}
+            showMessage('Account created but something went wrong. Please try <a href="https://linkfinderai.com/log-in" style="color:#991b1b;font-weight:600;">signing in</a>.');
+          }
         }
       } else {
         try { plausible('Signup Failed', {props:{method:'email',reason:'server_error'}}); } catch(e) {}

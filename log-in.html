@@ -199,7 +199,9 @@ button:disabled{opacity:0.6;cursor:not-allowed;}
             window.location.href = `https://linkfinderai.com/app?token=${data.token}`;
           }, 800);
         } else {
-          showMessage('Login successful but no token received.');
+          // Same silent gap as signup: HTTP 200 but no token, previously untracked.
+          try { posthog.capture('login_failed', { method: 'email', reason: 'no_token' }); } catch(e) {}
+          showMessage('Login successful but no token received. Please try again or contact support.');
         }
       } else {
         const errorData = await response.json().catch(() => ({}));

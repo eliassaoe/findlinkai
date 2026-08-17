@@ -1872,6 +1872,14 @@ function setBilling(type) {
     
 function showPricingModal(trigger, extra) {
     try { window.uetq = window.uetq || []; window.uetq.push('event', 'begin_checkout', {}); } catch(e) {}
+    // Someone clicking "buy credits" wants more credits now, not necessarily a
+    // monthly commitment - default them to the $25 one-time PAYG pack instead
+    // of leading with the $49/mo subscription (the modal's default). Excludes
+    // export_gated, since PAYG credits don't unlock bulk export - only a
+    // subscription does (see exportGateNoticeText copy).
+    if (!isExistingSubscriber && trigger === 'buy_credits_btn') {
+        billingMode = 'payg';
+    }
     document.getElementById('paygBtn').classList.toggle('active', billingMode === 'payg');
     document.getElementById('monthlyBtn').classList.toggle('active', billingMode === 'monthly');
     document.getElementById('annualBtn').classList.toggle('active', billingMode === 'annual');
@@ -2295,14 +2303,21 @@ async function enrichData(event) {
         if (currentOutputType==='reactions'&&Array.isArray(data)&&data.length>0) { deductCredits(data.length); showSingleResultReactions(inputValue,data); checkEnrichmentMilestone(); maybeTriggerFirstSuccessPrompts(); showSavedPill(); showSuccessToast('Result found'); return; }
         if (currentOutputType==='employee_count') { deductCredits(getCreditCost(currentInputType,currentOutputType)); showSingleResultEmployeeCount(inputValue,data); checkEnrichmentMilestone(); maybeTriggerFirstSuccessPrompts(); showSavedPill(); showSuccessToast('Result found'); return; }
         if (currentOutputType==='employees'&&Array.isArray(data)&&data.length>0) { deductCredits(data.length*0.5); showSingleResultEmployees(inputValue,data); checkEnrichmentMilestone(); maybeTriggerFirstSuccessPrompts(); showSavedPill(); showSuccessToast('Result found'); return; }
-        if (response.status===403&&data.code===403) { 
-    try { posthog.capture('credits_exhausted', { input_type: currentInputType, output_type: currentOutputType, credits_remaining: currentCredits }); } catch(e) {} 
+        if (response.status===403&&data.code===403) {
+    try { posthog.capture('credits_exhausted', { input_type: currentInputType, output_type: currentOutputType, credits_remaining: currentCredits }); } catch(e) {}
     currentCredits = 0;
     document.getElementById('creditsCount').textContent = '0';
     updateLowCreditsWarning(0);
     updateZeroCreditsState(0);
-    showAlert("You're out of credits. Your inputs are still here — upgrade below to keep going.", 'warning');
-    return; 
+    // Was just a passive toast the user could dismiss and forget - this modal
+    // (tier selection, usage context, no-subscription-needed messaging) already
+    // existed fully built but was never wired up to the actual exhaustion event.
+    if (!isExistingSubscriber) {
+        showInsufficientCreditsModal('single_enrichment');
+    } else {
+        showAlert("You're out of credits. Your inputs are still here — upgrade below to keep going.", 'warning');
+    }
+    return;
 }
         if (response.ok&&data&&(data.result||data.name)) {
             deductCredits(getCreditCost(currentInputType,currentOutputType));
@@ -3692,7 +3707,11 @@ async function handleAddCredits() {
     const btn = document.getElementById('buyCreditsBtn');
     const orig = btn.innerHTML; btn.innerHTML = '...'; btn.disabled = true;
     try {
-        const r = await fetch(UPGRADE_INTENT_WORKER, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: userToken, trigger: 'credits_exhausted', credits_remaining: currentCredits }) });
+        // Was hardcoded 'credits_exhausted' here, mislabeling every click of this
+        // always-visible header button (even from users with thousands of credits
+        // left) as a credit-exhaustion event - corrupting the pricing_modal_opened
+        // trigger breakdown in analytics and any backend logic keyed off it.
+        const r = await fetch(UPGRADE_INTENT_WORKER, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: userToken, trigger: 'buy_credits_btn', credits_remaining: currentCredits }) });
         const d = await r.json();
         if (d.issub === true) {
             isExistingSubscriber = true;
@@ -3701,7 +3720,7 @@ async function handleAddCredits() {
         }
     } catch(e) {}
     finally { btn.innerHTML = orig; btn.disabled = false; }
-    showPricingModal('credits_exhausted');
+    showPricingModal('buy_credits_btn');
 }
 
 function downloadExampleCSV(){
