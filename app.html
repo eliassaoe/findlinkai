@@ -2938,6 +2938,8 @@ document.addEventListener('DOMContentLoaded',()=>{
     checkAuth(); fetchCredits(); setupFileUpload(); setupDragAndDrop();
     setupNavigation(); setupModalEvents(); setupDropdowns();
     handleDodoReturnStatus();
+    // Delay so fetchCredits() has resolved and isExistingSubscriber is accurate.
+    setTimeout(maybeShowTimeBasedUpgradeNudge, 3000);
     const pb=document.getElementById('processBulkBtn');
     pb.disabled=true; pb.style.opacity='0.5';
     pb.innerHTML='<i class="fas fa-upload"></i> Upload a CSV file first';
@@ -3579,15 +3581,14 @@ function checkEnrichmentMilestone() {
         localStorage.setItem(otpMilestoneFiredKey, '1');
         setTimeout(() => maybeShowOnboardingTasksPopup('second_enrichment'), 1200);
     }
-   if (n === 10 && !localStorage.getItem(firedKey)) {
-    localStorage.setItem(firedKey, '1');
-    fireUpgradeIntent('three_enrichments', { enrich_count: n, credits_remaining: currentCredits });
-    try { posthog.capture('three_enrichments_milestone', { credits_remaining: currentCredits }); } catch(e) {}
-    showNPS();
-    // Proven-value moment with no other upgrade surface: this is the only place
-    // in the app that nudges non-subscribers who haven't hit a credits/export
-    // gate yet (most signups never trigger those gates before going quiet).
-    if (!isExistingSubscriber) {
+   // Earlier, dedicated upgrade nudge: most signups never reach 10 enrichments
+    // or trigger a credits/export gate before going quiet, so they never see
+    // any upgrade surface at all. This fires independently of the n===10 NPS/
+    // upgrade-intent block below, on its own fired-flag, so it doesn't change
+    // when NPS is asked.
+    const earlyNudgeFiredKey = 'lf_early_upgrade_nudge_fired';
+    if (n === 3 && !isExistingSubscriber && !localStorage.getItem(earlyNudgeFiredKey)) {
+        localStorage.setItem(earlyNudgeFiredKey, '1');
         const bar = document.getElementById('milestoneUpgradeBanner');
         if (bar) {
             bar.innerHTML = `You've enriched ${n} leads with LinkFinder AI — nice. <a onclick="try{posthog.capture('milestone_upgrade_banner_clicked')}catch(e){}; showPricingModal('milestone_nudge')">See plans &rarr;</a> <a onclick="document.getElementById('milestoneUpgradeBanner').style.display='none'" style="margin-left:0.75rem;color:inherit;">Dismiss</a>`;
@@ -3595,7 +3596,41 @@ function checkEnrichmentMilestone() {
             try { posthog.capture('milestone_upgrade_banner_shown', { enrich_count: n }); } catch(e) {}
         }
     }
+   if (n === 10 && !localStorage.getItem(firedKey)) {
+    localStorage.setItem(firedKey, '1');
+    fireUpgradeIntent('three_enrichments', { enrich_count: n, credits_remaining: currentCredits });
+    try { posthog.capture('three_enrichments_milestone', { credits_remaining: currentCredits }); } catch(e) {}
+    showNPS();
 }
+}
+
+// Catches signups who come back but never hit an enrichment-count milestone or a
+// credits/export gate (e.g. they only ever run 1-2 searches per visit) - without
+// this, those users never see any upgrade surface at all. Fires at most once,
+// on a return visit at least 2 days after their first visit, and only if no
+// other upgrade banner is already showing.
+function maybeShowTimeBasedUpgradeNudge() {
+    if (isExistingSubscriber) return;
+    const FIRST_SEEN_KEY = 'lf_first_seen_at';
+    const SHOWN_KEY = 'lf_time_upgrade_nudge_shown';
+    if (localStorage.getItem(SHOWN_KEY)) return;
+
+    let firstSeen = localStorage.getItem(FIRST_SEEN_KEY);
+    if (!firstSeen) {
+        localStorage.setItem(FIRST_SEEN_KEY, String(Date.now()));
+        return; // first visit ever - nothing to nudge yet
+    }
+
+    const daysSince = (Date.now() - parseInt(firstSeen, 10)) / (1000 * 60 * 60 * 24);
+    if (daysSince < 2) return;
+
+    const bar = document.getElementById('milestoneUpgradeBanner');
+    if (!bar || bar.style.display === 'block') return; // don't clobber another banner already shown this load
+
+    localStorage.setItem(SHOWN_KEY, '1');
+    bar.innerHTML = `Still exploring LinkFinder AI? <a onclick="try{posthog.capture('time_upgrade_banner_clicked')}catch(e){}; showPricingModal('time_nudge')">See plans &rarr;</a> <a onclick="document.getElementById('milestoneUpgradeBanner').style.display='none'" style="margin-left:0.75rem;color:inherit;">Dismiss</a>`;
+    bar.style.display = 'block';
+    try { posthog.capture('time_upgrade_banner_shown', { days_since_first_seen: Math.round(daysSince) }); } catch(e) {}
 }
 
 // --- Export gate helper ---
