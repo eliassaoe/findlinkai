@@ -286,8 +286,10 @@ import Nango from 'https://esm.sh/@nangohq/frontend@0.58.4';
 const NANGO_API_URL = 'https://api.nango.dev';
 const NANGO_CONNECT_UI_URL = 'https://connect.nango.dev';
 const WORKER_URL = 'https://nango-connect-session.hamoureliasse.workers.dev/';
+const UPGRADE_INTENT_WORKER = 'https://upgrade-intent.hamoureliasse.workers.dev/';
 
 let userToken = null;
+let isSubscriber = false;
 const urlParams = new URLSearchParams(window.location.search);
 const gclid = urlParams.get('gclid');
 function addGclid(url) { if (!gclid) return url; return url + (url.includes('?') ? '&' : '?') + 'gclid=' + gclid; }
@@ -465,12 +467,19 @@ window.saveSettings = async function saveSettings() {
 };
 
 async function renderConnected(d) {
-    document.getElementById('connSubtitle').textContent = 'Connected · connected ' + timeAgo(d.connectedAt);
+    if (isSubscriber) {
+        document.getElementById('connSubtitle').textContent = 'Connected · connected ' + timeAgo(d.connectedAt);
+    } else {
+        // Connected from an earlier active subscription that's since lapsed —
+        // the worker silently skips syncing in this state, so say so here
+        // rather than leaving it looking connected-and-working.
+        document.getElementById('connSubtitle').innerHTML = 'Connected, but syncing is paused — your subscription has lapsed. <a href="#" onclick="window.location.href=addGclid(\'https://linkfinderai.com/app?token=\'+userToken+\'&action=upgrade\');return false;" style="color:var(--primary);font-weight:600;">Resubscribe &rarr;</a>';
+    }
     document.getElementById('connSubtitle').classList.add('connected');
     document.getElementById('connectBtn').classList.add('hidden');
-    document.getElementById('syncNowBtn').classList.remove('hidden');
+    document.getElementById('syncNowBtn').classList.toggle('hidden', !isSubscriber);
     document.getElementById('disconnectBtn').classList.remove('hidden');
-    document.getElementById('settingsCard').classList.remove('hidden');
+    document.getElementById('settingsCard').classList.toggle('hidden', !isSubscriber);
 
     await loadHubspotProperties();
     populateSettings(d.settings);
@@ -478,13 +487,41 @@ async function renderConnected(d) {
 }
 
 function renderNotConnected() {
-    document.getElementById('connSubtitle').textContent = 'Not connected';
-    document.getElementById('connSubtitle').classList.remove('connected');
-    document.getElementById('connectBtn').classList.remove('hidden');
     document.getElementById('syncNowBtn').classList.add('hidden');
     document.getElementById('disconnectBtn').classList.add('hidden');
     document.getElementById('syncResults').classList.add('hidden');
     document.getElementById('settingsCard').classList.add('hidden');
+
+    const connectBtn = document.getElementById('connectBtn');
+    if (isSubscriber) {
+        document.getElementById('connSubtitle').textContent = 'Not connected';
+        document.getElementById('connSubtitle').classList.remove('connected');
+        connectBtn.classList.remove('hidden');
+        connectBtn.disabled = false;
+        connectBtn.innerHTML = '<i class="fas fa-link"></i> Connect HubSpot';
+        connectBtn.onclick = window.connectHubspot;
+    } else {
+        document.getElementById('connSubtitle').innerHTML = 'Available on paid plans';
+        document.getElementById('connSubtitle').classList.remove('connected');
+        connectBtn.classList.remove('hidden');
+        connectBtn.disabled = false;
+        connectBtn.innerHTML = '<i class="fas fa-arrow-up"></i> Upgrade to connect';
+        connectBtn.onclick = () => {
+            try { posthog.capture('crm_sync_upgrade_clicked'); } catch(e) {}
+            window.location.href = addGclid('https://linkfinderai.com/app?token=' + userToken + '&action=upgrade');
+        };
+    }
+}
+
+async function checkSubscription() {
+    try {
+        const r = await fetch(UPGRADE_INTENT_WORKER, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: userToken, trigger: 'crm_sync_page_load' })
+        });
+        const d = await r.json().catch(() => ({}));
+        isSubscriber = d.issub === true;
+    } catch (e) { isSubscriber = false; }
 }
 
 async function refreshStatus() {
@@ -594,10 +631,11 @@ window.logout = logout;
 window.nav = nav;
 window.handleAddCredits = handleAddCredits;
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     checkAuth();
     fetchCredits();
-    refreshStatus();
+    await checkSubscription();
+    await refreshStatus();
     try { posthog.capture('crm_sync_page_viewed'); } catch(e) {}
 });
 </script>
