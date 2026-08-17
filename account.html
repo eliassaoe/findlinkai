@@ -1483,8 +1483,10 @@ import Nango from 'https://esm.sh/@nangohq/frontend@0.58.4';
 
 const NANGO_API_URL = 'https://api.nango.dev';
 const NANGO_CONNECT_UI_URL = 'https://connect.nango.dev';
-// Backend endpoint that creates a short-lived Nango Connect Session (see nango-connect-session-worker.js).
-// Replace with the real deployed URL once that worker is live.
+// Backend worker: creates a short-lived Nango Connect Session, tracks the
+// connection once established, and runs the weekly HubSpot enrichment sync
+// (crm-sync-worker.js). Deploy that Cloudflare Worker under the exact name
+// `nango-connect-session` so its URL matches this constant.
 const CONNECT_SESSION_URL = 'https://nango-connect-session.hamoureliasse.workers.dev/';
 
 const nangoClient = new Nango({ host: NANGO_API_URL, publicKey: 'empty' });
@@ -1505,6 +1507,14 @@ window.connectHubspot = function connectHubspot() {
         if (subtitle) subtitle.textContent = 'Connected ✓';
         try { posthog.capture('hubspot_connected'); } catch(e) {}
         showToast();
+        const connectionId = event.payload && event.payload.connectionId;
+        if (connectionId) {
+          fetch(CONNECT_SESSION_URL + 'finalize-connection', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: userToken, connectionId })
+          }).catch(() => {});
+        }
       } else if (event.type === 'close') {
         if (card) card.style.opacity = '1';
         if (subtitle && subtitle.textContent === 'Opening HubSpot connect…') subtitle.textContent = defaultSubtitle;
@@ -1532,6 +1542,25 @@ window.connectHubspot = function connectHubspot() {
       alert('Could not start the HubSpot connection. Please try again.');
     });
 };
+
+// Reflect an already-connected HubSpot account on a fresh page load —
+// otherwise the card resets to "Enrich HubSpot companies & contacts" every
+// time the page is reloaded, even for users who already connected.
+if (userToken) {
+  fetch(CONNECT_SESSION_URL + 'status', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token: userToken })
+  })
+    .then(r => r.json())
+    .then(d => {
+      if (d && d.connected) {
+        const subtitle = document.getElementById('hubspotCardSubtitle');
+        if (subtitle) subtitle.textContent = 'Connected ✓';
+      }
+    })
+    .catch(() => {});
+}
 </script>
 </body>
 </html>
