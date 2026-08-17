@@ -1024,12 +1024,16 @@
             <div id="singleResult" class="result-card">
                 <textarea id="resultText" class="result-text" readonly placeholder="Enriched data will appear here..."></textarea>
                 <div id="resultLink" class="result-link"></div>
+                <div id="hubspotActionContainer" class="hidden" style="margin-top:1rem;padding-top:1rem;border-top:1px dashed var(--gray-200);"></div>
             </div>
             <!-- REPLACE this whole block: -->
 <div id="bulkResults" class="hidden">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:0.5rem;">
         <h4 style="font-size:1rem;color:var(--gray-700);">Results</h4>
-        <button onclick="downloadResults()" class="btn"><i class="fas fa-download"></i> Export</button>
+        <div style="display:flex;gap:0.5rem;">
+            <button id="sendAllToHubspotBtn" onclick="sendBulkToHubspot()" class="btn btn-outline hidden"><i class="fab fa-hubspot"></i> Send all to HubSpot</button>
+            <button onclick="downloadResults()" class="btn"><i class="fas fa-download"></i> Export</button>
+        </div>
     </div>
     <div id="confidenceFilterBar" style="display:none;align-items:center;gap:0.75rem;margin-bottom:0.75rem;">
         <span style="font-size:0.8rem;color:var(--gray-600);font-weight:500;">Show:</span>
@@ -2284,6 +2288,8 @@ async function enrichData(event) {
     if (currentInputType==='linkedin_post' && !inputValue.toLowerCase().includes('linkedin.com/posts/')) { showAlert('Please enter a valid LinkedIn Post URL (must include linkedin.com/posts/)','error'); restoreBtn(); return; }
     if (currentInputType==='linkedin_company' && !inputValue.toLowerCase().includes('linkedin.com/company/')) { showAlert('Please enter a valid LinkedIn Company URL (must include linkedin.com/company/)','error'); restoreBtn(); return; }
     if (currentInputType==='company_domain' && !inputValue.includes('.')) { showAlert('Invalid input — please enter a valid domain (e.g., tesla.com)','error'); restoreBtn(); return; }
+    window.lastEnrichedContact = null;
+    renderHubspotActionButton();
     showLoading();
     try {
         const response = await fetchWithTimeout('https://linkfinderapp.hamoureliasse.workers.dev/', {
@@ -2325,6 +2331,7 @@ async function enrichData(event) {
             deductCredits(getCreditCost(currentInputType,currentOutputType));
             if (data.name&&!data.result) showSingleResult(inputValue,data);
             else showSingleResult(inputValue, data.result||'Not found', data.confidence);
+            captureAndRenderHubspotAction(inputValue, data);
             checkEnrichmentMilestone();
             maybeTriggerFirstSuccessPrompts();
             showSavedPill();
@@ -2791,6 +2798,7 @@ async function processBulk() {
     if (bulkResults.some(r => r.status === 'Found')) {
         checkEnrichmentMilestone();
         maybeTriggerFirstSuccessPrompts();
+        showBulkHubspotButtonIfApplicable();
     }
 }
 
@@ -2956,7 +2964,7 @@ function removeRefreshWarning(){window.removeEventListener('beforeunload',handle
 function handleBeforeUnload(e){if(isBulkProcessing){e.preventDefault();e.returnValue='';return '';}}
 
 document.addEventListener('DOMContentLoaded',()=>{
-    checkAuth(); fetchCredits(); setupFileUpload(); setupDragAndDrop();
+    checkAuth(); fetchCredits(); checkHubspotConnection(); setupFileUpload(); setupDragAndDrop();
     setupNavigation(); setupModalEvents(); setupDropdowns();
     handleDodoReturnStatus();
     // Delay so fetchCredits() has resolved and isExistingSubscriber is accurate.
@@ -3572,6 +3580,178 @@ async function submitFeedback(event){
 const UPGRADE_INTENT_WORKER = 'https://upgrade-intent.hamoureliasse.workers.dev/';
 async function fireUpgradeIntent(trigger, extras = {}) {
     try { await fetch(UPGRADE_INTENT_WORKER, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: userToken, trigger, ...extras }) }); } catch(e) {}
+}
+
+/* ---------------------------------------------------------------------
+   Push enrichment results straight into HubSpot (single result + bulk),
+   and nudge non-connected users toward /crm-sync at the exact moment
+   there's something worth sending - a much stronger discovery path than
+   hoping people find that tab on their own.
+--------------------------------------------------------------------- */
+const CRM_SYNC_WORKER = 'https://nango-connect-session.hamoureliasse.workers.dev/';
+let hubspotConnected = null; // null = not checked yet
+window.lastEnrichedContact = null;
+
+async function checkHubspotConnection() {
+    try {
+        const r = await fetch(CRM_SYNC_WORKER + 'status', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: userToken })
+        });
+        const d = await r.json().catch(() => ({}));
+        hubspotConnected = !!(d && d.connected);
+    } catch (e) { hubspotConnected = false; }
+    renderHubspotActionButton();
+}
+
+// Pulls whatever person-identifiable fields are available out of a single
+// enrichment result, regardless of which output type produced it.
+function extractContactFromResult(data) {
+    const contact = {};
+    if (data && typeof data === 'object' && data.name) {
+        // Full LinkedIn profile object
+        const parts = String(data.name).trim().split(/\s+/);
+        contact.firstName = parts[0] || '';
+        contact.lastName = parts.slice(1).join(' ') || '';
+        if (data.email && data.email !== 'Not found') contact.email = data.email;
+        if (data.mobileNumber && data.mobileNumber !== 'Not found' && data.mobileNumber !== 'Not specified') contact.phone = data.mobileNumber;
+        contact.linkedinUrl = data.linkedinUrl || (currentInputType === 'linkedin_profile' ? inputValueForLastEnrichment : '') || '';
+        if (data.company) contact.company = data.company;
+        if (data.jobTitle && data.jobTitle !== 'Not specified') contact.jobTitle = data.jobTitle;
+    } else if (typeof data?.result === 'string' && data.result !== 'Not found') {
+        const val = data.result;
+        if (currentOutputType === 'email') contact.email = val;
+        else if (currentOutputType === 'phone') contact.phone = val;
+        else if (currentOutputType === 'linkedin_url') contact.linkedinUrl = val;
+        else return null; // website/employee_count etc. aren't contact-shaped
+
+        if (currentInputType === 'lead_full_name') {
+            const parts = (inputValueForLastEnrichment || '').trim().split(/\s+/);
+            contact.firstName = parts[0] || '';
+            contact.lastName = parts.slice(1).join(' ') || '';
+        } else if (currentInputType === 'linkedin_profile') {
+            contact.linkedinUrl = inputValueForLastEnrichment;
+        } else if (currentInputType === 'email') {
+            contact.email = inputValueForLastEnrichment;
+        }
+    }
+    return (contact.email || contact.linkedinUrl || contact.phone) ? contact : null;
+}
+
+let inputValueForLastEnrichment = '';
+
+function captureAndRenderHubspotAction(rawInputValue, data) {
+    inputValueForLastEnrichment = rawInputValue;
+    window.lastEnrichedContact = extractContactFromResult(data);
+    renderHubspotActionButton();
+}
+
+function renderHubspotActionButton() {
+    const container = document.getElementById('hubspotActionContainer');
+    if (!container) return;
+    if (!window.lastEnrichedContact) { container.classList.add('hidden'); container.innerHTML = ''; return; }
+
+    if (hubspotConnected === true) {
+        container.classList.remove('hidden');
+        container.innerHTML = `<button class="btn btn-outline" id="sendToHubspotBtn" onclick="sendToHubspot()"><i class="fab fa-hubspot"></i> Send to HubSpot</button>`;
+    } else if (hubspotConnected === false) {
+        container.classList.remove('hidden');
+        container.innerHTML = `<div style="font-size:0.85rem;color:var(--gray-600);display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;">
+            <i class="fab fa-hubspot" style="color:#ff7a59;"></i>
+            <span>Auto-save finds like this to your CRM.</span>
+            <a href="#" onclick="try{posthog.capture('crm_sync_nudge_clicked',{source:'app_result'})}catch(e){}; window.location.href=addGclid('https://linkfinderai.com/crm-sync?token='+userToken); return false;" style="color:var(--primary);font-weight:600;text-decoration:none;">Connect HubSpot &rarr;</a>
+        </div>`;
+    } else {
+        container.classList.add('hidden'); // still checking connection status
+    }
+}
+
+window.sendToHubspot = async function sendToHubspot() {
+    if (!window.lastEnrichedContact) return;
+    const btn = document.getElementById('sendToHubspotBtn');
+    const orig = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending…';
+    try {
+        const r = await fetch(CRM_SYNC_WORKER + 'push-contacts', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: userToken, contacts: [window.lastEnrichedContact] })
+        });
+        const d = await r.json().catch(() => ({}));
+        if (r.ok && d.ok && (d.created || d.updated)) {
+            btn.innerHTML = `<i class="fas fa-check"></i> ${d.created ? 'Added to HubSpot' : 'Updated in HubSpot'}`;
+            try { posthog.capture('sent_to_hubspot', { source: 'single', action: d.created ? 'created' : 'updated' }); } catch(e) {}
+        } else if (r.ok && d.ok && d.skipped) {
+            btn.innerHTML = '<i class="fas fa-check"></i> Already in HubSpot';
+        } else {
+            btn.disabled = false; btn.innerHTML = orig;
+            showAlert(d.error || 'Could not send to HubSpot. Please try again.', 'error');
+        }
+    } catch (e) {
+        btn.disabled = false; btn.innerHTML = orig;
+        showAlert('Network error sending to HubSpot. Please try again.', 'error');
+    }
+};
+
+// Bulk mode: pulls contact-shaped rows out of the completed bulkResults
+// table and pushes them all in one call.
+window.sendBulkToHubspot = async function sendBulkToHubspot() {
+    if (hubspotConnected === false) {
+        try { posthog.capture('crm_sync_nudge_clicked', { source: 'bulk_results' }); } catch(e) {}
+        window.location.href = addGclid('https://linkfinderai.com/crm-sync?token=' + userToken);
+        return;
+    }
+    const contacts = (bulkResults || [])
+        .filter(row => row.status === 'Found')
+        .map(row => {
+            const contact = {};
+            if (currentOutputType === 'email') contact.email = row.result;
+            else if (currentOutputType === 'phone') contact.phone = row.result;
+            else if (currentOutputType === 'linkedin_url') contact.linkedinUrl = row.result;
+            else return null;
+            if (currentInputType === 'lead_full_name') {
+                const parts = (row.inputData || '').trim().split(/\s+/);
+                contact.firstName = parts[0] || '';
+                contact.lastName = parts.slice(1).join(' ') || '';
+            } else if (currentInputType === 'linkedin_profile') {
+                contact.linkedinUrl = row.inputData;
+            } else if (currentInputType === 'email') {
+                contact.email = row.inputData;
+            }
+            return (contact.email || contact.linkedinUrl || contact.phone) ? contact : null;
+        })
+        .filter(Boolean);
+
+    if (!contacts.length) { showAlert('No contact-type results to send (this only works for email, LinkedIn URL, or phone lookups).', 'warning'); return; }
+
+    const btn = document.getElementById('sendAllToHubspotBtn');
+    const orig = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Sending ${contacts.length}…`;
+    try {
+        const r = await fetch(CRM_SYNC_WORKER + 'push-contacts', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: userToken, contacts })
+        });
+        const d = await r.json().catch(() => ({}));
+        if (r.ok && d.ok) {
+            btn.innerHTML = `<i class="fas fa-check"></i> ${d.created||0} added, ${d.updated||0} updated`;
+            try { posthog.capture('sent_to_hubspot', { source: 'bulk', created: d.created, updated: d.updated, failed: d.failed }); } catch(e) {}
+        } else {
+            btn.disabled = false; btn.innerHTML = orig;
+            showAlert(d.error || 'Could not send to HubSpot. Please try again.', 'error');
+        }
+    } catch (e) {
+        btn.disabled = false; btn.innerHTML = orig;
+        showAlert('Network error sending to HubSpot. Please try again.', 'error');
+    }
+};
+
+function showBulkHubspotButtonIfApplicable() {
+    const btn = document.getElementById('sendAllToHubspotBtn');
+    if (!btn) return;
+    const applicable = ['email', 'linkedin_url', 'phone'].includes(currentOutputType);
+    btn.classList.toggle('hidden', !applicable);
 }
 
 // Fires once, only after the user has an actual successful, error-free result
