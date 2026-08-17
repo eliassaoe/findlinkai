@@ -642,9 +642,13 @@ async function handleAddCredits() {
     const d = await r.json();
     isExistingSubscriber  = d.issub === true;
     currentPlanNumber     = d.plan || null;
-    currentSubscriptionId = d.subscription_id || null;
+    // Was `d.subscription_id || null` - a response without a subscription_id
+    // (e.g. a transient backend hiccup) would silently erase a previously
+    // fetched valid ID, which is exactly the failure mode behind "Could not
+    // find your subscription ID" in the pause/discount retention flow.
+    currentSubscriptionId = d.subscription_id || currentSubscriptionId;
     if (d.email) currentUserEmail = d.email;
-    showPricingModal('credits_exhausted');
+    showPricingModal('buy_credits_btn');
   } catch(e) { showPricingModal(); }
   finally { btn.innerHTML = orig; btn.disabled = false; }
 }
@@ -707,7 +711,7 @@ async function managePlan() {
     if (d.issub === true) {
       isExistingSubscriber  = true;
       currentPlanNumber     = d.plan || null;
-      currentSubscriptionId = d.subscription_id || null;
+      currentSubscriptionId = d.subscription_id || currentSubscriptionId;
       if (d.email) currentUserEmail = d.email;
       if (btn) { btn.innerHTML = orig; btn.disabled = false; }
       showCancellationFlow();
@@ -1023,7 +1027,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (d.issub === true) {
         isExistingSubscriber  = true;
         currentPlanNumber     = d.plan || null;
-        currentSubscriptionId = d.subscription_id || null;
+        currentSubscriptionId = d.subscription_id || currentSubscriptionId;
         const label = document.getElementById('currentPlanLabel');
         if (label) label.textContent = 'Manage, upgrade, or cancel your current plan';
       }
