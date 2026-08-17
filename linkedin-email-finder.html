@@ -365,6 +365,13 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
    }
 
+    .post-result-cta{background:linear-gradient(135deg,#f0fdf4,#dcfce7);border:1.5px solid #86efac;border-radius:10px;padding:1.25rem 1.5rem;margin-top:1.25rem;display:none;}
+    .post-result-cta-inner{display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;}
+    .post-result-cta-text strong{display:block;font-size:.9375rem;font-weight:600;color:#15803d;margin-bottom:.2rem;}
+    .post-result-cta-text span{font-size:.8125rem;color:#166534;}
+    .post-result-cta-btn{background:#16a34a;color:white;padding:.625rem 1.25rem;border-radius:8px;font-weight:600;font-size:.875rem;text-decoration:none;white-space:nowrap;flex-shrink:0;transition:background .2s;}
+    .post-result-cta-btn:hover{background:#15803d;}
+
     .result-item {
       background: white;
       border: 1px solid var(--gray-200);
@@ -1165,6 +1172,17 @@ src="https://www.facebook.com/tr?id=2717863625238535&ev=PageView&noscript=1"
         
         <div id="singleResult" class="result-card">
           <div id="singleResultContent"></div>
+          <div class="post-result-cta" id="postResultCta">
+            <div class="post-result-cta-inner">
+              <div class="post-result-cta-text">
+                <strong>💾 Save this result &amp; get unlimited searches</strong>
+                <span>Create your free account — no credit card, takes 30 seconds</span>
+              </div>
+              <a href="https://linkfinderai.com/sign-up" class="post-result-cta-btn" onclick="try{posthog.capture('widget_result_cta_clicked', {tool: 'linkedin_email_finder'})}catch(e){}">
+                Save &amp; Continue →
+              </a>
+            </div>
+          </div>
         </div>
 
         <div id="bulkResults" class="hidden">
@@ -1665,6 +1683,7 @@ src="https://www.facebook.com/tr?id=2717863625238535&ev=PageView&noscript=1"
       document.getElementById('singleResult').classList.remove('hidden');
       document.getElementById('bulkResults').classList.add('hidden');
       document.getElementById('singleResultContent').innerHTML = '';
+      document.getElementById('postResultCta').style.display = 'none';
     }
 
     function validateLinkedInUrl() {
@@ -1735,11 +1754,14 @@ src="https://www.facebook.com/tr?id=2717863625238535&ev=PageView&noscript=1"
       const normalizedUrl = normalizeLinkedInUrl(linkedinUrl);
       const btn = document.getElementById('findEmailBtn');
       const originalBtnContent = btn.innerHTML;
-      
+
+      try { posthog.capture('widget_cta_clicked', {tool: 'linkedin_email_finder'}); } catch(e) {}
+
       btn.disabled = true;
       btn.innerHTML = '<span class="loading"></span> Finding email...';
-      
+
       document.getElementById('resultsSection').classList.remove('hidden');
+      document.getElementById('postResultCta').style.display = 'none';
       scrollToResults();
       document.getElementById('singleResultContent').innerHTML = '<div style="text-align: center; padding: 2rem;"><span class="loading"></span> Searching for professional email...</div>';
 
@@ -1755,6 +1777,8 @@ src="https://www.facebook.com/tr?id=2717863625238535&ev=PageView&noscript=1"
         if (data && data.email) {
           displaySingleResult(data.email, normalizedUrl);
           updateSearchCount();
+          document.getElementById('postResultCta').style.display = 'block';
+          try { posthog.capture('demo_run', {tool: 'linkedin_email_finder', success: true}); } catch(e) {}
         } else {
           document.getElementById('singleResultContent').innerHTML = `
             <div style="text-align: center; padding: 2rem; color: var(--gray-600);">
@@ -1763,6 +1787,7 @@ src="https://www.facebook.com/tr?id=2717863625238535&ev=PageView&noscript=1"
               <p style="font-size: 0.875rem; margin-top: 0.5rem;">Profile: ${normalizedUrl}</p>
             </div>
           `;
+          try { posthog.capture('demo_run', {tool: 'linkedin_email_finder', success: false}); } catch(e) {}
         }
       } catch (error) {
         console.error('Error:', error);
@@ -1772,6 +1797,7 @@ src="https://www.facebook.com/tr?id=2717863625238535&ev=PageView&noscript=1"
             <p>Error finding email. Please try again.</p>
           </div>
         `;
+        try { posthog.capture('demo_run', {tool: 'linkedin_email_finder', success: false, error: true}); } catch(e) {}
       } finally {
         btn.disabled = false;
         btn.innerHTML = originalBtnContent;
