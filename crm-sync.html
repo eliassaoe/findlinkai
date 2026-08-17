@@ -90,6 +90,22 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
 
 .empty-state-note{font-size:.825rem;color:var(--gray-500);}
 
+/* What-to-sync settings */
+.field-rows{display:flex;flex-direction:column;gap:1.1rem;}
+.field-row{border:1px solid var(--gray-200);border-radius:8px;padding:.875rem 1rem;}
+.field-toggle{display:flex;align-items:center;gap:.5rem;font-size:.9rem;color:var(--gray-800);cursor:pointer;}
+.field-toggle input{width:16px;height:16px;accent-color:var(--primary);cursor:pointer;}
+.field-cost{margin-left:auto;font-size:.7rem;font-weight:600;color:var(--gray-500);background:var(--gray-100);padding:.15rem .5rem;border-radius:999px;}
+.field-hint{font-size:.78rem;color:var(--gray-500);margin:.35rem 0 .6rem;}
+.field-prop-row{display:flex;align-items:center;gap:.5rem;font-size:.8rem;color:var(--gray-600);}
+.prop-input{flex:1;max-width:220px;padding:.4rem .6rem;border:1px solid var(--gray-300);border-radius:6px;font-size:.8rem;font-family:inherit;color:var(--gray-800);}
+.prop-input:focus{outline:none;border-color:var(--primary);}
+.max-per-run-row{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;margin-top:1.25rem;padding-top:1.1rem;border-top:1px solid var(--gray-100);font-size:.85rem;color:var(--gray-700);}
+.max-per-run-row input{width:80px;padding:.4rem .6rem;border:1px solid var(--gray-300);border-radius:6px;font-size:.85rem;font-family:inherit;}
+.max-per-run-row input:focus{outline:none;border-color:var(--primary);}
+.settings-save-msg{margin-left:.75rem;font-size:.8rem;color:var(--success);}
+.settings-save-msg.error{color:var(--error);}
+
 @media(max-width:640px){
     .conn-row{flex-direction:column;align-items:flex-start;}
     .conn-actions{width:100%;}
@@ -146,7 +162,7 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
 
         <div class="page-header">
             <h1><i class="fab fa-hubspot"></i> HubSpot CRM Sync</h1>
-            <p>Connect HubSpot once. Every week, LinkFinder finds contacts missing an email and fills it in automatically — nothing to click, nothing to remember.</p>
+            <p>Connect HubSpot once. Every week, LinkFinder finds contacts missing whatever you choose to track — email, LinkedIn URL, phone — and fills it in automatically.</p>
         </div>
 
         <div class="card">
@@ -173,10 +189,50 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
             <div id="syncResults" class="hidden">
                 <div class="sync-stats">
                     <div class="stat-box"><div class="val" id="statProcessed">—</div><div class="lbl">Contacts checked</div></div>
-                    <div class="stat-box"><div class="val" id="statFilled">—</div><div class="lbl">Emails filled in</div></div>
+                    <div class="stat-box"><div class="val" id="statFilled">—</div><div class="lbl">Fields filled in</div></div>
                 </div>
+                <div class="sync-meta" id="syncBreakdown"></div>
                 <div class="sync-meta" id="syncMeta"></div>
             </div>
+        </div>
+
+        <div class="card hidden" id="settingsCard">
+            <h2><i class="fas fa-sliders-h"></i> What to sync</h2>
+            <div class="field-rows" id="fieldRows">
+                <div class="field-row" data-field="email">
+                    <label class="field-toggle"><input type="checkbox" id="field_email_enabled"> <strong>Email</strong> <span class="field-cost">1 credit</span></label>
+                    <p class="field-hint">Found from the contact's name + company domain.</p>
+                    <div class="field-prop-row">
+                        <span>HubSpot property:</span>
+                        <input type="text" id="field_email_prop" class="prop-input" placeholder="email">
+                    </div>
+                </div>
+                <div class="field-row" data-field="linkedin_url">
+                    <label class="field-toggle"><input type="checkbox" id="field_linkedin_url_enabled"> <strong>LinkedIn URL</strong> <span class="field-cost">1 credit</span></label>
+                    <p class="field-hint">Found from the contact's name + company name.</p>
+                    <div class="field-prop-row">
+                        <span>HubSpot property:</span>
+                        <input type="text" id="field_linkedin_url_prop" class="prop-input" placeholder="linkedinbio">
+                    </div>
+                </div>
+                <div class="field-row" data-field="phone">
+                    <label class="field-toggle"><input type="checkbox" id="field_phone_enabled"> <strong>Phone number</strong> <span class="field-cost">1-2 credits</span></label>
+                    <p class="field-hint">Needs a LinkedIn URL first — reuses one already on file, or finds one along the way (extra credit only when that's needed).</p>
+                    <div class="field-prop-row">
+                        <span>HubSpot property:</span>
+                        <input type="text" id="field_phone_prop" class="prop-input" placeholder="phone">
+                    </div>
+                </div>
+            </div>
+            <div class="max-per-run-row">
+                <label for="maxPerRunInput">Max contacts checked per weekly run</label>
+                <input type="number" id="maxPerRunInput" min="1" max="100" value="25">
+                <span class="field-hint">Caps weekly credit spend. Hard limit of 100.</span>
+            </div>
+            <button class="btn btn-sm" id="saveSettingsBtn" onclick="saveSettings()" style="margin-top:1rem;">
+                <i class="fas fa-save"></i> Save settings
+            </button>
+            <span id="settingsSaveMsg" class="settings-save-msg"></span>
         </div>
 
         <div class="card">
@@ -190,26 +246,26 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
                 </li>
                 <li>
                     <div class="step-body">
+                        <h3>Choose what to track</h3>
+                        <p>Email, LinkedIn URL, phone number — pick any combination, and tell us which HubSpot property each one should fill.</p>
+                    </div>
+                </li>
+                <li>
+                    <div class="step-body">
                         <h3>Every Monday, we scan for gaps</h3>
-                        <p>Up to 25 contacts missing an email address are checked per run, so cost stays predictable and your CRM gets covered gradually over time.</p>
+                        <p>Up to your configured limit of contacts missing any of the fields you're tracking are checked per run, so cost stays predictable and your CRM gets covered gradually over time.</p>
                     </div>
                 </li>
                 <li>
                     <div class="step-body">
-                        <h3>Missing emails get looked up</h3>
-                        <p>Each one runs through the same enrichment engine that powers the rest of LinkFinder — using the contact's name and company.</p>
-                    </div>
-                </li>
-                <li>
-                    <div class="step-body">
-                        <h3>Found emails are written straight back to HubSpot</h3>
-                        <p>Only into the empty field. Anything already in HubSpot — whether you or a teammate entered it — is never touched or overwritten.</p>
+                        <h3>Found values are written straight back to HubSpot</h3>
+                        <p>Only into empty fields. Anything already in HubSpot — whether you or a teammate entered it — is never touched or overwritten.</p>
                     </div>
                 </li>
             </ol>
             <div class="cost-note">
                 <i class="fas fa-coins"></i>
-                <div>Costs 1 credit per email actually found and filled in — same rate as a normal lookup. Nothing is charged for contacts that already have an email or that we can't find one for.</div>
+                <div>Costs credits only for what's actually found and filled in — same rate as a normal lookup. Nothing is charged for contacts that already have a field, or that we can't find one for.</div>
             </div>
             <div class="no-override-note">
                 <i class="fas fa-shield-alt"></i>
@@ -281,19 +337,84 @@ function timeAgo(d) {
     return 'just now';
 }
 
+const FIELD_LABELS = { email: 'email', linkedin_url: 'LinkedIn URL', phone: 'phone number' };
+
+function renderSyncResult(result, lastSyncedAt) {
+    if (!result) { document.getElementById('syncResults').classList.add('hidden'); return; }
+    document.getElementById('syncResults').classList.remove('hidden');
+    document.getElementById('statProcessed').textContent = result.processed;
+    document.getElementById('statFilled').textContent = result.filledTotal != null ? result.filledTotal
+        : Object.values(result.filled || {}).reduce((a,b) => a+b, 0);
+    const breakdown = Object.entries(result.filled || {})
+        .filter(([,n]) => n > 0)
+        .map(([k,n]) => `${n} ${FIELD_LABELS[k] || k}${n===1?'':'s'}`)
+        .join(' · ');
+    document.getElementById('syncBreakdown').textContent = breakdown;
+    document.getElementById('syncMeta').textContent = lastSyncedAt ? 'Last synced ' + timeAgo(lastSyncedAt) : '';
+}
+
+function populateSettings(settings) {
+    if (!settings) return;
+    for (const key of ['email', 'linkedin_url', 'phone']) {
+        const f = settings.fields && settings.fields[key];
+        const enabledEl = document.getElementById(`field_${key}_enabled`);
+        const propEl = document.getElementById(`field_${key}_prop`);
+        if (enabledEl) enabledEl.checked = !!(f && f.enabled);
+        if (propEl && f && f.hubspotProperty) propEl.value = f.hubspotProperty;
+    }
+    const maxEl = document.getElementById('maxPerRunInput');
+    if (maxEl && settings.maxPerRun) maxEl.value = settings.maxPerRun;
+}
+
+window.saveSettings = async function saveSettings() {
+    const btn = document.getElementById('saveSettingsBtn');
+    const msg = document.getElementById('settingsSaveMsg');
+    const settings = {
+        maxPerRun: parseInt(document.getElementById('maxPerRunInput').value, 10) || 25,
+        fields: {},
+    };
+    for (const key of ['email', 'linkedin_url', 'phone']) {
+        settings.fields[key] = {
+            enabled: document.getElementById(`field_${key}_enabled`).checked,
+            hubspotProperty: document.getElementById(`field_${key}_prop`).value.trim(),
+        };
+    }
+    btn.disabled = true;
+    msg.textContent = '';
+    msg.classList.remove('error');
+    try {
+        const r = await fetch(WORKER_URL + 'save-settings', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: userToken, settings })
+        });
+        const d = await r.json().catch(() => ({}));
+        if (r.ok && d.ok) {
+            try { posthog.capture('crm_sync_settings_saved'); } catch(e) {}
+            populateSettings(d.settings);
+            msg.textContent = 'Saved';
+        } else {
+            msg.textContent = d.error || 'Could not save settings.';
+            msg.classList.add('error');
+        }
+    } catch (e) {
+        msg.textContent = 'Network error saving settings.';
+        msg.classList.add('error');
+    } finally {
+        btn.disabled = false;
+        setTimeout(() => { msg.textContent = ''; }, 4000);
+    }
+};
+
 function renderConnected(d) {
     document.getElementById('connSubtitle').textContent = 'Connected · connected ' + timeAgo(d.connectedAt);
     document.getElementById('connSubtitle').classList.add('connected');
     document.getElementById('connectBtn').classList.add('hidden');
     document.getElementById('syncNowBtn').classList.remove('hidden');
     document.getElementById('disconnectBtn').classList.remove('hidden');
+    document.getElementById('settingsCard').classList.remove('hidden');
 
-    if (d.lastSyncResult) {
-        document.getElementById('syncResults').classList.remove('hidden');
-        document.getElementById('statProcessed').textContent = d.lastSyncResult.processed;
-        document.getElementById('statFilled').textContent = d.lastSyncResult.filled;
-        document.getElementById('syncMeta').textContent = d.lastSyncedAt ? 'Last synced ' + timeAgo(d.lastSyncedAt) : '';
-    }
+    populateSettings(d.settings);
+    renderSyncResult(d.lastSyncResult, d.lastSyncedAt);
 }
 
 function renderNotConnected() {
@@ -303,6 +424,7 @@ function renderNotConnected() {
     document.getElementById('syncNowBtn').classList.add('hidden');
     document.getElementById('disconnectBtn').classList.add('hidden');
     document.getElementById('syncResults').classList.add('hidden');
+    document.getElementById('settingsCard').classList.add('hidden');
 }
 
 async function refreshStatus() {
