@@ -809,6 +809,7 @@
     
 <div id="lowCreditsBar" class="low-credits-bar"></div>
 <div id="closedWithoutPurchaseBanner" class="low-credits-bar" style="display:none;"></div>
+<div id="milestoneUpgradeBanner" class="low-credits-bar" style="display:none;"></div>
     
 <div id="annualBanner" style="display:none;background:linear-gradient(135deg,#f0fdf4,#dcfce7);border-bottom:1px solid #bbf7d0;padding:0.5rem 1rem;text-align:center;font-size:0.8rem;color:#166534;font-weight:500;">
   💡 You're on monthly — <strong>switch to annual and save 40%</strong> ($240/year) 
@@ -1677,8 +1678,12 @@ function handleDodoCheckoutEvent(event) {
 }
 
 async function launchCheckout({ planKey, analyticsPlanName, value, billingLabel, btnEl }) {
-    if (!userToken) {
+    // Matches the checkout worker's own validation (user_token.length < 8) so a
+    // short/corrupted token fails fast client-side with a clear message instead
+    // of round-tripping to the worker and surfacing as a generic checkout_error.
+    if (!userToken || typeof userToken !== 'string' || userToken.length < 8) {
         showAlert('Please log in to continue to checkout.', 'error');
+        try { posthog.capture('checkout_blocked_invalid_token'); } catch(e) {}
         return;
     }
     if (checkoutInFlight) return;
@@ -2937,6 +2942,8 @@ document.addEventListener('DOMContentLoaded',()=>{
     checkAuth(); fetchCredits(); setupFileUpload(); setupDragAndDrop();
     setupNavigation(); setupModalEvents(); setupDropdowns();
     handleDodoReturnStatus();
+    // Delay so fetchCredits() has resolved and isExistingSubscriber is accurate.
+    setTimeout(maybeShowTimeBasedUpgradeNudge, 3000);
     const pb=document.getElementById('processBulkBtn');
     pb.disabled=true; pb.style.opacity='0.5';
     pb.innerHTML='<i class="fas fa-upload"></i> Upload a CSV file first';
@@ -3578,12 +3585,56 @@ function checkEnrichmentMilestone() {
         localStorage.setItem(otpMilestoneFiredKey, '1');
         setTimeout(() => maybeShowOnboardingTasksPopup('second_enrichment'), 1200);
     }
+   // Earlier, dedicated upgrade nudge: most signups never reach 10 enrichments
+    // or trigger a credits/export gate before going quiet, so they never see
+    // any upgrade surface at all. This fires independently of the n===10 NPS/
+    // upgrade-intent block below, on its own fired-flag, so it doesn't change
+    // when NPS is asked.
+    const earlyNudgeFiredKey = 'lf_early_upgrade_nudge_fired';
+    if (n === 3 && !isExistingSubscriber && !localStorage.getItem(earlyNudgeFiredKey)) {
+        localStorage.setItem(earlyNudgeFiredKey, '1');
+        const bar = document.getElementById('milestoneUpgradeBanner');
+        if (bar) {
+            bar.innerHTML = `You've enriched ${n} leads with LinkFinder AI — nice. <a onclick="try{posthog.capture('milestone_upgrade_banner_clicked')}catch(e){}; showPricingModal('milestone_nudge')">See plans &rarr;</a> <a onclick="document.getElementById('milestoneUpgradeBanner').style.display='none'" style="margin-left:0.75rem;color:inherit;">Dismiss</a>`;
+            bar.style.display = 'block';
+            try { posthog.capture('milestone_upgrade_banner_shown', { enrich_count: n }); } catch(e) {}
+        }
+    }
    if (n === 10 && !localStorage.getItem(firedKey)) {
     localStorage.setItem(firedKey, '1');
     fireUpgradeIntent('three_enrichments', { enrich_count: n, credits_remaining: currentCredits });
     try { posthog.capture('three_enrichments_milestone', { credits_remaining: currentCredits }); } catch(e) {}
     showNPS();
 }
+}
+
+// Catches signups who come back but never hit an enrichment-count milestone or a
+// credits/export gate (e.g. they only ever run 1-2 searches per visit) - without
+// this, those users never see any upgrade surface at all. Fires at most once,
+// on a return visit at least 2 days after their first visit, and only if no
+// other upgrade banner is already showing.
+function maybeShowTimeBasedUpgradeNudge() {
+    if (isExistingSubscriber) return;
+    const FIRST_SEEN_KEY = 'lf_first_seen_at';
+    const SHOWN_KEY = 'lf_time_upgrade_nudge_shown';
+    if (localStorage.getItem(SHOWN_KEY)) return;
+
+    let firstSeen = localStorage.getItem(FIRST_SEEN_KEY);
+    if (!firstSeen) {
+        localStorage.setItem(FIRST_SEEN_KEY, String(Date.now()));
+        return; // first visit ever - nothing to nudge yet
+    }
+
+    const daysSince = (Date.now() - parseInt(firstSeen, 10)) / (1000 * 60 * 60 * 24);
+    if (daysSince < 2) return;
+
+    const bar = document.getElementById('milestoneUpgradeBanner');
+    if (!bar || bar.style.display === 'block') return; // don't clobber another banner already shown this load
+
+    localStorage.setItem(SHOWN_KEY, '1');
+    bar.innerHTML = `Still exploring LinkFinder AI? <a onclick="try{posthog.capture('time_upgrade_banner_clicked')}catch(e){}; showPricingModal('time_nudge')">See plans &rarr;</a> <a onclick="document.getElementById('milestoneUpgradeBanner').style.display='none'" style="margin-left:0.75rem;color:inherit;">Dismiss</a>`;
+    bar.style.display = 'block';
+    try { posthog.capture('time_upgrade_banner_shown', { days_since_first_seen: Math.round(daysSince) }); } catch(e) {}
 }
 
 // --- Export gate helper ---

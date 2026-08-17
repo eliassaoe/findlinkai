@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script src="/js/lf-tools-key.js"></script>
 <!-- Google Tag Manager -->
 <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
 new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -1062,7 +1063,7 @@ async function startSearch() {
   var sp = document.getElementById('samplePreview'); if (sp) sp.style.display = 'none';
   try { if (typeof posthog !== 'undefined') posthog.capture('leads_search_started', { query:query, max_profiles:maxProfiles }); } catch(e) {}
   try {
-    var response = await fetch(API_URL, { method:'POST', headers:{'Content-Type':'application/json','X-API-Secret':'lf_sk_8x9k2mNpQr7'}, body:JSON.stringify({ type:'leads_finder_ai', input_data:query, fetch_count:maxProfiles, token:userToken }) });
+    var response = await fetch(API_URL, { method:'POST', headers:{'Content-Type':'application/json','X-API-Secret':window.LF_API_KEY}, body:JSON.stringify({ type:'leads_finder_ai', input_data:query, fetch_count:maxProfiles, token:userToken }) });
     if (!response.ok) throw new Error('Request failed: ' + response.status);
     var data = await response.json();
     var rawLeads = Array.isArray(data) ? data : (data.items || data.results || []);
@@ -1123,7 +1124,7 @@ async function verifyAllEmails() {
     var card = document.getElementById('lead-card-' + idx); if (card) card.classList.add('verifying-card');
     var status = 'unknown';
     try {
-      var resp = await fetch(API_URL, { method:'POST', headers:{'Content-Type':'application/json','X-API-Secret':'lf_sk_8x9k2mNpQr7'}, body:JSON.stringify({ type:'email_leads_verification', email:lead.email, token:userToken }) });
+      var resp = await fetch(API_URL, { method:'POST', headers:{'Content-Type':'application/json','X-API-Secret':window.LF_API_KEY}, body:JSON.stringify({ type:'email_leads_verification', email:lead.email, token:userToken }) });
       if (resp.ok) { var result = await resp.json(); var item = Array.isArray(result) ? result[0] : result; status = parseVerificationResult(item); }
     } catch(e) { status = 'unknown'; }
     verificationState[idx] = { status:status };
