@@ -1403,8 +1403,22 @@ async function waitForUserEmail(maxMs = 5000, intervalMs = 150) {
 
     return null;
 }
+
+// crypto.randomUUID() needs a secure context and a fairly recent engine
+// (Chrome 92+/Safari 15.4+/Firefox 95+). It's called before any try/catch
+// in the checkout path, so on a browser/webview without it, checkout used
+// to fail completely silently — no error shown, no analytics fired, the
+// visitor just clicks and nothing happens. Fall back to a non-crypto id.
+function genCheckoutId() {
+    try {
+        return crypto.randomUUID();
+    } catch (e) {
+        return 'id_' + Date.now() + '_' + Math.random().toString(36).slice(2, 10);
+    }
+}
+
 async function createCheckoutSessionViaWorker(planKey, email) {
-    const requestId = crypto.randomUUID();
+    const requestId = genCheckoutId();
 
     // Build payload first so we can conditionally include email
     const payload = {
@@ -1424,15 +1438,33 @@ async function createCheckoutSessionViaWorker(planKey, email) {
         }
     }
 
-    const resp = await fetch(DODO_CHECKOUT_WORKER, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Cache-Control': 'no-store'
-        },
-        cache: 'no-store',
-        body: JSON.stringify(payload),
-    });
+    // Without a client-side timeout, a slow/flaky connection (bad mobile
+    // signal, hotel wifi) leaves this fetch hanging indefinitely — the
+    // button stays stuck on "Opening…" forever with no error and no way
+    // to retry. Fail fast instead so the existing catch/retry path in
+    // launchCheckout() actually gets a chance to run.
+    const timeoutController = new AbortController();
+    const timeoutId = setTimeout(() => timeoutController.abort(), 15000);
+    let resp;
+    try {
+        resp = await fetch(DODO_CHECKOUT_WORKER, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Cache-Control': 'no-store'
+            },
+            cache: 'no-store',
+            body: JSON.stringify(payload),
+            signal: timeoutController.signal,
+        });
+    } catch (e) {
+        if (e.name === 'AbortError') {
+            throw new Error('Checkout is taking too long to respond. Please check your connection and try again.');
+        }
+        throw e;
+    } finally {
+        clearTimeout(timeoutId);
+    }
 
     const data = await resp.json().catch(() => ({}));
 
@@ -1676,7 +1708,7 @@ async function launchCheckout({ planKey, analyticsPlanName, value, billingLabel,
     if (checkoutInFlight) return;
 
     checkoutInFlight = true;
-    lastCheckoutAttemptId = crypto.randomUUID();
+    lastCheckoutAttemptId = genCheckoutId();
 
     const originalText = btnEl ? btnEl.textContent : '';
     if (btnEl) {
