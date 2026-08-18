@@ -22,7 +22,6 @@ posthog.init('phc_HqgzMyWAMtzH7K5j9CLw0dijB0I9W1VjPkkyzg9KOFG',{api_host:'https:
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
 <link href="https://cdn.jsdelivr.net/npm/@n8n/chat/dist/style.css" rel="stylesheet"/>
-<script src="https://cdn.jsdelivr.net/npm/dodopayments-checkout@latest/dist/index.js"></script>
 <script async src="https://plausible.io/js/pa-LTP3nlbjr9NybMEgzpwxU.js"></script>
 <script>window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};plausible.init()</script>
 <script async src="https://cdn.tolt.io/tolt.js" data-tolt="pk_CAtHKL6z3BUN8BWfHENpoM1e"></script>
@@ -456,12 +455,7 @@ const plans = [
 let billingMode = 'monthly'; // 'payg' | 'monthly' | 'annual'
 
 const CHECKOUT_MODE = 'live'; // MUST match worker env in production
-const CHECKOUT_OPEN_TIMEOUT_MS = 5000;
-const CHECKOUT_PAGE_TIMEOUT_MS = 12000;
 let checkoutInFlight = false;
-let checkoutOverlayOpened = false;
-let checkoutPaymentPageOpened = false;
-let lastCheckoutUrl = null;
 let lastCheckoutAttemptId = null;
 
 // --- Google Ads conversion (Subscribe) ---
@@ -565,6 +559,15 @@ function fireGoogleAdsConversion(event) {
         window.__lfCheckout = window.__lfCheckout || {};
         if (window.__lfCheckout.fired) return;            // fire once per checkout
         const c = window.__lfCheckout;
+        if (!c.value) {
+            // In-memory state doesn't survive the full-page navigation to Dodo's
+            // hosted checkout and back, so fall back to what launchCheckout()
+            // persisted to sessionStorage before redirecting.
+            try {
+                const saved = JSON.parse(sessionStorage.getItem('lf_checkout_value') || 'null');
+                if (saved) { c.value = saved.value; c.plan = saved.plan; }
+            } catch (e) {}
+        }
         const txnId = (event && event.data && (event.data.payment_id || event.data.subscription_id || event.data.id)) || undefined;
         gtag('event', 'conversion', {
             send_to: GADS_SEND_TO,
@@ -573,6 +576,7 @@ function fireGoogleAdsConversion(event) {
             transaction_id: txnId
         });
         c.fired = true;
+        sessionStorage.removeItem('lf_checkout_value');
     } catch (e) {
         console.warn('Google Ads conversion fire failed:', e);
     }
@@ -614,60 +618,6 @@ function showCheckoutError(message, opts = {}) {
             body: JSON.stringify({ type:'checkout_error_log', message, user_token: userToken||'Anonymous', timestamp: new Date().toISOString(), page: window.location.href })
         }).catch(()=>{});
     } catch(e) {}
-}
-
-function handleDodoCheckoutEvent(event) {
-    if (!event || !event.event_type) return;
-
-    switch (event.event_type) {
-        case 'checkout.opened':
-            checkoutOverlayOpened = true;
-            try { posthog.capture('checkout_overlay_opened', { page:'account' }); } catch(e) {}
-            break;
-
-        case 'checkout.payment_page_opened':
-            checkoutPaymentPageOpened = true;
-            try { posthog.capture('checkout_payment_page_opened', { page:'account' }); } catch(e) {}
-            break;
-
-        case 'checkout.closed':
-            try { posthog.capture('checkout_overlay_closed', { page:'account' }); } catch(e) {}
-
-            if (checkoutOverlayOpened && !checkoutPaymentPageOpened) {
-                showCheckoutError(
-                    'Checkout closed before payment page loaded.',
-                    {
-                        checkoutUrl: lastCheckoutUrl || undefined,
-                        onRetry: () => {
-                            if (lastCheckoutUrl) window.location.href = lastCheckoutUrl;
-                        }
-                    }
-                );
-                try { posthog.capture('checkout_closed_before_page_opened', { page:'account' }); } catch(e) {}
-            }
-
-            restoreAuthSessionIfNeeded();
-            fetchCredits();
-            checkoutInFlight = false;
-            break;
-
-        case 'checkout.redirect':
-            try { posthog.capture('checkout_redirect_started', { page:'account' }); } catch(e) {}
-            break;
-
-        case 'checkout.error':
-            console.error('Dodo checkout error:', event.data?.message);
-            showCheckoutError('Payment error: ' + (event.data?.message || 'Please try again.'));
-            try { posthog.capture('checkout_overlay_error', { message: event.data?.message, page:'account' }); } catch(e) {}
-            checkoutInFlight = false;
-            break;
-
-        case 'checkout.link_expired':
-            alert('Your checkout session expired. Please try again.');
-            try { posthog.capture('checkout_link_expired', { page:'account' }); } catch(e) {}
-            checkoutInFlight = false;
-            break;
-    }
 }
 
 function renderPlansGrid() {
@@ -776,9 +726,6 @@ async function launchCheckout({ planKey, analyticsPlanName, value, billingLabel,
     if (checkoutInFlight) return;
 
     checkoutInFlight = true;
-    checkoutOverlayOpened = false;
-    checkoutPaymentPageOpened = false;
-    lastCheckoutUrl = null;
     lastCheckoutAttemptId = crypto.randomUUID();
 
     const originalText = btnEl ? btnEl.textContent : '';
@@ -793,13 +740,10 @@ async function launchCheckout({ planKey, analyticsPlanName, value, billingLabel,
             try { posthog.capture('checkout_email_missing_proceeding', { page:'account' }); } catch (e) {}
         }
 
-        window.__lfCheckout = {
-            value,
-            currency: 'USD',
-            plan: analyticsPlanName,
-            fired: false,
-            overlayOpened: false
-        };
+        // Persisted (not just in-memory) so the Google Ads conversion value survives
+        // the full-page navigation to Dodo's hosted checkout and back.
+        try { sessionStorage.setItem('lf_checkout_value', JSON.stringify({ value, plan: analyticsPlanName })); } catch (e) {}
+        window.__lfCheckout = { value, currency: 'USD', plan: analyticsPlanName, fired: false };
 
         backupAuthToken();
 
@@ -814,39 +758,20 @@ async function launchCheckout({ planKey, analyticsPlanName, value, billingLabel,
         } catch (e) {}
 
         const data = await createCheckoutSessionViaWorker(planKey, email || undefined);
-        lastCheckoutUrl = data.checkout_url;
 
-        setTimeout(() => {
-            if (!checkoutOverlayOpened && checkoutInFlight) {
-                showCheckoutError('Checkout is taking too long to open.', {
-                    checkoutUrl: lastCheckoutUrl,
-                    onRetry: () => launchCheckout({ planKey, analyticsPlanName, value, billingLabel, btnEl })
-                });
-            }
-        }, CHECKOUT_OPEN_TIMEOUT_MS);
-
-        setTimeout(() => {
-            if (checkoutOverlayOpened && !checkoutPaymentPageOpened && checkoutInFlight) {
-                showCheckoutError('Payment page failed to load in overlay.', {
-                    checkoutUrl: lastCheckoutUrl
-                });
-                try { posthog.capture('checkout_page_load_timeout', { page:'account' }); } catch (e) {}
-            }
-        }, CHECKOUT_PAGE_TIMEOUT_MS);
-
-        if (window.DodoPaymentsCheckout?.DodoPayments?.Checkout?.open) {
-            window.DodoPaymentsCheckout.DodoPayments.Checkout.open({
-                checkoutUrl: data.checkout_url
-            });
-        } else {
-            window.location.href = data.checkout_url;
+        // Direct redirect to Dodo's hosted checkout page, not the embedded overlay —
+        // same fix already proven on app.html (77% of overlay opens there never
+        // reached a working payment page). This page was still on the old overlay
+        // path, which is exactly the failure mode showing up in the funnel data.
+        if (!validateCheckoutUrl(data.checkout_url)) {
+            throw new Error('Received an invalid checkout URL.');
         }
+        window.location.href = data.checkout_url;
 
     } catch (e) {
         console.error('Checkout error:', e);
         showCheckoutError(e.message || 'We could not open checkout.', {
-            onRetry: () => launchCheckout({ planKey, analyticsPlanName, value, billingLabel, btnEl }),
-            checkoutUrl: lastCheckoutUrl || undefined
+            onRetry: () => launchCheckout({ planKey, analyticsPlanName, value, billingLabel, btnEl })
         });
         try { posthog.capture('checkout_error', { message: e.message, plan: planKey, page: 'account' }); } catch (_) {}
         checkoutInFlight = false;
@@ -1420,19 +1345,6 @@ document.addEventListener('DOMContentLoaded', () => {
   checkAuth();
   fetchCredits();
   handleDodoReturnStatus();
-
-  // Init Dodo Payments SDK (overlay)
-  if (window.DodoPaymentsCheckout && window.DodoPaymentsCheckout.DodoPayments) {
-    try {
-      window.DodoPaymentsCheckout.DodoPayments.Initialize({
-        mode: CHECKOUT_MODE,
-        displayType: 'overlay',
-        onEvent: handleDodoCheckoutEvent,
-      });
-    } catch (e) {
-      console.warn('Dodo SDK init failed:', e);
-    }
-  }
 
   // Pre-fetch subscriber status so the manage button, grid, and plan label know the state
   if (userToken) {
