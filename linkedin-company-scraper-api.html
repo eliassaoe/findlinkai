@@ -77,9 +77,9 @@
     .demo-tab.active{color:var(--primary);border-bottom-color:var(--primary);}
     .code-block{background:#0f172a;border-radius:8px;padding:1.25rem;overflow-x:auto;margin-top:1rem;}
     .code-block pre{font-family:'JetBrains Mono','Fira Code',monospace;font-size:.8rem;line-height:1.7;color:#e2e8f0;white-space:pre;}
-    .section{padding:5rem 0;}
-    .section-title{font-size:2rem;font-weight:700;color:var(--gray-900);margin-bottom:.75rem;}
-    .section-sub{color:var(--gray-500);font-size:1rem;margin-bottom:3rem;max-width:560px;}
+    .section{padding:3.75rem 0;}
+    .section-title{font-size:1.75rem;font-weight:700;color:var(--gray-900);margin-bottom:.6rem;}
+    .section-sub{color:var(--gray-500);font-size:.95rem;margin-bottom:2.25rem;max-width:560px;}
     .two-col{display:grid;grid-template-columns:1fr 1fr;gap:4rem;align-items:start;}
     .fields-table{width:100%;border-collapse:collapse;}
     .fields-table th{text-align:left;padding:.75rem 1rem;font-size:.75rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--gray-500);border-bottom:2px solid var(--gray-200);background:var(--gray-50);}
@@ -87,7 +87,7 @@
     .fields-table tr:last-child td{border-bottom:none;}
     .field-name{font-family:monospace;font-size:.8rem;background:var(--gray-100);padding:.2rem .5rem;border-radius:4px;color:var(--gray-700);}
     .field-type{font-size:.75rem;color:var(--gray-400);font-style:italic;}
-    .use-cases-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem;}
+    .use-cases-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1.25rem;}
     .use-case-card{background:white;border:1px solid var(--gray-200);border-radius:10px;padding:1.5rem;}
     .use-case-icon{width:40px;height:40px;border-radius:8px;background:#eff6ff;display:flex;align-items:center;justify-content:center;margin-bottom:1rem;font-size:1.1rem;}
     .use-case-title{font-size:.95rem;font-weight:600;color:var(--gray-900);margin-bottom:.5rem;}
@@ -113,15 +113,21 @@
     .footer-col a{display:block;font-size:.875rem;color:var(--gray-400);text-decoration:none;margin-bottom:.5rem;transition:color .2s;}
     .footer-col a:hover{color:white;}
     .footer-bottom{border-top:1px solid var(--gray-800);margin-top:2.5rem;padding-top:1.5rem;font-size:.8rem;display:flex;justify-content:space-between;align-items:center;}
+    .sticky-cta{position:fixed;left:0;right:0;bottom:0;background:var(--gray-900);padding:.85rem 0;transform:translateY(100%);transition:transform .3s ease;z-index:60;box-shadow:0 -8px 24px rgba(0,0,0,.18);}
+    .sticky-cta.show{transform:translateY(0);}
+    .sticky-cta .container{display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;}
+    .sticky-cta-text{font-size:.85rem;color:var(--gray-300);}
+    .sticky-cta-text strong{color:white;}
     @media(max-width:768px){
       .hero h1{font-size:2.25rem;}
       .two-col{grid-template-columns:1fr;}
-      .use-cases-grid{grid-template-columns:1fr;}
+      .use-cases-grid{grid-template-columns:repeat(2,1fr);}
       .integrations-grid{grid-template-columns:repeat(2,1fr);}
       .stats-grid{grid-template-columns:repeat(2,1fr);}
       .footer-grid{grid-template-columns:1fr 1fr;}
       .nav-menu{display:none;}
       .result-grid-2{grid-template-columns:1fr;}
+      .sticky-cta-text{display:none;}
     }
   </style>
 <!-- softened-tool-page-v1 -->
@@ -207,6 +213,13 @@
     </div>
   </div>
 </section>
+
+<div class="sticky-cta" id="stickyCta">
+  <div class="container">
+    <div class="sticky-cta-text"><strong>Company Intelligence API</strong> — 25 free credits, no card required.</div>
+    <a href="https://linkfinderai.com/sign-up" class="btn" onclick="posthog.capture('sticky_cta_clicked',{page:'linkedin-company-scraper-api'})">Get API Key Free</a>
+  </div>
+</div>
 
 <div class="stats-bar">
   <div class="container">
@@ -392,32 +405,22 @@ console.log(company.company_size); // 8000</pre>
       <div class="use-case-card">
         <div class="use-case-icon">🎯</div>
         <div class="use-case-title">Account qualification</div>
-        <div class="use-case-desc">Before reps spend time on an account, automatically pull company size, industry and HQ to check it fits your ICP. Filter bad-fit accounts before they enter the pipeline.</div>
+        <div class="use-case-desc">Pull size, industry and HQ to filter bad-fit accounts before the pipeline.</div>
       </div>
       <div class="use-case-card">
         <div class="use-case-icon">📊</div>
         <div class="use-case-title">Market research</div>
-        <div class="use-case-desc">Scrape a list of competitor companies or industry players to map the landscape. Get employee counts, founding years and specialities in bulk without manual research.</div>
+        <div class="use-case-desc">Map competitor landscapes in bulk without manual research.</div>
       </div>
       <div class="use-case-card">
         <div class="use-case-icon">🔄</div>
         <div class="use-case-title">CRM enrichment</div>
-        <div class="use-case-desc">Enrich existing company records in your CRM with fresh LinkedIn data. Update employee counts, industry classifications and descriptions automatically on a schedule.</div>
+        <div class="use-case-desc">Refresh company records with current LinkedIn data on a schedule.</div>
       </div>
       <div class="use-case-card">
         <div class="use-case-icon">🤖</div>
         <div class="use-case-title">Automated prospecting</div>
-        <div class="use-case-desc">Feed company LinkedIn URLs into an n8n or Make workflow to automatically score, qualify and route new accounts based on size and industry — no manual research needed.</div>
-      </div>
-      <div class="use-case-card">
-        <div class="use-case-icon">📈</div>
-        <div class="use-case-title">Investment research</div>
-        <div class="use-case-desc">Track hiring trends by monitoring employee count changes over time. A growing headcount on LinkedIn is a reliable early signal of company health and expansion.</div>
-      </div>
-      <div class="use-case-card">
-        <div class="use-case-icon">🏗️</div>
-        <div class="use-case-title">Data pipeline enrichment</div>
-        <div class="use-case-desc">Add company intelligence as a step in your data pipeline. Any time a new company enters your system, automatically enrich it with LinkedIn data before it reaches your team.</div>
+        <div class="use-case-desc">Score, qualify and route new accounts in an n8n or Make workflow.</div>
       </div>
     </div>
   </div>
@@ -659,6 +662,19 @@ function runDemo() {
 document.getElementById('demoUrl').addEventListener('keydown', e => {
   if (e.key === 'Enter') runDemo();
 });
+</script>
+
+<script>
+(function() {
+  var bar = document.getElementById('stickyCta');
+  var hero = document.querySelector('.hero');
+  if (!bar || !hero) return;
+  var threshold = hero.offsetTop + hero.offsetHeight;
+  window.addEventListener('scroll', function() {
+    if (window.scrollY > threshold) bar.classList.add('show');
+    else bar.classList.remove('show');
+  }, { passive: true });
+})();
 </script>
 
 </body>
