@@ -458,6 +458,16 @@ const CHECKOUT_MODE = 'live'; // MUST match worker env in production
 let checkoutInFlight = false;
 let lastCheckoutAttemptId = null;
 
+// A successful launchCheckout() redirects via window.location.href and never
+// gets to reset checkoutInFlight back to false (only the catch path does).
+// If the browser restores this page from bfcache after the visitor hits
+// "back" from Dodo's checkout, that stale `true` survives and silently
+// blocks every future plan click until a manual reload. Reset it whenever
+// the page is shown from bfcache.
+window.addEventListener('pageshow', function(e) {
+    if (e.persisted) checkoutInFlight = false;
+});
+
 // --- Google Ads conversion (Subscribe) ---
 const GADS_SEND_TO = 'AW-17588707745/KiBgCNfoupwcEKHD-cJB';
 
