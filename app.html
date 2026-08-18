@@ -747,6 +747,11 @@
 .otp-skip-link:hover{color:var(--gray-600);}
 @media(max-width:480px){.otp-modal{padding:1.375rem;max-height:96vh;}.otp-input-row{flex-direction:column;}.otp-referral-row{flex-direction:column;}}
 
+/* ===== MCP Tutorial Popup (shown on 2nd connection) ===== */
+.mcp-tut-video{position:relative;width:100%;padding-top:56.25%;border-radius:10px;overflow:hidden;background:var(--gray-100);margin-bottom:1.375rem;}
+.mcp-tut-video iframe{position:absolute;top:0;left:0;width:100%;height:100%;border:0;}
+.mcp-tut-cta{display:block;text-align:center;text-decoration:none;}
+
 </style>
 <script async src="https://plausible.io/js/pa-LTP3nlbjr9NybMEgzpwxU.js"></script>
 <script>window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};plausible.init()</script>
@@ -1183,6 +1188,24 @@
         <div class="otp-loading-note hidden" id="otpLoadingNote">Loading your progress&hellip;</div>
         <div class="otp-footer">
             <button class="otp-skip-link" onclick="dismissOnboardingTasksPopup()">Skip for now</button>
+        </div>
+    </div>
+</div>
+
+<div id="mcpTutorialModal" class="otp-overlay">
+    <div class="otp-modal" role="dialog" aria-modal="true" aria-labelledby="mcpTutTitle">
+        <button class="otp-close" onclick="dismissMcpTutorialPopup()" aria-label="Close"><i class="fas fa-times"></i></button>
+        <div class="otp-header">
+            <div class="otp-eyebrow"><i class="fas fa-wand-magic-sparkles"></i> New here? Level up</div>
+            <h2 id="mcpTutTitle">Use LinkFinder AI right inside Claude</h2>
+            <p>Skip the browser tab — enrich leads straight from a Claude conversation via MCP. Here's the 90-second walkthrough.</p>
+        </div>
+        <div class="mcp-tut-video">
+            <iframe src="https://www.youtube-nocookie.com/embed/aszAiVOzYTs" title="Use LinkFinder AI inside Claude via MCP" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+        </div>
+        <a href="https://linkfinderai.com/api-access?utm_source=app&amp;utm_medium=popup&amp;utm_campaign=second_connection_mcp" class="otp-submit-btn mcp-tut-cta" onclick="mcpTutorialCtaClicked()">Connect Claude via MCP →</a>
+        <div class="otp-footer">
+            <button class="otp-skip-link" onclick="dismissMcpTutorialPopup()">Maybe later</button>
         </div>
     </div>
 </div>
@@ -2961,6 +2984,12 @@ function checkAuth(){
     if(!token){window.location.href=withUtms('https://linkfinderai.com/');return;}
     userToken=token;
 
+    // Counts authenticated app loads (not just first-ever signup) so we can
+    // greet the user's *second* connection specifically — see
+    // maybeShowMcpTutorialPopup() below.
+    const lfVisitCount = (parseInt(localStorage.getItem('lf_visit_count') || '0', 10) || 0) + 1;
+    localStorage.setItem('lf_visit_count', String(lfVisitCount));
+
     // Re-attach UTMs saved before a prior redirect (homepage -> login -> /app)
     if (!Object.keys(utms).length) {
         try {
@@ -3019,8 +3048,38 @@ function checkAuth(){
             if (reopenBtn) reopenBtn.style.display = '';
         }
     });
+    maybeShowMcpTutorialPopup(lfVisitCount);
 })
     .catch(() => {});
+}
+
+// Shows a one-time "use LinkFinder AI inside Claude via MCP" video popup on
+// the user's 2nd authenticated app load — enough time to have formed some
+// intent, before they've settled into a workflow that doesn't include it.
+// Never shows on the 1st visit (too early, still just exploring the tool
+// itself) or more than once ever (localStorage-gated, same pattern as
+// lf_onboarding_popup_seen above).
+function maybeShowMcpTutorialPopup(visitCount) {
+    if (visitCount !== 2) return;
+    if (localStorage.getItem('lf_mcp_popup_seen')) return;
+    setTimeout(() => {
+        if (document.querySelector('.otp-overlay.show')) return; // don't stack on another popup
+        document.getElementById('mcpTutorialModal').classList.add('show');
+        document.body.style.overflow = 'hidden';
+        try { posthog.capture('mcp_tutorial_popup_shown', { trigger: 'second_connection' }); } catch(e) {}
+    }, 1200);
+}
+
+function dismissMcpTutorialPopup() {
+    document.getElementById('mcpTutorialModal').classList.remove('show');
+    document.body.style.overflow = '';
+    localStorage.setItem('lf_mcp_popup_seen', '1');
+    try { posthog.capture('mcp_tutorial_popup_dismissed'); } catch(e) {}
+}
+
+function mcpTutorialCtaClicked() {
+    localStorage.setItem('lf_mcp_popup_seen', '1');
+    try { posthog.capture('mcp_tutorial_cta_clicked', { source: 'second_connection_popup' }); } catch(e) {}
 }
 
 function showSingleResult(inputData,result,confidence){
