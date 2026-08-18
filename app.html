@@ -1327,6 +1327,7 @@ let startingCredits = null; // captured on first non-zero balance; powers the 20
 const CHECKOUT_MODE = 'live'; // MUST match worker env in production
 const CHECKOUT_OPEN_TIMEOUT_MS = 5000;
 const CHECKOUT_PAGE_TIMEOUT_MS = 12000;
+const CHECKOUT_RESCUE_TIMEOUT_MS = 5000; // show a visible manual escape hatch well before the hard timeout
 
 let checkoutInFlight = false;
 let checkoutOverlayOpened = false;
@@ -1611,7 +1612,7 @@ function showCheckoutError(message, opts = {}) {
         document.body.appendChild(el);
     }
     const retryBtn = opts.onRetry ? `<button id="checkoutErrorRetryBtn" style="margin-top:0.6rem;margin-right:0.5rem;background:#2563eb;color:white;border:none;padding:0.45rem 0.9rem;border-radius:6px;font-weight:600;cursor:pointer;font-family:inherit;">Retry</button>` : '';
-    const fallbackLink = opts.checkoutUrl ? `<a href="${opts.checkoutUrl}" target="_blank" rel="noopener" style="color:#93c5fd;font-weight:600;margin-top:0.6rem;display:inline-block;">Or open payment page directly &rarr;</a>` : '';
+    const fallbackLink = opts.checkoutUrl ? `<a href="${opts.checkoutUrl}" style="background:#16a34a;color:white;font-weight:700;margin-top:0.6rem;padding:0.5rem 1rem;border-radius:6px;text-decoration:none;display:inline-block;">Continue to payment page &rarr;</a>` : '';
     el.innerHTML = `<div style="display:flex;gap:0.6rem;align-items:flex-start;">
         <i class="fas fa-exclamation-triangle" style="color:#f59e0b;margin-top:0.15rem;"></i>
         <div><div>${message}</div><div>${retryBtn}${fallbackLink}</div></div>
@@ -1626,6 +1627,35 @@ function showCheckoutError(message, opts = {}) {
     } catch(e) {}
 }
 
+// Shown a few seconds after the checkout overlay opens if its payment page hasn't
+// loaded yet. Most people who lose checkout right now aren't hitting an error —
+// they're staring at a stalled overlay with no visible way out and giving up before
+// our 12s hard timeout even fires. This gives them a big, unmissable manual escape
+// hatch well before that, on top of (not instead of) the automatic redirect below.
+function showCheckoutRescueBanner(checkoutUrl) {
+    if (!checkoutUrl) return;
+    let el = document.getElementById('checkoutRescueBanner');
+    if (!el) {
+        el = document.createElement('div');
+        el.id = 'checkoutRescueBanner';
+        el.style.cssText = 'position:fixed;top:1.25rem;left:50%;transform:translateX(-50%);background:white;border:2px solid #2563eb;color:#111827;padding:1rem 1.25rem;border-radius:12px;z-index:10061;max-width:440px;width:calc(100% - 2rem);box-shadow:0 15px 35px rgba(0,0,0,0.25);font-size:0.875rem;line-height:1.5;text-align:center;';
+        document.body.appendChild(el);
+    }
+    el.innerHTML = `
+        <button onclick="hideCheckoutRescueBanner()" style="background:none;border:none;color:#9ca3af;cursor:pointer;font-size:1.1rem;float:right;line-height:1;">&times;</button>
+        <div style="font-weight:700;margin-bottom:0.35rem;">⏳ Payment page taking a moment to load</div>
+        <div style="color:#6b7280;margin-bottom:0.75rem;">No need to wait — jump straight to the secure payment page.</div>
+        <a href="${checkoutUrl}" onclick="try{posthog.capture('checkout_rescue_banner_clicked')}catch(e){}" style="background:#2563eb;color:white;font-weight:700;padding:0.6rem 1.25rem;border-radius:8px;text-decoration:none;display:inline-block;">Continue to payment page &rarr;</a>
+    `;
+    el.style.display = 'block';
+    try { posthog.capture('checkout_rescue_banner_shown'); } catch(e) {}
+}
+
+function hideCheckoutRescueBanner() {
+    const el = document.getElementById('checkoutRescueBanner');
+    if (el) el.style.display = 'none';
+}
+
 function handleDodoCheckoutEvent(event) {
     if (!event || !event.event_type) return;
 
@@ -1637,10 +1667,12 @@ function handleDodoCheckoutEvent(event) {
 
         case 'checkout.payment_page_opened':
             checkoutPaymentPageOpened = true;
+            hideCheckoutRescueBanner();
             try { posthog.capture('checkout_payment_page_opened'); } catch(e) {}
             break;
 
         case 'checkout.closed':
+            hideCheckoutRescueBanner();
             try { posthog.capture('checkout_overlay_closed'); } catch(e) {}
 
             // critical guard: overlay closed before page loaded
@@ -1668,6 +1700,7 @@ function handleDodoCheckoutEvent(event) {
             break;
 
         case 'checkout.error':
+            hideCheckoutRescueBanner();
             console.error('Dodo checkout error:', event.data?.message);
             showCheckoutError('Payment error: ' + (event.data?.message || 'Please try again.'));
             try { posthog.capture('checkout_overlay_error', { message: event.data?.message }); } catch(e) {}
@@ -1675,6 +1708,7 @@ function handleDodoCheckoutEvent(event) {
             break;
 
         case 'checkout.link_expired':
+            hideCheckoutRescueBanner();
             showAlert('Your checkout session expired. Please try again.', 'warning');
             try { posthog.capture('checkout_link_expired'); } catch(e) {}
             checkoutInFlight = false;
@@ -1693,6 +1727,7 @@ async function launchCheckout({ planKey, analyticsPlanName, value, billingLabel,
     }
     if (checkoutInFlight) return;
 
+    hideCheckoutRescueBanner();
     checkoutInFlight = true;
     checkoutOverlayOpened = false;
     checkoutPaymentPageOpened = false;
@@ -1745,13 +1780,29 @@ async function launchCheckout({ planKey, analyticsPlanName, value, billingLabel,
             }
         }, CHECKOUT_OPEN_TIMEOUT_MS);
 
-        // Watchdog 2: payment page should load
+        // Watchdog 1.5: a highly visible manual escape hatch well before the hard
+        // timeout below -- most lost checkouts right now are people giving up on a
+        // stalled overlay before they ever see any way out of it.
         setTimeout(() => {
             if (checkoutOverlayOpened && !checkoutPaymentPageOpened && checkoutInFlight) {
-                showCheckoutError('Payment page failed to load in overlay.', {
-                    checkoutUrl: lastCheckoutUrl
-                });
+                showCheckoutRescueBanner(lastCheckoutUrl);
+            }
+        }, CHECKOUT_RESCUE_TIMEOUT_MS);
+
+        // Watchdog 2: payment page should load. If it still hasn't by now, don't just
+        // show an error and hope they click something -- send them straight to the
+        // (already-validated) hosted checkout page so the sale isn't lost outright.
+        setTimeout(() => {
+            if (checkoutOverlayOpened && !checkoutPaymentPageOpened && checkoutInFlight) {
                 try { posthog.capture('checkout_page_load_timeout'); } catch (e) {}
+                if (lastCheckoutUrl && validateCheckoutUrl(lastCheckoutUrl)) {
+                    try { posthog.capture('checkout_auto_redirect_fallback'); } catch (e) {}
+                    window.location.href = lastCheckoutUrl;
+                } else {
+                    showCheckoutError('Payment page failed to load in overlay.', {
+                        checkoutUrl: lastCheckoutUrl
+                    });
+                }
             }
         }, CHECKOUT_PAGE_TIMEOUT_MS);
 
