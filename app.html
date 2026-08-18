@@ -3749,17 +3749,18 @@ function checkEnrichmentMilestone() {
         localStorage.setItem(otpMilestoneFiredKey, '1');
         setTimeout(() => maybeShowOnboardingTasksPopup('second_enrichment'), 1200);
     }
-   // Earlier, dedicated upgrade nudge: most signups never reach 10 enrichments
-    // or trigger a credits/export gate before going quiet, so they never see
-    // any upgrade surface at all. This fires independently of the n===10 NPS/
-    // upgrade-intent block below, on its own fired-flag, so it doesn't change
-    // when NPS is asked.
+   // Earlier, dedicated upgrade nudge: funnel data showed most signups never
+    // select a plan at all, and most never even reach 3 enrichments or trigger
+    // a credits/export gate before going quiet — so pricing was never shown to
+    // them, ever. Fires on the very first successful enrichment instead, right
+    // when excitement is highest, independently of the n===10 NPS/upgrade-intent
+    // block below, on its own fired-flag, so it doesn't change when NPS is asked.
     const earlyNudgeFiredKey = 'lf_early_upgrade_nudge_fired';
-    if (n === 3 && !isExistingSubscriber && !localStorage.getItem(earlyNudgeFiredKey)) {
+    if (n === 1 && !isExistingSubscriber && !localStorage.getItem(earlyNudgeFiredKey)) {
         localStorage.setItem(earlyNudgeFiredKey, '1');
         const bar = document.getElementById('milestoneUpgradeBanner');
         if (bar) {
-            bar.innerHTML = `You've enriched ${n} leads with LinkFinder AI — nice. <a onclick="try{posthog.capture('milestone_upgrade_banner_clicked')}catch(e){}; showPricingModal('milestone_nudge')">See plans &rarr;</a> <a onclick="document.getElementById('milestoneUpgradeBanner').style.display='none'" style="margin-left:0.75rem;color:inherit;">Dismiss</a>`;
+            bar.innerHTML = `That's your first lead enriched with LinkFinder AI — nice. <a onclick="try{posthog.capture('milestone_upgrade_banner_clicked')}catch(e){}; showPricingModal('milestone_nudge')">See plans &rarr;</a> <a onclick="document.getElementById('milestoneUpgradeBanner').style.display='none'" style="margin-left:0.75rem;color:inherit;">Dismiss</a>`;
             bar.style.display = 'block';
             try { posthog.capture('milestone_upgrade_banner_shown', { enrich_count: n }); } catch(e) {}
         }
