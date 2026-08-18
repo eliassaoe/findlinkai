@@ -20,8 +20,6 @@
 <link rel="icon" href="https://i.ibb.co/jPjX9SSp/Screen-Shot-2025-03-28-at-8-16-15-PM.png">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-<script src="https://cdn.jsdelivr.net/npm/dodopayments-checkout@1.9.8/dist/index.js"></script>
-
 <link href="https://cdn.jsdelivr.net/npm/@n8n/chat/dist/style.css" rel="stylesheet"/>
 <style>
     :root {
@@ -1327,14 +1325,8 @@ let startingCredits = null; // captured on first non-zero balance; powers the 20
 
 // ===== Bulletproof Checkout Controls =====
 const CHECKOUT_MODE = 'live'; // MUST match worker env in production
-const CHECKOUT_OPEN_TIMEOUT_MS = 5000;
-const CHECKOUT_PAGE_TIMEOUT_MS = 12000;
-const CHECKOUT_RESCUE_TIMEOUT_MS = 5000; // show a visible manual escape hatch well before the hard timeout
 
 let checkoutInFlight = false;
-let checkoutOverlayOpened = false;
-let checkoutPaymentPageOpened = false;
-let lastCheckoutUrl = null;
 let lastCheckoutAttemptId = null;
 
 function validateCheckoutUrl(url) {
@@ -1578,6 +1570,15 @@ function fireGoogleAdsConversion(event) {
         window.__lfCheckout = window.__lfCheckout || {};
         if (window.__lfCheckout.fired) return;            // fire once per checkout
         const c = window.__lfCheckout;
+        if (c.value === undefined) {
+            // Checkout now redirects to Dodo's hosted page and back -- the full-page
+            // navigation wipes this in-memory object, so recover the real value from
+            // sessionStorage instead of silently falling back to the 1.0 default below.
+            try {
+                const saved = JSON.parse(sessionStorage.getItem('lf_checkout_value') || 'null');
+                if (saved) { c.value = saved.value; c.plan = saved.plan; }
+            } catch (e) {}
+        }
         const txnId = (event && event.data && (event.data.payment_id || event.data.subscription_id || event.data.id)) || undefined;
         gtag('event', 'conversion', {
             send_to: GADS_SEND_TO,
@@ -1586,6 +1587,7 @@ function fireGoogleAdsConversion(event) {
             transaction_id: txnId
         });
         c.fired = true;
+        sessionStorage.removeItem('lf_checkout_value');
     } catch (e) {
         console.warn('Google Ads conversion fire failed:', e);
     }
@@ -1629,95 +1631,6 @@ function showCheckoutError(message, opts = {}) {
     } catch(e) {}
 }
 
-// Shown a few seconds after the checkout overlay opens if its payment page hasn't
-// loaded yet. Most people who lose checkout right now aren't hitting an error —
-// they're staring at a stalled overlay with no visible way out and giving up before
-// our 12s hard timeout even fires. This gives them a big, unmissable manual escape
-// hatch well before that, on top of (not instead of) the automatic redirect below.
-function showCheckoutRescueBanner(checkoutUrl) {
-    if (!checkoutUrl) return;
-    let el = document.getElementById('checkoutRescueBanner');
-    if (!el) {
-        el = document.createElement('div');
-        el.id = 'checkoutRescueBanner';
-        el.style.cssText = 'position:fixed;top:1.25rem;left:50%;transform:translateX(-50%);background:white;border:2px solid #2563eb;color:#111827;padding:1rem 1.25rem;border-radius:12px;z-index:10061;max-width:440px;width:calc(100% - 2rem);box-shadow:0 15px 35px rgba(0,0,0,0.25);font-size:0.875rem;line-height:1.5;text-align:center;';
-        document.body.appendChild(el);
-    }
-    el.innerHTML = `
-        <button onclick="hideCheckoutRescueBanner()" style="background:none;border:none;color:#9ca3af;cursor:pointer;font-size:1.1rem;float:right;line-height:1;">&times;</button>
-        <div style="font-weight:700;margin-bottom:0.35rem;">⏳ Payment page taking a moment to load</div>
-        <div style="color:#6b7280;margin-bottom:0.75rem;">No need to wait — jump straight to the secure payment page.</div>
-        <a href="${checkoutUrl}" onclick="try{posthog.capture('checkout_rescue_banner_clicked')}catch(e){}" style="background:#2563eb;color:white;font-weight:700;padding:0.6rem 1.25rem;border-radius:8px;text-decoration:none;display:inline-block;">Continue to payment page &rarr;</a>
-    `;
-    el.style.display = 'block';
-    try { posthog.capture('checkout_rescue_banner_shown'); } catch(e) {}
-}
-
-function hideCheckoutRescueBanner() {
-    const el = document.getElementById('checkoutRescueBanner');
-    if (el) el.style.display = 'none';
-}
-
-function handleDodoCheckoutEvent(event) {
-    if (!event || !event.event_type) return;
-
-    switch (event.event_type) {
-        case 'checkout.opened':
-            checkoutOverlayOpened = true;
-            try { posthog.capture('checkout_overlay_opened'); } catch(e) {}
-            break;
-
-        case 'checkout.payment_page_opened':
-            checkoutPaymentPageOpened = true;
-            hideCheckoutRescueBanner();
-            try { posthog.capture('checkout_payment_page_opened'); } catch(e) {}
-            break;
-
-        case 'checkout.closed':
-            hideCheckoutRescueBanner();
-            try { posthog.capture('checkout_overlay_closed'); } catch(e) {}
-
-            // critical guard: overlay closed before page loaded
-            if (checkoutOverlayOpened && !checkoutPaymentPageOpened) {
-                showCheckoutError(
-                    'Checkout closed before payment page loaded.',
-                    {
-                        checkoutUrl: lastCheckoutUrl || undefined,
-                        onRetry: () => {
-                            // reopen direct link fallback
-                            if (lastCheckoutUrl) window.location.href = lastCheckoutUrl;
-                        }
-                    }
-                );
-                try { posthog.capture('checkout_closed_before_page_opened'); } catch(e) {}
-            }
-
-            restoreAuthSessionIfNeeded();
-            fetchCredits();
-            checkoutInFlight = false;
-            break;
-
-        case 'checkout.redirect':
-            try { posthog.capture('checkout_redirect_started'); } catch(e) {}
-            break;
-
-        case 'checkout.error':
-            hideCheckoutRescueBanner();
-            console.error('Dodo checkout error:', event.data?.message);
-            showCheckoutError('Payment error: ' + (event.data?.message || 'Please try again.'));
-            try { posthog.capture('checkout_overlay_error', { message: event.data?.message }); } catch(e) {}
-            checkoutInFlight = false;
-            break;
-
-        case 'checkout.link_expired':
-            hideCheckoutRescueBanner();
-            showAlert('Your checkout session expired. Please try again.', 'warning');
-            try { posthog.capture('checkout_link_expired'); } catch(e) {}
-            checkoutInFlight = false;
-            break;
-    }
-}
-
 async function launchCheckout({ planKey, analyticsPlanName, value, billingLabel, btnEl }) {
     // Matches the checkout worker's own validation (user_token.length < 8) so a
     // short/corrupted token fails fast client-side with a clear message instead
@@ -1729,11 +1642,7 @@ async function launchCheckout({ planKey, analyticsPlanName, value, billingLabel,
     }
     if (checkoutInFlight) return;
 
-    hideCheckoutRescueBanner();
     checkoutInFlight = true;
-    checkoutOverlayOpened = false;
-    checkoutPaymentPageOpened = false;
-    lastCheckoutUrl = null;
     lastCheckoutAttemptId = crypto.randomUUID();
 
     const originalText = btnEl ? btnEl.textContent : '';
@@ -1749,13 +1658,10 @@ async function launchCheckout({ planKey, analyticsPlanName, value, billingLabel,
             try { posthog.capture('checkout_email_missing_proceeding'); } catch (e) {}
         }
 
-        window.__lfCheckout = {
-            value,
-            currency: 'USD',
-            plan: analyticsPlanName,
-            fired: false,
-            overlayOpened: false
-        };
+        // Persisted (not just in-memory) so the Google Ads conversion value survives
+        // the full-page navigation to Dodo's hosted checkout and back.
+        try { sessionStorage.setItem('lf_checkout_value', JSON.stringify({ value, plan: analyticsPlanName })); } catch (e) {}
+        window.__lfCheckout = { value, currency: 'USD', plan: analyticsPlanName, fired: false };
 
         backupAuthToken();
 
@@ -1770,58 +1676,20 @@ async function launchCheckout({ planKey, analyticsPlanName, value, billingLabel,
 
         // Pass email if present; worker accepts missing email
         const data = await createCheckoutSessionViaWorker(planKey, email || undefined);
-        lastCheckoutUrl = data.checkout_url;
 
-        // Watchdog 1: overlay should open
-        setTimeout(() => {
-            if (!checkoutOverlayOpened && checkoutInFlight) {
-                showCheckoutError('Checkout is taking too long to open.', {
-                    checkoutUrl: lastCheckoutUrl,
-                    onRetry: () => launchCheckout({ planKey, analyticsPlanName, value, billingLabel, btnEl })
-                });
-            }
-        }, CHECKOUT_OPEN_TIMEOUT_MS);
-
-        // Watchdog 1.5: a highly visible manual escape hatch well before the hard
-        // timeout below -- most lost checkouts right now are people giving up on a
-        // stalled overlay before they ever see any way out of it.
-        setTimeout(() => {
-            if (checkoutOverlayOpened && !checkoutPaymentPageOpened && checkoutInFlight) {
-                showCheckoutRescueBanner(lastCheckoutUrl);
-            }
-        }, CHECKOUT_RESCUE_TIMEOUT_MS);
-
-        // Watchdog 2: payment page should load. If it still hasn't by now, don't just
-        // show an error and hope they click something -- send them straight to the
-        // (already-validated) hosted checkout page so the sale isn't lost outright.
-        setTimeout(() => {
-            if (checkoutOverlayOpened && !checkoutPaymentPageOpened && checkoutInFlight) {
-                try { posthog.capture('checkout_page_load_timeout'); } catch (e) {}
-                if (lastCheckoutUrl && validateCheckoutUrl(lastCheckoutUrl)) {
-                    try { posthog.capture('checkout_auto_redirect_fallback'); } catch (e) {}
-                    window.location.href = lastCheckoutUrl;
-                } else {
-                    showCheckoutError('Payment page failed to load in overlay.', {
-                        checkoutUrl: lastCheckoutUrl
-                    });
-                }
-            }
-        }, CHECKOUT_PAGE_TIMEOUT_MS);
-
-        if (window.DodoPaymentsCheckout?.DodoPayments?.Checkout?.open) {
-            window.DodoPaymentsCheckout.DodoPayments.Checkout.open({
-                checkoutUrl: data.checkout_url
-            });
-        } else {
-            // Hard fallback
-            window.location.href = data.checkout_url;
+        // Direct redirect to Dodo's hosted checkout page, not the embedded overlay.
+        // Dodo's own guidance and our funnel data (77% of overlay opens never reached
+        // a working payment page, concentrated on Chrome) both point the same way:
+        // the hosted page has no iframe/postMessage lifecycle to fail silently on.
+        if (!validateCheckoutUrl(data.checkout_url)) {
+            throw new Error('Received an invalid checkout URL.');
         }
+        window.location.href = data.checkout_url;
 
     } catch (e) {
         console.error('Checkout error:', e);
         showCheckoutError(e.message || 'We could not open checkout.', {
-            onRetry: () => launchCheckout({ planKey, analyticsPlanName, value, billingLabel, btnEl }),
-            checkoutUrl: lastCheckoutUrl || undefined
+            onRetry: () => launchCheckout({ planKey, analyticsPlanName, value, billingLabel, btnEl })
         });
         try { posthog.capture('checkout_error', { message: e.message, plan: planKey }); } catch (_) {}
         checkoutInFlight = false;
@@ -3026,20 +2894,6 @@ document.addEventListener('DOMContentLoaded',()=>{
     pb.disabled=true; pb.style.opacity='0.5';
     pb.innerHTML='<i class="fas fa-upload"></i> Upload a CSV file first';
     document.getElementById('outputType').disabled=true;
-    // Initialize Dodo Payments Checkout SDK (for overlay)
-
-    if (window.DodoPaymentsCheckout && window.DodoPaymentsCheckout.DodoPayments) {
-        try {
-            window.DodoPaymentsCheckout.DodoPayments.Initialize({
-    mode: CHECKOUT_MODE, // single source of truth
-    displayType: 'overlay',
-    onEvent: handleDodoCheckoutEvent,
-});
-
-        } catch(e) {
-            console.warn('Dodo SDK init failed:', e);
-        }
-    }
 });
 
 function setupModalEvents(){
