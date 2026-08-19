@@ -1097,6 +1097,7 @@
         </div>
         <p style="text-align:center;font-size:0.72rem;color:var(--gray-400);margin-top:0.75rem;">Prices in USD · Secure payment · Cancel anytime</p>
         <p style="text-align:center;font-size:0.75rem;color:var(--gray-500);margin-top:0.375rem;">Need more credits? <a href="mailto:support@linkfinderai.com" style="color:var(--primary);font-weight:500;">Email us</a> — we'll set up a custom plan for you.</p>
+        <p style="text-align:center;font-size:0.75rem;color:var(--gray-500);margin-top:0.375rem;">Would rather not run this yourself? <a href="https://linkfinderai.com/linkfinder-vip" target="_blank" style="color:#a16207;font-weight:600;" onclick="try{posthog.capture('vip_card_clicked',{source:'pricing_modal'})}catch(e){}">See LinkFinder VIP &rarr;</a></p>
     </div>
 </div>
 
@@ -3813,6 +3814,20 @@ function checkEnrichmentMilestone() {
     try { posthog.capture('three_enrichments_milestone', { credits_remaining: currentCredits }); } catch(e) {}
     showNPS();
 }
+    // Heavy, paying users are the actual ICP for the done-for-you VIP offer —
+    // showing this to brand-new free signups (like the other banners above)
+    // would be premature. Fires once, only for subscribers with real usage
+    // volume, well after they've had time to feel the manual work involved.
+    const vipNudgeFiredKey = 'lf_vip_nudge_fired';
+    if (n === 25 && isExistingSubscriber && !localStorage.getItem(vipNudgeFiredKey)) {
+        localStorage.setItem(vipNudgeFiredKey, '1');
+        const bar = document.getElementById('milestoneUpgradeBanner');
+        if (bar) {
+            bar.innerHTML = `Running a lot of enrichments lately &mdash; want us to build and run this for you instead? <a href="https://linkfinderai.com/linkfinder-vip" target="_blank" onclick="try{posthog.capture('vip_card_clicked',{source:'usage_banner'})}catch(e){}">See LinkFinder VIP &rarr;</a> <a onclick="document.getElementById('milestoneUpgradeBanner').style.display='none'" style="margin-left:0.75rem;color:inherit;">Dismiss</a>`;
+            bar.style.display = 'block';
+            try { posthog.capture('vip_usage_banner_shown', { enrich_count: n }); } catch(e) {}
+        }
+    }
 }
 
 // Catches signups who come back but never hit an enrichment-count milestone or a
