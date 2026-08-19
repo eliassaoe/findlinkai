@@ -1101,6 +1101,24 @@
     </div>
 </div>
 
+<!-- Sales-assist intercept: shown when someone who viewed Professional/Enterprise closes the pricing modal without buying -->
+<div id="salesInterceptModal" class="cim-overlay">
+    <div class="cim-modal" role="dialog" aria-modal="true" aria-labelledby="sciHeadline">
+        <div class="cim-icon-wrap">
+            <div class="cim-icon-circle">
+                <i class="fas fa-phone" style="color:#2563eb;font-size:1.1rem;"></i>
+            </div>
+        </div>
+        <h2 class="cim-headline" id="sciHeadline">Want to talk it through first?</h2>
+        <p class="cim-subtext">Book a quick 15-minute call — we'll walk through your use case, pricing, and how the pipeline works. Show up and we'll add <strong>1,000 free credits</strong> to your account.</p>
+        <a href="mailto:support@linkfinderai.com?subject=Book%20a%20call%20-%20LinkFinder%20AI&body=Hi%2C%20I%27d%20like%20to%20book%20a%20call%20to%20talk%20through%20a%20plan%20for%20my%20team.%20Here%27s%20a%20bit%20about%20what%20we%20need%3A%0D%0A%0D%0A"
+           id="sciBookBtn" class="cim-cta" style="display:block;text-align:center;text-decoration:none;box-sizing:border-box;" onclick="salesInterceptCtaClicked()">Book a call &amp; get 1,000 credits &rarr;</a>
+        <div class="cim-dismiss-wrap" style="margin-top:0.75rem;">
+            <button class="cim-dismiss" onclick="closeSalesInterceptModal()">Maybe later</button>
+        </div>
+    </div>
+</div>
+
 <!-- Out-of-credits modal: PAYG-first, subscription subordinate -->
 <div id="insufficientCreditsModal" class="cim-overlay">
     <div class="cim-modal" role="dialog" aria-modal="true" aria-labelledby="cimHeadline">
@@ -1591,7 +1609,7 @@ function renderPlansGrid() {
         const anchorPrice = isAnnual ? annualTotal : monthlyEquiv;
         const valueAnchor = '<div style="font-size:0.68rem;color:var(--gray-500);line-height:1.4;margin-top:0.5rem;padding-top:0.5rem;border-top:1px dashed var(--gray-200);">$'+anchorPrice+'/'+periodWord+' &asymp; '+anchorLinkedIn+' enrichments<br>(~'+anchorLinkedIn+' LinkedIn URLs or ~'+anchorPhone+' phone lookups)</div>';
         const socialProofLine = '<div style="font-size:0.68rem;color:var(--gray-400);margin-top:0.35rem;">'+socialProof[index]+'</div>';
-        return '<div class="plan-item '+(isPopular && !isCurrentPlan ?'plan-item-popular':'')+'">'
+        return '<div class="plan-item '+(isPopular && !isCurrentPlan ?'plan-item-popular':'')+'" onmouseenter="window.__lfLastHoveredPlanIndex='+index+'">'
             + (isPopular && !isCurrentPlan && !(index === recommendedIndex && lifetimeEnrichments > 0) ? '<div class="plan-popular-badge">Most Popular</div>' : '')
             + '<div class="plan-item-name">'+plan.name+'</div>'
             + '<div class="plan-item-price"><span class="plan-item-amount">$'+monthlyEquiv+'</span><span class="plan-item-period">/mo</span></div>'
@@ -1863,6 +1881,7 @@ function setBilling(type) {
 }
     
 function showPricingModal(trigger, extra) {
+    window.__lfLastHoveredPlanIndex = null;
     try { window.uetq = window.uetq || []; window.uetq.push('event', 'begin_checkout', {}); } catch(e) {}
     // Someone clicking "buy credits" wants more credits now, not necessarily a
     // monthly commitment - default them to the $25 one-time PAYG pack instead
@@ -1905,7 +1924,13 @@ function closePricingModal() {
     document.body.style.overflow = '';
     const toast = document.getElementById('modalToast');
     if (toast) { toast.classList.add('show'); setTimeout(() => toast.classList.remove('show'), 4000); }
-    if (!isExistingSubscriber && !sessionStorage.getItem('lf_closed_wo_purchase_shown')) {
+
+    // Higher-tier lookers (Professional/Enterprise) who bail without buying are
+    // the self-serve-isn't-enough segment — offer a call instead of the generic
+    // "you're low on credits" banner below.
+    const shownSalesIntercept = maybeShowSalesIntercept();
+
+    if (!shownSalesIntercept && !isExistingSubscriber && !sessionStorage.getItem('lf_closed_wo_purchase_shown')) {
         const remaining = currentCredits !== null ? Math.round(currentCredits*10)/10 : null;
         const bar = document.getElementById('closedWithoutPurchaseBanner');
         if (bar) {
@@ -1917,6 +1942,45 @@ function closePricingModal() {
         }
         sessionStorage.setItem('lf_closed_wo_purchase_shown', '1');
     }
+}
+
+// Gated exit-intent: only for prospects (not existing subscribers) who were
+// looking at Professional/Enterprise (index 1/2) on the subscription tab, and
+// only once per session so it doesn't nag repeat closers.
+function maybeShowSalesIntercept() {
+    const hoveredIndex = window.__lfLastHoveredPlanIndex;
+    const qualifies = !isExistingSubscriber
+        && billingMode !== 'payg'
+        && (hoveredIndex === 1 || hoveredIndex === 2)
+        && !sessionStorage.getItem('lf_sales_intercept_shown');
+    if (!qualifies) return false;
+
+    sessionStorage.setItem('lf_sales_intercept_shown', '1');
+    setTimeout(() => {
+        const modal = document.getElementById('salesInterceptModal');
+        if (!modal) return;
+        modal.classList.add('show');
+        document.body.style.overflow = 'hidden';
+        try {
+            posthog.capture('sales_call_intercept_shown', {
+                hovered_plan: plans[hoveredIndex] ? plans[hoveredIndex].key : null,
+                credits_remaining: currentCredits
+            });
+        } catch(e) {}
+    }, 350);
+    return true;
+}
+
+function closeSalesInterceptModal() {
+    const modal = document.getElementById('salesInterceptModal');
+    if (modal) modal.classList.remove('show');
+    document.body.style.overflow = '';
+    try { posthog.capture('sales_call_intercept_dismissed'); } catch(e) {}
+}
+
+function salesInterceptCtaClicked() {
+    try { posthog.capture('sales_call_intercept_cta_clicked'); } catch(e) {}
+    setTimeout(closeSalesInterceptModal, 300);
 }
 
 let creditsExhaustedTrigger = null; // Add this at top of file with other variables
@@ -2966,8 +3030,14 @@ function setupModalEvents(){
     document.addEventListener('click',(e)=>{
         if(e.target===document.getElementById('pricingModal')) closePricingModal();
         if(e.target===document.getElementById('feedbackModal')) closeFeedbackModal();
+        if(e.target===document.getElementById('salesInterceptModal')) closeSalesInterceptModal();
     });
-    document.addEventListener('keydown',(e)=>{if(e.key==='Escape'){closePricingModal();}});
+    document.addEventListener('keydown',(e)=>{
+        if(e.key!=='Escape') return;
+        const sci = document.getElementById('salesInterceptModal');
+        if (sci && sci.classList.contains('show')) { closeSalesInterceptModal(); return; }
+        closePricingModal();
+    });
 }
 
 function setupNavigation(){
