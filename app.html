@@ -2187,6 +2187,26 @@ function switchMode(mode) {
     updateSubmitButtonState();
 }
 
+// Target for the activation nudges below. Bulk is where a casual visitor turns
+// into someone with a real job running, so the nudge has to land them on it
+// rather than just mentioning it exists. If they haven't picked an input/output
+// type yet the bulk panel stays hidden, so send them to that selector instead of
+// scrolling to nothing.
+function jumpToBulkUpload(source) {
+    try { posthog.capture('activation_nudge_clicked', { target: 'bulk', source: source }); } catch (e) {}
+
+    var configured = currentInputType && currentOutputType;
+    if (configured) switchMode('bulk');
+
+    var target = document.getElementById(configured ? 'bulkSearch' : 'inputType');
+    if (target && target.scrollIntoView) {
+        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    var banner = document.getElementById('milestoneUpgradeBanner');
+    if (banner) banner.style.display = 'none';
+}
+
 function populateOutputOptions(filterInputType) {
     const sel = document.getElementById('outputType');
     sel.innerHTML = '<option value="">Select output type...</option>';
@@ -3973,20 +3993,60 @@ function checkEnrichmentMilestone() {
     // them, ever. Fires on the very first successful enrichment instead, right
     // when excitement is highest, independently of the n===10 NPS/upgrade-intent
     // block below, on its own fired-flag, so it doesn't change when NPS is asked.
+    // The activation curve was invisible: the only usage milestone event fired
+    // at ten enrichments (under a name that says three), so there was no way to
+    // see where between the first lookup and the tenth people actually stop —
+    // which is the question the whole funnel hangs on. Report the early steps.
+    if ([1, 2, 3, 5, 10, 25].indexOf(n) !== -1) {
+        try {
+            posthog.capture('enrichment_milestone', {
+                count: n,
+                credits_remaining: currentCredits,
+                is_subscriber: isExistingSubscriber
+            });
+        } catch (e) {}
+    }
+
+    // Depth of use, not pricing exposure, is what caps this funnel: over 60 days
+    // 253 people opened the pricing modal and 60 picked a plan, while the vast
+    // majority of activated users never ran enough lookups to need a plan at
+    // all. So the first milestone leads with the next action instead of the
+    // price list — while keeping the plans link right next to it, so the number
+    // of people who see pricing does not go down.
     const earlyNudgeFiredKey = 'lf_early_upgrade_nudge_fired';
     if (n === 1 && !isExistingSubscriber && !localStorage.getItem(earlyNudgeFiredKey)) {
         localStorage.setItem(earlyNudgeFiredKey, '1');
         const bar = document.getElementById('milestoneUpgradeBanner');
         if (bar) {
-            bar.innerHTML = `That's your first lead enriched with LinkFinder AI — nice. <a onclick="try{posthog.capture('milestone_upgrade_banner_clicked')}catch(e){}; showPricingModal('milestone_nudge')">See plans &rarr;</a> <a onclick="document.getElementById('milestoneUpgradeBanner').style.display='none'" style="margin-left:0.75rem;color:inherit;">Dismiss</a>`;
+            bar.innerHTML = `That's your first lead enriched — nice. Most people do the next batch in one go: <a onclick="jumpToBulkUpload('milestone_1')">Upload a CSV &rarr;</a> <a onclick="try{posthog.capture('milestone_upgrade_banner_clicked')}catch(e){}; showPricingModal('milestone_nudge')" style="margin-left:0.75rem;">See plans</a> <a onclick="document.getElementById('milestoneUpgradeBanner').style.display='none'" style="margin-left:0.75rem;color:inherit;">Dismiss</a>`;
             bar.style.display = 'block';
-            try { posthog.capture('milestone_upgrade_banner_shown', { enrich_count: n }); } catch(e) {}
+            try { posthog.capture('milestone_upgrade_banner_shown', { enrich_count: n, variant: 'next_step' }); } catch(e) {}
+            try { posthog.capture('activation_nudge_shown', { step: 1, target: 'bulk' }); } catch(e) {}
         }
     }
+
+    // By the third lookup they have felt the product work repeatedly, which is
+    // the moment a plan reads as useful rather than as a toll gate. Anyone who
+    // gets here has already passed the point where almost everyone else stopped.
+    const thirdNudgeFiredKey = 'lf_third_enrichment_nudge_fired';
+    if (n === 3 && !isExistingSubscriber && !localStorage.getItem(thirdNudgeFiredKey)) {
+        localStorage.setItem(thirdNudgeFiredKey, '1');
+        const bar = document.getElementById('milestoneUpgradeBanner');
+        if (bar) {
+            bar.innerHTML = `Three enrichments in — you're getting real use out of this. <a onclick="try{posthog.capture('milestone_upgrade_banner_clicked',{step:3})}catch(e){}; showPricingModal('third_enrichment')">See what a plan gets you &rarr;</a> <a onclick="document.getElementById('milestoneUpgradeBanner').style.display='none'" style="margin-left:0.75rem;color:inherit;">Dismiss</a>`;
+            bar.style.display = 'block';
+            try { posthog.capture('activation_nudge_shown', { step: 3, target: 'pricing' }); } catch(e) {}
+        }
+    }
+   // NOTE: `three_enrichments_milestone` fires at TEN enrichments, not three —
+   // the name is left over from an earlier threshold. Reading it as "reached 3
+   // enrichments" understates activation badly. It keeps its old name so the
+   // historical series stays continuous; use `enrichment_milestone` (captured
+   // above with an explicit `count`) for anything new.
    if (n === 10 && !localStorage.getItem(firedKey)) {
     localStorage.setItem(firedKey, '1');
     fireUpgradeIntent('three_enrichments', { enrich_count: n, credits_remaining: currentCredits });
-    try { posthog.capture('three_enrichments_milestone', { credits_remaining: currentCredits }); } catch(e) {}
+    try { posthog.capture('three_enrichments_milestone', { credits_remaining: currentCredits, actual_count: n }); } catch(e) {}
     showNPS();
 }
     // Heavy, paying users are the actual ICP for the done-for-you VIP offer —
