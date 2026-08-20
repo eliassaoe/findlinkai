@@ -9,6 +9,7 @@
         person_profiles: 'identified_only',
     })
 </script>
+<script src="/js/lf-attribution.js"></script>
 <script>
     (function(w,d,t,r,u){var f,n,i;w[u]=w[u]||[],f=function(){var o={ti:"343223134", enableAutoSpaTracking: true};o.q=w[u],w[u]=new UET(o),w[u].push("pageLoad")},n=d.createElement(t),n.src=r,n.async=1,n.onload=n.onreadystatechange=function(){var s=this.readyState;s&&s!=="loaded"&&s!=="complete"||(f(),n.onload=n.onreadystatechange=null)},i=d.getElementsByTagName(t)[0],i.parentNode.insertBefore(n,i)})(window,document,"script","//bat.bing.com/bat.js","uetq");
 </script>
@@ -1394,6 +1395,69 @@ function validateCheckoutUrl(url) {
     }
 }
 
+// ===== Checkout hand-off telemetry =====
+// Everything between "visitor picked a plan" and "visitor came back paid" used
+// to be a blind spot: the redirect below leaves the page, so a bail-out on
+// Dodo's own form looked identical to a checkout that never opened at all.
+
+const PENDING_CHECKOUT_KEY = 'lf_pending_checkout';
+
+// PostHog batches events and flushes on a timer, so an event captured on the
+// last line before a full-page navigation is usually still queued when the page
+// tears down. Ask for the Beacon transport, which the browser is required to
+// deliver across a navigation, and hold the redirect for a moment in case this
+// build of the SDK ignores the option.
+async function captureBeforeUnload(eventName, properties) {
+    try {
+        posthog.capture(eventName, properties, { transport: 'sendBeacon' });
+    } catch (e) {
+        try { posthog.capture(eventName, properties); } catch (_) {}
+    }
+    await new Promise(r => setTimeout(r, 250));
+}
+
+function rememberPendingCheckout(info) {
+    try {
+        localStorage.setItem(PENDING_CHECKOUT_KEY, JSON.stringify({
+            attempt_id: lastCheckoutAttemptId,
+            plan: info.analyticsPlanName,
+            plan_key: info.planKey,
+            billing: info.billingLabel,
+            value: info.value,
+            started_at: Date.now()
+        }));
+    } catch (e) {}
+}
+
+function clearPendingCheckout() {
+    try { localStorage.removeItem(PENDING_CHECKOUT_KEY); } catch (e) {}
+}
+
+// Runs on app load. A marker still sitting here means the visitor went to Dodo
+// and returned without a success parameter — an abandonment we previously had
+// no event for. Older than an hour is a stale marker, not a fresh bail-out.
+function reconcilePendingCheckout() {
+    let pending = null;
+    try { pending = JSON.parse(localStorage.getItem(PENDING_CHECKOUT_KEY) || 'null'); } catch (e) {}
+    if (!pending || !pending.started_at) return;
+
+    clearPendingCheckout();
+
+    const elapsedMs = Date.now() - pending.started_at;
+    if (elapsedMs > 60 * 60 * 1000) return;
+
+    try {
+        posthog.capture('checkout_abandoned', {
+            attempt_id: pending.attempt_id,
+            plan: pending.plan,
+            plan_key: pending.plan_key,
+            billing: pending.billing,
+            value: pending.value,
+            seconds_at_checkout: Math.round(elapsedMs / 1000)
+        });
+    } catch (e) {}
+}
+
 
 async function waitForUserEmail(maxMs = 5000, intervalMs = 150) {
     const start = Date.now();
@@ -1440,13 +1504,20 @@ async function createCheckoutSessionViaWorker(planKey, email) {
     const requestId = genCheckoutId();
 
     // Build payload first so we can conditionally include email
+    const attribution = window.getAttributionProperties ? window.getAttributionProperties() : {};
+
     const payload = {
         plan: planKey,
         user_token: userToken,
         ref_token: getRefCookie() || undefined,
         force_new_session: true,
         request_id: requestId,
-        requested_at: new Date().toISOString()
+        requested_at: new Date().toISOString(),
+        // Forwarded into Dodo's checkout metadata so the payment webhook can
+        // attribute revenue server-side, even when the customer never returns
+        // to /app for the browser-side event to fire. See workers/dodo-webhook.
+        attribution_source: attribution.attribution_source || undefined,
+        attribution_campaign: attribution.attribution_campaign || undefined
     };
 
     // Only send email if it's a non-empty valid string
@@ -1768,6 +1839,22 @@ async function launchCheckout({ planKey, analyticsPlanName, value, billingLabel,
         if (!validateCheckoutUrl(data.checkout_url)) {
             throw new Error('Received an invalid checkout URL.');
         }
+
+        // Record the hand-off itself, and leave a marker so the next app load
+        // can tell us whether they ever came back. Without these two lines the
+        // redirect is the last thing we ever hear about a checkout attempt.
+        rememberPendingCheckout({ planKey, analyticsPlanName, value, billingLabel });
+        await captureBeforeUnload('checkout_redirect_started', {
+            attempt_id: lastCheckoutAttemptId,
+            plan: analyticsPlanName,
+            plan_key: planKey,
+            billing: billingLabel,
+            value: value,
+            checkout_host: (function () {
+                try { return new URL(data.checkout_url).hostname; } catch (_) { return null; }
+            })()
+        });
+
         window.location.href = data.checkout_url;
 
     } catch (e) {
@@ -1796,11 +1883,23 @@ function handleDodoReturnStatus() {
 
     if (!dodoStatus) return; // normal page load, not a checkout return
 
+    // This is a checkout return either way, so the pending marker has done its
+    // job — drop it before reconcilePendingCheckout() can read it as a bail-out.
+    let pending = null;
+    try { pending = JSON.parse(localStorage.getItem(PENDING_CHECKOUT_KEY) || 'null'); } catch (e) {}
+    clearPendingCheckout();
+
     if (dodoStatus === 'succeeded' || dodoStatus === 'active') {
         showAlert('Payment successful! Your plan is now active.', 'success');
         try {
             posthog.capture('checkout_payment_success', {
-                payment_id: paymentId, subscription_id: subscriptionId, status: dodoStatus
+                payment_id: paymentId, subscription_id: subscriptionId, status: dodoStatus,
+                attempt_id: pending?.attempt_id || null,
+                plan: pending?.plan || null,
+                plan_key: pending?.plan_key || null,
+                billing: pending?.billing || null,
+                value: pending?.value ?? null,
+                ...(window.getAttributionProperties ? window.getAttributionProperties() : {})
             });
         } catch(e) {}
         fireGoogleAdsConversion({ data: { payment_id: paymentId, subscription_id: subscriptionId } });
@@ -1824,7 +1923,10 @@ function handleDodoReturnStatus() {
         showAlert('Payment did not complete. Please try again or contact support.', 'error');
         try {
             posthog.capture('checkout_payment_failed', {
-                payment_id: paymentId, subscription_id: subscriptionId, status: dodoStatus
+                payment_id: paymentId, subscription_id: subscriptionId, status: dodoStatus,
+                attempt_id: pending?.attempt_id || null,
+                plan: pending?.plan || null,
+                plan_key: pending?.plan_key || null
             });
         } catch(e) {}
     }
@@ -3018,6 +3120,9 @@ document.addEventListener('DOMContentLoaded',()=>{
     checkAuth(); fetchCredits(); checkHubspotConnection(); setupFileUpload(); setupDragAndDrop();
     setupNavigation(); setupModalEvents(); setupDropdowns();
     handleDodoReturnStatus();
+    // Must run after handleDodoReturnStatus(), which clears the marker on a real
+    // checkout return. Anything left over is someone who bailed out on Dodo.
+    reconcilePendingCheckout();
     // Delay so fetchCredits() has resolved and isExistingSubscriber is accurate.
     setTimeout(maybeShowTimeBasedUpgradeNudge, 3000);
     const pb=document.getElementById('processBulkBtn');
