@@ -1371,6 +1371,9 @@ const CHECKOUT_MODE = 'live'; // MUST match worker env in production
 
 let checkoutInFlight = false;
 let lastCheckoutAttemptId = null;
+// Resolves once the page-load subscription check has answered. Anything gated on
+// subscriber status awaits this instead of racing a fixed delay.
+let subscriberStatusPromise = null;
 
 // A successful launchCheckout() redirects via window.location.href and never
 // gets to reset checkoutInFlight back to false (only the catch path does).
@@ -1444,18 +1447,84 @@ function reconcilePendingCheckout() {
     clearPendingCheckout();
 
     const elapsedMs = Date.now() - pending.started_at;
-    if (elapsedMs > 60 * 60 * 1000) return;
+
+    // Within the hour it is a fresh bail-out worth reporting as one. Older than
+    // that and we cannot tell a bail-out from a stale marker.
+    if (elapsedMs <= 60 * 60 * 1000) {
+        try {
+            posthog.capture('checkout_abandoned', {
+                attempt_id: pending.attempt_id,
+                plan: pending.plan,
+                plan_key: pending.plan_key,
+                billing: pending.billing,
+                value: pending.value,
+                seconds_at_checkout: Math.round(elapsedMs / 1000)
+            });
+        } catch (e) {}
+    }
+
+    // Offer the way back for a day, which covers "I'll do it tonight".
+    if (elapsedMs <= 24 * 60 * 60 * 1000 && pending.plan_key) {
+        pendingRescueOffer = Object.assign({ elapsedMs: elapsedMs }, pending);
+    }
+}
+
+// An unfinished checkout is the most valuable thing in this funnel to recover:
+// that person picked a plan and reached a payment page, which only ~5% of
+// signups ever do. Until now there was no way back — they left and that was
+// the end of it. Offer to resume the exact plan they chose.
+let pendingRescueOffer = null;
+
+async function maybeShowCheckoutRescue() {
+    if (!pendingRescueOffer) return;
+
+    // Wait for the real subscription answer rather than assuming it has landed.
+    // Telling someone who already pays that they never finished signing up is
+    // worse than showing the offer a second late.
+    try { await subscriberStatusPromise; } catch (e) {}
+
+    if (!pendingRescueOffer || isExistingSubscriber) return;
+
+    const bar = document.getElementById('milestoneUpgradeBanner');
+    if (!bar) return;
+
+    const offer = pendingRescueOffer;
+    pendingRescueOffer = null;
+    window.__lfRescueOffer = offer;
+
+    const planLabel = offer.plan ? `the ${offer.plan} plan` : 'your plan';
+    bar.innerHTML = `You didn't quite finish signing up for ${planLabel}. `
+        + `<a onclick="resumeCheckout()">Pick up where you left off &rarr;</a>`
+        + `<a onclick="try{posthog.capture('checkout_rescue_dismissed')}catch(e){}; document.getElementById('milestoneUpgradeBanner').style.display='none'" style="margin-left:0.75rem;color:inherit;">No thanks</a>`;
+    bar.style.display = 'block';
 
     try {
-        posthog.capture('checkout_abandoned', {
-            attempt_id: pending.attempt_id,
-            plan: pending.plan,
-            plan_key: pending.plan_key,
-            billing: pending.billing,
-            value: pending.value,
-            seconds_at_checkout: Math.round(elapsedMs / 1000)
+        posthog.capture('checkout_rescue_banner_shown', {
+            plan: offer.plan,
+            plan_key: offer.plan_key,
+            minutes_since: Math.round(offer.elapsedMs / 60000)
         });
     } catch (e) {}
+}
+
+function resumeCheckout() {
+    const offer = window.__lfRescueOffer;
+    if (!offer || !offer.plan_key) return;
+
+    try {
+        posthog.capture('checkout_rescue_clicked', { plan: offer.plan, plan_key: offer.plan_key });
+    } catch (e) {}
+
+    const bar = document.getElementById('milestoneUpgradeBanner');
+    if (bar) bar.style.display = 'none';
+
+    launchCheckout({
+        planKey: offer.plan_key,
+        analyticsPlanName: offer.plan,
+        value: offer.value,
+        billingLabel: offer.billing,
+        btnEl: null
+    });
 }
 
 
@@ -3144,6 +3213,10 @@ document.addEventListener('DOMContentLoaded',()=>{
     // checkout return. Anything left over is someone who bailed out on Dodo.
     reconcilePendingCheckout();
     // Delay so fetchCredits() has resolved and isExistingSubscriber is accurate.
+    // The rescue runs first: someone who reached a payment page and stopped is a
+    // better prospect than anyone the generic upgrade nudge is aimed at, and the
+    // nudge below declines to clobber a banner that is already showing.
+    setTimeout(maybeShowCheckoutRescue, 2500);
     setTimeout(maybeShowTimeBasedUpgradeNudge, 3000);
     const pb=document.getElementById('processBulkBtn');
     pb.disabled=true; pb.style.opacity='0.5';
@@ -3242,8 +3315,10 @@ function checkAuth(){
     const action=p.get('action');
     if(action==='buy_credits') setTimeout(()=>showPricingModal('buy_credits_btn'),500);
     else if(action==='upgrade') setTimeout(()=>showPricingModal(),500);
-    // Silently check subscription status on load
-    fetch(UPGRADE_INTENT_WORKER, {
+    // Silently check subscription status on load. Kept as a promise so anything
+    // whose behaviour depends on being a subscriber can wait for the real answer
+    // instead of racing a timeout and guessing wrong on a slow connection.
+    subscriberStatusPromise = fetch(UPGRADE_INTENT_WORKER, {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({token: userToken, trigger: 'page_load'})
