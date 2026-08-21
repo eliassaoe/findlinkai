@@ -1495,7 +1495,10 @@ async function maybeShowCheckoutRescue() {
     pendingRescueOffer = null;
     window.__lfRescueOffer = offer;
 
-    const planLabel = offer.plan ? `the ${offer.plan} plan` : 'your plan';
+    // offer.plan comes back out of localStorage. Today it can only ever hold a
+    // name this code put there, but a stored value flowing into innerHTML is
+    // exactly the shape that turns into a real hole later — escape it now.
+    const planLabel = offer.plan ? `the ${otpEsc(offer.plan)} plan` : 'your plan';
     bar.innerHTML = `You didn't quite finish signing up for ${planLabel}. `
         + `<a onclick="resumeCheckout()">Pick up where you left off &rarr;</a>`
         + `<a onclick="try{posthog.capture('checkout_rescue_dismissed')}catch(e){}; document.getElementById('milestoneUpgradeBanner').style.display='none'" style="margin-left:0.75rem;color:inherit;">No thanks</a>`;
