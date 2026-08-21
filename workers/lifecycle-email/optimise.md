@@ -24,6 +24,28 @@ cd workers/lifecycle-email
 If that branch has been merged, work from the default branch instead — the files
 are the same.
 
+## 0.5 Check you can reach PostHog at all
+
+Everything here runs through the PostHog MCP tool, `mcp__posthog_mcp__exec`. A
+scheduled session only has it if the Routine was created with the PostHog
+connector attached, and a Routine created from inside a Claude Code session
+cannot attach one — the API refuses. So confirm before you start:
+
+```
+mcp__posthog_mcp__exec:  call workflows-list {}
+```
+
+If that tool does not exist in your session, **stop and say exactly that**. The
+fix is not something you can do from here: Eliasse has to open
+claude.ai → Routines → "Weekly lifecycle email optimisation" and re-create it
+there with the PostHog connector enabled, because the Routines UI can attach
+connectors and `create_trigger` cannot. Report that in one sentence and end.
+
+Second known failure mode: these sessions run unattended. If you hit a
+permission prompt, nobody is there to answer it and the run stalls until it
+times out. Stay inside the commands in this runbook — they are pre-approved
+shapes — and do not go exploring the container.
+
 ## 1. Check the loop is actually receiving data
 
 ```
