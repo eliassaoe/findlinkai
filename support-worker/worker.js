@@ -176,15 +176,19 @@ async function capturePostHogEvent(env, event, properties) {
   }
 }
 
-async function toolEscalateToHuman(env, { summary, userEmail }) {
+async function toolEscalateToHuman(env, { summary, userEmail }, userToken) {
   const toEmail = env.SUPPORT_TO_EMAIL || "support@linkfinderai.com";
 
   // Fire a PostHog event instead of calling a separate email API — wire a
   // PostHog workflow/action on "support_chat_escalated" to actually send the
   // notification email, since PostHog's own messaging already handles that.
+  // user_token is the app's own account identifier (from the page URL/
+  // localStorage, not something the model guesses) — lets Eliasse look the
+  // person up directly instead of relying on them having given an email.
   const notified = await capturePostHogEvent(env, "support_chat_escalated", {
     summary,
     user_email: userEmail || null,
+    user_token: userToken || null,
     source: "support_widget",
   });
 
@@ -195,8 +199,8 @@ async function toolEscalateToHuman(env, { summary, userEmail }) {
       type: "escalate_card",
       heading: "Let's get you a real answer",
       body: summary,
-      mailto: `mailto:${toEmail}?subject=${encodeURIComponent("Support request from AI chat")}&body=${encodeURIComponent(summary)}`,
-      calendly: "https://calendly.com/hamoureliasse/intro-call",
+      mailto: `mailto:${toEmail}?subject=${encodeURIComponent("Support request from AI chat")}&body=${encodeURIComponent(summary + (userToken ? `\n\nUser token: ${userToken}` : ""))}`,
+      calendly: "https://calendly.com/hamoureliasse/compensated-interview-unlimited-leads-clone",
     },
   };
 }
@@ -272,6 +276,7 @@ async function handleChat(request, env) {
   if (history.length === 0) {
     return new Response(JSON.stringify({ error: "messages must be a non-empty array" }), { status: 400 });
   }
+  const userToken = typeof body.userToken === "string" ? body.userToken : null;
   // Trim to a reasonable window so context/cost don't grow unbounded.
   const messages = history.slice(-20).map((m) => ({ role: m.role, content: m.content }));
 
@@ -309,7 +314,7 @@ async function handleChat(request, env) {
       if (call.function.name === "fetch_page") {
         output = await toolFetchPage(args.path);
       } else if (call.function.name === "escalate_to_human") {
-        output = await toolEscalateToHuman(env, args);
+        output = await toolEscalateToHuman(env, args, userToken);
         escalateCard = output.card;
       } else {
         output = { error: `unknown tool ${call.function.name}` };

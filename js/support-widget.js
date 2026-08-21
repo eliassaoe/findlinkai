@@ -14,6 +14,19 @@
 
   var STORAGE_KEY = "lfai_support_chat_v1";
 
+  // Same lookup the app pages use (?token= in the URL, else localStorage) —
+  // lets the bot pass along an account identifier when it escalates, so
+  // Eliasse can find the person even if they never typed their email.
+  function getUserToken() {
+    try {
+      var fromUrl = new URLSearchParams(window.location.search).get("token");
+      if (fromUrl) return fromUrl;
+      return localStorage.getItem("linkFinderToken") || null;
+    } catch (e) {
+      return null;
+    }
+  }
+
   function track(event, props) {
     try {
       if (window.posthog && typeof window.posthog.capture === "function") {
@@ -230,7 +243,7 @@
     fetch(WORKER_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ messages: history }),
+      body: JSON.stringify({ messages: history, userToken: getUserToken() }),
     })
       .then(function (res) {
         return res.json();
