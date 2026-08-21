@@ -37,6 +37,17 @@
 
     window.lfTrackWidget = capture;
 
+    // 19 tool pages carry a sticky "Sign Up Free" button whose onclick calls
+    // trackEvent(), a function only company-url-finder.html ever defined. Every
+    // click on the site's most persistent CTA therefore threw a ReferenceError
+    // and recorded nothing — PostHog error tracking caught it on
+    // /linkedin-email-finder. One shim here beats editing 19 files, and a page
+    // that declares its own trackEvent still wins, because a global function
+    // declaration overwrites this assignment.
+    if (typeof window.trackEvent !== 'function') {
+        window.trackEvent = function (name, props) { capture(name, props); };
+    }
+
     // The action a button triggers is a better label than its visible text,
     // which changes with loading states and translations.
     function actionOf(el) {

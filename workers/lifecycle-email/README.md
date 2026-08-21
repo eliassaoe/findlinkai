@@ -1,150 +1,171 @@
-# Lifecycle email: PostHog segments → Instantly
+# Lifecycle email, built inside PostHog
 
-## The headline
+This replaces the Instantly plan that used to live in this file. Instantly stays what
+it is good at — cold outreach to strangers. Everything that talks to people who already
+have a LinkFinder account now runs on **PostHog Workflows**, because the segments, the
+triggers, the sending, and the reporting are all in one place and there is no list to
+export, clean, and re-import every month.
 
-Your existing lifecycle campaign **works**, and it is being starved.
+Everything below **already exists** in the PostHog project. Nothing sends until you do
+the two setup steps in the next section.
 
-`email marketing PAID credits USED` (active since March):
+## Before anything sends: two steps, both yours
+
+**1. Create the email channel.** Workflows → Channels → New channel → Email.
+Set the from-name and from-email. Use **`eliasse@linkfinderai.com`** — the four workflow
+drafts are already configured with exactly that address, so matching it means you change
+nothing else.
+
+Do **not** send lifecycle mail from `linkfinderai-outbound.com`, `linkfinderai-sales.com`,
+or any of the other cold-outreach lookalike domains. To someone who signed up at
+linkfinderai.com, a mail from a lookalike domain reads as phishing. They mark it spam,
+and the complaint lands on a domain you need for real outbound.
+
+**2. Verify the domain.** PostHog shows SPF and DKIM records after you add the address.
+Put them in Cloudflare DNS. If `linkfinderai.com` already has an SPF record, **merge**,
+never add a second one:
+
+```
+v=spf1 include:existing-service.com include:mailgun.org ~all
+```
+
+Verification takes a few minutes to propagate. Green check mark, then you can enable.
+
+**3. (Recommended) Create two message categories.** Workflows → Opt-outs → Message
+categories. Make one for **Product & onboarding** and one for **Offers & upgrades**, then
+assign each workflow email to the right one. Without categories, an unsubscribe from the
+upgrade email also silences the welcome email — which is not what you want. The project
+currently has zero categories.
+
+## The four workflows
+
+All four are saved as **drafts**. A draft never runs. Open each one, check the sender is
+picked up, use **Test run** (it sends nothing to real people), then enable.
+
+### 1. Checkout recovery — picked a plan, never paid
 
 | | |
 |---|---|
-| Leads ever loaded | **9** |
-| Emails sent | 7 |
-| Replies | **2** (29%) |
-| Opportunities | 1, valued **$1,000** |
+| Trigger | `plan_selected` or `checkout_redirect_started` |
+| Shape | wait 2h → email → wait 3d → email → exit |
+| Guard | conversion goal on every payment event, so a payer never receives either mail |
+| Masking | once per person per 7 days |
 
-Seven emails produced two replies and a $1,000 opportunity. Meanwhile there are
-**1,874 users with a valid email address** in PostHog, 1,855 of them not paying.
-Nine have ever been contacted.
+The first email asks one question — did it break, or was it the price — rather than
+pitching. The second offers the pay-as-you-go pack, because "wrong shape" is a more common
+objection than "too expensive" and the $25 pack answers it.
 
-## The segments
+### 2. Credit wall — ran out, never saw pricing
 
-Run in PostHog. Non-paying users with a real email, last 120 days:
-
-| Segment | People | Avg lookups | Why they matter |
-|---|---|---|---|
-| Picked a plan, never paid | **75** | **13.9** | Heaviest users on the list. Tried to buy. |
-| Hit the credit wall, never saw pricing | **124** | 8.0 | Wanted more, never shown how to get it. |
-| Active (3+ lookups), never upgraded | **380** | 6.5 | Big, engaged, unasked. |
-| Saw pricing, never picked a plan | 257 | 3.5 | Price or timing objection. |
-| Tried once or twice, went quiet | 555 | 1.4 | The activation problem. |
-| Signed up, never ran a lookup | 464 | 0.0 | Onboarding failure. |
-| *Paying — exclude from everything* | *19* | *3.2* | |
-
-The query that produces these is in `segments.sql`.
-
-## List hygiene — do not skip this
-
-The raw "picked a plan, never paid" segment is 74 addresses. **27 of them (36%) should
-never be emailed:**
-
-| Removed | Count |
+| | |
 |---|---|
-| Your own addresses (`hamoureliasse@`, `eliasseiapro*`) | 8 |
-| Test accounts (`testestes@`, `testaffiliate@` …) | 7 |
-| Disposable inboxes (`mailvn.biz`, `dardr.com`, `onionmail.org` …) | 6 |
-| Keyboard-mash signups (`qbeqbqneneq@`, `gziugnzriugn@` …) | 6 |
+| Trigger | `credits_exhausted` or `bulk_results_gated_shown` |
+| Shape | wait 30m → email → exit |
+| Guard | conversion goal on payment events |
+| Masking | once per person per 30 days |
 
-Disposables hard-bounce, and bounce rate is what actually damages a sending domain.
-`clean.py` applies these rules; it is deliberately conservative, so eyeball the output
-before every send.
+124 people hit this wall in the last 120 days and never reached a pricing page. This is the
+cheapest gap in the funnel to close: they already wanted more.
 
-**40 addresses survive**, tiered by usage: 13 tier A (4+ lookups), 15 tier B (1–3),
-12 tier C (0).
+### 3. New user activation — welcome, rescue, upgrade
 
-## Two things to fix before sending
+This is the big one. **566 people signed up in the last 30 days and 464 of them never ran
+a single lookup.** No email has ever gone to any of them.
 
-**1. The sending domains are wrong for this.** Every account in the workspace is on a
-cold-outreach lookalike domain — `linkfinderai-outbound.com`, `linkfinderai-sales.com`,
-`linkfinderai-pro.com`, and so on. Those are correct for prospecting strangers. They are
-the wrong choice for emailing people who signed up at **linkfinderai.com**: to that
-person, a mail from `eliasse@linkfinderai-outbound.com` reads as phishing. They mark it
-spam, and the complaint lands on a domain you need for actual outbound.
+```
+signup_success
+  └─ wait 20m ─→ welcome email
+       └─ wait up to 1 day for enrich_started
+            ├─ ran one  ─→ wait 6d ─→ upgrade email ─→ exit
+            └─ timed out ─→ "you haven't run anything" email
+                 └─ wait up to 5 more days for enrich_started
+                      ├─ ran one  ─→ wait 6d ─→ upgrade email ─→ exit
+                      └─ timed out ─→ exit (stop bothering them)
+```
 
-Add a sending account on the real domain and send lifecycle mail from there.
+The waits are `wait_until_condition` steps on the real `enrich_started` event, not guesses
+about who activated. Anyone who pays leaves via the conversion goal. Each person enters
+once, ever.
 
-**2. Every account reports `status: -1`,** and several carry
-`EAUTH — can't create new access token for user`. The OAuth connections have expired.
-Reconnect them before relying on any of this.
+### 4. Win-back broadcast — tried it, went quiet
 
-## Campaign copy
+A batch send, not an event trigger. **It does not fire when you enable it** — you dispatch
+it deliberately, which is the correct shape for a one-off broadcast.
 
-Written to be answered, not admired — the existing campaign got a 29% reply rate on
-plain founder-style mail, so that is the register. Short, specific, one question, no
-graphics. Every one needs a working unsubscribe line before it goes out.
+It leads with the country-subdomain bug: `fr.linkedin.com`, `in.linkedin.com` and the rest
+were being rejected as invalid, so people were told their perfectly good link was wrong.
+That is fixed and shipped. An honest, specific disclosure is the only thing that earns a
+second try from someone who already walked away.
 
----
+## Send the win-back in three waves
 
-### Campaign 1 — Picked a plan, never paid (40 leads, staged)
+914 dormant users match. Sending all of them in one blast from a freshly verified domain
+is the single fastest way to burn it. Three static cohorts already exist, tiered by how
+much the person actually used the tool:
 
-**Subject:** `did the upgrade break for you?`
+| Cohort | ID | People | When |
+|---|---|---|---|
+| Win-back wave A — 6+ lookups | `505122` | 147 | First. Most engaged, lowest complaint risk. |
+| Win-back wave B — 3 to 5 lookups | `505123` | 246 | After A's bounce and complaint rates look clean. |
+| Win-back wave C — 1 to 2 lookups | `505125` | 520 | Last. Weakest intent, highest bounce risk. |
 
-> Hi — Eliasse here, I built LinkFinder.
->
-> I can see you ran {{lookups}} lookups and started upgrading to {{plan_picked}}, but the
-> payment never went through.
->
-> I'd genuinely like to know which it was: did something break, or did you change your
-> mind on the price? We found and fixed a bug in our checkout last week, so there's a
-> real chance it was us — and if so I owe you a working link.
->
-> Either way, just hit reply. One line is plenty.
->
-> — Eliasse
+Workflow 4 points at wave A. To send the next wave, open the trigger, swap the cohort, and
+dispatch again.
 
-*Step 2, +4 days:*
+Every cohort already excludes your own addresses (`hamoureliasse`, `eliasseiapro`), the
+disposable domains that showed up in the raw list (`mailvn.biz`, `dardr.com`, `onionmail`),
+anything with `test` in the address, and anyone who has ever paid. They are **static**
+snapshots on purpose: a broadcast should go to a fixed list, and PostHog batch triggers
+cannot evaluate behavioural cohorts anyway.
 
-**Subject:** `re: did the upgrade break for you?`
+`Win-back — tried LinkFinder, went quiet` (`505119`) is the same segment as a **live**
+cohort. It cannot be used for a batch send, but it is the right thing to watch on a
+dashboard, and it is what you would rebuild the static waves from next quarter.
 
-> Following up once, then I'll leave you alone.
->
-> If it was the price, tell me and I'll tell you honestly whether {{plan_picked}} is
-> right for what you're doing — sometimes the pay-as-you-go pack is the better call and
-> I'd rather say so.
->
-> — Eliasse
+There is also a pre-existing `Signed up - never activated` cohort (`346914`, 166 people).
+Workflow 3 covers everyone who signs up from now on; that cohort is the backlog, and it
+needs its own broadcast with different copy — "you tried it" is false for people who never
+did.
 
----
+## The six email templates
 
-### Campaign 2 — Hit the credit wall, never saw pricing (124 leads)
+Saved in Workflows → Library. Each workflow carries its own copy of the content, so these
+are the editable reference versions — change one here and you can drop it into a step in
+the builder with two clicks.
 
-**Subject:** `you ran out of credits — here's what happens next`
+| Template | Used by |
+|---|---|
+| Checkout — did the upgrade break for you? | Workflow 1, step 1 |
+| Checkout — follow-up, price or wrong shape | Workflow 1, step 2 |
+| Credit wall — you ran out of credits | Workflow 2 |
+| Welcome — your credits are ready | Workflow 3, step 1 |
+| Activation — you signed up but haven't run anything | Workflow 3, rescue step |
+| Upgrade — you're past the free tier | Workflow 3, final step |
+| Win-back — was the result any good? | Workflow 4 |
 
-> Hi — you used all {{lookups}} of your free lookups on LinkFinder, which means it was
-> doing something useful for you.
->
-> You may not have seen what comes after: plans start at $49/mo for 5,000 lookups, and
-> there's a $25 one-off pack if you just need a batch done and don't want a subscription.
->
-> If neither fits what you're doing, reply and tell me what you're actually trying to
-> build a list of — I'll tell you if we're the wrong tool.
->
-> — Eliasse
+All of them are plain founder-style mail: short, specific, one question, no graphics. That
+register is not a stylistic preference — the seven emails ever sent from the old Instantly
+campaign got a 29% reply rate and one $1,000 opportunity writing exactly like this.
 
----
+Every one carries `{{ unsubscribe_url }}` in the footer and a plain-text fallback.
 
-### Campaign 3 — Tried once or twice, went quiet (555 leads)
+## One thing to fix in the product
 
-**Subject:** `was the result any good?`
+`app.html:1185` tells people *"Starter plan gives 5,000 credits/mo for $49"*, but the plan
+array at `app.html:1709` — the one that actually drives checkout — says **60,000**. One of
+those two numbers is wrong on a live pricing surface. The credit-wall email quotes 60,000
+because that is what the checkout code uses; if 5,000 is the true figure, the email needs
+changing too.
 
-> Hi — you tried LinkFinder a while back and didn't come back, so I'm guessing the
-> answer either wasn't right or wasn't worth the effort.
->
-> Which was it? I'm asking because we just fixed something embarrassing: profile URLs
-> from country domains (fr.linkedin.com, in.linkedin.com and the rest) were being
-> rejected as invalid. If you pasted one of those, the tool told you your perfectly good
-> link was wrong.
->
-> That's fixed. Your credits are still there if you want another go.
->
-> — Eliasse
+## What to watch after enabling
 
-*This one is worth sending first — it's the largest segment and the honest bug
-disclosure is what makes it worth reading.*
+PostHog captures email engagement as ordinary events, so opens, clicks, bounces, and
+unsubscribes are queryable alongside everything else. The numbers that decide whether this
+is working:
 
-## Keeping it fed
-
-The segments are a query, not a one-off list. Re-run `segments.sql` monthly, pass the
-output through `clean.py`, and load the new addresses. There is no PostHog→Instantly
-integration to automate it, so this stays a scheduled manual step until someone builds
-the connector.
+- **bounce rate** — the one that damages the domain. Stop and re-clean if it goes above 2%.
+- **complaint rate** — above 0.1% and you pause.
+- `enrich_started` within 48h of the welcome or rescue email — does workflow 3 actually
+  move the 464?
+- payments attributed to workflow 1 — the abandoned-checkout money is the most recoverable
+  revenue on the list.
