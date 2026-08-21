@@ -6,24 +6,30 @@ have a LinkFinder account now runs on **PostHog Workflows**, because the segment
 triggers, the sending, and the reporting are all in one place and there is no list to
 export, clean, and re-import every month.
 
-Everything below **already exists** in the PostHog project. Nothing sends until you do
-the two setup steps in the next section.
+Everything below **already exists** in the PostHog project.
+
+**The one switch still off: Settings → Workflows → Engagement events.** It is off by
+default and **it does not backfill** — opens, clicks and bounces are simply not recorded
+for any day it is off, and that data can never be recovered. The weekly optimisation loop
+reads nothing else, so until this is on the loop runs every Monday and correctly reports
+that it has no data to work with.
 
 ## Before anything sends: two steps, both yours
 
-**1. Create the email channel.** Workflows → Channels → New channel → Email.
-Set the from-name and from-email. Use **`eliasse@linkfinderai.com`** — the four workflow
-drafts are already configured with exactly that address, so matching it means you change
-nothing else.
+**1. Create the email channel.** — **done.** The sender is
+**`support@linkfinderai.com`**, display name "Eliasse at LinkFinder", PostHog integration
+`238896`, and all seven email steps point at it. The domain is verified and a live test
+send to a real inbox landed. `support@` rather than a personal address because replies to
+it are actually read — a From address nobody monitors is worse than no reply path at all.
 
 Do **not** send lifecycle mail from `linkfinderai-outbound.com`, `linkfinderai-sales.com`,
 or any of the other cold-outreach lookalike domains. To someone who signed up at
 linkfinderai.com, a mail from a lookalike domain reads as phishing. They mark it spam,
 and the complaint lands on a domain you need for real outbound.
 
-**2. Verify the domain.** PostHog shows SPF and DKIM records after you add the address.
-Put them in Cloudflare DNS. If `linkfinderai.com` already has an SPF record, **merge**,
-never add a second one:
+**2. Verify the domain.** — **done** (`_amazonses` TXT, three DKIM CNAMEs, SPF, DMARC and
+the `feedback` MAIL FROM subdomain all resolve). Kept here for the next domain. If
+`linkfinderai.com` already has an SPF record, **merge**, never add a second one:
 
 ```
 v=spf1 include:existing-service.com include:mailgun.org ~all
@@ -169,3 +175,36 @@ is working:
   move the 464?
 - payments attributed to workflow 1 — the abandoned-checkout money is the most recoverable
   revenue on the list.
+
+## The loop that improves this on its own
+
+The seven emails are not fixed copy. Each step has a library of variants in
+`variants.json`, and a Routine fires a fresh Claude session every Monday at 06:00 UTC to
+read last week's numbers, decide what should be live, and swap it in.
+
+| File | What it is |
+|---|---|
+| `variants.json` | 30 variants across the 7 steps, 7 distinct angles. One champion per step, the rest queued. The source of truth — git history is the audit trail of every decision the loop has made. |
+| `measure.sql` | Per-variant performance. PostHog stamps `$email_subject` on every engagement event and subjects are unique per variant, so the subject *is* the variant label — no split node, no UTM convention, nothing to keep in sync. |
+| `decide.py` | Promote / retire / wait. The part that is deliberately not a judgement call. |
+| `build_email.py` | Turns a variant into the exact `workflows-patch-action-email` payload. |
+| `optimise.md` | The runbook the Monday session follows. |
+
+Two things worth knowing before reading any of its reports:
+
+**It is sequential, not concurrent.** PostHog holds one email per step, so champion and
+challenger run in different weeks rather than side by side. That is a real weakness —
+a good fortnight can masquerade as a good subject line — and it is a deliberate trade.
+The welcome step sends ~130/week; a concurrent five-arm test would take about 25 weeks to
+resolve. Sequential gets an answer roughly every six weeks. `decide.py` compensates by
+demanding a 25% margin and judging early peeks at 1% significance instead of 5%.
+
+**It cannot be made to optimise for opens.** Apple Mail Privacy Protection fabricates
+opens for people who never opened anything, and curiosity-bait subjects reliably post 40%
+opens against 2% clicks. Conversion decides, clicks are the tiebreak, open rate is carried
+as a diagnostic and is structurally unable to promote a variant. If a report ever leads
+with an open rate, something has been changed that should not have been.
+
+Steps too quiet to ever produce a readable test — `checkout_2` sends a handful a week —
+are reported as `UNDERPOWERED` with the arithmetic, rather than pretending a better
+subject line is the answer. For those the fix is more traffic into the step.
