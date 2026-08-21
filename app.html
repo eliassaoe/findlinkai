@@ -4690,11 +4690,16 @@ const OTP_LINKS = {
     trustpilot: 'https://fr.trustpilot.com/review/linkfinderai.com',
 };
 
+// Both review platforms and the FTC require an incentivised review to say so.
+// The worker repeats this in its response; showing it before they write is
+// what actually keeps the review from being taken down later.
+const DISC = 'You must write in your review that you received credits for it. Reviews without that line can be removed by the platform.';
+
 const OTP_TASKS = [
-    { name: 'g2_review', kind: 'url', label: 'Leave a G2 review', credits: 1000, realValue: '= 100 emails or 1,000 LinkedIn profiles', placeholder: 'Paste your G2 review URL', linkUrl: OTP_LINKS.g2, linkLabel: 'Write a review on G2', pendingCopy: 'Pending approval' },
+    { name: 'g2_review', kind: 'url', label: 'Leave a G2 review', credits: 1000, realValue: '= 100 emails or 1,000 LinkedIn profiles', placeholder: 'Paste the URL of your review', linkUrl: OTP_LINKS.g2, linkLabel: 'Write a review on G2', pendingCopy: 'Being checked', disclosureNote: DISC },
     { name: 'youtube_subscribe', kind: 'honor_click', label: 'Subscribe to our YouTube channel', credits: 100, realValue: '= 100 LinkedIn profiles', linkUrl: OTP_LINKS.youtube, linkLabel: 'Open channel' },
     { name: 'linkedin_share', kind: 'url', label: 'Share on LinkedIn', credits: 150, realValue: '= 150 LinkedIn profiles', placeholder: 'Paste your LinkedIn post URL' },
-    { name: 'trustpilot_review', kind: 'url', label: 'Leave a Trustpilot review', credits: 500, realValue: '= 50 emails', placeholder: 'Paste your Trustpilot review URL', linkUrl: OTP_LINKS.trustpilot, linkLabel: 'Write a review on Trustpilot', pendingCopy: 'Pending approval'},
+    { name: 'trustpilot_review', kind: 'url', label: 'Leave a Trustpilot review', credits: 500, realValue: '= 50 emails', placeholder: 'Paste the URL of your review', linkUrl: OTP_LINKS.trustpilot, linkLabel: 'Write a review on Trustpilot', pendingCopy: 'Being checked', disclosureNote: DISC},
 ];
 
 function otpCopy() {
@@ -4934,28 +4939,21 @@ async function otpSubmitUrlTask(taskName) {
         if (!res.ok) throw new Error(data.error || 'Could not submit');
 
         if (isReview) {
-            // A review is no longer always pending: a valid, unclaimed permalink
-            // is approved and paid out the moment it lands, so assuming
-            // "pending" here would hide credits the user already has. Re-read
-            // the real state instead of guessing at it.
-            let status = 'pending';
-            try {
-                otpStatusPromise = null;   // drop the per-page-load cache
-                await otpFetchStatus();
-                status = otpStatusFor(taskName) || 'pending';
-            } catch(e) {
-                otpCompletions.push({ task_name: taskName, status: 'pending', credits: 0 });
-            }
-
+            // A review is no longer always pending: a link the worker can
+            // verify is approved and paid out on the spot, and it tells us
+            // which happened. Assuming 'pending' would hide credits the user
+            // already has. An unverifiable link comes back as an error and is
+            // handled by the catch below, which shows the reason.
+            const status = data.status === 'completed' ? 'completed' : 'pending';
+            otpCompletions.push({
+                task_name: taskName,
+                status,
+                credits: status === 'completed' ? task.credits : 0,
+            });
             if (status === 'completed') {
                 try { posthog.capture('onboarding_task_completed', { task_name: taskName, geo_tier: otpGeoTier, credits_awarded: task.credits, auto_verified: true }); } catch(e) {}
-                fetchCredits();
-            } else if (status === 'rejected') {
-                try { posthog.capture('onboarding_task_rejected', { task_name: taskName, geo_tier: otpGeoTier }); } catch(e) {}
-                otpBusyTask = null;
-                renderOnboardingTasksPopup();
-                otpShowFieldError(taskName, data.reason || 'We couldn’t verify that link. Open your own review and copy its URL from the address bar — our reviews page doesn’t identify you.');
-                return;
+                if (typeof data.credits_balance === 'number') { currentCredits = data.credits_balance; fetchCredits(); }
+                else { addCredits(task.credits); }
             } else {
                 try { posthog.capture('onboarding_task_pending', { task_name: taskName, geo_tier: otpGeoTier }); } catch(e) {}
             }

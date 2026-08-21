@@ -1,5 +1,20 @@
 # Getting told when someone does an onboarding task
 
+## Heads up: you have two of these
+
+The worker already posts every review submission to an n8n webhook on Railway
+(`DEFAULT_REVIEW_NOTIFICATION_WEBHOOK` in `workers/onboarding-tasks/worker.js`),
+with one-click approve/reject links. The PostHog workflow below was built
+before that was known and overlaps with it.
+
+Pick one. The n8n route is better for reviews — it carries the approve/reject
+links and fires server-side, so ad blockers cannot suppress it. The PostHog
+route covers the non-review tasks the webhook does not touch. Keeping both
+means two emails per review.
+
+Now that reviews are verified automatically, the webhook only fires for the
+ones left pending, so the volume is small either way.
+
 ## What is set up
 
 A PostHog workflow, **"Internal alert — someone did an onboarding task"**
