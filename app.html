@@ -24,7 +24,6 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
 <link rel="icon" href="https://i.ibb.co/jPjX9SSp/Screen-Shot-2025-03-28-at-8-16-15-PM.png">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-<link href="https://cdn.jsdelivr.net/npm/@n8n/chat/dist/style.css" rel="stylesheet"/>
 <style>
     :root {
         --primary: #2563eb;
@@ -832,6 +831,7 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
             <a href="#" class="nav-tab active" data-page="enrichment"><i class="fas fa-search"></i> Data Enrichment</a>
             <a href="#" class="nav-tab" data-page="api"><i class="fas fa-code"></i> API & MCP</a>
             <a href="#" class="nav-tab" data-page="crmSync"><i class="fab fa-hubspot"></i> CRM Sync</a>
+            <a href="#" class="nav-tab" data-page="aiAgent"><i class="fas fa-robot"></i> AI Agent</a>
             <a href="#" class="nav-tab" data-page="history"><i class="fas fa-history"></i> History</a>
             <a href="#" class="nav-tab" data-page="account"><i class="fas fa-user"></i> Account</a>
         </div>
@@ -1233,7 +1233,6 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
     </div>
 </div>
 
-<div id="n8n-chat"></div>
 
 <button class="feedback-button" onclick="showFeedbackModal()" title="Send Feedback"><i class="fas fa-lightbulb"></i></button>
 <a href="https://linkfinderai.com/resources" target="_blank" rel="noopener" class="help-center-button" title="Help Center — guides & tutorials"><i class="fas fa-circle-question"></i></a>
@@ -3348,6 +3347,7 @@ function navigateToPage(page){
         case 'leads': window.location.href=addGclid(`https://linkfinderai.com/app-linkedin-leads?token=${userToken}`); break;
         case 'history': window.location.href=addGclid(`https://linkfinderai.com/history?token=${userToken}`); break;
         case 'crmSync': window.location.href=addGclid(`https://linkfinderai.com/crm-sync?token=${userToken}`); break;
+        case 'aiAgent': window.location.href=addGclid(`https://linkfinderai.com/ai-agent?token=${userToken}`); break;
     }
 }
 
@@ -4032,8 +4032,8 @@ function renderHubspotActionButton() {
         container.classList.remove('hidden');
         container.innerHTML = `<div style="font-size:0.85rem;color:var(--gray-600);display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;">
             <i class="fab fa-hubspot" style="color:#ff7a59;"></i>
-            <span>Want finds like this auto-saved to your CRM?</span>
-            <a href="#" onclick="try{posthog.capture('crm_sync_nudge_clicked',{source:'app_result'})}catch(e){}; window.location.href=addGclid('https://linkfinderai.com/crm-sync?token='+userToken); return false;" style="color:var(--primary);font-weight:600;text-decoration:none;">We'll set it up for you &rarr;</a>
+            <span>Auto-save finds like this to your CRM.</span>
+            <a href="#" onclick="try{posthog.capture('crm_sync_nudge_clicked',{source:'app_result'})}catch(e){}; window.location.href=addGclid('https://linkfinderai.com/crm-sync?token='+userToken); return false;" style="color:var(--primary);font-weight:600;text-decoration:none;">Connect HubSpot &rarr;</a>
         </div>`;
     } else {
         container.classList.add('hidden'); // still checking connection status
@@ -4228,7 +4228,7 @@ function checkEnrichmentMilestone() {
         localStorage.setItem(vipNudgeFiredKey, '1');
         const bar = document.getElementById('milestoneUpgradeBanner');
         if (bar) {
-            bar.innerHTML = `Running a lot of enrichments lately &mdash; want us to build and run this for you instead? <a href="https://linkfinderai.com/linkfinder-vip" target="_blank" onclick="try{posthog.capture('vip_card_clicked',{source:'usage_banner'})}catch(e){}">See LinkFinder VIP &rarr;</a> <a onclick="document.getElementById('milestoneUpgradeBanner').style.display='none'" style="margin-left:0.75rem;color:inherit;">Dismiss</a>`;
+            bar.innerHTML = `Running a lot of enrichments lately &mdash; want meetings booked for you instead of running this yourself? <a href="https://linkfinderai.com/linkfinder-vip" target="_blank" onclick="try{posthog.capture('vip_card_clicked',{source:'usage_banner'})}catch(e){}">See LinkFinder VIP &rarr;</a> <a onclick="document.getElementById('milestoneUpgradeBanner').style.display='none'" style="margin-left:0.75rem;color:inherit;">Dismiss</a>`;
             bar.style.display = 'block';
             try { posthog.capture('vip_usage_banner_shown', { enrich_count: n }); } catch(e) {}
         }
@@ -4980,36 +4980,7 @@ document.addEventListener('keydown', (e) => {
 
 </script>
 
-<script type="module">
-    import { createChat } from 'https://cdn.jsdelivr.net/npm/@n8n/chat/dist/chat.bundle.es.js';
-    createChat({
-    webhookUrl: 'https://eliasse-n8n.onrender.com/webhook/...',
-    mode: 'window',                  // or 'fullscreen'
-    target: '#n8n-chat',
-    showWelcomeScreen: true,         // intro screen before chat starts
-    loadPreviousSession: false,      // set true to persist across sessions
-    chatInputKey: 'chatInput',       // body key your n8n workflow expects
-    chatSessionKey: 'sessionId',     // session key your workflow expects
-    defaultLanguage: 'en',
-    initialMessages: [
-        'Hi! I\'m your AI support assistant 🤖',
-        'How can I help you with LinkFinderAI today?'
-    ],
-    i18n: {
-        en: {
-            title: 'Support',
-            getStarted: 'Start a conversation',
-            inputPlaceholder: 'Ask anything...',
-            footer: '',
-            closeButtonTooltip: 'Close chat',
-        }
-    },
-    metadata: {                      // pass info to your n8n workflow
-        userToken: userToken,
-        plan: currentPlanNumber,
-    }
-});
-</script>
+<script src="/js/support-widget.js" defer></script>
 
 <!-- NPS Widget -->
 <div id="npsWidget" class="nps-widget" style="display:none;">
