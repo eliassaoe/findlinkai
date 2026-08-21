@@ -3,12 +3,16 @@
 <head>
 <script>
     !function(t,e){var o,n,p,r;e.__SV||(window.posthog && window.posthog.__loaded)||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]),t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}(p=t.createElement("script")).type="text/javascript",p.crossOrigin="anonymous",p.async=!0,p.src=s.api_host.replace(".i.posthog.com","-assets.i.posthog.com")+"/static/array.js",(r=t.getElementsByTagName("script")[0]).parentNode.insertBefore(p,r);var u=e;for(void 0!==a?u=e[a]=[]:a="posthog",u.people=u.people||[],u.toString=function(t){var e="posthog";return"posthog"!==a&&(e+="."+a),t||(e+=" (stub)"),e},u.people.toString=function(){return u.toString(1)+".people (stub)"},o="init zr Wr fi Br Gr ci Nr Hr capture Ui calculateEventProperties Kr register register_once register_for_session unregister unregister_for_session Zr getFeatureFlag getFeatureFlagPayload isFeatureEnabled reloadFeatureFlags updateEarlyAccessFeatureEnrollment getEarlyAccessFeatures on onFeatureFlags onSurveysLoaded onSessionId getSurveys getActiveMatchingSurveys renderSurvey displaySurvey cancelPendingSurvey canRenderSurvey canRenderSurveyAsync identify setPersonProperties group resetGroups setPersonPropertiesForFlags resetPersonPropertiesForFlags setGroupPropertiesForFlags resetGroupPropertiesForFlags reset get_distinct_id getGroups get_session_id get_session_replay_url alias set_config startSessionRecording stopSessionRecording sessionRecordingStarted captureException loadToolbar get_property getSessionProperty Xr Jr createPersonProfile Qr jr ts opt_in_capturing opt_out_capturing has_opted_in_capturing has_opted_out_capturing get_explicit_consent_status is_capturing clear_opt_in_out_capturing Vr debug O Yr getPageViewId captureTraceFeedback captureTraceMetric Or".split(" "),n=0;n<o.length;n++)g(u,o[n]);e._i.push([i,s,a])},e.__SV=1)}(document,window.posthog||[]);
+window.__lfScrubUrl=function(v){return typeof v==='string'?v.replace(/([?&#])(access_token|refresh_token|provider_token|provider_refresh_token|id_token|token|api_key|apikey|password|secret)=[^&#]*/gi,'$1$2=[redacted]'):v;};
+window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_url','$initial_referrer','$session_entry_url','$pathname'].forEach(function(k){if(p[k])p[k]=window.__lfScrubUrl(p[k]);});return p;};
     posthog.init('phc_HqgzMyWAMtzH7K5j9CLw0dijB0I9W1VjPkkyzg9KOFG', {
         api_host: 'https://us.i.posthog.com',
         defaults: '2025-11-30',
         person_profiles: 'identified_only',
+        sanitize_properties: window.__lfSanitize,
     })
 </script>
+<script src="/js/lf-attribution.js"></script>
 <script>
     (function(w,d,t,r,u){var f,n,i;w[u]=w[u]||[],f=function(){var o={ti:"343223134", enableAutoSpaTracking: true};o.q=w[u],w[u]=new UET(o),w[u].push("pageLoad")},n=d.createElement(t),n.src=r,n.async=1,n.onload=n.onreadystatechange=function(){var s=this.readyState;s&&s!=="loaded"&&s!=="complete"||(f(),n.onload=n.onreadystatechange=null)},i=d.getElementsByTagName(t)[0],i.parentNode.insertBefore(n,i)})(window,document,"script","//bat.bing.com/bat.js","uetq");
 </script>
@@ -1370,6 +1374,9 @@ const CHECKOUT_MODE = 'live'; // MUST match worker env in production
 
 let checkoutInFlight = false;
 let lastCheckoutAttemptId = null;
+// Resolves once the page-load subscription check has answered. Anything gated on
+// subscriber status awaits this instead of racing a fixed delay.
+let subscriberStatusPromise = null;
 
 // A successful launchCheckout() redirects via window.location.href and never
 // gets to reset checkoutInFlight back to false (only the catch path does).
@@ -1392,6 +1399,161 @@ function validateCheckoutUrl(url) {
     } catch {
         return false;
     }
+}
+
+// ===== Checkout hand-off telemetry =====
+// Everything between "visitor picked a plan" and "visitor came back paid" used
+// to be a blind spot: the redirect below leaves the page, so a bail-out on
+// Dodo's own form looked identical to a checkout that never opened at all.
+
+const PENDING_CHECKOUT_KEY = 'lf_pending_checkout';
+
+// PostHog batches events and flushes on a timer, so an event captured on the
+// last line before a full-page navigation is usually still queued when the page
+// tears down. Ask for the Beacon transport, which the browser is required to
+// deliver across a navigation, and hold the redirect for a moment in case this
+// build of the SDK ignores the option.
+async function captureBeforeUnload(eventName, properties) {
+    try {
+        posthog.capture(eventName, properties, { transport: 'sendBeacon' });
+    } catch (e) {
+        try { posthog.capture(eventName, properties); } catch (_) {}
+    }
+    await new Promise(r => setTimeout(r, 250));
+}
+
+function rememberPendingCheckout(info) {
+    try {
+        localStorage.setItem(PENDING_CHECKOUT_KEY, JSON.stringify({
+            attempt_id: lastCheckoutAttemptId,
+            plan: info.analyticsPlanName,
+            plan_key: info.planKey,
+            billing: info.billingLabel,
+            value: info.value,
+            checkout_url: info.checkoutUrl || null,
+            started_at: Date.now()
+        }));
+    } catch (e) {}
+}
+
+function clearPendingCheckout() {
+    try { localStorage.removeItem(PENDING_CHECKOUT_KEY); } catch (e) {}
+}
+
+// Runs on app load. A marker still sitting here means the visitor went to Dodo
+// and returned without a success parameter — an abandonment we previously had
+// no event for. Older than an hour is a stale marker, not a fresh bail-out.
+function reconcilePendingCheckout() {
+    let pending = null;
+    try { pending = JSON.parse(localStorage.getItem(PENDING_CHECKOUT_KEY) || 'null'); } catch (e) {}
+    if (!pending || !pending.started_at) return;
+
+    clearPendingCheckout();
+
+    const elapsedMs = Date.now() - pending.started_at;
+
+    // Within the hour it is a fresh bail-out worth reporting as one. Older than
+    // that and we cannot tell a bail-out from a stale marker.
+    if (elapsedMs <= 60 * 60 * 1000) {
+        try {
+            posthog.capture('checkout_abandoned', {
+                attempt_id: pending.attempt_id,
+                plan: pending.plan,
+                plan_key: pending.plan_key,
+                billing: pending.billing,
+                value: pending.value,
+                seconds_at_checkout: Math.round(elapsedMs / 1000)
+            });
+        } catch (e) {}
+    }
+
+    // Offer the way back for a day, which covers "I'll do it tonight".
+    if (elapsedMs <= 24 * 60 * 60 * 1000 && pending.plan_key) {
+        pendingRescueOffer = Object.assign({ elapsedMs: elapsedMs }, pending);
+    }
+}
+
+// An unfinished checkout is the most valuable thing in this funnel to recover:
+// that person picked a plan and reached a payment page, which only ~5% of
+// signups ever do. Until now there was no way back — they left and that was
+// the end of it. Offer to resume the exact plan they chose.
+let pendingRescueOffer = null;
+
+async function maybeShowCheckoutRescue() {
+    if (!pendingRescueOffer) return;
+
+    // Wait for the real subscription answer rather than assuming it has landed.
+    // Telling someone who already pays that they never finished signing up is
+    // worse than showing the offer a second late.
+    try { await subscriberStatusPromise; } catch (e) {}
+
+    if (!pendingRescueOffer || isExistingSubscriber) return;
+
+    const bar = document.getElementById('milestoneUpgradeBanner');
+    if (!bar) return;
+
+    const offer = pendingRescueOffer;
+    pendingRescueOffer = null;
+    window.__lfRescueOffer = offer;
+
+    // offer.plan comes back out of localStorage. Today it can only ever hold a
+    // name this code put there, but a stored value flowing into innerHTML is
+    // exactly the shape that turns into a real hole later — escape it now.
+    const planLabel = offer.plan ? `the ${otpEsc(offer.plan)} plan` : 'your plan';
+
+    // Coming back inside a minute is not someone changing their mind — nobody
+    // reads a payment page and enters a card that fast. It means the payment
+    // page never worked for them. Telling that person they "didn't finish" is
+    // both wrong and useless, so say what actually happened and offer the direct
+    // link, which is a user-initiated click rather than a scripted navigation.
+    const wasBounced = offer.elapsedMs < 60 * 1000;
+
+    if (wasBounced) {
+        // Re-validate on the way out as well as on the way in: this URL has been
+        // sitting in localStorage since the attempt, and it is about to become an
+        // href. Only a real Dodo https URL is allowed to render as a link.
+        const direct = validateCheckoutUrl(offer.checkout_url)
+            ? ` <a href="${otpEsc(offer.checkout_url)}" onclick="try{posthog.capture('checkout_rescue_direct_link_clicked')}catch(e){}">Open the payment page &rarr;</a>`
+            : '';
+        bar.innerHTML = `Your payment page for ${planLabel} didn't load properly — that's on us, not you.${direct}`
+            + ` <a onclick="resumeCheckout()" style="margin-left:0.75rem;">Try again</a>`
+            + `<a onclick="try{posthog.capture('checkout_rescue_dismissed')}catch(e){}; document.getElementById('milestoneUpgradeBanner').style.display='none'" style="margin-left:0.75rem;color:inherit;">Dismiss</a>`;
+    } else {
+        bar.innerHTML = `You didn't quite finish signing up for ${planLabel}. `
+            + `<a onclick="resumeCheckout()">Pick up where you left off &rarr;</a>`
+            + `<a onclick="try{posthog.capture('checkout_rescue_dismissed')}catch(e){}; document.getElementById('milestoneUpgradeBanner').style.display='none'" style="margin-left:0.75rem;color:inherit;">No thanks</a>`;
+    }
+    bar.style.display = 'block';
+
+    try {
+        posthog.capture('checkout_rescue_banner_shown', {
+            plan: offer.plan,
+            plan_key: offer.plan_key,
+            minutes_since: Math.round(offer.elapsedMs / 60000),
+            seconds_since: Math.round(offer.elapsedMs / 1000),
+            variant: wasBounced ? 'bounced' : 'abandoned'
+        });
+    } catch (e) {}
+}
+
+function resumeCheckout() {
+    const offer = window.__lfRescueOffer;
+    if (!offer || !offer.plan_key) return;
+
+    try {
+        posthog.capture('checkout_rescue_clicked', { plan: offer.plan, plan_key: offer.plan_key });
+    } catch (e) {}
+
+    const bar = document.getElementById('milestoneUpgradeBanner');
+    if (bar) bar.style.display = 'none';
+
+    launchCheckout({
+        planKey: offer.plan_key,
+        analyticsPlanName: offer.plan,
+        value: offer.value,
+        billingLabel: offer.billing,
+        btnEl: null
+    });
 }
 
 
@@ -1440,13 +1602,20 @@ async function createCheckoutSessionViaWorker(planKey, email) {
     const requestId = genCheckoutId();
 
     // Build payload first so we can conditionally include email
+    const attribution = window.getAttributionProperties ? window.getAttributionProperties() : {};
+
     const payload = {
         plan: planKey,
         user_token: userToken,
         ref_token: getRefCookie() || undefined,
         force_new_session: true,
         request_id: requestId,
-        requested_at: new Date().toISOString()
+        requested_at: new Date().toISOString(),
+        // Forwarded into Dodo's checkout metadata so the payment webhook can
+        // attribute revenue server-side, even when the customer never returns
+        // to /app for the browser-side event to fire. See workers/dodo-webhook.
+        attribution_source: attribution.attribution_source || undefined,
+        attribution_campaign: attribution.attribution_campaign || undefined
     };
 
     // Only send email if it's a non-empty valid string
@@ -1768,7 +1937,69 @@ async function launchCheckout({ planKey, analyticsPlanName, value, billingLabel,
         if (!validateCheckoutUrl(data.checkout_url)) {
             throw new Error('Received an invalid checkout URL.');
         }
+
+        // Record the hand-off itself, and leave a marker so the next app load
+        // can tell us whether they ever came back. Without these two lines the
+        // redirect is the last thing we ever hear about a checkout attempt.
+        rememberPendingCheckout({ planKey, analyticsPlanName, value, billingLabel, checkoutUrl: data.checkout_url });
+        await captureBeforeUnload('checkout_redirect_started', {
+            attempt_id: lastCheckoutAttemptId,
+            plan: analyticsPlanName,
+            plan_key: planKey,
+            billing: billingLabel,
+            value: value,
+            checkout_host: (function () {
+                try { return new URL(data.checkout_url).hostname; } catch (_) { return null; }
+            })(),
+            // The whole URL, not just the host. Every client-side guard passes on
+            // the way out — valid URL, right host, matching env — and the visitor
+            // still comes back seconds later having typed nothing, which means the
+            // session behind this URL is being rejected at the far end. Recording
+            // it is the only way to open the exact failing session and see why.
+            checkout_url: data.checkout_url,
+            worker_env: data.env || null,
+            worker_request_id: data.requestId || null,
+            worker_session_id: data.session_id || data.subscription_id || null,
+            worker_used_email: data.used_email ?? null,
+            worker_attempt: data.attempt ?? null,
+            product_id_used: data.product_id_used || null,
+            // Everything Dodo returned about this session, once the worker patch in
+            // workers/dodo-checkout/PATCH.md is deployed. Dodo answers 200 and then
+            // refuses the session on its own page, so if it states a reason anywhere
+            // it is in here. Stringified and capped so a large body cannot be dropped
+            // for exceeding a property size limit.
+            dodo_raw: (function () {
+                try { return JSON.stringify(data.dodo_raw ?? null).slice(0, 4000); }
+                catch (_) { return null; }
+            })()
+        });
+
         window.location.href = data.checkout_url;
+
+        // If this document is still alive and on screen a few seconds from now,
+        // the visitor never reached a payment page — either the navigation never
+        // committed, or the far end bounced them straight back. Today that is
+        // completely silent: the button resets and nothing happens, which is
+        // exactly the dead end the funnel shows people falling into. Say so, and
+        // hand them a link they can click themselves — a user-initiated click
+        // often survives where a scripted navigation does not.
+        setTimeout(function () {
+            if (document.visibilityState !== 'visible') return; // they did leave
+            try {
+                posthog.capture('checkout_redirect_stalled', {
+                    attempt_id: lastCheckoutAttemptId,
+                    plan: analyticsPlanName,
+                    plan_key: planKey,
+                    checkout_url: data.checkout_url,
+                    worker_env: data.env || null
+                });
+            } catch (_) {}
+            checkoutInFlight = false;
+            showCheckoutError(
+                'The payment page did not open. Use the button below to continue — or contact us and we will take payment directly.',
+                { checkoutUrl: data.checkout_url }
+            );
+        }, 8000);
 
     } catch (e) {
         console.error('Checkout error:', e);
@@ -1787,20 +2018,52 @@ async function launchCheckout({ planKey, analyticsPlanName, value, billingLabel,
 
 
 
+// The checkout worker builds a return_url that already carries a query string
+// (`/app?token=…`). When Dodo appends its own result it does not always join
+// with '&' — append it with '?' and the browser hands back a location.search
+// containing two '?' characters. URLSearchParams stops parsing at the second
+// one, so `status` and `payment_id` silently disappear: a customer who paid
+// lands on a page that shows no confirmation, fires no checkout_payment_success
+// and no ads conversion, and looks in the funnel exactly like someone who never
+// paid at all. Nothing in the browser reports an error, which is why this could
+// run for a week looking like a demand problem.
+//
+// Normalise any '?' after the first into '&' before parsing, and read the hash
+// too, so the result is recovered however Dodo chooses to hand it back. This
+// works no matter what the worker's return_url looks like.
+function parseCheckoutReturnParams() {
+    const search = (window.location.search || '').replace(/\?/g, (m, i) => (i === 0 ? '?' : '&'));
+    const hash = (window.location.hash || '').replace(/^#/, '');
+    const combined = search.replace(/^\?/, '') + (hash ? '&' + hash.replace(/\?/g, '&') : '');
+    return new URLSearchParams(combined);
+}
+
 function handleDodoReturnStatus() {
     checkoutInFlight = false;
-    const params = new URLSearchParams(window.location.search);
+    const params = parseCheckoutReturnParams();
     const dodoStatus = params.get('status');
     const paymentId = params.get('payment_id');
     const subscriptionId = params.get('subscription_id');
 
     if (!dodoStatus) return; // normal page load, not a checkout return
 
+    // This is a checkout return either way, so the pending marker has done its
+    // job — drop it before reconcilePendingCheckout() can read it as a bail-out.
+    let pending = null;
+    try { pending = JSON.parse(localStorage.getItem(PENDING_CHECKOUT_KEY) || 'null'); } catch (e) {}
+    clearPendingCheckout();
+
     if (dodoStatus === 'succeeded' || dodoStatus === 'active') {
         showAlert('Payment successful! Your plan is now active.', 'success');
         try {
             posthog.capture('checkout_payment_success', {
-                payment_id: paymentId, subscription_id: subscriptionId, status: dodoStatus
+                payment_id: paymentId, subscription_id: subscriptionId, status: dodoStatus,
+                attempt_id: pending?.attempt_id || null,
+                plan: pending?.plan || null,
+                plan_key: pending?.plan_key || null,
+                billing: pending?.billing || null,
+                value: pending?.value ?? null,
+                ...(window.getAttributionProperties ? window.getAttributionProperties() : {})
             });
         } catch(e) {}
         fireGoogleAdsConversion({ data: { payment_id: paymentId, subscription_id: subscriptionId } });
@@ -1824,7 +2087,10 @@ function handleDodoReturnStatus() {
         showAlert('Payment did not complete. Please try again or contact support.', 'error');
         try {
             posthog.capture('checkout_payment_failed', {
-                payment_id: paymentId, subscription_id: subscriptionId, status: dodoStatus
+                payment_id: paymentId, subscription_id: subscriptionId, status: dodoStatus,
+                attempt_id: pending?.attempt_id || null,
+                plan: pending?.plan || null,
+                plan_key: pending?.plan_key || null
             });
         } catch(e) {}
     }
@@ -2083,6 +2349,26 @@ function switchMode(mode) {
     }
     hideResults();
     updateSubmitButtonState();
+}
+
+// Target for the activation nudges below. Bulk is where a casual visitor turns
+// into someone with a real job running, so the nudge has to land them on it
+// rather than just mentioning it exists. If they haven't picked an input/output
+// type yet the bulk panel stays hidden, so send them to that selector instead of
+// scrolling to nothing.
+function jumpToBulkUpload(source) {
+    try { posthog.capture('activation_nudge_clicked', { target: 'bulk', source: source }); } catch (e) {}
+
+    var configured = currentInputType && currentOutputType;
+    if (configured) switchMode('bulk');
+
+    var target = document.getElementById(configured ? 'bulkSearch' : 'inputType');
+    if (target && target.scrollIntoView) {
+        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    var banner = document.getElementById('milestoneUpgradeBanner');
+    if (banner) banner.style.display = 'none';
 }
 
 function populateOutputOptions(filterInputType) {
@@ -3018,7 +3304,14 @@ document.addEventListener('DOMContentLoaded',()=>{
     checkAuth(); fetchCredits(); checkHubspotConnection(); setupFileUpload(); setupDragAndDrop();
     setupNavigation(); setupModalEvents(); setupDropdowns();
     handleDodoReturnStatus();
+    // Must run after handleDodoReturnStatus(), which clears the marker on a real
+    // checkout return. Anything left over is someone who bailed out on Dodo.
+    reconcilePendingCheckout();
     // Delay so fetchCredits() has resolved and isExistingSubscriber is accurate.
+    // The rescue runs first: someone who reached a payment page and stopped is a
+    // better prospect than anyone the generic upgrade nudge is aimed at, and the
+    // nudge below declines to clobber a banner that is already showing.
+    setTimeout(maybeShowCheckoutRescue, 2500);
     setTimeout(maybeShowTimeBasedUpgradeNudge, 3000);
     const pb=document.getElementById('processBulkBtn');
     pb.disabled=true; pb.style.opacity='0.5';
@@ -3117,8 +3410,10 @@ function checkAuth(){
     const action=p.get('action');
     if(action==='buy_credits') setTimeout(()=>showPricingModal('buy_credits_btn'),500);
     else if(action==='upgrade') setTimeout(()=>showPricingModal(),500);
-    // Silently check subscription status on load
-    fetch(UPGRADE_INTENT_WORKER, {
+    // Silently check subscription status on load. Kept as a promise so anything
+    // whose behaviour depends on being a subscriber can wait for the real answer
+    // instead of racing a timeout and guessing wrong on a slow connection.
+    subscriberStatusPromise = fetch(UPGRADE_INTENT_WORKER, {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({token: userToken, trigger: 'page_load'})
@@ -3868,20 +4163,60 @@ function checkEnrichmentMilestone() {
     // them, ever. Fires on the very first successful enrichment instead, right
     // when excitement is highest, independently of the n===10 NPS/upgrade-intent
     // block below, on its own fired-flag, so it doesn't change when NPS is asked.
+    // The activation curve was invisible: the only usage milestone event fired
+    // at ten enrichments (under a name that says three), so there was no way to
+    // see where between the first lookup and the tenth people actually stop —
+    // which is the question the whole funnel hangs on. Report the early steps.
+    if ([1, 2, 3, 5, 10, 25].indexOf(n) !== -1) {
+        try {
+            posthog.capture('enrichment_milestone', {
+                count: n,
+                credits_remaining: currentCredits,
+                is_subscriber: isExistingSubscriber
+            });
+        } catch (e) {}
+    }
+
+    // Depth of use, not pricing exposure, is what caps this funnel: over 60 days
+    // 253 people opened the pricing modal and 60 picked a plan, while the vast
+    // majority of activated users never ran enough lookups to need a plan at
+    // all. So the first milestone leads with the next action instead of the
+    // price list — while keeping the plans link right next to it, so the number
+    // of people who see pricing does not go down.
     const earlyNudgeFiredKey = 'lf_early_upgrade_nudge_fired';
     if (n === 1 && !isExistingSubscriber && !localStorage.getItem(earlyNudgeFiredKey)) {
         localStorage.setItem(earlyNudgeFiredKey, '1');
         const bar = document.getElementById('milestoneUpgradeBanner');
         if (bar) {
-            bar.innerHTML = `That's your first lead enriched with LinkFinder AI — nice. <a onclick="try{posthog.capture('milestone_upgrade_banner_clicked')}catch(e){}; showPricingModal('milestone_nudge')">See plans &rarr;</a> <a onclick="document.getElementById('milestoneUpgradeBanner').style.display='none'" style="margin-left:0.75rem;color:inherit;">Dismiss</a>`;
+            bar.innerHTML = `That's your first lead enriched — nice. Most people do the next batch in one go: <a onclick="jumpToBulkUpload('milestone_1')">Upload a CSV &rarr;</a> <a onclick="try{posthog.capture('milestone_upgrade_banner_clicked')}catch(e){}; showPricingModal('milestone_nudge')" style="margin-left:0.75rem;">See plans</a> <a onclick="document.getElementById('milestoneUpgradeBanner').style.display='none'" style="margin-left:0.75rem;color:inherit;">Dismiss</a>`;
             bar.style.display = 'block';
-            try { posthog.capture('milestone_upgrade_banner_shown', { enrich_count: n }); } catch(e) {}
+            try { posthog.capture('milestone_upgrade_banner_shown', { enrich_count: n, variant: 'next_step' }); } catch(e) {}
+            try { posthog.capture('activation_nudge_shown', { step: 1, target: 'bulk' }); } catch(e) {}
         }
     }
+
+    // By the third lookup they have felt the product work repeatedly, which is
+    // the moment a plan reads as useful rather than as a toll gate. Anyone who
+    // gets here has already passed the point where almost everyone else stopped.
+    const thirdNudgeFiredKey = 'lf_third_enrichment_nudge_fired';
+    if (n === 3 && !isExistingSubscriber && !localStorage.getItem(thirdNudgeFiredKey)) {
+        localStorage.setItem(thirdNudgeFiredKey, '1');
+        const bar = document.getElementById('milestoneUpgradeBanner');
+        if (bar) {
+            bar.innerHTML = `Three enrichments in — you're getting real use out of this. <a onclick="try{posthog.capture('milestone_upgrade_banner_clicked',{step:3})}catch(e){}; showPricingModal('third_enrichment')">See what a plan gets you &rarr;</a> <a onclick="document.getElementById('milestoneUpgradeBanner').style.display='none'" style="margin-left:0.75rem;color:inherit;">Dismiss</a>`;
+            bar.style.display = 'block';
+            try { posthog.capture('activation_nudge_shown', { step: 3, target: 'pricing' }); } catch(e) {}
+        }
+    }
+   // NOTE: `three_enrichments_milestone` fires at TEN enrichments, not three —
+   // the name is left over from an earlier threshold. Reading it as "reached 3
+   // enrichments" understates activation badly. It keeps its old name so the
+   // historical series stays continuous; use `enrichment_milestone` (captured
+   // above with an explicit `count`) for anything new.
    if (n === 10 && !localStorage.getItem(firedKey)) {
     localStorage.setItem(firedKey, '1');
     fireUpgradeIntent('three_enrichments', { enrich_count: n, credits_remaining: currentCredits });
-    try { posthog.capture('three_enrichments_milestone', { credits_remaining: currentCredits }); } catch(e) {}
+    try { posthog.capture('three_enrichments_milestone', { credits_remaining: currentCredits, actual_count: n }); } catch(e) {}
     showNPS();
 }
     // Heavy, paying users are the actual ICP for the done-for-you VIP offer —
@@ -4355,11 +4690,16 @@ const OTP_LINKS = {
     trustpilot: 'https://fr.trustpilot.com/review/linkfinderai.com',
 };
 
+// Both review platforms and the FTC require an incentivised review to say so.
+// The worker repeats this in its response; showing it before they write is
+// what actually keeps the review from being taken down later.
+const DISC = 'You must write in your review that you received credits for it. Reviews without that line can be removed by the platform.';
+
 const OTP_TASKS = [
-    { name: 'g2_review', kind: 'url', label: 'Leave a G2 review', credits: 1000, realValue: '= 100 emails or 1,000 LinkedIn profiles', placeholder: 'Paste your G2 review URL', linkUrl: OTP_LINKS.g2, linkLabel: 'Write a review on G2', pendingCopy: 'Pending approval' },
+    { name: 'g2_review', kind: 'url', label: 'Leave a G2 review', credits: 1000, realValue: '= 100 emails or 1,000 LinkedIn profiles', placeholder: 'Paste the URL of your review', linkUrl: OTP_LINKS.g2, linkLabel: 'Write a review on G2', pendingCopy: 'Being checked', disclosureNote: DISC },
     { name: 'youtube_subscribe', kind: 'honor_click', label: 'Subscribe to our YouTube channel', credits: 100, realValue: '= 100 LinkedIn profiles', linkUrl: OTP_LINKS.youtube, linkLabel: 'Open channel' },
     { name: 'linkedin_share', kind: 'url', label: 'Share on LinkedIn', credits: 150, realValue: '= 150 LinkedIn profiles', placeholder: 'Paste your LinkedIn post URL' },
-    { name: 'trustpilot_review', kind: 'url', label: 'Leave a Trustpilot review', credits: 500, realValue: '= 50 emails', placeholder: 'Paste your Trustpilot review URL', linkUrl: OTP_LINKS.trustpilot, linkLabel: 'Write a review on Trustpilot', pendingCopy: 'Pending approval'},
+    { name: 'trustpilot_review', kind: 'url', label: 'Leave a Trustpilot review', credits: 500, realValue: '= 50 emails', placeholder: 'Paste the URL of your review', linkUrl: OTP_LINKS.trustpilot, linkLabel: 'Write a review on Trustpilot', pendingCopy: 'Being checked', disclosureNote: DISC},
 ];
 
 function otpCopy() {
@@ -4599,8 +4939,24 @@ async function otpSubmitUrlTask(taskName) {
         if (!res.ok) throw new Error(data.error || 'Could not submit');
 
         if (isReview) {
-            otpCompletions.push({ task_name: taskName, status: 'pending', credits: 0 });
-            try { posthog.capture('onboarding_task_pending', { task_name: taskName, geo_tier: otpGeoTier }); } catch(e) {}
+            // A review is no longer always pending: a link the worker can
+            // verify is approved and paid out on the spot, and it tells us
+            // which happened. Assuming 'pending' would hide credits the user
+            // already has. An unverifiable link comes back as an error and is
+            // handled by the catch below, which shows the reason.
+            const status = data.status === 'completed' ? 'completed' : 'pending';
+            otpCompletions.push({
+                task_name: taskName,
+                status,
+                credits: status === 'completed' ? task.credits : 0,
+            });
+            if (status === 'completed') {
+                try { posthog.capture('onboarding_task_completed', { task_name: taskName, geo_tier: otpGeoTier, credits_awarded: task.credits, auto_verified: true }); } catch(e) {}
+                if (typeof data.credits_balance === 'number') { currentCredits = data.credits_balance; fetchCredits(); }
+                else { addCredits(task.credits); }
+            } else {
+                try { posthog.capture('onboarding_task_pending', { task_name: taskName, geo_tier: otpGeoTier }); } catch(e) {}
+            }
         } else {
             otpCompletions.push({ task_name: taskName, status: 'completed', credits: task.credits });
             try { posthog.capture('onboarding_task_completed', { task_name: taskName, geo_tier: otpGeoTier, credits_awarded: task.credits }); } catch(e) {}
