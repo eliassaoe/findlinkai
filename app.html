@@ -1959,7 +1959,19 @@ async function launchCheckout({ planKey, analyticsPlanName, value, billingLabel,
             checkout_url: data.checkout_url,
             worker_env: data.env || null,
             worker_request_id: data.requestId || null,
-            worker_session_id: data.session_id || data.subscription_id || null
+            worker_session_id: data.session_id || data.subscription_id || null,
+            worker_used_email: data.used_email ?? null,
+            worker_attempt: data.attempt ?? null,
+            product_id_used: data.product_id_used || null,
+            // Everything Dodo returned about this session, once the worker patch in
+            // workers/dodo-checkout/PATCH.md is deployed. Dodo answers 200 and then
+            // refuses the session on its own page, so if it states a reason anywhere
+            // it is in here. Stringified and capped so a large body cannot be dropped
+            // for exceeding a property size limit.
+            dodo_raw: (function () {
+                try { return JSON.stringify(data.dodo_raw ?? null).slice(0, 4000); }
+                catch (_) { return null; }
+            })()
         });
 
         window.location.href = data.checkout_url;
