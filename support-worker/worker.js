@@ -2,20 +2,20 @@
  * LinkFinder AI — AI Support Chat Worker
  *
  * Replaces the broken @n8n/chat embed (pointed at a cold-sleeping Render.com
- * webhook with no logic behind it). This Worker IS the logic: it calls the
- * Anthropic API directly, with two tools —
+ * webhook with no logic behind it). This Worker IS the logic: it calls an
+ * LLM via OpenRouter (openrouter.ai — one API key, pick any model), with
+ * two tools —
  *   - fetch_page: pull live text content from a linkfinderai.com page, for
  *     anything not already covered by the baked-in knowledge below (guides,
  *     long-tail comparison pages, exact API reference details).
  *   - escalate_to_human: hand the conversation off to Eliasse instead of
  *     guessing. Returns a structured card the widget renders as a
- *     "Talk to a human" prompt (mailto + Calendly), and — only if a
- *     RESEND_API_KEY secret is configured — also fires an actual email so
- *     support@linkfinderai.com gets notified even if the visitor never
- *     clicks the mailto link.
+ *     "Talk to a human" prompt (mailto + Calendly), and fires a
+ *     `support_chat_escalated` PostHog event — wire a PostHog workflow/
+ *     Messaging action on that event to actually notify you by email.
  *
- * Deploy: see support-worker/README.md. Required secret: ANTHROPIC_API_KEY.
- * Optional secrets: RESEND_API_KEY, SUPPORT_TO_EMAIL, SUPPORT_FROM_EMAIL.
+ * Deploy: see support-worker/README.md. Required secret: OPENROUTER_API_KEY.
+ * Optional: OPENROUTER_MODEL, SUPPORT_TO_EMAIL, POSTHOG_PROJECT_API_KEY.
  */
 
 const ALLOWED_ORIGINS = [
@@ -41,7 +41,9 @@ const FETCHABLE_EXACT = [
   "/resources/index.html",
 ];
 
-const MODEL = "claude-haiku-4-5-20251001";
+// Default model, overridable via the OPENROUTER_MODEL secret/var without a
+// code change. Check openrouter.ai/models for current slugs — they change.
+const DEFAULT_MODEL = "anthropic/claude-haiku-4.5";
 const MAX_TOOL_ROUNDS = 4;
 
 // ---------------------------------------------------------------------------
@@ -146,35 +148,47 @@ async function toolFetchPage(path) {
   }
 }
 
+// PostHog's public project token — same one already loaded client-side across
+// the site, safe to embed (it's a write-only capture token, not a secret).
+// Override via the POSTHOG_PROJECT_API_KEY secret if it's ever rotated.
+const DEFAULT_POSTHOG_TOKEN = "phc_HqgzMyWAMtzH7K5j9CLw0dijB0I9W1VjPkkyzg9KOFG";
+const POSTHOG_CAPTURE_URL = "https://us.i.posthog.com/capture/";
+
+async function capturePostHogEvent(env, event, properties) {
+  const apiKey = env.POSTHOG_PROJECT_API_KEY || DEFAULT_POSTHOG_TOKEN;
+  try {
+    const res = await fetch(POSTHOG_CAPTURE_URL, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        api_key: apiKey,
+        event,
+        distinct_id: properties.distinct_id || `support-widget-${crypto.randomUUID()}`,
+        properties,
+        timestamp: new Date().toISOString(),
+      }),
+    });
+    return res.ok;
+  } catch (err) {
+    return false;
+  }
+}
+
 async function toolEscalateToHuman(env, { summary, userEmail }) {
   const toEmail = env.SUPPORT_TO_EMAIL || "support@linkfinderai.com";
-  const fromEmail = env.SUPPORT_FROM_EMAIL || "support-bot@linkfinderai.com";
 
-  let emailSent = false;
-  if (env.RESEND_API_KEY) {
-    try {
-      const res = await fetch("https://api.resend.com/emails", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${env.RESEND_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          from: fromEmail,
-          to: toEmail,
-          subject: `AI support escalation${userEmail ? " — " + userEmail : ""}`,
-          text: `A visitor's conversation with the AI support widget was escalated.\n\nUser email (if given): ${userEmail || "not provided"}\n\nSummary:\n${summary}`,
-        }),
-      });
-      emailSent = res.ok;
-    } catch (err) {
-      emailSent = false;
-    }
-  }
+  // Fire a PostHog event instead of calling a separate email API — wire a
+  // PostHog workflow/action on "support_chat_escalated" to actually send the
+  // notification email, since PostHog's own messaging already handles that.
+  const notified = await capturePostHogEvent(env, "support_chat_escalated", {
+    summary,
+    user_email: userEmail || null,
+    source: "support_widget",
+  });
 
   return {
     escalated: true,
-    email_sent_automatically: emailSent,
+    posthog_event_captured: notified,
     card: {
       type: "escalate_card",
       heading: "Let's get you a real answer",
@@ -185,61 +199,63 @@ async function toolEscalateToHuman(env, { summary, userEmail }) {
   };
 }
 
+// OpenAI-compatible function-tool schema (the format OpenRouter expects
+// regardless of which underlying model you route to).
 const TOOLS = [
   {
-    name: "fetch_page",
-    description: "Fetch and return the plain-text content of a linkfinderai.com page. Use for exact current pricing/API/guide details not already known from the system prompt.",
-    input_schema: {
-      type: "object",
-      properties: {
-        path: { type: "string", description: "Site-relative path starting with /, e.g. /pricing.html or /resources/find-linkedin-url.html" },
+    type: "function",
+    function: {
+      name: "fetch_page",
+      description: "Fetch and return the plain-text content of a linkfinderai.com page. Use for exact current pricing/API/guide details not already known from the system prompt.",
+      parameters: {
+        type: "object",
+        properties: {
+          path: { type: "string", description: "Site-relative path starting with /, e.g. /pricing.html or /resources/find-linkedin-url.html" },
+        },
+        required: ["path"],
       },
-      required: ["path"],
     },
   },
   {
-    name: "escalate_to_human",
-    description: "Hand the conversation off to a human (Eliasse) instead of guessing. Returns a card the widget shows with a pre-filled email and a call-booking link.",
-    input_schema: {
-      type: "object",
-      properties: {
-        summary: { type: "string", description: "Short summary of what the user needs help with, for the handoff." },
-        userEmail: { type: "string", description: "The user's email if they gave it in the conversation, otherwise omit." },
+    type: "function",
+    function: {
+      name: "escalate_to_human",
+      description: "Hand the conversation off to a human (Eliasse) instead of guessing. Returns a card the widget shows with a pre-filled email and a call-booking link.",
+      parameters: {
+        type: "object",
+        properties: {
+          summary: { type: "string", description: "Short summary of what the user needs help with, for the handoff." },
+          userEmail: { type: "string", description: "The user's email if they gave it in the conversation, otherwise omit." },
+        },
+        required: ["summary"],
       },
-      required: ["summary"],
     },
   },
 ];
 
-async function callAnthropic(env, messages) {
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
+async function callOpenRouter(env, messages) {
+  const model = env.OPENROUTER_MODEL || DEFAULT_MODEL;
+  const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
     headers: {
-      "x-api-key": env.ANTHROPIC_API_KEY,
-      "anthropic-version": "2023-06-01",
+      Authorization: `Bearer ${env.OPENROUTER_API_KEY}`,
       "content-type": "application/json",
+      // Optional but recommended by OpenRouter for attribution/rankings.
+      "HTTP-Referer": "https://linkfinderai.com",
+      "X-Title": "LinkFinder AI Support Chat",
     },
     body: JSON.stringify({
-      model: MODEL,
+      model,
       max_tokens: 1024,
-      system: SYSTEM_PROMPT,
-      messages,
+      messages: [{ role: "system", content: SYSTEM_PROMPT }, ...messages],
       tools: TOOLS,
     }),
   });
   if (!res.ok) {
     const errText = await res.text();
-    throw new Error(`Anthropic API error ${res.status}: ${errText}`);
+    throw new Error(`OpenRouter API error ${res.status}: ${errText}`);
   }
   return res.json();
-}
-
-function textFromContent(content) {
-  return content
-    .filter((b) => b.type === "text")
-    .map((b) => b.text)
-    .join("\n")
-    .trim();
 }
 
 async function handleChat(request, env) {
@@ -260,37 +276,48 @@ async function handleChat(request, env) {
   let escalateCard = null;
 
   for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
-    const result = await callAnthropic(env, messages);
+    const result = await callOpenRouter(env, messages);
+    const choice = result.choices && result.choices[0];
+    if (!choice) {
+      throw new Error("OpenRouter response had no choices: " + JSON.stringify(result));
+    }
+    const msg = choice.message;
+    const toolCalls = msg.tool_calls || [];
 
-    if (result.stop_reason !== "tool_use") {
+    if (toolCalls.length === 0) {
       return new Response(
-        JSON.stringify({ reply: textFromContent(result.content), escalate: escalateCard }),
+        JSON.stringify({ reply: (msg.content || "").trim(), escalate: escalateCard }),
         { headers: { "content-type": "application/json" } }
       );
     }
 
-    // Assistant turn (may include text + tool_use blocks) goes back into history.
-    messages.push({ role: "assistant", content: result.content });
+    // Assistant turn (with its tool_calls) goes back into history, followed
+    // by one "tool" message per call — the format OpenAI-compatible APIs
+    // (including OpenRouter, regardless of the underlying model) expect.
+    messages.push({ role: "assistant", content: msg.content || null, tool_calls: toolCalls });
 
-    const toolResults = [];
-    for (const block of result.content) {
-      if (block.type !== "tool_use") continue;
+    for (const call of toolCalls) {
+      let args = {};
+      try {
+        args = JSON.parse(call.function.arguments || "{}");
+      } catch {
+        args = {};
+      }
       let output;
-      if (block.name === "fetch_page") {
-        output = await toolFetchPage(block.input.path);
-      } else if (block.name === "escalate_to_human") {
-        output = await toolEscalateToHuman(env, block.input);
+      if (call.function.name === "fetch_page") {
+        output = await toolFetchPage(args.path);
+      } else if (call.function.name === "escalate_to_human") {
+        output = await toolEscalateToHuman(env, args);
         escalateCard = output.card;
       } else {
-        output = { error: `unknown tool ${block.name}` };
+        output = { error: `unknown tool ${call.function.name}` };
       }
-      toolResults.push({
-        type: "tool_result",
-        tool_use_id: block.id,
+      messages.push({
+        role: "tool",
+        tool_call_id: call.id,
         content: JSON.stringify(output),
       });
     }
-    messages.push({ role: "user", content: toolResults });
   }
 
   return new Response(
@@ -313,8 +340,8 @@ export default {
       return new Response("Not found", { status: 404, headers });
     }
 
-    if (!env.ANTHROPIC_API_KEY) {
-      return new Response(JSON.stringify({ error: "Worker misconfigured: ANTHROPIC_API_KEY secret not set." }), {
+    if (!env.OPENROUTER_API_KEY) {
+      return new Response(JSON.stringify({ error: "Worker misconfigured: OPENROUTER_API_KEY secret not set." }), {
         status: 500,
         headers: { ...headers, "content-type": "application/json" },
       });

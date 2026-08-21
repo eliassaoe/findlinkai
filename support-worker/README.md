@@ -2,9 +2,9 @@
 
 Replaces the old `@n8n/chat` widget, which pointed at a placeholder/cold-sleeping
 webhook (`eliasse-n8n.onrender.com`) with no logic behind it. This Worker has
-the actual logic — it calls Claude directly, knows the site's real pricing/
-product/policy facts, can fetch live pages for anything it doesn't already
-know, and can hand the conversation to you by email + a Calendly link.
+the actual logic — it calls an LLM via OpenRouter, knows the site's real
+pricing/product/policy facts, can fetch live pages for anything it doesn't
+already know, and can hand the conversation to you by email + a Calendly link.
 
 ## What it needs from you
 
@@ -17,13 +17,21 @@ for you — you'll need to run these steps yourself (5-10 minutes):
    wrangler login
    ```
 
-2. **Get an Anthropic API key** at console.anthropic.com if you don't already
+2. **Get an OpenRouter API key** at openrouter.ai/keys if you don't already
    have one, and set it as a secret:
    ```
    cd support-worker
-   wrangler secret put ANTHROPIC_API_KEY
+   wrangler secret put OPENROUTER_API_KEY
    ```
    (paste the key when prompted)
+
+   Default model is `anthropic/claude-haiku-4.5`, routed through OpenRouter.
+   To use a different model, no code change needed:
+   ```
+   wrangler secret put OPENROUTER_MODEL
+   ```
+   (any model slug from openrouter.ai/models — pick whatever balance of
+   cost/quality you want)
 
 3. **Deploy:**
    ```
@@ -38,22 +46,19 @@ for you — you'll need to run these steps yourself (5-10 minutes):
 That's it — the widget already replaced the broken embed on all 7 pages that
 had it, it just needs a live Worker URL to talk to.
 
-## Optional: automatic email on escalation
+## Getting notified when the bot escalates to you
 
-Right now, when the bot escalates to you, the widget shows the visitor a
-"Talk to Eliasse" card with a pre-filled `mailto:` link and your Calendly link
-— this works with zero extra setup, but only sends an email if the visitor
-actually clicks it.
+When the bot hands a conversation to you, the widget always shows the visitor
+a "Talk to Eliasse" card with a pre-filled `mailto:` link and your Calendly
+link — zero setup needed, works immediately, but only reaches you if the
+visitor clicks it.
 
-If you want an email to land in your inbox automatically the moment the bot
-escalates (even if the visitor never clicks), sign up for a free Resend
-account (resend.com — generous free tier, dead simple API) and set:
-```
-wrangler secret put RESEND_API_KEY
-wrangler secret put SUPPORT_TO_EMAIL      # defaults to support@linkfinderai.com
-wrangler secret put SUPPORT_FROM_EMAIL    # must be a domain you've verified in Resend
-```
-Redeploy (`wrangler deploy`) after adding secrets — no code changes needed.
+To get notified automatically (even if they never click), the Worker fires a
+`support_chat_escalated` PostHog event every time (properties: `summary`,
+`user_email`) using the site's existing public project token — no new API key
+needed. Set up a PostHog workflow/Messaging action that triggers on that
+event and sends you an email — since PostHog already handles your email
+sending, this skips adding a separate email-service dependency entirely.
 
 ## Updating the knowledge base
 
@@ -78,6 +83,9 @@ point so the API docs aren't actively wrong.
 
 ## Cost
 
-Model is `claude-haiku-4-5` — fast and inexpensive, appropriate for a support
-chat with occasional tool calls. At realistic support-chat volumes this
-should be a few dollars a month, not a meaningful line item.
+Default model (`anthropic/claude-haiku-4.5` via OpenRouter) is fast and
+inexpensive, appropriate for a support chat with occasional tool calls. At
+realistic support-chat volumes this should be a few dollars a month, not a
+meaningful line item — and since it's routed through OpenRouter, you can swap
+to a cheaper or pricier model any time via the `OPENROUTER_MODEL` secret with
+no code change.
