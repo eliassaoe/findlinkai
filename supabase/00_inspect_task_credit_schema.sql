@@ -1,42 +1,56 @@
--- Run this in the Supabase SQL editor and paste the output back.
--- It reports the exact table/column names the credit-award fix needs,
--- and whether anything at all is currently listening for the
--- status -> 'completed' transition on the task table.
+-- Paste this whole file into the Supabase SQL editor and run it, then send
+-- me the output.
+--
+-- It is deliberately ONE query. The Supabase editor only shows the result
+-- grid of the last statement, so a script of separate SELECTs would hide
+-- most of its own answer. Everything comes back in one table, tagged by
+-- section.
+--
+-- What to look for:
+--   section 3 lists triggers on the task table. If nothing is listed there,
+--   that is the bug: flipping status to 'completed' fires nothing.
 
--- 1. Which tables hold onboarding-task rows and which hold credit balances?
-SELECT table_schema, table_name
+SELECT '1. tables'  AS section,
+       table_schema AS name,
+       table_name   AS detail_1,
+       ''           AS detail_2,
+       ''           AS detail_3
 FROM information_schema.tables
-WHERE table_schema NOT IN ('pg_catalog','information_schema','auth','storage','realtime','vault','extensions','graphql','net','cron')
+WHERE table_schema NOT IN ('pg_catalog','information_schema','auth','storage',
+                           'realtime','vault','extensions','graphql','net','cron')
   AND (table_name ILIKE '%task%' OR table_name ILIKE '%credit%' OR table_name ILIKE '%user%')
-ORDER BY table_schema, table_name;
 
--- 2. Full column list for anything task- or credit-shaped.
-SELECT table_name, ordinal_position, column_name, data_type, column_default, is_nullable
+UNION ALL
+
+SELECT '2. columns',
+       table_name,
+       column_name,
+       data_type,
+       COALESCE(column_default, '')
 FROM information_schema.columns
 WHERE table_schema = 'public'
   AND (table_name ILIKE '%task%' OR table_name ILIKE '%credit%' OR table_name ILIKE '%user%')
-ORDER BY table_name, ordinal_position;
 
--- 3. THE KEY QUESTION: is any trigger attached to the task table?
---    An empty result here means flipping status to 'completed' in the
---    dashboard fires nothing, which is exactly the reported symptom.
-SELECT event_object_table AS table_name,
+UNION ALL
+
+-- The decisive one. No rows for the task table = nothing reacts to an approval.
+SELECT '3. triggers',
+       event_object_table,
        trigger_name,
-       action_timing,
-       event_manipulation,
-       action_statement
+       action_timing || ' ' || event_manipulation,
+       left(action_statement, 200)
 FROM information_schema.triggers
 WHERE trigger_schema = 'public'
-ORDER BY event_object_table, trigger_name;
 
--- 4. Any scheduled job that might be reconciling approvals out-of-band?
-SELECT jobid, schedule, jobname, command
-FROM cron.job;   -- errors harmlessly if pg_cron is not installed
+ORDER BY 1, 2, 3;
 
--- 5. Distinct status values actually present, so the trigger matches reality
---    (e.g. 'completed' vs 'complete' vs 'approved').
---    Replace onboarding_task_completions if step 1 shows a different name.
-SELECT status, count(*)
-FROM public.onboarding_task_completions
-GROUP BY status
-ORDER BY 2 DESC;
+
+-- ---------------------------------------------------------------------------
+-- Then run this one separately, substituting the real table name from
+-- section 1 if it is not onboarding_task_completions. It shows which status
+-- values actually exist, so the trigger matches your spelling of "completed".
+-- ---------------------------------------------------------------------------
+-- SELECT status, count(*) AS rows, min(created_at) AS first_seen, max(created_at) AS last_seen
+-- FROM public.onboarding_task_completions
+-- GROUP BY status
+-- ORDER BY 2 DESC;
