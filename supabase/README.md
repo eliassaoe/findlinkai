@@ -114,6 +114,23 @@ PGHOST=localhost PGPORT=5432 PGUSER=postgres ./tests/run.sh
 Run against the mock schema *without* the migration, the suite fails at T1 with
 `expected 1025, got 25` — the reported bug, reproduced.
 
+## Getting told when a task needs approving
+
+Approving only helps if you know there is something to approve. A PostHog
+workflow now emails `support@linkfinderai.com` on every task submission, with
+the subject saying whether it needs you — see
+[`docs/onboarding-task-notifications.md`](../docs/onboarding-task-notifications.md).
+
+That alert fires from the browser, so ad blockers make it undercount. This
+table stays the source of truth for what is owed:
+
+```sql
+SELECT user_token, task_name, status, created_at
+FROM public.onboarding_task_completions
+WHERE status = 'pending'
+ORDER BY created_at;
+```
+
 ## One thing left open
 
 `onboarding-tasks-worker` still awards credits itself on the `/tasks/complete`
