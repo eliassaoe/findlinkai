@@ -1430,6 +1430,7 @@ function rememberPendingCheckout(info) {
             plan_key: info.planKey,
             billing: info.billingLabel,
             value: info.value,
+            checkout_url: info.checkoutUrl || null,
             started_at: Date.now()
         }));
     } catch (e) {}
@@ -1499,16 +1500,38 @@ async function maybeShowCheckoutRescue() {
     // name this code put there, but a stored value flowing into innerHTML is
     // exactly the shape that turns into a real hole later — escape it now.
     const planLabel = offer.plan ? `the ${otpEsc(offer.plan)} plan` : 'your plan';
-    bar.innerHTML = `You didn't quite finish signing up for ${planLabel}. `
-        + `<a onclick="resumeCheckout()">Pick up where you left off &rarr;</a>`
-        + `<a onclick="try{posthog.capture('checkout_rescue_dismissed')}catch(e){}; document.getElementById('milestoneUpgradeBanner').style.display='none'" style="margin-left:0.75rem;color:inherit;">No thanks</a>`;
+
+    // Coming back inside a minute is not someone changing their mind — nobody
+    // reads a payment page and enters a card that fast. It means the payment
+    // page never worked for them. Telling that person they "didn't finish" is
+    // both wrong and useless, so say what actually happened and offer the direct
+    // link, which is a user-initiated click rather than a scripted navigation.
+    const wasBounced = offer.elapsedMs < 60 * 1000;
+
+    if (wasBounced) {
+        // Re-validate on the way out as well as on the way in: this URL has been
+        // sitting in localStorage since the attempt, and it is about to become an
+        // href. Only a real Dodo https URL is allowed to render as a link.
+        const direct = validateCheckoutUrl(offer.checkout_url)
+            ? ` <a href="${otpEsc(offer.checkout_url)}" onclick="try{posthog.capture('checkout_rescue_direct_link_clicked')}catch(e){}">Open the payment page &rarr;</a>`
+            : '';
+        bar.innerHTML = `Your payment page for ${planLabel} didn't load properly — that's on us, not you.${direct}`
+            + ` <a onclick="resumeCheckout()" style="margin-left:0.75rem;">Try again</a>`
+            + `<a onclick="try{posthog.capture('checkout_rescue_dismissed')}catch(e){}; document.getElementById('milestoneUpgradeBanner').style.display='none'" style="margin-left:0.75rem;color:inherit;">Dismiss</a>`;
+    } else {
+        bar.innerHTML = `You didn't quite finish signing up for ${planLabel}. `
+            + `<a onclick="resumeCheckout()">Pick up where you left off &rarr;</a>`
+            + `<a onclick="try{posthog.capture('checkout_rescue_dismissed')}catch(e){}; document.getElementById('milestoneUpgradeBanner').style.display='none'" style="margin-left:0.75rem;color:inherit;">No thanks</a>`;
+    }
     bar.style.display = 'block';
 
     try {
         posthog.capture('checkout_rescue_banner_shown', {
             plan: offer.plan,
             plan_key: offer.plan_key,
-            minutes_since: Math.round(offer.elapsedMs / 60000)
+            minutes_since: Math.round(offer.elapsedMs / 60000),
+            seconds_since: Math.round(offer.elapsedMs / 1000),
+            variant: wasBounced ? 'bounced' : 'abandoned'
         });
     } catch (e) {}
 }
@@ -1918,7 +1941,7 @@ async function launchCheckout({ planKey, analyticsPlanName, value, billingLabel,
         // Record the hand-off itself, and leave a marker so the next app load
         // can tell us whether they ever came back. Without these two lines the
         // redirect is the last thing we ever hear about a checkout attempt.
-        rememberPendingCheckout({ planKey, analyticsPlanName, value, billingLabel });
+        rememberPendingCheckout({ planKey, analyticsPlanName, value, billingLabel, checkoutUrl: data.checkout_url });
         await captureBeforeUnload('checkout_redirect_started', {
             attempt_id: lastCheckoutAttemptId,
             plan: analyticsPlanName,
@@ -1927,10 +1950,44 @@ async function launchCheckout({ planKey, analyticsPlanName, value, billingLabel,
             value: value,
             checkout_host: (function () {
                 try { return new URL(data.checkout_url).hostname; } catch (_) { return null; }
-            })()
+            })(),
+            // The whole URL, not just the host. Every client-side guard passes on
+            // the way out — valid URL, right host, matching env — and the visitor
+            // still comes back seconds later having typed nothing, which means the
+            // session behind this URL is being rejected at the far end. Recording
+            // it is the only way to open the exact failing session and see why.
+            checkout_url: data.checkout_url,
+            worker_env: data.env || null,
+            worker_request_id: data.requestId || null,
+            worker_session_id: data.session_id || data.subscription_id || null
         });
 
         window.location.href = data.checkout_url;
+
+        // If this document is still alive and on screen a few seconds from now,
+        // the visitor never reached a payment page — either the navigation never
+        // committed, or the far end bounced them straight back. Today that is
+        // completely silent: the button resets and nothing happens, which is
+        // exactly the dead end the funnel shows people falling into. Say so, and
+        // hand them a link they can click themselves — a user-initiated click
+        // often survives where a scripted navigation does not.
+        setTimeout(function () {
+            if (document.visibilityState !== 'visible') return; // they did leave
+            try {
+                posthog.capture('checkout_redirect_stalled', {
+                    attempt_id: lastCheckoutAttemptId,
+                    plan: analyticsPlanName,
+                    plan_key: planKey,
+                    checkout_url: data.checkout_url,
+                    worker_env: data.env || null
+                });
+            } catch (_) {}
+            checkoutInFlight = false;
+            showCheckoutError(
+                'The payment page did not open. Use the button below to continue — or contact us and we will take payment directly.',
+                { checkoutUrl: data.checkout_url }
+            );
+        }, 8000);
 
     } catch (e) {
         console.error('Checkout error:', e);
