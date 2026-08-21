@@ -4934,8 +4934,31 @@ async function otpSubmitUrlTask(taskName) {
         if (!res.ok) throw new Error(data.error || 'Could not submit');
 
         if (isReview) {
-            otpCompletions.push({ task_name: taskName, status: 'pending', credits: 0 });
-            try { posthog.capture('onboarding_task_pending', { task_name: taskName, geo_tier: otpGeoTier }); } catch(e) {}
+            // A review is no longer always pending: a valid, unclaimed permalink
+            // is approved and paid out the moment it lands, so assuming
+            // "pending" here would hide credits the user already has. Re-read
+            // the real state instead of guessing at it.
+            let status = 'pending';
+            try {
+                otpStatusPromise = null;   // drop the per-page-load cache
+                await otpFetchStatus();
+                status = otpStatusFor(taskName) || 'pending';
+            } catch(e) {
+                otpCompletions.push({ task_name: taskName, status: 'pending', credits: 0 });
+            }
+
+            if (status === 'completed') {
+                try { posthog.capture('onboarding_task_completed', { task_name: taskName, geo_tier: otpGeoTier, credits_awarded: task.credits, auto_verified: true }); } catch(e) {}
+                fetchCredits();
+            } else if (status === 'rejected') {
+                try { posthog.capture('onboarding_task_rejected', { task_name: taskName, geo_tier: otpGeoTier }); } catch(e) {}
+                otpBusyTask = null;
+                renderOnboardingTasksPopup();
+                otpShowFieldError(taskName, data.reason || 'We couldn’t verify that link. Open your own review and copy its URL from the address bar — our reviews page doesn’t identify you.');
+                return;
+            } else {
+                try { posthog.capture('onboarding_task_pending', { task_name: taskName, geo_tier: otpGeoTier }); } catch(e) {}
+            }
         } else {
             otpCompletions.push({ task_name: taskName, status: 'completed', credits: task.credits });
             try { posthog.capture('onboarding_task_completed', { task_name: taskName, geo_tier: otpGeoTier, credits_awarded: task.credits }); } catch(e) {}

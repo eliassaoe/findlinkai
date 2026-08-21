@@ -114,6 +114,60 @@ PGHOST=localhost PGPORT=5432 PGUSER=postgres ./tests/run.sh
 Run against the mock schema *without* the migration, the suite fails at T1 with
 `expected 1025, got 25` — the reported bug, reproduced.
 
+## Auto-approving review submissions
+
+`02_auto_verify_review_urls.sql` decides review submissions on the spot so
+credits are not gated on you finding time. Apply it after `01`.
+
+It checks three things, all from the URL string:
+
+1. **Shape** — a permalink to one specific review, not a page anyone can copy.
+2. **Product** — that it points at LinkFinder.
+3. **Uniqueness** — that this review has not already been claimed, by anyone.
+
+The two sites are not equally verifiable, and that asymmetry is the whole
+design:
+
+| | Identity provable from the URL? |
+|---|---|
+| **G2** — `g2.com/products/linkfinder-ai/reviews/<slug>` | **Yes.** The product slug is in the URL, so a review of another product cannot match. |
+| **Trustpilot** — `trustpilot.com/reviews/<hex-id>` | **No.** The company name appears nowhere in a Trustpilot permalink. |
+
+So for Trustpilot the check proves a specific review exists and has not been
+claimed here before — not that it is about LinkFinder. Someone pasting any
+real Trustpilot review URL, of any company, gets 500 credits. That is bounded
+by one payout per person per task and by every decision being recorded, and by
+nothing else.
+
+Watch it:
+
+```sql
+SELECT user_token, review_url, auto_reason, auto_checked_at
+FROM public.onboarding_task_completions
+WHERE auto_verdict = 'auto_approve' AND task_name = 'trustpilot_review'
+ORDER BY auto_checked_at DESC;
+```
+
+Turn it off without touching code:
+
+```sql
+UPDATE public.onboarding_review_policy SET value='manual'
+ WHERE key='trustpilot_permalink';
+```
+
+Judge the submissions already sitting pending:
+
+```sql
+SELECT * FROM public.reverify_pending_reviews();
+```
+
+### What it cannot check
+
+That the review exists, is live, is positive, or was written by the person
+submitting it. That needs an HTTP fetch, and both sites sit behind bot
+protection that refuses datacenter IPs — so a fetch-based check would fail
+silently rather than verify anything. It is deliberately not attempted.
+
 ## Getting told when a task needs approving
 
 Approving only helps if you know there is something to approve. A PostHog
