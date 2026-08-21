@@ -2006,9 +2006,29 @@ async function launchCheckout({ planKey, analyticsPlanName, value, billingLabel,
 
 
 
+// The checkout worker builds a return_url that already carries a query string
+// (`/app?token=…`). When Dodo appends its own result it does not always join
+// with '&' — append it with '?' and the browser hands back a location.search
+// containing two '?' characters. URLSearchParams stops parsing at the second
+// one, so `status` and `payment_id` silently disappear: a customer who paid
+// lands on a page that shows no confirmation, fires no checkout_payment_success
+// and no ads conversion, and looks in the funnel exactly like someone who never
+// paid at all. Nothing in the browser reports an error, which is why this could
+// run for a week looking like a demand problem.
+//
+// Normalise any '?' after the first into '&' before parsing, and read the hash
+// too, so the result is recovered however Dodo chooses to hand it back. This
+// works no matter what the worker's return_url looks like.
+function parseCheckoutReturnParams() {
+    const search = (window.location.search || '').replace(/\?/g, (m, i) => (i === 0 ? '?' : '&'));
+    const hash = (window.location.hash || '').replace(/^#/, '');
+    const combined = search.replace(/^\?/, '') + (hash ? '&' + hash.replace(/\?/g, '&') : '');
+    return new URLSearchParams(combined);
+}
+
 function handleDodoReturnStatus() {
     checkoutInFlight = false;
-    const params = new URLSearchParams(window.location.search);
+    const params = parseCheckoutReturnParams();
     const dodoStatus = params.get('status');
     const paymentId = params.get('payment_id');
     const subscriptionId = params.get('subscription_id');
