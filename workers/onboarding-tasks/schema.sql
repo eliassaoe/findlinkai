@@ -108,3 +108,40 @@ COMMIT;
 -- Decide what to keep before deleting anything — a duplicate may mean
 -- somebody was credited twice.
 -- ---------------------------------------------------------------------------
+
+
+-- ===========================================================================
+-- Reviews that are known to actually exist.
+--
+-- Added after a fabricated URL — a real product slug with an invented review
+-- id — was auto-approved. URL shape cannot catch that: the id is just a
+-- number, so valid-looking URLs can be minted without limit.
+--
+-- The fix is not to check the submitted URL harder. It is to keep the set of
+-- reviews that genuinely exist for linkfinder-ai and check membership. Fetching
+-- our own review list is easy; fetching an arbitrary review URL past bot
+-- protection is not.
+--
+-- Populate it through POST /admin/sync-reviews from whatever source you like
+-- (an Apify G2 actor, the Trustpilot Business API, or pasting URLs by hand).
+-- ===========================================================================
+
+BEGIN;
+
+CREATE TABLE IF NOT EXISTS public.known_reviews (
+    review_key    text PRIMARY KEY,   -- same key the worker derives from a URL
+    platform      text NOT NULL,
+    review_url    text,
+    first_seen_at timestamptz NOT NULL DEFAULT now(),
+    last_seen_at  timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS known_reviews_platform_idx
+    ON public.known_reviews (platform);
+
+ALTER TABLE public.known_reviews ENABLE ROW LEVEL SECURITY;
+
+COMMIT;
+
+-- An empty table means nothing auto-approves and everything queues for you,
+-- which is the safe default: better a short manual queue than a faucet.

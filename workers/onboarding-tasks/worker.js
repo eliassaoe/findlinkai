@@ -127,10 +127,15 @@ export function classifyReviewUrl(taskName, url, opts = {}) {
         };
     }
 
-    if (taskName === 'trustpilot_review' && trustpilotPolicy !== 'auto') {
-        return { verdict: 'manual', reason: 'Trustpilot submissions are set to manual review.', key };
+    const policy = taskName === 'g2_review'
+        ? (opts.g2Policy === 'manual' ? 'manual' : 'auto')
+        : trustpilotPolicy;
+    if (policy !== 'auto') {
+        return { verdict: 'manual', reason: 'This platform is set to manual review.', key };
     }
 
+    // Shape is settled; existence is not. The caller checks the key against
+    // known_reviews before treating this as final — see verifyReviewExists.
     return {
         verdict: 'auto_approve',
         key,
@@ -204,6 +209,24 @@ async function creditUser(env, userToken, amount) {
         body: JSON.stringify({ p_token: userToken, p_amount: amount }),
     });
     return typeof result === 'number' ? result : (result == null ? null : Number(result));
+}
+
+/**
+ * Is this a review we have actually seen exist?
+ *
+ * URL shape proves nothing about existence: a G2 review id is just a number,
+ * so `.../linkfinder-ai/reviews/linkfinder-ai-review-13270299` passes every
+ * pattern check while pointing at nothing. Only membership in the set of
+ * reviews we have independently observed can settle it.
+ *
+ * Unknown is NOT a rejection — a genuine review written a minute ago will not
+ * be in the set until the next sync. It queues for manual review, and
+ * /admin/sync-reviews releases it automatically once it shows up.
+ */
+async function isKnownReview(env, key) {
+    if (!key) return false;
+    const rows = await supabaseFetch(env, `known_reviews?review_key=${eq(key)}&select=review_key`);
+    return !!(rows && rows.length);
 }
 
 async function findCompletion(env, userId, taskName) {
@@ -302,6 +325,7 @@ async function handleSubmitReview(request, env) {
 
     const verdict = classifyReviewUrl(task_name, review_url, {
         trustpilotPolicy: env.TRUSTPILOT_POLICY,
+        g2Policy: env.G2_POLICY,
     });
 
     // Tell the user what is wrong while they still have the page open, instead
@@ -310,7 +334,22 @@ async function handleSubmitReview(request, env) {
         return json({ error: verdict.reason, status: 'rejected', reason: verdict.reason }, 400);
     }
 
-    const approved = verdict.verdict === 'auto_approve';
+    // The URL looks right. That is not the same as the review existing, so
+    // pay out only for one we have actually seen. Everything else waits.
+    let approved = verdict.verdict === 'auto_approve';
+    if (approved && env.REQUIRE_KNOWN_REVIEW !== 'false') {
+        try {
+            if (!(await isKnownReview(env, verdict.key))) {
+                approved = false;
+                verdict.verdict = 'manual';
+                verdict.reason = 'Shape is valid but this review is not in our synced list yet — holding for review.';
+            }
+        } catch (e) {
+            approved = false;   // cannot confirm, so do not pay
+            verdict.verdict = 'manual';
+            verdict.reason = 'Could not check the review list; holding for review.';
+        }
+    }
     let reviewId = null;
 
     try {
@@ -633,6 +672,70 @@ async function handleReviewLinkAction(request, env, action) {
 }
 
 // ---------------------------------------------------------------------------
+// POST /admin/sync-reviews
+//   { admin_key, platform: 'g2'|'trustpilot', review_urls: [...] }
+//
+// Feeds the set of reviews known to exist. Deliberately source-agnostic: it
+// takes a list of URLs and does not care where they came from — an Apify G2
+// actor, the Trustpilot Business API, or a paste by hand. Point a scheduled
+// job at it and auto-approval starts working; point nothing at it and
+// everything simply queues, which is the safe failure.
+//
+// After recording them it releases any pending submission whose review has
+// now appeared, so a genuine review submitted before the sync ran is paid
+// without anyone touching it.
+// ---------------------------------------------------------------------------
+async function handleSyncReviews(request, env) {
+    const body = await request.json().catch(() => ({}));
+    if (!adminKeyValid(body.admin_key, env.ADMIN_API_KEY)) return json({ error: 'Unauthorized' }, 401);
+
+    const platform = body.platform;
+    const taskName = REVIEW_TASK_FOR_PLATFORM[platform];
+    if (!taskName) return badRequest("platform must be 'g2' or 'trustpilot'");
+    if (!Array.isArray(body.review_urls)) return badRequest('review_urls must be an array');
+
+    const seen = new Map();
+    const unparsed = [];
+    for (const url of body.review_urls) {
+        const key = reviewUrlKey(taskName, url);
+        if (key) seen.set(key, url);
+        else unparsed.push(url);
+    }
+
+    if (seen.size) {
+        // Upsert so a re-sync refreshes last_seen_at rather than erroring.
+        await supabaseFetch(env, 'known_reviews?on_conflict=review_key', {
+            method: 'POST',
+            prefer: 'resolution=merge-duplicates',
+            body: JSON.stringify([...seen].map(([review_key, review_url]) => ({
+                review_key, platform, review_url, last_seen_at: new Date().toISOString(),
+            }))),
+        });
+    }
+
+    // Release anything that was waiting only because we had not seen it yet.
+    const released = [];
+    const pending = await supabaseFetch(
+        env,
+        `pending_reviews?status=eq.pending&platform=${eq(platform)}&select=id,review_key,user_id`
+    );
+    for (const row of pending || []) {
+        if (!row.review_key || !seen.has(row.review_key)) continue;
+        const r = await approveReview(env, row.id, 'auto_after_sync');
+        if (!r.error) released.push({ user_id: row.user_id, credited: r.credited });
+    }
+
+    return json({
+        success: true,
+        platform,
+        recorded: seen.size,
+        unparsed: unparsed.length,
+        released_count: released.length,
+        released,
+    });
+}
+
+// ---------------------------------------------------------------------------
 // POST /admin/reconcile-approved  { admin_key }
 //
 // Approved reviews whose credit grant did not land — the RPC failed after the
@@ -693,6 +796,7 @@ export default {
                 case '/admin/review/reject':       return await handleRejectReview(request, env);
                 case '/admin/review/approve-link': return await handleReviewLinkAction(request, env, 'approve');
                 case '/admin/review/reject-link':  return await handleReviewLinkAction(request, env, 'reject');
+                case '/admin/sync-reviews':        return await handleSyncReviews(request, env);
                 case '/admin/reconcile-approved':  return await handleReconcile(request, env);
                 default: return json({ error: 'Not found' }, 404);
             }

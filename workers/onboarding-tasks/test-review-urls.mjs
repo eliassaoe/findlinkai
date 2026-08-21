@@ -28,6 +28,19 @@ is('short id rejected', v('trustpilot_review','https://www.trustpilot.com/review
 is('policy=manual queues it', v('trustpilot_review','https://www.trustpilot.com/reviews/6512a4f1c9d2b30011a7e883',{trustpilotPolicy:'manual'}), 'manual');
 is('policy does not affect G2', v('g2_review','https://www.g2.com/products/linkfinder-ai/reviews/r-9',{trustpilotPolicy:'manual'}), 'auto_approve');
 
+console.log('\nKill switches');
+is('G2_POLICY=manual queues G2', v('g2_review','https://www.g2.com/products/linkfinder-ai/reviews/r-1',{g2Policy:'manual'}), 'manual');
+is('G2_POLICY does not affect Trustpilot', v('trustpilot_review','https://www.trustpilot.com/reviews/6512a4f1c9d2b30011a7e885',{g2Policy:'manual'}), 'auto_approve');
+
+console.log('\nFabricated ids still pass SHAPE — which is why existence is checked separately');
+// The real URL that exposed this: correct product, invented review id.
+is('fabricated id passes shape', v('g2_review','https://www.g2.com/products/linkfinder-ai/reviews/linkfinder-ai-review-13270299'), 'auto_approve');
+is('fabricated id yields a key to check',
+   reviewUrlKey('g2_review','https://www.g2.com/products/linkfinder-ai/reviews/linkfinder-ai-review-13270299'),
+   'g2:linkfinder-ai-review-13270299');
+// Shape alone cannot separate these two, so nothing downstream may trust it.
+is('incrementing the id also passes shape', v('g2_review','https://www.g2.com/products/linkfinder-ai/reviews/linkfinder-ai-review-13270300'), 'auto_approve');
+
 console.log('\nJunk and evasion');
 is('empty rejected', v('g2_review',''), 'reject');
 is('null rejected', v('g2_review', null), 'reject');

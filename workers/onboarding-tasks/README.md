@@ -18,8 +18,13 @@ wrangler deploy
 depends on the uniqueness it creates. Deploying without it means credit grants
 fail outright.
 
-Optional: `TRUSTPILOT_POLICY=manual` stops auto-approving Trustpilot (see
-below). `REVIEW_NOTIFICATION_WEBHOOK` overrides the n8n webhook.
+Optional:
+- `TRUSTPILOT_POLICY=manual` / `G2_POLICY=manual` — queue that platform instead
+  of auto-approving. Instant kill switch, no code change.
+- `REQUIRE_KNOWN_REVIEW=false` — pay out on URL shape alone. Do not set this:
+  fabricated URLs pass shape checks. It exists only to reproduce the old
+  behaviour deliberately.
+- `REVIEW_NOTIFICATION_WEBHOOK` — overrides the n8n webhook.
 
 ## How a review is judged
 
@@ -35,6 +40,42 @@ The two platforms are not equally verifiable, and the design turns on that:
 |---|---|
 | **G2** — `g2.com/products/`**`linkfinder-ai`**`/reviews/<slug>` | **Provable.** The product slug is in the URL. |
 | **Trustpilot** — `trustpilot.com/reviews/<hex-id>` | **Not provable.** The company appears nowhere in the URL. |
+
+### Shape is not existence
+
+A G2 review id is just a number. `.../linkfinder-ai/reviews/linkfinder-ai-review-13270299`
+passes every pattern check while pointing at nothing, and the next number does
+too. No amount of URL checking fixes that — fabricated URLs are free to mint.
+
+So auto-approval requires the review to be in `known_reviews`: the set of
+reviews we have independently observed to exist. Shape decides whether a
+submission is worth considering; membership decides whether it gets paid.
+
+Unknown is **not** a rejection. A genuine review written a minute ago will not
+be in the set yet, so it queues — and the next sync releases it and pays out
+without anyone touching it.
+
+**With `known_reviews` empty, nothing auto-approves and everything queues.**
+That is the intended failure: a manual queue beats a faucet.
+
+### Feeding the review list
+
+`POST /admin/sync-reviews` with `{admin_key, platform, review_urls: [...]}`.
+
+Source-agnostic on purpose — it takes URLs and does not care where they came
+from:
+
+| Platform | How to get your real review URLs |
+|---|---|
+| **Trustpilot** | The Business API (`/v1/private/business-units/{id}/reviews`) returns your own reviews. You own the data; no scraping. |
+| **G2** | No free API. Either G2's Review Stream API on a paid plan, or an Apify G2 review-scraper actor pointed at `g2.com/products/linkfinder-ai/reviews`, run on a schedule. |
+
+Wire either through n8n (or a cron) into that endpoint. It records the keys and
+immediately releases any pending submission that has now appeared, returning
+what it credited.
+
+Verifying membership also settles the Trustpilot attribution problem below: a
+review present in *your* Trustpilot review list is by definition about you.
 
 ### The Trustpilot gap, stated plainly
 
