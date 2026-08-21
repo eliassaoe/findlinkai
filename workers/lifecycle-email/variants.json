@@ -1,0 +1,656 @@
+{
+  "_readme": "Copy library for the seven lifecycle emails. PostHog holds only whichever variant is currently live on each step - this file is the source of truth and its git history is the record of every decision the weekly loop has made. build_email.py turns an entry here into the exact payload workflows-patch-action-email expects; decide.py chooses which entry that should be; optimise.md is the runbook the scheduled job follows. Exactly one variant per step is 'champion' and at most one is 'testing'; two can never be live at once because PostHog has no split node, which is why the test is sequential - see the top of decide.py for what that costs.",
+  "_angles": {
+    "utility": "No persuasion. Tells them the one thing to do and gets out of the way.",
+    "question": "Subject is a real question. Questions are the highest-opening subject format measured (~46%), and a reply is the cleanest engagement signal there is.",
+    "specific": "Concrete number or outcome in the subject. Specific curiosity beats vague teasing by ~26%; vague teasing also wins opens and loses clicks.",
+    "empathy": "Names the awkwardness out loud. Beats urgency on win-back - 'did we lose you' outperforms 'final notice'.",
+    "confession": "Leads with something that went wrong on our side. The register that earned 29% replies on the old campaign.",
+    "peer": "Speaks in another user's voice rather than the company's. Unlocks accounts that company-voice email cannot.",
+    "permission": "Offers to stop emailing. Counter-intuitively strong on dormant lists and cleans the list either way."
+  },
+  "steps": {
+    "welcome": {
+      "workflow_id": "01a0257a-401d-0000-e2a2-4138ca3d4e4c",
+      "action_id": "email_welcome",
+      "audience": "Everyone who signs up, 20 minutes later. ~566/month.",
+      "goal_event": "enrich_started",
+      "variants": [
+        {
+          "id": "welcome-utility",
+          "angle": "utility",
+          "status": "champion",
+          "hypothesis": "The fastest path to the aha is one lookup. Say that and nothing else.",
+          "subject": "your LinkFinder account is ready — try one lookup",
+          "preheader": "Twenty seconds to find out if this is useful.",
+          "body": [
+            "Hi &mdash; Eliasse here, I built LinkFinder.",
+            "Your account has credits on it already, and they don&rsquo;t expire.",
+            "The fastest way to see whether this is useful to you takes about twenty seconds: paste a LinkedIn profile URL, get the email address back. That&rsquo;s the whole product in one step."
+          ],
+          "cta": "Run your first lookup",
+          "url": "https://linkfinderai.com/app",
+          "after": [
+            "If you have a list rather than one person, drop a CSV in instead &mdash; bulk is where it actually saves you time, and it&rsquo;s included.",
+            "Reply to this if anything is confusing. It comes straight to me.",
+            "&mdash; Eliasse"
+          ],
+          "reason": "you just created an account at linkfinderai.com"
+        },
+        {
+          "id": "welcome-question",
+          "angle": "question",
+          "status": "queued",
+          "hypothesis": "A question invites a reply, and a reply tells us what they actually came for. Worth more than an open.",
+          "subject": "what are you trying to build a list of?",
+          "preheader": "Genuinely asking — one line back is plenty.",
+          "body": [
+            "Hi &mdash; Eliasse here, I built LinkFinder.",
+            "You signed up a few minutes ago, so before you get lost in it: what are you actually trying to build a list of?",
+            "I ask because the tool does several things and most people only need one of them. Tell me the shape of what you&rsquo;re after &mdash; founders in a city, everyone at a company, emails behind a list of profiles &mdash; and I&rsquo;ll point you at the right part in one line."
+          ],
+          "cta": "Or just start here",
+          "url": "https://linkfinderai.com/app",
+          "after": [
+            "Your credits are already on the account and they don&rsquo;t expire.",
+            "&mdash; Eliasse"
+          ],
+          "reason": "you just created an account at linkfinderai.com"
+        },
+        {
+          "id": "welcome-specific",
+          "angle": "specific",
+          "status": "queued",
+          "hypothesis": "Naming the exact mechanic in the subject sets a concrete expectation instead of a vague promise.",
+          "subject": "one LinkedIn URL in, one email address out",
+          "preheader": "That is the whole product. Everything else is volume.",
+          "body": [
+            "Hi &mdash; Eliasse here.",
+            "LinkFinder does one thing at its core: you give it a LinkedIn profile URL, it gives you back the person&rsquo;s work email. Everything else &mdash; company lookups, phone numbers, bulk CSV, the API &mdash; is that same trick at different volumes.",
+            "So the honest way to evaluate it is to run it once on someone you already know, and see whether the answer is right."
+          ],
+          "cta": "Try it on someone you know",
+          "url": "https://linkfinderai.com/app",
+          "after": [
+            "If the answer is wrong, reply and tell me who &mdash; that is the single most useful thing you can send me.",
+            "&mdash; Eliasse"
+          ],
+          "reason": "you just created an account at linkfinderai.com"
+        },
+        {
+          "id": "welcome-peer",
+          "angle": "peer",
+          "status": "queued",
+          "hypothesis": "Describing what other users do gives permission and a template, rather than an instruction.",
+          "subject": "the first thing most people do here",
+          "preheader": "It takes about twenty seconds and it settles the question.",
+          "body": [
+            "Hi &mdash; Eliasse here, I built LinkFinder.",
+            "Almost everyone who ends up using this properly does the same thing in their first minute: they look up someone they already know the email of, to check whether the tool is telling the truth.",
+            "It is a good instinct and I&rsquo;d rather you did it now than wonder later. Paste a LinkedIn profile URL of a colleague and see what comes back."
+          ],
+          "cta": "Run the check",
+          "url": "https://linkfinderai.com/app",
+          "after": [
+            "The people who get real value from it then upload a CSV, because doing it one at a time is not the point.",
+            "&mdash; Eliasse"
+          ],
+          "reason": "you just created an account at linkfinderai.com"
+        },
+        {
+          "id": "welcome-short",
+          "angle": "utility",
+          "status": "queued",
+          "hypothesis": "Radical brevity. Most welcome emails are too long to act on from a phone; this one fits above the fold.",
+          "subject": "don't read this, just paste a URL",
+          "preheader": "Four lines, then you're done.",
+          "body": [
+            "Your account is live and the credits are already on it.",
+            "Paste a LinkedIn profile URL, get the email. Twenty seconds."
+          ],
+          "cta": "Paste a URL",
+          "url": "https://linkfinderai.com/app",
+          "after": [
+            "Reply if it does something strange. &mdash; Eliasse"
+          ],
+          "reason": "you just created an account at linkfinderai.com"
+        }
+      ]
+    },
+    "no_lookup": {
+      "workflow_id": "01a0257a-401d-0000-e2a2-4138ca3d4e4c",
+      "action_id": "email_no_lookup",
+      "audience": "Signed up, still no enrich_started 24h later. The 464-person hole.",
+      "goal_event": "enrich_started",
+      "variants": [
+        {
+          "id": "nolookup-observation",
+          "angle": "empathy",
+          "status": "champion",
+          "hypothesis": "Naming the situation plainly, offering two readings, and asking which one it is.",
+          "subject": "you signed up but haven't run anything yet",
+          "preheader": "What got in the way? I read every reply.",
+          "body": [
+            "Hi &mdash; you made a LinkFinder account yesterday and haven&rsquo;t run a lookup yet, so either something got in the way or you got pulled into something else.",
+            "If it&rsquo;s the first one: tell me what. I read every reply, and it&rsquo;s the most useful thing anyone sends me.",
+            "If it&rsquo;s the second: it&rsquo;s twenty seconds. Paste a LinkedIn profile URL, get the email."
+          ],
+          "cta": "Try one now",
+          "url": "https://linkfinderai.com/app",
+          "after": [
+            "Your credits don&rsquo;t expire, so there&rsquo;s no rush &mdash; but the tool is a lot easier to judge after one real lookup than after none.",
+            "&mdash; Eliasse"
+          ],
+          "reason": "you created an account at linkfinderai.com"
+        },
+        {
+          "id": "nolookup-question",
+          "angle": "question",
+          "status": "queued",
+          "hypothesis": "Four words, entirely about them, no product in the subject at all.",
+          "subject": "what got in the way?",
+          "preheader": "You signed up and then stopped. I'd like to know why.",
+          "body": [
+            "You made a LinkFinder account yesterday and then didn&rsquo;t run anything.",
+            "That&rsquo;s usually one of four things: you got busy, you couldn&rsquo;t find the right button, you didn&rsquo;t have a list to try it on, or you signed up to look and weren&rsquo;t really going to use it.",
+            "All four are fine. But if it&rsquo;s one of the middle two I can fix it in a sentence, so tell me which and I will."
+          ],
+          "cta": "Or just try it",
+          "url": "https://linkfinderai.com/app",
+          "after": [
+            "&mdash; Eliasse"
+          ],
+          "reason": "you created an account at linkfinderai.com"
+        },
+        {
+          "id": "nolookup-specific",
+          "angle": "specific",
+          "status": "queued",
+          "hypothesis": "Make the unused thing concrete and slightly uncomfortable to leave sitting there.",
+          "subject": "your credits are just sitting there",
+          "preheader": "They don't expire, but they also don't do anything on their own.",
+          "body": [
+            "You have credits on your LinkFinder account that you haven&rsquo;t spent a single one of.",
+            "They don&rsquo;t expire, so nothing is being lost. But they also can&rsquo;t tell you whether the tool is any good, and that&rsquo;s the only thing worth finding out right now.",
+            "One lookup does it. Paste a LinkedIn profile URL of someone whose email you already know, and check the answer against what you know."
+          ],
+          "cta": "Spend one credit",
+          "url": "https://linkfinderai.com/app",
+          "after": [
+            "If the answer&rsquo;s wrong, reply and tell me &mdash; I&rsquo;d rather know.",
+            "&mdash; Eliasse"
+          ],
+          "reason": "you created an account at linkfinderai.com"
+        },
+        {
+          "id": "nolookup-permission",
+          "angle": "permission",
+          "status": "queued",
+          "hypothesis": "Offering to leave gets a reply from people who would otherwise silently ignore everything. Cleans the list either way.",
+          "subject": "should I stop emailing you?",
+          "preheader": "Genuine question, no hard feelings.",
+          "body": [
+            "You signed up for LinkFinder and haven&rsquo;t used it, which usually means one of two things: it wasn&rsquo;t what you thought, or you never got round to it.",
+            "If it&rsquo;s the first, reply with the word <b>stop</b> and I&rsquo;ll take you off everything. No offence taken &mdash; I&rsquo;d rather have a small list of people who want to hear from me.",
+            "If it&rsquo;s the second, it genuinely takes twenty seconds:"
+          ],
+          "cta": "Run one lookup",
+          "url": "https://linkfinderai.com/app",
+          "after": [
+            "&mdash; Eliasse"
+          ],
+          "reason": "you created an account at linkfinderai.com"
+        },
+        {
+          "id": "nolookup-utility",
+          "angle": "utility",
+          "status": "queued",
+          "hypothesis": "Remove the blank-page problem by supplying the input. No decision required.",
+          "subject": "here's one you can paste",
+          "preheader": "Copy, paste, done. No thinking required.",
+          "body": [
+            "The hardest part of trying a new tool is usually deciding what to type into it. So here is one, ready to go:",
+            "<b>linkedin.com/in/williamhgates</b>",
+            "Copy that, paste it into LinkFinder, and watch what comes back. It costs you one credit and about fifteen seconds, and then you&rsquo;ll know whether this is worth your time."
+          ],
+          "cta": "Open LinkFinder",
+          "url": "https://linkfinderai.com/app",
+          "after": [
+            "Then do it with someone you actually care about reaching.",
+            "&mdash; Eliasse"
+          ],
+          "reason": "you created an account at linkfinderai.com"
+        }
+      ]
+    },
+    "upgrade": {
+      "workflow_id": "01a0257a-401d-0000-e2a2-4138ca3d4e4c",
+      "action_id": "email_upgrade",
+      "audience": "Activated users, 6 days after their first lookup, still unpaid. ~380 exist.",
+      "goal_event": "checkout_payment_success",
+      "variants": [
+        {
+          "id": "upgrade-features",
+          "angle": "utility",
+          "status": "champion",
+          "hypothesis": "Most people never find bulk or the API. Telling them is the whole pitch.",
+          "subject": "you're using this properly — worth a plan?",
+          "preheader": "Bulk CSV and the API are the parts nobody finds.",
+          "body": [
+            "Hi &mdash; you&rsquo;ve run enough lookups now that this clearly isn&rsquo;t a test drive, so let me tell you the two things most people never find.",
+            "<b>Bulk CSV.</b> Upload a list of profiles or companies, get the whole thing back enriched. It&rsquo;s the difference between a lookup box and actual leverage.",
+            "<b>API and MCP.</b> Wire it into whatever you already use, no copy-paste.",
+            "Both come with any plan."
+          ],
+          "cta": "See plans",
+          "url": "https://linkfinderai.com/app?upgrade=1",
+          "after": [
+            "On which plan: if your volume is lumpy, the one-off pack is the better shape. If it&rsquo;s steady, the subscription is cheaper per lookup.",
+            "Reply with roughly how many contacts a month and I&rsquo;ll tell you which one &mdash; honestly, including if the answer is neither.",
+            "&mdash; Eliasse"
+          ],
+          "reason": "you have an account at linkfinderai.com"
+        },
+        {
+          "id": "upgrade-question",
+          "angle": "question",
+          "status": "queued",
+          "hypothesis": "Ask the qualifying question directly instead of pitching. Answer determines the recommendation, and the reply is the conversion.",
+          "subject": "how many contacts a month do you actually need?",
+          "preheader": "The answer decides whether you should pay us anything at all.",
+          "body": [
+            "You&rsquo;ve been using LinkFinder enough that the free credits will run out at some point, so it&rsquo;s worth working out what happens then.",
+            "The answer depends entirely on one number: how many contacts a month you actually need.",
+            "Under a hundred, occasionally &mdash; the $25 one-off pack, and never think about it again. A few hundred, every month &mdash; the $49 plan is much cheaper per lookup. Genuinely unpredictable &mdash; stay on free and buy a pack when you need one."
+          ],
+          "cta": "See both",
+          "url": "https://linkfinderai.com/app?upgrade=1",
+          "after": [
+            "Reply with your number and I&rsquo;ll tell you which one, including if the answer is that you don&rsquo;t need to pay us yet.",
+            "&mdash; Eliasse"
+          ],
+          "reason": "you have an account at linkfinderai.com"
+        },
+        {
+          "id": "upgrade-bulk",
+          "angle": "specific",
+          "status": "queued",
+          "hypothesis": "One feature, one benefit, one number. Bulk is the actual reason to pay.",
+          "subject": "the button that does 500 at once",
+          "preheader": "You have been doing these one at a time.",
+          "body": [
+            "You&rsquo;ve been running lookups one at a time. There&rsquo;s a button that does five hundred.",
+            "Upload a CSV of LinkedIn URLs or company names, walk away, come back to a finished file with emails and phone numbers filled in. It is the same tool you&rsquo;ve been using, just not one row at a time.",
+            "It comes with every plan, starting at $49/month, and there&rsquo;s a $25 one-off pack if you have a single list to get through and don&rsquo;t want a subscription."
+          ],
+          "cta": "Try bulk",
+          "url": "https://linkfinderai.com/app?upgrade=1",
+          "after": [
+            "&mdash; Eliasse"
+          ],
+          "reason": "you have an account at linkfinderai.com"
+        },
+        {
+          "id": "upgrade-peer",
+          "angle": "peer",
+          "status": "queued",
+          "hypothesis": "Describe the behaviour of users who got value, so the reader recognises themselves.",
+          "subject": "what the heavy users figured out",
+          "preheader": "It is not a feature, it is a habit.",
+          "body": [
+            "The people who get the most out of LinkFinder all did the same thing at roughly the point you&rsquo;re at now: they stopped looking people up one by one.",
+            "They export a list from somewhere &mdash; a LinkedIn search, a conference attendee page, a spreadsheet a colleague sent &mdash; drop the whole thing in as a CSV, and let it run. Then they spend their time on the replies instead of the research.",
+            "That&rsquo;s the difference between the free tier and a plan. Not more of the same, a different way of working."
+          ],
+          "cta": "See plans",
+          "url": "https://linkfinderai.com/app?upgrade=1",
+          "after": [
+            "If you tell me what you&rsquo;re building a list of, I&rsquo;ll tell you whether bulk actually helps or whether you&rsquo;re fine as you are.",
+            "&mdash; Eliasse"
+          ],
+          "reason": "you have an account at linkfinderai.com"
+        }
+      ]
+    },
+    "credit_wall": {
+      "workflow_id": "01a02579-2580-0000-52d3-689a36d8390d",
+      "action_id": "email_1",
+      "audience": "Ran out of credits or hit the bulk gate, 30 minutes later. 124 waiting.",
+      "goal_event": "checkout_payment_success",
+      "variants": [
+        {
+          "id": "wall-options",
+          "angle": "utility",
+          "status": "champion",
+          "hypothesis": "They hit a wall wanting more. Show both doors and get out of the way.",
+          "subject": "you ran out of credits — here's what happens next",
+          "preheader": "Two ways to keep going, one of them has no subscription.",
+          "body": [
+            "Hi &mdash; you just used the last of your free credits on LinkFinder, which means it was doing something useful for you.",
+            "You may not have seen what comes after:",
+            "&bull; <b>$49/month</b> &mdash; 60,000 credits, bulk CSV upload, and API access<br />&bull; <b>$25 one-off</b> &mdash; a batch of credits, no subscription at all"
+          ],
+          "cta": "Get more credits",
+          "url": "https://linkfinderai.com/app?upgrade=1",
+          "after": [
+            "If neither of those fits what you&rsquo;re doing, reply and tell me what you&rsquo;re actually trying to build a list of. I&rsquo;ll tell you honestly if we&rsquo;re the wrong tool.",
+            "&mdash; Eliasse"
+          ],
+          "reason": "you have an account at linkfinderai.com"
+        },
+        {
+          "id": "wall-empathy",
+          "angle": "empathy",
+          "status": "queued",
+          "hypothesis": "Acknowledge the interruption before selling. They were mid-task and got stopped.",
+          "subject": "that's an annoying place to stop",
+          "preheader": "You were in the middle of something.",
+          "body": [
+            "You just ran out of credits, which almost certainly means you were in the middle of something and the tool stopped you.",
+            "Sorry about that. Here&rsquo;s how to get going again, and I&rsquo;ll be quick about it:",
+            "&bull; <b>$25</b>, one off, no subscription &mdash; if you just want to finish what you started<br />&bull; <b>$49/month</b> &mdash; if this is going to be a regular thing, it&rsquo;s much cheaper per lookup and unlocks bulk CSV"
+          ],
+          "cta": "Pick one and carry on",
+          "url": "https://linkfinderai.com/app?upgrade=1",
+          "after": [
+            "&mdash; Eliasse"
+          ],
+          "reason": "you have an account at linkfinderai.com"
+        },
+        {
+          "id": "wall-question",
+          "angle": "question",
+          "status": "queued",
+          "hypothesis": "An unexpected, human offer. Invites a reply rather than a transaction, and a reply is worth more here than a click.",
+          "subject": "want me to just top you up?",
+          "preheader": "Tell me what you're working on and I'll sort it.",
+          "body": [
+            "You hit the end of your free credits.",
+            "Before I point you at a pricing page: what are you working on? If it&rsquo;s a one-off list and you&rsquo;re nearly done, reply and tell me &mdash; I&rsquo;d rather you finish it than bounce off a paywall halfway through.",
+            "If it&rsquo;s ongoing, then a plan genuinely is the right answer and there are two shapes: $49/month for volume, or a $25 one-off pack with no subscription."
+          ],
+          "cta": "See the options",
+          "url": "https://linkfinderai.com/app?upgrade=1",
+          "after": [
+            "&mdash; Eliasse"
+          ],
+          "reason": "you have an account at linkfinderai.com"
+        },
+        {
+          "id": "wall-specific",
+          "angle": "specific",
+          "status": "queued",
+          "hypothesis": "Lead with the smallest possible number. Removes the subscription objection before it forms.",
+          "subject": "$25 and no subscription",
+          "preheader": "The option most people do not know exists.",
+          "body": [
+            "You ran out of credits. Most people assume the only way forward is a monthly plan, so here is the one that isn&rsquo;t:",
+            "<b>$25, one time.</b> A batch of credits, no subscription, nothing to cancel. Buy it when you need it, ignore us the rest of the time.",
+            "There is a $49/month plan too, and it&rsquo;s genuinely cheaper per lookup if you&rsquo;re doing this every week &mdash; it also unlocks bulk CSV and the API. But if you just want to finish a list, take the $25."
+          ],
+          "cta": "Get the one-off pack",
+          "url": "https://linkfinderai.com/app?upgrade=1",
+          "after": [
+            "&mdash; Eliasse"
+          ],
+          "reason": "you have an account at linkfinderai.com"
+        }
+      ]
+    },
+    "checkout_1": {
+      "workflow_id": "01a02578-9f9e-0000-d4c0-f57a811dca80",
+      "action_id": "email_1",
+      "audience": "Picked a plan, no payment landed, 2 hours later.",
+      "goal_event": "checkout_payment_success",
+      "variants": [
+        {
+          "id": "checkout1-confession",
+          "angle": "confession",
+          "status": "champion",
+          "hypothesis": "Owning the possibility that we broke it makes the question safe to answer honestly.",
+          "subject": "did the upgrade break for you?",
+          "preheader": "One question, one line back.",
+          "body": [
+            "Hi &mdash; Eliasse here, I built LinkFinder.",
+            "You started upgrading a couple of hours ago and the payment never completed.",
+            "I&rsquo;d genuinely like to know which it was: did something break, or did you change your mind on the price? We found and fixed a bug in our checkout recently, so there&rsquo;s a real chance it was us &mdash; and if so, I owe you a working link."
+          ],
+          "cta": "Finish upgrading",
+          "url": "https://linkfinderai.com/app?upgrade=1",
+          "after": [
+            "Or just hit reply. One line is plenty.",
+            "&mdash; Eliasse"
+          ],
+          "reason": "you started an upgrade at linkfinderai.com"
+        },
+        {
+          "id": "checkout1-utility",
+          "angle": "utility",
+          "status": "queued",
+          "hypothesis": "Some abandoned checkouts are pure friction. Hand them a working link and say nothing else.",
+          "subject": "here's your checkout link again",
+          "preheader": "In case the first one gave you trouble.",
+          "body": [
+            "Your upgrade didn&rsquo;t go through, so here&rsquo;s a fresh link in case the last one gave you trouble."
+          ],
+          "cta": "Finish upgrading",
+          "url": "https://linkfinderai.com/app?upgrade=1",
+          "after": [
+            "If it fails again, reply and tell me what you saw on screen &mdash; that would be genuinely useful to know.",
+            "&mdash; Eliasse"
+          ],
+          "reason": "you started an upgrade at linkfinderai.com"
+        },
+        {
+          "id": "checkout1-question",
+          "angle": "question",
+          "status": "queued",
+          "hypothesis": "Name the two real reasons and let them pick. Easier to answer than an open question.",
+          "subject": "the card, or the price?",
+          "preheader": "You got as far as checkout and stopped.",
+          "body": [
+            "You got as far as the checkout page and then stopped, which is usually one of two things: the payment didn&rsquo;t work, or you looked at the number and thought about it.",
+            "If it&rsquo;s the first, that might well be our fault &mdash; we found and fixed a checkout bug recently &mdash; and I&rsquo;d like to know.",
+            "If it&rsquo;s the second, tell me what you&rsquo;re using it for. Sometimes the $25 one-off pack is the better answer than a subscription and I&rsquo;d rather say so."
+          ],
+          "cta": "Try again",
+          "url": "https://linkfinderai.com/app?upgrade=1",
+          "after": [
+            "&mdash; Eliasse"
+          ],
+          "reason": "you started an upgrade at linkfinderai.com"
+        },
+        {
+          "id": "checkout1-empathy",
+          "angle": "empathy",
+          "status": "queued",
+          "hypothesis": "Low pressure. Abandoned-cart email that explicitly refuses to push often outperforms one that does.",
+          "subject": "no pressure, just checking",
+          "preheader": "Your upgrade did not complete. That is all this is about.",
+          "body": [
+            "Your upgrade didn&rsquo;t complete earlier. This isn&rsquo;t a nudge to buy &mdash; it&rsquo;s me checking that the thing worked, because it hasn&rsquo;t always.",
+            "If you decided against it, that&rsquo;s completely fine and you can ignore this. The free tier isn&rsquo;t going anywhere.",
+            "If it broke, that&rsquo;s a different matter and I&rsquo;d like to hear about it."
+          ],
+          "cta": "Pick up where you left off",
+          "url": "https://linkfinderai.com/app?upgrade=1",
+          "after": [
+            "&mdash; Eliasse"
+          ],
+          "reason": "you started an upgrade at linkfinderai.com"
+        }
+      ]
+    },
+    "checkout_2": {
+      "workflow_id": "01a02578-9f9e-0000-d4c0-f57a811dca80",
+      "action_id": "email_2",
+      "audience": "Same people, 3 days later, still unpaid.",
+      "goal_event": "checkout_payment_success",
+      "variants": [
+        {
+          "id": "checkout2-shape",
+          "angle": "specific",
+          "status": "champion",
+          "hypothesis": "The objection is usually shape, not price. Offer the other shape.",
+          "subject": "re: did the upgrade break for you?",
+          "preheader": "Last one from me on this.",
+          "body": [
+            "Following up once, then I&rsquo;ll leave you alone.",
+            "If it was the price &mdash; plans start at $49/month, but there&rsquo;s also a one-off $25 pack if you just need a batch done and don&rsquo;t want a subscription.",
+            "Sometimes that&rsquo;s genuinely the better call, and I&rsquo;d rather say so than sell you the wrong shape."
+          ],
+          "cta": "See both options",
+          "url": "https://linkfinderai.com/app?upgrade=1",
+          "after": [
+            "Or tell me roughly how many contacts a month you need and I&rsquo;ll pick for you.",
+            "&mdash; Eliasse"
+          ],
+          "reason": "you started an upgrade at linkfinderai.com"
+        },
+        {
+          "id": "checkout2-question",
+          "angle": "question",
+          "status": "queued",
+          "hypothesis": "Ask which plan rather than re-pitching. Gets a reply from people who are still deciding.",
+          "subject": "which plan were you looking at?",
+          "preheader": "Asking because the cheapest one is often the right one.",
+          "body": [
+            "You looked at upgrading a few days ago and didn&rsquo;t finish. Which plan were you on?",
+            "I ask because people often pick the middle one out of caution when the smallest is right, or take a subscription when a one-off $25 pack would have covered the whole job.",
+            "Tell me roughly what you need and I&rsquo;ll give you a straight answer, including &ldquo;stay on free for now&rdquo; if that&rsquo;s the truth."
+          ],
+          "cta": "See the plans",
+          "url": "https://linkfinderai.com/app?upgrade=1",
+          "after": [
+            "&mdash; Eliasse"
+          ],
+          "reason": "you started an upgrade at linkfinderai.com"
+        },
+        {
+          "id": "checkout2-permission",
+          "angle": "permission",
+          "status": "queued",
+          "hypothesis": "Explicitly closing the loop earns replies and stops the sequence feeling like pursuit.",
+          "subject": "closing this one out",
+          "preheader": "Nothing more from me on the upgrade after this.",
+          "body": [
+            "You started an upgrade and didn&rsquo;t finish, and I&rsquo;ve now emailed you about it twice, which is my limit.",
+            "So: nothing further from me on this. Your free credits stay where they are and the tool keeps working exactly as it does now.",
+            "If it was a bug rather than a decision, that&rsquo;s the one thing I&rsquo;d still want to hear about &mdash; reply and tell me what happened on screen."
+          ],
+          "cta": "Or finish it here",
+          "url": "https://linkfinderai.com/app?upgrade=1",
+          "after": [
+            "&mdash; Eliasse"
+          ],
+          "reason": "you started an upgrade at linkfinderai.com"
+        }
+      ]
+    },
+    "winback": {
+      "workflow_id": "01a0257d-5b54-0000-42a7-fcd74f8a0a1d",
+      "action_id": "email_1",
+      "audience": "Batch. 914 people who ran a lookup, stopped, never paid. Sent in three waves.",
+      "goal_event": "enrich_started",
+      "variants": [
+        {
+          "id": "winback-question",
+          "angle": "question",
+          "status": "champion",
+          "hypothesis": "Ask whether the product was any good, then disclose the bug that may explain why it wasn't.",
+          "subject": "was the result any good?",
+          "preheader": "We were rejecting valid links. That is fixed.",
+          "body": [
+            "Hi &mdash; you tried LinkFinder and then stopped, so I&rsquo;m guessing the answer either wasn&rsquo;t right or wasn&rsquo;t worth the effort.",
+            "Which was it? I&rsquo;m asking because we just fixed something embarrassing: profile URLs from country domains &mdash; <b>fr.linkedin.com</b>, <b>in.linkedin.com</b>, <b>uk.linkedin.com</b> and the rest &mdash; were being rejected as invalid. If you pasted one of those, the tool told you your perfectly good link was wrong.",
+            "That&rsquo;s fixed. Your credits are still there."
+          ],
+          "cta": "Try it again",
+          "url": "https://linkfinderai.com/app",
+          "after": [
+            "And if it was the data that was wrong rather than the link, reply with the profile &mdash; I&rsquo;ll look at it myself.",
+            "&mdash; Eliasse"
+          ],
+          "reason": "you have an account at linkfinderai.com"
+        },
+        {
+          "id": "winback-confession",
+          "angle": "confession",
+          "status": "queued",
+          "hypothesis": "Lead with the bug in the subject line itself. Maximum honesty, no setup.",
+          "subject": "we were rejecting valid LinkedIn URLs",
+          "preheader": "If you pasted fr.linkedin.com we told you it was wrong. It was not.",
+          "body": [
+            "This is an apology email, so I&rsquo;ll get straight to it.",
+            "If you ever pasted a LinkedIn URL from a country domain into LinkFinder &mdash; <b>fr.linkedin.com</b>, <b>in.linkedin.com</b>, <b>uk.linkedin.com</b>, any of them &mdash; the tool told you the link was invalid. It wasn&rsquo;t. That was our bug and it has been there a long time.",
+            "It&rsquo;s fixed now. If that&rsquo;s why you stopped, I&rsquo;m sorry, and your credits are untouched."
+          ],
+          "cta": "Try the link that failed",
+          "url": "https://linkfinderai.com/app",
+          "after": [
+            "If you stopped for some other reason, I&rsquo;d still like to know what it was.",
+            "&mdash; Eliasse"
+          ],
+          "reason": "you have an account at linkfinderai.com"
+        },
+        {
+          "id": "winback-changed",
+          "angle": "specific",
+          "status": "queued",
+          "hypothesis": "Product evolution framing, with a countable list. Specific beats 'a lot has changed'.",
+          "subject": "three things changed since you tried it",
+          "preheader": "One of them is probably why you left.",
+          "body": [
+            "You tried LinkFinder a while back and didn&rsquo;t come back. Three things have changed since then, and one of them might be the reason you left:",
+            "<b>1.</b> Country-domain LinkedIn URLs &mdash; fr., in., uk. and the rest &mdash; were being rejected as invalid. That was a bug. It&rsquo;s fixed.<br /><b>2.</b> The checkout was silently failing for some people. Also fixed.<br /><b>3.</b> Bulk CSV got faster and now handles messy files without falling over.",
+            "Your credits are exactly where you left them."
+          ],
+          "cta": "Take another look",
+          "url": "https://linkfinderai.com/app",
+          "after": [
+            "&mdash; Eliasse"
+          ],
+          "reason": "you have an account at linkfinderai.com"
+        },
+        {
+          "id": "winback-permission",
+          "angle": "permission",
+          "status": "queued",
+          "hypothesis": "On a dormant list, asking to leave gets more replies than asking to return, and cleans the list either way.",
+          "subject": "should I take you off the list?",
+          "preheader": "Genuine question. No hard feelings either way.",
+          "body": [
+            "You tried LinkFinder once and haven&rsquo;t been back, so I&rsquo;m going to ask directly rather than keep guessing: do you want to hear from us at all?",
+            "If not, hit unsubscribe at the bottom and that&rsquo;s that. I&rsquo;d genuinely rather have a small list of people who want these than a big one that doesn&rsquo;t.",
+            "If you&rsquo;re on the fence, one thing worth knowing: we were rejecting country-domain LinkedIn URLs &mdash; fr., in., uk. &mdash; as invalid. That was a bug, it&rsquo;s fixed, and it may well be the reason the tool looked broken to you."
+          ],
+          "cta": "Give it one more go",
+          "url": "https://linkfinderai.com/app",
+          "after": [
+            "&mdash; Eliasse"
+          ],
+          "reason": "you have an account at linkfinderai.com"
+        },
+        {
+          "id": "winback-peer",
+          "angle": "peer",
+          "status": "queued",
+          "hypothesis": "Attribute the fix to a user. Peer voice unlocks accounts that company voice cannot.",
+          "subject": "someone like you found this bug",
+          "preheader": "And it is probably the reason the tool did not work for you.",
+          "body": [
+            "Someone who&rsquo;d given up on LinkFinder replied to one of these emails a few weeks ago to tell me why: every LinkedIn URL they pasted came back as invalid.",
+            "They were in France. Their URLs all started <b>fr.linkedin.com</b>. Our tool only accepted <b>www.linkedin.com</b>, so it rejected every single one and told them their perfectly good links were wrong.",
+            "That&rsquo;s fixed now, for every country domain. If it&rsquo;s why the tool never worked for you either, your credits are still sitting there."
+          ],
+          "cta": "Try the link that failed",
+          "url": "https://linkfinderai.com/app",
+          "after": [
+            "&mdash; Eliasse"
+          ],
+          "reason": "you have an account at linkfinderai.com"
+        }
+      ]
+    }
+  }
+}
