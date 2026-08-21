@@ -10,13 +10,7 @@
 (function () {
   "use strict";
 
-  var WORKER_URL = "https://linkfinder-ai-support.YOUR-SUBDOMAIN.workers.dev/chat";
-
-  if (WORKER_URL.indexOf("YOUR-SUBDOMAIN") !== -1) {
-    // Not configured yet — stay invisible instead of shipping a dead button.
-    console.warn("[support-widget] WORKER_URL not configured yet — chat widget disabled. See support-worker/README.md.");
-    return;
-  }
+  var WORKER_URL = "https://support-worker.hamoureliasse.workers.dev/chat";
 
   var STORAGE_KEY = "lfai_support_chat_v1";
 
