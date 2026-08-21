@@ -54,8 +54,12 @@
         // Sign-up links: the conversion this whole page exists to produce.
         if (el.tagName === 'A' && (el.getAttribute('href') || '').indexOf('/sign-up') !== -1) {
             var inGate = !!(el.closest && el.closest('#limitModal'));
-            capture(inGate ? 'free_limit_cta_clicked' : 'widget_result_cta_clicked', {
-                placement: inGate ? 'gate_modal' : 'page'
+            var isOffer = el.getAttribute('data-lf-offer') === '1';
+            var event = isOffer ? 'first_result_offer_clicked'
+                      : inGate ? 'free_limit_cta_clicked'
+                      : 'widget_result_cta_clicked';
+            capture(event, {
+                placement: isOffer ? 'first_result' : inGate ? 'gate_modal' : 'page'
             });
             return;
         }
@@ -103,6 +107,86 @@
         results.classList.toggle('lf-gated-blur', !!on);
     }
 
+    // ---- Offer on the first result -------------------------------------------
+    //
+    // The gate only fires when someone goes for a second lookup, and most people
+    // never do: of 31 visitors who used a widget in the first eight hours after
+    // launch, 7 reached the gate. The other 24 got their answer and left without
+    // being asked for anything at all.
+    //
+    // So this asks them, at the one moment they are demonstrably happy — the
+    // result is on screen and it worked. It sits under the result rather than
+    // over it, it takes nothing away, and it leads with what an account gives
+    // (150 credits, one per lookup) instead of what it withholds.
+
+    var OFFER_ID = 'lf-first-result-offer';
+
+    // Tool pages send signed-in visitors to /app, but that redirect races the
+    // first paint — checking directly avoids pitching an account to someone who
+    // already has one.
+    function alreadyHasAccount() {
+        try {
+            if (localStorage.getItem('linkFinderToken')) return true;
+            for (var i = 0; i < localStorage.length; i++) {
+                var key = localStorage.key(i);
+                if (key && /FinderUser$/.test(key)) return true;
+            }
+        } catch (e) {}
+        return false;
+    }
+
+    function buildOffer() {
+        var el = document.createElement('div');
+        el.id = OFFER_ID;
+        el.setAttribute('style', [
+            'margin:1rem 0 0', 'padding:1.15rem 1.25rem', 'border-radius:12px',
+            'border:1px solid #bfdbfe', 'background:linear-gradient(135deg,#eff6ff,#f5f9ff)',
+            'display:flex', 'flex-wrap:wrap', 'gap:.9rem',
+            'align-items:center', 'justify-content:space-between'
+        ].join(';'));
+        el.innerHTML =
+            '<div style="flex:1 1 260px;min-width:0;">' +
+              '<div style="font-weight:700;color:#1e3a8a;font-size:1rem;margin-bottom:.2rem;">' +
+                'Want 150 more lookups?' +
+              '</div>' +
+              '<div style="color:#3b5b8c;font-size:.875rem;line-height:1.5;">' +
+                'A free account comes with 150 credits &mdash; one per lookup &mdash; plus bulk CSV and API access. No card needed.' +
+              '</div>' +
+            '</div>' +
+            '<a href="https://linkfinderai.com/sign-up" data-lf-offer="1" ' +
+               'style="background:#2563eb;color:#fff;font-weight:600;font-size:.9rem;' +
+               'padding:.7rem 1.15rem;border-radius:8px;text-decoration:none;white-space:nowrap;">' +
+              'Create free account &rarr;' +
+            '</a>';
+        return el;
+    }
+
+    function maybeShowFirstResultOffer() {
+        if (document.getElementById(OFFER_ID)) return;   // once per page view
+        if (alreadyHasAccount()) return;
+
+        var results = document.getElementById('resultsSection');
+        if (!results || results.classList.contains('hidden')) return;
+
+        // Never stack it under the gate — that visitor is already being asked.
+        var modal = document.getElementById('limitModal');
+        if (modal && modal.style.display === 'flex') return;
+
+        results.parentNode.insertBefore(buildOffer(), results.nextSibling);
+        capture('first_result_offer_shown');
+    }
+
+    function watchForFirstResult() {
+        var results = document.getElementById('resultsSection');
+        if (!results || typeof MutationObserver === 'undefined') return;
+
+        maybeShowFirstResultOffer();   // in case a result is already rendered
+
+        new MutationObserver(function () {
+            maybeShowFirstResultOffer();
+        }).observe(results, { attributes: true, attributeFilter: ['class', 'style'] });
+    }
+
     // The gate modal is shown by pages writing style.display directly, in ~26
     // different call sites. Watching the element is cheaper and safer than
     // rewriting all of them, and catches any future call site for free.
@@ -133,9 +217,14 @@
         }).observe(modal, { attributes: true, attributeFilter: ['style'] });
     }
 
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', watchGate);
-    } else {
+    function start() {
         watchGate();
+        watchForFirstResult();
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', start);
+    } else {
+        start();
     }
 })();
