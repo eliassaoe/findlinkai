@@ -76,6 +76,33 @@
         }
     }, true);
 
+    // Blur whatever is on the results panel while the gate is up. The visitor
+    // keeps their first answer in full — the gate only appears when they go for
+    // a second one — so this is their previous result softening behind the
+    // paywall, which shows what an account buys without hiding what they were
+    // already given.
+    var BLUR_STYLE_ID = 'lf-gate-blur-style';
+
+    function ensureBlurStyle() {
+        if (document.getElementById(BLUR_STYLE_ID)) return;
+        var style = document.createElement('style');
+        style.id = BLUR_STYLE_ID;
+        style.textContent =
+            '.lf-gated-blur{filter:blur(6px);opacity:.55;transition:filter .35s ease,opacity .35s ease;' +
+            'pointer-events:none;user-select:none;}' +
+            '@media (prefers-reduced-motion: reduce){.lf-gated-blur{transition:none;}}';
+        document.head.appendChild(style);
+    }
+
+    function setResultsBlurred(on) {
+        var results = document.getElementById('resultsSection');
+        if (!results) return;
+        // Nothing to tease if no result was ever rendered.
+        if (on && results.classList.contains('hidden')) return;
+        ensureBlurStyle();
+        results.classList.toggle('lf-gated-blur', !!on);
+    }
+
     // The gate modal is shown by pages writing style.display directly, in ~26
     // different call sites. Watching the element is cheaper and safer than
     // rewriting all of them, and catches any future call site for free.
@@ -87,16 +114,21 @@
             capture('free_limit_modal_shown', { free_lookups: window.LF_FREE_LOOKUPS });
         }
 
+        function sync(isVisible) {
+            setResultsBlurred(isVisible);
+        }
+
         // A visitor who already spent their free lookup gets the gate during page
         // init, before this observer could attach. That is the single most
         // important moment to measure, so check the state we start in rather than
         // only reacting to changes from it.
         var wasVisible = modal.style.display === 'flex';
-        if (wasVisible) report();
+        if (wasVisible) { report(); sync(true); }
 
         new MutationObserver(function () {
             var isVisible = modal.style.display === 'flex';
             if (isVisible && !wasVisible) report();
+            if (isVisible !== wasVisible) sync(isVisible);
             wasVisible = isVisible;
         }).observe(modal, { attributes: true, attributeFilter: ['style'] });
     }

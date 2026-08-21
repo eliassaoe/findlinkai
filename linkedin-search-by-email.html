@@ -625,17 +625,15 @@ async function findLinkedInProfile() {
       try { plausible('LinkedIn Profile Found', { props: { source: 'email' } }); } catch(e) {}
       try { posthog.capture('email_to_linkedin_success'); } catch(e) {}
 
-      if (searchCount >= FREE_LIMIT) {
-        setTimeout(function() { document.getElementById('limitModal').style.display = 'flex'; }, 2500);
-      }
+      // Gate intentionally not opened here — see updateUI(). It opens on the
+      // next attempt instead, so this result is not buried under a paywall.
     } else {
       resultText.value = 'No LinkedIn profile found for: ' + email;
       searchCount++;
       localStorage.setItem('emailLinkedInSearchCount', searchCount);
       updateCreditsDisplay();
-      if (searchCount >= FREE_LIMIT) {
-        setTimeout(function() { document.getElementById('limitModal').style.display = 'flex'; }, 1500);
-      }
+      // Gate intentionally not opened here — see updateUI(). It opens on the
+      // next attempt instead, so this result is not buried under a paywall.
     }
   } catch(err) {
     console.error(err);
