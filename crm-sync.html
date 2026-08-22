@@ -289,7 +289,11 @@ table.gaps tfoot td{font-weight:700;color:var(--gray-900);border-top:2px solid v
 let userToken = null;
 let lastAudit = null;
 let lastCSV = null;
-let activeFields = LFCrmAudit.FIELDS.map(f => f.key);
+// Phone is excluded by default: at 50 credits it is 5-50x every other lookup
+// and dominates any quote it appears in. The toggle still shows how many are
+// missing, so the opportunity stays visible without inflating the headline.
+const DEFAULT_OFF = ['phone'];
+let activeFields = LFCrmAudit.FIELDS.map(f => f.key).filter(k => !DEFAULT_OFF.includes(k));
 
 const urlParams = new URLSearchParams(window.location.search);
 const gclid = urlParams.get('gclid');
@@ -422,10 +426,17 @@ function render(r){
     document.getElementById('facts').innerHTML = facts;
 
     // field toggles
-    document.getElementById('toggles').innerHTML = LFCrmAudit.FIELDS.map(fl =>
-        '<button class="chip ' + (activeFields.includes(fl.key)?'on':'') + '" onclick="toggleField(\''+fl.key+'\')">' +
-        (activeFields.includes(fl.key)?'<i class="fas fa-check"></i> ':'') + fl.fix + '</button>'
-    ).join('');
+    document.getElementById('toggles').innerHTML = LFCrmAudit.FIELDS.map(fl => {
+        const on = activeFields.includes(fl.key);
+        const missing = (r.allGaps && r.allGaps[fl.key]) || 0;
+        const cost = LFCrmAudit.CREDIT_COST[fl.key];
+        // Show the count on every chip, on or off, so the cost of turning one on
+        // is legible before the click.
+        const badge = missing ? ' <span style="opacity:.75;">&middot; ' + f(missing) + ' missing</span>' : '';
+        const tip = missing ? fl.fix + ' — ' + f(missing) + ' records x ' + cost + ' credits = ' + f(missing*cost) + ' credits' : fl.fix;
+        return '<button class="chip ' + (on?'on':'') + '" title="' + tip + '" onclick="toggleField(\''+fl.key+'\')">' +
+               (on?'<i class="fas fa-check"></i> ':'') + fl.fix + badge + '</button>';
+    }).join('');
 
     // gap table
     document.getElementById('gapRows').innerHTML = r.breakdown.length
@@ -471,7 +482,11 @@ function renderQuote(r){
             '<div class="opt-desc">'+rec.headline+' We will price this against your actual volume rather than a standard plan.</div></div>';
         saving.innerHTML='';
         decay.innerHTML='';
-        cta.innerHTML='<a href="mailto:support@linkfinderai.com?subject=CRM%20enrichment%20volume%20quote&body=My%20CRM%20audit%20came%20back%20at%20'+rec.creditsNeeded+'%20credits%20across%20'+r.totalContacts+'%20contacts." class="btn-primary"><i class="fas fa-envelope"></i> Get a volume quote</a>';
+        // Above Enterprise's monthly allocation this stops being a checkout and
+        // becomes a conversation - and these are the largest CRMs the audit sees,
+        // so the booking link is the point of the whole free audit.
+        cta.innerHTML='<a href="'+bookingUrl('volume_quote')+'" target="_blank" rel="noopener" class="btn-primary" onclick="track(\'cta_clicked\',\'contact\')"><i class="fas fa-calendar-check"></i> Book a call for a volume quote</a>' +
+            '<div style="font-size:.78rem;color:var(--gray-400);margin-top:.7rem;">15 minutes. Bring this report &mdash; we price against your actual volume, not a standard plan.</div>';
         track('cta_shown','contact'); return;
     }
 
@@ -504,6 +519,25 @@ function renderQuote(r){
         : '<a href="#" class="btn-primary" onclick="goUpgrade(\'credits\');return false;"><i class="fas fa-coins"></i> Buy '+f(rec.pack.credits)+' credits &mdash; $'+f(rec.pack.price)+'</a>';
 
     track('cta_shown', target);
+}
+
+const CALENDLY = 'https://calendly.com/hamoureliasse/compensated-interview-unlimited-leads-clone';
+
+/*
+ * Calendly reads utm_* off the query string and stores it against the booking,
+ * so a call that came from the audit is identifiable in Calendly itself without
+ * relying on the attendee remembering to say so.
+ */
+function bookingUrl(campaign){
+    const p = new URLSearchParams({
+        utm_source: 'linkfinder_app',
+        utm_medium: 'crm_audit',
+        utm_campaign: campaign
+    });
+    if(lastAudit){
+        p.set('utm_content', lastAudit.creditsNeeded + 'cr_' + lastAudit.totalContacts + 'contacts');
+    }
+    return CALENDLY + '?' + p.toString();
 }
 
 function track(ev, target){
@@ -545,6 +579,7 @@ document.getElementById('syncCta').addEventListener('click', e=>{
 
 window.logout=logout; window.nav=nav; window.handleAddCredits=handleAddCredits;
 window.toggleField=toggleField; window.goUpgrade=goUpgrade; window.reset=reset;
+window.track=track; window.bookingUrl=bookingUrl;
 
 document.addEventListener('DOMContentLoaded',()=>{
     checkAuth(); fetchCredits();

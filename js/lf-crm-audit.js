@@ -375,6 +375,11 @@
         return {
             totalContacts: totalContacts,
             columnsDetected: columns,
+            // Counts for EVERY field, including deselected ones. The UI labels its
+            // toggles with these so a user can see what a field would add before
+            // turning it on - otherwise a field that is off by default is invisible
+            // and its gap never gets discovered.
+            allGaps: gaps,
             unmappedFields: FIELDS.filter(function (f) { return !(f.key in columns); }).map(function (f) { return f.key; }),
             breakdown: breakdown,
             creditsNeeded: creditsNeeded,
