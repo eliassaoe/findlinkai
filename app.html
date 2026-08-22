@@ -840,6 +840,7 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
 <div id="lowCreditsBar" class="low-credits-bar"></div>
 <div id="closedWithoutPurchaseBanner" class="low-credits-bar" style="display:none;"></div>
 <div id="milestoneUpgradeBanner" class="low-credits-bar" style="display:none;"></div>
+<div id="bulkNudgeBanner" class="low-credits-bar" style="display:none;"></div>
     
 <div id="annualBanner" style="display:none;background:linear-gradient(135deg,#f0fdf4,#dcfce7);border-bottom:1px solid #bbf7d0;padding:0.5rem 1rem;text-align:center;font-size:0.8rem;color:#166534;font-weight:500;">
   💡 You're on monthly — <strong>switch to annual and save 40%</strong> ($240/year) 
@@ -2641,6 +2642,8 @@ async function cimPriceBranch() {
             + 'Sharing on LinkedIn is 150. It takes a few minutes and no card.'
             + '<br><button type="button" class="cim-rescue-cta" onclick="cimRescueCta(\'earn_credits\');cimHardClose();openOnboardingTasksPopupManually()">'
             + 'Show me how to earn credits</button>'
+            + '<br><button type="button" class="cim-rescue-done" onclick="cimRescueCta(\'referral\');cimHardClose();openReferralModal()">'
+            + 'Or get paid for referrals instead</button>'
         );
         return;
     }
@@ -4337,6 +4340,8 @@ function showPreview(){
     btn.innerHTML=`<i class="fas fa-play"></i> Process ${csvData.length} items`;
     document.getElementById('csvPreview').classList.remove('hidden');
     try { posthog.capture('csv_uploaded', { row_count: csvData.length, input_type: currentInputType }); } catch(e) {}
+    // Stops the bulk nudge for anyone who already found bulk on their own.
+    try { localStorage.setItem('lf_csv_uploaded_ever', '1'); } catch (e) {}
 }
 function initializeBulkResultsTable(){
     document.getElementById('confidenceFilterBar').style.display = currentInputType === 'email' ? 'flex' : 'none';
@@ -4713,11 +4718,52 @@ async function maybeTriggerFirstSuccessPrompts() {
     // checkEnrichmentMilestone() (fires on the 2nd successful enrichment).
 }
 
+// Bulk is where the money is, by a distance. Over sixteen weeks: people who hit
+// the bulk export gate paid at 9.5%, people who uploaded a CSV without hitting it
+// paid at 4.2%, people who enriched one at a time and never hit a wall paid at
+// 0.35%, and people who hit only the credit wall paid at 0.0%. 239 CSV uploaders
+// produced 14 of 21 payments - two thirds of revenue from under 1% of users.
+//
+// So the single most valuable thing the app can do to someone enriching one row
+// at a time is tell them there is a list-shaped way to do it. Fires once, on the
+// third success, when they have clearly got a repeated job rather than a one-off.
+function maybeShowBulkNudge(n) {
+    try {
+        if (n < 3) return;
+        if (localStorage.getItem('lf_bulk_nudge_shown')) return;
+        if (localStorage.getItem('lf_csv_uploaded_ever')) return;
+        const bar = document.getElementById('bulkNudgeBanner');
+        if (!bar) return;
+        localStorage.setItem('lf_bulk_nudge_shown', '1');
+        bar.innerHTML = 'Doing these one at a time? You can upload a CSV and run the whole list at once. '
+            + '<a onclick="bulkNudgeClicked()">Show me &rarr;</a>';
+        bar.style.display = 'block';
+        try { posthog.capture('bulk_nudge_shown', { enrichments: n }); } catch (e) {}
+    } catch (e) {}
+}
+
+function bulkNudgeClicked() {
+    try { posthog.capture('bulk_nudge_clicked'); } catch (e) {}
+    const bar = document.getElementById('bulkNudgeBanner');
+    if (bar) bar.style.display = 'none';
+    try {
+        switchMode('bulk');
+        const ua = document.getElementById('uploadArea');
+        if (ua) {
+            ua.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            ua.style.transition = 'box-shadow 0.3s ease';
+            ua.style.boxShadow = '0 0 0 4px rgba(37,99,235,0.35)';
+            setTimeout(function () { ua.style.boxShadow = ''; }, 2500);
+        }
+    } catch (e) {}
+}
+
 function checkEnrichmentMilestone() {
     const key = 'lf_enrich_count'; const firedKey = 'lf_ten_enrich_fired';
     const n = parseInt(localStorage.getItem(key) || '0') + 1;
     localStorage.setItem(key, n);
     maybeShowReferralNudge();
+    maybeShowBulkNudge(n);
     // Low-conversion geo: wait until the 2nd enrichment before auto-showing
     // the task popup, so people experience real value first. Before that,
     // they can still open it early anytime via the "Tasks" fab.
