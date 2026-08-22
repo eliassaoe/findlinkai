@@ -1267,6 +1267,11 @@ src="https://www.facebook.com/tr?id=2717863625238535&ev=PageView&noscript=1"
     }
 
     function showModal(type) {
+      // The gate keeps the visitor on the page with their result blurred behind
+      // it. Redirecting to /sign-up throws that result away, which is the only
+      // thing they have to lose by not signing up. Fall back to the redirect
+      // only if the modal is missing from the markup.
+      if (type === 'signup' && window.lfOpenGate && window.lfOpenGate()) return;
       if (type === 'signup') {
         window.location.href = 'https://linkfinderai.com/sign-up';
       } else if (type === 'login') {
@@ -1275,7 +1280,7 @@ src="https://www.facebook.com/tr?id=2717863625238535&ev=PageView&noscript=1"
     }
 
     function checkSearchLimit() {
-      return searchCount < maxFreeSearches;
+      return searchCount < (window.LF_FREE_LOOKUPS || maxFreeSearches);
     }
 
     function updateSearchCount() {

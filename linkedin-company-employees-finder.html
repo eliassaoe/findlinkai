@@ -567,10 +567,13 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
     }
 
     function showModal(type) {
+      // See the note in the other tool pages: gate in place, don't navigate away
+      // from the result the visitor just earned.
+      if (type === 'signup' && window.lfOpenGate && window.lfOpenGate()) return;
       window.location.href = type === 'signup' ? 'https://linkfinderai.com/sign-up' : 'https://linkfinderai.com/log-in';
     }
 
-    function checkSearchLimit() { return searchCount < maxFreeSearches; }
+    function checkSearchLimit() { return searchCount < (window.LF_FREE_LOOKUPS || maxFreeSearches); }
 
     function updateSearchCount() {
       searchCount++;
