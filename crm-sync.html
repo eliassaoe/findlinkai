@@ -138,6 +138,15 @@ table.gaps tfoot td{font-weight:700;color:var(--gray-900);border-top:2px solid v
 .btn-ghost{background:transparent;border:1px solid var(--gray-300);color:var(--gray-600);padding:.6rem 1rem;border-radius:8px;font-size:.83rem;cursor:pointer;font-family:inherit;font-weight:500;}
 .btn-ghost:hover{background:var(--gray-50);}
 .hidden{display:none!important;}
+.trust{margin-top:1rem;border:1px solid var(--gray-200);border-radius:10px;background:white;overflow:hidden;}
+.trust-row{display:flex;gap:.65rem;align-items:flex-start;padding:.8rem 1rem;font-size:.83rem;color:var(--gray-600);border-bottom:1px solid var(--gray-100);line-height:1.5;}
+.trust-row:last-child{border-bottom:none;}
+.trust-row i{color:var(--success);margin-top:.15rem;flex-shrink:0;width:14px;text-align:center;}
+.trust-row strong{color:var(--gray-900);}
+.trust-row a{color:var(--primary);font-weight:600;text-decoration:none;}
+.trust-row a:hover{text-decoration:underline;}
+.trust-row.muted i{color:var(--gray-400);}
+
 .sync-loading{font-size:.85rem;color:var(--gray-500);display:flex;align-items:center;gap:.5rem;}
 .sync-connected{display:flex;align-items:center;gap:.75rem;padding:1rem;background:#f0fdf4;border:1px solid #a7f3d0;border-radius:10px;flex-wrap:wrap;}
 .sync-connected i.badge{color:var(--success);font-size:1.15rem;}
@@ -223,8 +232,31 @@ table.gaps tfoot td{font-weight:700;color:var(--gray-900);border-top:2px solid v
             </div>
             <div class="privacy">
                 <i class="fas fa-lock"></i>
-                Analysed entirely in your browser. The file is never uploaded to us.
+                Analysed entirely in your browser &mdash; your file is never uploaded.
             </div>
+            <div class="trust">
+                <div class="trust-row">
+                    <i class="fas fa-wifi"></i>
+                    <div><strong>Don't take our word for it.</strong> Turn off your wi-fi and run the check &mdash; it still works. Nothing is sent because nothing needs to be.</div>
+                </div>
+                <div class="trust-row">
+                    <i class="fas fa-code"></i>
+                    <div>The whole thing is one file you can read: <a href="/js/lf-crm-audit.js" target="_blank" rel="noopener">lf-crm-audit.js</a>. There is no upload call in it.</div>
+                </div>
+                <div class="trust-row">
+                    <i class="fas fa-scissors"></i>
+                    <div><strong>You don't need your whole database.</strong> Export 500 rows &mdash; the percentages come out the same, and you're sharing far less. Delete any column you'd rather not include; anything missing is simply reported as missing.</div>
+                </div>
+                <div class="trust-row">
+                    <i class="fas fa-file-csv"></i>
+                    <div>Rather not use real data at all? <a href="/sample-crm-export.csv" download>Download a sample file</a> and run the check on that first.</div>
+                </div>
+                <div class="trust-row muted">
+                    <i class="fas fa-chart-simple"></i>
+                    <div>Full disclosure: we do record anonymous totals &mdash; how many contacts, how complete &mdash; so we know the tool is being used. Never a name, an email, or a row.</div>
+                </div>
+            </div>
+
             <div id="uploadErr"></div>
             <div class="cost-note" style="margin-top:1.25rem;">
                 <i class="fas fa-circle-info"></i>
@@ -381,7 +413,7 @@ function readFile(file){
 function runAudit(){
     let res;
     try{
-        res = LFCrmAudit.auditCSV(lastCSV,{fields:activeFields});
+        res = LFCrmAudit.auditCSV(lastCSV,{fields:activeFields, alwaysPlan:true});
     }catch(err){
         showErr('That file could not be parsed as CSV. Re-export it from your CRM without any custom formatting.');
         return;
@@ -533,7 +565,7 @@ function renderQuote(r){
 
     compare.innerHTML =
         '<div class="opt '+(planWins?'':'win')+'">' +
-            '<div class="opt-tag">One-time credit pack</div>' +
+            '<div class="opt-tag">One-time pack &mdash; for comparison</div>' +
             '<div class="opt-price">$'+f(rec.pack.price)+'</div>' +
             '<div class="opt-desc">'+packs+' = '+f(rec.pack.credits)+' credits.<br>Covers this backlog once. New contacts added afterwards are not included.</div>' +
         '</div>' +
@@ -543,6 +575,14 @@ function renderQuote(r){
             '<div class="opt-desc">'+f(rec.plan.credits)+' credits every month &mdash; enough to clean your whole CRM now, then keep it clean automatically.</div>' +
         '</div>';
 
+    // Two different truths depending on which way the arithmetic falls, and the
+    // page shows both prices, so neither can be fudged.
+    if (rec.planCostsMoreToday > 0) {
+        saving.innerHTML = '<div class="decay"><i class="fas fa-circle-info"></i><div>The pack is <strong>$' +
+            f(rec.planCostsMoreToday) + ' cheaper today</strong> &mdash; and covers this backlog once. ' +
+            rec.plan.name + ' costs a little more now and covers it again every month, which is the part that ' +
+            'matters once you have seen how fast the gaps come back.</div></div>';
+    } else
     saving.innerHTML = planWins && rec.savingVsPacks > 0
         ? '<div class="saving"><i class="fas fa-circle-check"></i><div>'+rec.plan.name+' costs <strong>$'+f(rec.savingVsPacks)+' less</strong> than buying these credits as packs &mdash; and you get '+f(rec.plan.credits)+' more every month after.</div></div>'
         : '';

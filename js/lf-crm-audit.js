@@ -129,7 +129,16 @@
         linkedin: ['linkedin', 'linkedinurl', 'linkedinprofile', 'linkedinprofileurl', 'lipurl', 'linkedinlink'],
         title:    ['jobtitle', 'title', 'position', 'role', 'jobposition', 'designation'],
         company:  ['company', 'companyname', 'organization', 'organisation', 'employer', 'account', 'accountname', 'associatedcompany'],
-        name:     ['fullname', 'name', 'contactname', 'firstname', 'lastname', 'givenname', 'surname', 'familyname']
+        /*
+         * Split deliberately. Folding first/last into one 'name' alias made the
+         * detector match a "First Name" column and then build the duplicate key
+         * from a FIRST NAME ALONE - so a second Ava at the same company read as a
+         * duplicate of the first. Most CRM exports ship first and last as
+         * separate columns, so both are detected and recombined below.
+         */
+        name:      ['fullname', 'name', 'contactname'],
+        firstname: ['firstname', 'givenname', 'forename', 'first'],
+        lastname:  ['lastname', 'surname', 'familyname', 'last']
     };
 
     function normaliseHeader(h) {
@@ -140,31 +149,54 @@
      * Returns { field -> columnIndex }. Exact alias matches win over substring
      * matches so that "Company Name" maps to company and not, say, name.
      */
+    /*
+     * Returns { field -> columnIndex }.
+     *
+     * Two rules make this correct rather than merely plausible:
+     *
+     * 1. Exact alias matches are taken for every field BEFORE any substring
+     *    matching happens. Otherwise a loose field claims a column that an exact
+     *    match elsewhere wanted.
+     * 2. A column, once claimed, is not offered again. Without this the substring
+     *    pass matched 'name' inside "firstname" and handed column 0 to both -
+     *    which silently reduced the duplicate key to a FIRST NAME, so a second
+     *    Ava at one company read as a duplicate of the first.
+     */
     function detectColumns(headers) {
         var normalised = headers.map(normaliseHeader);
         var map = {};
+        var claimed = {};
+        var fields = Object.keys(HEADER_ALIASES);
 
-        Object.keys(HEADER_ALIASES).forEach(function (field) {
+        // Pass 1 - exact alias matches only.
+        fields.forEach(function (field) {
             var aliases = HEADER_ALIASES[field];
-            var idx = -1;
-
-            for (var a = 0; a < aliases.length && idx === -1; a++) {
-                idx = normalised.indexOf(aliases[a]);
+            for (var a = 0; a < aliases.length; a++) {
+                var idx = normalised.indexOf(aliases[a]);
+                if (idx !== -1 && !claimed[idx]) {
+                    map[field] = idx;
+                    claimed[idx] = true;
+                    return;
+                }
             }
+        });
 
-            if (idx === -1) {
-                for (var h = 0; h < normalised.length && idx === -1; h++) {
-                    if (map._used && map._used.indexOf(h) !== -1) continue;
-                    for (var b = 0; b < aliases.length; b++) {
-                        if (normalised[h].indexOf(aliases[b]) !== -1) { idx = h; break; }
+        // Pass 2 - substring, over whatever is still unclaimed.
+        fields.forEach(function (field) {
+            if (field in map) return;
+            var aliases = HEADER_ALIASES[field];
+            for (var h = 0; h < normalised.length; h++) {
+                if (claimed[h]) continue;
+                for (var b = 0; b < aliases.length; b++) {
+                    if (normalised[h].indexOf(aliases[b]) !== -1) {
+                        map[field] = h;
+                        claimed[h] = true;
+                        return;
                     }
                 }
             }
-
-            if (idx !== -1) map[field] = idx;
         });
 
-        delete map._used;
         return map;
     }
 
@@ -207,6 +239,18 @@
     function isValidLinkedIn(v) {
         if (isBlank(v)) return false;
         return /linkedin\.com\/(in|pub)\//i.test(String(v));
+    }
+
+    /* Full name from whichever columns the export actually has. */
+    function personName(row, columns) {
+        if ('name' in columns) {
+            var full = String(row[columns.name] || '').trim();
+            if (full) return full.toLowerCase();
+        }
+        var parts = [];
+        if ('firstname' in columns) parts.push(String(row[columns.firstname] || '').trim());
+        if ('lastname' in columns)  parts.push(String(row[columns.lastname] || '').trim());
+        return parts.filter(Boolean).join(' ').toLowerCase();
     }
 
     function fieldPresent(field, value) {
@@ -297,6 +341,13 @@
 
         var seenEmail = Object.create(null);
         var seenIdentity = Object.create(null);   // key -> email seen for that identity
+
+        /*
+         * A duplicate check needs a whole person. A first name on its own is not
+         * one, so identity requires either a full-name column or BOTH halves;
+         * with only "First Name" available we do not guess.
+         */
+        var hasIdentity = ('name' in columns) || ('firstname' in columns && 'lastname' in columns);
         var duplicateEmails = 0;
         var duplicateIdentities = 0;
 
@@ -324,8 +375,8 @@
              * both carry the same one. A pair with two different valid emails is
              * two different people, however alike the names look.
              */
-            if ('name' in columns && 'company' in columns) {
-                var name = String(row[columns.name] || '').trim().toLowerCase();
+            if (hasIdentity && 'company' in columns) {
+                var name = personName(row, columns);
                 var comp = String(row[columns.company] || '').trim().toLowerCase();
                 if (name && comp) {
                     var key = name + '|' + comp;
@@ -449,13 +500,38 @@
             result.verdict = 'plan';
             result.headline = plan.name + ' at $' + plan.price + '/mo covers this immediately and costs $' +
                 result.savingVsPacks + ' less than buying ' + fmt(packOption.credits) + ' credits as packs.';
-        } else {
-            // Small backlog: a pack is genuinely cheaper. Say so — recommending
-            // the plan here would be a worse deal and the customer can see it.
-            result.verdict = 'pack';
-            result.headline = 'A one-time ' + fmt(packOption.credits) + '-credit pack at $' +
-                packOption.price + ' covers this backlog.';
+            return result;
         }
+
+        /*
+         * The backlog is small enough that a pack is cheaper TODAY.
+         *
+         * options.alwaysPlan is set by the CRM audit, and keeps the
+         * recommendation on the plan regardless. That is not a squeeze - it
+         * follows from what the audit just measured. A CRM refills with gaps
+         * every month as records are created, so a one-time pack fixes a number
+         * that starts climbing again the same afternoon. Someone auditing a CRM
+         * has a recurring problem by definition, and answering it with a
+         * one-off would be answering a different question.
+         *
+         * The price gap is stated rather than buried: both numbers are on screen
+         * side by side, so implying the plan is also cheaper today would be
+         * untrue and instantly checkable.
+         */
+        if (options.alwaysPlan) {
+            result.verdict = 'plan';
+            result.planCostsMoreToday = plan.price - packOption.price;
+            result.headline = 'A one-time pack is $' + fmt(packOption.price) + ' and clears this once. ' +
+                plan.name + ' at $' + plan.price + '/mo clears it now and again every month, which is what a ' +
+                'CRM needs - the gaps come back as new records arrive.';
+            return result;
+        }
+
+        // Outside the CRM context the pack really is the better deal here, and
+        // both numbers are visible, so say so.
+        result.verdict = 'pack';
+        result.headline = 'A one-time ' + fmt(packOption.credits) + '-credit pack at $' +
+            packOption.price + ' covers this backlog.';
 
         return result;
     }
