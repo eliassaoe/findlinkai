@@ -13,6 +13,10 @@
 //     touched by any of this and see no friction at all.
 //   * Email/password signups get VERIFY_CAP credits instead of the full grant, can
 //     use every part of the product, and are topped up the moment they confirm.
+//     The full grant is geo-tiered in the signup worker - 150 normally, 25 for
+//     IN/PK/NG/BD/EG - so how much is held differs per signup and cannot be a
+//     constant here. The signup worker stashes the exact figure in KV under
+//     held_<normalized-email> and this worker reads it back.
 //   * Unverified addresses are excluded from marketing email until they confirm.
 //
 // Endpoints, all POST with {token}:
@@ -65,11 +69,11 @@ export default {
 
 // --- routes ------------------------------------------------------------------
 
-function status(env, user) {
+async function status(env, user) {
     return {
         email_verified: user.email_verified,
         verify_cap: capOf(env),
-        credits_pending: user.email_verified ? 0 : heldCreditsOf(env)
+        credits_pending: user.email_verified ? 0 : await heldFor(env, user.email)
     };
 }
 
@@ -107,11 +111,17 @@ async function claim(env, user) {
 
     if (user.email_verified) return { ok: true, email_verified: true, credits_added: 0 };
 
-    const held = heldCreditsOf(env);
+    const held = await heldFor(env, user.email);
     await patchAccount(env, user.id, {
         [env.VERIFIED_COLUMN || 'email_verified']: true,
         [env.CREDITS_COLUMN || 'credits']: (user.credits || 0) + held
     });
+    // Burn the stash so a replay cannot pay twice even if the account row write
+    // is later rolled back by hand. The verified flag is the primary guard; this
+    // is the belt to its braces.
+    if (held > 0 && env.RATE_LIMITS) {
+        try { await env.RATE_LIMITS.delete(heldKey(user.email)); } catch (e) {}
+    }
     return { ok: true, email_verified: true, credits_added: held };
 }
 
@@ -123,7 +133,30 @@ async function claim(env, user) {
 function accountsTable(env) { return env.ACCOUNTS_TABLE || 'users'; }
 function tokenColumn(env)   { return env.TOKEN_COLUMN   || 'token'; }
 function capOf(env)         { return Number(env.VERIFY_CAP || 10); }
-function heldCreditsOf(env) { return Number(env.VERIFY_HELD_CREDITS || 90); }
+
+// Gmail dot/plus normalization, matching normalizeEmail() in the signup worker.
+// The key was written with the normalized form, so it has to be read that way.
+function heldKey(email) {
+    const [local, domain] = String(email || '').toLowerCase().trim().split('@');
+    if (!local || !domain) return 'held_' + String(email || '').toLowerCase().trim();
+    if (domain === 'gmail.com' || domain === 'googlemail.com') {
+        return 'held_' + local.replace(/\./g, '').split('+')[0] + '@gmail.com';
+    }
+    return 'held_' + local + '@' + domain;
+}
+
+// How many credits this account is owed on confirmation. Falls back to the
+// standard grant minus the cap when the stash is missing - which happens for
+// anyone who signed up before the hold existed.
+async function heldFor(env, email) {
+    if (env.RATE_LIMITS) {
+        try {
+            const v = await env.RATE_LIMITS.get(heldKey(email));
+            if (v !== null) return Math.max(0, Number(v) || 0);
+        } catch (e) { console.error('held lookup failed', e); }
+    }
+    return Number(env.VERIFY_HELD_FALLBACK || 0);
+}
 
 function sbHeaders(env) {
     return {

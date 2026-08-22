@@ -9,10 +9,20 @@ TOKEN_COLUMN        = "token"
 AUTH_ID_COLUMN      = "auth_id"
 CREDITS_COLUMN      = "credits"
 VERIFIED_COLUMN     = "email_verified"
-VERIFY_CAP          = "10"    # credits an unverified email/password signup gets
-VERIFY_HELD_CREDITS = "90"    # released on confirmation, so 10 + 90 = the usual 100
+VERIFY_CAP           = "10"   # credits an unverified email/password signup gets
+VERIFY_HELD_FALLBACK = "0"    # used only when the KV stash is missing (pre-existing
+                              # accounts). 0 means "add nothing", which is the safe
+                              # default - the real figure comes from KV, because the
+                              # full grant is geo-tiered (150 standard, 25 for
+                              # IN/PK/NG/BD/EG) and is not a constant.
 
 # Secrets, set with `wrangler secret put`, never committed:
 #   SUPABASE_URL          - https://snxhsboboatjywgwdeds.supabase.co
 #   SUPABASE_SERVICE_KEY  - service_role key (NOT the publishable key: this worker
 #                           reads auth.users and writes credits)
+
+# Same namespace the signup worker uses for RATE_LIMITS - that is where the
+# per-signup held-credit figure is stashed. See SIGNUP_PATCH.md.
+# [[kv_namespaces]]
+# binding = "RATE_LIMITS"
+# id = "<id from the signup worker's settings>"

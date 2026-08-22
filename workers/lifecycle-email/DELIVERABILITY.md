@@ -73,12 +73,18 @@ them almost certainly our own.
 
 ## What to do, cheapest first
 
-**1. Block at the form. Free, no API, biggest single win.**
-Add to `sign-up.html`: reject disposable domains from a static list, reject
-malformed addresses, and offer "did you mean gmail.com?" on near-miss domains
-(`gmial`, `gmai`, `gmaill`, `gma`). This stops the junk before an account exists,
-which also stops it consuming free credits. Typo correction is the valuable half —
-those are real people who never got their account.
+**1. ~~Block at the form.~~ CORRECTION: most of this already exists.**
+Reading the deployed `linkfinderai-sign-up` source showed it already blocks
+disposable domains server-side against a `DISPOSABLE_DOMAINS` KV namespace,
+already normalizes Gmail dots and plus-addressing, and already rate-limits to
+three accounts per IP per day. My recommendation here was redundant and I had no
+business making it without looking first.
+
+What is genuinely still missing is the **typo catch** — `gmaill.click`,
+`gma.com`, `d.com` all got through, because they are not disposable domains, they
+are near-misses on real ones. A "did you mean gmail.com?" prompt on the signup
+form is the remaining win, and it recovers real people who never got their
+account rather than just blocking junk.
 
 **2. Don't treat all sends as equally risky.**
 A fresh signup's address was typed minutes ago and is low-staleness, so the drip
