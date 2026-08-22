@@ -476,6 +476,10 @@ button#submitButton:disabled{opacity:0.6;cursor:not-allowed;}
           try { plausible('Signup Success', {props:{method:'email'}}); } catch(e) {}
           try { posthog.identify(data.token, {email, signup_method:'email'}); } catch(e) {}
           try { posthog.capture('signup_success', {method:'email', ...(window.getAttributionProperties ? window.getAttributionProperties() : {})}); } catch(e) {}
+          // Typed into a form that never checked it, so it is unverified until proven
+          // otherwise. Every marketing workflow filters on this, which is what keeps
+          // hard bounces off a sending domain with no history to absorb them.
+          try { posthog.setPersonProperties({ email_verified: false }); } catch(e) {}
           localStorage.removeItem('lf_lastSearch');
           localStorage.removeItem('lf_searchType');
           showMessage('Account created! Redirecting to your dashboard...', 'success');
@@ -498,6 +502,10 @@ button#submitButton:disabled{opacity:0.6;cursor:not-allowed;}
               try { plausible('Signup Success', {props:{method:'email'}}); } catch(e) {}
               try { posthog.identify(loginData.token, {email, signup_method:'email'}); } catch(e) {}
               try { posthog.capture('signup_success', {method:'email', recovered_via_login: true, ...(window.getAttributionProperties ? window.getAttributionProperties() : {})}); } catch(e) {}
+              // Typed into a form that never checked it, so it is unverified until proven
+              // otherwise. Every marketing workflow filters on this, which is what keeps
+              // hard bounces off a sending domain with no history to absorb them.
+              try { posthog.setPersonProperties({ email_verified: false }); } catch(e) {}
               localStorage.removeItem('lf_lastSearch');
               localStorage.removeItem('lf_searchType');
               showMessage('Account created! Redirecting to your dashboard...', 'success');

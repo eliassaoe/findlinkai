@@ -505,6 +505,9 @@ src="https://www.facebook.com/tr?id=2717863625238535&ev=PageView&noscript=1"
 
                     try {
         posthog.identify(result.token, { email: email, signup_method: 'google' });
+        // Google verified this address before it ever reached us, so it is never
+        // capped and never held back from marketing email.
+        try { posthog.setPersonProperties({ email_verified: true }); } catch(e) {}
         posthog.capture('signup_success', {method: 'google', ...(window.getAttributionProperties ? window.getAttributionProperties() : {})});
     } catch(e) {}
                     

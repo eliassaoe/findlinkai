@@ -425,6 +425,18 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
     .cim-cta:hover{ background:var(--primary-hover); }
     .cim-divider{ border:none; border-top:1px solid var(--gray-200); margin:0 0 1rem; }
     .cim-sub-line{ text-align:center; font-size:0.8rem; color:var(--gray-500); line-height:1.5; margin:0 0 0.5rem; }
+    .cim-rescue-opts{ display:flex; flex-direction:column; gap:0.6rem; margin:1.25rem 0 0.5rem; }
+    .cim-rescue-opt{ display:flex; flex-direction:column; gap:0.15rem; text-align:left; width:100%; padding:0.85rem 1rem; border:1px solid var(--gray-200,#e5e7eb); border-radius:10px; background:white; cursor:pointer; font-family:inherit; transition:border-color .15s, background .15s; }
+    .cim-rescue-opt:hover{ border-color:#2563eb; background:#f8fafc; }
+    .cim-rescue-opt strong{ font-size:0.9rem; font-weight:600; color:var(--gray-900,#111827); }
+    .cim-rescue-opt span{ font-size:0.8rem; color:var(--gray-500,#6b7280); }
+    .cim-rescue-quiet{ border-style:dashed; }
+    .cim-rescue-quiet strong{ font-weight:500; color:var(--gray-500,#6b7280); }
+    .cim-rescue-answer{ display:none; margin-top:1rem; padding:1rem; border-radius:10px; background:#eff6ff; border:1px solid #bfdbfe; font-size:0.875rem; line-height:1.6; color:#1e3a8a; }
+    .cim-rescue-answer.show{ display:block; }
+    .cim-rescue-answer a.cim-rescue-cta{ display:inline-block; margin-top:0.75rem; background:#2563eb; color:white; text-decoration:none; padding:0.6rem 1.1rem; border-radius:8px; font-weight:600; }
+    .cim-rescue-answer button.cim-rescue-cta{ display:inline-block; margin-top:0.75rem; background:#2563eb; color:white; border:none; padding:0.6rem 1.1rem; border-radius:8px; font-weight:600; cursor:pointer; font-family:inherit; font-size:0.875rem; }
+    .cim-rescue-done{ display:block; width:100%; margin-top:0.9rem; background:none; border:none; color:var(--gray-500,#6b7280); font-size:0.8rem; cursor:pointer; font-family:inherit; text-decoration:underline; }
     .cim-sub-link-wrap{ text-align:center; margin-bottom:1.25rem; }
     .cim-sub-link{ font-size:0.8rem; color:var(--gray-500); text-decoration:none; background:none; border:none; border-bottom:1px dashed var(--gray-300); padding:0 0 1px; font-family:inherit; cursor:pointer; }
     .cim-sub-link:hover{ color:var(--gray-700); border-color:var(--gray-400); }
@@ -689,7 +701,13 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
 @keyframes saved-in{from{opacity:0;transform:translateY(-4px);}to{opacity:1;transform:translateY(0);}}
 
 .ref-nudge-toast{
-    position:fixed;bottom:76px;left:16px;max-width:300px;
+    /* Sits beside the round help-centre button rather than stacked on top of it.
+       The button is 48px square in the bottom-left corner; this toast used to
+       start 8px above it, which is close enough to read as overlapping even
+       when it technically is not. Side by side removes the question. The
+       max-width keeps it on screen on a 360px phone. See the media query below
+       for the narrow case, where side by side is not possible. */
+    position:fixed;bottom:20px;left:80px;max-width:min(300px, calc(100vw - 96px));
     background:white;border:1px solid var(--gray-200);border-radius:12px;
     padding:1rem 1.1rem;box-shadow:0 8px 24px rgba(0,0,0,0.12);
     z-index:9997;display:flex;gap:0.75rem;
@@ -703,7 +721,10 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
 .ref-nudge-title{font-weight:600;font-size:0.85rem;color:var(--gray-900);margin-bottom:2px;}
 .ref-nudge-sub{font-size:0.76rem;color:var(--gray-500);line-height:1.4;margin-bottom:0.6rem;}
 .ref-nudge-cta{background:var(--primary);color:white;border:none;padding:0.4rem 0.75rem;border-radius:6px;font-size:0.76rem;font-weight:600;cursor:pointer;font-family:inherit;}
-@media(max-width:640px){.ref-nudge-toast{left:8px;right:8px;max-width:none;bottom:70px;}}
+/* On a phone the toast is full-width, so it cannot sit beside the help button
+   and has to clear it vertically instead. The button's top edge is at 68px;
+   70px left a 2px sliver that read as a collision on small screens. */
+@media(max-width:640px){.ref-nudge-toast{left:8px;right:8px;max-width:none;bottom:84px;}}
 
 /* ===== Onboarding Tasks Popup ===== */
 .otp-overlay{position:fixed;inset:0;background:rgba(17,24,39,0.5);display:flex;align-items:center;justify-content:center;padding:1rem;z-index:10050;opacity:0;visibility:hidden;transition:opacity 0.2s ease,visibility 0.2s ease;}
@@ -827,6 +848,17 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
   💡 You're on monthly — <strong>switch to annual and save 40%</strong> ($240/year) 
   <button onclick="setBilling('annual');showPricingModal();" style="background:#16a34a;color:white;border:none;padding:0.2rem 0.75rem;border-radius:4px;font-size:0.75rem;font-weight:600;cursor:pointer;margin-left:0.5rem;font-family:inherit;">Switch now</button>
   <button onclick="this.parentElement.style.display='none';localStorage.setItem('annual_banner_dismissed','1')" style="background:none;border:none;color:#166534;cursor:pointer;margin-left:0.5rem;font-size:1rem;">×</button>
+</div>
+
+<!-- Shown only to people who signed up with an email and password and have not
+     confirmed the address yet. Google signups arrive already verified, so they never
+     see this. It is deliberately not dismissable: it explains why the account is
+     capped, and hiding that would just make the cap look like a bug. -->
+<div id="emailVerifyBanner" style="display:none;background:linear-gradient(135deg,#fffbeb,#fef3c7);border-bottom:1px solid #fcd34d;padding:0.6rem 1rem;text-align:center;font-size:0.85rem;color:#78350f;">
+  <i class="fas fa-envelope" style="margin-right:0.4rem;"></i>
+  <span id="emailVerifyText">Confirm your email address to unlock your full credit balance.</span>
+  <button id="emailVerifyResend" onclick="resendVerificationEmail()" style="background:#b45309;color:#fff;border:none;padding:0.25rem 0.8rem;border-radius:4px;font-size:0.78rem;font-weight:600;cursor:pointer;margin-left:0.6rem;font-family:inherit;">Send it again</button>
+  <span id="emailVerifyStatus" style="margin-left:0.6rem;font-weight:600;"></span>
 </div>
 
 <nav class="nav-menu">
@@ -1117,9 +1149,19 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
             </div>
         </div>
         <h2 class="cim-headline" id="sciHeadline">Want to talk it through first?</h2>
-        <p class="cim-subtext">Book a quick 15-minute call — we'll walk through your use case, pricing, and how the pipeline works. Show up and we'll add <strong>1,000 free credits</strong> to your account.</p>
+        <p class="cim-subtext" id="sciSubtext">Book a quick 15-minute call — we'll walk through your use case, pricing, and how the pipeline works. Show up and we'll add <strong>1,000 free credits</strong> to your account.</p>
         <a href="https://calendly.com/hamoureliasse/compensated-interview-unlimited-leads-clone" target="_blank" rel="noopener"
            id="sciBookBtn" class="cim-cta" style="display:block;text-align:center;text-decoration:none;box-sizing:border-box;" onclick="salesInterceptCtaClicked()">Book a call &amp; get 1,000 credits &rarr;</a>
+        <!-- Most people who close the plans without picking one do not want a
+             sales call, they want an answer. Giving them only a call to click is
+             why this modal converted nobody: one door into a room full of
+             different problems.
+             Both links here are deliberately things that definitely exist. The
+             first tries the AI support widget and falls back to mail; there is
+             no /help-center page on this site, so nothing points at one. -->
+        <div id="sciAltRow" style="margin-top:0.9rem;font-size:0.82rem;line-height:1.7;color:#6b7280;">
+            <a href="#" onclick="sciOpenSupport(); return false;" style="color:#2563eb;">Ask a question instead</a>
+        </div>
         <div class="cim-dismiss-wrap" style="margin-top:0.75rem;">
             <button class="cim-dismiss" onclick="closeSalesInterceptModal()">Maybe later</button>
         </div>
@@ -1129,6 +1171,7 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
 <!-- Out-of-credits modal: PAYG-first, subscription subordinate -->
 <div id="insufficientCreditsModal" class="cim-overlay">
     <div class="cim-modal" role="dialog" aria-modal="true" aria-labelledby="cimHeadline">
+      <div id="cimMain">
 
         <div class="cim-icon-wrap">
             <div class="cim-icon-circle">
@@ -1185,7 +1228,7 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
         </div>
 
         <hr class="cim-divider">
-        <p class="cim-sub-line">Need credits regularly? Starter plan gives 5,000 credits/mo for $49 — 2.5× cheaper per credit.</p>
+        <p class="cim-sub-line">Need credits regularly? Starter plan gives 60,000 credits/mo for $49 — 24× cheaper per credit.</p>
         <div class="cim-sub-link-wrap">
             <button type="button" class="cim-sub-link" onclick="cimSeeSubscriptionPlans()">See subscription plans →</button>
         </div>
@@ -1193,6 +1236,35 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
         <div class="cim-dismiss-wrap">
             <button class="cim-dismiss" onclick="closeInsufficientCreditsModal()">Maybe later</button>
         </div>
+
+      </div>
+
+      <!-- Someone who burned their whole credit grant and then walked away from the
+           paywall is the most qualified person we will see all week. Closing in
+           silence wastes that. Ask one question instead, and route the answer
+           somewhere real. -->
+      <div id="cimRescue" style="display:none;">
+        <h2 class="cim-headline">Before you go &mdash; what stopped you?</h2>
+        <p class="cim-subtext">One tap. It genuinely changes what I build next.</p>
+        <div class="cim-rescue-opts">
+            <button type="button" class="cim-rescue-opt" onclick="cimRescuePick('price')">
+                <strong>It costs more than I expected</strong>
+                <span>See what I can do about that</span>
+            </button>
+            <button type="button" class="cim-rescue-opt" onclick="cimRescuePick('unsure')">
+                <strong>I&rsquo;m not sure it&rsquo;ll work on my list</strong>
+                <span>Get 1,000 free credits and I&rsquo;ll prove it with you</span>
+            </button>
+            <button type="button" class="cim-rescue-opt" onclick="cimRescuePick('stuck')">
+                <strong>Something didn&rsquo;t work / I&rsquo;m stuck</strong>
+                <span>Talk to support now</span>
+            </button>
+            <button type="button" class="cim-rescue-opt cim-rescue-quiet" onclick="cimRescuePick('looking')">
+                <strong>Just looking for now</strong>
+            </button>
+        </div>
+        <div class="cim-rescue-answer" id="cimRescueAnswer"></div>
+      </div>
 
     </div>
 </div>
@@ -1895,10 +1967,41 @@ async function launchCheckout({ planKey, analyticsPlanName, value, billingLabel,
         try { posthog.capture('checkout_blocked_invalid_token'); } catch(e) {}
         return;
     }
-    if (checkoutInFlight) return;
+    // A click that lands here while a previous attempt is still flagged in-flight
+    // used to return in silence. If the flag is ever stuck, that makes the Buy
+    // button permanently dead *and* invisible to analytics - the user clicks, gets
+    // nothing, and we record nothing. Say so, both to them and to us.
+    if (checkoutInFlight) {
+        try {
+            posthog.capture('checkout_click_swallowed', {
+                plan: analyticsPlanName,
+                plan_key: planKey,
+                previous_attempt_id: lastCheckoutAttemptId
+            });
+        } catch (e) {}
+        return;
+    }
 
     checkoutInFlight = true;
     lastCheckoutAttemptId = genCheckoutId();
+
+    // Last-resort watchdog. Every *known* failure path resets checkoutInFlight, but
+    // "known" is doing a lot of work: if the worker call never settles, the flag
+    // stays true for the life of the page and every later click is swallowed above.
+    // Guarantee an exit, and record that we needed one.
+    const watchdogAttemptId = lastCheckoutAttemptId;
+    setTimeout(function () {
+        if (!checkoutInFlight || lastCheckoutAttemptId !== watchdogAttemptId) return;
+        try {
+            posthog.capture('checkout_stuck_watchdog', {
+                attempt_id: watchdogAttemptId,
+                plan: analyticsPlanName,
+                plan_key: planKey
+            });
+        } catch (e) {}
+        checkoutInFlight = false;
+        showCheckoutError('Checkout did not open. Please try again - or contact us and we will take payment directly.');
+    }, 20000);
 
     const originalText = btnEl ? btnEl.textContent : '';
     if (btnEl) {
@@ -1921,6 +2024,8 @@ async function launchCheckout({ planKey, analyticsPlanName, value, billingLabel,
         backupAuthToken();
 
         try {
+            window.__lfPlanSelectedThisSession = true;
+            try { localStorage.setItem('lf_plan_selected_ever', '1'); } catch (_) {}
             posthog.capture('plan_selected', {
                 plan: analyticsPlanName,
                 billing: billingLabel,
@@ -1929,8 +2034,36 @@ async function launchCheckout({ planKey, analyticsPlanName, value, billingLabel,
             });
         } catch (e) {}
 
+        // Everything between plan_selected and checkout_redirect_started used to be
+        // silent - a fifteen-second window with no telemetry at all. That is exactly
+        // where the funnel loses people: over 21 days, 35 of 42 plan selections on
+        // /app produced neither a redirect nor a checkout_error, so there was no way
+        // to tell whether the worker call hung or the navigation died. These two
+        // events bracket the gap. Both are small and go out on the default
+        // transport, so unlike the redirect event below they cannot be silently
+        // dropped by a sendBeacon that returns false.
+        const workerStartedAt = Date.now();
+        try {
+            posthog.capture('checkout_worker_request_started', {
+                attempt_id: lastCheckoutAttemptId,
+                plan: analyticsPlanName,
+                plan_key: planKey
+            });
+        } catch (e) {}
+
         // Pass email if present; worker accepts missing email
         const data = await createCheckoutSessionViaWorker(planKey, email || undefined);
+
+        try {
+            posthog.capture('checkout_session_created', {
+                attempt_id: lastCheckoutAttemptId,
+                plan: analyticsPlanName,
+                plan_key: planKey,
+                duration_ms: Date.now() - workerStartedAt,
+                has_checkout_url: !!(data && data.checkout_url),
+                worker_env: (data && data.env) || null
+            });
+        } catch (e) {}
 
         // Direct redirect to Dodo's hosted checkout page, not the embedded overlay.
         // Dodo's own guidance and our funnel data (77% of overlay opens never reached
@@ -2001,7 +2134,7 @@ async function launchCheckout({ planKey, analyticsPlanName, value, billingLabel,
                 'The payment page did not open. Use the button below to continue — or contact us and we will take payment directly.',
                 { checkoutUrl: data.checkout_url }
             );
-        }, 8000);
+        }, 5000);
 
     } catch (e) {
         console.error('Checkout error:', e);
@@ -2212,31 +2345,83 @@ function closePricingModal() {
     }
 }
 
-// Gated exit-intent: only for prospects (not existing subscribers) who were
-// looking at Professional/Enterprise (index 1/2) on the subscription tab, and
-// only once per session so it doesn't nag repeat closers.
+// Exit-intent for anyone who opens the plans and closes them without picking one.
+//
+// This used to require hovering Professional or Enterprise on the subscription
+// tab. Over 60 days that gate let it fire for exactly ONE person, against 219
+// who clicked upgrade and 160 who never selected a plan. The rescue existed and
+// was switched off by its own conditions. (The one person who saw it clicked
+// through, which is a sample of one and worth nothing statistically, but it is
+// not evidence against opening the gate.)
+//
+// The gate is now: a prospect, who did not pick a plan, once per session. The
+// message tiers instead of the audience - a call is the right offer for someone
+// weighing the $89 tier and the wrong one for someone who just wanted to know
+// what a credit is.
 function maybeShowSalesIntercept() {
+    if (isExistingSubscriber) return false;
+    if (window.__lfPlanSelectedThisSession) return false;   // they are already in checkout
+    if (sessionStorage.getItem('lf_sales_intercept_shown')) return false;
+
     const hoveredIndex = window.__lfLastHoveredPlanIndex;
-    const qualifies = !isExistingSubscriber
-        && billingMode !== 'payg'
-        && (hoveredIndex === 1 || hoveredIndex === 2)
-        && !sessionStorage.getItem('lf_sales_intercept_shown');
-    if (!qualifies) return false;
+    const highIntent = billingMode !== 'payg' && (hoveredIndex === 1 || hoveredIndex === 2);
 
     sessionStorage.setItem('lf_sales_intercept_shown', '1');
     setTimeout(() => {
         const modal = document.getElementById('salesInterceptModal');
         if (!modal) return;
+
+        const head = document.getElementById('sciHeadline');
+        const sub  = document.getElementById('sciSubtext');
+        if (head && sub) {
+            if (highIntent) {
+                head.textContent = 'Want to talk it through first?';
+                sub.innerHTML = "Book a quick 15-minute call &mdash; we'll walk through your use case, "
+                    + "pricing, and how the pipeline works. Show up and we'll add "
+                    + "<strong>1,000 free credits</strong> to your account.";
+            } else {
+                // Lower intent: name the actual question rather than pitching.
+                head.textContent = 'Which part did not add up?';
+                sub.innerHTML = "Most people who close this page are stuck on one of three things: how many "
+                    + "credits they actually need, whether their list will work, or whether it is worth it "
+                    + "at all. Any of those I can answer in fifteen minutes &mdash; and there are "
+                    + "<strong>1,000 free credits</strong> in it for you either way.";
+            }
+        }
+
         modal.classList.add('show');
         document.body.style.overflow = 'hidden';
         try {
             posthog.capture('sales_call_intercept_shown', {
                 hovered_plan: plans[hoveredIndex] ? plans[hoveredIndex].key : null,
-                credits_remaining: currentCredits
+                credits_remaining: currentCredits,
+                variant: highIntent ? 'call' : 'question',
+                billing_mode: billingMode
             });
         } catch(e) {}
     }, 350);
     return true;
+}
+
+// The AI support widget is the cheapest way to answer someone, but it is
+// injected from outside this repo and is not reliably present on /app - which is
+// why support_chat_escalated fired for three people in sixty days. So: try it,
+// and fall back to mail rather than a link that 404s. support@linkfinderai.com
+// is the same inbox the lifecycle emails send from, so replies land somewhere
+// that is actually read.
+function sciOpenSupport() {
+    var opened = false;
+    try {
+        if (typeof window.lfOpenSupportChat === 'function') { window.lfOpenSupportChat(); opened = true; }
+        else if (window.$crisp) { window.$crisp.push(['do', 'chat:open']); opened = true; }
+    } catch (e) {}
+    try { posthog.capture('sales_call_intercept_support_clicked', { via: opened ? 'widget' : 'mail' }); } catch(e) {}
+    closeSalesInterceptModal();
+    if (!opened) {
+        window.location.href = 'mailto:support@linkfinderai.com'
+            + '?subject=' + encodeURIComponent('Question about LinkFinder plans')
+            + '&body=' + encodeURIComponent("Hi Eliasse,\n\nI was looking at the plans and got stuck on:\n\n");
+    }
 }
 
 function closeSalesInterceptModal() {
@@ -2285,6 +2470,23 @@ function showInsufficientCreditsModal(trigger = 'single_enrichment') {
         }
     }
 
+    // How many times this person has been shown the wall. Second time onward is
+    // what makes them eligible for the last-resort discount.
+    try {
+        const hits = parseInt(localStorage.getItem('lf_wall_hits') || '0', 10) + 1;
+        localStorage.setItem('lf_wall_hits', String(hits));
+    } catch (e) {}
+
+    // Always reopen on the offer, never on a half-finished rescue from last time.
+    const cimMainEl = document.getElementById('cimMain');
+    const cimRescueEl = document.getElementById('cimRescue');
+    const cimAnsEl = document.getElementById('cimRescueAnswer');
+    const cimOptsEl = document.querySelector('.cim-rescue-opts');
+    if (cimMainEl) cimMainEl.style.display = '';
+    if (cimRescueEl) cimRescueEl.style.display = 'none';
+    if (cimOptsEl) cimOptsEl.style.display = '';
+    if (cimAnsEl) { cimAnsEl.innerHTML = ''; cimAnsEl.classList.remove('show'); }
+
     document.getElementById('insufficientCreditsModal').classList.add('show');
     document.body.style.overflow = 'hidden';
 
@@ -2298,9 +2500,185 @@ function showInsufficientCreditsModal(trigger = 'single_enrichment') {
     } catch(e) {}
 }
 
+// Mints a real, single-use, 24-hour 40% code via workers/discount-code. Deployed
+// separately; if it is unreachable the price branch silently falls back to the
+// pack-and-call offer rather than promising a discount it cannot produce.
+const CIM_DISCOUNT_WORKER = 'https://discount-code.hamoureliasse.workers.dev';
+const CIM_CALL_URL = 'https://calendly.com/hamoureliasse/compensated-interview-unlimited-leads-clone';
+
+// Last resort means last resort. 40% off a subscription is the most expensive
+// thing we can hand someone, so it is not offered to anyone who merely glanced
+// at a price. It takes saying the price is the problem, *and* one of:
+//   - having hit the credit wall before (this is not their first refusal), or
+//   - having already picked a plan and not gone through with it.
+// Anyone else gets the pack and the call, which cost us far less.
+function cimQualifiesForDiscount() {
+    try {
+        if (isExistingSubscriber) return false;
+        const wallHits = parseInt(localStorage.getItem('lf_wall_hits') || '0', 10);
+        const pickedPlanBefore = localStorage.getItem('lf_plan_selected_ever') === '1';
+        return wallHits >= 2 || pickedPlanBefore;
+    } catch (e) { return false; }
+}
+let cimRescueShown = false;
+
+// The dismiss path used to just close. Someone who spent their whole grant and
+// then declined the paywall is the most qualified person we see all week, and we
+// were letting them leave without a word. Ask once, then route them somewhere
+// real. Subscribers skip it - they have already bought.
 function closeInsufficientCreditsModal() {
+    const main = document.getElementById('cimMain');
+    const rescue = document.getElementById('cimRescue');
+    if (!cimRescueShown && !isExistingSubscriber && main && rescue) {
+        cimRescueShown = true;
+        main.style.display = 'none';
+        rescue.style.display = 'block';
+        try {
+            posthog.capture('credits_wall_rescue_shown', {
+                trigger: creditsExhaustedTrigger,
+                credits_remaining: currentCredits
+            });
+        } catch (e) {}
+        return;
+    }
+    cimHardClose();
+}
+
+function cimHardClose() {
     document.getElementById('insufficientCreditsModal').classList.remove('show');
     document.body.style.overflow = '';
+}
+
+function cimRescueAnswer(html) {
+    const el = document.getElementById('cimRescueAnswer');
+    if (!el) return;
+    el.innerHTML = html + '<button type="button" class="cim-rescue-done" onclick="cimHardClose()">Close</button>';
+    el.classList.add('show');
+}
+
+function cimRescuePick(reason) {
+    try {
+        posthog.capture('credits_wall_rescue_answered', {
+            reason: reason,
+            trigger: creditsExhaustedTrigger,
+            credits_remaining: currentCredits,
+            session_credits_used: sessionCreditsUsed
+        });
+    } catch (e) {}
+
+    const optsEl = document.querySelector('.cim-rescue-opts');
+    if (optsEl) optsEl.style.display = 'none';
+
+    if (reason === 'price') {
+        cimPriceBranch();
+
+    } else if (reason === 'unsure') {
+        cimRescueAnswer(
+            '<strong>Then let me show you on your own list.</strong><br><br>'
+            + 'Bring 10 leads you actually care about to a 15-minute call. We run them together, '
+            + 'and I put <strong>1,000 credits</strong> on your account whether or not you buy anything.'
+            + '<br><a class="cim-rescue-cta" href="' + CIM_CALL_URL + '" target="_blank" rel="noopener" '
+            + 'onclick="cimRescueCta(\'unsure_call\')">Book the call</a>'
+        );
+
+    } else if (reason === 'stuck') {
+        cimRescueAnswer(
+            '<strong>Let\'s get it unstuck.</strong><br><br>'
+            + 'Support answers fastest - tell them exactly what you saw on screen. '
+            + 'If it turns out to be our bug, I will refund the credits it burned.'
+            + '<br><button type="button" class="cim-rescue-cta" onclick="cimRescueSupport()">Talk to support</button>'
+        );
+
+    } else {
+        cimRescueAnswer('No problem &mdash; thanks for telling me. Your credits reset nothing, so the app is here when you need it.');
+    }
+}
+
+// The two answers that always hold, with no discount involved: the smallest pack
+// needs no subscription, and the call pays 1,000 credits for fifteen minutes.
+function cimPriceFallbackHtml() {
+    return '<strong>Fair.</strong> Two things, and both are real:'
+        + '<br><br>1. The smallest top-up is $25 for 1,000 credits. No subscription, no renewal.'
+        + '<br>2. Or give me 15 minutes and I will put <strong>1,000 credits on your account for free</strong>. '
+        + 'That is the same pack, at no cost, for a conversation I want anyway.'
+        + '<br><a class="cim-rescue-cta" href="' + CIM_CALL_URL + '" target="_blank" rel="noopener" '
+        + 'onclick="cimRescueCta(\'price_call\')">Book 15 minutes, get 1,000 credits</a>';
+}
+
+async function cimPriceBranch() {
+    if (!cimQualifiesForDiscount()) {
+        cimRescueAnswer(cimPriceFallbackHtml());
+        return;
+    }
+
+    cimRescueAnswer('<strong>Hold on&hellip;</strong><br>Let me see what I can do on the price.');
+    try {
+        const r = await fetch(CIM_DISCOUNT_WORKER, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_token: userToken })
+        });
+        const d = await r.json();
+        if (!r.ok || !d.code) throw new Error(d.error || 'no code');
+
+        const hours = Math.max(1, Math.round((new Date(d.expires_at) - Date.now()) / 3600000));
+        try { posthog.capture('discount_code_issued', { percent_off: d.percent_off, reused: !!d.reused }); } catch (e) {}
+        cimRescueAnswer(
+            '<strong>Then take ' + d.percent_off + '% off.</strong><br><br>'
+            + 'This code is yours alone, works once, and expires in ' + hours + ' hours. '
+            + 'It applies to any monthly or annual plan &mdash; not to the credit packs.'
+            + '<br><br><span style="display:inline-block;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;'
+            + 'font-size:1.05rem;font-weight:700;letter-spacing:0.06em;background:white;border:1px dashed #2563eb;'
+            + 'padding:0.5rem 0.9rem;border-radius:8px;">' + d.code + '</span>'
+            + '<br><button type="button" class="cim-rescue-cta" onclick="cimRescueCta(\'discount_plans\');cimSeeSubscriptionPlans()">'
+            + 'Use it on a plan</button>'
+        );
+    } catch (e) {
+        // Never advertise a discount we could not actually create.
+        try { posthog.capture('discount_code_failed', { reason: String(e && e.message || e).slice(0, 80) }); } catch (_) {}
+        cimRescueAnswer(cimPriceFallbackHtml());
+    }
+}
+
+// Entry point for the discount email: open the wall, skip the offer screen, and
+// go directly to the price conversation.
+function cimOpenRescueOnPrice() {
+    try {
+        const modal = document.getElementById('insufficientCreditsModal');
+        const main = document.getElementById('cimMain');
+        const rescue = document.getElementById('cimRescue');
+        const opts = document.querySelector('.cim-rescue-opts');
+        if (!modal || !main || !rescue) return;
+        modal.classList.add('show');
+        document.body.style.overflow = 'hidden';
+        cimRescueShown = true;
+        main.style.display = 'none';
+        rescue.style.display = 'block';
+        if (opts) opts.style.display = 'none';
+        cimPriceBranch();
+    } catch (e) {}
+}
+
+function cimRescueCta(which) {
+    try { posthog.capture('credits_wall_rescue_cta_clicked', { which: which, trigger: creditsExhaustedTrigger }); } catch (e) {}
+}
+
+// Same fallback shape as sciOpenSupport(): the AI widget is injected from outside
+// this repo and is not reliably present on /app, so try it and fall back to mail
+// rather than a link that 404s.
+function cimRescueSupport() {
+    var opened = false;
+    try {
+        if (typeof window.lfOpenSupportChat === 'function') { window.lfOpenSupportChat(); opened = true; }
+        else if (window.$crisp) { window.$crisp.push(['do', 'chat:open']); opened = true; }
+    } catch (e) {}
+    try { posthog.capture('credits_wall_rescue_cta_clicked', { which: 'support', via: opened ? 'widget' : 'mail' }); } catch (e) {}
+    if (!opened) {
+        window.location.href = 'mailto:support@linkfinderai.com'
+            + '?subject=' + encodeURIComponent('Stuck in LinkFinder')
+            + '&body=' + encodeURIComponent("Hi Eliasse,\n\nI ran out of credits and something did not work. What I saw was:\n\n");
+    }
+    cimHardClose();
 }
 
 function cimFormatCta(credits, price) {
@@ -2481,6 +2859,7 @@ async function fetchCredits() {
             const d=await r.json();
             const c=Math.max(0,d.credits||0);
             currentCredits=c;
+            applyVerificationState(d);
             if (startingCredits === null && c > 0) startingCredits = c;
             document.getElementById('creditsCount').textContent=c;
             updateLowCreditsWarning(c);
@@ -2491,6 +2870,119 @@ async function fetchCredits() {
     } catch(e) { document.getElementById('creditsCount').textContent='?'; }
 }
     
+// --- Email verification -----------------------------------------------------
+// 76% of signups come through Google and are verified by Google before they ever
+// reach us. The remaining quarter type an address into a form that never checked
+// it, which is where the fake addresses come from - and a hard bounce on a new
+// sending domain is expensive. So those accounts are capped until they confirm.
+//
+// emailVerified stays null until the credits worker actually tells us, and the
+// banner only ever appears on an explicit false. That means this code is inert
+// against the current worker (which returns neither field) and lights up on its
+// own once the worker patch ships - no coordinated release needed.
+const VERIFY_WORKER = 'https://verifyemail.hamoureliasse.workers.dev/';
+let emailVerified = null;
+let verifyCap = 10;
+let verifyResendReadyAt = 0;
+let verifyBannerReported = false;
+
+let verifyClaimTried = false;
+
+// Someone can perfectly well open the confirmation link on their phone and then
+// come back to the app on a laptop. Nothing in that path would ever release the
+// held credits, so the app asks once per session whether Supabase has seen a
+// confirmation - which makes the top-up self-healing across devices.
+async function claimVerifiedCredits() {
+    if (verifyClaimTried || !userToken) return;
+    verifyClaimTried = true;
+    try {
+        const r = await fetch(VERIFY_WORKER + 'claim', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: userToken })
+        });
+        if (!r.ok) return;
+        const d = await r.json();
+        if (d && d.email_verified) {
+            emailVerified = true;
+            updateVerificationBanner();
+            try {
+                posthog.setPersonProperties({ email_verified: true });
+                posthog.capture('email_verified', { source: 'claim', credits_added: d.credits_added || 0 });
+            } catch(e) {}
+            fetchCredits();
+        }
+    } catch (e) { /* offline or worker not deployed yet - the banner just stays */ }
+}
+
+function applyVerificationState(d) {
+    if (typeof d.email_verified !== 'boolean') return;   // worker not patched yet
+    if (typeof d.verify_cap === 'number') verifyCap = d.verify_cap;
+    const was = emailVerified;
+    emailVerified = d.email_verified;
+    if (emailVerified === false) claimVerifiedCredits();
+    try { posthog.setPersonProperties({ email_verified: emailVerified }); } catch(e) {}
+    // Confirming in another tab should clear the banner here without a reload.
+    if (was === false && emailVerified === true) {
+        try { posthog.capture('email_verified', { source: 'credits_poll' }); } catch(e) {}
+    }
+    updateVerificationBanner();
+}
+
+function updateVerificationBanner() {
+    const bar = document.getElementById('emailVerifyBanner');
+    if (!bar) return;
+    if (emailVerified !== false) { bar.style.display = 'none'; return; }
+    document.getElementById('emailVerifyText').textContent =
+        'Your account is capped at ' + verifyCap + ' credits until you confirm your email. '
+        + 'Check your inbox for the link \u2014 it may be in spam.';
+    bar.style.display = 'block';
+    if (!verifyBannerReported) {
+        verifyBannerReported = true;
+        try { posthog.capture('email_verification_banner_shown', { cap: verifyCap }); } catch(e) {}
+    }
+}
+
+async function resendVerificationEmail() {
+    const btn = document.getElementById('emailVerifyResend');
+    const status = document.getElementById('emailVerifyStatus');
+    if (!userToken || !btn) return;
+
+    // A resend button with no cooldown is a way to get your sending domain listed.
+    const now = Date.now();
+    if (now < verifyResendReadyAt) {
+        status.textContent = 'Wait ' + Math.ceil((verifyResendReadyAt - now) / 1000) + 's';
+        return;
+    }
+    verifyResendReadyAt = now + 60000;
+
+    try { posthog.capture('email_verification_resend_clicked'); } catch(e) {}
+    btn.disabled = true;
+    btn.style.opacity = '0.6';
+    status.textContent = 'Sending\u2026';
+    try {
+        const r = await fetch(VERIFY_WORKER + 'resend', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: userToken })
+        });
+        if (r.ok) {
+            status.textContent = 'Sent \u2014 check your inbox and your spam folder.';
+            try { posthog.capture('email_verification_resend_sent'); } catch(e) {}
+        } else {
+            status.textContent = 'That did not send. Email support@linkfinderai.com and I will confirm you by hand.';
+            try { posthog.capture('email_verification_resend_failed', { status: r.status }); } catch(e) {}
+        }
+    } catch (e) {
+        status.textContent = 'That did not send. Email support@linkfinderai.com and I will confirm you by hand.';
+        try { posthog.capture('email_verification_resend_failed', { status: 'network' }); } catch(e) {}
+    }
+    setTimeout(function () {
+        btn.disabled = false;
+        btn.style.opacity = '1';
+    }, 60000);
+}
+
 // Session-scoped counters powering the out-of-credits modal's usage-context line
 let sessionCreditsUsed = 0;
 let sessionActionsCount = 0;
@@ -3412,6 +3904,14 @@ function checkAuth(){
     const action=p.get('action');
     if(action==='buy_credits') setTimeout(()=>showPricingModal('buy_credits_btn'),500);
     else if(action==='upgrade') setTimeout(()=>showPricingModal(),500);
+    // ?action=offer is the landing point for the discount email. It goes straight
+    // to the price branch, which mints the code only if this person actually
+    // qualifies - the link being clickable is not itself proof of intent, and
+    // forwarded email is exactly how a one-per-account offer leaks.
+    else if(action==='offer') setTimeout(()=>{
+        try { posthog.capture('discount_email_landed'); } catch(e) {}
+        cimOpenRescueOnPrice();
+    },600);
     // Silently check subscription status on load. Kept as a promise so anything
     // whose behaviour depends on being a subscriber can wait for the real answer
     // instead of racing a timeout and guessing wrong on a slow connection.
