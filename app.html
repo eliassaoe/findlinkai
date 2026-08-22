@@ -2023,6 +2023,7 @@ async function launchCheckout({ planKey, analyticsPlanName, value, billingLabel,
 
         try {
             window.__lfPlanSelectedThisSession = true;
+            try { localStorage.setItem('lf_plan_selected_ever', '1'); } catch (_) {}
             posthog.capture('plan_selected', {
                 plan: analyticsPlanName,
                 billing: billingLabel,
@@ -2467,6 +2468,13 @@ function showInsufficientCreditsModal(trigger = 'single_enrichment') {
         }
     }
 
+    // How many times this person has been shown the wall. Second time onward is
+    // what makes them eligible for the last-resort discount.
+    try {
+        const hits = parseInt(localStorage.getItem('lf_wall_hits') || '0', 10) + 1;
+        localStorage.setItem('lf_wall_hits', String(hits));
+    } catch (e) {}
+
     // Always reopen on the offer, never on a half-finished rescue from last time.
     const cimMainEl = document.getElementById('cimMain');
     const cimRescueEl = document.getElementById('cimRescue');
@@ -2490,11 +2498,26 @@ function showInsufficientCreditsModal(trigger = 'single_enrichment') {
     } catch(e) {}
 }
 
-// Set this once a real coupon exists in Dodo. Empty means no discount is offered -
-// deliberately, because a code that does not work at checkout is worse than no
-// code at all, and nothing here can create one.
-const CIM_DISCOUNT_CODE = '';
+// Mints a real, single-use, 24-hour 40% code via workers/discount-code. Deployed
+// separately; if it is unreachable the price branch silently falls back to the
+// pack-and-call offer rather than promising a discount it cannot produce.
+const CIM_DISCOUNT_WORKER = 'https://discount-code.hamoureliasse.workers.dev';
 const CIM_CALL_URL = 'https://calendly.com/hamoureliasse/compensated-interview-unlimited-leads-clone';
+
+// Last resort means last resort. 40% off a subscription is the most expensive
+// thing we can hand someone, so it is not offered to anyone who merely glanced
+// at a price. It takes saying the price is the problem, *and* one of:
+//   - having hit the credit wall before (this is not their first refusal), or
+//   - having already picked a plan and not gone through with it.
+// Anyone else gets the pack and the call, which cost us far less.
+function cimQualifiesForDiscount() {
+    try {
+        if (isExistingSubscriber) return false;
+        const wallHits = parseInt(localStorage.getItem('lf_wall_hits') || '0', 10);
+        const pickedPlanBefore = localStorage.getItem('lf_plan_selected_ever') === '1';
+        return wallHits >= 2 || pickedPlanBefore;
+    } catch (e) { return false; }
+}
 let cimRescueShown = false;
 
 // The dismiss path used to just close. Someone who spent their whole grant and
@@ -2545,19 +2568,7 @@ function cimRescuePick(reason) {
     if (optsEl) optsEl.style.display = 'none';
 
     if (reason === 'price') {
-        // Two real answers, no invented ones: the smallest pack needs no
-        // subscription, and the call pays 1,000 credits - worth more than that
-        // pack - for fifteen minutes.
-        let html = '<strong>Fair.</strong> Two things, and both are real:'
-            + '<br><br>1. The smallest top-up is $25 for 1,000 credits. No subscription, no renewal.'
-            + '<br>2. Or give me 15 minutes and I will put <strong>1,000 credits on your account for free</strong>. '
-            + 'That is the same pack, at no cost, for a conversation I want anyway.';
-        if (CIM_DISCOUNT_CODE) {
-            html += '<br><br>Use code <strong>' + CIM_DISCOUNT_CODE + '</strong> at checkout for a discount on any plan.';
-        }
-        html += '<br><a class="cim-rescue-cta" href="' + CIM_CALL_URL + '" target="_blank" rel="noopener" '
-            + 'onclick="cimRescueCta(\'price_call\')">Book 15 minutes, get 1,000 credits</a>';
-        cimRescueAnswer(html);
+        cimPriceBranch();
 
     } else if (reason === 'unsure') {
         cimRescueAnswer(
@@ -2579,6 +2590,71 @@ function cimRescuePick(reason) {
     } else {
         cimRescueAnswer('No problem &mdash; thanks for telling me. Your credits reset nothing, so the app is here when you need it.');
     }
+}
+
+// The two answers that always hold, with no discount involved: the smallest pack
+// needs no subscription, and the call pays 1,000 credits for fifteen minutes.
+function cimPriceFallbackHtml() {
+    return '<strong>Fair.</strong> Two things, and both are real:'
+        + '<br><br>1. The smallest top-up is $25 for 1,000 credits. No subscription, no renewal.'
+        + '<br>2. Or give me 15 minutes and I will put <strong>1,000 credits on your account for free</strong>. '
+        + 'That is the same pack, at no cost, for a conversation I want anyway.'
+        + '<br><a class="cim-rescue-cta" href="' + CIM_CALL_URL + '" target="_blank" rel="noopener" '
+        + 'onclick="cimRescueCta(\'price_call\')">Book 15 minutes, get 1,000 credits</a>';
+}
+
+async function cimPriceBranch() {
+    if (!cimQualifiesForDiscount()) {
+        cimRescueAnswer(cimPriceFallbackHtml());
+        return;
+    }
+
+    cimRescueAnswer('<strong>Hold on&hellip;</strong><br>Let me see what I can do on the price.');
+    try {
+        const r = await fetch(CIM_DISCOUNT_WORKER, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_token: userToken })
+        });
+        const d = await r.json();
+        if (!r.ok || !d.code) throw new Error(d.error || 'no code');
+
+        const hours = Math.max(1, Math.round((new Date(d.expires_at) - Date.now()) / 3600000));
+        try { posthog.capture('discount_code_issued', { percent_off: d.percent_off, reused: !!d.reused }); } catch (e) {}
+        cimRescueAnswer(
+            '<strong>Then take ' + d.percent_off + '% off.</strong><br><br>'
+            + 'This code is yours alone, works once, and expires in ' + hours + ' hours. '
+            + 'It applies to any monthly or annual plan &mdash; not to the credit packs.'
+            + '<br><br><span style="display:inline-block;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;'
+            + 'font-size:1.05rem;font-weight:700;letter-spacing:0.06em;background:white;border:1px dashed #2563eb;'
+            + 'padding:0.5rem 0.9rem;border-radius:8px;">' + d.code + '</span>'
+            + '<br><button type="button" class="cim-rescue-cta" onclick="cimRescueCta(\'discount_plans\');cimSeeSubscriptionPlans()">'
+            + 'Use it on a plan</button>'
+        );
+    } catch (e) {
+        // Never advertise a discount we could not actually create.
+        try { posthog.capture('discount_code_failed', { reason: String(e && e.message || e).slice(0, 80) }); } catch (_) {}
+        cimRescueAnswer(cimPriceFallbackHtml());
+    }
+}
+
+// Entry point for the discount email: open the wall, skip the offer screen, and
+// go directly to the price conversation.
+function cimOpenRescueOnPrice() {
+    try {
+        const modal = document.getElementById('insufficientCreditsModal');
+        const main = document.getElementById('cimMain');
+        const rescue = document.getElementById('cimRescue');
+        const opts = document.querySelector('.cim-rescue-opts');
+        if (!modal || !main || !rescue) return;
+        modal.classList.add('show');
+        document.body.style.overflow = 'hidden';
+        cimRescueShown = true;
+        main.style.display = 'none';
+        rescue.style.display = 'block';
+        if (opts) opts.style.display = 'none';
+        cimPriceBranch();
+    } catch (e) {}
 }
 
 function cimRescueCta(which) {
@@ -3826,6 +3902,14 @@ function checkAuth(){
     const action=p.get('action');
     if(action==='buy_credits') setTimeout(()=>showPricingModal('buy_credits_btn'),500);
     else if(action==='upgrade') setTimeout(()=>showPricingModal(),500);
+    // ?action=offer is the landing point for the discount email. It goes straight
+    // to the price branch, which mints the code only if this person actually
+    // qualifies - the link being clickable is not itself proof of intent, and
+    // forwarded email is exactly how a one-per-account offer leaks.
+    else if(action==='offer') setTimeout(()=>{
+        try { posthog.capture('discount_email_landed'); } catch(e) {}
+        cimOpenRescueOnPrice();
+    },600);
     // Silently check subscription status on load. Kept as a promise so anything
     // whose behaviour depends on being a subscriber can wait for the real answer
     // instead of racing a timeout and guessing wrong on a slow connection.

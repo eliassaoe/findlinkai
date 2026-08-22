@@ -47,13 +47,17 @@ Do not count both changes as additive. They are not.
 
 - **Standard grant: 150 -> 50**
 - **Low-conversion tier (IN, PK, NG, BD, EG): 25 -> 12**
-- **Phone: 50 -> 25 credits**
+- **Phone: staying at 50 for now** (your call, 22 Aug)
 
 That lands ~18% of users at the wall, 2.3x today, while still leaving a real
 trial: 5 email finds, or 2 phone finds, or 50 name-to-LinkedIn lookups. The
 median user (9 credits) still finishes what they came to do.
 
-### "2x more phone finds on every plan" is already done
+### Deferred: the phone price
+
+Held at 50. If you revisit it, the note below still applies.
+
+### "2x more phone finds on every plan" would already be done
 
 Plans are denominated in credits, not per-feature quotas. Halving the phone price
 doubles the phone finds included in every plan automatically - Starter's 60,000
@@ -78,16 +82,15 @@ number in the browser; the real charge happens server-side in n8n. Ship the
 client half alone and users see "25 credits", get charged 50, and find out on
 refresh. That is the worst possible bug to ship on a pricing change.
 
-1. **n8n - the charge.** The per-combination cost for
-   `linkedin_profile_to_phone`: 50 -> 25.
-2. **n8n / signup - the grant.** Geo-tiered signup credits: standard 150 -> 50,
+1. **n8n / signup - the grant.** Geo-tiered signup credits: standard 150 -> 50,
    low_conversion 25 -> 12.
-3. **Client display, only once 1 and 2 are live.** Two files, same line:
-   - `app.html` - `creditCosts['linkedin_profile_to_phone']` 50 -> 25
-   - `app_beta.html` - same key, same change
+2. **Worth fixing while you are in there:** `email_to_linkedin_url` costs 4 in
+   `app.html` and 1 in `app_beta.html`. One of them is lying to users.
 
-   (Unrelated but worth fixing while you are there: `email_to_linkedin_url` is 4
-   in `app.html` and 1 in `app_beta.html`. One of them is lying to users.)
+Note the phone price is deferred, so nothing about the client cost table needs
+to change today. When it does: `deductCredits()` in `app.html` only updates the
+number in the browser, so the client half must never ship ahead of n8n or users
+see one price and get charged another.
 
 ## Measuring it
 

@@ -1,0 +1,33 @@
+name = "discount-code"
+main = "worker.js"
+compatibility_date = "2026-08-22"
+
+[vars]
+ACCOUNTS_TABLE = "linkfinderai_users"
+
+# REQUIRED. Comma-separated Dodo product ids the code may apply to. Subscription
+# products only - leaving this empty makes the worker refuse to issue, because an
+# unrestricted 40% code would also discount the pay-as-you-go packs.
+#
+# Known from the checkout worker; add the annual and Enterprise ids before going
+# live, or those plans silently will not accept the code:
+#   pdt_0Nfl5LZfppnjJBM2mvons  Starter monthly
+#   pdt_0Nfl5YPolhxfkTEMxOJYp  Professional monthly
+# NOT these (one-time PAYG packs):
+#   pdt_0Nj62gByZ53OzYoz3bCBr  PAYG Small
+#   pdt_0Nj62kQhG7EzZWogTmjfE  PAYG Medium
+DISCOUNT_PRODUCT_IDS = ""
+
+# How many billing cycles the 40% applies to. 1 = first period only. Absent
+# would mean forever; 40% off $149/mo in perpetuity is a permanent margin cut,
+# so this defaults to the conservative end on purpose.
+DISCOUNT_SUBSCRIPTION_CYCLES = "1"
+
+[[kv_namespaces]]
+binding = "DISCOUNTS"
+id = "7a3cab8946f7487babd34458524bb4fa"
+
+# Secrets, set with `wrangler secret put`, never committed:
+#   DODO_API_KEY          - Dodo live API key (same one the checkout worker uses)
+#   SUPABASE_URL          - https://snxhsboboatjywgwdeds.supabase.co
+#   SUPABASE_SERVICE_KEY  - service_role key (reads plan_type to refuse subscribers)
