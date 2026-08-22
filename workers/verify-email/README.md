@@ -25,7 +25,10 @@ The cap is not a lockout. They can run lookups, hit the paywall, and buy —
 nothing about the revenue path is blocked. What is withheld is free credits and
 email.
 
-## Deploy
+## Deployed
+
+**`https://verifyemail.hamoureliasse.workers.dev/`** — the app and the landing page
+both point at it.
 
 ```bash
 cd workers/verify-email
@@ -33,6 +36,27 @@ wrangler secret put SUPABASE_URL          # https://snxhsboboatjywgwdeds.supabas
 wrangler secret put SUPABASE_SERVICE_KEY  # service_role key, NOT the publishable one
 wrangler deploy
 ```
+
+### Check it end to end
+
+Take a real `token` from an account row and run:
+
+```bash
+# 1. A verified (Google) account. Expect email_verified true, credits_pending 0.
+curl -s -X POST https://verifyemail.hamoureliasse.workers.dev/status \
+  -H 'Content-Type: application/json' -H 'Origin: https://linkfinderai.com' \
+  -d '{"token":"<a-google-account-token>"}'
+
+# 2. A junk token. Expect HTTP 401 {"error":"Unknown token"} - proves the
+#    Supabase lookup is wired up, rather than silently matching nothing.
+curl -s -o /dev/null -w '%{http_code}\n' -X POST \
+  https://verifyemail.hamoureliasse.workers.dev/status \
+  -H 'Content-Type: application/json' -d '{"token":"definitely-not-a-real-token"}'
+```
+
+`{"error":"Unknown token"}` on a token you know is real means `ACCOUNTS_TABLE` or
+`TOKEN_COLUMN` in `wrangler.toml` does not match the schema. A 500 means the
+service_role key is missing or wrong — check `wrangler tail`.
 
 The service_role key is required because the worker reads `auth.users` (to see
 `email_confirmed_at`) and writes credits. It must never reach the browser.
