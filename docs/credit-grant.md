@@ -97,3 +97,80 @@ see one price and get charged another.
 Watch `credits_exhausted` per activated user weekly. It should move from ~8%
 toward ~18% within two weeks of the grant change. If it does not, the grant did
 not actually change - check n8n before concluding anything about behaviour.
+
+
+---
+
+# Addendum, 22 Aug 2026: the grant change is visible in the history
+
+Eliasse recalled the grant was 50 until roughly June, then raised to 150 to
+"show more value". That is testable, and the fingerprint is unmistakable.
+
+Wall-hit rate (`credits_exhausted` per activated user), real users only:
+
+| week | enriched | hit wall | rate |
+|---|---:|---:|---:|
+| 10 May | 71 | 19 | 27% |
+| 17 May | 98 | 37 | 38% |
+| 24 May | 86 | 19 | 22% |
+| 31 May | 80 | 20 | 25% |
+| 07 Jun | 94 | 22 | 23% |
+| **14 Jun** | 86 | 7 | **8%** |
+| 21 Jun | 94 | 6 | 6% |
+| 28 Jun | 73 | 1 | 1% |
+| 09 Aug | 125 | 8 | 6% |
+
+The changepoint is the week of 14 June. Paywall exposure fell from ~26% to
+~5% and never recovered. Raising the grant did exactly what raising a grant
+does: it stopped people needing to buy.
+
+## What the conversion numbers can and cannot say
+
+| era | signups | paid | rate |
+|---|---:|---:|---:|
+| 50 credits (24 May - 7 Jun) | 294 | 6 | 2.04% |
+| 150 credits (14 Jun - 16 Aug) | 1,260 | 16 | 1.27% |
+
+A 38% fall, in the predicted direction - but z = 1.01, **p = 0.31**. Six
+conversions against sixteen cannot carry that claim. Treat it as consistent
+with the hypothesis, not as evidence for it.
+
+Two things cut against the clean story, and both are worth knowing:
+
+- Pricing-modal exposure stayed flat (~17-30% of signups) across both eras.
+  The credit wall is not the only route to the pricing page.
+- The checkout leak (83% of plan selections never reach checkout) sits
+  downstream of both periods and corrupts the paid figures on both sides.
+
+**Reverting to 50 is still right** - not because the revenue claim is proven,
+but because it returns to a known prior state rather than experimenting into
+one, and the exposure evidence is overwhelming.
+
+# The bigger finding: geography, not credits
+
+16 weeks, real users, split by the existing low-conversion country list:
+
+| tier | signups | enriched | saw pricing | paid | conversion |
+|---|---:|---:|---:|---:|---:|
+| standard | 820 | 637 | 214 | 20 | **2.44%** |
+| low_conversion (IN, PK, NG, BD, EG) | 993 | 775 | 182 | 1 | **0.10%** |
+
+**Five countries are 55% of signups and 5% of revenue.** A 24x conversion gap.
+775 of them ran enrichments - at 25 credits each that is up to ~19,000 credits
+of data spend against one sale.
+
+Two consequences:
+
+1. **The geo grant should go to 10, not 12.** At 0.1% conversion the grant in
+   this tier is not an investment in conversion, it is a cost. Ten still allows
+   a genuine look at the product; the median user spends nine.
+
+2. **Blended conversion was hiding a decent number.** Stripping this tier out,
+   signup-to-paid is **2.44%**, which is respectable for self-serve B2B. The
+   headline 1.2% was a mix artifact, not a product failure. The problems are
+   the checkout leak and the acquisition mix - not that the product fails to
+   convert people who can pay.
+
+The acquisition point deserves its own look: if 55% of signups arrive from
+markets converting at 0.1%, the top of the funnel is pulling the wrong
+audience, and that will move blended revenue more than any pricing change.
