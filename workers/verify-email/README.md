@@ -25,6 +25,15 @@ The cap is not a lockout. They can run lookups, hit the paywall, and buy —
 nothing about the revenue path is blocked. What is withheld is free credits and
 email.
 
+## Run migration.sql first
+
+The live schema is `linkfinderai_users` — 21 columns, and **none of them is `id`,
+`auth_id` or `email_verified`**. `token` is the identifier. `migration.sql` adds
+the flag, indexes the token, backfills existing accounts to verified so nobody
+already using the product is retroactively capped, and creates a
+security-definer `email_is_confirmed(email)` because `auth.users` is not readable
+through PostgREST and there is no `auth_id` on the account row to join with.
+
 ## Deployed
 
 **`https://verifyemail.hamoureliasse.workers.dev/`** — the app and the landing page
@@ -56,7 +65,8 @@ curl -s -o /dev/null -w '%{http_code}\n' -X POST \
 
 `{"error":"Unknown token"}` on a token you know is real means `ACCOUNTS_TABLE` or
 `TOKEN_COLUMN` in `wrangler.toml` does not match the schema. A 500 means the
-service_role key is missing or wrong — check `wrangler tail`.
+service_role key is missing or wrong, or `migration.sql` has not been run —
+check `wrangler tail`.
 
 The service_role key is required because the worker reads `auth.users` (to see
 `email_confirmed_at`) and writes credits. It must never reach the browser.
@@ -127,7 +137,7 @@ test for the double-top-up.
 
 ## Tests
 
-`node vworker.test.mjs` in the scratchpad covers the eleven cases that matter,
+`node worker.test.mjs` covers the fourteen cases that matter,
 including: the top-up never runs before Supabase confirms, running `/claim`
 twice does not pay twice, a missing `email_verified` column reads as unverified
 rather than verified, a verified user is never emailed again, Supabase's 429 is

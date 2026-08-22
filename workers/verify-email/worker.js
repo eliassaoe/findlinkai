@@ -106,13 +106,13 @@ async function resend(env, user) {
 // polled by the app. Idempotent: the top-up only ever happens once, guarded by
 // the verified flag on the account row.
 async function claim(env, user) {
-    const confirmed = await isConfirmedInSupabase(env, user.auth_id);
+    const confirmed = await isConfirmedInSupabase(env, user.email);
     if (!confirmed) return { ok: false, email_verified: false };
 
     if (user.email_verified) return { ok: true, email_verified: true, credits_added: 0 };
 
     const held = await heldFor(env, user.email);
-    await patchAccount(env, user.id, {
+    await patchAccount(env, user.token, {
         [env.VERIFIED_COLUMN || 'email_verified']: true,
         [env.CREDITS_COLUMN || 'credits']: (user.credits || 0) + held
     });
@@ -130,7 +130,7 @@ async function claim(env, user) {
 // Table and column names come from env so this fits the existing schema without
 // editing code. Defaults match the names used elsewhere in the app.
 
-function accountsTable(env) { return env.ACCOUNTS_TABLE || 'users'; }
+function accountsTable(env) { return env.ACCOUNTS_TABLE || 'linkfinderai_users'; }
 function tokenColumn(env)   { return env.TOKEN_COLUMN   || 'token'; }
 function capOf(env)         { return Number(env.VERIFY_CAP || 10); }
 
@@ -178,8 +178,9 @@ async function resolveUser(env, token) {
     if (!rows.length) return null;
     const row = rows[0];
     return {
-        id: row.id,
-        auth_id: row[env.AUTH_ID_COLUMN || 'auth_id'] || row.id,
+        // linkfinderai_users has no surrogate key - token IS the identifier, and
+        // it is what every write below filters on.
+        token: token,
         email: row.email,
         credits: row[env.CREDITS_COLUMN || 'credits'],
         // A missing column reads as undefined, which must not look like "verified".
@@ -187,17 +188,27 @@ async function resolveUser(env, token) {
     };
 }
 
-async function isConfirmedInSupabase(env, authId) {
-    if (!authId) return false;
-    const r = await fetch(env.SUPABASE_URL + '/auth/v1/admin/users/' + authId, { headers: sbHeaders(env) });
-    if (!r.ok) { console.error('admin user lookup failed', r.status); return false; }
-    const u = await r.json();
-    return Boolean(u && u.email_confirmed_at);
+// auth.users is not reachable through PostgREST, and linkfinderai_users carries
+// no auth_id to join on, so the check goes through a security-definer function
+// that returns one boolean and nothing else. See migration.sql.
+async function isConfirmedInSupabase(env, email) {
+    if (!email) return false;
+    const r = await fetch(env.SUPABASE_URL + '/rest/v1/rpc/email_is_confirmed', {
+        method: 'POST',
+        headers: sbHeaders(env),
+        body: JSON.stringify({ p_email: email })
+    });
+    if (!r.ok) {
+        console.error('email_is_confirmed failed', r.status, await r.text());
+        return false;
+    }
+    return await r.json() === true;
 }
 
-async function patchAccount(env, id, patch) {
+async function patchAccount(env, token, patch) {
+    const col = tokenColumn(env);
     const r = await fetch(
-        env.SUPABASE_URL + '/rest/v1/' + accountsTable(env) + '?id=eq.' + encodeURIComponent(id),
+        env.SUPABASE_URL + '/rest/v1/' + accountsTable(env) + '?' + col + '=eq.' + encodeURIComponent(token),
         { method: 'PATCH', headers: sbHeaders(env), body: JSON.stringify(patch) }
     );
     if (!r.ok) throw new Error('patchAccount ' + r.status + ' ' + await r.text());
