@@ -17,7 +17,16 @@ import os
 import re
 import time
 
-OPENROUTER_API_KEY = "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"
+# Read from the environment - this repository is public, so a key written here
+# is a published key. Export OPENROUTER_API_KEY before running.
+OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY", "")
+if not OPENROUTER_API_KEY:
+    raise SystemExit(
+        "OPENROUTER_API_KEY is not set.\n"
+        "  export OPENROUTER_API_KEY=sk-or-v1-...\n"
+        "The key previously hard-coded here was committed to a public repo and "
+        "must be treated as compromised - rotate it at https://openrouter.ai/keys"
+    )
 
 # ── Keywords to generate pages for
 KEYWORDS = [
