@@ -426,6 +426,18 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
     .cim-cta:hover{ background:var(--primary-hover); }
     .cim-divider{ border:none; border-top:1px solid var(--gray-200); margin:0 0 1rem; }
     .cim-sub-line{ text-align:center; font-size:0.8rem; color:var(--gray-500); line-height:1.5; margin:0 0 0.5rem; }
+    .cim-rescue-opts{ display:flex; flex-direction:column; gap:0.6rem; margin:1.25rem 0 0.5rem; }
+    .cim-rescue-opt{ display:flex; flex-direction:column; gap:0.15rem; text-align:left; width:100%; padding:0.85rem 1rem; border:1px solid var(--gray-200,#e5e7eb); border-radius:10px; background:white; cursor:pointer; font-family:inherit; transition:border-color .15s, background .15s; }
+    .cim-rescue-opt:hover{ border-color:#2563eb; background:#f8fafc; }
+    .cim-rescue-opt strong{ font-size:0.9rem; font-weight:600; color:var(--gray-900,#111827); }
+    .cim-rescue-opt span{ font-size:0.8rem; color:var(--gray-500,#6b7280); }
+    .cim-rescue-quiet{ border-style:dashed; }
+    .cim-rescue-quiet strong{ font-weight:500; color:var(--gray-500,#6b7280); }
+    .cim-rescue-answer{ display:none; margin-top:1rem; padding:1rem; border-radius:10px; background:#eff6ff; border:1px solid #bfdbfe; font-size:0.875rem; line-height:1.6; color:#1e3a8a; }
+    .cim-rescue-answer.show{ display:block; }
+    .cim-rescue-answer a.cim-rescue-cta{ display:inline-block; margin-top:0.75rem; background:#2563eb; color:white; text-decoration:none; padding:0.6rem 1.1rem; border-radius:8px; font-weight:600; }
+    .cim-rescue-answer button.cim-rescue-cta{ display:inline-block; margin-top:0.75rem; background:#2563eb; color:white; border:none; padding:0.6rem 1.1rem; border-radius:8px; font-weight:600; cursor:pointer; font-family:inherit; font-size:0.875rem; }
+    .cim-rescue-done{ display:block; width:100%; margin-top:0.9rem; background:none; border:none; color:var(--gray-500,#6b7280); font-size:0.8rem; cursor:pointer; font-family:inherit; text-decoration:underline; }
     .cim-sub-link-wrap{ text-align:center; margin-bottom:1.25rem; }
     .cim-sub-link{ font-size:0.8rem; color:var(--gray-500); text-decoration:none; background:none; border:none; border-bottom:1px dashed var(--gray-300); padding:0 0 1px; font-family:inherit; cursor:pointer; }
     .cim-sub-link:hover{ color:var(--gray-700); border-color:var(--gray-400); }
@@ -1156,6 +1168,7 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
 <!-- Out-of-credits modal: PAYG-first, subscription subordinate -->
 <div id="insufficientCreditsModal" class="cim-overlay">
     <div class="cim-modal" role="dialog" aria-modal="true" aria-labelledby="cimHeadline">
+      <div id="cimMain">
 
         <div class="cim-icon-wrap">
             <div class="cim-icon-circle">
@@ -1220,6 +1233,35 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
         <div class="cim-dismiss-wrap">
             <button class="cim-dismiss" onclick="closeInsufficientCreditsModal()">Maybe later</button>
         </div>
+
+      </div>
+
+      <!-- Someone who burned their whole credit grant and then walked away from the
+           paywall is the most qualified person we will see all week. Closing in
+           silence wastes that. Ask one question instead, and route the answer
+           somewhere real. -->
+      <div id="cimRescue" style="display:none;">
+        <h2 class="cim-headline">Before you go &mdash; what stopped you?</h2>
+        <p class="cim-subtext">One tap. It genuinely changes what I build next.</p>
+        <div class="cim-rescue-opts">
+            <button type="button" class="cim-rescue-opt" onclick="cimRescuePick('price')">
+                <strong>It costs more than I expected</strong>
+                <span>See what I can do about that</span>
+            </button>
+            <button type="button" class="cim-rescue-opt" onclick="cimRescuePick('unsure')">
+                <strong>I&rsquo;m not sure it&rsquo;ll work on my list</strong>
+                <span>Get 1,000 free credits and I&rsquo;ll prove it with you</span>
+            </button>
+            <button type="button" class="cim-rescue-opt" onclick="cimRescuePick('stuck')">
+                <strong>Something didn&rsquo;t work / I&rsquo;m stuck</strong>
+                <span>Talk to support now</span>
+            </button>
+            <button type="button" class="cim-rescue-opt cim-rescue-quiet" onclick="cimRescuePick('looking')">
+                <strong>Just looking for now</strong>
+            </button>
+        </div>
+        <div class="cim-rescue-answer" id="cimRescueAnswer"></div>
+      </div>
 
     </div>
 </div>
@@ -2425,6 +2467,16 @@ function showInsufficientCreditsModal(trigger = 'single_enrichment') {
         }
     }
 
+    // Always reopen on the offer, never on a half-finished rescue from last time.
+    const cimMainEl = document.getElementById('cimMain');
+    const cimRescueEl = document.getElementById('cimRescue');
+    const cimAnsEl = document.getElementById('cimRescueAnswer');
+    const cimOptsEl = document.querySelector('.cim-rescue-opts');
+    if (cimMainEl) cimMainEl.style.display = '';
+    if (cimRescueEl) cimRescueEl.style.display = 'none';
+    if (cimOptsEl) cimOptsEl.style.display = '';
+    if (cimAnsEl) { cimAnsEl.innerHTML = ''; cimAnsEl.classList.remove('show'); }
+
     document.getElementById('insufficientCreditsModal').classList.add('show');
     document.body.style.overflow = 'hidden';
 
@@ -2438,9 +2490,117 @@ function showInsufficientCreditsModal(trigger = 'single_enrichment') {
     } catch(e) {}
 }
 
+// Set this once a real coupon exists in Dodo. Empty means no discount is offered -
+// deliberately, because a code that does not work at checkout is worse than no
+// code at all, and nothing here can create one.
+const CIM_DISCOUNT_CODE = '';
+const CIM_CALL_URL = 'https://calendly.com/hamoureliasse/compensated-interview-unlimited-leads-clone';
+let cimRescueShown = false;
+
+// The dismiss path used to just close. Someone who spent their whole grant and
+// then declined the paywall is the most qualified person we see all week, and we
+// were letting them leave without a word. Ask once, then route them somewhere
+// real. Subscribers skip it - they have already bought.
 function closeInsufficientCreditsModal() {
+    const main = document.getElementById('cimMain');
+    const rescue = document.getElementById('cimRescue');
+    if (!cimRescueShown && !isExistingSubscriber && main && rescue) {
+        cimRescueShown = true;
+        main.style.display = 'none';
+        rescue.style.display = 'block';
+        try {
+            posthog.capture('credits_wall_rescue_shown', {
+                trigger: creditsExhaustedTrigger,
+                credits_remaining: currentCredits
+            });
+        } catch (e) {}
+        return;
+    }
+    cimHardClose();
+}
+
+function cimHardClose() {
     document.getElementById('insufficientCreditsModal').classList.remove('show');
     document.body.style.overflow = '';
+}
+
+function cimRescueAnswer(html) {
+    const el = document.getElementById('cimRescueAnswer');
+    if (!el) return;
+    el.innerHTML = html + '<button type="button" class="cim-rescue-done" onclick="cimHardClose()">Close</button>';
+    el.classList.add('show');
+}
+
+function cimRescuePick(reason) {
+    try {
+        posthog.capture('credits_wall_rescue_answered', {
+            reason: reason,
+            trigger: creditsExhaustedTrigger,
+            credits_remaining: currentCredits,
+            session_credits_used: sessionCreditsUsed
+        });
+    } catch (e) {}
+
+    const optsEl = document.querySelector('.cim-rescue-opts');
+    if (optsEl) optsEl.style.display = 'none';
+
+    if (reason === 'price') {
+        // Two real answers, no invented ones: the smallest pack needs no
+        // subscription, and the call pays 1,000 credits - worth more than that
+        // pack - for fifteen minutes.
+        let html = '<strong>Fair.</strong> Two things, and both are real:'
+            + '<br><br>1. The smallest top-up is $25 for 1,000 credits. No subscription, no renewal.'
+            + '<br>2. Or give me 15 minutes and I will put <strong>1,000 credits on your account for free</strong>. '
+            + 'That is the same pack, at no cost, for a conversation I want anyway.';
+        if (CIM_DISCOUNT_CODE) {
+            html += '<br><br>Use code <strong>' + CIM_DISCOUNT_CODE + '</strong> at checkout for a discount on any plan.';
+        }
+        html += '<br><a class="cim-rescue-cta" href="' + CIM_CALL_URL + '" target="_blank" rel="noopener" '
+            + 'onclick="cimRescueCta(\'price_call\')">Book 15 minutes, get 1,000 credits</a>';
+        cimRescueAnswer(html);
+
+    } else if (reason === 'unsure') {
+        cimRescueAnswer(
+            '<strong>Then let me show you on your own list.</strong><br><br>'
+            + 'Bring 10 leads you actually care about to a 15-minute call. We run them together, '
+            + 'and I put <strong>1,000 credits</strong> on your account whether or not you buy anything.'
+            + '<br><a class="cim-rescue-cta" href="' + CIM_CALL_URL + '" target="_blank" rel="noopener" '
+            + 'onclick="cimRescueCta(\'unsure_call\')">Book the call</a>'
+        );
+
+    } else if (reason === 'stuck') {
+        cimRescueAnswer(
+            '<strong>Let\'s get it unstuck.</strong><br><br>'
+            + 'Support answers fastest - tell them exactly what you saw on screen. '
+            + 'If it turns out to be our bug, I will refund the credits it burned.'
+            + '<br><button type="button" class="cim-rescue-cta" onclick="cimRescueSupport()">Talk to support</button>'
+        );
+
+    } else {
+        cimRescueAnswer('No problem &mdash; thanks for telling me. Your credits reset nothing, so the app is here when you need it.');
+    }
+}
+
+function cimRescueCta(which) {
+    try { posthog.capture('credits_wall_rescue_cta_clicked', { which: which, trigger: creditsExhaustedTrigger }); } catch (e) {}
+}
+
+// Same fallback shape as sciOpenSupport(): the AI widget is injected from outside
+// this repo and is not reliably present on /app, so try it and fall back to mail
+// rather than a link that 404s.
+function cimRescueSupport() {
+    var opened = false;
+    try {
+        if (typeof window.lfOpenSupportChat === 'function') { window.lfOpenSupportChat(); opened = true; }
+        else if (window.$crisp) { window.$crisp.push(['do', 'chat:open']); opened = true; }
+    } catch (e) {}
+    try { posthog.capture('credits_wall_rescue_cta_clicked', { which: 'support', via: opened ? 'widget' : 'mail' }); } catch (e) {}
+    if (!opened) {
+        window.location.href = 'mailto:support@linkfinderai.com'
+            + '?subject=' + encodeURIComponent('Stuck in LinkFinder')
+            + '&body=' + encodeURIComponent("Hi Eliasse,\n\nI ran out of credits and something did not work. What I saw was:\n\n");
+    }
+    cimHardClose();
 }
 
 function cimFormatCta(credits, price) {
