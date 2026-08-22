@@ -14,7 +14,7 @@ const block = src.slice(start, end);
 
 const CALENDLY = 'https://calendly.com/hamoureliasse/compensated-interview-unlimited-leads-clone';
 
-function harness({ store = {}, session = {}, subscriber = false, fetchImpl = null, ...overrides } = {}) {
+function harness({ store = {}, session = {}, subscriber = false, fetchImpl = null, geoTier = 'standard', ...overrides } = {}) {
     const state = { captured: [], closed: false };
     const answerEl = { innerHTML: '', classList: { add() {}, remove() {} } };
     const ctx = {
@@ -23,7 +23,9 @@ function harness({ store = {}, session = {}, subscriber = false, fetchImpl = nul
         currentCredits: 0,
         sessionCreditsUsed: 42,
         userToken: 'tok_abcdefgh',
+        otpGeoTier: geoTier,
         cimSeeSubscriptionPlans: () => {},
+        openOnboardingTasksPopupManually: () => {},
         posthog: { capture: (n, p) => state.captured.push({ n, p }) },
         localStorage: {
             getItem: (k) => (k in store ? store[k] : null),
@@ -176,4 +178,32 @@ test('it asks once per session, not at every gate', () => {
     const second = harness({ session });
     assert.equal(second.api.cimOpenRescue('zero_balance'), false,
         'a second gate in the same session must not re-ask');
+});
+
+
+// --- the tier that cannot buy is offered work, not a discount ---
+
+test('low_conversion is offered credits to earn, never a discount', async () => {
+    let workerCalled = false;
+    const { api, state, answerEl } = harness({
+        geoTier: 'low_conversion',
+        store: { lf_wall_hits: '5', lf_plan_selected_ever: '1' },   // would otherwise qualify
+        fetchImpl: async () => { workerCalled = true; return okWorker(); }
+    });
+    await api.cimPriceBranch();
+
+    assert.equal(workerCalled, false, 'must not mint a code for someone who cannot buy at all');
+    assert.ok(!/LF40/.test(answerEl.innerHTML), 'no discount code');
+    assert.ok(/1,000 credits/.test(answerEl.innerHTML), 'must name the G2 reward');
+    assert.ok(/earn/i.test(answerEl.innerHTML));
+    assert.ok(answerEl.innerHTML.includes('openOnboardingTasksPopupManually()'),
+        'must open the task list that already exists');
+    assert.ok(state.captured.some(c => c.n === 'credits_wall_earn_offered'));
+});
+
+test('standard tier is unaffected by the earn branch', async () => {
+    const { api, answerEl } = harness({ store: { lf_wall_hits: '2' }, fetchImpl: okWorker });
+    await api.cimPriceBranch();
+    assert.ok(/LF40ABCD2345/.test(answerEl.innerHTML), 'standard still gets the code');
+    assert.ok(!/1,000 credits/.test(answerEl.innerHTML));
 });

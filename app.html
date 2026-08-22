@@ -2624,6 +2624,27 @@ function cimPriceFallbackHtml() {
 }
 
 async function cimPriceBranch() {
+    // For the low-conversion tier, "it costs more than I expected" is not a
+    // negotiating position - $25 is out of range and 40% off $49 is still $29.
+    // They are 55% of signups and 0.55% of them convert after seeing the price,
+    // against 9.3% everywhere else. Money is the wrong currency to offer here.
+    //
+    // But the earn-credits system already exists and pays 1,000 credits for a
+    // G2 review - more than the $25 pack. It was only ever shown once per
+    // browser, so 74 of 993 people in this tier ever saw it. Running out of
+    // credits is precisely when it becomes worth seeing.
+    if (otpGeoTier === 'low_conversion') {
+        try { posthog.capture('credits_wall_earn_offered', { source: cimRescueSource }); } catch (e) {}
+        cimRescueAnswer(
+            '<strong>Then earn them instead of buying them.</strong><br><br>'
+            + 'A review on G2 is worth <strong>1,000 credits</strong> here &mdash; more than the $25 pack costs. '
+            + 'Sharing on LinkedIn is 150. It takes a few minutes and no card.'
+            + '<br><button type="button" class="cim-rescue-cta" onclick="cimRescueCta(\'earn_credits\');cimHardClose();openOnboardingTasksPopupManually()">'
+            + 'Show me how to earn credits</button>'
+        );
+        return;
+    }
+
     if (!cimQualifiesForDiscount()) {
         cimRescueAnswer(cimPriceFallbackHtml());
         return;
