@@ -81,18 +81,19 @@ if (heldCredits > 0 && env.RATE_LIMITS) {
 `grantInFull()` is just the existing path with `startingCredits` unchanged —
 inline it however reads best.
 
-## Edit 3 — bind the KV namespace to `verify-email`
+## Edit 3 — bind the KV namespace to `verify-email` (already done)
 
-`verify-email` has to read the same namespace. In its `wrangler.toml`:
+`verify-email` has to read the same namespace. This is already committed in its
+`wrangler.toml`; nothing to do here beyond redeploying the worker.
 
 ```toml
 [[kv_namespaces]]
 binding = "RATE_LIMITS"
-id = "<the same id linkfinderai-sign-up uses>"
+id = "7a3cab8946f7487babd34458524bb4fa"
 ```
 
-Get the id from the signup worker's settings in the Cloudflare dashboard, or
-`wrangler kv namespace list`.
+That id was read off the account (`RATE_LIMITS`), not guessed. If you ever need
+to re-check it: `wrangler kv namespace list`.
 
 ## What is still unknown, and how to find out
 
