@@ -826,6 +826,17 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
   <button onclick="this.parentElement.style.display='none';localStorage.setItem('annual_banner_dismissed','1')" style="background:none;border:none;color:#166534;cursor:pointer;margin-left:0.5rem;font-size:1rem;">×</button>
 </div>
 
+<!-- Shown only to people who signed up with an email and password and have not
+     confirmed the address yet. Google signups arrive already verified, so they never
+     see this. It is deliberately not dismissable: it explains why the account is
+     capped, and hiding that would just make the cap look like a bug. -->
+<div id="emailVerifyBanner" style="display:none;background:linear-gradient(135deg,#fffbeb,#fef3c7);border-bottom:1px solid #fcd34d;padding:0.6rem 1rem;text-align:center;font-size:0.85rem;color:#78350f;">
+  <i class="fas fa-envelope" style="margin-right:0.4rem;"></i>
+  <span id="emailVerifyText">Confirm your email address to unlock your full credit balance.</span>
+  <button id="emailVerifyResend" onclick="resendVerificationEmail()" style="background:#b45309;color:#fff;border:none;padding:0.25rem 0.8rem;border-radius:4px;font-size:0.78rem;font-weight:600;cursor:pointer;margin-left:0.6rem;font-family:inherit;">Send it again</button>
+  <span id="emailVerifyStatus" style="margin-left:0.6rem;font-weight:600;"></span>
+</div>
+
 <nav class="nav-menu">
     <div class="container">
         <div class="nav-tabs">
@@ -2479,6 +2490,7 @@ async function fetchCredits() {
             const d=await r.json();
             const c=Math.max(0,d.credits||0);
             currentCredits=c;
+            applyVerificationState(d);
             if (startingCredits === null && c > 0) startingCredits = c;
             document.getElementById('creditsCount').textContent=c;
             updateLowCreditsWarning(c);
@@ -2489,6 +2501,119 @@ async function fetchCredits() {
     } catch(e) { document.getElementById('creditsCount').textContent='?'; }
 }
     
+// --- Email verification -----------------------------------------------------
+// 76% of signups come through Google and are verified by Google before they ever
+// reach us. The remaining quarter type an address into a form that never checked
+// it, which is where the fake addresses come from - and a hard bounce on a new
+// sending domain is expensive. So those accounts are capped until they confirm.
+//
+// emailVerified stays null until the credits worker actually tells us, and the
+// banner only ever appears on an explicit false. That means this code is inert
+// against the current worker (which returns neither field) and lights up on its
+// own once the worker patch ships - no coordinated release needed.
+const VERIFY_WORKER = 'https://linkfinderai-verify-email.hamoureliasse.workers.dev/';
+let emailVerified = null;
+let verifyCap = 10;
+let verifyResendReadyAt = 0;
+let verifyBannerReported = false;
+
+let verifyClaimTried = false;
+
+// Someone can perfectly well open the confirmation link on their phone and then
+// come back to the app on a laptop. Nothing in that path would ever release the
+// held credits, so the app asks once per session whether Supabase has seen a
+// confirmation - which makes the top-up self-healing across devices.
+async function claimVerifiedCredits() {
+    if (verifyClaimTried || !userToken) return;
+    verifyClaimTried = true;
+    try {
+        const r = await fetch(VERIFY_WORKER + 'claim', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: userToken })
+        });
+        if (!r.ok) return;
+        const d = await r.json();
+        if (d && d.email_verified) {
+            emailVerified = true;
+            updateVerificationBanner();
+            try {
+                posthog.setPersonProperties({ email_verified: true });
+                posthog.capture('email_verified', { source: 'claim', credits_added: d.credits_added || 0 });
+            } catch(e) {}
+            fetchCredits();
+        }
+    } catch (e) { /* offline or worker not deployed yet - the banner just stays */ }
+}
+
+function applyVerificationState(d) {
+    if (typeof d.email_verified !== 'boolean') return;   // worker not patched yet
+    if (typeof d.verify_cap === 'number') verifyCap = d.verify_cap;
+    const was = emailVerified;
+    emailVerified = d.email_verified;
+    if (emailVerified === false) claimVerifiedCredits();
+    try { posthog.setPersonProperties({ email_verified: emailVerified }); } catch(e) {}
+    // Confirming in another tab should clear the banner here without a reload.
+    if (was === false && emailVerified === true) {
+        try { posthog.capture('email_verified', { source: 'credits_poll' }); } catch(e) {}
+    }
+    updateVerificationBanner();
+}
+
+function updateVerificationBanner() {
+    const bar = document.getElementById('emailVerifyBanner');
+    if (!bar) return;
+    if (emailVerified !== false) { bar.style.display = 'none'; return; }
+    document.getElementById('emailVerifyText').textContent =
+        'Your account is capped at ' + verifyCap + ' credits until you confirm your email. '
+        + 'Check your inbox for the link \u2014 it may be in spam.';
+    bar.style.display = 'block';
+    if (!verifyBannerReported) {
+        verifyBannerReported = true;
+        try { posthog.capture('email_verification_banner_shown', { cap: verifyCap }); } catch(e) {}
+    }
+}
+
+async function resendVerificationEmail() {
+    const btn = document.getElementById('emailVerifyResend');
+    const status = document.getElementById('emailVerifyStatus');
+    if (!userToken || !btn) return;
+
+    // A resend button with no cooldown is a way to get your sending domain listed.
+    const now = Date.now();
+    if (now < verifyResendReadyAt) {
+        status.textContent = 'Wait ' + Math.ceil((verifyResendReadyAt - now) / 1000) + 's';
+        return;
+    }
+    verifyResendReadyAt = now + 60000;
+
+    try { posthog.capture('email_verification_resend_clicked'); } catch(e) {}
+    btn.disabled = true;
+    btn.style.opacity = '0.6';
+    status.textContent = 'Sending\u2026';
+    try {
+        const r = await fetch(VERIFY_WORKER + 'resend', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: userToken })
+        });
+        if (r.ok) {
+            status.textContent = 'Sent \u2014 check your inbox and your spam folder.';
+            try { posthog.capture('email_verification_resend_sent'); } catch(e) {}
+        } else {
+            status.textContent = 'That did not send. Email support@linkfinderai.com and I will confirm you by hand.';
+            try { posthog.capture('email_verification_resend_failed', { status: r.status }); } catch(e) {}
+        }
+    } catch (e) {
+        status.textContent = 'That did not send. Email support@linkfinderai.com and I will confirm you by hand.';
+        try { posthog.capture('email_verification_resend_failed', { status: 'network' }); } catch(e) {}
+    }
+    setTimeout(function () {
+        btn.disabled = false;
+        btn.style.opacity = '1';
+    }, 60000);
+}
+
 // Session-scoped counters powering the out-of-credits modal's usage-context line
 let sessionCreditsUsed = 0;
 let sessionActionsCount = 0;

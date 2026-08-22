@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex,nofollow">
+<title>Email confirmed — LinkFinder AI</title>
+<link rel="icon" href="/favicon.ico">
+<script src="https://kit.fontawesome.com/0f9e3f1e5f.js" crossorigin="anonymous"></script>
+<style>
+  :root { --blue:#2563eb; --ink:#1f2937; --muted:#6b7280; }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;
+       background:#eef2f7;color:var(--ink);display:flex;align-items:center;justify-content:center;min-height:100vh;padding:1.5rem}
+  .card{background:#fff;border-radius:12px;padding:2.5rem 2rem;max-width:460px;width:100%;
+        box-shadow:0 4px 24px rgba(0,0,0,.07);text-align:center}
+  .icon{font-size:2.5rem;margin-bottom:1rem}
+  h1{font-size:1.35rem;margin:0 0 .75rem}
+  p{line-height:1.6;color:var(--muted);margin:0 0 1.25rem}
+  .btn{display:inline-block;background:var(--blue);color:#fff;text-decoration:none;
+       padding:.75rem 1.5rem;border-radius:8px;font-weight:600;font-size:.95rem}
+  .ok{color:#15803d}.bad{color:#b45309}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="icon" id="icon">⏳</div>
+  <h1 id="title">Confirming your email…</h1>
+  <p id="msg">One moment.</p>
+  <a class="btn" href="/app" id="cta">Go to the app</a>
+</div>
+
+<script>
+!function(t,e){var o,n,p,r;e.__SV||(window.posthog&&window.posthog.__loaded)||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]),t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}(p=t.createElement("script")).type="text/javascript",p.crossOrigin="anonymous",p.async=!0,p.src=s.api_host.replace(".i.posthog.com","-assets.i.posthog.com")+"/static/array.js",(r=t.getElementsByTagName("script")[0]).parentNode.insertBefore(p,r);var u=e;for(void 0!==a?u=e[a]=[]:a="posthog",u.people=u.people||[],u.toString=function(t){var e="posthog";return"posthog"!==a&&(e+="."+a),t||(e+=" (stub)"),e},u.people.toString=function(){return u.toString(1)+".people (stub)"},o="init zr Wr fi Br Gr ci Nr Hr capture Ui calculateEventProperties Kr register register_once register_for_session unregister unregister_for_session Zr getFeatureFlag getFeatureFlagPayload isFeatureEnabled reloadFeatureFlags updateEarlyAccessFeatureEnrollment getEarlyAccessFeatures on onFeatureFlags onSurveysLoaded onSessionId getSurveys getActiveMatchingSurveys renderSurvey displaySurvey cancelPendingSurvey canRenderSurvey canRenderSurveyAsync identify setPersonProperties group resetGroups setPersonPropertiesForFlags resetPersonPropertiesForFlags setGroupPropertiesForFlags resetGroupPropertiesForFlags reset get_distinct_id getGroups get_session_id get_session_replay_url alias set_config startSessionRecording stopSessionRecording sessionRecordingStarted captureException loadToolbar get_property getSessionProperty Xr Jr createPersonProfile Qr jr ts opt_in_capturing opt_out_capturing has_opted_in_capturing has_opted_out_capturing get_explicit_consent_status is_capturing clear_opt_in_out_capturing Vr debug O Yr getPageViewId captureTraceFeedback captureTraceMetric Or".split(" "),n=0;n<o.length;n++)g(u,o[n]);e._i.push([i,s,a])},e.__SV=1)}(document,window.posthog||[]);
+window.__lfScrubUrl=function(v){return typeof v==='string'?v.replace(/([?&#])(access_token|refresh_token|provider_token|provider_refresh_token|id_token|token|api_key|apikey|password|secret)=[^&#]*/gi,'$1$2=[redacted]'):v;};
+window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_url','$initial_referrer','$session_entry_url','$pathname'].forEach(function(k){if(p[k])p[k]=window.__lfScrubUrl(p[k]);});return p;};
+posthog.init('phc_HqgzMyWAMtzH7K5j9CLw0dijB0I9W1VjPkkyzg9KOFG',{api_host:'https://us.i.posthog.com',defaults:'2025-11-30',person_profiles:'identified_only',sanitize_properties:window.__lfSanitize});
+<script>
+// Where Supabase sends people after they click the confirmation link.
+//
+// The credit top-up is done by the verify-email worker, not here, because this
+// page cannot be trusted - it is just a browser tab. All it does is ask the
+// worker to check with Supabase and then report what happened. If the link was
+// opened on a different device from the one the app is signed in on, there is no
+// token here at all; that is fine, because the app re-checks on next load.
+const VERIFY_WORKER = 'https://linkfinderai-verify-email.hamoureliasse.workers.dev/';
+
+function show(icon, title, msg, cls) {
+  document.getElementById('icon').textContent = icon;
+  document.getElementById('title').textContent = title;
+  document.getElementById('title').className = cls || '';
+  document.getElementById('msg').innerHTML = msg;
+}
+
+(async function () {
+  var token = null;
+  try { token = localStorage.getItem('lf_token_backup'); } catch (e) {}
+
+  if (!token) {
+    show('✅', 'Email confirmed',
+         'Sign in and your full credit balance will be waiting for you.', 'ok');
+    document.getElementById('cta').textContent = 'Sign in';
+    document.getElementById('cta').href = '/log-in';
+    try { posthog.capture('email_verified', { source: 'landing_no_token' }); } catch (e) {}
+    return;
+  }
+
+  try {
+    const r = await fetch(VERIFY_WORKER + 'claim', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: token })
+    });
+    const d = await r.json();
+    if (r.ok && d.email_verified) {
+      const added = d.credits_added || 0;
+      show('✅', 'Email confirmed',
+           added ? ('Your remaining <strong>' + added + ' credits</strong> have been added to your account.')
+                 : 'Your account is fully unlocked.', 'ok');
+      try {
+        posthog.setPersonProperties({ email_verified: true });
+        posthog.capture('email_verified', { source: 'landing', credits_added: added });
+      } catch (e) {}
+    } else {
+      show('⏳', 'Not confirmed yet',
+           'The link may have expired. Open the app and use <strong>Send it again</strong> in the banner at the top.', 'bad');
+      try { posthog.capture('email_verification_landing_failed'); } catch (e) {}
+    }
+  } catch (e) {
+    show('⚠️', 'Could not reach the server',
+         'Your email may still be confirmed. Open the app and check the banner at the top.', 'bad');
+    try { posthog.capture('email_verification_landing_failed', { reason: 'network' }); } catch (e) {}
+  }
+})();
+</script>
+</body>
+</html>
