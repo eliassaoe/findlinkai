@@ -1043,6 +1043,7 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
                 <div class="upload-subtext" id="uploadSubtext">CSV file (max 10000 rows)</div>
                 <input type="file" id="csvFile" accept=".csv" class="hidden">
                 <button type="button" class="btn" onclick="event.stopPropagation();document.getElementById('csvFile').click()"><i class="fas fa-file-csv"></i> Select File</button>
+                <button type="button" class="btn" style="background:transparent;color:var(--primary);border:1px solid var(--primary);margin-left:0.5rem;" onclick="event.stopPropagation();useSampleCsv()"><i class="fas fa-wand-magic-sparkles"></i> Try a sample list</button>
             </div>
             <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem;margin-top:0.875rem;">
                 <div class="bulk-api-hint" style="margin-top:0;">
@@ -2314,8 +2315,20 @@ function showPricingModal(trigger, extra) {
         if (modalSubtitle) modalSubtitle.textContent = 'Pick a plan to keep enriching — takes 30 seconds.';
     } else if (trigger === 'export_gated') {
         const n = (extra && extra.totalRows) || bulkResults.length;
-        if (modalTitle) modalTitle.textContent = "You've previewed 5 results";
-        if (modalSubtitle) modalSubtitle.textContent = `Starter plan ($49/mo) unlocks export for all ${n.toLocaleString()} rows`;
+        // A short list is fully covered by the preview, so telling that person
+        // their results are locked would simply be false. They still see the
+        // wall - it is the best-converting moment in the product - but it has to
+        // be an honest one: they got everything, and here is what scale costs.
+        const locked = extra && typeof extra.lockedRows === 'number'
+            ? extra.lockedRows
+            : Math.max(0, n - 5);
+        if (locked > 0) {
+            if (modalTitle) modalTitle.textContent = "You've previewed 5 results";
+            if (modalSubtitle) modalSubtitle.textContent = `Starter plan ($49/mo) unlocks export for all ${n.toLocaleString()} rows`;
+        } else {
+            if (modalTitle) modalTitle.textContent = `All ${n.toLocaleString()} row${n === 1 ? '' : 's'} exported`;
+            if (modalSubtitle) modalSubtitle.textContent = 'Free exports stop at 5 rows — Starter ($49/mo) runs lists of any size';
+        }
     } else {
         if (modalTitle) modalTitle.textContent = 'Choose Your Plan';
         if (modalSubtitle) modalSubtitle.textContent = 'Cancel anytime · No questions asked';
@@ -4248,6 +4261,36 @@ function setupDragAndDrop(){
     ua.addEventListener('drop',(e)=>{const files=e.dataTransfer.files;if(files.length>0)handleFile(files[0]);},false);
     function pD(e){e.preventDefault();e.stopPropagation();}
 }
+// The bulk card asked people to go and find a CSV before they could see what
+// bulk does, while the single-lookup card next to it ran a live example on one
+// click. 132 people used the bulk quickstart against 1,415 who enriched. This
+// removes the homework: same one click, real rows, real results.
+const SAMPLE_CSV = [
+    'name,company',
+    'Satya Nadella,Microsoft',
+    'Marc Benioff,Salesforce',
+    'Ryan Roslansky,LinkedIn',
+    'Aaron Levie,Box',
+    'Melanie Perkins,Canva',
+    'Jensen Huang,NVIDIA',
+    'Dylan Field,Figma',
+    'Tobi Lutke,Shopify'
+].join('\n');
+
+function useSampleCsv() {
+    try { posthog.capture('sample_csv_used', { rows: SAMPLE_CSV.split('\n').length - 1 }); } catch (e) {}
+    try {
+        const file = new File([SAMPLE_CSV], 'sample-leads.csv', { type: 'text/csv' });
+        handleFile(file);
+    } catch (e) {
+        // File is unavailable in a few older mobile browsers; Blob always works
+        // and handleFile only ever reads .name and passes it to FileReader.
+        const blob = new Blob([SAMPLE_CSV], { type: 'text/csv' });
+        blob.name = 'sample-leads.csv';
+        handleFile(blob);
+    }
+}
+
 function handleFile(file){
     if(!file.name.toLowerCase().endsWith('.csv')){showAlert('Please select a CSV file.','error');return;}
     const reader=new FileReader();
@@ -4911,15 +4954,17 @@ async function ensureSubscribedForExport() {
     }
 
     const totalRows = bulkResults.length;
+    const lockedRows = Math.max(0, totalRows - EXPORT_PREVIEW_ROW_LIMIT);
 
-    // Free users can export up to the preview limit with zero friction —
-    // no modal, no alert, nothing blocking. This is the "taste the value" path.
-    if (totalRows <= EXPORT_PREVIEW_ROW_LIMIT) {
-        return true;
-    }
-
-    // Only now — once they've explicitly tried to export more than the free
-    // preview — do we show the gate.
+    // Every bulk user meets the wall on export now, not only the ones with a
+    // list longer than the preview. Uploaders who hit this gate pay at 9.5%;
+    // uploaders who never hit it pay at 4.2%. Short-list users used to export
+    // straight through and never see a price at all, which made the single
+    // best-converting moment in the product conditional on list length.
+    //
+    // They still get their rows - downloadResults(true) below hands over the
+    // preview, and for a list at or under the limit that is the whole thing.
+    // The wall is an upsell after the value, not instead of it.
     try {
         posthog.capture('bulk_results_gated_shown', {
             total_rows: csvData.length,
@@ -4928,12 +4973,12 @@ async function ensureSubscribedForExport() {
             credits_remaining: currentCredits,
             input_type: currentInputType,
             output_type: currentOutputType,
-            gate_reason: 'export_requires_subscription'
+            gate_reason: lockedRows > 0 ? 'export_requires_subscription' : 'export_small_list'
         });
     } catch (e) {}
 
-    showPricingModal('export_gated', { totalRows });
-    downloadResults(true); // hand them the free 5-row preview export immediately
+    showPricingModal('export_gated', { totalRows, lockedRows });
+    downloadResults(true); // hand them their rows first - the preview covers a short list entirely
 
     return false;
 }
