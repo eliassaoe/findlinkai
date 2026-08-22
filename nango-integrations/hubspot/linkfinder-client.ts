@@ -66,8 +66,15 @@ export interface LinkFinderOutcome {
     /** false when the job was still processing when we stopped waiting */
     resolved: boolean;
     result: unknown;
-    jobId?: string;
-    pollUrl?: string;
+    /*
+     * `| undefined` is required, not decorative: Nango compiles with
+     * exactOptionalPropertyTypes, under which `jobId?: string` means the key is
+     * either absent or a string - assigning an explicit `undefined` is an error.
+     * Every construction site below builds the object in one literal with the
+     * key always present, so the value genuinely can be undefined.
+     */
+    jobId?: string | undefined;
+    pollUrl?: string | undefined;
 }
 
 /**
@@ -91,7 +98,7 @@ export async function callLinkFinderAI(apiKey: string, type: string, inputData: 
 }
 
 /** Single, non-looping status check — meant to be called repeatedly from a workflow delay loop. */
-export async function checkLinkFinderJob(apiKey: string, job: { jobId?: string; pollUrl?: string }): Promise<LinkFinderOutcome> {
+export async function checkLinkFinderJob(apiKey: string, job: { jobId?: string | undefined; pollUrl?: string | undefined }): Promise<LinkFinderOutcome> {
     const pollUrl = resolvePollUrl(job);
 
     const response = await fetch(pollUrl, { headers: { Authorization: `Bearer ${apiKey}` } });
@@ -115,7 +122,7 @@ export async function checkLinkFinderJob(apiKey: string, job: { jobId?: string; 
     };
 }
 
-async function pollUntil(apiKey: string, job: { jobId?: string; pollUrl?: string }, maxWaitMs: number): Promise<LinkFinderOutcome> {
+async function pollUntil(apiKey: string, job: { jobId?: string | undefined; pollUrl?: string | undefined }, maxWaitMs: number): Promise<LinkFinderOutcome> {
     const pollUrl = resolvePollUrl(job);
     const deadline = Date.now() + maxWaitMs;
     let delay = 1500;
@@ -134,7 +141,7 @@ async function pollUntil(apiKey: string, job: { jobId?: string; pollUrl?: string
     return { resolved: false, result: null, jobId: job.jobId, pollUrl };
 }
 
-function resolvePollUrl(job: { jobId?: string; pollUrl?: string }): string {
+function resolvePollUrl(job: { jobId?: string | undefined; pollUrl?: string | undefined }): string {
     const pollUrl = job.pollUrl ?? (job.jobId ? `${LINKFINDER_API_BASE}/status/${job.jobId}` : undefined);
     if (!pollUrl) {
         throw new LinkFinderError('Provide either a jobId or a pollUrl.', 'invalid_request');

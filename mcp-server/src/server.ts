@@ -91,10 +91,19 @@ COMMON WORKFLOWS
 
 COSTS & ASYNC BEHAVIOR
 
-Every call costs LinkFinder AI credits even when no data is found, except:
-find_company_employees (1 credit per employee returned), find_leads_ai
-(1 credit per lead returned), and find_linkedin_post_reactions (1 credit
-per reaction returned) — all other tools are a flat 1 credit per call.
+Every call costs LinkFinder AI credits even when no data is found. Cost varies
+by operation, because some data is far more expensive to source than others:
+
+  50 credits  find_phone_from_linkedin_profile
+  10 credits  find_email_from_linkedin_profile, get_linkedin_profile_info
+   6 credits  get_linkedin_company_info
+   5 credits  find_linkedin_url_from_email
+   1 credit   every company-name lookup, find_linkedin_url_from_name,
+              find_linkedin_company_employee_count
+
+find_company_employees (1 credit per employee returned), find_leads_ai (1 credit
+per lead returned) and find_linkedin_post_reactions (1 credit per reaction
+returned) bill per record instead of per call.
 
 get_linkedin_profile_info always runs asynchronously; find_company_employees
 occasionally does under heavy load. Both cases are handled transparently:
@@ -216,7 +225,7 @@ export function createServer(apiKey: string): McpServer {
     {
       title: "Get LinkedIn profile info",
       description:
-        "Look up full profile details (job history, education, headline, etc.) for a person from their LinkedIn profile URL — the main tool for \"scrape/look up this person's LinkedIn\". If you only have a name and company, not a URL, call find_linkedin_url_from_name first. This operation always processes asynchronously — this tool auto-polls for up to ~55s and, if it's not done yet, returns a job_id you can poll with check_job_status. Costs 1 credit.",
+        "Look up full profile details (job history, education, headline, etc.) for a person from their LinkedIn profile URL — the main tool for \"scrape/look up this person's LinkedIn\". If you only have a name and company, not a URL, call find_linkedin_url_from_name first. This operation always processes asynchronously — this tool auto-polls for up to ~55s and, if it's not done yet, returns a job_id you can poll with check_job_status. Costs 10 credits.",
       inputSchema: {
         linkedin_url: z.string().min(1).describe('The LinkedIn profile URL, e.g. "https://www.linkedin.com/in/someone".'),
       },
@@ -229,7 +238,7 @@ export function createServer(apiKey: string): McpServer {
     {
       title: "Find email from LinkedIn profile",
       description:
-        "Find a person's professional email address from their LinkedIn profile URL. If you only have a name and company, not a URL, call find_linkedin_url_from_name first. Costs 1 credit.",
+        "Find a person's professional email address from their LinkedIn profile URL. If you only have a name and company, not a URL, call find_linkedin_url_from_name first. Costs 10 credits.",
       inputSchema: {
         linkedin_url: z.string().min(1).describe('The LinkedIn profile URL, e.g. "https://www.linkedin.com/in/someone".'),
       },
@@ -242,7 +251,7 @@ export function createServer(apiKey: string): McpServer {
     {
       title: "Find phone number from LinkedIn profile",
       description:
-        "Find a person's phone number from their LinkedIn profile URL. If you only have a name and company, not a URL, call find_linkedin_url_from_name first. Costs 1 credit.",
+        "Find a person's phone number from their LinkedIn profile URL. If you only have a name and company, not a URL, call find_linkedin_url_from_name first. Costs 50 credits — the most expensive lookup, so only call it when a phone number is actually needed.",
       inputSchema: {
         linkedin_url: z.string().min(1).describe('The LinkedIn profile URL, e.g. "https://www.linkedin.com/in/someone".'),
       },
@@ -257,7 +266,7 @@ export function createServer(apiKey: string): McpServer {
     {
       title: "Get LinkedIn company info",
       description:
-        "Look up detailed company data (industry, employee count, follower count, founded year, description, etc.) from a LinkedIn COMPANY page URL. If you only have the company name, call find_company_linkedin_url first. Costs 1 credit.",
+        "Look up detailed company data (industry, employee count, follower count, founded year, description, etc.) from a LinkedIn COMPANY page URL. If you only have the company name, call find_company_linkedin_url first. Costs 6 credits.",
       inputSchema: {
         linkedin_company_url: z.string().min(1).describe('The LinkedIn company page URL, e.g. "https://www.linkedin.com/company/tesla-motors".'),
       },
@@ -311,7 +320,7 @@ export function createServer(apiKey: string): McpServer {
     "find_linkedin_url_from_email",
     {
       title: "Find LinkedIn URL from email",
-      description: "Reverse-lookup a person's LinkedIn profile URL from their professional email address. Costs 1 credit.",
+      description: "Reverse-lookup a person's LinkedIn profile URL from their professional email address. Costs 5 credits.",
       inputSchema: {
         email: z.string().min(1).describe('The professional email address, e.g. "john.doe@company.com".'),
       },

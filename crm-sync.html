@@ -12,7 +12,7 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
 <script src="/js/lf-attribution.js"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>LinkFinder VIP - LinkFinder AI</title>
+<title>CRM Data Health Audit - LinkFinder AI</title>
 <link rel="icon" href="https://i.ibb.co/jPjX9SSp/Screen-Shot-2025-03-28-at-8-16-15-PM.png">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
@@ -23,7 +23,6 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
     --gray-300: #d1d5db; --gray-400: #9ca3af; --gray-500: #6b7280;
     --gray-600: #4b5563; --gray-700: #374151; --gray-800: #1f2937;
     --gray-900: #111827; --success: #10b981; --error: #ef4444; --warning: #f59e0b;
-    --vip: #a16207;
 }
 *{margin:0;padding:0;box-sizing:border-box;}
 body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:var(--gray-50);color:var(--gray-800);line-height:1.6;font-size:16px;}
@@ -47,7 +46,7 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
 .main{padding:1.75rem 0 3rem;}
 .page-header{margin-bottom:1.5rem;}
 .page-header h1{font-size:1.5rem;font-weight:700;color:var(--gray-900);margin-bottom:.35rem;display:flex;align-items:center;gap:.6rem;}
-.page-header h1 i{color:var(--vip);}
+.page-header h1 i{color:var(--primary);}
 .page-header p{color:var(--gray-500);font-size:.9rem;max-width:520px;}
 
 .card{background:white;border:1px solid var(--gray-200);border-radius:12px;padding:1.5rem;margin-bottom:1.25rem;box-shadow:0 1px 3px rgba(0,0,0,.06);}
@@ -64,27 +63,11 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
 .cost-note{margin-top:1.25rem;padding:.75rem 1rem;background:var(--gray-50);border:1px solid var(--gray-200);border-radius:8px;font-size:.8rem;color:var(--gray-600);display:flex;gap:.6rem;align-items:flex-start;}
 .cost-note i{color:var(--warning);margin-top:.1rem;flex-shrink:0;}
 
-/* VIP hero + pricing */
-.vip-hero-card{background:linear-gradient(135deg,#fffbeb,#fff);border:1px solid #fde68a;}
-.vip-tag{display:inline-flex;align-items:center;gap:.4rem;background:var(--vip);color:white;font-size:.68rem;font-weight:700;padding:.25rem .7rem;border-radius:100px;margin-bottom:.9rem;text-transform:uppercase;letter-spacing:.05em;}
-.vip-hero-card p{font-size:.9rem;color:var(--gray-600);margin-bottom:1.1rem;max-width:480px;}
-.vip-numbered-list{list-style:none;counter-reset:vipstep;margin:0 0 1.1rem;padding:0;max-width:480px;}
-.vip-numbered-list li{counter-increment:vipstep;font-size:.88rem;color:var(--gray-700);padding-left:1.6rem;position:relative;margin-bottom:.4rem;}
-.vip-numbered-list li::before{content:counter(vipstep)".";position:absolute;left:0;font-weight:700;color:var(--vip);}
-.btn-vip{background:var(--vip);color:white;border:none;padding:.8rem 1.4rem;border-radius:8px;font-weight:700;cursor:pointer;font-size:.95rem;font-family:inherit;text-decoration:none;display:inline-flex;align-items:center;gap:.5rem;}
-.btn-vip:hover{background:#854d0e;}
-.vip-hero-sub{font-size:.78rem;color:var(--gray-400);margin-top:.75rem;}
+/* audit result cards */
 
-.vip-plan-row{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:1rem 0;border-bottom:1px solid var(--gray-100);flex-wrap:wrap;}
-.vip-plan-row:last-child{border-bottom:none;}
-.vip-plan-name{font-weight:700;color:var(--gray-900);font-size:.9rem;}
-.vip-plan-desc{font-size:.78rem;color:var(--gray-500);margin-top:.1rem;}
-.vip-plan-price{font-weight:700;color:var(--gray-900);font-size:.95rem;white-space:nowrap;}
-.vip-plan-price span{font-weight:500;color:var(--gray-400);font-size:.75rem;}
 
 @media(max-width:640px){
     .nav-tab{padding:.625rem .75rem;font-size:.8rem;}
-    .vip-plan-row{flex-direction:column;align-items:flex-start;gap:.25rem;}
 }
 </style>
 <script type="application/ld+json">
@@ -98,7 +81,79 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
 }
 </script>
 <link rel="canonical" href="https://linkfinderai.com/crm-sync"/>
+
+<style>
+/* ---- CRM audit ---- */
+.stages{display:flex;gap:.5rem;margin-bottom:1.5rem;flex-wrap:wrap;}
+.stage{flex:1;min-width:150px;background:white;border:1px solid var(--gray-200);border-radius:10px;padding:.9rem 1rem;position:relative;}
+.stage.active{border-color:var(--primary);box-shadow:0 0 0 3px rgba(37,99,235,.09);}
+.stage.done{border-color:var(--success);}
+.stage-num{width:22px;height:22px;border-radius:50%;background:var(--gray-200);color:var(--gray-600);font-size:.72rem;font-weight:700;display:flex;align-items:center;justify-content:center;margin-bottom:.45rem;}
+.stage.active .stage-num{background:var(--primary);color:white;}
+.stage.done .stage-num{background:var(--success);color:white;}
+.stage-title{font-size:.85rem;font-weight:700;color:var(--gray-900);}
+.stage-sub{font-size:.75rem;color:var(--gray-500);margin-top:.1rem;}
+
+.drop{border:2px dashed var(--gray-300);border-radius:12px;padding:2.25rem 1.5rem;text-align:center;background:var(--gray-50);cursor:pointer;transition:all .18s;}
+.drop:hover,.drop.over{border-color:var(--primary);background:#eff6ff;}
+.drop i{font-size:1.9rem;color:var(--primary);margin-bottom:.7rem;display:block;}
+.drop-title{font-weight:700;color:var(--gray-900);font-size:.95rem;margin-bottom:.25rem;}
+.drop-sub{font-size:.82rem;color:var(--gray-500);}
+.privacy{margin-top:.9rem;font-size:.78rem;color:var(--gray-500);display:flex;align-items:center;justify-content:center;gap:.4rem;}
+.privacy i{color:var(--success);}
+
+.score-row{display:flex;align-items:center;gap:1.25rem;flex-wrap:wrap;margin-bottom:1.25rem;}
+.score-ring{width:104px;height:104px;flex-shrink:0;position:relative;}
+.score-ring svg{transform:rotate(-90deg);}
+.score-val{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.score-num{font-size:1.6rem;font-weight:700;color:var(--gray-900);line-height:1;}
+.score-lbl{font-size:.62rem;color:var(--gray-500);text-transform:uppercase;letter-spacing:.05em;margin-top:.15rem;}
+.score-facts{flex:1;min-width:220px;}
+.fact{font-size:.85rem;color:var(--gray-600);margin-bottom:.3rem;}
+.fact strong{color:var(--gray-900);font-weight:700;}
+
+table.gaps{width:100%;border-collapse:collapse;font-size:.85rem;}
+table.gaps th{text-align:left;font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;color:var(--gray-500);padding:.5rem .6rem;border-bottom:1px solid var(--gray-200);font-weight:600;}
+table.gaps td{padding:.6rem;border-bottom:1px solid var(--gray-100);color:var(--gray-700);}
+table.gaps td.num{text-align:right;font-variant-numeric:tabular-nums;font-weight:600;color:var(--gray-900);}
+table.gaps tr:last-child td{border-bottom:none;}
+table.gaps tfoot td{font-weight:700;color:var(--gray-900);border-top:2px solid var(--gray-200);}
+.gaps-wrap{overflow-x:auto;}
+
+.compare{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:.5rem;}
+.opt{border:1px solid var(--gray-200);border-radius:10px;padding:1.1rem;background:white;position:relative;}
+.opt.win{border-color:var(--success);background:#f0fdf4;}
+.opt-tag{font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--gray-400);margin-bottom:.4rem;}
+.opt.win .opt-tag{color:var(--success);}
+.opt-price{font-size:1.5rem;font-weight:700;color:var(--gray-900);line-height:1.1;}
+.opt-price span{font-size:.8rem;font-weight:500;color:var(--gray-500);}
+.opt-desc{font-size:.8rem;color:var(--gray-600);margin-top:.4rem;line-height:1.45;}
+.saving{margin-top:1rem;padding:.8rem 1rem;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:8px;font-size:.87rem;color:#065f46;font-weight:600;display:flex;gap:.55rem;align-items:flex-start;}
+.saving i{margin-top:.15rem;}
+.decay{margin-top:1rem;padding:.8rem 1rem;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;font-size:.83rem;color:#92400e;display:flex;gap:.55rem;align-items:flex-start;}
+.decay i{margin-top:.15rem;flex-shrink:0;}
+
+.btn-primary{background:var(--primary);color:white;border:none;padding:.85rem 1.5rem;border-radius:8px;font-weight:700;cursor:pointer;font-size:.95rem;font-family:inherit;display:inline-flex;align-items:center;gap:.5rem;text-decoration:none;}
+.btn-primary:hover{background:var(--primary-hover);}
+.btn-ghost{background:transparent;border:1px solid var(--gray-300);color:var(--gray-600);padding:.6rem 1rem;border-radius:8px;font-size:.83rem;cursor:pointer;font-family:inherit;font-weight:500;}
+.btn-ghost:hover{background:var(--gray-50);}
+.hidden{display:none!important;}
+.sync-loading{font-size:.85rem;color:var(--gray-500);display:flex;align-items:center;gap:.5rem;}
+.sync-connected{display:flex;align-items:center;gap:.75rem;padding:1rem;background:#f0fdf4;border:1px solid #a7f3d0;border-radius:10px;flex-wrap:wrap;}
+.sync-connected i.badge{color:var(--success);font-size:1.15rem;}
+.sync-connected-text{flex:1;min-width:200px;font-size:.87rem;color:#065f46;}
+.sync-connected-text strong{display:block;font-weight:700;margin-bottom:.1rem;}
+.btn-danger-ghost{background:transparent;border:1px solid #fecaca;color:#b91c1c;padding:.5rem .85rem;border-radius:7px;font-size:.8rem;cursor:pointer;font-family:inherit;font-weight:500;}
+.btn-danger-ghost:hover{background:#fef2f2;}
+.sync-locked{padding:1rem;background:var(--gray-50);border:1px solid var(--gray-200);border-radius:10px;font-size:.85rem;color:var(--gray-600);}
+.field-toggles{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1rem;}
+.chip{display:inline-flex;align-items:center;gap:.4rem;padding:.4rem .75rem;border-radius:100px;border:1px solid var(--gray-300);background:white;font-size:.8rem;color:var(--gray-600);cursor:pointer;user-select:none;font-family:inherit;}
+.chip.on{background:var(--primary);border-color:var(--primary);color:white;}
+.err{background:#fef2f2;border:1px solid #fecaca;color:#991b1b;padding:.8rem 1rem;border-radius:8px;font-size:.85rem;margin-top:1rem;}
+@media(max-width:640px){.compare{grid-template-columns:1fr;}}
+</style>
 </head>
+
 <body>
 
 <header class="header">
@@ -131,118 +186,551 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
         </div>
     </div>
 </nav>
-
 <div class="container">
     <div class="main">
 
         <div class="page-header">
-            <h1><i class="fas fa-star"></i> LinkFinder VIP — Managed CRM &amp; Enrichment</h1>
-            <p>You already know LinkFinder AI's data is good — VIP means we run it for you. We connect your CRM, keep it enriched, and handle the automation ourselves. No settings to configure, no weekly babysitting.</p>
+            <h1><i class="fas fa-heart-pulse"></i> CRM Data Health Audit</h1>
+            <p>See exactly what is missing from your CRM, what it costs to fix, and how to stop it decaying again. Free, and your file never leaves this browser.</p>
         </div>
 
-        <div class="card vip-hero-card">
-            <span class="vip-tag"><i class="fas fa-star"></i> Free CRM Audit</span>
-            <h2 style="font-size:1.15rem;font-weight:700;color:var(--gray-900);margin-bottom:.5rem;">Connect your CRM to LinkFinder VIP</h2>
-            <p>Keep your CRM always up to date and stop doing this by hand — book a free audit and we'll show you exactly what we'd fix:</p>
-            <ol class="vip-numbered-list">
-                <li>Automatically enrich new &amp; existing records</li>
-                <li>Detect &amp; merge duplicates</li>
-                <li>Keep it maintained every month, not just once</li>
-            </ol>
-            <p>We'll start with a free 30-minute audit of your CRM. You'll see exactly what we'd change before deciding anything — no obligation either way.</p>
-            <a href="https://calendly.com/hamoureliasse/compensated-interview-unlimited-leads-clone" target="_blank" rel="noopener" class="btn-vip" onclick="try{posthog.capture('vip_cta_clicked',{source:'crm_sync_tab'})}catch(e){}">
-                <i class="fas fa-calendar-check"></i> Book Your Free CRM Audit
-            </a>
-            <div class="vip-hero-sub">Starting from $497/mo, based on your CRM size &middot; already a LinkFinder AI customer — this plugs straight into the account you're using right now.</div>
+        <div class="stages">
+            <div class="stage active" id="stage1">
+                <div class="stage-num">1</div>
+                <div class="stage-title">Health check</div>
+                <div class="stage-sub">Find every gap and duplicate</div>
+            </div>
+            <div class="stage" id="stage2">
+                <div class="stage-num">2</div>
+                <div class="stage-title">Clean &amp; enrich</div>
+                <div class="stage-sub">Fill the gaps with LinkFinder</div>
+            </div>
+            <div class="stage" id="stage3">
+                <div class="stage-num">3</div>
+                <div class="stage-title">Keep it clean</div>
+                <div class="stage-sub">Auto-enrich every new record</div>
+            </div>
         </div>
 
-        <div class="card">
-            <h2><i class="fas fa-tag"></i> Pricing</h2>
-            <div class="vip-plan-row">
-                <div>
-                    <div class="vip-plan-name">Starter</div>
-                    <div class="vip-plan-desc">One CRM, fully connected, enriched, and kept clean.</div>
-                </div>
-                <div class="vip-plan-price">$497<span>/mo</span> + $1,000 setup</div>
+        <!-- STEP 1: upload -->
+        <div class="card" id="uploadCard">
+            <h2><i class="fas fa-file-csv"></i> Upload your CRM export</h2>
+            <div class="drop" id="drop">
+                <i class="fas fa-cloud-arrow-up"></i>
+                <div class="drop-title">Drop your CSV here, or click to choose a file</div>
+                <div class="drop-sub">Works with any CRM export &mdash; HubSpot, Salesforce, Pipedrive, or a plain spreadsheet</div>
+                <input type="file" id="file" accept=".csv,text/csv" class="hidden">
             </div>
-            <div class="vip-plan-row">
-                <div>
-                    <div class="vip-plan-name">Growth</div>
-                    <div class="vip-plan-desc">Up to 3 managed automations on top of a clean CRM.</div>
-                </div>
-                <div class="vip-plan-price">$1,200<span>/mo</span> + $2,000 setup</div>
+            <div class="privacy">
+                <i class="fas fa-lock"></i>
+                Analysed entirely in your browser. The file is never uploaded to us.
             </div>
-            <div class="vip-plan-row">
-                <div>
-                    <div class="vip-plan-name">Scale</div>
-                    <div class="vip-plan-desc">Multiple CRMs, multiple teams, or a bespoke process.</div>
-                </div>
-                <div class="vip-plan-price">Custom<span> — scoped after your audit</span></div>
+            <div id="uploadErr"></div>
+            <div class="cost-note" style="margin-top:1.25rem;">
+                <i class="fas fa-circle-info"></i>
+                <div><strong>How to export from HubSpot:</strong> Contacts &rarr; top-right <em>Export</em> &rarr; choose your properties (email, phone, job title, company, LinkedIn) &rarr; CSV. Any column layout works &mdash; we detect the fields automatically.</div>
             </div>
-            <div class="cost-note">
-                <i class="fas fa-info-circle"></i>
-                <div>Every tier starts with the same free audit — pricing is only decided after we've actually looked at your CRM.</div>
-            </div>
-            <a href="https://linkfinderai.com/linkfinder-vip" target="_blank" rel="noopener" style="font-size:.8rem;color:var(--primary);font-weight:600;text-decoration:none;display:inline-block;margin-top:1rem;" onclick="try{posthog.capture('vip_card_clicked',{source:'crm_sync_tab'})}catch(e){}">See full VIP details &rarr;</a>
         </div>
 
+        <!-- STEP 2: results -->
+        <div id="results" class="hidden">
+
+            <div class="card">
+                <h2><i class="fas fa-clipboard-check"></i> What we found</h2>
+                <div class="score-row">
+                    <div class="score-ring">
+                        <svg width="104" height="104">
+                            <circle cx="52" cy="52" r="45" fill="none" stroke="#e5e7eb" stroke-width="10"/>
+                            <circle id="ringFill" cx="52" cy="52" r="45" fill="none" stroke="#2563eb" stroke-width="10"
+                                    stroke-linecap="round" stroke-dasharray="283" stroke-dashoffset="283"/>
+                        </svg>
+                        <div class="score-val">
+                            <div class="score-num" id="scoreNum">--</div>
+                            <div class="score-lbl">complete</div>
+                        </div>
+                    </div>
+                    <div class="score-facts" id="facts"></div>
+                </div>
+
+                <div class="field-toggles" id="toggles"></div>
+
+                <div class="gaps-wrap">
+                    <table class="gaps">
+                        <thead>
+                            <tr><th>Gap</th><th>How we fix it</th><th style="text-align:right;">Records</th><th style="text-align:right;">Credits</th></tr>
+                        </thead>
+                        <tbody id="gapRows"></tbody>
+                        <tfoot>
+                            <tr><td colspan="3">Total to fully enrich your CRM</td><td class="num" id="totalCredits">0</td></tr>
+                        </tfoot>
+                    </table>
+                </div>
+
+                <button class="btn-ghost" style="margin-top:1rem;" onclick="reset()"><i class="fas fa-rotate-left"></i> Audit a different file</button>
+            </div>
+
+            <!-- the commercial core -->
+            <div class="card" id="quoteCard">
+                <h2><i class="fas fa-calculator"></i> What it costs to fix</h2>
+                <div class="compare" id="compare"></div>
+                <div id="saving"></div>
+                <div id="decay"></div>
+                <div style="margin-top:1.25rem;" id="cta"></div>
+            </div>
+
+            <!-- stage 3 -->
+            <div class="card" id="syncCard">
+                <h2><i class="fas fa-arrows-rotate"></i> Stage 3 &mdash; keep it clean automatically</h2>
+                <p style="font-size:.87rem;color:var(--gray-600);margin-bottom:1rem;">
+                    Cleaning once is temporary. Connect HubSpot and every new contact is enriched the moment it is created &mdash; so the gaps never come back and you never run this audit again.
+                </p>
+                <div id="syncState"><div class="sync-loading"><i class="fas fa-circle-notch fa-spin"></i> Checking your HubSpot connection&hellip;</div></div>
+            </div>
+
+        </div>
     </div>
 </div>
 
+<script src="/js/lf-crm-audit.js"></script>
 <script>
 let userToken = null;
+let lastAudit = null;
+let lastCSV = null;
+// Phone is excluded by default: at 50 credits it is 5-50x every other lookup
+// and dominates any quote it appears in. The toggle still shows how many are
+// missing, so the opportunity stays visible without inflating the headline.
+const DEFAULT_OFF = ['phone'];
+let activeFields = LFCrmAudit.FIELDS.map(f => f.key).filter(k => !DEFAULT_OFF.includes(k));
+
 const urlParams = new URLSearchParams(window.location.search);
 const gclid = urlParams.get('gclid');
-function addGclid(url) { if (!gclid) return url; return url + (url.includes('?') ? '&' : '?') + 'gclid=' + gclid; }
+function addGclid(url){ if(!gclid) return url; return url + (url.includes('?')?'&':'?') + 'gclid=' + gclid; }
 
-function checkAuth() {
+function checkAuth(){
     let token = urlParams.get('token') || localStorage.getItem('linkFinderToken');
-    if (!token) { window.location.href = 'https://linkfinderai.com/'; return; }
+    if(!token){ window.location.href='https://linkfinderai.com/'; return; }
     localStorage.setItem('linkFinderToken', token);
     userToken = token;
-    if (window.posthog) posthog.identify(token);
+    if(window.posthog) posthog.identify(token);
+}
+function logout(){ localStorage.removeItem('linkFinderToken'); window.location.href='https://linkfinderai.com/'; }
+function nav(page){
+    const m={enrichment:'app',api:'api-access',history:'history',account:'account'};
+    window.location.href = addGclid('https://linkfinderai.com/'+m[page]+'?token='+userToken);
 }
 
-function logout() { localStorage.removeItem('linkFinderToken'); window.location.href = 'https://linkfinderai.com/'; }
-function nav(page) {
-    const m = { enrichment: 'app', api: 'api-access', history: 'history', account: 'account' };
-    window.location.href = addGclid('https://linkfinderai.com/' + m[page] + '?token=' + userToken);
-}
-
-async function fetchCredits() {
-    try {
-        const r = await fetch('https://linkfinderaicredits.hamoureliasse.workers.dev/', {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ token: userToken })
+async function fetchCredits(){
+    try{
+        const r = await fetch('https://linkfinderaicredits.hamoureliasse.workers.dev/',{
+            method:'POST',headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({token:userToken})
         });
-        if (r.ok) { const d = await r.json(); document.getElementById('creditsCount').textContent = Math.max(0, d.credits || 0); }
-    } catch(e) {}
+        if(r.ok){ const d=await r.json(); document.getElementById('creditsCount').textContent=Math.max(0,d.credits||0); }
+    }catch(e){}
 }
 
-async function handleAddCredits() {
-    const btn = document.getElementById('buyCreditsBtn');
-    const orig = btn.innerHTML;
-    btn.innerHTML = '...'; btn.disabled = true;
-    try {
-        const res = await fetch('https://scalelinkfinderai-production.up.railway.app/webhook/a30d8fea-5360-4003-be0d-9cea914390b0', {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ token: userToken })
+async function handleAddCredits(){
+    const btn=document.getElementById('buyCreditsBtn'); const orig=btn.innerHTML;
+    btn.innerHTML='...'; btn.disabled=true;
+    try{
+        const res=await fetch('https://scalelinkfinderai-production.up.railway.app/webhook/a30d8fea-5360-4003-be0d-9cea914390b0',{
+            method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:userToken})
         });
-        const data = await res.json();
-        window.location.href = addGclid(`https://linkfinderai.com/app?token=${userToken}&action=${data.issub ? 'buy_credits' : 'upgrade'}`);
-    } catch(e) {
-        window.location.href = addGclid(`https://linkfinderai.com/app?token=${userToken}&action=upgrade`);
-    } finally { btn.innerHTML = orig; btn.disabled = false; }
+        const data=await res.json();
+        window.location.href=addGclid(`https://linkfinderai.com/app?token=${userToken}&action=${data.issub?'buy_credits':'upgrade'}`);
+    }catch(e){
+        window.location.href=addGclid(`https://linkfinderai.com/app?token=${userToken}&action=upgrade`);
+    }finally{ btn.innerHTML=orig; btn.disabled=false; }
 }
 
-window.logout = logout;
-window.nav = nav;
-window.handleAddCredits = handleAddCredits;
+/* ---------- file handling ---------- */
 
-document.addEventListener('DOMContentLoaded', () => {
-    checkAuth();
-    fetchCredits();
-    try { posthog.capture('crm_sync_page_viewed'); } catch(e) {}
+const drop=document.getElementById('drop');
+const fileInput=document.getElementById('file');
+
+drop.addEventListener('click',()=>fileInput.click());
+drop.addEventListener('dragover',e=>{e.preventDefault();drop.classList.add('over');});
+drop.addEventListener('dragleave',()=>drop.classList.remove('over'));
+drop.addEventListener('drop',e=>{
+    e.preventDefault(); drop.classList.remove('over');
+    if(e.dataTransfer.files.length) readFile(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener('change',e=>{ if(e.target.files.length) readFile(e.target.files[0]); });
+
+function showErr(msg){
+    document.getElementById('uploadErr').innerHTML='<div class="err"><i class="fas fa-triangle-exclamation"></i> '+msg+'</div>';
+}
+
+function readFile(file){
+    document.getElementById('uploadErr').innerHTML='';
+    if(!/\.csv$/i.test(file.name)){ showErr('Please upload a .csv file. Most CRMs offer CSV in their export dialog.'); return; }
+    // 40MB guard: bigger than any realistic contact export and keeps the tab responsive.
+    if(file.size > 40*1024*1024){ showErr('That file is over 40MB. Export in batches, or filter to the contacts you actually want enriched.'); return; }
+
+    try{ posthog.capture('crm_audit_started',{file_size_kb:Math.round(file.size/1024)}); }catch(e){}
+
+    const reader=new FileReader();
+    reader.onerror=()=>showErr('Could not read that file. Try re-exporting it from your CRM.');
+    reader.onload=()=>{
+        lastCSV = reader.result;
+        runAudit();
+    };
+    reader.readAsText(file);
+}
+
+function runAudit(){
+    let res;
+    try{
+        res = LFCrmAudit.auditCSV(lastCSV,{fields:activeFields});
+    }catch(err){
+        showErr('That file could not be parsed as CSV. Re-export it from your CRM without any custom formatting.');
+        return;
+    }
+    if(!res.totalContacts){
+        showErr('No contact rows found in that file. Make sure the first row is your column headers.');
+        return;
+    }
+    lastAudit = res;
+    render(res);
+}
+
+/* ---------- rendering ---------- */
+
+function render(r){
+    const f = LFCrmAudit.fmt;
+
+    document.getElementById('uploadCard').classList.add('hidden');
+    document.getElementById('results').classList.remove('hidden');
+    document.getElementById('stage1').classList.add('done');
+    document.getElementById('stage2').classList.add('active');
+
+    // score ring
+    document.getElementById('scoreNum').textContent = r.completeness + '%';
+    const circ = 2*Math.PI*45;
+    const fill = document.getElementById('ringFill');
+    fill.setAttribute('stroke-dasharray', circ);
+    fill.setAttribute('stroke-dashoffset', circ - (circ * r.completeness/100));
+    fill.setAttribute('stroke', r.completeness >= 80 ? '#10b981' : r.completeness >= 50 ? '#f59e0b' : '#ef4444');
+
+    const dupes = r.duplicates.byEmail + r.duplicates.byNameCompany;
+    let facts = '<div class="fact"><strong>' + f(r.totalContacts) + '</strong> contacts analysed</div>';
+    const totalGaps = r.breakdown.reduce((s,b)=>s+b.count,0);
+    facts += '<div class="fact"><strong>' + f(totalGaps) + '</strong> missing field' + (totalGaps===1?'':'s') + ' across your database</div>';
+    // Reported separately and worded differently: a repeated email is proof, a
+    // repeated name at the same company is only a candidate for review.
+    if(r.duplicates.byEmail){
+        facts += '<div class="fact"><strong>' + f(r.duplicates.byEmail) + '</strong> exact duplicate' +
+                 (r.duplicates.byEmail===1?'':'s') + ' (same email address)</div>';
+    }
+    if(r.duplicates.byNameCompany){
+        facts += '<div class="fact"><strong>' + f(r.duplicates.byNameCompany) + '</strong> possible duplicate' +
+                 (r.duplicates.byNameCompany===1?'':'s') + ' (same name at the same company) &mdash; worth reviewing</div>';
+    }
+    if(r.unmappedFields.length){
+        facts += '<div class="fact" style="color:var(--gray-400);font-size:.8rem;margin-top:.5rem;">No column found for: ' +
+                 r.unmappedFields.join(', ') + ' &mdash; counted as missing for every record.</div>';
+    }
+    document.getElementById('facts').innerHTML = facts;
+
+    // field toggles
+    document.getElementById('toggles').innerHTML = LFCrmAudit.FIELDS.map(fl => {
+        const on = activeFields.includes(fl.key);
+        const missing = (r.allGaps && r.allGaps[fl.key]) || 0;
+        const cost = LFCrmAudit.CREDIT_COST[fl.key];
+        // Show the count on every chip, on or off, so the cost of turning one on
+        // is legible before the click.
+        const badge = missing ? ' <span style="opacity:.75;">&middot; ' + f(missing) + ' missing</span>' : '';
+        const tip = missing ? fl.fix + ' — ' + f(missing) + ' records x ' + cost + ' credits = ' + f(missing*cost) + ' credits' : fl.fix;
+        return '<button class="chip ' + (on?'on':'') + '" title="' + tip + '" onclick="toggleField(\''+fl.key+'\')">' +
+               (on?'<i class="fas fa-check"></i> ':'') + fl.fix + badge + '</button>';
+    }).join('');
+
+    // gap table
+    document.getElementById('gapRows').innerHTML = r.breakdown.length
+        ? r.breakdown.map(b =>
+            '<tr><td>'+b.label+'</td><td style="color:var(--gray-500);">'+b.fix+'</td>' +
+            '<td class="num">'+f(b.count)+'</td><td class="num">'+f(b.credits)+'</td></tr>').join('')
+        : '<tr><td colspan="4" style="color:var(--gray-500);">No gaps in the selected fields.</td></tr>';
+    document.getElementById('totalCredits').textContent = f(r.creditsNeeded);
+
+    renderQuote(r);
+
+    /*
+     * Two writes, deliberately different.
+     *
+     * The event drives the workflow trigger and the funnel. The person
+     * properties are what the follow-up email interpolates: PostHog Workflows
+     * personalise from PERSON properties via Liquid merge tags, not from the
+     * triggering event's properties, so a report email needs these set or it
+     * renders fallbacks.
+     *
+     * Only aggregates are sent - counts, percentages, a plan name. No row, no
+     * column value, no contact ever leaves the browser, so the promise made on
+     * the upload card stays true.
+     */
+    const rec = r.recommendation;
+    const topGap = r.breakdown.slice().sort((a,b)=>b.count-a.count)[0];
+
+    try{
+        posthog.capture('crm_audit_completed',{
+            contacts:r.totalContacts, credits_needed:r.creditsNeeded,
+            completeness:r.completeness, duplicates:dupes, verdict:rec.verdict
+        });
+
+        posthog.setPersonProperties({
+            crm_audit_contacts:       f(r.totalContacts),
+            crm_audit_completeness:   r.completeness,
+            crm_audit_missing_fields: f(totalGaps),
+            crm_audit_credits_needed: f(r.creditsNeeded),
+            crm_audit_top_gap:        topGap ? topGap.label.replace(/^Missing /,'') : '',
+            crm_audit_top_gap_count:  topGap ? f(topGap.count) : '',
+            crm_audit_verdict:        rec.verdict,
+            crm_audit_plan_name:      rec.plan ? rec.plan.name : '',
+            crm_audit_plan_price:     rec.plan ? rec.plan.price : '',
+            crm_audit_pack_price:     rec.pack ? f(rec.pack.price) : '',
+            crm_audit_saving:         (rec.savingVsPacks && rec.savingVsPacks > 0) ? f(rec.savingVsPacks) : '',
+            crm_audit_at:             new Date().toISOString()
+        });
+    }catch(e){}
+}
+
+/*
+ * The comparison that does the selling. Both real numbers, side by side —
+ * a pack is the intuitive way to buy a one-off cleanup, but packs cost 2-5x
+ * more per credit than a plan, so for any CRM of size the subscription is
+ * simply the better deal. Showing both lets the arithmetic make the case.
+ */
+function renderQuote(r){
+    const f = LFCrmAudit.fmt;
+    const rec = r.recommendation;
+    const compare = document.getElementById('compare');
+    const saving = document.getElementById('saving');
+    const decay = document.getElementById('decay');
+    const cta = document.getElementById('cta');
+
+    if(rec.verdict === 'clean'){
+        compare.innerHTML = '<div class="opt win" style="grid-column:1/-1;"><div class="opt-tag">Nothing to buy</div>' +
+            '<div class="opt-price">$0</div><div class="opt-desc">'+rec.headline+'</div></div>';
+        saving.innerHTML=''; decay.innerHTML=''; cta.innerHTML=''; return;
+    }
+
+    if(rec.verdict === 'contact'){
+        compare.innerHTML = '<div class="opt win" style="grid-column:1/-1;"><div class="opt-tag">Custom volume</div>' +
+            '<div class="opt-price">'+f(rec.creditsNeeded)+' <span>credits needed</span></div>' +
+            '<div class="opt-desc">'+rec.headline+' We will price this against your actual volume rather than a standard plan.</div></div>';
+        saving.innerHTML='';
+        decay.innerHTML='';
+        // Above Enterprise's monthly allocation this stops being a checkout and
+        // becomes a conversation - and these are the largest CRMs the audit sees,
+        // so the booking link is the point of the whole free audit.
+        cta.innerHTML='<a href="'+bookingUrl('volume_quote')+'" target="_blank" rel="noopener" class="btn-primary" onclick="track(\'cta_clicked\',\'contact\')"><i class="fas fa-calendar-check"></i> Book a call for a volume quote</a>' +
+            '<div style="font-size:.78rem;color:var(--gray-400);margin-top:.7rem;">15 minutes. Bring this report &mdash; we price against your actual volume, not a standard plan.</div>';
+        track('cta_shown','contact'); return;
+    }
+
+    const packs = rec.pack.packs.map(p => p.count+'x '+f(p.credits)).join(' + ');
+    const planWins = rec.verdict === 'plan';
+
+    compare.innerHTML =
+        '<div class="opt '+(planWins?'':'win')+'">' +
+            '<div class="opt-tag">One-time credit pack</div>' +
+            '<div class="opt-price">$'+f(rec.pack.price)+'</div>' +
+            '<div class="opt-desc">'+packs+' = '+f(rec.pack.credits)+' credits.<br>Covers this backlog once. New contacts added afterwards are not included.</div>' +
+        '</div>' +
+        '<div class="opt '+(planWins?'win':'')+'">' +
+            '<div class="opt-tag">'+(planWins?'Recommended — '+rec.plan.name:rec.plan.name+' plan')+'</div>' +
+            '<div class="opt-price">$'+rec.plan.price+'<span>/mo</span></div>' +
+            '<div class="opt-desc">'+f(rec.plan.credits)+' credits every month &mdash; enough to clean your whole CRM now, then keep it clean automatically.</div>' +
+        '</div>';
+
+    saving.innerHTML = planWins && rec.savingVsPacks > 0
+        ? '<div class="saving"><i class="fas fa-circle-check"></i><div>'+rec.plan.name+' costs <strong>$'+f(rec.savingVsPacks)+' less</strong> than buying these credits as packs &mdash; and you get '+f(rec.plan.credits)+' more every month after.</div></div>'
+        : '';
+
+    decay.innerHTML = rec.maintenanceCredits > 0
+        ? '<div class="decay"><i class="fas fa-triangle-exclamation"></i><div>A one-time clean is temporary. At roughly <strong>'+f(rec.monthlyNewContacts)+' new contacts a month</strong>, your CRM will need about <strong>'+f(rec.maintenanceCredits)+' credits every month</strong> just to stop the gaps coming back.</div></div>'
+        : '';
+
+    const target = planWins ? rec.plan.id : 'credits';
+    cta.innerHTML = planWins
+        ? '<a href="#" class="btn-primary" onclick="goUpgrade(\''+rec.plan.id+'\');return false;"><i class="fas fa-arrow-up-right-dots"></i> Get '+rec.plan.name+' and fix this now</a>'
+        : '<a href="#" class="btn-primary" onclick="goUpgrade(\'credits\');return false;"><i class="fas fa-coins"></i> Buy '+f(rec.pack.credits)+' credits &mdash; $'+f(rec.pack.price)+'</a>';
+
+    track('cta_shown', target);
+}
+
+const CALENDLY = 'https://calendly.com/hamoureliasse/compensated-interview-unlimited-leads-clone';
+
+/*
+ * Calendly reads utm_* off the query string and stores it against the booking,
+ * so a call that came from the audit is identifiable in Calendly itself without
+ * relying on the attendee remembering to say so.
+ */
+function bookingUrl(campaign){
+    const p = new URLSearchParams({
+        utm_source: 'linkfinder_app',
+        utm_medium: 'crm_audit',
+        utm_campaign: campaign
+    });
+    if(lastAudit){
+        p.set('utm_content', lastAudit.creditsNeeded + 'cr_' + lastAudit.totalContacts + 'contacts');
+    }
+    return CALENDLY + '?' + p.toString();
+}
+
+function track(ev, target){
+    try{
+        posthog.capture('crm_audit_'+ev,{
+            target: target,
+            credits_needed: lastAudit ? lastAudit.creditsNeeded : null,
+            contacts: lastAudit ? lastAudit.totalContacts : null
+        });
+    }catch(e){}
+}
+
+function toggleField(key){
+    if(activeFields.includes(key)) activeFields = activeFields.filter(k=>k!==key);
+    else activeFields.push(key);
+    if(!activeFields.length){ activeFields=[key]; return; }   // never allow an empty selection
+    runAudit();
+}
+
+function goUpgrade(plan){
+    track('cta_clicked', plan);
+    const action = plan==='credits' ? 'buy_credits' : 'upgrade';
+    window.location.href = addGclid('https://linkfinderai.com/app?token='+userToken+'&action='+action+'&plan='+plan+'&src=crm_audit');
+}
+
+function reset(){
+    lastAudit=null; lastCSV=null; fileInput.value='';
+    document.getElementById('results').classList.add('hidden');
+    document.getElementById('uploadCard').classList.remove('hidden');
+    document.getElementById('stage1').classList.remove('done');
+    document.getElementById('stage2').classList.remove('active');
+}
+
+/* ---------- stage 3: HubSpot connection ---------- */
+
+const NANGO_WORKER = 'https://nangoconnect.hamoureliasse.workers.dev';
+
+async function nangoCall(route){
+    const r = await fetch(NANGO_WORKER + '/' + route, {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({token:userToken})
+    });
+    return { ok: r.ok, status: r.status, data: await r.json().catch(()=>({})) };
+}
+
+function renderSync(state){
+    const el = document.getElementById('syncState');
+    if(!el) return;
+
+    if(state === 'connected'){
+        el.innerHTML =
+            '<div class="sync-connected">' +
+                '<i class="fas fa-circle-check badge"></i>' +
+                '<div class="sync-connected-text"><strong>HubSpot is connected</strong>' +
+                'New contacts are enriched automatically. You should not need to run this audit again.</div>' +
+                '<button class="btn-danger-ghost" onclick="disconnectHubspot()">Disconnect</button>' +
+            '</div>' +
+            '<div style="font-size:.78rem;color:var(--gray-400);margin-top:.7rem;">Also available via n8n, Make and Zapier.</div>';
+        return;
+    }
+
+    if(state === 'locked'){
+        // The worker returned 402. Sync costs us a managed connection per customer,
+        // which is exactly why it sits behind a plan while the audit does not.
+        el.innerHTML =
+            '<div class="sync-locked"><i class="fas fa-lock" style="margin-right:.4rem;"></i>' +
+            'Automatic sync is included on any paid plan. The audit above stays free either way.</div>' +
+            '<a href="#" class="btn-primary" style="margin-top:1rem;" onclick="goUpgrade(\'sync\');return false;">' +
+            '<i class="fas fa-arrow-up-right-dots"></i> See plans</a>';
+        return;
+    }
+
+    if(state === 'error'){
+        el.innerHTML = '<div class="err">Could not reach the connection service. Refresh and try again, or email support@linkfinderai.com.</div>';
+        return;
+    }
+
+    el.innerHTML =
+        '<a href="#" class="btn-primary" onclick="connectHubspot();return false;" id="connectBtn">' +
+        '<i class="fab fa-hubspot"></i> Connect HubSpot</a>' +
+        '<div style="font-size:.78rem;color:var(--gray-400);margin-top:.7rem;">' +
+        'Read and write access to contacts only. Disconnect any time. Also available via n8n, Make and Zapier.</div>';
+}
+
+async function refreshSyncState(){
+    try{
+        const res = await nangoCall('status');
+        if(!res.ok){ renderSync('error'); return; }
+        if(res.data.connected){ renderSync('connected'); return; }
+        renderSync(res.data.paid ? 'disconnected' : 'locked');
+    }catch(e){ renderSync('error'); }
+}
+
+async function connectHubspot(){
+    const btn = document.getElementById('connectBtn');
+    if(btn){ btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Opening&hellip;'; }
+    track('sync_connect_started', 'hubspot');
+
+    let res;
+    try{ res = await nangoCall('session'); }
+    catch(e){ renderSync('error'); return; }
+
+    if(res.status === 402){ renderSync('locked'); track('sync_connect_blocked','plan_required'); return; }
+    if(res.data.alreadyConnected){ renderSync('connected'); return; }
+    if(!res.ok || !res.data.sessionToken){ renderSync('error'); return; }
+
+    try{
+        // Loaded on demand rather than in <head>: nobody who only runs the audit
+        // should pay the download for a flow they never open.
+        const mod = await import('https://esm.sh/@nangohq/frontend');
+        const Nango = mod.default || mod.Nango;
+        const nango = new Nango();
+        nango.openConnectUI({
+            sessionToken: res.data.sessionToken,
+            onEvent: (event) => {
+                if(event.type === 'connect'){
+                    track('sync_connected', 'hubspot');
+                    renderSync('connected');
+                    // Authorising is only half of it - the sync needs its metadata
+                    // (above all the account's own API key) or every run fails.
+                    nangoCall('finalise').then(r=>{
+                        if(!r.data || !r.data.ready){
+                            document.getElementById('syncState').insertAdjacentHTML('beforeend',
+                                '<div class="err" style="margin-top:.75rem;">Connected, but we could not finish setting it up. ' +
+                                'Email support@linkfinderai.com and we will sort it - your CRM is not being enriched yet.</div>');
+                            track('sync_finalise_failed', (r.data && r.data.reason) || 'unknown');
+                        }
+                    }).catch(()=>{});
+                } else if(event.type === 'close'){
+                    refreshSyncState();
+                }
+            }
+        });
+    }catch(e){
+        renderSync('error');
+    }
+}
+
+async function disconnectHubspot(){
+    if(!confirm('Disconnect HubSpot? New contacts will stop being enriched automatically.')) return;
+    try{
+        await nangoCall('disconnect');
+        track('sync_disconnected','hubspot');
+    }catch(e){}
+    refreshSyncState();
+}
+
+window.logout=logout; window.nav=nav; window.handleAddCredits=handleAddCredits;
+window.toggleField=toggleField; window.goUpgrade=goUpgrade; window.reset=reset;
+window.track=track; window.bookingUrl=bookingUrl;
+window.connectHubspot=connectHubspot; window.disconnectHubspot=disconnectHubspot;
+
+document.addEventListener('DOMContentLoaded',()=>{
+    checkAuth(); fetchCredits(); refreshSyncState();
+    try{ posthog.capture('crm_sync_page_viewed'); }catch(e){}
 });
 </script>
 </body>

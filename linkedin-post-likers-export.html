@@ -1240,6 +1240,11 @@ src="https://www.facebook.com/tr?id=2717863625238535&ev=PageView&noscript=1"
     }
 
     function showModal(type) {
+      // The gate keeps the visitor on the page with their result blurred behind
+      // it. Redirecting to /sign-up throws that result away, which is the only
+      // thing they have to lose by not signing up. Fall back to the redirect
+      // only if the modal is missing from the markup.
+      if (type === 'signup' && window.lfOpenGate && window.lfOpenGate()) return;
       if (type === 'signup') {
         window.location.href = 'https://linkfinderai.com/sign-up';
       } else if (type === 'login') {
@@ -1248,7 +1253,7 @@ src="https://www.facebook.com/tr?id=2717863625238535&ev=PageView&noscript=1"
     }
 
     function checkSearchLimit() {
-      return searchCount < maxFreeSearches;
+      return searchCount < (window.LF_FREE_LOOKUPS || maxFreeSearches);
     }
 
     function updateSearchCount() {
@@ -1457,18 +1462,5 @@ src="https://www.facebook.com/tr?id=2717863625238535&ev=PageView&noscript=1"
     <p style="font-size:0.75rem; color:#9ca3af;">Free to start &middot; No credit card required</p>
   </div>
 </div>
-<script>
-posthog.onFeatureFlags(function() {
-    var variant = posthog.getFeatureFlag("modal-limit-copy-test");
-    if (variant === "test") {
-        var title = document.querySelector("#limitModal h2");
-        var desc = document.querySelector("#limitModal p");
-        var cta = document.querySelector("#limitModal a");
-        if (title) title.textContent = "You're getting results 🎉";
-        if (desc) desc.textContent = "You've already found LinkedIn profiles — don't stop now. Join 10,000+ sales teams.";
-        if (cta) cta.textContent = "Get 25,000 searches free →";
-    }
-});
-</script>
 </body>
 </html>

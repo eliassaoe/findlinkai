@@ -37,6 +37,17 @@
 
     window.lfTrackWidget = capture;
 
+    // 19 tool pages carry a sticky "Sign Up Free" button whose onclick calls
+    // trackEvent(), a function only company-url-finder.html ever defined. Every
+    // click on the site's most persistent CTA therefore threw a ReferenceError
+    // and recorded nothing — PostHog error tracking caught it on
+    // /linkedin-email-finder. One shim here beats editing 19 files, and a page
+    // that declares its own trackEvent still wins, because a global function
+    // declaration overwrites this assignment.
+    if (typeof window.trackEvent !== 'function') {
+        window.trackEvent = function (name, props) { capture(name, props); };
+    }
+
     // The action a button triggers is a better label than its visible text,
     // which changes with loading states and translations.
     function actionOf(el) {
@@ -107,6 +118,23 @@
         results.classList.toggle('lf-gated-blur', !!on);
     }
 
+    // Opening the gate. Seven tool pages used to answer a spent free lookup with
+    // `location.href = '/sign-up'`, which throws the page away: the visitor loses
+    // the result they just got, and with it the only reason to make an account.
+    // The modal keeps them on the page with that result blurred behind it, which
+    // is what the other 19 pages already do. Exposed here so those pages call one
+    // implementation rather than seven.
+    function openGate() {
+        var modal = document.getElementById('limitModal');
+        if (!modal) return false;
+        modal.style.display = 'flex';
+        // watchGate()'s observer fires on the style change and handles both the
+        // blur and free_limit_modal_shown, so there is nothing else to do here.
+        return true;
+    }
+
+    window.lfOpenGate = openGate;
+
     // ---- Offer on the first result -------------------------------------------
     //
     // The gate only fires when someone goes for a second lookup, and most people
@@ -147,10 +175,10 @@
         el.innerHTML =
             '<div style="flex:1 1 260px;min-width:0;">' +
               '<div style="font-weight:700;color:#1e3a8a;font-size:1rem;margin-bottom:.2rem;">' +
-                'Want 150 more lookups?' +
+                'Want 50 more lookups?' +
               '</div>' +
               '<div style="color:#3b5b8c;font-size:.875rem;line-height:1.5;">' +
-                'A free account comes with 150 credits &mdash; one per lookup &mdash; plus bulk CSV and API access. No card needed.' +
+                'A free account comes with credits to spend straight away &mdash; one per lookup &mdash; plus bulk CSV and API access. No card needed.' +
               '</div>' +
             '</div>' +
             '<a href="https://linkfinderai.com/sign-up" data-lf-offer="1" ' +
