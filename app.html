@@ -686,7 +686,13 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
 @keyframes saved-in{from{opacity:0;transform:translateY(-4px);}to{opacity:1;transform:translateY(0);}}
 
 .ref-nudge-toast{
-    position:fixed;bottom:76px;left:16px;max-width:300px;
+    /* Sits beside the round help-centre button rather than stacked on top of it.
+       The button is 48px square in the bottom-left corner; this toast used to
+       start 8px above it, which is close enough to read as overlapping even
+       when it technically is not. Side by side removes the question. The
+       max-width keeps it on screen on a 360px phone. See the media query below
+       for the narrow case, where side by side is not possible. */
+    position:fixed;bottom:20px;left:80px;max-width:min(300px, calc(100vw - 96px));
     background:white;border:1px solid var(--gray-200);border-radius:12px;
     padding:1rem 1.1rem;box-shadow:0 8px 24px rgba(0,0,0,0.12);
     z-index:9997;display:flex;gap:0.75rem;
@@ -700,7 +706,10 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
 .ref-nudge-title{font-weight:600;font-size:0.85rem;color:var(--gray-900);margin-bottom:2px;}
 .ref-nudge-sub{font-size:0.76rem;color:var(--gray-500);line-height:1.4;margin-bottom:0.6rem;}
 .ref-nudge-cta{background:var(--primary);color:white;border:none;padding:0.4rem 0.75rem;border-radius:6px;font-size:0.76rem;font-weight:600;cursor:pointer;font-family:inherit;}
-@media(max-width:640px){.ref-nudge-toast{left:8px;right:8px;max-width:none;bottom:70px;}}
+/* On a phone the toast is full-width, so it cannot sit beside the help button
+   and has to clear it vertically instead. The button's top edge is at 68px;
+   70px left a 2px sliver that read as a collision on small screens. */
+@media(max-width:640px){.ref-nudge-toast{left:8px;right:8px;max-width:none;bottom:84px;}}
 
 /* ===== Onboarding Tasks Popup ===== */
 .otp-overlay{position:fixed;inset:0;background:rgba(17,24,39,0.5);display:flex;align-items:center;justify-content:center;padding:1rem;z-index:10050;opacity:0;visibility:hidden;transition:opacity 0.2s ease,visibility 0.2s ease;}
@@ -1125,9 +1134,19 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
             </div>
         </div>
         <h2 class="cim-headline" id="sciHeadline">Want to talk it through first?</h2>
-        <p class="cim-subtext">Book a quick 15-minute call — we'll walk through your use case, pricing, and how the pipeline works. Show up and we'll add <strong>1,000 free credits</strong> to your account.</p>
+        <p class="cim-subtext" id="sciSubtext">Book a quick 15-minute call — we'll walk through your use case, pricing, and how the pipeline works. Show up and we'll add <strong>1,000 free credits</strong> to your account.</p>
         <a href="https://calendly.com/hamoureliasse/compensated-interview-unlimited-leads-clone" target="_blank" rel="noopener"
            id="sciBookBtn" class="cim-cta" style="display:block;text-align:center;text-decoration:none;box-sizing:border-box;" onclick="salesInterceptCtaClicked()">Book a call &amp; get 1,000 credits &rarr;</a>
+        <!-- Most people who close the plans without picking one do not want a
+             sales call, they want an answer. Giving them only a call to click is
+             why this modal converted nobody: one door into a room full of
+             different problems.
+             Both links here are deliberately things that definitely exist. The
+             first tries the AI support widget and falls back to mail; there is
+             no /help-center page on this site, so nothing points at one. -->
+        <div id="sciAltRow" style="margin-top:0.9rem;font-size:0.82rem;line-height:1.7;color:#6b7280;">
+            <a href="#" onclick="sciOpenSupport(); return false;" style="color:#2563eb;">Ask a question instead</a>
+        </div>
         <div class="cim-dismiss-wrap" style="margin-top:0.75rem;">
             <button class="cim-dismiss" onclick="closeSalesInterceptModal()">Maybe later</button>
         </div>
@@ -1930,6 +1949,7 @@ async function launchCheckout({ planKey, analyticsPlanName, value, billingLabel,
         backupAuthToken();
 
         try {
+            window.__lfPlanSelectedThisSession = true;
             posthog.capture('plan_selected', {
                 plan: analyticsPlanName,
                 billing: billingLabel,
@@ -2221,31 +2241,83 @@ function closePricingModal() {
     }
 }
 
-// Gated exit-intent: only for prospects (not existing subscribers) who were
-// looking at Professional/Enterprise (index 1/2) on the subscription tab, and
-// only once per session so it doesn't nag repeat closers.
+// Exit-intent for anyone who opens the plans and closes them without picking one.
+//
+// This used to require hovering Professional or Enterprise on the subscription
+// tab. Over 60 days that gate let it fire for exactly ONE person, against 219
+// who clicked upgrade and 160 who never selected a plan. The rescue existed and
+// was switched off by its own conditions. (The one person who saw it clicked
+// through, which is a sample of one and worth nothing statistically, but it is
+// not evidence against opening the gate.)
+//
+// The gate is now: a prospect, who did not pick a plan, once per session. The
+// message tiers instead of the audience - a call is the right offer for someone
+// weighing the $89 tier and the wrong one for someone who just wanted to know
+// what a credit is.
 function maybeShowSalesIntercept() {
+    if (isExistingSubscriber) return false;
+    if (window.__lfPlanSelectedThisSession) return false;   // they are already in checkout
+    if (sessionStorage.getItem('lf_sales_intercept_shown')) return false;
+
     const hoveredIndex = window.__lfLastHoveredPlanIndex;
-    const qualifies = !isExistingSubscriber
-        && billingMode !== 'payg'
-        && (hoveredIndex === 1 || hoveredIndex === 2)
-        && !sessionStorage.getItem('lf_sales_intercept_shown');
-    if (!qualifies) return false;
+    const highIntent = billingMode !== 'payg' && (hoveredIndex === 1 || hoveredIndex === 2);
 
     sessionStorage.setItem('lf_sales_intercept_shown', '1');
     setTimeout(() => {
         const modal = document.getElementById('salesInterceptModal');
         if (!modal) return;
+
+        const head = document.getElementById('sciHeadline');
+        const sub  = document.getElementById('sciSubtext');
+        if (head && sub) {
+            if (highIntent) {
+                head.textContent = 'Want to talk it through first?';
+                sub.innerHTML = "Book a quick 15-minute call &mdash; we'll walk through your use case, "
+                    + "pricing, and how the pipeline works. Show up and we'll add "
+                    + "<strong>1,000 free credits</strong> to your account.";
+            } else {
+                // Lower intent: name the actual question rather than pitching.
+                head.textContent = 'Which part did not add up?';
+                sub.innerHTML = "Most people who close this page are stuck on one of three things: how many "
+                    + "credits they actually need, whether their list will work, or whether it is worth it "
+                    + "at all. Any of those I can answer in fifteen minutes &mdash; and there are "
+                    + "<strong>1,000 free credits</strong> in it for you either way.";
+            }
+        }
+
         modal.classList.add('show');
         document.body.style.overflow = 'hidden';
         try {
             posthog.capture('sales_call_intercept_shown', {
                 hovered_plan: plans[hoveredIndex] ? plans[hoveredIndex].key : null,
-                credits_remaining: currentCredits
+                credits_remaining: currentCredits,
+                variant: highIntent ? 'call' : 'question',
+                billing_mode: billingMode
             });
         } catch(e) {}
     }, 350);
     return true;
+}
+
+// The AI support widget is the cheapest way to answer someone, but it is
+// injected from outside this repo and is not reliably present on /app - which is
+// why support_chat_escalated fired for three people in sixty days. So: try it,
+// and fall back to mail rather than a link that 404s. support@linkfinderai.com
+// is the same inbox the lifecycle emails send from, so replies land somewhere
+// that is actually read.
+function sciOpenSupport() {
+    var opened = false;
+    try {
+        if (typeof window.lfOpenSupportChat === 'function') { window.lfOpenSupportChat(); opened = true; }
+        else if (window.$crisp) { window.$crisp.push(['do', 'chat:open']); opened = true; }
+    } catch (e) {}
+    try { posthog.capture('sales_call_intercept_support_clicked', { via: opened ? 'widget' : 'mail' }); } catch(e) {}
+    closeSalesInterceptModal();
+    if (!opened) {
+        window.location.href = 'mailto:support@linkfinderai.com'
+            + '?subject=' + encodeURIComponent('Question about LinkFinder plans')
+            + '&body=' + encodeURIComponent("Hi Eliasse,\n\nI was looking at the plans and got stuck on:\n\n");
+    }
 }
 
 function closeSalesInterceptModal() {
