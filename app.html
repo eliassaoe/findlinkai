@@ -1923,10 +1923,41 @@ async function launchCheckout({ planKey, analyticsPlanName, value, billingLabel,
         try { posthog.capture('checkout_blocked_invalid_token'); } catch(e) {}
         return;
     }
-    if (checkoutInFlight) return;
+    // A click that lands here while a previous attempt is still flagged in-flight
+    // used to return in silence. If the flag is ever stuck, that makes the Buy
+    // button permanently dead *and* invisible to analytics - the user clicks, gets
+    // nothing, and we record nothing. Say so, both to them and to us.
+    if (checkoutInFlight) {
+        try {
+            posthog.capture('checkout_click_swallowed', {
+                plan: analyticsPlanName,
+                plan_key: planKey,
+                previous_attempt_id: lastCheckoutAttemptId
+            });
+        } catch (e) {}
+        return;
+    }
 
     checkoutInFlight = true;
     lastCheckoutAttemptId = genCheckoutId();
+
+    // Last-resort watchdog. Every *known* failure path resets checkoutInFlight, but
+    // "known" is doing a lot of work: if the worker call never settles, the flag
+    // stays true for the life of the page and every later click is swallowed above.
+    // Guarantee an exit, and record that we needed one.
+    const watchdogAttemptId = lastCheckoutAttemptId;
+    setTimeout(function () {
+        if (!checkoutInFlight || lastCheckoutAttemptId !== watchdogAttemptId) return;
+        try {
+            posthog.capture('checkout_stuck_watchdog', {
+                attempt_id: watchdogAttemptId,
+                plan: analyticsPlanName,
+                plan_key: planKey
+            });
+        } catch (e) {}
+        checkoutInFlight = false;
+        showCheckoutError('Checkout did not open. Please try again - or contact us and we will take payment directly.');
+    }, 20000);
 
     const originalText = btnEl ? btnEl.textContent : '';
     if (btnEl) {
@@ -1958,8 +1989,36 @@ async function launchCheckout({ planKey, analyticsPlanName, value, billingLabel,
             });
         } catch (e) {}
 
+        // Everything between plan_selected and checkout_redirect_started used to be
+        // silent - a fifteen-second window with no telemetry at all. That is exactly
+        // where the funnel loses people: over 21 days, 35 of 42 plan selections on
+        // /app produced neither a redirect nor a checkout_error, so there was no way
+        // to tell whether the worker call hung or the navigation died. These two
+        // events bracket the gap. Both are small and go out on the default
+        // transport, so unlike the redirect event below they cannot be silently
+        // dropped by a sendBeacon that returns false.
+        const workerStartedAt = Date.now();
+        try {
+            posthog.capture('checkout_worker_request_started', {
+                attempt_id: lastCheckoutAttemptId,
+                plan: analyticsPlanName,
+                plan_key: planKey
+            });
+        } catch (e) {}
+
         // Pass email if present; worker accepts missing email
         const data = await createCheckoutSessionViaWorker(planKey, email || undefined);
+
+        try {
+            posthog.capture('checkout_session_created', {
+                attempt_id: lastCheckoutAttemptId,
+                plan: analyticsPlanName,
+                plan_key: planKey,
+                duration_ms: Date.now() - workerStartedAt,
+                has_checkout_url: !!(data && data.checkout_url),
+                worker_env: (data && data.env) || null
+            });
+        } catch (e) {}
 
         // Direct redirect to Dodo's hosted checkout page, not the embedded overlay.
         // Dodo's own guidance and our funnel data (77% of overlay opens never reached
@@ -2030,7 +2089,7 @@ async function launchCheckout({ planKey, analyticsPlanName, value, billingLabel,
                 'The payment page did not open. Use the button below to continue — or contact us and we will take payment directly.',
                 { checkoutUrl: data.checkout_url }
             );
-        }, 8000);
+        }, 5000);
 
     } catch (e) {
         console.error('Checkout error:', e);
