@@ -1018,6 +1018,95 @@
         }
       ],
       "_live": "Workflow \"7. Bulk upload - the conversion engine\". Created and enabled 22 Aug 2026. Trigger signup_success gated on signup_method google, 24h delay, conversion goal csv_uploaded with exit_on_conversion so anyone who already uploaded exits before it composes. Masked once per person."
+    },
+    "crm_audit": {
+      "workflow_id": "01a02b7b-bb8b-0000-2f15-2b586cfd7573",
+      "action_id": "email_crm_audit",
+      "audience": "Anyone who completes a CRM data health check on /crm-sync. Trigger `crm_audit_completed`, wait 45m, then send. The wait is NOT a nurture delay - PostHog populates person properties asynchronously, and this email interpolates eleven of them, so sending immediately risks rendering every Liquid fallback instead of their real numbers. 45m is the safety margin.",
+      "goal_event": "plan_selected",
+      "variants": [
+        {
+          "id": "crm_audit-utility",
+          "angle": "utility",
+          "status": "champion",
+          "hypothesis": "They just saw these numbers on screen, so the email is not news - it is the artifact they forward to whoever signs off the spend. Make it forwardable and get out of the way.",
+          "subject": "your CRM data health report",
+          "preheader": "The numbers from your audit, and what it costs to fix them.",
+          "body": [
+            "Hi &mdash; Eliasse here. You just ran a data health check on your CRM.",
+            "Here is what it found:<br />&bull; {{ person.properties.crm_audit_contacts | default: 'Your' }} contacts analysed<br />&bull; {{ person.properties.crm_audit_completeness | default: '0' }}% of the fields you asked about are filled in<br />&bull; {{ person.properties.crm_audit_missing_fields | default: 'Some' }} missing fields in total<br />&bull; Biggest single gap: {{ person.properties.crm_audit_top_gap_count | default: 'a lot of' }} records with no {{ person.properties.crm_audit_top_gap | default: 'contact data' }}",
+            "Filling all of that is {{ person.properties.crm_audit_credits_needed | default: 'a known number of' }} credits. As one-off credit packs that is ${{ person.properties.crm_audit_pack_price | default: '0' }}. On {{ person.properties.crm_audit_plan_name | default: 'a plan' }} at ${{ person.properties.crm_audit_plan_price | default: '0' }}/month you get more than enough to clear the whole backlog in the first month &mdash; and the same again every month after."
+          ],
+          "cta": "Fix these gaps",
+          "url": "https://linkfinderai.com/app?src=crm_audit_email&amp;action=upgrade",
+          "after": [
+            "One thing the audit cannot show you: a CRM refills with gaps every month as new records come in. Cleaning it once buys you a few months. Connecting it so new rows enrich themselves is what stops you doing this again.",
+            "If your database is larger than a standard plan covers, reply and we will price it against your actual volume instead.",
+            "&mdash; Eliasse"
+          ],
+          "reason": "you ran a CRM data health check at linkfinderai.com"
+        },
+        {
+          "id": "crm_audit-specific",
+          "angle": "specific",
+          "status": "queued",
+          "hypothesis": "Specific curiosity beats vague teasing by ~26%, and no number is more specific than one taken from their own database. This variant is ALSO the only test of whether Liquid renders in the subject line - if it does not, this subject arrives with a raw token in it, so read the first sends before letting it run unattended.",
+          "subject": "{{ person.properties.crm_audit_missing_fields | default: 'The' }} missing fields in your CRM",
+          "preheader": "And what it would cost to fill every one of them.",
+          "body": [
+            "You ran a data health check on your CRM. It came back {{ person.properties.crm_audit_completeness | default: 'partly' }}% complete.",
+            "Here is what it found:<br />&bull; {{ person.properties.crm_audit_contacts | default: 'Your' }} contacts analysed<br />&bull; {{ person.properties.crm_audit_completeness | default: '0' }}% of the fields you asked about are filled in<br />&bull; {{ person.properties.crm_audit_missing_fields | default: 'Some' }} missing fields in total<br />&bull; Biggest single gap: {{ person.properties.crm_audit_top_gap_count | default: 'a lot of' }} records with no {{ person.properties.crm_audit_top_gap | default: 'contact data' }}",
+            "Filling all of that is {{ person.properties.crm_audit_credits_needed | default: 'a known number of' }} credits. As one-off credit packs that is ${{ person.properties.crm_audit_pack_price | default: '0' }}. On {{ person.properties.crm_audit_plan_name | default: 'a plan' }} at ${{ person.properties.crm_audit_plan_price | default: '0' }}/month you get more than enough to clear the whole backlog in the first month &mdash; and the same again every month after."
+          ],
+          "cta": "Fill the gaps",
+          "url": "https://linkfinderai.com/app?src=crm_audit_email&amp;action=upgrade",
+          "after": [
+            "Worth knowing which gaps are worth filling: emails and LinkedIn URLs are cheap, phone numbers are the expensive one. If the total looked high, it is almost always the phones &mdash; run the audit again with phone switched off and compare.",
+            "&mdash; Eliasse"
+          ],
+          "reason": "you ran a CRM data health check at linkfinderai.com"
+        },
+        {
+          "id": "crm_audit-question",
+          "angle": "question",
+          "status": "queued",
+          "hypothesis": "Questions are the highest-opening subject format measured (~46%) and a reply is the cleanest engagement signal there is. Someone who just audited their CRM has a live internal problem and may want to talk it through rather than click a checkout.",
+          "subject": "want me to look at your CRM audit with you?",
+          "preheader": "Fifteen minutes, and I will tell you what I would fix first.",
+          "body": [
+            "Hi &mdash; you ran a CRM data health check on LinkFinder earlier.",
+            "Here is what it found:<br />&bull; {{ person.properties.crm_audit_contacts | default: 'Your' }} contacts analysed<br />&bull; {{ person.properties.crm_audit_completeness | default: '0' }}% of the fields you asked about are filled in<br />&bull; {{ person.properties.crm_audit_missing_fields | default: 'Some' }} missing fields in total<br />&bull; Biggest single gap: {{ person.properties.crm_audit_top_gap_count | default: 'a lot of' }} records with no {{ person.properties.crm_audit_top_gap | default: 'contact data' }}",
+            "Numbers like that are easy to read the wrong way. Sometimes the right move is to enrich everything; more often it is to fix one field on the 20% of records your team actually calls, and ignore the rest."
+          ],
+          "cta": "Book 15 minutes",
+          "url": "https://calendly.com/hamoureliasse/compensated-interview-unlimited-leads-clone?utm_source=lifecycle_email&amp;utm_medium=crm_audit&amp;utm_campaign=audit_followup",
+          "after": [
+            "Or just reply to this with what you are trying to do with the data &mdash; that reaches me directly and I will tell you either way.",
+            "&mdash; Eliasse"
+          ],
+          "reason": "you ran a CRM data health check at linkfinderai.com"
+        },
+        {
+          "id": "crm_audit-peer",
+          "angle": "peer",
+          "status": "queued",
+          "hypothesis": "Company voice explains the product; a peer explains the decision. The objection here is not price, it is whether enriching a stale CRM is worth doing at all - which lands better from someone who already made that call than from us.",
+          "subject": "what most people do after this audit",
+          "preheader": "The two-step version, from someone who ran it last month.",
+          "body": [
+            "You ran the CRM data health check &mdash; it came back {{ person.properties.crm_audit_completeness | default: 'partly' }}% complete, with {{ person.properties.crm_audit_missing_fields | default: 'a pile of' }} missing fields.",
+            "Almost everyone does the same two things, in this order. First they enrich the records they actually work &mdash; not the whole database, just the segment their team is calling this quarter. That is usually a fraction of the total and it pays for itself immediately.",
+            "Then they connect the CRM so new records enrich on the way in. That is the part that matters, because the backlog you just measured is not a one-off &mdash; it is what a year of unenriched new rows looks like."
+          ],
+          "cta": "Start with the records you work",
+          "url": "https://linkfinderai.com/app?src=crm_audit_email&amp;action=upgrade",
+          "after": [
+            "Your audit put the full job at {{ person.properties.crm_audit_credits_needed | default: 'the number above' }} credits, so a segment of it is a fraction of that.",
+            "&mdash; Eliasse"
+          ],
+          "reason": "you ran a CRM data health check at linkfinderai.com"
+        }
+      ]
     }
   }
 }

@@ -448,10 +448,41 @@ function render(r){
 
     renderQuote(r);
 
+    /*
+     * Two writes, deliberately different.
+     *
+     * The event drives the workflow trigger and the funnel. The person
+     * properties are what the follow-up email interpolates: PostHog Workflows
+     * personalise from PERSON properties via Liquid merge tags, not from the
+     * triggering event's properties, so a report email needs these set or it
+     * renders fallbacks.
+     *
+     * Only aggregates are sent - counts, percentages, a plan name. No row, no
+     * column value, no contact ever leaves the browser, so the promise made on
+     * the upload card stays true.
+     */
+    const rec = r.recommendation;
+    const topGap = r.breakdown.slice().sort((a,b)=>b.count-a.count)[0];
+
     try{
         posthog.capture('crm_audit_completed',{
             contacts:r.totalContacts, credits_needed:r.creditsNeeded,
-            completeness:r.completeness, duplicates:dupes, verdict:r.recommendation.verdict
+            completeness:r.completeness, duplicates:dupes, verdict:rec.verdict
+        });
+
+        posthog.setPersonProperties({
+            crm_audit_contacts:       f(r.totalContacts),
+            crm_audit_completeness:   r.completeness,
+            crm_audit_missing_fields: f(totalGaps),
+            crm_audit_credits_needed: f(r.creditsNeeded),
+            crm_audit_top_gap:        topGap ? topGap.label.replace(/^Missing /,'') : '',
+            crm_audit_top_gap_count:  topGap ? f(topGap.count) : '',
+            crm_audit_verdict:        rec.verdict,
+            crm_audit_plan_name:      rec.plan ? rec.plan.name : '',
+            crm_audit_plan_price:     rec.plan ? rec.plan.price : '',
+            crm_audit_pack_price:     rec.pack ? f(rec.pack.price) : '',
+            crm_audit_saving:         (rec.savingVsPacks && rec.savingVsPacks > 0) ? f(rec.savingVsPacks) : '',
+            crm_audit_at:             new Date().toISOString()
         });
     }catch(e){}
 }

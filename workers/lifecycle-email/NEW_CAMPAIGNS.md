@@ -40,11 +40,49 @@ and `compensated-interview-unlimited-leads-clone` on the 5 in-product pages
 (`app.html`, `account.html`, `account-beta.html`, `crm-sync.html`, `linkfinder-vip.html`).
 Lifecycle email talks to people who already have accounts, so it uses the second one.
 
+| 7 | CRM audit follow-up — send them their report | `01a02b7b-bb8b-0000-2f15-2b586cfd7573` | **DRAFT — not enabled.** `crm_audit_completed` → +45m → their own audit numbers as a report. Gated on `email_verified`. Once per person per 30 days. Payers exit via the conversion goal. |
+
+### Campaign 7 — two things that are not obvious
+
+**The 45-minute delay is a correctness requirement, not pacing.** This email
+interpolates eleven person properties. PostHog populates person properties
+through the async person-processing pipeline, so they are not reliably readable
+the instant `crm_audit_completed` lands — PostHog's own docs flag this. Sending
+immediately risks rendering every Liquid fallback instead of the user's real
+numbers, which is worse than not sending at all. Do not shorten the delay.
+
+**Person properties, not event properties.** Workflows personalise from
+`{{ person.properties.<key> }}` — verified against the live campaign 5 email,
+which addresses `{{ person.properties.email }}`. The docs show a shorter
+`{{ person.name }}` form; that is not what this project's working workflows use.
+`crm-sync.html` therefore does two writes on audit completion: the event (for
+the trigger and the funnel) and eleven `crm_audit_*` person properties (for the
+copy). Only aggregates are written — no row, column value or contact leaves the
+browser, which is what keeps the promise made on the upload card true.
+
+Every Liquid tag carries a `default:` with **single** quotes. Double quotes
+break it: the email builder serialises templates to JSON, which escapes them and
+raises a Liquid `TokenizationError`.
+
+One variant, `crm_audit-specific`, puts a Liquid tag in the **subject line**.
+That is untested — if subjects are not templated, that subject ships with a raw
+`{{ ... }}` in it. Read the first sends before letting the weekly loop promote it.
+
+**Before enabling:** run **Test run** (sends nothing to real people), then check
+a real send renders the numbers rather than the fallbacks. A person who has
+never run an audit has none of these properties, so the fallbacks are what you
+will see in any test that is not driven by a real audit.
+
 ## STILL TO BUILD
 
 - **7. Power user — 3+ enrichments, never upgraded.** Needs a behavioural cohort as
   a trigger filter, because `three_enrichments_milestone` is misnamed: it fires at
   TEN enrichments, not three (`app.html:4211`). 51 people hit it in 90 days.
+- **An audience split on campaign 7.** Audits above Enterprise's 50,000-credit
+  ceiling currently get the same email as everyone else, pointing at checkout.
+  Those are the largest CRMs the audit sees and they should be routed to the
+  Calendly booking instead — a `conditional_branch` on
+  `crm_audit_verdict = 'contact'` before the email step.
 - **8. Churn.** Trigger `cancellation_reason_selected`, branch on the reason.
   Deliberately small — 14 people in 90 days.
 - **A 4th email in workflow 3**, an education step at +3d, between the rescue and
