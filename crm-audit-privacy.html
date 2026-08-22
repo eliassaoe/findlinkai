@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script src="/js/lf-tools-key.js"></script>
+<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','GTM-TL7WVD2N');</script>
+<script>
+    !function(t,e){var o,n,p,r;e.__SV||(window.posthog&&window.posthog.__loaded)||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]),t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}(p=t.createElement("script")).type="text/javascript",p.crossOrigin="anonymous",p.async=!0,p.src=s.api_host.replace(".i.posthog.com","-assets.i.posthog.com")+"/static/array.js",(r=t.getElementsByTagName("script")[0]).parentNode.insertBefore(p,r);var u=e;for(void 0!==a?u=e[a]=[]:a="posthog",u.people=u.people||[],u.toString=function(t){var e="posthog";return"posthog"!==a&&(e+="."+a),t||(e+=" (stub)"),e},u.people.toString=function(){return u.toString(1)+".people (stub)"},o="init capture identify reset get_distinct_id".split(" "),n=0;n<o.length;n++)g(u,o[n]);e._i.push([i,s,a])},e.__SV=1)}(document,window.posthog||[]);
+window.__lfScrubUrl=function(v){return typeof v==='string'?v.replace(/([?&#])(access_token|refresh_token|provider_token|provider_refresh_token|id_token|token|api_key|apikey|password|secret)=[^&#]*/gi,'$1$2=[redacted]'):v;};
+window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_url','$initial_referrer','$session_entry_url','$pathname'].forEach(function(k){if(p[k])p[k]=window.__lfScrubUrl(p[k]);});return p;};
+    posthog.init('phc_HqgzMyWAMtzH7K5j9CLw0dijB0I9W1VjPkkyzg9KOFG',{api_host:'https://us.i.posthog.com',defaults:'2025-11-30',person_profiles:'identified_only',sanitize_properties:window.__lfSanitize})
+</script>
+<script src="/js/lf-attribution.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>How the CRM data health check handles your data - LinkFinder AI</title>
+<link rel="icon" href="https://i.ibb.co/jPjX9SSp/Screen-Shot-2025-03-28-at-8-16-15-PM.png">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+<style>
+:root {
+    --primary: #2563eb; --primary-hover: #1d4ed8;
+    --gray-50: #f9fafb; --gray-100: #f3f4f6; --gray-200: #e5e7eb;
+    --gray-300: #d1d5db; --gray-400: #9ca3af; --gray-500: #6b7280;
+    --gray-600: #4b5563; --gray-700: #374151; --gray-800: #1f2937;
+    --gray-900: #111827; --success: #10b981; --error: #ef4444; --warning: #f59e0b;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:var(--gray-50);color:var(--gray-800);line-height:1.6;font-size:16px;}
+.container{max-width:680px;margin:0 auto;padding:0 1rem;}
+.header{padding:1rem 0;border-bottom:1px solid var(--gray-200);background:white;position:sticky;top:0;z-index:100;}
+.header-content{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;}
+.logo{display:flex;align-items:center;gap:.5rem;color:var(--gray-900);text-decoration:none;}
+.logo-icon{width:32px;height:32px;background:var(--primary);border-radius:6px;display:flex;align-items:center;justify-content:center;color:white;font-size:1rem;}
+.logo-text{font-size:1.25rem;font-weight:600;}
+.user-info{display:flex;align-items:center;gap:.75rem;}
+.credits{display:flex;align-items:center;gap:.5rem;background:var(--gray-100);padding:.5rem .75rem;border-radius:1rem;font-weight:500;color:var(--gray-700);font-size:.875rem;}
+.credits i{color:var(--warning);}
+.btn-buy-inline{background:linear-gradient(135deg,#fb923c,#f97316);border:none;color:white;font-weight:700;font-size:.7rem;cursor:pointer;padding:.25rem .5rem;border-radius:4px;white-space:nowrap;font-family:inherit;margin-left:.35rem;box-shadow:0 1px 4px rgba(249,115,22,.4);text-transform:uppercase;letter-spacing:.03em;}
+.btn-outline{background:transparent;color:var(--primary);border:1px solid var(--gray-300);padding:.5rem 1rem;border-radius:6px;font-weight:500;cursor:pointer;font-size:.875rem;font-family:inherit;}
+.btn-outline:hover{background:var(--gray-50);}
+.nav-menu{background:white;border-bottom:1px solid var(--gray-200);padding:.75rem 0;}
+.nav-tabs{display:flex;gap:.5rem;overflow-x:auto;padding-bottom:.25rem;}
+.nav-tab{display:flex;align-items:center;gap:.5rem;padding:.75rem 1rem;border-radius:8px;background:transparent;border:1px solid var(--gray-200);color:var(--gray-600);text-decoration:none;font-weight:500;font-size:.875rem;transition:all .2s;white-space:nowrap;cursor:pointer;font-family:inherit;}
+.nav-tab:hover{background:var(--gray-50);border-color:var(--primary);color:var(--gray-800);}
+.nav-tab.active{background:var(--primary);border-color:var(--primary);color:white;}
+.main{padding:1.75rem 0 3rem;}
+.page-header{margin-bottom:1.5rem;}
+.page-header h1{font-size:1.5rem;font-weight:700;color:var(--gray-900);margin-bottom:.35rem;display:flex;align-items:center;gap:.6rem;}
+.page-header h1 i{color:var(--primary);}
+.page-header p{color:var(--gray-500);font-size:.9rem;max-width:520px;}
+
+.card{background:white;border:1px solid var(--gray-200);border-radius:12px;padding:1.5rem;margin-bottom:1.25rem;box-shadow:0 1px 3px rgba(0,0,0,.06);}
+.card h2{font-size:1rem;font-weight:700;color:var(--gray-900);margin-bottom:1rem;display:flex;align-items:center;gap:.5rem;}
+.card h2 i{color:var(--primary);font-size:.9rem;}
+
+/* What you get */
+.steps{list-style:none;counter-reset:step;display:flex;flex-direction:column;gap:1rem;}
+.steps li{display:flex;gap:.875rem;counter-increment:step;}
+.steps li::before{content:counter(step);flex-shrink:0;width:26px;height:26px;border-radius:50%;background:var(--primary);color:white;font-size:.8rem;font-weight:700;display:flex;align-items:center;justify-content:center;}
+.step-body h3{font-size:.875rem;font-weight:600;color:var(--gray-900);margin-bottom:.15rem;}
+.step-body p{font-size:.825rem;color:var(--gray-500);}
+
+.cost-note{margin-top:1.25rem;padding:.75rem 1rem;background:var(--gray-50);border:1px solid var(--gray-200);border-radius:8px;font-size:.8rem;color:var(--gray-600);display:flex;gap:.6rem;align-items:flex-start;}
+.cost-note i{color:var(--warning);margin-top:.1rem;flex-shrink:0;}
+
+/* audit result cards */
+
+
+@media(max-width:640px){
+    .nav-tab{padding:.625rem .75rem;font-size:.8rem;}
+}
+</style>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "name": "LinkFinderAI",
+  "url": "https://linkfinderai.com",
+  "logo": "https://i.ibb.co/jPjX9SSp/Screen-Shot-2025-03-28-at-8-16-15-PM.png",
+  "sameAs": []
+}
+</script>
+<link rel="canonical" href="https://linkfinderai.com/crm-audit-privacy"/>
+<meta name="description" content="Exactly what the LinkFinder CRM data health check does with your file: it is parsed in your browser and never uploaded. Written to be forwarded to whoever reviews tools at your company."/>
+
+<style>
+/* ---- CRM audit ---- */
+.stages{display:flex;gap:.5rem;margin-bottom:1.5rem;flex-wrap:wrap;}
+.stage{flex:1;min-width:150px;background:white;border:1px solid var(--gray-200);border-radius:10px;padding:.9rem 1rem;position:relative;}
+.stage.active{border-color:var(--primary);box-shadow:0 0 0 3px rgba(37,99,235,.09);}
+.stage.done{border-color:var(--success);}
+.stage-num{width:22px;height:22px;border-radius:50%;background:var(--gray-200);color:var(--gray-600);font-size:.72rem;font-weight:700;display:flex;align-items:center;justify-content:center;margin-bottom:.45rem;}
+.stage.active .stage-num{background:var(--primary);color:white;}
+.stage.done .stage-num{background:var(--success);color:white;}
+.stage-title{font-size:.85rem;font-weight:700;color:var(--gray-900);}
+.stage-sub{font-size:.75rem;color:var(--gray-500);margin-top:.1rem;}
+
+.drop{border:2px dashed var(--gray-300);border-radius:12px;padding:2.25rem 1.5rem;text-align:center;background:var(--gray-50);cursor:pointer;transition:all .18s;}
+.drop:hover,.drop.over{border-color:var(--primary);background:#eff6ff;}
+.drop i{font-size:1.9rem;color:var(--primary);margin-bottom:.7rem;display:block;}
+.drop-title{font-weight:700;color:var(--gray-900);font-size:.95rem;margin-bottom:.25rem;}
+.drop-sub{font-size:.82rem;color:var(--gray-500);}
+.privacy{margin-top:.9rem;font-size:.78rem;color:var(--gray-500);display:flex;align-items:center;justify-content:center;gap:.4rem;}
+.privacy i{color:var(--success);}
+
+.score-row{display:flex;align-items:center;gap:1.25rem;flex-wrap:wrap;margin-bottom:1.25rem;}
+.score-ring{width:104px;height:104px;flex-shrink:0;position:relative;}
+.score-ring svg{transform:rotate(-90deg);}
+.score-val{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.score-num{font-size:1.6rem;font-weight:700;color:var(--gray-900);line-height:1;}
+.score-lbl{font-size:.62rem;color:var(--gray-500);text-transform:uppercase;letter-spacing:.05em;margin-top:.15rem;}
+.score-facts{flex:1;min-width:220px;}
+.fact{font-size:.85rem;color:var(--gray-600);margin-bottom:.3rem;}
+.fact strong{color:var(--gray-900);font-weight:700;}
+
+table.gaps{width:100%;border-collapse:collapse;font-size:.85rem;}
+table.gaps th{text-align:left;font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;color:var(--gray-500);padding:.5rem .6rem;border-bottom:1px solid var(--gray-200);font-weight:600;}
+table.gaps td{padding:.6rem;border-bottom:1px solid var(--gray-100);color:var(--gray-700);}
+table.gaps td.num{text-align:right;font-variant-numeric:tabular-nums;font-weight:600;color:var(--gray-900);}
+table.gaps tr:last-child td{border-bottom:none;}
+table.gaps tfoot td{font-weight:700;color:var(--gray-900);border-top:2px solid var(--gray-200);}
+.gaps-wrap{overflow-x:auto;}
+
+.compare{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:.5rem;}
+.opt{border:1px solid var(--gray-200);border-radius:10px;padding:1.1rem;background:white;position:relative;}
+.opt.win{border-color:var(--success);background:#f0fdf4;}
+.opt-tag{font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--gray-400);margin-bottom:.4rem;}
+.opt.win .opt-tag{color:var(--success);}
+.opt-price{font-size:1.5rem;font-weight:700;color:var(--gray-900);line-height:1.1;}
+.opt-price span{font-size:.8rem;font-weight:500;color:var(--gray-500);}
+.opt-desc{font-size:.8rem;color:var(--gray-600);margin-top:.4rem;line-height:1.45;}
+.saving{margin-top:1rem;padding:.8rem 1rem;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:8px;font-size:.87rem;color:#065f46;font-weight:600;display:flex;gap:.55rem;align-items:flex-start;}
+.saving i{margin-top:.15rem;}
+.decay{margin-top:1rem;padding:.8rem 1rem;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;font-size:.83rem;color:#92400e;display:flex;gap:.55rem;align-items:flex-start;}
+.decay i{margin-top:.15rem;flex-shrink:0;}
+
+.btn-primary{background:var(--primary);color:white;border:none;padding:.85rem 1.5rem;border-radius:8px;font-weight:700;cursor:pointer;font-size:.95rem;font-family:inherit;display:inline-flex;align-items:center;gap:.5rem;text-decoration:none;}
+.btn-primary:hover{background:var(--primary-hover);}
+.btn-ghost{background:transparent;border:1px solid var(--gray-300);color:var(--gray-600);padding:.6rem 1rem;border-radius:8px;font-size:.83rem;cursor:pointer;font-family:inherit;font-weight:500;}
+.btn-ghost:hover{background:var(--gray-50);}
+.hidden{display:none!important;}
+.trust{margin-top:1rem;border:1px solid var(--gray-200);border-radius:10px;background:white;overflow:hidden;}
+.trust-row{display:flex;gap:.65rem;align-items:flex-start;padding:.8rem 1rem;font-size:.83rem;color:var(--gray-600);border-bottom:1px solid var(--gray-100);line-height:1.5;}
+.trust-row:last-child{border-bottom:none;}
+.trust-row i{color:var(--success);margin-top:.15rem;flex-shrink:0;width:14px;text-align:center;}
+.trust-row strong{color:var(--gray-900);}
+.trust-row a{color:var(--primary);font-weight:600;text-decoration:none;}
+.trust-row a:hover{text-decoration:underline;}
+.trust-row.muted i{color:var(--gray-400);}
+
+.sync-loading{font-size:.85rem;color:var(--gray-500);display:flex;align-items:center;gap:.5rem;}
+.sync-connected{display:flex;align-items:center;gap:.75rem;padding:1rem;background:#f0fdf4;border:1px solid #a7f3d0;border-radius:10px;flex-wrap:wrap;}
+.sync-connected i.badge{color:var(--success);font-size:1.15rem;}
+.sync-connected-text{flex:1;min-width:200px;font-size:.87rem;color:#065f46;}
+.sync-connected-text strong{display:block;font-weight:700;margin-bottom:.1rem;}
+.btn-danger-ghost{background:transparent;border:1px solid #fecaca;color:#b91c1c;padding:.5rem .85rem;border-radius:7px;font-size:.8rem;cursor:pointer;font-family:inherit;font-weight:500;}
+.btn-danger-ghost:hover{background:#fef2f2;}
+.sync-locked{padding:1rem;background:var(--gray-50);border:1px solid var(--gray-200);border-radius:10px;font-size:.85rem;color:var(--gray-600);}
+.field-toggles{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1rem;}
+.chip{display:inline-flex;align-items:center;gap:.4rem;padding:.4rem .75rem;border-radius:100px;border:1px solid var(--gray-300);background:white;font-size:.8rem;color:var(--gray-600);cursor:pointer;user-select:none;font-family:inherit;}
+.chip.on{background:var(--primary);border-color:var(--primary);color:white;}
+.err{background:#fef2f2;border:1px solid #fecaca;color:#991b1b;padding:.8rem 1rem;border-radius:8px;font-size:.85rem;margin-top:1rem;}
+@media(max-width:640px){.compare{grid-template-columns:1fr;}}
+</style>
+</head>
+
+<body>
+
+<header class="header">
+    <div class="container">
+        <div class="header-content">
+            <a href="https://linkfinderai.com/" class="logo">
+                <div class="logo-icon"><i class="fas fa-search"></i></div>
+                <span class="logo-text">LinkFinder AI</span>
+            </a>
+            <a href="/crm-audit" class="btn-outline">Back to the check</a>
+        </div>
+    </div>
+</header>
+
+<div class="container">
+    <div class="main">
+        <div class="page-header">
+            <h1><i class="fas fa-shield-halved"></i> What the data health check does with your file</h1>
+            <p>Written to be forwarded. If someone at your company reviews tools before you use them, send them this page.</p>
+        </div>
+
+        <div class="card">
+            <h2><i class="fas fa-circle-check"></i> The short version</h2>
+            <p style="font-size:.9rem;color:var(--gray-700);line-height:1.7;">
+                The CSV you select is read by JavaScript running in your own browser and analysed there.
+                <strong>It is never transmitted to LinkFinder AI or to anyone else.</strong> We do not receive it,
+                store it, or process it, because there is no code path that sends it anywhere.
+            </p>
+            <div class="trust" style="margin-top:1.25rem;">
+                <div class="trust-row">
+                    <i class="fas fa-wifi"></i>
+                    <div><strong>You can verify this in about five seconds.</strong> Disconnect from the internet, then run the check. It works normally. A tool that uploaded your file could not.</div>
+                </div>
+                <div class="trust-row">
+                    <i class="fas fa-code"></i>
+                    <div>The analysis is one readable file: <a href="/js/lf-crm-audit.js" target="_blank" rel="noopener">lf-crm-audit.js</a>. It contains no upload, no <code>fetch</code> of file contents, and no network call carrying row data. Your browser's Network tab will show the same.</div>
+                </div>
+                <div class="trust-row">
+                    <i class="fas fa-database"></i>
+                    <div>Nothing is written to a server, and the file is not stored in your browser either &mdash; close the tab and it is gone.</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2><i class="fas fa-chart-simple"></i> What we do receive</h2>
+            <p style="font-size:.88rem;color:var(--gray-700);line-height:1.7;">
+                Being exact matters more here than sounding reassuring, so: the page sends
+                <strong>aggregate counts</strong> to our analytics so we know the tool is being used. Specifically the
+                number of contacts analysed, the completeness percentage, the number of missing fields by type, and
+                the resulting credit total.
+            </p>
+            <p style="font-size:.88rem;color:var(--gray-700);line-height:1.7;margin-top:.75rem;">
+                No name, email address, phone number, company, or row of any kind is included &mdash; those values are
+                never part of what is sent. The numbers describe the shape of a database, not the people in it.
+            </p>
+        </div>
+
+        <div class="card">
+            <h2><i class="fas fa-triangle-exclamation"></i> Where this stops being true</h2>
+            <p style="font-size:.88rem;color:var(--gray-700);line-height:1.7;">
+                The check is local. <strong>Enrichment is not.</strong> If you later ask LinkFinder AI to actually fill
+                the gaps it found, the records you submit are sent to our API and processed on our servers &mdash; that
+                is what the service does, and it cannot work any other way.
+            </p>
+            <p style="font-size:.88rem;color:var(--gray-700);line-height:1.7;margin-top:.75rem;">
+                We are drawing that line explicitly because it matters to the person reviewing this. Running the check
+                involves no data transfer. Using the product does. They are separate decisions and you can make the
+                first without making the second.
+            </p>
+        </div>
+
+        <div class="card">
+            <h2><i class="fas fa-scissors"></i> If you would rather share less anyway</h2>
+            <div class="trust">
+                <div class="trust-row"><i class="fas fa-file-csv"></i><div><a href="/sample-crm-export.csv" download>Use the sample file</a> instead of your own data to see what the output looks like first.</div></div>
+                <div class="trust-row"><i class="fas fa-filter"></i><div>Export 500 rows rather than the whole database. The percentages come out the same.</div></div>
+                <div class="trust-row"><i class="fas fa-table-columns"></i><div>Delete any column you would rather not include. Anything absent is simply reported as missing.</div></div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2><i class="fas fa-envelope"></i> Questions</h2>
+            <p style="font-size:.88rem;color:var(--gray-700);line-height:1.7;">
+                If your security or legal team needs something this page does not cover, email
+                <a href="mailto:support@linkfinderai.com" style="color:var(--primary);font-weight:600;">support@linkfinderai.com</a>
+                and a human will answer.
+            </p>
+            <p style="font-size:.8rem;color:var(--gray-500);line-height:1.6;margin-top:1rem;">
+                This page describes how the tool is built. It is a technical description, not legal advice, and it is
+                not a data processing agreement &mdash; your own assessment of what you are permitted to do is yours to make.
+            </p>
+        </div>
+
+        <a href="/crm-audit" class="btn-primary"><i class="fas fa-arrow-left"></i> Back to the check</a>
+    </div>
+</div>
+</body>
+</html>
