@@ -1024,6 +1024,7 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
     <div id="zeroCreditsInline" class="hidden" style="background:#fef3c7;border:1px solid var(--warning);border-radius:8px;padding:1rem;margin-top:1rem;text-align:center;">
         <p style="font-size:0.875rem;color:#92400e;margin-bottom:0.75rem;">You've used all your free credits. Upgrade to run more enrichments.</p>
         <button type="button" class="btn" onclick="handleAddCredits()"><i class="fas fa-bolt"></i> Upgrade now</button>
+        <button type="button" onclick="cimOpenRescue('zero_balance_banner')" style="display:block;width:100%;margin-top:0.6rem;background:none;border:none;color:#92400e;font-size:0.8125rem;text-decoration:underline;cursor:pointer;font-family:inherit;">Not upgrading? Tell me what's stopping you</button>
     </div>
 </div>
 
@@ -2281,6 +2282,10 @@ function setBilling(type) {
     
 function showPricingModal(trigger, extra) {
     window.__lfLastHoveredPlanIndex = null;
+    // Which gate sent them here. The bulk export gate and a zero balance are
+    // materially higher intent than browsing the plans, and closing without
+    // buying from those deserves the rescue rather than the generic banner.
+    window.__lfPricingTrigger = trigger || null;
     try { window.uetq = window.uetq || []; window.uetq.push('event', 'begin_checkout', {}); } catch(e) {}
     // Someone clicking "buy credits" wants more credits now, not necessarily a
     // monthly commitment - default them to the $25 one-time PAYG pack instead
@@ -2329,7 +2334,21 @@ function closePricingModal() {
     // "you're low on credits" banner below.
     const shownSalesIntercept = maybeShowSalesIntercept();
 
-    if (!shownSalesIntercept && !isExistingSubscriber && !sessionStorage.getItem('lf_closed_wo_purchase_shown')) {
+    // Leaving the bulk export gate, or the plans with nothing left in the
+    // account, is not browsing - there is a job half done on the other side of
+    // it. Ask what stopped them rather than showing a banner.
+    let shownRescue = false;
+    if (!shownSalesIntercept && !window.__lfPlanSelectedThisSession) {
+        const hardGate = window.__lfPricingTrigger === 'export_gated'
+            || (currentCredits !== null && currentCredits <= 0);
+        if (hardGate) {
+            shownRescue = cimOpenRescue(
+                window.__lfPricingTrigger === 'export_gated' ? 'bulk_export' : 'zero_balance'
+            );
+        }
+    }
+
+    if (!shownSalesIntercept && !shownRescue && !isExistingSubscriber && !sessionStorage.getItem('lf_closed_wo_purchase_shown')) {
         const remaining = currentCredits !== null ? Math.round(currentCredits*10)/10 : null;
         const bar = document.getElementById('closedWithoutPurchaseBanner');
         if (bar) {
@@ -2558,6 +2577,7 @@ function cimRescuePick(reason) {
     try {
         posthog.capture('credits_wall_rescue_answered', {
             reason: reason,
+            source: cimRescueSource,
             trigger: creditsExhaustedTrigger,
             credits_remaining: currentCredits,
             session_credits_used: sessionCreditsUsed
@@ -2636,6 +2656,37 @@ async function cimPriceBranch() {
         try { posthog.capture('discount_code_failed', { reason: String(e && e.message || e).slice(0, 80) }); } catch (_) {}
         cimRescueAnswer(cimPriceFallbackHtml());
     }
+}
+
+// Opens the rescue on its own, for the paywalls that are not the credit-wall
+// modal - the bulk export gate, and coming back to a zero balance. Same
+// component, same events, tagged with where it came from so the reasons can be
+// read per gate rather than pooled.
+let cimRescueSource = 'credit_wall';
+
+function cimOpenRescue(source) {
+    try {
+        if (isExistingSubscriber) return false;
+        if (window.__lfPlanSelectedThisSession) return false;
+        if (sessionStorage.getItem('lf_rescue_shown')) return false;
+        const modal = document.getElementById('insufficientCreditsModal');
+        const main = document.getElementById('cimMain');
+        const rescue = document.getElementById('cimRescue');
+        const opts = document.querySelector('.cim-rescue-opts');
+        const ans = document.getElementById('cimRescueAnswer');
+        if (!modal || !main || !rescue) return false;
+        sessionStorage.setItem('lf_rescue_shown', '1');
+        cimRescueSource = source || 'unknown';
+        cimRescueShown = true;
+        if (opts) opts.style.display = '';
+        if (ans) { ans.innerHTML = ''; ans.classList.remove('show'); }
+        main.style.display = 'none';
+        rescue.style.display = 'block';
+        modal.classList.add('show');
+        document.body.style.overflow = 'hidden';
+        try { posthog.capture('credits_wall_rescue_shown', { source: cimRescueSource, credits_remaining: currentCredits }); } catch (e) {}
+        return true;
+    } catch (e) { return false; }
 }
 
 // Entry point for the discount email: open the wall, skip the offer screen, and

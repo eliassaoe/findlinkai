@@ -14,7 +14,7 @@ const block = src.slice(start, end);
 
 const CALENDLY = 'https://calendly.com/hamoureliasse/compensated-interview-unlimited-leads-clone';
 
-function harness({ store = {}, subscriber = false, fetchImpl = null, ...overrides } = {}) {
+function harness({ store = {}, session = {}, subscriber = false, fetchImpl = null, ...overrides } = {}) {
     const state = { captured: [], closed: false };
     const answerEl = { innerHTML: '', classList: { add() {}, remove() {} } };
     const ctx = {
@@ -29,11 +29,15 @@ function harness({ store = {}, subscriber = false, fetchImpl = null, ...override
             getItem: (k) => (k in store ? store[k] : null),
             setItem: (k, v) => { store[k] = v; }
         },
+        sessionStorage: {
+            getItem: (k) => (k in session ? session[k] : null),
+            setItem: (k, v) => { session[k] = v; }
+        },
         fetch: fetchImpl || (async () => { throw new Error('offline'); }),
         document: {
             getElementById: (id) => {
                 if (id === 'cimRescueAnswer') return answerEl;
-                if (id === 'insufficientCreditsModal') return { classList: { remove() { state.closed = true; } } };
+                if (id === 'insufficientCreditsModal') return { classList: { add() {}, remove() { state.closed = true; } } };
                 return { style: {} };
             },
             querySelector: () => ({ style: {} }),
@@ -43,8 +47,8 @@ function harness({ store = {}, subscriber = false, fetchImpl = null, ...override
         ...overrides
     };
     const fn = new Function(...Object.keys(ctx),
-        block + '; return { cimRescuePick, cimPriceBranch, cimQualifiesForDiscount, cimRescueSupport };');
-    return { api: fn(...Object.values(ctx)), state, answerEl };
+        block + '; return { cimRescuePick, cimPriceBranch, cimQualifiesForDiscount, cimRescueSupport, cimOpenRescue };');
+    return { api: fn(...Object.values(ctx)), state, answerEl, session };
 }
 
 const okWorker = async () => ({
@@ -133,4 +137,43 @@ test('support falls back to mail when no widget is present', () => {
     const { api, state } = harness({ window: { location: { set href(v) {} } } });
     api.cimRescueSupport();
     assert.equal(state.captured.find(c => c.n === 'credits_wall_rescue_cta_clicked').p.via, 'mail');
+});
+
+
+// --- the other paywalls: bulk export gate and returning at zero ---
+
+test('the bulk export gate opens the rescue, tagged as its own source', () => {
+    const { api, state } = harness();
+    assert.equal(api.cimOpenRescue('bulk_export'), true);
+    const ev = state.captured.find(c => c.n === 'credits_wall_rescue_shown');
+    assert.equal(ev.p.source, 'bulk_export');
+});
+
+test('the reason is recorded against the gate it came from, not pooled', () => {
+    const { api, state } = harness();
+    api.cimOpenRescue('zero_balance');
+    api.cimRescuePick('stuck');
+    const ev = state.captured.find(c => c.n === 'credits_wall_rescue_answered');
+    assert.equal(ev.p.source, 'zero_balance');
+    assert.equal(ev.p.reason, 'stuck');
+});
+
+test('subscribers are never asked', () => {
+    const { api, state } = harness({ subscriber: true });
+    assert.equal(api.cimOpenRescue('bulk_export'), false);
+    assert.equal(state.captured.length, 0);
+});
+
+test('someone who just picked a plan is not interrupted', () => {
+    const { api } = harness({ window: { __lfPlanSelectedThisSession: true } });
+    assert.equal(api.cimOpenRescue('bulk_export'), false);
+});
+
+test('it asks once per session, not at every gate', () => {
+    const session = {};
+    const first = harness({ session });
+    assert.equal(first.api.cimOpenRescue('bulk_export'), true);
+    const second = harness({ session });
+    assert.equal(second.api.cimOpenRescue('zero_balance'), false,
+        'a second gate in the same session must not re-ask');
 });
