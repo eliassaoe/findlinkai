@@ -82,8 +82,23 @@ number in the browser; the real charge happens server-side in n8n. Ship the
 client half alone and users see "25 credits", get charged 50, and find out on
 refresh. That is the worst possible bug to ship on a pricing change.
 
-1. **n8n / signup - the grant.** Geo-tiered signup credits: standard 150 -> 50,
-   low_conversion 25 -> 12.
+1. ~~n8n / signup - the grant.~~ **Correction, 22 Aug:** the grant is not in
+   n8n. It is one line in the `linkfinderai-sign-up` Cloudflare Worker, now
+   version-controlled at `workers/signup/worker.js`:
+
+   ```js
+   const SIGNUP_CREDITS = { low_conversion: 10, standard: 50 };
+   ```
+
+   Already changed in the repo; deploy with `wrangler deploy` from
+   `workers/signup/`. Both signup paths go through this worker - the
+   email/password form and the Google flow in `confirmation-signup.html`,
+   which posts here with `provider:'google'` - so one change covers both.
+
+   **The caveat that decides whether this works at all:** the worker only
+   *sends* `startingCredits` to n8n. If the n8n workflow ignores that field and
+   applies its own constant, changing the worker does nothing. Verify by
+   signing up once and checking the balance is 50, not 150.
 2. **Worth fixing while you are in there:** `email_to_linkedin_url` costs 4 in
    `app.html` and 1 in `app_beta.html`. One of them is lying to users.
 
@@ -174,3 +189,24 @@ Two consequences:
 The acquisition point deserves its own look: if 55% of signups arrive from
 markets converting at 0.1%, the top of the funnel is pulling the wrong
 audience, and that will move blended revenue more than any pricing change.
+
+
+# Site copy, 22 Aug 2026
+
+Before this change the site made four different promises about the free grant:
+**25** (59 places), **150** (57), **100** (8), plus stray 10 and 15. Every one of
+them would have been false after the grant moved, and the 150s and 100s were
+already over-promising for the low tier.
+
+All 122 claims about *our* offer are now neutral - "free credits", no number.
+That is not just tidying: a static number cannot be right for both tiers when
+the low-conversion tier is 55% of signups, and neutral copy means the next grant
+change needs no site-wide sweep.
+
+Competitor claims were deliberately left intact: People Data Labs' 100 free
+credits, Scrapingdog's 1,000, and the free-tool roundup figures are statements
+about other products and rewriting them would put false claims on the site. The
+"1,000 free credits" for booking a call is also untouched - that one is real.
+
+None of the numbers appeared in `<title>`, `<meta>`, or `og:` tags, so there is
+no search-ranking exposure from removing them.
