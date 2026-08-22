@@ -38,6 +38,31 @@ gets a token back, and redirects straight to the dashboard. There is no
 confirmation email and no verification step — anyone can type anything and get a
 funded account. `confirmation-signup.html` exists but is not in this path.
 
+## The gate that is now live
+
+Every one of the six workflows carries a trigger filter: **person property
+`email_verified` `is_not` `"false"`**. An explicitly-unverified address cannot
+enter any campaign.
+
+The filter is `is_not false` rather than `is true` on purpose. Accounts created
+before this existed have no such property at all, and `is true` would have
+silently emptied every campaign of its entire existing audience. `is_not false`
+lets legacy accounts through and blocks only addresses we have positively
+identified as unconfirmed.
+
+| Workflow | version | filter live |
+|---|---|---|
+| 1. Checkout recovery | 12 | yes |
+| 2. Credit wall | 7 | yes |
+| 3. New user activation | 17 | yes |
+| 4. Win-back broadcast | 7 | yes (alongside the cohort) |
+| 5. Pricing → call | 5 | yes |
+| 6. API / MCP | 3 | yes |
+
+Note the mechanic: these workflows are active, so a patch stages a **draft** and
+changes nothing until `workflows-publish` with `confirm:true`. Patching without
+publishing looks like it worked and does nothing.
+
 ## Done already
 
 **27 addresses suppressed project-wide** via PostHog's opt-out list, so no
@@ -66,11 +91,10 @@ that were fine. Verifying the ~913 dormant win-back addresses once, before
 dispatching to them, targets the spend exactly where the risk is. Do not route
 customer emails through a third-party cold-email tool to do it.
 
-**4. The real fix, when there's time: confirm the email.**
-Send a confirmation link and hold the bulk of the free credits until it is
-clicked. That converts the whole problem into a non-problem and kills credit
-abuse at the same time. It will cost some signup conversion, which is why it is
-last rather than first.
+**4. Confirm the email — BUILT.** See `workers/verify-email/README.md`. Password
+signups are capped at 10 credits and excluded from marketing until they confirm;
+Google signups (76% of all signups) are unaffected. The client half is shipped
+and inert until the credits worker returns `email_verified`.
 
 ## The gate on the win-back broadcast
 
