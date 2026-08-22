@@ -138,6 +138,14 @@ table.gaps tfoot td{font-weight:700;color:var(--gray-900);border-top:2px solid v
 .btn-ghost{background:transparent;border:1px solid var(--gray-300);color:var(--gray-600);padding:.6rem 1rem;border-radius:8px;font-size:.83rem;cursor:pointer;font-family:inherit;font-weight:500;}
 .btn-ghost:hover{background:var(--gray-50);}
 .hidden{display:none!important;}
+.sync-loading{font-size:.85rem;color:var(--gray-500);display:flex;align-items:center;gap:.5rem;}
+.sync-connected{display:flex;align-items:center;gap:.75rem;padding:1rem;background:#f0fdf4;border:1px solid #a7f3d0;border-radius:10px;flex-wrap:wrap;}
+.sync-connected i.badge{color:var(--success);font-size:1.15rem;}
+.sync-connected-text{flex:1;min-width:200px;font-size:.87rem;color:#065f46;}
+.sync-connected-text strong{display:block;font-weight:700;margin-bottom:.1rem;}
+.btn-danger-ghost{background:transparent;border:1px solid #fecaca;color:#b91c1c;padding:.5rem .85rem;border-radius:7px;font-size:.8rem;cursor:pointer;font-family:inherit;font-weight:500;}
+.btn-danger-ghost:hover{background:#fef2f2;}
+.sync-locked{padding:1rem;background:var(--gray-50);border:1px solid var(--gray-200);border-radius:10px;font-size:.85rem;color:var(--gray-600);}
 .field-toggles{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1rem;}
 .chip{display:inline-flex;align-items:center;gap:.4rem;padding:.4rem .75rem;border-radius:100px;border:1px solid var(--gray-300);background:white;font-size:.8rem;color:var(--gray-600);cursor:pointer;user-select:none;font-family:inherit;}
 .chip.on{background:var(--primary);border-color:var(--primary);color:white;}
@@ -271,13 +279,12 @@ table.gaps tfoot td{font-weight:700;color:var(--gray-900);border-top:2px solid v
             </div>
 
             <!-- stage 3 -->
-            <div class="card">
+            <div class="card" id="syncCard">
                 <h2><i class="fas fa-arrows-rotate"></i> Stage 3 &mdash; keep it clean automatically</h2>
                 <p style="font-size:.87rem;color:var(--gray-600);margin-bottom:1rem;">
                     Cleaning once is temporary. Connect HubSpot and every new contact is enriched the moment it is created &mdash; so the gaps never come back and you never run this audit again.
                 </p>
-                <a href="#" class="btn-primary" id="syncCta"><i class="fab fa-hubspot"></i> Set up automatic HubSpot sync</a>
-                <div style="font-size:.78rem;color:var(--gray-400);margin-top:.7rem;">Included on any paid plan. Also available via n8n, Make and Zapier.</div>
+                <div id="syncState"><div class="sync-loading"><i class="fas fa-circle-notch fa-spin"></i> Checking your HubSpot connection&hellip;</div></div>
             </div>
 
         </div>
@@ -602,18 +609,117 @@ function reset(){
     document.getElementById('stage2').classList.remove('active');
 }
 
-document.getElementById('syncCta').addEventListener('click', e=>{
-    e.preventDefault();
-    track('sync_cta_clicked', lastAudit && lastAudit.recommendation.plan ? lastAudit.recommendation.plan.id : 'none');
-    window.location.href = addGclid('https://linkfinderai.com/app?token='+userToken+'&action=upgrade&src=crm_sync');
-});
+/* ---------- stage 3: HubSpot connection ---------- */
+
+const NANGO_WORKER = 'https://nangoconnect.hamoureliasse.workers.dev';
+
+async function nangoCall(route){
+    const r = await fetch(NANGO_WORKER + '/' + route, {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({token:userToken})
+    });
+    return { ok: r.ok, status: r.status, data: await r.json().catch(()=>({})) };
+}
+
+function renderSync(state){
+    const el = document.getElementById('syncState');
+    if(!el) return;
+
+    if(state === 'connected'){
+        el.innerHTML =
+            '<div class="sync-connected">' +
+                '<i class="fas fa-circle-check badge"></i>' +
+                '<div class="sync-connected-text"><strong>HubSpot is connected</strong>' +
+                'New contacts are enriched automatically. You should not need to run this audit again.</div>' +
+                '<button class="btn-danger-ghost" onclick="disconnectHubspot()">Disconnect</button>' +
+            '</div>' +
+            '<div style="font-size:.78rem;color:var(--gray-400);margin-top:.7rem;">Also available via n8n, Make and Zapier.</div>';
+        return;
+    }
+
+    if(state === 'locked'){
+        // The worker returned 402. Sync costs us a managed connection per customer,
+        // which is exactly why it sits behind a plan while the audit does not.
+        el.innerHTML =
+            '<div class="sync-locked"><i class="fas fa-lock" style="margin-right:.4rem;"></i>' +
+            'Automatic sync is included on any paid plan. The audit above stays free either way.</div>' +
+            '<a href="#" class="btn-primary" style="margin-top:1rem;" onclick="goUpgrade(\'sync\');return false;">' +
+            '<i class="fas fa-arrow-up-right-dots"></i> See plans</a>';
+        return;
+    }
+
+    if(state === 'error'){
+        el.innerHTML = '<div class="err">Could not reach the connection service. Refresh and try again, or email support@linkfinderai.com.</div>';
+        return;
+    }
+
+    el.innerHTML =
+        '<a href="#" class="btn-primary" onclick="connectHubspot();return false;" id="connectBtn">' +
+        '<i class="fab fa-hubspot"></i> Connect HubSpot</a>' +
+        '<div style="font-size:.78rem;color:var(--gray-400);margin-top:.7rem;">' +
+        'Read and write access to contacts only. Disconnect any time. Also available via n8n, Make and Zapier.</div>';
+}
+
+async function refreshSyncState(){
+    try{
+        const res = await nangoCall('status');
+        if(!res.ok){ renderSync('error'); return; }
+        if(res.data.connected){ renderSync('connected'); return; }
+        renderSync(res.data.paid ? 'disconnected' : 'locked');
+    }catch(e){ renderSync('error'); }
+}
+
+async function connectHubspot(){
+    const btn = document.getElementById('connectBtn');
+    if(btn){ btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Opening&hellip;'; }
+    track('sync_connect_started', 'hubspot');
+
+    let res;
+    try{ res = await nangoCall('session'); }
+    catch(e){ renderSync('error'); return; }
+
+    if(res.status === 402){ renderSync('locked'); track('sync_connect_blocked','plan_required'); return; }
+    if(res.data.alreadyConnected){ renderSync('connected'); return; }
+    if(!res.ok || !res.data.sessionToken){ renderSync('error'); return; }
+
+    try{
+        // Loaded on demand rather than in <head>: nobody who only runs the audit
+        // should pay the download for a flow they never open.
+        const mod = await import('https://esm.sh/@nangohq/frontend');
+        const Nango = mod.default || mod.Nango;
+        const nango = new Nango();
+        nango.openConnectUI({
+            sessionToken: res.data.sessionToken,
+            onEvent: (event) => {
+                if(event.type === 'connect'){
+                    track('sync_connected', 'hubspot');
+                    renderSync('connected');
+                } else if(event.type === 'close'){
+                    refreshSyncState();
+                }
+            }
+        });
+    }catch(e){
+        renderSync('error');
+    }
+}
+
+async function disconnectHubspot(){
+    if(!confirm('Disconnect HubSpot? New contacts will stop being enriched automatically.')) return;
+    try{
+        await nangoCall('disconnect');
+        track('sync_disconnected','hubspot');
+    }catch(e){}
+    refreshSyncState();
+}
 
 window.logout=logout; window.nav=nav; window.handleAddCredits=handleAddCredits;
 window.toggleField=toggleField; window.goUpgrade=goUpgrade; window.reset=reset;
 window.track=track; window.bookingUrl=bookingUrl;
+window.connectHubspot=connectHubspot; window.disconnectHubspot=disconnectHubspot;
 
 document.addEventListener('DOMContentLoaded',()=>{
-    checkAuth(); fetchCredits();
+    checkAuth(); fetchCredits(); refreshSyncState();
     try{ posthog.capture('crm_sync_page_viewed'); }catch(e){}
 });
 </script>

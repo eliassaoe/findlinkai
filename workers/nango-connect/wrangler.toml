@@ -1,0 +1,18 @@
+name = "nangoconnect"
+main = "worker.js"
+compatibility_date = "2026-08-22"
+
+[vars]
+ACCOUNTS_TABLE = "linkfinderai_users"
+TOKEN_COLUMN   = "token"
+
+# Server-side paid check. Subscription state is not in Supabase - the dodo
+# webhook only emits PostHog events - so this is the Railway endpoint the app
+# already uses, which returns {issub: bool}. If unset the worker fails CLOSED
+# and mints nothing, because an unconfigured gate must never be an open one.
+SUBSCRIPTION_CHECK_URL = "https://scalelinkfinderai-production.up.railway.app/webhook/a30d8fea-5360-4003-be0d-9cea914390b0"
+
+# Secrets, set with `wrangler secret put`, never committed:
+#   NANGO_SECRET_KEY      - Nango secret key. Rotate the one that leaked first.
+#   SUPABASE_URL          - https://snxhsboboatjywgwdeds.supabase.co
+#   SUPABASE_SERVICE_KEY  - service_role key (reads the accounts table)
