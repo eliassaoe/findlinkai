@@ -843,6 +843,7 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
 <div id="lowCreditsBar" class="low-credits-bar"></div>
 <div id="closedWithoutPurchaseBanner" class="low-credits-bar" style="display:none;"></div>
 <div id="milestoneUpgradeBanner" class="low-credits-bar" style="display:none;"></div>
+<div id="bulkNudgeBanner" class="low-credits-bar" style="display:none;"></div>
     
 <div id="annualBanner" style="display:none;background:linear-gradient(135deg,#f0fdf4,#dcfce7);border-bottom:1px solid #bbf7d0;padding:0.5rem 1rem;text-align:center;font-size:0.8rem;color:#166534;font-weight:500;">
   💡 You're on monthly — <strong>switch to annual and save 40%</strong> ($240/year) 
@@ -1027,6 +1028,7 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
     <div id="zeroCreditsInline" class="hidden" style="background:#fef3c7;border:1px solid var(--warning);border-radius:8px;padding:1rem;margin-top:1rem;text-align:center;">
         <p style="font-size:0.875rem;color:#92400e;margin-bottom:0.75rem;">You've used all your free credits. Upgrade to run more enrichments.</p>
         <button type="button" class="btn" onclick="handleAddCredits()"><i class="fas fa-bolt"></i> Upgrade now</button>
+        <button type="button" onclick="cimOpenRescue('zero_balance_banner')" style="display:block;width:100%;margin-top:0.6rem;background:none;border:none;color:#92400e;font-size:0.8125rem;text-decoration:underline;cursor:pointer;font-family:inherit;">Not upgrading? Tell me what's stopping you</button>
     </div>
 </div>
 
@@ -2283,6 +2285,10 @@ function setBilling(type) {
     
 function showPricingModal(trigger, extra) {
     window.__lfLastHoveredPlanIndex = null;
+    // Which gate sent them here. The bulk export gate and a zero balance are
+    // materially higher intent than browsing the plans, and closing without
+    // buying from those deserves the rescue rather than the generic banner.
+    window.__lfPricingTrigger = trigger || null;
     try { window.uetq = window.uetq || []; window.uetq.push('event', 'begin_checkout', {}); } catch(e) {}
     // Someone clicking "buy credits" wants more credits now, not necessarily a
     // monthly commitment - default them to the $25 one-time PAYG pack instead
@@ -2331,7 +2337,21 @@ function closePricingModal() {
     // "you're low on credits" banner below.
     const shownSalesIntercept = maybeShowSalesIntercept();
 
-    if (!shownSalesIntercept && !isExistingSubscriber && !sessionStorage.getItem('lf_closed_wo_purchase_shown')) {
+    // Leaving the bulk export gate, or the plans with nothing left in the
+    // account, is not browsing - there is a job half done on the other side of
+    // it. Ask what stopped them rather than showing a banner.
+    let shownRescue = false;
+    if (!shownSalesIntercept && !window.__lfPlanSelectedThisSession) {
+        const hardGate = window.__lfPricingTrigger === 'export_gated'
+            || (currentCredits !== null && currentCredits <= 0);
+        if (hardGate) {
+            shownRescue = cimOpenRescue(
+                window.__lfPricingTrigger === 'export_gated' ? 'bulk_export' : 'zero_balance'
+            );
+        }
+    }
+
+    if (!shownSalesIntercept && !shownRescue && !isExistingSubscriber && !sessionStorage.getItem('lf_closed_wo_purchase_shown')) {
         const remaining = currentCredits !== null ? Math.round(currentCredits*10)/10 : null;
         const bar = document.getElementById('closedWithoutPurchaseBanner');
         if (bar) {
@@ -2560,6 +2580,7 @@ function cimRescuePick(reason) {
     try {
         posthog.capture('credits_wall_rescue_answered', {
             reason: reason,
+            source: cimRescueSource,
             trigger: creditsExhaustedTrigger,
             credits_remaining: currentCredits,
             session_credits_used: sessionCreditsUsed
@@ -2606,6 +2627,29 @@ function cimPriceFallbackHtml() {
 }
 
 async function cimPriceBranch() {
+    // For the low-conversion tier, "it costs more than I expected" is not a
+    // negotiating position - $25 is out of range and 40% off $49 is still $29.
+    // They are 55% of signups and 0.55% of them convert after seeing the price,
+    // against 9.3% everywhere else. Money is the wrong currency to offer here.
+    //
+    // But the earn-credits system already exists and pays 1,000 credits for a
+    // G2 review - more than the $25 pack. It was only ever shown once per
+    // browser, so 74 of 993 people in this tier ever saw it. Running out of
+    // credits is precisely when it becomes worth seeing.
+    if (otpGeoTier === 'low_conversion') {
+        try { posthog.capture('credits_wall_earn_offered', { source: cimRescueSource }); } catch (e) {}
+        cimRescueAnswer(
+            '<strong>Then earn them instead of buying them.</strong><br><br>'
+            + 'A review on G2 is worth <strong>1,000 credits</strong> here &mdash; more than the $25 pack costs. '
+            + 'Sharing on LinkedIn is 150. It takes a few minutes and no card.'
+            + '<br><button type="button" class="cim-rescue-cta" onclick="cimRescueCta(\'earn_credits\');cimHardClose();openOnboardingTasksPopupManually()">'
+            + 'Show me how to earn credits</button>'
+            + '<br><button type="button" class="cim-rescue-done" onclick="cimRescueCta(\'referral\');cimHardClose();openReferralModal()">'
+            + 'Or get paid for referrals instead</button>'
+        );
+        return;
+    }
+
     if (!cimQualifiesForDiscount()) {
         cimRescueAnswer(cimPriceFallbackHtml());
         return;
@@ -2638,6 +2682,37 @@ async function cimPriceBranch() {
         try { posthog.capture('discount_code_failed', { reason: String(e && e.message || e).slice(0, 80) }); } catch (_) {}
         cimRescueAnswer(cimPriceFallbackHtml());
     }
+}
+
+// Opens the rescue on its own, for the paywalls that are not the credit-wall
+// modal - the bulk export gate, and coming back to a zero balance. Same
+// component, same events, tagged with where it came from so the reasons can be
+// read per gate rather than pooled.
+let cimRescueSource = 'credit_wall';
+
+function cimOpenRescue(source) {
+    try {
+        if (isExistingSubscriber) return false;
+        if (window.__lfPlanSelectedThisSession) return false;
+        if (sessionStorage.getItem('lf_rescue_shown')) return false;
+        const modal = document.getElementById('insufficientCreditsModal');
+        const main = document.getElementById('cimMain');
+        const rescue = document.getElementById('cimRescue');
+        const opts = document.querySelector('.cim-rescue-opts');
+        const ans = document.getElementById('cimRescueAnswer');
+        if (!modal || !main || !rescue) return false;
+        sessionStorage.setItem('lf_rescue_shown', '1');
+        cimRescueSource = source || 'unknown';
+        cimRescueShown = true;
+        if (opts) opts.style.display = '';
+        if (ans) { ans.innerHTML = ''; ans.classList.remove('show'); }
+        main.style.display = 'none';
+        rescue.style.display = 'block';
+        modal.classList.add('show');
+        document.body.style.overflow = 'hidden';
+        try { posthog.capture('credits_wall_rescue_shown', { source: cimRescueSource, credits_remaining: currentCredits }); } catch (e) {}
+        return true;
+    } catch (e) { return false; }
 }
 
 // Entry point for the discount email: open the wall, skip the offer screen, and
@@ -4267,6 +4342,8 @@ function showPreview(){
     btn.innerHTML=`<i class="fas fa-play"></i> Process ${csvData.length} items`;
     document.getElementById('csvPreview').classList.remove('hidden');
     try { posthog.capture('csv_uploaded', { row_count: csvData.length, input_type: currentInputType }); } catch(e) {}
+    // Stops the bulk nudge for anyone who already found bulk on their own.
+    try { localStorage.setItem('lf_csv_uploaded_ever', '1'); } catch (e) {}
 }
 function initializeBulkResultsTable(){
     document.getElementById('confidenceFilterBar').style.display = currentInputType === 'email' ? 'flex' : 'none';
@@ -4643,11 +4720,52 @@ async function maybeTriggerFirstSuccessPrompts() {
     // checkEnrichmentMilestone() (fires on the 2nd successful enrichment).
 }
 
+// Bulk is where the money is, by a distance. Over sixteen weeks: people who hit
+// the bulk export gate paid at 9.5%, people who uploaded a CSV without hitting it
+// paid at 4.2%, people who enriched one at a time and never hit a wall paid at
+// 0.35%, and people who hit only the credit wall paid at 0.0%. 239 CSV uploaders
+// produced 14 of 21 payments - two thirds of revenue from under 1% of users.
+//
+// So the single most valuable thing the app can do to someone enriching one row
+// at a time is tell them there is a list-shaped way to do it. Fires once, on the
+// third success, when they have clearly got a repeated job rather than a one-off.
+function maybeShowBulkNudge(n) {
+    try {
+        if (n < 3) return;
+        if (localStorage.getItem('lf_bulk_nudge_shown')) return;
+        if (localStorage.getItem('lf_csv_uploaded_ever')) return;
+        const bar = document.getElementById('bulkNudgeBanner');
+        if (!bar) return;
+        localStorage.setItem('lf_bulk_nudge_shown', '1');
+        bar.innerHTML = 'Doing these one at a time? You can upload a CSV and run the whole list at once. '
+            + '<a onclick="bulkNudgeClicked()">Show me &rarr;</a>';
+        bar.style.display = 'block';
+        try { posthog.capture('bulk_nudge_shown', { enrichments: n }); } catch (e) {}
+    } catch (e) {}
+}
+
+function bulkNudgeClicked() {
+    try { posthog.capture('bulk_nudge_clicked'); } catch (e) {}
+    const bar = document.getElementById('bulkNudgeBanner');
+    if (bar) bar.style.display = 'none';
+    try {
+        switchMode('bulk');
+        const ua = document.getElementById('uploadArea');
+        if (ua) {
+            ua.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            ua.style.transition = 'box-shadow 0.3s ease';
+            ua.style.boxShadow = '0 0 0 4px rgba(37,99,235,0.35)';
+            setTimeout(function () { ua.style.boxShadow = ''; }, 2500);
+        }
+    } catch (e) {}
+}
+
 function checkEnrichmentMilestone() {
     const key = 'lf_enrich_count'; const firedKey = 'lf_ten_enrich_fired';
     const n = parseInt(localStorage.getItem(key) || '0') + 1;
     localStorage.setItem(key, n);
     maybeShowReferralNudge();
+    maybeShowBulkNudge(n);
     // Low-conversion geo: wait until the 2nd enrichment before auto-showing
     // the task popup, so people experience real value first. Before that,
     // they can still open it early anytime via the "Tasks" fab.
@@ -5197,11 +5315,21 @@ const OTP_LINKS = {
 // what actually keeps the review from being taken down later.
 const DISC = 'You must write in your review that you received credits for it. Reviews without that line can be removed by the platform.';
 
+// Trustpilot was removed on 22 Aug 2026. Their guidelines prohibit incentivised
+// reviews outright - the disclosure line helps everywhere else but does not make
+// it permitted there - so the task is gone rather than disclosed. G2 leads
+// instead: it pays the most and G2 permits incentives when they are declared.
+//
+// The badge task is checked for real before any credits move: workers/badge-verify
+// fetches the page and confirms the link exists and is followed. Without that it
+// would pay out on an honour system for the joint highest-value item here.
+const BADGE_VERIFY_WORKER = 'https://badge-verify.hamoureliasse.workers.dev';
+
 const OTP_TASKS = [
     { name: 'g2_review', kind: 'url', label: 'Leave a G2 review', credits: 1000, realValue: '= 100 emails or 1,000 LinkedIn profiles', placeholder: 'Paste the URL of your review', linkUrl: OTP_LINKS.g2, linkLabel: 'Write a review on G2', pendingCopy: 'Being checked', disclosureNote: DISC },
+    { name: 'site_badge', kind: 'url', label: 'Put the LinkFinder badge on your site', credits: 1000, realValue: '= 100 emails or 1,000 LinkedIn profiles', placeholder: 'Paste the page URL where the badge is live', linkUrl: 'https://linkfinderai.com/badge', linkLabel: 'Get the badge code', verifyWorker: BADGE_VERIFY_WORKER },
     { name: 'youtube_subscribe', kind: 'honor_click', label: 'Subscribe to our YouTube channel', credits: 100, realValue: '= 100 LinkedIn profiles', linkUrl: OTP_LINKS.youtube, linkLabel: 'Open channel' },
     { name: 'linkedin_share', kind: 'url', label: 'Share on LinkedIn', credits: 150, realValue: '= 150 LinkedIn profiles', placeholder: 'Paste your LinkedIn post URL' },
-    { name: 'trustpilot_review', kind: 'url', label: 'Leave a Trustpilot review', credits: 500, realValue: '= 50 emails', placeholder: 'Paste the URL of your review', linkUrl: OTP_LINKS.trustpilot, linkLabel: 'Write a review on Trustpilot', pendingCopy: 'Being checked', disclosureNote: DISC},
 ];
 
 function otpCopy() {
@@ -5429,6 +5557,37 @@ async function otpSubmitUrlTask(taskName) {
 
     otpBusyTask = taskName;
     renderOnboardingTasksPopup();
+
+    // Tasks carrying a verifyWorker are checked for real before the credits
+    // endpoint is called at all, so a failed check cannot leave a completed row.
+    if (task && task.verifyWorker) {
+        const BADGE_ERRORS = {
+            no_link: 'We could not find the badge on that page. Check it is published, and that this is the exact page it appears on.',
+            link_is_nofollow: 'The badge is there, but the link is set to nofollow. Remove rel="nofollow" from it and try again.',
+            domain_already_claimed: 'That site has already been credited for the badge.',
+            already_claimed: 'You have already claimed this one.',
+            not_html: 'That URL did not return a web page.',
+            timeout: 'That page took too long to respond. Try again in a moment.',
+            unreachable: 'We could not reach that page.'
+        };
+        try {
+            const vres = await fetch(task.verifyWorker, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_token: userToken, site_url: url })
+            });
+            const vdata = await vres.json();
+            if (!vres.ok || !vdata.verified) {
+                const key = vdata.detail || vdata.error;
+                throw new Error(BADGE_ERRORS[key] || 'We could not verify the badge on that page.');
+            }
+            try { posthog.capture('badge_verified', { domain: vdata.domain }); } catch (e) {}
+        } catch (e) {
+            otpBusyTask = null;
+            renderOnboardingTasksPopup();
+            otpShowFieldError(taskName, e.message || 'We could not verify the badge.');
+            return;
+        }
+    }
 
     const isReview = taskName === 'g2_review' || taskName === 'trustpilot_review';
     const endpoint = isReview ? '/tasks/submit-review' : '/tasks/complete';
