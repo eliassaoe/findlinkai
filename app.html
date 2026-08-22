@@ -4731,7 +4731,13 @@ async function maybeTriggerFirstSuccessPrompts() {
 // third success, when they have clearly got a repeated job rather than a one-off.
 function maybeShowBulkNudge(n) {
     try {
-        if (n < 3) return;
+        // Fires on the second success, not the third. The distribution is
+        // front-loaded and brutal: of 1,413 people who ever enriched, 464 did it
+        // exactly once and 316 exactly twice. A third-lookup trigger reaches 45%
+        // of them; a second-lookup trigger reaches 67%. And two lookups is
+        // already the signal that matters - one can be a test, two is a pattern,
+        // and a pattern is a list.
+        if (n < 2) return;
         if (localStorage.getItem('lf_bulk_nudge_shown')) return;
         if (localStorage.getItem('lf_csv_uploaded_ever')) return;
         const bar = document.getElementById('bulkNudgeBanner');
