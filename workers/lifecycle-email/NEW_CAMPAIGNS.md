@@ -96,21 +96,37 @@ before building one.
 Spacing ~9 days. The arc is re-engage → remove friction → demonstrate →
 automate → decide, and it deliberately gives twice before asking once.
 
-### BLOCKER 1 — email 2 promises credits nothing grants
+### Email 2 hands over the credit tasks — RESOLVED
 
-Email 2 says *"200 credits, already on your account"*. **Nothing in the codebase
-puts them there.** Sending it as-is tells several thousand people something
-untrue and they find an unchanged balance — worse than never sending.
+Email 2 originally promised "200 credits, already on your account" that nothing
+granted. It now points at the task system that already exists in
+`workers/onboarding-tasks/`, and the amounts are the real ones from
+`TASK_CONFIG`:
 
-Pick one before this campaign runs:
+| Task | Credits | Verification |
+|---|---|---|
+| G2 review | 1,000 | reviewed by hand, 1–2 days |
+| Trustpilot review | 500 | reviewed by hand, 1–2 days |
+| LinkedIn share | 150 | instant, URL checked |
+| YouTube subscribe | 100 | instant, honour system |
+| **Total** | **1,750** | ≈ 85 fully enriched leads |
 
-* grant the credits in a batch to the target segment first, then send; or
-* change the copy to a claim code / a button that grants on click; or
-* drop the number and make email 2 about something else.
+This is a better offer than the 200 that was invented, and it is true.
 
-The amount is a placeholder too. 200 credits is ~10 fully enriched leads at
-10 credits per profile and 10 per email — chosen because the 25-credit trial is
-about one lead, which is too few to judge anything. Your call.
+The copy is explicit that the credits are **earned, not gifted**, and invites an
+honest review including an unfavourable one. A dormant user who clicks expecting
+free money and finds a review request bounces harder than one told the deal up
+front — and a review we paid for with a wink is worth less than one we did not.
+
+**`?action=tasks` is new.** The task popup was previously reachable only through
+a button rendered for the `low_conversion` geo tier, so for most of the base the
+tasks were invisible and the email would have landed on a dashboard with no way
+in. `app.html` now handles `action=tasks`, opens the popup, and fires
+`tasks_email_landed`. Verified in a browser: the event fires with the param and
+not without it.
+
+Worth noting separately — those 1,750 credits were sitting unclaimable for most
+users this whole time. That is worth fixing for everyone, not just this campaign.
 
 ### BLOCKER 2 — do not blast this at the whole base
 
@@ -148,7 +164,7 @@ numbers — match rate, bounce rate on returned emails, sample size — put them
 email 8 and it becomes the strongest email in the sequence. Do not add a number
 you cannot show the working for.
 
-**Emails 2 and 3 both lean on "credits do not expire".** That is true today and
+**Emails 2, 3 and 10 lean on "credits do not expire".** That is true today and
 it is a genuinely good selling point for a dormant list. It also directly
 contradicts the recommendation to add a 12-month expiry. Pick one: if expiry
 goes in, both emails need rewriting before they send.
