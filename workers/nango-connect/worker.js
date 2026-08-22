@@ -12,9 +12,10 @@
 // short-lived connect session token scoped to one end user.
 //
 // Endpoints, all POST with {token}:
-//   /session -> {sessionToken, expiresAt}  mint a Connect session (paid only)
-//   /status  -> {connected, connectionId, provider}
-//   /disconnect -> {disconnected}          delete the connection, freeing the seat
+//   /session  -> {sessionToken, expiresAt}  mint a Connect session (paid only)
+//   /finalise -> {ready}                    write the sync's metadata post-connect
+//   /status   -> {connected, connectionId, provider}
+//   /disconnect -> {disconnected}           delete the connection, freeing the seat
 //
 // Deploy: see README.md in this directory.
 
@@ -46,6 +47,7 @@ export default {
         try {
             if (route === 'status')     return json(await status(env, user), 200, cors);
             if (route === 'session')    return json(...(await session(env, user)), cors);
+            if (route === 'finalise')   return json(await finalise(env, user), 200, cors);
             if (route === 'disconnect') return json(await disconnect(env, user), 200, cors);
         } catch (err) {
             console.error(route + ' failed', err && err.message);
@@ -94,6 +96,69 @@ async function session(env, user) {
 
     const data = await res.json();
     return [{ sessionToken: data?.data?.token, expiresAt: data?.data?.expires_at }, 200];
+}
+
+/*
+ * Authorising HubSpot is only half of it. The sync reads its configuration from
+ * the CONNECTION's metadata - above all the customer's own LinkFinder API key,
+ * because enrichment is billed to their account, not ours. Without this the
+ * connection looks healthy in the Nango dashboard and every run fails on a
+ * missing key.
+ *
+ * The key is read server-side from the account row rather than passed up by the
+ * browser: the page should never have to hold it, and a client-supplied key
+ * would let anyone bill enrichment to someone else's account.
+ */
+async function finalise(env, user) {
+    const conn = await findConnection(env, user.token);
+    if (!conn) return { ready: false, reason: 'not_connected' };
+
+    const apiKey = await apiKeyFor(env, user.token);
+    if (!apiKey) {
+        console.error('no api_key on account row; sync would fail on every run');
+        return { ready: false, reason: 'no_api_key' };
+    }
+
+    const res = await fetch(
+        NANGO_API + '/connection/' + encodeURIComponent(conn.connection_id) + '/metadata',
+        {
+            method: 'POST',
+            headers: {
+                ...JSON_HEADERS,
+                Authorization: 'Bearer ' + env.NANGO_SECRET_KEY,
+                'Provider-Config-Key': INTEGRATION
+            },
+            body: JSON.stringify({
+                apiKey,
+                // Defaults matching the sync's own schema. The properties must
+                // already exist in the customer's HubSpot portal.
+                type: 'linkedin_profile_to_linkedin_info',
+                linkedinUrlProperty: 'linkedin_url',
+                targetProperty: 'linkfinder_ai_data',
+                maxContactsPerRun: 100
+            })
+        }
+    );
+
+    if (!res.ok) {
+        console.error('nango metadata write failed', res.status, await safeText(res));
+        return { ready: false, reason: 'metadata_failed' };
+    }
+    return { ready: true };
+}
+
+async function apiKeyFor(env, token) {
+    const table = env.ACCOUNTS_TABLE || 'linkfinderai_users';
+    const col = env.TOKEN_COLUMN || 'token';
+    const keyCol = env.API_KEY_COLUMN || 'api_key';
+    const res = await fetch(
+        env.SUPABASE_URL + '/rest/v1/' + table + '?' + col + '=eq.' + encodeURIComponent(token) +
+            '&select=' + encodeURIComponent(keyCol) + '&limit=1',
+        { headers: sbHeaders(env) }
+    );
+    if (!res.ok) return null;
+    const rows = await res.json();
+    return rows.length ? rows[0][keyCol] || null : null;
 }
 
 async function status(env, user) {

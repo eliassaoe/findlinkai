@@ -694,6 +694,16 @@ async function connectHubspot(){
                 if(event.type === 'connect'){
                     track('sync_connected', 'hubspot');
                     renderSync('connected');
+                    // Authorising is only half of it - the sync needs its metadata
+                    // (above all the account's own API key) or every run fails.
+                    nangoCall('finalise').then(r=>{
+                        if(!r.data || !r.data.ready){
+                            document.getElementById('syncState').insertAdjacentHTML('beforeend',
+                                '<div class="err" style="margin-top:.75rem;">Connected, but we could not finish setting it up. ' +
+                                'Email support@linkfinderai.com and we will sort it - your CRM is not being enriched yet.</div>');
+                            track('sync_finalise_failed', (r.data && r.data.reason) || 'unknown');
+                        }
+                    }).catch(()=>{});
                 } else if(event.type === 'close'){
                     refreshSyncState();
                 }
