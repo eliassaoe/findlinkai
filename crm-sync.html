@@ -138,6 +138,9 @@ table.gaps tfoot td{font-weight:700;color:var(--gray-900);border-top:2px solid v
 .btn-ghost{background:transparent;border:1px solid var(--gray-300);color:var(--gray-600);padding:.6rem 1rem;border-radius:8px;font-size:.83rem;cursor:pointer;font-family:inherit;font-weight:500;}
 .btn-ghost:hover{background:var(--gray-50);}
 .hidden{display:none!important;}
+.btn-fix{background:var(--primary);color:white;border:none;padding:.35rem .7rem;border-radius:6px;font-size:.75rem;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;}
+.btn-fix:hover{background:var(--primary-hover);}
+.fix-short{font-size:.72rem;color:var(--gray-400);white-space:nowrap;}
 .trust{margin-top:1rem;border:1px solid var(--gray-200);border-radius:10px;background:white;overflow:hidden;}
 .trust-row{display:flex;gap:.65rem;align-items:flex-start;padding:.8rem 1rem;font-size:.83rem;color:var(--gray-600);border-bottom:1px solid var(--gray-100);line-height:1.5;}
 .trust-row:last-child{border-bottom:none;}
@@ -289,11 +292,11 @@ table.gaps tfoot td{font-weight:700;color:var(--gray-900);border-top:2px solid v
                 <div class="gaps-wrap">
                     <table class="gaps">
                         <thead>
-                            <tr><th>Gap</th><th>How we fix it</th><th style="text-align:right;">Records</th><th style="text-align:right;">Credits</th></tr>
+                            <tr><th>Gap</th><th>How we fix it</th><th style="text-align:right;">Records</th><th style="text-align:right;">Credits</th><th></th></tr>
                         </thead>
                         <tbody id="gapRows"></tbody>
                         <tfoot>
-                            <tr><td colspan="3">Total to fully enrich your CRM</td><td class="num" id="totalCredits">0</td></tr>
+                            <tr><td colspan="3">Total to fully enrich your CRM</td><td class="num" id="totalCredits">0</td><td></td></tr>
                         </tfoot>
                     </table>
                 </div>
@@ -478,11 +481,20 @@ function render(r){
     }).join('');
 
     // gap table
+    const credits = parseInt((document.getElementById('creditsCount').textContent||'0').replace(/\D/g,''),10) || 0;
     document.getElementById('gapRows').innerHTML = r.breakdown.length
-        ? r.breakdown.map(b =>
-            '<tr><td>'+b.label+'</td><td style="color:var(--gray-500);">'+b.fix+'</td>' +
-            '<td class="num">'+f(b.count)+'</td><td class="num">'+f(b.credits)+'</td></tr>').join('')
-        : '<tr><td colspan="4" style="color:var(--gray-500);">No gaps in the selected fields.</td></tr>';
+        ? r.breakdown.map(b => {
+            const affordable = credits >= b.credits;
+            // Offer the action whenever they can pay for it. Someone with credits
+            // already should never be shown a checkout instead of a start button.
+            const btn = affordable
+                ? '<button class="btn-fix" onclick="startCleaning(\''+b.key+'\')">Fix these</button>'
+                : '<span class="fix-short" title="You have '+f(credits)+' credits">needs '+f(b.credits-credits)+' more</span>';
+            return '<tr><td>'+b.label+'</td><td style="color:var(--gray-500);">'+b.fix+'</td>' +
+                   '<td class="num">'+f(b.count)+'</td><td class="num">'+f(b.credits)+'</td>' +
+                   '<td style="text-align:right;">'+btn+'</td></tr>';
+          }).join('')
+        : '<tr><td colspan="5" style="color:var(--gray-500);">No gaps in the selected fields.</td></tr>';
     document.getElementById('totalCredits').textContent = f(r.creditsNeeded);
 
     renderQuote(r);
@@ -591,12 +603,40 @@ function renderQuote(r){
         ? '<div class="decay"><i class="fas fa-triangle-exclamation"></i><div>A one-time clean is temporary. At roughly <strong>'+f(rec.monthlyNewContacts)+' new contacts a month</strong>, your CRM will need about <strong>'+f(rec.maintenanceCredits)+' credits every month</strong> just to stop the gaps coming back.</div></div>'
         : '';
 
-    const target = planWins ? rec.plan.id : 'credits';
-    cta.innerHTML = planWins
-        ? '<a href="#" class="btn-primary" onclick="goUpgrade(\''+rec.plan.id+'\');return false;"><i class="fas fa-arrow-up-right-dots"></i> Get '+rec.plan.name+' and fix this now</a>'
-        : '<a href="#" class="btn-primary" onclick="goUpgrade(\'credits\');return false;"><i class="fas fa-coins"></i> Buy '+f(rec.pack.credits)+' credits &mdash; $'+f(rec.pack.price)+'</a>';
+    /*
+     * Someone who already holds enough credits must never be shown a checkout as
+     * the primary action - they have paid, they want to start. The plan stays on
+     * screen as the next step once this backlog is cleared, but it stops being
+     * the button.
+     */
+    const credits = parseInt((document.getElementById('creditsCount').textContent||'0').replace(/\D/g,''),10) || 0;
+    // The largest gap they can actually PAY FOR, not the largest gap. Picking the
+    // latter meant a balance that covered two of three gaps still got a checkout
+    // as the primary action while the table sat there offering working buttons.
+    const affordable = r.breakdown.filter(b => credits >= b.credits)
+                                  .sort((a,b) => b.credits - a.credits);
+    const biggest = affordable[0];
+    const canStart = Boolean(biggest);
 
-    track('cta_shown', target);
+    if (canStart) {
+        const coversAll = credits >= r.creditsNeeded;
+        cta.innerHTML =
+            '<a href="#" class="btn-primary" onclick="startCleaning(\''+biggest.key+'\');return false;">' +
+            '<i class="fas fa-wand-magic-sparkles"></i> Start cleaning &mdash; ' + biggest.fix.toLowerCase() +
+            ' for ' + f(biggest.count) + ' records</a>' +
+            '<div style="font-size:.78rem;color:var(--gray-400);margin-top:.7rem;">' +
+            'You have ' + f(credits) + ' credits' +
+            (coversAll
+                ? ' &mdash; enough for every gap above. Each one runs as its own pass; use the buttons in the table to pick the order.'
+                : ' &mdash; enough for ' + (affordable.length === 1 ? 'this one' : affordable.length + ' of the ' + r.breakdown.length + ' gaps') +
+                  '. ' + rec.plan.name + ' at $' + rec.plan.price + '/mo would cover the rest and keep it clean.') +
+            '</div>';
+        track('cta_shown', 'start_cleaning');
+    } else {
+        cta.innerHTML = '<a href="#" class="btn-primary" onclick="goUpgrade(\''+rec.plan.id+'\');return false;">' +
+            '<i class="fas fa-arrow-up-right-dots"></i> Get '+rec.plan.name+' and fix this now</a>';
+        track('cta_shown', rec.plan.id);
+    }
 }
 
 const CALENDLY = 'https://calendly.com/hamoureliasse/compensated-interview-unlimited-leads-clone';
@@ -617,6 +657,68 @@ function bookingUrl(campaign){
     }
     return CALENDLY + '?' + p.toString();
 }
+
+
+/* ---------- stage 2: actually clean it ---------- */
+
+/*
+ * The audit was a diagnosis with no treatment. It told you what was missing and
+ * what it would cost, and then the only button went to a checkout - useless to
+ * anyone who already has credits and just wants to start.
+ *
+ * These hand the parsed file to the bulk enrichment that already exists in
+ * /app rather than reimplementing it: the CSV goes into sessionStorage, /app
+ * reconstructs it into the real file input and fires the real change handler,
+ * so every existing parse, preview, credit check and gating rule still applies.
+ */
+
+// Which lookup fills which gap depends on what the export actually contains -
+// finding an email from a LinkedIn URL is a different operation, and a different
+// price, from finding one from a name.
+function opForGap(key, columns){
+    const hasLinkedIn = 'linkedin' in columns;
+    const hasEmail    = 'email' in columns;
+    switch(key){
+        case 'email':    return hasLinkedIn ? 'linkedin_profile__email' : 'lead_full_name__email';
+        case 'phone':    return 'linkedin_profile__phone';
+        case 'linkedin': return hasEmail ? 'email__linkedin_url' : 'lead_full_name__linkedin_url';
+        case 'title':    return 'linkedin_profile__linkedin_info';
+        case 'company':  return 'company_name__website';
+        default:         return null;
+    }
+}
+
+function opNeedsLinkedIn(op){ return op && op.indexOf('linkedin_profile__') === 0; }
+
+function startCleaning(gapKey){
+    if(!lastAudit || !lastCSV) return;
+    const op = opForGap(gapKey, lastAudit.columnsDetected);
+    if(!op){ return; }
+
+    // A LinkedIn-URL-driven lookup is impossible without that column. Say so
+    // rather than handing over a file that will fail on every row.
+    if(opNeedsLinkedIn(op) && !('linkedin' in lastAudit.columnsDetected)){
+        alert('This fix needs a LinkedIn URL column, and this export does not have one.\n\n'
+            + 'Fill the LinkedIn URL gap first, then come back and run this.');
+        return;
+    }
+
+    track('clean_started', gapKey);
+
+    try{
+        sessionStorage.setItem('lf_clean_csv', lastCSV);
+        sessionStorage.setItem('lf_clean_op', op);
+        sessionStorage.setItem('lf_clean_gap', gapKey);
+    }catch(e){
+        // Quota - a very large export. Send them on anyway; /app asks for the
+        // file again rather than failing silently.
+        try{ sessionStorage.removeItem('lf_clean_csv'); }catch(_){}
+        sessionStorage.setItem('lf_clean_op', op);
+    }
+
+    window.location.href = addGclid('https://linkfinderai.com/app?token='+userToken+'&action=clean_crm&src=crm_audit');
+}
+window.startCleaning = startCleaning;
 
 function track(ev, target){
     try{

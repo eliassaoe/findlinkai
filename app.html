@@ -3996,6 +3996,53 @@ function checkAuth(){
     // people at the credit tasks. The popup was previously reachable only via a
     // button rendered for the low_conversion geo tier, so everyone else had no
     // way in at all - which made the tasks invisible to most of the base.
+    /*
+     * ?action=clean_crm is the CRM audit handing over its file. The audit is a
+     * diagnosis; this is where it becomes work. Rather than reimplementing bulk
+     * enrichment over there, the CSV is reconstructed into THIS page's real file
+     * input and the real change handler is fired - so parsing, preview, credit
+     * checks and row gating all behave exactly as they do for a manual upload.
+     */
+    else if(action==='clean_crm') setTimeout(()=>{
+        let csv=null, op=null, gap=null;
+        try{
+            csv = sessionStorage.getItem('lf_clean_csv');
+            op  = sessionStorage.getItem('lf_clean_op');
+            gap = sessionStorage.getItem('lf_clean_gap');
+            sessionStorage.removeItem('lf_clean_csv');
+            sessionStorage.removeItem('lf_clean_op');
+            sessionStorage.removeItem('lf_clean_gap');
+        }catch(e){}
+
+        if(!op) return;
+        try{ posthog.capture('crm_clean_landed',{operation:op, gap:gap, had_file:!!csv}); }catch(e){}
+
+        // Drive the real dropdowns. The output select carries "input__output" and
+        // its change handler sets both types and calls configureEnrichment().
+        const outputSel = document.getElementById('outputType');
+        if(outputSel){
+            outputSel.value = op;
+            outputSel.dispatchEvent(new Event('change'));
+        }
+        if(typeof switchMode === 'function') switchMode('bulk');
+
+        if(!csv){
+            // Too large for sessionStorage. The operation is set up; they just
+            // re-pick the file, which beats failing quietly.
+            showAlert('Your enrichment is set up — select your CSV again to start (the file was too large to carry over).','warning');
+            return;
+        }
+
+        try{
+            const input = document.getElementById('csvFile');
+            const dt = new DataTransfer();
+            dt.items.add(new File([csv], 'crm-export.csv', { type:'text/csv' }));
+            input.files = dt.files;
+            input.dispatchEvent(new Event('change'));
+        }catch(e){
+            showAlert('Your enrichment is set up — select your CSV again to start.','warning');
+        }
+    },700);
     else if(action==='tasks') setTimeout(()=>{
         try { posthog.capture('tasks_email_landed'); } catch(e) {}
         if (typeof openOnboardingTasksPopupManually === 'function') openOnboardingTasksPopupManually();
