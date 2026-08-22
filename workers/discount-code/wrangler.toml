@@ -5,18 +5,34 @@ compatibility_date = "2026-08-22"
 [vars]
 ACCOUNTS_TABLE = "linkfinderai_users"
 
-# REQUIRED. Comma-separated Dodo product ids the code may apply to. Subscription
-# products only - leaving this empty makes the worker refuse to issue, because an
-# unrestricted 40% code would also discount the pay-as-you-go packs.
+# REQUIRED. Comma-separated Dodo product ids the code may apply to. With this
+# empty the worker refuses to issue, because an unrestricted percentage would
+# also discount the pay-as-you-go packs.
 #
-# Known from the checkout worker; add the annual and Enterprise ids before going
-# live, or those plans silently will not accept the code:
-#   pdt_0Nfl5LZfppnjJBM2mvons  Starter monthly
-#   pdt_0Nfl5YPolhxfkTEMxOJYp  Professional monthly
-# NOT these (one-time PAYG packs):
-#   pdt_0Nj62gByZ53OzYoz3bCBr  PAYG Small
-#   pdt_0Nj62kQhG7EzZWogTmjfE  PAYG Medium
-DISCOUNT_PRODUCT_IDS = ""
+# Confirmed from the Dodo product list, 22 Aug 2026. Recurring plans only:
+#   pdt_0Nfl68GPfL6s7UCzsoxwr  Annual Enterprise    $1,068  subscription
+#   pdt_0Nfl5zzZR6gaiA1YQPxqj  Annual Professional    $636  subscription
+#   pdt_0Nfl5LZfppnjJBM2mvons  Starter monthly              subscription
+#   pdt_0Nfl5YPolhxfkTEMxOJYp  Professional monthly         subscription
+#
+# DELIBERATELY EXCLUDED, and the reasons matter:
+#   pdt_0NhTBPnnrvuTNChT1nFuw  Auto Top-Up card authorization, $0.50. This is a
+#                              subscription in Dodo but it is not a plan - it is
+#                              the card-on-file charge. "All subscriptions" would
+#                              have swept it in. Never discount it.
+#   pdt_0Nj62scEtjXTicj4P2thT  PAYG Large  $200   one-time
+#   pdt_0Nj62kQhG7EzZWogTmjfE  PAYG Medium  $75   one-time
+#   pdt_0Nj62gByZ53OzYoz3bCBr  PAYG Small   $25   one-time
+#   pdt_0Ngb1YZbYwRS1gxfVaN9R  Pro    $159  one-time (legacy)
+#   pdt_0Ngb1URNW4fRAC4F3jyow  Power   $54  one-time (legacy)
+#   pdt_0Ngb1PwVoM24kOEydcDkT  Quick   $19  one-time (legacy)
+#   pdt_0NkRaWA02qqHfK2sHT4Se  Guest Post Placement $100 - not a plan at all
+#
+# STILL MISSING: the product list showed 1-10 of 14. Monthly Enterprise, and an
+# Annual Starter if one exists, are on page 2 and are not in the list below. Any
+# plan absent here will silently reject the code at checkout - add them before
+# pointing real traffic at this.
+DISCOUNT_PRODUCT_IDS = "pdt_0Nfl68GPfL6s7UCzsoxwr,pdt_0Nfl5zzZR6gaiA1YQPxqj,pdt_0Nfl5LZfppnjJBM2mvons,pdt_0Nfl5YPolhxfkTEMxOJYp"
 
 # How many billing cycles the 40% applies to. 1 = first period only. Absent
 # would mean forever; 40% off $149/mo in perpetuity is a permanent margin cut,
