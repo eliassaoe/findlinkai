@@ -63,7 +63,8 @@ WITH
         SELECT person_id AS pid, event, timestamp
         FROM events
         WHERE event IN ('enrich_started', 'checkout_payment_success',
-                        'payg_credits_purchased', 'payment_succeeded_server')
+                        'payg_credits_purchased', 'payment_succeeded_server',
+                        'api_key_copied', 'mcp_url_copied')
           AND timestamp > now() - INTERVAL {window_days} DAY
     ),
 
@@ -83,7 +84,12 @@ WITH
           AND g.event = multiIf(
                 s.action_id = 'email_upgrade', 'checkout_payment_success',
                 s.action_id IN ('email_welcome', 'email_no_lookup'), 'enrich_started',
+                -- The API/MCP step wins when someone takes a key, not when they pay.
+                s.action_id = 'email_api', 'api_key_copied',
                 s.workflow_id = '01a0257d-5b54-0000-42a7-fcd74f8a0a1d', 'enrich_started',
+                -- email_call included: a booked call happens on Calendly, off-site, so
+                -- there is no event for it. Its conversions stay near zero by design and
+                -- click rate is the objective on that step - see variants.json.
                 'checkout_payment_success')
         GROUP BY workflow_id, action_id, subject
     )
