@@ -12,16 +12,19 @@
 // short-lived connect session token scoped to one end user.
 //
 // Endpoints, all POST with {token}:
-//   /session  -> {sessionToken, expiresAt}  mint a Connect session (paid only)
-//   /finalise -> {ready}                    write the sync's metadata post-connect
-//   /status   -> {connected, connectionId, provider}
-//   /disconnect -> {disconnected}           delete the connection, freeing the seat
+//   /session      -> {sessionToken, expiresAt}  mint a Connect session (paid only)
+//   /finalise     -> {ready}                    write the sync's metadata post-connect
+//   /status       -> {connected, connectionId, provider}
+//   /clean        -> {started}                  run the cleanup over their HubSpot now
+//   /clean-status -> {status, records, ...}     progress of the current/last run
+//   /disconnect   -> {disconnected}             delete the connection, freeing the seat
 //
 // Deploy: see README.md in this directory.
 
 const JSON_HEADERS = { 'Content-Type': 'application/json' };
 const NANGO_API = 'https://api.nango.dev';
 const INTEGRATION = 'hubspot';
+const SYNC_NAME = 'enrich-new-contacts';   // Nango derives this from the sync filename
 
 const ALLOWED_ORIGINS = ['https://linkfinderai.com', 'https://www.linkfinderai.com'];
 
@@ -48,6 +51,8 @@ export default {
             if (route === 'status')     return json(await status(env, user), 200, cors);
             if (route === 'session')    return json(...(await session(env, user)), cors);
             if (route === 'finalise')   return json(await finalise(env, user), 200, cors);
+            if (route === 'clean')      return json(...(await clean(env, user, body)), cors);
+            if (route === 'clean-status') return json(await cleanStatus(env, user), 200, cors);
             if (route === 'disconnect') return json(await disconnect(env, user), 200, cors);
         } catch (err) {
             console.error(route + ' failed', err && err.message);
@@ -159,6 +164,99 @@ async function apiKeyFor(env, token) {
     if (!res.ok) return null;
     const rows = await res.json();
     return rows.length ? rows[0][keyCol] || null : null;
+}
+
+/*
+ * Run the cleanup over their HubSpot now.
+ *
+ * This is the difference between enrichment and a CRM cleanup: nothing is
+ * exported and nothing is handed back to re-import. The sync reads their
+ * contacts, fills the gaps and writes the values onto the records themselves.
+ *
+ * Paid-only, checked here rather than in the page - a Nango connection costs
+ * money per connection and a browser check is a suggestion, not a gate.
+ */
+async function clean(env, user, body) {
+    const paid = await isPaid(env, user.token);
+    if (!paid) return [{ error: 'plan_required', message: 'Cleaning your CRM in place is included on any paid plan.' }, 402];
+
+    const conn = await findConnection(env, user.token);
+    if (!conn) return [{ error: 'not_connected', message: 'Connect HubSpot first.' }, 409];
+
+    // Which gaps to fill. Validated against the sync's own enum so a bad value
+    // cannot silently produce a run that fills nothing.
+    const ALLOWED = ['linkedin', 'email', 'title', 'phone'];
+    let fields = Array.isArray(body && body.fields) ? body.fields.filter((f) => ALLOWED.includes(f)) : [];
+    if (!fields.length) fields = ['linkedin', 'email', 'title'];
+
+    const apiKey = await apiKeyFor(env, user.token);
+    if (!apiKey) return [{ error: 'no_api_key' }, 409];
+
+    // Metadata carries the run's configuration, so it is written immediately
+    // before triggering rather than once at connect time - otherwise a user who
+    // changes which gaps to fill would silently get the previous selection.
+    const meta = await fetch(
+        NANGO_API + '/connection/' + encodeURIComponent(conn.connection_id) + '/metadata',
+        {
+            method: 'POST',
+            headers: { ...JSON_HEADERS, Authorization: 'Bearer ' + env.NANGO_SECRET_KEY, 'Provider-Config-Key': INTEGRATION },
+            body: JSON.stringify({
+                apiKey,
+                fields,
+                linkedinUrlProperty: 'linkedin_url',
+                targetProperty: 'linkfinder_ai_data',
+                maxContactsPerRun: 100
+            })
+        }
+    );
+    if (!meta.ok) {
+        console.error('metadata write failed', meta.status, await safeText(meta));
+        return [{ error: 'metadata_failed' }, 502];
+    }
+
+    const res = await fetch(NANGO_API + '/sync/trigger', {
+        method: 'POST',
+        headers: { ...JSON_HEADERS, Authorization: 'Bearer ' + env.NANGO_SECRET_KEY },
+        body: JSON.stringify({
+            provider_config_key: INTEGRATION,
+            syncs: [SYNC_NAME],
+            connection_id: conn.connection_id
+        })
+    });
+
+    if (!res.ok) {
+        console.error('sync trigger failed', res.status, await safeText(res));
+        return [{ error: 'trigger_failed' }, 502];
+    }
+    return [{ started: true, fields: fields }, 200];
+}
+
+async function cleanStatus(env, user) {
+    const conn = await findConnection(env, user.token);
+    if (!conn) return { connected: false };
+
+    const url = NANGO_API + '/sync/status?provider_config_key=' + encodeURIComponent(INTEGRATION) +
+        '&syncs=' + encodeURIComponent(SYNC_NAME) +
+        '&connection_id=' + encodeURIComponent(conn.connection_id);
+
+    const res = await fetch(url, { headers: { Authorization: 'Bearer ' + env.NANGO_SECRET_KEY } });
+    if (!res.ok) {
+        console.error('sync status failed', res.status);
+        return { connected: true, status: 'unknown' };
+    }
+
+    const data = await res.json();
+    const s = (data && data.syncs && data.syncs[0]) || null;
+    if (!s) return { connected: true, status: 'never_run' };
+
+    return {
+        connected: true,
+        status: s.status || 'unknown',            // RUNNING | SUCCESS | ERROR | PAUSED
+        records: s.recordCount ?? null,
+        finishedAt: s.finishedAt ?? null,
+        nextScheduledSyncAt: s.nextScheduledSyncAt ?? null,
+        latestResult: s.latestResult ?? null
+    };
 }
 
 async function status(env, user) {

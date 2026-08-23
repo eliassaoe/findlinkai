@@ -304,6 +304,15 @@ table.gaps tfoot td{font-weight:700;color:var(--gray-900);border-top:2px solid v
                 <button class="btn-ghost" style="margin-top:1rem;" onclick="reset()"><i class="fas fa-rotate-left"></i> Audit a different file</button>
             </div>
 
+            <!-- stage 2: fix it where it lives -->
+            <div class="card" id="cleanCard">
+                <h2><i class="fas fa-wand-magic-sparkles"></i> Fix these gaps in HubSpot</h2>
+                <p style="font-size:.87rem;color:var(--gray-600);margin-bottom:1rem;">
+                    Not an export. We read your contacts, fill what is missing, and write the values back onto the records themselves &mdash; nothing to download, nothing to re-import.
+                </p>
+                <div id="cleanState"><div class="sync-loading"><i class="fas fa-circle-notch fa-spin"></i> Checking your HubSpot connection&hellip;</div></div>
+            </div>
+
             <!-- the commercial core -->
             <div class="card" id="quoteCard">
                 <h2><i class="fas fa-calculator"></i> What it costs to fix</h2>
@@ -487,8 +496,12 @@ function render(r){
             const affordable = credits >= b.credits;
             // Offer the action whenever they can pay for it. Someone with credits
             // already should never be shown a checkout instead of a start button.
+            // No per-row action any more. Fixing happens against HubSpot in the
+            // card below, over the whole database at once - a per-row button here
+            // would send them back out to a CSV round-trip, which is the thing
+            // this replaced.
             const btn = affordable
-                ? '<button class="btn-fix" onclick="startCleaning(\''+b.key+'\')">Fix these</button>'
+                ? '<span class="fix-short" style="color:var(--success);">affordable</span>'
                 : '<span class="fix-short" title="You have '+f(credits)+' credits">needs '+f(b.credits-credits)+' more</span>';
             return '<tr><td>'+b.label+'</td><td style="color:var(--gray-500);">'+b.fix+'</td>' +
                    '<td class="num">'+f(b.count)+'</td><td class="num">'+f(b.credits)+'</td>' +
@@ -498,6 +511,7 @@ function render(r){
     document.getElementById('totalCredits').textContent = f(r.creditsNeeded);
 
     renderQuote(r);
+    refreshCleanState();
 
     /*
      * Two writes, deliberately different.
@@ -659,7 +673,161 @@ function bookingUrl(campaign){
 }
 
 
-/* ---------- stage 2: actually clean it ---------- */
+/* ---------- stage 2: clean it where it lives ---------- */
+
+/*
+ * The audit runs on a CSV because that needs no connection and no plan. The
+ * CLEANUP runs against HubSpot directly, because handing someone an enriched
+ * file they have to re-import is not cleaning their CRM - it is homework.
+ *
+ * Everything below drives workers/nango-connect, which triggers the Nango sync.
+ * The paid check and the credit spend both happen server-side; this is only the
+ * screen.
+ */
+
+let cleanFields = ['linkedin', 'email', 'title'];   // phone omitted: 50 credits vs 5-10
+let cleanPoll = null;
+
+const CLEAN_LABEL = {
+    linkedin: 'LinkedIn URL',
+    email:    'Business email',
+    title:    'Job title',
+    phone:    'Phone number'
+};
+
+function toggleCleanField(k){
+    if (cleanFields.includes(k)) cleanFields = cleanFields.filter(x => x !== k);
+    else cleanFields.push(k);
+    if (!cleanFields.length) cleanFields = [k];
+    renderCleanIdle();
+}
+
+function cleanChips(){
+    return '<div class="field-toggles" style="margin-bottom:1rem;">' +
+        Object.keys(CLEAN_LABEL).map(k => {
+            const on = cleanFields.includes(k);
+            const cost = LFCrmAudit.CREDIT_COST[k === 'linkedin' ? 'linkedin' : k];
+            return '<button class="chip ' + (on ? 'on' : '') + '" onclick="toggleCleanField(\''+k+'\')">' +
+                   (on ? '<i class="fas fa-check"></i> ' : '') + CLEAN_LABEL[k] +
+                   ' <span style="opacity:.7;">&middot; ' + cost + ' cr</span></button>';
+        }).join('') + '</div>';
+}
+
+function renderCleanIdle(){
+    const el = document.getElementById('cleanState');
+    if (!el) return;
+    el.innerHTML = cleanChips() +
+        '<a href="#" class="btn-primary" onclick="runClean();return false;">' +
+        '<i class="fas fa-wand-magic-sparkles"></i> Clean my HubSpot now</a>' +
+        '<div style="font-size:.78rem;color:var(--gray-400);margin-top:.7rem;">' +
+        'Runs over contacts that are still missing data, up to 100 per pass. Credits are only spent on lookups that return something usable.' +
+        '</div>' + csvFallback();
+}
+
+// Salesforce and Pipedrive users can still audit; they just cannot be cleaned in
+// place. Keep the CSV route available to them rather than stranding them.
+function csvFallback(){
+    return '<div style="font-size:.78rem;color:var(--gray-400);margin-top:1rem;padding-top:1rem;border-top:1px solid var(--gray-100);">' +
+        'Not on HubSpot? <a href="#" style="color:var(--primary);font-weight:600;" onclick="startCleaning(\'email\');return false;">Enrich your export as a file instead &rarr;</a></div>';
+}
+
+function renderClean(state, data){
+    const el = document.getElementById('cleanState');
+    if (!el) return;
+
+    if (state === 'locked'){
+        el.innerHTML = '<div class="sync-locked"><i class="fas fa-lock" style="margin-right:.4rem;"></i>' +
+            'Cleaning your CRM in place is included on any paid plan. The audit above stays free either way.</div>' +
+            '<a href="#" class="btn-primary" style="margin-top:1rem;" onclick="goUpgrade(\'clean\');return false;">' +
+            '<i class="fas fa-arrow-up-right-dots"></i> See plans</a>' + csvFallback();
+        return;
+    }
+    if (state === 'disconnected'){
+        el.innerHTML = '<div class="sync-locked">Connect HubSpot and these gaps get filled on the records themselves.</div>' +
+            '<a href="#" class="btn-primary" style="margin-top:1rem;" onclick="connectHubspot();return false;">' +
+            '<i class="fab fa-hubspot"></i> Connect HubSpot</a>' + csvFallback();
+        return;
+    }
+    if (state === 'running'){
+        el.innerHTML = '<div class="sync-connected" style="background:#eff6ff;border-color:#bfdbfe;">' +
+            '<i class="fas fa-circle-notch fa-spin badge" style="color:var(--primary);"></i>' +
+            '<div class="sync-connected-text" style="color:#1e40af;"><strong>Cleaning your HubSpot&hellip;</strong>' +
+            (data && data.records ? LFCrmAudit.fmt(data.records) + ' contact(s) updated so far.' : 'This runs in the background &mdash; you can close this tab.') +
+            '</div></div>';
+        return;
+    }
+    if (state === 'done'){
+        el.innerHTML = '<div class="sync-connected"><i class="fas fa-circle-check badge"></i>' +
+            '<div class="sync-connected-text"><strong>Cleanup finished</strong>' +
+            (data && data.records ? LFCrmAudit.fmt(data.records) + ' contact(s) updated in HubSpot.' : 'Your contacts have been updated in HubSpot.') +
+            ' Re-run the audit on a fresh export to see the difference.</div></div>' +
+            '<a href="#" class="btn-ghost" style="margin-top:1rem;" onclick="renderCleanIdle();return false;">Run it again</a>';
+        return;
+    }
+    if (state === 'error'){
+        el.innerHTML = '<div class="err">' + ((data && data.message) || 'Could not start the cleanup.') +
+            ' Email support@linkfinderai.com and we will sort it.</div>' +
+            '<a href="#" class="btn-ghost" style="margin-top:1rem;" onclick="renderCleanIdle();return false;">Try again</a>';
+        return;
+    }
+    renderCleanIdle();
+}
+
+async function refreshCleanState(){
+    try{
+        const res = await nangoCall('status');
+        if (!res.ok){ renderClean('error', {}); return; }
+        if (!res.data.paid){ renderClean('locked'); return; }
+        if (!res.data.connected){ renderClean('disconnected'); return; }
+
+        const st = await nangoCall('clean-status');
+        if (st.ok && st.data && st.data.status === 'RUNNING'){ renderClean('running', st.data); startCleanPoll(); return; }
+        renderCleanIdle();
+    }catch(e){ renderClean('error', {}); }
+}
+
+async function runClean(){
+    renderClean('running', {});
+    track('crm_clean_triggered', cleanFields.join('+'));
+    let res;
+    try{
+        res = await fetch(NANGO_WORKER + '/clean', {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({ token:userToken, fields: cleanFields })
+        });
+        res = { ok: res.ok, status: res.status, data: await res.json().catch(()=>({})) };
+    }catch(e){ renderClean('error', {}); return; }
+
+    if (res.status === 402){ renderClean('locked'); return; }
+    if (res.status === 409){ renderClean('disconnected'); return; }
+    if (!res.ok || !res.data.started){ renderClean('error', res.data); return; }
+    startCleanPoll();
+}
+
+// Nango runs the sync on its own workers, so progress is polled rather than
+// streamed. Bounded so a stuck run does not poll this tab forever.
+function startCleanPoll(){
+    if (cleanPoll) clearInterval(cleanPoll);
+    let ticks = 0;
+    cleanPoll = setInterval(async () => {
+        ticks++;
+        if (ticks > 120){ clearInterval(cleanPoll); cleanPoll = null; return; }
+        try{
+            const st = await nangoCall('clean-status');
+            if (!st.ok || !st.data) return;
+            if (st.data.status === 'RUNNING'){ renderClean('running', st.data); return; }
+            clearInterval(cleanPoll); cleanPoll = null;
+            renderClean(st.data.status === 'ERROR' ? 'error' : 'done', st.data);
+            if (st.data.status !== 'ERROR') track('crm_clean_finished', String(st.data.records ?? ''));
+        }catch(e){}
+    }, 5000);
+}
+
+window.toggleCleanField = toggleCleanField;
+window.runClean = runClean;
+window.renderCleanIdle = renderCleanIdle;
+
+/* ---------- CSV fallback (non-HubSpot CRMs) ---------- */
 
 /*
  * The audit was a diagnosis with no treatment. It told you what was missing and
