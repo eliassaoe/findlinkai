@@ -710,7 +710,6 @@ const CLEAN_LABEL = {
 // Defaults mirror the worker's own: phone off, because one phone costs more
 // than seven emails and nobody wants to discover that after the fact.
 let cleanFields = ['linkedin_url', 'email'];
-let isPaid = null;          // null = not yet known
 
 function toggleCleanField(k){
     if (cleanFields.includes(k)) cleanFields = cleanFields.filter(x => x !== k);
@@ -819,9 +818,6 @@ function renderClean(state, data){
 }
 
 async function refreshCleanState(){
-    const paid = await checkPaid();
-    if (!paid){ renderClean('locked'); return; }
-
     const res = await nangoCall('status');
     if (!res.ok){ renderClean('error', res.data); return; }
     if (!res.data.connected){ renderClean('disconnected'); return; }
@@ -850,6 +846,10 @@ async function runClean(){
     if (run.status === 404){ renderClean('disconnected'); return; }
     if (run.status === 403){ renderClean('locked'); return; }
     if (!run.ok){ renderClean('error', run.data); return; }
+    // A lapsed subscription does NOT come back as 403 here. syncOneConnection
+    // bails with { notSubscriber: true } and handleTestSync wraps that in a 200,
+    // so without this check it renders as "looked at 0 contacts, found nothing".
+    if (run.data.notSubscriber){ renderClean('locked'); return; }
 
     renderClean('done', run.data);
     track('crm_clean_finished', String(run.data.filledTotal ?? ''));
@@ -955,6 +955,20 @@ function reset(){
 /* ---------- stage 3: HubSpot connection ---------- */
 
 /*
+ * NOTHING HERE PRE-CHECKS WHETHER YOU HAVE PAID, deliberately. An earlier
+ * version asked upgrade-intent on page load and rendered the "See plans"
+ * screen unless it answered issub:true. That put a second service between a
+ * paying customer and a feature they had already bought - one bad answer and
+ * the whole page locked itself, which is exactly what happened.
+ *
+ * The worker is the real authority: /connect-session 403s a non-subscriber and
+ * /sync-now refuses to spend credits for one. Both are server-side and cannot
+ * be bypassed by a visible button. So the button is shown, and the worker's
+ * answer decides - a free user who clicks gets the upgrade screen, which is a
+ * better funnel than hiding the feature anyway.
+ */
+
+/*
  * This drives the `nango-connect-session` worker that has been live since
  * 17 Aug - the same one account.html's HubSpot card already reads from. It
  * uses Nango for OAuth token storage and a proxied HubSpot REST API, NOT
@@ -973,7 +987,6 @@ function reset(){
 const NANGO_WORKER          = 'https://nango-connect-session.hamoureliasse.workers.dev';
 const NANGO_API_URL         = 'https://api.nango.dev';
 const NANGO_CONNECT_UI_URL  = 'https://connect.nango.dev';
-const UPGRADE_INTENT_URL    = 'https://upgrade-intent.hamoureliasse.workers.dev/';
 
 // Internal HubSpot property names the worker writes into. These are its own
 // defaults; a customer whose portal uses different internal names can have
@@ -991,27 +1004,6 @@ async function nangoCall(route, extra){
     }catch(e){
         return { ok:false, status:0, data:{ error:'Could not reach the connection service.' } };
     }
-}
-
-/*
- * The worker returns 403 for a non-subscriber, but only once you ask it to do
- * something. Knowing up front lets both stages show the right screen instead of
- * a connect button that fails. upgrade-intent is the same source of truth the
- * worker itself checks, and the same one account.html uses.
- */
-let paidPromise = null;
-function checkPaid(){
-    // The promise is cached, not just its result - both stages ask on page load
-    // and would otherwise each fire their own request before either resolved.
-    if (paidPromise) return paidPromise;
-    paidPromise = fetch(UPGRADE_INTENT_URL, {
-        method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ token:userToken, trigger:'crm_sync_page_load' })
-    })
-        .then(r => r.json())
-        .then(d => { isPaid = d.issub === true; return isPaid; })
-        .catch(() => { isPaid = false; return false; });   // fail closed, same as the worker
-    return paidPromise;
 }
 
 function timeAgo(iso){
@@ -1070,9 +1062,6 @@ function renderSync(state, data){
 }
 
 async function refreshSyncState(){
-    const paid = await checkPaid();
-    if(!paid){ renderSync('locked'); return; }
-
     const res = await nangoCall('status');
     if(!res.ok){ renderSync('error'); return; }
     renderSync(res.data.connected ? 'connected' : 'disconnected', res.data);
