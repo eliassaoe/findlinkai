@@ -19,18 +19,22 @@ ok()   { printf '\033[1;32m  ok\033[0m %s\n' "$*"; }
 # ---------------------------------------------------------------- prerequisite
 say "Before anything else"
 cat <<'TXT'
-The HubSpot OAuth app must already exist in Nango, or the Connect screen opens
-and immediately dies. If you have not done this yet, stop and do it now:
+You do NOT need your own HubSpot developer app. Nango ships a shared developer
+app for HubSpot that works in production as well as dev. All that is required:
 
-  1. https://developers.hubspot.com  ->  create app
-  2. Auth tab -> scopes: crm.objects.contacts.read, crm.objects.contacts.write
-  3. Redirect URL: https://api.nango.dev/oauth/callback
-  4. Copy Client ID + Client Secret
-  5. https://app.nango.dev -> Integrations -> hubspot -> paste both
+  https://app.nango.dev/dev/integrations/hubspot/settings
+  -> enable the integration, and turn on these scopes:
+       crm.objects.contacts.read     crm.objects.contacts.write
+       crm.objects.companies.read    crm.objects.companies.write
+
+Register your own HubSpot app LATER, not now. The reason is branding rather
+than function: on Nango's shared app your customers see "Authorize Nango" on
+the consent screen instead of LinkFinder AI, the scopes are fixed, and the
+callback is on Nango's domain rather than yours. None of that blocks you today.
 
 TXT
-read -r -p "HubSpot app is set up in Nango? [y/N] " reply
-[[ "$reply" =~ ^[Yy]$ ]] || { warn "Do that first, then re-run this script."; exit 1; }
+read -r -p "HubSpot integration enabled in Nango with those scopes? [y/N] " reply
+[[ "$reply" =~ ^[Yy]$ ]] || { warn "Enable it at app.nango.dev, then re-run this script."; exit 1; }
 
 # ---------------------------------------------------------------- 1. the sync
 say "1/2  Deploying the Nango sync"

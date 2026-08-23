@@ -39,7 +39,15 @@ pattern LinkFinder AI's own docs recommend for Zapier/Make.
 
 - A [Nango](https://app.nango.dev) account with a HubSpot integration enabled at
   [app.nango.dev/dev/integrations/hubspot/settings](https://app.nango.dev/dev/integrations/hubspot/settings) —
-  make sure the OAuth scopes below are turned on there:
+  make sure the OAuth scopes below are turned on there.
+
+  **No HubSpot developer app of your own is needed.** Nango ships a shared
+  developer app for HubSpot that works in production too. Registering your own
+  is a branding decision to make later, not a prerequisite: on the shared app
+  the consent screen asks your customer to authorize *Nango* rather than
+  LinkFinder AI, the scopes are fixed, and the callback lives on Nango's domain.
+
+  Scopes:
   - `crm.objects.companies.read`, `crm.objects.companies.write`
   - `crm.objects.contacts.read`, `crm.objects.contacts.write`
 - At least one HubSpot connection created through that integration (via Nango Connect / the frontend SDK).
