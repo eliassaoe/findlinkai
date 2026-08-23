@@ -16,7 +16,6 @@ const API_BASE = 'https://api.linkfinderai.com';
 // (See https://linkfinderai.com/api-documentation for the authoritative list.)
 const OPERATION_TYPE_MAP: Record<string, Record<string, string>> = {
 	lead: {
-		findLeadsAi: 'leads_finder_ai',
 		fullNameToLinkedinUrl: 'lead_full_name_to_linkedin_url',
 		emailToLinkedinUrl: 'email_to_linkedin_url',
 	},
@@ -225,9 +224,8 @@ export class LinkFinderAi implements INodeType {
 				type: 'options',
 				noDataExpression: true,
 				displayOptions: { show: { resource: ['lead'] } },
-				default: 'findLeadsAi',
+				default: 'fullNameToLinkedinUrl',
 				options: [
-					{ name: 'Find Leads (AI Search)', value: 'findLeadsAi', description: 'Natural-language lead search — returns full profiles', action: 'Find leads with a i search' },
 					{ name: 'Full Name → LinkedIn URL', value: 'fullNameToLinkedinUrl', description: "Find a person's LinkedIn URL from their name and company", action: 'Find linked in url from full name' },
 					{ name: 'Email → LinkedIn URL', value: 'emailToLinkedinUrl', description: "Reverse-lookup a person's LinkedIn URL from their email", action: 'Find linked in url from email' },
 				],
@@ -328,19 +326,8 @@ export class LinkFinderAi implements INodeType {
 				required: true,
 				displayOptions: { hide: { resource: ['job'] } },
 				description:
-					'The value LinkFinder AI looks up — a company name/domain, LinkedIn or Instagram URL, email, or (for Find Leads) a plain-English description of who you\'re looking for',
+					'The value LinkFinder AI looks up — a company name/domain, LinkedIn or Instagram URL, or email',
 				placeholder: 'e.g. Tesla, tesla.com, https://linkedin.com/in/john-doe, john@company.com',
-			},
-
-			// ---- Find Leads (AI) extra field ----
-			{
-				displayName: 'Max Results',
-				name: 'fetchCount',
-				type: 'number',
-				default: 10,
-				typeOptions: { minValue: 1, maxValue: 100 },
-				displayOptions: { show: { resource: ['lead'], operation: ['findLeadsAi'] } },
-				description: 'Number of lead profiles to return (max 100)',
 			},
 
 			// ---- Domain → Employees extra fields ----
@@ -451,9 +438,6 @@ export class LinkFinderAi implements INodeType {
 				const inputData = this.getNodeParameter('inputData', i) as string;
 				const body: IDataObject = { type, input_data: inputData };
 
-				if (type === 'leads_finder_ai') {
-					body.fetch_count = this.getNodeParameter('fetchCount', i, 10) as number;
-				}
 				if (type === 'company_domain_to_employees') {
 					const department = this.getNodeParameter('department', i, '') as string;
 					const seniority = this.getNodeParameter('seniority', i, '') as string;

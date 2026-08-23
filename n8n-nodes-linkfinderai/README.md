@@ -15,7 +15,7 @@ is always async and returns a job to poll).
 - **Credentials** — `LinkFinder AI API`, just an API key (find it in your dashboard
   under Settings → API Key). Includes a live credential test.
 - **Node** — `LinkFinder AI`, covering all 16 operations across 6 resources:
-  - **Lead**: Find Leads (AI search), Full Name → LinkedIn URL, Email → LinkedIn URL
+  - **Lead**: Full Name → LinkedIn URL, Email → LinkedIn URL
   - **Company**: Name → Website / Phone / Email / Employee Count / LinkedIn URL, Domain → Employees
   - **LinkedIn Profile**: URL → Full Info (async), URL → Email, URL → Phone
   - **LinkedIn Company**: URL → Info, URL → Employee Count

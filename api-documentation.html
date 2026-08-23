@@ -315,7 +315,6 @@
 
         <div class="sidebar-section">
             <div class="sidebar-section-label">Endpoints</div>
-            <a href="#lead-finder" class="sidebar-link"><i class="fas fa-magic"></i> AI Lead Finder <span class="sidebar-badge">New</span></a>
             <a href="#company" class="sidebar-link"><i class="fas fa-building"></i> Company Enrichment</a>
             <a href="#linkedin" class="sidebar-link"><i class="fab fa-linkedin"></i> B2B Data Lookup</a>
             <a href="#instagram" class="sidebar-link"><i class="fab fa-instagram"></i> Instagram lookup</a>
@@ -529,128 +528,6 @@ console.log(data.result); <span class="cm">// "tesla.com"</span></pre>
                 <div class="info-box green">
                     <i class="fas fa-circle-check"></i>
                     <div>If you exceed your rate limit, requests return <code>429 Too Many Requests</code>. Implement exponential backoff — wait 1s, then 2s, then 4s between retries.</div>
-                </div>
-            </div>
-
-            <!-- ══ AI LEAD FINDER ══ -->
-            <div class="doc-section" id="lead-finder">
-                <h2 class="section-heading"><i class="fas fa-magic"></i> AI Lead Finder <span style="font-size:0.625rem;font-weight:700;padding:0.2rem 0.5rem;border-radius:4px;background:var(--primary);color:white;text-transform:uppercase;margin-left:4px;vertical-align:middle">New</span></h2>
-                <p class="section-sub">Describe the leads you want in plain English. Get back a list of matching LinkedIn profiles with full contact details and company data.</p>
-
-                <div class="info-box blue">
-                    <i class="fas fa-lightbulb"></i>
-                    <div>This is the most powerful endpoint. Instead of looking up one profile at a time, describe your ideal customer in natural language and get up to 100 matching leads in one call. Each profile costs 1 credit.</div>
-                </div>
-
-                <div class="endpoint-card featured open">
-                    <div class="endpoint-header" onclick="toggleEndpoint(this)">
-                        <div>
-                            <div class="endpoint-title-row">
-                                <span class="method-badge">POST</span>
-                                <span class="endpoint-name">leads_finder_ai</span>
-                                <span class="new-badge">New</span>
-                                <span class="sync-tag"><i class="fas fa-bolt"></i> Sync</span>
-                            </div>
-                            <div class="endpoint-desc">Natural language lead search — returns full profiles with email, LinkedIn, and company data</div>
-                        </div>
-                        <div style="display:flex;align-items:center;gap:.5rem">
-                            <span class="credit-pill">1 credit / profile</span>
-                            <i class="fas fa-chevron-up endpoint-chevron"></i>
-                        </div>
-                    </div>
-                    <div class="endpoint-body">
-                        <table class="params-table">
-                            <thead><tr><th>Parameter</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
-                            <tbody>
-                                <tr>
-                                    <td><code>input_data</code></td>
-                                    <td><code>string</code></td>
-                                    <td><span class="param-req req">Required</span></td>
-                                    <td>Natural language description of your target leads</td>
-                                </tr>
-                                <tr>
-                                    <td><code>fetch_count</code></td>
-                                    <td><code>integer</code></td>
-                                    <td><span class="param-req opt">Optional</span></td>
-                                    <td>Number of profiles to return. Default: 10. Max: 100.</td>
-                                </tr>
-                            </tbody>
-                        </table>
-
-                        <div class="code-block-wrap">
-                            <div class="code-tabs">
-                                <button class="code-tab active" onclick="switchTab(this, 'lf-curl')">cURL</button>
-                                <button class="code-tab" onclick="switchTab(this, 'lf-python')">Python</button>
-                                <button class="code-tab" onclick="switchTab(this, 'lf-node')">Node.js</button>
-                                <button class="code-tab" onclick="switchTab(this, 'lf-response')">Response</button>
-                            </div>
-                            <div id="lf-curl" class="code-pane active">
-<pre class="code-block">curl -X POST "https://api.linkfinderai.com" \
-     -H "Content-Type: application/json" \
-     -H "Authorization: Bearer <span class="st">YOUR_API_KEY</span>" \
-     -d '{
-       <span class="ky">"type"</span>: <span class="st">"leads_finder_ai"</span>,
-       <span class="ky">"input_data"</span>: <span class="st">"VP Sales at B2B SaaS startup in the United States"</span>,
-       <span class="ky">"fetch_count"</span>: <span class="nm">10</span>
-     }'</pre>
-                            </div>
-                            <div id="lf-python" class="code-pane">
-<pre class="code-block">response = requests.post(
-    <span class="st">"https://api.linkfinderai.com"</span>,
-    headers={<span class="ky">"Authorization"</span>: f<span class="st">"Bearer {API_KEY}"</span>},
-    json={
-        <span class="ky">"type"</span>: <span class="st">"leads_finder_ai"</span>,
-        <span class="ky">"input_data"</span>: <span class="st">"VP Sales at B2B SaaS startup in the United States"</span>,
-        <span class="ky">"fetch_count"</span>: <span class="nm">10</span>,
-    }
-)
-leads = response.json()
-<span class="cm">for</span> lead <span class="cm">in</span> leads:
-    <span class="cm">print</span>(lead[<span class="st">"full_name"</span>], lead[<span class="st">"email"</span>])</pre>
-                            </div>
-                            <div id="lf-node" class="code-pane">
-<pre class="code-block"><span class="cm">const</span> leads = <span class="cm">await</span> fetch(<span class="st">"https://api.linkfinderai.com"</span>, {
-  method: <span class="st">"POST"</span>,
-  headers: {
-    <span class="ky">"Authorization"</span>: `Bearer ${API_KEY}`,
-    <span class="ky">"Content-Type"</span>: <span class="st">"application/json"</span>,
-  },
-  body: JSON.stringify({
-    <span class="ky">type</span>: <span class="st">"leads_finder_ai"</span>,
-    <span class="ky">input_data</span>: <span class="st">"VP Sales at B2B SaaS startup in the United States"</span>,
-    <span class="ky">fetch_count</span>: <span class="nm">10</span>,
-  }),
-}).then(r => r.json());
-
-leads.forEach(lead => console.log(lead.full_name, lead.email));</pre>
-                            </div>
-                            <div id="lf-response" class="code-pane">
-<pre class="code-block"><span class="cm">// Returns an array of lead objects</span>
-[
-  {
-    <span class="ky">"full_name"</span>: <span class="st">"Sarah Mitchell"</span>,
-    <span class="ky">"job_title"</span>: <span class="st">"VP of Sales"</span>,
-    <span class="ky">"seniority_level"</span>: <span class="st">"vp"</span>,
-    <span class="ky">"email"</span>: <span class="st">"sarah@cloudcore.io"</span>,
-    <span class="ky">"linkedin"</span>: <span class="st">"https://linkedin.com/in/sarah-mitchell-sales"</span>,
-    <span class="ky">"company_name"</span>: <span class="st">"CloudCore"</span>,
-    <span class="ky">"company_domain"</span>: <span class="st">"cloudcore.io"</span>,
-    <span class="ky">"company_size"</span>: <span class="st">"51-200"</span>,
-    <span class="ky">"industry"</span>: <span class="st">"Software"</span>,
-    <span class="ky">"city"</span>: <span class="st">"Austin"</span>,
-    <span class="ky">"state"</span>: <span class="st">"Texas"</span>,
-    <span class="ky">"country"</span>: <span class="st">"United States"</span>
-  },
-  { <span class="cm">/* next lead... */</span> }
-]</pre>
-                            </div>
-                        </div>
-
-                        <div class="info-box blue" style="margin-top:.75rem">
-                            <i class="fas fa-pen-to-square"></i>
-                            <div><strong>Prompt tips:</strong> Be specific about role, seniority, industry, and geography. "Head of Marketing at e-commerce company in Europe with 50–200 employees" returns better results than "marketing person".</div>
-                        </div>
-                    </div>
                 </div>
             </div>
 

@@ -76,11 +76,6 @@ COMMON WORKFLOWS
   all take a LinkedIn COMPANY page URL. If you only have the company name,
   call find_company_linkedin_url first to get that URL.
 
-- "Find leads matching a description" (e.g. "VP Sales at B2B SaaS startups
-  in the US"): find_leads_ai directly — it already returns full profiles
-  (name, email, LinkedIn URL, company details), so no further lookups are
-  usually needed per lead.
-
 - "Who reacted to this LinkedIn post": find_linkedin_post_reactions
   directly, from the post URL.
 
@@ -101,9 +96,9 @@ by operation, because some data is far more expensive to source than others:
    1 credit   every company-name lookup, find_linkedin_url_from_name,
               find_linkedin_company_employee_count
 
-find_company_employees (1 credit per employee returned), find_leads_ai (1 credit
-per lead returned) and find_linkedin_post_reactions (1 credit per reaction
-returned) bill per record instead of per call.
+find_company_employees (1 credit per employee returned) and
+find_linkedin_post_reactions (1 credit per reaction returned) bill per record
+instead of per call.
 
 get_linkedin_profile_info always runs asynchronously; find_company_employees
 occasionally does under heavy load. Both cases are handled transparently:
@@ -340,26 +335,6 @@ export function createServer(apiKey: string): McpServer {
       },
     },
     async ({ linkedin_post_url }) => runLookup("linkedin_post_to_reactions", linkedin_post_url),
-  );
-
-  server.registerTool(
-    "find_leads_ai",
-    {
-      title: "AI lead finder",
-      description:
-        'Natural-language B2B lead search, e.g. "VP Sales at B2B SaaS startups in the United States". Returns full profiles already (name, job title, email, LinkedIn URL, company details) — no further lookups usually needed per lead. Costs 1 credit per lead returned.',
-      inputSchema: {
-        query: z.string().min(1).describe('Natural-language description of the leads to find, e.g. "VP Sales at B2B SaaS startup in the United States".'),
-        fetch_count: z
-          .number()
-          .int()
-          .min(1)
-          .max(100)
-          .default(10)
-          .describe("Number of matching leads to return (1-100, default 10)."),
-      },
-    },
-    async ({ query, fetch_count }) => runLookup("leads_finder_ai", query, { fetch_count }),
   );
 
   server.registerTool(

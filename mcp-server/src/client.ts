@@ -3,7 +3,6 @@ const POLL_INTERVAL_MS = 2000;
 const MAX_AUTO_POLL_MS = 55_000;
 
 export type EnrichmentType =
-  | "leads_finder_ai"
   | "company_name_to_website"
   | "company_name_to_phone"
   | "company_name_to_email"

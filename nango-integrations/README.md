@@ -111,7 +111,7 @@ call Nango directly.
 
 - LinkFinder AI's docs excerpt used to build this only confirmed a handful of
   `type` values (`company_name_to_website`, `company_domain_to_employees`,
-  `linkedin_profile_to_linkedin_info`, `leads_finder_ai`). `enrich-contact`
+  `linkedin_profile_to_linkedin_info`). `enrich-contact`
   accepts an arbitrary `type` string (with `linkedin_profile_to_linkedin_info`
   as the inferred default) so you can pass any other documented type — check
   your LinkFinder AI dashboard/API docs for the full catalog.
@@ -120,10 +120,6 @@ call Nango directly.
   as raw JSON on `linkfinder_ai_data` by default. Use the `propertyMap` input
   to map specific known result keys onto native HubSpot properties once you've
   confirmed their names against a live API response.
-- The `leads_finder_ai` endpoint (natural-language lead search → many profiles)
-  isn't wired up here since it creates *new* records rather than enriching an
-  existing one — a good candidate for a follow-up `sync` if you want it to
-  populate HubSpot contacts automatically.
 
 
 ## The sync: keep it clean automatically

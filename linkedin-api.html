@@ -326,9 +326,8 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
   -H 'Authorization: Bearer YOUR_API_KEY' \
   -H 'Content-Type: application/json' \
   -d '{
-    "type": "leads_finder_ai",
-    "input_data": "VP Sales at B2B SaaS startup in the United States",
-    "fetch_count": 25
+    "type": "linkedin_profile_to_linkedin_info",
+    "input_data": "https://linkedin.com/in/sarah-mitchell-sales"
   }'</pre></div>
     <div id="tab-python" class="code-block" style="display:none;"><pre>import requests
 
@@ -336,15 +335,14 @@ resp = requests.post(
     "https://api.linkfinderai.com",
     headers={"Authorization": "Bearer YOUR_API_KEY"},
     json={
-        "type": "leads_finder_ai",
-        "input_data": "VP Sales at B2B SaaS startup in the United States",
-        "fetch_count": 25,
+        "type": "linkedin_profile_to_linkedin_info",
+        "input_data": "https://linkedin.com/in/sarah-mitchell-sales",
     },
 )
 data = resp.json()
 if data["status"] == "success":
-    for lead in data["result"]:
-        print(lead["name"], "-", lead["title"])</pre></div>
+    profile = data["result"]
+    print(profile["full_name"], "-", profile["job_title"])</pre></div>
     <div id="tab-node" class="code-block" style="display:none;"><pre>const res = await fetch("https://api.linkfinderai.com", {
   method: "POST",
   headers: {
@@ -352,9 +350,8 @@ if data["status"] == "success":
     "Content-Type": "application/json",
   },
   body: JSON.stringify({
-    type: "leads_finder_ai",
-    input_data: "VP Sales at B2B SaaS startup in the United States",
-    fetch_count: 25,
+    type: "linkedin_profile_to_linkedin_info",
+    input_data: "https://linkedin.com/in/sarah-mitchell-sales",
   }),
 });
 
@@ -362,16 +359,14 @@ const { status, result } = await res.json();
 console.log(status, result);</pre></div>
     <div id="tab-response" class="code-block" style="display:none;"><pre>{
   "status": "success",
-  "result": [
-    {
-      "name": "Jane Doe",
-      "title": "VP of Sales",
-      "company": "Acme SaaS",
-      "linkedin_url": "https://www.linkedin.com/in/janedoe",
-      "email": "jane@acmesaas.com",
-      "location": "San Francisco, US"
-    }
-  ]
+  "result": {
+    "full_name": "Sarah Mitchell",
+    "job_title": "VP of Sales",
+    "company": "CloudCore",
+    "linkedin_url": "https://www.linkedin.com/in/sarah-mitchell-sales",
+    "location": "Austin, US",
+    "connections": 2431
+  }
 }</pre></div>
     <p style="font-size:.8rem;color:var(--gray-500);margin-top:1rem;">Every request costs 1 credit. A successful call can still return an empty <code>result</code> if no match is found. See the full reference in the <a href="https://linkfinderai.com/api-documentation" style="color:var(--primary);">API documentation</a>.</p>
   </div>
@@ -382,10 +377,6 @@ console.log(status, result);</pre></div>
   <div class="container">
     <div class="section-title">What the LinkedIn API can do</div>
     <div class="section-sub">All from the same endpoint — just change the request type.</div>
-    <div class="endpoint-row">
-      <span class="endpoint-type">leads_finder_ai</span>
-      <span class="endpoint-desc"><strong>AI Lead Finder.</strong> Describe your ideal customer in plain English and get back up to 100 matching LinkedIn profiles with contact and company data.</span>
-    </div>
     <div class="endpoint-row">
       <span class="endpoint-type">company_name_to_website</span>
       <span class="endpoint-desc"><strong>Company resolution.</strong> Turn a company name into its website and core company details.</span>

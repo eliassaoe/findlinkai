@@ -327,7 +327,7 @@ src="https://www.facebook.com/tr?id=2717863625238535&ev=PageView&noscript=1"
       "name": "Can I search for many leads at once like Proxycurl's Person Search?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Yes. LinkFinder AI's AI Lead Finder replaces Proxycurl's Person Search and Person Lookup endpoints. You describe your target audience in plain English and receive up to 100 matching profiles in a single call, each costing 1 credit."
+        "text": "Not directly. LinkFinder AI enriches people and companies you already have — from a name, email, LinkedIn URL or company — rather than searching for new ones. Proxycurl's Person Search and Person Lookup have no equivalent; its Person Profile, Company Profile and Email Lookup endpoints all do."
       }
     },
     {
@@ -490,9 +490,9 @@ src="https://www.facebook.com/tr?id=2717863625238535&ev=PageView&noscript=1"
           </thead>
           <tbody>
             <tr><td>Person Profile</td><td>Profile data from a LinkedIn URL</td><td>B2B Data Lookup</td></tr>
-            <tr><td>Person Search</td><td>Find people by filters (title, geo, company)</td><td>AI Lead Finder · <code>leads_finder_ai</code></td></tr>
-            <tr><td>Person Lookup</td><td>Resolve a person from name + company</td><td>AI Lead Finder · <code>leads_finder_ai</code></td></tr>
-            <tr><td>Role Lookup</td><td>Find the decision-maker at a company</td><td>AI Lead Finder · <code>leads_finder_ai</code></td></tr>
+            <tr><td>Person Search</td><td>Find people by filters (title, geo, company)</td><td>Not supported — LinkFinder AI enriches contacts you already have</td></tr>
+            <tr><td>Person Lookup</td><td>Resolve a person from name + company</td><td>Full Name → LinkedIn URL · <code>lead_full_name_to_linkedin_url</code></td></tr>
+            <tr><td>Role Lookup</td><td>Find the decision-maker at a company</td><td>Company Employees · <code>company_domain_to_employees</code></td></tr>
             <tr><td>Company Profile</td><td>Company data from a company URL</td><td>Company Enrichment</td></tr>
             <tr><td>Company Lookup</td><td>Resolve a company from its name</td><td>Company Enrichment · <code>company_name_to_website</code></td></tr>
             <tr><td>Employee Count</td><td>Company headcount</td><td>Company Enrichment</td></tr>
@@ -501,7 +501,7 @@ src="https://www.facebook.com/tr?id=2717863625238535&ev=PageView&noscript=1"
         </table>
       </div>
       <div class="notice info">
-        <strong>One thing to confirm:</strong> the request <code>type</code> values shown in code below that aren't in your published docs (e.g. profile / company lookups) are placeholders — check the exact strings in your dashboard under <a href="https://linkfinderai.com/api-documentation">API Documentation</a>. The documented types are <code>leads_finder_ai</code> and <code>company_name_to_website</code>.
+        <strong>One thing to confirm:</strong> the request <code>type</code> values shown in code below that aren't in your published docs (e.g. profile / company lookups) are placeholders — check the exact strings in your dashboard under <a href="https://linkfinderai.com/api-documentation">API Documentation</a>. The documented types are <code>company_name_to_website</code>.
       </div>
     </div>
   </div>
@@ -531,24 +531,6 @@ curl -X GET \
   }'</span></div>
         </div>
       </div>
-
-      <h3>Finding leads (Proxycurl Person Search → AI Lead Finder)</h3>
-      <p>This is an upgrade, not just a swap. Instead of building filter parameters, describe the audience in plain English and get up to 100 profiles per call.</p>
-<div class="code-block"><span class="c"># Python — replaces Person Search + Person Lookup + Role Lookup</span>
-<span class="k">import</span> requests
-
-resp = requests.post(
-    <span class="s">"https://api.linkfinderai.com"</span>,
-    headers={<span class="s">"Authorization"</span>: <span class="s">"Bearer YOUR_API_KEY"</span>},
-    json={
-        <span class="s">"type"</span>: <span class="s">"leads_finder_ai"</span>,
-        <span class="s">"input_data"</span>: <span class="s">"VP Sales at B2B SaaS startup in the United States"</span>,
-        <span class="s">"fetch_count"</span>: 50
-    },
-)
-data = resp.json()
-<span class="k">if</span> data[<span class="s">"status"</span>] == <span class="s">"success"</span>:
-    leads = data[<span class="s">"result"</span>]</div>
 
       <h3>Company data (Proxycurl Company Profile / Lookup → Company Enrichment)</h3>
 <div class="code-block"><span class="c">// Node.js — resolve a company from its name</span>
@@ -586,7 +568,7 @@ data = resp.json()
         </div>
         <div class="step">
           <h3>Map each old endpoint to a request type</h3>
-          <p>Use the mapping table above. Most Proxycurl person/search calls collapse into a single <code>leads_finder_ai</code> call; company calls become Company Enrichment.</p>
+          <p>Use the mapping table above. Person Profile and Email Lookup map directly; company calls become Company Enrichment. Proxycurl's filter-based Person Search has no equivalent — LinkFinder AI enriches contacts you bring rather than searching for new ones.</p>
         </div>
         <div class="step">
           <h3>Update response parsing &amp; retries</h3>
@@ -657,7 +639,7 @@ data = resp.json()
       </details>
 
       <details class="faq-item"><summary>Can I search for many leads at once, like Person Search?</summary>
-        <div class="faq-body">Yes. The AI Lead Finder (<code>leads_finder_ai</code>) replaces Person Search, Person Lookup, and Role Lookup. Describe your audience in plain English and get up to 100 matching profiles per call, 1 credit each.</div>
+        <div class="faq-body">Partly. Person Lookup maps to Full Name → LinkedIn URL, and Role Lookup to Company Employees, which lists people at a domain. Filter-based Person Search has no equivalent: LinkFinder AI enriches contacts you already have rather than searching for new ones.</div>
       </details>
 
       <details class="faq-item"><summary>Which languages and SDKs are supported?</summary>

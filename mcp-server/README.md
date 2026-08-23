@@ -25,7 +25,6 @@ they need (Instagram lookup omitted for now):
 | `find_linkedin_url_from_name` | Full name + company → LinkedIn profile URL |
 | `find_linkedin_url_from_email` | Email → LinkedIn profile URL |
 | `find_linkedin_post_reactions` | LinkedIn post URL → list of people who reacted |
-| `find_leads_ai` | Natural-language description → array of full lead profiles |
 | `b2b_data_lookup` | General fallback lookup (name, domain, email, ...) |
 | `check_job_status` | Poll a job that's still processing |
 
@@ -48,7 +47,7 @@ only returns a `job_id` (for use with `check_job_status`) if the job is still
 running after that.
 
 Every request costs 1 LinkFinder AI credit, including empty results, except
-`find_company_employees`, `find_leads_ai`, and `find_linkedin_post_reactions`
+`find_company_employees` and `find_linkedin_post_reactions`
 (1 credit per item returned) — billed by LinkFinder AI itself, not by this
 server.
 
