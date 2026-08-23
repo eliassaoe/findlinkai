@@ -1,0 +1,60 @@
+name: Publish n8n node
+
+# Manual only. A push-triggered publish is a trap here: npm version numbers can
+# never be reused, so an accidental merge would burn one permanently.
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Build, lint and pack without publishing'
+        type: boolean
+        default: true
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: n8n-nodes-linkfinderai
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+
+      - run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Lint
+        run: npm run lint
+
+      # Catches the mistake that costs a version number: publishing something
+      # already on the registry, or a version that was never bumped.
+      - name: Check this version is not already published
+        run: |
+          NAME=$(node -p "require('./package.json').name")
+          VER=$(node -p "require('./package.json').version")
+          echo "Publishing $NAME@$VER"
+          if npm view "$NAME@$VER" version 2>/dev/null; then
+            echo "::error::$NAME@$VER is already on npm. Bump the version first."
+            exit 1
+          fi
+
+      - name: Pack
+        run: npm pack
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tarball
+          path: n8n-nodes-linkfinderai/*.tgz
+
+      - name: Publish
+        if: ${{ inputs.dry_run == false }}
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
