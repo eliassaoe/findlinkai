@@ -75,5 +75,12 @@ bug. **Packs**: $25 / 1,000 · $75 / 3,500 · $200 / 10,000.
 `linkfinderai_users`. `is_unlimited` and `plan_type` do NOT mean subscribed —
 credit-pack buyers have `is_unlimited = true` and no subscription.
 
+**`email_verified` on `linkfinderai_users` is NOT trustworthy.** A migration
+backfilled every existing row to `true`; 4,616 of those accounts have no
+Supabase auth row at all. The only real signal is
+`auth.users.confirmed_at IS NOT NULL`. And `@gmail.com` says nothing about
+signup method — anyone can type a fake gmail into an email+password form.
+See `docs/email-verified-is-wrong.md` before any bulk send.
+
 **Never recommend PAYG to a CRM user.** CRM users go to subscriptions; they are
 stickier and the HubSpot connection costs money every month.
