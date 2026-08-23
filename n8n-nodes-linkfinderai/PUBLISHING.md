@@ -26,8 +26,37 @@ release: nobody has yet run this inside a real n8n instance, and patching
 
 ## Part 1 — publish to npm
 
-Needs an npm account with 2FA, which is why this cannot be done from an agent
-session. Run it locally, from `n8n-nodes-linkfinderai/`:
+### Route A — GitHub Actions (preferred)
+
+`.github/workflows/publish-n8n-node.yml`. The token lives in repo secrets, so
+it never enters a shell history or a chat transcript, and every future release
+is one button.
+
+1. Create the token on npm: **Access Tokens → Generate New Token**.
+   - A **Granular Access Token** is the safer kind, but for the *first* publish
+     of a name that does not exist yet it cannot be scoped to this package —
+     there is nothing to select — so it has to be "All packages" this once.
+     After the first publish, replace it with one scoped to
+     `n8n-nodes-linkfinderai` only.
+   - A classic **Automation** token also works and is account-wide by design.
+   - Either kind publishes without an interactive 2FA prompt. That is what they
+     are for; it is not a way around the account's protection.
+2. GitHub → repo → **Settings → Secrets and variables → Actions → New
+   repository secret**, named exactly `NPM_TOKEN`.
+3. **Actions → Publish n8n node → Run workflow**, leaving `dry_run` **checked**.
+   That builds, lints, verifies the version is not already on the registry, and
+   uploads the tarball as an artifact without publishing anything.
+4. Download the artifact, check the file list, then run it again with `dry_run`
+   **unchecked**.
+5. Once it succeeds, narrow or delete the token.
+
+The workflow is dispatch-only on purpose. A push trigger would be a trap: npm
+version numbers can never be reused, so an accidental merge burns one forever.
+
+### Route B — publish from your own machine
+
+Needs an interactive `npm login` with 2FA, which is why this one cannot be done
+from an agent session. From `n8n-nodes-linkfinderai/`:
 
 ```bash
 npm login                 # opens a browser; use the LinkFinder AI npm account
@@ -40,7 +69,7 @@ npm publish --access public
 failure stops you before the irreversible step. **npm publishes are permanent:**
 a version number can never be reused, even after `npm unpublish`.
 
-Then confirm:
+Either route, confirm afterwards:
 
 ```bash
 npm view n8n-nodes-linkfinderai
