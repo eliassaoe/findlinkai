@@ -32,6 +32,85 @@ Worker last modified **2026-08-17T23:31:29Z**. `hubspot_disconnected` fired at
 23:32:00 and `crm_sync_upgrade_clicked` at 23:32:01. The gate has never once
 worked.
 
+
+---
+
+# DO THIS FIRST — the 3-minute fix
+
+Everything below the fold is the hardened version. This is the minimum that
+makes CRM connections work again. Two dashboard steps, five one-line edits.
+
+## 1. Add the binding (30 seconds)
+
+Cloudflare dashboard → Workers → **nango-connect-session** → Settings →
+Bindings → Add binding → **Service binding**
+
+    Variable name : SUBSCRIBER_SERVICE
+    Service       : upgrade-intent
+    Environment   : production
+
+Save.
+
+## 2. Five edits (2 minutes)
+
+Open the worker's code editor (Edit Code / Quick Edit). Use Ctrl+F to find each
+string. There is exactly one of each.
+
+**Edit 1 — let the function see the bindings.** Find:
+
+    async function isSubscriber(token) {
+
+Replace with:
+
+    async function isSubscriber(env, token) {
+
+**Edit 2 — route the call through the binding.** Find:
+
+    const r = await fetch('https://upgrade-intent.hamoureliasse.workers.dev/', {
+
+Replace with:
+
+    const call = env.SUBSCRIBER_SERVICE || { fetch };
+    const r = await call.fetch('https://upgrade-intent.hamoureliasse.workers.dev/', {
+
+**Edits 3, 4, 5 — pass `env` at the three call sites.** Find and replace each:
+
+    if (!(await isSubscriber(token))) return json({ error: NOT_SUBSCRIBER_ERROR }, 403, origin);
+
+appears TWICE (handleConnectSession and handlePushContacts). Both become:
+
+    if (!(await isSubscriber(env, token))) return json({ error: NOT_SUBSCRIBER_ERROR }, 403, origin);
+
+Then find:
+
+    if (!(await isSubscriber(linkfinderToken))) {
+
+Replace with:
+
+    if (!(await isSubscriber(env, linkfinderToken))) {
+
+Deploy.
+
+## 3. Check it worked
+
+    curl -s -w '\n%{http_code}\n' -H 'Content-Type: application/json' \
+      -H 'Origin: https://linkfinderai.com' \
+      -X POST https://nango-connect-session.hamoureliasse.workers.dev/ \
+      -d '{"token":"B2jf6h3KpXjAXxE9"}'
+
+- **200** with a `connectSession` value → fixed. Go press Connect HubSpot.
+- **403** → the binding did not save, or an edit was missed.
+- **500** "NANGO_SECRET_KEY not set" → different problem, tell me.
+
+## 4. Then reload /crm-sync and click Connect HubSpot
+
+That is the first time the Nango credentials will have been exercised since
+17 Aug. If the HubSpot consent screen opens, the whole path is alive.
+
+---
+
+# The hardened version (do this later, not now)
+
 ## Step 1 — add the service binding
 
 `nango-connect-session` → Settings → Bindings → Add → **Service binding**
