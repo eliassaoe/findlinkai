@@ -373,14 +373,43 @@ function nav(page){
     window.location.href = addGclid('https://linkfinderai.com/'+m[page]+'?token='+userToken);
 }
 
+let currentCredits = 0;
+
 async function fetchCredits(){
     try{
         const r = await fetch('https://linkfinderaicredits.hamoureliasse.workers.dev/',{
             method:'POST',headers:{'Content-Type':'application/json'},
             body:JSON.stringify({token:userToken})
         });
-        if(r.ok){ const d=await r.json(); document.getElementById('creditsCount').textContent=Math.max(0,d.credits||0); }
+        if(r.ok){
+            const d=await r.json();
+            currentCredits = Math.max(0, d.credits||0);
+            document.getElementById('creditsCount').textContent = currentCredits;
+            // Someone holding credits who just got refused needs the reason
+            // re-rendered with their balance in it, not the generic line.
+            if (document.querySelector('#cleanState .sync-locked')) renderClean('locked');
+        }
     }catch(e){}
+}
+
+/*
+ * A credit balance is NOT a plan, and this is the single most confusing thing
+ * on the page: someone who has just bought a 10,000-credit pack is told to
+ * "see plans" and reasonably concludes it is broken. So when they have credits,
+ * say why those credits are not the blocker.
+ *
+ * The gate is subscription-only on purpose - a HubSpot connection is a managed
+ * connection we pay for per customer, every month, whether or not they run
+ * anything - so a one-off pack cannot fund it.
+ */
+function lockedReason(){
+    if (currentCredits > 0){
+        return 'You have <strong>' + LFCrmAudit.fmt(currentCredits) + ' credits</strong>, and they will be spent on ' +
+               'this cleanup - but credits alone do not open the HubSpot connection. That runs continuously ' +
+               'against your CRM, so it is included with a plan rather than sold as a pack. ' +
+               'The audit above stays free either way.';
+    }
+    return 'Cleaning your CRM in place is included on any paid plan. The audit above stays free either way.';
 }
 
 async function handleAddCredits(){
@@ -786,7 +815,7 @@ function renderClean(state, data){
         // sits behind a plan while the audit above stays free.
         el.innerHTML =
             '<div class="sync-locked"><i class="fas fa-lock" style="margin-right:.4rem;"></i>' +
-            'Cleaning your CRM in place is included on any paid plan. The audit above stays free either way.</div>' +
+            lockedReason() + '</div>' +
             '<a href="#" class="btn-primary" style="margin-top:1rem;" onclick="goUpgrade(\'sync\');return false;">' +
             '<i class="fas fa-arrow-up-right-dots"></i> See plans</a>' + csvFallback();
         return;
@@ -1053,7 +1082,8 @@ function renderSync(state, data){
         // exactly why it sits behind a plan while the audit does not.
         el.innerHTML =
             '<div class="sync-locked"><i class="fas fa-lock" style="margin-right:.4rem;"></i>' +
-            'Automatic sync is included on any paid plan. The audit above stays free either way.</div>' +
+            'Automatic sync is included on any paid plan &mdash; a credit pack does not cover it, because the ' +
+            'connection runs every week whether you use it or not. The audit above stays free either way.</div>' +
             '<a href="#" class="btn-primary" style="margin-top:1rem;" onclick="goUpgrade(\'sync\');return false;">' +
             '<i class="fas fa-arrow-up-right-dots"></i> See plans</a>';
         return;
@@ -1151,11 +1181,18 @@ async function connectHubspot(){
         // "This page can't be opened directly" - the user sees that instead of
         // the reason, and the real message is hidden behind the popup anyway.
         closeConnectUI(connectUI);
+        // Both stages offer a Connect button, so both have to reflect the
+        // answer. Updating only stage 3 left stage 2 sitting on its Connect
+        // button with nothing changed - the click looked like it did nothing,
+        // and the obvious response is to click it again.
         if(res.status === 403){
             renderSync('locked');
+            renderClean('locked');
             track('sync_connect_blocked','plan_required');
         }else{
-            renderSync('error', { error: res.data && res.data.error });
+            const err = { error: res.data && res.data.error };
+            renderSync('error', err);
+            renderClean('error', err);
             track('sync_connect_failed', String(res.status));
         }
         return;
