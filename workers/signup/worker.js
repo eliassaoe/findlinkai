@@ -49,6 +49,25 @@ export default {
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
+// Consumer mailbox providers other than Gmail. Gmail is handled separately just
+// above, because a gmail address is a Google account and can always sign in with
+// the Google button. These have no OAuth provider here, so the rule is a genuine
+// block — priced at 2.0% of signups (38 people / 365 days) against 75.5% gmail
+// and 22.6% business. See docs/email-verified-is-wrong.md.
+//
+// Exact-match against this Set, never a substring test: 'gmail.com' *contains*
+// 'mail.com', so substring matching would block every Gmail user on earth.
+const CONSUMER_DOMAINS = new Set([
+    'yahoo.com','yahoo.co.uk','yahoo.fr','yahoo.co.in','yahoo.ca','yahoo.com.au','ymail.com','rocketmail.com',
+    'hotmail.com','hotmail.co.uk','hotmail.fr','outlook.com','outlook.fr','live.com','live.co.uk','msn.com',
+    'icloud.com','me.com','mac.com',
+    'aol.com','aim.com',
+    'proton.me','protonmail.com','pm.me',
+    'gmx.com','gmx.de','gmx.net','mail.com','email.com',
+    'zoho.com','yandex.com','yandex.ru','inbox.com','rediffmail.com',
+    'free.fr','orange.fr','laposte.net','sfr.fr','wanadoo.fr','web.de','t-online.de'
+]);
+
 function normalizeEmail(email) {
     const [local, domain] = email.toLowerCase().trim().split('@');
     if (!local || !domain) return email.toLowerCase().trim();
@@ -173,6 +192,18 @@ async function handleSignup(request, corsHeaders, env) {
             return new Response(JSON.stringify({
                 error: 'Gmail addresses sign in with the Google button — one click, no password to remember.',
                 code: 'use_google_signin'
+            }), {
+                status: 400,
+                headers: { 'Content-Type': 'application/json', ...corsHeaders }
+            });
+        }
+
+        // ── 3c. Other consumer mailboxes → business email required ─────────────
+        if (provider !== 'google' && CONSUMER_DOMAINS.has(emailDomain)) {
+            console.log('🚫 Consumer domain blocked on signup:', emailDomain);
+            return new Response(JSON.stringify({
+                error: 'Please sign up with your work email address.',
+                code: 'business_email_required'
             }), {
                 status: 400,
                 headers: { 'Content-Type': 'application/json', ...corsHeaders }

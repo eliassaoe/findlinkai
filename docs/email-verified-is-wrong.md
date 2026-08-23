@@ -107,15 +107,9 @@ pass Google's login. That is exactly the population we wanted to remove.
 It closes **73%** of the hole on its own: 3,350 of the 4,616 never-verified
 accounts are gmail.
 
-**Deliberately not extended to other free providers.** Yahoo, Outlook, Hotmail,
-iCloud and Proton have no OAuth provider on this site, so blocking them would
-leave real people with no route in at all. `DELIVERABILITY.md` puts free
-consumer domains at 75.7% of signups — most of the base — so a blanket ban on
-consumer email would be a self-inflicted wound. If Microsoft OAuth is added
-later, `outlook/hotmail/live` can join the same rule on the same reasoning.
-
-Those addresses stay allowed on the password path and are handled by the
-verification cap (task #17) instead.
+**Other consumer providers are now blocked too** — see the section below. The
+first draft of this rule left them alone, on the assumption they were a large
+share of signups. Measuring it showed they are 2.0%.
 
 ### Also fixed while wiring it
 
@@ -143,3 +137,58 @@ registered. The test is now `includes('already')` only.
 `signup_routed_to_google` vs `signup_success`. If the routed count is large and
 Google signups do not rise to match, the rule is losing real users somewhere and
 should be revisited.
+
+
+---
+
+## The final rule, 23 Aug
+
+> **Gmail signs in with Google. Email + password requires a work address.**
+
+| address | password form | Google button |
+|---|---|---|
+| `@gmail.com` / `@googlemail.com` | blocked → routed to Google | allowed |
+| yahoo, hotmail, outlook, icloud, proton, aol, gmx, mail.com, … (41 domains) | **blocked** | allowed |
+| business domain | allowed | allowed |
+
+### What it costs, measured
+
+Distinct signup addresses, last 365 days:
+
+| bucket | people | share |
+|---|---|---|
+| gmail | 1,448 | **75.5%** |
+| business / other | 433 | 22.6% |
+| **other consumer** | **38** | **2.0%** |
+
+The gmail rule costs nothing — those users click one button and Google verifies
+them for free. The consumer-domain block is the only real cost, and it is **2.0%
+of signups: 38 people over a year, about one every ten days.**
+
+Weigh that against 4,616 never-verified accounts holding 1,137,375 credits, and
+against a reactivation send that could put the sending domain under SES review.
+
+### The one thing that would have broken it
+
+`'gmail.com'.includes('mail.com') === true`.
+
+A substring test against the blocklist would have blocked **every Gmail user on
+earth** — 75.5% of signups — while appearing to work in a casual test. The list
+is a `Set` and matching is exact equality, in both the worker and the form. If
+you ever refactor this, keep it that way.
+
+### Where the rule lives
+
+- `workers/signup/worker.js` + `worker.paste-safe.js` — rules 3b and 3c, after
+  the disposable check, before IP rate limiting
+- `sign-up.html` — a hint under the email field that updates **as they type**,
+  so nobody fills in a whole form and then gets refused. Duplicates the domain
+  list; the two are asserted identical (41 domains each). **Change one, change
+  the other.**
+
+### Measure it
+
+- `signup_routed_to_google` — gmail users sent to the button. Should be followed
+  by a matching rise in Google signups. If it is not, the routing is losing them.
+- `signup_blocked_consumer_domain` — the 2%. If this materially exceeds ~1 per
+  10 days, the estimate was wrong and the rule deserves revisiting.

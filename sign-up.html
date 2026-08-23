@@ -100,6 +100,7 @@ button#submitButton:disabled{opacity:0.6;cursor:not-allowed;}
 .message{padding:12px;border-radius:6px;margin-bottom:16px;font-size:14px;display:none;}
 .message.success{background:#d1fae5;color:#065f46;border:1px solid #a7f3d0;}
 .message.error{background:#fee2e2;color:#991b1b;border:1px solid #fecaca;}
+.field-hint{font-size:0.78rem;color:#6b7280;margin-top:0.3rem;}
 .spinner{width:16px;height:16px;border:2px solid rgba(255,255,255,0.3);border-radius:50%;border-top-color:#fff;animation:spin 1s linear infinite;display:inline-block;margin-right:6px;}
 @keyframes spin{to{transform:rotate(360deg);}}
 .login-link{text-align:center;margin-bottom:16px;font-size:14px;color:#6b7280;}
@@ -216,6 +217,7 @@ button#submitButton:disabled{opacity:0.6;cursor:not-allowed;}
       <div class="form-group">
         <label for="email">Email address</label>
         <input type="email" id="email" placeholder="name@company.com" autocomplete="email">
+        <div class="field-hint" id="emailHint">Work email. On Gmail? Use the Google button above.</div>
         <div class="field-error" id="emailError">Please enter a valid email address</div>
       </div>
 
@@ -399,6 +401,28 @@ button#submitButton:disabled{opacity:0.6;cursor:not-allowed;}
   }
   function hideMessage() { document.getElementById('message').style.display = 'none'; }
 
+  // Consumer domains are refused server-side; saying so as they type is kinder
+  // than a rejected submit. Mirrors CONSUMER_DOMAINS in the signup worker - if
+  // that list changes, change this one. Exact match only: 'gmail.com' contains
+  // 'mail.com', so a substring test here would flag every Gmail user.
+  const CONSUMER_DOMAINS = new Set(['yahoo.com','yahoo.co.uk','yahoo.fr','yahoo.co.in','yahoo.ca','yahoo.com.au','ymail.com','rocketmail.com','hotmail.com','hotmail.co.uk','hotmail.fr','outlook.com','outlook.fr','live.com','live.co.uk','msn.com','icloud.com','me.com','mac.com','aol.com','aim.com','proton.me','protonmail.com','pm.me','gmx.com','gmx.de','gmx.net','mail.com','email.com','zoho.com','yandex.com','yandex.ru','inbox.com','rediffmail.com','free.fr','orange.fr','laposte.net','sfr.fr','wanadoo.fr','web.de','t-online.de']);
+
+  (function wireEmailHint(){
+    const input = document.getElementById('email');
+    const hint  = document.getElementById('emailHint');
+    if (!input || !hint) return;
+    input.addEventListener('input', () => {
+      const d = (input.value.split('@')[1] || '').toLowerCase().trim();
+      if (d === 'gmail.com' || d === 'googlemail.com') {
+        hint.innerHTML = 'Gmail signs in with Google \u2014 <a href="#" onclick="signUpWithGoogle();return false;" style="color:#2563eb;font-weight:600;">use the Google button \u2192</a>';
+      } else if (CONSUMER_DOMAINS.has(d)) {
+        hint.textContent = 'Please use your work email address.';
+      } else {
+        hint.textContent = 'Work email. On Gmail? Use the Google button above.';
+      }
+    });
+  })();
+
   async function signUpWithGoogle() {
     try {
       hideMessage();
@@ -536,6 +560,11 @@ button#submitButton:disabled{opacity:0.6;cursor:not-allowed;}
             'Gmail addresses sign in with Google \u2014 <a href="#" onclick="signUpWithGoogle();return false;" style="color:#2563eb;font-weight:600;">use the Google button \u2192</a>';
           const gb = document.getElementById('googleBtn');
           if (gb) gb.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } else if (errorData.code === 'business_email_required') {
+          try { posthog.capture('signup_blocked_consumer_domain', {method:'email'}); } catch(e) {}
+          showFieldError('email', 'emailError');
+          document.getElementById('emailError').textContent =
+            'Please use your work email address to sign up.';
         } else if (msg.toLowerCase().includes('already')) {
           showFieldError('email', 'emailError');
           document.getElementById('emailError').innerHTML = 'This email is already registered. <a href="https://linkfinderai.com/log-in" style="color:#2563eb;font-weight:600;">Sign in instead →</a>';
