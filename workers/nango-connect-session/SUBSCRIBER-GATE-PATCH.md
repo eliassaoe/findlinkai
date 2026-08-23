@@ -203,3 +203,94 @@ curl -s -w '\n%{http_code}\n' -H 'Content-Type: application/json' \
 
 200 with a `connectSession` = fixed. Still 403 = the binding did not take.
 503 = the binding is there but `upgrade-intent` itself is erroring.
+
+---
+
+# Release the Nango connection when someone churns
+
+Nango bills per connection per month, whether or not it runs. Today the weekly
+cron notices a lapsed subscriber and *skips* them — the connection stays,
+so you keep paying for people who left. It should be handed back.
+
+Add this alongside the tri-state check.
+
+## Why it is delayed, not immediate
+
+Deleting on the first "not a subscriber" is dangerous: that is exactly what the
+1042 bug reported for six days straight, and it would have destroyed every real
+customer's connection. So a definite `'no'` only starts a clock; `'unknown'`
+never does, and a returning subscriber clears it.
+
+```js
+const CHURN_GRACE_DAYS = 7;
+
+// Hands the connection back to Nango so it stops being billed. Only ever
+// called after CHURN_GRACE_DAYS of confirmed non-subscription - never on a
+// check that merely failed.
+async function releaseConnection(env, linkfinderToken, record) {
+  try {
+    const r = await fetch(
+      `${NANGO_API_BASE}/connection/${encodeURIComponent(record.connectionId)}` +
+      `?provider_config_key=${encodeURIComponent(HUBSPOT_INTEGRATION_ID)}`,
+      { method: 'DELETE', headers: { Authorization: `Bearer ${env.NANGO_SECRET_KEY}` } }
+    );
+    // 404 means Nango already lost it - the local record should still go.
+    if (!r.ok && r.status !== 404) {
+      console.error(`[crm-sync] release failed ${r.status} for ${linkfinderToken}`);
+      return false;
+    }
+  } catch (e) {
+    console.error('[crm-sync] release threw', e);
+    return false;
+  }
+  await env.CRM_CONNECTIONS.delete(`conn:${linkfinderToken}`);
+  console.log(`[crm-sync] released connection for ${linkfinderToken} (churned)`);
+  return true;
+}
+```
+
+In `syncOneConnection`, replace the skip branch:
+
+```js
+  const status = await subscriberStatus(env, linkfinderToken);
+
+  if (status === 'yes') {
+    // Back on a plan - clear any pending churn clock.
+    if (record.notSubscriberSince) {
+      record = { ...record, notSubscriberSince: null };
+      await env.CRM_CONNECTIONS.put(`conn:${linkfinderToken}`, JSON.stringify(record));
+    }
+  } else if (status === 'no') {
+    const since = record.notSubscriberSince || new Date().toISOString();
+    const days  = (Date.now() - new Date(since).getTime()) / 86400000;
+
+    if (days >= CHURN_GRACE_DAYS) {
+      await releaseConnection(env, linkfinderToken, record);
+      return { processed: 0, filled: { email: 0, linkedin_url: 0, phone: 0 },
+               filledTotal: 0, released: true };
+    }
+    if (!record.notSubscriberSince) {
+      await env.CRM_CONNECTIONS.put(`conn:${linkfinderToken}`,
+        JSON.stringify({ ...record, notSubscriberSince: since }));
+    }
+    return { processed: 0, filled: { email: 0, linkedin_url: 0, phone: 0 },
+             filledTotal: 0, notSubscriber: true };
+  } else {
+    // 'unknown' - our check failed. Change nothing, spend nothing, accuse nobody.
+    return { processed: 0, filled: { email: 0, linkedin_url: 0, phone: 0 },
+             filledTotal: 0, checkFailed: true };
+  }
+```
+
+## Verify the DELETE endpoint before shipping this
+
+I could not reach the network from the session where this was written, so the
+Nango delete call above is from their documented REST API rather than a live
+test. Confirm the path and the `provider_config_key` parameter against
+https://docs.nango.dev before deploying, and watch the first cron run's logs.
+
+## Also worth doing
+
+`/disconnect` currently only deletes the KV record — the Nango connection
+survives and keeps billing. Have it call `releaseConnection` too, so a user who
+disconnects by hand actually costs nothing.
