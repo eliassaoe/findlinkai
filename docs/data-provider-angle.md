@@ -154,3 +154,52 @@ as a tool and cap the deal at $89.
 3. **Nothing in the product creates work.** Every enrichment today is
    user-initiated, which is why retention is 2%. Scheduled re-checks (machine
    #2) is the fix and does not exist yet.
+
+---
+
+## 7. Roadmap decision — 2026-08-23
+
+Sequence agreed: **CRM → monitoring → integrations → agent (parked).**
+
+### Finish CRM sync now
+Machine #1. ~90% built. Cleanup is the one-time hook; the sync is what keeps
+consuming credits after the customer stops paying attention. Nothing else
+buildable this month has that property.
+
+### Monitoring is part of CRM, not a separate feature
+Elias flagged job-change monitoring as "speculative". It is the opposite — it
+is the least speculative item on the list and the only one that changes the
+billing shape:
+
+- Touches **no** Apify / lead-search code. Runs
+  `linkedin_profile_to_linkedin_info` (10 credits) over records the customer
+  already supplied. Nothing to source, no vendor that can 403 us.
+- It is a cron on top of the CRM sync, not a new product.
+- It is the only mechanism that consumes credits with no user action, which
+  section 1 says is the entire retention problem. 5,000 monitored records ×
+  10 credits = 50,000 credits/month from one account, recurring.
+
+Treat it as the last 10% of the CRM feature.
+
+### Integrations (Make / n8n / Zapier) are distribution, not retention
+An integration only retains if the customer builds a workflow — a setup cost
+most users never pay. It will not move the 1.7% baseline. What it *is* worth:
+free, permanent, intent-qualified discovery in three directories where the
+section-4 ICP (agencies, RevOps) already lives. Prioritise **getting listed**
+over building deeply. Zapier and Make review queues take weeks of calendar
+time and almost none of ours — submit early and let them sit. n8n is blocked
+only on npm credentials (task #22).
+
+### The AI lead-sourcing agent stays parked
+Not because of scope. Because **it is the lead finder we removed on 23 Aug,
+with a scheduler on top.** See `lead-search-bugs.md`: `find_leads_ai` 403s for
+every user (unapproved Apify actor) and `find_company_employees` still returns
+the actor's placeholder rows as people. Running that unattended, on a schedule,
+writing into a customer's production CRM converts an embarrassing bug into a
+churn-and-refund event.
+
+Also the most crowded category available — Clay, Apollo, Instantly's own lead
+finder. Not a fight to pick at 30 subscribers.
+
+**Unpark it when:** the Apify actor is approved and error-handled, bug 2 is
+fixed, and MRR is past 10k.
