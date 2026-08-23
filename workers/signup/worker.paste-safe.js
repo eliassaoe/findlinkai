@@ -155,6 +155,30 @@ async function handleSignup(request, corsHeaders, env) {
             });
         }
 
+        /* ── 3b. Gmail on the password form → send them to the Google button ──── */
+        /* */
+        /* A @gmail.com address IS a Google account, so anyone with a real one can */
+        /* always sign in with Google — same address, one click, and Google has */
+        /* already verified it for us. The only people this stops are the ones */
+        /* typing a gmail they do not own, because they cannot pass Google's login. */
+        /* */
+        /* 3,350 of the 4,616 never-verified accounts in the base are gmail, so this */
+        /* closes ~73% of the hole for free. See docs/email-verified-is-wrong.md. */
+        /* */
+        /* Deliberately NOT extended to yahoo / outlook / hotmail / icloud: there is */
+        /* no OAuth provider for those on this site, so blocking them would leave */
+        /* real people with no way to sign up at all. */
+        if (provider !== 'google' && (emailDomain === 'gmail.com' || emailDomain === 'googlemail.com')) {
+            console.log('🚫 Gmail on password signup, routed to Google:', normalizedEmail);
+            return new Response(JSON.stringify({
+                error: 'Gmail addresses sign in with the Google button — one click, no password to remember.',
+                code: 'use_google_signin'
+            }), {
+                status: 400,
+                headers: { 'Content-Type': 'application/json', ...corsHeaders }
+            });
+        }
+
         /* ── 4. IP rate limiting (3 accounts per IP per 24h) ──────────────────── */
         const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
         const ipKey = `ip_${ip}`;

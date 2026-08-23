@@ -523,8 +523,20 @@ button#submitButton:disabled{opacity:0.6;cursor:not-allowed;}
         try { plausible('Signup Failed', {props:{method:'email',reason:'server_error'}}); } catch(e) {}
         try { posthog.capture('signup_failed', {method:'email', reason:'server_error'}); } catch(e) {}
         const errorData = await response.json().catch(() => ({}));
-        const msg = errorData.message || '';
-        if (msg.toLowerCase().includes('email') || msg.toLowerCase().includes('already')) {
+        // The worker replies { error }, not { message }. Reading only `message`
+        // meant every server-side rejection - disposable domains included - was
+        // swallowed and shown as the generic failure below.
+        const msg = errorData.error || errorData.message || '';
+
+        if (errorData.code === 'use_google_signin') {
+          // A real gmail IS a Google account, so this is a redirect, not a refusal.
+          try { posthog.capture('signup_routed_to_google', {method:'email'}); } catch(e) {}
+          showFieldError('email', 'emailError');
+          document.getElementById('emailError').innerHTML =
+            'Gmail addresses sign in with Google \u2014 <a href="#" onclick="signUpWithGoogle();return false;" style="color:#2563eb;font-weight:600;">use the Google button \u2192</a>';
+          const gb = document.getElementById('googleBtn');
+          if (gb) gb.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } else if (msg.toLowerCase().includes('already')) {
           showFieldError('email', 'emailError');
           document.getElementById('emailError').innerHTML = 'This email is already registered. <a href="https://linkfinderai.com/log-in" style="color:#2563eb;font-weight:600;">Sign in instead →</a>';
         } else {

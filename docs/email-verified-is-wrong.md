@@ -90,3 +90,56 @@ that was never going to pay.
 Do not infer anything from the email domain. No allowlist of "real" providers,
 no blocklist of disposable ones as the primary check. The only questions that
 matter are whether an auth row exists and whether it is confirmed.
+
+---
+
+## Shipped 23 Aug: gmail goes through the Google button
+
+**The rule:** `@gmail.com` / `@googlemail.com` cannot be used on the
+email+password form. They must sign in with Google instead.
+
+**Why this is airtight rather than merely restrictive:** a gmail address *is* a
+Google account. Anyone with a real one can always click the Google button — same
+address, one click — and Google verifies it for us at no cost. The only people
+the rule stops are those typing a gmail they do not own, because they cannot
+pass Google's login. That is exactly the population we wanted to remove.
+
+It closes **73%** of the hole on its own: 3,350 of the 4,616 never-verified
+accounts are gmail.
+
+**Deliberately not extended to other free providers.** Yahoo, Outlook, Hotmail,
+iCloud and Proton have no OAuth provider on this site, so blocking them would
+leave real people with no route in at all. `DELIVERABILITY.md` puts free
+consumer domains at 75.7% of signups — most of the base — so a blanket ban on
+consumer email would be a self-inflicted wound. If Microsoft OAuth is added
+later, `outlook/hotmail/live` can join the same rule on the same reasoning.
+
+Those addresses stay allowed on the password path and are handled by the
+verification cap (task #17) instead.
+
+### Also fixed while wiring it
+
+`sign-up.html` read `errorData.message`, but the worker replies with
+`{ error }`. **Every server-side rejection was being swallowed** and shown as the
+generic "Failed to create account. Please try again." — including the
+disposable-domain block, which has been invisible to users this whole time.
+
+Fixing that exposed a second bug waiting behind it: the branch tested
+`msg.includes('email') || msg.includes('already')`, and the disposable message
+is *"Please use a permanent **email** address to sign up."* Once `msg` was
+populated, that would have told those users their address was already
+registered. The test is now `includes('already')` only.
+
+### Files
+
+- `workers/signup/worker.js` and `worker.paste-safe.js` — the rule, after the
+  disposable check and before IP rate limiting
+- `sign-up.html` — reads `error`, handles `code: 'use_google_signin'` by
+  pointing at the Google button and scrolling to it, fires
+  `signup_routed_to_google` so the rule's cost is measurable
+
+### Watch this after deploy
+
+`signup_routed_to_google` vs `signup_success`. If the routed count is large and
+Google signups do not rise to match, the rule is losing real users somewhere and
+should be revisited.
