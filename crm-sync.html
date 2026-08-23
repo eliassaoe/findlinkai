@@ -326,7 +326,7 @@ table.gaps tfoot td{font-weight:700;color:var(--gray-900);border-top:2px solid v
             <div class="card" id="syncCard">
                 <h2><i class="fas fa-arrows-rotate"></i> Stage 3 &mdash; keep it clean automatically</h2>
                 <p style="font-size:.87rem;color:var(--gray-600);margin-bottom:1rem;">
-                    Cleaning once is temporary. Connect HubSpot and every new contact is enriched the moment it is created &mdash; so the gaps never come back and you never run this audit again.
+                    Cleaning once is temporary &mdash; new contacts arrive with the same gaps. Connect HubSpot and LinkFinder sweeps it every Monday, filling whatever is still missing, so you never run this audit again.
                 </p>
                 <div id="syncState"><div class="sync-loading"><i class="fas fa-circle-notch fa-spin"></i> Checking your HubSpot connection&hellip;</div></div>
             </div>
@@ -685,15 +685,32 @@ function bookingUrl(campaign){
  * screen.
  */
 
-let cleanFields = ['linkedin', 'email', 'title'];   // phone omitted: 50 credits vs 5-10
-let cleanPoll = null;
+/*
+ * WHICH FIELDS: the worker fills email, LinkedIn URL and phone. Job title is
+ * deliberately absent - it needs a LinkedIn profile URL as input, and the
+ * server-side path here starts from a name, so there is nothing to feed it.
+ * Title stays available through the CSV route below.
+ *
+ * COSTS DIFFER FROM THE AUDIT ON PURPOSE. The audit prices the cheapest path
+ * for an export that already has LinkedIn URLs in it (email from a profile,
+ * 10cr). HubSpot contacts rarely do, so the worker starts from the name:
+ *   email        lead_full_name_to_email          7 cr
+ *   linkedin     lead_full_name_to_linkedin_url   1 cr
+ *   phone        linkedin_profile_to_phone       50 cr (+1 if it has to find
+ *                                                 the profile URL first)
+ */
+const CLEAN_COST = { email: 7, linkedin_url: 1, phone: 50 };
 
 const CLEAN_LABEL = {
-    linkedin: 'LinkedIn URL',
-    email:    'Business email',
-    title:    'Job title',
-    phone:    'Phone number'
+    linkedin_url: 'LinkedIn URL',
+    email:        'Business email',
+    phone:        'Phone number'
 };
+
+// Defaults mirror the worker's own: phone off, because one phone costs more
+// than seven emails and nobody wants to discover that after the fact.
+let cleanFields = ['linkedin_url', 'email'];
+let isPaid = null;          // null = not yet known
 
 function toggleCleanField(k){
     if (cleanFields.includes(k)) cleanFields = cleanFields.filter(x => x !== k);
@@ -706,10 +723,9 @@ function cleanChips(){
     return '<div class="field-toggles" style="margin-bottom:1rem;">' +
         Object.keys(CLEAN_LABEL).map(k => {
             const on = cleanFields.includes(k);
-            const cost = LFCrmAudit.CREDIT_COST[k === 'linkedin' ? 'linkedin' : k];
-            return '<button class="chip ' + (on ? 'on' : '') + '" onclick="toggleCleanField(\''+k+'\')">' +
+            return '<button class="chip ' + (on ? 'on' : '') + '" onclick="toggleCleanField(\'' + k + '\')">' +
                    (on ? '<i class="fas fa-check"></i> ' : '') + CLEAN_LABEL[k] +
-                   ' <span style="opacity:.7;">&middot; ' + cost + ' cr</span></button>';
+                   ' <span style="opacity:.7;">&middot; ' + CLEAN_COST[k] + ' cr</span></button>';
         }).join('') + '</div>';
 }
 
@@ -720,7 +736,9 @@ function renderCleanIdle(){
         '<a href="#" class="btn-primary" onclick="runClean();return false;">' +
         '<i class="fas fa-wand-magic-sparkles"></i> Clean my HubSpot now</a>' +
         '<div style="font-size:.78rem;color:var(--gray-400);margin-top:.7rem;">' +
-        'Runs over contacts that are still missing data, up to 100 per pass. Credits are only spent on lookups that return something usable.' +
+        'One pass works through 25 contacts that are still missing these fields, writing straight into HubSpot. ' +
+        'It only ever fills empty fields - nothing a person typed is overwritten. ' +
+        'Run it again to continue where the last pass stopped.' +
         '</div>' + csvFallback();
 }
 
@@ -731,41 +749,68 @@ function csvFallback(){
         'Not on HubSpot? <a href="#" style="color:var(--primary);font-weight:600;" onclick="startCleaning(\'email\');return false;">Enrich your export as a file instead &rarr;</a></div>';
 }
 
+// A finished pass reports what it actually did. "Processed 25, filled 3" is an
+// honest and useful answer - it tells them the data was not findable, not that
+// the tool did nothing - so it is shown rather than rounded into a tick.
+const CLEAN_NOUN = {
+    email:        ['business email',  'business emails'],
+    linkedin_url: ['LinkedIn URL',    'LinkedIn URLs'],
+    phone:        ['phone number',    'phone numbers']
+};
+
+function cleanSummary(d){
+    const filled = d.filled || {};
+    const parts = ['email', 'linkedin_url', 'phone']
+        .filter(k => filled[k])
+        .map(k => filled[k] + ' ' + CLEAN_NOUN[k][filled[k] > 1 ? 1 : 0]);
+    if (!parts.length) return '';
+    return parts.join(', ') + ' written into HubSpot.';
+}
+
 function renderClean(state, data){
     const el = document.getElementById('cleanState');
     if (!el) return;
 
     if (state === 'locked'){
-        el.innerHTML = '<div class="sync-locked"><i class="fas fa-lock" style="margin-right:.4rem;"></i>' +
+        // Every cleaned contact is a real, credit-costing lookup against a
+        // managed HubSpot connection we pay Nango for. That is why the cleanup
+        // sits behind a plan while the audit above stays free.
+        el.innerHTML =
+            '<div class="sync-locked"><i class="fas fa-lock" style="margin-right:.4rem;"></i>' +
             'Cleaning your CRM in place is included on any paid plan. The audit above stays free either way.</div>' +
-            '<a href="#" class="btn-primary" style="margin-top:1rem;" onclick="goUpgrade(\'clean\');return false;">' +
+            '<a href="#" class="btn-primary" style="margin-top:1rem;" onclick="goUpgrade(\'sync\');return false;">' +
             '<i class="fas fa-arrow-up-right-dots"></i> See plans</a>' + csvFallback();
         return;
     }
     if (state === 'disconnected'){
-        el.innerHTML = '<div class="sync-locked">Connect HubSpot and these gaps get filled on the records themselves.</div>' +
-            '<a href="#" class="btn-primary" style="margin-top:1rem;" onclick="connectHubspot();return false;">' +
+        el.innerHTML =
+            '<div style="font-size:.9rem;color:var(--gray-500);margin-bottom:1rem;">' +
+            'Connect HubSpot and LinkFinder writes the missing fields straight into your contacts. ' +
+            'Read and write access to contacts only.</div>' +
+            '<a href="#" class="btn-primary" onclick="connectHubspot();return false;" id="cleanConnectBtn">' +
             '<i class="fab fa-hubspot"></i> Connect HubSpot</a>' + csvFallback();
         return;
     }
     if (state === 'running'){
-        el.innerHTML = '<div class="sync-connected" style="background:#eff6ff;border-color:#bfdbfe;">' +
-            '<i class="fas fa-circle-notch fa-spin badge" style="color:var(--primary);"></i>' +
-            '<div class="sync-connected-text" style="color:#1e40af;"><strong>Cleaning your HubSpot&hellip;</strong>' +
-            (data && data.records ? LFCrmAudit.fmt(data.records) + ' contact(s) updated so far.' : 'This runs in the background &mdash; you can close this tab.') +
-            '</div></div>';
+        el.innerHTML = '<div class="sync-loading"><i class="fas fa-circle-notch fa-spin"></i> ' +
+            'Cleaning your HubSpot contacts&hellip; this takes a minute or two. Leave this tab open.</div>';
         return;
     }
     if (state === 'done'){
+        const d = data || {};
+        const summary = cleanSummary(d);
         el.innerHTML = '<div class="sync-connected"><i class="fas fa-circle-check badge"></i>' +
-            '<div class="sync-connected-text"><strong>Cleanup finished</strong>' +
-            (data && data.records ? LFCrmAudit.fmt(data.records) + ' contact(s) updated in HubSpot.' : 'Your contacts have been updated in HubSpot.') +
-            ' Re-run the audit on a fresh export to see the difference.</div></div>' +
-            '<a href="#" class="btn-ghost" style="margin-top:1rem;" onclick="renderCleanIdle();return false;">Run it again</a>';
+            '<div class="sync-connected-text"><strong>Pass finished</strong>' +
+            (d.processed ? 'Looked at ' + LFCrmAudit.fmt(d.processed) + ' contact(s) that were missing data. ' : '') +
+            (summary || 'Nothing new was findable for these contacts.') +
+            '</div></div>' +
+            '<a href="#" class="btn-primary" style="margin-top:1rem;" onclick="runClean();return false;">' +
+            '<i class="fas fa-forward"></i> Clean the next 25</a>' +
+            '<a href="#" class="btn-ghost" style="margin-top:1rem;margin-left:.5rem;" onclick="renderCleanIdle();return false;">Change fields</a>';
         return;
     }
     if (state === 'error'){
-        el.innerHTML = '<div class="err">' + ((data && data.message) || 'Could not start the cleanup.') +
+        el.innerHTML = '<div class="err">' + ((data && data.error) || 'Could not run the cleanup.') +
             ' Email support@linkfinderai.com and we will sort it.</div>' +
             '<a href="#" class="btn-ghost" style="margin-top:1rem;" onclick="renderCleanIdle();return false;">Try again</a>';
         return;
@@ -774,53 +819,41 @@ function renderClean(state, data){
 }
 
 async function refreshCleanState(){
-    try{
-        const res = await nangoCall('status');
-        if (!res.ok){ renderClean('error', {}); return; }
-        if (!res.data.paid){ renderClean('locked'); return; }
-        if (!res.data.connected){ renderClean('disconnected'); return; }
+    const paid = await checkPaid();
+    if (!paid){ renderClean('locked'); return; }
 
-        const st = await nangoCall('clean-status');
-        if (st.ok && st.data && st.data.status === 'RUNNING'){ renderClean('running', st.data); startCleanPoll(); return; }
-        renderCleanIdle();
-    }catch(e){ renderClean('error', {}); }
+    const res = await nangoCall('status');
+    if (!res.ok){ renderClean('error', res.data); return; }
+    if (!res.data.connected){ renderClean('disconnected'); return; }
+    renderCleanIdle();
 }
 
+/*
+ * /sync-now does the whole pass server-side and returns the result in the same
+ * response - there is no job to poll. Settings are saved first because the
+ * worker reads which fields to fill from stored settings, not from this call.
+ */
 async function runClean(){
     renderClean('running', {});
     track('crm_clean_triggered', cleanFields.join('+'));
-    let res;
-    try{
-        res = await fetch(NANGO_WORKER + '/clean', {
-            method:'POST', headers:{'Content-Type':'application/json'},
-            body: JSON.stringify({ token:userToken, fields: cleanFields })
-        });
-        res = { ok: res.ok, status: res.status, data: await res.json().catch(()=>({})) };
-    }catch(e){ renderClean('error', {}); return; }
 
-    if (res.status === 402){ renderClean('locked'); return; }
-    if (res.status === 409){ renderClean('disconnected'); return; }
-    if (!res.ok || !res.data.started){ renderClean('error', res.data); return; }
-    startCleanPoll();
-}
+    const fields = {};
+    Object.keys(CLEAN_LABEL).forEach(k => {
+        fields[k] = { enabled: cleanFields.includes(k), hubspotProperty: HUBSPOT_PROPERTY[k] };
+    });
 
-// Nango runs the sync on its own workers, so progress is polled rather than
-// streamed. Bounded so a stuck run does not poll this tab forever.
-function startCleanPoll(){
-    if (cleanPoll) clearInterval(cleanPoll);
-    let ticks = 0;
-    cleanPoll = setInterval(async () => {
-        ticks++;
-        if (ticks > 120){ clearInterval(cleanPoll); cleanPoll = null; return; }
-        try{
-            const st = await nangoCall('clean-status');
-            if (!st.ok || !st.data) return;
-            if (st.data.status === 'RUNNING'){ renderClean('running', st.data); return; }
-            clearInterval(cleanPoll); cleanPoll = null;
-            renderClean(st.data.status === 'ERROR' ? 'error' : 'done', st.data);
-            if (st.data.status !== 'ERROR') track('crm_clean_finished', String(st.data.records ?? ''));
-        }catch(e){}
-    }, 5000);
+    const saved = await nangoCall('save-settings', { settings: { maxPerRun: 25, fields } });
+    if (saved.status === 404){ renderClean('disconnected'); return; }
+    if (!saved.ok){ renderClean('error', saved.data); return; }
+
+    const run = await nangoCall('sync-now');
+    if (run.status === 404){ renderClean('disconnected'); return; }
+    if (run.status === 403){ renderClean('locked'); return; }
+    if (!run.ok){ renderClean('error', run.data); return; }
+
+    renderClean('done', run.data);
+    track('crm_clean_finished', String(run.data.filledTotal ?? ''));
+    fetchCredits();   // a pass just spent credits; the header should say so
 }
 
 window.toggleCleanField = toggleCleanField;
@@ -921,26 +954,92 @@ function reset(){
 
 /* ---------- stage 3: HubSpot connection ---------- */
 
-const NANGO_WORKER = 'https://nangoconnect.hamoureliasse.workers.dev';
+/*
+ * This drives the `nango-connect-session` worker that has been live since
+ * 17 Aug - the same one account.html's HubSpot card already reads from. It
+ * uses Nango for OAuth token storage and a proxied HubSpot REST API, NOT
+ * Nango's hosted Syncs runtime (that pauses every two weeks on the free tier),
+ * so the cleanup and the weekly schedule both run on this worker's own cron.
+ *
+ * Route contract, verified against the deployed worker:
+ *   POST /                     -> { connectSession }        403 if not on a plan
+ *   POST /finalize-connection  { token, connectionId } -> { ok }
+ *   POST /status               -> { connected, lastSyncedAt, lastSyncResult, settings }
+ *   POST /save-settings        { token, settings } -> { ok, settings }   404 if not connected
+ *   POST /sync-now             -> the whole pass, synchronously
+ *   POST /disconnect           -> { ok }
+ */
 
-async function nangoCall(route){
-    const r = await fetch(NANGO_WORKER + '/' + route, {
-        method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({token:userToken})
-    });
-    return { ok: r.ok, status: r.status, data: await r.json().catch(()=>({})) };
+const NANGO_WORKER          = 'https://nango-connect-session.hamoureliasse.workers.dev';
+const NANGO_API_URL         = 'https://api.nango.dev';
+const NANGO_CONNECT_UI_URL  = 'https://connect.nango.dev';
+const UPGRADE_INTENT_URL    = 'https://upgrade-intent.hamoureliasse.workers.dev/';
+
+// Internal HubSpot property names the worker writes into. These are its own
+// defaults; a customer whose portal uses different internal names can have
+// them changed - the worker already accepts them per field.
+const HUBSPOT_PROPERTY = { email: 'email', linkedin_url: 'linkedinbio', phone: 'phone' };
+
+async function nangoCall(route, extra){
+    const path = route ? '/' + route : '/';
+    try{
+        const r = await fetch(NANGO_WORKER + path, {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify(Object.assign({ token:userToken }, extra || {}))
+        });
+        return { ok: r.ok, status: r.status, data: await r.json().catch(()=>({})) };
+    }catch(e){
+        return { ok:false, status:0, data:{ error:'Could not reach the connection service.' } };
+    }
 }
 
-function renderSync(state){
+/*
+ * The worker returns 403 for a non-subscriber, but only once you ask it to do
+ * something. Knowing up front lets both stages show the right screen instead of
+ * a connect button that fails. upgrade-intent is the same source of truth the
+ * worker itself checks, and the same one account.html uses.
+ */
+let paidPromise = null;
+function checkPaid(){
+    // The promise is cached, not just its result - both stages ask on page load
+    // and would otherwise each fire their own request before either resolved.
+    if (paidPromise) return paidPromise;
+    paidPromise = fetch(UPGRADE_INTENT_URL, {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ token:userToken, trigger:'crm_sync_page_load' })
+    })
+        .then(r => r.json())
+        .then(d => { isPaid = d.issub === true; return isPaid; })
+        .catch(() => { isPaid = false; return false; });   // fail closed, same as the worker
+    return paidPromise;
+}
+
+function timeAgo(iso){
+    if (!iso) return '';
+    const secs = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
+    if (secs < 60)    return 'just now';
+    if (secs < 3600)  return Math.floor(secs/60) + ' min ago';
+    if (secs < 86400) return Math.floor(secs/3600) + ' hr ago';
+    return Math.floor(secs/86400) + ' day(s) ago';
+}
+
+function renderSync(state, data){
     const el = document.getElementById('syncState');
     if(!el) return;
 
     if(state === 'connected'){
+        const d = data || {};
+        const last = d.lastSyncedAt
+            ? 'Last run ' + timeAgo(d.lastSyncedAt) +
+              (d.lastSyncResult && d.lastSyncResult.filledTotal
+                  ? ' - ' + d.lastSyncResult.filledTotal + ' field(s) filled.' : '.')
+            : 'The first scheduled run happens on the next Monday.';
         el.innerHTML =
             '<div class="sync-connected">' +
                 '<i class="fas fa-circle-check badge"></i>' +
                 '<div class="sync-connected-text"><strong>HubSpot is connected</strong>' +
-                'New contacts are enriched automatically. You should not need to run this audit again.</div>' +
+                'Every Monday, contacts still missing the fields you chose get looked up and filled in. ' + last +
+                '</div>' +
                 '<button class="btn-danger-ghost" onclick="disconnectHubspot()">Disconnect</button>' +
             '</div>' +
             '<div style="font-size:.78rem;color:var(--gray-400);margin-top:.7rem;">Also available via n8n, Make and Zapier.</div>';
@@ -948,8 +1047,8 @@ function renderSync(state){
     }
 
     if(state === 'locked'){
-        // The worker returned 402. Sync costs us a managed connection per customer,
-        // which is exactly why it sits behind a plan while the audit does not.
+        // A connection costs us a managed Nango slot per customer, which is
+        // exactly why it sits behind a plan while the audit does not.
         el.innerHTML =
             '<div class="sync-locked"><i class="fas fa-lock" style="margin-right:.4rem;"></i>' +
             'Automatic sync is included on any paid plan. The audit above stays free either way.</div>' +
@@ -971,66 +1070,93 @@ function renderSync(state){
 }
 
 async function refreshSyncState(){
-    try{
-        const res = await nangoCall('status');
-        if(!res.ok){ renderSync('error'); return; }
-        if(res.data.connected){ renderSync('connected'); return; }
-        renderSync(res.data.paid ? 'disconnected' : 'locked');
-    }catch(e){ renderSync('error'); }
+    const paid = await checkPaid();
+    if(!paid){ renderSync('locked'); return; }
+
+    const res = await nangoCall('status');
+    if(!res.ok){ renderSync('error'); return; }
+    renderSync(res.data.connected ? 'connected' : 'disconnected', res.data);
 }
 
+// Both stages need refreshing after a connect or disconnect - stage 2 shows a
+// "connect first" screen until there is a connection to clean through.
+function refreshBothStages(){
+    refreshSyncState();
+    refreshCleanState();
+}
+
+/*
+ * The Connect UI is opened FIRST and handed its session token afterwards. That
+ * ordering is deliberate: openConnectUI() is a popup, and browsers only allow
+ * one that opens synchronously inside the click. Fetching the session first
+ * would put an await between the click and the popup, and Safari blocks it.
+ */
 async function connectHubspot(){
-    const btn = document.getElementById('connectBtn');
+    const btn = document.getElementById('connectBtn') || document.getElementById('cleanConnectBtn');
     if(btn){ btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Opening&hellip;'; }
     track('sync_connect_started', 'hubspot');
 
-    let res;
-    try{ res = await nangoCall('session'); }
-    catch(e){ renderSync('error'); return; }
-
-    if(res.status === 402){ renderSync('locked'); track('sync_connect_blocked','plan_required'); return; }
-    if(res.data.alreadyConnected){ renderSync('connected'); return; }
-    if(!res.ok || !res.data.sessionToken){ renderSync('error'); return; }
-
+    let connectUI;
     try{
         // Loaded on demand rather than in <head>: nobody who only runs the audit
         // should pay the download for a flow they never open.
-        const mod = await import('https://esm.sh/@nangohq/frontend');
+        const mod = await import('https://esm.sh/@nangohq/frontend@0.58.4');
         const Nango = mod.default || mod.Nango;
-        const nango = new Nango();
-        nango.openConnectUI({
-            sessionToken: res.data.sessionToken,
+        const nangoClient = new Nango({ host: NANGO_API_URL, publicKey: 'empty' });
+
+        connectUI = nangoClient.openConnectUI({
+            apiURL: NANGO_API_URL,
+            baseURL: NANGO_CONNECT_UI_URL,
             onEvent: (event) => {
                 if(event.type === 'connect'){
                     track('sync_connected', 'hubspot');
-                    renderSync('connected');
-                    // Authorising is only half of it - the sync needs its metadata
-                    // (above all the account's own API key) or every run fails.
-                    nangoCall('finalise').then(r=>{
-                        if(!r.data || !r.data.ready){
+                    // Authorising is only half of it. The worker stores nothing
+                    // until it is told the connectionId, and without that record
+                    // neither the cleanup nor the weekly cron can find the
+                    // connection at all.
+                    const p = event.payload || {};
+                    const connectionId = p.connectionId || p.connection_id ||
+                        (p.connection && (p.connection.connectionId || p.connection.connection_id));
+                    if(!connectionId){
+                        renderSync('error');
+                        track('sync_finalise_failed', 'no_connection_id');
+                        return;
+                    }
+                    nangoCall('finalize-connection', { connectionId }).then(r => {
+                        if(!r.ok){
                             document.getElementById('syncState').insertAdjacentHTML('beforeend',
                                 '<div class="err" style="margin-top:.75rem;">Connected, but we could not finish setting it up. ' +
-                                'Email support@linkfinderai.com and we will sort it - your CRM is not being enriched yet.</div>');
-                            track('sync_finalise_failed', (r.data && r.data.reason) || 'unknown');
+                                'Email support@linkfinderai.com and we will sort it - your CRM is not being cleaned yet.</div>');
+                            track('sync_finalise_failed', String(r.status));
+                            return;
                         }
+                        refreshBothStages();
                     }).catch(()=>{});
                 } else if(event.type === 'close'){
-                    refreshSyncState();
+                    refreshBothStages();
+                } else if(event.type === 'error'){
+                    renderSync('error');
                 }
             }
         });
     }catch(e){
         renderSync('error');
+        return;
     }
+
+    const res = await nangoCall('');
+    if(res.status === 403){ renderSync('locked'); track('sync_connect_blocked','plan_required'); return; }
+    if(!res.ok || !res.data.connectSession){ renderSync('error'); return; }
+    connectUI.setSessionToken(res.data.connectSession);
 }
 
 async function disconnectHubspot(){
-    if(!confirm('Disconnect HubSpot? New contacts will stop being enriched automatically.')) return;
+    if(!confirm('Disconnect HubSpot? Your contacts will stop being cleaned automatically.')) return;
     try{
         await nangoCall('disconnect');
         track('sync_disconnected','hubspot');
     }catch(e){}
-    refreshSyncState();
+    refreshBothStages();
 }
 
 window.logout=logout; window.nav=nav; window.handleAddCredits=handleAddCredits;
@@ -1039,7 +1165,8 @@ window.track=track; window.bookingUrl=bookingUrl;
 window.connectHubspot=connectHubspot; window.disconnectHubspot=disconnectHubspot;
 
 document.addEventListener('DOMContentLoaded',()=>{
-    checkAuth(); fetchCredits(); refreshSyncState();
+    checkAuth(); fetchCredits();
+    refreshSyncState(); refreshCleanState();
     try{ posthog.capture('crm_sync_page_viewed'); }catch(e){}
 });
 </script>

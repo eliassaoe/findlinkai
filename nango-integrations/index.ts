@@ -3,4 +3,3 @@
 import './hubspot/actions/enrich-contact.js';
 import './hubspot/actions/enrich-company.js';
 import './hubspot/actions/check-linkfinder-job.js';
-import './hubspot/syncs/enrich-new-contacts.js';
