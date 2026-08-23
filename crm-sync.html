@@ -336,6 +336,16 @@ table.gaps tfoot td{font-weight:700;color:var(--gray-900);border-top:2px solid v
 </div>
 
 <script src="/js/lf-crm-audit.js"></script>
+<script type="module">
+/*
+ * Preloaded, not imported at click time. openConnectUI() opens a popup, and a
+ * popup opened after an await has left the user-gesture window, which Safari
+ * blocks outright. Module scripts are deferred, so this costs nothing on first
+ * paint, and the click handler gets a class that is already there.
+ */
+import Nango from 'https://esm.sh/@nangohq/frontend@0.58.4';
+window.__LFNango = Nango;
+</script>
 <script>
 let userToken = null;
 let lastAudit = null;
@@ -1050,7 +1060,9 @@ function renderSync(state, data){
     }
 
     if(state === 'error'){
-        el.innerHTML = '<div class="err">Could not reach the connection service. Refresh and try again, or email support@linkfinderai.com.</div>';
+        const why = (data && data.error) || 'Could not reach the connection service.';
+        el.innerHTML = '<div class="err">' + why + '</div>' +
+            '<a href="#" class="btn-ghost" style="margin-top:1rem;" onclick="connectHubspot();return false;">Try again</a>';
         return;
     }
 
@@ -1087,10 +1099,9 @@ async function connectHubspot(){
 
     let connectUI;
     try{
-        // Loaded on demand rather than in <head>: nobody who only runs the audit
-        // should pay the download for a flow they never open.
-        const mod = await import('https://esm.sh/@nangohq/frontend@0.58.4');
-        const Nango = mod.default || mod.Nango;
+        // Preloaded by the module script above; the dynamic import is only a
+        // fallback for a browser that failed to run it.
+        const Nango = window.__LFNango || (await import('https://esm.sh/@nangohq/frontend@0.58.4')).default;
         const nangoClient = new Nango({ host: NANGO_API_URL, publicKey: 'empty' });
 
         connectUI = nangoClient.openConnectUI({
@@ -1134,9 +1145,27 @@ async function connectHubspot(){
     }
 
     const res = await nangoCall('');
-    if(res.status === 403){ renderSync('locked'); track('sync_connect_blocked','plan_required'); return; }
-    if(!res.ok || !res.data.connectSession){ renderSync('error'); return; }
+
+    if(!res.ok || !res.data.connectSession){
+        // Leaving the popup open without a token is what produces Nango's
+        // "This page can't be opened directly" - the user sees that instead of
+        // the reason, and the real message is hidden behind the popup anyway.
+        closeConnectUI(connectUI);
+        if(res.status === 403){
+            renderSync('locked');
+            track('sync_connect_blocked','plan_required');
+        }else{
+            renderSync('error', { error: res.data && res.data.error });
+            track('sync_connect_failed', String(res.status));
+        }
+        return;
+    }
+
     connectUI.setSessionToken(res.data.connectSession);
+}
+
+function closeConnectUI(ui){
+    try{ if(ui && typeof ui.close === 'function') ui.close(); }catch(e){}
 }
 
 async function disconnectHubspot(){
