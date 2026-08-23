@@ -145,3 +145,23 @@ COMMIT;
 
 -- An empty table means nothing auto-approves and everything queues for you,
 -- which is the safe default: better a short manual queue than a faucet.
+
+
+-- ===========================================================================
+-- Survey answers.
+--
+-- The product_survey task stores four answers rather than a URL. jsonb, not
+-- four columns, because the questions will be replaced once they have been
+-- answered enough times and a schema migration per question set is not worth
+-- it. The worker validates every value against its own option list before this
+-- is ever written, so what lands here is always one of a known set plus one
+-- length-capped free-text field.
+-- ===========================================================================
+
+ALTER TABLE public.user_task_completions
+    ADD COLUMN IF NOT EXISTS payload jsonb;
+
+-- Answers are only ever read in aggregate, so index the two that get grouped.
+CREATE INDEX IF NOT EXISTS user_task_completions_survey_idx
+    ON public.user_task_completions ((payload->>'cadence'), (payload->>'role'))
+    WHERE task_name = 'product_survey';

@@ -20,7 +20,72 @@ const TASK_CONFIG = {
     linkedin_share:    { credits: 150,  kind: 'instant_url' },
     g2_review:         { credits: 1000, kind: 'pending_review', platform: 'g2' },
     trustpilot_review: { credits: 500,  kind: 'pending_review', platform: 'trustpilot' },
+    product_survey:    { credits: 500,  kind: 'survey' },
 };
+
+// ===========================================================================
+// The product survey
+// ===========================================================================
+//
+// Four questions, paid once per person. The point is Q2: docs/data-provider-angle.md
+// showed that the users who churn and the users who stay are separated by
+// whether their work recurs, and today we can only infer that from behaviour
+// weeks after the fact. This asks them on day one.
+//
+// Options are defined HERE, not in the browser, and an answer that is not one
+// of them is refused. A client-supplied option list is a free-text field with
+// extra steps: anyone can POST whatever they like, and the answers are the
+// entire product of this task - a poisoned set is worse than no set.
+const SURVEY_QUESTIONS = [
+    {
+        id: 'role',
+        options: ['agency', 'in_house_sales', 'recruiter', 'founder', 'developer', 'other'],
+    },
+    {
+        id: 'cadence',
+        options: ['one_off', 'few_months', 'monthly', 'weekly_or_more'],
+    },
+    {
+        id: 'previous_tool',
+        options: ['manual', 'apollo_zoominfo_lusha', 'clay', 'freelancer_va', 'other_api', 'nothing'],
+    },
+    {
+        id: 'missing',
+        freeText: true,
+        maxLength: 500,
+    },
+];
+
+const SURVEY_FREE_TEXT_MIN = 2;
+
+// Returns { answers } or { error }. Never throws - a malformed body is a 400,
+// not a 500.
+function validateSurveyAnswers(raw) {
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+        return { error: 'answers must be an object' };
+    }
+
+    const answers = {};
+    for (const q of SURVEY_QUESTIONS) {
+        const value = raw[q.id];
+
+        if (q.freeText) {
+            if (typeof value !== 'string') return { error: `${q.id} is required` };
+            // Strip control characters before anything stores or forwards this.
+            // It ends up in Supabase, in PostHog, and eventually on a screen.
+            const clean = value.replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim();
+            if (clean.length < SURVEY_FREE_TEXT_MIN) return { error: `${q.id} is required` };
+            answers[q.id] = clean.slice(0, q.maxLength);
+            continue;
+        }
+
+        if (typeof value !== 'string' || !q.options.includes(value)) {
+            return { error: `${q.id} must be one of: ${q.options.join(', ')}` };
+        }
+        answers[q.id] = value;
+    }
+    return { answers };
+}
 
 const REVIEW_TASK_FOR_PLATFORM = { g2: 'g2_review', trustpilot: 'trustpilot_review' };
 
@@ -154,6 +219,34 @@ function geoTierFromRequest(request) {
     return country && LOW_CONVERSION_COUNTRIES.has(country) ? 'low_conversion' : 'standard';
 }
 
+const POSTHOG_HOST = 'https://us.i.posthog.com';
+
+// Mirrors workers/dodo-webhook. Swallows its own failures on purpose: the
+// credits have already moved and the answers are already in Supabase by the
+// time this runs, so a PostHog outage must not turn a successful task into a
+// 500 that tells the user to try again.
+async function captureToPostHog(env, event) {
+    if (!env.POSTHOG_API_KEY) {
+        console.error('[tasks] POSTHOG_API_KEY not set, survey answers not mirrored');
+        return;
+    }
+    try {
+        await fetch(`${POSTHOG_HOST}/capture/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                api_key: env.POSTHOG_API_KEY,
+                event: event.event,
+                distinct_id: event.distinct_id,
+                properties: event.properties,
+                timestamp: new Date().toISOString(),
+            }),
+        });
+    } catch (e) {
+        console.error('[tasks] PostHog capture failed', e);
+    }
+}
+
 function json(data, status = 200) {
     return new Response(JSON.stringify(data), {
         status,
@@ -252,6 +345,13 @@ async function handleComplete(request, env) {
     if (!config) return badRequest('Unknown task_name');
     if (config.kind === 'pending_review') return badRequest('Use /tasks/submit-review for review tasks');
 
+    let surveyAnswers = null;
+    if (config.kind === 'survey') {
+        const check = validateSurveyAnswers(body.answers);
+        if (check.error) return badRequest(check.error);
+        surveyAnswers = check.answers;
+    }
+
     if (config.kind === 'instant_url') {
         if (!submitted_url) return badRequest('submitted_url is required for this task');
         // Previously any parseable URL earned 150 credits, which made this a
@@ -280,6 +380,7 @@ async function handleComplete(request, env) {
             status: 'completed',
             submitted_url: submitted_url || null,
             credits: config.credits,
+            payload: surveyAnswers,
         });
     } catch (e) {
         if (e.isDuplicate) return json({ error: 'Task already completed' }, 409);
@@ -289,6 +390,19 @@ async function handleComplete(request, env) {
     try {
         const balance = await creditUser(env, userId, config.credits);
         if (balance === null) throw new Error('no user row for credit grant');
+
+        // Server-side, not from the browser. The answers are the entire point of
+        // this task; a closed tab or a blocked analytics script must not lose
+        // them. Supabase already has them - this is so they are queryable
+        // alongside the behaviour they are meant to explain.
+        if (surveyAnswers) {
+            await captureToPostHog(env, {
+                event: 'product_survey_completed',
+                distinct_id: user_token,
+                properties: { ...surveyAnswers, credits_awarded: config.credits },
+            });
+        }
+
         return json({ success: true, task_name, credits_awarded: config.credits, credits_balance: balance });
     } catch (e) {
         // The completion row exists but the balance did not move. Roll it back
