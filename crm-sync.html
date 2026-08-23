@@ -809,6 +809,16 @@ function renderClean(state, data){
     const el = document.getElementById('cleanState');
     if (!el) return;
 
+    if (state === 'checking'){
+        el.innerHTML = '<div class="sync-loading"><i class="fas fa-circle-notch fa-spin"></i> Checking your plan&hellip;</div>';
+        return;
+    }
+    if (state === 'mismatch'){
+        el.innerHTML = '<div class="err">' + MISMATCH_COPY + '</div>' +
+            '<a href="#" class="btn-primary" style="margin-top:1rem;" onclick="connectHubspot();return false;">' +
+            '<i class="fas fa-rotate-right"></i> Try connecting again</a>' + csvFallback();
+        return;
+    }
     if (state === 'locked'){
         // Every cleaned contact is a real, credit-costing lookup against a
         // managed HubSpot connection we pay Nango for. That is why the cleanup
@@ -1024,6 +1034,8 @@ function reset(){
  */
 
 const NANGO_WORKER          = 'https://nango-connect-session.hamoureliasse.workers.dev';
+// Only consulted to second-guess a refusal, never to gate the UI up front.
+const UPGRADE_INTENT_URL    = 'https://upgrade-intent.hamoureliasse.workers.dev/';
 const NANGO_API_URL         = 'https://api.nango.dev';
 const NANGO_CONNECT_UI_URL  = 'https://connect.nango.dev';
 
@@ -1089,6 +1101,16 @@ function renderSync(state, data){
         return;
     }
 
+    if(state === 'checking'){
+        el.innerHTML = '<div class="sync-loading"><i class="fas fa-circle-notch fa-spin"></i> Checking your plan&hellip;</div>';
+        return;
+    }
+    if(state === 'mismatch'){
+        el.innerHTML = '<div class="err">' + MISMATCH_COPY + '</div>' +
+            '<a href="#" class="btn-primary" style="margin-top:1rem;" onclick="connectHubspot();return false;">' +
+            '<i class="fas fa-rotate-right"></i> Try connecting again</a>';
+        return;
+    }
     if(state === 'error'){
         const why = (data && data.error) || 'Could not reach the connection service.';
         el.innerHTML = '<div class="err">' + why + '</div>' +
@@ -1186,9 +1208,12 @@ async function connectHubspot(){
         // button with nothing changed - the click looked like it did nothing,
         // and the obvious response is to click it again.
         if(res.status === 403){
-            renderSync('locked');
-            renderClean('locked');
-            track('sync_connect_blocked','plan_required');
+            // A 403 means the worker's isSubscriber() said no. That check fails
+            // CLOSED - a timeout or cold start on its internal call produces the
+            // same 403 as never having paid - so "no" is not proof of "unpaid".
+            // Ask the billing service directly before accusing a customer of
+            // not having a plan.
+            await confirmNotSubscribed();
         }else{
             const err = { error: res.data && res.data.error };
             renderSync('error', err);
@@ -1200,6 +1225,44 @@ async function connectHubspot(){
 
     connectUI.setSessionToken(res.data.connectSession);
 }
+
+/*
+ * Second opinion on a refusal. If billing says the plan IS active, the refusal
+ * was wrong and telling this person to buy a plan they already have is the
+ * worst thing the page could do - so it says so, and reports it, instead.
+ */
+async function confirmNotSubscribed(){
+    // The second opinion is another network call. Without this the page sits on
+    // whatever it showed before, so the click reads as having done nothing.
+    renderSync('checking');
+    renderClean('checking');
+
+    let d = null;
+    try{
+        const r = await fetch(UPGRADE_INTENT_URL, {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({ token:userToken, trigger:'page_load' })
+        });
+        d = await r.json();
+    }catch(e){ /* fall through to the ordinary upgrade screen */ }
+
+    if(d && d.issub === true){
+        renderSync('mismatch', d);
+        renderClean('mismatch', d);
+        track('sync_gate_mismatch', String(d.plan || 'unknown_plan'));
+        return;
+    }
+
+    renderSync('locked');
+    renderClean('locked');
+    track('sync_connect_blocked','plan_required');
+}
+
+const MISMATCH_COPY =
+    '<strong>This one is on us.</strong> Your plan is active, but the service that ' +
+    'authorises CRM connections did not see it just now. Nothing is wrong with your ' +
+    'account and you have not been charged for anything. Try again in a minute &mdash; ' +
+    'if it still refuses, email support@linkfinderai.com and we will connect it manually.';
 
 function closeConnectUI(ui){
     try{ if(ui && typeof ui.close === 'function') ui.close(); }catch(e){}
