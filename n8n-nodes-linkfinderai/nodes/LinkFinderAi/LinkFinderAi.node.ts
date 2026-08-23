@@ -35,6 +35,7 @@ const OPERATION_TYPE_MAP: Record<string, Record<string, string>> = {
 	linkedinCompany: {
 		urlToInfo: 'linkedin_company_to_linkedin_info',
 		urlToEmployeeCount: 'linkedin_company_to_employee_count',
+		urlToEmployees: 'linkedin_company_to_employees',
 	},
 	linkedinPost: {
 		urlToReactions: 'linkedin_post_to_reactions',
@@ -275,6 +276,7 @@ export class LinkFinderAi implements INodeType {
 				options: [
 					{ name: 'URL → Company Info', value: 'urlToInfo', action: 'Get company info from linked in url' },
 					{ name: 'URL → Employee Count', value: 'urlToEmployeeCount', action: 'Get company employee count from linked in url' },
+					{ name: 'URL → Employees', value: 'urlToEmployees', description: 'List employees (name, title, LinkedIn URL, location) at the company', action: 'Get company employees from linked in url' },
 				],
 			},
 
