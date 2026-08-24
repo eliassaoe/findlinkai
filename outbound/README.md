@@ -352,3 +352,65 @@ import file carries all four and nothing gets uploaded without them.
 `g2_candidates_alt_contacts.csv` holds a second decision maker for five
 domains. They stay out of the import so a batch never mails two people at
 one company in the same week.
+
+## The AEO/SEO campaign — the lead angle
+
+Campaign `df17f3eb-368d-415f-99ab-b6a7325dad3c`, **draft**. Two subject
+variants on step 1, then +3 and +5 days.
+
+### The offer is the check, not a claim
+
+Every AEO pitch is tempted into the same sentence: *"you're invisible in AI
+search."* Said cold, to a stranger, that is an assertion about their company
+we have not tested. So this campaign never makes it. It offers to **find
+out** instead:
+
+> I run the buying questions for your category through ChatGPT, Perplexity,
+> Gemini and Claude, and send you back exactly what came out.
+
+That turns the weak part into the strong part. It costs a few cents, it
+qualifies the lead (a company already named everywhere will say so and
+disqualify itself), and the finding is more persuasive than any claim we
+could open with — because they asked for it.
+
+`visibility_check.py` is what makes that promise deliverable. Do not run
+this campaign without it; an offer to do a specific piece of work, with
+nothing behind it, is the fastest way to burn a domain and a reputation.
+
+### What the mechanism email says, and why it is true
+
+Step 2 explains that assistants synthesise the roundups and "top 10" pages
+that already rank, so the products named are the products already on those
+pages. That is a description of how retrieval works, not a promise about
+outcomes, and it lands exactly on what we sell: **listicle placements and
+backlink outreach**, not building pages on their site.
+
+An earlier draft of step 3 offered "150 pages, live in six weeks, $1,500".
+That was the wrong deliverable — it described the SEO service, not this one.
+Fixed before the campaign ever sent.
+
+### No dates, no lift numbers
+
+Step 3 says placements take as long as they take, because a human has to say
+yes. And nothing anywhere claims a measured lift in AI visibility: our own
+AI referral traffic peaked in March and has drifted since, so a lift figure
+is not a thing we can honestly sell. The SEO numbers (371 → 11,474) are
+provable and are used as-is; the AEO side is sold on mechanism and on the
+check, which is all it can carry.
+
+## `visibility_check.py`
+
+    export OPENROUTER_API_KEY=...
+    python3 outbound/visibility_check.py --input outbound/instantly_dfy_import.csv --limit 10
+    # or one at a time
+    python3 outbound/visibility_check.py --company Ketch --domain ketch.com \
+        --category "website privacy auditing"
+
+Four buying questions across four assistants, writing `checks/<slug>.txt`
+(the reply you send) and `checks/<slug>.json` (the raw answers).
+
+It reports; it does not grade. There is deliberately no "AI visibility
+score" — the measurement is too young for a score to mean anything, and a
+made-up number is exactly what the campaign's credibility cannot afford. If
+every call fails it says so and blames our side, rather than reporting a
+company as unnamed when we simply failed to ask.
