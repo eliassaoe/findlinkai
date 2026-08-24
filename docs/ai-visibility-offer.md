@@ -296,6 +296,49 @@ $7,500.**
 So Elias's instinct is correct. The fix is not to work harder at the outreach;
 it is to change what makes a publisher say yes.
 
+### Not every cited domain is emailable
+
+Checked 2026-08-24, prompted by "does this need a G2 key?" — it does not (see
+section 6; the only external dependency is the LLM APIs). But the question
+exposes a flaw in how section 3 describes the citation map.
+
+**The map is not a uniform outreach list.** It splits by how each domain is
+won, and only one of those splits is our playbook:
+
+| kind of cited domain | how you win it | our play? |
+|---|---|---|
+| editorial listicles, blogs, affiliate roundups | outreach to a named editor | **yes** |
+| review platforms — G2, Capterra, GetApp, TrustRadius | claimed profile + review volume/recency + paid tier | no — different motion |
+| Reddit, forums, communities | organic presence | no — astroturfing is a real risk |
+| competitor-owned comparison pages | nothing | never |
+
+G2 is the clearest case, and it will be in almost every B2B client's map because
+it is one of the most-cited domains in software answers. **There is no editor to
+email.** Placement is a function of claiming the profile, soliciting reviews from
+your own customers, and G2's ranking algorithm — plus paid vendor tiers. No
+amount of outreach skill touches it.
+
+**So a 40-domain citation map is not 40 targets. It is closer to 22.** That
+tightens the arithmetic above rather than loosening it, and it makes tier 2 of
+the target list structurally required, not a nice-to-have expansion.
+
+Two things follow:
+
+1. **The audit must classify each cited domain by how it is winnable**, not just
+   list it. More honest, more useful, and it pre-empts the month-two question
+   "so why am I still not on G2?" — which is otherwise a guaranteed and entirely
+   fair complaint from someone paying $8,000.
+2. **Review-platform visibility is a separate service line**, if we want it.
+   It is genuinely LinkFinder-shaped — soliciting reviews means emailing the
+   client's own customer base, which is an enrichment job — but it is a
+   different promise with a different delivery model and should not be quietly
+   folded into a placement guarantee.
+
+A note for case study zero (section 9): the G2 account connected to this
+business is a **buyer** account with no owned products. If we are going to run
+this play on ourselves in a category where G2 ranks for every head term,
+claiming the vendor profile is step one and it is free.
+
 ### Release valve 1 — the affiliate angle (the big one)
 
 Most "best X software" roundups are affiliate-monetised. The publisher adds
