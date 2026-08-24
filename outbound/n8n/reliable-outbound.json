@@ -1,5 +1,5 @@
 {
-  "name": "Reliable outbound — queue, retry, send",
+  "name": "Reliable outbound — PH + HN + G2(Apify) → LinkFinder → Instantly",
   "nodes": [
     {
       "parameters": {
@@ -24,7 +24,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ===================== PASTE YOUR KEYS HERE =====================\n// Fill these in inside n8n. Do NOT paste them into a copy of this file that\n// gets committed anywhere — this workflow lives in a public repo, and a key\n// in a JSON file is a key on the internet.\n//\n// G2 is the one that catches people out: its API wants\n//   Authorization: Token token=<key>\n// not Bearer. Put ONLY the raw key here; the header node adds the\n// \"Token token=\" prefix itself.\nconst KEYS = {\n  g2:         '',   // data.g2.com token — my.g2.com/developers/<your-slug>\n  linkfinder: '',   // LinkFinder AI API key\n  instantly:  ''    // Instantly API key\n};\n\nreturn [{ json: {\n  keys: KEYS,\n  // Set false if you have no data.g2.com API token. The run then sources\n  // from Hacker News alone, which needs no credential at all.\n  //\n  // This is a real distinction worth checking before you flip it on: a G2\n  // *account*, and even a working G2 MCP/OAuth connection, is not the same\n  // thing as an API token for data.g2.com. If you do not have that token,\n  // leaving this true fails the whole run — a missing credential is a\n  // node-level error in n8n and neverError does not catch it, because\n  // neverError only suppresses HTTP error *responses*.\n  useG2: true,\n\n  // How the G2 key is sent. G2 documents 'token', but tokens minted from\n  // different places in their product want different styles, and a wrong\n  // one returns 401 \"Bad Credentials\" — identical to a bad key, which is\n  // what makes this worth a switch rather than a guess.\n  //   'token'  -> Authorization: Token token=<key>   (documented default)\n  //   'bearer' -> Authorization: Bearer <key>\n  //   'raw'    -> Authorization: <key>\n  // Run outbound/n8n/g2-auth-probe.sh to find which one your key wants.\n  g2AuthStyle: 'token',\n\n  campaignId: 'df17f3eb-368d-415f-99ab-b6a7325dad3c',\n  batchSize: 10,          // enrichment attempts per hour\n  topUpBelow: 40,         // refill the queue when it drops under this\n  maxAttempts: 3,         // then move on; not every company is findable\n  g2Categories: [\n    'ai-sales-roleplay-tools','ai-proposal-generator-tools','event-lead-capture',\n    'ai-interview-agent','ai-documentation-generators','site-search-software',\n    'ai-sre-tools','website-privacy-auditing-tools','ai-agent-observability',\n    'semantic-layer-tools','virtual-recording-studio','low-code-mobile-app-builder'\n  ],\n  g2MinReviews: 10, g2MaxReviews: 250,\n  excludeDomains: [\n    'linkfinderai.com','clay.com','warmly.ai','6sense.com','apollo.io',\n    'zoominfo.com','lusha.com','cognism.com','hunter.io','snov.io',\n    'rocketreach.co','seamless.ai','uplead.com','findymail.com','dropcontact.com',\n    'kaspr.io','surfe.com','prospeo.io','anymailfinder.com','tryprofound.com',\n    'peec.ai','otterly.ai','athenahq.ai','scrunchai.com','goodie.ai','brandlight.ai'\n  ],\n  excludeHosts: [\n    'producthunt.com','github.com','gitlab.com','medium.com','substack.com',\n    'notion.so','notion.site','youtube.com','twitter.com','x.com',\n    'news.ycombinator.com','reddit.com','linkedin.com','vercel.app',\n    'netlify.app','herokuapp.com','pages.dev','webflow.io'\n  ]\n} }];"
+        "jsCode": "// ============ FILL YOUR KEYS IN HERE (inside n8n, not in a file) ============\n// This workflow lives in a public repo. A key in a JSON file is a key on the\n// internet, so paste them in the n8n editor where they stay in n8n's own DB.\nconst KEYS = {\n  producthunt: '',   // free developer token: api.producthunt.com -> your app\n  apify:       '',   // Apify API token — only if useG2Scraper is true\n  linkfinder:  '',   // LinkFinder AI API key\n  instantly:   ''    // Instantly API key\n};\n\n// Three sources, all optional, all emitting the same shape.\n//\n// G2's own API returned 401 on every auth style we tried, so the G2 route\n// here goes through an Apify actor instead. It is still G2 data — the\n// category and the review count — which is what made G2 worth having: the\n// opener can say \"you are listed in X with N reviews\" and be checkable in\n// one click.\n//\n// The honest trade: G2 sits behind Cloudflare, so a scraper breaks without\n// warning, and it is against their terms. That is why it is off by default\n// and why the other two exist — a broken scraper should cost you a smaller\n// day, not a dead pipeline.\n//\n// Hacker News needs no key at all, so the run works before you have created\n// any token.\nreturn [{ json: {\n  keys: KEYS,\n\n  usePH: true,     // Product Hunt (free token)\n  useHN: true,     // Hacker News (no auth)\n\n  // G2 via Apify. Off by default: costs money, and a scraper against\n  // Cloudflare is the one source here that can break silently.\n  useG2Scraper: false,\n  apifyActor: 'maximedupre~g2-products-scraper',\n  g2Categories: ['website-privacy-auditing-tools','ai-interview-agent','site-search-software'],\n  g2MinReviews: 10, g2MaxReviews: 250,\n\n  campaignId: 'df17f3eb-368d-415f-99ab-b6a7325dad3c',\n  batchSize: 10,\n  topUpBelow: 40,\n  maxAttempts: 3,\n\n  // Product Hunt: recent enough to still be small, popular enough to be real.\n  phMinVotes: 30, phMaxVotes: 1200, phMaxAgeDays: 400,\n  // Hacker News: Show HN posts clearing a modest bar.\n  hnMinPoints: 20,\n\n  excludeDomains: [\n    'linkfinderai.com','clay.com','warmly.ai','6sense.com','apollo.io',\n    'zoominfo.com','lusha.com','cognism.com','hunter.io','snov.io',\n    'rocketreach.co','seamless.ai','uplead.com','findymail.com','dropcontact.com',\n    'kaspr.io','surfe.com','prospeo.io','anymailfinder.com','tryprofound.com',\n    'peec.ai','otterly.ai','athenahq.ai','scrunchai.com','goodie.ai','brandlight.ai'\n  ],\n  excludeHosts: [\n    'producthunt.com','github.com','gitlab.com','medium.com','substack.com',\n    'notion.so','notion.site','youtube.com','twitter.com','x.com',\n    'news.ycombinator.com','reddit.com','linkedin.com','vercel.app',\n    'netlify.app','herokuapp.com','pages.dev','webflow.io'\n  ]\n} }];"
       },
       "id": "config",
       "name": "Config",
@@ -37,7 +37,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Set up the queue and check the keys. Nothing else gates a run.\n//\n// The queue lives in n8n's own workflow storage. No database to set up, it\n// survives restarts, and it is what makes the pipeline reliable: a domain\n// that does not resolve this hour is simply still there next hour.\nconst cfg = $('Config').first().json;\n\n// Catch an unset key here rather than as a confusing 401 further downstream.\nconst k = cfg.keys || {};\nconst missing = [];\nif (!k.instantly)  missing.push('instantly');\nif (!k.linkfinder) missing.push('linkfinder');\nif (cfg.useG2 && !k.g2) missing.push('g2 (or set useG2:false)');\nif (missing.length) {\n  throw new Error('Open the Config node and fill in: ' + missing.join(', ') +\n    '. Keys go in the KEYS object at the top.');\n}\n\nconst store = $getWorkflowStaticData('global');\nstore.queue = store.queue || [];\nstore.done  = store.done  || {};\nstore.stats = store.stats || { pushed: 0, dead: 0, retries: 0, runs: 0 };\nstore.stats.runs++;\n\nreturn [{ json: { ...cfg,\n  queueLength: store.queue.length,\n  needsTopUp: store.queue.length < cfg.topUpBelow\n} }];"
+        "jsCode": "// Set up the queue and check the keys. Nothing else gates a run.\n//\n// The queue lives in n8n's own workflow storage. No database to set up, it\n// survives restarts, and it is what makes the pipeline reliable: a domain\n// that does not resolve this hour is simply still there next hour.\nconst cfg = $('Config').first().json;\n\n// Catch an unset key here rather than as a confusing 401 further downstream.\nconst k = cfg.keys || {};\nconst missing = [];\nif (!k.instantly)  missing.push('instantly');\nif (!k.linkfinder) missing.push('linkfinder');\nif (cfg.usePH && !k.producthunt) missing.push('producthunt (or set usePH:false)');\nif (cfg.useG2Scraper && !k.apify) missing.push('apify (or set useG2Scraper:false)');\nif (missing.length) {\n  throw new Error('Open the Config node and fill in: ' + missing.join(', ') +\n    '. Keys go in the KEYS object at the top.');\n}\n\nconst store = $getWorkflowStaticData('global');\nstore.queue = store.queue || [];\nstore.done  = store.done  || {};\nstore.stats = store.stats || { pushed: 0, dead: 0, retries: 0, runs: 0 };\nstore.stats.runs++;\n\nreturn [{ json: { ...cfg,\n  queueLength: store.queue.length,\n  needsTopUp: store.queue.length < cfg.topUpBelow\n} }];"
       },
       "id": "plan",
       "name": "Plan this run",
@@ -80,60 +80,6 @@
     },
     {
       "parameters": {
-        "jsCode": "const cfg = $input.first().json;\n// No G2 token -> emit no items, so the G2 request node never executes and\n// never asks for a credential that does not exist. Hacker News carries the\n// run on its own.\nif (!cfg.useG2) return [];\nreturn cfg.g2Categories.map(slug => ({ json: { ...cfg, slug } }));"
-      },
-      "id": "g2fan",
-      "name": "One item per G2 category",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        140,
-        100
-      ]
-    },
-    {
-      "parameters": {
-        "url": "=https://data.g2.com/api/v2/categories/{{ $json.slug }}?include=products",
-        "options": {
-          "response": {
-            "response": {
-              "neverError": true
-            }
-          },
-          "retry": {
-            "retry": {
-              "maxTries": 3,
-              "waitBetweenTries": 2000
-            }
-          }
-        },
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "Authorization",
-              "value": "={{ (function(s,k){ return s==='bearer' ? 'Bearer '+k : s==='raw' ? k : 'Token token='+k; })($('Config').first().json.g2AuthStyle, $('Config').first().json.keys.g2) }}"
-            },
-            {
-              "name": "Content-Type",
-              "value": "application/vnd.api+json"
-            }
-          ]
-        }
-      },
-      "id": "g2",
-      "name": "G2: products",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [
-        340,
-        100
-      ],
-      "notes": "401 Bad Credentials here means G2 read the header and rejected the token — the URL and format are fine. Either the key is not a Data API token, or the style is wrong. Flip g2AuthStyle in Config, or run g2-auth-probe.sh to find out which. Set useG2:false to run on Hacker News alone meanwhile.",
-      "onError": "continueRegularOutput"
-    },
-    {
-      "parameters": {
         "url": "https://hn.algolia.com/api/v1/search_by_date?tags=story&query=Show%20HN&hitsPerPage=100",
         "options": {
           "response": {
@@ -154,21 +100,22 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        340,
-        300
+        140,
+        320
       ],
-      "notes": "No credential at all. The one source here that cannot fail on auth, which is exactly why it is worth keeping even at low yield."
+      "notes": "No credential at all. The one source here that cannot fail on auth, which is exactly why it is worth keeping even at low yield.",
+      "onError": "continueRegularOutput"
     },
     {
       "parameters": {
-        "jsCode": "// Both sources -> the queue. Anything already queued, already sent, or\n// already written off is dropped here, so the queue never grows duplicates\n// and a domain is never paid for twice.\nconst cfg = $('Plan this run').first().json;\nconst store = $getWorkflowStaticData('global');\nconst seen = new Set([...store.queue.map(q => q.domain), ...Object.keys(store.done)]);\n\nconst bad = d =>\n  cfg.excludeDomains.includes(d) ||\n  cfg.excludeHosts.some(h => d === h || d.endsWith('.' + h));\n\nlet added = 0;\n\nfor (const item of $input.all()) {\n  const body = item.json.body ?? item.json;\n\n  // --- G2 -------------------------------------------------------------\n  if (body?.included) {\n    const category = body?.data?.attributes?.name || 'software';\n    const products = body.included\n      .filter(i => i.type === 'products' && i.attributes?.domain)\n      .map(i => ({\n        domain: String(i.attributes.domain).trim().toLowerCase().replace(/^www\\./, ''),\n        company: i.attributes.name || '',\n        reviews: i.attributes.review_count || 0\n      }));\n    if (products.length && Math.min(...products.map(p => p.reviews)) <= cfg.g2MaxReviews) {\n      for (const p of products) {\n        if (seen.has(p.domain) || bad(p.domain)) continue;\n        if (p.reviews < cfg.g2MinReviews || p.reviews > cfg.g2MaxReviews) continue;\n        seen.add(p.domain); added++;\n        store.queue.push({ domain: p.domain, company: p.company, category,\n          signalValue: p.reviews, source: 'g2', attempts: 0 });\n      }\n    }\n  }\n\n  // --- Hacker News ----------------------------------------------------\n  if (Array.isArray(body?.hits)) {\n    for (const h of body.hits) {\n      if ((h.points || 0) < 20) continue;\n      let host = '';\n      try { host = new URL(h.url || '').hostname.toLowerCase().replace(/^www\\./, ''); } catch { continue; }\n      if (!host || seen.has(host) || bad(host)) continue;\n      const company = (String(h.title || '').replace(/^show hn:?\\s*/i, '')\n        .split(/[\\u2013\\u2014\\-:|,]/)[0] || host).trim();\n      seen.add(host); added++;\n      store.queue.push({ domain: host, company: company || host, category: 'software',\n        signalValue: h.points || 0, source: 'hackernews', attempts: 0 });\n    }\n  }\n}\n\nreturn [{ json: { ...cfg, added, queueLength: store.queue.length } }];"
+        "jsCode": "// Both sources -> the queue, each carrying a sentence that is true of it.\n//\n// THE OBSERVATION FIELD IS THE POINT.\n// The opener has to name something real about the prospect. Hard-coding\n// \"on G2\" in the copy was fine while G2 was the only source; the moment a\n// lead arrives from somewhere else that line is a lie to a real person.\n// So the sentence is built HERE, where the source is known, and shipped as\n// one merge field. The campaign renders {{observation}} and is true by\n// construction no matter which source found the company.\nconst cfg = $('Plan this run').first().json;\nconst store = $getWorkflowStaticData('global');\nconst seen = new Set([...store.queue.map(q => q.domain), ...Object.keys(store.done)]);\n\nconst bad = d => cfg.excludeDomains.includes(d) ||\n  cfg.excludeHosts.some(h => d === h || d.endsWith('.' + h));\n\nconst host = u => {\n  try { return new URL(u || '').hostname.toLowerCase().replace(/^www\\./, ''); }\n  catch { return ''; }\n};\n\nlet added = 0;\nconst push = row => {\n  if (!row.domain || seen.has(row.domain) || bad(row.domain)) return;\n  seen.add(row.domain); added++;\n  store.queue.push({ ...row, attempts: 0 });\n};\n\nfor (const item of $input.all()) {\n  const body = item.json.body ?? item.json;\n\n  // --- Product Hunt ----------------------------------------------------\n  const edges = body?.data?.posts?.edges;\n  if (Array.isArray(edges)) {\n    const now = Date.now();\n    for (const e of edges) {\n      const n = e?.node; if (!n) continue;\n      const d = host(n.website);\n      const votes = n.votesCount || 0;\n      if (votes < cfg.phMinVotes || votes > cfg.phMaxVotes) continue;\n      const age = (now - new Date(n.createdAt).getTime()) / 86400000;\n      if (!isFinite(age) || age > cfg.phMaxAgeDays) continue;\n      const topic = n.topics?.edges?.[0]?.node?.name || '';\n      const company = n.name || d;\n      push({\n        domain: d, company, source: 'producthunt',\n        category: topic || 'software',\n        observation: `I came across ${company} on Product Hunt — ${votes} upvotes`\n          + (topic ? ` under ${topic}` : '') + '.'\n      });\n    }\n  }\n\n  // --- G2 via Apify -----------------------------------------------------\n  // Apify actors disagree about field names, and apify.com is unreachable\n  // from where this was written, so nothing here assumes one spelling. If\n  // the run produces zero G2 rows, log one dataset item and add its keys.\n  const rows = Array.isArray(body) ? body : (Array.isArray(body?.items) ? body.items : null);\n  if (rows && rows.length && rows[0] && !rows[0].hits && !rows[0].data) {\n    for (const r of rows) {\n      const d = host(r.domain || r.website || r.url || r.productUrl || '')\n             || String(r.domain || '').toLowerCase().replace(/^www\\./, '');\n      const reviews = Number(r.review_count ?? r.reviewCount ?? r.reviews ?? r.reviewsCount ?? 0);\n      const category = r.category || r.categoryName || r.category_name || 'software';\n      const company = r.name || r.productName || r.product || d;\n      if (!d) continue;\n      if (reviews < cfg.g2MinReviews || reviews > cfg.g2MaxReviews) continue;\n      push({\n        domain: d, company, source: 'g2',\n        category,\n        observation: `You are listed on G2 under ${category} with ${reviews} reviews.`\n      });\n    }\n  }\n\n  // --- Hacker News ------------------------------------------------------\n  if (Array.isArray(body?.hits)) {\n    for (const h of body.hits) {\n      const pts = h.points || 0;\n      if (pts < cfg.hnMinPoints) continue;\n      const d = host(h.url);\n      const company = (String(h.title || '').replace(/^show hn:?\\s*/i, '')\n        .split(/[\\u2013\\u2014\\-:|,]/)[0] || d).trim();\n      push({\n        domain: d, company: company || d, source: 'hackernews',\n        category: 'software',\n        observation: `I saw ${company || d} on Show HN — ${pts} points.`\n      });\n    }\n  }\n}\n\nreturn [{ json: { ...cfg, added, queueLength: store.queue.length } }];"
       },
       "id": "fill",
       "name": "Top up the queue",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        560,
+        420,
         200
       ]
     },
@@ -289,7 +236,7 @@
         "url": "https://api.instantly.ai/api/v2/leads",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ campaign: $json.campaignId, email: $json.email, first_name: $json.firstName, last_name: $json.lastName, company_name: $json.company, website: $json.domain, skip_if_in_workspace: true, custom_variables: { category: $json.category, reviewCount: String($json.signalValue), source: $json.source, title: $json.title } }) }}",
+        "jsonBody": "={{ JSON.stringify({ campaign: $json.campaignId, email: $json.email, first_name: $json.firstName, last_name: $json.lastName, company_name: $json.company, website: $json.domain, skip_if_in_workspace: true, custom_variables: { observation: $json.observation, category: $json.category, source: $json.source, title: $json.title } }) }}",
         "options": {
           "response": {
             "response": {
@@ -321,7 +268,7 @@
         1880,
         200
       ],
-      "notes": "category and reviewCount render into the opener's first line. A lead without them would mail a real person a broken sentence."
+      "notes": "observation is the merge field the opener renders. It is composed at source time so the sentence is true of wherever the lead actually came from — never a hard-coded 'on G2'."
     },
     {
       "parameters": {
@@ -362,6 +309,110 @@
         2320,
         300
       ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const cfg = $input.first().json;\n// No Product Hunt token -> emit nothing, so the request node never runs and\n// never asks for a key that is not there. Hacker News carries the run alone.\nif (!cfg.usePH || !(cfg.keys||{}).producthunt) return [];\nreturn [{ json: cfg }];"
+      },
+      "id": "phgate",
+      "name": "Use Product Hunt?",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -80,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.producthunt.com/v2/api/graphql",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + $('Config').first().json.keys.producthunt }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ query: 'query { posts(order: NEWEST, first: 50) { edges { node { id name tagline website votesCount createdAt topics(first: 2) { edges { node { name } } } } } } }' }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "retry": {
+            "retry": {
+              "maxTries": 3,
+              "waitBetweenTries": 3000
+            }
+          }
+        }
+      },
+      "id": "ph",
+      "name": "Product Hunt: recent launches",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        140,
+        100
+      ],
+      "onError": "continueRegularOutput",
+      "notes": "v2 GraphQL — v1 was deprecated in 2023. Free developer token from your app's page on api.producthunt.com. Complexity limit is 1000, which is why topics is capped at 2 and makers/comments are not requested."
+    },
+    {
+      "parameters": {
+        "jsCode": "const cfg = $input.first().json;\n// Off, or no Apify token -> emit nothing and the actor is never called.\nif (!cfg.useG2Scraper || !(cfg.keys||{}).apify) return [];\nreturn [{ json: cfg }];"
+      },
+      "id": "g2gate",
+      "name": "Use G2 scraper?",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -80,
+        520
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://api.apify.com/v2/acts/' + $json.apifyActor + '/run-sync-get-dataset-items?token=' + $json.keys.apify }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ categories: $json.g2Categories, maxItems: 100 }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "retry": {
+            "retry": {
+              "maxTries": 2,
+              "waitBetweenTries": 5000
+            }
+          },
+          "timeout": 300000
+        }
+      },
+      "id": "g2run",
+      "name": "Apify: G2 products",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        140,
+        520
+      ],
+      "onError": "continueRegularOutput",
+      "notes": "run-sync-get-dataset-items returns the actor's dataset directly, so there is no run to poll. The token goes in the query string because that is what this endpoint accepts. Actors differ in what they call their fields — the normaliser accepts several spellings rather than assuming one. Verify the input shape against your chosen actor before trusting a scheduled run."
     }
   ],
   "connections": {
@@ -402,7 +453,7 @@
       "main": [
         [
           {
-            "node": "One item per G2 category",
+            "node": "Use Product Hunt?",
             "type": "main",
             "index": 0
           },
@@ -410,33 +461,16 @@
             "node": "Hacker News: Show HN",
             "type": "main",
             "index": 0
+          },
+          {
+            "node": "Use G2 scraper?",
+            "type": "main",
+            "index": 0
           }
         ],
         [
           {
             "node": "Take this hour's batch",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "One item per G2 category": {
-      "main": [
-        [
-          {
-            "node": "G2: products",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "G2: products": {
-      "main": [
-        [
-          {
-            "node": "Top up the queue",
             "type": "main",
             "index": 0
           }
@@ -561,6 +595,50 @@
         [
           {
             "node": "One at a time",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Use Product Hunt?": {
+      "main": [
+        [
+          {
+            "node": "Product Hunt: recent launches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Product Hunt: recent launches": {
+      "main": [
+        [
+          {
+            "node": "Top up the queue",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Use G2 scraper?": {
+      "main": [
+        [
+          {
+            "node": "Apify: G2 products",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Apify: G2 products": {
+      "main": [
+        [
+          {
+            "node": "Top up the queue",
             "type": "main",
             "index": 0
           }
