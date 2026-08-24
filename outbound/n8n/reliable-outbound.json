@@ -24,7 +24,7 @@
     },
     {
       "parameters": {
-        "jsCode": "return [{ json: {\n  // Set false if you have no data.g2.com API token. The run then sources\n  // from Hacker News alone, which needs no credential at all.\n  //\n  // This is a real distinction worth checking before you flip it on: a G2\n  // *account*, and even a working G2 MCP/OAuth connection, is not the same\n  // thing as an API token for data.g2.com. If you do not have that token,\n  // leaving this true fails the whole run — a missing credential is a\n  // node-level error in n8n and neverError does not catch it, because\n  // neverError only suppresses HTTP error *responses*.\n  useG2: true,\n\n  campaignId: 'df17f3eb-368d-415f-99ab-b6a7325dad3c',\n  batchSize: 10,          // enrichment attempts per hour\n  topUpBelow: 40,         // refill the queue when it drops under this\n  maxAttempts: 3,         // then move on; not every company is findable\n  g2Categories: [\n    'ai-sales-roleplay-tools','ai-proposal-generator-tools','event-lead-capture',\n    'ai-interview-agent','ai-documentation-generators','site-search-software',\n    'ai-sre-tools','website-privacy-auditing-tools','ai-agent-observability',\n    'semantic-layer-tools','virtual-recording-studio','low-code-mobile-app-builder'\n  ],\n  g2MinReviews: 10, g2MaxReviews: 250,\n  excludeDomains: [\n    'linkfinderai.com','clay.com','warmly.ai','6sense.com','apollo.io',\n    'zoominfo.com','lusha.com','cognism.com','hunter.io','snov.io',\n    'rocketreach.co','seamless.ai','uplead.com','findymail.com','dropcontact.com',\n    'kaspr.io','surfe.com','prospeo.io','anymailfinder.com','tryprofound.com',\n    'peec.ai','otterly.ai','athenahq.ai','scrunchai.com','goodie.ai','brandlight.ai'\n  ],\n  excludeHosts: [\n    'producthunt.com','github.com','gitlab.com','medium.com','substack.com',\n    'notion.so','notion.site','youtube.com','twitter.com','x.com',\n    'news.ycombinator.com','reddit.com','linkedin.com','vercel.app',\n    'netlify.app','herokuapp.com','pages.dev','webflow.io'\n  ]\n} }];"
+        "jsCode": "// ===================== PASTE YOUR KEYS HERE =====================\n// Fill these in inside n8n. Do NOT paste them into a copy of this file that\n// gets committed anywhere — this workflow lives in a public repo, and a key\n// in a JSON file is a key on the internet.\n//\n// G2 is the one that catches people out: its API wants\n//   Authorization: Token token=<key>\n// not Bearer. Put ONLY the raw key here; the header node adds the\n// \"Token token=\" prefix itself.\nconst KEYS = {\n  g2:         '',   // data.g2.com token — my.g2.com/developers/<your-slug>\n  linkfinder: '',   // LinkFinder AI API key\n  instantly:  ''    // Instantly API key\n};\n\nreturn [{ json: {\n  keys: KEYS,\n  // Set false if you have no data.g2.com API token. The run then sources\n  // from Hacker News alone, which needs no credential at all.\n  //\n  // This is a real distinction worth checking before you flip it on: a G2\n  // *account*, and even a working G2 MCP/OAuth connection, is not the same\n  // thing as an API token for data.g2.com. If you do not have that token,\n  // leaving this true fails the whole run — a missing credential is a\n  // node-level error in n8n and neverError does not catch it, because\n  // neverError only suppresses HTTP error *responses*.\n  useG2: true,\n\n  campaignId: 'df17f3eb-368d-415f-99ab-b6a7325dad3c',\n  batchSize: 10,          // enrichment attempts per hour\n  topUpBelow: 40,         // refill the queue when it drops under this\n  maxAttempts: 3,         // then move on; not every company is findable\n  g2Categories: [\n    'ai-sales-roleplay-tools','ai-proposal-generator-tools','event-lead-capture',\n    'ai-interview-agent','ai-documentation-generators','site-search-software',\n    'ai-sre-tools','website-privacy-auditing-tools','ai-agent-observability',\n    'semantic-layer-tools','virtual-recording-studio','low-code-mobile-app-builder'\n  ],\n  g2MinReviews: 10, g2MaxReviews: 250,\n  excludeDomains: [\n    'linkfinderai.com','clay.com','warmly.ai','6sense.com','apollo.io',\n    'zoominfo.com','lusha.com','cognism.com','hunter.io','snov.io',\n    'rocketreach.co','seamless.ai','uplead.com','findymail.com','dropcontact.com',\n    'kaspr.io','surfe.com','prospeo.io','anymailfinder.com','tryprofound.com',\n    'peec.ai','otterly.ai','athenahq.ai','scrunchai.com','goodie.ai','brandlight.ai'\n  ],\n  excludeHosts: [\n    'producthunt.com','github.com','gitlab.com','medium.com','substack.com',\n    'notion.so','notion.site','youtube.com','twitter.com','x.com',\n    'news.ycombinator.com','reddit.com','linkedin.com','vercel.app',\n    'netlify.app','herokuapp.com','pages.dev','webflow.io'\n  ]\n} }];"
       },
       "id": "config",
       "name": "Config",
@@ -38,14 +38,21 @@
     {
       "parameters": {
         "url": "https://api.instantly.ai/api/v2/workspaces/current/plan",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
         "options": {
           "response": {
             "response": {
               "neverError": true
             }
           }
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + $('Config').first().json.keys.instantly }}"
+            }
+          ]
         }
       },
       "id": "capacity",
@@ -55,17 +62,11 @@
       "position": [
         -680,
         300
-      ],
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "instantly",
-          "name": "Instantly API key"
-        }
-      }
+      ]
     },
     {
       "parameters": {
-        "jsCode": "// Decide, once per run, whether there is anything worth doing.\n//\n// Two independent reasons to stop early, and stopping is not a failure:\n//   - no room in Instantly  -> enriching would burn credits on leads that\n//                              cannot be uploaded\n//   - queue still full      -> no need to hit the sources at all\n//\n// The queue lives in n8n's own workflow storage. No database to set up, it\n// survives restarts, and it is what turns an unreliable provider into a\n// reliable pipeline: a domain that fails this hour is simply still there\n// next hour.\nconst cfg = $('Config').first().json;\nconst plan = $input.first().json;\nconst sub = plan?.subscriptions?.outreach || plan || {};\nconst limit = sub.total_lead_limit, used = sub.current_lead_count;\n\nlet room;\nif (limit == null || used == null) {\n  room = cfg.batchSize;   // unreadable: proceed cautiously, one batch\n} else {\n  room = limit - used;\n}\n\nconst store = $getWorkflowStaticData('global');\nstore.queue = store.queue || [];\nstore.done  = store.done  || {};\nstore.stats = store.stats || { pushed: 0, dead: 0, retries: 0, runs: 0 };\nstore.stats.runs++;\n\nif (room <= 0) {\n  return [{ json: { ...cfg, halt: true,\n    reason: `Instantly is ${-room} leads over its cap (${used}/${limit}). ` +\n            `Nothing enriched — that would spend credits on leads it will refuse. ` +\n            `Queue is holding ${store.queue.length} domains and loses nothing by waiting.` } }];\n}\n\nreturn [{ json: { ...cfg,\n  halt: false,\n  room,\n  queueLength: store.queue.length,\n  needsTopUp: store.queue.length < cfg.topUpBelow\n} }];"
+        "jsCode": "// Decide, once per run, whether there is anything worth doing.\n//\n// Two independent reasons to stop early, and stopping is not a failure:\n//   - no room in Instantly  -> enriching would burn credits on leads that\n//                              cannot be uploaded\n//   - queue still full      -> no need to hit the sources at all\n//\n// The queue lives in n8n's own workflow storage. No database to set up, it\n// survives restarts, and it is what turns an unreliable provider into a\n// reliable pipeline: a domain that fails this hour is simply still there\n// next hour.\nconst cfg = $('Config').first().json;\n\n// Catch an unset key here rather than as a confusing 401 six nodes later.\nconst k = cfg.keys || {};\nconst missing = [];\nif (!k.instantly)  missing.push('instantly');\nif (!k.linkfinder) missing.push('linkfinder');\nif (cfg.useG2 && !k.g2) missing.push('g2 (or set useG2:false)');\nif (missing.length) {\n  throw new Error('Open the Config node and fill in: ' + missing.join(', ') +\n    '. Keys go in the KEYS object at the top.');\n}\nconst plan = $input.first().json;\nconst sub = plan?.subscriptions?.outreach || plan || {};\nconst limit = sub.total_lead_limit, used = sub.current_lead_count;\n\nlet room;\nif (limit == null || used == null) {\n  room = cfg.batchSize;   // unreadable: proceed cautiously, one batch\n} else {\n  room = limit - used;\n}\n\nconst store = $getWorkflowStaticData('global');\nstore.queue = store.queue || [];\nstore.done  = store.done  || {};\nstore.stats = store.stats || { pushed: 0, dead: 0, retries: 0, runs: 0 };\nstore.stats.runs++;\n\nif (room <= 0) {\n  return [{ json: { ...cfg, halt: true,\n    reason: `Instantly is ${-room} leads over its cap (${used}/${limit}). ` +\n            `Nothing enriched — that would spend credits on leads it will refuse. ` +\n            `Queue is holding ${store.queue.length} domains and loses nothing by waiting.` } }];\n}\n\nreturn [{ json: { ...cfg,\n  halt: false,\n  room,\n  queueLength: store.queue.length,\n  needsTopUp: store.queue.length < cfg.topUpBelow\n} }];"
       },
       "id": "plan",
       "name": "Plan this run",
@@ -152,8 +153,6 @@
     {
       "parameters": {
         "url": "=https://data.g2.com/api/v2/categories/{{ $json.slug }}?include=products",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
         "options": {
           "response": {
             "response": {
@@ -166,6 +165,19 @@
               "waitBetweenTries": 2000
             }
           }
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Token token=' + $('Config').first().json.keys.g2 }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/vnd.api+json"
+            }
+          ]
         }
       },
       "id": "g2",
@@ -176,13 +188,7 @@
         340,
         100
       ],
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "g2",
-          "name": "G2 API token"
-        }
-      },
-      "notes": "neverError covers HTTP errors; onError=continueRegularOutput covers the rest (bad or expired credential, DNS, timeout). Between them a G2 problem tops the queue up with nothing instead of killing the run. Set useG2:false in Config if you have no data.g2.com token at all.",
+      "notes": "G2 wants 'Authorization: Token token=<key>' — NOT Bearer. A Bearer prefix 401s on every call and looks exactly like a bad key. The prefix is added here, so Config holds only the raw key. Set useG2:false if you have no token.",
       "onError": "continueRegularOutput"
     },
     {
@@ -257,8 +263,6 @@
       "parameters": {
         "method": "POST",
         "url": "https://api.linkfinderai.com/api/v1/enrich",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ type: 'company_domain_to_employees', input: $json.domain, seniority: 'founder,owner,c_suite,vp,head', employee_count: 5 }) }}",
@@ -274,6 +278,15 @@
               "waitBetweenTries": 5000
             }
           }
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + $('Config').first().json.keys.linkfinder }}"
+            }
+          ]
         }
       },
       "id": "linkfinder",
@@ -284,12 +297,6 @@
         1220,
         300
       ],
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "linkfinder",
-          "name": "LinkFinder API key"
-        }
-      },
       "notes": "Three in-request retries handle a momentary flake. Anything still unresolved goes back on the queue. If a company simply has no findable decision maker, that is a normal outcome, not an error — it is marked done and the run continues."
     },
     {
@@ -339,8 +346,6 @@
       "parameters": {
         "method": "POST",
         "url": "https://api.instantly.ai/api/v2/leads",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ campaign: $json.campaignId, email: $json.email, first_name: $json.firstName, last_name: $json.lastName, company_name: $json.company, website: $json.domain, skip_if_in_workspace: true, custom_variables: { category: $json.category, reviewCount: String($json.signalValue), source: $json.source, title: $json.title } }) }}",
@@ -356,6 +361,15 @@
               "waitBetweenTries": 3000
             }
           }
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + $('Config').first().json.keys.instantly }}"
+            }
+          ]
         }
       },
       "id": "push",
@@ -366,12 +380,6 @@
         1880,
         200
       ],
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "instantly",
-          "name": "Instantly API key"
-        }
-      },
       "notes": "category and reviewCount render into the opener's first line. A lead without them would mail a real person a broken sentence."
     },
     {

@@ -11,6 +11,9 @@ exactly as the nodes expect:
 
 Then open **Config** and set the campaign id and the category list.
 
+> `reliable-outbound.json` works differently — its keys go straight into the
+> Config node, no credentials to create. See below.
+
 ## What n8n actually fixes, and what it does not
 
 Three things failed while building this, and only one of them was transport:
@@ -267,3 +270,38 @@ Confirm it before wiring anything up:
 Products in the response → set `useG2: true`. A 401 or 403 → the token is
 wrong, or the account does not have data API access; run with `useG2: false`
 until that is sorted, since Hacker News needs no credential.
+
+
+## Keys in `reliable-outbound.json`
+
+No n8n credentials to set up. Open the **Config** node and fill the `KEYS`
+object at the top:
+
+```js
+const KEYS = {
+  g2:         '',   // data.g2.com token
+  linkfinder: '',   // LinkFinder AI API key
+  instantly:  ''    // Instantly API key
+};
+```
+
+Paste the **raw keys only**. Each node adds its own prefix, which matters
+because the three providers disagree:
+
+| provider | header the node builds |
+| --- | --- |
+| G2 | `Authorization: Token token=<key>` |
+| LinkFinder | `Authorization: Bearer <key>` |
+| Instantly | `Authorization: Bearer <key>` |
+
+G2 is the one that catches people out. A `Bearer` prefix 401s on every call
+and reads exactly like a bad key, so you go and regenerate a token that was
+fine all along.
+
+**Never commit a filled-in copy.** This repo is public, and a key in a JSON
+file is a key on the internet — paste them in the n8n editor, where they stay
+in n8n's own database. `.gitignore` covers `*.local.json` and `*-filled.json`
+if you want to keep a working copy on disk.
+
+If a key is blank the run stops at **Plan this run** with a message naming
+exactly which one, rather than dying as a 401 six nodes downstream.
