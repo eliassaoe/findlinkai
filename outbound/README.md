@@ -144,3 +144,64 @@ email**: the model-output parser (fenced JSON, prose, numbered lists,
 refusals) and the prospect matcher (`Chargebee` / `charge bee` /
 `Chargebee Billing` / `Chargebee.io` all resolve to the prospect, and a
 too-short brand never matches by accident).
+
+---
+
+## Sourcing: where the domains come from
+
+`build_campaign.py` takes a `domains.csv`. Two scripts produce one.
+
+### `source_g2.py` — the good path
+
+```
+export G2_API_TOKEN=...
+python3 outbound/source_g2.py --out outbound/domains.csv --max-domains 500
+python3 outbound/build_campaign.py --input outbound/domains.csv --limit 25
+```
+
+Walks all 2,287 G2 categories and keeps products whose `review_count` falls
+in a band (default 10–250).
+
+**Why a directory beats a search engine here.** Search only returns
+companies that already rank — the exact opposite of the prospect. A G2
+listing means a company decided to care about being found. Small review
+count in a real category means they are not being found yet. That is the
+prospect, and it is a fact about them rather than a guess.
+
+**The buyer-account limit, and why it does not sink this.** A buyer-scoped
+G2 token gets zero rows from `/products` and only the top few products per
+category from the category include. In a broad category ("CRM") those are
+Salesforce and HubSpot, who do not need us. In a long-tail category the top
+few *are* small companies. So the sweep leans on the tail: 2,287 categories
+is the asset, not any single one. `--keep-broad` is off by default, which
+drops a category whose smallest visible product is already above the band.
+
+### `find_leads_ai` — the fallback, for when you want people not domains
+
+LinkFinder's own `find_leads_ai` takes a natural-language query and returns
+name, title, **work email**, exact headcount and tech stack in one call, at
+1 credit per lead. Two things learned running it:
+
+- Naming a headcount band in the query does not work the way you would
+  hope. *"B2B SaaS companies with 1–10 employees"* comes back full of MSPs
+  and IT consultancies — it matches the *Information Technology & Services*
+  industry, not the business model.
+- Naming a **title** works. *"Head of Marketing or Head of Growth at B2B
+  SaaS companies with 11-50 employees"* comes back as real venture-backed
+  SaaS with real CMOs. Filter headcount yourself on the `company_size`
+  integer in the response.
+
+It cannot tell you whether a company is already visible in AI answers. Only
+`build_campaign.py`'s check does that, and that check is what the email's
+central claim rests on. So anything sourced this way is a *candidate*, never
+a send.
+
+## Files
+
+| file | what it is |
+| --- | --- |
+| `source_g2.py` | G2 taxonomy sweep → `domains.csv` |
+| `build_campaign.py` | domains → visibility check → `instantly_import.csv` |
+| `qualified_leads.csv` | 11 real decision makers found by hand, **not** visibility-checked |
+| `seed_candidates.csv` | 15 domains harvested from search; superseded by `source_g2.py` |
+| `test_logic.py` | 37 cases over the parsing, matching and banding logic |
