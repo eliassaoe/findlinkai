@@ -182,7 +182,10 @@ business: ~$1,000. One client changes the shape of the company.
 
 ### What we guarantee, and what we refuse to
 
-**Guaranteed:** the number of placements. We control outreach.
+**Guaranteed:** the number of placements. We control outreach — though see
+section 8, which argues the first three sprints should carry no guarantee at
+all, and that every guarantee after them must be against a *tiered* target
+list rather than the citation map alone.
 
 **Never guaranteed:** that ChatGPT will recommend you. We do not control the
 model, nobody does, and every agency currently promising it is either lying or
@@ -261,7 +264,136 @@ client paying $8k, costs more reputation than 6,000 free signups ever built.
 
 ---
 
-## 8. Case study zero: run it on ourselves
+## 8. Can we actually deliver it?
+
+The fear is the right one to have. But "it is just outbound" is the part of the
+sentence that is wrong, and the difference is where the whole risk lives.
+
+### Why this is not outbound
+
+**1. You cannot scale volume out of a conversion problem.** Normal outbound
+fixes a 3% reply rate by sending ten times more email. Here the citation map is
+20–60 domains — and the entire pitch is that *only those pages matter*. We are
+contractually forbidden from expanding the list, because expanding it is
+admitting the map was not the point. A sprint promising 8–12 placements against
+40 domains needs a **20–30% hit rate on a list that cannot grow.**
+
+**2. We are not selling anything — we are asking someone to edit published
+work.** Cold outbound trades value for attention. This asks a publisher to
+change a live page that already ranks and already earns. The default answer is
+no, and saying yes costs them an afternoon.
+
+**3. The yes is not the finish line.** A placement is inclusion *plus* correct
+positioning *plus* a clean claim sentence *plus* it still being there in
+month four.
+
+Benchmark it honestly: digital PR and link building run **3–10% placement per
+targeted pitch.** Forty domains × 3 contacts = 120 pitches. At 8%, that is ten
+placements — the guarantee lands almost exactly on the industry average with no
+margin for a bad month. **That is too tight to promise to someone who paid
+$7,500.**
+
+So Elias's instinct is correct. The fix is not to work harder at the outreach;
+it is to change what makes a publisher say yes.
+
+### Release valve 1 — the affiliate angle (the big one)
+
+Most "best X software" roundups are affiliate-monetised. The publisher adds
+products **because those products pay them.** Which means the pitch stops being
+"please include us" and becomes "here is a new revenue line for this page."
+
+That flips the incentive from charity to commerce, and it is by far the largest
+single lever on placement rate available to us.
+
+The consequence is an ICP filter, and it should be a question on the audit form:
+
+> **Does the client have an affiliate or partner program?**
+
+A client with one is pitchable to half the internet. A client without one is
+asking editors for a favour, and should either be told to launch one as step
+zero of the engagement, priced higher, or declined. **This one question predicts
+deliverability better than anything else in the process** and it costs nothing
+to ask before signing.
+
+### Release valve 2 — tier the target list
+
+Guarantee against a list 5–10× the citation map, reported by tier:
+
+- **Tier 1 — cited today.** Hard, highest value, where the map points.
+- **Tier 2 — category-adjacent roundups not currently cited.** Structurally
+  identical pages that simply have not been picked up yet. Getting placed here
+  is *how a page becomes tier 1*, so this is not filler — it is the leading
+  edge of the same strategy.
+- **Tier 3 — directories, comparison databases, community threads.**
+
+The guarantee is against the whole tiered list. The report shows the mix. The
+promise stays honest and the list stays expandable, which removes the structural
+trap in the paragraph above.
+
+### Release valve 3 — money, disclosed
+
+If a slot costs $800 and the client is fine with it, delivery risk collapses
+into a budget question, which is a much better problem. Passthrough at cost,
+disclosed in the contract (section 7, risk 1).
+
+For the **first cohort, take reliability over margin.** A campaign delivered at
+thin margin buys the case study that sells the next ten. A campaign missed
+because we refused to spend $600 costs far more than $600.
+
+### Release valve 4 — what we can give that no competitor can
+
+Three currencies, all of which we already own:
+
+1. **Reciprocal placement.** We are a publisher with 68 ranking pages. That is
+   real inventory and a real trade, and no dashboard vendor has it.
+2. **Original data.** 10M companies, 50M profiles. Original research is the most
+   link-earning asset that exists, and we can cut a category stat pack per
+   client for near-zero marginal cost. That arrives as an editorial gift rather
+   than a request, which is a completely different email to receive.
+3. **Free accounts.** Reviewers need to actually test the product to write about
+   it. Trivial for us, blocking for them.
+
+### Where the money actually is
+
+Hours per 90-day sprint, estimated honestly:
+
+    audit (mostly machine)                        4h
+    prompt set + kickoff call                     2h
+    sequence build                                4h
+    reply handling + negotiation, 15-25 pubs   30-60h   <- the entire cost
+    placement QA + sentence work                 10h
+    reporting                                     5h
+                                              --------
+                                                55-85h
+
+| product | hours | price | effective rate | delivery risk |
+|---|---:|---:|---:|---|
+| Audit | 4–6 | $2,500 | **$400–600/h** | near zero |
+| Sprint | 55–85 | $7,500 | $90–135/h | **all of it** |
+| Retainer, steady state | 15–20/mo | $4,000/mo | **$200–270/h** | low |
+
+**The risk is concentrated entirely in the sprint, because that is the only
+place a guarantee lives.** The audit and the retainer are both good businesses
+carrying modest delivery load. That is a much more comfortable picture than
+"can I deliver this offer" — two thirds of it is already safe.
+
+### What this changes in the offer
+
+1. **Sell audits alone for the first 60 days.** Near-zero delivery risk, and ten
+   audits across ten categories tells us our *actual* placement-rate
+   distribution before we promise anybody a number.
+2. **First three sprints carry no guarantee.** Sell them as pilots — we pitch,
+   you see every reply, you keep the map. Convert to a guarantee once we know
+   our own hit rate rather than the industry's.
+3. **Tiered target list** on every guarantee thereafter.
+4. **Affiliate-program question** on the audit form, before anything is signed.
+
+None of that weakens the offer. It moves the promise to the part we control,
+which is the same discipline as refusing to guarantee what ChatGPT says.
+
+---
+
+## 9. Case study zero: run it on ourselves
 
 We are sitting on the proof and it costs nothing but time.
 
@@ -294,7 +426,7 @@ owned, free, and **not counted toward the placement guarantee.**
 
 ---
 
-## 9. Who to sell to
+## 10. Who to sell to
 
 Not the $49 self-serve user. The buyer is whoever owns the number that "we are
 invisible in ChatGPT" threatens:
@@ -335,7 +467,7 @@ only cold email that gets answered at this price point.
 
 ---
 
-## 10. Thirty days, with two kill switches
+## 11. Thirty days, with two kill switches
 
 Nothing gets built beyond the harness until someone pays for an audit.
 
@@ -363,7 +495,7 @@ one month finding that out instead of six.
 
 ---
 
-## 11. The bet, stated plainly
+## 12. The bet, stated plainly
 
 Every previous offer in this repo tried to make a $49 self-serve funnel produce
 $1,000 accounts, and the honest conclusion of `data-provider-angle.md` was that a
