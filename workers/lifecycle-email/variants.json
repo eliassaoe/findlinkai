@@ -401,7 +401,7 @@
     "checkout_1": {
       "workflow_id": "01a02578-9f9e-0000-d4c0-f57a811dca80",
       "action_id": "email_1",
-      "audience": "Picked a plan, no payment landed, 2 hours later.",
+      "audience": "Picked a plan, no payment landed, 15 minutes later.",
       "goal_event": "checkout_payment_success",
       "variants": [
         {
@@ -413,11 +413,11 @@
           "preheader": "One question, one line back.",
           "body": [
             "Hi &mdash; Eliasse here, I built LinkFinder.",
-            "You started upgrading a couple of hours ago and the payment never completed.",
-            "I&rsquo;d genuinely like to know which it was: did something break, or did you change your mind on the price? We found and fixed a bug in our checkout recently, so there&rsquo;s a real chance it was us &mdash; and if so, I owe you a working link."
+            "You picked a plan about fifteen minutes ago and I haven&rsquo;t seen the payment land.",
+            "If you&rsquo;re still mid-checkout, ignore this. If it broke, the button below takes you straight back to the plans &mdash; we found and fixed a bug in our checkout recently, so there&rsquo;s a real chance it was us, and it should go through this time."
           ],
           "cta": "Finish upgrading",
-          "url": "{% if event.properties.checkout_url %}{{ event.properties.checkout_url }}{% else %}https://linkfinderai.com/app?action=upgrade{% endif %}",
+          "url": "https://linkfinderai.com/app?action=upgrade",
           "after": [
             "Or just hit reply. One line is plenty.",
             "&mdash; Eliasse"
@@ -429,13 +429,13 @@
           "angle": "utility",
           "status": "queued",
           "hypothesis": "Some abandoned checkouts are pure friction. Hand them a working link and say nothing else.",
-          "subject": "here's your checkout link again",
+          "subject": "your upgrade did not go through",
           "preheader": "In case the first one gave you trouble.",
           "body": [
-            "Your upgrade didn&rsquo;t go through, so here&rsquo;s a fresh link in case the last one gave you trouble."
+            "Your upgrade didn&rsquo;t go through. The payment page times out after a few minutes, so the old one is gone &mdash; this starts a clean one."
           ],
           "cta": "Finish upgrading",
-          "url": "{% if event.properties.checkout_url %}{{ event.properties.checkout_url }}{% else %}https://linkfinderai.com/app?action=upgrade{% endif %}",
+          "url": "https://linkfinderai.com/app?action=upgrade",
           "after": [
             "If it fails again, reply and tell me what you saw on screen &mdash; that would be genuinely useful to know.",
             "&mdash; Eliasse"
@@ -455,7 +455,7 @@
             "If it&rsquo;s the second, tell me what you&rsquo;re using it for. Sometimes the $25 one-off pack is the better answer than a subscription and I&rsquo;d rather say so."
           ],
           "cta": "Try again",
-          "url": "{% if event.properties.checkout_url %}{{ event.properties.checkout_url }}{% else %}https://linkfinderai.com/app?action=upgrade{% endif %}",
+          "url": "https://linkfinderai.com/app?action=upgrade",
           "after": [
             "&mdash; Eliasse"
           ],
@@ -469,19 +469,19 @@
           "subject": "no pressure, just checking",
           "preheader": "Your upgrade did not complete. That is all this is about.",
           "body": [
-            "Your upgrade didn&rsquo;t complete earlier. This isn&rsquo;t a nudge to buy &mdash; it&rsquo;s me checking that the thing worked, because it hasn&rsquo;t always.",
+            "Your upgrade didn&rsquo;t complete just now. This isn&rsquo;t a nudge to buy &mdash; it&rsquo;s me checking that the thing worked, because it hasn&rsquo;t always.",
             "If you decided against it, that&rsquo;s completely fine and you can ignore this. The free tier isn&rsquo;t going anywhere.",
             "If it broke, that&rsquo;s a different matter and I&rsquo;d like to hear about it."
           ],
           "cta": "Pick up where you left off",
-          "url": "{% if event.properties.checkout_url %}{{ event.properties.checkout_url }}{% else %}https://linkfinderai.com/app?action=upgrade{% endif %}",
+          "url": "https://linkfinderai.com/app?action=upgrade",
           "after": [
             "&mdash; Eliasse"
           ],
           "reason": "you started an upgrade at linkfinderai.com"
         }
       ],
-      "url_note": "The CTA resolves to the visitor's OWN Dodo payment page when the trigger event carries one. checkout_redirect_started has carried checkout_url since 21 Aug 2026 (20/20 since; 0/15 before). plan_selected fires before the checkout worker is called and never carries one, so the {% else %} branch is the majority path (147 plan_selected vs 35 checkout_redirect_started in 60 days) and is not optional - without it those recipients get a button with an empty href. Deliberately NOT applied to checkout_2: that fires 3 days later, by which point the Dodo session is expired, and a dead checkout page is worse than the app. Requires templating:'liquid' on the email action."
+      "url_note": "Sends 15 minutes after the trigger, and links to the pricing modal - NOT to a pre-minted Dodo session.\n\nAn earlier version templated the visitor's own checkout_url from the trigger event into the CTA. That is wrong and was reverted on 24 Aug: a Dodo checkout session expires after about 15 minutes. Email delivery plus the time before someone opens it is routinely longer than that, so the personalised link would be dead for most recipients - and an expired Dodo page is a worse landing than the pricing modal, because it is a dead end with an error rather than a working way to pay.\n\nThe 15-minute delay is now about catching the person while the failure is fresh, not about beating the expiry - the session is gone either way, so the click has to mint a new one. That is why the copy says 'takes you straight back to the plans' rather than promising their old link.\n\nTo genuinely deliver a live payment link by email you need an endpoint that mints a fresh Dodo session on click and 302s to it. That does NOT exist yet, and it must not identify the user with ?token= - see app.html:3948, a token in the URL overwrites localStorage.linkFinderToken and switches the account."
     },
     "checkout_2": {
       "workflow_id": "01a02578-9f9e-0000-d4c0-f57a811dca80",
