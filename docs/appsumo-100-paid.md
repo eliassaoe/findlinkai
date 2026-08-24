@@ -170,3 +170,36 @@ with the anon key can read or modify every row, including all 81,991 enrichment
 records. Enabling RLS without policies will lock the app out, so it needs
 policies written alongside — but a partner doing diligence on us will find this,
 and it is a bad thing to be found.
+
+---
+
+## Update — 24 Aug 2026: checkout is fixed
+
+The leak described above is closed. Since the 22 Aug deploy, real users walk
+`plan_selected → checkout_worker_request_started → checkout_session_created →
+checkout_redirect_started` one-for-one, where previously 35 of 42 plan
+selections produced no redirect at all. `checkout_click_swallowed` and
+`checkout_stuck_watchdog` do not exist in the project taxonomy — the two probes
+for the dead-button failure mode have never fired. A live end-to-end purchase
+succeeded on 23 Aug.
+
+Treat "Constraint 1" above as historical. Do not carry the 1.2% signup→paid
+rate into new plans; it was a measurement of a broken payment path.
+
+Two things still open, neither blocking:
+
+- **No real payment has landed post-fix.** 5 real plan selections, 4 redirects,
+  0 purchases over three days. At ~27 plan selections a month that gap is
+  expected, not a signal. A trustworthy post-fix conversion rate needs roughly
+  10–14 days. Until then the honest phrasing is "fixed, conversion not yet
+  measured".
+- **`checkout_redirect_stalled` fired on 2 of 4 real redirects** — the 5s stall
+  notice, not a failure. Worth checking whether the redirect is merely slow.
+  `checkout_payment_page_opened` reads 0 for everyone including the successful
+  purchase, so it is simply not wired into the current flow; its absence is not
+  evidence of a problem.
+
+Consequences for the plan: the sequencing warning in
+`docs/retargeting-the-backlog.md` is cleared — the win-back waves can be
+dispatched. And paid acquisition is now an arithmetic question rather than a
+bad idea, once there is a measured rate to do arithmetic with.

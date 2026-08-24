@@ -141,3 +141,10 @@ thing that is broken (`docs/appsumo-100-paid.md`). Driving recovered buyers back
 into a checkout that loses 38 of 50 people wastes the best list we have. Fix
 checkout first, or at minimum point the recovery email at a payment link that
 is known to work.
+
+---
+
+**Update — 24 Aug 2026:** the sequencing note above is cleared. Checkout was
+fixed on 22 Aug and the redirect chain now completes for real users (see the
+update at the end of `docs/appsumo-100-paid.md`). The win-back waves can be
+dispatched without feeding the best list we have into a broken payment path.
