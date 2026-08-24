@@ -414,3 +414,61 @@ score" — the measurement is too young for a score to mean anything, and a
 made-up number is exactly what the campaign's credibility cannot afford. If
 every call fails it says so and blames our side, rather than reporting a
 company as unnamed when we simply failed to ask.
+
+## `run_pipeline.py` — the whole motion in one command
+
+```
+export G2_API_TOKEN=...  LINKFINDER_API_KEY=...  INSTANTLY_API_KEY=...
+python3 outbound/run_pipeline.py --campaign df17f3eb-368d-415f-99ab-b6a7325dad3c --target 50
+```
+
+G2 sweep → LinkFinder decision maker + verified email → pushed into the
+campaign with `category` and `reviewCount` attached, so the copy renders.
+`--dry-run` sources only and spends nothing.
+
+### Capacity is checked before a single credit is spent
+
+The obvious order is source, enrich, upload. It is wrong, and it cost a real
+afternoon: the workspace was 6,089 leads over its cap, so every upload would
+have 403'd — but only *after* LinkFinder had been paid for the enrichment.
+
+So the run asks Instantly how much room is left **first**, and lowers the
+target to fit. No room means it refuses to start rather than spending money
+on leads that cannot be uploaded. `--ignore-capacity` overrides it and says
+plainly what that costs.
+
+Order of operations, by what each step costs: capacity (free, fails fast) →
+source (free) → enrich (metered) → push.
+
+### Resumable, because the providers are not reliable
+
+`--state` records every domain resolved, pushed, or given up on, and why. It
+is written after every single lead, not at the end, so killing the run mid-way
+loses nothing and re-running skips what is already done. A push that fails is
+deliberately *not* marked done, so the next run retries it — a lead we paid
+to enrich and failed to upload is the one thing worth retrying.
+
+### It knows the difference between flaky and down
+
+Same guard as `build_campaign.py`, for the same measured reason: the employee
+lookup returns its maintenance sentinel for roughly half of all calls,
+interleaved with good answers seconds apart. One sentinel is a retry. Three
+domains in a row exhausting their retries is an outage, and the run stops
+rather than writing off every remaining company as one nobody works at.
+
+### On putting an agent on this
+
+The pipeline is deliberately a plain script, not an agent. Everything in it
+is a fixed decision — the review band, the exclusions, the retry counts, the
+capacity check — and fixed decisions belong in code that can be tested, not
+in a model that re-derives them differently on each run. The 20-odd cases in
+`test_logic.py` exist because these rules are worth locking down.
+
+What genuinely wants judgement, and is worth an agent, is narrower:
+
+- **choosing which categories to sweep** — the yield is entirely in narrow,
+  long-tail categories, and "narrow" is a judgement call
+- **reading the replies** — sorting interested from not-now from angry
+- **writing the visibility check summary** in the prospect's own language
+
+Run the script on a schedule; point a model at those three.
