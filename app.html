@@ -700,32 +700,6 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
 .saved-pill:hover .saved-arrow{transform:translateX(2px);opacity:1;}
 @keyframes saved-in{from{opacity:0;transform:translateY(-4px);}to{opacity:1;transform:translateY(0);}}
 
-.ref-nudge-toast{
-    /* Sits beside the round help-centre button rather than stacked on top of it.
-       The button is 48px square in the bottom-left corner; this toast used to
-       start 8px above it, which is close enough to read as overlapping even
-       when it technically is not. Side by side removes the question. The
-       max-width keeps it on screen on a 360px phone. See the media query below
-       for the narrow case, where side by side is not possible. */
-    position:fixed;bottom:20px;left:80px;max-width:min(300px, calc(100vw - 96px));
-    background:white;border:1px solid var(--gray-200);border-radius:12px;
-    padding:1rem 1.1rem;box-shadow:0 8px 24px rgba(0,0,0,0.12);
-    z-index:9997;display:flex;gap:0.75rem;
-    opacity:0;transform:translateY(12px);
-    transition:opacity 0.3s ease,transform 0.3s ease;
-    pointer-events:none;
-}
-.ref-nudge-toast.show{opacity:1;transform:translateY(0);pointer-events:auto;}
-.ref-nudge-close{position:absolute;top:6px;right:8px;background:none;border:none;color:var(--gray-400);cursor:pointer;font-size:1.1rem;line-height:1;padding:2px;}
-.ref-nudge-icon{font-size:1.3rem;flex-shrink:0;}
-.ref-nudge-title{font-weight:600;font-size:0.85rem;color:var(--gray-900);margin-bottom:2px;}
-.ref-nudge-sub{font-size:0.76rem;color:var(--gray-500);line-height:1.4;margin-bottom:0.6rem;}
-.ref-nudge-cta{background:var(--primary);color:white;border:none;padding:0.4rem 0.75rem;border-radius:6px;font-size:0.76rem;font-weight:600;cursor:pointer;font-family:inherit;}
-/* On a phone the toast is full-width, so it cannot sit beside the help button
-   and has to clear it vertically instead. The button's top edge is at 68px;
-   70px left a 2px sliver that read as a collision on small screens. */
-@media(max-width:640px){.ref-nudge-toast{left:8px;right:8px;max-width:none;bottom:84px;}}
-
 /* ===== Onboarding Tasks Popup ===== */
 .otp-overlay{position:fixed;inset:0;background:rgba(17,24,39,0.5);display:flex;align-items:center;justify-content:center;padding:1rem;z-index:10050;opacity:0;visibility:hidden;transition:opacity 0.2s ease,visibility 0.2s ease;}
 .otp-overlay.show{opacity:1;visibility:visible;}
@@ -766,6 +740,14 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
 .otp-submit-btn:hover{background:var(--primary-hover);}
 .otp-submit-btn:disabled{opacity:0.6;cursor:not-allowed;}
 .otp-disclosure-note{margin-top:0.5rem;font-size:0.72rem;color:#92400e;background:#fffbeb;border:1px solid #fde68a;border-radius:6px;padding:0.5rem 0.65rem;line-height:1.5;display:flex;gap:0.375rem;align-items:flex-start;}
+.otp-survey{display:flex;flex-direction:column;gap:0.9rem;}
+.otp-q-label{font-size:0.82rem;font-weight:600;color:var(--gray-800);margin-bottom:0.4rem;}
+.otp-q-opt{display:flex;align-items:flex-start;gap:0.45rem;font-size:0.8rem;color:var(--gray-700);cursor:pointer;padding:0.25rem 0;line-height:1.35;}
+.otp-q-opt input{margin-top:0.15rem;flex-shrink:0;cursor:pointer;}
+.otp-q-opt:hover{color:var(--gray-900);}
+.otp-q-text{width:100%;box-sizing:border-box;padding:0.55rem 0.7rem;border:1px solid var(--gray-300);border-radius:6px;font-size:0.8rem;font-family:inherit;color:var(--gray-800);resize:vertical;}
+.otp-q-text:focus{outline:none;border-color:var(--primary);}
+.otp-survey-submit{align-self:flex-start;}
 .otp-referral-row{display:flex;gap:0.5rem;}
 .otp-referral-row input{flex:1;min-width:0;padding:0.55rem 0.7rem;border:1px solid var(--gray-300);border-radius:6px;font-size:0.8rem;font-family:'Monaco','Courier New',monospace;background:var(--gray-50);color:var(--gray-700);}
 .otp-field-error{margin-top:0.4rem;font-size:0.76rem;color:var(--error);}
@@ -1788,6 +1770,48 @@ const plans = [
     { name:'Enterprise',   key:'enterprise', monthlyPrice:149, credits:600000 },
 ];
 let isAnnualBilling = false;
+
+/*
+ * Resolves the ?plan= parameter on the abandoned-checkout email's button.
+ *
+ * A Dodo checkout session expires roughly 15 minutes after it is created, which
+ * is shorter than the gap between sending an email and someone opening it. So
+ * that email deliberately carries NO payment link. It carries the plan, and the
+ * session is minted here, on the click, by a browser that is already signed in.
+ * Nothing can expire, and no account identifier travels in a URL that ends up in
+ * inbox history and forwards. (app.html reads ?token= into localStorage - see the
+ * token handling in the boot path - so a link that identified the account would
+ * hand whoever opened it that account.)
+ *
+ * Accepts whichever shape the trigger event actually held:
+ *   checkout_redirect_started -> plan_key   "pro_monthly", "enterprise_annual"
+ *   plan_selected             -> plan       "Professional" + billing "monthly"
+ * Returns null for anything unrecognised so the caller falls back to the modal
+ * rather than guessing a plan the person never chose.
+ */
+const PLAN_PARAM_ALIASES = {
+    starter: 'starter',
+    pro: 'pro', professional: 'pro',
+    enterprise: 'enterprise',
+};
+
+function resolvePlanParam(planParam, billingParam) {
+    if (!planParam) return null;
+    let raw = String(planParam).trim().toLowerCase();
+    let billing = String(billingParam || '').trim().toLowerCase();
+
+    // "pro_monthly" / "enterprise_annual" carry their own billing mode; an
+    // explicit &billing= wins only when the key did not already state one.
+    const m = raw.match(/^(.+)_(monthly|annual)$/);
+    if (m) { raw = m[1]; billing = m[2]; }
+
+    const key = PLAN_PARAM_ALIASES[raw];
+    if (!key) return null;
+    const index = plans.findIndex(pl => pl.key === key);
+    if (index === -1) return null;
+
+    return { index, billing: billing === 'annual' ? 'annual' : 'monthly' };
+}
     
 function renderPlansGrid() {
     const grid = document.getElementById('plansGrid');
@@ -2653,12 +2677,10 @@ async function cimPriceBranch() {
         try { posthog.capture('credits_wall_earn_offered', { source: cimRescueSource }); } catch (e) {}
         cimRescueAnswer(
             '<strong>Then earn them instead of buying them.</strong><br><br>'
-            + 'A review on G2 is worth <strong>1,000 credits</strong> here &mdash; more than the $25 pack costs. '
-            + 'Sharing on LinkedIn is 150. It takes a few minutes and no card.'
+            + 'Answering <strong>4 questions</strong> about your work is worth 500 credits and takes a minute. '
+            + 'A review on G2 is worth <strong>1,000</strong> &mdash; more than the $25 pack costs. No card either way.'
             + '<br><button type="button" class="cim-rescue-cta" onclick="cimRescueCta(\'earn_credits\');cimHardClose();openOnboardingTasksPopupManually()">'
             + 'Show me how to earn credits</button>'
-            + '<br><button type="button" class="cim-rescue-done" onclick="cimRescueCta(\'referral\');cimHardClose();openReferralModal()">'
-            + 'Or get paid for referrals instead</button>'
         );
         return;
     }
@@ -3990,7 +4012,22 @@ function checkAuth(){
 
     const action=p.get('action');
     if(action==='buy_credits') setTimeout(()=>showPricingModal('buy_credits_btn'),500);
-    else if(action==='upgrade') setTimeout(()=>showPricingModal(),500);
+    else if(action==='upgrade'){
+        // With a plan attached this is the email's "Finish upgrading" click, so
+        // skip the modal and mint the payment session now. Without one - or with
+        // a plan we do not recognise - open the modal and let them choose, which
+        // is the old behaviour and the only safe fallback.
+        const resumed = resolvePlanParam(p.get('plan'), p.get('billing'));
+        if (resumed){
+            billingMode = resumed.billing;
+            try { posthog.capture('email_resume_checkout', {
+                plan: plans[resumed.index].key, billing: resumed.billing,
+            }); } catch(e) {}
+            setTimeout(()=>proceedToCheckoutDirect(resumed.index, null), 300);
+        } else {
+            setTimeout(()=>showPricingModal(),500);
+        }
+    }
     // ?action=tasks is the landing point for the reactivation email that points
     // people at the credit tasks. The popup was previously reachable only via a
     // button rendered for the low_conversion geo tier, so everyone else had no
@@ -4867,7 +4904,6 @@ function checkEnrichmentMilestone() {
     const key = 'lf_enrich_count'; const firedKey = 'lf_ten_enrich_fired';
     const n = parseInt(localStorage.getItem(key) || '0') + 1;
     localStorage.setItem(key, n);
-    maybeShowReferralNudge();
     maybeShowBulkNudge(n);
     // Low-conversion geo: wait until the 2nd enrichment before auto-showing
     // the task popup, so people experience real value first. Before that,
@@ -5251,40 +5287,15 @@ setInterval(updatePhCountdown, 60000);
 
 let refDataLoaded = false;
  
-function maybeShowReferralNudge(){
-    if (localStorage.getItem('lf_ref_nudge_shown')) return; // once per user, ever
-    localStorage.setItem('lf_ref_nudge_shown', '1');
-    setTimeout(showReferralNudge, 1200); // let the result render/scroll settle first
-}
-
-function showReferralNudge(){
-    if (document.getElementById('refNudgeToast')) return;
-    const el = document.createElement('div');
-    el.id = 'refNudgeToast';
-    el.className = 'ref-nudge-toast';
-    el.innerHTML = `
-        <button class="ref-nudge-close" onclick="dismissReferralNudge()" aria-label="Dismiss">×</button>
-        <div class="ref-nudge-icon">🎉</div>
-        <div>
-            <div class="ref-nudge-title">Nice, your first result!</div>
-            <div class="ref-nudge-sub">Know someone who'd find this useful? Invite them and earn 25% commission.</div>
-            <button class="ref-nudge-cta" onclick="dismissReferralNudge();openReferralModal();">Invite a friend</button>
-        </div>`;
-    document.body.appendChild(el);
-    requestAnimationFrame(() => el.classList.add('show'));
-    try { posthog.capture('referral_nudge_shown'); } catch(e) {}
-    clearTimeout(el._t);
-    el._t = setTimeout(dismissReferralNudge, 15000);
-}
-
-function dismissReferralNudge(){
-    const el = document.getElementById('refNudgeToast');
-    if (!el) return;
-    el.classList.remove('show');
-    try { posthog.capture('referral_nudge_dismissed'); } catch(e) {}
-    setTimeout(() => el.remove(), 300);
-}
-
+/*
+ * The "invite a friend" toast that fired after a user's first result was
+ * removed on 23 Aug 2026. The credit-tasks popup is the one interruption the
+ * app gets to spend, and it now carries the 4-question product survey, which
+ * is worth more than a referral click. Two toasts competing meant both were
+ * dismissed. The referral modal itself still exists and is untouched - see
+ * openReferralModal below - so nobody's existing invite link or accrued
+ * commission is affected.
+ */
 function openReferralModal() {
     document.getElementById('referralModal').classList.add('show');
     document.body.style.overflow = 'hidden';
@@ -5430,12 +5441,62 @@ const DISC = 'You must write in your review that you received credits for it. Re
 // would pay out on an honour system for the joint highest-value item here.
 const BADGE_VERIFY_WORKER = 'https://badge-verify.hamoureliasse.workers.dev';
 
-const OTP_TASKS = [
+// The four survey questions. The ids and every option `value` below MUST match
+// SURVEY_QUESTIONS in workers/onboarding-tasks/worker.js - the worker refuses
+// any value it does not recognise, so a typo here reads to the user as a
+// rejected answer with no explanation.
+//
+// Q2 is the reason this exists. docs/data-provider-angle.md found that the
+// users who stay and the users who vanish differ by whether their work recurs,
+// and today that is only visible weeks later, from behaviour. This asks.
+const OTP_SURVEY = [
+    { id: 'role', question: 'What best describes you?', options: [
+        { value: 'agency',                label: 'Agency or consultancy, doing this for clients' },
+        { value: 'in_house_sales',        label: 'In-house sales or marketing' },
+        { value: 'recruiter',             label: 'Recruiter' },
+        { value: 'founder',               label: 'Founder doing my own outreach' },
+        { value: 'developer',             label: 'Developer building on the API' },
+        { value: 'other',                 label: 'Something else' },
+    ]},
+    { id: 'cadence', question: 'Is this a one-time list, or something you need again?', options: [
+        { value: 'one_off',               label: 'One project, then I am done' },
+        { value: 'few_months',            label: 'Every few months' },
+        { value: 'monthly',               label: 'Every month' },
+        { value: 'weekly_or_more',        label: 'Every week or more' },
+    ]},
+    { id: 'previous_tool', question: 'What were you using before LinkFinder AI?', options: [
+        { value: 'manual',                label: 'Doing it by hand' },
+        { value: 'apollo_zoominfo_lusha', label: 'Apollo, ZoomInfo or Lusha' },
+        { value: 'clay',                  label: 'Clay' },
+        { value: 'freelancer_va',         label: 'A freelancer or VA' },
+        { value: 'other_api',             label: 'Another API or scraper' },
+        { value: 'nothing',               label: 'Nothing, this is new to me' },
+    ]},
+    { id: 'missing', question: 'What would make you use LinkFinder AI every month?', freeText: true,
+      placeholder: 'One line is enough. Be blunt.' },
+];
+
+/*
+ * Flip to true only once BOTH are live:
+ *   1. workers/onboarding-tasks/schema.sql has been run (adds the payload column
+ *      the answers are written to - without it every submission 500s), and
+ *   2. the onboarding-tasks worker is deployed with product_survey in TASK_CONFIG.
+ *
+ * Until then the task is hidden rather than shown-and-broken: the deployed worker
+ * answers 400 "Unknown task_name", so a person would fill in four questions and
+ * be told the task does not exist. See task #35.
+ */
+const SURVEY_TASK_LIVE = false;
+
+const OTP_TASKS_ALL = [
+    { name: 'product_survey', kind: 'survey', label: 'Answer 4 questions about your work', sub: 'Takes about a minute. It genuinely changes what we build next.', credits: 500, realValue: '= 50 emails or 500 LinkedIn profiles' },
     { name: 'g2_review', kind: 'url', label: 'Leave a G2 review', credits: 1000, realValue: '= 100 emails or 1,000 LinkedIn profiles', placeholder: 'Paste the URL of your review', linkUrl: OTP_LINKS.g2, linkLabel: 'Write a review on G2', pendingCopy: 'Being checked', disclosureNote: DISC },
     { name: 'site_badge', kind: 'url', label: 'Put the LinkFinder badge on your site', credits: 1000, realValue: '= 100 emails or 1,000 LinkedIn profiles', placeholder: 'Paste the page URL where the badge is live', linkUrl: 'https://linkfinderai.com/badge', linkLabel: 'Get the badge code', verifyWorker: BADGE_VERIFY_WORKER },
     { name: 'youtube_subscribe', kind: 'honor_click', label: 'Subscribe to our YouTube channel', credits: 100, realValue: '= 100 LinkedIn profiles', linkUrl: OTP_LINKS.youtube, linkLabel: 'Open channel' },
     { name: 'linkedin_share', kind: 'url', label: 'Share on LinkedIn', credits: 150, realValue: '= 150 LinkedIn profiles', placeholder: 'Paste your LinkedIn post URL' },
 ];
+
+const OTP_TASKS = OTP_TASKS_ALL.filter(t => t.name !== 'product_survey' || SURVEY_TASK_LIVE);
 
 function otpCopy() {
     const balance = currentCredits !== null ? Math.round(currentCredits * 10) / 10 : null;
@@ -5590,6 +5651,21 @@ function renderOnboardingTasksPopup() {
                 </div>
                 ${task.disclosureNote ? `<div class="otp-disclosure-note"><i class="fas fa-circle-info"></i> ${otpEsc(task.disclosureNote)}</div>` : ''}
             </div>`;
+        } else if (task.kind === 'survey') {
+            actionHtml = `<div class="otp-survey">
+                ${OTP_SURVEY.map((q, qi) => `
+                    <div class="otp-q">
+                        <div class="otp-q-label">${qi + 1}. ${otpEsc(q.question)}</div>
+                        ${q.freeText
+                            ? `<textarea class="otp-q-text" id="otp-q-${q.id}" rows="2" maxlength="500" ${isBusy?'disabled':''} placeholder="${otpEsc(q.placeholder)}" onfocus="otpTrackStarted('${task.name}')"></textarea>`
+                            : q.options.map(o => `
+                                <label class="otp-q-opt">
+                                    <input type="radio" name="otp-q-${q.id}" value="${otpEsc(o.value)}" ${isBusy?'disabled':''} onchange="otpTrackStarted('${task.name}')">
+                                    <span>${otpEsc(o.label)}</span>
+                                </label>`).join('')}
+                    </div>`).join('')}
+                <button class="otp-submit-btn otp-survey-submit" ${isBusy?'disabled':''} onclick="otpSubmitSurvey('${task.name}')">${isBusy?'Saving\u2026':`Submit and get ${task.credits} credits`}</button>
+            </div>`;
         } else if (task.kind === 'referral') {
             actionHtml = `<div class="otp-referral-row">
                 <input type="text" readonly value="${otpEsc(referralLink)}">
@@ -5651,6 +5727,75 @@ async function otpCompleteHonorTask(taskName) {
     otpBusyTask = null;
     renderOnboardingTasksPopup();
 }
+
+/*
+ * The survey is the only task where the answer IS the payout, so it validates
+ * client-side purely to give a useful message - the worker validates again and
+ * is the authority. Every option value is checked there against its own list,
+ * so a tampered radio value is refused rather than stored.
+ */
+async function otpSubmitSurvey(taskName) {
+    if (otpBusyTask) return;
+
+    const answers = {};
+    for (const q of OTP_SURVEY) {
+        if (q.freeText) {
+            const el = document.getElementById(`otp-q-${q.id}`);
+            const val = (el && el.value || '').trim();
+            if (val.length < 2) {
+                otpShowFieldError(taskName, 'Last question needs an answer - one line is fine.');
+                if (el) el.focus();
+                return;
+            }
+            answers[q.id] = val;
+            continue;
+        }
+        const picked = document.querySelector(`input[name="otp-q-${q.id}"]:checked`);
+        if (!picked) {
+            otpShowFieldError(taskName, `Please answer question ${OTP_SURVEY.indexOf(q) + 1}.`);
+            return;
+        }
+        answers[q.id] = picked.value;
+    }
+
+    otpBusyTask = taskName;
+    otpShowFieldError(taskName, '');
+    renderOnboardingTasksPopup();
+
+    try {
+        const res = await fetch(`${ONBOARDING_TASKS_WORKER}/tasks/complete`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_token: userToken, task_name: taskName, answers }),
+        });
+        const data = await res.json().catch(() => ({}));
+
+        if (!res.ok) {
+            otpBusyTask = null;
+            // 409 means it is already done - reflect that rather than inviting a retry.
+            if (res.status === 409) {
+                otpCompletions = otpCompletions.filter(c => c.task_name !== taskName)
+                    .concat([{ task_name: taskName, status: 'completed', credits: 0 }]);
+            }
+            renderOnboardingTasksPopup();
+            if (res.status !== 409) otpShowFieldError(taskName, data.error || 'Could not save your answers. Please try again.');
+            return;
+        }
+
+        otpBusyTask = null;
+        otpCompletions = otpCompletions.filter(c => c.task_name !== taskName)
+            .concat([{ task_name: taskName, status: 'completed', credits: data.credits_awarded }]);
+        // The worker mirrors the answers to PostHog itself. This one is only
+        // the funnel signal, so it deliberately carries no answer text.
+        try { posthog.capture('onboarding_task_completed', { task_name: taskName, geo_tier: otpGeoTier }); } catch(e) {}
+        addCredits(data.credits_awarded);
+        renderOnboardingTasksPopup();
+    } catch (e) {
+        otpBusyTask = null;
+        renderOnboardingTasksPopup();
+        otpShowFieldError(taskName, 'Could not reach the server. Please try again.');
+    }
+}
+window.otpSubmitSurvey = otpSubmitSurvey;
 
 async function otpSubmitUrlTask(taskName) {
     if (otpBusyTask) return;

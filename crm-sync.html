@@ -819,6 +819,12 @@ function renderClean(state, data){
             '<i class="fas fa-rotate-right"></i> Try connecting again</a>' + csvFallback();
         return;
     }
+    if (state === 'unverified'){
+        el.innerHTML = '<div class="err">' + UNVERIFIED_COPY + '</div>' +
+            '<a href="#" class="btn-primary" style="margin-top:1rem;" onclick="runClean();return false;">' +
+            '<i class="fas fa-rotate-right"></i> Try again</a>' + csvFallback();
+        return;
+    }
     if (state === 'locked'){
         // Every cleaned contact is a real, credit-costing lookup against a
         // managed HubSpot connection we pay Nango for. That is why the cleanup
@@ -899,6 +905,15 @@ async function runClean(){
     // bails with { notSubscriber: true } and handleTestSync wraps that in a 200,
     // so without this check it renders as "looked at 0 contacts, found nothing".
     if (run.data.notSubscriber){ renderClean('locked'); return; }
+    // Same trap one step further along: the hardened gate answers 'unknown' when
+    // it cannot reach billing and returns { checkFailed: true } inside a 200. That
+    // is not an empty result, it is no result - saying "found nothing" would blame
+    // the customer's data for our outage.
+    if (run.data.checkFailed){
+        renderClean('unverified');
+        track('crm_clean_check_failed', 'subscriber_check_unreachable');
+        return;
+    }
 
     renderClean('done', run.data);
     track('crm_clean_finished', String(run.data.filledTotal ?? ''));
@@ -1111,6 +1126,12 @@ function renderSync(state, data){
             '<i class="fas fa-rotate-right"></i> Try connecting again</a>';
         return;
     }
+    if(state === 'unverified'){
+        el.innerHTML = '<div class="err">' + UNVERIFIED_COPY + '</div>' +
+            '<a href="#" class="btn-primary" style="margin-top:1rem;" onclick="connectHubspot();return false;">' +
+            '<i class="fas fa-rotate-right"></i> Try connecting again</a>';
+        return;
+    }
     if(state === 'error'){
         const why = (data && data.error) || 'Could not reach the connection service.';
         el.innerHTML = '<div class="err">' + why + '</div>' +
@@ -1207,7 +1228,14 @@ async function connectHubspot(){
         // answer. Updating only stage 3 left stage 2 sitting on its Connect
         // button with nothing changed - the click looked like it did nothing,
         // and the obvious response is to click it again.
-        if(res.status === 403){
+        if(res.status === 503){
+            // The gate itself said "I could not tell" (UNKNOWN_SUBSCRIBER_ERROR).
+            // No point asking billing for a second opinion on a question the gate
+            // never managed to ask - go straight to the honest message.
+            renderSync('unverified');
+            renderClean('unverified');
+            track('sync_connect_unverified', 'subscriber_check_unreachable');
+        }else if(res.status === 403){
             // A 403 means the worker's isSubscriber() said no. That check fails
             // CLOSED - a timeout or cold start on its internal call produces the
             // same 403 as never having paid - so "no" is not proof of "unpaid".
@@ -1257,6 +1285,19 @@ async function confirmNotSubscribed(){
     renderClean('locked');
     track('sync_connect_blocked','plan_required');
 }
+
+/*
+ * Distinct from MISMATCH_COPY on purpose. Mismatch means billing confirmed the
+ * plan IS active and the gate still refused - we can promise the account is
+ * fine. This one means the gate itself could not reach billing at all, so we
+ * do not know either way and must not claim to. Both are "not your fault",
+ * only one of them can say "your plan is active".
+ */
+const UNVERIFIED_COPY =
+    '<strong>This one is on us.</strong> We could not check your plan just now &mdash; the ' +
+    'service that authorises CRM connections did not answer. Nothing has been charged and ' +
+    'nothing on your account has changed. Try again in a minute; if it keeps happening, ' +
+    'email support@linkfinderai.com and we will connect it manually.';
 
 const MISMATCH_COPY =
     '<strong>This one is on us.</strong> Your plan is active, but the service that ' +
