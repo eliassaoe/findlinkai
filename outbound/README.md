@@ -315,3 +315,40 @@ Two things deliberately *not* retried:
 At ~50% success per call, three retries clears a domain with about 87%
 probability, and the three-domain streak makes a false abort very unlikely
 while still catching a genuine outage within three domains.
+
+## The done-for-you outbound campaign
+
+Campaign `f0420dfa-08ea-4e17-9679-9d66c8e5b4a8`, **draft**, three steps at
+0 / +3 / +5 days, text-only, 20/day, stop on reply.
+
+Import file: `instantly_dfy_import.csv`.
+
+### The opener needs no LLM check
+
+The SEO/AEO campaign asserts "I asked ChatGPT this morning", which is a
+claim about something we did — so `build_campaign.py` has to actually do it
+per prospect and skip anyone whose check fails.
+
+This campaign makes a different claim:
+
+> I was going through the {{category}} category on G2 and {{companyName}}
+> came up with {{reviewCount}} reviews.
+
+Both merge fields come straight out of the G2 API. The claim is true by
+construction, checkable by the reader in one click, and costs nothing per
+prospect. No model call, no skip logic, no way to fabricate it.
+
+That makes G2 sourcing worth more than a list of domains: it hands over the
+personalisation as a by-product.
+
+### Required merge fields
+
+`{{firstName}}` `{{companyName}}` `{{category}}` `{{reviewCount}}` — a lead
+missing `category` or `reviewCount` renders a broken first line, so the
+import file carries all four and nothing gets uploaded without them.
+
+### Second contacts are held back
+
+`g2_candidates_alt_contacts.csv` holds a second decision maker for five
+domains. They stay out of the import so a batch never mails two people at
+one company in the same week.
