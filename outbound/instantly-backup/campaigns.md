@@ -1,0 +1,1207 @@
+# Instantly campaigns — snapshot before the 2026-08-24 purge
+
+64 campaigns. Full records in `campaigns-full.json`; the email
+copy is reproduced below so it survives the deletion.
+
+## Influencer marketing linkedin Linkfinder ai (copy)
+
+- id `f00aa024-16ff-46b5-af92-f2578e969c6b` · Suspended · created 2026-01-10
+
+**Step 1** (delay 1d) — paid collaboration Linkfinder ai
+
+```
+<div>Hi {{firstName}} ,</div><div><br /></div><div>I'm Eliasse, the Partnership Manager at LinkFinder AI. We've recently launched a  data enrichment platform that lets users scrape LinkedIn safely without risking ban on their account — eliminating the ban risk that tools like PhantomBuster create.</div><div><br /></div><div>We're currently exploring partnerships with influential creators like you for paid promotions, specifically for content showcasing our API integrations and automation capabilities.</div><div><br /></div><div>What makes LinkFinder AI unique:</div><ul class="[&amp;:not(:last-child)_ul]:pb-1 [&amp;:not(:last-child)_ol]:pb-1 list-disc space-y-2.5 pl-7"><li class="whitespace-normal break-words">No LinkedIn login required (we use our private network)</li><li class="whitespace-normal break-words">Full API access </li><li class="whitespace-normal break-words">Safest Linkedin Scraper (No ban risk)</li><li class="whitespace-normal break-words">Enriches leads with emails, websites, LinkedIn data</li><li class="whitespace-normal break-words">95% accuracy rate</li></ul><div>Partnership offer:</div><ul class="[&amp;:not(:last-child)_ul]:pb-1 [&amp;:not(:last-child)_ol]:pb-1 list-disc space-y-2.5 pl-7"><li class="whitespace-normal break-words">1 months free Professional access</li><li class="whitespace-normal break-words">25% recurring commission</li><li class="whitespace-normal break-words">Compensation</li></ul><div>Interested in collaborating?</div><div><br /></div><div>Best,</div><div>LinkFinder AI</div>
+```
+
+**Step 2** (delay 1d) — [ PAID COLLABORATION ]  - Linkfinder AI
+
+```
+<div>Hi,</div><div><br /></div><div>I'm reaching out  on behalf of LinkFinder AI.</div><div><br /></div><div>We're the fastest-growing LinkedIn data enrichment platform in the market. Our technology allows users to scrape LinkedIn safely and enrich leads with verified emails, websites, and professional data — all without any risk of account bans.</div><div><br /></div><div>What I appreciate about your work is your ability to engage your audience with authentic, high-quality content. Your approach is professional, clear, and genuinely valuable to watch.</div><div><br /></div><div>We want LinkFinder AI to be represented by creators of your caliber. Your content around automation and data-driven solutions aligns perfectly with our platform!</div><div><br /></div><div>Partnership offer:</div><ul class="[&amp;:not(:last-child)_ul]:pb-1 [&amp;:not(:last-child)_ol]:pb-1 list-disc space-y-2.5 pl-7"><li class="whitespace-normal break-words">1 months free Professional access</li><li class="whitespace-normal break-words">25% recurring commission</li><li class="whitespace-normal break-words">Compensation</li></ul><div><br /></div><div>Interested in collaborating?</div><div><br /></div><div>Best regards,</div><div>Eliasse – LinkFinder AI</div>
+```
+
+## Link exchange listicles (Linkfinder AI)
+
+- id `9ff9b1d8-26d1-4700-800a-491a88b7882e` · Suspended · created 2026-05-25
+
+**Step 1** (delay 1d) — Proposal to Include Linkfinder AI In Your Competitor Comparison Article
+
+```
+<div>Hi,</div><div><br /></div><div>I run LinkFinderAI {{RANDOM | (linkfinderai.com) | }}, {{RANDOM | a data enrichment API for sales workflows | an API for B2B data enrichment | an enrichment API for sales builders}}.</div><div><br /></div><div>{{RANDOM | We're in adjacent spaces | We work with similar audiences | Our audiences overlap}}. {{RANDOM | Open to a link swap | Up for trading links | Interested in exchanging backlinks}}? {{RANDOM | Happy to add you somewhere relevant on our site | Glad to link to you from a fitting page | Can place a link to you wherever makes sense}}.</div><div><br /></div><div>{{RANDOM | Let me know if there's a fit | Worth a chat if interested | Reply if open to it}}.</div><div><br /></div><div>{{RANDOM | Cheers | Best | Thanks}},</div><div><br /></div><div>Eliasse,</div>
+```
+
+**Step 1** (delay 1d) — Proposal to Include Linkfinder AI In Your Competitor Comparison Article
+
+```
+<div>Hi,</div><div><br /></div><div>I run LinkFinderAI, {{RANDOM | a data enrichment API for sales workflows | an enrichment API for builders | a B2B data API}}. {{RANDOM | Our audiences likely overlap | We're in adjacent spaces | Similar audience to yours}}.</div><div><br /></div><div>{{RANDOM | Open to a link exchange | Up for trading backlinks | Interested in swapping links}}?</div><div><br /></div><div>Eliasse</div>
+```
+
+**Step 1** (delay 1d) — Proposal to Include Linkfinder AI In Your Competitor Comparison Article
+
+```
+<div>Hi,</div><div><br /></div><div>{{RANDOM | Quick one | Short pitch}} — I run LinkFinderAI, {{RANDOM | a data enrichment API for sales builders | an enrichment API for B2B teams | a data API for sales workflows}}.</div><div><br /></div><div>{{RANDOM | We're in adjacent spaces | Our audiences overlap}}. {{RANDOM | Thinking | Wondering if}} a link exchange could make sense — {{RANDOM | happy to feature you in our next blog roundup or relevant resource page | we can include you in upcoming content | I can mention you in our next relevant post}}, and {{RANDOM | open to wherever fits on your end | flexible on placement on your side | up for whatever placement works for you}}.</div><div><br /></div><div>{{RANDOM | Worth exploring | Open to a quick chat | Reply if interested}}?</div><div><br /></div><div>Eliasse</div>
+```
+
+## backlink outreach (competitors linkfinderai) (copy)
+
+- id `4d16ec61-8107-4ee6-a601-f4a3a0ed3967` · Suspended · created 2026-05-29
+
+**Step 1** (delay 2d) — Proposal to Include Linkfinder AI in Your Article
+
+```
+<div>{{RANDOM | Hi Team | Hello Team | Team,}}</div><div><br /></div><div>{{RANDOM | I hope you're doing well | I trust this email finds you well | I hope you are having a great week}}. {{RANDOM | I came across your article on lead-generation tools and found it to be an excellent resource | I recently read your article about lead-generation tools and thought it was a fantastic resource | I was impressed by your article on lead-generation tools; it's a great resource}}.</div><div><br /></div><div>{{RANDOM | I'm reaching out to inquire about a paid link insertion opportunity for Linkfinder AI in this article | I'm contacting you regarding a paid link placement opportunity for Linkfinder AI within the article | I'd like to discuss the possibility of a sponsored link insertion for Linkfinder AI in this piece}}. </div><div>{{RANDOM | We'd like to be featured as an additional option for your readers to consider | We are interested in being included as another choice for your audience | We hope to be considered as a valuable addition for your readership}}.</div><div><br /></div><div>We can provide:</div><div><br /></div><ul class="[li_&amp;]:mb-0 [li_&amp;]:mt-1 [li_&amp;]:gap-1 [&amp;:not(:last-child)_ul]:pb-1 [&amp;:not(:last-child)_ol]:pb-1 list-disc flex flex-col gap-1 pl-8 mb-3"><li class="whitespace-normal break-words pl-2">A brief description of our tool</li><li class="whitespace-normal break-words pl-2">Key features</li><li class="whitespace-normal break-words pl-2">A link to our website</li></ul><div>{{RANDOM | We're ready to compensate you for this placement | We are prepared to offer compensation for this inclusion | We are willing to pay for this placement}}. {{RANDOM | Could you please share your rates and guidelines for link insertions in comparison articles like this one | Please share your rates and guidelines for link insertions in similar comparison articles | Kindly provide your pricing and guidelines for link placements in articles of this nature}}?</div><div><br /></div><div>{{RANDOM | Looking forward to hearing from you | I look forward to your response | Eagerly awaiting your reply}}.</div><div><br /></div><div>{{RANDOM | Best regards | Kind regards | Sincerely}},</div><div>EliasseCEO @ Linkfinder AI</div>
+```
+
+**Step 2** (delay 2d) — Collaboration x Linkfinder AI
+
+```
+<div>{{RANDOM | Hi Team, | Hello Team, | Team,}}</div><div><br /></div><div>I noticed your article ranks well for lead-generation tools, and I think Linkfinder AI would be a {{RANDOM | fantastic | great | valuable}} addition for your readers.</div><div><br /></div><div>{{RANDOM | We're interested in a link placement in this piece. | We are interested in getting a link placed in this article. | We'd like to explore a link insertion opportunity within this content.}} </div><div><br /></div><div>Here's what we need:</div><div><br /></div><ul class="[li_&amp;]:mb-0 [li_&amp;]:mt-1 [li_&amp;]:gap-1 [&amp;:not(:last-child)_ul]:pb-1 [&amp;:not(:last-child)_ol]:pb-1 list-disc flex flex-col gap-1 pl-8 mb-3"><li class="whitespace-normal break-words pl-2">Simple text link insertion mentioning our tool</li><li class="whitespace-normal break-words pl-2">Natural fit within the existing content</li><li class="whitespace-normal break-words pl-2">Permanent placement</li></ul><div>{{RANDOM | What's your rate for this type of link insertion? | What are your rates for this kind of link placement? | Could you please share your pricing for this type of insertion?}} </div><div><br /></div><div><br /></div><div>{{RANDOM | Happy to move forward quickly if the terms work. | We're happy to proceed swiftly if the terms are agreeable. | We're ready to move ahead promptly should the terms align with our expectations.}}</div><div><br /></div><div>{{RANDOM | Best, | Regards, | Sincerely,}}</div><div>EliasseCEO @ Linkfinder AI</div>
+```
+
+**Step 3** (delay 1d) — Still worth a look?
+
+```
+<div>{{RANDOM | Hey | Hi | Hello}},</div><div><br /></div><div>{{RANDOM | Just circling back on my previous message | Following up one last time | Wanted to reach out one more time}} — I'll keep this short.</div><div><br /></div><div>{{RANDOM | Linkfinder AI has helped dozens of teams cut their lead research time by over 60% | Our users have seen a measurable drop in prospecting time since switching to Linkfinder AI | Linkfinder AI is already helping hundreds of sales teams find better leads, faster}}. {{RANDOM | It's the kind of tool your readers are actively looking for | I genuinely think it'd resonate with your audience | It fills a gap I noticed in your article's recommendations}}.</div><div><br /></div><div>{{RANDOM | If a paid placement isn't the right fit, I'm open to other formats — a mention, a review, or even a quick chat | No pressure on the paid angle — happy to explore whatever works best for your publication | If the link insertion doesn't suit you, I'm open to hearing what would work on your end}}.</div><div><br /></div><div>{{RANDOM | Either way, I'd love to get on your radar | Would love to find a way to make this work | Even a quick reply pointing me in the right direction would mean a lot}}.</div><div><br /></div><div>{{RANDOM | Thanks for your time | Appreciate you reading this | Thanks for bearing with me}}.</div><div><br /></div><div>{{RANDOM | Warmly | All the best | Cheers}},</div><div>EliasseCEO @ Linkfinder AI</div>
+```
+
+## email marketing Free credits USED 
+
+- id `a1a36a9d-545e-4e5b-b53e-fcf584907abd` · Suspended · created 2026-03-06
+
+**Step 1** (delay 1d) — You ran out of credits
+
+```
+<div>{{RANDOM | Hey | Hi | Hello}}</div><div><br /></div><div>You've used all your LinkFinder AI credits.</div><div><br /></div><div>{{RANDOM | That means you've been enriching leads | This indicates you've been working on lead enrichment | It appears you've been busy enriching leads}} — {{RANDOM | which is exactly what the tool is for | precisely what this tool is designed for | the exact purpose of the tool}}. Now you're stuck.</div><div><br /></div><div>{{RANDOM | Upgrade to keep going | To continue, upgrade your account | Upgrade now to proceed}}:</div><div><br /></div><div>→ $59/month — 20,000 credits, bulk LinkedIn scraping, verified emails + phones, API included.</div><div><br /></div><div>{{RANDOM | Unlock your account | Get your account unlocked | Activate your account}}: <a href="https://linkfinderai.com/app?action=upgrade" target="_blank" rel="noopener noreferrer">https://linkfinderai.com/app?action=upgrade</a></div><div><br /></div><div>Eliasse</div><div>CEO @ LinkFinder AI</div>
+```
+
+**Step 1** (delay 1d) — Your LinkFinder AI account is paused
+
+```
+<div>I {{RANDOM | saw | noticed | observed}} you hit 0 credits.</div><div><br /></div><div>That {{RANDOM | tells me | indicates | suggests}} two things: you found value in the product, and right now you can't use it.</div><div><br /></div><div>I built LinkFinder AI for {{RANDOM | exactly where you are | your current situation | users like you}} — you need clean LinkedIn data at scale, verified emails and phones, without spending hours doing it manually.</div><div><br /></div><div>$59/month {{RANDOM | gets you | provides you with | gives you access to}} 20,000 credits, bulk URL scraping, API access, and everything you already know how to use.</div><div>No learning curve. </div><div><br /></div><div>You're already past that.→ <a rel="noopener noreferrer noopener noreferrer" href="https://linkfinderai.com/app?action=upgrade">https://linkfinderai.com/app?action=upgrade</a></div><div><br /></div><div>{{RANDOM | Cheers | Best | Regards}},</div><div><br />EliasseCEO @ LinkFinder AI</div>
+```
+
+**Step 1** (delay 1d) — 0 credits left — here's what to do
+
+```
+<div>{{RANDOM | Hey | Hello | Hi}}</div><div><br /></div><div>Every day you're at 0 credits is a day your competitors are {{RANDOM | enriching leads | gaining valuable leads from | capitalizing on leads}} you can't reach.</div><div>You already know LinkFinder works. You {{RANDOM | used every single credit | exhausted all your credits | utilized all available credits}}.</div><div>{{RANDOM | Get back in | Reactivate your account | Come back}}: 20,000 credits → $59/month </div><div>Bulk LinkedIn scraping. Verified email + phone.API. CSV. CRM sync. {{RANDOM | Everything | All included | You get it all}}.</div><div><br /></div><div>→ <a rel="noopener noreferrer noopener noreferrer noopener noreferrer" href="https://linkfinderai.com/app?action=upgrade">https://linkfinderai.com/app?action=upgrade</a></div><div><br /></div><div><br /></div><div>Eliasse</div><div><br /></div>
+```
+
+## signup but no paid
+
+- id `a3def14b-8100-4507-9285-c302a4618e90` · Suspended · created 2025-12-11
+
+**Step 1** (delay 1d) — Quick question
+
+```
+<div>Hey,</div><div><br /></div><div>I noticed you signed up for <strong>Linkfinder AI</strong> but didn't end up going with a paid plan.</div><div><br /></div><div>One simple question: what stopped you?</div><div><br /></div><ul class="[li_&amp;]:mb-0 [li_&amp;]:mt-1.5 [li_&amp;]:gap-1.5 [&amp;:not(:last-child)_ul]:pb-1 [&amp;:not(:last-child)_ol]:pb-1 list-disc flex flex-col gap-2 pl-8 mb-3"><li class="whitespace-normal break-words pl-2">Price too high?</li><li class="whitespace-normal break-words pl-2">Missing a feature you needed?</li><li class="whitespace-normal break-words pl-2">Didn't understand how it works?</li><li class="whitespace-normal break-words pl-2">Something else?</li></ul><div>Just reply to this email - takes 30 seconds and would help me a ton as I'm trying to improve the product.</div><div>Thanks,</div><div><br /></div><div>Eliasse, </div><div>CEO@Linkfinder AI</div>
+```
+
+## Agencies
+
+- id `95c50cbc-9e8d-43b9-bce2-a0d2cd8fd88d` · Draft · created 2026-07-01
+
+**Step 1** (delay 1d) — (follow-up, no subject)
+
+```
+<div>Hey {{first_name}},</div><div><br /></div><div>I noticed {{company_name}} helps clients build their outbound and GTM stack — we might be able to make that easier.</div><div><br /></div><div>LinkFinder AI is a B2B enrichment API that finds verified emails from company domains, LinkedIn profiles, and engagement signals. A lot of agencies use it to pre-enrich client CRMs before campaigns go live.</div><div><br /></div><div>We have a referral program — agencies get a cut of every client they refer, and clients get onboarded directly with your context already built in.</div><div><br /></div><div>Worth a 20-min call to see if it fits what you're building for clients?</div><div><br /></div><div>{{sender_name}}</div>
+```
+
+## Best tools roundups
+
+- id `a3d9cef7-e823-4897-931d-cd6f9725eebe` · Draft · created 2026-06-12
+- no sequence saved
+
+## CA B2B SaaS - Lead Gen Guarantee Offer
+
+- id `da449eea-8108-4fd3-ace1-998a8c780fb1` · Draft · created 2026-08-14
+
+**Step 1** (delay 0d) — quick question, {{firstName}}
+
+```
+<div>Hi {{firstName}},<br /><br />Most sales and marketing leaders I talk to say the same thing: pipeline is inconsistent — either too thin, or full of leads that don't actually convert.<br /><br />We run a done-for-you lead gen system that gets teams like {{companyName}}'s at least 20 qualified leads in the first month. If we don't hit that number, you get a full refund — no fine print, no exceptions.<br /><br />Worth a quick 15-minute call to see if it's a fit for {{companyName}}?<br /><br />Reply with a good time this week (or next) and I'll send an invite.<br /><br />Best,<br />Eliasse Hamour<br />LinkFinder AI</div>
+```
+
+## CRM audit — RevOps / Sales Ops, HubSpot (US/UK)
+
+- id `ecae6bf8-3a1f-409e-8254-cc7843be1b10` · Draft · created 2026-08-22
+
+**Step 1** (delay 0d) — how complete is your HubSpot, actually
+
+```
+<div>{{firstName}} — no pitch, genuine question.</div><div><br /></div><div>Do you know what percentage of your HubSpot contacts are missing a job title or a working email?</div><div><br /></div><div>Most people can't answer that, which is why we built a free check for it. Export your contacts, drop the CSV in, and you get the number in about ten seconds — missing fields by type, plus duplicates.</div><div><br /></div><div>It runs in your browser, so the export never leaves your machine. No account needed.</div><div><br /></div><div>Want the link?</div><div><br /></div><div>Eliasse</div>
+```
+
+**Step 1** (delay 0d) — a number for your next pipeline review
+
+```
+<div>{{firstName}} — quick one.</div><div><br /></div><div>"Our data is messy" is impossible to get budget for. "4,100 contacts are missing job titles and 890 are duplicates" is not.</div><div><br /></div><div>We built a free check that turns the first into the second. HubSpot export in, the number out, ten seconds, runs in your browser so nothing is uploaded.</div><div><br /></div><div>Want the link?</div><div><br /></div><div>Eliasse</div>
+```
+
+**Step 2** (delay 3d) — (follow-up, no subject)
+
+```
+<div>Here's the link — no signup, no card:</div><div><br /></div><div>https://linkfinderai.com/crm-audit?utm_source=instantly&amp;utm_medium=outbound&amp;utm_campaign=revops_audit</div><div><br /></div><div>The useful output isn't really the percentage. It's the per-field breakdown — which gaps are cheap to fill and which aren't — so you can decide what's worth fixing rather than treating the whole database as one problem.</div><div><br /></div><div>Eliasse</div>
+```
+
+**Step 3** (delay 5d) — (follow-up, no subject)
+
+```
+<div>The part people usually don't expect: a cleaned database is only clean for about a month.</div><div><br /></div><div>Every contact created after the cleanup arrives with the same gaps, so the number you just fixed starts climbing again immediately. The check estimates that monthly drift too — it's usually the argument for automating it rather than scheduling another cleanup.</div><div><br /></div><div>https://linkfinderai.com/crm-audit?utm_source=instantly&amp;utm_medium=outbound&amp;utm_campaign=revops_audit</div><div><br /></div><div>Eliasse</div>
+```
+
+**Step 4** (delay 5d) — (follow-up, no subject)
+
+```
+<div>Last one, {{firstName}} — closing this out either way.</div><div><br /></div><div>If CRM data quality isn't yours to own, tell me who it is and I'll go bother them instead.</div><div><br /></div><div>If it is, the check is free and stays up:</div><div>https://linkfinderai.com/crm-audit?utm_source=instantly&amp;utm_medium=outbound&amp;utm_campaign=revops_audit</div><div><br /></div><div>Eliasse</div>
+```
+
+## CRM audit — lead-gen agencies (US/UK)
+
+- id `6ee36aa4-3781-45fc-bd8f-5804cfe87196` · Draft · created 2026-08-22
+
+**Step 1** (delay 0d) — your clients' CRM data
+
+```
+<div>{{firstName}} — quick one, no pitch attached.</div><div><br /></div><div>We built a free CRM data health check. You drop in a contact export and it tells you how many records are missing emails, phone numbers, job titles and LinkedIn URLs, plus how many duplicates are in there.</div><div><br /></div><div>It runs in the browser — the file is never uploaded anywhere — and there's no account or card needed.</div><div><br /></div><div>Want the link?</div><div><br /></div><div>Eliasse</div>
+```
+
+**Step 1** (delay 0d) — free CRM data check
+
+```
+<div>{{firstName}} — I built a free CRM data health check and I'm looking for agencies to try it.</div><div><br /></div><div>Drop in a client's contact export, get back exactly what's missing: emails, phones, job titles, LinkedIn URLs, duplicates. Ten seconds, runs in your browser, nothing uploaded, no signup.</div><div><br /></div><div>Worth a look?</div><div><br /></div><div>Eliasse</div>
+```
+
+**Step 2** (delay 3d) — (follow-up, no subject)
+
+```
+<div>Here it is — no signup, nothing to install:</div><div><br /></div><div>https://linkfinderai.com/crm-audit?utm_source=instantly&amp;utm_medium=outbound&amp;utm_campaign=agency_audit</div><div><br /></div><div>Where agencies actually get value from it: run it on a <i>prospect's</i> list before the pitch. Walking in with "you've got 3,400 contacts missing emails and 890 duplicates" lands harder than a deck does, and it's their own data so there's nothing to argue with.</div><div><br /></div><div>Eliasse</div>
+```
+
+**Step 3** (delay 5d) — (follow-up, no subject)
+
+```
+<div>One thing that surprises most people who run it: databases that feel fine usually come back 40–60% complete on the fields anyone actually uses.</div><div><br /></div><div>The check gives you that number, the duplicate count, and what filling the gaps would cost — so you can price the cleanup work instead of guessing at it.</div><div><br /></div><div>https://linkfinderai.com/crm-audit?utm_source=instantly&amp;utm_medium=outbound&amp;utm_campaign=agency_audit</div><div><br /></div><div>Eliasse</div>
+```
+
+**Step 4** (delay 5d) — (follow-up, no subject)
+
+```
+<div>Last one from me, {{firstName}} — I'll leave you alone after this.</div><div><br /></div><div>If CRM data isn't something you deal with, no problem at all.</div><div><br /></div><div>If it is, the check stays free and stays here:</div><div>https://linkfinderai.com/crm-audit?utm_source=instantly&amp;utm_medium=outbound&amp;utm_campaign=agency_audit</div><div><br /></div><div>Eliasse</div>
+```
+
+## Campagne Samy 2
+
+- id `b01e065b-5386-4d7a-af45-0e04413e7edf` · Draft · created 2026-03-19
+- no sequence saved
+
+## Churn reasons
+
+- id `7ae109a7-82bd-4fe0-91f0-bbe1423f986f` · Draft · created 2026-02-24
+- no sequence saved
+
+## Cold email agency
+
+- id `29f3a74e-2fb1-4790-a567-0fd6ca0edfcb` · Draft · created 2026-06-24
+
+**Step 1** (delay 1d) — question on data
+
+```
+<div>Hey [Name],</div><div><br /></div><div>Saw you're running outbound for [type of clients / niche if you can find it].</div><div><br /></div><div>We built an API that finds verified emails from LinkedIn profiles in seconds. Most agencies we work with use it to enrich prospect lists before loading them into Instantly/Smartlead – cuts bounce rates significantly.</div><div><br /></div><div>Would it make sense to give you free credits to test it on a live campaign? No pitch, just see if the data quality works for you.</div><div><br /></div><div>Hamour Eliasse</div>
+```
+
+**Step 2** (delay 1d) — agency needed
+
+```
+<div>Hey [Name],</div><div><br /></div><div>We run Linkfinder AI – an lead enrichment API built for teams doing outbound at scale.</div><div><br /></div><div>We're looking to partner with a handful of agencies who want to offer better data quality to their clients. In practice: you get wholesale access, your clients get cleaner lists, lower bounce rates.</div><div><br /></div><div>Worth a 15-minute call to see if it fits what you're doing?</div><div><br /></div><div>Hamour Eliasse</div>
+```
+
+**Step 3** (delay 1d) — request outbound
+
+```
+<div>Hey [Name],</div><div><br /></div><div>Quick question – what are you currently using to enrich prospects before sending?</div><div><br /></div><div>Reason I ask: most agencies we talk to are either paying too much for data, dealing with 15%+ bounce rates, or manually verifying lists. We built something that fixes all three.</div><div><br /></div><div>Happy to send over a free batch of credits so you can verify the accuracy yourself before we talk pricing.</div><div><br /></div><div>Hamour Eliasse</div>
+```
+
+## Influencers campaign
+
+- id `46dd82bb-97ac-4b13-ac15-19b14f5758a8` · Draft · created 2026-06-09
+- no sequence saved
+
+## Linkfinder AI : cold email
+
+- id `37663fbd-d16a-4b19-b4e6-f6521b565589` · Draft · created 2026-02-13
+
+**Step 1** (delay 1d) — Proposal to Include Linkfinder AI in Your Competitor Comparison Article
+
+```
+<div>Hi Team,</div><div><br /></div><div>I hope you're doing well. I came across your article on lead-generation tools and found it to be an excellent resource.</div><div><br /></div><div>I'm reaching out to inquire about a paid link insertion opportunity for Linkfinder AI in this article. </div><div>We'd like to be featured as an additional option for your readers to consider.</div><div><br /></div><div>We can provide:</div><ul class="[li_&amp;]:mb-0 [li_&amp;]:mt-1 [li_&amp;]:gap-1 [&amp;:not(:last-child)_ul]:pb-1 [&amp;:not(:last-child)_ol]:pb-1 list-disc flex flex-col gap-1 pl-8 mb-3"><li class="whitespace-normal break-words pl-2">A brief description of our tool</li><li class="whitespace-normal break-words pl-2">Key features</li><li class="whitespace-normal break-words pl-2">A link to our website</li></ul><div>We're ready to compensate you for this placement. Could you please share your rates and guidelines for link insertions in comparison articles like this one?</div><div><br /></div><div>Looking forward to hearing from you.</div><div><br /></div><div>Best regards,</div><div>EliasseCEO @ Linkfinder AI</div>
+```
+
+**Step 2** (delay 1d) — Collaboration x Linkfinder AI
+
+```
+<div>Hi Team,</div><div><br /></div><div>I noticed your article ranks well for lead-generation tools, and I think Linkfinder AI would be a great addition for your readers.</div><div><br /></div><div>We're interested in a link placement in this piece. </div><div><br /></div><div>Here's what we need:</div><div><br /></div><ul class="[li_&amp;]:mb-0 [li_&amp;]:mt-1 [li_&amp;]:gap-1 [&amp;:not(:last-child)_ul]:pb-1 [&amp;:not(:last-child)_ol]:pb-1 list-disc flex flex-col gap-1 pl-8 mb-3"><li class="whitespace-normal break-words pl-2">Simple text link insertion mentioning our tool</li><li class="whitespace-normal break-words pl-2">Natural fit within the existing content</li><li class="whitespace-normal break-words pl-2">Permanent placement</li></ul><div>What's your rate for this type of link insertion? </div><div><br /></div><div><br /></div><div>Happy to move forward quickly if the terms work.</div><div><br /></div><div>Best,</div><div>EliasseCEO @ Linkfinder AI</div>
+```
+
+## Mohamed
+
+- id `1497250d-ecdb-4994-9cc3-395ae50b0556` · Draft · created 2026-03-31
+- no sequence saved
+
+## Not activated user after 24 hours
+
+- id `8cdc8cc2-1b85-43c6-9e08-cd42b76993b5` · Draft · created 2026-07-19
+
+**Step 1** (delay 0d) — {{RANDOM | What's stopping you? | Quick question about your account | Haven't seen your first result yet}}
+
+```
+<div>Hey {{name}},</div><div><br /></div><div>You signed up for LinkFinder yesterday but haven't run your first enrichment yet — so instead of re-explaining the product, let me just ask: what's in the way?</div><div><br /></div><div>Usually it's one of these:</div><div>— "I don't have a list ready to test with" — you don't need one, any single LinkedIn URL works, even your own</div><div>— "I wasn't sure what to paste in" — it's just the profile URL, nothing else needed</div><div>— "I got busy and forgot" — no worries, your 150 free credits are still sitting there</div><div><br /></div><div><a href="https://linkfinderai.com/app?utm_source=email&amp;utm_medium=email&amp;utm_campaign=not_activated_24h&amp;utm_content=step0" rel="noopener noreferrer">Try it now, takes 10 seconds →</a></div><div><br /></div><div>If it's none of these, just reply and tell me what happened — I read every response.</div><div><br /></div><div>Eliasse</div><div>CEO @ LinkFinder AI</div>
+```
+
+**Step 2** (delay 1d) — {{RANDOM | Copy-paste this LinkedIn URL to see it work | The 10-second proof | Here, use this one}}
+
+```
+<div>Hey {{name}},</div><div><br /></div><div>If not having a ready list is what's holding you back, here's the fix — copy any public LinkedIn profile URL you can find right now (a colleague, a connection, even a public figure) and paste it in. You don't need your own prospect list to see how this works.</div><div><br /></div><div>You'll get back a verified email, phone number, and full profile data in about 10 seconds. Then decide if it's worth running on your real list.</div><div><br /></div><div><a href="https://linkfinderai.com/app?utm_source=email&amp;utm_medium=email&amp;utm_campaign=not_activated_24h&amp;utm_content=step1" rel="noopener noreferrer">Test it with any URL →</a></div><div><br /></div><div>Eliasse</div><div>CEO @ LinkFinder AI</div>
+```
+
+**Step 3** (delay 2d) — {{RANDOM | Last nudge on this | Before I stop reminding you | Closing the loop}}
+
+```
+<div>Hey {{name}},</div><div><br /></div><div>This is the last reminder — your 150 free credits are still unused, and I don't want to keep filling your inbox if this isn't useful to you right now.</div><div><br /></div><div>If you're still interested, one paste is all it takes: <a href="https://linkfinderai.com/app?utm_source=email&amp;utm_medium=email&amp;utm_campaign=not_activated_24h&amp;utm_content=step2" rel="noopener noreferrer">run your first enrichment →</a></div><div><br /></div><div>If it's not the right fit, no hard feelings — just reply and let me know why. It genuinely helps me improve this.</div><div><br /></div><div>Eliasse</div><div>CEO @ LinkFinder AI</div>
+```
+
+## Offre IA B2B (niche saas B2B)
+
+- id `a48be3cf-2113-4535-9454-335f418a547f` · Draft · created 2026-02-11
+
+**Step 1** (delay 1d) — Linkfinder AI x {{entreprise}}
+
+```
+<div>Bonjour {{prénom}},</div><div><br /></div><div>{{observation_personnalisée}}</div><div><br /></div><div>Je me demande comment {{entreprise}} gère actuellement sa prospection et son développement commercial.</div><div><br /></div><div>Chez {{votre_agence}}, on aide les boîtes {{secteur}} comme {{entreprise}} à structurer toute leur machine sales : acquisition automatisé, mise en place de setters/closers, et livraison de RDV qualifiés.</div><div><br /></div><div>Résultat : pipeline qui tourne, zéro temps perdu.</div><div><br /></div><div>Tu serais dispo mercredi ou jeudi pour un quick call de 15 min sur comment scaler {{entreprise}} ? ☕</div><div><br /></div><div>À très vite,</div><div><br /></div>
+```
+
+**Step 1** (delay 1d) — Linkfinder AI x {{companyName}}
+
+```
+<div id="isPasted">Bonjour,</div><div><br /></div><div>On aide les agences à générer 10-15 RDV qualifiés/mois minimum avec des entreprises prêtes à investir.</div><div><br /></div><div>On installe tout : prospection, équipe sales, CRM. Vous gardez le focus sur la production, on remplit votre pipeline.</div><div><br /></div><div>Dispo jeudi ou vendredi pour en parler 15 min ?</div><div><br /></div><div>Bien à vous,</div><div><br /></div><div>Eliasse,</div><div>CEO @ linkfinderai.com</div><div><br /></div>
+```
+
+**Step 1** (delay 1d) — Petite question
+
+```
+<div>Bonjour {{prénom}},</div><div><br /></div><div>{{observation_personnalisée}}</div><div><br /></div><div>D'ailleurs, comment gérez-vous votre prospection chez {{entreprise}} ? En interne ou externalisé ?</div><div><br /></div><div>On spécialise dans le sales-as-a-service pour les {{secteur}} : on gère votre acquisition + on structure votre équipe commerciale (setters/closers).</div><div><br /></div><div>Conseils : pipeline prédictible, leads qualifiés, conversion optimisée.</div><div><br /></div><div>Un créneau lundi ou mardi pour un échange de 15 min sur la croissance de {{entreprise}} ?</div><div><br /></div>
+```
+
+## Outreach campaign linkfinder ai segment A (outbound agencies) 
+
+- id `58992c17-9ace-4ddd-b334-769e55ea171f` · Draft · created 2026-07-17
+- no sequence saved
+
+## Reward referral
+
+- id `76acd146-482b-4045-92b8-97022d9d2be3` · Draft · created 2026-01-08
+- no sequence saved
+
+## SEO/AEO service — B2B SaaS (AI visibility opener)
+
+- id `eb621d4c-db05-499b-99fc-28baad2e6e49` · Draft · created 2026-08-24
+
+**Step 1** (delay 0d) — you're not in ChatGPT's answer
+
+```
+Hi {{firstName}},
+
+I asked ChatGPT for the best {{category}} tools this morning. {{competitor_1}} and {{competitor_2}} came up. {{companyName}} didn't.
+
+That is usually not a product problem. LLMs cite pages that answer the exact question, and most SaaS sites only have a homepage and a blog - nothing targeting the specific things buyers type.
+
+I fixed this on my own SaaS. 205 pages aimed at exactly those queries: 371 organic visits a month to 11,474 in five months, and referrals now coming from ChatGPT, Gemini, Perplexity, Claude and Copilot.
+
+Want me to send you the list of queries {{companyName}} is invisible for?
+
+- Eliasse
+```
+
+**Step 2** (delay 3d) — (follow-up, no subject)
+
+```
+Following up with one number in case it is useful either way.
+
+The pages that work are not blog posts. They are one page per query, built from a template - mine average 56 organic visits a month each, and they are the ones the AI assistants quote.
+
+Still happy to send over the {{companyName}} list.
+
+- Eliasse
+```
+
+**Step 3** (delay 5d) — (follow-up, no subject)
+
+```
+Last one from me.
+
+What I actually do: 150 of those pages for a SaaS, live and indexed in six weeks. $1,500, and if they are not live in six weeks you get all of it back.
+
+If it is not a fit, no problem at all - reply "not now" and I will leave you alone.
+
+- Eliasse
+```
+
+## ai sdr/ai sales automation
+
+- id `10e6bd9e-a511-473e-b230-2f381b9679a2` · Draft · created 2026-06-04
+- no sequence saved
+
+## co marketing/link exchange
+
+- id `6d571a93-144b-41ef-ad86-8db20832f2ff` · Draft · created 2026-05-25
+- no sequence saved
+
+## customer calls
+
+- id `fa8df978-1bda-47b5-8ec4-bcc8d20d9bc5` · Draft · created 2026-05-31
+
+**Step 1** (delay 1d) — Quick 15 min call?
+
+```
+<div>{{RANDOM | Hey | Hi | Hello}},</div><div><br /></div><div>{{RANDOM | Eliasse here | It's Eliasse | This is Eliasse}}, founder of LinkFinder. {{RANDOM | Would you have 15 min | Do you have 15 minutes | Could you spare 15 mins}} {{RANDOM | sometime this week or next | either this week or next week | in the coming week or two}} {{RANDOM | for a quick call | for a brief chat | for a short conversation}}? {{RANDOM | I'm trying to learn from real users | My goal is to gather insights from actual users | I'm looking to understand from our users}} — {{RANDOM | how you're using the product | your experience with the product | how you utilize the tool}}, {{RANDOM | what's working | what's going well | what you find effective}}, {{RANDOM | and what's missing | what could be improved | what features are lacking}}.</div><div><br /></div><div>{{RANDOM | No pitch, no agenda | This isn't a sales pitch, nor do I have an agenda | There's no selling involved, just an open discussion}}. {{RANDOM | Just learning | Purely for learning purposes | My sole aim is to learn}}.</div><div><br /></div><div>{{RANDOM | Pick any time that works | Feel free to choose a time that suits you | Select a convenient slot}}: <a href="https://calendly.com/hamoureliasse/compensated-interview-unlimited-leads-clone">https://calendly.com/hamoureliasse/compensated-interview-unlimited-leads-clone</a></div><div><br /></div><div>{{RANDOM | Thanks for being a customer | We appreciate you as a customer | Thank you for your continued support}} {{RANDOM | 🙏 | 😊 | 👍}}</div><div><br /></div><div>Eliasse</div>
+```
+
+## email marketing unlimited leads
+
+- id `25d4bf37-43c8-4712-bbf1-e8ca22f23390` · Draft · created 2026-05-11
+- no sequence saved
+
+## outbound linkfinder ai (to cold email teams)
+
+- id `53e1c8cc-3824-4827-9916-e33f8fdd9f7c` · Draft · created 2026-06-04
+
+**Step 1** (delay 1d) — question on your outbound stack
+
+```
+<div>Hi [Name],</div><div><br /></div><div>I'm Eliasse, founder of LinkFinder AI — we help with lead enrichment </div><div>and LinkedIn data discovery.</div><div><br /></div><div>We can help you:</div><div>- Find LinkedIn profiles from names or emails</div><div>- Get employees + emails from a company domain</div><div>- Pull contact info from any LinkedIn URL</div><div>- Turn LinkedIn post reactions into prospect lists</div><div>- Automate all of it via API or n8n</div><div><br /></div><div>Could this be useful for [Company]?</div><div><br /></div><div>Reply "yes" and I'll send you a direct link with 2,000 free credits </div><div>to start enriching.</div><div><br /></div><div>Eliasse</div><div>linkfinderai.com</div>
+```
+
+**Step 2** (delay 1d) — Apollo / ZoomInfo alternative?
+
+```
+<div>Hi [Name],</div><div><br /></div><div>I'm Eliasse, founder of LinkFinder AI.</div><div><br /></div><div>If you're using Apollo, ZoomInfo, or Clay for LinkedIn data, you're </div><div>probably paying $300-800/mo. LinkFinder does the same enrichment </div><div>work at $49-149/mo — same data, simpler interface, native to n8n.</div><div><br /></div><div>Would it be worth a comparison for [Company]?</div><div><br /></div><div>Reply "yes" and I'll send a link with 2,000 free credits, no card </div><div>needed.</div><div><br /></div><div>Eliasse</div><div>linkfinderai.com</div>
+```
+
+**Step 3** (delay 1d) — last note
+
+```
+<div>Subject: last note from me</div><div><br /></div><div>Hi [Name],</div><div><br /></div><div>I'm Eliasse, founder of LinkFinder AI — won't keep emailing.</div><div><br /></div><div>One last question: how does [Company] currently handle LinkedIn </div><div>enrichment? Genuinely curious — trying to understand what tools </div><div>teams like yours actually use.</div><div><br /></div><div>If you're open to sharing, just hit reply. And if LinkFinder ever </div><div>becomes relevant, the 1,000 free credits offer stands.</div><div><br /></div><div>Eliasse</div><div>linkfinderai.com</div>
+```
+
+## outbound linkfinder ai FR (Enrich your CRM )
+
+- id `f0fbe960-3f60-4509-bae4-eeea9b74347c` · Draft · created 2026-06-04
+
+**Step 1** (delay 1d) — quick q on your {{stack/workflow}}
+
+```
+<div>Hey {{first_name}},</div><div><br /></div><div>Eliasse here — founder of LinkFinder </div><div><br /></div><div>Saw {{specific_observation}} — looks like you're building real outbound infra, not just running a Clay table.</div><div><br /></div><div>Most folks in your spot end up gluing 3 tools together for the data layer: Apollo for emails, somewhere else for LinkedIn enrichment, manual checks for verification. Usually $300-500/month in tooling, with rate limits that break workflows mid-run.</div><div><br /></div><div>LinkFinder does it in one API: LinkedIn URL → verified email, company employees, post reactions, etc. Native n8n + Make + Clay integrations. Starts at $49/mo, no minimums.</div><div><br /></div><div>Worth 5 minutes to test on your real data? I'll comp 1,000 credits — no card, no call needed. Just sign up: linkfinderai.com/sign-up (use code FOUNDER1000 at signup)</div><div><br /></div><div>If it doesn't fit, no hard feelings. Would still love your honest feedback.</div><div><br /></div><div>Eliasse</div><div>Founder, LinkFinder AI</div><div>linkfinderai.com</div>
+```
+
+**Step 2** (delay 1d) — {{first_name}}, bumping this up.
+
+```
+<div>{{first_name}}, bumping this up.</div><div><br /></div><div>If timing's off, totally understand. Quick context for when it makes sense:</div><div><br /></div><div>Our heaviest users are AI agency builders running 5K-50K enrichments/month. Common reasons they switched to us:</div><div>→ Apollo's $500/mo plan is overkill but $49/mo plan has tight limits</div><div>→ ZoomInfo data is stale on smaller companies</div><div>→ Clay's enrichment costs add up at volume</div><div><br /></div><div>If any of those resonate, the 1,000 free credits are still on the table.</div><div><br /></div><div>If not, just reply "not now" and I'll stop emailing.</div><div><br /></div><div>Eliasse</div>
+```
+
+**Step 3** (delay 1d) — Re: {{first_name}}, bumping this up.
+
+```
+<div>{{first_name}},</div><div><br /></div><div>One last one then I'll leave you alone.</div><div><br /></div><div>If you're building anything involving LinkedIn → email enrichment at scale, the math eventually comes down to cost per enriched record. Most tools charge $0.10-0.30/credit. We're at ~$0.0004 (yes, four zeros).</div><div><br /></div><div>For an agency running 10K enrichments/month, that's $40 vs $1,000-3,000.</div><div><br /></div><div>Even if you don't switch, I'd be curious — what are you using right now for enrichment? Always trying to understand the landscape better.</div><div><br /></div><div>Eliasse</div><div><br /></div><div>P.S. — if you'd rather check the API docs first: linkfinderai.com/api</div>
+```
+
+**Step 4** (delay 1d) — (follow-up, no subject)
+
+```
+<div>Hey {{first_name}},</div><div><br /></div><div>Different angle this time — saw {{specific_recent_thing_they_did}}.</div><div><br /></div><div>You mentioned {{specific_pain_or_topic}}. That's literally the use case LinkFinder was built for. {{One specific way it addresses their stated pain.}}</div><div><br /></div><div>If you want, here's a 90-second loom showing the exact workflow: {{loom_link}}</div><div><br /></div><div>Or skip the loom and just grab 1,000 free credits: linkfinderai.com/sign-up (code: FOUNDER1000)</div><div><br /></div><div>Eliasse</div>
+```
+
+**Step 5** (delay 1d) — closing the loop
+
+```
+<div>{{first_name}},</div><div><br /></div><div>This is my last one — promise.</div><div><br /></div><div>I'm closing out my outreach to this group. If LinkFinder makes sense at some point, the door is always open:</div><div>→ linkfinderai.com (1,000 free credits with code FOUNDER1000)</div><div><br /></div><div>If you'd rather I never email you again, just reply "remove" and I'll never bother you.</div><div><br /></div><div>Either way — best of luck with {{their_company}}. Building agencies in this space is hard, you're doing great work.</div><div><br /></div><div>Eliasse</div>
+```
+
+## outbound to n8n creators
+
+- id `8ee7d048-6f60-49d7-81e6-17c5a10eddbc` · Draft · created 2026-06-02
+
+**Step 1** (delay 1d) — your {{recent_video/workflow}} + linkfinder
+
+```
+<div>{{RANDOM | Hey {{first_name}} | Hi {{first_name}} | Hello {{first_name}} | Greetings {{first_name}}}}</div><div><br /></div><div>{{RANDOM | Eliasse here | It's Eliasse | This is Eliasse}} — {{RANDOM | I built | I created | I developed}} LinkFinder AI, a B2B enrichment API native to n8n.</div><div><br /></div><div>{{RANDOM | I watched your | I saw your | Your recent | I checked out your}} {{specific_video_or_workflow}} — {{RANDOM | a really clean breakdown | a very clear explanation | an excellent walkthrough}} of {{specific_thing_they_did_well}}. {{RANDOM | The bit about | Your point on | That detail regarding}} {{very_specific_detail}} was {{RANDOM | the kind of thing most n8n tutorials skip | a detail often overlooked in n8n guides | something many n8n walkthroughs miss}}.</div><div><br /></div><div>{{RANDOM | I noticed you use | It looks like you're using | I saw you were using}} {{competitor_or_workaround}} for {{RANDOM | the enrichment piece | your data enrichment needs | that enrichment step}}. {{RANDOM | We built LinkFinder specifically as an n8n-native enrichment API | LinkFinder was designed as an n8n-native enrichment API | Our solution, LinkFinder, is an n8n-native enrichment API}}:</div><div>- LinkedIn URL → {{RANDOM | verified email, phone, full profile | validated email, phone, complete profile | confirmed email, phone, comprehensive profile}}</div><div>- Company domain → {{RANDOM | employees list with contact info | a list of employees with contact details | employee contacts}}  </div><div>- {{RANDOM | Native n8n nodes, no Code node hacks | Built-in n8n nodes, no need for Code node workarounds | Direct n8n nodes, without Code node hacks}}</div><div>- {{RANDOM | Starts at $49/mo with no minimums | Beginning at $49/month, no minimums | From $49/month, no minimum commitment}} (vs Apollo's $300+ commitment)</div><div><br /></div><div>{{RANDOM | If LinkFinder ever fits a future workflow tutorial | Should LinkFinder be a good fit for a future workflow tutorial | In case LinkFinder aligns with an upcoming workflow tutorial}}, {{RANDOM | I'd love to set you up with | I'd be happy to provide you with | I'd be pleased to offer you}} unlimited enterprise credits for content use + 25% recurring affiliate commission on {{RANDOM | anyone who signs up from your audience | sign-ups from your audience | your audience's registrations}}.</div><div><br /></div><div>{{RANDOM | No pressure | Absolutely no pressure | No obligation at all}} — {{RANDOM | just wanted to put us on your radar | simply wanted to make you aware of us | thought I'd bring us to your attention}} in case {{RANDOM | it's useful | it could be helpful | you find it valuable}}.</div><div><br /></div><div>Eliasse</div><div>Founder, LinkFinder AI</div><div>linkfinderai.com</div><div><br /></div><div>{{RANDOM | P.S. — | PS: | A quick note:}} If you want to test it before mentioning anything publicly, {{RANDOM | here's a free 5,000-credit account, no card needed | I've set you up with a free 5,000-credit account, no card required | you can get a free 5,000-credit account, no card needed to start}}: linkfinderai.com/sign-up (code: CREATOR5K)</div>
+```
+
+**Step 2** (delay 1d) — re: linkfinder
+
+```
+<div>{{RANDOM | Hi {{first_name}} | Hello {{first_name}} | Hey {{first_name}}}},</div><div><br /></div><div>{{RANDOM | Quick follow-up | Just a quick note | Following up quickly}}. {{RANDOM | I realized I forgot to mention | I wanted to highlight | I meant to bring up}} the {{RANDOM | most common reason | primary reason | key factor}} n8n creators {{RANDOM | feature us | showcase us | highlight us}}:</div><div><br /></div><div>{{RANDOM | Most enrichment tutorials | Many workflow guides | A lot of automation walkthroughs}} use Apollo, ZoomInfo, or Clay — but {{RANDOM | those tools cost | these platforms come with a price tag of | such services typically run}} $300-500/mo minimum, which {{RANDOM | most viewers can't realistically test | makes it hard for most viewers to actually try | is often too expensive for the average viewer to experiment with}}. {{RANDOM | LinkFinder's $49 starting price means | With LinkFinder starting at just $49, | The affordability of LinkFinder, beginning at $49, allows}} viewers can {{RANDOM | actually replicate the workflow end-to-end | truly follow the entire workflow | genuinely complete the whole process}} without {{RANDOM | breaking their budget | straining their finances | overspending}}.</div><div><br /></div><div>{{RANDOM | A few creators told us | We've heard from several creators that | Some creators shared with us that}} their tutorial completion rates {{RANDOM | went up | increased significantly | saw a boost}} when they {{RANDOM | switched the enrichment tool to LinkFinder | started using LinkFinder as their enrichment tool | made LinkFinder their go-to for enrichment}} because {{RANDOM | more viewers stuck through to test it themselves | it encouraged more viewers to try it out | viewers were more inclined to experiment with it}}.</div><div><br /></div><div>{{RANDOM | If you want | Should you be interested | Let me know if you'd like}}, I can send {{RANDOM | 2-3 workflow ideas | a couple of workflow concepts | some workflow suggestions}} that {{RANDOM | work well as tutorial content | are great for tutorial purposes | make excellent tutorial material}} using LinkFinder. {{RANDOM | No obligation | Absolutely no pressure | There's no commitment}}, {{RANDOM | just thought it might be useful | I simply thought it could be helpful | just an idea that might benefit you}}.</div><div><br /></div><div>{{RANDOM | Best | Regards | Cheers}},</div><div><br /></div><div>Eliasse</div>
+```
+
+**Step 3** (delay 1d) — 2 workflow ideas + closing the loop
+
+```
+<div>{{RANDOM | Hey | Hi | Hello}} {{first_name}},</div><div><br /></div><div>{{RANDOM | This is my last message | One final note from me | Just a quick follow-up}} — {{RANDOM | closing the loop on | wrapping things up regarding | a final update on}} the LinkFinder thing.</div><div><br /></div><div>{{RANDOM | I promised I'd share | As promised, I wanted to share | Remember I mentioned I'd share}} workflow ideas. {{RANDOM | Here are two that have worked well for | I've got two examples that have proven effective for | Below are a couple of workflows that have seen success with}} other creators:</div><div><br /></div><div>1. "Auto-enrich LinkedIn post engagers into a CRM" — pull people who liked/commented on your post → enrich them with LinkFinder → push to HubSpot/Pipedrive/Notion</div><div>   → {{RANDOM | A 5-node workflow | This 5-node process | It's a 5-step workflow}}, {{RANDOM | taking ~3 minutes | with about 3 minutes runtime | running in roughly 3 minutes}}, {{RANDOM | and is beginner-friendly | and easy for beginners | perfect for those just starting out}}.</div><div><br /></div><div>2. "Find and email decision-makers at companies in your TAM" — list of company domains → LinkFinder employees endpoint with seniority filter → AI personalization → outreach</div><div>   → {{RANDOM | An 8-node workflow | This 8-node process | It's an 8-step workflow}}, {{RANDOM | intermediate in complexity | for intermediate users | a bit more advanced}}, {{RANDOM | and very actionable | offering high actionability | with clear next steps}}.</div><div><br /></div><div>{{RANDOM | I'm happy to walk through | We can schedule a quick chat to review | I'd gladly guide you through}} either with you (15-min call) {{RANDOM | if you want to ship one as a tutorial | should you wish to implement one as a tutorial | if you're interested in turning one into a tutorial}}. {{RANDOM | Or just take the ideas and run with them | Alternatively, feel free to use these ideas as you see fit | You're also welcome to simply grab the concepts and proceed}}.</div><div><br /></div><div>{{RANDOM | Either way | Regardless | In any case}}, the 5K free credits offer {{RANDOM | still stands | is still available | remains valid}}: linkfinderai.com/sign-up (code: CREATOR5K)</div><div><br /></div><div>{{RANDOM | If LinkFinder isn't a fit | Should LinkFinder not be what you're looking for | If LinkFinder doesn't align with your needs}}, {{RANDOM | no hard feelings | absolutely no worries | it's completely fine}} — {{RANDOM | just reply "not now" and I won't email again | simply respond "not now" and I'll stop sending emails | a quick "not now" reply will ensure no further emails from me}}.</div><div><br /></div><div>{{RANDOM | Best, | Cheers, | Regards,}}</div><div>Eliasse</div>
+```
+
+**Step 4** (delay 1d) — closing out
+
+```
+<div>{{RANDOM | Hi {{first_name}} | Hello {{first_name}} | Hey {{first_name}}}},</div><div><br /></div><div>{{RANDOM | This is my last one | Just one more message | This will be my final email}} — {{RANDOM | promise | I swear | truly}}.</div><div><br /></div><div>{{RANDOM | Should LinkFinder prove useful | In case LinkFinder comes in handy | If LinkFinder ever becomes a valuable tool}} for {{RANDOM | an upcoming video or workflow | a future project or process | any future content creation or automation}}, you can {{RANDOM | always claim | easily get | feel free to redeem}} the 5K free credits here: linkfinderai.com/sign-up (code: CREATOR5K)</div><div><br /></div><div>{{RANDOM | Alternatively | On another note | And if you'd prefer}}, if you ever want to {{RANDOM | discuss | talk about | connect regarding}} anything n8n-related {{RANDOM | (not necessarily LinkFinder) | (even if it's not about LinkFinder) | (LinkFinder aside)}}, my DMs are open: {{your_linkedin_or_twitter}}</div><div><br /></div><div>{{RANDOM | I'm genuinely impressed by | I'm truly amazed by | I really admire}} the content you're {{RANDOM | consistently producing | putting out | creating}}. {{RANDOM | Keep building | Keep up the great work | Continue your excellent work}}.</div><div><br /></div><div>Eliasse</div>
+```
+
+## outreach segment B (recruiting)
+
+- id `458524f7-585f-4ea8-b11e-6bec4a420b18` · Draft · created 2026-07-17
+- no sequence saved
+
+## outreach segment C (early-stage SaaS)
+
+- id `94dc986d-77af-4324-8661-b85c9859e164` · Draft · created 2026-07-17
+- no sequence saved
+
+## people who bought PAYG
+
+- id `6176f33b-5d13-4c01-8801-4681f6f06f66` · Draft · created 2026-06-08
+- no sequence saved
+
+## Call with churn users
+
+- id `3c96ded7-c82e-4db1-b695-6286894c3e72` · ACTIVE · created 2026-05-08
+
+**Step 1** (delay 1d) — Before you go — quick question
+
+```
+<div>{{RANDOM | Hey | Hello | Hi there}},</div><div><br /></div><div>{{RANDOM | Eliasse here | This is Eliasse | It's Eliasse}}, founder of LinkFinder AI.</div><div><br /></div><div>{{RANDOM | I noticed you cancelled your subscription | We saw your subscription was cancelled | It came to my attention that your subscription was cancelled}} and {{RANDOM | I wanted to reach out personally | I felt compelled to connect with you directly | I decided to get in touch personally}} — {{RANDOM | not to sell you anything, just to understand what happened | not to push a sale, but to learn what went wrong | with no intention of selling, only to grasp the situation}}.</div><div><br /></div><div>{{RANDOM | Was it the price? A missing feature? Did the product not deliver what you expected? | Was the pricing an issue? Were there features you needed that were missing? Or perhaps the product didn't meet your expectations? | Could it have been the cost? A feature gap? Or did our product simply not live up to what you hoped for?}} {{RANDOM | Even a one-line reply would help me a lot | A brief response would be incredibly helpful | Just a quick line back would assist me greatly}}.</div><div><br /></div><div>{{RANDOM | If you'd be open to giving it another shot | Should you be willing to reconsider | If you're inclined to try us again}}, {{RANDOM | reply to this email and I'll add 500 credits to your account — no charge | just respond to this email and I'll credit your account with 500 credits, completely free | simply hit reply, and I'll instantly give you 500 credits for your account, free of charge}}.</div><div><br /></div><div>{{RANDOM | Either way, thank you for trying it | Regardless, I appreciate you giving it a try | In any case, thanks for checking us out}}.</div><div><br /></div><div>{{RANDOM | Eliasse | Best, Eliasse | Regards, Eliasse}}</div><div>Founder, LinkFinder AI</div>
+```
+
+## Email to people who did 3+ enrichment
+
+- id `1c675723-10da-4ad6-bd74-dd271c4fc0f6` · ACTIVE · created 2026-05-12
+
+**Step 1** (delay 0d) — {{RANDOM | You ran 3 enrichments, then stopped — here's 20 more, on us | 20 free credits, because you didn't finish | Pick up where you left off (+20 credits)}}
+
+```
+<div>{{RANDOM | Hey {{firstName}} | Hi {{firstName}}}},</div><div><br /></div><div>You ran 3 enrichments on LinkFinder, then didn't come back. That's usually one of two things: you got what you needed, or something got in the way before you could really test it.</div><div><br /></div><div>Either way — I've added 20 free credits to your account so you can pick back up without thinking about cost.</div><div><br /></div><div><a href="https://linkfinderai.com/app?utm_source=email&amp;utm_medium=email&amp;utm_campaign=reactivation_3enrichments&amp;utm_content=step0" rel="noopener noreferrer">Use your 20 free credits →</a></div><div><br /></div><div>Eliasse</div><div>CEO @ LinkFinder AI</div>
+```
+
+**Step 2** (delay 3d) — {{RANDOM | What made you stop? | Quick one — did LinkFinder work for you? | Did the first 3 actually help?}}
+
+```
+<div>Hey {{firstName}},</div><div><br /></div><div>Honest question: did the first 3 enrichments give you what you needed, or did something not work the way you expected?</div><div><br /></div><div>If it worked — great, your 20 free credits are still sitting there whenever you want to enrich another batch.</div><div>If it didn't — reply and tell me what happened. I'll fix it or point you somewhere better.</div><div><br /></div><div><a href="https://linkfinderai.com/app?utm_source=email&amp;utm_medium=email&amp;utm_campaign=reactivation_3enrichments&amp;utm_content=step1" rel="noopener noreferrer">Use your free credits →</a></div><div><br /></div><div>Eliasse</div><div>CEO @ LinkFinder AI</div>
+```
+
+**Step 3** (delay 3d) — {{RANDOM | Your 20 bonus credits expire soon | Last call on your free credits | Closing this out}}
+
+```
+<div>{{RANDOM | Hey {{firstName}} | Hi {{firstName}}}},</div><div><br /></div><div>Your 20 bonus credits are still unused. This is the last reminder before I stop nudging you about it.</div><div><br /></div><div>Paste in a LinkedIn URL — one result takes about 10 seconds, and it's already paid for.</div><div><br /></div><div><a href="https://linkfinderai.com/app?utm_source=email&amp;utm_medium=email&amp;utm_campaign=reactivation_3enrichments&amp;utm_content=step2" rel="noopener noreferrer">Use my 20 free credits →</a></div><div><br /></div><div>Eliasse</div><div>CEO @ LinkFinder AI</div>
+```
+
+**Step 4** (delay 5d) — {{RANDOM | Maybe self-serve just isn't the right fit | An alternative, if running this yourself isn't clicking | Or, we just do it for you}}
+
+```
+<div>Hey {{firstName}},</div><div><br /></div><div>I've nudged you a few times about coming back to run enrichments yourself. If that's genuinely not what you need right now, that's fine — I'd rather just tell you the other option.</div><div><br /></div><div>We can run this for you instead, through LinkFinder VIP: we connect your CRM, keep it enriched, and handle the automation ourselves. No settings for you to configure.</div><div><br /></div><div>Starts with a free 30-minute audit — we look at what's actually missing in your CRM and tell you honestly whether it's worth it, no obligation either way.</div><div><br /></div><div><a href="https://calendly.com/hamoureliasse/compensated-interview-unlimited-leads-clone" rel="noopener noreferrer">Book a free CRM audit →</a></div><div><br /></div><div>Eliasse</div><div>CEO @ LinkFinder AI</div>
+```
+
+## churn campaign
+
+- id `5745f3ac-4066-4b25-a4b0-6b9a97d6ba0f` · ACTIVE · created 2026-03-11
+
+**Step 1** (delay 1d) — LinkFinder AI Subscription
+
+```
+<div>{{RANDOM | Hi Eliasse | Hello Eliasse | Greetings, Eliasse}}</div><div><br /></div><div>I just saw that you canceled your subscription to LinkFinder AI.</div><div><br /></div><div>{{RANDOM | Could you tell me what didn't meet your expectations? | Can you share what fell short of your expectations? | Would you mind telling me what you didn't like?}}</div><div><br /></div><div>{{RANDOM | If you could just take a minute to give me some feedback, it would be greatly appreciated. | If you could spare a moment to provide some feedback, I'd really appreciate it. | I would be grateful if you could take a quick minute to give me some feedback.}} {{RANDOM | Your feedback will help us greatly improve our service. | Your feedback will be invaluable in helping us improve our service. | This feedback will really help us to improve our service.}}</div><div><br /></div><div>{{RANDOM | Thank you | Thanks | Best regards}}</div>
+```
+
+**Step 2** (delay 3d) — {{RANDOM | You don't need a subscription to keep using LinkFinder | Quick note before you go | One thing worth knowing}}
+
+```
+<div>Hey {{firstName}},</div><div><br /></div><div>One thing worth knowing since you cancelled: you don't actually need a subscription to keep using LinkFinder AI.</div><div><br /></div><div>We sell one-time credit packs — buy once, use whenever, and they never expire. No monthly commitment, no auto-renewal, just credits sitting there for whenever you need to enrich a list again.</div><div><br /></div><div><a href="https://linkfinderai.com/app?action=buy_credits" rel="noopener noreferrer" target="_self">See the credit packs →</a></div><div><br /></div><div>Eliasse</div><div>CEO @ LinkFinder AI</div>
+```
+
+## email marketing PAID credits USED
+
+- id `f01d2092-d738-4f3a-b661-d9bd266c786b` · ACTIVE · created 2026-03-06
+
+**Step 1** (delay 0d) — You've used all your prepaid credits
+
+```
+<div>Hi {{firstName}},</div><div><br /></div><div>Good sign, honestly — you've used every credit in your account this cycle. That usually means LinkFinder AI became part of your actual workflow, not just something you tried once.</div><div><br /></div><div>If you've got auto top-up turned on, you're already set — credits refill automatically and nothing pauses on your end. If not, here's where to top up or check your plan:</div><div><br /></div><div><a href="https://linkfinderai.com/app?action=buy_credits" rel="noopener noreferrer">https://linkfinderai.com/app?action=buy_credits</a></div><div><br /></div><div>No rush, no pressure — just wanted you to know exactly where things stand.</div><div><br /></div><div>Eliasse</div><div>CEO @ LinkFinder AI</div>
+```
+
+**Step 2** (delay 1d) — You've used all your credits
+
+```
+<div>{{RANDOM | Hey | Hi | Hello}},</div><div><br /></div><div>You've burned through all your LinkFinder AI credits for this month.</div><div> {{RANDOM | Good problem to have | That's a great sign | A good situation to be in}}.</div><div><br /></div><div>{{RANDOM | Top up and keep going | Replenish your credits to continue | Add more credits and proceed}}:→ <a href="https://linkfinderai.com/app?action=buy_credits" rel="noopener noreferrer">https://linkfinderai.com/app?action=buy_credits</a></div><div><br /></div><div>{{RANDOM | One-time purchase | Single purchase | Just a one-off}}. {{RANDOM | No commitment | No strings attached | Without obligation}}. {{RANDOM | Instant access | Immediate access | Access right away}}.</div><div><br /></div><div>Eliasse</div><div>CEO @ LinkFinder AI</div>
+```
+
+**Step 2** (delay 1d) — Your plan is running on empty
+
+```
+<div>{{RANDOM | Hey | Hi | Hello}} {{first_name}},</div><div><br /></div><div>{{RANDOM | You've used every credit on your plan this month | All your credits for this month are used up | You've exhausted your monthly credit allowance}} — {{RANDOM | which means you've been doing serious prospecting | showing you've been actively prospecting | indicating you've been heavily prospecting}}.</div><div>{{RANDOM | That's exactly what LinkFinder AI is built for | LinkFinder AI is designed precisely for that | That's the exact purpose of LinkFinder AI}}.</div><div><br /></div><div>{{RANDOM | When you need more, top-up credits are available as a one-time purchase | If you require additional credits, top-up credits can be purchased individually | Should you need more credits, one-time top-ups are available}} — {{RANDOM | no plan change, no commitment, they just stack on top of what you already have | without changing your plan or any commitment, they simply add to your existing balance | no commitment or plan alterations needed, they're just added to your current credits}}.→ <a rel="noopener noreferrer noopener noreferrer" href="https://linkfinderai.com/app?action=buy_credits">https://linkfinderai.com/app?action=buy_credits</a></div><div><br /></div><div>{{RANDOM | Pick whatever amount fits where you are right now | Choose the amount that best suits your current needs | Select the credit amount that aligns with your present situation}}.</div><div><br /></div><div>Eliasse</div><div>CEO @ LinkFinder AI</div><div><br /></div>
+```
+
+**Step 2** (delay 1d) — Time to top up
+
+```
+<div>{{RANDOM | Hey | Hi | Hello}},</div><div><br /></div><div>Credits {{RANDOM | are currently | stand | are now}} at 0. </div><div><br /></div><div>{{RANDOM | Pipeline won't enrich itself | The pipeline requires credits to function | Enrichment pipeline is inactive}}.→ <a rel="noopener noreferrer noopener noreferrer noopener noreferrer" href="https://linkfinderai.com/app?action=buy_credits">https://linkfinderai.com/app?action=buy_credits</a></div><div><br /></div><div>{{RANDOM | Best | Regards | Cheers}},</div><div>Eliasse</div><div><br /></div>
+```
+
+**Step 3** (delay 4d) — Or, skip topping up entirely
+
+```
+<div>Hey {{firstName}},</div><div><br /></div><div>You're clearly getting real use out of LinkFinder — you keep burning through credits, which means you keep needing enriched data.</div><div><br /></div><div>If constantly topping up is getting old, there's another option: LinkFinder VIP. We connect your CRM directly, keep it enriched automatically, and handle the whole pipeline ourselves — no credits to track, nothing to configure.</div><div><br /></div><div>Starts with a free 30-minute audit — we look at what's actually in your CRM and tell you honestly if it's worth it, no obligation either way.</div><div><br /></div><div><a href="https://calendly.com/hamoureliasse/compensated-interview-unlimited-leads-clone" rel="noopener noreferrer">Book a free CRM audit →</a></div><div><br /></div><div>Eliasse</div><div>CEO @ LinkFinder AI</div>
+```
+
+## email marketing linkfinder ai
+
+- id `0bd2fe48-6290-4ffd-ab5e-f025b1a4c494` · ACTIVE · created 2025-10-17
+
+**Step 1** (delay 0d) — {{RANDOM | Paste one LinkedIn URL, get a verified email back in 10 seconds | Your first result is 60 seconds away | Here's exactly what to do first}}
+
+```
+<div>{{RANDOM | Hey {{first_name}} | Hi {{first_name}} | Welcome, {{first_name}}}},</div><div><br /></div><div>You're in — here's the fastest way to see it work:</div><div><br /></div><div>1. Paste one LinkedIn URL (yours, a lead, anyone)</div><div>2. Hit enrich</div><div>3. Get back a verified email, phone, and LinkedIn data — in about 10 seconds</div><div><br /></div><div>You've got 150 free credits waiting. No card needed to use them.</div><div><br /></div><div><a href="https://linkfinderai.com/app?utm_source=email&amp;utm_medium=email&amp;utm_campaign=trial_sequence&amp;utm_content=step0" rel="noopener noreferrer">Enrich my first lead →</a></div><div><br /></div><div>Questions? Just reply — I read every one.</div><div><br /></div><div>Eliasse</div><div>CEO @ LinkFinder AI</div><div><br /></div><div>{{RANDOM | Reply Stop to unsubscribe. | To unsubscribe, reply Stop.}}</div>
+```
+
+**Step 2** (delay 1d) — {{RANDOM | Your competitor's audience is your goldmine | The warm-lead trick most people miss | Stop cold-emailing strangers}}
+
+```
+<div>{{RANDOM | Hey | Hi}} {{first_name}},</div><div><br /></div><div>"I pulled 247 warm leads from a competitor's viral LinkedIn post in 15 minutes." — Marcus T.</div><div><br /></div><div>Someone who likes or comments on a post about a problem you solve isn't a cold contact — they just raised their hand.</div><div><br /></div><div>How it works:</div><div>1. Copy any LinkedIn post URL (yours or a competitor's) in your niche</div><div>2. Paste it into LinkFinder → choose "LinkedIn Post URL to Reactions"</div><div>3. Get verified emails for everyone who engaged</div><div>4. Reach out to people who are already interested</div><div><br /></div><div>Marcus's response rate on those messages: 40%, vs. ~3% on cold email.</div><div><br /></div><div><a href="https://linkfinderai.com/app?utm_source=email&amp;utm_medium=email&amp;utm_campaign=trial_sequence&amp;utm_content=step1" rel="noopener noreferrer">Find warm leads now →</a></div><div><br /></div><div>Eliasse</div><div>CEO @ LinkFinder AI</div><div><br /></div><div>P.S. Works on your own posts too — turn people who already engaged with you into conversations.</div><div><br /></div><div>{{RANDOM | Reply Stop to unsubscribe. | To unsubscribe, reply Stop.}}</div>
+```
+
+**Step 3** (delay 2d) — {{RANDOM | What 1,000 LinkedIn profiles actually costs you | The manual-research math | Still doing this by hand?}}
+
+```
+<div>{{RANDOM | Hey | Hi}} {{first_name}},</div><div><br /></div><div>Manually: ~10 minutes per profile → 166 hours for 1,000 contacts.</div><div>LinkFinder: paste the URLs, full data back in about 10 minutes. Email, phone, title, company — all of it.</div><div><br /></div><div>"I was trying every scraping tool out there — all complex, all expensive. Then I found LinkFinder. Completely different experience." — Ibrahim S.</div><div><br /></div><div><a href="https://linkfinderai.com/app?utm_source=email&amp;utm_medium=email&amp;utm_campaign=trial_sequence&amp;utm_content=step2" rel="noopener noreferrer">See your data in 10 minutes →</a></div><div><br /></div><div>Eliasse</div><div>CEO @ LinkFinder AI</div><div><br /></div><div>{{RANDOM | Reply Stop to unsubscribe. | To unsubscribe, reply Stop.}}</div>
+```
+
+**Step 4** (delay 3d) — {{RANDOM | Or, skip running this yourself | Not clicking with the self-serve tool? | A faster way to get this done}}
+
+```
+<div>Hey {{first_name}},</div><div><br /></div><div>You've had a few days with LinkFinder now. If pasting in URLs and running searches yourself isn't quite fitting into how you work, there's another way to get the same result.</div><div><br /></div><div>LinkFinder VIP: we connect directly to your CRM, keep it enriched automatically, and run the whole pipeline ourselves. You don't touch it.</div><div><br /></div><div>Starts with a free 30-minute audit — we look at what's actually in your CRM and tell you honestly whether it's worth it, no obligation either way.</div><div><br /></div><div><a href="https://calendly.com/hamoureliasse/compensated-interview-unlimited-leads-clone" rel="noopener noreferrer">Book a free CRM audit →</a></div><div><br /></div><div>Eliasse</div><div>CEO @ LinkFinder AI</div><div><br /></div><div>{{RANDOM | Reply Stop to unsubscribe. | To unsubscribe, reply Stop.}}</div>
+```
+
+**Step 5** (delay 3d) — {{RANDOM | 1,000 credits for $29, no subscription | The lowest-commitment way to try this properly | No subscription, just credits}}
+
+```
+<div>{{RANDOM | Hey {{first_name}} | Hi {{first_name}}}},</div><div><br /></div><div>If you've been meaning to test LinkFinder properly, this is the lowest-commitment way to do it:</div><div><br /></div><div>1,000 credits for $29. No subscription. No auto-renewal. Use them whenever you want.</div><div>That's $0.029 per lead — before you've even run your first paid search.</div><div><br /></div><div>What you get:</div><div>— Verified email, phone, title, and company on every lead (95% accuracy)</div><div>— Credits that don't force you into a subscription</div><div>— Export to CSV whenever you're ready</div><div><br /></div><div>And if the data doesn't hold up on your actual list, reply within 7 days of your purchase and I'll refund you — no questions asked.</div><div><br /></div><div><a href="https://linkfinderai.com/app?action=upgrade&amp;utm_source=email&amp;utm_medium=email&amp;utm_campaign=trial_sequence&amp;utm_content=step4" rel="noopener noreferrer">Get 1,000 credits for $29 →</a></div><div><br /></div><div>Want to know what 1,000 enrichments looks like for your specific workflow first? Just reply — I'll walk you through it personally.</div><div><br /></div><div>Eliasse</div><div>CEO @ LinkFinder AI</div><div><br /></div><div>{{RANDOM | Reply Stop to unsubscribe. | To unsubscribe, reply Stop.}}</div>
+```
+
+**Step 6** (delay 4d) — {{RANDOM | Still on the fence? | One question before you go | Last thing, then I'll stop emailing}}
+
+```
+<div>Hey {{first_name}},</div><div><br /></div><div>I'll keep this short — this is one of the last emails in this sequence.</div><div><br /></div><div>If price is the hesitation: $29 gets you 1,000 credits, no subscription, use them whenever — and if it doesn't work out for you, reply within 7 days and I'll refund it, no questions asked.</div><div>If it's "will this actually work for my list": reply with what you're trying to enrich and I'll tell you straight whether it's a fit — or grab 15 minutes and I'll run a sample batch with you live.</div><div>If you already got what you needed: no action required, and thanks for trying LinkFinder.</div><div><br /></div><div><a href="https://linkfinderai.com/app?action=upgrade&amp;utm_source=email&amp;utm_medium=email&amp;utm_campaign=trial_sequence&amp;utm_content=step5" rel="noopener noreferrer">Get 1,000 credits for $29 →</a></div><div><br /></div><div>Eliasse</div><div>CEO @ LinkFinder AI</div><div><br /></div><div>{{RANDOM | Reply Stop to unsubscribe. | To unsubscribe, reply Stop.}}</div>
+```
+
+**Step 7** (delay 3d) — {{RANDOM | Once built, never touched again | Set it once. Done. | The setup that runs while you sleep}}
+
+```
+<div>"The moment I connected the API, LinkFinder went from a tool I used to infrastructure I rely on." — Marco D.</div><div><br /></div><div>New lead hits your CRM → LinkFinder fires → email, phone, LinkedIn URL written back automatically. No manual step, ever.</div><div><br /></div><div>However you already work, there's a guide for it — Google Sheets, the API directly, Claude via MCP, or a straight HubSpot sync.</div><div><br /></div><div><a href="https://linkfinderai.com/resources?utm_source=email&amp;utm_medium=email&amp;utm_campaign=trial_sequence&amp;utm_content=step6" rel="noopener noreferrer">See every integration guide →</a></div><div><br /></div><div>Eliasse</div><div><br /></div><div>P.S. Reply and tell me what you're selling — I'll suggest the exact workflow for your stack.</div><div><br /></div><div>{{RANDOM | Reply Stop to unsubscribe. | To unsubscribe, reply Stop.}}</div>
+```
+
+**Step 8** (delay 4d) — {{RANDOM | Or, skip building it yourself | Don't want to set up the automation? | We'll do the integration for you}}
+
+```
+<div>Hey {{first_name}},</div><div><br /></div><div>Last email in this sequence — promise.</div><div><br /></div><div>If the integration guide from my last email isn't something you want to build and maintain yourself, there's a simpler option: LinkFinder VIP. We connect your CRM, keep it enriched automatically, and run the whole pipeline ourselves. No setup on your end, no settings to configure.</div><div><br /></div><div>Starts with a free 30-minute audit — we look at what's actually in your CRM and tell you honestly whether it's worth it, no obligation either way.</div><div><br /></div><div><a href="https://calendly.com/hamoureliasse/compensated-interview-unlimited-leads-clone" rel="noopener noreferrer">Book a free CRM audit →</a></div><div><br /></div><div>Eliasse</div><div>CEO @ LinkFinder AI</div><div><br /></div><div>{{RANDOM | Reply Stop to unsubscribe. | To unsubscribe, reply Stop.}}</div>
+```
+
+## After cancel Unlimited leads
+
+- id `7150b7b4-a763-481d-89d5-a008d6214e2d` · Paused · created 2025-10-14
+
+**Step 1** (delay 1d) — Before you go...
+
+```
+<div> Hey,</div><div><br /></div><div>We saw you canceled your UnlimitedLeads plan.</div><div><br /></div><div>Before you're really gone, here's an offer:</div><div><br /></div><div>🎁 **50% OFF for 3 months** </div><div><br /></div><div>To reactive your account, use code <strong>{{personalization}}</strong> at checkout: <a href="https://unlimited-leads.online/app">https://unlimited-leads.online/app</a></div><div><br /></div><div>This offer is valid for the next 48 hours.</div><div><br /></div><div><br /></div><div>Questions? Just reply.</div><div><br /></div><div>Eliasse</div><div>Founder, UnlimitedLeads</div>
+```
+
+## Influencer marketing youtube Linkfinder ai
+
+- id `c0f343d3-8db4-4cbe-9738-dfbb749794e9` · Paused · created 2025-10-30
+
+**Step 1** (delay 1d) — paid collaboration Linkfinder ai
+
+```
+<div>Hi {{firstName}} ,</div><div><br /></div><div>I'm Eliasse, the Partnership Manager at LinkFinder AI. We've recently launched a  data enrichment platform that lets users scrape LinkedIn safely without risking ban on their account — eliminating the ban risk that tools like PhantomBuster create.</div><div><br /></div><div>We're currently exploring partnerships with influential creators like you for paid promotions, specifically for content showcasing our API integrations and automation capabilities.</div><div><br /></div><div>What makes LinkFinder AI unique:</div><ul class="[&amp;:not(:last-child)_ul]:pb-1 [&amp;:not(:last-child)_ol]:pb-1 list-disc space-y-2.5 pl-7"><li class="whitespace-normal break-words">No LinkedIn login required (we use our private network)</li><li class="whitespace-normal break-words">Full API access </li><li class="whitespace-normal break-words">Safest Linkedin Scraper (No ban risk)</li><li class="whitespace-normal break-words">Enriches leads with emails, websites, LinkedIn data</li><li class="whitespace-normal break-words">95% accuracy rate</li></ul><div>Partnership offer:</div><ul class="[&amp;:not(:last-child)_ul]:pb-1 [&amp;:not(:last-child)_ol]:pb-1 list-disc space-y-2.5 pl-7"><li class="whitespace-normal break-words">1 months free Professional access</li><li class="whitespace-normal break-words">25% recurring commission</li><li class="whitespace-normal break-words">Compensation</li></ul><div>Interested in collaborating?</div><div><br /></div><div>Best,</div><div>LinkFinder AI</div>
+```
+
+**Step 2** (delay 1d) — [ PAID COLLABORATION ]  - Linkfinder AI
+
+```
+<div>Hi,</div><div><br /></div><div>I'm reaching out  on behalf of LinkFinder AI.</div><div><br /></div><div>We're the fastest-growing LinkedIn data enrichment platform in the market. Our technology allows users to scrape LinkedIn safely and enrich leads with verified emails, websites, and professional data — all without any risk of account bans.</div><div><br /></div><div>What I appreciate about your work is your ability to engage your audience with authentic, high-quality content. Your approach is professional, clear, and genuinely valuable to watch.</div><div><br /></div><div>We want LinkFinder AI to be represented by creators of your caliber. Your content around automation and data-driven solutions aligns perfectly with our platform!</div><div><br /></div><div>Partnership offer:</div><ul class="[&amp;:not(:last-child)_ul]:pb-1 [&amp;:not(:last-child)_ol]:pb-1 list-disc space-y-2.5 pl-7"><li class="whitespace-normal break-words">1 months free Professional access</li><li class="whitespace-normal break-words">25% recurring commission</li><li class="whitespace-normal break-words">Compensation</li></ul><div><br /></div><div>Interested in collaborating?</div><div><br /></div><div>Best regards,</div><div>Eliasse – LinkFinder AI</div>
+```
+
+## [AI SDR] linkfinderai.com - AI Sales Agent - Fully Personalized Campaign
+
+- id `d4b34ed3-970c-4c3b-88b7-b4af7b54f014` · Paused · created 2026-06-04
+
+**Step 1** (delay 3d) — {{d4b34ed3-970c-4c3b-88b7-b4af7b54f014_subject_1}}
+
+```
+{{d4b34ed3-970c-4c3b-88b7-b4af7b54f014_email_1}}
+```
+
+**Step 2** (delay 1d) — (follow-up, no subject)
+
+```
+{{d4b34ed3-970c-4c3b-88b7-b4af7b54f014_email_followup_1}}
+```
+
+**Step 3** (delay 2d) — (follow-up, no subject)
+
+```
+{{d4b34ed3-970c-4c3b-88b7-b4af7b54f014_email_followup_2}}
+```
+
+**Step 4** (delay 3d) — (follow-up, no subject)
+
+```
+{{d4b34ed3-970c-4c3b-88b7-b4af7b54f014_email_followup_3}}
+```
+
+## backlink outreach
+
+- id `dbd8d081-18e2-459c-a785-6341a7ff0f4e` · Paused · created 2025-10-15
+
+**Step 1** (delay 1d) — Proposal to Include Unlimitedleads in Your Competitor Comparison Article
+
+```
+<div>Hi {{companyName}} Team,</div><div><br /></div><div>I hope you're doing well. I came across your article “<strong>{{personalization}}</strong>” ({{website}}) and think it’s a great resource for people evaluating lead-generation tools.</div><div><br /></div><div>I represent Unlimited leads, and I believe we could be a strong addition to your comparison list. I’d like to propose inserting Unlimited leadse into that article, so readers have one more option to consider. </div><div><br /></div><div>We can provide a brief description, key features, and a link to our site. </div><div>If you’re open to this collaboration, I’d love to hear your guidelines or rates for link insertions in such comparison articles. </div><div>Please let me know what works for you.</div><div><br /></div><div>Thanks for your time, and I look forward to your reply.</div><div><br /></div><div>Best regards,</div><div style="color:rgb(34, 34, 34);font-family:Tahoma, Arial, STHeitiSC-Light, SimSun;font-size:small;font-style:normal;font-variant-ligatures:normal;font-variant-caps:normal;font-weight:400;letter-spacing:normal;orphans:2;text-align:start;text-indent:0px;text-transform:none;widows:2;word-spacing:0px;-webkit-text-stroke-width:0px;white-space:normal;background-color:rgb(255, 255, 255);text-decoration-thickness:initial;text-decoration-style:initial;text-decoration-color:initial;clear:both"><br />Eliasse</div><div>CEO @ Unlimited leads</div>
+```
+
+## outbound linkfinder ai (Enrich your CRM )
+
+- id `31675bf5-66af-4035-aaf3-28477c094e97` · Paused · created 2026-06-02
+
+**Step 1** (delay 1d) — company list → contact list in minutes
+
+```
+<div>Hi [Name],</div><div><br /></div><div>Quick question — how does [Company] handle lead enrichment and </div><div>automation today?</div><div><br /></div><div>We built LinkFinder to make this simpler and cheaper (works as an </div><div>API or in n8n). Wondering if it could help your team?</div><div><br /></div><div>Happy to send 2,000 free credits to test.</div><div><br /></div><div>Eliasse</div><div>Founder, LinkFinder</div>
+```
+
+**Step 2** (delay 1d) — turning LinkedIn engagement into pipeline
+
+```
+<div>[Name] —</div><div><br /></div><div>Most teams I talk to pay $300-800/mo for enrichment tools like </div><div>Apollo or ZoomInfo. LinkFinder does the same job at ~30% of the cost.</div><div><br /></div><div>Worth comparing for [Company]?</div><div><br /></div><div>[link]</div><div><br /></div><div>Eliasse</div>
+```
+
+**Step 3** (delay 1d) — $0.0025 per contact vs Apollo's $0.04
+
+```
+<div>[Name] —</div><div><br /></div><div>Not going to keep emailing.</div><div><br /></div><div>If lead enrichment or automation is on your radar, the 2,000 free </div><div>credits don't expire — feel free to test whenever:</div><div>[link]</div><div><br /></div><div>If not, no problem. Good luck with the quarter.</div><div><br /></div><div>Eliasse</div><div>linkfinderai.com</div>
+```
+
+## outreach linkfinder ai (linkedin scraper phamtombuster alternative)
+
+- id `b1dadb72-5bf0-4cc7-8335-1f36491bd5c8` · Paused · created 2025-10-21
+
+**Step 1** (delay 2d) — Your LinkedIn account might be at risk
+
+```
+<div>{{RANDOM | Hi {{firstName}} | Hello {{firstName}} }}</div><div><br /></div><div>{{RANDOM | I noticed you've been engaging with posts about LinkedIn scraping tools - do you use them on your own account ? | I saw you've been engaging with content about LinkedIn automation - do you currently use any scraping tools ? }}</div><div><br /></div><div>{{RANDOM | These tools connect directly to your LinkedIn account, leaving traces that can get accounts permanently banned. Once flagged, recovery is impossible. | These tools directly access your LinkedIn account, creating a trail that can lead to permanent account suspension. Once marked, it's impossible to recover your account. | Connecting directly to your LinkedIn account, these tools leave footprints that may result in a permanent ban. If flagged, there's no way to get your account back. }}</div><div><br /></div><div>{{RANDOM | We built LinkFinder AI to solve this problem. We never touch your account - you get the same data extraction with zero risk to your LinkedIn. | LinkFinder AI was created to address this issue. We don't access your account directly - you get the same data extraction without any risk to your LinkedIn profile. | To combat this problem, we developed LinkFinder AI. We completely avoid touching your account - you receive the same data extraction with absolutely no risk to your LinkedIn. }}</div><div><br /></div><div>{{RANDOM | Want to test our secure scraper? Just reply and I'll send you the link. | Interested in trying our secure scraper? Simply reply, and I'll send over the link. | Would you like to try out our secure scraper? Just respond, and I'll provide you with the link. }}</div><div><br /></div><div><br /></div><div>{{RANDOM | Best, | Regards, | Sincerely, }}</div><div>Eliasse</div><div>CEO @ LinkFinder AI</div><div><br /></div><div><br /></div><div><br /></div><div>Reply Stop to opt out</div><div><br /></div>
+```
+
+**Step 1** (delay 2d) — Your LinkedIn account might be at risk
+
+```
+<div>{{RANDOM | Hi {{firstName}} | Hello {{firstName}}}}</div><div><br /></div><div>{{RANDOM | I noticed you've been engaging with posts about LinkedIn scraping tools - do you use them on your own accounts ? | I saw your recent activity around LinkedIn automation tools - are you currently using any for prospecting ? | I saw you've been engaging with content about LinkedIn automation - do you currently use any scraping tools ? }}</div><div><br /></div><div>{{RANDOM | If you're using PhantomBuster or similar scrapers , LinkedIn can detect them because they connect directly to your account. This triggers permanent account bans - you lose your entire network with no recovery. | Accounts using PhantomBuster or other LinkedIn scrapers can be detected by LinkedIn due to their direct connection to your account, leading to permanent bans and the loss of your entire network with no way to recover it. | LinkedIn can identify PhantomBuster or similar LinkedIn scrapers if you use them, as they connect directly to your account, which can result in a permanent ban and the irreversible loss of your network. }}</div><div><br /></div><div>{{RANDOM | We extract the same data with no risk to your account. We use our own private network and never connect to your LinkedInaccount. | Our method extracts the same data without any risk to your account. We utilize our own private network and never connect directly to LinkedIn. | You can get the same data through us, without risking your account. We operate using our private network and avoid connecting to your LinkedIn account. }}</div><div><br /></div><div>{{RANDOM | Would this be helpful for your prospecting | Do you think this would be beneficial for your prospecting efforts? | Could this be a useful solution for your prospecting? | Might this be something that could help with your prospecting? }}</div><div><br /></div><div><br /></div><div>{{RANDOM | Best | Regards | Sincerely }},</div><div><br /></div><div>Eliasse </div><div>CEO @linkfinder ai </div><div><br /></div><div><br /></div><div><br /></div><div>Reply Stop to opt out</div><div><br /></div>
+```
+
+**Step 1** (delay 2d) — Your LinkedIn account might be at risk
+
+```
+<div>{{RANDOM | Hi {{firstName}} | Hello {{firstName}}}},</div><div><br /></div><div>{{RANDOM | I noticed you've been engaging with posts about LinkedIn scraping tools - do you use them on your own accounts ? | I saw your recent activity around LinkedIn automation tools - are you currently using any for prospecting ? | I saw you've been engaging with content about LinkedIn automation - do you currently use any scraping tools ? }}</div><div><br /></div><div>{{RANDOM | If so, your account might be at serious risk after the recent Linkedin update | If that's the case, your account could be in significant danger after the last Linkedin update | If that's the case, your LinkedIn account could be seriously compromised after the recent Linkedin updates}}.</div><div><br /></div><div>If you want to continue to get Linkedin leads safely, we built a safer way which does not connect to your LinkedIn account.</div><div><br /></div><div>{{RANDOM | In fact, we used our safe scraper to pull your top 3 competitors' followers - want the list ? | To show you what's possible, I've already scraped your main competitors' followers with our safe solution - want this data? | As an example, we can safely scraped all your top competitors' LinkedIn followers  - want those leads ?}}</div><div><br /></div><div><br /></div><div>Eliasse </div><div>CEO @linkfinder ai </div><div><br /></div><div><br /></div><div><br /></div><div>Reply Stop to opt out</div>
+```
+
+**Step 1** (delay 2d) — Your LinkedIn account might be at risk
+
+```
+<div>Hi {{firstName}},</div><div><br /></div><div>{{RANDOM | I noticed you've been engaging with posts about LinkedIn scraping tools - do you use them on your own accounts ? | I saw your recent activity around LinkedIn automation tools - are you currently using any for prospecting ? | I saw you've been engaging with content about LinkedIn automation - do you currently use any scraping tools ? }}</div><div><br /></div><div>Most people either do it manually (slow) or use risky tools that can ban their accounts.</div><div><br /></div><div>We built a safer way that's fast and accurate and does not connect to your Linkedin account.</div><div><br /></div><div>{{RANDOM | To show you what's possible, I've already scraped your main competitors' followers with our safe solution - want this data? | As an example, we can safely scraped all your top competitors' LinkedIn followers  - want those leads ?}}</div><div><br /></div><div><br /></div><div>Eliasse </div><div>CEO @linkfinder ai </div><div><br /></div><div><br /></div><div><br /></div><div>Reply Stop to opt out</div>
+```
+
+**Step 2** (delay 1d) — Linkedin: warning
+
+```
+<div>{{RANDOM | Hi {{firstName}} | Hello {{firstName}} | Greetings, {{firstName}} | Hey {{firstName}} | Hi there, {{firstName}} }}</div><div><br /></div><div>{{RANDOM | I didn't hear back from you, so wanted to reach out again. | I'm following up because I haven't heard back. | Just circling back as I haven't received a response from you. | I'm reaching out again since I haven't heard from you yet. | I wanted to follow up on my previous email. }}</div><div><br /></div><div>{{RANDOM | If you're using PhantomBuster or similar LinkedIn scrapers, your Linkedin account is at risk. | Using PhantomBuster or similar LinkedIn scrapers puts your Linkedin account at risk. | Your Linkedin account could be at risk if you're using PhantomBuster or similar LinkedIn scrapers. | There's a risk to your LinkedIn account if you use PhantomBuster or similar LinkedIn scrapers. | Be aware that using PhantomBuster or similar LinkedIn scrapers can jeopardize your LinkedIn account. }} These tools connect directly to LinkedIn, leaving traces that trigger permanent bans.</div><div><br /></div><div>LinkFinder AI extracts the same prospecting data without ever connecting to your LinkedIn account. {{RANDOM | We use our own private network. | Our private network is used. | It uses our own private network. | It leverages our proprietary network. | We operate using a dedicated private network. }}</div><div><br /></div><div>Want to start extracting Linkedin leads {{RANDOM | safely | in a secure manner | without risk }}?</div><div><br /></div><div>{{RANDOM | Best, | Regards, | Sincerely, | Kind regards, | Best regards, | Warmly, }}</div><div><br /></div><div>Eliasse</div><div>CEO @ LinkFinder AI</div><div><br /></div><div><br /></div><div><br /></div><div><br /></div><div>Reply STOP to opt out</div>
+```
+
+## Automated outbound
+
+- id `2f31aad2-8bf3-4edb-9b48-864842b251aa` · Completed · created 2026-01-02
+
+**Step 1** (delay 1d) — LinkedIn leads
+
+```
+<div>Hi {{firstName}} </div><div><br /></div><div>I saw you reacted on a post about LinkedIn scraping. </div><div><br /></div><div>Quick question: what tool do you currently use to scrape LinkedIn?</div><div><br /></div><div>Most tools connect to your account, which creates ban risk and limitations.</div><div><br /></div><div>We built a scraper that doesn't connect to your LinkedIn account — so zero risk and unlimited scraping.</div><div><br /></div><div>Would this be useful for your workflow?</div><div><br /></div><div>Eliasse</div>
+```
+
+## Call with active paid users
+
+- id `287dbedb-c9e6-4160-80d2-39fbd5ab5d2a` · Completed · created 2026-05-08
+
+**Step 1** (delay 1d) — Quick question from the founder
+
+```
+<div>{{RANDOM | Hey {{firstName}} | Hi {{firstName}} | Hello {{firstName}} | Greetings {{firstName}} }},</div><div><br /></div><div>{{RANDOM | I'm Eliasse — I built LinkFinder AI | My name is Eliasse, and I'm the creator of LinkFinder AI | Eliasse here, the person behind LinkFinder AI | This is Eliasse, founder of LinkFinder AI }}.</div><div><br /></div><div>{{RANDOM | I noticed you've been using the product and I wanted to reach out personally | Seeing that you've been using LinkFinder AI, I wanted to connect with you directly | Given your usage of the product, I felt it was important to reach out personally | I've seen you're a user of LinkFinder AI, and I wanted to get in touch personally }}. {{RANDOM | I'm trying to understand how people are actually using it in their day-to-day work, and what would make it significantly more useful | My goal is to learn how users like you integrate it into your daily workflow and what improvements would make it even more valuable | I'm keen to understand its real-world application in your daily tasks and what could enhance its utility | I'm looking to gain insights into its practical use in your daily routine and what features would boost its usefulness }}.</div><div><br /></div><div>{{RANDOM | Would you be up for a 10-minute call this week | Could we schedule a brief 10-minute chat sometime this week | Are you available for a quick 10-minute discussion this week | How about a short 10-minute call this week }}? {{RANDOM | No agenda, no sales pitch — I just want to hear what's working and what's frustrating | This isn't a sales call; I simply want to understand your experience – both the good and the challenging parts | It's not a pitch; I'm genuinely interested in your feedback on what's effective and what causes friction | Just an open conversation to discuss your successes and any pain points, no hidden agenda }}.</div><div><br /></div><div>{{RANDOM | As a thank you I'll add 1,000 credits to your account straight after the call | To show my appreciation, I'll instantly credit your account with 1,000 credits following our chat | I'll add 1,000 credits to your account immediately after our conversation as a token of gratitude | You'll receive 1,000 credits in your account right after the call as a thank you }}.</div><div><br /></div><div>{{RANDOM | If you're open to it, you can book a time here | Should you be interested, feel free to schedule a time using this link | If this sounds good, please book a slot via this link | You can easily book a time that suits you here }}: <a href="https://calendly.com/hamoureliasse/compensated-interview-unlimited-leads-clone">https://calendly.com/hamoureliasse/compensated-interview-unlimited-leads-clone</a></div><div><br /></div><div>{{RANDOM | Eliasse | Best, Eliasse | Cheers, Eliasse | Regards, Eliasse | Sincerely, Eliasse }}</div><div>{{RANDOM | Founder, LinkFinder AI | Creator of LinkFinder AI | The Founder of LinkFinder AI }}</div>
+```
+
+## Churn user email campaign
+
+- id `69acc6ac-619b-47f8-85b5-3b10851b0cea` · Completed · created 2026-05-18
+
+**Step 1** (delay 1d) — Quick question about LinkFinder AI
+
+```
+<div>{{RANDOM | Hey {{name}} | Hi {{name}} | Hello {{name}}}},</div><div><br /></div><div>{{RANDOM | I noticed you cancelled LinkFinder AI | We saw your LinkFinder AI cancellation | It came to our attention that you unsubscribed from LinkFinder AI}} — {{RANDOM | totally fine, no hard feelings | completely understandable, no worries at all | absolutely okay, we bear no ill will}}.</div><div><br /></div><div>{{RANDOM | Just one quick question | I have a single query | Could I ask one thing}}: {{RANDOM | what made you decide to leave | what prompted your departure | why did you choose to cancel}}? {{RANDOM | Was it the price, data quality, a missing feature, or something else | Did pricing, data quality, a missing feature, or another factor play a role | Could it have been cost, data accuracy, a lacking feature, or perhaps something different}}?</div><div><br /></div><div>{{RANDOM | A one-line reply is perfectly sufficient | Just a brief response would be great | Even a short reply is enough}} and {{RANDOM | genuinely helps me improve | truly assists us in getting better | really aids in our continuous improvement}}.</div><div><br /></div><div>{{RANDOM | — Eliasse | Best, Eliasse | Regards, Eliasse}}</div><div>founder@linkfinderai.com</div>
+```
+
+**Step 2** (delay 3d) — {{RANDOM | You don't need a subscription to keep using LinkFinder | Quick note before you go | One thing worth knowing}}
+
+```
+<div>Hey {{name}},</div><div><br /></div><div>One thing worth knowing since you cancelled: you don't actually need a subscription to keep using LinkFinder AI.</div><div><br /></div><div>We sell one-time credit packs — buy once, use whenever, and they never expire. No monthly commitment, no auto-renewal, just credits sitting there for whenever you need to enrich a list again.</div><div><br /></div><div><a href="https://linkfinderai.com/app?action=buy_credits" rel="noopener noreferrer">See the credit packs →</a></div><div><br /></div><div>Eliasse</div><div>CEO @ LinkFinder AI</div>
+```
+
+## Comarketing Linkfinder AI
+
+- id `244e3f30-993a-48ee-bd2d-c42bacefaf8e` · Completed · created 2026-06-09
+
+**Step 1** (delay 1d) — Strategic Co-Growth Partnership Opportunity
+
+```
+<div>{{RANDOM | Hi | Hello | Greetings}} {{firstName}},</div><div><br /></div><div>{{RANDOM | I'm with LinkFinder AI | My name is Hamour Eliasse from LinkFinder AI | I represent LinkFinder AI}}, {{RANDOM | a B2B data enrichment API | a data enrichment platform | an AI-powered data solution}} {{RANDOM | for sales and revenue teams | designed for sales and revenue professionals | helping sales and revenue teams}}. {{RANDOM | I came across {{companyName}} | I recently discovered {{companyName}}| While researching, I found {{companyName}} }} {{RANDOM | and think our audiences overlap a lot | and believe our target audiences align well | and noticed a strong synergy between our audiences}}, {{RANDOM | so I wanted to see if you'd be open to | which made me wonder if you'd be interested in | leading me to reach out about the possibility of}} {{RANDOM | a co-marketing partnership | a collaborative marketing effort | partnering on some marketing initiatives}}.</div><div><br /></div><div>{{RANDOM | A few simple ways we could cross-promote | Here are some straightforward ideas for cross-promotion | We could easily collaborate in a few ways}}:</div><div><br /></div><div>- Link exchange between our sites or resource pages</div><div>- A mention in each other's newsletter / email list</div><div>- Including each other in relevant listicles or "tools we recommend" roundups</div><div>- Guest blog posts or co-authored content</div><div><br /></div><div>{{RANDOM | Would any of these be of interest | Do any of these options resonate with you | Are you open to exploring any of these ideas}}? {{RANDOM | Happy to start small and see what works for both sides | We're open to beginning with a small initiative to test the waters | I'm flexible and happy to start with a pilot program to find a good fit}}.</div><div><br /></div><div>{{RANDOM | If you're not the right contact | Should this not be your area | If I've reached the wrong person}}, {{RANDOM | I'd appreciate a pointer to the appropriate person on your team | please direct me to the best contact on your team | could you kindly point me to the right individual}}.</div><div><br /></div><div>{{RANDOM | Best regards | Sincerely | Kind regards | Warmly}},</div><div>Hamour Eliasse</div><div>LinkFinder AI</div><div>www.linkfinderai.com</div>
+```
+
+## GTM newsletter outbound
+
+- id `fda305b9-64bb-4a51-85c3-eab72b4b7794` · Completed · created 2026-06-12
+
+**Step 1** (delay 1d) — question about {{companyName}}
+
+```
+<div>{{RANDOM | Hey {{firstName}} | Hi {{firstName}} | Hello {{firstName}} | Greetings {{firstName}}}}</div><div><br /></div><div>{{RANDOM | Love what you're doing with {{companyName}} | Really impressed with {{companyName}}'s work | I'm a big fan of what you're building at {{companyName}} | Enjoying following {{companyName}}'s progress}}</div><div><br /></div><div>{{RANDOM | I run Linkfinder AI | My name is Hamour Eliasse, and I'm with Linkfinder AI | I'm Hamour Eliasse from Linkfinder AI | Linkfinder AI is my company}} – {{RANDOM | we built an API that finds | our API helps you find | our solution provides | we've developed an API for finding}} verified emails from LinkedIn profiles {{RANDOM | in seconds | almost instantly | very quickly | rapidly}}. {{RANDOM | A lot of GTM teams use it | Many Go-To-Market teams leverage it | It's widely adopted by GTM professionals | GTM teams often utilize it}} to automate their enrichment stack {{RANDOM | instead of doing it manually | rather than manual processes | eliminating manual effort | moving away from manual data collection}}.</div><div><br /></div><div>{{RANDOM | Think it'd be a good fit for your audience | I believe this could resonate with your readers | It seems like a valuable resource for your audience | This might be a great addition for your community}}. {{RANDOM | Happy to offer your readers | I'd be glad to provide your audience with | We're pleased to extend to your readers | I'm keen to give your readers}} an exclusive free trial + 1000 credits if you want to feature it. {{RANDOM | I can also write the blurb myself | I'm happy to draft the content for you | I can prepare the write-up | I'll even put together the blurb}} so it's {{RANDOM | zero work on your end | no effort required from you | completely effortless for you | a hands-off process for you}}.</div><div><br /></div><div>{{RANDOM | Worth a mention? | Does this sound interesting? | Would you be open to featuring it? | Could this be a good fit?}}</div><div><br /></div><div>Hamour Eliasse</div>
+```
+
+**Step 2** (delay 1d) — Deal for {{companyName}} readers
+
+```
+<div>{{RANDOM | Hey {{firstName}} | Hi {{firstName}} | Hello {{firstName}}}}</div><div><br /></div><div>{{RANDOM | I run | I'm the founder of | I lead}} Linkfinder AI – {{RANDOM | an email enrichment API | an API for email enrichment | a powerful email enrichment API}} for GTM and outbound teams.</div><div>{{RANDOM | We're setting up an affiliate program | We're launching an affiliate initiative | Our new affiliate program is in the works}} and {{RANDOM | I think your audience is a near-perfect match | I believe your audience would be an excellent fit | it seems your audience aligns perfectly}} – {{RANDOM | people building outbound stacks | those developing outbound strategies | individuals focused on optimizing their outbound efforts}} who {{RANDOM | need reliable data without paying Apollo prices | seek dependable data solutions without the high cost of Apollo | are looking for accurate data at a fraction of Apollo's cost}}.</div><div><br /></div><div>{{RANDOM | Would you be open to | Are you interested in | Would you consider}} {{RANDOM | a featured mention with an affiliate link | featuring us with an affiliate link | giving us a shout-out with an affiliate link}}?</div><div><br /></div><div>{{RANDOM | Happy to give your readers | We'd be glad to offer your audience | I'm pleased to provide your followers}} {{RANDOM | an exclusive discount | a special discount | a unique offer}} and {{RANDOM | handle all the copy | take care of all the content creation | provide all the necessary copy}}.</div><div><br /></div><div>Hamour Eliasse</div>
+```
+
+**Step 3** (delay 1d) — Linkfinder AI x {{companyName}}
+
+```
+<div>{{RANDOM | Hey {{firstName}} | Hi {{firstName}} | Hello {{firstName}} | Greetings {{firstName}} }} ,</div><div><br /></div><div>I run Linkfinder AI. We've processed hundreds of thousands of LinkedIn enrichment requests {{RANDOM | and have some interesting data | and we've gathered some compelling insights | and possess valuable statistics | and have uncovered unique findings}} on email accuracy rates by industry and company size {{RANDOM | – the kind of stuff your readers building outbound campaigns would find genuinely useful. | – information that would be incredibly valuable for your audience creating outbound campaigns. | – insights highly relevant to anyone building outbound strategies. | – data truly beneficial for your readers focused on outbound efforts.}}.</div><div><br /></div><div>{{RANDOM | Happy to share | I'd be glad to share | I'm keen to provide | We're pleased to offer}} {{RANDOM | the raw findings | these insights | the complete data | our discoveries}} {{RANDOM | for free | at no cost | completely free of charge | without any obligation}} {{RANDOM | – use it however you want, mention us or don't. | – feel free to use it as you see fit, with or without attribution. | – you're welcome to utilize it in any way, no mention required. | – leverage it freely, whether you credit us or not.}}.</div><div>{{RANDOM | Would that be useful for an upcoming issue? | Do you think this could be a good fit for a future publication? | Could this be of interest for an upcoming piece? | Might this be valuable for one of your next issues?}}</div><div><br /></div><div>Hamour Eliasse</div>
+```
+
+**Step 4** (delay 1d) — paid opportunity for {{companyName}}
+
+```
+<div>{{RANDOM | Just following up | Quick follow-up | Circling back | Following up on my previous message}} – {{RANDOM | also happy to send | I'd also be glad to provide | I'm also pleased to offer | Additionally, I'm happy to set you up with}} a free account {{RANDOM | so you can test it yourself | allowing you to try it out firsthand | for your personal evaluation | to give you a chance to experience it}} {{RANDOM | before mentioning it to your audience | prior to sharing it with your followers | before you introduce it to your community | before you recommend it to your readership}}. {{RANDOM | No obligation either way. | There's absolutely no pressure. | You're under no commitment whatsoever. | Completely free of any obligation.}}</div><div><br /></div><div>Hamour Eliasse</div>
+```
+
+## Monthly to annual
+
+- id `a473f2aa-35f7-4c6a-b709-89869dc94bb2` · Completed · created 2026-05-19
+
+**Step 1** (delay 1d) — Save 40% when you switch to annual
+
+```
+<div>{{RANDOM | Hey | Hi | Hello}} ,</div><div><br /></div><div>{{RANDOM | Quick one — | Just a quick note — | A brief heads-up — | Here's a quick thought —}} {{RANDOM | if you're on a monthly plan, | for those on a monthly subscription, | if you're currently paying monthly,}} {{RANDOM | switching to annual | upgrading to an annual subscription | moving to a yearly plan}} {{RANDOM | saves you 40% | nets you a 40% saving | offers a 40% discount | helps you save 40%}} {{RANDOM | and unlocks your full credit package immediately. | and instantly gives you access to your complete credit package. | plus, you get your entire credit package right away. | and grants immediate access to your full credit allowance.}}</div><div><br /></div><div>{{RANDOM | No waiting for monthly drips. | Forget about monthly credit trickles. | No more waiting for credits to refresh each month. | Say goodbye to staggered monthly credit releases.}} {{RANDOM | Everything upfront. | All your credits, right away. | Get it all at once. | Full access from day one.}}</div><div><br /></div><div>[{{RANDOM | Switch to Annual → | Upgrade to Annual Now → | Go Annual &amp; Save → | Make the Switch to Annual →}}] (<a href="https://linkfinderai.com/app?action=upgrade">https://linkfinderai.com</a>)</div><div><br /></div><div>Eliasse, </div><div>LinkFinder AI</div>
+```
+
+## Offre IA B2B
+
+- id `5f69c0ac-67e0-4fbe-b60a-1df46d92be38` · Completed · created 2026-02-10
+
+**Step 1** (delay 1d) — Linkfinder AI x {{entreprise}}
+
+```
+<div>Bonjour {{prénom}},</div><div><br /></div><div>{{observation_personnalisée}}</div><div><br /></div><div>Je me demande comment {{entreprise}} gère actuellement sa prospection et son développement commercial.</div><div><br /></div><div>Chez {{votre_agence}}, on aide les boîtes {{secteur}} comme {{entreprise}} à structurer toute leur machine sales : acquisition automatisé, mise en place de setters/closers, et livraison de RDV qualifiés.</div><div><br /></div><div>Résultat : pipeline qui tourne, zéro temps perdu.</div><div><br /></div><div>Tu serais dispo mercredi ou jeudi pour un quick call de 15 min sur comment scaler {{entreprise}} ? ☕</div><div><br /></div><div>À très vite,</div><div><br /></div>
+```
+
+**Step 1** (delay 1d) — Linkfinder AI x {{companyName}}
+
+```
+<div>{{RANDOM | Bonjour {{firstName}}, j'espère que tout roule ! | Salut {{firstName}}, comment ça va ? | Hello {{firstName}}, j'espère que tu vas bien !}}</div><div><br /></div><div>Je suis Eliasse, fondateur de Linkfinder AI.</div><div><br /></div><div>On vous aide à générer 10-15 RDV qualifiés/mois avec des entreprises prêtes à investir — prospection, équipe sales, CRM : on installe tout. </div><div>Vous gardez le focus sur la production, on remplit le pipeline.</div><div><br /></div><div>{{RANDOM | Si ça t'intéresse, on s'appelle rapidement selon tes dispos ? | Est-ce que ça te dirait qu'on échange rapidement, selon tes disponibilités ? | Seriez-vous intéressé par un appel rapide pour en discuter ?}}</div><div><br /></div><div>{{RANDOM | Hâte d'échanger, | Au plaisir d'en discuter, | Dans l'attente de vous lire,}}</div><div>Eliasse — CEO @ linkfinderai.com</div><div style="box-sizing:border-box;border:0px solid rgb(222, 220, 209);--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x: ;--tw-pan-y: ;--tw-pinch-zoom: ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position: ;--tw-gradient-via-position: ;--tw-gradient-to-position: ;--tw-ordinal: ;--tw-slashed-zero: ;--tw-numeric-figure: ;--tw-numeric-spacing: ;--tw-numeric-fraction: ;--tw-ring-inset: ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:hsl(210 70.9% 51.6%/1);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur: ;--tw-brightness: ;--tw-contrast: ;--tw-grayscale: ;--tw-hue-rotate: ;--tw-invert: ;--tw-saturate: ;--tw-sepia: ;--tw-drop-shadow: ;--tw-backdrop-blur: ;--tw-backdrop-brightness: ;--tw-backdrop-contrast: ;--tw-backdrop-grayscale: ;--tw-backdrop-hue-rotate: ;--tw-backdrop-invert: ;--tw-backdrop-opacity: ;--tw-backdrop-saturate: ;--tw-backdrop-sepia: ;--tw-contain-size: ;--tw-contain-layout: ;--tw-contain-paint: ;--tw-contain-style: ;outline-color:rgb(44, 132, 219);scrollbar-width:thin;scrollbar-color:rgba(222, 220, 209, 0.35) rgba(0, 0, 0, 0);display:flex;align-items:center;justify-content:flex-end;gap:0.5rem;padding:0.5rem" class="flex items-center justify-end gap-2 px-2 py-2"><div style="box-sizing:border-box;border:0.5px solid rgba(222, 220, 209, 0.15);--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x: ;--tw-pan-y: ;--tw-pinch-zoom: ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position: ;--tw-gradient-via-position: ;--tw-gradient-to-position: ;--tw-ordinal: ;--tw-slashed-zero: ;--tw-numeric-figure: ;--tw-numeric-spacing: ;--tw-numeric-fraction: ;--tw-ring-inset: ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:hsl(210 70.9% 51.6%/1);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 1px 2px 0 rgb(0 0 0/0.05);--tw-shadow-colored:0 1px 2px 0 var(--tw-shadow-color);--tw-blur: ;--tw-brightness: ;--tw-contrast: ;--tw-grayscale: ;--tw-hue-rotate: ;--tw-invert: ;--tw-saturate: ;--tw-sepia: ;--tw-drop-shadow: ;--tw-backdrop-blur: ;--tw-backdrop-brightness: ;--tw-backdrop-contrast: ;--tw-backdrop-grayscale: ;--tw-backdrop-hue-rotate: ;--tw-backdrop-invert: ;--tw-backdrop-opacity: ;--tw-backdrop-saturate: ;--tw-backdrop-sepia: ;--tw-contain-size: ;--tw-contain-layout: ;--tw-contain-paint: ;--tw-contain-style: ;outline-color:rgb(44, 132, 219);scrollbar-width:thin;scrollbar-color:rgba(222, 220, 209, 0.35) rgba(0, 0, 0, 0);display:flex;height:2rem;align-items:center;overflow:hidden;border-radius:0.5rem;--tw-bg-opacity:1;background-color:rgb(48, 48, 46);box-shadow:rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0.05) 0px 1px 2px 0px" class="flex items-center h-8 bg-bg-000 rounded-lg border-0.5 border-border-300 shadow-sm overflow-hidden"><div style="box-sizing:border-box;border:0px solid rgb(222, 220, 209);--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x: ;--tw-pan-y: ;--tw-pinch-zoom: ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position: ;--tw-gradient-via-position: ;--tw-gradient-to-position: ;--tw-ordinal: ;--tw-slashed-zero: ;--tw-numeric-figure: ;--tw-numeric-spacing: ;--tw-numeric-fraction: ;--tw-ring-inset: ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:hsl(210 70.9% 51.6%/1);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur: ;--tw-brightness: ;--tw-contrast: ;--tw-grayscale: ;--tw-hue-rotate: ;--tw-invert: ;--tw-saturate: ;--tw-sepia: ;--tw-drop-shadow: ;--tw-backdrop-blur: ;--tw-backdrop-brightness: ;--tw-backdrop-contrast: ;--tw-backdrop-grayscale: ;--tw-backdrop-hue-rotate: ;--tw-backdrop-invert: ;--tw-backdrop-opacity: ;--tw-backdrop-saturate: ;--tw-backdrop-sepia: ;--tw-contain-size: ;--tw-contain-layout: ;--tw-contain-paint: ;--tw-contain-style: ;outline-color:rgb(44, 132, 219);scrollbar-width:thin;scrollbar-color:rgba(222, 220, 209, 0.35) rgba(0, 0, 0, 0);width:fit-content;color:rgb(250, 249, 245);font-family:anthropicSans, &quot;anthropicSans Fallback&quot;, system-ui, &quot;Segoe UI&quot;, Roboto, Helvetica, Arial, sans-serif;font-size:medium;font-style:normal;font-variant-ligatures:normal;font-variant-caps:normal;font-weight:360;letter-spacing:normal;orphans:2;text-align:start;text-indent:0px;text-transform:none;widows:2;word-spacing:0px;-webkit-text-stroke-width:0px;white-space:normal;text-decoration-thickness:initial;text-decoration-style:initial;text-decoration-color:initial" data-state="closed" class="w-fit"><br /></div></div></div>
+```
+
+**Step 1** (delay 1d) — Petite question
+
+```
+<div>Bonjour {{prénom}},</div><div><br /></div><div>{{observation_personnalisée}}</div><div><br /></div><div>D'ailleurs, comment gérez-vous votre prospection chez {{entreprise}} ? En interne ou externalisé ?</div><div><br /></div><div>On spécialise dans le sales-as-a-service pour les {{secteur}} : on gère votre acquisition + on structure votre équipe commerciale (setters/closers).</div><div><br /></div><div>Conseils : pipeline prédictible, leads qualifiés, conversion optimisée.</div><div><br /></div><div>Un créneau lundi ou mardi pour un échange de 15 min sur la croissance de {{entreprise}} ?</div><div><br /></div>
+```
+
+## Product launch incentive
+
+- id `483ce995-98e2-4c87-806c-071296b28359` · Completed · created 2026-05-12
+
+**Step 1** (delay 1d) — It's launch day (+ 2000 credits for you)
+
+```
+<div>{{RANDOM | Hey {{firstName}}, | Hi {{firstName}}, | Hello {{firstName}},}}</div><div><br /></div><div>{{RANDOM | Eliasse here | It's Eliasse | This is Eliasse}} — {{RANDOM | founder of | the founder of | creator of}} LinkFinder AI.</div><div><br /></div><div>{{RANDOM | We're live on Product Hunt right now | LinkFinder AI just launched on Product Hunt | The launch is live on Product Hunt}} and {{RANDOM | your upvote would mean a lot. | I'd love your support. | your support would be invaluable.}} {{RANDOM | It takes 60 seconds: | It'll only take a minute: | Just a quick minute:}}</div><div>{{RANDOM | 👉 | 🚀 | ✨}} <a href="https://www.producthunt.com/products/link-finder?launch=linkfinder-ai-2-0">Upvote LinkFinder AI on Product Hunt</a></div><div><br /></div><div>{{RANDOM | Just click Upvote. | Simply hit the Upvote button. | All you need to do is Upvote.}} {{RANDOM | If you can add a short comment like "great tool for LinkedIn scraping," | A quick comment like "great tool for LinkedIn scraping" | And a brief comment like "great tool for LinkedIn scraping"}} {{RANDOM | that helps even more. | helps tremendously. | makes an even bigger difference.}}</div><div><br /></div><div>{{RANDOM | As a thank you — | To show my gratitude — | As a token of my appreciation —}} {{RANDOM | I've added 2000 free credits to your account, | 2000 free credits are now in your account, | you'll find 2000 free credits in your account,}} {{RANDOM | no strings attached. | on the house. | with no obligations.}}</div><div><br /></div><div>{{RANDOM | Thank you, | Cheers, | Appreciate it, | Thanks so much,}}</div><div><br /></div><div>Eliasse </div><div>Founder, LinkFinder</div><div><br /></div><div>{{RANDOM | P.S. | P.P.S. | Quick note:}} {{RANDOM | The first few hours are the most critical | The early hours matter most | Those first hours are vital}} — {{RANDOM | upvoting now makes the biggest impact. | the sooner the better. | every early vote counts.}}</div>
+```
+
+## Product launch incentive (D-DAY)
+
+- id `aa4d47d0-a086-439f-86f3-99a37e71e03c` · Completed · created 2026-05-27
+
+**Step 1** (delay 1d) — It's launch day (+ 2000 credits for you)
+
+```
+<div>{{RANDOM | Hey {{firstName}}, | Hi {{firstName}}, | Hello {{firstName}},}}</div><div><br /></div><div>{{RANDOM | Eliasse here | It's Eliasse | This is Eliasse}} — {{RANDOM | founder of | the founder of | creator of}} LinkFinder AI.</div><div><br /></div><div>{{RANDOM | We're live on Product Hunt right now | LinkFinder AI just launched on Product Hunt | The launch is live on Product Hunt}} and {{RANDOM | your upvote would mean a lot. | I'd love your support. | your support would be invaluable.}} {{RANDOM | It takes 60 seconds: | It'll only take a minute: | Just a quick minute:}}</div><div>{{RANDOM | 👉 | 🚀 | ✨}} <a href="https://www.producthunt.com/products/link-finder?utm_source=other&amp;utm_medium=social">Upvote LinkFinder AI on Product Hunt</a></div><div><br /></div><div>{{RANDOM | Just click Upvote. | Simply hit the Upvote button. | All you need to do is Upvote.}} {{RANDOM | If you can add a short comment like "great tool for LinkedIn scraping," | A quick comment like "great tool for LinkedIn scraping" | And a brief comment like "great tool for LinkedIn scraping"}} {{RANDOM | that helps even more. | helps tremendously. | makes an even bigger difference.}}</div><div><br /></div><div>{{RANDOM | As a thank you — | To show my gratitude — | As a token of my appreciation —}} {{RANDOM | I've added 2000 free credits to your account, | 2000 free credits are now in your account, | you'll find 2000 free credits in your account,}} {{RANDOM | no strings attached. | on the house. | with no obligations.}}</div><div><br /></div><div>{{RANDOM | Thank you, | Cheers, | Appreciate it, | Thanks so much,}}</div><div><br /></div><div>Eliasse </div><div>Founder, LinkFinder</div><div><br /></div><div>{{RANDOM | P.S. | P.P.S. | Quick note:}} {{RANDOM | The first few hours are the most critical | The early hours matter most | Those first hours are vital}} — {{RANDOM | upvoting now makes the biggest impact. | the sooner the better. | every early vote counts.}}</div>
+```
+
+## Reach appsumo team
+
+- id `73b67c56-fe03-41d4-a0d4-fd5cd88e5ba6` · Completed · created 2026-03-09
+
+**Step 1** (delay 1d) — LinkFinder AI x AppSumo
+
+```
+<div>Hi {{firstName}} ,</div><div><br /></div><div>{{personalization}}</div><div>I'm building LinkFinder AI — it enriches leads instantly with emails, phone numbers, LinkedIn data and company info from multiple sources at 95% accuracy.</div><div><br /></div><div>Quick numbers:</div><div>• $1K MRR</div><div>• 25 paying users</div><div>• 4.3★ on <a href="https://www.trustpilot.com/review/linkfinderai.com">Trustpilot</a></div><div>• Integrates with Zapier, Google sheet &amp; API</div><div><br /></div><div>Think it's a strong fit for the AppSumo community — sales teams, agencies and marketers are exactly our users.</div><div><br /></div><div>👉<a href="http://linkfinderai.com">linkfinderai.com</a></div><div><br /></div><div>Happy to answer any questions.</div><div><br /></div><div>Hamour Eliasse</div><div><br /></div>
+```
+
+## Rénovation SDB — Lead Gen RDV Qualifiés — Split ABCD
+
+- id `da0fda4c-adc1-453c-9b2d-66770e132915` · Completed · created 2026-03-28
+
+**Step 1** (delay 1d) — On a trop de demandes de rénovation salle de bains dans votre zone
+
+```
+<div>Bonjour {{firstName}},</div><div><br /></div><div>On gère l'acquisition de prospects pour des entreprises de rénovation  France. En ce moment, nos campagnes surperforment et on a un problème : plus de demandes de devis que de partenaires pour les traiter.</div><div><br /></div><div>Concrètement, nos équipes génèrent les prospects, les appellent, confirment leur projet de rénovation, et programment un rendez-vous directement dans votre agenda. Vous, vous recevez un prospect qualifié, prêt à être visité.</div><div><br /></div><div>On cherche 2 entreprises dans votre département. Si vous avez la capacité de prendre de nouveaux chantiers, répondez "intéressé" et je vous donne les détails.</div><div><br /></div><div>Samy Hamour</div>
+```
+
+**Step 1** (delay 1d) — {{firstName}}, vous cherchez encore des chantiers sur Leboncoin ?
+
+```
+<div>Bonjour {{firstName}},</div><div><br /></div><div>La plupart des entreprises de rénovation qu'on rencontre ont le même problème : trouver des chantiers réguliers sans dépendre du bouche-à-oreille ou de Leboncoin.</div><div><br /></div><div>On a construit un système qui résout ça. On génère des demandes de particuliers qui ont des projets de rénovation , on les appelle pour confirmer le projet, et on vous envoie uniquement des rendez-vous qualifiés. Pas de leads froids, pas de temps perdu.</div><div><br /></div><div>Est-ce que c'est un sujet pour vous en ce moment ?</div><div><br /></div><div>Samy Hamour</div><div>0771637454</div>
+```
+
+**Step 1** (delay 1d) — Comment une entreprise de rénovation a rempli son planning sur 3 mois
+
+```
+<div>Bonjour {{firstName}},</div><div><br /></div><div>Le mois dernier, une entreprise de rénovation nous a dit qu'elle avait du mal à remplir son planning au-delà de 3 semaines. Aujourd'hui, elle a 3 mois de chantiers devant elle.</div><div><br /></div><div>Ce qu'on fait : on génère des demandes de particuliers qui veulent refaire leur salle de bains leur maison, jardin etc, notre équipe les appelle pour qualifier le projet (budget, délai, type de travaux), et on programme le rendez-vous directement avec l'artisan.</div><div><br /></div><div>Vous ne payez que pour des rendez-vous confirmés.</div><div><br /></div><div>Si votre planning a des trous, ça vaut 2 minutes de votre temps. On en parle ?</div><div><br /></div><div>Samy hamour</div><div>0771637454</div>
+```
+
+**Step 1** (delay 1d) — Des rendez-vous rénovation salle de bains dans votre département
+
+```
+<div>Bonjour {{firstName}},</div><div><br /></div><div>Je vais être direct : on fournit des rendez-vous qualifiés à des entreprises de rénovation de salle de bains.</div><div><br /></div><div>Le process :<br />— On génère les prospects (particuliers qui veulent rénover)<br />— Notre équipe les appelle et confirme le projet<br />— On programme le rendez-vous dans votre agenda<br />— Vous visitez, vous chiffrez, vous signez</div><div><br /></div><div>Forfait mensuel ou au rendez-vous, selon ce qui vous convient.</div><div><br /></div><div>Intéressé ? Répondez-moi, je vous envoie les détails et les tarifs.</div><div><br /></div><div>Samy hamour </div><div>0771637454</div>
+```
+
+**Step 2** (delay 3d) — Re: On a trop de demandes de rénovation salle de bains dans votre zone
+
+```
+<div>Bonjour {{firstName}},</div><div><br /></div><div>Suite à mon message de la semaine dernière. Petite mise à jour : cette semaine, on a envoyé 12 rendez-vous à nos 4 partenaires actuels. Un d'entre eux a signé un chantier à 9 500€ dès la première visite.</div><div><br /></div><div>On a encore de la capacité sur votre zone. Si vous avez l'équipe pour traiter 3 à 5 rendez-vous par semaine, dites-moi et on démarre.</div><div><br /></div><div>{{signature}}</div>
+```
+
+**Step 2** (delay 3d) — Re: {{firstName}}, vous cherchez encore des chantiers sur Leboncoin ?
+
+```
+<div>Bonjour {{firstName}},</div><div><br /></div><div>Je me doute que vous recevez pas mal de sollicitations. Alors voici ce que je vous propose pour que ce soit simple :</div><div><br /></div><div>On vous envoie 3 rendez-vous qualifiés cette semaine. Vous les visitez. Si la qualité est là, on discute d'un partenariat. Sinon, on se serre la main et chacun repart de son côté.</div><div><br /></div><div>Zéro engagement, zéro frais pour tester. On a juste besoin de savoir votre zone d'intervention et vos dispos.</div><div><br /></div><div>Ça vous va ?</div><div><br /></div><div>{{signature}}</div>
+```
+
+**Step 2** (delay 3d) — Re: Comment une entreprise de rénovation a rempli son planning sur 3 mois
+
+```
+<div>Bonjour {{firstName}},</div><div><br /></div><div>Petit suivi rapide. On limite volontairement le nombre de partenaires par département pour ne pas les mettre en concurrence entre eux. Sur votre zone, il reste 1 place.</div><div><br /></div><div>Si votre concurrent s'inscrit avant vous, on ne pourra plus vous proposer ces rendez-vous. Je préfère être transparent là-dessus.</div><div><br /></div><div>Dites-moi si vous voulez qu'on en parle cette semaine.</div><div><br /></div><div>{{signature}}</div>
+```
+
+**Step 2** (delay 3d) — Re: Des rendez-vous rénovation salle de bains dans votre département
+
+```
+<div>{{firstName}},</div><div><br /></div><div>Question rapide : c'est quoi le plus gros frein pour vous en ce moment, trouver des clients ou trouver du personnel ?</div><div><br /></div><div>Si c'est les clients, on peut probablement régler ça en une semaine.</div><div><br /></div><div>{{signature}}</div>
+```
+
+**Step 3** (delay 4d) — Je ferme votre dossier ?
+
+```
+<div>Bonjour {{firstName}},</div><div><br /></div><div>Je ne veux pas vous encombrer. C'est mon dernier message.</div><div><br /></div><div>Si vous n'êtes pas intéressé par des rendez-vous qualifiés en rénovation salle de bains, aucun souci. Dites-moi simplement "non merci" et je supprime votre contact.</div><div><br /></div><div>Si c'est juste une question de timing, répondez "plus tard" et je reviens vers vous dans 2 mois.</div><div><br /></div><div>{{signature}}</div>
+```
+
+**Step 3** (delay 4d) — On va proposer votre zone à un autre artisan
+
+```
+<div>{{firstName}},</div><div><br /></div><div>Je n'ai pas eu de retour de votre part, donc on va proposer les rendez-vous de votre secteur à une autre entreprise de rénovation.</div><div><br /></div><div>Si finalement ça vous intéresse, faites-moi signe avant vendredi et je vous garde la priorité.</div><div><br /></div><div>Bonne continuation dans tous les cas.</div><div><br /></div><div>{{signature}}</div>
+```
+
+**Step 3** (delay 4d) — 14 rendez-vous envoyés ce mois
+
+```
+<div>{{firstName}},</div><div><br /></div><div>Juste un chiffre : 14 rendez-vous envoyés à nos partenaires ce mois-ci sur des projets de rénovation salle de bains. Ticket moyen des devis : 7 200€.</div><div><br /></div><div>Dernier message de ma part. Si un jour vous cherchez un flux régulier de chantiers, vous avez mon contact.</div><div><br /></div><div>{{signature}}</div>
+```
+
+**Step 3** (delay 4d) — Un conseil avant de vous laisser tranquille
+
+```
+<div>Bonjour {{firstName}},</div><div><br /></div><div>Dernier message, promis. Même si on ne travaille pas ensemble, un conseil qui fonctionne bien pour nos partenaires : mettez un formulaire de demande de devis sur votre page Google My Business. 60% des particuliers commencent par là.</div><div><br /></div><div>Si un jour vous voulez externaliser votre acquisition de chantiers et recevoir des rendez-vous qualifiés sans lever le petit doigt, vous savez où me trouver.</div><div><br /></div><div>Bonne continuation.</div><div><br /></div><div>{{signature}}</div>
+```
+
+## [AI SDR] ====================... - AI Sales Agent - Fully Personalized Campaign
+
+- id `90907489-74a8-4e3b-bf68-21a61cd87996` · Completed · created 2026-04-01
+
+**Step 1** (delay 3d) — {{90907489-74a8-4e3b-bf68-21a61cd87996_subject_1}}
+
+```
+{{90907489-74a8-4e3b-bf68-21a61cd87996_email_1}}
+```
+
+**Step 2** (delay 1d) — (follow-up, no subject)
+
+```
+{{90907489-74a8-4e3b-bf68-21a61cd87996_email_followup_1}}
+```
+
+**Step 3** (delay 2d) — (follow-up, no subject)
+
+```
+{{90907489-74a8-4e3b-bf68-21a61cd87996_email_followup_2}}
+```
+
+**Step 4** (delay 3d) — (follow-up, no subject)
+
+```
+{{90907489-74a8-4e3b-bf68-21a61cd87996_email_followup_3}}
+```
+
+## apify
+
+- id `1d311d7b-55b2-47d9-8ec3-091da4fa91f6` · Completed · created 2025-11-24
+
+**Step 1** (delay 1d) — Paid collaboration
+
+```
+<div>Hello {{firstName}},</div><div><br /></div><div>I came across your LinkedIn scraper on Apify and was impressed by the quality of your work.</div><div><br /></div><div>I'm reaching out to explore a collaboration opportunity. We've developed a SaaS tool that would complement your actor perfectly, and we'd like to discuss featuring it within your documentation or interface. We'd provide fair compensation for this partnership, as we recognize the value of your platform and audience.</div><div><br /></div><div>Would you be open to exploring this? </div><div><br /></div><div>Happy to share more details about our tool and discuss a mutually beneficial arrangement.</div><div><br /></div><div>Best regards,</div>
+```
+
+**Step 2** (delay 1d) — Quick Question About Your Apify Actor
+
+```
+<div>Hello {{firstName}},</div><div><br /></div><div>Your LinkedIn scraper on Apify has become an essential tool for many users, and I wanted to reach out with a proposition that could add value for both of us.</div><div><br /></div><div>We're building a SaaS platform designed specifically for B2B data workflows, and there's a natural synergy with what you've created. Many of your users would benefit from seamlessly connecting your scraper with our tool.</div><div><br /></div><div>Rather than just asking for exposure, we're proposing a partnership where we compensate you monthly to integrate a reference to our platform. This way, you're rewarded for the audience and trust you've built, while your users gain access to a solution that extends their capabilities.</div><div><br /></div><div>If this interests you, I'd be happy to share more details about how we can make this work together.</div><div><br /></div><div>Looking forward to hearing from you.</div><div><br /></div><div><br /></div><div>Best regards,</div>
+```
+
+## campagne SAMY
+
+- id `27a06775-dfd1-4399-80a9-a0e1a16878e8` · Completed · created 2026-03-17
+
+**Step 1** (delay 2d) — question
+
+```
+<div>Bonjour,</div><div><br /></div><div>Mandataire {{personalization}}  — {{RANDOM | question directe | je vais droit au but}} :</div><div><br /></div><div>Vous avez un système qui vous génère des RDV vendeurs qualifiés chaque mois, ou vous prospectez encore {{RANDOM | à la main | manuellement}} ?</div><div><br /></div><div>J'aide les mandataires à obtenir {{RANDOM | 8 à 12 | 10 à 15}} RDV vendeurs qualifiés par mois — sans prospection terrain, sans achat de leads.</div><div><br /></div><div>En 15 min cette semaine, je vous montre exactement comment ça fonctionne et ce que ça peut donner pour vous.</div><div><br /></div><div>{{RANDOM | Quel créneau vous convient ? | Vous êtes disponible quand ?}}</div><div><br /></div><div>Bien à vous,</div>
+```
+
+**Step 1** (delay 2d) — courte question
+
+```
+<div>{{RANDOM | Bonjour | Salut | Cher}} ,</div><div><br /></div><div>Mandataire {{personalization}},</div><div><br /></div><div>La plupart des mandataires {{réseau}} que je croise prospectent encore à la main — et {{RANDOM | ont du mal | peinent | galèrent}} à remplir leur agenda.</div><div><br /></div><div>J'ai un système qui {{RANDOM | change ça | inverse la tendance | transforme cela}} : 10 à 15 RDV vendeurs qualifiés par mois, en automatique.</div><div><br /></div><div>Vous avez 15 min cette semaine pour voir si ça peut {{RANDOM | marcher pour vous | fonctionner pour vous | être pertinent pour vous}} ?</div><div><br /></div><div>{{RANDOM | Bien à vous | Cordialement | Sincèrement}},</div>
+```
+
+**Step 1** (delay 2d) — mandataire {{personalization}}
+
+```
+<div>{{RANDOM | Bonjour | Salut | Cher}} ,</div><div><br /></div><div>Les mandataires {{personalization}} qui obtiennent régulièrement des RDV vendeurs qualifiés ont un point commun : ils ont arrêté de prospecter manuellement.</div><div><br /></div><div>{{RANDOM | Je mets en place | Je suis en train de mettre en place | Je déploie}} ce système pour eux — sans achat de leads, sans terrain.</div><div><br /></div><div>{{RANDOM | Disponible 15 min cette semaine ? | Avez-vous 15 minutes de disponibles cette semaine ? | Pourrions-nous échanger 15 minutes cette semaine ?}}</div><div><br /></div><div>{{RANDOM | Bien à vous | Cordialement | Sincèrement}},</div>
+```
+
+**Step 2** (delay 2d) — Vos RDV vendeurs qualifiés
+
+```
+<div>Bonjour,</div><div><br /></div><div>Un mandataire m'a dit exactement la même chose que vous probablement : "{{RANDOM | je n'ai pas le temps de prospecter | je n'ai pas le temps pour la prospection | prospecter, ce n'est pas pour moi}}."</div><div><br /></div><div>En janvier, il a généré {{RANDOM | 9 | 11 | environ 10}} RDV vendeurs qualifiés — {{RANDOM | sans terrain | sans avoir de terrain | sans foncier}}, sans achat de leads, sans y passer ses soirées.</div><div><br /></div><div>En 15 min cette semaine, {{RANDOM | je vous montre | je vais vous montrer | je peux vous expliquer}} ce qu'il a mis en place et {{RANDOM | ce que ça peut donner pour vous | les résultats que vous pourriez obtenir | comment cela pourrait vous bénéficier}}.</div><div><br /></div><div>{{RANDOM | Quel créneau vous convient ? | Vous êtes disponible quand ? | Quand seriez-vous disponible ? | Quelles sont vos disponibilités ?}}</div><div><br /></div><div>{{RANDOM | Bien à vous | Cordialement | Sincèrement}},</div>
+```
+
+**Step 3** (delay 1d) — Toujours d'actualité ?
+
+```
+<div>Bonjour,</div><div><br /></div><div>{{RANDOM | Je reviens vers vous une dernière fois | Je vous recontacte une ultime fois | C'est mon dernier message pour vous}}.</div><div><br /></div><div>{{RANDOM | Si générer des RDV vendeurs qualifiés sans prospecter ne vous parle pas en ce moment, pas de problème — je ne reviendrai pas vers vous | Si l'idée d'obtenir des RDV vendeurs qualifiés sans prospection ne vous intéresse pas pour l'instant, aucun souci, je ne vous relancerai pas | Si la génération de RDV vendeurs qualifiés sans avoir à prospecter ne résonne pas avec vos besoins actuels, pas de soucis – je ne vous recontacterai plus}}.</div><div><br /></div><div>{{RANDOM | Si ça vous intéresse encore, répondez-moi et on cale 15 min cette semaine | Si vous êtes toujours intéressé, répondez à ce mail et nous pourrons planifier 15 minutes cette semaine | Si cela vous intéresse toujours, faites-le moi savoir et nous organiserons un appel de 15 minutes cette semaine}}.</div><div><br /></div><div>{{RANDOM | Bien à vous | Cordialement | Sincèrement}},</div>
+```
+
+## campagne SAMY (copy)
+
+- id `86338a43-4f31-4451-9265-b283f0930979` · Completed · created 2026-03-18
+
+**Step 1** (delay 2d) — Question rapide
+
+```
+<div>Bonjour,</div><div><br /></div><div>Mandataire {{personalization}}  — {{RANDOM | question directe | je vais droit au but}} :</div><div><br /></div><div>Vous avez un système qui vous génère des RDV vendeurs qualifiés chaque mois, ou vous prospectez encore {{RANDOM | à la main | manuellement}} ?</div><div><br /></div><div>J'aide les mandataires {{réseau}} à obtenir {{RANDOM | 8 à 12 | 10 à 15}} RDV vendeurs qualifiés par mois — sans prospection terrain, sans achat de leads.</div><div><br /></div><div>En 15 min cette semaine, je vous montre exactement comment ça fonctionne et ce que ça peut donner pour vous.</div><div><br /></div><div>{{RANDOM | Quel créneau vous convient ? | Vous êtes disponible quand ?}}</div><div><br /></div><div>Bien à vous,</div>
+```
+
+**Step 2** (delay 2d) — Vos RDV vendeurs qualifiés
+
+```
+<div>Bonjour,</div><div><br /></div><div>Un mandataire m'a dit exactement la même chose que vous probablement : "{{RANDOM | je n'ai pas le temps de prospecter | je n'ai pas le temps pour la prospection | prospecter, ce n'est pas pour moi}}."</div><div><br /></div><div>En janvier, il a généré {{RANDOM | 9 | 11 | environ 10}} RDV vendeurs qualifiés — {{RANDOM | sans terrain | sans avoir de terrain | sans foncier}}, sans achat de leads, sans y passer ses soirées.</div><div><br /></div><div>En 15 min cette semaine, {{RANDOM | je vous montre | je vais vous montrer | je peux vous expliquer}} ce qu'il a mis en place et {{RANDOM | ce que ça peut donner pour vous | les résultats que vous pourriez obtenir | comment cela pourrait vous bénéficier}}.</div><div><br /></div><div>{{RANDOM | Quel créneau vous convient ? | Vous êtes disponible quand ? | Quand seriez-vous disponible ? | Quelles sont vos disponibilités ?}}</div><div><br /></div><div>{{RANDOM | Bien à vous | Cordialement | Sincèrement}},</div>
+```
+
+**Step 3** (delay 1d) — Toujours d'actualité ?
+
+```
+<div>Bonjour,</div><div><br /></div><div>{{RANDOM | Je reviens vers vous une dernière fois | Je vous recontacte une ultime fois | C'est mon dernier message pour vous}}.</div><div><br /></div><div>{{RANDOM | Si générer des RDV vendeurs qualifiés sans prospecter ne vous parle pas en ce moment, pas de problème — je ne reviendrai pas vers vous | Si l'idée d'obtenir des RDV vendeurs qualifiés sans prospection ne vous intéresse pas pour l'instant, aucun souci, je ne vous relancerai pas | Si la génération de RDV vendeurs qualifiés sans avoir à prospecter ne résonne pas avec vos besoins actuels, pas de soucis – je ne vous recontacterai plus}}.</div><div><br /></div><div>{{RANDOM | Si ça vous intéresse encore, répondez-moi et on cale 15 min cette semaine | Si vous êtes toujours intéressé, répondez à ce mail et nous pourrons planifier 15 minutes cette semaine | Si cela vous intéresse toujours, faites-le moi savoir et nous organiserons un appel de 15 minutes cette semaine}}.</div><div><br /></div><div>{{RANDOM | Bien à vous | Cordialement | Sincèrement}},</div>
+```
+
+## credit after review
+
+- id `d800aab5-72c0-4227-b936-7fa44f4e5eae` · Completed · created 2025-11-07
+
+**Step 1** (delay 1d) — Your 1,000 Bonus Credits Are Here! 🎉
+
+```
+<div>Hello ,</div><div><br /></div><div>Thank you so much for taking the time to share your experience with Linkfinder AI on Trustpilot! </div><div><br /></div><div>Your review means the world to us and helps other professionals discover how our tool can streamline their outreach efforts.</div><div><br /></div><div>As promised, I've personally added 1,000 credits to your account. </div><div><br /></div><div>Your feedback is invaluable as we continue to refine and improve Linkfinder AI. </div><div><br /></div><div>If you ever have suggestions, questions, or just want to share how you're using the platform, I'd love to hear from you—just reply to this email.</div><div><br /></div><div>Thank you again for being part of our community and for helping us grow through your honest review.</div><div><br /></div><div><br /></div><div>Best regards,</div><div><br /></div><div>Eliasse</div><div>CEO &amp; Founder, Linkfinder AI</div><div><br /></div><div><br /></div>
+```
+
+## email marketing unlimitedleads
+
+- id `58974413-dbcc-4ad2-9462-e9566cf9ff07` · Completed · created 2025-10-13
+
+**Step 1** (delay 1d) — this is for you
+
+```
+<div>Hello,</div><div><br /></div><div>I'm Eliasse, CEO of Unlimited Leads.</div><div><br /></div><div>I noticed you visited our platform but haven't upgraded yet, so I wanted to reach out personally.</div><div><br /></div><div>I'd like to offer you <strong>30% off</strong> any plan — this is my way of making sure you get access to unlimited B2B contacts without the typical credit restrictions.</div><div><br /></div><div>Use code <strong>{{personalization}}</strong> at checkout: <a href="https://unlimited-leads.net/app?utm_source=email&amp;utm_medium=email&amp;utm_campaign=trial_sequence&amp;utm_content=step1" target="_blank" rel="noopener noreferrer">https://unlimited-leads.online/app</a></div><div>This offer is valid for the next 48 hours.</div><div><br /></div><div>You'll get unlimited exports from our 100M+ verified contact database, plus access to our email finder and verifier tools.</div><div><br /></div><div>If you have any questions, just reply to this email. I read every response.</div><div><br /></div><div>Best,</div><div>Eliasse</div><div><br /></div><div>CEO, UnlimitedLeads</div><div><br /></div><div><br /></div><div><br /></div><div>Reply 'Stop' to unsubscribe from future emails.</div>
+```
+
+**Step 1** (delay 1d) — you're in!
+
+```
+<div>{{RANDOM | Welcome to UnlimitedLeads API | Greetings! Welcome to UnlimitedLeads API | A warm welcome to UnlimitedLeads API}} — {{RANDOM | the most powerful B2B data APIs | your go-to B2B data APIs | the leading B2B data APIs}} for {{RANDOM | finding, verifying, and enriching | discovering, validating, and enhancing | locating, confirming, and improving}} contact information at scale.</div><div><br /></div><div>{{RANDOM | Here's what you've unlocked | Here's what you now have access to | Let's explore what you've unlocked}}:</div><div><br /></div><ul class="[&amp;:not(:last-child)_ul]:pb-1 [&amp;:not(:last-child)_ol]:pb-1 list-disc space-y-2.5 pl-7"><li class="whitespace-normal break-words"><strong>Email Finder API</strong>: {{RANDOM | Find email addresses for any person at any company | Locate email addresses for anyone at any organization | Discover email addresses for individuals at any business}}</li><li class="whitespace-normal break-words"><strong>Email Verifier API</strong>: {{RANDOM | Validate email deliverability with 99% accuracy | Verify email deliverability with 99% precision | Confirm email deliverability with 99% accuracy}}</li><li class="whitespace-normal break-words"><strong>LinkedIn Scraper API</strong>: {{RANDOM | Extract complete profile data from LinkedIn URLs | Obtain comprehensive profile data from LinkedIn URLs | Gather full profile details from LinkedIn URLs}}</li><li class="whitespace-normal break-words"><strong>Unlimited access</strong>: {{RANDOM | No credit limits, just fixed monthly pricing | Enjoy fixed monthly pricing with no credit limits | Fixed monthly pricing with no credit restrictions}}</li></ul><div>{{RANDOM | Your API key is ready in your account | You can find your API key in your account | The API key is available in your account}}. </div><div><br /></div><div>{{RANDOM | Get started immediately with our quick api documentation | Dive right in with our api documentation | Begin now with our quick api documentation}}:</div><div><br /></div><div><a href="https://unlimited-leads.net/api-documentation.html?utm_source=email&amp;utm_medium=email&amp;utm_campaign=trial_sequence&amp;utm_content=step1" target="_blank" rel="noopener noreferrer">https://unlimited-leads.online/api-documentation.html</a></div><div><br /></div><div><br /></div><div>{{RANDOM | Questions? Reply to this email, we read every response | Have questions? Just reply to this email, we read all responses | Any questions? Reply to this email, we're here to help}}.</div><div><br /></div><div><br /></div><div><br /></div><div>{{RANDOM | Reply 'Stop' to unsubscribe from future emails | To unsubscribe from future emails, reply 'Stop' | Unsubscribe from future emails by replying 'Stop'}}.</div>
+```
+
+**Step 2** (delay 2d) — reach decision makers
+
+```
+<div>Hi,</div><div><br /></div><div>Tired of guessing email addresses?</div><div><br /></div><div>Our API finds any professional email for you.</div><div><br /></div><div>You give :</div><ul class="[&amp;:not(:last-child)_ul]:pb-1 [&amp;:not(:last-child)_ol]:pb-1 list-disc space-y-2.5 pl-7"><li class="whitespace-normal break-words">First name: John</li><li class="whitespace-normal break-words">Last name: Smith</li><li class="whitespace-normal break-words">Company: acme.com</li></ul><div>The Email finder api returns:</div><ul class="[&amp;:not(:last-child)_ul]:pb-1 [&amp;:not(:last-child)_ol]:pb-1 list-disc space-y-2.5 pl-7"><li class="whitespace-normal break-words">john.smith@acme.com ✓ verified</li></ul><div>Takes a few seconds. Works 90% of the time.</div><div><br /></div><div>Marcus automated this for his sales team. Now they find 500 emails/day instead of 20.</div><div><br /></div><div>Try it here : <a href="https://unlimited-leads.online/email-finder-app">https://unlimited-leads.online/email-finder-app</a></div><div><br /></div><div>Best,</div><div><br /></div><div>Eliasse</div><div>CEO, UnlimitedLeads</div><div><br /></div><div><br /></div><div>Reply 'Stop' to unsubscribe.</div>
+```
+
+**Step 2** (delay 2d) — find any lead's email
+
+```
+<div><br /></div><div>{{RANDOM | Discover | Uncover | Find}} verified contacts instantly {{RANDOM | with just a first name, last name, and company domain | using only a first name, last name, and company domain | by simply providing a first name, last name, and company domain}}.</div><div><br /></div><div>{{RANDOM | Perfect for | Ideal for | Great for}}:</div><div><br /></div><ul class="[&amp;:not(:last-child)_ul]:pb-1 [&amp;:not(:last-child)_ol]:pb-1 list-disc space-y-2.5 pl-7"><li class="whitespace-normal break-words">Sales prospecting and outreach</li><li class="whitespace-normal break-words">Lead generation campaigns</li><li class="whitespace-normal break-words">CRM data enrichment</li><li class="whitespace-normal break-words">Contact discovery automation</li></ul><div>{{RANDOM | Try it now | Check it out | Give it a try}} : <a href="https://unlimited-leads.net/email-finder-app/api-documentation.html?utm_source=email&amp;utm_medium=email&amp;utm_campaign=trial_sequence&amp;utm_content=step1" rel="noopener noreferrer" target="_blank">https://unlimited-leads.online/email-finder-app</a></div><div><br /></div><div><br /></div><div><br /></div><div>{{RANDOM | Questions? Reply to this email, we read every response. | Got questions? Just reply to this email, we read everything. | Any questions? Reply to this email, we're here to help. }}</div><div><br /></div><div><br /></div><div><br /></div><div>Reply 'Stop' to unsubscribe from future emails.</div><div><br /></div>
+```
+
+**Step 3** (delay 1d) — can I help you get unlimited leads?
+
+```
+<div>{{RANDOM | Hey | Hello | Hi}},</div><div><br /></div><div>We're here to make sure that {{RANDOM | you're getting | you receive | you obtain}} unlimited B2B leads for your business using Unlimited Leads API!</div><div><br /></div><div>Just ping me {{RANDOM | whenever you need help finding emails at scale | if you ever require assistance in sourcing emails in bulk | anytime you need support with large-scale email discovery}} or integrating our APIs into your existing tools. Or {{RANDOM | use our simple documentation | refer to our straightforward documentation | consult our easy-to-use documentation}} to connect with your CRM, cold email tools, or custom applications.</div><div><br /></div><div>We'd love to help you get 1,000+ new verified leads per week, {{RANDOM | just like how we've done it for DataDriven Corp. | similar to our success with DataDriven Corp. | as we've successfully achieved for DataDriven Corp.}}.</div><div><br /></div><div>{{RANDOM | Is there anything I can help you with today? | Can I assist you with anything today? | What can I do for you today?}}</div><div><br /></div><div>{{RANDOM | Talk soon | Best regards | Cheers}},</div><div><br /></div><div>Eliasse, </div><div>CEO@UnlimitedLeads</div><div><br /></div><div>P.S. Need a 1-on-1 API walkthrough? <a href="https://calendly.com/hamoureliasse/compensated-interview-unlimited-leads-clone">Pick a time here.</a></div><div><br /></div><div><br /></div><div><br /></div><div><br /></div><div>Reply 'Stop' to unsubscribe from future emails.</div>
+```
+
+**Step 4** (delay 1d) — Unlimited leads >>> Apollo
+
+```
+<div>{{RANDOM | Hey | Hi | Hello}},</div><div><br /></div><div>{{RANDOM | If you're deciding between us and Apollo, we'll cut to the chase… | Deciding between us and Apollo? Let's get straight to the point… | Considering us versus Apollo? Here's the bottom line…}}</div><div><br /></div><div>"UnlimitedLeads saves us 80% compared to credit-based tools."</div><div>Ahem 👀</div><div>{{RANDOM | This is not self-praise. | We're not just tooting our own horn. | This isn't just us bragging.}}</div><div><br /></div><div>{{RANDOM | This is from customers who switched from Apollo, ZoomInfo, and other credit-based platforms. | These are the words of customers who made the switch from Apollo, ZoomInfo, and similar credit-based platforms. | This comes directly from clients who moved over from Apollo, ZoomInfo, and other platforms with credit systems.}}{{RANDOM | Why they switched: | Here's why they made the change: | The reasons for switching:}}</div><div><br /></div><ul class="[&amp;:not(:last-child)_ul]:pb-1 [&amp;:not(:last-child)_ol]:pb-1 list-disc space-y-2.5 pl-7"><li class="whitespace-normal break-words">No credit limits - export unlimited leads</li><li class="whitespace-normal break-words">Fixed monthly pricing - no surprise bills or running out of credits mid-campaign</li><li class="whitespace-normal break-words">Better data accuracy - real-time verification on every search</li><li class="whitespace-normal break-words">Unlimited team seats - scale your outreach without per-user fees</li></ul><div>Check UnlimitedLeads plans: <a rel="noopener noreferrer" href="https://unlimited-leads.online/pricing?utm_source=email&amp;utm_medium=email&amp;utm_campaign=trial_sequence&amp;utm_content=step4" target="_blank">https://unlimited-leads.online/pricing</a></div><div><br /></div><div>Marcus T. says it best: "With Apollo, I was constantly rationing credits and watching my budget. UnlimitedLeads eliminated that stress completely—now my team just focuses on closing deals!"</div><div><br /></div><div>Sincerely,</div><div><br /></div><div>Eliasse </div><div>CEO@UnlimitedLeads</div><div><br /></div><div><br /></div><div><br /></div><div><br /></div><div><br /></div><div><br /></div><div><br /></div><div><br /></div><div>Reply 'Stop' to unsubscribe from future emails</div>
+```
+
+## interview credits exhausted
+
+- id `ce226e3d-cf88-4b50-9ed4-fcb540057706` · Completed · created 2026-06-05
+
+**Step 1** (delay 1d) — {{RANDOM | Quick question about LinkFinder AI |  You checked our plans — what stopped you ?  }}
+
+```
+<div>{{RANDOM | Hey {{firstName}} | Hi {{firstName}} | Hello {{firstName}} }},</div><div><br /></div><div>{{RANDOM | I'm Eliasse, founder of LinkFinder AI | Eliasse here, founder of LinkFinder AI | This is Eliasse, founder of LinkFinder AI }}. {{RANDOM | I noticed you used up all your credits but haven't topped up | I saw you ran through your credits but didn't refill | I noticed you hit zero on credits and stopped there }}.</div><div><br /></div><div>{{RANDOM | Would you be up for a quick 10-min call this week | Could we do a quick 10-min call this week | Free for a quick 10-min call this week }}? {{RANDOM | No pitch — I just want to understand what you were using it for and what stopped you from continuing | No sales pitch — I want to hear how it worked for you and why you didn't refill | Not a pitch — just want to learn what you got out of it and what held you back from going further }}. {{RANDOM | As a thank you, I'll add 1,000 credits to your account after the call | I'll drop 1,000 credits in your account right after as a thank you | You'll get 1,000 credits straight after the call as a thank you }}.</div><div><br /></div><div>{{RANDOM | Book a time here | Grab a slot here | Pick a time here }}: <a rel="noopener noreferrer noopener noreferrer" href="https://calendly.com/hamoureliasse/compensated-interview-unlimited-leads-clone">https://calendly.com/hamoureliasse/compensated-interview-unlimited-leads-clone</a></div><div><br /></div><div>{{RANDOM | Eliasse | Best, Eliasse | Cheers, Eliasse }}</div><div><br /></div><div>{{RANDOM | Founder, LinkFinder AI | Creator of LinkFinder AI }}</div>
+```
+
+## interview open modal
+
+- id `9a465c06-340b-4b96-9b5e-11379bb3300b` · Completed · created 2026-06-05
+
+**Step 1** (delay 1d) — {{RANDOM | Quick question about LinkFinder AI |  You checked our plans — what stopped you ?  }}
+
+```
+<div id="isPasted">{{RANDOM | Hey {{firstName}} | Hi {{firstName}} | Hello {{firstName}} }},</div><div><br /></div><div>{{RANDOM | I'm Eliasse, founder of LinkFinder AI | Eliasse here, founder of LinkFinder AI | This is Eliasse, founder of LinkFinder AI }}. {{RANDOM | I noticed you checked out our plans but didn't upgrade | I saw you looked at our pricing but held off | I noticed you were on the pricing page but didn't pull the trigger }}.</div><div><br /></div><div>{{RANDOM | Would you be up for a quick 10-min call this week | Could we do a quick 10-min call this week | Free for a quick 10-min call this week }}? {{RANDOM | No pitch — I just want to understand what held you back and help you get the most out of it | No sales pitch — I want to hear what stopped you and make sure you're getting full value | Not a pitch — just want to learn what was missing and help you unlock the product }}. {{RANDOM | As a thank you, I'll add 1,000 credits to your account after the call | I'll drop 1,000 credits in your account right after as a thank you | You'll get 1,000 credits straight after the call as a thank you }}.</div><div><br /></div><div>{{RANDOM | Book a time here | Grab a slot here | Pick a time here }}: <a rel="noopener noreferrer noopener noreferrer" href="https://calendly.com/hamoureliasse/compensated-interview-unlimited-leads-clone">https://calendly.com/hamoureliasse/compensated-interview-unlimited-leads-clone</a></div><div><br /></div><div>{{RANDOM | Eliasse | Best, Eliasse | Cheers, Eliasse }}</div><div><br /></div><div>{{RANDOM | Founder, LinkFinder AI | Creator of LinkFinder AI }}</div>
+```
+
+## outbound linkfinder ai (free consultation)
+
+- id `2b6ee4b7-e0ff-4800-a3f0-5b720c6dfbd1` · Completed · created 2026-06-04
+
+**Step 1** (delay 2d) — thoughts on this
+
+```
+<div>{{RANDOM | Hi {{firstName}} | Hey {{firstName}} | Hi there {{firstName}}}},</div><div><br /></div><div>{{RANDOM | I'm Eliasse, I started LinkFinder | Eliasse here — I run LinkFinder | I'm Eliasse from LinkFinder}}. {{RANDOM | We help B2B teams skip the boring lead research and just get clean contact data automatically, so they can spend more time actually selling. | We pull clean contact data for B2B teams automatically, so nobody has to dig around for leads by hand — more time to sell. | We take manual lead research off your plate by grabbing clean contact data for you, so your team can focus on selling.}}</div><div><br /></div><div>{{RANDOM | Up for a free 15-min chat this week? | Got 15 mins this week for a quick call? | Want to grab 15 mins this week?}} {{RANDOM | You'll walk away with a simple plan to automate the boring stuff. | I'll show you an easy way to automate the tedious parts. | You'll leave with a clear plan to cut out the busywork.}}</div><div><br /></div><div>{{RANDOM | Eliasse | Thanks, Eliasse | Cheers, Eliasse}}</div><div>linkfinderai.com</div>
+```
+
+**Step 1** (delay 2d) — thoughts on this
+
+```
+<div>{{RANDOM | Hi {{firstName}}, | Hello {{firstName}}, | Hey {{firstName}},}}</div><div><br /></div><div>{{RANDOM | I'm Eliasse, founder of LinkFinder. | My name is Eliasse, and I'm the founder of LinkFinder. | Eliasse here, founder of LinkFinder.}} {{RANDOM | We help B2B teams stop wasting time on manual lead research | Our mission is to help B2B teams eliminate wasted time on manual lead research | LinkFinder empowers B2B teams to cut down on time spent on manual lead research}} {{RANDOM | — pulling clean contact data automatically so your team can focus on selling. | by automatically pulling clean contact data, allowing your team to focus on selling. | — automating the process of pulling clean contact data, freeing your team to focus on selling.}}</div><div><br /></div><div>{{RANDOM | We're offering a free 30-min consultation with one of our automation experts this month | This month, we're providing a complimentary 30-minute consultation with an automation expert | We're extending an invitation for a free 30-min consultation with an automation expert this month}} {{RANDOM | — walking through your current setup and where to automate. | where we'll review your current setup and identify automation opportunities. | to discuss your current processes and pinpoint areas for automation.}} </div><div>{{RANDOM | Available this week if useful for {{companyName}}. | We have availability this week if this could benefit {{companyName}}. | Let me know if this would be valuable for {{companyName}} this week.}}</div><div><br /></div><div>{{RANDOM | Eliasse | Best, Eliasse | Regards, Eliasse | Cheers, Eliasse}}</div><div><br /></div><div>linkfinderai.com</div>
+```
+
+**Step 1** (delay 2d) — thoughts on this
+
+```
+<div>{{RANDOM | Hi {{firstName}}, | Hello {{firstName}}, | Hey {{firstName}}, | Greetings {{firstName}},}}</div><div><br /></div><div><br /></div><div>{{RANDOM | I'm Eliasse, founder of LinkFinder. We help B2B teams | My name is Eliasse, and as the founder of LinkFinder, I help B2B teams | Eliasse here, founder of LinkFinder. Our mission is to help B2B teams | As Eliasse, founder of LinkFinder, I'm reaching out because we assist B2B teams}} pull {{RANDOM | clean | accurate | verified | precise}}</div><div>contact data — {{RANDOM | emails, LinkedIn profiles, employees from a company | such as emails, LinkedIn profiles, and company employees | like emails, LinkedIn profiles, and staff members from any organization}} — {{RANDOM | automatically, no manual lookup. | without any manual effort or searching. | completely automated, eliminating manual lookups. | through automation, removing the need for manual searches.}}</div><div><br /></div><div>{{RANDOM | Reply "yes" and I'll send | Just reply "yes" and I'll immediately provide | Simply respond with "yes" and I'll grant you | A quick "yes" reply will get you}} 2,000 free credits + a link to get started. </div><div>{{RANDOM | No call, no card. | No commitment, no credit card required. | Absolutely no call or credit card needed. | Without any obligation or payment details.}}</div><div><br /></div><div>Eliasse</div><div>linkfinderai.com</div>
+```
+
+**Step 2** (delay 2d) — quick question
+
+```
+<div>{{RANDOM | Hi {{firstName}}, | Hey {{firstName}}, | Hi there {{firstName}},}}</div><div><br /></div><div>{{RANDOM | I'm Eliasse, I started LinkFinder. | Eliasse here — I run LinkFinder. | I'm Eliasse from LinkFinder.}} {{RANDOM | Most B2B teams I talk to have | A lot of B2B teams I chat with have | Something I hear all the time from B2B teams is they've got}} {{RANDOM | a bunch of CRM contacts with missing emails, wrong titles, or no LinkedIn — which makes outbound and follow-up a total guessing game. | a pile of CRM contacts missing emails, with the wrong titles, or no LinkedIn at all, so reaching out and following up turns into guesswork. | tons of CRM contacts with messy data — no emails, wrong titles, missing LinkedIn — making outbound and follow-up a shot in the dark.}}</div><div><br /></div><div>{{RANDOM | Up for a free 15-min chat this week? | Got 15 mins this week for a quick call? | Want to grab 15 mins this week?}} {{RANDOM | We'd look at how to clean up and fill in what you already have, so your team isn't stuck with broken data. | We could go over some easy ways to clean and fix your existing data, so your team's not working off bad info. | I'll show you how to tidy up and complete the contacts you've got, so nobody's guessing anymore.}}</div><div><br /></div><div>{{RANDOM | Eliasse | Thanks, Eliasse | Cheers, Eliasse}}</div><div>linkfinderai.com</div>
+```
+
+**Step 2** (delay 2d) — quick question
+
+```
+<div>{{RANDOM | Hi {{firstName}}, | Hello {{firstName}}, | Hey {{firstName}}, | Greetings {{firstName}},}}</div><div><br /></div><div>{{RANDOM | Eliasse from LinkFinder. | This is Eliasse from LinkFinder. | My name is Eliasse, and I'm with LinkFinder. | Eliasse here, representing LinkFinder.}} {{RANDOM | Most B2B teams I talk to | Many B2B organizations I speak with | A common theme among B2B teams I connect with | From my conversations with B2B teams}} {{RANDOM | have a pile of contacts in their CRM with missing emails or wrong titles | often deal with CRMs full of contacts lacking crucial email addresses or accurate job titles | frequently encounter CRMs where contact data is incomplete or incorrect (missing emails, wrong titles) | struggle with CRMs containing numerous contacts with outdated or absent email and title information}} {{RANDOM | — making outbound a guessing game. | which turns outbound efforts into a guessing game. | leading to outbound campaigns that feel like a shot in the dark. | effectively making their outbound strategy a hit-or-miss endeavor.}}</div><div><br /></div><div>{{RANDOM | I'm offering a free 30-min consultation | We're providing a complimentary 30-minute consultation | I'd like to extend an invitation for a free 30-min consultation | You're invited to a no-cost 30-min consultation}} {{RANDOM | with one of our automation experts this week | alongside one of our automation specialists in the coming days | with an automation expert from our team sometime this week | with a LinkFinder automation pro before the week is out}} {{RANDOM | to help map out a fix. | to assist in outlining a solution. | designed to help you strategize a resolution. | aimed at identifying and planning a solution.}} {{RANDOM | Open to it for {{companyName}}? | Would you be open to this for {{companyName}}? | Does this sound like something {{companyName}}would be interested in? | Is this something you'd consider for {{companyName}}?}}</div><div><br /></div><div>{{RANDOM | Eliasse | Best, Eliasse | Regards, Eliasse | Cheers, Eliasse}}</div><div>linkfinderai.com</div>
+```
+
+**Step 2** (delay 2d) — quick question
+
+```
+<div>{{RANDOM | Hi {{firstName}}, | Hello {{firstName}}, | Hey {{firstName}}, | Greetings {{firstName}},}}</div><div><br /></div><div>{{RANDOM | Eliasse from LinkFinder. | This is Eliasse from LinkFinder. | My name is Eliasse, and I'm with LinkFinder. | Eliasse here, from LinkFinder.}} {{RANDOM | Most teams using us are saving hours per week | Our users typically save hours weekly | We help teams save several hours each week | Many teams leveraging our platform reclaim hours every week}} {{RANDOM | on contact research | on their contact research efforts | when doing contact research | in their search for contact data}} {{RANDOM | — they drop in a list of companies or emails, get back the data they need. | — simply provide a list of companies or emails, and receive the necessary data. | — by inputting a list of companies or emails, they retrieve the required information. | — users just submit a list of companies or emails and receive the data they're looking for.}}</div><div><br /></div><div>{{RANDOM | If {{companyName}}  would benefit, | Should LinkFinder be valuable for {{companyName}} , | If you think {{companyName}}  could find this useful, | In case {{companyName}}  could gain from this,}} {{RANDOM | reply "yes" — | just reply "yes" — | simply respond with "yes" — | a quick "yes" reply will do —}} {{RANDOM | I'll send 2,000 free credits to test. | I'll provide 2,000 complimentary credits for testing. | I'd be happy to give you 2,000 free credits to try it out. | You'll get 2,000 free credits to experiment with.}} {{RANDOM | No commitment. | Absolutely no obligation. | There's no commitment required. | Test it out with zero strings attached.}}</div><div><br /></div><div>{{RANDOM | Eliasse | Best, Eliasse | Regards, Eliasse | Cheers, Eliasse}}</div><div>linkfinderai.com</div>
+```
+
+**Step 3** (delay 1d) — enriching contacts
+
+```
+<div>{{RANDOM | Hi {{firstName}}, | Hello {{firstName}}, | Hey [Name], | Greetings {{firstName}},}}</div><div><br /></div><div>{{RANDOM | Eliasse from LinkFinder here. | This is Eliasse from LinkFinder. | My name is Eliasse, and I'm with LinkFinder. | Eliasse, from LinkFinder.}}</div><div><br /></div><div>{{RANDOM | Quick question — | I have a quick question for you — | Just a quick query — | I was wondering —}} when {{companyName}} needs a contact's email or LinkedIn,</div><div>{{RANDOM | how do you find it today? | what's your current process for finding it? | how do you typically source it?}} {{RANDOM | Apollo? Manually? Something else? | Do you use Apollo, manual search, or another method? | Is it Apollo, manual effort, or perhaps another tool?}}</div><div><br /></div><div>{{RANDOM | Happy to jump on a free 15-min call this week if it'd help | I'd be glad to schedule a complimentary 30-minute chat this week if you're open to it | We could connect for a free 15-min call sometime this week to see if we can assist | I'm available for a quick, free 15-min call this week if you think it would be beneficial}} — we'd</div><div>{{RANDOM | look at how to make it faster and cheaper. | explore ways to make the process quicker and more cost-effective. | discuss strategies to streamline and reduce the cost of this task. | identify opportunities to improve efficiency and lower expenses.}}</div><div><br /></div><div>{{RANDOM | Eliasse | Best, Eliasse | Regards, Eliasse | All the best, Eliasse}}</div><div>linkfinderai.com</div>
+```
+
+**Step 3** (delay 1d) — enriching contacts
+
+```
+<div>{{RANDOM | Hi {{firstName}}, | Hello {{firstName}}, | Hey {{firstName}},}}</div><div><br /></div><div>{{RANDOM | Eliasse from LinkFinder here. | This is Eliasse from LinkFinder. | My name is Eliasse, and I'm with LinkFinder.}}</div><div><br /></div><div>{{RANDOM | Quick one — | Just a quick question — | A quick query for you —}} how much of {{companyName}}'s lead enrichment is {{RANDOM | automated today vs. still manual? | currently automated versus done manually? | handled by automation today compared to manual processes?}}</div><div><br /></div><div>{{RANDOM | If there are gaps, | Should you identify any gaps, | In case there are any manual processes,}} we're {{RANDOM | offering | providing | extending an invitation for}} a {{RANDOM | free 30-min call | complimentary 30-minute consultation | no-cost 30-minute discussion}} with one of our automation experts to {{RANDOM | map out | outline | design}} what an automated setup would look like. {{RANDOM | Available this week. | We have availability this week. | Our experts are available this week.}}</div><div><br /></div><div>{{RANDOM | Eliasse | Best, Eliasse | Regards, Eliasse}}</div><div>linkfinderai.com</div>
+```
+
+## outreach linkfinder ai (linkedin scraper phamtombuster alternative) (unlimited leads)
+
+- id `03e4202b-0e46-4f0f-830d-72381cf242ed` · Completed · created 2025-10-24
+
+**Step 1** (delay 2d) — Linkedin risk
+
+```
+<div>{{RANDOM | Hi {{firstName}} | Hello {{firstName}} | Greetings, {{firstName}}}},</div><div><br /></div><div>{{RANDOM | I'm contacting you because | I'm reaching out since | I wanted to connect with you as}} you engaged with this post about LinkedIn scraping (<a href="http://linkedin.com/posts/achille-morin-lemoine_i-was-tired-of-paying-50-month-just-to-activity-7394279058890510337-Zc6f/">linkedin.com/posts/achille-morin-lemoine_i-was-tired-of-paying-50-month-just-to-activity-7394279058890510337-Zc6f/</a>)</div><div><br /></div><div>{{RANDOM | If you're currently using | In case you are using | For those using}} PhantomBuster or similar LinkedIn scrapers, {{RANDOM | they connect directly to your LinkedIn account | these tools directly access your LinkedIn account | these platforms link straight to your LinkedIn profile}} and {{RANDOM | can trigger a permanent ban | may lead to a permanent suspension | could result in a permanent block}} to your account.</div><div><br /></div><div>{{RANDOM | We've built LinkFinder AI differently | LinkFinder AI was built with a different approach | Our approach with LinkFinder AI is different}} - {{RANDOM | same data extraction | extracting the same data | identical data harvesting}}, but {{RANDOM | we never touch your account | your account is never accessed by us | we don't interact with your account}} ({{RANDOM | You even need to have | You'll still need | It still requires you to have}} a LinkedIn account to use it). </div><div><br /></div><div>{{RANDOM | No ban risk, no scraping limits | Zero risk of bans, no limits on scraping | Completely ban-proof, unlimited scraping}}.</div><div><br /></div><div>{{RANDOM | Want to try it? Just reply | Interested in giving it a try? Simply reply | Keen to test it out? Just respond}}.</div><div><br /></div><div>{{RANDOM | Best | Regards | Sincerely}},</div><div>Eliasse</div><div>CEO @ LinkfinderAI</div><div><br /></div><div><br /></div><div><br /></div><div><br /></div><div><br /></div><div>Reply Stop to opt out</div><div><br /></div>
+```
+
+**Step 1** (delay 2d) — LinkedIn warning
+
+```
+<div>{{RANDOM | Hi {{First Name}} | Hello {{First Name}} | Greetings, {{First Name}}}}</div><div><br /></div><div>{{RANDOM | I'm reaching out | I'm getting in touch | I wanted to connect}} since you reacted to that post about LinkedIn scraping (<a href="http://linkedin.com/posts/achille-morin-lemoine_i-was-tired-of-paying-50-month-just-to-activity-7394279058890510337-Zc6f">linkedin.com/posts/achille-morin-lemoine_i-was-tired-of-paying-50-month-just-to-activity-7394279058890510337-Zc6f</a>)</div><div><br /></div><div>{{RANDOM | If you're using PhantomBuster or similar LinkedIn scrapers | In case you're using PhantomBuster or other LinkedIn scraping tools | Should you be using PhantomBuster or similar LinkedIn scrapers}}, they connect directly to your LinkedIn account and can trigger {{RANDOM | a permanent ban | a ban that's permanent | permanent suspension}} to your account.</div><div><br /></div><div>We built LinkFinder AI differently - {{RANDOM | same data extraction | extracting the same data | identical data extraction}}, but we never touch your account (You don't even need to have a LinkedIn account to use it) . </div><div><br /></div><div>{{RANDOM | No ban risk, no scraping limits | Zero ban risk, no limits on scraping | Scraping without ban risk or limits}}.</div><div><br /></div><div>{{RANDOM | Want to try it? Just reply. | Interested in giving it a try? Just reply. | Want to test it out? Simply reply. }}</div><div><br /></div><div>{{RANDOM | Best | Regards | Sincerely}},</div><div>Eliasse</div><div>CEO @ LinkfinderAI</div><div><br /></div><div><br /></div><div><br /></div><div><br /></div><div><br /></div><div><br /></div><div>Reply Stop to opt out</div>
+```
+
+**Step 2** (delay 1d) — LinkedIn crackdown
+
+```
+<div>{{RANDOM | Hi {{First Name}} | Hello {{First Name}} | Greetings, {{First Name}}}},</div><div><br /></div><div>{{RANDOM | I'm contacting you because | I'm reaching out since | I wanted to connect with you as | I'm getting in touch with you because | The reason I'm writing is that}} you engaged with this post about LinkedIn scraping (<a href="http://linkedin.com/posts/achille-morin-lemoine_i-was-tired-of-paying-50-month-just-to-activity-7394279058890510337-Zc6f/">linkedin.com/posts/achille-morin-lemoine_i-was-tired-of-paying-50-month-just-to-activity-7394279058890510337-Zc6f/</a>)</div><div><br /></div><div>If you're considering using scrapers, you should know: LinkedIn's crackdown is getting {{RANDOM | worse | increasingly severe | more intense}}.</div><div><br /></div><div>This week alone, 3 companies came to us after they lost their {{RANDOM | entire sales teams' | whole sales team's | complete sales team's}} accounts. </div><div><br /></div><div>Months of connections and pipeline - {{RANDOM | gone | vanished | disappeared}}.</div><div><br /></div><div>LinkFinder AI extracts the same data without touching your account (no LinkedIn account needed).</div><div><br /></div><div>{{RANDOM | Want the access link? | Would you like the access link? | Interested in the access link? | Do you want the link?}}</div><div><br /></div><div>{{RANDOM | Best | Regards | Sincerely}},</div><div><br /></div><div>EliasseCEO @ LinkFinderAI</div><div><br /></div><div><br /></div><div><br /></div><div><br /></div><div><br /></div><div><br /></div><div><br /></div><div>Reply Stop to opt out</div>
+```
+
+## referral program incentive
+
+- id `b022a537-8343-4b51-a426-38a9e7a9531b` · Completed · created 2026-01-08
+
+**Step 1** (delay 1d) — Start earning with Linkfinder AI affiliate program
+
+```
+<div>{{RANDOM | Hi there | Hello | Hey there}}</div><div><br /></div><div>You're earning 25% lifetime commission on all Linkfinder AI referrals—{{RANDOM | here's the easiest way to start converting | here's a simple way to begin converting | the simplest way to convert is below}}:</div><div><br /></div><div>{{RANDOM | Add Linkfinder AI to a social post or "Recommended Tools" page with a brief description and your affiliate link | Include Linkfinder AI on a social media update or a "Recommended Tools" section with a short description and your affiliate link | Feature Linkfinder AI in a social media post or on a "Recommended Tools" page, along with a concise description and your affiliate link}}. {{RANDOM | Affiliates doing this are already seeing results | Affiliates who do this are already experiencing success | We're already seeing results from affiliates who are doing this}}.</div><div><br /></div><div>{{RANDOM | This works especially well if your audience is interested in enrichment or LinkedIn scraping tools | This is particularly effective if your audience has an interest in enrichment or LinkedIn scraping tools | It's especially beneficial if your audience is keen on enrichment or LinkedIn scraping tools}}.</div><div><br /></div><div>{{RANDOM | Need your referral link or program details | Want your referral link or the program details | Looking for your referral link or more information about the program}}? Visit: <a rel="noopener noreferrer" href="https://linkfinderai.com/referral-program">https://linkfinderai.com/referral-program</a></div><div><br /></div><div>{{RANDOM | Questions? Just reply | Any questions? Simply reply | If you have questions, just reply}}.</div><div><br /></div><div>{{RANDOM | Best | Regards | Sincerely}},</div><div>Hamour Eliasse</div><div><br /></div><div>Linkfinder AI</div>
+```
+
+**Step 1** (delay 1d) — How affiliates are earning with LinkFinder AI
+
+```
+<div>{{RANDOM | Hi | Hey | Hello | Greetings | Hello there}},</div><div><br /></div><div>The affiliates {{RANDOM | making the most | profiting the most | earning the most}} from their 25% lifetime </div><div>commission {{RANDOM | aren't doing anything complicated | are keeping things simple | have a simple strategy}}.</div><div><br /></div><div>They {{RANDOM | add LinkFinder AI to a "Tools I Use" page | include LinkFinder AI on their resource page | feature LinkFinder AI on a "Tools I Use" list}} or {{RANDOM | drop a single social post | share a quick social media update | make one social media announcement}} — {{RANDOM | something like | such as | for example}}:</div><div><br /></div><div>"If you're doing LinkedIn prospecting, this tool finds </div><div>verified emails and phone numbers from any profile URL. </div><div>Bulk. Instant. Accurate."</div><div><br /></div><div>{{RANDOM | That's it | It's that simple | That's all there is to it}}. {{RANDOM | One mention, passive income every time someone subscribes | A single mention generates passive income with each new subscriber | Just one mention leads to recurring revenue with every subscription}}.</div><div><br /></div><div>Your referral link is waiting:</div><div>→ <a href="https://linkfinderai.com/referral-program">https://linkfinderai.com/referral-program</a></div><div><br /></div><div>{{RANDOM | Best | Cheers | Regards | Sincerely | All the best}},</div><div>Eliasse</div><div><br /></div><div>P.S. 25% lifetime means you earn every month they stay </div><div>subscribed — not just the first payment. {{RANDOM | Just so you know | Important to note | Keep in mind}}.</div>
+```
+
+**Step 1** (delay 1d) — Your 25% commission is sitting unused
+
+```
+<div>{{RANDOM | Hi | Hey | Hello | Greetings | Hello there}}, </div><div><br /></div><div>You're approved for 25% lifetime commission on every LinkFinder AI referral. </div><div><br /></div><div>{{RANDOM | Most affiliates never make their first dollar because they overcomplicate it | A lot of affiliates struggle to earn anything because they make things too complex | Many affiliates fail to see any income because they complicate the process}}.</div><div><br /></div><div>{{RANDOM | The simplest thing that works: | Here's the easiest approach that's effective: | The most straightforward method that delivers results:}}</div><div>{{RANDOM | Post your link once. One social post, one tool recommendation, one mention in a newsletter | Share your link a single time. A social media update, a tool endorsement, a newsletter mention | Just post your link once. Whether it's a social media share, a tool recommendation, or a newsletter mention}}. </div><div><br /></div><div>{{RANDOM | That's it. | It's that simple. | That's all there is to it.}}{{RANDOM | If your audience does any LinkedIn prospecting or lead enrichment — this is an easy yes for them | If your audience is involved in LinkedIn prospecting or lead enrichment — it's a no-brainer for them | If your audience uses LinkedIn for prospecting or lead enrichment — they'll find it a simple decision}}.</div><div><br /></div><div>→ Get your affiliate link: <a rel="noopener noreferrer noopener noreferrer noopener noreferrer noopener noreferrer" href="https://linkfinderai.com/referral-program">https://linkfinderai.com/referral-program</a></div><div><br /></div><div>{{RANDOM | Best | Cheers | Regards | Sincerely | All the best}},</div><div><br /></div><div>Eliasse CEO at Linkfinderai</div><div class="sticky bottom-0 mx-auto w-full pt-6 relative z-[5]" data-chat-input-container="true"><div data-testid="chat-input-grid-container" class="grid"><div data-testid="chat-input-grid-area" class="[grid-area:1/1] min-w-0"><div class="relative"><br /></div></div></div></div>
+```
