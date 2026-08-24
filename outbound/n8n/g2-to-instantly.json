@@ -1,0 +1,450 @@
+{
+  "name": "G2 → LinkFinder → Instantly (AEO outbound)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 8 * * 1-5"
+            }
+          ]
+        }
+      },
+      "id": "trigger",
+      "name": "Weekdays 08:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -720,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Everything tunable lives here so nothing downstream hardcodes it.\n//\n// The category list is the single most important input. G2's API, on a\n// buyer-scoped token, returns only the TOP products of a category. In a\n// broad category (\"CRM\", \"Sales Engagement\") those are Salesforce and\n// Apollo -- giants who need nothing from us. In a narrow category the top\n// products ARE the whole category, and that is where every usable prospect\n// has come from. Measured yield: ~1.6 per narrow category, 0 per broad one.\n//\n// So: add narrow categories. Resist adding broad ones.\nreturn [{ json: {\n  categories: [\n    'ai-sales-roleplay-tools',\n    'ai-proposal-generator-tools',\n    'event-lead-capture',\n    'ai-interview-agent',\n    'ai-documentation-generators',\n    'site-search-software',\n    'ai-sre-tools',\n    'website-privacy-auditing-tools',\n    'ai-agent-observability',\n    'semantic-layer-tools',\n    'virtual-recording-studio',\n    'low-code-mobile-app-builder'\n  ],\n  minReviews: 10,\n  maxReviews: 250,\n  campaignId: 'df17f3eb-368d-415f-99ab-b6a7325dad3c',\n  // Competitors, and companies selling the outcome we sell. Both turn up in\n  // exactly the categories worth sweeping.\n  excludeDomains: [\n    'linkfinderai.com','clay.com','warmly.ai','6sense.com','apollo.io',\n    'zoominfo.com','lusha.com','cognism.com','hunter.io','snov.io',\n    'rocketreach.co','seamless.ai','uplead.com','findymail.com',\n    'dropcontact.com','kaspr.io','surfe.com','prospeo.io','anymailfinder.com',\n    'tryprofound.com','peec.ai','otterly.ai','athenahq.ai','scrunchai.com',\n    'goodie.ai','brandlight.ai'\n  ]\n} }];"
+      },
+      "id": "config",
+      "name": "Config",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -520,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://api.instantly.ai/api/v2/workspaces/current/plan",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "capacity",
+      "name": "Instantly: room left?",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -320,
+        300
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "instantly",
+          "name": "Instantly API key"
+        }
+      },
+      "notes": "Runs FIRST on purpose. Sourcing is free and enrichment is not, so the cheap check that can fail the whole run goes before anything metered. Skipping this is how you pay LinkFinder for leads Instantly will refuse."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Refuse to spend a credit we cannot use.\n//\n// This node exists because of a real afternoon: the workspace sat 6,089\n// leads over its cap, so every upload would have 403'd -- but only AFTER\n// LinkFinder had been paid for each enrichment. Credits gone, nothing to\n// show for it.\nconst cfg = $('Config').first().json;\nconst plan = $input.first().json;\nconst sub = plan?.subscriptions?.outreach || plan || {};\nconst limit = sub.total_lead_limit;\nconst used  = sub.current_lead_count;\n\nif (limit == null || used == null) {\n  return [{ json: { ...cfg, room: null, note: 'lead limit unreadable; continuing' } }];\n}\n\nconst room = limit - used;\nif (room <= 0) {\n  throw new Error(\n    `Instantly has no room: ${used}/${limit}, ${-room} over the cap. ` +\n    `Free space before running this, or you will pay to enrich leads that ` +\n    `cannot be uploaded.`\n  );\n}\nreturn [{ json: { ...cfg, room } }];"
+      },
+      "id": "gate",
+      "name": "Stop if no room",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -120,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const cfg = $input.first().json;\nreturn cfg.categories.map(slug => ({ json: { ...cfg, slug } }));"
+      },
+      "id": "fanout",
+      "name": "One item per category",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        80,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://data.g2.com/api/v2/categories/{{ $json.slug }}?include=products",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "retry": {
+            "retry": {
+              "maxTries": 3,
+              "waitBetweenTries": 2000
+            }
+          }
+        }
+      },
+      "id": "g2",
+      "name": "G2: products in category",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        280,
+        300
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "g2",
+          "name": "G2 API token"
+        }
+      },
+      "notes": "The official API, not a scraper. G2 sits behind Cloudflare and scraping it breaks their terms; this token is already yours and does not get blocked. Its one real limit is that a buyer-scoped account sees only a category's top products -- which is exactly why the category list must stay narrow."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Keep only what is worth paying to enrich.\n//\n// The review band is the qualifier:\n//   below min  a stub listing, often a solo project with no budget\n//   in band    listed, real, small enough that nobody built them a content\n//              engine yet  <- the prospect\n//   above max  category leader with an SEO team; the pitch insults them\nconst cfg = $('Stop if no room').first().json;\nconst out = [];\n\nfor (const item of $input.all()) {\n  const slug = item.json.slug || '';\n  const body = item.json.body ?? item.json;\n  const categoryName = body?.data?.attributes?.name || slug;\n  const included = body?.included || [];\n\n  const products = included\n    .filter(i => i.type === 'products' && i.attributes?.domain)\n    .map(i => ({\n      domain: String(i.attributes.domain).trim().toLowerCase(),\n      company: i.attributes.name || '',\n      reviewCount: i.attributes.review_count || 0\n    }));\n\n  if (!products.length) continue;\n\n  // If even the smallest product G2 will show us is above the band, this\n  // category has no reachable tail -- every row we could get belongs to a\n  // company with a content team. Skip rather than pitch them.\n  const smallest = Math.min(...products.map(p => p.reviewCount));\n  if (smallest > cfg.maxReviews) continue;\n\n  for (const p of products) {\n    if (cfg.excludeDomains.includes(p.domain)) continue;\n    if (p.reviewCount < cfg.minReviews || p.reviewCount > cfg.maxReviews) continue;\n    out.push({ json: { ...p, category: categoryName, campaignId: cfg.campaignId } });\n  }\n}\n\n// Never enrich more than we can upload.\nconst room = cfg.room;\nconst capped = (room && room > 0) ? out.slice(0, room) : out;\nreturn capped;"
+      },
+      "id": "band",
+      "name": "Filter to the review band",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "options": {
+          "reset": false
+        }
+      },
+      "id": "loop",
+      "name": "One prospect at a time",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        680,
+        300
+      ],
+      "notes": "Batch size 1. The LinkFinder lookup fails about half the time with a status message rather than an error, so each prospect needs its own retry path."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.linkfinderai.com/api/v1/enrich",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ type: 'company_domain_to_employees', input: $json.domain, seniority: 'founder,owner,c_suite,vp,head', employee_count: 5 }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "retry": {
+            "retry": {
+              "maxTries": 3,
+              "waitBetweenTries": 4000
+            }
+          }
+        }
+      },
+      "id": "linkfinder",
+      "name": "LinkFinder: decision maker",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        880,
+        300
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "linkfinder",
+          "name": "LinkFinder API key"
+        }
+      },
+      "notes": "n8n's own retry does NOT catch this endpoint's real failure: it answers HTTP 200 with a fake person whose name is a status message, so nothing here looks like an error. The next node is what actually detects it."
+    },
+    {
+      "parameters": {
+        "jsCode": "// The failure that HTTP status codes do not describe.\n//\n// This endpoint answers 200 / \"success\" even when its upstream is down,\n// putting a status message where a person should be:\n//   {\"personId\": null, \"name\": \"We are on maintenance. Check back in 48hrs\"}\n//\n// Measured across ~20 live calls it comes back for roughly HALF of them,\n// interleaved with perfectly good answers for similar domains seconds\n// apart. So one sentinel means try again, not \"the provider is down\".\n//\n// ORDER MATTERS HERE. Look for a real person FIRST, and only ask why we\n// failed when we actually failed. The actor also injects a chatty banner\n// row (\"We improve the Actor everyday...\") alongside genuine results, so\n// checking for sentinels first would throw away a good lead and pay to\n// look it up again. Real data present always wins.\n//\n// When there is no person, two rows look similar and mean opposite things:\n//   \"No Leads found. Tweak your filters\"  -> a real, empty answer. Accept it.\n//   \"We are on maintenance...\"            -> the provider. Retry it.\n// Treating the first as an outage would triple the cost of every dead\n// domain; treating the second as an answer writes off a good company.\nconst OUTAGE = ['maintenance','check back in','we improve the actor','contact us if you are having'];\n\nconst prospect = $('One prospect at a time').first().json;\nconst body = $input.first().json;\nconst payload = body?.body ?? body;\nlet rows = payload?.result ?? payload?.employees ?? payload;\nwhile (rows && !Array.isArray(rows) && rows.result) rows = rows.result;\nif (!Array.isArray(rows)) rows = [];\n\nconst person = rows.find(r => r && (r.personId || r.person_id) &&\n  r.email && String(r.email).includes('@') && r.name);\n\nif (person) {\n  const parts = String(person.name).trim().split(/\\s+/);\n  return [{ json: { ...prospect, status: 'ok',\n    email: person.email.trim(),\n    firstName: parts[0],\n    lastName: parts.slice(1).join(' '),\n    title: person.jobTitle || person.job_title || '' } }];\n}\n\nconst sentinel = rows.find(r => r && !r.personId && !r.person_id &&\n  OUTAGE.some(m => String(r.name || '').toLowerCase().includes(m)));\n\nif (sentinel) {\n  return [{ json: { ...prospect, status: 'provider_down', reason: sentinel.name } }];\n}\n\nreturn [{ json: { ...prospect, status: 'no_person' } }];"
+      },
+      "id": "classify",
+      "name": "Real person, empty, or provider down?",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1080,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "ok",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "isok",
+      "name": "Usable lead?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1280,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.instantly.ai/api/v2/leads",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ campaign: $json.campaignId, email: $json.email, first_name: $json.firstName, last_name: $json.lastName, company_name: $json.company, website: $json.domain, skip_if_in_workspace: true, custom_variables: { category: $json.category, reviewCount: String($json.reviewCount), title: $json.title } }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "retry": {
+            "retry": {
+              "maxTries": 2,
+              "waitBetweenTries": 3000
+            }
+          }
+        }
+      },
+      "id": "push",
+      "name": "Instantly: add lead",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1500,
+        200
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "instantly",
+          "name": "Instantly API key"
+        }
+      },
+      "notes": "category and reviewCount MUST travel with the lead. The opener reads 'I was going through the {{category}} category on G2 and {{companyName}} came up with {{reviewCount}} reviews' -- a lead missing either renders a broken first line to a real person."
+    },
+    {
+      "parameters": {
+        "amount": 2
+      },
+      "id": "wait",
+      "name": "Breathe",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1500,
+        420
+      ],
+      "webhookId": "breathe"
+    }
+  ],
+  "connections": {
+    "Weekdays 08:00": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Instantly: room left?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Instantly: room left?": {
+      "main": [
+        [
+          {
+            "node": "Stop if no room",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Stop if no room": {
+      "main": [
+        [
+          {
+            "node": "One item per category",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "One item per category": {
+      "main": [
+        [
+          {
+            "node": "G2: products in category",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "G2: products in category": {
+      "main": [
+        [
+          {
+            "node": "Filter to the review band",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter to the review band": {
+      "main": [
+        [
+          {
+            "node": "One prospect at a time",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "One prospect at a time": {
+      "main": [
+        [],
+        [
+          {
+            "node": "LinkFinder: decision maker",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LinkFinder: decision maker": {
+      "main": [
+        [
+          {
+            "node": "Real person, empty, or provider down?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Real person, empty, or provider down?": {
+      "main": [
+        [
+          {
+            "node": "Usable lead?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Usable lead?": {
+      "main": [
+        [
+          {
+            "node": "Instantly: add lead",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Breathe",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Instantly: add lead": {
+      "main": [
+        [
+          {
+            "node": "One prospect at a time",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Breathe": {
+      "main": [
+        [
+          {
+            "node": "One prospect at a time",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true
+  },
+  "pinData": {}
+}
