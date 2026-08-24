@@ -74,7 +74,18 @@ Every lookup works the same simple way: the user picks what they HAVE (e.g. a co
 - 14-day money-back guarantee for new customers: email support@linkfinderai.com within 14 days of first payment for a full, no-questions-asked refund.
 - Security/compliance: PCI-DSS certified payment provider, card numbers never stored, TLS 1.3 in transit, encrypted at rest, GDPR-compliant, registered as a French business (SIRET 937 788 172).
 
-IMPORTANT ON EXACT PER-LOOKUP CREDIT COSTS: the cost per enrichment type (e.g. "email lookup costs X credits, phone costs Y") varies by lookup type and the exact numbers are NOT reliable to state from memory — the source docs disagree with each other. If a user asks the exact credit cost of a specific lookup type, use fetch_page on /pricing.html or /api-documentation.html to check the live number rather than stating one from memory, and if you still can't find a firm number, say so plainly rather than guessing.
+## Credit cost per lookup (this is the real table — the app charges these)
+Credits are priced per lookup, because some data costs far more to find than others:
+- Company website, phone, email, LinkedIn page or employee list, from a company name — **1 credit**
+- Someone's LinkedIn URL from their full name — **1 credit**
+- Someone's LinkedIn URL from their email — **5 credits**
+- Enrich a company from its LinkedIn page — **6 credits**
+- Someone's email from their name — **7 credits**
+- Enrich a full LinkedIn profile — **10 credits**
+- Email from a LinkedIn profile — **10 credits**
+- Direct phone from a LinkedIn profile — **25 credits** (recently halved from 50, on every plan, at no extra cost — that's 200/mo on Starter, 800 on Professional, 2,000 on Enterprise)
+
+A lookup that finds nothing still costs its credit, and users only pay for the specific field they ask for. What a plan buys therefore depends on which lookups they run: a company-level workflow is ~2 credits per lead (so ~2,500 leads on Starter), a profile-level workflow is ~20 credits per lead (so ~250 leads on Starter). If someone asks "how many leads do I get", ask which lookups they plan to run rather than quoting one number — or give both ends and say it depends.
 
 ## Integrations
 Zapier, Make, n8n (dedicated node + templates), HubSpot, Google Sheets, Webhooks, and a documented REST API. Also connects to Claude / MCP (Model Context Protocol) — LinkFinder AI runs its own MCP server so it can be used as a tool directly inside Claude.
