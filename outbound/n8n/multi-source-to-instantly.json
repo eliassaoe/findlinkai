@@ -1,0 +1,290 @@
+{
+  "name": "Multi-source → LinkFinder → Instantly (B2B SaaS)",
+  "nodes": [
+    {
+      "parameters": { "rule": { "interval": [ { "field": "cronExpression", "expression": "0 7 * * 1-5" } ] } },
+      "id": "trigger",
+      "name": "Weekdays 07:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [ -1100, 400 ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// One place for everything tunable.\n//\n// Three sources feed one pipeline. They are deliberately independent: each\n// branch has neverError set, so a source that is down, rate-limited or has\n// changed its schema produces zero rows instead of killing the run. A day\n// with two sources is a smaller day, not a failed one. That is the whole\n// reason for using more than one.\nreturn [{ json: {\n  campaignId: 'df17f3eb-368d-415f-99ab-b6a7325dad3c',\n\n  // --- G2: narrow categories only -------------------------------------\n  // A buyer token returns a category's TOP products. In a broad category\n  // those are the giants; in a narrow one they are the whole category.\n  // Measured: ~1.6 usable prospects per narrow category, 0 per broad one.\n  g2Categories: [\n    'ai-sales-roleplay-tools','ai-proposal-generator-tools','event-lead-capture',\n    'ai-interview-agent','ai-documentation-generators','site-search-software',\n    'ai-sre-tools','website-privacy-auditing-tools','ai-agent-observability',\n    'semantic-layer-tools','virtual-recording-studio','low-code-mobile-app-builder'\n  ],\n  g2MinReviews: 10,\n  g2MaxReviews: 250,\n\n  // --- Product Hunt: recent launches, enough votes to be real ----------\n  // Launch date is a better recency signal than a review count: it finds\n  // companies while they are still small, which is the band we want and\n  // the band G2 is slowest to list.\n  phMinVotes: 30,\n  phMaxVotes: 1200,\n  phMaxAgeDays: 400,\n\n  // --- Hacker News: Show HN, free and unauthenticated ------------------\n  hnMinPoints: 20,\n\n  // Competitors, and companies selling the outcome we sell.\n  excludeDomains: [\n    'linkfinderai.com','clay.com','warmly.ai','6sense.com','apollo.io',\n    'zoominfo.com','lusha.com','cognism.com','hunter.io','snov.io',\n    'rocketreach.co','seamless.ai','uplead.com','findymail.com',\n    'dropcontact.com','kaspr.io','surfe.com','prospeo.io','anymailfinder.com',\n    'tryprofound.com','peec.ai','otterly.ai','athenahq.ai','scrunchai.com',\n    'goodie.ai','brandlight.ai'\n  ],\n\n  // Domains that are never a company: aggregators, hosts, social.\n  excludeHosts: [\n    'producthunt.com','github.com','gitlab.com','medium.com','substack.com',\n    'notion.so','notion.site','youtube.com','twitter.com','x.com','apple.com',\n    'play.google.com','chromewebstore.google.com','news.ycombinator.com',\n    'reddit.com','linkedin.com','vercel.app','netlify.app','herokuapp.com',\n    'streamlit.app','replit.app','glitch.me','pages.dev','webflow.io'\n  ]\n} }];"
+      },
+      "id": "config",
+      "name": "Config",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [ -900, 400 ]
+    },
+    {
+      "parameters": {
+        "url": "https://api.instantly.ai/api/v2/workspaces/current/plan",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": { "response": { "response": { "neverError": true } } }
+      },
+      "id": "capacity",
+      "name": "Instantly: room left?",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [ -700, 400 ],
+      "credentials": { "httpHeaderAuth": { "id": "instantly", "name": "Instantly API key" } },
+      "notes": "Runs before any source and before any metered call. Sourcing is free, enrichment is not, and an upload that 403s after enrichment has already been paid for is money gone."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Refuse to spend a credit we cannot use.\n//\n// Learned the expensive way: the workspace sat 6,089 leads over its cap,\n// so every upload would have 403'd -- but only AFTER LinkFinder had been\n// paid for each enrichment.\nconst cfg = $('Config').first().json;\nconst plan = $input.first().json;\nconst sub = plan?.subscriptions?.outreach || plan || {};\nconst limit = sub.total_lead_limit, used = sub.current_lead_count;\n\nif (limit == null || used == null) {\n  return [{ json: { ...cfg, room: 25, note: 'lead limit unreadable; capped at 25' } }];\n}\nconst room = limit - used;\nif (room <= 0) {\n  throw new Error(`Instantly has no room: ${used}/${limit}, ${-room} over the cap. `\n    + `Free space first, or you pay to enrich leads that cannot be uploaded.`);\n}\nreturn [{ json: { ...cfg, room } }];"
+      },
+      "id": "gate",
+      "name": "Stop if no room",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [ -500, 400 ]
+    },
+
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.producthunt.com/v2/api/graphql",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ query: 'query { posts(order: NEWEST, first: 50) { edges { node { id name tagline website votesCount createdAt topics(first: 2) { edges { node { name } } } } } } }' }) }}",
+        "options": {
+          "response": { "response": { "neverError": true } },
+          "retry": { "retry": { "maxTries": 3, "waitBetweenTries": 3000 } }
+        }
+      },
+      "id": "ph",
+      "name": "Product Hunt: recent launches",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [ -260, 160 ],
+      "credentials": { "httpHeaderAuth": { "id": "producthunt", "name": "Product Hunt token" } },
+      "notes": "v2 GraphQL. v1 was deprecated in 2023; v2 is the live one. Get a developer token from your app's page on api.producthunt.com. There is a query complexity limit of 1000 — that is why topics is capped at 2 and makers/comments are not requested at all."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Product Hunt -> the common shape.\n//\n// The `website` field is often a producthunt.com redirect rather than the\n// product's own domain, and it usually carries ref/utm junk. Both have to\n// go: a redirect host is not a company, and a tracking query string breaks\n// domain matching downstream.\nconst cfg = $('Stop if no room').first().json;\nconst body = $input.first().json;\nconst payload = body?.body ?? body;\nconst edges = payload?.data?.posts?.edges || [];\nconst now = Date.now();\nconst out = [];\n\nfor (const e of edges) {\n  const n = e?.node; if (!n) continue;\n\n  let host = '';\n  try { host = new URL(n.website || '').hostname.toLowerCase().replace(/^www\\./, ''); }\n  catch { continue; }\n  if (!host) continue;\n\n  // A producthunt.com/r/... redirect means the real domain is not exposed\n  // here. Skip rather than mail Product Hunt.\n  if (cfg.excludeHosts.some(h => host === h || host.endsWith('.' + h))) continue;\n  if (cfg.excludeDomains.includes(host)) continue;\n\n  const votes = n.votesCount || 0;\n  if (votes < cfg.phMinVotes || votes > cfg.phMaxVotes) continue;\n\n  const ageDays = (now - new Date(n.createdAt).getTime()) / 86400000;\n  if (!isFinite(ageDays) || ageDays > cfg.phMaxAgeDays) continue;\n\n  const topic = n.topics?.edges?.[0]?.node?.name || '';\n\n  out.push({ json: {\n    source: 'producthunt',\n    domain: host,\n    company: n.name || host,\n    category: topic || 'software',\n    signal: 'upvotes',\n    signalValue: votes,\n    campaignId: cfg.campaignId\n  }});\n}\nreturn out;"
+      },
+      "id": "phnorm",
+      "name": "Normalise: Product Hunt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [ -40, 160 ]
+    },
+
+    {
+      "parameters": {
+        "jsCode": "const cfg = $input.first().json;\nreturn cfg.g2Categories.map(slug => ({ json: { ...cfg, slug } }));"
+      },
+      "id": "g2fan",
+      "name": "One item per G2 category",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [ -260, 400 ]
+    },
+    {
+      "parameters": {
+        "url": "=https://data.g2.com/api/v2/categories/{{ $json.slug }}?include=products",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "response": { "response": { "neverError": true } },
+          "retry": { "retry": { "maxTries": 3, "waitBetweenTries": 2000 } }
+        }
+      },
+      "id": "g2",
+      "name": "G2: products in category",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [ -40, 400 ],
+      "credentials": { "httpHeaderAuth": { "id": "g2", "name": "G2 API token" } }
+    },
+    {
+      "parameters": {
+        "jsCode": "// G2 -> the common shape.\n//\n// The review band is the qualifier: below it a stub listing, above it a\n// category leader with an SEO team who does not need us.\nconst cfg = $('Stop if no room').first().json;\nconst out = [];\n\nfor (const item of $input.all()) {\n  const body = item.json.body ?? item.json;\n  const categoryName = body?.data?.attributes?.name || item.json.slug || 'software';\n  const products = (body?.included || [])\n    .filter(i => i.type === 'products' && i.attributes?.domain)\n    .map(i => ({\n      domain: String(i.attributes.domain).trim().toLowerCase().replace(/^www\\./, ''),\n      company: i.attributes.name || '',\n      reviews: i.attributes.review_count || 0\n    }));\n  if (!products.length) continue;\n\n  // No reachable tail in this category -- every visible row is a giant.\n  if (Math.min(...products.map(p => p.reviews)) > cfg.g2MaxReviews) continue;\n\n  for (const p of products) {\n    if (cfg.excludeDomains.includes(p.domain)) continue;\n    if (cfg.excludeHosts.some(h => p.domain === h || p.domain.endsWith('.' + h))) continue;\n    if (p.reviews < cfg.g2MinReviews || p.reviews > cfg.g2MaxReviews) continue;\n    out.push({ json: {\n      source: 'g2', domain: p.domain, company: p.company,\n      category: categoryName, signal: 'reviews', signalValue: p.reviews,\n      campaignId: cfg.campaignId\n    }});\n  }\n}\nreturn out;"
+      },
+      "id": "g2norm",
+      "name": "Normalise: G2",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [ 180, 400 ]
+    },
+
+    {
+      "parameters": {
+        "url": "https://hn.algolia.com/api/v1/search_by_date?tags=story&query=Show%20HN&hitsPerPage=100",
+        "options": {
+          "response": { "response": { "neverError": true } },
+          "retry": { "retry": { "maxTries": 2, "waitBetweenTries": 2000 } }
+        }
+      },
+      "id": "hn",
+      "name": "Hacker News: Show HN",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [ -260, 640 ],
+      "notes": "Algolia's HN index. No auth, no key, no rate limit worth worrying about — the cheapest source here, and the earliest: a Show HN post predates a G2 listing by a long way."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Hacker News -> the common shape.\n//\n// Free and unauthenticated, so it costs nothing to keep even when the yield\n// is low. Show HN skews developer-tools, which suits an offer sold on being\n// found in AI answers.\nconst cfg = $('Stop if no room').first().json;\nconst body = $input.first().json;\nconst payload = body?.body ?? body;\nconst hits = payload?.hits || [];\nconst out = [];\n\nfor (const h of hits) {\n  if ((h.points || 0) < cfg.hnMinPoints) continue;\n  let host = '';\n  try { host = new URL(h.url || '').hostname.toLowerCase().replace(/^www\\./, ''); }\n  catch { continue; }\n  if (!host) continue;\n  if (cfg.excludeHosts.some(x => host === x || host.endsWith('.' + x))) continue;\n  if (cfg.excludeDomains.includes(host)) continue;\n\n  // \"Show HN: Acme – does a thing\" -> \"Acme\"\n  const title = String(h.title || '');\n  const company = (title.replace(/^show hn:?\\s*/i, '').split(/[\\u2013\\u2014\\-:|,]/)[0] || host).trim();\n\n  out.push({ json: {\n    source: 'hackernews', domain: host, company: company || host,\n    category: 'software', signal: 'hn points', signalValue: h.points || 0,\n    campaignId: cfg.campaignId\n  }});\n}\nreturn out;"
+      },
+      "id": "hnnorm",
+      "name": "Normalise: Hacker News",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [ -40, 640 ]
+    },
+
+    {
+      "parameters": { "numberInputs": 3 },
+      "id": "merge",
+      "name": "Merge sources",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [ 400, 400 ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// One company, one email, ever.\n//\n// Three sources will absolutely surface the same company twice -- a product\n// on G2 that also launched on Product Hunt is the normal case, not the edge\n// case. Mailing it twice from two branches is the fastest way to look like\n// a bot.\n//\n// When the same domain arrives twice, keep the row with the most specific\n// category: G2 gives a real category name, Product Hunt gives a topic, and\n// HN gives 'software'. The category is a merge field in the opener, so the\n// specific one is worth keeping.\nconst cfg = $('Stop if no room').first().json;\nconst rank = { g2: 3, producthunt: 2, hackernews: 1 };\nconst best = new Map();\n\nfor (const item of $input.all()) {\n  const r = item.json;\n  if (!r || !r.domain) continue;\n  const prev = best.get(r.domain);\n  if (!prev || (rank[r.source] || 0) > (rank[prev.source] || 0)) best.set(r.domain, r);\n}\n\nlet rows = [...best.values()];\n\n// Never enrich more than we can upload.\nif (cfg.room && cfg.room > 0) rows = rows.slice(0, cfg.room);\n\nreturn rows.map(json => ({ json }));"
+      },
+      "id": "dedupe",
+      "name": "Dedupe and cap to room",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [ 620, 400 ]
+    },
+    {
+      "parameters": { "options": { "reset": false } },
+      "id": "loop",
+      "name": "One prospect at a time",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [ 840, 400 ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.linkfinderai.com/api/v1/enrich",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ type: 'company_domain_to_employees', input: $json.domain, seniority: 'founder,owner,c_suite,vp,head', employee_count: 5 }) }}",
+        "options": {
+          "response": { "response": { "neverError": true } },
+          "retry": { "retry": { "maxTries": 3, "waitBetweenTries": 4000 } }
+        }
+      },
+      "id": "linkfinder",
+      "name": "LinkFinder: decision maker",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [ 1060, 400 ],
+      "credentials": { "httpHeaderAuth": { "id": "linkfinder", "name": "LinkFinder API key" } },
+      "notes": "n8n's retry does not catch this endpoint's real failure: it answers HTTP 200 with a fake person whose name is a status message. The next node is what detects that."
+    },
+    {
+      "parameters": {
+        "jsCode": "// A failure that no HTTP status code describes.\n//\n// This endpoint answers 200 / \"success\" even when its upstream is down,\n// putting a status message where a person should be:\n//   {\"personId\": null, \"name\": \"We are on maintenance. Check back in 48hrs\"}\n// Measured across ~20 live calls: roughly HALF, interleaved with good\n// answers for similar domains seconds apart. One sentinel means retry.\n//\n// ORDER MATTERS. Look for a real person FIRST and only ask why we failed\n// when we actually failed. The actor also injects a chatty banner row\n// alongside genuine results, so checking sentinels first throws away a good\n// lead and pays to look it up again. Real data always wins.\nconst OUTAGE = ['maintenance','check back in','we improve the actor','contact us if you are having'];\nconst prospect = $('One prospect at a time').first().json;\nconst body = $input.first().json;\nconst payload = body?.body ?? body;\nlet rows = payload?.result ?? payload?.employees ?? payload;\nwhile (rows && !Array.isArray(rows) && rows.result) rows = rows.result;\nif (!Array.isArray(rows)) rows = [];\n\nconst person = rows.find(r => r && (r.personId || r.person_id) &&\n  r.email && String(r.email).includes('@') && r.name);\n\nif (person) {\n  const parts = String(person.name).trim().split(/\\s+/);\n  return [{ json: { ...prospect, status: 'ok', email: person.email.trim(),\n    firstName: parts[0], lastName: parts.slice(1).join(' '),\n    title: person.jobTitle || person.job_title || '' } }];\n}\n\nconst sentinel = rows.find(r => r && !r.personId && !r.person_id &&\n  OUTAGE.some(m => String(r.name || '').toLowerCase().includes(m)));\n\nif (sentinel) return [{ json: { ...prospect, status: 'provider_down', reason: sentinel.name } }];\nreturn [{ json: { ...prospect, status: 'no_person' } }];"
+      },
+      "id": "classify",
+      "name": "Real person, empty, or provider down?",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [ 1280, 400 ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "version": 2 },
+          "conditions": [ {
+            "leftValue": "={{ $json.status }}",
+            "rightValue": "ok",
+            "operator": { "type": "string", "operation": "equals" }
+          } ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "isok",
+      "name": "Usable lead?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [ 1500, 400 ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.instantly.ai/api/v2/leads",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ campaign: $json.campaignId, email: $json.email, first_name: $json.firstName, last_name: $json.lastName, company_name: $json.company, website: $json.domain, skip_if_in_workspace: true, custom_variables: { category: $json.category, reviewCount: String($json.signalValue), signal: $json.signal, source: $json.source, title: $json.title } }) }}",
+        "options": {
+          "response": { "response": { "neverError": true } },
+          "retry": { "retry": { "maxTries": 2, "waitBetweenTries": 3000 } }
+        }
+      },
+      "id": "push",
+      "name": "Instantly: add lead",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [ 1720, 300 ],
+      "credentials": { "httpHeaderAuth": { "id": "instantly", "name": "Instantly API key" } },
+      "notes": "category and reviewCount MUST travel with the lead — the opener renders them into its first line. signal and source ride along so replies can be attributed to the source that found them."
+    },
+    {
+      "parameters": { "amount": 2 },
+      "id": "wait",
+      "name": "Breathe",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [ 1720, 520 ],
+      "webhookId": "breathe-multi"
+    }
+  ],
+  "connections": {
+    "Weekdays 07:00": { "main": [ [ { "node": "Config", "type": "main", "index": 0 } ] ] },
+    "Config": { "main": [ [ { "node": "Instantly: room left?", "type": "main", "index": 0 } ] ] },
+    "Instantly: room left?": { "main": [ [ { "node": "Stop if no room", "type": "main", "index": 0 } ] ] },
+    "Stop if no room": {
+      "main": [ [
+        { "node": "Product Hunt: recent launches", "type": "main", "index": 0 },
+        { "node": "One item per G2 category", "type": "main", "index": 0 },
+        { "node": "Hacker News: Show HN", "type": "main", "index": 0 }
+      ] ]
+    },
+    "Product Hunt: recent launches": { "main": [ [ { "node": "Normalise: Product Hunt", "type": "main", "index": 0 } ] ] },
+    "Normalise: Product Hunt": { "main": [ [ { "node": "Merge sources", "type": "main", "index": 0 } ] ] },
+    "One item per G2 category": { "main": [ [ { "node": "G2: products in category", "type": "main", "index": 0 } ] ] },
+    "G2: products in category": { "main": [ [ { "node": "Normalise: G2", "type": "main", "index": 0 } ] ] },
+    "Normalise: G2": { "main": [ [ { "node": "Merge sources", "type": "main", "index": 1 } ] ] },
+    "Hacker News: Show HN": { "main": [ [ { "node": "Normalise: Hacker News", "type": "main", "index": 0 } ] ] },
+    "Normalise: Hacker News": { "main": [ [ { "node": "Merge sources", "type": "main", "index": 2 } ] ] },
+    "Merge sources": { "main": [ [ { "node": "Dedupe and cap to room", "type": "main", "index": 0 } ] ] },
+    "Dedupe and cap to room": { "main": [ [ { "node": "One prospect at a time", "type": "main", "index": 0 } ] ] },
+    "One prospect at a time": {
+      "main": [ [], [ { "node": "LinkFinder: decision maker", "type": "main", "index": 0 } ] ]
+    },
+    "LinkFinder: decision maker": { "main": [ [ { "node": "Real person, empty, or provider down?", "type": "main", "index": 0 } ] ] },
+    "Real person, empty, or provider down?": { "main": [ [ { "node": "Usable lead?", "type": "main", "index": 0 } ] ] },
+    "Usable lead?": {
+      "main": [
+        [ { "node": "Instantly: add lead", "type": "main", "index": 0 } ],
+        [ { "node": "Breathe", "type": "main", "index": 0 } ]
+      ]
+    },
+    "Instantly: add lead": { "main": [ [ { "node": "One prospect at a time", "type": "main", "index": 0 } ] ] },
+    "Breathe": { "main": [ [ { "node": "One prospect at a time", "type": "main", "index": 0 } ] ] }
+  },
+  "settings": { "executionOrder": "v1", "saveManualExecutions": true },
+  "pinData": {}
+}

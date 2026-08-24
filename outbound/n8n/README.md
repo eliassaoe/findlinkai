@@ -83,3 +83,81 @@ provider — retry it).
 Both are tested by executing the node code directly:
 
     node outbound/n8n/test-classifier.js
+
+---
+
+# Multi-source workflow (`multi-source-to-instantly.json`)
+
+Three sources → one shape → dedupe → enrich → Instantly. Import it, add a
+fourth credential alongside the three above:
+
+| credential name | header | value |
+| --- | --- | --- |
+| `Product Hunt token` | `Authorization` | `Bearer <PH developer token>` |
+
+Get that token from your app's page on `api.producthunt.com` — v1 was
+deprecated in 2023, v2 GraphQL is the live one. Hacker News needs no
+credential at all.
+
+## Why three sources rather than a better scraper
+
+Reliability here does not come from any single source being good. It comes
+from no single source being able to stop the run. Every branch has
+`neverError` set, so a source that is down, rate-limited or has quietly
+changed its schema contributes zero rows instead of failing the workflow. A
+day with two sources is a smaller day, not a failed one.
+
+That is worth more than a scraper with a deeper tail, because the scraper's
+failure mode is *silent and total* and arrives on a morning you are not
+watching.
+
+| source | auth | cost | finds |
+| --- | --- | --- | --- |
+| G2 | your token | free | listed, reviewed, established — a real category name |
+| Product Hunt | free dev token | free | launched recently, still small |
+| Hacker News | **none** | free | shipped this week, developer tools |
+
+They also disagree usefully. G2 lists a company once it has reviews, which
+is late. Product Hunt catches it at launch. Show HN catches it before that.
+Same band, three different moments.
+
+## The normalised record
+
+Every source emits the same shape, which is what lets one enrichment path
+and one campaign serve all three:
+
+```
+{ source, domain, company, category, signal, signalValue, campaignId }
+```
+
+`signal` and `signalValue` are deliberately generic — reviews, upvotes and
+HN points are the same idea wearing different clothes: *small but real*. The
+campaign renders `signalValue` into `{{reviewCount}}`, and `source` rides
+along so a reply can be attributed to whichever source found it. After a
+month, that tells you which source to keep paying attention to.
+
+## Deduplication is not optional
+
+Three sources will surface the same company twice — a product on G2 that
+also launched on Product Hunt is the normal case. Mailing it from two
+branches is the fastest way to look like a bot.
+
+When a domain arrives twice the deduper keeps the row with the most specific
+category, ranking G2 (a real category name) over Product Hunt (a topic) over
+HN (just "software"). The category is rendered into the opener's first line,
+so specificity there is worth something.
+
+## Host exclusions matter more than you would think
+
+Product Hunt's `website` field is frequently a `producthunt.com/r/...`
+redirect, and HN stories link to GitHub, Notion, Vercel and YouTube as often
+as to a company. None of those are a company. Without `excludeHosts` the
+pipeline cheerfully pays to look up a decision maker at github.com.
+
+## Tests
+
+    node outbound/n8n/test-multisource.js
+
+Runs each normaliser and the deduper against real response shapes: tracking
+params stripped, redirect hosts dropped, bands enforced, a giants-only
+category skipped, and one row per domain with the best category winning.
