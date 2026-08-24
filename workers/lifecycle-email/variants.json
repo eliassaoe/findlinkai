@@ -414,10 +414,10 @@
           "body": [
             "Hi &mdash; Eliasse here, I built LinkFinder.",
             "You picked a plan about fifteen minutes ago and I haven&rsquo;t seen the payment land.",
-            "If you&rsquo;re still mid-checkout, ignore this. If it broke, the button below takes you straight back to the plans &mdash; we found and fixed a bug in our checkout recently, so there&rsquo;s a real chance it was us, and it should go through this time."
+            "If you&rsquo;re still mid-checkout, ignore this. If it broke, the button below opens a fresh payment page on the plan you chose &mdash; the old one times out after a few minutes, so this makes you a new one. We found and fixed a bug in our checkout recently, so there&rsquo;s a real chance it was us."
           ],
           "cta": "Finish upgrading",
-          "url": "https://linkfinderai.com/app?action=upgrade",
+          "url": "https://linkfinderai.com/app?action=upgrade{% if event.properties.plan_key %}&plan={{ event.properties.plan_key }}{% elsif event.properties.plan %}&plan={{ event.properties.plan }}&billing={{ event.properties.billing }}{% endif %}",
           "after": [
             "Or just hit reply. One line is plenty.",
             "&mdash; Eliasse"
@@ -432,10 +432,10 @@
           "subject": "your upgrade did not go through",
           "preheader": "In case the first one gave you trouble.",
           "body": [
-            "Your upgrade didn&rsquo;t go through. The payment page times out after a few minutes, so the old one is gone &mdash; this starts a clean one."
+            "Your upgrade didn&rsquo;t go through. The payment page times out after a few minutes, so the old one is gone &mdash; this opens a fresh one on the plan you picked."
           ],
           "cta": "Finish upgrading",
-          "url": "https://linkfinderai.com/app?action=upgrade",
+          "url": "https://linkfinderai.com/app?action=upgrade{% if event.properties.plan_key %}&plan={{ event.properties.plan_key }}{% elsif event.properties.plan %}&plan={{ event.properties.plan }}&billing={{ event.properties.billing }}{% endif %}",
           "after": [
             "If it fails again, reply and tell me what you saw on screen &mdash; that would be genuinely useful to know.",
             "&mdash; Eliasse"
@@ -455,7 +455,7 @@
             "If it&rsquo;s the second, tell me what you&rsquo;re using it for. Sometimes the $25 one-off pack is the better answer than a subscription and I&rsquo;d rather say so."
           ],
           "cta": "Try again",
-          "url": "https://linkfinderai.com/app?action=upgrade",
+          "url": "https://linkfinderai.com/app?action=upgrade{% if event.properties.plan_key %}&plan={{ event.properties.plan_key }}{% elsif event.properties.plan %}&plan={{ event.properties.plan }}&billing={{ event.properties.billing }}{% endif %}",
           "after": [
             "&mdash; Eliasse"
           ],
@@ -474,14 +474,14 @@
             "If it broke, that&rsquo;s a different matter and I&rsquo;d like to hear about it."
           ],
           "cta": "Pick up where you left off",
-          "url": "https://linkfinderai.com/app?action=upgrade",
+          "url": "https://linkfinderai.com/app?action=upgrade{% if event.properties.plan_key %}&plan={{ event.properties.plan_key }}{% elsif event.properties.plan %}&plan={{ event.properties.plan }}&billing={{ event.properties.billing }}{% endif %}",
           "after": [
             "&mdash; Eliasse"
           ],
           "reason": "you started an upgrade at linkfinderai.com"
         }
       ],
-      "url_note": "Sends 15 minutes after the trigger, and links to the pricing modal - NOT to a pre-minted Dodo session.\n\nAn earlier version templated the visitor's own checkout_url from the trigger event into the CTA. That is wrong and was reverted on 24 Aug: a Dodo checkout session expires after about 15 minutes. Email delivery plus the time before someone opens it is routinely longer than that, so the personalised link would be dead for most recipients - and an expired Dodo page is a worse landing than the pricing modal, because it is a dead end with an error rather than a working way to pay.\n\nThe 15-minute delay is now about catching the person while the failure is fresh, not about beating the expiry - the session is gone either way, so the click has to mint a new one. That is why the copy says 'takes you straight back to the plans' rather than promising their old link.\n\nTo genuinely deliver a live payment link by email you need an endpoint that mints a fresh Dodo session on click and 302s to it. That does NOT exist yet, and it must not identify the user with ?token= - see app.html:3948, a token in the URL overwrites localStorage.linkFinderToken and switches the account."
+      "url_note": "Sends 15 minutes after the trigger. The CTA carries the PLAN, never a payment link.\n\nDodo checkout sessions expire after about 15 minutes, so no email can ship a working one: delivery plus the time before someone opens it routinely exceeds that, and an expired Dodo page is a dead end with an error rather than a way to pay. An earlier version templated event.properties.checkout_url into the button; it was reverted on 24 Aug for exactly this.\n\nInstead the link is /app?action=upgrade&plan=<plan>, and app.html mints the session ON THE CLICK, from a browser already signed in (resolvePlanParam + proceedToCheckoutDirect). Nothing can expire, because nothing exists until they click. It is also why no account identifier travels in the URL: app.html reads ?token= into localStorage, so an identifying link would hand whoever opened it that account.\n\nThe Liquid handles both triggers, and both branches were verified with workflows-test-run:\n  checkout_redirect_started -> plan_key   -> &plan=pro_monthly\n  plan_selected             -> plan+billing -> &plan=Enterprise&billing=annual\nresolvePlanParam accepts both shapes and returns null for anything else, so an unrecognised plan opens the pricing modal rather than guessing one the person never chose.\n\nNOT applied to checkout_2 - it fires 3 days later and re-argues the offer rather than resuming a specific plan."
     },
     "checkout_2": {
       "workflow_id": "01a02578-9f9e-0000-d4c0-f57a811dca80",

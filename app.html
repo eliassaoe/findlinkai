@@ -1770,6 +1770,48 @@ const plans = [
     { name:'Enterprise',   key:'enterprise', monthlyPrice:149, credits:600000 },
 ];
 let isAnnualBilling = false;
+
+/*
+ * Resolves the ?plan= parameter on the abandoned-checkout email's button.
+ *
+ * A Dodo checkout session expires roughly 15 minutes after it is created, which
+ * is shorter than the gap between sending an email and someone opening it. So
+ * that email deliberately carries NO payment link. It carries the plan, and the
+ * session is minted here, on the click, by a browser that is already signed in.
+ * Nothing can expire, and no account identifier travels in a URL that ends up in
+ * inbox history and forwards. (app.html reads ?token= into localStorage - see the
+ * token handling in the boot path - so a link that identified the account would
+ * hand whoever opened it that account.)
+ *
+ * Accepts whichever shape the trigger event actually held:
+ *   checkout_redirect_started -> plan_key   "pro_monthly", "enterprise_annual"
+ *   plan_selected             -> plan       "Professional" + billing "monthly"
+ * Returns null for anything unrecognised so the caller falls back to the modal
+ * rather than guessing a plan the person never chose.
+ */
+const PLAN_PARAM_ALIASES = {
+    starter: 'starter',
+    pro: 'pro', professional: 'pro',
+    enterprise: 'enterprise',
+};
+
+function resolvePlanParam(planParam, billingParam) {
+    if (!planParam) return null;
+    let raw = String(planParam).trim().toLowerCase();
+    let billing = String(billingParam || '').trim().toLowerCase();
+
+    // "pro_monthly" / "enterprise_annual" carry their own billing mode; an
+    // explicit &billing= wins only when the key did not already state one.
+    const m = raw.match(/^(.+)_(monthly|annual)$/);
+    if (m) { raw = m[1]; billing = m[2]; }
+
+    const key = PLAN_PARAM_ALIASES[raw];
+    if (!key) return null;
+    const index = plans.findIndex(pl => pl.key === key);
+    if (index === -1) return null;
+
+    return { index, billing: billing === 'annual' ? 'annual' : 'monthly' };
+}
     
 function renderPlansGrid() {
     const grid = document.getElementById('plansGrid');
@@ -3970,7 +4012,22 @@ function checkAuth(){
 
     const action=p.get('action');
     if(action==='buy_credits') setTimeout(()=>showPricingModal('buy_credits_btn'),500);
-    else if(action==='upgrade') setTimeout(()=>showPricingModal(),500);
+    else if(action==='upgrade'){
+        // With a plan attached this is the email's "Finish upgrading" click, so
+        // skip the modal and mint the payment session now. Without one - or with
+        // a plan we do not recognise - open the modal and let them choose, which
+        // is the old behaviour and the only safe fallback.
+        const resumed = resolvePlanParam(p.get('plan'), p.get('billing'));
+        if (resumed){
+            billingMode = resumed.billing;
+            try { posthog.capture('email_resume_checkout', {
+                plan: plans[resumed.index].key, billing: resumed.billing,
+            }); } catch(e) {}
+            setTimeout(()=>proceedToCheckoutDirect(resumed.index, null), 300);
+        } else {
+            setTimeout(()=>showPricingModal(),500);
+        }
+    }
     // ?action=tasks is the landing point for the reactivation email that points
     // people at the credit tasks. The popup was previously reachable only via a
     // button rendered for the low_conversion geo tier, so everyone else had no
