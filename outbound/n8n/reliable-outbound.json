@@ -24,7 +24,7 @@
     },
     {
       "parameters": {
-        "jsCode": "return [{ json: {\n  campaignId: 'df17f3eb-368d-415f-99ab-b6a7325dad3c',\n  batchSize: 10,          // enrichment attempts per hour\n  topUpBelow: 40,         // refill the queue when it drops under this\n  maxAttempts: 3,         // then move on; not every company is findable\n  g2Categories: [\n    'ai-sales-roleplay-tools','ai-proposal-generator-tools','event-lead-capture',\n    'ai-interview-agent','ai-documentation-generators','site-search-software',\n    'ai-sre-tools','website-privacy-auditing-tools','ai-agent-observability',\n    'semantic-layer-tools','virtual-recording-studio','low-code-mobile-app-builder'\n  ],\n  g2MinReviews: 10, g2MaxReviews: 250,\n  excludeDomains: [\n    'linkfinderai.com','clay.com','warmly.ai','6sense.com','apollo.io',\n    'zoominfo.com','lusha.com','cognism.com','hunter.io','snov.io',\n    'rocketreach.co','seamless.ai','uplead.com','findymail.com','dropcontact.com',\n    'kaspr.io','surfe.com','prospeo.io','anymailfinder.com','tryprofound.com',\n    'peec.ai','otterly.ai','athenahq.ai','scrunchai.com','goodie.ai','brandlight.ai'\n  ],\n  excludeHosts: [\n    'producthunt.com','github.com','gitlab.com','medium.com','substack.com',\n    'notion.so','notion.site','youtube.com','twitter.com','x.com',\n    'news.ycombinator.com','reddit.com','linkedin.com','vercel.app',\n    'netlify.app','herokuapp.com','pages.dev','webflow.io'\n  ]\n} }];"
+        "jsCode": "return [{ json: {\n  // Set false if you have no data.g2.com API token. The run then sources\n  // from Hacker News alone, which needs no credential at all.\n  //\n  // This is a real distinction worth checking before you flip it on: a G2\n  // *account*, and even a working G2 MCP/OAuth connection, is not the same\n  // thing as an API token for data.g2.com. If you do not have that token,\n  // leaving this true fails the whole run — a missing credential is a\n  // node-level error in n8n and neverError does not catch it, because\n  // neverError only suppresses HTTP error *responses*.\n  useG2: true,\n\n  campaignId: 'df17f3eb-368d-415f-99ab-b6a7325dad3c',\n  batchSize: 10,          // enrichment attempts per hour\n  topUpBelow: 40,         // refill the queue when it drops under this\n  maxAttempts: 3,         // then move on; not every company is findable\n  g2Categories: [\n    'ai-sales-roleplay-tools','ai-proposal-generator-tools','event-lead-capture',\n    'ai-interview-agent','ai-documentation-generators','site-search-software',\n    'ai-sre-tools','website-privacy-auditing-tools','ai-agent-observability',\n    'semantic-layer-tools','virtual-recording-studio','low-code-mobile-app-builder'\n  ],\n  g2MinReviews: 10, g2MaxReviews: 250,\n  excludeDomains: [\n    'linkfinderai.com','clay.com','warmly.ai','6sense.com','apollo.io',\n    'zoominfo.com','lusha.com','cognism.com','hunter.io','snov.io',\n    'rocketreach.co','seamless.ai','uplead.com','findymail.com','dropcontact.com',\n    'kaspr.io','surfe.com','prospeo.io','anymailfinder.com','tryprofound.com',\n    'peec.ai','otterly.ai','athenahq.ai','scrunchai.com','goodie.ai','brandlight.ai'\n  ],\n  excludeHosts: [\n    'producthunt.com','github.com','gitlab.com','medium.com','substack.com',\n    'notion.so','notion.site','youtube.com','twitter.com','x.com',\n    'news.ycombinator.com','reddit.com','linkedin.com','vercel.app',\n    'netlify.app','herokuapp.com','pages.dev','webflow.io'\n  ]\n} }];"
       },
       "id": "config",
       "name": "Config",
@@ -138,7 +138,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const cfg = $input.first().json;\nreturn cfg.g2Categories.map(slug => ({ json: { ...cfg, slug } }));"
+        "jsCode": "const cfg = $input.first().json;\n// No G2 token -> emit no items, so the G2 request node never executes and\n// never asks for a credential that does not exist. Hacker News carries the\n// run on its own.\nif (!cfg.useG2) return [];\nreturn cfg.g2Categories.map(slug => ({ json: { ...cfg, slug } }));"
       },
       "id": "g2fan",
       "name": "One item per G2 category",
@@ -182,7 +182,8 @@
           "name": "G2 API token"
         }
       },
-      "notes": "neverError, so a G2 outage tops the queue up with nothing instead of killing the run. The queue carries the pipeline through."
+      "notes": "neverError covers HTTP errors; onError=continueRegularOutput covers the rest (bad or expired credential, DNS, timeout). Between them a G2 problem tops the queue up with nothing instead of killing the run. Set useG2:false in Config if you have no data.g2.com token at all.",
+      "onError": "continueRegularOutput"
     },
     {
       "parameters": {

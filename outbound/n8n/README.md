@@ -213,3 +213,28 @@ pipeline is healthy without opening anything.
     node outbound/n8n/test-reliable.js
 
 15 cases run the queue logic against real payload shapes.
+
+## Do you need a G2 API key?
+
+Only if you want the G2 source. Set `useG2: false` in **Config** and the run
+sources from Hacker News alone, which needs no credential of any kind.
+
+Worth checking before you leave it on: a G2 *account*, and even a working G2
+MCP/OAuth connection, is **not** the same thing as an API token for
+`data.g2.com`. If you do not have that token, leaving `useG2: true` fails
+the entire run — a missing credential is a node-level error in n8n, and
+`neverError` does not catch it because that option only suppresses HTTP
+error *responses*.
+
+With `useG2: false` the G2 fan-out emits zero items, so the request node
+never executes and never asks for the credential. Belt and braces, the node
+also carries `onError: continueRegularOutput`, so a present-but-broken
+credential, a timeout or a DNS failure tops the queue up with nothing
+instead of killing the run.
+
+| credential | needed when |
+| --- | --- |
+| `Instantly API key` | always — the capacity check and the push both use it |
+| `LinkFinder API key` | always — it is the enrichment step |
+| `G2 API token` | only with `useG2: true` |
+| *(Hacker News)* | never — no auth |
