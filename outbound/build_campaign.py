@@ -61,6 +61,12 @@ DEFAULT_MODEL = "openai/gpt-4o-mini"
 # HTTP
 # ---------------------------------------------------------------------------
 
+class ProviderDown(RuntimeError):
+    """The data provider answered, but with a status message instead of data.
+    Distinct from RuntimeError so the main loop can abort instead of counting
+    the domain as a miss."""
+
+
 def _post(url, payload, headers, timeout=60):
     req = urllib.request.Request(
         url,
@@ -98,11 +104,44 @@ def unwrap(r):
     return r
 
 
+# The Apify actor behind the employee lookup answers with HTTP 200 and
+# status "success" even when it is down, putting its own status message in
+# a row where a person should be. Every field is null except `name`. Two
+# kinds show up and they mean opposite things:
+#
+#   "No Leads found. Tweak your filters"   -> a real, empty answer
+#   "We are on maintenance..."             -> the provider is down
+#
+# The personId guard below drops both, which is correct per-row. But an
+# outage drops EVERY row of EVERY domain, and the run then prints "no
+# decision maker found" a hundred times and exits looking like an honest
+# zero-yield sweep over a bad list. That is the failure worth shouting
+# about: the list was fine, the provider was not.
+OUTAGE_MARKERS = ("maintenance", "check back in", "we improve the actor",
+                  "contact us if you are having")
+
+
+def provider_outage(rows):
+    """True when the actor answered with a status message, not an answer."""
+    for row in rows:
+        if not isinstance(row, dict) or row.get("personId") or row.get("person_id"):
+            continue
+        name = (row.get("name") or "").lower()
+        if any(m in name for m in OUTAGE_MARKERS):
+            return name
+    return None
+
+
 def find_decision_maker(api_key, domain):
     """Cheapest useful person at a domain. 1 credit regardless of list size."""
     data = unwrap(lf_call(api_key, "company_domain_to_employees", domain,
                           seniority=",".join(TARGET_SENIORITY), employee_count=5))
     rows = data if isinstance(data, list) else (data or {}).get("employees") or []
+    outage = provider_outage(rows)
+    if outage:
+        # Not "this company has nobody". Stop the run rather than write off
+        # every remaining domain as unreachable.
+        raise ProviderDown(f"employee lookup is down, it answered: {outage!r}")
     for row in rows:
         if not isinstance(row, dict):
             continue
@@ -365,6 +404,15 @@ def main():
                     check = (ai_visibility(llm_key, args.llm_provider, args.model,
                                            category, company, domain)
                              if person and email else None)
+            except ProviderDown as e:
+                # Every remaining domain would report "no decision maker" for
+                # a reason that has nothing to do with the domain. Keep what
+                # we have and stop; nothing has been written to --seen yet
+                # except rows that actually made it all the way through.
+                print(f"\n    !! {e}", file=sys.stderr)
+                print(f"    !! stopping with {len(out_rows)} built. "
+                      f"Re-run later; no domains were burned.", file=sys.stderr)
+                break
             except RuntimeError as e:
                 print(f"    ! {e}", file=sys.stderr)
                 person = email = check = None

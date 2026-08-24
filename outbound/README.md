@@ -205,3 +205,43 @@ a send.
 | `qualified_leads.csv` | 11 real decision makers found by hand, **not** visibility-checked |
 | `seed_candidates.csv` | 15 domains harvested from search; superseded by `source_g2.py` |
 | `test_logic.py` | 37 cases over the parsing, matching and banding logic |
+
+## What a live pass through G2 actually returns
+
+Four categories sampled by hand, top-5 each, banded at 10–250 reviews:
+
+| category | in band | what the rest were |
+| --- | --- | --- |
+| Agentic GTM Platforms | — | Clay 225 and Warmly 6 are **competitors**; 6sense 1050 too big; two 0-review stubs |
+| AI Sales Roleplay Tools | Outdoo AI 172 | Second Nature 442, Allego 695, Mindtickle 2400, SalesHood 828 |
+| AI Proposal Generator Tools | AutogenAI 164 | Responsive 1311, Loopio 813, PandaDoc 3731, Proposify 1143 |
+| Event Lead Capture | Captello 182, Mobly 108 | Blinq 9265, Popl 6467, HiHello 924 |
+
+About one usable prospect per category, so the full 2,287-category sweep
+should land in the high hundreds. That is the number the offer needs.
+
+**Agentic GTM Platforms is the cautionary one.** Every product in it looked
+like a perfect prospect and two of them were Clay and Warmly — companies
+competing for our own keywords. G2 files enrichment tools under the same
+GTM categories we want to sweep, so `EXCLUDE_DOMAIN` is not optional
+hygiene, it is the thing standing between this campaign and teaching our
+own competitors the playbook.
+
+**0-review listings are excluded on purpose.** Agencly and AgentPeak both
+showed up with real pricing pages and zero reviews. They are real, they are
+just too early to have $1500. The band's floor is doing work.
+
+## The provider-outage guard
+
+The employee lookup answers `HTTP 200` / `status: "success"` even when its
+upstream is down, and puts a status message where a person should be:
+
+    {"personId": null, "name": "We are on maintenance. Check back in 48hrs"}
+
+The `personId` check already dropped that row. The problem was what happened
+next: during an outage *every* row of *every* domain drops, the run prints
+"no decision maker found" a hundred times, and it reads as an honest sweep
+over a bad list. `provider_outage()` now tells that apart from a real empty
+answer and raises `ProviderDown`, which stops the run. Nothing reaches
+`contacted.txt` except rows that completed, so a stopped run burns nothing
+and can just be re-run.

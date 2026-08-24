@@ -81,5 +81,28 @@ check("giant-only skipped", min([9000, 4000, 1200]) > 250, True)
 print("\n--- G2 sourcing: our own domain is never a prospect ---")
 check("self excluded", "linkfinderai.com" in g2.EXCLUDE_DOMAIN, True)
 
+print("\n--- provider outage is not the same as an empty answer ---")
+# Real rows the actor returned during this session.
+MAINT   = {"personId": None, "name": "We are on maintenance. Check back in 48hrs"}
+BANNER  = {"personId": None, "name": "\u2764\ufe0f We improve the Actor everyday. Contact us if you are having any issue"}
+NOLEADS = {"personId": None, "name": "\u26a0\ufe0f  No Leads found. Tweak your filters and try again"}
+REAL    = {"personId": "abc", "name": "Zach Barney",
+           "linkedinUrl": "http://www.linkedin.com/in/zachbarney"}
+
+check("maintenance row detected",  bool(bc.provider_outage([MAINT])), True)
+check("actor banner detected",     bool(bc.provider_outage([BANNER])), True)
+check("no-leads is NOT an outage", bool(bc.provider_outage([NOLEADS])), False)
+check("empty list is NOT outage",  bool(bc.provider_outage([])), False)
+check("real person is NOT outage", bool(bc.provider_outage([REAL])), False)
+# The banner rides along with a genuine empty answer, which is the common
+# shape. That pair must still abort -- we cannot tell empty from down.
+check("banner + no-leads aborts",  bool(bc.provider_outage([BANNER, NOLEADS])), True)
+check("ProviderDown is a RuntimeError", issubclass(bc.ProviderDown, RuntimeError), True)
+
+print("\n--- G2 sourcing: competitors are never prospects ---")
+for d in ("clay.com", "warmly.ai", "apollo.io", "hunter.io", "linkfinderai.com"):
+    check(f"{d} excluded", d in g2.EXCLUDE_DOMAIN, True)
+check("outdoo.ai not excluded", "outdoo.ai" in g2.EXCLUDE_DOMAIN, False)
+
 print("\n" + (f"FAILURES: {fails}" if fails else "all cases as expected"))
 sys.exit(1 if fails else 0)

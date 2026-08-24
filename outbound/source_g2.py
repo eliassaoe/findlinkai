@@ -71,8 +71,18 @@ EXCLUDE_CATEGORY = (
 
 # Our own SERPs. Selling the system to someone competing for our keywords
 # funds a competitor with our own playbook.
+# Our own SERPs. Selling the system to someone competing for our keywords
+# funds a competitor with our own playbook -- and /linkedin-email-finder is
+# the second biggest organic page we have. The G2 taxonomy files these
+# companies under GTM and sales categories that otherwise look ideal, so
+# they turn up in exactly the sweep we want to run. Clay (225 reviews) and
+# Warmly (6) both came back in band on the first pass.
 EXCLUDE_DOMAIN = (
     "linkfinderai.com",
+    "clay.com", "warmly.ai", "6sense.com", "apollo.io", "zoominfo.com",
+    "lusha.com", "cognism.com", "hunter.io", "snov.io", "rocketreach.co",
+    "seamless.ai", "uplead.com", "findymail.com", "dropcontact.com",
+    "kaspr.io", "surfe.com", "prospeo.io", "anymailfinder.com",
 )
 
 
