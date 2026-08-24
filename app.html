@@ -5476,13 +5476,27 @@ const OTP_SURVEY = [
       placeholder: 'One line is enough. Be blunt.' },
 ];
 
-const OTP_TASKS = [
+/*
+ * Flip to true only once BOTH are live:
+ *   1. workers/onboarding-tasks/schema.sql has been run (adds the payload column
+ *      the answers are written to - without it every submission 500s), and
+ *   2. the onboarding-tasks worker is deployed with product_survey in TASK_CONFIG.
+ *
+ * Until then the task is hidden rather than shown-and-broken: the deployed worker
+ * answers 400 "Unknown task_name", so a person would fill in four questions and
+ * be told the task does not exist. See task #35.
+ */
+const SURVEY_TASK_LIVE = false;
+
+const OTP_TASKS_ALL = [
     { name: 'product_survey', kind: 'survey', label: 'Answer 4 questions about your work', sub: 'Takes about a minute. It genuinely changes what we build next.', credits: 500, realValue: '= 50 emails or 500 LinkedIn profiles' },
     { name: 'g2_review', kind: 'url', label: 'Leave a G2 review', credits: 1000, realValue: '= 100 emails or 1,000 LinkedIn profiles', placeholder: 'Paste the URL of your review', linkUrl: OTP_LINKS.g2, linkLabel: 'Write a review on G2', pendingCopy: 'Being checked', disclosureNote: DISC },
     { name: 'site_badge', kind: 'url', label: 'Put the LinkFinder badge on your site', credits: 1000, realValue: '= 100 emails or 1,000 LinkedIn profiles', placeholder: 'Paste the page URL where the badge is live', linkUrl: 'https://linkfinderai.com/badge', linkLabel: 'Get the badge code', verifyWorker: BADGE_VERIFY_WORKER },
     { name: 'youtube_subscribe', kind: 'honor_click', label: 'Subscribe to our YouTube channel', credits: 100, realValue: '= 100 LinkedIn profiles', linkUrl: OTP_LINKS.youtube, linkLabel: 'Open channel' },
     { name: 'linkedin_share', kind: 'url', label: 'Share on LinkedIn', credits: 150, realValue: '= 150 LinkedIn profiles', placeholder: 'Paste your LinkedIn post URL' },
 ];
+
+const OTP_TASKS = OTP_TASKS_ALL.filter(t => t.name !== 'product_survey' || SURVEY_TASK_LIVE);
 
 function otpCopy() {
     const balance = currentCredits !== null ? Math.round(currentCredits * 10) / 10 : null;
