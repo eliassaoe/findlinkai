@@ -1,0 +1,29 @@
+# The deployed Worker MUST keep this name — account.html and crm-sync.html
+# hardcode https://nango-connect-session.hamoureliasse.workers.dev/
+name = "nango-connect-session"
+main = "worker.js"
+compatibility_date = "2026-08-17"
+
+# Weekly sync. An hour after saved-search-alerts so the two don't overlap.
+[triggers]
+crons = ["0 10 * * 1"]
+
+# KV for connection records, keyed conn:<linkfinder token>.
+# Fill in the real namespace id before deploying from this file.
+[[kv_namespaces]]
+binding = "CRM_CONNECTIONS"
+id = "REPLACE_WITH_KV_NAMESPACE_ID"
+
+# REQUIRED. Without this binding every enrichment fails with Cloudflare
+# error 1042 (same-account Worker-to-Worker calls over the public
+# *.workers.dev hostname are blocked).
+[[services]]
+binding = "ENRICH_SERVICE"
+service = "linkfinderapp"
+
+# Optional. Falls back to global fetch when absent.
+[[services]]
+binding = "SUBSCRIBER_SERVICE"
+service = "upgrade-intent"
+
+# Secret, set with `npx wrangler secret put NANGO_SECRET_KEY`. Never commit it.
