@@ -4476,14 +4476,26 @@ function showSavedPill(targetEl) {
     // Remove any existing pill first to avoid duplicates
     document.querySelectorAll('.saved-pill').forEach(el => el.remove());
     
+    // History is a paid feature (see history.html's paywall). Telling a free user
+    // their result was "Saved to history" and then showing them an upgrade wall
+    // when they click just moves the disappointment one click later, so free
+    // users get the honest version and go straight to pricing.
+    const isPaid = !!currentPlanNumber;
+
     const pill = document.createElement('a');
     pill.className = 'saved-pill';
     pill.href = '#';
-    pill.innerHTML = '<i class="fas fa-check-circle"></i> Saved to history <span class="saved-arrow">→</span>';
+    pill.innerHTML = isPaid
+        ? '<i class="fas fa-check-circle"></i> Saved to history <span class="saved-arrow">→</span>'
+        : '<i class="fas fa-lock"></i> Upgrade to save this to history <span class="saved-arrow">→</span>';
     pill.onclick = (e) => {
         e.preventDefault();
-        try { posthog.capture('saved_pill_clicked', { input_type: currentInputType, output_type: currentOutputType }); } catch(e) {}
-        window.location.href = addGclid(`https://linkfinderai.com/history?token=${userToken}`);
+        try { posthog.capture('saved_pill_clicked', { input_type: currentInputType, output_type: currentOutputType, is_paid: isPaid }); } catch(e) {}
+        if (isPaid) {
+            window.location.href = addGclid(`https://linkfinderai.com/history?token=${userToken}`);
+        } else {
+            showPricingModal('saved_pill_free');
+        }
     };
     
     // Insert at the top of the results section
