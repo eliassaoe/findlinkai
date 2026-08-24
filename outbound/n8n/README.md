@@ -46,8 +46,23 @@ the category. Measured: ~1.6 usable prospects per narrow category, and 0
 from broad ones like Sales Engagement, whose top five were Salesforce,
 HubSpot, Apollo, ActiveCampaign and Salesloft.
 
-If you ever do want the full listing, the legitimate route is a G2 seller
-plan, which unlocks the `/products` endpoint the buyer token cannot use.
+**Do not buy a G2 seller plan to fix this.** An earlier version of this file
+suggested it; that was an inference from how the connector classifies the
+account, not something verified, and the economics kill it anyway. Claiming a
+profile is free, but paid vendor tiers run **$21,300–$28,300 a year**, with
+multi-product deals reaching $50k–$95k. That is a five-figure annual spend to
+widen a listing endpoint that narrow categories already work around for
+nothing. There is also no confirmation that any tier exposes `/products` to
+an API token — the paid tiers are sold on branding, analytics and lead gen.
+
+**Claim the free profile anyway, for a different reason entirely.** A G2
+profile is one of the pages that assistants synthesise when someone asks for
+the best tool in a category, and it ranks. This service sells listicle
+placement; G2 is the largest listicle in B2B software, and LinkFinder AI
+should be in its own categories on it. That is the same work we would charge
+a client for, done on ourselves, at no cost. Search for the product on G2,
+click the Unclaimed box, and follow the prompts — 1–3 business days to
+approve, 3–5 more for the research team to categorise it.
 
 ## The two design decisions worth keeping
 
