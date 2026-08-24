@@ -201,11 +201,16 @@ attempts, then it moves on too.
 | maintenance sentinel | back on the queue, up to 3 tries, then done |
 | upload failed | back on the queue — we already paid to enrich it |
 
-## It refuses to waste money
+## No capacity check
 
-The run reads the Instantly lead cap first. Over the cap, it stops before a
-single enrichment call: the uploads would 403 anyway, and the queue loses
-nothing by waiting. Under it, the batch is capped to the room available.
+An earlier version read the Instantly lead cap first and refused to run when
+the workspace was over it. That is gone by request — it just runs.
+
+Worth knowing what that trades away: if Instantly is at its lead cap, the
+enrichment still happens and gets paid for, and the upload then 403s. The
+lead is not lost — a failed push goes back on the queue — but the credit
+spent on it is. Watch `pushedTotal` in the run summary; if it sits at zero
+while the queue drains, that is what is happening.
 
 ## Watching it
 

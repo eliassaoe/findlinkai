@@ -37,73 +37,14 @@
     },
     {
       "parameters": {
-        "url": "https://api.instantly.ai/api/v2/workspaces/current/plan",
-        "options": {
-          "response": {
-            "response": {
-              "neverError": true
-            }
-          }
-        },
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "Authorization",
-              "value": "={{ 'Bearer ' + $('Config').first().json.keys.instantly }}"
-            }
-          ]
-        }
-      },
-      "id": "capacity",
-      "name": "Instantly: room left?",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [
-        -680,
-        300
-      ]
-    },
-    {
-      "parameters": {
-        "jsCode": "// Decide, once per run, whether there is anything worth doing.\n//\n// Two independent reasons to stop early, and stopping is not a failure:\n//   - no room in Instantly  -> enriching would burn credits on leads that\n//                              cannot be uploaded\n//   - queue still full      -> no need to hit the sources at all\n//\n// The queue lives in n8n's own workflow storage. No database to set up, it\n// survives restarts, and it is what turns an unreliable provider into a\n// reliable pipeline: a domain that fails this hour is simply still there\n// next hour.\nconst cfg = $('Config').first().json;\n\n// Catch an unset key here rather than as a confusing 401 six nodes later.\nconst k = cfg.keys || {};\nconst missing = [];\nif (!k.instantly)  missing.push('instantly');\nif (!k.linkfinder) missing.push('linkfinder');\nif (cfg.useG2 && !k.g2) missing.push('g2 (or set useG2:false)');\nif (missing.length) {\n  throw new Error('Open the Config node and fill in: ' + missing.join(', ') +\n    '. Keys go in the KEYS object at the top.');\n}\nconst plan = $input.first().json;\nconst sub = plan?.subscriptions?.outreach || plan || {};\nconst limit = sub.total_lead_limit, used = sub.current_lead_count;\n\nlet room;\nif (limit == null || used == null) {\n  room = cfg.batchSize;   // unreadable: proceed cautiously, one batch\n} else {\n  room = limit - used;\n}\n\nconst store = $getWorkflowStaticData('global');\nstore.queue = store.queue || [];\nstore.done  = store.done  || {};\nstore.stats = store.stats || { pushed: 0, dead: 0, retries: 0, runs: 0 };\nstore.stats.runs++;\n\nif (room <= 0) {\n  return [{ json: { ...cfg, halt: true,\n    reason: `Instantly is ${-room} leads over its cap (${used}/${limit}). ` +\n            `Nothing enriched — that would spend credits on leads it will refuse. ` +\n            `Queue is holding ${store.queue.length} domains and loses nothing by waiting.` } }];\n}\n\nreturn [{ json: { ...cfg,\n  halt: false,\n  room,\n  queueLength: store.queue.length,\n  needsTopUp: store.queue.length < cfg.topUpBelow\n} }];"
+        "jsCode": "// Set up the queue and check the keys. Nothing else gates a run.\n//\n// The queue lives in n8n's own workflow storage. No database to set up, it\n// survives restarts, and it is what makes the pipeline reliable: a domain\n// that does not resolve this hour is simply still there next hour.\nconst cfg = $('Config').first().json;\n\n// Catch an unset key here rather than as a confusing 401 further downstream.\nconst k = cfg.keys || {};\nconst missing = [];\nif (!k.instantly)  missing.push('instantly');\nif (!k.linkfinder) missing.push('linkfinder');\nif (cfg.useG2 && !k.g2) missing.push('g2 (or set useG2:false)');\nif (missing.length) {\n  throw new Error('Open the Config node and fill in: ' + missing.join(', ') +\n    '. Keys go in the KEYS object at the top.');\n}\n\nconst store = $getWorkflowStaticData('global');\nstore.queue = store.queue || [];\nstore.done  = store.done  || {};\nstore.stats = store.stats || { pushed: 0, dead: 0, retries: 0, runs: 0 };\nstore.stats.runs++;\n\nreturn [{ json: { ...cfg,\n  queueLength: store.queue.length,\n  needsTopUp: store.queue.length < cfg.topUpBelow\n} }];"
       },
       "id": "plan",
       "name": "Plan this run",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -480,
-        300
-      ]
-    },
-    {
-      "parameters": {
-        "conditions": {
-          "options": {
-            "caseSensitive": true,
-            "version": 2
-          },
-          "conditions": [
-            {
-              "leftValue": "={{ $json.halt }}",
-              "rightValue": "={{ false }}",
-              "operator": {
-                "type": "boolean",
-                "operation": "equals"
-              }
-            }
-          ],
-          "combinator": "and"
-        },
-        "options": {}
-      },
-      "id": "canrun",
-      "name": "Anything to do?",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2.2,
-      "position": [
-        -280,
+        -680,
         300
       ]
     },
@@ -233,7 +174,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Take this hour's batch off the queue.\n//\n// Oldest first, and anything that has burned through maxAttempts is written\n// off here rather than retried forever. A domain with no reachable decision\n// maker is not going to grow one.\nconst cfg = $('Plan this run').first().json;\nconst store = $getWorkflowStaticData('global');\nconst take = Math.min(cfg.batchSize, cfg.room, store.queue.length);\n\nconst batch = [];\nwhile (batch.length < take && store.queue.length) {\n  const row = store.queue.shift();\n  if (!row) break;\n  if ((row.attempts || 0) >= cfg.maxAttempts) {\n    store.done[row.domain] = 'gave_up';\n    store.stats.dead++;\n    continue;\n  }\n  batch.push({ json: { ...row, campaignId: cfg.campaignId } });\n}\n\nif (!batch.length) {\n  return [{ json: { idle: true, queueLength: store.queue.length,\n    note: 'nothing to enrich this hour' } }];\n}\nreturn batch;"
+        "jsCode": "// Take this hour's batch off the queue.\n//\n// Oldest first, and anything that has burned through maxAttempts is written\n// off here rather than retried forever. A domain with no reachable decision\n// maker is not going to grow one.\nconst cfg = $('Plan this run').first().json;\nconst store = $getWorkflowStaticData('global');\nconst take = Math.min(cfg.batchSize, store.queue.length);\n\nconst batch = [];\nwhile (batch.length < take && store.queue.length) {\n  const row = store.queue.shift();\n  if (!row) break;\n  if ((row.attempts || 0) >= cfg.maxAttempts) {\n    store.done[row.domain] = 'gave_up';\n    store.stats.dead++;\n    continue;\n  }\n  batch.push({ json: { ...row, campaignId: cfg.campaignId } });\n}\n\nif (!batch.length) {\n  return [{ json: { idle: true, queueLength: store.queue.length,\n    note: 'nothing to enrich this hour' } }];\n}\nreturn batch;"
       },
       "id": "take",
       "name": "Take this hour's batch",
@@ -439,17 +380,6 @@
       "main": [
         [
           {
-            "node": "Instantly: room left?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Instantly: room left?": {
-      "main": [
-        [
-          {
             "node": "Plan this run",
             "type": "main",
             "index": 0
@@ -461,25 +391,7 @@
       "main": [
         [
           {
-            "node": "Anything to do?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Anything to do?": {
-      "main": [
-        [
-          {
             "node": "Queue running low?",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Run summary",
             "type": "main",
             "index": 0
           }
