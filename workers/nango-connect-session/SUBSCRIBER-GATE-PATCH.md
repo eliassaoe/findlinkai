@@ -1,87 +1,67 @@
-# Patch: the subscriber gate has been refusing everyone since 17 Aug 23:31
+# The subscriber gate is still refusing every paying customer on 2 of 3 routes
 
-## Symptom
+**Verified against the live worker source on 24 Aug**, not inferred. Read with
+`workers_get_worker_code`, so the strings below are exact.
 
-`POST /` (connect-session) returns 403 for every user, including active
-subscribers. `/sync-now` reports `notSubscriber` and fills nothing. The page
-shows "Automatic sync is included on any paid plan" to people who are on one.
+## What is already fixed
 
-## Cause
-
-`isSubscriber()` calls another Worker in the same Cloudflare account over its
-public `workers.dev` hostname:
+The service-binding rewrite landed. `isSubscriber` takes `env` and routes
+through the binding:
 
 ```js
-const r = await fetch('https://upgrade-intent.hamoureliasse.workers.dev/', ...)
+async function isSubscriber(env, token) {
+  try {
+    const call = env.SUBSCRIBER_SERVICE || { fetch };
+    const r = await call.fetch('https://upgrade-intent.hamoureliasse.workers.dev/', {
 ```
 
-Cloudflare blocks same-account Worker-to-Worker calls over `*.workers.dev`
-(**error 1042**) — the identical restriction this file's header already
-documents for the enrichment worker, and already solved there with a service
-binding. Here the throw is swallowed:
+and `handleConnectSession` passes it correctly:
 
 ```js
-} catch (e) {
-    return false; // fail closed
-}
+if (!(await isSubscriber(env, token))) return json({ error: NOT_SUBSCRIBER_ERROR }, 403, origin);
 ```
 
-so an infrastructure failure is indistinguishable from "this person never paid".
+So **connecting HubSpot works.**
 
-Worker last modified **2026-08-17T23:31:29Z**. `hubspot_disconnected` fired at
-23:32:00 and `crm_sync_upgrade_clicked` at 23:32:01. The gate has never once
-worked.
+## What is still broken
 
+Two call sites were never updated and still call the old one-argument shape:
+
+| where | live code |
+| --- | --- |
+| `handlePushContacts` | `if (!(await isSubscriber(token)))` |
+| `syncOneConnection` | `if (!(await isSubscriber(linkfinderToken)))` |
+
+Both pass the **token where `env` is expected**. Inside the function that
+means `env` is a string and `token` is `undefined`, so:
+
+1. `env.SUBSCRIBER_SERVICE` on a string is `undefined`
+2. the `|| { fetch }` fallback takes over and does a plain fetch
+3. a same-account Worker-to-Worker call over `*.workers.dev` is blocked by
+   Cloudflare (**error 1042**)
+4. the `catch` returns `false` — fail closed
+
+Net effect: **`/sync-now` and `/push-contacts` refuse every subscriber**, for
+the same reason as the original bug, in the two routes that actually do the
+work. The customer connects HubSpot successfully, presses the button, and is
+told to buy a plan they are already paying for.
 
 ---
 
-# DO THIS FIRST — the 3-minute fix
+# The fix: two edits
 
-Everything below the fold is the hardened version. This is the minimum that
-makes CRM connections work again. Two dashboard steps, five one-line edits.
+In the Cloudflare dashboard → `nango-connect-session` → Edit Code. Ctrl+F each
+string; there is exactly one of each.
 
-## 1. Add the binding (30 seconds)
-
-Cloudflare dashboard → Workers → **nango-connect-session** → Settings →
-Bindings → Add binding → **Service binding**
-
-    Variable name : SUBSCRIBER_SERVICE
-    Service       : upgrade-intent
-    Environment   : production
-
-Save.
-
-## 2. Five edits (2 minutes)
-
-Open the worker's code editor (Edit Code / Quick Edit). Use Ctrl+F to find each
-string. There is exactly one of each.
-
-**Edit 1 — let the function see the bindings.** Find:
-
-    async function isSubscriber(token) {
-
-Replace with:
-
-    async function isSubscriber(env, token) {
-
-**Edit 2 — route the call through the binding.** Find:
-
-    const r = await fetch('https://upgrade-intent.hamoureliasse.workers.dev/', {
-
-Replace with:
-
-    const call = env.SUBSCRIBER_SERVICE || { fetch };
-    const r = await call.fetch('https://upgrade-intent.hamoureliasse.workers.dev/', {
-
-**Edits 3, 4, 5 — pass `env` at the three call sites.** Find and replace each:
+**Edit 1 — in `handlePushContacts`.** Find:
 
     if (!(await isSubscriber(token))) return json({ error: NOT_SUBSCRIBER_ERROR }, 403, origin);
 
-appears TWICE (handleConnectSession and handlePushContacts). Both become:
+Replace with:
 
     if (!(await isSubscriber(env, token))) return json({ error: NOT_SUBSCRIBER_ERROR }, 403, origin);
 
-Then find:
+**Edit 2 — in `syncOneConnection`.** Find:
 
     if (!(await isSubscriber(linkfinderToken))) {
 
@@ -91,63 +71,60 @@ Replace with:
 
 Deploy.
 
-## 3. Check it worked
+## Also confirm the binding exists
 
-    curl -s -w '\n%{http_code}\n' -H 'Content-Type: application/json' \
-      -H 'Origin: https://linkfinderai.com' \
-      -X POST https://nango-connect-session.hamoureliasse.workers.dev/ \
-      -d '{"token":"B2jf6h3KpXjAXxE9"}'
+The code now expects `env.SUBSCRIBER_SERVICE`. Settings → Bindings should show
+a **Service binding** named `SUBSCRIBER_SERVICE` pointing at `upgrade-intent`.
+If it is missing, the two edits above change nothing — the fallback still runs
+a plain fetch and still hits 1042.
 
-- **200** with a `connectSession` value → fixed. Go press Connect HubSpot.
-- **403** → the binding did not save, or an edit was missed.
-- **500** "NANGO_SECRET_KEY not set" → different problem, tell me.
+## Verify
 
-## 4. Then reload /crm-sync and click Connect HubSpot
+```bash
+curl -s -w '\n%{http_code}\n' -H 'Content-Type: application/json' \
+  -H 'Origin: https://linkfinderai.com' \
+  -X POST https://nango-connect-session.hamoureliasse.workers.dev/sync-now \
+  -d '{"token":"<a token that IS subscribed>"}'
+```
 
-That is the first time the Nango credentials will have been exercised since
-17 Aug. If the HubSpot consent screen opens, the whole path is alive.
+- **200** with `processed` / `filled` → fixed.
+- **200** with `"notSubscriber": true` → the edits did not take, or the binding
+  is missing.
+- **500** "ENRICH_SERVICE binding not set" → different, separate binding; the
+  gate is fine.
+
+Then press **Clean my contacts** on /crm-sync as a subscribed account.
 
 ---
 
-# The hardened version (do this later, not now)
+# Recommended, same deploy: tell "no" apart from "could not tell"
 
-## Step 1 — add the service binding
+`crm-sync.html` already ships the UI for this — it renders an `unverified`
+state on a **503** from `/`, or on `checkFailed` in a `/sync-now` reply. The
+worker never sends either yet, so those branches are currently dead code
+waiting for this half.
 
-`nango-connect-session` → Settings → Bindings → Add → **Service binding**
+Why it matters: today a timeout, a cold start, or a missing binding is
+indistinguishable from "never paid", and the customer is told to upgrade. That
+is precisely how this bug stayed invisible for six days.
 
-| field | value |
-|---|---|
-| Variable name | `SUBSCRIBER_SERVICE` |
-| Service | `upgrade-intent` |
-| Environment | production |
-
-## Step 2 — replace `isSubscriber` with this
-
-Three things change: it goes through the binding, it distinguishes "no" from
-"could not tell", and callers stop treating the second as the first.
+Replace `isSubscriber` with:
 
 ```js
-// Subscription-only by design. upgrade-intent reports issub from
-// `subscription_id` on linkfinderai_users — a real recurring Dodo
-// subscription. Credit-pack buyers have is_unlimited = true and NO
-// subscription_id, and are correctly refused: a pack is a one-off, while a
-// Nango connection costs us every month whether it is used or not.
-//
-// Returns 'yes' | 'no' | 'unknown'. 'unknown' exists because this used to
-// return false when the CHECK failed, which told paying customers to buy a
-// plan they already had.
+// Returns 'yes' | 'no' | 'unknown'. 'unknown' exists because returning false
+// when the CHECK fails is what told paying customers to buy a plan they
+// already had.
 async function subscriberStatus(env, token) {
-  const body = JSON.stringify({ token, trigger: 'crm_sync_gate' });
-  const init = { method: 'POST', headers: { 'Content-Type': 'application/json' }, body };
-
+  const init = {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token, trigger: 'crm_sync_gate' }),
+  };
   try {
-    // Service binding, not a plain fetch. A same-account Worker-to-Worker call
-    // over the public *.workers.dev hostname is blocked by Cloudflare (error
-    // 1042) — the same restriction ENRICH_SERVICE exists to sidestep.
-    const r = env.SUBSCRIBER_SERVICE
-      ? await env.SUBSCRIBER_SERVICE.fetch('https://upgrade-intent.hamoureliasse.workers.dev/', init)
-      : await fetch('https://upgrade-intent.hamoureliasse.workers.dev/', init);
-
+    // Service binding, not a plain fetch: a same-account Worker-to-Worker call
+    // over the public *.workers.dev hostname is blocked by Cloudflare (1042).
+    const call = env.SUBSCRIBER_SERVICE || { fetch };
+    const r = await call.fetch('https://upgrade-intent.hamoureliasse.workers.dev/', init);
     if (!r.ok) {
       console.log(`[crm-sync] subscriber check returned ${r.status}`);
       return 'unknown';
@@ -161,13 +138,10 @@ async function subscriberStatus(env, token) {
   }
 }
 
-const NOT_SUBSCRIBER_ERROR = 'HubSpot CRM Sync is available on paid plans. Upgrade to connect your CRM.';
 const UNKNOWN_SUBSCRIBER_ERROR = 'We could not verify your plan just now. This is on us, not your account — please try again in a minute.';
 ```
 
-## Step 3 — update the three call sites
-
-**`handleConnectSession`**
+`handleConnectSession` and `handlePushContacts` each become:
 
 ```js
   const status = await subscriberStatus(env, token);
@@ -175,11 +149,8 @@ const UNKNOWN_SUBSCRIBER_ERROR = 'We could not verify your plan just now. This i
   if (status === 'unknown') return json({ error: UNKNOWN_SUBSCRIBER_ERROR }, 503, origin);
 ```
 
-**`handlePushContacts`** — same three lines, in place of the old
-`if (!(await isSubscriber(token)))`.
-
-**`syncOneConnection`** — a failed check must not be recorded as "not a
-subscriber", or a paying customer's status page accuses them of lapsing:
+`syncOneConnection` — a failed check must not be recorded as "not a
+subscriber", or the status page accuses a paying customer of lapsing:
 
 ```js
   const status = await subscriberStatus(env, linkfinderToken);
@@ -192,105 +163,13 @@ subscriber", or a paying customer's status page accuses them of lapsing:
   }
 ```
 
-## Verify
-
-```bash
-curl -s -w '\n%{http_code}\n' -H 'Content-Type: application/json' \
-  -H 'Origin: https://linkfinderai.com' \
-  -X POST https://nango-connect-session.hamoureliasse.workers.dev/ \
-  -d '{"token":"B2jf6h3KpXjAXxE9"}'
-```
-
-200 with a `connectSession` = fixed. Still 403 = the binding did not take.
-503 = the binding is there but `upgrade-intent` itself is erroring.
-
 ---
 
-# Release the Nango connection when someone churns
+# Not in this patch
 
-Nango bills per connection per month, whether or not it runs. Today the weekly
-cron notices a lapsed subscriber and *skips* them — the connection stays,
-so you keep paying for people who left. It should be handed back.
-
-Add this alongside the tri-state check.
-
-## Why it is delayed, not immediate
-
-Deleting on the first "not a subscriber" is dangerous: that is exactly what the
-1042 bug reported for six days straight, and it would have destroyed every real
-customer's connection. So a definite `'no'` only starts a clock; `'unknown'`
-never does, and a returning subscriber clears it.
-
-```js
-const CHURN_GRACE_DAYS = 7;
-
-// Hands the connection back to Nango so it stops being billed. Only ever
-// called after CHURN_GRACE_DAYS of confirmed non-subscription - never on a
-// check that merely failed.
-async function releaseConnection(env, linkfinderToken, record) {
-  try {
-    const r = await fetch(
-      `${NANGO_API_BASE}/connection/${encodeURIComponent(record.connectionId)}` +
-      `?provider_config_key=${encodeURIComponent(HUBSPOT_INTEGRATION_ID)}`,
-      { method: 'DELETE', headers: { Authorization: `Bearer ${env.NANGO_SECRET_KEY}` } }
-    );
-    // 404 means Nango already lost it - the local record should still go.
-    if (!r.ok && r.status !== 404) {
-      console.error(`[crm-sync] release failed ${r.status} for ${linkfinderToken}`);
-      return false;
-    }
-  } catch (e) {
-    console.error('[crm-sync] release threw', e);
-    return false;
-  }
-  await env.CRM_CONNECTIONS.delete(`conn:${linkfinderToken}`);
-  console.log(`[crm-sync] released connection for ${linkfinderToken} (churned)`);
-  return true;
-}
-```
-
-In `syncOneConnection`, replace the skip branch:
-
-```js
-  const status = await subscriberStatus(env, linkfinderToken);
-
-  if (status === 'yes') {
-    // Back on a plan - clear any pending churn clock.
-    if (record.notSubscriberSince) {
-      record = { ...record, notSubscriberSince: null };
-      await env.CRM_CONNECTIONS.put(`conn:${linkfinderToken}`, JSON.stringify(record));
-    }
-  } else if (status === 'no') {
-    const since = record.notSubscriberSince || new Date().toISOString();
-    const days  = (Date.now() - new Date(since).getTime()) / 86400000;
-
-    if (days >= CHURN_GRACE_DAYS) {
-      await releaseConnection(env, linkfinderToken, record);
-      return { processed: 0, filled: { email: 0, linkedin_url: 0, phone: 0 },
-               filledTotal: 0, released: true };
-    }
-    if (!record.notSubscriberSince) {
-      await env.CRM_CONNECTIONS.put(`conn:${linkfinderToken}`,
-        JSON.stringify({ ...record, notSubscriberSince: since }));
-    }
-    return { processed: 0, filled: { email: 0, linkedin_url: 0, phone: 0 },
-             filledTotal: 0, notSubscriber: true };
-  } else {
-    // 'unknown' - our check failed. Change nothing, spend nothing, accuse nobody.
-    return { processed: 0, filled: { email: 0, linkedin_url: 0, phone: 0 },
-             filledTotal: 0, checkFailed: true };
-  }
-```
-
-## Verify the DELETE endpoint before shipping this
-
-I could not reach the network from the session where this was written, so the
-Nango delete call above is from their documented REST API rather than a live
-test. Confirm the path and the `provider_config_key` parameter against
-https://docs.nango.dev before deploying, and watch the first cron run's logs.
-
-## Also worth doing
-
-`/disconnect` currently only deletes the KV record — the Nango connection
-survives and keeps billing. Have it call `releaseConnection` too, so a user who
-disconnects by hand actually costs nothing.
+Releasing the Nango connection when someone churns (so we stop paying for
+people who left) is written up separately in `MONITORING-PATCH.md`'s sibling
+section. It deletes connections, and the Nango DELETE call in it has never
+been run against the live API — settle that before shipping it. `/disconnect`
+has the same gap: it deletes the KV record and leaves the Nango connection
+billing.
