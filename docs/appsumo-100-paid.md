@@ -188,11 +188,17 @@ rate into new plans; it was a measurement of a broken payment path.
 
 Two things still open, neither blocking:
 
-- **No real payment has landed post-fix.** 5 real plan selections, 4 redirects,
-  0 purchases over three days. At ~27 plan selections a month that gap is
-  expected, not a signal. A trustworthy post-fix conversion rate needs roughly
-  10–14 days. Until then the honest phrasing is "fixed, conversion not yet
-  measured".
+- ~~No real payment has landed post-fix.~~ **Closed 24 Aug.**
+  `jmichaud@endhunger.com` bought Starter monthly at 17:41 UTC, and the whole
+  repaired chain is in the trace: `plan_selected` → `checkout_worker_request_started`
+  → `checkout_redirect_started` → `checkout_session_created` inside 0.7s, with
+  payment 68 seconds after that. They landed from Bing at 17:35:30 and paid at
+  17:41:54 — **6 minutes 24 seconds** start to finish, then went straight back to
+  enriching. What sold it was the bulk gate, not the pricing page: CSV upload →
+  `bulk_results_gated_shown` → upgrade CTA clicked 29 seconds later, the same
+  pattern as the 9.5% export-gate conversion in the lifecycle notes. One sale is
+  not a conversion rate, so "fixed, conversion not yet measured" still stands —
+  but it is no longer unproven.
 - **`checkout_redirect_stalled` fired on 2 of 4 real redirects** — the 5s stall
   notice, not a failure. Worth checking whether the redirect is merely slow.
   `checkout_payment_page_opened` reads 0 for everyone including the successful
