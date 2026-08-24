@@ -758,9 +758,11 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
 @media(max-width:480px){.otp-modal{padding:1.375rem;max-height:96vh;}.otp-input-row{flex-direction:column;}.otp-referral-row{flex-direction:column;}}
 
 /* ===== MCP Tutorial Popup (shown on 2nd connection) ===== */
-.mcp-tut-video{position:relative;width:100%;padding-top:56.25%;border-radius:10px;overflow:hidden;background:var(--gray-100);margin-bottom:1.375rem;}
-.mcp-tut-video iframe{position:absolute;top:0;left:0;width:100%;height:100%;border:0;}
-.mcp-tut-cta{display:block;text-align:center;text-decoration:none;}
+.feature-tut-video{position:relative;width:100%;padding-top:56.25%;border-radius:10px;overflow:hidden;background:var(--gray-100);margin-bottom:1.375rem;}
+.feature-tut-video iframe{position:absolute;top:0;left:0;width:100%;height:100%;border:0;}
+/* width:100% matters: this is a <button>, and unlike an <a> a button does not
+   stretch to its container on display:block alone — it would size to its label. */
+.feature-tut-cta{display:block;width:100%;text-align:center;text-decoration:none;}
 
 </style>
 <script async src="https://plausible.io/js/pa-LTP3nlbjr9NybMEgzpwxU.js"></script>
@@ -1275,20 +1277,20 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
     </div>
 </div>
 
-<div id="mcpTutorialModal" class="otp-overlay">
-    <div class="otp-modal" role="dialog" aria-modal="true" aria-labelledby="mcpTutTitle">
-        <button class="otp-close" onclick="dismissMcpTutorialPopup()" aria-label="Close"><i class="fas fa-times"></i></button>
+<div id="bulkTutorialModal" class="otp-overlay">
+    <div class="otp-modal" role="dialog" aria-modal="true" aria-labelledby="bulkTutTitle">
+        <button class="otp-close" onclick="dismissBulkTutorialPopup()" aria-label="Close"><i class="fas fa-times"></i></button>
         <div class="otp-header">
-            <div class="otp-eyebrow"><i class="fas fa-wand-magic-sparkles"></i> New here? Level up</div>
-            <h2 id="mcpTutTitle">Use LinkFinder AI right inside Claude</h2>
-            <p>Skip the browser tab — enrich leads straight from a Claude conversation via MCP. Here's the 90-second walkthrough.</p>
+            <div class="otp-eyebrow"><i class="fas fa-bolt"></i> New here? Level up</div>
+            <h2 id="bulkTutTitle">Enrich a whole list at once</h2>
+            <p>One lookup at a time is the slow way. Upload a CSV and LinkFinder runs the whole list for you. Here's the walkthrough.</p>
         </div>
-        <div class="mcp-tut-video">
-            <iframe src="https://www.youtube-nocookie.com/embed/aszAiVOzYTs" title="Use LinkFinder AI inside Claude via MCP" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+        <div class="feature-tut-video">
+            <iframe src="https://www.youtube-nocookie.com/embed/69icgFGsJhg" title="Enrich a whole list at once with LinkFinder AI" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
         </div>
-        <a href="https://linkfinderai.com/api-access?utm_source=app&amp;utm_medium=popup&amp;utm_campaign=second_connection_mcp" class="otp-submit-btn mcp-tut-cta" onclick="mcpTutorialCtaClicked()">Connect Claude via MCP →</a>
+        <button type="button" class="otp-submit-btn feature-tut-cta" onclick="bulkTutorialCtaClicked()">Upload a CSV →</button>
         <div class="otp-footer">
-            <button class="otp-skip-link" onclick="dismissMcpTutorialPopup()">Maybe later</button>
+            <button class="otp-skip-link" onclick="dismissBulkTutorialPopup()">Maybe later</button>
         </div>
     </div>
 </div>
@@ -3995,7 +3997,7 @@ function checkAuth(){
 
     // Counts authenticated app loads (not just first-ever signup) so we can
     // greet the user's *second* connection specifically — see
-    // maybeShowMcpTutorialPopup() below.
+    // maybeShowBulkTutorialPopup() below.
     const lfVisitCount = (parseInt(localStorage.getItem('lf_visit_count') || '0', 10) || 0) + 1;
     localStorage.setItem('lf_visit_count', String(lfVisitCount));
 
@@ -4137,38 +4139,51 @@ function checkAuth(){
             if (reopenBtn) reopenBtn.style.display = '';
         }
     });
-    maybeShowMcpTutorialPopup(lfVisitCount);
+    maybeShowBulkTutorialPopup(lfVisitCount);
 })
     .catch(() => {});
 }
 
-// Shows a one-time "use LinkFinder AI inside Claude via MCP" video popup on
-// the user's 2nd authenticated app load — enough time to have formed some
-// intent, before they've settled into a workflow that doesn't include it.
-// Never shows on the 1st visit (too early, still just exploring the tool
-// itself) or more than once ever (localStorage-gated, same pattern as
-// lf_onboarding_popup_seen above).
-function maybeShowMcpTutorialPopup(visitCount) {
+// Shows a one-time bulk-upload video popup on the user's 2nd authenticated
+// app load — enough time to have formed some intent, before they've settled
+// into a one-lookup-at-a-time habit. Never on the 1st visit (too early,
+// still exploring the tool itself) or more than once ever.
+//
+// This used to show the MCP walkthrough. Bulk converts far better, and it is
+// the same moment in the same journey, so it earns the slot.
+//
+// The gate uses a NEW localStorage key on purpose. Reusing lf_mcp_popup_seen
+// would silently skip every existing user who already dismissed the MCP
+// video — exactly the people worth showing the better feature to.
+function maybeShowBulkTutorialPopup(visitCount) {
     if (visitCount !== 2) return;
-    if (localStorage.getItem('lf_mcp_popup_seen')) return;
+    if (localStorage.getItem('lf_bulk_popup_seen')) return;
     setTimeout(() => {
         if (document.querySelector('.otp-overlay.show')) return; // don't stack on another popup
-        document.getElementById('mcpTutorialModal').classList.add('show');
+        document.getElementById('bulkTutorialModal').classList.add('show');
         document.body.style.overflow = 'hidden';
-        try { posthog.capture('mcp_tutorial_popup_shown', { trigger: 'second_connection' }); } catch(e) {}
+        try { posthog.capture('bulk_tutorial_popup_shown', { trigger: 'second_connection' }); } catch(e) {}
     }, 1200);
 }
 
-function dismissMcpTutorialPopup() {
-    document.getElementById('mcpTutorialModal').classList.remove('show');
+function dismissBulkTutorialPopup() {
+    document.getElementById('bulkTutorialModal').classList.remove('show');
     document.body.style.overflow = '';
-    localStorage.setItem('lf_mcp_popup_seen', '1');
-    try { posthog.capture('mcp_tutorial_popup_dismissed'); } catch(e) {}
+    localStorage.setItem('lf_bulk_popup_seen', '1');
+    try { posthog.capture('bulk_tutorial_popup_dismissed'); } catch(e) {}
 }
 
-function mcpTutorialCtaClicked() {
-    localStorage.setItem('lf_mcp_popup_seen', '1');
-    try { posthog.capture('mcp_tutorial_cta_clicked', { source: 'second_connection_popup' }); } catch(e) {}
+// MCP had somewhere to send people; bulk does not. It lives on this page, so
+// the CTA closes the popup and lands them on it rather than navigating away
+// and losing the session. jumpToBulkUpload already handles the case where no
+// input/output type is picked yet — without it, switchMode('bulk') would
+// scroll to a panel that is still hidden.
+function bulkTutorialCtaClicked() {
+    localStorage.setItem('lf_bulk_popup_seen', '1');
+    try { posthog.capture('bulk_tutorial_cta_clicked', { source: 'second_connection_popup' }); } catch(e) {}
+    document.getElementById('bulkTutorialModal').classList.remove('show');
+    document.body.style.overflow = '';
+    jumpToBulkUpload('bulk_tutorial_popup');
 }
 
 function showSingleResult(inputData,result,confidence){
