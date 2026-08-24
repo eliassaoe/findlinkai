@@ -5,7 +5,7 @@ exactly as the nodes expect:
 
 | credential name | header | value |
 | --- | --- | --- |
-| `G2 API token` | `Authorization` | `Bearer <G2_API_TOKEN>` |
+| `G2 API token` | `Authorization` | `Token token=<G2_API_TOKEN>` |
 | `LinkFinder API key` | `Authorization` | `Bearer <LINKFINDER_API_KEY>` |
 | `Instantly API key` | `Authorization` | `Bearer <INSTANTLY_API_KEY>` |
 
@@ -238,3 +238,32 @@ instead of killing the run.
 | `LinkFinder API key` | always — it is the enrichment step |
 | `G2 API token` | only with `useG2: true` |
 | *(Hacker News)* | never — no auth |
+
+
+## Getting the G2 API token (and the header format that trips people up)
+
+**G2 does not use `Bearer`.** Its REST API expects:
+
+    Authorization: Token token=YOUR_TOKEN
+
+Set the n8n Header Auth credential to header name `Authorization` and value
+`Token token=<your token>` — the literal word `Token`, then `token=`, then the
+key. A `Bearer` prefix 401s on every call, which looks exactly like a bad key
+and sends you hunting for the wrong problem.
+
+Where the token lives:
+
+1. **G2 Developer Portal** — `https://my.g2.com/developers/<your-org-slug>`.
+   The slug is chosen when the portal account is created, and it becomes part
+   of the URL.
+2. In the **Access Tokens** panel, click the eye to reveal, then copy.
+3. Alternatively, in G2 account settings: **Integrations → API tokens and apps**.
+
+Confirm it before wiring anything up:
+
+    curl -H "Authorization: Token token=$G2_API_TOKEN" \
+      "https://data.g2.com/api/v2/categories/site-search-software?include=products"
+
+Products in the response → set `useG2: true`. A 401 or 403 → the token is
+wrong, or the account does not have data API access; run with `useG2: false`
+until that is sorted, since Hacker News needs no credential.
