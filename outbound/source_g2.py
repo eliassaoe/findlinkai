@@ -83,6 +83,13 @@ EXCLUDE_DOMAIN = (
     "lusha.com", "cognism.com", "hunter.io", "snov.io", "rocketreach.co",
     "seamless.ai", "uplead.com", "findymail.com", "dropcontact.com",
     "kaspr.io", "surfe.com", "prospeo.io", "anymailfinder.com",
+    # And the other side of it: AEO/SEO-visibility platforms sell the same
+    # outcome this service does. Profound turned up at 1128 reviews under
+    # AI Marketing Agents. Above the band, but a smaller one would not be,
+    # and pitching "we get you visible in AI" to a company that sells
+    # exactly that is the worst email on the list.
+    "tryprofound.com", "peec.ai", "otterly.ai", "athenahq.ai",
+    "scrunchai.com", "goodie.ai", "brandlight.ai",
 )
 
 

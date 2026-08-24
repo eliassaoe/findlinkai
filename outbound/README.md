@@ -245,3 +245,38 @@ over a bad list. `provider_outage()` now tells that apart from a real empty
 answer and raises `ProviderDown`, which stops the run. Nothing reaches
 `contacted.txt` except rows that completed, so a stopped run burns nothing
 and can just be re-run.
+
+## The sweep, run by hand: 10 categories, 16 prospects
+
+`g2_sweep_16.csv` is the output of ten categories swept through the G2 MCP
+connection. It is in `build_campaign.py`'s input format — copy it to
+`domains.csv` and run.
+
+| category | in band | rejected |
+| --- | --- | --- |
+| AI Sales Roleplay Tools | Outdoo 172 | Mindtickle 2400, Allego 695, SalesHood 828, Second Nature 442 |
+| AI Proposal Generator | AutogenAI 164 | PandaDoc 3731, Responsive 1311, Proposify 1143, Loopio 813 |
+| Event Lead Capture | Captello 182, Mobly 108 | Blinq 9265, Popl 6467, HiHello 924 |
+| AI Interview Agent | BrightHire 170, Sapia 92 | CodeSignal 1408, Braintrust 889, CoRecruit 476 |
+| AI Documentation Generators | DocuWriter 86, gjalla 23, Mintlify 19 | Adobe 5347, Document360 542 |
+| Site Search Software | SearchStax 177, Athos 221 | Algolia 453, Luigi's Box 433, Elasticsearch 292 |
+| AI SRE Tools | incident.io 231 | Dynatrace 1366, PagerDuty 972, New Relic 586, Squadcast 310 |
+| Website Privacy Auditing | Osano 172, Ketch 170, ObservePoint 81, Reflectiz 32 | TrustArc 328 |
+| Agentic GTM Platforms | none | **Clay 225 and Warmly 6 are competitors**; 6sense 1050 |
+| AI Marketing Agents | none | SOCi 4673, Brevo 2623, VEED 2171, Insider 1415, **Profound 1128** |
+
+**1.6 prospects per category.** Over 2,287 categories that is a list in the
+high hundreds even after overlap and exclusions — more than the offer needs.
+
+**Two categories returned nothing, and both are the interesting ones.**
+Agentic GTM Platforms is full of companies we compete with for leads.
+AI Marketing Agents surfaced Profound, an AEO platform — a company that
+sells the *outcome this service sells*. Both kinds are now in
+`EXCLUDE_DOMAIN`. The lesson generalises: the categories that look most
+like a perfect fit are the ones most likely to be full of competitors,
+because we and they serve the same buyer.
+
+**Narrow beats broad, every time.** Website Privacy Auditing returned four
+prospects from five products. AI Marketing Agents returned zero from five.
+Same effort, same call. The difference is that a broad category's top five
+are its giants and a narrow one's top five are the whole category.
