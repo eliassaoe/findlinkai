@@ -1,0 +1,655 @@
+{
+  "name": "Reliable outbound — queue, retry, send",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 * * * *"
+            }
+          ]
+        }
+      },
+      "id": "trigger",
+      "name": "Every hour",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -1080,
+        300
+      ],
+      "notes": "Hourly, not daily. The whole reliability model is repetition: a provider that answers half the time covers ~97% of a queue after five attempts. Daily would take five days to do what this does in five hours."
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: {\n  campaignId: 'df17f3eb-368d-415f-99ab-b6a7325dad3c',\n  batchSize: 10,          // enrichment attempts per hour\n  topUpBelow: 40,         // refill the queue when it drops under this\n  maxAttempts: 3,         // then move on; not every company is findable\n  g2Categories: [\n    'ai-sales-roleplay-tools','ai-proposal-generator-tools','event-lead-capture',\n    'ai-interview-agent','ai-documentation-generators','site-search-software',\n    'ai-sre-tools','website-privacy-auditing-tools','ai-agent-observability',\n    'semantic-layer-tools','virtual-recording-studio','low-code-mobile-app-builder'\n  ],\n  g2MinReviews: 10, g2MaxReviews: 250,\n  excludeDomains: [\n    'linkfinderai.com','clay.com','warmly.ai','6sense.com','apollo.io',\n    'zoominfo.com','lusha.com','cognism.com','hunter.io','snov.io',\n    'rocketreach.co','seamless.ai','uplead.com','findymail.com','dropcontact.com',\n    'kaspr.io','surfe.com','prospeo.io','anymailfinder.com','tryprofound.com',\n    'peec.ai','otterly.ai','athenahq.ai','scrunchai.com','goodie.ai','brandlight.ai'\n  ],\n  excludeHosts: [\n    'producthunt.com','github.com','gitlab.com','medium.com','substack.com',\n    'notion.so','notion.site','youtube.com','twitter.com','x.com',\n    'news.ycombinator.com','reddit.com','linkedin.com','vercel.app',\n    'netlify.app','herokuapp.com','pages.dev','webflow.io'\n  ]\n} }];"
+      },
+      "id": "config",
+      "name": "Config",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -880,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://api.instantly.ai/api/v2/workspaces/current/plan",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "capacity",
+      "name": "Instantly: room left?",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -680,
+        300
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "instantly",
+          "name": "Instantly API key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Decide, once per run, whether there is anything worth doing.\n//\n// Two independent reasons to stop early, and stopping is not a failure:\n//   - no room in Instantly  -> enriching would burn credits on leads that\n//                              cannot be uploaded\n//   - queue still full      -> no need to hit the sources at all\n//\n// The queue lives in n8n's own workflow storage. No database to set up, it\n// survives restarts, and it is what turns an unreliable provider into a\n// reliable pipeline: a domain that fails this hour is simply still there\n// next hour.\nconst cfg = $('Config').first().json;\nconst plan = $input.first().json;\nconst sub = plan?.subscriptions?.outreach || plan || {};\nconst limit = sub.total_lead_limit, used = sub.current_lead_count;\n\nlet room;\nif (limit == null || used == null) {\n  room = cfg.batchSize;   // unreadable: proceed cautiously, one batch\n} else {\n  room = limit - used;\n}\n\nconst store = $getWorkflowStaticData('global');\nstore.queue = store.queue || [];\nstore.done  = store.done  || {};\nstore.stats = store.stats || { pushed: 0, dead: 0, retries: 0, runs: 0 };\nstore.stats.runs++;\n\nif (room <= 0) {\n  return [{ json: { ...cfg, halt: true,\n    reason: `Instantly is ${-room} leads over its cap (${used}/${limit}). ` +\n            `Nothing enriched — that would spend credits on leads it will refuse. ` +\n            `Queue is holding ${store.queue.length} domains and loses nothing by waiting.` } }];\n}\n\nreturn [{ json: { ...cfg,\n  halt: false,\n  room,\n  queueLength: store.queue.length,\n  needsTopUp: store.queue.length < cfg.topUpBelow\n} }];"
+      },
+      "id": "plan",
+      "name": "Plan this run",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -480,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.halt }}",
+              "rightValue": "={{ false }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "canrun",
+      "name": "Anything to do?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -280,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.needsTopUp }}",
+              "rightValue": "={{ true }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "needsource",
+      "name": "Queue running low?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -80,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const cfg = $input.first().json;\nreturn cfg.g2Categories.map(slug => ({ json: { ...cfg, slug } }));"
+      },
+      "id": "g2fan",
+      "name": "One item per G2 category",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        140,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://data.g2.com/api/v2/categories/{{ $json.slug }}?include=products",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "retry": {
+            "retry": {
+              "maxTries": 3,
+              "waitBetweenTries": 2000
+            }
+          }
+        }
+      },
+      "id": "g2",
+      "name": "G2: products",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        340,
+        100
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "g2",
+          "name": "G2 API token"
+        }
+      },
+      "notes": "neverError, so a G2 outage tops the queue up with nothing instead of killing the run. The queue carries the pipeline through."
+    },
+    {
+      "parameters": {
+        "url": "https://hn.algolia.com/api/v1/search_by_date?tags=story&query=Show%20HN&hitsPerPage=100",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "retry": {
+            "retry": {
+              "maxTries": 2,
+              "waitBetweenTries": 2000
+            }
+          }
+        }
+      },
+      "id": "hn",
+      "name": "Hacker News: Show HN",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        340,
+        300
+      ],
+      "notes": "No credential at all. The one source here that cannot fail on auth, which is exactly why it is worth keeping even at low yield."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Both sources -> the queue. Anything already queued, already sent, or\n// already written off is dropped here, so the queue never grows duplicates\n// and a domain is never paid for twice.\nconst cfg = $('Plan this run').first().json;\nconst store = $getWorkflowStaticData('global');\nconst seen = new Set([...store.queue.map(q => q.domain), ...Object.keys(store.done)]);\n\nconst bad = d =>\n  cfg.excludeDomains.includes(d) ||\n  cfg.excludeHosts.some(h => d === h || d.endsWith('.' + h));\n\nlet added = 0;\n\nfor (const item of $input.all()) {\n  const body = item.json.body ?? item.json;\n\n  // --- G2 -------------------------------------------------------------\n  if (body?.included) {\n    const category = body?.data?.attributes?.name || 'software';\n    const products = body.included\n      .filter(i => i.type === 'products' && i.attributes?.domain)\n      .map(i => ({\n        domain: String(i.attributes.domain).trim().toLowerCase().replace(/^www\\./, ''),\n        company: i.attributes.name || '',\n        reviews: i.attributes.review_count || 0\n      }));\n    if (products.length && Math.min(...products.map(p => p.reviews)) <= cfg.g2MaxReviews) {\n      for (const p of products) {\n        if (seen.has(p.domain) || bad(p.domain)) continue;\n        if (p.reviews < cfg.g2MinReviews || p.reviews > cfg.g2MaxReviews) continue;\n        seen.add(p.domain); added++;\n        store.queue.push({ domain: p.domain, company: p.company, category,\n          signalValue: p.reviews, source: 'g2', attempts: 0 });\n      }\n    }\n  }\n\n  // --- Hacker News ----------------------------------------------------\n  if (Array.isArray(body?.hits)) {\n    for (const h of body.hits) {\n      if ((h.points || 0) < 20) continue;\n      let host = '';\n      try { host = new URL(h.url || '').hostname.toLowerCase().replace(/^www\\./, ''); } catch { continue; }\n      if (!host || seen.has(host) || bad(host)) continue;\n      const company = (String(h.title || '').replace(/^show hn:?\\s*/i, '')\n        .split(/[\\u2013\\u2014\\-:|,]/)[0] || host).trim();\n      seen.add(host); added++;\n      store.queue.push({ domain: host, company: company || host, category: 'software',\n        signalValue: h.points || 0, source: 'hackernews', attempts: 0 });\n    }\n  }\n}\n\nreturn [{ json: { ...cfg, added, queueLength: store.queue.length } }];"
+      },
+      "id": "fill",
+      "name": "Top up the queue",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        560,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Take this hour's batch off the queue.\n//\n// Oldest first, and anything that has burned through maxAttempts is written\n// off here rather than retried forever. A domain with no reachable decision\n// maker is not going to grow one.\nconst cfg = $('Plan this run').first().json;\nconst store = $getWorkflowStaticData('global');\nconst take = Math.min(cfg.batchSize, cfg.room, store.queue.length);\n\nconst batch = [];\nwhile (batch.length < take && store.queue.length) {\n  const row = store.queue.shift();\n  if (!row) break;\n  if ((row.attempts || 0) >= cfg.maxAttempts) {\n    store.done[row.domain] = 'gave_up';\n    store.stats.dead++;\n    continue;\n  }\n  batch.push({ json: { ...row, campaignId: cfg.campaignId } });\n}\n\nif (!batch.length) {\n  return [{ json: { idle: true, queueLength: store.queue.length,\n    note: 'nothing to enrich this hour' } }];\n}\nreturn batch;"
+      },
+      "id": "take",
+      "name": "Take this hour's batch",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        780,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "options": {
+          "reset": false
+        }
+      },
+      "id": "loop",
+      "name": "One at a time",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1000,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.linkfinderai.com/api/v1/enrich",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ type: 'company_domain_to_employees', input: $json.domain, seniority: 'founder,owner,c_suite,vp,head', employee_count: 5 }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "retry": {
+            "retry": {
+              "maxTries": 3,
+              "waitBetweenTries": 5000
+            }
+          }
+        }
+      },
+      "id": "linkfinder",
+      "name": "LinkFinder: decision maker",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1220,
+        300
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "linkfinder",
+          "name": "LinkFinder API key"
+        }
+      },
+      "notes": "Three in-request retries handle a momentary flake. Anything still unresolved goes back on the queue. If a company simply has no findable decision maker, that is a normal outcome, not an error — it is marked done and the run continues."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Sort the answer into: usable, retry later, or written off.\n//\n// This endpoint answers HTTP 200 / \"success\" even when its upstream is\n// down, putting a status message where a person should be:\n//   {\"personId\": null, \"name\": \"We are on maintenance. Check back in 48hrs\"}\n// Measured across ~20 live calls: roughly HALF. So the sentinel is not an\n// error to report, it is a \"not now\" to reschedule.\n//\n// ORDER MATTERS. Look for a real person FIRST. The actor also injects a\n// chatty banner row alongside genuine results, so checking sentinels first\n// throws away a good lead and pays to look it up again.\nconst OUTAGE = ['maintenance','check back in','we improve the actor','contact us if you are having'];\nconst store = $getWorkflowStaticData('global');\nconst row = $('One at a time').first().json;\n\nconst body = $input.first().json;\nconst payload = body?.body ?? body;\nlet rows = payload?.result ?? payload?.employees ?? payload;\nwhile (rows && !Array.isArray(rows) && rows.result) rows = rows.result;\nif (!Array.isArray(rows)) rows = [];\n\nconst person = rows.find(r => r && (r.personId || r.person_id) &&\n  r.email && String(r.email).includes('@') && r.name);\n\nif (person) {\n  const parts = String(person.name).trim().split(/\\s+/);\n  return [{ json: { ...row, status: 'ok', email: person.email.trim(),\n    firstName: parts[0], lastName: parts.slice(1).join(' '),\n    title: person.jobTitle || person.job_title || '' } }];\n}\n\nconst sentinel = rows.find(r => r && !r.personId && !r.person_id &&\n  OUTAGE.some(m => String(r.name || '').toLowerCase().includes(m)));\n\nif (sentinel) {\n  // Not this company's fault. Back on the queue, try again next hour.\n  store.queue.push({ ...row, attempts: (row.attempts || 0) + 1 });\n  store.stats.retries++;\n  return [{ json: { ...row, status: 'requeued' } }];\n}\n\n// A real, empty answer. Nobody reachable here; stop paying to ask.\nstore.done[row.domain] = 'no_person';\nstore.stats.dead++;\nreturn [{ json: { ...row, status: 'no_person' } }];"
+      },
+      "id": "classify",
+      "name": "Usable, retry, or done with it",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1440,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "ok",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "isok",
+      "name": "Usable?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1660,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.instantly.ai/api/v2/leads",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ campaign: $json.campaignId, email: $json.email, first_name: $json.firstName, last_name: $json.lastName, company_name: $json.company, website: $json.domain, skip_if_in_workspace: true, custom_variables: { category: $json.category, reviewCount: String($json.signalValue), source: $json.source, title: $json.title } }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "retry": {
+            "retry": {
+              "maxTries": 2,
+              "waitBetweenTries": 3000
+            }
+          }
+        }
+      },
+      "id": "push",
+      "name": "Instantly: add lead",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1880,
+        200
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "instantly",
+          "name": "Instantly API key"
+        }
+      },
+      "notes": "category and reviewCount render into the opener's first line. A lead without them would mail a real person a broken sentence."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Record the outcome of the push.\n//\n// A failed upload is deliberately put BACK on the queue: we already paid to\n// enrich this lead, so it is the single most valuable thing to retry. A\n// successful one is marked done so it is never sourced or enriched again.\nconst store = $getWorkflowStaticData('global');\nconst row = $('Usable?').first().json;\nconst res = $input.first().json;\nconst code = res?.statusCode ?? res?.status ?? 200;\nconst ok = !(code >= 400) && !res?.error;\n\nif (ok) {\n  store.done[row.domain] = row.email;\n  store.stats.pushed++;\n  return [{ json: { domain: row.domain, email: row.email, status: 'pushed' } }];\n}\n\nstore.queue.push({ ...row, attempts: (row.attempts || 0) + 1 });\nreturn [{ json: { domain: row.domain, status: 'push_failed_requeued',\n  detail: JSON.stringify(res).slice(0, 200) } }];"
+      },
+      "id": "record",
+      "name": "Record outcome",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2100,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "amount": 3
+      },
+      "id": "wait",
+      "name": "Breathe",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1880,
+        420
+      ],
+      "webhookId": "breathe-reliable"
+    },
+    {
+      "parameters": {
+        "jsCode": "// End-of-run summary. Read this in n8n's execution list to see whether the\n// pipeline is healthy without opening anything.\nconst store = $getWorkflowStaticData('global');\nconst s = store.stats || {};\nreturn [{ json: {\n  queueRemaining: store.queue.length,\n  finished: Object.keys(store.done).length,\n  pushedTotal: s.pushed || 0,\n  wroteOff: s.dead || 0,\n  retriesSoFar: s.retries || 0,\n  runs: s.runs || 0\n} }];"
+      },
+      "id": "summary",
+      "name": "Run summary",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2320,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Every hour": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Instantly: room left?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Instantly: room left?": {
+      "main": [
+        [
+          {
+            "node": "Plan this run",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Plan this run": {
+      "main": [
+        [
+          {
+            "node": "Anything to do?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anything to do?": {
+      "main": [
+        [
+          {
+            "node": "Queue running low?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Run summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Queue running low?": {
+      "main": [
+        [
+          {
+            "node": "One item per G2 category",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Hacker News: Show HN",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Take this hour's batch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "One item per G2 category": {
+      "main": [
+        [
+          {
+            "node": "G2: products",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "G2: products": {
+      "main": [
+        [
+          {
+            "node": "Top up the queue",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hacker News: Show HN": {
+      "main": [
+        [
+          {
+            "node": "Top up the queue",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Top up the queue": {
+      "main": [
+        [
+          {
+            "node": "Take this hour's batch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Take this hour's batch": {
+      "main": [
+        [
+          {
+            "node": "One at a time",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "One at a time": {
+      "main": [
+        [
+          {
+            "node": "Run summary",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "LinkFinder: decision maker",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LinkFinder: decision maker": {
+      "main": [
+        [
+          {
+            "node": "Usable, retry, or done with it",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Usable, retry, or done with it": {
+      "main": [
+        [
+          {
+            "node": "Usable?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Usable?": {
+      "main": [
+        [
+          {
+            "node": "Instantly: add lead",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Breathe",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Instantly: add lead": {
+      "main": [
+        [
+          {
+            "node": "Record outcome",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Record outcome": {
+      "main": [
+        [
+          {
+            "node": "One at a time",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Breathe": {
+      "main": [
+        [
+          {
+            "node": "One at a time",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true
+  },
+  "pinData": {}
+}

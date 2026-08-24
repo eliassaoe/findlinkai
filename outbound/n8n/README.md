@@ -161,3 +161,55 @@ pipeline cheerfully pays to look up a decision maker at github.com.
 Runs each normaliser and the deduper against real response shapes: tracking
 params stripped, redirect hosts dropped, bands enforced, a giants-only
 category skipped, and one row per domain with the best category winning.
+
+---
+
+# `reliable-outbound.json` — the one to actually run
+
+One workflow, hourly, with a queue. Import it and add the same credentials
+(G2, LinkFinder, Instantly — Hacker News needs none).
+
+## Reliability here means repetition, not a better provider
+
+Nothing upstream got more dependable. What changed is that a bad hour costs
+nothing: sourcing fills a queue that lives in n8n's own workflow storage, and
+every run takes a small batch off it. A domain that does not resolve this
+hour is simply still there next hour.
+
+That is why the trigger is hourly rather than daily. Same number of attempts,
+five hours instead of five days.
+
+## Not finding a person is a normal outcome
+
+If LinkFinder has no decision maker for a domain, that is an answer, not an
+error. The domain is marked done, the loop continues to the next one, and it
+is never sourced or paid for again. Nothing halts, nothing retries, nothing
+gets logged as a failure.
+
+The only thing that comes back for another go is the provider's own
+maintenance sentinel — because that says nothing about the company, so
+writing it off would throw away a lead for someone else's outage. Three
+attempts, then it moves on too.
+
+| what came back | what happens |
+| --- | --- |
+| a person with an email | pushed to the campaign, marked done |
+| no person | marked done, continue |
+| maintenance sentinel | back on the queue, up to 3 tries, then done |
+| upload failed | back on the queue — we already paid to enrich it |
+
+## It refuses to waste money
+
+The run reads the Instantly lead cap first. Over the cap, it stops before a
+single enrichment call: the uploads would 403 anyway, and the queue loses
+nothing by waiting. Under it, the batch is capped to the room available.
+
+## Watching it
+
+The last node emits a summary — queue remaining, finished, pushed, written
+off, retries, runs. Read it in the executions list to see whether the
+pipeline is healthy without opening anything.
+
+    node outbound/n8n/test-reliable.js
+
+15 cases run the queue logic against real payload shapes.
