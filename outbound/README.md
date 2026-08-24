@@ -59,9 +59,39 @@ Two prospects get dropped on purpose:
 
 `--dry-run` exercises both, plus no-person and no-email.
 
+## Pushing into the Instantly campaign
+
+The campaign already exists, in draft:
+
+```
+SEO/AEO service — B2B SaaS (AI visibility opener)
+eb621d4c-db05-499b-99fc-28baad2e6e49
+```
+
+Three steps (day 0 / +3 / +5), text-only, **open and link tracking off**,
+20/day per account, 12 minutes between sends, stops on reply and auto-reply.
+Tracking is off deliberately: a pixel and rewritten links are what make a
+one-to-one email look like a campaign, and this one lives or dies on reading
+as a person who looked something up.
+
+```bash
+export INSTANTLY_API_KEY=...
+python3 outbound/build_campaign.py --input outbound/domains.csv --limit 25 \
+  --instantly-campaign eb621d4c-db05-499b-99fc-28baad2e6e49
+```
+
+The sequence interpolates five variables. `first_name`, `company_name` and
+`website` map onto Instantly's built-ins; `category`, `competitor_1` and
+`competitor_2` are pushed as custom variables under exactly those keys. Change
+a key here and the email goes out with a literal `{{competitor_1}}` in it.
+
+A push that fails raises rather than passing quietly — a lead you believe you
+contacted and never did is worse than a visible error. Failures stay in the
+CSV so you can add them by hand.
+
 ## Sending
 
-**Instantly cannot send right now.** All 38 accounts return `status: -1` with
+**The campaign is in draft and cannot send yet.** All 38 accounts return `status: -1` with
 `EAUTH / can't create new access token` — revoked Google tokens, dead since
 17 March, and a filter for active accounts returns an empty list. That is
 task #29 and it is a browser OAuth job per account.

@@ -32,6 +32,7 @@ SECRETS
 From the environment, never from a file in this repo:
     LINKFINDER_API_KEY      your own key from the dashboard
     OPENROUTER_API_KEY      or set --llm-provider openai and OPENAI_API_KEY
+    INSTANTLY_API_KEY       only needed with --instantly-campaign
 """
 
 import argparse
@@ -45,6 +46,7 @@ import urllib.error
 import urllib.request
 
 LINKFINDER_API = "https://api.linkfinderai.com"
+INSTANTLY_API = "https://api.instantly.ai/api/v2/leads"
 OPENROUTER_API = "https://openrouter.ai/api/v1/chat/completions"
 OPENAI_API = "https://api.openai.com/v1/chat/completions"
 
@@ -221,6 +223,39 @@ def is_named(listed, company, domain):
 
 
 # ---------------------------------------------------------------------------
+# Instantly
+# ---------------------------------------------------------------------------
+
+def push_to_instantly(api_key, campaign_id, row):
+    """One lead into a campaign.
+
+    The campaign's own sequence holds the copy; what travels here are the
+    variables it interpolates. first_name/company_name/website map onto
+    Instantly's built-in {{firstName}}/{{companyName}}/{{website}}, and the
+    three campaign-specific ones go in custom_variables under the exact keys
+    the sequence uses: category, competitor_1, competitor_2.
+
+    Raises on failure rather than returning False - a lead that silently did
+    not land is a lead you think you contacted and never did.
+    """
+    return _post(INSTANTLY_API, {
+        "campaign": campaign_id,
+        "email": row["email"],
+        "first_name": row["first_name"],
+        "company_name": row["company_name"],
+        "website": row["website"],
+        "personalization": row["title"],
+        "custom_variables": {
+            "category": row["category"],
+            "competitor_1": row["competitor_1"],
+            "competitor_2": row["competitor_2"],
+        },
+        # Never re-contact someone already in the workspace.
+        "skip_if_in_workspace": True,
+    }, {"Authorization": f"Bearer {api_key}"})
+
+
+# ---------------------------------------------------------------------------
 # Compose
 # ---------------------------------------------------------------------------
 
@@ -270,6 +305,8 @@ def main():
     ap.add_argument("--llm-provider", choices=["openrouter", "openai"], default="openrouter")
     ap.add_argument("--model", default=DEFAULT_MODEL)
     ap.add_argument("--sleep", type=float, default=1.0)
+    ap.add_argument("--instantly-campaign",
+                    help="Campaign id to push leads into. Omit to only write the CSV.")
     ap.add_argument("--dry-run", action="store_true",
                     help="Read fixtures instead of calling any API. Spends nothing.")
     args = ap.parse_args()
@@ -277,6 +314,9 @@ def main():
     lf_key = os.environ.get("LINKFINDER_API_KEY")
     llm_key = os.environ.get("OPENROUTER_API_KEY" if args.llm_provider == "openrouter"
                              else "OPENAI_API_KEY")
+    inst_key = os.environ.get("INSTANTLY_API_KEY")
+    if args.instantly_campaign and not args.dry_run and not inst_key:
+        sys.exit("--instantly-campaign needs INSTANTLY_API_KEY in the environment.")
     if not args.dry_run and not (lf_key and llm_key):
         sys.exit("Set LINKFINDER_API_KEY and the LLM key in the environment, "
                  "or pass --dry-run. Never put them in a file in this repo.")
@@ -372,6 +412,23 @@ def main():
             with open(args.seen, "a") as f:
                 for row in out_rows:
                     f.write(row["website"] + "\n")
+
+    pushed = failed_push = 0
+    if out_rows and args.instantly_campaign:
+        if args.dry_run:
+            print(f"\n[dry-run] would push {len(out_rows)} leads to campaign "
+                  f"{args.instantly_campaign}")
+        else:
+            for row in out_rows:
+                try:
+                    push_to_instantly(inst_key, args.instantly_campaign, row)
+                    pushed += 1
+                except RuntimeError as e:
+                    failed_push += 1
+                    print(f"    ! push failed for {row['email']}: {e}", file=sys.stderr)
+            print(f"\npushed {pushed} to campaign {args.instantly_campaign}"
+                  + (f", {failed_push} FAILED - they are in the CSV, add them by hand"
+                     if failed_push else ""))
 
     print(f"\n{tally['sent']} ready -> {args.out}")
     print(f"skipped: {tally['no_person']} no person, {tally['no_email']} no email, "
