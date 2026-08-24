@@ -417,7 +417,7 @@
             "I&rsquo;d genuinely like to know which it was: did something break, or did you change your mind on the price? We found and fixed a bug in our checkout recently, so there&rsquo;s a real chance it was us &mdash; and if so, I owe you a working link."
           ],
           "cta": "Finish upgrading",
-          "url": "https://linkfinderai.com/app?upgrade=1",
+          "url": "{% if event.properties.checkout_url %}{{ event.properties.checkout_url }}{% else %}https://linkfinderai.com/app?upgrade=1{% endif %}",
           "after": [
             "Or just hit reply. One line is plenty.",
             "&mdash; Eliasse"
@@ -435,7 +435,7 @@
             "Your upgrade didn&rsquo;t go through, so here&rsquo;s a fresh link in case the last one gave you trouble."
           ],
           "cta": "Finish upgrading",
-          "url": "https://linkfinderai.com/app?upgrade=1",
+          "url": "{% if event.properties.checkout_url %}{{ event.properties.checkout_url }}{% else %}https://linkfinderai.com/app?upgrade=1{% endif %}",
           "after": [
             "If it fails again, reply and tell me what you saw on screen &mdash; that would be genuinely useful to know.",
             "&mdash; Eliasse"
@@ -455,7 +455,7 @@
             "If it&rsquo;s the second, tell me what you&rsquo;re using it for. Sometimes the $25 one-off pack is the better answer than a subscription and I&rsquo;d rather say so."
           ],
           "cta": "Try again",
-          "url": "https://linkfinderai.com/app?upgrade=1",
+          "url": "{% if event.properties.checkout_url %}{{ event.properties.checkout_url }}{% else %}https://linkfinderai.com/app?upgrade=1{% endif %}",
           "after": [
             "&mdash; Eliasse"
           ],
@@ -474,13 +474,14 @@
             "If it broke, that&rsquo;s a different matter and I&rsquo;d like to hear about it."
           ],
           "cta": "Pick up where you left off",
-          "url": "https://linkfinderai.com/app?upgrade=1",
+          "url": "{% if event.properties.checkout_url %}{{ event.properties.checkout_url }}{% else %}https://linkfinderai.com/app?upgrade=1{% endif %}",
           "after": [
             "&mdash; Eliasse"
           ],
           "reason": "you started an upgrade at linkfinderai.com"
         }
-      ]
+      ],
+      "url_note": "The CTA resolves to the visitor's OWN Dodo payment page when the trigger event carries one. checkout_redirect_started has carried checkout_url since 21 Aug 2026 (20/20 since; 0/15 before). plan_selected fires before the checkout worker is called and never carries one, so the {% else %} branch is the majority path and is not optional. Deliberately NOT applied to checkout_2: that fires 3 days later, by which point the Dodo session is expired, and a dead checkout page is worse than the app. Requires templating:'liquid' on the email action."
     },
     "checkout_2": {
       "workflow_id": "01a02578-9f9e-0000-d4c0-f57a811dca80",
