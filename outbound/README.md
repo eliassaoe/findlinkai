@@ -233,6 +233,8 @@ just too early to have $1500. The band's floor is doing work.
 
 ## The provider-outage guard
 
+*(Rewritten once, after watching it fail live. Read the second half.)*
+
 The employee lookup answers `HTTP 200` / `status: "success"` even when its
 upstream is down, and puts a status message where a person should be:
 
@@ -280,3 +282,36 @@ because we and they serve the same buyer.
 prospects from five products. AI Marketing Agents returned zero from five.
 Same effort, same call. The difference is that a broad category's top five
 are its giants and a narrow one's top five are the whole category.
+
+### What the outage actually looks like, and why the first fix was wrong
+
+The first version of this guard treated one sentinel row as "the provider is
+down" and stopped the run. Then the failure was watched across ~20 live
+calls, and it does not behave like an outage at all:
+
+    4 calls  -> 4 sentinels
+    1 call   -> a real answer, full founder record
+    4 calls  -> 2 sentinels, 2 real answers
+    4 calls  -> 3 sentinels, 1 real answer
+
+Roughly half, interleaved, with good answers for the same kind of domain
+seconds apart. Against that, aborting on the first sentinel is the wrong
+call twice over: it throws away a run that would mostly have worked, and it
+reports an outage that is not happening.
+
+So the guard now retries the domain up to `OUTAGE_RETRIES` (3) with a
+backoff, and only raises `ProviderDown` when a domain answers with the
+sentinel every time. The main loop then tolerates `DOWN_STREAK_ABORT` (3)
+such domains back-to-back before stopping — one exhausted domain is a
+skip, three in a row is an outage. Any successful answer resets the streak.
+
+Two things deliberately *not* retried:
+
+- **A real "No Leads found"** is the truth. Retrying it would triple the
+  credit cost of every dead domain in the list for no new information.
+- **Nothing reaches `contacted.txt`** except rows that completed end to
+  end, so stopping mid-run burns no domains and the re-run picks them up.
+
+At ~50% success per call, three retries clears a domain with about 87%
+probability, and the three-domain streak makes a false abort very unlikely
+while still catching a genuine outage within three domains.

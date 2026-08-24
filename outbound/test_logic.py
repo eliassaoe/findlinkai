@@ -104,5 +104,53 @@ for d in ("clay.com", "warmly.ai", "apollo.io", "hunter.io", "linkfinderai.com")
     check(f"{d} excluded", d in g2.EXCLUDE_DOMAIN, True)
 check("outdoo.ai not excluded", "outdoo.ai" in g2.EXCLUDE_DOMAIN, False)
 
+print("\n--- a flaky provider is retried, a dead one aborts ---")
+# The sentinel came back for ~half of all live calls, interleaved with good
+# answers. One sentinel must NOT end the run.
+class FakeLF:
+    """Replays a scripted sequence of lookup responses."""
+    def __init__(self, script): self.script, self.calls = list(script), 0
+    def __call__(self, *a, **k):
+        self.calls += 1
+        return {"result": self.script.pop(0)}
+
+MAINT_ROW = [{"personId": None, "name": "We are on maintenance. Check back in 48hrs"}]
+GOOD_ROW  = [{"personId": "abc", "name": "Zach Barney",
+              "linkedinUrl": "http://www.linkedin.com/in/zachbarney",
+              "job_title": "CEO"}]
+
+_orig_lf = bc.lf_call
+try:
+    # Flakes once, then answers. Must return the person, not raise.
+    bc.lf_call = FakeLF([MAINT_ROW, GOOD_ROW])
+    got = bc.find_decision_maker("k", "getmobly.com", sleep=lambda _: None)
+    check("recovers after one flake", (got or {}).get("first_name"), "Zach")
+    check("it actually retried", bc.lf_call.calls, 2)
+
+    # Flakes twice, then answers. Still inside the retry budget.
+    bc.lf_call = FakeLF([MAINT_ROW, MAINT_ROW, GOOD_ROW])
+    got = bc.find_decision_maker("k", "getmobly.com", sleep=lambda _: None)
+    check("recovers after two flakes", (got or {}).get("first_name"), "Zach")
+
+    # Sentinel every time -> give up on this domain.
+    bc.lf_call = FakeLF([MAINT_ROW] * bc.OUTAGE_RETRIES)
+    try:
+        bc.find_decision_maker("k", "osano.com", sleep=lambda _: None)
+        check("exhausted retries raises", False, True)
+    except bc.ProviderDown:
+        check("exhausted retries raises", True, True)
+    check("stopped at the retry budget", bc.lf_call.calls, bc.OUTAGE_RETRIES)
+
+    # A real empty answer is not retried -- it is the truth, and retrying it
+    # would triple the credit cost of every dead domain in the list.
+    NOLEADS = [{"personId": None, "name": "\u26a0\ufe0f  No Leads found. Tweak your filters"}]
+    bc.lf_call = FakeLF([NOLEADS])
+    check("empty answer not retried", bc.find_decision_maker("k", "x.com", sleep=lambda _: None), None)
+    check("empty answer cost 1 call", bc.lf_call.calls, 1)
+finally:
+    bc.lf_call = _orig_lf
+
+check("streak threshold is >1", bc.DOWN_STREAK_ABORT > 1, True)
+
 print("\n" + (f"FAILURES: {fails}" if fails else "all cases as expected"))
 sys.exit(1 if fails else 0)

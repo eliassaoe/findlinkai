@@ -120,6 +120,10 @@ def unwrap(r):
 OUTAGE_MARKERS = ("maintenance", "check back in", "we improve the actor",
                   "contact us if you are having")
 
+# How many domains may exhaust their retries back-to-back before we call it
+# an outage and stop the run.
+DOWN_STREAK_ABORT = 3
+
 
 def provider_outage(rows):
     """True when the actor answered with a status message, not an answer."""
@@ -132,16 +136,31 @@ def provider_outage(rows):
     return None
 
 
-def find_decision_maker(api_key, domain):
+# Measured, not guessed: during one session the sentinel came back for
+# roughly half of all calls, interleaved with perfectly good answers for
+# the same kind of domain. So a single sentinel means "try again", not
+# "the provider is down" -- but a domain that answers with it three times
+# running is not going to answer this minute either.
+OUTAGE_RETRIES = 3
+OUTAGE_BACKOFF = 4.0
+
+
+def find_decision_maker(api_key, domain, sleep=time.sleep):
     """Cheapest useful person at a domain. 1 credit regardless of list size."""
-    data = unwrap(lf_call(api_key, "company_domain_to_employees", domain,
-                          seniority=",".join(TARGET_SENIORITY), employee_count=5))
-    rows = data if isinstance(data, list) else (data or {}).get("employees") or []
-    outage = provider_outage(rows)
-    if outage:
-        # Not "this company has nobody". Stop the run rather than write off
-        # every remaining domain as unreachable.
-        raise ProviderDown(f"employee lookup is down, it answered: {outage!r}")
+    for attempt in range(OUTAGE_RETRIES):
+        data = unwrap(lf_call(api_key, "company_domain_to_employees", domain,
+                              seniority=",".join(TARGET_SENIORITY), employee_count=5))
+        rows = data if isinstance(data, list) else (data or {}).get("employees") or []
+        outage = provider_outage(rows)
+        if not outage:
+            break
+        if attempt < OUTAGE_RETRIES - 1:
+            print(f"    ~ provider flaked, retry {attempt + 1}/{OUTAGE_RETRIES - 1}")
+            sleep(OUTAGE_BACKOFF * (attempt + 1))
+    else:
+        raise ProviderDown(
+            f"employee lookup answered {OUTAGE_RETRIES}x with: {outage!r}")
+
     for row in rows:
         if not isinstance(row, dict):
             continue
@@ -375,6 +394,7 @@ def main():
               f"(~{args.limit * 11} credits). Raise with --limit.")
         rows = rows[:args.limit]
 
+    consecutive_down = 0
     out_rows, tally = [], {"sent": 0, "no_person": 0, "no_email": 0,
                            "check_failed": 0, "already_visible": 0}
 
@@ -405,17 +425,26 @@ def main():
                                            category, company, domain)
                              if person and email else None)
             except ProviderDown as e:
-                # Every remaining domain would report "no decision maker" for
-                # a reason that has nothing to do with the domain. Keep what
-                # we have and stop; nothing has been written to --seen yet
-                # except rows that actually made it all the way through.
-                print(f"\n    !! {e}", file=sys.stderr)
-                print(f"    !! stopping with {len(out_rows)} built. "
-                      f"Re-run later; no domains were burned.", file=sys.stderr)
-                break
+                # This domain exhausted its retries. That alone is survivable
+                # -- skip it and try the next. But if several in a row do the
+                # same, the provider really is down and every remaining
+                # domain would be written off for a reason that has nothing
+                # to do with the domain, so stop instead. Nothing has reached
+                # --seen except rows that completed, so a stop burns nothing.
+                consecutive_down += 1
+                print(f"    ! {e}", file=sys.stderr)
+                if consecutive_down >= DOWN_STREAK_ABORT:
+                    print(f"\n    !! {consecutive_down} domains in a row. "
+                          f"Stopping with {len(out_rows)} built; "
+                          f"re-run later, no domains were burned.", file=sys.stderr)
+                    break
+                tally["no_person"] += 1
+                continue
             except RuntimeError as e:
                 print(f"    ! {e}", file=sys.stderr)
                 person = email = check = None
+
+            consecutive_down = 0  # the provider answered, whatever it said
 
             if not person:
                 tally["no_person"] += 1; print("    - no decision maker found"); continue
