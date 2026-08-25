@@ -1,1333 +1,672 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<script src="/js/lf-tools-key.js"></script>
-<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','GTM-TL7WVD2N');</script>
-<script>
-    !function(t,e){var o,n,p,r;e.__SV||(window.posthog&&window.posthog.__loaded)||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]),t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}(p=t.createElement("script")).type="text/javascript",p.crossOrigin="anonymous",p.async=!0,p.src=s.api_host.replace(".i.posthog.com","-assets.i.posthog.com")+"/static/array.js",(r=t.getElementsByTagName("script")[0]).parentNode.insertBefore(p,r);var u=e;for(void 0!==a?u=e[a]=[]:a="posthog",u.people=u.people||[],u.toString=function(t){var e="posthog";return"posthog"!==a&&(e+="."+a),t||(e+=" (stub)"),e},u.people.toString=function(){return u.toString(1)+".people (stub)"},o="init capture identify reset get_distinct_id".split(" "),n=0;n<o.length;n++)g(u,o[n]);e._i.push([i,s,a])},e.__SV=1)}(document,window.posthog||[]);
-window.__lfScrubUrl=function(v){return typeof v==='string'?v.replace(/([?&#])(access_token|refresh_token|provider_token|provider_refresh_token|id_token|token|api_key|apikey|password|secret)=[^&#]*/gi,'$1$2=[redacted]'):v;};
-window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_url','$initial_referrer','$session_entry_url','$pathname'].forEach(function(k){if(p[k])p[k]=window.__lfScrubUrl(p[k]);});return p;};
-    posthog.init('phc_HqgzMyWAMtzH7K5j9CLw0dijB0I9W1VjPkkyzg9KOFG',{api_host:'https://us.i.posthog.com',defaults:'2025-11-30',person_profiles:'identified_only',sanitize_properties:window.__lfSanitize})
-</script>
-<script src="/js/lf-attribution.js"></script>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CRM Data Health Audit - LinkFinder AI</title>
-<link rel="icon" href="https://i.ibb.co/jPjX9SSp/Screen-Shot-2025-03-28-at-8-16-15-PM.png">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CRM Enrichment — LinkFinder AI</title>
+<meta name="description" content="Connect your CRM and keep every contact enriched automatically. LinkFinder AI re-checks your records on a schedule and fills missing emails, phones, job titles and company data.">
+<meta name="robots" content="noindex, follow">
+<link rel="icon" href="/favicon.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
 <style>
-:root {
-    --primary: #2563eb; --primary-hover: #1d4ed8;
-    --gray-50: #f9fafb; --gray-100: #f3f4f6; --gray-200: #e5e7eb;
-    --gray-300: #d1d5db; --gray-400: #9ca3af; --gray-500: #6b7280;
-    --gray-600: #4b5563; --gray-700: #374151; --gray-800: #1f2937;
-    --gray-900: #111827; --success: #10b981; --error: #ef4444; --warning: #f59e0b;
+:root{
+  --brand:#2563eb; --brand-hover:#1d4ed8; --brand-soft:#eff6ff;
+  --ink:#111827; --ink-2:#374151; --muted:#6b7280; --faint:#9ca3af;
+  --line:#e5e7eb; --line-soft:#f3f4f6;
+  --bg:#ffffff; --bg-2:#f9fafb;
+  --ok:#059669; --ok-soft:#ecfdf5; --warn:#b45309; --warn-soft:#fffbeb;
+  --r:8px; --r-lg:12px;
 }
-*{margin:0;padding:0;box-sizing:border-box;}
-body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:var(--gray-50);color:var(--gray-800);line-height:1.6;font-size:16px;}
-.container{max-width:680px;margin:0 auto;padding:0 1rem;}
-.header{padding:1rem 0;border-bottom:1px solid var(--gray-200);background:white;position:sticky;top:0;z-index:100;}
-.header-content{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;}
-.logo{display:flex;align-items:center;gap:.5rem;color:var(--gray-900);text-decoration:none;}
-.logo-icon{width:32px;height:32px;background:var(--primary);border-radius:6px;display:flex;align-items:center;justify-content:center;color:white;font-size:1rem;}
-.logo-text{font-size:1.25rem;font-weight:600;}
-.user-info{display:flex;align-items:center;gap:.75rem;}
-.credits{display:flex;align-items:center;gap:.5rem;background:var(--gray-100);padding:.5rem .75rem;border-radius:1rem;font-weight:500;color:var(--gray-700);font-size:.875rem;}
-.credits i{color:var(--warning);}
-.btn-buy-inline{background:linear-gradient(135deg,#fb923c,#f97316);border:none;color:white;font-weight:700;font-size:.7rem;cursor:pointer;padding:.25rem .5rem;border-radius:4px;white-space:nowrap;font-family:inherit;margin-left:.35rem;box-shadow:0 1px 4px rgba(249,115,22,.4);text-transform:uppercase;letter-spacing:.03em;}
-.btn-outline{background:transparent;color:var(--primary);border:1px solid var(--gray-300);padding:.5rem 1rem;border-radius:6px;font-weight:500;cursor:pointer;font-size:.875rem;font-family:inherit;}
-.btn-outline:hover{background:var(--gray-50);}
-.nav-menu{background:white;border-bottom:1px solid var(--gray-200);padding:.75rem 0;}
-.nav-tabs{display:flex;gap:.5rem;overflow-x:auto;padding-bottom:.25rem;}
-.nav-tab{display:flex;align-items:center;gap:.5rem;padding:.75rem 1rem;border-radius:8px;background:transparent;border:1px solid var(--gray-200);color:var(--gray-600);text-decoration:none;font-weight:500;font-size:.875rem;transition:all .2s;white-space:nowrap;cursor:pointer;font-family:inherit;}
-.nav-tab:hover{background:var(--gray-50);border-color:var(--primary);color:var(--gray-800);}
-.nav-tab.active{background:var(--primary);border-color:var(--primary);color:white;}
-.main{padding:1.75rem 0 3rem;}
-.page-header{margin-bottom:1.5rem;}
-.page-header h1{font-size:1.5rem;font-weight:700;color:var(--gray-900);margin-bottom:.35rem;display:flex;align-items:center;gap:.6rem;}
-.page-header h1 i{color:var(--primary);}
-.page-header p{color:var(--gray-500);font-size:.9rem;max-width:520px;}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;display:flex;background:var(--bg);color:var(--ink);
+  font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+button{font:inherit;cursor:pointer}
+:focus-visible{outline:2px solid var(--brand);outline-offset:2px;border-radius:4px}
 
-.card{background:white;border:1px solid var(--gray-200);border-radius:12px;padding:1.5rem;margin-bottom:1.25rem;box-shadow:0 1px 3px rgba(0,0,0,.06);}
-.card h2{font-size:1rem;font-weight:700;color:var(--gray-900);margin-bottom:1rem;display:flex;align-items:center;gap:.5rem;}
-.card h2 i{color:var(--primary);font-size:.9rem;}
+/* ── sidebar ───────────────────────────────── */
+.rail{width:250px;flex:none;height:100%;display:flex;flex-direction:column;
+  background:var(--bg);border-right:1px solid var(--line);z-index:20}
+.rail-top{display:flex;align-items:center;padding:16px 14px}
+.logo{display:flex;align-items:center;gap:9px;font-weight:700;font-size:16px;letter-spacing:-.02em}
+.logo-mark{width:30px;height:30px;border-radius:8px;background:var(--brand);color:#fff;
+  display:grid;place-items:center;font-size:14px;font-weight:700;flex:none}
+.rail-scroll{flex:1;overflow-y:auto;padding-bottom:8px}
+.group{margin-top:18px}
+.group-label{padding:0 18px 6px;font-size:11px;font-weight:600;letter-spacing:.04em;color:var(--faint)}
+.navlist{display:flex;flex-direction:column;gap:2px;padding:0 10px}
+.nav{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:var(--r);
+  color:var(--ink-2);transition:background .15s,color .15s;white-space:nowrap}
+.nav svg{width:18px;height:18px;flex:none;color:var(--muted)}
+.nav span{font-size:13.5px;font-weight:500;overflow:hidden;text-overflow:ellipsis}
+.nav:hover{background:var(--bg-2)}
+.nav.active{background:var(--brand-soft);color:var(--brand)}
+.nav.active svg{color:var(--brand)}
+.nav .pill{margin-left:auto;font-size:10px;font-weight:600;letter-spacing:.03em;
+  padding:2px 6px;border-radius:999px;background:var(--brand-soft);color:var(--brand)}
+.nav.active .pill{background:#fff}
+.rail-foot{padding:14px;flex:none}
+.promo{border:1px solid var(--line);border-radius:var(--r-lg);padding:12px}
+.promo h4{margin:0 0 3px;font-size:13px;font-weight:600}
+.promo p{margin:0 0 10px;font-size:12.5px;line-height:1.45;color:var(--muted)}
+.credits{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:6px}
+.credits b{color:var(--ink);font-weight:600;font-variant-numeric:tabular-nums}
+.meter{height:5px;border-radius:99px;background:var(--line-soft);overflow:hidden}
+.meter i{display:block;height:100%;width:74%;background:var(--brand);border-radius:99px}
 
-/* What you get */
-.steps{list-style:none;counter-reset:step;display:flex;flex-direction:column;gap:1rem;}
-.steps li{display:flex;gap:.875rem;counter-increment:step;}
-.steps li::before{content:counter(step);flex-shrink:0;width:26px;height:26px;border-radius:50%;background:var(--primary);color:white;font-size:.8rem;font-weight:700;display:flex;align-items:center;justify-content:center;}
-.step-body h3{font-size:.875rem;font-weight:600;color:var(--gray-900);margin-bottom:.15rem;}
-.step-body p{font-size:.825rem;color:var(--gray-500);}
+/* ── shell ─────────────────────────────────── */
+main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+.topbar{height:64px;flex:none;display:flex;align-items:center;justify-content:space-between;
+  gap:16px;padding:0 24px;border-bottom:1px solid var(--line);background:var(--bg)}
+.topbar h1{margin:0;font-size:19px;font-weight:600;letter-spacing:-.02em;white-space:nowrap}
+.search{position:relative;flex:1;max-width:460px}
+.search svg{position:absolute;left:13px;top:50%;transform:translateY(-50%);width:16px;height:16px;color:var(--muted)}
+.search input{width:100%;height:38px;padding:0 14px 0 36px;border:1px solid var(--line);
+  border-radius:var(--r);background:var(--bg);font-size:13.5px;color:var(--ink)}
+.search input::placeholder{color:var(--faint)}
+.search input:focus{outline:none;border-color:var(--brand);box-shadow:0 0 0 3px var(--brand-soft)}
+.topbar-right{display:flex;align-items:center;gap:8px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;height:38px;padding:0 15px;
+  border-radius:var(--r);border:1px solid transparent;font-size:13.5px;font-weight:600;transition:.15s}
+.btn-primary{background:var(--brand);color:#fff}
+.btn-primary:hover{background:var(--brand-hover)}
+.btn-soft{background:var(--brand-soft);color:var(--brand)}
+.btn-soft:hover{background:var(--brand);color:#fff}
+.btn-ghost{background:var(--bg);color:var(--ink-2);border-color:var(--line)}
+.btn-ghost:hover{background:var(--bg-2)}
+.icon-btn{width:36px;height:36px;display:grid;place-items:center;border:none;background:none;
+  border-radius:var(--r);color:var(--muted)}
+.icon-btn:hover{background:var(--bg-2);color:var(--ink)}
+.icon-btn svg{width:18px;height:18px}
+.avatar{width:34px;height:34px;border-radius:50%;background:var(--brand-soft);color:var(--brand);
+  display:grid;place-items:center;font-size:12.5px;font-weight:600}
+.sep{width:1px;height:20px;background:var(--line)}
 
-.cost-note{margin-top:1.25rem;padding:.75rem 1rem;background:var(--gray-50);border:1px solid var(--gray-200);border-radius:8px;font-size:.8rem;color:var(--gray-600);display:flex;gap:.6rem;align-items:flex-start;}
-.cost-note i{color:var(--warning);margin-top:.1rem;flex-shrink:0;}
+/* ── content ───────────────────────────────── */
+.scroll{flex:1;overflow-y:auto;background:var(--bg-2)}
+.page{max-width:1080px;margin:0 auto;padding:28px 24px 72px}
+.lede{margin:0 0 6px;font-size:22px;font-weight:600;letter-spacing:-.02em}
+.lede-sub{margin:0 0 24px;font-size:14.5px;color:var(--muted);max-width:64ch}
 
-/* audit result cards */
+.card{background:var(--bg);border:1px solid var(--line);border-radius:var(--r-lg);padding:20px}
+.card + .card{margin-top:16px}
+.card-head{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:16px}
+.card-head h2{margin:0;font-size:15px;font-weight:600;display:flex;align-items:center;gap:8px}
+.card-head p{margin:2px 0 0;font-size:13px;color:var(--muted)}
+
+.badge{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;
+  padding:3px 9px;border-radius:999px;white-space:nowrap}
+.badge.live{background:var(--ok-soft);color:var(--ok)}
+.badge.soon{background:var(--warn-soft);color:var(--warn)}
+.badge.off{background:var(--line-soft);color:var(--muted)}
+.dot{width:6px;height:6px;border-radius:50%;background:currentColor}
+
+/* connector grid */
+.conns{display:grid;grid-template-columns:repeat(auto-fill,minmax(228px,1fr));gap:12px}
+.conn{border:1px solid var(--line);border-radius:var(--r-lg);padding:15px;background:var(--bg);
+  display:flex;flex-direction:column;gap:11px;transition:border-color .15s,box-shadow .15s}
+.conn:hover{border-color:#c7d2fe;box-shadow:0 1px 3px rgba(16,24,40,.06)}
+.conn-top{display:flex;align-items:center;gap:10px}
+.conn-mark{width:34px;height:34px;border-radius:8px;display:grid;place-items:center;
+  font-size:13px;font-weight:700;color:#fff;flex:none}
+.conn h3{margin:0;font-size:13.5px;font-weight:600}
+.conn small{display:block;font-size:12px;color:var(--muted);margin-top:1px}
+.conn .btn{height:34px;font-size:13px;width:100%}
+
+/* how it works */
+.flow{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:0;
+  border:1px solid var(--line);border-radius:var(--r-lg);overflow:hidden;background:var(--bg)}
+.flow-step{padding:17px 18px;border-right:1px solid var(--line)}
+.flow-step:last-child{border-right:none}
+.flow-step .n{display:grid;place-items:center;width:22px;height:22px;border-radius:50%;
+  background:var(--brand-soft);color:var(--brand);font-size:11.5px;font-weight:700;margin-bottom:9px}
+.flow-step h4{margin:0 0 4px;font-size:13.5px;font-weight:600}
+.flow-step p{margin:0;font-size:12.5px;line-height:1.5;color:var(--muted)}
+
+/* preview table */
+.tbl-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r-lg);background:var(--bg)}
+table{border-collapse:collapse;width:100%;font-size:13px;min-width:620px}
+th{text-align:left;font-size:11px;font-weight:600;letter-spacing:.04em;color:var(--muted);
+  padding:10px 14px;background:var(--bg-2);border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:11px 14px;border-bottom:1px solid var(--line-soft);color:var(--ink-2);white-space:nowrap}
+tr:last-child td{border-bottom:none}
+td.filled{color:var(--ok);font-weight:500}
+td.empty{color:var(--faint)}
+.tick{display:inline-flex;align-items:center;gap:5px}
+.tick svg{width:13px;height:13px}
+
+.note{display:flex;gap:11px;align-items:flex-start;background:var(--brand-soft);
+  border-radius:var(--r-lg);padding:14px 16px;margin-top:16px}
+.note svg{width:17px;height:17px;color:var(--brand);flex:none;margin-top:1px}
+.note p{margin:0;font-size:13.5px;line-height:1.55;color:var(--ink-2)}
+.note b{color:var(--ink);font-weight:600}
 
 
-@media(max-width:640px){
-    .nav-tab{padding:.625rem .75rem;font-size:.8rem;}
+/* ── tabs ─────────────────────────────────── */
+.tabs{flex:none;display:flex;gap:2px;align-items:center;padding:0 24px;
+  border-bottom:1px solid var(--line);background:var(--bg);overflow-x:auto}
+.tab{position:relative;border:none;background:none;padding:15px 14px;white-space:nowrap;
+  font-size:14px;font-weight:500;color:var(--muted);display:flex;align-items:center;gap:8px}
+.tab:hover{color:var(--ink-2)}
+.tab.active{color:var(--brand);font-weight:600}
+.tab.active::after{content:"";position:absolute;left:14px;right:14px;bottom:-1px;height:2px;background:var(--brand)}
+.toggle-pill{font-size:10px;font-weight:600;letter-spacing:.05em;padding:2px 7px;border-radius:999px;
+  background:var(--line-soft);color:var(--muted)}
+
+/* ── locked panels ────────────────────────── */
+.panel{display:none}
+.panel.active{display:block}
+.locked{position:relative;min-height:520px;padding:24px;max-width:1080px;margin:0 auto}
+.behind{filter:blur(2.5px);opacity:.5;pointer-events:none;user-select:none}
+.gate{position:absolute;left:50%;top:210px;transform:translateX(-50%);width:min(430px,calc(100% - 48px));
+  background:var(--bg);border:1px solid var(--line);border-radius:16px;padding:26px 24px 20px;
+  box-shadow:0 12px 32px -8px rgba(16,24,40,.14),0 3px 10px rgba(16,24,40,.06);text-align:center;z-index:5}
+.gate h3{margin:0 0 12px;font-size:17.5px;font-weight:700;line-height:1.35;letter-spacing:-.015em;text-wrap:balance}
+.gate > p{margin:0 0 14px;font-size:13.5px;color:var(--muted)}
+.gate-rows{display:flex;flex-direction:column;gap:9px;text-align:left}
+.gate-row{display:flex;align-items:center;gap:11px;border:1px solid var(--line);border-radius:10px;padding:9px 11px}
+.gate-row .mark{width:32px;height:32px;border-radius:8px;display:grid;place-items:center;
+  font-size:11px;font-weight:700;flex:none}
+.gname{font-size:14px;font-weight:600;flex:1}
+.gcta{border:none;border-radius:8px;padding:8px 13px;font-size:13px;font-weight:600;
+  background:var(--brand-soft);color:var(--brand);white-space:nowrap;display:inline-block}
+.gcta:hover{background:var(--brand);color:#fff}
+.gcta.ghost{background:var(--line-soft);color:var(--ink-2)}
+.gcta.ghost:hover{background:var(--line);color:var(--ink)}
+.gate-foot{display:block;margin-top:14px;font-size:12px;color:var(--faint)}
+.gate-foot a{color:var(--brand);font-weight:600}
+
+/* ── faux content behind the gate ─────────── */
+.filters{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+.fake-input,.fake-chip{display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 14px;
+  border:1px solid var(--line);border-radius:10px;color:var(--faint);font-size:13.5px;background:var(--bg)}
+.fake-input{flex:1;min-width:220px;max-width:430px}
+.fake-input svg,.fake-chip svg{width:16px;height:16px}
+.ghost-tbl{border:1px solid var(--line);border-radius:var(--r-lg);overflow:hidden;background:var(--bg)}
+.ghost-tbl.bare{border:none;border-radius:0}
+.ghost-head,.ghost-row{display:grid;grid-template-columns:2fr 1.2fr 1.2fr 1fr 1.6fr;gap:16px;
+  padding:12px 16px;align-items:center}
+.ghost-head{background:var(--bg-2);border-bottom:1px solid var(--line);
+  font-size:11px;font-weight:600;letter-spacing:.04em;color:var(--muted)}
+.ghost-row{border-bottom:1px solid var(--line-soft)}
+.ghost-row:last-child{border-bottom:none}
+.ghost-row > i{display:block;height:11px;border-radius:99px;background:var(--line-soft)}
+.ghost-row > i:nth-child(2){width:70%}
+.ghost-row > i:nth-child(3){width:80%}
+.ghost-row > i:nth-child(4){width:55%}
+
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.muted-p{margin:0 0 14px;font-size:13.5px;color:var(--muted);line-height:1.55}
+.muted-sm{font-size:12.5px;font-weight:400;color:var(--faint)}
+.hint{display:flex;gap:8px;align-items:flex-start;margin:0 0 14px;font-size:13px;color:var(--ink-2)}
+.hint svg{width:15px;height:15px;flex:none;margin-top:2px;color:var(--muted)}
+.chk{display:flex;align-items:center;gap:9px;padding:8px 0;font-size:13.5px;color:var(--ink-2);
+  border-top:1px solid var(--line-soft)}
+.chk b{margin-left:auto;font-size:11px;font-weight:600;color:var(--muted);
+  background:var(--line-soft);padding:2px 7px;border-radius:999px}
+.strip{display:flex;gap:9px;align-items:center;background:var(--bg-2);border-radius:10px;
+  padding:11px 13px;font-size:13px;color:var(--ink-2);margin-bottom:9px}
+.strip svg{width:15px;height:15px;flex:none;color:var(--muted)}
+.strip.warn{background:var(--warn-soft);color:var(--warn)}
+.strip.warn svg{color:var(--warn)}
+
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+.stat{background:var(--bg);border:1px solid var(--line);border-radius:var(--r-lg);padding:15px 16px}
+.stat .si{width:26px;height:26px;border-radius:7px;display:grid;place-items:center;font-size:13px;margin-bottom:10px}
+.stat b{display:block;font-size:24px;font-weight:600;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.stat span:last-child{display:block;font-size:12.5px;color:var(--muted);margin-top:2px}
+.gauge-card{text-align:center}
+.gauge-card h2{margin:0 0 6px;font-size:14px;font-weight:600;text-align:left}
+.gauge{width:100%;max-width:200px;height:auto}
+.gv{font:600 17px Inter,sans-serif;fill:var(--ink)}
+
+@media (max-width:820px){
+  .two-col{grid-template-columns:1fr}
+  .gate{top:150px}
+  .locked{padding:16px}
+  .ghost-head,.ghost-row{grid-template-columns:2fr 1fr 1fr;gap:10px}
+  .ghost-head span:nth-child(n+4),.ghost-row > i:nth-child(n+4){display:none}
 }
-</style>
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "Organization",
-  "name": "LinkFinderAI",
-  "url": "https://linkfinderai.com",
-  "logo": "https://i.ibb.co/jPjX9SSp/Screen-Shot-2025-03-28-at-8-16-15-PM.png",
-  "sameAs": []
+
+.locked.unlocked .behind{filter:none;opacity:1;pointer-events:auto;user-select:auto}
+.locked.unlocked .gate{display:none}
+.conn-bar{display:flex;align-items:center;gap:10px;max-width:1080px;margin:20px auto -8px;
+  padding:10px 14px;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:10px;
+  font-size:13.5px;color:#065f46}
+.cb-dot{width:7px;height:7px;border-radius:50%;background:var(--ok);flex:none}
+.cb-text{font-weight:600}
+.cb-link{margin-left:auto;color:var(--ok);font-weight:600;text-decoration:underline}
+.example-tag{position:absolute;top:8px;left:24px;margin:0;z-index:6;
+  font-size:11px;font-weight:600;letter-spacing:.04em;color:var(--warn);
+  background:var(--warn-soft);border:1px solid #fde68a;border-radius:999px;padding:3px 10px}
+.burger{display:none}
+@media (max-width:900px){
+  .rail{position:fixed;left:0;top:0;bottom:0;transform:translateX(-100%);transition:transform .25s}
+  .rail.open{transform:none;box-shadow:0 0 0 100vmax rgba(17,24,39,.4)}
+  .burger{display:grid}
+  .search{display:none}
+  .page{padding:20px 16px 56px}
+  .flow-step{border-right:none;border-bottom:1px solid var(--line)}
+  .flow-step:last-child{border-bottom:none}
 }
-</script>
-<link rel="canonical" href="https://linkfinderai.com/crm-sync"/>
-
-<style>
-/* ---- CRM audit ---- */
-.stages{display:flex;gap:.5rem;margin-bottom:1.5rem;flex-wrap:wrap;}
-.stage{flex:1;min-width:150px;background:white;border:1px solid var(--gray-200);border-radius:10px;padding:.9rem 1rem;position:relative;}
-.stage.active{border-color:var(--primary);box-shadow:0 0 0 3px rgba(37,99,235,.09);}
-.stage.done{border-color:var(--success);}
-.stage-num{width:22px;height:22px;border-radius:50%;background:var(--gray-200);color:var(--gray-600);font-size:.72rem;font-weight:700;display:flex;align-items:center;justify-content:center;margin-bottom:.45rem;}
-.stage.active .stage-num{background:var(--primary);color:white;}
-.stage.done .stage-num{background:var(--success);color:white;}
-.stage-title{font-size:.85rem;font-weight:700;color:var(--gray-900);}
-.stage-sub{font-size:.75rem;color:var(--gray-500);margin-top:.1rem;}
-
-.drop{border:2px dashed var(--gray-300);border-radius:12px;padding:2.25rem 1.5rem;text-align:center;background:var(--gray-50);cursor:pointer;transition:all .18s;}
-.drop:hover,.drop.over{border-color:var(--primary);background:#eff6ff;}
-.drop i{font-size:1.9rem;color:var(--primary);margin-bottom:.7rem;display:block;}
-.drop-title{font-weight:700;color:var(--gray-900);font-size:.95rem;margin-bottom:.25rem;}
-.drop-sub{font-size:.82rem;color:var(--gray-500);}
-.privacy{margin-top:.9rem;font-size:.78rem;color:var(--gray-500);display:flex;align-items:center;justify-content:center;gap:.4rem;}
-.privacy i{color:var(--success);}
-
-.score-row{display:flex;align-items:center;gap:1.25rem;flex-wrap:wrap;margin-bottom:1.25rem;}
-.score-ring{width:104px;height:104px;flex-shrink:0;position:relative;}
-.score-ring svg{transform:rotate(-90deg);}
-.score-val{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;}
-.score-num{font-size:1.6rem;font-weight:700;color:var(--gray-900);line-height:1;}
-.score-lbl{font-size:.62rem;color:var(--gray-500);text-transform:uppercase;letter-spacing:.05em;margin-top:.15rem;}
-.score-facts{flex:1;min-width:220px;}
-.fact{font-size:.85rem;color:var(--gray-600);margin-bottom:.3rem;}
-.fact strong{color:var(--gray-900);font-weight:700;}
-
-table.gaps{width:100%;border-collapse:collapse;font-size:.85rem;}
-table.gaps th{text-align:left;font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;color:var(--gray-500);padding:.5rem .6rem;border-bottom:1px solid var(--gray-200);font-weight:600;}
-table.gaps td{padding:.6rem;border-bottom:1px solid var(--gray-100);color:var(--gray-700);}
-table.gaps td.num{text-align:right;font-variant-numeric:tabular-nums;font-weight:600;color:var(--gray-900);}
-table.gaps tr:last-child td{border-bottom:none;}
-table.gaps tfoot td{font-weight:700;color:var(--gray-900);border-top:2px solid var(--gray-200);}
-.gaps-wrap{overflow-x:auto;}
-
-.compare{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:.5rem;}
-.opt{border:1px solid var(--gray-200);border-radius:10px;padding:1.1rem;background:white;position:relative;}
-.opt.win{border-color:var(--success);background:#f0fdf4;}
-.opt-tag{font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--gray-400);margin-bottom:.4rem;}
-.opt.win .opt-tag{color:var(--success);}
-.opt-price{font-size:1.5rem;font-weight:700;color:var(--gray-900);line-height:1.1;}
-.opt-price span{font-size:.8rem;font-weight:500;color:var(--gray-500);}
-.opt-desc{font-size:.8rem;color:var(--gray-600);margin-top:.4rem;line-height:1.45;}
-.saving{margin-top:1rem;padding:.8rem 1rem;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:8px;font-size:.87rem;color:#065f46;font-weight:600;display:flex;gap:.55rem;align-items:flex-start;}
-.saving i{margin-top:.15rem;}
-.decay{margin-top:1rem;padding:.8rem 1rem;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;font-size:.83rem;color:#92400e;display:flex;gap:.55rem;align-items:flex-start;}
-.decay i{margin-top:.15rem;flex-shrink:0;}
-
-.btn-primary{background:var(--primary);color:white;border:none;padding:.85rem 1.5rem;border-radius:8px;font-weight:700;cursor:pointer;font-size:.95rem;font-family:inherit;display:inline-flex;align-items:center;gap:.5rem;text-decoration:none;}
-.btn-primary:hover{background:var(--primary-hover);}
-.btn-ghost{background:transparent;border:1px solid var(--gray-300);color:var(--gray-600);padding:.6rem 1rem;border-radius:8px;font-size:.83rem;cursor:pointer;font-family:inherit;font-weight:500;}
-.btn-ghost:hover{background:var(--gray-50);}
-.hidden{display:none!important;}
-.btn-fix{background:var(--primary);color:white;border:none;padding:.35rem .7rem;border-radius:6px;font-size:.75rem;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;}
-.btn-fix:hover{background:var(--primary-hover);}
-.fix-short{font-size:.72rem;color:var(--gray-400);white-space:nowrap;}
-.trust{margin-top:1rem;border:1px solid var(--gray-200);border-radius:10px;background:white;overflow:hidden;}
-.trust-row{display:flex;gap:.65rem;align-items:flex-start;padding:.8rem 1rem;font-size:.83rem;color:var(--gray-600);border-bottom:1px solid var(--gray-100);line-height:1.5;}
-.trust-row:last-child{border-bottom:none;}
-.trust-row i{color:var(--success);margin-top:.15rem;flex-shrink:0;width:14px;text-align:center;}
-.trust-row strong{color:var(--gray-900);}
-.trust-row a{color:var(--primary);font-weight:600;text-decoration:none;}
-.trust-row a:hover{text-decoration:underline;}
-.trust-row.muted i{color:var(--gray-400);}
-
-.sync-loading{font-size:.85rem;color:var(--gray-500);display:flex;align-items:center;gap:.5rem;}
-.sync-connected{display:flex;align-items:center;gap:.75rem;padding:1rem;background:#f0fdf4;border:1px solid #a7f3d0;border-radius:10px;flex-wrap:wrap;}
-.sync-connected i.badge{color:var(--success);font-size:1.15rem;}
-.sync-connected-text{flex:1;min-width:200px;font-size:.87rem;color:#065f46;}
-.sync-connected-text strong{display:block;font-weight:700;margin-bottom:.1rem;}
-.btn-danger-ghost{background:transparent;border:1px solid #fecaca;color:#b91c1c;padding:.5rem .85rem;border-radius:7px;font-size:.8rem;cursor:pointer;font-family:inherit;font-weight:500;}
-.btn-danger-ghost:hover{background:#fef2f2;}
-.sync-locked{padding:1rem;background:var(--gray-50);border:1px solid var(--gray-200);border-radius:10px;font-size:.85rem;color:var(--gray-600);}
-.field-toggles{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1rem;}
-.chip{display:inline-flex;align-items:center;gap:.4rem;padding:.4rem .75rem;border-radius:100px;border:1px solid var(--gray-300);background:white;font-size:.8rem;color:var(--gray-600);cursor:pointer;user-select:none;font-family:inherit;}
-.chip.on{background:var(--primary);border-color:var(--primary);color:white;}
-.err{background:#fef2f2;border:1px solid #fecaca;color:#991b1b;padding:.8rem 1rem;border-radius:8px;font-size:.85rem;margin-top:1rem;}
-@media(max-width:640px){.compare{grid-template-columns:1fr;}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
-
 <body>
 
-<header class="header">
-    <div class="container">
-        <div class="header-content">
-            <a href="#" class="logo">
-                <div class="logo-icon"><i class="fas fa-search"></i></div>
-                <span class="logo-text">LinkFinder AI</span>
-            </a>
-            <div class="user-info">
-                <div class="credits">
-                    <i class="fas fa-coins"></i>
-                    <span id="creditsCount">--</span> credits
-                    <button class="btn-buy-inline" onclick="handleAddCredits()" id="buyCreditsBtn">Buy credits</button>
-                </div>
-                <button class="btn-outline" onclick="logout()">Logout</button>
-            </div>
-        </div>
+<aside class="rail" id="rail">
+  <div class="rail-top">
+    <a class="logo" href="/app.html">
+      <span class="logo-mark">LF</span> LinkFinder<span style="color:var(--brand)">AI</span>
+    </a>
+  </div>
+
+  <div class="rail-scroll">
+    <div class="group">
+      <div class="group-label">Find</div>
+      <div class="navlist">
+        <a class="nav" href="/app.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          <span>People</span>
+        </a>
+        <a class="nav" href="/app.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M9 22v-3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3M8 6h.01M12 6h.01M16 6h.01M8 10h.01M12 10h.01M16 10h.01M8 14h.01M12 14h.01M16 14h.01"/></svg>
+          <span>Companies</span>
+        </a>
+        <a class="nav" href="/app-prospects.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h.01M3 12h.01M3 19h.01M8 5h13M8 12h13M8 19h13"/></svg>
+          <span>Lead Finder AI</span>
+        </a>
+      </div>
     </div>
-</header>
 
-<nav class="nav-menu">
-    <div class="container">
-        <div class="nav-tabs">
-            <button class="nav-tab" onclick="nav('enrichment')"><i class="fas fa-search"></i> Data Enrichment</button>
-            <button class="nav-tab" onclick="nav('api')"><i class="fas fa-code"></i> API & MCP</button>
-            <button class="nav-tab active"><i class="fab fa-hubspot"></i> CRM Sync</button>
-            <button class="nav-tab" onclick="nav('history')"><i class="fas fa-history"></i> History</button>
-            <button class="nav-tab" onclick="nav('account')"><i class="fas fa-user"></i> Account</button>
-        </div>
+    <div class="group">
+      <div class="group-label">Enrich</div>
+      <div class="navlist">
+        <a class="nav" href="/app.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.15V4a2 2 0 0 1 2-2h8l6 6v12a2 2 0 0 1-2 2h-3.35"/><path d="M14 2v5a1 1 0 0 0 1 1h5"/><path d="m5 16-3 3 3 3M9 22l3-3-3-3"/></svg>
+          <span>CSV Enrichment</span>
+        </a>
+        <a class="nav active" href="/crm-sync.html" aria-current="page">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14a9 3 0 0 0 18 0V5"/><path d="M3 12a9 3 0 0 0 18 0"/></svg>
+          <span>CRM Enrichment</span>
+        </a>
+        <a class="nav" href="/api-access.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m10 9-3 3 3 3M14 15l3-3-3-3"/><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
+          <span>API</span>
+        </a>
+      </div>
     </div>
-</nav>
-<div class="container">
-    <div class="main">
 
-        <div class="page-header">
-            <h1><i class="fas fa-heart-pulse"></i> CRM Data Health Audit</h1>
-            <p>See exactly what is missing from your CRM, what it costs to fix, and how to stop it decaying again. Free, and your file never leaves this browser.</p>
+    <div class="group">
+      <div class="group-label">Other</div>
+      <div class="navlist">
+        <a class="nav" href="/integrations.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15.4 4.4a1 1 0 0 0 1.7-.5 2.5 2.5 0 1 1 3 3 1 1 0 0 0-.5 1.7l1.7 1.7a2.4 2.4 0 0 1 0 3.4l-1.7 1.7a1 1 0 0 1-1.7-.5 2.5 2.5 0 1 0-3 3 1 1 0 0 1 .5 1.7l-1.7 1.7a2.4 2.4 0 0 1-3.4 0L8.6 19.6a1 1 0 0 0-1.7.5 2.5 2.5 0 1 1-3-3 1 1 0 0 0 .5-1.7l-1.7-1.7a2.4 2.4 0 0 1 0-3.4L4.4 8.6a1 1 0 0 1 1.7.5 2.5 2.5 0 1 0 3-3 1 1 0 0 1-.5-1.7l1.7-1.7a2.4 2.4 0 0 1 3.4 0z"/></svg>
+          <span>Integrations</span>
+        </a>
+        <a class="nav" href="/history.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><rect x="15" y="5" width="4" height="12" rx="1"/><rect x="7" y="8" width="4" height="9" rx="1"/></svg>
+          <span>History &amp; usage</span>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div class="rail-foot">
+    <div class="promo">
+      <div class="credits"><span>Credits left</span><b id="creditsCount">—</b></div>
+      <div class="meter"><i id="creditsMeter" style="width:0"></i></div>
+      <p style="margin-top:10px" id="creditsNote">Loading your balance…</p>
+      <a class="btn btn-soft" style="width:100%;height:34px" href="/pricing.html">Add credits</a>
+    </div>
+  </div>
+</aside>
+
+<main>
+  <nav class="topbar">
+    <button class="icon-btn burger" id="burger" aria-label="Open menu">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+    </button>
+    <h1>CRM Enrichment</h1>
+    <div class="search">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+      <input type="search" placeholder="Search people or companies" aria-label="Search people or companies">
+    </div>
+    <div class="topbar-right">
+      <a class="btn btn-soft" href="/pricing.html">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7M19 12H5"/></svg>
+        Upgrade
+      </a>
+      <span class="sep"></span>
+      <button class="icon-btn" aria-label="Help and resources">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01"/></svg>
+      </button>
+      <div class="avatar" aria-hidden="true">EH</div>
+    </div>
+  </nav>
+
+  <div class="tabs" role="tablist" aria-label="CRM enrichment sections">
+    <button class="tab active" role="tab" aria-selected="true"  data-tab="now">Enrich your CRM now</button>
+    <button class="tab" role="tab" aria-selected="false" data-tab="auto">Automatic CRM enrichment <span class="toggle-pill" id="autoPill">OFF</span></button>
+    <button class="tab" role="tab" aria-selected="false" data-tab="health">CRM Health</button>
+    <button class="tab" role="tab" aria-selected="false" data-tab="dedupe">Deduplication</button>
+  </div>
+
+  <div class="scroll">
+    <div class="conn-bar" id="connBar" hidden>
+      <span class="cb-dot"></span>
+      <span class="cb-text">CRM connected</span>
+      <a class="cb-link" href="/crm-connect.html">Manage connection</a>
+    </div>
+
+    <!-- ══ TAB 1 · Enrich now ══ -->
+    <section class="panel active" id="tab-now" role="tabpanel">
+      <div class="locked">
+        <div class="behind" aria-hidden="true">
+          <div class="filters">
+            <span class="fake-input"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>Search enrichments…</span>
+            <span class="fake-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2v4M12 18v4M4.9 4.9l2.9 2.9M16.2 16.2l2.9 2.9M2 12h4M18 12h4M4.9 19.1l2.9-2.9M16.2 7.8l2.9-2.9"/></svg>Status</span>
+            <span class="fake-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21 16-9 5-9-5V8l9-5 9 5z"/><path d="m3 8 9 5 9-5M12 13v8"/></svg>Object type</span>
+          </div>
+          <div class="ghost-tbl">
+            <div class="ghost-head"><span>Name</span><span>Date</span><span>Object type</span><span>Status</span><span>Details</span></div>
+            <div class="ghost-row"><i></i><i></i><i></i><i></i><i></i></div><div class="ghost-row"><i></i><i></i><i></i><i></i><i></i></div>
+            <div class="ghost-row"><i></i><i></i><i></i><i></i><i></i></div><div class="ghost-row"><i></i><i></i><i></i><i></i><i></i></div><div class="ghost-row"><i></i><i></i><i></i><i></i><i></i></div>
+          </div>
         </div>
-
-        <div class="stages">
-            <div class="stage active" id="stage1">
-                <div class="stage-num">1</div>
-                <div class="stage-title">Health check</div>
-                <div class="stage-sub">Find every gap and duplicate</div>
+        <div class="gate">
+          <h3>Enrich your CRM with verified emails, direct dials and fresh company data.</h3>
+          <p>Connect your CRM to get started:</p>
+          <div class="gate-rows">
+            <div class="gate-row">
+              <span class="mark" style="background:#fff0eb;color:#ff7a59">HS</span>
+              <span class="gname">HubSpot</span>
+              <button class="gcta" data-connect="hubspot">Connect</button>
             </div>
-            <div class="stage" id="stage2">
-                <div class="stage-num">2</div>
-                <div class="stage-title">Clean &amp; enrich</div>
-                <div class="stage-sub">Fill the gaps with LinkFinder</div>
+            <div class="gate-row">
+              <span class="mark" style="background:#eef2ff;color:#2563eb">SF</span>
+              <span class="gname">Salesforce</span>
+              <button class="gcta ghost" data-notify="Salesforce">Request access</button>
             </div>
-            <div class="stage" id="stage3">
-                <div class="stage-num">3</div>
-                <div class="stage-title">Keep it clean</div>
-                <div class="stage-sub">Auto-enrich every new record</div>
-            </div>
+          </div>
+          <small class="gate-foot">CRM sync is on Professional and above. <a href="/pricing.html">See plans</a></small>
         </div>
+      </div>
+    </section>
 
-        <!-- STEP 1: upload -->
-        <div class="card" id="uploadCard">
-            <h2><i class="fas fa-file-csv"></i> Upload your CRM export</h2>
-            <div class="drop" id="drop">
-                <i class="fas fa-cloud-arrow-up"></i>
-                <div class="drop-title">Drop your CSV here, or click to choose a file</div>
-                <div class="drop-sub">Works with any CRM export &mdash; HubSpot, Salesforce, Pipedrive, or a plain spreadsheet</div>
-                <input type="file" id="file" accept=".csv,text/csv" class="hidden">
-            </div>
-            <div class="privacy">
-                <i class="fas fa-lock"></i>
-                Analysed entirely in your browser &mdash; your file is never uploaded.
-            </div>
-            <div class="trust">
-                <div class="trust-row">
-                    <i class="fas fa-wifi"></i>
-                    <div><strong>Don't take our word for it.</strong> Turn off your wi-fi and run the check &mdash; it still works. Nothing is sent because nothing needs to be.</div>
-                </div>
-                <div class="trust-row">
-                    <i class="fas fa-code"></i>
-                    <div>The whole thing is one file you can read: <a href="/js/lf-crm-audit.js" target="_blank" rel="noopener">lf-crm-audit.js</a>. There is no upload call in it.</div>
-                </div>
-                <div class="trust-row">
-                    <i class="fas fa-scissors"></i>
-                    <div><strong>You don't need your whole database.</strong> Export 500 rows &mdash; the percentages come out the same, and you're sharing far less. Delete any column you'd rather not include; anything missing is simply reported as missing.</div>
-                </div>
-                <div class="trust-row">
-                    <i class="fas fa-file-csv"></i>
-                    <div>Rather not use real data at all? <a href="/sample-crm-export.csv" download>Download a sample file</a> and run the check on that first.</div>
-                </div>
-                <div class="trust-row muted">
-                    <i class="fas fa-chart-simple"></i>
-                    <div>Full disclosure: we do record anonymous totals &mdash; how many contacts, how complete &mdash; so we know the tool is being used. Never a name, an email, or a row. <a href="/crm-audit-privacy" target="_blank" rel="noopener">Full detail, written to forward to your security team &rarr;</a></div>
-                </div>
-            </div>
-
-            <div id="uploadErr"></div>
-            <div class="cost-note" style="margin-top:1.25rem;">
-                <i class="fas fa-circle-info"></i>
-                <div><strong>How to export from HubSpot:</strong> Contacts &rarr; top-right <em>Export</em> &rarr; choose your properties (email, phone, job title, company, LinkedIn) &rarr; CSV. Any column layout works &mdash; we detect the fields automatically.</div>
-            </div>
-        </div>
-
-        <!-- STEP 2: results -->
-        <div id="results" class="hidden">
-
+    <!-- ══ TAB 2 · Automatic ══ -->
+    <section class="panel" id="tab-auto" role="tabpanel">
+      <div class="locked">
+        <div class="behind" aria-hidden="true">
+          <div class="two-col">
             <div class="card">
-                <h2><i class="fas fa-clipboard-check"></i> What we found</h2>
-                <div class="score-row">
-                    <div class="score-ring">
-                        <svg width="104" height="104">
-                            <circle cx="52" cy="52" r="45" fill="none" stroke="#e5e7eb" stroke-width="10"/>
-                            <circle id="ringFill" cx="52" cy="52" r="45" fill="none" stroke="#2563eb" stroke-width="10"
-                                    stroke-linecap="round" stroke-dasharray="283" stroke-dashoffset="283"/>
-                        </svg>
-                        <div class="score-val">
-                            <div class="score-num" id="scoreNum">--</div>
-                            <div class="score-lbl">complete</div>
-                        </div>
-                    </div>
-                    <div class="score-facts" id="facts"></div>
-                </div>
-
-                <div class="field-toggles" id="toggles"></div>
-
-                <div class="gaps-wrap">
-                    <table class="gaps">
-                        <thead>
-                            <tr><th>Gap</th><th>How we fix it</th><th style="text-align:right;">Records</th><th style="text-align:right;">Credits</th><th></th></tr>
-                        </thead>
-                        <tbody id="gapRows"></tbody>
-                        <tfoot>
-                            <tr><td colspan="3">Total to fully enrich your CRM</td><td class="num" id="totalCredits">0</td><td></td></tr>
-                        </tfoot>
-                    </table>
-                </div>
-
-                <button class="btn-ghost" style="margin-top:1rem;" onclick="reset()"><i class="fas fa-rotate-left"></i> Audit a different file</button>
+              <div class="card-head"><div><h2>Automatic enrichment <span class="toggle-pill">OFF</span></h2></div></div>
+              <p class="muted-p">Keep your CRM data clean. We watch for new records and enrich them with the data you choose.</p>
+              <p class="hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01" stroke-linecap="round"/></svg>Auto-enrich every new record in your CRM with LinkFinder</p>
+              <label class="chk"><input type="checkbox" disabled> Job title &amp; profile data</label>
+              <label class="chk"><input type="checkbox" disabled> Work email <b>10 cr</b></label>
+              <label class="chk"><input type="checkbox" disabled> Direct phone <b>50 cr</b></label>
+              <label class="chk"><input type="checkbox" disabled> Company data <b>1 cr</b></label>
             </div>
-
-            <!-- stage 2: fix it where it lives -->
-            <div class="card" id="cleanCard">
-                <h2><i class="fas fa-wand-magic-sparkles"></i> Fix these gaps in HubSpot</h2>
-                <p style="font-size:.87rem;color:var(--gray-600);margin-bottom:1rem;">
-                    Not an export. We read your contacts, fill what is missing, and write the values back onto the records themselves &mdash; nothing to download, nothing to re-import.
-                </p>
-                <div id="cleanState"><div class="sync-loading"><i class="fas fa-circle-notch fa-spin"></i> Checking your HubSpot connection&hellip;</div></div>
+            <div class="card">
+              <div class="card-head"><div><h2>Fields to enrich</h2></div></div>
+              <p class="muted-p">We write into the CRM properties you map. Existing values are never overwritten.</p>
+              <div class="strip warn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>Auto-enrichment charges credits per new record — 1 to 50 depending on the field.</div>
+              <div class="strip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>We check for new records every 5 minutes.</div>
             </div>
-
-            <!-- the commercial core -->
-            <div class="card" id="quoteCard">
-                <h2><i class="fas fa-calculator"></i> What it costs to fix</h2>
-                <div class="compare" id="compare"></div>
-                <div id="saving"></div>
-                <div id="decay"></div>
-                <div style="margin-top:1.25rem;" id="cta"></div>
+          </div>
+          <div class="card" style="margin-top:16px">
+            <div class="card-head"><div><h2>Latest automatic enrichments <span class="muted-sm">(past 90 days)</span></h2></div></div>
+            <div class="ghost-tbl bare">
+              <div class="ghost-head"><span>Name</span><span>Date</span><span>Field</span><span>Status</span><span>Details</span></div>
+              <div class="ghost-row"><i></i><i></i><i></i><i></i><i></i></div><div class="ghost-row"><i></i><i></i><i></i><i></i><i></i></div><div class="ghost-row"><i></i><i></i><i></i><i></i><i></i></div>
             </div>
-
-            <!-- stage 3 -->
-            <div class="card" id="syncCard">
-                <h2><i class="fas fa-arrows-rotate"></i> Stage 3 &mdash; keep it clean automatically</h2>
-                <p style="font-size:.87rem;color:var(--gray-600);margin-bottom:1rem;">
-                    Cleaning once is temporary &mdash; new contacts arrive with the same gaps. Connect HubSpot and LinkFinder sweeps it every Monday, filling whatever is still missing, so you never run this audit again.
-                </p>
-                <div id="syncState"><div class="sync-loading"><i class="fas fa-circle-notch fa-spin"></i> Checking your HubSpot connection&hellip;</div></div>
-            </div>
-
+          </div>
         </div>
-    </div>
-</div>
+        <div class="gate">
+          <h3>Keep your CRM up to date automatically as new records are created.</h3>
+          <p>Connect your CRM to get started:</p>
+          <div class="gate-rows">
+            <div class="gate-row">
+              <span class="mark" style="background:#fff0eb;color:#ff7a59">HS</span>
+              <span class="gname">HubSpot</span>
+              <button class="gcta" data-connect="hubspot">Connect</button>
+            </div>
+            <div class="gate-row">
+              <span class="mark" style="background:#eef2ff;color:#2563eb">SF</span>
+              <span class="gname">Salesforce</span>
+              <button class="gcta ghost" data-notify="Salesforce">Request access</button>
+            </div>
+          </div>
+          <small class="gate-foot">CRM sync is on Professional and above. <a href="/pricing.html">See plans</a></small>
+        </div>
+      </div>
+    </section>
 
-<script src="/js/lf-crm-audit.js"></script>
-<script type="module">
-/*
- * Preloaded, not imported at click time. openConnectUI() opens a popup, and a
- * popup opened after an await has left the user-gesture window, which Safari
- * blocks outright. Module scripts are deferred, so this costs nothing on first
- * paint, and the click handler gets a class that is already there.
- */
-import Nango from 'https://esm.sh/@nangohq/frontend@0.58.4';
-window.__LFNango = Nango;
-</script>
+    <!-- ══ TAB 3 · CRM Health ══ -->
+    <section class="panel" id="tab-health" role="tabpanel">
+      <div class="locked preview-only">
+        <p class="example-tag">Example figures — not your data</p>
+        <div class="behind" aria-hidden="true">
+          <div class="stats">
+            <div class="stat"><span class="si" style="background:#eef2ff;color:#2563eb">◍</span><b>12,847</b><span>Records scanned</span></div>
+            <div class="stat"><span class="si" style="background:#fffbeb;color:#b45309">✉</span><b>78%</b><span>Email accuracy</span></div>
+            <div class="stat"><span class="si" style="background:#eff6ff;color:#2563eb">☏</span><b>52%</b><span>Mobile accuracy</span></div>
+            <div class="stat"><span class="si" style="background:#fef2f2;color:#b91c1c">◷</span><b>64%</b><span>Job title freshness</span></div>
+          </div>
+          <div class="two-col" style="margin-top:16px">
+            <div class="card gauge-card"><h2>Record freshness</h2><svg class="gauge" viewBox="0 0 120 70"><path d="M10 62a50 50 0 0 1 100 0" fill="none" stroke="#f3f4f6" stroke-width="12" stroke-linecap="round"/><path d="M10 62a50 50 0 0 1 100 0" fill="none" stroke="#2563eb" stroke-width="12" stroke-linecap="round" stroke-dasharray="157" stroke-dashoffset="57"/><text x="60" y="58" text-anchor="middle" class="gv">64%</text></svg></div>
+            <div class="card gauge-card"><h2>Email accuracy</h2><svg class="gauge" viewBox="0 0 120 70"><path d="M10 62a50 50 0 0 1 100 0" fill="none" stroke="#f3f4f6" stroke-width="12" stroke-linecap="round"/><path d="M10 62a50 50 0 0 1 100 0" fill="none" stroke="#059669" stroke-width="12" stroke-linecap="round" stroke-dasharray="157" stroke-dashoffset="35"/><text x="60" y="58" text-anchor="middle" class="gv">78%</text></svg></div>
+          </div>
+        </div>
+        <div class="gate">
+          <h3>Scan your CRM for outdated, missing and stale records in minutes.</h3>
+          <p>Connect your CRM to get started:</p>
+          <div class="gate-rows">
+            <div class="gate-row">
+              <span class="mark" style="background:#fff0eb;color:#ff7a59">HS</span>
+              <span class="gname">HubSpot</span>
+              <button class="gcta" data-connect="hubspot">Connect</button>
+            </div>
+            <div class="gate-row">
+              <span class="mark" style="background:#f0fdf4;color:#059669">CSV</span>
+              <span class="gname">Upload a CSV export</span>
+              <a class="gcta ghost" href="/crm-audit.html">Free audit</a>
+            </div>
+          </div>
+          <small class="gate-foot">Scanning is free — you only pay to fix what it finds.</small>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══ TAB 4 · Deduplication ══ -->
+    <section class="panel" id="tab-dedupe" role="tabpanel">
+      <div class="locked preview-only">
+        <p class="example-tag">Example layout — not your data</p>
+        <div class="behind" aria-hidden="true">
+          <div class="card">
+            <div class="card-head"><div><h2>Duplicates found</h2><p>Grouped by matching email, name and company.</p></div></div>
+            <div class="ghost-tbl bare">
+              <div class="ghost-head"><span>Record</span><span>Matches</span><span>Match on</span><span>Keep</span><span>Action</span></div>
+              <div class="ghost-row"><i></i><i></i><i></i><i></i><i></i></div><div class="ghost-row"><i></i><i></i><i></i><i></i><i></i></div><div class="ghost-row"><i></i><i></i><i></i><i></i><i></i></div><div class="ghost-row"><i></i><i></i><i></i><i></i><i></i></div>
+            </div>
+          </div>
+        </div>
+        <div class="gate">
+          <h3>Find and merge duplicate contacts and companies in a few clicks.</h3>
+          <p>Connect your CRM to get started:</p>
+          <div class="gate-rows">
+            <div class="gate-row">
+              <span class="mark" style="background:#fff0eb;color:#ff7a59">HS</span>
+              <span class="gname">HubSpot</span>
+              <button class="gcta" data-connect="hubspot">Connect</button>
+            </div>
+            <div class="gate-row">
+              <span class="mark" style="background:#eef2ff;color:#2563eb">SF</span>
+              <span class="gname">Salesforce</span>
+              <button class="gcta ghost" data-notify="Salesforce">Request access</button>
+            </div>
+          </div>
+          <small class="gate-foot">1 credit per merged duplicate. Scanning is free.</small>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</main>
+
 <script>
-let userToken = null;
-let lastAudit = null;
-let lastCSV = null;
-// Phone is excluded by default: at 50 credits it is 5-50x every other lookup
-// and dominates any quote it appears in. The toggle still shows how many are
-// missing, so the opportunity stays visible without inflating the headline.
-const DEFAULT_OFF = ['phone'];
-let activeFields = LFCrmAudit.FIELDS.map(f => f.key).filter(k => !DEFAULT_OFF.includes(k));
+/*
+ * Live state, using the same contracts crm-sync.html already speaks:
+ *   POST {NANGO_WORKER}/status  {token}  -> { connected: bool, ... }
+ *   POST {CREDITS_WORKER}/      {token}  -> { credits: number }
+ * The four tabs render blurred-behind-a-gate until /status says connected.
+ */
+const NANGO_WORKER   = 'https://nango-connect-session.hamoureliasse.workers.dev';
+const CREDITS_WORKER = 'https://linkfinderaicredits.hamoureliasse.workers.dev/';
+const PLAN_CREDITS   = { 1:5000, 2:20000, 3:50000 };
 
+let userToken = null;
 const urlParams = new URLSearchParams(window.location.search);
-const gclid = urlParams.get('gclid');
-function addGclid(url){ if(!gclid) return url; return url + (url.includes('?')?'&':'?') + 'gclid=' + gclid; }
 
 function checkAuth(){
-    let token = urlParams.get('token') || localStorage.getItem('linkFinderToken');
-    if(!token){ window.location.href='https://linkfinderai.com/'; return; }
-    localStorage.setItem('linkFinderToken', token);
-    userToken = token;
-    if(window.posthog) posthog.identify(token);
-}
-function logout(){ localStorage.removeItem('linkFinderToken'); window.location.href='https://linkfinderai.com/'; }
-function nav(page){
-    const m={enrichment:'app',api:'api-access',history:'history',account:'account'};
-    window.location.href = addGclid('https://linkfinderai.com/'+m[page]+'?token='+userToken);
+  const token = urlParams.get('token') || localStorage.getItem('linkFinderToken');
+  if(!token){ window.location.href = 'https://linkfinderai.com/'; return false; }
+  localStorage.setItem('linkFinderToken', token);
+  userToken = token;
+  if(window.posthog) posthog.identify(token);
+  return true;
 }
 
-let currentCredits = 0;
-
-async function fetchCredits(){
-    try{
-        const r = await fetch('https://linkfinderaicredits.hamoureliasse.workers.dev/',{
-            method:'POST',headers:{'Content-Type':'application/json'},
-            body:JSON.stringify({token:userToken})
-        });
-        if(r.ok){
-            const d=await r.json();
-            currentCredits = Math.max(0, d.credits||0);
-            document.getElementById('creditsCount').textContent = currentCredits;
-            // Someone holding credits who just got refused needs the reason
-            // re-rendered with their balance in it, not the generic line.
-            if (document.querySelector('#cleanState .sync-locked')) renderClean('locked');
-        }
-    }catch(e){}
-}
-
-/*
- * A credit balance is NOT a plan, and this is the single most confusing thing
- * on the page: someone who has just bought a 10,000-credit pack is told to
- * "see plans" and reasonably concludes it is broken. So when they have credits,
- * say why those credits are not the blocker.
- *
- * The gate is subscription-only on purpose - a HubSpot connection is a managed
- * connection we pay for per customer, every month, whether or not they run
- * anything - so a one-off pack cannot fund it.
- */
-function lockedReason(){
-    if (currentCredits > 0){
-        return 'You have <strong>' + LFCrmAudit.fmt(currentCredits) + ' credits</strong>, and they will be spent on ' +
-               'this cleanup - but credits alone do not open the HubSpot connection. That runs continuously ' +
-               'against your CRM, so it is included with a plan rather than sold as a pack. ' +
-               'The audit above stays free either way.';
-    }
-    return 'Cleaning your CRM in place is included on any paid plan. The audit above stays free either way.';
-}
-
-async function handleAddCredits(){
-    const btn=document.getElementById('buyCreditsBtn'); const orig=btn.innerHTML;
-    btn.innerHTML='...'; btn.disabled=true;
-    try{
-        const res=await fetch('https://scalelinkfinderai-production.up.railway.app/webhook/a30d8fea-5360-4003-be0d-9cea914390b0',{
-            method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:userToken})
-        });
-        const data=await res.json();
-        window.location.href=addGclid(`https://linkfinderai.com/app?token=${userToken}&action=${data.issub?'buy_credits':'upgrade'}`);
-    }catch(e){
-        window.location.href=addGclid(`https://linkfinderai.com/app?token=${userToken}&action=upgrade`);
-    }finally{ btn.innerHTML=orig; btn.disabled=false; }
-}
-
-/* ---------- file handling ---------- */
-
-const drop=document.getElementById('drop');
-const fileInput=document.getElementById('file');
-
-drop.addEventListener('click',()=>fileInput.click());
-drop.addEventListener('dragover',e=>{e.preventDefault();drop.classList.add('over');});
-drop.addEventListener('dragleave',()=>drop.classList.remove('over'));
-drop.addEventListener('drop',e=>{
-    e.preventDefault(); drop.classList.remove('over');
-    if(e.dataTransfer.files.length) readFile(e.dataTransfer.files[0]);
-});
-fileInput.addEventListener('change',e=>{ if(e.target.files.length) readFile(e.target.files[0]); });
-
-function showErr(msg){
-    document.getElementById('uploadErr').innerHTML='<div class="err"><i class="fas fa-triangle-exclamation"></i> '+msg+'</div>';
-}
-
-function readFile(file){
-    document.getElementById('uploadErr').innerHTML='';
-    if(!/\.csv$/i.test(file.name)){ showErr('Please upload a .csv file. Most CRMs offer CSV in their export dialog.'); return; }
-    // 40MB guard: bigger than any realistic contact export and keeps the tab responsive.
-    if(file.size > 40*1024*1024){ showErr('That file is over 40MB. Export in batches, or filter to the contacts you actually want enriched.'); return; }
-
-    try{ posthog.capture('crm_audit_started',{file_size_kb:Math.round(file.size/1024)}); }catch(e){}
-
-    const reader=new FileReader();
-    reader.onerror=()=>showErr('Could not read that file. Try re-exporting it from your CRM.');
-    reader.onload=()=>{
-        lastCSV = reader.result;
-        runAudit();
-    };
-    reader.readAsText(file);
-}
-
-function runAudit(){
-    let res;
-    try{
-        res = LFCrmAudit.auditCSV(lastCSV,{fields:activeFields, alwaysPlan:true});
-    }catch(err){
-        showErr('That file could not be parsed as CSV. Re-export it from your CRM without any custom formatting.');
-        return;
-    }
-    if(!res.totalContacts){
-        showErr('No contact rows found in that file. Make sure the first row is your column headers.');
-        return;
-    }
-    lastAudit = res;
-    render(res);
-}
-
-/* ---------- rendering ---------- */
-
-function render(r){
-    const f = LFCrmAudit.fmt;
-
-    document.getElementById('uploadCard').classList.add('hidden');
-    document.getElementById('results').classList.remove('hidden');
-    document.getElementById('stage1').classList.add('done');
-    document.getElementById('stage2').classList.add('active');
-
-    // score ring
-    document.getElementById('scoreNum').textContent = r.completeness + '%';
-    const circ = 2*Math.PI*45;
-    const fill = document.getElementById('ringFill');
-    fill.setAttribute('stroke-dasharray', circ);
-    fill.setAttribute('stroke-dashoffset', circ - (circ * r.completeness/100));
-    fill.setAttribute('stroke', r.completeness >= 80 ? '#10b981' : r.completeness >= 50 ? '#f59e0b' : '#ef4444');
-
-    const dupes = r.duplicates.byEmail + r.duplicates.byNameCompany;
-    let facts = '<div class="fact"><strong>' + f(r.totalContacts) + '</strong> contacts analysed</div>';
-    const totalGaps = r.breakdown.reduce((s,b)=>s+b.count,0);
-    facts += '<div class="fact"><strong>' + f(totalGaps) + '</strong> missing field' + (totalGaps===1?'':'s') + ' across your database</div>';
-    // Reported separately and worded differently: a repeated email is proof, a
-    // repeated name at the same company is only a candidate for review.
-    if(r.duplicates.byEmail){
-        facts += '<div class="fact"><strong>' + f(r.duplicates.byEmail) + '</strong> exact duplicate' +
-                 (r.duplicates.byEmail===1?'':'s') + ' (same email address)</div>';
-    }
-    if(r.duplicates.byNameCompany){
-        facts += '<div class="fact"><strong>' + f(r.duplicates.byNameCompany) + '</strong> possible duplicate' +
-                 (r.duplicates.byNameCompany===1?'':'s') + ' (same name at the same company) &mdash; worth reviewing</div>';
-    }
-    if(r.unmappedFields.length){
-        facts += '<div class="fact" style="color:var(--gray-400);font-size:.8rem;margin-top:.5rem;">No column found for: ' +
-                 r.unmappedFields.join(', ') + ' &mdash; counted as missing for every record.</div>';
-    }
-    document.getElementById('facts').innerHTML = facts;
-
-    // field toggles
-    document.getElementById('toggles').innerHTML = LFCrmAudit.FIELDS.map(fl => {
-        const on = activeFields.includes(fl.key);
-        const missing = (r.allGaps && r.allGaps[fl.key]) || 0;
-        const cost = LFCrmAudit.CREDIT_COST[fl.key];
-        // Show the count on every chip, on or off, so the cost of turning one on
-        // is legible before the click.
-        const badge = missing ? ' <span style="opacity:.75;">&middot; ' + f(missing) + ' missing</span>' : '';
-        const tip = missing ? fl.fix + ' — ' + f(missing) + ' records x ' + cost + ' credits = ' + f(missing*cost) + ' credits' : fl.fix;
-        return '<button class="chip ' + (on?'on':'') + '" title="' + tip + '" onclick="toggleField(\''+fl.key+'\')">' +
-               (on?'<i class="fas fa-check"></i> ':'') + fl.fix + badge + '</button>';
-    }).join('');
-
-    // gap table
-    const credits = parseInt((document.getElementById('creditsCount').textContent||'0').replace(/\D/g,''),10) || 0;
-    document.getElementById('gapRows').innerHTML = r.breakdown.length
-        ? r.breakdown.map(b => {
-            const affordable = credits >= b.credits;
-            // Offer the action whenever they can pay for it. Someone with credits
-            // already should never be shown a checkout instead of a start button.
-            // No per-row action any more. Fixing happens against HubSpot in the
-            // card below, over the whole database at once - a per-row button here
-            // would send them back out to a CSV round-trip, which is the thing
-            // this replaced.
-            const btn = affordable
-                ? '<span class="fix-short" style="color:var(--success);">affordable</span>'
-                : '<span class="fix-short" title="You have '+f(credits)+' credits">needs '+f(b.credits-credits)+' more</span>';
-            return '<tr><td>'+b.label+'</td><td style="color:var(--gray-500);">'+b.fix+'</td>' +
-                   '<td class="num">'+f(b.count)+'</td><td class="num">'+f(b.credits)+'</td>' +
-                   '<td style="text-align:right;">'+btn+'</td></tr>';
-          }).join('')
-        : '<tr><td colspan="5" style="color:var(--gray-500);">No gaps in the selected fields.</td></tr>';
-    document.getElementById('totalCredits').textContent = f(r.creditsNeeded);
-
-    renderQuote(r);
-    refreshCleanState();
-
-    /*
-     * Two writes, deliberately different.
-     *
-     * The event drives the workflow trigger and the funnel. The person
-     * properties are what the follow-up email interpolates: PostHog Workflows
-     * personalise from PERSON properties via Liquid merge tags, not from the
-     * triggering event's properties, so a report email needs these set or it
-     * renders fallbacks.
-     *
-     * Only aggregates are sent - counts, percentages, a plan name. No row, no
-     * column value, no contact ever leaves the browser, so the promise made on
-     * the upload card stays true.
-     */
-    const rec = r.recommendation;
-    const topGap = r.breakdown.slice().sort((a,b)=>b.count-a.count)[0];
-
-    try{
-        posthog.capture('crm_audit_completed',{
-            contacts:r.totalContacts, credits_needed:r.creditsNeeded,
-            completeness:r.completeness, duplicates:dupes, verdict:rec.verdict
-        });
-
-        posthog.setPersonProperties({
-            crm_audit_contacts:       f(r.totalContacts),
-            crm_audit_completeness:   r.completeness,
-            crm_audit_missing_fields: f(totalGaps),
-            crm_audit_credits_needed: f(r.creditsNeeded),
-            crm_audit_top_gap:        topGap ? topGap.label.replace(/^Missing /,'') : '',
-            crm_audit_top_gap_count:  topGap ? f(topGap.count) : '',
-            crm_audit_verdict:        rec.verdict,
-            crm_audit_plan_name:      rec.plan ? rec.plan.name : '',
-            crm_audit_plan_price:     rec.plan ? rec.plan.price : '',
-            crm_audit_pack_price:     rec.pack ? f(rec.pack.price) : '',
-            crm_audit_saving:         (rec.savingVsPacks && rec.savingVsPacks > 0) ? f(rec.savingVsPacks) : '',
-            crm_audit_at:             new Date().toISOString()
-        });
-    }catch(e){}
-}
-
-/*
- * The comparison that does the selling. Both real numbers, side by side —
- * a pack is the intuitive way to buy a one-off cleanup, but packs cost 2-5x
- * more per credit than a plan, so for any CRM of size the subscription is
- * simply the better deal. Showing both lets the arithmetic make the case.
- */
-function renderQuote(r){
-    const f = LFCrmAudit.fmt;
-    const rec = r.recommendation;
-    const compare = document.getElementById('compare');
-    const saving = document.getElementById('saving');
-    const decay = document.getElementById('decay');
-    const cta = document.getElementById('cta');
-
-    if(rec.verdict === 'clean'){
-        compare.innerHTML = '<div class="opt win" style="grid-column:1/-1;"><div class="opt-tag">Nothing to buy</div>' +
-            '<div class="opt-price">$0</div><div class="opt-desc">'+rec.headline+'</div></div>';
-        saving.innerHTML=''; decay.innerHTML=''; cta.innerHTML=''; return;
-    }
-
-    if(rec.verdict === 'contact'){
-        compare.innerHTML = '<div class="opt win" style="grid-column:1/-1;"><div class="opt-tag">Custom volume</div>' +
-            '<div class="opt-price">'+f(rec.creditsNeeded)+' <span>credits needed</span></div>' +
-            '<div class="opt-desc">'+rec.headline+' We will price this against your actual volume rather than a standard plan.</div></div>';
-        saving.innerHTML='';
-        decay.innerHTML='';
-        // Above Enterprise's monthly allocation this stops being a checkout and
-        // becomes a conversation - and these are the largest CRMs the audit sees,
-        // so the booking link is the point of the whole free audit.
-        cta.innerHTML='<a href="'+bookingUrl('volume_quote')+'" target="_blank" rel="noopener" class="btn-primary" onclick="track(\'cta_clicked\',\'contact\')"><i class="fas fa-calendar-check"></i> Book a call for a volume quote</a>' +
-            '<div style="font-size:.78rem;color:var(--gray-400);margin-top:.7rem;">15 minutes. Bring this report &mdash; we price against your actual volume, not a standard plan.</div>';
-        track('cta_shown','contact'); return;
-    }
-
-    const packs = rec.pack.packs.map(p => p.count+'x '+f(p.credits)).join(' + ');
-    const planWins = rec.verdict === 'plan';
-
-    compare.innerHTML =
-        '<div class="opt '+(planWins?'':'win')+'">' +
-            '<div class="opt-tag">One-time pack &mdash; for comparison</div>' +
-            '<div class="opt-price">$'+f(rec.pack.price)+'</div>' +
-            '<div class="opt-desc">'+packs+' = '+f(rec.pack.credits)+' credits.<br>Covers this backlog once. New contacts added afterwards are not included.</div>' +
-        '</div>' +
-        '<div class="opt '+(planWins?'win':'')+'">' +
-            '<div class="opt-tag">'+(planWins?'Recommended — '+rec.plan.name:rec.plan.name+' plan')+'</div>' +
-            '<div class="opt-price">$'+rec.plan.price+'<span>/mo</span></div>' +
-            '<div class="opt-desc">'+f(rec.plan.credits)+' credits every month &mdash; enough to clean your whole CRM now, then keep it clean automatically.</div>' +
-        '</div>';
-
-    // Two different truths depending on which way the arithmetic falls, and the
-    // page shows both prices, so neither can be fudged.
-    if (rec.planCostsMoreToday > 0) {
-        saving.innerHTML = '<div class="decay"><i class="fas fa-circle-info"></i><div>The pack is <strong>$' +
-            f(rec.planCostsMoreToday) + ' cheaper today</strong> &mdash; and covers this backlog once. ' +
-            rec.plan.name + ' costs a little more now and covers it again every month, which is the part that ' +
-            'matters once you have seen how fast the gaps come back.</div></div>';
-    } else
-    saving.innerHTML = planWins && rec.savingVsPacks > 0
-        ? '<div class="saving"><i class="fas fa-circle-check"></i><div>'+rec.plan.name+' costs <strong>$'+f(rec.savingVsPacks)+' less</strong> than buying these credits as packs &mdash; and you get '+f(rec.plan.credits)+' more every month after.</div></div>'
-        : '';
-
-    decay.innerHTML = rec.maintenanceCredits > 0
-        ? '<div class="decay"><i class="fas fa-triangle-exclamation"></i><div>A one-time clean is temporary. At roughly <strong>'+f(rec.monthlyNewContacts)+' new contacts a month</strong>, your CRM will need about <strong>'+f(rec.maintenanceCredits)+' credits every month</strong> just to stop the gaps coming back.</div></div>'
-        : '';
-
-    /*
-     * Someone who already holds enough credits must never be shown a checkout as
-     * the primary action - they have paid, they want to start. The plan stays on
-     * screen as the next step once this backlog is cleared, but it stops being
-     * the button.
-     */
-    const credits = parseInt((document.getElementById('creditsCount').textContent||'0').replace(/\D/g,''),10) || 0;
-    // The largest gap they can actually PAY FOR, not the largest gap. Picking the
-    // latter meant a balance that covered two of three gaps still got a checkout
-    // as the primary action while the table sat there offering working buttons.
-    const affordable = r.breakdown.filter(b => credits >= b.credits)
-                                  .sort((a,b) => b.credits - a.credits);
-    const biggest = affordable[0];
-    const canStart = Boolean(biggest);
-
-    if (canStart) {
-        const coversAll = credits >= r.creditsNeeded;
-        cta.innerHTML =
-            '<a href="#" class="btn-primary" onclick="startCleaning(\''+biggest.key+'\');return false;">' +
-            '<i class="fas fa-wand-magic-sparkles"></i> Start cleaning &mdash; ' + biggest.fix.toLowerCase() +
-            ' for ' + f(biggest.count) + ' records</a>' +
-            '<div style="font-size:.78rem;color:var(--gray-400);margin-top:.7rem;">' +
-            'You have ' + f(credits) + ' credits' +
-            (coversAll
-                ? ' &mdash; enough for every gap above. Each one runs as its own pass; use the buttons in the table to pick the order.'
-                : ' &mdash; enough for ' + (affordable.length === 1 ? 'this one' : affordable.length + ' of the ' + r.breakdown.length + ' gaps') +
-                  '. ' + rec.plan.name + ' at $' + rec.plan.price + '/mo would cover the rest and keep it clean.') +
-            '</div>';
-        track('cta_shown', 'start_cleaning');
-    } else {
-        cta.innerHTML = '<a href="#" class="btn-primary" onclick="goUpgrade(\''+rec.plan.id+'\');return false;">' +
-            '<i class="fas fa-arrow-up-right-dots"></i> Get '+rec.plan.name+' and fix this now</a>';
-        track('cta_shown', rec.plan.id);
-    }
-}
-
-const CALENDLY = 'https://calendly.com/hamoureliasse/compensated-interview-unlimited-leads-clone';
-
-/*
- * Calendly reads utm_* off the query string and stores it against the booking,
- * so a call that came from the audit is identifiable in Calendly itself without
- * relying on the attendee remembering to say so.
- */
-function bookingUrl(campaign){
-    const p = new URLSearchParams({
-        utm_source: 'linkfinder_app',
-        utm_medium: 'crm_audit',
-        utm_campaign: campaign
+async function post(url, body){
+  try{
+    const r = await fetch(url, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(Object.assign({ token:userToken }, body || {}))
     });
-    if(lastAudit){
-        p.set('utm_content', lastAudit.creditsNeeded + 'cr_' + lastAudit.totalContacts + 'contacts');
-    }
-    return CALENDLY + '?' + p.toString();
+    return { ok:r.ok, status:r.status, data: await r.json().catch(()=>({})) };
+  }catch(e){
+    return { ok:false, status:0, data:{ error:'Could not reach the service.' } };
+  }
 }
 
-
-/* ---------- stage 2: clean it where it lives ---------- */
-
-/*
- * The audit runs on a CSV because that needs no connection and no plan. The
- * CLEANUP runs against HubSpot directly, because handing someone an enriched
- * file they have to re-import is not cleaning their CRM - it is homework.
- *
- * Everything below drives workers/nango-connect, which triggers the Nango sync.
- * The paid check and the credit spend both happen server-side; this is only the
- * screen.
- */
-
-/*
- * WHICH FIELDS: the worker fills email, LinkedIn URL and phone. Job title is
- * deliberately absent - it needs a LinkedIn profile URL as input, and the
- * server-side path here starts from a name, so there is nothing to feed it.
- * Title stays available through the CSV route below.
- *
- * COSTS DIFFER FROM THE AUDIT ON PURPOSE. The audit prices the cheapest path
- * for an export that already has LinkedIn URLs in it (email from a profile,
- * 10cr). HubSpot contacts rarely do, so the worker starts from the name:
- *   email        lead_full_name_to_email          7 cr
- *   linkedin     lead_full_name_to_linkedin_url   1 cr
- *   phone        linkedin_profile_to_phone       50 cr (+1 if it has to find
- *                                                 the profile URL first)
- */
-const CLEAN_COST = { email: 7, linkedin_url: 1, phone: 50 };
-
-const CLEAN_LABEL = {
-    linkedin_url: 'LinkedIn URL',
-    email:        'Business email',
-    phone:        'Phone number'
-};
-
-// Defaults mirror the worker's own: phone off, because one phone costs more
-// than seven emails and nobody wants to discover that after the fact.
-let cleanFields = ['linkedin_url', 'email'];
-
-function toggleCleanField(k){
-    if (cleanFields.includes(k)) cleanFields = cleanFields.filter(x => x !== k);
-    else cleanFields.push(k);
-    if (!cleanFields.length) cleanFields = [k];
-    renderCleanIdle();
+async function loadCredits(){
+  const res = await post(CREDITS_WORKER);
+  const el = document.getElementById('creditsCount');
+  const note = document.getElementById('creditsNote');
+  const meter = document.getElementById('creditsMeter');
+  if(!res.ok){ el.textContent = '—'; note.textContent = 'Balance unavailable right now.'; return; }
+  const credits = Math.max(0, res.data.credits || 0);
+  el.textContent = credits.toLocaleString();
+  const allowance = PLAN_CREDITS[res.data.plan_type] || null;
+  if(allowance){
+    meter.style.width = Math.min(100, (credits/allowance)*100) + '%';
+    note.textContent = credits.toLocaleString() + ' of ' + allowance.toLocaleString() + ' remaining.';
+  } else {
+    meter.style.width = credits > 0 ? '100%' : '0';
+    note.textContent = credits > 0 ? 'Credit balance.' : 'No credits left.';
+  }
 }
 
-function cleanChips(){
-    return '<div class="field-toggles" style="margin-bottom:1rem;">' +
-        Object.keys(CLEAN_LABEL).map(k => {
-            const on = cleanFields.includes(k);
-            return '<button class="chip ' + (on ? 'on' : '') + '" onclick="toggleCleanField(\'' + k + '\')">' +
-                   (on ? '<i class="fas fa-check"></i> ' : '') + CLEAN_LABEL[k] +
-                   ' <span style="opacity:.7;">&middot; ' + CLEAN_COST[k] + ' cr</span></button>';
-        }).join('') + '</div>';
-}
-
-function renderCleanIdle(){
-    const el = document.getElementById('cleanState');
-    if (!el) return;
-    el.innerHTML = cleanChips() +
-        '<a href="#" class="btn-primary" onclick="runClean();return false;">' +
-        '<i class="fas fa-wand-magic-sparkles"></i> Clean my HubSpot now</a>' +
-        '<div style="font-size:.78rem;color:var(--gray-400);margin-top:.7rem;">' +
-        'One pass works through 25 contacts that are still missing these fields, writing straight into HubSpot. ' +
-        'It only ever fills empty fields - nothing a person typed is overwritten. ' +
-        'Run it again to continue where the last pass stopped.' +
-        '</div>' + csvFallback();
-}
-
-// Salesforce and Pipedrive users can still audit; they just cannot be cleaned in
-// place. Keep the CSV route available to them rather than stranding them.
-function csvFallback(){
-    return '<div style="font-size:.78rem;color:var(--gray-400);margin-top:1rem;padding-top:1rem;border-top:1px solid var(--gray-100);">' +
-        'Not on HubSpot? <a href="#" style="color:var(--primary);font-weight:600;" onclick="startCleaning(\'email\');return false;">Enrich your export as a file instead &rarr;</a></div>';
-}
-
-// A finished pass reports what it actually did. "Processed 25, filled 3" is an
-// honest and useful answer - it tells them the data was not findable, not that
-// the tool did nothing - so it is shown rather than rounded into a tick.
-const CLEAN_NOUN = {
-    email:        ['business email',  'business emails'],
-    linkedin_url: ['LinkedIn URL',    'LinkedIn URLs'],
-    phone:        ['phone number',    'phone numbers']
-};
-
-function cleanSummary(d){
-    const filled = d.filled || {};
-    const parts = ['email', 'linkedin_url', 'phone']
-        .filter(k => filled[k])
-        .map(k => filled[k] + ' ' + CLEAN_NOUN[k][filled[k] > 1 ? 1 : 0]);
-    if (!parts.length) return '';
-    return parts.join(', ') + ' written into HubSpot.';
-}
-
-function renderClean(state, data){
-    const el = document.getElementById('cleanState');
-    if (!el) return;
-
-    if (state === 'checking'){
-        el.innerHTML = '<div class="sync-loading"><i class="fas fa-circle-notch fa-spin"></i> Checking your plan&hellip;</div>';
-        return;
-    }
-    if (state === 'mismatch'){
-        el.innerHTML = '<div class="err">' + MISMATCH_COPY + '</div>' +
-            '<a href="#" class="btn-primary" style="margin-top:1rem;" onclick="connectHubspot();return false;">' +
-            '<i class="fas fa-rotate-right"></i> Try connecting again</a>' + csvFallback();
-        return;
-    }
-    if (state === 'unverified'){
-        el.innerHTML = '<div class="err">' + UNVERIFIED_COPY + '</div>' +
-            '<a href="#" class="btn-primary" style="margin-top:1rem;" onclick="runClean();return false;">' +
-            '<i class="fas fa-rotate-right"></i> Try again</a>' + csvFallback();
-        return;
-    }
-    if (state === 'locked'){
-        // Every cleaned contact is a real, credit-costing lookup against a
-        // managed HubSpot connection we pay Nango for. That is why the cleanup
-        // sits behind a plan while the audit above stays free.
-        el.innerHTML =
-            '<div class="sync-locked"><i class="fas fa-lock" style="margin-right:.4rem;"></i>' +
-            lockedReason() + '</div>' +
-            '<a href="#" class="btn-primary" style="margin-top:1rem;" onclick="goUpgrade(\'sync\');return false;">' +
-            '<i class="fas fa-arrow-up-right-dots"></i> See plans</a>' + csvFallback();
-        return;
-    }
-    if (state === 'disconnected'){
-        el.innerHTML =
-            '<div style="font-size:.9rem;color:var(--gray-500);margin-bottom:1rem;">' +
-            'Connect HubSpot and LinkFinder writes the missing fields straight into your contacts. ' +
-            'Read and write access to contacts only.</div>' +
-            '<a href="#" class="btn-primary" onclick="connectHubspot();return false;" id="cleanConnectBtn">' +
-            '<i class="fab fa-hubspot"></i> Connect HubSpot</a>' + csvFallback();
-        return;
-    }
-    if (state === 'running'){
-        el.innerHTML = '<div class="sync-loading"><i class="fas fa-circle-notch fa-spin"></i> ' +
-            'Cleaning your HubSpot contacts&hellip; this takes a minute or two. Leave this tab open.</div>';
-        return;
-    }
-    if (state === 'done'){
-        const d = data || {};
-        const summary = cleanSummary(d);
-        el.innerHTML = '<div class="sync-connected"><i class="fas fa-circle-check badge"></i>' +
-            '<div class="sync-connected-text"><strong>Pass finished</strong>' +
-            (d.processed ? 'Looked at ' + LFCrmAudit.fmt(d.processed) + ' contact(s) that were missing data. ' : '') +
-            (summary || 'Nothing new was findable for these contacts.') +
-            '</div></div>' +
-            '<a href="#" class="btn-primary" style="margin-top:1rem;" onclick="runClean();return false;">' +
-            '<i class="fas fa-forward"></i> Clean the next 25</a>' +
-            '<a href="#" class="btn-ghost" style="margin-top:1rem;margin-left:.5rem;" onclick="renderCleanIdle();return false;">Change fields</a>';
-        return;
-    }
-    if (state === 'error'){
-        el.innerHTML = '<div class="err">' + ((data && data.error) || 'Could not run the cleanup.') +
-            ' Email support@linkfinderai.com and we will sort it.</div>' +
-            '<a href="#" class="btn-ghost" style="margin-top:1rem;" onclick="renderCleanIdle();return false;">Try again</a>';
-        return;
-    }
-    renderCleanIdle();
-}
-
-async function refreshCleanState(){
-    const res = await nangoCall('status');
-    if (!res.ok){ renderClean('error', res.data); return; }
-    if (!res.data.connected){ renderClean('disconnected'); return; }
-    renderCleanIdle();
-}
-
-/*
- * /sync-now does the whole pass server-side and returns the result in the same
- * response - there is no job to poll. Settings are saved first because the
- * worker reads which fields to fill from stored settings, not from this call.
- */
-async function runClean(){
-    renderClean('running', {});
-    track('crm_clean_triggered', cleanFields.join('+'));
-
-    const fields = {};
-    Object.keys(CLEAN_LABEL).forEach(k => {
-        fields[k] = { enabled: cleanFields.includes(k), hubspotProperty: HUBSPOT_PROPERTY[k] };
-    });
-
-    const saved = await nangoCall('save-settings', { settings: { maxPerRun: 25, fields } });
-    if (saved.status === 404){ renderClean('disconnected'); return; }
-    if (!saved.ok){ renderClean('error', saved.data); return; }
-
-    const run = await nangoCall('sync-now');
-    if (run.status === 404){ renderClean('disconnected'); return; }
-    if (run.status === 403){ renderClean('locked'); return; }
-    if (!run.ok){ renderClean('error', run.data); return; }
-    // A lapsed subscription does NOT come back as 403 here. syncOneConnection
-    // bails with { notSubscriber: true } and handleTestSync wraps that in a 200,
-    // so without this check it renders as "looked at 0 contacts, found nothing".
-    if (run.data.notSubscriber){ renderClean('locked'); return; }
-    // Same trap one step further along: the hardened gate answers 'unknown' when
-    // it cannot reach billing and returns { checkFailed: true } inside a 200. That
-    // is not an empty result, it is no result - saying "found nothing" would blame
-    // the customer's data for our outage.
-    if (run.data.checkFailed){
-        renderClean('unverified');
-        track('crm_clean_check_failed', 'subscriber_check_unreachable');
-        return;
-    }
-
-    renderClean('done', run.data);
-    track('crm_clean_finished', String(run.data.filledTotal ?? ''));
-    fetchCredits();   // a pass just spent credits; the header should say so
-}
-
-window.toggleCleanField = toggleCleanField;
-window.runClean = runClean;
-window.renderCleanIdle = renderCleanIdle;
-
-/* ---------- CSV fallback (non-HubSpot CRMs) ---------- */
-
-/*
- * The audit was a diagnosis with no treatment. It told you what was missing and
- * what it would cost, and then the only button went to a checkout - useless to
- * anyone who already has credits and just wants to start.
- *
- * These hand the parsed file to the bulk enrichment that already exists in
- * /app rather than reimplementing it: the CSV goes into sessionStorage, /app
- * reconstructs it into the real file input and fires the real change handler,
- * so every existing parse, preview, credit check and gating rule still applies.
- */
-
-// Which lookup fills which gap depends on what the export actually contains -
-// finding an email from a LinkedIn URL is a different operation, and a different
-// price, from finding one from a name.
-function opForGap(key, columns){
-    const hasLinkedIn = 'linkedin' in columns;
-    const hasEmail    = 'email' in columns;
-    switch(key){
-        case 'email':    return hasLinkedIn ? 'linkedin_profile__email' : 'lead_full_name__email';
-        case 'phone':    return 'linkedin_profile__phone';
-        case 'linkedin': return hasEmail ? 'email__linkedin_url' : 'lead_full_name__linkedin_url';
-        case 'title':    return 'linkedin_profile__linkedin_info';
-        case 'company':  return 'company_name__website';
-        default:         return null;
-    }
-}
-
-function opNeedsLinkedIn(op){ return op && op.indexOf('linkedin_profile__') === 0; }
-
-function startCleaning(gapKey){
-    if(!lastAudit || !lastCSV) return;
-    const op = opForGap(gapKey, lastAudit.columnsDetected);
-    if(!op){ return; }
-
-    // A LinkedIn-URL-driven lookup is impossible without that column. Say so
-    // rather than handing over a file that will fail on every row.
-    if(opNeedsLinkedIn(op) && !('linkedin' in lastAudit.columnsDetected)){
-        alert('This fix needs a LinkedIn URL column, and this export does not have one.\n\n'
-            + 'Fill the LinkedIn URL gap first, then come back and run this.');
-        return;
-    }
-
-    track('clean_started', gapKey);
-
-    try{
-        sessionStorage.setItem('lf_clean_csv', lastCSV);
-        sessionStorage.setItem('lf_clean_op', op);
-        sessionStorage.setItem('lf_clean_gap', gapKey);
-    }catch(e){
-        // Quota - a very large export. Send them on anyway; /app asks for the
-        // file again rather than failing silently.
-        try{ sessionStorage.removeItem('lf_clean_csv'); }catch(_){}
-        sessionStorage.setItem('lf_clean_op', op);
-    }
-
-    window.location.href = addGclid('https://linkfinderai.com/app?token='+userToken+'&action=clean_crm&src=crm_audit');
-}
-window.startCleaning = startCleaning;
-
-function track(ev, target){
-    try{
-        posthog.capture('crm_audit_'+ev,{
-            target: target,
-            credits_needed: lastAudit ? lastAudit.creditsNeeded : null,
-            contacts: lastAudit ? lastAudit.totalContacts : null
+/* Unlock every tab at once — connection is account-wide, not per section. */
+function applyConnection(connected, data){
+  document.querySelectorAll('.locked').forEach(function(box){
+    // Health and Deduplication render illustrative figures — there is no
+    // server-side metric behind them yet. Unblurring on connect would show
+    // invented numbers as the customer's own CRM stats, so these stay gated
+    // and say so plainly until the worker returns real ones.
+    if(box.classList.contains('preview-only')){
+      if(connected){
+        const g = box.querySelector('.gate');
+        g.innerHTML = '<h3>Your CRM is connected.</h3>'
+          + '<p>This section is not live yet — the figures behind this card are an example, not your data. '
+          + 'We will email you the moment it is measuring your CRM for real.</p>'
+          + '<div class="gate-rows"><div class="gate-row">'
+          + '<span class="mark" style="background:#eef2ff;color:#2563eb">✓</span>'
+          + '<span class="gname">Notify me when it is live</span>'
+          + '<button class="gcta" data-notify="crm-metrics">Notify me</button>'
+          + '</div></div>';
+        g.querySelector('[data-notify]').addEventListener('click', function(e){
+          if(window.posthog) posthog.capture('crm_connector_requested', { provider:'crm-metrics' });
+          e.target.textContent = "We'll email you"; e.target.disabled = true; e.target.style.opacity = .6;
         });
-    }catch(e){}
-}
-
-function toggleField(key){
-    if(activeFields.includes(key)) activeFields = activeFields.filter(k=>k!==key);
-    else activeFields.push(key);
-    if(!activeFields.length){ activeFields=[key]; return; }   // never allow an empty selection
-    runAudit();
-}
-
-function goUpgrade(plan){
-    track('cta_clicked', plan);
-    const action = plan==='credits' ? 'buy_credits' : 'upgrade';
-    window.location.href = addGclid('https://linkfinderai.com/app?token='+userToken+'&action='+action+'&plan='+plan+'&src=crm_audit');
-}
-
-function reset(){
-    lastAudit=null; lastCSV=null; fileInput.value='';
-    document.getElementById('results').classList.add('hidden');
-    document.getElementById('uploadCard').classList.remove('hidden');
-    document.getElementById('stage1').classList.remove('done');
-    document.getElementById('stage2').classList.remove('active');
-}
-
-/* ---------- stage 3: HubSpot connection ---------- */
-
-/*
- * NOTHING HERE PRE-CHECKS WHETHER YOU HAVE PAID, deliberately. An earlier
- * version asked upgrade-intent on page load and rendered the "See plans"
- * screen unless it answered issub:true. That put a second service between a
- * paying customer and a feature they had already bought - one bad answer and
- * the whole page locked itself, which is exactly what happened.
- *
- * The worker is the real authority: /connect-session 403s a non-subscriber and
- * /sync-now refuses to spend credits for one. Both are server-side and cannot
- * be bypassed by a visible button. So the button is shown, and the worker's
- * answer decides - a free user who clicks gets the upgrade screen, which is a
- * better funnel than hiding the feature anyway.
- */
-
-/*
- * This drives the `nango-connect-session` worker that has been live since
- * 17 Aug - the same one account.html's HubSpot card already reads from. It
- * uses Nango for OAuth token storage and a proxied HubSpot REST API, NOT
- * Nango's hosted Syncs runtime (that pauses every two weeks on the free tier),
- * so the cleanup and the weekly schedule both run on this worker's own cron.
- *
- * Route contract, verified against the deployed worker:
- *   POST /                     -> { connectSession }        403 if not on a plan
- *   POST /finalize-connection  { token, connectionId } -> { ok }
- *   POST /status               -> { connected, lastSyncedAt, lastSyncResult, settings }
- *   POST /save-settings        { token, settings } -> { ok, settings }   404 if not connected
- *   POST /sync-now             -> the whole pass, synchronously
- *   POST /disconnect           -> { ok }
- */
-
-const NANGO_WORKER          = 'https://nango-connect-session.hamoureliasse.workers.dev';
-// Only consulted to second-guess a refusal, never to gate the UI up front.
-const UPGRADE_INTENT_URL    = 'https://upgrade-intent.hamoureliasse.workers.dev/';
-const NANGO_API_URL         = 'https://api.nango.dev';
-const NANGO_CONNECT_UI_URL  = 'https://connect.nango.dev';
-
-// Internal HubSpot property names the worker writes into. These are its own
-// defaults; a customer whose portal uses different internal names can have
-// them changed - the worker already accepts them per field.
-const HUBSPOT_PROPERTY = { email: 'email', linkedin_url: 'linkedinbio', phone: 'phone' };
-
-async function nangoCall(route, extra){
-    const path = route ? '/' + route : '/';
-    try{
-        const r = await fetch(NANGO_WORKER + path, {
-            method:'POST', headers:{'Content-Type':'application/json'},
-            body: JSON.stringify(Object.assign({ token:userToken }, extra || {}))
-        });
-        return { ok: r.ok, status: r.status, data: await r.json().catch(()=>({})) };
-    }catch(e){
-        return { ok:false, status:0, data:{ error:'Could not reach the connection service.' } };
+      }
+      return;
     }
+    box.classList.toggle('unlocked', !!connected);
+  });
+  const bar = document.getElementById('connBar');
+  if(connected){
+    bar.hidden = false;
+    bar.querySelector('.cb-text').textContent =
+      (data && data.provider ? data.provider : 'CRM') + ' connected'
+      + (data && data.last_sync_at ? ' · last sync ' + timeAgo(data.last_sync_at) : '');
+  } else {
+    bar.hidden = true;
+  }
 }
 
 function timeAgo(iso){
-    if (!iso) return '';
-    const secs = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
-    if (secs < 60)    return 'just now';
-    if (secs < 3600)  return Math.floor(secs/60) + ' min ago';
-    if (secs < 86400) return Math.floor(secs/3600) + ' hr ago';
-    return Math.floor(secs/86400) + ' day(s) ago';
+  const secs = Math.floor((Date.now() - new Date(iso).getTime())/1000);
+  if(isNaN(secs)) return '';
+  if(secs < 60)    return 'just now';
+  if(secs < 3600)  return Math.floor(secs/60) + ' min ago';
+  if(secs < 86400) return Math.floor(secs/3600) + ' hr ago';
+  return Math.floor(secs/86400) + ' day(s) ago';
 }
 
-function renderSync(state, data){
-    const el = document.getElementById('syncState');
-    if(!el) return;
-
-    if(state === 'connected'){
-        const d = data || {};
-        const last = d.lastSyncedAt
-            ? 'Last run ' + timeAgo(d.lastSyncedAt) +
-              (d.lastSyncResult && d.lastSyncResult.filledTotal
-                  ? ' - ' + d.lastSyncResult.filledTotal + ' field(s) filled.' : '.')
-            : 'The first scheduled run happens on the next Monday.';
-        el.innerHTML =
-            '<div class="sync-connected">' +
-                '<i class="fas fa-circle-check badge"></i>' +
-                '<div class="sync-connected-text"><strong>HubSpot is connected</strong>' +
-                'Every Monday, contacts still missing the fields you chose get looked up and filled in. ' + last +
-                '</div>' +
-                '<button class="btn-danger-ghost" onclick="disconnectHubspot()">Disconnect</button>' +
-            '</div>' +
-            '<div style="font-size:.78rem;color:var(--gray-400);margin-top:.7rem;">Also available via n8n, Make and Zapier.</div>';
-        return;
-    }
-
-    if(state === 'locked'){
-        // A connection costs us a managed Nango slot per customer, which is
-        // exactly why it sits behind a plan while the audit does not.
-        el.innerHTML =
-            '<div class="sync-locked"><i class="fas fa-lock" style="margin-right:.4rem;"></i>' +
-            'Automatic sync is included on any paid plan &mdash; a credit pack does not cover it, because the ' +
-            'connection runs every week whether you use it or not. The audit above stays free either way.</div>' +
-            '<a href="#" class="btn-primary" style="margin-top:1rem;" onclick="goUpgrade(\'sync\');return false;">' +
-            '<i class="fas fa-arrow-up-right-dots"></i> See plans</a>';
-        return;
-    }
-
-    if(state === 'checking'){
-        el.innerHTML = '<div class="sync-loading"><i class="fas fa-circle-notch fa-spin"></i> Checking your plan&hellip;</div>';
-        return;
-    }
-    if(state === 'mismatch'){
-        el.innerHTML = '<div class="err">' + MISMATCH_COPY + '</div>' +
-            '<a href="#" class="btn-primary" style="margin-top:1rem;" onclick="connectHubspot();return false;">' +
-            '<i class="fas fa-rotate-right"></i> Try connecting again</a>';
-        return;
-    }
-    if(state === 'unverified'){
-        el.innerHTML = '<div class="err">' + UNVERIFIED_COPY + '</div>' +
-            '<a href="#" class="btn-primary" style="margin-top:1rem;" onclick="connectHubspot();return false;">' +
-            '<i class="fas fa-rotate-right"></i> Try connecting again</a>';
-        return;
-    }
-    if(state === 'error'){
-        const why = (data && data.error) || 'Could not reach the connection service.';
-        el.innerHTML = '<div class="err">' + why + '</div>' +
-            '<a href="#" class="btn-ghost" style="margin-top:1rem;" onclick="connectHubspot();return false;">Try again</a>';
-        return;
-    }
-
-    el.innerHTML =
-        '<a href="#" class="btn-primary" onclick="connectHubspot();return false;" id="connectBtn">' +
-        '<i class="fab fa-hubspot"></i> Connect HubSpot</a>' +
-        '<div style="font-size:.78rem;color:var(--gray-400);margin-top:.7rem;">' +
-        'Read and write access to contacts only. Disconnect any time. Also available via n8n, Make and Zapier.</div>';
+async function refreshConnection(){
+  const res = await post(NANGO_WORKER + '/status');
+  if(!res.ok){ applyConnection(false); return; }
+  applyConnection(!!res.data.connected, res.data);
+  if(window.posthog) posthog.capture('crm_enrichment_page_viewed', { connected: !!res.data.connected });
 }
 
-async function refreshSyncState(){
-    const res = await nangoCall('status');
-    if(!res.ok){ renderSync('error'); return; }
-    renderSync(res.data.connected ? 'connected' : 'disconnected', res.data);
-}
+(function init(){
+  const rail = document.getElementById('rail'), burger = document.getElementById('burger');
+  burger.addEventListener('click', function(e){ e.stopPropagation(); rail.classList.toggle('open'); });
+  document.addEventListener('click', function(e){
+    if(rail.classList.contains('open') && !rail.contains(e.target)) rail.classList.remove('open');
+  });
+  document.addEventListener('keydown', function(e){ if(e.key === 'Escape') rail.classList.remove('open'); });
 
-// Both stages need refreshing after a connect or disconnect - stage 2 shows a
-// "connect first" screen until there is a connection to clean through.
-function refreshBothStages(){
-    refreshSyncState();
-    refreshCleanState();
-}
+  const tabs = [].slice.call(document.querySelectorAll('.tab'));
+  tabs.forEach(function(t){
+    t.addEventListener('click', function(){
+      tabs.forEach(function(x){ x.classList.remove('active'); x.setAttribute('aria-selected','false'); });
+      t.classList.add('active'); t.setAttribute('aria-selected','true');
+      document.querySelectorAll('.panel').forEach(function(p){ p.classList.remove('active'); });
+      document.getElementById('tab-' + t.dataset.tab).classList.add('active');
+      if(window.posthog) posthog.capture('crm_tab_viewed', { tab: t.dataset.tab });
+    });
+  });
 
-/*
- * The Connect UI is opened FIRST and handed its session token afterwards. That
- * ordering is deliberate: openConnectUI() is a popup, and browsers only allow
- * one that opens synchronously inside the click. Fetching the session first
- * would put an await between the click and the popup, and Safari blocks it.
- */
-async function connectHubspot(){
-    const btn = document.getElementById('connectBtn') || document.getElementById('cleanConnectBtn');
-    if(btn){ btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Opening&hellip;'; }
-    track('sync_connect_started', 'hubspot');
+  document.querySelectorAll('[data-connect]').forEach(function(b){
+    b.addEventListener('click', function(){
+      const p = b.getAttribute('data-connect');
+      const tab = b.closest('.panel').id.replace('tab-','');
+      if(window.posthog) posthog.capture('crm_connect_started', { provider:p, tab:tab });
+      window.location.href = '/crm-connect.html?provider=' + encodeURIComponent(p)
+        + (userToken ? '&token=' + encodeURIComponent(userToken) : '');
+    });
+  });
+  document.querySelectorAll('[data-notify]').forEach(function(b){
+    b.addEventListener('click', function(){
+      if(window.posthog) posthog.capture('crm_connector_requested', { provider:b.getAttribute('data-notify') });
+      b.textContent = "We'll email you"; b.disabled = true;
+      b.style.opacity = .6; b.style.cursor = 'default';
+    });
+  });
 
-    let connectUI;
-    try{
-        // Preloaded by the module script above; the dynamic import is only a
-        // fallback for a browser that failed to run it.
-        const Nango = window.__LFNango || (await import('https://esm.sh/@nangohq/frontend@0.58.4')).default;
-        const nangoClient = new Nango({ host: NANGO_API_URL, publicKey: 'empty' });
-
-        connectUI = nangoClient.openConnectUI({
-            apiURL: NANGO_API_URL,
-            baseURL: NANGO_CONNECT_UI_URL,
-            onEvent: (event) => {
-                if(event.type === 'connect'){
-                    track('sync_connected', 'hubspot');
-                    // Authorising is only half of it. The worker stores nothing
-                    // until it is told the connectionId, and without that record
-                    // neither the cleanup nor the weekly cron can find the
-                    // connection at all.
-                    const p = event.payload || {};
-                    const connectionId = p.connectionId || p.connection_id ||
-                        (p.connection && (p.connection.connectionId || p.connection.connection_id));
-                    if(!connectionId){
-                        renderSync('error');
-                        track('sync_finalise_failed', 'no_connection_id');
-                        return;
-                    }
-                    nangoCall('finalize-connection', { connectionId }).then(r => {
-                        if(!r.ok){
-                            document.getElementById('syncState').insertAdjacentHTML('beforeend',
-                                '<div class="err" style="margin-top:.75rem;">Connected, but we could not finish setting it up. ' +
-                                'Email support@linkfinderai.com and we will sort it - your CRM is not being cleaned yet.</div>');
-                            track('sync_finalise_failed', String(r.status));
-                            return;
-                        }
-                        refreshBothStages();
-                    }).catch(()=>{});
-                } else if(event.type === 'close'){
-                    refreshBothStages();
-                } else if(event.type === 'error'){
-                    renderSync('error');
-                }
-            }
-        });
-    }catch(e){
-        renderSync('error');
-        return;
-    }
-
-    const res = await nangoCall('');
-
-    if(!res.ok || !res.data.connectSession){
-        // Leaving the popup open without a token is what produces Nango's
-        // "This page can't be opened directly" - the user sees that instead of
-        // the reason, and the real message is hidden behind the popup anyway.
-        closeConnectUI(connectUI);
-        // Both stages offer a Connect button, so both have to reflect the
-        // answer. Updating only stage 3 left stage 2 sitting on its Connect
-        // button with nothing changed - the click looked like it did nothing,
-        // and the obvious response is to click it again.
-        if(res.status === 503){
-            // The gate itself said "I could not tell" (UNKNOWN_SUBSCRIBER_ERROR).
-            // No point asking billing for a second opinion on a question the gate
-            // never managed to ask - go straight to the honest message.
-            renderSync('unverified');
-            renderClean('unverified');
-            track('sync_connect_unverified', 'subscriber_check_unreachable');
-        }else if(res.status === 403){
-            // A 403 means the worker's isSubscriber() said no. That check fails
-            // CLOSED - a timeout or cold start on its internal call produces the
-            // same 403 as never having paid - so "no" is not proof of "unpaid".
-            // Ask the billing service directly before accusing a customer of
-            // not having a plan.
-            await confirmNotSubscribed();
-        }else{
-            const err = { error: res.data && res.data.error };
-            renderSync('error', err);
-            renderClean('error', err);
-            track('sync_connect_failed', String(res.status));
-        }
-        return;
-    }
-
-    connectUI.setSessionToken(res.data.connectSession);
-}
-
-/*
- * Second opinion on a refusal. If billing says the plan IS active, the refusal
- * was wrong and telling this person to buy a plan they already have is the
- * worst thing the page could do - so it says so, and reports it, instead.
- */
-async function confirmNotSubscribed(){
-    // The second opinion is another network call. Without this the page sits on
-    // whatever it showed before, so the click reads as having done nothing.
-    renderSync('checking');
-    renderClean('checking');
-
-    let d = null;
-    try{
-        const r = await fetch(UPGRADE_INTENT_URL, {
-            method:'POST', headers:{'Content-Type':'application/json'},
-            body: JSON.stringify({ token:userToken, trigger:'page_load' })
-        });
-        d = await r.json();
-    }catch(e){ /* fall through to the ordinary upgrade screen */ }
-
-    if(d && d.issub === true){
-        renderSync('mismatch', d);
-        renderClean('mismatch', d);
-        track('sync_gate_mismatch', String(d.plan || 'unknown_plan'));
-        return;
-    }
-
-    renderSync('locked');
-    renderClean('locked');
-    track('sync_connect_blocked','plan_required');
-}
-
-/*
- * Distinct from MISMATCH_COPY on purpose. Mismatch means billing confirmed the
- * plan IS active and the gate still refused - we can promise the account is
- * fine. This one means the gate itself could not reach billing at all, so we
- * do not know either way and must not claim to. Both are "not your fault",
- * only one of them can say "your plan is active".
- */
-const UNVERIFIED_COPY =
-    '<strong>This one is on us.</strong> We could not check your plan just now &mdash; the ' +
-    'service that authorises CRM connections did not answer. Nothing has been charged and ' +
-    'nothing on your account has changed. Try again in a minute; if it keeps happening, ' +
-    'email support@linkfinderai.com and we will connect it manually.';
-
-const MISMATCH_COPY =
-    '<strong>This one is on us.</strong> Your plan is active, but the service that ' +
-    'authorises CRM connections did not see it just now. Nothing is wrong with your ' +
-    'account and you have not been charged for anything. Try again in a minute &mdash; ' +
-    'if it still refuses, email support@linkfinderai.com and we will connect it manually.';
-
-function closeConnectUI(ui){
-    try{ if(ui && typeof ui.close === 'function') ui.close(); }catch(e){}
-}
-
-async function disconnectHubspot(){
-    if(!confirm('Disconnect HubSpot? Your contacts will stop being cleaned automatically.')) return;
-    try{
-        await nangoCall('disconnect');
-        track('sync_disconnected','hubspot');
-    }catch(e){}
-    refreshBothStages();
-}
-
-window.logout=logout; window.nav=nav; window.handleAddCredits=handleAddCredits;
-window.toggleField=toggleField; window.goUpgrade=goUpgrade; window.reset=reset;
-window.track=track; window.bookingUrl=bookingUrl;
-window.connectHubspot=connectHubspot; window.disconnectHubspot=disconnectHubspot;
-
-document.addEventListener('DOMContentLoaded',()=>{
-    checkAuth(); fetchCredits();
-    refreshSyncState(); refreshCleanState();
-    try{ posthog.capture('crm_sync_page_viewed'); }catch(e){}
-});
+  if(!checkAuth()) return;
+  loadCredits();
+  refreshConnection();
+})();
 </script>
 </body>
 </html>
