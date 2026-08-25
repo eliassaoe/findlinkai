@@ -240,6 +240,9 @@ td.empty{color:var(--faint)}
 .cb-dot{width:7px;height:7px;border-radius:50%;background:var(--ok);flex:none}
 .cb-text{font-weight:600}
 .cb-link{margin-left:auto;color:var(--ok);font-weight:600;text-decoration:underline}
+.example-tag{position:absolute;top:8px;left:24px;margin:0;z-index:6;
+  font-size:11px;font-weight:600;letter-spacing:.04em;color:var(--warn);
+  background:var(--warn-soft);border:1px solid #fde68a;border-radius:999px;padding:3px 10px}
 .burger{display:none}
 @media (max-width:900px){
   .rail{position:fixed;left:0;top:0;bottom:0;transform:translateX(-100%);transition:transform .25s}
@@ -447,7 +450,8 @@ td.empty{color:var(--faint)}
 
     <!-- ══ TAB 3 · CRM Health ══ -->
     <section class="panel" id="tab-health" role="tabpanel">
-      <div class="locked">
+      <div class="locked preview-only">
+        <p class="example-tag">Example figures — not your data</p>
         <div class="behind" aria-hidden="true">
           <div class="stats">
             <div class="stat"><span class="si" style="background:#eef2ff;color:#2563eb">◍</span><b>12,847</b><span>Records scanned</span></div>
@@ -482,7 +486,8 @@ td.empty{color:var(--faint)}
 
     <!-- ══ TAB 4 · Deduplication ══ -->
     <section class="panel" id="tab-dedupe" role="tabpanel">
-      <div class="locked">
+      <div class="locked preview-only">
+        <p class="example-tag">Example layout — not your data</p>
         <div class="behind" aria-hidden="true">
           <div class="card">
             <div class="card-head"><div><h2>Duplicates found</h2><p>Grouped by matching email, name and company.</p></div></div>
@@ -571,6 +576,28 @@ async function loadCredits(){
 /* Unlock every tab at once — connection is account-wide, not per section. */
 function applyConnection(connected, data){
   document.querySelectorAll('.locked').forEach(function(box){
+    // Health and Deduplication render illustrative figures — there is no
+    // server-side metric behind them yet. Unblurring on connect would show
+    // invented numbers as the customer's own CRM stats, so these stay gated
+    // and say so plainly until the worker returns real ones.
+    if(box.classList.contains('preview-only')){
+      if(connected){
+        const g = box.querySelector('.gate');
+        g.innerHTML = '<h3>Your CRM is connected.</h3>'
+          + '<p>This section is not live yet — the figures behind this card are an example, not your data. '
+          + 'We will email you the moment it is measuring your CRM for real.</p>'
+          + '<div class="gate-rows"><div class="gate-row">'
+          + '<span class="mark" style="background:#eef2ff;color:#2563eb">✓</span>'
+          + '<span class="gname">Notify me when it is live</span>'
+          + '<button class="gcta" data-notify="crm-metrics">Notify me</button>'
+          + '</div></div>';
+        g.querySelector('[data-notify]').addEventListener('click', function(e){
+          if(window.posthog) posthog.capture('crm_connector_requested', { provider:'crm-metrics' });
+          e.target.textContent = "We'll email you"; e.target.disabled = true; e.target.style.opacity = .6;
+        });
+      }
+      return;
+    }
     box.classList.toggle('unlocked', !!connected);
   });
   const bar = document.getElementById('connBar');
