@@ -997,6 +997,7 @@ async function runClean(){
 }
 
 window.toggleCleanField = toggleCleanField;
+window.toggleSyncField = toggleSyncField;
 window.runClean = runClean;
 window.renderCleanIdle = renderCleanIdle;
 
@@ -1161,6 +1162,63 @@ function timeAgo(iso){
     return Math.floor(secs/86400) + ' day(s) ago';
 }
 
+/* The weekly sync's fields used to be a side effect of whichever fields you
+ * last ran a manual clean with — this tab said "the fields you chose" and
+ * never offered a choice. Seeded from /status so it shows what is actually
+ * stored, not a client-side guess. */
+let syncFields = null;      // null until /status tells us what is stored
+let syncMaxPerRun = 25;
+
+function syncFieldsFromSettings(settings){
+    const f = (settings && settings.fields) || {};
+    const on = Object.keys(CLEAN_LABEL).filter(k => f[k] && f[k].enabled);
+    syncFields = on.length ? on : ['linkedin_url', 'email'];
+    if (settings && settings.maxPerRun) syncMaxPerRun = settings.maxPerRun;
+}
+
+function syncFieldPicker(){
+    if (!syncFields) syncFields = ['linkedin_url', 'email'];
+    const chips = Object.keys(CLEAN_LABEL).map(k => {
+        const on = syncFields.includes(k);
+        const cost = LFCrmAudit.CREDIT_COST[k];
+        return '<button class="chip ' + (on ? 'on' : '') + '" onclick="toggleSyncField(\'' + k + '\')">' +
+               (on ? '<i class="fas fa-check"></i> ' : '') + CLEAN_LABEL[k] +
+               (cost ? ' <span style="opacity:.65;">' + cost + ' cr</span>' : '') +
+               '</button>';
+    }).join('');
+    return '<div style="margin-top:1rem;">' +
+        '<div style="font-size:.82rem;font-weight:600;color:var(--gray-700);margin-bottom:.5rem;">Fields to fill each week</div>' +
+        '<div class="chips">' + chips + '</div>' +
+        '<div id="syncFieldsNote" style="font-size:.78rem;color:var(--gray-500);margin-top:.5rem;">' +
+        'Up to ' + syncMaxPerRun + ' contacts per run. Only empty fields are filled — nothing is overwritten.</div>' +
+        '</div>';
+}
+
+async function toggleSyncField(k){
+    if (syncFields.includes(k)) syncFields = syncFields.filter(x => x !== k);
+    else syncFields.push(k);
+    // The worker rejects a settings payload with nothing enabled, so never
+    // let the last chip turn itself off.
+    if (!syncFields.length) syncFields = [k];
+
+    const note = document.getElementById('syncFieldsNote');
+    if (note) note.textContent = 'Saving…';
+
+    const fields = {};
+    Object.keys(CLEAN_LABEL).forEach(key => {
+        fields[key] = { enabled: syncFields.includes(key), hubspotProperty: HUBSPOT_PROPERTY[key] };
+    });
+    const res = await nangoCall('save-settings', { settings: { maxPerRun: syncMaxPerRun, fields } });
+
+    if (!res.ok){
+        if (note) note.textContent = (res.data && res.data.error) || 'Could not save that. Try again.';
+        return;
+    }
+    if (res.data.settings) syncFieldsFromSettings(res.data.settings);
+    try{ posthog.capture('crm_sync_settings_saved', { fields: syncFields.join('+') }); }catch(e){}
+    refreshSyncState();
+}
+
 function renderSync(state, data){
     const el = document.getElementById('syncState');
     if(!el) return;
@@ -1176,10 +1234,11 @@ function renderSync(state, data){
             '<div class="sync-connected">' +
                 '<i class="fas fa-circle-check badge"></i>' +
                 '<div class="sync-connected-text"><strong>HubSpot is connected</strong>' +
-                'Every Monday, contacts still missing the fields you chose get looked up and filled in. ' + last +
+                'Every Monday, contacts still missing the fields below get looked up and filled in. ' + last +
                 '</div>' +
                 '<button class="btn-danger-ghost" onclick="disconnectHubspot()">Disconnect</button>' +
             '</div>' +
+            syncFieldPicker() +
             '<div style="font-size:.78rem;color:var(--gray-400);margin-top:.7rem;">Also available via n8n, Make and Zapier.</div>';
         return;
     }
@@ -1229,6 +1288,7 @@ function renderSync(state, data){
 async function refreshSyncState(){
     const res = await nangoCall('status');
     if(!res.ok){ renderSync('error'); return; }
+    if(res.data.connected) syncFieldsFromSettings(res.data.settings);
     renderSync(res.data.connected ? 'connected' : 'disconnected', res.data);
 }
 

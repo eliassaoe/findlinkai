@@ -105,7 +105,13 @@ const DEFAULT_SETTINGS = {
   maxPerRun: DEFAULT_MAX_PER_RUN,
   fields: {
     email: { enabled: true, hubspotProperty: 'email' },
-    linkedin_url: { enabled: false, hubspotProperty: 'linkedinbio' },
+    // Enabled by default alongside email: both cost 1 credit, and the page's
+    // own picker has always defaulted to this pair. Leaving it off here meant
+    // anyone who connected without running a manual clean silently got an
+    // email-only weekly sync that did not match what the UI said.
+    linkedin_url: { enabled: true, hubspotProperty: 'linkedinbio' },
+    // Off by default on purpose: at 50 credits it is 50x the others and would
+    // dominate an unattended weekly run.
     phone: { enabled: false, hubspotProperty: 'phone' },
   },
 };
