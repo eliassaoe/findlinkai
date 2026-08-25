@@ -251,9 +251,22 @@ table.gaps tfoot td{font-weight:700;color:var(--gray-900);border-top:2px solid v
             </div>
         </div>
 
+        <!-- Primary path for a logged-in user: connect, don't export. -->
+        <div class="card hidden" id="healthConnectCard">
+            <h2><i class="fab fa-hubspot"></i> Connect your CRM</h2>
+            <p style="font-size:.87rem;color:var(--gray-600);margin-bottom:1rem;">
+                We read your contacts and score what is missing &mdash; no export, no file to keep track of, and the check stays one click away from then on.
+            </p>
+            <a href="#" class="btn-primary" onclick="connectHubspot();return false;">
+                <i class="fab fa-hubspot"></i> Connect HubSpot</a>
+            <div style="font-size:.78rem;color:var(--gray-400);margin-top:.7rem;">
+                Read-only for the check. Nothing is written and no credits are spent. Disconnect any time.
+            </div>
+        </div>
+
         <!-- STEP 1: upload -->
         <div class="card" id="uploadCard">
-            <h2><i class="fas fa-file-csv"></i> Upload your CRM export</h2>
+            <h2 id="uploadHeading"><i class="fas fa-file-csv"></i> Upload your CRM export</h2>
             <div class="drop" id="drop">
                 <i class="fas fa-cloud-arrow-up"></i>
                 <div class="drop-title">Drop your CSV here, or click to choose a file</div>
@@ -1451,26 +1464,26 @@ async function refreshLiveAudit(){
     const res = await nangoCall('status');
     const on = res.ok && res.data.connected;
     document.getElementById('liveAuditCard').classList.toggle('hidden', !on);
+    // Connecting is the primary path in-app; the CSV drop is the fallback for
+    // a CRM that is not connected. (The public crm-audit.html keeps CSV first —
+    // there is no account there, so a file that never leaves the browser is the
+    // whole pitch.)
+    document.getElementById('healthConnectCard').classList.toggle('hidden', on);
+
+    const heading = document.getElementById('uploadHeading');
+    if(heading){
+        heading.innerHTML = '<i class="fas fa-file-csv"></i> ' +
+            (on ? 'Or audit a CSV export' : 'Or upload a CSV export instead');
+    }
+    let note = document.getElementById('csvAltNote');
     const drop = document.getElementById('uploadCard');
-    const note = document.getElementById('csvAltNote');
-    if(on && drop && !note){
-        const p = document.createElement('p');
-        p.id = 'csvAltNote';
-        p.style.cssText = 'font-size:.82rem;color:var(--gray-600);margin-top:-.5rem;margin-bottom:1rem;';
-        p.textContent = 'Or audit a file instead — useful for a CRM you have not connected.';
-        drop.insertBefore(p, drop.children[1]);
+    if(drop && !note){
+        note = document.createElement('p');
+        note.id = 'csvAltNote';
+        note.style.cssText = 'font-size:.82rem;color:var(--gray-600);margin:-.35rem 0 1rem;';
+        drop.insertBefore(note, drop.children[1]);
     }
-    // Not connected: the CSV drop is the only way in, so say that connecting
-    // removes the export step rather than leaving it as the only option.
-    const offer = document.getElementById('healthConnectOffer');
-    if(!on && drop && !offer){
-        const d = document.createElement('div');
-        d.id = 'healthConnectOffer';
-        d.style.cssText = 'font-size:.82rem;color:var(--gray-600);margin-top:1rem;';
-        d.innerHTML = 'Connected your CRM? Skip the export &mdash; ' +
-            '<a href="#" onclick="connectHubspot();return false;">connect HubSpot</a> and we read the contacts directly.';
-        drop.appendChild(d);
-    }
+    if(note) note.textContent = 'For a CRM you have not connected — analysed in your browser.';
 }
 
 document.getElementById('liveAuditBtn').addEventListener('click', runLiveAudit);
