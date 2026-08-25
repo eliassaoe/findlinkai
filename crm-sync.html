@@ -239,6 +239,18 @@ table.gaps tfoot td{font-weight:700;color:var(--gray-900);border-top:2px solid v
 
 
         <div class="crm-panel active" id="panel-health" role="tabpanel">
+        <!-- Connected source: skips the export step for customers who already linked a CRM -->
+        <div class="card hidden" id="liveAuditCard">
+            <h2><i class="fas fa-plug-circle-check"></i> Check your connected CRM</h2>
+            <p style="font-size:.87rem;color:var(--gray-600);margin-bottom:1rem;">
+                Your HubSpot is connected, so there is nothing to export &mdash; we read your contacts, score them, and leave the connection in place so this stays up to date.
+            </p>
+            <div id="liveAuditState">
+                <button class="btn" id="liveAuditBtn"><i class="fas fa-heart-pulse"></i> Run the health check</button>
+                <span style="font-size:.82rem;color:var(--gray-600);margin-left:.75rem;">Read-only. Nothing is written and no credits are spent.</span>
+            </div>
+        </div>
+
         <!-- STEP 1: upload -->
         <div class="card" id="uploadCard">
             <h2><i class="fas fa-file-csv"></i> Upload your CRM export</h2>
@@ -384,6 +396,7 @@ window.__LFNango = Nango;
 let userToken = null;
 let lastAudit = null;
 let lastCSV = null;
+let liveRows = null;   // contacts pulled from a live connection, if that path was used
 // Phone is excluded by default: at 50 credits it is 5-50x every other lookup
 // and dominates any quote it appears in. The toggle still shows how many are
 // missing, so the opportunity stays visible without inflating the headline.
@@ -498,7 +511,9 @@ function readFile(file){
 function runAudit(){
     let res;
     try{
-        res = LFCrmAudit.auditCSV(lastCSV,{fields:activeFields, alwaysPlan:true});
+        res = liveRows
+            ? LFCrmAudit.analyse(liveRows,{fields:activeFields, alwaysPlan:true})
+            : LFCrmAudit.auditCSV(lastCSV,{fields:activeFields, alwaysPlan:true});
     }catch(err){
         showErr('That file could not be parsed as CSV. Re-export it from your CRM without any custom formatting.');
         return;
@@ -1362,6 +1377,76 @@ document.addEventListener('DOMContentLoaded',()=>{
     refreshSyncState(); refreshCleanState();
     try{ posthog.capture('crm_sync_page_viewed'); }catch(e){}
 });
+
+
+/* ── Health check straight from the connected CRM ──────────────────
+ * The audit engine already accepts an array of objects (see the
+ * "HubSpot API path" branch in analyse()), so connected customers skip
+ * the CSV export entirely. The connection is deliberately left in
+ * place afterwards -- integrated accounts retain far better than
+ * one-off auditors, so tearing it down would be self-defeating.
+ */
+async function runLiveAudit(){
+    const box = document.getElementById('liveAuditState');
+    box.innerHTML = '<div class="sync-loading"><i class="fas fa-circle-notch fa-spin"></i> Reading your contacts&hellip;</div>';
+    try{ posthog.capture('crm_audit_started',{ source:'connection' }); }catch(e){}
+
+    const res = await nangoCall('audit-contacts');
+
+    if(res.status === 404){
+        box.innerHTML = '<div class="err"><i class="fas fa-triangle-exclamation"></i> '
+            + 'Reading contacts directly is not switched on for your account yet. Use the CSV export below in the meantime.</div>';
+        try{ posthog.capture('crm_audit_live_unavailable'); }catch(e){}
+        return;
+    }
+    if(!res.ok){
+        box.innerHTML = '<div class="err"><i class="fas fa-triangle-exclamation"></i> '
+            + (res.data.error || 'Could not read your contacts. Try again, or use the CSV export below.') + '</div>';
+        return;
+    }
+
+    const rows = res.data.contacts || res.data.rows || [];
+    if(!rows.length){
+        box.innerHTML = '<div class="err"><i class="fas fa-circle-info"></i> No contacts came back from HubSpot. '
+            + 'If your portal definitely has contacts, use the CSV export below.</div>';
+        return;
+    }
+
+    let out;
+    try{
+        out = LFCrmAudit.analyse(rows, { fields: activeFields, alwaysPlan: true });
+    }catch(err){
+        box.innerHTML = '<div class="err"><i class="fas fa-triangle-exclamation"></i> Could not score those contacts. Use the CSV export below.</div>';
+        return;
+    }
+
+    lastCSV = null;              // this result did not come from a file
+    lastAudit = out;
+    liveRows = rows;             // so the toggles can re-score without re-fetching
+    box.innerHTML = '<button class="btn" id="liveAuditBtn"><i class="fas fa-rotate-right"></i> Re-check</button>';
+    document.getElementById('liveAuditBtn').addEventListener('click', runLiveAudit);
+    try{ posthog.capture('crm_audit_completed',{ source:'connection', contacts: rows.length }); }catch(e){}
+    render(out);
+}
+
+/* Show the connected path only once /status confirms a live connection. */
+async function refreshLiveAudit(){
+    const res = await nangoCall('status');
+    const on = res.ok && res.data.connected;
+    document.getElementById('liveAuditCard').classList.toggle('hidden', !on);
+    const drop = document.getElementById('uploadCard');
+    const note = document.getElementById('csvAltNote');
+    if(on && drop && !note){
+        const p = document.createElement('p');
+        p.id = 'csvAltNote';
+        p.style.cssText = 'font-size:.82rem;color:var(--gray-600);margin-top:-.5rem;margin-bottom:1rem;';
+        p.textContent = 'Or audit a file instead — useful for a CRM you have not connected.';
+        drop.insertBefore(p, drop.children[1]);
+    }
+}
+
+document.getElementById('liveAuditBtn').addEventListener('click', runLiveAudit);
+refreshLiveAudit();
 
 /* ── CRM section tabs ─────────────────────────────────────────────
  * The three-step stepper became four switchable sections. The stage
