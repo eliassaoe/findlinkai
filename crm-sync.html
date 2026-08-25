@@ -1098,6 +1098,10 @@ const HUBSPOT_PROPERTY = { email: 'email', linkedin_url: 'linkedinbio', phone: '
 
 async function nangoCall(route, extra){
     const path = route ? '/' + route : '/';
+    // Guard against a call landing before checkAuth() has resolved the token:
+    // the worker answers 400 for a missing token, which surfaces as a console
+    // error the page cannot explain.
+    if(!userToken) return { ok:false, status:0, data:{ error:'Not signed in yet.' } };
     try{
         const r = await fetch(NANGO_WORKER + path, {
             method:'POST', headers:{'Content-Type':'application/json'},
@@ -1373,6 +1377,7 @@ window.connectHubspot=connectHubspot; window.disconnectHubspot=disconnectHubspot
 document.addEventListener('DOMContentLoaded',()=>{
     checkAuth(); fetchCredits();
     refreshSyncState(); refreshCleanState(); refreshDedupeState();
+    refreshLiveAudit();
     try{ posthog.capture('crm_sync_page_viewed'); }catch(e){}
 });
 
@@ -1505,7 +1510,7 @@ async function runLiveAudit(){
 /* Show the connected path only once /status confirms a live connection. */
 async function refreshLiveAudit(){
     const res = await nangoCall('status');
-    const on = res.ok && res.data.connected;
+    const on = !!(res.ok && res.data.connected);
     document.getElementById('liveAuditCard').classList.toggle('hidden', !on);
     // Connecting is the primary path in-app; the CSV drop is the fallback for
     // a CRM that is not connected. (The public crm-audit.html keeps CSV first —
@@ -1529,8 +1534,11 @@ async function refreshLiveAudit(){
     if(note) note.textContent = 'For a CRM you have not connected — analysed in your browser.';
 }
 
-document.getElementById('liveAuditBtn').addEventListener('click', runLiveAudit);
-refreshLiveAudit();
+const liveBtn = document.getElementById('liveAuditBtn');
+if(liveBtn) liveBtn.addEventListener('click', runLiveAudit);
+// refreshLiveAudit() is NOT called here: this runs at parse time, before the
+// DOMContentLoaded handler below calls checkAuth(), so userToken would still
+// be null and /status would answer 400 "Missing token".
 
 /* ── CRM section tabs ─────────────────────────────────────────────
  * The three-step stepper became four switchable sections. The stage
