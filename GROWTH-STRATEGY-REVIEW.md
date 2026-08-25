@@ -8,9 +8,10 @@ Written because this session is ephemeral. Re-run the queries at the bottom to r
 
 ## Verdict in one line
 
-The plan is aimed at the wrong bottleneck. Acquisition is already working;
+The channels are right; the *sequence* is wrong. Acquisition is already working —
 **74% of paying subscribers ran zero enrichments in the last 30 days.** Fixing that
-alone reaches $4k MRR in six months with no new traffic at all.
+alone reaches $4k MRR in six months with no new traffic at all, and makes every
+future backlink and video permanently worth more.
 
 ---
 
@@ -94,9 +95,62 @@ Monthly unique visitors by source:
 - **AEO/LLM referrals are *declining*** — 60/mo down to 21/mo, straight through the
   landing-page rework that named the AI-visibility outcome. There is no leading
   indicator to justify a six-month AEO investment yet.
-- **YouTube is noise** — and per `CLAUDE.md`, the demo recording is a blocked manual
-  step that has already produced two thrown-away attempts. Worst effort-to-return
-  ratio on the table.
+- **YouTube is early traction, not noise** — see the correction below. It is the
+  fastest-growing source proportionally, though the demo recording remains a blocked
+  manual step per `CLAUDE.md`.
+
+## Finding 3b — correction: YouTube is already working (but not yet paying)
+
+An earlier draft of this doc called YouTube "noise". That was wrong, and the weekly
+data shows why:
+
+| Week | YouTube visitors | Pageviews | Pages/visit |
+| --- | --- | --- | --- |
+| Jun 22 – Jul 20 | 1–5 | 1–22 | ~2 |
+| **Jul 27** | 21 | 119 | 5.7 |
+| **Aug 3** | 27 | 206 | 7.6 |
+| **Aug 10** | 33 | 226 | 6.9 |
+| Aug 17 | 19 | 63 | 3.3 |
+
+Something started sending traffic in late July — a **5–6× step change** — and those
+visitors read **7–8 pages per session**, far above site average. That is the profile
+of high-intent, pre-qualified traffic, exactly the argument for the channel.
+
+First-touch cohorts over 90 days confirm the quality:
+
+| First touch | People | Signups | Activated | Saw pricing | Paid |
+| --- | --- | --- | --- | --- | --- |
+| YouTube | 32 | 28 (88%) | 24 | 5 (18%) | **0** |
+| Search | 1,043 | 967 | 737 | 160 (17%) | 12 (1.2%) |
+| Reddit | 46 | 37 | 32 | 11 (30%) | 0 |
+
+> Denominators are unreliable — `$initial_referring_domain` is only populated for
+> identified persons, so anonymous visitors fall into the `other` bucket (24,357
+> people, 294 signups). Compare the *downstream ratios*, not the visitor→signup rates.
+
+**YouTube signups reach pricing at the same rate as search (18% vs 17%).** They are
+not worse visitors. And 0 payers from 28 signups is not evidence of failure either —
+at the site-wide 1.2% signup→paid rate, the expected value is 0.3 payers. The sample
+is simply too small to distinguish.
+
+The correct conclusion is not "YouTube doesn't work". It is: **YouTube feeds the same
+leaky bucket as every other channel.** 28 signups produced 0 subscribers because
+*1.2% of all signups become subscribers*, regardless of where they came from.
+
+### What YouTube would have to do to carry the plan alone
+
+$2,110 of new MRR = ~34 net subscribers. At the current 1.2% signup→paid, that needs
+~2,800 signups, i.e. **~3,200 YouTube visitors** — and more once 6.5% monthly churn is
+netted out. Today YouTube sends ~110/month. That is a sustained **5–10× increase**,
+built video by video, on a channel whose recording step is manually blocked.
+
+At a repaired 3% signup→paid, the *same* traffic delivers 2.5× the subscribers — and
+every video made after the fix keeps that multiple permanently, because the content
+compounds against the repaired funnel rather than the broken one.
+
+**This is a sequencing argument, not a channel argument.** Compounding cuts both ways:
+6.5% monthly churn compounds against you at the same time the content compounds for
+you. Fix the funnel first and every video ever made afterwards is worth more.
 
 ## Finding 4 — search traffic plateaued in July
 
@@ -146,12 +200,16 @@ near while the floor keeps falling out.
 | **3** | **`upgrade_clicked` → `plan_selected`** — 158 users lost at the plan grid | 1–2 wks | 6.2% → 10% paywall conv = +5 adds/mo |
 | **4** | **Convert the 88 credit-pack buyers** — already paid once, no subscription. Not CRM users, so subscriptions are the right ask (per `CLAUDE.md`) | 1 wk | Direct upsell list |
 | **5** | **SEO/backlinks** — keep running, it is the engine. Check Search Console for the July plateau first | continuous | Maintains the 3.6× trajectory |
-| **6** | **YouTube** — defer as a *channel*. If made, embed on money pages for video schema, not for subscribers | — | ~0.5 customers/mo at best |
+| **6** | **YouTube** — real early traction (5× step change in Aug, 7–8 pages/visit). Keep publishing at a low, steady cadence; do **not** make it the growth bet until signup→paid is fixed. Every video made post-fix is worth ~2.5× one made today | steady | Compounds — but against a repaired funnel |
 | **7** | **AEO** — instrument LLM referral → signup before investing. It is currently shrinking | — | No signal yet |
 
-Keep the SEO half of the original bet. Drop the YouTube half. Spend the freed time on
-retention and checkout — same upside, two weeks instead of six months, and it raises
-the ceiling that SEO would otherwise be pushing traffic into.
+Keep both halves of the original bet — but **reorder them**. SEO and YouTube are both
+real compounding assets and neither should stop. What they should not be is the
+*mechanism* for reaching $4k in six months, because both deliver their return into a
+funnel that converts 1.2% of signups and loses 6.5% of subscribers a month.
+
+Spend weeks 1–4 on retention and checkout. Then let SEO and YouTube compound into a
+funnel that is worth 2–3× more per visitor — permanently.
 
 ---
 
