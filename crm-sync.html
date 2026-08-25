@@ -842,6 +842,44 @@ function cleanSummary(d){
     return parts.join(', ') + ' written into HubSpot.';
 }
 
+/* Show what actually landed, not just how many. The worker returns a
+ * `details` row per accepted write-back — contact, field and the value it
+ * wrote — so the customer can see the data rather than trust a count.
+ * Rows only appear for writes HubSpot accepted. */
+function esc(v){
+    return String(v == null ? '' : v)
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+        .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+function cleanDetailsTable(d){
+    const rows = (d && d.details) || [];
+    if (!rows.length) return '';
+
+    const body = rows.map(function(r){
+        const label = CLEAN_LABEL[r.field] || r.field;
+        const val = r.field === 'linkedin_url'
+            ? '<a href="' + esc(r.value) + '" target="_blank" rel="noopener">' + esc(r.value) + '</a>'
+            : esc(r.value);
+        return '<tr>' +
+            '<td>' + esc(r.name || '(no name)') + (r.company ? ' <span style="color:var(--gray-500);">· ' + esc(r.company) + '</span>' : '') + '</td>' +
+            '<td>' + esc(label) + '</td>' +
+            '<td style="font-family:ui-monospace,Menlo,monospace;">' + val + '</td>' +
+            '</tr>';
+    }).join('');
+
+    return '<div style="margin-top:1.25rem;">' +
+        '<div style="font-size:.82rem;font-weight:600;color:var(--gray-700);margin-bottom:.5rem;">' +
+        'Written into HubSpot' + (d.detailsTruncated ? ' (first ' + rows.length + ')' : '') + '</div>' +
+        '<div style="overflow-x:auto;border:1px solid var(--gray-200);border-radius:8px;">' +
+        '<table style="border-collapse:collapse;width:100%;font-size:.84rem;min-width:420px;">' +
+        '<thead><tr style="background:var(--gray-50);">' +
+        '<th style="text-align:left;padding:.55rem .75rem;font-weight:600;color:var(--gray-600);">Contact</th>' +
+        '<th style="text-align:left;padding:.55rem .75rem;font-weight:600;color:var(--gray-600);">Field</th>' +
+        '<th style="text-align:left;padding:.55rem .75rem;font-weight:600;color:var(--gray-600);">Value added</th>' +
+        '</tr></thead><tbody>' + body + '</tbody></table></div></div>';
+}
+
 function renderClean(state, data){
     const el = document.getElementById('cleanState');
     if (!el) return;
@@ -895,6 +933,7 @@ function renderClean(state, data){
             (d.processed ? 'Looked at ' + LFCrmAudit.fmt(d.processed) + ' contact(s) that were missing data. ' : '') +
             (summary || 'Nothing new was findable for these contacts.') +
             '</div></div>' +
+            cleanDetailsTable(d) +
             '<a href="#" class="btn-primary" style="margin-top:1rem;" onclick="runClean();return false;">' +
             '<i class="fas fa-forward"></i> Clean the next 25</a>' +
             '<a href="#" class="btn-ghost" style="margin-top:1rem;margin-left:.5rem;" onclick="renderCleanIdle();return false;">Change fields</a>';

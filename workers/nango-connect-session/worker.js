@@ -419,6 +419,65 @@ async function handlePushContacts(request, env, origin) {
   return json({ ok: true, ...tally }, 200, origin);
 }
 
+// ─────────────────────────────────────────────────────────────
+// CRM Health — read-only contact dump so the audit can score a connected
+// CRM without asking for a CSV export. Never writes, never spends credits.
+// ─────────────────────────────────────────────────────────────
+
+const AUDIT_MAX_CONTACTS = 5000;   // the score is a rate, so a sample is representative
+const AUDIT_PAGE_SIZE = 100;       // HubSpot's max per page on the list endpoint
+const AUDIT_PROPERTIES = ['firstname', 'lastname', 'email', 'company', 'jobtitle', 'phone', 'linkedinbio', 'website'];
+
+async function handleAuditContacts(request, env, origin) {
+  const { token } = await request.json().catch(() => ({}));
+  if (!token) return json({ error: 'Missing token' }, 400, origin);
+  if (!(await isSubscriber(env, token))) return json({ error: NOT_SUBSCRIBER_ERROR }, 403, origin);
+
+  const raw = await env.CRM_CONNECTIONS.get(`conn:${token}`);
+  if (!raw) return json({ error: 'No HubSpot connection found for this token. Connect it first.' }, 404, origin);
+  const { connectionId } = JSON.parse(raw);
+
+  const contacts = [];
+  let after = null;
+  let pages = 0;
+
+  while (contacts.length < AUDIT_MAX_CONTACTS) {
+    const params = new URLSearchParams({ limit: String(AUDIT_PAGE_SIZE), properties: AUDIT_PROPERTIES.join(',') });
+    if (after) params.set('after', after);
+
+    const resp = await nangoProxy(env, connectionId, `/crm/v3/objects/contacts?${params}`, { method: 'GET' });
+    if (!resp.ok) {
+      // Partial data still scores usefully — only fail outright if page 1 failed.
+      if (!contacts.length) return json({ error: 'Could not read your contacts from HubSpot.' }, 502, origin);
+      break;
+    }
+
+    const data = await resp.json().catch(() => ({}));
+    const results = data.results || [];
+    if (!results.length) break;
+
+    for (const r of results) {
+      const props = r.properties || {};
+      const flat = {};
+      // Every requested key must be present, '' when empty: the audit keys its
+      // column detection off the object's keys, so a missing key reads as a
+      // missing column and under-reports the gap.
+      for (const key of AUDIT_PROPERTIES) {
+        const v = props[key];
+        flat[key] = (v === undefined || v === null) ? '' : String(v);
+      }
+      contacts.push(flat);
+    }
+
+    after = data.paging && data.paging.next && data.paging.next.after;
+    if (!after) break;
+    if (++pages > 60) break; // hard stop against an unbounded loop
+  }
+
+  const sampled = contacts.slice(0, AUDIT_MAX_CONTACTS);
+  return json({ ok: true, contacts: sampled, sampled: sampled.length, capped: contacts.length >= AUDIT_MAX_CONTACTS }, 200, origin);
+}
+
 async function handleDisconnect(request, env, origin) {
   const { token } = await request.json().catch(() => ({}));
   if (!token) return json({ error: 'Missing token' }, 400, origin);
@@ -570,6 +629,11 @@ async function syncOneConnection(env, linkfinderToken, record) {
   const nextAfter = searchData.paging?.next?.after || null;
 
   const filled = { email: 0, linkedin_url: 0, phone: 0 };
+  // Per-row record of what was actually written, so the page can show the
+  // values instead of only a count. Capped so a 1000-contact run cannot
+  // return a megabyte of JSON.
+  const details = [];
+  const DETAIL_CAP = 200;
 
   // 2. For each contact, work out which of ITS enabled fields are actually
   // empty (the OR search only guarantees at least one is), look those up,
@@ -598,6 +662,7 @@ async function syncOneConnection(env, linkfinderToken, record) {
     console.log(`[crm-sync] contact ${contact.id} "${fullName}": missing=${missing.join(',')} domain="${domain}" company="${companyName}"`);
 
     const writeBack = {};
+    const writtenByField = {};   // field key -> value, for the details list
     let derivedLinkedinUrl = null;
 
     try {
@@ -616,6 +681,7 @@ async function syncOneConnection(env, linkfinderToken, record) {
           const email = extractStringValue(d, ['email']);
           if (email) {
             writeBack[settings.fields.email.hubspotProperty] = email;
+            writtenByField.email = email;
             filled.email++;
           } else {
             noMatch.email++;
@@ -636,6 +702,7 @@ async function syncOneConnection(env, linkfinderToken, record) {
           const url = extractStringValue(d, ['linkedin_url', 'linkedinUrl', 'url']);
           if (url && url.includes('linkedin.com')) {
             writeBack[settings.fields.linkedin_url.hubspotProperty] = url;
+            writtenByField.linkedin_url = url;
             filled.linkedin_url++;
             derivedLinkedinUrl = url;
           } else {
@@ -670,6 +737,7 @@ async function syncOneConnection(env, linkfinderToken, record) {
           const phone = extractStringValue(d, ['phone', 'mobileNumber']);
           if (phone) {
             writeBack[settings.fields.phone.hubspotProperty] = phone;
+            writtenByField.phone = phone;
             filled.phone++;
           } else {
             noMatch.phone++;
@@ -686,6 +754,13 @@ async function syncOneConnection(env, linkfinderToken, record) {
           body: JSON.stringify({ properties: writeBack }),
         });
         console.log(`[crm-sync] contact ${contact.id}: PATCH status ${patchResp.status}`, patchResp.ok ? '' : await patchResp.text().catch(() => ''));
+        // Only report a row once HubSpot accepted the write — a failed PATCH
+        // must not appear in the UI as data that landed.
+        if (patchResp.ok && details.length < DETAIL_CAP) {
+          for (const [fieldKey, value] of Object.entries(writtenByField)) {
+            details.push({ contactId: contact.id, name: fullName, company: companyName, field: fieldKey, value: value });
+          }
+        }
       }
     } catch (e) {
       console.error('[crm-sync] enrichment/write-back failed for contact', contact.id, e);
@@ -693,7 +768,8 @@ async function syncOneConnection(env, linkfinderToken, record) {
   }
 
   const filledTotal = filled.email + filled.linkedin_url + filled.phone;
-  const result = { processed: contacts.length, filled, filledTotal, skipped, attempted, noMatch };
+  const result = { processed: contacts.length, filled, filledTotal, skipped, attempted, noMatch, details,
+                   detailsTruncated: details.length >= DETAIL_CAP };
 
   await env.CRM_CONNECTIONS.put(`conn:${linkfinderToken}`, JSON.stringify({
     ...record,
@@ -778,6 +854,7 @@ export default {
     if (url.pathname === '/save-settings') return handleSaveSettings(request, env, origin);
     if (url.pathname === '/list-properties') return handleListProperties(request, env, origin);
     if (url.pathname === '/push-contacts') return handlePushContacts(request, env, origin);
+    if (url.pathname === '/audit-contacts') return handleAuditContacts(request, env, origin);
     if (url.pathname === '/disconnect') return handleDisconnect(request, env, origin);
     if (url.pathname === '/sync-now' || url.pathname === '/test-sync') {
       if (!env.ENRICH_SERVICE) {
