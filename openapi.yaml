@@ -1,216 +1,425 @@
 openapi: 3.0.3
 info:
   title: LinkFinder AI API
-  description: >
-    LinkFinder AI provides B2B lead generation, company enrichment,
-    LinkedIn/B2B data lookup, and Instagram lookup through a single
-    unified endpoint. Select the operation via the `type` field in
-    the request body.
-  version: "1.0.0"
+  description: 'LinkFinder AI turns a name, email, company, domain or LinkedIn URL into verified
+
+    contact and company data.
+
+
+    **One endpoint.** Every operation is a `POST /` with a `type` field selecting the
+
+    lookup. There are no per-operation paths — `type` is the discriminator.
+
+
+    ## Operations
+
+
+    | `type` | Credits | Input | Mode |
+
+    |---|---|---|---|
+
+    | `lead_full_name_to_linkedin_url` | 1 | Person''s full name and company, space-joined into one string
+    | sync |
+
+    | `email_to_linkedin_url` | 5 | A professional email address | sync |
+
+    | `linkedin_profile_to_email` | 10 | A LinkedIn person profile URL | sync |
+
+    | `linkedin_profile_to_phone` | 50 | A LinkedIn person profile URL | sync |
+
+    | `linkedin_profile_to_linkedin_info` | 10 | A LinkedIn person profile URL | async |
+
+    | `lead_full_name_to_email` | 7 | Person''s full name and company, space-joined into one string |
+    sync |
+
+    | `company_name_to_website` | 1 | A company name | sync |
+
+    | `company_name_to_email` | 1 | A company name | sync |
+
+    | `company_name_to_phone` | 1 | A company name | sync |
+
+    | `company_name_to_linkedin_url` | 1 | A company name | sync |
+
+    | `company_name_to_employee_count` | 1 | A company name | sync |
+
+    | `company_name_to_employees` | 1 | A company name | async |
+
+    | `company_domain_to_employees` | 1 | A company domain (not a name) | async |
+
+    | `linkedin_company_to_linkedin_info` | 6 | A LinkedIn company page URL | sync |
+
+    | `linkedin_company_to_employee_count` | 1 | A LinkedIn company page URL | sync |
+
+    | `linkedin_company_to_employees` | 1 | A LinkedIn company page URL | async |
+
+    | `linkedin_post_to_reactions` | 1 | A LinkedIn post URL | sync |
+
+    | `leads_finder_ai` | 1 | A natural-language description of the leads you want | async |
+
+    | `b2b_data_lookup` | 1 | Any company or person identifier when you don''t know its type | sync |
+
+    | `instagram_lookup` | 1 | An Instagram handle or profile URL | sync |
+
+
+    **Credits are charged per call, including calls that find nothing.** Cost varies by
+
+    operation from 1 to 50 credits — do not assume 1. Operations returning employee lists
+
+    are billed at 0.5 credits per employee returned rather than a flat fee.
+
+
+    ## Synchronous vs asynchronous
+
+
+    Most operations return `200` with the result inline. Some return `202` with a `job_id`
+
+    and `poll_url`; poll `GET /status/{job_id}` every ~2s until `status` is `done` or
+
+    `error`. `linkedin_profile_to_linkedin_info` is always async; any operation may return
+
+    `202` under load, so **always handle the 202 branch**. Job results expire after 10
+
+    minutes.
+
+
+    ## Errors
+
+
+    `401` invalid/missing key · `402` insufficient credits · `422` bad type or input ·
+
+    `429` rate limited · `5xx` retry in ~30s.
+
+    '
+  version: 1.1.0
   contact:
     name: LinkFinder AI Support
     url: https://linkfinderai.com
 servers:
-  - url: https://api.linkfinderai.com
-    description: Production API (single endpoint for all operations)
-
+- url: https://api.linkfinderai.com
+  description: Production
 security:
-  - bearerAuth: []
-
+- bearerAuth: []
 paths:
   /:
     post:
-      operationId: enrichmentRequest
-      summary: Unified enrichment endpoint
-      description: >
-        All LinkFinder AI operations go through this single endpoint.
-        The `type` field selects which lookup/enrichment is performed.
-        Every request costs 1 credit, including failed lookups where
-        no data is found. Most endpoints respond synchronously; some
-        (notably `linkedin_profile_to_linkedin_info`, and occasionally
-        `company_domain_to_employees` or any other endpoint under load)
-        return a 202 with a job_id/poll_url instead.
+      operationId: enrich
+      summary: Run an enrichment
+      description: Single entry point for all operations. Set `type` to choose one; see the table in the
+        API description for costs, inputs and sync/async mode.
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/EnrichmentRequest"
+              $ref: '#/components/schemas/EnrichmentRequest'
             examples:
-              companyWebsite:
-                summary: Find a company's website from its name
+              lead_full_name_to_linkedin_url:
+                summary: lead_full_name_to_linkedin_url (1 credit)
                 value:
-                  type: company_name_to_website
-                  input_data: Tesla
-              aiLeadFinder:
-                summary: Natural-language lead search
+                  type: lead_full_name_to_linkedin_url
+                  input_data: Bill Gates Microsoft
+              email_to_linkedin_url:
+                summary: email_to_linkedin_url (5 credits)
                 value:
-                  type: leads_finder_ai
-                  input_data: VP Sales at B2B SaaS startup in the United States
-                  fetch_count: 10
+                  type: email_to_linkedin_url
+                  input_data: john.doe@company.com
+              linkedin_profile_to_email:
+                summary: linkedin_profile_to_email (10 credits)
+                value:
+                  type: linkedin_profile_to_email
+                  input_data: https://www.linkedin.com/in/someone
+              linkedin_profile_to_phone:
+                summary: linkedin_profile_to_phone (50 credits)
+                value:
+                  type: linkedin_profile_to_phone
+                  input_data: https://www.linkedin.com/in/someone
+              linkedin_profile_to_linkedin_info:
+                summary: linkedin_profile_to_linkedin_info (10 credits)
+                value:
+                  type: linkedin_profile_to_linkedin_info
+                  input_data: https://www.linkedin.com/in/someone
+              lead_full_name_to_email:
+                summary: lead_full_name_to_email (7 credits)
+                value:
+                  type: lead_full_name_to_email
+                  input_data: Bill Gates Microsoft
       responses:
-        "200":
-          description: Successful synchronous response
+        '200':
+          description: Result returned inline
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/SuccessResponse"
-        "202":
-          description: >
-            Accepted — request is processing asynchronously. Always
-            returned for `linkedin_profile_to_linkedin_info`; may be
-            returned by any endpoint (most commonly
-            `company_domain_to_employees`) if it does not resolve
-            within ~27 seconds.
+                $ref: '#/components/schemas/SuccessResponse'
+        '202':
+          description: Accepted for async processing — poll /status/{job_id}
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/AsyncAcceptedResponse"
-        "401":
-          description: Unauthorized — missing or invalid API key
+                $ref: '#/components/schemas/AsyncAcceptedResponse'
+        '401':
+          description: Missing or invalid API key
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "402":
+                $ref: '#/components/schemas/ErrorResponse'
+        '402':
           description: Insufficient credits
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "422":
-          description: Invalid request — check `type` and `input_data`
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Unknown type or malformed input
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "429":
-          description: Rate limit exceeded — implement exponential backoff
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Rate limited
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "500":
-          description: Server error — retry after 30 seconds
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-
+                $ref: '#/components/schemas/ErrorResponse'
   /status/{job_id}:
     get:
-      operationId: pollAsyncJob
-      summary: Poll the status/result of an async job
-      description: >
-        Poll this endpoint using the `job_id` returned by a 202 response
-        until `status` is `done` or `error`. Job results expire after
-        10 minutes.
+      operationId: getJobStatus
+      summary: Poll an async job
+      description: Poll with the `job_id` from a 202 response until `status` is `done` or `error`. Results
+        expire 10 minutes after completion.
       parameters:
-        - name: job_id
-          in: path
-          required: true
-          schema:
-            type: string
-          description: The job_id returned in the original 202 response
+      - name: job_id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: job_id from the 202 response
       responses:
-        "200":
-          description: Job status/result
+        '200':
+          description: Job status or result
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/JobStatusResponse"
-        "404":
-          description: Job not found or expired (results expire after 10 minutes)
+                $ref: '#/components/schemas/JobStatusResponse'
+        '404':
+          description: Job not found or expired
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
-
+                $ref: '#/components/schemas/ErrorResponse'
 components:
   securitySchemes:
     bearerAuth:
       type: http
       scheme: bearer
-      description: >
-        Pass your API key as a Bearer token in the Authorization header
-        on every request. Never expose it client-side.
-
+      description: Your API key as a Bearer token. Server-side only — never expose it client-side.
   schemas:
     EnrichmentRequest:
       type: object
       required:
-        - type
-        - input_data
+      - type
+      - input_data
       properties:
         type:
           type: string
-          description: Selects which enrichment/lookup operation to perform.
+          description: Which operation to run. See the table in the API description for cost and input
+            format.
           enum:
-            - leads_finder_ai
-            - company_name_to_website
-            - company_domain_to_employees
-            - linkedin_profile_to_linkedin_info
-            - b2b_data_lookup
-            - instagram_lookup
+          - lead_full_name_to_linkedin_url
+          - email_to_linkedin_url
+          - linkedin_profile_to_email
+          - linkedin_profile_to_phone
+          - linkedin_profile_to_linkedin_info
+          - lead_full_name_to_email
+          - company_name_to_website
+          - company_name_to_email
+          - company_name_to_phone
+          - company_name_to_linkedin_url
+          - company_name_to_employee_count
+          - company_name_to_employees
+          - company_domain_to_employees
+          - linkedin_company_to_linkedin_info
+          - linkedin_company_to_employee_count
+          - linkedin_company_to_employees
+          - linkedin_post_to_reactions
+          - leads_finder_ai
+          - b2b_data_lookup
+          - instagram_lookup
         input_data:
           type: string
-          description: >
-            The input for the selected operation — e.g. a company name,
-            domain, LinkedIn URL, or a natural-language lead description
-            (for `leads_finder_ai`).
+          minLength: 1
+          description: The input, formatted for the chosen type. Name-based person lookups take full name
+            and company space-joined, e.g. "Bill Gates Microsoft".
         fetch_count:
           type: integer
-          description: >
-            Used only by `leads_finder_ai`. Number of matching leads to
-            return. Default 10, max 100.
           default: 10
           minimum: 1
           maximum: 100
-
+          description: '`leads_finder_ai` only — how many leads to return.'
+        department:
+          type: string
+          description: Employee-list operations only — filter by department.
+        seniority:
+          type: string
+          description: Employee-list operations only — filter by seniority.
+        employee_count:
+          type: integer
+          minimum: 1
+          description: Employee-list operations only — cap how many employees to return. Billed 0.5 credits
+            each.
     SuccessResponse:
       type: object
       properties:
         status:
           type: string
-          enum: [success]
+          enum:
+          - success
         result:
           type: object
           nullable: true
-          description: >
-            The enrichment result. May be null if no data was found
-            (the request still costs 1 credit).
-
+          description: The data found. `null` when nothing was found — the call is still charged.
     AsyncAcceptedResponse:
       type: object
       properties:
         status:
           type: string
-          enum: [processing]
+          enum:
+          - processing
         job_id:
           type: string
-          description: Use this to poll /status/{job_id}
         poll_url:
           type: string
           format: uri
-          description: Full URL to poll for the result
-
     JobStatusResponse:
       type: object
       properties:
         status:
           type: string
-          enum: [processing, done, error]
+          enum:
+          - processing
+          - done
+          - error
         result:
           type: object
           nullable: true
-          description: Present once status is "done"
-
+        message:
+          type: string
     ErrorResponse:
       type: object
       properties:
         status:
           type: string
-          enum: [error]
+          enum:
+          - error
         message:
           type: string
-          description: Human-readable error description
+x-linkfinder-operations:
+  lead_full_name_to_linkedin_url:
+    credits: 1
+    input: Person's full name and company, space-joined into one string.
+    example: Bill Gates Microsoft
+    async: false
+    note: Most-used operation. 348 users / 10,140 calls in the last 30 days.
+  email_to_linkedin_url:
+    credits: 5
+    input: A professional email address.
+    example: john.doe@company.com
+    async: false
+  linkedin_profile_to_email:
+    credits: 10
+    input: A LinkedIn person profile URL.
+    example: https://www.linkedin.com/in/someone
+    async: false
+  linkedin_profile_to_phone:
+    credits: 50
+    input: A LinkedIn person profile URL.
+    example: https://www.linkedin.com/in/someone
+    async: false
+    note: Most expensive operation — surface the cost before calling it.
+  linkedin_profile_to_linkedin_info:
+    credits: 10
+    input: A LinkedIn person profile URL.
+    example: https://www.linkedin.com/in/someone
+    async: true
+    note: ALWAYS asynchronous — returns 202 with a job_id.
+  lead_full_name_to_email:
+    credits: 7
+    input: Person's full name and company, space-joined into one string.
+    example: Bill Gates Microsoft
+    async: false
+  company_name_to_website:
+    credits: 1
+    input: A company name.
+    example: Tesla
+    async: false
+  company_name_to_email:
+    credits: 1
+    input: A company name.
+    example: Tesla
+    async: false
+  company_name_to_phone:
+    credits: 1
+    input: A company name.
+    example: Tesla
+    async: false
+  company_name_to_linkedin_url:
+    credits: 1
+    input: A company name.
+    example: Tesla
+    async: false
+  company_name_to_employee_count:
+    credits: 1
+    input: A company name.
+    example: Tesla
+    async: false
+  company_name_to_employees:
+    credits: 1
+    input: A company name.
+    example: Tesla
+    async: true
+    note: Billed at 0.5 credits per employee returned, not a flat fee.
+  company_domain_to_employees:
+    credits: 1
+    input: A company domain (not a name).
+    example: tesla.com
+    async: true
+    note: Billed at 0.5 credits per employee returned. Accepts department, seniority and employee_count
+      filters.
+  linkedin_company_to_linkedin_info:
+    credits: 6
+    input: A LinkedIn company page URL.
+    example: https://www.linkedin.com/company/tesla-motors
+    async: false
+  linkedin_company_to_employee_count:
+    credits: 1
+    input: A LinkedIn company page URL.
+    example: https://www.linkedin.com/company/tesla-motors
+    async: false
+  linkedin_company_to_employees:
+    credits: 1
+    input: A LinkedIn company page URL.
+    example: https://www.linkedin.com/company/tesla-motors
+    async: true
+    note: Billed at 0.5 credits per employee returned.
+  linkedin_post_to_reactions:
+    credits: 1
+    input: A LinkedIn post URL.
+    example: https://www.linkedin.com/posts/someone_activity-123
+    async: false
+  leads_finder_ai:
+    credits: 1
+    input: A natural-language description of the leads you want. Use fetch_count to set how many.
+    example: VP Sales at B2B SaaS startups in the United States
+    async: true
+    note: Set fetch_count (default 10, max 100). Returns full profiles.
+  b2b_data_lookup:
+    credits: 1
+    input: Any company or person identifier when you don't know its type. Prefer a specific operation
+      when you do.
+    example: tesla.com
+    async: false
+    note: General-purpose fallback — less reliable than a specific type.
+  instagram_lookup:
+    credits: 1
+    input: An Instagram handle or profile URL.
+    example: '@nasa'
+    async: false
