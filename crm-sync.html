@@ -257,8 +257,9 @@ table.gaps tfoot td{font-weight:700;color:var(--gray-900);border-top:2px solid v
             <p style="font-size:.87rem;color:var(--gray-600);margin-bottom:1rem;">
                 We read your contacts and score what is missing &mdash; no export, no file to keep track of, and the check stays one click away from then on.
             </p>
-            <a href="#" class="btn-primary" onclick="connectHubspot();return false;">
+            <a href="#" class="btn-primary" id="healthConnectBtn" onclick="connectHubspot();return false;">
                 <i class="fab fa-hubspot"></i> Connect HubSpot</a>
+            <div id="healthConnectState"></div>
             <div style="font-size:.78rem;color:var(--gray-400);margin-top:.7rem;">
                 Read-only for the check. Nothing is written and no credits are spent. Disconnect any time.
             </div>
@@ -1203,9 +1204,12 @@ function refreshBothStages(){
  * would put an await between the click and the popup, and Safari blocks it.
  */
 async function connectHubspot(){
-    const btn = document.getElementById('connectBtn') || document.getElementById('cleanConnectBtn');
+    const btn = document.getElementById('connectBtn')
+        || document.getElementById('cleanConnectBtn')
+        || document.getElementById('healthConnectBtn');
     if(btn){ btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Opening&hellip;'; }
     track('sync_connect_started', 'hubspot');
+    renderHealthConnect(null);
 
     let connectUI;
     try{
@@ -1251,6 +1255,7 @@ async function connectHubspot(){
         });
     }catch(e){
         renderSync('error');
+        renderHealthConnect('error');
         return;
     }
 
@@ -1271,6 +1276,7 @@ async function connectHubspot(){
             // never managed to ask - go straight to the honest message.
             renderSync('unverified');
             renderClean('unverified');
+            renderHealthConnect('unverified');
             track('sync_connect_unverified', 'subscriber_check_unreachable');
         }else if(res.status === 403){
             // A 403 means the worker's isSubscriber() said no. That check fails
@@ -1283,6 +1289,7 @@ async function connectHubspot(){
             const err = { error: res.data && res.data.error };
             renderSync('error', err);
             renderClean('error', err);
+            renderHealthConnect('error', err);
             track('sync_connect_failed', String(res.status));
         }
         return;
@@ -1301,6 +1308,7 @@ async function confirmNotSubscribed(){
     // whatever it showed before, so the click reads as having done nothing.
     renderSync('checking');
     renderClean('checking');
+    renderHealthConnect('checking');
 
     let d = null;
     try{
@@ -1314,12 +1322,14 @@ async function confirmNotSubscribed(){
     if(d && d.issub === true){
         renderSync('mismatch', d);
         renderClean('mismatch', d);
+        renderHealthConnect('mismatch', d);
         track('sync_gate_mismatch', String(d.plan || 'unknown_plan'));
         return;
     }
 
     renderSync('locked');
     renderClean('locked');
+    renderHealthConnect('locked');
     track('sync_connect_blocked','plan_required');
 }
 
@@ -1367,6 +1377,39 @@ document.addEventListener('DOMContentLoaded',()=>{
 });
 
 
+
+
+/* Connect can be started from CRM Health too, but every failure path below
+ * writes into #syncState / #cleanState, which sit in other tabs. Rendering
+ * only there means a failed click from Health looks like nothing happened —
+ * so mirror the message here as well. */
+function renderHealthConnect(state, data){
+    const el = document.getElementById('healthConnectState');
+    if(!el) return;
+    const btn = document.getElementById('healthConnectBtn');
+    if(btn) btn.innerHTML = '<i class="fab fa-hubspot"></i> Connect HubSpot';
+
+    if(state === 'checking'){
+        el.innerHTML = '<div class="sync-loading" style="margin-top:.75rem;">'
+            + '<i class="fas fa-circle-notch fa-spin"></i> Checking your plan&hellip;</div>';
+        return;
+    }
+    if(state === 'locked'){
+        el.innerHTML = '<div class="sync-locked" style="margin-top:.75rem;">'
+            + '<i class="fas fa-lock" style="margin-right:.4rem;"></i>'
+            + 'Connecting a CRM is included on any paid plan. The CSV check below stays free.</div>'
+            + '<a href="#" class="btn-primary" style="margin-top:.75rem;" onclick="goUpgrade(\'sync\');return false;">See plans</a>';
+        return;
+    }
+    if(state === 'mismatch' || state === 'unverified' || state === 'error'){
+        const why = (data && data.error)
+            || (state === 'unverified' ? 'We could not verify your plan just now. Try again in a moment.'
+                                       : 'Could not start the HubSpot connection. Try again.');
+        el.innerHTML = '<div class="err" style="margin-top:.75rem;">' + why + '</div>';
+        return;
+    }
+    el.innerHTML = '';
+}
 
 /* ── Deduplication ────────────────────────────────────────────────
  * Same connection states as the sync. There is no server-side merge
