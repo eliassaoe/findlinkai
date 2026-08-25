@@ -1180,6 +1180,7 @@ async function refreshSyncState(){
 function refreshBothStages(){
     refreshSyncState();
     refreshCleanState();
+    refreshDedupeState();
 }
 
 /*
@@ -1348,10 +1349,52 @@ window.connectHubspot=connectHubspot; window.disconnectHubspot=disconnectHubspot
 
 document.addEventListener('DOMContentLoaded',()=>{
     checkAuth(); fetchCredits();
-    refreshSyncState(); refreshCleanState();
+    refreshSyncState(); refreshCleanState(); refreshDedupeState();
     try{ posthog.capture('crm_sync_page_viewed'); }catch(e){}
 });
 
+
+
+/* ── Deduplication ────────────────────────────────────────────────
+ * Same connection states as the sync. There is no server-side merge
+ * endpoint yet, so a connected account is told plainly rather than
+ * shown numbers we cannot compute.
+ */
+function renderDedupe(state, data){
+    const el = document.getElementById('dedupeState');
+    if(!el) return;
+
+    if(state === 'connected'){
+        el.innerHTML =
+            '<div class="sync-connected">' +
+                '<i class="fas fa-circle-check badge"></i>' +
+                '<div class="sync-connected-text"><strong>HubSpot is connected</strong>' +
+                'Merging duplicates in place is not switched on yet. Until it is, run a health check ' +
+                'above &mdash; it counts the duplicate names and email addresses in your contacts.' +
+                '</div>' +
+            '</div>' +
+            '<a href="#" class="btn-ghost" style="margin-top:1rem;" onclick="showCrmPanel(\'health\');return false;">' +
+            '<i class="fas fa-heart-pulse"></i> Go to CRM Health</a>';
+        return;
+    }
+    if(state === 'error'){
+        const why = (data && data.error) || 'Could not reach the connection service.';
+        el.innerHTML = '<div class="err">' + why + '</div>' +
+            '<a href="#" class="btn-ghost" style="margin-top:1rem;" onclick="connectHubspot();return false;">Try again</a>';
+        return;
+    }
+    el.innerHTML =
+        '<a href="#" class="btn-primary" onclick="connectHubspot();return false;">' +
+        '<i class="fab fa-hubspot"></i> Connect HubSpot</a>' +
+        '<div style="font-size:.78rem;color:var(--gray-400);margin-top:.7rem;">' +
+        'Or run a health check on a CSV export &mdash; it counts duplicates without connecting anything.</div>';
+}
+
+async function refreshDedupeState(){
+    const res = await nangoCall('status');
+    if(!res.ok){ renderDedupe('error'); return; }
+    renderDedupe(res.data.connected ? 'connected' : 'disconnected', res.data);
+}
 
 /* ── Health check straight from the connected CRM ──────────────────
  * The audit engine already accepts an array of objects (see the
@@ -1416,6 +1459,17 @@ async function refreshLiveAudit(){
         p.style.cssText = 'font-size:.82rem;color:var(--gray-600);margin-top:-.5rem;margin-bottom:1rem;';
         p.textContent = 'Or audit a file instead — useful for a CRM you have not connected.';
         drop.insertBefore(p, drop.children[1]);
+    }
+    // Not connected: the CSV drop is the only way in, so say that connecting
+    // removes the export step rather than leaving it as the only option.
+    const offer = document.getElementById('healthConnectOffer');
+    if(!on && drop && !offer){
+        const d = document.createElement('div');
+        d.id = 'healthConnectOffer';
+        d.style.cssText = 'font-size:.82rem;color:var(--gray-600);margin-top:1rem;';
+        d.innerHTML = 'Connected your CRM? Skip the export &mdash; ' +
+            '<a href="#" onclick="connectHubspot();return false;">connect HubSpot</a> and we read the contacts directly.';
+        drop.appendChild(d);
     }
 }
 
