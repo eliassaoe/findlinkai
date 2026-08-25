@@ -1,79 +1,133 @@
-# Add an `audit-contacts` route so connected customers skip the CSV export
+# Add `/audit-contacts` — and fix the subscriber gate that is still refusing everyone
 
-**Status:** front-end is live and calls this route already. Until the route
-exists the worker returns 404, and the page says so and falls back to the CSV
-drop — nothing is broken in the meantime.
+**Verified against the live worker source on 25 Aug** via `workers_get_worker_code`,
+not inferred. Strings below are exact.
 
-## Why
+---
 
-CRM Health only accepted a CSV export because the audit began life as a
-no-signup lead magnet (`crm-audit.html`), where a file drop is the whole point:
-*"your file never leaves this browser."* That is still right for cold traffic.
+## PART 1 — the live bug, which matters more than the new route
 
-For a customer who has **already connected HubSpot**, asking them to export a
-CSV is pure friction — we can read the contacts we already have access to.
-
-The connection is **left in place** after the check. Users who have taken any
-integration action retain at 8.1% vs 1.4% for app-only (30-day active, 120-day
-cohort, n=62 vs 934). Auto-disconnecting after an audit would deliberately
-destroy the thing that predicts retention best.
-
-## What the front-end already does
-
-`crm-sync.html` → `runLiveAudit()`:
+`isSubscriber` is declared with two parameters:
 
 ```js
-const res = await nangoCall('audit-contacts');   // POST {token}
-const rows = res.data.contacts || res.data.rows || [];
-LFCrmAudit.analyse(rows, { fields: activeFields, alwaysPlan: true });
+async function isSubscriber(env, token) {
 ```
 
-`analyse()` already accepts an array of plain objects — see its
-`"Array of objects (HubSpot API path)"` branch. No client change is needed once
-this route ships.
+`handleConnectSession` calls it correctly:
 
-## Contract
+```js
+if (!(await isSubscriber(env, token))) return json({ error: NOT_SUBSCRIBER_ERROR }, 403, origin);
+```
 
-`POST /audit-contacts` with `{ token }`.
+**Two call sites still pass one argument**, exactly as `SUBSCRIBER-GATE-PATCH.md`
+described — that patch never fully landed and the deployed worker still has it:
 
-**200** — an array of contact objects. Keys become the header row, so use the
-same HubSpot property names the sync already maps (`HUBSPOT_PROPERTY` in
-`crm-sync.html`: `email`, `linkedinbio`, `phone`), plus name and company:
+```js
+// handlePushContacts
+if (!(await isSubscriber(token))) return json({ error: NOT_SUBSCRIBER_ERROR }, 403, origin);
+
+// syncOneConnection
+if (!(await isSubscriber(linkfinderToken))) {
+```
+
+In both, `env` receives the token string and `token` is `undefined`. So
+`env.SUBSCRIBER_SERVICE` is `undefined`, the fallback `{ fetch }` does a plain
+fetch to `upgrade-intent.hamoureliasse.workers.dev`, that is a same-account
+Worker-to-Worker call over a public `workers.dev` hostname — **Cloudflare error
+1042** — the `catch` fires, and the function returns `false`.
+
+`isSubscriber` fails closed by design, so the effect is:
+
+- **`/push-contacts` returns 403 for every customer, including subscribers.**
+- **The weekly cron sync skips every connection, every week, silently** — it just
+  logs `not a subscriber, skipping sync`.
+
+The CRM sync has therefore never run for anyone. That is the most likely reason
+there is 1 HubSpot connection in 90 days and no usage behind it.
+
+**Fix — two characters each:**
+
+```js
+if (!(await isSubscriber(env, token)))            // handlePushContacts
+if (!(await isSubscriber(env, linkfinderToken)))  // syncOneConnection
+```
+
+`syncOneConnection(env, linkfinderToken, record)` already receives `env`, so
+nothing else needs threading. Do this before shipping anything below.
+
+---
+
+## PART 2 — the new route
+
+`crm-sync.html` already calls it; until it exists the worker returns its normal
+`{ error: 'Not found' }` 404, the page says so, and the CSV drop still works.
+
+### Why
+
+CRM Health only took a CSV because the audit began as a no-signup lead magnet.
+For someone who has already connected HubSpot, asking for an export is pure
+friction. The connection is **left in place** afterwards: accounts that take any
+integration action are active at 8.1% at 30 days versus 1.4% for app-only
+(120-day cohort, n=62 vs 934). Auto-disconnecting would destroy the best
+retention signal in the data.
+
+### Contract
+
+`POST /audit-contacts` with `{ token }` → an array of contact objects. Keys
+become the header row; `analyse()` in `js/lf-crm-audit.js` already accepts this
+shape (its `"Array of objects (HubSpot API path)"` branch), so no client change
+is needed.
 
 ```json
 { "contacts": [
     { "firstname": "Sarah", "lastname": "Chen", "email": "s@microsoft.com",
       "company": "Microsoft", "jobtitle": "VP Sales",
       "phone": "", "linkedinbio": "" }
-] }
+  ],
+  "sampled": 5000, "total": 42000 }
 ```
 
-Empty strings, not `null` — `isBlank()` treats both as missing, but empty string
-keeps the column present so `detectColumns()` can see it.
+Empty strings rather than `null` — `isBlank()` treats both as missing, but the
+key must be present for `detectColumns()` to see the column at all.
 
-**Errors:** reuse the existing shapes — `401` bad token, `402` not entitled,
-`404` route absent (handled), `5xx` upstream. Include `{ "error": "..." }`;
-the page surfaces it verbatim.
+### Implementation
 
-## Implementation notes
+It is close to `syncOneConnection`'s search step with the enrichment removed:
 
-- **Read-only.** This route must never write. Reuse the connection
-  `handlePushContacts` already resolves, but call only HubSpot's read endpoints.
-- **No credits.** Scanning is free; the page states this. Do not decrement.
-- **Cap the read.** Take the first ~5,000 contacts. The score is a rate, so a
-  large sample is representative, and it bounds worker CPU and HubSpot rate
-  limit burn. Return the count you actually read so the page can say
+```js
+async function handleAuditContacts(request, env, origin) {
+  const { token } = await request.json().catch(() => ({}));
+  if (!token) return json({ error: 'Missing token' }, 400, origin);
+  if (!(await isSubscriber(env, token))) return json({ error: NOT_SUBSCRIBER_ERROR }, 403, origin);
+
+  const raw = await env.CRM_CONNECTIONS.get(`conn:${token}`);
+  if (!raw) return json({ error: 'No HubSpot connection found for this token. Connect it first.' }, 404, origin);
+  const { connectionId } = JSON.parse(raw);
+  // page /crm/v3/objects/contacts with `after`, limit 100, cap at 5000
+  // properties: firstname,lastname,email,company,jobtitle,phone,linkedinbio,website
+  // flatten each result's `properties` into a plain object, '' for missing
+}
+```
+
+Then register it alongside the others:
+
+```js
+if (url.pathname === '/audit-contacts') return handleAuditContacts(request, env, origin);
+```
+
+- **Read-only.** Never PATCH or POST to HubSpot from this route.
+- **No credits.** Scanning is free and the page says so — never call `ENRICH_SERVICE`.
+- **Cap at 5,000**, paginating with HubSpot's `after` cursor. The score is a rate,
+  so a sample is representative; return `sampled` and `total` so the page can say
   "sampled 5,000 of 42,000".
-- **Paginate** with HubSpot's `after` cursor until the cap.
-- **Gate it the same way as the other routes.** Check `isSubscriber(env, token)`
-  exactly as `handleConnectSession` does — see `SUBSCRIBER-GATE-PATCH.md` for
-  the two call sites that previously got this wrong.
+- Use `/crm/v3/objects/contacts` (plain list), not `/search` — no filter is needed
+  and list paging is cheaper against HubSpot's rate limit.
 
-## Verify after deploy
+### Verify after deploy
 
-1. Connected account → CRM Health shows **Check your connected CRM**; the button
-   scores real contacts and the CSV drop stays available underneath.
-2. Disconnected account → the card stays hidden, CSV path unchanged.
-3. Route removed → page shows the "not switched on yet" notice, no console error.
-4. `crm_audit_started {source:'connection'}` and `crm_audit_completed` fire in
-   PostHog, distinguishable from the CSV path.
+1. Subscriber with a connection → **Check your connected CRM** scores real contacts.
+2. Subscriber **without** a connection → card hidden, CSV path unchanged.
+3. Non-subscriber → 403, page shows the upgrade message.
+4. `crm_audit_started {source:'connection'}` fires, distinct from the CSV path.
+5. **Part 1 regression check:** `/sync-now` on a subscriber no longer returns
+   "not a subscriber", and the Monday cron logs a non-zero `processed`.
