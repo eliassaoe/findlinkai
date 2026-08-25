@@ -232,6 +232,14 @@ td.empty{color:var(--faint)}
   .ghost-head span:nth-child(n+4),.ghost-row > i:nth-child(n+4){display:none}
 }
 
+.locked.unlocked .behind{filter:none;opacity:1;pointer-events:auto;user-select:auto}
+.locked.unlocked .gate{display:none}
+.conn-bar{display:flex;align-items:center;gap:10px;max-width:1080px;margin:20px auto -8px;
+  padding:10px 14px;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:10px;
+  font-size:13.5px;color:#065f46}
+.cb-dot{width:7px;height:7px;border-radius:50%;background:var(--ok);flex:none}
+.cb-text{font-weight:600}
+.cb-link{margin-left:auto;color:var(--ok);font-weight:600;text-decoration:underline}
 .burger{display:none}
 @media (max-width:900px){
   .rail{position:fixed;left:0;top:0;bottom:0;transform:translateX(-100%);transition:transform .25s}
@@ -308,9 +316,9 @@ td.empty{color:var(--faint)}
 
   <div class="rail-foot">
     <div class="promo">
-      <div class="credits"><span>Credits left</span><b>3,712</b></div>
-      <div class="meter"><i></i></div>
-      <p style="margin-top:10px">Resets in 9 days on your Starter plan.</p>
+      <div class="credits"><span>Credits left</span><b id="creditsCount">—</b></div>
+      <div class="meter"><i id="creditsMeter" style="width:0"></i></div>
+      <p style="margin-top:10px" id="creditsNote">Loading your balance…</p>
       <a class="btn btn-soft" style="width:100%;height:34px" href="/pricing.html">Add credits</a>
     </div>
   </div>
@@ -347,6 +355,11 @@ td.empty{color:var(--faint)}
   </div>
 
   <div class="scroll">
+    <div class="conn-bar" id="connBar" hidden>
+      <span class="cb-dot"></span>
+      <span class="cb-text">CRM connected</span>
+      <a class="cb-link" href="/crm-sync.html">Manage connection</a>
+    </div>
 
     <!-- ══ TAB 1 · Enrich now ══ -->
     <section class="panel active" id="tab-now" role="tabpanel">
@@ -503,38 +516,129 @@ td.empty{color:var(--faint)}
 </main>
 
 <script>
-(function(){
-  var rail=document.getElementById('rail'), burger=document.getElementById('burger');
-  burger.addEventListener('click',function(e){e.stopPropagation();rail.classList.toggle('open');});
-  document.addEventListener('click',function(e){ if(rail.classList.contains('open')&&!rail.contains(e.target)) rail.classList.remove('open'); });
-  document.addEventListener('keydown',function(e){ if(e.key==='Escape') rail.classList.remove('open'); });
+/*
+ * Live state, using the same contracts crm-sync.html already speaks:
+ *   POST {NANGO_WORKER}/status  {token}  -> { connected: bool, ... }
+ *   POST {CREDITS_WORKER}/      {token}  -> { credits: number }
+ * The four tabs render blurred-behind-a-gate until /status says connected.
+ */
+const NANGO_WORKER   = 'https://nango-connect-session.hamoureliasse.workers.dev';
+const CREDITS_WORKER = 'https://linkfinderaicredits.hamoureliasse.workers.dev/';
+const PLAN_CREDITS   = { 1:5000, 2:20000, 3:50000 };
 
-  var tabs=[].slice.call(document.querySelectorAll('.tab'));
+let userToken = null;
+const urlParams = new URLSearchParams(window.location.search);
+
+function checkAuth(){
+  const token = urlParams.get('token') || localStorage.getItem('linkFinderToken');
+  if(!token){ window.location.href = 'https://linkfinderai.com/'; return false; }
+  localStorage.setItem('linkFinderToken', token);
+  userToken = token;
+  if(window.posthog) posthog.identify(token);
+  return true;
+}
+
+async function post(url, body){
+  try{
+    const r = await fetch(url, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(Object.assign({ token:userToken }, body || {}))
+    });
+    return { ok:r.ok, status:r.status, data: await r.json().catch(()=>({})) };
+  }catch(e){
+    return { ok:false, status:0, data:{ error:'Could not reach the service.' } };
+  }
+}
+
+async function loadCredits(){
+  const res = await post(CREDITS_WORKER);
+  const el = document.getElementById('creditsCount');
+  const note = document.getElementById('creditsNote');
+  const meter = document.getElementById('creditsMeter');
+  if(!res.ok){ el.textContent = '—'; note.textContent = 'Balance unavailable right now.'; return; }
+  const credits = Math.max(0, res.data.credits || 0);
+  el.textContent = credits.toLocaleString();
+  const allowance = PLAN_CREDITS[res.data.plan_type] || null;
+  if(allowance){
+    meter.style.width = Math.min(100, (credits/allowance)*100) + '%';
+    note.textContent = credits.toLocaleString() + ' of ' + allowance.toLocaleString() + ' remaining.';
+  } else {
+    meter.style.width = credits > 0 ? '100%' : '0';
+    note.textContent = credits > 0 ? 'Credit balance.' : 'No credits left.';
+  }
+}
+
+/* Unlock every tab at once — connection is account-wide, not per section. */
+function applyConnection(connected, data){
+  document.querySelectorAll('.locked').forEach(function(box){
+    box.classList.toggle('unlocked', !!connected);
+  });
+  const bar = document.getElementById('connBar');
+  if(connected){
+    bar.hidden = false;
+    bar.querySelector('.cb-text').textContent =
+      (data && data.provider ? data.provider : 'CRM') + ' connected'
+      + (data && data.last_sync_at ? ' · last sync ' + timeAgo(data.last_sync_at) : '');
+  } else {
+    bar.hidden = true;
+  }
+}
+
+function timeAgo(iso){
+  const secs = Math.floor((Date.now() - new Date(iso).getTime())/1000);
+  if(isNaN(secs)) return '';
+  if(secs < 60)    return 'just now';
+  if(secs < 3600)  return Math.floor(secs/60) + ' min ago';
+  if(secs < 86400) return Math.floor(secs/3600) + ' hr ago';
+  return Math.floor(secs/86400) + ' day(s) ago';
+}
+
+async function refreshConnection(){
+  const res = await post(NANGO_WORKER + '/status');
+  if(!res.ok){ applyConnection(false); return; }
+  applyConnection(!!res.data.connected, res.data);
+  if(window.posthog) posthog.capture('crm_enrichment_page_viewed', { connected: !!res.data.connected });
+}
+
+(function init(){
+  const rail = document.getElementById('rail'), burger = document.getElementById('burger');
+  burger.addEventListener('click', function(e){ e.stopPropagation(); rail.classList.toggle('open'); });
+  document.addEventListener('click', function(e){
+    if(rail.classList.contains('open') && !rail.contains(e.target)) rail.classList.remove('open');
+  });
+  document.addEventListener('keydown', function(e){ if(e.key === 'Escape') rail.classList.remove('open'); });
+
+  const tabs = [].slice.call(document.querySelectorAll('.tab'));
   tabs.forEach(function(t){
-    t.addEventListener('click',function(){
-      tabs.forEach(function(x){x.classList.remove('active');x.setAttribute('aria-selected','false');});
+    t.addEventListener('click', function(){
+      tabs.forEach(function(x){ x.classList.remove('active'); x.setAttribute('aria-selected','false'); });
       t.classList.add('active'); t.setAttribute('aria-selected','true');
-      document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active');});
-      var id='tab-'+t.dataset.tab;
-      document.getElementById(id).classList.add('active');
-      if(window.posthog) posthog.capture('crm_tab_viewed',{tab:t.dataset.tab});
+      document.querySelectorAll('.panel').forEach(function(p){ p.classList.remove('active'); });
+      document.getElementById('tab-' + t.dataset.tab).classList.add('active');
+      if(window.posthog) posthog.capture('crm_tab_viewed', { tab: t.dataset.tab });
     });
   });
 
   document.querySelectorAll('[data-connect]').forEach(function(b){
-    b.addEventListener('click',function(){
-      var p=b.getAttribute('data-connect'), tab=b.closest('.panel').id.replace('tab-','');
-      if(window.posthog) posthog.capture('crm_connect_started',{provider:p,tab:tab});
-      window.location.href='/crm-sync.html?provider='+encodeURIComponent(p);
+    b.addEventListener('click', function(){
+      const p = b.getAttribute('data-connect');
+      const tab = b.closest('.panel').id.replace('tab-','');
+      if(window.posthog) posthog.capture('crm_connect_started', { provider:p, tab:tab });
+      window.location.href = '/crm-sync.html?provider=' + encodeURIComponent(p)
+        + (userToken ? '&token=' + encodeURIComponent(userToken) : '');
     });
   });
   document.querySelectorAll('[data-notify]').forEach(function(b){
-    b.addEventListener('click',function(){
-      if(window.posthog) posthog.capture('crm_connector_requested',{provider:b.getAttribute('data-notify')});
-      b.textContent="We'll email you"; b.disabled=true; b.style.opacity=.6; b.style.cursor='default';
+    b.addEventListener('click', function(){
+      if(window.posthog) posthog.capture('crm_connector_requested', { provider:b.getAttribute('data-notify') });
+      b.textContent = "We'll email you"; b.disabled = true;
+      b.style.opacity = .6; b.style.cursor = 'default';
     });
   });
-  if(window.posthog) posthog.capture('crm_enrichment_page_viewed');
+
+  if(!checkAuth()) return;
+  loadCredits();
+  refreshConnection();
 })();
 </script>
 </body>
