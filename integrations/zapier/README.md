@@ -23,6 +23,17 @@ npm run validate  # zapier validate — needs the Zapier CLI and a login
 sample output) or `openapi.json` (operations, credits, async) and re-run the build —
 never hand-edit a file under `searches/`.
 
+## Why package.json pins `@types/node`
+
+`zapier-platform-cli` pulls in `mem-fs`, which wants `@types/node@^15`, while the
+`@inquirer/*` packages alongside it peer-depend on `>=18`. npm resolves that to a
+lockfile it then refuses to install: `npm ci` fails with *"lock file's
+@types/node@15.14.9 does not satisfy @types/node@26.3.0"*.
+
+The `overrides` entry forces one version and makes `npm ci` deterministic. These are
+type declarations with no runtime behaviour, so pinning them cannot affect the app —
+and CI runs `npm ci`, so without it nothing here builds on a clean machine.
+
 ## Credits
 
 Each search states its real cost in its description, from the catalog. They are not all
