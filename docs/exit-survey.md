@@ -71,6 +71,48 @@ Answers are also POSTed to `linkfinder-request-feature` as
 them and forwards to n8n. That call is fire-and-forget and never blocks the
 cancel button.
 
+## Trying it without cancelling
+
+From the browser console on `/account`:
+
+```js
+lfPreview.survey()          // jump straight to the three questions
+lfPreview.survey('inline')  // cancel button under every question
+lfPreview.survey('gate')    // cancel button on the screen after (shipping)
+lfPreview.cancel()          // the whole flow from the reason grid
+lfPreview.compare()         // what each layout costs in clicks
+lfPreview.answers()         // what has been answered so far
+lfPreview.off()
+```
+
+Or by URL: `/account?token=…&preview=survey&variant=inline`.
+
+Works on any account, subscriber or not. While preview is on **nothing leaves
+the browser** — PostHog captures, the feedback email, the cancel worker and the
+pause/discount offers are all replaced by console logs prefixed `[preview]`, so
+you can read the exact payloads that would have been sent. A yellow banner sits
+at the top of the modal the whole time.
+
+The layout override lasts until the page reloads. `EXIT_SURVEY_LAYOUT` in
+`account.html` is what actually ships.
+
+## Two layouts
+
+| | `gate` (shipping) | `inline` |
+| --- | --- | --- |
+| cancel button | on the screen after the survey | under every question |
+| clicks to cancel without answering | 5 | 2 |
+| reachable mid-survey | no | yes |
+
+`gate` gets more answers. `inline` cannot be read as standing between someone
+and their cancellation, which is the thing consumer-protection rules
+(ROSCA's "simple mechanism", California's ARL) actually look at — and the extra
+clicks in `gate` buy less than they look like they do, since anyone who does not
+want to answer just clicks Skip three times.
+
+Either way `exit_survey_completed` carries a `layout` property, so the two are
+comparable if you ever run both.
+
 ## Rules
 
 **Every question is skippable and the cancel button is always the next

@@ -385,6 +385,7 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
 <div id="cancellationModal" class="modal-overlay">
   <div class="cancellation-modal">
     <button class="modal-close" onclick="closeCancellationModal()"><i class="fas fa-times"></i></button>
+    <div id="previewBanner" style="display:none;"></div>
     <div class="flow-step active" id="step1">
       <div class="flow-header">
         <h2>We're sad to see you go 😢</h2>
@@ -443,7 +444,15 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
       <div id="exitSurveyBody"></div>
       <div class="survey-nav">
         <button class="survey-link" id="surveyBackBtn" onclick="exitSurveyBack()"><i class="fas fa-arrow-left"></i> Back</button>
-        <button class="survey-link" onclick="exitSurveySkip()">Skip this question</button>
+        <button class="survey-link" id="surveySkipBtn" onclick="exitSurveySkip()">Skip this question</button>
+      </div>
+      <!-- Only rendered in the 'inline' layout: cancelling stays one click away
+           for the whole survey, so no question is ever standing in the way. -->
+      <div id="surveyCancelFooter" style="display:none;border-top:1px solid var(--gray-200);margin-top:1.25rem;padding-top:1rem;">
+        <button class="btn btn-danger js-confirm-cancel" onclick="exitSurveyCancelNow()" style="width:100%;display:flex;justify-content:center;">
+          <i class="fas fa-times-circle"></i> Cancel my subscription
+        </button>
+        <p style="font-size:.72rem;color:var(--gray-400);margin-top:.5rem;text-align:center;">You can cancel at any point — answering is optional.</p>
       </div>
     </div>
 
@@ -454,7 +463,7 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
       </div>
       <div style="background:var(--gray-50);border:1px solid var(--gray-200);border-radius:10px;padding:1.25rem;margin-top:1rem;text-align:center;">
         <p style="font-size:.875rem;color:var(--gray-600);margin-bottom:1rem;">Your subscription will remain active until the end of your current billing period.</p>
-        <button id="confirmCancelBtn" class="btn btn-danger" onclick="confirmCancel()" style="width:100%;display:flex;justify-content:center;">
+        <button id="confirmCancelBtn" class="btn btn-danger js-confirm-cancel" onclick="confirmCancel()" style="width:100%;display:flex;justify-content:center;">
           <i class="fas fa-times-circle"></i> Cancel my subscription
         </button>
         <p style="font-size:.75rem;color:var(--gray-400);margin-top:.75rem;">Changed your mind? <a href="#" onclick="closeCancellationModal();return false;" style="color:var(--primary);">Keep my plan</a></p>
@@ -1217,7 +1226,7 @@ function closeCancellationModal() {
   // Closing mid-survey is itself a signal: it says the questions cost more than
   // the answer was worth, and which one they walked out on.
   if (!exitSurveyDone && Object.keys(exitSurveyAnswers).length) {
-    try { posthog.capture('exit_survey_abandoned', { last_question: (EXIT_SURVEY[exitSurveyIndex] || {}).id || null, answered_count: Object.keys(exitSurveyAnswers).length }); } catch(e) {}
+    surveyTrack('exit_survey_abandoned', { last_question: (EXIT_SURVEY[exitSurveyIndex] || {}).id || null, answered_count: Object.keys(exitSurveyAnswers).length });
   }
   document.getElementById('cancellationModal').classList.remove('show');
   document.body.style.overflow = '';
@@ -1332,6 +1341,11 @@ async function submitFeedback(type, textId, captureEvent) {
   const el = document.getElementById(textId);
   const text = el ? el.value.trim() : '';
   if (!text) { alert('Please fill in the field above.'); return; }
+  if (surveyPreview) {
+    console.log('%c[preview] would submit', 'color:#f59e0b;font-weight:700', type, text);
+    alert('PREVIEW — nothing was sent.');
+    return;
+  }
   const payload = { token: userToken, type, [type === 'feature_request' ? 'feature' : type === 'technical_issue' ? 'issue' : 'feedback']: text, reason: selectedCancellationReason };
   try {
     const r = await fetch(FEEDBACK_ENDPOINT, { method:'POST', headers:{'Content-Type':'application/json','X-API-Secret':window.LF_API_KEY}, body: JSON.stringify(payload) });
@@ -1416,6 +1430,23 @@ let exitSurveyAnswers = {};
 let exitSurveyDone    = false;
 let exitSurveyTimer   = null;
 
+/* Layout of the cancel button during the survey:
+     'gate'   — survey first, cancel button on the screen after it
+     'inline' — cancel button visible under every question
+   Both are real; flip EXIT_SURVEY_LAYOUT to change what ships. Compare them
+   without cancelling anything: lfPreview.survey('gate') / .survey('inline'). */
+let EXIT_SURVEY_LAYOUT = 'gate';
+
+/* Preview mode. Nothing that leaves the browser runs while this is on: no
+   PostHog events, no feedback email, no call to the cancel worker. Captures
+   are printed to the console instead so you can check the payloads. */
+let surveyPreview = false;
+
+function surveyTrack(name, props) {
+  if (surveyPreview) { console.log('%c[preview] would capture', 'color:#f59e0b;font-weight:700', name, props || {}); return; }
+  try { posthog.capture(name, props); } catch(e) {}
+}
+
 function escHtml(v) {
   return String(v == null ? '' : v).replace(/[&<>"']/g, (c) => (
     { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
@@ -1432,7 +1463,7 @@ function startExitSurvey() {
   exitSurveyIndex   = 0;
   exitSurveyAnswers = {};
   exitSurveyDone    = false;
-  try { posthog.capture('exit_survey_started', { reason: selectedCancellationReason }); } catch(e) {}
+  surveyTrack('exit_survey_started', { reason: selectedCancellationReason, layout: EXIT_SURVEY_LAYOUT });
   goToFlowStep('step4');
   renderExitSurveyQuestion();
 }
@@ -1468,6 +1499,7 @@ function renderExitSurveyQuestion() {
     ${textBlock}`;
 
   document.getElementById('surveyBackBtn').hidden = exitSurveyIndex === 0;
+  document.getElementById('surveyCancelFooter').style.display = EXIT_SURVEY_LAYOUT === 'inline' ? 'block' : 'none';
   if (needsText) { const t = document.getElementById('surveyText'); if (t) t.focus(); }
 }
 
@@ -1497,14 +1529,12 @@ function submitExitSurveyText() {
 }
 
 function recordExitSurveyAnswer(q, answer) {
-  try {
-    posthog.capture('exit_survey_answered', {
-      question: q.id,
-      answer: answer.value,
-      answer_text: answer.text || null,
-      reason: selectedCancellationReason,
-    });
-  } catch(e) {}
+  surveyTrack('exit_survey_answered', {
+    question: q.id,
+    answer: answer.value,
+    answer_text: answer.text || null,
+    reason: selectedCancellationReason,
+  });
 }
 
 function nextExitSurveyQuestion() {
@@ -1523,12 +1553,17 @@ function exitSurveyBack() {
 function exitSurveySkip() {
   clearTimeout(exitSurveyTimer);
   const q = EXIT_SURVEY[exitSurveyIndex];
-  try { posthog.capture('exit_survey_question_skipped', { question: q.id, reason: selectedCancellationReason }); } catch(e) {}
+  surveyTrack('exit_survey_question_skipped', { question: q.id, reason: selectedCancellationReason });
   nextExitSurveyQuestion();
 }
 
-function finishExitSurvey() {
+// Recording the answers and moving to the next screen are separate, because
+// the inline layout cancels straight from the survey and must still flush
+// whatever was answered on the way out. Idempotent — never sends twice.
+function flushExitSurvey(exitedVia) {
+  if (exitSurveyDone) return;
   exitSurveyDone = true;
+
   const flat = {};
   EXIT_SURVEY.forEach((q) => {
     const a = exitSurveyAnswers[q.id];
@@ -1539,47 +1574,140 @@ function finishExitSurvey() {
 
   // One event carrying all three answers, so churn breaks down in a single
   // PostHog query instead of a three-way join across per-question events.
-  try {
-    posthog.capture('exit_survey_completed', {
-      ...flat,
-      answered_count: answered,
-      reason: selectedCancellationReason,
-      subscription_id: currentSubscriptionId || null,
-    });
-  } catch(e) {}
+  surveyTrack('exit_survey_completed', {
+    ...flat,
+    answered_count: answered,
+    reason: selectedCancellationReason,
+    layout: EXIT_SURVEY_LAYOUT,
+    exited_via: exitedVia || 'completed',
+    subscription_id: currentSubscriptionId || null,
+  });
+
+  if (!answered) return;
+
+  const lines = ['EXIT SURVEY — ' + (selectedCancellationReason || 'no reason picked')];
+  EXIT_SURVEY.forEach((q) => {
+    const a = exitSurveyAnswers[q.id];
+    lines.push(`${q.question} ${a ? a.label + (a.text ? ' — "' + a.text + '"' : '') : '(skipped)'}`);
+  });
+
+  if (surveyPreview) { console.log('%c[preview] would email', 'color:#f59e0b;font-weight:700', lines.join('\n')); return; }
 
   // Best-effort copy to the feedback inbox — never blocks the cancel button.
-  if (answered) {
-    const lines = ['EXIT SURVEY — ' + (selectedCancellationReason || 'no reason picked')];
-    EXIT_SURVEY.forEach((q) => {
-      const a = exitSurveyAnswers[q.id];
-      lines.push(`${q.question} ${a ? a.label + (a.text ? ' — "' + a.text + '"' : '') : '(skipped)'}`);
-    });
-    try {
-      fetch(FEEDBACK_ENDPOINT, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-API-Secret': window.LF_API_KEY },
-        body: JSON.stringify({
-          user_token: userToken,
-          type: 'feedback',
-          message: lines.join('\n'),
-          page: 'account/cancellation',
-          exit_survey: flat,
-          cancellation_reason: selectedCancellationReason,
-          timestamp: new Date().toISOString(),
-        }),
-      }).catch(() => {});
-    } catch(e) {}
-  }
+  try {
+    fetch(FEEDBACK_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-API-Secret': window.LF_API_KEY },
+      body: JSON.stringify({
+        user_token: userToken,
+        type: 'feedback',
+        message: lines.join('\n'),
+        page: 'account/cancellation',
+        exit_survey: flat,
+        cancellation_reason: selectedCancellationReason,
+        timestamp: new Date().toISOString(),
+      }),
+    }).catch(() => {});
+  } catch(e) {}
+}
 
+function finishExitSurvey() {
+  flushExitSurvey('completed');
   goToFlowStep('step5');
 }
+
+// Inline layout only: cancel from inside the survey, keeping whatever was
+// answered up to that point.
+function exitSurveyCancelNow() {
+  clearTimeout(exitSurveyTimer);
+  flushExitSurvey('cancelled_from_survey');
+  confirmCancel();
+}
+
+/* ── Dev preview ──────────────────────────────────────────────────────────
+   Walk the cancellation flow on any account, subscriber or not, without
+   cancelling anything. From the browser console on /account:
+
+     lfPreview.cancel()            whole flow from the reason grid
+     lfPreview.survey()            jump straight to the three questions
+     lfPreview.survey('inline')    same, with cancel visible under every question
+     lfPreview.survey('gate')      same, with cancel on the screen after (shipping)
+     lfPreview.compare()           what the two layouts cost in clicks
+     lfPreview.answers()           what has been answered so far
+     lfPreview.off()               leave preview mode
+
+   Or by URL:  /account?token=…&preview=survey&variant=inline
+
+   While preview is on, nothing leaves the browser: PostHog captures, the
+   feedback email and the cancel worker are all replaced by console logs
+   prefixed [preview]. The layout override lasts until the page reloads —
+   EXIT_SURVEY_LAYOUT above is what actually ships. */
+
+function renderPreviewBanner() {
+  const el = document.getElementById('previewBanner');
+  if (!el) return;
+  if (!surveyPreview) { el.style.display = 'none'; return; }
+  el.style.display = 'block';
+  el.innerHTML = `<div style="background:#fef3c7;border:1px solid #fcd34d;color:#92400e;border-radius:8px;padding:.625rem .875rem;margin-bottom:1.25rem;font-size:.8rem;display:flex;align-items:center;gap:.5rem;">
+    <i class="fas fa-flask"></i>
+    <span><strong>Preview mode</strong> — layout <code>${escHtml(EXIT_SURVEY_LAYOUT)}</code>. Nothing is cancelled and no events are sent. Payloads are logged to the console.</span>
+  </div>`;
+}
+
+function enterPreview(variant) {
+  surveyPreview = true;
+  if (variant === 'inline' || variant === 'gate') EXIT_SURVEY_LAYOUT = variant;
+  renderPreviewBanner();
+}
+
+window.lfPreview = {
+  cancel(variant) {
+    enterPreview(variant);
+    showCancellationFlow();
+    renderPreviewBanner();               // showCancellationFlow resets the modal
+    console.log('[preview] cancellation flow open, layout =', EXIT_SURVEY_LAYOUT);
+    return 'pick a reason to walk the whole flow';
+  },
+  survey(variant) {
+    enterPreview(variant);
+    // Skip the reason grid and the retention offers — this is the part under
+    // review, and a preview that makes you click through four screens first
+    // is a preview nobody runs twice.
+    document.getElementById('cancellationModal').classList.add('show');
+    document.body.style.overflow = 'hidden';
+    selectedCancellationReason = selectedCancellationReason || 'preview';
+    renderPreviewBanner();
+    startExitSurvey();
+    console.log('[preview] survey open, layout =', EXIT_SURVEY_LAYOUT);
+    return `layout '${EXIT_SURVEY_LAYOUT}' — try lfPreview.survey('${EXIT_SURVEY_LAYOUT === 'inline' ? 'gate' : 'inline'}') to compare`;
+  },
+  compare() {
+    console.table([
+      { layout: 'gate',   'clicks to cancel without answering': 5, 'cancel reachable during survey': 'no',  shipping: EXIT_SURVEY_LAYOUT === 'gate' },
+      { layout: 'inline', 'clicks to cancel without answering': 2, 'cancel reachable during survey': 'yes', shipping: EXIT_SURVEY_LAYOUT === 'inline' },
+    ]);
+    return "gate: Finish cancellation, Skip x3, Cancel, confirm. inline: Cancel, confirm.";
+  },
+  answers() { console.log(JSON.parse(JSON.stringify(exitSurveyAnswers))); return exitSurveyAnswers; },
+  layout(v) { if (v) EXIT_SURVEY_LAYOUT = v; renderPreviewBanner(); return EXIT_SURVEY_LAYOUT; },
+  off() {
+    surveyPreview = false;
+    closeCancellationModal();
+    renderPreviewBanner();
+    return 'preview off — reload to reset the layout override';
+  },
+};
 
 function proceedToCancellation() { managePlanDirectly(); }
 
 const CANCEL_WORKER = 'https://cancel-subscription.hamoureliasse.workers.dev/';
 
 async function retentionAction(action) {
+  if (surveyPreview) {
+    console.log('%c[preview] would apply retention offer', 'color:#f59e0b;font-weight:700', action);
+    alert('PREVIEW — the ' + action + ' offer was not applied.');
+    return;
+  }
   const btnId   = action === 'pause' ? 'pauseBtn' : 'discountBtn';
   const statusId = action === 'pause' ? 'pauseStatus' : 'discountStatus';
   const btn    = document.getElementById(btnId);
@@ -1635,7 +1763,14 @@ async function retentionAction(action) {
 }
 
 async function confirmCancel() {
-  const btn = document.getElementById('confirmCancelBtn');
+  // Either layout can own the button — the inline one lives on step4.
+  const btn = document.querySelector('.flow-step.active .js-confirm-cancel') || document.getElementById('confirmCancelBtn');
+  if (surveyPreview) {
+    console.log('%c[preview] would cancel subscription', 'color:#f59e0b;font-weight:700', currentSubscriptionId || '(no subscription on this account)');
+    alert('PREVIEW — nothing was cancelled.\n\nThis is where the real cancellation would fire.');
+    closeCancellationModal();
+    return;
+  }
   if (!currentSubscriptionId) {
     alert('Could not find your subscription. Please contact support@linkfinderai.com');
     return;
@@ -1670,6 +1805,14 @@ document.addEventListener('DOMContentLoaded', () => {
   checkAuth();
   fetchCredits();
   handleDodoReturnStatus();
+
+  const preview = new URLSearchParams(window.location.search).get('preview');
+  if (preview === 'survey' || preview === 'cancel') {
+    const variant = new URLSearchParams(window.location.search).get('variant');
+    // Deferred so the subscriber lookup below has settled first — the flow
+    // reads currentSubscriptionId for its labels.
+    setTimeout(() => window.lfPreview[preview === 'survey' ? 'survey' : 'cancel'](variant), 600);
+  }
 
   // Pre-fetch subscriber status so the manage button, grid, and plan label know the state
   if (userToken) {
