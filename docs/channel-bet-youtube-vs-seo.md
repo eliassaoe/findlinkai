@@ -130,3 +130,60 @@ last 30 days — so even won customers are not retained.
   4 days.
 - `is_unlimited` overcounts payers (redeem codes, VIP grants); only 60 rows carry
   a Stripe `customer_id` against 119 flagged paying.
+
+---
+
+## Appendix — the evidence that the library is not compounding
+
+Added 2026-08-26 to support the claim in section 4.
+
+### Views per video per month is flat while the library tripled
+
+| | Videos | Views/mo | Per video |
+| --- | --- | --- | --- |
+| 2026-06 | 47 | 528 | **11.2** |
+| 2026-08 (prorated) | ~140 | ~2,060 | **14.7** |
+
+The library grew ~3x and per-asset output did not move. That is linear
+accumulation, not compounding — each new video adds a small fixed trickle
+rather than lifting the videos around it.
+
+### Individual videos flatline in ~9 days
+
+`aszAiVOzYTs` ("Claude Code MCP: Scrape LinkedIn Profiles Without Coding"), the
+highest breakout score on the channel (3.62), daily cumulative views:
+
+    2 → 9 → 13 → 15 → 17 → 18 → 18 → 25 → 31 → 31 → 32 → 32
+
+Climbs for nine days, then stops dead. Velocity goes to zero rather than
+compounding.
+
+### YouTube's own verdict on retention
+
+`relativeRetentionPerformance` for the channel's best video (`2-bM_ITMbrw`,
+119 views) sits at **0.40-0.45 through the first 15%** of the video — below the
+median for comparable videos. Its shape after that is actually fine (flattens at
+0.45-0.55, 27% reach the end). **The loss is in the opening, not the body.**
+
+### The two kinds of compounding
+
+| Mechanism | Status |
+| --- | --- |
+| Recommendation flywheel (watch time → suggested/browse → more views) | **Closed.** RELATED_VIDEO is 204 views at 15.1% avg view percentage — the worst-retaining source. YouTube will not push videos that retain below median. |
+| Search annuity (rank for an evergreen query, earn a trickle indefinitely) | **Open and working.** YT_SEARCH is the largest source, 549 views at 22.1% — the *best*-retaining source on the channel. |
+
+So the videos behave like SEO pages: small durable annuities. What they are not
+getting is the distribution multiplier that makes video worth more per hour than
+a page — and that multiplier is gated entirely on retention.
+
+**Caveat:** the push is only five weeks old. A search tail can take 6-12 months
+to develop, so the annuity value is genuinely not measurable yet. The
+recommendation-flywheel conclusion does not depend on that wait — it is
+observable now from `relativeRetentionPerformance`.
+
+### The fix is the first 15 seconds
+
+`claude/youtube/METHOD.md` already prescribes it — the fixed opening line and
+**Step 01 showing the payoff** (the found email, the exported CSV) *before*
+showing how. That rule exists to hold the opening 15% where these videos are
+losing below-median. It is the highest-leverage unmet rule in the method.
