@@ -189,3 +189,23 @@ both arms need the same ask height.
 Get the agency's per-meeting price. The email promises a number on the call and
 it cannot be answered without theirs. Three or four booked calls in hand is also
 leverage in that negotiation — demand in hand beats a hypothetical.
+
+## Arm A result — dispatched 26 Aug 19:18 UTC
+
+| | |
+| --- | --- |
+| Sent | **191** of 192 |
+| Delivered | 186 |
+| Bounced | **2 — 1.0%** |
+| Unsubscribed | 0 |
+
+Best bounce rate of any send to date, against a ledger of 12.5% / 2.0% / 1.4% /
+5.1% / 1.1% on the preceding days. Cumulative moves from 584 sent / 20 bounced
+(3.4%) to **775 / 22 = 2.8%**.
+
+The Google-auth gate is doing exactly what `docs/email-verified-is-wrong.md`
+predicted: a cohort built on `signup_google_clicked` is deliverable by
+construction. The two spikes in the ledger were both sends with looser audiences.
+
+Well under the 3% gate, so arm B is clear to dispatch on deliverability grounds.
+Whether it *should* dispatch is a separate question — see below.
