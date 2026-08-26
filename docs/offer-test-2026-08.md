@@ -124,3 +124,68 @@ the Google-auth gate looks like when it holds.
 
 390 more emails is roughly one day of current volume. Watch the bounce rate on
 the first arm before dispatching the second, and stop if it clears 3%.
+
+---
+
+# Update, same day: the offer became booked calls
+
+Everything above describes an offer that sold **replies**, because at the time
+the booking step could not be staffed. That constraint is gone: **delivery is
+delegated to an external agency.** The agency handles infrastructure, sending
+and reply management, so the meeting itself is deliverable and there is no
+reason to sell the weaker half of it.
+
+## What is actually being sold
+
+> We build the list from our own data, run the campaign, handle every reply,
+> and a qualified call lands on your calendar. **You pay per booked call — no
+> retainer.**
+
+**Keep list-building in-house.** Delegate infrastructure, sending and reply ops;
+never the data. LinkFinder builds the list at near-zero marginal cost and it is
+the one component a white-label agency cannot match. Give it away and this is a
+reselling business on someone else's margin.
+
+**Price per booked call, not per month.** Wholesale sits around $150–600 per
+meeting. Buying per call and selling per call means no volume is ever promised
+that the agency controls, and "nothing up front for volume you did not get" is
+literally true — which is the strongest line in the email precisely because it
+is not a claim.
+
+**No price in the email.** The quote happens on the call, once the agency's
+wholesale number is known. Get that number before the first booking lands.
+
+## What shipped
+
+| | Arm A | Arm B |
+| --- | --- | --- |
+| Offer | booked calls, priced per call | free 25-lead sample |
+| Subject | `want me to book your calls?` | `want 25 of them, free?` |
+| CTA | **Calendly booking link** | reply with title/industry/country |
+| Cohort | 519564 (**192**) | 519565 (198) |
+| Status | **dispatched 26 Aug 19:18 UTC** | draft, not sent |
+
+Arm A email is four lines and one button. CTA is
+`calendly.com/hamoureliasse/intro-call` with
+`utm_campaign=offer_test_a_booked_calls`, so Calendly shows which campaign each
+booking came from. Link tracking stays off, which means no URL rewriting and
+the UTMs survive intact — attribution without a pixel.
+
+`intro-call` is a stand-in. It is the URL used 189 times across the site but it
+is not purpose-built for this offer; a dedicated event type would keep these
+bookings separate from research interviews and let the confirmation page speak
+to the offer. Accepted deliberately for a water-testing send.
+
+## The arms are no longer symmetric
+
+Arm A asks for a booked call. Arm B asks for a three-word reply. **A will show a
+lower response rate than B by construction**, because the ask is far more
+expensive — that is not evidence the offer is weaker. Compare them on what the
+responses are worth, not on rate. If a clean rate comparison is ever wanted,
+both arms need the same ask height.
+
+## Do this before the first booking
+
+Get the agency's per-meeting price. The email promises a number on the call and
+it cannot be answered without theirs. Three or four booked calls in hand is also
+leverage in that negotiation — demand in hand beats a hypothetical.
