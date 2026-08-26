@@ -30,6 +30,17 @@ jobs:
           node-version: '22'
           registry-url: 'https://registry.npmjs.org'
 
+      # Checked before doing any work: without this the run builds, lints, packs, and
+      # only then fails on `npm publish` with a bare ENEEDAUTH, which reads like a
+      # broken workflow rather than a missing secret.
+      - name: Check for an npm token
+        if: ${{ inputs.dry_run == false }}
+        run: |
+          if [ -z "${{ secrets.NPM_TOKEN }}" ]; then
+            echo "::error::NPM_TOKEN is not set. Create an Automation token at npmjs.com (Access Tokens -> Generate -> Automation), then add it under Settings -> Secrets and variables -> Actions as NPM_TOKEN."
+            exit 1
+          fi
+
       - run: npm ci
 
       - name: Build
