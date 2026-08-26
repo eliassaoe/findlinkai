@@ -91,3 +91,38 @@ bounces before the next touch fires.** Nothing does this for you.
   bounces there degrade receipts and password resets. Use a subdomain.
 - `conversion: null` and `exit_condition: exit_only_at_end` — bookings are not
   tracked, and anyone who books still receives the rest of the sequence.
+
+## The audience ceiling this exposes
+
+Applying the gate honestly to the whole base, and adding the domain split
+(a $1,500 AEO offer is not sold to personal Gmail accounts):
+
+| domain | returned | people | subscribers | rate |
+|---|---|---|---|---|
+| business | **yes** | **54** | 6 | **11.11%** |
+| business | no | 301 | 7 | 2.33% |
+| freemail | yes | 266 | 5 | 1.88% |
+| freemail | no | 1,426 | 5 | 0.35% |
+
+Both filters matter and they are independent: returning predicts *deliverable*,
+a business domain predicts *buyer*. The intersection converts at 32x the worst
+segment.
+
+But the intersection is 54 people. Twenty-two already received touch 1 on
+25 Aug. Of the remaining 32, only **10 have a PostHog person profile carrying
+an email** — the rest signed up before PostHog instrumentation began on
+7 May 2026, and a workflow sends to `{{ person.properties.email }}`, so it can
+never deliver to them. Cohort 517630 holds those 10.
+
+**So the in-product audience for this offer is exhausted at roughly 54 people,
+10 of them reachable by automation.** That is not a campaign, it is a morning
+of personal emails. A four-touch automated sequence aimed at ten known business
+users who have already used the product is worse than ten written by hand.
+
+The conclusion is about channel, not copy: this offer's real audience is cold
+B2B outbound, not the signup base. Which is what
+`SEO/AEO service - B2B SaaS (AI visibility opener)` and
+`AEO/SEO - AI visibility check -> listicles + backlinks` in Instantly were
+built for — both still in draft, zero leads loaded, and every sending mailbox
+in the workspace is status -1 with `autofix_failed: true`. Fixing those
+mailboxes is the unblock, not another PostHog batch.
