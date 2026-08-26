@@ -49,6 +49,28 @@ jobs:
             exit 1
           fi
 
+  zapier:
+    name: Zapier app
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: integrations/zapier
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # A separate job because this one needs the Zapier SDK installed. The catalog job
+      # deliberately has no dependencies; the schema check needs zapier-platform-core.
+      - run: npm ci
+
+      # The same validation Zapier's marketplace review runs, so a rejection surfaces
+      # here in seconds rather than days into a review queue.
+      - name: Validate against Zapier's schema
+        run: npm test
+
   n8n-node:
     name: n8n node
     runs-on: ubuntu-latest
