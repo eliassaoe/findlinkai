@@ -22,7 +22,12 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          # 22, not 20: building this package pulls in n8n-workflow ->
+          # @n8n/expression-runtime -> isolated-vm, a native module whose C++ uses
+          # v8::SourceLocation and so fails to compile against Node 20's V8 headers.
+          # It is a dev/peer dependency only, so consumers are unaffected and
+          # package.json's `engines` stays as it is.
+          node-version: '22'
           registry-url: 'https://registry.npmjs.org'
 
       - run: npm ci

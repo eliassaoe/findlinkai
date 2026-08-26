@@ -1,0 +1,114 @@
+name: Integrations
+
+# Nothing in this repo ran on a pull request before, so the integration tests only
+# ever ran on someone's laptop. These three jobs are what a contributor runs locally.
+on:
+  pull_request:
+    paths:
+      - 'integrations/**'
+      - 'n8n-nodes-linkfinderai/**'
+      - 'nango-integrations/**'
+      - 'openapi.json'
+      - 'openapi.yaml'
+      - '.github/workflows/integrations-ci.yml'
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  integrations:
+    name: Catalog, Zapier, Make and outreach
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: integrations
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # No dependencies by design — the catalog and its generators are plain Node, so
+      # there is nothing to install and nothing to go stale.
+      - name: Test
+        run: npm test
+
+      # The whole premise is that every integration is generated from one catalog. If a
+      # regeneration changes a committed file, someone hand-edited generated output and
+      # the platforms have already drifted apart.
+      - name: Regenerating everything must change nothing
+        run: |
+          npm run build
+          cd "$GITHUB_WORKSPACE"
+          if ! git diff --exit-code; then
+            echo "::error::Generated files differ from the catalog. Run 'npm run build' in integrations/ and commit the result."
+            exit 1
+          fi
+
+  zapier:
+    name: Zapier app
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: integrations/zapier
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # A separate job because this one needs the Zapier SDK installed. The catalog job
+      # deliberately has no dependencies; the schema check needs zapier-platform-core.
+      - run: npm ci
+
+      # The same validation Zapier's marketplace review runs, so a rejection surfaces
+      # here in seconds rather than days into a review queue.
+      - name: Validate against Zapier's schema
+        run: npm test
+
+  n8n-node:
+    name: n8n node
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: n8n-nodes-linkfinderai
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          # 22, not 20: building this package pulls in n8n-workflow ->
+          # @n8n/expression-runtime -> isolated-vm, a native module whose C++ uses
+          # v8::SourceLocation and so fails to compile against Node 20's V8 headers.
+          # It is a dev/peer dependency only, so consumers are unaffected and
+          # package.json's `engines` stays as it is.
+          node-version: '22'
+
+      - run: npm ci
+      - run: npm run build
+      - run: npm run lint
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+  nango:
+    name: CRM actions
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: nango-integrations
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - run: npm ci
+      # nango compile typechecks every action and validates each one is a well-formed
+      # Nango entrypoint — the check that caught the factory pattern it rejects.
+      - run: npx nango compile
