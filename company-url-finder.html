@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <!-- Google Tag Manager -->
+<script src="/js/lf-csv.js"></script>
 <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
 new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
 j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
@@ -790,7 +791,7 @@ body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; back
     const lines = csvText.split('\n').filter(l => l.trim());
     if (lines.length < 2) { alert('CSV must contain header and data rows.'); return; }
     const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
-    const findIdx = names => headers.findIndex(h => names.includes(h.toLowerCase()));
+    const findIdx = (names) => { var i = headers.findIndex(h => names.includes(String(h).toLowerCase())); if (i !== -1) return i; if (typeof lfFindColumn !== 'function') return -1; var j = names.join(' '); var k = /first_name|firstname/.test(j) ? 'first_name' : /last_name|lastname/.test(j) ? 'last_name' : /email/.test(j) ? 'email' : /company/.test(j) ? 'company' : /linkedin/.test(j) ? 'linkedin_profile' : /url|website|domain/.test(j) ? 'company_domain' : 'full_name'; return lfFindColumn(headers, k); };
     const companyIdx = findIdx(['company_name','company name','company','name']);
     if (companyIdx === -1) { alert('CSV must contain a company_name column.'); return; }
     csvData = [];

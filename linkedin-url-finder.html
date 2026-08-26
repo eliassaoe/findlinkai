@@ -3,6 +3,7 @@
 <head>
 <script src="/js/lf-tools-key.js"></script>
 <!-- Google Tag Manager -->
+<script src="/js/lf-csv.js"></script>
 <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
 new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
 j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
@@ -900,7 +901,7 @@ const WORKER_URL = 'https://linkfinder-free-tools.hamoureliasse.workers.dev/';
     if (lines.length < 2) { alert('CSV needs at least a header row and one data row.'); return; }
     const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
     csvData = [];
-    const findIdx = (names) => headers.findIndex(h => names.includes(h.toLowerCase()));
+    const findIdx = (names) => { var i = headers.findIndex(h => names.includes(String(h).toLowerCase())); if (i !== -1) return i; if (typeof lfFindColumn !== 'function') return -1; var j = names.join(' '); var k = /first_name|firstname/.test(j) ? 'first_name' : /last_name|lastname/.test(j) ? 'last_name' : /email/.test(j) ? 'email' : /company/.test(j) ? 'company' : /linkedin/.test(j) ? 'linkedin_profile' : /url|website|domain/.test(j) ? 'company_domain' : 'full_name'; return lfFindColumn(headers, k); };
 
     if (currentSearchType === 'person') {
       const fi = findIdx(['first_name','firstname','first name']);

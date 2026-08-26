@@ -3,6 +3,7 @@
 <head>
 <script src="/js/lf-tools-key.js"></script>
 <!-- Google Tag Manager -->
+<script src="/js/lf-csv.js"></script>
 <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
 new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
 j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
@@ -1745,6 +1746,22 @@ src="https://www.facebook.com/tr?id=2717863625238535&ev=PageView&noscript=1"
           return i;
         }
       }
+    // Nothing matched exactly. Fall back to the shared synonym engine so files
+    // using "entreprise", "Pr\u00e9nom", "Company Name" etc. are still understood.
+    if (typeof lfFindColumn === 'function') {
+      var _j = (possibleNames || []).join(' ');
+      var _k = /job_search_url|jobs_url/.test(_j) ? 'job_search_url'
+             : /post_url|post_id/.test(_j)        ? 'linkedin_post'
+             : /first_name|firstname/.test(_j)    ? 'first_name'
+             : /last_name|lastname/.test(_j)      ? 'last_name'
+             : /email/.test(_j)                   ? 'email'
+             : /company/.test(_j)                 ? 'company'
+             : /linkedin/.test(_j)                ? 'linkedin_profile'
+             : /url|website|domain/.test(_j)      ? 'company_domain'
+             : 'full_name';
+      var _i = lfFindColumn(headers, _k);
+      if (_i !== -1) return _i;
+    }
       return -1;
     }
 

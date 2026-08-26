@@ -3,6 +3,7 @@
 <head>
 <script src="/js/lf-tools-key.js"></script>
 <!-- Google Tag Manager -->
+<script src="/js/lf-csv.js"></script>
 <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','GTM-TL7WVD2N');</script>
 window.__lfScrubUrl=function(v){return typeof v==='string'?v.replace(/([?&#])(access_token|refresh_token|provider_token|provider_refresh_token|id_token|token|api_key|apikey|password|secret)=[^&#]*/gi,'$1$2=[redacted]'):v;};
 window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_url','$initial_referrer','$session_entry_url','$pathname'].forEach(function(k){if(p[k])p[k]=window.__lfScrubUrl(p[k]);});return p;};
@@ -660,7 +661,7 @@ function parseCSV(csvText) {
   csvData = [];
   const emailIdx = (function() {
     for (let i = 0; i < headers.length; i++) {
-      if (['email','email_address','emails'].indexOf(headers[i].toLowerCase()) > -1) return i;
+      if (['email','email_address','emails'].indexOf(String(headers[i]).toLowerCase().trim()) > -1) return i; if (typeof lfFindColumn==='function' && lfFindColumn([headers[i]],'email')!==-1) return i;
     }
     return -1;
   })();
