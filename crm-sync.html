@@ -12,7 +12,7 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
 <script src="/js/lf-attribution.js"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CRM Data Health Audit - LinkFinder AI</title>
+<title>CRM Sync - LinkFinder AI</title>
 <link rel="icon" href="https://i.ibb.co/jPjX9SSp/Screen-Shot-2025-03-28-at-8-16-15-PM.png">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
@@ -171,6 +171,41 @@ table.gaps tfoot td{font-weight:700;color:var(--gray-900);border-top:2px solid v
         .crm-tabs .stage:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
         .crm-panel{display:none}
         .crm-panel.active{display:block}
+
+        /* These four were a linear stepper before, reused as tabs but keeping the
+           numbered-circle chrome — so four equal cards with step markers read as
+           "complete these in order", and the third one (the automatic sync, the
+           thing worth having) looked locked behind the first two. Restyled as a
+           segmented control: same ids and data-panel hooks, no implied sequence. */
+        .crm-tabs{display:flex;gap:.25rem;background:var(--gray-100,#f1f5f9);padding:.3rem;border-radius:10px;margin-bottom:1.5rem;flex-wrap:wrap;}
+        .crm-tabs .stage{flex:1;min-width:140px;background:transparent;border:1px solid transparent;border-radius:8px;padding:.6rem .75rem;box-shadow:none;}
+        .crm-tabs .stage:hover{background:rgba(255,255,255,.6);border-color:transparent}
+        .crm-tabs .stage.active{background:white;border-color:transparent;box-shadow:0 1px 3px rgba(15,23,42,.1);}
+        .crm-tabs .stage-num{width:auto;height:auto;background:none;color:var(--gray-400);font-size:.9rem;margin-bottom:.3rem;justify-content:flex-start;}
+        .crm-tabs .stage.active .stage-num{background:none;color:var(--primary);}
+        /* .done still marks a finished audit; it just tints the label now. */
+        .crm-tabs .stage.done .stage-num{background:none;color:var(--success);}
+        .crm-tabs .stage-sub{display:none;}
+        @media(min-width:900px){.crm-tabs .stage-sub{display:block;}}
+
+        /* Connect block — the first thing on the page, because connecting is the
+           point of it. Previously the connect card was `hidden` by default and a
+           CSV upload was the only visible action. */
+        .connect-hero{background:white;border:1px solid var(--gray-200);border-radius:12px;padding:1.5rem;margin-bottom:1.5rem;}
+        .connect-hero h2{font-size:1.05rem;margin:0 0 .3rem;}
+        .connect-hero .connect-sub{font-size:.87rem;color:var(--gray-600);margin-bottom:1.1rem;}
+        .crm-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.6rem;}
+        .crm-opt{display:flex;align-items:center;gap:.6rem;padding:.75rem .85rem;border:1px solid var(--gray-200);border-radius:10px;background:white;cursor:pointer;text-align:left;font-family:inherit;font-size:.85rem;width:100%;transition:border-color .15s,box-shadow .15s,transform .15s;}
+        .crm-opt:hover{border-color:var(--primary);box-shadow:0 2px 10px rgba(37,99,235,.08);transform:translateY(-1px);}
+        .crm-opt:focus-visible{outline:2px solid var(--primary);outline-offset:2px;}
+        .crm-opt-mark{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.82rem;flex-shrink:0;}
+        .crm-opt-name{display:block;font-weight:600;color:var(--gray-900);line-height:1.25;}
+        .crm-opt-state{display:block;font-size:.72rem;color:var(--gray-500);margin-top:.1rem;line-height:1.2;}
+        .crm-opt.is-live .crm-opt-state{color:var(--success);font-weight:600;}
+        .crm-opt[data-registered="1"]{border-color:var(--success);}
+        .crm-opt[data-registered="1"] .crm-opt-state{color:var(--success);font-weight:600;}
+        .connect-alt{font-size:.82rem;color:var(--gray-500);margin-top:1rem;}
+        .connect-alt button{background:none;border:none;padding:0;color:var(--primary);font:inherit;font-size:.82rem;cursor:pointer;text-decoration:underline;}
     </style>
 </head>
 
@@ -210,30 +245,74 @@ table.gaps tfoot td{font-weight:700;color:var(--gray-900);border-top:2px solid v
     <div class="main">
 
         <div class="page-header">
-            <h1><i class="fas fa-database"></i> CRM Enrichment</h1>
-            <p>Check what is missing from your CRM, fill it, and keep it filled as new records arrive.</p>
+            <h1><i class="fas fa-database"></i> CRM Sync</h1>
+            <p>Connect your CRM once. LinkFinder finds the missing emails, phone numbers and LinkedIn URLs &mdash; and keeps finding them as new records arrive.</p>
+        </div>
+
+        <!-- Connecting is the point of this page, so it is the first thing on it and
+             it is never hidden. Only HubSpot can complete a connection today; the
+             other five have their enrichment actions built but are not switched on,
+             so they register interest instead of pretending to connect. Which one
+             gets picked is the signal for which to wire up next. -->
+        <div class="connect-hero">
+            <h2><i class="fas fa-plug"></i> Connect your CRM</h2>
+            <div class="connect-sub">Read-only to start. Nothing is written and no credits are spent until you choose what to fill.</div>
+
+            <div class="crm-grid" id="crmGrid">
+                <button type="button" class="crm-opt is-live" data-crm="hubspot" onclick="connectHubspot();return false;">
+                    <span class="crm-opt-mark" style="background:#fff2ec;color:#ff7a59;"><i class="fab fa-hubspot"></i></span>
+                    <span><span class="crm-opt-name">HubSpot</span><span class="crm-opt-state">Connect now</span></span>
+                </button>
+                <button type="button" class="crm-opt" data-crm="salesforce" onclick="registerCrmInterest(this)">
+                    <span class="crm-opt-mark" style="background:#eaf5fe;color:#00a1e0;"><i class="fas fa-cloud"></i></span>
+                    <span><span class="crm-opt-name">Salesforce</span><span class="crm-opt-state">Tell us you want it</span></span>
+                </button>
+                <button type="button" class="crm-opt" data-crm="pipedrive" onclick="registerCrmInterest(this)">
+                    <span class="crm-opt-mark" style="background:#eef7ee;color:#017737;"><i class="fas fa-chart-line"></i></span>
+                    <span><span class="crm-opt-name">Pipedrive</span><span class="crm-opt-state">Tell us you want it</span></span>
+                </button>
+                <button type="button" class="crm-opt" data-crm="zoho" onclick="registerCrmInterest(this)">
+                    <span class="crm-opt-mark" style="background:#fdeeee;color:#e42527;">Z</span>
+                    <span><span class="crm-opt-name">Zoho CRM</span><span class="crm-opt-state">Tell us you want it</span></span>
+                </button>
+                <button type="button" class="crm-opt" data-crm="close" onclick="registerCrmInterest(this)">
+                    <span class="crm-opt-mark" style="background:#eef2ff;color:#4338ca;"><i class="fas fa-circle-nodes"></i></span>
+                    <span><span class="crm-opt-name">Close</span><span class="crm-opt-state">Tell us you want it</span></span>
+                </button>
+                <button type="button" class="crm-opt" data-crm="monday" onclick="registerCrmInterest(this)">
+                    <span class="crm-opt-mark" style="background:#fdeef1;color:#ff3d57;"><i class="fas fa-table-cells"></i></span>
+                    <span><span class="crm-opt-name">monday.com</span><span class="crm-opt-state">Tell us you want it</span></span>
+                </button>
+            </div>
+
+            <div id="crmConnectState"></div>
+
+            <div class="connect-alt">
+                Not on any of these, or just want to try it first?
+                <button type="button" onclick="showCrmPanel('health');document.getElementById('uploadCard').scrollIntoView({behavior:'smooth',block:'center'});return false;">Upload a CSV export instead</button>
+            </div>
         </div>
 
         <div class="stages crm-tabs" role="tablist">
             <div class="stage active" id="stage1" role="tab" data-panel="health" tabindex="0">
                 <div class="stage-num"><i class="fas fa-heart-pulse"></i></div>
-                <div class="stage-title">CRM Health</div>
-                <div class="stage-sub">Find every gap and duplicate</div>
+                <div class="stage-title">Health check</div>
+                <div class="stage-sub">See what is missing</div>
             </div>
             <div class="stage" id="stage2" role="tab" data-panel="enrich" tabindex="0">
                 <div class="stage-num"><i class="fas fa-wand-magic-sparkles"></i></div>
-                <div class="stage-title">Enrich your CRM now</div>
-                <div class="stage-sub">Fill the gaps where they live</div>
+                <div class="stage-title">Fill the gaps</div>
+                <div class="stage-sub">One run, on demand</div>
             </div>
             <div class="stage" id="stage3" role="tab" data-panel="auto" tabindex="0">
                 <div class="stage-num"><i class="fas fa-arrows-rotate"></i></div>
-                <div class="stage-title">Automatic enrichment</div>
-                <div class="stage-sub">Every new record, on a schedule</div>
+                <div class="stage-title">Keep it filled</div>
+                <div class="stage-sub">Runs weekly, by itself</div>
             </div>
             <div class="stage" id="stage4" role="tab" data-panel="dedupe" tabindex="0">
                 <div class="stage-num"><i class="fas fa-clone"></i></div>
-                <div class="stage-title">Deduplication</div>
-                <div class="stage-sub">Merge duplicate contacts</div>
+                <div class="stage-title">Duplicates</div>
+                <div class="stage-sub">Find and merge them</div>
             </div>
         </div>
 
@@ -252,7 +331,7 @@ table.gaps tfoot td{font-weight:700;color:var(--gray-900);border-top:2px solid v
         </div>
 
         <!-- Primary path for a logged-in user: connect, don't export. -->
-        <div class="card hidden" id="healthConnectCard">
+        <div class="card hidden" id="healthConnectCard" style="display:none">
             <h2><i class="fab fa-hubspot"></i> Connect your CRM</h2>
             <p style="font-size:.87rem;color:var(--gray-600);margin-bottom:1rem;">
                 We read your contacts and score what is missing &mdash; no export, no file to keep track of, and the check stays one click away from then on.
@@ -1660,6 +1739,52 @@ document.querySelectorAll('.crm-tabs .stage').forEach(function(t){
     });
 });
 window.showCrmPanel = showCrmPanel;
+
+/* ── CRM interest ─────────────────────────────────────────────────
+ * Five CRMs have their enrichment actions built but are not switched on yet.
+ * Rather than show buttons that cannot complete a connection, they record which
+ * CRM was asked for — which is the only signal available for deciding which one
+ * to wire up next. Stored locally so the state survives a reload of the page.
+ */
+function registerCrmInterest(el){
+    var crm = el.dataset.crm;
+
+    try{ posthog.capture('crm_interest_registered', { crm: crm }); }catch(e){}
+
+    try{
+        var seen = JSON.parse(localStorage.getItem('lf_crm_interest') || '[]');
+        if(seen.indexOf(crm) === -1){ seen.push(crm); }
+        localStorage.setItem('lf_crm_interest', JSON.stringify(seen));
+    }catch(e){}
+
+    markCrmInterest(el);
+
+    var name = el.querySelector('.crm-opt-name').textContent;
+    document.getElementById('crmConnectState').innerHTML =
+        '<div style="background:#f0fdf4;border:1px solid #bbf7d0;color:#065f46;padding:.7rem .9rem;' +
+        'border-radius:8px;font-size:.83rem;margin-top:1rem;">' +
+        '<i class="fas fa-check-circle"></i> Noted &mdash; you want ' + name + '. ' +
+        'The enrichment actions for it are already built; we will turn the connection on and email you. ' +
+        'In the meantime you can upload a ' + name + ' export below and enrich it now.</div>';
+}
+window.registerCrmInterest = registerCrmInterest;
+
+function markCrmInterest(el){
+    el.dataset.registered = '1';
+    el.querySelector('.crm-opt-state').textContent = 'Requested';
+}
+
+/* Re-mark anything already asked for, so a returning visitor sees their own state
+   rather than a page that forgot. */
+(function(){
+    try{
+        var seen = JSON.parse(localStorage.getItem('lf_crm_interest') || '[]');
+        seen.forEach(function(crm){
+            var el = document.querySelector('.crm-opt[data-crm="' + crm + '"]');
+            if(el){ markCrmInterest(el); }
+        });
+    }catch(e){}
+})();
 </script>
 </body>
 </html>
