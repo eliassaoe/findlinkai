@@ -162,6 +162,26 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
 .solution-features li{padding:.5rem 0;display:flex;align-items:flex-start;gap:.5rem;color:var(--gray-700);}
 .solution-features i{color:var(--success);font-size:1rem;margin-top:.2rem;}
 .btn-group{display:flex;gap:.75rem;margin-top:1.5rem;flex-wrap:wrap;}
+/* Exit survey — one question per screen, Typeform-style */
+.survey-progress{display:flex;align-items:center;gap:.75rem;margin-bottom:1.5rem;}
+.survey-dots{display:flex;gap:.375rem;flex:1;}
+.survey-dot{height:4px;flex:1;border-radius:2px;background:var(--gray-200);transition:background .25s ease;}
+.survey-dot.done{background:var(--primary);}
+.survey-count{font-size:.75rem;color:var(--gray-400);font-weight:600;white-space:nowrap;}
+.survey-question{font-size:1.35rem;font-weight:700;color:var(--gray-900);line-height:1.35;margin-bottom:.375rem;}
+.survey-hint{font-size:.85rem;color:var(--gray-500);margin-bottom:1.25rem;}
+.survey-options{display:flex;flex-direction:column;gap:.5rem;}
+.survey-option{padding:.875rem 1rem;border:2px solid var(--gray-200);border-radius:8px;background:white;cursor:pointer;transition:all .15s ease;display:flex;align-items:center;gap:.75rem;text-align:left;font-size:.95rem;color:var(--gray-800);width:100%;font-family:inherit;}
+.survey-option:hover{border-color:var(--primary);background:var(--gray-50);}
+.survey-option.selected{border-color:var(--primary);background:rgba(37,99,235,.05);}
+.survey-option .survey-key{flex:0 0 22px;height:22px;border-radius:5px;background:var(--gray-100);color:var(--gray-500);font-size:.7rem;font-weight:700;display:flex;align-items:center;justify-content:center;}
+.survey-option.selected .survey-key{background:var(--primary);color:white;}
+.survey-nav{display:flex;justify-content:space-between;align-items:center;margin-top:1.5rem;}
+.survey-link{background:none;border:none;padding:.375rem 0;font-family:inherit;font-size:.8rem;color:var(--gray-400);cursor:pointer;}
+.survey-link:hover{color:var(--gray-600);}
+.survey-link[hidden]{visibility:hidden;display:block;}
+.survey-textarea{width:100%;min-height:90px;padding:.875rem;border:2px solid var(--gray-200);border-radius:8px;font-family:inherit;font-size:.95rem;resize:vertical;margin-top:.5rem;}
+.survey-textarea:focus{outline:none;border-color:var(--primary);}
 .btn-group .btn{flex:1;min-width:200px;}
 .btn-success{background:var(--success);}
 .btn-success:hover{background:#059669;}
@@ -400,15 +420,44 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
     <div class="flow-step" id="step2"></div>
     <div class="flow-step" id="step3">
       <div class="flow-header">
-        <h2>Thank you for your feedback</h2>
-        <p>We appreciate you taking the time</p>
+        <h2>One last thing before you go</h2>
+        <p>Three quick questions — it takes about 20 seconds, and it is the only way we find out what to fix.</p>
+      </div>
+      <div style="background:var(--gray-50);border:1px solid var(--gray-200);border-radius:10px;padding:1.25rem;margin-top:1rem;text-align:center;">
+        <p style="font-size:.875rem;color:var(--gray-600);margin-bottom:1rem;">Your subscription stays active until the end of your current billing period either way.</p>
+        <button id="startExitSurveyBtn" class="btn btn-danger" onclick="startExitSurvey()" style="width:100%;display:flex;justify-content:center;">
+          Finish cancellation <i class="fas fa-arrow-right"></i>
+        </button>
+        <p style="font-size:.75rem;color:var(--gray-400);margin-top:.75rem;">Or <a href="#" onclick="closeCancellationModal();isExistingSubscriber=true;showPricingModal();return false;" style="color:var(--primary);">downgrade to a cheaper plan</a> instead</p>
+      </div>
+    </div>
+
+    <!-- Exit survey: one question at a time, then the real cancel button on step5.
+         Every question is skippable — trapping someone in a form to let them
+         cancel would poison the answers we are collecting in the first place. -->
+    <div class="flow-step" id="step4">
+      <div class="survey-progress">
+        <div class="survey-dots" id="surveyDots"></div>
+        <span class="survey-count" id="surveyCount"></span>
+      </div>
+      <div id="exitSurveyBody"></div>
+      <div class="survey-nav">
+        <button class="survey-link" id="surveyBackBtn" onclick="exitSurveyBack()"><i class="fas fa-arrow-left"></i> Back</button>
+        <button class="survey-link" onclick="exitSurveySkip()">Skip this question</button>
+      </div>
+    </div>
+
+    <div class="flow-step" id="step5">
+      <div class="flow-header">
+        <h2>Thank you — that genuinely helps</h2>
+        <p>We read every one of these.</p>
       </div>
       <div style="background:var(--gray-50);border:1px solid var(--gray-200);border-radius:10px;padding:1.25rem;margin-top:1rem;text-align:center;">
         <p style="font-size:.875rem;color:var(--gray-600);margin-bottom:1rem;">Your subscription will remain active until the end of your current billing period.</p>
         <button id="confirmCancelBtn" class="btn btn-danger" onclick="confirmCancel()" style="width:100%;display:flex;justify-content:center;">
           <i class="fas fa-times-circle"></i> Cancel my subscription
         </button>
-        <p style="font-size:.75rem;color:var(--gray-400);margin-top:.75rem;">Or <a href="#" onclick="closeCancellationModal();isExistingSubscriber=true;showPricingModal();return false;" style="color:var(--primary);">downgrade to a cheaper plan</a> instead</p>
+        <p style="font-size:.75rem;color:var(--gray-400);margin-top:.75rem;">Changed your mind? <a href="#" onclick="closeCancellationModal();return false;" style="color:var(--primary);">Keep my plan</a></p>
       </div>
     </div>
   </div>
@@ -1159,8 +1208,20 @@ function showCancellationFlow() {
   document.getElementById('step1').classList.add('active');
   document.querySelectorAll('.reason-option').forEach(o => o.classList.remove('selected'));
   selectedCancellationReason = null;
+  exitSurveyIndex = 0;
+  exitSurveyAnswers = {};
+  exitSurveyDone = false;
+  clearTimeout(exitSurveyTimer);
 }
-function closeCancellationModal() { document.getElementById('cancellationModal').classList.remove('show'); document.body.style.overflow = ''; }
+function closeCancellationModal() {
+  // Closing mid-survey is itself a signal: it says the questions cost more than
+  // the answer was worth, and which one they walked out on.
+  if (!exitSurveyDone && Object.keys(exitSurveyAnswers).length) {
+    try { posthog.capture('exit_survey_abandoned', { last_question: (EXIT_SURVEY[exitSurveyIndex] || {}).id || null, answered_count: Object.keys(exitSurveyAnswers).length }); } catch(e) {}
+  }
+  document.getElementById('cancellationModal').classList.remove('show');
+  document.body.style.overflow = '';
+}
 
 function selectReason(reason, event) {
   selectedCancellationReason = reason;
@@ -1288,8 +1349,230 @@ function submitOtherFeedback()   { submitFeedback('other_feedback',    'otherRea
 
 function declineAllSolutions() {
   try { posthog.capture('all_solutions_declined', { reason: selectedCancellationReason }); } catch(e) {}
+  goToFlowStep('step3');
+}
+
+/* ── Exit survey ──────────────────────────────────────────────────────────
+   The reason grid on step1 buys exactly one datapoint per churner, out of six
+   buckets, and PostHog says the two biggest are "notUsing" (34%) and "other"
+   (23%) — neither of which names anything fixable. Worse, of the 17 people who
+   picked "other", 2 ever typed what they meant, because the free text sat
+   behind a Send button they had no reason to press.
+
+   So these three questions run AFTER the retention offers are declined, on the
+   path to the cancel button rather than beside it, one screen at a time. They
+   are deliberately structured (single-select, stable option values) so the
+   answers break down in PostHog instead of arriving as prose nobody reads.
+
+   Skipping is allowed on every question and the cancel button is always the
+   next screen: a survey someone is trapped in returns whatever gets them out
+   fastest, which is worse than no data. */
+
+const EXIT_SURVEY = [
+  {
+    id: 'usage',
+    question: 'What were you mainly using LinkFinder AI for?',
+    hint: 'Tells us which part of the product lost you.',
+    options: [
+      { value: 'one_off',    label: 'One-off lookups — a few contacts at a time' },
+      { value: 'bulk_csv',   label: 'Bulk CSV enrichment' },
+      { value: 'api',        label: 'API or automation (Zapier, n8n, Make, MCP)' },
+      { value: 'crm',        label: 'Keeping my CRM enriched' },
+      { value: 'never_got_going', label: 'I never really got it working' },
+    ],
+  },
+  {
+    id: 'cause',
+    question: "What's the main thing that made you cancel?",
+    hint: 'Pick the one that weighed heaviest.',
+    options: [
+      { value: 'no_results',   label: "I couldn't find the contacts I needed" },
+      { value: 'bad_data',     label: 'The data I got back was wrong or outdated' },
+      { value: 'credits',      label: 'Credits ran out faster than I expected' },
+      { value: 'too_hard',     label: 'It took too long or was too fiddly to use' },
+      { value: 'price',        label: "The price didn't match what I got out of it" },
+      { value: 'no_longer_needed', label: 'My project or job changed — I no longer need this' },
+      { value: 'other',        label: 'Something else', text: true, placeholder: 'What was it?' },
+    ],
+  },
+  {
+    id: 'destination',
+    question: "Where's this work going now?",
+    hint: "No wrong answer — we'd rather know than guess.",
+    options: [
+      { value: 'apollo',      label: 'Apollo' },
+      { value: 'clay',        label: 'Clay' },
+      { value: 'hunter',      label: 'Hunter' },
+      { value: 'lusha',       label: 'Lusha' },
+      { value: 'other_tool',  label: 'Another tool', text: true, placeholder: 'Which one?' },
+      { value: 'manual',      label: 'Back to doing it by hand' },
+      { value: 'stopping',    label: "We've stopped doing this work altogether" },
+    ],
+  },
+];
+
+let exitSurveyIndex   = 0;
+let exitSurveyAnswers = {};
+let exitSurveyDone    = false;
+let exitSurveyTimer   = null;
+
+function escHtml(v) {
+  return String(v == null ? '' : v).replace(/[&<>"']/g, (c) => (
+    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+  ));
+}
+
+function goToFlowStep(id) {
   document.querySelectorAll('.flow-step').forEach(s => s.classList.remove('active'));
-  document.getElementById('step3').classList.add('active');
+  const el = document.getElementById(id);
+  if (el) el.classList.add('active');
+}
+
+function startExitSurvey() {
+  exitSurveyIndex   = 0;
+  exitSurveyAnswers = {};
+  exitSurveyDone    = false;
+  try { posthog.capture('exit_survey_started', { reason: selectedCancellationReason }); } catch(e) {}
+  goToFlowStep('step4');
+  renderExitSurveyQuestion();
+}
+
+function renderExitSurveyQuestion() {
+  const q = EXIT_SURVEY[exitSurveyIndex];
+  if (!q) return finishExitSurvey();
+
+  const dots = EXIT_SURVEY.map((_, i) =>
+    `<div class="survey-dot${i <= exitSurveyIndex ? ' done' : ''}"></div>`).join('');
+  document.getElementById('surveyDots').innerHTML = dots;
+  document.getElementById('surveyCount').textContent = `${exitSurveyIndex + 1} of ${EXIT_SURVEY.length}`;
+
+  const prior = exitSurveyAnswers[q.id];
+  const opts = q.options.map((o, i) => {
+    const selected = prior && prior.value === o.value;
+    return `<button type="button" class="survey-option${selected ? ' selected' : ''}" onclick="answerExitSurvey('${o.value}')">
+      <span class="survey-key">${i + 1}</span><span>${escHtml(o.label)}</span>
+    </button>`;
+  }).join('');
+
+  // A free-text option reveals its box in place and waits for Continue, instead
+  // of auto-advancing like the plain options do.
+  const needsText = prior && prior.value && q.options.find(o => o.value === prior.value && o.text);
+  const textBlock = needsText ? `
+    <textarea class="survey-textarea" id="surveyText" placeholder="${escHtml(needsText.placeholder || '')}">${escHtml(prior.text || '')}</textarea>
+    <button class="btn btn-danger" style="width:100%;margin-top:.75rem;display:flex;justify-content:center;" onclick="submitExitSurveyText()">Continue <i class="fas fa-arrow-right"></i></button>` : '';
+
+  document.getElementById('exitSurveyBody').innerHTML = `
+    <div class="survey-question">${escHtml(q.question)}</div>
+    <div class="survey-hint">${escHtml(q.hint)}</div>
+    <div class="survey-options">${opts}</div>
+    ${textBlock}`;
+
+  document.getElementById('surveyBackBtn').hidden = exitSurveyIndex === 0;
+  if (needsText) { const t = document.getElementById('surveyText'); if (t) t.focus(); }
+}
+
+function answerExitSurvey(value) {
+  const q = EXIT_SURVEY[exitSurveyIndex];
+  const option = q.options.find(o => o.value === value);
+  if (!option) return;
+
+  exitSurveyAnswers[q.id] = { value, label: option.label, text: (exitSurveyAnswers[q.id] || {}).text || '' };
+
+  if (option.text) { renderExitSurveyQuestion(); return; }  // reveal the box, stay put
+  recordExitSurveyAnswer(q, exitSurveyAnswers[q.id]);
+  renderExitSurveyQuestion();
+  // Short pause so the selected state is visible before the screen changes.
+  // Cleared first: a second click before it fires would otherwise queue two
+  // advances and silently skip the next question.
+  clearTimeout(exitSurveyTimer);
+  exitSurveyTimer = setTimeout(nextExitSurveyQuestion, 220);
+}
+
+function submitExitSurveyText() {
+  const q = EXIT_SURVEY[exitSurveyIndex];
+  const el = document.getElementById('surveyText');
+  exitSurveyAnswers[q.id].text = el ? el.value.trim() : '';
+  recordExitSurveyAnswer(q, exitSurveyAnswers[q.id]);
+  nextExitSurveyQuestion();
+}
+
+function recordExitSurveyAnswer(q, answer) {
+  try {
+    posthog.capture('exit_survey_answered', {
+      question: q.id,
+      answer: answer.value,
+      answer_text: answer.text || null,
+      reason: selectedCancellationReason,
+    });
+  } catch(e) {}
+}
+
+function nextExitSurveyQuestion() {
+  exitSurveyIndex++;
+  if (exitSurveyIndex >= EXIT_SURVEY.length) return finishExitSurvey();
+  renderExitSurveyQuestion();
+}
+
+function exitSurveyBack() {
+  clearTimeout(exitSurveyTimer);
+  if (exitSurveyIndex === 0) return;
+  exitSurveyIndex--;
+  renderExitSurveyQuestion();
+}
+
+function exitSurveySkip() {
+  clearTimeout(exitSurveyTimer);
+  const q = EXIT_SURVEY[exitSurveyIndex];
+  try { posthog.capture('exit_survey_question_skipped', { question: q.id, reason: selectedCancellationReason }); } catch(e) {}
+  nextExitSurveyQuestion();
+}
+
+function finishExitSurvey() {
+  exitSurveyDone = true;
+  const flat = {};
+  EXIT_SURVEY.forEach((q) => {
+    const a = exitSurveyAnswers[q.id];
+    flat[q.id] = a ? a.value : null;
+    if (a && a.text) flat[q.id + '_text'] = a.text;
+  });
+  const answered = EXIT_SURVEY.filter(q => exitSurveyAnswers[q.id]).length;
+
+  // One event carrying all three answers, so churn breaks down in a single
+  // PostHog query instead of a three-way join across per-question events.
+  try {
+    posthog.capture('exit_survey_completed', {
+      ...flat,
+      answered_count: answered,
+      reason: selectedCancellationReason,
+      subscription_id: currentSubscriptionId || null,
+    });
+  } catch(e) {}
+
+  // Best-effort copy to the feedback inbox — never blocks the cancel button.
+  if (answered) {
+    const lines = ['EXIT SURVEY — ' + (selectedCancellationReason || 'no reason picked')];
+    EXIT_SURVEY.forEach((q) => {
+      const a = exitSurveyAnswers[q.id];
+      lines.push(`${q.question} ${a ? a.label + (a.text ? ' — "' + a.text + '"' : '') : '(skipped)'}`);
+    });
+    try {
+      fetch(FEEDBACK_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-API-Secret': window.LF_API_KEY },
+        body: JSON.stringify({
+          user_token: userToken,
+          type: 'feedback',
+          message: lines.join('\n'),
+          page: 'account/cancellation',
+          exit_survey: flat,
+          cancellation_reason: selectedCancellationReason,
+          timestamp: new Date().toISOString(),
+        }),
+      }).catch(() => {});
+    } catch(e) {}
+  }
+
+  goToFlowStep('step5');
 }
 
 function proceedToCancellation() { managePlanDirectly(); }
