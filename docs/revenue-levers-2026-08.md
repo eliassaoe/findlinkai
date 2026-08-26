@@ -3,33 +3,99 @@
 **Date:** 2026-08-26 · **Sources:** PostHog 263837, Supabase `snxhsboboatjywgwdeds`
 Companion to `GROWTH-STRATEGY-REVIEW.md` and `FUNNEL-REVIEW.md`.
 
-## First: the VIP offer is not being rejected, it is not being seen
+## CORRECTED 2026-08-26 — the offer is direct-to-call by design
 
-| Page | Pageviews | **Unique people** |
-| --- | --- | --- |
-| `/done-for-you-outbound` | 12 | **1** |
-| `/linkfinder-vip` | 3 | **1** |
+An earlier version of this document judged the campaign by pageviews on
+`/linkfinder-vip`. That was the wrong yardstick: **that page is retired**, the
+focus is done-for-you outbound, and the campaign deliberately sends straight to
+a Calendly booking rather than to a landing page. Pageviews are not the metric —
+**booked calls are.** Measured on that basis, the finding is worse, not better.
 
-Ever. One visitor each, first seen 2026-08-23/24 — and 12 views in under an hour
-on one page reads as the author's own session, not a prospect's.
+### Every recorded open and click is flagged as automation
 
-No campaign email links to either page. The only destinations recipients actually
-clicked:
+PostHog's bot detection classifies **100% of email engagement across every
+campaign** as `$virt_is_bot: true`, `traffic_type: Automation`:
 
-| Subject | Destination | Clicks / people |
-| --- | --- | --- |
-| Does ChatGPT recommend you? | `calendly.com/.../compensated-interview-unlimited-leads-clone` | 5 / 4 |
-| did the upgrade break for you? | `linkfinderai.com/app?upgrade=1` | 4 / 2 |
-| your LinkFinder account is ready | `linkfinderai.com/app` | 3 / 3 |
-| (various) | PostHog unsubscribe / messaging-preferences | 6 / 6 |
+| Campaign | Bot-flagged open/click events |
+| --- | --- |
+| Does ChatGPT recommend you? | 108 |
+| your LinkFinder account is ready | 44 |
+| there's an API and an MCP server | 20 |
+| stop doing these one at a time | 13 |
+| you signed up but haven't run anything yet | 9 |
+| did the upgrade break for you? | 8 |
 
-**"Does ChatGPT recommend you?" is the biggest send — 153 emails, 46% open rate —
-and its only real call to action is a compensated interview for a different
-product.** That is a research email, not an offer. It converted nothing because
-it never asked for a sale.
+There are no non-bot rows. **The 46% open rate is security scanners, not people.**
 
-The offer has no distribution problem to solve *later*; it has no distribution
-at all.
+### The Calendly clicks are scanner prefetches
+
+All five clicks on the booking link, from the 153-recipient send:
+
+    email sent   11:40:40
+    click 1      11:40:44   (+4 seconds)
+    ...
+    click 5      11:41:49   (+69 seconds)
+
+Five clicks from four distinct "people", all inside 70 seconds, the first four
+seconds after send. Nobody reads an email and books a call in four seconds.
+That is a scanner sweep.
+
+**Human clicks to the booking page: effectively zero. Calls booked: zero.**
+
+*Caveat: PostHog may over-flag email-pixel traffic as automation generally, so
+the open-rate reading is suggestive rather than proven. The click timing is
+independent evidence and is not ambiguous.*
+
+### And the machine that books calls cannot send
+
+**All 38 Instantly sending accounts are `status: -1` with
+`autofix_failed: true`**, many reporting
+`EAUTH — can't create new access token for user`; one Gmail account hit
+`550-5.4.5 daily user sending limit exceeded`. Warmup scores are 90-100 and the
+domains pass MX/SPF/DKIM/DMARC. This is an OAuth reconnection, not a rebuild —
+exactly as `OUTBOUND-CRM-AUDIT.md` recorded, and still unfixed.
+
+Campaign statuses confirm nothing outbound has run:
+
+| Campaign | Status |
+| --- | --- |
+| **Done-for-you outbound — B2B SaaS (G2-sourced)** | **Draft** |
+| CRM audit — RevOps / Sales Ops, HubSpot (US/UK) | Draft |
+| CA B2B SaaS — Lead Gen Guarantee Offer | Draft |
+| SEO/AEO service — B2B SaaS (AI visibility opener) | Draft |
+| AEO/SEO — AI visibility check | Draft |
+| email marketing PAID credits USED | **Active** (product upsell, not outbound) |
+
+**Five written offers that would book calls have never sent a single email.**
+The one active campaign is a product-led upsell to existing users.
+
+### So the call funnel is off at three levels at once
+
+1. Zero send capacity — 38/38 mailboxes dead on OAuth.
+2. The DFY campaign has never left draft.
+3. The one thing that did go out was a tracked broadcast whose entire
+   engagement signal is scanners.
+
+"They are not biting" is not a message-market problem yet. **The offer has not
+reached a human in a position to book.**
+
+### Fix order
+
+1. **Reconnect the 38 mailboxes.** Nothing else on this page matters until this
+   is done. Capacity waiting on the other side, per `OUTBOUND-CRM-AUDIT.md`:
+   9 senders x 20/day = 180/day, ~900 prospects/month on the agency campaign
+   alone.
+2. **Launch the done-for-you outbound draft.** It is written and sitting at
+   status 0.
+3. **Stop reading open and click rates.** `OUTBOUND-CRM-AUDIT.md` already sets
+   `open_tracking: false, link_tracking: false` for Instantly — correct, and the
+   bot data above is why. Measure **replies and booked calls only.**
+4. **Instrument the booking.** A booked call is currently invisible: Calendly is
+   off-site and nothing reports back. Either redirect Calendly's confirmation to
+   a thank-you page on `linkfinderai.com` carrying the UTMs, or send a Calendly
+   webhook into PostHog. Until then the call funnel cannot be judged at all.
+5. **Ask for a reply, not a click** in email 1 — as the audit already specifies
+   ("Want the link?"). Scanners eat clicks; they do not write replies.
 
 ## Attribution trap — do not trust the workflow conversion count
 
