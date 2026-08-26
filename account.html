@@ -1431,11 +1431,19 @@ let exitSurveyDone    = false;
 let exitSurveyTimer   = null;
 
 /* Layout of the cancel button during the survey:
+     'inline' — cancel button visible under every question  (shipping)
      'gate'   — survey first, cancel button on the screen after it
-     'inline' — cancel button visible under every question
-   Both are real; flip EXIT_SURVEY_LAYOUT to change what ships. Compare them
-   without cancelling anything: lfPreview.survey('gate') / .survey('inline'). */
-let EXIT_SURVEY_LAYOUT = 'gate';
+
+   'inline' on purpose. The point of these three questions is data we can act
+   on, and an answer someone picked to get past a screen is not that — it is
+   noise, and at roughly six cancellations per six months a couple of junk rows
+   would swamp the real ones. Making the survey optional costs some completion
+   rate and buys answers worth reading. It also keeps cancelling to two clicks,
+   which is what ROSCA's "simple mechanism" and California's ARL are about.
+
+   Compare them without cancelling anything:
+   lfPreview.survey('inline') / lfPreview.survey('gate'). */
+let EXIT_SURVEY_LAYOUT = 'inline';
 
 /* Preview mode. Nothing that leaves the browser runs while this is on: no
    PostHog events, no feedback email, no call to the cancel worker. Captures
@@ -1686,7 +1694,7 @@ window.lfPreview = {
       { layout: 'gate',   'clicks to cancel without answering': 5, 'cancel reachable during survey': 'no',  shipping: EXIT_SURVEY_LAYOUT === 'gate' },
       { layout: 'inline', 'clicks to cancel without answering': 2, 'cancel reachable during survey': 'yes', shipping: EXIT_SURVEY_LAYOUT === 'inline' },
     ]);
-    return "gate: Finish cancellation, Skip x3, Cancel, confirm. inline: Cancel, confirm.";
+    return "From step 3 — gate: Finish cancellation, Skip x3, Cancel. inline: Finish cancellation, Cancel. Both then hit the confirm dialog.";
   },
   answers() { console.log(JSON.parse(JSON.stringify(exitSurveyAnswers))); return exitSurveyAnswers; },
   layout(v) { if (v) EXIT_SURVEY_LAYOUT = v; renderPreviewBanner(); return EXIT_SURVEY_LAYOUT; },
