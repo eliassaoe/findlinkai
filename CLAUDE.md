@@ -84,3 +84,43 @@ See `docs/email-verified-is-wrong.md` before any bulk send.
 
 **Never recommend PAYG to a CRM user.** CRM users go to subscriptions; they are
 stickier and the HubSpot connection costs money every month.
+
+## Marketing sends: who is eligible
+
+**Two gates, both required, on every PostHog marketing campaign.** They are
+independent — one predicts whether the mail arrives, the other whether the
+reader can buy.
+
+**1. Recency, not verification.** Send only to
+`auth.users.confirmed_at IS NOT NULL AND last_sign_in_at > confirmed_at + 5 min`.
+Do NOT gate on `email_verified` — the column is a backfill artifact, AND the
+PostHog person property of that name is never set at all, so the
+`email_verified is_not "false"` filter on workflows 1, 2, 3, 5, 6, 8 and 9
+matches every person and filters nobody. On the 25 Aug AEO send, people who
+had returned bounced at 0%; confirmed-but-never-returned at 7.1%; no auth row
+at all at 9.1%. Full working: `docs/bounce-rate-is-about-recency.md`.
+
+**2. Country.** Send only to these markets:
+
+    US CA GB IE AU NZ DE FR NL BE LU CH AT
+    SE NO DK FI IS IT ES PT SG JP KR IL AE HK TW
+
+Everything else is excluded. This is an ICP/spend decision, not a
+deliverability one — no recipient-geo signal exists in the bounce data, so do
+not justify it on bounce. Justify it on conversion: PK (2,261 visitors), BD
+(732), PH (683) and NG (373) have produced **zero** subscribers between them,
+roughly 4,000 people consuming credits and sending reputation for nothing.
+
+**IN is excluded by standing instruction, against the data.** India is the
+largest traffic source (12,383) and the third-largest subscriber source — 4 of
+the 23 locatable subscribers, ~13% of the paying base, converting at 0.032%
+vs 0.059% in the US. Excluding it is a deliberate call by Eliasse, not a
+finding. Re-check it before treating it as settled.
+
+**Do NOT filter out freemail addresses.** A Gmail address says nothing about
+whether someone buys — 5 of the 11 subscribers in the returner segment are on
+freemail. Domain correlates with deal size, not with worth contacting.
+
+**After every batch send, suppress the bounces before the next touch fires.**
+PostHog does not do this for you: after 25 Aug all ten bounced addresses were
+still scheduled for touches 2, 3 and 4. Use `opt-outs-add`.
