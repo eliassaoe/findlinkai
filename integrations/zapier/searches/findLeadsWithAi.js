@@ -14,7 +14,8 @@ const OPERATION = {
   "params": [
     "fetch_count"
   ],
-  "outputField": null
+  "outputField": null,
+  "altType": null
 };
 
 module.exports = {
@@ -49,31 +50,109 @@ module.exports = {
     perform: (z, bundle) => runEnrichment(z, bundle, OPERATION),
 
     sample: {
-      "id": "https://www.linkedin.com/in/ada-lovelace",
-      "name": "Ada Lovelace",
-      "headline": "VP Sales at Northwind",
-      "email": "ada@northwind.com",
-      "linkedinUrl": "https://www.linkedin.com/in/ada-lovelace",
-      "company": "Northwind",
-      "companyWebsite": "northwind.com"
+      "id": "http://www.linkedin.com/in/sebastian-robles-00277a305",
+      "personId": "664cc61ecb4c2f0001ddb8b9",
+      "name": "Sebastian Robles",
+      "firstName": "Sebastian",
+      "lastName": "Robles",
+      "jobTitle": "Talent Acquisition Manager",
+      "headline": "Talent Acquisition Manager en Tesla",
+      "seniority": "manager",
+      "department": [
+            "Human Resources"
+      ],
+      "industry": "Automotive",
+      "photoUrl": null,
+      "email": "srobles@tesla.com",
+      "mobileNumber": null,
+      "twitter": null,
+      "linkedinUrl": "http://www.linkedin.com/in/sebastian-robles-00277a305",
+      "city": "Mexico City",
+      "state": "Mexico City",
+      "country": "Mexico",
+      "companyId": "57c4d9dea6da9869f38f20af",
+      "company": "Tesla",
+      "companyWebsite": "tesla.com",
+      "companySize": null,
+      "companyLinkedinUrl": "http://www.linkedin.com/company/tesla-motors",
+      "companyPhone": "+16506815000",
+      "companyCity": "Austin",
+      "companyState": "Texas",
+      "companyCountry": "United States"
 },
 
     outputFields: [
       {
+            "key": "personId",
+            "label": "Person Id"
+      },
+      {
             "key": "name",
             "label": "Name"
+      },
+      {
+            "key": "firstName",
+            "label": "First Name"
+      },
+      {
+            "key": "lastName",
+            "label": "Last Name"
+      },
+      {
+            "key": "jobTitle",
+            "label": "Job Title"
       },
       {
             "key": "headline",
             "label": "Headline"
       },
       {
+            "key": "seniority",
+            "label": "Seniority"
+      },
+      {
+            "key": "department",
+            "label": "Department"
+      },
+      {
+            "key": "industry",
+            "label": "Industry"
+      },
+      {
+            "key": "photoUrl",
+            "label": "Photo URL"
+      },
+      {
             "key": "email",
             "label": "Email"
       },
       {
+            "key": "mobileNumber",
+            "label": "Mobile Number"
+      },
+      {
+            "key": "twitter",
+            "label": "Twitter"
+      },
+      {
             "key": "linkedinUrl",
             "label": "LinkedIn URL"
+      },
+      {
+            "key": "city",
+            "label": "City"
+      },
+      {
+            "key": "state",
+            "label": "State"
+      },
+      {
+            "key": "country",
+            "label": "Country"
+      },
+      {
+            "key": "companyId",
+            "label": "Company Id"
       },
       {
             "key": "company",
@@ -82,6 +161,30 @@ module.exports = {
       {
             "key": "companyWebsite",
             "label": "Company Website"
+      },
+      {
+            "key": "companySize",
+            "label": "Company Size"
+      },
+      {
+            "key": "companyLinkedinUrl",
+            "label": "Company LinkedIn URL"
+      },
+      {
+            "key": "companyPhone",
+            "label": "Company Phone"
+      },
+      {
+            "key": "companyCity",
+            "label": "Company City"
+      },
+      {
+            "key": "companyState",
+            "label": "Company State"
+      },
+      {
+            "key": "companyCountry",
+            "label": "Company Country"
       }
 ],
   },

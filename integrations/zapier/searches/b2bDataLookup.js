@@ -10,7 +10,8 @@ const OPERATION = {
   "type": "b2b_data_lookup",
   "inputLabel": "Company or Person Identifier",
   "params": [],
-  "outputField": null
+  "outputField": null,
+  "altType": null
 };
 
 module.exports = {

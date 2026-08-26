@@ -134,3 +134,38 @@ test('a blank input is rejected before it costs a credit', async () => {
   await assert.rejects(() => runEnrichment(z, bundleFor('   '), OP), /Company Name is required/);
   assert.strictEqual(calls.length, 0);
 });
+
+test('a provider error dressed as a successful result is rejected, not returned', async () => {
+    // Observed live: leads_finder_ai answered 200 / "success" with an Apify permissions
+    // error as its only result. A Zap would otherwise map that into a CRM as a lead.
+    const { z } = fakeZ([
+        { status: 200, json: { status: 'success', result: [{ error: { message: '403 - full-permission-actor-not-approved' } }] } },
+    ]);
+
+    await assert.rejects(
+        () => runEnrichment(z, bundleFor('VP Sales'), { ...OP, type: 'leads_finder_ai', outputField: null }),
+        /provider error.*credits were still spent/s,
+    );
+});
+
+test('a 422 on the Instagram type is retried with the documented alternative', async () => {
+    const { z, calls } = fakeZ([
+        { status: 422, json: { message: 'unknown type' } },
+        { status: 200, json: { status: 'success', result: 'nasa' } },
+    ]);
+
+    const op = { type: 'instagram_lookup', inputLabel: 'Handle', params: [], outputField: 'username',
+                 altType: 'instagram_profile_to_instagram_info' };
+
+    const out = await runEnrichment(z, bundleFor('@nasa'), op);
+
+    assert.strictEqual(calls[0].body.type, 'instagram_lookup');
+    assert.strictEqual(calls[1].body.type, 'instagram_profile_to_instagram_info');
+    assert.strictEqual(out[0].username, 'nasa');
+});
+
+test('an operation with no alternative name is not retried on a 422', async () => {
+    const { z, calls } = fakeZ([{ status: 422, json: { message: 'bad input' } }]);
+    await assert.rejects(() => runEnrichment(z, bundleFor('nope'), OP), /bad input/);
+    assert.strictEqual(calls.length, 1);
+});

@@ -10,7 +10,8 @@ const OPERATION = {
   "type": "linkedin_post_to_reactions",
   "inputLabel": "LinkedIn Post URL",
   "params": [],
-  "outputField": null
+  "outputField": null,
+  "altType": null
 };
 
 module.exports = {
@@ -37,10 +38,10 @@ module.exports = {
     perform: (z, bundle) => runEnrichment(z, bundle, OPERATION),
 
     sample: {
-      "id": "https://www.linkedin.com/in/ada-lovelace",
+      "id": "http://www.linkedin.com/in/ada-lovelace",
       "name": "Ada Lovelace",
       "headline": "VP Engineering at Tesla",
-      "linkedinUrl": "https://www.linkedin.com/in/ada-lovelace",
+      "linkedinUrl": "http://www.linkedin.com/in/ada-lovelace",
       "reactionType": "LIKE"
 },
 

@@ -35,7 +35,9 @@ export async function enrichAndPush({
 }) {
     const destination = getDestination(destinationId);
 
-    if (!dryRun && !target?.id) {
+    // JustCall can create a contact without a list, so its target is optional.
+    const targetOptional = destination.targetLabel.includes('optional');
+    if (!dryRun && !targetOptional && !target?.id) {
         throw new Error(`${destination.label} needs a target — ${destination.targetLabel.toLowerCase()}.`);
     }
 
@@ -77,8 +79,17 @@ export async function enrichAndPush({
         }
 
         for (const lead of toLeads(outcome.result, { fullName: one })) {
-            if (requireEmail && !lead.email) {
-                results.skipped.push({ input: one, lead, reason: 'no email address, so there is nothing to send to' });
+            // A dialler needs a phone, not an email — asking it for an email address
+            // would skip every lead that is actually usable.
+            const needs = destination.prefers === 'phone' ? 'phone' : 'email';
+            if (requireEmail && !lead[needs]) {
+                results.skipped.push({
+                    input: one,
+                    lead,
+                    reason: needs === 'phone'
+                        ? 'no phone number, so there is nothing to dial'
+                        : 'no email address, so there is nothing to send to',
+                });
                 continue;
             }
 

@@ -10,7 +10,8 @@ const OPERATION = {
   "type": "company_name_to_phone",
   "inputLabel": "Company Name",
   "params": [],
-  "outputField": "phone"
+  "outputField": "phone",
+  "altType": null
 };
 
 module.exports = {

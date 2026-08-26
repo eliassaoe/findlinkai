@@ -10,7 +10,8 @@ const OPERATION = {
   "type": "instagram_lookup",
   "inputLabel": "Instagram Handle or URL",
   "params": [],
-  "outputField": null
+  "outputField": null,
+  "altType": "instagram_profile_to_instagram_info"
 };
 
 module.exports = {

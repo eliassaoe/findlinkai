@@ -130,6 +130,9 @@ const operations = specTypes
       params: (o.params ?? []).map((name) => ({ name, ...overlay.params[name] })),
       output: o.output,
       n8n: o.n8n,
+      // Only set where the sources disagree about an operation's type name. Wrappers
+      // send `type` and retry `altType` once on a 422.
+      altType: o.altType ?? null,
       note: s.note ?? null,
     };
   })

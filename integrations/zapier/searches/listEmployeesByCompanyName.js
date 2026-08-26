@@ -16,7 +16,8 @@ const OPERATION = {
     "seniority",
     "employee_count"
   ],
-  "outputField": null
+  "outputField": null,
+  "altType": null
 };
 
 module.exports = {
@@ -64,42 +65,109 @@ module.exports = {
     perform: (z, bundle) => runEnrichment(z, bundle, OPERATION),
 
     sample: {
-      "id": "https://www.linkedin.com/in/ada-lovelace",
-      "name": "Ada Lovelace",
-      "headline": "VP Engineering at Tesla",
-      "email": "ada.lovelace@tesla.com",
-      "linkedinUrl": "https://www.linkedin.com/in/ada-lovelace",
-      "photoUrl": "https://media.licdn.com/dms/image/example.jpg",
+      "id": "http://www.linkedin.com/in/sebastian-robles-00277a305",
+      "personId": "664cc61ecb4c2f0001ddb8b9",
+      "name": "Sebastian Robles",
+      "firstName": "Sebastian",
+      "lastName": "Robles",
+      "jobTitle": "Talent Acquisition Manager",
+      "headline": "Talent Acquisition Manager en Tesla",
+      "seniority": "manager",
+      "department": [
+            "Human Resources"
+      ],
+      "industry": "Automotive",
+      "photoUrl": null,
+      "email": "srobles@tesla.com",
+      "mobileNumber": null,
+      "twitter": null,
+      "linkedinUrl": "http://www.linkedin.com/in/sebastian-robles-00277a305",
+      "city": "Mexico City",
+      "state": "Mexico City",
+      "country": "Mexico",
+      "companyId": "57c4d9dea6da9869f38f20af",
       "company": "Tesla",
       "companyWebsite": "tesla.com",
-      "companyPhone": "+1 512 516 8177",
-      "companySize": "10001+",
+      "companySize": null,
+      "companyLinkedinUrl": "http://www.linkedin.com/company/tesla-motors",
+      "companyPhone": "+16506815000",
       "companyCity": "Austin",
       "companyState": "Texas",
-      "companyCountry": "United States",
-      "companyLinkedinUrl": "https://www.linkedin.com/company/tesla-motors"
+      "companyCountry": "United States"
 },
 
     outputFields: [
       {
+            "key": "personId",
+            "label": "Person Id"
+      },
+      {
             "key": "name",
             "label": "Name"
+      },
+      {
+            "key": "firstName",
+            "label": "First Name"
+      },
+      {
+            "key": "lastName",
+            "label": "Last Name"
+      },
+      {
+            "key": "jobTitle",
+            "label": "Job Title"
       },
       {
             "key": "headline",
             "label": "Headline"
       },
       {
+            "key": "seniority",
+            "label": "Seniority"
+      },
+      {
+            "key": "department",
+            "label": "Department"
+      },
+      {
+            "key": "industry",
+            "label": "Industry"
+      },
+      {
+            "key": "photoUrl",
+            "label": "Photo URL"
+      },
+      {
             "key": "email",
             "label": "Email"
+      },
+      {
+            "key": "mobileNumber",
+            "label": "Mobile Number"
+      },
+      {
+            "key": "twitter",
+            "label": "Twitter"
       },
       {
             "key": "linkedinUrl",
             "label": "LinkedIn URL"
       },
       {
-            "key": "photoUrl",
-            "label": "Photo URL"
+            "key": "city",
+            "label": "City"
+      },
+      {
+            "key": "state",
+            "label": "State"
+      },
+      {
+            "key": "country",
+            "label": "Country"
+      },
+      {
+            "key": "companyId",
+            "label": "Company Id"
       },
       {
             "key": "company",
@@ -110,12 +178,16 @@ module.exports = {
             "label": "Company Website"
       },
       {
-            "key": "companyPhone",
-            "label": "Company Phone"
-      },
-      {
             "key": "companySize",
             "label": "Company Size"
+      },
+      {
+            "key": "companyLinkedinUrl",
+            "label": "Company LinkedIn URL"
+      },
+      {
+            "key": "companyPhone",
+            "label": "Company Phone"
       },
       {
             "key": "companyCity",
@@ -128,10 +200,6 @@ module.exports = {
       {
             "key": "companyCountry",
             "label": "Company Country"
-      },
-      {
-            "key": "companyLinkedinUrl",
-            "label": "Company LinkedIn URL"
       }
 ],
   },

@@ -12,7 +12,8 @@ const OPERATION = {
   "type": "linkedin_profile_to_linkedin_info",
   "inputLabel": "LinkedIn Profile URL",
   "params": [],
-  "outputField": null
+  "outputField": null,
+  "altType": null
 };
 
 module.exports = {
@@ -39,26 +40,60 @@ module.exports = {
     perform: (z, bundle) => runEnrichment(z, bundle, OPERATION),
 
     sample: {
-      "id": "gatesnotes.com",
-      "headline": "Co-chair, Bill & Melinda Gates Foundation",
-      "job_title": "Co-chair",
-      "company": "Bill & Melinda Gates Foundation",
-      "location": "Seattle, Washington, United States",
-      "follower_count": 35000000,
-      "email": "bill.gates@microsoft.com",
-      "mobile_number": "+1 425 882 8080",
-      "website": "gatesnotes.com",
-      "experience": [],
-      "education": []
+      "id": "https://www.linkedin.com/in/williamhgates",
+      "name": "Bill Gates",
+      "jobTitle": "Co-chair",
+      "company": "Gates Foundation",
+      "location": "Seattle United States of America",
+      "country": "United States of America",
+      "industry": "",
+      "about": "Chair of the Gates Foundation. Founder of Breakthrough Energy.",
+      "headline": "Chair, Gates Foundation and Founder, Breakthrough Energy",
+      "connections": "",
+      "followers": "",
+      "mobileNumber": "",
+      "email": "",
+      "website": "",
+      "linkedinUrl": "https://www.linkedin.com/in/williamhgates",
+      "company_linkedin_url": "https://www.linkedin.com/company/8736",
+      "profilePic": "https://storage.googleapis.com/linkedin_profile_picture/williamhgates.jpeg",
+      "backgroundPic": "",
+      "isJobSeeker": "false",
+      "isCurrentlyEmployed": "true",
+      "firstRoleYear": "1975",
+      "experiences": [
+            {
+                  "companyName": "Microsoft",
+                  "companyLink": "https://www.linkedin.com/company/microsoft",
+                  "title": "Co-founder",
+                  "jobStartedOn": "1975",
+                  "jobEndedOn": "",
+                  "jobStillWorking": true
+            }
+      ],
+      "education": [
+            {
+                  "school": "Harvard University",
+                  "schoolLink": "https://www.linkedin.com/school/harvard-university",
+                  "degree": "",
+                  "fieldOfStudy": "",
+                  "startDate": "1973",
+                  "endDate": "1975"
+            }
+      ],
+      "skills": [],
+      "languages": [],
+      "certifications": [],
+      "verified": "true"
 },
 
     outputFields: [
       {
-            "key": "headline",
-            "label": "Headline"
+            "key": "name",
+            "label": "Name"
       },
       {
-            "key": "job_title",
+            "key": "jobTitle",
             "label": "Job Title"
       },
       {
@@ -70,29 +105,92 @@ module.exports = {
             "label": "Location"
       },
       {
-            "key": "follower_count",
-            "label": "Follower Count",
-            "type": "integer"
+            "key": "country",
+            "label": "Country"
+      },
+      {
+            "key": "industry",
+            "label": "Industry"
+      },
+      {
+            "key": "about",
+            "label": "About"
+      },
+      {
+            "key": "headline",
+            "label": "Headline"
+      },
+      {
+            "key": "connections",
+            "label": "Connections"
+      },
+      {
+            "key": "followers",
+            "label": "Followers"
+      },
+      {
+            "key": "mobileNumber",
+            "label": "Mobile Number"
       },
       {
             "key": "email",
             "label": "Email"
       },
       {
-            "key": "mobile_number",
-            "label": "Mobile Number"
-      },
-      {
             "key": "website",
             "label": "Website"
       },
       {
-            "key": "experience",
-            "label": "Experience"
+            "key": "linkedinUrl",
+            "label": "LinkedIn URL"
+      },
+      {
+            "key": "company_linkedin_url",
+            "label": "Company LinkedIn URL"
+      },
+      {
+            "key": "profilePic",
+            "label": "Profile Pic"
+      },
+      {
+            "key": "backgroundPic",
+            "label": "Background Pic"
+      },
+      {
+            "key": "isJobSeeker",
+            "label": "Is Job Seeker"
+      },
+      {
+            "key": "isCurrentlyEmployed",
+            "label": "Is Currently Employed"
+      },
+      {
+            "key": "firstRoleYear",
+            "label": "First Role Year"
+      },
+      {
+            "key": "experiences",
+            "label": "Experiences"
       },
       {
             "key": "education",
             "label": "Education"
+      },
+      {
+            "key": "skills",
+            "label": "Skills"
+      },
+      {
+            "key": "languages",
+            "label": "Languages"
+      },
+      {
+            "key": "certifications",
+            "label": "Certifications"
+      },
+      {
+            "key": "verified",
+            "label": "Verified"
       }
 ],
   },

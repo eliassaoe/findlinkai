@@ -110,6 +110,7 @@ for (const op of catalog.operations) {
     inputLabel: op.input.label,
     params: op.params.map((p) => p.name),
     outputField: op.output.field ?? null,
+    altType: op.altType,
   };
 
   const asyncNote = op.alwaysAsync

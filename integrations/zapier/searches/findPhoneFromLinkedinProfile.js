@@ -10,7 +10,8 @@ const OPERATION = {
   "type": "linkedin_profile_to_phone",
   "inputLabel": "LinkedIn Profile URL",
   "params": [],
-  "outputField": "phone"
+  "outputField": "phone",
+  "altType": null
 };
 
 module.exports = {

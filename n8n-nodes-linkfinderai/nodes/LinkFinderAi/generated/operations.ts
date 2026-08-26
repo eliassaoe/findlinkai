@@ -15,6 +15,12 @@ export const OPERATION_TYPE_MAP: Record<string, Record<string, string>> = {"lead
  */
 export const ALWAYS_ASYNC_TYPES = new Set<string>(["linkedin_profile_to_linkedin_info","company_domain_to_employees","company_name_to_employees","linkedin_company_to_employees","leads_finder_ai"]);
 
+/**
+ * Fallback type names, for operations whose name differs between the spec and the
+ * published docs. The node sends the key and retries the value once on a 422.
+ */
+export const ALT_TYPES: Record<string, string> = {"instagram_lookup":"instagram_profile_to_instagram_info"};
+
 /** Optional request fields, per type, with the node parameter each reads from. */
 export const OPTIONAL_PARAMS: Record<string, Array<{ api: string; node: string }>> = {"company_domain_to_employees":[{"api":"department","node":"department"},{"api":"seniority","node":"seniority"},{"api":"employee_count","node":"employeeCount"}],"company_name_to_employees":[{"api":"department","node":"department"},{"api":"seniority","node":"seniority"},{"api":"employee_count","node":"employeeCount"}],"linkedin_company_to_employees":[{"api":"department","node":"department"},{"api":"seniority","node":"seniority"},{"api":"employee_count","node":"employeeCount"}],"leads_finder_ai":[{"api":"fetch_count","node":"fetchCount"}]};
 

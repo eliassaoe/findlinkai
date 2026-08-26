@@ -10,7 +10,8 @@ const OPERATION = {
   "type": "company_name_to_email",
   "inputLabel": "Company Name",
   "params": [],
-  "outputField": "email"
+  "outputField": "email",
+  "altType": null
 };
 
 module.exports = {

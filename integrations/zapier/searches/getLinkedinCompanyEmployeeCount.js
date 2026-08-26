@@ -10,7 +10,8 @@ const OPERATION = {
   "type": "linkedin_company_to_employee_count",
   "inputLabel": "LinkedIn Company Page URL",
   "params": [],
-  "outputField": "employee_count"
+  "outputField": "employee_count",
+  "altType": null
 };
 
 module.exports = {

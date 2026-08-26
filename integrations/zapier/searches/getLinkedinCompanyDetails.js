@@ -10,7 +10,8 @@ const OPERATION = {
   "type": "linkedin_company_to_linkedin_info",
   "inputLabel": "LinkedIn Company Page URL",
   "params": [],
-  "outputField": null
+  "outputField": null,
+  "altType": null
 };
 
 module.exports = {
@@ -37,46 +38,116 @@ module.exports = {
     perform: (z, bundle) => runEnrichment(z, bundle, OPERATION),
 
     sample: {
-      "id": "tesla.com",
+      "id": "15564",
+      "universalName": "tesla-motors",
+      "linkedinUrl": "https://www.linkedin.com/company/tesla-motors/",
       "name": "Tesla",
-      "website": "tesla.com",
-      "industry": "Motor Vehicle Manufacturing",
-      "employee_count": 140473,
-      "location": "Austin, Texas",
-      "founded": 2003,
-      "description": "Tesla accelerates the world to sustainable energy."
+      "tagline": null,
+      "company_description": "Tesla is accelerating the world's transition to sustainable abundance.",
+      "industry": null,
+      "companyType": "Public Company",
+      "website": "https://www.tesla.com/careers",
+      "logo": "https://media.licdn.com/dms/image/v2/example/tesla_motors_logo",
+      "background_cover_image_url": null,
+      "employeeCount": 91755,
+      "employeeCountRange": "10001-null",
+      "followerCount": 12398847,
+      "foundedOn": null,
+      "city": "Zaventem",
+      "geographicArea": "Flemish Region",
+      "country": "BE",
+      "all_locations": [],
+      "specialties": null,
+      "company_email": null,
+      "company_phone": "(877) 746-6310"
 },
 
     outputFields: [
+      {
+            "key": "universalName",
+            "label": "Universal Name"
+      },
+      {
+            "key": "linkedinUrl",
+            "label": "LinkedIn URL"
+      },
       {
             "key": "name",
             "label": "Name"
       },
       {
-            "key": "website",
-            "label": "Website"
+            "key": "tagline",
+            "label": "Tagline"
+      },
+      {
+            "key": "company_description",
+            "label": "Company Description"
       },
       {
             "key": "industry",
             "label": "Industry"
       },
       {
-            "key": "employee_count",
+            "key": "companyType",
+            "label": "Company Type"
+      },
+      {
+            "key": "website",
+            "label": "Website"
+      },
+      {
+            "key": "logo",
+            "label": "Logo"
+      },
+      {
+            "key": "background_cover_image_url",
+            "label": "Background Cover Image URL"
+      },
+      {
+            "key": "employeeCount",
             "label": "Employee Count",
             "type": "integer"
       },
       {
-            "key": "location",
-            "label": "Location"
+            "key": "employeeCountRange",
+            "label": "Employee Count Range"
       },
       {
-            "key": "founded",
-            "label": "Founded",
+            "key": "followerCount",
+            "label": "Follower Count",
             "type": "integer"
       },
       {
-            "key": "description",
-            "label": "Description"
+            "key": "foundedOn",
+            "label": "Founded On"
+      },
+      {
+            "key": "city",
+            "label": "City"
+      },
+      {
+            "key": "geographicArea",
+            "label": "Geographic Area"
+      },
+      {
+            "key": "country",
+            "label": "Country"
+      },
+      {
+            "key": "all_locations",
+            "label": "All Locations"
+      },
+      {
+            "key": "specialties",
+            "label": "Specialties"
+      },
+      {
+            "key": "company_email",
+            "label": "Company Email"
+      },
+      {
+            "key": "company_phone",
+            "label": "Company Phone"
       }
 ],
   },

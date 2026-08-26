@@ -10,7 +10,8 @@ const OPERATION = {
   "type": "lead_full_name_to_linkedin_url",
   "inputLabel": "Full Name and Company",
   "params": [],
-  "outputField": "linkedin_url"
+  "outputField": "linkedin_url",
+  "altType": null
 };
 
 module.exports = {

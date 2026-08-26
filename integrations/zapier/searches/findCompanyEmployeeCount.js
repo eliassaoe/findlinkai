@@ -10,7 +10,8 @@ const OPERATION = {
   "type": "company_name_to_employee_count",
   "inputLabel": "Company Name",
   "params": [],
-  "outputField": "employee_count"
+  "outputField": "employee_count",
+  "altType": null
 };
 
 module.exports = {

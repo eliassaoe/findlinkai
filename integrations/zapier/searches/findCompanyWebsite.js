@@ -10,7 +10,8 @@ const OPERATION = {
   "type": "company_name_to_website",
   "inputLabel": "Company Name",
   "params": [],
-  "outputField": "website"
+  "outputField": "website",
+  "altType": null
 };
 
 module.exports = {

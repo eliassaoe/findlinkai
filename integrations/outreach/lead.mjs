@@ -48,17 +48,25 @@ export function toLead(result, { email, fullName, company } = {}) {
 
     const name = pick(result, 'name', 'full_name', 'fullName') ?? fullName;
 
+    // Employee-list and lead-search results carry firstName/lastName directly, which is
+    // always better than splitting `name` — the split is only a fallback.
+    const given = pick(result, 'firstName', 'first_name');
+    const family = pick(result, 'lastName', 'last_name');
+    const parts = given || family ? { firstName: given, lastName: family } : splitName(name);
+
     return {
-        ...splitName(name),
+        ...parts,
         fullName: name,
         email: pick(result, 'email', 'work_email', 'workEmail') ?? email,
-        phone: pick(result, 'phone', 'mobile_number', 'mobileNumber', 'phone_number'),
+        phone: pick(result, 'mobileNumber', 'phone', 'mobile_number', 'phone_number'),
         linkedinUrl: pick(result, 'linkedinUrl', 'linkedin_url', 'profile_url', 'profileUrl'),
-        jobTitle: pick(result, 'job_title', 'jobTitle', 'headline', 'position'),
+        jobTitle: pick(result, 'jobTitle', 'job_title', 'headline', 'position'),
         company: pick(result, 'company', 'company_name', 'companyName') ?? company,
         companyWebsite: pick(result, 'companyWebsite', 'company_website', 'website', 'domain'),
+        linkedinUrlCompany: pick(result, 'companyLinkedinUrl', 'company_linkedin_url'),
         companyPhone: pick(result, 'companyPhone', 'company_phone'),
-        location: pick(result, 'location', 'companyCity', 'city'),
+        location: pick(result, 'location', 'city', 'companyCity'),
+        seniority: pick(result, 'seniority'),
         raw: result,
     };
 }

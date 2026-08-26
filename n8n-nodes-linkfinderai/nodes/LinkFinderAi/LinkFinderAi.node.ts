@@ -11,6 +11,7 @@ import {
 } from 'n8n-workflow';
 
 import {
+	ALT_TYPES,
 	ALWAYS_ASYNC_TYPES,
 	INPUT_PROPERTIES,
 	OPERATION_PROPERTIES,
@@ -99,11 +100,21 @@ async function callAndMaybeWait(
 	waitForCompletion: boolean,
 	maxWaitMs: number,
 ): Promise<IDataObject> {
-	const first = await postWithRetry(ctx, body);
+	let first = await postWithRetry(ctx, body);
+
+	// The Instagram operation's type name differs between the spec and the published
+	// docs, and no other source settles it. Send the spec's name, and if the API
+	// rejects it as unknown, try the documented alternative once before giving up.
+	const altType = ALT_TYPES[type];
+	if (first.statusCode === 422 && altType) {
+		first = await postWithRetry(ctx, { ...body, type: altType });
+	}
+
 	assertOk(ctx, first.statusCode, first.body);
 
 	const isAsync = first.statusCode === 202 || Boolean(first.body.job_id);
 	if (!isAsync) {
+		assertNotUpstreamError(ctx, first.body.result ?? null);
 		return { result: first.body.result ?? null, status: 'success' };
 	}
 
@@ -126,7 +137,9 @@ async function callAndMaybeWait(
 		assertOk(ctx, polled.statusCode, polled.body);
 
 		if (polled.body.status !== 'processing') {
-			return { result: polled.body.data ?? polled.body.result ?? null, status: polled.body.status ?? 'success' };
+			const resolved = polled.body.data ?? polled.body.result ?? null;
+			assertNotUpstreamError(ctx, resolved);
+			return { result: resolved, status: polled.body.status ?? 'success' };
 		}
 
 		jobId = jobId ?? (polled.body.job_id as string | undefined);
@@ -137,6 +150,29 @@ async function callAndMaybeWait(
 	// Gave up waiting, not gave up on the job — hand back what's needed to
 	// check it again later (e.g. from a second node after a Wait node).
 	return { processing: true, job_id: jobId, poll_url: pollUrl ?? `${API_BASE}/status/${jobId}` };
+}
+
+/**
+ * Some operations answer HTTP 200 with `status: "success"` while the result is really
+ * an upstream failure — `leads_finder_ai` was observed returning an array whose only
+ * element was an Apify permissions error. Without this check the workflow would carry
+ * that error object downstream as if it were data.
+ */
+function assertNotUpstreamError(ctx: IExecuteFunctions, result: unknown): void {
+	const items = Array.isArray(result) ? result : [result];
+
+	for (const item of items) {
+		const upstream = item && typeof item === 'object' ? (item as IDataObject).error : null;
+		if (!upstream) continue;
+
+		const message =
+			typeof upstream === 'string' ? upstream : (upstream as IDataObject).message ?? 'upstream provider error';
+		throw new NodeApiError(ctx.getNode(), {
+			message:
+				`LinkFinder AI returned a provider error instead of data: ${String(message).slice(0, 300)}. ` +
+				'This is a fault on the LinkFinder side, not with the input — the credits were still spent.',
+		} as any);
+	}
 }
 
 function assertOk(ctx: IExecuteFunctions, statusCode: number, data: LinkFinderResponse): void {

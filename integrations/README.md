@@ -5,7 +5,7 @@ operations across half a dozen platforms cannot drift apart.
 
 ```
 openapi.json  ──┐
-                ├──►  catalog/operations.json  ──►  zapier/  make/  n8n  nango  outreach/
+                ├──►  catalog/operations.json  ──►  zapier/  make/  google-sheets/  n8n
 catalog/overlay.json ─┘
 ```
 
@@ -21,10 +21,7 @@ catalog/overlay.json ─┘
 ## Rebuilding everything
 
 ```bash
-node catalog/build.mjs        # first — everything else reads its output
-node zapier/build.mjs
-node make/build.mjs
-node ../n8n-nodes-linkfinderai/build.mjs
+npm run build    # catalog first, then every platform that reads it
 ```
 
 ## Credit costs are not uniform
@@ -44,12 +41,20 @@ credit. It does not, and the generated integrations carry the real numbers:
 
 Every call is charged, **including one that finds nothing**.
 
-## What has not been verified
+## Verification
 
-Everything here was built against the spec; the build environment cannot reach the API.
-**[`catalog/OPEN-QUESTIONS.md`](catalog/OPEN-QUESTIONS.md) lists what needs one live
-call to settle** — most urgently, the Instagram operation has two conflicting names
-across the spec, the docs page and the previously published n8n node.
+The result shapes were **captured from live API calls**, not inferred — see
+[`catalog/OPEN-QUESTIONS.md`](catalog/OPEN-QUESTIONS.md) for what is confirmed and what
+is still open.
+
+Two findings from those calls are worth knowing before reading the code:
+
+- **`leads_finder_ai` is broken in production.** It returns HTTP 200 / `status:
+  "success"` carrying an upstream Apify permissions error as its result. Every
+  integration here detects that envelope and raises rather than treating it as data —
+  otherwise a stack trace ends up in a CRM field or an email campaign.
+- **The Instagram operation has two names** and nothing settles which is right, so the
+  JavaScript wrappers send one and retry the other on a 422.
 
 ---
 

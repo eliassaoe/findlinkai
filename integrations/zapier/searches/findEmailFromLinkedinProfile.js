@@ -10,7 +10,8 @@ const OPERATION = {
   "type": "linkedin_profile_to_email",
   "inputLabel": "LinkedIn Profile URL",
   "params": [],
-  "outputField": "email"
+  "outputField": "email",
+  "altType": null
 };
 
 module.exports = {

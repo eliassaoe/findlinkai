@@ -244,3 +244,132 @@ test('a dry run enriches but never calls the destination', async () => {
         restore();
     }
 });
+
+test('a provider error dressed as a successful result is not treated as a lead', async () => {
+    // Observed live: leads_finder_ai answered 200 / status "success" with an Apify
+    // permissions error as its only result. Pushing that into a campaign would put a
+    // stack trace where a person should be.
+    const { calls, restore } = stubFetch([
+        { status: 200, body: { status: 'success', result: [{ error: { message: '403 - full-permission-actor-not-approved', status: 403 } }] } },
+    ]);
+
+    try {
+        const out = await enrichAndPush({
+            apiKey: KEY, type: 'leads_finder_ai', input: 'VP Sales',
+            destination: 'instantly', credentials: { apiKey: 'k' }, target: { id: 'c1' },
+        });
+
+        assert.strictEqual(out.pushed.length, 0);
+        assert.strictEqual(calls.length, 1, 'should not have called the destination');
+        assert.match(out.failed[0].error, /provider error/);
+        assert.match(out.failed[0].error, /credits were still spent/);
+    } finally {
+        restore();
+    }
+});
+
+test('a 422 on the Instagram type is retried with the documented alternative', async () => {
+    const { calls, restore } = stubFetch([
+        { status: 422, body: { message: 'unknown type' } },
+        { status: 200, body: { status: 'success', result: { name: 'NASA', email: 'press@nasa.gov' } } },
+        { status: 200, body: { id: 'lead_1' } },
+    ]);
+
+    try {
+        const out = await enrichAndPush({
+            apiKey: KEY, type: 'instagram_lookup', input: '@nasa',
+            destination: 'instantly', credentials: { apiKey: 'k' }, target: { id: 'c1' },
+            params: { altType: 'instagram_profile_to_instagram_info' },
+        });
+
+        assert.strictEqual(JSON.parse(calls[0].options.body).type, 'instagram_lookup');
+        assert.strictEqual(JSON.parse(calls[1].options.body).type, 'instagram_profile_to_instagram_info');
+        assert.strictEqual(out.pushed.length, 1);
+    } finally {
+        restore();
+    }
+});
+
+test('firstName and lastName from the API beat splitting the full name', () => {
+    // Live employee results carry both, and splitting "Sebastian Robles Garcia" on the
+    // last space would get the surname wrong.
+    const lead = toLead({ name: 'Sebastian Robles Garcia', firstName: 'Sebastian', lastName: 'Robles Garcia', email: 'a@b.com' });
+    assert.strictEqual(lead.firstName, 'Sebastian');
+    assert.strictEqual(lead.lastName, 'Robles Garcia');
+});
+
+test('the API returning empty strings for missing fields reads as missing, not as data', () => {
+    // Live profile results use "" rather than null for absent email and phone.
+    const lead = toLead({ name: 'Bill Gates', email: '', mobileNumber: '', jobTitle: 'Co-chair' });
+    assert.strictEqual(lead.email, undefined);
+    assert.strictEqual(lead.phone, undefined);
+    assert.strictEqual(lead.jobTitle, 'Co-chair');
+});
+
+test('Clay takes the webhook URL as its target and gets a flat payload', async () => {
+    const { calls, restore } = stubFetch([
+        { status: 200, body: { result: { name: 'Ada L', email: 'ada@tesla.com', headline: 'VP Eng' } } },
+        { status: 200, body: { ok: true } },
+    ]);
+
+    try {
+        await enrichAndPush({
+            apiKey: KEY, type: 'lead_full_name_to_email', input: 'Ada L Tesla',
+            destination: 'clay', credentials: {}, target: { id: 'https://api.clay.com/v3/sources/webhook/abc' },
+        });
+
+        const body = JSON.parse(calls[1].options.body);
+        assert.strictEqual(calls[1].url, 'https://api.clay.com/v3/sources/webhook/abc');
+        assert.strictEqual(body.email, 'ada@tesla.com');
+        assert.strictEqual(body.raw, undefined, 'nested raw would become an unusable Clay column');
+        assert.ok(Object.values(body).every((v) => typeof v !== 'object' || v === null));
+    } finally {
+        restore();
+    }
+});
+
+test('Clay rejects a bare id, since it needs the whole webhook URL', async () => {
+    const { restore } = stubFetch([{ status: 200, body: { result: { name: 'Ada', email: 'a@b.com' } } }]);
+    try {
+        const out = await enrichAndPush({
+            apiKey: KEY, type: 'lead_full_name_to_email', input: 'Ada Tesla',
+            destination: 'clay', credentials: {}, target: { id: 'table_123' },
+        });
+        assert.match(out.failed[0].error, /webhook URL/);
+    } finally {
+        restore();
+    }
+});
+
+test('JustCall gates on a phone number rather than an email', async () => {
+    const { calls, restore } = stubFetch([
+        { status: 200, body: { result: { name: 'Ada L', mobileNumber: '+15551234567' } } },
+        { status: 200, body: { id: 'contact_1' } },
+    ]);
+
+    try {
+        const out = await enrichAndPush({
+            apiKey: KEY, type: 'linkedin_profile_to_phone', input: 'https://li/ada',
+            destination: 'justcall', credentials: { apiKey: 'k', apiSecret: 's' }, target: {},
+        });
+
+        assert.strictEqual(out.pushed.length, 1, 'a lead with a phone but no email is still usable to a dialler');
+        assert.strictEqual(JSON.parse(calls[1].options.body).phone, '+15551234567');
+        assert.strictEqual(calls[1].options.headers.Authorization, 'k:s');
+    } finally {
+        restore();
+    }
+});
+
+test('JustCall skips a lead with no phone, and says why', async () => {
+    const { restore } = stubFetch([{ status: 200, body: { result: { name: 'Ada L', email: 'ada@tesla.com' } } }]);
+    try {
+        const out = await enrichAndPush({
+            apiKey: KEY, type: 'lead_full_name_to_email', input: 'Ada L Tesla',
+            destination: 'justcall', credentials: { apiKey: 'k', apiSecret: 's' }, target: {},
+        });
+        assert.match(out.skipped[0].reason, /nothing to dial/);
+    } finally {
+        restore();
+    }
+});

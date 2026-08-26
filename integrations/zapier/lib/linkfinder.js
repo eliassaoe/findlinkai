@@ -46,6 +46,27 @@ function assertOk(response) {
   }
 }
 
+/**
+ * Some operations answer HTTP 200 with `status: "success"` while the result is really
+ * an upstream failure — `leads_finder_ai` was observed returning an array whose only
+ * element was an Apify permissions error. Without this check a Zap would happily map
+ * that error object into a CRM as if it were a lead.
+ */
+function assertNotUpstreamError(result) {
+  const items = Array.isArray(result) ? result : [result];
+
+  for (const item of items) {
+    const upstream = item && typeof item === 'object' ? item.error : null;
+    if (!upstream) continue;
+
+    const message = typeof upstream === 'string' ? upstream : upstream.message || 'upstream provider error';
+    throw new Error(
+      `LinkFinder AI returned a provider error instead of data: ${String(message).slice(0, 300)}. ` +
+        'This is a fault on the LinkFinder side, not with the input — the credits were still spent.',
+    );
+  }
+}
+
 async function postWithRetry(z, body, attempt = 0) {
   const response = await z.request({
     url: API_BASE,
@@ -134,12 +155,21 @@ async function runEnrichment(z, bundle, operation) {
     }
   }
 
-  const first = await postWithRetry(z, body);
+  let first = await postWithRetry(z, body);
+
+  // The Instagram operation's type name differs between the spec and the published
+  // docs, and no other source settles it. Send the spec's name, and if the API rejects
+  // it as unknown, try the documented alternative once before giving up.
+  if (first.status === 422 && operation.altType) {
+    first = await postWithRetry(z, { ...body, type: operation.altType });
+  }
+
   assertOk(first);
 
   const data = first.json || {};
   const isAsync = first.status === 202 || Boolean(data.job_id);
   if (!isAsync) {
+    assertNotUpstreamError(data.result ?? null);
     return toSearchResult(data.result ?? null, operation);
   }
 
@@ -155,6 +185,7 @@ async function runEnrichment(z, bundle, operation) {
     await sleep(delay);
     const polled = await pollOnce(z, pollUrl);
     if (polled.done) {
+      assertNotUpstreamError(polled.result);
       return toSearchResult(polled.result, operation);
     }
     delay = Math.min(delay * 1.5, MAX_POLL_DELAY_MS);

@@ -8,11 +8,15 @@ import { outreach } from './outreach.mjs';
 import { salesloft } from './salesloft.mjs';
 import { salesforge } from './salesforge.mjs';
 import { emailbison } from './emailbison.mjs';
+import { clay } from './clay.mjs';
+import { justcall } from './justcall.mjs';
 
 export const DESTINATIONS = {
     activecampaign,
+    clay,
     emailbison,
     instantly,
+    justcall,
     lemlist,
     outreach,
     reply,

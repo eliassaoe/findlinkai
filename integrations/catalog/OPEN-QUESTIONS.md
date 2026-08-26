@@ -1,81 +1,108 @@
-# Unverified points in the operation catalog
+# What is verified, and what is not
 
-The integrations were built against `openapi.json`. The build environment has **no
-network access to `api.linkfinderai.com`** (the sandbox blocks it), so nothing below
-could be settled by making a call. Each needs one live request to resolve.
-
-Ordered by how much damage a wrong guess does.
+Updated 2026-08-26, after calling the live API through LinkFinder's own MCP server.
+Most of what was open has now been settled from real responses. What remains is listed
+below with what it would take to close it.
 
 ---
 
-## 1. The Instagram operation has two names, and the sources disagree
+## Settled by live calls
 
-| Source | Says | Last touched |
-| --- | --- | --- |
-| `openapi.json` / `openapi.yaml` (v1.1.0) | `instagram_lookup` | current |
-| `api-documentation.html` | `instagram_profile_to_instagram_info` | 2026-08-23 |
-| `n8n-nodes-linkfinderai` v0.1.0 (before this change) | `instagram_profile_to_instagram_info` | published |
-| `app.html`, `mcp-server/`, `workers/` | no Instagram support at all | — |
+| Question | Answer |
+| --- | --- |
+| Scalar result shape | Confirmed: `{"status":"success","result":"tesla.com"}` |
+| Async accept shape | Confirmed: `202` → `{status:"processing", job_id, poll_url, message}` |
+| Job status shape | Confirmed: flat `{status, result}` — the `data` wrapper the wrappers also accept was not observed |
+| Employee list fields | Captured. 26 fields, camelCase, **including `firstName`/`lastName`** and `department` as an **array** |
+| Profile info fields | Captured. Note: **missing values are `""`, not `null`** |
+| LinkedIn company fields | Captured. Mixes camelCase and snake_case (`employeeCount` beside `company_description`) |
 
-Two sources say one thing, one says the other, and the app itself is silent. **The
-whole integration stack currently sends `instagram_lookup`**, because the catalog is
-generated from the spec.
+`overlay.json` now carries these as real samples, and the outreach lead normaliser
+prefers the real `firstName`/`lastName` over splitting a full name.
 
-This is a behaviour change for the published n8n node, which previously sent the other
-name. If the docs page is the one that is right, the Instagram operation is now broken
-in every integration and was working before.
+---
 
-**To resolve:** `POST /` with `{"type": "instagram_lookup", "input_data": "@nasa"}`.
-A `422` means the spec is wrong — fix `openapi.json`, rerun `node integrations/catalog/build.mjs`
-and the three platform builds, and everything corrects itself.
+## 1. `leads_finder_ai` is broken in production ⚠️
 
-## 2. Three operations exist only in the spec
+A live call returned **HTTP 200, `"status": "success"`** — with this as the result:
 
-`leads_finder_ai`, `b2b_data_lookup` and `instagram_lookup` appear in `openapi.json`
-but in **neither** `app.html`'s `creditCosts` **nor** `api-documentation.html`. They are
-exposed by every integration built here, at 1 credit each (the `||1` fallback in
-`app.html` would charge that if they are real).
+```json
+{ "result": [ { "error": {
+    "message": "403 — \"error\": { \"type\": \"full-permission-actor-not-approved\",
+      \"message\": \"This Actor requires full access to your account. You must approve
+      its permissions before running it\" }",
+    "status": 403 } } ] }
+```
 
-**To resolve:** call each once and confirm it is accepted and priced as expected.
+The upstream Apify actor (`IoSHqwTR9YGhzccez`) has not had its permissions approved, so
+the AI lead search returns a provider error for every call — presented as a success.
 
-## 3. Result field names are inferred, not observed
+**Two separate problems.** The outage itself is fixable in one click at
+`https://console.apify.com/actors/IoSHqwTR9YGhzccez?approvePermissions=true`. The
+deeper one is that the API reports a provider failure as `status: "success"`, so any
+consumer treats an error object as data.
 
-`overlay.json` carries a sample output per operation, used for Zapier's field picker,
-Make's `interface.imljson`, and the outreach lead normaliser. Those samples come from
-`api-documentation.html` and from `app.html`'s own result renderers — **not** from live
-responses.
+Every integration here now checks for that envelope and raises instead — otherwise a
+stack trace would have been written into a CRM field, or pushed into a live email
+campaign as a "lead". **It would be better fixed at the API**, which should return an
+error status rather than a successful-looking result.
 
-What is known well: results are often a **bare scalar** (`"result": "tesla.com"`), and
-employee lists are **camelCase** objects (`name`, `headline`, `email`, `linkedinUrl`,
-`company`, `companyWebsite`, …). What is inferred: the exact keys on the two `*_info`
-object operations.
+## 2. The Instagram operation — handled, not resolved
 
-`integrations/outreach/lead.mjs` reads both casings for every field, so the outreach
-path degrades gracefully. Zapier and Make samples do not — a wrong key shows an empty
-field in the Zap editor.
+| Source | Says |
+| --- | --- |
+| `openapi.json` / `openapi.yaml` | `instagram_lookup` |
+| `api-documentation.html` | `instagram_profile_to_instagram_info` |
+| `app.html`, `mcp-server/`, `workers/` | no Instagram support at all |
 
-**To resolve:** run one call per operation, then reconcile `overlay.json` and rebuild.
-Do this **before submitting to the Zapier or Make marketplaces** — both review sample
-output against real responses.
+Each name appears in exactly one place, and LinkFinder's MCP server exposes no
+Instagram tool, so there was nothing to test it with.
 
-## 4. Instantly's campaign field
+Rather than guess, **every JavaScript wrapper sends `instagram_lookup` and retries
+`instagram_profile_to_instagram_info` once if the API rejects the first as unknown**
+(`altType` in the catalog). Instagram works whichever name is right, at the cost of one
+wasted request the first time if the spec is wrong.
 
-`integrations/outreach/destinations/instantly.mjs` sends `campaign`, per Instantly's v2
-request body. Instantly's own tooling exposes the same field as `campaign_id`. The rest
-of the field names (`email`, `first_name`, `last_name`, `company_name`, `phone`,
-`website`) are confirmed against Instantly's endpoint spec.
+**To close it properly:** `POST /` with `{"type":"instagram_lookup","input_data":"@nasa"}`.
+Whichever is wrong, fix that source and drop the `altType` from `overlay.json`.
 
-**To resolve:** push one lead and see whether it lands in the campaign.
+Make is the exception — its modules are declarative JSON and cannot retry, so they send
+the spec's name only.
 
-## 5. Everything else in `integrations/outreach/destinations/`
+## 3. Two operations still unexercised
 
-Nine of the ten destination adapters are written from each vendor's published API
-documentation, not from a live call. The test suite pins the exact request each one
-builds, but cannot check that the vendor accepts it. Run one lead through each before
-pointing a real campaign at it — **Salesforge** and **EmailBison** most of all.
+`b2b_data_lookup` is in the spec and in `mcp-server/src/client.ts`, so it is real, but
+was not called. `company_name_to_employees` and `lead_full_name_to_email` are in the
+spec and `app.html` but have no MCP tool, so they were not called either.
+
+**To close:** one call each.
+
+## 4. Cost claims that disagree
+
+`app.html`'s `creditCosts` and `openapi.json` agree with each other, and
+`api-documentation.html` has been corrected to match. One inconsistency is left:
+**LinkFinder's own MCP server tool descriptions** say `get_linkedin_company_info` and
+`get_linkedin_profile_info` cost 1 credit; the spec says 6 and 10.
+
+**To close:** fix the tool descriptions in `mcp-server/src/server.ts`.
+
+## 5. Destination adapters, other than Instantly
+
+Instantly's field names are confirmed against its endpoint spec (its campaign field is
+sent as `campaign`, which its own tooling calls `campaign_id` — the one thing to watch).
+The other eleven are written from published documentation, not live calls. The tests pin
+the exact request each builds, but cannot check that the vendor accepts it.
+
+**To close:** run one lead through each. **Salesforge** and **EmailBison** have the
+least stable documentation, and EmailBison is self-hosted so paths vary per deployment.
 
 ## 6. Make's IML has not been run in Make
 
-`repeat`, `condition` and `temp` are used per Make's documented semantics, but the app
-has never been imported into Make's editor. Import it and run each module once before
-submitting.
+`repeat`, `condition` and `temp` follow Make's documented semantics but the app has not
+been imported into Make's editor. Import it and run each module once before submitting.
+
+## 7. Before submitting to a marketplace
+
+Zapier and Make both review sample output against real responses. Four of the five
+result families now come from live calls; `linkedin_post_to_reactions` does not.
+**To close:** call it once and reconcile `overlay.json`.
