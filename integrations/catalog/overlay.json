@@ -1,0 +1,407 @@
+{
+  "$comment": "Presentation metadata for each API operation. Behaviour (credits, async, input format) lives in openapi.json and is NEVER duplicated here \u2014 build.mjs merges the two and fails loudly if the two files disagree about which operations exist. Add an operation to openapi.json and the build will tell you to describe it here. Output shapes are derived from api-documentation.html and app.html's own result renderers, not from a live call \u2014 refresh sample values against a real response before publishing an app to a marketplace.",
+  "categories": {
+    "person": {
+      "label": "People",
+      "order": 1
+    },
+    "company": {
+      "label": "Companies",
+      "order": 2
+    },
+    "social": {
+      "label": "Social",
+      "order": 3
+    },
+    "discovery": {
+      "label": "Discovery",
+      "order": 4
+    }
+  },
+  "params": {
+    "fetch_count": {
+      "label": "Number of Leads",
+      "type": "integer",
+      "default": 10,
+      "min": 1,
+      "max": 100,
+      "help": "How many leads to return."
+    },
+    "department": {
+      "label": "Department",
+      "type": "string",
+      "help": "Only return employees in this department, e.g. Engineering."
+    },
+    "seniority": {
+      "label": "Seniority",
+      "type": "string",
+      "help": "Only return employees at this seniority, e.g. Director."
+    },
+    "employee_count": {
+      "label": "Max Employees",
+      "type": "integer",
+      "min": 1,
+      "help": "Cap how many employees come back. Billed 0.5 credits each."
+    }
+  },
+  "operations": {
+    "lead_full_name_to_linkedin_url": {
+      "key": "findLinkedinUrlFromName",
+      "label": "Find LinkedIn URL from Name",
+      "category": "person",
+      "inputLabel": "Full Name and Company",
+      "inputHelp": "The person's full name and their company, in one string.",
+      "params": [],
+      "output": {
+        "kind": "scalar",
+        "field": "linkedin_url",
+        "sample": "https://www.linkedin.com/in/williamhgates"
+      }
+    },
+    "lead_full_name_to_email": {
+      "key": "findEmailFromName",
+      "label": "Find Email from Name",
+      "category": "person",
+      "inputLabel": "Full Name and Company",
+      "inputHelp": "The person's full name and their company, in one string.",
+      "params": [],
+      "output": {
+        "kind": "scalar",
+        "field": "email",
+        "sample": "bill.gates@microsoft.com"
+      }
+    },
+    "email_to_linkedin_url": {
+      "key": "findLinkedinUrlFromEmail",
+      "label": "Find LinkedIn URL from Email",
+      "category": "person",
+      "inputLabel": "Email Address",
+      "inputHelp": "A professional email address.",
+      "params": [],
+      "output": {
+        "kind": "scalar",
+        "field": "linkedin_url",
+        "sample": "https://www.linkedin.com/in/williamhgates"
+      }
+    },
+    "linkedin_profile_to_email": {
+      "key": "findEmailFromLinkedinProfile",
+      "label": "Find Email from LinkedIn Profile",
+      "category": "person",
+      "inputLabel": "LinkedIn Profile URL",
+      "inputHelp": "A LinkedIn person profile URL.",
+      "params": [],
+      "output": {
+        "kind": "scalar",
+        "field": "email",
+        "sample": "bill.gates@microsoft.com"
+      }
+    },
+    "linkedin_profile_to_phone": {
+      "key": "findPhoneFromLinkedinProfile",
+      "label": "Find Phone from LinkedIn Profile",
+      "category": "person",
+      "inputLabel": "LinkedIn Profile URL",
+      "inputHelp": "A LinkedIn person profile URL.",
+      "params": [],
+      "output": {
+        "kind": "scalar",
+        "field": "phone",
+        "sample": "+1 425 882 8080"
+      }
+    },
+    "linkedin_profile_to_linkedin_info": {
+      "key": "getLinkedinProfileDetails",
+      "label": "Get LinkedIn Profile Details",
+      "category": "person",
+      "inputLabel": "LinkedIn Profile URL",
+      "inputHelp": "A LinkedIn person profile URL.",
+      "params": [],
+      "output": {
+        "kind": "object",
+        "field": null,
+        "sample": {
+          "headline": "Co-chair, Bill & Melinda Gates Foundation",
+          "job_title": "Co-chair",
+          "company": "Bill & Melinda Gates Foundation",
+          "location": "Seattle, Washington, United States",
+          "follower_count": 35000000,
+          "email": "bill.gates@microsoft.com",
+          "mobile_number": "+1 425 882 8080",
+          "website": "gatesnotes.com",
+          "experience": [],
+          "education": []
+        }
+      }
+    },
+    "company_name_to_website": {
+      "key": "findCompanyWebsite",
+      "label": "Find Company Website",
+      "category": "company",
+      "inputLabel": "Company Name",
+      "inputHelp": "The company's name.",
+      "params": [],
+      "output": {
+        "kind": "scalar",
+        "field": "website",
+        "sample": "tesla.com"
+      }
+    },
+    "company_name_to_email": {
+      "key": "findCompanyEmail",
+      "label": "Find Company Email",
+      "category": "company",
+      "inputLabel": "Company Name",
+      "inputHelp": "The company's name.",
+      "params": [],
+      "output": {
+        "kind": "scalar",
+        "field": "email",
+        "sample": "press@tesla.com"
+      }
+    },
+    "company_name_to_phone": {
+      "key": "findCompanyPhone",
+      "label": "Find Company Phone",
+      "category": "company",
+      "inputLabel": "Company Name",
+      "inputHelp": "The company's name.",
+      "params": [],
+      "output": {
+        "kind": "scalar",
+        "field": "phone",
+        "sample": "+1 512 516 8177"
+      }
+    },
+    "company_name_to_linkedin_url": {
+      "key": "findCompanyLinkedinUrl",
+      "label": "Find Company LinkedIn URL",
+      "category": "company",
+      "inputLabel": "Company Name",
+      "inputHelp": "The company's name.",
+      "params": [],
+      "output": {
+        "kind": "scalar",
+        "field": "linkedin_url",
+        "sample": "https://www.linkedin.com/company/tesla-motors"
+      }
+    },
+    "company_name_to_employee_count": {
+      "key": "findCompanyEmployeeCount",
+      "label": "Find Company Employee Count",
+      "category": "company",
+      "inputLabel": "Company Name",
+      "inputHelp": "The company's name.",
+      "params": [],
+      "output": {
+        "kind": "scalar",
+        "field": "employee_count",
+        "sample": 140473
+      }
+    },
+    "company_name_to_employees": {
+      "key": "listEmployeesByCompanyName",
+      "label": "List Employees by Company Name",
+      "category": "company",
+      "inputLabel": "Company Name",
+      "inputHelp": "The company's name.",
+      "params": [
+        "department",
+        "seniority",
+        "employee_count"
+      ],
+      "output": {
+        "kind": "list",
+        "field": null,
+        "sample": {
+          "name": "Ada Lovelace",
+          "headline": "VP Engineering at Tesla",
+          "email": "ada.lovelace@tesla.com",
+          "linkedinUrl": "https://www.linkedin.com/in/ada-lovelace",
+          "photoUrl": "https://media.licdn.com/dms/image/example.jpg",
+          "company": "Tesla",
+          "companyWebsite": "tesla.com",
+          "companyPhone": "+1 512 516 8177",
+          "companySize": "10001+",
+          "companyCity": "Austin",
+          "companyState": "Texas",
+          "companyCountry": "United States",
+          "companyLinkedinUrl": "https://www.linkedin.com/company/tesla-motors"
+        }
+      }
+    },
+    "company_domain_to_employees": {
+      "key": "listEmployeesByCompanyDomain",
+      "label": "List Employees by Company Domain",
+      "category": "company",
+      "inputLabel": "Company Domain",
+      "inputHelp": "The company's domain, not its name \u2014 tesla.com, not Tesla.",
+      "params": [
+        "department",
+        "seniority",
+        "employee_count"
+      ],
+      "output": {
+        "kind": "list",
+        "field": null,
+        "sample": {
+          "name": "Ada Lovelace",
+          "headline": "VP Engineering at Tesla",
+          "email": "ada.lovelace@tesla.com",
+          "linkedinUrl": "https://www.linkedin.com/in/ada-lovelace",
+          "photoUrl": "https://media.licdn.com/dms/image/example.jpg",
+          "company": "Tesla",
+          "companyWebsite": "tesla.com",
+          "companyPhone": "+1 512 516 8177",
+          "companySize": "10001+",
+          "companyCity": "Austin",
+          "companyState": "Texas",
+          "companyCountry": "United States",
+          "companyLinkedinUrl": "https://www.linkedin.com/company/tesla-motors"
+        }
+      }
+    },
+    "linkedin_company_to_linkedin_info": {
+      "key": "getLinkedinCompanyDetails",
+      "label": "Get LinkedIn Company Details",
+      "category": "company",
+      "inputLabel": "LinkedIn Company Page URL",
+      "inputHelp": "A LinkedIn company page URL.",
+      "params": [],
+      "output": {
+        "kind": "object",
+        "field": null,
+        "sample": {
+          "name": "Tesla",
+          "website": "tesla.com",
+          "industry": "Motor Vehicle Manufacturing",
+          "employee_count": 140473,
+          "location": "Austin, Texas",
+          "founded": 2003,
+          "description": "Tesla accelerates the world to sustainable energy."
+        }
+      }
+    },
+    "linkedin_company_to_employee_count": {
+      "key": "getLinkedinCompanyEmployeeCount",
+      "label": "Get Employee Count from LinkedIn Company",
+      "category": "company",
+      "inputLabel": "LinkedIn Company Page URL",
+      "inputHelp": "A LinkedIn company page URL.",
+      "params": [],
+      "output": {
+        "kind": "scalar",
+        "field": "employee_count",
+        "sample": 140473
+      }
+    },
+    "linkedin_company_to_employees": {
+      "key": "listEmployeesFromLinkedinCompany",
+      "label": "List Employees from LinkedIn Company",
+      "category": "company",
+      "inputLabel": "LinkedIn Company Page URL",
+      "inputHelp": "A LinkedIn company page URL.",
+      "params": [
+        "department",
+        "seniority",
+        "employee_count"
+      ],
+      "output": {
+        "kind": "list",
+        "field": null,
+        "sample": {
+          "name": "Ada Lovelace",
+          "headline": "VP Engineering at Tesla",
+          "email": "ada.lovelace@tesla.com",
+          "linkedinUrl": "https://www.linkedin.com/in/ada-lovelace",
+          "photoUrl": "https://media.licdn.com/dms/image/example.jpg",
+          "company": "Tesla",
+          "companyWebsite": "tesla.com",
+          "companyPhone": "+1 512 516 8177",
+          "companySize": "10001+",
+          "companyCity": "Austin",
+          "companyState": "Texas",
+          "companyCountry": "United States",
+          "companyLinkedinUrl": "https://www.linkedin.com/company/tesla-motors"
+        }
+      }
+    },
+    "linkedin_post_to_reactions": {
+      "key": "getLinkedinPostReactions",
+      "label": "Get LinkedIn Post Reactions",
+      "category": "social",
+      "inputLabel": "LinkedIn Post URL",
+      "inputHelp": "A LinkedIn post URL.",
+      "params": [],
+      "output": {
+        "kind": "list",
+        "field": null,
+        "sample": {
+          "name": "Ada Lovelace",
+          "headline": "VP Engineering at Tesla",
+          "linkedinUrl": "https://www.linkedin.com/in/ada-lovelace",
+          "reactionType": "LIKE"
+        }
+      }
+    },
+    "instagram_lookup": {
+      "key": "lookUpInstagramProfile",
+      "label": "Look Up an Instagram Profile",
+      "category": "social",
+      "inputLabel": "Instagram Handle or URL",
+      "inputHelp": "An Instagram handle or profile URL.",
+      "params": [],
+      "output": {
+        "kind": "object",
+        "field": null,
+        "sample": {
+          "username": "nasa",
+          "full_name": "NASA",
+          "follower_count": 97000000,
+          "biography": "Explore the universe and discover our home planet.",
+          "website": "nasa.gov",
+          "is_verified": true
+        }
+      }
+    },
+    "leads_finder_ai": {
+      "key": "findLeadsWithAi",
+      "label": "Find Leads with AI",
+      "category": "discovery",
+      "inputLabel": "Describe the Leads You Want",
+      "inputHelp": "Plain English \u2014 job titles, industry, company size, location.",
+      "params": [
+        "fetch_count"
+      ],
+      "output": {
+        "kind": "list",
+        "field": null,
+        "sample": {
+          "name": "Ada Lovelace",
+          "headline": "VP Sales at Northwind",
+          "email": "ada@northwind.com",
+          "linkedinUrl": "https://www.linkedin.com/in/ada-lovelace",
+          "company": "Northwind",
+          "companyWebsite": "northwind.com"
+        }
+      }
+    },
+    "b2b_data_lookup": {
+      "key": "b2bDataLookup",
+      "label": "B2B Data Lookup (Any Input)",
+      "category": "discovery",
+      "inputLabel": "Company or Person Identifier",
+      "inputHelp": "Use this only when you do not know the input type. A specific operation is more reliable.",
+      "params": [],
+      "output": {
+        "kind": "object",
+        "field": null,
+        "sample": {
+          "name": "Tesla",
+          "website": "tesla.com",
+          "linkedin_url": "https://www.linkedin.com/company/tesla-motors"
+        }
+      }
+    }
+  }
+}
