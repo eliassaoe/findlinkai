@@ -67,6 +67,29 @@ for (const [type, entry] of Object.entries(overlay.operations)) {
   } else if (output.sample === undefined) {
     fail(`"${type}" has no sample output.`);
   }
+
+  // The n8n node is published; a resource/operation pair is a public identifier that
+  // existing workflows store. Renaming one silently breaks them, so they are pinned
+  // here and checked rather than derived from the label.
+  const n8n = entry.n8n;
+  if (!n8n) {
+    fail(`"${type}" has no n8n resource/operation mapping.`);
+  } else if (!overlay.n8nResources[n8n.resource]) {
+    fail(`"${type}" maps to unknown n8n resource "${n8n.resource}".`);
+  }
+}
+
+const seenN8n = new Map();
+for (const [type, entry] of Object.entries(overlay.operations)) {
+  if (!entry.n8n) continue;
+  const pair = `${entry.n8n.resource}/${entry.n8n.operation}`;
+  if (seenN8n.has(pair)) fail(`n8n pair "${pair}" is claimed by both ${seenN8n.get(pair)} and ${type}.`);
+  seenN8n.set(pair, type);
+}
+
+for (const [resource, meta] of Object.entries(overlay.n8nResources)) {
+  const pair = `${resource}/${meta.default}`;
+  if (!seenN8n.has(pair)) fail(`n8n resource "${resource}" defaults to "${meta.default}", which no operation provides.`);
 }
 
 // Zapier/Make/n8n all key modules off `key`; a collision would silently shadow one.
@@ -106,6 +129,7 @@ const operations = specTypes
       },
       params: (o.params ?? []).map((name) => ({ name, ...overlay.params[name] })),
       output: o.output,
+      n8n: o.n8n,
       note: s.note ?? null,
     };
   })
@@ -120,6 +144,7 @@ const catalog = {
   specVersion: spec.info.version,
   apiBase: spec.servers?.[0]?.url ?? 'https://api.linkfinderai.com',
   categories: overlay.categories,
+  n8nResources: overlay.n8nResources,
   params: overlay.params,
   operations,
 };

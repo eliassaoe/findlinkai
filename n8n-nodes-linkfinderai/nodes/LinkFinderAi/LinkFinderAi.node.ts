@@ -10,45 +10,17 @@ import {
 	type IHttpRequestOptions,
 } from 'n8n-workflow';
 
+import {
+	ALWAYS_ASYNC_TYPES,
+	INPUT_PROPERTIES,
+	OPERATION_PROPERTIES,
+	OPERATION_TYPE_MAP,
+	OPTIONAL_PARAMS,
+	PARAM_PROPERTIES,
+	RESOURCE_PROPERTY,
+} from './generated/operations';
+
 const API_BASE = 'https://api.linkfinderai.com';
-
-// resource/operation -> the `type` value LinkFinder AI's single endpoint expects.
-// (See https://linkfinderai.com/api-documentation for the authoritative list.)
-const OPERATION_TYPE_MAP: Record<string, Record<string, string>> = {
-	lead: {
-		fullNameToLinkedinUrl: 'lead_full_name_to_linkedin_url',
-		emailToLinkedinUrl: 'email_to_linkedin_url',
-	},
-	company: {
-		nameToWebsite: 'company_name_to_website',
-		nameToPhone: 'company_name_to_phone',
-		nameToEmail: 'company_name_to_email',
-		nameToEmployeeCount: 'company_name_to_employee_count',
-		nameToLinkedinUrl: 'company_name_to_linkedin_url',
-		domainToEmployees: 'company_domain_to_employees',
-	},
-	linkedinProfile: {
-		urlToInfo: 'linkedin_profile_to_linkedin_info',
-		urlToEmail: 'linkedin_profile_to_email',
-		urlToPhone: 'linkedin_profile_to_phone',
-	},
-	linkedinCompany: {
-		urlToInfo: 'linkedin_company_to_linkedin_info',
-		urlToEmployeeCount: 'linkedin_company_to_employee_count',
-		urlToEmployees: 'linkedin_company_to_employees',
-	},
-	linkedinPost: {
-		urlToReactions: 'linkedin_post_to_reactions',
-	},
-	instagram: {
-		profileUrlToInfo: 'instagram_profile_to_instagram_info',
-	},
-};
-
-// linkedin_profile_to_linkedin_info is documented as *always* async (job_id every
-// time). Everything else is normally sync but can fall back to the same 202+job_id
-// shape once a lookup runs past LinkFinder's ~27s sync window.
-const ALWAYS_ASYNC_TYPES = new Set(['linkedin_profile_to_linkedin_info']);
 
 function sleep(ms: number): Promise<void> {
 	return new Promise((resolve) => setTimeout(resolve, ms));
@@ -201,112 +173,15 @@ export class LinkFinderAi implements INodeType {
 		outputs: ['main'],
 		credentials: [{ name: 'linkFinderAiApi', required: true }],
 		properties: [
-			{
-				displayName: 'Resource',
-				name: 'resource',
-				type: 'options',
-				noDataExpression: true,
-				default: 'lead',
-				options: [
-					{ name: 'Company', value: 'company' },
-					{ name: 'Instagram', value: 'instagram' },
-					{ name: 'Job', value: 'job' },
-					{ name: 'Lead', value: 'lead' },
-					{ name: 'LinkedIn Company', value: 'linkedinCompany' },
-					{ name: 'LinkedIn Post', value: 'linkedinPost' },
-					{ name: 'LinkedIn Profile', value: 'linkedinProfile' },
-				],
-			},
+			RESOURCE_PROPERTY,
 
-			// ---- Lead ----
-			{
-				displayName: 'Operation',
-				name: 'operation',
-				type: 'options',
-				noDataExpression: true,
-				displayOptions: { show: { resource: ['lead'] } },
-				default: 'fullNameToLinkedinUrl',
-				options: [
-					{ name: 'Full Name → LinkedIn URL', value: 'fullNameToLinkedinUrl', description: "Find a person's LinkedIn URL from their name and company", action: 'Find linked in url from full name' },
-					{ name: 'Email → LinkedIn URL', value: 'emailToLinkedinUrl', description: "Reverse-lookup a person's LinkedIn URL from their email", action: 'Find linked in url from email' },
-				],
-			},
-
-			// ---- Company ----
-			{
-				displayName: 'Operation',
-				name: 'operation',
-				type: 'options',
-				noDataExpression: true,
-				displayOptions: { show: { resource: ['company'] } },
-				default: 'nameToWebsite',
-				options: [
-					{ name: 'Domain → Employees', value: 'domainToEmployees', description: 'Get a filtered list of employees from a company domain', action: 'Find company employees from domain' },
-					{ name: 'Name → Email', value: 'nameToEmail', action: 'Find company email from name' },
-					{ name: 'Name → Employee Count', value: 'nameToEmployeeCount', action: 'Find company employee count from name' },
-					{ name: 'Name → LinkedIn URL', value: 'nameToLinkedinUrl', action: 'Find company linked in url from name' },
-					{ name: 'Name → Phone', value: 'nameToPhone', action: 'Find company phone from name' },
-					{ name: 'Name → Website', value: 'nameToWebsite', action: 'Find company website from name' },
-				],
-			},
-
-			// ---- LinkedIn Profile ----
-			{
-				displayName: 'Operation',
-				name: 'operation',
-				type: 'options',
-				noDataExpression: true,
-				displayOptions: { show: { resource: ['linkedinProfile'] } },
-				default: 'urlToEmail',
-				options: [
-					{ name: 'URL → Full Profile Info', value: 'urlToInfo', description: 'Always async — returns a job to poll', action: 'Get full profile info from linked in url' },
-					{ name: 'URL → Email', value: 'urlToEmail', action: 'Find email from linked in url' },
-					{ name: 'URL → Phone', value: 'urlToPhone', action: 'Find phone from linked in url' },
-				],
-			},
-
-			// ---- LinkedIn Company ----
-			{
-				displayName: 'Operation',
-				name: 'operation',
-				type: 'options',
-				noDataExpression: true,
-				displayOptions: { show: { resource: ['linkedinCompany'] } },
-				default: 'urlToInfo',
-				options: [
-					{ name: 'URL → Company Info', value: 'urlToInfo', action: 'Get company info from linked in url' },
-					{ name: 'URL → Employee Count', value: 'urlToEmployeeCount', action: 'Get company employee count from linked in url' },
-					{ name: 'URL → Employees', value: 'urlToEmployees', description: 'List employees (name, title, LinkedIn URL, location) at the company', action: 'Get company employees from linked in url' },
-				],
-			},
-
-			// ---- LinkedIn Post ----
-			{
-				displayName: 'Operation',
-				name: 'operation',
-				type: 'options',
-				noDataExpression: true,
-				displayOptions: { show: { resource: ['linkedinPost'] } },
-				default: 'urlToReactions',
-				options: [
-					{ name: 'URL → Reactions', value: 'urlToReactions', description: 'Get people who reacted to a LinkedIn post', action: 'Get post reactions' },
-				],
-			},
-
-			// ---- Instagram ----
-			{
-				displayName: 'Operation',
-				name: 'operation',
-				type: 'options',
-				noDataExpression: true,
-				displayOptions: { show: { resource: ['instagram'] } },
-				default: 'profileUrlToInfo',
-				options: [
-					{ name: 'Profile URL → Info', value: 'profileUrlToInfo', action: 'Get instagram profile info' },
-				],
-			},
+			// One Operation picker per resource, generated from the catalog so the list
+			// cannot fall behind the API. Each option states its own credit cost.
+			...OPERATION_PROPERTIES,
 
 			// ---- Job ----
+			// Not an API operation: this is how a workflow resumes a lookup it chose not
+			// to wait for, so it is declared here rather than generated.
 			{
 				displayName: 'Operation',
 				name: 'operation',
@@ -319,45 +194,12 @@ export class LinkFinderAi implements INodeType {
 				],
 			},
 
-			// ---- Main input, hidden for the Job resource ----
-			{
-				displayName: 'Input',
-				name: 'inputData',
-				type: 'string',
-				default: '',
-				required: true,
-				displayOptions: { hide: { resource: ['job'] } },
-				description:
-					'The value LinkFinder AI looks up — a company name/domain, LinkedIn or Instagram URL, or email',
-				placeholder: 'e.g. Tesla, tesla.com, https://linkedin.com/in/john-doe, john@company.com',
-			},
+			// One Input field per operation, each labelled and placeheld for what that
+			// specific lookup takes, rather than one field describing all twenty.
+			...INPUT_PROPERTIES,
 
-			// ---- Domain → Employees extra fields ----
-			{
-				displayName: 'Department',
-				name: 'department',
-				type: 'string',
-				default: '',
-				displayOptions: { show: { resource: ['company'], operation: ['domainToEmployees'] } },
-				description: 'Optional filter, e.g. "engineering" or "marketing"',
-			},
-			{
-				displayName: 'Seniority',
-				name: 'seniority',
-				type: 'string',
-				default: '',
-				displayOptions: { show: { resource: ['company'], operation: ['domainToEmployees'] } },
-				description: 'Optional filter, e.g. "director" or "manager"',
-			},
-			{
-				displayName: 'Max Employees',
-				name: 'employeeCount',
-				type: 'number',
-				default: 20,
-				typeOptions: { minValue: 1 },
-				displayOptions: { show: { resource: ['company'], operation: ['domainToEmployees'] } },
-				description: 'Maximum number of employees to return',
-			},
+			// Optional filters, shown only on the operations the API accepts them for.
+			...PARAM_PROPERTIES,
 
 			// ---- Job: check status fields ----
 			{
@@ -440,13 +282,14 @@ export class LinkFinderAi implements INodeType {
 				const inputData = this.getNodeParameter('inputData', i) as string;
 				const body: IDataObject = { type, input_data: inputData };
 
-				if (type === 'company_domain_to_employees') {
-					const department = this.getNodeParameter('department', i, '') as string;
-					const seniority = this.getNodeParameter('seniority', i, '') as string;
-					const employeeCount = this.getNodeParameter('employeeCount', i, undefined) as number | undefined;
-					if (department) body.department = department;
-					if (seniority) body.seniority = seniority;
-					if (employeeCount) body.employee_count = employeeCount;
+				// Employee-list operations take department/seniority/employee_count and
+				// the AI lead search takes fetch_count. Which type accepts what comes
+				// from the catalog, so a new filter reaches every operation that has it.
+				for (const { api, node } of OPTIONAL_PARAMS[type] ?? []) {
+					const value = this.getNodeParameter(node, i, undefined) as string | number | undefined;
+					if (value !== undefined && value !== null && value !== '') {
+						body[api] = value;
+					}
 				}
 
 				const options = this.getNodeParameter('options', i, {}) as {
