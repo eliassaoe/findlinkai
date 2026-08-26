@@ -4403,58 +4403,256 @@ function handleFile(file){
     reader.onload=(e)=>parseCSV(e.target.result);
     reader.readAsText(file);
 }
-function parseCSV(csvText){
-    const lines=csvText.split('\n').filter(l=>l.trim());
-    if(lines.length<2){showAlert('CSV must contain header and data rows.','error');return;}
-    const rawHeaders=lines[0].split(',').map(h=>h.trim().replace(/"/g,''));
-    const headers=rawHeaders.map(h=>h.toLowerCase().replace(/\s+/g,' ').trim());
-    csvData=[];
-    const config=dataConfigurations[currentInputType];
-    if(!config){showAlert('Please configure your input type first.','error');return;}
-    const possibleHeaders={'company_name':['company_name','company name','company','name','companyname'],'company_domain':['company_domain','domain','company domain','website','url','companydomain'],'linkedin_company':['linkedin_company','linkedin company','company_url','linkedin_url','company linkedin url','linkedincompany'],'linkedin_profile':['linkedin_profile','profile_url','linkedin_url','profile','linkedin profile url','linkedinprofile'],'linkedin_post':['linkedin_post','post_url','linkedin_post_url','post','linkedin post url','linkedinpost'],'email':['email','company_email','company email','e-mail','companyemail'],'lead_full_name':['lead_full_name','full_name','name','lead name','contact name','fullname','lead','contact']};
-    const companyNameHeaders=['company','company_name','company name','companyname','organization','org','employer','firm'];
-    const hScore=(header,candidates)=>{const h=header.toLowerCase().replace(/[\s_-]/g,'');for(const c of candidates){const n=c.toLowerCase().replace(/[\s_-]/g,'');if(h===n)return 2;if(h.includes(n)&&n.length>3)return 1;if(n.includes(h)&&h.length>3)return 1;}return 0;};
-    const searchHeaders=possibleHeaders[currentInputType]||[];
-    const dataIdx=headers.findIndex(h=>hScore(h,searchHeaders)>0);
-    if(dataIdx===-1){showAlert(`CSV must contain a column for ${config.label.toLowerCase().replace('enter ','')}. Found columns: "${rawHeaders.join('", "')}"`, 'error');return;}
-    const deptIdx = headers.findIndex(h => ['department', 'dept'].includes(h));
-    const senIdx  = headers.findIndex(h => ['seniority', 'level'].includes(h));
-    const countIdx = headers.findIndex(h => ['employee_count', 'count', 'limit'].includes(h));
-    const locationHeaders = ['location','city','loc'];
-    const jobTitleHeaders = ['job_title','jobtitle','title','position','job title'];
-    let companyIdx=-1, locationIdx=-1, jobTitleIdx=-1;
-    if(currentInputType==='lead_full_name'){
-        companyIdx=headers.findIndex((h,i)=>i!==dataIdx&&hScore(h,companyNameHeaders)>0);
-        if((currentOutputType==='linkedin_url'||currentOutputType==='email')&&companyIdx===-1){showAlert(`A "company" column is required to find emails. Found columns: "${rawHeaders.join('", "')}"`, 'error');return;}
-        locationIdx=headers.findIndex((h,i)=>i!==dataIdx&&i!==companyIdx&&hScore(h,locationHeaders)>0);
-        jobTitleIdx=headers.findIndex((h,i)=>i!==dataIdx&&i!==companyIdx&&i!==locationIdx&&hScore(h,jobTitleHeaders)>0);
+/* ---------- CSV header intelligence ----------
+   Three rules, learned from a demo where a prospect's
+   "firstName,lastName,entreprise" file was rejected outright:
+     1. know a lot of header names, in several languages
+     2. first+last name is a full name, not a broken one
+     3. never dead-end on a miss - let the person map the columns
+*/
+const LF_HEADER_SYNONYMS = {
+    full_name:['lead_full_name','full name','fullname','name','lead name','contact name','lead','contact','person','person name','prospect','prospect name','display name','nom complet','nom et prenom','candidate','attendee','full_name'],
+    first_name:['first name','firstname','first','given name','givenname','forename','fname','prenom','prénom','nombre','vorname','nome'],
+    last_name:['last name','lastname','last','surname','family name','familyname','lname','nom','nom de famille','apellido','nachname','cognome','second name'],
+    company:['company','company name','companyname','organization','organisation','org','employer','employer name','firm','business','account','account name','current company','company / account','workplace','entreprise','société','societe','compagnie','empresa','unternehmen','azienda','bedrijf'],
+    company_domain:['company domain','domain','website','url','web','site','website url','company website','web site','homepage','site web','domaine','company url'],
+    linkedin_company:['linkedin company','company linkedin url','company linkedin','linkedin company url','company_linkedin','company url linkedin'],
+    linkedin_profile:['linkedin profile','linkedin profile url','profile url','linkedin url','linkedin','profile','li url','linkedin link','person linkedin url','profile link','lien linkedin','linkedin_person'],
+    linkedin_post:['linkedin post','post url','linkedin post url','post','post link','activity url','linkedin_post_url'],
+    email:['email','email address','emailaddress','e-mail','mail','work email','business email','professional email','primary email','email1','company email','courriel','correo','mail address'],
+    location:['location','city','loc','country','region','ville','pays','based in','geo','area','location name','town','state'],
+    job_title:['job title','jobtitle','title','position','role','headline','poste','fonction','designation','job','job role'],
+    department:['department','dept','team','division','service'],
+    seniority:['seniority','level','seniority level','niveau'],
+    employee_count:['employee count','count','limit','employees','nb employes','headcount','max results'],
+};
+// Which synonym set feeds each input type's PRIMARY column.
+const LF_PRIMARY_SYNONYMS = {
+    lead_full_name:'full_name', company_name:'company', email:'email',
+    company_domain:'company_domain', linkedin_company:'linkedin_company',
+    linkedin_profile:'linkedin_profile', linkedin_post:'linkedin_post',
+};
+
+const lfNorm = h => String(h==null?'':h).toLowerCase().replace(/^﻿/,'').replace(/[\s_\-.]/g,'').trim();
+const lfEsc = s => String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+/* 3 = exact, 2 = exact ignoring punctuation, 1 = contains a long synonym.
+   Substring only counts when the synonym is >=5 chars, so "firstname" no
+   longer scores as a full "name" column - that was rule 2's bug. */
+function lfScore(header, key){
+    const h = lfNorm(header);
+    if(!h) return 0;
+    let best = 0;
+    for(const cand of (LF_HEADER_SYNONYMS[key]||[])){
+        const n = lfNorm(cand);
+        if(h === n) return 3;
+        if(n.length >= 5 && (h.includes(n) || n.includes(h))) best = Math.max(best, 1);
     }
-    for(let i=1;i<lines.length;i++){
-        const values=lines[i].split(',').map(v=>v.trim().replace(/"/g,''));
-        const nameVal=values[dataIdx]?values[dataIdx].trim():'';
-        if(!nameVal) continue;
-        let inputData=nameVal, companyVal='', locationVal='', jobTitleVal='';
-        if(currentInputType==='lead_full_name'){
-            companyVal   = companyIdx!==-1   ? (values[companyIdx]||'').trim()   : '';
-            locationVal  = locationIdx!==-1  ? (values[locationIdx]||'').trim()  : '';
-            jobTitleVal  = jobTitleIdx!==-1  ? (values[jobTitleIdx]||'').trim()  : '';
-            inputData = [nameVal, companyVal, locationVal, jobTitleVal].filter(Boolean).join(' ');
-        }
-        csvData.push({
-    inputData,
-    name: nameVal,
-    company: companyVal,
-    location: locationVal,
-    job_title: jobTitleVal,
-    department: deptIdx !== -1 ? (values[deptIdx] || '').trim() : '',
-    seniority:  senIdx !== -1 ? (values[senIdx] || '').trim() : '',
-    employee_count: countIdx !== -1 ? (parseInt(values[countIdx]) || null) : null,
-});
-    }
-    if(csvData.length===0){showAlert('No valid data found in the selected column.','error');return;}
-    if(csvData.length>10000){showAlert(`Too many entries (${csvData.length}). Maximum is 10000.`,'error');return;}
-    showPreview();
+    return best;
 }
+function lfFind(headers, key, exclude){
+    const used = new Set(exclude||[]);
+    let bestIdx = -1, bestScore = 0;
+    headers.forEach((h,i)=>{
+        if(used.has(i)) return;
+        const s = lfScore(h, key);
+        if(s > bestScore){ bestScore = s; bestIdx = i; }
+    });
+    return bestScore > 0 ? bestIdx : -1;
+}
+
+// Excel in much of Europe writes CSVs with ';'. Sniff, don't assume.
+function lfDetectDelim(line){
+    const counts = {',':0,';':0,'\t':0,'|':0};
+    let q = false;
+    for(const ch of line){
+        if(ch === '"') q = !q;
+        else if(!q && ch in counts) counts[ch]++;
+    }
+    return Object.keys(counts).reduce((a,b)=>counts[b]>counts[a]?b:a, ',');
+}
+// Quote-aware split, so "Doe, John" stays one field.
+function lfSplitLine(line, delim){
+    const out = []; let cur = '', q = false;
+    for(let i=0;i<line.length;i++){
+        const ch = line[i];
+        if(q){
+            if(ch === '"'){ if(line[i+1] === '"'){ cur += '"'; i++; } else q = false; }
+            else cur += ch;
+        } else if(ch === '"') q = true;
+        else if(ch === delim){ out.push(cur); cur = ''; }
+        else cur += ch;
+    }
+    out.push(cur);
+    return out.map(v=>v.trim());
+}
+
+let lfCsvHeaders = [], lfCsvRows = [], lfMapping = {};
+
+function parseCSV(csvText){
+    const text = String(csvText||'').replace(/^﻿/,'');
+    const lines = text.split(/\r\n|\r|\n/).filter(l=>l.trim());
+    if(lines.length < 2){ showAlert('That file has a header but no data rows.','error'); return; }
+    const delim = lfDetectDelim(lines[0]);
+    lfCsvHeaders = lfSplitLine(lines[0], delim).map(h=>h.replace(/^"|"$/g,''));
+    lfCsvRows = [];
+    for(let i=1;i<lines.length;i++){
+        const vals = lfSplitLine(lines[i], delim);
+        if(vals.some(v=>v !== '')) lfCsvRows.push(vals);
+    }
+    if(!lfCsvRows.length){ showAlert('No data rows found in that file.','error'); return; }
+    if(!dataConfigurations[currentInputType]){ showAlert('Please choose what you want to enrich first.','error'); return; }
+
+    const H = lfCsvHeaders;
+    const m = {};
+    if(currentInputType === 'lead_full_name'){
+        // A real full-name column wins; otherwise first+last IS the full name.
+        const fullIdx = (()=>{ let b=-1,bs=0; H.forEach((h,i)=>{const s=lfScore(h,'full_name'); if(s>=2&&s>bs){bs=s;b=i;}}); return b; })();
+        const firstIdx = lfFind(H,'first_name'), lastIdx = lfFind(H,'last_name');
+        if(firstIdx !== -1 && lastIdx !== -1 && firstIdx !== lastIdx){ m.first = firstIdx; m.last = lastIdx; }
+        else if(fullIdx !== -1) m.name = fullIdx;
+        else { const loose = lfFind(H,'full_name'); if(loose !== -1) m.name = loose; }
+        const taken = [m.name,m.first,m.last].filter(i=>i!==undefined&&i!==-1);
+        m.company  = lfFind(H,'company',  taken);
+        m.location = lfFind(H,'location', taken.concat([m.company]));
+        m.job_title= lfFind(H,'job_title',taken.concat([m.company,m.location]));
+    } else {
+        m.name = lfFind(H, LF_PRIMARY_SYNONYMS[currentInputType] || 'full_name');
+    }
+    m.department     = lfFind(H,'department');
+    m.seniority      = lfFind(H,'seniority');
+    m.employee_count = lfFind(H,'employee_count');
+
+    if(!lfMappingComplete(m)){ lfShowColumnMapper(m); return; }
+    lfMapping = m;
+    if(lfBuildCsvData()) showPreview();
+}
+
+// Company is only genuinely required when we're resolving a person.
+function lfCompanyRequired(){
+    return currentInputType === 'lead_full_name' &&
+           (currentOutputType === 'linkedin_url' || currentOutputType === 'email');
+}
+function lfMappingComplete(m){
+    const hasName = (m.name !== undefined && m.name !== -1) ||
+                    (m.first !== undefined && m.first !== -1 && m.last !== undefined && m.last !== -1);
+    if(!hasName) return false;
+    if(lfCompanyRequired() && (m.company === undefined || m.company === -1)) return false;
+    return true;
+}
+
+function lfBuildCsvData(){
+    const m = lfMapping;
+    const at = (vals,i) => (i !== undefined && i !== -1 && vals[i] !== undefined) ? String(vals[i]).trim() : '';
+    csvData = [];
+    for(const vals of lfCsvRows){
+        let nameVal = at(vals, m.name);
+        if(!nameVal && (m.first !== undefined || m.last !== undefined)){
+            nameVal = [at(vals,m.first), at(vals,m.last)].filter(Boolean).join(' ');
+        }
+        if(!nameVal) continue;
+        const companyVal = at(vals,m.company), locationVal = at(vals,m.location), jobTitleVal = at(vals,m.job_title);
+        const inputData = currentInputType === 'lead_full_name'
+            ? [nameVal, companyVal, locationVal, jobTitleVal].filter(Boolean).join(' ')
+            : nameVal;
+        const countRaw = at(vals,m.employee_count);
+        csvData.push({
+            inputData, name:nameVal, company:companyVal, location:locationVal, job_title:jobTitleVal,
+            department:at(vals,m.department), seniority:at(vals,m.seniority),
+            employee_count: countRaw ? (parseInt(countRaw,10) || null) : null,
+        });
+    }
+    if(csvData.length === 0){ showAlert('Those columns are empty on every row - pick a different one.','error'); return false; }
+    if(csvData.length > 10000){ showAlert(`Too many entries (${csvData.length}). Maximum is 10000.`,'error'); return false; }
+    return true;
+}
+
+/* The fallback that replaces the old dead-end error. Every column we did
+   recognise stays pre-selected, so usually this is one dropdown and Confirm. */
+function lfShowColumnMapper(m){
+    lfMapping = m;
+    const opts = (sel, allowNone) => {
+        let o = allowNone ? `<option value="-1"${(sel===undefined||sel===-1)?' selected':''}>— none —</option>` : '';
+        lfCsvHeaders.forEach((h,i)=>{ o += `<option value="${i}"${sel===i?' selected':''}>${lfEsc(h)||'(column '+(i+1)+')'}</option>`; });
+        return o;
+    };
+    const row = (label, field, sel, allowNone, hint) => `
+        <div style="display:flex;flex-direction:column;gap:0.25rem;">
+          <label style="font-size:0.75rem;font-weight:600;color:var(--gray-500);text-transform:uppercase;">${label}${allowNone?'':' <span style="color:#dc2626;">*</span>'}</label>
+          <select data-lf-field="${field}" onchange="lfOnMappingChange(this)" style="padding:0.5rem;border:1px solid var(--gray-300);border-radius:6px;font-size:0.875rem;background:white;">${opts(sel, allowNone)}</select>
+          ${hint?`<span style="font-size:0.7rem;color:var(--gray-500);">${hint}</span>`:''}
+        </div>`;
+
+    const isLead = currentInputType === 'lead_full_name';
+    const primaryLabel = (dataConfigurations[currentInputType].label || 'Input')
+        .replace(/^Enter\s+/i,'').replace(/\s*\+.*$/,'');
+    let fields = '';
+    if(isLead){
+        fields += row('Full name','name', m.name, true, 'or map first + last name below');
+        fields += row('First name','first', m.first, true);
+        fields += row('Last name','last', m.last, true);
+        fields += row('Company','company', m.company, !lfCompanyRequired());
+        fields += row('Location','location', m.location, true);
+        fields += row('Job title','job_title', m.job_title, true);
+    } else {
+        fields += row(primaryLabel,'name', m.name, false);
+    }
+
+    const html = `
+      <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:0.875rem 1rem;margin-bottom:1rem;display:flex;gap:0.625rem;align-items:flex-start;">
+        <i class="fas fa-circle-info" style="color:#2563eb;margin-top:2px;"></i>
+        <div>
+          <div style="font-weight:600;color:#1e3a8a;font-size:0.875rem;">Which columns should we use?</div>
+          <div style="font-size:0.8125rem;color:#1e40af;margin-top:2px;">We read ${lfCsvRows.length} row${lfCsvRows.length===1?'':'s'} but couldn't tell which column is which. Pick below — the preview updates as you choose.</div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:0.75rem;margin-bottom:1rem;">${fields}</div>
+      <div id="lfMapPreview"></div>`;
+
+    document.getElementById('previewTable').innerHTML = html;
+    document.getElementById('csvPreview').classList.remove('hidden');
+    lfRenderMapPreview();
+    try { posthog.capture('csv_column_mapper_shown', { input_type: currentInputType, output_type: currentOutputType, headers: lfCsvHeaders.join('|'), row_count: lfCsvRows.length }); } catch(e){}
+}
+
+function lfOnMappingChange(sel){
+    const v = parseInt(sel.value,10);
+    lfMapping[sel.getAttribute('data-lf-field')] = isNaN(v) ? -1 : v;
+    lfRenderMapPreview();
+}
+
+function lfRenderMapPreview(){
+    const m = lfMapping, box = document.getElementById('lfMapPreview');
+    if(!box) return;
+    const at = (vals,i) => (i !== undefined && i !== -1 && vals[i] !== undefined) ? String(vals[i]).trim() : '';
+    const cols = currentInputType === 'lead_full_name'
+        ? [['Name',r=>at(r,m.name) || [at(r,m.first),at(r,m.last)].filter(Boolean).join(' ')],['Company',r=>at(r,m.company)],['Location',r=>at(r,m.location)],['Job title',r=>at(r,m.job_title)]]
+              .filter(([lab,fn])=>lab==='Name'||lfCsvRows.slice(0,5).some(r=>fn(r)))
+        : [['Value',r=>at(r,m.name)]];
+    const rows = lfCsvRows.slice(0,5);
+    const tmpl = cols.map(()=>'1fr').join(' ');
+    let h = `<div style="background:var(--gray-50);padding:0.75rem;border-radius:6px;font-size:0.875rem;overflow-x:auto;">`;
+    h += `<div style="display:grid;grid-template-columns:${tmpl};gap:0.5rem;font-weight:600;color:var(--gray-500);font-size:0.75rem;text-transform:uppercase;margin-bottom:0.5rem;padding-bottom:0.25rem;border-bottom:1px solid var(--gray-200);min-width:${cols.length*140}px;">${cols.map(c=>`<span>${c[0]}</span>`).join('')}</div>`;
+    rows.forEach(r=>{
+        h += `<div style="display:grid;grid-template-columns:${tmpl};gap:0.5rem;padding:0.25rem 0;min-width:${cols.length*140}px;">${cols.map(c=>`<span style="color:var(--gray-700);">${lfEsc(c[1](r))||'—'}</span>`).join('')}</div>`;
+    });
+    h += `</div>`;
+
+    const ready = lfMappingComplete(m);
+    const missing = [];
+    if(!((m.name!==undefined&&m.name!==-1)||(m.first!==undefined&&m.first!==-1&&m.last!==undefined&&m.last!==-1))) missing.push('a name column (or first + last)');
+    if(lfCompanyRequired() && (m.company===undefined||m.company===-1)) missing.push('a company column');
+    h += ready
+        ? `<button onclick="lfConfirmMapping()" class="btn btn-full" style="margin-top:1rem;"><i class="fas fa-check"></i> Use these columns — ${lfCsvRows.length} row${lfCsvRows.length===1?'':'s'}</button>`
+        : `<p style="font-size:0.8125rem;color:var(--gray-500);margin-top:0.75rem;">Still need ${missing.join(' and ')} to continue.</p>`;
+    box.innerHTML = h;
+}
+
+function lfConfirmMapping(){
+    try { posthog.capture('csv_column_mapper_confirmed', { input_type: currentInputType, mapped_first_last: !!(lfMapping.first!==undefined&&lfMapping.first!==-1) }); } catch(e){}
+    if(lfBuildCsvData()) showPreview();
+}
+
 function showPreview(){
     const preview=csvData.slice(0,5);
     const isLead=currentInputType==='lead_full_name';
