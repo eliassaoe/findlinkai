@@ -68,9 +68,11 @@ for (const [type, entry] of Object.entries(overlay.operations)) {
     fail(`"${type}" has no sample output.`);
   }
 
-  // The n8n node is published; a resource/operation pair is a public identifier that
-  // existing workflows store. Renaming one silently breaks them, so they are pinned
-  // here and checked rather than derived from the label.
+  // A resource/operation pair is a public identifier that saved n8n workflows store,
+  // so renaming one silently breaks every workflow using it. They are pinned here and
+  // checked rather than derived from the label. (The node is not on npm yet, so no
+  // published workflow depends on them today — but the moment it is, this is what
+  // stops a label tidy-up from becoming a breaking change.)
   const n8n = entry.n8n;
   if (!n8n) {
     fail(`"${type}" has no n8n resource/operation mapping.`);

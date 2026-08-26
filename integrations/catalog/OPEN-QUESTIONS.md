@@ -56,7 +56,9 @@ error status rather than a successful-looking result.
 | `app.html`, `mcp-server/`, `workers/` | no Instagram support at all |
 
 Each name appears in exactly one place, and LinkFinder's MCP server exposes no
-Instagram tool, so there was nothing to test it with.
+Instagram tool, so there was nothing to test it with. (The node's previous value is not
+a tiebreaker: `n8n-nodes-linkfinderai` has never been published to npm, so that code
+was never exercised against the live API either.)
 
 Rather than guess, **every JavaScript wrapper sends `instagram_lookup` and retries
 `instagram_profile_to_instagram_info` once if the API rejects the first as unknown**
