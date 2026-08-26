@@ -209,3 +209,72 @@ construction. The two spikes in the ledger were both sends with looser audiences
 
 Well under the 3% gate, so arm B is clear to dispatch on deliverability grounds.
 Whether it *should* dispatch is a separate question — see below.
+
+## Round 2, batch 1 — dispatched 26 Aug 20:25 UTC
+
+Same email, same subject, `utm_campaign=booked_calls_round2` so its bookings are
+distinguishable from arm A's in Calendly.
+
+| | |
+| --- | --- |
+| Cohort | 519781 (200 built, **191** resolved) |
+| Workflow | `01a03f99-e9ec-0000-1d89-d3f2931b0fcf` |
+| Total sent on 26 Aug | **578** |
+| Previous single-day max | 255 |
+
+Split deliberately: 617 people remained eligible after arm A, and sending all of
+them would have put the day near 1,000 — roughly 4× the previous daily maximum.
+Volume ramp matters to receiving providers independently of bounce rate, so the
+remaining **417 go out as batch 2 the following day**.
+
+Arm B is not being sent. It sells a lead list, which is off-strategy: the offer
+is now booked calls. Left as a draft rather than archived in case the ICP
+research is wanted later.
+
+## The business model behind the offer
+
+Delivery runs through **Explee** (AutoGTM — their pre-warmed domains, their
+sending, their reply handling and booking). Not disclosed to clients; the stack
+is not something an agency owes anyone, and "we run it" describes a service that
+is genuinely being orchestrated and stood behind.
+
+| | |
+| --- | --- |
+| Explee cost per **booked** call | $15–30 |
+| Show rate on AI-booked meetings | 60–70% |
+| **True cost per *held* call** | **$23–46** |
+| Sell price | **$100–150** |
+| Gross margin per held call | **$54–127 (55–85%)** |
+
+For comparison: cheapest AI SDR platform lands near $80–150/meeting, human
+agencies $300–600 for a qualified held meeting. Explee is the only pay-as-you-go
+option with no subscription, which is what makes it viable before there is a
+customer.
+
+**Bill on held, not booked.** Roughly a third of AI-booked meetings never show.
+Billing on booked means invoicing for no-shows, which the client notices by month
+two. Billing on held puts the risk where it can be managed — by tightening ICP.
+
+**Write the qualification definition before the first client.** Seniority,
+company size, showed up, stayed N minutes. "Qualified" is vendor-defined and
+disputes are routine; we are the vendor now.
+
+### Make "our own data" true
+
+The email claims *"we build the list from our own data, not a reseller's."*
+That is only accurate if the list comes out of LinkFinder rather than Explee's
+database. **Build lists in LinkFinder and import them into Explee**, using Explee
+purely for sending and booking. Costs nothing — it is our own engine — and it
+makes the strongest line in the email a fact rather than a claim.
+
+### Open questions that gate the model
+
+1. **Does Explee's ToS permit reselling?** Could end the business on day one.
+2. **Sub-accounts or workspaces?** Ten clients through one login is an
+   operational and data-privacy problem.
+3. **Volume ceiling.** 77–154k emails/month is a different customer than $30 PAYG.
+4. **Shared or dedicated domains at that volume?** Their pre-warmed pool means
+   client sender reputation is shared with every other Explee customer.
+
+Also: sub-processors must be named in a DPA under GDPR. That is a legal
+disclosure, separate from marketing, and any client with procurement will ask.
