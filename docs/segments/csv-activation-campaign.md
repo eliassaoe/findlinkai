@@ -21,16 +21,60 @@ The only trustworthy signal is `auth.users.confirmed_at IS NOT NULL`.
 | ...and activated (>=1 enrichment) | **1,078** |
 | ...and free (no subscription, not `is_unlimited`) | **1,047** |
 | Already uploaded a CSV (exclude) | ~229 distinct emails |
-| **Approximate send list** | **~850-1,000** |
+| **Send list (PostHog cohort)** | **889** |
 
 Already sent to: 54. Remaining: roughly 800-950.
 
-## Build it in two halves
+## Build it as a PostHog cohort — no list import needed
 
-**Supabase — the confirmed, activated, free base:**
+**Corrected 2026-08-26.** An earlier version of this file had you export a CSV
+from Supabase and import it. That is unnecessary. The emails send from PostHog,
+which already holds every signal the audience needs.
+
+The one thing PostHog does *not* store is email-confirmation status — its person
+profiles carry only geoip data, no `email_confirmed` property. But it does not
+need one: **`signup_google_clicked` is the same gate.** Google-auth accounts all
+have a Supabase auth row and are confirmed by Google, so they are deliverable by
+construction. That is already the heuristic in use on the other campaigns.
+
+### The cohort
+
+| Condition | Purpose |
+| --- | --- |
+| Performed `enrich_started` at least once | activated |
+| Performed `signup_google_clicked` at least once | **deliverability gate** |
+| Has NOT performed `csv_uploaded` | not already a bulk user |
+| Has NOT performed `checkout_payment_success` | still free |
+
+**Cohort size: 889.**
+
+### It matches the hand-built list to within 1.2%
+
+| Method | Count |
+| --- | --- |
+| Supabase `auth.users.confirmed_at` + activated + free, less exclusions | 900 |
+| **PostHog-native cohort above** | **889** |
+
+The 11-person gap is the email+password users who genuinely confirmed. Per
+`docs/email-verified-is-wrong.md` there are only **74 of those in the entire
+base**, so the native cohort gives up almost nothing.
+
+### Why the cohort is better than a list
+
+- **Self-maintaining.** Someone who uploads a CSV tomorrow drops out
+  automatically; an imported list goes stale the day it is exported.
+- **No PII leaves the systems that hold it.** Nothing to export, store, or
+  accidentally commit.
+- **One place to edit.** The audience lives next to the campaign.
+
+### When a Supabase export *would* be needed
+
+Only to reach confirmed email+password users, who are invisible to the
+`signup_google_clicked` condition. That is 74 people base-wide — not worth the
+export. The SQL is kept below for reference if that changes.
 
 ```sql
-SELECT lower(u.email) AS email
+SELECT lower(u.email)
 FROM linkfinderai_users u
 JOIN auth.users a
   ON lower(a.email) = lower(u.email)
@@ -39,14 +83,8 @@ JOIN (SELECT user_id, count(*) AS runs
       FROM enrichment_history GROUP BY user_id) h
   ON h.user_id = u.token AND h.runs > 0
 WHERE u.subscription_id IS NULL
-  AND NOT u.is_unlimited
-ORDER BY email;
+  AND NOT u.is_unlimited;
 ```
-
-**PostHog — exclude anyone who already uses bulk.** Do this as a cohort
-condition (`has not done csv_uploaded`) rather than by crossing email lists
-by hand; the event lives in PostHog and the exclusion stays live as people
-convert.
 
 ## Bounce rate is the constraint — ramp, do not blast
 
