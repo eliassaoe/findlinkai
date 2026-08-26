@@ -44,6 +44,15 @@ credit. It does not, and the generated integrations carry the real numbers:
 
 Every call is charged, **including one that finds nothing**.
 
-> `api-documentation.html` currently contradicts this — it states "every request costs
+## What has not been verified
+
+Everything here was built against the spec; the build environment cannot reach the API.
+**[`catalog/OPEN-QUESTIONS.md`](catalog/OPEN-QUESTIONS.md) lists what needs one live
+call to settle** — most urgently, the Instagram operation has two conflicting names
+across the spec, the docs page and the previously published n8n node.
+
+---
+
+> `api-documentation.html` used to contradict this — it states "every request costs
 > 1 credit regardless of endpoint" and shows a 1-credit pill on 13 endpoints. That page
 > is wrong; `app.html`'s `creditCosts` and `openapi.json` agree with the table above.
