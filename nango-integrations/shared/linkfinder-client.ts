@@ -1,6 +1,6 @@
 // Shared helper for calling the LinkFinder AI API (https://api.linkfinderai.com) from
-// HubSpot actions. Not an action itself — only files inside actions/ and syncs/ are
-// treated as Nango entrypoints, so this lives one level up and is imported by them.
+// every CRM's actions. Not an action itself — only files inside actions/ and syncs/
+// are treated as Nango entrypoints, so this lives outside them and is imported.
 
 export const LINKFINDER_API_BASE = 'https://api.linkfinderai.com';
 
@@ -149,8 +149,15 @@ function resolvePollUrl(job: { jobId?: string | undefined; pollUrl?: string | un
     return pollUrl;
 }
 
-/** Builds the HubSpot `properties` patch body: raw JSON on targetProperty, plus any mapped fields. */
-export function buildHubspotProperties(
+/**
+ * Builds the flat field patch to write back: the raw JSON result on targetProperty,
+ * plus any individual fields the caller asked to be mapped out of it.
+ *
+ * Every CRM here ultimately takes a flat name->string map; the per-CRM adapter is
+ * what turns this into that CRM's own request shape (HubSpot's `properties`, Zoho's
+ * `data[0]`, Salesforce's bare body, and so on).
+ */
+export function buildPropertyPatch(
     result: Record<string, unknown>,
     targetProperty: string,
     propertyMap?: Record<string, string>

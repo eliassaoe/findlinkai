@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { createAction } from 'nango';
-import { checkLinkFinderJob, buildHubspotProperties, LinkFinderError } from '../linkfinder-client.js';
+import { checkLinkFinderJob, buildPropertyPatch, LinkFinderError } from '../../shared/linkfinder-client.js';
 
 const InputSchema = z.object({
     apiKey: z.string().describe('Your LinkFinder AI API key.'),
@@ -51,7 +51,7 @@ const action = createAction({
         const updatedProperties: string[] = [];
 
         if (outcome.resolved && outcome.result && input.objectType && input.objectId) {
-            const built = buildHubspotProperties(outcome.result as Record<string, unknown>, input.targetProperty, input.propertyMap);
+            const built = buildPropertyPatch(outcome.result as Record<string, unknown>, input.targetProperty, input.propertyMap);
             updatedProperties.push(...built.updatedProperties);
 
             const objectPath = input.objectType === 'company' ? 'companies' : 'contacts';
