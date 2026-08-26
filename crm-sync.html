@@ -1262,6 +1262,7 @@ async function refreshSyncState(){
     const res = await nangoCall('status');
     if(!res.ok){ renderSync('error'); return; }
     if(res.data.connected) syncFieldsFromSettings(res.data.settings);
+    applyCrmAvailability(res.data.availableCrms);
     renderSync(res.data.connected ? 'connected' : 'disconnected', res.data);
 }
 
@@ -1279,12 +1280,15 @@ function refreshBothStages(){
  * one that opens synchronously inside the click. Fetching the session first
  * would put an await between the click and the popup, and Safari blocks it.
  */
-async function connectHubspot(){
+async function connectCrm(providerConfigKey){
+    // Which CRM the Connect modal should open on. Null lets Nango show whichever
+    // integrations the worker allowed, which is what the old flow did.
+    window.__lfPickedCrm = providerConfigKey || null;
     const btn = document.getElementById('connectBtn')
         || document.getElementById('cleanConnectBtn')
         || document.getElementById('healthConnectBtn');
     if(btn){ btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Opening&hellip;'; }
-    track('sync_connect_started', 'hubspot');
+    track('sync_connect_started', providerConfigKey || 'hubspot');
     renderHealthConnect(null);
 
     let connectUI;
@@ -1299,7 +1303,7 @@ async function connectHubspot(){
             baseURL: NANGO_CONNECT_UI_URL,
             onEvent: (event) => {
                 if(event.type === 'connect'){
-                    track('sync_connected', 'hubspot');
+                    track('sync_connected', providerConfigKey || 'hubspot');
                     // Authorising is only half of it. The worker stores nothing
                     // until it is told the connectionId, and without that record
                     // neither the cleanup nor the weekly cron can find the
@@ -1312,7 +1316,10 @@ async function connectHubspot(){
                         track('sync_finalise_failed', 'no_connection_id');
                         return;
                     }
-                    nangoCall('finalize-connection', { connectionId }).then(r => {
+                    const pickedKey = p.providerConfigKey || p.provider_config_key ||
+                        (p.connection && (p.connection.providerConfigKey || p.connection.provider_config_key)) ||
+                        window.__lfPickedCrm || undefined;
+                    nangoCall('finalize-connection', { connectionId, providerConfigKey: pickedKey }).then(r => {
                         if(!r.ok){
                             document.getElementById('syncState').insertAdjacentHTML('beforeend',
                                 '<div class="err" style="margin-top:.75rem;">Connected, but we could not finish setting it up. ' +
@@ -1633,6 +1640,42 @@ document.querySelectorAll('.crm-tabs .stage').forEach(function(t){
     });
 });
 window.showCrmPanel = showCrmPanel;
+
+/* data-crm on the picker -> the Nango integration id the worker expects.
+   monday.com is absent on purpose: it has no adapter in the worker, because its
+   fields are per-board columns rather than named properties. */
+const CRM_INTEGRATION_ID = {
+    hubspot: 'hubspot-9mj3',
+    salesforce: 'salesforce',
+    pipedrive: 'pipedrive',
+    zoho: 'zoho',
+    close: 'close',
+};
+
+/* Turns the picker buttons for whichever CRMs the worker reports as configured
+   into real connect buttons. Everything else keeps registering interest — the
+   Connect modal rejects an integration id that does not exist in Nango, so
+   offering one would break the whole session, HubSpot included. */
+function applyCrmAvailability(available){
+    if(!Array.isArray(available)) return;
+    const ids = available.map(function(c){ return c && c.id; });
+
+    document.querySelectorAll('.crm-opt').forEach(function(el){
+        const key = CRM_INTEGRATION_ID[el.dataset.crm];
+        if(!key || ids.indexOf(key) === -1) return;      // not configured yet
+
+        el.classList.add('is-live');
+        el.removeAttribute('data-registered');
+        el.querySelector('.crm-opt-state').textContent = 'Connect now';
+        el.onclick = function(){ connectCrm(key); return false; };
+    });
+}
+window.applyCrmAvailability = applyCrmAvailability;
+
+/* Older call sites (the two in-panel connect cards) still call this name. */
+function connectHubspot(){ return connectCrm(null); }
+window.connectHubspot = connectHubspot;
+window.connectCrm = connectCrm;
 
 /* ── CRM interest ─────────────────────────────────────────────────
  * Five CRMs have their enrichment actions built but are not switched on yet.
