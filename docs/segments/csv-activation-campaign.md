@@ -134,3 +134,92 @@ existing infrastructure — not cold outbound. New sending domains are only
 relevant to the Instantly campaigns, and there the need is to **reconnect the 38
 existing accounts** (all at `status: -1`, `autofix_failed: true`), not to buy
 more.
+
+---
+
+## Send log and ramp schedule
+
+### Batch 1 — sent 2026-08-26 11:48 UTC
+
+| | |
+| --- | --- |
+| Workflow | `01a03dd6-6083-0000-cfee-bf85b1a46795` — "7b. Bulk upload — backfill batch 1 (100)" |
+| Cohort | `517907` — 100 people |
+| Batch job | `01a03de6-c696-0000-6ca3-239227967946` — **completed** |
+| Tracking | open/click tracking OFF (all engagement in this project is bot-flagged; no pixel, no URL rewriting) |
+
+**Why a second workflow exists.** The original (`01a02ada`) is event-triggered on
+`signup_success` — it only ever catches *new* signups, which is why it reached 54
+people and can never reach the backlog. `7b` is a batch trigger over a cohort.
+The original is untouched and still running for new signups.
+
+Two failures worth remembering, both caught before they mattered:
+
+1. **A static cohort can fail to populate silently.** Cohort `517902` returned
+   `errors_calculating: 1`, `count: null`, and `last_error_message: null` — no
+   usable error. `workflows-blast-radius` reported `affected: 0`; firing would
+   have sent nothing. The cause was the query selecting a second column
+   (`last_enrich`) alongside `person_id`. **Wrap the ordering in a subquery and
+   select `person_id` alone.** Always confirm `count` is non-null before sending.
+2. **Patching an active workflow stages a draft**, it does not change what runs.
+   `workflows-patch-graph` then `workflows-publish` with `confirm: true` and the
+   token from the preview call.
+
+### Is there a sending limit?
+
+**No hard technical limit at this scale.** `workflows-blast-radius` reports a cap
+of **500,000** per batch, and the workflow's `email_sending_rate_limit` is
+`null`.
+
+**But volume ramping still matters, for reputation rather than limits.** These
+send from `support@linkfinderai.com` — a real transactional domain. Recent daily
+volume:
+
+| Date | Sent |
+| --- | --- |
+| 2026-08-22 | 24 |
+| 2026-08-23 | 49 |
+| 2026-08-24 | 69 |
+| 2026-08-25 | **255** (peak) |
+| 2026-08-26 | 39 + 100 (batch 1) |
+
+Sending the remaining ~789 in one day would be roughly **3x the highest day this
+domain has ever done**. A step change like that is itself a spam signal to
+Gmail and Microsoft, independent of how clean the list is. Ramp for that reason
+as well as for bounce rate.
+
+### Remaining schedule
+
+Roughly 789 left of the 889 cohort (minus anyone who converts and exits).
+
+| Day | Batch | Volume | Gate to proceed |
+| --- | --- | --- | --- |
+| 2026-08-26 | 1 | 100 | **sent** |
+| +1 day | 2 | 200 | batch 1 bounce < 3% |
+| +2 days | 3 | 250 | cumulative bounce < 3% |
+| +3 days | 4 | ~239 | cumulative bounce < 3% |
+
+Each batch stays at or near the domain's existing peak day rather than above it.
+
+**When to read the bounce rate.** Hard bounces (the ones that matter — dead
+addresses) report within minutes to a couple of hours. Soft bounces can take up
+to 72h but are not the risk here. **Waiting 24h before the next batch is
+sufficient and safe.**
+
+If any batch exceeds 3%, stop and re-cut the segment before continuing — do not
+push through it.
+
+### Building batch 2
+
+Same cohort query with `LIMIT 200`, and add an exclusion for batch 1 so nobody
+is sent twice:
+
+```sql
+AND person_id NOT IN (
+  SELECT DISTINCT person_id FROM events
+  WHERE properties.$workflow_id = '01a03dd6-6083-0000-cfee-bf85b1a46795'
+)
+```
+
+Then: create cohort → confirm `count` is non-null → point a workflow at it →
+`workflows-blast-radius` → confirm → `workflows-run-batch`.
