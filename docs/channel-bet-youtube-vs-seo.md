@@ -50,21 +50,23 @@ Unique people per week:
 August signups: Google 289, YouTube 20. Even at 3.5x the conversion rate, SEO
 delivers ~14x the signups.
 
-## 4 — And SEO is more efficient per unit of work
+## 4 — Per-asset efficiency: SEO leads today, but the gap is not yet measurable
 
 | | Assets | Signups/mo | Per asset |
 | --- | --- | --- | --- |
 | SEO pages | 215 (sitemap) | 289 | **1.34** |
 | YouTube videos | 116 published in 3mo | 20 | **0.17** |
 
-A page is ~8x more productive per asset — and pages are script-generated
-(`generate_pseo_pages.py`) while videos are hand-made in Guidde. Per hour of
-founder time the gap is far wider than 8x.
+**Read this table with care.** The SEO pages are mature and ranked; the videos
+are days to weeks old and mostly have not ranked yet. The comparison is real for
+*today's* output but it is not a fair read of the videos' eventual value, and it
+should not be used to conclude the video library underperforms structurally.
+See the appendix for why the per-video figures were originally over-read.
 
-**116 videos averaging 16 views each is not a YouTube bet, it is a volume spray.**
-At 15-23% average view percentage YouTube will not distribute them, so they cannot
-compound. The compounding argument for video is only available at the retention
-`claude/youtube/METHOD.md` was written to produce.
+What is fair to say: pages are script-generated (`generate_pseo_pages.py`) while
+videos are hand-made in Guidde, so per hour of founder time SEO is currently far
+cheaper per signup. Whether that holds once the videos age is an open question,
+answerable by the cohort test in the appendix.
 
 ## 5 — The real argument for diversifying: SEO is falling
 
@@ -133,57 +135,66 @@ last 30 days — so even won customers are not retained.
 
 ---
 
-## Appendix — the evidence that the library is not compounding
+## Appendix — RETRACTED, and what is actually measurable at 3 weeks
 
-Added 2026-08-26 to support the claim in section 4.
+Added 2026-08-26, **corrected the same day.** The original appendix argued the
+library was not compounding. **That analysis was invalid.** It is kept out of the
+repo deliberately rather than left standing — the errors are recorded below so
+they are not repeated.
 
-### Views per video per month is flat while the library tripled
+### Error 1 — the retention analysis used the wrong video
 
-| | Videos | Views/mo | Per video |
-| --- | --- | --- | --- |
-| 2026-06 | 47 | 528 | **11.2** |
-| 2026-08 (prorated) | ~140 | ~2,060 | **14.7** |
+`2-bM_ITMbrw` was treated as "the channel's best video" and its retention curve
+used to conclude the openings were below median. It has **16,806 lifetime
+views and predates the LinkFinder push** — legacy n8n-era content. The "119
+views" figure was views *within the query window*, misread as the video's total.
 
-The library grew ~3x and per-asset output did not move. That is linear
-accumulation, not compounding — each new video adds a small fixed trickle
-rather than lifting the videos around it.
+The conclusion drawn from it — `relativeRetentionPerformance` 0.40-0.45 through
+the opening — describes old content, not the new tutorial format.
 
-### Individual videos flatline in ~9 days
+### Error 2 — per-video math penalised new videos
 
-`aszAiVOzYTs` ("Claude Code MCP: Scrape LinkedIn Profiles Without Coding"), the
-highest breakout score on the channel (3.62), daily cumulative views:
+"Views per video per month is flat (11.2 -> 14.7)" and "search views per video
+flat (5.6 -> 5.8)" both divided a month's views by a library in which most
+videos were days old. June's 47 videos were mature and ranked; August's ~117
+included ~70 published inside the month. New videos have not had time to rank,
+so per-video yield is mechanically depressed. **Not a valid comparison.**
 
-    2 → 9 → 13 → 15 → 17 → 18 → 18 → 25 → 31 → 31 → 32 → 32
+### Error 3 — "videos flatline in nine days"
 
-Climbs for nine days, then stops dead. Velocity goes to zero rather than
-compounding.
+Read from three days of flat data on a ten-day-old video. Search tails take
+months; three days is noise.
 
-### YouTube's own verdict on retention
+### Error 4 — subscriber losses read as a quality signal
 
-`relativeRetentionPerformance` for the channel's best video (`2-bM_ITMbrw`,
-119 views) sits at **0.40-0.45 through the first 15%** of the video — below the
-median for comparable videos. Its shape after that is actually fine (flattens at
-0.45-0.55, 27% reach the end). **The loss is in the opening, not the body.**
+August was -27 net subscribers. But the channel's ~4,900 subscribers came for
+n8n/AI content, and **`n8n` is still the single largest search term bringing
+views** (19 views in August). Publishing LinkedIn-scraping tutorials to that
+base sheds subscribers regardless of video quality. That is the cost of a
+deliberate pivot, not evidence against it.
 
-### The two kinds of compounding
+### What genuinely holds at three weeks
 
-| Mechanism | Status |
+| Claim | Status |
 | --- | --- |
-| Recommendation flywheel (watch time → suggested/browse → more views) | **Closed.** RELATED_VIDEO is 204 views at 15.1% avg view percentage — the worst-retaining source. YouTube will not push videos that retain below median. |
-| Search annuity (rank for an evergreen query, earn a trickle indefinitely) | **Open and working.** YT_SEARCH is the largest source, 549 views at 22.1% — the *best*-retaining source on the channel. |
+| 151 YouTube visitors -> 20 first-touch signups (**25.6%**) | **Holds** — measured site-side, independent of video age |
+| YouTube is the #4 referring domain | Holds |
+| Google traffic down ~40% since early July | Holds — unrelated to YouTube |
+| 952 accounts (Jul-Aug) -> 6 subscribers | Holds — site-wide, independent of channel |
+| "Zero YouTube revenue" | **Overstated** — free credits delay the paywall by weeks |
+| "Will not compound" / annuity sizing | **Withdrawn** — not measurable yet |
 
-So the videos behave like SEO pages: small durable annuities. What they are not
-getting is the distribution multiplier that makes video worth more per hour than
-a page — and that multiplier is gated entirely on retention.
+### The valid test: cohorts at equal age
 
-**Caveat:** the push is only five weeks old. A search tail can take 6-12 months
-to develop, so the annuity value is genuinely not measurable yet. The
-recommendation-flywheel conclusion does not depend on that wait — it is
-observable now from `relativeRetentionPerformance`.
+Per-video comparison fails here — view counts are too small (a 32-view video
+quantises its retention curve in steps of 1/32) and ages are mixed.
 
-### The fix is the first 15 seconds
+Instead: take everything published **Aug 1-15** and everything published
+**Sep 1-15**, and at **day 60 for each cohort** compare total views and
+*aggregate* retention. Same age, same window length, different format — that
+isolates the variable. Pooling a cohort also gives a few hundred views, enough
+for the retention curve to carry meaning.
 
-`claude/youtube/METHOD.md` already prescribes it — the fixed opening line and
-**Step 01 showing the payoff** (the found email, the exported CSV) *before*
-showing how. That rule exists to hold the opening 15% where these videos are
-losing below-median. It is the highest-leverage unmet rule in the method.
+Expect a retention verdict in ~6 weeks and a search-annuity verdict in 3-6
+months. Until then the site-side conversion rate is the only real-time signal,
+and it is the strongest one on the site.
