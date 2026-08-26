@@ -1025,7 +1025,7 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
                 <i class="fas fa-cloud-upload-alt upload-icon"></i>
                 <div class="upload-text">Drop your CSV file here or click to upload</div>
                 <div class="upload-subtext" id="uploadSubtext">CSV file (max 10000 rows)</div>
-                <input type="file" id="csvFile" accept=".csv" class="hidden">
+                <input type="file" id="csvFile" accept=".csv,.tsv,.txt" class="hidden">
                 <button type="button" class="btn" onclick="event.stopPropagation();document.getElementById('csvFile').click()"><i class="fas fa-file-csv"></i> Select File</button>
                 <button type="button" class="btn" style="background:transparent;color:var(--primary);border:1px solid var(--primary);margin-left:0.5rem;" onclick="event.stopPropagation();useSampleCsv()"><i class="fas fa-wand-magic-sparkles"></i> Try a sample list</button>
             </div>
@@ -4398,7 +4398,19 @@ function useSampleCsv() {
 }
 
 function handleFile(file){
-    if(!file.name.toLowerCase().endsWith('.csv')){showAlert('Please select a CSV file.','error');return;}
+    const n = (file.name||'').toLowerCase();
+    // Excel binaries can't be read as text - say what to do instead of just "no".
+    if(/\.(xlsx|xls|numbers|ods)$/.test(n)){
+        showAlert('That looks like a spreadsheet, not a CSV. In Excel or Sheets: File \u2192 Save As (or Download) \u2192 CSV, then upload that.','error');
+        try { posthog.capture('csv_wrong_filetype', { ext: n.split('.').pop() }); } catch(e){}
+        return;
+    }
+    // .tsv and .txt are just delimited text; the parser sniffs the delimiter.
+    if(!/\.(csv|tsv|txt)$/.test(n)){
+        showAlert('Please upload a .csv file (.tsv and .txt work too).','error');
+        try { posthog.capture('csv_wrong_filetype', { ext: n.split('.').pop() }); } catch(e){}
+        return;
+    }
     const reader=new FileReader();
     reader.onload=(e)=>parseCSV(e.target.result);
     reader.readAsText(file);
@@ -4493,10 +4505,18 @@ function parseCSV(csvText){
     const text = String(csvText||'').replace(/^﻿/,'');
     const lines = text.split(/\r\n|\r|\n/).filter(l=>l.trim());
     if(lines.length < 2){ showAlert('That file has a header but no data rows.','error'); return; }
-    const delim = lfDetectDelim(lines[0]);
-    lfCsvHeaders = lfSplitLine(lines[0], delim).map(h=>h.replace(/^"|"$/g,''));
+    // Exports often carry a title row or two above the real header. The header
+    // is the first line whose column count matches the line after it.
+    let hIdx = 0;
+    for(let i=0;i<Math.min(lines.length-1,5);i++){
+        const d = lfDetectDelim(lines[i]);
+        const a = lfSplitLine(lines[i], d).length, b = lfSplitLine(lines[i+1], d).length;
+        if(a > 1 && a === b){ hIdx = i; break; }
+    }
+    const delim = lfDetectDelim(lines[hIdx]);
+    lfCsvHeaders = lfSplitLine(lines[hIdx], delim).map(h=>h.replace(/^"|"$/g,''));
     lfCsvRows = [];
-    for(let i=1;i<lines.length;i++){
+    for(let i=hIdx+1;i<lines.length;i++){
         const vals = lfSplitLine(lines[i], delim);
         if(vals.some(v=>v !== '')) lfCsvRows.push(vals);
     }
@@ -4688,6 +4708,15 @@ function showPreview(){
     btn.disabled=false; btn.style.opacity='1';
     btn.innerHTML=`<i class="fas fa-play"></i> Process ${csvData.length} items`;
     document.getElementById('csvPreview').classList.remove('hidden');
+    // Auto-detection can pick the wrong column and still look fine. Always
+    // leave a way back to the mapper, not only when detection fails.
+    const remap = document.createElement('button');
+    remap.type='button';
+    remap.className='';
+    remap.setAttribute('style','background:none;border:none;padding:0;margin-top:0.5rem;color:var(--primary,#2563eb);font-size:0.8125rem;text-decoration:underline;cursor:pointer;font-family:inherit;');
+    remap.innerHTML='<i class="fas fa-table-columns"></i> Wrong columns? Choose them yourself';
+    remap.onclick=function(){ try{posthog.capture('csv_remap_opened',{input_type:currentInputType});}catch(e){} lfShowColumnMapper(lfMapping); };
+    document.getElementById('previewTable').appendChild(remap);
     try { posthog.capture('csv_uploaded', { row_count: csvData.length, input_type: currentInputType }); } catch(e) {}
     // Stops the bulk nudge for anyone who already found bulk on their own.
     try { localStorage.setItem('lf_csv_uploaded_ever', '1'); } catch (e) {}
