@@ -325,8 +325,10 @@ table.gaps tfoot td{font-weight:700;color:var(--gray-900);border-top:2px solid v
                 Your HubSpot is connected, so there is nothing to export &mdash; we read your contacts, score them, and leave the connection in place so this stays up to date.
             </p>
             <div id="liveAuditState">
-                <button class="btn" id="liveAuditBtn"><i class="fas fa-heart-pulse"></i> Run the health check</button>
-                <span style="font-size:.82rem;color:var(--gray-600);margin-left:.75rem;">Read-only. Nothing is written and no credits are spent.</span>
+                <button class="btn-primary" id="liveAuditBtn"><i class="fas fa-magnifying-glass-chart"></i> Scan my CRM for missing data</button>
+                <div style="font-size:.8rem;color:var(--gray-500);margin-top:.7rem;">
+                    Takes about a minute. Read-only &mdash; nothing is written to your CRM and no credits are spent.
+                </div>
             </div>
         </div>
 
@@ -398,13 +400,6 @@ table.gaps tfoot td{font-weight:700;color:var(--gray-900);border-top:2px solid v
                 <button class="btn-ghost" style="margin-top:1rem;" onclick="reset()"><i class="fas fa-rotate-left"></i> Audit a different file</button>
             </div>
 
-            
-
-            <!-- the commercial core -->
-            <div class="card" id="quoteCard">
-                <h2><i class="fas fa-calculator"></i> What it costs to fix</h2>
-                <div class="compare" id="compare"></div>
-                <div id="saving"></div>
                 <div id="decay"></div>
                 <div style="margin-top:1.25rem;" id="cta"></div>
             </div>
@@ -665,7 +660,6 @@ function render(r){
         : '<tr><td colspan="5" style="color:var(--gray-500);">No gaps in the selected fields.</td></tr>';
     document.getElementById('totalCredits').textContent = f(r.creditsNeeded);
 
-    renderQuote(r);
     refreshCleanState();
 
     /*
@@ -707,106 +701,6 @@ function render(r){
     }catch(e){}
 }
 
-/*
- * The comparison that does the selling. Both real numbers, side by side —
- * a pack is the intuitive way to buy a one-off cleanup, but packs cost 2-5x
- * more per credit than a plan, so for any CRM of size the subscription is
- * simply the better deal. Showing both lets the arithmetic make the case.
- */
-function renderQuote(r){
-    const f = LFCrmAudit.fmt;
-    const rec = r.recommendation;
-    const compare = document.getElementById('compare');
-    const saving = document.getElementById('saving');
-    const decay = document.getElementById('decay');
-    const cta = document.getElementById('cta');
-
-    if(rec.verdict === 'clean'){
-        compare.innerHTML = '<div class="opt win" style="grid-column:1/-1;"><div class="opt-tag">Nothing to buy</div>' +
-            '<div class="opt-price">$0</div><div class="opt-desc">'+rec.headline+'</div></div>';
-        saving.innerHTML=''; decay.innerHTML=''; cta.innerHTML=''; return;
-    }
-
-    if(rec.verdict === 'contact'){
-        compare.innerHTML = '<div class="opt win" style="grid-column:1/-1;"><div class="opt-tag">Custom volume</div>' +
-            '<div class="opt-price">'+f(rec.creditsNeeded)+' <span>credits needed</span></div>' +
-            '<div class="opt-desc">'+rec.headline+' We will price this against your actual volume rather than a standard plan.</div></div>';
-        saving.innerHTML='';
-        decay.innerHTML='';
-        // Above Enterprise's monthly allocation this stops being a checkout and
-        // becomes a conversation - and these are the largest CRMs the audit sees,
-        // so the booking link is the point of the whole free audit.
-        cta.innerHTML='<a href="'+bookingUrl('volume_quote')+'" target="_blank" rel="noopener" class="btn-primary" onclick="track(\'cta_clicked\',\'contact\')"><i class="fas fa-calendar-check"></i> Book a call for a volume quote</a>' +
-            '<div style="font-size:.78rem;color:var(--gray-400);margin-top:.7rem;">15 minutes. Bring this report &mdash; we price against your actual volume, not a standard plan.</div>';
-        track('cta_shown','contact'); return;
-    }
-
-    const packs = rec.pack.packs.map(p => p.count+'x '+f(p.credits)).join(' + ');
-    const planWins = rec.verdict === 'plan';
-
-    compare.innerHTML =
-        '<div class="opt '+(planWins?'':'win')+'">' +
-            '<div class="opt-tag">One-time pack &mdash; for comparison</div>' +
-            '<div class="opt-price">$'+f(rec.pack.price)+'</div>' +
-            '<div class="opt-desc">'+packs+' = '+f(rec.pack.credits)+' credits.<br>Covers this backlog once. New contacts added afterwards are not included.</div>' +
-        '</div>' +
-        '<div class="opt '+(planWins?'win':'')+'">' +
-            '<div class="opt-tag">'+(planWins?'Recommended — '+rec.plan.name:rec.plan.name+' plan')+'</div>' +
-            '<div class="opt-price">$'+rec.plan.price+'<span>/mo</span></div>' +
-            '<div class="opt-desc">'+f(rec.plan.credits)+' credits every month &mdash; enough to clean your whole CRM now, then keep it clean automatically.</div>' +
-        '</div>';
-
-    // Two different truths depending on which way the arithmetic falls, and the
-    // page shows both prices, so neither can be fudged.
-    if (rec.planCostsMoreToday > 0) {
-        saving.innerHTML = '<div class="decay"><i class="fas fa-circle-info"></i><div>The pack is <strong>$' +
-            f(rec.planCostsMoreToday) + ' cheaper today</strong> &mdash; and covers this backlog once. ' +
-            rec.plan.name + ' costs a little more now and covers it again every month, which is the part that ' +
-            'matters once you have seen how fast the gaps come back.</div></div>';
-    } else
-    saving.innerHTML = planWins && rec.savingVsPacks > 0
-        ? '<div class="saving"><i class="fas fa-circle-check"></i><div>'+rec.plan.name+' costs <strong>$'+f(rec.savingVsPacks)+' less</strong> than buying these credits as packs &mdash; and you get '+f(rec.plan.credits)+' more every month after.</div></div>'
-        : '';
-
-    decay.innerHTML = rec.maintenanceCredits > 0
-        ? '<div class="decay"><i class="fas fa-triangle-exclamation"></i><div>A one-time clean is temporary. At roughly <strong>'+f(rec.monthlyNewContacts)+' new contacts a month</strong>, your CRM will need about <strong>'+f(rec.maintenanceCredits)+' credits every month</strong> just to stop the gaps coming back.</div></div>'
-        : '';
-
-    /*
-     * Someone who already holds enough credits must never be shown a checkout as
-     * the primary action - they have paid, they want to start. The plan stays on
-     * screen as the next step once this backlog is cleared, but it stops being
-     * the button.
-     */
-    const credits = parseInt((document.getElementById('creditsCount').textContent||'0').replace(/\D/g,''),10) || 0;
-    // The largest gap they can actually PAY FOR, not the largest gap. Picking the
-    // latter meant a balance that covered two of three gaps still got a checkout
-    // as the primary action while the table sat there offering working buttons.
-    const affordable = r.breakdown.filter(b => credits >= b.credits)
-                                  .sort((a,b) => b.credits - a.credits);
-    const biggest = affordable[0];
-    const canStart = Boolean(biggest);
-
-    if (canStart) {
-        const coversAll = credits >= r.creditsNeeded;
-        cta.innerHTML =
-            '<a href="#" class="btn-primary" onclick="startCleaning(\''+biggest.key+'\');return false;">' +
-            '<i class="fas fa-wand-magic-sparkles"></i> Start cleaning &mdash; ' + biggest.fix.toLowerCase() +
-            ' for ' + f(biggest.count) + ' records</a>' +
-            '<div style="font-size:.78rem;color:var(--gray-400);margin-top:.7rem;">' +
-            'You have ' + f(credits) + ' credits' +
-            (coversAll
-                ? ' &mdash; enough for every gap above. Each one runs as its own pass; use the buttons in the table to pick the order.'
-                : ' &mdash; enough for ' + (affordable.length === 1 ? 'this one' : affordable.length + ' of the ' + r.breakdown.length + ' gaps') +
-                  '. ' + rec.plan.name + ' at $' + rec.plan.price + '/mo would cover the rest and keep it clean.') +
-            '</div>';
-        track('cta_shown', 'start_cleaning');
-    } else {
-        cta.innerHTML = '<a href="#" class="btn-primary" onclick="goUpgrade(\''+rec.plan.id+'\');return false;">' +
-            '<i class="fas fa-arrow-up-right-dots"></i> Get '+rec.plan.name+' and fix this now</a>';
-        track('cta_shown', rec.plan.id);
-    }
-}
 
 const CALENDLY = 'https://calendly.com/hamoureliasse/compensated-interview-unlimited-leads-clone';
 
@@ -1679,7 +1573,7 @@ async function runLiveAudit(){
     lastCSV = null;              // this result did not come from a file
     lastAudit = out;
     liveRows = rows;             // so the toggles can re-score without re-fetching
-    box.innerHTML = '<button class="btn" id="liveAuditBtn"><i class="fas fa-rotate-right"></i> Re-check</button>';
+    box.innerHTML = '<button class="btn" id="liveAuditBtn"><i class="fas fa-rotate-right"></i> Scan again</button>';
     document.getElementById('liveAuditBtn').addEventListener('click', runLiveAudit);
     try{ posthog.capture('crm_audit_completed',{ source:'connection', contacts: rows.length }); }catch(e){}
     render(out);
