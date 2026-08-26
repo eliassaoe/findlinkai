@@ -1025,7 +1025,7 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
                 <i class="fas fa-cloud-upload-alt upload-icon"></i>
                 <div class="upload-text">Drop your CSV file here or click to upload</div>
                 <div class="upload-subtext" id="uploadSubtext">CSV file (max 10000 rows)</div>
-                <input type="file" id="csvFile" accept=".csv,.tsv,.txt" class="hidden">
+                <input type="file" id="csvFile" accept=".csv,.tsv,.txt,.xlsx,.xlsm,.xls,.ods" class="hidden">
                 <button type="button" class="btn" onclick="event.stopPropagation();document.getElementById('csvFile').click()"><i class="fas fa-file-csv"></i> Select File</button>
                 <button type="button" class="btn" style="background:transparent;color:var(--primary);border:1px solid var(--primary);margin-left:0.5rem;" onclick="event.stopPropagation();useSampleCsv()"><i class="fas fa-wand-magic-sparkles"></i> Try a sample list</button>
             </div>
@@ -4397,17 +4397,49 @@ function useSampleCsv() {
     }
 }
 
+// SheetJS, fetched only the first time somebody actually drops a spreadsheet.
+let lfXlsxLoader = null;
+function lfLoadXlsx(){
+    if(window.XLSX) return Promise.resolve(window.XLSX);
+    if(lfXlsxLoader) return lfXlsxLoader;
+    lfXlsxLoader = new Promise((resolve,reject)=>{
+        const sc = document.createElement('script');
+        sc.src = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+        sc.onload = ()=> window.XLSX ? resolve(window.XLSX) : reject(new Error('loaded but empty'));
+        sc.onerror = ()=> reject(new Error('network'));
+        document.head.appendChild(sc);
+    });
+    return lfXlsxLoader;
+}
 function handleFile(file){
     const n = (file.name||'').toLowerCase();
-    // Excel binaries can't be read as text - say what to do instead of just "no".
-    if(/\.(xlsx|xls|numbers|ods)$/.test(n)){
-        showAlert('That looks like a spreadsheet, not a CSV. In Excel or Sheets: File \u2192 Save As (or Download) \u2192 CSV, then upload that.','error');
-        try { posthog.capture('csv_wrong_filetype', { ext: n.split('.').pop() }); } catch(e){}
+    if(/\.(xlsx|xlsm|xls|ods)$/.test(n)){
+        try { posthog.capture('spreadsheet_uploaded', { ext: n.split('.').pop() }); } catch(e){}
+        const reader = new FileReader();
+        reader.onload = (e)=>{
+            lfLoadXlsx().then(XLSX=>{
+                try {
+                    const wb = XLSX.read(new Uint8Array(e.target.result), { type:'array' });
+                    // First sheet that actually has rows - exports often lead with a blank one.
+                    let csv = '';
+                    for(const nm of wb.SheetNames){
+                        const t = XLSX.utils.sheet_to_csv(wb.Sheets[nm]);
+                        if(t.split(/\r\n|\r|\n/).filter(l=>l.trim()).length >= 2){ csv = t; break; }
+                    }
+                    if(!csv){ showAlert('That spreadsheet looks empty. Check the first sheet has a header row and at least one row of data.','error'); return; }
+                    parseCSV(csv);
+                } catch(err){
+                    showAlert('Could not read that spreadsheet. Saving it as CSV (File \u2192 Save As \u2192 CSV) always works.','error');
+                }
+            }).catch(()=>{
+                showAlert('Could not load the spreadsheet reader \u2014 check your connection, or save the file as CSV and upload that.','error');
+            });
+        };
+        reader.readAsArrayBuffer(file);
         return;
     }
-    // .tsv and .txt are just delimited text; the parser sniffs the delimiter.
     if(!/\.(csv|tsv|txt)$/.test(n)){
-        showAlert('Please upload a .csv file (.tsv and .txt work too).','error');
+        showAlert('Please upload a .csv, .tsv, .txt or Excel file.','error');
         try { posthog.capture('csv_wrong_filetype', { ext: n.split('.').pop() }); } catch(e){}
         return;
     }
@@ -4571,6 +4603,11 @@ function lfBuildCsvData(){
             nameVal = [at(vals,m.first), at(vals,m.last)].filter(Boolean).join(' ');
         }
         if(!nameVal) continue;
+        // CRMs love "Doe, John". Flip it so the enrichment sees a normal name.
+        if(currentInputType === 'lead_full_name'){
+            const flip = nameVal.match(/^\s*([^,]{1,60}?)\s*,\s*([^,]{1,60}?)\s*$/);
+            if(flip) nameVal = flip[2] + ' ' + flip[1];
+        }
         const companyVal = at(vals,m.company), locationVal = at(vals,m.location), jobTitleVal = at(vals,m.job_title);
         const inputData = currentInputType === 'lead_full_name'
             ? [nameVal, companyVal, locationVal, jobTitleVal].filter(Boolean).join(' ')
@@ -4593,7 +4630,14 @@ function lfShowColumnMapper(m){
     lfMapping = m;
     const opts = (sel, allowNone) => {
         let o = allowNone ? `<option value="-1"${(sel===undefined||sel===-1)?' selected':''}>— none —</option>` : '';
-        lfCsvHeaders.forEach((h,i)=>{ o += `<option value="${i}"${sel===i?' selected':''}>${lfEsc(h)||'(column '+(i+1)+')'}</option>`; });
+        const seen = {};
+        lfCsvHeaders.forEach((h,i)=>{
+            const dupe = lfCsvHeaders.filter(x=>lfNorm(x)===lfNorm(h)).length > 1;
+            seen[lfNorm(h)] = (seen[lfNorm(h)]||0)+1;
+            // Two columns both called "name" are indistinguishable without this.
+            const label = (lfEsc(h) || '(unnamed)') + (dupe||!h ? ` \u2014 column ${i+1}` : '');
+            o += `<option value="${i}"${sel===i?' selected':''}>${label}</option>`;
+        });
         return o;
     };
     const row = (label, field, sel, allowNone, hint) => `
