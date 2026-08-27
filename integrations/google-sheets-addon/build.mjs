@@ -150,7 +150,8 @@ writeFileSync(
 
 <h2>Running a lookup</h2>
 <ul>
-  <li>Open <b>Extensions &rsaquo; LinkFinder AI &rsaquo; Settings</b> once and paste your API key.</li>
+  <li>Open <b>Extensions &rsaquo; LinkFinder AI &rsaquo; Enrich a column</b> and paste your API key
+      at the top of the panel. It is saved to your Google account and asked for once.</li>
   <li>Put your data in a sheet with a header row — the add-on always starts at row&nbsp;2.</li>
   <li>Open <b>Enrich a column</b>, choose the lookup, name the columns it should read, and name an
       empty column for the answer.</li>

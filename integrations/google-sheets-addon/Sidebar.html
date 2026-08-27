@@ -66,15 +66,28 @@
   #status.bad{color:var(--bad-ink);}
   #status.warn{color:var(--warn-ink);}
   #status.good{color:var(--good);}
-  .nokey{background:var(--bad-bg);color:var(--bad-ink);padding:9px 10px;border-radius:4px;
-    margin-top:14px;line-height:1.5;font-size:12px;}
+  /* The key sits at the top of the panel because nothing below it can run
+     without one, and because a key saved in a separate dialog cannot tell this
+     panel it happened — which is why it used to need a page reload. */
+  .key{margin-top:14px;}
+  .key-prompt{background:var(--blue-bg);color:var(--blue-ink);padding:10px;border-radius:4px;
+    font-size:12px;line-height:1.5;}
+  .key-prompt b{font-weight:600;}
+  .key-row{display:flex;gap:6px;margin-top:8px;}
+  .key-row input{flex:1;min-width:0;padding:6px 7px;font-size:12px;border:1px solid var(--line);
+    border-radius:4px;font-family:inherit;}
+  .key-row button{margin:0;width:auto;flex:none;padding:6px 12px;font-size:12px;}
+  .key-set{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--muted);}
+  .key-set .dot{width:6px;height:6px;border-radius:50%;background:var(--good);flex:none;}
+  .key-set a{color:var(--blue);cursor:pointer;text-decoration:none;}
+  .key-note{font-size:11.5px;margin-top:6px;}
+  .key-note.bad{color:var(--bad-ink);}
+  .key-note.good{color:var(--good);}
 </style>
 </head>
 <body>
 
-<div id="nokey" class="nokey" style="display:none;">
-  No API key yet. Open <b>Extensions &rsaquo; LinkFinder AI &rsaquo; Settings</b> and paste your key.
-</div>
+<div id="key" class="key"></div>
 
 <div class="step">
   <div class="step-label"><span class="step-num">1</span> What to look up</div>
@@ -443,12 +456,12 @@
         var d = describe(result, tally, result.incomplete && stalled);
         el('status').className = d.tone;
         el('status').textContent = d.text;
-        el('go').disabled = false;
+        setRunnable(hasKey);
       })
       .withFailureHandler(function(error){
         fail('Stopped: ' + error.message +
              (tally.processed ? '\n\n' + tally.processed.toLocaleString() + ' row(s) were finished first and are saved.' : ''));
-        el('go').disabled = false;
+        setRunnable(hasKey);
       })
       .runEnrichment(config);
   }
@@ -528,9 +541,74 @@
     renderWhenReady();
   }).getOperations();
 
+  /**
+   * The API key, entered here rather than behind a menu item.
+   *
+   * It used to live in a separate Settings dialog, which meant two problems in
+   * one: a first-time user had to be told where to go, and the panel could not
+   * see the key when it arrived — the dialog is a different window, so the
+   * button stayed disabled until the whole page was reloaded. Inline, saving it
+   * enables the run in the same breath.
+   */
+  var hasKey = false;
+
+  function renderKey(state, note){
+    var host = el('key');
+
+    if (hasKey && state !== 'editing') {
+      host.innerHTML =
+        '<div class="key-set"><span class="dot"></span>API key saved &middot; ' +
+        '<a id="keyChange">change</a></div>' +
+        (note ? '<div class="key-note good">' + esc(note) + '</div>' : '');
+      el('keyChange').onclick = function(){ renderKey('editing'); };
+      return;
+    }
+
+    host.innerHTML =
+      (hasKey ? '' : '<div class="key-prompt"><b>Add your API key to start.</b> ' +
+        'It is in your LinkFinder AI dashboard under API. Stored in your Google ' +
+        'account, visible only to you.</div>') +
+      '<div class="key-row">' +
+        '<input type="password" id="keyInput" placeholder="Paste your API key" autocomplete="off">' +
+        '<button id="keySave">Save</button>' +
+      '</div>' +
+      (note ? '<div class="key-note bad">' + esc(note) + '</div>' : '');
+
+    el('keySave').onclick = saveKey;
+    el('keyInput').addEventListener('keydown', function(e){ if (e.key === 'Enter') saveKey(); });
+    el('keyInput').focus();
+  }
+
+  function saveKey(){
+    var value = el('keyInput').value.trim();
+    if (!value) return renderKey('editing', 'Paste your key first.');
+
+    el('keySave').disabled = true;
+    el('keySave').textContent = 'Saving…';
+
+    google.script.run
+      .withSuccessHandler(function(){
+        // The whole point: the panel is usable now, not after a reload.
+        hasKey = true;
+        setRunnable(true);
+        renderKey('saved', 'Key saved — you can run a lookup now.');
+      })
+      .withFailureHandler(function(error){
+        el('keySave').disabled = false;
+        el('keySave').textContent = 'Save';
+        renderKey('editing', error.message || 'Could not save that key.');
+      })
+      .saveApiKey(value);
+  }
+
+  function setRunnable(on){
+    el('go').disabled = !on;
+  }
+
   google.script.run.withSuccessHandler(function(configured){
-    el('nokey').style.display = configured ? 'none' : 'block';
-    el('go').disabled = !configured;
+    hasKey = Boolean(configured);
+    setRunnable(hasKey);
+    renderKey();
   }).isApiKeyConfigured();
 
   el('go').addEventListener('click', run);
