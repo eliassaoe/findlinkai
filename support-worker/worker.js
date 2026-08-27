@@ -28,8 +28,8 @@ const SITE_ORIGIN = "https://linkfinderai.com";
 // Pages the fetch_page tool is allowed to pull from (path only, no scheme/host).
 // Keep this list in sync with what actually exists on the site — the Worker
 // will refuse any path not in this allow-list, or not matching the /resources/
-// or /workflow/ prefixes.
-const FETCHABLE_PREFIXES = ["/resources/", "/workflow/"];
+// prefix.
+const FETCHABLE_PREFIXES = ["/resources/"];
 const FETCHABLE_EXACT = [
   "/pricing.html",
   "/api-documentation.html",
@@ -82,7 +82,6 @@ Zapier, Make, n8n (dedicated node + templates), HubSpot, Google Sheets, Webhooks
 - /api-documentation.html, /api-overview.html, /api-access.html — API reference
 - /integrations.html — integration setup details
 - /resources/*.html — how-to guides (e.g. find-linkedin-url.html, email-finder.html, find-company-website.html, scrape-linkedin-profile.html, find-phone-number-from-linkedin.html, find-ceo-email.html, and more — use /resources/index.html to see the full list)
-- /workflow/*.html — end-to-end use-case workflows (e.g. building full employee databases, enriching CRM contacts, turning LinkedIn engagement into lead lists)
 
 ## Tools
 - fetch_page: use this whenever a question needs exact current details (exact price, exact credit cost, exact API parameters, exact steps in a guide) that aren't already stated above with confidence. Don't fetch for things you already know cold from this prompt — that just adds latency.
@@ -131,7 +130,7 @@ async function toolFetchPage(path) {
   }
   if (!isFetchablePath(path)) {
     return {
-      error: `path not allowed: ${path}. Allowed: ${FETCHABLE_EXACT.join(", ")}, or anything under /resources/ or /workflow/.`,
+      error: `path not allowed: ${path}. Allowed: ${FETCHABLE_EXACT.join(", ")}, or anything under /resources/.`,
     };
   }
   const url = SITE_ORIGIN + path;
