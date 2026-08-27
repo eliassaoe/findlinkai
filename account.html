@@ -64,17 +64,6 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
 .nav-tab i{font-size:.875rem;}
 .main{padding:2rem 0;}
 .section-title{font-size:.875rem;font-weight:600;color:var(--gray-600);text-transform:uppercase;letter-spacing:.05em;margin-bottom:1rem;}
-.integrations-section{margin-bottom:2rem;}
-.integrations-grid{display:grid;gap:.75rem;}
-.integration-card{display:flex;align-items:center;justify-content:space-between;padding:1rem;background:white;border:1px solid var(--gray-200);border-radius:8px;transition:all .2s ease;text-decoration:none;color:inherit;}
-.integration-card:hover{border-color:var(--primary);box-shadow:0 2px 8px rgba(37,99,235,.1);}
-.integration-info{display:flex;align-items:center;gap:.75rem;}
-.integration-icon{width:40px;height:40px;display:flex;align-items:center;justify-content:center;border-radius:6px;font-size:1.25rem;}
-.zapier-icon{background:#ff4a00;color:white;}
-.google-sheets-icon{background:#0f9d58;color:white;}
-.integration-details h3{font-size:.9rem;font-weight:600;color:var(--gray-900);margin-bottom:.125rem;}
-.integration-details p{font-size:.8rem;color:var(--gray-500);}
-.integration-arrow{color:var(--gray-400);font-size:.875rem;}
 
 /* Billing section */
 .billing-section{margin-bottom:2rem;}
@@ -317,46 +306,6 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
       </div>
     </div>
 
-    <div class="integrations-section">
-      <div class="section-title">Integrations</div>
-      <div class="integrations-grid">
-        <a href="https://zapier.com/developer/public-invite/235719/7244430282f42f35ad6bd25db6ac39bf/" target="_blank" class="integration-card">
-          <div class="integration-info">
-            <div class="integration-icon zapier-icon"><i class="fas fa-bolt"></i></div>
-            <div class="integration-details"><h3>Zapier</h3><p>Connect with 5,000+ apps</p></div>
-          </div>
-          <i class="fas fa-arrow-right integration-arrow"></i>
-        </a>
-        <a href="#" onclick="navigateToPage('crmSync');return false;" class="integration-card" id="hubspotIntegrationCard">
-          <div class="integration-info">
-            <div class="integration-icon" style="background:#ff7a59;color:white;"><i class="fab fa-hubspot"></i></div>
-            <div class="integration-details"><h3>HubSpot</h3><p id="hubspotCardSubtitle">Auto-fill missing contact emails, weekly</p></div>
-          </div>
-          <i class="fas fa-arrow-right integration-arrow"></i>
-        </a>
-        <a href="#" onclick="navigateToPage('workflows');return false;" class="integration-card">
-          <div class="integration-info">
-            <div class="integration-icon" style="background:#ea4b71;color:white;"><span style="font-weight:900;font-size:1rem;">n</span></div>
-            <div class="integration-details"><h3>n8n</h3><p>Import ready-to-use workflow templates</p></div>
-          </div>
-          <i class="fas fa-arrow-right integration-arrow"></i>
-        </a>
-        <a href="#" onclick="navigateToPage('workflows');return false;" class="integration-card">
-          <div class="integration-info">
-            <div class="integration-icon" style="background:#6d28d9;color:white;"><span style="font-weight:900;font-size:1rem;">M</span></div>
-            <div class="integration-details"><h3>Make</h3><p>Import ready-to-use scenario templates</p></div>
-          </div>
-          <i class="fas fa-arrow-right integration-arrow"></i>
-        </a>
-        <a href="https://workspace.google.com/marketplace/app/linkfinder_ai/1096371450007" target="_blank" class="integration-card">
-          <div class="integration-info">
-            <div class="integration-icon google-sheets-icon"><i class="fas fa-table"></i></div>
-            <div class="integration-details"><h3>Google Sheets Add-on</h3><p>Enrich data directly in Sheets</p></div>
-          </div>
-          <i class="fas fa-arrow-right integration-arrow"></i>
-        </a>
-      </div>
-    </div>
 
   </div>
 </div>
@@ -1865,27 +1814,5 @@ document.addEventListener('DOMContentLoaded', () => {
 
 <script src="/js/support-widget.js" defer></script>
 
-<script type="module">
-// The actual HubSpot connect/sync experience now lives on its own page
-// (crm-sync.html) — this card is just a status-reflecting entry point into
-// it, so the connect logic isn't duplicated across two pages.
-const CRM_SYNC_WORKER_URL = 'https://nango-connect-session.hamoureliasse.workers.dev/';
-
-if (userToken) {
-  fetch(CRM_SYNC_WORKER_URL + 'status', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ token: userToken })
-  })
-    .then(r => r.json())
-    .then(d => {
-      if (d && d.connected) {
-        const subtitle = document.getElementById('hubspotCardSubtitle');
-        if (subtitle) subtitle.textContent = 'Connected ✓ — manage sync';
-      }
-    })
-    .catch(() => {});
-}
-</script>
 </body>
 </html>
