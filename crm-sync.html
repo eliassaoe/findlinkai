@@ -1459,6 +1459,9 @@ function refreshBothStages(){
     refreshSyncState();
     refreshCleanState();
     refreshDedupeState();
+    // Health was left out, so connecting used to leave its panel still offering
+    // "Connect HubSpot" until the page was reloaded.
+    refreshLiveAudit({ justConnected: true });
 }
 
 /*
@@ -1773,11 +1776,33 @@ async function runLiveAudit(){
     render(out);
 }
 
-/* Show the connected path only once /status confirms a live connection. */
-async function refreshLiveAudit(){
+/* Show the connected path only once /status confirms a live connection.
+ *
+ * `justConnected` marks the call that follows a real connection, as opposed to
+ * the one on page load. Someone who has just connected is watching a modal
+ * close, not the page behind it — and the button they need next is usually
+ * below the fold — so that call brings it to them. A page load must not, or
+ * every visit would yank a returning user down the page. */
+async function refreshLiveAudit(opts){
     const res = await nangoCall('status');
     const on = !!(res.ok && res.data.connected);
-    document.getElementById('liveAuditCard').classList.toggle('hidden', !on);
+    const liveCard = document.getElementById('liveAuditCard');
+    const wasHidden = liveCard.classList.contains('hidden');
+    liveCard.classList.toggle('hidden', !on);
+
+    if(on && wasHidden && opts && opts.justConnected){
+        // The card lives in the Health panel, which may not be the open tab.
+        showCrmPanel('health');
+        requestAnimationFrame(() => {
+            liveCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            // A moment of emphasis, so the eye lands on the button rather than
+            // on whatever happens to be under the cursor after the modal.
+            liveCard.style.transition = 'box-shadow .3s ease';
+            liveCard.style.boxShadow = '0 0 0 4px rgba(37,99,235,.28)';
+            setTimeout(() => { liveCard.style.boxShadow = ''; }, 2200);
+        });
+        try{ posthog.capture('crm_connected_scrolled_to_scan'); }catch(e){}
+    }
     // Connecting is the primary path in-app; the CSV drop is the fallback for
     // a CRM that is not connected. (The public crm-audit.html keeps CSV first —
     // there is no account there, so a file that never leaves the browser is the

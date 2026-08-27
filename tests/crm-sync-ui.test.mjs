@@ -259,6 +259,71 @@ test('the CSV uploader offers the Sheets route at the upload step', () => {
   assert.deepStrictEqual(events.sort(), ['bulk_upload']);
 });
 
+test('connecting a CRM brings the scan button into view', async () => {
+  // The connect flow ends with a modal closing over a page the user has not
+  // looked at since they clicked. On most screens the scan button is below the
+  // fold, so leaving them to find it is how a connected account does nothing.
+  const src = read('crm-sync.html');
+  const fn = src.slice(src.indexOf('async function refreshLiveAudit(opts)'),
+                       src.indexOf('const liveBtn = document.getElementById'));
+
+  const calls = { panel: null, scrolled: false };
+  const card = {
+    classList: {
+      _hidden: true,
+      contains: (c) => c === 'hidden' && card.classList._hidden,
+      toggle(c, on) { if (c === 'hidden') this._hidden = on; },
+    },
+    style: {},
+    scrollIntoView: () => { calls.scrolled = true; },
+  };
+  // The function also touches the connect card, the upload heading and the CSV
+  // note; those are not what this is about, so they get a generic stub.
+  const stub = () => ({
+    classList: { toggle() {}, contains: () => false },
+    style: { cssText: '' }, children: [null, null],
+    insertBefore() {}, scrollIntoView() {},
+    set innerHTML(v) {}, set textContent(v) {},
+  });
+  const ctx = {
+    nangoCall: async () => ({ ok: true, data: { connected: true } }),
+    document: {
+      getElementById: (id) => (id === 'liveAuditCard' ? card : stub()),
+      createElement: stub,
+    },
+    showCrmPanel: (n) => { calls.panel = n; },
+    requestAnimationFrame: (cb) => cb(),
+    setTimeout: () => {},
+    posthog: { capture: () => {} },
+  };
+  const refresh = new Function(...Object.keys(ctx), fn + '; return refreshLiveAudit;')(...Object.values(ctx));
+
+  await refresh({ justConnected: true });
+  assert.ok(calls.scrolled, 'a fresh connection should scroll the scan button into view');
+  assert.strictEqual(calls.panel, 'health', 'and open the tab the button lives in');
+
+  // A page load must not yank a returning user down the page.
+  card.classList._hidden = true;
+  calls.scrolled = false;
+  await refresh();
+  assert.ok(!calls.scrolled, 'page load must not scroll');
+
+  // Nor should a repeat refresh once the card is already showing.
+  calls.scrolled = false;
+  await refresh({ justConnected: true });
+  assert.ok(!calls.scrolled, 'only the transition into view scrolls');
+});
+
+test('a successful connect refreshes the Health panel, not just the other three', () => {
+  // refreshBothStages drove sync, clean and dedupe. Health was left out, so
+  // connecting left its panel still offering "Connect HubSpot" until a reload.
+  const src = read('crm-sync.html');
+  const i = src.indexOf('function refreshBothStages()');
+  const fn = src.slice(i, src.indexOf('\n}', i));
+  assert.match(fn, /refreshSyncState\(\)/);
+  assert.match(fn, /refreshLiveAudit\(\{ justConnected: true \}\)/);
+});
+
 test('the Sheets page links the add-on rather than only describing it', () => {
   const page = read('linkedIn-enrichment-google-sheets.html');
   assert.ok(page.includes(MARKETPLACE));
