@@ -22,7 +22,11 @@ prefers the real `firstName`/`lastName` over splitting a full name.
 
 ---
 
-## 1. `leads_finder_ai` is broken in production ⚠️
+## 1. The API can report a provider failure as a success ⚠️
+
+`leads_finder_ai` has been withdrawn from the product, so the specific outage that
+surfaced this is gone. **The underlying problem is not**, and it is the one worth
+keeping on this list.
 
 A live call returned **HTTP 200, `"status": "success"`** — with this as the result:
 
@@ -34,18 +38,15 @@ A live call returned **HTTP 200, `"status": "success"`** — with this as the re
     "status": 403 } } ] }
 ```
 
-The upstream Apify actor (`IoSHqwTR9YGhzccez`) has not had its permissions approved, so
-the AI lead search returns a provider error for every call — presented as a success.
+An upstream provider had refused the request, and the API passed that refusal through
+as a successful-looking result. Any consumer reading `status` treats an error object as
+data: a stack trace written into a CRM field, or pushed into a live email campaign as a
+"lead".
 
-**Two separate problems.** The outage itself is fixable in one click at
-`https://console.apify.com/actors/IoSHqwTR9YGhzccez?approvePermissions=true`. The
-deeper one is that the API reports a provider failure as `status: "success"`, so any
-consumer treats an error object as data.
-
-Every integration here now checks for that envelope and raises instead — otherwise a
-stack trace would have been written into a CRM field, or pushed into a live email
-campaign as a "lead". **It would be better fixed at the API**, which should return an
-error status rather than a successful-looking result.
+Every integration here checks for that envelope and raises instead. **It would be
+better fixed at the API**, which should return an error status rather than a
+successful-looking result — and nothing about the failure was specific to the
+withdrawn operation, so it can happen again on any lookup with an upstream dependency.
 
 ## 2. The Instagram operation — handled, not resolved
 

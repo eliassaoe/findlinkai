@@ -134,7 +134,7 @@ the wrong lookup is a real bill.
 | Find Email from LinkedIn Profile | profile URL | **10** |
 | Get LinkedIn Profile Details | profile URL | **10** |
 | **Find Phone from LinkedIn Profile** | profile URL | **50** |
-| Employee lists, Find Leads with AI | company / description | 0.5 per record returned |
+| Employee lists | company name, domain or LinkedIn company URL | 0.5 per record returned |
 
 The panel multiplies the cost by your row count **before** you start, and warns on
 anything at 7 or above.

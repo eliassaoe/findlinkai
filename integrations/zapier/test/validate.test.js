@@ -44,5 +44,13 @@ test('the app definition exposes what Zapier expects of it', () => {
   assert.ok(app.version, 'no version');
   assert.strictEqual(app.authentication.type, 'custom');
   assert.strictEqual(app.beforeRequest.length, 1, 'the bearer-token middleware is not attached');
-  assert.strictEqual(Object.keys(app.searches).length, 20);
+  // Tied to the catalog, not a literal: every operation becomes a search, so an
+  // operation added or removed should move both together. A literal here just breaks
+  // CI on a deliberate catalog change while catching nothing a mismatch would not.
+  const { operations } = require('../../catalog/operations.json');
+  assert.deepStrictEqual(
+    Object.keys(app.searches).sort(),
+    operations.map((o) => o.key).sort(),
+    'the app searches and the catalog operations have drifted apart',
+  );
 });

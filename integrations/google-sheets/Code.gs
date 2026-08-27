@@ -170,9 +170,11 @@ function assertOk(status, body) {
 }
 
 /**
- * Some operations answer 200 with status "success" while the result is really an
- * upstream failure — leads_finder_ai was observed returning a provider permissions
+ * An operation can answer 200 with status "success" while the result is really an
+ * upstream failure — seen in production, a lookup returned a provider permissions
  * error as its only result. Without this the sheet would fill with error objects.
+ * Kept general: the operation it was first seen on has been withdrawn, the failure
+ * mode has not.
  */
 function assertNotUpstreamError(result) {
   var items = Array.isArray(result) ? result : [result];

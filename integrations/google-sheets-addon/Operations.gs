@@ -1,6 +1,6 @@
 /**
  * GENERATED from integrations/catalog/operations.json. Do not edit by hand.
- * Spec version 1.1.0 — 20 lookups.
+ * Spec version 1.1.0 — 19 lookups.
  *
  * Regenerate with: node build.mjs
  */
@@ -714,72 +714,6 @@ var LINKFINDER_OPERATIONS = [
     },
     "compositeInput": null,
     "params": []
-  },
-  {
-    "type": "leads_finder_ai",
-    "label": "Find Leads with AI",
-    "category": "Discovery",
-    "credits": 1,
-    "perEmployeeBilling": false,
-    "alwaysAsync": true,
-    "altType": null,
-    "inputLabel": "Describe the Leads You Want",
-    "inputHelp": "Plain English — job titles, industry, company size, location.",
-    "example": "VP Sales at B2B SaaS startups in the United States",
-    "outputField": null,
-    "outputKind": "list",
-    "columns": {
-      "default": [
-        "firstName",
-        "lastName",
-        "jobTitle",
-        "email",
-        "mobileNumber",
-        "linkedinUrl",
-        "company",
-        "city",
-        "country"
-      ],
-      "skip": [
-        "photoUrl",
-        "personId",
-        "companyId"
-      ]
-    },
-    "labels": {
-      "name": "Name",
-      "firstName": "First Name",
-      "lastName": "Last Name",
-      "jobTitle": "Job Title",
-      "headline": "Headline",
-      "seniority": "Seniority",
-      "department": "Department",
-      "industry": "Industry",
-      "email": "Email",
-      "mobileNumber": "Phone",
-      "twitter": "Twitter",
-      "linkedinUrl": "LinkedIn URL",
-      "city": "City",
-      "state": "State",
-      "country": "Country",
-      "company": "Company",
-      "companyWebsite": "Company Website",
-      "companySize": "Company Size",
-      "companyLinkedinUrl": "Company LinkedIn URL",
-      "companyPhone": "Company Phone",
-      "companyCity": "Company City",
-      "companyState": "Company Region",
-      "companyCountry": "Company Country"
-    },
-    "compositeInput": null,
-    "params": [
-      {
-        "name": "fetch_count",
-        "label": "Number of Leads",
-        "type": "integer",
-        "help": "How many leads to return."
-      }
-    ]
   }
 ];
 

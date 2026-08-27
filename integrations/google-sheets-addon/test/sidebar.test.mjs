@@ -110,7 +110,16 @@ test('a lookup with no matching column guesses nothing rather than something wro
   // "URL" would run an Instagram lookup against LinkedIn URLs.
   const { guessColumn } = guesser();
   assert.strictEqual(guessColumn(op('instagram_lookup'), 'input'), '');
-  assert.strictEqual(guessColumn(op('leads_finder_ai'), 'input'), '');
+
+  // And on a sheet with nothing relevant at all, no lookup should pick anything.
+  const bare = guesser({ columns: [{ letter: 'A', name: 'Notes' }, { letter: 'B', name: 'Owner' }] });
+  for (const operation of operations) {
+    if (operation.compositeInput) continue;
+    assert.strictEqual(
+      bare.guessColumn(operation, 'input'), '',
+      `${operation.label} guessed a column on a sheet that has nothing it wants`,
+    );
+  }
 });
 
 test('a more specific header wins over a merely matching one', () => {

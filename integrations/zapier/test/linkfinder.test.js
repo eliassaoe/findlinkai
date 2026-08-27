@@ -118,15 +118,15 @@ test('a 422 surfaces the API message rather than a generic failure', async () =>
 });
 
 test('optional params are only sent when filled in', async () => {
-  const op = { type: 'leads_finder_ai', inputLabel: 'Leads', params: ['fetch_count'], outputField: null };
+  const op = { type: 'company_domain_to_employees', inputLabel: 'Domain', params: ['employee_count'], outputField: null };
 
   const filled = fakeZ([{ status: 200, json: { result: [] } }]);
-  await runEnrichment(filled.z, bundleFor('VP Sales', { fetch_count: 25 }), op);
-  assert.deepStrictEqual(filled.calls[0].body, { type: 'leads_finder_ai', input_data: 'VP Sales', fetch_count: 25 });
+  await runEnrichment(filled.z, bundleFor('tesla.com', { employee_count: 25 }), op);
+  assert.deepStrictEqual(filled.calls[0].body, { type: 'company_domain_to_employees', input_data: 'tesla.com', employee_count: 25 });
 
   const empty = fakeZ([{ status: 200, json: { result: [] } }]);
-  await runEnrichment(empty.z, bundleFor('VP Sales', { fetch_count: '' }), op);
-  assert.deepStrictEqual(empty.calls[0].body, { type: 'leads_finder_ai', input_data: 'VP Sales' });
+  await runEnrichment(empty.z, bundleFor('tesla.com', { employee_count: '' }), op);
+  assert.deepStrictEqual(empty.calls[0].body, { type: 'company_domain_to_employees', input_data: 'tesla.com' });
 });
 
 test('a blank input is rejected before it costs a credit', async () => {
@@ -136,14 +136,15 @@ test('a blank input is rejected before it costs a credit', async () => {
 });
 
 test('a provider error dressed as a successful result is rejected, not returned', async () => {
-    // Observed live: leads_finder_ai answered 200 / "success" with an Apify permissions
+    // Observed live: a lookup answered 200 / "success" with a provider permissions
     // error as its only result. A Zap would otherwise map that into a CRM as a lead.
+    // The operation it happened on has been withdrawn; the failure mode has not.
     const { z } = fakeZ([
         { status: 200, json: { status: 'success', result: [{ error: { message: '403 - full-permission-actor-not-approved' } }] } },
     ]);
 
     await assert.rejects(
-        () => runEnrichment(z, bundleFor('VP Sales'), { ...OP, type: 'leads_finder_ai', outputField: null }),
+        () => runEnrichment(z, bundleFor('tesla.com'), { ...OP, type: 'company_domain_to_employees', outputField: null }),
         /provider error.*credits were still spent/s,
     );
 });

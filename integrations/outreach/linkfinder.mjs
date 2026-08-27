@@ -28,10 +28,13 @@ function assertOk(status, body) {
 }
 
 /**
- * Some operations answer HTTP 200 with `status: "success"` while the result is really
- * an upstream failure — `leads_finder_ai` was observed returning an array whose only
- * element was an Apify permissions error. Without this check that error object would
- * be normalised into a "lead" and pushed into a live email campaign.
+ * An operation can answer HTTP 200 with `status: "success"` while the result is really
+ * an upstream failure. Seen in production: a lookup returned an array whose only element
+ * was a provider permissions error. Without this check that error object would be
+ * normalised into a "lead" and pushed into a live email campaign.
+ *
+ * Kept general on purpose — the operation it was first observed on has since been
+ * withdrawn, but nothing about the failure was specific to it.
  */
 function assertNotUpstreamError(result) {
     const items = Array.isArray(result) ? result : [result];
