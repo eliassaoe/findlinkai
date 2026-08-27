@@ -227,8 +227,9 @@ test('the app menu has an Integrations tab, between CRM Sync and History', () =>
   );
   assert.ok(order.indexOf('integrations') < order.indexOf('history'), 'Integrations should come before History');
 
-  // A tab that does not route anywhere is a dead tab.
-  assert.match(app, /case 'integrations':[^\n]*linkfinderai\.com\/integrations/);
+  // A tab that does not route anywhere is a dead tab. It must reach the app
+  // page — the destination test below pins which one, and why.
+  assert.match(app, /case 'integrations':[^\n]*linkfinderai\.com\/app-integrations/);
 });
 
 test('Google Sheets leads the integrations hub', () => {
@@ -274,4 +275,113 @@ test('the lifecycle email that leads on bulk has a Sheets variant, not yet live'
     bulk.filter((v) => v.status === 'champion').length, 1,
     'a step must have exactly one champion',
   );
+});
+
+// ---------------------------------------------------------------------------
+// The in-app integrations page
+// ---------------------------------------------------------------------------
+
+/*
+ * The tab first pointed at /integrations, which is the signed-out landing page.
+ * A logged-in user sent there sees marketing copy and "Live" badges that say
+ * nothing about their own account. app-integrations.html is the app version: it
+ * reads what THIS account has connected.
+ */
+
+test('the app tab goes to the app page, not the marketing one', () => {
+  const app = read('app.html');
+  const route = app.slice(app.indexOf("case 'integrations'"), app.indexOf("case 'integrations'") + 220);
+
+  assert.match(route, /app-integrations/, 'the tab still points at the landing page');
+  assert.ok(
+    !/linkfinderai\.com\/integrations\?token/.test(app),
+    'something still sends a signed-in user to the signed-out page',
+  );
+});
+
+test('the page is an app page: token-gated and kept out of search', () => {
+  const page = read('app-integrations.html');
+  assert.match(page, /<meta name="robots" content="noindex"/, 'an app page must not be indexed');
+  assert.match(page, /function checkAuth\(\)/);
+  assert.match(page, /linkFinderToken/);
+  // No token means no page — the same rule account.html follows.
+  assert.match(page, /if \(!token\) \{ window\.location\.href = 'https:\/\/linkfinderai\.com\/'/);
+});
+
+test('it wears the app chrome, with Integrations marked active', () => {
+  const page = read('app-integrations.html');
+  const nav = page.slice(page.indexOf('<nav class="nav-menu">'), page.indexOf('</nav>'));
+
+  for (const tab of ['Data Enrichment', 'API &amp; MCP', 'CRM Sync', 'Integrations', 'History', 'Account']) {
+    assert.ok(nav.includes(tab), `the nav is missing ${tab}`);
+  }
+  assert.match(nav, /nav-tab active"><i class="fas fa-puzzle-piece"><\/i> Integrations/);
+  // The credits header and logout, like every other app page.
+  assert.match(page, /id="creditsCount"/);
+  assert.match(page, /onclick="logout\(\)"/);
+});
+
+test('it reads this account state rather than showing everyone the same badges', () => {
+  // This is the whole reason for an app page over the marketing one.
+  const page = read('app-integrations.html');
+  assert.match(page, /nango-connect-session[^']*'\s*;/, 'it never asks whether HubSpot is connected');
+  assert.match(page, /loadHubspotState/);
+  assert.match(page, /loadApiState/);
+  assert.match(page, /setState\('hubspotState', 'connected', 'on'\)/);
+});
+
+test('Google Sheets is first and singled out', () => {
+  const page = read('app-integrations.html');
+  const body = page.slice(page.indexOf('<div class="integrations-grid">'));
+  const first = body.slice(0, body.indexOf('</div>\n        </div>'));
+
+  assert.match(first, /Google Sheets/);
+  assert.match(first, /int-featured/, 'it is not visually singled out');
+  assert.ok(first.includes(MARKETPLACE), 'the add-on is not linked from the card');
+});
+
+test('the three states mean three different things', () => {
+  // "in review" is somebody else's queue; "ask for it" is ours. Collapsing them
+  // makes the interest signal meaningless.
+  const page = read('app-integrations.html');
+  const states = page.slice(page.indexOf('const STATE = {'), page.indexOf('function cardFor'));
+
+  assert.match(states, /live:\s*\{ label:'live'/);
+  assert.match(states, /review:\s*\{ label:'in review'/);
+  assert.match(states, /ready:\s*\{ label:'ask for it'/);
+});
+
+test('every app page can reach the tab', () => {
+  for (const file of ['app.html', 'account.html', 'crm-sync.html']) {
+    const page = read(file);
+    assert.ok(page.includes('app-integrations'), `${file} cannot route to the integrations page`);
+    assert.match(page, /Integrations<\/button>|Integrations<\/a>/, `${file} has no Integrations tab`);
+  }
+});
+
+test('no app page hides nav tabs behind a horizontal scroll', () => {
+  // Every app page shared `.nav-tabs{overflow-x:auto}`, so a sixth tab pushed
+  // Account off the right edge with only a scrollbar to find it. Wrapping is
+  // the fix: at any width every tab is on screen.
+  const pages = ['app.html', 'account.html', 'crm-sync.html', 'history.html',
+                 'api-access.html', 'app-integrations.html'];
+
+  for (const file of pages) {
+    const css = read(file).match(/\.nav-tabs\{[^}]*\}/);
+    assert.ok(css, `${file} has no .nav-tabs rule`);
+    assert.ok(!/overflow-x/.test(css[0]), `${file} still scrolls its nav instead of wrapping`);
+    assert.match(css[0], /flex-wrap:\s*wrap/, `${file} does not wrap its nav`);
+  }
+});
+
+test('the nav bar is wider than the reading column, so six tabs fit one row', () => {
+  // Content is deliberately 680px — one readable column. The nav has no reason
+  // to be, and constraining it there is what forced the wrap in the first place.
+  for (const file of ['app.html', 'account.html', 'app-integrations.html']) {
+    const page = read(file);
+    assert.match(page, /\.container\{max-width:680px/, `${file} changed its content width`);
+    assert.match(page, /\.nav-menu \.container\{max-width:1100px;\}/, `${file} still constrains its nav to the reading column`);
+    // And gives it back on a narrow screen, rather than overflowing.
+    assert.match(page, /@media\(max-width:1140px\)\{ \.nav-menu \.container\{max-width:100%;\} \}/, `${file} would overflow below 1140px`);
+  }
 });
