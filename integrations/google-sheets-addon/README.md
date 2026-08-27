@@ -72,15 +72,34 @@ published from. Open it at [script.google.com](https://script.google.com) →
    runs *Head*, installed users run the deployment.
    **Never create a new deployment.** A new deployment ID disables the triggers on
    the old one.
-3. In the Cloud project: **Marketplace SDK &rsaquo; App Configuration** &rarr; bump the
-   version number there. That is the step that actually publishes it.
-4. Test in a spreadsheet before you do step 3.
+3. In the Cloud project (`linkfinder-ai-addon`, app id `1096371450007`):
+   **Marketplace SDK &rsaquo; App Configuration** &rarr; *Module complémentaire Sheets* &rarr;
+   set **Version du script** to the new version &rarr; **Save**.
+   Change nothing else on that page. **Application visibility cannot be changed
+   back** once saved, and the OAuth scope fields must keep matching what the code
+   infers.
+4. **Marketplace SDK &rsaquo; Store Listing** &rarr; **Publish**.
 
-### No review, as long as the scopes do not change
+   Saving in step 3 only stores a draft — the console says so: *"Your draft has
+   been saved. To publish it, go to the Store listing tab."* This was written up
+   here as "saving publishes it", which was wrong, and the wrong version of it is
+   the kind that has someone believing they shipped a fix they did not.
 
-A code-only update needs **no Google review and no reinstall** — users get it
-automatically. That is worth stating plainly, because the fear of a review queue is
-what makes people put off shipping a fix.
+5. Test in a spreadsheet before step 4, not after.
+
+### No re-verification, as long as the scopes do not change
+
+A code-only update needs **no OAuth re-verification and no reinstall** — users get
+it automatically once the draft is published. That is worth stating plainly,
+because the fear of a review queue is what makes people put off shipping a fix.
+
+Whether publishing a version-only change also passes through a *listing* review is
+not settled here — Google's docs say listing **field** changes require one, and a
+version bump changes no field. **Record what actually happens the next time you
+publish**, and replace this paragraph with the answer.
+
+Either way the add-on stays up while it happens: publishing does not withdraw the
+version already serving users.
 
 Change the scopes and it becomes a different job: update them in the Marketplace SDK
 *and* on the OAuth consent screen, then **submit a new OAuth verification request**,
