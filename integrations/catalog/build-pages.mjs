@@ -29,6 +29,35 @@ const PAGES = ['linkedIn-enrichment-google-sheets.html'];
 const START = '<!-- LF:CREDIT-TABLE:START -->';
 const END = '<!-- LF:CREDIT-TABLE:END -->';
 
+// The HubSpot sync runs three specific lookups, not all twenty, and it is worth
+// naming which — the same page quoted 7 credits for an email while the CSV audit
+// quoted 10, and both were right, because they run different operations. Showing
+// the operation beside the price is what makes that legible instead of a bug.
+const HUBSPOT_PAGE = 'hubspot-crm-enrichment.html';
+const HUBSPOT_START = '<!-- LF:HUBSPOT-COST-TABLE:START -->';
+const HUBSPOT_END = '<!-- LF:HUBSPOT-COST-TABLE:END -->';
+
+const HUBSPOT_FIELDS = [
+  {
+    field: 'LinkedIn URL',
+    type: 'lead_full_name_to_linkedin_url',
+    note: 'Needs a name and a <code>company</code> on the contact.',
+    on: 'On by default',
+  },
+  {
+    field: 'Business email',
+    type: 'lead_full_name_to_email',
+    note: 'Needs a name and a <code>website</code> — the domain it searches.',
+    on: 'On by default',
+  },
+  {
+    field: 'Phone number',
+    type: 'linkedin_profile_to_phone',
+    note: 'Runs from a LinkedIn URL. Reuses one already on the contact or found in the same run; only pays 1 more credit to derive one when there is none.',
+    on: '<strong>Off</strong> by default',
+  },
+];
+
 const esc = (s) =>
   String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 
@@ -74,7 +103,45 @@ const table =
   `${rows}\n` +
   `      </table>`;
 
+const creditsOf = (type) => {
+  const op = catalog.operations.find((o) => o.type === type);
+  if (!op) {
+    console.error(`${type} is not in the catalog — the HubSpot sync quotes a price for it.`);
+    process.exit(1);
+  }
+  return op.credits;
+};
+
+const hubspotTable =
+  `      <table class="price-table">\n` +
+  `        <tr><th>Field</th><th>Lookup it runs</th><th>Credits per contact</th></tr>\n` +
+  HUBSPOT_FIELDS.map(
+    (f) => `        <tr>
+          <td>${esc(f.field)}<br><span style="color:var(--gray-400);font-size:.78rem;">${f.on}</span></td>
+          <td><code>${esc(f.type)}</code><br><span style="color:var(--gray-500);font-size:.78rem;">${f.note}</span></td>
+          <td>${creditsOf(f.type)}</td>
+        </tr>`,
+  ).join('\n') +
+  `\n      </table>`;
+
 let changed = 0;
+
+{
+  const path = join(REPO_ROOT, HUBSPOT_PAGE);
+  const html = readFileSync(path, 'utf8');
+  const from = html.indexOf(HUBSPOT_START);
+  const to = html.indexOf(HUBSPOT_END);
+  if (from === -1 || to === -1) {
+    console.error(`${HUBSPOT_PAGE} has no ${HUBSPOT_START} / ${HUBSPOT_END} block.`);
+    process.exit(1);
+  }
+  const next = `${html.slice(0, from + HUBSPOT_START.length)}\n${hubspotTable}\n${html.slice(to)}`;
+  if (next !== html) {
+    writeFileSync(path, next);
+    changed++;
+  }
+}
+
 for (const page of PAGES) {
   const path = join(REPO_ROOT, page);
   const html = readFileSync(path, 'utf8');
@@ -94,6 +161,6 @@ for (const page of PAGES) {
 }
 
 console.log(
-  `pages: credit table for ${catalog.operations.length} lookups into ${PAGES.length} page(s)` +
-    (changed ? ` (${changed} updated)` : ' (already current)'),
+  `pages: credit tables (${catalog.operations.length} lookups + the ${HUBSPOT_FIELDS.length} HubSpot sync fields)` +
+    (changed ? ` — ${changed} page(s) updated` : ' — already current'),
 );

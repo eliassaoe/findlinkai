@@ -100,3 +100,56 @@ test('the two tables disagree on email only because they run different lookups',
     'the two email lookups now cost the same — the audit and sync tables can be merged',
   );
 });
+
+test('the HubSpot doc page quotes the prices its sync actually runs', () => {
+  const page = readFileSync(join(REPO, 'hubspot-crm-enrichment.html'), 'utf8');
+  const table = page.slice(
+    page.indexOf('<!-- LF:HUBSPOT-COST-TABLE:START -->'),
+    page.indexOf('<!-- LF:HUBSPOT-COST-TABLE:END -->'),
+  );
+  assert.ok(table.length > 300, 'the table block is empty — run catalog/build-pages.mjs');
+
+  for (const type of ['lead_full_name_to_linkedin_url', 'lead_full_name_to_email', 'linkedin_profile_to_phone']) {
+    const at = table.indexOf(`<code>${type}</code>`);
+    assert.ok(at > 0, `${type} is missing from the HubSpot cost table`);
+    const row = table.slice(at, table.indexOf('</tr>', at));
+    assert.ok(row.includes(`<td>${priceOf(type)}</td>`), `${type} is priced wrongly on the HubSpot page`);
+  }
+});
+
+test('the HubSpot doc page and the sync page agree on every field', () => {
+  const doc = readFileSync(join(REPO, 'hubspot-crm-enrichment.html'), 'utf8');
+  const app = readFileSync(join(REPO, 'crm-sync.html'), 'utf8');
+
+  // The doc describes behaviour the worker and the page implement. If any of
+  // these stops being true, the documentation is lying rather than merely stale.
+  assert.match(doc, /never over anything a person typed/i);
+  assert.match(doc, /charged the same as one that succeeds/i);
+  assert.match(doc, /linkedinbio/, 'the default LinkedIn property must be named — it is the usual failure');
+
+  // The defaults quoted in the doc are the ones the page actually sends.
+  const defaults = app.slice(app.indexOf('const HUBSPOT_PROPERTY'));
+  for (const property of ['email', 'linkedinbio', 'phone']) {
+    assert.ok(defaults.slice(0, 200).includes(`'${property}'`), `crm-sync.html no longer defaults to ${property}`);
+    assert.ok(doc.includes(`<code>${property}</code>`), `the doc does not mention ${property}`);
+  }
+
+  // 25 per run, quoted in three places now.
+  const batch = app.match(/const CLEAN_BATCH = (\d+)/)[1];
+  assert.ok(doc.includes(`${batch} contacts`) || doc.includes(`>${batch}<`),
+    `the doc does not say ${batch} contacts per run`);
+});
+
+test('the doc names every read property the worker actually reads', () => {
+  const doc = readFileSync(join(REPO, 'hubspot-crm-enrichment.html'), 'utf8');
+  const worker = readFileSync(join(REPO, 'workers', 'nango-connect-session', 'worker.js'), 'utf8');
+
+  const map = worker.slice(worker.indexOf('syncReadMap: {'), worker.indexOf('async listProperties'));
+  const properties = [...map.matchAll(/: '([a-z_]+)'/g)].map((m) => m[1]);
+  assert.ok(properties.length >= 8, `only found ${properties.length} read properties`);
+
+  for (const property of properties) {
+    assert.ok(doc.includes(`<code>${property}</code>`),
+      `the worker reads ${property} and the doc does not say so`);
+  }
+});
