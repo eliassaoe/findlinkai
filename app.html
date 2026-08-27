@@ -102,8 +102,15 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
     .bulk-api-hint a{color:var(--primary);text-decoration:none;font-weight:500;border-bottom:1px dashed rgba(37,99,235,0.3);}
     .bulk-api-hint a:hover{border-bottom-color:var(--primary);}
     .nav-menu{background:white;border-bottom:1px solid var(--gray-200);padding:0.75rem 0;}
-    .nav-tabs{display:flex;gap:0.5rem;overflow-x:auto;padding-bottom:0.25rem;}
-    .nav-tab{display:flex;align-items:center;gap:0.5rem;padding:0.75rem 1rem;border-radius:8px;background:transparent;border:1px solid var(--gray-200);color:var(--gray-600);text-decoration:none;font-weight:500;font-size:0.875rem;transition:all 0.2s ease;white-space:nowrap;cursor:pointer;}
+    .nav-tabs{display:flex;gap:.4rem;flex-wrap:wrap;align-items:center;row-gap:.5rem;}
+/* The nav is the one thing on these pages that should not be 680px wide.
+   Content stays narrow because a single column is easier to read; the tab bar
+   has six items and no reason to be constrained to the same measure. Widening
+   only the nav's container fits them on one row without touching any layout. */
+.nav-menu .container{max-width:1100px;}
+@media(max-width:1140px){ .nav-menu .container{max-width:100%;} }
+
+    .nav-tab{display:flex;align-items:center;gap:0.5rem;padding:.6rem .8rem;border-radius:8px;background:transparent;border:1px solid var(--gray-200);color:var(--gray-600);text-decoration:none;font-weight:500;font-size:0.875rem;transition:all 0.2s ease;white-space:nowrap;cursor:pointer;}
     .nav-tab:hover{background:var(--gray-50);border-color:var(--primary);color:var(--gray-800);}
     .nav-tab.active{background:var(--primary);border-color:var(--primary);color:white;}
     .nav-tab i{font-size:0.875rem;}
@@ -479,8 +486,8 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
         .btn{padding:0.5rem 0.75rem;font-size:0.8rem;}
         .upload-area{padding:1.5rem 0.75rem;}
         .upload-icon{font-size:1.5rem;}
-        .nav-tabs{gap:0.25rem;}
-        .nav-tab{padding:0.625rem 0.75rem;font-size:0.8rem;}
+        .nav-tabs{gap:.3rem;}
+        .nav-tab{padding:.5rem .65rem;font-size:.78rem;}
         .nav-tab i{font-size:0.8rem;}
         .results-table{min-width:auto;}
         .results-table thead{display:none;}
@@ -4626,7 +4633,9 @@ function navigateToPage(page){
         case 'account': window.location.href=addGclid(`https://linkfinderai.com/account?token=${userToken}`); break;
         case 'history': window.location.href=addGclid(`https://linkfinderai.com/history?token=${userToken}`); break;
         case 'crmSync': window.location.href=addGclid(`https://linkfinderai.com/crm-sync?token=${userToken}`); break;
-        case 'integrations': window.location.href=addGclid(`https://linkfinderai.com/integrations?token=${userToken}`); break;
+        // app-integrations, not /integrations — the latter is the signed-out
+        // landing page. A logged-in user should see what THEY have connected.
+        case 'integrations': window.location.href=addGclid(`https://linkfinderai.com/app-integrations?token=${userToken}`); break;
     }
 }
 

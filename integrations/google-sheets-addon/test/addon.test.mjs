@@ -537,7 +537,7 @@ test('a job that finishes with status "error" fails the row rather than reportin
         : ok({ status: 'error', message: 'the provider rejected the query' }),
   });
 
-  const result = ctx.runEnrichment({ type: 'leads_finder_ai', outputColumn: 'B', columns: { input: 'A' } });
+  const result = ctx.runEnrichment({ type: 'company_domain_to_employees', outputColumn: 'B', columns: { input: 'A' } });
   assert.strictEqual(result.errors, 1);
   assert.match(String(grid[0][1]), /ERROR.*provider rejected/);
 });
@@ -552,7 +552,7 @@ test('a job that never finishes fails the row instead of hanging the whole run',
         : ok({ status: 'processing' }),
   });
 
-  const result = ctx.runEnrichment({ type: 'leads_finder_ai', outputColumn: 'B', columns: { input: 'A' } });
+  const result = ctx.runEnrichment({ type: 'company_domain_to_employees', outputColumn: 'B', columns: { input: 'A' } });
   assert.strictEqual(result.errors, 2, 'a stuck job is one bad row, not a dead run');
   assert.match(String(grid[0][1]), /Still running/);
 });

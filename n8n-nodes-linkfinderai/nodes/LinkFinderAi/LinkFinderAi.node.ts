@@ -191,10 +191,13 @@ async function callAndMaybeWait(
 }
 
 /**
- * Some operations answer HTTP 200 with `status: "success"` while the result is really
- * an upstream failure — `leads_finder_ai` was observed returning an array whose only
- * element was an Apify permissions error. Without this check the workflow would carry
- * that error object downstream as if it were data.
+ * An operation can answer HTTP 200 with `status: "success"` while the result is really
+ * an upstream failure. This was seen in production: a lookup returned an array whose
+ * only element was a provider permissions error. Without this check the workflow would
+ * carry that error object downstream as if it were data.
+ *
+ * Kept general on purpose — the operation it was first observed on has since been
+ * withdrawn, but nothing about the failure was specific to it.
  */
 function assertNotUpstreamError(ctx: IExecuteFunctions, result: unknown): void {
 	const items = Array.isArray(result) ? result : [result];
@@ -356,9 +359,9 @@ export class LinkFinderAi implements INodeType {
 				const inputData = buildInput(this, type, i);
 				const body: IDataObject = { type, input_data: inputData };
 
-				// Employee-list operations take department/seniority/employee_count and
-				// the AI lead search takes fetch_count. Which type accepts what comes
-				// from the catalog, so a new filter reaches every operation that has it.
+				// Employee-list operations take department, seniority and employee_count.
+				// Which type accepts what comes from the catalog, so a new filter reaches
+				// every operation that has it.
 				for (const { api, node } of OPTIONAL_PARAMS[type] ?? []) {
 					const value = this.getNodeParameter(node, i, undefined) as string | number | undefined;
 					if (value !== undefined && value !== null && value !== '') {

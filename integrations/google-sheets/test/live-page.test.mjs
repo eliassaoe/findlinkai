@@ -124,7 +124,7 @@ test('a provider error dressed as success is raised, not written into the cell',
   const { ctx } = runtime({ responses: [
     { code: 200, json: { status: 'success', result: { error: { message: '403 not approved' } } } },
   ] });
-  assert.throws(() => ctx.LINKFINDER('VP Sales', 'leads_finder_ai'), /Provider error/);
+  assert.throws(() => ctx.LINKFINDER('tesla.com', 'company_domain_to_employees'), /Provider error/);
 });
 
 test('no API key fails with the fix, not a null dereference', () => {

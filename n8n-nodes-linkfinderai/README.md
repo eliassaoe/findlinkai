@@ -22,7 +22,7 @@ is always async and returns a job to poll).
   - **LinkedIn Company**: URL → Info, URL → Employee Count, URL → Employees
   - **LinkedIn Post**: URL → Reactions
   - **Instagram**: Profile URL → Info
-  - **Discovery**: Find Leads With AI, B2B Data Lookup
+  - **Discovery**: B2B Data Lookup
   - **Job**: Check Status — poll a job by `Job ID` or `Poll URL`
 
 Each operation shows its real credit cost in the dropdown, and each has its own
