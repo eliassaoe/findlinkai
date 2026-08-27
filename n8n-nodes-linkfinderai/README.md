@@ -28,6 +28,22 @@ is always async and returns a job to poll).
 Each operation shows its real credit cost in the dropdown, and each has its own
 labelled Input field describing exactly what to paste in.
 
+### Looking someone up by name
+
+The two name operations — **Lead → LinkedIn URL** and **Lead → Email** — take four
+fields rather than one: **Full Name** (required), **Company**, **Location** and
+**Job Title**. They are joined into the single string the API takes, with blanks
+dropped, which is exactly what the LinkFinder app itself sends.
+
+Map as many as your data has. The extra three **cost no additional credits** and they
+are the difference between one match and thousands: `John Smith` matches an enormous
+number of people, `John Smith Acme Berlin VP Sales` matches one — and Lead → Email is
+7 credits a row either way, charged whether it finds the person you meant or a
+stranger with the same name.
+
+A name coming out of a CRM as `Doe, John` is reordered to `John Doe` automatically. A
+company with a comma in it (`Gates, Foundation`) is left alone.
+
 ### The operation list is generated, not hand-written
 
 `nodes/LinkFinderAi/generated/operations.ts` is built from

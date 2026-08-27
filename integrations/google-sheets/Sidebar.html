@@ -11,6 +11,11 @@
   .cost{margin-top:8px;padding:8px;border-radius:4px;background:#e8f0fe;color:#1967d2;font-size:12px;line-height:1.4;}
   .cost.warn{background:#fef7e0;color:#b06000;}
   .help{color:#5f6368;font-size:11.5px;margin-top:3px;line-height:1.35;}
+  .part{display:flex;gap:8px;align-items:flex-end;margin-top:10px;}
+  .part .col{width:64px;flex:none;}
+  .part .meta{flex:1;}
+  .part label{margin:0 0 4px;}
+  .opt{color:#80868b;font-weight:400;}
   button{margin-top:14px;width:100%;padding:9px;background:#1a73e8;color:#fff;border:0;border-radius:4px;font-size:13px;cursor:pointer;}
   button:disabled{background:#dadce0;cursor:default;}
   #status{margin-top:12px;font-size:12px;color:#5f6368;line-height:1.4;white-space:pre-wrap;}
@@ -29,9 +34,7 @@
 
 <div id="cost" class="cost"></div>
 
-<label for="source">Column to read</label>
-<input id="source" placeholder="A" value="A">
-<div class="help" id="sourceHelp"></div>
+<div id="inputs"></div>
 
 <label for="target">Column to write into</label>
 <input id="target" placeholder="B" value="B">
@@ -69,7 +72,34 @@
     if (!op) return;
 
     document.getElementById('opHelp').textContent = op.inputHelp;
-    document.getElementById('sourceHelp').textContent = 'Should contain: ' + op.inputLabel + ', e.g. ' + op.example;
+
+    // Name-based lookups read several columns and join them; everything else
+    // reads one. Rendering the parts from the operation means the panel always
+    // asks for exactly what that lookup can use.
+    var parts = op.compositeInput
+      ? op.compositeInput.parts
+      : [{ name: 'input', label: op.inputLabel, required: true, help: op.inputHelp, example: op.example }];
+
+    var letters = ['A', 'B', 'C', 'D'];
+    document.getElementById('inputs').innerHTML = parts.map(function (p, i) {
+      return '<div class="part">' +
+        '<div class="col">' +
+          '<label for="c_' + esc(p.name) + '">' + (i === 0 ? 'Column' : '&nbsp;') + '</label>' +
+          '<input id="c_' + esc(p.name) + '" data-part="' + esc(p.name) + '" placeholder="' + letters[i] + '"' +
+            (i === 0 ? ' value="' + letters[i] + '"' : '') + '>' +
+        '</div>' +
+        '<div class="meta">' +
+          '<label>' + esc(p.label) + (p.required ? '' : ' <span class="opt">— optional</span>') + '</label>' +
+          '<div class="help">' + esc(p.help) + ' e.g. ' + esc(p.example) + '</div>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+
+    if (op.compositeInput) {
+      document.getElementById('inputs').insertAdjacentHTML('beforeend',
+        '<div class="help" style="margin-top:8px;">' + esc(op.compositeInput.note) +
+        ' Leave a column blank to skip it — but every one you fill in makes the match more certain.</div>');
+    }
 
     // Cost is shown per row and multiplied out, because the whole risk of a
     // spreadsheet run is doing something 2,000 times without noticing the price.
@@ -101,6 +131,18 @@
 
   function run(){
     var op = selected();
+
+    var columns = {};
+    Array.prototype.forEach.call(document.querySelectorAll('[data-part]'), function(el){
+      if (el.value.trim()) columns[el.getAttribute('data-part')] = el.value.trim();
+    });
+
+    var required = op.compositeInput ? op.compositeInput.parts[0] : { name: 'input', label: op.inputLabel };
+    if (!columns[required.name]) {
+      document.getElementById('status').textContent = 'Set the column holding ' + required.label + ' first.';
+      return;
+    }
+
     var params = {};
     Array.prototype.forEach.call(document.querySelectorAll('[data-param]'), function(el){
       if (el.value !== '') params[el.getAttribute('data-param')] = el.value;
@@ -120,7 +162,7 @@
       })
       .startRun({
         type: op.type,
-        sourceColumn: document.getElementById('source').value,
+        columns: columns,
         targetColumn: document.getElementById('target').value,
         firstRow: document.getElementById('first').value,
         lastRow: document.getElementById('last').value,

@@ -11,7 +11,8 @@ const OPERATION = {
   "inputLabel": "LinkedIn Company Page URL",
   "params": [],
   "outputField": null,
-  "altType": null
+  "altType": null,
+  "compositeInput": null
 };
 
 module.exports = {

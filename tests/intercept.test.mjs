@@ -1,5 +1,11 @@
 import fs from 'fs';
-const src = fs.readFileSync('/home/user/findlinkai/app.html','utf8');
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+// Was an absolute /home/user/... path, so this test only ever ran on one machine.
+// Nothing in CI executed tests/, which is how that survived.
+const REPO = dirname(dirname(fileURLToPath(import.meta.url)));
+const src = fs.readFileSync(join(REPO, 'app.html'), 'utf8');
 const start = src.indexOf('function maybeShowSalesIntercept()');
 const end   = src.indexOf('function closeSalesInterceptModal()');
 const code  = src.slice(start, end);

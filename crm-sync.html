@@ -161,6 +161,16 @@ table.gaps tfoot td{font-weight:700;color:var(--gray-900);border-top:2px solid v
 .field-toggles{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1rem;}
 .chip{display:inline-flex;align-items:center;gap:.4rem;padding:.4rem .75rem;border-radius:100px;border:1px solid var(--gray-300);background:white;font-size:.8rem;color:var(--gray-600);cursor:pointer;user-select:none;font-family:inherit;}
 .chip.on{background:var(--primary);border-color:var(--primary);color:white;}
+.prop-row{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;margin-bottom:.5rem;font-size:.82rem;}
+.prop-label{color:var(--gray-600);min-width:8.5rem;}
+.prop-arrow{color:var(--gray-400);}
+.prop-select{flex:1;min-width:12rem;max-width:26rem;padding:.35rem .5rem;border:1px solid var(--gray-200);border-radius:6px;font-size:.8rem;color:var(--gray-700);background:white;font-family:inherit;}
+.prop-warn{flex-basis:100%;color:#b45309;font-size:.76rem;}
+.prop-loading{font-size:.8rem;color:var(--gray-400);margin-bottom:.5rem;}
+.clean-cost{margin:.9rem 0 1rem;padding:.7rem .9rem;border-radius:8px;background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af;font-size:.82rem;line-height:1.55;}
+.clean-cost-warn{background:#fffbeb;border-color:#fde68a;color:#92400e;}
+.clean-outcome{margin-top:.9rem;padding:.75rem .9rem;border-radius:8px;background:var(--gray-50);border:1px solid var(--gray-200);font-size:.82rem;line-height:1.6;color:var(--gray-600);}
+.clean-outcome b{color:var(--gray-800);font-weight:600;}
 .err{background:#fef2f2;border:1px solid #fecaca;color:#991b1b;padding:.8rem 1rem;border-radius:8px;font-size:.85rem;margin-top:1rem;}
 @media(max-width:640px){.compare{grid-template-columns:1fr;}}
 
@@ -777,16 +787,48 @@ function cleanChips(){
         }).join('') + '</div>';
 }
 
+// How many contacts one pass works through. The worker's own default; it is not
+// settable from here, so it is a constant rather than a guess.
+const CLEAN_BATCH = 25;
+
+/*
+ * What this pass can cost, before it runs.
+ *
+ * A pass with all three fields on is up to 58 credits per contact — over 1,400
+ * for one click. Nothing said so: the button spent the credits and reported
+ * afterwards. This is the ceiling (every selected field missing on every
+ * contact); the real figure is lower, because a contact only pays for the
+ * fields it is actually missing.
+ */
+function cleanCostCeiling(){
+    return cleanFields.reduce((sum, k) => sum + CLEAN_COST[k], 0) * CLEAN_BATCH;
+}
+
+function cleanCostNote(){
+    const perContact = cleanFields.reduce((sum, k) => sum + CLEAN_COST[k], 0);
+    const ceiling = cleanCostCeiling();
+    const dear = cleanFields.includes('phone');
+    return '<div class="clean-cost' + (dear ? ' clean-cost-warn' : '') + '">' +
+        '<strong>Up to ' + LFCrmAudit.fmt(ceiling) + ' credits</strong> for this pass — ' +
+        perContact + ' per contact across ' + CLEAN_BATCH + ', if every one is missing every field you picked. ' +
+        'Contacts already holding a value cost nothing. ' +
+        '<span style="opacity:.85;">A lookup that finds nothing is still charged.</span>' +
+        (dear ? ' Phone numbers are ' + CLEAN_COST.phone + ' credits each — the single most expensive lookup there is.' : '') +
+        '</div>';
+}
+
 function renderCleanIdle(){
     const el = document.getElementById('cleanState');
     if (!el) return;
     el.innerHTML = cleanChips() +
+        cleanCostNote() +
         '<a href="#" class="btn-primary" onclick="runClean();return false;">' +
         '<i class="fas fa-wand-magic-sparkles"></i> Clean my HubSpot now</a>' +
         '<div style="font-size:.78rem;color:var(--gray-400);margin-top:.7rem;">' +
-        'One pass works through 25 contacts that are still missing these fields, writing straight into HubSpot. ' +
+        'One pass works through ' + CLEAN_BATCH + ' contacts that are still missing these fields, writing straight into HubSpot. ' +
         'It only ever fills empty fields - nothing a person typed is overwritten. ' +
-        'Run it again to continue where the last pass stopped.' +
+        'Run it again to continue where the last pass stopped. ' +
+        '<a href="/hubspot-crm-enrichment" style="color:var(--primary);">Which properties it touches &rarr;</a>' +
         '</div>' + csvFallback();
 }
 
@@ -813,6 +855,46 @@ function cleanSummary(d){
         .map(k => filled[k] + ' ' + CLEAN_NOUN[k][filled[k] > 1 ? 1 : 0]);
     if (!parts.length) return '';
     return parts.join(', ') + ' written into HubSpot.';
+}
+
+/*
+ * Why the other contacts got nothing.
+ *
+ * The worker has always returned these counts — attempted, noMatch, and the
+ * three reasons a field was never even looked up — and this page threw all of
+ * them away and rendered "Looked at 25, filled 3". A user could not tell whether
+ * 22 contacts had no match, or were skipped because their `website` property is
+ * empty so no domain could be derived, and one of those two is something they
+ * can fix in an afternoon.
+ */
+function cleanOutcome(d){
+    const noMatch = d.noMatch || {};
+    const skipped = d.skipped || {};
+    const lines = [];
+
+    const missed = ['email', 'linkedin_url', 'phone'].reduce((n, k) => n + (noMatch[k] || 0), 0);
+    if (missed) {
+        lines.push('<b>' + LFCrmAudit.fmt(missed) + ' searched, nothing found.</b> ' +
+                   'These were charged — the search runs whether or not it lands.');
+    }
+    if (skipped.noDomainForEmail) {
+        lines.push('<b>' + LFCrmAudit.fmt(skipped.noDomainForEmail) + ' skipped for email:</b> ' +
+                   'no <code>website</code> on the contact, so there was no company domain to search. ' +
+                   'Not charged. Fill in <code>website</code> and these become findable.');
+    }
+    if (skipped.noCompanyForLinkedin) {
+        lines.push('<b>' + LFCrmAudit.fmt(skipped.noCompanyForLinkedin) + ' skipped for LinkedIn:</b> ' +
+                   'no <code>company</code> on the contact. Not charged.');
+    }
+    if (skipped.noName) {
+        lines.push('<b>' + LFCrmAudit.fmt(skipped.noName) + ' skipped:</b> no first or last name. Not charged.');
+    }
+    if (skipped.alreadyComplete) {
+        lines.push('<b>' + LFCrmAudit.fmt(skipped.alreadyComplete) + ' already had every field</b> you picked. Not charged.');
+    }
+
+    if (!lines.length) return '';
+    return '<div class="clean-outcome">' + lines.join('<br>') + '</div>';
 }
 
 /* Show what actually landed, not just how many. The worker returns a
@@ -906,6 +988,7 @@ function renderClean(state, data){
             (d.processed ? 'Looked at ' + LFCrmAudit.fmt(d.processed) + ' contact(s) that were missing data. ' : '') +
             (summary || 'Nothing new was findable for these contacts.') +
             '</div></div>' +
+            cleanOutcome(d) +
             cleanDetailsTable(d) +
             '<a href="#" class="btn-primary" style="margin-top:1rem;" onclick="runClean();return false;">' +
             '<i class="fas fa-forward"></i> Clean the next 25</a>' +
@@ -939,7 +1022,7 @@ async function runClean(){
 
     const fields = {};
     Object.keys(CLEAN_LABEL).forEach(k => {
-        fields[k] = { enabled: cleanFields.includes(k), hubspotProperty: HUBSPOT_PROPERTY[k] };
+        fields[k] = { enabled: cleanFields.includes(k), property: syncProperties[k], hubspotProperty: syncProperties[k] };
     });
 
     const saved = await nangoCall('save-settings', { settings: { maxPerRun: 25, fields } });
@@ -971,6 +1054,7 @@ async function runClean(){
 
 window.toggleCleanField = toggleCleanField;
 window.toggleSyncField = toggleSyncField;
+window.setSyncProperty = setSyncProperty;
 window.runClean = runClean;
 window.renderCleanIdle = renderCleanIdle;
 
@@ -1104,10 +1188,22 @@ const UPGRADE_INTENT_URL    = 'https://upgrade-intent.hamoureliasse.workers.dev/
 const NANGO_API_URL         = 'https://api.nango.dev';
 const NANGO_CONNECT_UI_URL  = 'https://connect.nango.dev';
 
-// Internal HubSpot property names the worker writes into. These are its own
-// defaults; a customer whose portal uses different internal names can have
-// them changed - the worker already accepts them per field.
+/*
+ * Which internal property each field is written into.
+ *
+ * These are the worker's defaults. `linkedinbio` is HubSpot's own legacy
+ * LinkedIn field and plenty of portals do not use it — they have a custom
+ * `linkedin`, or `hs_linkedin_url`, or nothing at all. Until now this map was
+ * hardcoded here with no way to change it, so those portals ran a sync that
+ * looked up contacts, spent the credits, wrote into a property that does not
+ * exist, and reported success. The worker has always accepted a property name
+ * per field and has always exposed /list-properties; the page just never asked.
+ */
 const HUBSPOT_PROPERTY = { email: 'email', linkedin_url: 'linkedinbio', phone: 'phone' };
+
+// The property actually in use per field, seeded from stored settings.
+let syncProperties = Object.assign({}, HUBSPOT_PROPERTY);
+let crmProperties = null;    // null = not fetched, [] = fetch failed
 
 async function nangoCall(route, extra){
     const path = route ? '/' + route : '/';
@@ -1147,6 +1243,85 @@ function syncFieldsFromSettings(settings){
     const on = Object.keys(CLEAN_LABEL).filter(k => f[k] && f[k].enabled);
     syncFields = on.length ? on : ['linkedin_url', 'email'];
     if (settings && settings.maxPerRun) syncMaxPerRun = settings.maxPerRun;
+    // `property` is the current key; `hubspotProperty` is what older records
+    // stored. The worker reads either, so this does too.
+    Object.keys(CLEAN_LABEL).forEach(k => {
+        const stored = f[k] && (f[k].property || f[k].hubspotProperty);
+        if (stored) syncProperties[k] = stored;
+    });
+}
+
+function fieldsPayload(enabledKeys){
+    const fields = {};
+    Object.keys(CLEAN_LABEL).forEach(key => {
+        fields[key] = {
+            enabled: enabledKeys.includes(key),
+            property: syncProperties[key],
+            // Kept alongside `property` so a rollback of the worker still reads it.
+            hubspotProperty: syncProperties[key]
+        };
+    });
+    return fields;
+}
+
+/* The list of writable contact properties in the connected portal. Fetched once,
+ * and only once a connection exists — there is nothing to list before that. */
+async function loadCrmProperties(){
+    if (crmProperties) return crmProperties;
+    const res = await nangoCall('list-properties');
+    crmProperties = (res.ok && res.data && res.data.properties) ? res.data.properties : [];
+    return crmProperties;
+}
+
+function propertyRow(k){
+    const current = syncProperties[k];
+    const known = (crmProperties || []).some(p => p.name === current);
+    const options = (crmProperties || []).map(p =>
+        '<option value="' + esc(p.name) + '"' + (p.name === current ? ' selected' : '') + '>' +
+        esc(p.label) + ' (' + esc(p.name) + ')</option>').join('');
+
+    // A property the portal does not have is the whole failure mode: show it as
+    // its own option, selected, and say plainly that nothing will be written.
+    const missing = crmProperties && crmProperties.length && !known;
+
+    return '<div class="prop-row">' +
+        '<span class="prop-label">' + esc(CLEAN_LABEL[k]) + '</span>' +
+        '<span class="prop-arrow">&rarr;</span>' +
+        '<select class="prop-select" onchange="setSyncProperty(\'' + k + '\', this.value)">' +
+        (missing ? '<option value="' + esc(current) + '" selected>' + esc(current) + ' — not in this portal</option>' : '') +
+        (crmProperties && crmProperties.length ? options : '<option selected>' + esc(current) + '</option>') +
+        '</select>' +
+        (missing ? '<span class="prop-warn">Nothing will be written until you pick a property that exists.</span>' : '') +
+        '</div>';
+}
+
+function renderPropertyRows(){
+    const host = document.getElementById('syncProperties');
+    if (!host) return;
+    if (!crmProperties) { host.innerHTML = '<div class="prop-loading">Loading your HubSpot fields&hellip;</div>'; return; }
+    if (!crmProperties.length) {
+        host.innerHTML = '<div class="prop-loading">Could not read your HubSpot fields just now — ' +
+            'the defaults below are still in use.</div>' + syncFields.map(propertyRow).join('');
+        return;
+    }
+    host.innerHTML = syncFields.map(propertyRow).join('');
+}
+
+async function setSyncProperty(k, name){
+    if (!name || syncProperties[k] === name) return;
+    syncProperties[k] = name;
+
+    const note = document.getElementById('syncFieldsNote');
+    if (note) note.textContent = 'Saving…';
+
+    const res = await nangoCall('save-settings', { settings: { maxPerRun: syncMaxPerRun, fields: fieldsPayload(syncFields) } });
+    if (!res.ok){
+        if (note) note.textContent = (res.data && res.data.error) || 'Could not save that. Try again.';
+        return;
+    }
+    if (res.data.settings) syncFieldsFromSettings(res.data.settings);
+    try{ posthog.capture('crm_sync_property_changed', { field: k }); }catch(e){}
+    refreshSyncState();
 }
 
 function syncFieldPicker(){
@@ -1162,6 +1337,8 @@ function syncFieldPicker(){
     return '<div style="margin-top:1rem;">' +
         '<div style="font-size:.82rem;font-weight:600;color:var(--gray-700);margin-bottom:.5rem;">Fields to fill each week</div>' +
         '<div class="chips">' + chips + '</div>' +
+        '<div style="font-size:.82rem;font-weight:600;color:var(--gray-700);margin:1rem 0 .5rem;">Where each one is written</div>' +
+        '<div id="syncProperties"></div>' +
         '<div id="syncFieldsNote" style="font-size:.78rem;color:var(--gray-500);margin-top:.5rem;">' +
         'Up to ' + syncMaxPerRun + ' contacts per run. Only empty fields are filled — nothing is overwritten.</div>' +
         '</div>';
@@ -1177,11 +1354,7 @@ async function toggleSyncField(k){
     const note = document.getElementById('syncFieldsNote');
     if (note) note.textContent = 'Saving…';
 
-    const fields = {};
-    Object.keys(CLEAN_LABEL).forEach(key => {
-        fields[key] = { enabled: syncFields.includes(key), hubspotProperty: HUBSPOT_PROPERTY[key] };
-    });
-    const res = await nangoCall('save-settings', { settings: { maxPerRun: syncMaxPerRun, fields } });
+    const res = await nangoCall('save-settings', { settings: { maxPerRun: syncMaxPerRun, fields: fieldsPayload(syncFields) } });
 
     if (!res.ok){
         if (note) note.textContent = (res.data && res.data.error) || 'Could not save that. Try again.';
@@ -1212,7 +1385,13 @@ function renderSync(state, data){
                 '<button class="btn-danger-ghost" onclick="disconnectHubspot()">Disconnect</button>' +
             '</div>' +
             syncFieldPicker() +
-            '<div style="font-size:.78rem;color:var(--gray-400);margin-top:.7rem;">Also available via n8n, Make and Zapier.</div>';
+            '<div style="font-size:.78rem;color:var(--gray-400);margin-top:.7rem;">' +
+            '<a href="/hubspot-crm-enrichment" style="color:var(--primary);">What it reads and writes, and what each field costs &rarr;</a>' +
+            ' &middot; Also available via n8n, Make and Zapier.</div>';
+        // The property list needs a live connection, so it is fetched only once
+        // the panel is on screen, and the rows fill in when it arrives.
+        renderPropertyRows();
+        loadCrmProperties().then(renderPropertyRows);
         return;
     }
 
@@ -1262,6 +1441,7 @@ async function refreshSyncState(){
     const res = await nangoCall('status');
     if(!res.ok){ renderSync('error'); return; }
     if(res.data.connected) syncFieldsFromSettings(res.data.settings);
+    applyCrmAvailability(res.data.availableCrms);
     renderSync(res.data.connected ? 'connected' : 'disconnected', res.data);
 }
 
@@ -1279,12 +1459,15 @@ function refreshBothStages(){
  * one that opens synchronously inside the click. Fetching the session first
  * would put an await between the click and the popup, and Safari blocks it.
  */
-async function connectHubspot(){
+async function connectCrm(providerConfigKey){
+    // Which CRM the Connect modal should open on. Null lets Nango show whichever
+    // integrations the worker allowed, which is what the old flow did.
+    window.__lfPickedCrm = providerConfigKey || null;
     const btn = document.getElementById('connectBtn')
         || document.getElementById('cleanConnectBtn')
         || document.getElementById('healthConnectBtn');
     if(btn){ btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Opening&hellip;'; }
-    track('sync_connect_started', 'hubspot');
+    track('sync_connect_started', providerConfigKey || 'hubspot');
     renderHealthConnect(null);
 
     let connectUI;
@@ -1299,7 +1482,7 @@ async function connectHubspot(){
             baseURL: NANGO_CONNECT_UI_URL,
             onEvent: (event) => {
                 if(event.type === 'connect'){
-                    track('sync_connected', 'hubspot');
+                    track('sync_connected', providerConfigKey || 'hubspot');
                     // Authorising is only half of it. The worker stores nothing
                     // until it is told the connectionId, and without that record
                     // neither the cleanup nor the weekly cron can find the
@@ -1312,7 +1495,10 @@ async function connectHubspot(){
                         track('sync_finalise_failed', 'no_connection_id');
                         return;
                     }
-                    nangoCall('finalize-connection', { connectionId }).then(r => {
+                    const pickedKey = p.providerConfigKey || p.provider_config_key ||
+                        (p.connection && (p.connection.providerConfigKey || p.connection.provider_config_key)) ||
+                        window.__lfPickedCrm || undefined;
+                    nangoCall('finalize-connection', { connectionId, providerConfigKey: pickedKey }).then(r => {
                         if(!r.ok){
                             document.getElementById('syncState').insertAdjacentHTML('beforeend',
                                 '<div class="err" style="margin-top:.75rem;">Connected, but we could not finish setting it up. ' +
@@ -1633,6 +1819,42 @@ document.querySelectorAll('.crm-tabs .stage').forEach(function(t){
     });
 });
 window.showCrmPanel = showCrmPanel;
+
+/* data-crm on the picker -> the Nango integration id the worker expects.
+   monday.com is absent on purpose: it has no adapter in the worker, because its
+   fields are per-board columns rather than named properties. */
+const CRM_INTEGRATION_ID = {
+    hubspot: 'hubspot-9mj3',
+    salesforce: 'salesforce',
+    pipedrive: 'pipedrive',
+    zoho: 'zoho',
+    close: 'close',
+};
+
+/* Turns the picker buttons for whichever CRMs the worker reports as configured
+   into real connect buttons. Everything else keeps registering interest — the
+   Connect modal rejects an integration id that does not exist in Nango, so
+   offering one would break the whole session, HubSpot included. */
+function applyCrmAvailability(available){
+    if(!Array.isArray(available)) return;
+    const ids = available.map(function(c){ return c && c.id; });
+
+    document.querySelectorAll('.crm-opt').forEach(function(el){
+        const key = CRM_INTEGRATION_ID[el.dataset.crm];
+        if(!key || ids.indexOf(key) === -1) return;      // not configured yet
+
+        el.classList.add('is-live');
+        el.removeAttribute('data-registered');
+        el.querySelector('.crm-opt-state').textContent = 'Connect now';
+        el.onclick = function(){ connectCrm(key); return false; };
+    });
+}
+window.applyCrmAvailability = applyCrmAvailability;
+
+/* Older call sites (the two in-panel connect cards) still call this name. */
+function connectHubspot(){ return connectCrm(null); }
+window.connectHubspot = connectHubspot;
+window.connectCrm = connectCrm;
 
 /* ── CRM interest ─────────────────────────────────────────────────
  * Five CRMs have their enrichment actions built but are not switched on yet.

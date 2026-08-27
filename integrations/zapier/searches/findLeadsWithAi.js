@@ -15,7 +15,8 @@ const OPERATION = {
     "fetch_count"
   ],
   "outputField": null,
-  "altType": null
+  "altType": null,
+  "compositeInput": null
 };
 
 module.exports = {

@@ -70,21 +70,52 @@ const operationProperties = Object.entries(catalog.n8nResources).map(([resource,
   };
 });
 
+// n8n parameter names are camelCase by convention; the catalog's part names are
+// the API's snake_case. One place converts, so the property and the run-time map
+// cannot disagree.
+const partParameter = (name) => name.replace(/_(\w)/g, (_, c) => c.toUpperCase());
+
 // ── per-operation input labelling ───────────────────────────────────────────────
 // One shared Input field would have to describe every operation at once. Instead each
 // operation gets its own, shown only for its resource/operation pair, so the label and
 // placeholder say exactly what to paste in.
 
-const inputProperties = catalog.operations.map((op) => ({
-  displayName: op.input.label,
-  name: 'inputData',
-  type: 'string',
-  default: '',
-  required: true,
-  displayOptions: { show: { resource: [op.n8n.resource], operation: [op.n8n.operation] } },
-  description: op.input.help,
-  placeholder: `e.g. ${op.input.example}`,
-}));
+// A composite lookup takes ONE string built from several fields. A single Input
+// box meant a workflow could only ever send the name, while app.html sends the
+// name, the company, the location and the job title — same price, far better
+// match. Each part gets its own field, named after the part so the node's own
+// runtime can join them back in the catalog's order.
+const inputProperties = catalog.operations.flatMap((op) => {
+  const show = { resource: [op.n8n.resource], operation: [op.n8n.operation] };
+
+  if (!op.compositeInput) {
+    return [
+      {
+        displayName: op.input.label,
+        name: 'inputData',
+        type: 'string',
+        default: '',
+        required: true,
+        displayOptions: { show },
+        description: op.input.help,
+        placeholder: `e.g. ${op.input.example}`,
+      },
+    ];
+  }
+
+  return op.compositeInput.parts.map((part) => ({
+    displayName: part.label,
+    name: partParameter(part.name),
+    type: 'string',
+    default: '',
+    ...(part.required ? { required: true } : {}),
+    displayOptions: { show },
+    description: part.required
+      ? part.help
+      : `${part.help} Optional and free — it costs no extra credits and narrows the match.`,
+    placeholder: `e.g. ${part.example}`,
+  }));
+});
 
 // ── optional params, shown only where the API accepts them ──────────────────────
 
@@ -142,6 +173,24 @@ const paramMap = catalog.operations
     return acc;
   }, {});
 
+// Which node parameters to join, in order, for each composite lookup.
+const compositeMap = Object.fromEntries(
+  catalog.operations
+    .filter((op) => op.compositeInput)
+    .map((op) => [
+      op.type,
+      {
+        joinWith: op.compositeInput.joinWith ?? ' ',
+        parts: op.compositeInput.parts.map((part) => ({
+          api: part.name,
+          node: partParameter(part.name),
+          label: part.label,
+          required: Boolean(part.required),
+        })),
+      },
+    ]),
+);
+
 const alwaysAsync = catalog.operations.filter((op) => op.alwaysAsync).map((op) => op.type);
 
 // Only populated where the sources disagree about an operation's name.
@@ -172,6 +221,15 @@ export const ALWAYS_ASYNC_TYPES = new Set<string>(${q(alwaysAsync)});
  * published docs. The node sends the key and retries the value once on a 422.
  */
 export const ALT_TYPES: Record<string, string> = ${q(altTypes)};
+
+/**
+ * Lookups whose single \`input_data\` is built from several node parameters, in this
+ * order. Empty parts are dropped — the same string app.html builds.
+ */
+export const COMPOSITE_INPUTS: Record<
+  string,
+  { joinWith: string; parts: Array<{ api: string; node: string; label: string; required: boolean }> }
+> = ${q(compositeMap)};
 
 /** Optional request fields, per type, with the node parameter each reads from. */
 export const OPTIONAL_PARAMS: Record<string, Array<{ api: string; node: string }>> = ${q(paramMap)};

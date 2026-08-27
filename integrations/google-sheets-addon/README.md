@@ -1,0 +1,221 @@
+# The published Google Sheets add-on
+
+This is the source of **LinkFinder AI for Google Sheets**, the add-on listed on the
+Google Workspace Marketplace since 28 January 2026.
+
+Until this directory existed, that source lived in **one Apps Script project in a
+Google Drive account and nowhere else** — no version control, no backup, and the
+freelancer who wrote it no longer contactable. Deleting that project would have
+deleted the add-on. Treat this directory as the master copy from now on: change it
+here, run the tests, then paste it into the editor.
+
+## What it does now that it did not before
+
+The published version could do exactly one thing: find a LinkedIn URL from a name
+and a company. It now runs **all twenty lookups** in the catalog, and the four
+worst bugs in the original are fixed. `FINDINGS.md` lists every one of them with
+the code that caused it.
+
+The bug a real user reported — that there was nowhere to put a location or a job
+title — is the third one in that list. Name lookups now read four columns.
+
+## The files
+
+| File | |
+| --- | --- |
+| `Code.gs` | The add-on. Hand-written. |
+| `Operations.gs` | **Generated.** The twenty lookups, their prices and their inputs. |
+| `Sidebar.html` | The panel. Renders itself from `Operations.gs`, so a new lookup needs no edit here. |
+| `Settings.html` | API key. |
+| `Help.html` | **Generated.** Prose lives in `build.mjs`; the price table comes from the catalog. |
+| `build.mjs` | Regenerates the two generated files. |
+| `FINDINGS.md` | What was wrong with the published version. |
+
+`Operations.gs` and `Help.html` come from `integrations/catalog/operations.json`,
+the same catalog Zapier, Make, n8n and the CRM connectors are built from. That is
+deliberate: a price shown in a spreadsheet that disagrees with the price charged
+is worse than no price at all. CI fails if a regeneration changes a committed file.
+
+    cd integrations && npm run build && npm test
+
+## The two projects
+
+There are two, and it is easy to go looking for the code in the wrong one.
+
+| | Where | What lives there |
+| --- | --- | --- |
+| **Apps Script project** | [script.google.com](https://script.google.com) | **The code** — the files in this directory, plus `appsscript.json` |
+| **Google Cloud project** | [console.cloud.google.com](https://console.cloud.google.com) | The **Marketplace listing** — store entry, icons, the OAuth consent screen and its approved scopes, install audience |
+
+Publishing to the Marketplace requires a standard GCP project, which is why one
+exists. Nothing in it is code.
+
+**Cloud → script:** APIs & Services → *Google Workspace Marketplace SDK* → *App
+Configuration*, which names the Apps Script deployment the listing points at.
+
+**The scopes live on both sides**, which is the reason for the rule further down:
+the consent screen in GCP lists the approved scopes, and Apps Script infers scopes
+from the code. Adding an Apps Script service makes those two disagree, and the
+listing is pulled until Google re-verifies it.
+
+## Deploying a change
+
+The Apps Script project is **standalone** — it is not bound to a spreadsheet, so it
+will not appear from inside a Sheet, and it is in the Drive account the add-on was
+published from. Open it at [script.google.com](https://script.google.com) →
+**My Projects**, then:
+
+1. Paste each file above over its counterpart. `Operations.gs` will not exist yet
+   the first time — add it with **+ &rsaquo; Script**. (Or use `clasp`, below.)
+2. **Deploy &rsaquo; Manage deployments** — edit the **existing** deployment and pick
+   **New version**. Editing the code alone changes nothing for anyone; the editor
+   runs *Head*, installed users run the deployment.
+   **Never create a new deployment.** A new deployment ID disables the triggers on
+   the old one.
+3. In the Cloud project (`linkfinder-ai-addon`, app id `1096371450007`):
+   **Marketplace SDK &rsaquo; App Configuration** &rarr; *Module complémentaire Sheets* &rarr;
+   set **Version du script** to the new version &rarr; **Save**.
+   Change nothing else on that page. **Application visibility cannot be changed
+   back** once saved, and the OAuth scope fields must keep matching what the code
+   infers.
+4. **Marketplace SDK &rsaquo; Store Listing** &rarr; **Publish**.
+
+   Saving in step 3 only stores a draft — the console says so: *"Your draft has
+   been saved. To publish it, go to the Store listing tab."* This was written up
+   here as "saving publishes it", which was wrong, and the wrong version of it is
+   the kind that has someone believing they shipped a fix they did not.
+
+5. Test in a spreadsheet before step 4, not after.
+
+### No re-verification, as long as the scopes do not change
+
+A code-only update needs **no OAuth re-verification and no reinstall** — users get
+it automatically once the draft is published. That is worth stating plainly,
+because the fear of a review queue is what makes people put off shipping a fix.
+
+Whether publishing a version-only change also passes through a *listing* review is
+not settled here — Google's docs say listing **field** changes require one, and a
+version bump changes no field. **Record what actually happens the next time you
+publish**, and replace this paragraph with the answer.
+
+Either way the add-on stays up while it happens: publishing does not withdraw the
+version already serving users.
+
+Change the scopes and it becomes a different job: update them in the Marketplace SDK
+*and* on the OAuth consent screen, then **submit a new OAuth verification request**,
+and users have to re-authorize. That is the slow path, and avoiding it is the entire
+reason for the rule below.
+
+- [Update a published add-on](https://developers.google.com/workspace/add-ons/how-tos/update-published-add-on)
+- [Update an app listing](https://developers.google.com/workspace/marketplace/manage-app-listing)
+- [Configure the Marketplace SDK](https://developers.google.com/workspace/marketplace/enable-configure-sdk)
+
+### Or push it over the API, with no terminal at all
+
+`tools/push-via-api.mjs` does the whole thing — content, version, and pointing the
+live deployment at it — through the Apps Script REST API. It needs one access
+token and nothing else installed.
+
+Getting a token takes about two minutes and no OAuth client:
+
+1. Switch the Apps Script API on once at
+   [script.google.com/home/usersettings](https://script.google.com/home/usersettings).
+2. Open [Google's OAuth Playground](https://developers.google.com/oauthplayground),
+   signed in as the account that owns the script.
+3. In the scope box on the left, paste
+   `https://www.googleapis.com/auth/script.projects` and authorize it.
+4. Step 2 → **Exchange authorization code for tokens** → copy the access token.
+
+```bash
+LF_TOKEN=<access token> node tools/push-via-api.mjs <SCRIPT_ID> --dry-run   # shows the diff, sends nothing
+LF_TOKEN=<access token> node tools/push-via-api.mjs <SCRIPT_ID>
+```
+
+The token lasts an hour and covers only Apps Script projects. Revoke it after at
+[myaccount.google.com/permissions](https://myaccount.google.com/permissions).
+
+It reads the live project first and sends the manifest back byte-identical:
+`updateContent` replaces **every** file, so a manifest merely absent from the
+request is a manifest deleted. It refuses to push if a new Apps Script service
+appears or the `@OnlyCurrentDoc` annotation is gone, and it updates the
+deployment that is already live rather than creating one. Seven tests cover it
+against a stubbed API, including that a dry run sends no writes.
+
+The one step no API can do: bump the version in the Cloud project's Marketplace
+SDK. It prints the number to enter.
+
+### Or push it with clasp, instead of pasting
+
+`clasp` is Google's own CLI for Apps Script. It replaces the five copy-pastes with
+one command, and it is the difference between a deploy you can repeat and a deploy
+you have to concentrate through.
+
+```bash
+npm install -g @google/clasp
+clasp login                       # opens a browser; nothing to paste anywhere
+
+# Once, to point this directory at the published project:
+clasp clone <SCRIPT_ID>           # writes .clasp.json — see below before you run it
+```
+
+**Clone into a scratch directory first, not this one.** `clasp clone` pulls the live
+files down, and the point of the exercise is to push these ones up. Clone somewhere
+temporary, take the `scriptId` out of the `.clasp.json` it writes, then create
+`.clasp.json` here by hand:
+
+```json
+{ "scriptId": "<SCRIPT_ID>", "rootDir": "." }
+```
+
+It is gitignored — it names one specific project, not something every checkout wants.
+
+Then, from this directory:
+
+```bash
+clasp push          # uploads Code.gs, Operations.gs and the three HTML files
+clasp open          # opens the project to deploy a version
+```
+
+`clasp push` will offer to delete `appsscript.json` from the remote if there is no
+local copy — **say no.** That manifest is not committed here on purpose (see below),
+and losing it is how the add-on's OAuth scopes change without anyone deciding to.
+Safer still: `clasp push` only after running `clasp pull` into a scratch clone and
+copying the real `appsscript.json` in, untouched.
+
+`clasp` needs the Apps Script API switched on for your account, once, at
+[script.google.com/home/usersettings](https://script.google.com/home/usersettings).
+
+`clasp push` uploads the code. It does not deploy it — see steps 2 and 3 above.
+
+Pushing is still not deploying: after `clasp push`, cut a **New version** under
+**Deploy › Manage deployments**, or the store keeps serving the old one.
+
+### The one rule that must not be broken
+
+**Do not add an Apps Script service the add-on does not already use, and do not add
+an `oauthScopes` block to `appsscript.json`.**
+
+The published manifest has no `oauthScopes` block, so Apps Script infers the scopes
+from the code. Everything here uses only `SpreadsheetApp`, `PropertiesService`,
+`UrlFetchApp`, `Utilities`, `HtmlService` and `Logger`, and `@OnlyCurrentDoc` is
+still at the top of `Code.gs` — so the inferred scopes are unchanged and no
+re-verification by Google is triggered. A single call to `DriveApp`, `GmailApp` or
+`ScriptApp` widens the scopes, and the add-on is pulled from the store until Google
+re-verifies it. A test asserts this; it is not a style preference.
+
+## What is deliberately not here
+
+`appsscript.json` is not committed, because the published manifest was never
+captured and writing a plausible one risks someone pasting it over the real one and
+changing the scopes. Leave the manifest in the editor alone.
+
+## Known limits
+
+- **Six minutes.** Google kills any add-on run at six minutes. A long run stops at
+  five, reports the row it reached, and keeps every answer already written. Roughly
+  400–600 rows per run for the synchronous lookups.
+- **Async lookups are much slower.** Five of the twenty always return a job and are
+  polled for up to a minute each — perhaps 5–10 rows per run, not 500.
+- **A miss is charged.** Every row that runs costs its credits whether or not
+  anything is found. Rows that already have an answer are skipped and cost nothing,
+  which is what makes re-running and resuming safe.

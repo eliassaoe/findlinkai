@@ -25,6 +25,8 @@ const operations = catalog.operations.map((op) => ({
   example: String(op.input.example),
   outputField: op.output.field,
   outputKind: op.output.kind,
+  // Name-based lookups take several columns joined, not one — see Bulk.gs.
+  compositeInput: op.compositeInput,
   params: op.params.map((p) => ({ name: p.name, label: p.label, type: p.type })),
 }));
 

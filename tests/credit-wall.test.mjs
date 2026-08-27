@@ -194,7 +194,11 @@ test('low_conversion is offered credits to earn, never a discount', async () => 
 
     assert.equal(workerCalled, false, 'must not mint a code for someone who cannot buy at all');
     assert.ok(!/LF40/.test(answerEl.innerHTML), 'no discount code');
-    assert.ok(/1,000 credits/.test(answerEl.innerHTML), 'must name the G2 reward');
+    // Matched on the number and the source rather than one phrasing of them:
+    // this asserted "1,000 credits" and went stale the moment the sentence was
+    // reworded to "A review on G2 is worth 1,000", which says the same thing.
+    assert.ok(/1,000/.test(answerEl.innerHTML), 'must name the size of the G2 reward');
+    assert.ok(/G2/.test(answerEl.innerHTML), 'must name where the reward comes from');
     assert.ok(/earn/i.test(answerEl.innerHTML));
     assert.ok(answerEl.innerHTML.includes('openOnboardingTasksPopupManually()'),
         'must open the task list that already exists');

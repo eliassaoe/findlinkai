@@ -11,7 +11,8 @@ const OPERATION = {
   "inputLabel": "Email Address",
   "params": [],
   "outputField": "linkedin_url",
-  "altType": null
+  "altType": null,
+  "compositeInput": null
 };
 
 module.exports = {

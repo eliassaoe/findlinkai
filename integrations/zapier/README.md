@@ -23,6 +23,24 @@ npm run validate  # zapier validate — needs the Zapier CLI and a login
 sample output) or `openapi.json` (operations, credits, async) and re-run the build —
 never hand-edit a file under `searches/`.
 
+## Looking someone up by name
+
+The two name searches — **Find LinkedIn URL from Name** and **Find Email from Name** —
+take four fields rather than one: **Full Name** (required), **Company**, **Location**
+and **Job Title**. They are joined into the single string the API takes, blanks
+dropped, which is exactly what the LinkFinder app itself sends.
+
+Map as many as your Zap has. The extra three **cost no additional credits**, and they
+are the difference between one match and thousands: `John Smith` matches an enormous
+number of people, `John Smith Acme Berlin VP Sales` matches one — and Find Email from
+Name is 7 credits a row either way, charged whether it returns the person you meant or
+a stranger with the same name.
+
+A name arriving from a CRM as `Doe, John` is reordered to `John Doe` automatically; a
+company with a comma in it (`Gates, Foundation`) is left alone. A Zap built against the
+older single-field version still works — `input_data` is accepted as a fallback when
+none of the four are mapped.
+
 ## Why package.json pins `@types/node`
 
 `zapier-platform-cli` pulls in `mem-fs`, which wants `@types/node@^15`, while the

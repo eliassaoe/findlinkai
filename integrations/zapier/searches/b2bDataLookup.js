@@ -11,7 +11,8 @@ const OPERATION = {
   "inputLabel": "Company or Person Identifier",
   "params": [],
   "outputField": null,
-  "altType": null
+  "altType": null,
+  "compositeInput": null
 };
 
 module.exports = {
