@@ -84,7 +84,13 @@ Apps Script infers the add-on's scopes from its code, so this widens them — an
 a scope change pulls the add-on from the store until Google re-verifies it.
 Deploy stopped. See the README."
 fi
-grep -q '@OnlyCurrentDoc' Code.gs || die "@OnlyCurrentDoc is missing from Code.gs — that also widens the scopes."
+# As an annotation on its own line. A plain grep also matches the comment further
+# down that explains the rule, so removing the real annotation would pass a check
+# whose whole job is to catch that.
+grep -qE '^\s*\*\s*@OnlyCurrentDoc\s*$' Code.gs \
+  || die "The @OnlyCurrentDoc annotation is missing from Code.gs.
+Without it the add-on asks for access to every spreadsheet rather than the open
+one — a scope change, so the store pulls it until Google re-verifies it."
 echo "Only the six services the published version already used. Scopes unchanged."
 
 # ── 5. push ─────────────────────────────────────────────────────────────────

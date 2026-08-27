@@ -91,6 +91,40 @@ reason for the rule below.
 - [Update an app listing](https://developers.google.com/workspace/marketplace/manage-app-listing)
 - [Configure the Marketplace SDK](https://developers.google.com/workspace/marketplace/enable-configure-sdk)
 
+### Or push it over the API, with no terminal at all
+
+`tools/push-via-api.mjs` does the whole thing — content, version, and pointing the
+live deployment at it — through the Apps Script REST API. It needs one access
+token and nothing else installed.
+
+Getting a token takes about two minutes and no OAuth client:
+
+1. Switch the Apps Script API on once at
+   [script.google.com/home/usersettings](https://script.google.com/home/usersettings).
+2. Open [Google's OAuth Playground](https://developers.google.com/oauthplayground),
+   signed in as the account that owns the script.
+3. In the scope box on the left, paste
+   `https://www.googleapis.com/auth/script.projects` and authorize it.
+4. Step 2 → **Exchange authorization code for tokens** → copy the access token.
+
+```bash
+LF_TOKEN=<access token> node tools/push-via-api.mjs <SCRIPT_ID> --dry-run   # shows the diff, sends nothing
+LF_TOKEN=<access token> node tools/push-via-api.mjs <SCRIPT_ID>
+```
+
+The token lasts an hour and covers only Apps Script projects. Revoke it after at
+[myaccount.google.com/permissions](https://myaccount.google.com/permissions).
+
+It reads the live project first and sends the manifest back byte-identical:
+`updateContent` replaces **every** file, so a manifest merely absent from the
+request is a manifest deleted. It refuses to push if a new Apps Script service
+appears or the `@OnlyCurrentDoc` annotation is gone, and it updates the
+deployment that is already live rather than creating one. Seven tests cover it
+against a stubbed API, including that a dry run sends no writes.
+
+The one step no API can do: bump the version in the Cloud project's Marketplace
+SDK. It prints the number to enter.
+
 ### Or push it with clasp, instead of pasting
 
 `clasp` is Google's own CLI for Apps Script. It replaces the five copy-pastes with
