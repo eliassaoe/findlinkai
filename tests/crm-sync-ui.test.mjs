@@ -302,6 +302,15 @@ test('the app tab goes to the app page, not the marketing one', () => {
 test('the page is an app page: token-gated and kept out of search', () => {
   const page = read('app-integrations.html');
   assert.match(page, /<meta name="robots" content="noindex"/, 'an app page must not be indexed');
+
+  // Built from account.html's chrome, which carried its own title and canonical.
+  // The canonical is the one that matters: left in, it tells Google this page IS
+  // /account, and a wrong canonical on a noindex page is a wrong signal about a
+  // page that does rank.
+  assert.strictEqual((page.match(/<title>/g) || []).length, 1, 'more than one title');
+  assert.match(page, /<title>Integrations/);
+  assert.ok(!/rel="canonical"/.test(page), 'a noindexed app page should claim no canonical');
+
   assert.match(page, /function checkAuth\(\)/);
   assert.match(page, /linkFinderToken/);
   // No token means no page — the same rule account.html follows.
