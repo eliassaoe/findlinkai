@@ -66,11 +66,30 @@ published from. Open it at [script.google.com](https://script.google.com) →
 **My Projects**, then:
 
 1. Paste each file above over its counterpart. `Operations.gs` will not exist yet
-   the first time — add it with **+ &rsaquo; Script**.
-2. **Deploy &rsaquo; Manage deployments** — edit the existing deployment and pick
-   **New version**. Editing the code alone changes nothing for anyone; the store
-   serves the deployed version.
-3. Test in a spreadsheet before publishing the version to the store listing.
+   the first time — add it with **+ &rsaquo; Script**. (Or use `clasp`, below.)
+2. **Deploy &rsaquo; Manage deployments** — edit the **existing** deployment and pick
+   **New version**. Editing the code alone changes nothing for anyone; the editor
+   runs *Head*, installed users run the deployment.
+   **Never create a new deployment.** A new deployment ID disables the triggers on
+   the old one.
+3. In the Cloud project: **Marketplace SDK &rsaquo; App Configuration** &rarr; bump the
+   version number there. That is the step that actually publishes it.
+4. Test in a spreadsheet before you do step 3.
+
+### No review, as long as the scopes do not change
+
+A code-only update needs **no Google review and no reinstall** — users get it
+automatically. That is worth stating plainly, because the fear of a review queue is
+what makes people put off shipping a fix.
+
+Change the scopes and it becomes a different job: update them in the Marketplace SDK
+*and* on the OAuth consent screen, then **submit a new OAuth verification request**,
+and users have to re-authorize. That is the slow path, and avoiding it is the entire
+reason for the rule below.
+
+- [Update a published add-on](https://developers.google.com/workspace/add-ons/how-tos/update-published-add-on)
+- [Update an app listing](https://developers.google.com/workspace/marketplace/manage-app-listing)
+- [Configure the Marketplace SDK](https://developers.google.com/workspace/marketplace/enable-configure-sdk)
 
 ### Or push it with clasp, instead of pasting
 
@@ -112,6 +131,8 @@ copying the real `appsscript.json` in, untouched.
 
 `clasp` needs the Apps Script API switched on for your account, once, at
 [script.google.com/home/usersettings](https://script.google.com/home/usersettings).
+
+`clasp push` uploads the code. It does not deploy it — see steps 2 and 3 above.
 
 Pushing is still not deploying: after `clasp push`, cut a **New version** under
 **Deploy › Manage deployments**, or the store keeps serving the old one.
