@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html>
+<head>
+<base target="_top">
+<style>
+  body{font-family:Roboto,Arial,sans-serif;font-size:13px;color:#202124;margin:0;padding:14px;}
+  h1{font-size:14px;font-weight:500;margin:0 0 2px;}
+  .sub{color:#5f6368;font-size:11.5px;margin-bottom:12px;line-height:1.4;}
+  label{display:block;font-weight:500;margin:12px 0 4px;}
+  select,input{width:100%;box-sizing:border-box;padding:6px;border:1px solid #dadce0;border-radius:4px;font-size:13px;}
+  .help{color:#5f6368;font-size:11.5px;margin-top:3px;line-height:1.35;}
+  .cost{margin-top:10px;padding:8px;border-radius:4px;background:#e8f0fe;color:#1967d2;font-size:12px;line-height:1.4;}
+  .cost.warn{background:#fef7e0;color:#b06000;}
+  .part{display:flex;gap:8px;align-items:flex-end;margin-top:10px;}
+  .part .col{width:62px;flex:none;}
+  .part .meta{flex:1;}
+  .part label{margin:0 0 4px;}
+  .opt{color:#80868b;font-weight:400;}
+  button{margin-top:14px;width:100%;padding:9px;background:#1a73e8;color:#fff;border:0;border-radius:4px;font-size:13px;cursor:pointer;}
+  button:disabled{background:#dadce0;cursor:default;}
+  #status{margin-top:12px;font-size:12px;line-height:1.45;white-space:pre-wrap;color:#5f6368;}
+  #status.bad{color:#c5221f;}
+  #status.warn{color:#b06000;}
+  .nokey{background:#fce8e6;color:#c5221f;padding:8px;border-radius:4px;margin-bottom:8px;line-height:1.4;}
+</style>
+</head>
+<body>
+
+<h1>Enrich a column</h1>
+<div class="sub">Pick a lookup, say which columns hold the input, and where the answer goes.</div>
+
+<div id="nokey" class="nokey" style="display:none;">
+  No API key yet. Open <b>Extensions &rsaquo; LinkFinder AI &rsaquo; Settings</b> and paste your key.
+</div>
+
+<label for="op">Lookup</label>
+<select id="op"></select>
+<div class="help" id="opHelp"></div>
+
+<div id="cost" class="cost"></div>
+
+<div id="inputs"></div>
+
+<label for="target">Column to write the answer into</label>
+<input id="target" placeholder="F" value="F">
+<div class="help">Rows that already have a value here are skipped — so re-running, or resuming after a long run, costs nothing for what is already done.</div>
+
+<div id="params"></div>
+
+<button id="go" disabled>Enrich column</button>
+<div id="status"></div>
+
+<script>
+  var OPERATIONS = [];
+
+  function esc(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];
+  }); }
+
+  function el(id){ return document.getElementById(id); }
+
+  function selected(){
+    var value = el('op').value;
+    for (var i = 0; i < OPERATIONS.length; i++) {
+      if (OPERATIONS[i].type === value) return OPERATIONS[i];
+    }
+    return null;
+  }
+
+  /**
+   * A composite lookup takes several columns joined into one string; everything
+   * else takes one. Rendering the fields from the operation itself means the
+   * panel always asks for exactly what that lookup can use — which is the whole
+   * point of this rewrite: location and job title had nowhere to go before.
+   */
+  function partsOf(op){
+    if (op.compositeInput) return op.compositeInput.parts;
+    return [{ name: 'input', label: op.inputLabel, required: true, help: op.inputHelp, example: op.example }];
+  }
+
+  function renderCost(op){
+    var box = el('cost');
+    var text;
+
+    if (op.perEmployeeBilling) {
+      text = 'Billed 0.5 credits per employee returned, not a flat fee per row — a large company costs a lot more than a small one.';
+    } else {
+      text = op.credits + (op.credits === 1 ? ' credit' : ' credits') + ' per row. ' +
+             'Rows that find nothing are still charged.';
+    }
+
+    box.textContent = text;
+    box.className = 'cost' + (op.perEmployeeBilling || op.credits >= 7 ? ' warn' : '');
+  }
+
+  function render(){
+    var op = selected();
+    if (!op) return;
+
+    el('opHelp').textContent = op.inputHelp;
+    renderCost(op);
+
+    var letters = ['A', 'B', 'C', 'D'];
+    el('inputs').innerHTML = partsOf(op).map(function (p, i) {
+      return '<div class="part">' +
+        '<div class="col">' +
+          '<label for="c_' + esc(p.name) + '">' + (i === 0 ? 'Column' : '&nbsp;') + '</label>' +
+          '<input id="c_' + esc(p.name) + '" data-part="' + esc(p.name) + '" placeholder="' + letters[i] + '"' +
+            (i === 0 ? ' value="' + letters[i] + '"' : '') + '>' +
+        '</div>' +
+        '<div class="meta">' +
+          '<label>' + esc(p.label) + (p.required ? '' : ' <span class="opt">— optional</span>') + '</label>' +
+          '<div class="help">' + esc(p.help) + ' e.g. ' + esc(p.example) + '</div>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+
+    if (op.compositeInput) {
+      el('inputs').insertAdjacentHTML('beforeend',
+        '<div class="help" style="margin-top:8px;">Leave a column blank to skip it. Filling more of them costs ' +
+        'nothing extra and makes the match far more certain — a name on its own matches thousands of people.</div>');
+    }
+
+    el('params').innerHTML = op.params.map(function(p){
+      return '<label for="p_' + esc(p.name) + '">' + esc(p.label) + ' <span class="opt">— optional</span></label>' +
+             '<input id="p_' + esc(p.name) + '" data-param="' + esc(p.name) + '"' +
+             (p.type === 'integer' ? ' type="number"' : '') + '>' +
+             '<div class="help">' + esc(p.help) + '</div>';
+    }).join('');
+  }
+
+  /** Turns whatever runEnrichment came back with into one sentence a user can act on. */
+  function describe(result){
+    if (!result) return { text: 'Finished.', tone: '' };
+
+    var counts = result.processed + ' row' + (result.processed === 1 ? '' : 's') + ' looked up, ' +
+                 result.found + ' with a result' +
+                 (result.skipped ? ', ' + result.skipped + ' already filled in and skipped' : '') +
+                 (result.errors ? ', ' + result.errors + ' failed' : '') + '.';
+
+    if (result.stopped) return { text: result.message + '\n\n' + counts, tone: 'bad' };
+    if (result.incomplete) return { text: result.message + '\n\n' + counts, tone: 'warn' };
+    return { text: counts, tone: result.errors ? 'warn' : '' };
+  }
+
+  function run(){
+    var op = selected();
+    if (!op) return;
+
+    var columns = {};
+    Array.prototype.forEach.call(document.querySelectorAll('[data-part]'), function(input){
+      if (input.value.trim()) columns[input.getAttribute('data-part')] = input.value.trim();
+    });
+
+    var required = partsOf(op)[0];
+    if (!columns[required.name]) {
+      el('status').className = 'bad';
+      el('status').textContent = 'Set the column holding ' + required.label + ' first.';
+      return;
+    }
+
+    if (!el('target').value.trim()) {
+      el('status').className = 'bad';
+      el('status').textContent = 'Say which column the answer should go into.';
+      return;
+    }
+
+    var params = {};
+    Array.prototype.forEach.call(document.querySelectorAll('[data-param]'), function(input){
+      if (input.value !== '') params[input.getAttribute('data-param')] = input.value;
+    });
+
+    el('go').disabled = true;
+    el('status').className = '';
+    el('status').textContent = 'Running. Answers appear row by row — leave the sheet open.';
+
+    google.script.run
+      .withSuccessHandler(function(result){
+        var described = describe(result);
+        el('status').className = described.tone;
+        el('status').textContent = described.text;
+        el('go').disabled = false;
+      })
+      .withFailureHandler(function(error){
+        el('status').className = 'bad';
+        el('status').textContent = 'Stopped: ' + error.message;
+        el('go').disabled = false;
+      })
+      .runEnrichment({
+        type: op.type,
+        outputColumn: el('target').value.trim(),
+        columns: columns,
+        params: params
+      });
+  }
+
+  google.script.run.withSuccessHandler(function(ops){
+    OPERATIONS = ops;
+    var select = el('op');
+
+    // Grouped the way the catalog groups them, so twenty lookups stay findable.
+    var order = [], groups = {};
+    ops.forEach(function(o){
+      if (!groups[o.category]) { groups[o.category] = []; order.push(o.category); }
+      groups[o.category].push(o);
+    });
+
+    select.innerHTML = order.map(function(category){
+      return '<optgroup label="' + esc(category) + '">' + groups[category].map(function(o){
+        return '<option value="' + esc(o.type) + '">' + esc(o.label) + '</option>';
+      }).join('') + '</optgroup>';
+    }).join('');
+
+    select.addEventListener('change', render);
+    render();
+  }).getOperations();
+
+  google.script.run.withSuccessHandler(function(configured){
+    el('nokey').style.display = configured ? 'none' : 'block';
+    el('go').disabled = !configured;
+  }).isApiKeyConfigured();
+
+  el('go').addEventListener('click', run);
+</script>
+</body>
+</html>
