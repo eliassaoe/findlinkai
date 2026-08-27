@@ -543,3 +543,151 @@ test('the download is scoped to the caller\'s own token', () => {
     const dl = slice(historySrc, 'async function downloadCsvBatch(', 'async function loadCsvBatches(', 'download');
     assert.match(dl, /user_id=eq\.\$\{encodeURIComponent\(userToken\)\}/);
 });
+
+/* ------------------------------------------------------------------ */
+/* history.html — the two views                                        */
+/* ------------------------------------------------------------------ */
+
+const viewsBlock = slice(
+    historySrc,
+    "let currentView = 'csv';",
+    'function renderHistory()',
+    'history.html view switcher'
+);
+
+function viewHarness({ batches = [], history = [], filteredBatches, filtered, saved = null } = {}) {
+    const node = (id) => ({
+        id, textContent: '', _cls: new Set(id === 'activityPanel' ? ['hidden'] : []), _attr: {},
+        classList: {
+            _o: null,
+            add(c) { this._o._cls.add(c); },
+            remove(c) { this._o._cls.delete(c); },
+            toggle(c, on) { on ? this._o._cls.add(c) : this._o._cls.delete(c); },
+            contains(c) { return this._o._cls.has(c); },
+        },
+        setAttribute(k, v) { this._attr[k] = v; },
+    });
+    const ids = ['viewTabCsv', 'viewTabAll', 'csvPanel', 'activityPanel', 'csvNoneState',
+                 'viewTabCsvCount', 'viewTabAllCount', 'resultsCount'];
+    const nodes = {};
+    for (const id of ids) { nodes[id] = node(id); nodes[id].classList._o = nodes[id]; }
+
+    const store = { v: saved };
+    const ctx = {
+        csvBatches: batches,
+        allHistory: history,
+        filteredCsvBatches: filteredBatches === undefined ? batches : filteredBatches,
+        filteredHistory: filtered === undefined ? history : filtered,
+        document: { getElementById: (id) => nodes[id] },
+        sessionStorage: { getItem: () => store.v, setItem: (_k, v) => { store.v = v; } },
+        posthog: { capture() {} },
+    };
+    const fn = new Function(...Object.keys(ctx),
+        viewsBlock + '; return { switchView, renderViews, setLoaded: (v) => { csvLoaded = v; }, restore: (v) => { currentView = v; viewPicked = true; }, view: () => currentView };');
+    return { api: fn(...Object.values(ctx)), nodes, store };
+}
+
+const hidden = (n) => n.classList.contains('hidden');
+
+test('CSV history is the view you land on', () => {
+    const { api, nodes } = viewHarness({ batches: [batch()], history: [{}, {}] });
+    api.setLoaded(true);
+    api.renderViews();
+    assert.equal(hidden(nodes.csvPanel), false, 'CSV panel should be the one showing');
+    assert.equal(hidden(nodes.activityPanel), true);
+    assert.equal(nodes.viewTabCsv._attr['aria-selected'], 'true');
+});
+
+test('someone with no CSV runs lands on the activity log instead of a blank tab', () => {
+    const { api, nodes } = viewHarness({ batches: [], history: [{}, {}] });
+    api.setLoaded(true);
+    api.renderViews();
+    assert.equal(api.view(), 'all');
+    assert.equal(hidden(nodes.activityPanel), false);
+});
+
+test('the default is not overridden before the CSV list has actually loaded', () => {
+    // csvBatches is [] on first paint whether or not the user has files. Switching
+    // on that would bounce anyone with CSVs off the tab they asked for.
+    const { api } = viewHarness({ batches: [], history: [{}] });
+    api.renderViews();
+    assert.equal(api.view(), 'csv');
+});
+
+test('an explicit pick beats the empty-tab fallback', () => {
+    const { api, nodes } = viewHarness({ batches: [], history: [{}] });
+    api.setLoaded(true);
+    api.switchView('csv');
+    assert.equal(api.view(), 'csv', 'the user asked for this tab, empty or not');
+    assert.equal(hidden(nodes.csvPanel), false);
+    assert.equal(hidden(nodes.csvNoneState), false, 'and it explains why it is empty');
+});
+
+test('a pick survives a reload within the session', () => {
+    const first = viewHarness({ batches: [batch()], history: [{}] });
+    first.api.switchView('all');
+    assert.equal(first.store.v, 'all');
+
+    // loadHistory replays the stored choice on the next page load; renderViews
+    // must then leave it alone, even though this user does have CSV files.
+    const again = viewHarness({ batches: [batch()], history: [{}] });
+    again.api.restore(first.store.v);
+    again.api.setLoaded(true);
+    again.api.renderViews();
+    assert.equal(again.api.view(), 'all');
+
+    // ...and loadHistory really does that replay, rather than the harness alone.
+    const load = slice(historySrc, 'async function loadHistory()', 'document.addEventListener', 'loadHistory');
+    assert.match(load, /sessionStorage\.getItem\('lfHistoryView'\)/);
+    assert.match(load, /viewPicked = true/);
+});
+
+test('the tab counts follow the shared search, so you can see which tab the matches are in', () => {
+    const { api, nodes } = viewHarness({
+        batches: [batch(), batch({ id: 'b2' })], history: [{}, {}, {}],
+        filteredBatches: [batch()], filtered: [{}],
+    });
+    api.setLoaded(true);
+    api.renderViews();
+    assert.equal(nodes.viewTabCsvCount.textContent, '1');
+    assert.equal(nodes.viewTabAllCount.textContent, '1');
+    assert.equal(nodes.resultsCount.textContent, '1 file', 'the CSV view counts files, not lookups');
+});
+
+test('the CSV view says it is empty rather than showing nothing at all', () => {
+    const { api, nodes } = viewHarness({ batches: [], history: [] });
+    api.setLoaded(true);
+    api.renderViews();
+    assert.equal(hidden(nodes.csvNoneState), false);
+});
+
+test('the empty-CSV notice is gone once there are files', () => {
+    const { api, nodes } = viewHarness({ batches: [batch()], history: [] });
+    api.setLoaded(true);
+    api.renderViews();
+    assert.equal(hidden(nodes.csvNoneState), true);
+});
+
+test('the results count describes the view you are actually looking at', () => {
+    // Switching tabs does not re-render the list, and renderHistory returns
+    // before setting this line when nothing matched. Both left the count
+    // describing the other view — "14 files" over a list of 40 lookups.
+    const { api, nodes } = viewHarness({ batches: [batch(), batch({ id: 'b2' })], history: [{}, {}, {}] });
+    api.setLoaded(true);
+    api.renderViews();
+    assert.equal(nodes.resultsCount.textContent, '2 files');
+
+    api.switchView('all');
+    assert.equal(nodes.resultsCount.textContent, '3 results');
+});
+
+test('a search that matches nothing still counts for the view showing it', () => {
+    const { api, nodes } = viewHarness({
+        batches: [batch()], history: [{}], filteredBatches: [], filtered: [],
+    });
+    api.setLoaded(true);
+    api.switchView('all');
+    assert.equal(nodes.resultsCount.textContent, '0 results');
+    api.switchView('csv');
+    assert.equal(nodes.resultsCount.textContent, '0 files');
+});

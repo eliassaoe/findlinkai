@@ -50,7 +50,7 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
 .btn-outline:hover{background:var(--gray-50);border-color:var(--primary);}
 .btn-sm{padding:.375rem .75rem;font-size:.8rem;}
 .nav-menu{background:white;border-bottom:1px solid var(--gray-200);padding:.75rem 0;}
-.nav-tabs{display:flex;gap:.4rem;flex-wrap:wrap;align-items:center;row-gap:.5rem;}
+.nav-tabs{display:flex;gap:.4rem;flex-wrap:wrap;align-items:center;justify-content:center;row-gap:.5rem;}
 /* The nav is the one thing on these pages that should not be 680px wide.
    Content stays narrow because a single column is easier to read; the tab bar
    has six items and no reason to be constrained to the same measure. Widening
@@ -86,6 +86,17 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
 .section-title{font-size:.95rem;font-weight:700;color:var(--gray-900);display:flex;align-items:center;gap:.45rem;}
 .section-title i{color:var(--primary);font-size:.85rem;}
 .section-sub{font-size:.75rem;color:var(--gray-400);margin-left:auto;white-space:nowrap;}
+/* Segmented control for the two history views. */
+.view-tabs{display:flex;gap:.25rem;margin-bottom:1rem;background:var(--gray-100);padding:.25rem;border-radius:10px;width:fit-content;max-width:100%;flex-wrap:wrap;}
+.view-tab{display:flex;align-items:center;gap:.45rem;padding:.5rem .85rem;border-radius:8px;border:1px solid transparent;background:transparent;color:var(--gray-600);font-size:.85rem;font-weight:600;font-family:inherit;line-height:normal;cursor:pointer;transition:background .15s,color .15s;}
+.view-tab:hover{color:var(--gray-900);}
+.view-tab.active{background:white;color:var(--gray-900);border-color:var(--gray-200);box-shadow:0 1px 2px rgba(0,0,0,.06);}
+.view-tab i{font-size:.8rem;color:var(--gray-400);}
+.view-tab.active i{color:var(--primary);}
+.view-tab-count{font-size:.72rem;font-weight:700;color:var(--gray-500);background:var(--gray-200);border-radius:20px;padding:.1rem .4rem;min-width:1.2rem;text-align:center;}
+.view-tab.active .view-tab-count{background:var(--primary);color:white;}
+/* The tab already names the view, so the section keeps only its count line. */
+.csv-section .section-sub{margin-left:0;}
 .csv-list{display:flex;flex-direction:column;gap:.625rem;}
 .csv-card{background:white;border:1px solid var(--gray-200);border-radius:10px;padding:.875rem 1rem;box-shadow:0 1px 3px rgba(0,0,0,.06);}
 .csv-card-top{display:flex;align-items:center;gap:.75rem;}
@@ -356,18 +367,16 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
                 </button>
             </div>
 
-            <!-- CSV enrichments -->
-            <div id="csvSection" class="csv-section hidden">
-                <div class="section-head">
-                    <div class="section-title"><i class="fas fa-file-csv"></i> CSV enrichments</div>
-                    <div class="section-sub" id="csvSectionSub"></div>
-                </div>
-                <div id="csvList" class="csv-list"></div>
-            </div>
-
-            <!-- Activity header -->
-            <div class="section-head" id="activityHead">
-                <div class="section-title"><i class="fas fa-stream"></i> All enrichments</div>
+            <!-- Two views. The CSV cards and the activity log used to stack, so a
+                 few dozen enriched files pushed "All enrichments" most of a screen
+                 down the page and people stopped finding it. -->
+            <div class="view-tabs" role="tablist" aria-label="History view">
+                <button class="view-tab active" id="viewTabCsv" role="tab" aria-selected="true" aria-controls="csvPanel" onclick="switchView('csv')">
+                    <i class="fas fa-file-csv"></i> CSV history<span class="view-tab-count" id="viewTabCsvCount">0</span>
+                </button>
+                <button class="view-tab" id="viewTabAll" role="tab" aria-selected="false" aria-controls="activityPanel" onclick="switchView('all')">
+                    <i class="fas fa-stream"></i> All enrichments<span class="view-tab-count" id="viewTabAllCount">0</span>
+                </button>
             </div>
 
             <!-- Filter bar -->
@@ -393,18 +402,33 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
                 <span class="results-count" id="resultsCount"></span>
             </div>
 
-            <!-- History list -->
-            <div id="historyList" class="history-list"></div>
-
-            <!-- Empty state -->
-            <div id="emptyState" class="empty-state hidden">
-                <i class="fas fa-search"></i>
-                <h3 id="emptyTitle">No enrichments found</h3>
-                <p id="emptyMsg">Try adjusting your search or filters.</p>
+            <!-- CSV enrichments -->
+            <div id="csvPanel" role="tabpanel" aria-labelledby="viewTabCsv">
+                <div id="csvSection" class="csv-section hidden">
+                    <div class="section-head">
+                        <div class="section-sub" id="csvSectionSub"></div>
+                    </div>
+                    <div id="csvList" class="csv-list"></div>
+                </div>
+                <div id="csvNoneState" class="empty-state hidden">
+                    <i class="fas fa-file-csv"></i>
+                    <h3>No CSV enrichments yet</h3>
+                    <p>Upload a list in Data Enrichment and every run lands here, with how far it got and a download.</p>
+                </div>
             </div>
 
-            <!-- Pagination -->
-            <div id="pagination" class="pagination hidden"></div>
+            <!-- All enrichments -->
+            <div id="activityPanel" role="tabpanel" aria-labelledby="viewTabAll" class="hidden">
+                <div id="historyList" class="history-list"></div>
+
+                <div id="emptyState" class="empty-state hidden">
+                    <i class="fas fa-search"></i>
+                    <h3 id="emptyTitle">No enrichments found</h3>
+                    <p id="emptyMsg">Try adjusting your search or filters.</p>
+                </div>
+
+                <div id="pagination" class="pagination hidden"></div>
+            </div>
 
         </div>
 
@@ -551,6 +575,60 @@ function fullTimestamp(d) {
 
 function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
+/* ---------------------------------------------------------------------
+   Two views over the same data
+   The filter bar is deliberately shared: one search answers "where is that
+   file / that lookup" whichever view you are in, and the tab counts then say
+   which view the matches are in.
+--------------------------------------------------------------------- */
+let currentView = 'csv';     // CSV is the default: it is what most people come back for
+let viewPicked = false;      // ...unless they pick, or unless they have no CSVs at all
+let csvLoaded = false;
+
+function switchView(view) {
+    if (view !== 'csv' && view !== 'all') return;
+    currentView = view;
+    viewPicked = true;
+    try { sessionStorage.setItem('lfHistoryView', view); } catch (e) {}
+    renderViews();
+    try { posthog.capture('history_view_switched', { view }); } catch (e) {}
+}
+
+function renderViews() {
+    // Landing on an empty CSV tab is worse than ignoring the default, so a user
+    // with no CSV runs starts on the activity log — until they pick for themselves.
+    if (!viewPicked && csvLoaded && !csvBatches.length && allHistory.length) currentView = 'all';
+
+    const isCsv = currentView === 'csv';
+    const tabCsv = document.getElementById('viewTabCsv');
+    const tabAll = document.getElementById('viewTabAll');
+
+    tabCsv.classList.toggle('active', isCsv);
+    tabAll.classList.toggle('active', !isCsv);
+    tabCsv.setAttribute('aria-selected', String(isCsv));
+    tabAll.setAttribute('aria-selected', String(!isCsv));
+
+    document.getElementById('csvPanel').classList.toggle('hidden', !isCsv);
+    document.getElementById('activityPanel').classList.toggle('hidden', isCsv);
+
+    // renderCsvBatches hides the section when there is nothing to list, which
+    // would leave the tab blank. Say so instead.
+    document.getElementById('csvNoneState').classList.toggle('hidden', csvBatches.length > 0);
+
+    // Counts follow the filters, so a search tells you which tab its matches are in.
+    document.getElementById('viewTabCsvCount').textContent = filteredCsvBatches.length.toLocaleString();
+    document.getElementById('viewTabAllCount').textContent = filteredHistory.length.toLocaleString();
+
+    // This line has to be set for whichever view is showing, not left to
+    // renderHistory: switching tabs does not re-render the list, and
+    // renderHistory returns before setting it when nothing matched — either
+    // way the count kept describing the view you were no longer looking at.
+    const n = isCsv ? filteredCsvBatches.length : filteredHistory.length;
+    document.getElementById('resultsCount').textContent = isCsv
+        ? `${n} file${n !== 1 ? 's' : ''}`
+        : `${n} result${n !== 1 ? 's' : ''}`;
+}
+
 function renderHistory() {
     const list = document.getElementById('historyList');
     const empty = document.getElementById('emptyState');
@@ -672,6 +750,7 @@ function filterHistory() {
 
     currentPage = 1;
     renderHistory();
+    renderViews();
 }
 
 // The page header's one-line summary. The three stat cards it used to sit
@@ -894,6 +973,7 @@ async function loadCsvBatches() {
     } catch (e) {
         csvBatches = [];
     }
+    csvLoaded = true;
     // Batches can land after the user has already typed in the search box, so
     // narrow through the same filter rather than resetting to "everything".
     filterHistory();
@@ -1172,8 +1252,13 @@ async function loadHistory() {
     }
 
     filteredHistory = [...allHistory];
+    try {
+        const saved = sessionStorage.getItem('lfHistoryView');
+        if (saved === 'csv' || saved === 'all') { currentView = saved; viewPicked = true; }
+    } catch (e) {}
     updateStats();
     renderHistory();
+    renderViews();
     loadCsvBatches();
 
     try { posthog.capture('history_page_viewed', {count: allHistory.length}); } catch(e) {}

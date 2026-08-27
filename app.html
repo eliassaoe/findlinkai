@@ -99,7 +99,7 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
     .bulk-api-hint a{color:var(--primary);text-decoration:none;font-weight:500;border-bottom:1px dashed rgba(37,99,235,0.3);}
     .bulk-api-hint a:hover{border-bottom-color:var(--primary);}
     .nav-menu{background:white;border-bottom:1px solid var(--gray-200);padding:0.75rem 0;}
-    .nav-tabs{display:flex;gap:.4rem;flex-wrap:wrap;align-items:center;row-gap:.5rem;}
+    .nav-tabs{display:flex;gap:.4rem;flex-wrap:wrap;align-items:center;justify-content:center;row-gap:.5rem;}
 /* The nav is the one thing on these pages that should not be 680px wide.
    Content stays narrow because a single column is easier to read; the tab bar
    has six items and no reason to be constrained to the same measure. Widening
@@ -107,7 +107,7 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
 .nav-menu .container{max-width:1100px;}
 @media(max-width:1140px){ .nav-menu .container{max-width:100%;} }
 
-    .nav-tab{display:flex;align-items:center;gap:0.5rem;padding:.6rem .8rem;border-radius:8px;background:transparent;border:1px solid var(--gray-200);color:var(--gray-600);text-decoration:none;font-weight:500;font-size:0.875rem;transition:all 0.2s ease;white-space:nowrap;cursor:pointer;}
+    .nav-tab{display:flex;align-items:center;gap:0.5rem;padding:.6rem .8rem;border-radius:8px;background:transparent;border:1px solid var(--gray-200);color:var(--gray-600);text-decoration:none;font-weight:500;font-size:0.875rem;line-height:normal;transition:all 0.2s ease;white-space:nowrap;cursor:pointer;}
     .nav-tab:hover{background:var(--gray-50);border-color:var(--primary);color:var(--gray-800);}
     .nav-tab.active{background:var(--primary);border-color:var(--primary);color:white;}
     .nav-tab i{font-size:0.875rem;}
@@ -4477,14 +4477,12 @@ async function handleUpgradeFromBulk() {
     await handleAddCredits();
 }
 
-function goToAutomate(){window.location.href=addGclid(`https://linkfinderai.com/app-workflows?token=${userToken}`);}
-
 function showAutomationNudge(inputType,outputType){
     const el=document.getElementById('automationNudge'); if(!el)return;
     const messages={'company_domain__employees':{title:'Automate prospect extraction',sub:'Pull fresh prospects every week'},'linkedin_profile__linkedin_info':{title:'Enrich leads as they come in',sub:'Trigger when a new contact hits your CRM'},'linkedin_company__linkedin_info':{title:'Automate company research',sub:'Enrich new s added to your pipeline'},'linkedin_post__reactions':{title:'Monitor posts automatically',sub:'Extract warm leads every time you publish'},'lead_full_name__linkedin_url':{title:'Enrich your CRM automatically',sub:'Run this when new contacts are created'},'company_name__website':{title:'Automate company data lookup',sub:'Run on every new lead in your workflow'},'company_name__email':{title:'Find emails automatically',sub:'Trigger from your CRM or outreach tool'},'company_name__phone':{title:'Automate phone lookups',sub:'Plug directly into your outbound workflow'},'company_name__linkedin_url':{title:'Build lists automatically',sub:'Run on new company lists as they come in'}};
     const key=`${inputType}__${outputType}`;
     const msg=messages[key]||{title:'Automate this step',sub:'Run it in n8n, Make, or Zapier'};
-    const wUrl=addGclid(`https://linkfinderai.com/app-workflows?token=${userToken}`);
+    const wUrl=addGclid(`https://linkfinderai.com/app-integrations?token=${userToken}`);
     const aUrl=addGclid(`https://linkfinderai.com/api-access?token=${userToken}`);
     el.innerHTML=`<div class="automation-nudge"><div class="nudge-left"><span class="nudge-icon">\u26a1</span><div><div class="nudge-title">${msg.title}</div><div class="nudge-sub">${msg.sub}</div></div></div><div class="nudge-platforms"><a href="${wUrl}" class="nudge-btn nudge-n8n"><span class="nudge-logo nudge-logo-n8n">n</span> n8n</a><a href="${wUrl}" class="nudge-btn nudge-make"><span class="nudge-logo nudge-logo-make">M</span> Make</a><a href="https://zapier.com/developer/public-invite/235719/7244430282f42f35ad6bd25db6ac39bf/" target="_blank" class="nudge-btn nudge-zapier"><span class="nudge-logo nudge-logo-zapier">Z</span> Zapier</a><a href="${aUrl}" class="nudge-btn nudge-api">&lt;/&gt; API</a></div></div>`;
     el.style.display='block';

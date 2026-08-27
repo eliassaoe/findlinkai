@@ -389,7 +389,7 @@ def build_html(keyword, slug, content):
       </div>
     </div>
     <div style="margin-top:2rem;text-align:center;">
-      <a href="https://linkfinderai.com/app-workflows" style="color:var(--primary);font-size:.875rem;font-weight:500;text-decoration:none;">View pre-built workflow templates →</a>
+      <a href="https://linkfinderai.com/integrations" style="color:var(--primary);font-size:.875rem;font-weight:500;text-decoration:none;">See every integration →</a>
     </div>
   </div>
 </section>
@@ -481,7 +481,7 @@ def build_html(keyword, slug, content):
         <a href="https://linkfinderai.com/#features">Features</a>
         <a href="https://linkfinderai.com/#pricing">Pricing</a>
         <a href="https://linkfinderai.com/api-documentation">API Docs</a>
-        <a href="https://linkfinderai.com/app-workflows">Workflows</a>
+        <a href="https://linkfinderai.com/integrations">Workflows</a>
       </div>
       <div class="footer-col">
         <h4>Company</h4>
