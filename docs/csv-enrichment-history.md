@@ -129,50 +129,40 @@ what stops that being a silent data bug.
   `queued` instead of `stopped`. The toggle only promises a handover once
   `csvBatchStoreInput` has confirmed the grid landed — otherwise the runner
   would have nothing to work from.
-- **From History.** A stopped batch offers "Finish N in background" alongside
-  "Resume here".
+- **From History.** A stopped batch offers one button: "Finish N rows".
+- **On next login.** The banner at the top of the app queues the file where the
+  user stands, without moving them off the page.
 
-Taking a batch back into the tab sets its status to `processing`, and only
-`queued` rows are claimable — that is what stops the runner working the same
-batch underneath a resumed run.
+## Resume: the plumbing, not the button
 
-## Resume
+Once the runner finishes 400-odd rows a minute, **resuming in a tab stopped
+being worth offering.** It did the same job slower and asked the user to sit and
+watch it. Both entry points now hand the file to the server instead: History's
+card has one button, and the on-login banner queues it in place.
 
-A run that stops — closed tab, dead laptop, credit wall — can be picked up where
-it left off. The rows already enriched are **neither re-run nor re-charged**.
-This started as a support ticket: a user stopped at 2,588 of 4,600 and had no
-way back to their work.
+What is emphatically *not* obsolete is the machinery underneath, because the
+background finish IS a resume:
 
-Two entry points:
+- **`input_rows` / `csv_headers` / `column_mapping`** — the runner rebuilds the
+  input list from these through the *same* `lfBuildCsvData()` the first run
+  used, which is what guarantees the row order, and therefore the cursor, still
+  mean the same thing. No grid, no background finish: the card offers nothing
+  rather than a button that cannot work.
+- **The cursor and the partial archive** — what stops rows already enriched
+  being re-run and **re-charged**. Delete this and every interrupted file costs
+  the user twice.
 
-1. **On load.** `checkUnfinishedCsvBatch()` looks for the most recent batch that
-   stopped short and still has its input rows, and puts a banner at the top of
-   the app. Somebody whose tab died finds their work waiting rather than having
-   to remember it.
-2. **From History.** The card's Resume button links to `app?token=…&resume=<id>`.
-   The app owns resuming — it needs the enrichment panel, the credit balance and
-   the whole bulk pipeline — so History just hands the batch over.
+`processBulk(true)` and `resumeCsvBatch()` survive, reachable only by
+`?resume=<id>`. Nothing links to them. Keeping them costs nothing; cutting the
+resume path out of the enrichment loop for tidiness would risk the loop itself,
+which is not a trade worth making for dead UI.
 
-A run whose grid never made it into the batch simply does not offer Resume: the
-load banner filters on `input_rows=not.is.null` and the History card on
-`input_bytes`. There is no state where the button appears and then fails.
-
-`resumeCsvBatch(id)` rebuilds the run from the stored batch: it restores the
-input/output selects, sets `lfCsvHeaders` / `lfCsvRows` / `lfMapping`, and
-re-derives `csvData` through the *same* `lfBuildCsvData()` the first run used.
-That is why the grid and the mapping are stored rather than the derived list —
-it guarantees the row order, and therefore the resume cursor, still means the
-same thing.
-
-`processBulk(true)` then starts at `csvResumeFrom` instead of 0. Inside the
-loop, `bulkResults` holds only **this** run's rows, so `slot = i - csvResumeFrom`
-indexes it — an absolute `bulkResults[i]` silently corrupts a resumed run, and
-`tests/csv-batch-history.test.mjs` fails the build if one comes back.
-
-The invariant that makes any of this safe: **a resumed run must produce exactly
-the file an uninterrupted run would** — no lost, duplicated or reordered lines.
-`tests/csv-export-shape.test.mjs` asserts it directly, both across a resume and
-across per-row checkpointing.
+The invariant that made resume safe is the same one that makes the parallel
+runner safe: **however a file is finished, it must come out exactly as an
+uninterrupted run would** — no lost, duplicated or reordered lines.
+`tests/csv-export-shape.test.mjs` and `tests/csv-export-parity.test.mjs` assert
+it across a resume, across per-row checkpointing, and across a tab-to-server
+handover.
 
 ## The table
 
