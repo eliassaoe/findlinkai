@@ -138,3 +138,44 @@ test('the batch script parses and shares lfCall with the formula', () => {
   assert.match(batch, /lfCall\(TYPE, value\)/, 'the batch script should reuse lfCall');
   assert.match(batch, /5 \* 60 \* 1000/, 'the batch script should stop before the 6-minute limit');
 });
+
+// ---------------------------------------------------------------------------
+// What the page tells people it costs
+// ---------------------------------------------------------------------------
+
+const catalog = JSON.parse(readFileSync(join(REPO, 'integrations', 'catalog', 'operations.json'), 'utf8'));
+
+test('every lookup and its real price is in the generated table', () => {
+  const table = page.slice(
+    page.indexOf('<!-- LF:CREDIT-TABLE:START -->'),
+    page.indexOf('<!-- LF:CREDIT-TABLE:END -->'),
+  );
+  assert.ok(table.length > 500, 'the credit table block is empty — run integrations/catalog/build-pages.mjs');
+
+  for (const op of catalog.operations) {
+    assert.ok(table.includes(`<code>${op.type}</code>`), `${op.type} is missing from the price table`);
+
+    const row = table.slice(table.indexOf(`<code>${op.type}</code>`));
+    const cell = row.slice(0, row.indexOf('</tr>'));
+    const expected = op.perEmployeeBilling ? '0.5 &times; employees' : `<td>${op.credits}</td>`;
+    assert.ok(cell.includes(expected), `${op.type} costs ${op.credits} but the table says otherwise`);
+  }
+});
+
+test('the page no longer claims a flat price', () => {
+  // It said "1 credit per API request, so one row costs 1 credit" for as long as
+  // it existed. Thirteen of the twenty lookups cost more, and one costs fifty.
+  assert.ok(!/one row costs 1 credit/i.test(page));
+  assert.ok(!/>1<\/div>\s*<div class="stat-label">Credit per Row/i.test(page));
+  assert.ok(/charged whether or not anything is found/i.test(page),
+    'the page must say a miss is charged');
+});
+
+test('the published add-on is offered, not denied', () => {
+  // The page used to say "no marketplace add-on needed" three times, while an
+  // add-on was published and installed by real users.
+  assert.ok(page.includes('workspace.google.com/marketplace/app/linkfinder_ai/1096371450007'),
+    'the Marketplace listing should be linked');
+  assert.ok(!/no marketplace add-on (needed|to install)/i.test(page));
+  assert.ok(!/No add-on required/i.test(page));
+});
