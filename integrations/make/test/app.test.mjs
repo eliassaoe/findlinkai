@@ -30,9 +30,32 @@ test('every module posts the right operation type and binds its parameters', () 
   for (const op of catalog.operations) {
     const api = read('modules', op.key, 'api.imljson');
     assert.strictEqual(api[0].body.type, op.type);
-    assert.strictEqual(api[0].body.input_data, '{{parameters.input_data}}');
 
     const paramNames = read('modules', op.key, 'parameters.imljson').map((p) => p.name);
+
+    if (op.compositeInput) {
+      // Make has no place to run code in a request, so the four fields are joined
+      // by an IML expression. Every part must appear, in the catalog's order, and
+      // the optional ones must contribute nothing when a scenario leaves them blank.
+      const expression = api[0].body.input_data;
+      for (const part of op.compositeInput.parts) {
+        assert.ok(paramNames.includes(part.name), `${op.key} does not expose ${part.name}`);
+        assert.ok(expression.includes(`parameters.${part.name}`), `${op.key} never reads ${part.name}`);
+      }
+      const order = op.compositeInput.parts.map((p) => expression.indexOf(`parameters.${p.name}`));
+      assert.deepStrictEqual([...order].sort((a, b) => a - b), order, `${op.key} joins its parts out of order`);
+
+      for (const part of op.compositeInput.parts.filter((p) => !p.required)) {
+        assert.match(
+          expression,
+          new RegExp(`if\\(parameters\\.${part.name},`),
+          `${op.key} sends ${part.name} unconditionally — a blank one would become a stray space`,
+        );
+      }
+      assert.match(expression, /^\{\{trim\(/, `${op.key} does not trim the joined input`);
+    } else {
+      assert.strictEqual(api[0].body.input_data, '{{parameters.input_data}}');
+    }
     for (const param of op.params) {
       assert.ok(paramNames.includes(param.name), `${op.key} does not expose ${param.name}`);
       assert.strictEqual(api[0].body[param.name], `{{parameters.${param.name}}}`);

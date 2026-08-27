@@ -141,10 +141,45 @@ function normalise(item, index, operation) {
  * once a lookup runs past the API's sync window, so the async branch is taken on
  * the response shape rather than on the operation.
  */
+/**
+ * A CRM export writes "Doe, John". The lookup wants "John Doe", and looking
+ * someone up backwards costs exactly as much as looking them up right.
+ */
+function flipName(value) {
+  const m = String(value || '').match(/^\s*([^,]{1,60}?)\s*,\s*([^,]{1,60}?)\s*$/);
+  return m ? `${m[2]} ${m[1]}` : String(value || '').trim();
+}
+
+/**
+ * Builds the one string the API takes.
+ *
+ * For a composite lookup that means joining the mapped fields in the order the
+ * catalog declares, dropping the ones a Zap left empty — the same string
+ * app.html builds. `input_data` stays accepted as a fallback so a Zap built
+ * against the single-field version keeps working.
+ */
+function buildInput(bundle, operation) {
+  const composite = operation.compositeInput;
+  if (!composite) return String(bundle.inputData.input_data || '').trim();
+
+  const parts = [];
+  for (const part of composite.parts) {
+    let value = String(bundle.inputData[part.name] || '').trim();
+    if (!value) continue;
+    // Only a name is ever "Last, First"; a company like "Gates, Foundation" is not.
+    if (part.name === 'name') value = flipName(value);
+    parts.push(value);
+  }
+
+  if (parts.length) return parts.join(composite.joinWith || ' ');
+  return String(bundle.inputData.input_data || '').trim();
+}
+
 async function runEnrichment(z, bundle, operation) {
-  const inputData = (bundle.inputData.input_data || '').trim();
+  const inputData = buildInput(bundle, operation);
   if (!inputData) {
-    throw new Error(`${operation.inputLabel} is required.`);
+    const required = operation.compositeInput ? operation.compositeInput.parts[0].label : operation.inputLabel;
+    throw new Error(`${required} is required.`);
   }
 
   const body = { type: operation.type, input_data: inputData };
@@ -200,4 +235,6 @@ async function runEnrichment(z, bundle, operation) {
   );
 }
 
-module.exports = { API_BASE, runEnrichment, assertOk };
+module.exports = {
+  buildInput,
+  flipName, API_BASE, runEnrichment, assertOk };

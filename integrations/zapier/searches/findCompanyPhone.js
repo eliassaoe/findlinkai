@@ -11,7 +11,8 @@ const OPERATION = {
   "inputLabel": "Company Name",
   "params": [],
   "outputField": "phone",
-  "altType": null
+  "altType": null,
+  "compositeInput": null
 };
 
 module.exports = {

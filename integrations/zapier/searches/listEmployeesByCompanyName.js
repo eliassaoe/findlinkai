@@ -17,7 +17,8 @@ const OPERATION = {
     "employee_count"
   ],
   "outputField": null,
-  "altType": null
+  "altType": null,
+  "compositeInput": null
 };
 
 module.exports = {

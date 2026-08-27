@@ -120,16 +120,55 @@ const labelise = (key) =>
     .replace(/\bUrl\b/, 'URL')
     .replace(/\bLinkedin\b/, 'LinkedIn');
 
+// The catalog's help for a name part promises that "Doe, John" is flipped
+// automatically. Every other platform does that in code; Make has no regex in
+// IML, so here it would be a lie. Rewritten to ask for the right order instead —
+// and the build fails if the catalog's wording changes, rather than silently
+// shipping the claim again.
+const FLIP_CLAIM = ' "Doe, John" is flipped to "John Doe" automatically.';
+const FLIP_REPLACEMENT = ' Enter it as "First Last" — unlike the other platforms, Make cannot reorder "Doe, John" for you.';
+
+function helpFor(part) {
+  let help = part.help;
+  if (part.name === 'name') {
+    if (!help.includes(FLIP_CLAIM)) {
+      console.error(
+        "make: the catalog's name help no longer contains the flip claim this build rewrites.\n" +
+          `        looked for: ${FLIP_CLAIM}\n` +
+          `        found:      ${help}\n` +
+          '        Update FLIP_REPLACEMENT in make/build.mjs — Make cannot flip "Doe, John".',
+      );
+      process.exit(1);
+    }
+    help = help.replace(FLIP_CLAIM, FLIP_REPLACEMENT);
+  }
+  return part.required
+    ? `${help} For example: ${part.example}`
+    : `${help} Optional and free — it costs no extra credits and narrows the match. For example: ${part.example}`;
+}
+
 function parametersFor(op) {
-  const params = [
-    {
-      name: 'input_data',
-      type: 'text',
-      label: op.input.label,
-      required: true,
-      help: `${op.input.help} For example: ${op.input.example}`,
-    },
-  ];
+  // A composite lookup takes one string built from several fields. A single
+  // "Full Name and Company" box meant a scenario could only map the name, while
+  // app.html sends the name, the company, the location and the job title for the
+  // same price. The fields have to exist for anyone to map them.
+  const params = op.compositeInput
+    ? op.compositeInput.parts.map((part) => ({
+        name: part.name,
+        type: 'text',
+        label: part.label,
+        required: Boolean(part.required),
+        help: helpFor(part),
+      }))
+    : [
+        {
+          name: 'input_data',
+          type: 'text',
+          label: op.input.label,
+          required: true,
+          help: `${op.input.help} For example: ${op.input.example}`,
+        },
+      ];
 
   for (const param of op.params) {
     const field = {
@@ -168,8 +207,33 @@ function interfaceFor(op) {
  *  2. Only when a job id came back, poll /status/{id}, repeating while it is still
  *     processing. Make's `repeat` caps this so a stuck job cannot hang a scenario.
  */
+/**
+ * The `input_data` expression for a composite lookup.
+ *
+ * Make has no place to run JavaScript in a module's request, so the join is an
+ * IML expression: each optional part contributes " value" only when it is set,
+ * and the whole thing is trimmed. Built from `if`, `trim` and string
+ * concatenation — the same three the rest of this app already relies on.
+ *
+ * One thing the other platforms do that this cannot: flipping a CRM-style
+ * "Doe, John" into "John Doe". There is no regex in IML, so the field help asks
+ * for "First Last" rather than pretending. See catalog/OPEN-QUESTIONS.md.
+ */
+function compositeExpression(composite) {
+  const [first, ...rest] = composite.parts;
+  const separator = composite.joinWith ?? ' ';
+  const head = `if(parameters.${first.name}, parameters.${first.name}, "")`;
+  const tail = rest
+    .map((part) => `if(parameters.${part.name}, "${separator}" + parameters.${part.name}, "")`)
+    .join(' + ');
+  return `{{trim(${[head, tail].filter(Boolean).join(' + ')})}}`;
+}
+
 function apiFor(op) {
-  const body = { type: op.type, input_data: '{{parameters.input_data}}' };
+  const body = {
+    type: op.type,
+    input_data: op.compositeInput ? compositeExpression(op.compositeInput) : '{{parameters.input_data}}',
+  };
   for (const param of op.params) {
     body[param.name] = `{{parameters.${param.name}}}`;
   }
