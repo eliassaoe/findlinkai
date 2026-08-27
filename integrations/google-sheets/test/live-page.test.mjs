@@ -179,3 +179,19 @@ test('the published add-on is offered, not denied', () => {
   assert.ok(!/no marketplace add-on (needed|to install)/i.test(page));
   assert.ok(!/No add-on required/i.test(page));
 });
+
+test('the page does not promise more than the deployed add-on does', () => {
+  // The add-on's code in this repo does all 20 lookups. The one people can
+  // actually install does one, until it is deployed. The page describes the
+  // installed one; when the deploy happens, this test is the reminder to
+  // restore the fuller copy — flip DEPLOYED to true and the assertion inverts.
+  const DEPLOYED = false;
+
+  const claimsTwenty = /All 20 lookups in one dropdown/.test(page);
+  if (DEPLOYED) {
+    assert.ok(claimsTwenty, 'the add-on ships 20 lookups now — restore the fuller copy on the page');
+  } else {
+    assert.ok(!claimsTwenty, 'the page promises 20 lookups from an add-on that ships one');
+    assert.match(page, /One lookup for now/, 'the page should say what the add-on does today');
+  }
+});
