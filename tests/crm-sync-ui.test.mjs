@@ -239,9 +239,12 @@ test('Google Sheets leads the integrations hub', () => {
   assert.ok(hub.includes(MARKETPLACE), 'the hub does not link the add-on itself');
 });
 
-test('the CSV uploader offers the Sheets route, before and after a run', () => {
-  // This is the moment the add-on is worth most: someone exporting a sheet,
-  // uploading it, and about to paste the results back.
+test('the CSV uploader offers the Sheets route at the upload step', () => {
+  // The moment the add-on is worth most: someone exporting a sheet and
+  // uploading it. Asking again on the results panel was one banner too many —
+  // the run already ends with a progress bar, a background notice, a
+  // confidence filter and an export button — so that second placement is gone
+  // on purpose. Put it back only if the results panel gets emptier.
   const app = read('app.html');
 
   const upload = app.slice(app.indexOf('<div id="bulkSearch"'), app.indexOf('<div id="csvPreview"'));
@@ -249,11 +252,11 @@ test('the CSV uploader offers the Sheets route, before and after a run', () => {
   assert.match(upload, /already in Google Sheets/i);
 
   const results = app.slice(app.indexOf('<div id="bulkResults"'), app.indexOf('<div id="bulkResultsTable"'));
-  assert.ok(results.includes(MARKETPLACE), 'nothing offers Sheets once results are in');
+  assert.ok(!results.includes(MARKETPLACE), 'the results panel is deliberately left alone');
 
-  // Both are measurable, or there is no way to know whether they work.
+  // What remains is measurable, or there is no way to know whether it works.
   const events = [...app.matchAll(/sheets_addon_clicked',\{source:'(\w+)'/g)].map((m) => m[1]);
-  assert.deepStrictEqual(events.sort(), ['bulk_results', 'bulk_upload']);
+  assert.deepStrictEqual(events.sort(), ['bulk_upload']);
 });
 
 test('the Sheets page links the add-on rather than only describing it', () => {
