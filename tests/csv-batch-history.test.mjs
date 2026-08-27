@@ -312,6 +312,19 @@ test('a run still going offers no download, only an explanation', () => {
     assert.doesNotMatch(nodes.csvList.innerHTML, /downloadCsvBatch/);
 });
 
+test('a dead run is recognised in a minute and a half, not fifteen', () => {
+    const { api } = readerHarness([]);
+    const quiet = (secs) => new Date(Date.now() - secs * 1000).toISOString();
+    assert.equal(api.csvBatchState({ status: 'processing', updated_at: quiet(30) }).label, 'Running');
+    assert.equal(api.csvBatchState({ status: 'processing', updated_at: quiet(120) }).label, 'Interrupted');
+});
+
+test('a live run keeps the page re-reading, a finished one does not', () => {
+    const fn = slice(historySrc, 'function scheduleCsvPoll()', 'document.addEventListener(\'visibilitychange\'', 'poll');
+    assert.match(fn, /if \(!live\) return/, 'no polling once nothing is running');
+    assert.match(fn, /document\.hidden/, 'a background tab should not poll');
+});
+
 test('a run whose tab was closed reads as interrupted, not as still running', () => {
     const stale = new Date(Date.now() - 60 * 60 * 1000).toISOString();
     const { api } = readerHarness([]);
@@ -405,10 +418,29 @@ test('the enrichment never waits on the uploaded grid being stored', () => {
     assert.doesNotMatch(body, /await csvBatchStoreInput/);
 });
 
-test('a checkpoint is due on rows or on elapsed time, whichever lands first', () => {
+test('a small run saves after every row, and the first row always saves', () => {
+    // The bug this replaces: 10-rows-or-20-seconds meant a five-row file
+    // checkpointed exactly never, and sat in History at "0% · Running" having
+    // really enriched most of itself.
     const body = slice(appSrc, 'async function processBulk(resuming) {', '// Add these new functions after processBulk', 'processBulk');
-    assert.match(body, /dueRows/);
-    assert.match(body, /dueTime/);
+    assert.match(body, /csvData\.length <= CSV_BATCH_SMALL_RUN \? 1 : CSV_BATCH_PROGRESS_EVERY/);
+    assert.match(body, /isFirst = processedCount === 1/);
+    assert.match(body, /isFirst \|\| dueRows \|\| dueTime/);
+});
+
+test('leaving the page saves the rows already paid for', () => {
+    const fn = slice(appSrc, 'function flushCsvBatchOnExit()', "posthog.capture('csv_batch_abandoned'", 'exit flush');
+    assert.match(fn, /keepalive: ?true/, 'the request must outlive the page');
+    assert.match(fn, /status: 'stopped'/, 'History must stop claiming it is running');
+    // Advancing the counters without their rows would make a resume skip rows
+    // that never made it into the file.
+    assert.match(fn, /if\(done > csvCheckpointSlot\)/);
+    assert.match(fn, /body\.length < 55000/, 'keepalive bodies are capped');
+});
+
+test('the exit flush fires on pagehide, not only beforeunload', () => {
+    const fn = slice(appSrc, 'function setupRefreshWarning()', 'function handleBeforeUnload', 'refresh warning');
+    assert.match(fn, /'pagehide',flushCsvBatchOnExit/);
 });
 
 test('a run still live in another tab is not offered for resume', () => {

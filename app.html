@@ -1443,10 +1443,16 @@ const CSV_BATCH_SUPABASE_ANON_KEY = 'sb_publishable_RKidGRs4ch1ixmRfXoYSww_UsQMS
 const CSV_BATCH_ENDPOINT = CSV_BATCH_SUPABASE_URL + '/rest/v1/csv_enrichment_batches';
 const CSV_BATCH_CHECKPOINT_RPC = CSV_BATCH_SUPABASE_URL + '/rest/v1/rpc/csv_batch_checkpoint';
 // A checkpoint appends only the rows finished since the last one, so this is
-// how much work a closed tab can cost — not how much gets re-uploaded. Ten rows
-// or twenty seconds, whichever lands first.
+// how much work a closed tab can cost — not how much gets re-uploaded.
+//
+// These were 10 rows / 20s and that was wrong: a five-row file never reaches
+// ten rows and finishes inside twenty seconds, so it checkpointed exactly never
+// and sat in History at "0% · Running" having really enriched most of itself.
+// Small runs now save every row; long ones amortise. The first completed row
+// always checkpoints, so a card is never stuck at zero.
+const CSV_BATCH_SMALL_RUN = 50;   // at or below this, save after every row
 const CSV_BATCH_PROGRESS_EVERY = 10;
-const CSV_BATCH_PROGRESS_MS = 20000;
+const CSV_BATCH_PROGRESS_MS = 8000;
 // The uploaded grid is stored so a stopped run can be resumed, on a background
 // request that never blocks the enrichment (see csvBatchStoreInput). This is
 // therefore a guard on what the browser can safely stringify and hold, not on
@@ -1470,6 +1476,7 @@ let csvCheckpointRow = 0;    // what the batch row's processed_rows should be
 let csvCheckpointSrc = 0;    // next original row to append to the archive
 let csvResumeFoundRows = 0;  // rows already enriched before this run
 let csvResumeCredits = 0;    // credits already spent before this run
+let csvExitCredits = 0;      // credits spent so far this run, for the exit flush
 
 // ===== Bulletproof Checkout Controls =====
 const CHECKOUT_MODE = 'live'; // MUST match worker env in production
@@ -3979,6 +3986,8 @@ async function processBulk(resuming) {
         csvBatchStoreInput(currentCsvBatchId);
     }
     csvCheckpointSlot = 0;
+    csvExitFlushed = false;
+    csvExitCredits = 0;
 
     let creditsConsumed = 0;
     let processedCount = 0;
@@ -4160,15 +4169,20 @@ async function processBulk(resuming) {
             };
         }
         processedCount++;
+        csvExitCredits = Math.round(creditsConsumed * 100) / 100;
         updateProgress((i + 1) / csvData.length * 100);
         updateBulkResultsTable();
-        // Checkpoint on rows or on elapsed time, whichever lands first — a slow
-        // enrichment must not go twenty minutes without saving anything. Awaited
+        // Checkpoint on rows or on elapsed time, whichever lands first. Awaited
         // so the archive can never get ahead of itself, but it only ever sends
         // the rows finished since last time.
-        const dueRows = processedCount - csvCheckpointSlot >= CSV_BATCH_PROGRESS_EVERY;
+        const every = csvData.length <= CSV_BATCH_SMALL_RUN ? 1 : CSV_BATCH_PROGRESS_EVERY;
+        const dueRows = processedCount - csvCheckpointSlot >= every;
         const dueTime = Date.now() - lastCheckpointAt >= CSV_BATCH_PROGRESS_MS;
-        if (currentCsvBatchId && (dueRows || dueTime)) {
+        // The first row always saves: it is what turns "0% · Running" into a
+        // card that means something, and it proves the write path works before
+        // the user has spent much.
+        const isFirst = processedCount === 1;
+        if (currentCsvBatchId && (isFirst || dueRows || dueTime)) {
             lastCheckpointAt = Date.now();
             await csvBatchCheckpoint(processedCount, creditsConsumed);
         }
@@ -4355,9 +4369,73 @@ function showAutomationNudge(inputType,outputType){
     el.style.display='block';
 }
 
-function setupRefreshWarning(){window.addEventListener('beforeunload',handleBeforeUnload);}
-function removeRefreshWarning(){window.removeEventListener('beforeunload',handleBeforeUnload);}
-function handleBeforeUnload(e){if(isBulkProcessing){e.preventDefault();e.returnValue='';return '';}}
+function setupRefreshWarning(){
+    window.addEventListener('beforeunload',handleBeforeUnload);
+    // pagehide fires where beforeunload does not (mobile Safari, tab discard),
+    // and unlike beforeunload it fires after the user has already committed to
+    // leaving — which is exactly when the last rows need saving.
+    window.addEventListener('pagehide',flushCsvBatchOnExit);
+}
+function removeRefreshWarning(){
+    window.removeEventListener('beforeunload',handleBeforeUnload);
+    window.removeEventListener('pagehide',flushCsvBatchOnExit);
+}
+function handleBeforeUnload(e){
+    if(!isBulkProcessing) return;
+    // Nothing here can run async, so save what we can first. keepalive lets the
+    // request outlive the page.
+    flushCsvBatchOnExit();
+    // Browsers ignore custom text here, but the message is set anyway for the
+    // few that still show it. The real reassurance is on the History card: the
+    // rows already enriched are saved and the run can be picked up.
+    const msg = 'Your enrichment is still running in this tab and will stop if you leave. '
+              + 'The rows already enriched are saved — you can resume from History.';
+    e.preventDefault(); e.returnValue = msg; return msg;
+}
+
+// The enrichment loop lives in this tab, so leaving stops it. What must not be
+// lost is the rows already paid for: this hands the archive its last chunk and
+// marks the batch stopped, so History shows the truth and offers Resume rather
+// than claiming to still be running.
+let csvExitFlushed = false;
+function flushCsvBatchOnExit(){
+    if(csvExitFlushed || !currentCsvBatchId || !isBulkProcessing) return;
+    const batchId = currentCsvBatchId;
+    const done = bulkResults.filter(r => r.status !== 'Processing').length;
+
+    // keepalive bodies are capped at 64KB across all in-flight requests, so a
+    // large chunk cannot go this way. Never send the counters without their
+    // rows: processed_rows would run ahead of the archive and a resume would
+    // skip rows that are not in the file.
+    if(done > csvCheckpointSlot){
+        const chunk = buildBulkCsvChunk(csvCheckpointSlot, done, csvCheckpointRow === 0 && !bulkCarryCsv);
+        const body = JSON.stringify({
+            p_id: batchId,
+            p_user_id: userToken,
+            p_from_row: csvCheckpointRow,
+            p_processed: csvResumeFrom + done,
+            p_found: csvResumeFoundRows + bulkResults.filter(r => r.status === 'Found').length,
+            p_credits: csvResumeCredits + csvExitCredits,
+            p_chunk: chunk,
+            p_filename: csvBaseName() + '.csv',
+        });
+        if(body.length < 55000){
+            try { fetch(CSV_BATCH_CHECKPOINT_RPC, { method:'POST', headers:csvBatchHeaders(), body, keepalive:true }); } catch(e) {}
+        }
+    }
+
+    try {
+        fetch(`${CSV_BATCH_ENDPOINT}?id=eq.${encodeURIComponent(batchId)}`, {
+            method: 'PATCH',
+            headers: csvBatchHeaders(),
+            body: JSON.stringify({ status: 'stopped', updated_at: new Date().toISOString() }),
+            keepalive: true
+        });
+    } catch(e) {}
+
+    csvExitFlushed = true;
+    try { posthog.capture('csv_batch_abandoned', { processed: done, total: csvData.length }); } catch(e) {}
+}
 
 document.addEventListener('DOMContentLoaded',()=>{
     checkAuth(); fetchCredits(); checkHubspotConnection(); setupFileUpload(); setupDragAndDrop();

@@ -747,9 +747,17 @@ function updateStats() {
    file is there and how big it is; the content is fetched on click.
 --------------------------------------------------------------------- */
 // A run that never reported in again is a tab that was closed mid-enrichment,
-// not a run still going. Progress is written every 25 rows, so anything quiet
-// for this long has stopped.
-const CSV_BATCH_STALE_MS = 15 * 60 * 1000;
+// not a run still going. Progress is written after the first row and then at
+// least every eight seconds, so ninety seconds of silence is conclusive. This
+// was fifteen minutes, which left abandoned runs claiming to be "Running" long
+// after they had died.
+const CSV_BATCH_STALE_MS = 90 * 1000;
+
+// While something really is running, the card should move. Nothing pushes to
+// this page, so it re-reads on a timer — only while a batch is live, and only
+// while the tab is visible.
+const CSV_BATCH_POLL_MS = 6000;
+let csvPollTimer = null;
 
 // input_rows is the stored copy of the uploaded file, and it is large — ask
 // Postgres whether it is there rather than pulling it down.
@@ -824,7 +832,7 @@ function renderCsvBatches() {
             ? `<button class="csv-resume" onclick="resumeCsvBatch('${esc(b.id)}')"><i class="fas fa-rotate-left"></i> Resume ${(total - processed).toLocaleString()} rows</button>`
             : '';
         const action = st.key === 'running'
-            ? '<span class="csv-note">Still running — the file lands here when it finishes.</span>'
+            ? `<span class="csv-note"><i class="fas fa-circle-notch fa-spin"></i> Running in the tab you started it in — last saved ${timeAgo(b.updated_at)}.</span>`
             : `<div class="csv-actions">${resume}${download}</div>`;
 
         const leftOver = total - processed;
@@ -915,7 +923,25 @@ async function loadCsvBatches() {
     // Batches can land after the user has already typed in the search box, so
     // narrow through the same filter rather than resetting to "everything".
     filterHistory();
+    scheduleCsvPoll();
 }
+
+// Re-read while a run is live so the bar actually moves, and so an abandoned
+// one flips to Interrupted on its own instead of sitting there until a reload.
+function scheduleCsvPoll() {
+    if (csvPollTimer) { clearTimeout(csvPollTimer); csvPollTimer = null; }
+    const live = csvBatches.some(b => csvBatchState(b).key === 'running');
+    if (!live) return;
+    csvPollTimer = setTimeout(() => {
+        if (document.hidden) { scheduleCsvPoll(); return; }
+        loadCsvBatches();
+    }, CSV_BATCH_POLL_MS);
+}
+
+// Coming back to the tab should show the truth immediately, not on the next tick.
+document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && csvBatches.some(b => csvBatchState(b).key === 'running')) loadCsvBatches();
+});
 
 /* ---------------------------------------------------------------------
    Detail modal — click a history row to view the full underlying data
