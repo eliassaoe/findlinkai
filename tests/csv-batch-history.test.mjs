@@ -312,6 +312,54 @@ test('a run still going offers no download, only an explanation', () => {
     assert.doesNotMatch(nodes.csvList.innerHTML, /downloadCsvBatch/);
 });
 
+test('a background run is the server\'s, and never goes stale', () => {
+    const { api } = readerHarness([]);
+    const ancient = new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString();
+    // A tab run with no browser behind it is dead; a queued one is not, because
+    // nothing about it depends on a browser staying open.
+    assert.equal(api.csvBatchState({ status: 'queued', updated_at: ancient }).label, 'Running in background');
+    assert.equal(api.csvBatchState({ status: 'processing', updated_at: ancient }).label, 'Interrupted');
+});
+
+test('a background run offers no buttons, only what it is doing', () => {
+    const { api, nodes } = readerHarness([batch({ status: 'queued', processed_rows: 120, found_rows: 90 })]);
+    api.renderCsvBatches();
+    assert.match(nodes.csvList.innerHTML, /nothing to keep open/);
+    assert.doesNotMatch(nodes.csvList.innerHTML, /resumeCsvBatch/, 'resuming in a tab would double-run it');
+    assert.doesNotMatch(nodes.csvList.innerHTML, /backgroundCsvBatch/, 'it is already in the background');
+});
+
+test('a stopped run can be finished without a browser at all', () => {
+    const { api, nodes } = readerHarness([batch({ status: 'stopped', processed_rows: 320, found_rows: 198 })]);
+    api.renderCsvBatches();
+    assert.match(nodes.csvList.innerHTML, /backgroundCsvBatch\('b1'/);
+    assert.match(nodes.csvList.innerHTML, /Finish 180 in background/);
+    // Resuming in the tab stays available for anyone who wants to watch it.
+    assert.match(nodes.csvList.innerHTML, /resumeCsvBatch\('b1'\)/);
+});
+
+test('handing a batch over is scoped to the caller and resets the lease', () => {
+    const fn = slice(historySrc, 'async function backgroundCsvBatch(', '// The app owns resuming', 'handover');
+    assert.match(fn, /user_id=eq\.\$\{encodeURIComponent\(userToken\)\}/);
+    assert.match(fn, /status: 'queued'/);
+    assert.match(fn, /locked_until: null/, 'a stale lease would delay the pickup');
+    assert.match(fn, /attempts: 0/, 'a fresh hand-over deserves a fresh attempt count');
+});
+
+test('leaving hands the rest over when the grid is stored, and parks it when not', () => {
+    const fn = slice(appSrc, 'function flushCsvBatchOnExit()', "csvExitFlushed = true", 'exit flush');
+    assert.match(fn, /const handOver = csvKeepRunning && csvBatchStoredInput/,
+        'promising a background finish without the stored file would be a lie');
+    assert.match(fn, /status: 'queued'/);
+    assert.match(fn, /status: 'stopped'/);
+});
+
+test('taking a batch back into the tab stops the server claiming it', () => {
+    const body = slice(appSrc, 'async function processBulk(resuming) {', '// Add these new functions after processBulk', 'processBulk');
+    assert.match(body, /if \(resuming && currentCsvBatchId\)/);
+    assert.match(body, /status: 'processing'/, 'only queued rows are claimable, so this is the guard');
+});
+
 test('a dead run is recognised in a minute and a half, not fifteen', () => {
     const { api } = readerHarness([]);
     const quiet = (secs) => new Date(Date.now() - secs * 1000).toISOString();
@@ -335,9 +383,9 @@ test('a run whose tab was closed reads as interrupted, not as still running', ()
 test('a run that stopped part way offers to pick up the rows it never reached', () => {
     const { api, nodes } = readerHarness([batch({ processed_rows: 320, found_rows: 198, status: 'out_of_credits' })]);
     api.renderCsvBatches();
+    // Both ways of finishing it, and the partial file meanwhile.
+    assert.match(nodes.csvList.innerHTML, /Finish 180 in background/, '500 total - 320 processed');
     assert.match(nodes.csvList.innerHTML, /resumeCsvBatch\('b1'\)/);
-    assert.match(nodes.csvList.innerHTML, /Resume 180 rows/, '500 total - 320 processed');
-    // the partial file is still there to take
     assert.match(nodes.csvList.innerHTML, /downloadCsvBatch\('b1'/);
     assert.match(nodes.csvList.innerHTML, /Download what is enriched/);
 });
@@ -414,7 +462,7 @@ test('a resumed run starts at the cursor and indexes its own rows', () => {
 
 test('the enrichment never waits on the uploaded grid being stored', () => {
     const body = slice(appSrc, 'async function processBulk(resuming) {', '// Add these new functions after processBulk', 'processBulk');
-    assert.match(body, /\n\s*csvBatchStoreInput\(currentCsvBatchId\);/, 'must be fired, not awaited');
+    assert.match(body, /csvBatchStoreInput\(currentCsvBatchId\)\.then\(/, 'must be fired, not awaited');
     assert.doesNotMatch(body, /await csvBatchStoreInput/);
 });
 
@@ -429,7 +477,7 @@ test('a small run saves after every row, and the first row always saves', () => 
 });
 
 test('leaving the page saves the rows already paid for', () => {
-    const fn = slice(appSrc, 'function flushCsvBatchOnExit()', "posthog.capture('csv_batch_abandoned'", 'exit flush');
+    const fn = slice(appSrc, 'function flushCsvBatchOnExit()', "csvExitFlushed = true", 'exit flush');
     assert.match(fn, /keepalive: ?true/, 'the request must outlive the page');
     assert.match(fn, /status: 'stopped'/, 'History must stop claiming it is running');
     // Advancing the counters without their rows would make a resume skip rows

@@ -774,6 +774,10 @@ function csvBatchResumable(b) {
 }
 
 function csvBatchState(b) {
+    // 'queued' is the background runner's: the user has left and the server is
+    // carrying it. It cannot go stale the way a tab run can, because nothing
+    // depends on a browser staying open.
+    if (b.status === 'queued') return { key: 'background', label: 'Running in background', cls: 'running' };
     if (b.status === 'processing') {
         const last = new Date(b.updated_at || b.started_at).getTime();
         if (Date.now() - last > CSV_BATCH_STALE_MS) {
@@ -828,12 +832,21 @@ function renderCsvBatches() {
         const download = hasFile
             ? `<button class="csv-dl" onclick="downloadCsvBatch('${esc(b.id)}', this)"><i class="fas fa-download"></i> Download ${st.key === 'done' ? 'results' : 'what is enriched'}${size ? ' · ' + size : ''}</button>`
             : '<span class="csv-note">No file saved for this run.</span>';
-        const resume = csvBatchResumable(b) && st.key !== 'running'
-            ? `<button class="csv-resume" onclick="resumeCsvBatch('${esc(b.id)}')"><i class="fas fa-rotate-left"></i> Resume ${(total - processed).toLocaleString()} rows</button>`
+        const left = (total - processed).toLocaleString();
+        const canPickUp = csvBatchResumable(b) && st.key !== 'running' && st.key !== 'background';
+        // Handing it to the server needs no browser at all, so it is the better
+        // offer for anything long; resuming in the tab shows the rows arriving.
+        const finish = canPickUp
+            ? `<button class="csv-resume" onclick="backgroundCsvBatch('${esc(b.id)}', this)"><i class="fas fa-cloud"></i> Finish ${left} in background</button>`
             : '';
-        const action = st.key === 'running'
-            ? `<span class="csv-note"><i class="fas fa-circle-notch fa-spin"></i> Running in the tab you started it in — last saved ${timeAgo(b.updated_at)}.</span>`
-            : `<div class="csv-actions">${resume}${download}</div>`;
+        const resume = canPickUp
+            ? `<button class="csv-resume" onclick="resumeCsvBatch('${esc(b.id)}')"><i class="fas fa-rotate-left"></i> Resume here</button>`
+            : '';
+        const action = st.key === 'background'
+            ? `<span class="csv-note"><i class="fas fa-circle-notch fa-spin"></i> We're finishing this for you — nothing to keep open. Updated ${timeAgo(b.updated_at)}.</span>`
+            : st.key === 'running'
+                ? `<span class="csv-note"><i class="fas fa-circle-notch fa-spin"></i> Running in the tab you started it in — last saved ${timeAgo(b.updated_at)}.</span>`
+                : `<div class="csv-actions">${finish}${resume}${download}</div>`;
 
         const leftOver = total - processed;
         // Rows we could not read a name from were never enrichable. They are
@@ -901,6 +914,32 @@ async function downloadCsvBatch(id, btn) {
     }
 }
 
+// Hands a stopped batch to the background runner. Unlike resuming, this needs
+// no browser: the row goes back in the queue and a runner picks it up within
+// about half a minute.
+async function backgroundCsvBatch(id, btn) {
+    const original = btn ? btn.innerHTML : '';
+    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Queueing…'; }
+    try {
+        const res = await fetch(
+            `${SUPABASE_URL}/rest/v1/csv_enrichment_batches?id=eq.${encodeURIComponent(id)}&user_id=eq.${encodeURIComponent(userToken)}`,
+            {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json', apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
+                body: JSON.stringify({
+                    status: 'queued', queued_at: new Date().toISOString(),
+                    locked_until: null, attempts: 0, updated_at: new Date().toISOString(),
+                })
+            }
+        );
+        if (!res.ok) throw new Error('queue failed');
+        try { posthog.capture('csv_batch_queued_from_history', { batch_id: id }); } catch (e) {}
+        await loadCsvBatches();
+    } catch (e) {
+        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-exclamation-circle"></i> Could not queue'; setTimeout(() => { btn.innerHTML = original; }, 2500); }
+    }
+}
+
 // The app owns resuming: it needs the enrichment panel, the credit balance and
 // the whole bulk pipeline. History just hands it the batch.
 function resumeCsvBatch(id) {
@@ -930,7 +969,7 @@ async function loadCsvBatches() {
 // one flips to Interrupted on its own instead of sitting there until a reload.
 function scheduleCsvPoll() {
     if (csvPollTimer) { clearTimeout(csvPollTimer); csvPollTimer = null; }
-    const live = csvBatches.some(b => csvBatchState(b).key === 'running');
+    const live = csvBatches.some(b => ['running', 'background'].includes(csvBatchState(b).key));
     if (!live) return;
     csvPollTimer = setTimeout(() => {
         if (document.hidden) { scheduleCsvPoll(); return; }
@@ -940,7 +979,7 @@ function scheduleCsvPoll() {
 
 // Coming back to the tab should show the truth immediately, not on the next tick.
 document.addEventListener('visibilitychange', () => {
-    if (!document.hidden && csvBatches.some(b => csvBatchState(b).key === 'running')) loadCsvBatches();
+    if (!document.hidden && csvBatches.some(b => ['running', 'background'].includes(csvBatchState(b).key))) loadCsvBatches();
 });
 
 /* ---------------------------------------------------------------------

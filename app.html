@@ -1080,6 +1080,8 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
     <div id="progressContainer" class="progress-container hidden">
         <div id="progressBar" class="progress-bar" style="width:0%"></div>
     </div>
+    <!-- Filled in by renderKeepRunningNotice() while a bulk run is going. -->
+    <div id="keepRunningNotice" style="display:none;align-items:center;gap:0.6rem;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:0.7rem 0.9rem;margin:0.75rem 0;font-size:0.82rem;color:#1e3a8a;line-height:1.45;"></div>
     <div id="bulkResultsTable" class="table-container"></div>
 </div>
             <div id="automationNudge" style="display:none;"></div>
@@ -1477,6 +1479,10 @@ let csvCheckpointSrc = 0;    // next original row to append to the archive
 let csvResumeFoundRows = 0;  // rows already enriched before this run
 let csvResumeCredits = 0;    // credits already spent before this run
 let csvExitCredits = 0;      // credits spent so far this run, for the exit flush
+// The background runner needs the uploaded grid, so handover is only offered
+// once csvBatchStoreInput has confirmed it landed.
+let csvKeepRunning = true;
+let csvBatchStoredInput = false;
 
 // ===== Bulletproof Checkout Controls =====
 const CHECKOUT_MODE = 'live'; // MUST match worker env in production
@@ -3927,6 +3933,39 @@ function showResumePreview(){
     document.getElementById('csvPreview').scrollIntoView({ behavior:'smooth', block:'center' });
 }
 
+/* ---------------------------------------------------------------------
+   "You can leave" — the notice shown while a bulk run is going.
+
+   The loop lives in this tab, so leaving stops it here. What the notice
+   promises is that the rest gets handed to the background runner on the way
+   out, which is what csvKeepRunning controls. People assume closing a tab
+   throws the work away, so this says otherwise before they wonder.
+--------------------------------------------------------------------- */
+function renderKeepRunningNotice(){
+    const host = document.getElementById('keepRunningNotice');
+    if(!host) return;
+    if(!isBulkProcessing){ host.style.display = 'none'; return; }
+
+    if(!csvBatchStoredInput){
+        // Until the grid is stored the runner has nothing to work from, so
+        // promising a handover here would be a lie.
+        host.style.display = 'flex';
+        host.innerHTML = `<i class="fas fa-circle-notch fa-spin" style="color:#2563eb;"></i>
+            <span>Saving your file so this can finish without you…</span>`;
+        return;
+    }
+
+    host.style.display = 'flex';
+    host.innerHTML = `<label style="display:flex;align-items:center;gap:0.6rem;cursor:pointer;margin:0;">
+        <input type="checkbox" id="keepRunningToggle" ${csvKeepRunning ? 'checked' : ''}
+               onchange="csvKeepRunning=this.checked;renderKeepRunningNotice();"
+               style="width:16px;height:16px;cursor:pointer;flex-shrink:0;">
+        <span>${csvKeepRunning
+            ? '<strong>Safe to leave.</strong> Close this tab and we\'ll finish the rest in the background — it\'ll be waiting in History.'
+            : '<strong>This will stop if you leave.</strong> Tick to have us finish it in the background instead.'}</span>
+    </label>`;
+}
+
 // A dropped connection or a 5xx used to put "Error" in the user's file and move
 // on — a row they will never get back without re-running the whole list. One
 // retry costs two seconds and saves most of them. A 4xx is an answer, not a
@@ -3981,13 +4020,24 @@ async function processBulk(resuming) {
         csvResumeFoundRows = 0;
         csvResumeCredits = 0;
         currentCsvBatchId = await csvBatchCreate(csvData.length);
-        // Deliberately not awaited: the enrichment starts now, and resumability
-        // catches up in the background.
-        csvBatchStoreInput(currentCsvBatchId);
+        // Deliberately not awaited: the enrichment starts now, and both
+        // resumability and background handover catch up behind it.
+        csvBatchStoredInput = false;
+        csvBatchStoreInput(currentCsvBatchId).then(ok => {
+            csvBatchStoredInput = ok;
+            renderKeepRunningNotice();
+        });
     }
     csvCheckpointSlot = 0;
     csvExitFlushed = false;
     csvExitCredits = 0;
+    renderKeepRunningNotice();
+    // Taking a batch back into the tab. Only 'queued' rows are claimable, so
+    // flipping the status is what stops the background runner picking up the
+    // same batch underneath us.
+    if (resuming && currentCsvBatchId) {
+        csvBatchUpdate(currentCsvBatchId, { status: 'processing', locked_until: null });
+    }
 
     let creditsConsumed = 0;
     let processedCount = 0;
@@ -4199,6 +4249,7 @@ async function processBulk(resuming) {
     
     isBulkProcessing = false;
     removeRefreshWarning();
+    renderKeepRunningNotice();
     btn.disabled = false;
     btn.innerHTML = '<i class="fas fa-play"></i> Process Items';
     if (bulkResults.length > 0) showSavedPill();
@@ -4388,8 +4439,9 @@ function handleBeforeUnload(e){
     // Browsers ignore custom text here, but the message is set anyway for the
     // few that still show it. The real reassurance is on the History card: the
     // rows already enriched are saved and the run can be picked up.
-    const msg = 'Your enrichment is still running in this tab and will stop if you leave. '
-              + 'The rows already enriched are saved — you can resume from History.';
+    const msg = (csvKeepRunning && csvBatchStoredInput)
+        ? 'Leaving is fine — we will finish this enrichment in the background and it will be waiting in History.'
+        : 'Your enrichment will stop if you leave. The rows already enriched are saved — you can resume from History.';
     e.preventDefault(); e.returnValue = msg; return msg;
 }
 
@@ -4424,17 +4476,23 @@ function flushCsvBatchOnExit(){
         }
     }
 
+    // 'queued' hands the rest to the background runner; 'stopped' parks it for
+    // the user to resume by hand. Either way History stops saying "Running".
+    const handOver = csvKeepRunning && csvBatchStoredInput;
     try {
         fetch(`${CSV_BATCH_ENDPOINT}?id=eq.${encodeURIComponent(batchId)}`, {
             method: 'PATCH',
             headers: csvBatchHeaders(),
-            body: JSON.stringify({ status: 'stopped', updated_at: new Date().toISOString() }),
+            body: JSON.stringify(handOver
+                ? { status: 'queued', queued_at: new Date().toISOString(), locked_until: null, attempts: 0, updated_at: new Date().toISOString() }
+                : { status: 'stopped', updated_at: new Date().toISOString() }),
             keepalive: true
         });
     } catch(e) {}
 
     csvExitFlushed = true;
-    try { posthog.capture('csv_batch_abandoned', { processed: done, total: csvData.length }); } catch(e) {}
+    try { posthog.capture(handOver ? 'csv_batch_handed_to_server' : 'csv_batch_abandoned',
+                          { processed: done, total: csvData.length }); } catch(e) {}
 }
 
 document.addEventListener('DOMContentLoaded',()=>{

@@ -34,6 +34,71 @@ there is none. Two consequences worth knowing:
 they uploaded. The History card names the gap ("12 with no name to look up")
 rather than quietly reporting "500 of 500" on a 512-row file.
 
+## Running in the background
+
+The enrichment loop lives in the browser tab, so closing it stops the run. A
+batch the user hands over is marked **`queued`**, and a runner finishes it with
+no browser involved at all.
+
+Nothing about it is new state. `input_rows`, `column_mapping` and
+`processed_rows` were built for the in-tab resume and mean exactly the same
+thing here; the runner is just a second thing that can move the cursor.
+
+**Where it runs.** `supabase/functions/csv-batch-runner`, poked by two
+`pg_cron` jobs every 30 seconds (`csv-batch-runner-1` / `-2`). Cloudflare would
+have been the obvious home — the rest of the backend lives there — but Workers
+cannot be deployed from this repo's tooling, and Supabase already had `pg_cron`
+and `pg_net` installed. The cron jobs read the service key from
+`vault.decrypted_secrets`, following `process-next-keyword` rather than
+inlining a key.
+
+**One slice at a time.** A slice claims a batch (`csv_batch_claim`), works for
+at most 55 seconds or 120 rows, then hands it back (`csv_batch_release`) either
+finished or still queued. `FOR UPDATE SKIP LOCKED` plus a 180-second lease means
+two runners take different batches rather than fighting over one, and a runner
+that dies mid-slice releases its batch by expiry instead of stranding it.
+
+A single batch is processed serially — the checkpoint RPC only accepts a chunk
+starting exactly where the row stands, which is what makes the archive safe, and
+also what stops one batch being split across runners. Expect roughly 30–50 rows
+a minute for one file. Fine for something nobody is watching; it is not a way to
+make a big file finish faster.
+
+**It calls the pipeline directly** rather than through the `linkfinderapp`
+worker, whose rate limit is per client IP: every background row would come from
+the same few Supabase addresses and throttle every user at once. The payload is
+identical to the one that worker forwards, and it fires the same user webhook
+afterwards, so a background row is indistinguishable from a foreground one.
+Credits are deducted downstream either way.
+
+### The parity problem
+
+A batch can be enriched **partly in the tab and partly by the runner**, with
+both halves appended to the same archive. If the two export builders ever
+disagree — a column renamed, a value formatted differently — the file has a
+silent seam in the middle that nobody would think to look for.
+
+So the runner's builder lives in `shared-export.js` as **plain JavaScript**,
+specifically so `tests/csv-export-parity.test.mjs` can import the exact file the
+runner runs and compare it against the copy inside `app.html`, over seven
+enrichment shapes, demanding byte-identical output. It also asserts that a
+handover mid-file joins invisibly. Change one, change the other; the test is
+what stops that being a silent data bug.
+
+### How a user reaches it
+
+- **Leaving mid-run.** A notice under the progress bar says "Safe to leave"
+  with a toggle (on by default). `flushCsvBatchOnExit` then marks the batch
+  `queued` instead of `stopped`. The toggle only promises a handover once
+  `csvBatchStoreInput` has confirmed the grid landed — otherwise the runner
+  would have nothing to work from.
+- **From History.** A stopped batch offers "Finish N in background" alongside
+  "Resume here".
+
+Taking a batch back into the tab sets its status to `processing`, and only
+`queued` rows are claimable — that is what stops the runner working the same
+batch underneath a resumed run.
+
 ## Resume
 
 A run that stops — closed tab, dead laptop, credit wall — can be picked up where
@@ -86,7 +151,8 @@ across per-row checkpointing.
 | `processed_rows` | how far the run got |
 | `found_rows` | rows that came back with a value |
 | `credits_used` | numeric, so half-credit employee scrapes stay exact |
-| `status` | `processing` · `completed` · `stopped` · `out_of_credits` |
+| `status` | `processing` (a tab) · `queued` (the server) · `completed` · `stopped` · `out_of_credits` |
+| `queued_at` / `locked_until` / `attempts` / `last_error` | the background runner's queue and lease |
 | `file_rows` | rows in the uploaded file (≥ `total_rows`) |
 | `result_csv` | the export file, archived verbatim, appended to as the run goes |
 | `result_bytes` | **generated** — `octet_length(result_csv)` |
