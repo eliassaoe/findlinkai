@@ -834,19 +834,18 @@ function renderCsvBatches() {
             : '<span class="csv-note">No file saved for this run.</span>';
         const left = (total - processed).toLocaleString();
         const canPickUp = csvBatchResumable(b) && st.key !== 'running' && st.key !== 'background';
-        // Handing it to the server needs no browser at all, so it is the better
-        // offer for anything long; resuming in the tab shows the rows arriving.
+        // One way to finish it, and it is the better one: the server does the
+        // rest in minutes with nothing to keep open. Resuming in the tab was a
+        // second button that did the same job slower and demanded the user sit
+        // and watch it, so it is gone.
         const finish = canPickUp
-            ? `<button class="csv-resume" onclick="backgroundCsvBatch('${esc(b.id)}', this)"><i class="fas fa-cloud"></i> Finish ${left} in background</button>`
-            : '';
-        const resume = canPickUp
-            ? `<button class="csv-resume" onclick="resumeCsvBatch('${esc(b.id)}')"><i class="fas fa-rotate-left"></i> Resume here</button>`
+            ? `<button class="csv-resume" onclick="backgroundCsvBatch('${esc(b.id)}', this)"><i class="fas fa-cloud"></i> Finish ${left} rows</button>`
             : '';
         const action = st.key === 'background'
             ? `<span class="csv-note"><i class="fas fa-circle-notch fa-spin"></i> We're finishing this for you — nothing to keep open. Updated ${timeAgo(b.updated_at)}.</span>`
             : st.key === 'running'
                 ? `<span class="csv-note"><i class="fas fa-circle-notch fa-spin"></i> Running in the tab you started it in — last saved ${timeAgo(b.updated_at)}.</span>`
-                : `<div class="csv-actions">${finish}${resume}${download}</div>`;
+                : `<div class="csv-actions">${finish}${download}</div>`;
 
         const leftOver = total - processed;
         // Rows we could not read a name from were never enrichable. They are
@@ -938,13 +937,6 @@ async function backgroundCsvBatch(id, btn) {
     } catch (e) {
         if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-exclamation-circle"></i> Could not queue'; setTimeout(() => { btn.innerHTML = original; }, 2500); }
     }
-}
-
-// The app owns resuming: it needs the enrichment panel, the credit balance and
-// the whole bulk pipeline. History just hands it the batch.
-function resumeCsvBatch(id) {
-    try { posthog.capture('csv_resume_from_history', { batch_id: id }); } catch (e) {}
-    window.location.href = addGclid(`https://linkfinderai.com/app?token=${userToken}&resume=${encodeURIComponent(id)}`);
 }
 
 async function loadCsvBatches() {

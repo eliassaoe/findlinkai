@@ -333,13 +333,11 @@ test('a stopped run can be finished without a browser at all', () => {
     const { api, nodes } = readerHarness([batch({ status: 'stopped', processed_rows: 320, found_rows: 198 })]);
     api.renderCsvBatches();
     assert.match(nodes.csvList.innerHTML, /backgroundCsvBatch\('b1'/);
-    assert.match(nodes.csvList.innerHTML, /Finish 180 in background/);
-    // Resuming in the tab stays available for anyone who wants to watch it.
-    assert.match(nodes.csvList.innerHTML, /resumeCsvBatch\('b1'\)/);
+    assert.match(nodes.csvList.innerHTML, /Finish 180 rows/);
 });
 
 test('handing a batch over is scoped to the caller and resets the lease', () => {
-    const fn = slice(historySrc, 'async function backgroundCsvBatch(', '// The app owns resuming', 'handover');
+    const fn = slice(historySrc, 'async function backgroundCsvBatch(', 'async function loadCsvBatches(', 'handover');
     assert.match(fn, /user_id=eq\.\$\{encodeURIComponent\(userToken\)\}/);
     assert.match(fn, /status: 'queued'/);
     assert.match(fn, /locked_until: null/, 'a stale lease would delay the pickup');
@@ -383,11 +381,20 @@ test('a run whose tab was closed reads as interrupted, not as still running', ()
 test('a run that stopped part way offers to pick up the rows it never reached', () => {
     const { api, nodes } = readerHarness([batch({ processed_rows: 320, found_rows: 198, status: 'out_of_credits' })]);
     api.renderCsvBatches();
-    // Both ways of finishing it, and the partial file meanwhile.
-    assert.match(nodes.csvList.innerHTML, /Finish 180 in background/, '500 total - 320 processed');
-    assert.match(nodes.csvList.innerHTML, /resumeCsvBatch\('b1'\)/);
+    assert.match(nodes.csvList.innerHTML, /Finish 180 rows/, '500 total - 320 processed');
+    assert.match(nodes.csvList.innerHTML, /backgroundCsvBatch\('b1'/);
+    // And the partial file is still there to take meanwhile.
     assert.match(nodes.csvList.innerHTML, /downloadCsvBatch\('b1'/);
     assert.match(nodes.csvList.innerHTML, /Download what is enriched/);
+});
+
+test('there is one way to finish a stopped run, not two', () => {
+    // Resuming in the tab did the same job slower and made the user watch it.
+    // Two buttons for one outcome is a choice nobody benefits from making.
+    const { api, nodes } = readerHarness([batch({ status: 'stopped', processed_rows: 320, found_rows: 198 })]);
+    api.renderCsvBatches();
+    assert.doesNotMatch(nodes.csvList.innerHTML, /resumeCsvBatch/);
+    assert.doesNotMatch(historySrc, /function resumeCsvBatch/, 'the in-tab handoff should be gone from History');
 });
 
 test('a finished run has nothing to resume', () => {
@@ -515,9 +522,21 @@ test('the history list never pulls the archived CSV with it', () => {
     assert.match(fields, /input_bytes/);
 });
 
-test('History hands resuming to the app rather than running it itself', () => {
-    const fn = slice(historySrc, 'function resumeCsvBatch(id)', 'async function loadCsvBatches(', 'resume handoff');
-    assert.match(fn, /\/app\?token=\$\{userToken\}&resume=/);
+test('the load banner queues the file where the user stands, and goes nowhere', () => {
+    // It used to navigate into the app and set up an in-tab run. Now it hands
+    // the file to the server in place.
+    const fn = slice(appSrc, 'async function finishCsvBatchInBackground(', '// Kept, but no longer offered', 'banner handoff');
+    assert.match(fn, /status: 'queued'/);
+    assert.match(fn, /user_id=eq\.\$\{encodeURIComponent\(userToken\)\}/);
+    assert.doesNotMatch(fn, /window\.location/, 'queueing should not move the user off the page');
+    assert.match(appSrc, /onclick="finishCsvBatchInBackground/, 'the banner button must call it');
+});
+
+test('the in-tab resume survives as an escape hatch, just unadvertised', () => {
+    // ?resume=<id> is the only caller of processBulk(true) now. Keeping it costs
+    // nothing; ripping it out of the enrichment loop for tidiness would not.
+    assert.match(appSrc, /const resumeId = new URLSearchParams\(window\.location\.search\)\.get\('resume'\)/);
+    assert.match(appSrc, /async function resumeCsvBatch\(batchId\)/);
 });
 
 test('the download is scoped to the caller\'s own token', () => {
