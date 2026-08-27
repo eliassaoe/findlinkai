@@ -13,7 +13,7 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
   <link rel="icon" href="https://i.ibb.co/jPjX9SSp/Screen-Shot-2025-03-28-at-8-16-15-PM.png">
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Google Sheets LinkedIn Enrichment - LinkFinder AI | Enrich Leads in a Spreadsheet</title>
-  <meta name="description" content="Enrich LinkedIn and company data directly inside Google Sheets. Add a simple =LINKFINDER() custom function with Apps Script, or run a batch script over a column. Free API key, 25 credits to start."/>
+  <meta name="description" content="Enrich LinkedIn and company data directly inside Google Sheets. Add a =LINKFINDER() custom function with Apps Script, or run a batch script over a column — passing company, location and job title for an exact match. Free API key, 25 credits to start."/>
   <meta name="keywords" content="google sheets linkedin enrichment, linkedin enrichment google sheets, enrich leads in google sheets, google sheets data enrichment, linkedin api google sheets, apps script linkedin"/>
   <link rel="canonical" href="https://linkfinderai.com/linkedIn-enrichment-google-sheets"/>
   <meta property="og:title" content="Google Sheets LinkedIn Enrichment — LinkFinder AI"/>
@@ -289,7 +289,7 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
       </div>
       <div class="step">
         <h3>Open the Apps Script editor</h3>
-        <p>In your sheet, go to <code>Extensions → Apps Script</code>. Delete the placeholder code and paste the function from the next section.</p>
+        <p>In your sheet, go to <code>Extensions → Apps Script</code>. Delete the placeholder code and paste the function from the next section. Then add your key under <code>Project Settings → Script Properties</code> as <code>LF_KEY</code> — the script reads it from there, so it is never sitting in the code you might share.</p>
       </div>
       <div class="step">
         <h3>Add your key and save</h3>
@@ -297,7 +297,8 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
       </div>
       <div class="step">
         <h3>Enrich with a formula</h3>
-        <p>Back in the sheet, type <code>=LINKFINDER(A2, "company_name_to_website")</code> in a cell and drag it down. For big lists, use the batch script instead — see below.</p>
+        <p>Back in the sheet, type <code>=LINKFINDER(A2, "company_name_to_website")</code> in a cell and drag it down.</p>
+        <p><strong>Looking someone up by name?</strong> Pass the company, location and job title too — <code>=LINKFINDER(A2, "lead_full_name_to_email", B2, C2, D2)</code>. "John Smith" on its own matches thousands of people; "John Smith Acme Berlin VP Sales" matches one, and costs exactly the same. For big lists, use the batch script below.</p>
       </div>
     </div>
   </div>
@@ -307,7 +308,7 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
 <section class="section-alt">
   <div class="container">
     <div class="section-title">The code</div>
-    <div class="section-sub">Paste once into Apps Script. The custom function works in any cell; the batch script is for large columns.</div>
+    <div class="section-sub">Paste once into Apps Script. The custom function works in any cell; the batch script is for large columns. Both share the same <code>lfCall</code> helper, so paste the first block either way.</div>
     <div class="demo-tabs">
       <button class="demo-tab active" onclick="showTab('formula', this)">Custom Function</button>
       <button class="demo-tab" onclick="showTab('usage', this)">Using it in a cell</button>
@@ -317,62 +318,149 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
 
     <div id="tab-formula" class="code-block"><pre>/**
  * Enrich a value with LinkFinder AI.
- * @param {string} input   The cell value (name, email, company, or LinkedIn URL)
- * @param {string} type    The request type, e.g. "company_name_to_website"
+ *
+ * @param {string} input     The cell to look up (name, email, company, or LinkedIn URL)
+ * @param {string} type      The request type, e.g. "company_name_to_website"
+ * @param {string} company   Optional. Name lookups only.
+ * @param {string} location  Optional. Name lookups only.
+ * @param {string} jobTitle  Optional. Name lookups only.
  * @customfunction
  */
-function LINKFINDER(input, type) {
-  var apiKey = "YOUR_API_KEY"; // or use PropertiesService for safety
+function LINKFINDER(input, type, company, location, jobTitle) {
+  if (!input || !type) return "";
+  var cell = function (v) { return Array.isArray(v) ? cell(v[0]) : v; };
+  var text = function (v) { return String(cell(v) == null ? "" : cell(v)).trim(); };
+
+  var value = text(input);
+
+  // The two name lookups take name + company + location + job title joined.
+  // A bare "John Smith" matches thousands of people for the same price as one
+  // that resolves, so send everything you have.
+  if (type.indexOf("lead_full_name_") === 0) {
+    // CRMs export "Doe, John". The lookup wants "John Doe".
+    var flip = value.match(/^\s*([^,]{1,60}?)\s*,\s*([^,]{1,60}?)\s*$/);
+    if (flip) value = flip[2] + " " + flip[1];
+    value = [value, text(company), text(location), text(jobTitle)]
+      .filter(String).join(" ");
+  }
+
+  return lfCall(type, value);
+}
+
+/** Shared by the formula and the batch script below. */
+function lfCall(type, input) {
+  var key = PropertiesService.getScriptProperties().getProperty("LF_KEY");
+  if (!key) throw new Error("No API key. Project Settings \u2192 Script Properties \u2192 add LF_KEY.");
+
   var res = UrlFetchApp.fetch("https://api.linkfinderai.com", {
     method: "post",
     contentType: "application/json",
-    headers: { "Authorization": "Bearer " + apiKey },
+    headers: { Authorization: "Bearer " + key },
     payload: JSON.stringify({ type: type, input_data: input }),
     muteHttpExceptions: true
   });
-  var data = JSON.parse(res.getContentText());
-  if (data.status !== "success" || !data.result) return "Not found";
-  // Return a single field, or JSON.stringify(data.result) for everything
-  return typeof data.result === "object"
-    ? JSON.stringify(data.result)
-    : data.result;
+
+  var code = res.getResponseCode();
+  var data = JSON.parse(res.getContentText() || "{}");
+
+  // These are NOT "not found" — surfacing them as such is how people burn an
+  // afternoon wondering why every row came back empty.
+  if (code === 401) throw new Error("API key rejected.");
+  if (code === 402) throw new Error("Out of credits.");
+  if (code === 429) throw new Error("Rate limited \u2014 wait a moment.");
+  if (code >= 400) throw new Error(data.message || ("LinkFinder error " + code));
+
+  // Some lookups answer with a job instead of a result and are never ready
+  // immediately \u2014 linkedin_profile_to_linkedin_info always does.
+  if (data.job_id) data = lfPoll(data.poll_url || ("https://api.linkfinderai.com/status/" + data.job_id), key);
+
+  var result = data.result;
+  if (result === null || result === undefined || result === "") return "Not found";
+
+  // A provider failure can arrive dressed as a successful result.
+  if (result && result.error) throw new Error("Provider error: " + (result.error.message || "unknown"));
+
+  return typeof result === "object" ? JSON.stringify(result) : result;
+}
+
+function lfPoll(url, key) {
+  for (var i = 0; i < 30; i++) {
+    Utilities.sleep(3000);
+    var r = UrlFetchApp.fetch(url, { headers: { Authorization: "Bearer " + key }, muteHttpExceptions: true });
+    var d = JSON.parse(r.getContentText() || "{}");
+    if (d.status && d.status !== "processing") return d.data || d;
+  }
+  throw new Error("Still running after 90s \u2014 use the batch script for this lookup.");
 }</pre></div>
 
     <div id="tab-usage" class="code-block" style="display:none;"><pre>// In any cell, call it like a normal formula:
 
-=LINKFINDER(A2, "company_name_to_website")     // company → website
+=LINKFINDER(A2, "company_name_to_website")          // company \u2192 website
+=LINKFINDER(A2, "lead_full_name_to_linkedin_url")   // name \u2192 LinkedIn URL
 
-// Tip: pull one field out of the JSON result
-=INDEX(SPLIT(LINKFINDER(A2,"company_name_to_website"),","),1)
+// Name lookups take company, location and job title too. Every one you add
+// makes the match more certain \u2014 and costs exactly the same:
 
-// Or keep the raw JSON in a helper column and parse with
-// your preferred method.</pre></div>
+=LINKFINDER(A2, "lead_full_name_to_email", B2)           // + company
+=LINKFINDER(A2, "lead_full_name_to_email", B2, C2, D2)   // + location, job title
+
+// "John Smith" alone matches thousands of people.
+// "John Smith Acme Berlin VP Sales" matches one.
+
+// Tip: pull one field out of a JSON result
+=INDEX(SPLIT(LINKFINDER(A2,"company_name_to_website"),","),1)</pre></div>
 
     <div id="tab-batch" class="code-block" style="display:none;"><pre>/**
- * Bulk enrich column A → write result to column B.
- * Run from the Apps Script editor (Run ▸ enrichColumn).
- * Safer than per-cell formulas for large sheets.
+ * Bulk enrich a column. Run from the editor (Run \u25b8 enrichColumn).
+ * Better than formulas for large sheets: each row runs once, and rows that
+ * already have a result are skipped without spending a credit.
  */
+var TYPE      = "lead_full_name_to_email";  // any type from the API docs
+var NAME_COL  = 1;   // A \u2014 the value to look up
+var OUT_COL   = 6;   // F \u2014 where results are written
+
+// Name lookups only. Set to 0 for any you do not have \u2014 but every one you
+// fill in makes the match more certain, at no extra cost.
+var COMPANY_COL   = 2;   // B
+var LOCATION_COL  = 3;   // C
+var JOB_TITLE_COL = 4;   // D
+
 function enrichColumn() {
   var sheet = SpreadsheetApp.getActiveSheet();
-  var rows = sheet.getDataRange().getValues();
-  var apiKey = PropertiesService.getScriptProperties().getProperty("LF_KEY");
+  var rows  = sheet.getDataRange().getValues();
+  var at    = function (row, col) { return col ? String(row[col - 1] || "").trim() : ""; };
+  var started = Date.now();
 
-  for (var i = 1; i < rows.length; i++) {      // skip header row
-    var input = rows[i][0];                    // column A
-    if (!input || sheet.getRange(i + 1, 2).getValue()) continue; // skip done
-    var res = UrlFetchApp.fetch("https://api.linkfinderai.com", {
-      method: "post",
-      contentType: "application/json",
-      headers: { "Authorization": "Bearer " + apiKey },
-      payload: JSON.stringify({ type: "company_name_to_website", input_data: input }),
-      muteHttpExceptions: true
-    });
-    var data = JSON.parse(res.getContentText());
-    sheet.getRange(i + 1, 2).setValue(           // column B
-      data.status === "success" ? JSON.stringify(data.result) : "Not found"
-    );
-    Utilities.sleep(300);                        // gentle on rate limits
+  for (var i = 1; i < rows.length; i++) {          // skip the header row
+    // Apps Script kills any script at 6 minutes. Stop early and say where to
+    // resume from, rather than dying mid-row.
+    if (Date.now() - started > 5 * 60 * 1000) {
+      SpreadsheetApp.getUi().alert("Stopped at row " + (i + 1) + " to stay inside the 6-minute limit. Run again to continue \u2014 finished rows are skipped.");
+      return;
+    }
+
+    var name = at(rows[i], NAME_COL);
+    if (!name) continue;
+    if (sheet.getRange(i + 1, OUT_COL).getValue()) continue;   // already done
+
+    var value = name;
+    if (TYPE.indexOf("lead_full_name_") === 0) {
+      var flip = value.match(/^\s*([^,]{1,60}?)\s*,\s*([^,]{1,60}?)\s*$/);
+      if (flip) value = flip[2] + " " + flip[1];
+      value = [value, at(rows[i], COMPANY_COL), at(rows[i], LOCATION_COL), at(rows[i], JOB_TITLE_COL)]
+        .filter(String).join(" ");
+    }
+
+    try {
+      sheet.getRange(i + 1, OUT_COL).setValue(lfCall(TYPE, value));
+    } catch (e) {
+      sheet.getRange(i + 1, OUT_COL).setValue("Error: " + e.message);
+      // Out of credits or a bad key will not fix itself on the next row.
+      if (/credits|key rejected/i.test(e.message)) return;
+    }
+
+    SpreadsheetApp.flush();
+    Utilities.sleep(300);                          // gentle on rate limits
   }
 }</pre></div>
 

@@ -85,3 +85,11 @@ test('no name means no lookup, whatever else is filled in', () => {
   assert.strictEqual(buildInput(NAME_OP, { company: 'Microsoft', location: 'Seattle' }), 'Microsoft Seattle');
   assert.strictEqual(requiredPartName(NAME_OP), 'name');
 });
+
+test('the custom function keeps the published (input, type) order', () => {
+  // linkfinderai.com/linkedIn-enrichment-google-sheets has documented
+  // =LINKFINDER(A2, "type") since this integration shipped. Reversing it would
+  // send the type string as the lookup for everyone with an existing formula.
+  const src = ctx.LINKFINDER.toString();
+  assert.match(src, /function LINKFINDER\(\s*input\s*,\s*type\s*,/);
+});

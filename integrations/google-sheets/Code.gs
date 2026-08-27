@@ -235,23 +235,28 @@ function requiredPartName(operation) {
 /**
  * Enrich one value.
  *
- * For most lookups this takes one input:
- *   =LINKFINDER("company_name_to_website", A2)
+ * For most lookups this takes one value:
+ *   =LINKFINDER(A2, "company_name_to_website")
  *
- * The two name-based lookups take up to four, in this order — name, company,
- * location, job title. Every one after the name is optional, and every one you
- * add makes the match more certain:
- *   =LINKFINDER("lead_full_name_to_email", A2, B2, C2, D2)
+ * The two name-based lookups take up to four more, in this order — company,
+ * location, job title. Each is optional, and each one you add makes the match
+ * more certain at exactly the same cost:
+ *   =LINKFINDER(A2, "lead_full_name_to_email", B2, C2, D2)
  *
- * @param {string} type       The lookup, e.g. "lead_full_name_to_email".
+ * The value comes FIRST and the type second. That is the order published on
+ * linkfinderai.com/linkedIn-enrichment-google-sheets since this integration
+ * shipped, and swapping it would silently send the type as the lookup for
+ * everyone with an existing formula.
+ *
  * @param {string} input      What to look up, or the person's name.
+ * @param {string} type       The lookup, e.g. "lead_full_name_to_email".
  * @param {string} company    Optional. Name-based lookups only.
  * @param {string} location   Optional. Name-based lookups only.
  * @param {string} jobTitle   Optional. Name-based lookups only.
  * @return {string} The result, or an empty string when nothing was found.
  * @customfunction
  */
-function LINKFINDER(type, input, company, location, jobTitle) {
+function LINKFINDER(input, type, company, location, jobTitle) {
   if (!type || !input) return '';
 
   var operation = lfOperation(type);

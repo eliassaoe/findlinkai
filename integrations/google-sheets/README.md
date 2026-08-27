@@ -92,15 +92,15 @@ would be charging for a guess.
 For a handful of cells, or when you want the result to recalculate.
 
 ```
-=LINKFINDER("company_name_to_website", A2)
+=LINKFINDER(A2, "company_name_to_website")
 ```
 
-The name-based lookups take the same four values, in the same order — name,
-company, location, job title. Everything after the name is optional:
+The value comes first, the lookup second — the order this integration has always
+used. The name-based lookups take three more after that, all optional:
 
 ```
-=LINKFINDER("lead_full_name_to_email", A2, B2, C2, D2)
-=LINKFINDER("lead_full_name_to_email", A2, B2)          ← name + company only
+=LINKFINDER(A2, "lead_full_name_to_email", B2, C2, D2)
+=LINKFINDER(A2, "lead_full_name_to_email", B2)          ← name + company only
 ```
 
 Fill down like any formula.
