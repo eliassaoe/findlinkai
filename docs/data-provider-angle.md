@@ -1,5 +1,9 @@
 # Becoming a data provider, not a credit vendor
 
+> **Update, 27 Aug.** The AI lead finder referenced below is now removed rather than
+> parked — `leads_finder_ai` is gone from the API surface and from every integration.
+> The reasoning here still explains why, and is kept as the record of that decision.
+
 Written 2026-08-23, from `enrichment_history` + `linkfinderai_users`.
 
 Question this answers: *who actually stays, and what do we sell them so one

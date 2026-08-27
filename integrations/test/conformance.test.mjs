@@ -313,3 +313,43 @@ test('the Sheets add-on, the live page and the CRM worker join the same four par
         assert.match(source, /\[\^,\]\{1,60\}\?/, `${what}'s name flip does not look like the shared one`);
     }
 });
+
+test('the withdrawn AI lead finder is gone from every surface', () => {
+    // Removed from the product, so it must be absent from the spec, the catalog
+    // and everything generated from them — not merely hidden in one wrapper while
+    // another still offers a lookup the API will reject.
+    const gone = ['leads_finder_ai', 'findLeadsWithAi', 'fetch_count'];
+
+    const surfaces = {
+        'the request enum': JSON.stringify(spec.components.schemas.EnrichmentRequest.properties.type.enum),
+        'the operation block': JSON.stringify(Object.keys(spec['x-linkfinder-operations'])),
+        'the request schema': JSON.stringify(Object.keys(spec.components.schemas.EnrichmentRequest.properties)),
+        'the catalog': JSON.stringify(catalog),
+        'the n8n operations': readFileSync(
+            join(REPO, 'n8n-nodes-linkfinderai', 'nodes', 'LinkFinderAi', 'generated', 'operations.ts'), 'utf8'),
+        'the add-on': readFileSync(join(ROOT, 'google-sheets-addon', 'Operations.gs'), 'utf8'),
+        'the Zapier index': readFileSync(join(ROOT, 'zapier', 'searches', 'index.js'), 'utf8'),
+    };
+
+    for (const [what, content] of Object.entries(surfaces)) {
+        for (const token of gone) {
+            assert.ok(!content.includes(token), `${what} still mentions ${token}`);
+        }
+    }
+
+    // And no generated file survives for it.
+    for (const dir of [join(ROOT, 'zapier', 'searches'), join(ROOT, 'make', 'modules')]) {
+        assert.ok(
+            !readdirSync(dir).some((f) => /leadsfinder|findleadswithai/i.test(f)),
+            `${dir} still contains a generated file for it`,
+        );
+    }
+
+    // An n8n resource whose default no longer exists would break the node.
+    for (const [resource, meta] of Object.entries(catalog.n8nResources)) {
+        assert.ok(
+            catalog.operations.some((o) => o.n8n.resource === resource && o.n8n.operation === meta.default),
+            `n8n resource "${resource}" defaults to "${meta.default}", which no operation provides`,
+        );
+    }
+});

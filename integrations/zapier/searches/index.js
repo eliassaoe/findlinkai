@@ -21,7 +21,6 @@ const getLinkedinCompanyDetails = require('./getLinkedinCompanyDetails');
 const getLinkedinPostReactions = require('./getLinkedinPostReactions');
 const lookUpInstagramProfile = require('./lookUpInstagramProfile');
 const b2bDataLookup = require('./b2bDataLookup');
-const findLeadsWithAi = require('./findLeadsWithAi');
 
 module.exports = {
   [findLinkedinUrlFromName.key]: findLinkedinUrlFromName,
@@ -43,5 +42,4 @@ module.exports = {
   [getLinkedinPostReactions.key]: getLinkedinPostReactions,
   [lookUpInstagramProfile.key]: lookUpInstagramProfile,
   [b2bDataLookup.key]: b2bDataLookup,
-  [findLeadsWithAi.key]: findLeadsWithAi,
 };

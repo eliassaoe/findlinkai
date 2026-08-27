@@ -246,16 +246,17 @@ test('a dry run enriches but never calls the destination', async () => {
 });
 
 test('a provider error dressed as a successful result is not treated as a lead', async () => {
-    // Observed live: leads_finder_ai answered 200 / status "success" with an Apify
+    // Observed live: a lookup answered 200 / status "success" with a provider
     // permissions error as its only result. Pushing that into a campaign would put a
-    // stack trace where a person should be.
+    // stack trace where a person should be. The operation it happened on has since
+    // been withdrawn; the failure mode has not.
     const { calls, restore } = stubFetch([
         { status: 200, body: { status: 'success', result: [{ error: { message: '403 - full-permission-actor-not-approved', status: 403 } }] } },
     ]);
 
     try {
         const out = await enrichAndPush({
-            apiKey: KEY, type: 'leads_finder_ai', input: 'VP Sales',
+            apiKey: KEY, type: 'company_domain_to_employees', input: 'tesla.com',
             destination: 'instantly', credentials: { apiKey: 'k' }, target: { id: 'c1' },
         });
 

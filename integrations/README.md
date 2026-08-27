@@ -49,10 +49,12 @@ is still open.
 
 Two findings from those calls are worth knowing before reading the code:
 
-- **`leads_finder_ai` is broken in production.** It returns HTTP 200 / `status:
-  "success"` carrying an upstream Apify permissions error as its result. Every
-  integration here detects that envelope and raises rather than treating it as data —
-  otherwise a stack trace ends up in a CRM field or an email campaign.
+- **An operation can return a failure dressed as a success.** Seen live: HTTP 200 /
+  `status: "success"` carrying an upstream provider permissions error as its result.
+  Every integration here detects that envelope and raises rather than treating it as
+  data — otherwise a stack trace ends up in a CRM field or an email campaign. The
+  operation it was observed on has since been withdrawn; the check stays, because
+  nothing about the failure was specific to it.
 - **The Instagram operation has two names** and nothing settles which is right, so the
   JavaScript wrappers send one and retry the other on a 422.
 

@@ -129,13 +129,6 @@ const PARAM_FIELD = {
     default: 20,
     typeOptions: { minValue: 1 },
   },
-  fetch_count: {
-    displayName: 'Number of Leads',
-    name: 'fetchCount',
-    type: 'number',
-    default: 10,
-    typeOptions: { minValue: 1, maxValue: 100 },
-  },
 };
 
 const paramUsage = new Map();

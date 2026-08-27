@@ -20,7 +20,7 @@ import { getDestination } from './destinations/index.mjs';
  * @param {object} options.target            `{ id, kind }` — the campaign, list or sequence.
  * @param {boolean} [options.requireEmail]   Skip leads with no email. On by default.
  * @param {boolean} [options.dryRun]         Enrich and normalise, but do not push.
- * @param {object} [options.params]          Extra request params, e.g. `{ fetch_count: 50 }`.
+ * @param {object} [options.params]          Extra request params, e.g. `{ employee_count: 50 }`.
  */
 export async function enrichAndPush({
     apiKey,
