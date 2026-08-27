@@ -109,15 +109,20 @@ test('the prices match app.html, which is what the account is actually charged',
   const app = readFileSync(join(ADDON, '..', '..', 'app.html'), 'utf8');
   const block = app.slice(app.indexOf('creditCosts'));
 
+  let checked = 0;
   for (const op of getOperations()) {
-    const match = block.match(new RegExp(`${op.type}\\s*:\\s*(\\d+)`));
+    const match = block.match(new RegExp(`\\b${op.type}['\"]?\\s*:\\s*(\\d+)`));
     if (!match) continue; // app.html does not expose every operation
     assert.strictEqual(
       op.credits,
       Number(match[1]),
       `${op.type} is offered at ${op.credits} credits but charged ${match[1]}`,
     );
+    checked++;
   }
+  // Without this the regex could stop matching and the test would pass on zero
+  // comparisons — which is exactly what it did until the quoted keys were handled.
+  assert.ok(checked >= 8, `only ${checked} prices compared against app.html`);
 });
 
 // ---------------------------------------------------------------------------

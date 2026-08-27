@@ -18,14 +18,20 @@
  * — `lead_full_name` only supports `email` and `linkedin_url` as direct
  * outputs; phone requires a name -> linkedin_url -> phone chain since
  * `linkedin_profile` is the only input type that yields a phone number):
- *   - email        1 credit  (lead_full_name_to_email)
- *   - linkedin_url 1 credit  (lead_full_name_to_linkedin_url)
- *   - phone        1-2 credits (reuses a LinkedIn URL if already found/on
- *                  file this run, otherwise derives one first, then looks
- *                  up the phone from it)
+ *   - email        7 credits  (lead_full_name_to_email)
+ *   - linkedin_url 1 credit   (lead_full_name_to_linkedin_url)
+ *   - phone        50 credits, +1 if a LinkedIn URL has to be derived first
+ *                  (linkedin_profile_to_phone; reuses a URL already found or
+ *                  on file this run rather than paying for another)
+ * These are the prices in integrations/catalog/operations.json, which is
+ * generated from openapi.json. This comment used to say 1 / 1 / 1-2, which
+ * understated a phone lookup by a factor of 25 to 50 and was the justification
+ * for the whole design. A full run of 25 contacts missing all three fields is
+ * about 1,450 credits, not 75.
+ *
  * Each field's target HubSpot property name is user-configurable (property
  * internal names vary per HubSpot account), and the max contacts processed
- * per weekly run is user-configurable too (clamped 1-100 server-side).
+ * per weekly run is user-configurable too (clamped 1-1000 server-side).
  *
  * ARCHITECTURE: uses Nango (nango.dev) purely for OAuth token storage +
  * a proxied HubSpot API — NOT Nango's own hosted Functions/Syncs runtime
@@ -139,7 +145,15 @@ const CRM_ADAPTERS = {
     // company domain ON the contact to build an enrichment input. The other
     // CRMs keep company on a related record, so they get connect and on-demand
     // enrichment but not the unattended job — see syncSupported().
-    syncReadMap: { firstName: 'firstname', lastName: 'lastname', company: 'company', website: 'website' },
+    // firstName/lastName/company/website are what the lookup needs to run at all.
+    // jobTitle and the location trio are what make it find the RIGHT person: the
+    // API takes one joined string, and every extra part narrows it for the same
+    // credit. They are standard HubSpot contact properties, so they cost nothing
+    // to read and are simply absent on portals that don't fill them.
+    syncReadMap: {
+      firstName: 'firstname', lastName: 'lastname', company: 'company', website: 'website',
+      jobTitle: 'jobtitle', city: 'city', state: 'state', country: 'country',
+    },
 
     async listProperties(proxy) {
       const r = await proxy('/crm/v3/properties/contacts', { method: 'GET' });
@@ -566,17 +580,40 @@ async function nangoCreateConnectSession(env, linkfinderToken) {
 
 // providerConfigKey defaults to HubSpot for connection records written before
 // this worker supported more than one CRM — those have no key stored.
+// HubSpot allows 100 requests per 10 seconds, and only 4/second to the search
+// endpoint. A weekly run at maxPerRun 1000 is well past that, and a dropped 429
+// used to mean a contact was enriched — and charged — and then never written
+// back. Retrying the three transient statuses costs a second and saves the row.
+const PROXY_RETRY_STATUSES = new Set([429, 502, 503, 504]);
+const PROXY_MAX_ATTEMPTS = 3;
+
+const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
 async function nangoProxy(env, connectionId, path, options = {}, providerConfigKey = HUBSPOT_INTEGRATION_ID) {
-  const r = await fetch(`${NANGO_API_BASE}/proxy${path}`, {
-    ...options,
-    headers: {
-      'Authorization': `Bearer ${env.NANGO_SECRET_KEY}`,
-      'Connection-Id': connectionId,
-      'Provider-Config-Key': providerConfigKey,
-      'Content-Type': 'application/json',
-      ...(options.headers || {}),
-    },
-  });
+  let r;
+  for (let attempt = 1; attempt <= PROXY_MAX_ATTEMPTS; attempt++) {
+    r = await fetch(`${NANGO_API_BASE}/proxy${path}`, {
+      ...options,
+      headers: {
+        'Authorization': `Bearer ${env.NANGO_SECRET_KEY}`,
+        'Connection-Id': connectionId,
+        'Provider-Config-Key': providerConfigKey,
+        'Content-Type': 'application/json',
+        ...(options.headers || {}),
+      },
+    });
+
+    if (!PROXY_RETRY_STATUSES.has(r.status) || attempt === PROXY_MAX_ATTEMPTS) return r;
+
+    // HubSpot says how long to wait on a 429; honour it up to a sane ceiling
+    // rather than guessing, and fall back to 1s, 2s.
+    const retryAfter = Number(r.headers.get('Retry-After'));
+    const backoff = Number.isFinite(retryAfter) && retryAfter > 0
+      ? Math.min(retryAfter * 1000, 10000)
+      : attempt * 1000;
+    console.log(`[crm-sync] ${path} returned ${r.status}, retrying in ${backoff}ms (attempt ${attempt}/${PROXY_MAX_ATTEMPTS})`);
+    await wait(backoff);
+  }
   return r;
 }
 
@@ -906,9 +943,41 @@ async function handleNangoWebhook(request, env) {
 // back only into the empty fields.
 // ─────────────────────────────────────────────────────────────
 
+// A CRM export is where "Doe, John" lives. HubSpot's own firstname/lastname
+// usually join cleanly, but an import that put the whole name in one field does
+// not — and looking someone up backwards costs the same as looking them up right.
+function flipName(fullName) {
+  const m = String(fullName || '').match(/^\s*([^,]{1,60}?)\s*,\s*([^,]{1,60}?)\s*$/);
+  return m ? `${m[2]} ${m[1]}` : String(fullName || '').trim();
+}
+
 function splitName(fullName) {
-  const parts = (fullName || '').trim().split(/\s+/);
+  const parts = flipName(fullName).split(/\s+/).filter(Boolean);
   return { first: parts[0] || '', last: parts.slice(1).join(' ') || '' };
+}
+
+/**
+ * The string sent to a name lookup.
+ *
+ * The API takes ONE input for these, and app.html builds it by joining the name,
+ * the company, the location and the job title. This worker sent only the name and
+ * the company, so an unattended weekly run was matching on strictly less than the
+ * app does — at 7 credits a row for an email, charged whether the match is the
+ * right person or a stranger with the same name.
+ */
+function buildPersonInput({ fullName, company, location, jobTitle }) {
+  return [flipName(fullName), company, location, jobTitle]
+    .map((v) => String(v || '').trim())
+    .filter(Boolean)
+    .join(' ');
+}
+
+/** City, region and country as one phrase, however much of it the portal has. */
+function locationOf(props, map) {
+  return [props[map.city], props[map.state], props[map.country]]
+    .map((v) => String(v || '').trim())
+    .filter(Boolean)
+    .join(' ');
 }
 
 function domainFromWebsite(website) {
@@ -998,7 +1067,8 @@ async function syncOneConnection(env, linkfinderToken, record) {
 
   // 1. Search HubSpot for contacts missing ANY of the enabled fields
   // (each enabled field is its own OR'd filterGroup).
-  const requestedProperties = new Set(['firstname', 'lastname', 'company', 'website']);
+  const readMap = adapterFor(record.providerConfigKey).syncReadMap;
+  const requestedProperties = new Set(Object.values(readMap));
   enabledKeys.forEach((k) => requestedProperties.add(fieldProperty(settings.fields[k])));
 
   const searchBody = {
@@ -1042,22 +1112,28 @@ async function syncOneConnection(env, linkfinderToken, record) {
 
   for (const contact of contacts) {
     const props = contact.properties || {};
-    const fullName = `${props.firstname || ''} ${props.lastname || ''}`.trim();
+    const fullName = `${props[readMap.firstName] || ''} ${props[readMap.lastName] || ''}`.trim();
     // Email lookup (lead_full_name_to_email) needs a company DOMAIN, derived
     // from the website property specifically — a display name like "Acme
     // Inc" isn't a domain and would produce a bogus lookup.
-    const domain = domainFromWebsite(props.website);
+    const domain = domainFromWebsite(props[readMap.website]);
     // LinkedIn URL lookup (lead_full_name_to_linkedin_url) takes one joined
     // "Full Name Company Name" string instead — confirmed against app.html's
     // actual request construction, which does NOT send first_name/last_name/
     // domain for this combination at all.
-    const companyName = (props.company || '').trim();
+    const companyName = (props[readMap.company] || '').trim();
+    // Cost nothing to send and narrow the match a great deal. Absent on portals
+    // that don't fill them, in which case the input is simply what it was before.
+    const jobTitle = (props[readMap.jobTitle] || '').trim();
+    const location = locationOf(props, readMap);
     if (!fullName) { skipped.noName++; console.log(`[crm-sync] contact ${contact.id}: skipped, no name`); continue; }
+
+    const personInput = buildPersonInput({ fullName, company: companyName, location, jobTitle });
 
     const missing = enabledKeys.filter((k) => isEmptyValue(props[fieldProperty(settings.fields[k])]));
     if (!missing.length) { skipped.alreadyComplete++; continue; }
 
-    console.log(`[crm-sync] contact ${contact.id} "${fullName}": missing=${missing.join(',')} domain="${domain}" company="${companyName}"`);
+    console.log(`[crm-sync] contact ${contact.id} "${fullName}": missing=${missing.join(',')} domain="${domain}" input="${personInput}"`);
 
     const writeBack = {};
     const writtenByField = {};   // field key -> value, for the details list
@@ -1072,7 +1148,7 @@ async function syncOneConnection(env, linkfinderToken, record) {
           attempted.email++;
           const { first, last } = splitName(fullName);
           const d = await runEnrichment(env, linkfinderToken, {
-            type: 'lead_full_name_to_email', input_data: `${first} ${last}`, first_name: first, last_name: last,
+            type: 'lead_full_name_to_email', input_data: personInput, first_name: first, last_name: last,
             domain, output_type: 'email',
           });
           console.log(`[crm-sync] contact ${contact.id}: email lookup raw response:`, JSON.stringify(d).slice(0, 500));
@@ -1094,7 +1170,7 @@ async function syncOneConnection(env, linkfinderToken, record) {
         } else {
           attempted.linkedin_url++;
           const d = await runEnrichment(env, linkfinderToken, {
-            type: 'lead_full_name_to_linkedin_url', input_data: `${fullName} ${companyName}`, output_type: 'linkedin_url',
+            type: 'lead_full_name_to_linkedin_url', input_data: personInput, output_type: 'linkedin_url',
           });
           console.log(`[crm-sync] contact ${contact.id}: linkedin_url lookup raw response:`, JSON.stringify(d).slice(0, 500));
           const url = extractStringValue(d, ['linkedin_url', 'linkedinUrl', 'url']);
@@ -1120,7 +1196,7 @@ async function syncOneConnection(env, linkfinderToken, record) {
 
         if (!linkedinUrlForPhone && companyName) {
           const d = await runEnrichment(env, linkfinderToken, {
-            type: 'lead_full_name_to_linkedin_url', input_data: `${fullName} ${companyName}`, output_type: 'linkedin_url',
+            type: 'lead_full_name_to_linkedin_url', input_data: personInput, output_type: 'linkedin_url',
           });
           const url = extractStringValue(d, ['linkedin_url', 'linkedinUrl', 'url']);
           if (url && url.includes('linkedin.com')) linkedinUrlForPhone = url;
@@ -1147,10 +1223,13 @@ async function syncOneConnection(env, linkfinderToken, record) {
       // itself won't touch a property we don't send, so only ever including
       // keys we just found a value for is "no override" by construction.
       if (Object.keys(writeBack).length) {
+        // The provider key matters here as much as it does on the search above:
+        // without it this defaults to HubSpot, so the day another CRM gets a
+        // syncReadMap it would silently write every result into the wrong portal.
         const patchResp = await nangoProxy(env, connectionId, `/crm/v3/objects/contacts/${contact.id}`, {
           method: 'PATCH',
           body: JSON.stringify({ properties: writeBack }),
-        });
+        }, record.providerConfigKey);
         console.log(`[crm-sync] contact ${contact.id}: PATCH status ${patchResp.status}`, patchResp.ok ? '' : await patchResp.text().catch(() => ''));
         // Only report a row once HubSpot accepted the write — a failed PATCH
         // must not appear in the UI as data that landed.

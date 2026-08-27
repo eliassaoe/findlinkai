@@ -8,6 +8,12 @@ on:
       - 'integrations/**'
       - 'n8n-nodes-linkfinderai/**'
       - 'nango-integrations/**'
+      - 'workers/nango-connect-session/**'
+      - 'linkedIn-enrichment-google-sheets.html'
+      - 'crm-sync.html'
+      - 'app.html'
+      - 'js/**'
+      - 'tests/**'
       - 'openapi.json'
       - 'openapi.yaml'
       - '.github/workflows/integrations-ci.yml'
@@ -112,3 +118,38 @@ jobs:
       # nango compile typechecks every action and validates each one is a well-formed
       # Nango entrypoint — the check that caught the factory pattern it rejects.
       - run: npx nango compile
+
+  crm-sync-worker:
+    name: CRM sync worker
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: workers/nango-connect-session
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # The worker is the live HubSpot connection and had tests that nothing ran.
+      # No dependencies — the tests lift the pure parts out of the module worker
+      # and evaluate them, so there is nothing to install.
+      - name: Test
+        run: node --test test/*.test.mjs
+
+  site:
+    name: Site
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # tests/ has existed for a while and nothing ran it, so a stale assertion
+      # sat red without anyone seeing it. No dependencies — these stub the DOM
+      # they need and read the pages straight off disk.
+      - name: Test
+        run: node --test tests/*.test.mjs
