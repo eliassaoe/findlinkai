@@ -380,6 +380,10 @@ test('no app page hides nav tabs behind a horizontal scroll', () => {
     assert.ok(css, `${file} has no .nav-tabs rule`);
     assert.ok(!/overflow-x/.test(css[0]), `${file} still scrolls its nav instead of wrapping`);
     assert.match(css[0], /flex-wrap:\s*wrap/, `${file} does not wrap its nav`);
+    // The nav sits in a 1100px container while the content column is 680px, so
+    // left-aligned tabs start ~207px left of the text below them and read as
+    // shifted off to one side. Centring puts both on the same axis.
+    assert.match(css[0], /justify-content:\s*center/, `${file} left-aligns its nav against a wider container`);
   }
 });
 
