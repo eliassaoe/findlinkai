@@ -390,6 +390,27 @@ test('no app page hides nav tabs behind a horizontal scroll', () => {
   }
 });
 
+test('every app page gives its nav tabs the same height', () => {
+  // app.html and api-access.html render their tabs as <a>, the rest as <button>.
+  // An anchor inherits the body's line-height (22.4px) where a button gets the
+  // UA's `normal` (~16px), so the same padding produced a 43.6px tab on those
+  // two pages and 37.2px everywhere else — a visibly taller menu on two of six.
+  // api-access also carried a 44px floor no other page had.
+  const pages = ['app.html', 'account.html', 'crm-sync.html', 'history.html',
+                 'api-access.html', 'app-integrations.html'];
+
+  for (const file of pages) {
+    const css = read(file).match(/\.nav-tab\{[^}]*\}/);
+    assert.ok(css, `${file} has no .nav-tab rule`);
+    assert.match(css[0], /padding:\.6rem \.8rem/, `${file} changed its nav tab padding`);
+    assert.ok(!/min-height/.test(css[0]), `${file} sets a nav tab height the other pages do not`);
+    // Anchors need this stated; buttons already get it from the UA sheet.
+    if (/<a [^>]*class="nav-tab/.test(read(file))) {
+      assert.match(css[0], /line-height:\s*normal/, `${file} lets its anchor tabs inherit the body line-height`);
+    }
+  }
+});
+
 test('the nav bar is wider than the reading column, so six tabs fit one row', () => {
   // Content is deliberately 680px — one readable column. The nav has no reason
   // to be, and constraining it there is what forced the wrap in the first place.

@@ -22,7 +22,7 @@ EXCLUDE = {
     "upgrade-confirmation", "redeem-code", "beta-index",
     "end-of-bookmarks-bar", "say-goodbye",
     "app", "app-beta", "app-beta-2", "app_beta",
-    "app-prospects", "app-linkedin-leads", "app-workflows",
+    "app-prospects", "app-linkedin-leads",
 }
 # ----------------------------------------
 
