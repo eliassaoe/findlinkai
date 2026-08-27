@@ -13,7 +13,7 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
   <link rel="icon" href="https://i.ibb.co/jPjX9SSp/Screen-Shot-2025-03-28-at-8-16-15-PM.png">
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Google Sheets LinkedIn Enrichment - LinkFinder AI | Enrich Leads in a Spreadsheet</title>
-  <meta name="description" content="Enrich LinkedIn and company data directly inside Google Sheets. Add a simple =LINKFINDER() custom function with Apps Script, or run a batch script over a column. Free API key, 25 credits to start."/>
+  <meta name="description" content="Enrich LinkedIn and company data directly inside Google Sheets. Add a =LINKFINDER() custom function with Apps Script, or run a batch script over a column — passing company, location and job title for an exact match. Free API key, 25 credits to start."/>
   <meta name="keywords" content="google sheets linkedin enrichment, linkedin enrichment google sheets, enrich leads in google sheets, google sheets data enrichment, linkedin api google sheets, apps script linkedin"/>
   <link rel="canonical" href="https://linkfinderai.com/linkedIn-enrichment-google-sheets"/>
   <meta property="og:title" content="Google Sheets LinkedIn Enrichment — LinkFinder AI"/>
@@ -64,6 +64,7 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
     .section-alt{padding:5rem 0;background:var(--gray-50);border-top:1px solid var(--gray-200);border-bottom:1px solid var(--gray-200);}
     .section-title{font-size:2rem;font-weight:700;color:var(--gray-900);margin-bottom:.75rem;}
     .section-sub{color:var(--gray-500);font-size:1rem;margin-bottom:3rem;max-width:600px;}
+    .section-sub a{color:var(--primary);}
     .use-cases-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem;}
     .use-case-card{background:white;border:1px solid var(--gray-200);border-radius:10px;padding:1.5rem;}
     .use-case-icon{width:40px;height:40px;border-radius:8px;background:#eff6ff;display:flex;align-items:center;justify-content:center;margin-bottom:1rem;font-size:1.1rem;}
@@ -93,6 +94,26 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
     .demo-tabs{display:flex;border-bottom:1px solid var(--gray-200);margin-bottom:0;flex-wrap:wrap;}
     .demo-tab{padding:.625rem 1rem;font-size:.8rem;font-weight:600;color:var(--gray-500);cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;background:none;border-top:none;border-left:none;border-right:none;font-family:'Inter',sans-serif;}
     .demo-tab.active{color:var(--primary);border-bottom-color:var(--primary);}
+    .routes{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-top:.5rem;}
+    .route{position:relative;border:1px solid var(--gray-200);border-radius:12px;padding:1.75rem;background:white;display:flex;flex-direction:column;}
+    .route.route-primary{border-color:var(--primary);box-shadow:0 4px 16px rgba(37,99,235,.08);}
+    .route-flag{position:absolute;top:-.7rem;left:1.5rem;background:var(--primary);color:white;font-size:.7rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:.25rem .7rem;border-radius:100px;}
+    .route h3{font-size:1.15rem;font-weight:700;color:var(--gray-900);margin:.25rem 0 .5rem;}
+    .route-lede{font-size:.9rem;color:var(--gray-600);margin-bottom:1rem;line-height:1.6;}
+    .route ul{list-style:none;margin:0 0 1.5rem;padding:0;display:flex;flex-direction:column;gap:.5rem;}
+    .route li{font-size:.85rem;color:var(--gray-600);display:flex;gap:.55rem;line-height:1.5;}
+    .route li i{color:var(--success);font-size:.75rem;margin-top:.35rem;flex-shrink:0;}
+    .route li.route-no i{color:var(--gray-400);}
+    .route .btn{margin-top:auto;}
+    .price-table{width:100%;border-collapse:collapse;font-size:.875rem;background:white;border:1px solid var(--gray-200);border-radius:10px;overflow:hidden;}
+    .price-table th{text-align:left;font-size:.75rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--gray-500);background:var(--gray-50);padding:.75rem 1rem;border-bottom:1px solid var(--gray-200);}
+    .price-table td{padding:.7rem 1rem;border-bottom:1px solid var(--gray-100);color:var(--gray-700);vertical-align:top;}
+    .price-table tr:last-child td{border-bottom:none;}
+    .price-table td:last-child,.price-table th:last-child{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;}
+    .price-table .price-group td{background:var(--gray-50);font-weight:600;color:var(--gray-900);font-size:.78rem;text-transform:uppercase;letter-spacing:.04em;text-align:left;}
+    .price-table code{font-size:.78rem;color:var(--gray-500);}
+    .table-wrap{overflow-x:auto;}
+    @media(max-width:768px){.routes{grid-template-columns:1fr;}}
     .callout{border-radius:8px;padding:1.1rem 1.25rem;margin-top:1.25rem;font-size:.875rem;line-height:1.6;background:#fffbeb;border-left:4px solid #f59e0b;color:#78350f;}
     .callout strong{color:#78350f;}
     .cta-section{background:var(--primary);padding:5rem 0;text-align:center;}
@@ -137,15 +158,15 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
       "name": "Can I enrich LinkedIn data directly in Google Sheets?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Yes. Using Google Apps Script you can add a custom function such as =LINKFINDER() that calls the LinkFinder AI API and returns LinkedIn and company data straight into a cell. There is no external tool required — Apps Script is built into every Google Sheet under Extensions, Apps Script."
+        "text": "Yes, in two ways. You can install the official LinkFinder AI add-on from the Google Workspace Marketplace and enrich a column from a side panel, or add a custom function such as =LINKFINDER() in the built-in Apps Script editor and use it as a formula. Both call the same API and cost the same credits."
       }
     },
     {
       "@type": "Question",
-      "name": "Do I need a Google Sheets add-on to enrich LinkedIn data?",
+      "name": "Should I use the add-on or Apps Script?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "No. The simplest method uses Google's built-in Apps Script editor to define a custom function that calls the LinkFinder AI REST API with UrlFetchApp. You paste a short script once, then use it like any other spreadsheet formula. You can also connect Sheets through a no-code tool such as Make if you prefer not to write any code."
+        "text": "Use the official add-on if you want the shortest path: install it from the Marketplace, add your API key, and enrich a column from a side panel with no code anywhere. It currently performs one lookup, finding LinkedIn profile URLs from names and companies. Choose Apps Script if you need any of the other 19 lookups, if you want a formula you can drag down a column, if you want to edit the code, or if your Workspace administrator blocks Marketplace installs."
       }
     },
     {
@@ -153,7 +174,7 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
       "name": "How much does it cost to enrich a Google Sheet?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "LinkFinder AI charges 1 credit per API request, so enriching one row costs 1 credit. New accounts start with free credits, and billing is monthly with no long-term commitment. See the pricing page for current plan limits."
+        "text": "It depends on the lookup, from 1 credit a row up to 50. Resolving a company name to its website is 1 credit, finding a work email from a name is 7, and finding a mobile number from a LinkedIn profile is 50. A row is charged whether or not anything is found, because the search runs either way. New accounts start with free credits and billing is monthly with no long-term commitment."
       }
     },
     {
@@ -170,6 +191,22 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
       "acceptedAnswer": {
         "@type": "Answer",
         "text": "Depending on the request type you choose, you can resolve a company name to its website, find LinkedIn profile data, find work emails and contact details, and generate lead lists from a plain-English description. Each is selected by changing the type field in the API request."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Why does looking someone up by name return the wrong person?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Because a name on its own is not specific enough. The name lookups also accept a company, a location and a job title, and sending them costs nothing extra: =LINKFINDER(A2, \"lead_full_name_to_email\", B2, C2, D2), or point the add-on's panel at those columns. John Smith matches thousands of people; John Smith Acme Berlin VP Sales matches one. Names exported from a CRM as Doe, John are flipped to John Doe automatically."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Why did my Google Sheets enrichment stop part-way through?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Google stops any Apps Script run after six minutes, which is roughly 400 to 600 rows. The add-on and the batch script both stop just before that limit, keep every answer already written, and skip filled rows on the next run, so running it again continues from where it stopped and costs nothing for the rows already done."
       }
     },
     {
@@ -252,16 +289,16 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
   <div class="container">
     <div class="hero-tag"><i class="fas fa-table"></i> Google Sheets Integration</div>
     <h1>LinkedIn Enrichment in <span>Google Sheets</span></h1>
-    <p>Turn a column of names, emails, companies, or LinkedIn URLs into enriched rows — profile data, work emails, and company info — without leaving your spreadsheet. Add one short Apps Script function and enrich with a formula, or run a batch script over the whole column.</p>
+    <p>Turn a column of names, emails, companies, or LinkedIn URLs into enriched rows — profile data, work emails, and company info — without leaving your spreadsheet. Install the official add-on for one-click LinkedIn lookups, or paste one short Apps Script function to reach all 20.</p>
     <div class="hero-ctas">
       <a href="https://linkfinderai.com/sign-up" class="btn btn-large">Get API Key Free</a>
       <a href="#setup" class="btn btn-outline btn-large">See the Setup</a>
     </div>
     <div class="hero-social-proof">
-      <div class="hero-social-proof-item"><i class="fas fa-check-circle"></i> No add-on required</div>
-      <div class="hero-social-proof-item"><i class="fas fa-check-circle"></i> Works as a formula</div>
-      <div class="hero-social-proof-item"><i class="fas fa-check-circle"></i> Free credits</div>
-      <div class="hero-social-proof-item"><i class="fas fa-check-circle"></i> 1 credit per row</div>
+      <div class="hero-social-proof-item"><i class="fas fa-check-circle"></i> Official add-on, or paste a script</div>
+      <div class="hero-social-proof-item"><i class="fas fa-check-circle"></i> All 20 lookups</div>
+      <div class="hero-social-proof-item"><i class="fas fa-check-circle"></i> Free credits to start</div>
+      <div class="hero-social-proof-item"><i class="fas fa-check-circle"></i> From 1 credit a row</div>
     </div>
   </div>
 </section>
@@ -269,19 +306,56 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
 <div class="stats-bar">
   <div class="container">
     <div class="stats-grid">
-      <div><div class="stat-number">~5min</div><div class="stat-label">One-Time Setup</div></div>
+      <div><div class="stat-number">20</div><div class="stat-label">Lookups Available</div></div>
       <div><div class="stat-number">~3s</div><div class="stat-label">Per Row</div></div>
-      <div><div class="stat-number">1</div><div class="stat-label">Credit per Row</div></div>
+      <div><div class="stat-number">1&ndash;50</div><div class="stat-label">Credits per Row</div></div>
       <div><div class="stat-number">25</div><div class="stat-label">Free Credits to Start</div></div>
     </div>
   </div>
 </div>
 
+
+<!-- Which route -->
+<section class="section" id="choose">
+  <div class="container">
+    <div class="section-title">Two ways to do this</div>
+    <div class="section-sub">Both call the same API and cost the same credits. The add-on is easier to install; the script reaches all 20 lookups today.</div>
+    <div class="routes">
+
+      <div class="route route-primary">
+        <div class="route-flag">Easiest</div>
+        <h3>The official add-on</h3>
+        <div class="route-lede">Install it from the Google Workspace Marketplace, paste your API key once, and enrich a column from a side panel. Nothing to paste into a script editor.</div>
+        <ul>
+          <li><i class="fas fa-check"></i> Finds LinkedIn profile URLs from a column of names and companies</li>
+          <li><i class="fas fa-check"></i> Nothing to paste into a script editor &mdash; install, add your key, pick your columns</li>
+          <li><i class="fas fa-check"></i> Works on a column at a time rather than cell by cell</li>
+          <li class="route-no"><i class="fas fa-circle-minus"></i> One lookup for now. The other 19, and the extra matching columns, are in the next release &mdash; the script below already has all of them.</li>
+        </ul>
+        <a href="https://workspace.google.com/marketplace/app/linkfinder_ai/1096371450007" target="_blank" rel="noopener" class="btn" onclick="posthog.capture('sheets_addon_clicked',{source:'route_picker'})">Install the add-on</a>
+      </div>
+
+      <div class="route">
+        <h3>The Apps Script function</h3>
+        <div class="route-lede">Paste one function into <code>Extensions &rarr; Apps Script</code> and call <code>=LINKFINDER()</code> in a cell. Nothing to install, and the code is yours to change.</div>
+        <ul>
+          <li><i class="fas fa-check"></i> Works as a formula you can drag down a column</li>
+          <li><i class="fas fa-check"></i> No add-on permissions to approve &mdash; useful where Workspace admins lock the Marketplace down</li>
+          <li><i class="fas fa-check"></i> Edit it: change the output format, chain two lookups, write into several columns</li>
+          <li class="route-no"><i class="fas fa-circle-minus"></i> Google can recalculate a formula on its own, which re-spends credits. Use the batch script for anything long.</li>
+        </ul>
+        <a href="#setup" class="btn btn-outline">Get the code</a>
+      </div>
+
+    </div>
+  </div>
+</section>
+
 <!-- Setup steps -->
 <section class="section" id="setup">
   <div class="container">
-    <div class="section-title">Set it up in 4 steps</div>
-    <div class="section-sub">Apps Script is built into every Google Sheet — no marketplace add-on to install.</div>
+    <div class="section-title">The Apps Script route, in 4 steps</div>
+    <div class="section-sub">Apps Script is built into every Google Sheet, so there is nothing to install. Prefer a panel to a formula? <a href="#choose">Install the add-on instead</a>.</div>
     <div class="steps">
       <div class="step">
         <h3>Get your API key</h3>
@@ -289,7 +363,7 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
       </div>
       <div class="step">
         <h3>Open the Apps Script editor</h3>
-        <p>In your sheet, go to <code>Extensions → Apps Script</code>. Delete the placeholder code and paste the function from the next section.</p>
+        <p>In your sheet, go to <code>Extensions → Apps Script</code>. Delete the placeholder code and paste the function from the next section. Then add your key under <code>Project Settings → Script Properties</code> as <code>LF_KEY</code> — the script reads it from there, so it is never sitting in the code you might share.</p>
       </div>
       <div class="step">
         <h3>Add your key and save</h3>
@@ -297,7 +371,8 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
       </div>
       <div class="step">
         <h3>Enrich with a formula</h3>
-        <p>Back in the sheet, type <code>=LINKFINDER(A2, "company_name_to_website")</code> in a cell and drag it down. For big lists, use the batch script instead — see below.</p>
+        <p>Back in the sheet, type <code>=LINKFINDER(A2, "company_name_to_website")</code> in a cell and drag it down.</p>
+        <p><strong>Looking someone up by name?</strong> Pass the company, location and job title too — <code>=LINKFINDER(A2, "lead_full_name_to_email", B2, C2, D2)</code>. "John Smith" on its own matches thousands of people; "John Smith Acme Berlin VP Sales" matches one, and costs exactly the same. For big lists, use the batch script below.</p>
       </div>
     </div>
   </div>
@@ -307,7 +382,7 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
 <section class="section-alt">
   <div class="container">
     <div class="section-title">The code</div>
-    <div class="section-sub">Paste once into Apps Script. The custom function works in any cell; the batch script is for large columns.</div>
+    <div class="section-sub">Paste once into Apps Script. The custom function works in any cell; the batch script is for large columns. Both share the same <code>lfCall</code> helper, so paste the first block either way.</div>
     <div class="demo-tabs">
       <button class="demo-tab active" onclick="showTab('formula', this)">Custom Function</button>
       <button class="demo-tab" onclick="showTab('usage', this)">Using it in a cell</button>
@@ -317,62 +392,149 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
 
     <div id="tab-formula" class="code-block"><pre>/**
  * Enrich a value with LinkFinder AI.
- * @param {string} input   The cell value (name, email, company, or LinkedIn URL)
- * @param {string} type    The request type, e.g. "company_name_to_website"
+ *
+ * @param {string} input     The cell to look up (name, email, company, or LinkedIn URL)
+ * @param {string} type      The request type, e.g. "company_name_to_website"
+ * @param {string} company   Optional. Name lookups only.
+ * @param {string} location  Optional. Name lookups only.
+ * @param {string} jobTitle  Optional. Name lookups only.
  * @customfunction
  */
-function LINKFINDER(input, type) {
-  var apiKey = "YOUR_API_KEY"; // or use PropertiesService for safety
+function LINKFINDER(input, type, company, location, jobTitle) {
+  if (!input || !type) return "";
+  var cell = function (v) { return Array.isArray(v) ? cell(v[0]) : v; };
+  var text = function (v) { return String(cell(v) == null ? "" : cell(v)).trim(); };
+
+  var value = text(input);
+
+  // The two name lookups take name + company + location + job title joined.
+  // A bare "John Smith" matches thousands of people for the same price as one
+  // that resolves, so send everything you have.
+  if (type.indexOf("lead_full_name_") === 0) {
+    // CRMs export "Doe, John". The lookup wants "John Doe".
+    var flip = value.match(/^\s*([^,]{1,60}?)\s*,\s*([^,]{1,60}?)\s*$/);
+    if (flip) value = flip[2] + " " + flip[1];
+    value = [value, text(company), text(location), text(jobTitle)]
+      .filter(String).join(" ");
+  }
+
+  return lfCall(type, value);
+}
+
+/** Shared by the formula and the batch script below. */
+function lfCall(type, input) {
+  var key = PropertiesService.getScriptProperties().getProperty("LF_KEY");
+  if (!key) throw new Error("No API key. Project Settings \u2192 Script Properties \u2192 add LF_KEY.");
+
   var res = UrlFetchApp.fetch("https://api.linkfinderai.com", {
     method: "post",
     contentType: "application/json",
-    headers: { "Authorization": "Bearer " + apiKey },
+    headers: { Authorization: "Bearer " + key },
     payload: JSON.stringify({ type: type, input_data: input }),
     muteHttpExceptions: true
   });
-  var data = JSON.parse(res.getContentText());
-  if (data.status !== "success" || !data.result) return "Not found";
-  // Return a single field, or JSON.stringify(data.result) for everything
-  return typeof data.result === "object"
-    ? JSON.stringify(data.result)
-    : data.result;
+
+  var code = res.getResponseCode();
+  var data = JSON.parse(res.getContentText() || "{}");
+
+  // These are NOT "not found" — surfacing them as such is how people burn an
+  // afternoon wondering why every row came back empty.
+  if (code === 401) throw new Error("API key rejected.");
+  if (code === 402) throw new Error("Out of credits.");
+  if (code === 429) throw new Error("Rate limited \u2014 wait a moment.");
+  if (code >= 400) throw new Error(data.message || ("LinkFinder error " + code));
+
+  // Some lookups answer with a job instead of a result and are never ready
+  // immediately \u2014 linkedin_profile_to_linkedin_info always does.
+  if (data.job_id) data = lfPoll(data.poll_url || ("https://api.linkfinderai.com/status/" + data.job_id), key);
+
+  var result = data.result;
+  if (result === null || result === undefined || result === "") return "Not found";
+
+  // A provider failure can arrive dressed as a successful result.
+  if (result && result.error) throw new Error("Provider error: " + (result.error.message || "unknown"));
+
+  return typeof result === "object" ? JSON.stringify(result) : result;
+}
+
+function lfPoll(url, key) {
+  for (var i = 0; i < 30; i++) {
+    Utilities.sleep(3000);
+    var r = UrlFetchApp.fetch(url, { headers: { Authorization: "Bearer " + key }, muteHttpExceptions: true });
+    var d = JSON.parse(r.getContentText() || "{}");
+    if (d.status && d.status !== "processing") return d.data || d;
+  }
+  throw new Error("Still running after 90s \u2014 use the batch script for this lookup.");
 }</pre></div>
 
     <div id="tab-usage" class="code-block" style="display:none;"><pre>// In any cell, call it like a normal formula:
 
-=LINKFINDER(A2, "company_name_to_website")     // company → website
+=LINKFINDER(A2, "company_name_to_website")          // company \u2192 website
+=LINKFINDER(A2, "lead_full_name_to_linkedin_url")   // name \u2192 LinkedIn URL
 
-// Tip: pull one field out of the JSON result
-=INDEX(SPLIT(LINKFINDER(A2,"company_name_to_website"),","),1)
+// Name lookups take company, location and job title too. Every one you add
+// makes the match more certain \u2014 and costs exactly the same:
 
-// Or keep the raw JSON in a helper column and parse with
-// your preferred method.</pre></div>
+=LINKFINDER(A2, "lead_full_name_to_email", B2)           // + company
+=LINKFINDER(A2, "lead_full_name_to_email", B2, C2, D2)   // + location, job title
+
+// "John Smith" alone matches thousands of people.
+// "John Smith Acme Berlin VP Sales" matches one.
+
+// Tip: pull one field out of a JSON result
+=INDEX(SPLIT(LINKFINDER(A2,"company_name_to_website"),","),1)</pre></div>
 
     <div id="tab-batch" class="code-block" style="display:none;"><pre>/**
- * Bulk enrich column A → write result to column B.
- * Run from the Apps Script editor (Run ▸ enrichColumn).
- * Safer than per-cell formulas for large sheets.
+ * Bulk enrich a column. Run from the editor (Run \u25b8 enrichColumn).
+ * Better than formulas for large sheets: each row runs once, and rows that
+ * already have a result are skipped without spending a credit.
  */
+var TYPE      = "lead_full_name_to_email";  // any type from the API docs
+var NAME_COL  = 1;   // A \u2014 the value to look up
+var OUT_COL   = 6;   // F \u2014 where results are written
+
+// Name lookups only. Set to 0 for any you do not have \u2014 but every one you
+// fill in makes the match more certain, at no extra cost.
+var COMPANY_COL   = 2;   // B
+var LOCATION_COL  = 3;   // C
+var JOB_TITLE_COL = 4;   // D
+
 function enrichColumn() {
   var sheet = SpreadsheetApp.getActiveSheet();
-  var rows = sheet.getDataRange().getValues();
-  var apiKey = PropertiesService.getScriptProperties().getProperty("LF_KEY");
+  var rows  = sheet.getDataRange().getValues();
+  var at    = function (row, col) { return col ? String(row[col - 1] || "").trim() : ""; };
+  var started = Date.now();
 
-  for (var i = 1; i < rows.length; i++) {      // skip header row
-    var input = rows[i][0];                    // column A
-    if (!input || sheet.getRange(i + 1, 2).getValue()) continue; // skip done
-    var res = UrlFetchApp.fetch("https://api.linkfinderai.com", {
-      method: "post",
-      contentType: "application/json",
-      headers: { "Authorization": "Bearer " + apiKey },
-      payload: JSON.stringify({ type: "company_name_to_website", input_data: input }),
-      muteHttpExceptions: true
-    });
-    var data = JSON.parse(res.getContentText());
-    sheet.getRange(i + 1, 2).setValue(           // column B
-      data.status === "success" ? JSON.stringify(data.result) : "Not found"
-    );
-    Utilities.sleep(300);                        // gentle on rate limits
+  for (var i = 1; i < rows.length; i++) {          // skip the header row
+    // Apps Script kills any script at 6 minutes. Stop early and say where to
+    // resume from, rather than dying mid-row.
+    if (Date.now() - started > 5 * 60 * 1000) {
+      SpreadsheetApp.getUi().alert("Stopped at row " + (i + 1) + " to stay inside the 6-minute limit. Run again to continue \u2014 finished rows are skipped.");
+      return;
+    }
+
+    var name = at(rows[i], NAME_COL);
+    if (!name) continue;
+    if (sheet.getRange(i + 1, OUT_COL).getValue()) continue;   // already done
+
+    var value = name;
+    if (TYPE.indexOf("lead_full_name_") === 0) {
+      var flip = value.match(/^\s*([^,]{1,60}?)\s*,\s*([^,]{1,60}?)\s*$/);
+      if (flip) value = flip[2] + " " + flip[1];
+      value = [value, at(rows[i], COMPANY_COL), at(rows[i], LOCATION_COL), at(rows[i], JOB_TITLE_COL)]
+        .filter(String).join(" ");
+    }
+
+    try {
+      sheet.getRange(i + 1, OUT_COL).setValue(lfCall(TYPE, value));
+    } catch (e) {
+      sheet.getRange(i + 1, OUT_COL).setValue("Error: " + e.message);
+      // Out of credits or a bad key will not fix itself on the next row.
+      if (/credits|key rejected/i.test(e.message)) return;
+    }
+
+    SpreadsheetApp.flush();
+    Utilities.sleep(300);                          // gentle on rate limits
   }
 }</pre></div>
 
@@ -458,6 +620,131 @@ function enrichColumn() {
   </div>
 </section>
 
+
+<!-- What it costs -->
+<section class="section-alt" id="cost">
+  <div class="container">
+    <div class="section-title">What each lookup costs</div>
+    <div class="section-sub">Credits per row, whichever route you use. <strong>A row is charged whether or not anything is found</strong> &mdash; the search runs either way. This table is generated from the API's own catalog, so it cannot drift from what you are billed.</div>
+    <div class="table-wrap">
+<!-- LF:CREDIT-TABLE:START -->
+      <table class="price-table">
+        <tr><th>Lookup</th><th>Columns it reads</th><th>Credits per row</th></tr>
+        <tr class="price-group"><td colspan="3">People</td></tr>
+        <tr>
+          <td>Find LinkedIn URL from Name<br><code>lead_full_name_to_linkedin_url</code></td>
+          <td>Full Name + Company<span style="color:var(--gray-400)"> (optional)</span> + Location<span style="color:var(--gray-400)"> (optional)</span> + Job Title<span style="color:var(--gray-400)"> (optional)</span></td>
+          <td>1</td>
+        </tr>
+        <tr>
+          <td>Find LinkedIn URL from Email<br><code>email_to_linkedin_url</code></td>
+          <td>Email Address</td>
+          <td>5</td>
+        </tr>
+        <tr>
+          <td>Find Email from Name<br><code>lead_full_name_to_email</code></td>
+          <td>Full Name + Company<span style="color:var(--gray-400)"> (optional)</span> + Location<span style="color:var(--gray-400)"> (optional)</span> + Job Title<span style="color:var(--gray-400)"> (optional)</span></td>
+          <td>7</td>
+        </tr>
+        <tr>
+          <td>Find Email from LinkedIn Profile<br><code>linkedin_profile_to_email</code></td>
+          <td>LinkedIn Profile URL</td>
+          <td>10</td>
+        </tr>
+        <tr>
+          <td>Get LinkedIn Profile Details<br><code>linkedin_profile_to_linkedin_info</code></td>
+          <td>LinkedIn Profile URL</td>
+          <td>10</td>
+        </tr>
+        <tr>
+          <td>Find Phone from LinkedIn Profile<br><code>linkedin_profile_to_phone</code></td>
+          <td>LinkedIn Profile URL</td>
+          <td>50</td>
+        </tr>
+        <tr class="price-group"><td colspan="3">Companies</td></tr>
+        <tr>
+          <td>Find Company Email<br><code>company_name_to_email</code></td>
+          <td>Company Name</td>
+          <td>1</td>
+        </tr>
+        <tr>
+          <td>Find Company Employee Count<br><code>company_name_to_employee_count</code></td>
+          <td>Company Name</td>
+          <td>1</td>
+        </tr>
+        <tr>
+          <td>Find Company LinkedIn URL<br><code>company_name_to_linkedin_url</code></td>
+          <td>Company Name</td>
+          <td>1</td>
+        </tr>
+        <tr>
+          <td>Find Company Phone<br><code>company_name_to_phone</code></td>
+          <td>Company Name</td>
+          <td>1</td>
+        </tr>
+        <tr>
+          <td>Find Company Website<br><code>company_name_to_website</code></td>
+          <td>Company Name</td>
+          <td>1</td>
+        </tr>
+        <tr>
+          <td>Get Employee Count from LinkedIn Company<br><code>linkedin_company_to_employee_count</code></td>
+          <td>LinkedIn Company Page URL</td>
+          <td>1</td>
+        </tr>
+        <tr>
+          <td>List Employees by Company Domain<br><code>company_domain_to_employees</code></td>
+          <td>Company Domain</td>
+          <td>0.5 &times; employees</td>
+        </tr>
+        <tr>
+          <td>List Employees by Company Name<br><code>company_name_to_employees</code></td>
+          <td>Company Name</td>
+          <td>0.5 &times; employees</td>
+        </tr>
+        <tr>
+          <td>List Employees from LinkedIn Company<br><code>linkedin_company_to_employees</code></td>
+          <td>LinkedIn Company Page URL</td>
+          <td>0.5 &times; employees</td>
+        </tr>
+        <tr>
+          <td>Get LinkedIn Company Details<br><code>linkedin_company_to_linkedin_info</code></td>
+          <td>LinkedIn Company Page URL</td>
+          <td>6</td>
+        </tr>
+        <tr class="price-group"><td colspan="3">Social</td></tr>
+        <tr>
+          <td>Get LinkedIn Post Reactions<br><code>linkedin_post_to_reactions</code></td>
+          <td>LinkedIn Post URL</td>
+          <td>1</td>
+        </tr>
+        <tr>
+          <td>Look Up an Instagram Profile<br><code>instagram_lookup</code></td>
+          <td>Instagram Handle or URL</td>
+          <td>1</td>
+        </tr>
+        <tr class="price-group"><td colspan="3">Discovery</td></tr>
+        <tr>
+          <td>B2B Data Lookup (Any Input)<br><code>b2b_data_lookup</code></td>
+          <td>Company or Person Identifier</td>
+          <td>1</td>
+        </tr>
+        <tr>
+          <td>Find Leads with AI<br><code>leads_finder_ai</code></td>
+          <td>Describe the Leads You Want</td>
+          <td>1</td>
+        </tr>
+      </table>
+<!-- LF:CREDIT-TABLE:END -->
+    </div>
+    <div class="callout">
+      <strong>The name lookups are the ones to get right.</strong> <code>lead_full_name_to_email</code> is 7 credits a row
+      whether it matches the person you meant or someone else with the same name. Send the company, location and job title
+      alongside the name &mdash; it costs exactly the same and it is the difference between one match and thousands.
+    </div>
+  </div>
+</section>
+
 <!-- FAQ -->
 <section class="section">
   <div class="container">
@@ -465,15 +752,15 @@ function enrichColumn() {
     <div class="faq-list">
       <div class="faq-item">
         <div class="faq-q" onclick="toggleFaq(this)">Can I enrich LinkedIn data directly in Google Sheets? <i class="fas fa-chevron-down"></i></div>
-        <div class="faq-a">Yes. With Google Apps Script you add a custom function like <code>=LINKFINDER()</code> that calls the LinkFinder AI API and returns LinkedIn and company data into a cell. Apps Script is built into every sheet under Extensions → Apps Script — no marketplace add-on needed.</div>
+        <div class="faq-a">Yes, two ways. Install the <a href="https://workspace.google.com/marketplace/app/linkfinder_ai/1096371450007" target="_blank" rel="noopener">official add-on</a> and enrich a column from a side panel, or add a custom function like <code>=LINKFINDER()</code> in the built-in Apps Script editor and use it as a formula. Both call the same API and cost the same credits.</div>
       </div>
       <div class="faq-item">
-        <div class="faq-q" onclick="toggleFaq(this)">Do I need an add-on? <i class="fas fa-chevron-down"></i></div>
-        <div class="faq-a">No. The simplest method is the built-in Apps Script editor with a short function that calls the REST API via UrlFetchApp. If you'd rather not touch code, you can connect Sheets through a no-code tool like Make or Zapier instead.</div>
+        <div class="faq-q" onclick="toggleFaq(this)">Add-on or Apps Script — which should I use? <i class="fas fa-chevron-down"></i></div>
+        <div class="faq-a">The <a href="https://workspace.google.com/marketplace/app/linkfinder_ai/1096371450007" target="_blank" rel="noopener">add-on</a> if you want the shortest path: install it, add your key, done — no code anywhere. It currently does one lookup, finding LinkedIn profile URLs from names. Choose Apps Script if you need any of the other 19, if you want a formula you can drag down a column, if you want to edit the code, or if your Workspace admin blocks Marketplace installs.</div>
       </div>
       <div class="faq-item">
         <div class="faq-q" onclick="toggleFaq(this)">How much does it cost to enrich a sheet? <i class="fas fa-chevron-down"></i></div>
-        <div class="faq-a">1 credit per API request, so one row costs 1 credit. New accounts start with free credits and billing is monthly with no commitment. See the <a href="https://linkfinderai.com/pricing">pricing page</a> for current limits.</div>
+        <div class="faq-a">It depends on the lookup — from 1 credit a row up to 50. Resolving a company name is 1; finding an email from a name is 7; a mobile number from a LinkedIn profile is 50. The <a href="#cost">full table is above</a>. <strong>A row is charged whether or not anything is found</strong>, because the search runs either way. New accounts start with free credits; see the <a href="https://linkfinderai.com/pricing">pricing page</a>.</div>
       </div>
       <div class="faq-item">
         <div class="faq-q" onclick="toggleFaq(this)">Will a per-cell formula work for thousands of rows? <i class="fas fa-chevron-down"></i></div>
@@ -482,6 +769,18 @@ function enrichColumn() {
       <div class="faq-item">
         <div class="faq-q" onclick="toggleFaq(this)">What can I enrich from? <i class="fas fa-chevron-down"></i></div>
         <div class="faq-a">Depending on the request type: resolve a company name to its website, look up profile data, find work emails and contact details, or build lead lists from a plain-English description. You pick the job by changing the <code>type</code> field. Full list in the <a href="https://linkfinderai.com/api-documentation">API documentation</a>.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)">I look people up by name and keep getting the wrong person. <i class="fas fa-chevron-down"></i></div>
+        <div class="faq-a">Send more than the name. The name lookups take a company, a location and a job title as well, and joining them costs nothing extra: <code>=LINKFINDER(A2, "lead_full_name_to_email", B2, C2, D2)</code>, or point the add-on's panel at those columns. "John Smith" matches thousands of people; "John Smith Acme Berlin VP Sales" matches one. Names exported from a CRM as <code>Doe, John</code> are flipped to <code>John Doe</code> for you.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)">My run stopped part-way through a long sheet. <i class="fas fa-chevron-down"></i></div>
+        <div class="faq-a">Google stops any Apps Script run at six minutes — roughly 400&ndash;600 rows. The add-on and the batch script both stop just before that, keep every answer already written, and skip filled rows next time, so running it again carries on from where it left off and costs nothing for the rows already done.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)">A cell says "Not found" — was I charged? <i class="fas fa-chevron-down"></i></div>
+        <div class="faq-a">Yes. The search ran and returned nothing, and that costs the same as a hit. A cell reading <code>ERROR:</code> instead is a failure worth reading — a rejected key or an empty credit balance stops the whole run rather than writing the same message into every remaining row.</div>
       </div>
       <div class="faq-item">
         <div class="faq-q" onclick="toggleFaq(this)">Is my API key safe in Apps Script? <i class="fas fa-chevron-down"></i></div>

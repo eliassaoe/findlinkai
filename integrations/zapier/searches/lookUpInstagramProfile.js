@@ -11,7 +11,8 @@ const OPERATION = {
   "inputLabel": "Instagram Handle or URL",
   "params": [],
   "outputField": null,
-  "altType": "instagram_profile_to_instagram_info"
+  "altType": "instagram_profile_to_instagram_info",
+  "compositeInput": null
 };
 
 module.exports = {

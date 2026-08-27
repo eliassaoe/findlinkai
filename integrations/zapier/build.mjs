@@ -41,16 +41,32 @@ function descriptionFor(op) {
 }
 
 function inputFieldsFor(op) {
-  const fields = [
-    {
-      key: 'input_data',
-      label: op.input.label,
-      type: 'string',
-      required: true,
-      helpText: op.input.help,
-      placeholder: String(op.input.example),
-    },
-  ];
+  // A composite lookup takes one string built from several fields. Offering a
+  // single "Full Name and Company" box, as this did, meant a Zap could only ever
+  // map the name — while app.html sends the name, the company, the location and
+  // the job title. Same price, far better match; the fields have to exist for
+  // anyone to map them.
+  const fields = op.compositeInput
+    ? op.compositeInput.parts.map((part) => ({
+        key: part.name,
+        label: part.label,
+        type: 'string',
+        required: Boolean(part.required),
+        helpText: part.required
+          ? part.help
+          : `${part.help} Optional, and free — it costs no extra credits and narrows the match.`,
+        placeholder: String(part.example),
+      }))
+    : [
+        {
+          key: 'input_data',
+          label: op.input.label,
+          type: 'string',
+          required: true,
+          helpText: op.input.help,
+          placeholder: String(op.input.example),
+        },
+      ];
 
   for (const param of op.params) {
     const field = {
@@ -111,6 +127,13 @@ for (const op of catalog.operations) {
     params: op.params.map((p) => p.name),
     outputField: op.output.field ?? null,
     altType: op.altType,
+    // Which fields to join, in which order, when this lookup takes several.
+    compositeInput: op.compositeInput
+      ? {
+          parts: op.compositeInput.parts.map((part) => ({ name: part.name, label: part.label, required: Boolean(part.required) })),
+          joinWith: op.compositeInput.joinWith ?? ' ',
+        }
+      : null,
   };
 
   const asyncNote = op.alwaysAsync

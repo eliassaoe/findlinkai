@@ -198,3 +198,118 @@ test('sample output for the verified families came from real responses', () => {
     assert.ok(company.output.sample.universalName, 'company sample lost universalName');
     assert.ok('company_description' in company.output.sample, 'company results mix camelCase and snake_case');
 });
+
+// ---------------------------------------------------------------------------
+// The composite input, across every platform
+// ---------------------------------------------------------------------------
+
+/*
+ * A user working in Google Sheets reported that they could not get a location or
+ * a job title into a name lookup. It was not a Sheets bug: app.html joins four
+ * fields into the one string the API takes, and every integration built here
+ * exposed a single box. Sheets, Zapier, Make, n8n and the HubSpot sync all had
+ * it, and each one was fixed in its own language.
+ *
+ * That is five implementations of the same rule. These assert they agree — on
+ * which parts, in which order, and on dropping the empty ones — because the
+ * failure mode is silent: a narrower input still returns a result, it is just
+ * more likely to be the wrong person, at the same price.
+ */
+
+const composites = catalog.operations.filter((op) => op.compositeInput);
+
+test('the composite lookups are the two name-based ones, in a fixed part order', () => {
+    assert.deepStrictEqual(
+        composites.map((op) => op.type).sort(),
+        ['lead_full_name_to_email', 'lead_full_name_to_linkedin_url'],
+    );
+    for (const op of composites) {
+        assert.deepStrictEqual(
+            op.compositeInput.parts.map((p) => p.name),
+            ['name', 'company', 'location', 'job_title'],
+            `${op.type} parts drifted`,
+        );
+        assert.strictEqual(op.compositeInput.parts[0].required, true);
+        assert.ok(op.compositeInput.parts.slice(1).every((p) => !p.required));
+    }
+});
+
+test('Zapier offers a field per part instead of one combined box', () => {
+    for (const op of composites) {
+        const source = readFileSync(join(ROOT, 'zapier', 'searches', `${op.key}.js`), 'utf8');
+        const fields = JSON.parse(source.slice(source.indexOf('inputFields: [') + 13, source.indexOf('perform:')).trim().replace(/,$/, ''));
+
+        assert.deepStrictEqual(
+            fields.filter((f) => !op.params.some((p) => p.name === f.key)).map((f) => f.key),
+            op.compositeInput.parts.map((p) => p.name),
+            `${op.key}: Zapier's fields do not match the parts`,
+        );
+        assert.ok(!fields.some((f) => f.key === 'input_data'), `${op.key} still shows a combined input_data box`);
+        assert.strictEqual(fields[0].required, true);
+    }
+});
+
+test('n8n offers a field per part, and knows how to join them again', () => {
+    const generated = readFileSync(
+        join(REPO, 'n8n-nodes-linkfinderai', 'nodes', 'LinkFinderAi', 'generated', 'operations.ts'),
+        'utf8',
+    );
+    const map = JSON.parse(
+        generated.slice(generated.indexOf('COMPOSITE_INPUTS'), generated.indexOf('/** Optional request fields'))
+            .match(/= (\{[\s\S]*\});/)[1],
+    );
+
+    assert.deepStrictEqual(Object.keys(map).sort(), composites.map((o) => o.type).sort());
+    for (const op of composites) {
+        assert.deepStrictEqual(
+            map[op.type].parts.map((p) => p.api),
+            op.compositeInput.parts.map((p) => p.name),
+        );
+        // The node's own parameters are camelCase; the API's fields are not.
+        assert.deepStrictEqual(map[op.type].parts.map((p) => p.node), ['name', 'company', 'location', 'jobTitle']);
+        for (const part of map[op.type].parts) {
+            assert.ok(generated.includes(`"name":"${part.node}"`), `n8n has no input property for ${part.node}`);
+        }
+    }
+});
+
+test('Make joins the parts in an expression rather than sending only the name', () => {
+    for (const op of composites) {
+        const api = JSON.parse(readFileSync(join(ROOT, 'make', 'modules', op.key, 'api.imljson'), 'utf8'));
+        const expression = api[0].body.input_data;
+        for (const part of op.compositeInput.parts) {
+            assert.ok(expression.includes(`parameters.${part.name}`), `${op.key} never reads ${part.name}`);
+        }
+    }
+});
+
+test('Make does not claim a flip it cannot do', () => {
+    // Every other platform reorders "Doe, John" in code. Make has no regex in IML,
+    // so the same help text there would be a promise the module cannot keep.
+    for (const op of composites) {
+        const params = JSON.parse(readFileSync(join(ROOT, 'make', 'modules', op.key, 'parameters.imljson'), 'utf8'));
+        const name = params.find((p) => p.name === 'name');
+        assert.ok(name, `${op.key} has no name parameter`);
+        assert.ok(!/flipped/.test(name.help), `${op.key} promises a flip Make cannot perform`);
+        assert.match(name.help, /First Last/);
+    }
+});
+
+test('the Sheets add-on, the live page and the CRM worker join the same four parts', () => {
+    // Each is its own implementation in its own runtime; what they must share is
+    // the rule. Their own suites check the strings they produce — this checks that
+    // none of them has quietly dropped a part.
+    const sources = {
+        'the Sheets add-on': readFileSync(join(ROOT, 'google-sheets-addon', 'Code.gs'), 'utf8'),
+        'the copy-paste script': readFileSync(join(REPO, 'linkedIn-enrichment-google-sheets.html'), 'utf8'),
+        'the CRM sync worker': readFileSync(join(REPO, 'workers', 'nango-connect-session', 'worker.js'), 'utf8'),
+        "Zapier's lib": readFileSync(join(ROOT, 'zapier', 'lib', 'linkfinder.js'), 'utf8'),
+        "n8n's node": readFileSync(join(REPO, 'n8n-nodes-linkfinderai', 'nodes', 'LinkFinderAi', 'LinkFinderAi.node.ts'), 'utf8'),
+    };
+
+    for (const [what, source] of Object.entries(sources)) {
+        assert.match(source, /flip/i, `${what} no longer handles "Last, First"`);
+        // The literal that only a real flip needs: two comma-free groups swapped.
+        assert.match(source, /\[\^,\]\{1,60\}\?/, `${what}'s name flip does not look like the shared one`);
+    }
+});

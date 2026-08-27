@@ -13,7 +13,10 @@ function startRun(config) {
   var state = {
     sheetId: sheet.getSheetId(),
     type: config.type,
-    sourceColumn: config.sourceColumn,
+    // One column per input part. Name-based lookups map name/company/location/
+    // job_title; everything else maps a single `input`. Parts left blank are
+    // simply absent, which is what makes them optional.
+    columns: config.columns || { input: config.sourceColumn },
     targetColumn: config.targetColumn,
     firstRow: Number(config.firstRow) || 2,
     lastRow: Number(config.lastRow) || sheet.getLastRow(),
@@ -47,8 +50,14 @@ function continueRun() {
   var sheet = sheetById(state.sheetId);
   var operation = lfOperation(state.type);
   var started = Date.now();
-  var sourceIndex = columnToIndex(state.sourceColumn);
   var targetIndex = columnToIndex(state.targetColumn);
+
+  // Resolve each mapped column letter once, not per row.
+  var partIndexes = {};
+  for (var partName in state.columns) {
+    if (state.columns[partName]) partIndexes[partName] = columnToIndex(state.columns[partName]);
+  }
+  var requiredPart = requiredPartName(operation);
 
   while (state.cursor <= state.lastRow) {
     if (Date.now() - started > TIME_BUDGET_MS) {
@@ -64,18 +73,22 @@ function continueRun() {
       };
     }
 
-    var input = sheet.getRange(state.cursor, sourceIndex).getDisplayValue();
+    var values = {};
+    for (var part in partIndexes) {
+      values[part] = sheet.getRange(state.cursor, partIndexes[part]).getDisplayValue();
+    }
+    var input = buildInput(operation, values);
     var existing = sheet.getRange(state.cursor, targetIndex).getDisplayValue();
 
-    // Never spend a credit on a row that already has an answer. This is what makes
-    // resuming safe, and re-running the same range cheap.
-    if (!input || existing) {
+    // Never spend a credit on a row that already has an answer, or on one whose
+    // required column is blank — a row with a company but no name is not a lookup.
+    if (!values[requiredPart] || !input || existing) {
       state.cursor++;
       continue;
     }
 
     try {
-      var result = callLinkFinder(state.type, input.trim(), state.params);
+      var result = callLinkFinder(state.type, input, state.params);
       var value = formatResult(result, operation);
       sheet.getRange(state.cursor, targetIndex).setValue(value === '' ? 'Not found' : value);
       if (value !== '') state.found++;

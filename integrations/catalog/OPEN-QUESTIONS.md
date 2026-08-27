@@ -103,6 +103,27 @@ least stable documentation, and EmailBison is self-hosted so paths vary per depl
 `repeat`, `condition` and `temp` follow Make's documented semantics but the app has not
 been imported into Make's editor. Import it and run each module once before submitting.
 
+The two name lookups now add an expression to that list. Make has nowhere to run code in
+a module's request, so the four fields are joined with `trim`, `if` and string
+concatenation:
+
+```
+{{trim(if(parameters.name, parameters.name, "")
+     + if(parameters.company, " " + parameters.company, "")
+     + if(parameters.location, " " + parameters.location, "")
+     + if(parameters.job_title, " " + parameters.job_title, ""))}}
+```
+
+Those three are the same primitives the polling steps already use, so it should hold —
+but **check the built input in Make's editor with two of the four fields blank** when you
+import. A wrong expression here does not error; it sends a narrower lookup, which still
+returns *a* result, just more often the wrong person, at the same price.
+
+**Make also cannot flip "Doe, John" into "John Doe"** — there is no regex in IML. Every
+other platform does it in code. The name field's help asks for "First Last" instead, and
+`make/build.mjs` fails the build if the catalog's wording changes out from under that
+rewrite, so the claim cannot come back by accident.
+
 ## 7. Before submitting to a marketplace
 
 Zapier and Make both review sample output against real responses. Four of the five

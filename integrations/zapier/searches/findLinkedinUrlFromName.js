@@ -11,7 +11,32 @@ const OPERATION = {
   "inputLabel": "Full Name and Company",
   "params": [],
   "outputField": "linkedin_url",
-  "altType": null
+  "altType": null,
+  "compositeInput": {
+    "parts": [
+      {
+        "name": "name",
+        "label": "Full Name",
+        "required": true
+      },
+      {
+        "name": "company",
+        "label": "Company",
+        "required": false
+      },
+      {
+        "name": "location",
+        "label": "Location",
+        "required": false
+      },
+      {
+        "name": "job_title",
+        "label": "Job Title",
+        "required": false
+      }
+    ],
+    "joinWith": " "
+  }
 };
 
 module.exports = {
@@ -26,12 +51,36 @@ module.exports = {
   operation: {
     inputFields: [
       {
-            "key": "input_data",
-            "label": "Full Name and Company",
+            "key": "name",
+            "label": "Full Name",
             "type": "string",
             "required": true,
-            "helpText": "The person's full name and their company, in one string.",
-            "placeholder": "Bill Gates Microsoft"
+            "helpText": "The person's full name. \"Doe, John\" is flipped to \"John Doe\" automatically.",
+            "placeholder": "Bill Gates"
+    },
+      {
+            "key": "company",
+            "label": "Company",
+            "type": "string",
+            "required": false,
+            "helpText": "Where they work. Much the strongest signal after the name. Optional, and free — it costs no extra credits and narrows the match.",
+            "placeholder": "Microsoft"
+    },
+      {
+            "key": "location",
+            "label": "Location",
+            "type": "string",
+            "required": false,
+            "helpText": "City, region or country. Separates people who share a name. Optional, and free — it costs no extra credits and narrows the match.",
+            "placeholder": "Seattle"
+    },
+      {
+            "key": "job_title",
+            "label": "Job Title",
+            "type": "string",
+            "required": false,
+            "helpText": "Their role. Helps when a company has several people with the same name. Optional, and free — it costs no extra credits and narrows the match.",
+            "placeholder": "Co-chair"
     }
 ],
 

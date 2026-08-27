@@ -13,6 +13,7 @@ import {
 import {
 	ALT_TYPES,
 	ALWAYS_ASYNC_TYPES,
+	COMPOSITE_INPUTS,
 	INPUT_PROPERTIES,
 	OPERATION_PROPERTIES,
 	OPERATION_TYPE_MAP,
@@ -22,6 +23,43 @@ import {
 } from './generated/operations';
 
 const API_BASE = 'https://api.linkfinderai.com';
+
+/**
+ * A CRM export writes "Doe, John". The lookup wants "John Doe", and looking
+ * someone up backwards costs exactly what looking them up right costs.
+ */
+function flipName(value: string): string {
+	const match = value.match(/^\s*([^,]{1,60}?)\s*,\s*([^,]{1,60}?)\s*$/);
+	return match ? `${match[2]} ${match[1]}` : value.trim();
+}
+
+/**
+ * Builds the one string the API takes.
+ *
+ * Most lookups have a single Input field. The two name-based ones take several —
+ * name, company, location, job title — joined in the catalog's order with the
+ * empty ones dropped, which is exactly the string app.html builds. A workflow
+ * that maps only the name still works; it just matches less precisely, and that
+ * is the user's choice rather than the node's limitation.
+ */
+function buildInput(
+	ctx: IExecuteFunctions,
+	type: string,
+	itemIndex: number,
+): string {
+	const composite = COMPOSITE_INPUTS[type];
+	if (!composite) return ctx.getNodeParameter('inputData', itemIndex) as string;
+
+	const parts: string[] = [];
+	for (const part of composite.parts) {
+		let value = String(ctx.getNodeParameter(part.node, itemIndex, '') ?? '').trim();
+		if (!value) continue;
+		// Only a name is ever "Last, First"; a company like "Gates, Foundation" is not.
+		if (part.api === 'name') value = flipName(value);
+		parts.push(value);
+	}
+	return parts.join(composite.joinWith);
+}
 
 function sleep(ms: number): Promise<void> {
 	return new Promise((resolve) => setTimeout(resolve, ms));
@@ -315,7 +353,7 @@ export class LinkFinderAi implements INodeType {
 					throw new NodeOperationError(this.getNode(), `Unknown resource/operation combination: ${resource}/${operation}`);
 				}
 
-				const inputData = this.getNodeParameter('inputData', i) as string;
+				const inputData = buildInput(this, type, i);
 				const body: IDataObject = { type, input_data: inputData };
 
 				// Employee-list operations take department/seniority/employee_count and

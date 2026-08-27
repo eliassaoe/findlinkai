@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+<base target="_top">
+<style>
+  body{font-family:Roboto,Arial,sans-serif;font-size:13px;color:#202124;margin:0;padding:18px;}
+  h1{font-size:15px;font-weight:500;margin:0 0 4px;}
+  p{color:#5f6368;line-height:1.5;margin:0 0 14px;}
+  label{display:block;font-weight:500;margin:0 0 5px;}
+  input{width:100%;box-sizing:border-box;padding:8px;border:1px solid #dadce0;border-radius:4px;font-size:13px;}
+  .help{color:#5f6368;font-size:11.5px;margin-top:6px;line-height:1.4;}
+  a{color:#1a73e8;}
+  button{margin-top:16px;padding:9px 18px;background:#1a73e8;color:#fff;border:0;border-radius:4px;font-size:13px;cursor:pointer;}
+  button:disabled{background:#dadce0;cursor:default;}
+  #status{margin-top:12px;font-size:12px;line-height:1.45;color:#188038;}
+  #status.bad{color:#c5221f;}
+</style>
+</head>
+<body>
+
+<h1>API key</h1>
+<p>You can also set this at the top of the <b>Enrich a column</b> panel, which is where
+most people will. This dialog stays for changing a key without opening the panel.</p>
+
+<label for="key">LinkFinder AI API key</label>
+<input id="key" type="password" placeholder="Paste your key" autocomplete="off">
+<div class="help">
+  Find it at <a href="https://linkfinderai.com/app.html" target="_blank" rel="noopener">linkfinderai.com</a> under
+  API. It is stored in your own Google account, is visible only to you, and is never sent anywhere except to the
+  LinkFinder AI API.
+</div>
+
+<button id="save">Save key</button>
+<div id="status"></div>
+
+<script>
+  var keyField = document.getElementById('key');
+  var status = document.getElementById('status');
+
+  // Show that a key exists without ever putting the real one back on screen.
+  google.script.run.withSuccessHandler(function(configured){
+    if (configured) keyField.placeholder = 'A key is saved — paste a new one to replace it';
+  }).isApiKeyConfigured();
+
+  document.getElementById('save').addEventListener('click', function(){
+    var value = keyField.value.trim();
+    if (!value) {
+      status.className = 'bad';
+      status.textContent = 'Paste your key first.';
+      return;
+    }
+
+    this.disabled = true;
+    status.className = '';
+    status.textContent = 'Saving…';
+
+    google.script.run
+      .withSuccessHandler(function(result){
+        status.className = '';
+        status.textContent = result.message;
+        keyField.value = '';
+        keyField.placeholder = 'A key is saved — paste a new one to replace it';
+        document.getElementById('save').disabled = false;
+        setTimeout(function(){ google.script.host.close(); }, 1200);
+      })
+      .withFailureHandler(function(error){
+        status.className = 'bad';
+        status.textContent = error.message;
+        document.getElementById('save').disabled = false;
+      })
+      .saveApiKey(value);
+  });
+
+  keyField.addEventListener('keydown', function(e){
+    if (e.key === 'Enter') document.getElementById('save').click();
+  });
+</script>
+</body>
+</html>

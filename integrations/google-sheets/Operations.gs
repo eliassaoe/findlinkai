@@ -18,6 +18,40 @@ var LINKFINDER_OPERATIONS = [
     "example": "Bill Gates Microsoft",
     "outputField": "linkedin_url",
     "outputKind": "scalar",
+    "compositeInput": {
+      "parts": [
+        {
+          "name": "name",
+          "label": "Full Name",
+          "required": true,
+          "help": "The person's full name. \"Doe, John\" is flipped to \"John Doe\" automatically.",
+          "example": "Bill Gates"
+        },
+        {
+          "name": "company",
+          "label": "Company",
+          "required": false,
+          "help": "Where they work. Much the strongest signal after the name.",
+          "example": "Microsoft"
+        },
+        {
+          "name": "location",
+          "label": "Location",
+          "required": false,
+          "help": "City, region or country. Separates people who share a name.",
+          "example": "Seattle"
+        },
+        {
+          "name": "job_title",
+          "label": "Job Title",
+          "required": false,
+          "help": "Their role. Helps when a company has several people with the same name.",
+          "example": "Co-chair"
+        }
+      ],
+      "joinWith": " ",
+      "note": "Joined with single spaces, empty parts dropped — the same string app.html builds."
+    },
     "params": []
   },
   {
@@ -33,6 +67,7 @@ var LINKFINDER_OPERATIONS = [
     "example": "john.doe@company.com",
     "outputField": "linkedin_url",
     "outputKind": "scalar",
+    "compositeInput": null,
     "params": []
   },
   {
@@ -48,6 +83,40 @@ var LINKFINDER_OPERATIONS = [
     "example": "Bill Gates Microsoft",
     "outputField": "email",
     "outputKind": "scalar",
+    "compositeInput": {
+      "parts": [
+        {
+          "name": "name",
+          "label": "Full Name",
+          "required": true,
+          "help": "The person's full name. \"Doe, John\" is flipped to \"John Doe\" automatically.",
+          "example": "Bill Gates"
+        },
+        {
+          "name": "company",
+          "label": "Company",
+          "required": false,
+          "help": "Where they work. Much the strongest signal after the name.",
+          "example": "Microsoft"
+        },
+        {
+          "name": "location",
+          "label": "Location",
+          "required": false,
+          "help": "City, region or country. Separates people who share a name.",
+          "example": "Seattle"
+        },
+        {
+          "name": "job_title",
+          "label": "Job Title",
+          "required": false,
+          "help": "Their role. Helps when a company has several people with the same name.",
+          "example": "Co-chair"
+        }
+      ],
+      "joinWith": " ",
+      "note": "Joined with single spaces, empty parts dropped — the same string app.html builds."
+    },
     "params": []
   },
   {
@@ -63,6 +132,7 @@ var LINKFINDER_OPERATIONS = [
     "example": "https://www.linkedin.com/in/someone",
     "outputField": "email",
     "outputKind": "scalar",
+    "compositeInput": null,
     "params": []
   },
   {
@@ -78,6 +148,7 @@ var LINKFINDER_OPERATIONS = [
     "example": "https://www.linkedin.com/in/someone",
     "outputField": null,
     "outputKind": "object",
+    "compositeInput": null,
     "params": []
   },
   {
@@ -93,6 +164,7 @@ var LINKFINDER_OPERATIONS = [
     "example": "https://www.linkedin.com/in/someone",
     "outputField": "phone",
     "outputKind": "scalar",
+    "compositeInput": null,
     "params": []
   },
   {
@@ -108,6 +180,7 @@ var LINKFINDER_OPERATIONS = [
     "example": "Tesla",
     "outputField": "email",
     "outputKind": "scalar",
+    "compositeInput": null,
     "params": []
   },
   {
@@ -123,6 +196,7 @@ var LINKFINDER_OPERATIONS = [
     "example": "Tesla",
     "outputField": "employee_count",
     "outputKind": "scalar",
+    "compositeInput": null,
     "params": []
   },
   {
@@ -138,6 +212,7 @@ var LINKFINDER_OPERATIONS = [
     "example": "Tesla",
     "outputField": "linkedin_url",
     "outputKind": "scalar",
+    "compositeInput": null,
     "params": []
   },
   {
@@ -153,6 +228,7 @@ var LINKFINDER_OPERATIONS = [
     "example": "Tesla",
     "outputField": "phone",
     "outputKind": "scalar",
+    "compositeInput": null,
     "params": []
   },
   {
@@ -168,6 +244,7 @@ var LINKFINDER_OPERATIONS = [
     "example": "Tesla",
     "outputField": "website",
     "outputKind": "scalar",
+    "compositeInput": null,
     "params": []
   },
   {
@@ -183,6 +260,7 @@ var LINKFINDER_OPERATIONS = [
     "example": "https://www.linkedin.com/company/tesla-motors",
     "outputField": "employee_count",
     "outputKind": "scalar",
+    "compositeInput": null,
     "params": []
   },
   {
@@ -198,6 +276,7 @@ var LINKFINDER_OPERATIONS = [
     "example": "tesla.com",
     "outputField": null,
     "outputKind": "list",
+    "compositeInput": null,
     "params": [
       {
         "name": "department",
@@ -229,6 +308,7 @@ var LINKFINDER_OPERATIONS = [
     "example": "Tesla",
     "outputField": null,
     "outputKind": "list",
+    "compositeInput": null,
     "params": [
       {
         "name": "department",
@@ -260,6 +340,7 @@ var LINKFINDER_OPERATIONS = [
     "example": "https://www.linkedin.com/company/tesla-motors",
     "outputField": null,
     "outputKind": "list",
+    "compositeInput": null,
     "params": [
       {
         "name": "department",
@@ -291,6 +372,7 @@ var LINKFINDER_OPERATIONS = [
     "example": "https://www.linkedin.com/company/tesla-motors",
     "outputField": null,
     "outputKind": "object",
+    "compositeInput": null,
     "params": []
   },
   {
@@ -306,6 +388,7 @@ var LINKFINDER_OPERATIONS = [
     "example": "https://www.linkedin.com/posts/someone_activity-123",
     "outputField": null,
     "outputKind": "list",
+    "compositeInput": null,
     "params": []
   },
   {
@@ -321,6 +404,7 @@ var LINKFINDER_OPERATIONS = [
     "example": "@nasa",
     "outputField": null,
     "outputKind": "object",
+    "compositeInput": null,
     "params": []
   },
   {
@@ -336,6 +420,7 @@ var LINKFINDER_OPERATIONS = [
     "example": "tesla.com",
     "outputField": null,
     "outputKind": "object",
+    "compositeInput": null,
     "params": []
   },
   {
@@ -351,6 +436,7 @@ var LINKFINDER_OPERATIONS = [
     "example": "VP Sales at B2B SaaS startups in the United States",
     "outputField": null,
     "outputKind": "list",
+    "compositeInput": null,
     "params": [
       {
         "name": "fetch_count",
