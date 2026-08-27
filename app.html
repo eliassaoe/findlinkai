@@ -1430,6 +1430,21 @@ let billingMode = 'monthly';
 let firstSuccessPromptsFired = false;
 let startingCredits = null; // captured on first non-zero balance; powers the 20% low-credit threshold
 
+// ===== CSV enrichment batches =====
+// Every bulk run is recorded as one row in Supabase so the History page can show
+// the file, how far the enrichment got, and hand back the finished CSV. Same
+// project + publishable key the History page already reads enrichment_history with.
+const CSV_BATCH_SUPABASE_URL = 'https://snxhsboboatjywgwdeds.supabase.co';
+const CSV_BATCH_SUPABASE_ANON_KEY = 'sb_publishable_RKidGRs4ch1ixmRfXoYSww_UsQMSe5w';
+const CSV_BATCH_ENDPOINT = CSV_BATCH_SUPABASE_URL + '/rest/v1/csv_enrichment_batches';
+// Postgres would take far more, but a 4M-char POST from a browser on a bad
+// connection is already pushing it. Past this the run is still tracked, just
+// without the archived file.
+const CSV_BATCH_MAX_CSV_CHARS = 4000000;
+const CSV_BATCH_PROGRESS_EVERY = 25; // rows between progress writes
+let lfUploadedFileName = '';
+let currentCsvBatchId = null;
+
 // ===== Bulletproof Checkout Controls =====
 const CHECKOUT_MODE = 'live'; // MUST match worker env in production
 
@@ -3523,6 +3538,106 @@ function showSingleResultEmployeeCount(inputData, count) {
     document.getElementById('bulkResults').classList.add('hidden');
 }
 
+/* ---------------------------------------------------------------------
+   CSV batch tracking — one row per bulk run in csv_enrichment_batches.
+   Written straight from the page (PostgREST + publishable key), the same way
+   the History page reads enrichment_history. Every call is best-effort: if
+   Supabase is unreachable the enrichment itself must carry on regardless.
+--------------------------------------------------------------------- */
+function csvBatchHeaders(){
+    return {
+        'Content-Type': 'application/json',
+        apikey: CSV_BATCH_SUPABASE_ANON_KEY,
+        Authorization: 'Bearer ' + CSV_BATCH_SUPABASE_ANON_KEY,
+    };
+}
+
+function csvBatchLabel(){
+    const c = dataConfigurations[currentInputType];
+    if(!c) return currentInputType || 'Enrichment';
+    const from = (c.label || '').replace('Enter ', '');
+    const to = (c.outputs && c.outputs[currentOutputType]) || currentOutputType;
+    return `${from} \u2192 ${to}`;
+}
+
+async function csvBatchCreate(totalRows){
+    if(!userToken) return null;
+    try {
+        const res = await fetch(CSV_BATCH_ENDPOINT, {
+            method: 'POST',
+            headers: Object.assign(csvBatchHeaders(), { Prefer: 'return=representation' }),
+            body: JSON.stringify({
+                user_id: userToken,
+                file_name: lfUploadedFileName || 'Pasted list',
+                label: csvBatchLabel(),
+                type: generateCombinationType(currentInputType, currentOutputType),
+                input_type: currentInputType,
+                output_type: currentOutputType,
+                total_rows: totalRows,
+                status: 'processing',
+            })
+        });
+        if(!res.ok) return null;
+        const rows = await res.json();
+        return (Array.isArray(rows) && rows[0]) ? rows[0].id : null;
+    } catch(e) { return null; }
+}
+
+function csvBatchUpdate(id, fields){
+    if(!id) return Promise.resolve();
+    return fetch(`${CSV_BATCH_ENDPOINT}?id=eq.${encodeURIComponent(id)}`, {
+        method: 'PATCH',
+        headers: csvBatchHeaders(),
+        body: JSON.stringify(Object.assign({ updated_at: new Date().toISOString() }, fields))
+    }).catch(() => {});
+}
+
+function csvBatchFoundRows(){
+    return bulkResults.filter(r => r.status === 'Found').length;
+}
+
+// Called once the run stops, whether it finished, ran dry on credits, or the
+// user was gated. Archives the exact CSV the Export button would produce.
+async function csvBatchFinalize(processedCount, creditsConsumed, creditsExhausted){
+    if(!currentCsvBatchId) return;
+    const batchId = currentCsvBatchId;
+    currentCsvBatchId = null;
+
+    const fields = {
+        processed_rows: processedCount,
+        found_rows: csvBatchFoundRows(),
+        credits_used: Math.round(creditsConsumed * 100) / 100,
+        status: creditsExhausted ? 'out_of_credits'
+              : (processedCount >= csvData.length ? 'completed' : 'stopped'),
+        completed_at: new Date().toISOString(),
+    };
+
+    // A run that stops on the credit wall leaves one row still marked
+    // "Processing" — it never got an answer, so keep it out of the saved file.
+    const liveResults = bulkResults;
+    try {
+        bulkResults = bulkResults.filter(r => r.status !== 'Processing');
+        const built = buildBulkCsv();
+        if(built && built.csv && built.csv.length <= CSV_BATCH_MAX_CSV_CHARS){
+            fields.result_csv = built.csv;
+            fields.result_filename = built.baseName + '.csv';
+        }
+    } catch(e) {} finally {
+        bulkResults = liveResults;
+    }
+
+    await csvBatchUpdate(batchId, fields);
+    try {
+        posthog.capture('csv_batch_saved', {
+            status: fields.status,
+            total_rows: csvData.length,
+            processed_rows: fields.processed_rows,
+            found_rows: fields.found_rows,
+            file_archived: !!fields.result_csv,
+        });
+    } catch(e) {}
+}
+
 async function processBulk() {
     isBulkProcessing = true;
     setupRefreshWarning();
@@ -3539,7 +3654,9 @@ async function processBulk() {
     showProgress();
     bulkResults = [];
     initializeBulkResultsTable();
-    
+
+    currentCsvBatchId = await csvBatchCreate(csvData.length);
+
     let creditsConsumed = 0;
     let processedCount = 0;
     let creditsExhausted = false;
@@ -3722,6 +3839,15 @@ async function processBulk() {
         processedCount++;
         updateProgress((i + 1) / csvData.length * 100);
         updateBulkResultsTable();
+        // Fire-and-forget so a slow write never stalls the enrichment. Keeps the
+        // History page honest if the tab dies half way through a long list.
+        if (currentCsvBatchId && processedCount % CSV_BATCH_PROGRESS_EVERY === 0) {
+            csvBatchUpdate(currentCsvBatchId, {
+                processed_rows: processedCount,
+                found_rows: csvBatchFoundRows(),
+                credits_used: Math.round(creditsConsumed * 100) / 100,
+            });
+        }
         await new Promise(r => setTimeout(r, 100));
     }
     
@@ -3743,6 +3869,9 @@ async function processBulk() {
         maybeTriggerFirstSuccessPrompts();
         showBulkHubspotButtonIfApplicable();
     }
+    // Last, and awaited: archiving the file can be a multi-megabyte upload, and
+    // nothing on screen should wait behind it.
+    await csvBatchFinalize(processedCount, creditsConsumed, creditsExhausted);
 }
 
 // Add these new functions after processBulk
@@ -4413,6 +4542,7 @@ function lfLoadXlsx(){
 }
 function handleFile(file){
     const n = (file.name||'').toLowerCase();
+    lfUploadedFileName = file.name || '';
     if(/\.(xlsx|xlsm|xls|ods)$/.test(n)){
         try { posthog.capture('spreadsheet_uploaded', { ext: n.split('.').pop() }); } catch(e){}
         const reader = new FileReader();
@@ -4821,16 +4951,10 @@ function updateBulkResultsTable(){
 }
     document.getElementById('bulkResultsTable').innerHTML=html;
 }
-async function downloadResults(isPreviewOnly){
-    if(bulkResults.length===0) return;
-    if (!isPreviewOnly) {
-        const allowed = await ensureSubscribedForExport();
-        if (!allowed) return; // ensureSubscribedForExport re-invokes downloadResults(true) itself for free users
-    }
-    const fullResults = bulkResults;
-    if (isPreviewOnly) {
-        bulkResults = bulkResults.slice(0, 5);
-    }
+// Builds the export CSV for whatever is currently in `bulkResults`. Kept
+// separate from the download so the copy we archive against the CSV batch in
+// history is byte-for-byte the file the user gets here.
+function buildBulkCsv(){
     const c=dataConfigurations[currentInputType];let csv='';
     if(currentOutputType==='employee_count'){csv=`${c.label.replace('Enter ','')},Employee Count,Status\n`;bulkResults.forEach(r=>{csv+=`"${r.inputData}","${r.employeeCount||'Not found'}","${r.status==='Processing'?'Not found':r.status}"\n`;});}
     else if(currentInputType==='linkedin_post'&&currentOutputType==='reactions'){csv='Name,Job Title,Profile Info,LinkedIn URL\n';bulkResults.forEach(pr=>{if(pr.reactions&&Array.isArray(pr.reactions)){pr.reactions.forEach(r=>{const p=parseReactionTitle(r.title);const esc=(s)=>(!s||s==='Not found'||s==='Not specified')?s:`"${s.toString().replace(/"/g,'""')}"`;csv+=[esc(p.name),esc(p.jobInfo||'Not specified'),esc(r.snippet||'Not specified'),esc(r.link||'Not specified')].join(',')+'\n';});}});}
@@ -4873,13 +4997,27 @@ async function downloadResults(isPreviewOnly){
     });
 }
     else{const ol=c.outputs[currentOutputType];csv=`${c.label.replace('Enter ','')},${ol},Status\n`;bulkResults.forEach(r=>{csv+=`"${r.inputData}","${r.result==='Processing...'?'Not found':r.result}","${r.status==='Processing'?'Not found':r.status}"\n`;});}
-    const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
-    const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;
     let fn='linkfinder_ai_enriched_data';
     if(currentInputType==='linkedin_post') fn='linkedin_reactions';
     else if(currentInputType==='linkedin_profile') fn='linkedin_profile_data';
     else if(currentInputType==='linkedin_company') fn='linkedin_company_data';
-    a.download=`${fn}_${new Date().toISOString().split('T')[0]}${isPreviewOnly ? '_preview' : ''}.csv`;
+    return { csv, baseName: `${fn}_${new Date().toISOString().split('T')[0]}` };
+}
+
+async function downloadResults(isPreviewOnly){
+    if(bulkResults.length===0) return;
+    if (!isPreviewOnly) {
+        const allowed = await ensureSubscribedForExport();
+        if (!allowed) return; // ensureSubscribedForExport re-invokes downloadResults(true) itself for free users
+    }
+    const fullResults = bulkResults;
+    if (isPreviewOnly) {
+        bulkResults = bulkResults.slice(0, 5);
+    }
+    const built = buildBulkCsv();
+    const blob=new Blob([built.csv],{type:'text/csv;charset=utf-8;'});
+    const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;
+    a.download=`${built.baseName}${isPreviewOnly ? '_preview' : ''}.csv`;
     a.click();URL.revokeObjectURL(url);
     if (isPreviewOnly) bulkResults = fullResults; // restore full in-memory results for the table view
 }

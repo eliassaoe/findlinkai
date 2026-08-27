@@ -77,6 +77,47 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
 .filter-select:focus{outline:none;border-color:var(--primary);}
 .results-count{font-size:.78rem;color:var(--gray-400);white-space:nowrap;margin-left:auto;}
 
+/* CSV enrichment batches */
+.csv-section{margin-bottom:1.5rem;}
+.section-head{display:flex;align-items:baseline;gap:.5rem;margin-bottom:.625rem;}
+.section-title{font-size:.95rem;font-weight:700;color:var(--gray-900);display:flex;align-items:center;gap:.45rem;}
+.section-title i{color:var(--primary);font-size:.85rem;}
+.section-sub{font-size:.75rem;color:var(--gray-400);margin-left:auto;white-space:nowrap;}
+.csv-list{display:flex;flex-direction:column;gap:.625rem;}
+.csv-card{background:white;border:1px solid var(--gray-200);border-radius:10px;padding:.875rem 1rem;box-shadow:0 1px 3px rgba(0,0,0,.06);}
+.csv-card-top{display:flex;align-items:center;gap:.75rem;}
+.csv-icon{width:36px;height:36px;border-radius:8px;background:#d1fae5;color:#065f46;display:flex;align-items:center;justify-content:center;font-size:.9rem;flex-shrink:0;}
+.csv-card-info{flex:1;min-width:0;}
+.csv-name{font-size:.875rem;font-weight:600;color:var(--gray-900);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.csv-sub{font-size:.75rem;color:var(--gray-500);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:.1rem;}
+.csv-status{font-size:.65rem;font-weight:600;padding:.15rem .45rem;border-radius:4px;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap;flex-shrink:0;}
+.csv-status.done{background:#d1fae5;color:#065f46;}
+.csv-status.running{background:#dbeafe;color:#1d4ed8;}
+.csv-status.partial{background:#fef3c7;color:#92400e;}
+.csv-status.stalled{background:var(--gray-100);color:var(--gray-600);}
+.csv-progress{margin-top:.75rem;}
+.csv-progress-head{display:flex;align-items:baseline;justify-content:space-between;gap:.5rem;font-size:.75rem;color:var(--gray-500);margin-bottom:.35rem;}
+.csv-pct{font-size:1.05rem;font-weight:700;color:var(--gray-900);line-height:1;}
+.csv-bar{position:relative;height:8px;border-radius:99px;background:var(--gray-100);overflow:hidden;}
+.csv-bar-processed{position:absolute;inset:0 auto 0 0;background:#bfdbfe;border-radius:99px;}
+.csv-bar-found{position:absolute;inset:0 auto 0 0;background:var(--success);border-radius:99px;}
+.csv-legend{display:flex;gap:.875rem;flex-wrap:wrap;font-size:.7rem;color:var(--gray-500);margin-top:.4rem;}
+.csv-legend span{display:flex;align-items:center;gap:.3rem;}
+.csv-dot{width:8px;height:8px;border-radius:2px;flex-shrink:0;}
+.csv-dot.found{background:var(--success);}
+.csv-dot.processed{background:#bfdbfe;}
+.csv-dot.left{background:var(--gray-200);}
+.csv-card-foot{display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;margin-top:.75rem;padding-top:.75rem;border-top:1px solid var(--gray-100);}
+.csv-meta{font-size:.72rem;color:var(--gray-400);display:flex;align-items:center;gap:.25rem;}
+.csv-meta i{color:var(--warning);font-size:.65rem;}
+.csv-dl{margin-left:auto;background:var(--primary);color:white;border:none;padding:.4rem .75rem;border-radius:6px;font-weight:600;font-size:.78rem;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:.4rem;transition:background .15s;}
+.csv-dl:hover:not(:disabled){background:var(--primary-hover);}
+.csv-dl:disabled{background:var(--gray-100);color:var(--gray-400);cursor:default;}
+.csv-note{font-size:.72rem;color:var(--gray-400);margin-left:auto;}
+.csv-empty{background:white;border:1px dashed var(--gray-200);border-radius:10px;padding:1.25rem 1rem;text-align:center;font-size:.82rem;color:var(--gray-500);}
+.csv-empty a{color:var(--primary);text-decoration:none;font-weight:600;}
+.csv-empty a:hover{text-decoration:underline;}
+
 /* History list */
 .history-list{display:flex;flex-direction:column;gap:.5rem;}
 .history-item{background:white;border:1px solid var(--gray-200);border-radius:10px;padding:.875rem 1rem;display:flex;align-items:center;gap:.875rem;transition:border-color .15s,box-shadow .15s;cursor:pointer;}
@@ -340,6 +381,20 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
                 </div>
             </div>
 
+            <!-- CSV enrichments -->
+            <div id="csvSection" class="csv-section hidden">
+                <div class="section-head">
+                    <div class="section-title"><i class="fas fa-file-csv"></i> CSV enrichments</div>
+                    <div class="section-sub" id="csvSectionSub"></div>
+                </div>
+                <div id="csvList" class="csv-list"></div>
+            </div>
+
+            <!-- Activity header -->
+            <div class="section-head" id="activityHead">
+                <div class="section-title"><i class="fas fa-stream"></i> All enrichments</div>
+            </div>
+
             <!-- Filter bar -->
             <div class="filter-bar">
                 <input type="text" class="search-input" id="searchInput" placeholder="Search by input or result..." oninput="filterHistory()">
@@ -430,6 +485,8 @@ const PAGE_SIZE = 25;
 let userToken = null;
 let allHistory = [];
 let filteredHistory = [];
+let csvBatches = [];
+let filteredCsvBatches = [];
 let currentPage = 1;
 let isSubscriber = false;
 let activeDetailItem = null;
@@ -636,6 +693,28 @@ function filterHistory() {
         return true;
     });
 
+    // The same search box narrows the CSV section, so "where's that file I
+    // dropped last week" is one query rather than a scroll.
+    filteredCsvBatches = csvBatches.filter(b => {
+        if (search) {
+            const hay = `${b.file_name || ''} ${b.label || ''} ${b.type || ''}`.toLowerCase();
+            if (!hay.includes(search)) return false;
+        }
+        if (type && !(b.type || '').includes(type)) return false;
+        if (date) {
+            const d = new Date(b.started_at);
+            if (date === 'today') {
+                if (d.toDateString() !== now.toDateString()) return false;
+            } else if (date === 'week') {
+                if (d < new Date(now - 7*24*60*60*1000)) return false;
+            } else if (date === 'month') {
+                if (d < new Date(now - 30*24*60*60*1000)) return false;
+            }
+        }
+        return true;
+    });
+    renderCsvBatches();
+
     currentPage = 1;
     renderHistory();
 }
@@ -652,6 +731,160 @@ function updateStats() {
         document.getElementById('statDays').textContent = '0';
     }
     document.getElementById('pageMeta').textContent = `${allHistory.length} enrichment${allHistory.length!==1?'s':''} saved`;
+}
+
+/* ---------------------------------------------------------------------
+   CSV enrichments — one card per uploaded file, showing how far the run
+   got, how much of the file came back enriched, and the finished CSV.
+
+   The list query deliberately never asks for result_csv: an archived file
+   runs to megabytes. result_bytes (a generated column) tells us whether a
+   file is there and how big it is; the content is fetched on click.
+--------------------------------------------------------------------- */
+// A run that never reported in again is a tab that was closed mid-enrichment,
+// not a run still going. Progress is written every 25 rows, so anything quiet
+// for this long has stopped.
+const CSV_BATCH_STALE_MS = 15 * 60 * 1000;
+
+const CSV_BATCH_FIELDS = 'id,file_name,label,type,input_type,output_type,total_rows,' +
+    'processed_rows,found_rows,credits_used,status,result_filename,result_bytes,' +
+    'started_at,updated_at,completed_at';
+
+function csvBatchState(b) {
+    if (b.status === 'processing') {
+        const last = new Date(b.updated_at || b.started_at).getTime();
+        if (Date.now() - last > CSV_BATCH_STALE_MS) {
+            return { key: 'stalled', label: 'Interrupted', cls: 'stalled' };
+        }
+        return { key: 'running', label: 'Running', cls: 'running' };
+    }
+    if (b.status === 'out_of_credits') return { key: 'partial', label: 'Out of credits', cls: 'partial' };
+    if (b.status === 'stopped') return { key: 'partial', label: 'Stopped early', cls: 'partial' };
+    return { key: 'done', label: 'Completed', cls: 'done' };
+}
+
+function pct(part, whole) {
+    if (!whole) return 0;
+    return Math.min(100, Math.round((part / whole) * 100));
+}
+
+function formatBytes(n) {
+    if (!n) return '';
+    if (n < 1024) return n + ' B';
+    if (n < 1024 * 1024) return Math.round(n / 1024) + ' KB';
+    return (n / (1024 * 1024)).toFixed(1) + ' MB';
+}
+
+function renderCsvBatches() {
+    const section = document.getElementById('csvSection');
+    const list = document.getElementById('csvList');
+    const sub = document.getElementById('csvSectionSub');
+
+    if (!csvBatches.length) { section.classList.add('hidden'); return; }
+    section.classList.remove('hidden');
+
+    const files = csvBatches.length;
+    const rows = csvBatches.reduce((s, b) => s + (b.found_rows || 0), 0);
+    sub.textContent = `${files} file${files !== 1 ? 's' : ''} · ${rows.toLocaleString()} row${rows !== 1 ? 's' : ''} enriched`;
+
+    if (!filteredCsvBatches.length) {
+        list.innerHTML = '<div class="csv-empty">No CSV files match your search.</div>';
+        return;
+    }
+
+    list.innerHTML = filteredCsvBatches.map((b, i) => {
+        const st = csvBatchState(b);
+        const total = b.total_rows || 0;
+        const processed = Math.min(b.processed_rows || 0, total || (b.processed_rows || 0));
+        const found = Math.min(b.found_rows || 0, processed);
+        const foundPct = pct(found, total);
+        const processedPct = pct(processed, total);
+
+        const hasFile = !!b.result_bytes;
+        const size = formatBytes(b.result_bytes);
+        const action = st.key === 'running'
+            ? '<span class="csv-note">Still running — the file lands here when it finishes.</span>'
+            : (hasFile
+                ? `<button class="csv-dl" onclick="downloadCsvBatch('${esc(b.id)}', this)"><i class="fas fa-download"></i> Download results${size ? ' · ' + size : ''}</button>`
+                : '<span class="csv-note">No file saved for this run.</span>');
+
+        const leftOver = total - processed;
+        const legend = `<div class="csv-legend">
+            <span><i class="csv-dot found"></i>${found.toLocaleString()} enriched</span>
+            <span><i class="csv-dot processed"></i>${(processed - found).toLocaleString()} no match</span>
+            ${leftOver > 0 ? `<span><i class="csv-dot left"></i>${leftOver.toLocaleString()} not processed</span>` : ''}
+        </div>`;
+
+        return `<div class="csv-card">
+            <div class="csv-card-top">
+                <div class="csv-icon"><i class="fas fa-file-csv"></i></div>
+                <div class="csv-card-info">
+                    <div class="csv-name">${esc(b.file_name || 'Uploaded list')}</div>
+                    <div class="csv-sub">${esc(b.label || getTypeInfo(b.type).label)} · ${timeAgo(b.started_at)}</div>
+                </div>
+                <span class="csv-status ${st.cls}">${st.label}</span>
+            </div>
+            <div class="csv-progress">
+                <div class="csv-progress-head">
+                    <span class="csv-pct">${foundPct}% enriched</span>
+                    <span>${processed.toLocaleString()} of ${total.toLocaleString()} rows processed</span>
+                </div>
+                <div class="csv-bar">
+                    <div class="csv-bar-processed" style="width:${processedPct}%"></div>
+                    <div class="csv-bar-found" style="width:${foundPct}%"></div>
+                </div>
+                ${legend}
+            </div>
+            <div class="csv-card-foot">
+                <span class="csv-meta"><i class="fas fa-coins"></i>${(Number(b.credits_used) || 0).toLocaleString(undefined, { maximumFractionDigits: 2 })} credits</span>
+                <span class="csv-meta">${fullTimestamp(b.started_at)}</span>
+                ${action}
+            </div>
+        </div>`;
+    }).join('');
+}
+
+async function downloadCsvBatch(id, btn) {
+    const batch = csvBatches.find(b => b.id === id);
+    const original = btn ? btn.innerHTML : '';
+    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Preparing…'; }
+    try {
+        const res = await fetch(
+            `${SUPABASE_URL}/rest/v1/csv_enrichment_batches?id=eq.${encodeURIComponent(id)}` +
+            `&user_id=eq.${encodeURIComponent(userToken)}&select=result_csv,result_filename`,
+            { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` } }
+        );
+        const rows = await res.json();
+        const row = Array.isArray(rows) ? rows[0] : null;
+        if (!row || !row.result_csv) throw new Error('no file');
+
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(new Blob(['\ufeff' + row.result_csv], { type: 'text/csv;charset=utf-8;' }));
+        a.download = row.result_filename || 'linkfinder_enriched_data.csv';
+        a.click();
+        URL.revokeObjectURL(a.href);
+        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-check"></i> Downloaded'; setTimeout(() => { btn.innerHTML = original; }, 2000); }
+        try { posthog.capture('csv_batch_downloaded', { rows: batch ? batch.found_rows : null, type: batch ? batch.type : null }); } catch (e) {}
+    } catch (e) {
+        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-exclamation-circle"></i> Could not download'; setTimeout(() => { btn.innerHTML = original; }, 2500); }
+    }
+}
+
+async function loadCsvBatches() {
+    try {
+        const res = await fetch(
+            `${SUPABASE_URL}/rest/v1/csv_enrichment_batches?user_id=eq.${encodeURIComponent(userToken)}` +
+            `&select=${CSV_BATCH_FIELDS}&order=started_at.desc&limit=200`,
+            { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` } }
+        );
+        const data = await res.json();
+        csvBatches = Array.isArray(data) ? data : [];
+    } catch (e) {
+        csvBatches = [];
+    }
+    // Batches can land after the user has already typed in the search box, so
+    // narrow through the same filter rather than resetting to "everything".
+    filterHistory();
 }
 
 /* ---------------------------------------------------------------------
@@ -1027,6 +1260,7 @@ async function loadHistory() {
     filteredHistory = [...allHistory];
     updateStats();
     renderHistory();
+    loadCsvBatches();
 
     try { posthog.capture('history_page_viewed', {count: allHistory.length}); } catch(e) {}
 }
