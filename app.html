@@ -1447,10 +1447,12 @@ const CSV_BATCH_CHECKPOINT_RPC = CSV_BATCH_SUPABASE_URL + '/rest/v1/rpc/csv_batc
 // or twenty seconds, whichever lands first.
 const CSV_BATCH_PROGRESS_EVERY = 10;
 const CSV_BATCH_PROGRESS_MS = 20000;
-// The input rows are stored so a stopped run can be resumed. 10,000 rows of
-// name/company/location is comfortably inside this; past it we still track the
-// run, it just cannot be resumed.
-const CSV_BATCH_MAX_INPUT_CHARS = 6000000;
+// The uploaded grid is stored so a stopped run can be resumed, on a background
+// request that never blocks the enrichment (see csvBatchStoreInput). This is
+// therefore a guard on what the browser can safely stringify and hold, not on
+// what is polite to POST — a 10,000-row CRM export forty columns wide fits
+// inside it. Past it we still track the run, it just cannot be resumed.
+const CSV_BATCH_MAX_INPUT_CHARS = 25000000;
 // One retry on a network blip or a 5xx. Costs a couple of seconds and saves a
 // row that would otherwise land in the file as "Error".
 const CSV_ROW_RETRIES = 1;
@@ -3593,19 +3595,6 @@ function csvBatchLabel(){
 
 async function csvBatchCreate(totalRows){
     if(!userToken) return null;
-    // The uploaded grid and the column mapping, stored so the run can be picked
-    // up later: rebuilding the input list from these on resume guarantees it
-    // matches this run's exactly. Skipped, with the run still tracked, if the
-    // file is too large to be worth a single POST.
-    let inputRows = null, headers = null, mapping = null;
-    try {
-        if(JSON.stringify(lfCsvRows).length <= CSV_BATCH_MAX_INPUT_CHARS){
-            inputRows = lfCsvRows;
-            headers = lfCsvHeaders;
-            mapping = lfMapping;
-        }
-    } catch(e) {}
-
     try {
         const res = await fetch(CSV_BATCH_ENDPOINT, {
             method: 'POST',
@@ -3622,15 +3611,56 @@ async function csvBatchCreate(totalRows){
                 // is rows with no name to look up.
                 file_rows: lfCsvRows.length,
                 status: 'processing',
-                input_rows: inputRows,
-                csv_headers: headers,
-                column_mapping: mapping,
             })
         });
         if(!res.ok) return null;
         const rows = await res.json();
         return (Array.isArray(rows) && rows[0]) ? rows[0].id : null;
     } catch(e) { return null; }
+}
+
+// The uploaded grid and the column mapping, stored so the run can be picked up
+// later: rebuilding the input list from these on resume guarantees it matches
+// this run's exactly.
+//
+// Sent separately from csvBatchCreate, and never awaited, because a wide CRM
+// export runs to megabytes — blocking the first enrichment on that upload would
+// cost the user half a minute of staring at nothing. If it fails, for any
+// reason including a gateway that will not take a body that size, the run is
+// still tracked; it just cannot be resumed, and the History card offers no
+// Resume button rather than one that would not work.
+async function csvBatchStoreInput(id){
+    if(!id) return false;
+    let body;
+    try {
+        body = JSON.stringify({
+            input_rows: lfCsvRows,
+            csv_headers: lfCsvHeaders,
+            column_mapping: lfMapping,
+        });
+    } catch(e) { return false; }
+
+    // The one real ceiling left is the browser's own: past this, stringifying
+    // and holding the payload is a bigger risk to the run than losing resume.
+    if(body.length > CSV_BATCH_MAX_INPUT_CHARS){
+        try { posthog.capture('csv_batch_input_too_large', { chars: body.length, rows: lfCsvRows.length }); } catch(e) {}
+        return false;
+    }
+
+    for(let attempt = 0; attempt <= 1; attempt++){
+        if(attempt) await new Promise(r => setTimeout(r, 3000));
+        try {
+            const res = await fetch(`${CSV_BATCH_ENDPOINT}?id=eq.${encodeURIComponent(id)}`, {
+                method: 'PATCH', headers: csvBatchHeaders(), body
+            });
+            if(res.ok) return true;
+            // A refusal is an answer — the body is too big for the gateway, or
+            // the row is gone. Retrying the same payload will not change it.
+            if(res.status < 500) break;
+        } catch(e) {}
+    }
+    try { posthog.capture('csv_batch_input_store_failed', { chars: body.length, rows: lfCsvRows.length }); } catch(e) {}
+    return false;
 }
 
 function csvBatchUpdate(id, fields){
@@ -3944,6 +3974,9 @@ async function processBulk(resuming) {
         csvResumeFoundRows = 0;
         csvResumeCredits = 0;
         currentCsvBatchId = await csvBatchCreate(csvData.length);
+        // Deliberately not awaited: the enrichment starts now, and resumability
+        // catches up in the background.
+        csvBatchStoreInput(currentCsvBatchId);
     }
     csvCheckpointSlot = 0;
 

@@ -51,7 +51,7 @@ function writerHarness({ results = [], rows = [], batchId = null, resumeFrom = 0
         CSV_BATCH_ENDPOINT: 'https://db.example/rest/v1/csv_enrichment_batches',
         CSV_BATCH_CHECKPOINT_RPC: 'https://db.example/rest/v1/rpc/csv_batch_checkpoint',
         CSV_BATCH_SUPABASE_ANON_KEY: 'anon_key',
-        CSV_BATCH_MAX_INPUT_CHARS: 6000000,
+        CSV_BATCH_MAX_INPUT_CHARS: 25000000,
         dataConfigurations: {
             lead_full_name: {
                 label: 'Enter Lead Full Name + Company Name',
@@ -77,7 +77,7 @@ function writerHarness({ results = [], rows = [], batchId = null, resumeFrom = 0
     };
     const api = new Function(...Object.keys(ctx),
         writerBlock +
-        `; return { csvBatchCreate, csvBatchUpdate, csvBatchCheckpoint, csvBatchFinalize, csvBatchLabel,
+        `; return { csvBatchCreate, csvBatchStoreInput, csvBatchUpdate, csvBatchCheckpoint, csvBatchFinalize, csvBatchLabel,
             get batchId(){ return currentCsvBatchId; },
             get checkpointRow(){ return csvCheckpointRow; },
             get checkpointSlot(){ return csvCheckpointSlot; },
@@ -88,7 +88,7 @@ function writerHarness({ results = [], rows = [], batchId = null, resumeFrom = 0
 const LEADS = [['Ada', 'AE'], ['Grace', 'UNIVAC'], ['Alan', 'NPL'], ['Edsger', 'THE']];
 const res = (name, status = 'Found') => ({ inputData: name, status });
 
-test('opening a batch records the file, the enrichment and the uploaded rows', async () => {
+test('opening a batch records the file and the enrichment', async () => {
     const { api, calls } = writerHarness({ rows: LEADS });
     const id = await api.csvBatchCreate(4);
     assert.equal(id, 'batch-1');
@@ -96,19 +96,54 @@ test('opening a batch records the file, the enrichment and the uploaded rows', a
     assert.equal(calls[0].body.file_name, 'crm-export.csv');
     assert.equal(calls[0].body.label, 'Lead Full Name + Company Name → Verified Email');
     assert.equal(calls[0].body.total_rows, 4);
+    assert.equal(calls[0].body.file_rows, 4);
     assert.equal(calls[0].body.status, 'processing');
-    // stored so the run can be picked up later
+    // The grid is a separate, unawaited request — a wide export runs to
+    // megabytes and must not stand between the user and their first result.
+    assert.equal(calls[0].body.input_rows, undefined);
+});
+
+test('the uploaded grid is stored separately, with everything a resume needs', async () => {
+    const { api, calls } = writerHarness({ rows: LEADS });
+    assert.equal(await api.csvBatchStoreInput('batch-1'), true);
+    assert.equal(calls[0].method, 'PATCH');
+    assert.ok(calls[0].url.includes('id=eq.batch-1'));
     assert.deepEqual(calls[0].body.input_rows, LEADS);
     assert.deepEqual(calls[0].body.csv_headers, ['Name', 'Company']);
     assert.deepEqual(calls[0].body.column_mapping, { name: 0, company: 1 });
 });
 
-test('a file too large to store is still tracked, just not resumable', async () => {
-    const huge = Array.from({ length: 200000 }, (_, i) => [`n${i}`, 'x'.repeat(40)]);
+test('a wide CRM export still gets stored', async () => {
+    // 10,000 rows, 40 columns — the shape the old 6 MB ceiling turned away.
+    const wide = Array.from({ length: 10000 }, (_, i) =>
+        Array.from({ length: 40 }, (_, c) => `r${i}c${c}value`));
+    const { api, calls } = writerHarness({ rows: wide });
+    assert.equal(await api.csvBatchStoreInput('batch-1'), true);
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].body.input_rows.length, 10000);
+});
+
+test('a grid too big for the browser to hold is skipped, and the run carries on', async () => {
+    const huge = Array.from({ length: 400000 }, (_, i) => [`n${i}`, 'x'.repeat(60)]);
     const { api, calls } = writerHarness({ rows: huge });
-    await api.csvBatchCreate(huge.length);
-    assert.equal(calls[0].body.input_rows, null);
-    assert.equal(calls[0].body.total_rows, huge.length);
+    assert.equal(await api.csvBatchStoreInput('batch-1'), false);
+    assert.equal(calls.length, 0, 'never even attempted');
+});
+
+test('a gateway that refuses the grid is not retried, and never breaks the run', async () => {
+    let attempts = 0;
+    const { api } = writerHarness({
+        rows: LEADS,
+        fetchImpl: async () => { attempts++; return { ok: false, status: 413, json: async () => ({}) }; }
+    });
+    assert.equal(await api.csvBatchStoreInput('batch-1'), false);
+    assert.equal(attempts, 1, 'a 413 is an answer — the same payload will not fit next time either');
+});
+
+test('storing the grid failing leaves the batch tracked, just not resumable', async () => {
+    const { api } = writerHarness({ rows: LEADS, fetchImpl: async () => { throw new Error('offline'); } });
+    await assert.doesNotReject(api.csvBatchStoreInput('batch-1'));
+    assert.equal(await api.csvBatchStoreInput('batch-1'), false);
 });
 
 test('a checkpoint appends only the rows finished since the last one', async () => {
@@ -362,6 +397,12 @@ test('a resumed run starts at the cursor and indexes its own rows', () => {
     assert.match(body, /const slot = i - csvResumeFrom/);
     assert.doesNotMatch(body, /bulkResults\[i\]/, 'absolute indexing breaks a resumed run');
     assert.match(body, /if \(!resuming\)/, 'a resume must not open a second batch row');
+});
+
+test('the enrichment never waits on the uploaded grid being stored', () => {
+    const body = slice(appSrc, 'async function processBulk(resuming) {', '// Add these new functions after processBulk', 'processBulk');
+    assert.match(body, /\n\s*csvBatchStoreInput\(currentCsvBatchId\);/, 'must be fired, not awaited');
+    assert.doesNotMatch(body, /await csvBatchStoreInput/);
 });
 
 test('a checkpoint is due on rows or on elapsed time, whichever lands first', () => {

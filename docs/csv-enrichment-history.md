@@ -51,6 +51,10 @@ Two entry points:
    The app owns resuming — it needs the enrichment panel, the credit balance and
    the whole bulk pipeline — so History just hands the batch over.
 
+A run whose grid never made it into the batch simply does not offer Resume: the
+load banner filters on `input_rows=not.is.null` and the History card on
+`input_bytes`. There is no state where the button appears and then fails.
+
 `resumeCsvBatch(id)` rebuilds the run from the stored batch: it restores the
 input/output selects, sets `lfCsvHeaders` / `lfCsvRows` / `lfMapping`, and
 re-derives `csvData` through the *same* `lfBuildCsvData()` the first run used.
@@ -113,9 +117,10 @@ whole schema is reproduced at the bottom of this file.
 
 `processBulk(resuming)` owns the row end to end:
 
-1. **Open** — `csvBatchCreate(csvData.length)` before the first request, storing
-   the uploaded grid and the column mapping alongside it. Skipped on a resume:
-   the row already exists.
+1. **Open** — `csvBatchCreate(csvData.length)` before the first request. Just
+   metadata, so it is a fast round trip. Skipped on a resume: the row exists.
+   `csvBatchStoreInput()` then sends the uploaded grid **in the background** —
+   see below. Skipped on a resume for the same reason.
 2. **Checkpoint** — `csvBatchCheckpoint()` every `CSV_BATCH_PROGRESS_EVERY` (10)
    rows **or** `CSV_BATCH_PROGRESS_MS` (20s), whichever lands first. That is the
    most work a closed tab can cost.
@@ -153,9 +158,24 @@ would put them in the file ahead of their own enrichment.
   Before this, one flaky request put `Error` in the user's file permanently.
 - **Checkpointing on time as well as rows**, so a slow enrichment cannot go
   twenty minutes without saving anything.
-- **`CSV_BATCH_MAX_INPUT_CHARS` = 6,000,000.** Past that the upload is not
-  stored, the run is still tracked, and the card offers no Resume rather than a
-  button that cannot work.
+- **The uploaded grid is stored out of the critical path.** A 10,000-row CRM
+  export forty columns wide is ~6.5 MB of JSON (measured, not guessed). Sending
+  that as part of `csvBatchCreate` would put a multi-megabyte upload between the
+  user pressing Process and their first result — half a minute of staring at
+  nothing on a middling connection. So `csvBatchStoreInput()` is a separate
+  PATCH, fired and never awaited, with one retry on a 5xx and none on a 4xx (a
+  refusal is an answer — the same payload will not fit next time either).
+
+  If it fails for any reason, including a gateway that will not take a body that
+  size, **the run is still tracked and still archived** — it just cannot be
+  resumed, and the card offers no Resume button rather than one that cannot
+  work. `CSV_BATCH_MAX_INPUT_CHARS` (25,000,000) is the last guard, and it is
+  about what the browser can safely stringify and hold, not about what is polite
+  to POST.
+
+  This is why raising the ceiling is safe: nothing downstream assumes the grid
+  is there. `input_bytes` is the single source of truth for "can this be
+  resumed", and both the History card and the load banner read it.
 
 ## Reading it — `history.html`
 
