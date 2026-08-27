@@ -1,4 +1,10 @@
-const mod = await import('/home/user/findlinkai/workers/verify-email/worker.js');
+import { pathToFileURL } from 'node:url';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+// Same absolute-path problem as tests/intercept.test.mjs — it only ran here.
+const HERE = dirname(fileURLToPath(import.meta.url));
+const mod = await import(pathToFileURL(join(HERE, 'worker.js')).href);
 const kv = new Map();
 const env = { SUPABASE_URL:'https://sb.test', SUPABASE_SERVICE_KEY:'svc', VERIFY_CAP:'10',
   VERIFY_HELD_FALLBACK:'0',
