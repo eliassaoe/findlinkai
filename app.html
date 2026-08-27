@@ -85,6 +85,20 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
     .nudge-logo-make{background:#6d28d9;}
     .nudge-logo-zapier{background:#ff4a00;}
     .bulk-api-hint{text-align:center;margin-top:0.875rem;font-size:0.775rem;color:var(--gray-400);}
+    /* The Google Sheets route out of the CSV loop. Green rather than the app's
+       blue so it reads as a different place to work, not another button here. */
+    .sheets-route{display:flex;align-items:center;gap:0.875rem;margin-top:1rem;padding:0.875rem 1rem;
+        background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;flex-wrap:wrap;}
+    .sheets-route-icon{width:34px;height:34px;border-radius:8px;background:#dcfce7;color:#15803d;
+        display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:0.95rem;}
+    .sheets-route-text{flex:1;min-width:12rem;font-size:0.8125rem;color:#166534;line-height:1.5;}
+    .sheets-route-text strong{display:block;color:#14532d;font-weight:600;margin-bottom:0.1rem;}
+    .sheets-route-cta{flex-shrink:0;background:#16a34a;color:#fff;text-decoration:none;font-weight:600;
+        font-size:0.8125rem;padding:0.5rem 0.9rem;border-radius:6px;white-space:nowrap;transition:background .15s;}
+    .sheets-route-cta:hover{background:#15803d;}
+    .sheets-route-slim{margin-top:0.75rem;margin-bottom:0.75rem;padding:0.7rem 0.9rem;}
+    .sheets-route-slim .sheets-route-icon{width:28px;height:28px;font-size:0.85rem;}
+    .sheets-route-slim .sheets-route-text{font-size:0.78rem;}
     .bulk-api-hint a{color:var(--primary);text-decoration:none;font-weight:500;border-bottom:1px dashed rgba(37,99,235,0.3);}
     .bulk-api-hint a:hover{border-bottom-color:var(--primary);}
     .nav-menu{background:white;border-bottom:1px solid var(--gray-200);padding:0.75rem 0;}
@@ -852,6 +866,7 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
             <a href="#" class="nav-tab active" data-page="enrichment"><i class="fas fa-search"></i> Data Enrichment</a>
             <a href="#" class="nav-tab" data-page="api"><i class="fas fa-code"></i> API & MCP</a>
             <a href="#" class="nav-tab" data-page="crmSync"><i class="fab fa-hubspot"></i> CRM Sync</a>
+            <a href="#" class="nav-tab" data-page="integrations"><i class="fas fa-puzzle-piece"></i> Integrations</a>
             <a href="#" class="nav-tab" data-page="history"><i class="fas fa-history"></i> History</a>
             <a href="#" class="nav-tab" data-page="account"><i class="fas fa-user"></i> Account</a>
         </div>
@@ -1029,6 +1044,24 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
                 <button type="button" class="btn" onclick="event.stopPropagation();document.getElementById('csvFile').click()"><i class="fas fa-file-csv"></i> Select File</button>
                 <button type="button" class="btn" style="background:transparent;color:var(--primary);border:1px solid var(--primary);margin-left:0.5rem;" onclick="event.stopPropagation();useSampleCsv()"><i class="fas fa-wand-magic-sparkles"></i> Try a sample list</button>
             </div>
+            <!-- Offered here rather than buried in a menu: this is the moment
+                 someone is exporting a sheet, uploading it, and about to import
+                 the results back. The add-on removes all three steps, and a
+                 user who moves to it keeps using the product without opening
+                 the app at all. -->
+            <div class="sheets-route">
+                <div class="sheets-route-icon"><i class="fas fa-table"></i></div>
+                <div class="sheets-route-text">
+                    <strong>Your list already in Google Sheets?</strong>
+                    Skip the export and the re-import — enrich the column where it sits, with the
+                    same 20 lookups and the same credits.
+                </div>
+                <a href="https://workspace.google.com/marketplace/app/linkfinder_ai/1096371450007"
+                   target="_blank" rel="noopener" class="sheets-route-cta"
+                   onclick="try{posthog.capture('sheets_addon_clicked',{source:'bulk_upload'})}catch(e){}">
+                    Get the add-on
+                </a>
+            </div>
             <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem;margin-top:0.875rem;">
                 <div class="bulk-api-hint" style="margin-top:0;">
                     Running this regularly? <a href="#" onclick="navigateToPage('api');return false;">connect via API</a> and automate it
@@ -1065,6 +1098,19 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
             <button id="sendAllToHubspotBtn" onclick="sendBulkToHubspot()" class="btn btn-outline hidden"><i class="fab fa-hubspot"></i> Send all to HubSpot</button>
             <button onclick="downloadResults()" class="btn"><i class="fas fa-download"></i> Export</button>
         </div>
+    </div>
+    <!-- Shown after a run, because "now paste this back into my sheet" is the
+         chore the add-on removes, and it is felt right here. -->
+    <div class="sheets-route sheets-route-slim">
+        <div class="sheets-route-icon"><i class="fas fa-table"></i></div>
+        <div class="sheets-route-text">
+            About to paste these back into a spreadsheet? Next time, run it in the sheet itself.
+        </div>
+        <a href="https://workspace.google.com/marketplace/app/linkfinder_ai/1096371450007"
+           target="_blank" rel="noopener" class="sheets-route-cta"
+           onclick="try{posthog.capture('sheets_addon_clicked',{source:'bulk_results'})}catch(e){}">
+            Google Sheets add-on
+        </a>
     </div>
     <div id="confidenceFilterBar" style="display:none;align-items:center;gap:0.75rem;margin-bottom:0.75rem;">
         <span style="font-size:0.8rem;color:var(--gray-600);font-weight:500;">Show:</span>
@@ -3953,6 +3999,7 @@ function navigateToPage(page){
         case 'account': window.location.href=addGclid(`https://linkfinderai.com/account?token=${userToken}`); break;
         case 'history': window.location.href=addGclid(`https://linkfinderai.com/history?token=${userToken}`); break;
         case 'crmSync': window.location.href=addGclid(`https://linkfinderai.com/crm-sync?token=${userToken}`); break;
+        case 'integrations': window.location.href=addGclid(`https://linkfinderai.com/integrations?token=${userToken}`); break;
     }
 }
 

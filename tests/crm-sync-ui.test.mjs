@@ -199,3 +199,79 @@ test('settings carry both the new key and the one older records used', () => {
   assert.match(source.slice(0, 600), /property: syncProperties\[key\]/);
   assert.match(source.slice(0, 600), /hubspotProperty: syncProperties\[key\]/);
 });
+
+// ---------------------------------------------------------------------------
+// The Google Sheets add-on is reachable from the places people actually are
+// ---------------------------------------------------------------------------
+
+/*
+ * The add-on is one of the three surfaces this product is meant to be used
+ * through, alongside the API and the CRM sync — and it was linked from exactly
+ * one page nobody visits. These assert the routes into it, because a feature
+ * that has to be searched for is a feature that does not get adopted.
+ */
+
+const MARKETPLACE = 'workspace.google.com/marketplace/app/linkfinder_ai/1096371450007';
+const read = (name) => readFileSync(join(REPO, name), 'utf8');
+
+test('the app menu has an Integrations tab, between CRM Sync and History', () => {
+  const app = read('app.html');
+  const nav = app.slice(app.indexOf('<nav class="nav-menu">'), app.indexOf('</nav>'));
+  const order = [...nav.matchAll(/data-page="(\w+)"/g)].map((m) => m[1]);
+
+  assert.ok(order.includes('integrations'), 'no Integrations tab');
+  assert.strictEqual(
+    order.indexOf('integrations'),
+    order.indexOf('crmSync') + 1,
+    'Integrations should sit straight after CRM Sync',
+  );
+  assert.ok(order.indexOf('integrations') < order.indexOf('history'), 'Integrations should come before History');
+
+  // A tab that does not route anywhere is a dead tab.
+  assert.match(app, /case 'integrations':[^\n]*linkfinderai\.com\/integrations/);
+});
+
+test('Google Sheets leads the integrations hub', () => {
+  const hub = read('integrations.html');
+  const first = [...hub.matchAll(/int-name">([^<]+)</g)][0][1];
+  assert.strictEqual(first, 'Google Sheets', `the hub leads with ${first}`);
+  assert.ok(hub.includes(MARKETPLACE), 'the hub does not link the add-on itself');
+});
+
+test('the CSV uploader offers the Sheets route, before and after a run', () => {
+  // This is the moment the add-on is worth most: someone exporting a sheet,
+  // uploading it, and about to paste the results back.
+  const app = read('app.html');
+
+  const upload = app.slice(app.indexOf('<div id="bulkSearch"'), app.indexOf('<div id="csvPreview"'));
+  assert.ok(upload.includes(MARKETPLACE), 'nothing offers Sheets at the upload step');
+  assert.match(upload, /already in Google Sheets/i);
+
+  const results = app.slice(app.indexOf('<div id="bulkResults"'), app.indexOf('<div id="bulkResultsTable"'));
+  assert.ok(results.includes(MARKETPLACE), 'nothing offers Sheets once results are in');
+
+  // Both are measurable, or there is no way to know whether they work.
+  const events = [...app.matchAll(/sheets_addon_clicked',\{source:'(\w+)'/g)].map((m) => m[1]);
+  assert.deepStrictEqual(events.sort(), ['bulk_results', 'bulk_upload']);
+});
+
+test('the Sheets page links the add-on rather than only describing it', () => {
+  const page = read('linkedIn-enrichment-google-sheets.html');
+  assert.ok(page.includes(MARKETPLACE));
+});
+
+test('the lifecycle email that leads on bulk has a Sheets variant, not yet live', () => {
+  const variants = JSON.parse(read(join('workers', 'lifecycle-email', 'variants.json')));
+  const bulk = variants.steps.bulk_intro.variants;
+
+  const sheets = bulk.find((v) => v.id === 'bulk-in-your-sheet');
+  assert.ok(sheets, 'no Sheets variant in the bulk email');
+  assert.ok(sheets.url.includes(MARKETPLACE), 'the variant does not link the add-on');
+
+  // Queued, not champion: adding copy must never start sending it.
+  assert.strictEqual(sheets.status, 'queued');
+  assert.strictEqual(
+    bulk.filter((v) => v.status === 'champion').length, 1,
+    'a step must have exactly one champion',
+  );
+});
