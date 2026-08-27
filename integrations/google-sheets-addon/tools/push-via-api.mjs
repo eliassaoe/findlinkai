@@ -9,10 +9,18 @@
  *   LF_TOKEN=<access token> node tools/push-via-api.mjs <scriptId> --dry-run
  *   LF_TOKEN=<access token> node tools/push-via-api.mjs <scriptId>
  *
- * The token needs the https://www.googleapis.com/auth/script.projects scope and
- * must belong to the account that owns the script. Get one in two minutes at
- * developers.google.com/oauthplayground — no OAuth client to create. It expires
- * in an hour, which is the point: nothing long-lived needs to be handed over.
+ * The token must belong to the account that owns the script and carry BOTH:
+ *
+ *   https://www.googleapis.com/auth/script.projects      push code, cut a version
+ *   https://www.googleapis.com/auth/script.deployments   point the deployment at it
+ *
+ * Paste them into developers.google.com/oauthplayground separated by a space —
+ * no OAuth client to create. With only the first, the code and the version still
+ * land and the last step is two clicks in the editor; this says so rather than
+ * failing as if nothing happened.
+ *
+ * The token expires in an hour, which is the point: nothing long-lived is handed
+ * over.
  *
  * WHAT IT WILL NOT DO
  *   - touch appsscript.json. It reads the live manifest and sends it back
@@ -54,8 +62,9 @@ const FILES = [
 ];
 
 async function call(path, options = {}) {
+  const { quiet403, ...init } = options;
   const res = await fetch(`${API}${path}`, {
-    ...options,
+    ...init,
     headers: {
       Authorization: `Bearer ${TOKEN}`,
       'Content-Type': 'application/json',
@@ -65,14 +74,25 @@ async function call(path, options = {}) {
   const body = await res.json().catch(() => ({}));
   if (!res.ok) {
     const reason = body.error?.message ?? `HTTP ${res.status}`;
+    // The deployment step is optional when the token is narrow; let its caller
+    // handle the 403 rather than ending a run that has already done real work.
+    if (res.status === 403 && options.quiet403) throw new Error(reason);
     if (res.status === 401) die(`The token was rejected — it has expired or is for the wrong account.\n${reason}`);
     if (res.status === 403) {
+      // Named per endpoint: a 403 on /deployments almost always means the token
+      // carries script.projects but not script.deployments, and reporting that as
+      // "the API is switched off" sends someone to fix a setting that is fine.
+      const needsDeployments = path.includes('/deployments');
       die(
         `Refused: ${reason}\n\n` +
-          'Two usual causes:\n' +
-          '  - the Apps Script API is off for this account. Switch it on once at\n' +
-          '    https://script.google.com/home/usersettings\n' +
-          "  - the token lacks the script.projects scope, or is not the script's owner.",
+          (needsDeployments
+            ? 'This endpoint needs the script.deployments scope, which this token does not\n' +
+              'have. The code and the version were pushed — only pointing the deployment at\n' +
+              'the new version is left.'
+            : 'Two usual causes:\n' +
+              '  - the Apps Script API is off for this account. Switch it on once at\n' +
+              '    https://script.google.com/home/usersettings\n' +
+              "  - the token lacks the script.projects scope, or is not the script's owner."),
       );
     }
     if (res.status === 404) die(`No script with id ${SCRIPT_ID} on this account.\n${reason}`);
@@ -170,7 +190,36 @@ const version = await call(`/projects/${SCRIPT_ID}/versions`, {
 console.log(`  version ${version.versionNumber} created — "${description}"`);
 
 // ── 6. point the LIVE deployment at it ──────────────────────────────────────
-const { deployments = [] } = await call(`/projects/${SCRIPT_ID}/deployments`);
+let deployments = [];
+let canDeploy = true;
+try {
+  ({ deployments = [] } = await call(`/projects/${SCRIPT_ID}/deployments`, { quiet403: true }));
+} catch {
+  canDeploy = false;
+}
+
+if (!canDeploy) {
+  console.log(`
+──────────────────────────────────────────────────────────────────────────
+The code is pushed and version ${version.versionNumber} exists. Two steps left, because
+this token cannot touch deployments (it lacks the script.deployments scope).
+
+1. Apps Script -> Deploy -> Manage deployments
+   Edit the EXISTING deployment -> Version: ${version.versionNumber} -> Deploy.
+   Do NOT create a new deployment; a new id disables the old one's triggers.
+
+2. Google Cloud -> Marketplace SDK -> App Configuration
+   Set the version to ${version.versionNumber} and save. That publishes it.
+
+To have step 1 done for you next time, authorize both scopes:
+  https://www.googleapis.com/auth/script.projects
+  https://www.googleapis.com/auth/script.deployments
+
+No review either way — the scopes of the ADD-ON did not change.
+──────────────────────────────────────────────────────────────────────────
+`);
+  process.exit(0);
+}
 // @HEAD is the editor's own deployment and is not what anyone installed.
 const live_deployments = deployments.filter((d) => d.deploymentId !== 'HEAD' && d.deploymentConfig?.versionNumber);
 
