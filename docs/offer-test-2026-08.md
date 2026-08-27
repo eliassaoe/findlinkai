@@ -278,3 +278,55 @@ makes the strongest line in the email a fact rather than a claim.
 
 Also: sub-processors must be named in a DPA under GDPR. That is a legal
 disclosure, separate from marketing, and any client with procurement will ask.
+
+## Results, 27 Aug morning
+
+Both batches drained. Per campaign, over the two days:
+
+| campaign | sent | delivered | bounced | unsubs | bounce |
+| --- | --- | --- | --- | --- | --- |
+| Arm A | 190 | 185 | 5 | 0 | 2.6% |
+| Round 2 | 188 | 180 | 7 | 0 | 3.7% |
+| **Booked calls, combined** | **378** | **365** | **12** | **0** | **3.2%** |
+
+**Zero unsubscribes across 378 emails.** The offer is not irritating anyone, which
+is the one thing a per-call pitch to a dormant list could plausibly have done.
+
+Cumulative across every send: **1,016 sent, 32 bounced, 3.15%**, 5 unsubscribes.
+
+### The 8.8% "today" figure was an artifact
+
+A naive per-day query showed 34 sent / 3 bounced on 27 Aug. Those three bounces
+are **late arrivals from arm A's 26 Aug send**, attributed to the day they
+resolved rather than the day they were sent. Today's 34 event-triggered emails
+bounced zero. Always split bounces by `properties.$workflow_id`, not by day.
+
+### Why 3.2% on a Google-gated cohort
+
+Higher than the gate predicts. The likely reason is age, not fakes: the cohort
+is drawn from 180 days of history, and `signup_google_clicked` proves the address
+was real **at signup**, not that it still resolves now. People change jobs and
+work addresses die. **The gate protects against fake addresses; it does not
+protect against stale ones.** For any cohort older than a few months, expect a
+floor of a few percent no matter how clean the gate is.
+
+### Batch 2 is on hold, and the bounce rate is the weaker reason
+
+Cumulative sits at 3.15%, just over the 3% gate this document set. That alone
+argues for waiting.
+
+The stronger reason: **there is no evidence yet that the email converts.** 417
+eligible people remain and they are the last of them. Spending them on an
+unproven email is the one move that cannot be undone — if it turns out the copy
+needs work, that budget is gone. Wait for booking data, then send.
+
+### There is no click measurement, by construction
+
+The CTA points at `calendly.com`, which is off-site and not instrumented with
+this project's PostHog. **No `$pageview` will ever fire for
+`utm_campaign=offer_test_a_booked_calls` or `booked_calls_round2`** — the zero
+result is expected, not a signal that nobody clicked.
+
+The only place a booking appears is the Calendly account itself, tagged with
+those UTMs. That is a manual check, and it is the only real read on whether the
+offer works.
