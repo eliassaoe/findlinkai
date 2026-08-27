@@ -113,6 +113,11 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
 .csv-dl{margin-left:auto;background:var(--primary);color:white;border:none;padding:.4rem .75rem;border-radius:6px;font-weight:600;font-size:.78rem;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:.4rem;transition:background .15s;}
 .csv-dl:hover:not(:disabled){background:var(--primary-hover);}
 .csv-dl:disabled{background:var(--gray-100);color:var(--gray-400);cursor:default;}
+.csv-actions{margin-left:auto;display:flex;gap:.5rem;flex-wrap:wrap;justify-content:flex-end;}
+.csv-actions .csv-dl,.csv-actions .csv-resume{margin-left:0;}
+.csv-resume{margin-left:auto;background:white;color:var(--primary);border:1px solid var(--primary);padding:.4rem .75rem;border-radius:6px;font-weight:600;font-size:.78rem;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:.4rem;transition:background .15s;}
+.csv-resume:hover{background:#eff6ff;}
+.csv-resume + .csv-dl{margin-left:0;}
 .csv-note{font-size:.72rem;color:var(--gray-400);margin-left:auto;}
 .csv-empty{background:white;border:1px dashed var(--gray-200);border-radius:10px;padding:1.25rem 1rem;text-align:center;font-size:.82rem;color:var(--gray-500);}
 .csv-empty a{color:var(--primary);text-decoration:none;font-weight:600;}
@@ -746,9 +751,19 @@ function updateStats() {
 // for this long has stopped.
 const CSV_BATCH_STALE_MS = 15 * 60 * 1000;
 
+// input_rows is the stored copy of the uploaded file, and it is large — ask
+// Postgres whether it is there rather than pulling it down.
 const CSV_BATCH_FIELDS = 'id,file_name,label,type,input_type,output_type,total_rows,' +
     'processed_rows,found_rows,credits_used,status,result_filename,result_bytes,' +
-    'started_at,updated_at,completed_at';
+    'input_bytes,file_rows,started_at,updated_at,completed_at';
+
+// Every row the run never reached is still waiting to be enriched, and the
+// stored input rows are what make picking it up possible.
+function csvBatchResumable(b) {
+    return !!b.input_bytes
+        && (b.total_rows || 0) > (b.processed_rows || 0)
+        && ['processing', 'stopped', 'out_of_credits'].includes(b.status);
+}
 
 function csvBatchState(b) {
     if (b.status === 'processing') {
@@ -802,17 +817,26 @@ function renderCsvBatches() {
 
         const hasFile = !!b.result_bytes;
         const size = formatBytes(b.result_bytes);
+        const download = hasFile
+            ? `<button class="csv-dl" onclick="downloadCsvBatch('${esc(b.id)}', this)"><i class="fas fa-download"></i> Download ${st.key === 'done' ? 'results' : 'what is enriched'}${size ? ' · ' + size : ''}</button>`
+            : '<span class="csv-note">No file saved for this run.</span>';
+        const resume = csvBatchResumable(b) && st.key !== 'running'
+            ? `<button class="csv-resume" onclick="resumeCsvBatch('${esc(b.id)}')"><i class="fas fa-rotate-left"></i> Resume ${(total - processed).toLocaleString()} rows</button>`
+            : '';
         const action = st.key === 'running'
             ? '<span class="csv-note">Still running — the file lands here when it finishes.</span>'
-            : (hasFile
-                ? `<button class="csv-dl" onclick="downloadCsvBatch('${esc(b.id)}', this)"><i class="fas fa-download"></i> Download results${size ? ' · ' + size : ''}</button>`
-                : '<span class="csv-note">No file saved for this run.</span>');
+            : `<div class="csv-actions">${resume}${download}</div>`;
 
         const leftOver = total - processed;
+        // Rows we could not read a name from were never enrichable. They are
+        // still in the file the user downloads, just blank — say so, rather
+        // than reporting "500 of 500" on a 512-row upload.
+        const skipped = Math.max(0, (b.file_rows || 0) - total);
         const legend = `<div class="csv-legend">
             <span><i class="csv-dot found"></i>${found.toLocaleString()} enriched</span>
             <span><i class="csv-dot processed"></i>${(processed - found).toLocaleString()} no match</span>
             ${leftOver > 0 ? `<span><i class="csv-dot left"></i>${leftOver.toLocaleString()} not processed</span>` : ''}
+            ${skipped > 0 ? `<span><i class="csv-dot left"></i>${skipped.toLocaleString()} with no name to look up</span>` : ''}
         </div>`;
 
         return `<div class="csv-card">
@@ -837,7 +861,6 @@ function renderCsvBatches() {
             </div>
             <div class="csv-card-foot">
                 <span class="csv-meta"><i class="fas fa-coins"></i>${(Number(b.credits_used) || 0).toLocaleString(undefined, { maximumFractionDigits: 2 })} credits</span>
-                <span class="csv-meta">${fullTimestamp(b.started_at)}</span>
                 ${action}
             </div>
         </div>`;
@@ -868,6 +891,13 @@ async function downloadCsvBatch(id, btn) {
     } catch (e) {
         if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-exclamation-circle"></i> Could not download'; setTimeout(() => { btn.innerHTML = original; }, 2500); }
     }
+}
+
+// The app owns resuming: it needs the enrichment panel, the credit balance and
+// the whole bulk pipeline. History just hands it the batch.
+function resumeCsvBatch(id) {
+    try { posthog.capture('csv_resume_from_history', { batch_id: id }); } catch (e) {}
+    window.location.href = addGclid(`https://linkfinderai.com/app?token=${userToken}&resume=${encodeURIComponent(id)}`);
 }
 
 async function loadCsvBatches() {

@@ -1,4 +1,4 @@
-# CSV enrichments in the History tab
+# CSV enrichments: history, resume, and the shape of the export file
 
 Before this, a bulk run left no trace anyone could find later. The rows landed
 in `enrichment_history` one at a time, mixed in with every single lookup, with
@@ -10,6 +10,64 @@ The History page now opens with a **CSV enrichments** section: one card per
 uploaded file, showing how far the run got, what share of the file came back
 enriched, and a button that hands back the finished CSV.
 
+## The export file is the user's file
+
+**Non-negotiable: what comes back is what went in, plus columns.** Every
+original column, every original row, in the original order, with the enrichment
+appended on the right. Before this it returned a freshly-invented table — rows
+the enrichment could not read a name from had silently vanished, and the user's
+own columns with them. People noticed, and they were right to.
+
+`csvRenderRange(fromSrc, toSrc, includeHeader)` in `app.html` is the only thing
+that writes CSV, and it iterates **`lfCsvRows`** — the uploaded grid — not
+`bulkResults`. Enrichment is looked up per original row and left blank where
+there is none. Two consequences worth knowing:
+
+- `csvData` is not `lfCsvRows`. `lfBuildCsvData()` drops rows with no readable
+  name, so every `csvData` entry carries a **`srcIndex`** back to the line it
+  came from. Nothing may index one list with the other's offset.
+- `employees` and `reactions` return many results per input row. Those still
+  expand to one line each, but every line repeats the original row's columns, so
+  the user's data is never lost — only multiplied.
+
+`total_rows` counts rows the enrichment can actually run; `file_rows` is what
+they uploaded. The History card names the gap ("12 with no name to look up")
+rather than quietly reporting "500 of 500" on a 512-row file.
+
+## Resume
+
+A run that stops — closed tab, dead laptop, credit wall — can be picked up where
+it left off. The rows already enriched are **neither re-run nor re-charged**.
+This started as a support ticket: a user stopped at 2,588 of 4,600 and had no
+way back to their work.
+
+Two entry points:
+
+1. **On load.** `checkUnfinishedCsvBatch()` looks for the most recent batch that
+   stopped short and still has its input rows, and puts a banner at the top of
+   the app. Somebody whose tab died finds their work waiting rather than having
+   to remember it.
+2. **From History.** The card's Resume button links to `app?token=…&resume=<id>`.
+   The app owns resuming — it needs the enrichment panel, the credit balance and
+   the whole bulk pipeline — so History just hands the batch over.
+
+`resumeCsvBatch(id)` rebuilds the run from the stored batch: it restores the
+input/output selects, sets `lfCsvHeaders` / `lfCsvRows` / `lfMapping`, and
+re-derives `csvData` through the *same* `lfBuildCsvData()` the first run used.
+That is why the grid and the mapping are stored rather than the derived list —
+it guarantees the row order, and therefore the resume cursor, still means the
+same thing.
+
+`processBulk(true)` then starts at `csvResumeFrom` instead of 0. Inside the
+loop, `bulkResults` holds only **this** run's rows, so `slot = i - csvResumeFrom`
+indexes it — an absolute `bulkResults[i]` silently corrupts a resumed run, and
+`tests/csv-batch-history.test.mjs` fails the build if one comes back.
+
+The invariant that makes any of this safe: **a resumed run must produce exactly
+the file an uninterrupted run would** — no lost, duplicated or reordered lines.
+`tests/csv-export-shape.test.mjs` asserts it directly, both across a resume and
+across per-row checkpointing.
+
 ## The table
 
 `public.csv_enrichment_batches` — one row per bulk run.
@@ -20,19 +78,24 @@ enriched, and a button that hands back the finished CSV.
 | `file_name` | what the user dropped (`crm-export.csv`) |
 | `label` | human enrichment name, e.g. `Lead Full Name + Company Name → Verified Email` |
 | `type` / `input_type` / `output_type` | the combination type, so the History filters work on batches too |
-| `total_rows` | rows in the file |
+| `total_rows` | rows the enrichment can run (drives progress and the resume cursor) |
 | `processed_rows` | how far the run got |
 | `found_rows` | rows that came back with a value |
 | `credits_used` | numeric, so half-credit employee scrapes stay exact |
 | `status` | `processing` · `completed` · `stopped` · `out_of_credits` |
-| `result_csv` | the export file, archived verbatim |
+| `file_rows` | rows in the uploaded file (≥ `total_rows`) |
+| `result_csv` | the export file, archived verbatim, appended to as the run goes |
 | `result_bytes` | **generated** — `octet_length(result_csv)` |
+| `input_rows` | the uploaded grid, verbatim, so the run can be resumed |
+| `csv_headers` / `column_mapping` | the rest of what a resume needs |
+| `input_bytes` | **generated** — is there still enough stored to resume? |
 
-`result_bytes` exists so the list query can say "file available, 1.8 MB"
-without ever pulling a multi-megabyte column. The list selects every field
-*except* `result_csv`; the content is fetched only when someone clicks
-Download. Keep it that way — selecting `*` here would make the page unusable
-for anyone with a few large batches.
+`result_bytes` and `input_bytes` exist so the list query can say "file
+available, 1.8 MB" and "this one can be resumed" without ever pulling a
+multi-megabyte column. The list selects every field *except* `result_csv` and
+`input_rows`; either is fetched only on the click that needs it. Keep it that
+way — selecting `*` here would make the page unusable for anyone with a few
+large batches.
 
 RLS is **off**, exactly as it is on `enrichment_history`: the page talks to
 PostgREST with the publishable key and scopes every read to
@@ -40,19 +103,22 @@ PostgREST with the publishable key and scopes every read to
 table matches it rather than inventing a second one. If `enrichment_history`
 ever moves behind real RLS, move this table in the same change.
 
-The migration lives in Supabase (`create_csv_enrichment_batches` and
-`csv_enrichment_batches_result_bytes` on project `snxhsboboatjywgwdeds`) and is
-reproduced at the bottom of this file.
+The migrations live in Supabase on project `snxhsboboatjywgwdeds`:
+`create_csv_enrichment_batches`, `csv_enrichment_batches_result_bytes`,
+`csv_enrichment_batches_resume`, `csv_enrichment_batches_original_grid`,
+`csv_enrichment_batches_input_bytes`, `csv_enrichment_batches_file_rows`. The
+whole schema is reproduced at the bottom of this file.
 
 ## Writing it — `app.html`
 
-`processBulk()` owns the row end to end:
+`processBulk(resuming)` owns the row end to end:
 
-1. **Open** — `csvBatchCreate(csvData.length)` before the first request,
-   `status: 'processing'`.
-2. **Progress** — every `CSV_BATCH_PROGRESS_EVERY` (25) rows, fire-and-forget
-   PATCH of `processed_rows` / `found_rows` / `credits_used`. Never awaited: a
-   slow write must not stall the enrichment.
+1. **Open** — `csvBatchCreate(csvData.length)` before the first request, storing
+   the uploaded grid and the column mapping alongside it. Skipped on a resume:
+   the row already exists.
+2. **Checkpoint** — `csvBatchCheckpoint()` every `CSV_BATCH_PROGRESS_EVERY` (10)
+   rows **or** `CSV_BATCH_PROGRESS_MS` (20s), whichever lands first. That is the
+   most work a closed tab can cost.
 3. **Close** — `csvBatchFinalize()` after the loop, whichever way it ended.
    `out_of_credits` when the credit wall stopped it, `stopped` when it ended
    short of the file, `completed` otherwise.
@@ -60,19 +126,36 @@ reproduced at the bottom of this file.
 Every call is best-effort and swallows its errors. A Supabase outage must
 degrade the history, never the enrichment the user is paying for.
 
-The archived CSV comes from `buildBulkCsv()` — the same function
-`downloadResults()` uses, extracted for exactly this reason. What History hands
-back is byte-for-byte the file the Export button would have produced, so the two
-can never drift.
+### Why an RPC and not a PATCH
 
-Two deliberate limits:
+Re-sending the whole `result_csv` on every checkpoint is O(n²) in bytes: a
+4,600-row profile scrape checkpointing every 10 rows would push hundreds of
+megabytes. `public.csv_batch_checkpoint(...)` appends **only the rows finished
+since the last checkpoint** and advances the counters in the same statement, so
+`result_csv` and `processed_rows` can never disagree.
 
-- **`CSV_BATCH_MAX_CSV_CHARS` = 4,000,000.** Postgres would take far more, but
-  a 4 MB POST from a browser on a bad connection is already pushing it. Past
-  that the run is still tracked, just without the file, and the card says so.
-- The row still marked `Processing` when the credit wall hit never got an
-  answer, so it is filtered out of the archived file (and handed back to
-  `bulkResults` afterwards, which the results table is still reading).
+It takes a `p_from_row`, and applies the chunk only if the stored row is
+*exactly* there. That makes it idempotent and ordering-safe — a retried or
+out-of-order request cannot duplicate lines. It returns the true
+`processed_rows`; on a mismatch the client leaves its cursor alone and retries
+the same chunk rather than appending out of order.
+
+Only the first chunk of a batch carries the header row. `csvBatchAppendTail()`
+flushes the user's trailing rows — the ones with no name, or a tail that
+produced nothing — but **only when the run completed**. A run that stopped short
+leaves them out on purpose: a resume continues there, and appending them early
+would put them in the file ahead of their own enrichment.
+
+### Reliability
+
+- **One retry** (`CSV_ROW_RETRIES`) on a dropped connection or a 5xx. A 4xx is
+  an answer, not a blip — 403 is the credit wall — so it comes straight back.
+  Before this, one flaky request put `Error` in the user's file permanently.
+- **Checkpointing on time as well as rows**, so a slow enrichment cannot go
+  twenty minutes without saving anything.
+- **`CSV_BATCH_MAX_INPUT_CHARS` = 6,000,000.** Past that the upload is not
+  stored, the run is still tracked, and the card offers no Resume rather than a
+  button that cannot work.
 
 ## Reading it — `history.html`
 
@@ -84,6 +167,8 @@ Two deliberate limits:
   **rows processed** (`processed / total` — how far the run got). The bar layers
   both: solid green for enriched, pale blue for processed-but-no-match, grey for
   rows that never ran.
+- Unfinished runs offer **Resume** next to the partial download. A finished one
+  offers only the download.
 - A run left in `processing` that has not reported for 15 minutes
   (`CSV_BATCH_STALE_MS`) reads **Interrupted**, not **Running** — progress is
   written every 25 rows, so anything quieter than that is a closed tab. Those
@@ -104,7 +189,7 @@ Two deliberate limits:
 - Runs are archived regardless of subscription status. A free user who upgrades
   later finds their earlier files waiting, which is the point.
 
-## The migration
+## The schema
 
 ```sql
 create table if not exists public.csv_enrichment_batches (
@@ -115,32 +200,82 @@ create table if not exists public.csv_enrichment_batches (
     type text,
     input_type text,
     output_type text,
-    total_rows integer not null default 0,
+    total_rows integer not null default 0,     -- rows the enrichment can run
+    file_rows integer,                          -- rows the user uploaded
     processed_rows integer not null default 0,
     found_rows integer not null default 0,
     credits_used numeric(12,2) not null default 0,
     status text not null default 'processing',
     result_csv text,
     result_filename text,
+    input_rows jsonb,        -- the uploaded grid, verbatim
+    csv_headers jsonb,
+    column_mapping jsonb,
     started_at timestamptz not null default now(),
     updated_at timestamptz not null default now(),
     completed_at timestamptz
 );
 
+alter table public.csv_enrichment_batches
+    add column if not exists result_bytes integer
+    generated always as (octet_length(result_csv)) stored,
+    add column if not exists input_bytes integer
+    generated always as (octet_length(input_rows::text)) stored;
+
 create index if not exists csv_enrichment_batches_user_started_idx
     on public.csv_enrichment_batches (user_id, started_at desc);
 
 alter table public.csv_enrichment_batches disable row level security;
-
 grant select, insert, update on public.csv_enrichment_batches to anon, authenticated;
 
-alter table public.csv_enrichment_batches
-    add column if not exists result_bytes integer
-    generated always as (octet_length(result_csv)) stored;
+-- Appends one chunk of finished CSV lines and advances the counters atomically.
+-- p_from_row makes it idempotent: the chunk lands only if it starts exactly
+-- where the row stands, so a retry cannot duplicate lines.
+create or replace function public.csv_batch_checkpoint(
+    p_id uuid, p_user_id text, p_from_row integer, p_processed integer,
+    p_found integer, p_credits numeric, p_chunk text, p_filename text default null
+) returns integer
+language plpgsql
+as $$
+declare v_processed integer;
+begin
+    update public.csv_enrichment_batches
+       set result_csv      = coalesce(result_csv, '') || coalesce(p_chunk, ''),
+           result_filename = coalesce(result_filename, p_filename),
+           processed_rows  = p_processed,
+           found_rows      = p_found,
+           credits_used    = p_credits,
+           updated_at      = now()
+     where id = p_id and user_id = p_user_id and processed_rows = p_from_row
+    returning processed_rows into v_processed;
+
+    if v_processed is null then
+        select processed_rows into v_processed
+          from public.csv_enrichment_batches
+         where id = p_id and user_id = p_user_id;
+    end if;
+    return v_processed;
+end;
+$$;
+
+grant execute on function public.csv_batch_checkpoint(
+    uuid, text, integer, integer, integer, numeric, text, text
+) to anon, authenticated;
 ```
 
 ## Tests
 
-`tests/csv-batch-history.test.mjs` pulls both halves straight out of the
-shipped HTML and runs them — `node --test tests/csv-batch-history.test.mjs`. If
-a marker moves, the slice fails loudly rather than silently checking nothing.
+Both files pull the real code straight out of the shipped HTML and run it, so
+they cannot drift from what ships. If a marker moves, the slice fails loudly
+rather than silently checking nothing.
+
+    node --test tests/csv-export-shape.test.mjs tests/csv-batch-history.test.mjs
+
+- **`csv-export-shape.test.mjs`** guards the export contract: original rows and
+  columns survive, unreadable rows stay in place blank, enrichment lands on the
+  right row, and — the one that makes resume safe — a resumed or
+  chunk-by-chunk run rebuilds byte-for-byte the file an uninterrupted run
+  would.
+- **`csv-batch-history.test.mjs`** covers the batch row: what gets stored,
+  checkpoint ordering and idempotency, the four end states, and the History
+  card's Resume/Download logic.

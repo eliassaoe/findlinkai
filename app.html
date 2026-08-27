@@ -828,6 +828,10 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
 <div id="closedWithoutPurchaseBanner" class="low-credits-bar" style="display:none;"></div>
 <div id="milestoneUpgradeBanner" class="low-credits-bar" style="display:none;"></div>
 <div id="bulkNudgeBanner" class="low-credits-bar" style="display:none;"></div>
+<!-- "Your last CSV stopped part way — pick it up" — filled in on load by
+     checkUnfinishedCsvBatch(). Deliberately louder than the nudge bars above:
+     this is unfinished work the user already paid for. -->
+<div id="resumeCsvBanner" style="display:none;background:linear-gradient(135deg,#eff6ff,#dbeafe);border-bottom:1px solid #bfdbfe;padding:0.75rem 1rem;font-size:0.85rem;color:#1e3a8a;"></div>
     
 <div id="annualBanner" style="display:none;background:linear-gradient(135deg,#f0fdf4,#dcfce7);border-bottom:1px solid #bbf7d0;padding:0.5rem 1rem;text-align:center;font-size:0.8rem;color:#166534;font-weight:500;">
   💡 You're on monthly — <strong>switch to annual and save 40%</strong> ($240/year) 
@@ -1437,13 +1441,33 @@ let startingCredits = null; // captured on first non-zero balance; powers the 20
 const CSV_BATCH_SUPABASE_URL = 'https://snxhsboboatjywgwdeds.supabase.co';
 const CSV_BATCH_SUPABASE_ANON_KEY = 'sb_publishable_RKidGRs4ch1ixmRfXoYSww_UsQMSe5w';
 const CSV_BATCH_ENDPOINT = CSV_BATCH_SUPABASE_URL + '/rest/v1/csv_enrichment_batches';
-// Postgres would take far more, but a 4M-char POST from a browser on a bad
-// connection is already pushing it. Past this the run is still tracked, just
-// without the archived file.
-const CSV_BATCH_MAX_CSV_CHARS = 4000000;
-const CSV_BATCH_PROGRESS_EVERY = 25; // rows between progress writes
+const CSV_BATCH_CHECKPOINT_RPC = CSV_BATCH_SUPABASE_URL + '/rest/v1/rpc/csv_batch_checkpoint';
+// A checkpoint appends only the rows finished since the last one, so this is
+// how much work a closed tab can cost — not how much gets re-uploaded. Ten rows
+// or twenty seconds, whichever lands first.
+const CSV_BATCH_PROGRESS_EVERY = 10;
+const CSV_BATCH_PROGRESS_MS = 20000;
+// The input rows are stored so a stopped run can be resumed. 10,000 rows of
+// name/company/location is comfortably inside this; past it we still track the
+// run, it just cannot be resumed.
+const CSV_BATCH_MAX_INPUT_CHARS = 6000000;
+// One retry on a network blip or a 5xx. Costs a couple of seconds and saves a
+// row that would otherwise land in the file as "Error".
+const CSV_ROW_RETRIES = 1;
+const CSV_ROW_RETRY_MS = 2000;
 let lfUploadedFileName = '';
 let currentCsvBatchId = null;
+// Resume state. `csvResumeFrom` is where in csvData this run starts;
+// `bulkCarryCsv` is the CSV of everything enriched before it, so the export and
+// the archive stay whole even though bulkResults only holds this run's rows.
+let csvResumeFrom = 0;
+let bulkCarryCsv = '';
+let bulkCarryEndSrc = -1;    // last original row already covered by bulkCarryCsv
+let csvCheckpointSlot = 0;   // first bulkResults row not yet checkpointed
+let csvCheckpointRow = 0;    // what the batch row's processed_rows should be
+let csvCheckpointSrc = 0;    // next original row to append to the archive
+let csvResumeFoundRows = 0;  // rows already enriched before this run
+let csvResumeCredits = 0;    // credits already spent before this run
 
 // ===== Bulletproof Checkout Controls =====
 const CHECKOUT_MODE = 'live'; // MUST match worker env in production
@@ -3541,8 +3565,15 @@ function showSingleResultEmployeeCount(inputData, count) {
 /* ---------------------------------------------------------------------
    CSV batch tracking — one row per bulk run in csv_enrichment_batches.
    Written straight from the page (PostgREST + publishable key), the same way
-   the History page reads enrichment_history. Every call is best-effort: if
-   Supabase is unreachable the enrichment itself must carry on regardless.
+   the History page reads enrichment_history.
+
+   The archive is built up incrementally: each checkpoint appends only the rows
+   finished since the last one, via the csv_batch_checkpoint RPC. Re-sending the
+   whole file every time would be O(n^2) in bytes — a 4,600-row profile scrape
+   would push hundreds of megabytes.
+
+   Every call is best-effort: if Supabase is unreachable the enrichment itself
+   must carry on regardless.
 --------------------------------------------------------------------- */
 function csvBatchHeaders(){
     return {
@@ -3562,6 +3593,19 @@ function csvBatchLabel(){
 
 async function csvBatchCreate(totalRows){
     if(!userToken) return null;
+    // The uploaded grid and the column mapping, stored so the run can be picked
+    // up later: rebuilding the input list from these on resume guarantees it
+    // matches this run's exactly. Skipped, with the run still tracked, if the
+    // file is too large to be worth a single POST.
+    let inputRows = null, headers = null, mapping = null;
+    try {
+        if(JSON.stringify(lfCsvRows).length <= CSV_BATCH_MAX_INPUT_CHARS){
+            inputRows = lfCsvRows;
+            headers = lfCsvHeaders;
+            mapping = lfMapping;
+        }
+    } catch(e) {}
+
     try {
         const res = await fetch(CSV_BATCH_ENDPOINT, {
             method: 'POST',
@@ -3574,7 +3618,13 @@ async function csvBatchCreate(totalRows){
                 input_type: currentInputType,
                 output_type: currentOutputType,
                 total_rows: totalRows,
+                // What they uploaded, as opposed to what we can enrich. The gap
+                // is rows with no name to look up.
+                file_rows: lfCsvRows.length,
                 status: 'processing',
+                input_rows: inputRows,
+                csv_headers: headers,
+                column_mapping: mapping,
             })
         });
         if(!res.ok) return null;
@@ -3596,49 +3646,279 @@ function csvBatchFoundRows(){
     return bulkResults.filter(r => r.status === 'Found').length;
 }
 
+// Appends everything finished since the last checkpoint. The RPC only accepts a
+// chunk that starts exactly where the stored row stands, so a retry can never
+// duplicate lines; it hands back the real processed_rows, which we adopt.
+//
+// `upTo` is a count of *completed* slots in bulkResults — never pass a row that
+// is still in flight, or its half-finished line goes into the archive.
+async function csvBatchCheckpoint(upTo, creditsConsumed){
+    if(!currentCsvBatchId || upTo <= csvCheckpointSlot) return;
+
+    const from = csvCheckpointSlot;
+    // Only the very first chunk of a batch carries the header row; a resumed
+    // batch already has one in the archive.
+    const chunk = buildBulkCsvChunk(from, upTo, csvCheckpointRow === 0 && !bulkCarryCsv);
+    const processed = csvResumeFrom + upTo;
+    const nextSrc = csvSrcOf(csvResumeFrom + upTo - 1) + 1;
+
+    try {
+        const res = await fetch(CSV_BATCH_CHECKPOINT_RPC, {
+            method: 'POST',
+            headers: csvBatchHeaders(),
+            body: JSON.stringify({
+                p_id: currentCsvBatchId,
+                p_user_id: userToken,
+                p_from_row: csvCheckpointRow,
+                p_processed: processed,
+                p_found: csvResumeFoundRows + csvBatchFoundRows(),
+                p_credits: Math.round((csvResumeCredits + creditsConsumed) * 100) / 100,
+                p_chunk: chunk,
+                p_filename: csvBaseName() + '.csv',
+            })
+        });
+        if(!res.ok) return;
+        const at = await res.json();
+        if(typeof at === 'number' && at === processed){
+            csvCheckpointSlot = upTo;
+            csvCheckpointRow = processed;
+            csvCheckpointSrc = nextSrc;
+        }
+        // A mismatch means the stored row moved on without us — leave the cursor
+        // where it is and let the next checkpoint try again from the same place
+        // rather than appending lines out of order.
+    } catch(e) {}
+}
+
+async function csvBatchAppendTail(creditsConsumed){
+    const chunk = csvRenderRange(csvCheckpointSrc, lfCsvRows.length - 1, csvCheckpointRow === 0 && !bulkCarryCsv);
+    if(!chunk) return;
+    try {
+        await fetch(CSV_BATCH_CHECKPOINT_RPC, {
+            method: 'POST',
+            headers: csvBatchHeaders(),
+            body: JSON.stringify({
+                p_id: currentCsvBatchId,
+                p_user_id: userToken,
+                p_from_row: csvCheckpointRow,
+                p_processed: csvCheckpointRow,
+                p_found: csvResumeFoundRows + csvBatchFoundRows(),
+                p_credits: Math.round((csvResumeCredits + creditsConsumed) * 100) / 100,
+                p_chunk: chunk,
+                p_filename: csvBaseName() + '.csv',
+            })
+        });
+        csvCheckpointSrc = lfCsvRows.length;
+    } catch(e) {}
+}
+
 // Called once the run stops, whether it finished, ran dry on credits, or the
-// user was gated. Archives the exact CSV the Export button would produce.
-async function csvBatchFinalize(processedCount, creditsConsumed, creditsExhausted){
+// user closed the tab on it. Flushes the tail of the archive, then closes the row.
+async function csvBatchFinalize(processedThisRun, creditsConsumed, creditsExhausted){
     if(!currentCsvBatchId) return;
     const batchId = currentCsvBatchId;
+
+    await csvBatchCheckpoint(processedThisRun, creditsConsumed);
+
+    const totalProcessed = csvResumeFrom + processedThisRun;
+    const status = creditsExhausted ? 'out_of_credits'
+                 : (totalProcessed >= csvData.length ? 'completed' : 'stopped');
+
+    // The user's own trailing rows — ones with no readable name, or the tail of
+    // a file whose last entries produced nothing — belong in a finished file.
+    // A run that stopped short leaves them out: a resume continues there.
+    if(status === 'completed' && csvCheckpointSrc < lfCsvRows.length){
+        await csvBatchAppendTail(creditsConsumed);
+    }
     currentCsvBatchId = null;
 
-    const fields = {
-        processed_rows: processedCount,
-        found_rows: csvBatchFoundRows(),
-        credits_used: Math.round(creditsConsumed * 100) / 100,
-        status: creditsExhausted ? 'out_of_credits'
-              : (processedCount >= csvData.length ? 'completed' : 'stopped'),
-        completed_at: new Date().toISOString(),
-    };
-
-    // A run that stops on the credit wall leaves one row still marked
-    // "Processing" — it never got an answer, so keep it out of the saved file.
-    const liveResults = bulkResults;
-    try {
-        bulkResults = bulkResults.filter(r => r.status !== 'Processing');
-        const built = buildBulkCsv();
-        if(built && built.csv && built.csv.length <= CSV_BATCH_MAX_CSV_CHARS){
-            fields.result_csv = built.csv;
-            fields.result_filename = built.baseName + '.csv';
-        }
-    } catch(e) {} finally {
-        bulkResults = liveResults;
-    }
-
-    await csvBatchUpdate(batchId, fields);
+    await csvBatchUpdate(batchId, { status, completed_at: new Date().toISOString() });
     try {
         posthog.capture('csv_batch_saved', {
-            status: fields.status,
+            status,
             total_rows: csvData.length,
-            processed_rows: fields.processed_rows,
-            found_rows: fields.found_rows,
-            file_archived: !!fields.result_csv,
+            processed_rows: totalProcessed,
+            resumed_from: csvResumeFrom,
         });
     } catch(e) {}
 }
 
-async function processBulk() {
+/* ---------------------------------------------------------------------
+   Resume — picking a stopped CSV back up where it left off.
+
+   The rows already enriched are neither re-run nor re-charged: the run
+   restarts at the batch's processed_rows, and the archive it built is carried
+   forward so the finished file is still the user's whole list.
+--------------------------------------------------------------------- */
+const CSV_RESUMABLE_STATUSES = ['processing', 'stopped', 'out_of_credits'];
+// How long a run left mid-flight must stay quiet before we treat it as stopped
+// rather than still going. Checkpoints land every ten rows or twenty seconds.
+const CSV_BATCH_STALE_MS = 15 * 60 * 1000;
+
+function csvResumeBannerEl(){ return document.getElementById('resumeCsvBanner'); }
+
+function dismissResumeCsvBanner(){
+    const el = csvResumeBannerEl();
+    if(el) el.style.display = 'none';
+    try { posthog.capture('csv_resume_banner_dismissed'); } catch(e) {}
+}
+
+// The most recent run that stopped part way and still has its input rows. Shown
+// on load, so somebody whose tab died finds their work waiting for them rather
+// than starting the whole list again.
+async function checkUnfinishedCsvBatch(){
+    if(!userToken) return;
+    try {
+        const q = `${CSV_BATCH_ENDPOINT}?user_id=eq.${encodeURIComponent(userToken)}`
+            + `&status=in.(${CSV_RESUMABLE_STATUSES.join(',')})`
+            + `&input_rows=not.is.null`
+            + `&select=id,file_name,label,total_rows,processed_rows,found_rows,status,updated_at`
+            + `&order=started_at.desc&limit=1`;
+        const res = await fetch(q, { headers: csvBatchHeaders() });
+        if(!res.ok) return;
+        const rows = await res.json();
+        const b = Array.isArray(rows) ? rows[0] : null;
+        if(!b || !b.total_rows || b.processed_rows >= b.total_rows) return;
+        // A 'processing' batch that checkpointed moments ago is very likely
+        // still running in another tab. Offering Resume there would enrich the
+        // same rows twice and charge for both.
+        if(b.status === 'processing' &&
+           Date.now() - new Date(b.updated_at).getTime() < CSV_BATCH_STALE_MS) return;
+        showResumeCsvBanner(b);
+    } catch(e) {}
+}
+
+function showResumeCsvBanner(b){
+    const el = csvResumeBannerEl();
+    if(!el) return;
+    const left = b.total_rows - b.processed_rows;
+    const why = b.status === 'out_of_credits' ? 'ran out of credits' : 'stopped';
+    el.innerHTML = `<div style="max-width:1100px;margin:0 auto;display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;">
+        <i class="fas fa-rotate-left" style="color:#2563eb;"></i>
+        <div style="flex:1;min-width:220px;">
+            <strong>${escHtml(b.file_name || 'Your last CSV')} ${why} at ${b.processed_rows.toLocaleString()} of ${b.total_rows.toLocaleString()} rows.</strong>
+            Pick it up where it left off — the ${b.processed_rows.toLocaleString()} rows already enriched won't be charged again.
+        </div>
+        <button onclick="resumeCsvBatch('${b.id}')" style="background:#2563eb;color:white;border:none;padding:0.45rem 0.9rem;border-radius:6px;font-weight:600;font-size:0.8rem;cursor:pointer;font-family:inherit;white-space:nowrap;">
+            <i class="fas fa-play"></i> Resume ${left.toLocaleString()} rows
+        </button>
+        <button onclick="dismissResumeCsvBanner()" style="background:none;border:none;color:#1e3a8a;cursor:pointer;font-size:1.1rem;line-height:1;">&times;</button>
+    </div>`;
+    el.style.display = 'block';
+    try { posthog.capture('csv_resume_banner_shown', { processed: b.processed_rows, total: b.total_rows, status: b.status }); } catch(e) {}
+}
+
+function escHtml(v){ return String(v == null ? '' : v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// Rebuilds the run's whole state from the stored batch, then drops the user on
+// the bulk panel with Resume ready to press.
+async function resumeCsvBatch(batchId){
+    if(isBulkProcessing){ showAlert('An enrichment is already running — let it finish first.','warning'); return; }
+    try { posthog.capture('csv_resume_clicked', { batch_id: batchId }); } catch(e) {}
+    try {
+        const res = await fetch(
+            `${CSV_BATCH_ENDPOINT}?id=eq.${encodeURIComponent(batchId)}&user_id=eq.${encodeURIComponent(userToken)}`
+            + `&select=id,file_name,input_type,output_type,total_rows,processed_rows,found_rows,credits_used,`
+            + `input_rows,csv_headers,column_mapping,result_csv`,
+            { headers: csvBatchHeaders() }
+        );
+        const rows = await res.json();
+        const b = Array.isArray(rows) ? rows[0] : null;
+        if(!b || !b.input_rows || !b.input_rows.length){
+            showAlert('That enrichment can no longer be resumed — the file was too large to store. Upload it again to carry on.','error');
+            return;
+        }
+
+        // Put the page back exactly where the first run was.
+        const inputSel = document.getElementById('inputType');
+        inputSel.value = b.input_type;
+        inputSel.dispatchEvent(new Event('change'));
+        await new Promise(r => setTimeout(r, 80));
+        const outputSel = document.getElementById('outputType');
+        outputSel.value = b.input_type + '__' + b.output_type;
+        outputSel.dispatchEvent(new Event('change'));
+        await new Promise(r => setTimeout(r, 80));
+
+        lfCsvHeaders = b.csv_headers || [];
+        lfCsvRows = b.input_rows;
+        lfMapping = b.column_mapping || {};
+        lfUploadedFileName = b.file_name || '';
+        // Rebuilt with the original mapping, so the row order and the resume
+        // cursor mean the same thing they did on the first run.
+        if(!lfBuildCsvData()) return;
+
+        currentCsvBatchId = b.id;
+        csvResumeFrom = Math.min(b.processed_rows || 0, csvData.length);
+        csvResumeFoundRows = b.found_rows || 0;
+        csvResumeCredits = Number(b.credits_used) || 0;
+        bulkCarryCsv = b.result_csv || '';
+        bulkCarryEndSrc = csvResumeFrom > 0 ? csvSrcOf(csvResumeFrom - 1) : -1;
+        csvCheckpointRow = csvResumeFrom;
+        csvCheckpointSrc = bulkCarryEndSrc + 1;
+        csvCheckpointSlot = 0;
+
+        dismissResumeCsvBanner();
+        switchMode('bulk');
+        showResumePreview();
+    } catch(e) {
+        showAlert('Could not load that enrichment. Try again in a moment.','error');
+    }
+}
+
+// Same panel as a fresh upload, but saying what is being picked up and how much
+// of it is left.
+function showResumePreview(){
+    const left = csvData.length - csvResumeFrom;
+    const banner = `<div style="display:flex;align-items:center;gap:0.625rem;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1rem;">
+        <i class="fas fa-rotate-left" style="color:#2563eb;font-size:1rem;flex-shrink:0;"></i>
+        <div>
+            <div style="font-weight:600;color:#1e3a8a;font-size:0.875rem;">Resuming ${escHtml(lfUploadedFileName || 'your CSV')} — ${csvResumeFrom.toLocaleString()} of ${csvData.length.toLocaleString()} rows already enriched</div>
+            <div style="font-size:0.75rem;color:#1d4ed8;margin-top:1px;">${left.toLocaleString()} row${left===1?'':'s'} left. Those already done are included in your download and won't be charged again.</div>
+        </div>
+    </div>`;
+
+    const rows = csvData.slice(csvResumeFrom, csvResumeFrom + 5)
+        .map(r => `<div style="padding:0.25rem 0;">${escHtml(r.inputData)}</div>`).join('');
+    document.getElementById('previewTable').innerHTML = banner +
+        `<div style="background:var(--gray-50);padding:0.75rem;border-radius:6px;font-size:0.875rem;overflow-x:auto;">${rows}</div>`;
+
+    const btn = document.getElementById('processBulkBtn');
+    btn.disabled = false; btn.style.opacity = '1';
+    btn.innerHTML = `<i class="fas fa-play"></i> Resume — enrich the remaining ${left.toLocaleString()} rows`;
+    btn.setAttribute('onclick', 'processBulk(true)');
+    document.getElementById('csvPreview').classList.remove('hidden');
+    document.getElementById('csvPreview').scrollIntoView({ behavior:'smooth', block:'center' });
+}
+
+// A dropped connection or a 5xx used to put "Error" in the user's file and move
+// on — a row they will never get back without re-running the whole list. One
+// retry costs two seconds and saves most of them. A 4xx is an answer, not a
+// blip (403 is the credit wall), so it comes straight back.
+async function bulkFetchWithRetry(payload){
+    let last = null;
+    for (let attempt = 0; attempt <= CSV_ROW_RETRIES; attempt++) {
+        if (attempt) await new Promise(r => setTimeout(r, CSV_ROW_RETRY_MS));
+        try {
+            const res = await fetchWithTimeout('https://linkfinderapp.hamoureliasse.workers.dev/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            if (res.ok || res.status < 500) return res;
+            last = res;
+        } catch(e) {
+            last = null;
+        }
+    }
+    if (last) return last;
+    throw new Error('enrichment request failed');
+}
+
+// `resuming` is true when the run is picking up a batch that stopped part way:
+// csvResumeFrom / bulkCarryCsv / currentCsvBatchId are already set up by
+// resumeCsvBatch(), and the rows before the cursor are neither re-run nor
+// re-charged.
+async function processBulk(resuming) {
     isBulkProcessing = true;
     setupRefreshWarning();
     showAlert('\u26a0\ufe0f Processing in progress - Please do not refresh or close this page until complete!','warning');
@@ -3655,14 +3935,27 @@ async function processBulk() {
     bulkResults = [];
     initializeBulkResultsTable();
 
-    currentCsvBatchId = await csvBatchCreate(csvData.length);
+    if (!resuming) {
+        csvResumeFrom = 0;
+        bulkCarryCsv = '';
+        bulkCarryEndSrc = -1;
+        csvCheckpointRow = 0;
+        csvCheckpointSrc = 0;
+        csvResumeFoundRows = 0;
+        csvResumeCredits = 0;
+        currentCsvBatchId = await csvBatchCreate(csvData.length);
+    }
+    csvCheckpointSlot = 0;
 
     let creditsConsumed = 0;
     let processedCount = 0;
     let creditsExhausted = false;
     let processedWithCredits = 0;
-    
-    for (let i = 0; i < csvData.length; i++) {
+    let lastCheckpointAt = Date.now();
+
+    for (let i = csvResumeFrom; i < csvData.length; i++) {
+        // bulkResults holds only this run's rows; `slot` is where row i lands.
+        const slot = i - csvResumeFrom;
         // Check if we have enough credits before processing
         if (!creditsExhausted) {
             if (currentCredits !== null && currentCredits < 1) {
@@ -3673,8 +3966,9 @@ async function processBulk() {
                 try {
                     posthog.capture('bulk_results_gated_shown', {
                         total_rows: csvData.length,
-                        processed_rows: processedCount,
-                        locked_rows: csvData.length - processedCount,
+                        processed_rows: csvResumeFrom + processedCount,
+                        locked_rows: csvData.length - (csvResumeFrom + processedCount),
+                        resumed_from: csvResumeFrom,
                         credits_remaining: currentCredits,
                         input_type: currentInputType,
                         output_type: currentOutputType
@@ -3685,7 +3979,7 @@ async function processBulk() {
                 renderGatedResults(processedCount);
                 
                 // Show inline upgrade banner
-                showUpgradeBanner(processedCount, csvData.length);
+                showUpgradeBanner(csvResumeFrom + processedCount, csvData.length);
                 
                 // Stop processing but keep the table visible
                 break;
@@ -3710,10 +4004,7 @@ async function processBulk() {
                 bulkLastName = nameParts.slice(1).join(' ') || '';
                 bulkDomain = (row.company || '').toLowerCase().replace(/^https?:\/\//,'').replace(/^www\./,'').replace(/\/.*$/,'');
             }
-            const response = await fetchWithTimeout('https://linkfinderapp.hamoureliasse.workers.dev/', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
+            const response = await bulkFetchWithRetry({
                     type: generateCombinationType(currentInputType, currentOutputType),
                     input_data: row.inputData,
                     first_name: bulkFirstName,
@@ -3731,14 +4022,13 @@ async function processBulk() {
                     output_type: currentOutputType,
                     token: userToken,
                     is_bulk: true
-                })
             });
-            
+
             if (response.ok) {
                 const data = await response.json();
                 if (currentOutputType === 'employee_count') {
                     const count = data.result || data || 'Not found';
-                    bulkResults[i] = {
+                    bulkResults[slot] = {
                         inputData: row.inputData,
                         result: count === 'Not found' ? count : `${count} employees`,
                         status: count === 'Not found' ? 'Not found' : 'Found',
@@ -3753,7 +4043,7 @@ async function processBulk() {
                 } else if (currentOutputType === 'employees' && (Array.isArray(data) || (data.employees && Array.isArray(data.employees)))) {
                     const employees = Array.isArray(data) ? data : data.employees;
                     const cost = employees.length * 0.5;
-                    bulkResults[i] = {
+                    bulkResults[slot] = {
                         inputData: row.inputData,
                         result: `${employees.length} employees found`,
                         status: employees.length > 0 ? 'Found' : 'Not found',
@@ -3767,7 +4057,7 @@ async function processBulk() {
                     }
                 } else if (currentOutputType === 'reactions' && Array.isArray(data)) {
                     const cost = data.length;
-                    bulkResults[i] = {
+                    bulkResults[slot] = {
                         inputData: row.inputData,
                         result: `${data.length} reactions found`,
                         status: 'Found',
@@ -3787,7 +4077,7 @@ async function processBulk() {
                     const hasProfileData = !!(parsedRaw.name || parsedRaw.jobTitle || parsedRaw.company);
                     const resultValue = data.result || (hasProfileData ? parsedRaw.name || 'Found' : 'Not found');
                     const statusValue = (data.result || hasProfileData) ? 'Found' : 'Not found';
-                    bulkResults[i] = {
+                    bulkResults[slot] = {
                         inputData: row.inputData,
                         result: resultValue,
                         status: statusValue,
@@ -3818,10 +4108,10 @@ async function processBulk() {
                     } catch(e) {}
                     
                     renderGatedResults(processedCount);
-                    showUpgradeBanner(processedCount, csvData.length);
+                    showUpgradeBanner(csvResumeFrom + processedCount, csvData.length);
                     break;
                 }
-                bulkResults[i] = {
+                bulkResults[slot] = {
                     inputData: row.inputData,
                     result: 'Not found',
                     status: 'Not found',
@@ -3829,7 +4119,7 @@ async function processBulk() {
                 };
             }
         } catch(e) {
-            bulkResults[i] = {
+            bulkResults[slot] = {
                 inputData: row.inputData,
                 result: 'Error',
                 status: 'Error',
@@ -3839,19 +4129,20 @@ async function processBulk() {
         processedCount++;
         updateProgress((i + 1) / csvData.length * 100);
         updateBulkResultsTable();
-        // Fire-and-forget so a slow write never stalls the enrichment. Keeps the
-        // History page honest if the tab dies half way through a long list.
-        if (currentCsvBatchId && processedCount % CSV_BATCH_PROGRESS_EVERY === 0) {
-            csvBatchUpdate(currentCsvBatchId, {
-                processed_rows: processedCount,
-                found_rows: csvBatchFoundRows(),
-                credits_used: Math.round(creditsConsumed * 100) / 100,
-            });
+        // Checkpoint on rows or on elapsed time, whichever lands first — a slow
+        // enrichment must not go twenty minutes without saving anything. Awaited
+        // so the archive can never get ahead of itself, but it only ever sends
+        // the rows finished since last time.
+        const dueRows = processedCount - csvCheckpointSlot >= CSV_BATCH_PROGRESS_EVERY;
+        const dueTime = Date.now() - lastCheckpointAt >= CSV_BATCH_PROGRESS_MS;
+        if (currentCsvBatchId && (dueRows || dueTime)) {
+            lastCheckpointAt = Date.now();
+            await csvBatchCheckpoint(processedCount, creditsConsumed);
         }
         await new Promise(r => setTimeout(r, 100));
     }
     
-    if (!creditsExhausted && processedCount === csvData.length) {
+    if (!creditsExhausted && csvResumeFrom + processedCount === csvData.length) {
         const banner = document.getElementById('upgradeBanner');
         if (banner) banner.style.display = 'none';
         if (currentCredits !== null && currentCredits < 50) {
@@ -4048,6 +4339,11 @@ document.addEventListener('DOMContentLoaded',()=>{
     // nudge below declines to clobber a banner that is already showing.
     setTimeout(maybeShowCheckoutRescue, 2500);
     setTimeout(maybeShowTimeBasedUpgradeNudge, 3000);
+    // Somebody whose enrichment stopped part way should find it waiting, not
+    // have to remember it. ?resume=<id> is the History page's Resume button.
+    const resumeId = new URLSearchParams(window.location.search).get('resume');
+    if (resumeId) setTimeout(() => resumeCsvBatch(resumeId), 400);
+    else setTimeout(checkUnfinishedCsvBatch, 1200);
     const pb=document.getElementById('processBulkBtn');
     pb.disabled=true; pb.style.opacity='0.5';
     pb.innerHTML='<i class="fas fa-upload"></i> Upload a CSV file first';
@@ -4727,7 +5023,8 @@ function lfBuildCsvData(){
     const m = lfMapping;
     const at = (vals,i) => (i !== undefined && i !== -1 && vals[i] !== undefined) ? String(vals[i]).trim() : '';
     csvData = [];
-    for(const vals of lfCsvRows){
+    for(let srcIndex = 0; srcIndex < lfCsvRows.length; srcIndex++){
+        const vals = lfCsvRows[srcIndex];
         let nameVal = at(vals, m.name);
         if(!nameVal && (m.first !== undefined || m.last !== undefined)){
             nameVal = [at(vals,m.first), at(vals,m.last)].filter(Boolean).join(' ');
@@ -4744,6 +5041,10 @@ function lfBuildCsvData(){
             : nameVal;
         const countRaw = at(vals,m.employee_count);
         csvData.push({
+            // Which line of the uploaded file this came from. The export is
+            // rebuilt around the user's own rows, and rows with no readable
+            // name are skipped here, so the two lists do not line up.
+            srcIndex,
             inputData, name:nameVal, company:companyVal, location:locationVal, job_title:jobTitleVal,
             department:at(vals,m.department), seniority:at(vals,m.seniority),
             employee_count: countRaw ? (parseInt(countRaw,10) || null) : null,
@@ -4881,6 +5182,9 @@ function showPreview(){
     const btn=document.getElementById('processBulkBtn');
     btn.disabled=false; btn.style.opacity='1';
     btn.innerHTML=`<i class="fas fa-play"></i> Process ${csvData.length} items`;
+    // A previous resume rebinds this button; a new file is a new run.
+    btn.setAttribute('onclick','processBulk()');
+    csvResumeFrom = 0; bulkCarryCsv = ''; bulkCarryEndSrc = -1;
     document.getElementById('csvPreview').classList.remove('hidden');
     // Auto-detection can pick the wrong column and still look fine. Always
     // leave a way back to the mapper, not only when detection fails.
@@ -4951,57 +5255,184 @@ function updateBulkResultsTable(){
 }
     document.getElementById('bulkResultsTable').innerHTML=html;
 }
-// Builds the export CSV for whatever is currently in `bulkResults`. Kept
-// separate from the download so the copy we archive against the CSV batch in
-// history is byte-for-byte the file the user gets here.
-function buildBulkCsv(){
-    const c=dataConfigurations[currentInputType];let csv='';
-    if(currentOutputType==='employee_count'){csv=`${c.label.replace('Enter ','')},Employee Count,Status\n`;bulkResults.forEach(r=>{csv+=`"${r.inputData}","${r.employeeCount||'Not found'}","${r.status==='Processing'?'Not found':r.status}"\n`;});}
-    else if(currentInputType==='linkedin_post'&&currentOutputType==='reactions'){csv='Name,Job Title,Profile Info,LinkedIn URL\n';bulkResults.forEach(pr=>{if(pr.reactions&&Array.isArray(pr.reactions)){pr.reactions.forEach(r=>{const p=parseReactionTitle(r.title);const esc=(s)=>(!s||s==='Not found'||s==='Not specified')?s:`"${s.toString().replace(/"/g,'""')}"`;csv+=[esc(p.name),esc(p.jobInfo||'Not specified'),esc(r.snippet||'Not specified'),esc(r.link||'Not specified')].join(',')+'\n';});}});}
-    else if(currentInputType==='linkedin_profile'&&currentOutputType==='linkedin_info'){
-    csv='LinkedIn URL,Name,Headline,Current Title,Current Company,Location,Country,Industry,Connections,Followers,Website,Email,Mobile,About,Education,Experience,Skills,Status\n';
-    bulkResults.forEach(r=>{
-        const d=r.rawData||{};
-        const cur=csvCurrentExp(d.experiences);
-        const esc=(s)=>(!s||s==='Not found'||s==='Not specified')?'':`"${s.toString().replace(/"/g,'""')}"`;
-        csv+=[
-            esc(r.inputData), esc(d.name), esc(d.headline),
-            esc((cur&&cur.title)||d.jobTitle), esc(cur&&cur.companyName),
-            esc(d.location), esc(d.country), esc(d.industry),
-            esc(d.connections), esc(d.followers),
-            esc(d.website), esc(d.email), esc(d.mobileNumber), esc(d.about),
-            esc(csvFormatEducation(d.education)), esc(csvFormatExperiences(d.experiences)), esc(csvFormatSkills(d.skills)),
-            r.status
-        ].join(',')+'\n';
-    });
+/* ---------------------------------------------------------------------
+   The export CSV.
+
+   The file a user gets back is THEIR file: every original column, every
+   original row, in the original order, with the enrichment appended as extra
+   columns on the right. It is not a fresh table of whatever we happened to
+   look up — rows we could not read a name from, and rows the run never
+   reached, are still there with the new columns left blank.
+
+   Two enrichments return many results per input row (employees, post
+   reactions). Those still expand into one line per result, but each line
+   carries the original row's columns, so nothing the user uploaded is lost.
+--------------------------------------------------------------------- */
+
+// The columns appended to the user's own, per enrichment.
+function csvEnrichColumns(){
+    const c = dataConfigurations[currentInputType];
+    if(currentOutputType === 'employee_count') return ['Employee Count','Status'];
+    if(currentInputType === 'linkedin_post' && currentOutputType === 'reactions')
+        return ['Reaction Name','Reaction Job Title','Reaction Profile Info','Reaction LinkedIn URL'];
+    if(currentInputType === 'linkedin_profile' && currentOutputType === 'linkedin_info')
+        return ['Name','Headline','Current Title','Current Company','Location','Country','Industry',
+                'Connections','Followers','Website','Email','Mobile','About','Education','Experience','Skills','Status'];
+    if(currentInputType === 'linkedin_company' && currentOutputType === 'linkedin_info')
+        return ['Company Name','Industry','Employees','Followers','City','Country','Founded',
+                'Website','Company Email','Company Phone','Description','Status'];
+    if(currentOutputType === 'employees')
+        return ['Employee Name','Employee Job Title','Employee Seniority','Employee Headline','Employee Department',
+                'Employee Industry','Employee Email','Employee Mobile','Employee Twitter','Employee City',
+                'Employee State','Employee Country','Employee LinkedIn URL','Employee Company','Employee Company Website',
+                'Employee Company Phone','Employee Company Size','Employee Company City','Employee Company State',
+                'Employee Company Country','Employee Company LinkedIn URL'];
+    const ol = (c && c.outputs && c.outputs[currentOutputType]) || 'Result';
+    return currentInputType === 'email' ? [ol,'Confidence','Status'] : [ol,'Status'];
 }
-    else if(currentInputType==='linkedin_company'&&currentOutputType==='linkedin_info'){csv='LinkedIn URL,Company Name,Industry,Employees,Followers,City,Country,Founded,Website,Company Email,Company Phone,Description\n';bulkResults.forEach(r=>{const d=r.rawData||{};const esc=(s)=>(!s||s==='Not found'||s==='Not specified')?(s||''):`"${s.toString().replace(/"/g,'""')}"`;const followers=d.followerCount?Number(String(d.followerCount).replace(/,/g,'')).toLocaleString():'';const empSize=d.company_size!=null&&d.company_size!==''&&d.company_size!==0?String(d.company_size):'';csv+=[esc(r.inputData),esc(d.name),esc(d.industry),esc(empSize),esc(followers),esc(d.city),esc(d.country),esc(cipFounded(d.foundedOn)),esc(d.website),esc(d.company_email),esc(d.company_phone),esc(d.company_description)].join(',')+'\n';});}
-    else if(currentOutputType==='employees'){
-    csv='Input,Name,Job Title,Seniority,Headline,Department,Industry,Email,Mobile,Twitter,City,State,Country,LinkedIn URL,Company,Company Website,Company Phone,Company Size,Company City,Company State,Company Country,Company LinkedIn URL\n';
-    bulkResults.forEach(r=>{
-        const emps=r.employees||[];
-        const esc=(v)=>v?`"${String(Array.isArray(v)?v.join('; '):v).replace(/"/g,'""')}"`:' ""';
-        if(emps.length===0){
-            csv+=`"${r.inputData}","Not found","","","","","","","","","","","","","","","","","","","",""\n`;
-        }else{
-            emps.forEach(e=>{
-                csv+=[
-                    esc(r.inputData), esc(e.name), esc(e.jobTitle), esc(e.seniority), esc(e.headline),
-                    esc(e.department), esc(e.industry), esc(e.email), esc(e.mobileNumber), esc(e.twitter),
-                    esc(e.city), esc(e.state), esc(e.country), esc(e.linkedinUrl),
-                    esc(e.company), esc(e.companyWebsite), esc(e.companyPhone), esc(e.companySize),
-                    esc(e.companyCity), esc(e.companyState), esc(e.companyCountry), esc(e.companyLinkedinUrl)
-                ].join(',')+'\n';
-            });
+
+// One input row can produce several output lines, so this always returns an
+// array of cell-arrays. A row that was never enriched yields one blank line,
+// which is what keeps the user's own rows in the file.
+function csvEnrichCells(row){
+    const width = csvEnrichColumns().length;
+    const blank = () => new Array(width).fill('');
+    if(!row) return [blank()];
+
+    const clean = (v) => (v == null || v === 'Not found' || v === 'Not specified' || v === 'Processing...') ? '' : String(v);
+    const status = row.status === 'Processing' ? '' : (row.status || '');
+    const d = row.rawData || {};
+
+    if(currentOutputType === 'employee_count') return [[clean(row.employeeCount), status]];
+
+    if(currentInputType === 'linkedin_post' && currentOutputType === 'reactions'){
+        const rs = row.reactions || [];
+        if(!rs.length) return [blank()];
+        return rs.map(r => {
+            const pr = parseReactionTitle(r.title);
+            return [clean(pr.name), clean(pr.jobInfo), clean(r.snippet), clean(r.link)];
+        });
+    }
+
+    if(currentInputType === 'linkedin_profile' && currentOutputType === 'linkedin_info'){
+        const cur = csvCurrentExp(d.experiences);
+        return [[
+            clean(d.name), clean(d.headline), clean((cur && cur.title) || d.jobTitle), clean(cur && cur.companyName),
+            clean(d.location), clean(d.country), clean(d.industry), clean(d.connections), clean(d.followers),
+            clean(d.website), clean(d.email), clean(d.mobileNumber), clean(d.about),
+            clean(csvFormatEducation(d.education)), clean(csvFormatExperiences(d.experiences)), clean(csvFormatSkills(d.skills)),
+            status
+        ]];
+    }
+
+    if(currentInputType === 'linkedin_company' && currentOutputType === 'linkedin_info'){
+        const followers = d.followerCount ? Number(String(d.followerCount).replace(/,/g,'')).toLocaleString() : '';
+        const empSize = (d.company_size != null && d.company_size !== '' && d.company_size !== 0) ? String(d.company_size) : '';
+        return [[
+            clean(d.name), clean(d.industry), empSize, followers, clean(d.city), clean(d.country),
+            clean(cipFounded(d.foundedOn)), clean(d.website), clean(d.company_email), clean(d.company_phone),
+            clean(d.company_description), status
+        ]];
+    }
+
+    if(currentOutputType === 'employees'){
+        const emps = row.employees || [];
+        if(!emps.length) return [blank()];
+        const j = (v) => clean(Array.isArray(v) ? v.join('; ') : v);
+        return emps.map(e => [
+            j(e.name), j(e.jobTitle), j(e.seniority), j(e.headline), j(e.department), j(e.industry),
+            j(e.email), j(e.mobileNumber), j(e.twitter), j(e.city), j(e.state), j(e.country), j(e.linkedinUrl),
+            j(e.company), j(e.companyWebsite), j(e.companyPhone), j(e.companySize),
+            j(e.companyCity), j(e.companyState), j(e.companyCountry), j(e.companyLinkedinUrl)
+        ]);
+    }
+
+    const value = clean(row.result);
+    return currentInputType === 'email'
+        ? [[value, clean(row.confidence), status]]
+        : [[value, status]];
+}
+
+function csvCell(v){ return `"${String(v == null ? '' : v).replace(/"/g,'""').replace(/\r?\n/g,' ')}"`; }
+
+// Which original row each enriched row came from. csvData skips rows with no
+// readable name, so the two are not the same list.
+function csvSrcOf(dataIdx){
+    const row = csvData[dataIdx];
+    return (row && row.srcIndex != null) ? row.srcIndex : dataIdx;
+}
+
+// bulkResults[slot] is csvData[csvResumeFrom + slot]; this is the reverse.
+function csvResultsBySrc(){
+    const map = new Map();
+    for(let slot = 0; slot < bulkResults.length; slot++){
+        map.set(csvSrcOf(csvResumeFrom + slot), bulkResults[slot]);
+    }
+    return map;
+}
+
+// The heart of it: original rows [fromSrc..toSrc] inclusive, each with its
+// enrichment columns appended.
+function csvRenderRange(fromSrc, toSrc, includeHeader){
+    const enrichCols = csvEnrichColumns();
+    const width = lfCsvHeaders.length;
+    const bySrc = csvResultsBySrc();
+    const lines = [];
+
+    if(includeHeader) lines.push([...lfCsvHeaders, ...enrichCols].map(csvCell).join(','));
+
+    for(let src = Math.max(0, fromSrc); src <= toSrc && src < lfCsvRows.length; src++){
+        const original = lfCsvRows[src] || [];
+        const padded = [];
+        for(let i = 0; i < width; i++) padded.push(original[i] !== undefined ? original[i] : '');
+        for(const cells of csvEnrichCells(bySrc.get(src))){
+            lines.push([...padded, ...cells].map(csvCell).join(','));
         }
-    });
+    }
+
+    return lines.length ? lines.join('\n') + '\n' : '';
 }
-    else{const ol=c.outputs[currentOutputType];csv=`${c.label.replace('Enter ','')},${ol},Status\n`;bulkResults.forEach(r=>{csv+=`"${r.inputData}","${r.result==='Processing...'?'Not found':r.result}","${r.status==='Processing'?'Not found':r.status}"\n`;});}
-    let fn='linkfinder_ai_enriched_data';
-    if(currentInputType==='linkedin_post') fn='linkedin_reactions';
-    else if(currentInputType==='linkedin_profile') fn='linkedin_profile_data';
-    else if(currentInputType==='linkedin_company') fn='linkedin_company_data';
-    return { csv, baseName: `${fn}_${new Date().toISOString().split('T')[0]}` };
+
+function csvBaseName(){
+    let fn = 'linkfinder_ai_enriched_data';
+    if(currentInputType === 'linkedin_post') fn = 'linkedin_reactions';
+    else if(currentInputType === 'linkedin_profile') fn = 'linkedin_profile_data';
+    else if(currentInputType === 'linkedin_company') fn = 'linkedin_company_data';
+    if(lfUploadedFileName) fn = lfUploadedFileName.replace(/\.[^.]+$/, '') + '_enriched';
+    return `${fn}_${new Date().toISOString().split('T')[0]}`;
+}
+
+// The last original row this run is entitled to write. Once every input row has
+// been attempted the file runs to the end, so trailing rows we never enriched
+// still come back to the user.
+function csvLastRenderedSrc(){
+    const done = csvResumeFrom + bulkResults.length;
+    if(done >= csvData.length) return lfCsvRows.length - 1;
+    return csvSrcOf(done - 1);
+}
+
+// The whole file: everything enriched before this run picked the list back up
+// (bulkCarryCsv), plus everything this run added.
+function buildBulkCsv(){
+    const from = bulkCarryCsv ? bulkCarryEndSrc + 1 : 0;
+    const csv = bulkCarryCsv + csvRenderRange(from, csvLastRenderedSrc(), !bulkCarryCsv);
+    return { csv, baseName: csvBaseName() };
+}
+
+// The free-user teaser: the first few rows of their own file, enriched.
+function buildBulkPreviewCsv(){
+    const n = Math.min(5, bulkResults.length);
+    const from = bulkCarryCsv ? bulkCarryEndSrc + 1 : 0;
+    return { csv: csvRenderRange(from, csvSrcOf(csvResumeFrom + n - 1), true), baseName: csvBaseName() };
+}
+
+// The archive chunk for bulkResults[from..upTo): original rows from wherever
+// the archive left off through the last one this chunk covers. Rows skipped for
+// having no name fall inside that span and come along, blank, exactly as they
+// will in the finished file.
+function buildBulkCsvChunk(from, upTo, includeHeader){
+    if(upTo <= from) return '';
+    return csvRenderRange(csvCheckpointSrc, csvSrcOf(csvResumeFrom + upTo - 1), includeHeader);
 }
 
 async function downloadResults(isPreviewOnly){
@@ -5010,16 +5441,11 @@ async function downloadResults(isPreviewOnly){
         const allowed = await ensureSubscribedForExport();
         if (!allowed) return; // ensureSubscribedForExport re-invokes downloadResults(true) itself for free users
     }
-    const fullResults = bulkResults;
-    if (isPreviewOnly) {
-        bulkResults = bulkResults.slice(0, 5);
-    }
-    const built = buildBulkCsv();
-    const blob=new Blob([built.csv],{type:'text/csv;charset=utf-8;'});
+    const built = isPreviewOnly ? buildBulkPreviewCsv() : buildBulkCsv();
+    const blob=new Blob(['﻿' + built.csv],{type:'text/csv;charset=utf-8;'});
     const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;
     a.download=`${built.baseName}${isPreviewOnly ? '_preview' : ''}.csv`;
     a.click();URL.revokeObjectURL(url);
-    if (isPreviewOnly) bulkResults = fullResults; // restore full in-memory results for the table view
 }
 
 function showLoading(){document.getElementById('loading').style.display='block';hideResults();}

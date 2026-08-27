@@ -23,23 +23,35 @@ function slice(src, startMark, endMark, label) {
 const writerBlock = slice(
     appSrc,
     'function csvBatchHeaders()',
-    'async function processBulk()',
+    '/* ---------------------------------------------------------------------\n   Resume',
     'app.html batch writer'
 );
 
-function writerHarness({ bulkResults = [], csvData = [], csvOut = 'a,b\n1,2\n', fetchImpl, batchId = null } = {}) {
+function writerHarness({ results = [], rows = [], batchId = null, resumeFrom = 0, carry = '', fetchImpl } = {}) {
     const calls = [];
     const ctx = {
         userToken: 'tok_abcdefgh',
         currentInputType: 'lead_full_name',
         currentOutputType: 'email',
         lfUploadedFileName: 'crm-export.csv',
+        lfCsvHeaders: ['Name', 'Company'],
+        lfCsvRows: rows,
+        lfMapping: { name: 0, company: 1 },
         currentCsvBatchId: batchId,
-        bulkResults,
-        csvData,
+        bulkResults: results,
+        csvData: rows.map((r, i) => ({ srcIndex: i, inputData: r[0], name: r[0], company: r[1] })),
+        csvResumeFrom: resumeFrom,
+        csvResumeFoundRows: 0,
+        csvResumeCredits: 0,
+        csvCheckpointSlot: 0,
+        csvCheckpointRow: resumeFrom,
+        csvCheckpointSrc: resumeFrom,
+        bulkCarryCsv: carry,
+        bulkCarryEndSrc: resumeFrom - 1,
         CSV_BATCH_ENDPOINT: 'https://db.example/rest/v1/csv_enrichment_batches',
+        CSV_BATCH_CHECKPOINT_RPC: 'https://db.example/rest/v1/rpc/csv_batch_checkpoint',
         CSV_BATCH_SUPABASE_ANON_KEY: 'anon_key',
-        CSV_BATCH_MAX_CSV_CHARS: 4000000,
+        CSV_BATCH_MAX_INPUT_CHARS: 6000000,
         dataConfigurations: {
             lead_full_name: {
                 label: 'Enter Lead Full Name + Company Name',
@@ -47,114 +59,146 @@ function writerHarness({ bulkResults = [], csvData = [], csvOut = 'a,b\n1,2\n', 
             }
         },
         generateCombinationType: (i, o) => `${i}_to_${o}`,
-        buildBulkCsv: () => ({ csv: csvOut, baseName: 'linkfinder_ai_enriched_data_2026-08-27' }),
+        // The export builder is covered on its own in csv-export-shape.test.mjs.
+        csvBaseName: () => 'crm-export_enriched_2026-08-27',
+        buildBulkCsvChunk: (from, upTo, header) =>
+            (header ? 'HEADER\n' : '') + results.slice(from, upTo).map(r => `${r.inputData}\n`).join(''),
+        csvRenderRange: (fromSrc, toSrc) => rows.slice(fromSrc, toSrc + 1).map(r => `tail:${r[0]}\n`).join(''),
+        csvSrcOf: (i) => i,
         posthog: { capture: () => {} },
         fetch: fetchImpl || (async (url, opts) => {
             calls.push({ url, method: opts.method, body: JSON.parse(opts.body) });
-            return { ok: true, json: async () => [{ id: 'batch-1' }] };
+            const isRpc = url.includes('/rpc/');
+            return {
+                ok: true,
+                json: async () => isRpc ? JSON.parse(opts.body).p_processed : [{ id: 'batch-1' }]
+            };
         })
     };
-    const fn = new Function(...Object.keys(ctx),
+    const api = new Function(...Object.keys(ctx),
         writerBlock +
-        '; return { csvBatchCreate, csvBatchUpdate, csvBatchLabel, csvBatchFoundRows, csvBatchFinalize,' +
-        '  get batchId(){ return currentCsvBatchId; },' +
-        '  get results(){ return bulkResults; } };');
-    return { api: fn(...Object.values(ctx)), calls };
+        `; return { csvBatchCreate, csvBatchUpdate, csvBatchCheckpoint, csvBatchFinalize, csvBatchLabel,
+            get batchId(){ return currentCsvBatchId; },
+            get checkpointRow(){ return csvCheckpointRow; },
+            get checkpointSlot(){ return csvCheckpointSlot; },
+            get results(){ return bulkResults; } };`)(...Object.values(ctx));
+    return { api, calls };
 }
 
-const rows = (statuses) => statuses.map((status, i) => ({ inputData: `row ${i}`, status }));
+const LEADS = [['Ada', 'AE'], ['Grace', 'UNIVAC'], ['Alan', 'NPL'], ['Edsger', 'THE']];
+const res = (name, status = 'Found') => ({ inputData: name, status });
 
-test('opening a batch records the file, the enrichment and the row count', async () => {
-    const { api, calls } = writerHarness({ csvData: new Array(500) });
-    const id = await api.csvBatchCreate(500);
+test('opening a batch records the file, the enrichment and the uploaded rows', async () => {
+    const { api, calls } = writerHarness({ rows: LEADS });
+    const id = await api.csvBatchCreate(4);
     assert.equal(id, 'batch-1');
     assert.equal(calls[0].method, 'POST');
-    assert.deepEqual(calls[0].body, {
-        user_id: 'tok_abcdefgh',
-        file_name: 'crm-export.csv',
-        label: 'Lead Full Name + Company Name → Verified Email',
-        type: 'lead_full_name_to_email',
-        input_type: 'lead_full_name',
-        output_type: 'email',
-        total_rows: 500,
-        status: 'processing'
-    });
+    assert.equal(calls[0].body.file_name, 'crm-export.csv');
+    assert.equal(calls[0].body.label, 'Lead Full Name + Company Name → Verified Email');
+    assert.equal(calls[0].body.total_rows, 4);
+    assert.equal(calls[0].body.status, 'processing');
+    // stored so the run can be picked up later
+    assert.deepEqual(calls[0].body.input_rows, LEADS);
+    assert.deepEqual(calls[0].body.csv_headers, ['Name', 'Company']);
+    assert.deepEqual(calls[0].body.column_mapping, { name: 0, company: 1 });
 });
 
-test('a batch that never opened is never written to', async () => {
-    const { api, calls } = writerHarness({ batchId: null });
-    await api.csvBatchFinalize(10, 70, false);
+test('a file too large to store is still tracked, just not resumable', async () => {
+    const huge = Array.from({ length: 200000 }, (_, i) => [`n${i}`, 'x'.repeat(40)]);
+    const { api, calls } = writerHarness({ rows: huge });
+    await api.csvBatchCreate(huge.length);
+    assert.equal(calls[0].body.input_rows, null);
+    assert.equal(calls[0].body.total_rows, huge.length);
+});
+
+test('a checkpoint appends only the rows finished since the last one', async () => {
+    const { api, calls } = writerHarness({
+        batchId: 'batch-1', rows: LEADS, results: [res('Ada'), res('Grace')]
+    });
+    await api.csvBatchCheckpoint(1, 7);
+    assert.equal(calls[0].body.p_from_row, 0);
+    assert.equal(calls[0].body.p_processed, 1);
+    assert.equal(calls[0].body.p_chunk, 'HEADER\nAda\n', 'first chunk carries the header');
+
+    await api.csvBatchCheckpoint(2, 14);
+    assert.equal(calls[1].body.p_from_row, 1, 'must continue where the last one ended');
+    assert.equal(calls[1].body.p_chunk, 'Grace\n', 'no second header, and no resent rows');
+});
+
+test('a checkpoint that lands out of step does not advance the cursor', async () => {
+    // The RPC answers with the row's real processed_rows; a mismatch means
+    // somebody else moved it and our chunk was not applied.
+    const { api } = writerHarness({
+        batchId: 'batch-1', rows: LEADS, results: [res('Ada')],
+        fetchImpl: async () => ({ ok: true, json: async () => 99 })
+    });
+    await api.csvBatchCheckpoint(1, 7);
+    assert.equal(api.checkpointRow, 0, 'cursor must stay put so the chunk is retried in order');
+    assert.equal(api.checkpointSlot, 0);
+});
+
+test('nothing new means no request at all', async () => {
+    const { api, calls } = writerHarness({ batchId: 'batch-1', rows: LEADS, results: [res('Ada')] });
+    await api.csvBatchCheckpoint(0, 0);
     assert.equal(calls.length, 0);
 });
 
-test('a Supabase outage never breaks the enrichment', async () => {
-    const { api } = writerHarness({ batchId: 'batch-1', fetchImpl: async () => { throw new Error('offline'); } });
-    assert.equal(await api.csvBatchCreate(10), null);
-    await assert.doesNotReject(api.csvBatchFinalize(10, 70, false));
+test('a resumed run carries the earlier credits and finds into its counters', async () => {
+    const { api, calls } = writerHarness({
+        batchId: 'batch-1', rows: LEADS, results: [res('Alan')], resumeFrom: 2, carry: 'HEADER\nAda\nGrace\n'
+    });
+    await api.csvBatchCheckpoint(1, 7);
+    assert.equal(calls[0].body.p_from_row, 2, 'picks up at the stored cursor');
+    assert.equal(calls[0].body.p_processed, 3);
+    assert.equal(calls[0].body.p_chunk, 'Alan\n', 'a resumed archive already has its header');
 });
 
-test('a full run is completed, and archives the exact export CSV', async () => {
+test('a full run is closed as completed and flushes the trailing rows', async () => {
     const { api, calls } = writerHarness({
-        batchId: 'batch-1',
-        csvData: new Array(3),
-        bulkResults: rows(['Found', 'Not found', 'Found']),
-        csvOut: 'Name,Email\nJohn,john@acme.com\n'
+        batchId: 'batch-1', rows: LEADS,
+        results: [res('Ada'), res('Grace'), res('Alan'), res('Edsger')]
     });
-    await api.csvBatchFinalize(3, 21, false);
-
+    await api.csvBatchFinalize(4, 28, false);
     const patch = calls.at(-1);
     assert.equal(patch.method, 'PATCH');
-    assert.ok(patch.url.includes('id=eq.batch-1'));
     assert.equal(patch.body.status, 'completed');
-    assert.equal(patch.body.processed_rows, 3);
-    assert.equal(patch.body.found_rows, 2);
-    assert.equal(patch.body.credits_used, 21);
-    assert.equal(patch.body.result_csv, 'Name,Email\nJohn,john@acme.com\n');
-    assert.equal(patch.body.result_filename, 'linkfinder_ai_enriched_data_2026-08-27.csv');
+    assert.ok(patch.body.completed_at);
+    assert.equal(api.batchId, null);
 });
 
-test('running out of credits is recorded as such, not as a completed file', async () => {
+test('running out of credits is recorded as such, and leaves the tail alone', async () => {
     const { api, calls } = writerHarness({
-        batchId: 'batch-1',
-        csvData: new Array(500),
-        bulkResults: rows(['Found', 'Found'])
+        batchId: 'batch-1', rows: LEADS, results: [res('Ada'), res('Grace')]
     });
     await api.csvBatchFinalize(2, 14, true);
     assert.equal(calls.at(-1).body.status, 'out_of_credits');
-    assert.equal(calls.at(-1).body.processed_rows, 2);
+    // A resume continues at row 2 — appending the unrun rows now would put them
+    // in the file ahead of their own enrichment.
+    assert.ok(!calls.some(c => String(c.body.p_chunk || '').includes('tail:')));
 });
 
-test('a run stopped short of the file is marked stopped', async () => {
+test('a run stopped short is marked stopped, so it can be picked up', async () => {
     const { api, calls } = writerHarness({
-        batchId: 'batch-1',
-        csvData: new Array(500),
-        bulkResults: rows(['Found'])
+        batchId: 'batch-1', rows: LEADS, results: [res('Ada')]
     });
     await api.csvBatchFinalize(1, 7, false);
     assert.equal(calls.at(-1).body.status, 'stopped');
 });
 
-test('the row still in flight when credits ran dry stays out of the saved file', async () => {
-    const { api } = writerHarness({
-        batchId: 'batch-1',
-        csvData: new Array(5),
-        bulkResults: rows(['Found', 'Found', 'Processing'])
-    });
-    await api.csvBatchFinalize(2, 14, true);
-    // buildBulkCsv reads the live array, so it must be handed back untouched.
-    assert.deepEqual(api.results.map(r => r.status), ['Found', 'Found', 'Processing']);
+test('a batch that never opened is never written to', async () => {
+    const { api, calls } = writerHarness({ batchId: null, rows: LEADS });
+    await api.csvBatchFinalize(10, 70, false);
+    assert.equal(calls.length, 0);
 });
 
-test('an archive too large to POST is skipped, but the run is still tracked', async () => {
-    const { api, calls } = writerHarness({
-        batchId: 'batch-1',
-        csvData: new Array(1),
-        bulkResults: rows(['Found']),
-        csvOut: 'x'.repeat(4000001)
+test('a Supabase outage never breaks the enrichment', async () => {
+    const { api } = writerHarness({
+        batchId: 'batch-1', rows: LEADS, results: [res('Ada')],
+        fetchImpl: async () => { throw new Error('offline'); }
     });
-    await api.csvBatchFinalize(1, 7, false);
-    assert.equal(calls.at(-1).body.result_csv, undefined);
-    assert.equal(calls.at(-1).body.status, 'completed');
+    assert.equal(await api.csvBatchCreate(4), null);
+    await assert.doesNotReject(api.csvBatchCheckpoint(1, 7));
+    await assert.doesNotReject(api.csvBatchFinalize(1, 7, false));
 });
 
 /* ------------------------------------------------------------------ */
@@ -182,7 +226,7 @@ function readerHarness(batches, filtered) {
         document: { getElementById: (id) => nodes[id] }
     };
     const fn = new Function(...Object.keys(ctx),
-        readerBlock + '; return { csvBatchState, pct, formatBytes, renderCsvBatches };');
+        readerBlock + '; return { csvBatchState, pct, formatBytes, renderCsvBatches, csvBatchResumable };');
     return { api: fn(...Object.values(ctx)), nodes };
 }
 
@@ -198,6 +242,7 @@ const batch = (over = {}) => Object.assign({
     status: 'completed',
     result_filename: 'linkfinder_ai_enriched_data_2026-08-27.csv',
     result_bytes: 24576,
+    input_bytes: 40960,
     started_at: '2026-08-25T09:00:00Z',
     updated_at: '2026-08-25T09:20:00Z'
 }, over);
@@ -237,6 +282,30 @@ test('a run whose tab was closed reads as interrupted, not as still running', ()
     const { api } = readerHarness([]);
     assert.equal(api.csvBatchState({ status: 'processing', updated_at: stale }).label, 'Interrupted');
     assert.equal(api.csvBatchState({ status: 'processing', updated_at: new Date().toISOString() }).label, 'Running');
+});
+
+test('a run that stopped part way offers to pick up the rows it never reached', () => {
+    const { api, nodes } = readerHarness([batch({ processed_rows: 320, found_rows: 198, status: 'out_of_credits' })]);
+    api.renderCsvBatches();
+    assert.match(nodes.csvList.innerHTML, /resumeCsvBatch\('b1'\)/);
+    assert.match(nodes.csvList.innerHTML, /Resume 180 rows/, '500 total - 320 processed');
+    // the partial file is still there to take
+    assert.match(nodes.csvList.innerHTML, /downloadCsvBatch\('b1'/);
+    assert.match(nodes.csvList.innerHTML, /Download what is enriched/);
+});
+
+test('a finished run has nothing to resume', () => {
+    const { api, nodes } = readerHarness([batch()]);
+    api.renderCsvBatches();
+    assert.doesNotMatch(nodes.csvList.innerHTML, /resumeCsvBatch/);
+    assert.match(nodes.csvList.innerHTML, /Download results/);
+});
+
+test('a run whose file was too large to store cannot be resumed', () => {
+    const { api } = readerHarness([]);
+    assert.equal(api.csvBatchResumable(batch({ status: 'stopped', processed_rows: 100, input_bytes: null })), false);
+    assert.equal(api.csvBatchResumable(batch({ status: 'stopped', processed_rows: 100 })), true);
+    assert.equal(api.csvBatchResumable(batch({ status: 'completed', processed_rows: 500 })), false);
 });
 
 test('a batch with no archived file says so instead of a dead button', () => {
@@ -281,10 +350,36 @@ test('archive sizes read in human units', () => {
 /* wiring                                                              */
 /* ------------------------------------------------------------------ */
 
-test('processBulk opens, updates and closes the batch', () => {
+test('processBulk opens, checkpoints and closes the batch', () => {
     assert.match(appSrc, /currentCsvBatchId = await csvBatchCreate\(csvData\.length\)/);
-    assert.match(appSrc, /processedCount % CSV_BATCH_PROGRESS_EVERY === 0/);
+    assert.match(appSrc, /await csvBatchCheckpoint\(processedCount, creditsConsumed\)/);
     assert.match(appSrc, /await csvBatchFinalize\(processedCount, creditsConsumed, creditsExhausted\)/);
+});
+
+test('a resumed run starts at the cursor and indexes its own rows', () => {
+    const body = slice(appSrc, 'async function processBulk(resuming) {', '// Add these new functions after processBulk', 'processBulk');
+    assert.match(body, /for \(let i = csvResumeFrom; i < csvData\.length; i\+\+\)/);
+    assert.match(body, /const slot = i - csvResumeFrom/);
+    assert.doesNotMatch(body, /bulkResults\[i\]/, 'absolute indexing breaks a resumed run');
+    assert.match(body, /if \(!resuming\)/, 'a resume must not open a second batch row');
+});
+
+test('a checkpoint is due on rows or on elapsed time, whichever lands first', () => {
+    const body = slice(appSrc, 'async function processBulk(resuming) {', '// Add these new functions after processBulk', 'processBulk');
+    assert.match(body, /dueRows/);
+    assert.match(body, /dueTime/);
+});
+
+test('a run still live in another tab is not offered for resume', () => {
+    const fn = slice(appSrc, 'async function checkUnfinishedCsvBatch()', 'function showResumeCsvBanner(', 'unfinished check');
+    assert.match(fn, /CSV_BATCH_STALE_MS/, 'resuming a live run would double-charge the overlap');
+    assert.match(fn, /input_rows=not\.is\.null/, 'no stored file means nothing to resume');
+});
+
+test('a transient failure is retried before it becomes a lost row', () => {
+    const fn = slice(appSrc, 'async function bulkFetchWithRetry(', '// `resuming` is true', 'retry helper');
+    assert.match(fn, /attempt <= CSV_ROW_RETRIES/);
+    assert.match(fn, /res\.ok \|\| res\.status < 500/, 'a 4xx is an answer, not a blip');
 });
 
 test('the uploaded file name is captured for every upload path', () => {
@@ -294,7 +389,14 @@ test('the uploaded file name is captured for every upload path', () => {
 test('the history list never pulls the archived CSV with it', () => {
     const fields = slice(historySrc, 'const CSV_BATCH_FIELDS', ';\n', 'batch field list');
     assert.doesNotMatch(fields, /result_csv/);
+    assert.doesNotMatch(fields, /input_rows/, 'the stored upload is far too large to list');
     assert.match(fields, /result_bytes/);
+    assert.match(fields, /input_bytes/);
+});
+
+test('History hands resuming to the app rather than running it itself', () => {
+    const fn = slice(historySrc, 'function resumeCsvBatch(id)', 'async function loadCsvBatches(', 'resume handoff');
+    assert.match(fn, /\/app\?token=\$\{userToken\}&resume=/);
 });
 
 test('the download is scoped to the caller\'s own token', () => {
