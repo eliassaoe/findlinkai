@@ -44,25 +44,57 @@ Nothing about it is new state. `input_rows`, `column_mapping` and
 `processed_rows` were built for the in-tab resume and mean exactly the same
 thing here; the runner is just a second thing that can move the cursor.
 
-**Where it runs.** `supabase/functions/csv-batch-runner`, poked by two
-`pg_cron` jobs every 30 seconds (`csv-batch-runner-1` / `-2`). Cloudflare would
+**Where it runs.** `supabase/functions/csv-batch-runner`, poked by six
+`pg_cron` jobs every 30 seconds (`csv-batch-runner-1`…`-6`). Cloudflare would
 have been the obvious home — the rest of the backend lives there — but Workers
 cannot be deployed from this repo's tooling, and Supabase already had `pg_cron`
 and `pg_net` installed. The cron jobs read the service key from
 `vault.decrypted_secrets`, following `process-next-keyword` rather than
 inlining a key.
 
-**One slice at a time.** A slice claims a batch (`csv_batch_claim`), works for
-at most 55 seconds or 120 rows, then hands it back (`csv_batch_release`) either
-finished or still queued. `FOR UPDATE SKIP LOCKED` plus a 180-second lease means
-two runners take different batches rather than fighting over one, and a runner
-that dies mid-slice releases its batch by expiry instead of stranding it.
+### Parallel, and why that needed a different shape
 
-A single batch is processed serially — the checkpoint RPC only accepts a chunk
-starting exactly where the row stands, which is what makes the archive safe, and
-also what stops one batch being split across runners. Expect roughly 30–50 rows
-a minute for one file. Fine for something nobody is watching; it is not a way to
-make a big file finish faster.
+**Measured: 418 rows a minute.** A 500-row file finishes in 72 seconds, 4,600
+rows in about 11 minutes. The first version managed 72 a minute and would have
+taken over an hour on the same file.
+
+The old design could not go faster, and the reason is worth keeping: `result_csv`
+is append-only and `csv_batch_checkpoint` only accepts a chunk starting exactly
+where the row stands. That ordering is what makes the archive safe — and it is
+also what stops two workers ever touching one batch.
+
+So rows are stored individually in **`csv_enrichment_rows`** and assembled in
+order at the end, instead of being appended as they finish. Each row owns the
+CSV lines for its own span of the user's original rows — from just after the
+previous enrichable row through its own — and any worker can compute that span
+alone from `input_rows`. That is the property that makes parallelism safe rather
+than merely fast: no worker needs to know what any other is doing.
+
+Row `-1` holds the header and row `total` the trailing rows, so assembly
+(`csv_batch_assemble`) is a plain ordered concatenation onto whatever the
+browser already wrote, with no special cases. It only runs once every row is in,
+so whichever worker finishes last closes the batch and the rest no-op.
+
+Two things had to be fixed before it actually scaled, both worth remembering:
+
+- **`FOR UPDATE SKIP LOCKED` over `LIMIT 1` is an exclusive claim.** Six workers
+  raced for the same batch row, one took the lock and the other five were told
+  "nothing queued". A batch that is already laid out is now handed back with no
+  lock and no write at all — there is nothing to serialise, because the real
+  claim happens per row in `csv_batch_claim_rows`, which has its own lease and
+  its own `SKIP LOCKED`. The exclusive path survives only for a batch nobody has
+  sharded yet, where exactly one worker must lay it out.
+- **Claiming ahead cost more than it saved.** A worker that grabbed forty rows
+  and ran out of slice after eight left thirty-two claimed and idle until their
+  lease expired, stalling the batch for minutes. Workers now claim exactly one
+  wave, and hand back anything they could not enrich (`csv_batch_unclaim_rows`)
+  rather than letting it sit on a dead lease.
+
+**The dials.** Throughput is roughly `cron jobs × ROW_CONCURRENCY`. Six jobs and
+a concurrency of 8 gives the measured 418/min. Both can go up — but they raise
+load on the enrichment pipeline in direct proportion, and that, not this runner,
+is the real ceiling. Raise them together with a look at the error rate, not
+blind.
 
 **It calls the pipeline directly** rather than through the `linkfinderapp`
 worker, whose rate limit is per client IP: every background row would come from
@@ -70,6 +102,11 @@ the same few Supabase addresses and throttle every user at once. The payload is
 identical to the one that worker forwards, and it fires the same user webhook
 afterwards, so a background row is indistinguishable from a foreground one.
 Credits are deducted downstream either way.
+
+Because rows complete out of order, `processed_rows` stops being a contiguous
+cursor for a sharded batch — it becomes a count. The in-tab resume depends on it
+being a cursor, so History does not offer "Resume here" for a batch the runner
+has taken over; `sharded` on the batch row is the flag.
 
 ### The parity problem
 

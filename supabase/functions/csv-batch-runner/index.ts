@@ -2,9 +2,15 @@
 //
 // The in-app run is a loop in the browser, so leaving stops it. A batch the
 // user has handed over is marked 'queued'; pg_cron pokes this function every
-// minute, it claims one, enriches a slice of rows, and puts it back. Nothing
-// here is new state: input_rows, column_mapping and processed_rows were all
-// built for the in-tab resume and mean exactly the same thing.
+// thirty seconds, it claims a batch, enriches rows, and puts it back.
+//
+// Rows are worked IN PARALLEL — several at once inside one invocation, and
+// several invocations at once on the same batch. That is possible because each
+// row owns the CSV lines for its own span of the user's original rows, which
+// any worker can compute alone from input_rows, and because rows are stored
+// individually and assembled in order at the end rather than appended to one
+// column. Serial, the old shape managed 30-50 rows a minute; a 10,000-row file
+// took hours.
 //
 // Credits are deducted downstream by the enrichment pipeline, the same as for
 // an in-app run, so a background row costs what a foreground row costs.
@@ -31,10 +37,16 @@ const WEBHOOK_URL = 'https://webhook-settings.hamoureliasse.workers.dev/';
 
 // One slice. Bounded by wall clock well inside the function timeout, so a slice
 // always ends by choice and hands the batch back cleanly.
-const SLICE_MS = 55_000;
-const SLICE_ROWS = 120;
+const SLICE_MS = 50_000;
 const ROW_TIMEOUT_MS = 60_000;
 const LEASE_SECONDS = 180;
+const ROW_LEASE_SECONDS = 120;
+
+// How many rows one invocation enriches at once. The wall-clock cost of a row
+// is nearly all waiting on the pipeline, so this is the difference between ~25
+// rows a slice and several hundred. Raising it raises load on the enrichment
+// pipeline in direct proportion — that, not this runner, is the ceiling.
+const ROW_CONCURRENCY = Number(Deno.env.get('CSV_ROW_CONCURRENCY') ?? 8);
 
 const CREDIT_COSTS: Record<string, number> = {
     company_name_to_website: 1, company_name_to_phone: 1, company_name_to_linkedin_url: 1,
@@ -112,125 +124,161 @@ function shapeResult(inputData: string, outputType: string, data: any): { row: R
     };
 }
 
+// Enriches one row and returns the CSV lines it owns: the user's original rows
+// from just after the previous enrichable row through this one. Computed from
+// input_rows alone, which is why workers need no coordination.
+async function enrichRow(
+    b: any, data: any[], rowIndex: number,
+    csvHeaders: string[], csvRows: string[][],
+): Promise<{ lines: string; found: boolean; credits: number } | { retry: true; reason: string }> {
+    const inputType = b.input_type, outputType = b.output_type;
+
+    // The header slot, and the trailing-rows slot past the last input row.
+    if (rowIndex === -1) {
+        return { lines: renderRange(0, -1, true, csvHeaders, csvRows, new Map(), inputType, outputType), found: false, credits: 0 };
+    }
+    if (rowIndex >= data.length) {
+        const from = data.length ? data[data.length - 1].srcIndex + 1 : 0;
+        return { lines: renderRange(from, csvRows.length - 1, false, csvHeaders, csvRows, new Map(), inputType, outputType), found: false, credits: 0 };
+    }
+
+    const row = data[rowIndex];
+    const spanFrom = rowIndex === 0 ? 0 : data[rowIndex - 1].srcIndex + 1;
+
+    const payload: Record<string, unknown> = {
+        type: `${inputType}_to_${outputType}`,
+        input_data: row.inputData,
+        output_type: outputType,
+        token: b.user_id,
+        is_bulk: true,
+    };
+    if (inputType === 'lead_full_name' && outputType === 'email') {
+        const parts = (row.name || '').trim().split(/\s+/);
+        payload.first_name = parts[0] || '';
+        payload.last_name = parts.slice(1).join(' ') || '';
+        payload.domain = (row.company || '').toLowerCase()
+            .replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/.*$/, '');
+    }
+    if (outputType === 'employees' && (inputType === 'company_domain' || inputType === 'linkedin_company')) {
+        payload.department = row.department || 'all';
+        payload.seniority = row.seniority || 'all';
+        payload.employee_count = row.employee_count ?? null;
+    }
+
+    let shaped: { row: Result; charged: boolean };
+    try {
+        const res = await withTimeout(ENRICH_URL, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
+        }, ROW_TIMEOUT_MS);
+
+        const text = await res.text();
+        let parsed: any = null;
+        try { parsed = JSON.parse(text); } catch { parsed = text; }
+
+        // The credit wall and a 5xx are both worth another go later; the row
+        // goes back pending rather than into the file as a false "Error".
+        if (res.status === 403 && parsed?.code === 403) return { retry: true, reason: 'out_of_credits' };
+        if (!res.ok && res.status >= 500) return { retry: true, reason: `enrich ${res.status}` };
+
+        shaped = res.ok
+            ? shapeResult(row.inputData, outputType, parsed)
+            : { row: { inputData: row.inputData, result: 'Not found', status: 'Not found' }, charged: false };
+
+        if (res.ok) {
+            // Same webhook the linkfinderapp worker fires, so a background row
+            // reaches a user's integrations like a foreground one.
+            fetch(WEBHOOK_URL, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'fire', token: b.user_id, type: payload.type,
+                    input: row.inputData, result: parsed, credits_used: 1,
+                }),
+            }).catch(() => {});
+        }
+    } catch (e) {
+        return { retry: true, reason: e instanceof Error ? e.message : String(e) };
+    }
+
+    const bySrc = new Map<number, Result>([[row.srcIndex, shaped.row]]);
+    return {
+        lines: renderRange(spanFrom, row.srcIndex, false, csvHeaders, csvRows, bySrc, inputType, outputType),
+        found: shaped.row.status === 'Found',
+        credits: shaped.row.status === 'Found' ? (CREDIT_COSTS[`${inputType}_to_${outputType}`] ?? 1) : 0,
+    };
+}
+
 async function runSlice(): Promise<string> {
     const claimed = await rpc('csv_batch_claim', { p_lease_seconds: LEASE_SECONDS });
-    const batches = await claimed.json();
-    const b = Array.isArray(batches) ? batches[0] : null;
+    const b = (await claimed.json())?.[0] ?? null;
     if (!b) return 'nothing queued';
 
     const started = Date.now();
-    const inputType = b.input_type, outputType = b.output_type;
     const csvRows: string[][] = b.input_rows ?? [];
     const csvHeaders: string[] = b.csv_headers ?? [];
-    const data = buildCsvData(csvRows, b.column_mapping ?? {}, inputType);
+    const data = buildCsvData(csvRows, b.column_mapping ?? {}, b.input_type);
+    const filename = `${(b.file_name || 'enriched').replace(/\.[^.]+$/, '')}_enriched.csv`;
 
-    let cursor: number = b.processed_rows ?? 0;
-    let found: number = b.found_rows ?? 0;
-    let credits = Number(b.credits_used) || 0;
-    let needsHeader = !b.has_archive;
-    // The archive already covers every original row up to the last one done.
-    let nextSrc = cursor > 0 ? (data[cursor - 1]?.srcIndex ?? cursor - 1) + 1 : 0;
-    let done = 0, outOfCredits = false, hardError: string | null = null;
-
-    while (cursor < data.length && done < SLICE_ROWS && Date.now() - started < SLICE_MS) {
-        const row = data[cursor];
-        let shaped: { row: Result; charged: boolean };
-
-        try {
-            const payload: Record<string, unknown> = {
-                type: `${inputType}_to_${outputType}`,
-                input_data: row.inputData,
-                output_type: outputType,
-                token: b.user_id,
-                is_bulk: true,
-            };
-            if (inputType === 'lead_full_name' && outputType === 'email') {
-                const parts = (row.name || '').trim().split(/\s+/);
-                payload.first_name = parts[0] || '';
-                payload.last_name = parts.slice(1).join(' ') || '';
-                payload.domain = (row.company || '').toLowerCase()
-                    .replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/.*$/, '');
-            }
-            if (outputType === 'employees' && (inputType === 'company_domain' || inputType === 'linkedin_company')) {
-                payload.department = row.department || 'all';
-                payload.seniority = row.seniority || 'all';
-                payload.employee_count = row.employee_count ?? null;
-            }
-
-            const res = await withTimeout(ENRICH_URL, {
-                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
-            }, ROW_TIMEOUT_MS);
-
-            const text = await res.text();
-            let parsed: any = null;
-            try { parsed = JSON.parse(text); } catch { parsed = text; }
-
-            if (res.status === 403 && parsed?.code === 403) { outOfCredits = true; break; }
-            if (!res.ok) {
-                // A 5xx is worth another slice; the batch goes back queued
-                // untouched at this row rather than writing a false "Error".
-                if (res.status >= 500) { hardError = `enrich ${res.status}`; break; }
-                shaped = { row: { inputData: row.inputData, result: 'Not found', status: 'Not found' }, charged: false };
-            } else {
-                shaped = shapeResult(row.inputData, outputType, parsed);
-                // Same webhook the linkfinderapp worker fires, so a background
-                // row reaches a user's integrations like a foreground one.
-                fetch(WEBHOOK_URL, {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        action: 'fire', token: b.user_id, type: payload.type,
-                        input: row.inputData, result: parsed, credits_used: 1,
-                    }),
-                }).catch(() => {});
-            }
-        } catch (e) {
-            hardError = `row failed: ${e instanceof Error ? e.message : String(e)}`;
-            break;
-        }
-
-        if (shaped.row.status === 'Found') {
-            found++;
-            credits += CREDIT_COSTS[`${inputType}_to_${outputType}`] ?? 1;
-        }
-
-        const bySrc = new Map<number, Result>([[row.srcIndex, shaped.row]]);
-        const chunk = renderRange(nextSrc, row.srcIndex, needsHeader, csvHeaders, csvRows, bySrc, inputType, outputType);
-
-        const at = await rpc('csv_batch_checkpoint', {
-            p_id: b.id, p_user_id: b.user_id, p_from_row: cursor,
-            p_processed: cursor + 1, p_found: found, p_credits: Math.round(credits * 100) / 100,
-            p_chunk: chunk, p_filename: `${(b.file_name || 'enriched').replace(/\.[^.]+$/, '')}_enriched.csv`,
+    // First worker to reach a batch lays out its rows. The tab's half of the
+    // archive is left alone: sharding starts where the browser stopped.
+    if (!b.sharded) {
+        await rpc('csv_batch_shard', {
+            p_id: b.id,
+            p_from_row: b.processed_rows ?? 0,
+            p_total: data.length,          // the trailing-rows slot
+            p_needs_header: !b.has_archive,
         });
-        const stored = await at.json();
-        if (stored !== cursor + 1) {
-            // Somebody else moved the row on. Stop rather than append out of
-            // order — a later slice will pick it up from wherever it now is.
-            hardError = `checkpoint out of step (stored ${stored}, expected ${cursor + 1})`;
-            break;
-        }
-
-        needsHeader = false;
-        nextSrc = row.srcIndex + 1;
-        cursor++; done++;
     }
 
-    // A finished batch gets the user's trailing rows — the ones with no name to
-    // look up, and any tail the enrichment never reached.
-    if (!outOfCredits && !hardError && cursor >= data.length && nextSrc < csvRows.length) {
-        const tail = renderRange(nextSrc, csvRows.length - 1, needsHeader, csvHeaders, csvRows, new Map(), inputType, outputType);
-        if (tail) {
-            await rpc('csv_batch_checkpoint', {
-                p_id: b.id, p_user_id: b.user_id, p_from_row: cursor, p_processed: cursor,
-                p_found: found, p_credits: Math.round(credits * 100) / 100, p_chunk: tail, p_filename: null,
+    let done = 0, outOfCredits = false, lastReason: string | null = null;
+
+    // One wave at a time. Claiming ahead was costing more than it saved: a
+    // worker that grabbed forty rows and ran out of slice after eight left the
+    // other thirty-two claimed and idle until their lease expired, which stalled
+    // the whole batch for minutes at a time.
+    while (Date.now() - started < SLICE_MS) {
+        const got = await rpc('csv_batch_claim_rows', {
+            p_id: b.id, p_limit: ROW_CONCURRENCY, p_lease_seconds: ROW_LEASE_SECONDS,
+        });
+        const wave: number[] = (await got.json() ?? []).map((r: any) => r.row_index);
+        if (!wave.length) break;
+
+        const results = await Promise.all(wave.map(async (idx) => ({
+            idx, out: await enrichRow(b, data, idx, csvHeaders, csvRows),
+        })));
+
+        const giveBack: number[] = [];
+        for (const { idx, out } of results) {
+            if ('retry' in out) {
+                lastReason = out.reason;
+                if (out.reason === 'out_of_credits') outOfCredits = true;
+                giveBack.push(idx);
+                continue;
+            }
+            await rpc('csv_batch_row_done', {
+                p_id: b.id, p_row: idx, p_lines: out.lines,
+                p_found: out.found, p_credits: out.credits,
             });
+            done++;
         }
+        // A row nobody could enrich this time goes straight back rather than
+        // sitting on a dead lease.
+        if (giveBack.length) {
+            await rpc('csv_batch_unclaim_rows', { p_id: b.id, p_rows: giveBack });
+        }
+        if (outOfCredits) break;
     }
 
-    const status = outOfCredits ? 'out_of_credits'
-                 : (cursor >= data.length ? 'completed' : null); // null = back in the queue
-    await rpc('csv_batch_release', { p_id: b.id, p_status: status, p_error: hardError });
+    // Assembles only when every row is in, so whichever worker finishes last
+    // closes the batch and the others no-op.
+    const assembled = await rpc('csv_batch_assemble', { p_id: b.id, p_filename: filename });
+    if (await assembled.json() === true) return `${b.id}: ${done} rows this slice, completed`;
 
-    return `${b.id}: ${done} rows, cursor ${cursor}/${data.length}, ${status ?? 'requeued'}${hardError ? ` (${hardError})` : ''}`;
+    await rpc('csv_batch_release', {
+        p_id: b.id,
+        p_status: outOfCredits ? 'out_of_credits' : null,
+        p_error: lastReason,
+    });
+    return `${b.id}: ${done} rows this slice, ${outOfCredits ? 'out of credits' : 'requeued'}${lastReason ? ` (${lastReason})` : ''}`;
 }
 
 Deno.serve(async (req) => {
