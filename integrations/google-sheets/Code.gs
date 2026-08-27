@@ -186,26 +186,93 @@ function assertNotUpstreamError(result) {
   }
 }
 
+// ── building the lookup input ──────────────────────────────────────────────────
+//
+// The two name-based lookups do not take one value. app.html joins the name with
+// the company, location and job title, because a bare name resolves to the wrong
+// person constantly — there are a lot of John Smiths, and only one John Smith who
+// is a VP of Sales at Acme in Berlin.
+//
+// This mirrors app.html's own construction exactly (its lfBuildCsvData): flip a
+// "Last, First" name, drop empty parts, join the rest with single spaces.
+
+/** CRMs export "Doe, John". The lookup wants "John Doe". */
+function flipName(value) {
+  var name = String(value == null ? '' : value).trim();
+  var m = name.match(/^\s*([^,]{1,60}?)\s*,\s*([^,]{1,60}?)\s*$/);
+  return m ? m[2] + ' ' + m[1] : name;
+}
+
+/**
+ * Joins the parts of a composite input in the order the operation declares.
+ * `values` is keyed by part name: { name: 'Bill Gates', company: 'Microsoft' }.
+ */
+function buildInput(operation, values) {
+  if (!operation.compositeInput) {
+    return String(values.input == null ? '' : values.input).trim();
+  }
+
+  var parts = [];
+  for (var i = 0; i < operation.compositeInput.parts.length; i++) {
+    var part = operation.compositeInput.parts[i];
+    var raw = values[part.name];
+    var value = String(raw == null ? '' : raw).trim();
+    if (!value) continue;
+    // Only the name is ever in "Last, First" form.
+    parts.push(part.name === 'name' ? flipName(value) : value);
+  }
+
+  return parts.join(operation.compositeInput.joinWith || ' ');
+}
+
+/** The first part of a composite input is the one without which there is no lookup. */
+function requiredPartName(operation) {
+  return operation.compositeInput ? operation.compositeInput.parts[0].name : 'input';
+}
+
 // ── custom function ────────────────────────────────────────────────────────────
 
 /**
  * Enrich one value.
  *
- * @param {string} type    The lookup, e.g. "lead_full_name_to_linkedin_url".
- * @param {string} input   What to look up.
+ * For most lookups this takes one input:
+ *   =LINKFINDER("company_name_to_website", A2)
+ *
+ * The two name-based lookups take up to four, in this order — name, company,
+ * location, job title. Every one after the name is optional, and every one you
+ * add makes the match more certain:
+ *   =LINKFINDER("lead_full_name_to_email", A2, B2, C2, D2)
+ *
+ * @param {string} type       The lookup, e.g. "lead_full_name_to_email".
+ * @param {string} input      What to look up, or the person's name.
+ * @param {string} company    Optional. Name-based lookups only.
+ * @param {string} location   Optional. Name-based lookups only.
+ * @param {string} jobTitle   Optional. Name-based lookups only.
  * @return {string} The result, or an empty string when nothing was found.
  * @customfunction
  */
-function LINKFINDER(type, input) {
+function LINKFINDER(type, input, company, location, jobTitle) {
   if (!type || !input) return '';
 
   var operation = lfOperation(type);
   if (!operation) {
-    throw new Error('Unknown lookup "' + type + '". Use the sidebar to see the ' + LINKFINDER_OPERATIONS.length + ' available.');
+    throw new Error('Unknown lookup "' + type + '". Open LinkFinder AI \u2192 Enrich a column to see the ' + LINKFINDER_OPERATIONS.length + ' available.');
   }
 
-  var result = callLinkFinder(type, String(input).trim(), null);
-  return formatResult(result, operation);
+  // A range passed to a custom function arrives as a 2D array; take its first
+  // cell rather than stringifying the whole thing into the lookup.
+  var cell = function (v) { return Array.isArray(v) ? cell(v[0]) : v; };
+
+  var built = buildInput(operation, {
+    input: cell(input),
+    name: cell(input),
+    company: cell(company),
+    location: cell(location),
+    job_title: cell(jobTitle),
+  });
+  if (!built) return '';
+
+  return formatResult(callLinkFinder(type, built, null), operation);
 }
 
 /** Sheets cells hold one value, so an object or list is flattened to something readable. */

@@ -55,6 +55,20 @@ for (const [type, entry] of Object.entries(overlay.operations)) {
   }
   if (!overlay.categories[entry.category]) fail(`"${type}" is in unknown category "${entry.category}".`);
 
+  // A composite input must name a required first part, or a wrapper would build
+  // its joined string entirely out of optional fields and post an empty input.
+  const composite = entry.compositeInput;
+  if (composite) {
+    if (!Array.isArray(composite.parts) || !composite.parts.length) {
+      fail(`"${type}" has a compositeInput with no parts.`);
+    } else {
+      if (!composite.parts[0].required) fail(`"${type}" has a compositeInput whose first part is not required.`);
+      for (const part of composite.parts) {
+        if (!part.name || !part.label) fail(`"${type}" has a compositeInput part missing a name or label.`);
+      }
+    }
+  }
+
   // Every platform needs sample output to render field pickers; a missing or
   // mislabelled shape ships an integration whose output mapping is a guess.
   const output = entry.output;
@@ -135,6 +149,9 @@ const operations = specTypes
       // Only set where the sources disagree about an operation's type name. Wrappers
       // send `type` and retry `altType` once on a 422.
       altType: o.altType ?? null,
+      // Present only where the API's single input_data is built from several
+      // user-supplied fields rather than being one value.
+      compositeInput: o.compositeInput ?? null,
       note: s.note ?? null,
     };
   })
