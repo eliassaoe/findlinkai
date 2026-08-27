@@ -79,6 +79,46 @@ function isApiKeyConfigured() {
 }
 
 /**
+ * What the panel needs to know about the sheet in front of the user.
+ *
+ * Asking someone to type "F" means asking them to count columns and to know
+ * what is in them. Every comparable add-on offers a dropdown of the header
+ * names instead, and it is the difference between reading the sheet and
+ * remembering it.
+ *
+ * Also returns how many rows still need work, so the panel can multiply the
+ * per-row price into a real number before anyone spends it.
+ */
+function getSheetInfo() {
+  var sheet = SpreadsheetApp.getActiveSheet();
+  var lastRow = sheet.getLastRow();
+  var lastColumn = Math.max(sheet.getLastColumn(), 1);
+
+  var headers = sheet.getRange(1, 1, 1, lastColumn).getValues()[0];
+  var columns = [];
+  for (var i = 0; i < headers.length; i++) {
+    var letter = columnNumberToLetter(i + 1);
+    var name = String(headers[i] == null ? '' : headers[i]).trim();
+    columns.push({ letter: letter, name: name, label: name ? letter + ' — ' + name : letter + ' (empty)' });
+  }
+
+  // A couple of spare columns past the data, so the answer has somewhere to go
+  // on a sheet whose last column is already full.
+  for (var extra = 1; extra <= 4; extra++) {
+    var letter = columnNumberToLetter(lastColumn + extra);
+    columns.push({ letter: letter, name: '', label: letter + ' (empty)' });
+  }
+
+  return {
+    sheetName: sheet.getName(),
+    lastRow: lastRow,
+    dataRows: Math.max(0, lastRow - 1),
+    columns: columns,
+    firstEmpty: columnNumberToLetter(lastColumn + 1)
+  };
+}
+
+/**
  * Builds the value sent to the API.
  *
  * The lookup takes one string, but the more of the person it describes the more
@@ -163,13 +203,34 @@ function runEnrichment(config) {
   // already-filled rows can be skipped without a read per row.
   var lastColumn = outputColumn;
   for (var k in partColumns) lastColumn = Math.max(lastColumn, partColumns[k]);
+  var reservedTo = outputColumn + (operation.outputKind === 'list' ? 1
+                  : (operation.columns ? (config.fields && config.fields.length ? config.fields.length : operation.columns.default.length) : 1)) - 1;
+  lastColumn = Math.max(lastColumn, reservedTo);
   var grid = sheet.getRange(startRow, 1, numRows, lastColumn).getValues();
   var at = function (row, col) { return col ? row[col - 1] : ''; };
 
-  // Label the results column, so a sheet with several runs stays readable.
-  if (!sheet.getRange(1, outputColumn).getValue()) {
-    sheet.getRange(1, outputColumn).setValue(operation.label);
+  // What this run writes: one column for a scalar, one per chosen field for a
+  // result with many, or a whole separate sheet for one that returns a list.
+  var fields = fieldsFor(operation, config.fields);
+  var writesList = operation.outputKind === 'list';
+  var width = writesList ? 1 : (fields ? fields.length : 1);
+
+  var resultSheet = null;
+  if (writesList) resultSheet = resultSheetFor(operation, fields);
+
+  // Label the columns, so a sheet with several runs stays readable.
+  var headers = [];
+  if (writesList) headers = [operation.label];
+  else if (fields) for (var h = 0; h < fields.length; h++) headers.push(operation.labels[fields[h]]);
+  else headers = [operation.label];
+
+  var headerRange = sheet.getRange(1, outputColumn, 1, width);
+  var existingHeaders = headerRange.getValues()[0];
+  var headersNeeded = false;
+  for (var hh = 0; hh < width; hh++) {
+    if (!existingHeaders[hh] || String(existingHeaders[hh]).trim() === '') headersNeeded = true;
   }
+  if (headersNeeded) headerRange.setValues([headers]);
 
   var processedCount = 0, errorCount = 0, skippedCount = 0, foundCount = 0;
   var started = Date.now();
@@ -201,11 +262,43 @@ function runEnrichment(config) {
     var inputData = buildLookupInput(operation, values);
 
     try {
-      var result = callLinkFinderApi(apiKey, operation, inputData, config.params);
+      var raw = callLinkFinderApi(apiKey, operation, inputData, config.params);
+      var empty = isEmptyResult(raw);
+      if (!empty) assertNotProviderError(raw);
+
       // Written per row rather than batched at the end: a run that is cut short
       // must not throw away work the user has already paid for.
-      sheet.getRange(startRow + i, outputColumn).setValue(result);
-      if (result !== 'Not found') foundCount++;
+      if (writesList) {
+        // One input can return hundreds of people. They go to their own sheet,
+        // and the source row gets a count so it can be skipped on a re-run.
+        var items = empty ? [] : (Object.prototype.toString.call(raw) === '[object Array]' ? raw : [raw]);
+        if (items.length) {
+          var rows = [];
+          for (var r = 0; r < items.length; r++) rows.push([inputData].concat(rowFor(items[r], fields)));
+          resultSheet.getRange(resultSheet.getLastRow() + 1, 1, rows.length, rows[0].length).setValues(rows);
+          foundCount++;
+        }
+        sheet.getRange(startRow + i, outputColumn)
+             .setValue(items.length ? items.length + ' result(s)' : 'Not found');
+      } else if (fields) {
+        // A result with many fields, spread across its columns in one write.
+        // A miss says so in the first column and leaves the rest empty, rather
+        // than writing "Not found" nine times across the row.
+        var cells;
+        if (empty) {
+          cells = ['Not found'];
+          while (cells.length < fields.length) cells.push('');
+        } else {
+          cells = rowFor(raw, fields);
+        }
+        sheet.getRange(startRow + i, outputColumn, 1, fields.length).setValues([cells]);
+        if (!empty) foundCount++;
+      } else {
+        var value = formatResult(raw, operation);
+        sheet.getRange(startRow + i, outputColumn).setValue(value);
+        if (value !== 'Not found') foundCount++;
+      }
+
       processedCount++;
       SpreadsheetApp.flush();
       Utilities.sleep(500);              // rate limiting
@@ -229,7 +322,9 @@ function runEnrichment(config) {
   return {
     success: true,
     processed: processedCount, found: foundCount, errors: errorCount, skipped: skippedCount,
-    total: grid.length
+    total: grid.length,
+    resultSheet: resultSheet ? resultSheet.getName() : null,
+    columnsWritten: writesList ? 1 : width
   };
 }
 
@@ -284,41 +379,98 @@ function callLinkFinderApi(apiKey, operation, inputData, params) {
   // Normally synchronous, but the API can hand back a job under load — and a few
   // lookups always do. That is a valid response, not a failure.
   if (result.job_id) {
-    return formatResult(pollForResult(apiKey, result.poll_url || (url + '/status/' + result.job_id)), operation);
+    return pollForResult(apiKey, result.poll_url || (url + '/status/' + result.job_id));
   }
 
-  return formatResult(result.result, operation);
+  return result.result;
 }
 
 /**
- * A cell holds one value, so a list or an object has to be flattened. Prefer the
- * field the lookup is actually for before falling back to anything identifying.
+ * The value for a lookup that returns a single thing.
+ *
+ * Only used for scalar results now. A result with many fields is spread across
+ * columns instead — see rowFor() — because a 10-credit profile lookup landing as
+ * JSON in one cell is data nobody can sort, filter or mail-merge.
  */
 function formatResult(result, operation) {
-  if (result === null || result === undefined || result === '') return 'Not found';
+  if (isEmptyResult(result)) return 'Not found';
+  assertNotProviderError(result);
+  if (typeof result !== 'object') return result;
 
-  // A provider failure can arrive dressed as a successful result.
-  if (result.error) {
+  // A scalar operation that answered with an object anyway: take its own field.
+  return result[operation.outputField] || result.email || result.linkedinUrl ||
+         result.mobileNumber || result.website || result.name || JSON.stringify(result);
+}
+
+function isEmptyResult(result) {
+  if (result === null || result === undefined || result === '') return true;
+  return Object.prototype.toString.call(result) === '[object Array]' && !result.length;
+}
+
+/** A provider failure can arrive dressed as a successful result. */
+function assertNotProviderError(result) {
+  if (result && result.error) {
     throw new Error('LinkFinder AI provider error: ' +
       (result.error.message || 'unknown').toString().slice(0, 200));
   }
+}
 
-  if (typeof result !== 'object') return result;
-
-  if (Object.prototype.toString.call(result) === '[object Array]') {
-    if (!result.length) return 'Not found';
-    var items = [];
-    for (var i = 0; i < result.length; i++) {
-      var item = result[i];
-      items.push(item && typeof item === 'object'
-        ? (item.linkedinUrl || item.email || item.name || JSON.stringify(item))
-        : item);
+/** The chosen fields of one result object, in the chosen order, as a row. */
+function rowFor(item, fields) {
+  var row = [];
+  for (var i = 0; i < fields.length; i++) {
+    var value = item ? item[fields[i]] : '';
+    if (value === null || value === undefined) value = '';
+    // Nested arrays and objects have no useful cell form; a count is honest and
+    // sortable where JSON is neither.
+    if (Object.prototype.toString.call(value) === '[object Array]') {
+      value = value.length ? value.length + ' item(s)' : '';
+    } else if (typeof value === 'object') {
+      value = JSON.stringify(value);
     }
-    return items.join(', ');
+    row.push(value);
   }
+  return row;
+}
 
-  return result[operation.outputField] || result.email || result.linkedinUrl ||
-         result.mobileNumber || result.website || result.name || JSON.stringify(result);
+/** The fields a run will write: what the panel chose, or the catalog default. */
+function fieldsFor(operation, chosen) {
+  if (!operation.columns) return null;                       // scalar
+  if (chosen && chosen.length) {
+    // Keep the catalog's order regardless of the order they were ticked in, so
+    // two runs of the same lookup produce the same columns in the same places.
+    var all = Object.keys(operation.labels);
+    var picked = [];
+    for (var i = 0; i < all.length; i++) {
+      if (chosen.indexOf(all[i]) !== -1) picked.push(all[i]);
+    }
+    return picked.length ? picked : operation.columns.default;
+  }
+  return operation.columns.default;
+}
+
+/**
+ * The sheet a list lookup writes into.
+ *
+ * One input row can produce hundreds of results — every employee at a company,
+ * every reaction on a post — so they cannot go beside the row that asked for
+ * them. They get their own sheet, one result per row, with the input that found
+ * them in the first column so the two can be joined back together.
+ */
+function resultSheetFor(operation, fields) {
+  var name = ('LinkFinder — ' + operation.label).slice(0, 90);
+  var book = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = book.getSheetByName(name);
+
+  if (!sheet) {
+    sheet = book.insertSheet(name);
+    var header = ['Looked up'];
+    for (var i = 0; i < fields.length; i++) header.push(operation.labels[fields[i]]);
+    sheet.getRange(1, 1, 1, header.length).setValues([header]);
+    sheet.setFrozenRows(1);
+    sheet.getRange(1, 1, 1, header.length).setFontWeight('bold');
+  }
+  return sheet;
 }
 
 /** An error that should end the whole run rather than just mark one row. */

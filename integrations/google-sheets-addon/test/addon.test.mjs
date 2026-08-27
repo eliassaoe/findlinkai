@@ -140,12 +140,45 @@ test('an empty result is "Not found", but a provider error is raised', () => {
   );
 });
 
-test('a list result is flattened into one cell', () => {
-  const listOp = lfOperation('company_domain_to_employees');
-  assert.strictEqual(
-    formatResult([{ firstName: 'A', email: 'a@x.com' }, { firstName: 'B', email: 'b@x.com' }], listOp),
-    'a@x.com, b@x.com',
+test('a result with many fields is spread across columns, not stringified', () => {
+  // The old behaviour: every multi-field result collapsed to one value, so a
+  // 10-credit profile lookup landed as JSON in a single cell.
+  const profile = lfOperation('linkedin_profile_to_linkedin_info');
+  const fields = ctx.fieldsFor(profile, null);
+
+  // Array.from rebuilds these in this realm: the .gs files run in a vm context,
+  // and deepStrictEqual compares prototypes across realms.
+  assert.deepStrictEqual(Array.from(fields, (f) => profile.labels[f]), [
+    'Name', 'Job Title', 'Company', 'Location', 'Email', 'Phone', 'LinkedIn URL', 'Industry', 'Headline',
+  ]);
+
+  assert.deepStrictEqual(
+    Array.from(ctx.rowFor({ name: 'Bill Gates', jobTitle: 'Co-chair', company: 'Gates Foundation', email: 'b@g.org' }, fields)),
+    ['Bill Gates', 'Co-chair', 'Gates Foundation', '', 'b@g.org', '', '', '', ''],
   );
+});
+
+test('a nested array is counted, not dumped as JSON into a cell', () => {
+  const profile = lfOperation('linkedin_profile_to_linkedin_info');
+  assert.deepStrictEqual(Array.from(ctx.rowFor({ skills: ['a', 'b', 'c'] }, ['skills'])), ['3 item(s)']);
+  assert.deepStrictEqual(Array.from(ctx.rowFor({ skills: [] }, ['skills'])), ['']);
+});
+
+test('picking fields keeps the catalog order, not the order they were ticked', () => {
+  // Two runs of the same lookup must put the same data in the same columns.
+  const profile = lfOperation('linkedin_profile_to_linkedin_info');
+  assert.deepStrictEqual(Array.from(ctx.fieldsFor(profile, ['email', 'name', 'jobTitle'])), ['name', 'jobTitle', 'email']);
+  assert.deepStrictEqual(
+    Array.from(ctx.fieldsFor(profile, [])),
+    Array.from(profile.columns.default),
+    'an empty pick falls back to the default',
+  );
+});
+
+test('a scalar lookup still writes exactly one value', () => {
+  const scalar = lfOperation('company_name_to_website');
+  assert.strictEqual(ctx.fieldsFor(scalar, null), null);
+  assert.strictEqual(formatResult({ website: 'tesla.com' }, scalar), 'tesla.com');
 });
 
 test('column letters convert past Z', () => {
@@ -159,36 +192,82 @@ test('column letters convert past Z', () => {
 // FINDINGS #1, #2 and #6 — what happens to a long sheet
 // ---------------------------------------------------------------------------
 
-/** A spreadsheet stub that records every write, so a lost write is visible. */
-function fakeSheet(grid) {
+/**
+ * A spreadsheet stub that records every write, so a lost write is visible.
+ *
+ * Row 1 is the header row and is kept separately from the data, the way the
+ * add-on treats it — the header write and the row writes are different bugs.
+ */
+function fakeSheet(grid, header = []) {
   const writes = [];
+  const cell = (row, col) => (row === 1 ? header : grid[row - 2]);
+
   const sheet = {
+    name: 'Sheet1',
+    getName: () => sheet.name,
     getLastRow: () => grid.length + 1,
+    setFrozenRows() {},
     getRange(row, col, numRows, numCols) {
+      // A single cell.
       if (numRows === undefined) {
         return {
-          getValue: () => (row === 1 ? '' : grid[row - 2][col - 1]),
+          getValue: () => (cell(row, col) || [])[col - 1] ?? '',
           setValue: (v) => {
             writes.push({ row, col, value: v });
-            if (row > 1) grid[row - 2][col - 1] = v;
+            const target = cell(row, col) || [];
+            target[col - 1] = v;
+            if (row === 1) header.splice(0, header.length, ...target);
           },
+          setFontWeight() { return this; },
         };
       }
-      return { getValues: () => grid.slice(row - 2, row - 2 + numRows).map((r) => r.slice(0, numCols)) };
+      // A range.
+      return {
+        getValues: () => {
+          const out = [];
+          for (let r = 0; r < numRows; r++) {
+            const source = cell(row + r, col) || [];
+            const line = [];
+            for (let c = 0; c < (numCols ?? 1); c++) line.push(source[col - 1 + c] ?? '');
+            out.push(line);
+          }
+          return out;
+        },
+        setValues: (values) => {
+          values.forEach((line, r) => {
+            const target = cell(row + r, col) || (grid[row + r - 2] = []);
+            line.forEach((v, c) => (target[col - 1 + c] = v));
+            writes.push({ row: row + r, col, values: line });
+          });
+        },
+        setFontWeight() { return this; },
+      };
     },
   };
-  return { sheet, writes, grid };
+  return { sheet, writes, grid, header };
 }
 
-function runWith({ grid, fetch, now }) {
-  const board = fakeSheet(grid);
+function runWith({ grid, fetch, now, header = [] }) {
+  const board = fakeSheet(grid, header);
+  // A list lookup writes into a sheet of its own; this records the one it makes.
+  const extraSheets = {};
+  const book = {
+    getSheetByName: (name) => extraSheets[name] ?? null,
+    insertSheet: (name) => {
+      const made = fakeSheet([], []);
+      made.sheet.name = name;
+      extraSheets[name] = made.sheet;
+      made.sheet.__board = made;
+      return made.sheet;
+    },
+  };
   const ctx = addon({
-    SpreadsheetApp: { getActiveSheet: () => board.sheet, flush() {} },
+    SpreadsheetApp: { getActiveSheet: () => board.sheet, getActiveSpreadsheet: () => book, flush() {} },
     PropertiesService: { getUserProperties: () => ({ getProperty: () => 'test-key' }) },
     UrlFetchApp: { fetch },
     Date: now ? { now, prototype: Date.prototype } : Date,
   });
-  return { ctx, board };
+  return { ctx, board, sheets: extraSheets };
 }
 
 const ok = (body) => ({
@@ -476,4 +555,137 @@ test('a job that never finishes fails the row instead of hanging the whole run',
   const result = ctx.runEnrichment({ type: 'leads_finder_ai', outputColumn: 'B', columns: { input: 'A' } });
   assert.strictEqual(result.errors, 2, 'a stuck job is one bad row, not a dead run');
   assert.match(String(grid[0][1]), /Still running/);
+});
+
+// ---------------------------------------------------------------------------
+// The three result shapes, written into a sheet
+// ---------------------------------------------------------------------------
+
+test('an object result writes a header row and one column per field', () => {
+  const grid = [['https://linkedin.com/in/billgates']];
+  const header = [];
+  const { ctx: run, board } = runWith({
+    grid,
+    header,
+    fetch: (url, options) =>
+      options && options.method === 'post'
+        ? { getResponseCode: () => 202, getContentText: () => '{"job_id":"j"}' }
+        : ok({ status: 'done', result: {
+            name: 'Bill Gates', jobTitle: 'Co-chair', company: 'Gates Foundation',
+            location: 'Seattle', email: 'b@g.org', mobileNumber: '+1555',
+            linkedinUrl: 'https://linkedin.com/in/billgates', industry: 'Philanthropy',
+            headline: 'Chair', about: 'long text nobody wants in a cell',
+          } }),
+  });
+
+  const result = run.runEnrichment({
+    type: 'linkedin_profile_to_linkedin_info',
+    outputColumn: 'B',
+    columns: { input: 'A' },
+  });
+
+  assert.strictEqual(result.columnsWritten, 9);
+  assert.deepStrictEqual(header.slice(1, 10), [
+    'Name', 'Job Title', 'Company', 'Location', 'Email', 'Phone', 'LinkedIn URL', 'Industry', 'Headline',
+  ]);
+  assert.deepStrictEqual(grid[0].slice(1, 10), [
+    'Bill Gates', 'Co-chair', 'Gates Foundation', 'Seattle', 'b@g.org', '+1555',
+    'https://linkedin.com/in/billgates', 'Philanthropy', 'Chair',
+  ]);
+  // `about` is offered but not on by default, so it must not appear uninvited.
+  assert.ok(!grid[0].includes('long text nobody wants in a cell'));
+});
+
+test('a miss on an object lookup says so once, and leaves the rest blank', () => {
+  const grid = [['https://linkedin.com/in/nobody']];
+  const { ctx: run } = runWith({
+    grid, header: [],
+    fetch: (url, options) =>
+      options && options.method === 'post'
+        ? { getResponseCode: () => 202, getContentText: () => '{"job_id":"j"}' }
+        : ok({ status: 'done', result: null }),
+  });
+
+  const result = run.runEnrichment({
+    type: 'linkedin_profile_to_linkedin_info', outputColumn: 'B', columns: { input: 'A' },
+  });
+
+  assert.strictEqual(grid[0][1], 'Not found');
+  assert.deepStrictEqual(grid[0].slice(2, 10), ['', '', '', '', '', '', '', ''],
+    'a miss must not write "Not found" across nine columns');
+  assert.strictEqual(result.found, 0);
+});
+
+test('only the chosen fields get columns', () => {
+  const grid = [['https://linkedin.com/in/billgates']];
+  const header = [];
+  const { ctx: run } = runWith({
+    grid, header,
+    fetch: (url, options) =>
+      options && options.method === 'post'
+        ? { getResponseCode: () => 202, getContentText: () => '{"job_id":"j"}' }
+        : ok({ status: 'done', result: { name: 'Bill Gates', email: 'b@g.org', jobTitle: 'Co-chair' } }),
+  });
+
+  const result = run.runEnrichment({
+    type: 'linkedin_profile_to_linkedin_info',
+    outputColumn: 'B',
+    columns: { input: 'A' },
+    fields: ['email', 'name'],
+  });
+
+  assert.strictEqual(result.columnsWritten, 2);
+  assert.deepStrictEqual(header.slice(1, 3), ['Name', 'Email']);
+  assert.deepStrictEqual(grid[0].slice(1, 3), ['Bill Gates', 'b@g.org']);
+});
+
+test('a list result goes to its own sheet, one row per person', () => {
+  // One company can return hundreds of employees; they cannot sit beside the row
+  // that asked for them.
+  const grid = [['tesla.com', '']];
+  const { ctx: run, sheets } = runWith({
+    grid, header: [],
+    fetch: () => ok({ result: [
+      { firstName: 'Ada', lastName: 'L', jobTitle: 'CTO', email: 'ada@tesla.com', company: 'Tesla' },
+      { firstName: 'Grace', lastName: 'H', jobTitle: 'VP', email: 'grace@tesla.com', company: 'Tesla' },
+    ] }),
+  });
+
+  const result = run.runEnrichment({
+    type: 'company_domain_to_employees', outputColumn: 'B', columns: { input: 'A' },
+  });
+
+  const name = 'LinkFinder — List Employees by Company Domain';
+  assert.strictEqual(result.resultSheet, name);
+  const made = sheets[name].__board;
+
+  assert.deepStrictEqual(made.header.slice(0, 4), ['Looked up', 'First Name', 'Last Name', 'Job Title']);
+  assert.strictEqual(made.grid.length, 2, 'one row per person');
+  assert.strictEqual(made.grid[0][0], 'tesla.com', 'the input that found them, so the two can be joined');
+  assert.strictEqual(made.grid[0][1], 'Ada');
+  assert.strictEqual(made.grid[1][1], 'Grace');
+
+  // And the source row records what happened, so a re-run skips it.
+  assert.strictEqual(grid[0][1], '2 result(s)');
+});
+
+test('a list lookup that finds nobody marks the row rather than leaving it blank', () => {
+  const grid = [['nowhere.com', '']];
+  const { ctx: run } = runWith({ grid, header: [], fetch: () => ok({ result: [] }) });
+  run.runEnrichment({ type: 'company_domain_to_employees', outputColumn: 'B', columns: { input: 'A' } });
+  assert.strictEqual(grid[0][1], 'Not found', 'an unmarked row would be looked up and charged again');
+});
+
+test('every lookup that returns more than one field offers columns for them', () => {
+  for (const op of getOperations()) {
+    if (op.outputKind === 'scalar') {
+      assert.strictEqual(op.columns, null, `${op.type} is scalar and should have no columns`);
+      continue;
+    }
+    assert.ok(op.columns && op.columns.default.length, `${op.type} offers no columns`);
+    assert.ok(op.labels, `${op.type} has no column labels`);
+    for (const field of op.columns.default) {
+      assert.ok(op.labels[field], `${op.type} defaults to ${field} but gives it no header`);
+    }
+  }
 });

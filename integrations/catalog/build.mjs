@@ -82,6 +82,31 @@ for (const [type, entry] of Object.entries(overlay.operations)) {
     fail(`"${type}" has no sample output.`);
   }
 
+  // A result with many fields has to be spread across columns, so each one needs
+  // to say which fields are worth a column and which cannot live in a cell at all.
+  // Without this a 10-credit profile lookup lands as JSON in a single cell.
+  if (output && output.kind !== 'scalar') {
+    const columns = output.columns;
+    const sample = Array.isArray(output.sample) ? output.sample[0] : output.sample;
+    const keys = Object.keys(sample ?? {});
+
+    if (!columns) {
+      fail(`"${type}" returns a ${output.kind} but names no columns — see output.columns in overlay.json.`);
+    } else if (!Array.isArray(columns.default) || !columns.default.length) {
+      fail(`"${type}" has no default columns, so it would write nothing by default.`);
+    } else {
+      for (const field of [...columns.default, ...(columns.skip ?? [])]) {
+        if (!keys.includes(field)) fail(`"${type}" names column "${field}", which its sample output does not have.`);
+      }
+      for (const field of columns.default) {
+        if ((columns.skip ?? []).includes(field)) fail(`"${type}" both defaults to and skips "${field}".`);
+      }
+      const offered = keys.filter((k) => !(columns.skip ?? []).includes(k));
+      if (!offered.length) fail(`"${type}" skips every field it returns.`);
+    }
+  }
+
+
   // A resource/operation pair is a public identifier that saved n8n workflows store,
   // so renaming one silently breaks every workflow using it. They are pinned here and
   // checked rather than derived from the label. (The node is not on npm yet, so no
@@ -121,6 +146,27 @@ if (problems.length) {
   process.exit(1);
 }
 
+// Turns a result field name into the header a spreadsheet shows. Overrides come
+// from overlay.json for the ones a machine gets wrong (`jobTitle`, `mobileNumber`).
+const labelise = (key) =>
+  key
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (c) => c.toUpperCase())
+    .replace(/\bUrl\b/, 'URL')
+    .replace(/\bLinkedin\b/, 'LinkedIn');
+
+function labelsFor(output) {
+  const sample = Array.isArray(output.sample) ? output.sample[0] : output.sample;
+  const skip = new Set(output.columns?.skip ?? []);
+  const labels = {};
+  for (const key of Object.keys(sample ?? {})) {
+    if (skip.has(key)) continue;
+    labels[key] = overlay.fieldLabels?.[key] ?? labelise(key);
+  }
+  return labels;
+}
+
 const operations = specTypes
   .map((type) => {
     const s = specOps[type];
@@ -145,6 +191,9 @@ const operations = specTypes
       },
       params: (o.params ?? []).map((name) => ({ name, ...overlay.params[name] })),
       output: o.output,
+      // Labels for the columns a multi-field result writes. Resolved here so no
+      // wrapper has to guess that `mobileNumber` is shown to a user as "Phone".
+      outputLabels: o.output.kind === 'scalar' ? null : labelsFor(o.output),
       n8n: o.n8n,
       // Only set where the sources disagree about an operation's type name. Wrappers
       // send `type` and retry `altType` once on a 422.

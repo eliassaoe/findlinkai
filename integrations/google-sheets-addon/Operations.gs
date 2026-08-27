@@ -21,6 +21,8 @@ var LINKFINDER_OPERATIONS = [
     "example": "Bill Gates Microsoft",
     "outputField": "linkedin_url",
     "outputKind": "scalar",
+    "columns": null,
+    "labels": null,
     "compositeInput": {
       "parts": [
         {
@@ -70,6 +72,8 @@ var LINKFINDER_OPERATIONS = [
     "example": "john.doe@company.com",
     "outputField": "linkedin_url",
     "outputKind": "scalar",
+    "columns": null,
+    "labels": null,
     "compositeInput": null,
     "params": []
   },
@@ -86,6 +90,8 @@ var LINKFINDER_OPERATIONS = [
     "example": "Bill Gates Microsoft",
     "outputField": "email",
     "outputKind": "scalar",
+    "columns": null,
+    "labels": null,
     "compositeInput": {
       "parts": [
         {
@@ -135,6 +141,8 @@ var LINKFINDER_OPERATIONS = [
     "example": "https://www.linkedin.com/in/someone",
     "outputField": "email",
     "outputKind": "scalar",
+    "columns": null,
+    "labels": null,
     "compositeInput": null,
     "params": []
   },
@@ -151,6 +159,49 @@ var LINKFINDER_OPERATIONS = [
     "example": "https://www.linkedin.com/in/someone",
     "outputField": null,
     "outputKind": "object",
+    "columns": {
+      "default": [
+        "name",
+        "jobTitle",
+        "company",
+        "location",
+        "email",
+        "mobileNumber",
+        "linkedinUrl",
+        "industry",
+        "headline"
+      ],
+      "skip": [
+        "profilePic",
+        "backgroundPic",
+        "experiences",
+        "education",
+        "skills",
+        "languages",
+        "certifications"
+      ]
+    },
+    "labels": {
+      "name": "Name",
+      "jobTitle": "Job Title",
+      "company": "Company",
+      "location": "Location",
+      "country": "Country",
+      "industry": "Industry",
+      "about": "About",
+      "headline": "Headline",
+      "connections": "Connections",
+      "followers": "Followers",
+      "mobileNumber": "Phone",
+      "email": "Email",
+      "website": "Website",
+      "linkedinUrl": "LinkedIn URL",
+      "company_linkedin_url": "Company LinkedIn URL",
+      "isJobSeeker": "Open to Work",
+      "isCurrentlyEmployed": "Currently Employed",
+      "firstRoleYear": "First Role Year",
+      "verified": "Verified"
+    },
     "compositeInput": null,
     "params": []
   },
@@ -167,6 +218,8 @@ var LINKFINDER_OPERATIONS = [
     "example": "https://www.linkedin.com/in/someone",
     "outputField": "phone",
     "outputKind": "scalar",
+    "columns": null,
+    "labels": null,
     "compositeInput": null,
     "params": []
   },
@@ -183,6 +236,8 @@ var LINKFINDER_OPERATIONS = [
     "example": "Tesla",
     "outputField": "email",
     "outputKind": "scalar",
+    "columns": null,
+    "labels": null,
     "compositeInput": null,
     "params": []
   },
@@ -199,6 +254,8 @@ var LINKFINDER_OPERATIONS = [
     "example": "Tesla",
     "outputField": "employee_count",
     "outputKind": "scalar",
+    "columns": null,
+    "labels": null,
     "compositeInput": null,
     "params": []
   },
@@ -215,6 +272,8 @@ var LINKFINDER_OPERATIONS = [
     "example": "Tesla",
     "outputField": "linkedin_url",
     "outputKind": "scalar",
+    "columns": null,
+    "labels": null,
     "compositeInput": null,
     "params": []
   },
@@ -231,6 +290,8 @@ var LINKFINDER_OPERATIONS = [
     "example": "Tesla",
     "outputField": "phone",
     "outputKind": "scalar",
+    "columns": null,
+    "labels": null,
     "compositeInput": null,
     "params": []
   },
@@ -247,6 +308,8 @@ var LINKFINDER_OPERATIONS = [
     "example": "Tesla",
     "outputField": "website",
     "outputKind": "scalar",
+    "columns": null,
+    "labels": null,
     "compositeInput": null,
     "params": []
   },
@@ -263,6 +326,8 @@ var LINKFINDER_OPERATIONS = [
     "example": "https://www.linkedin.com/company/tesla-motors",
     "outputField": "employee_count",
     "outputKind": "scalar",
+    "columns": null,
+    "labels": null,
     "compositeInput": null,
     "params": []
   },
@@ -279,6 +344,49 @@ var LINKFINDER_OPERATIONS = [
     "example": "tesla.com",
     "outputField": null,
     "outputKind": "list",
+    "columns": {
+      "default": [
+        "firstName",
+        "lastName",
+        "jobTitle",
+        "email",
+        "mobileNumber",
+        "linkedinUrl",
+        "company",
+        "city",
+        "country"
+      ],
+      "skip": [
+        "photoUrl",
+        "personId",
+        "companyId"
+      ]
+    },
+    "labels": {
+      "name": "Name",
+      "firstName": "First Name",
+      "lastName": "Last Name",
+      "jobTitle": "Job Title",
+      "headline": "Headline",
+      "seniority": "Seniority",
+      "department": "Department",
+      "industry": "Industry",
+      "email": "Email",
+      "mobileNumber": "Phone",
+      "twitter": "Twitter",
+      "linkedinUrl": "LinkedIn URL",
+      "city": "City",
+      "state": "State",
+      "country": "Country",
+      "company": "Company",
+      "companyWebsite": "Company Website",
+      "companySize": "Company Size",
+      "companyLinkedinUrl": "Company LinkedIn URL",
+      "companyPhone": "Company Phone",
+      "companyCity": "Company City",
+      "companyState": "Company Region",
+      "companyCountry": "Company Country"
+    },
     "compositeInput": null,
     "params": [
       {
@@ -314,6 +422,49 @@ var LINKFINDER_OPERATIONS = [
     "example": "Tesla",
     "outputField": null,
     "outputKind": "list",
+    "columns": {
+      "default": [
+        "firstName",
+        "lastName",
+        "jobTitle",
+        "email",
+        "mobileNumber",
+        "linkedinUrl",
+        "company",
+        "city",
+        "country"
+      ],
+      "skip": [
+        "photoUrl",
+        "personId",
+        "companyId"
+      ]
+    },
+    "labels": {
+      "name": "Name",
+      "firstName": "First Name",
+      "lastName": "Last Name",
+      "jobTitle": "Job Title",
+      "headline": "Headline",
+      "seniority": "Seniority",
+      "department": "Department",
+      "industry": "Industry",
+      "email": "Email",
+      "mobileNumber": "Phone",
+      "twitter": "Twitter",
+      "linkedinUrl": "LinkedIn URL",
+      "city": "City",
+      "state": "State",
+      "country": "Country",
+      "company": "Company",
+      "companyWebsite": "Company Website",
+      "companySize": "Company Size",
+      "companyLinkedinUrl": "Company LinkedIn URL",
+      "companyPhone": "Company Phone",
+      "companyCity": "Company City",
+      "companyState": "Company Region",
+      "companyCountry": "Company Country"
+    },
     "compositeInput": null,
     "params": [
       {
@@ -349,6 +500,49 @@ var LINKFINDER_OPERATIONS = [
     "example": "https://www.linkedin.com/company/tesla-motors",
     "outputField": null,
     "outputKind": "list",
+    "columns": {
+      "default": [
+        "firstName",
+        "lastName",
+        "jobTitle",
+        "email",
+        "mobileNumber",
+        "linkedinUrl",
+        "company",
+        "city",
+        "country"
+      ],
+      "skip": [
+        "photoUrl",
+        "personId",
+        "companyId"
+      ]
+    },
+    "labels": {
+      "name": "Name",
+      "firstName": "First Name",
+      "lastName": "Last Name",
+      "jobTitle": "Job Title",
+      "headline": "Headline",
+      "seniority": "Seniority",
+      "department": "Department",
+      "industry": "Industry",
+      "email": "Email",
+      "mobileNumber": "Phone",
+      "twitter": "Twitter",
+      "linkedinUrl": "LinkedIn URL",
+      "city": "City",
+      "state": "State",
+      "country": "Country",
+      "company": "Company",
+      "companyWebsite": "Company Website",
+      "companySize": "Company Size",
+      "companyLinkedinUrl": "Company LinkedIn URL",
+      "companyPhone": "Company Phone",
+      "companyCity": "Company City",
+      "companyState": "Company Region",
+      "companyCountry": "Company Country"
+    },
     "compositeInput": null,
     "params": [
       {
@@ -384,6 +578,45 @@ var LINKFINDER_OPERATIONS = [
     "example": "https://www.linkedin.com/company/tesla-motors",
     "outputField": null,
     "outputKind": "object",
+    "columns": {
+      "default": [
+        "name",
+        "website",
+        "industry",
+        "employeeCount",
+        "city",
+        "country",
+        "linkedinUrl",
+        "company_email",
+        "company_phone"
+      ],
+      "skip": [
+        "logo",
+        "background_cover_image_url",
+        "all_locations",
+        "specialties",
+        "id",
+        "universalName"
+      ]
+    },
+    "labels": {
+      "linkedinUrl": "LinkedIn URL",
+      "name": "Name",
+      "tagline": "Tagline",
+      "company_description": "Description",
+      "industry": "Industry",
+      "companyType": "Company Type",
+      "website": "Website",
+      "employeeCount": "Employee Count",
+      "employeeCountRange": "Employee Size Range",
+      "followerCount": "Followers",
+      "foundedOn": "Founded",
+      "city": "City",
+      "geographicArea": "Region",
+      "country": "Country",
+      "company_email": "Company Email",
+      "company_phone": "Company Phone"
+    },
     "compositeInput": null,
     "params": []
   },
@@ -400,6 +633,21 @@ var LINKFINDER_OPERATIONS = [
     "example": "https://www.linkedin.com/posts/someone_activity-123",
     "outputField": null,
     "outputKind": "list",
+    "columns": {
+      "default": [
+        "name",
+        "headline",
+        "linkedinUrl",
+        "reactionType"
+      ],
+      "skip": []
+    },
+    "labels": {
+      "name": "Name",
+      "headline": "Headline",
+      "linkedinUrl": "LinkedIn URL",
+      "reactionType": "Reaction"
+    },
     "compositeInput": null,
     "params": []
   },
@@ -416,6 +664,25 @@ var LINKFINDER_OPERATIONS = [
     "example": "@nasa",
     "outputField": null,
     "outputKind": "object",
+    "columns": {
+      "default": [
+        "username",
+        "full_name",
+        "follower_count",
+        "biography",
+        "website",
+        "is_verified"
+      ],
+      "skip": []
+    },
+    "labels": {
+      "username": "Username",
+      "full_name": "Full Name",
+      "follower_count": "Followers",
+      "biography": "Biography",
+      "website": "Website",
+      "is_verified": "Verified"
+    },
     "compositeInput": null,
     "params": []
   },
@@ -432,6 +699,19 @@ var LINKFINDER_OPERATIONS = [
     "example": "tesla.com",
     "outputField": null,
     "outputKind": "object",
+    "columns": {
+      "default": [
+        "name",
+        "website",
+        "linkedin_url"
+      ],
+      "skip": []
+    },
+    "labels": {
+      "name": "Name",
+      "website": "Website",
+      "linkedin_url": "LinkedIn URL"
+    },
     "compositeInput": null,
     "params": []
   },
@@ -448,6 +728,49 @@ var LINKFINDER_OPERATIONS = [
     "example": "VP Sales at B2B SaaS startups in the United States",
     "outputField": null,
     "outputKind": "list",
+    "columns": {
+      "default": [
+        "firstName",
+        "lastName",
+        "jobTitle",
+        "email",
+        "mobileNumber",
+        "linkedinUrl",
+        "company",
+        "city",
+        "country"
+      ],
+      "skip": [
+        "photoUrl",
+        "personId",
+        "companyId"
+      ]
+    },
+    "labels": {
+      "name": "Name",
+      "firstName": "First Name",
+      "lastName": "Last Name",
+      "jobTitle": "Job Title",
+      "headline": "Headline",
+      "seniority": "Seniority",
+      "department": "Department",
+      "industry": "Industry",
+      "email": "Email",
+      "mobileNumber": "Phone",
+      "twitter": "Twitter",
+      "linkedinUrl": "LinkedIn URL",
+      "city": "City",
+      "state": "State",
+      "country": "Country",
+      "company": "Company",
+      "companyWebsite": "Company Website",
+      "companySize": "Company Size",
+      "companyLinkedinUrl": "Company LinkedIn URL",
+      "companyPhone": "Company Phone",
+      "companyCity": "Company City",
+      "companyState": "Company Region",
+      "companyCountry": "Company Country"
+    },
     "compositeInput": null,
     "params": [
       {

@@ -27,6 +27,11 @@ const operations = catalog.operations.map((op) => ({
   example: String(op.input.example),
   outputField: op.output.field,
   outputKind: op.output.kind,
+  // A result with many fields is spread across columns rather than stringified
+  // into one. `columns.default` is what is ticked when the panel opens;
+  // `labels` is every field it will offer, and the header each one writes.
+  columns: op.output.columns ?? null,
+  labels: op.outputLabels ?? null,
   // Name lookups read several columns and join them — see buildLookupInput.
   compositeInput: op.compositeInput,
   params: op.params.map((p) => ({ name: p.name, label: p.label, type: p.type, help: p.help })),

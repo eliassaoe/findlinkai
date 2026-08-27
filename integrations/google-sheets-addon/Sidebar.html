@@ -3,144 +3,454 @@
 <head>
 <base target="_top">
 <style>
-  body{font-family:Roboto,Arial,sans-serif;font-size:13px;color:#202124;margin:0;padding:14px;}
-  h1{font-size:14px;font-weight:500;margin:0 0 2px;}
-  .sub{color:#5f6368;font-size:11.5px;margin-bottom:12px;line-height:1.4;}
-  label{display:block;font-weight:500;margin:12px 0 4px;}
-  select,input{width:100%;box-sizing:border-box;padding:6px;border:1px solid #dadce0;border-radius:4px;font-size:13px;}
-  .help{color:#5f6368;font-size:11.5px;margin-top:3px;line-height:1.35;}
-  .cost{margin-top:10px;padding:8px;border-radius:4px;background:#e8f0fe;color:#1967d2;font-size:12px;line-height:1.4;}
-  .cost.warn{background:#fef7e0;color:#b06000;}
-  .part{display:flex;gap:8px;align-items:flex-end;margin-top:10px;}
-  .part .col{width:62px;flex:none;}
-  .part .meta{flex:1;}
-  .part label{margin:0 0 4px;}
-  .opt{color:#80868b;font-weight:400;}
-  button{margin-top:14px;width:100%;padding:9px;background:#1a73e8;color:#fff;border:0;border-radius:4px;font-size:13px;cursor:pointer;}
-  button:disabled{background:#dadce0;cursor:default;}
-  #status{margin-top:12px;font-size:12px;line-height:1.45;white-space:pre-wrap;color:#5f6368;}
-  #status.bad{color:#c5221f;}
-  #status.warn{color:#b06000;}
-  .nokey{background:#fce8e6;color:#c5221f;padding:8px;border-radius:4px;margin-bottom:8px;line-height:1.4;}
+  :root{
+    --ink:#202124; --muted:#5f6368; --faint:#80868b; --line:#dadce0; --hair:#e8eaed;
+    --blue:#1a73e8; --blue-bg:#e8f0fe; --blue-ink:#1967d2;
+    --warn-bg:#fef7e0; --warn-ink:#b06000; --bad-bg:#fce8e6; --bad-ink:#c5221f; --good:#188038;
+  }
+  *{box-sizing:border-box;}
+  body{font-family:Roboto,Arial,sans-serif;font-size:13px;color:var(--ink);margin:0;padding:0 14px 18px;}
+
+  /* A numbered flow: in a 300px panel the eye needs a spine to follow. */
+  .step{position:relative;padding:16px 0 0 0;}
+  .step + .step{border-top:1px solid var(--hair);margin-top:14px;}
+  .step-label{display:flex;align-items:center;gap:7px;font-weight:500;font-size:11px;
+    text-transform:uppercase;letter-spacing:.5px;color:var(--faint);margin-bottom:8px;}
+  .step-num{display:inline-flex;align-items:center;justify-content:center;flex:none;
+    width:17px;height:17px;border-radius:50%;background:var(--hair);color:var(--muted);
+    font-size:10px;font-weight:700;letter-spacing:0;}
+
+  label{display:block;font-weight:500;margin:10px 0 4px;}
+  select,input[type=text]{width:100%;padding:7px;border:1px solid var(--line);border-radius:4px;
+    font-size:13px;font-family:inherit;color:var(--ink);background:#fff;}
+  select:focus,input:focus{outline:2px solid var(--blue);outline-offset:-1px;border-color:transparent;}
+  .help{color:var(--muted);font-size:11.5px;margin-top:3px;line-height:1.4;}
+  .opt{color:var(--faint);font-weight:400;}
+
+  .part-row{margin-top:11px;}
+  .part-row label{margin:0 0 4px;}
+  .part-row .help{margin-top:4px;}
+  select,input[type=text]{max-width:100%;}
+  .help,.preview,.cost{overflow-wrap:anywhere;}
+
+  /* Cost is the thing people regret not reading, so it gets colour and weight. */
+  .cost{margin-top:10px;padding:9px 10px;border-radius:4px;background:var(--blue-bg);
+    color:var(--blue-ink);font-size:12px;line-height:1.5;}
+  .cost.warn{background:var(--warn-bg);color:var(--warn-ink);}
+  .cost b{font-weight:600;}
+
+  /* Says exactly what is about to happen to the sheet, in plain words. */
+  .preview{margin-top:10px;padding:9px 10px;border-radius:4px;border:1px solid var(--hair);
+    background:#f8f9fa;font-size:11.5px;line-height:1.5;color:var(--muted);}
+  .preview b{color:var(--ink);font-weight:500;}
+
+  details{margin-top:10px;}
+  summary{cursor:pointer;font-size:12px;color:var(--blue);list-style:none;user-select:none;}
+  summary::-webkit-details-marker{display:none;}
+  summary::before{content:'▸ ';font-size:10px;}
+  details[open] summary::before{content:'▾ ';}
+  .fields{margin-top:8px;border:1px solid var(--hair);border-radius:4px;max-height:190px;overflow-y:auto;}
+  .field{display:flex;align-items:center;gap:8px;padding:5px 9px;font-size:12px;cursor:pointer;}
+  .field:hover{background:#f8f9fa;}
+  .field + .field{border-top:1px solid #f1f3f4;}
+  .field input{margin:0;flex:none;cursor:pointer;}
+  .field-actions{display:flex;gap:12px;margin-top:6px;font-size:11.5px;}
+  .field-actions a{color:var(--blue);cursor:pointer;text-decoration:none;}
+
+  button{margin-top:16px;width:100%;padding:10px;background:var(--blue);color:#fff;border:0;
+    border-radius:4px;font-size:13px;font-weight:500;font-family:inherit;cursor:pointer;}
+  button:hover:not(:disabled){background:#1765cc;}
+  button:disabled{background:var(--line);color:#fff;cursor:default;}
+
+  #status{margin-top:12px;font-size:12px;line-height:1.55;white-space:pre-wrap;color:var(--muted);}
+  #status.bad{color:var(--bad-ink);}
+  #status.warn{color:var(--warn-ink);}
+  #status.good{color:var(--good);}
+  .nokey{background:var(--bad-bg);color:var(--bad-ink);padding:9px 10px;border-radius:4px;
+    margin-top:14px;line-height:1.5;font-size:12px;}
 </style>
 </head>
 <body>
-
-<h1>Enrich a column</h1>
-<div class="sub">Pick a lookup, say which columns hold the input, and where the answer goes.</div>
 
 <div id="nokey" class="nokey" style="display:none;">
   No API key yet. Open <b>Extensions &rsaquo; LinkFinder AI &rsaquo; Settings</b> and paste your key.
 </div>
 
-<label for="op">Lookup</label>
-<select id="op"></select>
-<div class="help" id="opHelp"></div>
+<div class="step">
+  <div class="step-label"><span class="step-num">1</span> What to look up</div>
+  <select id="op"></select>
+  <div class="help" id="opHelp"></div>
+  <div id="cost" class="cost"></div>
+</div>
 
-<div id="cost" class="cost"></div>
+<div class="step">
+  <div class="step-label"><span class="step-num">2</span> Where to read it from</div>
+  <div id="inputs"></div>
+  <div id="params"></div>
+</div>
 
-<div id="inputs"></div>
-
-<label for="target">Column to write the answer into</label>
-<input id="target" placeholder="F" value="F">
-<div class="help">Rows that already have a value here are skipped — so re-running, or resuming after a long run, costs nothing for what is already done.</div>
-
-<div id="params"></div>
+<div class="step">
+  <div class="step-label"><span class="step-num">3</span> Where to put the answer</div>
+  <div id="targetWrap"><input type="text" id="target" placeholder="F" value="F"></div>
+  <div id="fieldPicker"></div>
+  <div id="preview" class="preview"></div>
+</div>
 
 <button id="go" disabled>Enrich column</button>
 <div id="status"></div>
 
 <script>
   var OPERATIONS = [];
+  var chosenFields = {};      // type -> [field names], remembered while the panel is open
+  var SHEET = null;           // headers, row count — refreshed when the panel opens
 
   function esc(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, function(c){
     return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];
   }); }
-
   function el(id){ return document.getElementById(id); }
 
   function selected(){
-    var value = el('op').value;
     for (var i = 0; i < OPERATIONS.length; i++) {
-      if (OPERATIONS[i].type === value) return OPERATIONS[i];
+      if (OPERATIONS[i].type === el('op').value) return OPERATIONS[i];
     }
     return null;
   }
 
   /**
    * A composite lookup takes several columns joined into one string; everything
-   * else takes one. Rendering the fields from the operation itself means the
-   * panel always asks for exactly what that lookup can use — which is the whole
-   * point of this rewrite: location and job title had nowhere to go before.
+   * else takes one. Rendering from the operation means the panel always asks for
+   * exactly what that lookup can use — location and job title had nowhere to go
+   * before, which is the bug a user reported.
    */
   function partsOf(op){
     if (op.compositeInput) return op.compositeInput.parts;
     return [{ name: 'input', label: op.inputLabel, required: true, help: op.inputHelp, example: op.example }];
   }
 
-  function renderCost(op){
-    var box = el('cost');
-    var text;
-
-    if (op.perEmployeeBilling) {
-      text = 'Billed 0.5 credits per employee returned, not a flat fee per row — a large company costs a lot more than a small one.';
-    } else {
-      text = op.credits + (op.credits === 1 ? ' credit' : ' credits') + ' per row. ' +
-             'Rows that find nothing are still charged.';
-    }
-
-    box.textContent = text;
-    box.className = 'cost' + (op.perEmployeeBilling || op.credits >= 7 ? ' warn' : '');
+  function fieldsOf(op){
+    if (!op.columns) return null;
+    if (chosenFields[op.type]) return chosenFields[op.type];
+    return op.columns.default.slice();
   }
 
-  function render(){
-    var op = selected();
-    if (!op) return;
+  /** A → 1, so the panel can name the columns a run will occupy. */
+  function colToNum(letter){
+    var s = String(letter || '').toUpperCase().replace(/[^A-Z]/g, ''), n = 0;
+    for (var i = 0; i < s.length; i++) n = n * 26 + (s.charCodeAt(i) - 64);
+    return n;
+  }
+  function numToCol(n){
+    var out = '';
+    while (n > 0){ var r = (n - 1) % 26; out = String.fromCharCode(65 + r) + out; n = (n - r - 1) / 26; }
+    return out;
+  }
 
-    el('opHelp').textContent = op.inputHelp;
-    renderCost(op);
+  /**
+   * The price, multiplied out.
+   *
+   * "10 credits per row" is a number nobody converts in their head. "412 rows,
+   * about 4,120 credits" is the one that stops a mistake — and a spreadsheet is
+   * exactly where a per-row price quietly becomes a large one.
+   */
+  function renderCost(op){
+    var box = el('cost'), text;
+    var rows = SHEET ? SHEET.dataRows : 0;
 
-    var letters = ['A', 'B', 'C', 'D'];
+    if (op.perEmployeeBilling) {
+      text = '<b>0.5 credits per person returned</b>, plus ' + op.credits + ' to run. ' +
+             'A big company costs a great deal more than a small one, so this one cannot be ' +
+             'totalled up front.';
+    } else {
+      text = '<b>' + op.credits + (op.credits === 1 ? ' credit' : ' credits') + ' per row.</b>';
+      if (rows) {
+        text += ' ' + rows.toLocaleString() + ' row' + (rows === 1 ? '' : 's') + ' below the header — ' +
+                'up to <b>' + (op.credits * rows).toLocaleString() + ' credits</b> if none are already done.';
+      }
+      text += ' Rows that find nothing are charged too.';
+    }
+
+    box.innerHTML = text;
+    var dear = op.perEmployeeBilling || op.credits >= 7 || (rows && op.credits * rows >= 1000);
+    box.className = 'cost' + (dear ? ' warn' : '');
+  }
+
+  /**
+   * A dropdown of the sheet's own header names.
+   *
+   * Typing "F" asks someone to count columns and remember what is in them.
+   * Showing "C — Company" asks them to recognise one. Falls back to a text box
+   * if the sheet could not be read, so the panel is never unusable.
+   */
+  function columnSelect(id, part, guess){
+    if (!SHEET) {
+      return '<input type="text" id="' + id + '" data-part="' + esc(part) + '" placeholder="A">';
+    }
+    return '<select id="' + id + '" data-part="' + esc(part) + '">' +
+      '<option value="">—</option>' +
+      SHEET.columns.map(function(c){
+        return '<option value="' + esc(c.letter) + '"' + (c.letter === guess ? ' selected' : '') + '>' +
+               esc(c.label) + '</option>';
+      }).join('') + '</select>';
+  }
+
+  // Matched against header text to pre-select the obvious column. A guess that
+  // is wrong costs one dropdown change; a guess that is right saves four.
+  var GUESSES = {
+    name: /full ?name|^name$|contact|person|prospect|lead/,
+    company: /company|organisation|organization|employer|account/,
+    location: /location|city|country|region|state|based/,
+    job_title: /title|role|position|job/
+  };
+
+  var STOPWORDS = { a:1, an:1, the:1, or:1, and:1, of:1, your:1, any:1, input:1, describe:1, want:1, you:1, page:1 };
+
+  function words(text){
+    return (String(text || '').toLowerCase().match(/[a-z]+/g) || [])
+      .filter(function(w){ return w.length > 2 && !STOPWORDS[w]; });
+  }
+
+  /**
+   * Which column a lookup most likely wants, or none.
+   *
+   * Matching any word was too loose: "Company Name" matched a Full Name column,
+   * and "Instagram Handle or URL" matched a LinkedIn URL column — a guess that
+   * is not just unhelpful but would spend real credits looking up the wrong
+   * thing. So the head word has to match, and a header that also matches the
+   * rest wins ties. When nothing matches the head word there is no guess, which
+   * is the right answer for a sheet that has no such column.
+   */
+  function guessColumn(op, part){
+    if (!SHEET) return '';
+    var wanted = GUESSES[part] ? null : words(op.inputLabel);
+    var best = '', bestScore = 0;
+
+    for (var i = 0; i < SHEET.columns.length; i++) {
+      var column = SHEET.columns[i];
+      if (!column.name) continue;
+      var header = column.name.toLowerCase();
+      var score = 0;
+
+      if (wanted) {
+        if (!wanted.length || header.indexOf(wanted[0]) === -1) continue;   // head word must match
+        score = 3;
+        for (var w = 1; w < wanted.length; w++) if (header.indexOf(wanted[w]) !== -1) score++;
+      } else {
+        if (!GUESSES[part].test(header)) continue;
+        score = 3;
+      }
+
+      if (score > bestScore) { bestScore = score; best = column.letter; }
+    }
+    return best;
+  }
+
+  function renderInputs(op){
     el('inputs').innerHTML = partsOf(op).map(function (p, i) {
-      return '<div class="part">' +
-        '<div class="col">' +
-          '<label for="c_' + esc(p.name) + '">' + (i === 0 ? 'Column' : '&nbsp;') + '</label>' +
-          '<input id="c_' + esc(p.name) + '" data-part="' + esc(p.name) + '" placeholder="' + letters[i] + '"' +
-            (i === 0 ? ' value="' + letters[i] + '"' : '') + '>' +
-        '</div>' +
-        '<div class="meta">' +
-          '<label>' + esc(p.label) + (p.required ? '' : ' <span class="opt">— optional</span>') + '</label>' +
-          '<div class="help">' + esc(p.help) + ' e.g. ' + esc(p.example) + '</div>' +
-        '</div>' +
+      return '<div class="part-row">' +
+        '<label for="c_' + esc(p.name) + '">' + esc(p.label) +
+          (p.required ? '' : ' <span class="opt">— optional</span>') + '</label>' +
+        columnSelect('c_' + p.name, p.name, guessColumn(op, p.name)) +
+        '<div class="help">' + esc(p.help) + '</div>' +
       '</div>';
     }).join('');
 
     if (op.compositeInput) {
       el('inputs').insertAdjacentHTML('beforeend',
-        '<div class="help" style="margin-top:8px;">Leave a column blank to skip it. Filling more of them costs ' +
-        'nothing extra and makes the match far more certain — a name on its own matches thousands of people.</div>');
+        '<div class="help" style="margin-top:8px;">Leave one blank to skip it. Filling more costs ' +
+        'nothing extra and makes the match far more certain — a name alone matches thousands of people.</div>');
     }
 
     el('params').innerHTML = op.params.map(function(p){
       return '<label for="p_' + esc(p.name) + '">' + esc(p.label) + ' <span class="opt">— optional</span></label>' +
-             '<input id="p_' + esc(p.name) + '" data-param="' + esc(p.name) + '"' +
-             (p.type === 'integer' ? ' type="number"' : '') + '>' +
+             '<input type="text" id="p_' + esc(p.name) + '" data-param="' + esc(p.name) + '"' +
+             (p.type === 'integer' ? ' inputmode="numeric"' : '') + '>' +
              '<div class="help">' + esc(p.help) + '</div>';
     }).join('');
   }
 
-  /** Turns whatever runEnrichment came back with into one sentence a user can act on. */
-  function describe(result){
-    if (!result) return { text: 'Finished.', tone: '' };
+  /**
+   * Which fields of a multi-field result get columns.
+   *
+   * Collapsed by default: nineteen checkboxes is not a decision anyone wants on
+   * opening the panel, and the nine ticked are the ones a sales team uses.
+   */
+  function renderFieldPicker(op){
+    var host = el('fieldPicker');
+    if (!op.columns) { host.innerHTML = ''; return; }
 
-    var counts = result.processed + ' row' + (result.processed === 1 ? '' : 's') + ' looked up, ' +
-                 result.found + ' with a result' +
-                 (result.skipped ? ', ' + result.skipped + ' already filled in and skipped' : '') +
-                 (result.errors ? ', ' + result.errors + ' failed' : '') + '.';
+    var chosen = fieldsOf(op);
+    var all = Object.keys(op.labels);
+
+    host.innerHTML =
+      '<details' + (op.columns.default.length === all.length ? '' : '') + '>' +
+      '<summary>' + chosen.length + ' of ' + all.length + ' fields</summary>' +
+      '<div class="fields">' + all.map(function(f){
+        return '<label class="field">' +
+          '<input type="checkbox" data-field="' + esc(f) + '"' + (chosen.indexOf(f) !== -1 ? ' checked' : '') + '>' +
+          esc(op.labels[f]) + '</label>';
+      }).join('') + '</div>' +
+      '<div class="field-actions">' +
+        '<a id="fAll">Select all</a><a id="fDefault">Reset to default</a><a id="fNone">Clear</a>' +
+      '</div></details>';
+
+    function setAll(names){
+      chosenFields[op.type] = names.slice();
+      renderFieldPicker(op);
+      renderPreview(op);
+    }
+    el('fAll').onclick = function(){ setAll(all); };
+    el('fDefault').onclick = function(){ setAll(op.columns.default); };
+    el('fNone').onclick = function(){ setAll([]); };
+
+    Array.prototype.forEach.call(host.querySelectorAll('[data-field]'), function(box){
+      box.addEventListener('change', function(){
+        var picked = [];
+        Array.prototype.forEach.call(host.querySelectorAll('[data-field]'), function(b){
+          if (b.checked) picked.push(b.getAttribute('data-field'));
+        });
+        chosenFields[op.type] = picked;
+        // Re-render the summary count without collapsing what they are working in.
+        host.querySelector('summary').textContent = picked.length + ' of ' + all.length + ' fields';
+        renderPreview(op);
+      });
+    });
+  }
+
+  /** Plain words for what is about to happen to the sheet. */
+  function renderPreview(op){
+    var target = targetLetter();
+    var start = colToNum(target);
+    var box = el('preview');
+
+    if (!start) { box.innerHTML = 'Name a column for the answer, like <b>F</b>.'; return; }
+
+    if (op.outputKind === 'list') {
+      box.innerHTML = 'Adds a sheet <b>LinkFinder — ' + esc(op.label) + '</b> with one row per result, ' +
+        'and writes how many were found into <b>' + esc(target) + '</b> so a re-run skips finished rows.';
+      return;
+    }
+
+    var fields = fieldsOf(op);
+    if (!fields) {
+      box.innerHTML = 'Writes one value into column <b>' + esc(target) + '</b>, from row 2 down. ' +
+        'Rows that already have something there are skipped.';
+      return;
+    }
+    if (!fields.length) { box.innerHTML = 'Pick at least one field to write.'; return; }
+
+    var last = numToCol(start + fields.length - 1);
+    box.innerHTML = 'Writes <b>' + fields.length + ' column' + (fields.length === 1 ? '' : 's') + '</b> — ' +
+      esc(fields.map(function(f){ return op.labels[f]; }).join(', ')) + ' — into <b>' +
+      esc(target) + (fields.length > 1 ? ':' + esc(last) : '') + '</b>. ' +
+      (fields.length > 1 ? 'Make sure those columns are free. ' : '') +
+      'Rows already filled are skipped.';
+  }
+
+  var targetTouched = false;
+
+  function renderTarget(){
+    if (!SHEET) {
+      // Sheet unreadable — keep the typed box, and keep the preview live.
+      var box = el('target');
+      if (box && !box.__wired) {
+        box.addEventListener('input', function(){ renderPreview(selected()); });
+        box.__wired = true;
+      }
+      return;
+    }
+    // Only honour a previous choice once the user has actually made one —
+    // otherwise the placeholder from the fallback text box wins over the first
+    // genuinely free column, and the answer lands a column further out than it
+    // needs to.
+    var current = targetTouched ? targetLetter() : '';
+    el('targetWrap').innerHTML =
+      '<select id="target">' + SHEET.columns.map(function(c){
+        var chosen = c.letter === (current || SHEET.firstEmpty);
+        return '<option value="' + esc(c.letter) + '"' + (chosen ? ' selected' : '') + '>' +
+               esc(c.label) + '</option>';
+      }).join('') + '</select>';
+    el('target').addEventListener('change', function(){
+      targetTouched = true;
+      renderPreview(selected());
+    });
+  }
+
+  function targetLetter(){
+    var node = el('target');
+    return node ? String(node.value || '').trim().toUpperCase() : '';
+  }
+
+  function render(){
+    var op = selected();
+    if (!op) return;
+    el('opHelp').textContent = op.inputHelp;
+    renderCost(op);
+    renderInputs(op);
+    renderTarget();
+    renderFieldPicker(op);
+    renderPreview(op);
+    el('go').textContent = op.outputKind === 'list' ? 'Build the list' : 'Enrich column';
+  }
+
+  /** The whole job, across however many passes it took. */
+  function describe(result, tally, stalled){
+    var counts = tally.processed.toLocaleString() + ' row' + (tally.processed === 1 ? '' : 's') + ' looked up, ' +
+                 tally.found.toLocaleString() + ' with a result' +
+                 (tally.skipped ? ', ' + tally.skipped.toLocaleString() + ' already filled and skipped' : '') +
+                 (tally.errors ? ', ' + tally.errors.toLocaleString() + ' failed' : '') + '.';
+    if (tally.resultSheet) counts += '\nResults are in the sheet "' + tally.resultSheet + '".';
 
     if (result.stopped) return { text: result.message + '\n\n' + counts, tone: 'bad' };
-    if (result.incomplete) return { text: result.message + '\n\n' + counts, tone: 'warn' };
-    return { text: counts, tone: result.errors ? 'warn' : '' };
+    if (stalled) {
+      return { text: 'Stopped: no row could be processed, so continuing would loop.\n\n' + counts, tone: 'warn' };
+    }
+    return { text: counts, tone: tally.errors ? 'warn' : (tally.found ? 'good' : '') };
+  }
+
+  /**
+   * Runs the enrichment, continuing through Google's six-minute limit.
+   *
+   * A server call is killed at six minutes, so a long sheet cannot finish in
+   * one. The run stops itself at five, reports the row it reached, and this
+   * calls it again — filled rows are skipped, so each pass picks up where the
+   * last stopped and costs nothing for what is already done.
+   *
+   * The user sees one job with a running total instead of being told to press
+   * the button again, which is what every other add-on does with this problem.
+   */
+  function runChunk(config, tally, pass){
+    google.script.run
+      .withSuccessHandler(function(result){
+        result = result || {};
+        tally.processed += result.processed || 0;
+        tally.found     += result.found || 0;
+        tally.errors    += result.errors || 0;
+        tally.skipped   += result.skipped || 0;
+        if (result.resultSheet) tally.resultSheet = result.resultSheet;
+
+        var stalled = !(result.processed > 0);
+
+        if (result.incomplete && !stalled && pass < 40) {
+          el('status').className = '';
+          el('status').textContent =
+            'Still going — ' + tally.processed.toLocaleString() + ' row' +
+            (tally.processed === 1 ? '' : 's') + ' done, ' + tally.found.toLocaleString() +
+            ' found.\nGoogle stops a run every few minutes; carrying on automatically.';
+          runChunk(config, tally, pass + 1);
+          return;
+        }
+
+        var d = describe(result, tally, result.incomplete && stalled);
+        el('status').className = d.tone;
+        el('status').textContent = d.text;
+        el('go').disabled = false;
+      })
+      .withFailureHandler(function(error){
+        fail('Stopped: ' + error.message +
+             (tally.processed ? '\n\n' + tally.processed.toLocaleString() + ' row(s) were finished first and are saved.' : ''));
+        el('go').disabled = false;
+      })
+      .runEnrichment(config);
   }
 
   function run(){
@@ -153,17 +463,11 @@
     });
 
     var required = partsOf(op)[0];
-    if (!columns[required.name]) {
-      el('status').className = 'bad';
-      el('status').textContent = 'Set the column holding ' + required.label + ' first.';
-      return;
-    }
+    if (!columns[required.name]) return fail('Set the column holding ' + required.label + ' first.');
+    if (!targetLetter()) return fail('Say which column the answer should go into.');
 
-    if (!el('target').value.trim()) {
-      el('status').className = 'bad';
-      el('status').textContent = 'Say which column the answer should go into.';
-      return;
-    }
+    var fields = fieldsOf(op);
+    if (fields && !fields.length) return fail('Pick at least one field to write.');
 
     var params = {};
     Array.prototype.forEach.call(document.querySelectorAll('[data-param]'), function(input){
@@ -172,47 +476,56 @@
 
     el('go').disabled = true;
     el('status').className = '';
-    el('status').textContent = 'Running. Answers appear row by row — leave the sheet open.';
+    el('status').textContent = 'Running. Answers appear as they arrive — leave the sheet open.';
 
-    google.script.run
-      .withSuccessHandler(function(result){
-        var described = describe(result);
-        el('status').className = described.tone;
-        el('status').textContent = described.text;
-        el('go').disabled = false;
-      })
-      .withFailureHandler(function(error){
-        el('status').className = 'bad';
-        el('status').textContent = 'Stopped: ' + error.message;
-        el('go').disabled = false;
-      })
-      .runEnrichment({
-        type: op.type,
-        outputColumn: el('target').value.trim(),
-        columns: columns,
-        params: params
-      });
+    runChunk({
+      type: op.type,
+      outputColumn: targetLetter(),
+      columns: columns,
+      params: params,
+      fields: fields
+    }, { processed: 0, found: 0, errors: 0, skipped: 0, resultSheet: null }, 1);
   }
+
+  function fail(message){
+    el('status').className = 'bad';
+    el('status').textContent = message;
+  }
+
+  /**
+   * Load order matters: the operations decide what the panel offers, the sheet
+   * decides which columns it can offer them against. Whichever arrives second
+   * triggers the render, so a slow sheet does not leave the panel blank and a
+   * failed read falls back to typing a letter rather than to nothing at all.
+   */
+  var ready = { ops: false, sheet: false };
+  function renderWhenReady(){
+    if (ready.ops) render();
+  }
+
+  google.script.run
+    .withSuccessHandler(function(info){ SHEET = info; ready.sheet = true; renderWhenReady(); })
+    .withFailureHandler(function(){ SHEET = null; ready.sheet = true; renderWhenReady(); })
+    .getSheetInfo();
 
   google.script.run.withSuccessHandler(function(ops){
     OPERATIONS = ops;
-    var select = el('op');
-
-    // Grouped the way the catalog groups them, so twenty lookups stay findable.
     var order = [], groups = {};
     ops.forEach(function(o){
       if (!groups[o.category]) { groups[o.category] = []; order.push(o.category); }
       groups[o.category].push(o);
     });
 
-    select.innerHTML = order.map(function(category){
+    el('op').innerHTML = order.map(function(category){
       return '<optgroup label="' + esc(category) + '">' + groups[category].map(function(o){
-        return '<option value="' + esc(o.type) + '">' + esc(o.label) + '</option>';
+        return '<option value="' + esc(o.type) + '">' + esc(o.label) + ' — ' +
+               (o.perEmployeeBilling ? '0.5/ea' : o.credits + ' cr') + '</option>';
       }).join('') + '</optgroup>';
     }).join('');
 
-    select.addEventListener('change', render);
-    render();
+    el('op').addEventListener('change', render);
+    ready.ops = true;
+    renderWhenReady();
   }).getOperations();
 
   google.script.run.withSuccessHandler(function(configured){
