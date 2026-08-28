@@ -55,6 +55,7 @@ into a file here in the same session, or it is gone.
 | Storyboards | `claude/guidee/scripts/`, catalog in `claude/guidee/catalog.json` |
 | App UI ground truth (never invent a label) | `claude/guidee/app-ui.md` |
 | CSV enrichments in History | `docs/csv-enrichment-history.md` |
+| What the account page counts as "found" | `docs/account-value-summary.md` |
 | CRM cleanup + HubSpot | `CRM-SETUP.md` |
 | Outbound campaign | `OUTBOUND-CRM-AUDIT.md` |
 | Workers | `workers/` — but most live workers are NOT in this repo; read them with the Cloudflare connector |
