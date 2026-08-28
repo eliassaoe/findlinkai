@@ -93,8 +93,12 @@ spec and `app.html` but have no MCP tool, so they were not called either.
 
 Instantly's field names are confirmed against its endpoint spec (its campaign field is
 sent as `campaign`, which its own tooling calls `campaign_id` — the one thing to watch).
-The other eleven are written from published documentation, not live calls. The tests pin
-the exact request each builds, but cannot check that the vendor accepts it.
+The other eleven are written from published documentation, not live calls. The tests now
+pin the exact request each builds — until 2026-08-28 that was claimed but not true: eight
+of the twelve adapters had never had `addLead` executed by anything, so a wrong field name
+would have shipped green. `outreach/test/destinations.test.mjs` covers all twelve and
+fails on any that never reaches `fetch`. It still cannot check that the vendor accepts
+the shape.
 
 **To close:** run one lead through each. **Salesforge** and **EmailBison** have the
 least stable documentation, and EmailBison is self-hosted so paths vary per deployment.

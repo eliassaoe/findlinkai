@@ -9,7 +9,7 @@
 import test from 'node:test';
 import assert from 'node:assert';
 import { execFileSync } from 'node:child_process';
-import { readFileSync, readdirSync, mkdtempSync, cpSync, writeFileSync } from 'node:fs';
+import { readFileSync, readdirSync, mkdtempSync, cpSync, writeFileSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -351,5 +351,95 @@ test('the withdrawn AI lead finder is gone from every surface', () => {
             catalog.operations.some((o) => o.n8n.resource === resource && o.n8n.operation === meta.default),
             `n8n resource "${resource}" defaults to "${meta.default}", which no operation provides`,
         );
+    }
+});
+
+// ---------------------------------------------------------------------------
+// The public pages.
+//
+// Nothing checked them, and they drifted furthest of anything here: they
+// advertised 20 lookups against a catalog of 19, named an operation withdrawn
+// from the product, and told visitors both apps were "in review" when neither
+// had ever been submitted — the Zapier app had not even been registered. The
+// test that exists to erase the withdrawn operation from every surface listed
+// seven surfaces and none of them was a page a customer reads.
+// ---------------------------------------------------------------------------
+
+const PAGES = ['integrations.html', 'app-integrations.html'];
+const pageText = (f) => readFileSync(join(REPO, f), 'utf8');
+
+test('the pages count the lookups the catalog actually has', () => {
+    const n = catalog.operations.length;
+    const WORDS = { 17: 'Seventeen', 18: 'Eighteen', 19: 'Nineteen', 20: 'Twenty', 21: 'Twenty-one' };
+
+    for (const file of PAGES) {
+        const page = pageText(file);
+        // Any "<number> lookup(s)" on the page has to be the real number.
+        for (const [, claimed] of page.matchAll(/\b(\d{1,3})\s+lookups?\b/g)) {
+            assert.strictEqual(Number(claimed), n,
+                `${file} advertises ${claimed} lookups; the catalog has ${n}`);
+        }
+        // And the spelled-out forms the in-app page uses.
+        for (const [word] of page.matchAll(/\b(Seventeen|Eighteen|Nineteen|Twenty|Twenty-one)\b/g)) {
+            assert.strictEqual(word, WORDS[n],
+                `${file} says "${word}"; the catalog has ${n} operations`);
+        }
+    }
+});
+
+test('the withdrawn AI lead finder is gone from the pages too, in prose', () => {
+    // It survived the machine-readable purge by being described in English.
+    for (const file of PAGES) {
+        const page = pageText(file);
+        for (const phrase of ['leads_finder_ai', 'findLeadsWithAi', 'AI lead search', 'AI lead finder']) {
+            assert.ok(!page.includes(phrase), `${file} still advertises "${phrase}"`);
+        }
+    }
+});
+
+test('nothing claims a marketplace review it has not been submitted for', () => {
+    // "In review" reads as a date. It may only be said once there is something
+    // on the other side to review — for Zapier that is the app registration
+    // `zapier register` writes, without which no app object exists at all.
+    const registered = {
+        Zapier: existsSync(join(ROOT, 'zapier', '.zapierapprc')),
+        // Make has no equivalent artifact: its app is imported by hand into
+        // Make's editor, so there is nothing on disk to prove a submission.
+        // Until there is, the pages must not claim its queue either.
+        Make: false,
+    };
+
+    for (const file of PAGES) {
+        const page = pageText(file);
+        for (const [platform, isRegistered] of Object.entries(registered)) {
+            if (isRegistered) continue;
+            const claims = [
+                new RegExp(`in review for the ${platform}`, 'i'),
+                new RegExp(`waiting on ${platform}`, 'i'),
+                new RegExp(`waiting on ${platform}\\\\?'s review`, 'i'),
+            ];
+            for (const claim of claims) {
+                assert.ok(!claim.test(page),
+                    `${file} says the ${platform} app is in review, and it has never been submitted`);
+            }
+        }
+    }
+});
+
+test('an integration is not described as live on one page and unbuilt on another', () => {
+    // Clay was badged "Rolling out" on the marketing page, describing a Clay-table
+    // adapter with no caller, while the in-app page badged it "live", describing
+    // the REST API. Both cannot be the state of one integration.
+    const marketing = pageText('integrations.html');
+    const inApp = pageText('app-integrations.html');
+
+    const liveInApp = [...inApp.matchAll(/name:'([^']+)'[^}]*state:'live'/g)].map((m) => m[1]);
+    for (const name of liveInApp) {
+        const card = marketing.match(
+            new RegExp(`int-name">${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}</div><div class="int-badge int-badge-(\\w+)"`),
+        );
+        if (!card) continue;
+        assert.notStrictEqual(card[1], 'rollout',
+            `${name} is live in the app and "rolling out" on the marketing page`);
     }
 });

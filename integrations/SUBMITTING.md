@@ -114,7 +114,7 @@ starting only once the internal version shows the demand is there.
 anywhere. It gets wired into a worker or backend that calls `enrichAndPush()`.
 
 Instantly's field names are confirmed against its endpoint spec. The other eleven were
-written from published documentation — the tests pin the exact request each builds, but
+written from published documentation — the tests pin the exact request each builds, and fail on any adapter that never reaches fetch, but
 nothing has confirmed each vendor accepts it. **Run one lead through each destination
 before pointing a real campaign at it.** Salesforge and EmailBison need the most care;
 EmailBison is self-hosted, so its paths vary per deployment.

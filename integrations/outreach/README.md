@@ -1,6 +1,6 @@
 # LinkFinder AI → cold outreach
 
-Enrich a lead, then push it into a sequence. Ten destinations behind one call.
+Enrich a lead, then push it into a sequence. Twelve destinations behind one call.
 
 ```js
 import { enrichAndPush } from './push.mjs';
@@ -48,6 +48,8 @@ around not wasting it. Credits are spent the moment a lookup runs — so:
 | Salesloft | OAuth | Cadence ID | — |
 | Salesforge | API key | Sequence ID | `workspaceId` |
 | EmailBison | API key | Campaign ID | `baseUrl` (self-hosted) |
+| Clay | Webhook URL | Clay table webhook | — |
+| JustCall | API key | Campaign ID | — (needs a phone, not an email) |
 
 Each adapter is one file that states two things: how to authenticate, and what body
 that tool wants. Anything else — error handling, retries, the lead shape — is shared.
@@ -65,9 +67,15 @@ unsplit `fullName` is always passed through so a caller can correct it.
 
 ## Verification status — read before going live
 
-The test suite (`npm test`, 15 tests) stubs `fetch` and asserts the exact request each
-adapter builds, so the payload shapes are pinned. What it **cannot** check is whether
-each vendor accepts them, because this build environment has no network access.
+`test/destinations.test.mjs` stubs `fetch` and asserts the exact URL, auth header and
+body every adapter builds, so the payload shapes are pinned. Its last test runs all
+twelve and fails on any whose `addLead` never reaches `fetch` — that is the check that
+matters, because this file used to make this claim while eight of the twelve were never
+executed by anything.
+
+What the tests **cannot** check is whether each vendor accepts the shape, because this
+build environment has no network access. Several below have never run against the real
+API, and that is what the list that follows is for.
 
 - **Instantly** — field names (`email`, `first_name`, `last_name`, `company_name`,
   `phone`, `website`) confirmed against Instantly's own endpoint spec. One thing to
