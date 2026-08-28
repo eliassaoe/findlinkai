@@ -6248,6 +6248,11 @@ function updateZeroCreditsState(credits){
     if (submitBtn) submitBtn.style.display = isZero ? 'none' : '';
 }
 
+function goToAutoTopup(){
+    try{posthog.capture('auto_topup_nudge_clicked',{source:'low_credits_bar'});}catch(e){}
+    window.location.href='https://linkfinderai.com/account?token='+userToken+'#auto-topup';
+}
+
 function updateLowCreditsWarning(credits){
     const bar=document.getElementById('lowCreditsBar');if(!bar)return;
     if (credits === null || credits <= 0) { bar.style.display='none'; bar.innerHTML=''; return; }
@@ -6256,7 +6261,8 @@ function updateLowCreditsWarning(credits){
         bar.style.display='block';
         bar.classList.remove('urgent');
         const rounded = Math.round(credits*10)/10;
-        bar.innerHTML = `You have ${rounded} credit${rounded===1?'':'s'} left \u2014 <a onclick="handleAddCredits()">upgrade to keep going</a>`;
+        bar.innerHTML = `You have ${rounded} credit${rounded===1?'':'s'} left \u2014 <a onclick="handleAddCredits()">upgrade to keep going</a>`
+            + ` &middot; <a onclick="goToAutoTopup()">turn on auto top-up</a> so this stops happening`;
     } else {
         bar.style.display='none';
         bar.innerHTML='';

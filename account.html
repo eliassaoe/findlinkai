@@ -127,6 +127,34 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
 .btn-billing-manage:hover{background:var(--gray-50);border-color:var(--primary);color:var(--primary);}
 .btn-cancel-plan{background:white;color:var(--error);border:1px solid var(--error);padding:.5rem .875rem;font-size:.8rem;font-weight:600;white-space:nowrap;}
 .btn-cancel-plan:hover{background:var(--error);color:white;}
+/* Auto top-up — lives in the Billing card, because that is where someone is
+   already thinking about money. It used to sit only on the API page. */
+.billing-row:has(+ .atu-panel){border-bottom:none;padding-bottom:0;}
+.atu-panel{border-top:1px solid var(--gray-100);margin-top:1rem;padding-top:1rem;}
+.atu-pill{display:inline-block;font-size:.68rem;font-weight:700;padding:.15rem .45rem;border-radius:4px;text-transform:uppercase;letter-spacing:.04em;margin-left:.4rem;vertical-align:middle;}
+.atu-pill-on{background:#dcfce7;color:#15803d;}
+.atu-pill-off{background:var(--gray-100);color:var(--gray-500);}
+.atu-pill-failed{background:#fee2e2;color:#991b1b;}
+.atu-pill-pending{background:#fef3c7;color:#92400e;}
+.atu-label{font-size:.78rem;font-weight:600;color:var(--gray-700);margin-bottom:.4rem;}
+.atu-threshold{display:flex;align-items:center;gap:.5rem;margin-bottom:1rem;}
+.atu-threshold input{flex:1;max-width:220px;padding:.55rem .7rem;border:1px solid var(--gray-300);border-radius:6px;font:inherit;font-size:.85rem;}
+.atu-threshold input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(37,99,235,.1);}
+.atu-packs{display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem;margin-bottom:.85rem;}
+.atu-pack{border:1.5px solid var(--gray-200);border-radius:8px;padding:.7rem .5rem;text-align:center;cursor:pointer;transition:all .15s;}
+.atu-pack:hover{border-color:var(--primary);background:var(--gray-50);}
+.atu-pack.selected{border-color:var(--primary);background:rgba(37,99,235,.06);}
+.atu-pack-credits{font-size:.9rem;font-weight:600;color:var(--gray-900);}
+.atu-pack-price{font-size:.8rem;font-weight:600;color:var(--primary);margin-top:.2rem;}
+.atu-card-on-file{display:flex;align-items:center;gap:.5rem;background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.25);border-radius:6px;padding:.6rem .75rem;margin-bottom:.85rem;font-size:.8rem;color:var(--gray-700);}
+.atu-change-card{margin-left:auto;color:var(--primary);font-weight:600;cursor:pointer;font-size:.76rem;background:none;border:none;font-family:inherit;text-decoration:underline;}
+.atu-summary{font-size:.78rem;color:var(--gray-600);background:var(--gray-50);border-radius:6px;padding:.6rem .75rem;margin-bottom:.85rem;line-height:1.5;}
+.atu-actions{display:flex;gap:.5rem;flex-wrap:wrap;}
+.atu-msg{display:none;font-size:.78rem;border-radius:6px;padding:.55rem .75rem;margin-top:.7rem;}
+.atu-msg.show{display:block;}
+.atu-msg-ok{background:#dcfce7;color:#15803d;}
+.atu-msg-err{background:#fee2e2;color:#991b1b;}
+@media(max-width:640px){.atu-packs{grid-template-columns:1fr;}}
 /* Modals */
 .modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:1000;opacity:0;visibility:hidden;transition:all .3s ease;padding:1rem;}
 .modal-overlay.show{opacity:1;visibility:visible;}
@@ -350,6 +378,50 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
           <button class="btn btn-billing-manage" onclick="managePlan()" id="managePlanBtn">
             <i class="fas fa-cog"></i> Manage Plan
           </button>
+        </div>
+
+        <div class="billing-row">
+          <div class="billing-row-info">
+            <div class="billing-row-icon"><i class="fas fa-rotate"></i></div>
+            <div class="billing-row-details">
+              <h3>Auto top-up <span id="atuPill" class="atu-pill atu-pill-off">Off</span></h3>
+              <p id="atuRowStatus">Buy credits automatically before you run out, so a run never stops half way.</p>
+            </div>
+          </div>
+          <button class="btn btn-billing-manage" id="atuToggleBtn" onclick="toggleAtuPanel()">
+            <i class="fas fa-sliders"></i> <span id="atuToggleBtnLabel">Set up</span>
+          </button>
+        </div>
+
+        <div class="atu-panel" id="atuPanel" style="display:none;">
+          <div id="atuCardOnFile" class="atu-card-on-file" style="display:none;">
+            <i class="fas fa-credit-card" style="color:var(--success);"></i>
+            <span>Card on file</span>
+            <button class="atu-change-card" onclick="atuChangeCard()">Update card</button>
+          </div>
+
+          <div class="atu-label">Top up when my balance drops below</div>
+          <div class="atu-threshold">
+            <input type="number" id="atuThreshold" min="1" step="1" placeholder="e.g. 200" aria-label="Credit threshold">
+            <span style="font-size:.8rem;color:var(--gray-500);">credits</span>
+          </div>
+
+          <div class="atu-label">Buy this pack each time</div>
+          <div class="atu-packs" id="atuPacksGrid"></div>
+
+          <div class="atu-summary" id="atuSummary"></div>
+
+          <div class="atu-actions">
+            <button class="btn" id="atuSaveBtn" onclick="saveAutoTopup()">
+              <i class="fas fa-check"></i> Turn on auto top-up
+            </button>
+            <button class="btn btn-billing-manage" id="atuDisableBtn" onclick="disableAutoTopup()" style="display:none;">
+              Turn off
+            </button>
+          </div>
+
+          <div id="atuOk" class="atu-msg atu-msg-ok"><i class="fas fa-check"></i> <span id="atuOkText">Saved.</span></div>
+          <div id="atuErr" class="atu-msg atu-msg-err"><i class="fas fa-exclamation-circle"></i> <span id="atuErrText"></span></div>
         </div>
       </div>
     </div>
@@ -1908,6 +1980,22 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   loadValueSummary();
+  loadAutoTopup();
+
+  // The low-credit bar in the app links here with #auto-topup. Arriving on a
+  // collapsed panel would waste the one moment someone actually wants this.
+  if (window.location.hash === '#auto-topup') {
+    const panel = document.getElementById('atuPanel');
+    panel.style.display = 'block';
+    requestAnimationFrame(() => panel.scrollIntoView({ behavior: 'smooth', block: 'center' }));
+  }
+
+  // Coming back from the Dodo card-authorisation checkout. The webhook links the
+  // subscription, but re-reading here means the row is right without waiting on it.
+  if (new URLSearchParams(window.location.search).get('atu_linked') === '1') {
+    document.getElementById('atuPanel').style.display = 'block';
+    setTimeout(() => { loadAutoTopup(); atuShow('atuOk', 'atuOkText', 'Card saved — auto top-up is on.'); }, 1200);
+  }
 
   // Modal close on backdrop click
   ['pricingModal','buyCreditsModal','cancellationModal'].forEach(id => {
@@ -1918,6 +2006,216 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.key === 'Escape') { ['pricingModal','buyCreditsModal','cancellationModal'].forEach(id => { const el = document.getElementById(id); if (el) el.classList.remove('show'); }); document.body.style.overflow = ''; }
   });
 });
+
+/* ---------------------------------------------------------------------
+   Auto top-up.
+
+   This used to live only on the API access page, which is the wrong place for
+   it twice over: it is a billing setting, and the people most likely to run dry
+   mid-run are the ones who never open that page. It sits in the Billing card now
+   and the low-credit bar in the app links straight to it.
+
+   ATU_PACKS MUST MATCH THE PAY-AS-YOU-GO PACKS. It did not, for a while — auto
+   top-up sold 5,000 credits for $19 against $200 for the same credits through
+   PAYG, and its top pack beat the Enterprise plan outright. The pack keys are
+   the same `payg_*` keys checkout uses, and tests/auto-topup-pricing.test.mjs
+   fails if this table, app.html's packs, or the charge worker's ever disagree.
+--------------------------------------------------------------------- */
+const ATU_SETTINGS_WORKER = 'https://auto-topup-settings.hamoureliasse.workers.dev/';
+const ATU_AUTHORIZE_WORKER = 'https://auto-topup-authorize.hamoureliasse.workers.dev/';
+
+const ATU_PACKS = [
+    { key: 'payg_small',  credits: 1000,  price: 25  },
+    { key: 'payg_medium', credits: 3500,  price: 75  },
+    { key: 'payg_large',  credits: 10000, price: 200 },
+];
+
+let atuSettings = { enabled: false, threshold: null, pack_key: null, dodo_subscription_id: null, status: 'disabled' };
+let atuSelectedPack = null;
+
+const atuPack = (key) => ATU_PACKS.find(p => p.key === key) || null;
+const atuNum = (n) => Number(n || 0).toLocaleString();
+
+function atuRenderPacks() {
+    document.getElementById('atuPacksGrid').innerHTML = ATU_PACKS.map(pk => `
+        <div class="atu-pack${pk.key === atuSelectedPack ? ' selected' : ''}" data-pack="${pk.key}" onclick="atuSelectPack('${pk.key}')">
+            <div class="atu-pack-credits">${atuNum(pk.credits)} credits</div>
+            <div class="atu-pack-price">$${pk.price}</div>
+        </div>`).join('');
+}
+
+function atuSelectPack(key) {
+    atuSelectedPack = key;
+    atuRenderPacks();
+    atuUpdateSummary();
+}
+
+/** The sentence that says exactly what will be charged, before it is. */
+function atuSummaryText(threshold, packKey) {
+    const pk = atuPack(packKey);
+    if (!threshold || !pk) return 'Pick a threshold and a pack to see what will happen.';
+    return `When you drop below ${atuNum(threshold)} credits, we charge your card `
+         + `$${pk.price} for ${atuNum(pk.credits)} credits. You get a receipt every time, `
+         + `and you can turn this off whenever you like.`;
+}
+
+function atuUpdateSummary() {
+    const threshold = parseInt(document.getElementById('atuThreshold').value, 10);
+    document.getElementById('atuSummary').textContent = atuSummaryText(threshold, atuSelectedPack);
+}
+
+/** The one-line state on the Billing row, which is all most people will read. */
+function atuRowText(settings) {
+    if (settings.status === 'card_failed') return 'Your last top-up was declined — update your card to switch it back on.';
+    if (settings.enabled && settings.dodo_subscription_id) {
+        const pk = atuPack(settings.pack_key);
+        return pk
+            ? `${atuNum(pk.credits)} credits for $${pk.price}, whenever you drop below ${atuNum(settings.threshold)}.`
+            : `Topping up whenever you drop below ${atuNum(settings.threshold)} credits.`;
+    }
+    if (settings.enabled) return 'Almost there — add a card to finish setting this up.';
+    return 'Buy credits automatically before you run out, so a run never stops half way.';
+}
+
+function atuPillFor(settings) {
+    if (settings.status === 'card_failed') return { cls: 'atu-pill-failed', text: 'Card declined' };
+    if (settings.enabled && settings.dodo_subscription_id) return { cls: 'atu-pill-on', text: 'On' };
+    if (settings.enabled) return { cls: 'atu-pill-pending', text: 'Needs a card' };
+    return { cls: 'atu-pill-off', text: 'Off' };
+}
+
+function atuRender() {
+    const pill = document.getElementById('atuPill');
+    const { cls, text } = atuPillFor(atuSettings);
+    pill.className = 'atu-pill ' + cls;
+    pill.textContent = text;
+    document.getElementById('atuRowStatus').textContent = atuRowText(atuSettings);
+
+    const on = atuSettings.enabled && atuSettings.dodo_subscription_id;
+    document.getElementById('atuToggleBtnLabel').textContent = on ? 'Manage' : 'Set up';
+    document.getElementById('atuDisableBtn').style.display = atuSettings.enabled ? '' : 'none';
+    document.getElementById('atuSaveBtn').innerHTML = atuSettings.enabled
+        ? '<i class="fas fa-check"></i> Save changes'
+        : '<i class="fas fa-check"></i> Turn on auto top-up';
+    document.getElementById('atuCardOnFile').style.display = atuSettings.dodo_subscription_id ? 'flex' : 'none';
+
+    if (atuSettings.threshold) document.getElementById('atuThreshold').value = atuSettings.threshold;
+    // A stored key we no longer sell (the old mis-priced packs) selects nothing,
+    // so the user picks again rather than silently keeping a dead pack.
+    atuSelectedPack = atuPack(atuSettings.pack_key) ? atuSettings.pack_key : null;
+    atuRenderPacks();
+    atuUpdateSummary();
+
+    if (atuSettings.status === 'card_failed') atuShow('atuErr', 'atuErrText',
+        'Your last auto top-up charge was declined. Update your card to switch it back on.');
+}
+
+function atuShow(boxId, textId, message) {
+    const box = document.getElementById(boxId);
+    if (textId && message) document.getElementById(textId).textContent = message;
+    box.classList.add('show');
+    if (boxId === 'atuOk') setTimeout(() => box.classList.remove('show'), 4000);
+}
+function atuClearMessages() {
+    document.getElementById('atuOk').classList.remove('show');
+    document.getElementById('atuErr').classList.remove('show');
+}
+
+function toggleAtuPanel() {
+    const panel = document.getElementById('atuPanel');
+    const opening = panel.style.display === 'none';
+    panel.style.display = opening ? 'block' : 'none';
+    if (opening) {
+        panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        try { posthog.capture('auto_topup_panel_opened', { enabled: !!atuSettings.enabled }); } catch (e) {}
+    }
+}
+
+async function atuCall(body) {
+    const r = await fetch(ATU_SETTINGS_WORKER, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: userToken, ...body }),
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || 'Request failed');
+    return d;
+}
+
+async function loadAutoTopup() {
+    if (!userToken) return;
+    try {
+        const d = await atuCall({ action: 'get' });
+        atuSettings = d.settings || atuSettings;
+    } catch (e) { /* the row stays on its default copy */ }
+    atuRender();
+}
+
+async function saveAutoTopup() {
+    atuClearMessages();
+    const threshold = parseInt(document.getElementById('atuThreshold').value, 10);
+    if (!threshold || threshold <= 0) return atuShow('atuErr', 'atuErrText', 'Enter how low your balance should get before we top it up.');
+    if (!atuSelectedPack) return atuShow('atuErr', 'atuErrText', 'Choose which pack to buy each time.');
+
+    const btn = document.getElementById('atuSaveBtn');
+    const original = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving…';
+    try {
+        const d = await atuCall({ action: 'save', enabled: true, threshold, pack_key: atuSelectedPack });
+        atuSettings = d.settings;
+        try { posthog.capture('auto_topup_saved', { threshold, pack_key: atuSelectedPack, page: 'account' }); } catch (e) {}
+        if (!atuSettings.dodo_subscription_id) {
+            await atuAuthorizeCard();   // navigates away to Dodo
+            return;
+        }
+        atuRender();
+        atuShow('atuOk', 'atuOkText', 'Auto top-up is on.');
+    } catch (e) {
+        atuShow('atuErr', 'atuErrText', 'Could not save that. Please try again.');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = original;
+    }
+}
+
+async function disableAutoTopup() {
+    atuClearMessages();
+    try {
+        const d = await atuCall({ action: 'save', enabled: false });
+        atuSettings = d.settings;
+        atuRender();
+        atuShow('atuOk', 'atuOkText', 'Auto top-up is off. Your card stays on file.');
+        try { posthog.capture('auto_topup_toggled', { enabled: false, page: 'account' }); } catch (e) {}
+    } catch (e) {
+        atuShow('atuErr', 'atuErrText', 'Could not turn it off. Please try again.');
+    }
+}
+
+async function atuAuthorizeCard() {
+    try {
+        const base = window.location.href.split('?')[0];
+        const r = await fetch(ATU_AUTHORIZE_WORKER, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: userToken, return_url: `${base}?token=${userToken}&atu_linked=1` }),
+        });
+        const d = await r.json();
+        if (!r.ok || !d.checkout_url) throw new Error(d.error || 'no checkout url');
+        window.location.href = d.checkout_url;
+    } catch (e) {
+        atuShow('atuErr', 'atuErrText', 'Could not open card setup. Please try again, or contact support.');
+    }
+}
+function atuChangeCard() { atuAuthorizeCard(); }
+
+window.toggleAtuPanel = toggleAtuPanel;
+window.atuSelectPack = atuSelectPack;
+window.saveAutoTopup = saveAutoTopup;
+window.disableAutoTopup = disableAutoTopup;
+window.atuChangeCard = atuChangeCard;
+
+document.addEventListener('input', (e) => { if (e.target && e.target.id === 'atuThreshold') atuUpdateSummary(); });
 
 /* ---------------------------------------------------------------------
    What you've found — the value summary under Billing.
