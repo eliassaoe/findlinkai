@@ -846,6 +846,7 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
 <div id="closedWithoutPurchaseBanner" class="low-credits-bar" style="display:none;"></div>
 <div id="milestoneUpgradeBanner" class="low-credits-bar" style="display:none;"></div>
 <div id="bulkNudgeBanner" class="low-credits-bar" style="display:none;"></div>
+<div id="dfyOfferBanner" class="low-credits-bar" style="display:none;"></div>
 <!-- "Your last CSV stopped part way — pick it up" — filled in on load by
      checkUnfinishedCsvBatch(). Deliberately louder than the nudge bars above:
      this is unfinished work the user already paid for. -->
@@ -4328,6 +4329,9 @@ async function processBulk(resuming) {
         maybeTriggerFirstSuccessPrompts();
         showBulkHubspotButtonIfApplicable();
     }
+    if (!creditsExhausted && csvResumeFrom + processedCount === csvData.length) {
+        maybeShowDfyOffer(csvData.length);
+    }
     // Last, and awaited: archiving the file can be a multi-megabyte upload, and
     // nothing on screen should wait behind it.
     await csvBatchFinalize(processedCount, creditsConsumed, creditsExhausted);
@@ -5988,6 +5992,44 @@ function bulkNudgeClicked() {
             setTimeout(function () { ua.style.boxShadow = ''; }, 2500);
         }
     } catch (e) {}
+}
+
+// A bulk job this size is not someone testing the tool - it's a real target
+// list, run by hand. That is the exact moment "we'll build and run the whole
+// pipeline for you" lands as useful rather than as an upsell: they already
+// did the work once and now know what it costs in time. Fires once ever, and
+// only off a completed (non-gated) run, so it never competes with the
+// out-of-credits path - someone who just hit a paywall needs credits, not a
+// pitch for a bigger commitment.
+const DFY_OFFER_MIN_ROWS = 200;
+
+function maybeShowDfyOffer(totalRows) {
+    try {
+        if (totalRows < DFY_OFFER_MIN_ROWS) return;
+        if (localStorage.getItem('lf_dfy_offer_shown')) return;
+        const bar = document.getElementById('dfyOfferBanner');
+        if (!bar) return;
+        localStorage.setItem('lf_dfy_offer_shown', '1');
+        bar.innerHTML = `You just ran a list of ${totalRows.toLocaleString()}. `
+            + 'We can build and run this whole pipeline for you &mdash; list, verified contacts, copy, sending. '
+            + '<a onclick="dfyOfferClicked(' + totalRows + ')">See how it works &rarr;</a>'
+            + ' <a onclick="dfyOfferDismissed()" style="margin-left:0.75rem;color:inherit;">Dismiss</a>';
+        bar.style.display = 'block';
+        try { posthog.capture('dfy_offer_shown', { row_count: totalRows }); } catch (e) {}
+    } catch (e) {}
+}
+
+function dfyOfferClicked(totalRows) {
+    try { posthog.capture('dfy_offer_clicked', { row_count: totalRows }); } catch (e) {}
+    const bar = document.getElementById('dfyOfferBanner');
+    if (bar) bar.style.display = 'none';
+    window.open('https://linkfinderai.com/done-for-you-outbound?utm_source=app&utm_medium=in_app_banner&utm_campaign=dfy_outbound', '_blank', 'noopener');
+}
+
+function dfyOfferDismissed() {
+    try { posthog.capture('dfy_offer_dismissed'); } catch (e) {}
+    const bar = document.getElementById('dfyOfferBanner');
+    if (bar) bar.style.display = 'none';
 }
 
 function checkEnrichmentMilestone() {

@@ -1041,6 +1041,75 @@
       ],
       "_live": "Workflow \"7. Bulk upload - the conversion engine\". Created and enabled 22 Aug 2026. Trigger signup_success gated on signup_method google, 24h delay, conversion goal csv_uploaded with exit_on_conversion so anyone who already uploaded exits before it composes. Masked once per person."
     },
+    "dfy_outbound": {
+      "workflow_id": null,
+      "action_id": "email_dfy",
+      "audience": "Ran a bulk CSV job of 200+ rows in a single run — a real target list, not a test. Not built yet: needs a human in the PostHog console, same as campaign 9. Trigger csv_uploaded gated on event.properties.row_count >= 200 if that property is reliably present, otherwise a behavioural cohort on completed bulk runs of that size.",
+      "goal_event": "sample_list_requested",
+      "note": "Mirrors the in-app offer banner added alongside this (app.html: maybeShowDfyOffer / #dfyOfferBanner, fired from processBulk on any completed, non-gated run of DFY_OFFER_MIN_ROWS=200+ rows) — same trigger, same destination (linkfinderai.com/done-for-you-outbound), same utm_campaign=dfy_outbound so the two channels stay attributable separately even though they share an audience. This is the done-for-you high-ticket offer, a different product from the 1,000-credits-for-a-call offer in the pricing_call step — do not conflate the two or send both to the same trigger. Ramp per DELIVERABILITY.md before sending broadly: start with the ~100 most recently active qualifying users, watch $workflows_email_bounced, before opening it to everyone who has ever hit the threshold.",
+      "variants": [
+        {
+          "id": "dfy-proof",
+          "angle": "specific",
+          "status": "champion",
+          "hypothesis": "They just proved the pain point to themselves — a big list, run by hand, one row at a time. Name it back to them with the real number rather than pitching the concept cold.",
+          "subject": "you just ran a real list — want us to run the next one?",
+          "preheader": "Same engine, we do the finding, verifying, writing and sending.",
+          "body": [
+            "Hi &mdash; Eliasse here, I built LinkFinder.",
+            "You just ran a list through the app large enough that this clearly isn&rsquo;t a one-off test. That&rsquo;s usually the point people start wondering if there&rsquo;s a way to not do this by hand every time.",
+            "There is. We install the whole system on LinkFinder AI for you &mdash; the list, the verified contacts, dedicated sending domains, the copy, the sending &mdash; and put replies in your inbox. Same data you just used, none of the manual work.",
+            "It&rsquo;s a different offer from the plans: this is done for you, not a bigger credit pack."
+          ],
+          "cta": "See how it works",
+          "url": "https://linkfinderai.com/done-for-you-outbound?utm_source=lifecycle_email&utm_medium=email&utm_campaign=dfy_outbound",
+          "after": [
+            "There&rsquo;s a free 50-contact sample list on that page if you want to see the data before talking to anyone.",
+            "&mdash; Eliasse"
+          ],
+          "reason": "you have an account at linkfinderai.com"
+        },
+        {
+          "id": "dfy-question",
+          "angle": "question",
+          "status": "queued",
+          "hypothesis": "Ask what the list was for. The answer tells us whether the customers, listicle, or backlink angle fits, and a reply is a warmer lead than a click.",
+          "subject": "what was that list for?",
+          "preheader": "Depending on the answer, there may be a faster way to do it.",
+          "body": [
+            "You ran a large list through LinkFinder this week. I&rsquo;m curious what it was for &mdash; outbound to buyers, backlinks, getting listed somewhere, something else.",
+            "Whichever it is, we run a version of this as a done-for-you service on the same engine: we find the list, verify it, write the first message, and send it, and you just handle the replies.",
+            "Tell me which one and I&rsquo;ll tell you honestly whether it&rsquo;s worth it for your case."
+          ],
+          "cta": "See the offer",
+          "url": "https://linkfinderai.com/done-for-you-outbound?utm_source=lifecycle_email&utm_medium=email&utm_campaign=dfy_outbound",
+          "after": [
+            "&mdash; Eliasse"
+          ],
+          "reason": "you have an account at linkfinderai.com"
+        },
+        {
+          "id": "dfy-peer",
+          "angle": "peer",
+          "status": "queued",
+          "hypothesis": "Frame it as what serious users eventually run into, rather than an upsell aimed at them specifically.",
+          "subject": "the people who outgrow the manual version",
+          "preheader": "Same tool, we run it instead of you.",
+          "body": [
+            "The people who run the biggest lists through LinkFinder tend to hit the same wall eventually: the finding and verifying is solved, but writing and sending hundreds of messages a week, watching deliverability, and keeping the list fresh is still a full-time job.",
+            "That&rsquo;s the part we now do for people, on the same engine you already used. Domains, warmup, the prospecting, the copy, the sending &mdash; installed, not rented, and it stays yours if we ever part ways.",
+            "It&rsquo;s a different offer from a bigger plan &mdash; the whole job, not more credits."
+          ],
+          "cta": "See how it works",
+          "url": "https://linkfinderai.com/done-for-you-outbound?utm_source=lifecycle_email&utm_medium=email&utm_campaign=dfy_outbound",
+          "after": [
+            "Free 50-contact sample list on that page if you want to see the data first, no call needed.",
+            "&mdash; Eliasse"
+          ],
+          "reason": "you have an account at linkfinderai.com"
+        }
+      ]
+    },
     "crm_audit": {
       "workflow_id": "01a02b7b-bb8b-0000-2f15-2b586cfd7573",
       "action_id": "email_crm_audit",

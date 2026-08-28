@@ -171,6 +171,33 @@ goes in, both emails need rewriting before they send.
 
 ## STILL TO BUILD
 
+- **10. Done-for-you outbound — ran a real list, offer to run the next one.**
+  Trigger `csv_uploaded` gated on `event.properties.row_count >= 200` (or a
+  behavioural cohort on completed bulk runs of that size, if row_count is not
+  reliably on the event) — needs a human in the PostHog console, same as
+  campaign 9. Copy is written and in `variants.json` as `dfy_outbound`, three
+  variants, `workflow_id: null` until built.
+
+  This mirrors the in-app banner shipped alongside it: `app.html` now calls
+  `maybeShowDfyOffer(csvData.length)` at the end of `processBulk()`, on any
+  completed (non-gated) run of 200+ rows, once ever per browser
+  (`lf_dfy_offer_shown`). Both point at
+  `linkfinderai.com/done-for-you-outbound` with `utm_campaign=dfy_outbound`,
+  the banner via `utm_medium=in_app_banner`, the email via
+  `utm_medium=email`, so the two channels stay attributable separately even
+  though they share an audience and a trigger.
+
+  **This is a different offer from campaign 5.** Campaign 5 (`pricing_call`)
+  is 1,000 free credits for a 15-minute interview call — a research offer,
+  cheap, aimed at anyone who saw pricing and did not buy. This is the
+  done-for-you high-ticket service — someone else runs the whole outbound
+  pipeline for them. Same person could plausibly qualify for both; do not
+  merge the triggers or point them at the same email.
+
+  Ramp per `DELIVERABILITY.md` before sending broadly, same as every other
+  first send on this domain: ~100 most recently active qualifying users
+  first, watch `$workflows_email_bounced`, then widen.
+
 - **7. Power user — 3+ enrichments, never upgraded.** Needs a behavioural cohort as
   a trigger filter, because `three_enrichments_milestone` is misnamed: it fires at
   TEN enrichments, not three (`app.html:4211`). 51 people hit it in 90 days.
