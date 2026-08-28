@@ -91,6 +91,29 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
 .value-empty a{color:var(--primary);font-weight:600;text-decoration:none;}
 .value-note{font-size:.72rem;color:var(--gray-400);margin-top:.85rem;}
 
+/* Share — the card someone posts. The button sits with the range toggle
+   because what you share is whichever range you are looking at. */
+.value-head-actions{display:flex;align-items:center;gap:.5rem;flex-shrink:0;}
+.value-share-btn{display:inline-flex;align-items:center;gap:.4rem;background:white;color:var(--gray-700);border:1px solid var(--gray-300);padding:.45rem .8rem;border-radius:7px;font:inherit;font-size:.78rem;font-weight:600;cursor:pointer;white-space:nowrap;transition:all .2s;}
+.value-share-btn:hover{border-color:var(--primary);color:var(--primary);background:var(--gray-50);}
+.share-modal{background:white;border-radius:14px;padding:1.5rem;max-width:560px;width:100%;position:relative;transform:scale(.95);transition:transform .3s ease;box-shadow:0 20px 25px -5px rgba(0,0,0,.12),0 10px 10px -5px rgba(0,0,0,.04);max-height:calc(100vh - 2rem);overflow-y:auto;}
+.modal-overlay.show .share-modal{transform:scale(1);}
+.share-modal h2{font-size:1.15rem;font-weight:700;color:var(--gray-900);}
+.share-modal-sub{font-size:.8rem;color:var(--gray-500);margin:.25rem 0 1rem;}
+/* The preview IS the file — same canvas, drawn once and shown scaled down. */
+.share-preview{width:100%;aspect-ratio:16/9;border-radius:10px;border:1px solid var(--gray-200);background:var(--gray-100);display:block;}
+.share-actions{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:.5rem;margin-top:1rem;}
+.share-btn{display:inline-flex;align-items:center;justify-content:center;gap:.45rem;padding:.6rem .5rem;border-radius:8px;border:1px solid var(--gray-300);background:white;color:var(--gray-700);font:inherit;font-size:.8rem;font-weight:600;cursor:pointer;transition:all .2s;}
+.share-btn:hover{border-color:var(--primary);color:var(--primary);background:var(--gray-50);}
+.share-btn-primary{background:var(--primary);border-color:var(--primary);color:white;}
+.share-btn-primary:hover{background:var(--primary-hover);border-color:var(--primary-hover);color:white;}
+.share-link-row{display:flex;align-items:center;gap:.5rem;margin-top:1rem;background:var(--gray-50);border:1px solid var(--gray-200);border-radius:8px;padding:.5rem .5rem .5rem .75rem;}
+.share-link-row input{flex:1;border:none;background:transparent;font:inherit;font-size:.78rem;color:var(--gray-700);min-width:0;outline:none;}
+.share-link-copy{border:none;background:var(--gray-200);color:var(--gray-700);border-radius:6px;padding:.4rem .6rem;font:inherit;font-size:.75rem;font-weight:600;cursor:pointer;white-space:nowrap;}
+.share-link-copy:hover{background:var(--gray-300);}
+.share-foot{font-size:.72rem;color:var(--gray-400);margin-top:.75rem;line-height:1.5;}
+.share-foot strong{color:var(--gray-600);font-weight:600;}
+
 .billing-section{margin-bottom:2rem;}
 .billing-card{background:white;border:1px solid var(--gray-200);border-radius:8px;padding:1.25rem;}
 .billing-row{display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;padding:.75rem 0;border-bottom:1px solid var(--gray-100);}
@@ -340,9 +363,14 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
             <div class="value-hero-sub" id="valueHeroSub">contacts and companies found</div>
             <div class="value-hero-meta" id="valueHeroMeta"></div>
           </div>
-          <div class="value-range" role="group" aria-label="Time range">
-            <button id="valueRange30" class="active" onclick="setValueRange('last_30')">Last 30 days</button>
-            <button id="valueRangeAll" onclick="setValueRange('all_time')">All time</button>
+          <div class="value-head-actions">
+            <div class="value-range" role="group" aria-label="Time range">
+              <button id="valueRange30" class="active" onclick="setValueRange('last_30')">Last 30 days</button>
+              <button id="valueRangeAll" onclick="setValueRange('all_time')">All time</button>
+            </div>
+            <button class="value-share-btn" id="valueShareBtn" onclick="openValueShare()">
+              <i class="fas fa-share-nodes"></i> Share
+            </button>
           </div>
         </div>
         <div class="value-grid" id="valueGrid"></div>
@@ -351,6 +379,40 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
     </div>
 
 
+  </div>
+</div>
+
+<!-- Share Modal -->
+<div id="shareModal" class="modal-overlay">
+  <div class="share-modal">
+    <button class="modal-close" onclick="closeValueShare()"><i class="fas fa-times"></i></button>
+    <h2>Share what you've found</h2>
+    <p class="share-modal-sub" id="shareModalSub">A card with your totals, ready to post.</p>
+
+    <canvas class="share-preview" id="shareCanvas" width="1200" height="675"
+            role="img" aria-label="Your LinkFinder AI results card"></canvas>
+
+    <div class="share-actions">
+      <button class="share-btn share-btn-primary" id="shareCopyImage" onclick="copyShareImage()">
+        <i class="fas fa-copy"></i> <span>Copy image</span>
+      </button>
+      <button class="share-btn" onclick="downloadShareCard()"><i class="fas fa-download"></i> Download</button>
+      <button class="share-btn" onclick="shareTo('linkedin')"><i class="fab fa-linkedin-in"></i> LinkedIn</button>
+      <button class="share-btn" onclick="shareTo('x')">
+        <!-- Inlined: fa-x-twitter needs Font Awesome 6.4.2 and the site is on 6.4.0. -->
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+        X
+      </button>
+      <button class="share-btn" onclick="shareTo('slack')"><i class="fab fa-slack"></i> Slack</button>
+      <button class="share-btn" onclick="shareTo('email')"><i class="fas fa-envelope"></i> Email</button>
+    </div>
+
+    <div class="share-link-row">
+      <input id="shareLinkInput" readonly aria-label="Your share link">
+      <button class="share-link-copy" id="shareLinkCopy" onclick="copyShareLink()">Copy</button>
+    </div>
+
+    <p class="share-foot" id="shareFoot"></p>
   </div>
 </div>
 
@@ -1876,16 +1938,20 @@ const VALUE_SUPABASE_ANON_KEY = 'sb_publishable_RKidGRs4ch1ixmRfXoYSww_UsQMSe5w'
 
 // Fixed order, so the row does not reshuffle as the numbers move. A category
 // with nothing in it is left out rather than shown as a zero.
+// `dot` is the share card's colour for the same category: the page's `fg` steps
+// are chosen against white and disappear on the card's dark ground. Identity is
+// carried by the label beside it in both places — the colour is decoration, which
+// is why these are not held to a categorical palette's separation rules.
 const VALUE_TILES = [
-    { key: 'emails',        label: 'Email addresses',  icon: 'fas fa-envelope',      bg: '#d1fae5', fg: '#065f46' },
-    { key: 'phones',        label: 'Phone numbers',    icon: 'fas fa-phone',         bg: '#ede9fe', fg: '#5b21b6' },
-    { key: 'profiles',      label: 'LinkedIn profiles',icon: 'fab fa-linkedin-in',   bg: '#e8f0fe', fg: '#1d4ed8' },
-    { key: 'profiles_full', label: 'Profiles enriched',icon: 'fas fa-id-badge',      bg: '#e8f0fe', fg: '#1d4ed8' },
-    { key: 'websites',      label: 'Websites',         icon: 'fas fa-globe',         bg: '#fef3c7', fg: '#92400e' },
-    { key: 'companies',     label: 'Companies',        icon: 'fas fa-building',      bg: '#fef3c7', fg: '#92400e' },
+    { key: 'emails',        label: 'Email addresses',  icon: 'fas fa-envelope',      bg: '#d1fae5', fg: '#065f46', dot: '#34d399' },
+    { key: 'phones',        label: 'Phone numbers',    icon: 'fas fa-phone',         bg: '#ede9fe', fg: '#5b21b6', dot: '#c084fc' },
+    { key: 'profiles',      label: 'LinkedIn profiles',icon: 'fab fa-linkedin-in',   bg: '#e8f0fe', fg: '#1d4ed8', dot: '#60a5fa' },
+    { key: 'profiles_full', label: 'Profiles enriched',icon: 'fas fa-id-badge',      bg: '#e8f0fe', fg: '#1d4ed8', dot: '#22d3ee' },
+    { key: 'websites',      label: 'Websites',         icon: 'fas fa-globe',         bg: '#fef3c7', fg: '#92400e', dot: '#fbbf24' },
+    { key: 'companies',     label: 'Companies',        icon: 'fas fa-building',      bg: '#fef3c7', fg: '#92400e', dot: '#fb923c' },
     // "Employees" rather than "People at companies": these came from employee
     // lists, and the longer label wrapped and left the row ragged.
-    { key: 'people',        label: 'Employees',        icon: 'fas fa-users',         bg: '#fee2e2', fg: '#991b1b' },
+    { key: 'people',        label: 'Employees',        icon: 'fas fa-users',         bg: '#fee2e2', fg: '#991b1b', dot: '#f87171' },
 ];
 
 let valueSummary = null;
@@ -1963,6 +2029,327 @@ async function loadValueSummary() {
     } catch (e) { /* the section simply stays hidden */ }
 }
 window.setValueRange = setValueRange;
+
+/* ---------------------------------------------------------------------
+   Sharing the summary.
+
+   A user posting "2,234 contacts found" is worth more than an ad, but only if
+   the post says where the number came from. Feeds strip links out of images and
+   crop captions, so the branding is burned into the picture — logo, wordmark and
+   linkfinderai.com — and the link rides in the post text, where it is clickable.
+
+   The link is their own referral link when the referral worker knows their code
+   (25% lifetime commission), which gives them a reason to post and gives us
+   attribution that already has a payout attached. It falls back to the plain
+   site with UTMs, so the button never breaks on a missing code.
+
+   Nothing but the totals leaves the page — no names, no emails, no company list.
+--------------------------------------------------------------------- */
+const SHARE_SITE = 'https://linkfinderai.com/';
+const SHARE_REFERRAL_WORKER = 'https://referral-program.hamoureliasse.workers.dev/';
+const SHARE_COMMISSION = '25%';
+
+let valueReferralCode = null;   // null = not looked up yet, '' = no code
+let shareCardBlob = null;
+
+/** The site link, carrying their referral code when we have one. */
+function valueShareLink(network, code) {
+    const q = new URLSearchParams();
+    if (code) q.set('ref', code);
+    q.set('utm_source', network);
+    q.set('utm_medium', 'share');
+    q.set('utm_campaign', 'value_card');
+    return SHARE_SITE + '?' + q.toString();
+}
+
+/** What the card shows — the same numbers the page is showing, nothing more. */
+function valueCardModel(summary, range) {
+    const counts = (summary && summary[range]) || {};
+    const tiles = VALUE_TILES
+        .filter(t => Number(counts[t.key] || 0) > 0)
+        .map(t => ({ label: t.label, value: Number(counts[t.key]), dot: t.dot }));
+    const total = tiles.reduce((s, t) => s + t.value, 0);
+    return {
+        range,
+        total,
+        hero: valueNum(total),
+        rangeLabel: range === 'last_30' ? 'Last 30 days' : 'All time',
+        // Eight slots for seven categories, so nothing is ever dropped: a card
+        // whose tiles do not add up to its own hero invites the reader to
+        // wonder what was left out.
+        tiles: tiles.slice(0, CARD_TILE_SLOTS),
+    };
+}
+
+/** The words that go with the card. Editable in every composer this opens. */
+function valueShareText(network, model, link) {
+    const when = model.range === 'last_30' ? 'in the last 30 days' : 'since I started';
+    const head = `${model.hero} contacts and companies found ${when} with LinkFinder AI.`;
+    const what = 'Emails, phone numbers and LinkedIn profiles from a name, a domain or a CSV.';
+    const subject = `${model.hero} contacts and companies, found with LinkFinder AI`;
+    if (network === 'email') {
+        return { subject, text: `${head}\n\n${what}\n\nHave a look: ${link}` };
+    }
+    if (network === 'slack') {
+        return { subject, text: `${head} ${what}\n${link}` };
+    }
+    return { subject, text: `${head}\n\n${what}\n\n${link}` };
+}
+
+// --- the card itself -------------------------------------------------------
+
+const CARD_W = 1200, CARD_H = 675, CARD_SCALE = 2;
+const CARD_TILE_COLS = 4, CARD_TILE_SLOTS = 8;
+
+/** The logo, drawn rather than loaded: a font icon does not render to canvas. */
+function drawShareLogo(c, x, y, size) {
+    c.fillStyle = '#2563eb';
+    // roundRect is missing on Safari before 16.4; a square mark beats a card
+    // that throws on the way to being drawn.
+    if (c.roundRect) {
+        c.beginPath();
+        c.roundRect(x, y, size, size, size * 0.19);
+        c.fill();
+    } else {
+        c.fillRect(x, y, size, size);
+    }
+    // The magnifier: a ring and a handle, matching the header mark.
+    const cx = x + size * 0.44, cy = y + size * 0.43, rad = size * 0.19;
+    c.strokeStyle = '#ffffff';
+    c.lineWidth = size * 0.09;
+    c.lineCap = 'round';
+    c.beginPath();
+    c.arc(cx, cy, rad, 0, Math.PI * 2);
+    c.stroke();
+    c.beginPath();
+    c.moveTo(cx + rad * 0.72, cy + rad * 0.72);
+    c.lineTo(x + size * 0.76, y + size * 0.75);
+    c.stroke();
+}
+
+function drawValueCard(model) {
+    const canvas = document.getElementById('shareCanvas');
+    if (!canvas) return;
+    canvas.width = CARD_W * CARD_SCALE;
+    canvas.height = CARD_H * CARD_SCALE;
+    const c = canvas.getContext('2d');
+    c.setTransform(CARD_SCALE, 0, 0, CARD_SCALE, 0, 0);
+
+    const F = (w, s) => `${w} ${s}px Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
+
+    // Dark ground: this lands in a white feed, and it should not look like a
+    // screenshot of a settings page.
+    c.fillStyle = '#0b1220';
+    c.fillRect(0, 0, CARD_W, CARD_H);
+    const glow = c.createRadialGradient(CARD_W - 120, -80, 0, CARD_W - 120, -80, 620);
+    glow.addColorStop(0, 'rgba(37,99,235,.38)');
+    glow.addColorStop(1, 'rgba(37,99,235,0)');
+    c.fillStyle = glow;
+    c.fillRect(0, 0, CARD_W, CARD_H);
+
+    // Header: mark, wordmark, and the range this is for.
+    drawShareLogo(c, 64, 56, 46);
+    c.fillStyle = '#ffffff';
+    c.font = F(600, 28);
+    c.textBaseline = 'middle';
+    c.fillText('LinkFinder AI', 124, 80);
+
+    c.font = F(500, 18);
+    c.textAlign = 'right';
+    c.fillStyle = '#94a3b8';
+    c.fillText(model.rangeLabel, CARD_W - 64, 80);
+    c.textAlign = 'left';
+
+    // The one big number.
+    c.fillStyle = '#ffffff';
+    c.font = F(700, 122);
+    c.textBaseline = 'alphabetic';
+    c.fillText(model.hero, 64, 258);
+    c.fillStyle = '#94a3b8';
+    c.font = F(500, 25);
+    c.fillText('contacts and companies found', 64, 300);
+
+    // The breakdown. Four across, two down; a short list stays on one row.
+    const tiles = model.tiles;
+    const cols = Math.min(CARD_TILE_COLS, Math.max(1, tiles.length));
+    const rows = Math.ceil(tiles.length / cols) || 1;
+    // A single row is centred in the band the two rows would have used, so a
+    // sparse card reads as composed rather than as one with a piece missing.
+    const gridX = 64, colW = (CARD_W - 128) / CARD_TILE_COLS, rowH = 100;
+    const gridY = 376 + (2 - Math.min(2, rows)) * rowH / 2;
+    tiles.forEach((t, i) => {
+        const x = gridX + (i % cols) * colW;
+        const y = gridY + Math.floor(i / cols) * rowH;
+        c.fillStyle = t.dot;
+        c.beginPath();
+        c.arc(x + 5, y - 6, 5, 0, Math.PI * 2);
+        c.fill();
+        c.fillStyle = '#94a3b8';
+        c.font = F(500, 17);
+        c.fillText(t.label, x + 20, y);
+        // Values wear the text colour, never the dot's — the dot carries identity.
+        c.fillStyle = '#ffffff';
+        c.font = F(600, 36);
+        c.fillText(valueNum(t.value), x, y + 40);
+    });
+
+    // Footer: the address, large enough to read at feed size.
+    c.strokeStyle = 'rgba(148,163,184,.22)';
+    c.lineWidth = 1;
+    c.beginPath();
+    c.moveTo(64, CARD_H - 92);
+    c.lineTo(CARD_W - 64, CARD_H - 92);
+    c.stroke();
+
+    c.fillStyle = '#ffffff';
+    c.font = F(600, 26);
+    c.fillText('linkfinderai.com', 64, CARD_H - 46);
+    c.textAlign = 'right';
+    c.fillStyle = '#94a3b8';
+    c.font = F(500, 19);
+    c.fillText('Find anyone’s email, phone and LinkedIn', CARD_W - 64, CARD_H - 46);
+    c.textAlign = 'left';
+}
+
+function shareCardFilename(model) {
+    return `linkfinder-ai-${model.range === 'last_30' ? 'last-30-days' : 'all-time'}.png`;
+}
+
+async function renderShareCard() {
+    const model = valueCardModel(valueSummary, valueRange);
+    // Inter has to be loaded or the card is drawn in a fallback face.
+    try { if (document.fonts && document.fonts.ready) await document.fonts.ready; } catch (e) {}
+    drawValueCard(model);
+    shareCardBlob = await new Promise(res => document.getElementById('shareCanvas').toBlob(res, 'image/png'));
+    return model;
+}
+
+// --- opening, and the buttons ---------------------------------------------
+
+async function loadReferralCode() {
+    if (valueReferralCode !== null || !userToken) return;
+    valueReferralCode = '';   // one attempt; a miss must not block the modal
+    try {
+        const r = await fetch(SHARE_REFERRAL_WORKER, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-API-Secret': window.LF_API_KEY },
+            body: JSON.stringify({ token: userToken }),
+        });
+        if (!r.ok) return;
+        const d = await r.json();
+        if (d && d.referralCode) valueReferralCode = d.referralCode;
+    } catch (e) { /* the plain branded link still works */ }
+}
+
+function shareFootText(code) {
+    const privacy = 'Only these totals are on the card — no names, no emails, no company list.';
+    return code
+        ? `Your referral link goes into the post text, so you earn <strong>${SHARE_COMMISSION} lifetime commission</strong> on anyone who signs up through it. ${privacy}`
+        : privacy;
+}
+
+async function openValueShare() {
+    if (!valueSummary) return;
+    const modal = document.getElementById('shareModal');
+    modal.classList.add('show');
+    document.getElementById('shareModalSub').textContent =
+        valueRange === 'last_30' ? 'Your last 30 days, ready to post.' : 'Your totals since day one, ready to post.';
+    // The link and the commission note matter even if the drawing fails, so a
+    // broken canvas must not take the rest of the modal down with it.
+    let model = valueCardModel(valueSummary, valueRange);
+    try { model = await renderShareCard(); } catch (e) {}
+    await loadReferralCode();
+    document.getElementById('shareLinkInput').value = valueShareLink('copy', valueReferralCode);
+    document.getElementById('shareFoot').innerHTML = shareFootText(valueReferralCode);
+    try { posthog.capture('value_share_opened', { range: valueRange, total: model.total, referral: !!valueReferralCode }); } catch (e) {}
+}
+
+function closeValueShare() {
+    document.getElementById('shareModal').classList.remove('show');
+}
+
+function flashButton(el, label) {
+    if (!el) return;
+    const span = el.querySelector('span') || el;
+    const was = span.textContent;
+    span.textContent = label;
+    setTimeout(() => { span.textContent = was; }, 1800);
+}
+
+/** Copy the picture itself: no feed accepts an image by URL, they accept a paste. */
+async function copyShareImage() {
+    const btn = document.getElementById('shareCopyImage');
+    try {
+        if (!shareCardBlob) await renderShareCard();
+        await navigator.clipboard.write([new ClipboardItem({ 'image/png': shareCardBlob })]);
+        flashButton(btn, 'Copied');
+        try { posthog.capture('value_share_action', { action: 'copy_image', range: valueRange }); } catch (e) {}
+    } catch (e) {
+        // Firefox and older Safari cannot write images to the clipboard at all.
+        downloadShareCard();
+        flashButton(btn, 'Downloaded');
+    }
+}
+
+function downloadShareCard() {
+    if (!shareCardBlob) return;
+    const model = valueCardModel(valueSummary, valueRange);
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(shareCardBlob);
+    a.download = shareCardFilename(model);
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    try { posthog.capture('value_share_action', { action: 'download', range: valueRange }); } catch (e) {}
+}
+
+function copyShareLink() {
+    const input = document.getElementById('shareLinkInput');
+    try { navigator.clipboard.writeText(input.value); } catch (e) { input.select(); }
+    const btn = document.getElementById('shareLinkCopy');
+    if (btn) { btn.textContent = 'Copied'; setTimeout(() => { btn.textContent = 'Copy'; }, 1800); }
+    try { posthog.capture('value_share_action', { action: 'copy_link', range: valueRange }); } catch (e) {}
+}
+
+/** Where each composer opens, and what it opens with. */
+function shareIntentUrl(network, subject, text, link) {
+    const e = encodeURIComponent;
+    if (network === 'x')        return `https://twitter.com/intent/tweet?text=${e(text)}`;
+    // share-offsite posts a bare URL; the feed composer keeps the caption.
+    if (network === 'linkedin') return `https://www.linkedin.com/feed/?shareActive=true&text=${e(text)}`;
+    if (network === 'email')    return `mailto:?subject=${e(subject)}&body=${e(text)}`;
+    return null;   // Slack has no web composer — the text goes to the clipboard
+}
+
+async function shareTo(network) {
+    const model = valueCardModel(valueSummary, valueRange);
+    const link = valueShareLink(network, valueReferralCode);
+    const { subject, text } = valueShareText(network, model, link);
+
+    // The caption carries the link; the picture has to be pasted in, so put it
+    // on the clipboard before the composer steals the tab.
+    if (network !== 'email') {
+        try {
+            if (!shareCardBlob) await renderShareCard();
+            await navigator.clipboard.write([new ClipboardItem({ 'image/png': shareCardBlob })]);
+        } catch (e) { /* they can still use Download */ }
+    }
+
+    const url = shareIntentUrl(network, subject, text, link);
+    if (url) {
+        window.open(url, network === 'email' ? '_self' : '_blank', 'noopener');
+    } else {
+        try { await navigator.clipboard.writeText(text); } catch (e) {}
+        alert('Post copied — paste it into Slack, then paste the image underneath it.');
+    }
+    try { posthog.capture('value_share_action', { action: network, range: valueRange, total: model.total, referral: !!valueReferralCode }); } catch (e) {}
+}
+
+window.openValueShare = openValueShare;
+window.closeValueShare = closeValueShare;
+window.copyShareImage = copyShareImage;
+window.downloadShareCard = downloadShareCard;
+window.copyShareLink = copyShareLink;
+window.shareTo = shareTo;
 </script>
 
 <script src="/js/support-widget.js" defer></script>

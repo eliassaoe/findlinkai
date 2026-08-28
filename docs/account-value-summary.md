@@ -115,6 +115,52 @@ grant execute on function public.user_value_summary(text) to anon, authenticated
 Live on project `snxhsboboatjywgwdeds`. Checked against the owner's own account:
 5,319 lookups, 4,983 found.
 
+## Sharing it
+
+The **Share** button next to the range toggle opens a card built for a feed —
+their hero number, all seven tiles, and the branding painted into the picture.
+
+The branding has to be *in the image*. A feed crops captions and strips links
+out of pictures, so a card without the wordmark and `linkfinderai.com` on it is
+an anonymous number that markets nothing. The card is drawn on a `<canvas>` at
+1200×675 (rendered at 2×), which is why the logo mark is drawn with paths: a
+Font Awesome glyph does not render to canvas.
+
+The **link goes in the post text**, where it is clickable, and it is their own
+referral link (`?ref=CODE`, from the existing referral worker — 25% lifetime
+commission) whenever that worker knows their code. That is what makes posting
+worth their while, and it means every signup this produces already has a payout
+attached and shows up in a system we have. Without a code it falls back to the
+plain site with UTMs, so the button never breaks. Every link carries
+`utm_source=<network>&utm_medium=share&utm_campaign=value_card`, so it is
+possible to find out whether any of this actually works.
+
+| Button | What happens |
+| --- | --- |
+| Copy image | PNG to the clipboard — the only way to get a picture into LinkedIn, X or Slack. Falls back to a download where `ClipboardItem` is missing (Firefox). |
+| Download | The PNG, named for the range. |
+| LinkedIn | `linkedin.com/feed/?shareActive=true&text=…` — the feed composer keeps the caption, unlike `share-offsite`, which posts a bare URL. |
+| X | `twitter.com/intent/tweet` with the caption. A test pins the worst case under 280 characters. |
+| Slack | No web composer exists; the caption goes to the clipboard with a note to paste the image under it. |
+| Email | `mailto:` with a subject and body. |
+
+The image is copied to the clipboard *before* the composer opens, because the
+composer takes the tab.
+
+Two things this must never do, both pinned by `tests/value-share.test.mjs`:
+
+- **Paint anything but totals.** The card is built from a summary that lives
+  beside real contact data, and a user broadcasts this. One test collects every
+  string the card paints and fails on anything that is not a known label, a
+  number, or the branding.
+- **Promise a commission to someone with no code.** The footnote only mentions
+  25% when a code came back, and it says the referral link is in the post text —
+  not on the card, which carries the bare domain. Both are on screen together,
+  so a wrong claim there is visible instantly.
+
+The X mark is an inlined SVG: `fa-x-twitter` needs Font Awesome 6.4.2 and all
+213 pages here load 6.4.0.
+
 ## Two things to know before changing it
 
 **`other` is deliberately not rendered, and the hero does not include it.** The
