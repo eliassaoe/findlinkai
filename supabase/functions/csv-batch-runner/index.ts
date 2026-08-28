@@ -51,7 +51,7 @@ const ROW_CONCURRENCY = Number(Deno.env.get('CSV_ROW_CONCURRENCY') ?? 8);
 const CREDIT_COSTS: Record<string, number> = {
     company_name_to_website: 1, company_name_to_phone: 1, company_name_to_linkedin_url: 1,
     email_to_linkedin_url: 5, company_name_to_employees: 1, company_name_to_employee_count: 1,
-    company_name_to_email: 1, linkedin_company_to_linkedin_info: 6, linkedin_company_to_employees: 1,
+    company_name_to_email: 5, linkedin_company_to_linkedin_info: 6, linkedin_company_to_employees: 1,
     linkedin_company_to_employee_count: 1, linkedin_profile_to_linkedin_info: 10,
     lead_full_name_to_linkedin_url: 1, linkedin_profile_to_email: 10, company_domain_to_employees: 1,
     linkedin_post_to_reactions: 1, linkedin_profile_to_phone: 50, lead_full_name_to_email: 7,

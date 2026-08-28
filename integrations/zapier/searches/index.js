@@ -8,7 +8,6 @@ const findEmailFromName = require('./findEmailFromName');
 const findEmailFromLinkedinProfile = require('./findEmailFromLinkedinProfile');
 const getLinkedinProfileDetails = require('./getLinkedinProfileDetails');
 const findPhoneFromLinkedinProfile = require('./findPhoneFromLinkedinProfile');
-const findCompanyEmail = require('./findCompanyEmail');
 const findCompanyEmployeeCount = require('./findCompanyEmployeeCount');
 const findCompanyLinkedinUrl = require('./findCompanyLinkedinUrl');
 const findCompanyPhone = require('./findCompanyPhone');
@@ -17,6 +16,7 @@ const getLinkedinCompanyEmployeeCount = require('./getLinkedinCompanyEmployeeCou
 const listEmployeesByCompanyDomain = require('./listEmployeesByCompanyDomain');
 const listEmployeesByCompanyName = require('./listEmployeesByCompanyName');
 const listEmployeesFromLinkedinCompany = require('./listEmployeesFromLinkedinCompany');
+const findCompanyEmail = require('./findCompanyEmail');
 const getLinkedinCompanyDetails = require('./getLinkedinCompanyDetails');
 const getLinkedinPostReactions = require('./getLinkedinPostReactions');
 const lookUpInstagramProfile = require('./lookUpInstagramProfile');
@@ -29,7 +29,6 @@ module.exports = {
   [findEmailFromLinkedinProfile.key]: findEmailFromLinkedinProfile,
   [getLinkedinProfileDetails.key]: getLinkedinProfileDetails,
   [findPhoneFromLinkedinProfile.key]: findPhoneFromLinkedinProfile,
-  [findCompanyEmail.key]: findCompanyEmail,
   [findCompanyEmployeeCount.key]: findCompanyEmployeeCount,
   [findCompanyLinkedinUrl.key]: findCompanyLinkedinUrl,
   [findCompanyPhone.key]: findCompanyPhone,
@@ -38,6 +37,7 @@ module.exports = {
   [listEmployeesByCompanyDomain.key]: listEmployeesByCompanyDomain,
   [listEmployeesByCompanyName.key]: listEmployeesByCompanyName,
   [listEmployeesFromLinkedinCompany.key]: listEmployeesFromLinkedinCompany,
+  [findCompanyEmail.key]: findCompanyEmail,
   [getLinkedinCompanyDetails.key]: getLinkedinCompanyDetails,
   [getLinkedinPostReactions.key]: getLinkedinPostReactions,
   [lookUpInstagramProfile.key]: lookUpInstagramProfile,

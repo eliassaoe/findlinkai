@@ -224,24 +224,6 @@ var LINKFINDER_OPERATIONS = [
     "params": []
   },
   {
-    "type": "company_name_to_email",
-    "label": "Find Company Email",
-    "category": "Companies",
-    "credits": 1,
-    "perEmployeeBilling": false,
-    "alwaysAsync": false,
-    "altType": null,
-    "inputLabel": "Company Name",
-    "inputHelp": "The company's name.",
-    "example": "Tesla",
-    "outputField": "email",
-    "outputKind": "scalar",
-    "columns": null,
-    "labels": null,
-    "compositeInput": null,
-    "params": []
-  },
-  {
     "type": "company_name_to_employee_count",
     "label": "Find Company Employee Count",
     "category": "Companies",
@@ -564,6 +546,24 @@ var LINKFINDER_OPERATIONS = [
         "help": "Cap how many employees come back. Billed 0.5 credits each."
       }
     ]
+  },
+  {
+    "type": "company_name_to_email",
+    "label": "Find Company Email",
+    "category": "Companies",
+    "credits": 5,
+    "perEmployeeBilling": false,
+    "alwaysAsync": false,
+    "altType": null,
+    "inputLabel": "Company Name",
+    "inputHelp": "The company's name.",
+    "example": "Tesla",
+    "outputField": "email",
+    "outputKind": "scalar",
+    "columns": null,
+    "labels": null,
+    "compositeInput": null,
+    "params": []
   },
   {
     "type": "linkedin_company_to_linkedin_info",
