@@ -74,17 +74,38 @@ matters, because this file used to make this claim while eight of the twelve wer
 executed by anything.
 
 What the tests **cannot** check is whether each vendor accepts the shape, because this
-build environment has no network access. Several below have never run against the real
-API, and that is what the list that follows is for.
+build environment has no network access to `linkfinderai.com` or to the vendors
+themselves. Updated 2026-08-29 by reconciling each adapter against the vendor's current
+published API reference (not a live call — see the per-vendor notes below).
 
-- **Instantly** — field names (`email`, `first_name`, `last_name`, `company_name`,
-  `phone`, `website`) confirmed against Instantly's own endpoint spec. One thing to
-  confirm on a first live run: the campaign field is sent as `campaign`, per the v2
-  request body, while Instantly's own tooling exposes it as `campaign_id`.
-- **Everything else** — written from each vendor's published API documentation, not
-  from a live call. Run one lead through each destination before pointing a real
-  campaign at it.
+- **Instantly** — confirmed. `email`, `first_name`, `last_name`, `company_name`,
+  `phone`, `website`, `custom_variables` match Instantly's v2 spec, and the campaign
+  field is `campaign` (not `campaign_id`, which is only what Instantly's own tooling
+  calls it) — confirmed directly against a documented request body.
+- **lemlist** — **fixed.** The adapter was posting to
+  `/api/campaigns/{id}/leads/{email}` (a v1 path, email in the URL) with no `email` in
+  the body. lemlist's current API (`developer.lemlist.com`) is
+  `POST /api/campaigns/{id}/leads` with `email` in the body. Updated and re-pinned in
+  the test suite.
+- **JustCall** — **fixed.** The adapter posted to `/v2.1/contacts`, which doesn't
+  exist; JustCall's Sales Dialer contact-create endpoint is
+  `/v2.1/sales_dialer/contacts`. Updated and re-pinned.
+- **EmailBison** — **fixed.** There is no single "create and attach" call: a lead is
+  created on its own (`POST /api/leads`), then attached to a campaign by id
+  (`POST /api/campaigns/{id}/leads/attach-leads`, body `{lead_ids: [...]}`). The
+  adapter previously sent raw lead objects straight to the attach endpoint, which only
+  accepts ids. Rewritten as two calls and re-pinned. Still the one to watch on a first
+  live run — it is self-hosted, so paths can vary per deployment.
+- **Smartlead, lemlist, Reply.io, Woodpecker, Salesloft, Outreach, ActiveCampaign** —
+  request shape cross-checked against each vendor's current published reference;
+  nothing else to correct.
+- **Salesforge** — unchanged, and still the least-documented of the twelve. Its public
+  reference does not show the workspace-contacts body in enough detail to confirm past
+  what was already here. Run one lead through it before pointing a real campaign at it.
+- **Clay** — no request shape to get wrong (it forwards the flattened lead as-is to a
+  webhook URL Clay generates), so there is nothing to verify beyond "the webhook
+  receives a POST."
 
-Two vendors deserve particular care: **Salesforge** and **EmailBison** have the least
-stable public documentation of the ten, and EmailBison is self-hosted, so its path
-layout can differ per deployment.
+Whatever the docs say, a vendor's live behavior is the final word. **Run one lead
+through each destination before pointing a real campaign at it** — Salesforge and
+EmailBison need the most care.

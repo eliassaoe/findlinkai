@@ -114,7 +114,10 @@ starting only once the internal version shows the demand is there.
 anywhere. It gets wired into a worker or backend that calls `enrichAndPush()`.
 
 Instantly's field names are confirmed against its endpoint spec. The other eleven were
-written from published documentation — the tests pin the exact request each builds, and fail on any adapter that never reaches fetch, but
-nothing has confirmed each vendor accepts it. **Run one lead through each destination
+written from published documentation — the tests pin the exact request each builds, and fail on any adapter that never reaches fetch. As of 2026-08-29 all twelve have been
+reconciled against each vendor's current published API reference; three adapters
+(lemlist, JustCall, EmailBison) were wrong against that reference and are now fixed —
+see `outreach/README.md`'s verification table for what changed. Reconciling against
+docs is still not the same as a live call, so **run one lead through each destination
 before pointing a real campaign at it.** Salesforge and EmailBison need the most care;
 EmailBison is self-hosted, so its paths vary per deployment.

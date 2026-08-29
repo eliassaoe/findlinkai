@@ -21,7 +21,7 @@ export const justcall = {
             throw new Error('JustCall is a dialler — this lead has no phone number, so there is nothing to dial.');
         }
 
-        return send('JustCall', 'https://api.justcall.io/v2.1/contacts', {
+        return send('JustCall', 'https://api.justcall.io/v2.1/sales_dialer/contacts', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

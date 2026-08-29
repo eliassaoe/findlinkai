@@ -3,6 +3,11 @@ import { send } from './_http.mjs';
 /**
  * EmailBison. White-label and usually self-hosted, so there is no fixed hostname —
  * the instance URL is part of the credentials.
+ *
+ * There is no single "create and attach" endpoint: a lead is created on its own
+ * (`POST /api/leads`), then attached to the campaign by id
+ * (`POST /api/campaigns/{id}/leads/attach-leads`, body `{lead_ids: [...]}`), per
+ * EmailBison's docs. Two calls, not one.
  */
 export const emailbison = {
     id: 'emailbison',
@@ -18,23 +23,33 @@ export const emailbison = {
         }
 
         const base = credentials.baseUrl.replace(/\/$/, '');
+        const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${credentials.apiKey}` };
 
-        return send('EmailBison', `${base}/api/campaigns/${encodeURIComponent(target.id)}/leads`, {
+        const created = await send('EmailBison', `${base}/api/leads`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${credentials.apiKey}` },
+            headers,
             body: JSON.stringify({
-                leads: [
-                    {
-                        email: lead.email,
-                        first_name: lead.firstName,
-                        last_name: lead.lastName,
-                        company: lead.company,
-                        job_title: lead.jobTitle,
-                        phone: lead.phone,
-                        linkedin_url: lead.linkedinUrl,
-                    },
-                ],
+                email: lead.email,
+                first_name: lead.firstName,
+                last_name: lead.lastName,
+                company: lead.company,
+                custom_variables: {
+                    job_title: lead.jobTitle,
+                    phone: lead.phone,
+                    linkedin_url: lead.linkedinUrl,
+                },
             }),
         });
+
+        const leadId = created?.data?.id ?? created?.id;
+        if (!leadId) throw new Error('EmailBison accepted the lead but returned no id.');
+
+        await send('EmailBison', `${base}/api/campaigns/${encodeURIComponent(target.id)}/leads/attach-leads`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({ lead_ids: [leadId] }),
+        });
+
+        return { leadId, campaignId: target.id };
     },
 };

@@ -100,8 +100,22 @@ would have shipped green. `outreach/test/destinations.test.mjs` covers all twelv
 fails on any that never reaches `fetch`. It still cannot check that the vendor accepts
 the shape.
 
-**To close:** run one lead through each. **Salesforge** and **EmailBison** have the
-least stable documentation, and EmailBison is self-hosted so paths vary per deployment.
+**Update, 2026-08-29:** all twelve reconciled against each vendor's current published
+reference (still not a live call — this build environment has no network access to any
+of them). Three were wrong and are now fixed:
+
+- **lemlist** was calling a v1-shaped path (`/leads/{email}`, email in the URL) that
+  the current API does not document; it is now `/leads` with `email` in the body.
+- **JustCall** was posting to `/v2.1/contacts`, which does not exist; the real path is
+  `/v2.1/sales_dialer/contacts`.
+- **EmailBison** was sending raw lead data straight to the campaign-attach endpoint,
+  which only accepts lead ids; it is now two calls — create the lead, then attach its
+  id.
+
+**To close properly:** run one lead through each destination for a live confirmation.
+**Salesforge** and **EmailBison** have the least stable documentation, and EmailBison
+is self-hosted so paths vary per deployment — those two deserve that live check before
+Instantly and the rest.
 
 ## 6. Make's IML has not been run in Make
 

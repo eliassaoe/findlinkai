@@ -101,21 +101,35 @@ test('ActiveCampaign stops if the sync returns no contact id', async () => {
     );
 });
 
-test('EmailBison posts to the instance it was given, not a fixed host', async () => {
-    const { calls } = await push('emailbison', {
+test('EmailBison creates the lead, then attaches its id to the campaign', async () => {
+    const { calls, result } = await push('emailbison', {
         credentials: { apiKey: 'eb_key', baseUrl: 'https://mail.acme.com/' },
         target: { id: 'camp 7' },
+        responses: [{ status: 200, body: { data: { id: 99 } } }, { status: 200, body: {} }],
     });
 
-    assert.strictEqual(calls[0].url, 'https://mail.acme.com/api/campaigns/camp%207/leads');
+    assert.strictEqual(calls.length, 2, 'there is no single create-and-attach endpoint');
+    assert.strictEqual(calls[0].url, 'https://mail.acme.com/api/leads');
     assert.strictEqual(calls[0].options.headers.Authorization, 'Bearer eb_key');
-    const leads = bodyOf(calls[0]).leads;
-    assert.strictEqual(leads.length, 1, 'it takes a list even for one lead');
-    assert.deepStrictEqual(leads[0], {
-        email: 'ada@tesla.com', first_name: 'Ada', last_name: 'Lovelace',
-        company: 'Tesla', job_title: 'VP Eng', phone: '+15551234567',
-        linkedin_url: 'https://li/ada',
+    assert.deepStrictEqual(bodyOf(calls[0]), {
+        email: 'ada@tesla.com', first_name: 'Ada', last_name: 'Lovelace', company: 'Tesla',
+        custom_variables: { job_title: 'VP Eng', phone: '+15551234567', linkedin_url: 'https://li/ada' },
     });
+
+    assert.strictEqual(calls[1].url, 'https://mail.acme.com/api/campaigns/camp%207/leads/attach-leads');
+    assert.deepStrictEqual(bodyOf(calls[1]), { lead_ids: [99] });
+    assert.deepStrictEqual(result, { leadId: 99, campaignId: 'camp 7' });
+});
+
+test('EmailBison stops if the lead create returns no id', async () => {
+    await assert.rejects(
+        () => push('emailbison', {
+            credentials: { apiKey: 'k', baseUrl: 'https://m.acme.com' },
+            target: { id: '1' },
+            responses: [{ status: 200, body: {} }],
+        }),
+        /returned no id/,
+    );
 });
 
 test('EmailBison refuses to guess a self-hosted instance', async () => {
@@ -125,22 +139,21 @@ test('EmailBison refuses to guess a self-hosted instance', async () => {
     );
 });
 
-test('lemlist puts the email in the path and the key in Basic auth', async () => {
+test('lemlist puts the email in the body and the key in Basic auth', async () => {
     const { calls } = await push('lemlist', {
         credentials: { apiKey: 'lem_key' },
         target: { id: 'camp_1' },
     });
 
-    assert.strictEqual(calls[0].url,
-        'https://api.lemlist.com/api/campaigns/camp_1/leads/ada%40tesla.com');
+    assert.strictEqual(calls[0].url, 'https://api.lemlist.com/api/campaigns/camp_1/leads');
     // The key is the password and the username is empty — not the other way round.
     assert.strictEqual(calls[0].options.headers.Authorization, `Basic ${btoa(':lem_key')}`);
 
     const body = bodyOf(calls[0]);
+    assert.strictEqual(body.email, 'ada@tesla.com');
     assert.strictEqual(body.firstName, 'Ada');
     assert.strictEqual(body.companyName, 'Tesla');
     assert.strictEqual(body.companyDomain, 'tesla.com');
-    assert.strictEqual(body.email, undefined, 'the email identifies the lead in the path');
 });
 
 test('lemlist says so when there is no email to address', async () => {
@@ -150,6 +163,28 @@ test('lemlist says so when there is no email to address', async () => {
             lead: toLead({ name: 'Ada Lovelace', company: 'Tesla' }),
         }),
         /identifies a lead by email/,
+    );
+});
+
+test('JustCall dials rather than emails, and refuses a lead with no phone', async () => {
+    const { calls } = await push('justcall', {
+        credentials: { apiKey: 'jc_key', apiSecret: 'jc_secret' },
+        target: { id: '14' },
+    });
+
+    assert.strictEqual(calls[0].url, 'https://api.justcall.io/v2.1/sales_dialer/contacts');
+    assert.strictEqual(calls[0].options.headers.Authorization, 'jc_key:jc_secret');
+    const body = bodyOf(calls[0]);
+    assert.strictEqual(body.firstname, 'Ada');
+    assert.strictEqual(body.phone, '+15551234567');
+    assert.strictEqual(body.list_id, '14');
+
+    await assert.rejects(
+        () => push('justcall', {
+            credentials: { apiKey: 'k', apiSecret: 's' }, target: { id: '1' },
+            lead: toLead({ name: 'Ada Lovelace', email: 'ada@tesla.com' }),
+        }),
+        /has no phone number/,
     );
 });
 
@@ -298,7 +333,8 @@ test('every destination has its request pinned by a test in this suite', async (
         activecampaign: { credentials: { apiKey: 'k', baseUrl: 'https://a.api-us1.com' }, target: { id: '1' },
                           responses: [{ status: 200, body: { contact: { id: '1' } } }, { status: 200, body: {} }] },
         clay:           { credentials: {}, target: { id: 'https://hooks.clay.com/x' } },
-        emailbison:     { credentials: { apiKey: 'k', baseUrl: 'https://m.acme.com' }, target: { id: '1' } },
+        emailbison:     { credentials: { apiKey: 'k', baseUrl: 'https://m.acme.com' }, target: { id: '1' },
+                          responses: [{ status: 200, body: { data: { id: 1 } } }, { status: 200, body: {} }] },
         instantly:      { credentials: { apiKey: 'k' }, target: { id: '1' } },
         justcall:       { credentials: { apiKey: 'k' }, target: { id: '1' } },
         lemlist:        { credentials: { apiKey: 'k' }, target: { id: '1' } },
