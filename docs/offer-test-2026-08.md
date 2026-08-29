@@ -330,3 +330,110 @@ result is expected, not a signal that nobody clicked.
 The only place a booking appears is the Calendly account itself, tagged with
 those UTMs. That is a manual check, and it is the only real read on whether the
 offer works.
+
+---
+
+## 2026-08-29 — VIP to rich countries: one-off + continuous
+
+Two things now exist in PostHog. **Neither is live yet** — both are drafts,
+because enabling is an outward-facing send and needs an explicit go.
+
+### The cohorts (fixed — they were broken)
+
+| id | who | count |
+| --- | --- | --- |
+| 529662 | high-income country + activated + **business** domain + never mailed | **70** |
+| 529664 | same but **consumer** domain (gmail/outlook/yahoo/…) | **194** |
+
+Both were created earlier the same day and **silently failed to calculate**
+(`errors_calculating: 1`, `last_error_message: null`, `count: null`). Cause: the
+cohort query used
+
+    NOT match(email, '(gmail|googlemail|...)\\.')
+
+and that regex literal is **not valid HogQL** — the same query fails in
+`execute-sql` with "HogQL parsing error". A static cohort whose query fails to
+parse is created successfully and just stays empty. `workflows-blast-radius`
+reported `affected: 0`, which is what caught it.
+
+**Fix:** replaced the regex with a chain of `email LIKE '%gmail.%' OR …`.
+Both recalculated within a minute and now report 70 and 194.
+
+**Rule for next time: after creating any static cohort, check
+`last_calculation IS NOT NULL` and `count > 0` before pointing a workflow at
+it.** A batch workflow aimed at a failed cohort sends nothing and reports
+nothing wrong.
+
+High-income list used in both (24 codes):
+`US GB FR DE NL CA AU CH SE NO DK FI IE BE AT LU SG JP NZ IL HK AE ES IT`
+
+### 1. One-off batch — `01a04f33-7ebe-0000-de93-26822917a169`
+
+"VIP one-off — high-income + business domain". Batch trigger on cohort 529662.
+Blast radius confirmed: **70 people**. Tracking ON. Conversion goal
+`checkout_payment_success`, `exit_on_conversion`. Masking `{person.id}` / 3y.
+Batch triggers do NOT fire on enable — dispatch is a separate
+`workflows-run-batch` call.
+
+Cohort 529664 (194 consumer-domain) is the second wave, and should only go out
+if 529662 produces something.
+
+### 2. Continuous — `01a04f37-5d0c-0000-e7bc-c867ea489568`
+
+"VIP continuous — friction trigger, high-income countries".
+
+    event trigger  →  wait 1 day  →  VIP email  →  exit
+
+Trigger: any of `credits_exhausted`, `credits_exhausted_modal_shown`,
+`bulk_results_gated_shown`, `vip_page_viewed`, AND person is in one of the 24
+countries, AND has an email.
+
+Three deliberate choices:
+
+- **Not on signup day.** Someone who chose self-serve five minutes ago is the
+  worst possible moment to pitch done-for-you — the pitch argues against the
+  decision they just made. Friction is the moment it makes sense.
+- **`exit_on_conversion` beats the delay.** Anyone who buys during the 1-day
+  wait leaves before the email is sent. A self-serve purchase is the right
+  outcome and should not be talked out of.
+- **No consumer-domain exclusion here** (unlike 529662). The friction signal is
+  a far stronger qualifier than the domain, and a US solo founder on gmail
+  hitting the credit wall is a real prospect.
+
+Masking is `{person.id}` at 3 years, so **one email per person, ever**.
+
+**Expected volume**, from the last 6 months of the same events in the same
+countries: 19 / 14 / 15 / 41 distinct people per month — call it **15–40/month**.
+Event triggers only fire on *future* events, so August's 41 do not get
+backfilled; it builds from whenever it is enabled.
+
+**Known gap:** this does not dedupe against the one-off. Someone in 529662 who
+later hits the credit wall can get a second, differently-timed touch. Accepted —
+the copy is different and weeks apart.
+
+### Copy
+
+Same offer, one contextual line changed for the triggered version:
+
+> You are running enough volume now that finding the contacts is no longer the
+> hard part. The hard part is everything after it: the copy, mailboxes that have
+> to stay warm, and someone reading every reply once it is live.
+
+Both end on **Book a strategic call** →
+`calendly.com/hamoureliasse/offre-linkfinder-ai-clone`, tagged
+`utm_campaign=vip_rich_business` (one-off) and `vip_friction_trigger`
+(continuous) so the two are separable.
+
+Test-run results on the continuous workflow: US + `credits_exhausted` → matches
+and advances to the delay; IN + `credits_exhausted` → `skipped`, trigger did not
+match; email step renders with the right recipient, unsubscribe URL and CTA.
+
+### The bounce number to watch
+
+Established pattern in this project: **event-triggered sends bounce at 0.9%;
+batch sends to old dormant cohorts bounce at 2.6–6.5%.** The Google-auth gate
+stops *fake* addresses, not *stale* ones.
+
+The one-off is a batch to a dormant list, so budget **2–5 bounces on 70**. SES
+puts an account under review at 5%. The continuous workflow is the safe shape —
+it mails people who were active yesterday.
