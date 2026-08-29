@@ -252,6 +252,21 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
     .integration-card{flex-direction:column;align-items:stretch;}
     .int-actions{justify-content:flex-start;}
   }
+
+  /* Connect-a-destination modal. Reuses .modal-overlay/.pricing-modal so it
+     looks like the rest of the product rather than inventing a new pattern. */
+  .outreach-modal{max-width:420px;text-align:left;}
+  .outreach-modal .pricing-modal-header{text-align:left;margin-bottom:1rem;}
+  .outreach-modal .pricing-modal-header h2{font-size:1.3rem;}
+  .outreach-modal .pricing-modal-header p{margin-top:.35rem;}
+  .outreach-modal .pricing-modal-header p a{color:var(--primary);}
+  .field-label{display:block;font-size:.8125rem;font-weight:600;color:var(--gray-700);margin:.9rem 0 .3rem;}
+  .field-label:first-child{margin-top:0;}
+  .field-input{width:100%;padding:.6rem .75rem;border:1px solid var(--gray-300);border-radius:6px;font-family:inherit;font-size:.875rem;}
+  .field-input:focus{outline:none;border-color:var(--primary);}
+  .field-hint{font-size:.75rem;color:var(--gray-500);margin-top:.3rem;line-height:1.4;}
+  .outreach-modal-error{display:none;background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;border-radius:6px;padding:.6rem .75rem;font-size:.8125rem;margin-top:1rem;}
+  .outreach-modal-error.show{display:block;}
 </style>
 </head>
 <body>
@@ -362,7 +377,7 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
     </div>
 
     <div class="int-section">
-      <div class="int-section-head"><div class="section-title">CRMs and outreach</div></div>
+      <div class="int-section-head"><div class="section-title">CRMs</div></div>
       <div class="int-section-sub">
         Built and tested, not switched on yet — that part is on us, not a review queue.
         Tell us which one you use and it moves up.
@@ -370,8 +385,38 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
       <div class="integrations-grid" id="otherGrid"></div>
     </div>
 
+    <div class="int-section">
+      <div class="int-section-head"><div class="section-title">Cold outreach</div></div>
+      <div class="int-section-sub">
+        Find the email first, then push the lead into a campaign — connect your own account and
+        add its API key below. A lead with no email is skipped rather than added, so your
+        sequences stay clean; for the dialler, it is the phone number that has to be there.
+      </div>
+      <div class="integrations-grid" id="outreachGrid"></div>
+    </div>
+
   </div>
 </div>
+
+<div class="modal-overlay" id="outreachModalOverlay">
+  <div class="pricing-modal outreach-modal">
+    <button class="modal-close" onclick="closeOutreachModal()">&times;</button>
+    <div class="pricing-modal-header">
+      <h2 id="outreachModalTitle">Connect</h2>
+      <p id="outreachModalSub"></p>
+    </div>
+    <form id="outreachForm" onsubmit="submitOutreachForm(event)">
+      <div id="outreachFormFields"></div>
+      <div class="outreach-modal-error" id="outreachModalError"></div>
+      <div class="btn-group" style="margin-top:1.25rem;">
+        <button type="submit" class="btn" id="outreachSaveBtn">Save connection</button>
+        <button type="button" class="btn btn-danger" id="outreachDeleteBtn" onclick="deleteOutreachConnection()" hidden>Disconnect</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="modal-toast" id="lfToast"></div>
 
 
 <script>
@@ -467,16 +512,13 @@ const WORKFLOW = [
 
 /* Built and tested, not switched on. Different from "in review", which is
    somebody else's queue — these are waiting on us, and saying so honestly is
-   what makes "I use this" a signal worth collecting. */
+   what makes "I use this" a signal worth collecting. Outreach tools have their
+   own section below — they are connectable now, not just "ask for it". */
 const OTHERS = [
   { name:'Salesforce', icon:'S', bg:'#eef6ff', fg:'#00a1e0', desc:'Fill empty fields on a Contact or Lead.' },
   { name:'Pipedrive',  icon:'P', bg:'#f1f5f9', fg:'#1f2937', desc:'Fill empty fields on a Person.' },
   { name:'Zoho CRM',   icon:'Z', bg:'#fef2f2', fg:'#dc2626', desc:'Fill empty fields on a Contact.' },
-  { name:'Close',      icon:'C', bg:'#f0f9ff', fg:'#0284c7', desc:'Fill empty fields on a Lead.' },
-  { name:'Instantly',  icon:'I', bg:'#eef2ff', fg:'#4f46e5', desc:'Send enriched leads into a campaign.' },
-  { name:'Smartlead',  icon:'S', bg:'#f0fdf4', fg:'#16a34a', desc:'Send enriched leads into a campaign.' },
-  { name:'lemlist',    icon:'l', bg:'#fff7ed', fg:'#ea580c', desc:'Send enriched leads into a campaign.' },
-  { name:'Reply.io',   icon:'R', bg:'#eff6ff', fg:'#2563eb', desc:'Send enriched leads into a sequence.' }
+  { name:'Close',      icon:'C', bg:'#f0f9ff', fg:'#0284c7', desc:'Fill empty fields on a Lead.' }
 ].map(function(x){ x.state = 'ready'; return x; });
 
 // Three honest states, and they mean different things: live is usable now,
@@ -538,12 +580,257 @@ function renderGrids(){
   });
 }
 
+/*
+ * Cold outreach — connect a destination's own API key and push already-enriched
+ * leads into it. Backed by the outreach-push Supabase Edge Function, which never
+ * calls LinkFinder AI itself (every push carries results already paid for) and
+ * never hands a stored credential back to the browser in full.
+ */
+const OUTREACH_WORKER = 'https://snxhsboboatjywgwdeds.supabase.co/functions/v1/outreach-push';
+
+// Mirrors the function's own DESTINATIONS so the grid renders immediately
+// instead of waiting on a round trip; loadOutreach() overwrites this with the
+// live catalogue once it answers, which also catches a destination the backend
+// has added but this page does not know about yet.
+const OUTREACH_CATALOGUE_FALLBACK = [
+  { id:'instantly',      label:'Instantly',      auth:'api_key', targetLabel:'Campaign or list ID',       extraCredentials:[],              docs:'https://developer.instantly.ai/api/v2' },
+  { id:'smartlead',      label:'Smartlead',      auth:'api_key', targetLabel:'Campaign ID',                extraCredentials:[],              docs:'https://api.smartlead.ai/reference' },
+  { id:'lemlist',        label:'lemlist',        auth:'api_key', targetLabel:'Campaign ID',                extraCredentials:[],              docs:'https://developer.lemlist.com' },
+  { id:'reply',          label:'Reply.io',       auth:'api_key', targetLabel:'Campaign ID',                extraCredentials:[],              docs:'https://apidocs.reply.io' },
+  { id:'woodpecker',     label:'Woodpecker',     auth:'api_key', targetLabel:'Campaign ID',                extraCredentials:[],              docs:'https://woodpecker.co/api' },
+  { id:'activecampaign', label:'ActiveCampaign', auth:'api_key', targetLabel:'List ID',                    extraCredentials:['baseUrl'],     docs:'https://developers.activecampaign.com/reference' },
+  { id:'outreach',       label:'Outreach',       auth:'oauth',   targetLabel:'Sequence ID',                extraCredentials:['mailboxId'],   docs:'https://developers.outreach.io/api/reference' },
+  { id:'salesloft',      label:'Salesloft',      auth:'oauth',   targetLabel:'Cadence ID',                 extraCredentials:[],              docs:'https://developers.salesloft.com' },
+  { id:'salesforge',     label:'Salesforge',     auth:'api_key', targetLabel:'Sequence ID',                extraCredentials:['workspaceId'], docs:'https://api.salesforge.ai/docs' },
+  { id:'justcall',       label:'JustCall',       auth:'api_key', targetLabel:'Contact list ID (optional)', extraCredentials:['apiSecret'],   docs:'https://developer.justcall.io', prefers:'phone' },
+  { id:'emailbison',     label:'EmailBison',     auth:'api_key', targetLabel:'Campaign ID',                extraCredentials:['baseUrl'],     docs:'https://docs.emailbison.com' },
+  { id:'clay',           label:'Clay',           auth:'webhook', targetLabel:'Clay table webhook URL',     extraCredentials:[],              docs:'https://www.clay.com/university/lesson/webhook-sources' }
+];
+
+// Same copy as the marketing integrations page, so the two do not drift.
+const OUTREACH_DESC = {
+  instantly:'Find the email, then add the lead straight to a campaign or list — with job title and LinkedIn URL as merge variables.',
+  smartlead:'Enrich and push into a Smartlead campaign in one step.',
+  lemlist:'Add enriched leads to a lemlist campaign, keyed by email.',
+  reply:'Create the person and push them into a campaign in a single call.',
+  woodpecker:'Add enriched prospects to a Woodpecker campaign.',
+  activecampaign:'Sync the contact and subscribe it to a list — upserted on email, so re-runs do not duplicate.',
+  outreach:'Create the prospect and add them to a sequence.',
+  salesloft:'Create the person and add them to a cadence.',
+  salesforge:'Push enriched contacts into a Salesforge sequence.',
+  justcall:'Find the mobile number, then create the contact in JustCall ready to dial — the one destination that gates on a phone number rather than an email.',
+  emailbison:'Push enriched leads into a campaign on your own EmailBison instance.',
+  clay:'Point a Clay table webhook here and enriched leads land as new rows.'
+};
+
+const OUTREACH_BRAND = {
+  instantly:      { icon:'fa-paper-plane',       bg:'#eef2ff', fg:'#4f46e5' },
+  smartlead:      { icon:'fa-bolt',               bg:'#eff6ff', fg:'#2563eb' },
+  lemlist:        { icon:'fa-envelope-open-text', bg:'#fff7ed', fg:'#c2410c' },
+  reply:          { icon:'fa-reply',              bg:'#f0fdfa', fg:'#0f766e' },
+  woodpecker:     { icon:'fa-feather',            bg:'#fefce8', fg:'#a16207' },
+  activecampaign: { icon:'fa-users',              bg:'#eff6ff', fg:'#1d4ed8' },
+  outreach:       { icon:'fa-arrow-trend-up',     bg:'#f5f3ff', fg:'#6d28d9' },
+  salesloft:      { icon:'fa-headset',            bg:'#ecfdf5', fg:'#047857' },
+  salesforge:     { icon:'fa-hammer',             bg:'#fef2f2', fg:'#b91c1c' },
+  justcall:       { icon:'fa-phone',              bg:'#ecfeff', fg:'#0e7490' },
+  emailbison:     { icon:'fa-inbox',              bg:'#f8fafc', fg:'#334155' },
+  clay:           { icon:'fa-layer-group',        bg:'#f5f3ff', fg:'#5b21b6' }
+};
+
+// What each credential field is called and shown as in the connect form.
+const CRED_META = {
+  apiKey:      { label:'API key' },
+  accessToken: { label:'Access token', hint:'A personal or long-lived API token from the tool — this page does not run an OAuth sign-in flow.' },
+  baseUrl:     { label:'Base URL', placeholder:'https://youraccount.api-us1.com' },
+  apiSecret:   { label:'API secret' },
+  mailboxId:   { label:'Mailbox ID' },
+  workspaceId: { label:'Workspace ID' }
+};
+
+let outreachCatalogue = OUTREACH_CATALOGUE_FALLBACK;
+let outreachConnections = {};
+
+async function outreachCall(action, extra){
+  const r = await fetch(OUTREACH_WORKER, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify(Object.assign({ action:action, token:userToken }, extra || {}))
+  });
+  let d = {};
+  try { d = await r.json(); } catch(e) {}
+  if (!r.ok) throw new Error(d.error || 'Something went wrong.');
+  return d;
+}
+
+function escapeHtml(s){
+  return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){
+    return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c];
+  });
+}
+
+function outreachCardFor(dest){
+  const brand = OUTREACH_BRAND[dest.id] || { icon:'fa-plug', bg:'#f3f4f6', fg:'#374151' };
+  const desc = OUTREACH_DESC[dest.id] || 'Push enriched leads straight in.';
+  return '<div class="integration-card">' +
+    '<div class="integration-info">' +
+      '<div class="integration-icon" style="background:' + brand.bg + ';color:' + brand.fg + ';"><i class="fas ' + brand.icon + '"></i></div>' +
+      '<div class="integration-details"><h3>' + escapeHtml(dest.label) + '</h3><p>' + escapeHtml(desc) + '</p></div>' +
+    '</div>' +
+    '<div class="int-actions">' +
+      '<span class="int-state checking" id="outreachState_' + dest.id + '">checking…</span>' +
+      '<button class="btn btn-outline btn-sm" id="outreachBtn_' + dest.id + '" onclick="openOutreachModal(\'' + dest.id + '\')">Connect</button>' +
+    '</div></div>';
+}
+
+function renderOutreachGrid(){
+  document.getElementById('outreachGrid').innerHTML = outreachCatalogue.map(outreachCardFor).join('');
+}
+
+function applyOutreachState(){
+  outreachCatalogue.forEach(function(dest){
+    const connected = !!outreachConnections[dest.id];
+    setState('outreachState_' + dest.id, connected ? 'connected' : 'not connected', connected ? 'on' : 'off');
+    const btn = document.getElementById('outreachBtn_' + dest.id);
+    if (btn) btn.textContent = connected ? 'Manage' : 'Connect';
+  });
+}
+
+async function loadOutreach(){
+  renderOutreachGrid();
+  try {
+    const d = await outreachCall('list');
+    if (Array.isArray(d.destinations) && d.destinations.length) outreachCatalogue = d.destinations;
+    outreachConnections = {};
+    (d.connections || []).forEach(function(c){ outreachConnections[c.destination] = c; });
+    renderOutreachGrid();
+    applyOutreachState();
+  } catch(e) {
+    // Fail open as "not connected" rather than leaving every badge stuck on
+    // "checking…" — the Connect button still works even if this call failed.
+    outreachCatalogue.forEach(function(dest){ setState('outreachState_' + dest.id, 'not connected', 'off'); });
+  }
+}
+
+function fieldHtml(name, meta, value){
+  return '<label class="field-label">' + escapeHtml(meta.label) + '</label>' +
+    '<input class="field-input" name="' + name + '" type="text" placeholder="' + escapeHtml(meta.placeholder || '') + '" value="' + escapeHtml(value || '') + '" autocomplete="off">' +
+    (meta.hint ? '<div class="field-hint">' + escapeHtml(meta.hint) + '</div>' : '');
+}
+
+function openOutreachModal(id){
+  const dest = outreachCatalogue.filter(function(d){ return d.id === id; })[0];
+  if (!dest) return;
+  const conn = outreachConnections[id];
+
+  document.getElementById('outreachModalTitle').textContent = (conn ? 'Manage ' : 'Connect ') + dest.label;
+  document.getElementById('outreachModalSub').innerHTML = 'Nothing here is sent anywhere until you save. <a href="' + dest.docs + '" target="_blank" rel="noopener">' + escapeHtml(dest.label) + ' API docs</a>';
+
+  let html = '';
+  if (dest.auth !== 'webhook') {
+    const primary = dest.auth === 'oauth' ? 'accessToken' : 'apiKey';
+    html += fieldHtml(primary, CRED_META[primary], conn && conn.credentials && conn.credentials[primary]);
+  }
+  (dest.extraCredentials || []).forEach(function(f){
+    html += fieldHtml(f, CRED_META[f] || { label:f }, conn && conn.credentials && conn.credentials[f]);
+  });
+  html += fieldHtml('target', { label: dest.targetLabel }, conn && conn.target && conn.target.id);
+
+  document.getElementById('outreachFormFields').innerHTML = html;
+  document.getElementById('outreachForm').dataset.destination = id;
+  document.getElementById('outreachDeleteBtn').hidden = !conn;
+  document.getElementById('outreachModalError').classList.remove('show');
+
+  const btn = document.getElementById('outreachSaveBtn');
+  btn.disabled = false; btn.textContent = 'Save connection';
+
+  document.getElementById('outreachModalOverlay').classList.add('show');
+  track('outreach_modal_opened', id);
+}
+
+function closeOutreachModal(){
+  document.getElementById('outreachModalOverlay').classList.remove('show');
+}
+
+function showOutreachError(message){
+  const el = document.getElementById('outreachModalError');
+  el.textContent = message;
+  el.classList.add('show');
+}
+
+async function submitOutreachForm(e){
+  e.preventDefault();
+  const form = e.target;
+  const id = form.dataset.destination;
+  const dest = outreachCatalogue.filter(function(d){ return d.id === id; })[0];
+  if (!dest) return;
+
+  const data = new FormData(form);
+  const credentials = {};
+  if (dest.auth !== 'webhook') {
+    const primary = dest.auth === 'oauth' ? 'accessToken' : 'apiKey';
+    credentials[primary] = (data.get(primary) || '').trim();
+  }
+  (dest.extraCredentials || []).forEach(function(f){ credentials[f] = (data.get(f) || '').trim(); });
+  const targetId = (data.get('target') || '').trim();
+
+  document.getElementById('outreachModalError').classList.remove('show');
+  const btn = document.getElementById('outreachSaveBtn');
+  btn.disabled = true; btn.textContent = 'Saving…';
+
+  try {
+    await outreachCall('save', {
+      destination: id,
+      credentials: credentials,
+      target: targetId ? { id: targetId } : {},
+      label: dest.label
+    });
+    outreachConnections[id] = { destination:id, credentials:credentials, target:{ id:targetId } };
+    applyOutreachState();
+    showToast(dest.label + ' connected.');
+    closeOutreachModal();
+    track('outreach_connected', id);
+  } catch(err) {
+    showOutreachError(err.message || 'Could not save that connection.');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Save connection';
+  }
+}
+
+async function deleteOutreachConnection(){
+  const form = document.getElementById('outreachForm');
+  const id = form.dataset.destination;
+  const dest = outreachCatalogue.filter(function(d){ return d.id === id; })[0];
+  if (!dest || !confirm('Disconnect ' + dest.label + '? You can reconnect any time.')) return;
+
+  try {
+    await outreachCall('delete', { destination: id });
+    delete outreachConnections[id];
+    applyOutreachState();
+    showToast(dest.label + ' disconnected.');
+    closeOutreachModal();
+    track('outreach_disconnected', id);
+  } catch(err) {
+    showOutreachError(err.message || 'Could not disconnect.');
+  }
+}
+
+function showToast(message, isError){
+  const el = document.getElementById('lfToast');
+  if (!el) return;
+  el.textContent = message;
+  el.style.background = isError ? '#991b1b' : '';
+  el.classList.add('show');
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(function(){ el.classList.remove('show'); }, 3500);
+}
+
 document.addEventListener('DOMContentLoaded', function(){
   checkAuth();
   fetchCredits();
   renderGrids();
   loadHubspotState();
   loadApiState();
+  loadOutreach();
   track('integrations_page_viewed', 'app');
 });
 </script>

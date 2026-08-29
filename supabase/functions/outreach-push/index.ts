@@ -129,7 +129,9 @@ Deno.serve(async (req: Request) => {
                 } catch (e) {
                     return json({ error: (e as Error).message }, 400);
                 }
-                if (!credentials?.apiKey && !credentials?.accessToken) {
+                // Clay authenticates with a per-table webhook URL, not a key — it is
+                // the only destination this does not apply to.
+                if (DESTINATIONS[destination].auth !== 'webhook' && !credentials?.apiKey && !credentials?.accessToken) {
                     return json({ error: `${DESTINATIONS[destination].label} needs an API key.` }, 400);
                 }
 
