@@ -469,10 +469,10 @@ const WORKFLOW = [
    somebody else's queue — these are waiting on us, and saying so honestly is
    what makes "I use this" a signal worth collecting. */
 const OTHERS = [
-  { name:'Salesforce', icon:'S', bg:'#eef6ff', fg:'#00a1e0', desc:'Fill empty fields on a Contact or Lead.' },
-  { name:'Pipedrive',  icon:'P', bg:'#f1f5f9', fg:'#1f2937', desc:'Fill empty fields on a Person.' },
-  { name:'Zoho CRM',   icon:'Z', bg:'#fef2f2', fg:'#dc2626', desc:'Fill empty fields on a Contact.' },
-  { name:'Close',      icon:'C', bg:'#f0f9ff', fg:'#0284c7', desc:'Fill empty fields on a Lead.' },
+  { name:'Salesforce', icon:'S', bg:'#eef6ff', fg:'#00a1e0', desc:'Fill empty fields on a Contact or Lead.', crmKey:'salesforce' },
+  { name:'Pipedrive',  icon:'P', bg:'#f1f5f9', fg:'#1f2937', desc:'Fill empty fields on a Person.', crmKey:'pipedrive' },
+  { name:'Zoho CRM',   icon:'Z', bg:'#fef2f2', fg:'#dc2626', desc:'Fill empty fields on a Contact.', crmKey:'zoho' },
+  { name:'Close',      icon:'C', bg:'#f0f9ff', fg:'#0284c7', desc:'Fill empty fields on a Lead.', crmKey:'close' },
   { name:'Instantly',  icon:'I', bg:'#eef2ff', fg:'#4f46e5', desc:'Send enriched leads into a campaign.' },
   { name:'Smartlead',  icon:'S', bg:'#f0fdf4', fg:'#16a34a', desc:'Send enriched leads into a campaign.' },
   { name:'lemlist',    icon:'l', bg:'#fff7ed', fg:'#ea580c', desc:'Send enriched leads into a campaign.' },
@@ -512,6 +512,37 @@ function cardFor(item, wanted){
 
 function openPage(slug){ window.location.href = addGclid('https://linkfinderai.com/' + slug + '?token=' + userToken); }
 
+/* Same data-crm -> Nango integration id map crm-sync.html uses to decide which
+   picker buttons go live. Kept in sync manually — see that file's comment next
+   to CRM_INTEGRATION_ID for why an id here does not always match the plain
+   provider name. */
+const CRM_INTEGRATION_ID = { salesforce:'salesforce', pipedrive:'pipedrive', zoho:'zoho', close:'close' };
+
+/* Mirrors loadHubspotState below: ask the worker which CRMs are actually
+   configured (env CRM_INTEGRATIONS) and only then promote a card from "ask for
+   it" to a real "Open" button — never guess from this page alone. */
+async function loadCrmAvailability(){
+  try {
+    const r = await fetch(NANGO_WORKER + '/status', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ token: userToken })
+    });
+    if (!r.ok) return;
+    const d = await r.json();
+    const ids = (d.availableCrms || []).map(function(c){ return c && c.id; });
+    let changed = false;
+    OTHERS.forEach(function(item){
+      const key = item.crmKey && CRM_INTEGRATION_ID[item.crmKey];
+      if (key && ids.indexOf(key) !== -1 && item.state !== 'live') {
+        item.state = 'live';
+        item.href = 'crm-sync';
+        changed = true;
+      }
+    });
+    if (changed) renderGrids();
+  } catch(e) {}
+}
+
 function wanted(){
   try { return JSON.parse(localStorage.getItem('lf_integration_interest') || '[]'); } catch(e) { return []; }
 }
@@ -544,6 +575,7 @@ document.addEventListener('DOMContentLoaded', function(){
   renderGrids();
   loadHubspotState();
   loadApiState();
+  loadCrmAvailability();
   track('integrations_page_viewed', 'app');
 });
 </script>
