@@ -1097,6 +1097,7 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
                 <textarea id="resultText" class="result-text" readonly placeholder="Enriched data will appear here..."></textarea>
                 <div id="resultLink" class="result-link"></div>
                 <div id="hubspotActionContainer" class="hidden" style="margin-top:1rem;padding-top:1rem;border-top:1px dashed var(--gray-200);"></div>
+                <div id="outreachActionContainer" class="hidden" style="margin-top:1rem;padding-top:1rem;border-top:1px dashed var(--gray-200);"></div>
             </div>
             <!-- REPLACE this whole block: -->
 <div id="bulkResults" class="hidden">
@@ -1104,6 +1105,10 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
         <h4 style="font-size:1rem;color:var(--gray-700);">Results</h4>
         <div style="display:flex;gap:0.5rem;">
             <button id="sendAllToHubspotBtn" onclick="sendBulkToHubspot()" class="btn btn-outline hidden"><i class="fab fa-hubspot"></i> Send all to HubSpot</button>
+            <div id="bulkOutreachAction" class="hidden" style="display:inline-flex;gap:0.4rem;align-items:center;">
+                <select id="bulkOutreachDestSelect" style="padding:0.4rem 0.6rem;border:1px solid var(--gray-300);border-radius:6px;font-size:0.8rem;"></select>
+                <button id="sendAllToOutreachBtn" onclick="sendBulkToOutreach()" class="btn btn-outline"><i class="fas fa-paper-plane"></i> Send all</button>
+            </div>
             <button onclick="downloadResults()" class="btn"><i class="fas fa-download"></i> Export</button>
         </div>
     </div>
@@ -3366,6 +3371,7 @@ async function enrichData(event) {
             if (data.name&&!data.result) showSingleResult(inputValue,data);
             else showSingleResult(inputValue, data.result||'Not found', data.confidence);
             captureAndRenderHubspotAction(inputValue, data);
+            captureAndRenderOutreachAction(inputValue, data);
             checkEnrichmentMilestone();
             maybeTriggerFirstSuccessPrompts();
             showSavedPill();
@@ -4327,6 +4333,7 @@ async function processBulk(resuming) {
         checkEnrichmentMilestone();
         maybeTriggerFirstSuccessPrompts();
         showBulkHubspotButtonIfApplicable();
+        showBulkOutreachButtonIfApplicable();
     }
     // Last, and awaited: archiving the file can be a multi-megabyte upload, and
     // nothing on screen should wait behind it.
@@ -4564,7 +4571,7 @@ function flushCsvBatchOnExit(){
 }
 
 document.addEventListener('DOMContentLoaded',()=>{
-    checkAuth(); fetchCredits(); checkHubspotConnection(); setupFileUpload(); setupDragAndDrop();
+    checkAuth(); fetchCredits(); checkHubspotConnection(); checkOutreachConnections(); setupFileUpload(); setupDragAndDrop();
     setupNavigation(); setupModalEvents(); setupDropdowns();
     handleDodoReturnStatus();
     // Must run after handleDodoReturnStatus(), which clears the marker on a real
@@ -5930,6 +5937,164 @@ function showBulkHubspotButtonIfApplicable() {
     const applicable = ['email', 'linkedin_url', 'phone'].includes(currentOutputType);
     btn.classList.toggle('hidden', !applicable);
 }
+
+/* ---------------------------------------------------------------------
+   Cold outreach — push an already-paid-for result into Instantly, lemlist,
+   or any of the twelve tools connected on the Integrations page. Mirrors
+   the HubSpot block above: same gating (email/linkedin_url/phone outputs
+   only), same "nothing sent until this account has connected something"
+   nudge, and the same never-re-enrich rule — this only ever forwards a
+   result the app already has on screen or in bulkResults.
+--------------------------------------------------------------------- */
+const OUTREACH_WORKER = 'https://snxhsboboatjywgwdeds.supabase.co/functions/v1/outreach-push';
+let outreachConnections = null; // null = not checked yet; else array of {id, label}
+window.lastOutreachPushResult = null;
+window.lastOutreachPushInput = '';
+
+async function outreachCall(action, extra) {
+    const r = await fetch(OUTREACH_WORKER, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(Object.assign({ action: action, token: userToken }, extra || {}))
+    });
+    let d = {};
+    try { d = await r.json(); } catch (e) {}
+    if (!r.ok) throw new Error(d.error || 'Something went wrong.');
+    return d;
+}
+
+async function checkOutreachConnections() {
+    try {
+        const d = await outreachCall('list');
+        outreachConnections = (d.connections || []).map(c => ({ id: c.destination, label: c.label }));
+    } catch (e) { outreachConnections = []; }
+    renderOutreachActionUI();
+    showBulkOutreachButtonIfApplicable();
+}
+
+// Same email/phone/linkedin_url → {email|phone|linkedinUrl} mapping
+// sendBulkToHubspot already does for bulk rows — kept identical so a lookup
+// that qualifies for HubSpot always qualifies here too.
+function buildOutreachPushResult(outputType, rawValue, inputType, rawInputValue) {
+    if (!rawValue || rawValue === 'Not found' || rawValue === 'Error') return null;
+    const result = {};
+    if (outputType === 'email') result.email = rawValue;
+    else if (outputType === 'phone') result.phone = rawValue;
+    else if (outputType === 'linkedin_url') result.linkedinUrl = rawValue;
+    else return null;
+
+    if (inputType === 'lead_full_name') {
+        result.fullName = rawInputValue;
+    } else if (inputType === 'linkedin_profile') {
+        result.linkedinUrl = result.linkedinUrl || rawInputValue;
+    } else if (inputType === 'email') {
+        result.email = result.email || rawInputValue;
+    }
+    return result;
+}
+
+function captureAndRenderOutreachAction(rawInputValue, data) {
+    const rawValue = (data && typeof data === 'object') ? (data.result || null) : data;
+    window.lastOutreachPushResult = buildOutreachPushResult(currentOutputType, rawValue, currentInputType, rawInputValue);
+    window.lastOutreachPushInput = rawInputValue;
+    renderOutreachActionUI();
+}
+
+function outreachDestOptionsHtml(selectId) {
+    return (outreachConnections || []).map(d => `<option value="${d.id}">${d.label}</option>`).join('');
+}
+
+function renderOutreachActionUI() {
+    const container = document.getElementById('outreachActionContainer');
+    if (!container) return;
+    if (!window.lastOutreachPushResult) { container.classList.add('hidden'); container.innerHTML = ''; return; }
+
+    if (outreachConnections === null) { container.classList.add('hidden'); return; } // still checking
+
+    if (outreachConnections.length > 0) {
+        container.classList.remove('hidden');
+        container.innerHTML = `<div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;">
+            <select id="outreachDestSelect" style="padding:0.55rem 0.75rem;border:1px solid var(--gray-300);border-radius:6px;font-size:0.875rem;">${outreachDestOptionsHtml()}</select>
+            <button class="btn btn-outline" id="sendToOutreachBtn" onclick="sendToOutreach()"><i class="fas fa-paper-plane"></i> Send</button>
+        </div>`;
+    } else {
+        container.classList.remove('hidden');
+        container.innerHTML = `<div style="font-size:0.85rem;color:var(--gray-600);display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;">
+            <i class="fas fa-paper-plane" style="color:var(--primary);"></i>
+            <span>Want finds like this pushed straight into Instantly, lemlist, or another campaign tool?</span>
+            <a href="#" onclick="try{posthog.capture('outreach_nudge_clicked',{source:'app_result'})}catch(e){}; window.location.href=addGclid('https://linkfinderai.com/app-integrations?token='+userToken); return false;" style="color:var(--primary);font-weight:600;text-decoration:none;">Connect one &rarr;</a>
+        </div>`;
+    }
+}
+
+window.sendToOutreach = async function sendToOutreach() {
+    if (!window.lastOutreachPushResult) return;
+    const select = document.getElementById('outreachDestSelect');
+    const destination = select && select.value;
+    if (!destination) return;
+    const btn = document.getElementById('sendToOutreachBtn');
+    const orig = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending…';
+    try {
+        const d = await outreachCall('push', {
+            destination: destination,
+            results: [{ input: window.lastOutreachPushInput, result: window.lastOutreachPushResult }]
+        });
+        if (d.pushed > 0) {
+            btn.innerHTML = '<i class="fas fa-check"></i> Sent';
+            try { posthog.capture('sent_to_outreach', { source: 'single', destination: destination }); } catch(e) {}
+        } else {
+            btn.disabled = false; btn.innerHTML = orig;
+            const reason = (d.skipped && d.skipped[0] && d.skipped[0].reason) || (d.failed && d.failed[0] && d.failed[0].error) || 'Nothing was sent.';
+            showAlert(reason, 'warning');
+        }
+    } catch (e) {
+        btn.disabled = false; btn.innerHTML = orig;
+        showAlert(e.message || 'Could not send. Please try again.', 'error');
+    }
+};
+
+function showBulkOutreachButtonIfApplicable() {
+    const wrap = document.getElementById('bulkOutreachAction');
+    if (!wrap) return;
+    const applicable = ['email', 'linkedin_url', 'phone'].includes(currentOutputType);
+    const hasConnections = Array.isArray(outreachConnections) && outreachConnections.length > 0;
+    wrap.classList.toggle('hidden', !(applicable && hasConnections));
+    if (applicable && hasConnections) {
+        const select = document.getElementById('bulkOutreachDestSelect');
+        if (select) select.innerHTML = outreachDestOptionsHtml();
+    }
+}
+
+window.sendBulkToOutreach = async function sendBulkToOutreach() {
+    const select = document.getElementById('bulkOutreachDestSelect');
+    const destination = select && select.value;
+    if (!destination) return;
+
+    const results = (bulkResults || [])
+        .filter(row => row.status === 'Found')
+        .map(row => ({
+            input: row.inputData,
+            result: buildOutreachPushResult(currentOutputType, row.result, currentInputType, row.inputData)
+        }))
+        .filter(r => r.result);
+
+    if (!results.length) { showAlert('No contact-type results to send (this only works for email, LinkedIn URL, or phone lookups).', 'warning'); return; }
+
+    const btn = document.getElementById('sendAllToOutreachBtn');
+    const orig = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Sending ${results.length}…`;
+    try {
+        const d = await outreachCall('push', { destination: destination, results: results });
+        btn.innerHTML = `<i class="fas fa-check"></i> ${d.pushed || 0} sent`;
+        if (d.failed && d.failed.length) btn.innerHTML += `, ${d.failed.length} failed`;
+        try { posthog.capture('sent_to_outreach', { source: 'bulk', destination: destination, pushed: d.pushed, failed: (d.failed||[]).length }); } catch(e) {}
+    } catch (e) {
+        btn.disabled = false; btn.innerHTML = orig;
+        showAlert(e.message || 'Could not send. Please try again.', 'error');
+    }
+};
 
 // Fires once, only after the user has an actual successful, error-free result
 // rendered on screen — never on page load, never mid-request.
