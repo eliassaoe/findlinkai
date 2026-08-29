@@ -108,10 +108,37 @@ starting only once the internal version shows the demand is there.
 
 ---
 
-## 6. Outreach connectors  ·  library code, not a product
+## 6. Outreach connectors  ·  library, plus a live push endpoint
 
-`integrations/outreach/` is a dependency-free ES module, not something to submit
-anywhere. It gets wired into a worker or backend that calls `enrichAndPush()`.
+`integrations/outreach/` is a dependency-free ES module — twelve destination
+adapters, each authenticating and shaping a request its own way behind one shared
+`addLead({ credentials, target, lead })`.
+
+It is now wired into a product surface: the `outreach-push` Supabase Edge Function
+(`supabase/functions/outreach-push/`) stores a user's destination API key in
+`outreach_connections` (RLS on, no anon policy — only the function's service key
+reaches the table) and exposes `catalogue` / `list` / `save` / `delete` / `push`
+actions over one POST endpoint. It never re-enriches: every `push` call carries
+`{input, result}` pairs the caller already paid for and normalises/sends them via
+`push-leads.mjs`'s `pushLeads()`, never `push.mjs`'s `enrichAndPush()` (that one
+calls LinkFinder AI itself, which is right for a script that owns the whole flow,
+wrong for a backend serving results the user is already looking at).
+
+**Deploying a change to a destination adapter is two steps, not one:**
+
+```bash
+node integrations/outreach/vendor.mjs   # regenerate supabase/functions/outreach-push/vendor/outreach.mjs
+```
+
+then redeploy the function (`mcp__Supabase__deploy_edge_function`, or the Supabase
+CLI). Deno resolves the function's imports from the deployed bundle, not from this
+repo, so a fix to e.g. `destinations/lemlist.mjs` does nothing in production until
+the bundle is regenerated and redeployed. `outreach/test/vendor.test.mjs` fails the
+build if the committed bundle and the source have drifted — that gap is exactly how
+the first version of this function shipped three adapters (lemlist, JustCall,
+EmailBison) that had already been fixed in the library but not in what was live.
+`{"action":"version"}` on the endpoint reports the deployed `BUNDLE_SHA` if you need
+to confirm what is actually running.
 
 Instantly's field names are confirmed against its endpoint spec. The other eleven were
 written from published documentation — the tests pin the exact request each builds, and fail on any adapter that never reaches fetch. As of 2026-08-29 all twelve have been
@@ -121,3 +148,8 @@ see `outreach/README.md`'s verification table for what changed. Reconciling agai
 docs is still not the same as a live call, so **run one lead through each destination
 before pointing a real campaign at it.** Salesforge and EmailBison need the most care;
 EmailBison is self-hosted, so its paths vary per deployment.
+
+**Still missing before this is reachable from the product:** no page in the app
+calls the `outreach-push` endpoint yet — there is no "Connect Instantly" settings
+panel and no "Send to..." action on a result. The endpoint and its credential
+storage are live; the UI that would let a user actually use it is not.

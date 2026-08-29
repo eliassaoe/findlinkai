@@ -8,7 +8,7 @@
  */
 import { enrich } from './linkfinder.mjs';
 import { toLeads } from './lead.mjs';
-import { getDestination } from './destinations/index.mjs';
+import { checkDestination } from './push-leads.mjs';
 
 /**
  * @param {object} options
@@ -33,19 +33,9 @@ export async function enrichAndPush({
     dryRun = false,
     params = {},
 }) {
-    const destination = getDestination(destinationId);
-
-    // JustCall can create a contact without a list, so its target is optional.
-    const targetOptional = destination.targetLabel.includes('optional');
-    if (!dryRun && !targetOptional && !target?.id) {
-        throw new Error(`${destination.label} needs a target — ${destination.targetLabel.toLowerCase()}.`);
-    }
-
-    for (const field of destination.extraCredentials ?? []) {
-        if (!credentials?.[field]) {
-            throw new Error(`${destination.label} needs "${field}" in its credentials.`);
-        }
-    }
+    // JustCall can create a contact without a list, so its target is optional —
+    // checkDestination knows that from the destination's own targetLabel.
+    const destination = checkDestination(destinationId, { credentials, target, dryRun });
 
     const inputs = Array.isArray(input) ? input : [input];
 
