@@ -64,6 +64,12 @@ COMMON WORKFLOWS
   find_company_employee_count, and find_company_linkedin_url all accept a
   bare company name directly — no chaining needed for any of them.
 
+- "Find a company's email" when you already have its DOMAIN (e.g.
+  "tesla.com"), not just its name: prefer find_company_email_from_domain
+  over find_company_email — same cost, more accurate, since the domain
+  removes any ambiguity over which company is meant. Call
+  find_company_website first if you only have the name and need the domain.
+
 - "List employees at a company": find_company_employees needs a DOMAIN
   (e.g. "tesla.com"), not a name — call find_company_website first if you
   only have the company name, then feed its result in. Alternatively, if
@@ -92,9 +98,11 @@ by operation, because some data is far more expensive to source than others:
   50 credits  find_phone_from_linkedin_profile
   10 credits  find_email_from_linkedin_profile, get_linkedin_profile_info
    6 credits  get_linkedin_company_info
-   5 credits  find_linkedin_url_from_email
-   1 credit   every company-name lookup, find_linkedin_url_from_name,
-              find_linkedin_company_employee_count
+   5 credits  find_linkedin_url_from_email, find_company_email,
+              find_company_email_from_domain
+   1 credit   find_company_website, find_company_phone,
+              find_company_employee_count, find_company_linkedin_url,
+              find_linkedin_url_from_name, find_linkedin_company_employee_count
 
 find_company_employees (1 credit per employee returned) and
 find_linkedin_post_reactions (1 credit per reaction returned) bill per record
@@ -162,12 +170,26 @@ export function createServer(apiKey: string): McpServer {
     "find_company_email",
     {
       title: "Find company email",
-      description: "Find a company's contact email address from its name. Costs 1 credit.",
+      description:
+        "Find a company's contact email address from its name. Costs 5 credits. If you have the company's domain instead of its name, use find_company_email_from_domain — it's more accurate, since a domain removes any ambiguity over which company is meant.",
       inputSchema: {
         company_name: z.string().min(1).describe('The company name to look up, e.g. "Tesla".'),
       },
     },
     async ({ company_name }) => runLookup("company_name_to_email", company_name),
+  );
+
+  server.registerTool(
+    "find_company_email_from_domain",
+    {
+      title: "Find company email (by domain)",
+      description:
+        'Find a company\'s contact email address from its DOMAIN, e.g. "tesla.com" — not the company name; call find_company_website first if you only have the name. More accurate than find_company_email since the domain removes any ambiguity over which company is meant. Costs 5 credits.',
+      inputSchema: {
+        company_domain: z.string().min(1).describe('The company domain to look up, e.g. "tesla.com".'),
+      },
+    },
+    async ({ company_domain }) => runLookup("company_domain_to_email", company_domain),
   );
 
   server.registerTool(

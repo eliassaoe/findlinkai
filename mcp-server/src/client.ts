@@ -8,6 +8,7 @@ export type EnrichmentType =
   | "company_name_to_email"
   | "company_name_to_employee_count"
   | "company_name_to_linkedin_url"
+  | "company_domain_to_email"
   | "company_domain_to_employees"
   | "linkedin_profile_to_linkedin_info"
   | "linkedin_profile_to_email"

@@ -1,6 +1,6 @@
 /**
  * GENERATED from integrations/catalog/operations.json. Do not edit by hand.
- * Spec version 1.1.0 — 19 lookups.
+ * Spec version 1.1.0 — 20 lookups.
  *
  * Regenerate with: node build.mjs
  */
@@ -558,6 +558,24 @@ var LINKFINDER_OPERATIONS = [
     "inputLabel": "Company Name",
     "inputHelp": "The company's name.",
     "example": "Tesla",
+    "outputField": "email",
+    "outputKind": "scalar",
+    "columns": null,
+    "labels": null,
+    "compositeInput": null,
+    "params": []
+  },
+  {
+    "type": "company_domain_to_email",
+    "label": "Find Company Email by Domain",
+    "category": "Companies",
+    "credits": 5,
+    "perEmployeeBilling": false,
+    "alwaysAsync": false,
+    "altType": null,
+    "inputLabel": "Company Domain",
+    "inputHelp": "The company's domain, not its name — tesla.com, not Tesla.",
+    "example": "tesla.com",
     "outputField": "email",
     "outputKind": "scalar",
     "columns": null,

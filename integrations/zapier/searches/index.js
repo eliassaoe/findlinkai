@@ -17,6 +17,7 @@ const listEmployeesByCompanyDomain = require('./listEmployeesByCompanyDomain');
 const listEmployeesByCompanyName = require('./listEmployeesByCompanyName');
 const listEmployeesFromLinkedinCompany = require('./listEmployeesFromLinkedinCompany');
 const findCompanyEmail = require('./findCompanyEmail');
+const findCompanyEmailByDomain = require('./findCompanyEmailByDomain');
 const getLinkedinCompanyDetails = require('./getLinkedinCompanyDetails');
 const getLinkedinPostReactions = require('./getLinkedinPostReactions');
 const lookUpInstagramProfile = require('./lookUpInstagramProfile');
@@ -38,6 +39,7 @@ module.exports = {
   [listEmployeesByCompanyName.key]: listEmployeesByCompanyName,
   [listEmployeesFromLinkedinCompany.key]: listEmployeesFromLinkedinCompany,
   [findCompanyEmail.key]: findCompanyEmail,
+  [findCompanyEmailByDomain.key]: findCompanyEmailByDomain,
   [getLinkedinCompanyDetails.key]: getLinkedinCompanyDetails,
   [getLinkedinPostReactions.key]: getLinkedinPostReactions,
   [lookUpInstagramProfile.key]: lookUpInstagramProfile,

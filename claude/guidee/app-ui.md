@@ -27,7 +27,7 @@ There are exactly 14. A dropdown pair outside this list does not exist.
 | Lead Full Name | Enter Lead Full Name + Company Name | `e.g., John Doe JP morgan, Sarah Smith Netflix` | LinkedIn Profile URL · Verified Email |
 | Company Name | Enter Company Name | `e.g., Tesla, Apple, Microsoft` | Company Website · Company Phone Number · Company LinkedIn URL · Company Email |
 | Email Address | Enter Email Address | `e.g., john.doe@company.com` | LinkedIn Profile URL |
-| Company Domain | Enter Company Domain | `e.g., tesla.com, apple.com` | Company Employees List |
+| Company Domain | Enter Company Domain | `e.g., tesla.com, apple.com` | Company Employees List · Company Email |
 | LinkedIn Company URL | Enter LinkedIn Company URL | `e.g., linkedin.com/company/tesla` | LinkedIn Company Data · Employee Count |
 | LinkedIn Profile URL | Enter LinkedIn Profile URL | `e.g., linkedin.com/in/john-doe` | LinkedIn Profile Data · Phone Number · Email Address |
 | LinkedIn Post URL | Enter LinkedIn Post URL | `e.g., linkedin.com/feed/update/urn:li:activity:1234567890` | Post Reactions |
