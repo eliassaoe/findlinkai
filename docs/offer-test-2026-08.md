@@ -437,3 +437,87 @@ stops *fake* addresses, not *stale* ones.
 The one-off is a batch to a dormant list, so budget **2–5 bounces on 70**. SES
 puts an account under review at 5%. The continuous workflow is the safe shape —
 it mails people who were active yesterday.
+
+---
+
+## 2026-08-30 — the upsell is now the strategy
+
+Decision: **the email's only job is to book a strategic call. The VIP
+done-for-you offer is sold by Eliasse on that call, never in the email.**
+Everything below serves that.
+
+### AEO / listicle — stopped, confirmed
+
+Workflow 11 (`01a038b0-a39c`) is `archived`. Last send **25 Aug, 153 emails**;
+archived 28 Aug; nothing sent since. Verified against
+`$workflows_email_sent`, not against the workflow's status field alone.
+
+### The two upsell campaigns — renamed and corrected
+
+| was | now |
+| --- | --- |
+| OFFER TEST A — booked calls, priced per call | **UPSELL — VIP done-for-you, book a strategic call (arm A)** |
+| BOOKED CALLS — round 2, batch 1 (200) | **UPSELL — VIP done-for-you, book a strategic call (round 2)** |
+
+Both verified in live config (not from notes): `tracking_enabled: true`,
+CTA → `calendly.com/hamoureliasse/offre-linkfinder-ai-clone`, button reads
+**Book a strategic call**, no staged draft, status active.
+
+**Their descriptions were stale and actively dangerous.** Arm A's said
+*"tracking is off (engagement here is bot-flagged so a pixel buys nothing)"*,
+*"no links in the body except unsubscribe"*, and *"primary metric is REPLIES
+counted by hand"*. All three false. Round 2's said *"Tracking off"* and quoted
+arm A as *"191 sent / 2 bounced / 1.0%"*.
+
+That stale text is exactly what caused 378 emails to go out blind — the
+"engagement is bot-flagged" claim was carried forward and never challenged,
+when the AEO campaign sent 153 the same week with tracking on and pulled 71
+openers. **Both descriptions are now rewritten with the real numbers and a
+dated correction note.**
+
+### Real numbers, both campaigns
+
+| campaign | sent | openers | Calendly clicks | bounced | unsub |
+| --- | --- | --- | --- | --- | --- |
+| Upsell arm A | 190 | 0 | 0 | 5 (**2.6%**) | 0 |
+| Upsell round 2 | 188 | 0 | 0 | 10 (**5.3%**) | 0 |
+
+Both sent 26 Aug with tracking off, so **the zeros are unmeasured, not zero.**
+Round 2's 5.3% is the worst in the account and sits on the SES review line —
+gate any further dormant-cohort batch on that.
+
+### Dashboard: VIP upsell — booked calls funnel (id 2048493)
+
+Three tiles:
+
+1. **Upsell email funnel** — sent → opened → Calendly click → bounce %, across
+   all four VIP campaigns.
+2. **In-app VIP doors** — where people meet the offer in-product.
+3. **Calendly clicks per day** — the leading indicator.
+
+**The measurement ceiling:** Calendly is off-site and uninstrumented. PostHog
+can show the *click* and never the *booking*. Bookings and closes are read in
+Calendly. Do not build a funnel that pretends otherwise — an earlier attempt
+built a UTM pageview check that could never return a row.
+
+### The in-app numbers that matter
+
+    sales_call_intercept_shown        36 people
+    sales_call_intercept_cta_clicked   5 people   -> 14%
+    vip_card_clicked                   3 people
+    vip_page_viewed                    1 person
+
+**14% on the intercept is the best-converting surface in the product** — and it
+is the one with no VIP door on it in production.
+
+### Still blocking, unchanged
+
+The live `linkfinderai.com/linkfinder-vip` page still reads
+*"Managed CRM Enrichment & Automation"* and all 7 of its CTAs book
+`compensated-interview-unlimited-leads-clone` — **a call where Eliasse pays the
+prospect.** The email path dodges this (its CTA goes straight to the right
+Calendly), but every in-app door lands on it.
+
+The fix — page rewritten to booked calls, right Calendly, `n >= 25` banner fix,
+bordered pricing card, VIP door in the intercept — is written and sitting
+unmerged on `claude/b2b-sales-offers-research-1j90q9`.
