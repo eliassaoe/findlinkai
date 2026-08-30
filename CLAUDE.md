@@ -56,6 +56,7 @@ into a file here in the same session, or it is gone.
 | App UI ground truth (never invent a label) | `claude/guidee/app-ui.md` |
 | CSV enrichments in History | `docs/csv-enrichment-history.md` |
 | What the account page counts as "found" | `docs/account-value-summary.md` |
+| Listicle outreach on a cron (the `ai_keywords` table) | `docs/ai-keyword-outreach.md` — read it before adding keywords, it spends credits |
 | CRM cleanup + HubSpot | `CRM-SETUP.md` |
 | Outbound campaign | `OUTBOUND-CRM-AUDIT.md` |
 | Workers | `workers/` — but most live workers are NOT in this repo; read them with the Cloudflare connector |
