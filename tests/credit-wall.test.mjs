@@ -12,7 +12,7 @@ const end = src.indexOf('}', src.indexOf('cimHardClose();', src.indexOf(endMark)
 assert.ok(start > 0 && end > start, 'could not locate the rescue block in app.html');
 const block = src.slice(start, end);
 
-const CALENDLY = 'https://calendly.com/hamoureliasse/compensated-interview-unlimited-leads-clone';
+const CALENDLY = 'https://calendly.com/hamoureliasse/linkfinder-ai';
 
 function harness({ store = {}, session = {}, subscriber = false, fetchImpl = null, geoTier = 'standard', ...overrides } = {}) {
     const state = { captured: [], closed: false };

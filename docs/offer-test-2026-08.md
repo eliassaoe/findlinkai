@@ -521,3 +521,61 @@ Calendly), but every in-app door lands on it.
 The fix — page rewritten to booked calls, right Calendly, `n >= 25` banner fix,
 bordered pricing card, VIP door in the intercept — is written and sitting
 unmerged on `claude/b2b-sales-offers-research-1j90q9`.
+
+---
+
+## 2026-08-30 — one Calendly link for every call
+
+**Rule: every call CTA anywhere points at
+`https://calendly.com/hamoureliasse/linkfinder-ai`.** Product, marketing site,
+workers, and every email campaign. Do not introduce a second booking link.
+
+Three links were in use. All are retired:
+
+| retired slug | was used | count |
+| --- | --- | --- |
+| `intro-call` | marketing-site CTAs and footers | 190 |
+| `compensated-interview-unlimited-leads-clone` | app.html, account.html, crm-sync.html, the live VIP page, the support worker | 16 |
+| `offre-linkfinder-ai-clone` | the four VIP/upsell email campaigns, linkfinder-vip.html | 7 |
+
+**Why `compensated-interview…` had to go regardless.** It books a *compensated
+research interview* — a call where Eliasse pays the prospect. It was on the
+"clicked upgrade, didn't upgrade" surfaces, so the highest-intent people in the
+product were being routed to a call that costs money instead of makes it.
+
+### Repo — 209 links across 197 files
+
+Rewritten with sed across every `.html`, `.js`, `.json`, `.py`, `.mjs`.
+`docs/*.md` deliberately left alone: those are dated records of what was
+configured at the time, and rewriting them would falsify the history. Four old
+links survive there and should stay.
+
+`tests/credit-wall.test.mjs` picked the new link up on its own — it reads the
+constant out of `app.html` rather than hardcoding it, which is why the swap
+needed no test edit.
+
+**Pre-existing test failure, not caused by this:** `low_conversion is offered
+credits to earn, never a discount` fails on `must name the G2 reward`. Verified
+by stashing — 15 pass / 1 fail both before and after. Unrelated to Calendly;
+still open.
+
+### PostHog — 4 of 5 call campaigns needed the change
+
+| workflow | action |
+| --- | --- |
+| UPSELL arm A `01a03f35` | patched, **published v8** |
+| UPSELL round 2 `01a03f99` | patched, **published v5** |
+| VIP one-off `01a04f33` | patched (draft, applied directly) |
+| VIP continuous `01a04f37` | patched (draft, applied directly) |
+| `5. Pricing seen, no payment — offer a call` `01a02878` | **already correct** — verified, not assumed |
+
+Both publishes previewed clean first: `in_flight_runs: 0`, no deleted steps, no
+schedule conflicts. utm_campaign values are unchanged
+(`vip_offer`, `vip_offer_r2`, `vip_rich_business`, `vip_friction_trigger`) so
+the dashboard tiles keep working across the swap.
+
+**Not exhaustively verified:** the remaining workflows (1, 2, 3, 4, 6, 7, 7b, 8,
+9, 10, offer test B, CRM audit follow-up) were not opened one by one. They are
+transactional or product emails with no obvious call CTA, but that is a
+judgement, not a check. If a stray booking link turns up, it will be in one of
+those.
