@@ -18,6 +18,18 @@ Everything is in `supabase/migrations/2026083012*..14*` and
 That is the whole interface. Paste in hundreds. Duplicates are rejected by a
 unique index on `lower(keyword)`, so re-pasting a list costs nothing.
 
+`supabase/seed/ai-keywords.sql` is a 1,342-keyword starting list for LinkFinder:
+best/top/free/cheapest/most-accurate over the categories it competes in, those
+same categories qualified by audience and by CRM, "<competitor> alternatives",
+and head-to-head comparisons. Every one is listicle-shaped — a question whose
+answer IS a ranked list of tools — because a how-to or navigational query gets
+cited with docs and homepages, which have nobody to write to.
+
+To stop the queue at any point without losing it:
+
+    select cron.alter_job((select jobid from cron.job where jobname = 'process-ai-keyword'),
+                          active := false);
+
 **Adding a row starts real outreach.** The leads it finds go straight into the
 live Instantly campaign "Listicles" and get emailed. There is no dry-run switch
 — to look before you send, add one keyword and read `ai_keyword_citations` and
