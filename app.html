@@ -6673,6 +6673,13 @@ const DISC = 'You must write in your review that you received credits for it. Re
 // badge.html, badge.svg and workers/badge-verify are left in place: the /badge
 // page stands on its own for anyone who wants to link to us unprompted.
 
+// The LinkedIn share task was removed on 31 Aug 2026. The order is now G2,
+// then the affiliate program, then YouTube - highest-value ask first.
+//
+// linkedin_share is left in the onboarding-tasks worker's TASK_CONFIG on
+// purpose: submissions already sitting at pending still need to be reviewable
+// and payable. This only stops new ones being offered.
+
 // The four survey questions. The ids and every option `value` below MUST match
 // SURVEY_QUESTIONS in workers/onboarding-tasks/worker.js - the worker refuses
 // any value it does not recognise, so a typo here reads to the user as a
@@ -6725,8 +6732,10 @@ const OTP_TASKS_ALL = [
     // featured: G2 reviews are the thing we are shortest of, so this row is
     // called out rather than sitting as one of five equals.
     { name: 'g2_review', kind: 'url', featured: true, label: 'Leave a G2 review', credits: 1000, realValue: '= 100 emails or 1,000 LinkedIn profiles', placeholder: 'Paste the URL of your review', linkUrl: OTP_LINKS.g2, linkLabel: 'Write a review on G2', pendingCopy: 'Being checked', disclosureNote: DISC },
+    // No credits badge: this one pays cash, not credits, and there is no
+    // /tasks/complete call behind it - copying the link is the whole action.
+    { name: 'affiliate_program', kind: 'referral', label: 'Join the affiliate program', sub: 'Share your invite link. You earn 25% of what they spend, up to $500 per referral.', badgeText: '25% commission', realValue: 'Paid out monthly once you reach $100' },
     { name: 'youtube_subscribe', kind: 'honor_click', label: 'Subscribe to our YouTube channel', credits: 100, realValue: '= 100 LinkedIn profiles', linkUrl: OTP_LINKS.youtube, linkLabel: 'Open channel' },
-    { name: 'linkedin_share', kind: 'url', label: 'Share on LinkedIn', credits: 150, realValue: '= 150 LinkedIn profiles', placeholder: 'Paste your LinkedIn post URL' },
 ];
 
 const OTP_TASKS = OTP_TASKS_ALL.filter(t => t.name !== 'product_survey' || SURVEY_TASK_LIVE);
@@ -6914,7 +6923,9 @@ function renderOnboardingTasksPopup() {
                     <div class="otp-task-label">${otpEsc(task.label)}${task.sub?`<div class="otp-task-sub">${otpEsc(task.sub)}</div>`:''}</div>
                     ${task.realValue ? `<div class="otp-task-realvalue">${otpEsc(task.realValue)}</div>` : ''}
                 </div>
-                <div class="otp-task-badge">+${task.credits.toLocaleString()} credits</div>
+                ${task.badgeText
+                    ? `<div class="otp-task-badge">${otpEsc(task.badgeText)}</div>`
+                    : task.credits ? `<div class="otp-task-badge">+${task.credits.toLocaleString()} credits</div>` : ''}
             </div>
             <div class="otp-task-action">${actionHtml}<div class="otp-field-error hidden" id="otp-error-${task.name}"></div></div>
         </div>`;
