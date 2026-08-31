@@ -266,10 +266,11 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
     .review-notification.hide{opacity:0;transform:translateY(20px);}
     .review-notification-header{display:flex;align-items:center;gap:0.5rem;margin-bottom:0.75rem;font-weight:600;color:#1f2937;}
     .review-notification-close{position:absolute;top:0.75rem;right:0.75rem;background:transparent;border:none;color:#9ca3af;cursor:pointer;font-size:1.25rem;line-height:1;padding:0.25rem;}
-    .review-platforms{margin:0.75rem 0;padding-left:1.25rem;}
-    .review-platforms li{margin:0.25rem 0;}
-    .review-platforms a{color:#2563eb;text-decoration:none;font-weight:500;}
-    .review-form-link{color:#2563eb;text-decoration:none;font-weight:500;}
+    .review-note{font-size:0.75rem;color:#6b7280;line-height:1.45;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:0.5rem 0.625rem;margin:0.75rem 0;}
+    .review-cta{display:block;width:100%;background:var(--primary);color:#fff;border:none;border-radius:8px;padding:0.7rem 1rem;font-size:0.875rem;font-weight:600;cursor:pointer;font-family:inherit;transition:filter 0.15s ease;}
+    .review-cta:hover{filter:brightness(0.93);}
+    .review-cta-secondary{display:block;width:100%;background:transparent;color:var(--gray-500);border:none;padding:0.55rem 0 0;font-size:0.78rem;font-weight:500;cursor:pointer;font-family:inherit;text-decoration:underline;}
+    .review-cta-secondary:hover{color:var(--gray-900);}
     .result-card{background:white;border:1px solid var(--gray-200);border-radius:8px;padding:1.5rem;margin-top:1rem;animation:result-in 0.35s ease;}
     @keyframes result-in{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
     .success-toast{position:fixed;top:1.25rem;left:50%;transform:translateX(-50%) translateY(-20px);background:var(--success);color:white;padding:0.75rem 1.25rem;border-radius:8px;font-size:0.875rem;font-weight:600;z-index:10002;display:flex;align-items:center;gap:0.5rem;box-shadow:0 4px 16px rgba(16,185,129,0.35);opacity:0;transition:all 0.3s ease;pointer-events:none;}
@@ -473,7 +474,9 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
 
     @media(max-width:640px){
         .form-grid{grid-template-columns:1fr;gap:1rem;}
-        .review-notification{display:none !important;}
+        /* Was display:none, which dropped every phone user from the review
+           ask entirely. Full-width bottom sheet instead, clear of the fab. */
+        .review-notification{left:12px;right:12px;bottom:12px;width:auto;}
         .pricing-modal{padding:1.5rem;margin:1rem;}
         .pricing-modal-header h2{font-size:1.5rem;}
         .container{padding:0 0.75rem;}
@@ -737,6 +740,11 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
 .otp-task-realvalue{font-size:0.72rem;color:var(--primary);font-weight:600;margin-top:0.15rem;}
 .otp-task-list{display:flex;flex-direction:column;gap:0.75rem;}
 .otp-task-row{border:1px solid var(--gray-200);border-radius:10px;padding:0.875rem 1rem;transition:border-color 0.15s ease,background 0.15s ease;}
+.otp-task-row.otp-featured{border-color:var(--primary);border-width:2px;padding:0.8rem 0.9375rem;background:rgba(37,99,235,0.03);}
+.otp-featured-flag{display:inline-block;font-size:0.65rem;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:var(--primary);margin-bottom:0.3rem;}
+/* A completed/pending state must still win over the featured highlight. */
+.otp-task-row.otp-featured.otp-status-completed{border-color:#bbf7d0;background:#f0fdf4;}
+.otp-task-row.otp-featured.otp-status-pending{border-color:#fde68a;background:#fffbeb;}
 .otp-status-completed{background:#f0fdf4;border-color:#bbf7d0;}
 .otp-status-pending{background:#fffbeb;border-color:#fde68a;}
 .otp-task-main{display:flex;align-items:flex-start;justify-content:space-between;gap:0.75rem;}
@@ -1126,18 +1134,26 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
     </div>
 </div>
 
+<!-- G2 only. Trustpilot's guidelines prohibit incentivised reviews outright, so
+     offering credits for one there was never permitted - the task was pulled from
+     the credits panel on 22 Aug 2026 and this popup was the last place still
+     asking for it.
+
+     The old version sent people to g2.com/fr/products/linkfinder-ai/reviews - the
+     French *listing* page, with nothing on it to fill in - and then to a Typeform
+     to claim. Three destinations and a manual grant at the end. It now points at
+     the write form and claims through the credits panel, which pays out on the
+     spot. -->
 <div id="reviewNotification" class="review-notification">
     <button class="review-notification-close" onclick="closeReviewNotification()">×</button>
-    <div class="review-notification-header"><span>👋</span> Hi there!</div>
+    <div class="review-notification-header"><span>&#11088;</span> Worth 1,000 credits</div>
     <div>
-        If you've found LinkFinder AI useful, please consider leaving us a review on G2 or Trustpilot:
-        <ul class="review-platforms"><li><a href="https://www.g2.com/fr/products/linkfinder-ai/reviews" target="_blank">G2</a></li></ul>
-        <ul class="review-platforms"><li><a href="https://fr.trustpilot.com/review/linkfinderai.com" target="_blank">Trustpilot</a></li></ul>
-        It only takes less than 1 minute!<br><br>
-        If you give us a review and provide us with the link to your review
-        <a href="https://form.typeform.com/to/UKRzccI3" class="review-form-link" onclick="openReviewForm(event)">in this form</a>,
-        we will award you <strong>1000 credits</strong> on your account.<br><br>
-        Thank you in advance! 🙏
+        If LinkFinder AI has been useful, would you write us a review on G2? We
+        will put <strong>1,000 credits</strong> on your account for it &mdash; that
+        is 100 emails or 1,000 LinkedIn profiles.
+        <div class="review-note">You must write in your review that you received credits for it. Reviews without that line can be removed by the platform.</div>
+        <button type="button" class="review-cta" onclick="openG2Review()">Write the review on G2</button>
+        <button type="button" class="review-cta-secondary" onclick="openReviewClaim()">Already wrote one? Claim your credits</button>
     </div>
 </div>
 
@@ -4784,8 +4800,10 @@ function checkAuth(){
     if (d.email) {
         try { posthog.identify(userToken, { email: d.email }); } catch(e) {}
     }
-    // India/Bangladesh/Nigeria get the full task-based earn-credits popup.
-    // Everyone else gets the simpler corner G2/Trustpilot review nudge instead.
+    // India/Bangladesh/Nigeria get the full task-based earn-credits popup
+    // auto-opened. Everyone else gets the corner G2 review nudge instead - but
+    // both now get the "Get Free Credits" fab, so the credits panel is always
+    // reachable rather than being a low_conversion-only surface.
     //
     // Testing override: append ?geo_test=low_conversion or ?geo_test=standard
     // to the URL to preview either branch locally without needing a real IP
@@ -4799,10 +4817,13 @@ function checkAuth(){
             console.log(`[geo_test] Overriding geo_tier from "${otpGeoTier}" to "${geoTestOverride}" for this session only.`);
             otpGeoTier = geoTestOverride;
         }
-                if (otpGeoTier === 'low_conversion') {
-            const reopenBtn = document.getElementById('reopenTasksBtn');
-            if (reopenBtn) reopenBtn.style.display = '';
-        }
+        // Every geo gets the fab, not just low_conversion. It is the only
+        // permanent way into the credits panel, and standard geo - which is
+        // most paying users - had no way in at all: the review email tells
+        // people to "paste it into the tasks panel in your account", and for
+        // them that panel had no door.
+        const reopenBtn = document.getElementById('reopenTasksBtn');
+        if (reopenBtn) reopenBtn.style.display = '';
     });
     maybeShowBulkTutorialPopup(lfVisitCount);
 })
@@ -5727,18 +5748,38 @@ function updateCreditCostDisplay(){
     updateAffordabilityWarning();
 }
 
+// Shown on mobile too now. It used to be desktop-only, which silently dropped
+// every phone user from the single biggest review ask in the product; the card
+// is responsive rather than hidden. Cap raised 2 -> 3 and the auto-hide 90s ->
+// 3min, because G2 reviews are the thing we are short of.
 function showReviewNotification(){
-    if(window.innerWidth<=640) return;
     const shown = parseInt(localStorage.getItem('lf_review_shown') || '0');
-    if(shown >= 2) return;
+    if(shown >= 3) return;
     setTimeout(()=>{
         document.getElementById('reviewNotification').classList.add('show');
         localStorage.setItem('lf_review_shown', shown + 1);
-        setTimeout(()=>{if(document.getElementById('reviewNotification').classList.contains('show'))closeReviewNotification();},90000);
+        try { posthog.capture('g2_review_prompt_shown', { times_shown: shown + 1 }); } catch(e) {}
+        setTimeout(()=>{if(document.getElementById('reviewNotification').classList.contains('show'))closeReviewNotification();},180000);
     },10000);
 }
 function closeReviewNotification(){document.getElementById('reviewNotification').classList.remove('show');document.getElementById('reviewNotification').classList.add('hide');}
-function openReviewForm(event){event.preventDefault();window.open('https://form.typeform.com/to/UKRzccI3','_blank');closeReviewNotification();}
+
+// One destination, and it is the write form - not the listing page, and not a
+// Typeform in between. OTP_LINKS.g2 is the single source of truth for this URL
+// so the popup and the credits panel can never drift apart again.
+function openG2Review(){
+    try { posthog.capture('g2_review_prompt_clicked', { action: 'write' }); } catch(e) {}
+    window.open(OTP_LINKS.g2, '_blank', 'noopener');
+    closeReviewNotification();
+}
+
+// Claiming is instant and in-app: the credits panel verifies the link and pays
+// out on the spot. The old Typeform meant a person waited on a manual grant.
+function openReviewClaim(){
+    try { posthog.capture('g2_review_prompt_clicked', { action: 'claim' }); } catch(e) {}
+    closeReviewNotification();
+    if (typeof openOnboardingTasksPopupManually === 'function') openOnboardingTasksPopupManually();
+}
 
 function showFeedbackModal(){document.getElementById('feedbackModal').classList.add('show');document.body.style.overflow='hidden';document.getElementById('feedbackSuccessMessage').classList.remove('show');document.getElementById('feedbackErrorMessage').classList.remove('show');}
 function closeFeedbackModal(){document.getElementById('feedbackModal').classList.remove('show');document.body.style.overflow='';setTimeout(()=>{document.getElementById('feedbackForm').reset();},300);}
@@ -6523,8 +6564,9 @@ const OTP_LINKS = {
     // they pasted that same URL back as their submission - which is most of the
     // pending queue. The /fr/ locale was also forcing French on an
     // English-majority audience.
+    // Trustpilot is deliberately absent: their guidelines prohibit incentivised
+    // reviews outright, and every place we asked for one offered credits.
     g2: 'https://www.g2.com/products/linkfinder-ai/reviews/start',
-    trustpilot: 'https://www.trustpilot.com/evaluate/linkfinderai.com',
 };
 
 // Both review platforms and the FTC require an incentivised review to say so.
@@ -6591,7 +6633,9 @@ const SURVEY_TASK_LIVE = false;
 
 const OTP_TASKS_ALL = [
     { name: 'product_survey', kind: 'survey', label: 'Answer 4 questions about your work', sub: 'Takes about a minute. It genuinely changes what we build next.', credits: 500, realValue: '= 50 emails or 500 LinkedIn profiles' },
-    { name: 'g2_review', kind: 'url', label: 'Leave a G2 review', credits: 1000, realValue: '= 100 emails or 1,000 LinkedIn profiles', placeholder: 'Paste the URL of your review', linkUrl: OTP_LINKS.g2, linkLabel: 'Write a review on G2', pendingCopy: 'Being checked', disclosureNote: DISC },
+    // featured: G2 reviews are the thing we are shortest of, so this row is
+    // called out rather than sitting as one of five equals.
+    { name: 'g2_review', kind: 'url', featured: true, label: 'Leave a G2 review', credits: 1000, realValue: '= 100 emails or 1,000 LinkedIn profiles', placeholder: 'Paste the URL of your review', linkUrl: OTP_LINKS.g2, linkLabel: 'Write a review on G2', pendingCopy: 'Being checked', disclosureNote: DISC },
     { name: 'site_badge', kind: 'url', label: 'Put the LinkFinder badge on your site', credits: 1000, realValue: '= 100 emails or 1,000 LinkedIn profiles', placeholder: 'Paste the page URL where the badge is live', linkUrl: 'https://linkfinderai.com/badge', linkLabel: 'Get the badge code', verifyWorker: BADGE_VERIFY_WORKER },
     { name: 'youtube_subscribe', kind: 'honor_click', label: 'Subscribe to our YouTube channel', credits: 100, realValue: '= 100 LinkedIn profiles', linkUrl: OTP_LINKS.youtube, linkLabel: 'Open channel' },
     { name: 'linkedin_share', kind: 'url', label: 'Share on LinkedIn', credits: 150, realValue: '= 150 LinkedIn profiles', placeholder: 'Paste your LinkedIn post URL' },
@@ -6774,9 +6818,11 @@ function renderOnboardingTasksPopup() {
             </div>`;
         }
 
-        return `<div class="otp-task-row otp-status-${status}" id="otp-row-${task.name}">
+        const featuredCls = task.featured && status !== 'completed' ? ' otp-featured' : '';
+        return `<div class="otp-task-row${featuredCls} otp-status-${status}" id="otp-row-${task.name}">
             <div class="otp-task-main">
                 <div class="otp-task-text">
+                    ${featuredCls ? '<span class="otp-featured-flag">Most helpful to us</span>' : ''}
                     <div class="otp-task-label">${otpEsc(task.label)}${task.sub?`<div class="otp-task-sub">${otpEsc(task.sub)}</div>`:''}</div>
                     ${task.realValue ? `<div class="otp-task-realvalue">${otpEsc(task.realValue)}</div>` : ''}
                 </div>
@@ -6940,7 +6986,7 @@ async function otpSubmitUrlTask(taskName) {
         }
     }
 
-    const isReview = taskName === 'g2_review' || taskName === 'trustpilot_review';
+    const isReview = taskName === 'g2_review';
     const endpoint = isReview ? '/tasks/submit-review' : '/tasks/complete';
     try {
         const res = await fetch(`${ONBOARDING_TASKS_WORKER}${endpoint}`, {
