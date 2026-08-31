@@ -83,6 +83,42 @@ actively unfavourable answer assembled from competitor pages.
 alternatives" page, and appears inside the category roundups. That is the
 position the roundup work was meant to buy, occupied by a competitor.
 
+## Is Derrick the cause? Mostly no — and the play is symmetric
+
+It is tempting to read Derrick's two pages as the problem. Three things argue
+against that.
+
+**The same play is already being run in the other direction.** This repo holds
+**33 competitor-alternative pages**, including `derrick-app-alternative.html` —
+"Best Derrick App Alternatives in 2026: Top 5 Compared" — live since
+2025-12-13, plus pages targeting Hunter, Clay, ZoomInfo, Apollo, Wiza and
+Findymail. This is standard category SEO, not sabotage.
+
+**But it is being lost badly.** Traffic to those pages, lifetime:
+
+| Page | Live since | People | from Google |
+| --- | --- | --- | --- |
+| `/clay-alternative` | 2025-12-15 | 52 | 21 |
+| `/derrick-app-alternative` | 2025-12-13 | **27** | 12 |
+| `/apollo-api-alternative` | 2026-06-15 | 6 | 7 |
+| `/hunter-io-alternative` | 2026-08-16 | 3 | 1 |
+| `/zoominfo-alternative` | 2026-07-12 | 2 | 0 |
+
+Eight months of the Derrick page produced **27 visitors**. Derrick's LinkFinder
+pages sit on the first page of a brand search.
+
+**The vacuum is the real cause.** The objections the models repeat are
+"unverified by independent benchmarks" and "limited third-party validation" —
+neither of which Derrick wrote. Their page is loud because nothing else is
+there. Against a few hundred G2 reviews it would be one voice among many.
+
+And Derrick's own visibility comes from **being inside the nine category
+roundups**, not from writing about LinkFinder. Presence is what earns citation;
+the competitor page is a footnote to it.
+
+So: answering with more alternative pages is the move that has already been
+tried for eight months and returns 27 visitors.
+
 ## What actually follows
 
 1. **Referral clicks are the wrong success metric here** and always will be. An
