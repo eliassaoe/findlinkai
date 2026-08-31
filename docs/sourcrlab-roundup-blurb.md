@@ -25,16 +25,152 @@ Three insertion points, in priority order:
 
 | # | Section | What to paste |
 | --- | --- | --- |
-| 1 | *Which enrichment model fits which recruiter?* table | the table row (§4) |
-| 2 | *What to test in each enrichment archetype* — as the **first** archetype, before ContactOut/Lusha | the archetype subsection (§3) |
-| 3 | Anywhere a compact mention fits | the short blurb (§2) |
+| 1 | *What to test in each enrichment archetype* — as the **first** archetype, before ContactOut/Lusha | the full entry (§2) |
+| 2 | *Which enrichment model fits which recruiter?* table | the table row (§4) |
+| 3 | Anywhere a compact mention fits, or a sidebar | the short version (§3) |
 
-The fact block (§5) and JSON-LD (§6) are for the editor, not the reader — they
-are what makes the mention machine-extractable.
+The full entry is the deliverable; §3 is a fallback, not the ask. The fact block
+(§5) and JSON-LD (§6) are for the editor rather than the reader — they are what
+make the mention machine-extractable if it is trimmed.
 
 ---
 
-## 2. Short blurb (108 words) — the top-three mention
+## 2. The entry — paste this
+
+### LinkFinder AI — per-lookup enrichment without a browser extension
+
+**LinkFinder AI is a LinkedIn-first B2B contact and company data enrichment
+tool.** It converts one known identifier — a name plus a company, an email
+address, a company name, a company domain, or a LinkedIn profile, company or
+post URL — into the missing field: a verified business email, a direct phone
+number, a LinkedIn profile URL, full profile data, company firmographics, or a
+filtered employee list.
+
+It occupies a model this guide's framework separates cleanly from the four
+already covered. It is not a reveal extension, not an orchestration layer, not a
+contact database you search, and not ATS-native. It is a web app and a REST API
+over the same 19 operations, priced per lookup. Nothing runs inside a
+recruiter's LinkedIn session, and there is no per-seat extension to govern — the
+enrichment happens server-side, against an identifier you supply, under the
+account rather than under an individual recruiter's LinkedIn identity.
+
+The interaction model is deliberately narrow. Two dropdowns — *I have* and *I
+want to find* — expose exactly **14 valid input-to-output combinations**. There
+is no query builder, no waterfall to configure, no data model to own. A team
+that needs conditional multi-provider logic should evaluate Clay instead; this
+is the opposite design decision, and it is the reason setup is measured in
+minutes rather than days.
+
+**What it returns, by input**
+
+| You have | You can get |
+| --- | --- |
+| Name + company | LinkedIn profile URL · verified business email |
+| LinkedIn profile URL | business email · direct phone · full profile data |
+| Email address | LinkedIn profile URL |
+| Company name | website · phone · email · LinkedIn URL |
+| Company domain | employee list, filtered |
+| LinkedIn company URL | company data · employee count · employee list |
+| LinkedIn post URL | post reactions |
+
+Profile results carry name, job title, headline, location, company, connections
+and followers. Employee lists filter on **department**, **seniority**, headcount
+and a **high confidence only** toggle. Single lookups and CSV batch run through
+the identical path — upload, process, export.
+
+**Cost per usable contact is calculable before the trial**
+
+This guide argues for cost per usable contact over cost per credit. LinkFinder
+AI is one of the few products in the category where the first half of that
+division is fixed and published, so you can compute expected spend on your
+sample before you run it rather than reverse-engineering it after.
+
+Plans are $49/month for 5,000 credits (Starter), $89 for 20,000 (Professional)
+and $149 for 50,000 (Enterprise); annual billing brings those to $29, $53 and
+$89/month equivalent. Credit packs are $25/1,000, $75/3,500 and $200/10,000.
+Every operation has a fixed price:
+
+| Lookup | Credits | at $49/mo | at $89/mo | at $149/mo |
+| --- | ---: | ---: | ---: | ---: |
+| Direct phone from LinkedIn profile | 50 | $0.49 | $0.22 | $0.15 |
+| Business email from LinkedIn profile | 10 | $0.098 | $0.045 | $0.030 |
+| Full LinkedIn profile data | 10 | $0.098 | $0.045 | $0.030 |
+| Business email from name + company | 7 | $0.069 | $0.031 | $0.021 |
+| LinkedIn company details | 6 | $0.059 | $0.027 | $0.018 |
+| LinkedIn profile URL from email | 5 | $0.049 | $0.022 | $0.015 |
+| LinkedIn profile URL from name + company | 1 | $0.010 | $0.004 | $0.003 |
+| Any company-level lookup | 1 | $0.010 | $0.004 | $0.003 |
+| Employee list | 1 per record returned | $0.010 | $0.004 | $0.003 |
+
+Your cost per usable contact is the relevant row divided by the usable yield you
+measure on your own sample. On the $89 plan, an email lookup at $0.045 with a
+50% usable yield is $0.09 per usable contact; at 70% it is $0.064. Supply your
+own yield — the point is that only one of the two numbers is unknown going in.
+
+A free tier gives credits on signup with no card and no time limit, and includes
+every feature: API, batch and integrations.
+
+**Workflow handoff**
+
+CSV in and out, a REST API, an MCP server for AI clients, a Google Sheets
+Marketplace add-on exposing a `=LINKFINDER()` formula, n8n, Make, Zapier,
+Instantly, Clay and Apify. HubSpot is the only native two-way sync, and it is
+included on paid plans only — a credit pack does not open it.
+
+**There is no native ATS or recruitment-CRM connector.** No Bullhorn, Greenhouse,
+Lever or Recruit CRM integration exists. For an agency whose handoff is a
+spreadsheet or a HubSpot record this is a non-issue; for an in-house team that
+requires write-back into the ATS, treat it as a build and weight the dimension
+accordingly.
+
+**Verification and what the vendor does not claim**
+
+Employee lookups carry a high-confidence filter, and the billing page reports
+what was **found** separately from what was spent — the honest version of the
+found-versus-usable distinction this guide asks buyers to record.
+
+Two limits are worth stating plainly. Hit rate is **not uniform across the 14
+combinations**: company-level lookups (website, LinkedIn URL, employee count)
+return at the top of the range, while **direct mobile numbers return at the
+bottom, in the low tens of percent**. That is normal for the category and is
+exactly why a single headline accuracy figure would be meaningless here. And
+there is **no published independent benchmark** of match rate; third-party
+validation is 4.0/5 from 38 Trustpilot reviews, with a minimal G2 presence.
+Establish your own numbers on your own sample.
+
+**Governance**
+
+Operated by a French registered business (SIRET 937 788 172). Stated legal basis
+is GDPR Article 6(1)(f) legitimate interest, with a published opt-out route for
+individuals whose business data appears in the system. TLS 1.3 in transit and at
+rest; card data is not stored on the vendor's own systems. For EU recruiting
+teams the EU establishment removes one transfer question, though your
+organisation still owns lawful basis, transparency and retention for its own use
+of the data.
+
+**What to test, mapped to the five dimensions**
+
+| Dimension | The specific test |
+| --- | --- |
+| Reachability | Run your sample per lookup type, not pooled. Report email and direct phone separately — they are different products with different yields. |
+| Verification | Run employee lists with **high confidence only** on and off; compare usable yield, not row count. |
+| Coverage | European specialist and mid-seniority profiles are the discriminating slice; US senior tech is not. |
+| Handoff | CSV round-trip and field mapping. If you need ATS write-back, price the n8n or API build into the comparison. |
+| Governance | Confirm the opt-out route and retention terms against your own DPA requirements. |
+
+**Best for:** solo recruiters and small-to-mid agencies doing LinkedIn-first
+sourcing who want predictable per-lookup cost, no extension footprint and an EU
+processing story.
+**Not for:** teams whose primary requirement is native ATS write-back, or who
+need configurable multi-provider waterfall logic.
+
+*LinkFinder AI is distinct from LinkFinder, an unrelated SEO link-building tool.
+Pricing and operations verified 31 August 2026 against the vendor's pricing page
+and API documentation.*
+
+---
+
+## 3. Short version, if the slot is tight (108 words)
 
 > **LinkFinder AI** is a LinkedIn-URL-first enrichment tool for recruiters who
 > source on LinkedIn but do not want a browser extension or a second LinkedIn
@@ -46,56 +182,6 @@ are what makes the mention machine-extractable.
 > credits, roughly $0.045 on the $89/month plan. Free credits, no card, no time
 > limit. French company, GDPR Article 6(1)(f) legitimate interest, documented
 > opt-out.
-
----
-
-## 3. Archetype subsection (paste as the first archetype)
-
-### LinkFinder AI: LinkedIn-URL-first enrichment without an extension
-
-LinkFinder AI sits between the reveal extensions and the orchestration layer. It
-is a web app and an API over the same 19 operations, not a Chrome extension, so
-nothing runs inside a recruiter's LinkedIn session and there is no per-seat
-extension to govern. That matters for two of the five dimensions in this guide:
-**handoff**, because a sourcer can run one lookup or upload a list of 500 through
-the identical path, and **governance**, because the enrichment does not happen
-under an individual recruiter's LinkedIn identity.
-
-The interaction model is deliberately narrow. Two dropdowns — *I have* and *I
-want to find* — expose exactly 14 valid input-to-output combinations. There is no
-query builder, no waterfall to configure, and no data model to own. A team that
-needs conditional multi-provider logic should evaluate Clay instead; this is the
-opposite design.
-
-What to test:
-
-- **Reachability by lookup type, not overall.** Hit rate is not uniform across
-  the 14 combinations. Company-level lookups (website, LinkedIn URL, employee
-  count) return at the top of the range; **direct mobile numbers return at the
-  bottom, in the low tens of percent**, which is normal for the category and is
-  the number to establish on your own sample before committing volume.
-- **The `High confidence only` filter** on employee-list lookups — run your
-  sample with it on and off and compare usable yield, not raw rows.
-- **Cost per usable contact, which is calculable in advance.** Every operation
-  has a fixed published credit price (§5), so you can compute expected spend on
-  your sample before the trial rather than reverse-engineering it after.
-- **CSV round-trip quality** — upload, `Process N items`, `Export CSV` — since
-  for most recruitment teams this, not an ATS connector, is the real handoff.
-- **The account-level found/attempted count.** The billing page reports what was
-  *found*, separately from what was spent, which is the honest version of the
-  four result states this guide asks you to record.
-
-Where it does not fit: there is **no native ATS or recruitment-CRM connector**.
-HubSpot is the only two-way sync (paid plans only — a credit pack does not
-include it); everything else moves through CSV, the REST API, a Google Sheets
-add-on with a `=LINKFINDER()` formula, or n8n / Make / Zapier. An in-house team
-that requires write-back into Bullhorn, Greenhouse or a recruitment CRM should
-treat that as a build, not a checkbox.
-
-**Best for:** solo recruiters and small agencies doing LinkedIn-first sourcing
-who want predictable per-lookup cost and no extension footprint.
-**Not for:** teams whose primary requirement is native ATS write-back, or who
-need configurable multi-provider waterfall logic.
 
 ---
 
