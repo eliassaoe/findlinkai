@@ -879,6 +879,7 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
             <a href="#" class="nav-tab" data-page="crmSync"><i class="fab fa-hubspot"></i> CRM Sync</a>
             <a href="#" class="nav-tab" data-page="integrations"><i class="fas fa-puzzle-piece"></i> Integrations</a>
             <a href="#" class="nav-tab" data-page="history"><i class="fas fa-history"></i> History</a>
+            <a href="#" class="nav-tab hidden" id="aiSdrTab" data-page="aiSdr"><i class="fas fa-robot"></i> AI SDR</a>
             <a href="#" class="nav-tab" data-page="account"><i class="fas fa-user"></i> Account</a>
         </div>
     </div>
@@ -1319,6 +1320,43 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
         <div class="otp-loading-note hidden" id="otpLoadingNote">Loading your progress&hellip;</div>
         <div class="otp-footer">
             <button class="otp-skip-link" onclick="dismissOnboardingTasksPopup()">Skip for now</button>
+        </div>
+    </div>
+</div>
+
+<!-- AI SDR by LinkFinder AI -->
+<div id="aiSdrModal" class="otp-overlay">
+    <div class="otp-modal" role="dialog" aria-modal="true" aria-labelledby="aiSdrTitle">
+        <button class="otp-close" onclick="closeAiSdrModal()" aria-label="Close"><i class="fas fa-times"></i></button>
+        <div class="otp-header">
+            <div class="otp-eyebrow"><i class="fas fa-robot"></i> AI SDR by LinkFinder AI</div>
+            <h2 id="aiSdrTitle">Meetings booked for you</h2>
+            <p>Our team sets up the campaigns, the domains and the sending, and runs them on the LinkFinder engine. You get replies in your inbox and a weekly report. <strong>It does not touch your credit balance.</strong></p>
+        </div>
+        <div class="otp-survey">
+            <div class="otp-q">
+                <div class="otp-q-label">1. Who do you want to reach?</div>
+                <textarea class="otp-q-text" id="aiSdrTarget" rows="2" maxlength="2000" placeholder="e.g. Heads of Growth at Series A B2B SaaS in the US"></textarea>
+            </div>
+            <div class="otp-q">
+                <div class="otp-q-label">2. What are you selling them?</div>
+                <textarea class="otp-q-text" id="aiSdrOffer" rows="2" maxlength="2000" placeholder="One line on the offer, and what a good customer is worth to you"></textarea>
+            </div>
+            <div class="otp-q">
+                <div class="otp-q-label">3. How many calls a month would you like?</div>
+                <select class="otp-q-text" id="aiSdrCalls">
+                    <option value="10">Around 10</option>
+                    <option value="20" selected>Around 20</option>
+                    <option value="40">Around 40</option>
+                    <option value="0">Not sure yet</option>
+                </select>
+            </div>
+            <div class="otp-disclosure-note" id="aiSdrPriceNote" style="display:none"></div>
+            <button class="otp-submit-btn otp-survey-submit" id="aiSdrSubmit" onclick="submitAiSdrRequest()">Send and pick a time</button>
+            <div class="otp-field-error hidden" id="aiSdrError"></div>
+        </div>
+        <div class="otp-footer">
+            <button class="otp-skip-link" onclick="closeAiSdrModal()">Not now</button>
         </div>
     </div>
 </div>
@@ -4621,7 +4659,108 @@ function navigateToPage(page){
         // app-integrations, not /integrations — the latter is the signed-out
         // landing page. A logged-in user should see what THEY have connected.
         case 'integrations': window.location.href=addGclid(`https://linkfinderai.com/app-integrations?token=${userToken}`); break;
+        // A panel rather than a page, so the highlight goes back where it was.
+        case 'aiSdr':
+            document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+            document.querySelector('[data-page="enrichment"]').classList.add('active');
+            openAiSdrModal();
+            break;
     }
+}
+
+/* ---------------------------------------------------------------- AI SDR
+ *
+ * The service offer, shown to the people the self-serve tool has already
+ * failed and to nobody else. Eligibility lives in ai_sdr_eligibility() so the
+ * tab and the submission cannot disagree: paying, and either never activated
+ * or dormant thirty days. Someone actively enriching never sees this — that
+ * is how you turn a healthy subscription into a one-off conversation.
+ *
+ * The answers are stored BEFORE the Calendly redirect on purpose. Whoever
+ * fills this in and never books is the warmest untouched lead there is, and
+ * capturing on booking alone makes them invisible.
+ */
+const AI_SDR_RPC = CSV_BATCH_SUPABASE_URL + '/rest/v1/rpc/';
+const AI_SDR_CALENDLY = 'https://calendly.com/hamoureliasse/intro-call';
+
+// Shown above the button. Empty means no price is shown at all.
+// A floor here is what stops the calendar filling with people who were never
+// going to buy — which is the entire reason for asking before booking.
+const AI_SDR_PRICE_NOTE = '';
+
+let aiSdrEligible = false;
+
+function aiSdrRpc(fn, body) {
+    return fetch(AI_SDR_RPC + fn, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json',
+                   apikey: CSV_BATCH_SUPABASE_ANON_KEY,
+                   Authorization: 'Bearer ' + CSV_BATCH_SUPABASE_ANON_KEY },
+        body: JSON.stringify(body),
+    }).then(r => r.json());
+}
+
+// Never blocks the page: if this fails the tab simply stays hidden.
+function aiSdrInit() {
+    if (!userToken) return;
+    aiSdrRpc('ai_sdr_eligibility', { p_token: userToken }).then(data => {
+        if (!data || data.eligible !== true) return;
+        aiSdrEligible = true;
+        const tab = document.getElementById('aiSdrTab');
+        if (tab) tab.classList.remove('hidden');
+        try { posthog.capture('ai_sdr_tab_shown', { reason: data.reason }); } catch(e) {}
+    }).catch(() => {});
+}
+
+function openAiSdrModal() {
+    if (!aiSdrEligible) return;
+    const note = document.getElementById('aiSdrPriceNote');
+    if (note && AI_SDR_PRICE_NOTE) { note.textContent = AI_SDR_PRICE_NOTE; note.style.display = ''; }
+    document.getElementById('aiSdrModal').classList.add('show');
+    document.body.style.overflow = 'hidden';
+    try { posthog.capture('ai_sdr_opened'); } catch(e) {}
+}
+
+function closeAiSdrModal() {
+    document.getElementById('aiSdrModal').classList.remove('show');
+    document.body.style.overflow = '';
+}
+
+async function submitAiSdrRequest() {
+    const target = document.getElementById('aiSdrTarget').value.trim();
+    const offer = document.getElementById('aiSdrOffer').value.trim();
+    const calls = parseInt(document.getElementById('aiSdrCalls').value, 10) || 0;
+    const err = document.getElementById('aiSdrError');
+    const btn = document.getElementById('aiSdrSubmit');
+
+    err.classList.add('hidden');
+    if (!target || !offer) {
+        err.textContent = 'Tell us who you want to reach and what you sell — both are needed to price the work.';
+        err.classList.remove('hidden');
+        return;
+    }
+
+    btn.disabled = true; btn.textContent = 'Sending\u2026';
+    let data;
+    try {
+        data = await aiSdrRpc('ai_sdr_request', { p_token: userToken, p_target: target, p_offer: offer, p_calls: calls });
+    } catch (e) { data = null; }
+
+    if (!data || data.ok !== true) {
+        err.textContent = (data && data.error) ? data.error : 'Could not send that. Try again in a moment.';
+        err.classList.remove('hidden');
+        btn.disabled = false; btn.textContent = 'Send and pick a time';
+        return;
+    }
+
+    try { posthog.capture('ai_sdr_submitted', { calls_wanted: calls }); } catch(e) {}
+
+    // Prefilled so the answers ride along onto the calendar invite. Calendly
+    // ignores params an event does not define, so a1 is safe either way.
+    const url = AI_SDR_CALENDLY
+        + '?email=' + encodeURIComponent(data.email || '')
+        + '&a1=' + encodeURIComponent(`Target: ${target} | Offer: ${offer} | Calls wanted: ${calls || 'not sure'}`);
+    window.location.href = url;
 }
 
 const UTM_KEYS = ['utm_source','utm_medium','utm_campaign','utm_term','utm_content','gclid','fbclid'];
@@ -4808,6 +4947,7 @@ function checkAuth(){
         }
     });
     maybeShowBulkTutorialPopup(lfVisitCount);
+    aiSdrInit();
 })
     .catch(() => {});
 }
