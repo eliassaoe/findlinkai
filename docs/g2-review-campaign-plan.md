@@ -285,3 +285,60 @@ audience hash in the token is unchanged before running.
 2. **The inbox.** Replies with review links are the main claim path now.
 3. Whether the four approved G2 permalinks still show as one published review —
    still unexplained, and it caps what any batch can deliver.
+
+## The in-app ask (31 Aug)
+
+The email is one of three surfaces. The other two are in the app, and both were
+broken or unreachable when batch 1 went out.
+
+**The credits panel had no door.** The "Get Free Credits" fab was revealed only
+for `low_conversion` geo. Standard geo — nearly every paying user, and everyone
+batch 1 was sent to — could not open the panel at all. The email told them to
+"paste it into the tasks panel in your account", and for them that panel did not
+exist. The fab now shows for every geo.
+
+**The corner popup was still on the bug the panel had already fixed.** It linked
+to `g2.com/fr/products/linkfinder-ai/reviews` — the French listing page, nothing
+on it to fill in — then sent people to a Typeform where credits were granted by
+hand. It now reads `OTP_LINKS.g2`, the same constant the panel uses, so the two
+surfaces cannot drift apart again. That drift is what created the bug.
+
+Trustpilot is gone from all of it: the popup, `OTP_LINKS`, and the submit branch.
+Their guidelines prohibit incentivised reviews outright and every place we asked
+offered credits.
+
+### Where the ask now happens
+
+| Moment | Trigger | Cap |
+| --- | --- | --- |
+| First success | first clean enrichment result on screen | 3 |
+| Bulk halfway | 50% through a bulk run of 100+ rows | 2 |
+| Anytime | "Get Free Credits" fab → credits panel, G2 row flagged | — |
+
+The halfway ask names the real position ("You are 500 rows into a list of
+1,000") so it reads as a response to the work, not a timer. It is suppressed
+when credits just ran out — that is a paywall, not a win — when a review is
+already left or being checked, and when either card is already up.
+
+### Still not verifiable from here
+
+There may be a shorter G2 link. `show_product` exposes a canonical
+`write_review_url`, but the connected G2 account is a buyer account owning no
+products, so the slug does not resolve, and g2.com is proxy-blocked. Guessing a
+shorter URL would recreate exactly the bug above. `/reviews/start` is G2's
+standard write path. **If the vendor account is logged into, G2 issues a
+review-campaign link — that is the direct one, and it is a one-line swap in
+`OTP_LINKS.g2`.**
+
+### What the Typeform removal costs
+
+Review links stop arriving at `form.typeform.com/to/UKRzccI3`, which is where the
+35-person list came from. Claims now arrive through the panel (instant, verified)
+or by reply to the batch-1 email (manual). The inbox still has to be watched.
+
+### Measuring it
+
+`g2_review_prompt_shown` and `g2_review_prompt_clicked`, both carrying `variant`
+(`first_success` / `bulk_halfway`) and `action` (`write` / `claim`). Until these
+exist there is no way to tell whether the ask fails at impression, click or
+submit — which is why none of the earlier guesses about it were worth much.
