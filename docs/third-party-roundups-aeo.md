@@ -119,6 +119,47 @@ the competitor page is a footnote to it.
 So: answering with more alternative pages is the move that has already been
 tried for eight months and returns 27 visitors.
 
+## The reviews exist — but not where the models look
+
+Checked 2026-08-31, after the point was raised that ~50 reviews already exist.
+
+| Surface | What is visible | Cited in the category comparison? |
+| --- | --- | --- |
+| **Trustpilot** | 4 stars, **38 reviewers** (US page); 4.5/5 from 18 on the CA page | **No** |
+| **G2** | **1 review** ("LinkFinder AI Products \| Read 1 Reviews on G2") | Yes — as an alternatives page |
+
+Two things follow.
+
+**Trustpilot is real social proof but the wrong currency for this category.** In
+the roundup comparison run earlier, the model counted **G2** reviews explicitly —
+Hunter "540+ G2 reviews", Apollo "9433+ reviewers" — and never once mentioned
+Trustpilot. For B2B software, G2 and Capterra are what gets cited; Trustpilot
+skews consumer and e-commerce. 38 Trustpilot reviews are worth having on the
+site's own pages, and are near-invisible to a model comparing enrichment tools.
+
+**So "limited third-party validation" was accurate, not unfair.** It was
+comparing 1 to 540 and to 9,433.
+
+*Note: the visible Trustpilot count is 38, not 50. And the G2 count of 1 comes
+from a search result title — it could not be confirmed through the G2 API,
+because the G2 account connected to this session owns no products (it is a buyer
+account, not the LinkFinder seller account), and g2.com itself is blocked by the
+egress proxy.*
+
+## A brand collision nobody has accounted for
+
+Two of the top results for a "LinkFinder review" query are about a **different
+product entirely** — an SEO link-building tool also called LinkFinder:
+
+- `linkfinder-review.com` — "Linkfinder Review: The Best AI Tool for Netlinking in 2026"
+- `affmaven.com` — "LinkFinder Review 2026: The Link Building Tool Every SEO Needs?"
+
+Anyone — or any model — researching "LinkFinder review" lands partly on a
+netlinking tool. That dilutes every brand query and is a plausible contributor to
+how thin and confused the picture is. Worth deciding whether the product is
+consistently "LinkFinder AI" everywhere, and whether the disambiguation is worth
+pursuing.
+
 ## What actually follows
 
 1. **Referral clicks are the wrong success metric here** and always will be. An
@@ -128,10 +169,12 @@ tried for eight months and returns 27 visitors.
 2. **The nine category roundups are the target list.** They are what AI systems
    cite for this category. Getting into them is the job; a mention anywhere else
    sends four people a quarter.
-3. **"No independent benchmarks" and "limited third-party validation" is the
-   specific objection the models repeat.** That is a review-count problem, not a
-   content problem. The `credit after review` campaign already exists in
-   Instantly and is marked completed.
+3. **The review gap is specifically a G2 gap, not a review gap.** 38 Trustpilot
+   reviews already exist and buy nothing in this category; G2 shows 1. Moving
+   review generation to G2 is the single highest-leverage AEO action available —
+   1 to 30 changes what a model can say about third-party validation. The
+   `credit after review` campaign already exists in Instantly, marked completed;
+   restarting it pointed at G2 specifically is the move.
 4. **Own the brand queries before chasing category ones.** A competitor's review
    page currently outranks the product's own answer on its own name.
 
