@@ -413,8 +413,8 @@ async function userIdByEmail(env, email) {
 function sbHeaders(env, extra) {
     return {
         'Content-Type': 'application/json',
-        apikey: env.SUPABASE_SERVICE_KEY,
-        Authorization: `Bearer ${env.SUPABASE_SERVICE_KEY}`,
+        apikey: env.SUPABASE_SERVICE_ROLE_KEY,
+        Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
         ...(extra || {})
     };
 }

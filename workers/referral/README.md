@@ -80,7 +80,7 @@ genuine referral to manual review.
 ```bash
 cd workers/referral
 npx wrangler secret put SUPABASE_URL
-npx wrangler secret put SUPABASE_SERVICE_KEY   # service role - bypasses RLS
+npx wrangler secret put SUPABASE_SERVICE_ROLE_KEY   # service role - bypasses RLS (same value as onboarding-tasks)
 npx wrangler secret put DODO_WEBHOOK_SECRET    # same secret as dodo-webhook
 npx wrangler secret put CLICK_SALT             # any long random string
 npx wrangler deploy
