@@ -65,6 +65,19 @@ const TITLE_MATCHES = [
     'content', 'seo', 'brand', 'growth', 'organic', 'demand generation', 'product marketing',
 ];
 
+// Checked first, and it beats a match above.
+//
+// The list is a substring match, and "growth" is the leaky one: a live run on
+// zoominfo.com matched a "Global Account Director, Enterprise Growth" and a
+// "Director of Sales, Retention and Growth" — both quota-carrying sales roles
+// that have no say over an article and would read a listicle-mention pitch as
+// spam. `department=marketing` did not exclude them, so the title has to.
+const TITLE_EXCLUDES = [
+    'sales', 'account executive', 'account director', 'account manager',
+    'business development', 'customer success', 'revenue operations',
+    'recruit', 'talent acquisition',
+];
+
 // Cited constantly by every model, and never somewhere to send outreach: the
 // page belongs to a platform, not to a marketing team that wants traffic.
 // Review sites (g2, capterra, trustradius) are deliberately NOT here — being
@@ -362,7 +375,9 @@ function asEmployeeList(body: any): any[] {
 
 const ownsContent = (jobTitle: unknown) => {
     const title = String(jobTitle ?? '').toLowerCase();
-    return title !== '' && TITLE_MATCHES.some((match) => title.includes(match));
+    if (title === '') return false;
+    if (TITLE_EXCLUDES.some((match) => title.includes(match))) return false;
+    return TITLE_MATCHES.some((match) => title.includes(match));
 };
 
 async function pushToInstantly(lead: any, work: Extract<Work, { kind: 'enrich' }>, apiKey: string, campaign: string) {

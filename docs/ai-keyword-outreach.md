@@ -60,8 +60,14 @@ before it looked at a single job title.
 
 The 10-credit `linkedin_profile_to_email` lookup is only paid when the employee
 record does not already carry an address. It usually does — the live response
-for `ahrefs.com` returns `ryan.law@ahrefs.com` inline — so this is normally
-free. The n8n flow bought every address regardless.
+for `ahrefs.com` returns `ryan.law@ahrefs.com` inline, and the first real
+keyword pushed four leads while buying none of them — so this is normally free.
+The n8n flow bought every address regardless.
+
+One real keyword, `best linkedin email finder tools`, is what these numbers come
+from: 11 pages cited, 9 worked, 24 employees seen, 2 new leads. Most domains
+returned nobody at director/head level in marketing, which is the normal shape —
+budget the queue on pages, not on leads.
 
 Two de-dupes keep the cost falling as the list grows:
 
@@ -125,6 +131,12 @@ live APIs turned out to require:
 - **The email/domain check compared strings.** `result contains domain` drops
   everyone at `learn.g2.com` and admits `bobg2.com@gmail.com`. This compares the
   company-level domain of each side, so subdomains match and lookalikes do not.
+- **Sales titles are excluded even when they match.** The filter is a substring
+  match and `growth` is the leaky one: a live run on `zoominfo.com` matched a
+  "Global Account Director, Enterprise Growth" and a "Director of Sales,
+  Retention and Growth". `department=marketing` did not exclude them, so the
+  title has to — that is where the two ZoomInfo sales contacts sitting in the
+  campaign from 29 Aug came from.
 - **Platform domains are dropped** — reddit, youtube, wikipedia, medium and so
   on are cited constantly and have no marketing team to pitch. Review sites
   (g2, capterra, trustradius) are deliberately kept: being listed on those is
