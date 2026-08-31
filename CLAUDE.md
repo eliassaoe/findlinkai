@@ -57,6 +57,7 @@ into a file here in the same session, or it is gone.
 | CSV enrichments in History | `docs/csv-enrichment-history.md` |
 | What the account page counts as "found" | `docs/account-value-summary.md` |
 | The AI SDR service offer, and who is allowed to see it | `docs/ai-sdr-offer.md` |
+| Selling Done For You to the 67 idle pack buyers | `docs/dfy-activation-campaign.md` — read the correction in it before quoting any "paying accounts" number |
 | Listicle outreach on a cron (the `ai_keywords` table) | `docs/ai-keyword-outreach.md` — read it before adding keywords, it spends credits |
 | CRM cleanup + HubSpot | `CRM-SETUP.md` |
 | Outbound campaign | `OUTBOUND-CRM-AUDIT.md` |

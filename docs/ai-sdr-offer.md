@@ -28,9 +28,15 @@ hard to find.
 What survived from that idea is the **segment** stamped on every row —
 `paying, active` · `paying, never activated` · `paying, dormant 30d` ·
 `free, has used it` · `free, never used it`. Worth a lot on the call, nothing at
-the door. Context for reading it, from when this was built: of 120 paying
-accounts, 68 had never run a single enrichment and 99 held more than 1,000
-credits untouched for a month.
+the door.
+
+An earlier version of this section read *"of 120 paying accounts, 68 had never
+run a single enrichment"*. **The count was right and the label was wrong.** That
+120 was `is_unlimited`, which CLAUDE.md warns is not a subscriber flag — credit
+-pack buyers carry it too. Measured 2026-08-31: **31 subscribers, of whom 1 has
+never run anything**, and **89 pack buyers, of whom 67 never have** (median
+balance 10,000 credits, the $200 pack). Subscribers are not dormant; the idle
+money is one-off pack buyers. See `docs/dfy-activation-campaign.md`.
 
 ## Price
 
