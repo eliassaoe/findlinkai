@@ -45,13 +45,28 @@ const MAX_CITATIONS_PER_KEYWORD = Number(Deno.env.get('AI_KEYWORDS_MAX_CITATIONS
 // introduction; ten is a mailing list they will report.
 const MAX_LEADS_PER_DOMAIN = Number(Deno.env.get('AI_KEYWORDS_MAX_LEADS_PER_DOMAIN') ?? 3);
 
-// Billed 0.5 credits each — see the note above before raising it.
-const EMPLOYEE_COUNT = Number(Deno.env.get('AI_KEYWORDS_EMPLOYEE_COUNT') ?? 15);
+// Billed 0.5 credits each, per seniority asked — see the note above before
+// raising it. Dropped from 15 when the third seniority was added, so widening
+// the net to reach small companies costs about what two seniorities did.
+const EMPLOYEE_COUNT = Number(Deno.env.get('AI_KEYWORDS_EMPLOYEE_COUNT') ?? 10);
 
 // A "Head of Content" does not come back under seniority=director, and is the
-// single best person to reach about a listicle. Two calls, two credits.
-const SENIORITIES = (Deno.env.get('AI_KEYWORDS_SENIORITIES') ?? 'director,head')
+// single best person to reach about a listicle. `founder` is what reaches the
+// small end of the list: every startup page cited so far — artisan.co,
+// driftwood.sh, agentmelt.com, cellcog.ai, getbreakout.ai — returned nobody at
+// director or head, because a ten-person company has no Director of Content.
+//
+// Valid values are the ones the app's own dropdown offers: c_suite, director,
+// entry, founder, head, manager, owner, partner, senior, vp. "C-suite" is NOT
+// among them — asked for it, the API returns one all-null row rather than an
+// error, so process-keyword's [head, C-suite, director] loop has been paying
+// for a pass that never returned anybody.
+const SENIORITIES = (Deno.env.get('AI_KEYWORDS_SENIORITIES') ?? 'director,head,founder')
     .split(',').map((s) => s.trim()).filter(Boolean);
+
+// Seniorities where the person runs the company, so "they own the content" is
+// true by default rather than by job title.
+const OWNER_SENIORITIES = new Set(['founder', 'owner', 'c_suite', 'partner']);
 
 const DEPARTMENT = Deno.env.get('AI_KEYWORDS_DEPARTMENT') ?? 'marketing';
 const OWN_DOMAIN = (Deno.env.get('AI_KEYWORDS_OWN_DOMAIN') ?? 'linkfinderai.com').toLowerCase();
@@ -452,8 +467,12 @@ async function enrich(work: Extract<Work, { kind: 'enrich' }>, deadline: number)
             }, `employees:${seniority}`, linkfinderToken, deadline);
 
             for (const person of asEmployeeList(body)) {
+                // A lookup that matches nobody answers with one all-null row,
+                // not an empty list. It has no key, so it never lands here.
                 const key = String(person?.linkedinUrl ?? person?.personId ?? person?.name ?? '').toLowerCase();
-                if (key && !seen.has(key)) seen.set(key, person);
+                // The record's own `seniority` is often absent; the seniority
+                // asked for is not, so that is what gets remembered.
+                if (key && !seen.has(key)) seen.set(key, { ...person, _askedSeniority: seniority });
             }
         } catch (e) {
             problems.push((e as Error).message.slice(0, 200));
@@ -462,7 +481,18 @@ async function enrich(work: Extract<Work, { kind: 'enrich' }>, deadline: number)
     }
 
     const employees = [...seen.values()];
-    const candidates = employees.filter((p) => ownsContent(p.jobTitle));
+    let candidates = employees.filter((p) => ownsContent(p.jobTitle));
+
+    // At a company with nobody holding a content title, the founder IS the
+    // person who owns the content — they wrote the page. Without this the
+    // whole small-company end of the list is unreachable: the title filter
+    // rejects "Founder" and "CEO", so finding them would change nothing.
+    // One per domain, and only when the proper owners are absent.
+    if (candidates.length === 0) {
+        candidates = employees
+            .filter((p) => OWNER_SENIORITIES.has(String(p._askedSeniority ?? '')))
+            .slice(0, 1);
+    }
 
     // Nothing came back AND something went wrong: LinkFinder was down, or the
     // slice ran out. Release the domain so a later keyword that cites it can
