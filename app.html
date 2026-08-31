@@ -744,6 +744,9 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
 .otp-task-label{font-weight:600;font-size:0.9rem;color:var(--gray-900);}
 .otp-task-sub{font-weight:400;font-size:0.76rem;color:var(--gray-500);margin-top:0.15rem;}
 .otp-task-badge{flex-shrink:0;font-size:0.72rem;font-weight:700;color:var(--primary);background:rgba(37,99,235,0.08);padding:0.25rem 0.55rem;border-radius:6px;white-space:nowrap;}
+/* Cash, not credits. Green so the one payout on the list does not read as
+   just another credit grant sitting among four blue ones. */
+.otp-task-badge.is-money{color:#047857;background:rgba(16,185,129,0.10);}
 .otp-task-action{margin-top:0.625rem;}
 .otp-check{color:#10b981;font-weight:600;font-size:0.85rem;display:inline-flex;align-items:center;gap:0.375rem;}
 .otp-pending-badge{color:#b45309;font-weight:600;font-size:0.8rem;display:inline-flex;align-items:center;gap:0.375rem;background:#fef3c7;padding:0.3rem 0.6rem;border-radius:6px;}
@@ -6585,6 +6588,18 @@ const OTP_SURVEY = [
 const SURVEY_TASK_LIVE = false;
 
 const OTP_TASKS_ALL = [
+    // Cash, not credits, and the only item here that pays repeatedly — so it
+    // leads. `rewardLabel` overrides the credits badge; `kind: 'referral'`
+    // renders the invite link (that branch already existed and nothing used
+    // it). It has no completed state and never posts to the tasks worker,
+    // which is why otpCompletable() keeps it out of the progress count.
+    //
+    // "up to $500" because that is what the programme actually is — 25% of
+    // their revenue, capped at $500 (see the referral modal). A flat "+$500"
+    // would read as a signing bonus and be a promise nobody can keep.
+    { name: 'referral', kind: 'referral', label: 'Invite someone to LinkFinder AI',
+      sub: 'They sign up with your link, you earn on everything they ever pay. Paid monthly once you pass $100.',
+      rewardLabel: 'up to +$500', realValue: '= 25% of their revenue, for life' },
     { name: 'product_survey', kind: 'survey', label: 'Answer 4 questions about your work', sub: 'Takes about a minute. It genuinely changes what we build next.', credits: 500, realValue: '= 50 emails or 500 LinkedIn profiles' },
     { name: 'g2_review', kind: 'url', label: 'Leave a G2 review', credits: 1000, realValue: '= 100 emails or 1,000 LinkedIn profiles', placeholder: 'Paste the URL of your review', linkUrl: OTP_LINKS.g2, linkLabel: 'Write a review on G2', pendingCopy: 'Being checked', disclosureNote: DISC },
     { name: 'site_badge', kind: 'url', label: 'Put the LinkFinder badge on your site', credits: 1000, realValue: '= 100 emails or 1,000 LinkedIn profiles', placeholder: 'Paste the page URL where the badge is live', linkUrl: 'https://linkfinderai.com/badge', linkLabel: 'Get the badge code', verifyWorker: BADGE_VERIFY_WORKER },
@@ -6708,8 +6723,11 @@ function renderOnboardingTasksPopup() {
     if (earned > 0) { pill.classList.remove('hidden'); document.getElementById('otpEarnedAmount').textContent = earned.toLocaleString(); }
     else { pill.classList.add('hidden'); }
 
-    const completedCount = OTP_TASKS.filter(t => otpStatusFor(t.name) === 'completed').length;
-    const totalCount = OTP_TASKS.length;
+    // The referral never reaches 'completed' — there is no event that would
+    // close it — so counting it would cap the bar below 100% forever.
+    const completable = OTP_TASKS.filter(t => t.kind !== 'referral');
+    const completedCount = completable.filter(t => otpStatusFor(t.name) === 'completed').length;
+    const totalCount = completable.length;
     const progressBar = document.getElementById('otpProgressBar');
     const progressLabel = document.getElementById('otpProgressLabel');
     if (progressBar) progressBar.style.width = `${Math.round((completedCount / totalCount) * 100)}%`;
@@ -6775,7 +6793,7 @@ function renderOnboardingTasksPopup() {
                     <div class="otp-task-label">${otpEsc(task.label)}${task.sub?`<div class="otp-task-sub">${otpEsc(task.sub)}</div>`:''}</div>
                     ${task.realValue ? `<div class="otp-task-realvalue">${otpEsc(task.realValue)}</div>` : ''}
                 </div>
-                <div class="otp-task-badge">+${task.credits.toLocaleString()} credits</div>
+                <div class="otp-task-badge${task.rewardLabel ? ' is-money' : ''}">${task.rewardLabel ? otpEsc(task.rewardLabel) : `+${task.credits.toLocaleString()} credits`}</div>
             </div>
             <div class="otp-task-action">${actionHtml}<div class="otp-field-error hidden" id="otp-error-${task.name}"></div></div>
         </div>`;
