@@ -111,33 +111,46 @@ Names: `openrouter_api_key`, `serper_api_key`, `linkfinder_api_key`,
 The caps in the table above are Edge Function environment variables instead,
 set under Edge Functions -> Secrets.
 
-`ai_keywords_models` asks four engines:
+`ai_keywords_models` is `perplexity/sonar`, and the reason is the entire cost
+of this feature.
 
-    perplexity/sonar-pro, openai/gpt-4o, google/gemini-3.6-flash, anthropic/claude-haiku-4.5
+Discovery is priced on the web search, not the tokens — the prose is discarded
+unread, only the citation annotations are used. From OpenRouter's own price
+list:
 
-The first three are the n8n workflow's; Claude is the fourth. Cost scales with
-the number of engines, since most of the price is the per-request web search —
-so four engines is roughly four times one. What that buys is `citation_count`:
-a page four engines cite is a stronger ranking than one Gemini alone mentions,
-and pages are worked strongest-first, so the count decides where the budget
-goes.
+| How the pages are found | Per keyword |
+| --- | --- |
+| `perplexity/sonar`, native search, no plugin | **$0.005** |
+| `anthropic/claude-haiku-4.5` + Exa plugin | ~$0.012 |
+| `google/gemini-3.6-flash` + Exa plugin | ~$0.025 |
+| the n8n workflow's three engines with the plugin | ~$0.06+ |
 
-Anthropic's slot is `claude-haiku-4.5`, the cheapest of them, because what is
-being read is the engine's search results, not the model's reasoning — there is
-nothing to be gained from paying Opus rates to receive a list of URLs. The same
-logic would make `perplexity/sonar` a cheaper stand-in for `sonar-pro`.
+Perplexity searches the web itself and returns citations in the same
+`annotations` shape, so attaching OpenRouter's Exa plugin to it pays twice for
+one answer — `askModel` only attaches the plugin to models that cannot search
+alone. Asked "best clay alternatives", sonar returned **ten** cited pages where
+the Exa plugin caps at five. Cheaper and wider at once.
 
-Verify a model id against OpenRouter's catalogue before adding it; an unknown
-id just fails that engine. `select net.http_get('https://openrouter.ai/api/v1/models')`
-from the database works, since the sandbox cannot reach that host.
+`sonar-pro` costs the same $0.005 for the search and more for the tokens, and
+the tokens are the part being thrown away — so `sonar`, not `sonar-pro`.
 
-To go cheap again, drop to one engine — a vault update, no deploy:
+More engines can be added back — it is a vault update, no deploy — and what
+they buy is `citation_count`, which orders the pages so the strongest are
+worked first. At four engines that ordering costs roughly ten times the
+discovery bill. Measure before deciding it is worth it.
 
-    select vault.update_secret(id, 'google/gemini-3.6-flash', name, description)
-      from vault.secrets where name = 'ai_keywords_models'; They are asked in parallel through OpenRouter's `web` plugin
-with `engine: exa`, and the keyword is sent **verbatim** as the prompt. That is
-the measurement: the keyword is the question a buyer types, and dressing it up
-would rank the dressed-up prompt instead.
+Verify any model id against OpenRouter's catalogue first; an unknown id does
+not error, it just silently contributes no citations. The sandbox cannot reach
+that host, but the database can:
+
+    select net.http_get('https://openrouter.ai/api/v1/models');
+
+The same endpoint family reports what the key has actually spent, which beats
+any estimate:
+
+    select net.http_get(url := 'https://openrouter.ai/api/v1/key',
+      headers := jsonb_build_object('Authorization', 'Bearer ' ||
+        (select decrypted_secret from vault.decrypted_secrets where name = 'openrouter_api_key')));
 
 ## Things that will bite
 

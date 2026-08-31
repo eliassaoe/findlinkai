@@ -70,7 +70,9 @@ const OWNER_SENIORITIES = new Set(['founder', 'owner', 'c_suite', 'partner']);
 
 const DEPARTMENT = Deno.env.get('AI_KEYWORDS_DEPARTMENT') ?? 'marketing';
 const OWN_DOMAIN = (Deno.env.get('AI_KEYWORDS_OWN_DOMAIN') ?? 'linkfinderai.com').toLowerCase();
-const DEFAULT_MODELS = 'perplexity/sonar-pro, openai/gpt-4o, google/gemini-3.6-flash';
+// sonar, not sonar-pro: both charge the same $0.005 for the search, and the
+// search is what is being bought — the prose is discarded unread.
+const DEFAULT_MODELS = 'perplexity/sonar';
 const DEFAULT_CAMPAIGN = '03939b49-b215-4221-892c-68f092556d29';
 
 // Whose job title means they own the page we are writing about. Straight from
@@ -238,13 +240,24 @@ type Citation = { url: string; title: string; domain: string; cited_by: string[]
  * the prompt instead of the keyword.
  */
 async function askModel(model: string, keyword: string, apiKey: string) {
+    // Perplexity searches the web itself and returns its citations in the same
+    // annotations shape. Bolting OpenRouter's Exa plugin on top of that pays
+    // twice for one answer, so it is only attached to models that cannot
+    // search alone.
+    //
+    // This is the whole cost of the feature. Measured against OpenRouter's own
+    // price list: Exa on gemini-3.6-flash is ~$0.025 a keyword, sonar's native
+    // search is $0.005 — and sonar came back with ten cited pages where the
+    // plugin capped out at five. Cheaper AND wider.
+    const searchesNatively = model.startsWith('perplexity/');
+
     const body = await fetchJson('https://openrouter.ai/api/v1/chat/completions', {
         method: 'POST',
         headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
             model,
             messages: [{ role: 'user', content: keyword }],
-            plugins: [{ id: 'web', engine: 'exa', max_results: 5 }],
+            ...(searchesNatively ? {} : { plugins: [{ id: 'web', engine: 'exa', max_results: 5 }] }),
             // Only the citation annotations are read; the prose is thrown away.
             // Left unset, OpenRouter reserves 8000 output tokens against the
             // balance for an answer nothing looks at — which both costs more
