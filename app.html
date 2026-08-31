@@ -542,15 +542,6 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
 .ref-fab i { color: var(--primary); font-size: 0.8rem; }
 @media (max-width: 640px) { .ref-fab span { display: none; } .ref-fab { padding: 0.4rem 0.55rem; } }
 
-/* Quieter than the fab beside it: this is an offer, not a task. */
-.lf-affiliate-link {
-    display: inline-flex; align-items: center; gap: 0.35rem;
-    font-size: 0.72rem; font-weight: 500; color: var(--gray-500);
-    text-decoration: none; padding: 0.4rem 0.25rem; white-space: nowrap;
-}
-.lf-affiliate-link:hover { color: var(--primary); }
-.lf-affiliate-link i { font-size: 0.72rem; }
-@media (max-width: 640px) { .lf-affiliate-link span { display: none; } }
  
 .ref-modal-overlay { position: fixed; inset: 0; background: rgba(17,24,39,0.55); display: flex; align-items: center; justify-content: center; z-index: 10001; opacity: 0; visibility: hidden; transition: opacity 0.25s ease, visibility 0.25s ease; padding: 1rem; }
 .ref-modal-overlay.show { opacity: 1; visibility: visible; }
@@ -1375,12 +1366,6 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
         <i class="fas fa-gift"></i>
         <span>Get Free Credits</span>
     </button>
-
-    <!-- Deliberately understated, and deliberately not in the nav: the nav is
-         places you work, and this is an offer. -->
-    <a href="#" class="lf-affiliate-link" id="affiliateDockLink" title="Earn 25% of every payment from anyone you refer">
-        <i class="fas fa-hand-holding-dollar"></i><span>Earn 25%</span>
-    </a>
 </div>
 
 <div id="feedbackModal" class="feedback-modal-overlay">
@@ -4892,12 +4877,6 @@ function checkAuth(){
         const reopenBtn = document.getElementById('reopenTasksBtn');
         if (reopenBtn) reopenBtn.style.display = '';
 
-        // The token is carried across so the affiliate page can identify them
-        // without a second login. It is a query param on our own domain, not
-        // something the user is asked to share - unlike the invite link this
-        // programme replaced, which put the token in a URL people posted.
-        const affLink = document.getElementById('affiliateDockLink');
-        if (affLink) affLink.href = addGclid(`https://linkfinderai.com/affiliate?token=${userToken}`);
     });
     maybeShowBulkTutorialPopup(lfVisitCount);
 })
@@ -6814,9 +6793,34 @@ const OTP_TASKS_ALL = [
     { name: 'g2_review', kind: 'url', featured: true, label: 'Leave a G2 review', credits: 1000, realValue: '= 100 emails or 1,000 LinkedIn profiles', placeholder: 'Paste the URL of your review', linkUrl: OTP_LINKS.g2, linkLabel: 'Write a review on G2', pendingCopy: 'Being checked', disclosureNote: DISC },
     { name: 'youtube_subscribe', kind: 'honor_click', label: 'Subscribe to our YouTube channel', credits: 100, realValue: '= 100 LinkedIn profiles', linkUrl: OTP_LINKS.youtube, linkLabel: 'Open channel' },
     { name: 'linkedin_share', kind: 'url', label: 'Share on LinkedIn', credits: 150, realValue: '= 150 LinkedIn profiles', placeholder: 'Paste your LinkedIn post URL' },
+    // The only row that pays money rather than credits, and the only one with
+    // no end: it keeps paying for as long as the person they sent stays. It
+    // lives here rather than in the nav or the corner because it is the same
+    // kind of thing as the rest - something you can do for a reward - and a
+    // separate entry point for it just crowded the screen.
+    { name: 'affiliate', kind: 'link_out', credits: 0, rewardLabel: '25% forever', notCountedInProgress: true,
+      label: 'Refer someone who pays', sub: 'You get 25% of everything they ever pay us.',
+      realValue: 'Paid in cash, not credits', linkLabel: 'Get your link' },
 ];
 
-const OTP_TASKS = OTP_TASKS_ALL.filter(t => t.name !== 'product_survey' || SURVEY_TASK_LIVE);
+/*
+ * The affiliate row is hidden until the referral worker actually exists.
+ * app.html publishes the moment it is pushed, but Cloudflare workers need a
+ * `wrangler deploy` - so the page shipped ahead of its backend and the row led
+ * to "We could not load your affiliate account".
+ *
+ * Flip to true once BOTH are done:
+ *   1. workers/referral/schema.sql has been applied, and
+ *   2. `npx wrangler deploy` has been run in workers/referral, with its four
+ *      secrets set (see that directory's README).
+ *
+ * Same reasoning as SURVEY_TASK_LIVE above: hidden beats shown-and-broken.
+ */
+const AFFILIATE_LIVE = false;
+
+const OTP_TASKS = OTP_TASKS_ALL.filter(t =>
+    (t.name !== 'product_survey' || SURVEY_TASK_LIVE) &&
+    (t.name !== 'affiliate' || AFFILIATE_LIVE));
 
 function otpCopy() {
     const balance = currentCredits !== null ? Math.round(currentCredits * 10) / 10 : null;
@@ -6932,8 +6936,9 @@ function renderOnboardingTasksPopup() {
     if (earned > 0) { pill.classList.remove('hidden'); document.getElementById('otpEarnedAmount').textContent = earned.toLocaleString(); }
     else { pill.classList.add('hidden'); }
 
-    const completedCount = OTP_TASKS.filter(t => otpStatusFor(t.name) === 'completed').length;
-    const totalCount = OTP_TASKS.length;
+    const countable = OTP_TASKS.filter(t => !t.notCountedInProgress);
+    const completedCount = countable.filter(t => otpStatusFor(t.name) === 'completed').length;
+    const totalCount = countable.length;
     const progressBar = document.getElementById('otpProgressBar');
     const progressLabel = document.getElementById('otpProgressLabel');
     if (progressBar) progressBar.style.width = `${Math.round((completedCount / totalCount) * 100)}%`;
@@ -6964,6 +6969,11 @@ function renderOnboardingTasksPopup() {
         } else if (task.kind === 'honor_click') {
             actionHtml = `<div class="otp-honor-row">
                 <a href="${task.linkUrl}" target="_blank" rel="noreferrer" class="otp-link-btn otp-link-btn-block" onclick="otpCompleteHonorTask('${task.name}')">${isBusy?'Saving\u2026':otpEsc(task.linkLabel)}</a>
+            </div>`;
+        } else if (task.kind === 'link_out') {
+            const href = `https://linkfinderai.com/affiliate?token=${encodeURIComponent(userToken || '')}`;
+            actionHtml = `<div class="otp-honor-row">
+                <a href="${href}" class="otp-link-btn otp-link-btn-block" onclick="otpTrackStarted('${task.name}')">${otpEsc(task.linkLabel)}</a>
             </div>`;
         } else if (task.kind === 'url') {
             actionHtml = `<div class="otp-url-row">
@@ -7004,7 +7014,7 @@ function renderOnboardingTasksPopup() {
                     <div class="otp-task-label">${otpEsc(task.label)}${task.sub?`<div class="otp-task-sub">${otpEsc(task.sub)}</div>`:''}</div>
                     ${task.realValue ? `<div class="otp-task-realvalue">${otpEsc(task.realValue)}</div>` : ''}
                 </div>
-                <div class="otp-task-badge">+${task.credits.toLocaleString()} credits</div>
+                <div class="otp-task-badge${task.rewardLabel ? ' otp-task-badge-money' : ''}">${task.rewardLabel ? otpEsc(task.rewardLabel) : `+${task.credits.toLocaleString()} credits`}</div>
             </div>
             <div class="otp-task-action">${actionHtml}<div class="otp-field-error hidden" id="otp-error-${task.name}"></div></div>
         </div>`;

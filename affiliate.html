@@ -181,7 +181,13 @@ async function load() {
         if (!res.ok) throw new Error('status ' + res.status);
         render(await res.json());
     } catch (e) {
-        $('loading').innerHTML = 'We could not load your affiliate account. Please refresh, or email support@linkfinderai.com.';
+        // The worker is deployed separately from this page, so "not there yet"
+        // is a real state a visitor can land in rather than an error on their
+        // side. Say that, instead of asking them to refresh at nothing.
+        $('loading').innerHTML =
+            '<p style="font-weight:600;color:#111827;margin-bottom:0.4rem">The affiliate program is not switched on yet.</p>'
+            + '<p>It is coming shortly. Nothing is wrong with your account, and there is nothing you need to do &mdash; '
+            + 'check back soon, or email support@linkfinderai.com if you want to be told when it opens.</p>';
         console.error(e);
     }
 }
