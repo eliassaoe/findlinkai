@@ -516,12 +516,17 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
 .ph-banner-close{background:none;border:none;color:rgba(255,255,255,0.8);cursor:pointer;font-size:1.25rem;line-height:1;padding:0;flex-shrink:0;}
 @media(max-width:640px){.ph-banner{font-size:0.75rem;}}
 
+/* Bottom-left dock. Everything in here is laid out by the flex row, so
+   nothing needs a hand-tuned `left` and nothing can cover anything else. */
+.lf-dock {
+    position: fixed; bottom: 20px; left: 20px;
+    display: flex; align-items: center; gap: 0.6rem;
+    z-index: 9998;
+}
+.lf-dock > * { position: static !important; }
+@media (max-width: 640px) { .lf-dock { gap: 0.4rem; left: 12px; bottom: 12px; } }
+
 .ref-fab {
-    /* Sits to the right of .help-center-button — a 48px circle at left:20px,
-       so it occupies 20-68px. At left:16px this button covered it completely,
-       and it is only ever shown to the low_conversion geo, so the collision
-       was invisible everywhere it was not a problem. */
-    position: fixed; bottom: 20px; left: 80px;
     display: inline-flex; align-items: center; gap: 0.4rem;
     padding: 0.4rem 0.75rem;
     background: white;
@@ -531,12 +536,21 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
     font-family: inherit; font-size: 0.75rem; font-weight: 500;
     cursor: pointer;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
-    z-index: 9998;
     transition: all 0.15s ease;
 }
 .ref-fab:hover { color: var(--gray-900); border-color: var(--gray-300); box-shadow: 0 2px 6px rgba(0,0,0,0.08); }
 .ref-fab i { color: var(--primary); font-size: 0.8rem; }
 @media (max-width: 640px) { .ref-fab span { display: none; } .ref-fab { padding: 0.4rem 0.55rem; } }
+
+/* Quieter than the fab beside it: this is an offer, not a task. */
+.lf-affiliate-link {
+    display: inline-flex; align-items: center; gap: 0.35rem;
+    font-size: 0.72rem; font-weight: 500; color: var(--gray-500);
+    text-decoration: none; padding: 0.4rem 0.25rem; white-space: nowrap;
+}
+.lf-affiliate-link:hover { color: var(--primary); }
+.lf-affiliate-link i { font-size: 0.72rem; }
+@media (max-width: 640px) { .lf-affiliate-link span { display: none; } }
  
 .ref-modal-overlay { position: fixed; inset: 0; background: rgba(17,24,39,0.55); display: flex; align-items: center; justify-content: center; z-index: 10001; opacity: 0; visibility: hidden; transition: opacity 0.25s ease, visibility 0.25s ease; padding: 1rem; }
 .ref-modal-overlay.show { opacity: 1; visibility: visible; }
@@ -884,7 +898,6 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
             <a href="#" class="nav-tab" data-page="crmSync"><i class="fab fa-hubspot"></i> CRM Sync</a>
             <a href="#" class="nav-tab" data-page="integrations"><i class="fas fa-puzzle-piece"></i> Integrations</a>
             <a href="#" class="nav-tab" data-page="history"><i class="fas fa-history"></i> History</a>
-            <a href="#" class="nav-tab" data-page="affiliate"><i class="fas fa-hand-holding-dollar"></i> Earn 25%</a>
             <a href="#" class="nav-tab" data-page="account"><i class="fas fa-user"></i> Account</a>
         </div>
     </div>
@@ -1355,12 +1368,20 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
 
 
 <button class="feedback-button" onclick="showFeedbackModal()" title="Send Feedback"><i class="fas fa-lightbulb"></i></button>
-<a href="https://linkfinderai.com/resources" target="_blank" rel="noopener" class="help-center-button" title="Help Center — guides & tutorials"><i class="fas fa-circle-question"></i></a>
+<div class="lf-dock">
+    <a href="https://linkfinderai.com/resources" target="_blank" rel="noopener" class="help-center-button" title="Help Center — guides & tutorials"><i class="fas fa-circle-question"></i></a>
 
-<button class="ref-fab" id="reopenTasksBtn" onclick="openOnboardingTasksPopupManually()" title="Earn more credits" style="display:none;">
-    <i class="fas fa-gift"></i>
-    <span>Get Free Credits</span>
-</button>
+    <button class="ref-fab" id="reopenTasksBtn" onclick="openOnboardingTasksPopupManually()" title="Earn more credits" style="display:none;">
+        <i class="fas fa-gift"></i>
+        <span>Get Free Credits</span>
+    </button>
+
+    <!-- Deliberately understated, and deliberately not in the nav: the nav is
+         places you work, and this is an offer. -->
+    <a href="#" class="lf-affiliate-link" id="affiliateDockLink" title="Earn 25% of every payment from anyone you refer">
+        <i class="fas fa-hand-holding-dollar"></i><span>Earn 25%</span>
+    </a>
+</div>
 
 <div id="feedbackModal" class="feedback-modal-overlay">
     <div class="feedback-modal">
@@ -4631,7 +4652,6 @@ function navigateToPage(page){
     document.querySelector(`[data-page="${page}"]`).classList.add('active');
     switch(page){
         case 'api': window.location.href=addGclid(`https://linkfinderai.com/api-access?token=${userToken}`); break;
-        case 'affiliate': window.location.href=addGclid(`https://linkfinderai.com/affiliate?token=${userToken}`); break;
         case 'account': window.location.href=addGclid(`https://linkfinderai.com/account?token=${userToken}`); break;
         case 'history': window.location.href=addGclid(`https://linkfinderai.com/history?token=${userToken}`); break;
         case 'crmSync': window.location.href=addGclid(`https://linkfinderai.com/crm-sync?token=${userToken}`); break;
@@ -4871,6 +4891,13 @@ function checkAuth(){
         // them that panel had no door.
         const reopenBtn = document.getElementById('reopenTasksBtn');
         if (reopenBtn) reopenBtn.style.display = '';
+
+        // The token is carried across so the affiliate page can identify them
+        // without a second login. It is a query param on our own domain, not
+        // something the user is asked to share - unlike the invite link this
+        // programme replaced, which put the token in a URL people posted.
+        const affLink = document.getElementById('affiliateDockLink');
+        if (affLink) affLink.href = addGclid(`https://linkfinderai.com/affiliate?token=${userToken}`);
     });
     maybeShowBulkTutorialPopup(lfVisitCount);
 })
