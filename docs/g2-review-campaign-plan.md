@@ -172,3 +172,81 @@ ALTER TABLE public.csv_enrichment_batches ENABLE ROW LEVEL SECURITY;
 ```
 
 Each needs policies written alongside it before it is safe to enable.
+
+
+---
+
+# Built 2026-08-31 — sized for 10 reviews
+
+## The pool is much bigger than the 65 first quoted
+
+Restricting to "paid or Trustpilot" was too narrow. Every confirmed user who has
+actually run an enrichment is a legitimate G2 reviewer:
+
+| Band (confirmed, not yet in G2 flow) | People | Active 90d |
+| --- | --- | --- |
+| 50+ enrichments | 45 | 42 |
+| 25-49 | 72 | 60 |
+| 10-24 | 66 | 54 |
+| 5-9 | 118 | 103 |
+| 1-4 | 844 | 765 |
+| **Total who have used the product** | **1,145** | 1,024 |
+| Never used it — deliberately excluded | 997 | 0 |
+
+PostHog's own view of the same population is 1,032 (it only holds events since
+install, and `enrich_started` misses some enrichment types). The campaign runs on
+the PostHog figure.
+
+**The 997 who never ran anything stay excluded.** G2 verifies reviewers and
+rejects those who cannot show usage — mailing them risks the profile rather than
+just wasting credits.
+
+## Arithmetic for the 10-review target
+
+A G2 review is high friction: create an account, verify identity, write something
+substantive. Realistic completion on an incentivised ask runs ~1-2% for light
+users and ~5% for heavy ones, and G2 publishes perhaps 60-80% of genuine
+submissions.
+
+- **301 heaviest only** → ~8-12 submissions → ~6-9 published. Short of target.
+- **1,032 full pool** → ~20 submissions → **~12-16 published.** Clears 10.
+
+So the send is the full 1,032, ramped, heaviest first.
+
+## The link bug that was probably capping completion
+
+`OTP_LINKS.g2` pointed at `g2.com/fr/products/linkfinder-ai/reviews` — the French
+**listing** page. "Write a review on G2" took people somewhere with nothing to
+fill in, and they pasted that URL back as their submission. Three of the ten
+pending rows are exactly that string.
+
+Fixed in `app.html` to the review **start** form, and Trustpilot likewise to
+`/evaluate/`. The `/fr/` locale is gone.
+
+## Batch 1 — built, not sent
+
+| | |
+| --- | --- |
+| Workflow | `01a056f5-65cf-0000-a79e-140acd091370` — active |
+| Cohort | `534083` — **196 people** (200 requested, 4 already in the G2 flow) |
+| Blast radius | **196** |
+| Rate limit | 100/hour, so it spreads over ~2 hours |
+| Tracking | off |
+
+Ordered heaviest-usage first, so if the reply rate is good the later batches can
+follow immediately.
+
+Two mistakes caught before sending: the conversion goal was first set to
+`$pageview`, which with `exit_on_conversion` would have exited nearly everyone
+before the email composed — now `exit_only_at_end` with no conversion. And the
+cohort count was checked non-null before previewing, per the earlier lesson.
+
+**Ramp:** 196 → 300 → ~536, gated on bounce under 3%.
+
+## Wording
+
+Sentiment-neutral by design, because both G2 policy and the FTC require it: *"The
+credits are for writing the review, not for what it says. A critical one gets the
+same 1,000, and G2 will ask you to disclose that it was incentivised."* It also
+offers a reply instead of a review for anyone who does not think the product
+deserves one.
