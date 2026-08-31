@@ -73,10 +73,13 @@ AI agent fetches since 2026-07-01:
 "best X" roundups and "X alternative" comparisons — only a handful were fetched
 even once, in single digits.
 
-That is worth sitting with alongside the Google decline in
-`docs/channel-bet-youtube-vs-seo.md`: the page type that makes up most of the
-site is the page type neither Google nor AI systems are rewarding, while two
-specific do-one-job tool pages absorb nearly all machine attention.
+Two specific do-one-job tool pages absorb nearly all machine attention.
+
+**Corrected 2026-08-31.** An earlier version of this line said the listicles were
+rewarded by "neither Google nor AI systems". The Google half was wrong — see
+`docs/listicle-aeo-results.md`. Google did reward them, to a peak of 715
+search visitors in May. What holds is only the AI half: AI systems do not read
+them.
 
 ## What follows
 
