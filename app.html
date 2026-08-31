@@ -278,10 +278,11 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
     .review-notification.hide{opacity:0;transform:translateY(20px);}
     .review-notification-header{display:flex;align-items:center;gap:0.5rem;margin-bottom:0.75rem;font-weight:600;color:#1f2937;}
     .review-notification-close{position:absolute;top:0.75rem;right:0.75rem;background:transparent;border:none;color:#9ca3af;cursor:pointer;font-size:1.25rem;line-height:1;padding:0.25rem;}
-    .review-platforms{margin:0.75rem 0;padding-left:1.25rem;}
-    .review-platforms li{margin:0.25rem 0;}
-    .review-platforms a{color:#2563eb;text-decoration:none;font-weight:500;}
-    .review-form-link{color:#2563eb;text-decoration:none;font-weight:500;}
+    .review-note{font-size:0.75rem;color:#6b7280;line-height:1.45;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:0.5rem 0.625rem;margin:0.75rem 0;}
+    .review-cta{display:block;width:100%;background:var(--primary);color:#fff;border:none;border-radius:8px;padding:0.7rem 1rem;font-size:0.875rem;font-weight:600;cursor:pointer;font-family:inherit;transition:filter 0.15s ease;}
+    .review-cta:hover{filter:brightness(0.93);}
+    .review-cta-secondary{display:block;width:100%;background:transparent;color:var(--gray-500);border:none;padding:0.55rem 0 0;font-size:0.78rem;font-weight:500;cursor:pointer;font-family:inherit;text-decoration:underline;}
+    .review-cta-secondary:hover{color:var(--gray-900);}
     .result-card{background:white;border:1px solid var(--gray-200);border-radius:8px;padding:1.5rem;margin-top:1rem;animation:result-in 0.35s ease;}
     @keyframes result-in{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
     .success-toast{position:fixed;top:1.25rem;left:50%;transform:translateX(-50%) translateY(-20px);background:var(--success);color:white;padding:0.75rem 1.25rem;border-radius:8px;font-size:0.875rem;font-weight:600;z-index:10002;display:flex;align-items:center;gap:0.5rem;box-shadow:0 4px 16px rgba(16,185,129,0.35);opacity:0;transition:all 0.3s ease;pointer-events:none;}
@@ -485,7 +486,9 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
 
     @media(max-width:640px){
         .form-grid{grid-template-columns:1fr;gap:1rem;}
-        .review-notification{display:none !important;}
+        /* Was display:none, which dropped every phone user from the review
+           ask entirely. Full-width bottom sheet instead, clear of the fab. */
+        .review-notification{left:12px;right:12px;bottom:12px;width:auto;}
         .pricing-modal{padding:1.5rem;margin:1rem;}
         .pricing-modal-header h2{font-size:1.5rem;}
         .container{padding:0 0.75rem;}
@@ -525,12 +528,17 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
 .ph-banner-close{background:none;border:none;color:rgba(255,255,255,0.8);cursor:pointer;font-size:1.25rem;line-height:1;padding:0;flex-shrink:0;}
 @media(max-width:640px){.ph-banner{font-size:0.75rem;}}
 
+/* Bottom-left dock. Everything in here is laid out by the flex row, so
+   nothing needs a hand-tuned `left` and nothing can cover anything else. */
+.lf-dock {
+    position: fixed; bottom: 20px; left: 20px;
+    display: flex; align-items: center; gap: 0.6rem;
+    z-index: 9998;
+}
+.lf-dock > * { position: static !important; }
+@media (max-width: 640px) { .lf-dock { gap: 0.4rem; left: 12px; bottom: 12px; } }
+
 .ref-fab {
-    /* Sits to the right of .help-center-button — a 48px circle at left:20px,
-       so it occupies 20-68px. At left:16px this button covered it completely,
-       and it is only ever shown to the low_conversion geo, so the collision
-       was invisible everywhere it was not a problem. */
-    position: fixed; bottom: 20px; left: 80px;
     display: inline-flex; align-items: center; gap: 0.4rem;
     padding: 0.4rem 0.75rem;
     background: white;
@@ -540,12 +548,12 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
     font-family: inherit; font-size: 0.75rem; font-weight: 500;
     cursor: pointer;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
-    z-index: 9998;
     transition: all 0.15s ease;
 }
 .ref-fab:hover { color: var(--gray-900); border-color: var(--gray-300); box-shadow: 0 2px 6px rgba(0,0,0,0.08); }
 .ref-fab i { color: var(--primary); font-size: 0.8rem; }
 @media (max-width: 640px) { .ref-fab span { display: none; } .ref-fab { padding: 0.4rem 0.55rem; } }
+
  
 .ref-modal-overlay { position: fixed; inset: 0; background: rgba(17,24,39,0.55); display: flex; align-items: center; justify-content: center; z-index: 10001; opacity: 0; visibility: hidden; transition: opacity 0.25s ease, visibility 0.25s ease; padding: 1rem; }
 .ref-modal-overlay.show { opacity: 1; visibility: visible; }
@@ -749,6 +757,11 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
 .otp-task-realvalue{font-size:0.72rem;color:var(--primary);font-weight:600;margin-top:0.15rem;}
 .otp-task-list{display:flex;flex-direction:column;gap:0.75rem;}
 .otp-task-row{border:1px solid var(--gray-200);border-radius:10px;padding:0.875rem 1rem;transition:border-color 0.15s ease,background 0.15s ease;}
+.otp-task-row.otp-featured{border-color:var(--primary);border-width:2px;padding:0.8rem 0.9375rem;background:rgba(37,99,235,0.03);}
+.otp-featured-flag{display:inline-block;font-size:0.65rem;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:var(--primary);margin-bottom:0.3rem;}
+/* A completed/pending state must still win over the featured highlight. */
+.otp-task-row.otp-featured.otp-status-completed{border-color:#bbf7d0;background:#f0fdf4;}
+.otp-task-row.otp-featured.otp-status-pending{border-color:#fde68a;background:#fffbeb;}
 .otp-status-completed{background:#f0fdf4;border-color:#bbf7d0;}
 .otp-status-pending{background:#fffbeb;border-color:#fde68a;}
 .otp-task-main{display:flex;align-items:flex-start;justify-content:space-between;gap:0.75rem;}
@@ -758,7 +771,7 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
 .otp-task-badge{flex-shrink:0;font-size:0.72rem;font-weight:700;color:var(--primary);background:rgba(37,99,235,0.08);padding:0.25rem 0.55rem;border-radius:6px;white-space:nowrap;}
 /* Cash, not credits. Green so the one payout on the list does not read as
    just another credit grant sitting among four blue ones. */
-.otp-task-badge.is-money{color:#047857;background:rgba(16,185,129,0.10);}
+.otp-task-badge-money{color:#047857;background:rgba(16,185,129,0.10);}
 .otp-task-action{margin-top:0.625rem;}
 .otp-check{color:#10b981;font-weight:600;font-size:0.85rem;display:inline-flex;align-items:center;gap:0.375rem;}
 .otp-pending-badge{color:#b45309;font-weight:600;font-size:0.8rem;display:inline-flex;align-items:center;gap:0.375rem;background:#fef3c7;padding:0.3rem 0.6rem;border-radius:6px;}
@@ -1142,18 +1155,24 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
     </div>
 </div>
 
+<!-- G2 only. Trustpilot's guidelines prohibit incentivised reviews outright, so
+     offering credits for one there was never permitted - the task was pulled from
+     the credits panel on 22 Aug 2026 and this popup was the last place still
+     asking for it.
+
+     The old version sent people to g2.com/fr/products/linkfinder-ai/reviews - the
+     French *listing* page, with nothing on it to fill in - and then to a Typeform
+     to claim. Three destinations and a manual grant at the end. It now points at
+     the write form and claims through the credits panel, which pays out on the
+     spot. -->
 <div id="reviewNotification" class="review-notification">
     <button class="review-notification-close" onclick="closeReviewNotification()">×</button>
-    <div class="review-notification-header"><span>👋</span> Hi there!</div>
+    <div class="review-notification-header"><span>&#11088;</span> <span id="reviewNotifHeader">Worth 1,000 credits</span></div>
     <div>
-        If you've found LinkFinder AI useful, please consider leaving us a review on G2 or Trustpilot:
-        <ul class="review-platforms"><li><a href="https://www.g2.com/fr/products/linkfinder-ai/reviews" target="_blank">G2</a></li></ul>
-        <ul class="review-platforms"><li><a href="https://fr.trustpilot.com/review/linkfinderai.com" target="_blank">Trustpilot</a></li></ul>
-        It only takes less than 1 minute!<br><br>
-        If you give us a review and provide us with the link to your review
-        <a href="https://form.typeform.com/to/UKRzccI3" class="review-form-link" onclick="openReviewForm(event)">in this form</a>,
-        we will award you <strong>1000 credits</strong> on your account.<br><br>
-        Thank you in advance! 🙏
+        <div id="reviewNotifLead"></div>
+        <div class="review-note">You must write in your review that you received credits for it. Reviews without that line can be removed by the platform.</div>
+        <button type="button" class="review-cta" onclick="openG2Review()">Write the review on G2</button>
+        <button type="button" class="review-cta-secondary" onclick="openReviewClaim()">Already wrote one? Claim your credits</button>
     </div>
 </div>
 
@@ -1395,12 +1414,14 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
 
 
 <button class="feedback-button" onclick="showFeedbackModal()" title="Send Feedback"><i class="fas fa-lightbulb"></i></button>
-<a href="https://linkfinderai.com/resources" target="_blank" rel="noopener" class="help-center-button" title="Help Center — guides & tutorials"><i class="fas fa-circle-question"></i></a>
+<div class="lf-dock">
+    <a href="https://linkfinderai.com/resources" target="_blank" rel="noopener" class="help-center-button" title="Help Center — guides & tutorials"><i class="fas fa-circle-question"></i></a>
 
-<button class="ref-fab" id="reopenTasksBtn" onclick="openOnboardingTasksPopupManually()" title="Earn more credits" style="display:none;">
-    <i class="fas fa-gift"></i>
-    <span>Get Free Credits</span>
-</button>
+    <button class="ref-fab" id="reopenTasksBtn" onclick="openOnboardingTasksPopupManually()" title="Earn more credits" style="display:none;">
+        <i class="fas fa-gift"></i>
+        <span>Get Free Credits</span>
+    </button>
+</div>
 
 <div id="feedbackModal" class="feedback-modal-overlay">
     <div class="feedback-modal">
@@ -4166,6 +4187,7 @@ async function processBulk(resuming) {
 
     let creditsConsumed = 0;
     let processedCount = 0;
+    lfBulkReviewAsked = false; // once per run, not once per page load
     let creditsExhausted = false;
     let processedWithCredits = 0;
     let lastCheckpointAt = Date.now();
@@ -4347,6 +4369,9 @@ async function processBulk(resuming) {
         csvExitCredits = Math.round(creditsConsumed * 100) / 100;
         updateProgress((i + 1) / csvData.length * 100);
         updateBulkResultsTable();
+        // i+1 is the position in the whole list, so a resumed run is measured
+        // against the list rather than against what is left of it.
+        maybeShowBulkReviewPrompt(i + 1, csvData.length, creditsExhausted);
         // Checkpoint on rows or on elapsed time, whichever lands first. Awaited
         // so the archive can never get ahead of itself, but it only ever sends
         // the rows finished since last time.
@@ -4779,6 +4804,46 @@ async function submitAiSdrRequest() {
     window.location.href = url;
 }
 
+// First touch wins and is never overwritten locally either: someone who
+// arrives on one affiliate link and later clicks another still belongs to the
+// first. The worker enforces the same rule server-side - this just avoids
+// sending a code we already know is not the one that will stick.
+function lfCaptureRef() {
+    const ref = new URLSearchParams(window.location.search).get('ref');
+    if (!ref) return;
+    try {
+        if (!localStorage.getItem('lf_ref')) {
+            localStorage.setItem('lf_ref', ref);
+            localStorage.setItem('lf_ref_at', String(Date.now()));
+            try { posthog.capture('referral_link_landed', { code: ref }); } catch(e) {}
+        }
+    } catch(e) {}
+}
+
+// Called once we know the token is real. /attribute locks first-touch and
+// refuses a second attempt, so calling it on every load is safe and means a
+// referred user is attributed even if the signup worker never saw the code.
+async function lfAttributeReferral() {
+    let ref;
+    try { ref = localStorage.getItem('lf_ref'); } catch(e) { return; }
+    if (!ref || !userToken) return;
+    try {
+        const res = await fetch('https://referral.hamoureliasse.workers.dev/attribute', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: userToken, code: ref })
+        });
+        const data = await res.json();
+        // Clear it once it has landed one way or the other, so an unknown or
+        // self-referral code is not retried on every page load forever.
+        if (data && (data.ok || data.reason)) {
+            try { localStorage.removeItem('lf_ref'); } catch(e) {}
+            if (data.ok && !data.already) {
+                try { posthog.capture('referral_attributed', { code: ref }); } catch(e) {}
+            }
+        }
+    } catch(e) {}
+}
+
 const UTM_KEYS = ['utm_source','utm_medium','utm_campaign','utm_term','utm_content','gclid','fbclid'];
 
 function captureUTMs() {
@@ -4798,6 +4863,7 @@ function captureUTMs() {
 
 function checkAuth(){
     const utms = captureUTMs();
+    lfCaptureRef();
     const utmQS = new URLSearchParams(utms).toString();
     const withUtms = (url) => utmQS ? url + (url.includes('?') ? '&' : '?') + utmQS : url;
 
@@ -4942,8 +5008,12 @@ function checkAuth(){
     if (d.email) {
         try { posthog.identify(userToken, { email: d.email }); } catch(e) {}
     }
-    // India/Bangladesh/Nigeria get the full task-based earn-credits popup.
-    // Everyone else gets the simpler corner G2/Trustpilot review nudge instead.
+    // Not awaited: attribution must never delay the app rendering.
+    lfAttributeReferral();
+    // India/Bangladesh/Nigeria get the full task-based earn-credits popup
+    // auto-opened. Everyone else gets the corner G2 review nudge instead - but
+    // both now get the "Get Free Credits" fab, so the credits panel is always
+    // reachable rather than being a low_conversion-only surface.
     //
     // Testing override: append ?geo_test=low_conversion or ?geo_test=standard
     // to the URL to preview either branch locally without needing a real IP
@@ -4957,10 +5027,14 @@ function checkAuth(){
             console.log(`[geo_test] Overriding geo_tier from "${otpGeoTier}" to "${geoTestOverride}" for this session only.`);
             otpGeoTier = geoTestOverride;
         }
-                if (otpGeoTier === 'low_conversion') {
-            const reopenBtn = document.getElementById('reopenTasksBtn');
-            if (reopenBtn) reopenBtn.style.display = '';
-        }
+        // Every geo gets the fab, not just low_conversion. It is the only
+        // permanent way into the credits panel, and standard geo - which is
+        // most paying users - had no way in at all: the review email tells
+        // people to "paste it into the tasks panel in your account", and for
+        // them that panel had no door.
+        const reopenBtn = document.getElementById('reopenTasksBtn');
+        if (reopenBtn) reopenBtn.style.display = '';
+
     });
     maybeShowBulkTutorialPopup(lfVisitCount);
 })
@@ -5885,18 +5959,117 @@ function updateCreditCostDisplay(){
     updateAffordabilityWarning();
 }
 
-function showReviewNotification(){
-    if(window.innerWidth<=640) return;
-    const shown = parseInt(localStorage.getItem('lf_review_shown') || '0');
-    if(shown >= 2) return;
+// Two moments ask for a G2 review, and they share this one card so the copy,
+// the link and the disclosure can never diverge:
+//
+//   first_success - the first clean enrichment result on screen.
+//   bulk_halfway  - halfway through a bulk run of 100+ rows, which is the
+//                   moment the tool has most visibly just done a lot of work.
+//
+// Each has its own lifetime cap, so someone who runs big lists can be asked
+// once at halfway without that eating the first-success ask, and vice versa.
+const G2_PROMPT_VARIANTS = {
+    first_success: {
+        cap: 3,
+        storageKey: 'lf_review_shown',
+        delayMs: 10000,
+        header: 'Worth 1,000 credits',
+        lead: 'If LinkFinder AI has been useful, would you write us a review on G2? '
+            + 'We will put <strong>1,000 credits</strong> on your account for it '
+            + '&mdash; that is 100 emails or 1,000 LinkedIn profiles.',
+    },
+    bulk_halfway: {
+        cap: 2,
+        storageKey: 'lf_review_bulk_shown',
+        delayMs: 0,
+        header: 'Halfway through your list',
+        lead: null, // built per-run so it can name the actual row count
+    },
+};
+
+// Shown on mobile too now. It used to be desktop-only, which silently dropped
+// every phone user from the single biggest review ask in the product; the card
+// is responsive rather than hidden. Caps and the 3min auto-hide are set per
+// variant above, because G2 reviews are the thing we are short of.
+function showG2ReviewPrompt(variantName, leadOverride){
+    const variant = G2_PROMPT_VARIANTS[variantName];
+    if (!variant) return;
+    const shown = parseInt(localStorage.getItem(variant.storageKey) || '0');
+    if (shown >= variant.cap) return;
+    // Never stack on top of itself or on the credits panel.
+    const card = document.getElementById('reviewNotification');
+    if (!card || card.classList.contains('show')) return;
+    const tasksModal = document.getElementById('onboardingTasksModal');
+    if (tasksModal && tasksModal.classList.contains('show')) return;
+
     setTimeout(()=>{
-        document.getElementById('reviewNotification').classList.add('show');
-        localStorage.setItem('lf_review_shown', shown + 1);
-        setTimeout(()=>{if(document.getElementById('reviewNotification').classList.contains('show'))closeReviewNotification();},90000);
-    },10000);
+        if (card.classList.contains('show')) return;
+        document.getElementById('reviewNotifHeader').textContent = variant.header;
+        document.getElementById('reviewNotifLead').innerHTML = leadOverride || variant.lead;
+        card.classList.add('show');
+        localStorage.setItem(variant.storageKey, shown + 1);
+        try { posthog.capture('g2_review_prompt_shown', { variant: variantName, times_shown: shown + 1 }); } catch(e) {}
+        setTimeout(()=>{if(card.classList.contains('show'))closeReviewNotification();},180000);
+    }, variant.delayMs);
+}
+
+function showReviewNotification(){ showG2ReviewPrompt('first_success'); }
+
+// Fires once per bulk run, at the halfway mark of a list of at least 100 rows.
+// Deliberately narrow, because a mistimed ask is worse than none:
+//   - only long lists, where the tool has just visibly saved real work;
+//   - never when credits just ran out, since that is a paywall, not a win;
+//   - never if they already left a review or have one being checked.
+const BULK_REVIEW_MIN_ROWS = 100;
+let lfBulkReviewAsked = false;
+
+function maybeShowBulkReviewPrompt(done, total, creditsExhausted){
+    if (lfBulkReviewAsked) return;
+    if (creditsExhausted) return;
+    if (!total || total < BULK_REVIEW_MIN_ROWS) return;
+    if (done < Math.floor(total / 2)) return;
+    lfBulkReviewAsked = true;
+
+    // Cached after the first call, so this does not add a request mid-run.
+    otpFetchStatus().then(() => {
+        const status = otpStatusFor('g2_review');
+        if (status === 'completed' || status === 'pending') return;
+        showG2ReviewPrompt('bulk_halfway',
+            `You are ${done.toLocaleString()} rows into a list of ${total.toLocaleString()}. `
+            + 'If LinkFinder AI is saving you time, would you write us a review on G2? '
+            + 'We will put <strong>1,000 credits</strong> on your account for it '
+            + '&mdash; that is 100 emails or 1,000 LinkedIn profiles.');
+    });
 }
 function closeReviewNotification(){document.getElementById('reviewNotification').classList.remove('show');document.getElementById('reviewNotification').classList.add('hide');}
-function openReviewForm(event){event.preventDefault();window.open('https://form.typeform.com/to/UKRzccI3','_blank');closeReviewNotification();}
+
+// One destination, and it is the write form - not the listing page, and not a
+// Typeform in between. OTP_LINKS.g2 is the single source of truth for this URL
+// so the popup and the credits panel can never drift apart again.
+function openG2Review(){
+    try { posthog.capture('g2_review_prompt_clicked', { action: 'write' }); } catch(e) {}
+    window.open(OTP_LINKS.g2, '_blank', 'noopener');
+    closeReviewNotification();
+}
+
+// Claiming is instant and in-app: the credits panel verifies the link and pays
+// out on the spot. The old Typeform meant a person waited on a manual grant.
+//
+// Opening the panel is not enough on its own - it has five rows and they
+// arrived holding a URL - so this scrolls to the G2 row and puts the cursor in
+// the field. They land on a focused input, not a list to search.
+function openReviewClaim(){
+    try { posthog.capture('g2_review_prompt_clicked', { action: 'claim' }); } catch(e) {}
+    closeReviewNotification();
+    if (typeof openOnboardingTasksPopupManually !== 'function') return;
+    Promise.resolve(openOnboardingTasksPopupManually()).then(() => {
+        const input = document.getElementById('otp-input-g2_review');
+        if (!input) return; // already completed, so the row has no field
+        const row = document.getElementById('otp-row-g2_review');
+        if (row) row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        input.focus();
+    });
+}
 
 function showFeedbackModal(){document.getElementById('feedbackModal').classList.add('show');document.body.style.overflow='hidden';document.getElementById('feedbackSuccessMessage').classList.remove('show');document.getElementById('feedbackErrorMessage').classList.remove('show');}
 function closeFeedbackModal(){document.getElementById('feedbackModal').classList.remove('show');document.body.style.overflow='';setTimeout(()=>{document.getElementById('feedbackForm').reset();},300);}
@@ -6554,10 +6727,13 @@ function openReferralModal() {
     document.getElementById('referralModal').classList.add('show');
     document.body.style.overflow = 'hidden';
 
-    // Set the link immediately from userToken
-    if (userToken) {
-        document.getElementById('referralLink').value = `https://linkfinderai.com?ref=${userToken}`;
-    }
+    // The link is NOT built from userToken. It used to be
+    // `?ref=${userToken}`, which put the user's auth credential into a URL the
+    // app then asked them to post publicly - and `?token=` is what checkAuth
+    // reads to log someone in, so a shared invite link handed over the
+    // sharer's account. The code now comes from the referral worker and is a
+    // generated string that authenticates nothing.
+    document.getElementById('referralLink').value = 'Loading your link…';
 
     if (!refDataLoaded) { fetchReferralData(); refDataLoaded = true; }
     try { posthog.capture('referral_modal_opened', { credits_remaining: currentCredits }); } catch(e) {}
@@ -6585,24 +6761,36 @@ document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && document.getElementById('referralModal').classList.contains('show')) closeReferralModal();
 });
  
+// Points at the v2 referral worker. v1's numbers came from a program where a
+// commission was written once, ever, and where attribution lived in a column
+// that was 4,645 rows of the literal string "null" - see
+// workers/referral/README.md. Nothing is migrated; balances start at zero.
+const REFERRAL_WORKER_V2 = 'https://referral.hamoureliasse.workers.dev';
+
 async function fetchReferralData() {
     try {
-        const response = await fetch('https://referral-program.hamoureliasse.workers.dev/', {
+        const response = await fetch(`${REFERRAL_WORKER_V2}/me`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ token: userToken })
         });
         if (response.ok) {
             const data = await response.json();
-            document.getElementById('alreadyPaid').textContent = `$${data.alreadyPaid || '0.00'}`;
-            document.getElementById('pendingPayout').textContent = `$${data.pendingPayout || '0.00'}`;
-            if (data.paypalEmail) {
-                document.getElementById('currentPaypal').textContent = data.paypalEmail;
+            const stats = data.stats || {};
+            document.getElementById('referralLink').value = data.link || '';
+            // "Owed" is approved only. Pending commissions are still inside the
+            // refund window and showing them as a balance is how a referral
+            // programme loses trust the first time a number goes down.
+            document.getElementById('alreadyPaid').textContent = `$${Number(stats.paid || 0).toFixed(2)}`;
+            document.getElementById('pendingPayout').textContent = `$${Number(stats.owed || 0).toFixed(2)}`;
+            if (data.payout_email) {
+                document.getElementById('currentPaypal').textContent = data.payout_email;
                 document.getElementById('paypalDisplay').classList.add('show');
-                document.getElementById('paypalEmail').value = data.paypalEmail;
+                document.getElementById('paypalEmail').value = data.payout_email;
             }
         }
     } catch (error) {
+        document.getElementById('referralLink').value = '';
         console.error('Error fetching referral data:', error);
         refDataLoaded = false;
     }
@@ -6634,13 +6822,13 @@ async function savePaypalEmail() {
     if (!emailRegex.test(paypalEmail)) { showRefAlert('Please enter a valid email address', 'error'); return; }
     saveBtn.disabled = true; saveText.textContent = 'Saving...';
     try {
-        const response = await fetch('https://paypal-affiliate.hamoureliasse.workers.dev/', {
+        const response = await fetch(`${REFERRAL_WORKER_V2}/payout`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ token: userToken, paypalEmail: paypalEmail })
+            body: JSON.stringify({ token: userToken, payout_email: paypalEmail })
         });
         const data = await response.json();
-        if (response.ok && data.success) {
+        if (response.ok && data.ok) {
             document.getElementById('currentPaypal').textContent = paypalEmail;
             document.getElementById('paypalDisplay').classList.add('show');
             saveBtn.classList.add('success');
@@ -6676,8 +6864,14 @@ const ONBOARDING_TASKS_WORKER = 'https://onboarding-tasks-worker.hamoureliasse.w
 const OTP_LINKS = {
     youtube: 'https://www.youtube.com/@EliasIA694',
     twitter: 'https://twitter.com/linkfinderai',
-    g2: 'https://www.g2.com/fr/products/linkfinder-ai/reviews',
-    trustpilot: 'https://fr.trustpilot.com/review/linkfinderai.com',
+    // Both must be the WRITE form, not the listing page. Sending people to
+    // /reviews showed them other people's reviews with nothing to fill in, and
+    // they pasted that same URL back as their submission - which is most of the
+    // pending queue. The /fr/ locale was also forcing French on an
+    // English-majority audience.
+    // Trustpilot is deliberately absent: their guidelines prohibit incentivised
+    // reviews outright, and every place we asked for one offered credits.
+    g2: 'https://www.g2.com/products/linkfinder-ai/reviews/start',
 };
 
 // Both review platforms and the FTC require an incentivised review to say so.
@@ -6690,10 +6884,18 @@ const DISC = 'You must write in your review that you received credits for it. Re
 // it permitted there - so the task is gone rather than disclosed. G2 leads
 // instead: it pays the most and G2 permits incentives when they are declared.
 //
-// The badge task is checked for real before any credits move: workers/badge-verify
-// fetches the page and confirms the link exists and is followed. Without that it
-// would pay out on an honour system for the joint highest-value item here.
-const BADGE_VERIFY_WORKER = 'https://badge-verify.hamoureliasse.workers.dev';
+// The site-badge task was removed on 31 Aug 2026. It never paid out once:
+// user_task_completions has zero site_badge rows of any status, and the
+// onboarding-tasks worker has no site_badge in TASK_CONFIG, so /tasks/complete
+// answered "Unknown task_name" to every submission. Anyone who actually added
+// the badge did the work and got nothing.
+//
+// It was also the worst trade we offered - edit your site's HTML and keep a
+// dofollow link live, for the same 1,000 credits as a G2 review - and the only
+// task that required owning a website at all.
+//
+// badge.html, badge.svg and workers/badge-verify are left in place: the /badge
+// page stands on its own for anyone who wants to link to us unprompted.
 
 // The four survey questions. The ids and every option `value` below MUST match
 // SURVEY_QUESTIONS in workers/onboarding-tasks/worker.js - the worker refuses
@@ -6743,26 +6945,47 @@ const OTP_SURVEY = [
 const SURVEY_TASK_LIVE = false;
 
 const OTP_TASKS_ALL = [
-    // Cash, not credits, and the only item here that pays repeatedly — so it
-    // leads. `rewardLabel` overrides the credits badge; `kind: 'referral'`
-    // renders the invite link (that branch already existed and nothing used
-    // it). It has no completed state and never posts to the tasks worker,
-    // which is why otpCompletable() keeps it out of the progress count.
-    //
-    // "up to $500" because that is what the programme actually is — 25% of
-    // their revenue, capped at $500 (see the referral modal). A flat "+$500"
-    // would read as a signing bonus and be a promise nobody can keep.
-    { name: 'referral', kind: 'referral', label: 'Invite someone to LinkFinder AI',
-      sub: 'They sign up with your link, you earn on everything they ever pay. Paid monthly once you pass $100.',
-      rewardLabel: 'up to +$500', realValue: '= 25% of their revenue, for life' },
     { name: 'product_survey', kind: 'survey', label: 'Answer 4 questions about your work', sub: 'Takes about a minute. It genuinely changes what we build next.', credits: 500, realValue: '= 50 emails or 500 LinkedIn profiles' },
-    { name: 'g2_review', kind: 'url', label: 'Leave a G2 review', credits: 1000, realValue: '= 100 emails or 1,000 LinkedIn profiles', placeholder: 'Paste the URL of your review', linkUrl: OTP_LINKS.g2, linkLabel: 'Write a review on G2', pendingCopy: 'Being checked', disclosureNote: DISC },
-    { name: 'site_badge', kind: 'url', label: 'Put the LinkFinder badge on your site', credits: 1000, realValue: '= 100 emails or 1,000 LinkedIn profiles', placeholder: 'Paste the page URL where the badge is live', linkUrl: 'https://linkfinderai.com/badge', linkLabel: 'Get the badge code', verifyWorker: BADGE_VERIFY_WORKER },
+    // featured: G2 reviews are the thing we are shortest of, so this row is
+    // called out rather than sitting as one of five equals.
+    // Order is deliberate and is the order they appear in: the G2 review is
+    // what we are shortest of, the affiliate is worth the most to the person
+    // reading, and YouTube is the cheapest thing to ask for, so it goes last.
+    { name: 'g2_review', kind: 'url', featured: true, label: 'Leave a G2 review', credits: 1000, realValue: '= 100 emails or 1,000 LinkedIn profiles', placeholder: 'Paste the URL of your review', linkUrl: OTP_LINKS.g2, linkLabel: 'Write a review on G2', pendingCopy: 'Being checked', disclosureNote: DISC },
+    // The only row that pays money rather than credits, and the only one with
+    // no end: it keeps paying for as long as the person they sent stays. It
+    // lives here rather than in the nav or the corner because it is the same
+    // kind of thing as the rest - something you can do for a reward - and a
+    // separate entry point for it just crowded the screen.
+    { name: 'affiliate', kind: 'link_out', credits: 0, rewardLabel: 'up to +$500', notCountedInProgress: true,
+      label: 'Refer someone who pays', sub: 'You get 25% of everything they ever pay us.',
+      realValue: 'Paid in cash, not credits', linkLabel: 'Get your link' },
     { name: 'youtube_subscribe', kind: 'honor_click', label: 'Subscribe to our YouTube channel', credits: 100, realValue: '= 100 LinkedIn profiles', linkUrl: OTP_LINKS.youtube, linkLabel: 'Open channel' },
-    { name: 'linkedin_share', kind: 'url', label: 'Share on LinkedIn', credits: 150, realValue: '= 150 LinkedIn profiles', placeholder: 'Paste your LinkedIn post URL' },
+    // linkedin_share was removed on 31 Aug: two completions in its whole life,
+    // and it was the one task whose "proof" was any linkedin.com URL, so it
+    // paid 150 credits for pasting a link to somebody else's post. It stays in
+    // the worker's TASK_CONFIG so the two people who did complete it keep
+    // their credits and their history renders.
 ];
 
-const OTP_TASKS = OTP_TASKS_ALL.filter(t => t.name !== 'product_survey' || SURVEY_TASK_LIVE);
+/*
+ * The affiliate row is hidden until the referral worker actually exists.
+ * app.html publishes the moment it is pushed, but Cloudflare workers need a
+ * `wrangler deploy` - so the page shipped ahead of its backend and the row led
+ * to "We could not load your affiliate account".
+ *
+ * Both are now done: the worker was deployed on 31 Aug and the schema applied
+ * the same day (four tables, RLS on, no policies - service role only).
+ *
+ * Set back to false if the worker is ever taken down. The page degrades to
+ * "the affiliate program is not switched on yet" rather than an error, but a
+ * row leading nowhere is still worse than no row.
+ */
+const AFFILIATE_LIVE = true;
+
+const OTP_TASKS = OTP_TASKS_ALL.filter(t =>
+    (t.name !== 'product_survey' || SURVEY_TASK_LIVE) &&
+    (t.name !== 'affiliate' || AFFILIATE_LIVE));
 
 function otpCopy() {
     const balance = currentCredits !== null ? Math.round(currentCredits * 10) / 10 : null;
@@ -6878,17 +7101,18 @@ function renderOnboardingTasksPopup() {
     if (earned > 0) { pill.classList.remove('hidden'); document.getElementById('otpEarnedAmount').textContent = earned.toLocaleString(); }
     else { pill.classList.add('hidden'); }
 
-    // The referral never reaches 'completed' — there is no event that would
-    // close it — so counting it would cap the bar below 100% forever.
-    const completable = OTP_TASKS.filter(t => t.kind !== 'referral');
-    const completedCount = completable.filter(t => otpStatusFor(t.name) === 'completed').length;
-    const totalCount = completable.length;
+    const countable = OTP_TASKS.filter(t => !t.notCountedInProgress);
+    const completedCount = countable.filter(t => otpStatusFor(t.name) === 'completed').length;
+    const totalCount = countable.length;
     const progressBar = document.getElementById('otpProgressBar');
     const progressLabel = document.getElementById('otpProgressLabel');
     if (progressBar) progressBar.style.width = `${Math.round((completedCount / totalCount) * 100)}%`;
     if (progressLabel) progressLabel.textContent = `${completedCount} of ${totalCount} tasks completed`;
 
-    const referralLink = `https://linkfinderai.com?ref=${userToken}`;
+    // Never build a share link from userToken - that is the auth credential.
+    // No task declares kind 'referral' today; if one is added it must read the
+    // generated code from the referral worker, as openReferralModal does.
+    const referralLink = '';
 
     // Reorder: incomplete/pending tasks first (in config order), completed ones move to the bottom.
     const orderedTasks = [...OTP_TASKS].sort((a, b) => {
@@ -6910,6 +7134,11 @@ function renderOnboardingTasksPopup() {
         } else if (task.kind === 'honor_click') {
             actionHtml = `<div class="otp-honor-row">
                 <a href="${task.linkUrl}" target="_blank" rel="noreferrer" class="otp-link-btn otp-link-btn-block" onclick="otpCompleteHonorTask('${task.name}')">${isBusy?'Saving\u2026':otpEsc(task.linkLabel)}</a>
+            </div>`;
+        } else if (task.kind === 'link_out') {
+            const href = `https://linkfinderai.com/affiliate?token=${encodeURIComponent(userToken || '')}`;
+            actionHtml = `<div class="otp-honor-row">
+                <a href="${href}" class="otp-link-btn otp-link-btn-block" onclick="otpTrackStarted('${task.name}')">${otpEsc(task.linkLabel)}</a>
             </div>`;
         } else if (task.kind === 'url') {
             actionHtml = `<div class="otp-url-row">
@@ -6942,13 +7171,15 @@ function renderOnboardingTasksPopup() {
             </div>`;
         }
 
-        return `<div class="otp-task-row otp-status-${status}" id="otp-row-${task.name}">
+        const featuredCls = task.featured && status !== 'completed' ? ' otp-featured' : '';
+        return `<div class="otp-task-row${featuredCls} otp-status-${status}" id="otp-row-${task.name}">
             <div class="otp-task-main">
                 <div class="otp-task-text">
+                    ${featuredCls ? '<span class="otp-featured-flag">Most helpful to us</span>' : ''}
                     <div class="otp-task-label">${otpEsc(task.label)}${task.sub?`<div class="otp-task-sub">${otpEsc(task.sub)}</div>`:''}</div>
                     ${task.realValue ? `<div class="otp-task-realvalue">${otpEsc(task.realValue)}</div>` : ''}
                 </div>
-                <div class="otp-task-badge${task.rewardLabel ? ' is-money' : ''}">${task.rewardLabel ? otpEsc(task.rewardLabel) : `+${task.credits.toLocaleString()} credits`}</div>
+                <div class="otp-task-badge${task.rewardLabel ? ' otp-task-badge-money' : ''}">${task.rewardLabel ? otpEsc(task.rewardLabel) : `+${task.credits.toLocaleString()} credits`}</div>
             </div>
             <div class="otp-task-action">${actionHtml}<div class="otp-field-error hidden" id="otp-error-${task.name}"></div></div>
         </div>`;
@@ -7077,38 +7308,11 @@ async function otpSubmitUrlTask(taskName) {
     otpBusyTask = taskName;
     renderOnboardingTasksPopup();
 
-    // Tasks carrying a verifyWorker are checked for real before the credits
-    // endpoint is called at all, so a failed check cannot leave a completed row.
-    if (task && task.verifyWorker) {
-        const BADGE_ERRORS = {
-            no_link: 'We could not find the badge on that page. Check it is published, and that this is the exact page it appears on.',
-            link_is_nofollow: 'The badge is there, but the link is set to nofollow. Remove rel="nofollow" from it and try again.',
-            domain_already_claimed: 'That site has already been credited for the badge.',
-            already_claimed: 'You have already claimed this one.',
-            not_html: 'That URL did not return a web page.',
-            timeout: 'That page took too long to respond. Try again in a moment.',
-            unreachable: 'We could not reach that page.'
-        };
-        try {
-            const vres = await fetch(task.verifyWorker, {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ user_token: userToken, site_url: url })
-            });
-            const vdata = await vres.json();
-            if (!vres.ok || !vdata.verified) {
-                const key = vdata.detail || vdata.error;
-                throw new Error(BADGE_ERRORS[key] || 'We could not verify the badge on that page.');
-            }
-            try { posthog.capture('badge_verified', { domain: vdata.domain }); } catch (e) {}
-        } catch (e) {
-            otpBusyTask = null;
-            renderOnboardingTasksPopup();
-            otpShowFieldError(taskName, e.message || 'We could not verify the badge.');
-            return;
-        }
-    }
+    // The generic pre-flight verify step went with the badge task - it was the
+    // only task that declared a verifyWorker. Recoverable from git if a future
+    // task needs checking before the credits endpoint is called.
 
-    const isReview = taskName === 'g2_review' || taskName === 'trustpilot_review';
+    const isReview = taskName === 'g2_review';
     const endpoint = isReview ? '/tasks/submit-review' : '/tasks/complete';
     try {
         const res = await fetch(`${ONBOARDING_TASKS_WORKER}${endpoint}`, {

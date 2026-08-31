@@ -2344,7 +2344,10 @@ window.setValueRange = setValueRange;
    Nothing but the totals leaves the page — no names, no emails, no company list.
 --------------------------------------------------------------------- */
 const SHARE_SITE = 'https://linkfinderai.com/';
-const SHARE_REFERRAL_WORKER = 'https://referral-program.hamoureliasse.workers.dev/';
+// v2. The v1 worker is retired - see workers/referral/README.md for why its
+// data could not be migrated. /me issues a code on first call, so a user who
+// never had one still gets a working link here.
+const SHARE_REFERRAL_WORKER = 'https://referral.hamoureliasse.workers.dev/me';
 const SHARE_COMMISSION = '25%';
 
 let valueReferralCode = null;   // null = not looked up yet, '' = no code
@@ -2535,7 +2538,7 @@ async function loadReferralCode() {
         });
         if (!r.ok) return;
         const d = await r.json();
-        if (d && d.referralCode) valueReferralCode = d.referralCode;
+        if (d && d.code) valueReferralCode = d.code;
     } catch (e) { /* the plain branded link still works */ }
 }
 

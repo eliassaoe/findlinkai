@@ -102,10 +102,16 @@ const WORKER_BASE_URL = 'https://onboarding-tasks-worker.hamoureliasse.workers.d
 // Review URL verification
 // ===========================================================================
 //
-// Everything here is decided from the URL string alone. No fetch is attempted:
-// G2 and Trustpilot both sit behind bot protection that refuses datacenter
-// IPs, so a fetch would fail on genuine submissions as readily as fake ones,
-// and a check that cannot be trusted is worse than an absent one.
+// Shape is decided from the URL string alone. Existence is not: see
+// fetchVerifyReview below, which loads the review page and checks it names
+// both this product and this review id.
+//
+// This file used to say no fetch was attempted, because G2 and Trustpilot sit
+// behind bot protection that refuses datacenter IPs. That may still be true -
+// it could not be tested from the machine this was written on. So the fetch is
+// written to fail safe: a block, a timeout, a 403 or a 404 all mean "not
+// confirmed", which leaves the review pending exactly as before. It can only
+// turn pending into approved, never the reverse.
 //
 // The two sites are NOT equally verifiable, and the whole design turns on it:
 //
@@ -123,10 +129,17 @@ const WORKER_BASE_URL = 'https://onboarding-tasks-worker.hamoureliasse.workers.d
 
 const REVIEW_URL_PATTERNS = {
     g2_review: [
-        // https://www.g2.com/fr/products/linkfinder-ai/reviews/<review-slug>
-        /^https?:\/\/(?:www\.)?g2\.com(?:\/[a-z]{2})?\/products\/linkfinder-ai\/reviews\/([a-z0-9._~-]+)/,
+        // A real G2 review permalink ends in linkfinder-ai-review-<digits>.
+        //
+        // This used to accept ANY slug after /reviews/, which meant the write
+        // form we send people to - /products/linkfinder-ai/reviews/start -
+        // classified as auto_approve with the key "g2:start". So did /new,
+        // /video, and the literal string "x". The hard part of the task was
+        // writing a review; pasting back the link from our own email skipped
+        // it and still passed. That is most of what is in the pending queue.
+        /^https?:\/\/(?:www\.)?g2\.com(?:\/[a-z]{2})?\/products\/linkfinder-ai\/reviews\/(linkfinder-ai-review-[0-9]+)(?:[/?#]|$)/,
         // https://www.g2.com/survey_responses/linkfinder-ai-review-<id>
-        /^https?:\/\/(?:www\.)?g2\.com(?:\/[a-z]{2})?\/survey_responses\/(linkfinder-ai[a-z0-9._~-]*)/,
+        /^https?:\/\/(?:www\.)?g2\.com(?:\/[a-z]{2})?\/survey_responses\/(linkfinder-ai-review-[0-9]+)(?:[/?#]|$)/,
     ],
     trustpilot_review: [
         /^https?:\/\/(?:[a-z]{2}\.)?(?:www\.)?trustpilot\.com\/reviews\/([0-9a-f]{20,32})/,
@@ -136,6 +149,13 @@ const REVIEW_URL_PATTERNS = {
 // The pages we link users to. They prove nothing — anyone can copy them —
 // and pasting one back is the most common honest mistake, so it gets its own
 // message rather than a generic rejection.
+// Pages on the right product that are not somebody's review. The tightened
+// pattern above already refuses these; naming them explicitly is what lets the
+// rejection say "that is the form, not your review" instead of a generic "that
+// does not look like a review link", which reads like a bug to someone who has
+// genuinely just written one.
+const G2_NON_REVIEW_SLUGS = /^(?:start|new|write|edit|video|videos|take_survey|survey|thank_you|thanks)$/;
+
 const LANDING_PAGE_PATTERNS = {
     g2_review: /^https?:\/\/(?:www\.)?g2\.com(?:\/[a-z]{2})?\/products\/linkfinder-ai\/reviews\/?$/,
     trustpilot_review: /^https?:\/\/(?:[a-z]{2}\.)?(?:www\.)?trustpilot\.com\/review\//,
@@ -181,13 +201,24 @@ export function classifyReviewUrl(taskName, url, opts = {}) {
         };
     }
 
+    if (taskName === 'g2_review') {
+        const slug = (u.match(/\/products\/linkfinder-ai\/reviews\/([^/?#]+)/) || [])[1];
+        if (slug && G2_NON_REVIEW_SLUGS.test(slug)) {
+            return {
+                verdict: 'reject',
+                key: null,
+                reason: 'That is the form for writing a review, not a link to a review you have written. Once G2 publishes yours, open it and copy the URL from your browser\u2019s address bar \u2014 it ends in something like linkfinder-ai-review-10432117.',
+            };
+        }
+    }
+
     const key = reviewUrlKey(taskName, u);
     if (!key) {
         return {
             verdict: 'reject',
             key: null,
             reason: taskName === 'g2_review'
-                ? 'That does not look like a link to a G2 review of LinkFinder AI. Open your review on G2 and copy its URL.'
+                ? 'That does not look like a link to a published G2 review of LinkFinder AI. Open your own review on G2 and copy its URL \u2014 it ends in something like linkfinder-ai-review-10432117.'
                 : 'That does not look like a link to a Trustpilot review. Open your review on Trustpilot and copy its URL.',
         };
     }
@@ -316,6 +347,57 @@ async function creditUser(env, userToken, amount) {
  * be in the set until the next sync. It queues for manual review, and
  * /admin/sync-reviews releases it automatically once it shows up.
  */
+// ---------------------------------------------------------------------------
+// Fetch the review page and see whether it is really there.
+//
+// The note at the top of this file says no fetch is attempted because G2 sits
+// behind bot protection that refuses datacenter IPs. That may well still be
+// true - it could not be tested from the machine this was written on, because
+// g2.com is blocked there. So this is written to be *safe when it fails*: a
+// block, a timeout, a 403 and a 404 are all simply "not confirmed", which
+// leaves the review pending exactly as it is today. It can only ever turn a
+// pending review into an approved one, never the reverse, and it is switched
+// off entirely with G2_FETCH_VERIFY=false.
+//
+// What counts as confirmation is deliberately narrow: the page must load, and
+// it must name both this product and the specific review id from the URL. A
+// generic 200 from a redirect to the product listing proves nothing - that is
+// what the old shape-only check effectively accepted.
+export async function fetchVerifyReview(env, taskName, reviewUrl, key) {
+    if (taskName !== 'g2_review') return { confirmed: false, reason: 'not_g2' };
+    if (env.G2_FETCH_VERIFY === 'false') return { confirmed: false, reason: 'disabled' };
+
+    const reviewId = String(key || '').split('-').pop();
+    if (!/^[0-9]+$/.test(reviewId)) return { confirmed: false, reason: 'no_review_id' };
+
+    try {
+        const res = await fetch(reviewUrl, {
+            redirect: 'follow',
+            headers: {
+                // Ask as a browser would. If G2 refuses anyway, we land in the
+                // not-confirmed branch and nothing changes.
+                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml',
+                'Accept-Language': 'en-US,en;q=0.9',
+            },
+            signal: AbortSignal.timeout(8000),
+        });
+        if (!res.ok) return { confirmed: false, reason: `http_${res.status}` };
+
+        // A review page redirected to the product or login page is not a review.
+        const landed = new URL(res.url || reviewUrl).pathname.toLowerCase();
+        if (!landed.includes(reviewId)) return { confirmed: false, reason: 'redirected_away' };
+
+        const html = (await res.text()).toLowerCase();
+        const namesProduct = html.includes('linkfinder');
+        const namesReview  = html.includes(reviewId);
+        if (namesProduct && namesReview) return { confirmed: true, reason: 'page_confirms_review' };
+        return { confirmed: false, reason: namesProduct ? 'review_id_absent' : 'product_absent' };
+    } catch (e) {
+        return { confirmed: false, reason: 'unreachable' };
+    }
+}
+
 async function isKnownReview(env, key) {
     if (!key) return false;
     const rows = await supabaseFetch(env, `known_reviews?review_key=${eq(key)}&select=review_key`);
@@ -450,18 +532,34 @@ async function handleSubmitReview(request, env) {
 
     // The URL looks right. That is not the same as the review existing, so
     // pay out only for one we have actually seen. Everything else waits.
+    // For G2 the existence check is not optional. The permalink id is just a
+    // number, so a valid shape proves nothing on its own, and
+    // REQUIRE_KNOWN_REVIEW=false must not be able to turn the highest-value
+    // task on the list into an honour system.
     let approved = verdict.verdict === 'auto_approve';
-    if (approved && env.REQUIRE_KNOWN_REVIEW !== 'false') {
+    const existenceRequired = task_name === 'g2_review' || env.REQUIRE_KNOWN_REVIEW !== 'false';
+    if (approved && existenceRequired) {
+        let confirmed = false;
         try {
-            if (!(await isKnownReview(env, verdict.key))) {
-                approved = false;
-                verdict.verdict = 'manual';
-                verdict.reason = 'Shape is valid but this review is not in our synced list yet — holding for review.';
-            }
+            confirmed = await isKnownReview(env, verdict.key);
+            if (confirmed) verdict.reason = 'Matched a review in the synced list.';
         } catch (e) {
-            approved = false;   // cannot confirm, so do not pay
+            confirmed = false;
+        }
+        // Nothing in the synced list, so go and look at the page itself. This
+        // is what makes the common case need no decision from anyone.
+        if (!confirmed) {
+            const check = await fetchVerifyReview(env, task_name, review_url, verdict.key);
+            if (check.confirmed) {
+                confirmed = true;
+                verdict.reason = 'Verified live on G2: the page names this product and this review id.';
+            } else {
+                verdict.reason = `Not confirmed (${check.reason}) — holding for one-click approval.`;
+            }
+        }
+        if (!confirmed) {
+            approved = false;
             verdict.verdict = 'manual';
-            verdict.reason = 'Could not check the review list; holding for review.';
         }
     }
     let reviewId = null;
@@ -879,7 +977,42 @@ async function handleReconcile(request, env) {
 }
 
 // ===========================================================================
+// G2 moderates before publishing, so the check at submit time usually runs
+// before the review is live - the honest answer at that moment is "not yet".
+// This re-checks what is waiting, so a review that goes live on Tuesday is
+// paid on Tuesday night without anyone opening an email. That is the
+// difference between a queue someone has to manage and one that drains itself.
+async function recheckPendingReviews(env) {
+    let pending;
+    try {
+        pending = await supabaseFetch(
+            env,
+            `pending_reviews?status=eq.pending&platform=${eq('g2')}&review_key=not.is.null&select=id,review_url,review_key&limit=40`
+        );
+    } catch (e) {
+        console.error('recheck: could not list pending', e);
+        return;
+    }
+
+    let approved = 0;
+    for (const row of pending || []) {
+        const check = await fetchVerifyReview(env, 'g2_review', row.review_url, row.review_key);
+        if (!check.confirmed) continue;
+        try {
+            const r = await approveReview(env, row.id, 'auto_fetch_verified');
+            if (!r.error) approved++;
+        } catch (e) {
+            console.error('recheck: approve failed', row.id, e);
+        }
+    }
+    console.log(`recheck: ${approved} of ${(pending || []).length} pending G2 reviews confirmed live`);
+}
+
 export default {
+    async scheduled(event, env, ctx) {
+        ctx.waitUntil(recheckPendingReviews(env));
+    },
+
     async fetch(request, env) {
         const url = new URL(request.url);
 

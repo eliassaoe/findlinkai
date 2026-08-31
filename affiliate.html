@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Affiliate Program — LinkFinder AI</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="https://i.ibb.co/jPjX9SSp/Screen-Shot-2025-03-28-at-8-16-15-PM.png">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+:root{
+    --primary:#2563eb; --primary-hover:#1d4ed8;
+    --gray-50:#f9fafb; --gray-100:#f3f4f6; --gray-200:#e5e7eb; --gray-300:#d1d5db;
+    --gray-400:#9ca3af; --gray-500:#6b7280; --gray-600:#4b5563; --gray-700:#374151;
+    --gray-800:#1f2937; --gray-900:#111827;
+    --success:#10b981;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:var(--gray-50);color:var(--gray-900);line-height:1.5;}
+.wrap{max-width:760px;margin:0 auto;padding:2rem 1rem 4rem;}
+.back{display:inline-flex;align-items:center;gap:0.4rem;color:var(--gray-500);text-decoration:none;font-size:0.85rem;margin-bottom:1.5rem;}
+.back:hover{color:var(--gray-900);}
+h1{font-size:1.6rem;font-weight:700;letter-spacing:-0.02em;}
+.lede{color:var(--gray-600);font-size:0.95rem;margin-top:0.4rem;}
+.card{background:#fff;border:1px solid var(--gray-200);border-radius:12px;padding:1.5rem;margin-top:1.25rem;}
+
+/* The link is the product. It gets the most weight on the page. */
+.link-row{display:flex;gap:0.5rem;margin-top:0.875rem;}
+.link-row input{flex:1;min-width:0;padding:0.75rem 0.875rem;border:1px solid var(--gray-300);border-radius:8px;
+    font-size:0.9rem;font-family:'Monaco','Courier New',monospace;background:var(--gray-50);color:var(--gray-700);}
+.btn{background:var(--primary);color:#fff;border:none;border-radius:8px;padding:0.75rem 1.25rem;font-size:0.9rem;
+    font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;transition:background 0.15s ease;}
+.btn:hover{background:var(--primary-hover);}
+.btn.copied{background:var(--success);}
+.btn-secondary{background:#fff;color:var(--gray-700);border:1px solid var(--gray-300);}
+.btn-secondary:hover{background:var(--gray-50);}
+
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:0.75rem;margin-top:1.25rem;}
+.stat{background:#fff;border:1px solid var(--gray-200);border-radius:10px;padding:0.875rem;}
+.stat-value{font-size:1.4rem;font-weight:700;letter-spacing:-0.02em;}
+.stat-label{font-size:0.72rem;color:var(--gray-500);margin-top:0.15rem;}
+.stat.owed .stat-value{color:var(--success);}
+
+h2{font-size:1rem;font-weight:600;}
+.muted{color:var(--gray-500);font-size:0.82rem;}
+.rows{margin-top:0.875rem;border-top:1px solid var(--gray-200);}
+.row{display:flex;justify-content:space-between;align-items:center;gap:1rem;
+     padding:0.7rem 0;border-bottom:1px solid var(--gray-100);font-size:0.85rem;}
+.row-label{color:var(--gray-600);}
+.pill{font-size:0.7rem;font-weight:600;padding:0.15rem 0.5rem;border-radius:5px;white-space:nowrap;}
+.pill.pending{background:#fffbeb;color:#b45309;}
+.pill.review{background:#eff6ff;color:#1d4ed8;}
+.pill.owed{background:#f0fdf4;color:#15803d;}
+
+.payout input{width:100%;padding:0.7rem 0.875rem;border:1px solid var(--gray-300);border-radius:8px;font-size:0.9rem;font-family:inherit;}
+.payout-row{display:flex;gap:0.5rem;margin-top:0.75rem;}
+.payout-row input{flex:1;min-width:0;}
+.note{background:var(--gray-50);border:1px solid var(--gray-200);border-radius:8px;padding:0.75rem 0.875rem;
+      font-size:0.8rem;color:var(--gray-600);margin-top:0.875rem;line-height:1.55;}
+.terms li{margin:0.35rem 0 0.35rem 1.1rem;font-size:0.84rem;color:var(--gray-600);}
+.msg{font-size:0.82rem;margin-top:0.6rem;display:none;}
+.msg.show{display:block;}
+.msg.ok{color:var(--success);} .msg.err{color:#ef4444;}
+#loading{text-align:center;padding:4rem 0;color:var(--gray-500);}
+.hidden{display:none !important;}
+@media(max-width:560px){
+    .stats{grid-template-columns:repeat(2,1fr);}
+    .link-row,.payout-row{flex-direction:column;}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+    <a class="back" href="#" id="backLink"><i class="fas fa-arrow-left"></i> Back to LinkFinder</a>
+
+    <div id="loading"><i class="fas fa-spinner fa-spin"></i> Loading your affiliate account…</div>
+
+    <div id="main" class="hidden">
+        <h1>Affiliate program</h1>
+        <p class="lede">Earn <strong id="rateText">25%</strong> of everything anyone you refer pays us —
+            for as long as they stay a customer.</p>
+
+        <div class="card">
+            <h2>Your link</h2>
+            <p class="muted">Anyone who signs up through this is yours, permanently.</p>
+            <div class="link-row">
+                <input type="text" id="refLink" readonly>
+                <button class="btn" id="copyBtn">Copy link</button>
+            </div>
+            <div class="msg" id="copyMsg"></div>
+        </div>
+
+        <div class="stats">
+            <div class="stat"><div class="stat-value" id="sClicks">0</div><div class="stat-label">Clicks</div></div>
+            <div class="stat"><div class="stat-value" id="sSignups">0</div><div class="stat-label">Signups</div></div>
+            <div class="stat"><div class="stat-value" id="sCustomers">0</div><div class="stat-label">Paying customers</div></div>
+            <div class="stat owed"><div class="stat-value" id="sOwed">$0</div><div class="stat-label">Owed to you</div></div>
+        </div>
+
+        <div class="card">
+            <h2>Your earnings</h2>
+            <div class="rows">
+                <div class="row">
+                    <span class="row-label">Confirmed and owed to you <span class="pill owed">ready</span></span>
+                    <strong id="eOwed">$0.00</strong>
+                </div>
+                <div class="row">
+                    <span class="row-label">Still in the refund window <span class="pill pending">pending</span></span>
+                    <strong id="ePending">$0.00</strong>
+                </div>
+                <div class="row" id="reviewRow" style="display:none;">
+                    <span class="row-label">Being checked by us <span class="pill review">review</span></span>
+                    <strong id="eReview">$0.00</strong>
+                </div>
+                <div class="row">
+                    <span class="row-label">Already paid out</span>
+                    <strong id="ePaid">$0.00</strong>
+                </div>
+            </div>
+            <div class="note" id="payoutNote"></div>
+        </div>
+
+        <div class="card payout">
+            <h2>Where we send it</h2>
+            <p class="muted">PayPal address. Add it before your first payout so nothing gets held up.</p>
+            <div class="payout-row">
+                <input type="email" id="payoutEmail" placeholder="you@example.com">
+                <button class="btn btn-secondary" id="saveBtn">Save</button>
+            </div>
+            <div class="msg" id="payoutMsg"></div>
+        </div>
+
+        <div class="card">
+            <h2>How it works</h2>
+            <ul class="terms">
+                <li>You earn <strong id="rateText2">25%</strong> of every payment they make — the first one and every renewal after it.</li>
+                <li>Commission is confirmed <strong id="holdText">30 days</strong> after each payment, once it is past the refund window.</li>
+                <li>Payouts run monthly, once you are owed at least <strong id="minText">$50</strong>.</li>
+                <li>Refunded or charged-back payments are removed — we only pay on money we keep.</li>
+                <li>Referring yourself, or a second account of your own, does not earn.</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<script>
+// The worker is the only thing that can create a commission, and it only does
+// so from a signed Dodo payment webhook. Everything this page can call is
+// read-only with respect to money - see workers/referral/README.md.
+const REFERRAL_WORKER = 'https://referral.hamoureliasse.workers.dev';
+
+const params = new URLSearchParams(location.search);
+let userToken = params.get('token') || localStorage.getItem('linkFinderToken');
+if (userToken) { try { localStorage.setItem('linkFinderToken', userToken); } catch (e) {} }
+
+document.getElementById('backLink').href =
+    'https://linkfinderai.com/app' + (userToken ? '?token=' + encodeURIComponent(userToken) : '');
+
+const $ = id => document.getElementById(id);
+const money = n => '$' + Number(n || 0).toFixed(2);
+
+function showMsg(id, text, ok) {
+    const el = $(id);
+    el.textContent = text;
+    el.className = 'msg show ' + (ok ? 'ok' : 'err');
+    setTimeout(() => el.classList.remove('show'), 4000);
+}
+
+async function load() {
+    if (!userToken) {
+        $('loading').innerHTML = 'Please open this from inside your LinkFinder account.';
+        return;
+    }
+    try {
+        const res = await fetch(REFERRAL_WORKER + '/me', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: userToken })
+        });
+        if (!res.ok) throw new Error('status ' + res.status);
+        render(await res.json());
+    } catch (e) {
+        // The worker is deployed separately from this page, so "not there yet"
+        // is a real state a visitor can land in rather than an error on their
+        // side. Say that, instead of asking them to refresh at nothing.
+        $('loading').innerHTML =
+            '<p style="font-weight:600;color:#111827;margin-bottom:0.4rem">The affiliate program is not switched on yet.</p>'
+            + '<p>It is coming shortly. Nothing is wrong with your account, and there is nothing you need to do &mdash; '
+            + 'check back soon, or email support@linkfinderai.com if you want to be told when it opens.</p>';
+        console.error(e);
+    }
+}
+
+function render(d) {
+    const pct = Math.round((d.rate || 0.25) * 100) + '%';
+    $('rateText').textContent = pct;
+    $('rateText2').textContent = pct;
+    $('holdText').textContent = (d.hold_days || 30) + ' days';
+    $('minText').textContent = '$' + (d.payout_minimum || 50);
+
+    $('refLink').value = d.link || '';
+
+    const s = d.stats || {};
+    $('sClicks').textContent = (s.clicks || 0).toLocaleString();
+    $('sSignups').textContent = (s.signups || 0).toLocaleString();
+    $('sCustomers').textContent = (s.paying_customers || 0).toLocaleString();
+    $('sOwed').textContent = '$' + Math.round(s.owed || 0);
+
+    $('eOwed').textContent = money(s.owed);
+    $('ePending').textContent = money(s.pending);
+    $('ePaid').textContent = money(s.paid);
+    if (s.in_review > 0) {
+        $('reviewRow').style.display = '';
+        $('eReview').textContent = money(s.in_review);
+    }
+
+    // Say plainly where they stand, rather than showing a threshold and
+    // leaving them to work out whether they have cleared it.
+    const min = d.payout_minimum || 50;
+    $('payoutNote').textContent = s.payable_now
+        ? `You are above the ${'$' + min} minimum — this goes out in the next monthly payout.`
+        : `Payouts run monthly once you are owed ${'$' + min}. You are ${money(Math.max(0, min - (s.owed || 0)))} away.`;
+
+    if (d.payout_email) $('payoutEmail').value = d.payout_email;
+
+    $('loading').classList.add('hidden');
+    $('main').classList.remove('hidden');
+}
+
+$('copyBtn').addEventListener('click', async () => {
+    const link = $('refLink').value;
+    if (!link) return;
+    try {
+        await navigator.clipboard.writeText(link);
+    } catch (e) {
+        // Clipboard API needs a secure context and permission; the old
+        // select-and-execCommand path still works where it does not.
+        $('refLink').select();
+        document.execCommand('copy');
+    }
+    const btn = $('copyBtn');
+    btn.textContent = 'Copied';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copy link'; btn.classList.remove('copied'); }, 2000);
+});
+
+$('saveBtn').addEventListener('click', async () => {
+    const email = $('payoutEmail').value.trim();
+    if (!email) return showMsg('payoutMsg', 'Add your PayPal address first.', false);
+    try {
+        const res = await fetch(REFERRAL_WORKER + '/payout', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: userToken, payout_email: email })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Could not save');
+        showMsg('payoutMsg', 'Saved. Payouts will go to ' + data.payout_email + '.', true);
+    } catch (e) {
+        showMsg('payoutMsg', e.message || 'Could not save that.', false);
+    }
+});
+
+load();
+</script>
+</body>
+</html>
