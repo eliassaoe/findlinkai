@@ -120,14 +120,25 @@ can create a commission.
 | `GET /r/:code` | Log a click, 302 to the site with `?ref=` |
 | `POST /webhook/dodo` | Signed. The only writer of commissions. |
 
+## The credential leak this replaced
+
+v1 built every user's invite link as `linkfinderai.com?ref=<userToken>` — and
+`?token=` is exactly what `checkAuth()` reads to log someone in. The app was
+asking people to publish their own auth credential: anyone who received a
+shared invite link could swap `ref=` for `token=` and be inside that account.
+
+v2 codes are generated (`abc123xy`), authenticate nothing, and are safe to post
+anywhere. Fixed in `app.html` in the same change that repointed the modal.
+
 ## Not done yet
 
 - **The payout run.** `approved` → `paid` is still manual: nothing here sends
   money. It marks a batch; someone pays it. Automating it means PayPal Payouts
   or Dodo's own affiliate payouts, and neither should be wired up before the
   first real commission exists.
-- **The UI.** `referral-program.html` is the v1 page and still points at the v1
-  workers. It has not been repointed.
+- **`referral-program.html`** is the v1 page and still points at the v1
+  workers. `affiliate.html` replaces it; the old page has not been deleted in
+  case anything still links to it directly.
 - **Dodo's own Affiliates feature** (which is Affonso under the hood) was
   considered and not used: it tracks affiliates who are sent to *its* hosted
   signup, and pays them outside our credits/accounts system. This worker keeps

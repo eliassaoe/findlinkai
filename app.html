@@ -884,6 +884,7 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
             <a href="#" class="nav-tab" data-page="crmSync"><i class="fab fa-hubspot"></i> CRM Sync</a>
             <a href="#" class="nav-tab" data-page="integrations"><i class="fas fa-puzzle-piece"></i> Integrations</a>
             <a href="#" class="nav-tab" data-page="history"><i class="fas fa-history"></i> History</a>
+            <a href="#" class="nav-tab" data-page="affiliate"><i class="fas fa-hand-holding-dollar"></i> Earn 25%</a>
             <a href="#" class="nav-tab" data-page="account"><i class="fas fa-user"></i> Account</a>
         </div>
     </div>
@@ -4630,6 +4631,7 @@ function navigateToPage(page){
     document.querySelector(`[data-page="${page}"]`).classList.add('active');
     switch(page){
         case 'api': window.location.href=addGclid(`https://linkfinderai.com/api-access?token=${userToken}`); break;
+        case 'affiliate': window.location.href=addGclid(`https://linkfinderai.com/affiliate?token=${userToken}`); break;
         case 'account': window.location.href=addGclid(`https://linkfinderai.com/account?token=${userToken}`); break;
         case 'history': window.location.href=addGclid(`https://linkfinderai.com/history?token=${userToken}`); break;
         case 'crmSync': window.location.href=addGclid(`https://linkfinderai.com/crm-sync?token=${userToken}`); break;
@@ -4637,6 +4639,46 @@ function navigateToPage(page){
         // landing page. A logged-in user should see what THEY have connected.
         case 'integrations': window.location.href=addGclid(`https://linkfinderai.com/app-integrations?token=${userToken}`); break;
     }
+}
+
+// First touch wins and is never overwritten locally either: someone who
+// arrives on one affiliate link and later clicks another still belongs to the
+// first. The worker enforces the same rule server-side - this just avoids
+// sending a code we already know is not the one that will stick.
+function lfCaptureRef() {
+    const ref = new URLSearchParams(window.location.search).get('ref');
+    if (!ref) return;
+    try {
+        if (!localStorage.getItem('lf_ref')) {
+            localStorage.setItem('lf_ref', ref);
+            localStorage.setItem('lf_ref_at', String(Date.now()));
+            try { posthog.capture('referral_link_landed', { code: ref }); } catch(e) {}
+        }
+    } catch(e) {}
+}
+
+// Called once we know the token is real. /attribute locks first-touch and
+// refuses a second attempt, so calling it on every load is safe and means a
+// referred user is attributed even if the signup worker never saw the code.
+async function lfAttributeReferral() {
+    let ref;
+    try { ref = localStorage.getItem('lf_ref'); } catch(e) { return; }
+    if (!ref || !userToken) return;
+    try {
+        const res = await fetch('https://referral.hamoureliasse.workers.dev/attribute', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: userToken, code: ref })
+        });
+        const data = await res.json();
+        // Clear it once it has landed one way or the other, so an unknown or
+        // self-referral code is not retried on every page load forever.
+        if (data && (data.ok || data.reason)) {
+            try { localStorage.removeItem('lf_ref'); } catch(e) {}
+            if (data.ok && !data.already) {
+                try { posthog.capture('referral_attributed', { code: ref }); } catch(e) {}
+            }
+        }
+    } catch(e) {}
 }
 
 const UTM_KEYS = ['utm_source','utm_medium','utm_campaign','utm_term','utm_content','gclid','fbclid'];
@@ -4658,6 +4700,7 @@ function captureUTMs() {
 
 function checkAuth(){
     const utms = captureUTMs();
+    lfCaptureRef();
     const utmQS = new URLSearchParams(utms).toString();
     const withUtms = (url) => utmQS ? url + (url.includes('?') ? '&' : '?') + utmQS : url;
 
@@ -4802,6 +4845,8 @@ function checkAuth(){
     if (d.email) {
         try { posthog.identify(userToken, { email: d.email }); } catch(e) {}
     }
+    // Not awaited: attribution must never delay the app rendering.
+    lfAttributeReferral();
     // India/Bangladesh/Nigeria get the full task-based earn-credits popup
     // auto-opened. Everyone else gets the corner G2 review nudge instead - but
     // both now get the "Get Free Credits" fab, so the credits panel is always
@@ -6518,10 +6563,13 @@ function openReferralModal() {
     document.getElementById('referralModal').classList.add('show');
     document.body.style.overflow = 'hidden';
 
-    // Set the link immediately from userToken
-    if (userToken) {
-        document.getElementById('referralLink').value = `https://linkfinderai.com?ref=${userToken}`;
-    }
+    // The link is NOT built from userToken. It used to be
+    // `?ref=${userToken}`, which put the user's auth credential into a URL the
+    // app then asked them to post publicly - and `?token=` is what checkAuth
+    // reads to log someone in, so a shared invite link handed over the
+    // sharer's account. The code now comes from the referral worker and is a
+    // generated string that authenticates nothing.
+    document.getElementById('referralLink').value = 'Loading your link…';
 
     if (!refDataLoaded) { fetchReferralData(); refDataLoaded = true; }
     try { posthog.capture('referral_modal_opened', { credits_remaining: currentCredits }); } catch(e) {}
@@ -6549,24 +6597,36 @@ document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && document.getElementById('referralModal').classList.contains('show')) closeReferralModal();
 });
  
+// Points at the v2 referral worker. v1's numbers came from a program where a
+// commission was written once, ever, and where attribution lived in a column
+// that was 4,645 rows of the literal string "null" - see
+// workers/referral/README.md. Nothing is migrated; balances start at zero.
+const REFERRAL_WORKER_V2 = 'https://referral.hamoureliasse.workers.dev';
+
 async function fetchReferralData() {
     try {
-        const response = await fetch('https://referral-program.hamoureliasse.workers.dev/', {
+        const response = await fetch(`${REFERRAL_WORKER_V2}/me`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ token: userToken })
         });
         if (response.ok) {
             const data = await response.json();
-            document.getElementById('alreadyPaid').textContent = `$${data.alreadyPaid || '0.00'}`;
-            document.getElementById('pendingPayout').textContent = `$${data.pendingPayout || '0.00'}`;
-            if (data.paypalEmail) {
-                document.getElementById('currentPaypal').textContent = data.paypalEmail;
+            const stats = data.stats || {};
+            document.getElementById('referralLink').value = data.link || '';
+            // "Owed" is approved only. Pending commissions are still inside the
+            // refund window and showing them as a balance is how a referral
+            // programme loses trust the first time a number goes down.
+            document.getElementById('alreadyPaid').textContent = `$${Number(stats.paid || 0).toFixed(2)}`;
+            document.getElementById('pendingPayout').textContent = `$${Number(stats.owed || 0).toFixed(2)}`;
+            if (data.payout_email) {
+                document.getElementById('currentPaypal').textContent = data.payout_email;
                 document.getElementById('paypalDisplay').classList.add('show');
-                document.getElementById('paypalEmail').value = data.paypalEmail;
+                document.getElementById('paypalEmail').value = data.payout_email;
             }
         }
     } catch (error) {
+        document.getElementById('referralLink').value = '';
         console.error('Error fetching referral data:', error);
         refDataLoaded = false;
     }
@@ -6598,13 +6658,13 @@ async function savePaypalEmail() {
     if (!emailRegex.test(paypalEmail)) { showRefAlert('Please enter a valid email address', 'error'); return; }
     saveBtn.disabled = true; saveText.textContent = 'Saving...';
     try {
-        const response = await fetch('https://paypal-affiliate.hamoureliasse.workers.dev/', {
+        const response = await fetch(`${REFERRAL_WORKER_V2}/payout`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ token: userToken, paypalEmail: paypalEmail })
+            body: JSON.stringify({ token: userToken, payout_email: paypalEmail })
         });
         const data = await response.json();
-        if (response.ok && data.success) {
+        if (response.ok && data.ok) {
             document.getElementById('currentPaypal').textContent = paypalEmail;
             document.getElementById('paypalDisplay').classList.add('show');
             saveBtn.classList.add('success');
@@ -6852,7 +6912,10 @@ function renderOnboardingTasksPopup() {
     if (progressBar) progressBar.style.width = `${Math.round((completedCount / totalCount) * 100)}%`;
     if (progressLabel) progressLabel.textContent = `${completedCount} of ${totalCount} tasks completed`;
 
-    const referralLink = `https://linkfinderai.com?ref=${userToken}`;
+    // Never build a share link from userToken - that is the auth credential.
+    // No task declares kind 'referral' today; if one is added it must read the
+    // generated code from the referral worker, as openReferralModal does.
+    const referralLink = '';
 
     // Reorder: incomplete/pending tasks first (in config order), completed ones move to the bottom.
     const orderedTasks = [...OTP_TASKS].sort((a, b) => {
