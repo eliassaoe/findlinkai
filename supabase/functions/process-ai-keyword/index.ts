@@ -230,6 +230,13 @@ async function askModel(model: string, keyword: string, apiKey: string) {
             model,
             messages: [{ role: 'user', content: keyword }],
             plugins: [{ id: 'web', engine: 'exa', max_results: 5 }],
+            // Only the citation annotations are read; the prose is thrown away.
+            // Left unset, OpenRouter reserves 8000 output tokens against the
+            // balance for an answer nothing looks at — which both costs more
+            // and fails outright on a small balance ("you requested up to 8000
+            // tokens, but can only afford 2576"). The prompt itself stays the
+            // bare keyword, so the measurement is unchanged.
+            max_tokens: 1000,
         }),
     }, `openrouter:${model}`, 60_000);
 
