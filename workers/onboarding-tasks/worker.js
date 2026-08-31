@@ -123,10 +123,17 @@ const WORKER_BASE_URL = 'https://onboarding-tasks-worker.hamoureliasse.workers.d
 
 const REVIEW_URL_PATTERNS = {
     g2_review: [
-        // https://www.g2.com/fr/products/linkfinder-ai/reviews/<review-slug>
-        /^https?:\/\/(?:www\.)?g2\.com(?:\/[a-z]{2})?\/products\/linkfinder-ai\/reviews\/([a-z0-9._~-]+)/,
+        // A real G2 review permalink ends in linkfinder-ai-review-<digits>.
+        //
+        // This used to accept ANY slug after /reviews/, which meant the write
+        // form we send people to - /products/linkfinder-ai/reviews/start -
+        // classified as auto_approve with the key "g2:start". So did /new,
+        // /video, and the literal string "x". The hard part of the task was
+        // writing a review; pasting back the link from our own email skipped
+        // it and still passed. That is most of what is in the pending queue.
+        /^https?:\/\/(?:www\.)?g2\.com(?:\/[a-z]{2})?\/products\/linkfinder-ai\/reviews\/(linkfinder-ai-review-[0-9]+)(?:[/?#]|$)/,
         // https://www.g2.com/survey_responses/linkfinder-ai-review-<id>
-        /^https?:\/\/(?:www\.)?g2\.com(?:\/[a-z]{2})?\/survey_responses\/(linkfinder-ai[a-z0-9._~-]*)/,
+        /^https?:\/\/(?:www\.)?g2\.com(?:\/[a-z]{2})?\/survey_responses\/(linkfinder-ai-review-[0-9]+)(?:[/?#]|$)/,
     ],
     trustpilot_review: [
         /^https?:\/\/(?:[a-z]{2}\.)?(?:www\.)?trustpilot\.com\/reviews\/([0-9a-f]{20,32})/,
@@ -136,6 +143,13 @@ const REVIEW_URL_PATTERNS = {
 // The pages we link users to. They prove nothing — anyone can copy them —
 // and pasting one back is the most common honest mistake, so it gets its own
 // message rather than a generic rejection.
+// Pages on the right product that are not somebody's review. The tightened
+// pattern above already refuses these; naming them explicitly is what lets the
+// rejection say "that is the form, not your review" instead of a generic "that
+// does not look like a review link", which reads like a bug to someone who has
+// genuinely just written one.
+const G2_NON_REVIEW_SLUGS = /^(?:start|new|write|edit|video|videos|take_survey|survey|thank_you|thanks)$/;
+
 const LANDING_PAGE_PATTERNS = {
     g2_review: /^https?:\/\/(?:www\.)?g2\.com(?:\/[a-z]{2})?\/products\/linkfinder-ai\/reviews\/?$/,
     trustpilot_review: /^https?:\/\/(?:[a-z]{2}\.)?(?:www\.)?trustpilot\.com\/review\//,
@@ -181,13 +195,24 @@ export function classifyReviewUrl(taskName, url, opts = {}) {
         };
     }
 
+    if (taskName === 'g2_review') {
+        const slug = (u.match(/\/products\/linkfinder-ai\/reviews\/([^/?#]+)/) || [])[1];
+        if (slug && G2_NON_REVIEW_SLUGS.test(slug)) {
+            return {
+                verdict: 'reject',
+                key: null,
+                reason: 'That is the form for writing a review, not a link to a review you have written. Once G2 publishes yours, open it and copy the URL from your browser\u2019s address bar \u2014 it ends in something like linkfinder-ai-review-10432117.',
+            };
+        }
+    }
+
     const key = reviewUrlKey(taskName, u);
     if (!key) {
         return {
             verdict: 'reject',
             key: null,
             reason: taskName === 'g2_review'
-                ? 'That does not look like a link to a G2 review of LinkFinder AI. Open your review on G2 and copy its URL.'
+                ? 'That does not look like a link to a published G2 review of LinkFinder AI. Open your own review on G2 and copy its URL \u2014 it ends in something like linkfinder-ai-review-10432117.'
                 : 'That does not look like a link to a Trustpilot review. Open your review on Trustpilot and copy its URL.',
         };
     }
@@ -450,8 +475,13 @@ async function handleSubmitReview(request, env) {
 
     // The URL looks right. That is not the same as the review existing, so
     // pay out only for one we have actually seen. Everything else waits.
+    // For G2 the existence check is not optional. The permalink id is just a
+    // number, so a valid shape proves nothing on its own, and
+    // REQUIRE_KNOWN_REVIEW=false must not be able to turn the highest-value
+    // task on the list into an honour system.
     let approved = verdict.verdict === 'auto_approve';
-    if (approved && env.REQUIRE_KNOWN_REVIEW !== 'false') {
+    const existenceRequired = task_name === 'g2_review' || env.REQUIRE_KNOWN_REVIEW !== 'false';
+    if (approved && existenceRequired) {
         try {
             if (!(await isKnownReview(env, verdict.key))) {
                 approved = false;
