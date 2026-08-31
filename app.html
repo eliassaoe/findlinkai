@@ -111,12 +111,6 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
     .nav-tab:hover{background:var(--gray-50);border-color:var(--primary);color:var(--gray-800);}
     .nav-tab.active{background:var(--primary);border-color:var(--primary);color:white;}
     .nav-tab i{font-size:0.875rem;}
-    /* Sits under the plans behind a rule, at footnote weight. It is an exit for
-       someone who does not want to do this at all, not a fourth tier - given
-       the size or the price of a plan card it would just reopen the decision. */
-    .pricing-dfy{margin-top:1rem;padding-top:0.9rem;border-top:1px solid var(--gray-200);text-align:center;font-size:0.78rem;color:var(--gray-500);}
-    .pricing-dfy a{color:var(--primary);font-weight:600;margin-left:0.35rem;text-decoration:none;}
-    .pricing-dfy a:hover{text-decoration:underline;}
     .main{padding:2rem 0;}
     .config-form{background:white;border:1px solid var(--gray-200);border-radius:12px;padding:2rem;margin-bottom:2rem;box-shadow:0 1px 3px 0 rgba(0,0,0,0.1);}
     .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;align-items:end;}
@@ -1193,10 +1187,6 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
         </div>
         <p style="text-align:center;font-size:0.72rem;color:var(--gray-400);margin-top:0.75rem;">Prices in USD</p>
         <p style="text-align:center;font-size:0.75rem;color:var(--gray-500);margin-top:0.375rem;">Need more credits? <a href="mailto:support@linkfinderai.com" style="color:var(--primary);font-weight:500;">Email us</a> — we'll set up a custom plan for you.</p>
-        <div class="pricing-dfy">
-            <span>Not planning to run this yourself?</span>
-            <a href="#" onclick="openDfyFromPricing();return false;">We run the outbound and book the meetings &rarr;</a>
-        </div>
     </div>
 </div>
 
@@ -2529,16 +2519,6 @@ function showPricingModal(trigger, extra) {
     document.body.style.overflow = 'hidden';
     renderPlansGrid();
     try { posthog.capture('pricing_modal_opened', { credits_remaining: currentCredits, is_subscriber: isExistingSubscriber, trigger: trigger || 'manual' }); } catch(e) {}
-}
-
-// Straight from the plans into the done-for-you panel. It closes the pricing
-// modal by hand rather than calling closePricingModal(), which fires the
-// bail-out toast and the sales-intercept offer — neither of which applies to
-// someone who just told us they want the paid service.
-function openDfyFromPricing() {
-    try { posthog.capture('ai_sdr_entry_clicked', { source: 'pricing_modal' }); } catch(e) {}
-    document.getElementById('pricingModal').classList.remove('show');
-    openAiSdrModal(); // sets body overflow itself
 }
 
 function closePricingModal() {
