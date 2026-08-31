@@ -20,20 +20,80 @@ flow, including auto-verification of G2 permalinks.
 Credits per G2 review already average ~833, so 1,000 is in line with precedent.
 **This is not a new campaign to build — it is an existing one to re-run.**
 
-## 2. The audience is 50 people, not hundreds
+## 2. The audience is 65 — and the Trustpilot list DID add people
 
-Deliverable (`auth.users.confirmed_at IS NOT NULL`) paid users:
+**Corrected 2026-08-31** after the actual Trustpilot list was supplied as a
+Typeform export. An earlier version of this file said the Trustpilot list added
+nobody. That was wrong: it was computed from `pending_reviews` and
+`user_task_completions`, which hold only 6 Trustpilot rows. The real list is a
+separate Typeform with **35 submissions**, almost none of which reach those
+tables.
 
-| Segment | Count |
+Working through it:
+
+| Step | Count |
 | --- | --- |
-| Subscribers | 23 |
-| Credit-pack buyers | 27 |
-| **Paid and have not yet attempted G2** | **50** |
-| **Trustpilot reviewers who have not yet done G2** | **0** |
+| Typeform submissions | 35 |
+| ...with a URL actually on trustpilot.com | 28 |
+| ...distinct emails | 27 |
+| ...that match a LinkFinder account | 26 |
+| ...**deliverable** (`confirmed_at` set) | **16** |
+| ...that already went through the G2 flow | **0** |
 
-**The Trustpilot list adds nobody.** Everyone who reviewed on Trustpilot has
-already been through the G2 flow. The whole addressable audience is the 50 paid
-users who have not tried yet.
+Combined with the paid users:
+
+| Segment (deliverable, not yet G2) | Count |
+| --- | --- |
+| Paid customers | 50 |
+| Trustpilot reviewers | 16 |
+| **Union** | **65** |
+| **Union who have actually run an enrichment** | **36** |
+
+## 2b. Half the list has never used the product
+
+This is the part that should decide the send.
+
+| | Count |
+| --- | --- |
+| Trustpilot reviewers who never ran a single enrichment | **10 of 16** |
+| Paid users who have run enrichments | 31 of 50 |
+| **Whole union who have actually used the product** | **36 of 65** |
+
+**Ten of the sixteen Trustpilot reviewers reviewed a product they never used.**
+The incentive is attracting review-farmers, not customers.
+
+That matters more on G2 than on Trustpilot, because **G2 verifies reviewers** —
+LinkedIn or work-email identity, plus usage questions — and rejects those who
+cannot demonstrate use. This is a better explanation for "four approved
+permalinks, one published review" than moderation lag, and it means sending the
+ask to non-users actively risks the profile rather than merely wasting credits.
+
+**Recommendation: send to the 36 who have used the product, not the 65.**
+
+## 2c. The Typeform data shows the same claiming pattern as G2
+
+Seven submissions were not Trustpilot links at all:
+
+| Email | Submitted |
+| --- | --- |
+| yathish@salesmist.com | `ample.com` |
+| ayushcybertron1.8@gmail.com | `linkfinderai.com` |
+| andrewcheung0611@gmail.com | `linkfinderai.com` |
+| remyhasan21@gmail.com | **the Typeform itself** |
+| jumiaaffliat2022@gmail.com | **the Typeform itself** |
+| bfubbapb@signinid.com | a Google search for "linkfinder ai review" |
+| contato@ecommerceupdate.com.br | `ecommerceupdate.org` |
+
+And two review URLs were claimed more than once:
+
+- `trustpilot.com/reviews/69b836c54c0748391a348172` — claimed by **two different
+  people** (`harmoulisse@gmail.com` and `eduardo@solvis.com.br`). One of them did
+  not write it.
+- `trustpilot.com/reviews/69f1f17ac9c59c5dd58e0b89` — submitted twice by the same
+  person on two dates.
+
+Same fix as for G2: validate the URL shape on submission, and reject a permalink
+already claimed by another account.
 
 ## 3. Four G2 reviews are approved, but G2 appears to show one
 
@@ -83,8 +143,9 @@ rather than discovered after submission.
    answerable from the G2 seller account.
 2. **Tighten the submit validation** to a permalink pattern, so pending stops
    filling with login pages.
-3. **Then email the 50.** Small but the warmest list available, and the flow
-   already works.
+3. **Then email the 36 who have actually used the product** — not the full 65.
+   G2 rejects reviewers who cannot show usage, and 29 of the 65 have never run
+   an enrichment.
 4. **Do not promise credits for a positive review.** G2 permits incentives only
    when offered regardless of rating; the wording must ask for a review, not a
    good one. One existing submission is a link filtered to 5-star reviews, which
