@@ -1,0 +1,557 @@
+{
+  "name": "Explee - Reply Manager",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 10
+            }
+          ]
+        }
+      },
+      "id": "a1000000-0000-4000-8000-000000000001",
+      "name": "Every 10 Minutes",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -720,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "cfg-01",
+              "name": "baseUrl",
+              "value": "https://api.explee.com",
+              "type": "string"
+            },
+            {
+              "id": "cfg-02",
+              "name": "inboxPath",
+              "value": "REPLACE_ME_INBOX_PATH",
+              "type": "string"
+            },
+            {
+              "id": "cfg-03",
+              "name": "inboxArrayField",
+              "value": "REPLACE_ME_ARRAY_FIELD",
+              "type": "string"
+            },
+            {
+              "id": "cfg-04",
+              "name": "replyPath",
+              "value": "REPLACE_ME_REPLY_PATH",
+              "type": "string"
+            },
+            {
+              "id": "cfg-05",
+              "name": "fieldMap",
+              "value": "={{ { \"messageId\": \"REPLACE_ME\", \"threadId\": \"REPLACE_ME\", \"leadEmail\": \"REPLACE_ME\", \"leadName\": \"REPLACE_ME\", \"body\": \"REPLACE_ME\", \"campaignId\": \"REPLACE_ME\", \"direction\": \"REPLACE_ME\" } }}",
+              "type": "object"
+            },
+            {
+              "id": "cfg-06",
+              "name": "replyBodyKey",
+              "value": "REPLACE_ME_REPLY_BODY_KEY",
+              "type": "string"
+            },
+            {
+              "id": "cfg-07",
+              "name": "autoSend",
+              "value": "false",
+              "type": "string"
+            },
+            {
+              "id": "cfg-08",
+              "name": "maxRepliesPerRun",
+              "value": 10,
+              "type": "number"
+            },
+            {
+              "id": "cfg-09",
+              "name": "model",
+              "value": "claude-opus-5",
+              "type": "string"
+            },
+            {
+              "id": "cfg-10",
+              "name": "senderName",
+              "value": "Elias",
+              "type": "string"
+            },
+            {
+              "id": "cfg-11",
+              "name": "companyContext",
+              "value": "LinkFinder AI - B2B contact enrichment API. Turns a name, company, email or LinkedIn URL into verified emails, phone numbers and company data. Plans start at $49/mo for 5,000 credits.",
+              "type": "string"
+            },
+            {
+              "id": "cfg-12",
+              "name": "bookingLink",
+              "value": "REPLACE_ME_CALENDAR_LINK",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a1000000-0000-4000-8000-000000000002",
+      "name": "Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -500,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $json.baseUrl + $json.inboxPath }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "a1000000-0000-4000-8000-000000000003",
+      "name": "Fetch Inbox",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -280,
+        300
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REPLACE_WITH_EXPLEE_CREDENTIAL_ID",
+          "name": "Explee API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Pull the message array out of the inbox response and normalise field names.\nconst cfg = $('Config').first().json;\nconst map = cfg.fieldMap || {};\n\nfor (const [k, v] of Object.entries(map)) {\n  if (!v || String(v).startsWith('REPLACE_ME')) {\n    throw new Error(`fieldMap.${k} is still REPLACE_ME - fill it in from the Explee OpenAPI schema (see explee/README.md).`);\n  }\n}\n\nconst raw = $input.first().json;\nconst arrayField = cfg.inboxArrayField;\nconst list = arrayField && !arrayField.startsWith('REPLACE_ME')\n  ? arrayField.split('.').reduce((o, k) => (o ?? {})[k], raw)\n  : (Array.isArray(raw) ? raw : null);\n\nif (!Array.isArray(list)) {\n  throw new Error('Could not find the message array. Set Config.inboxArrayField to the JSON path of the array (e.g. \"data\" or \"data.messages\").');\n}\n\nconst get = (obj, path) => path.split('.').reduce((o, k) => (o ?? {})[k], obj);\n\nreturn list.map((m) => ({\n  json: {\n    messageId: get(m, map.messageId),\n    threadId: get(m, map.threadId),\n    leadEmail: get(m, map.leadEmail),\n    leadName: get(m, map.leadName),\n    body: get(m, map.body),\n    campaignId: get(m, map.campaignId),\n    direction: get(m, map.direction),\n    _raw: m,\n  },\n}));"
+      },
+      "id": "a1000000-0000-4000-8000-000000000004",
+      "name": "Extract Messages",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -60,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Guardrails. Anything filtered out here can never be replied to.\nconst cfg = $('Config').first().json;\nconst store = $getWorkflowStaticData('global');\nstore.handled = store.handled || {};\n\n// Forget anything older than 30 days so the store does not grow forever.\nconst cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;\nfor (const [id, ts] of Object.entries(store.handled)) {\n  if (ts < cutoff) delete store.handled[id];\n}\n\nconst HARD_STOP = /\\b(unsubscribe|opt.?out|remove me|stop emailing|take me off|do not contact|GDPR|legal action|lawyer|attorney)\\b/i;\nconst AUTO_REPLY = /\\b(out of office|automatic reply|auto.?reply|on (vacation|holiday|leave)|maternity leave|paternity leave|no longer with|has left the company|undeliverable|mail delivery|delivery status notification)\\b/i;\n\nconst out = [];\nfor (const item of $input.all()) {\n  const m = item.json;\n\n  if (!m.messageId || !m.threadId) continue;                        // unusable\n  if (store.handled[m.messageId]) continue;                          // already processed\n  if (String(m.direction).toLowerCase().includes('out')) continue;   // our own sent mail\n  if (!m.body || String(m.body).trim().length < 2) continue;\n\n  const body = String(m.body);\n\n  if (HARD_STOP.test(body)) {\n    store.handled[m.messageId] = Date.now();\n    out.push({ json: { ...m, action: 'needs_human', reason: 'opt-out / legal language - never auto-reply', preClassified: true } });\n    continue;\n  }\n  if (AUTO_REPLY.test(body)) {\n    store.handled[m.messageId] = Date.now();\n    out.push({ json: { ...m, action: 'no_action', reason: 'auto-responder / bounce', preClassified: true } });\n    continue;\n  }\n\n  out.push({ json: { ...m, preClassified: false } });\n}\n\n// Rate limit per run so a bad prompt cannot blast the whole inbox.\nconst limit = Number(cfg.maxRepliesPerRun) || 10;\nconst live = out.filter((i) => !i.json.preClassified).slice(0, limit);\nconst passthrough = out.filter((i) => i.json.preClassified);\n\nfor (const i of live) {\n  i.json.classifierBody = {\n    model: cfg.model,\n    max_tokens: 400,\n    output_config: { effort: 'low' },\n    system: [\n      'You triage replies to a B2B cold outreach campaign.',\n      'Context on the sender: ' + cfg.companyContext,\n      '',\n      'Classify the prospect reply into exactly one intent:',\n      '  interested      - wants to know more, asks about pricing/features, says yes',\n      '  meeting_request - explicitly wants a call, demo or time slot',\n      '  question        - a specific factual question before deciding',\n      '  referral        - points to a different person or team',\n      '  not_now         - open but wrong timing (\"circle back in Q3\")',\n      '  not_interested  - a clear no, without opt-out language',\n      '  unclear         - anything you are not confident about',\n      '',\n      'Then choose an action:',\n      '  reply       - only for interested, meeting_request, question, referral, not_now',\n      '  no_action   - for not_interested',\n      '  needs_human - for unclear, anything hostile, anything about pricing negotiation,',\n      '                contracts, security review, or where a wrong answer would cost the deal',\n      '',\n      'Be conservative. When in doubt, needs_human. Never guess a fact about the product.',\n      '',\n      'Respond with ONLY a JSON object, no prose, no code fence:',\n      '{\"intent\":\"...\",\"action\":\"...\",\"confidence\":0.0,\"reason\":\"one short sentence\"}',\n    ].join('\\n'),\n    messages: [\n      {\n        role: 'user',\n        content: 'From: ' + (i.json.leadName || 'unknown') + ' <' + (i.json.leadEmail || 'unknown') + '>\\n\\nReply:\\n\"\"\"\\n' + String(i.json.body).slice(0, 6000) + '\\n\"\"\"',\n      },\n    ],\n  };\n}\n\nreturn [...live, ...passthrough];"
+      },
+      "id": "a1000000-0000-4000-8000-000000000005",
+      "name": "Guardrails & Dedupe",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        160,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.classifierBody) }}",
+        "options": {}
+      },
+      "id": "a1000000-0000-4000-8000-000000000006",
+      "name": "Classify Reply",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        380,
+        300
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REPLACE_WITH_ANTHROPIC_CREDENTIAL_ID",
+          "name": "Anthropic API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Merge the model's verdict back onto the message and build the drafting request.\nconst cfg = $('Config').first().json;\nconst src = $('Guardrails & Dedupe').all().filter((i) => !i.json.preClassified);\nconst out = [];\n\nconst items = $input.all();\nfor (let idx = 0; idx < items.length; idx++) {\n  const res = items[idx].json;\n  const msg = src[idx] ? { ...src[idx].json } : {};\n\n  const text = (res.content || [])\n    .filter((b) => b.type === 'text')\n    .map((b) => b.text)\n    .join('')\n    .trim();\n\n  let verdict;\n  try {\n    const m = text.match(/\\{[\\s\\S]*\\}/);\n    verdict = JSON.parse(m ? m[0] : text);\n  } catch (e) {\n    verdict = { intent: 'unclear', action: 'needs_human', confidence: 0, reason: 'classifier output was not valid JSON' };\n  }\n\n  // Low confidence never auto-replies.\n  if (Number(verdict.confidence) < 0.7 && verdict.action === 'reply') {\n    verdict.action = 'needs_human';\n    verdict.reason = 'low confidence (' + verdict.confidence + ') - ' + verdict.reason;\n  }\n\n  msg.intent = verdict.intent;\n  msg.action = verdict.action;\n  msg.confidence = verdict.confidence;\n  msg.reason = verdict.reason;\n\n  if (msg.action === 'reply') {\n    const hasLink = cfg.bookingLink && !String(cfg.bookingLink).startsWith('REPLACE_ME');\n    msg.draftBody = {\n      model: cfg.model,\n      max_tokens: 1000,\n      output_config: { effort: 'medium' },\n      system: [\n        'You write short replies on behalf of ' + cfg.senderName + ', in a B2B outreach inbox.',\n        'Product context: ' + cfg.companyContext,\n        hasLink\n          ? 'Booking link (use only for a meeting request): ' + cfg.bookingLink\n          : 'There is no booking link configured - never invent one.',\n        '',\n        'Rules:',\n        '- Under 90 words. Plain text. No markdown, no bullet lists.',\n        '- Match their tone and reply in the language they wrote in.',\n        '- Answer only what you actually know from the product context above.',\n        '  If they asked something not covered there, say you will confirm and come back.',\n        '- Never invent pricing, features, integrations, customer names or numbers.',\n        '- One clear next step at the end. No hard sell. Never use \"just\" or \"simply\".',\n        '- Sign off as ' + cfg.senderName + '. Do not add a subject line.',\n        '',\n        'Respond with ONLY a JSON object, no prose, no code fence:',\n        '{\"reply\":\"the full email body\",\"needs_human\":false,\"note\":\"\"}',\n        'Set needs_human to true if you cannot write a safe, accurate reply.',\n      ].join('\\n'),\n      messages: [\n        {\n          role: 'user',\n          content: 'Intent: ' + msg.intent + '\\nFrom: ' + (msg.leadName || 'unknown') + ' <' + (msg.leadEmail || 'unknown') + '>\\n\\nTheir reply:\\n\"\"\"\\n' + String(msg.body).slice(0, 6000) + '\\n\"\"\"',\n        },\n      ],\n    };\n  }\n\n  out.push({ json: msg });\n}\n\n// Re-attach the messages that were decided by the regex guardrails.\nfor (const i of $('Guardrails & Dedupe').all().filter((x) => x.json.preClassified)) {\n  out.push({ json: i.json });\n}\n\nreturn out;"
+      },
+      "id": "a1000000-0000-4000-8000-000000000007",
+      "name": "Parse Verdict",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        600,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "if-reply",
+              "leftValue": "={{ $json.action }}",
+              "rightValue": "reply",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "id": "a1000000-0000-4000-8000-000000000008",
+      "name": "Should Reply?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        820,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.draftBody) }}",
+        "options": {}
+      },
+      "id": "a1000000-0000-4000-8000-000000000009",
+      "name": "Draft Reply",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1040,
+        180
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REPLACE_WITH_ANTHROPIC_CREDENTIAL_ID",
+          "name": "Anthropic API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const src = $('Should Reply?').all();\nconst out = [];\nconst items = $input.all();\n\nfor (let idx = 0; idx < items.length; idx++) {\n  const res = items[idx].json;\n  const msg = src[idx] ? { ...src[idx].json } : {};\n\n  const text = (res.content || [])\n    .filter((b) => b.type === 'text')\n    .map((b) => b.text)\n    .join('')\n    .trim();\n\n  let draft;\n  try {\n    const m = text.match(/\\{[\\s\\S]*\\}/);\n    draft = JSON.parse(m ? m[0] : text);\n  } catch (e) {\n    draft = { reply: '', needs_human: true, note: 'drafter output was not valid JSON' };\n  }\n\n  const body = String(draft.reply || '').trim();\n\n  // Final safety net before anything can be sent.\n  if (draft.needs_human === true || body.length < 20 || body.length > 1500 || /REPLACE_ME|\\{\\{|lorem ipsum/i.test(body)) {\n    msg.action = 'needs_human';\n    msg.reason = draft.note || 'draft failed validation';\n  }\n  msg.draft = body;\n\n  delete msg.draftBody;\n  out.push({ json: msg });\n}\n\nreturn out;"
+      },
+      "id": "a1000000-0000-4000-8000-000000000010",
+      "name": "Validate Draft",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1260,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "if-auto-1",
+              "leftValue": "={{ $('Config').first().json.autoSend }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "if-auto-2",
+              "leftValue": "={{ $json.action }}",
+              "rightValue": "reply",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "id": "a1000000-0000-4000-8000-000000000011",
+      "name": "Auto-send Enabled?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1480,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.baseUrl + $('Config').first().json.replyPath.replace('{threadId}', $json.threadId).replace('{messageId}', $json.messageId) }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ [$('Config').first().json.replyBodyKey]: $json.draft }) }}",
+        "options": {}
+      },
+      "id": "a1000000-0000-4000-8000-000000000012",
+      "name": "Send Reply via Explee",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1700,
+        80
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REPLACE_WITH_EXPLEE_CREDENTIAL_ID",
+          "name": "Explee API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Mark as handled only after a successful send, so a failure retries next run.\nconst store = $getWorkflowStaticData('global');\nstore.handled = store.handled || {};\nfor (const i of $('Auto-send Enabled?').all()) {\n  if (i.json.messageId) store.handled[i.json.messageId] = Date.now();\n}\nreturn $input.all();"
+      },
+      "id": "a1000000-0000-4000-8000-000000000013",
+      "name": "Mark Sent",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1920,
+        80
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "a1000000-0000-4000-8000-000000000014",
+      "name": "Hold for Approval",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1700,
+        300
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "a1000000-0000-4000-8000-000000000015",
+      "name": "No Action / Needs Human",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1040,
+        460
+      ]
+    }
+  ],
+  "connections": {
+    "Every 10 Minutes": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Fetch Inbox",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Inbox": {
+      "main": [
+        [
+          {
+            "node": "Extract Messages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Messages": {
+      "main": [
+        [
+          {
+            "node": "Guardrails & Dedupe",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardrails & Dedupe": {
+      "main": [
+        [
+          {
+            "node": "Classify Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Classify Reply": {
+      "main": [
+        [
+          {
+            "node": "Parse Verdict",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Verdict": {
+      "main": [
+        [
+          {
+            "node": "Should Reply?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Should Reply?": {
+      "main": [
+        [
+          {
+            "node": "Draft Reply",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Action / Needs Human",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Draft Reply": {
+      "main": [
+        [
+          {
+            "node": "Validate Draft",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Draft": {
+      "main": [
+        [
+          {
+            "node": "Auto-send Enabled?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Auto-send Enabled?": {
+      "main": [
+        [
+          {
+            "node": "Send Reply via Explee",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Hold for Approval",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Reply via Explee": {
+      "main": [
+        [
+          {
+            "node": "Mark Sent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}
