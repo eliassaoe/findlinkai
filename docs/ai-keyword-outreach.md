@@ -54,6 +54,14 @@ processed and `error` says why.
 
 ## What it spends
 
+Discovery is the OpenRouter bill and it is small per keyword but paid 1,342
+times, so check it early rather than trusting an estimate: run twenty keywords,
+then read the real per-request cost off OpenRouter's Activity page. This
+pipeline shows up there as a burst of one call per model every time a keyword
+starts, and nothing in between — so anything else on that key is easy to spot.
+The key came from the n8n workflow, which polls a Google Sheet every minute and
+fires the same models if it is still switched on.
+
 This is the part to understand before adding a big list. LinkFinder bills
 `company_domain_to_employees` **per employee returned**, at half a credit each,
 so `AI_KEYWORDS_EMPLOYEE_COUNT` is the real price of every page:
@@ -103,9 +111,18 @@ Names: `openrouter_api_key`, `serper_api_key`, `linkfinder_api_key`,
 The caps in the table above are Edge Function environment variables instead,
 set under Edge Functions -> Secrets.
 
-`ai_keywords_models` defaults to
-`perplexity/sonar-pro, openai/gpt-4o, google/gemini-3.6-flash` — the three from
-the n8n workflow. They are asked in parallel through OpenRouter's `web` plugin
+`ai_keywords_models` is set to `google/gemini-3.6-flash` alone. The n8n
+workflow used three — `perplexity/sonar-pro, openai/gpt-4o,
+google/gemini-3.6-flash` — and asking three costs three times as much for the
+same list of pages, because most of the price is the per-request web search and
+`sonar-pro` is the dearest model of the three. Flash is the cheapest and is
+proven to return citations on this account: it was in `cited_by` for the top
+four pages of the first keyword run.
+
+What one model loses is `citation_count`, the count of how many engines cited a
+page. Pages are then ordered by Google position alone, which is a weaker signal
+for "who actually ranks in AI". Add the models back when the cost is known and
+acceptable — it is a vault update, no deploy. They are asked in parallel through OpenRouter's `web` plugin
 with `engine: exa`, and the keyword is sent **verbatim** as the prompt. That is
 the measurement: the keyword is the question a buyer types, and dressing it up
 would rank the dressed-up prompt instead.
