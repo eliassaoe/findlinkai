@@ -111,6 +111,18 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
     .nav-tab:hover{background:var(--gray-50);border-color:var(--primary);color:var(--gray-800);}
     .nav-tab.active{background:var(--primary);border-color:var(--primary);color:white;}
     .nav-tab i{font-size:0.875rem;}
+    /* AI SDR is the upsell, not a seventh sibling. The other tabs are outlined
+       in grey; this one is outlined in blue, with blue text, so the box around
+       the words is what marks it out. A wider left gap sets it apart from the
+       self-serve tabs without breaking the centred, wrapping row.
+
+       Deliberately NOT the solid .active fill: that colour means "the page you
+       are on", and this one opens a panel over the page you are already on. */
+    .nav-tab-premium{color:var(--primary);border:1px solid var(--primary);background:rgba(37,99,235,0.06);font-weight:600;margin-left:1rem;}
+    .nav-tab-premium:hover{background:rgba(37,99,235,0.12);border-color:var(--primary);color:var(--primary);}
+    .nav-tab-premium i{color:var(--primary);}
+    /* Wrapped onto its own row, a left gap just shunts it off-centre. */
+    @media(max-width:640px){ .nav-tab-premium{margin-left:0;} }
     .main{padding:2rem 0;}
     .config-form{background:white;border:1px solid var(--gray-200);border-radius:12px;padding:2rem;margin-bottom:2rem;box-shadow:0 1px 3px 0 rgba(0,0,0,0.1);}
     .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;align-items:end;}
@@ -879,8 +891,8 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
             <a href="#" class="nav-tab" data-page="crmSync"><i class="fab fa-hubspot"></i> CRM Sync</a>
             <a href="#" class="nav-tab" data-page="integrations"><i class="fas fa-puzzle-piece"></i> Integrations</a>
             <a href="#" class="nav-tab" data-page="history"><i class="fas fa-history"></i> History</a>
-            <a href="#" class="nav-tab hidden" id="aiSdrTab" data-page="aiSdr"><i class="fas fa-robot"></i> AI SDR</a>
             <a href="#" class="nav-tab" data-page="account"><i class="fas fa-user"></i> Account</a>
+            <a href="#" class="nav-tab nav-tab-premium" id="aiSdrTab" data-page="aiSdr"><i class="fas fa-robot"></i> AI SDR</a>
         </div>
     </div>
 </nav>
@@ -1344,12 +1356,14 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
             </div>
             <div class="otp-q">
                 <div class="otp-q-label">3. How many calls a month would you like?</div>
-                <select class="otp-q-text" id="aiSdrCalls">
-                    <option value="10">Around 10</option>
-                    <option value="20" selected>Around 20</option>
+                <select class="otp-q-text" id="aiSdrCalls" onchange="aiSdrUpdateEstimate()">
+                    <option value="5">5 &mdash; the minimum</option>
+                    <option value="10" selected>Around 10</option>
+                    <option value="20">Around 20</option>
                     <option value="40">Around 40</option>
                     <option value="0">Not sure yet</option>
                 </select>
+                <div class="otp-task-realvalue" id="aiSdrEstimate" style="margin-top:0.4rem;"></div>
             </div>
             <div class="otp-disclosure-note" id="aiSdrPriceNote" style="display:none"></div>
             <button class="otp-submit-btn otp-survey-submit" id="aiSdrSubmit" onclick="submitAiSdrRequest()">Send and pick a time</button>
@@ -4670,25 +4684,27 @@ function navigateToPage(page){
 
 /* ---------------------------------------------------------------- AI SDR
  *
- * The service offer, shown to the people the self-serve tool has already
- * failed and to nobody else. Eligibility lives in ai_sdr_eligibility() so the
- * tab and the submission cannot disagree: paying, and either never activated
- * or dormant thirty days. Someone actively enriching never sees this — that
- * is how you turn a healthy subscription into a one-off conversation.
+ * The service offer. Shown to everybody, because it is an upsell and a
+ * client at $150 a call is worth many times an $89/mo subscriber — an active
+ * user taking it is an upgrade, not a loss. What matters is the placement:
+ * the tab sits AFTER the self-serve tabs, so it reads as the step up rather
+ * than as the thing being sold instead of the product.
  *
  * The answers are stored BEFORE the Calendly redirect on purpose. Whoever
  * fills this in and never books is the warmest untouched lead there is, and
- * capturing on booking alone makes them invisible.
+ * capturing on booking alone makes them invisible. The row also records which
+ * segment they came from — power user, dormant, or never paid — which is what
+ * decides how the call opens.
  */
 const AI_SDR_RPC = CSV_BATCH_SUPABASE_URL + '/rest/v1/rpc/';
 const AI_SDR_CALENDLY = 'https://calendly.com/hamoureliasse/intro-call';
 
-// Shown above the button. Empty means no price is shown at all.
-// A floor here is what stops the calendar filling with people who were never
-// going to buy — which is the entire reason for asking before booking.
-const AI_SDR_PRICE_NOTE = '';
-
-let aiSdrEligible = false;
+// Priced per booked call with a floor, so the number on screen is the number
+// they pay. Showing it is the point: qualifying the call is why this panel
+// exists, and price is the strongest qualifier there is.
+const AI_SDR_PRICE_PER_CALL = 150;
+const AI_SDR_MIN_CALLS = 5;
+const AI_SDR_PRICE_NOTE = `$${AI_SDR_PRICE_PER_CALL} per booked call, minimum ${AI_SDR_MIN_CALLS} a month \u2014 so from $${(AI_SDR_PRICE_PER_CALL * AI_SDR_MIN_CALLS).toLocaleString()}/month. You pay for calls that happen.`;
 
 function aiSdrRpc(fn, body) {
     return fetch(AI_SDR_RPC + fn, {
@@ -4700,22 +4716,22 @@ function aiSdrRpc(fn, body) {
     }).then(r => r.json());
 }
 
-// Never blocks the page: if this fails the tab simply stays hidden.
-function aiSdrInit() {
-    if (!userToken) return;
-    aiSdrRpc('ai_sdr_eligibility', { p_token: userToken }).then(data => {
-        if (!data || data.eligible !== true) return;
-        aiSdrEligible = true;
-        const tab = document.getElementById('aiSdrTab');
-        if (tab) tab.classList.remove('hidden');
-        try { posthog.capture('ai_sdr_tab_shown', { reason: data.reason }); } catch(e) {}
-    }).catch(() => {});
+// What this month would cost, updated as they choose. A number they worked out
+// themselves lands harder than one in a paragraph, and it does the qualifying
+// before anyone reaches the calendar.
+function aiSdrUpdateEstimate() {
+    const calls = parseInt(document.getElementById('aiSdrCalls').value, 10) || 0;
+    const out = document.getElementById('aiSdrEstimate');
+    if (!out) return;
+    out.textContent = calls
+        ? `${calls} calls \u00d7 $${AI_SDR_PRICE_PER_CALL} = $${(calls * AI_SDR_PRICE_PER_CALL).toLocaleString()} a month`
+        : `We will work it out on the call \u2014 the floor is $${(AI_SDR_PRICE_PER_CALL * AI_SDR_MIN_CALLS).toLocaleString()}/month.`;
 }
 
 function openAiSdrModal() {
-    if (!aiSdrEligible) return;
     const note = document.getElementById('aiSdrPriceNote');
     if (note && AI_SDR_PRICE_NOTE) { note.textContent = AI_SDR_PRICE_NOTE; note.style.display = ''; }
+    aiSdrUpdateEstimate();
     document.getElementById('aiSdrModal').classList.add('show');
     document.body.style.overflow = 'hidden';
     try { posthog.capture('ai_sdr_opened'); } catch(e) {}
@@ -4947,7 +4963,6 @@ function checkAuth(){
         }
     });
     maybeShowBulkTutorialPopup(lfVisitCount);
-    aiSdrInit();
 })
     .catch(() => {});
 }

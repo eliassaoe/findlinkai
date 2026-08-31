@@ -1,37 +1,44 @@
 # AI SDR by LinkFinder AI
 
-The service offer, sold from inside the app to the people the self-serve tool
-has already failed — and to nobody else.
+The service offer, sold from inside the app as the step up from doing it
+yourself. $150 per booked call, minimum five a month.
 
 A tab appears in the app nav, opens a three-field panel, stores the answers, and
 sends the person to Calendly. Code is in `app.html` (search `AI SDR`), data in
 `supabase/migrations/*_ai_sdr_requests.sql`.
 
-## Who sees it, and why only them
+## Who sees it
 
-Of 120 paying accounts when this was built:
+Everyone signed in. It is an upsell, and the tab sits **after** the self-serve
+tabs — Data Enrichment, API & MCP, CRM Sync, Integrations, History — and before
+Account, so it reads as the step up rather than as the thing being sold instead
+of the product.
 
-| | |
-| --- | --- |
-| Never ran a single enrichment | **68** |
-| Dormant 30+ days | 39 |
-| Holding >1,000 credits, untouched a month | 99 |
-| **Actively using the tool** | **13** |
+An earlier cut hid it from anyone actively using the tool, to protect the
+subscription. That had the trade backwards. A client at $150 a call starts at
+$750/month against an $89/mo subscription: an active user taking it is an
+upgrade, not a loss, so there is nothing to protect and no reason to make it
+hard to find.
 
-Those 13 never see the tab. That is the whole design. Someone paying $89 a month
-and getting value from it is the last person who should be offered a service —
-offering it is how a healthy subscription becomes a one-off conversation.
+What survived from that idea is the **segment** stamped on every row —
+`paying, active` · `paying, never activated` · `paying, dormant 30d` ·
+`free, has used it` · `free, never used it`. Worth a lot on the call, nothing at
+the door. Context for reading it, from when this was built: of 120 paying
+accounts, 68 had never run a single enrichment and 99 held more than 1,000
+credits untouched for a month.
 
-The other 107 already paid and got nothing. They are going to churn at renewal.
-Offering them a service costs no self-serve revenue, because that revenue is
-already lost; it just has not been recognised yet.
+## Price
 
-`public.ai_sdr_eligibility(token)` is the single definition — paying
-(`subscription_id IS NOT NULL` **or** `is_unlimited`, which includes credit-pack
-buyers), and either never activated or no enrichment in 30 days. Both the tab
-and the submission call it, so they cannot drift apart.
+**$150 per booked call, minimum 5 a month — from $750/month.** Set in `app.html`:
 
-    select public.ai_sdr_eligibility('<token>');
+    const AI_SDR_PRICE_PER_CALL = 150;
+    const AI_SDR_MIN_CALLS = 5;
+
+Both the sentence above the button and the live figure under the selector are
+derived from those two numbers, so changing the price is a one-line edit. The
+selector shows what the month costs as it changes — 20 calls x $150 = $3,000 a
+month — because a number someone works out themselves lands harder than one
+buried in a paragraph, and it qualifies before anyone reaches the calendar.
 
 ## Why the answers are stored before the redirect
 
@@ -64,15 +71,13 @@ is the price frame this wants.
 pre-warmed call. Someone who clicks expecting software and lands on a booking
 form arrives annoyed instead of ready.
 
-**No price is shown yet.** `AI_SDR_PRICE_NOTE` in `app.html` is empty and the
-line is hidden while it is. Set it to a floor — "From $X/month" — and it
-appears. The argument for setting it: qualifying the call is the reason this
-panel exists, and price is the strongest qualifier there is. An empty calendar
-of people who cannot afford it is the failure mode this was built to avoid.
-
 **Bundling a plan into the service was considered and dropped.** It would give a
 customer who quits the service somewhere to land instead of leaving. Worth
 revisiting after the first sale; not worth engineering before it.
+
+**Gating it was considered and reversed.** See "Who sees it" above — the trade
+was backwards, and hiding an upsell worth 8x a subscription is the wrong
+instinct.
 
 ## Limits worth knowing
 
