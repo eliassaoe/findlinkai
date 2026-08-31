@@ -223,11 +223,12 @@ pending rows are exactly that string.
 Fixed in `app.html` to the review **start** form, and Trustpilot likewise to
 `/evaluate/`. The `/fr/` locale is gone.
 
-## Batch 1 — built, not sent
+## Batch 1 — sent 2026-08-31
 
 | | |
 | --- | --- |
-| Workflow | `01a056f5-65cf-0000-a79e-140acd091370` — active |
+| Workflow | `01a056fd-1af9-0000-cb7d-a88d06cd1844` — active |
+| Batch run | `01a0570d-8c11-0000-264e-68490caec242`, queued 09:01 UTC |
 | Cohort | `534083` — **196 people** (200 requested, 4 already in the G2 flow) |
 | Blast radius | **196** |
 | Rate limit | 100/hour, so it spreads over ~2 hours |
@@ -250,3 +251,37 @@ credits are for writing the review, not for what it says. A critical one gets th
 same 1,000, and G2 will ask you to disclose that it was incentivised."* It also
 offers a reply instead of a review for anyone who does not think the product
 deserves one.
+
+## The reply path is the primary claim route
+
+The email asks people to hit reply with their review link rather than paste it
+into the tasks panel: *"I'll add the credits by hand — nothing else for you to
+do."* The panel is offered second, as the instant option.
+
+That is a deliberate trade — one less step for them, one manual step for us —
+and it only works if **support@linkfinderai.com is actually watched** for the
+week or so after each batch. A reply that sits for three days is a worse
+experience than the panel would have been, and the person has already done the
+part we asked for.
+
+## Why the workflow was rebuilt rather than patched
+
+`workflows-patch-graph` throws a JSON parse error on the `{{ unsubscribe_url }}`
+braces in the HTML footer. `workflows-create` accepts them fine. So any copy
+change to an email workflow means rebuilding it and archiving the old one —
+which is what happened to `01a056f5`, now archived so it cannot fire. Only one
+workflow can send to cohort 534083.
+
+## Lesson: blast-radius tokens expire
+
+The `confirm_token` from `workflows-blast-radius` does not survive across turns
+— running the batch with a token previewed in an earlier turn fails with
+`Expired`. Re-preview immediately before `workflows-run-batch`, and check the
+audience hash in the token is unchanged before running.
+
+## What to check next
+
+1. **Bounce rate**, once the batch has drained. Under 3% releases batch 2 (300).
+2. **The inbox.** Replies with review links are the main claim path now.
+3. Whether the four approved G2 permalinks still show as one published review —
+   still unexplained, and it caps what any batch can deliver.
