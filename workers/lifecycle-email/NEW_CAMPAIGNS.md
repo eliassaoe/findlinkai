@@ -183,6 +183,20 @@ goes in, both emails need rewriting before they send.
   Deliberately small — 14 people in 90 days.
 - **A 4th email in workflow 3**, an education step at +3d, between the rescue and
   the upgrade ask.
+- **9. Google Sheets add-on, to people who upload CSVs.** Trigger `csv_uploaded`,
+  wait ~3 days, send only if `sheets_addon_clicked` never fired. The argument is
+  the four-step loop the uploader forces — export, upload, download, paste back —
+  and an add-on that removes all four.
+
+  Worth its own workflow rather than another variant of the bulk email, because
+  the audience is the opposite one: bulk_intro exists to *create* uploaders, this
+  exists to move a proven uploader onto a surface they do not have to remember to
+  visit. That is a retention argument, and retention is where the 41% "notUsing"
+  cancellation reason lives.
+
+  Copy is already written and building — `bulk_intro` / `bulk-in-your-sheet` in
+  `variants.json`, queued so it sends to nobody. Move it to its own step once the
+  PostHog workflow exists; that part needs a human in the console.
 
 Sequencing note: these are held until there is real bounce data from the six live
 campaigns. Adding send volume to a brand-new sending domain before knowing its

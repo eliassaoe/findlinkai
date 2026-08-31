@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { createAction } from 'nango';
-import { callLinkFinderAI, buildHubspotProperties, LinkFinderError } from '../linkfinder-client.js';
+import { callLinkFinderAI, buildPropertyPatch, LinkFinderError } from '../../shared/linkfinder-client.js';
 
 const InputSchema = z.object({
     contactId: z.string().describe('HubSpot contact object ID to enrich. Example: "123456789"'),
@@ -89,7 +89,7 @@ const action = createAction({
         let updatedProperties: string[] = [];
 
         if (outcome.resolved && outcome.result) {
-            const built = buildHubspotProperties(outcome.result as Record<string, unknown>, input.targetProperty, input.propertyMap);
+            const built = buildPropertyPatch(outcome.result as Record<string, unknown>, input.targetProperty, input.propertyMap);
             updatedProperties = built.updatedProperties;
 
             await nango.patch({

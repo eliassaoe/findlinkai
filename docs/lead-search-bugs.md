@@ -1,5 +1,10 @@
 # Two live bugs in lead search — found 23 Aug while building an outbound list
 
+> **Closed, 27 Aug.** `leads_finder_ai` has been removed from the product entirely —
+> the operation, its API type, and every integration that exposed it. The Apify actor
+> no longer needs approving. Bug 2 below, on `find_company_employees`, is unaffected
+> and still stands.
+
 > **Bug 1 is now moot: AI lead search was removed from the product on 23 Aug.**
 > It is no longer in the MCP server, the n8n node, the API docs or any landing
 > page, so no customer can reach the broken Apify actor. Bug 2 still stands —

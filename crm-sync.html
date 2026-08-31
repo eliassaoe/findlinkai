@@ -12,7 +12,7 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
 <script src="/js/lf-attribution.js"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CRM Data Health Audit - LinkFinder AI</title>
+<title>CRM Sync - LinkFinder AI</title>
 <link rel="icon" href="https://i.ibb.co/jPjX9SSp/Screen-Shot-2025-03-28-at-8-16-15-PM.png">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
@@ -39,8 +39,15 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
 .btn-outline{background:transparent;color:var(--primary);border:1px solid var(--gray-300);padding:.5rem 1rem;border-radius:6px;font-weight:500;cursor:pointer;font-size:.875rem;font-family:inherit;}
 .btn-outline:hover{background:var(--gray-50);}
 .nav-menu{background:white;border-bottom:1px solid var(--gray-200);padding:.75rem 0;}
-.nav-tabs{display:flex;gap:.5rem;overflow-x:auto;padding-bottom:.25rem;}
-.nav-tab{display:flex;align-items:center;gap:.5rem;padding:.75rem 1rem;border-radius:8px;background:transparent;border:1px solid var(--gray-200);color:var(--gray-600);text-decoration:none;font-weight:500;font-size:.875rem;transition:all .2s;white-space:nowrap;cursor:pointer;font-family:inherit;}
+.nav-tabs{display:flex;gap:.4rem;flex-wrap:wrap;align-items:center;justify-content:center;row-gap:.5rem;}
+/* The nav is the one thing on these pages that should not be 680px wide.
+   Content stays narrow because a single column is easier to read; the tab bar
+   has six items and no reason to be constrained to the same measure. Widening
+   only the nav's container fits them on one row without touching any layout. */
+.nav-menu .container{max-width:1100px;}
+@media(max-width:1140px){ .nav-menu .container{max-width:100%;} }
+
+.nav-tab{display:flex;align-items:center;gap:.5rem;padding:.6rem .8rem;border-radius:8px;background:transparent;border:1px solid var(--gray-200);color:var(--gray-600);text-decoration:none;font-weight:500;font-size:.875rem;transition:all .2s;white-space:nowrap;cursor:pointer;font-family:inherit;}
 .nav-tab:hover{background:var(--gray-50);border-color:var(--primary);color:var(--gray-800);}
 .nav-tab.active{background:var(--primary);border-color:var(--primary);color:white;}
 .main{padding:1.75rem 0 3rem;}
@@ -67,7 +74,7 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
 
 
 @media(max-width:640px){
-    .nav-tab{padding:.625rem .75rem;font-size:.8rem;}
+    .nav-tab{padding:.5rem .65rem;font-size:.78rem;}
 }
 </style>
 <script type="application/ld+json">
@@ -161,6 +168,16 @@ table.gaps tfoot td{font-weight:700;color:var(--gray-900);border-top:2px solid v
 .field-toggles{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1rem;}
 .chip{display:inline-flex;align-items:center;gap:.4rem;padding:.4rem .75rem;border-radius:100px;border:1px solid var(--gray-300);background:white;font-size:.8rem;color:var(--gray-600);cursor:pointer;user-select:none;font-family:inherit;}
 .chip.on{background:var(--primary);border-color:var(--primary);color:white;}
+.prop-row{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;margin-bottom:.5rem;font-size:.82rem;}
+.prop-label{color:var(--gray-600);min-width:8.5rem;}
+.prop-arrow{color:var(--gray-400);}
+.prop-select{flex:1;min-width:12rem;max-width:26rem;padding:.35rem .5rem;border:1px solid var(--gray-200);border-radius:6px;font-size:.8rem;color:var(--gray-700);background:white;font-family:inherit;}
+.prop-warn{flex-basis:100%;color:#b45309;font-size:.76rem;}
+.prop-loading{font-size:.8rem;color:var(--gray-400);margin-bottom:.5rem;}
+.clean-cost{margin:.9rem 0 1rem;padding:.7rem .9rem;border-radius:8px;background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af;font-size:.82rem;line-height:1.55;}
+.clean-cost-warn{background:#fffbeb;border-color:#fde68a;color:#92400e;}
+.clean-outcome{margin-top:.9rem;padding:.75rem .9rem;border-radius:8px;background:var(--gray-50);border:1px solid var(--gray-200);font-size:.82rem;line-height:1.6;color:var(--gray-600);}
+.clean-outcome b{color:var(--gray-800);font-weight:600;}
 .err{background:#fef2f2;border:1px solid #fecaca;color:#991b1b;padding:.8rem 1rem;border-radius:8px;font-size:.85rem;margin-top:1rem;}
 @media(max-width:640px){.compare{grid-template-columns:1fr;}}
 
@@ -171,6 +188,41 @@ table.gaps tfoot td{font-weight:700;color:var(--gray-900);border-top:2px solid v
         .crm-tabs .stage:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
         .crm-panel{display:none}
         .crm-panel.active{display:block}
+
+        /* These four were a linear stepper before, reused as tabs but keeping the
+           numbered-circle chrome — so four equal cards with step markers read as
+           "complete these in order", and the third one (the automatic sync, the
+           thing worth having) looked locked behind the first two. Restyled as a
+           segmented control: same ids and data-panel hooks, no implied sequence. */
+        .crm-tabs{display:flex;gap:.25rem;background:var(--gray-100,#f1f5f9);padding:.3rem;border-radius:10px;margin-bottom:1.5rem;flex-wrap:wrap;}
+        .crm-tabs .stage{flex:1;min-width:140px;background:transparent;border:1px solid transparent;border-radius:8px;padding:.6rem .75rem;box-shadow:none;}
+        .crm-tabs .stage:hover{background:rgba(255,255,255,.6);border-color:transparent}
+        .crm-tabs .stage.active{background:white;border-color:transparent;box-shadow:0 1px 3px rgba(15,23,42,.1);}
+        .crm-tabs .stage-num{width:auto;height:auto;background:none;color:var(--gray-400);font-size:.9rem;margin-bottom:.3rem;justify-content:flex-start;}
+        .crm-tabs .stage.active .stage-num{background:none;color:var(--primary);}
+        /* .done still marks a finished audit; it just tints the label now. */
+        .crm-tabs .stage.done .stage-num{background:none;color:var(--success);}
+        .crm-tabs .stage-sub{display:none;}
+        @media(min-width:900px){.crm-tabs .stage-sub{display:block;}}
+
+        /* Connect block — the first thing on the page, because connecting is the
+           point of it. Previously the connect card was `hidden` by default and a
+           CSV upload was the only visible action. */
+        .connect-hero{background:white;border:1px solid var(--gray-200);border-radius:12px;padding:1.5rem;margin-bottom:1.5rem;}
+        .connect-hero h2{font-size:1.05rem;margin:0 0 .3rem;}
+        .connect-hero .connect-sub{font-size:.87rem;color:var(--gray-600);margin-bottom:1.1rem;}
+        .crm-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.6rem;}
+        .crm-opt{display:flex;align-items:center;gap:.6rem;padding:.75rem .85rem;border:1px solid var(--gray-200);border-radius:10px;background:white;cursor:pointer;text-align:left;font-family:inherit;font-size:.85rem;width:100%;transition:border-color .15s,box-shadow .15s,transform .15s;}
+        .crm-opt:hover{border-color:var(--primary);box-shadow:0 2px 10px rgba(37,99,235,.08);transform:translateY(-1px);}
+        .crm-opt:focus-visible{outline:2px solid var(--primary);outline-offset:2px;}
+        .crm-opt-mark{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.82rem;flex-shrink:0;}
+        .crm-opt-name{display:block;font-weight:600;color:var(--gray-900);line-height:1.25;}
+        .crm-opt-state{display:block;font-size:.72rem;color:var(--gray-500);margin-top:.1rem;line-height:1.2;}
+        .crm-opt.is-live .crm-opt-state{color:var(--success);font-weight:600;}
+        .crm-opt[data-registered="1"]{border-color:var(--success);}
+        .crm-opt[data-registered="1"] .crm-opt-state{color:var(--success);font-weight:600;}
+        .connect-alt{font-size:.82rem;color:var(--gray-500);margin-top:1rem;}
+        .connect-alt button{background:none;border:none;padding:0;color:var(--primary);font:inherit;font-size:.82rem;cursor:pointer;text-decoration:underline;}
     </style>
 </head>
 
@@ -201,6 +253,7 @@ table.gaps tfoot td{font-weight:700;color:var(--gray-900);border-top:2px solid v
             <button class="nav-tab" onclick="nav('enrichment')"><i class="fas fa-search"></i> Data Enrichment</button>
             <button class="nav-tab" onclick="nav('api')"><i class="fas fa-code"></i> API & MCP</button>
             <button class="nav-tab active"><i class="fab fa-hubspot"></i> CRM Sync</button>
+            <button class="nav-tab" onclick="nav('integrations')"><i class="fas fa-puzzle-piece"></i> Integrations</button>
             <button class="nav-tab" onclick="nav('history')"><i class="fas fa-history"></i> History</button>
             <button class="nav-tab" onclick="nav('account')"><i class="fas fa-user"></i> Account</button>
         </div>
@@ -210,30 +263,74 @@ table.gaps tfoot td{font-weight:700;color:var(--gray-900);border-top:2px solid v
     <div class="main">
 
         <div class="page-header">
-            <h1><i class="fas fa-database"></i> CRM Enrichment</h1>
-            <p>Check what is missing from your CRM, fill it, and keep it filled as new records arrive.</p>
+            <h1><i class="fas fa-database"></i> CRM Sync</h1>
+            <p>Connect your CRM once. LinkFinder finds the missing emails, phone numbers and LinkedIn URLs &mdash; and keeps finding them as new records arrive.</p>
+        </div>
+
+        <!-- Connecting is the point of this page, so it is the first thing on it and
+             it is never hidden. Only HubSpot can complete a connection today; the
+             other five have their enrichment actions built but are not switched on,
+             so they register interest instead of pretending to connect. Which one
+             gets picked is the signal for which to wire up next. -->
+        <div class="connect-hero">
+            <h2><i class="fas fa-plug"></i> Connect your CRM</h2>
+            <div class="connect-sub">Read-only to start. Nothing is written and no credits are spent until you choose what to fill.</div>
+
+            <div class="crm-grid" id="crmGrid">
+                <button type="button" class="crm-opt is-live" data-crm="hubspot" onclick="connectHubspot();return false;">
+                    <span class="crm-opt-mark" style="background:#fff2ec;color:#ff7a59;"><i class="fab fa-hubspot"></i></span>
+                    <span><span class="crm-opt-name">HubSpot</span><span class="crm-opt-state">Connect now</span></span>
+                </button>
+                <button type="button" class="crm-opt" data-crm="salesforce" onclick="registerCrmInterest(this)">
+                    <span class="crm-opt-mark" style="background:#eaf5fe;color:#00a1e0;"><i class="fas fa-cloud"></i></span>
+                    <span><span class="crm-opt-name">Salesforce</span><span class="crm-opt-state">Tell us you want it</span></span>
+                </button>
+                <button type="button" class="crm-opt" data-crm="pipedrive" onclick="registerCrmInterest(this)">
+                    <span class="crm-opt-mark" style="background:#eef7ee;color:#017737;"><i class="fas fa-chart-line"></i></span>
+                    <span><span class="crm-opt-name">Pipedrive</span><span class="crm-opt-state">Tell us you want it</span></span>
+                </button>
+                <button type="button" class="crm-opt" data-crm="zoho" onclick="registerCrmInterest(this)">
+                    <span class="crm-opt-mark" style="background:#fdeeee;color:#e42527;">Z</span>
+                    <span><span class="crm-opt-name">Zoho CRM</span><span class="crm-opt-state">Tell us you want it</span></span>
+                </button>
+                <button type="button" class="crm-opt" data-crm="close" onclick="registerCrmInterest(this)">
+                    <span class="crm-opt-mark" style="background:#eef2ff;color:#4338ca;"><i class="fas fa-circle-nodes"></i></span>
+                    <span><span class="crm-opt-name">Close</span><span class="crm-opt-state">Tell us you want it</span></span>
+                </button>
+                <button type="button" class="crm-opt" data-crm="monday" onclick="registerCrmInterest(this)">
+                    <span class="crm-opt-mark" style="background:#fdeef1;color:#ff3d57;"><i class="fas fa-table-cells"></i></span>
+                    <span><span class="crm-opt-name">monday.com</span><span class="crm-opt-state">Tell us you want it</span></span>
+                </button>
+            </div>
+
+            <div id="crmConnectState"></div>
+
+            <div class="connect-alt">
+                Not on any of these, or just want to try it first?
+                <button type="button" onclick="showCrmPanel('health');document.getElementById('uploadCard').scrollIntoView({behavior:'smooth',block:'center'});return false;">Upload a CSV export instead</button>
+            </div>
         </div>
 
         <div class="stages crm-tabs" role="tablist">
             <div class="stage active" id="stage1" role="tab" data-panel="health" tabindex="0">
                 <div class="stage-num"><i class="fas fa-heart-pulse"></i></div>
-                <div class="stage-title">CRM Health</div>
-                <div class="stage-sub">Find every gap and duplicate</div>
+                <div class="stage-title">Health check</div>
+                <div class="stage-sub">See what is missing</div>
             </div>
             <div class="stage" id="stage2" role="tab" data-panel="enrich" tabindex="0">
                 <div class="stage-num"><i class="fas fa-wand-magic-sparkles"></i></div>
-                <div class="stage-title">Enrich your CRM now</div>
-                <div class="stage-sub">Fill the gaps where they live</div>
+                <div class="stage-title">Fill the gaps</div>
+                <div class="stage-sub">One run, on demand</div>
             </div>
             <div class="stage" id="stage3" role="tab" data-panel="auto" tabindex="0">
                 <div class="stage-num"><i class="fas fa-arrows-rotate"></i></div>
-                <div class="stage-title">Automatic enrichment</div>
-                <div class="stage-sub">Every new record, on a schedule</div>
+                <div class="stage-title">Keep it filled</div>
+                <div class="stage-sub">Runs weekly, by itself</div>
             </div>
             <div class="stage" id="stage4" role="tab" data-panel="dedupe" tabindex="0">
                 <div class="stage-num"><i class="fas fa-clone"></i></div>
-                <div class="stage-title">Deduplication</div>
-                <div class="stage-sub">Merge duplicate contacts</div>
+                <div class="stage-title">Duplicates</div>
+                <div class="stage-sub">Find and merge them</div>
             </div>
         </div>
 
@@ -246,13 +343,15 @@ table.gaps tfoot td{font-weight:700;color:var(--gray-900);border-top:2px solid v
                 Your HubSpot is connected, so there is nothing to export &mdash; we read your contacts, score them, and leave the connection in place so this stays up to date.
             </p>
             <div id="liveAuditState">
-                <button class="btn" id="liveAuditBtn"><i class="fas fa-heart-pulse"></i> Run the health check</button>
-                <span style="font-size:.82rem;color:var(--gray-600);margin-left:.75rem;">Read-only. Nothing is written and no credits are spent.</span>
+                <button class="btn-primary" id="liveAuditBtn"><i class="fas fa-magnifying-glass-chart"></i> Scan my CRM for missing data</button>
+                <div style="font-size:.8rem;color:var(--gray-500);margin-top:.7rem;">
+                    Takes about a minute. Read-only &mdash; nothing is written to your CRM and no credits are spent.
+                </div>
             </div>
         </div>
 
         <!-- Primary path for a logged-in user: connect, don't export. -->
-        <div class="card hidden" id="healthConnectCard">
+        <div class="card hidden" id="healthConnectCard" style="display:none">
             <h2><i class="fab fa-hubspot"></i> Connect your CRM</h2>
             <p style="font-size:.87rem;color:var(--gray-600);margin-bottom:1rem;">
                 We read your contacts and score what is missing &mdash; no export, no file to keep track of, and the check stays one click away from then on.
@@ -319,13 +418,6 @@ table.gaps tfoot td{font-weight:700;color:var(--gray-900);border-top:2px solid v
                 <button class="btn-ghost" style="margin-top:1rem;" onclick="reset()"><i class="fas fa-rotate-left"></i> Audit a different file</button>
             </div>
 
-            
-
-            <!-- the commercial core -->
-            <div class="card" id="quoteCard">
-                <h2><i class="fas fa-calculator"></i> What it costs to fix</h2>
-                <div class="compare" id="compare"></div>
-                <div id="saving"></div>
                 <div id="decay"></div>
                 <div style="margin-top:1.25rem;" id="cta"></div>
             </div>
@@ -404,7 +496,7 @@ function checkAuth(){
 }
 function logout(){ localStorage.removeItem('linkFinderToken'); window.location.href='https://linkfinderai.com/'; }
 function nav(page){
-    const m={enrichment:'app',api:'api-access',history:'history',account:'account'};
+    const m={enrichment:'app',api:'api-access',history:'history',account:'account',integrations:'app-integrations'};
     window.location.href = addGclid('https://linkfinderai.com/'+m[page]+'?token='+userToken);
 }
 
@@ -586,7 +678,6 @@ function render(r){
         : '<tr><td colspan="5" style="color:var(--gray-500);">No gaps in the selected fields.</td></tr>';
     document.getElementById('totalCredits').textContent = f(r.creditsNeeded);
 
-    renderQuote(r);
     refreshCleanState();
 
     /*
@@ -628,106 +719,6 @@ function render(r){
     }catch(e){}
 }
 
-/*
- * The comparison that does the selling. Both real numbers, side by side —
- * a pack is the intuitive way to buy a one-off cleanup, but packs cost 2-5x
- * more per credit than a plan, so for any CRM of size the subscription is
- * simply the better deal. Showing both lets the arithmetic make the case.
- */
-function renderQuote(r){
-    const f = LFCrmAudit.fmt;
-    const rec = r.recommendation;
-    const compare = document.getElementById('compare');
-    const saving = document.getElementById('saving');
-    const decay = document.getElementById('decay');
-    const cta = document.getElementById('cta');
-
-    if(rec.verdict === 'clean'){
-        compare.innerHTML = '<div class="opt win" style="grid-column:1/-1;"><div class="opt-tag">Nothing to buy</div>' +
-            '<div class="opt-price">$0</div><div class="opt-desc">'+rec.headline+'</div></div>';
-        saving.innerHTML=''; decay.innerHTML=''; cta.innerHTML=''; return;
-    }
-
-    if(rec.verdict === 'contact'){
-        compare.innerHTML = '<div class="opt win" style="grid-column:1/-1;"><div class="opt-tag">Custom volume</div>' +
-            '<div class="opt-price">'+f(rec.creditsNeeded)+' <span>credits needed</span></div>' +
-            '<div class="opt-desc">'+rec.headline+' We will price this against your actual volume rather than a standard plan.</div></div>';
-        saving.innerHTML='';
-        decay.innerHTML='';
-        // Above Enterprise's monthly allocation this stops being a checkout and
-        // becomes a conversation - and these are the largest CRMs the audit sees,
-        // so the booking link is the point of the whole free audit.
-        cta.innerHTML='<a href="'+bookingUrl('volume_quote')+'" target="_blank" rel="noopener" class="btn-primary" onclick="track(\'cta_clicked\',\'contact\')"><i class="fas fa-calendar-check"></i> Book a call for a volume quote</a>' +
-            '<div style="font-size:.78rem;color:var(--gray-400);margin-top:.7rem;">15 minutes. Bring this report &mdash; we price against your actual volume, not a standard plan.</div>';
-        track('cta_shown','contact'); return;
-    }
-
-    const packs = rec.pack.packs.map(p => p.count+'x '+f(p.credits)).join(' + ');
-    const planWins = rec.verdict === 'plan';
-
-    compare.innerHTML =
-        '<div class="opt '+(planWins?'':'win')+'">' +
-            '<div class="opt-tag">One-time pack &mdash; for comparison</div>' +
-            '<div class="opt-price">$'+f(rec.pack.price)+'</div>' +
-            '<div class="opt-desc">'+packs+' = '+f(rec.pack.credits)+' credits.<br>Covers this backlog once. New contacts added afterwards are not included.</div>' +
-        '</div>' +
-        '<div class="opt '+(planWins?'win':'')+'">' +
-            '<div class="opt-tag">'+(planWins?'Recommended — '+rec.plan.name:rec.plan.name+' plan')+'</div>' +
-            '<div class="opt-price">$'+rec.plan.price+'<span>/mo</span></div>' +
-            '<div class="opt-desc">'+f(rec.plan.credits)+' credits every month &mdash; enough to clean your whole CRM now, then keep it clean automatically.</div>' +
-        '</div>';
-
-    // Two different truths depending on which way the arithmetic falls, and the
-    // page shows both prices, so neither can be fudged.
-    if (rec.planCostsMoreToday > 0) {
-        saving.innerHTML = '<div class="decay"><i class="fas fa-circle-info"></i><div>The pack is <strong>$' +
-            f(rec.planCostsMoreToday) + ' cheaper today</strong> &mdash; and covers this backlog once. ' +
-            rec.plan.name + ' costs a little more now and covers it again every month, which is the part that ' +
-            'matters once you have seen how fast the gaps come back.</div></div>';
-    } else
-    saving.innerHTML = planWins && rec.savingVsPacks > 0
-        ? '<div class="saving"><i class="fas fa-circle-check"></i><div>'+rec.plan.name+' costs <strong>$'+f(rec.savingVsPacks)+' less</strong> than buying these credits as packs &mdash; and you get '+f(rec.plan.credits)+' more every month after.</div></div>'
-        : '';
-
-    decay.innerHTML = rec.maintenanceCredits > 0
-        ? '<div class="decay"><i class="fas fa-triangle-exclamation"></i><div>A one-time clean is temporary. At roughly <strong>'+f(rec.monthlyNewContacts)+' new contacts a month</strong>, your CRM will need about <strong>'+f(rec.maintenanceCredits)+' credits every month</strong> just to stop the gaps coming back.</div></div>'
-        : '';
-
-    /*
-     * Someone who already holds enough credits must never be shown a checkout as
-     * the primary action - they have paid, they want to start. The plan stays on
-     * screen as the next step once this backlog is cleared, but it stops being
-     * the button.
-     */
-    const credits = parseInt((document.getElementById('creditsCount').textContent||'0').replace(/\D/g,''),10) || 0;
-    // The largest gap they can actually PAY FOR, not the largest gap. Picking the
-    // latter meant a balance that covered two of three gaps still got a checkout
-    // as the primary action while the table sat there offering working buttons.
-    const affordable = r.breakdown.filter(b => credits >= b.credits)
-                                  .sort((a,b) => b.credits - a.credits);
-    const biggest = affordable[0];
-    const canStart = Boolean(biggest);
-
-    if (canStart) {
-        const coversAll = credits >= r.creditsNeeded;
-        cta.innerHTML =
-            '<a href="#" class="btn-primary" onclick="startCleaning(\''+biggest.key+'\');return false;">' +
-            '<i class="fas fa-wand-magic-sparkles"></i> Start cleaning &mdash; ' + biggest.fix.toLowerCase() +
-            ' for ' + f(biggest.count) + ' records</a>' +
-            '<div style="font-size:.78rem;color:var(--gray-400);margin-top:.7rem;">' +
-            'You have ' + f(credits) + ' credits' +
-            (coversAll
-                ? ' &mdash; enough for every gap above. Each one runs as its own pass; use the buttons in the table to pick the order.'
-                : ' &mdash; enough for ' + (affordable.length === 1 ? 'this one' : affordable.length + ' of the ' + r.breakdown.length + ' gaps') +
-                  '. ' + rec.plan.name + ' at $' + rec.plan.price + '/mo would cover the rest and keep it clean.') +
-            '</div>';
-        track('cta_shown', 'start_cleaning');
-    } else {
-        cta.innerHTML = '<a href="#" class="btn-primary" onclick="goUpgrade(\''+rec.plan.id+'\');return false;">' +
-            '<i class="fas fa-arrow-up-right-dots"></i> Get '+rec.plan.name+' and fix this now</a>';
-        track('cta_shown', rec.plan.id);
-    }
-}
 
 const CALENDLY = 'https://calendly.com/hamoureliasse/compensated-interview-unlimited-leads-clone';
 
@@ -804,16 +795,48 @@ function cleanChips(){
         }).join('') + '</div>';
 }
 
+// How many contacts one pass works through. The worker's own default; it is not
+// settable from here, so it is a constant rather than a guess.
+const CLEAN_BATCH = 25;
+
+/*
+ * What this pass can cost, before it runs.
+ *
+ * A pass with all three fields on is up to 58 credits per contact — over 1,400
+ * for one click. Nothing said so: the button spent the credits and reported
+ * afterwards. This is the ceiling (every selected field missing on every
+ * contact); the real figure is lower, because a contact only pays for the
+ * fields it is actually missing.
+ */
+function cleanCostCeiling(){
+    return cleanFields.reduce((sum, k) => sum + CLEAN_COST[k], 0) * CLEAN_BATCH;
+}
+
+function cleanCostNote(){
+    const perContact = cleanFields.reduce((sum, k) => sum + CLEAN_COST[k], 0);
+    const ceiling = cleanCostCeiling();
+    const dear = cleanFields.includes('phone');
+    return '<div class="clean-cost' + (dear ? ' clean-cost-warn' : '') + '">' +
+        '<strong>Up to ' + LFCrmAudit.fmt(ceiling) + ' credits</strong> for this pass — ' +
+        perContact + ' per contact across ' + CLEAN_BATCH + ', if every one is missing every field you picked. ' +
+        'Contacts already holding a value cost nothing. ' +
+        '<span style="opacity:.85;">A lookup that finds nothing is still charged.</span>' +
+        (dear ? ' Phone numbers are ' + CLEAN_COST.phone + ' credits each — the single most expensive lookup there is.' : '') +
+        '</div>';
+}
+
 function renderCleanIdle(){
     const el = document.getElementById('cleanState');
     if (!el) return;
     el.innerHTML = cleanChips() +
+        cleanCostNote() +
         '<a href="#" class="btn-primary" onclick="runClean();return false;">' +
         '<i class="fas fa-wand-magic-sparkles"></i> Clean my HubSpot now</a>' +
         '<div style="font-size:.78rem;color:var(--gray-400);margin-top:.7rem;">' +
-        'One pass works through 25 contacts that are still missing these fields, writing straight into HubSpot. ' +
+        'One pass works through ' + CLEAN_BATCH + ' contacts that are still missing these fields, writing straight into HubSpot. ' +
         'It only ever fills empty fields - nothing a person typed is overwritten. ' +
-        'Run it again to continue where the last pass stopped.' +
+        'Run it again to continue where the last pass stopped. ' +
+        '<a href="/hubspot-crm-enrichment" style="color:var(--primary);">Which properties it touches &rarr;</a>' +
         '</div>' + csvFallback();
 }
 
@@ -840,6 +863,46 @@ function cleanSummary(d){
         .map(k => filled[k] + ' ' + CLEAN_NOUN[k][filled[k] > 1 ? 1 : 0]);
     if (!parts.length) return '';
     return parts.join(', ') + ' written into HubSpot.';
+}
+
+/*
+ * Why the other contacts got nothing.
+ *
+ * The worker has always returned these counts — attempted, noMatch, and the
+ * three reasons a field was never even looked up — and this page threw all of
+ * them away and rendered "Looked at 25, filled 3". A user could not tell whether
+ * 22 contacts had no match, or were skipped because their `website` property is
+ * empty so no domain could be derived, and one of those two is something they
+ * can fix in an afternoon.
+ */
+function cleanOutcome(d){
+    const noMatch = d.noMatch || {};
+    const skipped = d.skipped || {};
+    const lines = [];
+
+    const missed = ['email', 'linkedin_url', 'phone'].reduce((n, k) => n + (noMatch[k] || 0), 0);
+    if (missed) {
+        lines.push('<b>' + LFCrmAudit.fmt(missed) + ' searched, nothing found.</b> ' +
+                   'These were charged — the search runs whether or not it lands.');
+    }
+    if (skipped.noDomainForEmail) {
+        lines.push('<b>' + LFCrmAudit.fmt(skipped.noDomainForEmail) + ' skipped for email:</b> ' +
+                   'no <code>website</code> on the contact, so there was no company domain to search. ' +
+                   'Not charged. Fill in <code>website</code> and these become findable.');
+    }
+    if (skipped.noCompanyForLinkedin) {
+        lines.push('<b>' + LFCrmAudit.fmt(skipped.noCompanyForLinkedin) + ' skipped for LinkedIn:</b> ' +
+                   'no <code>company</code> on the contact. Not charged.');
+    }
+    if (skipped.noName) {
+        lines.push('<b>' + LFCrmAudit.fmt(skipped.noName) + ' skipped:</b> no first or last name. Not charged.');
+    }
+    if (skipped.alreadyComplete) {
+        lines.push('<b>' + LFCrmAudit.fmt(skipped.alreadyComplete) + ' already had every field</b> you picked. Not charged.');
+    }
+
+    if (!lines.length) return '';
+    return '<div class="clean-outcome">' + lines.join('<br>') + '</div>';
 }
 
 /* Show what actually landed, not just how many. The worker returns a
@@ -933,6 +996,7 @@ function renderClean(state, data){
             (d.processed ? 'Looked at ' + LFCrmAudit.fmt(d.processed) + ' contact(s) that were missing data. ' : '') +
             (summary || 'Nothing new was findable for these contacts.') +
             '</div></div>' +
+            cleanOutcome(d) +
             cleanDetailsTable(d) +
             '<a href="#" class="btn-primary" style="margin-top:1rem;" onclick="runClean();return false;">' +
             '<i class="fas fa-forward"></i> Clean the next 25</a>' +
@@ -966,7 +1030,7 @@ async function runClean(){
 
     const fields = {};
     Object.keys(CLEAN_LABEL).forEach(k => {
-        fields[k] = { enabled: cleanFields.includes(k), hubspotProperty: HUBSPOT_PROPERTY[k] };
+        fields[k] = { enabled: cleanFields.includes(k), property: syncProperties[k], hubspotProperty: syncProperties[k] };
     });
 
     const saved = await nangoCall('save-settings', { settings: { maxPerRun: 25, fields } });
@@ -998,6 +1062,7 @@ async function runClean(){
 
 window.toggleCleanField = toggleCleanField;
 window.toggleSyncField = toggleSyncField;
+window.setSyncProperty = setSyncProperty;
 window.runClean = runClean;
 window.renderCleanIdle = renderCleanIdle;
 
@@ -1131,10 +1196,22 @@ const UPGRADE_INTENT_URL    = 'https://upgrade-intent.hamoureliasse.workers.dev/
 const NANGO_API_URL         = 'https://api.nango.dev';
 const NANGO_CONNECT_UI_URL  = 'https://connect.nango.dev';
 
-// Internal HubSpot property names the worker writes into. These are its own
-// defaults; a customer whose portal uses different internal names can have
-// them changed - the worker already accepts them per field.
+/*
+ * Which internal property each field is written into.
+ *
+ * These are the worker's defaults. `linkedinbio` is HubSpot's own legacy
+ * LinkedIn field and plenty of portals do not use it — they have a custom
+ * `linkedin`, or `hs_linkedin_url`, or nothing at all. Until now this map was
+ * hardcoded here with no way to change it, so those portals ran a sync that
+ * looked up contacts, spent the credits, wrote into a property that does not
+ * exist, and reported success. The worker has always accepted a property name
+ * per field and has always exposed /list-properties; the page just never asked.
+ */
 const HUBSPOT_PROPERTY = { email: 'email', linkedin_url: 'linkedinbio', phone: 'phone' };
+
+// The property actually in use per field, seeded from stored settings.
+let syncProperties = Object.assign({}, HUBSPOT_PROPERTY);
+let crmProperties = null;    // null = not fetched, [] = fetch failed
 
 async function nangoCall(route, extra){
     const path = route ? '/' + route : '/';
@@ -1174,6 +1251,85 @@ function syncFieldsFromSettings(settings){
     const on = Object.keys(CLEAN_LABEL).filter(k => f[k] && f[k].enabled);
     syncFields = on.length ? on : ['linkedin_url', 'email'];
     if (settings && settings.maxPerRun) syncMaxPerRun = settings.maxPerRun;
+    // `property` is the current key; `hubspotProperty` is what older records
+    // stored. The worker reads either, so this does too.
+    Object.keys(CLEAN_LABEL).forEach(k => {
+        const stored = f[k] && (f[k].property || f[k].hubspotProperty);
+        if (stored) syncProperties[k] = stored;
+    });
+}
+
+function fieldsPayload(enabledKeys){
+    const fields = {};
+    Object.keys(CLEAN_LABEL).forEach(key => {
+        fields[key] = {
+            enabled: enabledKeys.includes(key),
+            property: syncProperties[key],
+            // Kept alongside `property` so a rollback of the worker still reads it.
+            hubspotProperty: syncProperties[key]
+        };
+    });
+    return fields;
+}
+
+/* The list of writable contact properties in the connected portal. Fetched once,
+ * and only once a connection exists — there is nothing to list before that. */
+async function loadCrmProperties(){
+    if (crmProperties) return crmProperties;
+    const res = await nangoCall('list-properties');
+    crmProperties = (res.ok && res.data && res.data.properties) ? res.data.properties : [];
+    return crmProperties;
+}
+
+function propertyRow(k){
+    const current = syncProperties[k];
+    const known = (crmProperties || []).some(p => p.name === current);
+    const options = (crmProperties || []).map(p =>
+        '<option value="' + esc(p.name) + '"' + (p.name === current ? ' selected' : '') + '>' +
+        esc(p.label) + ' (' + esc(p.name) + ')</option>').join('');
+
+    // A property the portal does not have is the whole failure mode: show it as
+    // its own option, selected, and say plainly that nothing will be written.
+    const missing = crmProperties && crmProperties.length && !known;
+
+    return '<div class="prop-row">' +
+        '<span class="prop-label">' + esc(CLEAN_LABEL[k]) + '</span>' +
+        '<span class="prop-arrow">&rarr;</span>' +
+        '<select class="prop-select" onchange="setSyncProperty(\'' + k + '\', this.value)">' +
+        (missing ? '<option value="' + esc(current) + '" selected>' + esc(current) + ' — not in this portal</option>' : '') +
+        (crmProperties && crmProperties.length ? options : '<option selected>' + esc(current) + '</option>') +
+        '</select>' +
+        (missing ? '<span class="prop-warn">Nothing will be written until you pick a property that exists.</span>' : '') +
+        '</div>';
+}
+
+function renderPropertyRows(){
+    const host = document.getElementById('syncProperties');
+    if (!host) return;
+    if (!crmProperties) { host.innerHTML = '<div class="prop-loading">Loading your HubSpot fields&hellip;</div>'; return; }
+    if (!crmProperties.length) {
+        host.innerHTML = '<div class="prop-loading">Could not read your HubSpot fields just now — ' +
+            'the defaults below are still in use.</div>' + syncFields.map(propertyRow).join('');
+        return;
+    }
+    host.innerHTML = syncFields.map(propertyRow).join('');
+}
+
+async function setSyncProperty(k, name){
+    if (!name || syncProperties[k] === name) return;
+    syncProperties[k] = name;
+
+    const note = document.getElementById('syncFieldsNote');
+    if (note) note.textContent = 'Saving…';
+
+    const res = await nangoCall('save-settings', { settings: { maxPerRun: syncMaxPerRun, fields: fieldsPayload(syncFields) } });
+    if (!res.ok){
+        if (note) note.textContent = (res.data && res.data.error) || 'Could not save that. Try again.';
+        return;
+    }
+    if (res.data.settings) syncFieldsFromSettings(res.data.settings);
+    try{ posthog.capture('crm_sync_property_changed', { field: k }); }catch(e){}
+    refreshSyncState();
 }
 
 function syncFieldPicker(){
@@ -1189,6 +1345,8 @@ function syncFieldPicker(){
     return '<div style="margin-top:1rem;">' +
         '<div style="font-size:.82rem;font-weight:600;color:var(--gray-700);margin-bottom:.5rem;">Fields to fill each week</div>' +
         '<div class="chips">' + chips + '</div>' +
+        '<div style="font-size:.82rem;font-weight:600;color:var(--gray-700);margin:1rem 0 .5rem;">Where each one is written</div>' +
+        '<div id="syncProperties"></div>' +
         '<div id="syncFieldsNote" style="font-size:.78rem;color:var(--gray-500);margin-top:.5rem;">' +
         'Up to ' + syncMaxPerRun + ' contacts per run. Only empty fields are filled — nothing is overwritten.</div>' +
         '</div>';
@@ -1204,11 +1362,7 @@ async function toggleSyncField(k){
     const note = document.getElementById('syncFieldsNote');
     if (note) note.textContent = 'Saving…';
 
-    const fields = {};
-    Object.keys(CLEAN_LABEL).forEach(key => {
-        fields[key] = { enabled: syncFields.includes(key), hubspotProperty: HUBSPOT_PROPERTY[key] };
-    });
-    const res = await nangoCall('save-settings', { settings: { maxPerRun: syncMaxPerRun, fields } });
+    const res = await nangoCall('save-settings', { settings: { maxPerRun: syncMaxPerRun, fields: fieldsPayload(syncFields) } });
 
     if (!res.ok){
         if (note) note.textContent = (res.data && res.data.error) || 'Could not save that. Try again.';
@@ -1239,7 +1393,13 @@ function renderSync(state, data){
                 '<button class="btn-danger-ghost" onclick="disconnectHubspot()">Disconnect</button>' +
             '</div>' +
             syncFieldPicker() +
-            '<div style="font-size:.78rem;color:var(--gray-400);margin-top:.7rem;">Also available via n8n, Make and Zapier.</div>';
+            '<div style="font-size:.78rem;color:var(--gray-400);margin-top:.7rem;">' +
+            '<a href="/hubspot-crm-enrichment" style="color:var(--primary);">What it reads and writes, and what each field costs &rarr;</a>' +
+            ' &middot; Also available via n8n, Make and Zapier.</div>';
+        // The property list needs a live connection, so it is fetched only once
+        // the panel is on screen, and the rows fill in when it arrives.
+        renderPropertyRows();
+        loadCrmProperties().then(renderPropertyRows);
         return;
     }
 
@@ -1289,6 +1449,7 @@ async function refreshSyncState(){
     const res = await nangoCall('status');
     if(!res.ok){ renderSync('error'); return; }
     if(res.data.connected) syncFieldsFromSettings(res.data.settings);
+    applyCrmAvailability(res.data.availableCrms);
     renderSync(res.data.connected ? 'connected' : 'disconnected', res.data);
 }
 
@@ -1298,6 +1459,9 @@ function refreshBothStages(){
     refreshSyncState();
     refreshCleanState();
     refreshDedupeState();
+    // Health was left out, so connecting used to leave its panel still offering
+    // "Connect HubSpot" until the page was reloaded.
+    refreshLiveAudit({ justConnected: true });
 }
 
 /*
@@ -1306,12 +1470,15 @@ function refreshBothStages(){
  * one that opens synchronously inside the click. Fetching the session first
  * would put an await between the click and the popup, and Safari blocks it.
  */
-async function connectHubspot(){
+async function connectCrm(providerConfigKey){
+    // Which CRM the Connect modal should open on. Null lets Nango show whichever
+    // integrations the worker allowed, which is what the old flow did.
+    window.__lfPickedCrm = providerConfigKey || null;
     const btn = document.getElementById('connectBtn')
         || document.getElementById('cleanConnectBtn')
         || document.getElementById('healthConnectBtn');
     if(btn){ btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Opening&hellip;'; }
-    track('sync_connect_started', 'hubspot');
+    track('sync_connect_started', providerConfigKey || 'hubspot');
     renderHealthConnect(null);
 
     let connectUI;
@@ -1326,7 +1493,7 @@ async function connectHubspot(){
             baseURL: NANGO_CONNECT_UI_URL,
             onEvent: (event) => {
                 if(event.type === 'connect'){
-                    track('sync_connected', 'hubspot');
+                    track('sync_connected', providerConfigKey || 'hubspot');
                     // Authorising is only half of it. The worker stores nothing
                     // until it is told the connectionId, and without that record
                     // neither the cleanup nor the weekly cron can find the
@@ -1339,7 +1506,10 @@ async function connectHubspot(){
                         track('sync_finalise_failed', 'no_connection_id');
                         return;
                     }
-                    nangoCall('finalize-connection', { connectionId }).then(r => {
+                    const pickedKey = p.providerConfigKey || p.provider_config_key ||
+                        (p.connection && (p.connection.providerConfigKey || p.connection.provider_config_key)) ||
+                        window.__lfPickedCrm || undefined;
+                    nangoCall('finalize-connection', { connectionId, providerConfigKey: pickedKey }).then(r => {
                         if(!r.ok){
                             document.getElementById('syncState').insertAdjacentHTML('beforeend',
                                 '<div class="err" style="margin-top:.75rem;">Connected, but we could not finish setting it up. ' +
@@ -1600,17 +1770,39 @@ async function runLiveAudit(){
     lastCSV = null;              // this result did not come from a file
     lastAudit = out;
     liveRows = rows;             // so the toggles can re-score without re-fetching
-    box.innerHTML = '<button class="btn" id="liveAuditBtn"><i class="fas fa-rotate-right"></i> Re-check</button>';
+    box.innerHTML = '<button class="btn" id="liveAuditBtn"><i class="fas fa-rotate-right"></i> Scan again</button>';
     document.getElementById('liveAuditBtn').addEventListener('click', runLiveAudit);
     try{ posthog.capture('crm_audit_completed',{ source:'connection', contacts: rows.length }); }catch(e){}
     render(out);
 }
 
-/* Show the connected path only once /status confirms a live connection. */
-async function refreshLiveAudit(){
+/* Show the connected path only once /status confirms a live connection.
+ *
+ * `justConnected` marks the call that follows a real connection, as opposed to
+ * the one on page load. Someone who has just connected is watching a modal
+ * close, not the page behind it — and the button they need next is usually
+ * below the fold — so that call brings it to them. A page load must not, or
+ * every visit would yank a returning user down the page. */
+async function refreshLiveAudit(opts){
     const res = await nangoCall('status');
     const on = !!(res.ok && res.data.connected);
-    document.getElementById('liveAuditCard').classList.toggle('hidden', !on);
+    const liveCard = document.getElementById('liveAuditCard');
+    const wasHidden = liveCard.classList.contains('hidden');
+    liveCard.classList.toggle('hidden', !on);
+
+    if(on && wasHidden && opts && opts.justConnected){
+        // The card lives in the Health panel, which may not be the open tab.
+        showCrmPanel('health');
+        requestAnimationFrame(() => {
+            liveCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            // A moment of emphasis, so the eye lands on the button rather than
+            // on whatever happens to be under the cursor after the modal.
+            liveCard.style.transition = 'box-shadow .3s ease';
+            liveCard.style.boxShadow = '0 0 0 4px rgba(37,99,235,.28)';
+            setTimeout(() => { liveCard.style.boxShadow = ''; }, 2200);
+        });
+        try{ posthog.capture('crm_connected_scrolled_to_scan'); }catch(e){}
+    }
     // Connecting is the primary path in-app; the CSV drop is the fallback for
     // a CRM that is not connected. (The public crm-audit.html keeps CSV first —
     // there is no account there, so a file that never leaves the browser is the
@@ -1660,6 +1852,88 @@ document.querySelectorAll('.crm-tabs .stage').forEach(function(t){
     });
 });
 window.showCrmPanel = showCrmPanel;
+
+/* data-crm on the picker -> the Nango integration id the worker expects.
+   monday.com is absent on purpose: it has no adapter in the worker, because its
+   fields are per-board columns rather than named properties. */
+const CRM_INTEGRATION_ID = {
+    hubspot: 'hubspot-9mj3',
+    salesforce: 'salesforce',
+    pipedrive: 'pipedrive',
+    zoho: 'zoho',
+    close: 'close',
+};
+
+/* Turns the picker buttons for whichever CRMs the worker reports as configured
+   into real connect buttons. Everything else keeps registering interest — the
+   Connect modal rejects an integration id that does not exist in Nango, so
+   offering one would break the whole session, HubSpot included. */
+function applyCrmAvailability(available){
+    if(!Array.isArray(available)) return;
+    const ids = available.map(function(c){ return c && c.id; });
+
+    document.querySelectorAll('.crm-opt').forEach(function(el){
+        const key = CRM_INTEGRATION_ID[el.dataset.crm];
+        if(!key || ids.indexOf(key) === -1) return;      // not configured yet
+
+        el.classList.add('is-live');
+        el.removeAttribute('data-registered');
+        el.querySelector('.crm-opt-state').textContent = 'Connect now';
+        el.onclick = function(){ connectCrm(key); return false; };
+    });
+}
+window.applyCrmAvailability = applyCrmAvailability;
+
+/* Older call sites (the two in-panel connect cards) still call this name. */
+function connectHubspot(){ return connectCrm(null); }
+window.connectHubspot = connectHubspot;
+window.connectCrm = connectCrm;
+
+/* ── CRM interest ─────────────────────────────────────────────────
+ * Five CRMs have their enrichment actions built but are not switched on yet.
+ * Rather than show buttons that cannot complete a connection, they record which
+ * CRM was asked for — which is the only signal available for deciding which one
+ * to wire up next. Stored locally so the state survives a reload of the page.
+ */
+function registerCrmInterest(el){
+    var crm = el.dataset.crm;
+
+    try{ posthog.capture('crm_interest_registered', { crm: crm }); }catch(e){}
+
+    try{
+        var seen = JSON.parse(localStorage.getItem('lf_crm_interest') || '[]');
+        if(seen.indexOf(crm) === -1){ seen.push(crm); }
+        localStorage.setItem('lf_crm_interest', JSON.stringify(seen));
+    }catch(e){}
+
+    markCrmInterest(el);
+
+    var name = el.querySelector('.crm-opt-name').textContent;
+    document.getElementById('crmConnectState').innerHTML =
+        '<div style="background:#f0fdf4;border:1px solid #bbf7d0;color:#065f46;padding:.7rem .9rem;' +
+        'border-radius:8px;font-size:.83rem;margin-top:1rem;">' +
+        '<i class="fas fa-check-circle"></i> Noted &mdash; you want ' + name + '. ' +
+        'The enrichment actions for it are already built; we will turn the connection on and email you. ' +
+        'In the meantime you can upload a ' + name + ' export below and enrich it now.</div>';
+}
+window.registerCrmInterest = registerCrmInterest;
+
+function markCrmInterest(el){
+    el.dataset.registered = '1';
+    el.querySelector('.crm-opt-state').textContent = 'Requested';
+}
+
+/* Re-mark anything already asked for, so a returning visitor sees their own state
+   rather than a page that forgot. */
+(function(){
+    try{
+        var seen = JSON.parse(localStorage.getItem('lf_crm_interest') || '[]');
+        seen.forEach(function(crm){
+            var el = document.querySelector('.crm-opt[data-crm="' + crm + '"]');
+            if(el){ markCrmInterest(el); }
+        });
+    }catch(e){}
+})();
 </script>
 </body>
 </html>

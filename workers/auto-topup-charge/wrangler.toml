@@ -1,0 +1,16 @@
+name = "auto-topup-charge"
+main = "worker.js"
+compatibility_date = "2026-06-21"
+
+# Secrets, set with `wrangler secret put`, never committed:
+#   DODO_API_KEY   - Dodo Payments API key (this worker charges cards)
+#   DODO_API_BASE  - https://live.dodopayments.com (or the test base)
+#
+# Optional:
+#   NOTIFY_WORKER_URL - best-effort charge/failure notifications
+
+# Service bindings — the charge worker never touches KV directly, it goes
+# through the settings worker so the lock and rate-limit logic stay in one place.
+[[services]]
+binding = "SETTINGS_WORKER"
+service = "auto-topup-settings"

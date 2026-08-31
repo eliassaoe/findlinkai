@@ -14,22 +14,62 @@ is always async and returns a job to poll).
 
 - **Credentials** — `LinkFinder AI API`, just an API key (find it in your dashboard
   under Settings → API Key). Includes a live credential test.
-- **Node** — `LinkFinder AI`, covering all 17 operations across 7 resources:
-  - **Lead**: Full Name → LinkedIn URL, Email → LinkedIn URL
-  - **Company**: Name → Website / Phone / Email / Employee Count / LinkedIn URL, Domain → Employees
+- **Node** — `LinkFinder AI`, covering all **20** operations across 7 resources:
+  - **Lead**: Full Name → LinkedIn URL, Full Name → Email, Email → LinkedIn URL
+  - **Company**: Name → Website / Phone / Email / Employee Count / LinkedIn URL,
+    Name → Employees, Domain → Employees
   - **LinkedIn Profile**: URL → Full Info (async), URL → Email, URL → Phone
   - **LinkedIn Company**: URL → Info, URL → Employee Count, URL → Employees
   - **LinkedIn Post**: URL → Reactions
   - **Instagram**: Profile URL → Info
+  - **Discovery**: B2B Data Lookup
   - **Job**: Check Status — poll a job by `Job ID` or `Poll URL`
+
+Each operation shows its real credit cost in the dropdown, and each has its own
+labelled Input field describing exactly what to paste in.
+
+### Looking someone up by name
+
+The two name operations — **Lead → LinkedIn URL** and **Lead → Email** — take four
+fields rather than one: **Full Name** (required), **Company**, **Location** and
+**Job Title**. They are joined into the single string the API takes, with blanks
+dropped, which is exactly what the LinkFinder app itself sends.
+
+Map as many as your data has. The extra three **cost no additional credits** and they
+are the difference between one match and thousands: `John Smith` matches an enormous
+number of people, `John Smith Acme Berlin VP Sales` matches one — and Lead → Email is
+7 credits a row either way, charged whether it finds the person you meant or a
+stranger with the same name.
+
+A name coming out of a CRM as `Doe, John` is reordered to `John Doe` automatically. A
+company with a comma in it (`Gates, Foundation`) is left alone.
+
+### The operation list is generated, not hand-written
+
+`nodes/LinkFinderAi/generated/operations.ts` is built from
+[`integrations/catalog/operations.json`](../integrations/catalog/README.md), which is
+itself built from the root `openapi.json`. `npm run build` regenerates it.
+
+This replaced a hand-maintained map that had drifted from the API: four operations
+were missing, Instagram posted a `type` the API does not accept, and the employee
+filters were wired to one of the three operations that take them. Do not edit
+anything under `generated/` — change the catalog and rebuild.
+
+### Credits are not uniform
+
+`URL → Phone` costs **50 credits**; `URL → Full Profile Info` and `URL → Email` cost
+**10**; `Full Name → Email` costs **7**; most company lookups cost **1**. Employee
+lists bill 0.5 credits per employee returned. Every call is charged, including one
+that finds nothing — which matters in a workflow that runs unattended over a list.
 
 ### How the async handling works
 
 Every operation has a **Wait for Completion** option (on by default). When a call
 comes back with a `job_id` instead of an immediate result, the node polls
 internally — growing delay, capped wait window (`Max Wait Time`, default 25s;
-60s for `linkedin_profile_to_linkedin_info`, since that one is *always* async
-and 25s usually isn't enough).
+60s for the five operations that are *always* async — `linkedin_profile_to_linkedin_info`,
+the three employee-list operations, and the AI lead search — since 25s usually isn't
+enough for those).
 
 If the deadline passes before the job finishes, the node returns
 `{ processing: true, job_id, poll_url }` instead of failing. Wire that into an
