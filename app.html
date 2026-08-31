@@ -6816,14 +6816,14 @@ const OTP_TASKS_ALL = [
  * `wrangler deploy` - so the page shipped ahead of its backend and the row led
  * to "We could not load your affiliate account".
  *
- * Flip to true once BOTH are done:
- *   1. workers/referral/schema.sql has been applied, and
- *   2. `npx wrangler deploy` has been run in workers/referral, with its four
- *      secrets set (see that directory's README).
+ * Both are now done: the worker was deployed on 31 Aug and the schema applied
+ * the same day (four tables, RLS on, no policies - service role only).
  *
- * Same reasoning as SURVEY_TASK_LIVE above: hidden beats shown-and-broken.
+ * Set back to false if the worker is ever taken down. The page degrades to
+ * "the affiliate program is not switched on yet" rather than an error, but a
+ * row leading nowhere is still worse than no row.
  */
-const AFFILIATE_LIVE = false;
+const AFFILIATE_LIVE = true;
 
 const OTP_TASKS = OTP_TASKS_ALL.filter(t =>
     (t.name !== 'product_survey' || SURVEY_TASK_LIVE) &&
