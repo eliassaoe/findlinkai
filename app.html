@@ -111,18 +111,12 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
     .nav-tab:hover{background:var(--gray-50);border-color:var(--primary);color:var(--gray-800);}
     .nav-tab.active{background:var(--primary);border-color:var(--primary);color:white;}
     .nav-tab i{font-size:0.875rem;}
-    /* AI SDR is the upsell, not a seventh sibling. The other tabs are outlined
-       in grey; this one is outlined in blue, with blue text, so the box around
-       the words is what marks it out. A wider left gap sets it apart from the
-       self-serve tabs without breaking the centred, wrapping row.
-
-       Deliberately NOT the solid .active fill: that colour means "the page you
-       are on", and this one opens a panel over the page you are already on. */
-    .nav-tab-premium{color:var(--primary);border:1px solid var(--primary);background:rgba(37,99,235,0.06);font-weight:600;margin-left:1rem;}
-    .nav-tab-premium:hover{background:rgba(37,99,235,0.12);border-color:var(--primary);color:var(--primary);}
-    .nav-tab-premium i{color:var(--primary);}
-    /* Wrapped onto its own row, a left gap just shunts it off-centre. */
-    @media(max-width:640px){ .nav-tab-premium{margin-left:0;} }
+    /* Sits under the plans behind a rule, at footnote weight. It is an exit for
+       someone who does not want to do this at all, not a fourth tier - given
+       the size or the price of a plan card it would just reopen the decision. */
+    .pricing-dfy{margin-top:1rem;padding-top:0.9rem;border-top:1px solid var(--gray-200);text-align:center;font-size:0.78rem;color:var(--gray-500);}
+    .pricing-dfy a{color:var(--primary);font-weight:600;margin-left:0.35rem;text-decoration:none;}
+    .pricing-dfy a:hover{text-decoration:underline;}
     .main{padding:2rem 0;}
     .config-form{background:white;border:1px solid var(--gray-200);border-radius:12px;padding:2rem;margin-bottom:2rem;box-shadow:0 1px 3px 0 rgba(0,0,0,0.1);}
     .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;align-items:end;}
@@ -906,7 +900,6 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
             <a href="#" class="nav-tab" data-page="integrations"><i class="fas fa-puzzle-piece"></i> Integrations</a>
             <a href="#" class="nav-tab" data-page="history"><i class="fas fa-history"></i> History</a>
             <a href="#" class="nav-tab" data-page="account"><i class="fas fa-user"></i> Account</a>
-            <a href="#" class="nav-tab nav-tab-premium" id="aiSdrTab" data-page="aiSdr"><i class="fas fa-calendar-check"></i> Done For You</a>
         </div>
     </div>
 </nav>
@@ -1200,6 +1193,10 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
         </div>
         <p style="text-align:center;font-size:0.72rem;color:var(--gray-400);margin-top:0.75rem;">Prices in USD</p>
         <p style="text-align:center;font-size:0.75rem;color:var(--gray-500);margin-top:0.375rem;">Need more credits? <a href="mailto:support@linkfinderai.com" style="color:var(--primary);font-weight:500;">Email us</a> — we'll set up a custom plan for you.</p>
+        <div class="pricing-dfy">
+            <span>Not planning to run this yourself?</span>
+            <a href="#" onclick="openDfyFromPricing();return false;">We run the outbound and book the meetings &rarr;</a>
+        </div>
     </div>
 </div>
 
@@ -2532,6 +2529,16 @@ function showPricingModal(trigger, extra) {
     document.body.style.overflow = 'hidden';
     renderPlansGrid();
     try { posthog.capture('pricing_modal_opened', { credits_remaining: currentCredits, is_subscriber: isExistingSubscriber, trigger: trigger || 'manual' }); } catch(e) {}
+}
+
+// Straight from the plans into the done-for-you panel. It closes the pricing
+// modal by hand rather than calling closePricingModal(), which fires the
+// bail-out toast and the sales-intercept offer — neither of which applies to
+// someone who just told us they want the paid service.
+function openDfyFromPricing() {
+    try { posthog.capture('ai_sdr_entry_clicked', { source: 'pricing_modal' }); } catch(e) {}
+    document.getElementById('pricingModal').classList.remove('show');
+    openAiSdrModal(); // sets body overflow itself
 }
 
 function closePricingModal() {
@@ -4700,12 +4707,6 @@ function navigateToPage(page){
         // app-integrations, not /integrations — the latter is the signed-out
         // landing page. A logged-in user should see what THEY have connected.
         case 'integrations': window.location.href=addGclid(`https://linkfinderai.com/app-integrations?token=${userToken}`); break;
-        // A panel rather than a page, so the highlight goes back where it was.
-        case 'aiSdr':
-            document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
-            document.querySelector('[data-page="enrichment"]').classList.add('active');
-            openAiSdrModal();
-            break;
     }
 }
 
@@ -5043,8 +5044,8 @@ function checkAuth(){
     });
     maybeShowBulkTutorialPopup(lfVisitCount);
 
-    // Arriving from the Done For You tab on another app page — that tab has
-    // nowhere to open a panel, so it links here and asks for it by name.
+    // Arriving from a done-for-you link elsewhere. The panel lives on this
+    // page only, so everywhere else links in and asks for it by name.
     if (new URLSearchParams(window.location.search).get('sdr') === '1') {
         setTimeout(openAiSdrModal, 400);
     }
