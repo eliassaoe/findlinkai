@@ -772,6 +772,10 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
 /* Cash, not credits. Green so the one payout on the list does not read as
    just another credit grant sitting among four blue ones. */
 .otp-task-badge-money{color:#047857;background:rgba(16,185,129,0.10);}
+/* The guarantee. Set apart from the body copy on purpose — a promise that
+   reads like a paragraph is a promise nobody notices. */
+.otp-guarantee{display:flex;gap:.6rem;align-items:flex-start;margin:0.875rem 0 0.25rem;padding:0.7rem 0.85rem;border:1px solid rgba(16,185,129,0.35);background:rgba(16,185,129,0.07);border-radius:8px;font-size:0.8125rem;line-height:1.45;color:#065f46;}
+.otp-guarantee i{color:#059669;margin-top:0.15rem;}
 .otp-task-action{margin-top:0.625rem;}
 .otp-check{color:#10b981;font-weight:600;font-size:0.85rem;display:inline-flex;align-items:center;gap:0.375rem;}
 .otp-pending-badge{color:#b45309;font-weight:600;font-size:0.8rem;display:inline-flex;align-items:center;gap:0.375rem;background:#fef3c7;padding:0.3rem 0.6rem;border-radius:6px;}
@@ -905,7 +909,7 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
             <a href="#" class="nav-tab" data-page="integrations"><i class="fas fa-puzzle-piece"></i> Integrations</a>
             <a href="#" class="nav-tab" data-page="history"><i class="fas fa-history"></i> History</a>
             <a href="#" class="nav-tab" data-page="account"><i class="fas fa-user"></i> Account</a>
-            <a href="#" class="nav-tab nav-tab-premium" id="aiSdrTab" data-page="aiSdr"><i class="fas fa-robot"></i> AI SDR</a>
+            <a href="#" class="nav-tab nav-tab-premium" id="aiSdrTab" data-page="aiSdr"><i class="fas fa-calendar-check"></i> Done For You</a>
         </div>
     </div>
 </nav>
@@ -1355,14 +1359,18 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
     </div>
 </div>
 
-<!-- AI SDR by LinkFinder AI -->
+<!-- Outbound done for you -->
 <div id="aiSdrModal" class="otp-overlay">
     <div class="otp-modal" role="dialog" aria-modal="true" aria-labelledby="aiSdrTitle">
         <button class="otp-close" onclick="closeAiSdrModal()" aria-label="Close"><i class="fas fa-times"></i></button>
         <div class="otp-header">
-            <div class="otp-eyebrow"><i class="fas fa-robot"></i> AI SDR by LinkFinder AI</div>
-            <h2 id="aiSdrTitle">Meetings booked for you</h2>
-            <p>Our team sets up the campaigns, the domains and the sending, and runs them on the LinkFinder engine. You get replies in your inbox and a weekly report. <strong>It does not touch your credit balance.</strong></p>
+            <div class="otp-eyebrow"><i class="fas fa-calendar-check"></i> Outbound done for you</div>
+            <h2 id="aiSdrTitle">Qualified meetings, straight into your calendar</h2>
+            <p>Our team builds the list, writes the sequences and runs the sending on the LinkFinder engine. You do not work an inbox and you do not chase anybody &mdash; the only thing that reaches you is a booked meeting with someone who fits and turned up. <strong>It does not touch your credit balance.</strong></p>
+            <div class="otp-guarantee">
+                <i class="fas fa-shield-halved"></i>
+                <div><strong>You only pay for meetings that happen.</strong> Every one is qualified against the brief you write below before it reaches your calendar, and a no-show is never billed &mdash; we book you another.</div>
+            </div>
         </div>
         <div class="otp-survey">
             <div class="otp-q">
@@ -1374,7 +1382,7 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
                 <textarea class="otp-q-text" id="aiSdrOffer" rows="2" maxlength="2000" placeholder="One line on the offer, and what a good customer is worth to you"></textarea>
             </div>
             <div class="otp-q">
-                <div class="otp-q-label">3. How many calls a month would you like?</div>
+                <div class="otp-q-label">3. How many meetings a month do you want?</div>
                 <select class="otp-q-text" id="aiSdrCalls" onchange="aiSdrUpdateEstimate()">
                     <option value="5">5 &mdash; the minimum</option>
                     <option value="10" selected>Around 10</option>
@@ -1385,7 +1393,7 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
                 <div class="otp-task-realvalue" id="aiSdrEstimate" style="margin-top:0.4rem;"></div>
             </div>
             <div class="otp-disclosure-note" id="aiSdrPriceNote" style="display:none"></div>
-            <button class="otp-submit-btn otp-survey-submit" id="aiSdrSubmit" onclick="submitAiSdrRequest()">Send and pick a time</button>
+            <button class="otp-submit-btn otp-survey-submit" id="aiSdrSubmit" onclick="submitAiSdrRequest()">Send this and book your setup call</button>
             <div class="otp-field-error hidden" id="aiSdrError"></div>
         </div>
         <div class="otp-footer">
@@ -4722,14 +4730,14 @@ function navigateToPage(page){
  * decides how the call opens.
  */
 const AI_SDR_RPC = CSV_BATCH_SUPABASE_URL + '/rest/v1/rpc/';
-const AI_SDR_CALENDLY = 'https://calendly.com/hamoureliasse/intro-call';
+const AI_SDR_CALENDLY = 'https://calendly.com/hamoureliasse/offre-linkfinder-ai-clone';
 
 // Priced per booked call with a floor, so the number on screen is the number
 // they pay. Showing it is the point: qualifying the call is why this panel
 // exists, and price is the strongest qualifier there is.
 const AI_SDR_PRICE_PER_CALL = 150;
 const AI_SDR_MIN_CALLS = 5;
-const AI_SDR_PRICE_NOTE = `$${AI_SDR_PRICE_PER_CALL} per booked call, minimum ${AI_SDR_MIN_CALLS} a month \u2014 so from $${(AI_SDR_PRICE_PER_CALL * AI_SDR_MIN_CALLS).toLocaleString()}/month. You pay for calls that happen.`;
+const AI_SDR_PRICE_NOTE = `$${AI_SDR_PRICE_PER_CALL} per meeting held, minimum ${AI_SDR_MIN_CALLS} a month \u2014 so from $${(AI_SDR_PRICE_PER_CALL * AI_SDR_MIN_CALLS).toLocaleString()}/month. Nothing up front, and nothing for a meeting that does not happen.`;
 
 function aiSdrRpc(fn, body) {
     return fetch(AI_SDR_RPC + fn, {
@@ -4749,7 +4757,7 @@ function aiSdrUpdateEstimate() {
     const out = document.getElementById('aiSdrEstimate');
     if (!out) return;
     out.textContent = calls
-        ? `${calls} calls \u00d7 $${AI_SDR_PRICE_PER_CALL} = $${(calls * AI_SDR_PRICE_PER_CALL).toLocaleString()} a month`
+        ? `${calls} meetings \u00d7 $${AI_SDR_PRICE_PER_CALL} = $${(calls * AI_SDR_PRICE_PER_CALL).toLocaleString()} a month`
         : `We will work it out on the call \u2014 the floor is $${(AI_SDR_PRICE_PER_CALL * AI_SDR_MIN_CALLS).toLocaleString()}/month.`;
 }
 
@@ -4790,7 +4798,7 @@ async function submitAiSdrRequest() {
     if (!data || data.ok !== true) {
         err.textContent = (data && data.error) ? data.error : 'Could not send that. Try again in a moment.';
         err.classList.remove('hidden');
-        btn.disabled = false; btn.textContent = 'Send and pick a time';
+        btn.disabled = false; btn.textContent = 'Send this and book your setup call';
         return;
     }
 
@@ -5037,6 +5045,12 @@ function checkAuth(){
 
     });
     maybeShowBulkTutorialPopup(lfVisitCount);
+
+    // Arriving from the Done For You tab on another app page — that tab has
+    // nowhere to open a panel, so it links here and asks for it by name.
+    if (new URLSearchParams(window.location.search).get('sdr') === '1') {
+        setTimeout(openAiSdrModal, 400);
+    }
 })
     .catch(() => {});
 }

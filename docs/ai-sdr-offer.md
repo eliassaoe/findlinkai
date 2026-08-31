@@ -1,7 +1,12 @@
-# AI SDR by LinkFinder AI
+# Outbound done for you
 
 The service offer, sold from inside the app as the step up from doing it
-yourself. $150 per booked call, minimum five a month.
+yourself. $150 per meeting held, minimum five a month.
+
+The tab reads **Done For You**; the panel's eyebrow reads *Outbound done for
+you*. It was called "AI SDR" for about an hour — the internal names still say
+so (`ai_sdr_requests`, `ai_sdr_request()`, `AI_SDR_*` in app.html) and are not
+worth renaming. The user-facing words are the ones that changed.
 
 A tab appears in the app nav, opens a three-field panel, stores the answers, and
 sends the person to Calendly. Code is in `app.html` (search `AI SDR`), data in
@@ -29,7 +34,7 @@ credits untouched for a month.
 
 ## Price
 
-**$150 per booked call, minimum 5 a month — from $750/month.** Set in `app.html`:
+**$150 per meeting held, minimum 5 a month — from $750/month.** Set in `app.html`:
 
     const AI_SDR_PRICE_PER_CALL = 150;
     const AI_SDR_MIN_CALLS = 5;
@@ -79,11 +84,30 @@ revisiting after the first sale; not worth engineering before it.
 was backwards, and hiding an upsell worth 8x a subscription is the wrong
 instinct.
 
+## What it promises
+
+> **You only pay for meetings that happen.** Every one is qualified against the
+> brief you write below before it reaches your calendar, and a no-show is never
+> billed — we book you another.
+
+That is the guarantee shown in the panel, and it is the pricing model said out
+loud rather than a separate promise: billing is per meeting held, so a meeting
+that does not happen cannot be charged for. **The replacement clause is the one
+part that is a commitment beyond the pricing** — worth being sure of before it
+sells at volume.
+
+There is no inbox and no weekly report in this offer. Nothing reaches the client
+but a booked meeting.
+
+Booking goes to `calendly.com/hamoureliasse/offre-linkfinder-ai-clone`,
+prefilled with their email and a summary of the three answers.
+
 ## Limits worth knowing
 
-- The tab is in `app.html` only. The other app pages (`account`, `history`,
-  `crm-sync`, `app-integrations`, `api-access`) have their own copies of the nav
-  and do not carry it.
+- The panel lives in `app.html`. The other five app pages (`account`, `history`,
+  `crm-sync`, `app-integrations`, `api-access`) carry the tab, but it links to
+  `/app?token=...&sdr=1`, and app.html opens the panel when it sees `sdr=1`.
+  That avoids five copies of the panel and its JavaScript.
 - It is a panel, not a page, so the nav highlight is put back on Data Enrichment
   when it opens.
 - `ai_sdr_request()` refuses a second submission from the same account within 60
