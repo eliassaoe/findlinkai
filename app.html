@@ -278,11 +278,8 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
     .review-notification.hide{opacity:0;transform:translateY(20px);}
     .review-notification-header{display:flex;align-items:center;gap:0.5rem;margin-bottom:0.75rem;font-weight:600;color:#1f2937;}
     .review-notification-close{position:absolute;top:0.75rem;right:0.75rem;background:transparent;border:none;color:#9ca3af;cursor:pointer;font-size:1.25rem;line-height:1;padding:0.25rem;}
-    .review-note{font-size:0.75rem;color:#6b7280;line-height:1.45;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:0.5rem 0.625rem;margin:0.75rem 0;}
     .review-cta{display:block;width:100%;background:var(--primary);color:#fff;border:none;border-radius:8px;padding:0.7rem 1rem;font-size:0.875rem;font-weight:600;cursor:pointer;font-family:inherit;transition:filter 0.15s ease;}
     .review-cta:hover{filter:brightness(0.93);}
-    .review-cta-secondary{display:block;width:100%;background:transparent;color:var(--gray-500);border:none;padding:0.55rem 0 0;font-size:0.78rem;font-weight:500;cursor:pointer;font-family:inherit;text-decoration:underline;}
-    .review-cta-secondary:hover{color:var(--gray-900);}
     .result-card{background:white;border:1px solid var(--gray-200);border-radius:8px;padding:1.5rem;margin-top:1rem;animation:result-in 0.35s ease;}
     @keyframes result-in{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
     .success-toast{position:fixed;top:1.25rem;left:50%;transform:translateX(-50%) translateY(-20px);background:var(--success);color:white;padding:0.75rem 1.25rem;border-radius:8px;font-size:0.875rem;font-weight:600;z-index:10002;display:flex;align-items:center;gap:0.5rem;box-shadow:0 4px 16px rgba(16,185,129,0.35);opacity:0;transition:all 0.3s ease;pointer-events:none;}
@@ -1171,12 +1168,10 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
      spot. -->
 <div id="reviewNotification" class="review-notification">
     <button class="review-notification-close" onclick="closeReviewNotification()">×</button>
-    <div class="review-notification-header"><span>&#11088;</span> <span id="reviewNotifHeader">Worth 1,000 credits</span></div>
+    <div class="review-notification-header"><span>&#128075;</span> <span id="reviewNotifHeader">Can I steal 15 minutes?</span></div>
     <div>
         <div id="reviewNotifLead"></div>
-        <div class="review-note">You must write in your review that you received credits for it. Reviews without that line can be removed by the platform.</div>
-        <button type="button" class="review-cta" onclick="openG2Review()">Write the review on G2</button>
-        <button type="button" class="review-cta-secondary" onclick="openReviewClaim()">Already wrote one? Claim your credits</button>
+        <button type="button" class="review-cta" onclick="openFounderCall()">Pick a time</button>
     </div>
 </div>
 
@@ -4195,7 +4190,7 @@ async function processBulk(resuming) {
 
     let creditsConsumed = 0;
     let processedCount = 0;
-    lfBulkReviewAsked = false; // once per run, not once per page load
+    lfBulkCallAsked = false; // once per run, not once per page load
     let creditsExhausted = false;
     let processedWithCredits = 0;
     let lastCheckpointAt = Date.now();
@@ -4379,7 +4374,7 @@ async function processBulk(resuming) {
         updateBulkResultsTable();
         // i+1 is the position in the whole list, so a resumed run is measured
         // against the list rather than against what is left of it.
-        maybeShowBulkReviewPrompt(i + 1, csvData.length, creditsExhausted);
+        maybeShowBulkCallPrompt(i + 1, csvData.length, creditsExhausted);
         // Checkpoint on rows or on elapsed time, whichever lands first. Awaited
         // so the archive can never get ahead of itself, but it only ever sends
         // the rows finished since last time.
@@ -4731,6 +4726,9 @@ function navigateToPage(page){
  */
 const AI_SDR_RPC = CSV_BATCH_SUPABASE_URL + '/rest/v1/rpc/';
 const AI_SDR_CALENDLY = 'https://calendly.com/hamoureliasse/offre-linkfinder-ai-clone';
+// The founder call is a different conversation from the done-for-you setup
+// call, so it books a different event: this one is to listen, not to sell.
+const FOUNDER_CALL_CALENDLY = 'https://calendly.com/hamoureliasse/intro-call';
 
 // Priced per booked call with a floor, so the number on screen is the number
 // they pay. Showing it is the point: qualifying the call is why this panel
@@ -5982,19 +5980,22 @@ function updateCreditCostDisplay(){
 //
 // Each has its own lifetime cap, so someone who runs big lists can be asked
 // once at halfway without that eating the first-success ask, and vice versa.
-const G2_PROMPT_VARIANTS = {
+// New storage keys on purpose. Reusing the review keys would silence this for
+// everyone who had already seen the review ask three times — the people who
+// have used the product most, who are exactly the ones worth talking to.
+const CALL_PROMPT_VARIANTS = {
     first_success: {
         cap: 3,
-        storageKey: 'lf_review_shown',
+        storageKey: 'lf_call_shown',
         delayMs: 10000,
-        header: 'Worth 1,000 credits',
-        lead: 'If LinkFinder AI has been useful, would you write us a review on G2? '
-            + 'We will put <strong>1,000 credits</strong> on your account for it '
-            + '&mdash; that is 100 emails or 1,000 LinkedIn profiles.',
+        header: 'Can I steal 15 minutes?',
+        lead: 'I am Eliasse, I built LinkFinder AI. I want to hear what you are '
+            + 'actually using it for and what is missing &mdash; it decides what I build '
+            + 'next. Show up and I will put <strong>1,000 credits</strong> on your account.',
     },
     bulk_halfway: {
         cap: 2,
-        storageKey: 'lf_review_bulk_shown',
+        storageKey: 'lf_call_bulk_shown',
         delayMs: 0,
         header: 'Halfway through your list',
         lead: null, // built per-run so it can name the actual row count
@@ -6002,11 +6003,11 @@ const G2_PROMPT_VARIANTS = {
 };
 
 // Shown on mobile too now. It used to be desktop-only, which silently dropped
-// every phone user from the single biggest review ask in the product; the card
-// is responsive rather than hidden. Caps and the 3min auto-hide are set per
-// variant above, because G2 reviews are the thing we are short of.
-function showG2ReviewPrompt(variantName, leadOverride){
-    const variant = G2_PROMPT_VARIANTS[variantName];
+// every phone user from the single biggest ask in the product; the card is
+// responsive rather than hidden. Caps and the 3min auto-hide are set per
+// variant above.
+function showCallPrompt(variantName, leadOverride){
+    const variant = CALL_PROMPT_VARIANTS[variantName];
     if (!variant) return;
     const shown = parseInt(localStorage.getItem(variant.storageKey) || '0');
     if (shown >= variant.cap) return;
@@ -6022,67 +6023,41 @@ function showG2ReviewPrompt(variantName, leadOverride){
         document.getElementById('reviewNotifLead').innerHTML = leadOverride || variant.lead;
         card.classList.add('show');
         localStorage.setItem(variant.storageKey, shown + 1);
-        try { posthog.capture('g2_review_prompt_shown', { variant: variantName, times_shown: shown + 1 }); } catch(e) {}
+        try { posthog.capture('founder_call_prompt_shown', { variant: variantName, times_shown: shown + 1 }); } catch(e) {}
         setTimeout(()=>{if(card.classList.contains('show'))closeReviewNotification();},180000);
     }, variant.delayMs);
 }
 
-function showReviewNotification(){ showG2ReviewPrompt('first_success'); }
+function showFounderCallPrompt(){ showCallPrompt('first_success'); }
 
 // Fires once per bulk run, at the halfway mark of a list of at least 100 rows.
 // Deliberately narrow, because a mistimed ask is worse than none:
 //   - only long lists, where the tool has just visibly saved real work;
-//   - never when credits just ran out, since that is a paywall, not a win;
-//   - never if they already left a review or have one being checked.
-const BULK_REVIEW_MIN_ROWS = 100;
-let lfBulkReviewAsked = false;
+//   - never when credits just ran out, since that is a paywall, not a win.
+const BULK_CALL_MIN_ROWS = 100;
+let lfBulkCallAsked = false;
 
-function maybeShowBulkReviewPrompt(done, total, creditsExhausted){
-    if (lfBulkReviewAsked) return;
+function maybeShowBulkCallPrompt(done, total, creditsExhausted){
+    if (lfBulkCallAsked) return;
     if (creditsExhausted) return;
-    if (!total || total < BULK_REVIEW_MIN_ROWS) return;
+    if (!total || total < BULK_CALL_MIN_ROWS) return;
     if (done < Math.floor(total / 2)) return;
-    lfBulkReviewAsked = true;
+    lfBulkCallAsked = true;
 
-    // Cached after the first call, so this does not add a request mid-run.
-    otpFetchStatus().then(() => {
-        const status = otpStatusFor('g2_review');
-        if (status === 'completed' || status === 'pending') return;
-        showG2ReviewPrompt('bulk_halfway',
-            `You are ${done.toLocaleString()} rows into a list of ${total.toLocaleString()}. `
-            + 'If LinkFinder AI is saving you time, would you write us a review on G2? '
-            + 'We will put <strong>1,000 credits</strong> on your account for it '
-            + '&mdash; that is 100 emails or 1,000 LinkedIn profiles.');
-    });
+    showCallPrompt('bulk_halfway',
+        `You are ${done.toLocaleString()} rows into a list of ${total.toLocaleString()}. `
+        + 'Whatever you are building here, I would like to hear about it &mdash; 15 minutes '
+        + 'with me, and <strong>1,000 credits</strong> on your account for showing up.');
 }
 function closeReviewNotification(){document.getElementById('reviewNotification').classList.remove('show');document.getElementById('reviewNotification').classList.add('hide');}
 
-// One destination, and it is the write form - not the listing page, and not a
-// Typeform in between. OTP_LINKS.g2 is the single source of truth for this URL
-// so the popup and the credits panel can never drift apart again.
-function openG2Review(){
-    try { posthog.capture('g2_review_prompt_clicked', { action: 'write' }); } catch(e) {}
-    window.open(OTP_LINKS.g2, '_blank', 'noopener');
+// Books the founder call, not the done-for-you setup call. The corner card
+// used to ask for a G2 review; at this stage a conversation with a real user is
+// worth more than a review, and the review ask still lives in the credits panel.
+function openFounderCall(){
+    try { posthog.capture('founder_call_prompt_clicked'); } catch(e) {}
+    window.open(FOUNDER_CALL_CALENDLY, '_blank', 'noopener');
     closeReviewNotification();
-}
-
-// Claiming is instant and in-app: the credits panel verifies the link and pays
-// out on the spot. The old Typeform meant a person waited on a manual grant.
-//
-// Opening the panel is not enough on its own - it has five rows and they
-// arrived holding a URL - so this scrolls to the G2 row and puts the cursor in
-// the field. They land on a focused input, not a list to search.
-function openReviewClaim(){
-    try { posthog.capture('g2_review_prompt_clicked', { action: 'claim' }); } catch(e) {}
-    closeReviewNotification();
-    if (typeof openOnboardingTasksPopupManually !== 'function') return;
-    Promise.resolve(openOnboardingTasksPopupManually()).then(() => {
-        const input = document.getElementById('otp-input-g2_review');
-        if (!input) return; // already completed, so the row has no field
-        const row = document.getElementById('otp-row-g2_review');
-        if (row) row.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        input.focus();
-    });
 }
 
 function showFeedbackModal(){document.getElementById('feedbackModal').classList.add('show');document.body.style.overflow='hidden';document.getElementById('feedbackSuccessMessage').classList.remove('show');document.getElementById('feedbackErrorMessage').classList.remove('show');}
@@ -6283,7 +6258,7 @@ async function maybeTriggerFirstSuccessPrompts() {
     firstSuccessPromptsFired = true;
     await otpFetchStatus(); // make sure otpGeoTier is resolved before deciding
     if (otpGeoTier !== 'low_conversion') {
-        showReviewNotification();
+        showFounderCallPrompt();
     }
     // low_conversion geo's onboarding popup is already gated inside
     // checkEnrichmentMilestone() (fires on the 2nd successful enrichment).
@@ -7064,7 +7039,7 @@ function otpFetchStatus() {
 
 // Only relevant for low_conversion geo (India/Bangladesh/Nigeria) — see the
 // geo branch in checkAuth(). Standard geo gets the corner review popup
-// instead (showReviewNotification()). Auto-fires after the 3rd enrichment
+// instead (showFounderCallPrompt()). Auto-fires after the 3rd enrichment
 // (checkEnrichmentMilestone()) so people get real value first; can also be
 // opened early anytime via the "Tasks" fab (openOnboardingTasksPopupManually).
 // Never auto-shows twice — gated by localStorage as an immediate guard plus
