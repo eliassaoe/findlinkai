@@ -68,8 +68,8 @@ so `AI_KEYWORDS_EMPLOYEE_COUNT` is the real price of every page:
 
 | Setting | Default | Cost per page worked |
 | --- | --- | --- |
-| `AI_KEYWORDS_EMPLOYEE_COUNT` | 15 | 7.5 credits per seniority |
-| `AI_KEYWORDS_SENIORITIES` | `director,head` | x2, so ~15 credits |
+| `AI_KEYWORDS_EMPLOYEE_COUNT` | 10 | 5 credits per seniority |
+| `AI_KEYWORDS_SENIORITIES` | `director,head,founder` | x3, so ~15 credits |
 | `AI_KEYWORDS_MAX_LEADS_PER_DOMAIN` | 3 | caps the 10-credit email lookups |
 | `AI_KEYWORDS_MAX_CITATIONS` | 12 | pages worked per keyword |
 
@@ -111,18 +111,30 @@ Names: `openrouter_api_key`, `serper_api_key`, `linkfinder_api_key`,
 The caps in the table above are Edge Function environment variables instead,
 set under Edge Functions -> Secrets.
 
-`ai_keywords_models` is set to `google/gemini-3.6-flash` alone. The n8n
-workflow used three — `perplexity/sonar-pro, openai/gpt-4o,
-google/gemini-3.6-flash` — and asking three costs three times as much for the
-same list of pages, because most of the price is the per-request web search and
-`sonar-pro` is the dearest model of the three. Flash is the cheapest and is
-proven to return citations on this account: it was in `cited_by` for the top
-four pages of the first keyword run.
+`ai_keywords_models` asks four engines:
 
-What one model loses is `citation_count`, the count of how many engines cited a
-page. Pages are then ordered by Google position alone, which is a weaker signal
-for "who actually ranks in AI". Add the models back when the cost is known and
-acceptable — it is a vault update, no deploy. They are asked in parallel through OpenRouter's `web` plugin
+    perplexity/sonar-pro, openai/gpt-4o, google/gemini-3.6-flash, anthropic/claude-haiku-4.5
+
+The first three are the n8n workflow's; Claude is the fourth. Cost scales with
+the number of engines, since most of the price is the per-request web search —
+so four engines is roughly four times one. What that buys is `citation_count`:
+a page four engines cite is a stronger ranking than one Gemini alone mentions,
+and pages are worked strongest-first, so the count decides where the budget
+goes.
+
+Anthropic's slot is `claude-haiku-4.5`, the cheapest of them, because what is
+being read is the engine's search results, not the model's reasoning — there is
+nothing to be gained from paying Opus rates to receive a list of URLs. The same
+logic would make `perplexity/sonar` a cheaper stand-in for `sonar-pro`.
+
+Verify a model id against OpenRouter's catalogue before adding it; an unknown
+id just fails that engine. `select net.http_get('https://openrouter.ai/api/v1/models')`
+from the database works, since the sandbox cannot reach that host.
+
+To go cheap again, drop to one engine — a vault update, no deploy:
+
+    select vault.update_secret(id, 'google/gemini-3.6-flash', name, description)
+      from vault.secrets where name = 'ai_keywords_models'; They are asked in parallel through OpenRouter's `web` plugin
 with `engine: exa`, and the keyword is sent **verbatim** as the prompt. That is
 the measurement: the keyword is the question a buyer types, and dressing it up
 would rank the dressed-up prompt instead.
@@ -160,6 +172,14 @@ live APIs turned out to require:
 - **The email/domain check compared strings.** `result contains domain` drops
   everyone at `learn.g2.com` and admits `bobg2.com@gmail.com`. This compares the
   company-level domain of each side, so subdomains match and lookalikes do not.
+- **`founder` reaches the small end of the list.** Every startup page cited so
+  far returned nobody at director or head — a ten-person company has no
+  Director of Content. Where nobody holds a content title, the founder is taken
+  as the person who owns it, because they wrote the page. The seniority values
+  the API accepts are the app's own dropdown: `c_suite`, `director`, `entry`,
+  `founder`, `head`, `manager`, `owner`, `partner`, `senior`, `vp` — note that
+  `C-suite` is NOT one, and asking for it returns a single all-null row rather
+  than an error, which is what `process-keyword` has been paying for.
 - **Sales titles are excluded even when they match.** The filter is a substring
   match and `growth` is the leaky one: a live run on `zoominfo.com` matched a
   "Global Account Director, Enterprise Growth" and a "Director of Sales,
