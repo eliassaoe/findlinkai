@@ -1,6 +1,6 @@
 // Verification tests for the onboarding tasks worker.
 //   node workers/onboarding-tasks/test-review-urls.mjs
-import { classifyReviewUrl, reviewUrlKey } from './worker.js';
+import { classifyReviewUrl, reviewUrlKey, fetchVerifyReview } from './worker.js';
 
 let pass = 0, fail = 0;
 const v = (t, u, o) => classifyReviewUrl(t, u, o).verdict;
@@ -99,6 +99,52 @@ is('fragment ok', v('g2_review','https://www.g2.com/products/linkfinder-ai/revie
 is('key is stable across those',
    reviewUrlKey('g2_review','https://www.g2.com/products/linkfinder-ai/reviews/linkfinder-ai-review-10432117?utm_source=x'),
    'g2:linkfinder-ai-review-10432117');
+
+
+// ---------------------------------------------------------------------------
+// Live page verification. The property that matters is that it fails SAFE:
+// every failure mode must leave the review unconfirmed, never confirmed.
+// ---------------------------------------------------------------------------
+console.log('\nLive G2 verification fails safe');
+
+const realFetch = globalThis.fetch;
+async function withFetch(impl, fn) {
+    globalThis.fetch = impl;
+    try { return await fn(); } finally { globalThis.fetch = realFetch; }
+}
+// Response.url is read-only, so stub the shape fetchVerifyReview reads.
+const resp = (body, url, status = 200) => async () => ({
+    ok: status >= 200 && status < 300, status, url,
+    text: async () => body,
+});
+
+const KEY = 'g2:linkfinder-ai-review-10432117';
+const URL_OK = 'https://www.g2.com/products/linkfinder-ai/reviews/linkfinder-ai-review-10432117';
+const check = (impl) => withFetch(impl, () => fetchVerifyReview({}, 'g2_review', URL_OK, KEY));
+
+is('a page naming product and review id confirms',
+   (await check(resp('<html>LinkFinder AI review 10432117 great tool</html>', URL_OK))).confirmed, true);
+is('403 from bot protection does not confirm',
+   (await check(resp('denied', URL_OK, 403))).confirmed, false);
+is('404 does not confirm',
+   (await check(resp('not found', URL_OK, 404))).confirmed, false);
+is('network error does not confirm',
+   (await check(async () => { throw new Error('blocked'); })).confirmed, false);
+is('redirect to the product page does not confirm',
+   (await check(resp('<html>LinkFinder AI</html>', 'https://www.g2.com/products/linkfinder-ai/reviews'))).confirmed, false);
+is('page without the review id does not confirm',
+   (await check(resp('<html>LinkFinder AI, great tool</html>', URL_OK))).confirmed, false);
+is('page about another product does not confirm',
+   (await check(resp('<html>Apollo review 10432117</html>', URL_OK))).confirmed, false);
+is('G2_FETCH_VERIFY=false disables it',
+   (await withFetch(resp('<html>LinkFinder 10432117</html>', URL_OK),
+      () => fetchVerifyReview({ G2_FETCH_VERIFY: 'false' }, 'g2_review', URL_OK, KEY))).confirmed, false);
+is('trustpilot is not fetch-verified',
+   (await withFetch(resp('<html>whatever</html>', URL_OK),
+      () => fetchVerifyReview({}, 'trustpilot_review', URL_OK, 'tp:abc'))).confirmed, false);
+is('a key with no numeric id does not fetch',
+   (await withFetch(() => { throw new Error('should not be called'); },
+      () => fetchVerifyReview({}, 'g2_review', URL_OK, 'g2:start'))).confirmed, false);
 
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
