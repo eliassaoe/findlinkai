@@ -6660,10 +6660,18 @@ const DISC = 'You must write in your review that you received credits for it. Re
 // it permitted there - so the task is gone rather than disclosed. G2 leads
 // instead: it pays the most and G2 permits incentives when they are declared.
 //
-// The badge task is checked for real before any credits move: workers/badge-verify
-// fetches the page and confirms the link exists and is followed. Without that it
-// would pay out on an honour system for the joint highest-value item here.
-const BADGE_VERIFY_WORKER = 'https://badge-verify.hamoureliasse.workers.dev';
+// The site-badge task was removed on 31 Aug 2026. It never paid out once:
+// user_task_completions has zero site_badge rows of any status, and the
+// onboarding-tasks worker has no site_badge in TASK_CONFIG, so /tasks/complete
+// answered "Unknown task_name" to every submission. Anyone who actually added
+// the badge did the work and got nothing.
+//
+// It was also the worst trade we offered - edit your site's HTML and keep a
+// dofollow link live, for the same 1,000 credits as a G2 review - and the only
+// task that required owning a website at all.
+//
+// badge.html, badge.svg and workers/badge-verify are left in place: the /badge
+// page stands on its own for anyone who wants to link to us unprompted.
 
 // The four survey questions. The ids and every option `value` below MUST match
 // SURVEY_QUESTIONS in workers/onboarding-tasks/worker.js - the worker refuses
@@ -6717,7 +6725,6 @@ const OTP_TASKS_ALL = [
     // featured: G2 reviews are the thing we are shortest of, so this row is
     // called out rather than sitting as one of five equals.
     { name: 'g2_review', kind: 'url', featured: true, label: 'Leave a G2 review', credits: 1000, realValue: '= 100 emails or 1,000 LinkedIn profiles', placeholder: 'Paste the URL of your review', linkUrl: OTP_LINKS.g2, linkLabel: 'Write a review on G2', pendingCopy: 'Being checked', disclosureNote: DISC },
-    { name: 'site_badge', kind: 'url', label: 'Put the LinkFinder badge on your site', credits: 1000, realValue: '= 100 emails or 1,000 LinkedIn profiles', placeholder: 'Paste the page URL where the badge is live', linkUrl: 'https://linkfinderai.com/badge', linkLabel: 'Get the badge code', verifyWorker: BADGE_VERIFY_WORKER },
     { name: 'youtube_subscribe', kind: 'honor_click', label: 'Subscribe to our YouTube channel', credits: 100, realValue: '= 100 LinkedIn profiles', linkUrl: OTP_LINKS.youtube, linkLabel: 'Open channel' },
     { name: 'linkedin_share', kind: 'url', label: 'Share on LinkedIn', credits: 150, realValue: '= 150 LinkedIn profiles', placeholder: 'Paste your LinkedIn post URL' },
 ];
@@ -7036,36 +7043,9 @@ async function otpSubmitUrlTask(taskName) {
     otpBusyTask = taskName;
     renderOnboardingTasksPopup();
 
-    // Tasks carrying a verifyWorker are checked for real before the credits
-    // endpoint is called at all, so a failed check cannot leave a completed row.
-    if (task && task.verifyWorker) {
-        const BADGE_ERRORS = {
-            no_link: 'We could not find the badge on that page. Check it is published, and that this is the exact page it appears on.',
-            link_is_nofollow: 'The badge is there, but the link is set to nofollow. Remove rel="nofollow" from it and try again.',
-            domain_already_claimed: 'That site has already been credited for the badge.',
-            already_claimed: 'You have already claimed this one.',
-            not_html: 'That URL did not return a web page.',
-            timeout: 'That page took too long to respond. Try again in a moment.',
-            unreachable: 'We could not reach that page.'
-        };
-        try {
-            const vres = await fetch(task.verifyWorker, {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ user_token: userToken, site_url: url })
-            });
-            const vdata = await vres.json();
-            if (!vres.ok || !vdata.verified) {
-                const key = vdata.detail || vdata.error;
-                throw new Error(BADGE_ERRORS[key] || 'We could not verify the badge on that page.');
-            }
-            try { posthog.capture('badge_verified', { domain: vdata.domain }); } catch (e) {}
-        } catch (e) {
-            otpBusyTask = null;
-            renderOnboardingTasksPopup();
-            otpShowFieldError(taskName, e.message || 'We could not verify the badge.');
-            return;
-        }
-    }
+    // The generic pre-flight verify step went with the badge task - it was the
+    // only task that declared a verifyWorker. Recoverable from git if a future
+    // task needs checking before the credits endpoint is called.
 
     const isReview = taskName === 'g2_review';
     const endpoint = isReview ? '/tasks/submit-review' : '/tasks/complete';
