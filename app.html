@@ -1146,11 +1146,9 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
      spot. -->
 <div id="reviewNotification" class="review-notification">
     <button class="review-notification-close" onclick="closeReviewNotification()">×</button>
-    <div class="review-notification-header"><span>&#11088;</span> Worth 1,000 credits</div>
+    <div class="review-notification-header"><span>&#11088;</span> <span id="reviewNotifHeader">Worth 1,000 credits</span></div>
     <div>
-        If LinkFinder AI has been useful, would you write us a review on G2? We
-        will put <strong>1,000 credits</strong> on your account for it &mdash; that
-        is 100 emails or 1,000 LinkedIn profiles.
+        <div id="reviewNotifLead"></div>
         <div class="review-note">You must write in your review that you received credits for it. Reviews without that line can be removed by the platform.</div>
         <button type="button" class="review-cta" onclick="openG2Review()">Write the review on G2</button>
         <button type="button" class="review-cta-secondary" onclick="openReviewClaim()">Already wrote one? Claim your credits</button>
@@ -4127,6 +4125,7 @@ async function processBulk(resuming) {
 
     let creditsConsumed = 0;
     let processedCount = 0;
+    lfBulkReviewAsked = false; // once per run, not once per page load
     let creditsExhausted = false;
     let processedWithCredits = 0;
     let lastCheckpointAt = Date.now();
@@ -4308,6 +4307,9 @@ async function processBulk(resuming) {
         csvExitCredits = Math.round(creditsConsumed * 100) / 100;
         updateProgress((i + 1) / csvData.length * 100);
         updateBulkResultsTable();
+        // i+1 is the position in the whole list, so a resumed run is measured
+        // against the list rather than against what is left of it.
+        maybeShowBulkReviewPrompt(i + 1, csvData.length, creditsExhausted);
         // Checkpoint on rows or on elapsed time, whichever lands first. Awaited
         // so the archive can never get ahead of itself, but it only ever sends
         // the rows finished since last time.
@@ -5748,19 +5750,87 @@ function updateCreditCostDisplay(){
     updateAffordabilityWarning();
 }
 
+// Two moments ask for a G2 review, and they share this one card so the copy,
+// the link and the disclosure can never diverge:
+//
+//   first_success - the first clean enrichment result on screen.
+//   bulk_halfway  - halfway through a bulk run of 100+ rows, which is the
+//                   moment the tool has most visibly just done a lot of work.
+//
+// Each has its own lifetime cap, so someone who runs big lists can be asked
+// once at halfway without that eating the first-success ask, and vice versa.
+const G2_PROMPT_VARIANTS = {
+    first_success: {
+        cap: 3,
+        storageKey: 'lf_review_shown',
+        delayMs: 10000,
+        header: 'Worth 1,000 credits',
+        lead: 'If LinkFinder AI has been useful, would you write us a review on G2? '
+            + 'We will put <strong>1,000 credits</strong> on your account for it '
+            + '&mdash; that is 100 emails or 1,000 LinkedIn profiles.',
+    },
+    bulk_halfway: {
+        cap: 2,
+        storageKey: 'lf_review_bulk_shown',
+        delayMs: 0,
+        header: 'Halfway through your list',
+        lead: null, // built per-run so it can name the actual row count
+    },
+};
+
 // Shown on mobile too now. It used to be desktop-only, which silently dropped
 // every phone user from the single biggest review ask in the product; the card
-// is responsive rather than hidden. Cap raised 2 -> 3 and the auto-hide 90s ->
-// 3min, because G2 reviews are the thing we are short of.
-function showReviewNotification(){
-    const shown = parseInt(localStorage.getItem('lf_review_shown') || '0');
-    if(shown >= 3) return;
+// is responsive rather than hidden. Caps and the 3min auto-hide are set per
+// variant above, because G2 reviews are the thing we are short of.
+function showG2ReviewPrompt(variantName, leadOverride){
+    const variant = G2_PROMPT_VARIANTS[variantName];
+    if (!variant) return;
+    const shown = parseInt(localStorage.getItem(variant.storageKey) || '0');
+    if (shown >= variant.cap) return;
+    // Never stack on top of itself or on the credits panel.
+    const card = document.getElementById('reviewNotification');
+    if (!card || card.classList.contains('show')) return;
+    const tasksModal = document.getElementById('onboardingTasksModal');
+    if (tasksModal && tasksModal.classList.contains('show')) return;
+
     setTimeout(()=>{
-        document.getElementById('reviewNotification').classList.add('show');
-        localStorage.setItem('lf_review_shown', shown + 1);
-        try { posthog.capture('g2_review_prompt_shown', { times_shown: shown + 1 }); } catch(e) {}
-        setTimeout(()=>{if(document.getElementById('reviewNotification').classList.contains('show'))closeReviewNotification();},180000);
-    },10000);
+        if (card.classList.contains('show')) return;
+        document.getElementById('reviewNotifHeader').textContent = variant.header;
+        document.getElementById('reviewNotifLead').innerHTML = leadOverride || variant.lead;
+        card.classList.add('show');
+        localStorage.setItem(variant.storageKey, shown + 1);
+        try { posthog.capture('g2_review_prompt_shown', { variant: variantName, times_shown: shown + 1 }); } catch(e) {}
+        setTimeout(()=>{if(card.classList.contains('show'))closeReviewNotification();},180000);
+    }, variant.delayMs);
+}
+
+function showReviewNotification(){ showG2ReviewPrompt('first_success'); }
+
+// Fires once per bulk run, at the halfway mark of a list of at least 100 rows.
+// Deliberately narrow, because a mistimed ask is worse than none:
+//   - only long lists, where the tool has just visibly saved real work;
+//   - never when credits just ran out, since that is a paywall, not a win;
+//   - never if they already left a review or have one being checked.
+const BULK_REVIEW_MIN_ROWS = 100;
+let lfBulkReviewAsked = false;
+
+function maybeShowBulkReviewPrompt(done, total, creditsExhausted){
+    if (lfBulkReviewAsked) return;
+    if (creditsExhausted) return;
+    if (!total || total < BULK_REVIEW_MIN_ROWS) return;
+    if (done < Math.floor(total / 2)) return;
+    lfBulkReviewAsked = true;
+
+    // Cached after the first call, so this does not add a request mid-run.
+    otpFetchStatus().then(() => {
+        const status = otpStatusFor('g2_review');
+        if (status === 'completed' || status === 'pending') return;
+        showG2ReviewPrompt('bulk_halfway',
+            `You are ${done.toLocaleString()} rows into a list of ${total.toLocaleString()}. `
+            + 'If LinkFinder AI is saving you time, would you write us a review on G2? '
+            + 'We will put <strong>1,000 credits</strong> on your account for it '
+            + '&mdash; that is 100 emails or 1,000 LinkedIn profiles.');
+    });
 }
 function closeReviewNotification(){document.getElementById('reviewNotification').classList.remove('show');document.getElementById('reviewNotification').classList.add('hide');}
 
@@ -5775,10 +5845,21 @@ function openG2Review(){
 
 // Claiming is instant and in-app: the credits panel verifies the link and pays
 // out on the spot. The old Typeform meant a person waited on a manual grant.
+//
+// Opening the panel is not enough on its own - it has five rows and they
+// arrived holding a URL - so this scrolls to the G2 row and puts the cursor in
+// the field. They land on a focused input, not a list to search.
 function openReviewClaim(){
     try { posthog.capture('g2_review_prompt_clicked', { action: 'claim' }); } catch(e) {}
     closeReviewNotification();
-    if (typeof openOnboardingTasksPopupManually === 'function') openOnboardingTasksPopupManually();
+    if (typeof openOnboardingTasksPopupManually !== 'function') return;
+    Promise.resolve(openOnboardingTasksPopupManually()).then(() => {
+        const input = document.getElementById('otp-input-g2_review');
+        if (!input) return; // already completed, so the row has no field
+        const row = document.getElementById('otp-row-g2_review');
+        if (row) row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        input.focus();
+    });
 }
 
 function showFeedbackModal(){document.getElementById('feedbackModal').classList.add('show');document.body.style.overflow='hidden';document.getElementById('feedbackSuccessMessage').classList.remove('show');document.getElementById('feedbackErrorMessage').classList.remove('show');}
