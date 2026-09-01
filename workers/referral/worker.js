@@ -237,10 +237,21 @@ const PAYING_EVENTS = new Set([
     'subscription.active',
     'subscription.renewed'
 ]);
+// These are Dodo's actual event names, taken from the dashboard's own list -
+// not guessed. The first version of this file had 'payment.refunded',
+// 'payment.reversed' and 'dispute.created', none of which Dodo sends. An
+// unrecognised event is acknowledged and ignored by design, so every refund
+// and chargeback would have sailed past silently and left the commission
+// standing: we would have kept paying out on money we gave back, with nothing
+// in the logs to say so.
+//
+// payment.failed is deliberately NOT here. A commission is only ever written
+// on a succeeded payment, so there is nothing for a failure to reverse, and
+// treating it as a reversal would only add noise.
 const REVERSING_EVENTS = new Set([
-    'payment.refunded',
-    'payment.reversed',
-    'dispute.created'
+    'refund.succeeded',
+    'dispute.opened',
+    'payment.cancelled'
 ]);
 
 async function handleDodoWebhook(request, env) {

@@ -194,13 +194,24 @@ await t('blocked partner earns nothing', async () => {
   assert(db.referral_commissions.length === 0, 'blocked partner must not earn');
 });
 
-await t('refund voids the commission', async () => {
+// Each name here is one Dodo actually sends. An earlier version used invented
+// names, which meant refunds were silently ignored and the commission stood.
+for (const reversal of ['refund.succeeded', 'dispute.opened', 'payment.cancelled']) {
+  await t(`${reversal} voids the commission`, async () => {
+    resetDb();
+    await worker.fetch(await signedRequest(payment()), env);
+    assert(db.referral_commissions[0].status === 'pending', 'setup');
+    const res = await worker.fetch(await signedRequest({ type: reversal, data: { payment_id: 'pay_1' } }), env);
+    assert(res.status === 200, 'status');
+    assert(db.referral_commissions[0].status === 'void', 'got ' + db.referral_commissions[0].status);
+  });
+}
+
+await t('payment.failed is not treated as a reversal', async () => {
   resetDb();
   await worker.fetch(await signedRequest(payment()), env);
-  assert(db.referral_commissions[0].status === 'pending', 'setup');
-  const res = await worker.fetch(await signedRequest({ type: 'payment.refunded', data: { payment_id: 'pay_1' } }), env);
-  assert(res.status === 200, 'status');
-  assert(db.referral_commissions[0].status === 'void', 'got ' + db.referral_commissions[0].status);
+  await worker.fetch(await signedRequest({ type: 'payment.failed', data: { payment_id: 'pay_1' } }), env);
+  assert(db.referral_commissions[0].status === 'pending', 'a failed payment reverses nothing');
 });
 
 await t('unmapped event is acknowledged, not retried', async () => {

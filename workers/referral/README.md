@@ -90,7 +90,13 @@ Then in the Dodo dashboard add the deployed URL + `/webhook/dodo` as a webhook
 endpoint, subscribed to:
 
 `payment.succeeded`, `subscription.active`, `subscription.renewed`,
-`payment.refunded`, `payment.reversed`, `dispute.created`
+`refund.succeeded`, `dispute.opened`, `payment.cancelled`
+
+These are Dodo's real event names, copied from its dashboard. The first version
+of this file listed `payment.refunded`, `payment.reversed` and
+`dispute.created`, none of which Dodo sends - and because an unrecognised event
+is acknowledged and ignored by design, every refund would have passed silently
+and left the commission standing. Subscribe to exactly the six above.
 
 Dodo delivers happily to more than one endpoint, so this sits alongside
 `workers/dodo-webhook` (the PostHog bridge) rather than replacing it. They are
