@@ -84,7 +84,7 @@ def fake_api_get(path, token, **params):
                             "topLevelComment": {
                                 "snippet": {
                                     "authorChannelId": {"value": CHANNEL},
-                                    "textOriginal": "LinkFinder AI : linkfinderai.com",
+                                    "textOriginal": ac.COMMENT_TEXT,
                                 }
                             }
                         }
@@ -161,7 +161,10 @@ with tempfile.TemporaryDirectory() as raw:
     check("posted to the 3 clean videos",
           sorted(v for v, _ in posted_calls),
           ["vid_long_1", "vid_long_2", "vid_short_1"])
-    check("exact text", {t for _, t in posted_calls}, {"LinkFinder AI : linkfinderai.com"})
+    check("posts the configured text verbatim",
+          {t for _, t in posted_calls}, {ac.COMMENT_TEXT})
+    check("configured text carries the marker",
+          ac.COMMENT_MARKER in ac.COMMENT_TEXT, True)
     state = json.loads((tmp / "state.json").read_text())
     check("done includes pre-existing", "vid_done_1" in state["done"], True)
     check("disabled video skipped", state["skipped"].get("vid_off_1"), "comments disabled")

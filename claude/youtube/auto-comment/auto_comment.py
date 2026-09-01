@@ -41,7 +41,10 @@ from pathlib import Path
 
 # --- what gets posted ------------------------------------------------------
 
-COMMENT_TEXT = "LinkFinder AI : linkfinderai.com"
+COMMENT_TEXT = (
+    "Find anyone's email, phone number or LinkedIn profile "
+    "from a name or a company \u2192 linkfinderai.com"
+)
 
 # Substring used to recognise a comment this script already posted, so re-runs
 # skip it. Keep it stable even if COMMENT_TEXT is reworded.
@@ -524,6 +527,41 @@ def already_commented(token, video_id, my_channel_id):
     return False
 
 
+def update_comment(token, comment_id, text):
+    """Rewrite a comment already posted. Cheaper and tidier than delete+repost:
+    the thread keeps its age, its position and any replies."""
+    return _request(
+        "PUT",
+        f"{API}/comments?part=snippet",
+        token=token,
+        body={"id": comment_id, "snippet": {"textOriginal": text}},
+    )
+
+
+def rewrite_posted(token, text):
+    """Bring every comment this tool has posted up to the current text."""
+    state = load_state()
+    targets = [
+        (vid, entry)
+        for vid, entry in state["done"].items()
+        if entry.get("comment_id")
+    ]
+    if not targets:
+        print("Nothing posted yet to rewrite.")
+        return
+    print(f"Rewriting {len(targets)} comment(s).")
+    for vid, entry in targets:
+        try:
+            update_comment(token, entry["comment_id"], text)
+        except ApiError as exc:
+            print(f"  FAIL {vid} — {exc}")
+            continue
+        entry["text"] = text
+        print(f"  updated {vid}  {entry.get('title','')[:50]}")
+        save_state(state)
+    write_reports(state)
+
+
 def post_comment(token, channel_id, video_id, text):
     body = {
         "snippet": {
@@ -631,6 +669,11 @@ def main():
         help="seconds between posts, jittered +/-40%% (default: 20)",
     )
     parser.add_argument("--limit", type=int, help="stop after N posts, for a cautious first run")
+    parser.add_argument(
+        "--rewrite",
+        action="store_true",
+        help="update the text of comments already posted, instead of posting new ones",
+    )
     args = parser.parse_args()
 
     if args.scope:
@@ -658,6 +701,10 @@ def main():
 
     token = access_token()
     print(f"Channel: {args.channel}")
+
+    if args.rewrite:
+        rewrite_posted(token, args.text)
+        return 0
 
     playlist = uploads_playlist(token, args.channel)
     videos = list_uploads(token, playlist)
