@@ -31,6 +31,11 @@
 // Deploy: see README.md.
 
 const COMMISSION_RATE = 0.25;      // 25% of what the referred customer pays
+// Capped per referred customer, not per partner and not per payment: someone
+// who sends five paying customers can earn five times this. The cap is what
+// makes "up to $500" a true statement rather than marketing - without it the
+// 25% runs forever and the real number is unbounded.
+const COMMISSION_CAP_PER_REFERRED = 500;
 const HOLD_DAYS       = 30;        // refund window before a commission is owed
 const PAYOUT_MINIMUM  = 50;        // USD, below which a payout is not run
 const SITE            = 'https://linkfinderai.com';
@@ -140,6 +145,7 @@ async function handleMe(env, userId) {
         payout_email: partner.payout_email || null,
         status: partner.status,
         rate: COMMISSION_RATE,
+        cap_per_referred: COMMISSION_CAP_PER_REFERRED,
         hold_days: HOLD_DAYS,
         payout_minimum: PAYOUT_MINIMUM,
         stats: {
@@ -295,6 +301,24 @@ async function handleDodoWebhook(request, env) {
     const gross = typeof data.total_amount === 'number' ? data.total_amount / 100 : 0;
     if (gross <= 0) return json({ ok: true, warning: 'zero amount' });
 
+    // Apply the per-referred-customer cap. Voided commissions do not count
+    // towards it - money we clawed back should not eat someone's allowance.
+    let prior;
+    try {
+        prior = await sbSelect(env, 'referral_commissions',
+            `referred_user_id=eq.${enc(payerId)}&status=neq.void&select=commission_amount`);
+    } catch (e) {
+        // Failing open here would mean paying past the cap. Better to leave
+        // the payment unrecorded and let a retry pick it up.
+        return json({ ok: false, error: 'could not read prior commissions' }, 500);
+    }
+    const already = prior.reduce((t, c) => t + Number(c.commission_amount || 0), 0);
+    const remaining = round2(COMMISSION_CAP_PER_REFERRED - already);
+    if (remaining <= 0) {
+        return json({ ok: true, capped: true, referred_user_id: payerId });
+    }
+    const amount = Math.min(round2(gross * COMMISSION_RATE), remaining);
+
     const inserted = await sb(env, 'referral_commissions', {
         method: 'POST',
         body: [{
@@ -306,7 +330,7 @@ async function handleDodoWebhook(request, env) {
             gross_amount: round2(gross),
             currency: data.currency || 'USD',
             rate: COMMISSION_RATE,
-            commission_amount: round2(gross * COMMISSION_RATE),
+            commission_amount: amount,
             // A flagged attribution never auto-approves, however long it sits.
             status: flagged_reason ? 'review' : 'pending'
         }],

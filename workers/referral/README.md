@@ -1,7 +1,13 @@
 # Referral program v2
 
-Pays a partner **25% of what a referred customer actually pays**, and pays it
-only when Dodo says over a signed webhook that money moved.
+Pays a partner **25% of what a referred customer actually pays, up to $500 per
+referred customer**, and pays it only when Dodo says over a signed webhook that
+money moved.
+
+The cap is per referred customer, not per partner: ten paying referrals is ten
+separate $500 allowances. Voided commissions do not count against it, so a
+refund gives the allowance back. A payment that would cross the cap is trimmed
+to what is left rather than dropped.
 
 ## Why v1 was not extended
 

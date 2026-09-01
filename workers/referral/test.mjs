@@ -54,7 +54,8 @@ globalThis.fetch = async (url, opts = {}) => {
     for (const [k, v] of u.searchParams) {
       if (k === 'select' || k === 'limit') continue;
       const [op, val] = [v.slice(0, v.indexOf('.')), v.slice(v.indexOf('.') + 1)];
-      if (op === 'eq') out = out.filter(r => String(r[k]) === decodeURIComponent(val));
+      if (op === 'eq')  out = out.filter(r => String(r[k]) === decodeURIComponent(val));
+      if (op === 'neq') out = out.filter(r => String(r[k]) !== decodeURIComponent(val));
     }
     return new Response(JSON.stringify(out), { status: 200 });
   }
@@ -277,6 +278,54 @@ await t('unauthenticated request is refused', async () => {
     body: JSON.stringify({ token: 'not-a-real-token' }),
   }), env);
   assert(res.status === 401, 'status ' + res.status);
+});
+
+// ---------------------------------------------------------------------------
+// The $500-per-referred-customer cap. "Up to $500" is only true if this holds.
+// ---------------------------------------------------------------------------
+const bigPayment = (id, cents) => ({
+  type: 'payment.succeeded',
+  data: { payment_id: id, total_amount: cents, currency: 'USD', customer: { email: 'buyer@corp.com' } },
+});
+
+await t('renewals stop earning once $500 is reached for one customer', async () => {
+  resetDb();
+  // $1000 a time at 25% = $250 each. Three of them would be $750 uncapped.
+  for (const id of ['p1', 'p2', 'p3']) {
+    await worker.fetch(await signedRequest(bigPayment(id, 100000)), env);
+  }
+  const total = round2(db.referral_commissions.reduce((t, c) => t + Number(c.commission_amount), 0));
+  assert(total === 500, 'total should stop at 500, got ' + total);
+  assert(db.referral_commissions.length === 2, 'third payment writes nothing, got ' + db.referral_commissions.length);
+});
+
+await t('the final commission is trimmed to what is left, not dropped', async () => {
+  resetDb();
+  await worker.fetch(await signedRequest(bigPayment('p1', 160000)), env); // $400
+  await worker.fetch(await signedRequest(bigPayment('p2', 160000)), env); // would be $400, only $100 left
+  const amounts = db.referral_commissions.map(c => Number(c.commission_amount));
+  assert(amounts[0] === 400, 'first ' + amounts[0]);
+  assert(amounts[1] === 100, 'second should be trimmed to 100, got ' + amounts[1]);
+});
+
+await t('the cap is per referred customer, not per partner', async () => {
+  resetDb();
+  db.linkfinderai_users.push({ token: 'buyer2', email: 'other@else.com' });
+  db.referral_attributions.push({ referred_user_id: 'buyer2', partner_user_id: 'partner1', code: 'abc123xy', flagged_reason: null });
+  await worker.fetch(await signedRequest(bigPayment('p1', 400000)), env); // buyer1 maxes out
+  await worker.fetch(await signedRequest({ type: 'payment.succeeded', data: { payment_id: 'p9', total_amount: 100000, currency: 'USD', customer: { email: 'other@else.com' } } }), env);
+  const total = round2(db.referral_commissions.reduce((t, c) => t + Number(c.commission_amount), 0));
+  assert(total === 750, 'one partner, two customers: 500 + 250 = 750, got ' + total);
+});
+
+await t('voided commissions do not eat the allowance', async () => {
+  resetDb();
+  await worker.fetch(await signedRequest(bigPayment('p1', 200000)), env); // $500, capped out
+  await worker.fetch(await signedRequest({ type: 'refund.succeeded', data: { payment_id: 'p1' } }), env);
+  await worker.fetch(await signedRequest(bigPayment('p2', 100000)), env); // $250 should be allowed again
+  const live = db.referral_commissions.filter(c => c.status !== 'void');
+  assert(live.length === 1 && Number(live[0].commission_amount) === 250,
+    'refunded money must not count against the cap: ' + JSON.stringify(live.map(c => c.commission_amount)));
 });
 
 console.log(results.map(([s, n]) => `${s}  ${n}`).join('\n'));
