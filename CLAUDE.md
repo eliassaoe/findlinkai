@@ -65,6 +65,7 @@ into a file here in the same session, or it is gone.
 | Workers | `workers/` — but most live workers are NOT in this repo; read them with the Cloudflare connector |
 | Integrations (all generated from one catalog) | `integrations/` — `integrations/catalog/` is the source; `npm run build && npm test` in `integrations/` |
 | **The published Google Sheets add-on** | `integrations/google-sheets-addon/` — read its README before touching it |
+| Signal-driven outbound on n8n (Trigify → Findymail → Claude → Deliveryman) | `gtm-workflow/` — the importable workflow plus the SQLite learning loop; read its README before editing the workflow JSON |
 
 ## Facts that are easy to get wrong
 

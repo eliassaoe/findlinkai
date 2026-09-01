@@ -1,0 +1,1138 @@
+{
+  "name": "GTM Signal Engine · Trigify → Findymail → Claude → Deliveryman",
+  "nodes": [
+    {
+      "id": "65361d9d-e9bd-426c-bd52-ab84bdf84b8e",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "trigify-signal",
+        "responseMode": "responseNode",
+        "options": {
+          "rawBody": false
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -1240,
+        0
+      ],
+      "name": "Node 1 · Trigify Signal Webhook",
+      "webhookId": "03068f4e-3673-4164-a832-3298883d61dc",
+      "notes": "Point the Trigify HTTP Request action here. Send x-webhook-secret: $TRIGIFY_WEBHOOK_SECRET."
+    },
+    {
+      "id": "e7fd2e9c-7712-4e4c-a9c4-24047824c3ea",
+      "parameters": {
+        "jsCode": "/**\n * Node 1b · Normalise the Trigify payload.\n *\n * Trigify signals are user-composed in the HTTP Request action, so the payload\n * shape is not fixed. Rather than pin one schema, read every field through a\n * fallback chain and report exactly what is missing. Nothing here throws: a bad\n * signal is routed to the \"skipped\" response, not an execution error, so a\n * malformed webhook never shows up as a red run.\n */\nconst incoming = $input.first().json;\nconst body = incoming.body ?? incoming;\nconst headers = incoming.headers ?? {};\n\nconst pick = (...values) => {\n  for (const value of values) {\n    if (value === undefined || value === null) continue;\n    const text = typeof value === 'string' ? value.trim() : value;\n    if (text !== '' && text !== 'null' && text !== 'undefined') return text;\n  }\n  return null;\n};\n\nconst asObject = (value, key = 'name') => {\n  if (!value) return {};\n  if (typeof value === 'string') return { [key]: value };\n  return typeof value === 'object' ? value : {};\n};\n\nconst normaliseDomain = (value) => {\n  if (!value) return null;\n  return String(value).trim().toLowerCase()\n    .replace(/^https?:\\/\\//, '')\n    .replace(/^www\\./, '')\n    .split(/[/?#]/)[0]\n    .replace(/\\.$/, '') || null;\n};\n\n// --- shared-secret gate ----------------------------------------------------\nconst expectedSecret = $env.TRIGIFY_WEBHOOK_SECRET || '';\nconst presentedSecret = headers['x-webhook-secret'] || headers['x-trigify-secret'] || '';\nif (expectedSecret && presentedSecret !== expectedSecret) {\n  return [{ json: { valid: false, stage: 'auth', reason: 'x-webhook-secret did not match TRIGIFY_WEBHOOK_SECRET' } }];\n}\n\n// --- locate the three sub-objects Trigify may or may not nest ---------------\nconst person = asObject(body.prospect || body.lead || body.person || body.contact || body);\nconst company = asObject(body.company || body.organization || person.company || person.organization, 'name');\nconst signal = asObject(body.signal || body.trigger || body.event || body, 'type');\n\nconst firstName = pick(person.first_name, person.firstName, person.given_name);\nconst lastName = pick(person.last_name, person.lastName, person.family_name);\nconst fullName = pick(\n  person.full_name, person.fullName, person.name,\n  firstName && lastName ? `${firstName} ${lastName}` : null,\n);\n\nconst companyDomain = normaliseDomain(pick(\n  company.domain, company.company_domain, company.website, company.url,\n  person.company_domain, person.domain, body.domain, body.company_domain,\n));\n\nconst companyName = pick(\n  company.name, company.company_name, company.title,\n  person.company_name, body.company_name,\n);\n\n// --- describe the signal in one readable line for the copywriter ------------\nconst signalType = pick(\n  signal.type, signal.signal_type, signal.event_type, signal.name,\n  body.signal_type, body.event, body.trigger_type,\n) || 'custom_signal';\n\nconst signalText = pick(\n  signal.post_content, signal.content, signal.comment, signal.comment_text,\n  signal.text, signal.message, signal.description, signal.summary,\n  body.post_content, body.comment,\n);\nconst signalKeyword = pick(signal.keyword, signal.keywords, signal.search_term, body.keyword);\nconst signalSource = pick(signal.source_url, signal.url, signal.post_url, signal.permalink, body.source_url);\nconst signalActor = pick(signal.target_name, signal.competitor, signal.group_name, signal.author, body.target);\n\nconst signalContext = [\n  signalActor ? `Target/context: ${signalActor}.` : null,\n  signalKeyword ? `Matched keyword: ${Array.isArray(signalKeyword) ? signalKeyword.join(', ') : signalKeyword}.` : null,\n  signalText ? `What they wrote or did: \"${String(signalText).replace(/\\s+/g, ' ').slice(0, 600)}\"` : null,\n  signalSource ? `Source: ${signalSource}` : null,\n].filter(Boolean).join(' ') || 'No context text was supplied with this signal.';\n\nconst techStack = (() => {\n  const raw = company.tech_stack || company.technologies || person.tech_stack || body.tech_stack;\n  if (!raw) return [];\n  if (Array.isArray(raw)) return raw.filter(Boolean).map(String);\n  return String(raw).split(/[,;|]/).map((s) => s.trim()).filter(Boolean);\n})();\n\nconst employeeCount = Number(pick(\n  company.employee_count, company.employees, company.size, company.headcount,\n  body.employee_count,\n));\n\nconst lead = {\n  signal_id: pick(signal.id, signal.signal_id, body.id, body.event_id),\n  received_at: new Date().toISOString(),\n\n  full_name: fullName,\n  first_name: firstName || (fullName ? String(fullName).split(' ')[0] : null),\n  last_name: lastName,\n  job_title: pick(person.job_title, person.title, person.position, person.headline, person.role),\n  linkedin_url: pick(person.linkedin_url, person.linkedinUrl, person.profile_url, person.linkedin, body.linkedin_url),\n  provided_email: pick(person.email, person.work_email, body.email),\n\n  company_name: companyName,\n  company_domain: companyDomain,\n  company_description: pick(\n    company.description, company.about, company.summary, company.short_description,\n    body.company_description,\n  ),\n  industry: pick(company.industry, company.sector, person.industry, body.industry),\n  employee_count: Number.isFinite(employeeCount) && employeeCount > 0 ? employeeCount : null,\n  tech_stack: techStack,\n\n  signal_type: signalType,\n  signal_context: signalContext,\n  signal_url: signalSource,\n  signal_timestamp: pick(signal.timestamp, signal.created_at, signal.occurred_at, body.timestamp),\n\n  raw_payload: body,\n};\n\nconst missing = [];\nif (!lead.full_name) missing.push('full_name');\nif (!lead.company_domain && !lead.company_name) missing.push('company_domain or company_name');\n\nreturn [{\n  json: {\n    ...lead,\n    valid: missing.length === 0,\n    stage: 'normalise',\n    reason: missing.length ? `Signal is missing required field(s): ${missing.join(', ')}` : null,\n  },\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1020,
+        0
+      ],
+      "name": "Node 1b · Normalise Signal",
+      "notes": "Tolerant field extraction — Trigify payloads are user-composed, so nothing is assumed."
+    },
+    {
+      "id": "a4d4664e-9d68-473c-8be1-7d8d08e19535",
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "56271c24-f7d8-4c20-a0e3-984ac5202bc4",
+              "leftValue": "={{ $json.valid }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -800,
+        0
+      ],
+      "name": "Signal usable?"
+    },
+    {
+      "id": "8b043291-942e-47b9-86fe-2cdd374a6af4",
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.FINDYMAIL_API_BASE || 'https://app.findymail.com/api' }}/search/name",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.FINDYMAIL_API_KEY }}"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ name: $json.full_name, domain: $json.company_domain || $json.company_name }) }}",
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "neverError": true,
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -580,
+        -120
+      ],
+      "name": "Node 2 · Findymail · Find Email",
+      "alwaysOutputData": true,
+      "notes": "POST /api/search/name → { contact: { email, ... } }",
+      "notesInFlow": true
+    },
+    {
+      "id": "58850397-8fe2-4c03-af96-2447513d50b9",
+      "parameters": {
+        "jsCode": "/**\n * Node 2b · Pick the address to verify.\n *\n * Findymail returns { contact: { email, ... } } on a hit and a 4xx body on a\n * miss. The HTTP node runs with neverError so a miss lands here as data, which\n * lets us fall back to an address Trigify already carried rather than dropping\n * an otherwise good signal.\n */\nconst lead = $('Node 1b · Normalise Signal').first().json;\nconst response = $input.first().json ?? {};\nconst contact = response.contact || response.data?.contact || null;\n\nconst findymailEmail = contact?.email ? String(contact.email).trim().toLowerCase() : null;\nconst fallbackEmail = lead.provided_email ? String(lead.provided_email).trim().toLowerCase() : null;\nconst candidate = findymailEmail || fallbackEmail;\n\nconst apiError = !findymailEmail\n  ? (response.error || response.message || (response.status ? `HTTP ${response.status}` : null))\n  : null;\n\nreturn [{\n  json: {\n    ...lead,\n    stage: 'discovery',\n    candidate_email: candidate,\n    email_source: findymailEmail ? 'findymail' : (fallbackEmail ? 'trigify_payload' : null),\n    email_found: Boolean(candidate),\n    // Findymail often knows more about the person than the signal did.\n    job_title: lead.job_title || contact?.position || contact?.job_title || null,\n    company_name: lead.company_name || contact?.company || null,\n    company_domain: lead.company_domain || contact?.domain || null,\n    linkedin_url: lead.linkedin_url || contact?.linkedin_url || null,\n    findymail_raw: contact,\n    reason: candidate ? null : `No email found for ${lead.full_name} at ${lead.company_domain || lead.company_name}${apiError ? ` (Findymail said: ${apiError})` : ''}`,\n  },\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -360,
+        -120
+      ],
+      "name": "Node 2b · Select Candidate Email"
+    },
+    {
+      "id": "1111726c-244e-4ca7-8a74-b659b2669afc",
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "e1716814-9838-4f39-ae54-33bd0f0f7cb2",
+              "leftValue": "={{ $json.email_found }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -140,
+        -120
+      ],
+      "name": "Email found?"
+    },
+    {
+      "id": "6931e083-e573-4506-b3be-acd68a11e6fc",
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.FINDYMAIL_API_BASE || 'https://app.findymail.com/api' }}/verify",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.FINDYMAIL_API_KEY }}"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ email: $json.candidate_email }) }}",
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "neverError": true,
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        80,
+        -240
+      ],
+      "name": "Node 2 · Findymail · Verify Email",
+      "alwaysOutputData": true,
+      "notes": "POST /api/verify → { email, verified, provider }. Anything but verified:true is dropped.",
+      "notesInFlow": true
+    },
+    {
+      "id": "53ba1018-8491-4d68-8ad7-6271f4f8e162",
+      "parameters": {
+        "jsCode": "/**\n * Node 2c · Reputation guard.\n *\n * Findymail's /verify returns { email, verified, provider }. Anything that is\n * not an unambiguous verified:true is dropped — a catch-all domain accepts every\n * address at SMTP time and then bounces later, which is exactly the failure that\n * burns a warmed inbox pool. Role addresses are dropped too: they are shared\n * inboxes, they read as spam traffic, and they never reply to peer-to-peer copy.\n */\nconst lead = $('Node 2b · Select Candidate Email').first().json;\nconst result = $input.first().json ?? {};\n\nconst email = String(result.email || lead.candidate_email || '').trim().toLowerCase();\nconst localPart = email.split('@')[0] || '';\nconst domain = email.split('@')[1] || '';\n\nconst ROLE_PREFIXES = new Set([\n  'info', 'support', 'sales', 'hello', 'contact', 'admin', 'billing', 'noreply',\n  'no-reply', 'help', 'team', 'office', 'press', 'legal', 'privacy', 'abuse',\n  'postmaster', 'webmaster', 'careers', 'jobs', 'marketing', 'enquiries', 'mail',\n]);\n\nconst FREE_DOMAINS = new Set([\n  'gmail.com', 'googlemail.com', 'yahoo.com', 'hotmail.com', 'outlook.com',\n  'icloud.com', 'aol.com', 'proton.me', 'protonmail.com', 'live.com', 'msn.com',\n  'gmx.com', 'yandex.com', 'mail.com', 'zoho.com',\n]);\n\nconst rejections = [];\n\n// Findymail flags a catch-all / risky address by NOT returning verified:true.\n// Treat a missing field as unverified rather than assuming the best.\nif (result.verified !== true) {\n  rejections.push(`Findymail did not verify the address (verified=${JSON.stringify(result.verified ?? null)})`);\n}\n// Some accounts surface these extra hints; honour them when present.\nif (result.risky === true) rejections.push('Findymail marked the address risky');\nif (result.catch_all === true || result.catchAll === true) rejections.push('domain is catch-all');\nif (result.disposable === true) rejections.push('disposable domain');\n\nif (!email.includes('@')) rejections.push('no usable address to verify');\nif (ROLE_PREFIXES.has(localPart)) rejections.push(`role address (${localPart}@)`);\nif (FREE_DOMAINS.has(domain)) rejections.push(`free consumer mailbox (${domain})`);\n\nreturn [{\n  json: {\n    ...lead,\n    stage: 'verification',\n    lead_email: email || null,\n    email_provider: result.provider || null,\n    email_verified: result.verified === true,\n    deliverable: rejections.length === 0,\n    reason: rejections.length ? `Suppressed to protect sender reputation: ${rejections.join('; ')}` : null,\n    findymail_verify_raw: result,\n  },\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        300,
+        -240
+      ],
+      "name": "Node 2c · Filter Risky Emails",
+      "notes": "Drops unverified, catch-all, role and free-mailbox addresses before they can burn the inbox pool."
+    },
+    {
+      "id": "98f9e19c-dedc-4f6f-891a-b98b159c514a",
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "b3876e3b-d0b1-4ceb-9369-b01dd1608bdb",
+              "leftValue": "={{ $json.deliverable }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        520,
+        -240
+      ],
+      "name": "Deliverable?"
+    },
+    {
+      "id": "1849130a-2402-4ee6-9762-1cfaca3b09c3",
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.MEMORY_SERVICE_URL || 'http://127.0.0.1:8787' }}/memory/context",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.MEMORY_SERVICE_TOKEN }}"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n    lead_email: $json.lead_email,\n    full_name: $json.full_name,\n    job_title: $json.job_title,\n    company_name: $json.company_name,\n    company_domain: $json.company_domain,\n    industry: $json.industry,\n    employee_count: $json.employee_count\n  }) }}",
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "neverError": true,
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        740,
+        -360
+      ],
+      "name": "Node 3 · Load Config + Learning Feedback",
+      "alwaysOutputData": true,
+      "notes": "Returns live config.json, the top-N conversions as past_positive_replies_list, the already-contacted flag and the deterministic guardrail verdict — in one round trip.",
+      "notesInFlow": true
+    },
+    {
+      "id": "6c3a2473-5923-4afd-b404-a104dcf85c73",
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "5044eb71-0f0f-47ad-ad2a-a3121e33eb6b",
+              "leftValue": "={{ $json.hard_disqualifier.hit }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "false",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "b98040cb-df87-4056-98be-225c99347866",
+              "leftValue": "={{ $json.already_contacted }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "false",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        960,
+        -360
+      ],
+      "name": "Passes hard guardrails?",
+      "notes": "Deterministic gate. Catching an obvious miss here means never paying for the model call."
+    },
+    {
+      "id": "6c61a7e2-4f36-47ff-adf3-caca4f72d0e8",
+      "parameters": {
+        "jsCode": "/**\n * Node 4a · Render config.json + the learning corpus into prompt blocks.\n *\n * Everything the agent reasons over is assembled here, so the system prompt in\n * the next node stays a fixed set of rules and the volatile per-lead data rides\n * in the user message. Edit config.json and the blocks below change on the next\n * signal with no workflow change.\n */\nconst context = $input.first().json;\nconst lead = $('Node 2c · Filter Risky Emails').first().json;\nconst config = context.config || {};\n\nconst offer = config.offer || {};\nconst icp = config.icp || {};\nconst disq = config.disqualifiers || {};\nconst copy = config.copywriting || {};\nconst campaign = config.campaign || {};\n\nconst list = (values, fallback = 'not specified') =>\n  Array.isArray(values) && values.length ? values.join(', ') : fallback;\n\nconst bullets = (values) =>\n  Array.isArray(values) && values.length ? values.map((v) => `- ${v}`).join('\\n') : '- (none)';\n\nconst offerBlock = [\n  `Product: ${offer.product || 'unnamed product'}`,\n  `What it does: ${offer.what_it_does || 'not specified'}`,\n  `The frictionless offer (this is sentence 2, restate it in your own words, do not quote it verbatim): ${offer.frictionless_offer}`,\n  offer.proof_point ? `Optional proof point you may draw on: ${offer.proof_point}` : null,\n  `The CTA (this is sentence 3): ${offer.cta}`,\n  campaign.sender_name ? `You are writing as: ${campaign.sender_name}${campaign.sender_title ? `, ${campaign.sender_title}` : ''}` : null,\n].filter(Boolean).join('\\n');\n\nconst icpBlock = [\n  `Target job titles: ${list(icp.job_titles)}`,\n  `Target seniority: ${list(icp.seniority)}`,\n  `Target industries: ${list(icp.industries)}`,\n  `Target geographies: ${list(icp.geos)}`,\n  `Headcount band: ${icp.employee_count?.min ?? '?'} to ${icp.employee_count?.max ?? '?'} employees`,\n  `Tech-stack signals that indicate fit: ${list(icp.tech_stack_signals)}`,\n  icp.notes ? `Notes: ${icp.notes}` : null,\n].filter(Boolean).join('\\n');\n\nconst disqualifierBlock = [\n  'Hard disqualifiers (already checked deterministically before you were called — re-check anything the data now contradicts):',\n  `- job titles containing: ${list(disq.hard?.job_title_contains, 'none')}`,\n  `- company names containing: ${list(disq.hard?.company_name_contains, 'none')}`,\n  `- industries: ${list(disq.hard?.industries, 'none')}`,\n  `- headcount outside ${disq.hard?.employee_count?.min ?? '?'}–${disq.hard?.employee_count?.max ?? '?'}`,\n  '',\n  'Judgement-call disqualifiers (yours to apply — this is the part the deterministic check cannot do):',\n  bullets(disq.soft_notes),\n].join('\\n');\n\nconst copyRulesBlock = [\n  `Hard limits: exactly ${copy.sentence_count ?? 3} sentences, ${copy.max_words ?? 60} words maximum across the whole body.`,\n  `Tone: ${copy.tone || 'peer-to-peer, plain'}`,\n  '',\n  'Rules:',\n  bullets(copy.rules),\n  '',\n  'Banned phrases — if any of these appear in your draft, rewrite the sentence:',\n  bullets(copy.banned_phrases),\n].join('\\n');\n\nconst leadBlock = [\n  `Name: ${lead.full_name}`,\n  `Job title: ${lead.job_title || 'unknown'}`,\n  `Company: ${lead.company_name || 'unknown'}${lead.company_domain ? ` (${lead.company_domain})` : ''}`,\n  `Industry: ${lead.industry || 'unknown'}`,\n  `Headcount: ${lead.employee_count || 'unknown'}`,\n  `Tech stack: ${list(lead.tech_stack, 'unknown')}`,\n  `Company description: ${lead.company_description || 'not supplied by the signal source'}`,\n  `Verified work email: ${lead.lead_email} (provider: ${lead.email_provider || 'unknown'})`,\n  lead.linkedin_url ? `LinkedIn: ${lead.linkedin_url}` : null,\n].filter(Boolean).join('\\n');\n\nconst signalBlock = [\n  `Signal type: ${lead.signal_type}`,\n  `Recognised signal type: ${(config.signal?.allowed_types || []).includes(lead.signal_type) ? 'yes' : 'NO — treat this signal conservatively, it is outside the configured set'}`,\n  `Signal context: ${lead.signal_context}`,\n  lead.signal_timestamp ? `Signal fired at: ${lead.signal_timestamp}` : null,\n].filter(Boolean).join('\\n');\n\nconst conversionCount = Number(context.conversion_count || 0);\nconst gateEnforced = context.lookalike_gate_enforced === true;\nconst pastReplies = context.past_positive_replies_list || '';\n\nconst lookalikeBlock = pastReplies\n  ? [\n      `We have ${conversionCount} recorded positive reply/replies. The ${context.conversions_returned} most recent profiles are below.`,\n      gateEnforced\n        ? 'The lookalike gate is ENFORCED: the prospect must conceptually resemble at least one of these wins, and you must name which one and why.'\n        : `The lookalike gate is ADVISORY: fewer than ${config.learning?.lookalike_enforced_after_n_conversions ?? 3} conversions is not enough signal to pattern-match on, so judge against the ICP block and use these only as a tie-breaker.`,\n      '',\n      pastReplies,\n    ].join('\\n')\n  : 'There are no recorded positive replies yet. The lookalike gate does not apply — qualify against the ICP block alone, and say so in your reason.';\n\nconst agentInput = [\n  '## PROSPECT', leadBlock, '',\n  '## THE TRIGIFY SIGNAL THAT FIRED', signalBlock, '',\n  '## PAST POSITIVE REPLIES (our wins, newest first)', lookalikeBlock, '',\n  '## YOUR TASK',\n  gateEnforced\n    ? 'Run the lookalike gate against the wins above, then, only if it passes, write the email.'\n    : 'Run the qualification gate against the ICP, then, only if it passes, write the email.',\n].join('\\n');\n\nreturn [{\n  json: {\n    ...lead,\n    stage: 'agent',\n    product_name: offer.product || 'this product',\n    offer_block: offerBlock,\n    icp_block: icpBlock,\n    disqualifier_block: disqualifierBlock,\n    copy_rules_block: copyRulesBlock,\n    lookalike_gate_enforced: gateEnforced,\n    conversion_count: conversionCount,\n    past_positive_replies_list: pastReplies,\n    agent_input: agentInput,\n  },\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1180,
+        -460
+      ],
+      "name": "Node 4a · Build Agent Context"
+    },
+    {
+      "id": "4ff70d4f-020a-40fa-8b5a-23c765a806d2",
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.agent_input }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=You are the qualification and copywriting engine for {{ $json.product_name }}. You run once per inbound intent signal, unattended, and your JSON output decides whether a real email is sent from a warmed inbox pool. A wrong \"qualified: true\" costs sender reputation. A wrong \"qualified: false\" costs a deal. Be exact.\n\nYou execute TWO tasks in order. Do not start task B until task A passes.\n\n════════════════════════════════════════════════════════\nTASK A — THE LOOKALIKE GATE\n════════════════════════════════════════════════════════\n\nTHE OFFER\n{{ $json.offer_block }}\n\nTHE ICP\n{{ $json.icp_block }}\n\nTHE GUARDRAILS\n{{ $json.disqualifier_block }}\n\nHow to decide:\n1. Check the guardrails first. Any hard disqualifier the supplied data confirms is an immediate halt.\n2. If the PAST POSITIVE REPLIES block in the user message contains profiles AND the gate is marked ENFORCED, pattern-match semantically — not by keyword. You are looking for a shared underlying situation: the same kind of buying pressure, a comparable operating model, an equivalent stage or motion. A different industry with the same pressure is a match. The same industry with no pressure is not. Name the specific past win you matched and the property they share.\n3. If the gate is marked ADVISORY or there are no recorded wins, judge against the ICP block alone and say that is what you did.\n4. Do not stretch. If the prospect does not conceptually align with either the wins or the ICP, halt. \"Plausibly adjacent\" is a halt.\n\nIf the lead fails for any reason, your ENTIRE output is:\n{ \"qualified\": false, \"reason\": \"<one sentence naming the specific rule or the missing resemblance>\" }\nWrite nothing else. Do not draft an email \"just in case\".\n\n════════════════════════════════════════════════════════\nTASK B — PEER-TO-PEER COPYWRITING\n════════════════════════════════════════════════════════\n\nOnly reached if task A passed. You are one engineer writing to another about a system that has a specific gap in it. You are not selling. You are pointing at the gap and offering to close it for free.\n\n{{ $json.copy_rules_block }}\n\nSentence structure, in order, no deviation:\n\nSENTENCE 1 — the analytical observation.\n  Drawn from the Trigify signal context, not from their website and not from their title. Name the specific thing they did or said and state what it implies about their operation. This is an inference, not a compliment. If the signal context is thin, say what the signal itself implies rather than inventing detail.\n  Never: \"I saw that you...\", \"I noticed you...\", \"Congrats on...\", \"Love what you are building\".\n\nSENTENCE 2 — the frictionless offer.\n  State what you will do for them, as a fact, in your own words. No permission-asking, no \"would you be open to\". It must cost them nothing and require nothing from them.\n\nSENTENCE 3 — the low-pressure CTA.\n  End with the configured interest question, ending in a question mark. It asks for interest, not for time. Never propose a call, a slot, or a calendar link.\n\nThe subject line: 2 to 5 lowercase words. It reads like a note between colleagues, not a campaign. No colon, no question mark, no exclamation, no emoji, no company name in title case, no personalisation token.\n\n════════════════════════════════════════════════════════\nOUTPUT CONTRACT\n════════════════════════════════════════════════════════\n\nReturn one JSON object and nothing else — no prose before it, no code fence around it.\n\nDisqualified:\n{ \"qualified\": false, \"reason\": \"...\" }\n\nQualified:\n{ \"qualified\": true, \"reason\": \"why they passed\", \"lookalike_match\": \"which past win they resemble and on what property, or 'none — ICP match only'\", \"subject_line\": \"...\", \"email_body\": \"...\" }\n\nBefore you return a qualified payload, verify against your own draft:\n- exactly 3 sentences in email_body\n- 60 words or fewer in email_body\n- no banned phrase present, in any casing\n- no fact in the email that is absent from the supplied prospect data\n- sentence 3 ends in \"?\"\nIf any check fails, rewrite before returning. Never return a draft you know violates a rule.",
+          "maxIterations": 3,
+          "returnIntermediateSteps": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        1400,
+        -460
+      ],
+      "name": "Node 4 · AI Agent · Lookalike Gate + Copywriter",
+      "notes": "Task A halts the run; task B only runs if A passed."
+    },
+    {
+      "id": "598b8acd-f95f-4683-b62d-eeb90b2e0d75",
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "claude-opus-5",
+          "cachedResultName": "claude-opus-5"
+        },
+        "options": {
+          "maxTokensToSample": 1500,
+          "temperature": 0.4
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.3,
+      "position": [
+        1340,
+        -240
+      ],
+      "name": "Claude Opus 5",
+      "notes": "Attach your Anthropic credential after import. Swap the model string here if you want a cheaper tier."
+    },
+    {
+      "id": "00d56079-be69-494a-9260-65b66a83fd04",
+      "parameters": {
+        "model": "deepseek-chat",
+        "options": {
+          "temperature": 0.4
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatDeepSeek",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        -240
+      ],
+      "name": "DeepSeek (alternative — disconnected)",
+      "disabled": true,
+      "notes": "To use DeepSeek instead: delete the Claude→Agent model connection, enable this node and drag it onto the agent’s Chat Model port."
+    },
+    {
+      "id": "8282601f-84a5-4972-852c-0234bc167e3d",
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"required\": [\n    \"qualified\",\n    \"reason\"\n  ],\n  \"properties\": {\n    \"qualified\": {\n      \"type\": \"boolean\",\n      \"description\": \"true only if the lead passed the lookalike gate\"\n    },\n    \"reason\": {\n      \"type\": \"string\",\n      \"description\": \"One sentence. Why it passed, or which rule/resemblance it failed on.\"\n    },\n    \"lookalike_match\": {\n      \"type\": \"string\",\n      \"description\": \"Which past win the prospect resembles and on what property, or 'none — ICP match only'.\"\n    },\n    \"subject_line\": {\n      \"type\": \"string\",\n      \"description\": \"2-5 lowercase words. Omit when qualified is false.\"\n    },\n    \"email_body\": {\n      \"type\": \"string\",\n      \"description\": \"Exactly 3 sentences, 60 words max. Omit when qualified is false.\"\n    }\n  }\n}",
+        "autoFix": true
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [
+        1560,
+        -240
+      ],
+      "name": "Strict JSON Output"
+    },
+    {
+      "id": "688246e5-8c70-4581-a97a-18817d620498",
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "48a6f9eb-698c-4c9e-b5a0-c106a8723d4a",
+              "leftValue": "={{ $json.output.qualified ?? $json.qualified }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1620,
+        -460
+      ],
+      "name": "Qualified?",
+      "notes": "The agent node nests the parsed object under output on some versions; the fallback covers both."
+    },
+    {
+      "id": "11188d0d-dac3-40c5-9a20-146148cb6d05",
+      "parameters": {
+        "method": "POST",
+        "url": "={{ ($env.DELIVERYMAN_API_BASE || 'https://api.deliveryman.ai/v1') + ($env.DELIVERYMAN_SEND_PATH || '/emails') }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.DELIVERYMAN_API_KEY }}"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ (() => {\n  const draft = $json.output ?? $json;\n  const lead = $('Node 4a · Build Agent Context').item.json;\n  return JSON.stringify({\n    campaign_id: $env.DELIVERYMAN_CAMPAIGN_ID || undefined,\n    inbox_pool: $env.DELIVERYMAN_INBOX_POOL || undefined,\n    external_id: lead.signal_id || lead.lead_email,\n    to: {\n      email: lead.lead_email,\n      first_name: lead.first_name,\n      last_name: lead.last_name,\n      full_name: lead.full_name,\n      company: lead.company_name\n    },\n    subject: draft.subject_line,\n    body_text: draft.email_body,\n    body_html: '<p>' + String(draft.email_body || '').split('. ').join('.<br><br>') + '</p>',\n    reply_to: lead.reply_to || undefined,\n    metadata: {\n      lead_email: lead.lead_email,\n      full_name: lead.full_name,\n      job_title: lead.job_title,\n      company_name: lead.company_name,\n      company_domain: lead.company_domain,\n      company_description: lead.company_description,\n      tech_stack: lead.tech_stack,\n      employee_count: lead.employee_count,\n      signal_type: lead.signal_type,\n      signal_context: lead.signal_context\n    }\n  });\n})() }}",
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "neverError": true,
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1840,
+        -560
+      ],
+      "name": "Node 5 · Deliveryman · Queue Email",
+      "alwaysOutputData": true,
+      "notes": "Deliveryman.ai does not publish an open API reference — confirm the path and field names against your account, then change DELIVERYMAN_API_BASE / DELIVERYMAN_SEND_PATH. The metadata block is what comes back on the reply webhook.",
+      "notesInFlow": true
+    },
+    {
+      "id": "d669d3eb-a0dc-40bf-8134-56b0c6863ab3",
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.MEMORY_SERVICE_URL || 'http://127.0.0.1:8787' }}/memory/outreach",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.MEMORY_SERVICE_TOKEN }}"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ (() => {\n  const lead = $('Node 4a · Build Agent Context').item.json;\n  const draft = $('Node 4 · AI Agent · Lookalike Gate + Copywriter').item.json;\n  const parsed = draft.output ?? draft;\n  return JSON.stringify({\n    lead_email: lead.lead_email,\n    full_name: lead.full_name,\n    job_title: lead.job_title,\n    company_name: lead.company_name,\n    company_domain: lead.company_domain,\n    company_description: lead.company_description,\n    tech_stack: lead.tech_stack,\n    employee_count: lead.employee_count,\n    signal_type: lead.signal_type,\n    signal_context: lead.signal_context,\n    subject_line: parsed.subject_line,\n    email_body: parsed.email_body,\n    provider_message_id: $json.id || $json.message_id || $json.data?.id || null\n  });\n})() }}",
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "neverError": true,
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2060,
+        -560
+      ],
+      "name": "Node 5b · Log Outreach",
+      "alwaysOutputData": true,
+      "notes": "Suppression list + the backfill source for Node 6. Without this row a reply cannot become a lookalike profile.",
+      "notesInFlow": true
+    },
+    {
+      "id": "71dc9e6a-76ed-4345-b107-885249dcc337",
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({\n    status: 'queued',\n    lead_email: $('Node 4a · Build Agent Context').item.json.lead_email,\n    subject_line: $('Node 4 · AI Agent · Lookalike Gate + Copywriter').item.json.output?.subject_line\n      ?? $('Node 4 · AI Agent · Lookalike Gate + Copywriter').item.json.subject_line,\n    at: $now.toISO()\n  }) }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2280,
+        -560
+      ],
+      "name": "Respond · Queued"
+    },
+    {
+      "id": "ee2c6551-b764-439b-b373-4dbbb9a69d05",
+      "parameters": {
+        "jsCode": "/**\n * Every rejection path lands here so the webhook caller gets one consistent\n * shape instead of whatever the failing node happened to be holding.\n */\nconst item = $input.first().json ?? {};\n\nconst hard = item.hard_disqualifier;\nconst reason = item.reason\n  || (hard?.hit ? `Hard disqualifier: ${(hard.rules || []).join('; ')}` : null)\n  || (item.already_contacted ? 'Already contacted — suppressed by outreach_log' : null)\n  || 'Skipped without a stated reason';\n\nreturn [{\n  json: {\n    status: 'skipped',\n    stage: item.stage || (hard ? 'guardrails' : 'unknown'),\n    reason,\n    qualified: item.qualified === true ? true : false,\n    lead: {\n      full_name: item.full_name ?? null,\n      lead_email: item.lead_email ?? item.candidate_email ?? null,\n      company_name: item.company_name ?? null,\n      company_domain: item.company_domain ?? null,\n      signal_type: item.signal_type ?? null,\n    },\n    at: new Date().toISOString(),\n  },\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1840,
+        200
+      ],
+      "name": "Collect Skip Reason"
+    },
+    {
+      "id": "b4f8cce6-ce23-43c2-905c-78c16eb87c08",
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2060,
+        200
+      ],
+      "name": "Respond · Skipped"
+    },
+    {
+      "id": "ca9f1e8c-f728-4f5b-b49f-0c0ca883fa54",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "deliveryman-reply",
+        "responseMode": "responseNode",
+        "options": {
+          "rawBody": false
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -1240,
+        620
+      ],
+      "name": "Node 6 · Deliveryman Reply Webhook",
+      "webhookId": "ca8cd551-71cb-4a95-a7f3-52c9b96cb5d4",
+      "notes": "Register this URL as the reply/interested webhook in Deliveryman. Send x-webhook-secret: $DELIVERYMAN_WEBHOOK_SECRET."
+    },
+    {
+      "id": "c010545a-3c7d-4f1c-bf68-9e4ed09f37cc",
+      "parameters": {
+        "jsCode": "/**\n * Node 6a · Decide whether an inbound Deliveryman event is a positive reply.\n *\n * Only a positive reply may write to campaign_memory.db. A bounce, an\n * out-of-office or an unsubscribe written into the conversions table would\n * poison the lookalike context for every future lead, so the test is an\n * allow-list, never a \"not negative\" test.\n */\nconst incoming = $input.first().json;\nconst body = incoming.body ?? incoming;\nconst headers = incoming.headers ?? {};\n\nconst expectedSecret = $env.DELIVERYMAN_WEBHOOK_SECRET || '';\nconst presentedSecret = headers['x-webhook-secret'] || headers['x-deliveryman-secret'] || '';\nif (expectedSecret && presentedSecret !== expectedSecret) {\n  return [{ json: { positive: false, reason: 'x-webhook-secret did not match DELIVERYMAN_WEBHOOK_SECRET' } }];\n}\n\nconst lower = (v) => String(v ?? '').trim().toLowerCase();\n\nconst eventType = lower(body.event || body.event_type || body.type || body.status);\nconst sentiment = lower(body.sentiment || body.interest_status || body.label || body.category || body.classification);\nconst replyText = body.reply_text || body.text || body.message || body.body || body.snippet || '';\n\nconst NEGATIVE_EVENTS = ['bounce', 'bounced', 'hard_bounce', 'soft_bounce', 'complaint', 'spam', 'unsubscribe', 'unsubscribed', 'auto_reply', 'out_of_office'];\nconst POSITIVE_SENTIMENTS = ['positive', 'interested', 'interest', 'meeting_booked', 'meeting', 'hot', 'warm'];\nconst REPLY_EVENTS = ['reply', 'replied', 'email_replied', 'reply_received', 'positive_reply', 'lead_interested', 'interested'];\n\nconst isNegativeEvent = NEGATIVE_EVENTS.some((e) => eventType.includes(e));\nconst isReplyEvent = REPLY_EVENTS.some((e) => eventType.includes(e)) || Boolean(replyText);\nconst isPositiveSentiment = POSITIVE_SENTIMENTS.some((s) => sentiment === s || sentiment.includes(s));\n\n// An explicit positive label from Deliveryman is the trusted path. The event\n// name alone is only trusted when the event itself says \"positive\"/\"interested\",\n// because a bare \"reply\" can be \"please remove me\".\nconst positive = !isNegativeEvent && isReplyEvent && (\n  isPositiveSentiment ||\n  eventType.includes('positive') ||\n  eventType.includes('interested')\n);\n\n// Metadata we attached at send time, if Deliveryman echoed it back. Anything\n// missing is backfilled server-side from outreach_log.\nconst meta = body.metadata || body.custom_variables || body.variables || body.lead || {};\n\nconst email = lower(\n  body.lead_email || body.email || body.to || body.to_email ||\n  body.recipient || meta.lead_email || ''\n) || null;\n\nreturn [{\n  json: {\n    positive,\n    reason: positive ? 'Positive reply registered' : `Not recorded as a conversion (event=\"${eventType || 'unknown'}\", sentiment=\"${sentiment || 'none'}\")`,\n    event_type: eventType || null,\n    sentiment: sentiment || null,\n    lead_email: email,\n    full_name: body.full_name || meta.full_name || null,\n    job_title: body.job_title || meta.job_title || null,\n    company_name: body.company_name || meta.company_name || null,\n    company_domain: body.company_domain || meta.company_domain || null,\n    company_description: body.company_description || meta.company_description || null,\n    tech_stack: meta.tech_stack || body.tech_stack || null,\n    employee_count: meta.employee_count ?? body.employee_count ?? null,\n    signal_type: meta.signal_type || body.signal_type || null,\n    signal_context: meta.signal_context || body.signal_context || null,\n    reply_snippet: replyText ? String(replyText).replace(/\\s+/g, ' ').slice(0, 500) : null,\n    raw_payload: body,\n  },\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1020,
+        620
+      ],
+      "name": "Node 6a · Classify Reply",
+      "notes": "Allow-list, not a not-negative test: a bounce or an out-of-office must never enter the conversions table."
+    },
+    {
+      "id": "3632a608-4f54-4cc0-9a11-450c65f0ece4",
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "6ca8a9d6-6df7-4cbc-bcf5-e95ca9e2d939",
+              "leftValue": "={{ $json.positive }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -800,
+        620
+      ],
+      "name": "Positive reply?"
+    },
+    {
+      "id": "6417b740-cd3f-45ac-b97a-16f05964908a",
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.MEMORY_SERVICE_URL || 'http://127.0.0.1:8787' }}/memory/conversions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.MEMORY_SERVICE_TOKEN }}"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n    lead_email: $json.lead_email,\n    full_name: $json.full_name,\n    job_title: $json.job_title,\n    company_name: $json.company_name,\n    company_domain: $json.company_domain,\n    company_description: $json.company_description,\n    tech_stack: $json.tech_stack,\n    employee_count: $json.employee_count,\n    signal_type: $json.signal_type,\n    signal_context: $json.signal_context,\n    reply_sentiment: $json.sentiment || 'positive',\n    reply_snippet: $json.reply_snippet,\n    source: 'deliveryman',\n    raw_payload: $json.raw_payload\n  }) }}",
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "neverError": true,
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -580,
+        520
+      ],
+      "name": "Node 6b · Record Conversion",
+      "alwaysOutputData": true,
+      "notes": "Writes into campaign_memory.db. Missing company fields are backfilled server-side from outreach_log, so a bare {email, sentiment} reply still produces a usable profile.",
+      "notesInFlow": true
+    },
+    {
+      "id": "e0a64847-d749-4876-b1af-e529b438ccc9",
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({\n    status: $('Node 6a · Classify Reply').item.json.positive ? 'conversion_recorded' : 'ignored',\n    reason: $('Node 6a · Classify Reply').item.json.reason,\n    lead_email: $('Node 6a · Classify Reply').item.json.lead_email,\n    conversion_count: $json.conversion_count ?? null\n  }) }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        -360,
+        620
+      ],
+      "name": "Respond · Reply Ack"
+    },
+    {
+      "id": "1841fda9-2af3-478c-a351-804fb9992d6b",
+      "parameters": {
+        "content": "## 1 · Signal in\n\nTrigify fires its HTTP Request action at `POST /webhook/trigify-signal`.\nThe payload shape is whatever you composed in Trigify — the normaliser reads\nevery field through a fallback chain, so you do not have to match a schema.\n\n**Required header:** `x-webhook-secret: $TRIGIFY_WEBHOOK_SECRET`",
+        "height": 240,
+        "width": 640,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -1280,
+        -280
+      ],
+      "name": "Note: 1 · Signal in"
+    },
+    {
+      "id": "7404d434-aa8e-430e-a550-599a8a93bcd0",
+      "parameters": {
+        "content": "## 2 · Enrichment + reputation guard\n\nFindymail `/search/name` finds it, `/verify` proves it.\nAnything that is not an unambiguous `verified: true` is dropped, as are role\naddresses and free mailboxes. A catch-all domain accepts at SMTP time and\nbounces later — that is the failure that burns a warmed pool.",
+        "height": 240,
+        "width": 640,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -620,
+        -520
+      ],
+      "name": "Note: 2 · Enrichment + reputation guard"
+    },
+    {
+      "id": "9dba2589-f7f8-4694-8bcf-44c25dabae4e",
+      "parameters": {
+        "content": "## 3 · Config + learning feedback\n\nOne call to the memory service returns:\n- live `config.json` (offer, ICP, guardrails)\n- `past_positive_replies_list` — the top N conversions, stringified\n- `already_contacted` — suppression\n- `hard_disqualifier` — the deterministic gate\n\nStart it with `npm start` in `gtm-workflow/`.",
+        "height": 300,
+        "width": 560,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        700,
+        -700
+      ],
+      "name": "Note: 3 · Config + learning feedback"
+    },
+    {
+      "id": "626d3e31-0686-4910-8b69-4d1441916899",
+      "parameters": {
+        "content": "## 4 · The agent\n\n**Task A** — lookalike gate. Below `lookalike_enforced_after_n_conversions`\nthe gate is advisory and it judges on ICP alone; above it, the prospect must\nresemble a recorded win and the agent must name which one.\n\n**Task B** — 3 sentences, 60 words, peer-to-peer, only if A passed.\n\nModel: swap `Claude Opus 5` for the disabled DeepSeek node to change provider.",
+        "height": 320,
+        "width": 620,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1140,
+        -820
+      ],
+      "name": "Note: 4 · The agent"
+    },
+    {
+      "id": "b2af558c-1779-4101-9d3b-dff6aa7d83c7",
+      "parameters": {
+        "content": "## 5 · Send + record\n\nThe `metadata` block on the Deliveryman request is what comes back on the\nreply webhook. `Log Outreach` is also the suppression list and the backfill\nsource for Node 6 — without that row a reply cannot become a lookalike.",
+        "height": 220,
+        "width": 560,
+        "color": 2
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1800,
+        -820
+      ],
+      "name": "Note: 5 · Send + record"
+    },
+    {
+      "id": "67976e0b-0468-426d-a546-8c3804332614",
+      "parameters": {
+        "content": "## 6 · The self-refining loop\n\nA positive reply writes the prospect’s company description, tech stack and\njob title into `conversions`, which is exactly what Node 3 reads on the next\nsignal. Every win narrows the next qualification.\n\nThe classifier is an **allow-list**: only an explicitly positive/interested\nevent is recorded. A bounce or an auto-reply written in here would poison the\ncontext for every future lead.",
+        "height": 200,
+        "width": 900,
+        "color": 1
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -1280,
+        380
+      ],
+      "name": "Note: 6 · The self-refining loop"
+    }
+  ],
+  "connections": {
+    "Node 1 · Trigify Signal Webhook": {
+      "main": [
+        [
+          {
+            "node": "Node 1b · Normalise Signal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Node 1b · Normalise Signal": {
+      "main": [
+        [
+          {
+            "node": "Signal usable?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Signal usable?": {
+      "main": [
+        [
+          {
+            "node": "Node 2 · Findymail · Find Email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Collect Skip Reason",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Node 2 · Findymail · Find Email": {
+      "main": [
+        [
+          {
+            "node": "Node 2b · Select Candidate Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Node 2b · Select Candidate Email": {
+      "main": [
+        [
+          {
+            "node": "Email found?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email found?": {
+      "main": [
+        [
+          {
+            "node": "Node 2 · Findymail · Verify Email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Collect Skip Reason",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Node 2 · Findymail · Verify Email": {
+      "main": [
+        [
+          {
+            "node": "Node 2c · Filter Risky Emails",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Node 2c · Filter Risky Emails": {
+      "main": [
+        [
+          {
+            "node": "Deliverable?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Deliverable?": {
+      "main": [
+        [
+          {
+            "node": "Node 3 · Load Config + Learning Feedback",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Collect Skip Reason",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Node 3 · Load Config + Learning Feedback": {
+      "main": [
+        [
+          {
+            "node": "Passes hard guardrails?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Passes hard guardrails?": {
+      "main": [
+        [
+          {
+            "node": "Node 4a · Build Agent Context",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Collect Skip Reason",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Node 4a · Build Agent Context": {
+      "main": [
+        [
+          {
+            "node": "Node 4 · AI Agent · Lookalike Gate + Copywriter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claude Opus 5": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Node 4 · AI Agent · Lookalike Gate + Copywriter",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Strict JSON Output": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Node 4 · AI Agent · Lookalike Gate + Copywriter",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Node 4 · AI Agent · Lookalike Gate + Copywriter": {
+      "main": [
+        [
+          {
+            "node": "Qualified?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Qualified?": {
+      "main": [
+        [
+          {
+            "node": "Node 5 · Deliveryman · Queue Email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Collect Skip Reason",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Node 5 · Deliveryman · Queue Email": {
+      "main": [
+        [
+          {
+            "node": "Node 5b · Log Outreach",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Node 5b · Log Outreach": {
+      "main": [
+        [
+          {
+            "node": "Respond · Queued",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Collect Skip Reason": {
+      "main": [
+        [
+          {
+            "node": "Respond · Skipped",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Node 6 · Deliveryman Reply Webhook": {
+      "main": [
+        [
+          {
+            "node": "Node 6a · Classify Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Node 6a · Classify Reply": {
+      "main": [
+        [
+          {
+            "node": "Positive reply?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Positive reply?": {
+      "main": [
+        [
+          {
+            "node": "Node 6b · Record Conversion",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond · Reply Ack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Node 6b · Record Conversion": {
+      "main": [
+        [
+          {
+            "node": "Respond · Reply Ack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "pinData": {},
+  "tags": [],
+  "meta": {
+    "templateCredsSetupCompleted": false
+  }
+}
