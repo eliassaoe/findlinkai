@@ -14,6 +14,16 @@ video content for the "Elias IA" / LinkFinder AI YouTube channel.
   substance (more tools/tiers/beats, deeper detail) rather than padding with
   silence or repetition.
 
+## CTA placement rule
+
+- **Every tier-list / "Best X" comparison video must include an early CTA**,
+  not just the reveal-and-close CTA at the end. Add a short (~5-8s) spoken +
+  on-screen callout (LinkFinder AI name + linkfinderai.com) within the first
+  ~15-20 seconds, right after the title/hook, before the criteria/methodology
+  beats. Viewers who drop off before the S-tier reveal (which can land 3+
+  minutes in) should still see the link. Keep the full reveal/CTA at the end
+  too — this is additive, not a replacement.
+
 ## Production log
 
 The full build history, footage audit notes, safety flags, and reusable
