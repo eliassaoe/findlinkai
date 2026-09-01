@@ -52,6 +52,7 @@ into a file here in the same session, or it is gone.
 | What | Where |
 | --- | --- |
 | Video rules | `claude/youtube/METHOD.md`, `claude/guidee/STYLE.md` |
+| Bulk CTA comment on every video (pinning is manual — no API for it) | `claude/youtube/auto-comment/` |
 | Storyboards | `claude/guidee/scripts/`, catalog in `claude/guidee/catalog.json` |
 | App UI ground truth (never invent a label) | `claude/guidee/app-ui.md` |
 | CSV enrichments in History | `docs/csv-enrichment-history.md` |
