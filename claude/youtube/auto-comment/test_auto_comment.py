@@ -124,6 +124,34 @@ ac.api_get = fake_api_get
 ac._request = fake_request
 ac.access_token = lambda: "fake-token"
 
+print("\nsince-days windowing")
+import time as _time
+_recent = _time.strftime("%Y-%m-%dT%H:%M:%SZ", _time.gmtime(_time.time() - 2 * 86400))
+_old = "2020-01-01T00:00:00Z"
+_orig_api_get = ac.api_get
+
+
+def windowed_api_get(path, token, **params):
+    if path == "playlistItems":
+        return {
+            "items": [
+                {"contentDetails": {"videoId": "fresh", "videoPublishedAt": _recent},
+                 "snippet": {"title": "New upload", "publishedAt": _recent}},
+                {"contentDetails": {"videoId": "stale", "videoPublishedAt": _old},
+                 "snippet": {"title": "Back catalogue", "publishedAt": _old}},
+            ],
+            "nextPageToken": None if params.get("pageToken") else "more",
+        }
+    return _orig_api_get(path, token, **params)
+
+
+ac.api_get = windowed_api_get
+check("window keeps only recent",
+      [v["id"] for v in ac.list_uploads("t", "UU", since_days=7)], ["fresh"])
+check("no window keeps everything",
+      len(ac.list_uploads("t", "UU", since_days=None)) >= 2, True)
+ac.api_get = _orig_api_get
+
 print("\nlisting + shorts detection")
 vids = ac.annotate_kind("t", ac.list_uploads("t", "UU_fake"))
 check("video count", len(vids), 5)

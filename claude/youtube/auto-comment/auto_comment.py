@@ -439,8 +439,18 @@ def uploads_playlist(token, channel_id):
     return items[0]["contentDetails"]["relatedPlaylists"]["uploads"]
 
 
-def list_uploads(token, playlist_id):
-    """Every upload, newest first. Shorts are ordinary videos and are included."""
+def list_uploads(token, playlist_id, since_days=None):
+    """Uploads newest first. Shorts are ordinary videos and are included.
+
+    since_days stops paging once the playlist reaches videos older than the
+    cutoff. That is what makes a daily cron nearly free: it reads one page
+    instead of seven, and never re-checks the back catalogue.
+    """
+    cutoff = None
+    if since_days is not None:
+        cutoff = time.strftime(
+            "%Y-%m-%dT%H:%M:%SZ", time.gmtime(time.time() - since_days * 86400)
+        )
     videos, page = [], None
     while True:
         data = api_get(
@@ -451,18 +461,23 @@ def list_uploads(token, playlist_id):
             maxResults=50,
             **({"pageToken": page} if page else {}),
         )
+        stop = False
         for item in data.get("items", []):
+            published = item["contentDetails"].get(
+                "videoPublishedAt", item["snippet"]["publishedAt"]
+            )
+            if cutoff and published < cutoff:
+                stop = True
+                continue
             videos.append(
                 {
                     "id": item["contentDetails"]["videoId"],
                     "title": item["snippet"]["title"],
-                    "published": item["contentDetails"].get(
-                        "videoPublishedAt", item["snippet"]["publishedAt"]
-                    ),
+                    "published": published,
                 }
             )
         page = data.get("nextPageToken")
-        if not page:
+        if stop or not page:
             return videos
 
 
@@ -670,6 +685,11 @@ def main():
     )
     parser.add_argument("--limit", type=int, help="stop after N posts, for a cautious first run")
     parser.add_argument(
+        "--since-days",
+        type=int,
+        help="only consider uploads newer than this many days (for a cheap cron run)",
+    )
+    parser.add_argument(
         "--rewrite",
         action="store_true",
         help="update the text of comments already posted, instead of posting new ones",
@@ -707,8 +727,11 @@ def main():
         return 0
 
     playlist = uploads_playlist(token, args.channel)
-    videos = list_uploads(token, playlist)
-    print(f"Found {len(videos)} uploads.")
+    videos = list_uploads(token, playlist, args.since_days)
+    if args.since_days:
+        print(f"Found {len(videos)} uploads from the last {args.since_days} days.")
+    else:
+        print(f"Found {len(videos)} uploads.")
 
     if args.type != "all":
         videos = annotate_kind(token, videos)

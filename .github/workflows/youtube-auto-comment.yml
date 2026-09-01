@@ -1,0 +1,70 @@
+name: YouTube auto-comment
+
+# Posts the CTA comment on new uploads. Runs daily; a run with no new videos
+# costs ~2 quota units, because --since-days stops paging the uploads playlist
+# once it reaches videos older than the window.
+#
+# Needs three repository secrets (Settings -> Secrets and variables -> Actions):
+#   YT_CLIENT_ID, YT_CLIENT_SECRET, YT_REFRESH_TOKEN
+#
+# The refresh token only survives if the OAuth consent screen is PUBLISHED.
+# While it is in "Testing", Google expires refresh tokens after 7 days and this
+# workflow starts failing on the 8th day. Publish the app on the consent screen
+# of the tool's own Cloud project — never the LinkFinder AI Addon project.
+
+on:
+  schedule:
+    - cron: '0 9 * * *'
+  workflow_dispatch:
+    inputs:
+      since_days:
+        description: 'Only consider uploads newer than this many days'
+        required: false
+        default: '7'
+      dry_run:
+        description: 'List targets without posting'
+        type: boolean
+        required: false
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: youtube-auto-comment
+  cancel-in-progress: false
+
+jobs:
+  comment:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Post on new uploads
+        working-directory: claude/youtube/auto-comment
+        env:
+          YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }}
+          YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}
+          YT_REFRESH_TOKEN: ${{ secrets.YT_REFRESH_TOKEN }}
+        run: |
+          if [ -z "$YT_REFRESH_TOKEN" ]; then
+            echo "::error::YT_REFRESH_TOKEN is not set. See this workflow's header."
+            exit 1
+          fi
+          python3 auto_comment.py \
+            --channel UCAq5URh_O2gbg4bFFwBWfdg \
+            --since-days "${{ github.event.inputs.since_days || 7 }}" \
+            ${{ github.event.inputs.dry_run == 'true' && ' ' || '--live' }} \
+            --delay 20
+
+      - name: Upload the run log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: auto-comment-report
+          path: |
+            claude/youtube/auto-comment/posted.csv
+            claude/youtube/auto-comment/pin-checklist.md
+          if-no-files-found: ignore
+          retention-days: 30
