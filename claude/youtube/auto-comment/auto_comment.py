@@ -562,6 +562,11 @@ def main():
         "--auth-url", action="store_true", help="print a consent URL to open in any browser"
     )
     parser.add_argument(
+        "--scope",
+        help="override the OAuth scope requested, e.g. 'youtube' to probe what the "
+        "device flow will actually grant",
+    )
+    parser.add_argument(
         "--exchange", metavar="URL", help="redirect URL (or bare code) pasted back from --auth-url"
     )
     parser.add_argument("--live", action="store_true", help="actually post (default: dry run)")
@@ -585,6 +590,13 @@ def main():
     )
     parser.add_argument("--limit", type=int, help="stop after N posts, for a cautious first run")
     args = parser.parse_args()
+
+    if args.scope:
+        global SCOPE
+        SCOPE = args.scope if args.scope.startswith("http") else (
+            "https://www.googleapis.com/auth/" + args.scope
+        )
+        print(f"Scope override: {SCOPE}")
 
     if args.auth_url:
         print_auth_url()
