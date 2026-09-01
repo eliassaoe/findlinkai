@@ -24,26 +24,32 @@ automatable, unlike a pin. Say the word and it's a small addition to this script
 ## Setup — about 5 minutes, once
 
 You need a Google OAuth client. It has to be yours; there is no way around it,
-because posting a comment acts as your channel.
+because posting a comment acts as your channel. Nothing to install.
 
 1. https://console.cloud.google.com/ → create a project (any name).
 2. **APIs & Services → Library** → enable **YouTube Data API v3**.
-3. **OAuth consent screen** → External → fill in the required fields → under
-   **Test users** add `hamoureliasse@gmail.com` (the account that owns the
-   channel).
-4. **Credentials → Create credentials → OAuth client ID → Desktop app**.
-   Download the JSON, save it here as `client_secret.json`.
-5. Authorise once:
+3. **OAuth consent screen** → External → fill the required fields → under
+   **Test users** add the Google account that owns the channel
+   (`hamoureliasse@gmail.com`).
+4. **Credentials → Create credentials → OAuth client ID**, application type
+   **TVs and Limited Input devices**. Copy the client ID and client secret.
+5. Authorise — this works with no browser on the machine running the script:
 
    ```bash
-   cd claude/youtube/auto-comment
-   python3 auto_comment.py --auth
+   export YT_CLIENT_ID='....apps.googleusercontent.com'
+   export YT_CLIENT_SECRET='....'
+   python3 auto_comment.py --device-auth
    ```
 
-   A browser opens; sign in as the channel owner and accept. Google will warn
-   that the app is unverified — that is expected for your own private tool,
-   click **Advanced → Go to … (unsafe)**. The refresh token lands in
-   `.youtube-token.json` and you never do this again.
+   It prints a short code. Open **google.com/device** on any phone or laptop,
+   enter it, sign in as the channel owner, approve. Google warns that the app
+   is unverified — expected for your own private tool. The refresh token lands
+   in `.youtube-token.json` and you never do this again.
+
+   `--auth` is the alternative if a browser *is* available locally; it opens
+   a loopback consent page instead. Application type must then be **Desktop
+   app**, and you can drop the downloaded `client_secret.json` beside this
+   script instead of exporting the two variables.
 
 > While the consent screen is in **Testing** status Google expires refresh
 > tokens after 7 days. Fine for a one-off backfill. If you want this on a cron

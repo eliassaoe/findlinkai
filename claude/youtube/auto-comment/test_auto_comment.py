@@ -193,6 +193,46 @@ with tempfile.TemporaryDirectory() as raw:
     run_main(["--channel", CHANNEL, "--live", "--delay", "0"], tmp)
     check("resume finishes the rest", len(posted_calls), 1)
 
+# --- device flow -----------------------------------------------------------
+
+print("\ndevice flow")
+ac.load_client = lambda: ("cid.apps.googleusercontent.com", "sec")
+
+calls = []
+script = [
+    (200, {"device_code": "dc", "user_code": "ABCD-EFGH",
+           "verification_url": "https://www.google.com/device",
+           "interval": 0, "expires_in": 60}),
+    (428, {"error": "authorization_pending"}),
+    (403, {"error": "slow_down"}),
+    (200, {"refresh_token": "rt_live", "access_token": "at"}),
+]
+
+
+def fake_oauth_post(url, form):
+    calls.append((url, form))
+    return script[len(calls) - 1]
+
+
+ac._oauth_post = fake_oauth_post
+with tempfile.TemporaryDirectory() as raw:
+    ac.TOKEN_FILE = Path(raw) / ".youtube-token.json"
+    ac.run_device_flow()
+    check("polled through pending + slow_down", len(calls), 4)
+    check("device grant used", calls[1][1]["grant_type"],
+          "urn:ietf:params:oauth:grant-type:device_code")
+    check("refresh token saved",
+          json.loads(ac.TOKEN_FILE.read_text())["refresh_token"], "rt_live")
+
+print("\ndevice flow rejects a non-device client")
+calls.clear()
+script[:] = [(401, {"error": "invalid_client", "error_description": "not found"})]
+try:
+    ac.run_device_flow()
+    check("exits on bad client", "no exit", "SystemExit")
+except SystemExit as exc:
+    check("exits on bad client", "TVs and Limited Input" in str(exc), True)
+
 print()
 if FAILURES:
     print(f"{len(FAILURES)} FAILURE(S)")

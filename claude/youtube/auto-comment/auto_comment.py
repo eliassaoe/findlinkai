@@ -3,9 +3,13 @@
 
 Stdlib only — no pip install. Python 3.8+.
 
-    python3 auto_comment.py --auth                 # once: browser consent
+    python3 auto_comment.py --device-auth          # once: approve on any device
     python3 auto_comment.py                        # dry run, changes nothing
     python3 auto_comment.py --live                 # actually posts
+
+--device-auth needs no browser on this machine: it prints a short code you
+enter at google.com/device from a phone or laptop. --auth is the alternative
+when a browser is available locally.
 
 It is safe to re-run. A video that already carries the comment is skipped, so
 a second run only fills in what the first one missed (or what YouTube's daily
@@ -48,7 +52,9 @@ COMMENT_MARKER = "linkfinderai.com"
 API = "https://www.googleapis.com/youtube/v3"
 TOKEN_URL = "https://oauth2.googleapis.com/token"
 AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
+DEVICE_URL = "https://oauth2.googleapis.com/device/code"
 SCOPE = "https://www.googleapis.com/auth/youtube.force-ssl"
+DEVICE_GRANT = "urn:ietf:params:oauth:grant-type:device_code"
 
 HERE = Path(__file__).resolve().parent
 TOKEN_FILE = HERE / ".youtube-token.json"
@@ -142,6 +148,96 @@ def load_client():
     )
 
 
+def _oauth_post(url, form):
+    """POST to an OAuth endpoint, returning (http_status, parsed_body).
+
+    OAuth errors carry a *string* `error` field, unlike the API's object, and
+    the device flow signals "still waiting" through an HTTP error status. So
+    this returns rather than raises.
+    """
+    data = urllib.parse.urlencode(form).encode()
+    req = urllib.request.Request(
+        url,
+        data=data,
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            return resp.status, json.loads(resp.read().decode())
+    except urllib.error.HTTPError as exc:
+        raw = exc.read().decode()
+        try:
+            return exc.code, json.loads(raw)
+        except ValueError:
+            return exc.code, {"error": "http_error", "error_description": raw}
+
+
+def run_device_flow():
+    """Device flow: no browser needed here, the user approves on any device.
+
+    This is what makes the script runnable somewhere headless — a server, a
+    container, a CI box — while the human approves from their phone.
+    """
+    cid, secret = load_client()
+    status, data = _oauth_post(DEVICE_URL, {"client_id": cid, "scope": SCOPE})
+    if "device_code" not in data:
+        sys.exit(
+            f"Device flow rejected ({status}): {data.get('error_description') or data}\n"
+            "The OAuth client must be of type 'TVs and Limited Input devices'."
+        )
+
+    url = data.get("verification_url") or data.get("verification_uri")
+    print("\n" + "=" * 58)
+    print(f"  Open:  {url}")
+    print(f"  Code:  {data['user_code']}")
+    print("=" * 58)
+    print("\nSign in as the channel owner and approve. Waiting...\n")
+
+    interval = int(data.get("interval", 5))
+    deadline = time.time() + int(data.get("expires_in", 1800))
+    while time.time() < deadline:
+        time.sleep(interval)
+        status, token = _oauth_post(
+            TOKEN_URL,
+            {
+                "client_id": cid,
+                "client_secret": secret,
+                "device_code": data["device_code"],
+                "grant_type": DEVICE_GRANT,
+            },
+        )
+        error = token.get("error")
+        if error == "authorization_pending":
+            continue
+        if error == "slow_down":
+            interval += 5
+            continue
+        if error == "access_denied":
+            sys.exit("Authorisation was denied.")
+        if error == "expired_token":
+            sys.exit("The code expired. Run --device-auth again.")
+        if error:
+            sys.exit(f"Authorisation failed: {token.get('error_description') or error}")
+        if "refresh_token" not in token:
+            sys.exit(
+                "Google returned no refresh token. Revoke this app at "
+                "https://myaccount.google.com/permissions and retry."
+            )
+        _save_refresh_token(token["refresh_token"])
+        return
+    sys.exit("Timed out waiting for approval.")
+
+
+def _save_refresh_token(refresh):
+    TOKEN_FILE.write_text(json.dumps({"refresh_token": refresh}, indent=2))
+    try:
+        TOKEN_FILE.chmod(0o600)
+    except OSError:
+        pass
+    print(f"Authorised. Refresh token saved to {TOKEN_FILE.name}.")
+
+
 def run_consent_flow():
     """Loopback flow: opens a browser once, stores the refresh token."""
     cid, secret = load_client()
@@ -203,12 +299,7 @@ def run_consent_flow():
             "Google returned no refresh token. Revoke this app at "
             "https://myaccount.google.com/permissions and run --auth again."
         )
-    TOKEN_FILE.write_text(json.dumps({"refresh_token": tokens["refresh_token"]}, indent=2))
-    try:
-        TOKEN_FILE.chmod(0o600)
-    except OSError:
-        pass
-    print(f"Saved refresh token to {TOKEN_FILE.name}. You will not need --auth again.")
+    _save_refresh_token(tokens["refresh_token"])
 
 
 def access_token():
@@ -397,7 +488,12 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="Default is a dry run. Nothing is posted without --live.",
     )
-    parser.add_argument("--auth", action="store_true", help="run the one-time browser consent")
+    parser.add_argument("--auth", action="store_true", help="one-time consent via local browser")
+    parser.add_argument(
+        "--device-auth",
+        action="store_true",
+        help="one-time consent via a code you approve on any other device (headless)",
+    )
     parser.add_argument("--live", action="store_true", help="actually post (default: dry run)")
     parser.add_argument(
         "--channel",
@@ -420,6 +516,9 @@ def main():
     parser.add_argument("--limit", type=int, help="stop after N posts, for a cautious first run")
     args = parser.parse_args()
 
+    if args.device_auth:
+        run_device_flow()
+        return 0
     if args.auth:
         run_consent_flow()
         return 0
