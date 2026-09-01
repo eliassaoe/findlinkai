@@ -26,7 +26,26 @@ automatable, unlike a pin. Say the word and it's a small addition to this script
 You need a Google OAuth client. It has to be yours; there is no way around it,
 because posting a comment acts as your channel. Nothing to install.
 
-1. https://console.cloud.google.com/ → create a project (any name).
+> ### Do NOT use the `LinkFinder AI Addon` project
+>
+> That project (number `1096371450007`) hosts the **published Google Sheets
+> Marketplace add-on** — its `Apps Script`, `Google Workspace Add-ons` and
+> `Google Workspace Marketplace Integration Client` OAuth clients are the live
+> add-on, and the project is verified by Google.
+>
+> The OAuth consent screen is configured **per project and shared by every
+> client in it**. `youtube.force-ssl` is a sensitive scope, so adding it there
+> puts the verified app back into re-verification: until Google re-approves,
+> users hit the unverified-app screen and the project is subject to a 100-user
+> cap. That cap would apply to the add-on's consent screen, not just to this
+> script — i.e. it could take the published add-on down.
+>
+> **Create a separate Google Cloud project for this tool.** It is free, takes a
+> minute, and isolates the consent screen completely.
+
+1. https://console.cloud.google.com/ → project picker (top bar) → **New
+   project**, name it something like `youtube-auto-comment`. Confirm the picker
+   now shows that new project before continuing.
 2. **APIs & Services → Library** → enable **YouTube Data API v3**.
 3. **OAuth consent screen** → External → fill the required fields → under
    **Test users** add the Google account that owns the channel
@@ -51,10 +70,11 @@ because posting a comment acts as your channel. Nothing to install.
    app**, and you can drop the downloaded `client_secret.json` beside this
    script instead of exporting the two variables.
 
-> While the consent screen is in **Testing** status Google expires refresh
-> tokens after 7 days. Fine for a one-off backfill. If you want this on a cron
-> for new uploads, hit **Publish app** on the consent screen — for a
-> single-user tool that needs no Google review.
+> A brand-new project's consent screen is unverified, so Google expires refresh
+> tokens after 7 days and shows a warning screen you click through. Both are
+> fine for a one-off backfill of the channel. If you later want this on a cron
+> for new uploads, re-authorise weekly rather than seeking verification — and
+> never by moving the client into the add-on's project.
 
 ## Run
 
