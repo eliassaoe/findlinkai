@@ -691,6 +691,18 @@ def main():
 
     posted = failed = skipped = 0
     try:
+        try:
+            already_commented(token, todo[0]["id"], args.channel) if todo else None
+        except ApiError as exc:
+            if exc.reason == "insufficientPermissions":
+                sys.exit(
+                    "The saved token lacks " + SCOPE + ".\n"
+                    "Comment reads and writes both require youtube.force-ssl, which the "
+                    "device flow refuses to grant. Re-authorise with a Desktop-app OAuth "
+                    "client via --auth-url / --exchange, then run this again."
+                )
+            raise
+
         for index, video in enumerate(todo, 1):
             if args.limit and posted >= args.limit:
                 print(f"Reached --limit {args.limit}.")
