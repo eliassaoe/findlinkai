@@ -62,6 +62,7 @@ LOOPBACK_REDIRECT = "http://localhost:8080"
 
 HERE = Path(__file__).resolve().parent
 TOKEN_FILE = HERE / ".youtube-token.json"
+DEVICE_FILE = HERE / ".device-code.json"
 STATE_FILE = HERE / "state.json"
 LOG_CSV = HERE / "posted.csv"
 PIN_CHECKLIST = HERE / "pin-checklist.md"
@@ -160,21 +161,29 @@ def _oauth_post(url, form):
     this returns rather than raises.
     """
     data = urllib.parse.urlencode(form).encode()
-    req = urllib.request.Request(
-        url,
-        data=data,
-        headers={"Content-Type": "application/x-www-form-urlencoded"},
-        method="POST",
-    )
-    try:
-        with urllib.request.urlopen(req, timeout=30) as resp:
-            return resp.status, json.loads(resp.read().decode())
-    except urllib.error.HTTPError as exc:
-        raw = exc.read().decode()
+    for attempt in range(5):
+        req = urllib.request.Request(
+            url,
+            data=data,
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
+            method="POST",
+        )
         try:
-            return exc.code, json.loads(raw)
-        except ValueError:
-            return exc.code, {"error": "http_error", "error_description": raw}
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                return resp.status, json.loads(resp.read().decode())
+        except urllib.error.HTTPError as exc:
+            raw = exc.read().decode()
+            try:
+                return exc.code, json.loads(raw)
+            except ValueError:
+                return exc.code, {"error": "http_error", "error_description": raw}
+        except (urllib.error.URLError, TimeoutError, ConnectionError) as exc:
+            # A dropped connection must never end a device-flow poll: the user
+            # has already approved by then, and the approval cannot be reused.
+            if attempt == 4:
+                return 0, {"error": "network", "error_description": str(exc)}
+            time.sleep(2**attempt)
+    raise RuntimeError("unreachable")
 
 
 def print_auth_url():
@@ -257,8 +266,35 @@ def run_device_flow():
     print("=" * 58)
     print("\nSign in as the channel owner and approve. Waiting...\n")
 
-    interval = int(data.get("interval", 5))
-    deadline = time.time() + int(data.get("expires_in", 1800))
+    DEVICE_FILE.write_text(
+        json.dumps(
+            {
+                "device_code": data["device_code"],
+                "interval": int(data.get("interval", 5)),
+                "expires_at": time.time() + int(data.get("expires_in", 1800)),
+                "scope": SCOPE,
+            },
+            indent=2,
+        )
+    )
+    _poll_device(data["device_code"], int(data.get("interval", 5)),
+                 time.time() + int(data.get("expires_in", 1800)))
+
+
+def resume_device_flow():
+    """Keep polling a device code the user has already approved."""
+    if not DEVICE_FILE.exists():
+        sys.exit("No pending device code. Start one with --device-auth.")
+    saved = json.loads(DEVICE_FILE.read_text())
+    left = saved["expires_at"] - time.time()
+    if left <= 0:
+        sys.exit("That device code expired. Start a fresh one with --device-auth.")
+    print(f"Resuming the pending code, {int(left)}s left before it expires.")
+    _poll_device(saved["device_code"], saved["interval"], saved["expires_at"])
+
+
+def _poll_device(device_code, interval, deadline):
+    cid, secret = load_client()
     while time.time() < deadline:
         time.sleep(interval)
         status, token = _oauth_post(
@@ -266,12 +302,12 @@ def run_device_flow():
             {
                 "client_id": cid,
                 "client_secret": secret,
-                "device_code": data["device_code"],
+                "device_code": device_code,
                 "grant_type": DEVICE_GRANT,
             },
         )
         error = token.get("error")
-        if error == "authorization_pending":
+        if error in ("authorization_pending", "network"):
             continue
         if error == "slow_down":
             interval += 5
@@ -288,6 +324,7 @@ def run_device_flow():
                 "https://myaccount.google.com/permissions and retry."
             )
         _save_refresh_token(token["refresh_token"])
+        DEVICE_FILE.unlink(missing_ok=True)
         return
     sys.exit("Timed out waiting for approval.")
 
@@ -562,6 +599,11 @@ def main():
         "--auth-url", action="store_true", help="print a consent URL to open in any browser"
     )
     parser.add_argument(
+        "--resume-device",
+        action="store_true",
+        help="keep polling an already-issued device code (survives a crash)",
+    )
+    parser.add_argument(
         "--scope",
         help="override the OAuth scope requested, e.g. 'youtube' to probe what the "
         "device flow will actually grant",
@@ -603,6 +645,9 @@ def main():
         return 0
     if args.exchange:
         exchange_code(args.exchange)
+        return 0
+    if args.resume_device:
+        resume_device_flow()
         return 0
     if args.device_auth:
         run_device_flow()
