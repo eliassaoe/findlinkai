@@ -52,23 +52,50 @@ because posting a comment acts as your channel. Nothing to install.
    (`hamoureliasse@gmail.com`).
 4. **Credentials → Create credentials → OAuth client ID**, application type
    **TVs and Limited Input devices**. Copy the client ID and client secret.
-5. Authorise — this works with no browser on the machine running the script:
+5. **Credentials → Create client**, application type **Desktop app**. Copy the
+   client ID and secret into `client_secret.json` beside this script:
 
-   ```bash
-   export YT_CLIENT_ID='....apps.googleusercontent.com'
-   export YT_CLIENT_SECRET='....'
-   python3 auto_comment.py --device-auth
+   ```json
+   {"installed":{"client_id":"...","client_secret":"..."}}
    ```
 
-   It prints a short code. Open **google.com/device** on any phone or laptop,
-   enter it, sign in as the channel owner, approve. Google warns that the app
-   is unverified — expected for your own private tool. The refresh token lands
-   in `.youtube-token.json` and you never do this again.
+   Not "TVs and Limited Input devices" — see below.
 
-   `--auth` is the alternative if a browser *is* available locally; it opens
-   a loopback consent page instead. Application type must then be **Desktop
-   app**, and you can drop the downloaded `client_secret.json` beside this
-   script instead of exporting the two variables.
+6. Authorise. If a browser is available on this machine:
+
+   ```bash
+   python3 auto_comment.py --auth
+   ```
+
+   If not — running on a server, a container, a sandbox — use the paste-back
+   flow instead. Print a consent URL, open it in any browser, approve, and the
+   redirect to `http://localhost:8080` will fail to load. That is expected: the
+   address bar now holds the code. Paste the whole URL back.
+
+   ```bash
+   python3 auto_comment.py --auth-url
+   python3 auto_comment.py --exchange 'http://localhost:8080/?code=4/0A...&scope=...'
+   ```
+
+   The refresh token lands in `.youtube-token.json` and you never do this again.
+
+### Why not the device flow
+
+`--device-auth` exists and works, but **cannot be used to post comments**.
+Google rejects the only scope that matters:
+
+    Invalid device flow scope: https://www.googleapis.com/auth/youtube.force-ssl
+
+The device endpoint accepts `youtube`, `youtube.readonly` and `youtube.upload`
+— but `commentThreads.insert` requires `youtube.force-ssl`, which it refuses.
+And a TV/limited-input client cannot fall back to loopback either:
+
+    Localhost URI is not allowed for 'NATIVE_DEVICE' client type in this context.
+
+Hence **Desktop app** as the client type, with the paste-back flow above when
+there is no local browser. Both findings are from probing the live endpoints,
+not from the docs — the YouTube device-flow page shows `force-ssl` in a sample
+response, which is misleading.
 
 > A brand-new project's consent screen is unverified, so Google expires refresh
 > tokens after 7 days and shows a warning screen you click through. Both are

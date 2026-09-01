@@ -56,6 +56,10 @@ DEVICE_URL = "https://oauth2.googleapis.com/device/code"
 SCOPE = "https://www.googleapis.com/auth/youtube.force-ssl"
 DEVICE_GRANT = "urn:ietf:params:oauth:grant-type:device_code"
 
+# Loopback redirect for the paste-back flow. Desktop-app clients accept any
+# port on localhost/127.0.0.1 without registering it.
+LOOPBACK_REDIRECT = "http://localhost:8080"
+
 HERE = Path(__file__).resolve().parent
 TOKEN_FILE = HERE / ".youtube-token.json"
 STATE_FILE = HERE / "state.json"
@@ -171,6 +175,65 @@ def _oauth_post(url, form):
             return exc.code, json.loads(raw)
         except ValueError:
             return exc.code, {"error": "http_error", "error_description": raw}
+
+
+def print_auth_url():
+    """Emit a consent URL whose redirect the user copies back by hand.
+
+    The device flow cannot be used to post comments: Google rejects
+    youtube.force-ssl as an "Invalid device flow scope", and that is the scope
+    commentThreads.insert requires. This is the substitute that still needs no
+    software on the user's machine — they approve in a browser, the redirect
+    to localhost fails to load, and the address bar holds the code.
+    """
+    cid, _ = load_client()
+    params = {
+        "client_id": cid,
+        "redirect_uri": LOOPBACK_REDIRECT,
+        "response_type": "code",
+        "scope": SCOPE,
+        "access_type": "offline",
+        "prompt": "consent",
+    }
+    print(AUTH_URL + "?" + urllib.parse.urlencode(params))
+
+
+def exchange_code(pasted):
+    """Trade an authorisation code for a refresh token.
+
+    Accepts either the bare code or the whole failed redirect URL pasted from
+    the address bar, which is what a human actually has to hand.
+    """
+    code = pasted.strip()
+    if "code=" in code:
+        query = urllib.parse.urlparse(code).query or code.split("?", 1)[-1]
+        values = urllib.parse.parse_qs(query).get("code")
+        if not values:
+            sys.exit("No ?code= found in that URL.")
+        code = values[0]
+
+    cid, secret = load_client()
+    status, token = _oauth_post(
+        TOKEN_URL,
+        {
+            "code": code,
+            "client_id": cid,
+            "client_secret": secret,
+            "redirect_uri": LOOPBACK_REDIRECT,
+            "grant_type": "authorization_code",
+        },
+    )
+    if "refresh_token" not in token:
+        detail = token.get("error_description") or token.get("error") or token
+        sys.exit(
+            f"Exchange failed ({status}): {detail}\n"
+            "Codes are single-use and expire in minutes — get a fresh one with "
+            "--auth-url if this one was already spent."
+        )
+    granted = token.get("scope", "")
+    if "youtube.force-ssl" not in granted:
+        sys.exit(f"Wrong scope granted: {granted!r}. Posting comments needs {SCOPE}.")
+    _save_refresh_token(token["refresh_token"])
 
 
 def run_device_flow():
@@ -492,7 +555,14 @@ def main():
     parser.add_argument(
         "--device-auth",
         action="store_true",
-        help="one-time consent via a code you approve on any other device (headless)",
+        help="consent via a code approved elsewhere (cannot post comments: Google "
+        "rejects youtube.force-ssl for this flow)",
+    )
+    parser.add_argument(
+        "--auth-url", action="store_true", help="print a consent URL to open in any browser"
+    )
+    parser.add_argument(
+        "--exchange", metavar="URL", help="redirect URL (or bare code) pasted back from --auth-url"
     )
     parser.add_argument("--live", action="store_true", help="actually post (default: dry run)")
     parser.add_argument(
@@ -516,6 +586,12 @@ def main():
     parser.add_argument("--limit", type=int, help="stop after N posts, for a cautious first run")
     args = parser.parse_args()
 
+    if args.auth_url:
+        print_auth_url()
+        return 0
+    if args.exchange:
+        exchange_code(args.exchange)
+        return 0
     if args.device_auth:
         run_device_flow()
         return 0
