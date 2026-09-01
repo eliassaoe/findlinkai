@@ -118,6 +118,20 @@ misconfiguration. Create the endpoint first, then copy its secret.
 
 Apply `schema.sql` before the first deploy.
 
+## When it does not work
+
+Open **`https://referral.hamoureliasse.workers.dev/health`** in a browser. It
+reports which bindings exist (booleans only, never values) and whether each
+table answers, then lists the problems in plain words.
+
+Deploying the code and applying `schema.sql` are two separate steps in two
+different dashboards, so "the worker is up" and "the worker works" are
+genuinely different states. This is what tells them apart.
+
+| Endpoint | Purpose |
+| --- | --- |
+| `GET /health` | What is configured and what answers |
+
 ## Tests
 
 ```bash

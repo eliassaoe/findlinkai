@@ -58,6 +58,16 @@ export default {
             return handleClick(url, request, env);
         }
 
+        // Open this in a browser to find out what is wrong. It reports which
+        // bindings exist (never their values) and whether the tables answer.
+        // Deploying the code and applying the schema are two separate steps
+        // done in two different dashboards, so "the worker is up" and "the
+        // worker works" are genuinely different states, and without this the
+        // difference is invisible from outside.
+        if (request.method === 'GET' && url.pathname === '/health') {
+            return cors(await handleHealth(env), origin);
+        }
+
         if (request.method !== 'POST') {
             return cors(json({ error: 'Method not allowed' }, 405), origin);
         }
@@ -79,13 +89,51 @@ export default {
             if (url.pathname === '/attribute') return cors(await handleAttribute(env, userId, body), origin);
             if (url.pathname === '/payout')    return cors(await handlePayout(env, userId, body), origin);
         } catch (e) {
+            // The message is a table name and an HTTP status, never a secret,
+            // and swallowing it meant the page could only ever say "not
+            // switched on yet" no matter what had actually gone wrong.
             console.error(url.pathname, e);
-            return cors(json({ error: 'Server error' }, 500), origin);
+            return cors(json({ error: 'Server error', detail: String(e && e.message || e) }, 500), origin);
         }
 
         return cors(json({ error: 'Not found' }, 404), origin);
     }
 };
+
+// ---------------------------------------------------------------------------
+// GET /health - what is actually configured, and does it work
+// ---------------------------------------------------------------------------
+async function handleHealth(env) {
+    const bindings = {
+        SUPABASE_URL: !!env.SUPABASE_URL,
+        SUPABASE_SERVICE_ROLE_KEY: !!env.SUPABASE_SERVICE_ROLE_KEY,
+        DODO_WEBHOOK_SECRET: !!env.DODO_WEBHOOK_SECRET,
+        CLICK_SALT: !!env.CLICK_SALT,
+    };
+
+    const tables = {};
+    for (const table of ['referral_partners', 'referral_attributions', 'referral_commissions', 'referral_clicks', 'linkfinderai_users']) {
+        try {
+            const res = await fetch(`${env.SUPABASE_URL}/rest/v1/${table}?select=*&limit=1`, { headers: sbHeaders(env) });
+            tables[table] = res.ok ? 'ok' : `HTTP ${res.status}: ${(await res.text()).slice(0, 200)}`;
+        } catch (e) {
+            tables[table] = `unreachable: ${String(e && e.message || e)}`;
+        }
+    }
+
+    const problems = [];
+    if (!bindings.SUPABASE_URL || !bindings.SUPABASE_SERVICE_ROLE_KEY) {
+        problems.push('Supabase bindings missing - nothing can be read or written.');
+    }
+    if (!bindings.DODO_WEBHOOK_SECRET) {
+        problems.push('DODO_WEBHOOK_SECRET missing - every payment webhook will be rejected 401, so no commission can ever be recorded.');
+    }
+    for (const [table, state] of Object.entries(tables)) {
+        if (state !== 'ok') problems.push(`${table}: ${state}`);
+    }
+
+    return json({ ok: problems.length === 0, bindings, tables, problems });
+}
 
 // ---------------------------------------------------------------------------
 // GET /r/:code - log the click, then send them to the site with ?ref= attached

@@ -180,7 +180,13 @@ async function load() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ token: userToken })
         });
-        if (!res.ok) throw new Error('status ' + res.status);
+        // Carry the worker's own explanation into the console. Without it a
+        // 500 and a missing worker look identical from here, and the visible
+        // copy is deliberately the same friendly line for both.
+        if (!res.ok) {
+            const detail = await res.text().catch(() => '');
+            throw new Error(`status ${res.status} ${detail.slice(0, 300)}`);
+        }
         render(await res.json());
     } catch (e) {
         // The worker is deployed separately from this page, so "not there yet"
@@ -190,7 +196,8 @@ async function load() {
             '<p style="font-weight:600;color:#111827;margin-bottom:0.4rem">The affiliate program is not switched on yet.</p>'
             + '<p>It is coming shortly. Nothing is wrong with your account, and there is nothing you need to do &mdash; '
             + 'check back soon, or email support@linkfinderai.com if you want to be told when it opens.</p>';
-        console.error(e);
+        console.error('[affiliate]', e);
+        console.info('[affiliate] diagnose it here: ' + REFERRAL_WORKER + '/health');
     }
 }
 
