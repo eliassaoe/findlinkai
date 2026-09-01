@@ -81,7 +81,7 @@ genuine referral to manual review.
 cd workers/referral
 npx wrangler secret put SUPABASE_URL
 npx wrangler secret put SUPABASE_SERVICE_ROLE_KEY   # service role - bypasses RLS (same value as onboarding-tasks)
-npx wrangler secret put DODO_WEBHOOK_SECRET    # same secret as dodo-webhook
+npx wrangler secret put DODO_WEBHOOK_SECRET    # THIS endpoint's own signing secret
 npx wrangler secret put CLICK_SALT             # any long random string
 npx wrangler deploy
 ```
@@ -96,6 +96,13 @@ Dodo delivers happily to more than one endpoint, so this sits alongside
 `workers/dodo-webhook` (the PostHog bridge) rather than replacing it. They are
 kept separate on purpose: one reports, one moves money, and a change to either
 must not be able to weaken the other.
+
+**The signing secret is per endpoint, not per account.** Dodo implements
+Standard Webhooks, and each endpoint you create gets its own `whsec_...`. So
+this worker needs the secret shown on ITS endpoint's Overview tab - reusing the
+one from the dodo-webhook endpoint makes every signature check fail with
+`signature mismatch`, which reads exactly like an attack rather than a
+misconfiguration. Create the endpoint first, then copy its secret.
 
 Apply `schema.sql` before the first deploy.
 
