@@ -24,6 +24,23 @@ video content for the "Elias IA" / LinkFinder AI YouTube channel.
   minutes in) should still see the link. Keep the full reveal/CTA at the end
   too — this is additive, not a replacement.
 
+## Hook pacing rule
+
+- **Cap sequential static-text/statecard beats at 2 before the first tier
+  reveal** (or before the main content starts, for non-tier-list videos).
+  One hook/differentiator beat + one criteria beat (a fast visual, e.g.
+  staggered cards) is the max. A user rejected a video outright for this
+  ("slow as fuck and boring") when the intro had 4 sequential static cards
+  before anything got ranked — even though each card's content was fine
+  individually, the pileup read as dead air.
+- If there's a genuinely surprising real-world fact available for the hook
+  (e.g. a competitor tool got sued and shut down), lead with it immediately
+  after the early CTA — don't bury it behind criteria/methodology setup.
+  Dramatic real content beats generic setup for retention.
+- If cutting hook beats pulls the total runtime under the 4-minute floor,
+  compensate with genuine substance in the close (a real comparison, a new
+  verified fact) — never by re-padding the intro or looping silence.
+
 ## Production log
 
 The full build history, footage audit notes, safety flags, and reusable
