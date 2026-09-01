@@ -1,7 +1,10 @@
 # Auto-comment the CTA on every video
 
-Posts **`LinkFinder AI : linkfinderai.com`** as a top-level comment on every
-upload of the channel — Shorts included, they are ordinary videos to the API.
+Posts a CTA comment on every upload of the channel — Shorts included, they are
+ordinary videos to the API. The text lives in `COMMENT_TEXT`:
+
+> Find anyone's email, phone number or LinkedIn profile from a name or a
+> company → linkfinderai.com
 
 `auto_comment.py`, stdlib only, no `pip install`.
 
@@ -116,7 +119,9 @@ Useful flags:
 | Flag | Default | |
 | --- | --- | --- |
 | `--channel` | `UCAq5URh_O2gbg4bFFwBWfdg` | the other two authorised channels also work |
-| `--text` | `LinkFinder AI : linkfinderai.com` | any body you like |
+| `--text` | see `COMMENT_TEXT` | any body you like |
+| `--since-days` | — | only recent uploads; makes a daily cron ~2 units |
+| `--rewrite` | — | update text of comments already posted, in place |
 | `--type` | `all` | `long` or `short` to target one format |
 | `--delay` | `20` | seconds between posts, jittered ±40% |
 | `--limit` | — | stop after N posts |
@@ -137,13 +142,17 @@ Default allowance is 10,000 units/day, resetting at midnight Pacific.
 | duplicate check | 1 | per video |
 | listing uploads | 1 | per 50 videos |
 
-So **~51 units per video, roughly 195 videos per day**. At 163 uploads the
-channel fits in one run, with a little room. Past that the script stops on
-`quotaExceeded`, saves state, and tells you to re-run tomorrow.
+So **~51 units per video, roughly 195 videos per day**. The channel is at 334
+uploads, so a full backfill is two days: the script stops on `quotaExceeded`,
+saves state, and re-running after the midnight-Pacific reset finishes the rest
+without duplicates.
+
+For the daily cron, `--since-days 7` stops paging the uploads playlist at the
+window edge, so a day with no new uploads costs about 2 units.
 
 ## The spam filter
 
-163 byte-identical comments carrying the same URL, posted fast, is exactly the
+300+ byte-identical comments carrying the same URL, posted fast, is exactly the
 shape YouTube's automated filter looks for. Being the channel owner helps a lot
 but is not a guarantee — filtered comments go to "Held for review" in Studio and
 are invisible to viewers, and the API reports them as posted either way.
@@ -151,7 +160,7 @@ are invisible to viewers, and the API reports them as posted either way.
 Which is why `--delay` defaults to 20s with jitter (≈55 min for the channel) and
 why `--limit 3` exists. **Do the small run first**, then open one of those
 videos in an incognito window and confirm the comment is actually visible before
-committing the other 160.
+committing the rest.
 
 ## Tests
 
@@ -161,4 +170,12 @@ python3 test_auto_comment.py
 
 A fake API drives the whole loop offline — no network, no credentials. Covers
 duration parsing, Shorts detection, idempotency, comments-disabled videos,
-quota exhaustion and resume, and the two report files.
+quota exhaustion and resume, the `--since-days` window, the device-flow poll,
+and the two report files.
+
+## Keeping it running
+
+`.github/workflows/youtube-auto-comment.yml` runs this daily against new
+uploads. It needs `YT_CLIENT_ID`, `YT_CLIENT_SECRET` and `YT_REFRESH_TOKEN` as
+repository secrets — and the consent screen **published**, since a Testing-status
+app expires refresh tokens after 7 days.
