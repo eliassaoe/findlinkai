@@ -100,6 +100,13 @@ confuse them:
 | The copy-paste script | `linkedIn-enrichment-google-sheets.html` | Anyone who follows that page and pastes `=LINKFINDER()` in |
 | An unpublished second add-on | `integrations/google-sheets/` | Nobody — it has never been deployed |
 
+The add-on lives in Google Cloud project **`LinkFinder AI Addon`** (project
+number `1096371450007`), which is **verified by Google**. The OAuth consent
+screen is per-project and shared by every client in it, so adding a sensitive
+scope there — e.g. `youtube.force-ssl` for the auto-comment tool — forces
+re-verification and a 100-user cap that would hit the add-on's own consent
+screen. Any unrelated Google API work gets its **own** Cloud project.
+
 The add-on's manifest has **no `oauthScopes` block**, so Apps Script infers scopes
 from the code. Adding any new Apps Script service (`DriveApp`, `GmailApp`,
 `ScriptApp`…) widens them and pulls the add-on from the store until Google
