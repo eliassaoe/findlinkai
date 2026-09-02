@@ -1,5 +1,23 @@
 # Lead sources with real France coverage
 
+> **Decision, 2 Sept 2026: stay on Explee. The lead source is not the problem.**
+>
+> Explee is the cheapest lead in this file at ~$0.025 - 3x under a Sirene plus
+> FullEnrich build, 7x under Instantly. The one challenger that got a real trial,
+> Pharow, produced a clean export from a thin pool: 83 rows for the whole ICP,
+> a quarter of them people already in the funnel, and no demonstrated
+> incrementality. Nothing here is worth switching to on price, and nothing has
+> shown better reach.
+>
+> **One thread stays open rather than closed:** we never proved Explee's *search*
+> surfaces the right French *people* for a niche ICP - only that it holds the
+> companies and costs least. If the reply rate stays near 1%, revisit that with
+> `leadsource_test.py overlap` and by reading the campaign targeting, not by
+> buying another database.
+>
+> Everything below is the working that got here. It stands; it just is not the
+> live question any more.
+
 The constraint, in order: **France coverage first, an API second, pay as you go
 third.** The intent-first version of this file was wrong for this market - the
 measurements are kept at the bottom because the reasoning still matters.

@@ -3,13 +3,15 @@
 The plan behind this directory is one goal — **cost per call under $50** — and two
 actions, both staying on AutoGTM:
 
-1. **Test a higher-intent lead source** — `leadsource_test.py`. **This is the
-   live one.** Explee matches 105M companies on firmographics; it cannot see
+1. **Test a higher-intent lead source** — `leadsource_test.py`. **Settled
+   2 Sept: stay on Explee** (see SOURCES.md). Kept for the next challenger. Explee matches 105M companies on firmographics; it cannot see
    intent. 500 Explee leads against 500 sourced leads, same copy, same week.
    Which sources, and what they cost: **[SOURCES.md](SOURCES.md)**.
-2. **Follow up on people who replied but didn't book** — `recover.py`. Built and
-   tested, but **parked on one missing input**: nothing in Explee knows who
-   booked. See "the booking problem" below before running it.
+2. **Follow up on people who replied but didn't book** — `recover.py`. **This is
+   the live one.** A Google Sheet says who booked, and a daily GitHub Action
+   handles everyone else. It is the only lever left with room in it: sending is
+   fixed at $0.03 and placement cannot be influenced, so the $50-per-call target
+   is exactly a 22% interested-to-booked rate.
 
 Everything here talks to the Explee public API with the same `X-API-Key`.
 
