@@ -58,6 +58,63 @@ then you have paid intent prices for a firmographic email.
 
 Below, in order, if you want a second signal or a source Instantly does not have.
 
+## Does any of this work for the French market? Mostly no.
+
+Measured, not argued. French companies (250-1,000 staff), buyers titled
+*responsable / directeur des achats, acheteur, purchasing manager*, 90-day
+window:
+
+| Filter | Leads |
+|---|---|
+| No signal at all | **2,535** |
+| `job_change` — the best trigger there is | **0** |
+| `reddit_buying_intent` | ~0 for this audience |
+| `linkedin_post_company` | 880 |
+| `website_expansion` + `technology_adoption` + `partnership` | 943 |
+
+The two signals that mean *a person is in market* — someone changed job, someone
+asked about the problem in public — **do not exist for French non-tech buyers.**
+What is left is company-level website and LinkedIn activity: "this company posted
+something", which is not intent, it is proof the company is alive.
+
+Compare the same signals on a US/English software audience: 7,549 leads with a
+job change, funding event or Reddit buying-intent signal. The data is real; its
+coverage is Anglophone and tech.
+
+**So do not buy Instantly credits for a French campaign.** Paying $0.157 a lead
+for `linkedin_post_company` is paying an intent price for a liveness check. The
+signal premise has to hold before the premium is worth anything, and here it does
+not.
+
+This also generalises to the customers being served: an ESN that wants
+*responsables d'achat* at 250-person companies is not going to be helped by a
+signal database built on Reddit threads and funding rounds. For those audiences
+the lever is better targeting, not intent — Explee's `definition` search takes a
+natural-language description and handles French roles and niches directly,
+instead of matching against a fixed English taxonomy.
+
+## Can a better lead source lower cost per QUALIFIED call at all?
+
+Honest arithmetic, because this is the question the whole plan turns on:
+
+    control arm   ~$0.13 per lead all-in   (Explee lead + four sends at $0.03)
+    intent arm    ~$0.28 per lead all-in   (Instantly lead at $0.157 + the same sends)
+
+Cost per call is `cost per lead ÷ (reply rate × calls per reply)`. At 2.15x the
+lead cost, an intent arm has to convert **more than twice as well just to draw
+level**. Anything less and cost per call goes *up*.
+
+That is a defensible thing to buy — better-qualified calls that close at a higher
+rate can be worth more than they cost — but it is a different purchase from the
+one the plan asked for. **Intent data is a quality bet. It is not a cost lever,
+and it cannot be argued into being one.**
+
+The cost lever is the conversion step, and the number that proves it is already
+in this repo: `docs/outbound-angle.md` records **571 leads marked interested and
+0 meetings booked.** Those leads were paid for in full and produced nothing. No
+lead source fixes a 0% reply-to-call rate, and no lead source is as cheap as
+re-working replies you already own.
+
 ## 1. Your own product — the signal Instantly does not have
 
 The plan's "engaged with a competitor's post" signal is a LinkFinder AI feature.
