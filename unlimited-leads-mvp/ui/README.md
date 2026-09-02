@@ -79,9 +79,10 @@ so the API never confirms that a campaign exists.
 
 ## Known gaps
 
-- **No rate limiting.** A signed-in customer can spend your org-wide Explee
-  quota (10,000/hour, shared by everyone). Add a KV counter before you are past
-  a handful of accounts.
+- **The rate limiter needs a KV binding to do anything.** Reads are cached
+  (see "Caching, and the shared quota" in `../tenant-api/README.md`), which is
+  what actually protects the shared Explee quota; the limiter is the second
+  line and is a no-op until `RL` is bound.
 - **The hot-lead email is built but not switched on.** The worker fires a
   `hot_lead` event and a PostHog workflow is waiting as a draft — see
   "Hot-lead notifications" in `../tenant-api/README.md`. Test-send it and enable

@@ -4,11 +4,20 @@ compatibility_date = "2026-09-01"
 
 # Flips "Finding leads" to "Sending" on its own, so a customer never sees a
 # stale card and you never have to remember to refresh one.
+# Optional. Bound, it caps each customer at RATE_LIMIT_PER_MIN requests a
+# minute so one broken client cannot spend the organization's shared Explee
+# budget. Unbound, the limiter is a no-op and only the cache protects you.
+# Create with: wrangler kv namespace create RL
+# [[kv_namespaces]]
+# binding = "RL"
+# id = "REPLACE_WITH_NAMESPACE_ID"
+
 [triggers]
 crons = ["*/15 * * * *"]
 
 [vars]
 ALLOWED_ORIGIN = "https://unlimited-leads.net"
+RATE_LIMIT_PER_MIN = "60"
 
 # YOUR OWN Explee project ids, comma separated. A campaign in one of these can
 # never be linked to a customer — /admin/link refuses it and the status sync

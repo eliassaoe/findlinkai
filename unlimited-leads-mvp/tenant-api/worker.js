@@ -57,16 +57,23 @@ async function sb(env, path, init = {}) {
  * more thing to get subtly wrong, and getting it wrong here means one customer
  * reading another's inbox.
  */
-async function currentUser(req, env) {
+async function currentUser(req, env, ctx) {
   const auth = req.headers.get('authorization') || '';
   const token = auth.startsWith('Bearer ') ? auth.slice(7) : null;
   if (!token) throw new HttpError(401, 'sign in required');
 
-  const r = await fetch(`${env.SUPABASE_URL}/auth/v1/user`, {
-    headers: { apikey: env.SUPABASE_SERVICE_KEY, authorization: `Bearer ${token}` },
+  // Cached on a hash of the token, never the token itself — a cache key is not
+  // a secret store. 60s, so a revoked session dies within a minute.
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(token));
+  const fingerprint = [...new Uint8Array(digest)].map(b => b.toString(16).padStart(2, '0')).join('');
+
+  const u = await cached(ctx, 'auth', fingerprint, TTL.auth, async () => {
+    const r = await fetch(`${env.SUPABASE_URL}/auth/v1/user`, {
+      headers: { apikey: env.SUPABASE_SERVICE_KEY, authorization: `Bearer ${token}` },
+    });
+    if (!r.ok) throw new HttpError(401, 'session expired');
+    return r.json();
   });
-  if (!r.ok) throw new HttpError(401, 'session expired');
-  const u = await r.json();
   if (!u?.id) throw new HttpError(401, 'session expired');
   return u;
 }
@@ -92,7 +99,56 @@ async function ownedCampaign(tenant, campaignId, env) {
   const rows = await sb(env,
     `tenant_campaigns?campaign_id=eq.${campaignId}&tenant_id=eq.${tenant.id}&select=*`);
   if (!rows.length) throw new HttpError(404, 'campaign not found');
+  // tenant_id on the row is what every cache key is scoped by downstream, and
+  // it comes from this filtered read — not from the request.
   return rows[0];
+}
+
+/* ---------------------------------------------------------------------------
+ * Cache.
+ *
+ * Explee allows 10,000 requests an hour across the WHOLE organization — every
+ * customer's dashboard shares one budget. Uncached, a single left-open browser
+ * tab can spend it for everyone. Cached, the worst any number of tabs can cost
+ * is one upstream call per endpoint per tenant per TTL.
+ *
+ * The cache key is built from the tenant id resolved by currentUser(), never
+ * from anything the client sent. That is the whole safety argument: a client
+ * cannot name a cache entry, so it cannot read one belonging to someone else.
+ * ------------------------------------------------------------------------- */
+const TTL = {
+  analytics: 120,   // dashboard numbers; nobody needs these to the second
+  inbox: 60,        // a reply that lands is worth showing within a minute
+  leads: 300,       // the contacted list barely moves
+  thread: 30,       // short: people re-read a thread right after replying
+  auth: 60,         // token -> user, to stop a Supabase round trip per request
+};
+
+const cacheKey = (scope, path) =>
+  new Request(`https://ul-cache.internal/${scope}/${encodeURIComponent(path)}`);
+
+async function cached(ctx, scope, path, ttl, load) {
+  const store = caches.default;
+  const key = cacheKey(scope, path);
+  const hit = await store.match(key);
+  if (hit) return hit.json();
+
+  const data = await load();
+  const body = new Response(JSON.stringify(data), {
+    headers: { 'content-type': 'application/json',
+               'cache-control': `max-age=${ttl}` },
+  });
+  if (ctx?.waitUntil) ctx.waitUntil(store.put(key, body.clone()));
+  return data;
+}
+
+/** Drop the entries a write just invalidated. Exact keys only — the Cache API
+ *  cannot wildcard, so a deep page may stay stale for its TTL. That is a fair
+ *  trade: the pages people actually look at after replying are these. */
+async function invalidate(ctx, scope, paths) {
+  const store = caches.default;
+  const drop = Promise.all(paths.map(p => store.delete(cacheKey(scope, p)).catch(() => {})));
+  if (ctx?.waitUntil) ctx.waitUntil(drop); else await drop;
 }
 
 /**
@@ -208,23 +264,26 @@ async function submitOnboarding(tenant, body, env) {
 }
 
 /** The leads list: everyone this campaign has contacted. */
-async function getLeads(campaign, url, env) {
+async function getLeads(campaign, url, env, ctx) {
   if (!display(campaign).has_data) return { people: [], total: 0, ...COPY[campaign.status] };
   const limit = Math.min(Number(url.searchParams.get('limit')) || 50, 100);
   const offset = Number(url.searchParams.get('offset')) || 0;
-  return explee(env,
-    `/autogtm/campaigns/${campaign.campaign_id}/inbox?tab=sent&limit=${limit}&offset=${offset}`);
+  const path = `/autogtm/campaigns/${campaign.campaign_id}/inbox?tab=sent&limit=${limit}&offset=${offset}`;
+  return cached(ctx, campaign.tenant_id, path, TTL.leads, () => explee(env, path));
 }
 
 /** The inbox. `need_reply` first — that is where the money is. */
-async function getInbox(campaign, url, env) {
+const inboxPath = (id, tab, limit = 50, offset = 0) =>
+  `/autogtm/campaigns/${id}/inbox?tab=${tab}&limit=${limit}&offset=${offset}`;
+
+async function getInbox(campaign, url, env, ctx) {
   if (!display(campaign).has_data) return { conversations: [], total: 0, ...COPY[campaign.status] };
   const tab = ['need_reply', 'replied', 'sent'].includes(url.searchParams.get('tab'))
     ? url.searchParams.get('tab') : 'need_reply';
   const limit = Math.min(Number(url.searchParams.get('limit')) || 50, 100);
   const offset = Number(url.searchParams.get('offset')) || 0;
-  return explee(env,
-    `/autogtm/campaigns/${campaign.campaign_id}/inbox?tab=${tab}&limit=${limit}&offset=${offset}`);
+  const path = inboxPath(campaign.campaign_id, tab, limit, offset);
+  return cached(ctx, campaign.tenant_id, path, TTL.inbox, () => explee(env, path));
 }
 
 /** Hot leads — always scoped. Calling this endpoint unscoped leaks every
@@ -242,31 +301,69 @@ const personId = (v) => {
   return v;
 };
 
-async function getThread(campaign, pid, env) {
-  return explee(env, `/autogtm/campaigns/${campaign.campaign_id}/inbox/${personId(pid)}`);
+const threadPath = (id, pid) => `/autogtm/campaigns/${id}/inbox/${pid}`;
+
+async function getThread(campaign, pid, env, ctx) {
+  const path = threadPath(campaign.campaign_id, personId(pid));
+  return cached(ctx, campaign.tenant_id, path, TTL.thread, () => explee(env, path));
 }
 
-async function postReply(campaign, pid, body, env) {
+async function postReply(campaign, pid, body, env, ctx) {
   const message = String(body.message || '').trim();
   if (!message) throw new HttpError(422, 'Write a message first.');
   if (message.length > 5000) throw new HttpError(422, 'That message is too long.');
-  return explee(env,
-    `/autogtm/campaigns/${campaign.campaign_id}/inbox/${personId(pid)}/reply`,
+  const id = campaign.campaign_id, person = personId(pid);
+
+  const res = await explee(env, `/autogtm/campaigns/${id}/inbox/${person}/reply`,
     { method: 'POST', body: JSON.stringify({ message }) });
+
+  // The reply the customer just sent must be in the thread they land back on,
+  // so drop the thread and the two tabs whose contents just changed.
+  await invalidate(ctx, campaign.tenant_id, [
+    threadPath(id, person),
+    inboxPath(id, 'need_reply'),
+    inboxPath(id, 'replied'),
+  ]);
+  return res;
 }
 
 /** Analytics, plus the number Explee cannot give you: meetings booked. */
-async function getAnalytics(tenant, campaign, url, env) {
+async function getAnalytics(tenant, campaign, url, env, ctx) {
   if (!display(campaign).has_data) return { emails_sent: 0, replies: 0, hot_leads: 0, booked: 0 };
   const period = ['24h', '7d', '30d', 'all'].includes(url.searchParams.get('period'))
     ? url.searchParams.get('period') : '7d';
+  const path = `/autogtm/campaigns/${campaign.campaign_id}/analytics?period=${period}`;
   const [stats, booked] = await Promise.all([
-    explee(env, `/autogtm/campaigns/${campaign.campaign_id}/analytics?period=${period}`),
+    cached(ctx, tenant.id, path, TTL.analytics, () => explee(env, path)),
     sb(env, `bookings?tenant_id=eq.${tenant.id}&campaign_id=eq.${campaign.campaign_id}&select=id`),
   ]);
   // Spend is our cost, not their price. Never pass it through.
   const { spend, spend_usd, cost_per_lead, budget, ...safe } = stats || {};
   return { ...safe, booked: booked.length };
+}
+
+/**
+ * Per-tenant ceiling, in requests per minute.
+ *
+ * The cache already means a hammering tab costs almost nothing upstream. This
+ * is the second line: a broken client, a scraper or a retry loop should burn
+ * its own allowance and not the organization's Explee budget, which every
+ * customer shares.
+ *
+ * Needs a KV namespace bound as RL. Unbound, it is a no-op — deliberately, so
+ * a missing binding degrades to today's behaviour rather than locking everyone
+ * out of the product.
+ */
+async function underLimit(env, tenantId) {
+  if (!env.RL) return true;
+  const perMin = Number(env.RATE_LIMIT_PER_MIN || 60);
+  const bucket = `rl:${tenantId}:${Math.floor(Date.now() / 60000)}`;
+  const used = Number(await env.RL.get(bucket)) || 0;
+  if (used >= perMin) return false;
+  // Eventually consistent, so this undercounts a burst across colos. That is
+  // fine: it is a ceiling on abuse, not an accounting system.
+  await env.RL.put(bucket, String(used + 1), { expirationTtl: 120 });
+  return true;
 }
 
 // --------------------------------------------------------------------------
@@ -451,7 +548,7 @@ async function recordBooking(body, env) {
 
 // --------------------------------------------------------------------------
 export default {
-  async fetch(req, env) {
+  async fetch(req, env, ctx) {
     const origin = env.ALLOWED_ORIGIN || '*';
     if (req.method === 'OPTIONS') {
       return new Response(null, { status: 204, headers: {
@@ -490,8 +587,11 @@ export default {
 
       if (seg[0] !== 'api') throw new HttpError(404, 'not found');
 
-      const user = await currentUser(req, env);
+      const user = await currentUser(req, env, ctx);
       const tenant = await tenantFor(user, env);
+      if (!await underLimit(env, tenant.id)) {
+        throw new HttpError(429, 'Too many requests — give it a moment.');
+      }
 
       if (seg[1] === 'me') return json(await getMe(tenant, env), 200, origin);
       if (seg[1] === 'onboarding' && req.method === 'POST')
@@ -501,14 +601,14 @@ export default {
         const campaign = await ownedCampaign(tenant, seg[2], env);   // the gate
         const tail = seg.slice(3);
         if (!tail.length)               return json(display(campaign), 200, origin);
-        if (tail[0] === 'leads')        return json(await getLeads(campaign, url, env), 200, origin);
-        if (tail[0] === 'inbox')        return json(await getInbox(campaign, url, env), 200, origin);
+        if (tail[0] === 'leads')        return json(await getLeads(campaign, url, env, ctx), 200, origin);
+        if (tail[0] === 'inbox')        return json(await getInbox(campaign, url, env, ctx), 200, origin);
         if (tail[0] === 'hot')          return json(await getHot(campaign, url, env), 200, origin);
-        if (tail[0] === 'analytics')    return json(await getAnalytics(tenant, campaign, url, env), 200, origin);
+        if (tail[0] === 'analytics')    return json(await getAnalytics(tenant, campaign, url, env, ctx), 200, origin);
         if (tail[0] === 'threads' && tail[1] && !tail[2])
-          return json(await getThread(campaign, tail[1], env), 200, origin);
+          return json(await getThread(campaign, tail[1], env, ctx), 200, origin);
         if (tail[0] === 'threads' && tail[2] === 'reply' && req.method === 'POST')
-          return json(await postReply(campaign, tail[1], body, env), 200, origin);
+          return json(await postReply(campaign, tail[1], body, env, ctx), 200, origin);
       }
       throw new HttpError(404, 'not found');
     } catch (e) {

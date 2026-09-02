@@ -148,6 +148,58 @@ so you can watch hot leads arrive before a single email goes out.
 are simply off — nothing else changes. Force a poll any time with
 `GET /admin/hot`.
 
+## Caching, and the shared quota
+
+Explee allows **10,000 requests an hour across the whole organization** — that
+is API calls, not emails, and every customer's dashboard spends from the same
+bucket. Uncached, one browser tab left open on a polling dashboard can drain it
+for everybody. So every upstream read goes through a cache.
+
+| Read | TTL | Why |
+|---|---|---|
+| `analytics` | 120s | nobody needs the dashboard numbers to the second |
+| `inbox` | 60s | a reply that lands is worth showing within a minute |
+| `leads` (contacted) | 300s | the list barely moves |
+| `thread` | 30s | people re-read a thread right after replying |
+| Supabase auth `token → user` | 60s | saves a round trip on *every* request |
+
+**What that does to the quota.** The worst any number of tabs can cost is one
+upstream call per endpoint, per customer, per TTL. Twenty customers all
+refreshing continuously come to roughly 20 × (30 analytics + 60 inbox + 12
+leads) ≈ **2,000 calls an hour**, against 10,000. The crons add one call per
+15 minutes plus one per active campaign. There is room.
+
+**Why it cannot leak between customers.** The cache key is
+`https://ul-cache.internal/<tenant_id>/<path>`, and that `tenant_id` comes from
+the `tenant_campaigns` row that `ownedCampaign()` just read under the caller's
+own id — never from anything the client sent. A client cannot name a cache
+entry, so it cannot reach one that is not its own.
+
+**Invalidation.** Sending a reply drops that thread and the `need_reply` and
+`replied` tabs immediately, so the customer lands back on a thread containing
+what they just sent. The Cache API cannot wildcard, so a deep page (offset 50+)
+can stay stale for its TTL. That is the deliberate trade: the pages people
+actually look at after replying are the three that get dropped.
+
+**The auth cache has one consequence worth knowing:** a signed-out or revoked
+session can keep working for up to 60 seconds. For this product that is the
+right trade against a Supabase round trip on every single request; shorten
+`TTL.auth` if you disagree.
+
+### The second line: a per-tenant limiter
+
+The cache means a hammering tab costs almost nothing upstream. The limiter
+handles the rest — a broken client, a scraper, a retry loop — by making it burn
+its own allowance rather than the organization's.
+
+Bind a KV namespace as `RL` (`wrangler kv namespace create RL`, then uncomment
+the block in `wrangler.toml`) and each customer is capped at
+`RATE_LIMIT_PER_MIN`, default 60. **Unbound it is a deliberate no-op** — a
+missing binding degrades to no limiting rather than locking every customer out
+of the product. KV is eventually consistent, so a burst spread across colos
+undercounts; that is fine, it is a ceiling on abuse and not an accounting
+system.
+
 ## Known limits, so they do not surprise you later
 
 **Booking attribution is best-effort.** `/hooks/calendly` matches the booking to
