@@ -61,6 +61,7 @@ into a file here in the same session, or it is gone.
 | Who the SEO traffic actually is, before aiming an offer at it | `docs/traffic-capture-verdict.md` |
 | Building an AutoGTM competitor on `unlimited-leads.net` (pay-per-send) | `docs/unlimited-leads-autogtm.md` — nothing is built; it is the decision record |
 | The AutoGTM build itself: 5 n8n workflows + one schema, no server | `unlimited-leads-mvp/` — read its README first; it sells booked calls, not emails |
+| The AutoGTM beta page (private, allowlisted, unlinked) | `beta-auto-gtm.html` — gate is `BETA_EMAILS` on the worker, not the URL |
 | Listicle outreach on a cron (the `ai_keywords` table) | `docs/ai-keyword-outreach.md` — read it before adding keywords, it spends credits |
 | Explee AutoGTM: recovering replies that never booked, and the lead-source test | `workers/explee-autogtm/` — read `SENDING.md` and `BASELINE.md` for the real numbers, and its README before the first `--apply`; no call in it has ever reached the real API |
 | CRM cleanup + HubSpot | `CRM-SETUP.md` |

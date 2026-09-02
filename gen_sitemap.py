@@ -21,6 +21,7 @@ EXCLUDE = {
     "confirmation-login", "confirmation-signup", "confirmation-signup-beta",
     "upgrade-confirmation", "redeem-code", "beta-index",
     "end-of-bookmarks-bar", "say-goodbye",
+    "beta-auto-gtm",
     "app", "app-beta", "app-beta-2", "app_beta",
     "app-linkedin-leads",
 }

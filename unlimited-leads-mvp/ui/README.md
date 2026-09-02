@@ -1,16 +1,32 @@
 # The customer app
 
-Four screens, no build step, no framework. Two files do the work: `app.js` is
-the customer app, `admin.html` is your backstage. Drop the folder on any static
-host (Cloudflare Pages, Netlify, GitHub Pages) and point `unlimited-leads.net`
-at it.
+**The app lives at the repository root as `beta-auto-gtm.html`** — one
+self-contained file (markup, styles and script inline), so it deploys with the
+existing site and there is no build step and no second host to run.
 
 ```
-index.html   the shell and all the styling
-config.js    your Supabase URL + anon key + API base   ← edit this
-app.js       sign in → brief → dashboard → campaign → thread
-admin.html   your onboarding queue and the link button (not linked from anywhere)
+/beta-auto-gtm.html        the app. Edit UL_CONFIG at the bottom before opening it.
+unlimited-leads-mvp/ui/admin.html   your backstage — deliberately NOT at the root
 ```
+
+`admin.html` stays in this folder on purpose: anything at the repository root is
+published to linkfinderai.com, and the onboarding console has no business being
+on a public origin. Open it from a local checkout, or host it somewhere private.
+
+## It is a private beta, and the gate is server-side
+
+While `BETA_EMAILS` is set on the worker, every `/api` route returns `403` to
+anyone whose signed-in address is not on that list — before a tenant row is even
+created for them. The page is also `noindex,nofollow`, `Disallow`ed in
+`robots.txt`, excluded from `gen_sitemap.py`, and linked from nowhere.
+
+Those last four are tidiness. **`BETA_EMAILS` is the access control**, so set it
+before you deploy the page: an unlinked URL keeps out crawlers, not people.
+
+Someone signed in but not on the list sees "Not open yet" — not an error. Being
+outside a beta is not a failure they can do anything about.
+
+Clear `BETA_EMAILS` when you are ready to open it up. Nothing else changes.
 
 ## What the customer walks through
 
@@ -33,16 +49,15 @@ interested-to-booked rate, and two times converts better than a link.
 
 ## Setup
 
-1. `cp config.js` and fill in `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `API_BASE`.
-   Both keys are public by design — the anon key is meant for browsers and the
-   worker does every authorization check. **The Explee key is not here and must
-   never be.**
+1. Edit `UL_CONFIG` at the bottom of `beta-auto-gtm.html`: `SUPABASE_URL`,
+   `SUPABASE_ANON_KEY`, `API_BASE`. Both Supabase values are public by design —
+   the anon key is meant for browsers and the worker does every authorization
+   check. **The Explee key is not there and must never be.**
 2. In Supabase → Authentication → URL Configuration, add your site URL to the
    redirect allow-list, or the magic link bounces.
-3. Set `ALLOWED_ORIGIN` on the worker to this site's origin.
-4. Deploy the folder. `admin.html` ships with it but is unlinked and useless
-   without the admin token; host it separately if you would rather it not exist
-   on the public origin at all.
+3. Set `ALLOWED_ORIGIN` on the worker to wherever the page is served
+   (`https://linkfinderai.com` while it rides on the existing site).
+4. Set `BETA_EMAILS` to your own address, then deploy.
 
 ## Your onboarding loop, end to end
 

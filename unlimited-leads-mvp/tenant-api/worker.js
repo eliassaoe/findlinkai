@@ -78,6 +78,28 @@ async function currentUser(req, env, ctx) {
   return u;
 }
 
+/**
+ * Private-beta gate.
+ *
+ * BETA_EMAILS is a comma-separated allowlist. While it is set, every /api route
+ * is closed to anyone not on it — the page being unlinked and noindexed is
+ * tidiness, this is the access control. Clear the variable to open the product
+ * to everyone who signs up.
+ *
+ * It runs BEFORE tenantFor(), so a stranger who finds the URL does not even get
+ * a tenant row created for them.
+ */
+function assertBeta(user, env) {
+  const raw = String(env.BETA_EMAILS || '').trim();
+  if (!raw) return;                                   // beta over, everyone in
+  const allowed = new Set(raw.toLowerCase().split(',').map(e => e.trim()).filter(Boolean));
+  if (!allowed.has(String(user.email || '').toLowerCase())) {
+    // 'beta' is a sentinel the page turns into "not open yet" rather than an
+    // error — being outside a beta is not a failure the user can act on.
+    throw new HttpError(403, 'beta');
+  }
+}
+
 /** The tenant row, created on first sight so signup needs no extra step. */
 async function tenantFor(user, env) {
   const found = await sb(env, `tenants?user_id=eq.${user.id}&select=*`);
@@ -588,6 +610,7 @@ export default {
       if (seg[0] !== 'api') throw new HttpError(404, 'not found');
 
       const user = await currentUser(req, env, ctx);
+      assertBeta(user, env);
       const tenant = await tenantFor(user, env);
       if (!await underLimit(env, tenant.id)) {
         throw new HttpError(429, 'Too many requests — give it a moment.');
