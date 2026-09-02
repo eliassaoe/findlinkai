@@ -1,7 +1,68 @@
-# Bringing your own mailboxes — the biggest lever in this directory
+# Sending: the lever that is closed, and what that leaves
 
-Explee's offer to send from your own email accounts is worth more than every lead
-source question in `SOURCES.md` put together, on both cost and reply rate.
+**Bringing your own mailboxes to AutoGTM is not available.** Explee, asked
+directly, 2 Sept 2026:
+
+> Shared — outreach goes through our pre-warmed pool, with each prospect
+> consistently paired to one inbox from it; there's no dedicated domain or
+> mailbox per customer today.
+>
+> On bringing your own mailboxes: that option is visible in the app but isn't
+> live — picking it only records your interest, nothing gets connected, so
+> there's no separate rate for it. Pricing stays flat at ~$0.03 per email
+> actually sent, identical on every account.
+
+So the option in the app is an interest form, not a feature. Everything below was
+written on the assumption it worked; it is kept because the economics are correct
+and will matter the day it ships. **Click it anyway** — that is how the queue gets
+built — but do not plan around it.
+
+## What that leaves, on AutoGTM
+
+Three consequences, and they are the whole strategic picture:
+
+**1. The sending price is a floor, not a variable.** $0.03 an email, identical on
+every account, no bring-your-own discount to negotiate. At 374 emails per
+interested lead that is **$11.21 of every interested lead, fixed**. The lead data
+is the other $2.33. So the cheapest possible interested lead on this platform,
+with free leads, is about $11.
+
+**2. Placement cannot be fixed from your side.** The pool is shared, so your
+inbox rate carries other customers' complaints, and there is no domain to warm,
+rotate, or inspect. The 1.05% reply rate and the prospect who wrote back about
+spam are not things you can engineer away while sending through AutoGTM.
+
+**3. Therefore conversion is the only lever left here.** Cost per call is
+`$156.93 ÷ (14 × interested-to-booked)`. Nothing on the cost side moves any more:
+not the lead source (worth 17% at most, and Pharow needs 1.41x just to break
+even), not the sending (fixed). The booking rate is worth 2x to 5x and it is
+free. **See `BASELINE.md`: the $50 target is exactly a 22% interested-to-booked
+rate.**
+
+That is the case for un-parking `recover.py`, and it is now the only case left.
+
+## If the placement problem turns out to be the real ceiling
+
+There is one architecture that fixes it, and it is a real trade, not a free win:
+**use Explee for leads and something else for sending.** Explee's public API sells
+the data at ~$0.025 a lead; Instantly - already paid for, with nine warmed
+mailboxes in it - sends from inboxes whose reputation is yours.
+
+| | AutoGTM today | Explee API + Instantly |
+|---|---|---|
+| 22,400 emails/month | $672 | ~$162 infra + plan |
+| Leads | $140 | $140 |
+| Reputation | shared pool | **yours** |
+| **Monthly** | **~$812** | **~$500** |
+
+What you would lose is not small: AutoGTM's AI-written per-lead copy, the
+autopilot, the unified inbox, the hot-lead detection. That is presumably why you
+are on it. So this is a fork to hold in reserve — worth taking only if the seed
+test shows placement is genuinely eating the reply rate, and worth re-checking
+whenever Explee ships bring-your-own.
+
+Run the seed test either way: it costs $2, it needs nothing from Explee, and it
+tells you whether placement is the ceiling or the offer is.
 
 ## You already own nine healthy mailboxes
 
