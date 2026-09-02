@@ -14,6 +14,7 @@ import urllib.error
 
 import baseline
 import followups as fu
+import instantly_leads as il
 import leadsource_test as lst
 import recover
 from explee import Explee, ExpleeError, ShapeError, first_of
@@ -286,6 +287,69 @@ class Leads(unittest.TestCase):
         leads, dropped = lst.clean_leads(rows, exclude={"a@x.com"})
         self.assertEqual(leads, [])
         self.assertTrue(dropped)
+
+
+class Bridge(unittest.TestCase):
+    """The Instantly -> AutoGTM mapping, against the shape a real list-leads returns."""
+
+    REAL = {"items": [{
+        "id": "1", "email": "Louise@daisyapp.fr", "first_name": "Louise",
+        "last_name": "De Longuemar", "company_name": "Daisy",
+        "company_domain": "daisyapp.fr", "job_title": "Founder & CEO",
+        "payload": {"linkedIn": "linkedin.com/in/louise-x", "companyDomain": "daisyapp.fr",
+                    "jobTitle": "Founder & CEO"}}]}
+
+    def test_maps_and_normalises(self):
+        rows, dropped = il.convert(self.REAL, signal="website_funding")
+        self.assertEqual(dropped, {})
+        row = rows[0]
+        self.assertEqual(row["email"], "louise@daisyapp.fr")          # lowercased
+        self.assertEqual(row["linkedin_url"], "https://linkedin.com/in/louise-x")
+        self.assertEqual(row["company_domain"], "daisyapp.fr")
+        self.assertEqual(row["signal"], "website_funding")
+
+    def test_falls_back_into_the_payload(self):
+        lead = {"email": "a@x.com", "first_name": "A", "last_name": "B",
+                "payload": {"companyDomain": "x.com", "jobTitle": "CTO"}}
+        rows, _ = il.convert([lead])
+        self.assertEqual(rows[0]["company_domain"], "x.com")
+        self.assertEqual(rows[0]["job_title"], "CTO")
+
+    def test_drops_what_autogtm_would_reject(self):
+        rows, dropped = il.convert([{"email": "", "first_name": "N", "last_name": "X",
+                                     "company_domain": "x.com", "job_title": "CEO"}])
+        self.assertEqual(rows, [])
+        self.assertIn("missing email", "".join(dropped))
+
+    def test_dedupes_on_email(self):
+        rows, dropped = il.convert(list(self.REAL["items"]) * 2)
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(dropped["duplicate email"], 1)
+
+    def test_an_already_absolute_linkedin_url_is_left_alone(self):
+        self.assertEqual(il.linkedin("https://www.linkedin.com/in/x"),
+                         "https://www.linkedin.com/in/x")
+
+
+class ArmReading(unittest.TestCase):
+    class Api:
+        def __init__(self, payload):
+            self.payload = payload
+
+        def campaign_analytics(self, campaign_id, period=None):
+            return self.payload
+
+    def test_nested_and_flat_analytics_both_read(self):
+        nested = self.Api({"analytics": {"emails_sent": 500, "replies": 25, "hot_leads": 6},
+                           "spend_usd": 60.0})
+        arm = lst.read_arm(nested, {"arm": "c", "campaign_id": 1}, None)
+        self.assertEqual((arm["sent"], arm["replies"], arm["hot"], arm["spend"]),
+                         (500, 25, 6, 60.0))
+
+    def test_a_missing_field_raises_instead_of_reporting_zero(self):
+        api = self.Api({"emails_sent": 500, "hot_leads": 1, "spend": 1.0})
+        with self.assertRaises(ShapeError):
+            lst.read_arm(api, {"arm": "c", "campaign_id": 1}, None)
 
 
 class Verdict(unittest.TestCase):

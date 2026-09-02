@@ -26,11 +26,33 @@ Measured on this account, same ICP, signals off vs on:
 That is the whole bet in one table: the same audience, cut to the 0.8% who did
 something this quarter that gives you a reason to write.
 
-**Budget check, today:** 655 of 1,500 credits left this month, and 778 of 1,000
-lead slots free. Enough for exactly one 500-lead arm — run the test, do not fill
-the account.
+**Budget check, corrected.** SuperSearch charges **5 credits per lead**, not 1.
+An earlier version of this file said 655 credits buys a 500-lead arm. It does not:
+
+| | |
+|---|---|
+| Credits available today | 655 of 1,500/month |
+| Leads that buys, at 5 credits each | **131** |
+| A full month's 1,500 credits | 300 leads |
+| 500 leads | 2,500 credits ≈ **$78** at $47 per 1,500 |
+
+So the real per-lead prices are **$0.157 Instantly · ~$0.052 TheirStack ·
+~$0.01 Explee**. Sending is ~$0.12 a lead (four emails at $0.03), so an Instantly
+arm costs about **$0.28 all-in against $0.13** for the Explee control.
+
+That is worth saying plainly: **the 2x bar is not arbitrary, it is break-even.**
+An intent arm that costs 2.2x per lead has to reply about twice as well to be
+worth running at all, which is exactly the threshold `verdict()` enforces.
 
 Instantly is the *source* only. Sending stays in AutoGTM, per the plan.
+
+**One signal per campaign.** AutoGTM's import takes five mandatory fields plus
+`linkedin_url` and no custom variables, so the reason a lead is interesting -
+the funding round, the new job title - cannot ride along per lead, and Explee's
+copy will never mention it. The fix is to build the campaign on a single signal
+and say so in the brief: "every company here has just raised - reference it".
+A campaign mixing four signals can say nothing specific about any of them, and
+then you have paid intent prices for a firmographic email.
 
 ---
 

@@ -171,6 +171,41 @@ def brief_sha(brief):
     return hashlib.sha1(json.dumps(brief, sort_keys=True).encode()).hexdigest()[:8]
 
 
+def cmd_adopt(args):
+    """Use the campaign that is already running as the control arm.
+
+    Nothing is imported and nothing is charged. It also lifts that campaign's
+    own copy brief into brief.json, so the new arm can be imported with the
+    SAME instructions - which is the only way the comparison measures the lead
+    source instead of the copy. (PATCH cannot set the briefs; import can.)
+    """
+    api = Explee()
+    definition = api.campaign(args.campaign)
+    brief = {"instructions": first_of(definition, "instructions", default="") or "",
+             "followup_instructions": first_of(definition, "followup_instructions",
+                                               default="") or "",
+             "language": first_of(definition, "language", default="en")}
+    record = {"arm": args.name,
+              "campaign_id": args.campaign,
+              "project_id": first_of(definition, "project_id", default=None),
+              "brief_sha": brief_sha(brief),
+              "live_campaign": True,
+              "adopted_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}
+    Path(args.out).write_text(json.dumps(record, indent=1))
+    if args.brief_out:
+        Path(args.brief_out).write_text(json.dumps(brief, indent=1))
+        print("brief {} -> {}".format(record["brief_sha"], args.brief_out))
+        if not brief["instructions"]:
+            print("  !! this campaign has no first-email brief of its own - it is running on "
+                  "the project description. Write brief.json by hand and give BOTH arms the "
+                  "same one, or the test measures the copy.")
+    print("control arm -> {} (campaign {}, project {})".format(
+        args.out, args.campaign, record["project_id"]))
+    print("It is already running, so window both arms to the same days with "
+          "--period when you compare.")
+    return 0
+
+
 def cmd_import(args):
     leads = json.loads(Path(args.leads).read_text())
     brief = json.loads(Path(args.brief).read_text()) if args.brief else {}
@@ -224,13 +259,16 @@ def read_arm(api, record, period):
     stats = api.campaign_analytics(record["campaign_id"], period=period)
     flat = dict(first_of(stats, "analytics", "totals", "summary", default={}) or {})
     flat.update({k: v for k, v in stats.items() if not isinstance(v, (dict, list))})
-    sent = int(first_of(flat, "emails_sent", "sent", "emails", default=0))
+    # No defaults on purpose. A missing `replies` silently read as 0 would hand you
+    # a confident DROP on an arm that is actually winning, which is the one wrong
+    # answer this whole file exists to avoid. Raise, name the key, let a human fix it.
     return {
         "name": record["arm"],
-        "sent": sent,
-        "replies": int(first_of(flat, "replies", "reply_count", "replied", default=0)),
-        "hot": int(first_of(flat, "hot_leads", "hot_lead_count", "hot", default=0)),
-        "spend": float(first_of(flat, "spend_usd", "spend", "cost_usd", default=0.0)),
+        "campaign_id": record["campaign_id"],
+        "sent": int(first_of(flat, "emails_sent", "sent", "emails")),
+        "replies": int(first_of(flat, "replies", "reply_count", "replied")),
+        "hot": int(first_of(flat, "hot_leads", "hot_lead_count", "hot")),
+        "spend": float(first_of(flat, "spend_usd", "spend", "cost_usd")),
         "brief_sha": record.get("brief_sha"),
         "imported_at": record.get("imported_at"),
     }
@@ -266,7 +304,16 @@ def verdict(control, variant):
 
 def cmd_compare(args):
     api = Explee()
-    arms = [read_arm(api, json.loads(Path(p).read_text()), args.period) for p in args.arm]
+    calls = json.loads(Path(args.calls).read_text()) if args.calls else {}
+    arms = []
+    for path in args.arm:
+        record = json.loads(Path(path).read_text())
+        arm = read_arm(api, record, args.period)
+        arm["live_campaign"] = record.get("live_campaign", False)
+        booked = calls.get(str(arm["campaign_id"]), {})
+        arm["booked"] = booked.get("booked")
+        arm["showed"] = booked.get("showed")
+        arms.append(arm)
     if len(arms) != 2:
         raise SystemExit("compare takes exactly two --arm files")
     control, variant = arms
@@ -288,6 +335,25 @@ def cmd_compare(args):
         print("!! the arms started on different days ({} vs {}) - a good week can masquerade "
               "as a good lead source".format(control["imported_at"][:10],
                                              variant["imported_at"][:10]))
+
+    if any(arm["live_campaign"] for arm in arms) and not args.period:
+        print("\n!! one arm was already running before the test. Pass --period so both are "
+              "read over the same days, or the older arm is being judged on a different "
+              "month of weather.")
+
+    if any(arm["booked"] for arm in arms):
+        print("\n{:<28}{:>9}{:>9}{:>14}{:>14}".format(
+            "", "booked", "showed", "$/booked", "$/showed"))
+        for arm in arms:
+            booked, showed = arm["booked"] or 0, arm["showed"] or 0
+            print("{:<28}{:>9}{:>9}{:>14}{:>14}".format(
+                arm["name"][:28], booked or "-", showed or "-",
+                "${:.0f}".format(arm["spend"] / booked) if booked else "-",
+                "${:.0f}".format(arm["spend"] / showed) if showed else "-"))
+        print("$/showed is the number the plan is trying to get under $50.")
+    else:
+        print("\nNo call numbers. Cost per call needs --calls calls.json: "
+              '{"<campaign_id>": {"booked": 4, "showed": 2}}')
 
     call, why = verdict(control, variant)
     print("\n{}: {}".format(call.upper(), why))
@@ -318,6 +384,13 @@ def main(argv=None):
     ctrl.add_argument("--apply", action="store_true")
     ctrl.set_defaults(func=cmd_control)
 
+    ado = sub.add_parser("adopt", help="use a live campaign as the control arm (free)")
+    ado.add_argument("--campaign", type=int, required=True)
+    ado.add_argument("--name", default="Explee control (live)")
+    ado.add_argument("--out", default="control.arm.json")
+    ado.add_argument("--brief-out", default="brief.json")
+    ado.set_defaults(func=cmd_adopt)
+
     imp = sub.add_parser("import", help="one arm into a new AutoGTM campaign")
     imp.add_argument("--project", type=int, required=True)
     imp.add_argument("--name", required=True)
@@ -332,6 +405,7 @@ def main(argv=None):
     cmp_ = sub.add_parser("compare", help="read both arms and call it")
     cmp_.add_argument("--arm", action="append", required=True)
     cmp_.add_argument("--period")
+    cmp_.add_argument("--calls", help='JSON: {"<campaign_id>": {"booked": 4, "showed": 2}}')
     cmp_.set_defaults(func=cmd_compare)
 
     args = ap.parse_args(argv)

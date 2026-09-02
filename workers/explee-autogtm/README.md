@@ -62,23 +62,32 @@ python3 leadsource_test.py filters \
 
 ### The four steps
 
+The campaign you are already running is the control — do not rebuild it. `adopt`
+takes it as one arm and lifts its own copy brief out, so the new arm can be
+imported with the same instructions:
+
 ```bash
-# the sourced arm: post engagers from your own tool, or a TheirStack export
-python3 leadsource_test.py prepare --csv intent-export.csv --out variant.leads.json
+# 1. the live campaign becomes the control arm. Free, changes nothing.
+python3 leadsource_test.py adopt --campaign <live id> \
+    --out control.arm.json --brief-out brief.json
 
-# the Explee arm: search is free, the emails are not (1.5 credits each found on basic)
-python3 leadsource_test.py control --filters filters.json --count 500 \
-    --exclude variant.leads.json --out control.leads.json --apply
+# 2. Instantly SuperSearch leads (one signal) -> CSV -> import-ready
+python3 instantly_leads.py leads.json --out intent.csv --signal website_funding
+python3 leadsource_test.py prepare --csv intent.csv --out variant.leads.json
 
-# same brief for both, or the test measures the copy instead of the lead source
-python3 leadsource_test.py import --project 4021 --name "Intent test - control" \
-    --leads control.leads.json --brief brief.json --apply
-python3 leadsource_test.py import --project 4021 --name "Intent test - sourced" \
+# 3. the new campaign, same brief as the live one
+python3 leadsource_test.py import --project <project id> \
+    --name "Intent test - Instantly funding signal" \
     --leads variant.leads.json --brief brief.json --exclude control.arm.json --apply
 
-# a week or two later
-python3 leadsource_test.py compare --arm control.arm.json --arm variant.arm.json
+# 4. a week or two later, both arms over the same days
+python3 leadsource_test.py compare --arm control.arm.json --arm variant.arm.json \
+    --period month --calls calls.json
 ```
+
+`calls.json` is `{"<campaign_id>": {"booked": 4, "showed": 2}}` from your
+calendar — it is what turns the comparison into cost per call. AutoGTM drops
+leads the project has already contacted, so the two arms cannot overlap.
 
 `import` hashes the brief and refuses the second arm when it differs; `prepare`
 and `control` drop anyone already in the other arm (a lead in both replies once
@@ -200,6 +209,7 @@ from lead sourcing, fixed by confirmations and reminders, not by better data.
 | `recover.py` | Action 1: scan the inboxes, decide, send, mark the note |
 | `leadsource_test.py` | Action 2: prepare / control / import / compare |
 | `baseline.py` | cost per call that actually showed up, before and after |
+| `instantly_leads.py` | Instantly SuperSearch leads -> the CSV `prepare` eats |
 | `SOURCES.md` | which intent source to buy, what it costs, what was ruled out |
 | `brief.json` | the campaign copy both arms share - per-record project, not the subscription |
 | `test_explee_autogtm.py` | 40 tests, offline |
