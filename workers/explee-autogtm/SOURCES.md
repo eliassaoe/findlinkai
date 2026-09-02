@@ -1,10 +1,42 @@
 # Where the high-intent leads come from
 
 Requirement: **pay as you go, API credits, no subscription.** That rules out most
-of the intent market, which sells seats. Three sources survive it, in the order
-they should be tried.
+of the intent market, which sells seats: Clay, Apollo, Ocean, LeadMagic (from
+$49/mo), Crustdata ($95/mo minimum and demo-gated, not self-serve). The honest
+answer to "is there anything besides Gojiberry?" is: not many, and the best one
+is already on your card.
 
-## 1. Your own product — the one you already pay for
+## 0. Instantly's AI Lead Finder — you already pay for it
+
+The Growth Credits plan ($47/mo, 1,500 credits) includes SuperSearch, and its
+`signals` filter carries **25 buying-signal categories**: `job_change`,
+`promotion`, `reddit_buying_intent`, `reddit_competitor_mention`,
+`reddit_churn_risk`, `website_funding`, `website_technology_adoption`,
+`traffic_surge`, `linkedin_post_company`, `glassdoor_negative` and more, each
+with a 30-90 day freshness window. It is on the API (and the MCP server), and
+leads export as a CSV that feeds straight into `prepare`.
+
+Measured on this account, same ICP, signals off vs on:
+
+| Filter | Leads |
+|---|---|
+| Founders/Heads of Sales, software + business services, under 100 staff | **994,989** |
+| ...**with** a job change, funding event or Reddit buying-intent signal in 90 days | **7,549** |
+
+That is the whole bet in one table: the same audience, cut to the 0.8% who did
+something this quarter that gives you a reason to write.
+
+**Budget check, today:** 655 of 1,500 credits left this month, and 778 of 1,000
+lead slots free. Enough for exactly one 500-lead arm — run the test, do not fill
+the account.
+
+Instantly is the *source* only. Sending stays in AutoGTM, per the plan.
+
+---
+
+Below, in order, if you want a second signal or a source Instantly does not have.
+
+## 1. Your own product — the signal Instantly does not have
 
 The plan's "engaged with a competitor's post" signal is a LinkFinder AI feature.
 No new vendor, no new contract, and the credits are yours:
@@ -18,8 +50,9 @@ No new vendor, no new contract, and the credits are yours:
 last week is in-market for contact data this week — that is a harder signal than
 anything a firmographic database can produce, and it costs you no cash at all.
 
-**Start here.** If the test is going to move, it moves on this arm, and a losing
-result costs nothing but credits.
+Worth pairing with #0: Instantly's `linkedin_post_company` signal watches
+companies, not the individuals who engaged with a *competitor's* post. That
+specific signal only exists in your own scraper.
 
 ## 2. TheirStack — the only real pay-as-you-go intent API
 
@@ -58,6 +91,12 @@ arm wins and you want a second signal.
   category), but it needs a claimed G2 product listing on a paid intent tier.
   Checked: this account owns no G2 product, so it is not available.
 - **Crunchbase, Harmonic, ZoomInfo intent** — annual contracts. Out of scope.
+- **LeadMagic ($49/mo), Crustdata ($95/mo, demo-gated)** — good data, but both
+  have a floor you pay whether or not you search that month.
+- **Parallel** — genuinely per-request, no seats, no subscription (~$0.001-0.005
+  per 10 search results). It is a web-search API for agents, not a lead finder:
+  you would be building the finder yourself. Keep it in mind only if all three
+  above disappoint.
 
 ## Feeding a source into the test
 
