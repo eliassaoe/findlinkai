@@ -140,24 +140,57 @@ At your volume (22,400/month, ~50 inboxes) that is **$162-271/month against
 Explee's $673** — if Explee discounts bring-your-own. Which is still the open
 question below.
 
-### But the deliverability case rests on one fact nobody has checked
+### Confirmed: Explee's sending domains are shared. That decides it.
 
-The reason rented inboxes might land better is **not branding.** It is this:
+Explee states the pool is shared across customers. So `usetidegrove.com` and
+`tryturn.org` carry every other Explee customer's spam complaints, and you have
+no lever: you cannot warm them, rotate them, or even see their reputation. Three
+things stop being coincidences and start being symptoms:
 
-- **Explee's pool**: if `usetidegrove.com` and `tryturn.org` are shared across
-  Explee's customers, your placement carries every other customer's spam
-  complaints, and you have no lever when it degrades.
-- **Rented inboxes**: the domains are used by you alone. You do not own them, but
-  the reputation on them is yours — nobody else can burn it.
+- a prospect writing back that the mail landed in spam
+- a **1.05% reply rate** where cold email that reaches the inbox runs 3-8%
+- an interested-lead cost you have been trying to fix from the lead side
 
-Dedicated-but-rented is the thing worth paying for. **So ask Explee directly: are
-the sending domains on my campaigns dedicated to my project, or shared with other
-customers?** If they are already dedicated, the reputation argument disappears and
-only sender identity is left, which is worth much less. If they are shared, that
-is your answer and the switch is justified on placement alone.
+**Renting dedicated inboxes is justified on placement alone**, and the money is a
+bonus. The reputation on a rented domain is yours - nobody else can burn it -
+even though the asset is not.
 
-Ask that before the seed test, and before any invoice. It is one email and it
-decides the whole question.
+### It wins even if Explee gives you no discount at all
+
+Worst case: Explee keeps charging $0.03 an email and you pay the infrastructure
+on top. At 22,400 emails a month:
+
+| | Monthly cost | Interested leads | Cost each |
+|---|---|---|---|
+| today, shared pool | $812 | 56 | **$14.50** |
+| **+ rented inboxes, Explee still charges full** | $974 | 112 (reply rate 2x) | **$8.70** |
+| + rented inboxes, Explee at $0.01 BYO | $526 | 112 | **$4.70** |
+
+Even paying twice, a placement fix that doubles the reply rate cuts cost per
+interested lead by 40%. Ask for the BYO rate - it is worth $450 a month - but it
+does not gate the decision.
+
+### Which one, given shared is the thing being escaped
+
+**Not Maildoso.** From $0.49 an inbox, but shared IPs with heavy rotation: that is
+the same trap with a different logo.
+
+- **Zapmail / Mailforge (~$3.25-4 an inbox)** — real Google Workspace or Microsoft
+  365 mailboxes on domains used only by you. Mailbox providers trust those
+  platforms, and the reputation that matters here is the *domain's*, which is
+  dedicated. **The default choice.**
+- **Mailreef ($249/mo + $0.001 a send)** — its own SMTP infrastructure with
+  dedicated IPs. Full control, more to get wrong: an IP has to be warmed as
+  carefully as a domain. Worth it at higher volume or if you want the IP itself.
+
+One question for whichever you pick: **does your warmup keep running when I send
+through a third-party tool?** Some vendors only warm accounts that send inside
+their own product, which would leave you cold-sending from unwarmed inboxes.
+
+Then prove it with the seed test above: run it once on the shared pool now, once
+on the rented inboxes after three weeks of warmup. Same twelve seeds, same copy.
+That is the before-and-after that tells you whether the placement theory was
+right, and it costs $3 in total.
 
 Sources: [Cold email infrastructure pricing 2026](https://maildeck.co/blog/cold-email-infrastructure-cost-2026/) ·
 [Provider comparison](https://www.icemail.ai/blog/best-cold-email-infrastructure-tools-2026-full-comparison-with-pricing/)
