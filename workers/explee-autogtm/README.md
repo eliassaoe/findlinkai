@@ -108,6 +108,16 @@ python3 leadsource_test.py prepare --csv pharow-trial.csv --out trial.leads.json
 python3 leadsource_test.py overlap --leads trial.leads.json --apply    # ~$1
 ```
 
+**The 100 free leads answer coverage, not conversion.** They cannot be an arm of
+the sending test: put them in a campaign and that campaign *is* the Pharow arm -
+there is no Explee arm, because those are Pharow's people. The same list on both
+sides measures nothing. And 100 leads at a ~5% reply rate is five replies, which
+is noise, not a result; the gate is 300 a side for a reason.
+
+So the trial buys you three answers, all of them cheap and none of them requiring
+a send: what share Explee cannot find, whether the titles are really the buyers
+you asked for, and whether the emails are real. Only the first needs a tool.
+
 `overlap` asks Explee for the same people at the same companies and reports what
 share of the list Explee simply cannot reach. That number decides which argument
 applies: mostly-unique means it is a reach decision and the price stops mattering;
