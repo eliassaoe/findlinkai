@@ -12,11 +12,17 @@
  *      --sheet-token.
  *
  * THE SHEET
- *   Row 1 must contain headers. Two are required and the rest are yours:
- *     email    - the lead's address, how rows are matched
- *     booked   - you type anything here when they book. Blank means not booked.
- *   Suggested extras, filled automatically when present: first_name, company,
- *   campaign_id, person_id, became_hot_at, note.
+ *   Row 1 must contain headers. `email` is required; the rest are optional and
+ *   filled in for you when the column exists:
+ *
+ *     email          the lead's address - how rows are matched
+ *     booked         type anything when they book. A win, and counted as one.
+ *     stop           type anything to leave them alone for any other reason
+ *     first_name, company, job_title, campaign, last_reply, replied_at
+ *     followups_sent, next_action   <- written back by the loop, do not edit
+ *     inbox          a link straight to the conversation in Explee
+ *
+ *   Only email matters. Every other column is yours to delete.
  */
 
 var TOKEN = 'CHANGE-ME-to-a-long-random-string';
@@ -47,26 +53,33 @@ function json_(payload) {
     .setMimeType(ContentService.MimeType.JSON);
 }
 
-/** GET ?token=...&action=booked  ->  {"booked": ["a@x.com", ...]} */
+var NO = ['', 'no', 'non', 'false', '0', 'n', '-'];
+
+function marked_(value) {
+  return NO.indexOf(String(value || '').trim().toLowerCase()) === -1;
+}
+
+/** GET ?token=...  ->  {"booked": [...], "stopped": [...]} */
 function doGet(e) {
   if (!e || !e.parameter || e.parameter.token !== TOKEN) return json_({ error: 'bad token' });
   var sh = sheet_();
-  if (sh.getLastRow() < 2) return json_({ booked: [] });
+  if (sh.getLastRow() < 2) return json_({ booked: [], stopped: [] });
   var head = headers_(sh);
   var emailAt = col_(head, ['email', 'e-mail', 'mail']);
   var bookedAt = col_(head, ['booked', 'rdv', 'call', 'meeting']);
-  if (emailAt === -1 || bookedAt === -1) {
-    return json_({ error: 'need an "email" column and a "booked" column in row 1' });
+  var stopAt = col_(head, ['stop', 'done', 'handled', 'traite', 'traité', 'ne pas relancer']);
+  if (emailAt === -1 || (bookedAt === -1 && stopAt === -1)) {
+    return json_({ error: 'need an "email" column and a "booked" (or "stop") column in row 1' });
   }
   var rows = sh.getRange(2, 1, sh.getLastRow() - 1, sh.getLastColumn()).getValues();
-  var no = ['', 'no', 'non', 'false', '0', 'n', '-'];
-  var booked = [];
+  var booked = [], stopped = [];
   for (var i = 0; i < rows.length; i++) {
     var email = String(rows[i][emailAt] || '').trim().toLowerCase();
-    var flag = String(rows[i][bookedAt] || '').trim().toLowerCase();
-    if (email && no.indexOf(flag) === -1) booked.push(email);
+    if (!email) continue;
+    if (bookedAt !== -1 && marked_(rows[i][bookedAt])) booked.push(email);
+    else if (stopAt !== -1 && marked_(rows[i][stopAt])) stopped.push(email);
   }
-  return json_({ booked: booked });
+  return json_({ booked: booked, stopped: stopped });
 }
 
 /** POST {token, action:'append', rows:[{email, first_name, ...}]} -> {added: n} */
@@ -78,7 +91,9 @@ function doPost(e) {
     return json_({ error: 'body must be JSON' });
   }
   if (body.token !== TOKEN) return json_({ error: 'bad token' });
-  if (body.action !== 'append') return json_({ error: 'unknown action' });
+  if (body.action !== 'append' && body.action !== 'update') {
+    return json_({ error: 'unknown action' });
+  }
 
   // One writer at a time: two runs of the loop must not interleave and duplicate
   // a lead, which is how someone ends up mailed twice.
@@ -96,6 +111,29 @@ function doPost(e) {
       for (var i = 0; i < existing.length; i++) {
         known[String(existing[i][0] || '').trim().toLowerCase()] = true;
       }
+    }
+
+    // 'update' writes loop state back onto rows that already exist, so the sheet
+    // shows what the follow-up loop is doing without anyone opening a terminal.
+    if (body.action === 'update') {
+      var index = {};
+      if (sh.getLastRow() > 1) {
+        var col = sh.getRange(2, emailAt + 1, sh.getLastRow() - 1, 1).getValues();
+        for (var r = 0; r < col.length; r++) {
+          index[String(col[r][0] || '').trim().toLowerCase()] = r + 2;
+        }
+      }
+      var touched = 0;
+      (body.rows || []).forEach(function (row) {
+        var at = index[String(row.email || '').trim().toLowerCase()];
+        if (!at) return;
+        Object.keys(row).forEach(function (name) {
+          var c = head.indexOf(String(name).toLowerCase());
+          if (c !== -1 && name !== 'email') sh.getRange(at, c + 1).setValue(row[name]);
+        });
+        touched++;
+      });
+      return json_({ updated: touched });
     }
 
     var out = [];

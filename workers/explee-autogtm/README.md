@@ -168,6 +168,35 @@ we stop.**
 Explee's own support confirmed why this has to exist: *"once a lead replies, the
 automated sequence is over for them for good; there's no automatic win-back."*
 
+### One project per customer
+
+You run several Explee projects. Each gets a file in `projects/`, and one cron
+line runs all of them:
+
+```bash
+python3 recover.py --init "Acme Corp"     # writes projects/acme-corp.json
+python3 recover.py --all                  # dry run, every project
+python3 recover.py --all --apply          # send, every project
+```
+
+A project file is the whole configuration — the Explee project id, the sheet, the
+language, and the copy the follow-ups use:
+
+```json
+{
+  "name": "acme",
+  "project_id": 12345,
+  "language": "fr",
+  "timezone": "Europe/Paris",
+  "sheet": {"webapp_url": "https://script.google.com/.../exec", "token": "..."},
+  "copy": {"sender": "Eliasse", "offer": "one line", "topic": "outbound"}
+}
+```
+
+`projects/example.json` is the real linkfinderai one (project 30475) with the
+sheet fields blank. **Project files are gitignored** apart from that example,
+because they hold sheet tokens.
+
 ### Set the sheet up once
 
 A Google Sheet with two columns that matter — `email` and `booked` — plus
@@ -190,8 +219,30 @@ python3 recover.py --sheet-webapp "https://script.google.com/macros/s/.../exec" 
                    --sheet-token "your-token"
 ```
 
-You type **anything** in Booked — `x`, `oui`, a date, a tick. Blank, `no`, `non`,
-`0` and `-` mean not booked. Nothing else in the sheet is read.
+**Two ways to take someone out of the loop**, and they mean different things:
+
+| Column | Meaning | Counts as a win |
+|---|---|---|
+| `booked` | they have a call | yes |
+| `stop` | leave them alone for any other reason — you answered them yourself, they are already a customer, you just do not want them chased | no |
+
+Both halt the follow-ups immediately. **Jérôme goes in `stop`** — dealt with, but
+not a booking, so he does not inflate the booked rate. You type **anything**:
+`x`, `oui`, a date, a tick. Blank, `no`, `non`, `0` and `-` mean not marked.
+
+### What the sheet shows you
+
+Sync fills in the context so a lead can be judged without opening Explee:
+`first_name`, `company`, `job_title`, `campaign`, `replied_at`, and an `inbox`
+link. Then every run writes back three columns you never type in:
+
+| Column | What it tells you |
+|---|---|
+| `last_reply` | the first 300 characters of what they actually said |
+| `followups_sent` | 0, 1 or 2 — and 3 means the loop is finished with them |
+| `next_action` | `2026-09-05`, `re-engage on 2026-12-01`, `sent nudge today`, or why it stopped |
+
+Delete any column you do not want; only `email` is required.
 
 ### What each run does
 

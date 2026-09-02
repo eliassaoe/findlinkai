@@ -18,6 +18,14 @@ themselves and you only ever type in the Booked column.
 Read-only is enough for the part that matters - nothing sends to someone you
 marked booked - so start there and upgrade when the manual paste annoys you.
 
+TWO WAYS TO TAKE SOMEONE OUT OF THE LOOP
+-----------------------------------------
+`booked` means they have a call - a win, and it is what the numbers count.
+`stop` means leave them alone for any other reason: you answered them yourself,
+they are a customer already, you simply do not want them chased. Both stop the
+follow-ups; only `booked` inflates the booked rate. A sheet with just one of the
+two columns works fine.
+
 WHAT COUNTS AS BOOKED
 ---------------------
 Any non-empty value in the booked column that is not a plain no: `x`, `yes`,
@@ -44,6 +52,10 @@ import urllib.request
 EMAIL_HEADERS = ("email", "e_mail", "mail", "adresse_email", "courriel")
 BOOKED_HEADERS = ("booked", "rdv", "call", "meeting", "reserve", "call_booked",
                   "rendez_vous", "booked_call")
+# "Dealt with" is not "booked". Someone you answered yourself, or who is simply
+# not to be chased again, needs a home that does not inflate the booked count.
+STOP_HEADERS = ("stop", "done", "handled", "traite", "fait", "no_followup",
+                "ne_pas_relancer", "closed")
 NOT_BOOKED = ("", "no", "non", "false", "0", "n", "nope", "pas encore", "-")
 TIMEOUT = 30
 
@@ -91,8 +103,33 @@ class Sheet:
             raise SheetError("could not read the sheet ({}). Nothing will be sent this "
                              "run - that is deliberate.".format(err))
 
-    # --- who booked --------------------------------------------------------
+    # --- who is out of the loop --------------------------------------------
+    def exclusions(self):
+        """-> (booked, stopped). Both stop follow-ups; only booked is a win."""
+        if self.webapp_url:
+            data = self._webapp_get("exclusions")
+            return ({str(e).strip().lower() for e in data.get("booked", []) if str(e).strip()},
+                    {str(e).strip().lower() for e in data.get("stopped", []) if str(e).strip()})
+        return self._from_csv(self._fetch(self.csv_url))
+
     def booked_emails(self):
+        """Everyone the loop must not contact - booked or stopped."""
+        booked, stopped = self.exclusions()
+        return booked | stopped
+
+    def _webapp_get(self, action):
+        raw = self._fetch("{}?token={}&action={}".format(
+            self.webapp_url, urllib.parse.quote(self.token or ""), action))
+        try:
+            data = json.loads(raw)
+        except ValueError:
+            raise SheetError("the web app did not return JSON. Check the token and that the "
+                             "deployment is set to 'Anyone with the link'.")
+        if isinstance(data, dict) and data.get("error"):
+            raise SheetError("web app: {}".format(data["error"]))
+        return data
+
+    def _old_booked_emails(self):
         if self.webapp_url:
             raw = self._fetch("{}?token={}&action=booked".format(
                 self.webapp_url, urllib.parse.quote(self.token or "")))
@@ -108,21 +145,50 @@ class Sheet:
         return self._booked_from_csv(self._fetch(self.csv_url))
 
     @staticmethod
-    def _booked_from_csv(text):
+    def _from_csv(text):
+        """-> (booked, stopped) out of a published CSV."""
         rows = list(csv.DictReader(io.StringIO(text)))
         if not rows:
             raise SheetError("the published CSV is empty - check the publish-to-web link")
         headers = {norm(h): h for h in rows[0]}
         email_col = next((headers[h] for h in EMAIL_HEADERS if h in headers), None)
         booked_col = next((headers[h] for h in BOOKED_HEADERS if h in headers), None)
-        if not email_col or not booked_col:
+        stop_col = next((headers[h] for h in STOP_HEADERS if h in headers), None)
+        if not email_col or not (booked_col or stop_col):
             raise SheetError("need an email column and a booked column. Found: {}. "
                              "Rename one to 'email' and one to 'booked'.".format(
                                  sorted(headers.values())))
-        return {str(r[email_col]).strip().lower() for r in rows
-                if str(r.get(email_col) or "").strip() and is_booked(r.get(booked_col))}
+        booked, stopped = set(), set()
+        for row in rows:
+            email = str(row.get(email_col) or "").strip().lower()
+            if not email:
+                continue
+            if booked_col and is_booked(row.get(booked_col)):
+                booked.add(email)
+            elif stop_col and is_booked(row.get(stop_col)):
+                stopped.add(email)
+        return booked, stopped
+
+    @staticmethod
+    def _booked_from_csv(text):
+        return Sheet._from_csv(text)[0]
 
     # --- new hot leads into the sheet --------------------------------------
+    def update(self, rows):
+        """Write loop state back per lead, keyed by email. Read-only mode: None."""
+        if not rows or not self.webapp_url:
+            return None if not self.webapp_url else 0
+        raw = self._fetch(self.webapp_url,
+                          json.dumps({"token": self.token, "action": "update",
+                                      "rows": rows}).encode())
+        try:
+            data = json.loads(raw)
+        except ValueError:
+            raise SheetError("the web app did not return JSON on update")
+        if data.get("error"):
+            raise SheetError("web app: {}".format(data["error"]))
+        return int(data.get("updated", 0))
+
     def append(self, rows):
         """-> how many were added. Read-only mode returns None and writes nothing."""
         if not rows:

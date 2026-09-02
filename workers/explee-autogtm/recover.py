@@ -40,6 +40,7 @@ import datetime as dt
 import hashlib
 import json
 import re
+import re
 import sys
 from pathlib import Path
 
@@ -48,6 +49,24 @@ from explee import Explee, ExpleeError, ShapeError, first_of
 from sheet import Sheet, SheetError
 
 HERE = Path(__file__).resolve().parent
+PROJECTS = HERE / "projects"
+INBOX_URL = "https://explee.com/app-auto-gtm/p/{}/inbox"
+
+TEMPLATE = {
+    "name": "",
+    "project_id": 0,
+    "language": "fr",
+    "timezone": "Europe/Paris",
+    "slot_hours": [10, 15],
+    "sheet": {"webapp_url": "", "token": "", "csv_url": ""},
+    "copy": {
+        "sender": "Your name\nYour company",
+        "offer": "One line: what you do and what it costs them to find out.",
+        "proof": "",
+        "topic": "the thing you sell",
+        "answer": "Short answer: yes.",
+    },
+}
 MAX_SENDS_PER_RUN = 25
 MAX_REPLIES_PER_INBOUND = 3   # the API's own cap: 3 replies per message they sent
 NUDGE_AFTER_DAYS = (2, 5)     # reply #2 goes 2 days after ours, #3 five days after
@@ -185,22 +204,29 @@ def decide(row, thread, note, cfg, booked, calendar_views, now):
     entries = read_marker(note)
     replies_sent = len(messages[last + 1:])          # everything we sent since they wrote
     language = cfg.get("language", "en")
+    context = {"last_reply": (text or "").strip().replace("\n", " ")[:300],
+               "replies_sent": replies_sent}
 
     # Gate 1: the sheet. Checked before anything else, every single run.
     if who["email"] and who["email"] in booked:
-        return {"action": "skip", "reason": "booked (marked in the sheet)", "who": who}
+        return dict(context, action="skip", reason="booked or stopped in the sheet", who=who,
+                    next_action="none - marked in the sheet")
     # Gate 2: Explee's compliance gate.
     if not can_reply:
-        return {"action": "skip", "reason": "can_reply is false", "who": who}
+        return dict(context, action="skip", reason="can_reply is false", who=who,
+                    next_action="none - Explee will not accept a reply")
     # Gate 3: the API allows at most three replies per message they sent.
     if replies_sent >= MAX_REPLIES_PER_INBOUND:
-        return {"action": "skip", "reason": "reply cap ({}) reached on this message".format(
-            MAX_REPLIES_PER_INBOUND), "who": who}
+        return dict(context, action="skip", who=who,
+                    reason="reply cap ({}) reached on this message".format(
+                        MAX_REPLIES_PER_INBOUND),
+                    next_action="none - {} follow-ups sent, that is the limit".format(
+                        MAX_REPLIES_PER_INBOUND))
 
     bucket, why = fu.classify(text, opened_calendar=who["email"] in calendar_views)
     if bucket in fu.SILENT:
-        return {"action": "skip", "reason": "{} - {}".format(bucket, why),
-                "bucket": bucket, "who": who}
+        return dict(context, action="skip", reason="{} - {}".format(bucket, why),
+                    bucket=bucket, who=who, next_action="none - {}".format(bucket))
 
     # --- they spoke last: answer them ---------------------------------------
     if replies_sent == 0:
@@ -210,9 +236,11 @@ def decide(row, thread, note, cfg, booked, calendar_views, now):
             when = fu.re_engage_date(text, now)
             entries.append({"at": now.strftime("%Y-%m-%dT%H:%MZ"), "bucket": bucket,
                             "msg": key, "action": "queued", "due": when.isoformat()})
-            return {"action": "queue", "bucket": bucket, "why": why, "who": who,
-                    "due": when.isoformat(), "note": write_marker(note, entries)}
-        return _send(who, bucket, why, key, entries, note, cfg, now, language)
+            return dict(context, action="queue", bucket=bucket, why=why, who=who,
+                        due=when.isoformat(), note=write_marker(note, entries),
+                        next_action="re-engage on {}".format(when.isoformat()))
+        return dict(context, **_send(who, bucket, why, key, entries, note, cfg, now,
+                                     language))
 
     # --- we spoke last: they went quiet -------------------------------------
     wrote_at = last_outbound_at(messages, entries, now)
@@ -227,16 +255,18 @@ def decide(row, thread, note, cfg, booked, calendar_views, now):
     if queued:
         due = queued[-1]["due"]
         if now.date().isoformat() < due:
-            return {"action": "skip", "reason": "queued until {}".format(due), "who": who}
-        return _send(who, "re_engage", "re-engage due {}".format(due),
-                     queued[-1]["msg"], entries, note, cfg, now, language)
+            return dict(context, action="skip", reason="queued until {}".format(due),
+                        who=who, next_action="re-engage on {}".format(due))
+        return dict(context, **_send(who, "re_engage", "re-engage due {}".format(due),
+                                     queued[-1]["msg"], entries, note, cfg, now, language))
 
     wait = NUDGE_AFTER_DAYS[min(replies_sent, len(NUDGE_AFTER_DAYS)) - 1]
     if waited < wait:
-        return {"action": "skip", "reason": "nudge {} due in {:.1f}d".format(
-            replies_sent, wait - waited), "who": who}
-    return _send(who, "nudge", "no answer for {:.0f}d after our reply {}".format(
-        waited, replies_sent), key, entries, note, cfg, now, language)
+        return dict(context, action="skip", who=who,
+                    reason="nudge {} due in {:.1f}d".format(replies_sent, wait - waited),
+                    next_action=(now + dt.timedelta(days=wait - waited)).date().isoformat())
+    return dict(context, **_send(who, "nudge", "no answer for {:.0f}d after our reply {}".format(
+        waited, replies_sent), key, entries, note, cfg, now, language))
 
 
 def _send(who, bucket, why, key, entries, note, cfg, now, language="en"):
@@ -248,7 +278,8 @@ def _send(who, bucket, why, key, entries, note, cfg, now, language="en"):
     entries = entries + [{"at": now.strftime("%Y-%m-%dT%H:%MZ"), "bucket": bucket,
                           "msg": key, "action": "sent"}]
     return {"action": "send", "bucket": bucket, "why": why, "who": who,
-            "message": message, "note": write_marker(note, entries)}
+            "message": message, "note": write_marker(note, entries),
+            "next_action": "sent {} today".format(bucket)}
 
 
 # --- the run -----------------------------------------------------------------
@@ -262,8 +293,10 @@ def load_emails(path):
     return {str(v).strip().lower() for v in values if str(v).strip()}
 
 
-def run(api, cfg, campaigns, booked, calendar_views, now, apply_, cap, out=sys.stdout):
+def run(api, cfg, campaigns, booked, calendar_views, now, apply_, cap, out=sys.stdout,
+        updates=None):
     tally, sends = {}, 0
+    updates = updates if updates is not None else []
     for campaign in campaigns:
         cid = first_of(campaign, "id", "campaign_id")
         print("\n== {} ({})".format(first_of(campaign, "name", default=cid), cid), file=out)
@@ -280,6 +313,11 @@ def run(api, cfg, campaigns, booked, calendar_views, now, apply_, cap, out=sys.s
 
             label = (plan["bucket"] if plan["action"] in ("send", "queue")
                      else "skip: " + plan.get("reason", "?").split(" - ")[0])
+            if plan.get("who", {}).get("email"):
+                updates.append({"email": plan["who"]["email"],
+                                "last_reply": (plan.get("last_reply") or "")[:300],
+                                "followups_sent": plan.get("replies_sent", 0),
+                                "next_action": plan.get("next_action", "")})
             tally[label] = tally.get(label, 0) + 1
             if plan["action"] == "skip":
                 continue
@@ -312,7 +350,7 @@ def run(api, cfg, campaigns, booked, calendar_views, now, apply_, cap, out=sys.s
     return tally, sends
 
 
-def sync_hot_leads(api, sheet, campaigns, out=sys.stdout):
+def sync_hot_leads(api, sheet, campaigns, project_id=None, out=sys.stdout):
     """Every hot lead into the sheet. The Apps Script drops ones already there."""
     rows = []
     for campaign in campaigns:
@@ -326,10 +364,13 @@ def sync_hot_leads(api, sheet, campaigns, out=sys.stdout):
                 "first_name": first_of(lead, "first_name", "firstname", default=""),
                 "company": first_of(lead, "company_name", "company", "company_domain",
                                     default=""),
+                "job_title": first_of(lead, "job_title", "title", default=""),
+                "campaign": first_of(campaign, "name", default=cid),
                 "campaign_id": cid,
                 "person_id": first_of(lead, "person_id", "id", default=""),
-                "became_hot_at": first_of(lead, "became_hot_at", "created_at", default=""),
-                "booked": "",
+                "replied_at": first_of(lead, "became_hot_at", "created_at", default=""),
+                "inbox": INBOX_URL.format(project_id) if project_id else "",
+                "booked": "", "stop": "",
             })
     if not rows:
         print("no hot leads to sync", file=out)
@@ -348,9 +389,94 @@ def sync_hot_leads(api, sheet, campaigns, out=sys.stdout):
     return added
 
 
+def run_project(api, cfg, args, now, out=sys.stdout):
+    """One Explee project: sync the sheet, read it, follow up, write state back."""
+    name = cfg.get("name") or cfg.get("project_id") or "project"
+    project_id = args.project or cfg.get("project_id")
+    print("\n=== {} (project {})".format(name, project_id), file=out)
+
+    campaigns = ([{"id": c} for c in args.campaign] if args.campaign
+                 else api.campaigns(project_id=project_id))
+    if not campaigns:
+        print("  no campaigns", file=out)
+        return 0
+
+    sheet_cfg = cfg.get("sheet", {})
+    csv_url = args.sheet_csv or sheet_cfg.get("csv_url")
+    webapp = args.sheet_webapp or sheet_cfg.get("webapp_url")
+    token = args.sheet_token or sheet_cfg.get("token")
+
+    if csv_url or webapp:
+        sheet = Sheet(csv_url or None, webapp or None, token)
+        if not args.no_sync:
+            sync_hot_leads(api, sheet, campaigns, project_id, out=out)
+        booked, stopped = sheet.exclusions()
+        print("  sheet: {} booked, {} stopped".format(len(booked), len(stopped)), file=out)
+        excluded = booked | stopped
+    elif args.booked:
+        sheet, excluded = None, load_emails(args.booked)
+    else:
+        raise SystemExit("{}: no sheet configured. Add sheet.csv_url or sheet.webapp_url to "
+                         "its project file, or pass --sheet-csv.".format(name))
+
+    updates = []
+    tally, sends = run(api, cfg, campaigns, excluded, load_emails(args.calendar_views),
+                       now, args.apply, args.limit, out=out, updates=updates)
+    if sheet and args.apply and updates:
+        written = sheet.update(updates)
+        if written:
+            print("  {} rows refreshed in the sheet".format(written), file=out)
+
+    print("  " + ("sent {}".format(sends) if args.apply else "DRY RUN - nothing sent"), file=out)
+    for label, count in sorted(tally.items(), key=lambda kv: -kv[1]):
+        print("    {:<40} {}".format(label, count), file=out)
+    return sends
+
+
+def scaffold(name):
+    """A new customer project, ready to fill in."""
+    PROJECTS.mkdir(exist_ok=True)
+    path = PROJECTS / "{}.json".format(re.sub(r"[^a-z0-9_-]+", "-", name.lower()))
+    if path.exists():
+        raise SystemExit("{} already exists".format(path))
+    path.write_text(json.dumps(dict(TEMPLATE, name=name), indent=2, ensure_ascii=False) + "\n")
+    print("""{} written.
+
+Now, once per project:
+  1. project_id  - the number in the Explee URL: /app-auto-gtm/p/<HERE>
+  2. copy        - sender, offer, topic. This is what the follow-ups say.
+  3. language    - "fr" or "en"; it switches the templates and the dates.
+  4. A Google Sheet with an `email` column and a `booked` column (add `stop` for
+     leads to leave alone for any other reason). Either publish it to the web as
+     CSV and put that in sheet.csv_url, or deploy sheet-bridge.gs and put its
+     /exec url and token in sheet.webapp_url / sheet.token.
+
+Then it runs with every other project:
+  python3 recover.py --all            # dry run, all projects
+  python3 recover.py --all --apply    # send
+""".format(path))
+    return 0
+
+
+def load_project_files(args):
+    if args.project_file:
+        return [Path(p) for p in args.project_file]
+    if args.all:
+        found = sorted(PROJECTS.glob("*.json"))
+        if not found:
+            raise SystemExit("no project files in {}/. Make one: "
+                             "python3 recover.py --init <name>".format(PROJECTS.name))
+        return found
+    return [Path(args.config)]
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--config", default=str(HERE / "config.json"))
+    ap.add_argument("--project-file", action="append",
+                    help="a projects/<name>.json; repeatable")
+    ap.add_argument("--all", action="store_true", help="every project in projects/")
+    ap.add_argument("--init", metavar="NAME", help="scaffold a new customer project and exit")
     ap.add_argument("--campaign", type=int, action="append",
                     help="campaign id; repeatable. Default: every campaign in the project.")
     ap.add_argument("--project", type=int)
@@ -365,41 +491,25 @@ def main(argv=None):
     ap.add_argument("--apply", action="store_true", help="actually send. Off by default.")
     args = ap.parse_args(argv)
 
-    cfg = json.loads(Path(args.config).read_text())
+    if args.init:
+        return scaffold(args.init)
+
     api = Explee()
     balance = api.balance()
     if balance <= 0:
-        raise SystemExit("balance is {} credits - every request needs a positive "
-                         "balance. Top up at https://explee.com/billing".format(balance))
-
-    campaigns = ([{"id": c} for c in args.campaign] if args.campaign
-                 else api.campaigns(project_id=args.project or cfg.get("project_id")))
-    if not campaigns:
-        raise SystemExit("no campaigns to scan")
-
-    # The sheet decides who is booked. If it cannot be read, nothing sends -
-    # an empty booked set would mail everyone who booked this week.
-    if args.sheet_csv or args.sheet_webapp:
-        sheet = Sheet(args.sheet_csv, args.sheet_webapp, args.sheet_token)
-        if not args.no_sync:
-            sync_hot_leads(api, sheet, campaigns)
-        booked = sheet.booked_emails()
-        print("{} leads marked booked in the sheet".format(len(booked)))
-    elif args.booked:
-        booked = load_emails(args.booked)
-    else:
-        raise SystemExit("no booked source. Pass --sheet-csv or --sheet-webapp (or --booked "
-                         "for an offline test). Without one this would follow up people who "
-                         "have already booked.")
+        raise SystemExit("balance is {} credits - every request needs a positive balance, "
+                         "free ones included. Top up at https://explee.com/billing".format(
+                             balance))
 
     now = dt.datetime.now(dt.timezone.utc)
-    tally, sends = run(api, cfg, campaigns, booked,
-                       load_emails(args.calendar_views), now, args.apply, args.limit)
+    total = 0
+    for path in load_project_files(args):
+        cfg = json.loads(path.read_text())
+        cfg.setdefault("name", path.stem)
+        total += run_project(api, cfg, args, now)
 
-    print("\n" + ("sent {}".format(sends) if args.apply
+    print("\n" + ("sent {} in total".format(total) if args.apply
                   else "DRY RUN - nothing sent. Add --apply."))
-    for name, count in sorted(tally.items(), key=lambda kv: -kv[1]):
-        print("  {:<22} {}".format(name, count))
     return 0
 
 

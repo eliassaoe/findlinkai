@@ -304,6 +304,17 @@ class Run(unittest.TestCase):
         _, again, _ = self.run_once(apply_=True)
         self.assertEqual(again, 0)
 
+    def test_it_collects_what_the_sheet_should_show(self):
+        updates = []
+        out = io.StringIO()
+        recover.run(self.api, CFG, [{"id": 9, "name": "test"}], set(), set(), WED, False, 25,
+                    out=out, updates=updates)
+        rows = {u["email"]: u for u in updates}
+        self.assertEqual(rows["a@x.com"]["last_reply"], "send me pricing")
+        self.assertEqual(rows["a@x.com"]["followups_sent"], 0)
+        self.assertIn("sent", rows["a@x.com"]["next_action"])
+        self.assertIn("unsubscribe", rows["b@x.com"]["next_action"])
+
     def test_the_cap_stops_a_runaway(self):
         _, sends, text = self.run_once(apply_=True, cap=0)
         self.assertEqual(sends, 0)
