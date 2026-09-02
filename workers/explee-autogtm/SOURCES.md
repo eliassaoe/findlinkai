@@ -232,25 +232,38 @@ Two of those numbers settle two different arguments.
 complete, well-formed contact. That is better than most exports and it is a real
 point in their favour - the 78.7% coverage claim looks honest at this sample.
 
-**And the reach argument is dead.** Explee already had **96%** of them. The case
-for paying 3.4x a lead was never the price, it was supposed to be the people
-Explee cannot find - and that turns out to be three of eighty-three. A further
-25% were people this project had *already contacted*, so a quarter of the export
-was spent on names already in the funnel.
+**And "96% enriched from our base" proves less than it looks like.** An earlier
+version of this file read it as "Explee already had these 80 people" and called
+the reach argument dead. That was over-read, and the correction matters.
 
-For the 62 that actually shipped: **$5.24 of Pharow against $1.55 of Explee.**
+Explee is a **company** database first - its own documentation opens with
+"search millions of companies" and treats people as employees found *at* matching
+companies. So enrichment against a lead can mean either of two things, and they
+support opposite conclusions:
 
-**One honest caveat before writing it off.** "Enriched from our base" means Explee
-*holds a record* for that person. It does not prove Explee's own search would have
-*surfaced* them for this ICP. Coverage and discoverability are different failures,
-and if Explee's targeting cannot reach an audience it demonstrably has data on,
-that is an Explee targeting problem worth fixing - not an argument for buying the
-same people twice.
+| What "enriched" might mean | What it implies |
+|---|---|
+| Explee had **this person** | it can already reach them; Pharow is the same names at 3.4x |
+| Explee had **their company**, and filled in industry, size, description | it says **nothing** about whether Explee knows that individual. Pharow's value survives intact |
 
-**So do not buy the 2,000 credits.** The question Pharow was bought to answer has
-been answered by its own free trial, in the import log, before a single email
-landed. What is left to test is Explee's targeting, which costs nothing:
-`GET /autogtm/campaigns/{id}` returns the whole definition.
+With 105M companies in the base, matching the *company* for 80 of 83 French firms
+is unremarkable. Matching 80 named *responsables d'achat* would be a much stronger
+claim. Nothing on the import screen distinguishes them.
+
+**So the verdict is unresolved, not negative** - and the resolver is the call this
+directory already has:
+
+    python3 leadsource_test.py overlap --leads pharow.leads.json --apply
+
+It asks `people-by-domains` for the same titles at the same domains and sorts each
+of the 62 into exactly the three buckets that matter: *Explee has this person*,
+*Explee has the company but not this person*, *Explee has neither*. The middle
+bucket is the one the import screen cannot show and the whole Pharow case rests
+on. About $1-4, and blocked only by the balance.
+
+What is confirmed either way: for the 62 that shipped, **$5.24 of Pharow against
+$1.55 of Explee**, a quarter of the export was people already in the funnel, and
+the export itself was clean.
 
 ## The decision: Pharow gets a shot
 
