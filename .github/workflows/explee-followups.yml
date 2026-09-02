@@ -1,0 +1,75 @@
+name: Explee follow-ups
+
+# api.explee.com cannot be reached from a development sandbox, so the follow-up
+# loop runs here instead - the same reason publish-integrations.yml exists.
+#
+# Every 15 minutes it reads the hot-leads sheet, skips everyone marked booked or
+# stopped, and follows up on the rest. Nobody has to open a terminal.
+#
+# Required secret - the job fails with a plain message if it is missing:
+#   EXPLEE_API_KEY   Explee -> account menu (bottom left) -> API Keys
+#
+# IT SENDS NOTHING UNTIL YOU SAY SO. The schedule runs a dry run and prints what
+# it would have sent. To turn sending on, set the repository variable
+# EXPLEE_APPLY to `true` (Settings -> Secrets and variables -> Actions ->
+# Variables). Set it back to anything else to stop, without touching the code.
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: 'Actually send (off = show what it would send)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  # Two runs at once would each read the sheet, each decide the same lead is due,
+  # and each send. One at a time, and a late run is skipped rather than queued.
+  group: explee-followups
+  cancel-in-progress: false
+
+jobs:
+  follow-up:
+    name: Follow up on hot leads
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: workers/explee-autogtm
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      # No dependencies to install - the whole thing is the standard library.
+      - name: Tests
+        run: python3 test_explee_autogtm.py
+
+      - name: Check the key is there
+        env:
+          EXPLEE_API_KEY: ${{ secrets.EXPLEE_API_KEY }}
+        run: |
+          if [ -z "$EXPLEE_API_KEY" ]; then
+            echo "::error::EXPLEE_API_KEY is not set. Repository Settings -> Secrets and variables -> Actions -> New repository secret. Get the key from Explee's account menu -> API Keys."
+            exit 1
+          fi
+
+      - name: Follow up
+        env:
+          EXPLEE_API_KEY: ${{ secrets.EXPLEE_API_KEY }}
+          # The dispatch checkbox wins when the workflow is run by hand; the
+          # schedule reads the repository variable.
+          APPLY: ${{ inputs.apply || vars.EXPLEE_APPLY == 'true' }}
+        run: |
+          if [ "$APPLY" = "true" ]; then
+            echo "Sending is ON."
+            python3 recover.py --all --apply
+          else
+            echo "DRY RUN - nothing will be sent. Set the EXPLEE_APPLY variable to 'true' to enable."
+            python3 recover.py --all
+          fi

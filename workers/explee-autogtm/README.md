@@ -52,6 +52,32 @@ about $6, which is more than any lead source in this directory can do.
 the illustrative figures in the original plan, and it shows that the $50 target
 is exactly a 22% interested-to-booked rate. Read it before deciding anything.
 
+## It runs itself on GitHub Actions
+
+`.github/workflows/explee-followups.yml` runs the loop **every 15 minutes**, in
+this repository, on GitHub's machines. No laptop, no server, no cron of your own -
+the same reason `publish-integrations.yml` exists: Explee cannot be reached from a
+development sandbox.
+
+**You do exactly one thing:**
+
+> Repository **Settings → Secrets and variables → Actions → New repository
+> secret**, name it `EXPLEE_API_KEY`, paste the key from Explee's account menu →
+> API Keys.
+
+That is it. The schedule then runs a **dry run** every 15 minutes and prints
+exactly what it would have sent, in the Actions tab. Read a few, and when the
+drafts look right:
+
+> Same page → **Variables** → New variable → `EXPLEE_APPLY` = `true`
+
+Now it sends. Set that variable to anything else and it goes back to dry running -
+no code change, no deploy. There is also a **Run workflow** button with an
+*Actually send* checkbox for a one-off run.
+
+Two runs never overlap (a `concurrency` group), so a lead cannot be mailed twice
+by two schedules colliding.
+
 ## Setup
 
 ```bash
