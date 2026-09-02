@@ -25,6 +25,10 @@ Autopilot is ON, so per-campaign budgets are agent-managed — `PATCH
 …/campaigns/{id}/budget` returns 409 and so does `start` on anything Autopilot
 owns. Turn it off to take manual control.
 
+**First real data point: Jérôme BLAZY (datacorp.fr) booked.** That is 1 of the 14
+interested leads. If it stops there the rate is 7% and a call costs $157; the
+table below is what the rest of them are worth.
+
 ## The only number still missing, and it decides everything
 
 Cost per call is `$156.93 ÷ (14 × the share of interested leads that book)`. That
@@ -82,12 +86,12 @@ leaking replies a month actually sit.
 
 ## Three things wrong right now
 
-**1. A hot lead has been waiting three days.** Jérôme BLAZY (datacorp.fr) replied
-to *high ticket offer linkfinder ai 2*: "L'approche au résultat me plait. Open
-pour un 1er échange de 15 min max." That is a yes to a call, sitting unanswered,
-flagged *Needs reply* for 3 days. The dashboard's own banner says hot leads go
-cold within 24 hours. One reply here is worth more than the entire lead-source
-question — it is `recover.py`'s `send_info` case, live.
+**1. ~~A hot lead has been waiting three days.~~ Answered and booked.** Jérôme
+BLAZY (datacorp.fr) replied to *high ticket offer linkfinder ai 2* with "Open
+pour un 1er échange de 15 min max", waited three days, and has now taken the
+call. Kept here because it is the shape of the whole problem: a yes that sat in
+*Needs reply* while the dashboard warned that hot leads go cold in 24 hours. He
+converted anyway; the next one might not, which is what the loop is for.
 
 **2. The balance is -$46.32.** Every Explee API request needs a *positive*
 balance, free-tier requests included — an org at or below zero gets a 402 on

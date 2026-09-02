@@ -226,8 +226,9 @@ python3 recover.py --sheet-webapp "https://script.google.com/macros/s/.../exec" 
 | `booked` | they have a call | yes |
 | `stop` | leave them alone for any other reason — you answered them yourself, they are already a customer, you just do not want them chased | no |
 
-Both halt the follow-ups immediately. **Jérôme goes in `stop`** — dealt with, but
-not a booking, so he does not inflate the booked rate. You type **anything**:
+Both halt the follow-ups immediately. **Jérôme goes in `booked`** — he took the
+call, so he counts. `stop` is for the other kind of "dealt with": answered,
+already a customer, or simply not to be chased. You type **anything**:
 `x`, `oui`, a date, a tick. Blank, `no`, `non`, `0` and `-` mean not marked.
 
 ### What the sheet shows you
