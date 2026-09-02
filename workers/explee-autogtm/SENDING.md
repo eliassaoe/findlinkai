@@ -66,6 +66,50 @@ And on the number that matters:
 **A 55-70% cut**, against Pharow's realistic best case of $12.73 at a 1.5x reply
 rate. Sending is 83% of the cost of a call; the lead is 17%. This is the lever.
 
+## "Only worth it if it lands in the main inbox" — so measure that, do not argue it
+
+Right test, and the honest answer is **plausible, not proven**. What is actually
+known:
+
+**For your own domains.** Explee sends from `usetidegrove.com` and `tryturn.org`,
+which have nothing to do with the product in the email — filters weigh alignment
+between the sending domain, the brand and the links, and a French buyer's
+Microsoft 365 tenant has never seen either domain. A shared pool also carries
+everyone else's behaviour: one bad sender in it degrades your placement and you
+have no lever, no visibility and no way to warm your way out. A prospect has
+already written that the mail landed in spam.
+
+**Against your own domains, honestly.** They are **four days old**. New domains
+are themselves a spam signal, and 2-3 weeks of warmup is the minimum before they
+carry campaign traffic — switching this week would likely land *worse*, not
+better. And a 100% warmup score is not 100% inbox placement: warmup measures
+delivery to other warmup mailboxes in a friendly network, which is a weak proxy
+for a corporate M365 tenant with a real filter in front of it. Content matters
+too: a French cold pitch at volume gets filtered on pattern regardless of whose
+domain it came from.
+
+So do not buy on the theory. **The seed test costs about $2 and settles it:**
+
+1. Collect 8-12 addresses you can open, weighted to look like your targets:
+   2 Gmail · 2 Outlook.com · 2-3 **Microsoft 365 business** tenants (what a French
+   ESN or a 250-person industrial actually runs) · 2 French consumer providers
+   (`orange.fr`, `free.fr`, `laposte.net`).
+2. Import them as leads into a small AutoGTM campaign. The import is free; the
+   sends are ~$0.03 each, so twelve leads over a four-email sequence is $1.44.
+3. Record where each one lands: **Primary / Promotions / Spam**, per provider.
+   That is Explee's pool measured on your own audience, not on a vendor page.
+4. Once Explee's bring-your-own is connected, send the same twelve from your
+   mailboxes — after they have warmed three weeks — and compare.
+
+If the pool lands 40% in spam and your domains land 90% in primary, the switch
+pays for itself immediately and the $673 saving is a bonus. If both land the same,
+you have saved yourself a migration and learned the reply rate is about the offer,
+not the envelope.
+
+**Note:** Instantly sells a proper seed-network Inbox Placement test, but your
+workspace does not have that add-on (`inbox_placement.plan_name: null`), so the
+DIY version above is the free path.
+
 ## The one question that decides it
 
 **Does Explee still charge $0.03 an email when you bring your own mailboxes?**
