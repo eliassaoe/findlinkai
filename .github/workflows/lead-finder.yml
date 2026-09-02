@@ -1,0 +1,94 @@
+name: Lead finder
+
+# A routine, in the sense the sales tools mean it: the same agent, on a schedule.
+#
+# It defaults to `plan`, which prices the run and spends nothing — a schedule that
+# could quietly drain a credit balance is not one anybody should have to trust. A live
+# run has to be asked for by hand, with a ceiling, and it commits the updated state back
+# so the next run knows who it has already paid for.
+#
+# Required secrets:
+#   LINKFINDER_API_KEY   the API & MCP tab in the app
+#   INSTANTLY_API_KEY    only when the agent has a destination
+on:
+  schedule:
+    # Monday 07:00 UTC — before the week's outbound goes out.
+    - cron: '0 7 * * 1'
+  workflow_dispatch:
+    inputs:
+      agent:
+        description: 'Agent file, relative to lead-finder/'
+        type: string
+        default: 'agents/revops-hubspot.json'
+      mode:
+        description: 'plan (free) · dry-run (sourcing only) · live (spends credits)'
+        type: choice
+        options: [plan, dry-run, live]
+        default: plan
+      max_credits:
+        description: 'Ceiling for a live run'
+        type: string
+        default: '400'
+
+permissions:
+  contents: write
+
+jobs:
+  run:
+    name: ${{ inputs.mode || 'plan' }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: lead-finder
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # The scoring rules decide who gets paid for, so a broken one must not reach a
+      # live run.
+      - name: Tests
+        run: npm test
+
+      - name: Check the key is set
+        if: ${{ (inputs.mode || 'plan') != 'plan' }}
+        env:
+          LINKFINDER_API_KEY: ${{ secrets.LINKFINDER_API_KEY }}
+        run: |
+          if [ -z "$LINKFINDER_API_KEY" ]; then
+            echo "LINKFINDER_API_KEY is not set on this repository. Add it in Settings → Secrets → Actions."
+            exit 1
+          fi
+
+      - name: Plan
+        env:
+          AGENT: ${{ inputs.agent || 'agents/revops-hubspot.json' }}
+        run: node bin/lead-finder.mjs plan "$AGENT"
+
+      - name: Run
+        if: ${{ (inputs.mode || 'plan') != 'plan' }}
+        env:
+          AGENT: ${{ inputs.agent || 'agents/revops-hubspot.json' }}
+          LINKFINDER_API_KEY: ${{ secrets.LINKFINDER_API_KEY }}
+          INSTANTLY_API_KEY: ${{ secrets.INSTANTLY_API_KEY }}
+          LIVE: ${{ inputs.mode == 'live' && format('--live --max-credits {0}', inputs.max_credits) || '' }}
+        run: node bin/lead-finder.mjs run "$AGENT" $LIVE
+
+      - name: Report
+        if: ${{ (inputs.mode || 'plan') != 'plan' }}
+        env:
+          AGENT: ${{ inputs.agent || 'agents/revops-hubspot.json' }}
+        run: node bin/lead-finder.mjs report "$AGENT"
+
+      # State is the only thing that stops a weekly run re-buying the same people.
+      - name: Keep the state
+        if: ${{ inputs.mode == 'live' }}
+        working-directory: .
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -f lead-finder/runs/*.state.json
+          git diff --staged --quiet || git commit -m "lead-finder: state after a live run"
+          git push

@@ -62,6 +62,7 @@ into a file here in the same session, or it is gone.
 | Listicle outreach on a cron (the `ai_keywords` table) | `docs/ai-keyword-outreach.md` — read it before adding keywords, it spends credits |
 | CRM cleanup + HubSpot | `CRM-SETUP.md` |
 | Outbound campaign | `OUTBOUND-CRM-AUDIT.md` |
+| **Finding the leads for it** (ICP -> intent signals -> enriched list -> campaign) | `lead-finder/` — read its README before `--live`, it spends credits. Claude's half of the job is in `.claude/skills/lead-finder/SKILL.md` |
 | Workers | `workers/` — but most live workers are NOT in this repo; read them with the Cloudflare connector |
 | Integrations (all generated from one catalog) | `integrations/` — `integrations/catalog/` is the source; `npm run build && npm test` in `integrations/` |
 | **The published Google Sheets add-on** | `integrations/google-sheets-addon/` — read its README before touching it |
