@@ -146,10 +146,104 @@ above already recommend and what the name already promises:
 Explee cannot answer that without giving up the $0.025 a lead they resell. We can,
 because we generate the data instead of buying it.
 
+## The glue-only MVP: own nothing, build the UI
+
+The brief above assumes we build the loop. We do not have to. **Every subsystem
+except the UI is an API somebody else already runs**, and the pay-per-send meter
+— the one thing that looked like it needed real backend work — is a single
+webhook.
+
+### Confirmed, not assumed
+
+Instantly's webhook event list, read off our own workspace on 2 Sept 2026:
+
+    email_sent          <- this is the billing meter
+    email_bounced       reply_received      lead_unsubscribed
+    lead_interested     lead_not_interested lead_meeting_booked
+    email_opened        email_link_clicked  campaign_completed
+    account_error
+
+`email_sent` fires once per email that actually goes out. Debit the customer's
+balance on that event and pay-per-send is *done* — no send queue of ours, no
+counting, no reconciliation. `lead_unsubscribed` and `email_bounced` keep the
+compliance side honest, and `lead_interested` drives the hot-lead view.
+
+### The stack
+
+| Layer | Who runs it | What we write |
+|---|---|---|
+| Sending, warmup, rotation, throttling, sequencing, IMAP reply sync | **Instantly API** (or Smartlead) | nothing |
+| Mailboxes | **the customer's own**, added by `POST /accounts` with their SMTP/IMAP | a connect form |
+| Lead sourcing | LinkFinder AI / Apollo / Explee API | one call |
+| Per-lead copy | Claude API | one prompt |
+| Auth + database | Supabase | schema |
+| Payments | Stripe Checkout, prepaid top-ups | one webhook |
+| Hosting | Vercel or Cloudflare Pages | — |
+
+We own no mailboxes, no domains, no IPs, no mail servers, no scheduler.
+
+### The whole flow
+
+1. Sign up -> Supabase auth, `balance = 0`.
+2. Top up -> Stripe Checkout -> webhook credits `balance`.
+3. Connect mailboxes -> our form -> Instantly `create_account` (SMTP/IMAP), every
+   account tagged with the user id.
+4. Describe the ICP -> lead API -> leads back.
+5. Campaign brief -> Claude writes a 3-step sequence with variables.
+6. `create_campaign` + `add_leads_to_campaign_or_list_bulk` + assign **only that
+   user's accounts** + `activate_campaign`.
+7. Instantly sends. Each `email_sent` webhook debits N credits. Balance hits
+   zero -> `pause_campaign`.
+8. `reply_received` / `lead_interested` populate the inbox; replies go back out
+   through `reply_to_email`.
+
+Five screens — signup, connect mailboxes, campaign wizard, dashboard, inbox —
+and two workers: the Stripe webhook and the Instantly webhook. **About two weeks
+for one person, and all of it is UI.**
+
+### Three things that will bite, and they are not optional
+
+**1. Instantly has no tenant concept, so multi-tenancy is entirely our bug to
+make.** One workspace, one API key, and campaigns, accounts, lead lists and the
+blocklist are all global inside it. Nothing at the vendor stops customer A's
+campaign from sending through customer B's mailboxes — only our filtering does.
+Prefix every object we create with the user id, never fetch without filtering by
+it, and test that specifically. This is the highest-severity correctness risk in
+the whole design and it lives in the part we write.
+
+**2. Their plan limit becomes our ceiling and our COGS floor.** Measured on our
+workspace: Growth, $47/mo, **1,000 active leads a month**, 222 used. The 25k-lead
+addon reports `can_purchase: false — advanced_outreach_plan_required`. So the
+third customer forces an upgrade, and from then on the vendor's per-lead price is
+the floor under our credit price. Price with that in mind rather than discovering
+it.
+
+**3. Running other people's campaigns through one API key is reselling.** Ask
+Instantly, in writing, whether the account tier permits it before launch — they
+have an agency/white-label tier that exists for exactly this. If the answer is
+no, Smartlead's white-label program is built for it and the flow above ports
+unchanged. This is a ten-minute email that prevents the product being switched
+off in month two.
+
+And the one that does not go away by owning nothing: **the legal duty is still
+ours.** Working unsubscribe in every message, a global permanent suppression
+list, disclosure of the data source, a DPA with customers. The vendor sends the
+mail; we are still the processor.
+
+### What we must not build
+
+Warmup, IP or inbox rotation, deliverability monitoring, IMAP sync, the sequence
+scheduler, bounce parsing, spintax, tracking domains. All of it ships in the
+sending API. Rebuilding any of it is the failure mode this section exists to
+prevent.
+
 ## Open decisions
 
+0. **Confirm reselling with the sending vendor before writing a line.** See the
+   glue-only section — it is the one answer that can invalidate the design.
 1. **BYO first, or wait and launch with a pool?** Recommendation above is BYO
-   first. The counter-argument is that "connect your mailbox" is a worse landing
+   first, and the glue-only MVP only works this way — the customer's mailboxes
+   are what makes owning nothing possible. The counter-argument is that "connect your mailbox" is a worse landing
    page than "add budget and go", and it costs us the one-click promise.
 2. **$0.02 with leads included, or $0.03 to match?** $0.02 is the sharper wedge
    and still clears 45% on BYO; $0.03 leaves room to discount later.
@@ -160,3 +254,7 @@ because we generate the data instead of buying it.
 
 Nothing is built. This document is the decision record, not a report on work
 done. Phase 0 has not started.
+
+The glue-only section is the current plan: assemble it from Instantly (or
+Smartlead) + a lead API + Claude + Stripe + Supabase, and write only the UI and
+two webhook handlers.
