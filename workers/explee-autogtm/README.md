@@ -48,10 +48,12 @@ python3 test_explee_autogtm.py         # 40 tests, no network, no key needed
 
 ## Action 2 — the lead source test (start here)
 
-Read [SOURCES.md](SOURCES.md) first — it picks the source. Short version: your
-own product's LinkedIn post-engager data costs no cash, and TheirStack is the
-only real pay-as-you-go intent API (~$26 for a 500-lead arm against $99/month
-for Gojiberry).
+Read [SOURCES.md](SOURCES.md) first — it picks the source, and the answer
+changed once France was the constraint. Short version: Explee is already the
+cheapest lead in the market at ~$0.025, so no source is worth switching to for
+cost — only for French coverage. The test worth running first is not a sending
+test at all: take 500 French companies from SIRENE (free), ask Explee and Pharow
+for the buyer at each, and compare fill rate. About $30, one day, no emails sent.
 
 ```bash
 # 0. the ICP, in plain English -> the exact filter shape. Free, no credits.
@@ -210,6 +212,6 @@ from lead sourcing, fixed by confirmations and reminders, not by better data.
 | `leadsource_test.py` | Action 2: prepare / control / import / compare |
 | `baseline.py` | cost per call that actually showed up, before and after |
 | `instantly_leads.py` | Instantly SuperSearch leads -> the CSV `prepare` eats |
-| `SOURCES.md` | which intent source to buy, what it costs, what was ruled out |
+| `SOURCES.md` | every lead source with real France coverage, priced per usable lead |
 | `brief.json` | the campaign copy both arms share - per-record project, not the subscription |
 | `test_explee_autogtm.py` | 40 tests, offline |
