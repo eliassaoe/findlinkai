@@ -57,6 +57,12 @@ def read_key_file():
             return value.strip().strip("'\"")
     return None
 TIMEOUT = 95            # the documented server timeout is 90s
+# Cloudflare in front of api.explee.com rejects the default "Python-urllib/3.11"
+# with error 1010, browser_signature_banned - a blanket ban on a user-agent, not
+# on us. So the client says who it actually is, which is what an API client is
+# supposed to do anyway.
+USER_AGENT = ("linkfinderai-autogtm-followups/1.0 "
+              "(+https://github.com/eliassaoe/findlinkai; python-urllib)")
 MAX_RETRIES = 4
 NO_RETRY = (400, 401, 402, 403, 404, 409, 422)
 
@@ -138,6 +144,7 @@ class Explee:
         req = urllib.request.Request(url, data=payload, method=method)
         req.add_header("X-API-Key", self.api_key)
         req.add_header("Accept", "application/json")
+        req.add_header("User-Agent", USER_AGENT)
         if payload is not None:
             req.add_header("Content-Type", "application/json")
         opener = self._opener or urllib.request.urlopen
@@ -146,6 +153,12 @@ class Explee:
                 raw = resp.read().decode() or "{}"
         except urllib.error.HTTPError as err:                      # noqa: PERF203
             detail = err.read().decode(errors="replace")[:800]
+            if err.code == 403 and "error_code\":1010" in detail.replace(" ", ""):
+                raise ExpleeError(err.code, url,
+                                  "Cloudflare error 1010: this client's user-agent is banned "
+                                  "in front of the API, before the key is even checked. Ask "
+                                  "Explee support to allow it, or change USER_AGENT in "
+                                  "explee.py. Original: " + detail[:200])
             raise ExpleeError(err.code, url, detail)
         except urllib.error.URLError as err:
             raise ExpleeError(0, url, "network: {}".format(err.reason))
