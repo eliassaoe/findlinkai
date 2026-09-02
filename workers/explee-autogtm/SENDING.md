@@ -73,23 +73,50 @@ Nobody here knows, and the entire saving above depends on it. If the $0.03 cover
 infrastructure *and* orchestration, and BYO only removes the first part, the
 number to ask for is the BYO rate per email. Ask before buying a single domain.
 
-## Which provider, if you scale past nine
+## "I would rather a tool ran the infrastructure than run it myself"
 
-You do not need a new tool to start — you need more of what you already built.
+Reasonable, and this repo has the scar to justify it: `OUTBOUND-CRM-AUDIT.md`
+records **all 38 Instantly mailboxes failing at once** with `EAUTH - can't create
+new access token`, sending zero for a week. That is the true cost of
+self-managed sending, and it is not the DNS setup - it is the Tuesday when
+everything silently stops.
 
-- **Instantly DFY / Zapmail** — Google Workspace or Microsoft mailboxes, resold at
-  roughly $3/inbox with pre-warmed options. Same shape as your current nine, no
-  new vendor to learn, and real Google/Microsoft accounts are what Explee will
-  want to connect over OAuth or SMTP. **Start here.**
-- **Mailreef** — $240-249/month plus $0.001 a send, dedicated IPs, reputation
-  entirely your own. Worth it once volume justifies owning the IP.
-- **Maildoso** — cheapest at scale, from $0.49 a mailbox, but shared IPs with
-  rotation: your reputation is tied to everyone else in the pool. Fine for volume,
-  wrong for a brand you intend to keep.
+But "rely on a tool" splits into two very different things:
 
-Keep 3 mailboxes per domain, warm every new one for 2-3 weeks before it carries
-campaign traffic, and add domains in batches so a bad one never takes the whole
-send with it.
+| | Who owns the domains | Your ops | Sender identity | Cost/month at 22,400 emails |
+|---|---|---|---|---|
+| **A. The tool's own pool** — Explee today | Explee | **none** | `Brian Carter <b@usetidegrove.com>` | **$673** |
+| **B. Done-for-you on your brand** — Instantly DFY, Zapmail | you, bought and configured *by them* | approve the order; they do DNS, mailboxes, warmup, monitoring | `eliasse@linkfinderai-contact.com` | **$162-400** |
+| C. Build it yourself | you | all of it | yours | ~$150 |
+
+**B is not C.** Done-for-you means you never open a DNS panel: the provider buys
+the domains, sets SPF/DKIM/DMARC, creates the mailboxes, warms them for weeks and
+monitors placement. The nine mailboxes you already have arrived this way -
+`added_by: api`, warming themselves to a health score of 100 without anyone
+touching a record. That is a tool running your infrastructure. It is the option
+that matches the preference, not the one it rules out.
+
+**What A costs beyond money.** On a shared pool you have no lever when placement
+degrades - and a prospect has already told you it has. You cannot warm it, cannot
+rotate it, cannot brand it, and cannot see it. You are also permanently a stranger
+in the inbox: `usetidegrove.com` will never be a domain a French ESN recognises,
+however good the copy gets.
+
+**Recommendation:** option B, and specifically the provider you already run.
+Instantly DFY sells pre-warmed domains and mailboxes inside the workspace you
+already pay for, so there is no new vendor, no new billing, and the accounts are
+real Google/Microsoft ones - which is what Explee needs to connect over OAuth or
+SMTP. Zapmail is the equivalent if you want it outside Instantly (~$3.25/inbox).
+
+Mailreef ($249/month + $0.001 a send) buys dedicated IPs and full reputation
+control; worth it later, overkill now. Maildoso is cheapest at $0.49 a mailbox but
+runs shared IPs with rotation - your reputation moves with strangers', which is
+the one thing you are trying to stop happening.
+
+Whatever you pick: 3 mailboxes per domain, warm each for 2-3 weeks before it
+carries campaign traffic, add domains in batches so one bad domain never takes the
+whole send with it, and keep a placement check running - the 38-mailbox outage was
+only expensive because nobody noticed for a week.
 
 Sources: [Cold email infrastructure pricing 2026](https://maildeck.co/blog/cold-email-infrastructure-cost-2026/) ·
 [Provider comparison](https://www.icemail.ai/blog/best-cold-email-infrastructure-tools-2026-full-comparison-with-pricing/)
