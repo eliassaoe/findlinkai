@@ -38,6 +38,13 @@ Read the JSON. If a key is spelled differently than the lists in `recover.py`
 (`read_arm`), add the spelling — that is the whole integration risk, and a dry
 run will tell you loudly rather than quietly reporting zero.
 
+## Start here: sending is 83% of the cost
+
+**[SENDING.md](SENDING.md)** — Explee sends as `Brian Carter <b@usetidegrove.com>`
+while you already own nine warmed mailboxes on your own domains landing 100% in
+the inbox. Moving sending onto them cuts cost per interested lead from $13.54 to
+about $6, which is more than any lead source in this directory can do.
+
 ## The measured baseline
 
 **[BASELINE.md](BASELINE.md)** — the real dashboard numbers as of 2 Sept 2026:
