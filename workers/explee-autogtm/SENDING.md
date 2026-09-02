@@ -1,21 +1,52 @@
-# Sending: the lever that is closed, and what that leaves
+# Sending: what is live, and what it is worth
 
-**Bringing your own mailboxes to AutoGTM is not available.** Explee, asked
-directly, 2 Sept 2026:
+Three sending modes exist in the app under **Choose how you send**:
+
+| Mode | Status | What it is |
+|---|---|---|
+| **Pre-warmed mailboxes** | current | Explee's shared pool. Rotates across several mailboxes, personas like *Finn Turner*, *Leo Brooks*, *Mia Bennett* |
+| **Your own mailboxes** | **live** | your domains and mailboxes over Google, Microsoft or any IMAP/SMTP; your brand on every email; replies sync to your inbox |
+| **Dedicated mailboxes** | **not live** | Explee buys and configures fresh domains for you and warms them |
+
+So **bringing your own mailboxes is available today** — which means any rented
+infrastructure (Zapmail, Mailforge, Mailreef, anything with IMAP/SMTP) can be
+plugged straight in. What is *not* available is Explee buying and warming
+dedicated domains on your behalf.
+
+**Two places in the app say otherwise and are worth reconciling before you spend:**
+the Email templates page reads *"Your own mailboxes and name coming soon"*, and
+support answered that the option "isn't live — picking it only records your
+interest". Both may be stale copy about the dedicated tier. The way to settle it
+costs nothing: click through the flow and see whether it asks for IMAP/SMTP
+credentials and actually connects one mailbox.
+
+## The price does not change, so this is a placement bet, not a cost one
+
+Explee, asked directly:
+
+> Pricing stays flat at ~$0.03 per email actually sent, identical on every
+> account.
 
 > Shared — outreach goes through our pre-warmed pool, with each prospect
 > consistently paired to one inbox from it; there's no dedicated domain or
 > mailbox per customer today.
->
-> On bringing your own mailboxes: that option is visible in the app but isn't
-> live — picking it only records your interest, nothing gets connected, so
-> there's no separate rate for it. Pricing stays flat at ~$0.03 per email
-> actually sent, identical on every account.
 
-So the option in the app is an interest form, not a feature. Everything below was
-written on the assumption it worked; it is kept because the economics are correct
-and will matter the day it ships. **Click it anyway** — that is how the queue gets
-built — but do not plan around it.
+So bringing your own mailboxes does **not** cut the $0.03. You would pay Explee
+the same and the infrastructure on top — roughly **$162/month more**, not $500
+less. Which is fine, but it has to be justified on inbox placement alone:
+
+| | Monthly | Interested leads | Cost each |
+|---|---|---|---|
+| today, shared pool | $812 | 56 | **$14.50** |
+| + rented inboxes, reply rate unchanged | $974 | 56 | $17.39 |
+| + rented inboxes, **reply rate 2x** | $974 | 112 | **$8.70** |
+
+**Break-even is a 20% lift in reply rate.** Below that you have paid $162 a month
+for a logo on the envelope; above it, it is the cheapest thing on the table. Given
+the pool is shared — your placement carries other customers' complaints, with no
+domain you can warm, rotate or inspect — and given a prospect has already written
+back about spam, a 20% lift is a low bar. But it is still a bet, and the $2 seed
+test settles it before the invoice.
 
 ## What that leaves, on AutoGTM
 
@@ -27,10 +58,9 @@ interested lead that is **$11.21 of every interested lead, fixed**. The lead dat
 is the other $2.33. So the cheapest possible interested lead on this platform,
 with free leads, is about $11.
 
-**2. Placement cannot be fixed from your side.** The pool is shared, so your
-inbox rate carries other customers' complaints, and there is no domain to warm,
-rotate, or inspect. The 1.05% reply rate and the prospect who wrote back about
-spam are not things you can engineer away while sending through AutoGTM.
+**2. Placement can be fixed, but not cheaply.** Your own mailboxes are supported,
+so rented dedicated inboxes solve the shared-reputation problem — at $162/month on
+top of an unchanged $0.03, needing a 20% reply-rate lift to pay for itself.
 
 **3. Therefore conversion is the only lever left here.** Cost per call is
 `$156.93 ÷ (14 × interested-to-booked)`. Nothing on the cost side moves any more:
