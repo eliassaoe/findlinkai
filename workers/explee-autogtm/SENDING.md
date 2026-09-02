@@ -117,50 +117,47 @@ Nobody here knows, and the entire saving above depends on it. If the $0.03 cover
 infrastructure *and* orchestration, and BYO only removes the first part, the
 number to ask for is the BYO rate per email. Ask before buying a single domain.
 
-## "I would rather a tool ran the infrastructure than run it myself"
+## Renting the inboxes from an infrastructure tool
 
-Reasonable, and this repo has the scar to justify it: `OUTBOUND-CRM-AUDIT.md`
-records **all 38 Instantly mailboxes failing at once** with `EAUTH - can't create
-new access token`, sending zero for a week. That is the true cost of
-self-managed sending, and it is not the DNS setup - it is the Tuesday when
-everything silently stops.
+To be clear about what this means, because it is not the same as the two options
+above: **you rent working mailboxes from a provider.** They buy the domains, set
+SPF/DKIM/DMARC, create the mailboxes, warm them and monitor them, and hand you
+SMTP or OAuth credentials to paste into Explee. You never open a DNS panel, never
+own a domain, and if you stop paying they take it back. Explee keeps doing
+everything else — leads, copy, sending logic, inbox, replies. Only the pipe
+changes.
 
-But "rely on a tool" splits into two very different things:
+That is a real product category with several mature vendors:
 
-| | Who owns the domains | Your ops | Sender identity | Cost/month at 22,400 emails |
-|---|---|---|---|---|
-| **A. The tool's own pool** — Explee today | Explee | **none** | `Brian Carter <b@usetidegrove.com>` | **$673** |
-| **B. Done-for-you on your brand** — Instantly DFY, Zapmail | you, bought and configured *by them* | approve the order; they do DNS, mailboxes, warmup, monitoring | `eliasse@linkfinderai-contact.com` | **$162-400** |
-| C. Build it yourself | you | all of it | yours | ~$150 |
+| Provider | What you rent | Price | IPs |
+|---|---|---|---|
+| **Mailreef** | full SMTP infrastructure, dedicated IPs | $249/mo + $0.001 a send | **dedicated — yours alone** |
+| **Zapmail** | Google Workspace / Microsoft inboxes, pre-warmed available | ~$3.25/inbox | provider pool |
+| **Mailforge / Infraforge** | domains + inboxes, priced separately | ~$4/inbox | dedicated option |
+| **Maildoso** | SMTP mailboxes, cheapest at volume | from $0.49/inbox | **shared, heavily rotated** |
 
-**B is not C.** Done-for-you means you never open a DNS panel: the provider buys
-the domains, sets SPF/DKIM/DMARC, creates the mailboxes, warms them for weeks and
-monitors placement. The nine mailboxes you already have arrived this way -
-`added_by: api`, warming themselves to a health score of 100 without anyone
-touching a record. That is a tool running your infrastructure. It is the option
-that matches the preference, not the one it rules out.
+At your volume (22,400/month, ~50 inboxes) that is **$162-271/month against
+Explee's $673** — if Explee discounts bring-your-own. Which is still the open
+question below.
 
-**What A costs beyond money.** On a shared pool you have no lever when placement
-degrades - and a prospect has already told you it has. You cannot warm it, cannot
-rotate it, cannot brand it, and cannot see it. You are also permanently a stranger
-in the inbox: `usetidegrove.com` will never be a domain a French ESN recognises,
-however good the copy gets.
+### But the deliverability case rests on one fact nobody has checked
 
-**Recommendation:** option B, and specifically the provider you already run.
-Instantly DFY sells pre-warmed domains and mailboxes inside the workspace you
-already pay for, so there is no new vendor, no new billing, and the accounts are
-real Google/Microsoft ones - which is what Explee needs to connect over OAuth or
-SMTP. Zapmail is the equivalent if you want it outside Instantly (~$3.25/inbox).
+The reason rented inboxes might land better is **not branding.** It is this:
 
-Mailreef ($249/month + $0.001 a send) buys dedicated IPs and full reputation
-control; worth it later, overkill now. Maildoso is cheapest at $0.49 a mailbox but
-runs shared IPs with rotation - your reputation moves with strangers', which is
-the one thing you are trying to stop happening.
+- **Explee's pool**: if `usetidegrove.com` and `tryturn.org` are shared across
+  Explee's customers, your placement carries every other customer's spam
+  complaints, and you have no lever when it degrades.
+- **Rented inboxes**: the domains are used by you alone. You do not own them, but
+  the reputation on them is yours — nobody else can burn it.
 
-Whatever you pick: 3 mailboxes per domain, warm each for 2-3 weeks before it
-carries campaign traffic, add domains in batches so one bad domain never takes the
-whole send with it, and keep a placement check running - the 38-mailbox outage was
-only expensive because nobody noticed for a week.
+Dedicated-but-rented is the thing worth paying for. **So ask Explee directly: are
+the sending domains on my campaigns dedicated to my project, or shared with other
+customers?** If they are already dedicated, the reputation argument disappears and
+only sender identity is left, which is worth much less. If they are shared, that
+is your answer and the switch is justified on placement alone.
+
+Ask that before the seed test, and before any invoice. It is one email and it
+decides the whole question.
 
 Sources: [Cold email infrastructure pricing 2026](https://maildeck.co/blog/cold-email-infrastructure-cost-2026/) ·
 [Provider comparison](https://www.icemail.ai/blog/best-cold-email-infrastructure-tools-2026-full-comparison-with-pricing/)
