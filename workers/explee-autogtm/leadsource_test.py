@@ -251,6 +251,86 @@ def cmd_control(args):
     return 0
 
 
+def name_key(first, last):
+    """'Frédéric' / 'LE GALL' -> 'frederic|le gall'. Accents and case are not identity."""
+    def flat(value):
+        text = unicodedata.normalize("NFKD", str(value or "")).encode("ascii", "ignore").decode()
+        return re.sub(r"[^a-z ]+", " ", text.lower()).strip()
+    return "{}|{}".format(flat(first), flat(last))
+
+
+def classify_overlap(leads, theirs):
+    """(both have them, they have the company but not the person, unknown company)."""
+    same, only_theirs, no_company = [], [], []
+    for lead in leads:
+        domain = (lead.get("company_domain") or "").lower()
+        if domain not in theirs:
+            no_company.append(lead)
+        elif name_key(lead.get("first_name"), lead.get("last_name")) in theirs[domain]:
+            same.append(lead)
+        else:
+            only_theirs.append(lead)
+    return same, only_theirs, no_company
+
+
+def cmd_overlap(args):
+    """How many of these people can Explee not find? The incrementality question.
+
+    A lead that exists in Pharow and nowhere else is not "2.17x more expensive
+    than Explee" - it has no Explee price, because there is no Explee lead. That
+    makes the source a reach decision rather than a cost decision, and this is the
+    call that measures it: same companies, same titles, asked of Explee, then
+    counted person by person.
+
+    Cost: 1 credit per person Explee returns. A hundred companies is about a
+    dollar, which is the cheapest question in this directory.
+    """
+    leads = json.loads(Path(args.leads).read_text())
+    domains = sorted({l["company_domain"] for l in leads if l.get("company_domain")})
+    titles = ([t.strip() for t in args.titles.split(",")] if args.titles
+              else sorted({l["job_title"] for l in leads if l.get("job_title")})[:20])
+    print("{} leads across {} companies, asking Explee for {} titles"
+          .format(len(leads), len(domains), len(titles)))
+    if not args.apply:
+        print("up to {} people at 1 credit each (${:.2f}) - DRY RUN, add --apply"
+              .format(len(domains) * args.per_company, len(domains) * args.per_company / 100))
+        return 0
+
+    api = Explee()
+    theirs = {}
+    for start in range(0, len(domains), 1000):
+        got = api.people_by_domains(domains[start:start + 1000], titles, args.per_company)
+        for person in first_of(got, "people", "results", "contacts", default=[]):
+            domain = str(first_of(person, "company_domain", "domain", default="")).lower()
+            theirs.setdefault(domain, set()).add(
+                name_key(first_of(person, "first_name", default=""),
+                         first_of(person, "last_name", default="")))
+
+    same, only_theirs, no_company = classify_overlap(leads, theirs)
+
+    total = len(leads) or 1
+    print("\n{:<44}{:>7}{:>8}".format("", "count", "share"))
+    for label, rows in (("Explee has the same person", same),
+                        ("Explee has the company, not this person", only_theirs),
+                        ("Explee does not have the company at all", no_company)):
+        print("{:<44}{:>7}{:>8}".format(label, len(rows), "{:.0%}".format(len(rows) / total)))
+
+    unique = len(only_theirs) + len(no_company)
+    print("\n{:.0%} of this list is unreachable through Explee.".format(unique / total))
+    if unique / total >= 0.5:
+        print("That is a reach decision, not a price comparison: most of these people have no "
+              "Explee price because they have no Explee lead. Cost per lead stops being the "
+              "argument - buy it if the audience is worth reaching.")
+    else:
+        print("Most of this list is already reachable at ~$0.025 a lead. The premium is buying "
+              "you {:.0%} more audience, and it has to justify 2.17x on the rest.".format(
+                  unique / total))
+    if args.out:
+        Path(args.out).write_text(json.dumps(only_theirs + no_company, indent=1))
+        print("the unreachable ones -> {}".format(args.out))
+    return 0
+
+
 def brief_sha(brief):
     return hashlib.sha1(json.dumps(brief, sort_keys=True).encode()).hexdigest()[:8]
 
@@ -491,6 +571,14 @@ def main(argv=None):
     ctrl.add_argument("--exclude", action="append")
     ctrl.add_argument("--apply", action="store_true")
     ctrl.set_defaults(func=cmd_control)
+
+    ovl = sub.add_parser("overlap", help="what share of a list Explee cannot find (~$1)")
+    ovl.add_argument("--leads", required=True, help="the other source's leads json")
+    ovl.add_argument("--titles", help="comma-separated; default: the titles in the file")
+    ovl.add_argument("--per-company", type=int, default=5)
+    ovl.add_argument("--out", help="write the leads Explee cannot reach here")
+    ovl.add_argument("--apply", action="store_true")
+    ovl.set_defaults(func=cmd_overlap)
 
     ado = sub.add_parser("adopt", help="use a live campaign as the control arm (free)")
     ado.add_argument("--campaign", type=int, required=True)

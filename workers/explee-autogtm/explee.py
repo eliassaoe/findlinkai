@@ -233,6 +233,11 @@ class Explee:
     def search_people(self, body):
         return self.request("POST", "/public/api/v1/search/people", body=body)
 
+    def people_by_domains(self, domains, job_titles, people_per_company=5):
+        return self.request("POST", "/public/api/v1/search/people-by-domains",
+                            body={"domains": list(domains), "job_titles": list(job_titles),
+                                  "people_per_company": people_per_company})
+
     def find_and_enrich(self, body):
         return self.request("POST", "/public/api/v1/find-and-enrich", body=body)
 

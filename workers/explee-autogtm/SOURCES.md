@@ -93,6 +93,43 @@ compare fill rate, title accuracy and bounce rate. Buy the month only if there i
 a visible gap - and if there is, the 2.17x argument above is moot, because you
 would be buying an audience you otherwise cannot reach.
 
+## If the leads are unique, the price argument does not apply
+
+The 2.17x above compares two prices for the same person. It says nothing about a
+person who exists in one source and not the other - that lead has no Explee
+price, because there is no Explee lead. Then the question stops being "is this
+worth 2.17x" and becomes "is this audience worth reaching", which is a different
+decision with a different answer.
+
+`leadsource_test.py overlap` measures it directly, for about a dollar:
+
+    python3 leadsource_test.py overlap --leads pharow.leads.json --apply
+
+Same companies, same titles, asked of Explee, then counted person by person into
+three buckets: Explee has the same person · Explee has the company but not this
+person · Explee does not have the company at all. The last two are the leads that
+only exist in Pharow.
+
+- **50%+ unreachable through Explee** - it is a reach decision. Buy it if the
+  audience is worth having; cost per lead is not the argument any more.
+- **Mostly overlapping** - the premium is buying a slice of extra audience and
+  still has to clear 2.17x on everything else.
+
+Run this on the trial's 100 credits before the EUR 105. It is the one number that
+decides which of the two arguments applies.
+
+## And if the booking rate really does double
+
+Entirely plausible, and worth being precise about what it buys. Break-even is
+2.17x, so a **2.0x booking rate roughly draws level on cost per call** - about
+$52 against $50. What you get is not a cheaper call, it is **twice as many calls
+at the same unit cost.**
+
+That is a good thing to buy. It is a pipeline lever, not a cost lever, and the
+original goal - get cost per call under $50 - is not what it delivers. Worth
+knowing which one is being bought before the invoice, because the two get judged
+by different numbers: this one is judged on calls per month, not dollars per call.
+
 ## The decision: Pharow gets a shot
 
 One Pharow campaign against one Explee campaign, same brief, same week - the

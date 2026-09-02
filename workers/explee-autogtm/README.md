@@ -101,9 +101,17 @@ is `{"<campaign_id>": {"booked": 4, "showed": 2}}` from your calendar - it is wh
 turns the comparison into cost per call.
 
 **Free sanity check first, while you set this up:** Pharow's 15-day trial gives
-100 credits. Pull 100 leads for the same ICP and eyeball the fill rate and the
-job titles before paying for 1,000. If the French coverage is not visibly better
-than Explee's on those 100, the sending test will not rescue it.
+100 credits. Pull 100 leads for the same ICP, then:
+
+```bash
+python3 leadsource_test.py prepare --csv pharow-trial.csv --out trial.leads.json
+python3 leadsource_test.py overlap --leads trial.leads.json --apply    # ~$1
+```
+
+`overlap` asks Explee for the same people at the same companies and reports what
+share of the list Explee simply cannot reach. That number decides which argument
+applies: mostly-unique means it is a reach decision and the price stops mattering;
+mostly-overlapping means the premium has to clear 2.17x on reply rate alone.
 
 **Reply rate is measured per lead, not per email**, whenever both arms report
 their lead count - which they do when both were imported. Per-email flatters
@@ -232,5 +240,6 @@ from lead sourcing, fixed by confirmations and reminders, not by better data.
 | `baseline.py` | cost per call that actually showed up, before and after |
 | `instantly_leads.py` | Instantly SuperSearch leads -> the CSV `prepare` eats |
 | `SOURCES.md` | every lead source with real France coverage, priced per usable lead |
+| `leadsource_test.py overlap` | what share of another source's list Explee cannot reach |
 | `brief.json` | the campaign copy both arms share - per-record project, not the subscription |
 | `test_explee_autogtm.py` | 40 tests, offline |

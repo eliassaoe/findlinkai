@@ -352,6 +352,26 @@ class ArmReading(unittest.TestCase):
             lst.read_arm(api, {"arm": "c", "campaign_id": 1}, None)
 
 
+class Overlap(unittest.TestCase):
+    """The incrementality question: what share of a list can Explee not reach?"""
+
+    def test_accents_and_case_are_not_identity(self):
+        self.assertEqual(lst.name_key("Frédéric", "LE GALL"), lst.name_key("frederic", "le gall"))
+        self.assertNotEqual(lst.name_key("Marie", "Dupont"), lst.name_key("Marie", "Durand"))
+
+    def test_the_three_buckets(self):
+        leads = [
+            {"first_name": "Marie", "last_name": "Dupont", "company_domain": "acme.fr"},
+            {"first_name": "Jean", "last_name": "Martin", "company_domain": "acme.fr"},
+            {"first_name": "Luc", "last_name": "Bernard", "company_domain": "beta.fr"},
+        ]
+        theirs = {"acme.fr": {lst.name_key("Marie", "Dupont")}}
+        same, only_theirs, no_company = lst.classify_overlap(leads, theirs)
+        self.assertEqual([l["last_name"] for l in same], ["Dupont"])
+        self.assertEqual([l["last_name"] for l in only_theirs], ["Martin"])
+        self.assertEqual([l["last_name"] for l in no_company], ["Bernard"])
+
+
 class Verdict(unittest.TestCase):
     def arm(self, name, sent, replies, hot=0, spend=0.0, leads=None):
         return {"name": name, "sent": sent, "replies": replies, "hot": hot,
