@@ -55,10 +55,19 @@ is exactly a 22% interested-to-booked rate. Read it before deciding anything.
 ## Setup
 
 ```bash
-cp config.example.json config.json     # sender, offer line, timezone, slot hours
-export EXPLEE_API_KEY=...
-python3 test_explee_autogtm.py         # 40 tests, no network, no key needed
+python3 test_explee_autogtm.py         # 64 tests, no network, no key needed
 ```
+
+**The API key never goes in a file that is committed.** Two places it can live,
+and nothing here writes it anywhere else:
+
+```bash
+export EXPLEE_API_KEY=...                    # a shell, or your shell profile
+echo 'EXPLEE_API_KEY=...' > secrets.env      # or this file, which is gitignored
+```
+
+`secrets.env` is the one to use for cron, so the key is not sitting in your
+crontab. Get the key under **API Keys** in the Explee account menu, bottom-left.
 
 ## Action 2 — the lead source test (start here)
 

@@ -37,8 +37,25 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+from pathlib import Path
 
 BASE_URL = os.environ.get("EXPLEE_BASE_URL", "https://api.explee.com")
+KEY_FILE = Path(__file__).resolve().parent / "secrets.env"
+
+
+def read_key_file():
+    """EXPLEE_API_KEY out of secrets.env, so cron does not need the key inline.
+
+    The file is gitignored. Nothing here ever writes a key into a project file or
+    a commit - the key lives in the environment or in this one ignored file.
+    """
+    if not KEY_FILE.exists():
+        return None
+    for line in KEY_FILE.read_text().splitlines():
+        name, _, value = line.partition("=")
+        if name.strip() == "EXPLEE_API_KEY":
+            return value.strip().strip("'\"")
+    return None
 TIMEOUT = 95            # the documented server timeout is 90s
 MAX_RETRIES = 4
 NO_RETRY = (400, 401, 402, 403, 404, 409, 422)
@@ -85,9 +102,13 @@ def first_of(obj, *keys, **kw):
 
 class Explee:
     def __init__(self, api_key=None, base_url=BASE_URL, opener=None, sleep=time.sleep):
-        self.api_key = api_key or os.environ.get("EXPLEE_API_KEY")
+        self.api_key = api_key or os.environ.get("EXPLEE_API_KEY") or read_key_file()
         if not self.api_key:
-            raise SystemExit("EXPLEE_API_KEY is not set. Get one at https://explee.com/api-keys")
+            raise SystemExit(
+                "No API key. Either:\n"
+                "  export EXPLEE_API_KEY=...\n"
+                "  or put EXPLEE_API_KEY=... in {} (gitignored)\n"
+                "Get one under API Keys in the Explee account menu.".format(KEY_FILE.name))
         self.base_url = base_url.rstrip("/")
         self._opener = opener        # tests inject a fake here
         self._sleep = sleep
