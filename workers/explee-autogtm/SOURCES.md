@@ -213,6 +213,45 @@ original goal - get cost per call under $50 - is not what it delivers. Worth
 knowing which one is being bought before the invoice, because the two get judged
 by different numbers: this one is judged on calls per month, not dollars per call.
 
+## The Pharow answer, from the import screen rather than the campaign
+
+2 Sept, importing 83 Pharow leads into campaign 140491:
+
+| | | |
+|---|---|---|
+| Rows in file | 83 | |
+| **Skipped** | **0** | every row had a usable email, name, domain and title |
+| **Enriched from Explee's base** | **80 (96%)** | Explee already holds these people |
+| Not in Explee's base | **3 (4%)** | |
+| Deduped / DNC | 21 (25%) | already contacted by this project |
+| Imported | 62 (75%) | |
+
+Two of those numbers settle two different arguments.
+
+**Pharow's data is clean.** Zero rows skipped: every one of the 83 arrived with a
+complete, well-formed contact. That is better than most exports and it is a real
+point in their favour - the 78.7% coverage claim looks honest at this sample.
+
+**And the reach argument is dead.** Explee already had **96%** of them. The case
+for paying 3.4x a lead was never the price, it was supposed to be the people
+Explee cannot find - and that turns out to be three of eighty-three. A further
+25% were people this project had *already contacted*, so a quarter of the export
+was spent on names already in the funnel.
+
+For the 62 that actually shipped: **$5.24 of Pharow against $1.55 of Explee.**
+
+**One honest caveat before writing it off.** "Enriched from our base" means Explee
+*holds a record* for that person. It does not prove Explee's own search would have
+*surfaced* them for this ICP. Coverage and discoverability are different failures,
+and if Explee's targeting cannot reach an audience it demonstrably has data on,
+that is an Explee targeting problem worth fixing - not an argument for buying the
+same people twice.
+
+**So do not buy the 2,000 credits.** The question Pharow was bought to answer has
+been answered by its own free trial, in the import log, before a single email
+landed. What is left to test is Explee's targeting, which costs nothing:
+`GET /autogtm/campaigns/{id}` returns the whole definition.
+
 ## The decision: Pharow gets a shot
 
 One Pharow campaign against one Explee campaign, same brief, same week - the
