@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html>
+<head>
+<base target="_top">
+<style>
+  body{font-family:Roboto,Arial,sans-serif;font-size:13px;color:#202124;margin:0;padding:14px;}
+  label{display:block;font-weight:500;margin:12px 0 4px;}
+  select,input{width:100%;box-sizing:border-box;padding:6px;border:1px solid #dadce0;border-radius:4px;font-size:13px;}
+  .row{display:flex;gap:8px;}
+  .row>div{flex:1;}
+  .cost{margin-top:8px;padding:8px;border-radius:4px;background:#e8f0fe;color:#1967d2;font-size:12px;line-height:1.4;}
+  .cost.warn{background:#fef7e0;color:#b06000;}
+  .help{color:#5f6368;font-size:11.5px;margin-top:3px;line-height:1.35;}
+  .part{display:flex;gap:8px;align-items:flex-end;margin-top:10px;}
+  .part .col{width:64px;flex:none;}
+  .part .meta{flex:1;}
+  .part label{margin:0 0 4px;}
+  .opt{color:#80868b;font-weight:400;}
+  button{margin-top:14px;width:100%;padding:9px;background:#1a73e8;color:#fff;border:0;border-radius:4px;font-size:13px;cursor:pointer;}
+  button:disabled{background:#dadce0;cursor:default;}
+  #status{margin-top:12px;font-size:12px;color:#5f6368;line-height:1.4;white-space:pre-wrap;}
+  .nokey{background:#fce8e6;color:#c5221f;padding:8px;border-radius:4px;margin-bottom:8px;}
+</style>
+</head>
+<body>
+
+<div id="nokey" class="nokey" style="display:none;">
+  No API key set yet — use <b>LinkFinder AI → Set API key…</b> first.
+</div>
+
+<label for="op">Lookup</label>
+<select id="op"></select>
+<div class="help" id="opHelp"></div>
+
+<div id="cost" class="cost"></div>
+
+<div id="inputs"></div>
+
+<label for="target">Column to write into</label>
+<input id="target" placeholder="B" value="B">
+<div class="help">Rows that already have a value here are skipped, so nothing is looked up — or charged — twice.</div>
+
+<div class="row">
+  <div>
+    <label for="first">First row</label>
+    <input id="first" type="number" value="2" min="1">
+  </div>
+  <div>
+    <label for="last">Last row</label>
+    <input id="last" type="number" placeholder="end">
+  </div>
+</div>
+
+<div id="params"></div>
+
+<button id="go" disabled>Enrich column</button>
+<div id="status"></div>
+
+<script>
+  var OPERATIONS = [];
+
+  function esc(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];
+  }); }
+
+  function selected(){
+    return OPERATIONS.filter(function(o){ return o.type === document.getElementById('op').value; })[0];
+  }
+
+  function render(){
+    var op = selected();
+    if (!op) return;
+
+    document.getElementById('opHelp').textContent = op.inputHelp;
+
+    // Name-based lookups read several columns and join them; everything else
+    // reads one. Rendering the parts from the operation means the panel always
+    // asks for exactly what that lookup can use.
+    var parts = op.compositeInput
+      ? op.compositeInput.parts
+      : [{ name: 'input', label: op.inputLabel, required: true, help: op.inputHelp, example: op.example }];
+
+    var letters = ['A', 'B', 'C', 'D'];
+    document.getElementById('inputs').innerHTML = parts.map(function (p, i) {
+      return '<div class="part">' +
+        '<div class="col">' +
+          '<label for="c_' + esc(p.name) + '">' + (i === 0 ? 'Column' : '&nbsp;') + '</label>' +
+          '<input id="c_' + esc(p.name) + '" data-part="' + esc(p.name) + '" placeholder="' + letters[i] + '"' +
+            (i === 0 ? ' value="' + letters[i] + '"' : '') + '>' +
+        '</div>' +
+        '<div class="meta">' +
+          '<label>' + esc(p.label) + (p.required ? '' : ' <span class="opt">— optional</span>') + '</label>' +
+          '<div class="help">' + esc(p.help) + ' e.g. ' + esc(p.example) + '</div>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+
+    if (op.compositeInput) {
+      document.getElementById('inputs').insertAdjacentHTML('beforeend',
+        '<div class="help" style="margin-top:8px;">' + esc(op.compositeInput.note) +
+        ' Leave a column blank to skip it — but every one you fill in makes the match more certain.</div>');
+    }
+
+    // Cost is shown per row and multiplied out, because the whole risk of a
+    // spreadsheet run is doing something 2,000 times without noticing the price.
+    var first = Number(document.getElementById('first').value) || 2;
+    var last = Number(document.getElementById('last').value) || 0;
+    var rows = last >= first ? (last - first + 1) : null;
+
+    var box = document.getElementById('cost');
+    var text;
+
+    if (op.perEmployeeBilling) {
+      text = 'Billed 0.5 credits per employee returned, not a flat fee per row.';
+    } else {
+      text = op.credits + (op.credits === 1 ? ' credit' : ' credits') + ' per row';
+      if (rows) text += ' — about ' + (op.credits * rows).toLocaleString() + ' credits for ' + rows.toLocaleString() + ' rows';
+      text += '. Rows that find nothing are still charged.';
+    }
+
+    box.textContent = text;
+    box.className = 'cost' + (op.credits >= 7 || op.perEmployeeBilling ? ' warn' : '');
+
+    var params = document.getElementById('params');
+    params.innerHTML = op.params.map(function(p){
+      return '<label for="p_' + esc(p.name) + '">' + esc(p.label) + ' (optional)</label>' +
+             '<input id="p_' + esc(p.name) + '" data-param="' + esc(p.name) + '"' +
+             (p.type === 'integer' ? ' type="number"' : '') + '>';
+    }).join('');
+  }
+
+  function run(){
+    var op = selected();
+
+    var columns = {};
+    Array.prototype.forEach.call(document.querySelectorAll('[data-part]'), function(el){
+      if (el.value.trim()) columns[el.getAttribute('data-part')] = el.value.trim();
+    });
+
+    var required = op.compositeInput ? op.compositeInput.parts[0] : { name: 'input', label: op.inputLabel };
+    if (!columns[required.name]) {
+      document.getElementById('status').textContent = 'Set the column holding ' + required.label + ' first.';
+      return;
+    }
+
+    var params = {};
+    Array.prototype.forEach.call(document.querySelectorAll('[data-param]'), function(el){
+      if (el.value !== '') params[el.getAttribute('data-param')] = el.value;
+    });
+
+    document.getElementById('go').disabled = true;
+    document.getElementById('status').textContent = 'Running… you can close this panel, it keeps going.';
+
+    google.script.run
+      .withSuccessHandler(function(result){
+        document.getElementById('status').textContent = result.message;
+        document.getElementById('go').disabled = false;
+      })
+      .withFailureHandler(function(error){
+        document.getElementById('status').textContent = 'Stopped: ' + error.message;
+        document.getElementById('go').disabled = false;
+      })
+      .startRun({
+        type: op.type,
+        columns: columns,
+        targetColumn: document.getElementById('target').value,
+        firstRow: document.getElementById('first').value,
+        lastRow: document.getElementById('last').value,
+        params: params
+      });
+  }
+
+  google.script.run.withSuccessHandler(function(ops){
+    OPERATIONS = ops;
+    var select = document.getElementById('op');
+
+    var groups = {};
+    ops.forEach(function(o){ (groups[o.category] = groups[o.category] || []).push(o); });
+
+    select.innerHTML = Object.keys(groups).map(function(category){
+      return '<optgroup label="' + esc(category) + '">' + groups[category].map(function(o){
+        return '<option value="' + esc(o.type) + '">' + esc(o.label) + '</option>';
+      }).join('') + '</optgroup>';
+    }).join('');
+
+    select.addEventListener('change', render);
+    ['first','last'].forEach(function(id){ document.getElementById(id).addEventListener('input', render); });
+    render();
+  }).getOperations();
+
+  google.script.run.withSuccessHandler(function(has){
+    document.getElementById('nokey').style.display = has ? 'none' : 'block';
+    document.getElementById('go').disabled = !has;
+  }).hasApiKey();
+
+  document.getElementById('go').addEventListener('click', run);
+</script>
+</body>
+</html>

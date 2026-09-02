@@ -1,6 +1,6 @@
 // Verification tests for the onboarding tasks worker.
 //   node workers/onboarding-tasks/test-review-urls.mjs
-import { classifyReviewUrl, reviewUrlKey } from './worker.js';
+import { classifyReviewUrl, reviewUrlKey, fetchVerifyReview } from './worker.js';
 
 let pass = 0, fail = 0;
 const v = (t, u, o) => classifyReviewUrl(t, u, o).verdict;
@@ -26,10 +26,10 @@ is('our company page rejected', v('trustpilot_review','https://fr.trustpilot.com
 is('other company page rejected', v('trustpilot_review','https://www.trustpilot.com/review/apollo.io'), 'reject');
 is('short id rejected', v('trustpilot_review','https://www.trustpilot.com/reviews/abc123'), 'reject');
 is('policy=manual queues it', v('trustpilot_review','https://www.trustpilot.com/reviews/6512a4f1c9d2b30011a7e883',{trustpilotPolicy:'manual'}), 'manual');
-is('policy does not affect G2', v('g2_review','https://www.g2.com/products/linkfinder-ai/reviews/r-9',{trustpilotPolicy:'manual'}), 'auto_approve');
+is('policy does not affect G2', v('g2_review','https://www.g2.com/products/linkfinder-ai/reviews/linkfinder-ai-review-9',{trustpilotPolicy:'manual'}), 'auto_approve');
 
 console.log('\nKill switches');
-is('G2_POLICY=manual queues G2', v('g2_review','https://www.g2.com/products/linkfinder-ai/reviews/r-1',{g2Policy:'manual'}), 'manual');
+is('G2_POLICY=manual queues G2', v('g2_review','https://www.g2.com/products/linkfinder-ai/reviews/linkfinder-ai-review-1',{g2Policy:'manual'}), 'manual');
 is('G2_POLICY does not affect Trustpilot', v('trustpilot_review','https://www.trustpilot.com/reviews/6512a4f1c9d2b30011a7e885',{g2Policy:'manual'}), 'auto_approve');
 
 console.log('\nFabricated ids still pass SHAPE — which is why existence is checked separately');
@@ -75,6 +75,76 @@ console.log('\nRejections must tell the user what to do');
 const landing = classifyReviewUrl('trustpilot_review','https://fr.trustpilot.com/review/linkfinderai.com');
 is('landing-page message names the mistake', /address bar/.test(landing.reason), true);
 is('rejected keys are not claimed', landing.key, null);
+
+console.log('\nThe write form is not a review — this is the bypass people were using');
+// We told people to go to /reviews/start, and pasting that same link back
+// classified as auto_approve with the key "g2:start". The hard part of the
+// task was writing a review; this skipped it entirely.
+for (const slug of ['start','new','write','edit','video','videos','take_survey','survey','thank_you','thanks']) {
+    is(`/reviews/${slug} rejected`, v('g2_review', `https://www.g2.com/products/linkfinder-ai/reviews/${slug}`), 'reject');
+}
+is('arbitrary slug rejected', v('g2_review','https://www.g2.com/products/linkfinder-ai/reviews/anything-at-all'), 'reject');
+is('single letter rejected', v('g2_review','https://www.g2.com/products/linkfinder-ai/reviews/x'), 'reject');
+is('non-numeric review id rejected', v('g2_review','https://www.g2.com/products/linkfinder-ai/reviews/linkfinder-ai-review-abc'), 'reject');
+is('survey_responses needs a numeric id too', v('g2_review','https://www.g2.com/survey_responses/linkfinder-ai-whatever'), 'reject');
+is('write form claims no key', reviewUrlKey('g2_review','https://www.g2.com/products/linkfinder-ai/reviews/start'), null);
+is('write-form rejection names the mistake',
+   classifyReviewUrl('g2_review','https://www.g2.com/products/linkfinder-ai/reviews/start').reason.includes('form for writing a review'),
+   true);
+
+console.log('\nReal permalinks still pass, including query strings and trailing slashes');
+is('trailing slash ok', v('g2_review','https://www.g2.com/products/linkfinder-ai/reviews/linkfinder-ai-review-10432117/'), 'auto_approve');
+is('query string ok', v('g2_review','https://www.g2.com/products/linkfinder-ai/reviews/linkfinder-ai-review-10432117?utm_source=x'), 'auto_approve');
+is('fragment ok', v('g2_review','https://www.g2.com/products/linkfinder-ai/reviews/linkfinder-ai-review-10432117#top'), 'auto_approve');
+is('key is stable across those',
+   reviewUrlKey('g2_review','https://www.g2.com/products/linkfinder-ai/reviews/linkfinder-ai-review-10432117?utm_source=x'),
+   'g2:linkfinder-ai-review-10432117');
+
+
+// ---------------------------------------------------------------------------
+// Live page verification. The property that matters is that it fails SAFE:
+// every failure mode must leave the review unconfirmed, never confirmed.
+// ---------------------------------------------------------------------------
+console.log('\nLive G2 verification fails safe');
+
+const realFetch = globalThis.fetch;
+async function withFetch(impl, fn) {
+    globalThis.fetch = impl;
+    try { return await fn(); } finally { globalThis.fetch = realFetch; }
+}
+// Response.url is read-only, so stub the shape fetchVerifyReview reads.
+const resp = (body, url, status = 200) => async () => ({
+    ok: status >= 200 && status < 300, status, url,
+    text: async () => body,
+});
+
+const KEY = 'g2:linkfinder-ai-review-10432117';
+const URL_OK = 'https://www.g2.com/products/linkfinder-ai/reviews/linkfinder-ai-review-10432117';
+const check = (impl) => withFetch(impl, () => fetchVerifyReview({}, 'g2_review', URL_OK, KEY));
+
+is('a page naming product and review id confirms',
+   (await check(resp('<html>LinkFinder AI review 10432117 great tool</html>', URL_OK))).confirmed, true);
+is('403 from bot protection does not confirm',
+   (await check(resp('denied', URL_OK, 403))).confirmed, false);
+is('404 does not confirm',
+   (await check(resp('not found', URL_OK, 404))).confirmed, false);
+is('network error does not confirm',
+   (await check(async () => { throw new Error('blocked'); })).confirmed, false);
+is('redirect to the product page does not confirm',
+   (await check(resp('<html>LinkFinder AI</html>', 'https://www.g2.com/products/linkfinder-ai/reviews'))).confirmed, false);
+is('page without the review id does not confirm',
+   (await check(resp('<html>LinkFinder AI, great tool</html>', URL_OK))).confirmed, false);
+is('page about another product does not confirm',
+   (await check(resp('<html>Apollo review 10432117</html>', URL_OK))).confirmed, false);
+is('G2_FETCH_VERIFY=false disables it',
+   (await withFetch(resp('<html>LinkFinder 10432117</html>', URL_OK),
+      () => fetchVerifyReview({ G2_FETCH_VERIFY: 'false' }, 'g2_review', URL_OK, KEY))).confirmed, false);
+is('trustpilot is not fetch-verified',
+   (await withFetch(resp('<html>whatever</html>', URL_OK),
+      () => fetchVerifyReview({}, 'trustpilot_review', URL_OK, 'tp:abc'))).confirmed, false);
+is('a key with no numeric id does not fetch',
+   (await withFetch(() => { throw new Error('should not be called'); },
+      () => fetchVerifyReview({}, 'g2_review', URL_OK, 'g2:start'))).confirmed, false);
 
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

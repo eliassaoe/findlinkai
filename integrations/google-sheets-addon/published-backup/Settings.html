@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      margin: 0;
+    }
+    
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: bold;
+      font-size: 14px;
+    }
+    
+    input[type="password"] {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #d0d0d0;
+      border-radius: 4px;
+      font-size: 14px;
+      box-sizing: border-box;
+      margin-bottom: 15px;
+    }
+    
+    .button-container {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+    }
+    
+    .button {
+      flex: 1;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    
+    .button-primary {
+      background-color: #4285f4;
+      color: white;
+    }
+    
+    .button-primary:hover {
+      background-color: #357ae8;
+    }
+    
+    .button-secondary {
+      background-color: #f1f3f4;
+      color: #202124;
+    }
+    
+    .button-secondary:hover {
+      background-color: #e8eaed;
+    }
+    
+    .help-text {
+      font-size: 13px;
+      color: #666;
+      margin-bottom: 15px;
+      line-height: 1.5;
+    }
+    
+    .message {
+      padding: 10px;
+      border-radius: 4px;
+      margin-bottom: 15px;
+      font-size: 13px;
+    }
+    
+    .message.success {
+      background-color: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    
+    .message.error {
+      background-color: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+    
+    .link {
+      color: #4285f4;
+      text-decoration: none;
+    }
+    
+    .link:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div id="message" class="message" style="display: none;"></div>
+  
+  <label for="apiKey">LinkFinder AI API Key:</label>
+  <div class="help-text">
+    Enter your API key from LinkFinder AI. You can get your API key at 
+    <a href="https://linkfinderai.com" target="_blank" class="link">linkfinderai.com</a>
+  </div>
+  
+  <input type="password" id="apiKey" placeholder="Enter your API key">
+  
+  <div class="button-container">
+    <button class="button button-secondary" onclick="google.script.host.close()">Cancel</button>
+    <button class="action button button-primary" onclick="saveSettings()">Save</button>
+  </div>
+
+  <script>
+    // Load existing API key
+    google.script.run
+      .withSuccessHandler(function(apiKey) {
+        if (apiKey) {
+          document.getElementById('apiKey').value = apiKey;
+        }
+      })
+      .getApiKey();
+    
+    function saveSettings() {
+      var apiKey = document.getElementById('apiKey').value.trim();
+      
+      if (!apiKey) {
+        showMessage('Please enter an API key', 'error');
+        return;
+      }
+      
+      google.script.run
+        .withSuccessHandler(onSaveSuccess)
+        .withFailureHandler(onSaveError)
+        .saveApiKey(apiKey);
+    }
+    
+    function onSaveSuccess(result) {
+      showMessage(result.message, 'success');
+      setTimeout(function() {
+        google.script.host.close();
+      }, 1500);
+    }
+    
+    function onSaveError(error) {
+      showMessage(error.message || 'Failed to save API key', 'error');
+    }
+    
+    function showMessage(text, type) {
+      var messageDiv = document.getElementById('message');
+      messageDiv.textContent = text;
+      messageDiv.className = 'message ' + type;
+      messageDiv.style.display = 'block';
+    }
+  </script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

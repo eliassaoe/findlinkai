@@ -50,8 +50,15 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
 .btn-outline:hover{background:var(--gray-50);border-color:var(--primary);}
 .btn-sm{padding:.375rem .75rem;font-size:.8rem;}
 .nav-menu{background:white;border-bottom:1px solid var(--gray-200);padding:.75rem 0;}
-.nav-tabs{display:flex;gap:.5rem;overflow-x:auto;padding-bottom:.25rem;}
-.nav-tab{display:flex;align-items:center;gap:.5rem;padding:.75rem 1rem;border-radius:8px;background:transparent;border:1px solid var(--gray-200);color:var(--gray-600);text-decoration:none;font-weight:500;font-size:.875rem;transition:all .2s;white-space:nowrap;cursor:pointer;font-family:inherit;}
+.nav-tabs{display:flex;gap:.4rem;flex-wrap:wrap;align-items:center;justify-content:center;row-gap:.5rem;}
+/* The nav is the one thing on these pages that should not be 680px wide.
+   Content stays narrow because a single column is easier to read; the tab bar
+   has six items and no reason to be constrained to the same measure. Widening
+   only the nav's container fits them on one row without touching any layout. */
+.nav-menu .container{max-width:1100px;}
+@media(max-width:1140px){ .nav-menu .container{max-width:100%;} }
+
+.nav-tab{display:flex;align-items:center;gap:.5rem;padding:.6rem .8rem;border-radius:8px;background:transparent;border:1px solid var(--gray-200);color:var(--gray-600);text-decoration:none;font-weight:500;font-size:.875rem;transition:all .2s;white-space:nowrap;cursor:pointer;font-family:inherit;}
 .nav-tab:hover{background:var(--gray-50);border-color:var(--primary);color:var(--gray-800);}
 .nav-tab.active{background:var(--primary);border-color:var(--primary);color:white;}
 .nav-tab i{font-size:.875rem;}
@@ -64,10 +71,6 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
 .page-meta{font-size:.8rem;color:var(--gray-400);margin-top:.15rem;}
 
 /* Stats row */
-.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:.75rem;margin-bottom:1.25rem;}
-.stat-card{background:white;border:1px solid var(--gray-200);border-radius:10px;padding:1rem;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.06);}
-.stat-value{font-size:1.5rem;font-weight:700;color:var(--gray-900);line-height:1;}
-.stat-label{font-size:.72rem;color:var(--gray-400);margin-top:.25rem;text-transform:uppercase;letter-spacing:.04em;}
 
 /* Search & filter bar */
 .filter-bar{background:white;border:1px solid var(--gray-200);border-radius:10px;padding:.875rem 1rem;margin-bottom:1rem;display:flex;gap:.625rem;align-items:center;flex-wrap:wrap;box-shadow:0 1px 3px rgba(0,0,0,.06);}
@@ -76,6 +79,63 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
 .filter-select{padding:.5rem .75rem;border:1px solid var(--gray-200);border-radius:6px;font-size:.8rem;font-family:inherit;color:var(--gray-600);background:var(--gray-50);cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");background-position:right .4rem center;background-repeat:no-repeat;background-size:1.2em;padding-right:2rem;}
 .filter-select:focus{outline:none;border-color:var(--primary);}
 .results-count{font-size:.78rem;color:var(--gray-400);white-space:nowrap;margin-left:auto;}
+
+/* CSV enrichment batches */
+.csv-section{margin-bottom:1.5rem;}
+.section-head{display:flex;align-items:baseline;gap:.5rem;margin-bottom:.625rem;}
+.section-title{font-size:.95rem;font-weight:700;color:var(--gray-900);display:flex;align-items:center;gap:.45rem;}
+.section-title i{color:var(--primary);font-size:.85rem;}
+.section-sub{font-size:.75rem;color:var(--gray-400);margin-left:auto;white-space:nowrap;}
+/* Segmented control for the two history views. */
+.view-tabs{display:flex;gap:.25rem;margin-bottom:1rem;background:var(--gray-100);padding:.25rem;border-radius:10px;width:fit-content;max-width:100%;flex-wrap:wrap;}
+.view-tab{display:flex;align-items:center;gap:.45rem;padding:.5rem .85rem;border-radius:8px;border:1px solid transparent;background:transparent;color:var(--gray-600);font-size:.85rem;font-weight:600;font-family:inherit;line-height:normal;cursor:pointer;transition:background .15s,color .15s;}
+.view-tab:hover{color:var(--gray-900);}
+.view-tab.active{background:white;color:var(--gray-900);border-color:var(--gray-200);box-shadow:0 1px 2px rgba(0,0,0,.06);}
+.view-tab i{font-size:.8rem;color:var(--gray-400);}
+.view-tab.active i{color:var(--primary);}
+.view-tab-count{font-size:.72rem;font-weight:700;color:var(--gray-500);background:var(--gray-200);border-radius:20px;padding:.1rem .4rem;min-width:1.2rem;text-align:center;}
+.view-tab.active .view-tab-count{background:var(--primary);color:white;}
+/* The tab already names the view, so the section keeps only its count line. */
+.csv-section .section-sub{margin-left:0;}
+.csv-list{display:flex;flex-direction:column;gap:.625rem;}
+.csv-card{background:white;border:1px solid var(--gray-200);border-radius:10px;padding:.875rem 1rem;box-shadow:0 1px 3px rgba(0,0,0,.06);}
+.csv-card-top{display:flex;align-items:center;gap:.75rem;}
+.csv-icon{width:36px;height:36px;border-radius:8px;background:#d1fae5;color:#065f46;display:flex;align-items:center;justify-content:center;font-size:.9rem;flex-shrink:0;}
+.csv-card-info{flex:1;min-width:0;}
+.csv-name{font-size:.875rem;font-weight:600;color:var(--gray-900);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.csv-sub{font-size:.75rem;color:var(--gray-500);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:.1rem;}
+.csv-status{font-size:.65rem;font-weight:600;padding:.15rem .45rem;border-radius:4px;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap;flex-shrink:0;}
+.csv-status.done{background:#d1fae5;color:#065f46;}
+.csv-status.running{background:#dbeafe;color:#1d4ed8;}
+.csv-status.partial{background:#fef3c7;color:#92400e;}
+.csv-status.stalled{background:var(--gray-100);color:var(--gray-600);}
+.csv-progress{margin-top:.75rem;}
+.csv-progress-head{display:flex;align-items:baseline;justify-content:space-between;gap:.5rem;font-size:.75rem;color:var(--gray-500);margin-bottom:.35rem;}
+.csv-pct{font-size:1.05rem;font-weight:700;color:var(--gray-900);line-height:1;}
+.csv-bar{position:relative;height:8px;border-radius:99px;background:var(--gray-100);overflow:hidden;}
+.csv-bar-processed{position:absolute;inset:0 auto 0 0;background:#bfdbfe;border-radius:99px;}
+.csv-bar-found{position:absolute;inset:0 auto 0 0;background:var(--success);border-radius:99px;}
+.csv-legend{display:flex;gap:.875rem;flex-wrap:wrap;font-size:.7rem;color:var(--gray-500);margin-top:.4rem;}
+.csv-legend span{display:flex;align-items:center;gap:.3rem;}
+.csv-dot{width:8px;height:8px;border-radius:2px;flex-shrink:0;}
+.csv-dot.found{background:var(--success);}
+.csv-dot.processed{background:#bfdbfe;}
+.csv-dot.left{background:var(--gray-200);}
+.csv-card-foot{display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;margin-top:.75rem;padding-top:.75rem;border-top:1px solid var(--gray-100);}
+.csv-meta{font-size:.72rem;color:var(--gray-400);display:flex;align-items:center;gap:.25rem;}
+.csv-meta i{color:var(--warning);font-size:.65rem;}
+.csv-dl{margin-left:auto;background:var(--primary);color:white;border:none;padding:.4rem .75rem;border-radius:6px;font-weight:600;font-size:.78rem;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:.4rem;transition:background .15s;}
+.csv-dl:hover:not(:disabled){background:var(--primary-hover);}
+.csv-dl:disabled{background:var(--gray-100);color:var(--gray-400);cursor:default;}
+.csv-actions{margin-left:auto;display:flex;gap:.5rem;flex-wrap:wrap;justify-content:flex-end;}
+.csv-actions .csv-dl,.csv-actions .csv-resume{margin-left:0;}
+.csv-resume{margin-left:auto;background:white;color:var(--primary);border:1px solid var(--primary);padding:.4rem .75rem;border-radius:6px;font-weight:600;font-size:.78rem;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:.4rem;transition:background .15s;}
+.csv-resume:hover{background:#eff6ff;}
+.csv-resume + .csv-dl{margin-left:0;}
+.csv-note{font-size:.72rem;color:var(--gray-400);margin-left:auto;}
+.csv-empty{background:white;border:1px dashed var(--gray-200);border-radius:10px;padding:1.25rem 1rem;text-align:center;font-size:.82rem;color:var(--gray-500);}
+.csv-empty a{color:var(--primary);text-decoration:none;font-weight:600;}
+.csv-empty a:hover{text-decoration:underline;}
 
 /* History list */
 .history-list{display:flex;flex-direction:column;gap:.5rem;}
@@ -133,19 +193,6 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
 .export-btn:hover{background:var(--gray-50);border-color:var(--gray-300);}
 
 /* Saved search alerts */
-.track-alert-btn{background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe;}
-.track-alert-btn:hover{background:#dbeafe;}
-.track-alert-btn.saved{background:#dcfce7;color:#15803d;border-color:#bbf7d0;cursor:default;}
-.track-alert-btn.saved:hover{background:#dcfce7;}
-.saved-searches-list{max-height:60vh;overflow-y:auto;}
-.saved-search-item{display:flex;justify-content:space-between;align-items:center;gap:.75rem;padding:.75rem 0;border-bottom:1px solid var(--gray-100);}
-.saved-search-item:last-child{border-bottom:none;}
-.saved-search-item-label{font-size:.875rem;font-weight:500;color:var(--gray-900);}
-.saved-search-item-meta{font-size:.75rem;color:var(--gray-500);margin-top:.15rem;}
-.saved-search-remove-btn{background:none;border:none;color:var(--gray-400);cursor:pointer;font-size:.9rem;padding:.25rem;flex-shrink:0;}
-.saved-search-remove-btn:hover{color:var(--error);}
-.saved-searches-empty{text-align:center;padding:2rem 1rem;color:var(--gray-400);font-size:.825rem;}
-.alerts-note{font-size:.7rem;color:var(--gray-400);padding:.75rem 1.25rem 0;}
 
 /* Pagination */
 .pagination{display:flex;align-items:center;justify-content:center;gap:.5rem;margin-top:1.25rem;}
@@ -201,14 +248,16 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
 .empty-result-note{font-size:.8rem;color:var(--gray-400);font-style:italic;}
 
 @media(max-width:640px){
-    .stats-row{grid-template-columns:repeat(3,1fr);}
-    .stat-value{font-size:1.2rem;}
     .filter-bar{flex-direction:column;gap:.5rem;}
     .search-input{width:100%;}
     .results-count{margin-left:0;}
     .history-meta{display:none;}
-    .nav-tab{padding:.625rem .75rem;font-size:.8rem;}
+    .nav-tab{padding:.5rem .65rem;font-size:.78rem;}
 }
+
+/* The done-for-you upsell. Outlined in blue where every other tab is grey,
+   with a gap in front, so it reads as the step up rather than a seventh place
+   to click. The panel itself lives in app.html; this sends you there. */
 </style>
 <!-- softened-tool-page-v1 -->
 <script type="application/ld+json">
@@ -270,9 +319,10 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
             <button class="nav-tab" onclick="nav('enrichment')"><i class="fas fa-search"></i> Data Enrichment</button>
             <button class="nav-tab" onclick="nav('api')"><i class="fas fa-code"></i> API & MCP</button>
             <button class="nav-tab" onclick="nav('crmSync')"><i class="fab fa-hubspot"></i> CRM Sync</button>
+            <button class="nav-tab" onclick="nav('integrations')"><i class="fas fa-puzzle-piece"></i> Integrations</button>
             <button class="nav-tab active"><i class="fas fa-history"></i> History</button>
             <button class="nav-tab" onclick="nav('account')"><i class="fas fa-user"></i> Account</button>
-        </div>
+</div>
     </div>
 </nav>
 
@@ -316,28 +366,21 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
                     <div class="page-title"><i class="fas fa-history"></i> Enrichment History</div>
                     <div class="page-meta" id="pageMeta">Your complete enrichment log</div>
                 </div>
-                <button class="export-btn track-alert-btn" onclick="openSavedSearchesModal()" title="Get a weekly email when a saved search changes">
-                    <i class="fas fa-bell"></i> Weekly Alerts
-                </button>
                 <button class="export-btn" onclick="exportAll()">
                     <i class="fas fa-download"></i> Export all
                 </button>
             </div>
 
-            <!-- Stats -->
-            <div class="stats-row">
-                <div class="stat-card">
-                    <div class="stat-value" id="statTotal">—</div>
-                    <div class="stat-label">Total enrichments</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value" id="statCredits">—</div>
-                    <div class="stat-label">Credits used</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value" id="statDays">—</div>
-                    <div class="stat-label">Days active</div>
-                </div>
+            <!-- Two views. The CSV cards and the activity log used to stack, so a
+                 few dozen enriched files pushed "All enrichments" most of a screen
+                 down the page and people stopped finding it. -->
+            <div class="view-tabs" role="tablist" aria-label="History view">
+                <button class="view-tab active" id="viewTabCsv" role="tab" aria-selected="true" aria-controls="csvPanel" onclick="switchView('csv')">
+                    <i class="fas fa-file-csv"></i> CSV history<span class="view-tab-count" id="viewTabCsvCount">0</span>
+                </button>
+                <button class="view-tab" id="viewTabAll" role="tab" aria-selected="false" aria-controls="activityPanel" onclick="switchView('all')">
+                    <i class="fas fa-stream"></i> All enrichments<span class="view-tab-count" id="viewTabAllCount">0</span>
+                </button>
             </div>
 
             <!-- Filter bar -->
@@ -363,18 +406,33 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
                 <span class="results-count" id="resultsCount"></span>
             </div>
 
-            <!-- History list -->
-            <div id="historyList" class="history-list"></div>
-
-            <!-- Empty state -->
-            <div id="emptyState" class="empty-state hidden">
-                <i class="fas fa-search"></i>
-                <h3 id="emptyTitle">No enrichments found</h3>
-                <p id="emptyMsg">Try adjusting your search or filters.</p>
+            <!-- CSV enrichments -->
+            <div id="csvPanel" role="tabpanel" aria-labelledby="viewTabCsv">
+                <div id="csvSection" class="csv-section hidden">
+                    <div class="section-head">
+                        <div class="section-sub" id="csvSectionSub"></div>
+                    </div>
+                    <div id="csvList" class="csv-list"></div>
+                </div>
+                <div id="csvNoneState" class="empty-state hidden">
+                    <i class="fas fa-file-csv"></i>
+                    <h3>No CSV enrichments yet</h3>
+                    <p>Upload a list in Data Enrichment and every run lands here, with how far it got and a download.</p>
+                </div>
             </div>
 
-            <!-- Pagination -->
-            <div id="pagination" class="pagination hidden"></div>
+            <!-- All enrichments -->
+            <div id="activityPanel" role="tabpanel" aria-labelledby="viewTabAll" class="hidden">
+                <div id="historyList" class="history-list"></div>
+
+                <div id="emptyState" class="empty-state hidden">
+                    <i class="fas fa-search"></i>
+                    <h3 id="emptyTitle">No enrichments found</h3>
+                    <p id="emptyMsg">Try adjusting your search or filters.</p>
+                </div>
+
+                <div id="pagination" class="pagination hidden"></div>
+            </div>
 
         </div>
 
@@ -394,28 +452,9 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
         </div>
         <div class="modal-body" id="modalBody"></div>
         <div class="modal-footer">
-            <button class="export-btn track-alert-btn" id="modalTrackBtn" onclick="trackActiveItemForAlerts()"><i class="fas fa-bell"></i> Get weekly alerts</button>
             <button class="export-btn" id="modalCopyBtn" onclick="copyDetailJson()"><i class="fas fa-copy"></i> Copy JSON</button>
             <button class="btn" id="modalExportBtn" onclick="exportSingle()"><i class="fas fa-download"></i> Export this row</button>
         </div>
-    </div>
-</div>
-
-<!-- Saved searches / alerts modal -->
-<div id="savedSearchesModal" class="modal-overlay hidden" onclick="if(event.target===this) closeSavedSearchesModal()">
-    <div class="modal-panel">
-        <div class="modal-header">
-            <div class="modal-icon" style="background:#eff6ff;color:#2563eb;"><i class="fas fa-bell"></i></div>
-            <div class="modal-title-wrap">
-                <div class="modal-title">Saved Searches &amp; Alerts</div>
-                <div class="modal-subtitle">Open any row below, then click "Get weekly alerts" to track it here</div>
-            </div>
-            <button class="modal-close" onclick="closeSavedSearchesModal()"><i class="fas fa-times"></i></button>
-        </div>
-        <div class="modal-body">
-            <div id="savedSearchesList" class="saved-searches-list"></div>
-        </div>
-        <div class="alerts-note" style="padding-bottom:1rem;">Each weekly check uses 1 credit per tracked search.</div>
     </div>
 </div>
 
@@ -424,12 +463,13 @@ const SUPABASE_URL = 'https://snxhsboboatjywgwdeds.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_RKidGRs4ch1ixmRfXoYSww_UsQMSe5w';
 const CREDITS_URL = 'https://linkfinderaicredits.hamoureliasse.workers.dev/';
 const UPGRADE_INTENT_WORKER = 'https://upgrade-intent.hamoureliasse.workers.dev/';
-const SAVED_SEARCH_ALERTS_WORKER = 'https://saved-search-alerts.hamoureliasse.workers.dev/';
 const PAGE_SIZE = 25;
 
 let userToken = null;
 let allHistory = [];
 let filteredHistory = [];
+let csvBatches = [];
+let filteredCsvBatches = [];
 let currentPage = 1;
 let isSubscriber = false;
 let activeDetailItem = null;
@@ -439,7 +479,7 @@ const gclid = urlParams.get('gclid');
 function addGclid(url) { if (!gclid) return url; return url + (url.includes('?') ? '&' : '?') + 'gclid=' + gclid; }
 function logout() { localStorage.removeItem('linkFinderToken'); window.location.href = 'https://linkfinderai.com/'; }
 function nav(page) {
-    const m = { enrichment: 'app', api: 'api-access', account: 'account', crmSync: 'crm-sync' };
+    const m = { enrichment: 'app', api: 'api-access', account: 'account', crmSync: 'crm-sync', integrations: 'app-integrations' };
     window.location.href = addGclid('https://linkfinderai.com/' + m[page] + '?token=' + userToken);
 }
 
@@ -539,6 +579,60 @@ function fullTimestamp(d) {
 
 function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
+/* ---------------------------------------------------------------------
+   Two views over the same data
+   The filter bar is deliberately shared: one search answers "where is that
+   file / that lookup" whichever view you are in, and the tab counts then say
+   which view the matches are in.
+--------------------------------------------------------------------- */
+let currentView = 'csv';     // CSV is the default: it is what most people come back for
+let viewPicked = false;      // ...unless they pick, or unless they have no CSVs at all
+let csvLoaded = false;
+
+function switchView(view) {
+    if (view !== 'csv' && view !== 'all') return;
+    currentView = view;
+    viewPicked = true;
+    try { sessionStorage.setItem('lfHistoryView', view); } catch (e) {}
+    renderViews();
+    try { posthog.capture('history_view_switched', { view }); } catch (e) {}
+}
+
+function renderViews() {
+    // Landing on an empty CSV tab is worse than ignoring the default, so a user
+    // with no CSV runs starts on the activity log — until they pick for themselves.
+    if (!viewPicked && csvLoaded && !csvBatches.length && allHistory.length) currentView = 'all';
+
+    const isCsv = currentView === 'csv';
+    const tabCsv = document.getElementById('viewTabCsv');
+    const tabAll = document.getElementById('viewTabAll');
+
+    tabCsv.classList.toggle('active', isCsv);
+    tabAll.classList.toggle('active', !isCsv);
+    tabCsv.setAttribute('aria-selected', String(isCsv));
+    tabAll.setAttribute('aria-selected', String(!isCsv));
+
+    document.getElementById('csvPanel').classList.toggle('hidden', !isCsv);
+    document.getElementById('activityPanel').classList.toggle('hidden', isCsv);
+
+    // renderCsvBatches hides the section when there is nothing to list, which
+    // would leave the tab blank. Say so instead.
+    document.getElementById('csvNoneState').classList.toggle('hidden', csvBatches.length > 0);
+
+    // Counts follow the filters, so a search tells you which tab its matches are in.
+    document.getElementById('viewTabCsvCount').textContent = filteredCsvBatches.length.toLocaleString();
+    document.getElementById('viewTabAllCount').textContent = filteredHistory.length.toLocaleString();
+
+    // This line has to be set for whichever view is showing, not left to
+    // renderHistory: switching tabs does not re-render the list, and
+    // renderHistory returns before setting it when nothing matched — either
+    // way the count kept describing the view you were no longer looking at.
+    const n = isCsv ? filteredCsvBatches.length : filteredHistory.length;
+    document.getElementById('resultsCount').textContent = isCsv
+        ? `${n} file${n !== 1 ? 's' : ''}`
+        : `${n} result${n !== 1 ? 's' : ''}`;
+}
+
 function renderHistory() {
     const list = document.getElementById('historyList');
     const empty = document.getElementById('emptyState');
@@ -636,23 +730,276 @@ function filterHistory() {
         return true;
     });
 
+    // The same search box narrows the CSV section, so "where's that file I
+    // dropped last week" is one query rather than a scroll.
+    filteredCsvBatches = csvBatches.filter(b => {
+        if (search) {
+            const hay = `${b.file_name || ''} ${b.label || ''} ${b.type || ''}`.toLowerCase();
+            if (!hay.includes(search)) return false;
+        }
+        if (type && !(b.type || '').includes(type)) return false;
+        if (date) {
+            const d = new Date(b.started_at);
+            if (date === 'today') {
+                if (d.toDateString() !== now.toDateString()) return false;
+            } else if (date === 'week') {
+                if (d < new Date(now - 7*24*60*60*1000)) return false;
+            } else if (date === 'month') {
+                if (d < new Date(now - 30*24*60*60*1000)) return false;
+            }
+        }
+        return true;
+    });
+    renderCsvBatches();
+
     currentPage = 1;
     renderHistory();
+    renderViews();
 }
 
+// The page header's one-line summary. The three stat cards it used to sit
+// beside — total enrichments, credits used, days active — were dashboard
+// furniture on a page people open to find one file.
 function updateStats() {
-    document.getElementById('statTotal').textContent = allHistory.length.toLocaleString();
-    const totalCredits = allHistory.reduce((s, i) => s + calcCredits(i), 0);
-    document.getElementById('statCredits').textContent = formatCredits(totalCredits);
-    if (allHistory.length > 0) {
-        const oldest = new Date(allHistory[allHistory.length-1].timestamp);
-        const days = Math.max(1, Math.ceil((Date.now() - oldest) / (1000*60*60*24)));
-        document.getElementById('statDays').textContent = days;
-    } else {
-        document.getElementById('statDays').textContent = '0';
-    }
     document.getElementById('pageMeta').textContent = `${allHistory.length} enrichment${allHistory.length!==1?'s':''} saved`;
 }
+
+/* ---------------------------------------------------------------------
+   CSV enrichments — one card per uploaded file, showing how far the run
+   got, how much of the file came back enriched, and the finished CSV.
+
+   The list query deliberately never asks for result_csv: an archived file
+   runs to megabytes. result_bytes (a generated column) tells us whether a
+   file is there and how big it is; the content is fetched on click.
+--------------------------------------------------------------------- */
+// A run that never reported in again is a tab that was closed mid-enrichment,
+// not a run still going. Progress is written after the first row and then at
+// least every eight seconds, so ninety seconds of silence is conclusive. This
+// was fifteen minutes, which left abandoned runs claiming to be "Running" long
+// after they had died.
+const CSV_BATCH_STALE_MS = 90 * 1000;
+
+// While something really is running, the card should move. Nothing pushes to
+// this page, so it re-reads on a timer — only while a batch is live, and only
+// while the tab is visible.
+const CSV_BATCH_POLL_MS = 6000;
+let csvPollTimer = null;
+
+// input_rows is the stored copy of the uploaded file, and it is large — ask
+// Postgres whether it is there rather than pulling it down.
+const CSV_BATCH_FIELDS = 'id,file_name,label,type,input_type,output_type,total_rows,' +
+    'processed_rows,found_rows,credits_used,status,result_filename,result_bytes,' +
+    'input_bytes,file_rows,started_at,updated_at,completed_at';
+
+// Every row the run never reached is still waiting to be enriched, and the
+// stored input rows are what make picking it up possible.
+function csvBatchResumable(b) {
+    return !!b.input_bytes
+        && (b.total_rows || 0) > (b.processed_rows || 0)
+        && ['processing', 'stopped', 'out_of_credits'].includes(b.status);
+}
+
+function csvBatchState(b) {
+    // 'queued' is the background runner's: the user has left and the server is
+    // carrying it. It cannot go stale the way a tab run can, because nothing
+    // depends on a browser staying open.
+    if (b.status === 'queued') return { key: 'background', label: 'Running in background', cls: 'running' };
+    if (b.status === 'processing') {
+        const last = new Date(b.updated_at || b.started_at).getTime();
+        if (Date.now() - last > CSV_BATCH_STALE_MS) {
+            return { key: 'stalled', label: 'Interrupted', cls: 'stalled' };
+        }
+        return { key: 'running', label: 'Running', cls: 'running' };
+    }
+    if (b.status === 'out_of_credits') return { key: 'partial', label: 'Out of credits', cls: 'partial' };
+    if (b.status === 'stopped') return { key: 'partial', label: 'Stopped early', cls: 'partial' };
+    return { key: 'done', label: 'Completed', cls: 'done' };
+}
+
+function pct(part, whole) {
+    if (!whole) return 0;
+    return Math.min(100, Math.round((part / whole) * 100));
+}
+
+function formatBytes(n) {
+    if (!n) return '';
+    if (n < 1024) return n + ' B';
+    if (n < 1024 * 1024) return Math.round(n / 1024) + ' KB';
+    return (n / (1024 * 1024)).toFixed(1) + ' MB';
+}
+
+function renderCsvBatches() {
+    const section = document.getElementById('csvSection');
+    const list = document.getElementById('csvList');
+    const sub = document.getElementById('csvSectionSub');
+
+    if (!csvBatches.length) { section.classList.add('hidden'); return; }
+    section.classList.remove('hidden');
+
+    const files = csvBatches.length;
+    const rows = csvBatches.reduce((s, b) => s + (b.found_rows || 0), 0);
+    sub.textContent = `${files} file${files !== 1 ? 's' : ''} · ${rows.toLocaleString()} row${rows !== 1 ? 's' : ''} enriched`;
+
+    if (!filteredCsvBatches.length) {
+        list.innerHTML = '<div class="csv-empty">No CSV files match your search.</div>';
+        return;
+    }
+
+    list.innerHTML = filteredCsvBatches.map((b, i) => {
+        const st = csvBatchState(b);
+        const total = b.total_rows || 0;
+        const processed = Math.min(b.processed_rows || 0, total || (b.processed_rows || 0));
+        const found = Math.min(b.found_rows || 0, processed);
+        const foundPct = pct(found, total);
+        const processedPct = pct(processed, total);
+
+        const hasFile = !!b.result_bytes;
+        const size = formatBytes(b.result_bytes);
+        const download = hasFile
+            ? `<button class="csv-dl" onclick="downloadCsvBatch('${esc(b.id)}', this)"><i class="fas fa-download"></i> Download ${st.key === 'done' ? 'results' : 'what is enriched'}${size ? ' · ' + size : ''}</button>`
+            : '<span class="csv-note">No file saved for this run.</span>';
+        const left = (total - processed).toLocaleString();
+        const canPickUp = csvBatchResumable(b) && st.key !== 'running' && st.key !== 'background';
+        // One way to finish it, and it is the better one: the server does the
+        // rest in minutes with nothing to keep open. Resuming in the tab was a
+        // second button that did the same job slower and demanded the user sit
+        // and watch it, so it is gone.
+        const finish = canPickUp
+            ? `<button class="csv-resume" onclick="backgroundCsvBatch('${esc(b.id)}', this)"><i class="fas fa-cloud"></i> Finish ${left} rows</button>`
+            : '';
+        const action = st.key === 'background'
+            ? `<span class="csv-note"><i class="fas fa-circle-notch fa-spin"></i> We're finishing this for you — nothing to keep open. Updated ${timeAgo(b.updated_at)}.</span>`
+            : st.key === 'running'
+                ? `<span class="csv-note"><i class="fas fa-circle-notch fa-spin"></i> Running in the tab you started it in — last saved ${timeAgo(b.updated_at)}.</span>`
+                : `<div class="csv-actions">${finish}${download}</div>`;
+
+        const leftOver = total - processed;
+        // Rows we could not read a name from were never enrichable. They are
+        // still in the file the user downloads, just blank — say so, rather
+        // than reporting "500 of 500" on a 512-row upload.
+        const skipped = Math.max(0, (b.file_rows || 0) - total);
+        const legend = `<div class="csv-legend">
+            <span><i class="csv-dot found"></i>${found.toLocaleString()} enriched</span>
+            <span><i class="csv-dot processed"></i>${(processed - found).toLocaleString()} no match</span>
+            ${leftOver > 0 ? `<span><i class="csv-dot left"></i>${leftOver.toLocaleString()} not processed</span>` : ''}
+            ${skipped > 0 ? `<span><i class="csv-dot left"></i>${skipped.toLocaleString()} with no name to look up</span>` : ''}
+        </div>`;
+
+        return `<div class="csv-card">
+            <div class="csv-card-top">
+                <div class="csv-icon"><i class="fas fa-file-csv"></i></div>
+                <div class="csv-card-info">
+                    <div class="csv-name">${esc(b.file_name || 'Uploaded list')}</div>
+                    <div class="csv-sub">${esc(b.label || getTypeInfo(b.type).label)} · ${timeAgo(b.started_at)}</div>
+                </div>
+                <span class="csv-status ${st.cls}">${st.label}</span>
+            </div>
+            <div class="csv-progress">
+                <div class="csv-progress-head">
+                    <span class="csv-pct">${foundPct}% enriched</span>
+                    <span>${processed.toLocaleString()} of ${total.toLocaleString()} rows processed</span>
+                </div>
+                <div class="csv-bar">
+                    <div class="csv-bar-processed" style="width:${processedPct}%"></div>
+                    <div class="csv-bar-found" style="width:${foundPct}%"></div>
+                </div>
+                ${legend}
+            </div>
+            <div class="csv-card-foot">
+                <span class="csv-meta"><i class="fas fa-coins"></i>${(Number(b.credits_used) || 0).toLocaleString(undefined, { maximumFractionDigits: 2 })} credits</span>
+                ${action}
+            </div>
+        </div>`;
+    }).join('');
+}
+
+async function downloadCsvBatch(id, btn) {
+    const batch = csvBatches.find(b => b.id === id);
+    const original = btn ? btn.innerHTML : '';
+    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Preparing…'; }
+    try {
+        const res = await fetch(
+            `${SUPABASE_URL}/rest/v1/csv_enrichment_batches?id=eq.${encodeURIComponent(id)}` +
+            `&user_id=eq.${encodeURIComponent(userToken)}&select=result_csv,result_filename`,
+            { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` } }
+        );
+        const rows = await res.json();
+        const row = Array.isArray(rows) ? rows[0] : null;
+        if (!row || !row.result_csv) throw new Error('no file');
+
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(new Blob(['\ufeff' + row.result_csv], { type: 'text/csv;charset=utf-8;' }));
+        a.download = row.result_filename || 'linkfinder_enriched_data.csv';
+        a.click();
+        URL.revokeObjectURL(a.href);
+        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-check"></i> Downloaded'; setTimeout(() => { btn.innerHTML = original; }, 2000); }
+        try { posthog.capture('csv_batch_downloaded', { rows: batch ? batch.found_rows : null, type: batch ? batch.type : null }); } catch (e) {}
+    } catch (e) {
+        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-exclamation-circle"></i> Could not download'; setTimeout(() => { btn.innerHTML = original; }, 2500); }
+    }
+}
+
+// Hands a stopped batch to the background runner. Unlike resuming, this needs
+// no browser: the row goes back in the queue and a runner picks it up within
+// about half a minute.
+async function backgroundCsvBatch(id, btn) {
+    const original = btn ? btn.innerHTML : '';
+    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Queueing…'; }
+    try {
+        const res = await fetch(
+            `${SUPABASE_URL}/rest/v1/csv_enrichment_batches?id=eq.${encodeURIComponent(id)}&user_id=eq.${encodeURIComponent(userToken)}`,
+            {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json', apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
+                body: JSON.stringify({
+                    status: 'queued', queued_at: new Date().toISOString(),
+                    locked_until: null, attempts: 0, updated_at: new Date().toISOString(),
+                })
+            }
+        );
+        if (!res.ok) throw new Error('queue failed');
+        try { posthog.capture('csv_batch_queued_from_history', { batch_id: id }); } catch (e) {}
+        await loadCsvBatches();
+    } catch (e) {
+        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-exclamation-circle"></i> Could not queue'; setTimeout(() => { btn.innerHTML = original; }, 2500); }
+    }
+}
+
+async function loadCsvBatches() {
+    try {
+        const res = await fetch(
+            `${SUPABASE_URL}/rest/v1/csv_enrichment_batches?user_id=eq.${encodeURIComponent(userToken)}` +
+            `&select=${CSV_BATCH_FIELDS}&order=started_at.desc&limit=200`,
+            { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` } }
+        );
+        const data = await res.json();
+        csvBatches = Array.isArray(data) ? data : [];
+    } catch (e) {
+        csvBatches = [];
+    }
+    csvLoaded = true;
+    // Batches can land after the user has already typed in the search box, so
+    // narrow through the same filter rather than resetting to "everything".
+    filterHistory();
+    scheduleCsvPoll();
+}
+
+// Re-read while a run is live so the bar actually moves, and so an abandoned
+// one flips to Interrupted on its own instead of sitting there until a reload.
+function scheduleCsvPoll() {
+    if (csvPollTimer) { clearTimeout(csvPollTimer); csvPollTimer = null; }
+    const live = csvBatches.some(b => ['running', 'background'].includes(csvBatchState(b).key));
+    if (!live) return;
+    csvPollTimer = setTimeout(() => {
+        if (document.hidden) { scheduleCsvPoll(); return; }
+        loadCsvBatches();
+    }, CSV_BATCH_POLL_MS);
+}
+
+// Coming back to the tab should show the truth immediately, not on the next tick.
+document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && csvBatches.some(b => ['running', 'background'].includes(csvBatchState(b).key))) loadCsvBatches();
+});
 
 /* ---------------------------------------------------------------------
    Detail modal — click a history row to view the full underlying data
@@ -737,11 +1084,6 @@ function openDetail(globalIdx) {
 
     document.getElementById('modalBody').innerHTML = bodyHtml;
 
-    const trackBtn = document.getElementById('modalTrackBtn');
-    trackBtn.classList.remove('saved');
-    trackBtn.disabled = false;
-    trackBtn.innerHTML = '<i class="fas fa-bell"></i> Get weekly alerts';
-
     const overlay = document.getElementById('detailModal');
     overlay.classList.remove('hidden');
     requestAnimationFrame(() => overlay.classList.add('open'));
@@ -761,7 +1103,6 @@ function closeDetail() {
 document.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape') return;
     if (activeDetailItem) closeDetail();
-    if (!document.getElementById('savedSearchesModal').classList.contains('hidden')) closeSavedSearchesModal();
 });
 
 function toggleRawJson() {
@@ -868,116 +1209,6 @@ function exportAll() {
     try { posthog.capture('history_exported', { count: filteredHistory.length }); } catch (e) {}
 }
 
-/* ---------------------------------------------------------------------
-   Saved searches / weekly change alerts — retention feature.
-   Turns any past history row into a tracked search that re-runs weekly
-   and emails the user if the result changed.
---------------------------------------------------------------------- */
-function buildAlertsPayload(item) {
-    const info = getTypeInfo(item.type);
-    const payload = {
-        type: item.type,
-        input_data: item.input,
-        output_type: item.type.includes('_to_') ? item.type.slice(item.type.indexOf('_to_') + 4) : item.type,
-        label: `${info.label} for "${item.input}"`,
-    };
-    if (item.type === 'lead_full_name_to_email' || item.type === 'lead_full_name_to_linkedin_url') {
-        const parts = (item.input || '').split(' ');
-        payload.first_name = parts[0];
-        payload.last_name = parts.slice(1).join(' ');
-    }
-    if (item.type === 'company_domain_to_employees') {
-        payload.domain = item.input;
-    }
-    return payload;
-}
-
-async function trackActiveItemForAlerts() {
-    if (!activeDetailItem || !userToken) return;
-    const btn = document.getElementById('modalTrackBtn');
-    if (btn.classList.contains('saved')) return;
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving…';
-    try {
-        const r = await fetch(SAVED_SEARCH_ALERTS_WORKER + 'save', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ token: userToken, email: window.currentUserEmail || undefined, ...buildAlertsPayload(activeDetailItem) })
-        });
-        const d = await r.json().catch(() => ({}));
-        if (r.ok && d.ok) {
-            btn.classList.add('saved');
-            btn.innerHTML = '<i class="fas fa-check"></i> Tracking — weekly alerts on';
-            try { posthog.capture('saved_search_created', { type: activeDetailItem.type, source: 'history' }); } catch(e) {}
-        } else {
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-bell"></i> Get weekly alerts';
-        }
-    } catch (e) {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-bell"></i> Get weekly alerts';
-    }
-}
-
-async function openSavedSearchesModal() {
-    const overlay = document.getElementById('savedSearchesModal');
-    overlay.classList.remove('hidden');
-    requestAnimationFrame(() => overlay.classList.add('open'));
-    document.body.style.overflow = 'hidden';
-    try { posthog.capture('saved_searches_modal_opened', { source: 'history' }); } catch(e) {}
-
-    const list = document.getElementById('savedSearchesList');
-    list.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--gray-400);"><i class="fas fa-spinner fa-spin"></i></div>';
-    try {
-        const r = await fetch(SAVED_SEARCH_ALERTS_WORKER + 'list', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ token: userToken })
-        });
-        const d = await r.json().catch(() => ({}));
-        const searches = (d && d.searches) || [];
-        if (!searches.length) {
-            list.innerHTML = '<div class="saved-searches-empty">No saved searches yet. Open any row below and click "Get weekly alerts" to track it.</div>';
-            return;
-        }
-        list.innerHTML = searches.map(s => `
-            <div class="saved-search-item" data-id="${s.id}">
-                <div>
-                    <div class="saved-search-item-label">${esc(s.label)}</div>
-                    <div class="saved-search-item-meta">${s.last_checked_at ? 'Last checked ' + timeAgo(s.last_checked_at) : 'Not checked yet'}</div>
-                </div>
-                <button class="saved-search-remove-btn" onclick="removeSavedSearch('${s.id}')"><i class="fas fa-trash"></i></button>
-            </div>
-        `).join('');
-    } catch (e) {
-        list.innerHTML = '<div class="saved-searches-empty">Weekly alerts are still finishing setup on our end — please check back soon.</div>';
-    }
-}
-
-function closeSavedSearchesModal() {
-    const overlay = document.getElementById('savedSearchesModal');
-    overlay.classList.remove('open');
-    document.body.style.overflow = '';
-    setTimeout(() => overlay.classList.add('hidden'), 200);
-}
-
-async function removeSavedSearch(id) {
-    try {
-        await fetch(SAVED_SEARCH_ALERTS_WORKER + 'remove', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ token: userToken, id })
-        });
-        try { posthog.capture('saved_search_removed', { source: 'history' }); } catch(e) {}
-        const el = document.querySelector(`.saved-search-item[data-id="${id}"]`);
-        if (el) el.remove();
-        const list = document.getElementById('savedSearchesList');
-        if (list && !list.querySelector('.saved-search-item')) {
-            list.innerHTML = '<div class="saved-searches-empty">No saved searches yet. Open any row below and click "Get weekly alerts" to track it.</div>';
-        }
-    } catch (e) {}
-}
-
 async function fetchCredits() {
     try {
         const r = await fetch(CREDITS_URL, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:userToken})});
@@ -1025,8 +1256,14 @@ async function loadHistory() {
     }
 
     filteredHistory = [...allHistory];
+    try {
+        const saved = sessionStorage.getItem('lfHistoryView');
+        if (saved === 'csv' || saved === 'all') { currentView = saved; viewPicked = true; }
+    } catch (e) {}
     updateStats();
     renderHistory();
+    renderViews();
+    loadCsvBatches();
 
     try { posthog.capture('history_page_viewed', {count: allHistory.length}); } catch(e) {}
 }

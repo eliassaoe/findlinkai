@@ -54,9 +54,17 @@ into a file here in the same session, or it is gone.
 | Video rules | `claude/youtube/METHOD.md`, `claude/guidee/STYLE.md` |
 | Storyboards | `claude/guidee/scripts/`, catalog in `claude/guidee/catalog.json` |
 | App UI ground truth (never invent a label) | `claude/guidee/app-ui.md` |
+| CSV enrichments in History | `docs/csv-enrichment-history.md` |
+| What the account page counts as "found" | `docs/account-value-summary.md` |
+| The AI SDR service offer, and who is allowed to see it | `docs/ai-sdr-offer.md` |
+| Selling Done For You to the 67 idle pack buyers | `docs/dfy-activation-campaign.md` — read the correction in it before quoting any "paying accounts" number |
+| Who the SEO traffic actually is, before aiming an offer at it | `docs/traffic-capture-verdict.md` |
+| Listicle outreach on a cron (the `ai_keywords` table) | `docs/ai-keyword-outreach.md` — read it before adding keywords, it spends credits |
 | CRM cleanup + HubSpot | `CRM-SETUP.md` |
 | Outbound campaign | `OUTBOUND-CRM-AUDIT.md` |
 | Workers | `workers/` — but most live workers are NOT in this repo; read them with the Cloudflare connector |
+| Integrations (all generated from one catalog) | `integrations/` — `integrations/catalog/` is the source; `npm run build && npm test` in `integrations/` |
+| **The published Google Sheets add-on** | `integrations/google-sheets-addon/` — read its README before touching it |
 
 ## Facts that are easy to get wrong
 
@@ -81,6 +89,20 @@ Supabase auth row at all. The only real signal is
 `auth.users.confirmed_at IS NOT NULL`. And `@gmail.com` says nothing about
 signup method — anyone can type a fake gmail into an email+password form.
 See `docs/email-verified-is-wrong.md` before any bulk send.
+
+**Three different things are called "the Google Sheets integration".** Do not
+confuse them:
+
+| Thing | Where it lives | Who uses it |
+| --- | --- | --- |
+| The Marketplace add-on | `integrations/google-sheets-addon/` — master copy; live copy is an Apps Script project in Drive | Everyone who installed it from the store |
+| The copy-paste script | `linkedIn-enrichment-google-sheets.html` | Anyone who follows that page and pastes `=LINKFINDER()` in |
+| An unpublished second add-on | `integrations/google-sheets/` | Nobody — it has never been deployed |
+
+The add-on's manifest has **no `oauthScopes` block**, so Apps Script infers scopes
+from the code. Adding any new Apps Script service (`DriveApp`, `GmailApp`,
+`ScriptApp`…) widens them and pulls the add-on from the store until Google
+re-verifies it. A test enforces this.
 
 **Never recommend PAYG to a CRM user.** CRM users go to subscriptions; they are
 stickier and the HubSpot connection costs money every month.

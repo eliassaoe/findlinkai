@@ -28,169 +28,41 @@ backfill — today is day zero for the optimisation loop.
 Both 5 and 6 have had the `html` re-render applied and their sender verified, and both
 are now in `variants.json` with four variants each, so the Monday loop can see them.
 
-**Campaign 5 deliberately mirrors the product.** `app.html` already runs a sales-intercept
-modal making the identical offer — "Book a quick 15-minute call... show up and we'll add
-1,000 free credits" — pointing at the same Calendly event. The email is the asynchronous
-version of that modal, so the duration, the credit amount and the link must stay in step
-with it. They were briefly out of step (the email said 20 minutes and used the generic
-`intro-call` link) and that is fixed.
+**Campaign 5 deliberately mirrors the product.** `app.html` runs a sales-intercept modal
+making the identical offer — "Book a quick 15-minute call... show up and we'll add 1,000
+free credits". The email is the asynchronous version of that modal, so the duration, the
+credit amount and the booking link must stay in step with it. All three currently do:
+both book `calendly.com/hamoureliasse/linkfinder-ai`.
 
-Note the site uses **two** Calendly events: `intro-call` on 188 marketing and blog pages,
-and `compensated-interview-unlimited-leads-clone` on the 5 in-product pages
-(`app.html`, `account.html`, `account-beta.html`, `crm-sync.html`, `linkfinder-vip.html`).
-Lifecycle email talks to people who already have accounts, so it uses the second one.
+### Calendly link state — verified 2026-09-02 against live PostHog
 
-| 7 | CRM audit follow-up — send them their report | `01a02b7b-bb8b-0000-2f15-2b586cfd7573` | **DRAFT — not enabled.** `crm_audit_completed` → +45m → their own audit numbers as a report. Gated on `email_verified`. Once per person per 30 days. Payers exit via the conversion goal. |
+**One booking link for calls: `calendly.com/hamoureliasse/linkfinder-ai`.** 204 links in
+this repo, everywhere a human is asked to book time. Do not introduce a second one.
 
-### Campaign 7 — two things that are not obvious
+Two events were retired into it on 2026-09-02:
 
-**The 45-minute delay is a correctness requirement, not pacing.** This email
-interpolates eleven person properties. PostHog populates person properties
-through the async person-processing pipeline, so they are not reliably readable
-the instant `crm_audit_completed` lands — PostHog's own docs flag this. Sending
-immediately risks rendering every Liquid fallback instead of the user's real
-numbers, which is worse than not sending at all. Do not shorten the delay.
+| Retired event | Was used by | Links moved |
+| --- | --- | --- |
+| `intro-call` | The "Book a Call" footer item on every marketing and blog page, the enterprise CTA in `pricing.html`, the JS-assigned CTA in `best-enrichment-api.html`, and `FOUNDER_CALL_CALENDLY` in `app.html` (the "Can I steal 15 minutes?" corner card) | 183 |
+| `compensated-interview-unlimited-leads-clone` | `app.html` sales-intercept modal + `CIM_CALL_URL`, `account.html`, `account-beta.html`, `crm-sync.html`, `linkfinder-vip.html` (7), `support-worker/worker.js`, `replace_footer.py`, `tests/credit-wall.test.mjs`, and the `pricing_call` / `credit_wall_2` / `crm_audit` variants in `variants.json` (6) | 21 |
 
-**Person properties, not event properties.** Workflows personalise from
-`{{ person.properties.<key> }}` — verified against the live campaign 5 email,
-which addresses `{{ person.properties.email }}`. The docs show a shorter
-`{{ person.name }}` form; that is not what this project's working workflows use.
-`crm-sync.html` therefore does two writes on audit completion: the event (for
-the trigger and the funnel) and eleven `crm_audit_*` person properties (for the
-copy). Only aggregates are written — no row, column value or contact leaves the
-browser, which is what keeps the promise made on the upload card true.
+The one link deliberately left alone is `AI_SDR_CALENDLY` in `app.html` — the AI SDR
+request form still books `offre-linkfinder-ai-clone`. That is a separate flow, kept
+separate on purpose; the VIP *campaigns* moved off that event on 2026-08-30 but the
+in-app form did not.
 
-Every Liquid tag carries a `default:` with **single** quotes. Double quotes
-break it: the email builder serialises templates to JSON, which escapes them and
-raises a Liquid `TokenizationError`.
+**Every PostHog email campaign books `linkfinder-ai`.** Verified by reading the live
+workflow bodies: VIP arm A, VIP round 2, VIP one-off (draft), VIP continuous (draft),
+campaign 5, and the archived AEO listicle campaign. No other campaign carries a Calendly
+link at all.
 
-One variant, `crm_audit-specific`, puts a Liquid tag in the **subject line**.
-That is untested — if subjects are not templated, that subject ships with a raw
-`{{ ... }}` in it. Read the first sends before letting the weekly loop promote it.
+⚠️ **The archived AEO campaign `01a038b0-a39c-0000-6829-912e9f901270` has an unpublished
+draft (staged 2026-08-26) whose four emails still book
+`compensated-interview-unlimited-leads-clone`.** Its live version is correct and it is
+archived, so nothing sends — but publishing that draft would reintroduce the retired link.
+Discard the draft or repoint it before ever un-archiving.
 
-**Before enabling:** run **Test run** (sends nothing to real people), then check
-a real send renders the numbers rather than the fallbacks. A person who has
-never run an audit has none of these properties, so the fallbacks are what you
-will see in any test that is not driven by a real audit.
-
-
-## Reactivation sequence — 10 emails over ~3 months
-
-Written, rendering, and in `variants.json` as `reactivation_1` … `reactivation_10`.
-**No workflow exists yet and nothing has been sent.** Read the two blockers below
-before building one.
-
-| # | Angle | Subject | Job |
-|---|---|---|---|
-| 1 | confession | I think we lost you, and I know why | Name why they left; no ask |
-| 2 | utility | 200 credits on your account, no card | Remove the cost of trying |
-| 3 | empathy | you probably did not want a subscription | Kill the subscription objection |
-| 4 | specific | how much of your CRM is actually missing? | Free audit — costs them nothing |
-| 5 | utility | the part that actually saves you time | Bulk/CSV, the 9.46% behaviour |
-| 6 | specific | a clean CRM stays clean for about a month | Sync — the retention product |
-| 7 | peer | if you would rather not use the dashboard | API / MCP / n8n for builders |
-| 8 | utility | do not take my word on the data quality | Accuracy, tested by them |
-| 9 | peer | four things people actually use this for | Unlock the "no use case" group |
-| 10 | permission | should I stop emailing you? | Clean the list either way |
-
-Spacing ~9 days. The arc is re-engage → remove friction → demonstrate →
-automate → decide, and it deliberately gives twice before asking once.
-
-### Email 2 hands over the credit tasks — RESOLVED
-
-Email 2 originally promised "200 credits, already on your account" that nothing
-granted. It now points at the task system that already exists in
-`workers/onboarding-tasks/`, and the amounts are the real ones from
-`TASK_CONFIG`:
-
-| Task | Credits | Verification |
-|---|---|---|
-| G2 review | 1,000 | reviewed by hand, 1–2 days |
-| Trustpilot review | 500 | reviewed by hand, 1–2 days |
-| LinkedIn share | 150 | instant, URL checked |
-| YouTube subscribe | 100 | instant, honour system |
-| **Total** | **1,750** | ≈ 85 fully enriched leads |
-
-This is a better offer than the 200 that was invented, and it is true.
-
-The copy is explicit that the credits are **earned, not gifted**, and invites an
-honest review including an unfavourable one. A dormant user who clicks expecting
-free money and finds a review request bounces harder than one told the deal up
-front — and a review we paid for with a wink is worth less than one we did not.
-
-**`?action=tasks` is new.** The task popup was previously reachable only through
-a button rendered for the `low_conversion` geo tier, so for most of the base the
-tasks were invisible and the email would have landed on a dashboard with no way
-in. `app.html` now handles `action=tasks`, opens the popup, and fires
-`tasks_email_landed`. Verified in a browser: the event fires with the param and
-not without it.
-
-Worth noting separately — those 1,750 credits were sitting unclaimable for most
-users this whole time. That is worth fixing for everyone, not just this campaign.
-
-### BLOCKER 2 — do not blast this at the whole base
-
-`DELIVERABILITY.md` is explicit: a large first send to a backlog of old,
-never-tested addresses is the one move that could cost the sending domain. SES
-suspends at a 5% hard-bounce rate and `linkfinderai.com` has no reputation to
-absorb a spike. This campaign is exactly that shape, at the largest scale yet
-attempted.
-
-Ramp instead, watching `$workflows_email_bounced` between each step:
-
-1. **~100 most recently active** dormant users. Bounce rate under ~2% → continue.
-2. **~500**. Still under 2% → continue.
-3. **Everyone else**, in batches of ~1,000 with a day between.
-
-Every workflow already filters on `email_verified is_not "false"`, which keeps
-explicitly-bad addresses out, but it cannot see a typo'd address that has simply
-never been tested. Only sending finds those, which is why the first batch is 100
-and not 6,500.
-
-### Segments
-
-Churned subscribers and never-paid dormant users are both in scope and both
-handled by the same copy, which is deliberate — the objection ("wrong shape, not
-too expensive") is shared. If you want them split later, email 3 is the one to
-branch: churned users already know the product works and need only the PAYG
-answer, while dormant users may never have reached a first successful lookup.
-
-### Two things to keep honest
-
-**Email 8 makes no accuracy claim on purpose.** There is no measured match rate
-to quote, and "significantly more accurate" is both unverifiable and weaker than
-telling someone how to test it themselves in five minutes. If you have real
-numbers — match rate, bounce rate on returned emails, sample size — put them in
-email 8 and it becomes the strongest email in the sequence. Do not add a number
-you cannot show the working for.
-
-**Emails 2, 3 and 10 lean on "credits do not expire".** That is true today and
-it is a genuinely good selling point for a dormant list. It also directly
-contradicts the recommendation to add a 12-month expiry. Pick one: if expiry
-goes in, both emails need rewriting before they send.
-
-## STILL TO BUILD
-
-- **7. Power user — 3+ enrichments, never upgraded.** Needs a behavioural cohort as
-  a trigger filter, because `three_enrichments_milestone` is misnamed: it fires at
-  TEN enrichments, not three (`app.html:4211`). 51 people hit it in 90 days.
-- **An audience split on campaign 7.** Audits above Enterprise's 50,000-credit
-  ceiling currently get the same email as everyone else, pointing at checkout.
-  Those are the largest CRMs the audit sees and they should be routed to the
-  Calendly booking instead — a `conditional_branch` on
-  `crm_audit_verdict = 'contact'` before the email step.
-- **8. Churn.** Trigger `cancellation_reason_selected`, branch on the reason.
-  Deliberately small — 14 people in 90 days.
-- **A 4th email in workflow 3**, an education step at +3d, between the rescue and
-  the upgrade ask.
-
-Sequencing note: these are held until there is real bounce data from the six live
-campaigns. Adding send volume to a brand-new sending domain before knowing its
-bounce rate is the one move that could cost the domain — see DELIVERABILITY.md.
-
-## Deliverability
-
-All six live campaigns share one sending domain and one SES reputation. 27 junk
-addresses are suppressed project-wide. The signup form has no email
-verification at all, which is the root cause. Read `DELIVERABILITY.md` before
-dispatching anything in bulk.
+The 2026-08-30 "CALENDLY CONSOLIDATED" note in the PostHog workflow descriptions claimed
+this was already true of "the product, the marketing site and every campaign". It was only
+ever true of the campaigns; the repo carried 204 links to the two retired events until
+2026-09-02.

@@ -544,13 +544,25 @@ button#submitButton:disabled{opacity:0.6;cursor:not-allowed;}
           }
         }
       } else {
-        try { plausible('Signup Failed', {props:{method:'email',reason:'server_error'}}); } catch(e) {}
-        try { posthog.capture('signup_failed', {method:'email', reason:'server_error'}); } catch(e) {}
         const errorData = await response.json().catch(() => ({}));
         // The worker replies { error }, not { message }. Reading only `message`
         // meant every server-side rejection - disposable domains included - was
         // swallowed and shown as the generic failure below.
         const msg = errorData.error || errorData.message || '';
+
+        // Classify BEFORE reporting. signup_failed used to fire with
+        // reason:'server_error' at the top of this block, before anything had
+        // been read off the response - so an address that was already
+        // registered, a Gmail redirect and a genuine 500 all landed in the same
+        // bucket. That is why 'server_error' was the only reason ever recorded,
+        // and why the bucket could not be acted on.
+        let reason = 'server_error';
+        if (errorData.code === 'use_google_signin')            reason = 'routed_to_google';
+        else if (errorData.code === 'business_email_required') reason = 'consumer_domain_blocked';
+        else if (msg.toLowerCase().includes('already'))        reason = 'already_registered';
+
+        try { plausible('Signup Failed', {props:{method:'email',reason}}); } catch(e) {}
+        try { posthog.capture('signup_failed', {method:'email', reason, status: response.status}); } catch(e) {}
 
         if (errorData.code === 'use_google_signin') {
           // A real gmail IS a Google account, so this is a redirect, not a refusal.

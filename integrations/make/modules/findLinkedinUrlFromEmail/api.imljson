@@ -1,0 +1,45 @@
+[
+    {
+        "url": "/",
+        "method": "POST",
+        "body": {
+            "type": "email_to_linkedin_url",
+            "input_data": "{{parameters.input_data}}"
+        },
+        "response": {
+            "temp": {
+                "jobId": "{{body.job_id}}",
+                "result": "{{body.result}}",
+                "pending": "{{if(body.job_id, true, false)}}"
+            }
+        }
+    },
+    {
+        "condition": "{{temp.pending}}",
+        "url": "/status/{{temp.jobId}}",
+        "method": "GET",
+        "repeat": {
+            "condition": "{{body.status = \"processing\"}}",
+            "delay": 2000,
+            "limit": 20
+        },
+        "response": {
+            "error": {
+                "404": {
+                    "message": "That LinkFinder AI job was not found. Job results expire 10 minutes after they finish."
+                }
+            },
+            "temp": {
+                "result": "{{if(body.data, body.data.result, body.result)}}"
+            }
+        }
+    },
+    {
+        "response": {
+            "output": {
+                "linkedin_url": "{{temp.result}}",
+                "value": "{{temp.result}}"
+            }
+        }
+    }
+]

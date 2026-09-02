@@ -1,0 +1,115 @@
+name: Publish integrations
+
+# Zapier and Nango cannot be reached from a development sandbox, so publishing to them
+# runs here instead. Both default to a dry run: you have to ask for the real thing.
+#
+# Required secrets — each job fails with a plain message naming the one it is missing:
+#   ZAPIER_DEPLOY_KEY       zapier.com -> Settings -> Deploy Keys
+#   NANGO_SECRET_KEY_PROD   Nango dashboard -> Environment Settings -> Secret Key
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'What to publish'
+        type: choice
+        options: [zapier, nango, both]
+        default: zapier
+      dry_run:
+        description: 'Validate and build without publishing'
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+jobs:
+  zapier:
+    if: ${{ inputs.target == 'zapier' || inputs.target == 'both' }}
+    name: Zapier
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: integrations/zapier
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - run: npm ci
+
+      - name: Regenerate searches from the catalog
+        run: |
+          node build.mjs
+          cd "$GITHUB_WORKSPACE"
+          if ! git diff --exit-code integrations/zapier/searches; then
+            echo "::error::searches/ is out of date. Run 'node build.mjs' in integrations/zapier and commit."
+            exit 1
+          fi
+
+      # The same validation Zapier's review runs. Doing it here means a rejection
+      # shows up in a 30-second job rather than days later in a review queue.
+      - name: Validate
+        run: npm test
+
+      - name: Check for a deploy key
+        if: ${{ inputs.dry_run == false }}
+        run: |
+          if [ -z "${{ secrets.ZAPIER_DEPLOY_KEY }}" ]; then
+            echo "::error::ZAPIER_DEPLOY_KEY is not set. Create one at zapier.com -> Settings -> Deploy Keys and add it as a repository secret."
+            exit 1
+          fi
+          if [ ! -f .zapierapprc ]; then
+            echo "::error::No .zapierapprc — this app has not been registered yet. Run 'npx zapier register' once locally (it creates the app and writes this file), commit it, then re-run."
+            exit 1
+          fi
+
+      # Uploads a new version. It does NOT make it public: promoting a version and
+      # submitting the app for marketplace review are deliberate steps in Zapier's UI.
+      - name: Push
+        if: ${{ inputs.dry_run == false }}
+        env:
+          ZAPIER_DEPLOY_KEY: ${{ secrets.ZAPIER_DEPLOY_KEY }}
+        run: npx zapier push
+
+      - name: What happens next
+        if: ${{ inputs.dry_run == false }}
+        run: |
+          echo "Version pushed. It is private until you promote it:"
+          echo "  npx zapier promote $(node -p "require('./package.json').version")"
+          echo "Then submit for marketplace review from the Zapier developer dashboard."
+
+  nango:
+    if: ${{ inputs.target == 'nango' || inputs.target == 'both' }}
+    name: Nango CRM actions
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: nango-integrations
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - run: npm ci
+
+      # Typechecks all 18 actions and confirms each is a well-formed Nango entrypoint.
+      - name: Compile
+        run: npx nango compile
+
+      - name: Check for a secret key
+        if: ${{ inputs.dry_run == false }}
+        run: |
+          if [ -z "${{ secrets.NANGO_SECRET_KEY_PROD }}" ]; then
+            echo "::error::NANGO_SECRET_KEY_PROD is not set. Copy it from the Nango dashboard under Environment Settings and add it as a repository secret."
+            exit 1
+          fi
+
+      - name: Deploy
+        if: ${{ inputs.dry_run == false }}
+        env:
+          NANGO_SECRET_KEY_PROD: ${{ secrets.NANGO_SECRET_KEY_PROD }}
+        run: npx nango deploy prod

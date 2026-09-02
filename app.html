@@ -20,7 +20,7 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
 <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','AW-17588707745');</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>LinkFinder AI - Data Enrichment</title>
+<title>LinkFinder AI - Data Sync</title>
 <link rel="icon" href="https://i.ibb.co/jPjX9SSp/Screen-Shot-2025-03-28-at-8-16-15-PM.png">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
@@ -85,11 +85,29 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
     .nudge-logo-make{background:#6d28d9;}
     .nudge-logo-zapier{background:#ff4a00;}
     .bulk-api-hint{text-align:center;margin-top:0.875rem;font-size:0.775rem;color:var(--gray-400);}
+    /* The Google Sheets route out of the CSV loop. Green rather than the app's
+       blue so it reads as a different place to work, not another button here. */
+    .sheets-route{display:flex;align-items:center;gap:0.875rem;margin-top:1rem;padding:0.875rem 1rem;
+        background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;flex-wrap:wrap;}
+    .sheets-route-icon{width:34px;height:34px;border-radius:8px;background:#dcfce7;color:#15803d;
+        display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:0.95rem;}
+    .sheets-route-text{flex:1;min-width:12rem;font-size:0.8125rem;color:#166534;line-height:1.5;}
+    .sheets-route-text strong{display:block;color:#14532d;font-weight:600;margin-bottom:0.1rem;}
+    .sheets-route-cta{flex-shrink:0;background:#16a34a;color:#fff;text-decoration:none;font-weight:600;
+        font-size:0.8125rem;padding:0.5rem 0.9rem;border-radius:6px;white-space:nowrap;transition:background .15s;}
+    .sheets-route-cta:hover{background:#15803d;}
     .bulk-api-hint a{color:var(--primary);text-decoration:none;font-weight:500;border-bottom:1px dashed rgba(37,99,235,0.3);}
     .bulk-api-hint a:hover{border-bottom-color:var(--primary);}
     .nav-menu{background:white;border-bottom:1px solid var(--gray-200);padding:0.75rem 0;}
-    .nav-tabs{display:flex;gap:0.5rem;overflow-x:auto;padding-bottom:0.25rem;}
-    .nav-tab{display:flex;align-items:center;gap:0.5rem;padding:0.75rem 1rem;border-radius:8px;background:transparent;border:1px solid var(--gray-200);color:var(--gray-600);text-decoration:none;font-weight:500;font-size:0.875rem;transition:all 0.2s ease;white-space:nowrap;cursor:pointer;}
+    .nav-tabs{display:flex;gap:.4rem;flex-wrap:wrap;align-items:center;justify-content:center;row-gap:.5rem;}
+/* The nav is the one thing on these pages that should not be 680px wide.
+   Content stays narrow because a single column is easier to read; the tab bar
+   has six items and no reason to be constrained to the same measure. Widening
+   only the nav's container fits them on one row without touching any layout. */
+.nav-menu .container{max-width:1100px;}
+@media(max-width:1140px){ .nav-menu .container{max-width:100%;} }
+
+    .nav-tab{display:flex;align-items:center;gap:0.5rem;padding:.6rem .8rem;border-radius:8px;background:transparent;border:1px solid var(--gray-200);color:var(--gray-600);text-decoration:none;font-weight:500;font-size:0.875rem;line-height:normal;transition:all 0.2s ease;white-space:nowrap;cursor:pointer;}
     .nav-tab:hover{background:var(--gray-50);border-color:var(--primary);color:var(--gray-800);}
     .nav-tab.active{background:var(--primary);border-color:var(--primary);color:white;}
     .nav-tab i{font-size:0.875rem;}
@@ -248,10 +266,8 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
     .review-notification.hide{opacity:0;transform:translateY(20px);}
     .review-notification-header{display:flex;align-items:center;gap:0.5rem;margin-bottom:0.75rem;font-weight:600;color:#1f2937;}
     .review-notification-close{position:absolute;top:0.75rem;right:0.75rem;background:transparent;border:none;color:#9ca3af;cursor:pointer;font-size:1.25rem;line-height:1;padding:0.25rem;}
-    .review-platforms{margin:0.75rem 0;padding-left:1.25rem;}
-    .review-platforms li{margin:0.25rem 0;}
-    .review-platforms a{color:#2563eb;text-decoration:none;font-weight:500;}
-    .review-form-link{color:#2563eb;text-decoration:none;font-weight:500;}
+    .review-cta{display:block;width:100%;background:var(--primary);color:#fff;border:none;border-radius:8px;padding:0.7rem 1rem;font-size:0.875rem;font-weight:600;cursor:pointer;font-family:inherit;transition:filter 0.15s ease;}
+    .review-cta:hover{filter:brightness(0.93);}
     .result-card{background:white;border:1px solid var(--gray-200);border-radius:8px;padding:1.5rem;margin-top:1rem;animation:result-in 0.35s ease;}
     @keyframes result-in{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
     .success-toast{position:fixed;top:1.25rem;left:50%;transform:translateX(-50%) translateY(-20px);background:var(--success);color:white;padding:0.75rem 1.25rem;border-radius:8px;font-size:0.875rem;font-weight:600;z-index:10002;display:flex;align-items:center;gap:0.5rem;box-shadow:0 4px 16px rgba(16,185,129,0.35);opacity:0;transition:all 0.3s ease;pointer-events:none;}
@@ -455,7 +471,9 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
 
     @media(max-width:640px){
         .form-grid{grid-template-columns:1fr;gap:1rem;}
-        .review-notification{display:none !important;}
+        /* Was display:none, which dropped every phone user from the review
+           ask entirely. Full-width bottom sheet instead, clear of the fab. */
+        .review-notification{left:12px;right:12px;bottom:12px;width:auto;}
         .pricing-modal{padding:1.5rem;margin:1rem;}
         .pricing-modal-header h2{font-size:1.5rem;}
         .container{padding:0 0.75rem;}
@@ -465,8 +483,8 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
         .btn{padding:0.5rem 0.75rem;font-size:0.8rem;}
         .upload-area{padding:1.5rem 0.75rem;}
         .upload-icon{font-size:1.5rem;}
-        .nav-tabs{gap:0.25rem;}
-        .nav-tab{padding:0.625rem 0.75rem;font-size:0.8rem;}
+        .nav-tabs{gap:.3rem;}
+        .nav-tab{padding:.5rem .65rem;font-size:.78rem;}
         .nav-tab i{font-size:0.8rem;}
         .results-table{min-width:auto;}
         .results-table thead{display:none;}
@@ -495,12 +513,17 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
 .ph-banner-close{background:none;border:none;color:rgba(255,255,255,0.8);cursor:pointer;font-size:1.25rem;line-height:1;padding:0;flex-shrink:0;}
 @media(max-width:640px){.ph-banner{font-size:0.75rem;}}
 
+/* Bottom-left dock. Everything in here is laid out by the flex row, so
+   nothing needs a hand-tuned `left` and nothing can cover anything else. */
+.lf-dock {
+    position: fixed; bottom: 20px; left: 20px;
+    display: flex; align-items: center; gap: 0.6rem;
+    z-index: 9998;
+}
+.lf-dock > * { position: static !important; }
+@media (max-width: 640px) { .lf-dock { gap: 0.4rem; left: 12px; bottom: 12px; } }
+
 .ref-fab {
-    /* Sits to the right of .help-center-button — a 48px circle at left:20px,
-       so it occupies 20-68px. At left:16px this button covered it completely,
-       and it is only ever shown to the low_conversion geo, so the collision
-       was invisible everywhere it was not a problem. */
-    position: fixed; bottom: 20px; left: 80px;
     display: inline-flex; align-items: center; gap: 0.4rem;
     padding: 0.4rem 0.75rem;
     background: white;
@@ -510,12 +533,12 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
     font-family: inherit; font-size: 0.75rem; font-weight: 500;
     cursor: pointer;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
-    z-index: 9998;
     transition: all 0.15s ease;
 }
 .ref-fab:hover { color: var(--gray-900); border-color: var(--gray-300); box-shadow: 0 2px 6px rgba(0,0,0,0.08); }
 .ref-fab i { color: var(--primary); font-size: 0.8rem; }
 @media (max-width: 640px) { .ref-fab span { display: none; } .ref-fab { padding: 0.4rem 0.55rem; } }
+
  
 .ref-modal-overlay { position: fixed; inset: 0; background: rgba(17,24,39,0.55); display: flex; align-items: center; justify-content: center; z-index: 10001; opacity: 0; visibility: hidden; transition: opacity 0.25s ease, visibility 0.25s ease; padding: 1rem; }
 .ref-modal-overlay.show { opacity: 1; visibility: visible; }
@@ -719,6 +742,11 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
 .otp-task-realvalue{font-size:0.72rem;color:var(--primary);font-weight:600;margin-top:0.15rem;}
 .otp-task-list{display:flex;flex-direction:column;gap:0.75rem;}
 .otp-task-row{border:1px solid var(--gray-200);border-radius:10px;padding:0.875rem 1rem;transition:border-color 0.15s ease,background 0.15s ease;}
+.otp-task-row.otp-featured{border-color:var(--primary);border-width:2px;padding:0.8rem 0.9375rem;background:rgba(37,99,235,0.03);}
+.otp-featured-flag{display:inline-block;font-size:0.65rem;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:var(--primary);margin-bottom:0.3rem;}
+/* A completed/pending state must still win over the featured highlight. */
+.otp-task-row.otp-featured.otp-status-completed{border-color:#bbf7d0;background:#f0fdf4;}
+.otp-task-row.otp-featured.otp-status-pending{border-color:#fde68a;background:#fffbeb;}
 .otp-status-completed{background:#f0fdf4;border-color:#bbf7d0;}
 .otp-status-pending{background:#fffbeb;border-color:#fde68a;}
 .otp-task-main{display:flex;align-items:flex-start;justify-content:space-between;gap:0.75rem;}
@@ -726,6 +754,13 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
 .otp-task-label{font-weight:600;font-size:0.9rem;color:var(--gray-900);}
 .otp-task-sub{font-weight:400;font-size:0.76rem;color:var(--gray-500);margin-top:0.15rem;}
 .otp-task-badge{flex-shrink:0;font-size:0.72rem;font-weight:700;color:var(--primary);background:rgba(37,99,235,0.08);padding:0.25rem 0.55rem;border-radius:6px;white-space:nowrap;}
+/* Cash, not credits. Green so the one payout on the list does not read as
+   just another credit grant sitting among four blue ones. */
+.otp-task-badge-money{color:#047857;background:rgba(16,185,129,0.10);}
+/* The guarantee. Set apart from the body copy on purpose — a promise that
+   reads like a paragraph is a promise nobody notices. */
+.otp-guarantee{display:flex;gap:.6rem;align-items:flex-start;margin:0.875rem 0 0.25rem;padding:0.7rem 0.85rem;border:1px solid rgba(16,185,129,0.35);background:rgba(16,185,129,0.07);border-radius:8px;font-size:0.8125rem;line-height:1.45;color:#065f46;}
+.otp-guarantee i{color:#059669;margin-top:0.15rem;}
 .otp-task-action{margin-top:0.625rem;}
 .otp-check{color:#10b981;font-weight:600;font-size:0.85rem;display:inline-flex;align-items:center;gap:0.375rem;}
 .otp-pending-badge{color:#b45309;font-weight:600;font-size:0.8rem;display:inline-flex;align-items:center;gap:0.375rem;background:#fef3c7;padding:0.3rem 0.6rem;border-radius:6px;}
@@ -828,6 +863,10 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
 <div id="closedWithoutPurchaseBanner" class="low-credits-bar" style="display:none;"></div>
 <div id="milestoneUpgradeBanner" class="low-credits-bar" style="display:none;"></div>
 <div id="bulkNudgeBanner" class="low-credits-bar" style="display:none;"></div>
+<!-- "Your last CSV stopped part way — pick it up" — filled in on load by
+     checkUnfinishedCsvBatch(). Deliberately louder than the nudge bars above:
+     this is unfinished work the user already paid for. -->
+<div id="resumeCsvBanner" style="display:none;background:linear-gradient(135deg,#eff6ff,#dbeafe);border-bottom:1px solid #bfdbfe;padding:0.75rem 1rem;font-size:0.85rem;color:#1e3a8a;"></div>
     
 <div id="annualBanner" style="display:none;background:linear-gradient(135deg,#f0fdf4,#dcfce7);border-bottom:1px solid #bbf7d0;padding:0.5rem 1rem;text-align:center;font-size:0.8rem;color:#166534;font-weight:500;">
   💡 You're on monthly — <strong>switch to annual and save 40%</strong> ($240/year) 
@@ -851,7 +890,8 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
         <div class="nav-tabs">
             <a href="#" class="nav-tab active" data-page="enrichment"><i class="fas fa-search"></i> Data Enrichment</a>
             <a href="#" class="nav-tab" data-page="api"><i class="fas fa-code"></i> API & MCP</a>
-            <a href="#" class="nav-tab" data-page="crmSync"><i class="fab fa-hubspot"></i> CRM Enrichment</a>
+            <a href="#" class="nav-tab" data-page="crmSync"><i class="fab fa-hubspot"></i> CRM Sync</a>
+            <a href="#" class="nav-tab" data-page="integrations"><i class="fas fa-puzzle-piece"></i> Integrations</a>
             <a href="#" class="nav-tab" data-page="history"><i class="fas fa-history"></i> History</a>
             <a href="#" class="nav-tab" data-page="account"><i class="fas fa-user"></i> Account</a>
         </div>
@@ -1029,6 +1069,24 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
                 <button type="button" class="btn" onclick="event.stopPropagation();document.getElementById('csvFile').click()"><i class="fas fa-file-csv"></i> Select File</button>
                 <button type="button" class="btn" style="background:transparent;color:var(--primary);border:1px solid var(--primary);margin-left:0.5rem;" onclick="event.stopPropagation();useSampleCsv()"><i class="fas fa-wand-magic-sparkles"></i> Try a sample list</button>
             </div>
+            <!-- Offered here rather than buried in a menu: this is the moment
+                 someone is exporting a sheet, uploading it, and about to import
+                 the results back. The add-on removes all three steps, and a
+                 user who moves to it keeps using the product without opening
+                 the app at all. -->
+            <div class="sheets-route">
+                <div class="sheets-route-icon"><i class="fas fa-table"></i></div>
+                <div class="sheets-route-text">
+                    <strong>Your list already in Google Sheets?</strong>
+                    Skip the export and the re-import — enrich the column where it sits, with the
+                    same 20 lookups and the same credits.
+                </div>
+                <a href="https://workspace.google.com/marketplace/app/linkfinder_ai/1096371450007"
+                   target="_blank" rel="noopener" class="sheets-route-cta"
+                   onclick="try{posthog.capture('sheets_addon_clicked',{source:'bulk_upload'})}catch(e){}">
+                    Get the add-on
+                </a>
+            </div>
             <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem;margin-top:0.875rem;">
                 <div class="bulk-api-hint" style="margin-top:0;">
                     Running this regularly? <a href="#" onclick="navigateToPage('api');return false;">connect via API</a> and automate it
@@ -1076,6 +1134,8 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
     <div id="progressContainer" class="progress-container hidden">
         <div id="progressBar" class="progress-bar" style="width:0%"></div>
     </div>
+    <!-- Filled in by renderKeepRunningNotice() while a bulk run is going. -->
+    <div id="keepRunningNotice" style="display:none;align-items:center;gap:0.6rem;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:0.7rem 0.9rem;margin:0.75rem 0;font-size:0.82rem;color:#1e3a8a;line-height:1.45;"></div>
     <div id="bulkResultsTable" class="table-container"></div>
 </div>
             <div id="automationNudge" style="display:none;"></div>
@@ -1083,18 +1143,22 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
     </div>
 </div>
 
+<!-- G2 only. Trustpilot's guidelines prohibit incentivised reviews outright, so
+     offering credits for one there was never permitted - the task was pulled from
+     the credits panel on 22 Aug 2026 and this popup was the last place still
+     asking for it.
+
+     The old version sent people to g2.com/fr/products/linkfinder-ai/reviews - the
+     French *listing* page, with nothing on it to fill in - and then to a Typeform
+     to claim. Three destinations and a manual grant at the end. It now points at
+     the write form and claims through the credits panel, which pays out on the
+     spot. -->
 <div id="reviewNotification" class="review-notification">
     <button class="review-notification-close" onclick="closeReviewNotification()">×</button>
-    <div class="review-notification-header"><span>👋</span> Hi there!</div>
+    <div class="review-notification-header"><span>&#128075;</span> <span id="reviewNotifHeader">Can I steal 15 minutes?</span></div>
     <div>
-        If you've found LinkFinder AI useful, please consider leaving us a review on G2 or Trustpilot:
-        <ul class="review-platforms"><li><a href="https://www.g2.com/fr/products/linkfinder-ai/reviews" target="_blank">G2</a></li></ul>
-        <ul class="review-platforms"><li><a href="https://fr.trustpilot.com/review/linkfinderai.com" target="_blank">Trustpilot</a></li></ul>
-        It only takes less than 1 minute!<br><br>
-        If you give us a review and provide us with the link to your review
-        <a href="https://form.typeform.com/to/UKRzccI3" class="review-form-link" onclick="openReviewForm(event)">in this form</a>,
-        we will award you <strong>1000 credits</strong> on your account.<br><br>
-        Thank you in advance! 🙏
+        <div id="reviewNotifLead"></div>
+        <button type="button" class="review-cta" onclick="openFounderCall()">Pick a time</button>
     </div>
 </div>
 
@@ -1121,20 +1185,8 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
             <div class="pricing-faq-item"><i class="fas fa-check-circle"></i> Upgrade or downgrade freely</div>
             <div class="pricing-faq-item"><i class="fas fa-check-circle"></i> Secure payment</div>
         </div>
-        <p style="text-align:center;font-size:0.72rem;color:var(--gray-400);margin-top:0.75rem;">Prices in USD · Secure payment · Cancel anytime</p>
+        <p style="text-align:center;font-size:0.72rem;color:var(--gray-400);margin-top:0.75rem;">Prices in USD</p>
         <p style="text-align:center;font-size:0.75rem;color:var(--gray-500);margin-top:0.375rem;">Need more credits? <a href="mailto:support@linkfinderai.com" style="color:var(--primary);font-weight:500;">Email us</a> — we'll set up a custom plan for you.</p>
-        <!-- VIP was a 12px grey footnote below two other footnotes, which is why
-             three people clicked it in ninety days. It is a different product at a
-             different price point, not a postscript to the plans, so it gets its
-             own card at the decision point. -->
-        <a href="https://linkfinderai.com/linkfinder-vip" target="_blank" onclick="try{posthog.capture('vip_card_clicked',{source:'pricing_modal'})}catch(e){}" style="display:block;text-decoration:none;color:inherit;margin-top:1.25rem;padding:1rem 1.25rem;border:1px solid #fde68a;background:linear-gradient(135deg,#fffbeb,#fef3c7);border-radius:12px;">
-            <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.375rem;">
-                <i class="fas fa-star" style="color:#d97706;font-size:0.8rem;"></i>
-                <span style="font-weight:700;font-size:0.9rem;color:#92400e;">Would rather not run this yourself?</span>
-            </div>
-            <p style="font-size:0.82rem;color:#78350f;line-height:1.5;margin:0 0 0.5rem;">With <strong>LinkFinder VIP</strong> we find the leads, write the emails, handle the replies, and book qualified calls straight into your calendar. You pay per call that actually happens &mdash; no retainer, no contract.</p>
-            <span style="font-size:0.82rem;font-weight:700;color:#a16207;">See LinkFinder VIP &rarr;</span>
-        </a>
     </div>
 </div>
 
@@ -1159,13 +1211,6 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
              no /help-center page on this site, so nothing points at one. -->
         <div id="sciAltRow" style="margin-top:0.9rem;font-size:0.82rem;line-height:1.7;color:#6b7280;">
             <a href="#" onclick="sciOpenSupport(); return false;" style="color:#2563eb;">Ask a question instead</a>
-            <!-- Third door. Someone who opened the plans and closed them without
-                 buying has told us the price is not the problem so much as the
-                 work: they are weighing whether they will actually run this. VIP
-                 is the answer to that specific hesitation, and this modal is the
-                 only surface where we know they just had it. -->
-            <span style="margin:0 0.5rem;color:#d1d5db;">&middot;</span>
-            <a href="https://linkfinderai.com/linkfinder-vip" target="_blank" rel="noopener" style="color:#a16207;font-weight:600;" onclick="try{posthog.capture('vip_card_clicked',{source:'sales_intercept'})}catch(e){}">Have us run it for you</a>
         </div>
         <div class="cim-dismiss-wrap" style="margin-top:0.75rem;">
             <button class="cim-dismiss" onclick="closeSalesInterceptModal()">Maybe later</button>
@@ -1295,6 +1340,49 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
     </div>
 </div>
 
+<!-- Outbound done for you -->
+<div id="aiSdrModal" class="otp-overlay">
+    <div class="otp-modal" role="dialog" aria-modal="true" aria-labelledby="aiSdrTitle">
+        <button class="otp-close" onclick="closeAiSdrModal()" aria-label="Close"><i class="fas fa-times"></i></button>
+        <div class="otp-header">
+            <div class="otp-eyebrow"><i class="fas fa-calendar-check"></i> Outbound done for you</div>
+            <h2 id="aiSdrTitle">Qualified meetings, straight into your calendar</h2>
+            <p>Our team builds the list, writes the sequences and runs the sending on the LinkFinder engine. You do not work an inbox and you do not chase anybody &mdash; the only thing that reaches you is a booked meeting with someone who fits and turned up. <strong>It does not touch your credit balance.</strong></p>
+            <div class="otp-guarantee">
+                <i class="fas fa-shield-halved"></i>
+                <div><strong>You only pay for meetings that happen.</strong> Every one is qualified against the brief you write below before it reaches your calendar, and a no-show is never billed &mdash; we book you another.</div>
+            </div>
+        </div>
+        <div class="otp-survey">
+            <div class="otp-q">
+                <div class="otp-q-label">1. Who do you want to reach?</div>
+                <textarea class="otp-q-text" id="aiSdrTarget" rows="2" maxlength="2000" placeholder="e.g. Heads of Growth at Series A B2B SaaS in the US"></textarea>
+            </div>
+            <div class="otp-q">
+                <div class="otp-q-label">2. What are you selling them?</div>
+                <textarea class="otp-q-text" id="aiSdrOffer" rows="2" maxlength="2000" placeholder="One line on the offer, and what a good customer is worth to you"></textarea>
+            </div>
+            <div class="otp-q">
+                <div class="otp-q-label">3. How many meetings a month do you want?</div>
+                <select class="otp-q-text" id="aiSdrCalls" onchange="aiSdrUpdateEstimate()">
+                    <option value="5">5 &mdash; the minimum</option>
+                    <option value="10" selected>Around 10</option>
+                    <option value="20">Around 20</option>
+                    <option value="40">Around 40</option>
+                    <option value="0">Not sure yet</option>
+                </select>
+                <div class="otp-task-realvalue" id="aiSdrEstimate" style="margin-top:0.4rem;"></div>
+            </div>
+            <div class="otp-disclosure-note" id="aiSdrPriceNote" style="display:none"></div>
+            <button class="otp-submit-btn otp-survey-submit" id="aiSdrSubmit" onclick="submitAiSdrRequest()">Send this and book your setup call</button>
+            <div class="otp-field-error hidden" id="aiSdrError"></div>
+        </div>
+        <div class="otp-footer">
+            <button class="otp-skip-link" onclick="closeAiSdrModal()">Not now</button>
+        </div>
+    </div>
+</div>
+
 <div id="bulkTutorialModal" class="otp-overlay">
     <div class="otp-modal" role="dialog" aria-modal="true" aria-labelledby="bulkTutTitle">
         <button class="otp-close" onclick="dismissBulkTutorialPopup()" aria-label="Close"><i class="fas fa-times"></i></button>
@@ -1315,12 +1403,14 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
 
 
 <button class="feedback-button" onclick="showFeedbackModal()" title="Send Feedback"><i class="fas fa-lightbulb"></i></button>
-<a href="https://linkfinderai.com/resources" target="_blank" rel="noopener" class="help-center-button" title="Help Center — guides & tutorials"><i class="fas fa-circle-question"></i></a>
+<div class="lf-dock">
+    <a href="https://linkfinderai.com/resources" target="_blank" rel="noopener" class="help-center-button" title="Help Center — guides & tutorials"><i class="fas fa-circle-question"></i></a>
 
-<button class="ref-fab" id="reopenTasksBtn" onclick="openOnboardingTasksPopupManually()" title="Earn more credits" style="display:none;">
-    <i class="fas fa-gift"></i>
-    <span>Get Free Credits</span>
-</button>
+    <button class="ref-fab" id="reopenTasksBtn" onclick="openOnboardingTasksPopupManually()" title="Earn more credits" style="display:none;">
+        <i class="fas fa-gift"></i>
+        <span>Get Free Credits</span>
+    </button>
+</div>
 
 <div id="feedbackModal" class="feedback-modal-overlay">
     <div class="feedback-modal">
@@ -1447,6 +1537,54 @@ let currentConfidenceFilter = 'all';
 let billingMode = 'monthly';
 let firstSuccessPromptsFired = false;
 let startingCredits = null; // captured on first non-zero balance; powers the 20% low-credit threshold
+
+// ===== CSV enrichment batches =====
+// Every bulk run is recorded as one row in Supabase so the History page can show
+// the file, how far the enrichment got, and hand back the finished CSV. Same
+// project + publishable key the History page already reads enrichment_history with.
+const CSV_BATCH_SUPABASE_URL = 'https://snxhsboboatjywgwdeds.supabase.co';
+const CSV_BATCH_SUPABASE_ANON_KEY = 'sb_publishable_RKidGRs4ch1ixmRfXoYSww_UsQMSe5w';
+const CSV_BATCH_ENDPOINT = CSV_BATCH_SUPABASE_URL + '/rest/v1/csv_enrichment_batches';
+const CSV_BATCH_CHECKPOINT_RPC = CSV_BATCH_SUPABASE_URL + '/rest/v1/rpc/csv_batch_checkpoint';
+// A checkpoint appends only the rows finished since the last one, so this is
+// how much work a closed tab can cost — not how much gets re-uploaded.
+//
+// These were 10 rows / 20s and that was wrong: a five-row file never reaches
+// ten rows and finishes inside twenty seconds, so it checkpointed exactly never
+// and sat in History at "0% · Running" having really enriched most of itself.
+// Small runs now save every row; long ones amortise. The first completed row
+// always checkpoints, so a card is never stuck at zero.
+const CSV_BATCH_SMALL_RUN = 50;   // at or below this, save after every row
+const CSV_BATCH_PROGRESS_EVERY = 10;
+const CSV_BATCH_PROGRESS_MS = 8000;
+// The uploaded grid is stored so a stopped run can be resumed, on a background
+// request that never blocks the enrichment (see csvBatchStoreInput). This is
+// therefore a guard on what the browser can safely stringify and hold, not on
+// what is polite to POST — a 10,000-row CRM export forty columns wide fits
+// inside it. Past it we still track the run, it just cannot be resumed.
+const CSV_BATCH_MAX_INPUT_CHARS = 25000000;
+// One retry on a network blip or a 5xx. Costs a couple of seconds and saves a
+// row that would otherwise land in the file as "Error".
+const CSV_ROW_RETRIES = 1;
+const CSV_ROW_RETRY_MS = 2000;
+let lfUploadedFileName = '';
+let currentCsvBatchId = null;
+// Resume state. `csvResumeFrom` is where in csvData this run starts;
+// `bulkCarryCsv` is the CSV of everything enriched before it, so the export and
+// the archive stay whole even though bulkResults only holds this run's rows.
+let csvResumeFrom = 0;
+let bulkCarryCsv = '';
+let bulkCarryEndSrc = -1;    // last original row already covered by bulkCarryCsv
+let csvCheckpointSlot = 0;   // first bulkResults row not yet checkpointed
+let csvCheckpointRow = 0;    // what the batch row's processed_rows should be
+let csvCheckpointSrc = 0;    // next original row to append to the archive
+let csvResumeFoundRows = 0;  // rows already enriched before this run
+let csvResumeCredits = 0;    // credits already spent before this run
+let csvExitCredits = 0;      // credits spent so far this run, for the exit flush
+// The background runner needs the uploaded grid, so handover is only offered
+// once csvBatchStoreInput has confirmed it landed.
+let csvKeepRunning = true;
+let csvBatchStoredInput = false;
 
 // ===== Bulletproof Checkout Controls =====
 const CHECKOUT_MODE = 'live'; // MUST match worker env in production
@@ -3541,7 +3679,457 @@ function showSingleResultEmployeeCount(inputData, count) {
     document.getElementById('bulkResults').classList.add('hidden');
 }
 
-async function processBulk() {
+/* ---------------------------------------------------------------------
+   CSV batch tracking — one row per bulk run in csv_enrichment_batches.
+   Written straight from the page (PostgREST + publishable key), the same way
+   the History page reads enrichment_history.
+
+   The archive is built up incrementally: each checkpoint appends only the rows
+   finished since the last one, via the csv_batch_checkpoint RPC. Re-sending the
+   whole file every time would be O(n^2) in bytes — a 4,600-row profile scrape
+   would push hundreds of megabytes.
+
+   Every call is best-effort: if Supabase is unreachable the enrichment itself
+   must carry on regardless.
+--------------------------------------------------------------------- */
+function csvBatchHeaders(){
+    return {
+        'Content-Type': 'application/json',
+        apikey: CSV_BATCH_SUPABASE_ANON_KEY,
+        Authorization: 'Bearer ' + CSV_BATCH_SUPABASE_ANON_KEY,
+    };
+}
+
+function csvBatchLabel(){
+    const c = dataConfigurations[currentInputType];
+    if(!c) return currentInputType || 'Enrichment';
+    const from = (c.label || '').replace('Enter ', '');
+    const to = (c.outputs && c.outputs[currentOutputType]) || currentOutputType;
+    return `${from} \u2192 ${to}`;
+}
+
+async function csvBatchCreate(totalRows){
+    if(!userToken) return null;
+    try {
+        const res = await fetch(CSV_BATCH_ENDPOINT, {
+            method: 'POST',
+            headers: Object.assign(csvBatchHeaders(), { Prefer: 'return=representation' }),
+            body: JSON.stringify({
+                user_id: userToken,
+                file_name: lfUploadedFileName || 'Pasted list',
+                label: csvBatchLabel(),
+                type: generateCombinationType(currentInputType, currentOutputType),
+                input_type: currentInputType,
+                output_type: currentOutputType,
+                total_rows: totalRows,
+                // What they uploaded, as opposed to what we can enrich. The gap
+                // is rows with no name to look up.
+                file_rows: lfCsvRows.length,
+                status: 'processing',
+            })
+        });
+        if(!res.ok) return null;
+        const rows = await res.json();
+        return (Array.isArray(rows) && rows[0]) ? rows[0].id : null;
+    } catch(e) { return null; }
+}
+
+// The uploaded grid and the column mapping, stored so the run can be picked up
+// later: rebuilding the input list from these on resume guarantees it matches
+// this run's exactly.
+//
+// Sent separately from csvBatchCreate, and never awaited, because a wide CRM
+// export runs to megabytes — blocking the first enrichment on that upload would
+// cost the user half a minute of staring at nothing. If it fails, for any
+// reason including a gateway that will not take a body that size, the run is
+// still tracked; it just cannot be resumed, and the History card offers no
+// Resume button rather than one that would not work.
+async function csvBatchStoreInput(id){
+    if(!id) return false;
+    let body;
+    try {
+        body = JSON.stringify({
+            input_rows: lfCsvRows,
+            csv_headers: lfCsvHeaders,
+            column_mapping: lfMapping,
+        });
+    } catch(e) { return false; }
+
+    // The one real ceiling left is the browser's own: past this, stringifying
+    // and holding the payload is a bigger risk to the run than losing resume.
+    if(body.length > CSV_BATCH_MAX_INPUT_CHARS){
+        try { posthog.capture('csv_batch_input_too_large', { chars: body.length, rows: lfCsvRows.length }); } catch(e) {}
+        return false;
+    }
+
+    for(let attempt = 0; attempt <= 1; attempt++){
+        if(attempt) await new Promise(r => setTimeout(r, 3000));
+        try {
+            const res = await fetch(`${CSV_BATCH_ENDPOINT}?id=eq.${encodeURIComponent(id)}`, {
+                method: 'PATCH', headers: csvBatchHeaders(), body
+            });
+            if(res.ok) return true;
+            // A refusal is an answer — the body is too big for the gateway, or
+            // the row is gone. Retrying the same payload will not change it.
+            if(res.status < 500) break;
+        } catch(e) {}
+    }
+    try { posthog.capture('csv_batch_input_store_failed', { chars: body.length, rows: lfCsvRows.length }); } catch(e) {}
+    return false;
+}
+
+function csvBatchUpdate(id, fields){
+    if(!id) return Promise.resolve();
+    return fetch(`${CSV_BATCH_ENDPOINT}?id=eq.${encodeURIComponent(id)}`, {
+        method: 'PATCH',
+        headers: csvBatchHeaders(),
+        body: JSON.stringify(Object.assign({ updated_at: new Date().toISOString() }, fields))
+    }).catch(() => {});
+}
+
+function csvBatchFoundRows(){
+    return bulkResults.filter(r => r.status === 'Found').length;
+}
+
+// Appends everything finished since the last checkpoint. The RPC only accepts a
+// chunk that starts exactly where the stored row stands, so a retry can never
+// duplicate lines; it hands back the real processed_rows, which we adopt.
+//
+// `upTo` is a count of *completed* slots in bulkResults — never pass a row that
+// is still in flight, or its half-finished line goes into the archive.
+async function csvBatchCheckpoint(upTo, creditsConsumed){
+    if(!currentCsvBatchId || upTo <= csvCheckpointSlot) return;
+
+    const from = csvCheckpointSlot;
+    // Only the very first chunk of a batch carries the header row; a resumed
+    // batch already has one in the archive.
+    const chunk = buildBulkCsvChunk(from, upTo, csvCheckpointRow === 0 && !bulkCarryCsv);
+    const processed = csvResumeFrom + upTo;
+    const nextSrc = csvSrcOf(csvResumeFrom + upTo - 1) + 1;
+
+    try {
+        const res = await fetch(CSV_BATCH_CHECKPOINT_RPC, {
+            method: 'POST',
+            headers: csvBatchHeaders(),
+            body: JSON.stringify({
+                p_id: currentCsvBatchId,
+                p_user_id: userToken,
+                p_from_row: csvCheckpointRow,
+                p_processed: processed,
+                p_found: csvResumeFoundRows + csvBatchFoundRows(),
+                p_credits: Math.round((csvResumeCredits + creditsConsumed) * 100) / 100,
+                p_chunk: chunk,
+                p_filename: csvBaseName() + '.csv',
+            })
+        });
+        if(!res.ok) return;
+        const at = await res.json();
+        if(typeof at === 'number' && at === processed){
+            csvCheckpointSlot = upTo;
+            csvCheckpointRow = processed;
+            csvCheckpointSrc = nextSrc;
+        }
+        // A mismatch means the stored row moved on without us — leave the cursor
+        // where it is and let the next checkpoint try again from the same place
+        // rather than appending lines out of order.
+    } catch(e) {}
+}
+
+async function csvBatchAppendTail(creditsConsumed){
+    const chunk = csvRenderRange(csvCheckpointSrc, lfCsvRows.length - 1, csvCheckpointRow === 0 && !bulkCarryCsv);
+    if(!chunk) return;
+    try {
+        await fetch(CSV_BATCH_CHECKPOINT_RPC, {
+            method: 'POST',
+            headers: csvBatchHeaders(),
+            body: JSON.stringify({
+                p_id: currentCsvBatchId,
+                p_user_id: userToken,
+                p_from_row: csvCheckpointRow,
+                p_processed: csvCheckpointRow,
+                p_found: csvResumeFoundRows + csvBatchFoundRows(),
+                p_credits: Math.round((csvResumeCredits + creditsConsumed) * 100) / 100,
+                p_chunk: chunk,
+                p_filename: csvBaseName() + '.csv',
+            })
+        });
+        csvCheckpointSrc = lfCsvRows.length;
+    } catch(e) {}
+}
+
+// Called once the run stops, whether it finished, ran dry on credits, or the
+// user closed the tab on it. Flushes the tail of the archive, then closes the row.
+async function csvBatchFinalize(processedThisRun, creditsConsumed, creditsExhausted){
+    if(!currentCsvBatchId) return;
+    const batchId = currentCsvBatchId;
+
+    await csvBatchCheckpoint(processedThisRun, creditsConsumed);
+
+    const totalProcessed = csvResumeFrom + processedThisRun;
+    const status = creditsExhausted ? 'out_of_credits'
+                 : (totalProcessed >= csvData.length ? 'completed' : 'stopped');
+
+    // The user's own trailing rows — ones with no readable name, or the tail of
+    // a file whose last entries produced nothing — belong in a finished file.
+    // A run that stopped short leaves them out: a resume continues there.
+    if(status === 'completed' && csvCheckpointSrc < lfCsvRows.length){
+        await csvBatchAppendTail(creditsConsumed);
+    }
+    currentCsvBatchId = null;
+
+    await csvBatchUpdate(batchId, { status, completed_at: new Date().toISOString() });
+    try {
+        posthog.capture('csv_batch_saved', {
+            status,
+            total_rows: csvData.length,
+            processed_rows: totalProcessed,
+            resumed_from: csvResumeFrom,
+        });
+    } catch(e) {}
+}
+
+/* ---------------------------------------------------------------------
+   Resume — picking a stopped CSV back up where it left off.
+
+   The rows already enriched are neither re-run nor re-charged: the run
+   restarts at the batch's processed_rows, and the archive it built is carried
+   forward so the finished file is still the user's whole list.
+--------------------------------------------------------------------- */
+const CSV_RESUMABLE_STATUSES = ['processing', 'stopped', 'out_of_credits'];
+// How long a run left mid-flight must stay quiet before we treat it as stopped
+// rather than still going. Checkpoints land every ten rows or twenty seconds.
+const CSV_BATCH_STALE_MS = 15 * 60 * 1000;
+
+function csvResumeBannerEl(){ return document.getElementById('resumeCsvBanner'); }
+
+function dismissResumeCsvBanner(){
+    const el = csvResumeBannerEl();
+    if(el) el.style.display = 'none';
+    try { posthog.capture('csv_resume_banner_dismissed'); } catch(e) {}
+}
+
+// The most recent run that stopped part way and still has its input rows. Shown
+// on load, so somebody whose tab died finds their work waiting for them rather
+// than starting the whole list again.
+async function checkUnfinishedCsvBatch(){
+    if(!userToken) return;
+    try {
+        const q = `${CSV_BATCH_ENDPOINT}?user_id=eq.${encodeURIComponent(userToken)}`
+            + `&status=in.(${CSV_RESUMABLE_STATUSES.join(',')})`
+            + `&input_rows=not.is.null`
+            + `&select=id,file_name,label,total_rows,processed_rows,found_rows,status,updated_at`
+            + `&order=started_at.desc&limit=1`;
+        const res = await fetch(q, { headers: csvBatchHeaders() });
+        if(!res.ok) return;
+        const rows = await res.json();
+        const b = Array.isArray(rows) ? rows[0] : null;
+        if(!b || !b.total_rows || b.processed_rows >= b.total_rows) return;
+        // A 'processing' batch that checkpointed moments ago is very likely
+        // still running in another tab. Offering Resume there would enrich the
+        // same rows twice and charge for both.
+        if(b.status === 'processing' &&
+           Date.now() - new Date(b.updated_at).getTime() < CSV_BATCH_STALE_MS) return;
+        showResumeCsvBanner(b);
+    } catch(e) {}
+}
+
+function showResumeCsvBanner(b){
+    const el = csvResumeBannerEl();
+    if(!el) return;
+    const left = b.total_rows - b.processed_rows;
+    const why = b.status === 'out_of_credits' ? 'ran out of credits' : 'stopped';
+    el.innerHTML = `<div style="max-width:1100px;margin:0 auto;display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;">
+        <i class="fas fa-cloud" style="color:#2563eb;"></i>
+        <div style="flex:1;min-width:220px;">
+            <strong>${escHtml(b.file_name || 'Your last CSV')} ${why} at ${b.processed_rows.toLocaleString()} of ${b.total_rows.toLocaleString()} rows.</strong>
+            We can finish the rest for you — nothing to keep open, and the ${b.processed_rows.toLocaleString()} rows already enriched won't be charged again.
+        </div>
+        <button id="resumeCsvBtn" onclick="finishCsvBatchInBackground('${b.id}')" style="background:#2563eb;color:white;border:none;padding:0.45rem 0.9rem;border-radius:6px;font-weight:600;font-size:0.8rem;cursor:pointer;font-family:inherit;white-space:nowrap;">
+            <i class="fas fa-cloud"></i> Finish ${left.toLocaleString()} rows
+        </button>
+        <button onclick="dismissResumeCsvBanner()" style="background:none;border:none;color:#1e3a8a;cursor:pointer;font-size:1.1rem;line-height:1;">&times;</button>
+    </div>`;
+    el.style.display = 'block';
+    try { posthog.capture('csv_resume_banner_shown', { processed: b.processed_rows, total: b.total_rows, status: b.status }); } catch(e) {}
+}
+
+function escHtml(v){ return String(v == null ? '' : v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// Hands the rest of a stopped run to the background runner, from wherever the
+// user happens to be. This replaced an in-tab resume: it needs no enrichment
+// panel, no tab left open, and at 400-odd rows a minute it finishes sooner than
+// watching it would have.
+async function finishCsvBatchInBackground(batchId){
+    const btn = document.getElementById('resumeCsvBtn');
+    if(btn){ btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Queueing…'; }
+    try {
+        const res = await fetch(`${CSV_BATCH_ENDPOINT}?id=eq.${encodeURIComponent(batchId)}&user_id=eq.${encodeURIComponent(userToken)}`, {
+            method: 'PATCH',
+            headers: csvBatchHeaders(),
+            body: JSON.stringify({
+                status: 'queued', queued_at: new Date().toISOString(),
+                locked_until: null, attempts: 0, updated_at: new Date().toISOString(),
+            })
+        });
+        if(!res.ok) throw new Error('queue failed');
+        try { posthog.capture('csv_batch_queued_from_banner', { batch_id: batchId }); } catch(e) {}
+        const el = csvResumeBannerEl();
+        if(el) el.innerHTML = `<div style="max-width:1100px;margin:0 auto;display:flex;align-items:center;gap:0.75rem;">
+            <i class="fas fa-check-circle" style="color:#16a34a;"></i>
+            <div style="flex:1;"><strong>On it.</strong> We're finishing that file now — it'll be waiting in
+            <a href="#" onclick="nav('history');return false;" style="color:#1d4ed8;font-weight:600;">History</a> when it's done.</div>
+            <button onclick="dismissResumeCsvBanner()" style="background:none;border:none;color:#1e3a8a;cursor:pointer;font-size:1.1rem;line-height:1;">&times;</button>
+        </div>`;
+    } catch(e) {
+        if(btn){ btn.disabled = false; btn.innerHTML = '<i class="fas fa-exclamation-circle"></i> Could not queue — try again'; }
+    }
+}
+
+// Kept, but no longer offered anywhere: ?resume=<id> still rebuilds a run in the
+// tab. It is the escape hatch for a batch the runner cannot take, and the only
+// caller of processBulk(true).
+// Rebuilds the run's whole state from the stored batch, then drops the user on
+// the bulk panel with Resume ready to press.
+async function resumeCsvBatch(batchId){
+    if(isBulkProcessing){ showAlert('An enrichment is already running — let it finish first.','warning'); return; }
+    try { posthog.capture('csv_resume_clicked', { batch_id: batchId }); } catch(e) {}
+    try {
+        const res = await fetch(
+            `${CSV_BATCH_ENDPOINT}?id=eq.${encodeURIComponent(batchId)}&user_id=eq.${encodeURIComponent(userToken)}`
+            + `&select=id,file_name,input_type,output_type,total_rows,processed_rows,found_rows,credits_used,`
+            + `input_rows,csv_headers,column_mapping,result_csv`,
+            { headers: csvBatchHeaders() }
+        );
+        const rows = await res.json();
+        const b = Array.isArray(rows) ? rows[0] : null;
+        if(!b || !b.input_rows || !b.input_rows.length){
+            showAlert('That enrichment can no longer be resumed — the file was too large to store. Upload it again to carry on.','error');
+            return;
+        }
+
+        // Put the page back exactly where the first run was.
+        const inputSel = document.getElementById('inputType');
+        inputSel.value = b.input_type;
+        inputSel.dispatchEvent(new Event('change'));
+        await new Promise(r => setTimeout(r, 80));
+        const outputSel = document.getElementById('outputType');
+        outputSel.value = b.input_type + '__' + b.output_type;
+        outputSel.dispatchEvent(new Event('change'));
+        await new Promise(r => setTimeout(r, 80));
+
+        lfCsvHeaders = b.csv_headers || [];
+        lfCsvRows = b.input_rows;
+        lfMapping = b.column_mapping || {};
+        lfUploadedFileName = b.file_name || '';
+        // Rebuilt with the original mapping, so the row order and the resume
+        // cursor mean the same thing they did on the first run.
+        if(!lfBuildCsvData()) return;
+
+        currentCsvBatchId = b.id;
+        csvResumeFrom = Math.min(b.processed_rows || 0, csvData.length);
+        csvResumeFoundRows = b.found_rows || 0;
+        csvResumeCredits = Number(b.credits_used) || 0;
+        bulkCarryCsv = b.result_csv || '';
+        bulkCarryEndSrc = csvResumeFrom > 0 ? csvSrcOf(csvResumeFrom - 1) : -1;
+        csvCheckpointRow = csvResumeFrom;
+        csvCheckpointSrc = bulkCarryEndSrc + 1;
+        csvCheckpointSlot = 0;
+
+        dismissResumeCsvBanner();
+        switchMode('bulk');
+        showResumePreview();
+    } catch(e) {
+        showAlert('Could not load that enrichment. Try again in a moment.','error');
+    }
+}
+
+// Same panel as a fresh upload, but saying what is being picked up and how much
+// of it is left.
+function showResumePreview(){
+    const left = csvData.length - csvResumeFrom;
+    const banner = `<div style="display:flex;align-items:center;gap:0.625rem;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1rem;">
+        <i class="fas fa-rotate-left" style="color:#2563eb;font-size:1rem;flex-shrink:0;"></i>
+        <div>
+            <div style="font-weight:600;color:#1e3a8a;font-size:0.875rem;">Resuming ${escHtml(lfUploadedFileName || 'your CSV')} — ${csvResumeFrom.toLocaleString()} of ${csvData.length.toLocaleString()} rows already enriched</div>
+            <div style="font-size:0.75rem;color:#1d4ed8;margin-top:1px;">${left.toLocaleString()} row${left===1?'':'s'} left. Those already done are included in your download and won't be charged again.</div>
+        </div>
+    </div>`;
+
+    const rows = csvData.slice(csvResumeFrom, csvResumeFrom + 5)
+        .map(r => `<div style="padding:0.25rem 0;">${escHtml(r.inputData)}</div>`).join('');
+    document.getElementById('previewTable').innerHTML = banner +
+        `<div style="background:var(--gray-50);padding:0.75rem;border-radius:6px;font-size:0.875rem;overflow-x:auto;">${rows}</div>`;
+
+    const btn = document.getElementById('processBulkBtn');
+    btn.disabled = false; btn.style.opacity = '1';
+    btn.innerHTML = `<i class="fas fa-play"></i> Resume — enrich the remaining ${left.toLocaleString()} rows`;
+    btn.setAttribute('onclick', 'processBulk(true)');
+    document.getElementById('csvPreview').classList.remove('hidden');
+    document.getElementById('csvPreview').scrollIntoView({ behavior:'smooth', block:'center' });
+}
+
+/* ---------------------------------------------------------------------
+   "You can leave" — the notice shown while a bulk run is going.
+
+   The loop lives in this tab, so leaving stops it here. What the notice
+   promises is that the rest gets handed to the background runner on the way
+   out, which is what csvKeepRunning controls. People assume closing a tab
+   throws the work away, so this says otherwise before they wonder.
+--------------------------------------------------------------------- */
+function renderKeepRunningNotice(){
+    const host = document.getElementById('keepRunningNotice');
+    if(!host) return;
+    if(!isBulkProcessing){ host.style.display = 'none'; return; }
+
+    if(!csvBatchStoredInput){
+        // Until the grid is stored the runner has nothing to work from, so
+        // promising a handover here would be a lie.
+        host.style.display = 'flex';
+        host.innerHTML = `<i class="fas fa-circle-notch fa-spin" style="color:#2563eb;"></i>
+            <span>Saving your file so this can finish without you…</span>`;
+        return;
+    }
+
+    host.style.display = 'flex';
+    host.innerHTML = `<label style="display:flex;align-items:center;gap:0.6rem;cursor:pointer;margin:0;">
+        <input type="checkbox" id="keepRunningToggle" ${csvKeepRunning ? 'checked' : ''}
+               onchange="csvKeepRunning=this.checked;renderKeepRunningNotice();"
+               style="width:16px;height:16px;cursor:pointer;flex-shrink:0;">
+        <span>${csvKeepRunning
+            ? '<strong>Safe to leave.</strong> Close this tab and we\'ll finish the rest in the background — it\'ll be waiting in History.'
+            : '<strong>This will stop if you leave.</strong> Tick to have us finish it in the background instead.'}</span>
+    </label>`;
+}
+
+// A dropped connection or a 5xx used to put "Error" in the user's file and move
+// on — a row they will never get back without re-running the whole list. One
+// retry costs two seconds and saves most of them. A 4xx is an answer, not a
+// blip (403 is the credit wall), so it comes straight back.
+async function bulkFetchWithRetry(payload){
+    let last = null;
+    for (let attempt = 0; attempt <= CSV_ROW_RETRIES; attempt++) {
+        if (attempt) await new Promise(r => setTimeout(r, CSV_ROW_RETRY_MS));
+        try {
+            const res = await fetchWithTimeout('https://linkfinderapp.hamoureliasse.workers.dev/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            if (res.ok || res.status < 500) return res;
+            last = res;
+        } catch(e) {
+            last = null;
+        }
+    }
+    if (last) return last;
+    throw new Error('enrichment request failed');
+}
+
+// `resuming` is true when the run is picking up a batch that stopped part way:
+// csvResumeFrom / bulkCarryCsv / currentCsvBatchId are already set up by
+// resumeCsvBatch(), and the rows before the cursor are neither re-run nor
+// re-charged.
+async function processBulk(resuming) {
     isBulkProcessing = true;
     setupRefreshWarning();
     showAlert('\u26a0\ufe0f Processing in progress - Please do not refresh or close this page until complete!','warning');
@@ -3557,13 +4145,45 @@ async function processBulk() {
     showProgress();
     bulkResults = [];
     initializeBulkResultsTable();
-    
+
+    if (!resuming) {
+        csvResumeFrom = 0;
+        bulkCarryCsv = '';
+        bulkCarryEndSrc = -1;
+        csvCheckpointRow = 0;
+        csvCheckpointSrc = 0;
+        csvResumeFoundRows = 0;
+        csvResumeCredits = 0;
+        currentCsvBatchId = await csvBatchCreate(csvData.length);
+        // Deliberately not awaited: the enrichment starts now, and both
+        // resumability and background handover catch up behind it.
+        csvBatchStoredInput = false;
+        csvBatchStoreInput(currentCsvBatchId).then(ok => {
+            csvBatchStoredInput = ok;
+            renderKeepRunningNotice();
+        });
+    }
+    csvCheckpointSlot = 0;
+    csvExitFlushed = false;
+    csvExitCredits = 0;
+    renderKeepRunningNotice();
+    // Taking a batch back into the tab. Only 'queued' rows are claimable, so
+    // flipping the status is what stops the background runner picking up the
+    // same batch underneath us.
+    if (resuming && currentCsvBatchId) {
+        csvBatchUpdate(currentCsvBatchId, { status: 'processing', locked_until: null });
+    }
+
     let creditsConsumed = 0;
     let processedCount = 0;
+    lfBulkCallAsked = false; // once per run, not once per page load
     let creditsExhausted = false;
     let processedWithCredits = 0;
-    
-    for (let i = 0; i < csvData.length; i++) {
+    let lastCheckpointAt = Date.now();
+
+    for (let i = csvResumeFrom; i < csvData.length; i++) {
+        // bulkResults holds only this run's rows; `slot` is where row i lands.
+        const slot = i - csvResumeFrom;
         // Check if we have enough credits before processing
         if (!creditsExhausted) {
             if (currentCredits !== null && currentCredits < 1) {
@@ -3574,8 +4194,9 @@ async function processBulk() {
                 try {
                     posthog.capture('bulk_results_gated_shown', {
                         total_rows: csvData.length,
-                        processed_rows: processedCount,
-                        locked_rows: csvData.length - processedCount,
+                        processed_rows: csvResumeFrom + processedCount,
+                        locked_rows: csvData.length - (csvResumeFrom + processedCount),
+                        resumed_from: csvResumeFrom,
                         credits_remaining: currentCredits,
                         input_type: currentInputType,
                         output_type: currentOutputType
@@ -3586,7 +4207,7 @@ async function processBulk() {
                 renderGatedResults(processedCount);
                 
                 // Show inline upgrade banner
-                showUpgradeBanner(processedCount, csvData.length);
+                showUpgradeBanner(csvResumeFrom + processedCount, csvData.length);
                 
                 // Stop processing but keep the table visible
                 break;
@@ -3611,10 +4232,7 @@ async function processBulk() {
                 bulkLastName = nameParts.slice(1).join(' ') || '';
                 bulkDomain = (row.company || '').toLowerCase().replace(/^https?:\/\//,'').replace(/^www\./,'').replace(/\/.*$/,'');
             }
-            const response = await fetchWithTimeout('https://linkfinderapp.hamoureliasse.workers.dev/', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
+            const response = await bulkFetchWithRetry({
                     type: generateCombinationType(currentInputType, currentOutputType),
                     input_data: row.inputData,
                     first_name: bulkFirstName,
@@ -3632,14 +4250,13 @@ async function processBulk() {
                     output_type: currentOutputType,
                     token: userToken,
                     is_bulk: true
-                })
             });
-            
+
             if (response.ok) {
                 const data = await response.json();
                 if (currentOutputType === 'employee_count') {
                     const count = data.result || data || 'Not found';
-                    bulkResults[i] = {
+                    bulkResults[slot] = {
                         inputData: row.inputData,
                         result: count === 'Not found' ? count : `${count} employees`,
                         status: count === 'Not found' ? 'Not found' : 'Found',
@@ -3654,7 +4271,7 @@ async function processBulk() {
                 } else if (currentOutputType === 'employees' && (Array.isArray(data) || (data.employees && Array.isArray(data.employees)))) {
                     const employees = Array.isArray(data) ? data : data.employees;
                     const cost = employees.length * 0.5;
-                    bulkResults[i] = {
+                    bulkResults[slot] = {
                         inputData: row.inputData,
                         result: `${employees.length} employees found`,
                         status: employees.length > 0 ? 'Found' : 'Not found',
@@ -3668,7 +4285,7 @@ async function processBulk() {
                     }
                 } else if (currentOutputType === 'reactions' && Array.isArray(data)) {
                     const cost = data.length;
-                    bulkResults[i] = {
+                    bulkResults[slot] = {
                         inputData: row.inputData,
                         result: `${data.length} reactions found`,
                         status: 'Found',
@@ -3688,7 +4305,7 @@ async function processBulk() {
                     const hasProfileData = !!(parsedRaw.name || parsedRaw.jobTitle || parsedRaw.company);
                     const resultValue = data.result || (hasProfileData ? parsedRaw.name || 'Found' : 'Not found');
                     const statusValue = (data.result || hasProfileData) ? 'Found' : 'Not found';
-                    bulkResults[i] = {
+                    bulkResults[slot] = {
                         inputData: row.inputData,
                         result: resultValue,
                         status: statusValue,
@@ -3719,10 +4336,10 @@ async function processBulk() {
                     } catch(e) {}
                     
                     renderGatedResults(processedCount);
-                    showUpgradeBanner(processedCount, csvData.length);
+                    showUpgradeBanner(csvResumeFrom + processedCount, csvData.length);
                     break;
                 }
-                bulkResults[i] = {
+                bulkResults[slot] = {
                     inputData: row.inputData,
                     result: 'Not found',
                     status: 'Not found',
@@ -3730,7 +4347,7 @@ async function processBulk() {
                 };
             }
         } catch(e) {
-            bulkResults[i] = {
+            bulkResults[slot] = {
                 inputData: row.inputData,
                 result: 'Error',
                 status: 'Error',
@@ -3738,12 +4355,30 @@ async function processBulk() {
             };
         }
         processedCount++;
+        csvExitCredits = Math.round(creditsConsumed * 100) / 100;
         updateProgress((i + 1) / csvData.length * 100);
         updateBulkResultsTable();
+        // i+1 is the position in the whole list, so a resumed run is measured
+        // against the list rather than against what is left of it.
+        maybeShowBulkCallPrompt(i + 1, csvData.length, creditsExhausted);
+        // Checkpoint on rows or on elapsed time, whichever lands first. Awaited
+        // so the archive can never get ahead of itself, but it only ever sends
+        // the rows finished since last time.
+        const every = csvData.length <= CSV_BATCH_SMALL_RUN ? 1 : CSV_BATCH_PROGRESS_EVERY;
+        const dueRows = processedCount - csvCheckpointSlot >= every;
+        const dueTime = Date.now() - lastCheckpointAt >= CSV_BATCH_PROGRESS_MS;
+        // The first row always saves: it is what turns "0% · Running" into a
+        // card that means something, and it proves the write path works before
+        // the user has spent much.
+        const isFirst = processedCount === 1;
+        if (currentCsvBatchId && (isFirst || dueRows || dueTime)) {
+            lastCheckpointAt = Date.now();
+            await csvBatchCheckpoint(processedCount, creditsConsumed);
+        }
         await new Promise(r => setTimeout(r, 100));
     }
     
-    if (!creditsExhausted && processedCount === csvData.length) {
+    if (!creditsExhausted && csvResumeFrom + processedCount === csvData.length) {
         const banner = document.getElementById('upgradeBanner');
         if (banner) banner.style.display = 'none';
         if (currentCredits !== null && currentCredits < 50) {
@@ -3753,6 +4388,7 @@ async function processBulk() {
     
     isBulkProcessing = false;
     removeRefreshWarning();
+    renderKeepRunningNotice();
     btn.disabled = false;
     btn.innerHTML = '<i class="fas fa-play"></i> Process Items';
     if (bulkResults.length > 0) showSavedPill();
@@ -3761,6 +4397,9 @@ async function processBulk() {
         maybeTriggerFirstSuccessPrompts();
         showBulkHubspotButtonIfApplicable();
     }
+    // Last, and awaited: archiving the file can be a multi-megabyte upload, and
+    // nothing on screen should wait behind it.
+    await csvBatchFinalize(processedCount, creditsConsumed, creditsExhausted);
 }
 
 // Add these new functions after processBulk
@@ -3907,22 +4546,91 @@ async function handleUpgradeFromBulk() {
     await handleAddCredits();
 }
 
-function goToAutomate(){window.location.href=addGclid(`https://linkfinderai.com/app-workflows?token=${userToken}`);}
-
 function showAutomationNudge(inputType,outputType){
     const el=document.getElementById('automationNudge'); if(!el)return;
     const messages={'company_domain__employees':{title:'Automate prospect extraction',sub:'Pull fresh prospects every week'},'linkedin_profile__linkedin_info':{title:'Enrich leads as they come in',sub:'Trigger when a new contact hits your CRM'},'linkedin_company__linkedin_info':{title:'Automate company research',sub:'Enrich new s added to your pipeline'},'linkedin_post__reactions':{title:'Monitor posts automatically',sub:'Extract warm leads every time you publish'},'lead_full_name__linkedin_url':{title:'Enrich your CRM automatically',sub:'Run this when new contacts are created'},'company_name__website':{title:'Automate company data lookup',sub:'Run on every new lead in your workflow'},'company_name__email':{title:'Find emails automatically',sub:'Trigger from your CRM or outreach tool'},'company_name__phone':{title:'Automate phone lookups',sub:'Plug directly into your outbound workflow'},'company_name__linkedin_url':{title:'Build lists automatically',sub:'Run on new company lists as they come in'}};
     const key=`${inputType}__${outputType}`;
     const msg=messages[key]||{title:'Automate this step',sub:'Run it in n8n, Make, or Zapier'};
-    const wUrl=addGclid(`https://linkfinderai.com/app-workflows?token=${userToken}`);
+    const wUrl=addGclid(`https://linkfinderai.com/app-integrations?token=${userToken}`);
     const aUrl=addGclid(`https://linkfinderai.com/api-access?token=${userToken}`);
     el.innerHTML=`<div class="automation-nudge"><div class="nudge-left"><span class="nudge-icon">\u26a1</span><div><div class="nudge-title">${msg.title}</div><div class="nudge-sub">${msg.sub}</div></div></div><div class="nudge-platforms"><a href="${wUrl}" class="nudge-btn nudge-n8n"><span class="nudge-logo nudge-logo-n8n">n</span> n8n</a><a href="${wUrl}" class="nudge-btn nudge-make"><span class="nudge-logo nudge-logo-make">M</span> Make</a><a href="https://zapier.com/developer/public-invite/235719/7244430282f42f35ad6bd25db6ac39bf/" target="_blank" class="nudge-btn nudge-zapier"><span class="nudge-logo nudge-logo-zapier">Z</span> Zapier</a><a href="${aUrl}" class="nudge-btn nudge-api">&lt;/&gt; API</a></div></div>`;
     el.style.display='block';
 }
 
-function setupRefreshWarning(){window.addEventListener('beforeunload',handleBeforeUnload);}
-function removeRefreshWarning(){window.removeEventListener('beforeunload',handleBeforeUnload);}
-function handleBeforeUnload(e){if(isBulkProcessing){e.preventDefault();e.returnValue='';return '';}}
+function setupRefreshWarning(){
+    window.addEventListener('beforeunload',handleBeforeUnload);
+    // pagehide fires where beforeunload does not (mobile Safari, tab discard),
+    // and unlike beforeunload it fires after the user has already committed to
+    // leaving — which is exactly when the last rows need saving.
+    window.addEventListener('pagehide',flushCsvBatchOnExit);
+}
+function removeRefreshWarning(){
+    window.removeEventListener('beforeunload',handleBeforeUnload);
+    window.removeEventListener('pagehide',flushCsvBatchOnExit);
+}
+function handleBeforeUnload(e){
+    if(!isBulkProcessing) return;
+    // Nothing here can run async, so save what we can first. keepalive lets the
+    // request outlive the page.
+    flushCsvBatchOnExit();
+    // Browsers ignore custom text here, but the message is set anyway for the
+    // few that still show it. The real reassurance is on the History card: the
+    // rows already enriched are saved and the run can be picked up.
+    const msg = (csvKeepRunning && csvBatchStoredInput)
+        ? 'Leaving is fine — we will finish this enrichment in the background and it will be waiting in History.'
+        : 'Your enrichment will stop if you leave. The rows already enriched are saved — you can resume from History.';
+    e.preventDefault(); e.returnValue = msg; return msg;
+}
+
+// The enrichment loop lives in this tab, so leaving stops it. What must not be
+// lost is the rows already paid for: this hands the archive its last chunk and
+// marks the batch stopped, so History shows the truth and offers Resume rather
+// than claiming to still be running.
+let csvExitFlushed = false;
+function flushCsvBatchOnExit(){
+    if(csvExitFlushed || !currentCsvBatchId || !isBulkProcessing) return;
+    const batchId = currentCsvBatchId;
+    const done = bulkResults.filter(r => r.status !== 'Processing').length;
+
+    // keepalive bodies are capped at 64KB across all in-flight requests, so a
+    // large chunk cannot go this way. Never send the counters without their
+    // rows: processed_rows would run ahead of the archive and a resume would
+    // skip rows that are not in the file.
+    if(done > csvCheckpointSlot){
+        const chunk = buildBulkCsvChunk(csvCheckpointSlot, done, csvCheckpointRow === 0 && !bulkCarryCsv);
+        const body = JSON.stringify({
+            p_id: batchId,
+            p_user_id: userToken,
+            p_from_row: csvCheckpointRow,
+            p_processed: csvResumeFrom + done,
+            p_found: csvResumeFoundRows + bulkResults.filter(r => r.status === 'Found').length,
+            p_credits: csvResumeCredits + csvExitCredits,
+            p_chunk: chunk,
+            p_filename: csvBaseName() + '.csv',
+        });
+        if(body.length < 55000){
+            try { fetch(CSV_BATCH_CHECKPOINT_RPC, { method:'POST', headers:csvBatchHeaders(), body, keepalive:true }); } catch(e) {}
+        }
+    }
+
+    // 'queued' hands the rest to the background runner; 'stopped' parks it for
+    // the user to resume by hand. Either way History stops saying "Running".
+    const handOver = csvKeepRunning && csvBatchStoredInput;
+    try {
+        fetch(`${CSV_BATCH_ENDPOINT}?id=eq.${encodeURIComponent(batchId)}`, {
+            method: 'PATCH',
+            headers: csvBatchHeaders(),
+            body: JSON.stringify(handOver
+                ? { status: 'queued', queued_at: new Date().toISOString(), locked_until: null, attempts: 0, updated_at: new Date().toISOString() }
+                : { status: 'stopped', updated_at: new Date().toISOString() }),
+            keepalive: true
+        });
+    } catch(e) {}
+
+    csvExitFlushed = true;
+    try { posthog.capture(handOver ? 'csv_batch_handed_to_server' : 'csv_batch_abandoned',
+                          { processed: done, total: csvData.length }); } catch(e) {}
+}
 
 document.addEventListener('DOMContentLoaded',()=>{
     checkAuth(); fetchCredits(); checkHubspotConnection(); setupFileUpload(); setupDragAndDrop();
@@ -3937,6 +4645,11 @@ document.addEventListener('DOMContentLoaded',()=>{
     // nudge below declines to clobber a banner that is already showing.
     setTimeout(maybeShowCheckoutRescue, 2500);
     setTimeout(maybeShowTimeBasedUpgradeNudge, 3000);
+    // Somebody whose enrichment stopped part way should find it waiting, not
+    // have to remember it. ?resume=<id> is the History page's Resume button.
+    const resumeId = new URLSearchParams(window.location.search).get('resume');
+    if (resumeId) setTimeout(() => resumeCsvBatch(resumeId), 400);
+    else setTimeout(checkUnfinishedCsvBatch, 1200);
     const pb=document.getElementById('processBulkBtn');
     pb.disabled=true; pb.style.opacity='0.5';
     pb.innerHTML='<i class="fas fa-upload"></i> Upload a CSV file first';
@@ -3971,7 +4684,150 @@ function navigateToPage(page){
         case 'account': window.location.href=addGclid(`https://linkfinderai.com/account?token=${userToken}`); break;
         case 'history': window.location.href=addGclid(`https://linkfinderai.com/history?token=${userToken}`); break;
         case 'crmSync': window.location.href=addGclid(`https://linkfinderai.com/crm-sync?token=${userToken}`); break;
+        // app-integrations, not /integrations — the latter is the signed-out
+        // landing page. A logged-in user should see what THEY have connected.
+        case 'integrations': window.location.href=addGclid(`https://linkfinderai.com/app-integrations?token=${userToken}`); break;
     }
+}
+
+/* ---------------------------------------------------------------- AI SDR
+ *
+ * The service offer. Shown to everybody, because it is an upsell and a
+ * client at $150 a call is worth many times an $89/mo subscriber — an active
+ * user taking it is an upgrade, not a loss. What matters is the placement:
+ * the tab sits AFTER the self-serve tabs, so it reads as the step up rather
+ * than as the thing being sold instead of the product.
+ *
+ * The answers are stored BEFORE the Calendly redirect on purpose. Whoever
+ * fills this in and never books is the warmest untouched lead there is, and
+ * capturing on booking alone makes them invisible. The row also records which
+ * segment they came from — power user, dormant, or never paid — which is what
+ * decides how the call opens.
+ */
+const AI_SDR_RPC = CSV_BATCH_SUPABASE_URL + '/rest/v1/rpc/';
+const AI_SDR_CALENDLY = 'https://calendly.com/hamoureliasse/linkfinder-ai';
+// The founder call is a different conversation from the done-for-you setup
+// call, so it books a different event: this one is to listen, not to sell.
+const FOUNDER_CALL_CALENDLY = 'https://calendly.com/hamoureliasse/linkfinder-ai';
+
+// Priced per booked call with a floor, so the number on screen is the number
+// they pay. Showing it is the point: qualifying the call is why this panel
+// exists, and price is the strongest qualifier there is.
+const AI_SDR_PRICE_PER_CALL = 150;
+const AI_SDR_MIN_CALLS = 5;
+const AI_SDR_PRICE_NOTE = `$${AI_SDR_PRICE_PER_CALL} per meeting held, minimum ${AI_SDR_MIN_CALLS} a month \u2014 so from $${(AI_SDR_PRICE_PER_CALL * AI_SDR_MIN_CALLS).toLocaleString()}/month. Nothing up front, and nothing for a meeting that does not happen.`;
+
+function aiSdrRpc(fn, body) {
+    return fetch(AI_SDR_RPC + fn, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json',
+                   apikey: CSV_BATCH_SUPABASE_ANON_KEY,
+                   Authorization: 'Bearer ' + CSV_BATCH_SUPABASE_ANON_KEY },
+        body: JSON.stringify(body),
+    }).then(r => r.json());
+}
+
+// What this month would cost, updated as they choose. A number they worked out
+// themselves lands harder than one in a paragraph, and it does the qualifying
+// before anyone reaches the calendar.
+function aiSdrUpdateEstimate() {
+    const calls = parseInt(document.getElementById('aiSdrCalls').value, 10) || 0;
+    const out = document.getElementById('aiSdrEstimate');
+    if (!out) return;
+    out.textContent = calls
+        ? `${calls} meetings \u00d7 $${AI_SDR_PRICE_PER_CALL} = $${(calls * AI_SDR_PRICE_PER_CALL).toLocaleString()} a month`
+        : `We will work it out on the call \u2014 the floor is $${(AI_SDR_PRICE_PER_CALL * AI_SDR_MIN_CALLS).toLocaleString()}/month.`;
+}
+
+function openAiSdrModal() {
+    const note = document.getElementById('aiSdrPriceNote');
+    if (note && AI_SDR_PRICE_NOTE) { note.textContent = AI_SDR_PRICE_NOTE; note.style.display = ''; }
+    aiSdrUpdateEstimate();
+    document.getElementById('aiSdrModal').classList.add('show');
+    document.body.style.overflow = 'hidden';
+    try { posthog.capture('ai_sdr_opened'); } catch(e) {}
+}
+
+function closeAiSdrModal() {
+    document.getElementById('aiSdrModal').classList.remove('show');
+    document.body.style.overflow = '';
+}
+
+async function submitAiSdrRequest() {
+    const target = document.getElementById('aiSdrTarget').value.trim();
+    const offer = document.getElementById('aiSdrOffer').value.trim();
+    const calls = parseInt(document.getElementById('aiSdrCalls').value, 10) || 0;
+    const err = document.getElementById('aiSdrError');
+    const btn = document.getElementById('aiSdrSubmit');
+
+    err.classList.add('hidden');
+    if (!target || !offer) {
+        err.textContent = 'Tell us who you want to reach and what you sell — both are needed to price the work.';
+        err.classList.remove('hidden');
+        return;
+    }
+
+    btn.disabled = true; btn.textContent = 'Sending\u2026';
+    let data;
+    try {
+        data = await aiSdrRpc('ai_sdr_request', { p_token: userToken, p_target: target, p_offer: offer, p_calls: calls });
+    } catch (e) { data = null; }
+
+    if (!data || data.ok !== true) {
+        err.textContent = (data && data.error) ? data.error : 'Could not send that. Try again in a moment.';
+        err.classList.remove('hidden');
+        btn.disabled = false; btn.textContent = 'Send this and book your setup call';
+        return;
+    }
+
+    try { posthog.capture('ai_sdr_submitted', { calls_wanted: calls }); } catch(e) {}
+
+    // Prefilled so the answers ride along onto the calendar invite. Calendly
+    // ignores params an event does not define, so a1 is safe either way.
+    const url = AI_SDR_CALENDLY
+        + '?email=' + encodeURIComponent(data.email || '')
+        + '&a1=' + encodeURIComponent(`Target: ${target} | Offer: ${offer} | Calls wanted: ${calls || 'not sure'}`);
+    window.location.href = url;
+}
+
+// First touch wins and is never overwritten locally either: someone who
+// arrives on one affiliate link and later clicks another still belongs to the
+// first. The worker enforces the same rule server-side - this just avoids
+// sending a code we already know is not the one that will stick.
+function lfCaptureRef() {
+    const ref = new URLSearchParams(window.location.search).get('ref');
+    if (!ref) return;
+    try {
+        if (!localStorage.getItem('lf_ref')) {
+            localStorage.setItem('lf_ref', ref);
+            localStorage.setItem('lf_ref_at', String(Date.now()));
+            try { posthog.capture('referral_link_landed', { code: ref }); } catch(e) {}
+        }
+    } catch(e) {}
+}
+
+// Called once we know the token is real. /attribute locks first-touch and
+// refuses a second attempt, so calling it on every load is safe and means a
+// referred user is attributed even if the signup worker never saw the code.
+async function lfAttributeReferral() {
+    let ref;
+    try { ref = localStorage.getItem('lf_ref'); } catch(e) { return; }
+    if (!ref || !userToken) return;
+    try {
+        const res = await fetch('https://referral.hamoureliasse.workers.dev/attribute', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: userToken, code: ref })
+        });
+        const data = await res.json();
+        // Clear it once it has landed one way or the other, so an unknown or
+        // self-referral code is not retried on every page load forever.
+        if (data && (data.ok || data.reason)) {
+            try { localStorage.removeItem('lf_ref'); } catch(e) {}
+            if (data.ok && !data.already) {
+                try { posthog.capture('referral_attributed', { code: ref }); } catch(e) {}
+            }
+        }
+    } catch(e) {}
 }
 
 const UTM_KEYS = ['utm_source','utm_medium','utm_campaign','utm_term','utm_content','gclid','fbclid'];
@@ -3993,6 +4849,7 @@ function captureUTMs() {
 
 function checkAuth(){
     const utms = captureUTMs();
+    lfCaptureRef();
     const utmQS = new URLSearchParams(utms).toString();
     const withUtms = (url) => utmQS ? url + (url.includes('?') ? '&' : '?') + utmQS : url;
 
@@ -4137,8 +4994,12 @@ function checkAuth(){
     if (d.email) {
         try { posthog.identify(userToken, { email: d.email }); } catch(e) {}
     }
-    // India/Bangladesh/Nigeria get the full task-based earn-credits popup.
-    // Everyone else gets the simpler corner G2/Trustpilot review nudge instead.
+    // Not awaited: attribution must never delay the app rendering.
+    lfAttributeReferral();
+    // India/Bangladesh/Nigeria get the full task-based earn-credits popup
+    // auto-opened. Everyone else gets the corner G2 review nudge instead - but
+    // both now get the "Get Free Credits" fab, so the credits panel is always
+    // reachable rather than being a low_conversion-only surface.
     //
     // Testing override: append ?geo_test=low_conversion or ?geo_test=standard
     // to the URL to preview either branch locally without needing a real IP
@@ -4152,12 +5013,22 @@ function checkAuth(){
             console.log(`[geo_test] Overriding geo_tier from "${otpGeoTier}" to "${geoTestOverride}" for this session only.`);
             otpGeoTier = geoTestOverride;
         }
-                if (otpGeoTier === 'low_conversion') {
-            const reopenBtn = document.getElementById('reopenTasksBtn');
-            if (reopenBtn) reopenBtn.style.display = '';
-        }
+        // Every geo gets the fab, not just low_conversion. It is the only
+        // permanent way into the credits panel, and standard geo - which is
+        // most paying users - had no way in at all: the review email tells
+        // people to "paste it into the tasks panel in your account", and for
+        // them that panel had no door.
+        const reopenBtn = document.getElementById('reopenTasksBtn');
+        if (reopenBtn) reopenBtn.style.display = '';
+
     });
     maybeShowBulkTutorialPopup(lfVisitCount);
+
+    // Arriving from a done-for-you link elsewhere. The panel lives on this
+    // page only, so everywhere else links in and asks for it by name.
+    if (new URLSearchParams(window.location.search).get('sdr') === '1') {
+        setTimeout(openAiSdrModal, 400);
+    }
 })
     .catch(() => {});
 }
@@ -4431,6 +5302,7 @@ function lfLoadXlsx(){
 }
 function handleFile(file){
     const n = (file.name||'').toLowerCase();
+    lfUploadedFileName = file.name || '';
     if(/\.(xlsx|xlsm|xls|ods)$/.test(n)){
         try { posthog.capture('spreadsheet_uploaded', { ext: n.split('.').pop() }); } catch(e){}
         const reader = new FileReader();
@@ -4615,7 +5487,8 @@ function lfBuildCsvData(){
     const m = lfMapping;
     const at = (vals,i) => (i !== undefined && i !== -1 && vals[i] !== undefined) ? String(vals[i]).trim() : '';
     csvData = [];
-    for(const vals of lfCsvRows){
+    for(let srcIndex = 0; srcIndex < lfCsvRows.length; srcIndex++){
+        const vals = lfCsvRows[srcIndex];
         let nameVal = at(vals, m.name);
         if(!nameVal && (m.first !== undefined || m.last !== undefined)){
             nameVal = [at(vals,m.first), at(vals,m.last)].filter(Boolean).join(' ');
@@ -4632,6 +5505,10 @@ function lfBuildCsvData(){
             : nameVal;
         const countRaw = at(vals,m.employee_count);
         csvData.push({
+            // Which line of the uploaded file this came from. The export is
+            // rebuilt around the user's own rows, and rows with no readable
+            // name are skipped here, so the two lists do not line up.
+            srcIndex,
             inputData, name:nameVal, company:companyVal, location:locationVal, job_title:jobTitleVal,
             department:at(vals,m.department), seniority:at(vals,m.seniority),
             employee_count: countRaw ? (parseInt(countRaw,10) || null) : null,
@@ -4769,6 +5646,9 @@ function showPreview(){
     const btn=document.getElementById('processBulkBtn');
     btn.disabled=false; btn.style.opacity='1';
     btn.innerHTML=`<i class="fas fa-play"></i> Process ${csvData.length} items`;
+    // A previous resume rebinds this button; a new file is a new run.
+    btn.setAttribute('onclick','processBulk()');
+    csvResumeFrom = 0; bulkCarryCsv = ''; bulkCarryEndSrc = -1;
     document.getElementById('csvPreview').classList.remove('hidden');
     // Auto-detection can pick the wrong column and still look fine. Always
     // leave a way back to the mapper, not only when detection fails.
@@ -4839,67 +5719,197 @@ function updateBulkResultsTable(){
 }
     document.getElementById('bulkResultsTable').innerHTML=html;
 }
+/* ---------------------------------------------------------------------
+   The export CSV.
+
+   The file a user gets back is THEIR file: every original column, every
+   original row, in the original order, with the enrichment appended as extra
+   columns on the right. It is not a fresh table of whatever we happened to
+   look up — rows we could not read a name from, and rows the run never
+   reached, are still there with the new columns left blank.
+
+   Two enrichments return many results per input row (employees, post
+   reactions). Those still expand into one line per result, but each line
+   carries the original row's columns, so nothing the user uploaded is lost.
+--------------------------------------------------------------------- */
+
+// The columns appended to the user's own, per enrichment.
+function csvEnrichColumns(){
+    const c = dataConfigurations[currentInputType];
+    if(currentOutputType === 'employee_count') return ['Employee Count','Status'];
+    if(currentInputType === 'linkedin_post' && currentOutputType === 'reactions')
+        return ['Reaction Name','Reaction Job Title','Reaction Profile Info','Reaction LinkedIn URL'];
+    if(currentInputType === 'linkedin_profile' && currentOutputType === 'linkedin_info')
+        return ['Name','Headline','Current Title','Current Company','Location','Country','Industry',
+                'Connections','Followers','Website','Email','Mobile','About','Education','Experience','Skills','Status'];
+    if(currentInputType === 'linkedin_company' && currentOutputType === 'linkedin_info')
+        return ['Company Name','Industry','Employees','Followers','City','Country','Founded',
+                'Website','Company Email','Company Phone','Description','Status'];
+    if(currentOutputType === 'employees')
+        return ['Employee Name','Employee Job Title','Employee Seniority','Employee Headline','Employee Department',
+                'Employee Industry','Employee Email','Employee Mobile','Employee Twitter','Employee City',
+                'Employee State','Employee Country','Employee LinkedIn URL','Employee Company','Employee Company Website',
+                'Employee Company Phone','Employee Company Size','Employee Company City','Employee Company State',
+                'Employee Company Country','Employee Company LinkedIn URL'];
+    const ol = (c && c.outputs && c.outputs[currentOutputType]) || 'Result';
+    return currentInputType === 'email' ? [ol,'Confidence','Status'] : [ol,'Status'];
+}
+
+// One input row can produce several output lines, so this always returns an
+// array of cell-arrays. A row that was never enriched yields one blank line,
+// which is what keeps the user's own rows in the file.
+function csvEnrichCells(row){
+    const width = csvEnrichColumns().length;
+    const blank = () => new Array(width).fill('');
+    if(!row) return [blank()];
+
+    const clean = (v) => (v == null || v === 'Not found' || v === 'Not specified' || v === 'Processing...') ? '' : String(v);
+    const status = row.status === 'Processing' ? '' : (row.status || '');
+    const d = row.rawData || {};
+
+    if(currentOutputType === 'employee_count') return [[clean(row.employeeCount), status]];
+
+    if(currentInputType === 'linkedin_post' && currentOutputType === 'reactions'){
+        const rs = row.reactions || [];
+        if(!rs.length) return [blank()];
+        return rs.map(r => {
+            const pr = parseReactionTitle(r.title);
+            return [clean(pr.name), clean(pr.jobInfo), clean(r.snippet), clean(r.link)];
+        });
+    }
+
+    if(currentInputType === 'linkedin_profile' && currentOutputType === 'linkedin_info'){
+        const cur = csvCurrentExp(d.experiences);
+        return [[
+            clean(d.name), clean(d.headline), clean((cur && cur.title) || d.jobTitle), clean(cur && cur.companyName),
+            clean(d.location), clean(d.country), clean(d.industry), clean(d.connections), clean(d.followers),
+            clean(d.website), clean(d.email), clean(d.mobileNumber), clean(d.about),
+            clean(csvFormatEducation(d.education)), clean(csvFormatExperiences(d.experiences)), clean(csvFormatSkills(d.skills)),
+            status
+        ]];
+    }
+
+    if(currentInputType === 'linkedin_company' && currentOutputType === 'linkedin_info'){
+        const followers = d.followerCount ? Number(String(d.followerCount).replace(/,/g,'')).toLocaleString() : '';
+        const empSize = (d.company_size != null && d.company_size !== '' && d.company_size !== 0) ? String(d.company_size) : '';
+        return [[
+            clean(d.name), clean(d.industry), empSize, followers, clean(d.city), clean(d.country),
+            clean(cipFounded(d.foundedOn)), clean(d.website), clean(d.company_email), clean(d.company_phone),
+            clean(d.company_description), status
+        ]];
+    }
+
+    if(currentOutputType === 'employees'){
+        const emps = row.employees || [];
+        if(!emps.length) return [blank()];
+        const j = (v) => clean(Array.isArray(v) ? v.join('; ') : v);
+        return emps.map(e => [
+            j(e.name), j(e.jobTitle), j(e.seniority), j(e.headline), j(e.department), j(e.industry),
+            j(e.email), j(e.mobileNumber), j(e.twitter), j(e.city), j(e.state), j(e.country), j(e.linkedinUrl),
+            j(e.company), j(e.companyWebsite), j(e.companyPhone), j(e.companySize),
+            j(e.companyCity), j(e.companyState), j(e.companyCountry), j(e.companyLinkedinUrl)
+        ]);
+    }
+
+    const value = clean(row.result);
+    return currentInputType === 'email'
+        ? [[value, clean(row.confidence), status]]
+        : [[value, status]];
+}
+
+function csvCell(v){ return `"${String(v == null ? '' : v).replace(/"/g,'""').replace(/\r?\n/g,' ')}"`; }
+
+// Which original row each enriched row came from. csvData skips rows with no
+// readable name, so the two are not the same list.
+function csvSrcOf(dataIdx){
+    const row = csvData[dataIdx];
+    return (row && row.srcIndex != null) ? row.srcIndex : dataIdx;
+}
+
+// bulkResults[slot] is csvData[csvResumeFrom + slot]; this is the reverse.
+function csvResultsBySrc(){
+    const map = new Map();
+    for(let slot = 0; slot < bulkResults.length; slot++){
+        map.set(csvSrcOf(csvResumeFrom + slot), bulkResults[slot]);
+    }
+    return map;
+}
+
+// The heart of it: original rows [fromSrc..toSrc] inclusive, each with its
+// enrichment columns appended.
+function csvRenderRange(fromSrc, toSrc, includeHeader){
+    const enrichCols = csvEnrichColumns();
+    const width = lfCsvHeaders.length;
+    const bySrc = csvResultsBySrc();
+    const lines = [];
+
+    if(includeHeader) lines.push([...lfCsvHeaders, ...enrichCols].map(csvCell).join(','));
+
+    for(let src = Math.max(0, fromSrc); src <= toSrc && src < lfCsvRows.length; src++){
+        const original = lfCsvRows[src] || [];
+        const padded = [];
+        for(let i = 0; i < width; i++) padded.push(original[i] !== undefined ? original[i] : '');
+        for(const cells of csvEnrichCells(bySrc.get(src))){
+            lines.push([...padded, ...cells].map(csvCell).join(','));
+        }
+    }
+
+    return lines.length ? lines.join('\n') + '\n' : '';
+}
+
+function csvBaseName(){
+    let fn = 'linkfinder_ai_enriched_data';
+    if(currentInputType === 'linkedin_post') fn = 'linkedin_reactions';
+    else if(currentInputType === 'linkedin_profile') fn = 'linkedin_profile_data';
+    else if(currentInputType === 'linkedin_company') fn = 'linkedin_company_data';
+    if(lfUploadedFileName) fn = lfUploadedFileName.replace(/\.[^.]+$/, '') + '_enriched';
+    return `${fn}_${new Date().toISOString().split('T')[0]}`;
+}
+
+// The last original row this run is entitled to write. Once every input row has
+// been attempted the file runs to the end, so trailing rows we never enriched
+// still come back to the user.
+function csvLastRenderedSrc(){
+    const done = csvResumeFrom + bulkResults.length;
+    if(done >= csvData.length) return lfCsvRows.length - 1;
+    return csvSrcOf(done - 1);
+}
+
+// The whole file: everything enriched before this run picked the list back up
+// (bulkCarryCsv), plus everything this run added.
+function buildBulkCsv(){
+    const from = bulkCarryCsv ? bulkCarryEndSrc + 1 : 0;
+    const csv = bulkCarryCsv + csvRenderRange(from, csvLastRenderedSrc(), !bulkCarryCsv);
+    return { csv, baseName: csvBaseName() };
+}
+
+// The free-user teaser: the first few rows of their own file, enriched.
+function buildBulkPreviewCsv(){
+    const n = Math.min(5, bulkResults.length);
+    const from = bulkCarryCsv ? bulkCarryEndSrc + 1 : 0;
+    return { csv: csvRenderRange(from, csvSrcOf(csvResumeFrom + n - 1), true), baseName: csvBaseName() };
+}
+
+// The archive chunk for bulkResults[from..upTo): original rows from wherever
+// the archive left off through the last one this chunk covers. Rows skipped for
+// having no name fall inside that span and come along, blank, exactly as they
+// will in the finished file.
+function buildBulkCsvChunk(from, upTo, includeHeader){
+    if(upTo <= from) return '';
+    return csvRenderRange(csvCheckpointSrc, csvSrcOf(csvResumeFrom + upTo - 1), includeHeader);
+}
+
 async function downloadResults(isPreviewOnly){
     if(bulkResults.length===0) return;
     if (!isPreviewOnly) {
         const allowed = await ensureSubscribedForExport();
         if (!allowed) return; // ensureSubscribedForExport re-invokes downloadResults(true) itself for free users
     }
-    const fullResults = bulkResults;
-    if (isPreviewOnly) {
-        bulkResults = bulkResults.slice(0, 5);
-    }
-    const c=dataConfigurations[currentInputType];let csv='';
-    if(currentOutputType==='employee_count'){csv=`${c.label.replace('Enter ','')},Employee Count,Status\n`;bulkResults.forEach(r=>{csv+=`"${r.inputData}","${r.employeeCount||'Not found'}","${r.status==='Processing'?'Not found':r.status}"\n`;});}
-    else if(currentInputType==='linkedin_post'&&currentOutputType==='reactions'){csv='Name,Job Title,Profile Info,LinkedIn URL\n';bulkResults.forEach(pr=>{if(pr.reactions&&Array.isArray(pr.reactions)){pr.reactions.forEach(r=>{const p=parseReactionTitle(r.title);const esc=(s)=>(!s||s==='Not found'||s==='Not specified')?s:`"${s.toString().replace(/"/g,'""')}"`;csv+=[esc(p.name),esc(p.jobInfo||'Not specified'),esc(r.snippet||'Not specified'),esc(r.link||'Not specified')].join(',')+'\n';});}});}
-    else if(currentInputType==='linkedin_profile'&&currentOutputType==='linkedin_info'){
-    csv='LinkedIn URL,Name,Headline,Current Title,Current Company,Location,Country,Industry,Connections,Followers,Website,Email,Mobile,About,Education,Experience,Skills,Status\n';
-    bulkResults.forEach(r=>{
-        const d=r.rawData||{};
-        const cur=csvCurrentExp(d.experiences);
-        const esc=(s)=>(!s||s==='Not found'||s==='Not specified')?'':`"${s.toString().replace(/"/g,'""')}"`;
-        csv+=[
-            esc(r.inputData), esc(d.name), esc(d.headline),
-            esc((cur&&cur.title)||d.jobTitle), esc(cur&&cur.companyName),
-            esc(d.location), esc(d.country), esc(d.industry),
-            esc(d.connections), esc(d.followers),
-            esc(d.website), esc(d.email), esc(d.mobileNumber), esc(d.about),
-            esc(csvFormatEducation(d.education)), esc(csvFormatExperiences(d.experiences)), esc(csvFormatSkills(d.skills)),
-            r.status
-        ].join(',')+'\n';
-    });
-}
-    else if(currentInputType==='linkedin_company'&&currentOutputType==='linkedin_info'){csv='LinkedIn URL,Company Name,Industry,Employees,Followers,City,Country,Founded,Website,Company Email,Company Phone,Description\n';bulkResults.forEach(r=>{const d=r.rawData||{};const esc=(s)=>(!s||s==='Not found'||s==='Not specified')?(s||''):`"${s.toString().replace(/"/g,'""')}"`;const followers=d.followerCount?Number(String(d.followerCount).replace(/,/g,'')).toLocaleString():'';const empSize=d.company_size!=null&&d.company_size!==''&&d.company_size!==0?String(d.company_size):'';csv+=[esc(r.inputData),esc(d.name),esc(d.industry),esc(empSize),esc(followers),esc(d.city),esc(d.country),esc(cipFounded(d.foundedOn)),esc(d.website),esc(d.company_email),esc(d.company_phone),esc(d.company_description)].join(',')+'\n';});}
-    else if(currentOutputType==='employees'){
-    csv='Input,Name,Job Title,Seniority,Headline,Department,Industry,Email,Mobile,Twitter,City,State,Country,LinkedIn URL,Company,Company Website,Company Phone,Company Size,Company City,Company State,Company Country,Company LinkedIn URL\n';
-    bulkResults.forEach(r=>{
-        const emps=r.employees||[];
-        const esc=(v)=>v?`"${String(Array.isArray(v)?v.join('; '):v).replace(/"/g,'""')}"`:' ""';
-        if(emps.length===0){
-            csv+=`"${r.inputData}","Not found","","","","","","","","","","","","","","","","","","","",""\n`;
-        }else{
-            emps.forEach(e=>{
-                csv+=[
-                    esc(r.inputData), esc(e.name), esc(e.jobTitle), esc(e.seniority), esc(e.headline),
-                    esc(e.department), esc(e.industry), esc(e.email), esc(e.mobileNumber), esc(e.twitter),
-                    esc(e.city), esc(e.state), esc(e.country), esc(e.linkedinUrl),
-                    esc(e.company), esc(e.companyWebsite), esc(e.companyPhone), esc(e.companySize),
-                    esc(e.companyCity), esc(e.companyState), esc(e.companyCountry), esc(e.companyLinkedinUrl)
-                ].join(',')+'\n';
-            });
-        }
-    });
-}
-    else{const ol=c.outputs[currentOutputType];csv=`${c.label.replace('Enter ','')},${ol},Status\n`;bulkResults.forEach(r=>{csv+=`"${r.inputData}","${r.result==='Processing...'?'Not found':r.result}","${r.status==='Processing'?'Not found':r.status}"\n`;});}
-    const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+    const built = isPreviewOnly ? buildBulkPreviewCsv() : buildBulkCsv();
+    const blob=new Blob(['﻿' + built.csv],{type:'text/csv;charset=utf-8;'});
     const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;
-    let fn='linkfinder_ai_enriched_data';
-    if(currentInputType==='linkedin_post') fn='linkedin_reactions';
-    else if(currentInputType==='linkedin_profile') fn='linkedin_profile_data';
-    else if(currentInputType==='linkedin_company') fn='linkedin_company_data';
-    a.download=`${fn}_${new Date().toISOString().split('T')[0]}${isPreviewOnly ? '_preview' : ''}.csv`;
+    a.download=`${built.baseName}${isPreviewOnly ? '_preview' : ''}.csv`;
     a.click();URL.revokeObjectURL(url);
-    if (isPreviewOnly) bulkResults = fullResults; // restore full in-memory results for the table view
 }
 
 function showLoading(){document.getElementById('loading').style.display='block';hideResults();}
@@ -4929,7 +5939,7 @@ function showSavedPill(targetEl) {
     resultsSection.insertBefore(pill, resultsSection.firstChild);
 }
 
-const creditCosts={'company_name_to_website':1,'company_name_to_phone':1,'company_name_to_linkedin_url':1,'email_to_linkedin_url':5,'company_name_to_employees':1,'company_name_to_employee_count':1,'company_name_to_email':1,'linkedin_company_to_linkedin_info':6,'linkedin_company_to_employees':1,'linkedin_company_to_employee_count':1,'linkedin_profile_to_linkedin_info':10,'lead_full_name_to_linkedin_url':1,'linkedin_profile_to_email':10,'company_domain_to_employees':1,'linkedin_post_to_reactions':1,'linkedin_profile_to_phone':50, 'lead_full_name_to_email':7,};
+const creditCosts={'company_name_to_website':1,'company_name_to_phone':1,'company_name_to_linkedin_url':1,'email_to_linkedin_url':5,'company_name_to_employees':1,'company_name_to_employee_count':1,'company_name_to_email':5,'linkedin_company_to_linkedin_info':6,'linkedin_company_to_employees':1,'linkedin_company_to_employee_count':1,'linkedin_profile_to_linkedin_info':10,'lead_full_name_to_linkedin_url':1,'linkedin_profile_to_email':10,'company_domain_to_employees':1,'linkedin_post_to_reactions':1,'linkedin_profile_to_phone':50, 'lead_full_name_to_email':7,};
 function getCreditCost(inputType,outputType){return creditCosts[generateCombinationType(inputType,outputType)]||1;}
 
 function updateCreditCostDisplay(){
@@ -4941,18 +5951,94 @@ function updateCreditCostDisplay(){
     updateAffordabilityWarning();
 }
 
-function showReviewNotification(){
-    if(window.innerWidth<=640) return;
-    const shown = parseInt(localStorage.getItem('lf_review_shown') || '0');
-    if(shown >= 2) return;
+// Two moments ask for a G2 review, and they share this one card so the copy,
+// the link and the disclosure can never diverge:
+//
+//   first_success - the first clean enrichment result on screen.
+//   bulk_halfway  - halfway through a bulk run of 100+ rows, which is the
+//                   moment the tool has most visibly just done a lot of work.
+//
+// Each has its own lifetime cap, so someone who runs big lists can be asked
+// once at halfway without that eating the first-success ask, and vice versa.
+// New storage keys on purpose. Reusing the review keys would silence this for
+// everyone who had already seen the review ask three times — the people who
+// have used the product most, who are exactly the ones worth talking to.
+const CALL_PROMPT_VARIANTS = {
+    first_success: {
+        cap: 3,
+        storageKey: 'lf_call_shown',
+        delayMs: 10000,
+        header: 'Can I steal 15 minutes?',
+        lead: 'I am Eliasse, I built LinkFinder AI. I want to hear what you are '
+            + 'actually using it for and what is missing &mdash; it decides what I build '
+            + 'next. Show up and I will put <strong>1,000 credits</strong> on your account.',
+    },
+    bulk_halfway: {
+        cap: 2,
+        storageKey: 'lf_call_bulk_shown',
+        delayMs: 0,
+        header: 'Halfway through your list',
+        lead: null, // built per-run so it can name the actual row count
+    },
+};
+
+// Shown on mobile too now. It used to be desktop-only, which silently dropped
+// every phone user from the single biggest ask in the product; the card is
+// responsive rather than hidden. Caps and the 3min auto-hide are set per
+// variant above.
+function showCallPrompt(variantName, leadOverride){
+    const variant = CALL_PROMPT_VARIANTS[variantName];
+    if (!variant) return;
+    const shown = parseInt(localStorage.getItem(variant.storageKey) || '0');
+    if (shown >= variant.cap) return;
+    // Never stack on top of itself or on the credits panel.
+    const card = document.getElementById('reviewNotification');
+    if (!card || card.classList.contains('show')) return;
+    const tasksModal = document.getElementById('onboardingTasksModal');
+    if (tasksModal && tasksModal.classList.contains('show')) return;
+
     setTimeout(()=>{
-        document.getElementById('reviewNotification').classList.add('show');
-        localStorage.setItem('lf_review_shown', shown + 1);
-        setTimeout(()=>{if(document.getElementById('reviewNotification').classList.contains('show'))closeReviewNotification();},90000);
-    },10000);
+        if (card.classList.contains('show')) return;
+        document.getElementById('reviewNotifHeader').textContent = variant.header;
+        document.getElementById('reviewNotifLead').innerHTML = leadOverride || variant.lead;
+        card.classList.add('show');
+        localStorage.setItem(variant.storageKey, shown + 1);
+        try { posthog.capture('founder_call_prompt_shown', { variant: variantName, times_shown: shown + 1 }); } catch(e) {}
+        setTimeout(()=>{if(card.classList.contains('show'))closeReviewNotification();},180000);
+    }, variant.delayMs);
+}
+
+function showFounderCallPrompt(){ showCallPrompt('first_success'); }
+
+// Fires once per bulk run, at the halfway mark of a list of at least 100 rows.
+// Deliberately narrow, because a mistimed ask is worse than none:
+//   - only long lists, where the tool has just visibly saved real work;
+//   - never when credits just ran out, since that is a paywall, not a win.
+const BULK_CALL_MIN_ROWS = 100;
+let lfBulkCallAsked = false;
+
+function maybeShowBulkCallPrompt(done, total, creditsExhausted){
+    if (lfBulkCallAsked) return;
+    if (creditsExhausted) return;
+    if (!total || total < BULK_CALL_MIN_ROWS) return;
+    if (done < Math.floor(total / 2)) return;
+    lfBulkCallAsked = true;
+
+    showCallPrompt('bulk_halfway',
+        `You are ${done.toLocaleString()} rows into a list of ${total.toLocaleString()}. `
+        + 'Whatever you are building here, I would like to hear about it &mdash; 15 minutes '
+        + 'with me, and <strong>1,000 credits</strong> on your account for showing up.');
 }
 function closeReviewNotification(){document.getElementById('reviewNotification').classList.remove('show');document.getElementById('reviewNotification').classList.add('hide');}
-function openReviewForm(event){event.preventDefault();window.open('https://form.typeform.com/to/UKRzccI3','_blank');closeReviewNotification();}
+
+// Books the founder call, not the done-for-you setup call. The corner card
+// used to ask for a G2 review; at this stage a conversation with a real user is
+// worth more than a review, and the review ask still lives in the credits panel.
+function openFounderCall(){
+    try { posthog.capture('founder_call_prompt_clicked'); } catch(e) {}
+    window.open(FOUNDER_CALL_CALENDLY, '_blank', 'noopener');
+    closeReviewNotification();
+}
 
 function showFeedbackModal(){document.getElementById('feedbackModal').classList.add('show');document.body.style.overflow='hidden';document.getElementById('feedbackSuccessMessage').classList.remove('show');document.getElementById('feedbackErrorMessage').classList.remove('show');}
 function closeFeedbackModal(){document.getElementById('feedbackModal').classList.remove('show');document.body.style.overflow='';setTimeout(()=>{document.getElementById('feedbackForm').reset();},300);}
@@ -5152,7 +6238,7 @@ async function maybeTriggerFirstSuccessPrompts() {
     firstSuccessPromptsFired = true;
     await otpFetchStatus(); // make sure otpGeoTier is resolved before deciding
     if (otpGeoTier !== 'low_conversion') {
-        showReviewNotification();
+        showFounderCallPrompt();
     }
     // low_conversion geo's onboarding popup is already gated inside
     // checkEnrichmentMilestone() (fires on the 2nd successful enrichment).
@@ -5282,26 +6368,21 @@ function checkEnrichmentMilestone() {
     try { posthog.capture('three_enrichments_milestone', { credits_remaining: currentCredits, actual_count: n }); } catch(e) {}
     showNPS();
 }
-    // Users with real volume are the ICP for the done-for-you VIP offer — showing
-    // it to brand-new free signups (like the other banners above) would be
-    // premature. Fires once, well after they have had time to feel the manual work.
-    //
-    // Two things were wrong here and both cost us the whole surface:
-    // `n === 25` never fired for the people it was written for, because bulk runs
-    // increment the count by more than one — a CSV of 40 goes straight past 25 and
-    // the banner is skipped forever. It has to be a threshold, not an equality.
-    // And `isExistingSubscriber` gated it to ~30 accounts, when 25+ enrichments is
-    // itself the proof of volume the comment above is asking for; a free user who
-    // has run 25 enrichments by hand is *more* likely to want this done for them,
-    // not less. Result: 1 person reached the VIP page in 90 days.
+    // Heavy, paying users are the actual ICP for the done-for-you offer —
+    // showing this to brand-new free signups (like the other banners above)
+    // would be premature. Fires once, only for subscribers with real usage
+    // volume, well after they've had time to feel the manual work involved.
     const vipNudgeFiredKey = 'lf_vip_nudge_fired';
-    if (n >= 25 && !localStorage.getItem(vipNudgeFiredKey)) {
+    // `n === 25` never fired for the people it was written for: bulk runs increment
+    // the count by more than one, so a CSV of 40 goes straight past 25 and the
+    // banner is skipped forever. It has to be a threshold, not an equality.
+    if (n >= 25 && isExistingSubscriber && !localStorage.getItem(vipNudgeFiredKey)) {
         localStorage.setItem(vipNudgeFiredKey, '1');
         const bar = document.getElementById('milestoneUpgradeBanner');
         if (bar) {
-            bar.innerHTML = `You have run ${n} of these by hand. Want the leads found, the emails written, and qualified calls booked straight into your calendar instead? <a href="https://linkfinderai.com/linkfinder-vip" target="_blank" onclick="try{posthog.capture('vip_card_clicked',{source:'usage_banner'})}catch(e){}">See LinkFinder VIP &rarr;</a> <a onclick="document.getElementById('milestoneUpgradeBanner').style.display='none'" style="margin-left:0.75rem;color:inherit;">Dismiss</a>`;
+            bar.innerHTML = `Running a lot of enrichments lately &mdash; want us to run the outbound and book the meetings instead? <a onclick="try{posthog.capture('ai_sdr_entry_clicked',{source:'usage_banner'})}catch(e){}; document.getElementById('milestoneUpgradeBanner').style.display='none'; openAiSdrModal();">See how it works &rarr;</a> <a onclick="document.getElementById('milestoneUpgradeBanner').style.display='none'" style="margin-left:0.75rem;color:inherit;">Dismiss</a>`;
             bar.style.display = 'block';
-            try { posthog.capture('vip_usage_banner_shown', { enrich_count: n, is_subscriber: isExistingSubscriber }); } catch(e) {}
+            try { posthog.capture('ai_sdr_usage_banner_shown', { enrich_count: n }); } catch(e) {}
         }
     }
 }
@@ -5470,6 +6551,11 @@ function updateZeroCreditsState(credits){
     if (submitBtn) submitBtn.style.display = isZero ? 'none' : '';
 }
 
+function goToAutoTopup(){
+    try{posthog.capture('auto_topup_nudge_clicked',{source:'low_credits_bar'});}catch(e){}
+    window.location.href='https://linkfinderai.com/account?token='+userToken+'#auto-topup';
+}
+
 function updateLowCreditsWarning(credits){
     const bar=document.getElementById('lowCreditsBar');if(!bar)return;
     if (credits === null || credits <= 0) { bar.style.display='none'; bar.innerHTML=''; return; }
@@ -5478,7 +6564,8 @@ function updateLowCreditsWarning(credits){
         bar.style.display='block';
         bar.classList.remove('urgent');
         const rounded = Math.round(credits*10)/10;
-        bar.innerHTML = `You have ${rounded} credit${rounded===1?'':'s'} left \u2014 <a onclick="handleAddCredits()">upgrade to keep going</a>`;
+        bar.innerHTML = `You have ${rounded} credit${rounded===1?'':'s'} left \u2014 <a onclick="handleAddCredits()">upgrade to keep going</a>`
+            + ` &middot; <a onclick="goToAutoTopup()">turn on auto top-up</a> so this stops happening`;
     } else {
         bar.style.display='none';
         bar.innerHTML='';
@@ -5612,10 +6699,13 @@ function openReferralModal() {
     document.getElementById('referralModal').classList.add('show');
     document.body.style.overflow = 'hidden';
 
-    // Set the link immediately from userToken
-    if (userToken) {
-        document.getElementById('referralLink').value = `https://linkfinderai.com?ref=${userToken}`;
-    }
+    // The link is NOT built from userToken. It used to be
+    // `?ref=${userToken}`, which put the user's auth credential into a URL the
+    // app then asked them to post publicly - and `?token=` is what checkAuth
+    // reads to log someone in, so a shared invite link handed over the
+    // sharer's account. The code now comes from the referral worker and is a
+    // generated string that authenticates nothing.
+    document.getElementById('referralLink').value = 'Loading your link…';
 
     if (!refDataLoaded) { fetchReferralData(); refDataLoaded = true; }
     try { posthog.capture('referral_modal_opened', { credits_remaining: currentCredits }); } catch(e) {}
@@ -5643,24 +6733,36 @@ document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && document.getElementById('referralModal').classList.contains('show')) closeReferralModal();
 });
  
+// Points at the v2 referral worker. v1's numbers came from a program where a
+// commission was written once, ever, and where attribution lived in a column
+// that was 4,645 rows of the literal string "null" - see
+// workers/referral/README.md. Nothing is migrated; balances start at zero.
+const REFERRAL_WORKER_V2 = 'https://referral.hamoureliasse.workers.dev';
+
 async function fetchReferralData() {
     try {
-        const response = await fetch('https://referral-program.hamoureliasse.workers.dev/', {
+        const response = await fetch(`${REFERRAL_WORKER_V2}/me`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ token: userToken })
         });
         if (response.ok) {
             const data = await response.json();
-            document.getElementById('alreadyPaid').textContent = `$${data.alreadyPaid || '0.00'}`;
-            document.getElementById('pendingPayout').textContent = `$${data.pendingPayout || '0.00'}`;
-            if (data.paypalEmail) {
-                document.getElementById('currentPaypal').textContent = data.paypalEmail;
+            const stats = data.stats || {};
+            document.getElementById('referralLink').value = data.link || '';
+            // "Owed" is approved only. Pending commissions are still inside the
+            // refund window and showing them as a balance is how a referral
+            // programme loses trust the first time a number goes down.
+            document.getElementById('alreadyPaid').textContent = `$${Number(stats.paid || 0).toFixed(2)}`;
+            document.getElementById('pendingPayout').textContent = `$${Number(stats.owed || 0).toFixed(2)}`;
+            if (data.payout_email) {
+                document.getElementById('currentPaypal').textContent = data.payout_email;
                 document.getElementById('paypalDisplay').classList.add('show');
-                document.getElementById('paypalEmail').value = data.paypalEmail;
+                document.getElementById('paypalEmail').value = data.payout_email;
             }
         }
     } catch (error) {
+        document.getElementById('referralLink').value = '';
         console.error('Error fetching referral data:', error);
         refDataLoaded = false;
     }
@@ -5692,13 +6794,13 @@ async function savePaypalEmail() {
     if (!emailRegex.test(paypalEmail)) { showRefAlert('Please enter a valid email address', 'error'); return; }
     saveBtn.disabled = true; saveText.textContent = 'Saving...';
     try {
-        const response = await fetch('https://paypal-affiliate.hamoureliasse.workers.dev/', {
+        const response = await fetch(`${REFERRAL_WORKER_V2}/payout`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ token: userToken, paypalEmail: paypalEmail })
+            body: JSON.stringify({ token: userToken, payout_email: paypalEmail })
         });
         const data = await response.json();
-        if (response.ok && data.success) {
+        if (response.ok && data.ok) {
             document.getElementById('currentPaypal').textContent = paypalEmail;
             document.getElementById('paypalDisplay').classList.add('show');
             saveBtn.classList.add('success');
@@ -5734,8 +6836,14 @@ const ONBOARDING_TASKS_WORKER = 'https://onboarding-tasks-worker.hamoureliasse.w
 const OTP_LINKS = {
     youtube: 'https://www.youtube.com/@EliasIA694',
     twitter: 'https://twitter.com/linkfinderai',
-    g2: 'https://www.g2.com/fr/products/linkfinder-ai/reviews',
-    trustpilot: 'https://fr.trustpilot.com/review/linkfinderai.com',
+    // Both must be the WRITE form, not the listing page. Sending people to
+    // /reviews showed them other people's reviews with nothing to fill in, and
+    // they pasted that same URL back as their submission - which is most of the
+    // pending queue. The /fr/ locale was also forcing French on an
+    // English-majority audience.
+    // Trustpilot is deliberately absent: their guidelines prohibit incentivised
+    // reviews outright, and every place we asked for one offered credits.
+    g2: 'https://www.g2.com/products/linkfinder-ai/reviews/start',
 };
 
 // Both review platforms and the FTC require an incentivised review to say so.
@@ -5748,10 +6856,18 @@ const DISC = 'You must write in your review that you received credits for it. Re
 // it permitted there - so the task is gone rather than disclosed. G2 leads
 // instead: it pays the most and G2 permits incentives when they are declared.
 //
-// The badge task is checked for real before any credits move: workers/badge-verify
-// fetches the page and confirms the link exists and is followed. Without that it
-// would pay out on an honour system for the joint highest-value item here.
-const BADGE_VERIFY_WORKER = 'https://badge-verify.hamoureliasse.workers.dev';
+// The site-badge task was removed on 31 Aug 2026. It never paid out once:
+// user_task_completions has zero site_badge rows of any status, and the
+// onboarding-tasks worker has no site_badge in TASK_CONFIG, so /tasks/complete
+// answered "Unknown task_name" to every submission. Anyone who actually added
+// the badge did the work and got nothing.
+//
+// It was also the worst trade we offered - edit your site's HTML and keep a
+// dofollow link live, for the same 1,000 credits as a G2 review - and the only
+// task that required owning a website at all.
+//
+// badge.html, badge.svg and workers/badge-verify are left in place: the /badge
+// page stands on its own for anyone who wants to link to us unprompted.
 
 // The four survey questions. The ids and every option `value` below MUST match
 // SURVEY_QUESTIONS in workers/onboarding-tasks/worker.js - the worker refuses
@@ -5802,13 +6918,46 @@ const SURVEY_TASK_LIVE = false;
 
 const OTP_TASKS_ALL = [
     { name: 'product_survey', kind: 'survey', label: 'Answer 4 questions about your work', sub: 'Takes about a minute. It genuinely changes what we build next.', credits: 500, realValue: '= 50 emails or 500 LinkedIn profiles' },
-    { name: 'g2_review', kind: 'url', label: 'Leave a G2 review', credits: 1000, realValue: '= 100 emails or 1,000 LinkedIn profiles', placeholder: 'Paste the URL of your review', linkUrl: OTP_LINKS.g2, linkLabel: 'Write a review on G2', pendingCopy: 'Being checked', disclosureNote: DISC },
-    { name: 'site_badge', kind: 'url', label: 'Put the LinkFinder badge on your site', credits: 1000, realValue: '= 100 emails or 1,000 LinkedIn profiles', placeholder: 'Paste the page URL where the badge is live', linkUrl: 'https://linkfinderai.com/badge', linkLabel: 'Get the badge code', verifyWorker: BADGE_VERIFY_WORKER },
+    // featured: G2 reviews are the thing we are shortest of, so this row is
+    // called out rather than sitting as one of five equals.
+    // Order is deliberate and is the order they appear in: the G2 review is
+    // what we are shortest of, the affiliate is worth the most to the person
+    // reading, and YouTube is the cheapest thing to ask for, so it goes last.
+    { name: 'g2_review', kind: 'url', featured: true, label: 'Leave a G2 review', credits: 1000, realValue: '= 100 emails or 1,000 LinkedIn profiles', placeholder: 'Paste the URL of your review', linkUrl: OTP_LINKS.g2, linkLabel: 'Write a review on G2', pendingCopy: 'Being checked', disclosureNote: DISC },
+    // The only row that pays money rather than credits, and the only one with
+    // no end: it keeps paying for as long as the person they sent stays. It
+    // lives here rather than in the nav or the corner because it is the same
+    // kind of thing as the rest - something you can do for a reward - and a
+    // separate entry point for it just crowded the screen.
+    { name: 'affiliate', kind: 'link_out', credits: 0, rewardLabel: 'up to +$500', notCountedInProgress: true,
+      label: 'Refer someone who pays', sub: 'You get 25% of what they pay us, up to $500 each. No limit on how many.',
+      realValue: 'Paid in cash, not credits', linkLabel: 'Get your link' },
     { name: 'youtube_subscribe', kind: 'honor_click', label: 'Subscribe to our YouTube channel', credits: 100, realValue: '= 100 LinkedIn profiles', linkUrl: OTP_LINKS.youtube, linkLabel: 'Open channel' },
-    { name: 'linkedin_share', kind: 'url', label: 'Share on LinkedIn', credits: 150, realValue: '= 150 LinkedIn profiles', placeholder: 'Paste your LinkedIn post URL' },
+    // linkedin_share was removed on 31 Aug: two completions in its whole life,
+    // and it was the one task whose "proof" was any linkedin.com URL, so it
+    // paid 150 credits for pasting a link to somebody else's post. It stays in
+    // the worker's TASK_CONFIG so the two people who did complete it keep
+    // their credits and their history renders.
 ];
 
-const OTP_TASKS = OTP_TASKS_ALL.filter(t => t.name !== 'product_survey' || SURVEY_TASK_LIVE);
+/*
+ * The affiliate row is hidden until the referral worker actually exists.
+ * app.html publishes the moment it is pushed, but Cloudflare workers need a
+ * `wrangler deploy` - so the page shipped ahead of its backend and the row led
+ * to "We could not load your affiliate account".
+ *
+ * Both are now done: the worker was deployed on 31 Aug and the schema applied
+ * the same day (four tables, RLS on, no policies - service role only).
+ *
+ * Set back to false if the worker is ever taken down. The page degrades to
+ * "the affiliate program is not switched on yet" rather than an error, but a
+ * row leading nowhere is still worse than no row.
+ */
+const AFFILIATE_LIVE = true;
+
+const OTP_TASKS = OTP_TASKS_ALL.filter(t =>
+    (t.name !== 'product_survey' || SURVEY_TASK_LIVE) &&
+    (t.name !== 'affiliate' || AFFILIATE_LIVE));
 
 function otpCopy() {
     const balance = currentCredits !== null ? Math.round(currentCredits * 10) / 10 : null;
@@ -5873,7 +7022,7 @@ function otpFetchStatus() {
 
 // Only relevant for low_conversion geo (India/Bangladesh/Nigeria) — see the
 // geo branch in checkAuth(). Standard geo gets the corner review popup
-// instead (showReviewNotification()). Auto-fires after the 3rd enrichment
+// instead (showFounderCallPrompt()). Auto-fires after the 3rd enrichment
 // (checkEnrichmentMilestone()) so people get real value first; can also be
 // opened early anytime via the "Tasks" fab (openOnboardingTasksPopupManually).
 // Never auto-shows twice — gated by localStorage as an immediate guard plus
@@ -5924,14 +7073,18 @@ function renderOnboardingTasksPopup() {
     if (earned > 0) { pill.classList.remove('hidden'); document.getElementById('otpEarnedAmount').textContent = earned.toLocaleString(); }
     else { pill.classList.add('hidden'); }
 
-    const completedCount = OTP_TASKS.filter(t => otpStatusFor(t.name) === 'completed').length;
-    const totalCount = OTP_TASKS.length;
+    const countable = OTP_TASKS.filter(t => !t.notCountedInProgress);
+    const completedCount = countable.filter(t => otpStatusFor(t.name) === 'completed').length;
+    const totalCount = countable.length;
     const progressBar = document.getElementById('otpProgressBar');
     const progressLabel = document.getElementById('otpProgressLabel');
     if (progressBar) progressBar.style.width = `${Math.round((completedCount / totalCount) * 100)}%`;
     if (progressLabel) progressLabel.textContent = `${completedCount} of ${totalCount} tasks completed`;
 
-    const referralLink = `https://linkfinderai.com?ref=${userToken}`;
+    // Never build a share link from userToken - that is the auth credential.
+    // No task declares kind 'referral' today; if one is added it must read the
+    // generated code from the referral worker, as openReferralModal does.
+    const referralLink = '';
 
     // Reorder: incomplete/pending tasks first (in config order), completed ones move to the bottom.
     const orderedTasks = [...OTP_TASKS].sort((a, b) => {
@@ -5953,6 +7106,11 @@ function renderOnboardingTasksPopup() {
         } else if (task.kind === 'honor_click') {
             actionHtml = `<div class="otp-honor-row">
                 <a href="${task.linkUrl}" target="_blank" rel="noreferrer" class="otp-link-btn otp-link-btn-block" onclick="otpCompleteHonorTask('${task.name}')">${isBusy?'Saving\u2026':otpEsc(task.linkLabel)}</a>
+            </div>`;
+        } else if (task.kind === 'link_out') {
+            const href = `https://linkfinderai.com/affiliate?token=${encodeURIComponent(userToken || '')}`;
+            actionHtml = `<div class="otp-honor-row">
+                <a href="${href}" class="otp-link-btn otp-link-btn-block" onclick="otpTrackStarted('${task.name}')">${otpEsc(task.linkLabel)}</a>
             </div>`;
         } else if (task.kind === 'url') {
             actionHtml = `<div class="otp-url-row">
@@ -5985,13 +7143,15 @@ function renderOnboardingTasksPopup() {
             </div>`;
         }
 
-        return `<div class="otp-task-row otp-status-${status}" id="otp-row-${task.name}">
+        const featuredCls = task.featured && status !== 'completed' ? ' otp-featured' : '';
+        return `<div class="otp-task-row${featuredCls} otp-status-${status}" id="otp-row-${task.name}">
             <div class="otp-task-main">
                 <div class="otp-task-text">
+                    ${featuredCls ? '<span class="otp-featured-flag">Most helpful to us</span>' : ''}
                     <div class="otp-task-label">${otpEsc(task.label)}${task.sub?`<div class="otp-task-sub">${otpEsc(task.sub)}</div>`:''}</div>
                     ${task.realValue ? `<div class="otp-task-realvalue">${otpEsc(task.realValue)}</div>` : ''}
                 </div>
-                <div class="otp-task-badge">+${task.credits.toLocaleString()} credits</div>
+                <div class="otp-task-badge${task.rewardLabel ? ' otp-task-badge-money' : ''}">${task.rewardLabel ? otpEsc(task.rewardLabel) : `+${task.credits.toLocaleString()} credits`}</div>
             </div>
             <div class="otp-task-action">${actionHtml}<div class="otp-field-error hidden" id="otp-error-${task.name}"></div></div>
         </div>`;
@@ -6120,38 +7280,11 @@ async function otpSubmitUrlTask(taskName) {
     otpBusyTask = taskName;
     renderOnboardingTasksPopup();
 
-    // Tasks carrying a verifyWorker are checked for real before the credits
-    // endpoint is called at all, so a failed check cannot leave a completed row.
-    if (task && task.verifyWorker) {
-        const BADGE_ERRORS = {
-            no_link: 'We could not find the badge on that page. Check it is published, and that this is the exact page it appears on.',
-            link_is_nofollow: 'The badge is there, but the link is set to nofollow. Remove rel="nofollow" from it and try again.',
-            domain_already_claimed: 'That site has already been credited for the badge.',
-            already_claimed: 'You have already claimed this one.',
-            not_html: 'That URL did not return a web page.',
-            timeout: 'That page took too long to respond. Try again in a moment.',
-            unreachable: 'We could not reach that page.'
-        };
-        try {
-            const vres = await fetch(task.verifyWorker, {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ user_token: userToken, site_url: url })
-            });
-            const vdata = await vres.json();
-            if (!vres.ok || !vdata.verified) {
-                const key = vdata.detail || vdata.error;
-                throw new Error(BADGE_ERRORS[key] || 'We could not verify the badge on that page.');
-            }
-            try { posthog.capture('badge_verified', { domain: vdata.domain }); } catch (e) {}
-        } catch (e) {
-            otpBusyTask = null;
-            renderOnboardingTasksPopup();
-            otpShowFieldError(taskName, e.message || 'We could not verify the badge.');
-            return;
-        }
-    }
+    // The generic pre-flight verify step went with the badge task - it was the
+    // only task that declared a verifyWorker. Recoverable from git if a future
+    // task needs checking before the credits endpoint is called.
 
-    const isReview = taskName === 'g2_review' || taskName === 'trustpilot_review';
+    const isReview = taskName === 'g2_review';
     const endpoint = isReview ? '/tasks/submit-review' : '/tasks/complete';
     try {
         const res = await fetch(`${ONBOARDING_TASKS_WORKER}${endpoint}`, {

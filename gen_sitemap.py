@@ -22,8 +22,15 @@ EXCLUDE = {
     "upgrade-confirmation", "redeem-code", "beta-index",
     "end-of-bookmarks-bar", "say-goodbye",
     "app", "app-beta", "app-beta-2", "app_beta",
-    "app-prospects", "app-linkedin-leads", "app-workflows",
+    "app-linkedin-leads",
 }
+
+# Whole directories to keep out. EXCLUDE above matches on the last path
+# segment, so it cannot retire a folder: "workflow" there would drop a page
+# called /workflow but not /workflow/anything. The workflow templates are
+# redirect stubs now, and a sitemap that still advertises them asks Google to
+# keep crawling pages that only bounce.
+EXCLUDE_DIRS = {"workflow", "clusters/workflows"}
 # ----------------------------------------
 
 
@@ -53,6 +60,8 @@ def is_safe(path_part):
 
 
 def is_excluded(clean):
+    if any(clean == d or clean.startswith(d + "/") for d in EXCLUDE_DIRS):
+        return True
     base = clean.split("/")[-1] or clean
     return any(base == e or base.startswith(e + "-") for e in EXCLUDE)
 

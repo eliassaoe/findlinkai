@@ -1,24 +1,64 @@
-[README (3).md](https://github.com/user-attachments/files/31026325/README.3.md)
-# LinkFinder AI ↔ HubSpot (Nango integration)
+# LinkFinder AI ↔ CRMs (Nango integrations)
 
-Nango actions that let a HubSpot workflow (or your own backend) enrich HubSpot
-**companies** and **contacts** using the [LinkFinder AI API](https://linkfinderai.com),
-and write the results back onto the record.
+Nango actions that let a CRM workflow (or your own backend) enrich **contacts** and
+**companies** using the [LinkFinder AI API](https://linkfinderai.com), and write the
+results back onto the record.
+
+**Six CRMs:** HubSpot, Salesforce, Pipedrive, Zoho CRM, Close and monday.com.
 
 This is a code-first Nango integration (no `nango.yaml` needed — each action is
 self-describing via `createAction`). Deploy it with the [Nango CLI](https://www.npmjs.com/package/nango).
 
 ## What's included
 
+Every CRM exposes the same three actions:
+
 | Action | Does |
 |---|---|
-| `hubspot/actions/enrich-company.ts` | Reads a HubSpot company's domain/name, calls LinkFinder AI (`company_domain_to_employees` or `company_name_to_website`), writes the result back onto the company. |
-| `hubspot/actions/enrich-contact.ts` | Reads a HubSpot contact's LinkedIn URL, calls LinkFinder AI (`linkedin_profile_to_linkedin_info` by default), writes the result back onto the contact. |
-| `hubspot/actions/check-linkfinder-job.ts` | Polls a LinkFinder AI job started by the two actions above and writes the result once it's ready. |
-| `hubspot/syncs/enrich-new-contacts.ts` | **Continuous.** Watches the portal and enriches any contact that has a LinkedIn URL but no LinkFinder data yet — including every newly created one. This is the "keep it clean automatically" half; the actions above are the "enrich this one record on demand" half. |
+| `<crm>/actions/enrich-contact.ts` | Reads the contact's LinkedIn URL (or name), calls LinkFinder AI, writes the result back onto the record. |
+| `<crm>/actions/enrich-company.ts` | Reads the company's LinkedIn URL, domain or name, calls LinkFinder AI, writes the result back. |
+| `<crm>/actions/check-linkfinder-job.ts` | Polls a job started by either of the above and writes the result once it is ready. |
 
-`hubspot/linkfinder-client.ts` is a shared (non-action) helper — request/retry/poll
-logic for LinkFinder AI's single-endpoint API, plus the HubSpot property-mapping helper.
+| CRM | Contact object | Company object | Auth |
+|---|---|---|---|
+| HubSpot | contact | company | OAuth |
+| Salesforce | `Contact` | `Account` | OAuth (`api`, `refresh_token`) |
+| Pipedrive | `persons` | `organizations` | OAuth (`contacts:full`) |
+| Zoho CRM | `Contacts` | `Accounts` | OAuth (`ZohoCRM.modules.ALL`) |
+| Close | `contact` | `lead` | API key |
+| monday.com | board item | board item | OAuth (`boards:read`, `boards:write`) |
+
+### One implementation, six CRMs
+
+Enriching a record is the same three steps everywhere: read a field, look it up, write
+the answer back. Only the request shapes differ — Salesforce PATCHes a bare body, Zoho
+wraps everything in `data[0]`, monday speaks GraphQL and needs the board id as well as
+the item id.
+
+So that difference is all an **adapter** is (`shared/adapters/*.ts`, ~40 lines each),
+and `shared/crm.ts` holds the single implementation they share. Adding a CRM means
+describing its two request shapes, not copying an action and editing endpoints.
+
+HubSpot's actions predate this and are still hand-written; they behave the same way.
+
+`shared/linkfinder-client.ts` is the shared (non-action) helper — request/retry/poll
+logic for LinkFinder AI's single-endpoint API, plus the field-mapping helper.
+
+### Enrichment fills gaps, it does not overwrite
+
+Every action skips a field that already has a value and reports it in `skippedFields`,
+unless `overwrite` is set. `check-linkfinder-job` re-reads the record before writing,
+because a job can be running for minutes and someone may have filled the field in
+meanwhile. Overwriting what a person typed is the fastest way to lose a team's trust
+in an automatic sync.
+
+### Credits are not uniform
+
+The type each action picks is reported back in its output, because cost varies sharply:
+a contact with a LinkedIn URL is enriched with `linkedin_profile_to_linkedin_info` at
+**10 credits**, while one with only a name uses `lead_full_name_to_linkedin_url` at
+**1**. Every call is charged, including one that finds nothing — the actions log that
+case explicitly so a bulk run does not look like it silently did nothing.
 
 ### Why a `check-linkfinder-job` action exists
 
