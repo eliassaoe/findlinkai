@@ -54,8 +54,9 @@ is exactly a 22% interested-to-booked rate. Read it before deciding anything.
 
 ## It runs itself on GitHub Actions
 
-`.github/workflows/explee-followups.yml` runs the loop **every 15 minutes**, in
-this repository, on GitHub's machines. No laptop, no server, no cron of your own -
+`.github/workflows/explee-followups.yml` runs the loop **once a day at 07:00
+UTC** — 9am in Paris over summer, 8am over winter — in this repository, on
+GitHub's machines. No laptop, no server, no cron of your own -
 the same reason `publish-integrations.yml` exists: Explee cannot be reached from a
 development sandbox.
 
@@ -65,8 +66,8 @@ development sandbox.
 > secret**, name it `EXPLEE_API_KEY`, paste the key from Explee's account menu →
 > API Keys.
 
-That is it. The schedule then runs a **dry run** every 15 minutes and prints
-exactly what it would have sent, in the Actions tab. Read a few, and when the
+That is it. The schedule then runs a **dry run** each morning and prints exactly
+what it would have sent, in the Actions tab. Read a few, and when the
 drafts look right:
 
 > Same page → **Variables** → New variable → `EXPLEE_APPLY` = `true`
@@ -77,6 +78,14 @@ no code change, no deploy. There is also a **Run workflow** button with an
 
 Two runs never overlap (a `concurrency` group), so a lead cannot be mailed twice
 by two schedules colliding.
+
+**Daily is a trade, and it is the right one here.** A reply that lands at 9:05am
+waits until tomorrow morning for its answer, and conversion does drop with the
+hours. What you get back is a human cadence — one considered pass a day rather
+than a machine replying within minutes of someone hitting send. If a particular
+lead cannot wait, the **Run workflow** button does an immediate pass, and Explee's
+own Auto-replies (project settings, `auto_reply_enabled`) cover the
+answer-instantly case without this loop at all.
 
 ## Setup
 
@@ -318,7 +327,7 @@ Delete any column you do not want; only `email` is required.
 ```bash
 python3 recover.py --sheet-csv "..."            # dry run: prints every mail it would send
 python3 recover.py --sheet-csv "..." --apply    # send
-*/5 * * * * cd /path && EXPLEE_API_KEY=... python3 recover.py --sheet-csv "..." --apply
+0 7 * * * cd /path && python3 recover.py --all --apply     # only if not using Actions
 ```
 
 ### The gates, in order

@@ -3,7 +3,7 @@ name: Explee follow-ups
 # api.explee.com cannot be reached from a development sandbox, so the follow-up
 # loop runs here instead - the same reason publish-integrations.yml exists.
 #
-# Every 15 minutes it reads the hot-leads sheet, skips everyone marked booked or
+# Once a day it reads the hot-leads sheet, skips everyone marked booked or
 # stopped, and follows up on the rest. Nobody has to open a terminal.
 #
 # Required secret - the job fails with a plain message if it is missing:
@@ -15,7 +15,11 @@ name: Explee follow-ups
 # Variables). Set it back to anything else to stop, without touching the code.
 on:
   schedule:
-    - cron: '*/15 * * * *'
+    # 07:00 UTC - 9am in Paris over summer, 8am over winter. A morning send, and
+    # the two slots it proposes are always at least 18 hours out, so the earliest
+    # is that same afternoon. GitHub's scheduler drifts by tens of minutes under
+    # load; for a daily job that does not matter.
+    - cron: '0 7 * * *'
   workflow_dispatch:
     inputs:
       apply:
