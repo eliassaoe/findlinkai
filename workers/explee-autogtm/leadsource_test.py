@@ -1,0 +1,612 @@
+#!/usr/bin/env python3
+"""Action 2: does a higher-intent lead source actually reply better?
+
+    python3 leadsource_test.py prepare  --csv gojiberry.csv --out variant.leads.json
+    python3 leadsource_test.py control  --filters filters.json --count 500 --out control.leads.json --apply
+    python3 leadsource_test.py import   --project 4021 --name "Intent test - control" \\
+                                        --leads control.leads.json --brief brief.json --apply
+    python3 leadsource_test.py compare  --arm control.arm.json --arm variant.arm.json
+
+THE TEST, AND THE ONLY THING THAT MAKES IT READABLE
+---------------------------------------------------
+500 Explee leads against 500 sourced leads. Same copy, same sequence, same week,
+same project. If any of those three drift the result is unreadable, so `import`
+hashes the brief and refuses the second arm when it does not match the first,
+and `compare` says so loudly if the arms did not run over the same days.
+
+This costs MORE, not less: you pay for the sends either way, plus the data. It
+is a quality bet. The plan's decision rule, and the gates below implement it
+literally: sourced replies twice as well -> scale it; the same -> Explee's data
+is fine, drop the extra spend. A 30% edge is not a result at this sample size,
+it is noise wearing a suit.
+
+OVERLAP IS CONTAMINATION
+------------------------
+A person who is in both arms replies once and credits one arm at random.
+`prepare` and `control` both take --exclude and drop anything already in the
+other arm, on email first and on first+last+domain when the email is missing.
+"""
+
+import argparse
+import csv
+import re
+import unicodedata
+import hashlib
+import json
+import math
+import sys
+import time
+from pathlib import Path
+
+from explee import Explee, first_of
+
+MIN_LEADS_PER_ARM = 300      # below this the comparison is not worth reading
+MIN_REPLIES_TOTAL = 12       # across both arms, before reply rate can decide anything
+SCALE_EFFECT = 1.0           # "2x better" - a 100% relative lift, not 30%
+ALPHA = 0.05
+MANDATORY = ("email", "first_name", "last_name", "company_domain", "job_title")
+
+# Pharow and Societeinfo export French headers, Explee and Apollo export English
+# ones, and every tool spells the domain column differently. Rather than make you
+# rename columns in a spreadsheet - which is where lists get quietly corrupted -
+# the header is normalised (lowercased, accents stripped, punctuation to _) and
+# looked up here. --map handles anything this table has not seen.
+ALIASES = {
+    "email": ("email", "e_mail", "mail", "email_pro", "adresse_email", "work_email",
+              "professional_email", "email_professionnel", "courriel"),
+    "first_name": ("first_name", "firstname", "first", "prenom", "given_name"),
+    "last_name": ("last_name", "lastname", "last", "nom", "nom_de_famille", "surname",
+                  "family_name"),
+    "company_domain": ("company_domain", "domain", "domaine", "site_web", "website",
+                       "site", "url", "company_website", "site_internet",
+                       "domaine_entreprise", "company_url"),
+    "job_title": ("job_title", "title", "poste", "fonction", "job", "position",
+                  "intitule_du_poste", "titre"),
+    "linkedin_url": ("linkedin_url", "linkedin", "profil_linkedin", "lien_linkedin",
+                     "linkedin_profile", "url_linkedin"),
+}
+
+
+def norm_header(name):
+    """'Prénom' -> 'prenom', 'Site web' -> 'site_web', 'E-mail pro' -> 'e_mail_pro'."""
+    text = unicodedata.normalize("NFKD", str(name or "")).encode("ascii", "ignore").decode()
+    return re.sub(r"_+", "_", re.sub(r"[^a-z0-9]+", "_", text.strip().lower())).strip("_")
+
+
+def normalise_domain(value):
+    """'https://www.acme.fr/contact' -> 'acme.fr'. Exports carry full URLs."""
+    text = str(value or "").strip().lower()
+    if not text:
+        return ""
+    text = re.sub(r"^[a-z]+://", "", text).split("/")[0].split("?")[0]
+    text = text[4:] if text.startswith("www.") else text
+    return text if "." in text else ""
+
+
+def map_columns(rows, overrides=None):
+    """Any export -> our five field names. Returns (rows, unmapped headers)."""
+    if not rows:
+        return [], []
+    lookup = {}
+    for field, spellings in ALIASES.items():
+        for spelling in spellings:
+            lookup[spelling] = field
+    for field, header in (overrides or {}).items():
+        lookup[norm_header(header)] = field
+
+    headers = {norm_header(h): h for h in rows[0]}
+    unmapped = [original for norm, original in headers.items() if norm not in lookup]
+    out = []
+    for row in rows:
+        mapped = {}
+        for norm, original in headers.items():
+            field = lookup.get(norm)
+            if field and not mapped.get(field):
+                mapped[field] = row.get(original)
+        if mapped.get("company_domain"):
+            mapped["company_domain"] = normalise_domain(mapped["company_domain"])
+        out.append(mapped)
+    return out, unmapped
+
+
+# --- statistics --------------------------------------------------------------
+def two_proportion_p(hits_a, n_a, hits_b, n_b):
+    """Two-sided p for 'these two rates differ'. None when it cannot be computed."""
+    if n_a <= 0 or n_b <= 0:
+        return None
+    pooled = (hits_a + hits_b) / (n_a + n_b)
+    if pooled in (0.0, 1.0):
+        return None
+    se = math.sqrt(pooled * (1 - pooled) * (1 / n_a + 1 / n_b))
+    if se == 0:
+        return None
+    z = abs(hits_a / n_a - hits_b / n_b) / se
+    return math.erfc(z / math.sqrt(2))
+
+
+# --- leads -------------------------------------------------------------------
+def lead_key(lead):
+    email = (lead.get("email") or "").strip().lower()
+    if email:
+        return email
+    return "|".join(str(lead.get(k, "")).strip().lower()
+                    for k in ("first_name", "last_name", "company_domain"))
+
+
+def clean_leads(rows, exclude=()):
+    """-> (usable leads, why the rest were dropped). Never raises on a bad row."""
+    seen, keep, dropped = set(exclude), [], {}
+    for row in rows:
+        lead = {k: (str(row.get(k) or "").strip()) for k in MANDATORY}
+        if row.get("linkedin_url"):
+            lead["linkedin_url"] = str(row["linkedin_url"]).strip()
+        missing = [k for k in MANDATORY if not lead[k]]
+        if missing:
+            dropped["missing " + ",".join(missing)] = dropped.get(
+                "missing " + ",".join(missing), 0) + 1
+            continue
+        key = lead_key(lead)
+        if key in seen:
+            dropped["duplicate or in the other arm"] = dropped.get(
+                "duplicate or in the other arm", 0) + 1
+            continue
+        seen.add(key)
+        keep.append(lead)
+    return keep, dropped
+
+
+def load_keys(paths):
+    keys = set()
+    for path in paths or []:
+        for lead in json.loads(Path(path).read_text()):
+            keys.add(lead_key(lead))
+    return keys
+
+
+def cmd_filters(args):
+    """Plain English -> the exact filter shape the search endpoints want. Free."""
+    api = Explee()
+    got = api.request("POST", "/public/api/v1/search/nl-to-filters",
+                      body={"query": args.query})
+    body = {"company_filters": first_of(got, "companies_filters", "company_filters", default={}),
+            "people_filters": first_of(got, "people_filters", default={})}
+    Path(args.out).write_text(json.dumps(body, indent=1))
+    print(json.dumps(body, indent=1))
+    print("\n-> {}   (focus: {})".format(args.out, first_of(got, "focus", default="?")))
+    print("Read it before spending anything: this is what the search will actually match.")
+    return 0
+
+
+def read_csv(path, delimiter=None):
+    """French exports are semicolon-separated (Excel FR). Guessing wrong does not
+    raise - it yields one column named 'Prenom;Nom;Email' and every row is then
+    'missing everything', which reads like bad data instead of a parsing bug. So
+    sniff, and say which delimiter won."""
+    with open(path, newline="", encoding="utf-8-sig") as handle:
+        sample = handle.read(4096)
+        handle.seek(0)
+        if not delimiter:
+            head = sample.splitlines()[0] if sample else ""
+            delimiter = max((";", ",", "\t"), key=head.count) if head else ","
+            delimiter = delimiter if head.count(delimiter) else ","
+        return list(csv.DictReader(handle, delimiter=delimiter)), delimiter
+
+
+def cmd_prepare(args):
+    raw, delimiter = read_csv(args.csv, args.delimiter)
+    print("{} rows, '{}' separated".format(len(raw), delimiter))
+    overrides = dict(pair.split("=", 1) for pair in (args.map or []))
+    rows, unmapped = map_columns(raw, overrides)
+    leads, dropped = clean_leads(rows, load_keys(args.exclude))
+    if unmapped:
+        print("columns ignored: {}".format(", ".join(sorted(unmapped)[:12])))
+        print("  (if one of those is the email or the domain, pass "
+              "--map email='Email pro')")
+    Path(args.out).write_text(json.dumps(leads, indent=1))
+    print("{} leads -> {}".format(len(leads), args.out))
+    for reason, count in sorted(dropped.items(), key=lambda kv: -kv[1]):
+        print("  dropped {:>5}  {}".format(count, reason))
+    if len(leads) < MIN_LEADS_PER_ARM:
+        print("\nthat is under {} - the comparison will not be readable".format(MIN_LEADS_PER_ARM))
+    return 0
+
+
+def cmd_control(args):
+    """The Explee arm: search is free, the emails are not (1.5 or 5 credits each found)."""
+    filters = json.loads(Path(args.filters).read_text())
+    worst_case = args.count * (5.0 if args.preset == "premium" else 1.5)
+    print("up to {:.0f} credits (${:.2f}) if every one of the {} emails is found"
+          .format(worst_case, worst_case / 100.0, args.count))
+    if not args.apply:
+        print("DRY RUN - nothing spent. Add --apply.")
+        return 0
+
+    api = Explee()
+    body = dict(filters, max_contacts=min(args.count, 500), preset=args.preset)
+    task = api.find_and_enrich(body)
+    task_id = first_of(task, "task_id", "id")
+    print("task {} - polling".format(task_id))
+
+    contacts = []
+    while True:
+        got = api.find_and_enrich_status(task_id)
+        meta = first_of(got, "meta", default={})
+        status = first_of(meta, "status", default="pending")
+        if status == "completed":
+            contacts = first_of(got, "contacts", default=[]) or []
+            break
+        if status == "failed":
+            raise SystemExit("job failed: {}".format(first_of(meta, "error", default="?")))
+        time.sleep(5)
+
+    rows = [{"email": first_of(c, "email", default=""),
+             "first_name": first_of(c, "first_name", default=""),
+             "last_name": first_of(c, "last_name", default=""),
+             "company_domain": first_of(c, "company_domain", "domain", default=""),
+             "job_title": first_of(c, "job_title", "title", default=""),
+             "linkedin_url": first_of(c, "linkedin_url", default="")} for c in contacts]
+    leads, dropped = clean_leads(rows, load_keys(args.exclude))
+    Path(args.out).write_text(json.dumps(leads, indent=1))
+    print("{} leads -> {} (dropped {})".format(len(leads), args.out, sum(dropped.values())))
+    return 0
+
+
+def name_key(first, last):
+    """'Frédéric' / 'LE GALL' -> 'frederic|le gall'. Accents and case are not identity."""
+    def flat(value):
+        text = unicodedata.normalize("NFKD", str(value or "")).encode("ascii", "ignore").decode()
+        return re.sub(r"[^a-z ]+", " ", text.lower()).strip()
+    return "{}|{}".format(flat(first), flat(last))
+
+
+def classify_overlap(leads, theirs):
+    """(both have them, they have the company but not the person, unknown company)."""
+    same, only_theirs, no_company = [], [], []
+    for lead in leads:
+        domain = (lead.get("company_domain") or "").lower()
+        if domain not in theirs:
+            no_company.append(lead)
+        elif name_key(lead.get("first_name"), lead.get("last_name")) in theirs[domain]:
+            same.append(lead)
+        else:
+            only_theirs.append(lead)
+    return same, only_theirs, no_company
+
+
+def cmd_overlap(args):
+    """How many of these people can Explee not find? The incrementality question.
+
+    A lead that exists in Pharow and nowhere else is not "2.17x more expensive
+    than Explee" - it has no Explee price, because there is no Explee lead. That
+    makes the source a reach decision rather than a cost decision, and this is the
+    call that measures it: same companies, same titles, asked of Explee, then
+    counted person by person.
+
+    Cost: 1 credit per person Explee returns. A hundred companies is about a
+    dollar, which is the cheapest question in this directory.
+    """
+    leads = json.loads(Path(args.leads).read_text())
+    domains = sorted({l["company_domain"] for l in leads if l.get("company_domain")})
+    titles = ([t.strip() for t in args.titles.split(",")] if args.titles
+              else sorted({l["job_title"] for l in leads if l.get("job_title")})[:20])
+    print("{} leads across {} companies, asking Explee for {} titles"
+          .format(len(leads), len(domains), len(titles)))
+    if not args.apply:
+        print("up to {} people at 1 credit each (${:.2f}) - DRY RUN, add --apply"
+              .format(len(domains) * args.per_company, len(domains) * args.per_company / 100))
+        return 0
+
+    api = Explee()
+    theirs = {}
+    for start in range(0, len(domains), 1000):
+        got = api.people_by_domains(domains[start:start + 1000], titles, args.per_company)
+        for person in first_of(got, "people", "results", "contacts", default=[]):
+            domain = str(first_of(person, "company_domain", "domain", default="")).lower()
+            theirs.setdefault(domain, set()).add(
+                name_key(first_of(person, "first_name", default=""),
+                         first_of(person, "last_name", default="")))
+
+    same, only_theirs, no_company = classify_overlap(leads, theirs)
+
+    total = len(leads) or 1
+    print("\n{:<44}{:>7}{:>8}".format("", "count", "share"))
+    for label, rows in (("Explee has the same person", same),
+                        ("Explee has the company, not this person", only_theirs),
+                        ("Explee does not have the company at all", no_company)):
+        print("{:<44}{:>7}{:>8}".format(label, len(rows), "{:.0%}".format(len(rows) / total)))
+
+    unique = len(only_theirs) + len(no_company)
+    print("\n{:.0%} of this list is unreachable through Explee.".format(unique / total))
+    if unique / total >= 0.5:
+        print("That is a reach decision, not a price comparison: most of these people have no "
+              "Explee price because they have no Explee lead. Cost per lead stops being the "
+              "argument - buy it if the audience is worth reaching.")
+    else:
+        print("Most of this list is already reachable at ~$0.025 a lead. The premium is buying "
+              "you {:.0%} more audience, and it has to justify 2.17x on the rest.".format(
+                  unique / total))
+    if args.out:
+        Path(args.out).write_text(json.dumps(only_theirs + no_company, indent=1))
+        print("the unreachable ones -> {}".format(args.out))
+    return 0
+
+
+def brief_sha(brief):
+    return hashlib.sha1(json.dumps(brief, sort_keys=True).encode()).hexdigest()[:8]
+
+
+def cmd_adopt(args):
+    """Use the campaign that is already running as the control arm.
+
+    Nothing is imported and nothing is charged. It also lifts that campaign's
+    own copy brief into brief.json, so the new arm can be imported with the
+    SAME instructions - which is the only way the comparison measures the lead
+    source instead of the copy. (PATCH cannot set the briefs; import can.)
+    """
+    api = Explee()
+    definition = api.campaign(args.campaign)
+    brief = {"instructions": first_of(definition, "instructions", default="") or "",
+             "followup_instructions": first_of(definition, "followup_instructions",
+                                               default="") or "",
+             "language": first_of(definition, "language", default="en")}
+    record = {"arm": args.name,
+              "campaign_id": args.campaign,
+              "project_id": first_of(definition, "project_id", default=None),
+              "brief_sha": brief_sha(brief),
+              "live_campaign": True,
+              "adopted_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}
+    Path(args.out).write_text(json.dumps(record, indent=1))
+    if args.brief_out:
+        Path(args.brief_out).write_text(json.dumps(brief, indent=1))
+        print("brief {} -> {}".format(record["brief_sha"], args.brief_out))
+        if not brief["instructions"]:
+            print("  !! this campaign has no first-email brief of its own - it is running on "
+                  "the project description. Write brief.json by hand and give BOTH arms the "
+                  "same one, or the test measures the copy.")
+    print("control arm -> {} (campaign {}, project {})".format(
+        args.out, args.campaign, record["project_id"]))
+    print("It is already running, so window both arms to the same days with "
+          "--period when you compare.")
+    return 0
+
+
+def cmd_import(args):
+    leads = json.loads(Path(args.leads).read_text())
+    brief = json.loads(Path(args.brief).read_text()) if args.brief else {}
+    if len(leads) < MIN_LEADS_PER_ARM and not args.force:
+        raise SystemExit("{} leads is under {}. --force to import anyway."
+                         .format(len(leads), MIN_LEADS_PER_ARM))
+    for other in args.exclude or []:
+        record = json.loads(Path(other).read_text())
+        if record.get("brief_sha") and record["brief_sha"] != brief_sha(brief):
+            raise SystemExit("the other arm ran brief {} and this one is {}. Same copy or "
+                             "no test.".format(record["brief_sha"], brief_sha(brief)))
+
+    print("{} leads into project {} as {!r}, brief {}".format(
+        len(leads), args.project, args.name, brief_sha(brief)))
+    if not args.apply:
+        print("DRY RUN - nothing imported. Add --apply.")
+        return 0
+
+    api = Explee()
+    task = api.import_campaign(args.project, args.name, leads,
+                               instructions=brief.get("instructions"),
+                               followup_instructions=brief.get("followup_instructions"),
+                               language=brief.get("language"))
+    task_id = first_of(task, "task_id", "id")
+    while True:
+        got = api.import_status(task_id)
+        status = first_of(got, "status", default=first_of(
+            first_of(got, "meta", default={}), "status", default="pending"))
+        if status == "completed":
+            break
+        if status == "failed":
+            raise SystemExit("import failed: {}".format(first_of(got, "error", default="?")))
+        print("  {} ...".format(status))
+        time.sleep(5)
+
+    result = first_of(got, "result", default={})
+    campaign_id = first_of(result, "campaign_id", default=None)
+    if not campaign_id:
+        raise SystemExit("no leads survived validation and dedup - no campaign was created")
+    record = {"arm": args.name, "campaign_id": campaign_id, "project_id": args.project,
+              "leads_submitted": len(leads), "brief_sha": brief_sha(brief),
+              "imported_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}
+    out = args.out or (Path(args.leads).stem.split(".")[0] + ".arm.json")
+    Path(out).write_text(json.dumps(record, indent=1))
+    print("campaign {} -> {}".format(campaign_id, out))
+    return 0
+
+
+# --- the verdict -------------------------------------------------------------
+def read_arm(api, record, period):
+    stats = api.campaign_analytics(record["campaign_id"], period=period)
+    flat = dict(first_of(stats, "analytics", "totals", "summary", default={}) or {})
+    flat.update({k: v for k, v in stats.items() if not isinstance(v, (dict, list))})
+    # No defaults on purpose. A missing `replies` silently read as 0 would hand you
+    # a confident DROP on an arm that is actually winning, which is the one wrong
+    # answer this whole file exists to avoid. Raise, name the key, let a human fix it.
+    return {
+        "name": record["arm"],
+        "campaign_id": record["campaign_id"],
+        "sent": int(first_of(flat, "emails_sent", "sent", "emails")),
+        "replies": int(first_of(flat, "replies", "reply_count", "replied")),
+        "hot": int(first_of(flat, "hot_leads", "hot_lead_count", "hot")),
+        "spend": float(first_of(flat, "spend_usd", "spend", "cost_usd")),
+        "leads": record.get("leads_submitted"),
+        "brief_sha": record.get("brief_sha"),
+        "imported_at": record.get("imported_at"),
+    }
+
+
+def basis_of(control, variant):
+    """Leads if both arms know how many they had, else emails sent.
+
+    Replies per LEAD is the quality number - it is what "this source's people
+    answer more often" means. Replies per EMAIL flatters whichever arm happens to
+    have sent fewer follow-ups so far, which early in a test is whichever one
+    started later. Leads win when both arms know theirs; an adopted live campaign
+    does not, and then the looser email basis is used and said out loud."""
+    if control.get("leads") and variant.get("leads"):
+        return "leads"
+    return "sent"
+
+
+def verdict(control, variant):
+    """The plan's rule, with the gates that stop it firing on noise."""
+    basis = basis_of(control, variant)
+    n_c, n_v = control[basis], variant[basis]
+    if min(n_c, n_v) < MIN_LEADS_PER_ARM:
+        return ("wait", "the smaller arm has {} {} - read nothing before {}".format(
+            min(n_c, n_v), basis, MIN_LEADS_PER_ARM))
+    total = control["replies"] + variant["replies"]
+    if total < MIN_REPLIES_TOTAL:
+        return ("wait", "{} replies across both arms - needs {}".format(total, MIN_REPLIES_TOTAL))
+
+    rate_c = control["replies"] / n_c
+    rate_v = variant["replies"] / n_v
+    lift = (rate_v - rate_c) / rate_c if rate_c else float("inf")
+    p = two_proportion_p(control["replies"], n_c, variant["replies"], n_v)
+    if p is None or p > ALPHA:
+        return ("drop", "reply rates {:.1%} vs {:.1%}, p={} - not distinguishable. Explee's "
+                        "data is fine; the sourced list is not worth its price.".format(
+                            rate_c, rate_v, "n/a" if p is None else "{:.3f}".format(p)))
+    if lift >= SCALE_EFFECT:
+        return ("scale", "sourced replies {:.1%} against {:.1%}, a {:.0f}% lift at p={:.3f}. "
+                         "Scale it.".format(rate_v, rate_c, lift * 100, p))
+    if lift <= -0.2:
+        return ("drop", "sourced replies WORSE ({:.1%} vs {:.1%}, p={:.3f})".format(
+            rate_v, rate_c, p))
+    return ("drop", "a real but small edge ({:+.0f}%, p={:.3f}). The plan's bar was 2x, and "
+                    "the data costs more than that edge is worth.".format(lift * 100, p))
+
+
+def cmd_compare(args):
+    api = Explee()
+    calls = json.loads(Path(args.calls).read_text()) if args.calls else {}
+    arms = []
+    for path in args.arm:
+        record = json.loads(Path(path).read_text())
+        arm = read_arm(api, record, args.period)
+        arm["live_campaign"] = record.get("live_campaign", False)
+        booked = calls.get(str(arm["campaign_id"]), {})
+        arm["booked"] = booked.get("booked")
+        arm["showed"] = booked.get("showed")
+        arms.append(arm)
+    if len(arms) != 2:
+        raise SystemExit("compare takes exactly two --arm files")
+    control, variant = arms
+
+    basis = basis_of(control, variant)
+    head = "{:<28}{:>8}{:>8}{:>9}{:>7}{:>10}{:>13}{:>12}"
+    print(head.format("arm", "leads", "sent", "replies", "hot", "spend",
+                      "reply/" + basis[:4], "$/hot lead"))
+    for arm in arms:
+        per_hot = (arm["spend"] / arm["hot"]) if arm["hot"] else 0.0
+        n = arm[basis]
+        print(head.format(arm["name"][:28], arm["leads"] or "-", arm["sent"], arm["replies"],
+                          arm["hot"], "${:.0f}".format(arm["spend"]),
+                          "{:.1%}".format(arm["replies"] / n) if n else "-",
+                          "${:.0f}".format(per_hot) if per_hot else "-"))
+    if basis == "sent":
+        print("(reply rate is per EMAIL - one arm does not report its lead count, so the "
+              "arm further into its sequence is flattered)")
+
+    if control["brief_sha"] != variant["brief_sha"]:
+        print("\n!! the arms ran different copy ({} vs {}). This comparison measures the copy, "
+              "not the lead source.".format(control["brief_sha"], variant["brief_sha"]))
+    if control["imported_at"] and variant["imported_at"] and \
+            control["imported_at"][:10] != variant["imported_at"][:10]:
+        print("!! the arms started on different days ({} vs {}) - a good week can masquerade "
+              "as a good lead source".format(control["imported_at"][:10],
+                                             variant["imported_at"][:10]))
+
+    if any(arm["live_campaign"] for arm in arms) and not args.period:
+        print("\n!! one arm was already running before the test. Pass --period so both are "
+              "read over the same days, or the older arm is being judged on a different "
+              "month of weather.")
+
+    if any(arm["booked"] for arm in arms):
+        print("\n{:<28}{:>9}{:>9}{:>14}{:>14}".format(
+            "", "booked", "showed", "$/booked", "$/showed"))
+        for arm in arms:
+            booked, showed = arm["booked"] or 0, arm["showed"] or 0
+            print("{:<28}{:>9}{:>9}{:>14}{:>14}".format(
+                arm["name"][:28], booked or "-", showed or "-",
+                "${:.0f}".format(arm["spend"] / booked) if booked else "-",
+                "${:.0f}".format(arm["spend"] / showed) if showed else "-"))
+        print("$/showed is the number the plan is trying to get under $50.")
+    else:
+        print("\nNo call numbers. Cost per call needs --calls calls.json: "
+              '{"<campaign_id>": {"booked": 4, "showed": 2}}')
+
+    call, why = verdict(control, variant)
+    print("\n{}: {}".format(call.upper(), why))
+    return 0
+
+
+def main(argv=None):
+    ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    sub = ap.add_subparsers(dest="cmd", required=True)
+
+    filt = sub.add_parser("filters", help="plain English -> filters.json (free, no credits)")
+    filt.add_argument("--query", required=True)
+    filt.add_argument("--out", default="filters.json")
+    filt.set_defaults(func=cmd_filters)
+
+    prep = sub.add_parser("prepare", help="a sourced CSV -> import-ready leads")
+    prep.add_argument("--csv", required=True)
+    prep.add_argument("--out", required=True)
+    prep.add_argument("--exclude", action="append", help="leads file from the other arm")
+    prep.add_argument("--map", action="append", metavar="FIELD=HEADER",
+                      help="force a column, e.g. --map company_domain='Site web'")
+    prep.add_argument("--delimiter", help="override the sniffed CSV separator")
+    prep.set_defaults(func=cmd_prepare)
+
+    ctrl = sub.add_parser("control", help="the Explee arm, via search + find-and-enrich")
+    ctrl.add_argument("--filters", required=True, help="JSON body for find-and-enrich")
+    ctrl.add_argument("--count", type=int, default=500)
+    ctrl.add_argument("--preset", choices=("basic", "premium"), default="basic")
+    ctrl.add_argument("--out", required=True)
+    ctrl.add_argument("--exclude", action="append")
+    ctrl.add_argument("--apply", action="store_true")
+    ctrl.set_defaults(func=cmd_control)
+
+    ovl = sub.add_parser("overlap", help="what share of a list Explee cannot find (~$1)")
+    ovl.add_argument("--leads", required=True, help="the other source's leads json")
+    ovl.add_argument("--titles", help="comma-separated; default: the titles in the file")
+    ovl.add_argument("--per-company", type=int, default=5)
+    ovl.add_argument("--out", help="write the leads Explee cannot reach here")
+    ovl.add_argument("--apply", action="store_true")
+    ovl.set_defaults(func=cmd_overlap)
+
+    ado = sub.add_parser("adopt", help="use a live campaign as the control arm (free)")
+    ado.add_argument("--campaign", type=int, required=True)
+    ado.add_argument("--name", default="Explee control (live)")
+    ado.add_argument("--out", default="control.arm.json")
+    ado.add_argument("--brief-out", default="brief.json")
+    ado.set_defaults(func=cmd_adopt)
+
+    imp = sub.add_parser("import", help="one arm into a new AutoGTM campaign")
+    imp.add_argument("--project", type=int, required=True)
+    imp.add_argument("--name", required=True)
+    imp.add_argument("--leads", required=True)
+    imp.add_argument("--brief", help="JSON: instructions, followup_instructions, language")
+    imp.add_argument("--exclude", action="append", help="the other arm's .arm.json")
+    imp.add_argument("--out")
+    imp.add_argument("--force", action="store_true")
+    imp.add_argument("--apply", action="store_true")
+    imp.set_defaults(func=cmd_import)
+
+    cmp_ = sub.add_parser("compare", help="read both arms and call it")
+    cmp_.add_argument("--arm", action="append", required=True)
+    cmp_.add_argument("--period")
+    cmp_.add_argument("--calls", help='JSON: {"<campaign_id>": {"booked": 4, "showed": 2}}')
+    cmp_.set_defaults(func=cmd_compare)
+
+    args = ap.parse_args(argv)
+    return args.func(args)
+
+
+if __name__ == "__main__":
+    sys.exit(main())
