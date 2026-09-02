@@ -29,7 +29,7 @@ overstating them costs more than the claim ever earned.
 | Profiles | **50M+** | needs confirmation — see below |
 | Companies | **10M+** | needs confirmation — see below |
 | Accuracy | **95%** (90% on the email→phone and email→LinkedIn matching pages) | needs confirmation |
-| Response time | **~3s** | `api-documentation` — the only authoritative source |
+| Response time | **~1s** | vendor, 2026-09-01 |
 | Certification | **none claimed** | privacy policy and terms name no certification |
 | Uptime / SLA | **none claimed** | terms disclaim uninterrupted availability |
 | Starter | **$49/mo**, or **$29/mo billed annually**, 5,000 credits/mo | pricing page |
@@ -65,14 +65,27 @@ Needed" (API documentation).
 Competitor SOC 2 mentions on comparison pages were **left untouched** — those
 are their claims, correctly attributed.
 
-### 3. Latency figures our own documentation contradicts
+### 3. Latency figures that ranged over 60x
 
 Published: 50ms, sub-100ms, 100ms, 150ms, 200ms, sub-200ms, 500ms, ~1s, ~2s,
-3s. Meanwhile the API documentation states **~3 seconds typical**, and profile
-enrichment is an **asynchronous live scrape taking about a minute**.
+3s — a 60x spread for the same product.
 
-Every sub-second claim was false against our own docs. 30 of them are now `~3s`.
-CSS transition values were excluded from the sweep so no styling broke.
+**The real figure is ~1s** (confirmed by the vendor, 2026-09-01). Everything is
+now `~1s`. CSS transition values were excluded from the sweep so no styling
+broke.
+
+Note for anyone re-reading the SourcrLab review: it says the documentation
+gives "about three seconds". The documentation does **not** say that. What it
+actually documents is a **~27 second window** after which any endpoint may
+return async, and one always-async endpoint
+(`linkedin_profile_to_linkedin_info`) that is polled via `poll_url`. A ~1s
+typical response and a ~27s async cutoff are not in conflict, so no change was
+needed in `api-documentation.html`.
+
+An earlier pass in this session set these claims to `~3s` on the strength of
+the review's characterisation rather than the source. That was wrong, and is
+the same mistake the review is about: trusting a restatement instead of
+checking the primary source.
 
 ### 4. Coverage that moved by 10x between pages
 
