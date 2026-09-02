@@ -60,7 +60,7 @@ into a file here in the same session, or it is gone.
 | Selling Done For You to the 67 idle pack buyers | `docs/dfy-activation-campaign.md` — read the correction in it before quoting any "paying accounts" number |
 | Who the SEO traffic actually is, before aiming an offer at it | `docs/traffic-capture-verdict.md` |
 | Listicle outreach on a cron (the `ai_keywords` table) | `docs/ai-keyword-outreach.md` — read it before adding keywords, it spends credits |
-| Explee AutoGTM: recovering replies that never booked, and the lead-source test | `workers/explee-autogtm/` — read its README before the first `--apply`; no call in it has ever reached the real API |
+| Explee AutoGTM: recovering replies that never booked, and the lead-source test | `workers/explee-autogtm/` — read `BASELINE.md` for the real numbers, and its README before the first `--apply`; no call in it has ever reached the real API |
 | CRM cleanup + HubSpot | `CRM-SETUP.md` |
 | Outbound campaign | `OUTBOUND-CRM-AUDIT.md` |
 | Workers | `workers/` — but most live workers are NOT in this repo; read them with the Cloudflare connector |

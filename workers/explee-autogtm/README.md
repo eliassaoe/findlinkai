@@ -38,6 +38,13 @@ Read the JSON. If a key is spelled differently than the lists in `recover.py`
 (`read_arm`), add the spelling — that is the whole integration risk, and a dry
 run will tell you loudly rather than quietly reporting zero.
 
+## The measured baseline
+
+**[BASELINE.md](BASELINE.md)** — the real dashboard numbers as of 2 Sept 2026:
+5,231 emails, 1.05% reply, 14 interested, $11.21 per interested lead. It replaces
+the illustrative figures in the original plan, and it shows that the $50 target
+is exactly a 22% interested-to-booked rate. Read it before deciding anything.
+
 ## Setup
 
 ```bash
