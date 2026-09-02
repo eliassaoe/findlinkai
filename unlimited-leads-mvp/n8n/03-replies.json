@@ -1,0 +1,461 @@
+{
+  "name": "UL 03 \u2014 Sync replies",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 15
+            }
+          ]
+        }
+      },
+      "name": "Every 15 minutes",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -260,
+        300
+      ],
+      "id": "every-15-minutes"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Non-secret config only \u2014 API keys live in n8n credentials.\n// The Google client id/secret are the ONE exception: refreshing a per-mailbox\n// token is a body parameter, not a header, so it cannot ride a credential.\nreturn [{ json: {\n  supabase: 'https://YOUR-PROJECT.supabase.co',\n  appBase:  'https://unlimited-leads.net',\n  googleClientId:     'YOUR_GOOGLE_CLIENT_ID',\n  googleClientSecret: 'YOUR_GOOGLE_CLIENT_SECRET',\n  model: 'claude-sonnet-5',\n  sendBatch: 25,\n  stepDelaysDays: [0, 3, 7],\n}}];"
+      },
+      "name": "Config",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -40,
+        300
+      ],
+      "id": "config"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $('Config').first().json.supabase }}/rest/v1/mailboxes?active=eq.true&select=id,email,refresh_token",
+        "options": {
+          "timeout": 120000
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Get mailboxes",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        180,
+        300
+      ],
+      "id": "get-mailboxes",
+      "credentials": {
+        "supabaseApi": {
+          "id": "REPLACE_ON_IMPORT",
+          "name": "supabaseApi"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = $input.first().json;\nif (!Array.isArray(rows) || !rows.length) return [];\nreturn rows.map(r => ({ json: r }));"
+      },
+      "name": "Split mailboxes",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        380,
+        300
+      ],
+      "id": "split-mailboxes"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://oauth2.googleapis.com/token",
+        "options": {
+          "timeout": 120000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ client_id: $('Config').first().json.googleClientId, client_secret: $('Config').first().json.googleClientSecret, refresh_token: $json.refresh_token, grant_type: 'refresh_token' }) }}"
+      },
+      "name": "Refresh token",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        580,
+        300
+      ],
+      "id": "refresh-token",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Pair each refreshed token back to its mailbox and ask Gmail for recent\n// inbound only. -from:me keeps our own sends out of the result.\nconst boxes = $('Split mailboxes').all();\nreturn $input.all().map((t, i) => ({ json: {\n  mailbox_id: boxes[i].json.id,\n  mailbox_email: boxes[i].json.email,\n  accessToken: t.json.access_token,\n}}));"
+      },
+      "name": "Pair token to mailbox",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        780,
+        300
+      ],
+      "id": "pair-token-to-mailbox"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://gmail.googleapis.com/gmail/v1/users/me/messages?q=in:inbox newer_than:2d -from:me&maxResults=50",
+        "options": {
+          "timeout": 120000
+        },
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $json.accessToken }}"
+            }
+          ]
+        }
+      },
+      "name": "List inbox",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        980,
+        300
+      ],
+      "id": "list-inbox",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Gmail returns thread stubs. Keep the thread ids, look them up in one query.\nconst ctx = $('Pair token to mailbox').all();\nconst out = [];\n$input.all().forEach((res, i) => {\n  const c = ctx[i].json;\n  (res.json.messages || []).forEach(m => out.push({ json: {\n    thread_id: m.threadId, gmail_id: m.id,\n    mailbox_id: c.mailbox_id, accessToken: c.accessToken,\n  }}));\n});\nif (!out.length) return [];\n// dedupe: several messages can share a thread\nconst seen = new Set();\nreturn out.filter(o => !seen.has(o.json.thread_id) && seen.add(o.json.thread_id));"
+      },
+      "name": "Flatten threads",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1180,
+        300
+      ],
+      "id": "flatten-threads"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $('Config').first().json.supabase }}/rest/v1/leads?status=eq.active&select=id,email,thread_id&thread_id=in.({{ $('Flatten threads').all().map(t => t.json.thread_id).join(',') }})",
+        "options": {
+          "timeout": 120000
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Look up leads",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1380,
+        300
+      ],
+      "id": "look-up-leads",
+      "credentials": {
+        "supabaseApi": {
+          "id": "REPLACE_ON_IMPORT",
+          "name": "supabaseApi"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Only threads that belong to a lead we are still sequencing are replies.\nconst known = $input.first().json;\nif (!Array.isArray(known) || !known.length) return [];\nconst byThread = Object.fromEntries(known.map(l => [l.thread_id, l]));\nreturn $('Flatten threads').all()\n  .filter(t => byThread[t.json.thread_id])\n  .map(t => ({ json: { ...t.json, lead: byThread[t.json.thread_id] } }));"
+      },
+      "name": "Match to leads",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1580,
+        300
+      ],
+      "id": "match-to-leads"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://gmail.googleapis.com/gmail/v1/users/me/messages/{{ $json.gmail_id }}?format=metadata",
+        "options": {
+          "timeout": 120000
+        },
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $json.accessToken }}"
+            }
+          ]
+        }
+      },
+      "name": "Fetch snippets",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1780,
+        300
+      ],
+      "id": "fetch-snippets",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const t = $json;\nconst snippet = (t.snippet || t.lead?.email || '').slice(0, 800);\nconst prompt = [\n  'Classify this reply to a cold email. Answer with ONE word from:',\n  'interested, not_interested, ooo, wrong_person, unsubscribe',\n  '', 'Reply:', snippet,\n].join('\\n');\nreturn [{ json: { ...t, prompt } }];"
+      },
+      "name": "Build classify prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1980,
+        300
+      ],
+      "id": "build-classify-prompt"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "options": {
+          "timeout": 120000
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "anthropicApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: $('Config').first().json.model, max_tokens: 10, messages: [{ role: 'user', content: $json.prompt }] }) }}"
+      },
+      "name": "Claude classifies",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2180,
+        300
+      ],
+      "id": "claude-classifies",
+      "credentials": {
+        "anthropicApi": {
+          "id": "REPLACE_ON_IMPORT",
+          "name": "anthropicApi"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const allowed = ['interested','not_interested','ooo','wrong_person','unsubscribe'];\nconst matched = $('Match to leads').all();\nconst fetched = $('Fetch snippets').all();\nreturn $input.all().map((r, i) => {\n  const word = (r.json?.content?.[0]?.text || '').toLowerCase().match(/[a-z_]+/)?.[0];\n  return { json: {\n    p_thread_id: matched[i].json.thread_id,\n    // An unreadable classification is treated as interested on purpose: a\n    // missed \"yes\" costs a meeting, a false \"yes\" costs ten seconds of reading.\n    p_outcome: allowed.includes(word) ? word : 'interested',\n    p_snippet: (fetched[i].json?.snippet || '').slice(0, 1000),\n  }};\n});"
+      },
+      "name": "Build reply rows",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2380,
+        300
+      ],
+      "id": "build-reply-rows"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.supabase }}/rest/v1/rpc/record_reply",
+        "options": {
+          "timeout": 120000
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}"
+      },
+      "name": "Record reply",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2580,
+        300
+      ],
+      "id": "record-reply",
+      "credentials": {
+        "supabaseApi": {
+          "id": "REPLACE_ON_IMPORT",
+          "name": "supabaseApi"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Every 15 minutes": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Get mailboxes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get mailboxes": {
+      "main": [
+        [
+          {
+            "node": "Split mailboxes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split mailboxes": {
+      "main": [
+        [
+          {
+            "node": "Refresh token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Refresh token": {
+      "main": [
+        [
+          {
+            "node": "Pair token to mailbox",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pair token to mailbox": {
+      "main": [
+        [
+          {
+            "node": "List inbox",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "List inbox": {
+      "main": [
+        [
+          {
+            "node": "Flatten threads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Flatten threads": {
+      "main": [
+        [
+          {
+            "node": "Look up leads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Look up leads": {
+      "main": [
+        [
+          {
+            "node": "Match to leads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Match to leads": {
+      "main": [
+        [
+          {
+            "node": "Fetch snippets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch snippets": {
+      "main": [
+        [
+          {
+            "node": "Build classify prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build classify prompt": {
+      "main": [
+        [
+          {
+            "node": "Claude classifies",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claude classifies": {
+      "main": [
+        [
+          {
+            "node": "Build reply rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build reply rows": {
+      "main": [
+        [
+          {
+            "node": "Record reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all"
+  },
+  "pinData": {}
+}

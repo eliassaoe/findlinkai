@@ -1,0 +1,139 @@
+{
+  "name": "UL 05 \u2014 Record booking",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "booked",
+        "responseMode": "responseNode"
+      },
+      "name": "Calendar webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -260,
+        300
+      ],
+      "id": "calendar-webhook"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Non-secret config only \u2014 API keys live in n8n credentials.\n// The Google client id/secret are the ONE exception: refreshing a per-mailbox\n// token is a body parameter, not a header, so it cannot ride a credential.\nreturn [{ json: {\n  supabase: 'https://YOUR-PROJECT.supabase.co',\n  appBase:  'https://unlimited-leads.net',\n  googleClientId:     'YOUR_GOOGLE_CLIENT_ID',\n  googleClientSecret: 'YOUR_GOOGLE_CLIENT_SECRET',\n  model: 'claude-sonnet-5',\n  sendBatch: 25,\n  stepDelaysDays: [0, 3, 7],\n}}];"
+      },
+      "name": "Config",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -40,
+        300
+      ],
+      "id": "config"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Calendly invitee.created. Every provider names these differently, so pull\n// defensively and fail loudly rather than silently recording nothing.\nconst p = $json.body?.payload || $json.body || {};\nconst email = p.email || p.invitee?.email;\nif (!email) throw new Error('booking webhook had no invitee email: '\n                            + JSON.stringify($json.body).slice(0, 300));\nreturn [{ json: {\n  p_email: String(email).toLowerCase(),\n  p_name: p.name || p.invitee?.name || null,\n  p_starts_at: p.scheduled_event?.start_time || p.event?.start_time || null,\n  p_event_uri: p.uri || p.event?.uri || `${email}-${Date.now()}`,\n}}];"
+      },
+      "name": "Extract invitee",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        180,
+        300
+      ],
+      "id": "extract-invitee"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.supabase }}/rest/v1/rpc/record_booking",
+        "options": {
+          "timeout": 120000
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}"
+      },
+      "name": "Record booking",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        400,
+        300
+      ],
+      "id": "record-booking",
+      "credentials": {
+        "supabaseApi": {
+          "id": "REPLACE_ON_IMPORT",
+          "name": "supabaseApi"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "ok"
+      },
+      "name": "Ack",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        620,
+        300
+      ],
+      "id": "ack"
+    }
+  ],
+  "connections": {
+    "Calendar webhook": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Extract invitee",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract invitee": {
+      "main": [
+        [
+          {
+            "node": "Record booking",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Record booking": {
+      "main": [
+        [
+          {
+            "node": "Ack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all"
+  },
+  "pinData": {}
+}

@@ -1,0 +1,126 @@
+{
+  "name": "UL 04 \u2014 Unsubscribe",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "u",
+        "responseMode": "responseNode"
+      },
+      "name": "Unsub link",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -260,
+        300
+      ],
+      "id": "unsub-link"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Non-secret config only \u2014 API keys live in n8n credentials.\n// The Google client id/secret are the ONE exception: refreshing a per-mailbox\n// token is a body parameter, not a header, so it cannot ride a credential.\nreturn [{ json: {\n  supabase: 'https://YOUR-PROJECT.supabase.co',\n  appBase:  'https://unlimited-leads.net',\n  googleClientId:     'YOUR_GOOGLE_CLIENT_ID',\n  googleClientSecret: 'YOUR_GOOGLE_CLIENT_SECRET',\n  model: 'claude-sonnet-5',\n  sendBatch: 25,\n  stepDelaysDays: [0, 3, 7],\n}}];"
+      },
+      "name": "Config",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -40,
+        300
+      ],
+      "id": "config"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.supabase }}/rest/v1/rpc/unsubscribe",
+        "options": {
+          "timeout": 120000
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ p_token: $('Unsub link').first().json.query.t }) }}"
+      },
+      "name": "Suppress",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        180,
+        300
+      ],
+      "id": "suppress",
+      "credentials": {
+        "supabaseApi": {
+          "id": "REPLACE_ON_IMPORT",
+          "name": "supabaseApi"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "<!doctype html><meta charset=utf-8><title>Unsubscribed</title><div style=\"font:16px/1.6 system-ui;max-width:32rem;margin:20vh auto;padding:0 1rem\"><h1 style=\"font-size:1.25rem\">You're unsubscribed.</h1><p>You won't hear from us again. Nothing else to do.</p></div>",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "text/html; charset=utf-8"
+              }
+            ]
+          }
+        }
+      },
+      "name": "Confirm page",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        400,
+        300
+      ],
+      "id": "confirm-page"
+    }
+  ],
+  "connections": {
+    "Unsub link": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Suppress",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Suppress": {
+      "main": [
+        [
+          {
+            "node": "Confirm page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all"
+  },
+  "pinData": {}
+}

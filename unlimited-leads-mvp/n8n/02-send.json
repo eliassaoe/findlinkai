@@ -1,0 +1,280 @@
+{
+  "name": "UL 02 \u2014 Send due emails",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 10
+            }
+          ]
+        }
+      },
+      "name": "Every 10 minutes",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -260,
+        300
+      ],
+      "id": "every-10-minutes"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Non-secret config only \u2014 API keys live in n8n credentials.\n// The Google client id/secret are the ONE exception: refreshing a per-mailbox\n// token is a body parameter, not a header, so it cannot ride a credential.\nreturn [{ json: {\n  supabase: 'https://YOUR-PROJECT.supabase.co',\n  appBase:  'https://unlimited-leads.net',\n  googleClientId:     'YOUR_GOOGLE_CLIENT_ID',\n  googleClientSecret: 'YOUR_GOOGLE_CLIENT_SECRET',\n  model: 'claude-sonnet-5',\n  sendBatch: 25,\n  stepDelaysDays: [0, 3, 7],\n}}];"
+      },
+      "name": "Config",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -40,
+        300
+      ],
+      "id": "config"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.supabase }}/rest/v1/rpc/next_sends",
+        "options": {
+          "timeout": 120000
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ p_limit: $json.sendBatch }) }}"
+      },
+      "name": "Claim due sends",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        180,
+        300
+      ],
+      "id": "claim-due-sends",
+      "credentials": {
+        "supabaseApi": {
+          "id": "REPLACE_ON_IMPORT",
+          "name": "supabaseApi"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// next_sends() already claimed these rows (status -> 'sending') inside one\n// transaction, so a second cron tick cannot pick them up. Nothing to filter.\nconst rows = $input.first().json;\nif (!Array.isArray(rows) || !rows.length) return [];   // quiet tick, no error\nreturn rows.map(r => ({ json: r }));"
+      },
+      "name": "Split messages",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        400,
+        300
+      ],
+      "id": "split-messages"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://oauth2.googleapis.com/token",
+        "options": {
+          "timeout": 120000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ client_id: $('Config').first().json.googleClientId, client_secret: $('Config').first().json.googleClientSecret, refresh_token: $json.refresh_token, grant_type: 'refresh_token' }) }}"
+      },
+      "name": "Refresh Google token",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        620,
+        300
+      ],
+      "id": "refresh-google-token",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Build RFC822 and base64url it. Personalisation is deliberately dumb string\n// replacement: the AI already wrote per-lead copy, these are just fallbacks.\nconst cfg = $('Config').first().json;\nconst claimed = $('Split messages').all();\n\nconst b64  = s => Buffer.from(s, 'utf8').toString('base64');\nconst b64u = s => b64(s).replace(/\\+/g,'-').replace(/\\//g,'_').replace(/=+$/,'');\nconst hdr  = s => /^[\\x20-\\x7E]*$/.test(s) ? s : '=?UTF-8?B?' + b64(s) + '?=';\n\nreturn $input.all().map((tok, i) => {\n  const m = claimed[i].json;\n  const fill = t => String(t || '')\n    .replace(/\\{\\{\\s*first_name\\s*\\}\\}/gi, m.first_name || 'there')\n    .replace(/\\{\\{\\s*company\\s*\\}\\}/gi,    m.company || 'your team');\n\n  const unsub = `${cfg.appBase}/u?t=${m.unsub_token}`;\n  const rfcId = `<${m.message_id}@${(m.mailbox_email.split('@')[1] || 'mail')}>`;\n  const body  = fill(m.body) +\n    `\\n\\n--\\nNot relevant? Unsubscribe: ${unsub}`;\n\n  const h = [\n    `From: ${m.from_name ? hdr(m.from_name) + ' ' : ''}<${m.mailbox_email}>`,\n    `To: <${m.lead_email}>`,\n    `Message-ID: ${rfcId}`,\n    `List-Unsubscribe: <${unsub}>`,\n    'List-Unsubscribe-Post: List-Unsubscribe=One-Click',\n    'MIME-Version: 1.0',\n    'Content-Type: text/plain; charset=\"UTF-8\"',\n  ];\n  // A follow-up must reply into the thread it started, or it reads as a new\n  // cold email and the thread history is lost.\n  if (m.step > 1 && m.parent_rfc_id) {\n    h.push(`In-Reply-To: ${m.parent_rfc_id}`, `References: ${m.parent_rfc_id}`);\n    h.push(`Subject: ${hdr('Re: ' + (m.subject || '').replace(/^Re:\\s*/i, ''))}`);\n  } else {\n    h.push(`Subject: ${hdr(fill(m.subject))}`);\n  }\n\n  return { json: {\n    message_id: m.message_id,\n    accessToken: tok.json.access_token,\n    raw: b64u(h.join('\\r\\n') + '\\r\\n\\r\\n' + body),\n    threadId: m.step > 1 ? (m.thread_id || undefined) : undefined,\n    rfcId,\n  }};\n});"
+      },
+      "name": "Build MIME",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        840,
+        300
+      ],
+      "id": "build-mime"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://gmail.googleapis.com/gmail/v1/users/me/messages/send",
+        "options": {
+          "timeout": 120000
+        },
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $json.accessToken }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.threadId ? { raw: $json.raw, threadId: $json.threadId } : { raw: $json.raw }) }}"
+      },
+      "name": "Gmail send",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1060,
+        300
+      ],
+      "id": "gmail-send",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// One row per attempt. A send that failed must be recorded as failed, not left\n// stuck in 'sending' forever \u2014 that row would never be retried or reported.\nconst sent = $('Split messages').all();\nreturn $input.all().map((r, i) => {\n  const ctx = $('Build MIME').all()[i].json;\n  const ok  = !!r.json?.id;\n  return { json: {\n    ok, message_id: ctx.message_id, rfc_message_id: ctx.rfcId,\n    provider_id: r.json?.id || null, thread_id: r.json?.threadId || null,\n    error: ok ? null : JSON.stringify(r.json?.error || r.json || 'unknown').slice(0, 500),\n  }};\n});"
+      },
+      "name": "Read results",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1280,
+        300
+      ],
+      "id": "read-results"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.supabase }}/rest/v1/rpc/{{ $json.ok ? 'mark_sent' : 'mark_failed' }}",
+        "options": {
+          "timeout": 120000
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.ok ? { p_message_id: $json.message_id, p_provider_id: $json.provider_id, p_thread_id: $json.thread_id, p_rfc_message_id: $json.rfc_message_id } : { p_message_id: $json.message_id, p_error: $json.error }) }}"
+      },
+      "name": "Record send",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1500,
+        300
+      ],
+      "id": "record-send",
+      "credentials": {
+        "supabaseApi": {
+          "id": "REPLACE_ON_IMPORT",
+          "name": "supabaseApi"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Every 10 minutes": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Claim due sends",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claim due sends": {
+      "main": [
+        [
+          {
+            "node": "Split messages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split messages": {
+      "main": [
+        [
+          {
+            "node": "Refresh Google token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Refresh Google token": {
+      "main": [
+        [
+          {
+            "node": "Build MIME",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build MIME": {
+      "main": [
+        [
+          {
+            "node": "Gmail send",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail send": {
+      "main": [
+        [
+          {
+            "node": "Read results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read results": {
+      "main": [
+        [
+          {
+            "node": "Record send",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all"
+  },
+  "pinData": {}
+}
