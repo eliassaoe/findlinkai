@@ -1,54 +1,32 @@
-# Sending: what is live, and what it is worth
+# Sending: closed for now, and what that leaves
 
-Three sending modes exist in the app under **Choose how you send**:
+**Neither alternative to the shared pool is live.** The app shows three modes
+under *Choose how you send*, and only the first one works today:
 
-| Mode | Status | What it is |
-|---|---|---|
-| **Pre-warmed mailboxes** | current | Explee's shared pool. Rotates across several mailboxes, personas like *Finn Turner*, *Leo Brooks*, *Mia Bennett* |
-| **Your own mailboxes** | **live** | your domains and mailboxes over Google, Microsoft or any IMAP/SMTP; your brand on every email; replies sync to your inbox |
-| **Dedicated mailboxes** | **not live** | Explee buys and configures fresh domains for you and warms them |
+| Mode | Status |
+|---|---|
+| **Pre-warmed mailboxes** — Explee's shared pool | **the only one that works** |
+| Your own mailboxes — Google, Microsoft, IMAP/SMTP | not live; the Email templates page says *"Your own mailboxes and name coming soon"* |
+| Dedicated mailboxes — Explee buys and warms domains for you | not live |
 
-So **bringing your own mailboxes is available today** — which means any rented
-infrastructure (Zapmail, Mailforge, Mailreef, anything with IMAP/SMTP) can be
-plugged straight in. What is *not* available is Explee buying and warming
-dedicated domains on your behalf.
-
-**Two places in the app say otherwise and are worth reconciling before you spend:**
-the Email templates page reads *"Your own mailboxes and name coming soon"*, and
-support answered that the option "isn't live — picking it only records your
-interest". Both may be stale copy about the dedicated tier. The way to settle it
-costs nothing: click through the flow and see whether it asks for IMAP/SMTP
-credentials and actually connects one mailbox.
-
-## The price does not change, so this is a placement bet, not a cost one
-
-Explee, asked directly:
-
-> Pricing stays flat at ~$0.03 per email actually sent, identical on every
-> account.
+Explee, asked directly, 2 Sept 2026:
 
 > Shared — outreach goes through our pre-warmed pool, with each prospect
 > consistently paired to one inbox from it; there's no dedicated domain or
 > mailbox per customer today.
+>
+> That option is visible in the app but isn't live — picking it only records your
+> interest, nothing gets connected, so there's no separate rate for it. Pricing
+> stays flat at ~$0.03 per email actually sent, identical on every account.
 
-So bringing your own mailboxes does **not** cut the $0.03. You would pay Explee
-the same and the infrastructure on top — roughly **$162/month more**, not $500
-less. Which is fine, but it has to be justified on inbox placement alone:
+**Click the option anyway** — recorded interest is how the queue gets built — but
+do not buy inboxes, do not plan around it, and do not read the modal as a menu.
 
-| | Monthly | Interested leads | Cost each |
-|---|---|---|---|
-| today, shared pool | $812 | 56 | **$14.50** |
-| + rented inboxes, reply rate unchanged | $974 | 56 | $17.39 |
-| + rented inboxes, **reply rate 2x** | $974 | 112 | **$8.70** |
+Everything below is kept for the day it ships: the provider shortlist, the
+economics, and the seed test are all still correct, and the decision will be a
+20-minute one when the feature lands.
 
-**Break-even is a 20% lift in reply rate.** Below that you have paid $162 a month
-for a logo on the envelope; above it, it is the cheapest thing on the table. Given
-the pool is shared — your placement carries other customers' complaints, with no
-domain you can warm, rotate or inspect — and given a prospect has already written
-back about spam, a 20% lift is a low bar. But it is still a bet, and the $2 seed
-test settles it before the invoice.
-
-## What to buy, given you will not manage inboxes
+## When it does ship: what to buy, given you will not manage inboxes
 
 "Your own mailboxes" in Explee's UI means *not our pool* — it does not mean you
 have to run anything. You rent from an infrastructure provider: they buy the
