@@ -93,34 +93,53 @@ compare fill rate, title accuracy and bounce rate. Buy the month only if there i
 a visible gap - and if there is, the 2.17x argument above is moot, because you
 would be buying an audience you otherwise cannot reach.
 
-### The same bar, recomputed on the measured baseline
+### The same bar, at the price actually being paid
 
-Not a model any more - your seven days. 5,231 emails, $156.93 sent, 14 interested,
-at four emails a lead:
+**$169 for 2,000 credits = $0.0845 a lead**, less than half the EUR 90 / 500 pack
+this file was originally costed against. That changes the verdict, so it is worth
+being explicit about how much:
+
+| | per lead | all-in with sending | Pharow must beat |
+|---|---|---|---|
+| costed at EUR 90 / 500 | $0.195 | $0.315 | 2.17x |
+| **at $169 / 2,000** | **$0.0845** | **$0.2045** | **1.41x** |
+
+Against the measured seven days - 5,231 emails, $156.93, 14 interested, four
+emails a lead:
 
 | Pharow's reply rate vs Explee's | Interested | Cost per interested lead |
 |---|---|---|
 | today, Explee | 14 | **$13.54** |
-| 1.0x (same) | 14 | $29.42 |
-| 1.5x | 21 | $19.62 |
-| **2.0x (double)** | 28 | **$14.71** — still worse than today |
-| 2.5x | 35 | $11.77 |
-| 3.0x | 42 | $9.81 |
+| 1.00x (same) | 14 | $19.10 |
+| 1.25x | 18 | $15.28 |
+| **1.41x** | 20 | **$13.55** — break-even |
+| 1.50x | 21 | **$12.73** |
+| 2.00x | 28 | **$9.55** |
 
-**Doubling the reply rate is not enough.** It has to beat 2.17x to draw level and
-clear 2.5x to be worth the switch. Data accuracy on its own rarely does that when
-the offer, the copy, the targeting and the inbox placement are all held constant -
-those four move reply rates by multiples; a better-verified email address moves it
-by a fraction.
+**1.41x is a different question from 2.17x.** Doubling a reply rate on data
+quality alone is a stretch; beating it by 40% on French buyers with a
+French-native database is an ordinary outcome. At $169/2,000 this stops being a
+bad bet and becomes a reasonable one - and at 2x it is a 29% cut in cost per
+interested lead.
 
-**One lever does lower the bar: sequence length.** The lead is paid once and the
-sends are paid per email, so more follow-ups amortise it:
+What has not changed: reply rate is driven by offer, then targeting, then inbox
+placement, then data accuracy. A prospect has said in writing that these emails
+land in spam (see BASELINE.md), and Pharow leads go to the same spam folder from
+the same domains. The 1.41x is winnable, but not while placement is broken.
+
+**One lever lowers the bar further: sequence length.** The lead is paid once and
+the sends are paid per email, so more follow-ups amortise it. At $0.0845 a lead:
 
 | Emails per lead | Leads for the same 5,231 sends | Pharow must beat |
 |---|---|---|
-| 3 | 1,744 | 2.48x |
-| 4 | 1,308 | 2.17x |
-| 6 | 872 | **1.83x** |
+| 4 | 1,308 | 1.41x |
+| 6 | 872 | **1.29x** |
+
+Budget: 2,000 credits is 2,000 leads at 1 credit each - a 500-lead test arm costs
+$42 and leaves 1,500 credits for the winner. Phone numbers cost 10 credits each,
+so do not enable them on a test. If the $169 is the monthly Advanced plan rather
+than a one-off pack, it recurs: cancel it if the test loses, and note the credits
+themselves do not expire.
 
 If expensive leads are bought, buy fewer of them and work each one harder. A
 six-email sequence makes Pharow a materially easier bet than a three-email one.
