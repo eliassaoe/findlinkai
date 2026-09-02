@@ -82,9 +82,11 @@ so the API never confirms that a campaign exists.
 - **No rate limiting.** A signed-in customer can spend your org-wide Explee
   quota (10,000/hour, shared by everyone). Add a KV counter before you are past
   a handful of accounts.
-- **No email notification.** The app says "we'll email you when the first reply
-  arrives" and nothing sends that email yet. Either wire it or change the copy —
-  a promise the product does not keep is worse than no promise.
+- **The hot-lead email is built but not switched on.** The worker fires a
+  `hot_lead` event and a PostHog workflow is waiting as a draft — see
+  "Hot-lead notifications" in `../tenant-api/README.md`. Test-send it and enable
+  it before you tell a customer we'll email them, or the copy in this app is
+  promising something that does not happen yet.
 - **The status sync matches Explee's status strings by substring**, because the
   API documents that campaigns have a lifecycle `status` without documenting its
   values. Check one real campaign against `GET /autogtm/campaigns` and tighten

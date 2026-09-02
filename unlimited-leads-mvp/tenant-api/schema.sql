@@ -144,3 +144,25 @@ drop trigger if exists campaigns_not_owner_project on tenant_campaigns;
 create trigger campaigns_not_owner_project
   before insert or update on tenant_campaigns
   for each row execute function refuse_owner_project();
+
+-- ---------------------------------------------------------------------------
+-- Hot-lead notifications.
+--
+-- Explee has no webhooks, so the worker polls `GET /autogtm/hot-leads?since=`
+-- per linked campaign. This table is both the dedup key and the cursor: a lead
+-- already in it is never announced twice, so a poll that overlaps, retries, or
+-- replays cannot email the same customer about the same person again.
+--
+-- Notifying twice about one lead is worse than notifying late: the customer
+-- stops trusting the alert, and the alert is the entire reason they log in.
+-- ---------------------------------------------------------------------------
+create table if not exists hot_leads_seen (
+  campaign_id  bigint not null,
+  person_id    text   not null,
+  tenant_id    uuid   references tenants(id) on delete cascade,
+  full_name    text,
+  company      text,
+  notified_at  timestamptz not null default now(),
+  primary key (campaign_id, person_id)
+);
+create index if not exists hot_leads_seen_tenant_idx on hot_leads_seen(tenant_id, notified_at desc);

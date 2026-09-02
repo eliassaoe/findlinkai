@@ -479,6 +479,8 @@ export default {
           return json(await linkCampaign(body, env), 200, origin);
         if (seg[1] === 'sync')
           return json(await syncStatuses(env), 200, origin);
+        if (seg[1] === 'hot')
+          return json(await pollHotLeads(env), 200, origin);
         if (seg[1] === 'queue')
           return json(await sb(env,
             'onboarding_requests?select=*,tenants(id,email,company)&order=submitted_at.desc'),
@@ -515,8 +517,13 @@ export default {
     }
   },
 
-  // Flip "Finding leads" to "Sending" without you watching for it.
+  // Flip "Finding leads" to "Sending", then announce any new hot lead.
+  // Status first: a campaign that just went active in this same tick is then
+  // already eligible for polling rather than waiting another 15 minutes.
   async scheduled(_event, env, ctx) {
-    ctx.waitUntil(syncStatuses(env).catch(() => {}));
+    ctx.waitUntil((async () => {
+      await syncStatuses(env).catch(() => {});
+      await pollHotLeads(env).catch(() => {});
+    })());
   },
 };

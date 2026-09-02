@@ -97,6 +97,57 @@ goes in the copy so meetings land on **their** calendar.
 4. `wrangler deploy`.
 5. Point Calendly's `invitee.created` webhook at `/hooks/calendly`.
 
+## Hot-lead notifications, via PostHog
+
+The customer's whole reason to log in is "someone replied". So the worker
+watches for that and PostHog sends the email.
+
+**The split, and why:** the worker decides *who is new*, PostHog decides *what
+the email says*. Changing the copy then needs no deploy, and PostHog already has
+an email integration and a workflow engine — there is no reason to build a
+sender.
+
+**How a notification happens**
+
+1. The 15-minute cron runs `syncStatuses()`, then `pollHotLeads()`.
+2. `pollHotLeads()` walks `tenant_campaigns` — so it only ever sees campaigns
+   linked to a customer, never yours — and calls
+   `GET /autogtm/hot-leads?campaign_id=…` for each.
+3. Each lead is inserted into `hot_leads_seen`. **The insert is the dedup**: the
+   primary key `(campaign_id, person_id)` rejects one we already announced, so a
+   retry, an overlapping run or a replayed feed cannot email twice. Notifying
+   twice is worse than notifying late — the customer stops trusting the alert,
+   and the alert is why they log in.
+4. Only a genuinely new row fires a `hot_lead` event to PostHog with
+   `distinct_id` = **the customer's email**. That direction matters: get it
+   backwards and PostHog emails the prospect.
+5. PostHog's workflow sends the mail.
+
+**The workflow is created and sitting as a draft:**
+[Hot lead — notify the customer](https://us.posthog.com/project/263837/workflows/01a0642a-6047-0000-b4f5-4b2a041bcac5/workflow)
+— trigger `hot_lead` → email → exit, with a 15-minute per-person mask so a burst
+of replies is one email rather than six.
+
+**Before you enable it, two things:**
+
+1. **Run a test send from PostHog and read the email.** The server stamped
+   `templating: "liquid"` on the email node while the placeholders are written
+   hog-style (`{event.properties.lead_name}`). If the test arrives with those
+   braces printed literally, rewrite them as `{{ event.properties.lead_name }}`
+   in the workflow's email step. This is the one thing in the chain I could not
+   verify from here.
+2. **Set the `from` address to a domain you actually control.** It currently
+   reads `hello@unlimited-leads.net`, which has to be verified in PostHog's
+   email settings or the send fails.
+
+Then enable it. Until you do, the event still fires and is visible in PostHog —
+so you can watch hot leads arrive before a single email goes out.
+
+**Worker config:** set `POSTHOG_KEY` (project API key) and optionally
+`POSTHOG_HOST` and `APP_BASE_URL`. Leave `POSTHOG_KEY` unset and notifications
+are simply off — nothing else changes. Force a poll any time with
+`GET /admin/hot`.
+
 ## Known limits, so they do not surprise you later
 
 **Booking attribution is best-effort.** `/hooks/calendly` matches the booking to
