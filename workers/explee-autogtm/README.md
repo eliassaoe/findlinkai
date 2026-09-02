@@ -3,15 +3,13 @@
 The plan behind this directory is one goal — **cost per call under $50** — and two
 actions, both staying on AutoGTM:
 
-1. **Follow up on people who replied but didn't book.** ~55 positive replies a
-   month, 10 book, 45 leak. Those leads are already paid for at full price;
-   re-working one costs $0.03. Recover a fifth and the calls roughly double for
-   about $10 of sends — $50 a call becomes something near $27. This is the main
-   lever and it is the one that needs no new vendor.
-2. **Test a higher-intent lead source.** Explee matches 105M companies on
-   firmographics; it cannot see intent. 500 Explee leads against 500 sourced
-   leads, same copy, same week. This costs *more*, not less — it is a quality bet
-   that only pays if the reply rate moves enough to cover the data.
+1. **Test a higher-intent lead source** — `leadsource_test.py`. **This is the
+   live one.** Explee matches 105M companies on firmographics; it cannot see
+   intent. 500 Explee leads against 500 sourced leads, same copy, same week.
+   Which sources, and what they cost: **[SOURCES.md](SOURCES.md)**.
+2. **Follow up on people who replied but didn't book** — `recover.py`. Built and
+   tested, but **parked on one missing input**: nothing in Explee knows who
+   booked. See "the booking problem" below before running it.
 
 Everything here talks to the Explee public API with the same `X-API-Key`.
 
@@ -48,7 +46,78 @@ export EXPLEE_API_KEY=...
 python3 test_explee_autogtm.py         # 40 tests, no network, no key needed
 ```
 
-## Action 1 — recover the leaked replies
+## Action 2 — the lead source test (start here)
+
+Read [SOURCES.md](SOURCES.md) first — it picks the source. Short version: your
+own product's LinkedIn post-engager data costs no cash, and TheirStack is the
+only real pay-as-you-go intent API (~$26 for a 500-lead arm against $99/month
+for Gojiberry).
+
+```bash
+# 0. the ICP, in plain English -> the exact filter shape. Free, no credits.
+python3 leadsource_test.py filters \
+    --query "founders and heads of sales at B2B lead generation agencies and \
+             sales-technology companies in the US and UK" --out filters.json
+```
+
+### The four steps
+
+```bash
+# the sourced arm: post engagers from your own tool, or a TheirStack export
+python3 leadsource_test.py prepare --csv intent-export.csv --out variant.leads.json
+
+# the Explee arm: search is free, the emails are not (1.5 credits each found on basic)
+python3 leadsource_test.py control --filters filters.json --count 500 \
+    --exclude variant.leads.json --out control.leads.json --apply
+
+# same brief for both, or the test measures the copy instead of the lead source
+python3 leadsource_test.py import --project 4021 --name "Intent test - control" \
+    --leads control.leads.json --brief brief.json --apply
+python3 leadsource_test.py import --project 4021 --name "Intent test - sourced" \
+    --leads variant.leads.json --brief brief.json --exclude control.arm.json --apply
+
+# a week or two later
+python3 leadsource_test.py compare --arm control.arm.json --arm variant.arm.json
+```
+
+`import` hashes the brief and refuses the second arm when it differs; `prepare`
+and `control` drop anyone already in the other arm (a lead in both replies once
+and credits an arm at random); `compare` says so out loud if the arms started on
+different days.
+
+**The verdict gates** implement the plan's rule literally — 2x or drop it:
+
+| Gate | Value | Why |
+|---|---|---|
+| `MIN_LEADS_PER_ARM` | 300 | below this, nothing is readable |
+| `MIN_REPLIES_TOTAL` | 12 | across both arms, before reply rate decides anything |
+| `SCALE_EFFECT` | 1.0 (2x) | a 30% edge is noise wearing a suit |
+| `ALPHA` | 0.05 | two-proportion test on reply rate |
+
+A significant but small lift returns **drop**, on purpose: the sourced data costs
+more than a 30% edge is worth.
+
+## Action 1 — recover the leaked replies (parked)
+
+### The booking problem
+
+**Explee cannot tell you who booked a call.** Its inbox knows replies; the
+booking lives in Calendly. So `recover.py` takes `--booked booked.json`, a list
+of email addresses you export yourself, and without it the script will cheerfully
+follow up someone who booked yesterday.
+
+Three ways out, cheapest first:
+
+1. **Export it by hand** once a week from Calendly. Fine to start, dies of
+   boredom by week three.
+2. **Read Calendly's API** — `GET /scheduled_events` plus `/invitees` gives you
+   the invitee emails, it is one endpoint and about twenty lines in `explee.py`
+   style. This is the real fix and it is not built yet.
+3. **Only follow up threads nobody answered** — already how it behaves: a lead
+   who booked almost always has a human reply in the thread, and that stops us.
+   It is a decent proxy, not a guarantee.
+
+Until (2) exists, treat this half as **not ready to run unattended**.
 
 ```bash
 python3 recover.py                                     # dry run: prints every mail it would send
@@ -100,43 +169,6 @@ different days, at least 18 hours out. Never a bare link — that is what the le
 is made of. `compose()` refuses to return a message that lost its slots, so a
 template edit cannot quietly turn these back into "here's my calendar".
 
-## Action 2 — the lead source test
-
-```bash
-# the sourced arm: a CSV from Gojiberry (or any intent source)
-python3 leadsource_test.py prepare --csv gojiberry.csv --out variant.leads.json
-
-# the Explee arm: search is free, the emails are not (1.5 credits each found on basic)
-python3 leadsource_test.py control --filters filters.json --count 500 \
-    --exclude variant.leads.json --out control.leads.json --apply
-
-# same brief for both, or the test measures the copy instead of the lead source
-python3 leadsource_test.py import --project 4021 --name "Intent test - control" \
-    --leads control.leads.json --brief brief.json --apply
-python3 leadsource_test.py import --project 4021 --name "Intent test - sourced" \
-    --leads variant.leads.json --brief brief.json --exclude control.arm.json --apply
-
-# a week or two later
-python3 leadsource_test.py compare --arm control.arm.json --arm variant.arm.json
-```
-
-`import` hashes the brief and refuses the second arm when it differs; `prepare`
-and `control` drop anyone already in the other arm (a lead in both replies once
-and credits an arm at random); `compare` says so out loud if the arms started on
-different days.
-
-**The verdict gates** implement the plan's rule literally — 2x or drop it:
-
-| Gate | Value | Why |
-|---|---|---|
-| `MIN_LEADS_PER_ARM` | 300 | below this, nothing is readable |
-| `MIN_REPLIES_TOTAL` | 12 | across both arms, before reply rate decides anything |
-| `SCALE_EFFECT` | 1.0 (2x) | a 30% edge is noise wearing a suit |
-| `ALPHA` | 0.05 | two-proportion test on reply rate |
-
-A significant but small lift returns **drop**, on purpose: the sourced data costs
-more than a 30% edge is worth.
-
 ## The number that decides whether any of this worked
 
 ```bash
@@ -152,10 +184,12 @@ from lead sourcing, fixed by confirmations and reminders, not by better data.
 
 ## What a human still has to do
 
-- Export `booked.json` (and ideally `opened.json`) — no API here knows who booked.
 - Verify the response shapes once, per the block at the top.
+- Pick a source from [SOURCES.md](SOURCES.md) and export a CSV. Accept that the
+  intent arm may lose — that is what a test is.
 - Read a dry run before the first `--apply`. These are real emails to real people.
-- Buy the intent data for Action 2, and accept it may lose. That is the test.
+- For Action 1 only: export `booked.json` from Calendly, or ask for the Calendly
+  reader so it stops being a manual step.
 
 ## Files
 
@@ -166,4 +200,6 @@ from lead sourcing, fixed by confirmations and reminders, not by better data.
 | `recover.py` | Action 1: scan the inboxes, decide, send, mark the note |
 | `leadsource_test.py` | Action 2: prepare / control / import / compare |
 | `baseline.py` | cost per call that actually showed up, before and after |
+| `SOURCES.md` | which intent source to buy, what it costs, what was ruled out |
+| `brief.json` | the campaign copy both arms share - per-record project, not the subscription |
 | `test_explee_autogtm.py` | 40 tests, offline |

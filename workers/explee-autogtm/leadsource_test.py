@@ -99,6 +99,20 @@ def load_keys(paths):
     return keys
 
 
+def cmd_filters(args):
+    """Plain English -> the exact filter shape the search endpoints want. Free."""
+    api = Explee()
+    got = api.request("POST", "/public/api/v1/search/nl-to-filters",
+                      body={"query": args.query})
+    body = {"company_filters": first_of(got, "companies_filters", "company_filters", default={}),
+            "people_filters": first_of(got, "people_filters", default={})}
+    Path(args.out).write_text(json.dumps(body, indent=1))
+    print(json.dumps(body, indent=1))
+    print("\n-> {}   (focus: {})".format(args.out, first_of(got, "focus", default="?")))
+    print("Read it before spending anything: this is what the search will actually match.")
+    return 0
+
+
 def cmd_prepare(args):
     with open(args.csv, newline="", encoding="utf-8-sig") as handle:
         rows = list(csv.DictReader(handle))
@@ -283,6 +297,11 @@ def cmd_compare(args):
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     sub = ap.add_subparsers(dest="cmd", required=True)
+
+    filt = sub.add_parser("filters", help="plain English -> filters.json (free, no credits)")
+    filt.add_argument("--query", required=True)
+    filt.add_argument("--out", default="filters.json")
+    filt.set_defaults(func=cmd_filters)
 
     prep = sub.add_parser("prepare", help="a sourced CSV -> import-ready leads")
     prep.add_argument("--csv", required=True)
