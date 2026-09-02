@@ -87,7 +87,7 @@ Professional tools for extracting company data from LinkedIn. Streamline your bu
 <li><a href="https://linkfinderai.com/terms" title="Terms of service">Terms of Service</a></li>
 <li><a href="https://linkfinderai.com/about-us" title="About us">About Us</a></li>
 <li><a href="https://linkfinderai.com/blog" title="Blog">Blog</a></li>
-<li><a href="https://calendly.com/hamoureliasse/compensated-interview-unlimited-leads-clone" title="Book a call with sales" target="_blank"><i class="fas fa-calendar-alt"></i> Book a Call</a></li>
+<li><a href="https://calendly.com/hamoureliasse/linkfinder-ai" title="Book a call with sales" target="_blank"><i class="fas fa-calendar-alt"></i> Book a Call</a></li>
 <li><a href="https://www.linkedin.com/in/eliasse-hamour-08194821a/" title="Follow us on LinkedIn" target="_blank"><i class="fab fa-linkedin"></i> LinkedIn</a></li>
 <li><a href="https://www.youtube.com/" title="Subscribe to our YouTube" target="_blank"><i class="fab fa-youtube"></i> YouTube</a></li>
 <li><a href="https://trustpilot.com/review/linkfinderai.com" title="See our Trustpilot reviews" target="_blank"><i class="fab fa-trustpilot"></i> Trustpilot Reviews</a></li>

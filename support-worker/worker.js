@@ -199,7 +199,7 @@ async function toolEscalateToHuman(env, { summary, userEmail }, userToken) {
       heading: "Let's get you a real answer",
       body: summary,
       mailto: `mailto:${toEmail}?subject=${encodeURIComponent("Support request from AI chat")}&body=${encodeURIComponent(summary + (userToken ? `\n\nUser token: ${userToken}` : ""))}`,
-      calendly: "https://calendly.com/hamoureliasse/compensated-interview-unlimited-leads-clone",
+      calendly: "https://calendly.com/hamoureliasse/linkfinder-ai",
     },
   };
 }
