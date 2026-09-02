@@ -35,6 +35,7 @@ emails, not an inbox.
 """
 
 import argparse
+import csv
 import datetime as dt
 import hashlib
 import json
@@ -44,9 +45,12 @@ from pathlib import Path
 
 import followups as fu
 from explee import Explee, ExpleeError, ShapeError, first_of
+from sheet import Sheet, SheetError
 
 HERE = Path(__file__).resolve().parent
 MAX_SENDS_PER_RUN = 25
+MAX_REPLIES_PER_INBOUND = 3   # the API's own cap: 3 replies per message they sent
+NUDGE_AFTER_DAYS = (2, 5)     # reply #2 goes 2 days after ours, #3 five days after
 MARK_OPEN, MARK_CLOSE = "[explee-recovery]", "[/explee-recovery]"
 ENTRY = re.compile(r"^(?P<at>\S+)\s+bucket=(?P<bucket>\S+)\s+msg=(?P<msg>\S+)"
                    r"\s+action=(?P<action>\S+)(?:\s+due=(?P<due>\S+))?")
@@ -103,11 +107,24 @@ def message_direction(msg):
                      "INBOUND_WORDS/OUTBOUND_WORDS in recover.py.".format(sorted(msg)))
 
 
+def message_time(msg):
+    """When it was sent, if the payload says. None is a normal answer."""
+    for key in ("sent_at", "created_at", "timestamp", "date", "at", "time"):
+        value = msg.get(key)
+        if isinstance(value, str) and value.strip():
+            try:
+                return dt.datetime.fromisoformat(value.strip().replace("Z", "+00:00"))
+            except ValueError:
+                continue
+    return None
+
+
 def thread_view(thread):
-    """-> (messages oldest-first as {direction, text}, can_reply)."""
+    """-> (messages oldest-first as {direction, text, at}, can_reply)."""
     raw = first_of(thread, "messages", "emails", "thread", "conversation", default=[])
     messages = [{"direction": message_direction(m),
-                 "text": first_of(m, "body", "text", "message", "content", default="")}
+                 "text": first_of(m, "body", "text", "message", "content", default=""),
+                 "at": message_time(m)}
                 for m in raw]
     return messages, bool(first_of(thread, "can_reply", default=False))
 
@@ -130,8 +147,32 @@ def person_fields(row, thread):
 
 
 # --- one lead ----------------------------------------------------------------
+def last_outbound_at(messages, entries, now):
+    """When we last wrote. The thread's own timestamp first, our note marker second."""
+    for msg in reversed(messages):
+        if msg["direction"] == "out" and msg.get("at"):
+            return msg["at"]
+    for entry in reversed(entries):
+        if entry["action"] == "sent":
+            try:
+                return dt.datetime.strptime(entry["at"], "%Y-%m-%dT%H:%MZ").replace(
+                    tzinfo=dt.timezone.utc)
+            except ValueError:
+                continue
+    return None
+
+
 def decide(row, thread, note, cfg, booked, calendar_views, now):
-    """Pure: what should happen to this lead. No network, no sending."""
+    """Pure: what should happen to this lead. No network, no sending.
+
+    Two situations, and they are different jobs:
+
+      they spoke last  -> answer it (classify, propose two times)
+      we spoke last    -> they went quiet. Nudge, on a schedule, up to the cap.
+
+    The second is the win-back the plan is about, and the one Explee does not do:
+    "once a lead replies, the automated sequence is over for them for good".
+    """
     who = person_fields(row, thread)
     messages, can_reply = thread_view(thread)
     inbound = [i for i, m in enumerate(messages) if m["direction"] == "in"]
@@ -142,43 +183,68 @@ def decide(row, thread, note, cfg, booked, calendar_views, now):
     text = messages[last]["text"]
     key = hashlib.sha1((text or "").strip().lower().encode()).hexdigest()[:6]
     entries = read_marker(note)
+    replies_sent = len(messages[last + 1:])          # everything we sent since they wrote
+    language = cfg.get("language", "en")
 
-    due = [e for e in entries
-           if e["action"] == "queued" and e.get("due", "9999") <= now.date().isoformat()
-           and not any(f["action"] == "sent" and f["bucket"] == "re_engage"
-                       and f["msg"] == e["msg"] for f in entries)]
-
-    if any(m["direction"] == "out" for m in messages[last + 1:]):
-        # Somebody already answered. A queued re-engage that came due is still ours.
-        if due and can_reply:
-            return _send(who, "re_engage", "re-engage due {}".format(due[-1]["due"]),
-                         due[-1]["msg"], entries, note, cfg, now)
-        return {"action": "skip", "reason": "already answered", "who": who}
-    if who["email"] in booked:
-        return {"action": "skip", "reason": "already booked a call", "who": who}
-    if any(e["msg"] == key and e["action"] in ("sent", "queued") for e in entries):
-        return {"action": "skip", "reason": "already handled (note marker)", "who": who}
+    # Gate 1: the sheet. Checked before anything else, every single run.
+    if who["email"] and who["email"] in booked:
+        return {"action": "skip", "reason": "booked (marked in the sheet)", "who": who}
+    # Gate 2: Explee's compliance gate.
+    if not can_reply:
+        return {"action": "skip", "reason": "can_reply is false", "who": who}
+    # Gate 3: the API allows at most three replies per message they sent.
+    if replies_sent >= MAX_REPLIES_PER_INBOUND:
+        return {"action": "skip", "reason": "reply cap ({}) reached on this message".format(
+            MAX_REPLIES_PER_INBOUND), "who": who}
 
     bucket, why = fu.classify(text, opened_calendar=who["email"] in calendar_views)
     if bucket in fu.SILENT:
         return {"action": "skip", "reason": "{} - {}".format(bucket, why),
                 "bucket": bucket, "who": who}
-    if bucket in fu.QUEUED:
-        when = fu.re_engage_date(text, now)
-        entries.append({"at": now.strftime("%Y-%m-%dT%H:%MZ"), "bucket": bucket,
-                        "msg": key, "action": "queued", "due": when.isoformat()})
-        return {"action": "queue", "bucket": bucket, "why": why, "who": who,
-                "due": when.isoformat(), "note": write_marker(note, entries)}
-    if not can_reply:
-        return {"action": "skip", "reason": "can_reply is false", "bucket": bucket, "who": who}
-    return _send(who, bucket, why, key, entries, note, cfg, now)
+
+    # --- they spoke last: answer them ---------------------------------------
+    if replies_sent == 0:
+        if any(e["msg"] == key and e["action"] in ("sent", "queued") for e in entries):
+            return {"action": "skip", "reason": "already handled (note marker)", "who": who}
+        if bucket in fu.QUEUED:
+            when = fu.re_engage_date(text, now)
+            entries.append({"at": now.strftime("%Y-%m-%dT%H:%MZ"), "bucket": bucket,
+                            "msg": key, "action": "queued", "due": when.isoformat()})
+            return {"action": "queue", "bucket": bucket, "why": why, "who": who,
+                    "due": when.isoformat(), "note": write_marker(note, entries)}
+        return _send(who, bucket, why, key, entries, note, cfg, now, language)
+
+    # --- we spoke last: they went quiet -------------------------------------
+    wrote_at = last_outbound_at(messages, entries, now)
+    if wrote_at is None:
+        return {"action": "skip", "reason": "no timestamp on our last message, cannot "
+                                            "schedule a nudge safely", "who": who}
+    waited = (now - wrote_at).total_seconds() / 86400.0
+
+    # "recontactez-moi en janvier" is not a two-day nudge. A queued lead waits for
+    # its own date and then gets the re-engage message instead.
+    queued = [e for e in entries if e["action"] == "queued" and e.get("due")]
+    if queued:
+        due = queued[-1]["due"]
+        if now.date().isoformat() < due:
+            return {"action": "skip", "reason": "queued until {}".format(due), "who": who}
+        return _send(who, "re_engage", "re-engage due {}".format(due),
+                     queued[-1]["msg"], entries, note, cfg, now, language)
+
+    wait = NUDGE_AFTER_DAYS[min(replies_sent, len(NUDGE_AFTER_DAYS)) - 1]
+    if waited < wait:
+        return {"action": "skip", "reason": "nudge {} due in {:.1f}d".format(
+            replies_sent, wait - waited), "who": who}
+    return _send(who, "nudge", "no answer for {:.0f}d after our reply {}".format(
+        waited, replies_sent), key, entries, note, cfg, now, language)
 
 
-def _send(who, bucket, why, key, entries, note, cfg, now):
-    slots = [fu.say_slot(s) for s in fu.two_slots(now, cfg.get("timezone", "UTC"),
-                                                  tuple(cfg.get("slot_hours", fu.SLOT_HOURS)))]
+def _send(who, bucket, why, key, entries, note, cfg, now, language="en"):
+    slots = [fu.say_slot(s, language)
+             for s in fu.two_slots(now, cfg.get("timezone", "UTC"),
+                                   tuple(cfg.get("slot_hours", fu.SLOT_HOURS)))]
     ctx = dict(cfg.get("copy", {}), slots=slots, **who)
-    message = fu.compose(bucket, ctx)
+    message = fu.compose(bucket, ctx, language)
     entries = entries + [{"at": now.strftime("%Y-%m-%dT%H:%MZ"), "bucket": bucket,
                           "msg": key, "action": "sent"}]
     return {"action": "send", "bucket": bucket, "why": why, "who": who,
@@ -246,13 +312,54 @@ def run(api, cfg, campaigns, booked, calendar_views, now, apply_, cap, out=sys.s
     return tally, sends
 
 
+def sync_hot_leads(api, sheet, campaigns, out=sys.stdout):
+    """Every hot lead into the sheet. The Apps Script drops ones already there."""
+    rows = []
+    for campaign in campaigns:
+        cid = first_of(campaign, "id", "campaign_id")
+        for lead in api.hot_leads(campaign_id=cid, limit=100):
+            email = str(first_of(lead, "email", "email_address", default="")).strip().lower()
+            if not email:
+                continue
+            rows.append({
+                "email": email,
+                "first_name": first_of(lead, "first_name", "firstname", default=""),
+                "company": first_of(lead, "company_name", "company", "company_domain",
+                                    default=""),
+                "campaign_id": cid,
+                "person_id": first_of(lead, "person_id", "id", default=""),
+                "became_hot_at": first_of(lead, "became_hot_at", "created_at", default=""),
+                "booked": "",
+            })
+    if not rows:
+        print("no hot leads to sync", file=out)
+        return 0
+    added = sheet.append(rows)
+    if added is None:
+        path = HERE / "hot-leads-to-paste.csv"
+        with open(path, "w", newline="", encoding="utf-8") as handle:
+            writer = csv.DictWriter(handle, fieldnames=list(rows[0]))
+            writer.writeheader()
+            writer.writerows(rows)
+        print("read-only sheet: {} hot leads written to {} - paste them in".format(
+            len(rows), path.name), file=out)
+        return 0
+    print("{} hot leads seen, {} new rows added to the sheet".format(len(rows), added), file=out)
+    return added
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--config", default=str(HERE / "config.json"))
     ap.add_argument("--campaign", type=int, action="append",
                     help="campaign id; repeatable. Default: every campaign in the project.")
     ap.add_argument("--project", type=int)
-    ap.add_argument("--booked", help="JSON list (or one per line) of emails that booked a call")
+    ap.add_argument("--sheet-csv", help="published-to-web CSV url of the hot-leads sheet")
+    ap.add_argument("--sheet-webapp", help="Apps Script /exec url (read AND append)")
+    ap.add_argument("--sheet-token", help="the token set in sheet-bridge.gs")
+    ap.add_argument("--no-sync", action="store_true",
+                    help="do not push new hot leads into the sheet")
+    ap.add_argument("--booked", help="offline fallback: JSON list or one email per line")
     ap.add_argument("--calendar-views", help="emails that opened the scheduler and did not book")
     ap.add_argument("--limit", type=int, default=MAX_SENDS_PER_RUN)
     ap.add_argument("--apply", action="store_true", help="actually send. Off by default.")
@@ -270,8 +377,23 @@ def main(argv=None):
     if not campaigns:
         raise SystemExit("no campaigns to scan")
 
+    # The sheet decides who is booked. If it cannot be read, nothing sends -
+    # an empty booked set would mail everyone who booked this week.
+    if args.sheet_csv or args.sheet_webapp:
+        sheet = Sheet(args.sheet_csv, args.sheet_webapp, args.sheet_token)
+        if not args.no_sync:
+            sync_hot_leads(api, sheet, campaigns)
+        booked = sheet.booked_emails()
+        print("{} leads marked booked in the sheet".format(len(booked)))
+    elif args.booked:
+        booked = load_emails(args.booked)
+    else:
+        raise SystemExit("no booked source. Pass --sheet-csv or --sheet-webapp (or --booked "
+                         "for an offline test). Without one this would follow up people who "
+                         "have already booked.")
+
     now = dt.datetime.now(dt.timezone.utc)
-    tally, sends = run(api, cfg, campaigns, load_emails(args.booked),
+    tally, sends = run(api, cfg, campaigns, booked,
                        load_emails(args.calendar_views), now, args.apply, args.limit)
 
     print("\n" + ("sent {}".format(sends) if args.apply
@@ -282,4 +404,8 @@ def main(argv=None):
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    try:
+        sys.exit(main())
+    except SheetError as exc:
+        print("{}\nNothing was sent.".format(exc), file=sys.stderr)
+        sys.exit(1)

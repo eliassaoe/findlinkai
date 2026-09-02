@@ -17,6 +17,7 @@ import followups as fu
 import instantly_leads as il
 import leadsource_test as lst
 import recover
+import sheet as sheet_mod
 from explee import Explee, ExpleeError, ShapeError, first_of
 
 UTC = dt.timezone.utc
@@ -132,8 +133,14 @@ class Notes(unittest.TestCase):
 
 
 def thread(*messages, **kw):
-    return {"can_reply": kw.get("can_reply", True),
-            "messages": [{"direction": d, "body": b} for d, b in messages],
+    """Messages are (direction, body) or (direction, body, iso timestamp)."""
+    out = []
+    for msg in messages:
+        row = {"direction": msg[0], "body": msg[1]}
+        if len(msg) > 2:
+            row["sent_at"] = msg[2]
+        out.append(row)
+    return {"can_reply": kw.get("can_reply", True), "messages": out,
             "person": {"first_name": "Sam", "company_name": "Acme",
                        "email": kw.get("email", "sam@acme.com")}}
 
@@ -155,10 +162,43 @@ class Decide(unittest.TestCase):
         self.assertEqual(plan["action"], "skip")
         self.assertIn("booked", plan["reason"])
 
-    def test_a_human_answer_stops_us(self):
-        plan = self.plan(thread(("out", "hi"), ("in", "sounds good"), ("out", "great, when?")))
+    def test_after_we_answer_the_nudge_clock_starts(self):
+        # Three days of silence after our answer: nudge. This is the win-back,
+        # and it fires whether the answer came from this script or from a human.
+        convo = thread(("out", "hi"), ("in", "sounds good"),
+                       ("out", "great, when?", "2026-08-30T09:00:00Z"))
+        plan = self.plan(convo)
+        self.assertEqual(plan["action"], "send")
+        self.assertEqual(plan["bucket"], "nudge")
+
+    def test_a_fresh_answer_is_left_alone(self):
+        convo = thread(("out", "hi"), ("in", "sounds good"),
+                       ("out", "great, when?", "2026-09-02T06:00:00Z"))
+        plan = self.plan(convo)
         self.assertEqual(plan["action"], "skip")
-        self.assertEqual(plan["reason"], "already answered")
+        self.assertIn("due in", plan["reason"])
+
+    def test_the_api_reply_cap_is_respected(self):
+        # Their message + three of ours = the API's limit. A fourth is a 429.
+        convo = thread(("out", "hi"), ("in", "sounds good"),
+                       ("out", "a", "2026-08-20T09:00:00Z"),
+                       ("out", "b", "2026-08-22T09:00:00Z"),
+                       ("out", "c", "2026-08-25T09:00:00Z"))
+        plan = self.plan(convo)
+        self.assertEqual(plan["action"], "skip")
+        self.assertIn("reply cap", plan["reason"])
+
+    def test_booked_in_the_sheet_stops_the_nudge_too(self):
+        convo = thread(("out", "hi"), ("in", "sounds good"),
+                       ("out", "great", "2026-08-20T09:00:00Z"))
+        plan = self.plan(convo, booked={"sam@acme.com"})
+        self.assertEqual(plan["action"], "skip")
+        self.assertIn("booked", plan["reason"])
+
+    def test_a_negative_reply_is_never_nudged(self):
+        convo = thread(("out", "hi"), ("in", "non merci"),
+                       ("out", "ok", "2026-08-20T09:00:00Z"))
+        self.assertEqual(self.plan(convo)["action"], "skip")
 
     def test_second_run_over_the_same_reply_does_nothing(self):
         convo = thread(("out", "hi"), ("in", "can you send me pricing?"))
@@ -184,17 +224,18 @@ class Decide(unittest.TestCase):
         self.assertEqual(plan["due"], "2026-12-01")
         self.assertNotIn("message", plan)
 
-    def test_a_due_queue_fires_even_though_we_already_answered(self):
+    def test_a_dated_queue_beats_the_nudge_schedule(self):
+        # "recontactez-moi en janvier" must not be nudged in two days.
         convo = thread(("out", "hi"), ("in", "not right now, try Q1"))
         note = self.plan(convo)["note"]
-        convo["messages"].append({"direction": "out", "body": "understood, talk in Q1"})
+        convo["messages"].append({"direction": "out", "body": "understood",
+                                  "sent_at": "2026-09-01T09:00:00Z"})
+        soon = self.plan(convo, note=note, now=dt.datetime(2026, 9, 20, 9, tzinfo=UTC))
+        self.assertEqual(soon["action"], "skip")
+        self.assertIn("queued until", soon["reason"])
+
         later = self.plan(convo, note=note, now=dt.datetime(2026, 12, 2, 9, tzinfo=UTC))
-        self.assertEqual(later["action"], "send")
         self.assertEqual(later["bucket"], "re_engage")
-        # ...and only once.
-        self.assertEqual(self.plan(convo, note=later["note"],
-                                   now=dt.datetime(2026, 12, 3, 9, tzinfo=UTC))["action"],
-                         "skip")
 
     def test_a_queue_that_is_not_due_stays_quiet(self):
         convo = thread(("out", "hi"), ("in", "not right now, try Q1"))
@@ -267,6 +308,46 @@ class Run(unittest.TestCase):
         _, sends, text = self.run_once(apply_=True, cap=0)
         self.assertEqual(sends, 0)
         self.assertIn("hit the 0-per-run cap", text)
+
+
+class TheSheet(unittest.TestCase):
+    """The sheet is the booking source. Misreading it mails someone who booked."""
+
+    CSV = ("email,first_name,booked\n"
+           "a@x.com,A,x\n"
+           "b@x.com,B,\n"
+           "c@x.com,C,no\n"
+           "d@x.com,D,2026-09-04\n")
+
+    def test_only_real_marks_count_as_booked(self):
+        booked = sheet_mod.Sheet._booked_from_csv(self.CSV)
+        self.assertEqual(booked, {"a@x.com", "d@x.com"})
+
+    def test_french_headers_and_case(self):
+        csv_text = "E-Mail;RDV\n" .replace(";", ",") + "A@X.com,oui\nb@x.com,non\n"
+        self.assertEqual(sheet_mod.Sheet._booked_from_csv(csv_text), {"a@x.com"})
+
+    def test_a_sheet_without_the_columns_raises(self):
+        with self.assertRaises(sheet_mod.SheetError) as caught:
+            sheet_mod.Sheet._booked_from_csv("name,company\nA,Acme\n")
+        self.assertIn("booked column", str(caught.exception))
+
+    def test_an_unreadable_sheet_raises_rather_than_returning_empty(self):
+        def boom(req, timeout=None):
+            raise OSError("network down")
+        sheet = sheet_mod.Sheet(csv_url="https://example.com/x.csv", opener=boom)
+        with self.assertRaises(sheet_mod.SheetError):
+            sheet.booked_emails()
+
+    def test_read_only_mode_appends_nothing_and_says_so(self):
+        sheet = sheet_mod.Sheet(csv_url="https://example.com/x.csv")
+        self.assertIsNone(sheet.append([{"email": "a@x.com"}]))
+
+    def test_is_booked_edge_cases(self):
+        for value in ("", "  ", "no", "NON", "false", "0", "-"):
+            self.assertFalse(sheet_mod.is_booked(value), value)
+        for value in ("x", "oui", "YES", "true", "2026-09-04", "✔"):
+            self.assertTrue(sheet_mod.is_booked(value), value)
 
 
 class Leads(unittest.TestCase):

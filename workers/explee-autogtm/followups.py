@@ -59,31 +59,54 @@ SENDING = {
     "question": True,
     "wrong_person": False,
     "re_engage": True,          # the dated queue below, fired on a later run
+    "nudge": True,              # the win-back: they went quiet after we answered
 }
 QUEUED = ("not_now",)                       # dated, fires on a later run
 SILENT = ("unsubscribe", "auto_reply", "negative", "booked", "unknown")
 
 # Ordered. The first pattern that matches wins, so every "no" sits above every "yes".
+# Ordered. The first pattern that matches wins, so every "no" sits above every
+# "yes" - in both languages. The live campaigns write in French and the replies
+# come back in French, so the French half is not decoration.
 RULES = [
-    ("unsubscribe", r"\bunsubscribe\b|\bremove me\b|take me off|stop (emailing|contacting)"),
+    ("unsubscribe", r"\bunsubscribe\b|\bremove me\b|take me off|stop (emailing|contacting)|"
+                    r"d[ée]sabonn|ne plus (me )?(recevoir|contacter)|retirez[- ]moi|"
+                    r"supprimez mon"),
     ("auto_reply",  r"out of (the )?office|automatic(al)? repl|auto-repl|annual leave|"
-                    r"on (holiday|vacation|parental leave)|away until|absent du bureau"),
+                    r"on (holiday|vacation|parental leave)|away until|"
+                    r"absent du bureau|je suis absent|en cong[ée]s?|de retour le|"
+                    r"message automatique"),
     ("negative",    r"not interested|no thank|we'?re all set|already (have|use|using)|"
-                    r"don'?t need|not a (good )?fit|no need|pas int[ée]ress"),
+                    r"don'?t need|not a (good )?fit|no need|"
+                    r"pas int[ée]ress|non merci|sans suite|je (dois )?d[ée]clin|"
+                    r"pas convaincant|pas pour nous|on a d[ée]j[àa]|nous avons d[ée]j[àa]|"
+                    r"\bspams?\b|pas le bon moment pour nous"),
     ("booked",      r"\bbooked\b|invite accepted|accepted (the|your) invite|see you (on|then)|"
-                    r"calendar invite|confirmed for|added it to my calendar"),
+                    r"calendar invite|confirmed for|added it to my calendar|"
+                    r"invitation accept[ée]|c'?est not[ée]|[àa] (jeudi|vendredi|lundi|mardi|"
+                    r"mercredi|demain)|bien re[çc]u l'?invitation"),
     ("wrong_person", r"wrong person|not the right person|i don'?t (handle|own|manage)|"
                      r"not my (area|remit)|you'?d want|better (person|contact)|"
-                     r"speak (to|with) my colleague|forwarded (this )?to"),
+                     r"speak (to|with) my colleague|forwarded (this )?to|"
+                     r"pas la bonne personne|ce n'?est pas moi qui|voir avec|"
+                     r"adressez[- ]vous|je transmets|je fais suivre"),
     ("not_now",     r"not (right )?now|next (quarter|year|month)|\bq[1-4]\b|circle back|"
                     r"revisit|too early|bad timing|after (the )?summer|budget.{0,20}next|"
-                    r"reach out (again )?in"),
+                    r"reach out (again )?in|"
+                    r"pas (pour )?le moment|plus tard|recontact|l'?ann[ée]e prochaine|"
+                    r"trop t[ôo]t|apr[èe]s (l'?[ée]t[ée]|les vacances)|en (janvier|septembre)"),
     ("send_info",   r"send (me|over|through)|more info|some info|pricing|how much|"
-                    r"a deck|one[- ]pager|case stud|details|documentation|\bcosts?\b"),
+                    r"a deck|one[- ]pager|case stud|details|documentation|\bcosts?\b|"
+                    r"envoyez|envoie[zr]|plus d'?info|des informations|"
+                    r"\btarifs?\b|combien|plaquette|une pr[ée]sentation|\bdevis\b"),
     ("question",    r"how does|does it|can you|can it|what about|is it|do you (support|have)|"
-                    r"what'?s the|which|why would|\?"),
+                    r"what'?s the|which|why would|"
+                    r"comment (ça|ca|vous)|est[- ]ce que|quels? sont|pourquoi|\?"),
     ("warm",        r"interested|sounds (good|interesting|great)|happy to|keen|tell me more|"
-                    r"worth a (chat|call)|let'?s (talk|chat)|open to"),
+                    r"worth a (chat|call)|let'?s (talk|chat)|open to|"
+                    r"[çc]a m'?int[ée]resse|int[ée]ress[ée]|volontiers|avec plaisir|"
+                    r"open pour|ok pour|d'?accord pour|me pla[îi]t|un (premier )?[ée]change|"
+                    r"pourquoi pas|dites m'?en plus"),
 ]
 
 
@@ -128,12 +151,27 @@ def two_slots(now, timezone="UTC", hours=SLOT_HOURS, min_lead_hours=MIN_LEAD_HOU
     raise RuntimeError("could not find two slots - check the timezone and hours")
 
 
-def say_slot(slot):
-    """'Thursday 4 September at 10:00 (CEST)' - a time, not a link."""
-    stamp = slot.strftime("%A %-d %B at %H:%M") if sys.platform != "win32" \
-        else slot.strftime("%A %d %B at %H:%M")
+# strftime's day and month names follow the machine's locale, which on a server is
+# almost always English. A French email proposing "Thursday 4 September" is worse
+# than no email, so the names are data, not a locale lookup.
+DAYS = {"fr": ("lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche"),
+        "en": ("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")}
+MONTHS = {"fr": ("janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août",
+                 "septembre", "octobre", "novembre", "décembre"),
+          "en": ("January", "February", "March", "April", "May", "June", "July", "August",
+                 "September", "October", "November", "December")}
+
+
+def say_slot(slot, language="en"):
+    """'jeudi 4 septembre à 10h00 (CEST)' - a time, in the lead's language."""
+    lang = language if language in DAYS else "en"
+    day, month = DAYS[lang][slot.weekday()], MONTHS[lang][slot.month - 1]
     zone = slot.strftime("%Z") or "UTC"
-    return "{} ({})".format(stamp, zone)
+    if lang == "fr":
+        return "{} {} {} à {}h{:02d} ({})".format(
+            day, slot.day, month, slot.hour, slot.minute, zone)
+    return "{} {} {} at {:02d}:{:02d} ({})".format(
+        day, slot.day, month, slot.hour, slot.minute, zone)
 
 
 def re_engage_date(text, now, default_days=90):
@@ -156,39 +194,73 @@ def re_engage_date(text, now, default_days=90):
 
 
 # --- what to say -------------------------------------------------------------
-def compose(bucket, ctx):
+TEMPLATES = {
+    "fr": {
+        "send_info": ("Bonjour {first},\n\nEn deux lignes : {offer}\n{proof}\n"
+                      "Plutôt que de vous envoyer un lien, quinze minutes suffisent pour "
+                      "voir si c'est pertinent pour {company}.\n\n{slots}\n\n{sender}"),
+        "warm": ("Bonjour {first},\n\nMerci pour votre retour. {offer}\n{proof}\n"
+                 "Quinze minutes suffisent pour savoir si ça vaut votre temps.\n\n"
+                 "{slots}\n\n{sender}"),
+        "opened_no_book": ("Bonjour {first},\n\nJ'ai vu que vous aviez regardé l'agenda sans "
+                           "trouver de créneau - c'est généralement que je propose les mauvais "
+                           "horaires.\n\n{slots}\n\n{sender}"),
+        "question": ("Bonjour {first},\n\n{answer}\n\n{offer}\n"
+                     "Je vous montre volontiers ce que ça donne sur le cas de {company}.\n\n"
+                     "{slots}\n\n{sender}"),
+        "wrong_person": ("Bonjour {first},\n\nMerci de me le dire, et désolé pour le "
+                         "dérangement.\n\nQui s'occupe de {topic} chez {company} ? Un nom me "
+                         "suffit et je ne vous embête plus.\n\n{sender}"),
+        "re_engage": ("Bonjour {first},\n\nVous m'aviez dit de revenir plus tard - nous y "
+                      "sommes.\n\n{offer}\n{proof}\n{slots}\n\nSi le timing ne va toujours "
+                      "pas, dites-le-moi et j'arrête.\n\n{sender}"),
+        "nudge": ("Bonjour {first},\n\nJe reviens vers vous sur mon message précédent - "
+                  "toujours d'actualité de votre côté ?\n\n{slots}\n\n{sender}"),
+    },
+    "en": {
+        "send_info": ("Hi {first},\n\nHere it is, short version: {offer}\n{proof}\n"
+                      "Rather than send you a link and hope, it is quicker to show you the "
+                      "part that matters for {company} in fifteen minutes.\n\n{slots}\n\n"
+                      "{sender}"),
+        "warm": ("Hi {first},\n\nGlad it landed. {offer}\n{proof}\n"
+                 "Fifteen minutes is enough to know whether this is worth your time.\n\n"
+                 "{slots}\n\n{sender}"),
+        "opened_no_book": ("Hi {first},\n\nI saw you had a look at the calendar and nothing "
+                           "fitted - that is usually my fault for offering the wrong "
+                           "times.\n\n{slots}\n\n{sender}"),
+        "question": ("Hi {first},\n\n{answer}\n\n{offer}\n"
+                     "Happy to walk through it against {company}'s own setup.\n\n{slots}"
+                     "\n\n{sender}"),
+        "wrong_person": ("Hi {first},\n\nThanks for saying so - and sorry for landing in the "
+                         "wrong inbox.\n\nWho owns {topic} at {company}? A name is enough and "
+                         "I will take it from there.\n\n{sender}"),
+        "re_engage": ("Hi {first},\n\nYou asked me to come back to this later - it is "
+                      "later.\n\n{offer}\n{proof}\n{slots}\n\nIf the timing is still "
+                      "wrong, say so and I will stop.\n\n{sender}"),
+        "nudge": ("Hi {first},\n\nComing back to my last note - is this still live on your "
+                  "side?\n\n{slots}\n\n{sender}"),
+    },
+}
+
+SLOT_LINE = {
+    "fr": "Deux créneaux possibles : {} ou {}. Si aucun ne va, donnez-moi un jour et "
+          "j'envoie l'invitation.",
+    "en": "Would either of these work? {} or {}. If neither does, tell me a day that suits "
+          "and I will send an invite.",
+}
+
+
+def compose(bucket, ctx, language="en"):
     """The follow-up body. Raises if a slot-bearing bucket lost its slots."""
     first = ctx.get("first_name") or "there"
     offer = ctx["offer"]                       # one line, from config
     proof = ctx.get("proof", "")               # optional second line
     sender = ctx["sender"]
     slots = ctx.get("slots") or []
-    slot_line = ("Would either of these work? {} or {}. If neither does, tell me a day "
-                 "that suits and I will send an invite.".format(*slots) if len(slots) == 2 else "")
-
-    if bucket == "send_info":
-        body = ("Hi {first},\n\nHere it is, short version: {offer}\n{proof}\n"
-                "Rather than send you a link and hope, it is quicker to show you the part "
-                "that matters for {company} in fifteen minutes.\n\n{slots}\n\n{sender}")
-    elif bucket == "warm":
-        body = ("Hi {first},\n\nGlad it landed. {offer}\n{proof}\n"
-                "Fifteen minutes is enough to know whether this is worth your time.\n\n"
-                "{slots}\n\n{sender}")
-    elif bucket == "opened_no_book":
-        body = ("Hi {first},\n\nI saw you had a look at the calendar and nothing fitted - "
-                "that is usually my fault for offering the wrong times.\n\n{slots}\n\n{sender}")
-    elif bucket == "question":
-        body = ("Hi {first},\n\n{answer}\n\n{offer}\n"
-                "Happy to walk through it against {company}'s own setup.\n\n{slots}\n\n{sender}")
-    elif bucket == "re_engage":
-        body = ("Hi {first},\n\nYou asked me to come back to this later - it is later.\n\n"
-                "{offer}\n{proof}\n{slots}\n\nIf the timing is still wrong, say so and I "
-                "will stop.\n\n{sender}")
-    elif bucket == "wrong_person":
-        body = ("Hi {first},\n\nThanks for saying so - and sorry for landing in the wrong "
-                "inbox.\n\nWho owns {topic} at {company}? A name is enough and I will take it "
-                "from there.\n\n{sender}")
-    else:
+    lang = language if language in TEMPLATES else "en"
+    slot_line = SLOT_LINE[lang].format(*slots) if len(slots) == 2 else ""
+    body = TEMPLATES[lang].get(bucket)
+    if body is None:
         raise ValueError("{} is not a sending bucket".format(bucket))
 
     message = body.format(first=first, offer=offer, proof=proof, sender=sender,

@@ -159,77 +159,77 @@ different days.
 A significant but small lift returns **drop**, on purpose: the sourced data costs
 more than a 30% edge is worth.
 
-## Action 1 — recover the leaked replies (parked)
+## Action 1 — the follow-up loop (the only lever left)
 
-### The booking problem
+**The design, in one line: every hot lead lands in a Google Sheet, you tick the
+ones who booked, and anyone unticked gets followed up — up to three times, then
+we stop.**
 
-**Explee cannot tell you who booked a call.** Its inbox knows replies; the
-booking lives in Calendly. So `recover.py` takes `--booked booked.json`, a list
-of email addresses you export yourself, and without it the script will cheerfully
-follow up someone who booked yesterday.
+Explee's own support confirmed why this has to exist: *"once a lead replies, the
+automated sequence is over for them for good; there's no automatic win-back."*
 
-Three ways out, cheapest first:
+### Set the sheet up once
 
-1. **Export it by hand** once a week from Calendly. Fine to start, dies of
-   boredom by week three.
-2. **Read Calendly's API** — `GET /scheduled_events` plus `/invitees` gives you
-   the invitee emails, it is one endpoint and about twenty lines in `explee.py`
-   style. This is the real fix and it is not built yet.
-3. **Only follow up threads nobody answered** — already how it behaves: a lead
-   who booked almost always has a human reply in the thread, and that stops us.
-   It is a decent proxy, not a guarantee.
+A Google Sheet with two columns that matter — `email` and `booked` — plus
+whatever else you like (`first_name`, `company`, `campaign_id`, `person_id`,
+`became_hot_at`). Then either:
 
-Until (2) exists, treat this half as **not ready to run unattended**.
+**Read-only, two minutes.** File → Share → Publish to web → CSV. New hot leads
+get written to `hot-leads-to-paste.csv` for you to paste in.
 
 ```bash
-python3 recover.py                                     # dry run: prints every mail it would send
-python3 recover.py --booked booked.json --apply        # send
+python3 recover.py --sheet-csv "https://docs.google.com/.../pub?output=csv"
 ```
 
-`booked.json` is a list of email addresses that already have a call, exported
-from your calendar or CRM (a JSON array, or one address per line). Without it
-this will happily follow up someone who booked yesterday, so treat it as
-required, not optional.
+**Read and write.** Paste `sheet-bridge.gs` into Extensions → Apps Script, set
+`TOKEN`, deploy as a web app (*Execute as: Me*, *Anyone with the link*), then new
+hot leads append themselves and you only ever type in the Booked column.
 
-`--calendar-views opened.json` (same format) is the list of people who opened
-your scheduler and did not book — Cal.com/Calendly can export it. It unlocks the
-plan's "opened calendar, didn't book" row; without it those leads get the warm
-follow-up instead, which is a softer version of the same move.
-
-**The five gates that stop a send**, in order: `can_reply` false · in `booked` ·
-somebody already answered the lead's last message · our marker is already in the
-lead's note for that exact message · the classifier returned a silent bucket
-(unsubscribe, out of office, not interested, already booked, unrecognised).
-`MAX_SENDS_PER_RUN = 25` caps the damage a classifier bug can do.
-
-**State lives in the lead's shared note**, not in a local file, so a teammate
-sees why a follow-up went out and a run from another machine does not repeat it:
-
-```
-Met at SaaStock. Wants phone data, not emails.
-
-[explee-recovery]
-2026-09-02T10:04Z bucket=send_info msg=a91f2c action=sent
-2026-09-02T10:04Z bucket=not_now msg=7c11de action=queued due=2026-12-01
-[/explee-recovery]
+```bash
+python3 recover.py --sheet-webapp "https://script.google.com/macros/s/.../exec" \
+                   --sheet-token "your-token"
 ```
 
-**"Not now" is a dated queue, and it fires itself.** Nothing sends at the time;
-the due date is parsed from the lead's own words ("in 2 weeks", "next quarter")
-and a later run picks it up and sends the re-engage mail once.
+You type **anything** in Booked — `x`, `oui`, a date, a tick. Blank, `no`, `non`,
+`0` and `-` mean not booked. Nothing else in the sheet is read.
 
-**Speed is the point** — conversion drops by the hour, so run it on a cron every
-five minutes rather than nightly:
+### What each run does
 
+1. **Sync** — pulls hot leads from every campaign into the sheet (duplicates are
+   dropped by email, so it is safe to run every five minutes).
+2. **Read the booked column.** If the sheet cannot be read, **nothing sends** —
+   an empty booked set would mail everyone who booked this week.
+3. **For every replied conversation**, one of two jobs:
+   - *they spoke last* → classify the reply and answer it with **two named times**
+   - *we spoke last and they went quiet* → **nudge**, after 2 days, then 5 more
+
+```bash
+python3 recover.py --sheet-csv "..."            # dry run: prints every mail it would send
+python3 recover.py --sheet-csv "..." --apply    # send
+*/5 * * * * cd /path && EXPLEE_API_KEY=... python3 recover.py --sheet-csv "..." --apply
 ```
-*/5 * * * * cd /path/workers/explee-autogtm && EXPLEE_API_KEY=... \
-  python3 recover.py --booked booked.json --apply >> recover.log 2>&1
-```
 
-Every sending template proposes **two named times**, in business hours, on two
-different days, at least 18 hours out. Never a bare link — that is what the leak
-is made of. `compose()` refuses to return a message that lost its slots, so a
-template edit cannot quietly turn these back into "here's my calendar".
+### The gates, in order
+
+| Gate | Why |
+|---|---|
+| marked booked in the sheet | the whole point |
+| `can_reply` is false | Explee's compliance gate — unsubscribed, or never replied |
+| **3 replies already sent** | the API allows at most three per message they sent; a fourth is a 429 |
+| classifier says no | *non merci*, *pas intéressé*, out of office, a spam complaint — never nudged |
+| already handled (note marker) | written into the lead's shared note, so a teammate sees it and a second machine does not repeat it |
+| `MAX_SENDS_PER_RUN = 25` | a classifier bug costs 25 emails, not an inbox |
+
+A `"recontactez-moi en janvier"` is queued to its own date rather than nudged in
+two days, and fires itself when due.
+
+### It writes French
+
+The classifier reads both languages — the five real replies on your dashboard
+(*"L'approche au résultat me plait. Open pour un 1er échange"* → warm;
+*"Non merci !"*, *"pas très convaincant… vos mails partent dans les spams"* →
+never contacted again) — and `"language": "fr"` in `config.json` switches the
+templates and the proposed times (*jeudi 4 septembre à 15h00*, not *Thursday*).
 
 ## The number that decides whether any of this worked
 
