@@ -77,3 +77,16 @@ jobs:
             echo "DRY RUN - nothing will be sent. Set the EXPLEE_APPLY variable to 'true' to enable."
             python3 recover.py --all
           fi
+
+      # With a published-CSV sheet the loop can read it but not write to it, so
+      # new hot leads land in a file - which would die with the runner. Keep it
+      # as an artifact so they can be pasted in. The Apps Script web app makes
+      # this step unnecessary: then the leads append themselves.
+      - name: Keep the hot leads that could not be written to the sheet
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hot-leads-to-paste
+          path: workers/explee-autogtm/hot-leads-to-paste.csv
+          if-no-files-found: ignore
+          retention-days: 30
