@@ -47,6 +47,38 @@ while you already own nine warmed mailboxes on your own domains landing 100% in
 the inbox. Moving sending onto them cuts cost per interested lead from $13.54 to
 about $6, which is more than any lead source in this directory can do.
 
+## Refining the offer and the ICP, from replies you already have
+
+```bash
+python3 mine.py --all --out replies.csv
+```
+
+Pulls every inbound message across every campaign of every project, tags each one
+with what it objects to - price, roi_doubt, has_provider, no_need, timing,
+credibility, privacy, lead_quality - and what it asked for, then prints the
+quotes. Read-only, no credits, no sending.
+
+**The cut that separates the two fixes** is objections by campaign:
+
+| Pattern | What it means |
+|---|---|
+| the same objection in every campaign | the **offer**. Everyone hears the same pitch and balks at the same thing |
+| an objection concentrated in one campaign | the **ICP**. That audience cannot buy this, and rewriting the email will not change it |
+
+"We already have an agency" landing only on the 50-person firms and never on the
+5-person ones is a targeting instruction, not a copywriting one.
+
+On the five replies visible today it already reads: 3 negative, 1 warm, 1 asking
+for pricing — with **price**, **roi_doubt** and **credibility** one apiece. The
+roi_doubt one is the interesting one, because it is not about wording:
+
+> *"à ce tarif, sachant que sur du rdv non recommandé le taux de transformation
+> tombe facilement à 20%, je dois décliner"*
+
+That is a buyer saying the unit economics of a per-meeting price do not clear for
+him. A different price shape, a guarantee, or a different buyer fixes it. A better
+subject line does not.
+
 ## The measured baseline
 
 **[BASELINE.md](BASELINE.md)** — the real dashboard numbers as of 2 Sept 2026:
@@ -386,6 +418,7 @@ from lead sourcing, fixed by confirmations and reminders, not by better data.
 | `leadsource_test.py` | Action 2: prepare / control / import / compare |
 | `baseline.py` | cost per call that actually showed up, before and after |
 | `instantly_leads.py` | Instantly SuperSearch leads -> the CSV `prepare` eats |
+| `mine.py` | every reply you have ever had, grouped by what they object to |
 | `SOURCES.md` | every lead source with real France coverage, priced per usable lead |
 | `leadsource_test.py overlap` | what share of another source's list Explee cannot reach |
 | `brief.json` | the campaign copy both arms share - per-record project, not the subscription |
