@@ -197,6 +197,31 @@ language, and the copy the follow-ups use:
 sheet fields blank. **Project files are gitignored** apart from that example,
 because they hold sheet tokens.
 
+### Making the sheet — 60 seconds
+
+The sheet does not exist yet; you create it once per project and it is a blank
+Google Sheet with one header row.
+
+1. Open **sheets.new**.
+2. Paste the single line in **`hot-leads-template.tsv`** into cell A1. It is
+   tab-separated, so it fills the columns in one go. (Or File → Import →
+   `hot-leads-template.csv`, which comes with Jérôme already marked booked.)
+3. File → Share → **Publish to web** → this sheet, **CSV** → copy the URL.
+4. Put it in your project file as `sheet.csv_url`, then:
+
+```bash
+python3 recover.py --all           # dry run - reads the sheet, sends nothing
+```
+
+That is the whole setup. Upgrade to the Apps Script web app later, when pasting
+new hot leads in by hand gets old.
+
+The columns, and who fills them in:
+
+| You type | Filled in for you |
+|---|---|
+| `booked`, `stop` | everything else |
+
 ### Set the sheet up once
 
 A Google Sheet with two columns that matter — `email` and `booked` — plus
