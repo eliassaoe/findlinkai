@@ -48,6 +48,37 @@ domain you can warm, rotate or inspect — and given a prospect has already writ
 back about spam, a 20% lift is a low bar. But it is still a bet, and the $2 seed
 test settles it before the invoice.
 
+## What to buy, given you will not manage inboxes
+
+"Your own mailboxes" in Explee's UI means *not our pool* — it does not mean you
+have to run anything. You rent from an infrastructure provider: they buy the
+domains, set SPF/DKIM/DMARC, create the mailboxes, warm them continuously, monitor
+placement and replace what burns. You paste credentials into Explee once. Ongoing
+work after that is approximately zero.
+
+**One technical requirement decides the shortlist.** Explee needs *"Google,
+Microsoft or any IMAP/SMTP"* and syncs replies back to the inbox — so you need
+real mailboxes with **IMAP for reading plus SMTP for sending**, not an SMTP relay.
+That rules out relay-style infrastructure however good its IPs are.
+
+| Provider | Fits? | Price | Why |
+|---|---|---|---|
+| **Zapmail** | ✅ | ~$3.25/inbox | real Google Workspace / Microsoft 365 mailboxes, DNS automated, pre-warmed options, IMAP + SMTP |
+| **Mailforge** | ✅ | ~$4/inbox | same shape, domains and inboxes managed together |
+| Mailreef | ⚠️ | $249/mo + $0.001/send | dedicated IPs, excellent — but it is SMTP infrastructure; confirm IMAP mailboxes exist for reply sync |
+| Maildoso | ❌ | from $0.49/inbox | shared IPs with heavy rotation: the same shared-reputation trap you are leaving |
+
+**Pick Zapmail or Mailforge.** At ~50 inboxes for your volume that is
+**$160-200/month**, fully managed, on domains used only by you.
+
+Two questions before paying, and they are the whole risk:
+
+1. **Does warmup keep running when I send through a third-party tool?** Some
+   vendors only warm accounts that send inside their own product. Sending cold
+   from unwarmed inboxes is worse than the shared pool.
+2. **Do I get IMAP credentials, not just SMTP?** Without IMAP, Explee cannot sync
+   replies and the inbox stops working.
+
 ## What that leaves, on AutoGTM
 
 Three consequences, and they are the whole strategic picture:
