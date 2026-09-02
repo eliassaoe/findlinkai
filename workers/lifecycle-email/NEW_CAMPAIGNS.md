@@ -28,17 +28,32 @@ backfill — today is day zero for the optimisation loop.
 Both 5 and 6 have had the `html` re-render applied and their sender verified, and both
 are now in `variants.json` with four variants each, so the Monday loop can see them.
 
-**Campaign 5 deliberately mirrors the product.** `app.html` already runs a sales-intercept
-modal making the identical offer — "Book a quick 15-minute call... show up and we'll add
-1,000 free credits" — pointing at the same Calendly event. The email is the asynchronous
-version of that modal, so the duration, the credit amount and the link must stay in step
-with it. They were briefly out of step (the email said 20 minutes and used the generic
-`intro-call` link) and that is fixed.
+**Campaign 5 mirrors the product's offer, no longer its link.** `app.html` runs a
+sales-intercept modal making the identical offer — "Book a quick 15-minute call... show up
+and we'll add 1,000 free credits". The email is the asynchronous version of that modal, so
+the duration and the credit amount must stay in step with it; both currently do. The
+Calendly event no longer matches: as of 2026-08-30 the email books
+`linkfinder-ai` while the modal still books
+`compensated-interview-unlimited-leads-clone`. See the link-state table below.
 
-Note the site uses **two** Calendly events: `intro-call` on 188 marketing and blog pages,
-and `compensated-interview-unlimited-leads-clone` on the 5 in-product pages
-(`app.html`, `account.html`, `account-beta.html`, `crm-sync.html`, `linkfinder-vip.html`).
-Lifecycle email talks to people who already have accounts, so it uses the second one.
+### Calendly link state — verified 2026-09-02 against live PostHog
+
+| Where | Event | Count |
+| --- | --- | --- |
+| Marketing + blog pages, `pricing.html`, `app.html` founder-call CTA | `linkfinder-ai` | 183 |
+| In-product pages: `app.html` sales-intercept modal, `account.html`, `account-beta.html`, `crm-sync.html`, `linkfinder-vip.html`, `support-worker/worker.js`, `replace_footer.py`, `tests/credit-wall.test.mjs` | `compensated-interview-unlimited-leads-clone` | 21 |
+| Every PostHog email campaign (VIP arm A / round 2 / one-off / continuous, campaign 5) | `linkfinder-ai` | — |
+
+`intro-call` is dead — 183 links were migrated off it on 2026-09-02. Do not reintroduce it.
+
+**The 2026-08-30 "CALENDLY CONSOLIDATED" note in the PostHog workflow descriptions is
+only true of PostHog.** It claims every CTA in the product, the marketing site and every
+campaign points at `linkfinder-ai`. The campaigns do. The repo did not until 2026-09-02,
+and the 21 in-product links above still point at `compensated-interview-unlimited-leads-clone`.
+
+Campaign 5's email now points at `linkfinder-ai` — it no longer mirrors the
+`app.html` sales-intercept modal's Calendly event, though the offer text (15 minutes,
+1,000 credits) still matches. Decide deliberately whether the in-product 21 move too.
 
 | 7 | CRM audit follow-up — send them their report | `01a02b7b-bb8b-0000-2f15-2b586cfd7573` | **DRAFT — not enabled.** `crm_audit_completed` → +45m → their own audit numbers as a report. Gated on `email_verified`. Once per person per 30 days. Payers exit via the conversion goal. |
 
