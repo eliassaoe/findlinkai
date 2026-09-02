@@ -41,6 +41,16 @@ from pathlib import Path
 
 BASE_URL = os.environ.get("EXPLEE_BASE_URL", "https://api.explee.com")
 KEY_FILE = Path(__file__).resolve().parent / "secrets.env"
+TIMEOUT = 95            # the documented server timeout is 90s
+MAX_RETRIES = 4
+NO_RETRY = (400, 401, 402, 403, 404, 409, 422)
+
+# Cloudflare in front of api.explee.com rejects the default "Python-urllib/3.11"
+# with error 1010, browser_signature_banned - a blanket ban on a user-agent, not
+# on us. So the client says who it actually is, which is what an API client is
+# supposed to do anyway.
+USER_AGENT = ("linkfinderai-autogtm-followups/1.0 "
+              "(+https://github.com/eliassaoe/findlinkai; python-urllib)")
 
 
 def read_key_file():
@@ -56,15 +66,6 @@ def read_key_file():
         if name.strip() == "EXPLEE_API_KEY":
             return value.strip().strip("'\"")
     return None
-TIMEOUT = 95            # the documented server timeout is 90s
-# Cloudflare in front of api.explee.com rejects the default "Python-urllib/3.11"
-# with error 1010, browser_signature_banned - a blanket ban on a user-agent, not
-# on us. So the client says who it actually is, which is what an API client is
-# supposed to do anyway.
-USER_AGENT = ("linkfinderai-autogtm-followups/1.0 "
-              "(+https://github.com/eliassaoe/findlinkai; python-urllib)")
-MAX_RETRIES = 4
-NO_RETRY = (400, 401, 402, 403, 404, 409, 422)
 
 
 class ExpleeError(RuntimeError):
