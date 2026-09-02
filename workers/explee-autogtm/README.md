@@ -62,34 +62,53 @@ python3 leadsource_test.py filters \
              sales-technology companies in the US and UK" --out filters.json
 ```
 
-### The four steps
+### The run: Pharow against Explee
 
-The campaign you are already running is the control — do not rebuild it. `adopt`
-takes it as one arm and lifts its own copy brief out, so the new arm can be
-imported with the same instructions:
+Two new campaigns, same brief, same week, same ICP. The live campaign keeps
+running and stays out of the test.
 
 ```bash
-# 1. the live campaign becomes the control arm. Free, changes nothing.
-python3 leadsource_test.py adopt --campaign <live id> \
-    --out control.arm.json --brief-out brief.json
+# 1. the ICP, in plain English -> the exact filter shape. Free.
+python3 leadsource_test.py filters --out filters.json \
+    --query "responsables et directeurs des achats in French companies of 250 to 1000 employees"
 
-# 2. Instantly SuperSearch leads (one signal) -> CSV -> import-ready
-python3 instantly_leads.py leads.json --out intent.csv --signal website_funding
-python3 leadsource_test.py prepare --csv intent.csv --out variant.leads.json
+# 2. the Explee arm: 500 French buyers, ~$12 (1 credit a person, 1.5 an email found)
+python3 leadsource_test.py control --filters filters.json --count 500 \
+    --out explee.leads.json --apply
 
-# 3. the new campaign, same brief as the live one
-python3 leadsource_test.py import --project <project id> \
-    --name "Intent test - Instantly funding signal" \
-    --leads variant.leads.json --brief brief.json --exclude control.arm.json --apply
+# 3. the Pharow arm: export from Pharow, then map its French headers.
+#    French exports are semicolon-separated and titled Prenom/Nom/Email pro/Poste/
+#    Site web - prepare sniffs the separator, maps those names and turns
+#    "https://www.acme.fr/contact" into "acme.fr". Anything it cannot place is
+#    listed so you can --map it.
+python3 leadsource_test.py prepare --csv pharow-export.csv \
+    --out pharow.leads.json --exclude explee.leads.json
 
-# 4. a week or two later, both arms over the same days
-python3 leadsource_test.py compare --arm control.arm.json --arm variant.arm.json \
+# 4. both into AutoGTM on the SAME brief - import refuses the second arm otherwise
+python3 leadsource_test.py import --project <id> --name "Source test - Explee" \
+    --leads explee.leads.json --brief brief.json --apply
+python3 leadsource_test.py import --project <id> --name "Source test - Pharow" \
+    --leads pharow.leads.json --brief brief.json --exclude explee.arm.json --apply
+
+# 5. two weeks later, both arms over the same days
+python3 leadsource_test.py compare --arm explee.arm.json --arm pharow.arm.json \
     --period month --calls calls.json
 ```
 
-`calls.json` is `{"<campaign_id>": {"booked": 4, "showed": 2}}` from your
-calendar — it is what turns the comparison into cost per call. AutoGTM drops
-leads the project has already contacted, so the two arms cannot overlap.
+**What it costs:** Pharow EUR 105 for 1,000 credits (better value than the EUR 90
+/ 500 pack) + ~$12 of Explee + the sending, which you pay either way. `calls.json`
+is `{"<campaign_id>": {"booked": 4, "showed": 2}}` from your calendar - it is what
+turns the comparison into cost per call.
+
+**Free sanity check first, while you set this up:** Pharow's 15-day trial gives
+100 credits. Pull 100 leads for the same ICP and eyeball the fill rate and the
+job titles before paying for 1,000. If the French coverage is not visibly better
+than Explee's on those 100, the sending test will not rescue it.
+
+**Reply rate is measured per lead, not per email**, whenever both arms report
+their lead count - which they do when both were imported. Per-email flatters
+whichever arm is further into its sequence, and early in a test that is just
+whichever one started first.
 
 `import` hashes the brief and refuses the second arm when it differs; `prepare`
 and `control` drop anyone already in the other arm (a lead in both replies once

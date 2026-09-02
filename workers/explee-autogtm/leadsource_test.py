@@ -29,6 +29,8 @@ other arm, on email first and on first+last+domain when the email is missing.
 
 import argparse
 import csv
+import re
+import unicodedata
 import hashlib
 import json
 import math
@@ -43,6 +45,68 @@ MIN_REPLIES_TOTAL = 12       # across both arms, before reply rate can decide an
 SCALE_EFFECT = 1.0           # "2x better" - a 100% relative lift, not 30%
 ALPHA = 0.05
 MANDATORY = ("email", "first_name", "last_name", "company_domain", "job_title")
+
+# Pharow and Societeinfo export French headers, Explee and Apollo export English
+# ones, and every tool spells the domain column differently. Rather than make you
+# rename columns in a spreadsheet - which is where lists get quietly corrupted -
+# the header is normalised (lowercased, accents stripped, punctuation to _) and
+# looked up here. --map handles anything this table has not seen.
+ALIASES = {
+    "email": ("email", "e_mail", "mail", "email_pro", "adresse_email", "work_email",
+              "professional_email", "email_professionnel", "courriel"),
+    "first_name": ("first_name", "firstname", "first", "prenom", "given_name"),
+    "last_name": ("last_name", "lastname", "last", "nom", "nom_de_famille", "surname",
+                  "family_name"),
+    "company_domain": ("company_domain", "domain", "domaine", "site_web", "website",
+                       "site", "url", "company_website", "site_internet",
+                       "domaine_entreprise", "company_url"),
+    "job_title": ("job_title", "title", "poste", "fonction", "job", "position",
+                  "intitule_du_poste", "titre"),
+    "linkedin_url": ("linkedin_url", "linkedin", "profil_linkedin", "lien_linkedin",
+                     "linkedin_profile", "url_linkedin"),
+}
+
+
+def norm_header(name):
+    """'Prénom' -> 'prenom', 'Site web' -> 'site_web', 'E-mail pro' -> 'e_mail_pro'."""
+    text = unicodedata.normalize("NFKD", str(name or "")).encode("ascii", "ignore").decode()
+    return re.sub(r"_+", "_", re.sub(r"[^a-z0-9]+", "_", text.strip().lower())).strip("_")
+
+
+def normalise_domain(value):
+    """'https://www.acme.fr/contact' -> 'acme.fr'. Exports carry full URLs."""
+    text = str(value or "").strip().lower()
+    if not text:
+        return ""
+    text = re.sub(r"^[a-z]+://", "", text).split("/")[0].split("?")[0]
+    text = text[4:] if text.startswith("www.") else text
+    return text if "." in text else ""
+
+
+def map_columns(rows, overrides=None):
+    """Any export -> our five field names. Returns (rows, unmapped headers)."""
+    if not rows:
+        return [], []
+    lookup = {}
+    for field, spellings in ALIASES.items():
+        for spelling in spellings:
+            lookup[spelling] = field
+    for field, header in (overrides or {}).items():
+        lookup[norm_header(header)] = field
+
+    headers = {norm_header(h): h for h in rows[0]}
+    unmapped = [original for norm, original in headers.items() if norm not in lookup]
+    out = []
+    for row in rows:
+        mapped = {}
+        for norm, original in headers.items():
+            field = lookup.get(norm)
+            if field and not mapped.get(field):
+                mapped[field] = row.get(original)
+        if mapped.get("company_domain"):
+            mapped["company_domain"] = normalise_domain(mapped["company_domain"])
+        out.append(mapped)
+    return out, unmapped
 
 
 # --- statistics --------------------------------------------------------------
@@ -113,11 +177,31 @@ def cmd_filters(args):
     return 0
 
 
+def read_csv(path, delimiter=None):
+    """French exports are semicolon-separated (Excel FR). Guessing wrong does not
+    raise - it yields one column named 'Prenom;Nom;Email' and every row is then
+    'missing everything', which reads like bad data instead of a parsing bug. So
+    sniff, and say which delimiter won."""
+    with open(path, newline="", encoding="utf-8-sig") as handle:
+        sample = handle.read(4096)
+        handle.seek(0)
+        if not delimiter:
+            head = sample.splitlines()[0] if sample else ""
+            delimiter = max((";", ",", "\t"), key=head.count) if head else ","
+            delimiter = delimiter if head.count(delimiter) else ","
+        return list(csv.DictReader(handle, delimiter=delimiter)), delimiter
+
+
 def cmd_prepare(args):
-    with open(args.csv, newline="", encoding="utf-8-sig") as handle:
-        rows = list(csv.DictReader(handle))
-    rows = [{k.strip().lower().replace(" ", "_"): v for k, v in row.items()} for row in rows]
+    raw, delimiter = read_csv(args.csv, args.delimiter)
+    print("{} rows, '{}' separated".format(len(raw), delimiter))
+    overrides = dict(pair.split("=", 1) for pair in (args.map or []))
+    rows, unmapped = map_columns(raw, overrides)
     leads, dropped = clean_leads(rows, load_keys(args.exclude))
+    if unmapped:
+        print("columns ignored: {}".format(", ".join(sorted(unmapped)[:12])))
+        print("  (if one of those is the email or the domain, pass "
+              "--map email='Email pro')")
     Path(args.out).write_text(json.dumps(leads, indent=1))
     print("{} leads -> {}".format(len(leads), args.out))
     for reason, count in sorted(dropped.items(), key=lambda kv: -kv[1]):
@@ -269,25 +353,40 @@ def read_arm(api, record, period):
         "replies": int(first_of(flat, "replies", "reply_count", "replied")),
         "hot": int(first_of(flat, "hot_leads", "hot_lead_count", "hot")),
         "spend": float(first_of(flat, "spend_usd", "spend", "cost_usd")),
+        "leads": record.get("leads_submitted"),
         "brief_sha": record.get("brief_sha"),
         "imported_at": record.get("imported_at"),
     }
 
 
+def basis_of(control, variant):
+    """Leads if both arms know how many they had, else emails sent.
+
+    Replies per LEAD is the quality number - it is what "this source's people
+    answer more often" means. Replies per EMAIL flatters whichever arm happens to
+    have sent fewer follow-ups so far, which early in a test is whichever one
+    started later. Leads win when both arms know theirs; an adopted live campaign
+    does not, and then the looser email basis is used and said out loud."""
+    if control.get("leads") and variant.get("leads"):
+        return "leads"
+    return "sent"
+
+
 def verdict(control, variant):
     """The plan's rule, with the gates that stop it firing on noise."""
-    if min(control["sent"], variant["sent"]) < MIN_LEADS_PER_ARM:
-        return ("wait", "the smaller arm has sent {} - read nothing before {}".format(
-            min(control["sent"], variant["sent"]), MIN_LEADS_PER_ARM))
+    basis = basis_of(control, variant)
+    n_c, n_v = control[basis], variant[basis]
+    if min(n_c, n_v) < MIN_LEADS_PER_ARM:
+        return ("wait", "the smaller arm has {} {} - read nothing before {}".format(
+            min(n_c, n_v), basis, MIN_LEADS_PER_ARM))
     total = control["replies"] + variant["replies"]
     if total < MIN_REPLIES_TOTAL:
         return ("wait", "{} replies across both arms - needs {}".format(total, MIN_REPLIES_TOTAL))
 
-    rate_c = control["replies"] / control["sent"]
-    rate_v = variant["replies"] / variant["sent"]
+    rate_c = control["replies"] / n_c
+    rate_v = variant["replies"] / n_v
     lift = (rate_v - rate_c) / rate_c if rate_c else float("inf")
-    p = two_proportion_p(control["replies"], control["sent"],
-                         variant["replies"], variant["sent"])
+    p = two_proportion_p(control["replies"], n_c, variant["replies"], n_v)
     if p is None or p > ALPHA:
         return ("drop", "reply rates {:.1%} vs {:.1%}, p={} - not distinguishable. Explee's "
                         "data is fine; the sourced list is not worth its price.".format(
@@ -318,14 +417,20 @@ def cmd_compare(args):
         raise SystemExit("compare takes exactly two --arm files")
     control, variant = arms
 
-    head = "{:<28}{:>8}{:>9}{:>7}{:>10}{:>12}{:>12}"
-    print(head.format("arm", "sent", "replies", "hot", "spend", "reply rate", "$/hot lead"))
+    basis = basis_of(control, variant)
+    head = "{:<28}{:>8}{:>8}{:>9}{:>7}{:>10}{:>13}{:>12}"
+    print(head.format("arm", "leads", "sent", "replies", "hot", "spend",
+                      "reply/" + basis[:4], "$/hot lead"))
     for arm in arms:
         per_hot = (arm["spend"] / arm["hot"]) if arm["hot"] else 0.0
-        print(head.format(arm["name"][:28], arm["sent"], arm["replies"], arm["hot"],
-                          "${:.0f}".format(arm["spend"]),
-                          "{:.1%}".format(arm["replies"] / arm["sent"]) if arm["sent"] else "-",
+        n = arm[basis]
+        print(head.format(arm["name"][:28], arm["leads"] or "-", arm["sent"], arm["replies"],
+                          arm["hot"], "${:.0f}".format(arm["spend"]),
+                          "{:.1%}".format(arm["replies"] / n) if n else "-",
                           "${:.0f}".format(per_hot) if per_hot else "-"))
+    if basis == "sent":
+        print("(reply rate is per EMAIL - one arm does not report its lead count, so the "
+              "arm further into its sequence is flattered)")
 
     if control["brief_sha"] != variant["brief_sha"]:
         print("\n!! the arms ran different copy ({} vs {}). This comparison measures the copy, "
@@ -373,6 +478,9 @@ def main(argv=None):
     prep.add_argument("--csv", required=True)
     prep.add_argument("--out", required=True)
     prep.add_argument("--exclude", action="append", help="leads file from the other arm")
+    prep.add_argument("--map", action="append", metavar="FIELD=HEADER",
+                      help="force a column, e.g. --map company_domain='Site web'")
+    prep.add_argument("--delimiter", help="override the sniffed CSV separator")
     prep.set_defaults(func=cmd_prepare)
 
     ctrl = sub.add_parser("control", help="the Explee arm, via search + find-and-enrich")

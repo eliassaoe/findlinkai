@@ -353,8 +353,22 @@ class ArmReading(unittest.TestCase):
 
 
 class Verdict(unittest.TestCase):
-    def arm(self, name, sent, replies, hot=0, spend=0.0):
-        return {"name": name, "sent": sent, "replies": replies, "hot": hot, "spend": spend}
+    def arm(self, name, sent, replies, hot=0, spend=0.0, leads=None):
+        return {"name": name, "sent": sent, "replies": replies, "hot": hot,
+                "spend": spend, "leads": leads}
+
+    def test_leads_are_the_denominator_when_both_arms_know_them(self):
+        # Same replies, but the variant is only one email into its sequence.
+        control = self.arm("c", sent=2000, replies=25, leads=500)
+        variant = self.arm("v", sent=500, replies=60, leads=500)
+        self.assertEqual(lst.basis_of(control, variant), "leads")
+        call, why = lst.verdict(control, variant)
+        self.assertEqual(call, "scale", why)      # 12% vs 5% per lead
+
+    def test_it_falls_back_to_emails_for_an_adopted_campaign(self):
+        control = self.arm("live", sent=2000, replies=100, leads=None)
+        variant = self.arm("v", sent=500, replies=25, leads=500)
+        self.assertEqual(lst.basis_of(control, variant), "sent")
 
     def test_small_sample_waits(self):
         call, _ = lst.verdict(self.arm("c", 100, 8), self.arm("v", 100, 20))

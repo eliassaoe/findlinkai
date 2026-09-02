@@ -46,7 +46,19 @@ a number no American database publishes for France. That is the real test worth
 running: not "intent vs no intent", but **Explee's French coverage against
 Pharow's on the same 500 companies.**
 
-## What to actually test, given all of the above
+## The decision: Pharow gets a shot
+
+One Pharow campaign against one Explee campaign, same brief, same week - the
+runbook is in the README. Pharow is the only source in the table that publishes a
+French coverage figure (78.7% email, 76% phone), and it is the number Explee has
+to beat on French buyers. It is France-only and export-based rather than a true
+API, so the arm costs a manual CSV step each round; acceptable for a test, worth
+remembering before standardising on it.
+
+The cheap version below is still worth an hour on the trial credits first,
+because it answers the same question in a day without sending anything.
+
+## The cheaper version of the same question
 
 A fill-rate test, and it costs almost nothing:
 
