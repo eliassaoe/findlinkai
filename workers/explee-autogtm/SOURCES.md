@@ -46,6 +46,53 @@ a number no American database publishes for France. That is the real test worth
 running: not "intent vs no intent", but **Explee's French coverage against
 Pharow's on the same 500 companies.**
 
+## What "golden" has to mean, numerically
+
+At EUR 0.18 a lead against Explee's ~$0.025, Pharow is not asking to be a bit
+better. Sending is ~$0.12 a lead either way (four emails at $0.03), so:
+
+    Explee   $0.025 + $0.12 = $0.145 per lead
+    Pharow   $0.195 + $0.12 = $0.315 per lead   ->  2.17x
+
+**Pharow has to produce 2.17x the calls per lead just to draw level on cost per
+call.** Not 20% better. More than double.
+
+Now the part that should decide how much attention this whole question deserves.
+At $50 a call and $0.145 a lead, one call costs about 345 leads - and of that $50,
+**the lead data is $8.62 and the sending is $41.38.**
+
+| Scenario | Cost per call |
+|---|---|
+| Today | $50.00 |
+| **Leads become free** | **$41.38** (-17%) |
+| Pharow leads, same conversion | **$108.62** (+117%) |
+
+So the entire prize available from lead pricing is 17%, and the downside from
+getting the source wrong is more than double. **The lead source is a small lever
+on cost and a large lever on risk.** Anything that moves the reply-to-call rate
+moves the number several times harder, in both directions, and costs nothing.
+
+### Which does not mean Pharow is a bad idea - it means test the right claim
+
+Pharow's published claim is not "our leads convert twice as well". It is
+**78.7% email and 76% phone coverage on French prospects**, which is a
+reachability claim, and reachability is testable in an hour without sending a
+single email:
+
+- Can Explee even fill 500 French *responsables d'achat* at 250-1,000 person
+  companies? If it can, Pharow is a luxury and the 2.17x bar sinks it.
+- If it cannot - if Explee returns 120 usable French buyers where Pharow returns
+  400 - then Pharow is not competing on price at all. It is the only source that
+  can run the campaign, and its price stops being the question.
+- Bounce rate is the third number and it is not priced anywhere: a French list
+  that bounces at 8% costs sending domains, which are worth more than EUR 105.
+
+**So: do not buy the EUR 105 yet.** Pharow's 15-day trial gives 100 credits.
+Pull 100 leads on the exact ICP, ask Explee for the same 100 companies, and
+compare fill rate, title accuracy and bounce rate. Buy the month only if there is
+a visible gap - and if there is, the 2.17x argument above is moot, because you
+would be buying an audience you otherwise cannot reach.
+
 ## The decision: Pharow gets a shot
 
 One Pharow campaign against one Explee campaign, same brief, same week - the
