@@ -93,6 +93,38 @@ compare fill rate, title accuracy and bounce rate. Buy the month only if there i
 a visible gap - and if there is, the 2.17x argument above is moot, because you
 would be buying an audience you otherwise cannot reach.
 
+### The same bar, recomputed on the measured baseline
+
+Not a model any more - your seven days. 5,231 emails, $156.93 sent, 14 interested,
+at four emails a lead:
+
+| Pharow's reply rate vs Explee's | Interested | Cost per interested lead |
+|---|---|---|
+| today, Explee | 14 | **$13.54** |
+| 1.0x (same) | 14 | $29.42 |
+| 1.5x | 21 | $19.62 |
+| **2.0x (double)** | 28 | **$14.71** — still worse than today |
+| 2.5x | 35 | $11.77 |
+| 3.0x | 42 | $9.81 |
+
+**Doubling the reply rate is not enough.** It has to beat 2.17x to draw level and
+clear 2.5x to be worth the switch. Data accuracy on its own rarely does that when
+the offer, the copy, the targeting and the inbox placement are all held constant -
+those four move reply rates by multiples; a better-verified email address moves it
+by a fraction.
+
+**One lever does lower the bar: sequence length.** The lead is paid once and the
+sends are paid per email, so more follow-ups amortise it:
+
+| Emails per lead | Leads for the same 5,231 sends | Pharow must beat |
+|---|---|---|
+| 3 | 1,744 | 2.48x |
+| 4 | 1,308 | 2.17x |
+| 6 | 872 | **1.83x** |
+
+If expensive leads are bought, buy fewer of them and work each one harder. A
+six-email sequence makes Pharow a materially easier bet than a three-email one.
+
 ## If the leads are unique, the price argument does not apply
 
 The 2.17x above compares two prices for the same person. It says nothing about a
