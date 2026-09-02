@@ -4,6 +4,38 @@ The constraint, in order: **France coverage first, an API second, pay as you go
 third.** The intent-first version of this file was wrong for this market - the
 measurements are kept at the bottom because the reasoning still matters.
 
+## "The list is the highest leverage in cold email" — true, and not what this file is about
+
+It is the standard advice and it is correct. But *list* in that sentence means
+**who you write to**, not **which vendor's row you bought**. Those are different
+decisions worth wildly different amounts:
+
+| Decision | Leverage | Why |
+|---|---|---|
+| **Targeting** — French *responsables d'achat* at 250-person ESNs, or SaaS founders under 25 staff? | **enormous** | changes reply rate by multiples. This is what "the list" means. |
+| **Vendor** — Explee's row or Pharow's row for the *same person*? | small | both return roughly the same human. Worth 17% on cost, and 2.17x is what a swap must clear. |
+| **Vendor, when only one can reach them at all** | **enormous again** | not a price comparison: there is no competing row. `leadsource_test.py overlap` measures exactly this. |
+
+So the two claims sit together. Targeting is the biggest lever there is; swapping
+data suppliers for the same audience is not, unless it buys reach you did not
+have. Everything priced in this file is the second question. The first one is
+free and lives in the campaign definition.
+
+**And it is readable over the API for nothing:**
+
+    python3 explee.py GET /public/api/v1/autogtm/campaigns/130465
+
+returns `offer`, `target_role`, `target_geography`, `target_company_size`,
+`positive_criteria`, `negative_criteria`, `example_clients` and the derived
+`keywords` — the whole targeting, in one free call, for each of the three
+campaigns. At a 1.05% reply rate that is the first thing to read, before any
+invoice to anybody.
+
+One caveat that is not a hedge: a list can only be judged once the mail arrives.
+The pool is shared and a prospect has written back saying it landed in spam, so
+some of that 1.05% is placement rather than targeting. Both are real; only one of
+them is free to fix today.
+
 ## The one-line answer
 
 There is no single "biggest French lead source" you buy. The biggest is the
