@@ -1,5 +1,91 @@
 # Building an AutoGTM competitor on unlimited-leads.net
 
+## Verdict, added after the build plan below was written
+
+**Do not build this as a standalone SaaS. Build it as a LinkFinder AI feature,
+and point unlimited-leads.net at it as an acquisition asset.**
+
+Two arguments, and the second one is the whole case.
+
+### 1. Standalone, the wrapper has no defensibility and no distribution
+
+The glue-only MVP is a UI over Instantly. So is the competition. A customer who
+does the arithmetic finds that ~22,400 emails a month costs **$672 on AutoGTM at
+$0.03** against roughly **$300 assembled themselves** — Instantly's plan plus
+lead volume plus rented inboxes. We would be selling a 2.2x markup on not having
+to assemble it, in a category where the assembly instructions are a blog post.
+
+That markup is defensible only through distribution, and standalone we have
+none. The buyers of cold-email tooling are, by definition, the most heavily
+marketed-to people alive — they all run cold email. CAC in that category is the
+entire game, `unlimited-leads.net` has "a little DR", and the SEO cold start is
+months. Meanwhile every incumbent — Instantly, Smartlead, Lemlist, Apollo, Clay,
+Explee — is already there with a brand.
+
+### 2. As a LinkFinder feature, the same code stops being a commodity
+
+Measured, `docs/dfy-activation-campaign.md`, 2026-08-31: **67 credit-pack buyers
+have never run a single lookup, median balance 10,000 credits.** That doc's own
+conclusion is the argument:
+
+> they are someone who bought a tool to do a job and then did not do the job
+
+The job was never "find an email". It is "get a meeting". We sell the noun and
+stop at the verb — and sending is the verb. Those 67 accounts are holding roughly
+**670,000 idle credits, about $13,400 already paid for**, against a feature they
+would use tomorrow.
+
+Everything the standalone version has to build, LinkFinder already has:
+
+| Needed | Standalone | Inside LinkFinder |
+|---|---|---|
+| Users | 0, CAC unknown | **7,206**, 31 subscribers, 89 pack buyers |
+| Auth, signup, account | build | exists |
+| Metered prepaid billing | build Stripe + ledger | **the credit system, already live** |
+| Lead data step | integrate + pay for it | it *is* the product |
+| SEO distribution | cold start | large existing footprint |
+
+And the pricing falls out for free. Packs are $25/1,000 and $200/10,000 — so
+**1 credit = 1 email sent** prices sending at $0.020-0.025, landing exactly on
+Explee's $0.03 while undercutting it, against a BYO-inbox COGS of ~$0.011. No new
+billing system, no new pricing page, no new checkout. A dormant 10,000-credit
+balance becomes a 10,000-email campaign.
+
+This also turns the one differentiator we actually have into the headline:
+**every competitor charges for data and sending separately; we would charge one
+credit for both.** That sentence is only true because we own the data step, and
+it is only sellable to people who already have credits.
+
+### The one real risk of the feature path
+
+Adding "send" to LinkFinder invites the spam segment into the core product, and
+their chargebacks and complaints land on the business that pays the bills rather
+than on a side project. Mitigation is a hard rule, not a setting: **bring-your-own
+mailboxes only, inside LinkFinder, forever.** No shared pool in the main product.
+The customer's domain, the customer's reputation, the customer's problem. If a
+managed pool is ever worth selling, that is when a separate brand earns its
+keep — not before.
+
+### What unlimited-leads.net is for, then
+
+Not a product. An acquisition asset: content and landing pages on the sending and
+lead keywords, converting into the LinkFinder app. The DR gets used, nothing gets
+split, and there is one login, one support queue and one thing to sell.
+
+### What this changes about the build
+
+It gets smaller again. No signup, no auth, no Stripe, no ledger, no pricing page —
+all of it exists. What is left is a campaign wizard, an inbox tab, and the two
+webhook handlers, debiting the credit balance that is already there. **Closer to
+one week than four.**
+
+---
+
+*Everything below was written before this verdict, assuming a standalone product.
+The architecture is unchanged and still correct — only where it is deployed and
+who it is sold to have changed.*
+
+
 **The question:** can we build what Explee AutoGTM does, quickly, on the same
 basis — the customer pays per email actually sent?
 
