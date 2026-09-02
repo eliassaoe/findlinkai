@@ -60,6 +60,30 @@ NOT_BOOKED = ("", "no", "non", "false", "0", "n", "nope", "pas encore", "-")
 TIMEOUT = 30
 
 
+SHEET_ID = re.compile(r"/spreadsheets/d/([A-Za-z0-9_-]+)")
+GID = re.compile(r"[#?&]gid=(\d+)")
+
+
+def csv_url_for(url):
+    """Any Google Sheets URL -> one that returns CSV.
+
+    You paste what is in the address bar. A /edit link becomes an /export link,
+    a published /pub link is used as it is, and anything else is left alone so a
+    non-Google CSV still works.
+    """
+    url = (url or "").strip()
+    if not url:
+        return url
+    if "/pub" in url:
+        return url if "output=csv" in url else url + ("&" if "?" in url else "?") + "output=csv"
+    match = SHEET_ID.search(url)
+    if not match:
+        return url
+    gid = GID.search(url)
+    return "https://docs.google.com/spreadsheets/d/{}/export?format=csv&gid={}".format(
+        match.group(1), gid.group(1) if gid else "0")
+
+
 class SheetError(RuntimeError):
     """The sheet could not be read. Callers must not send when they see this."""
 
@@ -85,7 +109,7 @@ def is_booked(value):
 
 class Sheet:
     def __init__(self, csv_url=None, webapp_url=None, token=None, opener=None):
-        self.csv_url = csv_url
+        self.csv_url = csv_url_for(csv_url) if csv_url else None
         self.webapp_url = webapp_url
         self.token = token
         self._opener = opener or urllib.request.urlopen
@@ -147,6 +171,15 @@ class Sheet:
     @staticmethod
     def _from_csv(text):
         """-> (booked, stopped) out of a published CSV."""
+        if text.lstrip()[:1] == "<":
+            # Google served HTML: a sign-in page, or "you need permission".
+            # Parsed as CSV that reports zero booked leads and mails everyone,
+            # so say what to fix instead.
+            raise SheetError(
+                "Google returned a web page, not CSV - the sheet is not readable without "
+                "signing in. Fix it either way:\n"
+                "  Share -> General access -> Anyone with the link -> Viewer\n"
+                "  or File -> Share -> Publish to web -> CSV, and use that URL.")
         rows = list(csv.DictReader(io.StringIO(text)))
         if not rows:
             raise SheetError("the published CSV is empty - check the publish-to-web link")

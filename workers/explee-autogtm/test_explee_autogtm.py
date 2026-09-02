@@ -354,6 +354,21 @@ class TheSheet(unittest.TestCase):
         sheet = sheet_mod.Sheet(csv_url="https://example.com/x.csv")
         self.assertIsNone(sheet.append([{"email": "a@x.com"}]))
 
+    def test_a_pasted_edit_url_becomes_a_csv_url(self):
+        edit = "https://docs.google.com/spreadsheets/d/ABC123_x-y/edit?gid=42#gid=42"
+        self.assertEqual(sheet_mod.csv_url_for(edit),
+                         "https://docs.google.com/spreadsheets/d/ABC123_x-y/"
+                         "export?format=csv&gid=42")
+        pub = "https://docs.google.com/spreadsheets/d/e/2PACX-z/pub?output=csv"
+        self.assertEqual(sheet_mod.csv_url_for(pub), pub)
+        self.assertEqual(sheet_mod.csv_url_for("https://example.com/x.csv"),
+                         "https://example.com/x.csv")
+
+    def test_a_sign_in_page_is_not_parsed_as_an_empty_sheet(self):
+        with self.assertRaises(sheet_mod.SheetError) as caught:
+            sheet_mod.Sheet._from_csv("<!DOCTYPE html><html><title>Sign in</title>")
+        self.assertIn("Anyone with the link", str(caught.exception))
+
     def test_is_booked_edge_cases(self):
         for value in ("", "  ", "no", "NON", "false", "0", "-"):
             self.assertFalse(sheet_mod.is_booked(value), value)
