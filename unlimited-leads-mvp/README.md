@@ -1,5 +1,12 @@
 # unlimited-leads MVP — the whole backend is five n8n workflows
 
+> **Read `EXPLEE-FIRST.md` before building any of this.** Explee's public API
+> already exposes the entire AutoGTM product for a UI to sit on, so v1 should be
+> a UI over their API and nothing else. What follows is v2 — the build you
+> migrate to when the margin matters ($30 a booked call instead of $65). The
+> schema below is worth setting up either way: it is what makes the migration
+> possible, and it holds the booking record Explee cannot give you.
+
 Nothing here is a server. There is no app to deploy, no queue to run, no
 mailbox to warm, no SaaS vendor in the sending path. Five workflows, one
 Postgres schema, and the only things you operate are an n8n account and a
