@@ -1,0 +1,169 @@
+# Explee AutoGTM: the two optimisations
+
+The plan behind this directory is one goal — **cost per call under $50** — and two
+actions, both staying on AutoGTM:
+
+1. **Follow up on people who replied but didn't book.** ~55 positive replies a
+   month, 10 book, 45 leak. Those leads are already paid for at full price;
+   re-working one costs $0.03. Recover a fifth and the calls roughly double for
+   about $10 of sends — $50 a call becomes something near $27. This is the main
+   lever and it is the one that needs no new vendor.
+2. **Test a higher-intent lead source.** Explee matches 105M companies on
+   firmographics; it cannot see intent. 500 Explee leads against 500 sourced
+   leads, same copy, same week. This costs *more*, not less — it is a quality bet
+   that only pays if the reply rate moves enough to cover the data.
+
+Everything here talks to the Explee public API with the same `X-API-Key`.
+
+## ⚠️ No call in this directory has ever been answered by the real API
+
+`api.explee.com` is blocked by the sandbox this was written in, exactly like
+`linkfinderai.com`. The endpoints, the pricing and the limits come from Explee's
+published docs; the *response field names* for the inbox, thread and analytics
+endpoints are not published, so every field is read through `first_of`, which
+tries the plausible spellings and raises a `ShapeError` naming what it looked for
+and what the payload actually held.
+
+**Before the first `--apply`, spend one minute on this:**
+
+```bash
+export EXPLEE_API_KEY=...
+python3 explee.py GET /public/api/v1/billing/balance
+python3 explee.py GET /public/api/v1/autogtm/campaigns
+python3 explee.py GET /public/api/v1/autogtm/campaigns/<id>/inbox?tab=replied
+python3 explee.py GET /public/api/v1/autogtm/campaigns/<id>/inbox/<person_id>
+python3 explee.py GET /public/api/v1/autogtm/campaigns/<id>/analytics
+```
+
+Read the JSON. If a key is spelled differently than the lists in `recover.py`
+(`INBOUND_WORDS`, `message_direction`, `thread_view`) or `leadsource_test.py`
+(`read_arm`), add the spelling — that is the whole integration risk, and a dry
+run will tell you loudly rather than quietly reporting zero.
+
+## Setup
+
+```bash
+cp config.example.json config.json     # sender, offer line, timezone, slot hours
+export EXPLEE_API_KEY=...
+python3 test_explee_autogtm.py         # 40 tests, no network, no key needed
+```
+
+## Action 1 — recover the leaked replies
+
+```bash
+python3 recover.py                                     # dry run: prints every mail it would send
+python3 recover.py --booked booked.json --apply        # send
+```
+
+`booked.json` is a list of email addresses that already have a call, exported
+from your calendar or CRM (a JSON array, or one address per line). Without it
+this will happily follow up someone who booked yesterday, so treat it as
+required, not optional.
+
+`--calendar-views opened.json` (same format) is the list of people who opened
+your scheduler and did not book — Cal.com/Calendly can export it. It unlocks the
+plan's "opened calendar, didn't book" row; without it those leads get the warm
+follow-up instead, which is a softer version of the same move.
+
+**The five gates that stop a send**, in order: `can_reply` false · in `booked` ·
+somebody already answered the lead's last message · our marker is already in the
+lead's note for that exact message · the classifier returned a silent bucket
+(unsubscribe, out of office, not interested, already booked, unrecognised).
+`MAX_SENDS_PER_RUN = 25` caps the damage a classifier bug can do.
+
+**State lives in the lead's shared note**, not in a local file, so a teammate
+sees why a follow-up went out and a run from another machine does not repeat it:
+
+```
+Met at SaaStock. Wants phone data, not emails.
+
+[explee-recovery]
+2026-09-02T10:04Z bucket=send_info msg=a91f2c action=sent
+2026-09-02T10:04Z bucket=not_now msg=7c11de action=queued due=2026-12-01
+[/explee-recovery]
+```
+
+**"Not now" is a dated queue, and it fires itself.** Nothing sends at the time;
+the due date is parsed from the lead's own words ("in 2 weeks", "next quarter")
+and a later run picks it up and sends the re-engage mail once.
+
+**Speed is the point** — conversion drops by the hour, so run it on a cron every
+five minutes rather than nightly:
+
+```
+*/5 * * * * cd /path/workers/explee-autogtm && EXPLEE_API_KEY=... \
+  python3 recover.py --booked booked.json --apply >> recover.log 2>&1
+```
+
+Every sending template proposes **two named times**, in business hours, on two
+different days, at least 18 hours out. Never a bare link — that is what the leak
+is made of. `compose()` refuses to return a message that lost its slots, so a
+template edit cannot quietly turn these back into "here's my calendar".
+
+## Action 2 — the lead source test
+
+```bash
+# the sourced arm: a CSV from Gojiberry (or any intent source)
+python3 leadsource_test.py prepare --csv gojiberry.csv --out variant.leads.json
+
+# the Explee arm: search is free, the emails are not (1.5 credits each found on basic)
+python3 leadsource_test.py control --filters filters.json --count 500 \
+    --exclude variant.leads.json --out control.leads.json --apply
+
+# same brief for both, or the test measures the copy instead of the lead source
+python3 leadsource_test.py import --project 4021 --name "Intent test - control" \
+    --leads control.leads.json --brief brief.json --apply
+python3 leadsource_test.py import --project 4021 --name "Intent test - sourced" \
+    --leads variant.leads.json --brief brief.json --exclude control.arm.json --apply
+
+# a week or two later
+python3 leadsource_test.py compare --arm control.arm.json --arm variant.arm.json
+```
+
+`import` hashes the brief and refuses the second arm when it differs; `prepare`
+and `control` drop anyone already in the other arm (a lead in both replies once
+and credits an arm at random); `compare` says so out loud if the arms started on
+different days.
+
+**The verdict gates** implement the plan's rule literally — 2x or drop it:
+
+| Gate | Value | Why |
+|---|---|---|
+| `MIN_LEADS_PER_ARM` | 300 | below this, nothing is readable |
+| `MIN_REPLIES_TOTAL` | 12 | across both arms, before reply rate decides anything |
+| `SCALE_EFFECT` | 1.0 (2x) | a 30% edge is noise wearing a suit |
+| `ALPHA` | 0.05 | two-proportion test on reply rate |
+
+A significant but small lift returns **drop**, on purpose: the sourced data costs
+more than a 30% edge is worth.
+
+## The number that decides whether any of this worked
+
+```bash
+python3 baseline.py --project 4021 --booked 10 --showed 5 --label 2026-08 --save
+```
+
+Pull it **now**, before changing anything. Explee knows what it sent, what
+replied, what went hot and what it cost; it does not know who turned up, so
+`--booked` and `--showed` are typed in from the calendar and stored next to the
+spend they belong to (`cost-per-call.json`). If half the calls no-show, a $50
+cost per call is really $100 — the tool says so — and that is a different problem
+from lead sourcing, fixed by confirmations and reminders, not by better data.
+
+## What a human still has to do
+
+- Export `booked.json` (and ideally `opened.json`) — no API here knows who booked.
+- Verify the response shapes once, per the block at the top.
+- Read a dry run before the first `--apply`. These are real emails to real people.
+- Buy the intent data for Action 2, and accept it may lose. That is the test.
+
+## Files
+
+| File | What |
+|---|---|
+| `explee.py` | API client + `python3 explee.py GET <path>` for checking shapes |
+| `followups.py` | reply classifier, the two-slot generator, the templates |
+| `recover.py` | Action 1: scan the inboxes, decide, send, mark the note |
+| `leadsource_test.py` | Action 2: prepare / control / import / compare |
+| `baseline.py` | cost per call that actually showed up, before and after |
+| `test_explee_autogtm.py` | 40 tests, offline |
