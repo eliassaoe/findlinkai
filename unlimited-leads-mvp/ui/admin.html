@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Backstage — Unlimited Leads</title>
+<style>
+  :root{--bg:#14130f;--panel:#1c1a16;--line:#302c25;--ink:#f2efe9;--ink-2:#b3ac9f;
+        --ink-3:#847d70;--accent:#7fc9ae;--accent-ink:#0f1d18;--hot:#e8908a;--hot-soft:#2c1a19}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+       font:14px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;padding:1.5rem}
+  h1{font-size:1.1rem;margin:0 0 .25rem}
+  .sub{color:var(--ink-3);margin:0 0 1.5rem;font-size:.82rem}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:8px;
+        padding:1rem;margin-bottom:1rem}
+  input,textarea{font:inherit;width:100%;padding:.45rem .6rem;background:var(--bg);
+    color:var(--ink);border:1px solid var(--line);border-radius:6px}
+  button{font:inherit;background:var(--accent);color:var(--accent-ink);border:0;
+    border-radius:6px;padding:.45rem .9rem;font-weight:600;cursor:pointer}
+  label{display:block;font-size:.75rem;color:var(--ink-2);margin:.6rem 0 .2rem}
+  pre{white-space:pre-wrap;word-break:break-word;font-size:.78rem;color:var(--ink-2);margin:.5rem 0 0}
+  .err{background:var(--hot-soft);color:var(--hot);padding:.6rem .8rem;border-radius:6px;margin:.5rem 0}
+  .ok{background:#1a2a24;color:var(--accent);padding:.6rem .8rem;border-radius:6px;margin:.5rem 0}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:.6rem}
+  code{background:var(--bg);padding:.1rem .3rem;border-radius:4px}
+  .warn{border-color:#5a4a22;background:#241d10;color:#e5b76a;padding:.7rem .85rem;
+        border-radius:6px;font-size:.8rem;margin-bottom:1rem;border:1px solid #5a4a22}
+</style>
+</head>
+<body>
+<h1>Backstage</h1>
+<p class="sub">Onboarding queue and campaign linking. Not linked from anywhere.</p>
+
+<div class="warn">
+  Before the first customer: set <code>OWNER_PROJECT_IDS</code> in the worker to your own
+  Explee project ids, and insert them into <code>owner_projects</code>. Linking then
+  becomes impossible for your own campaigns — at the API and at the database.
+</div>
+
+<div class="card">
+  <label for="base">API base</label>
+  <input id="base" placeholder="https://unlimited-leads-tenant-api.you.workers.dev">
+  <label for="tok">Admin token</label>
+  <input id="tok" type="password" placeholder="x-admin-token">
+  <div style="margin-top:.7rem"><button id="load">Load queue</button></div>
+  <div id="qerr"></div>
+</div>
+
+<div id="queue"></div>
+
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g,
+  c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+for (const k of ['base','tok']) {
+  const v = localStorage.getItem('ul_'+k); if (v) $('#'+k).value = v;
+  $('#'+k).oninput = e => localStorage.setItem('ul_'+k, e.target.value);
+}
+
+const call = (path, opts={}) => fetch($('#base').value.replace(/\/+$/,'') + path, {
+  ...opts,
+  headers: { 'x-admin-token': $('#tok').value, 'content-type':'application/json',
+             ...(opts.headers||{}) },
+}).then(async r => {
+  const d = await r.json().catch(()=>({}));
+  if (!r.ok) throw new Error(d.error || `HTTP ${r.status}`);
+  return d;
+});
+
+$('#load').onclick = async () => {
+  $('#qerr').innerHTML = '';
+  try {
+    const rows = await call('/admin/queue');
+    $('#queue').innerHTML = rows.map(r => {
+      const t = r.tenants || {};
+      return `<div class="card">
+        <div><strong>${esc(t.company || t.email || 'unknown')}</strong>
+             <span style="color:var(--ink-3)">· ${esc(t.email||'')} · ${esc(r.submitted_at||'')}</span></div>
+        <pre>${esc(JSON.stringify({
+          offer: r.offer, problem: r.customer_problem, role: r.target_role,
+          geography: r.target_geography, size: r.target_company_size,
+          language: r.language, instructions: r.instructions,
+          followups: r.followup_instructions, calendly: r.calendly_url,
+        }, null, 2))}</pre>
+        <div class="row" style="margin-top:.7rem">
+          <div><label>Explee campaign_id</label>
+            <input data-cid="${esc(t.id)}" placeholder="4021"></div>
+          <div><label>Campaign name (optional)</label>
+            <input data-cname="${esc(t.id)}" placeholder="${esc(t.company||'')}"></div>
+        </div>
+        <div style="margin-top:.7rem">
+          <button data-link="${esc(t.id)}">Link this customer</button>
+        </div>
+        <div data-out="${esc(t.id)}"></div>
+      </div>`;
+    }).join('') || '<div class="card">Queue is empty.</div>';
+
+    document.querySelectorAll('[data-link]').forEach(b => b.onclick = async () => {
+      const id = b.dataset.link;
+      const out = document.querySelector(`[data-out="${id}"]`);
+      out.innerHTML = '';
+      try {
+        const res = await call('/admin/link', { method: 'POST', body: JSON.stringify({
+          tenant_id: id,
+          campaign_id: Number(document.querySelector(`[data-cid="${id}"]`).value),
+          name: document.querySelector(`[data-cname="${id}"]`).value || undefined,
+        })});
+        out.innerHTML = `<div class="ok">Linked to project ${esc(res.project_id)}
+          — status is now <strong>waiting_leads</strong>.</div>` +
+          (res.calendly_tracked_url
+            ? `<div class="warn" style="margin-top:.5rem">Paste THIS link into the campaign's
+                 email brief in Explee, not their bare Calendly link — the
+                 <code>utm_campaign</code> is what attributes their bookings:<br>
+                 <code>${esc(res.calendly_tracked_url)}</code></div>`
+            : `<div class="warn" style="margin-top:.5rem">This customer gave no booking link.
+                 Ask for one before sending — with no link there is nothing to book.</div>`);
+      } catch (e) { out.innerHTML = `<div class="err">${esc(e.message)}</div>`; }
+    });
+  } catch (e) { $('#qerr').innerHTML = `<div class="err">${esc(e.message)}</div>`; }
+};
+</script>
+</body>
+</html>

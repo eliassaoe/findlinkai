@@ -277,26 +277,98 @@ function assertAdmin(req, env) {
   if (!t || !env.ADMIN_TOKEN || t !== env.ADMIN_TOKEN) throw new HttpError(404, 'not found');
 }
 
-/** After you create the project and campaign in Explee, paste the ids here. */
-async function linkCampaign(body, env) {
-  const { tenant_id, campaign_id, project_id, name } = body;
-  if (!tenant_id || !campaign_id) throw new HttpError(422, 'tenant_id and campaign_id required');
+/** Your own project ids. A campaign in one of these can never be handed to a
+ *  customer — this is the guard that keeps your own outreach out of the product. */
+const ownerProjects = (env) =>
+  new Set(String(env.OWNER_PROJECT_IDS || '').split(',').map(s => s.trim()).filter(Boolean));
 
-  if (project_id) {
-    await sb(env, `tenants?id=eq.${tenant_id}`, {
-      method: 'PATCH', body: JSON.stringify({ project_id }) });
+/**
+ * Link a customer to the project and campaign you built for them in Explee.
+ *
+ * Five refusals, all of which have to hold or one customer ends up reading
+ * another's inbox — or yours:
+ *   1. the campaign must actually exist in your Explee organization;
+ *   2. its project must not be one of yours (OWNER_PROJECT_IDS);
+ *   3. the project must not already belong to a different tenant;
+ *   4. the tenant must not already be pinned to a different project;
+ *   5. the campaign must not already be linked to a different tenant.
+ * Only then is anything written.
+ */
+async function linkCampaign(body, env) {
+  const tenant_id = String(body.tenant_id || '');
+  const campaign_id = Number(body.campaign_id);
+  if (!tenant_id || !Number.isInteger(campaign_id) || campaign_id <= 0) {
+    throw new HttpError(422, 'tenant_id and a positive campaign_id are required');
   }
-  // Replace the placeholder row rather than leaving a second card on screen.
+
+  // (1) Read the campaign from Explee — never trust ids typed into a terminal.
+  const live = await explee(env, '/autogtm/campaigns');
+  const remote = (live.campaigns || []).find(c => Number(c.id) === campaign_id);
+  if (!remote) throw new HttpError(404, `campaign ${campaign_id} is not in your Explee org`);
+  const project_id = Number(remote.project_id);
+  if (!Number.isInteger(project_id)) throw new HttpError(502, 'campaign has no project_id');
+
+  // (2) Your own campaigns are off limits, permanently.
+  if (ownerProjects(env).has(String(project_id))) {
+    throw new HttpError(409,
+      `project ${project_id} is one of your own — refusing to hand it to a customer`);
+  }
+
+  // (3)(4) One project per tenant, one tenant per project.
+  const [projectOwner, thisTenant, alreadyLinked] = await Promise.all([
+    sb(env, `tenants?project_id=eq.${project_id}&select=id`),
+    sb(env, `tenants?id=eq.${tenant_id}&select=id,project_id`),
+    sb(env, `tenant_campaigns?campaign_id=eq.${campaign_id}&select=tenant_id`),
+  ]);
+  if (!thisTenant.length) throw new HttpError(404, 'no such tenant');
+  if (projectOwner.length && projectOwner[0].id !== tenant_id) {
+    throw new HttpError(409, `project ${project_id} already belongs to another customer`);
+  }
+  if (thisTenant[0].project_id && Number(thisTenant[0].project_id) !== project_id) {
+    throw new HttpError(409,
+      `this customer is already on project ${thisTenant[0].project_id}`);
+  }
+  // (5)
+  if (alreadyLinked.length && alreadyLinked[0].tenant_id !== tenant_id) {
+    throw new HttpError(409, `campaign ${campaign_id} already belongs to another customer`);
+  }
+
+  await sb(env, `tenants?id=eq.${tenant_id}`, {
+    method: 'PATCH', body: JSON.stringify({ project_id }) });
+
+  // Replace the placeholder card rather than leaving a second one on screen.
   await sb(env, `tenant_campaigns?tenant_id=eq.${tenant_id}&status=eq.pending_setup`,
            { method: 'DELETE' });
+
+  const brief = await sb(env,
+    `onboarding_requests?tenant_id=eq.${tenant_id}&select=calendly_url` +
+    `&order=submitted_at.desc&limit=1`);
+  const calendly = brief[0]?.calendly_url || null;
+
   await sb(env, 'tenant_campaigns', {
     method: 'POST',
     headers: { Prefer: 'resolution=merge-duplicates' },
     body: JSON.stringify({
-      campaign_id, tenant_id, name: name || 'Campaign', status: 'waiting_leads',
+      campaign_id, tenant_id, project_id,
+      name: body.name || remote.name || 'Campaign',
+      status: 'waiting_leads',
+      calendly_url: calendly,
     }),
   });
-  return { ok: true, status: 'waiting_leads' };
+
+  return {
+    ok: true,
+    status: 'waiting_leads',
+    project_id,
+    campaign_id,
+    // Paste THIS into the campaign's copy brief, not their bare Calendly link.
+    // The utm_campaign is what lets a booking be attributed to this customer;
+    // without it the booking arrives unattributed and is not counted.
+    calendly_tracked_url: calendly
+      ? `${calendly}${calendly.includes('?') ? '&' : '?'}` +
+        `utm_source=unlimited-leads&utm_campaign=${campaign_id}`
+      : null,
+  };
 }
 
 /**
@@ -304,15 +376,22 @@ async function linkCampaign(body, env) {
  * customer's card flips from "Finding leads" to "Sending" without you doing it.
  */
 async function syncStatuses(env) {
-  const linked = await sb(env, 'tenant_campaigns?campaign_id=gt.0&select=campaign_id,status');
+  // Only campaigns we linked to a tenant. Your own campaigns are not in this
+  // table, so this loop can never read, write or touch them.
+  const linked = await sb(env,
+    'tenant_campaigns?campaign_id=gt.0&select=campaign_id,status,project_id');
   if (!linked.length) return { updated: 0 };
   const live = await explee(env, '/autogtm/campaigns');
   const byId = new Map((live.campaigns || []).map(c => [String(c.id), c]));
 
   let updated = 0;
+  const mine = ownerProjects(env);
   for (const row of linked) {
     const remote = byId.get(String(row.campaign_id));
     if (!remote) continue;
+    // Belt and braces: if a link ever pointed at one of your projects, skip it
+    // rather than surfacing your campaign in a customer's dashboard.
+    if (mine.has(String(remote.project_id))) continue;
     const s = String(remote.status || '').toLowerCase();
     const next = s.includes('run') || s.includes('active') || s.includes('send') ? 'active'
                : s.includes('stop') || s.includes('pause') ? 'paused'
@@ -333,33 +412,41 @@ async function syncStatuses(env) {
   return { updated };
 }
 
-/** Calendly invitee.created. Bookings are the product; they stay ours. */
+/**
+ * Calendly invitee.created. Bookings are the product, so they stay ours.
+ *
+ * Attribution is by `tracking.utm_campaign`, which is the campaign id we put in
+ * the Calendly link at link time. It is exact. If it is missing or unknown the
+ * booking is stored UNATTRIBUTED — never guessed onto the nearest customer,
+ * because a wrong attribution silently credits one customer with another's
+ * meeting, and that is worse than a gap you can see.
+ */
 async function recordBooking(body, env) {
   const p = body?.payload || body || {};
-  const email = (p.email || p.invitee?.email || '').toLowerCase();
+  const email = String(p.email || p.invitee?.email || '').toLowerCase();
   if (!email) throw new HttpError(422, 'no invitee email');
-  const uri = p.uri || p.event?.uri || `${email}-${Date.now()}`;
 
-  // Attribute by Calendly link: each tenant gets their own, so the link the
-  // meeting was booked through identifies the customer.
-  const link = p.scheduled_event?.uri || p.event_type?.uri || null;
-  const owner = await sb(env,
-    `tenant_campaigns?calendly_url=not.is.null&select=tenant_id,campaign_id,calendly_url`);
-  const match = owner.find(o => link && String(link).includes(o.calendly_url)) || owner[0] || null;
+  const tracked = Number(p.tracking?.utm_campaign);
+  let owner = null;
+  if (Number.isInteger(tracked) && tracked > 0) {
+    const rows = await sb(env,
+      `tenant_campaigns?campaign_id=eq.${tracked}&select=tenant_id,campaign_id`);
+    owner = rows[0] || null;
+  }
 
   await sb(env, 'bookings', {
     method: 'POST',
     headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
     body: JSON.stringify({
-      tenant_id: match?.tenant_id || null,
-      campaign_id: match?.campaign_id || null,
+      tenant_id: owner?.tenant_id ?? null,
+      campaign_id: owner?.campaign_id ?? null,
       invitee_email: email,
       invitee_name: p.name || p.invitee?.name || null,
       starts_at: p.scheduled_event?.start_time || p.event?.start_time || null,
-      event_uri: uri,
+      event_uri: p.uri || p.event?.uri || `${email}-${Date.now()}`,
     }),
   });
-  return { ok: true, attributed: !!match };
+  return { ok: true, attributed: !!owner };
 }
 
 // --------------------------------------------------------------------------
