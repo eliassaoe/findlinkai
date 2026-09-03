@@ -360,7 +360,9 @@ test('a list result is numbered and keeps the row for detail', () => {
         { name: 'Ada Lovelace', reactionType: 'LIKE' },
         { name: 'Alan Turing', reactionType: 'PRAISE' },
     ]);
-    assert.deepStrictEqual(lines.map((l) => l.value), ['Ada Lovelace', 'Alan Turing']);
+    // The description carries the distinguishing detail, not just the name — a
+    // list of bare names tells the user nothing about which row is which.
+    assert.deepStrictEqual(lines.map((l) => l.value), ['Ada Lovelace — LIKE', 'Alan Turing — PRAISE']);
     assert.strictEqual(lines[0].detail.reactionType, 'LIKE');
 });
 
@@ -394,4 +396,129 @@ test('an aborted lookup is reported as cancelled', async () => {
         }),
         /cancelled/
     );
+});
+
+// --- export: the behaviour that actually converts ------------------------
+//
+// Measured over 120 days in PostHog: single-lookup-only users paid at 0.35%,
+// CSV uploaders at 4.6%, people who hit the export gate at 8.7%. The export path
+// is the one worth protecting with tests.
+
+const { toCsv, rowCount } = await import(join(EXT, 'src', 'api.js'));
+const { estimateCredits, isExport } = await import(join(EXT, 'src', 'generated', 'operations.js'));
+
+const employees = operationByType('linkedin_company_to_employees');
+
+test('the employee export is the one operation carrying filters', () => {
+    assert.deepStrictEqual(employees.params.map((p) => p.name), ['department', 'seniority', 'employee_count']);
+    assert.ok(isExport(employees));
+    assert.ok(!isExport(operationByType('linkedin_profile_to_email')));
+});
+
+test('per-employee cost is quoted from the row cap, not the headline credit', () => {
+    // The catalog headline says 1 credit. 200 rows is 101. Quoting the headline
+    // would be the single most expensive lie the panel could tell.
+    assert.strictEqual(estimateCredits(employees, 25), 13.5);
+    assert.strictEqual(estimateCredits(employees, 200), 101);
+    assert.strictEqual(estimateCredits(operationByType('linkedin_profile_to_email'), 200), 10);
+    assert.strictEqual(estimateCredits(employees, 0), null);
+    assert.strictEqual(estimateCredits(employees, 'abc'), null);
+});
+
+test('CSV columns come from the catalog, and internal ids never ship', () => {
+    const csv = toCsv(employees, [
+        {
+            firstName: 'Sebastian', lastName: 'Robles', jobTitle: 'Talent Acquisition Manager',
+            email: 'srobles@tesla.com', mobileNumber: null, linkedinUrl: 'http://lnkd/x',
+            company: 'Tesla', city: 'Mexico City', country: 'Mexico',
+            personId: 'INTERNAL', companyId: 'INTERNAL', photoUrl: 'INTERNAL',
+        },
+    ]);
+    const header = csv.split('\r\n')[0].split(',');
+    assert.deepStrictEqual(header.slice(0, 9), employees.columns.default);
+    for (const skipped of employees.columns.skip) {
+        assert.ok(!header.includes(skipped), `${skipped} must not be exported`);
+    }
+    assert.ok(!csv.includes('INTERNAL'));
+});
+
+test('CSV escaping survives commas, quotes and newlines', () => {
+    const csv = toCsv(employees, [{ firstName: 'O"Brien, Jr', jobTitle: 'VP, Sales\nEMEA' }]);
+    const body = csv.split('\r\n')[1];
+    assert.ok(body.includes('"O""Brien, Jr"'), body);
+    assert.ok(body.includes('"VP, Sales\nEMEA"'), body);
+});
+
+test('a formula is neutralised, so an export cannot execute in Excel', () => {
+    // CSV injection: a cell starting = + - or @ runs on open in Excel and Sheets.
+    for (const payload of ['=cmd|calc', '+1+1', '-2+3', '@SUM(A1)']) {
+        const csv = toCsv(employees, [{ firstName: payload }]);
+        assert.match(csv.split('\r\n')[1], /^'/, `${payload} was not neutralised`);
+    }
+});
+
+test('an array field is joined rather than stringified as an object', () => {
+    const csv = toCsv(employees, [{ firstName: 'A', department: ['Human Resources', 'Ops'] }]);
+    assert.ok(csv.includes('Human Resources; Ops'), csv);
+});
+
+test('a field the catalog did not anticipate is appended, never dropped', () => {
+    // Losing data silently on an export is worse than an unfamiliar column.
+    const csv = toCsv(employees, [{ firstName: 'A', someNewField: 'keep me' }]);
+    assert.ok(csv.split('\r\n')[0].includes('someNewField'));
+    assert.ok(csv.includes('keep me'));
+});
+
+test('an empty result produces no CSV rather than a lone header', () => {
+    assert.strictEqual(toCsv(employees, []), '');
+    assert.strictEqual(toCsv(employees, null), '');
+    assert.strictEqual(rowCount(null), 0);
+});
+
+test('the worker bills from rows returned, not rows requested', () => {
+    // An export capped at 200 that finds 60 must be reported as 60 rows' worth.
+    const bg = readFileSync(join(EXT, 'src', 'background.js'), 'utf8');
+    assert.match(bg, /chargedCredits:.*0\.5 \* rows/, 'charge is not computed from rows returned');
+    assert.match(bg, /csv: rows > 0 \? toCsv/, 'CSV is not built in the worker');
+});
+
+test('the export form leads on a company page, not the single lookups', () => {
+    const content = readFileSync(join(EXT, 'src', 'content.js'), 'utf8');
+    assert.match(content, /const exports = ops\.filter/, 'exports are not separated from quick lookups');
+    // The cost estimate must exist and must be rendered before the run button.
+    assert.ok(content.indexOf('lf-estimate') < content.indexOf('lf-export-run'), 'cost is not shown above the run button');
+});
+
+test('the download needs no extra permission', () => {
+    const content = readFileSync(join(EXT, 'src', 'content.js'), 'utf8');
+    assert.match(content, /URL\.createObjectURL/, 'not using a blob download');
+    // Strip comments first: the code explains why it avoids chrome.downloads, and
+    // matching that sentence is not the same as calling the API.
+    const code = content.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1');
+    assert.ok(!/chrome\.downloads/.test(code), 'chrome.downloads would need a new permission');
+    assert.ok(!manifest.permissions.includes('downloads'));
+});
+
+test('a list preview describes a row, it does not dump JSON at the user', () => {
+    // Found by screenshotting the panel: employee rows have firstName/lastName and
+    // no `name`, so the old fallback serialised the whole object — internal ids
+    // and all — into the preview the export had just stripped them from.
+    const lines = presentResult(employees, [
+        { firstName: 'Sebastian', lastName: 'Robles', jobTitle: 'Talent Acquisition Manager', personId: 'INTERNAL' },
+    ]);
+    assert.strictEqual(lines[0].value, 'Sebastian Robles — Talent Acquisition Manager');
+    assert.ok(!lines[0].value.includes('INTERNAL'));
+    assert.ok(!lines[0].value.includes('{'));
+});
+
+test('a reaction row, which has a name and no job title, still reads cleanly', () => {
+    const lines = presentResult(operationByType('linkedin_post_to_reactions'), [
+        { name: 'Ada Lovelace', headline: 'VP Engineering at Tesla', reactionType: 'LIKE' },
+    ]);
+    assert.strictEqual(lines[0].value, 'Ada Lovelace — VP Engineering at Tesla');
+});
+
+test('a nameless row falls back to a field, never to JSON', () => {
+    const lines = presentResult(employees, [{ personId: 'x1', linkedinUrl: 'http://lnkd/x', city: 'Austin' }]);
+    assert.strictEqual(lines[0].value, 'Austin');
 });

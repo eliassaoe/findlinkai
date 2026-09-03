@@ -20,6 +20,7 @@ export const OPERATIONS = [
         "pageMatch": "/in/",
         "outputKind": "scalar",
         "outputField": "email",
+        "columns": null,
         "params": []
     },
     {
@@ -33,6 +34,28 @@ export const OPERATIONS = [
         "pageMatch": "/in/",
         "outputKind": "object",
         "outputField": null,
+        "columns": {
+            "default": [
+                "name",
+                "jobTitle",
+                "company",
+                "location",
+                "email",
+                "mobileNumber",
+                "linkedinUrl",
+                "industry",
+                "headline"
+            ],
+            "skip": [
+                "profilePic",
+                "backgroundPic",
+                "experiences",
+                "education",
+                "skills",
+                "languages",
+                "certifications"
+            ]
+        },
         "params": []
     },
     {
@@ -46,6 +69,7 @@ export const OPERATIONS = [
         "pageMatch": "/in/",
         "outputKind": "scalar",
         "outputField": "phone",
+        "columns": null,
         "params": []
     },
     {
@@ -59,6 +83,7 @@ export const OPERATIONS = [
         "pageMatch": "/company/",
         "outputKind": "scalar",
         "outputField": "employee_count",
+        "columns": null,
         "params": []
     },
     {
@@ -72,6 +97,24 @@ export const OPERATIONS = [
         "pageMatch": "/company/",
         "outputKind": "list",
         "outputField": null,
+        "columns": {
+            "default": [
+                "firstName",
+                "lastName",
+                "jobTitle",
+                "email",
+                "mobileNumber",
+                "linkedinUrl",
+                "company",
+                "city",
+                "country"
+            ],
+            "skip": [
+                "photoUrl",
+                "personId",
+                "companyId"
+            ]
+        },
         "params": [
             {
                 "name": "department",
@@ -104,6 +147,27 @@ export const OPERATIONS = [
         "pageMatch": "/company/",
         "outputKind": "object",
         "outputField": null,
+        "columns": {
+            "default": [
+                "name",
+                "website",
+                "industry",
+                "employeeCount",
+                "city",
+                "country",
+                "linkedinUrl",
+                "company_email",
+                "company_phone"
+            ],
+            "skip": [
+                "logo",
+                "background_cover_image_url",
+                "all_locations",
+                "specialties",
+                "id",
+                "universalName"
+            ]
+        },
         "params": []
     },
     {
@@ -117,6 +181,15 @@ export const OPERATIONS = [
         "pageMatch": "/posts/",
         "outputKind": "list",
         "outputField": null,
+        "columns": {
+            "default": [
+                "name",
+                "headline",
+                "linkedinUrl",
+                "reactionType"
+            ],
+            "skip": []
+        },
         "params": []
     }
 ];
@@ -132,6 +205,26 @@ export function pageTypeOf(url) {
 /** The operations offered on a given page type, cheapest first. */
 export function operationsFor(page) {
     return OPERATIONS.filter((op) => op.page === page).sort((a, b) => a.credits - b.credits);
+}
+
+/**
+ * What an operation will actually cost, given the requested row cap.
+ *
+ * Per-employee billing is the only place the headline credit number lies: the
+ * catalog says 1 credit for an employee export, but 200 employees is 101. A user
+ * who learns that from their balance has been mugged, so the panel quotes this
+ * before the button is pressed, not after.
+ */
+export function estimateCredits(operation, rows) {
+    if (!operation.perEmployeeBilling) return operation.credits;
+    const n = Number(rows);
+    if (!Number.isFinite(n) || n <= 0) return null;
+    return operation.credits + 0.5 * n;
+}
+
+/** Operations that return many rows, i.e. the ones worth a CSV. */
+export function isExport(operation) {
+    return operation.outputKind === 'list';
 }
 
 export function operationByType(type) {

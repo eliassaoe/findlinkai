@@ -11,8 +11,17 @@ contact behind this profile". This is that job, in the place it happens.
 
 ## What it does
 
-A small panel, bottom-right, on any LinkedIn profile, company page or post. It
-offers exactly the operations whose input is the URL you are on:
+A small panel, bottom-right, on any LinkedIn profile, company page or post.
+
+On a **company page it leads with an employee export**: department, seniority and
+row-cap filters, a live cost estimate, and a CSV download. That ordering is not a
+style choice. Measured over 120 days, people who only ever ran single lookups
+paid at **0.35%**, CSV uploaders at **4.6%**, and people who hit the export gate
+at **8.7%** — so a one-profile-at-a-time panel optimises for the worst of the
+three. Single lookups are still there, as the secondary row. The reasoning is in
+`docs/chrome-extension-direction.md`.
+
+It offers exactly the operations whose input is the URL you are on:
 
 | Page | Operations |
 | --- | --- |
@@ -24,6 +33,16 @@ Every button shows its credit cost before you press it, and a lookup that finds
 nothing says **"this lookup was still charged"** — because per `openapi.json` it
 is. Discovering that from your balance instead is how a tool earns a one-star
 review.
+
+The export is where that matters most: the catalog headline for an employee
+export is **1 credit**, and 200 rows is **101**. The panel quotes the real number
+as you type the cap, and reports the actual charge from **rows returned, not rows
+requested** — an export capped at 200 that finds 60 is billed 31, and it says 31.
+
+CSV columns come from the catalog too, so the export cannot drift from the Google
+Sheets add-on's. Internal ids are stripped, arrays are joined, and a cell
+starting `=`, `+`, `-` or `@` is neutralised so an export cannot execute itself
+when someone opens it in Excel.
 
 ## Install it unpacked (for development)
 
@@ -94,10 +113,12 @@ those was a real bug the win-back campaign had to apologise for.
 ## Tests
 
 `test/extension.test.mjs` runs in the repo suite with no browser and no
-dependencies — 29 tests over generation drift, credit costs against the spec,
-manifest minimalism, icon bytes, key isolation, and every documented API
-response including 401/402/422/429, async polling, poll expiry, the bounded poll
-budget, a non-JSON body, and a transport failure.
+dependencies — 43 tests over generation drift, credit costs against the spec,
+manifest minimalism, icon bytes, key isolation, every documented API response
+(401/402/422/429, async polling, poll expiry, the bounded budget, a non-JSON
+body, a transport failure), and the export path: per-row cost arithmetic, CSV
+columns against the catalog, escaping, formula-injection neutralisation, and
+billing from rows returned.
 
 It has also been driven end to end in real Chromium — extension loaded, key
 saved through the options page, panel injected on a served LinkedIn URL, lookups

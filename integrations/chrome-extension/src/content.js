@@ -91,6 +91,18 @@ function showResult(op, response) {
         return;
     }
 
+    if (response.csv && response.rows > 0) {
+        // For an export the useful summary is the row count and what it cost, not
+        // a preview of names the user is about to open in a spreadsheet anyway.
+        setStatus(`${response.rows} rows found${response.chargedCredits ? ` · ${response.chargedCredits} credits` : ''}.`, 'info');
+        out.appendChild(el('div', { class: 'lf-result-head', text: op.label }));
+        for (const line of response.lines.slice(0, 3)) {
+            out.appendChild(el('div', { class: 'lf-row' }, [el('span', { class: 'lf-value', text: line.value })]));
+        }
+        if (response.rows > 3) out.appendChild(el('div', { class: 'lf-more', text: `…and ${response.rows - 3} more` }));
+        return;
+    }
+
     setStatus('', 'info');
     out.appendChild(el('div', { class: 'lf-result-head', text: `${op.label} · ${creditLabel(op)}` }));
 
@@ -114,16 +126,49 @@ function showResult(op, response) {
     }
 }
 
-async function run(op) {
+/** What the operation will cost with the currently chosen row cap. */
+function estimate(op, rows) {
+    if (!op.perEmployeeBilling) return op.credits;
+    const n = Number(rows);
+    if (!Number.isFinite(n) || n <= 0) return null;
+    return op.credits + 0.5 * n;
+}
+
+function offerDownload(op, rows, csv) {
+    const out = document.querySelector(`#${PANEL_ID} .lf-results`);
+    if (!out) return;
+
+    const company = (() => {
+        const m = currentUrl.match(/\/company\/([^/?#]+)/);
+        return m ? m[1] : 'linkedin';
+    })();
+    const name = `${company}-employees-${new Date().toISOString().slice(0, 10)}.csv`;
+
+    const link = el('a', { class: 'lf-download', download: name, text: `Download ${rows} rows (CSV)` });
+    // A blob URL rather than chrome.downloads: same result, one less permission to
+    // justify to a store reviewer.
+    link.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+    link.addEventListener('click', () => setTimeout(() => URL.revokeObjectURL(link.href), 30_000));
+    out.appendChild(link);
+}
+
+async function run(op, params = {}) {
     if (busy) return;
     busy = true;
-    document.querySelectorAll(`#${PANEL_ID} .lf-op`).forEach((b) => (b.disabled = true));
-    setStatus(`Looking up ${op.short.toLowerCase()}…`, 'info');
+    document.querySelectorAll(`#${PANEL_ID} button`).forEach((b) => (b.disabled = true));
 
-    const response = await ask({ kind: 'lookup', type: op.type, url: cleanProfileUrl(currentUrl), params: {} });
+    const quoted = estimate(op, params.employee_count);
+    setStatus(
+        op.perEmployeeBilling && quoted
+            ? `Exporting… up to ${quoted} credits.`
+            : `Looking up ${op.short.toLowerCase()}…`,
+        'info'
+    );
+
+    const response = await ask({ kind: 'lookup', type: op.type, url: cleanProfileUrl(currentUrl), params });
 
     busy = false;
-    document.querySelectorAll(`#${PANEL_ID} .lf-op`).forEach((b) => (b.disabled = false));
+    document.querySelectorAll(`#${PANEL_ID} button`).forEach((b) => (b.disabled = false));
 
     if (!response) {
         setStatus('The extension needs reloading — open chrome://extensions and reload LinkFinder AI.', 'error');
@@ -134,6 +179,60 @@ async function run(op) {
         return;
     }
     showResult(op, response);
+    if (response.csv && response.rows > 0) offerDownload(op, response.rows, response.csv);
+}
+
+/**
+ * The export form, for operations that return a list and take filters.
+ *
+ * This is the surface the extension exists for. Measured over 120 days: people
+ * who only ever ran single lookups paid at 0.35%, people who uploaded a CSV at
+ * 4.6%, people who hit the export gate at 8.7%. A one-profile-at-a-time panel
+ * optimises for the worst of those three.
+ */
+function buildExportForm(op) {
+    const fields = el('div', { class: 'lf-form' });
+
+    const inputs = {};
+    for (const param of op.params) {
+        const isNumber = param.type === 'integer';
+        const input = el('input', {
+            class: 'lf-input',
+            type: isNumber ? 'number' : 'text',
+            placeholder: isNumber ? '25' : param.help.replace(/^.*e\.g\. /, '').replace(/\.$/, ''),
+            title: param.help,
+        });
+        if (isNumber) {
+            input.min = '1';
+            input.value = '25'; // A cheap first run: 13.5 credits, not 101.
+        }
+        inputs[param.name] = input;
+        fields.appendChild(el('label', { class: 'lf-field' }, [el('span', { text: param.label }), input]));
+    }
+
+    const cost = el('div', { class: 'lf-estimate' });
+    const refresh = () => {
+        const n = inputs.employee_count ? inputs.employee_count.value : null;
+        const c = estimate(op, n);
+        cost.textContent = c === null ? 'Enter a row cap to see the cost.' : `About ${c} credits for ${n} rows.`;
+    };
+    if (inputs.employee_count) {
+        inputs.employee_count.addEventListener('input', refresh);
+        refresh();
+    }
+
+    const go = el('button', { class: 'lf-primary lf-export-run', type: 'button', text: 'Export to CSV' });
+    go.addEventListener('click', () => {
+        const params = {};
+        for (const [name, input] of Object.entries(inputs)) {
+            const value = input.value.trim();
+            if (!value) continue;
+            params[name] = input.type === 'number' ? Number(value) : value;
+        }
+        run(op, params);
+    });
+
+    return el('div', { class: 'lf-export' }, [fields, cost, go]);
 }
 
 function buildPanel(page, ops, hasKey) {
@@ -147,16 +246,29 @@ function buildPanel(page, ops, hasKey) {
         open.addEventListener('click', () => ask({ kind: 'open-options' }) || chrome.runtime.openOptionsPage?.());
         body.appendChild(open);
     } else {
-        const row = el('div', { class: 'lf-ops' });
-        for (const op of ops) {
-            const button = el('button', { class: 'lf-op', type: 'button', title: `${op.label} — ${creditLabel(op)}` }, [
-                el('span', { class: 'lf-op-label', text: op.short }),
-                el('span', { class: 'lf-op-cost', text: creditLabel(op) }),
-            ]);
-            button.addEventListener('click', () => run(op));
-            row.appendChild(button);
+        // Exports lead. On a company page the export IS the product; the single
+        // lookups are the secondary action, not the other way round.
+        const exports = ops.filter((op) => op.outputKind === 'list' && op.params.length);
+        const quick = ops.filter((op) => !(op.outputKind === 'list' && op.params.length));
+
+        for (const op of exports) {
+            body.appendChild(el('div', { class: 'lf-section', text: op.label }));
+            body.appendChild(buildExportForm(op));
         }
-        body.appendChild(row);
+
+        if (quick.length) {
+            if (exports.length) body.appendChild(el('div', { class: 'lf-section', text: 'Single lookups' }));
+            const row = el('div', { class: 'lf-ops' });
+            for (const op of quick) {
+                const button = el('button', { class: 'lf-op', type: 'button', title: `${op.label} — ${creditLabel(op)}` }, [
+                    el('span', { class: 'lf-op-label', text: op.short }),
+                    el('span', { class: 'lf-op-cost', text: creditLabel(op) }),
+                ]);
+                button.addEventListener('click', () => run(op));
+                row.appendChild(button);
+            }
+            body.appendChild(row);
+        }
         body.appendChild(el('div', { class: 'lf-status', hidden: 'hidden' }));
         body.appendChild(el('div', { class: 'lf-results' }));
     }

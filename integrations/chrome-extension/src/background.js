@@ -11,7 +11,7 @@
  * reading the tab URL itself. Fewer permissions is not only hygiene here — every
  * additional one is another thing a Chrome Web Store reviewer has to justify.
  */
-import { runOperation, ApiError, presentResult } from './api.js';
+import { runOperation, ApiError, presentResult, toCsv, rowCount } from './api.js';
 import { operationByType, operationsFor, pageTypeOf, SPEC_VERSION } from './generated/operations.js';
 
 const KEY_STORAGE = 'apiKey';
@@ -34,6 +34,8 @@ async function handleLookup({ type, url, params }) {
     const { result, charged } = await runOperation({ apiKey, type, inputData: url, params });
 
     const lines = presentResult(operation, result);
+    const rows = operation.outputKind === 'list' ? rowCount(result) : 0;
+
     return {
         ok: true,
         type,
@@ -44,7 +46,14 @@ async function handleLookup({ type, url, params }) {
         found: lines.length > 0,
         charged,
         lines,
-        raw: result,
+        rows,
+        // The CSV is built here rather than in the content script so the row data
+        // never has to cross into the page at all — only the finished text does.
+        csv: rows > 0 ? toCsv(operation, result) : null,
+        // What it actually cost, computed from rows returned rather than rows
+        // asked for: an export capped at 200 that finds 60 is billed for 60.
+        chargedCredits: operation.perEmployeeBilling && rows > 0 ? operation.credits + 0.5 * rows : operation.credits,
+        raw: null,
     };
 }
 

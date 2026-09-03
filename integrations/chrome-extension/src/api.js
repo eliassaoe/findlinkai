@@ -165,6 +165,30 @@ export async function pollJob({ apiKey, jobId, fetchImpl = fetch, sleep = defaul
 }
 
 /**
+ * A one-line human description of a list row.
+ *
+ * Employee rows carry firstName/lastName but no `name`, so a naive
+ * `row.name ?? JSON.stringify(row)` dumps the whole object — including the
+ * internal ids the export deliberately strips — into the preview. Caught by
+ * looking at the panel rather than by a test, which is what looking is for.
+ */
+function describeRow(row) {
+    if (row === null || row === undefined) return '';
+    if (typeof row !== 'object') return String(row);
+
+    const name = row.name || [row.firstName, row.lastName].filter(Boolean).join(' ');
+    const detail = row.jobTitle || row.headline || row.reactionType || '';
+    if (name) return detail ? `${name} — ${detail}` : name;
+
+    // No name-shaped field: fall back to the first short string value rather than
+    // serialising the object.
+    const first = Object.entries(row).find(
+        ([key, value]) => typeof value === 'string' && value && value.length < 80 && !/id$|url$/i.test(key)
+    );
+    return first ? first[1] : '(row)';
+}
+
+/**
  * Turns a result into lines for display.
  *
  * The catalog says whether an operation returns a scalar, an object or a list,
@@ -182,7 +206,7 @@ export function presentResult(operation, result) {
         const rows = Array.isArray(result) ? result : Array.isArray(result?.results) ? result.results : [];
         return rows.map((row, i) => ({
             label: `${i + 1}`,
-            value: typeof row === 'object' ? (row.name ?? JSON.stringify(row)) : String(row),
+            value: describeRow(row),
             detail: typeof row === 'object' ? row : null,
         }));
     }
@@ -192,4 +216,59 @@ export function presentResult(operation, result) {
     return Object.entries(result)
         .filter(([, v]) => v !== null && v !== undefined && v !== '' && typeof v !== 'object')
         .map(([k, v]) => ({ label: k, value: String(v) }));
+}
+
+/**
+ * Turns a list result into CSV, using the columns the catalog declares.
+ *
+ * The catalog names both the default export columns and the ones to skip
+ * (internal ids), so this cannot drift from what the Google Sheets add-on
+ * exports for the same operation.
+ */
+export function toCsv(operation, result) {
+    const rows = Array.isArray(result) ? result : Array.isArray(result?.results) ? result.results : [];
+    if (!rows.length) return '';
+
+    const declared = operation.columns || {};
+    const skip = new Set(declared.skip || []);
+    // Start from the declared order, then append any field the API actually
+    // returned that the catalog did not anticipate — losing data silently on an
+    // export is worse than an unfamiliar column.
+    const seen = new Set();
+    const columns = [];
+    for (const name of declared.default || []) {
+        if (!skip.has(name)) {
+            columns.push(name);
+            seen.add(name);
+        }
+    }
+    for (const row of rows) {
+        for (const key of Object.keys(row || {})) {
+            if (!seen.has(key) && !skip.has(key)) {
+                columns.push(key);
+                seen.add(key);
+            }
+        }
+    }
+
+    const cell = (value) => {
+        if (value === null || value === undefined) return '';
+        // department comes back as an array; join rather than emitting "[object Object]".
+        const text = Array.isArray(value) ? value.join('; ') : typeof value === 'object' ? JSON.stringify(value) : String(value);
+        // A leading =, +, - or @ is executed by Excel and Sheets on open. Prefixing
+        // an apostrophe is the standard neutralisation and survives re-import.
+        const guarded = /^[=+\-@\t\r]/.test(text) ? `'${text}` : text;
+        return /[",\n\r]/.test(guarded) ? `"${guarded.replace(/"/g, '""')}"` : guarded;
+    };
+
+    const lines = [columns.join(',')];
+    for (const row of rows) lines.push(columns.map((c) => cell(row ? row[c] : '')).join(','));
+    // CRLF: Excel is the destination for most of these and it is the safer ending.
+    return lines.join('\r\n');
+}
+
+/** Rows in a list result, for the row count and the cost reconciliation. */
+export function rowCount(result) {
+    const rows = Array.isArray(result) ? result : Array.isArray(result?.results) ? result.results : [];
+    return rows.length;
 }

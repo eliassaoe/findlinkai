@@ -40,6 +40,10 @@ const operations = catalog.operations
         pageMatch: PAGES[op.input.label].match,
         outputKind: op.output.kind,
         outputField: op.output.field,
+        // The catalog already decides which fields belong in an export and which
+        // are internal ids, so the CSV columns come from there rather than being
+        // decided again here and drifting from the Sheets add-on's export.
+        columns: op.output.columns || null,
         params: op.params.map((p) => ({ name: p.name, label: p.label, type: p.type, help: p.help })),
     }));
 
@@ -76,6 +80,26 @@ export function pageTypeOf(url) {
 /** The operations offered on a given page type, cheapest first. */
 export function operationsFor(page) {
     return OPERATIONS.filter((op) => op.page === page).sort((a, b) => a.credits - b.credits);
+}
+
+/**
+ * What an operation will actually cost, given the requested row cap.
+ *
+ * Per-employee billing is the only place the headline credit number lies: the
+ * catalog says 1 credit for an employee export, but 200 employees is 101. A user
+ * who learns that from their balance has been mugged, so the panel quotes this
+ * before the button is pressed, not after.
+ */
+export function estimateCredits(operation, rows) {
+    if (!operation.perEmployeeBilling) return operation.credits;
+    const n = Number(rows);
+    if (!Number.isFinite(n) || n <= 0) return null;
+    return operation.credits + 0.5 * n;
+}
+
+/** Operations that return many rows, i.e. the ones worth a CSV. */
+export function isExport(operation) {
+    return operation.outputKind === 'list';
 }
 
 export function operationByType(type) {
