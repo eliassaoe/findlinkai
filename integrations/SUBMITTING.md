@@ -108,7 +108,21 @@ starting only once the internal version shows the demand is there.
 
 ---
 
-## 6. Outreach connectors  ·  library code, not a product
+## 6. Chrome extension → Chrome Web Store  ·  needs a paid developer account
+
+**Blocker:** a one-time **$5** developer registration, and a person to accept
+Google's developer agreement. Neither can be automated.
+
+`cd chrome-extension && node pack.mjs` produces the upload zip. Everything else
+— prepared listing copy, the privacy answers the form demands, and the
+screenshot requirement — is in `chrome-extension/SUBMITTING.md`.
+
+Unlike the other five, this one has been run end to end in a real browser: 22
+checks in Chromium against a mock API, plus 29 tests in the repo suite.
+
+---
+
+## 7. Outreach connectors  ·  library code, not a product
 
 `integrations/outreach/` is a dependency-free ES module, not something to submit
 anywhere. It gets wired into a worker or backend that calls `enrichAndPush()`.
