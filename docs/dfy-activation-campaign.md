@@ -20,6 +20,13 @@ subscriber flag — credit-pack buyers carry it too. So:
 
 - **There is no dormant-subscriber problem.** 30 of 31 subscribers use the tool.
   The churn story that number implied does not exist.
+
+  > **This bullet is wrong — corrected 2026-09-03.** It conflates *ever ran*
+  > with *currently active*. 30 of 31 subscribers have run something at some
+  > point; only **8 of 31 have run anything in the last 30 days**. The dormancy
+  > problem `CHURN-PLAYBOOK.md` describes is real and this bullet should not be
+  > used to dismiss it. See `docs/growth-priorities-2026-09.md`. The rest of
+  > this document — the pack-buyer segment it targets — still holds.
 - **The dormant money is credit-pack buyers.** 67 people paid once, never ran a
   single lookup. Median balance 10,000 credits — that is the **$200 pack**. They
   each spent real money and got nothing back.
