@@ -124,6 +124,139 @@ revenue until the funnel work lands.
 The integrations bet is the least exposed to this, for the reason in point 2:
 it is the only option that touches retention as well as acquisition.
 
+## Publish attempt, 2026-09-03 — blocked on one missing secret
+
+Dispatched `publish-n8n-node.yml` on `main` with `dry_run: false`
+([run 33774397923](https://github.com/eliassaoe/findlinkai/actions/runs/33774397923)).
+It failed in six seconds at step 4, **"Check for an npm token"**.
+
+**`NPM_TOKEN` is not set in repo secrets.** This is the third time: runs 2 and 3
+on 2026-08-26 died at the same step. So the thing that has kept this node
+unpublished for eight days is not the code — it is a two-minute credential step
+nobody has done. The guard is working exactly as designed; it just has nothing
+to guard.
+
+Everything downstream of that step is verified. Run locally on Node 22
+(the same version the workflow pins), 2026-09-03:
+
+| check | result |
+| --- | --- |
+| `npm ci` | clean |
+| `npm run build` | clean — 19 operations across 7 resources, spec v1.1.0 |
+| `npm run lint` (eslint-plugin-n8n-nodes-base) | **0 warnings** |
+| `npm pack --dry-run` | 11 files, 12.9 kB packed / 48.3 kB unpacked |
+| `n8n-nodes-linkfinderai@0.2.0` on npm | **404 — name still free** |
+
+Note the build reports **19** operations; `SUBMITTING.md` says 17. Harmless
+drift in the doc, not the package.
+
+### To unblock (2 minutes, and only you can do it)
+
+1. npmjs.com → **Access Tokens → Generate New Token → Automation**. For a first
+   publish of a name that does not exist yet, a Granular token cannot be scoped
+   to the package — there is nothing to select — so it has to be "All packages"
+   this once. Replace it with a scoped one straight after.
+2. GitHub → repo **Settings → Secrets and variables → Actions → New repository
+   secret**, name it exactly `NPM_TOKEN`.
+3. Actions → **Publish n8n node** → Run workflow → `dry_run: false`.
+
+**`linkfinderai-mcp-server@1.0.0` is also unpublished** and its name is also
+free on npm (404). The same token unlocks both.
+
+### The other two need their own credential
+
+| Target | Blocker | Who |
+| --- | --- | --- |
+| Zapier | `ZAPIER_DEPLOY_KEY`, **plus** a one-time interactive `npx zapier login && npx zapier register` that cannot run in CI | you |
+| Nango CRM | `NANGO_SECRET_KEY_PROD` | you |
+| Make | No public submission API at all — VS Code extension, manual | you |
+
+`publish-integrations.yml` handles Zapier and Nango once those secrets exist and
+defaults to a dry run, so the real publish has to be asked for explicitly.
+
+## Other options, so nothing is missed
+
+Swept the repo and the referral data for anything not already ranked.
+
+### Chrome extension — the biggest genuine gap
+
+**There is no extension anywhere in this repo.** No `manifest.json`, no
+`chrome.*` calls. Yet the entire audience is people standing on a LinkedIn
+profile page wanting the email behind it — and the top three pages by traffic
+are exactly that (`/linkedin-phone-number-finder` 1,305,
+`/linkedin-email-finder` 477, `/linkedin-search-by-email` 245 people/30d).
+
+An extension is the correct *product form* for that job: you are already on the
+profile, you click, you get the address. Every competitor with an
+"-alternative" page in this repo ships one — Lusha, Apollo, Hunter,
+RocketReach, Wiza. The Chrome Web Store is also a search surface in its own
+right.
+
+This is a **build, not a publish** — weeks, not hours, and it needs a review
+submission. That is why it does not displace n8n at the top. But it is the one
+missing asset that is arguably worth more than every marketplace listing
+combined, and it should go on the roadmap rather than the backlog.
+
+### RapidAPI — the strongest thing not yet on the list
+
+`api_key_copied` runs at **41 · 47 · 75 · 43** people/month with nothing
+pushing it: the API is already the most-wanted surface in the product. RapidAPI
+is a marketplace with its own buyer demand and its own search, and the repo
+already has `rapid-api-linkedin.html` targeting that term for SEO — so the
+intent is proven and the listing would sit under it.
+
+Listing an existing API is days, not weeks. Ranks just behind Zapier.
+
+### MCP registries — cheap, timely, low competition
+
+`linkfinderai-mcp-server` exists, is unpublished, and MCP directories
+(Smithery, mcp.so, PulseMCP, Glama) are uncrowded right now. The AI clients
+already send traffic: `chatgpt.com` 19, `gemini.google.com` 8, `claude.ai` 7 per
+month. `mcp_url_copied` is only 9 people, so in-product demand is thin — but a
+directory listing reaches people who never see the product first, which is the
+opposite population.
+
+Bundle it with the npm publish; it costs one extra command.
+
+### Apify Store — a referrer that already works by accident
+
+`console.apify.com` sends **15 people/month** and Apify is a *competitor*. The
+repo already has an actor — but per `docs/lead-search-bugs.md` Apify changed its
+permission model and the actor behind AI lead search is broken, and the
+operation was pulled from the product so no customer can reach it. Fixing and
+listing it properly puts the product in a marketplace whose console already
+leaks traffic. Small, but it is evidence rather than theory.
+
+### Already built, unmarketed: the affiliate program
+
+Commissions are live and capped at $500 per referred customer. It costs nothing
+until it works, and nothing currently drives anyone to it. Worth one email to
+the 8 active subscribers and the heaviest free users — advocacy asks go to happy
+accounts only, never the dormant ones (`CHURN-PLAYBOOK.md`).
+
+### Considered and rejected
+
+- **Lifetime-deal sites.** `unlimited-leads.net` (6) and `dealify.com` (5)
+  already refer traffic. LTD buys volume with permanent margin damage on a
+  product whose problem is monetisation, not signups.
+- **Product Hunt.** A one-day spike, not a channel.
+- **G2 / Capterra.** Worth having, but `docs/g2-review-campaign-plan.md` shows
+  four approved reviews and G2 displaying one. Unblock the existing campaign
+  before treating it as a channel.
+- **Bing / Brave.** 181 + 70 people/month arriving free already. Not a new
+  channel; IndexNow submission is a near-free SEO chore, not a bet.
+
+### Revised ranking
+
+1. **n8n node to npm** — blocked only on `NPM_TOKEN`
+2. **MCP server to npm + registries** — same token, same hour
+3. **RapidAPI listing** — days, and API demand is the strongest measured signal
+4. **Zapier marketplace** — needs a deploy key and one interactive registration
+5. **Reddit, deliberately** — 64 people/month with nobody running it
+6. **Chrome extension** — highest ceiling, but a build; roadmap not backlog
+7. **Make marketplace / Apify actor** — smaller, more work per hour
+8. **LinkedIn** — zero referrals in thirty days; still no
+
 ## Before publishing the n8n node
 
 - Version stays at `0.2.0`; the workflow refuses a version already on the
