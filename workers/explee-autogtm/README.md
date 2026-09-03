@@ -38,6 +38,14 @@ Read the JSON. If a key is spelled differently than the lists in `recover.py`
 (`read_arm`), add the spelling — that is the whole integration risk, and a dry
 run will tell you loudly rather than quietly reporting zero.
 
+## Before either one: does this channel pay for itself at all?
+
+**[ECONOMICS.md](ECONOMICS.md)** — the answer depends entirely on which offer is
+being sold. Against the $89 subscription it loses money at every plausible
+conversion rate; against the $1-5k per-record project it needs one win per 148
+interested leads; and the done-for-you offer sells a meeting for $150 that costs
+$157 to produce today. Read it before deciding whether to scale this or stop it.
+
 ## Start here: sending is 83% of the cost
 
 **[SENDING.md](SENDING.md)** — Explee sends as `Brian Carter <b@usetidegrove.com>`
@@ -90,7 +98,7 @@ answer-instantly case without this loop at all.
 ## Setup
 
 ```bash
-python3 test_explee_autogtm.py         # 64 tests, no network, no key needed
+python3 test_explee_autogtm.py         # 69 tests, no network, no key needed
 ```
 
 **The API key never goes in a file that is committed.** Two places it can live,
@@ -382,9 +390,10 @@ from lead sourcing, fixed by confirmations and reminders, not by better data.
 | `followups.py` | reply classifier, the two-slot generator, the templates |
 | `recover.py` | Action 1: scan the inboxes, decide, send, mark the note |
 | `leadsource_test.py` | Action 2: prepare / control / import / compare |
-| `baseline.py` | cost per call that actually showed up, before and after |
+| `baseline.py` | cost per call that showed up, and per win - `--won --revenue --deal-value` |
 | `instantly_leads.py` | Instantly SuperSearch leads -> the CSV `prepare` eats |
+| `ECONOMICS.md` | whether the channel pays for itself, per offer, and the kill criterion |
 | `SOURCES.md` | every lead source with real France coverage, priced per usable lead |
 | `leadsource_test.py overlap` | what share of another source's list Explee cannot reach |
 | `brief.json` | the campaign copy both arms share - per-record project, not the subscription |
-| `test_explee_autogtm.py` | 40 tests, offline |
+| `test_explee_autogtm.py` | 69 tests, offline |

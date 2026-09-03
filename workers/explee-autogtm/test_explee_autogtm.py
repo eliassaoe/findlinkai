@@ -588,6 +588,47 @@ class Baseline(unittest.TestCase):
         baseline.report({"label": "x", "spend": 1.0, "sent": 1, "replies": 1, "hot": 1}, out=out)
         self.assertIn("unknown", out.getvalue())
 
+    def test_a_channel_that_does_not_pay_for_itself_says_so(self):
+        # $812 of Explee, two calls, one $89 subscription won. The cheapest call in the
+        # world does not save this: the deal is too small. ECONOMICS.md, first table.
+        out = io.StringIO()
+        baseline.report({"label": "2026-09", "spend": 812.0, "sent": 22400, "replies": 235,
+                         "hot": 60, "booked": 4, "showed": 4, "won": 1, "revenue": 89.0},
+                        out=out)
+        text = out.getvalue()
+        self.assertIn("per WIN       $812.00", text)
+        self.assertIn("$0.11 per dollar", text)
+        self.assertIn("UNDER WATER", text)
+
+    def test_one_project_pays_for_the_month(self):
+        out = io.StringIO()
+        baseline.report({"label": "2026-09", "spend": 812.0, "sent": 22400, "replies": 235,
+                         "hot": 60, "booked": 4, "showed": 4, "won": 1, "revenue": 2000.0},
+                        out=out)
+        text = out.getvalue()
+        self.assertIn("$2.46 per dollar", text)
+        self.assertNotIn("UNDER WATER", text)
+
+    def test_wins_still_report_without_a_calendar(self):
+        out = io.StringIO()
+        baseline.report({"label": "x", "spend": 100.0, "sent": 1, "replies": 1, "hot": 10,
+                         "won": 1, "revenue": 500.0}, out=out)
+        text = out.getvalue()
+        self.assertIn("per call      unknown", text)
+        self.assertIn("per WIN       $100.00", text)
+
+    def test_break_even_is_the_offer_not_the_channel(self):
+        # 60 interested leads at $13.53 each. A $2,000 project needs one win per 148.
+        leads, rate = baseline.breakeven(812.0, 60, 2000.0)
+        self.assertAlmostEqual(leads, 147.8, places=1)
+        self.assertAlmostEqual(rate, 0.00677, places=5)
+        # An $89 subscription needs one per 6.6 - which is a quarter of every reply.
+        leads, _ = baseline.breakeven(812.0, 60, 89.0)
+        self.assertAlmostEqual(leads, 6.6, places=1)
+
+    def test_break_even_needs_hot_leads_to_divide_by(self):
+        self.assertEqual(baseline.breakeven(812.0, 0, 2000.0), (None, None))
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
