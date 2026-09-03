@@ -41,10 +41,22 @@ The reasoning and the numbers are in `docs/chrome-extension-direction.md`.
 > **Description** — see the first two sections of `README.md`; they are written
 > to be pasted.
 
-**4. Screenshots.** At least one at **1280×800** or **640×400**. The store
-rejects a listing with none, and this is the one asset that should be a real
-lookup on a real profile rather than a fixture — a screenshot of mock data reads
-as a mock product. Take them with the extension installed unpacked.
+**4. Screenshots.** — **done.** Three at 1280x800 in `store-assets/`:
+
+| File | Shows |
+| --- | --- |
+| `1-connect.png` | The connect screen a new install sees |
+| `2-phone-found.png` | A phone number found on a profile, with the cost shown |
+| `3-employee-export.png` | The employee export and its CSV download |
+
+Every value in them is invented, and that is the right call rather than a
+compromise: a store screenshot showing a real person's real phone number would
+publish someone's personal data on a public page. (This corrects an earlier note
+in this file that said they should be real lookups on a real profile — for a
+contact-data tool specifically, they should not be.)
+
+They also carry no third-party branding, only our own UI on a neutral profile
+layout.
 
 **5. Privacy disclosures.** The form asks what data you handle; answer:
 
