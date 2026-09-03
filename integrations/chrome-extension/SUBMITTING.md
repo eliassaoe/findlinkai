@@ -24,10 +24,17 @@ Dashboard → **Add new item** → drop in the zip from `node pack.mjs`.
 
 **3. Fill the listing.** Prepared copy:
 
-> **Name** — LinkFinder AI — email & phone from LinkedIn
+> **Name** — LinkFinder AI — LinkedIn phone number & email finder
 >
-> **Summary (132 char max)** — Find the email or phone behind any LinkedIn
-> profile, company or post without leaving the page.
+> **Summary (132 char max)** — Find the phone number or email behind any
+> LinkedIn profile, and export a company's employees to CSV.
+
+Phone leads the name deliberately. Over 90 days the phone landing page converted
+**86.8%** of its visitors into a lookup against email's **13.0%** — 6.7x the
+intent — and `linkedin_profile_to_phone` returns something ~100% of the time, so
+a 50-credit lead-in is safe. Apollo, Hunter and Lusha all lead on email, which
+makes phone both the differentiator and the less contested store search term.
+The reasoning and the numbers are in `docs/chrome-extension-direction.md`.
 >
 > **Category** — Workflow & Planning
 >

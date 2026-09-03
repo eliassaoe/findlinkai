@@ -109,6 +109,77 @@ Both are fixed and both now have tests. Neither would have been caught by the
 unit suite alone, which is the argument for the browser harness in
 `chrome-extension/SUBMITTING.md`.
 
+## Phone is the hook, and it is not close
+
+Asked whether this should be positioned as a phone finder. The data says yes,
+for a reason that is invisible in a pageview report.
+
+Landing page traffic over 90 days, against how many of those visitors actually
+ran a free lookup on the page:
+
+| Page | Visitors | Ran a lookup | Intent |
+| --- | ---: | ---: | ---: |
+| `/linkedin-email-finder` | 3,832 | 498 | 13.0% |
+| `/linkedin-search-by-email` | 3,194 | 255 | 8.0% |
+| **`/linkedin-phone-number-finder`** | **1,584** | **1,375** | **86.8%** |
+| `/linkedin-profile-scraper` | 1,828 | 101 | 5.5% |
+
+Email brings **2.4x the traffic**. Phone brings **6.7x the intent**. Someone who
+lands on the phone page came to do the thing; someone who lands on the email page
+is mostly reading.
+
+*(An earlier note in this session said phone out-drew email on traffic. That was
+a 30-day snapshot and it does not hold at 90 days — email wins on volume. The
+intent gap is the finding, not the traffic.)*
+
+And phone is safe to lead with, which was the real risk at 50 credits a call:
+
+| Operation | Runs (90d) | Empty results | Hit rate |
+| --- | ---: | ---: | ---: |
+| `linkedin_profile_to_phone` | 5,521 | **2** | **~100%** |
+| `linkedin_profile_to_email` | 3,584 | 137 | 96.2% |
+| `linkedin_profile_to_linkedin_info` | 2,049 | 105 | 94.9% |
+
+A 50-credit operation that failed often would be a one-star machine. This one
+essentially always returns something.
+
+It is also the competitive gap: Apollo, Hunter and Lusha all lead on email.
+Leading on phone competes where they are weakest and where the Chrome Web Store
+search term is less contested.
+
+So the store listing is now **"LinkFinder AI — LinkedIn phone number & email
+finder"**. The panel keeps cheapest-first ordering inside, because pushing the
+50-credit option to the top of the list would be a different thing entirely.
+
+## The extension is a hook, not the product
+
+Its job is to get found in the Web Store, give one answer on the page, and send
+the volume work to linkfinderai.com. That resolves the tension above: single
+lookups convert at 0.35% **in the app**, but as a free taste they are ideal —
+instant, cheap, and on a page the user is already standing on.
+
+Every exit therefore goes to the app, and each carries a **distinct**
+`utm_campaign`:
+
+| Surface | Campaign |
+| --- | --- |
+| After a successful lookup | `after_lookup` |
+| After an employee export | `after_export` |
+| Hit a credit wall (402) | `credit_wall` |
+| No API key yet | `no_key` |
+| Lookup found nothing | `no_result` |
+| Toolbar popup | `popup` |
+
+Distinct on purpose. `docs/youtube-decision-record.md` records 535 of 561 tagged
+pageviews collapsing into a single `utm_campaign=tutorials`, which made it
+impossible to judge any individual video. If every CTA here said "extension",
+nobody could tell whether people open the app because a lookup delighted them or
+because they hit a wall — opposite problems needing opposite fixes.
+
+`app.html`'s `captureUTMs()` already reads these into PostHog person properties
+and fires `utm_landing`, so no work is needed on the app side. A test asserts the
+keys used here are ones that function actually captures.
+
 ## What would change this conclusion
 
 If the export path ships and its users do **not** convert better than 0.35%, the

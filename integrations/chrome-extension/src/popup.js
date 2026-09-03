@@ -13,6 +13,11 @@ function show(text, tone = 'info') {
 }
 
 document.getElementById('options').addEventListener('click', () => chrome.runtime.openOptionsPage());
+
+// Same rule as the in-page panel: every exit goes to the app, tagged with the
+// surface it came from so the two are distinguishable in PostHog.
+document.getElementById('app').href =
+    'https://linkfinderai.com/app?utm_source=chrome_extension&utm_medium=extension&utm_campaign=popup';
 document.getElementById('ver').textContent = `API spec ${SPEC_VERSION}`;
 
 (async () => {

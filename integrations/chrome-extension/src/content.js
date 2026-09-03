@@ -61,6 +61,41 @@ function el(tag, props = {}, children = []) {
     return node;
 }
 
+const APP_URL = 'https://linkfinderai.com/app';
+
+/**
+ * A link into the web app, tagged so the surface that sent them is knowable.
+ *
+ * The extension is an acquisition hook: it gives one answer on the page, and the
+ * volume work — a whole list, a CSV, the CRM — happens at linkfinderai.com. Every
+ * exit from this panel therefore goes to the app, and every one carries a
+ * DISTINCT utm_campaign.
+ *
+ * That last part is deliberate. `docs/youtube-decision-record.md` records 535 of
+ * 561 tagged pageviews collapsing into a single `utm_campaign=tutorials`, which
+ * made it impossible to judge any individual video. Same mistake, same cost: if
+ * every CTA here said "extension", nobody could tell whether people arrive
+ * because a lookup delighted them or because they hit a credit wall.
+ *
+ * app.html's captureUTMs() reads these into PostHog person properties and fires
+ * `utm_landing`, so nothing extra is needed on the other side.
+ */
+function appLink(campaign, content) {
+    const params = new URLSearchParams({
+        utm_source: 'chrome_extension',
+        utm_medium: 'extension',
+        utm_campaign: campaign,
+    });
+    if (content) params.set('utm_content', content);
+    return `${APP_URL}?${params.toString()}`;
+}
+
+/** The upsell row. Always the last thing in the panel, never a modal. */
+function appCta(text, campaign, content) {
+    const link = el('a', { class: 'lf-cta', href: appLink(campaign, content), target: '_blank', rel: 'noopener', text });
+    return link;
+}
+
 function creditLabel(op) {
     if (op.perEmployeeBilling) return `${op.credits} credit + 0.5 each`;
     return `${op.credits} credit${op.credits === 1 ? '' : 's'}`;
@@ -88,6 +123,7 @@ function showResult(op, response) {
         // call is still billed. Letting a user discover that from their balance is
         // how a tool gets a one-star review.
         setStatus(`Nothing found for ${op.short.toLowerCase()}. This lookup was still charged.`, 'warn');
+        out.appendChild(appCta('Try a different angle in LinkFinder →', 'no_result', op.type));
         return;
     }
 
@@ -100,6 +136,7 @@ function showResult(op, response) {
             out.appendChild(el('div', { class: 'lf-row' }, [el('span', { class: 'lf-value', text: line.value })]));
         }
         if (response.rows > 3) out.appendChild(el('div', { class: 'lf-more', text: `…and ${response.rows - 3} more` }));
+        out.appendChild(appCta('Do this for 50 companies at once →', 'after_export', op.type));
         return;
     }
 
@@ -124,6 +161,9 @@ function showResult(op, response) {
     if (response.lines.length > 25) {
         out.appendChild(el('div', { class: 'lf-more', text: `+${response.lines.length - 25} more — see your LinkFinder history` }));
     }
+
+    // One answer is the hook. The list is the product, and the list lives in the app.
+    out.appendChild(appCta('Do this for a whole list →', 'after_lookup', op.type));
 }
 
 /** What the operation will cost with the currently chosen row cap. */
@@ -176,6 +216,15 @@ async function run(op, params = {}) {
     }
     if (!response.ok) {
         setStatus(response.error, 'error');
+        // 402 is the highest-intent moment the extension ever sees: they wanted the
+        // data enough to spend credits they did not have.
+        if (response.status === 402) {
+            const out = document.querySelector(`#${PANEL_ID} .lf-results`);
+            if (out) {
+                out.replaceChildren();
+                out.appendChild(appCta('Top up at linkfinderai.com →', 'credit_wall', op.type));
+            }
+        }
         return;
     }
     showResult(op, response);
@@ -241,10 +290,11 @@ function buildPanel(page, ops, hasKey) {
     const body = el('div', { class: 'lf-body' });
 
     if (!hasKey) {
-        body.appendChild(el('p', { class: 'lf-hint', text: 'Add your LinkFinder API key to use this.' }));
-        const open = el('button', { class: 'lf-primary', type: 'button', text: 'Add API key' });
+        body.appendChild(el('p', { class: 'lf-hint', text: 'Add your LinkFinder API key to use this. It is free to get one.' }));
+        const open = el('button', { class: 'lf-primary', type: 'button', text: 'Paste my API key' });
         open.addEventListener('click', () => ask({ kind: 'open-options' }) || chrome.runtime.openOptionsPage?.());
         body.appendChild(open);
+        body.appendChild(appCta('Get a free key at linkfinderai.com →', 'no_key'));
     } else {
         // Exports lead. On a company page the export IS the product; the single
         // lookups are the secondary action, not the other way round.

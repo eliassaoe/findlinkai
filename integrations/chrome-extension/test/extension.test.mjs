@@ -522,3 +522,79 @@ test('a nameless row falls back to a field, never to JSON', () => {
     const lines = presentResult(employees, [{ personId: 'x1', linkedinUrl: 'http://lnkd/x', city: 'Austin' }]);
     assert.strictEqual(lines[0].value, 'Austin');
 });
+
+// --- the extension is an acquisition hook -------------------------------
+//
+// Its job is to give one answer on the page and send the volume work to
+// linkfinderai.com. These tests hold that shape.
+
+const contentSrc = readFileSync(join(EXT, 'src', 'content.js'), 'utf8');
+
+test('every exit from the panel goes to the web app', () => {
+    const hrefs = [...contentSrc.matchAll(/https:\/\/linkfinderai\.com\/[a-z]*/g)].map((m) => m[0]);
+    assert.ok(hrefs.length > 0, 'no link to the app at all');
+    for (const href of hrefs) assert.match(href, /^https:\/\/linkfinderai\.com\/app$/);
+});
+
+test('each CTA surface carries a DISTINCT utm_campaign', () => {
+    // docs/youtube-decision-record.md: 535 of 561 tagged pageviews collapsed into
+    // one campaign, so no individual video could ever be judged. Same mistake here
+    // would make "why do people open the app" unanswerable.
+    const campaigns = [...contentSrc.matchAll(/appCta\([^,]+,\s*'([a-z_]+)'/g)].map((m) => m[1]);
+    assert.ok(campaigns.length >= 5, `expected at least 5 CTA surfaces, found ${campaigns.length}`);
+    assert.strictEqual(new Set(campaigns).size, campaigns.length, `duplicate utm_campaign: ${campaigns.join(', ')}`);
+    for (const expected of ['after_lookup', 'after_export', 'credit_wall', 'no_key', 'no_result']) {
+        assert.ok(campaigns.includes(expected), `missing the ${expected} surface`);
+    }
+});
+
+test('the popup uses its own campaign, not the panel is', () => {
+    const popup = readFileSync(join(EXT, 'src', 'popup.js'), 'utf8');
+    assert.match(popup, /utm_campaign=popup/);
+    assert.match(popup, /utm_source=chrome_extension/);
+});
+
+test('the UTM keys are ones app.html actually captures', () => {
+    // app.html's UTM_KEYS decides what survives into PostHog person properties.
+    // A key outside that list is silently dropped and the surface becomes invisible.
+    const appHtml = readFileSync(join(REPO, 'app.html'), 'utf8');
+    const declared = appHtml.match(/const UTM_KEYS = \[([^\]]+)\]/);
+    assert.ok(declared, 'app.html no longer declares UTM_KEYS — re-check the contract');
+    const keys = [...declared[1].matchAll(/'([a-z_]+)'/g)].map((m) => m[1]);
+    for (const used of ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content']) {
+        assert.ok(keys.includes(used), `app.html does not capture ${used}`);
+    }
+});
+
+test('the credit wall routes to the app, because it is the highest-intent moment', () => {
+    assert.match(contentSrc, /response\.status === 402/, '402 is not given its own path');
+    const wall = contentSrc.slice(contentSrc.indexOf('response.status === 402'));
+    assert.match(wall.slice(0, 400), /credit_wall/);
+});
+
+test('the CTA is a link, never a modal or a redirect', () => {
+    // An extension that interrupts LinkedIn gets uninstalled.
+    assert.ok(!/window\.location\s*=/.test(contentSrc), 'the panel navigates the page');
+    assert.ok(!/\.showModal\(|alert\(/.test(contentSrc), 'the panel interrupts');
+    assert.match(contentSrc, /target: '_blank', rel: 'noopener'/, 'CTA does not open safely in a new tab');
+});
+
+test('the manifest fits the Chrome Web Store field limits', () => {
+    // The store rejects the upload outright on these, after the zip is built and
+    // the form is filled in — a slow way to find out. 136 chars was the first try.
+    const current = JSON.parse(readFileSync(join(EXT, 'src', 'manifest.json'), 'utf8'));
+    assert.ok(current.description.length <= 132, `description is ${current.description.length} chars, limit is 132`);
+    assert.ok(current.name.length <= 75, `name is ${current.name.length} chars, limit is 75`);
+    assert.ok(current.short_name.length <= 12, `short_name is ${current.short_name.length} chars, limit is 12`);
+});
+
+test('the listing leads on phone, which is where the intent is', () => {
+    // 86.8% of phone-page visitors run a lookup against 13.0% on email, and
+    // Apollo/Hunter/Lusha all lead on email. See docs/chrome-extension-direction.md.
+    const current = JSON.parse(readFileSync(join(EXT, 'src', 'manifest.json'), 'utf8'));
+    assert.match(current.name, /phone/i);
+    assert.ok(
+        current.name.toLowerCase().indexOf('phone') < current.name.toLowerCase().indexOf('email'),
+        'email is named before phone'
+    );
+});
