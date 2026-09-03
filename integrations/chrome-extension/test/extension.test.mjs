@@ -598,3 +598,71 @@ test('the listing leads on phone, which is where the intent is', () => {
         'email is named before phone'
     );
 });
+
+// --- connect: the step that decides whether any of this works ------------
+
+test("the extension's key derivation matches api-access.html exactly", () => {
+    // connect.js copies transformerToken out of the app. If the app ever changes
+    // it, the extension silently derives a key that is not the user's and every
+    // lookup 401s. This is the guard against that, and it is why the copy carries
+    // a "do not improve this" comment.
+    const appSrc = readFileSync(join(REPO, 'api-access.html'), 'utf8');
+    const appFn = appSrc.match(/function transformerToken\(t\)\{[^}]*\}[^}]*\}/);
+    assert.ok(appFn, 'api-access.html no longer defines transformerToken — re-check the contract');
+
+    const connectSrc = readFileSync(join(EXT, 'src', 'connect.js'), 'utf8');
+
+    // Compare behaviour rather than text: the app's is minified, the copy is not.
+    const appImpl = new Function(`${appFn[0]}; return transformerToken;`)();
+    const extImpl = new Function(
+        connectSrc.match(/function transformerToken\(t\) \{[\s\S]*?\n\}/)[0] + '; return transformerToken;'
+    )();
+
+    for (const sample of ['abc123', 'a', 'tok_WITH-mixed_Case.09', '~!@#$%^&*()', 'ç'.repeat(3)]) {
+        assert.strictEqual(extImpl(sample), appImpl(sample), `derivation differs on ${JSON.stringify(sample)}`);
+    }
+});
+
+test('connect reads both spellings of the auth token', () => {
+    // app.html/account.html/history.html write `linkFinderToken`; api-access.html
+    // writes `LinkFinderToken`. localStorage keys are case-sensitive, so reading
+    // only one would fail for users who arrived through the other page.
+    const connectSrc = readFileSync(join(EXT, 'src', 'connect.js'), 'utf8');
+    assert.match(connectSrc, /getItem\('linkFinderToken'\)/);
+    assert.match(connectSrc, /getItem\('LinkFinderToken'\)/);
+});
+
+test('a key is only accepted from linkfinderai.com', () => {
+    const bg = readFileSync(join(EXT, 'src', 'background.js'), 'utf8');
+    const handler = bg.slice(bg.indexOf("message.kind === 'connect'"));
+    assert.match(handler.slice(0, 700), /origin !== 'https:\/\/linkfinderai\.com'/, 'connect does not check the origin');
+    assert.match(handler.slice(0, 900), /rejected: unexpected origin/);
+    assert.match(handler.slice(0, 900), /rejected: empty key/);
+});
+
+test('the connect content script runs on the site and nowhere else', () => {
+    const current = JSON.parse(readFileSync(join(EXT, 'src', 'manifest.json'), 'utf8'));
+    const connect = current.content_scripts.find((c) => c.js.includes('connect.js'));
+    assert.ok(connect, 'connect.js is not registered');
+    assert.deepStrictEqual(connect.matches, ['https://linkfinderai.com/*']);
+    // Still no new permissions bought by any of this.
+    assert.deepStrictEqual(current.permissions, ['storage']);
+});
+
+test('a fresh install lands on the site, not on a "paste a key" screen', () => {
+    // The paste step was the single biggest risk to the whole channel: six steps
+    // to first value against a competitor's "sign in with Google".
+    const bg = readFileSync(join(EXT, 'src', 'background.js'), 'utf8');
+    const onInstall = bg.slice(bg.indexOf('onInstalled'));
+    assert.match(onInstall, /linkfinderai\.com\/app/, 'first run does not open the site');
+    assert.match(onInstall, /utm_campaign=install/, 'the install visit is not attributed');
+});
+
+test('the panel leads with connect and demotes pasting', () => {
+    assert.match(contentSrc, /Connect my account/);
+    assert.match(contentSrc, /Paste a key instead/);
+    assert.ok(
+        contentSrc.indexOf('Connect my account') < contentSrc.indexOf('Paste a key instead'),
+        'pasting is offered before connecting'
+    );
+});

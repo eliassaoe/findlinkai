@@ -290,11 +290,15 @@ function buildPanel(page, ops, hasKey) {
     const body = el('div', { class: 'lf-body' });
 
     if (!hasKey) {
-        body.appendChild(el('p', { class: 'lf-hint', text: 'Add your LinkFinder API key to use this. It is free to get one.' }));
-        const open = el('button', { class: 'lf-primary', type: 'button', text: 'Paste my API key' });
-        open.addEventListener('click', () => ask({ kind: 'open-options' }) || chrome.runtime.openOptionsPage?.());
-        body.appendChild(open);
-        body.appendChild(appCta('Get a free key at linkfinderai.com →', 'no_key'));
+        body.appendChild(el('p', { class: 'lf-hint', text: 'Connect your LinkFinder account. Free, and no key to copy.' }));
+        // The connect link IS the primary action now: opening the site is enough,
+        // because connect.js picks the key up from the signed-in session there.
+        const connect = appCta('Connect my account →', 'no_key');
+        connect.classList.add('lf-connect');
+        body.appendChild(connect);
+        const manual = el('button', { class: 'lf-secondary', type: 'button', text: 'Paste a key instead' });
+        manual.addEventListener('click', () => ask({ kind: 'open-options' }) || chrome.runtime.openOptionsPage?.());
+        body.appendChild(manual);
     } else {
         // Exports lead. On a company page the export IS the product; the single
         // lookups are the secondary action, not the other way round.

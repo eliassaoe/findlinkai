@@ -87,6 +87,30 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         return true;
     }
 
+    if (message.kind === 'connect') {
+        // Only the content script running on linkfinderai.com may set a key. Any
+        // other sender is rejected outright: a key arriving from anywhere else is
+        // either a bug or an attempt to point the extension at someone else's
+        // account, and neither should be stored.
+        const origin = sender.origin || (sender.url ? new URL(sender.url).origin : '');
+        if (origin !== 'https://linkfinderai.com') {
+            sendResponse({ ok: false, error: 'rejected: unexpected origin' });
+            return false;
+        }
+        if (typeof message.apiKey !== 'string' || !message.apiKey.trim()) {
+            sendResponse({ ok: false, error: 'rejected: empty key' });
+            return false;
+        }
+
+        const key = message.apiKey.trim();
+        chrome.storage.local.get(KEY_STORAGE).then((stored) => {
+            // Do not thrash storage on every page view of the site.
+            if (stored[KEY_STORAGE] === key) return sendResponse({ ok: true, changed: false });
+            chrome.storage.local.set({ [KEY_STORAGE]: key }).then(() => sendResponse({ ok: true, changed: true }));
+        });
+        return true;
+    }
+
     if (message.kind === 'has-key') {
         getApiKey().then((key) => sendResponse({ ok: true, hasKey: Boolean(key), specVersion: SPEC_VERSION }));
         return true;
@@ -129,9 +153,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 chrome.tabs.onRemoved.addListener((tabId) => tabPages.delete(tabId));
 
 chrome.runtime.onInstalled.addListener(async ({ reason }) => {
-    // Land a first-run user on the options page: without a key the extension can
-    // do nothing, and a button that silently fails is the worst first impression.
+    // Send a first-run user to the site, not to the options page. Landing on
+    // linkfinderai.com connects them automatically if they are signed in, and
+    // signs them up if they are not — either way they never see the word "key".
+    // The options page still exists for anyone who wants to paste one by hand.
     if (reason === 'install' && !(await getApiKey())) {
-        chrome.runtime.openOptionsPage();
+        chrome.tabs.create({
+            url: 'https://linkfinderai.com/app?utm_source=chrome_extension&utm_medium=extension&utm_campaign=install',
+        });
     }
 });
