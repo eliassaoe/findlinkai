@@ -186,3 +186,79 @@ If the export path ships and its users do **not** convert better than 0.35%, the
 premise is wrong and the honest read is that the extension audience differs from
 the app audience. Measure `csv_uploaded`-equivalent conversion for people whose
 first touch was the extension, at 60 days.
+
+---
+
+# Forecast, made 2026-09-03 — check this, do not re-derive it
+
+Written before launch so it can be graded rather than rationalised afterwards.
+
+## The calibration that matters most
+
+**Evaboot has 16 ratings on the Chrome Web Store. Wiza has 99. Apollo has
+2,210** against ~1M installs, i.e. roughly one rating per 450 installs.
+
+Evaboot is funded, well known and heavily SEO'd in exactly this category, and
+its store footprint is negligible. So **the store is not a discovery channel
+here.** Anyone forecasting this as "get found by millions of Chrome users" is
+forecasting the wrong thing.
+
+That reframes what the extension is: **not an acquisition channel, a conversion
+mechanism on traffic already being paid for.** Most installs will come from
+linkfinderai.com, not from store search.
+
+## Inputs
+
+| Input | Value | Source |
+| --- | --- | --- |
+| Site visitors | ~7,900/mo | PostHog 30d |
+| Tool-page visitors (the 3 big ones) | ~2,870/mo | PostHog 90d ÷ 3 |
+| Signups | ~655/mo | `auth.users` |
+| Monthly enrichers | ~560 | PostHog 30d |
+| Current signup → paid | 0.88% | 681 → 6, 30d |
+| 1-day users → paid | 1.63% | 1,472 users |
+| 2-3 day users → paid | 13.3% | 128 users |
+
+## Year-one model
+
+| Step | Pessimistic | Realistic |
+| --- | ---: | ---: |
+| Installs from own traffic (banner at 1% / 2.5%) | 350 | 860 |
+| Installs from existing signups (3% / 8%) | 240 | 620 |
+| One-off push to active users (10% / 20%) | 56 | 112 |
+| Installs from store organic | 120 | 360 |
+| **Total installs, year 1** | **~770** | **~1,950** |
+| Connect *and* run a lookup (30% / 45%) | 230 | 880 |
+| **Paid (1.5% / 3.5%)** | **3-4** | **~30** |
+
+Deduct cannibalisation from the realistic column — a chunk of those installs are
+existing users who would have paid anyway. Net incremental realistic is more like
+**15-20 customers**, or roughly **$950-1,250/mo** added MRR by month 12 at the
+$62.50 ARPU.
+
+## Read that honestly
+
+- **Pessimistic is 3-4 customers in a year.** About $220/mo. That is a real
+  possible outcome and it does not repay a month of attention.
+- **Realistic is 15-20 net.** Against a base of 31 subscribers that is a ~50%
+  lift in subscriber count, which is material — but it takes a year, and it is
+  slower than the 67 idle pack buyers who have already paid ~$10,450.
+- The whole spread turns on **install → connect**, which is why the connect flow
+  was built before launch rather than after.
+
+## The leading indicator, and the kill criterion
+
+Watch **install → connect within 7 days**. Everything downstream multiplies it.
+
+- Above 40%: the thesis holds, keep investing.
+- 25-40%: works, but the store is not the channel — put the effort into the
+  on-site banner instead.
+- **Below 25% after 200 installs: stop.** The extension is not converting the
+  traffic and no amount of listing copy fixes that.
+
+Second check at day 60: do extension-sourced users beat the **0.35%** that
+single-lookup-only users convert at? If they do not, the day-2 argument this
+whole bet rests on is wrong.
+
+`utm_campaign=install` on the first-run tab is what makes the first number
+measurable; the six distinct campaigns make the second one attributable.
