@@ -13,7 +13,7 @@ client, facturés à l'unité. Nous constituons la liste à partir de notre prop
 base B2B, rédigeons et diffusons la campagne d'emailing à froid, gérons toutes
 les réponses et calons le rendez-vous.
 
-**100 à 150 € par rendez-vous réellement tenu. Sans abonnement, sans
+**150 € par rendez-vous réellement tenu — prix fixe. Sans abonnement, sans
 engagement, sans outil à prendre en main.** Toute la prospection se fait en
 français.
 
@@ -28,7 +28,11 @@ prospecte entre deux missions de production.
 | Où | Prix | Minimum |
 | --- | --- | --- |
 | Le panneau *Done For You* dans `app.html` | **$150** par rendez-vous tenu | **5 par mois**, soit $750/mois |
-| Cette page (`prospection-b2b.html`) | **100 à 150 €** par rendez-vous tenu | **aucun** |
+| Cette page (`prospection-b2b.html`) | **150 €** par rendez-vous tenu, prix fixe | **aucun** |
+
+Le chiffre est le même, la devise non : 150 € ne vaut pas $150. Sur le marché
+français c'est 150 € et rien d'autre — pas de fourchette, pas de dégressivité au
+volume, la page le dit explicitement.
 
 Ce n'est pas une erreur de copie : la page française vend « sans engagement »,
 donc elle n'annonce pas de plancher. Mais quiconque voit les deux surfaces verra
