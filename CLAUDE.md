@@ -75,7 +75,14 @@ into a file here in the same session, or it is gone.
     linkedin_profile_to_phone       50     linkedin_profile_to_email       10
     linkedin_profile_to_linkedin_info 10   email_to_linkedin_url            5
     lead_full_name_to_email          7     lead_full_name_to_linkedin_url   1
-    company_name_to_*                1
+    company_name_to_email            5     company_name_to_* (others)       1
+
+`company_name_to_email` is the exception to the `company_name_to_*` rule and it
+is **not** a typo: `app.html` charges 5. The OpenAPI spec, `integrations/catalog`
+and all five generated integrations still advertise 1, so two tests fail on that
+drift by design (`catalog/test/prices.test.mjs`,
+`google-sheets-addon/test/addon.test.mjs`). Decide which number is right and fix
+one side — do not "fix" the tests.
 
 **Plans**: Starter $49 / 5,000 mo · Professional $89 / 20,000 · Enterprise $149
 / 50,000. `app.html` stores the ANNUAL figure and divides by 12 — that is not a

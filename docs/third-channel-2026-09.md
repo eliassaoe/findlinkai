@@ -174,6 +174,38 @@ free on npm (404). The same token unlocks both.
 `publish-integrations.yml` handles Zapier and Nango once those secrets exist and
 defaults to a dry run, so the real publish has to be asked for explicitly.
 
+## Publish attempts, 2026-09-03 — all three blocked on credentials, nothing else
+
+Dispatched both publish workflows with `dry_run: false`. Every job got through
+its real work and died on a missing secret, which is the useful result: the code
+is done, the credentials are not.
+
+| Target | Run | Got as far as | Failed on |
+| --- | --- | --- | --- |
+| n8n → npm | [33774397923](https://github.com/eliassaoe/findlinkai/actions/runs/33774397923) | — | `NPM_TOKEN` not set |
+| Zapier | [33776877328](https://github.com/eliassaoe/findlinkai/actions/runs/33776877328) | **Validate passed** | `ZAPIER_DEPLOY_KEY` not set |
+| Nango | same run | **Compile passed** | `NANGO_SECRET_KEY_PROD` not set |
+
+Zapier's app validates and Nango's actions compile in CI. Neither has a code
+problem. Zapier additionally needs a one-time interactive
+`npx zapier login && npx zapier register` that cannot run in CI.
+
+## The Chrome extension is built
+
+It was the gap named below and it now exists: `integrations/chrome-extension/`.
+Panel on any LinkedIn profile, company page or post; seven operations, derived
+from the catalog by input label rather than listed; costs on every button;
+"still charged" said out loud when a lookup finds nothing.
+
+29 tests in the repo suite and 22 end-to-end checks in real Chromium, which
+caught a transport-error message bug that unit tests would not have. The upload
+needs a $5 developer account and a person to accept Google's agreement, so it
+stays a human step — `integrations/chrome-extension/SUBMITTING.md` has the
+prepared listing copy and every privacy answer the form asks for.
+
+Its build is wired into `integrations/npm run build` and its tests into
+`npm test`, so it cannot drift from the catalog like any other integration.
+
 ## Other options, so nothing is missed
 
 Swept the repo and the referral data for anything not already ranked.
