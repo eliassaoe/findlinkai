@@ -1,0 +1,89 @@
+name: Publish Chrome extension
+
+# Manual only, and a dry run by default. Publishing pushes a new version to every
+# existing user automatically, so it has to be asked for.
+#
+# Required secrets — the job fails with a plain message naming the one it is missing:
+#   CWS_CLIENT_ID       Google Cloud console -> OAuth 2.0 Client ID (Desktop app)
+#   CWS_CLIENT_SECRET   the same client's secret
+#   CWS_REFRESH_TOKEN   minted once through the browser consent screen
+#   CWS_EXTENSION_ID    only after the first upload has created the item
+#
+# Getting the refresh token is a one-time human step; SUBMITTING.md has it.
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Build, test and pack without uploading'
+        type: boolean
+        default: true
+      publish_target:
+        description: 'Who sees it once published'
+        type: choice
+        options: [trustedTesters, default]
+        default: trustedTesters
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: integrations
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # Checked before any work: without these the run would build, test, pack and
+      # only then fail on an opaque 401 from Google.
+      - name: Check for Web Store credentials
+        if: ${{ inputs.dry_run == false }}
+        run: |
+          missing=""
+          [ -z "${{ secrets.CWS_CLIENT_ID }}" ] && missing="$missing CWS_CLIENT_ID"
+          [ -z "${{ secrets.CWS_CLIENT_SECRET }}" ] && missing="$missing CWS_CLIENT_SECRET"
+          [ -z "${{ secrets.CWS_REFRESH_TOKEN }}" ] && missing="$missing CWS_REFRESH_TOKEN"
+          if [ -n "$missing" ]; then
+            echo "::error::Missing secret(s):$missing. These need a Chrome Web Store developer account (one-time \$5) and an OAuth refresh token. See integrations/chrome-extension/SUBMITTING.md."
+            exit 1
+          fi
+
+      # No npm ci: the extension has no dependencies, and the tests are node:test.
+      # Regenerating here is the guard that a stale operations.js cannot ship.
+      - name: Build from the catalog
+        run: node chrome-extension/build.mjs && node chrome-extension/make-icons.mjs
+
+      - name: Fail if the build changed a committed file
+        run: |
+          if ! git diff --quiet -- chrome-extension/src; then
+            echo "::error::Generated files are stale. Run the build and commit before publishing:"
+            git --no-pager diff --stat -- chrome-extension/src
+            exit 1
+          fi
+
+      - name: Test
+        run: node --test chrome-extension/test/extension.test.mjs
+
+      - name: Pack
+        run: node chrome-extension/pack.mjs
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: chrome-extension-zip
+          path: integrations/chrome-extension/*.zip
+
+      - name: Upload and publish
+        if: ${{ inputs.dry_run == false }}
+        env:
+          CLIENT_ID: ${{ secrets.CWS_CLIENT_ID }}
+          CLIENT_SECRET: ${{ secrets.CWS_CLIENT_SECRET }}
+          REFRESH_TOKEN: ${{ secrets.CWS_REFRESH_TOKEN }}
+          EXTENSION_ID: ${{ secrets.CWS_EXTENSION_ID }}
+          PUBLISH_TARGET: ${{ inputs.publish_target }}
+        run: node chrome-extension/publish.mjs
