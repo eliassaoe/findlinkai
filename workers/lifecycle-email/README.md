@@ -176,6 +176,29 @@ is working:
 - payments attributed to workflow 1 — the abandoned-checkout money is the most recoverable
   revenue on the list.
 
+## Retention — the one audience the four workflows above cannot reach
+
+Every workflow on this page either exits payers via a conversion goal or targets
+a cohort that excludes anyone who has ever paid. That is right for acquisition
+mail and it left **paying customers with no retention surface at all**.
+
+Workflow `01a06709-9007-0000-9d2f-a4d218fcee40` ("Retention — paid, silent 30d")
+is the exception and the only one here whose audience is people who are
+currently paying. It is a **draft**; batch triggers do not fire on enable.
+
+Two things to know before touching it:
+
+- **Its audience must be a static cohort.** `workflows-create` rejects the
+  behavioural churn cohort 514741 outright — batch audiences cannot evaluate
+  event behaviour. Cohort `544780` is a snapshot built from Supabase, joined on
+  `token`, so API/MCP-only customers are not mistaken for dormant.
+- **Never point it at the `reactivation_*` copy.** That sequence is written for
+  churned *free* users and pitches credit packs instead of a subscription. To a
+  live subscriber it is a downgrade pitch worth roughly -$1,500/mo.
+
+Full rationale, the 11 people no workflow can reach, and the dispatch checklist:
+`docs/retention-workflow-2026-09.md`.
+
 ## The loop that improves this on its own
 
 The seven emails are not fixed copy. Each step has a library of variants in
@@ -188,6 +211,7 @@ read last week's numbers, decide what should be live, and swap it in.
 | `measure.sql` | Per-variant performance. PostHog stamps `$email_subject` on every engagement event and subjects are unique per variant, so the subject *is* the variant label — no split node, no UTM convention, nothing to keep in sync. |
 | `decide.py` | Promote / retire / wait. The part that is deliberately not a judgement call. |
 | `build_email.py` | Turns a variant into the exact `workflows-patch-action-email` payload. |
+| `new_email.py` | The create half of `build_email.py`: emits the four-row Unlayer skeleton for a *new* step, with the block ids (`text-1`, `button-1`, `text-2`, `text-3`) the patcher addresses as constants. A step created any other way can never be driven by the loop. |
 | `optimise.md` | The runbook the Monday session follows. |
 
 Two things worth knowing before reading any of its reports:
