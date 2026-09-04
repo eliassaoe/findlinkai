@@ -4705,7 +4705,7 @@ function navigateToPage(page){
  * decides how the call opens.
  */
 const AI_SDR_RPC = CSV_BATCH_SUPABASE_URL + '/rest/v1/rpc/';
-const AI_SDR_CALENDLY = 'https://calendly.com/hamoureliasse/offre-linkfinder-ai-clone';
+const AI_SDR_CALENDLY = 'https://calendly.com/hamoureliasse/linkfinder-ai';
 // The founder call is a different conversation from the done-for-you setup
 // call, so it books a different event: this one is to listen, not to sell.
 const FOUNDER_CALL_CALENDLY = 'https://calendly.com/hamoureliasse/linkfinder-ai';
@@ -6373,7 +6373,10 @@ function checkEnrichmentMilestone() {
     // would be premature. Fires once, only for subscribers with real usage
     // volume, well after they've had time to feel the manual work involved.
     const vipNudgeFiredKey = 'lf_vip_nudge_fired';
-    if (n === 25 && isExistingSubscriber && !localStorage.getItem(vipNudgeFiredKey)) {
+    // `n === 25` never fired for the people it was written for: bulk runs increment
+    // the count by more than one, so a CSV of 40 goes straight past 25 and the
+    // banner is skipped forever. It has to be a threshold, not an equality.
+    if (n >= 25 && isExistingSubscriber && !localStorage.getItem(vipNudgeFiredKey)) {
         localStorage.setItem(vipNudgeFiredKey, '1');
         const bar = document.getElementById('milestoneUpgradeBanner');
         if (bar) {
