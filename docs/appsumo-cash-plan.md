@@ -200,6 +200,75 @@ window does not reopen.
 
 ---
 
+## 6.5 · Working capital — the COGS lands before the revenue
+
+The real cash-flow question, and the answer is better than it looks.
+
+**Consumption is front-loaded into exactly the window AppSumo withholds payment.**
+A code's first month is **41%** of its lifetime credits and month two another
+**16%** — so **58% of all data cost lands in the first two months**, while the
+payout waits behind the 60-day refund window.
+
+### What you actually have to float
+
+Cash out on data before AppSumo pays anything:
+
+| Codes | COGS $0.001 | $0.002 | $0.004 | $0.008 |
+| --- | --- | --- | --- | --- |
+| 475 | $164 | $328 | $657 | $1,314 |
+| **790** | $273 | **$546** | $1,092 | $2,185 |
+| 1,219 | $421 | $843 | $1,686 | $3,371 |
+| 2,000 | $691 | $1,383 | $2,765 | $5,531 |
+
+**Hundreds to a few thousand dollars, not tens of thousands.** On the strong-launch
+scenario at a mid COGS estimate it is about **$550**.
+
+### And money does come in during the hold
+
+Auto top-ups and subscription upgrades are charged through Dodo and land in your
+account **immediately** — AppSumo holds none of it:
+
+| Codes | top-up 3% / sub 1% | top-up 5% / sub 2% |
+| --- | --- | --- |
+| 475 | $822 | $1,525 |
+| **790** | **$1,367** | **$2,536** |
+| 1,219 | $2,109 | $3,913 |
+
+At 790 codes you are taking **$1,367–2,536** in direct revenue against **~$546**
+of data cost. **Cash-positive through the hold window**, before AppSumo pays a
+cent.
+
+That only works if `workers/auto-topup-charge/` is deployed. It is built,
+correctly priced, and **has never been deployed**. It is already item 4 in the
+launch order; this is the second, independent reason it belongs there: **it is
+the only launch-period revenue that is not held for 60 days.**
+
+### This is the monthly cap paying for itself again
+
+A one-time stockpile would put the same customers' entire lifetime consumption
+into these two months. At a 50,000-credit stockpile and $0.004/credit that is
+**~$14,000 of data cost inside the refund window**, against a payout that has not
+arrived and refunds that have not settled. The monthly non-rollover cap does not
+only protect margin — **it converts a lump working-capital risk into a small
+monthly one.** That matters more when you are waiting on a marketplace payout
+than it does on the P&L.
+
+### Three things to do about it
+
+1. **Ask your account manager about payout timing, and whether a partial or
+   milestone payout is possible.** You have the relationship now. Worst case they
+   say no and you have lost nothing.
+2. **Deploy auto top-up before launch.** §above.
+3. **Get the COGS number.** The spread between $0.001 and $0.008 is the spread
+   between $273 and $2,185. It is still the open gate-1 item and it is now
+   blocking a cash-flow decision as well as a pricing one.
+
+**Do not commit the $20–50k before it arrives.** Float requirement is small; the
+mistake that costs real money is spending the payout on the strength of a launch
+dashboard while refunds are still open.
+
+---
+
 ## 7. The honest bottom line
 
 **$20–25k in your pocket is a realistic target** if the share is 50%+ and you run

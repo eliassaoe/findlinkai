@@ -151,11 +151,32 @@ only a loss if auto top-up is not deployed.**
 Found by reading the code this session. Several are live bugs today; they become
 expensive at AppSumo scale.
 
-### G1 · Monthly reset job
-A cron that sets `credits = tier_allowance` on the 1st for every `source =
-'appsumo'` account. **Non-rollover: assign, never add.** Nothing like this exists
-today — the whole product is stockpile-shaped, so this is genuinely new work and
-it is the single most important item here.
+### G1 · Monthly reset job — **BUILT, not yet applied**
+
+`supabase/migrations/20260905120000_appsumo_ltd.sql`. pg_cron on the 1st at
+04:00 UTC, alongside the existing `ai_keywords` jobs. The rule is one line:
+
+    credits := greatest(credits, ltd_monthly_credits)
+
+**Top the balance back up to the allowance; never take anything away.** A plain
+`credits = allowance` would delete credits the customer *bought* — an LTD holder
+who tops up through auto top-up would watch that balance vanish on the 1st, and
+"PAYG credits never expire" is a standing promise on `pricing.html`.
+
+Also ships `appsumo_redeem()` (stacking: tier only ever moves up),
+`appsumo_revoke()` (a refund stops the recurring top-up), and the
+`appsumo_tiers` table. The granted allowance is **copied onto the user row**, so
+re-pricing a tier can never retroactively change a deal somebody already bought.
+
+Idempotent — a second run in the same calendar month is a no-op, so a retried
+cron cannot double-grant.
+
+**Verify before applying:** `./scripts/test-appsumo-migration.sh` spins up a
+throwaway Postgres, applies the migration and runs 22 behaviour checks
+(`supabase/tests/appsumo_ltd_test.sql`) covering non-rollover, purchased-credit
+survival, stacking, refunds, idempotency, and that non-LTD accounts are
+untouched. **Then apply it to the real project** — writing the migration is not
+applying it, and this is the guard the whole deal rests on.
 
 ### G2 · Phone blocked server-side, not in `app.html`
 `docs/credit-grant.md` is explicit: `deductCredits()` in `app.html` only updates
@@ -195,8 +216,10 @@ server refuses (the API does return **402 Insufficient credits** —
 LTD + unmetered API is one script away from an unbounded supplier bill. Per-token
 requests/minute and requests/day, enforced at the worker.
 
-### G7 · `source` column on `linkfinderai_users`
-Set `'appsumo'` at redemption, **before the first code ships**. Every analysis in
+### G7 · `source` column on `linkfinderai_users` — **BUILT, not yet applied**
+Same migration as G1. Set to `'appsumo'` by `appsumo_redeem()`, indexed, with a
+comment on the column telling the next reader to exclude it from every funnel
+query. **Applies before the first code ships**. Every analysis in
 `docs/` runs on this table; 1,000 untagged LTD accounts make signup→paid,
 activation, churn and ARPU uninterpretable. `is_unlimited` has already caused one
 documented misread (`docs/dfy-activation-campaign.md`). Retrofitting is guesswork.
