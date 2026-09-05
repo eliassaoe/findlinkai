@@ -206,7 +206,56 @@ change needs no site-wide sweep.
 Competitor claims were deliberately left intact: People Data Labs' 100 free
 credits, Scrapingdog's 1,000, and the free-tool roundup figures are statements
 about other products and rewriting them would put false claims on the site. The
-"1,000 free credits" for booking a call is also untouched - that one is real.
+"1,000 free credits" for booking a call was also untouched - that one was real
+at the time. **It is not any more: see the addendum below.**
 
 None of the numbers appeared in `<title>`, `<meta>`, or `og:` tags, so there is
 no search-ranking exposure from removing them.
+
+
+---
+
+# Addendum, 5 Sep 2026: the call no longer grants credits
+
+**The 15-minute call pays nothing.** It is a demo and a working session - fifteen
+minutes, no pitch, bring a real list and we run it together. Elias's reasoning,
+and it is the right one: **handing out credits to fill a calendar devalues the
+credit, and the credit is the unit the entire product is priced in.** Every free
+1,000 credits is a $25 pack given away, and it teaches the exact lesson this
+document spent forty lines arguing against - that the wall is soft and waiting
+beats paying.
+
+**The G2 review still pays 1,000 credits.** That is deliberate, not an
+inconsistency: a review is a durable asset that keeps working after it is bought,
+and `user_task_completions` already verifies it automatically
+(`docs/g2-review-campaign-plan.md`). An hour of calendar time is not.
+
+## Where it was removed
+
+Nine sites in `app.html`, all copy - **no worker or database change was needed,
+because nothing ever granted these credits automatically.** They were applied by
+hand after each call, which is also why no `call` task exists in
+`workers/onboarding-tasks/`:
+
+| Where | What it said |
+| --- | --- |
+| sales-intercept modal (`sciSubtext`, `sciBookBtn`) | "show up and we'll add 1,000 free credits" |
+| the same modal's two JS intent variants | high-intent and low-intent copy |
+| `cimRescuePick('unsure')` | "1,000 credits whether or not you buy anything" |
+| `cimPriceFallbackHtml()` | "give me 15 minutes and I will put 1,000 credits on your account" |
+| `first_success` call card | "show up and I will put 1,000 credits on your account" |
+| `bulk_halfway` call card | "1,000 credits on your account for showing up" |
+
+And five email variants across two steps in
+`workers/lifecycle-email/variants.json` - the whole `pricing_call` step (4
+variants, including the live champion) and `credit_wall_2` variant 1.
+
+## The one that has to be done by hand
+
+**`variants.json` is the source of truth, not the sender.** PostHog holds
+whichever variant is currently live on each step, so editing this file does not
+change what goes out. The `pricing_call` champion is live and still promises
+1,000 credits until it is re-pushed with `build_email.py`. **Do that before the
+next Monday loop**, or the emails keep making an offer the product no longer
+honours - the same client-vs-server split that this document already warns about
+for `deductCredits()`.

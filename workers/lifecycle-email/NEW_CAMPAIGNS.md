@@ -22,17 +22,27 @@ backfill — today is day zero for the optimisation loop.
 | # | Workflow | id | Notes |
 |---|---|---|---|
 | 4 | Win-back broadcast | `01a0257d-5b54-0000-42a7-fcd74f8a0a1d` | **Enabled but NOT dispatched.** Batch triggers do not fire on enable. Gated on bounce data — see DELIVERABILITY.md. |
-| 5 | Pricing seen, no payment — offer a call | `01a02878-e5a4-0000-1d67-1ee8523b3bcd` | Ready. `pricing_modal_opened` → +3d → **1,000 credits for 15 minutes** on a call, booking at `calendly.com/hamoureliasse/linkfinder-ai`. Payers exit via the conversion goal. |
+| 5 | Pricing seen, no payment — offer a call | `01a02878-e5a4-0000-1d67-1ee8523b3bcd` | Ready. `pricing_modal_opened` → +3d → **a 15-minute call, no credits granted** (see below), booking at `calendly.com/hamoureliasse/linkfinder-ai`. Payers exit via the conversion goal. |
 | 6 | Used it, never found the API or MCP | `01a0287a-3028-0000-63cb-6ab00b72bea6` | Ready. `enrich_started` → wait 48h for `api_key_copied` or `mcp_url_copied` → email only if neither happened. |
 
 Both 5 and 6 have had the `html` re-render applied and their sender verified, and both
 are now in `variants.json` with four variants each, so the Monday loop can see them.
 
 **Campaign 5 deliberately mirrors the product.** `app.html` runs a sales-intercept modal
-making the identical offer — "Book a quick 15-minute call... show up and we'll add 1,000
-free credits". The email is the asynchronous version of that modal, so the duration, the
-credit amount and the booking link must stay in step with it. All three currently do:
-both book `calendly.com/hamoureliasse/linkfinder-ai`.
+making the identical offer, so the duration, what is promised, and the booking link must
+stay in step with it. Both currently book `calendly.com/hamoureliasse/linkfinder-ai`.
+
+**The call grants no credits — changed 2026-09-05.** It used to pay 1,000 credits for
+showing up, in both the modal and these emails. Handing out credits to fill a calendar
+devalues the credit, which is the unit the whole product is priced in, so the offer is
+now the call on its own merits: fifteen minutes, no pitch, bring a real list and we run
+it together. **The G2 review still pays 1,000 credits** (`user_task_completions`) — that
+one buys a durable asset, not an hour.
+
+If you reinstate a credit grant here, change `app.html` in the same commit or the modal
+and the email will contradict each other. The sites in `app.html` are the
+sales-intercept modal, the `cimRescuePick` branches, `cimPriceFallbackHtml`, and the
+`first_success` / `bulk_halfway` call prompts.
 
 ### Calendly link state — verified 2026-09-02 against live PostHog
 

@@ -92,6 +92,15 @@ The employees disagreement is unresolved — the server is what actually bills.
 / 50,000. `app.html` stores the ANNUAL figure and divides by 12 — that is not a
 bug. **Packs**: $25 / 1,000 · $75 / 3,500 · $200 / 10,000.
 
+**Free credits are granted for durable assets, never for time.** A G2 review
+pays 1,000 credits and is auto-verified (`workers/onboarding-tasks/`). **The
+15-minute call grants nothing** — it is a demo and a working session on the
+user's own list. Changed 2026-09-05; handing out credits to fill a calendar
+devalues the unit the whole product is priced in. If you ever reinstate it,
+`app.html` and `workers/lifecycle-email/variants.json` must change in the same
+commit or the modal and the emails contradict each other. See the addendum in
+`docs/credit-grant.md`.
+
 **Who counts as a subscriber**: `subscription_id IS NOT NULL` on
 `linkfinderai_users`. `is_unlimited` and `plan_type` do NOT mean subscribed —
 credit-pack buyers have `is_unlimited = true` and no subscription.
