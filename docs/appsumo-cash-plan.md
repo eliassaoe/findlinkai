@@ -338,6 +338,70 @@ The launch date is still the date the guards are done.
 
 ---
 
+## 6.9 · Is $10k reachable? Yes — the stress test
+
+### Framed as the only question you control
+
+Your own day-one push is ~115 codes and needs no AppSumo traffic at all:
+
+| Share | Own push alone | of the $10k target |
+| --- | --- | --- |
+| 30% | $2,797 | 28% |
+| 50% | $4,731 | 47% |
+| 70% | $6,665 | 67% |
+
+So the real question is not "can I sell 400 codes", it is **"how much does
+AppSumo have to add on top of what I bring myself?"**
+
+| Share | AppSumo must add | Total codes | of SendPilot's units |
+| --- | --- | --- | --- |
+| 30% | **2.6×** your push | 414 | 34% |
+| 50% | **1.2×** | 247 | 20% |
+| 70% | **1.0×** | 230 | 19% |
+
+**SendPilot's channels delivered 4× their own push** (80% of revenue). You need
+1.0–2.6×. That is the margin.
+
+### Does it survive worse assumptions?
+
+Codes needed for $10k, breaking each assumption in turn:
+
+| | 30% | 50% | 70% |
+| --- | --- | --- | --- |
+| Base | 411 | 243 | 173 |
+| No tier 3 (AOV $83) | 594 | 349 | 247 |
+| COGS 4× worse ($0.008) | 462 | 260 | 181 |
+| Refunds 15%, not 5% | 462 | 272 | 193 |
+| **All three at once** | **815** | **438** | **299** |
+
+**Even with all three assumptions broken simultaneously, the worst case is 815
+codes — still below SendPilot's 1,219 at every share.** The target is robust;
+it is not resting on the optimistic end of anything.
+
+### What would change the answer
+
+One thing: **not getting featured.** That case is 140 codes and $2,797–8,113 —
+the only row in this document that misses. It is also the one thing the guards
+and the week-one push exist to prevent.
+
+Everything else — a bad share, COGS four times worse than assumed, triple the
+refunds, dropping tier 3 — is absorbed.
+
+### What is still assumed rather than measured
+
+State these plainly rather than letting them hide inside a table:
+
+- **The seller share.** Elias has had the call; the number is not in this repo yet.
+- **COGS per credit.** Still the open gate-1 item.
+- **2–4% on the mailable list and 1–1.5% on site traffic.** These are estimates
+  for the own-push figure and nothing in the repo measures them yet. If the list
+  converts at 1%, the push halves and the AppSumo multiple roughly doubles —
+  still inside SendPilot's range, but with less room.
+
+Model: `scripts/ltd-reachable.py`.
+
+---
+
 ## 7. The honest bottom line
 
 **Target as of 2026-09-05 is $10k** (§6.8), which every featured scenario clears
