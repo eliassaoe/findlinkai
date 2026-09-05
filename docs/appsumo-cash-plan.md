@@ -111,7 +111,7 @@ What you actually have:
 | Accounts confirmed in `auth.users` (the only trustworthy signal — `docs/email-verified-is-wrong.md`) | **1,955** | 38–77 codes at 2–4% |
 | minus current subscribers — do not cannibalise them | −31 | — |
 | Site traffic over a 2-week launch, banner on every page | ~3,700 visitors | 37–56 codes at 1–1.5% |
-| **Total own push** | | **75–115 codes** |
+| **Total own push** | | ~~75–115 codes~~ — **SUPERSEDED, see §6.95: 16–63** |
 
 Warmest segments inside that list, in order — all already profiled in `docs/`:
 
@@ -342,7 +342,8 @@ The launch date is still the date the guards are done.
 
 ### Framed as the only question you control
 
-Your own day-one push is ~115 codes and needs no AppSumo traffic at all:
+Your own day-one push is ~115 codes and needs no AppSumo traffic at all
+*(**superseded** — the real figure is 16–63, see §6.95; this table reads too well)*:
 
 | Share | Own push alone | of the $10k target |
 | --- | --- | --- |
@@ -399,6 +400,96 @@ State these plainly rather than letting them hide inside a table:
   still inside SendPilot's range, but with less room.
 
 Model: `scripts/ltd-reachable.py`.
+
+---
+
+## 6.95 · CORRECTION — the own-push estimate was too high
+
+**2026-09-05, after Elias challenged it.** He was right. §4 lever 2 and §6.9 both
+used **75–115 codes** from the owned audience. The real figure is **16–63, centre
+~30.** Everything downstream of it moves, so read this section over those two.
+
+### Why the old number was wrong
+
+It assumed **2–4% on the mailable list from a single campaign.** Set against what
+this repo actually measures:
+
+| Segment | Accounts | Subscribers | Rate |
+| --- | --- | --- | --- |
+| Google-verified | 1,902 | 20 | **1.05%** — and that is LIFETIME |
+| email+password, unverified | 4,616 | 8 | 0.17% |
+| Whole base, ever paid anything | 6,880 | 120 | 1.7% |
+
+**2–4% from one email assumed a single campaign would beat the best segment's
+entire lifetime conversion rate by 2–4×.** That is not defensible, and worse:
+per `docs/revenue-levers-2026-08.md`, **email has driven exactly one payment in
+this business's history.**
+
+### The honest rebuild
+
+| | |
+| --- | --- |
+| Confirmed in `auth.users` | 1,955 |
+| × ~45% outside the low-conversion geo | **~880 addressable** |
+
+The geo cut is not pessimism: the $59 tier is **more** than the $25 pack that
+tier already refuses at 0.10% (`docs/geo-pricing.md`). They are not LTD buyers.
+
+| Source | Rate | Codes |
+| --- | --- | --- |
+| Email to ~880 | 1–3% | 9–26 |
+| Site traffic (~3,700 over the launch) — intent is "do this myself, cheaply" | 0.2–1.0% | 7–37 |
+| **Own push** | | **16–63, centre ~30** |
+
+### What it does to $10k
+
+How much AppSumo's own channels must add on top:
+
+| Own push | 30% share | 50% | 70% |
+| --- | --- | --- | --- |
+| 16 | 24.7× | 14.2× | 9.8× |
+| **30** | **12.7×** | **7.1×** | **4.8×** |
+| 63 | 5.5× | 2.9× | 1.7× |
+
+**SendPilot's channels delivered 4× their own push.** So on the centre estimate,
+only the 70% column is near a demonstrated outcome. **$10k is not comfortable —
+it is marginal, and at a 30% share it is probably out of reach.**
+
+### But the multiple framing has a flaw, and it cuts the other way
+
+AppSumo's volume is **not proportional to your push.** A featured deal gets the
+full firehose whether your own push was 30 codes or 240. SendPilot's 4× is their
+ratio, not a law. **Your push is the ignition, not the engine** — it buys early
+sales and early reviews, which is a *ranking* signal, not a volume multiplier.
+
+So the correction does not say $10k is unreachable. It says something more
+specific and more useful:
+
+> **The target now rests almost entirely on AppSumo's own channels, which means
+> it rests on getting featured and on the listing page converting.**
+
+### Which changes the priorities
+
+1. **The listing page moves up.** It now converts ~90% of your volume, not ~80%.
+   SendPilot ran **4.91%**. Copy, screenshots and the demo video are not week-3
+   admin — they are the single highest-leverage asset in the launch.
+2. **Reviews matter more, not less.** Featuring is the whole ballgame now.
+3. **The seller share is decisive again.** At $50k it was; at $10k I said it was
+   not. With a realistic own push it is: 4.8× at 70% is achievable, 12.7× at 30%
+   is not. **Get the number.**
+4. **Test the list before launch.** Send the LTD teaser to 200 of the 880 and
+   measure. That converts the widest assumption in this document into a fact for
+   the cost of one send, and there is a month to do it in.
+
+### The one thing that would move it back up
+
+Channels not counted here at all: LinkedIn founder-led posting (SendPilot's other
+engine), the YouTube channel, Reddit, and the affiliate programme
+(`workers/referral/`, up to $500 per referred customer). None has a measured
+LTD conversion rate, so none is in the numbers — but they are real, they are
+free, and they are the difference between a 30-code push and a 63-code one.
+
+Model: `scripts/ltd-ownpush.py`.
 
 ---
 
