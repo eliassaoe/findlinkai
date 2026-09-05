@@ -4786,7 +4786,11 @@ async function submitAiSdrRequest() {
     // ignores params an event does not define, so a1 is safe either way.
     const url = AI_SDR_CALENDLY
         + '?email=' + encodeURIComponent(data.email || '')
-        + '&a1=' + encodeURIComponent(`Target: ${target} | Offer: ${offer} | Calls wanted: ${calls || 'not sure'}`);
+        + '&a1=' + encodeURIComponent(`Target: ${target} | Offer: ${offer} | Calls wanted: ${calls || 'not sure'}`)
+        // Rides through Calendly onto /call-booked, which is the only place a
+        // booking becomes visible. Without it every booking reads as 'unknown'.
+        + '&utm_content=' + encodeURIComponent(lfActiveCallVariant === 'bulk_halfway' ? 'bulk_halfway_card' : 'ai_sdr_panel')
+        + '&utm_source=app';
     window.location.href = url;
 }
 
@@ -6076,7 +6080,8 @@ function openFounderCall(){
         openAiSdrModal();
         return;
     }
-    window.open(FOUNDER_CALL_CALENDLY, '_blank', 'noopener');
+    window.open(FOUNDER_CALL_CALENDLY + '?utm_source=app&utm_content=' +
+        encodeURIComponent('founder_card_' + variantName), '_blank', 'noopener');
 }
 
 function showFeedbackModal(){document.getElementById('feedbackModal').classList.add('show');document.body.style.overflow='hidden';document.getElementById('feedbackSuccessMessage').classList.remove('show');document.getElementById('feedbackErrorMessage').classList.remove('show');}
