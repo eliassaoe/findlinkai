@@ -74,7 +74,16 @@ into a file here in the same session, or it is gone.
     linkedin_profile_to_phone       50     linkedin_profile_to_email       10
     linkedin_profile_to_linkedin_info 10   email_to_linkedin_url            5
     lead_full_name_to_email          7     lead_full_name_to_linkedin_url   1
-    company_name_to_*                1
+    linkedin_company_to_linkedin_info 6    linkedin_company_to_employee_count 1
+    company_name_to_email            5     company_name_to_* (website/phone/
+    linkedin_url/employee_count)     1
+
+`company_name_to_email` is 5, not 1 — the only exception to the
+`company_name_to_*` pattern. This has already caused one wrong "cheapest
+lookup" claim in a video script (see git history on
+`claude/guidee/scripts/company-to-email.md`). Read the real
+`creditCosts` object in `app.html` before stating a cost in anything
+user-facing — don't extrapolate from the `company_name_to_*` pattern.
 
 **Plans**: Starter $49 / 5,000 mo · Professional $89 / 20,000 · Enterprise $149
 / 50,000. `app.html` stores the ANNUAL figure and divides by 12 — that is not a
