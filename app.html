@@ -5968,16 +5968,25 @@ const CALL_PROMPT_VARIANTS = {
         cap: 3,
         storageKey: 'lf_call_shown',
         delayMs: 10000,
+        priority: 1,
+        cta: 'Pick a time',
+        action: 'founder_call',
         header: 'Can I steal 15 minutes?',
         lead: 'I am Eliasse, I built LinkFinder AI. I want to hear what you are '
             + 'actually using it for and what is missing &mdash; it decides what I build '
             + 'next. Show up and I will put <strong>1,000 credits</strong> on your account.',
     },
+    // Someone watching 100+ rows process is the done-for-you buyer, at the one
+    // moment the work is visible. This variant sells the offer; first_success
+    // still books the founder chat. Two surfaces, two jobs.
     bulk_halfway: {
         cap: 2,
         storageKey: 'lf_call_bulk_shown',
         delayMs: 0,
-        header: 'Halfway through your list',
+        priority: 2,
+        cta: 'Show me how it works',
+        action: 'done_for_you',
+        header: 'Want us to run this list for you?',
         lead: null, // built per-run so it can name the actual row count
     },
 };
@@ -5986,25 +5995,44 @@ const CALL_PROMPT_VARIANTS = {
 // every phone user from the single biggest ask in the product; the card is
 // responsive rather than hidden. Caps and the 3min auto-hide are set per
 // variant above.
+// Which variant currently owns the shared card. The click handler needs it to
+// know whether "Pick a time" books the founder call or opens done-for-you.
+let lfActiveCallVariant = null;
+
 function showCallPrompt(variantName, leadOverride){
     const variant = CALL_PROMPT_VARIANTS[variantName];
     if (!variant) return;
     const shown = parseInt(localStorage.getItem(variant.storageKey) || '0');
     if (shown >= variant.cap) return;
-    // Never stack on top of itself or on the credits panel.
     const card = document.getElementById('reviewNotification');
-    if (!card || card.classList.contains('show')) return;
+    if (!card) return;
+    // A card already on screen blocks an ask of equal or lower priority, but a
+    // higher one takes it over. Without this, first_success fires at row 1 of a
+    // bulk run and holds the card for three minutes, silently eating every
+    // bulk_halfway ask - which is why that variant fired once in 90 days.
+    const blocked = () => {
+        if (!card.classList.contains('show')) return false;
+        const act = lfActiveCallVariant && CALL_PROMPT_VARIANTS[lfActiveCallVariant];
+        return !act || (variant.priority || 0) <= (act.priority || 0);
+    };
+    if (blocked()) return;
     const tasksModal = document.getElementById('onboardingTasksModal');
     if (tasksModal && tasksModal.classList.contains('show')) return;
 
     setTimeout(()=>{
-        if (card.classList.contains('show')) return;
+        if (blocked()) return;
         document.getElementById('reviewNotifHeader').textContent = variant.header;
         document.getElementById('reviewNotifLead').innerHTML = leadOverride || variant.lead;
+        const ctaBtn = card.querySelector('.review-cta');
+        if (ctaBtn && variant.cta) ctaBtn.textContent = variant.cta;
+        lfActiveCallVariant = variantName;
+        card.classList.remove('hide');
         card.classList.add('show');
         localStorage.setItem(variant.storageKey, shown + 1);
         try { posthog.capture('founder_call_prompt_shown', { variant: variantName, times_shown: shown + 1 }); } catch(e) {}
-        setTimeout(()=>{if(card.classList.contains('show'))closeReviewNotification();},180000);
+        setTimeout(()=>{
+            if (card.classList.contains('show') && lfActiveCallVariant === variantName) closeReviewNotification();
+        },180000);
     }, variant.delayMs);
 }
 
@@ -6026,8 +6054,9 @@ function maybeShowBulkCallPrompt(done, total, creditsExhausted){
 
     showCallPrompt('bulk_halfway',
         `You are ${done.toLocaleString()} rows into a list of ${total.toLocaleString()}. `
-        + 'Whatever you are building here, I would like to hear about it &mdash; 15 minutes '
-        + 'with me, and <strong>1,000 credits</strong> on your account for showing up.');
+        + 'We can run the whole thing for you &mdash; sourcing, enrichment, and the outbound '
+        + 'that turns it into booked meetings. You pay <strong>per meeting held</strong>, '
+        + 'nothing up front.');
 }
 function closeReviewNotification(){document.getElementById('reviewNotification').classList.remove('show');document.getElementById('reviewNotification').classList.add('hide');}
 
@@ -6035,9 +6064,19 @@ function closeReviewNotification(){document.getElementById('reviewNotification')
 // used to ask for a G2 review; at this stage a conversation with a real user is
 // worth more than a review, and the review ask still lives in the credits panel.
 function openFounderCall(){
-    try { posthog.capture('founder_call_prompt_clicked'); } catch(e) {}
-    window.open(FOUNDER_CALL_CALENDLY, '_blank', 'noopener');
+    const variantName = lfActiveCallVariant || 'first_success';
+    const variant = CALL_PROMPT_VARIANTS[variantName] || CALL_PROMPT_VARIANTS.first_success;
+    // The click event carried no properties, so the two variants were
+    // indistinguishable in PostHog. Attribution matters more than ever now that
+    // they book different things.
+    try { posthog.capture('founder_call_prompt_clicked', { variant: variantName, action: variant.action }); } catch(e) {}
     closeReviewNotification();
+    if (variant.action === 'done_for_you' && typeof openAiSdrModal === 'function') {
+        try { posthog.capture('ai_sdr_entry_clicked', { source: 'bulk_halfway_card' }); } catch(e) {}
+        openAiSdrModal();
+        return;
+    }
+    window.open(FOUNDER_CALL_CALENDLY, '_blank', 'noopener');
 }
 
 function showFeedbackModal(){document.getElementById('feedbackModal').classList.add('show');document.body.style.overflow='hidden';document.getElementById('feedbackSuccessMessage').classList.remove('show');document.getElementById('feedbackErrorMessage').classList.remove('show');}
@@ -6373,7 +6412,12 @@ function checkEnrichmentMilestone() {
     // would be premature. Fires once, only for subscribers with real usage
     // volume, well after they've had time to feel the manual work involved.
     const vipNudgeFiredKey = 'lf_vip_nudge_fired';
-    if (n === 25 && isExistingSubscriber && !localStorage.getItem(vipNudgeFiredKey)) {
+    // Was `n === 25 && isExistingSubscriber`. Exact equality can never hit a
+    // bulk run (n jumps 10 -> 4,000 in one go), and the subscriber condition
+    // excluded the 9 free and 7 pack-buyer accounts in the top two usage tiers -
+    // people running thousands of lookups without paying properly, which is the
+    // strongest done-for-you qualification in the data. Gate on behaviour.
+    if (n >= 25 && !localStorage.getItem(vipNudgeFiredKey)) {
         localStorage.setItem(vipNudgeFiredKey, '1');
         const bar = document.getElementById('milestoneUpgradeBanner');
         if (bar) {
