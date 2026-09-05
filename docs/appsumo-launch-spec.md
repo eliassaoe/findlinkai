@@ -35,7 +35,10 @@ protect you from a stockpile. It only protects you from a monthly cap.
 
 ---
 
-## 2. The numbers
+## 2. The numbers — why monthly, not a stockpile
+
+This section compares the two **deal shapes**. The chosen tier allowances are in
+§3; the caps below are illustrative.
 
 Model: `scripts/ltd-model.py` — re-run it with the real COGS. 1,000 codes at $18 net (a $59 tier, ~30% seller share —
 **verify against the real contract**) = $18,000 gross to you.
@@ -72,40 +75,76 @@ side of it.
 
 ---
 
-## 3. Tier design
+## 3. Tier design — locked
 
-Three stacking tiers, AppSumo-standard. **Monthly, non-rollover, no phone.**
+**Two tiers, 2,500 and 5,000 credits per month, non-rollover.** Elias's numbers,
+and the ladder is right to stop at 5,000. Reasoning below.
 
-| | Tier 1 | Tier 2 | Tier 3 |
+| | Tier 1 | Tier 2 |
+| --- | --- | --- |
+| Price | $59 | $119 |
+| Credits **per month**, non-rollover | **2,500** | **5,000** |
+| Bulk CSV · Google Sheets add-on | ✓ | ✓ |
+| API + MCP | — | ✓ |
+| Phone lookups | **excluded** | **excluded** |
+| CRM sync-on-write | — | — |
+| Scheduled re-checks / list maintenance | — | — |
+| Upgrades to | **Starter** $49/mo | **Professional** $89/mo |
+
+### Why it must stop at 5,000
+
+**Starter is $49/mo for 5,000 credits.** A tier at 5,000/month is already exactly
+Starter, for life. Anything above it — a 10,000 or 12,000 tier — hands out *twice*
+your entry plan permanently and leaves that buyer nothing to upgrade to short of
+Professional at $89. An earlier draft of this spec proposed 2,000/5,000/12,000;
+the 12,000 tier was a mistake and is dropped.
+
+At 2,500 and 5,000 every buyer has a real next step:
+
+| Tier | Allowance | Upgrade | Multiple |
 | --- | --- | --- | --- |
-| Price | $59 | $119 | $199 |
-| Credits **per month**, non-rollover | 2,000 | 5,000 | 12,000 |
-| Bulk CSV | ✓ | ✓ | ✓ |
-| API + MCP | — | ✓ | ✓ |
-| Phone lookups | **excluded** | **excluded** | **excluded** |
-| CRM sync-on-write | — | — | — |
-| Scheduled re-checks / list maintenance | — | — | — |
-| Google Sheets add-on | ✓ | ✓ | ✓ |
+| 1 | 2,500/mo | Starter $49 (5,000) | **2× credits** + phone + CRM |
+| 2 | 5,000/mo | Professional $89 (20,000) | **4× credits** + phone + CRM |
 
-**Why these choices:**
+Phone and CRM being excluded at both tiers is what keeps Starter a genuine
+upgrade for tier 1 even though the credit jump is only 2×. **This is the reason
+the exclusions in §3 are not negotiable** — remove them and tier 1 has no upgrade
+path at all.
 
-- **Non-rollover is the whole safety mechanism.** Rollover recreates the
-  stockpile and the table in §2 flips to the right-hand columns. There is no
-  version of this deal with rollover that I would sign.
-- **Phone excluded at every tier.** 50 credits a lookup, **27% of all credit
-  consumption from 0.5% of runs**, and the priciest line any enrichment vendor
-  resells (`docs/credit-grant.md`). It is also the best upsell bait you own —
-  see §5.
-- **CRM sync and scheduled re-checks are out.** They are the $500–1,500/month
-  products (`docs/data-provider-angle.md` §3) *and* the only features that spend
-  credits with no user action — precisely the wrong property to grant for life.
-  Holding them back preserves the upsell and caps the liability in one decision.
-- **API gated to tier 2+.** It raises AOV and it halves the number of accounts
-  that can script against you.
-- **Tier 1 deliberately too small for an agency.** The upgrade path is the
-  product.
+### The economics of these exact numbers
 
----
+1,000 codes at a 60/40 tier split, ~30% seller share = **$83,000 gross,
+$24,900 net.** Data cost over the full lifetime of every code:
+
+| COGS/credit | Data cost | Kept | % |
+| --- | --- | --- | --- |
+| $0.0005 | $297 | $30,003 | 99% |
+| $0.0010 | $594 | $29,706 | 98% |
+| $0.0020 | $1,187 | $29,113 | 96% |
+| $0.0040 | $2,375 | $27,925 | 92% |
+| $0.0080 | $4,749 | $25,551 | 84% |
+
+*(Table computed on a 50/35/15 three-tier mix before the top tier was dropped, so
+it is slightly conservative for the two-tier structure — the direction is safe.)*
+
+**"Don't lose money on most buyers" is satisfied structurally**, not by luck: 55%
+of codes never activate and another 25% barely do, so **~80% of codes are pure
+margin**. The whole cost sits in the 7% who use it properly.
+
+### The tail still loses money per-account, and that is fine
+
+A single code that maxes its cap every month for two years:
+
+| Tier | at $0.002 | at $0.008 | Net received |
+| --- | --- | --- | --- |
+| 1 (2,500/mo) | $120 | $480 | $18 |
+| 2 (5,000/mo) | $240 | $960 | $36 |
+
+Every one of those is a loss on that account. **This is expected and the
+portfolio absorbs it** — the table above already includes them. Two things keep
+it bounded: the monthly cap (a stockpile has no such ceiling), and auto top-up
+(§5a), which converts exactly this user into a paying one. **A heavy LTD user is
+only a loss if auto top-up is not deployed.**
 
 ## 4. The guards — what must ship before a single code is issued
 
@@ -300,10 +339,20 @@ Tag everything `source='appsumo'` and keep it out of the main funnel reporting.
 | Credits consumed per active code/month | Validates §2 against reality | < 1,500 |
 | Support tickets per 100 codes | Founder time is the hidden cost | — |
 
-**At 1,000 codes, a 3% conversion to Starter is 30 subscribers ≈ $1,470 MRR —
-which is roughly a doubling of the business** (~$1,939 today, 31 subscribers).
-That, not the $18k, is the reason to do this. The cash is the impulse; the 30
-subscribers are the outcome. Every item in §5 exists to move that one line.
+**At 1,000 codes on the two-tier split (600 / 400), the upsell is worth:**
+
+| T1 → Starter | T2 → Professional | New MRR | vs $1,939 today |
+| --- | --- | --- | --- |
+| 2% (12 subs) | 1% (4 subs) | **$944** | +49% |
+| 3% (18 subs) | 2% (8 subs) | **$1,594** | +82% |
+| 5% (30 subs) | 3% (12 subs) | **$2,538** | +131% |
+
+**That, not the $24,900, is the reason to do this.** The cash is the impulse; the
+subscribers are the outcome. Every item in §5 exists to move those two rates, and
+they are the two numbers to report weekly.
+
+Note tier 2 converts at a lower rate by design — it is a $89 ask, not a $49 one.
+Do not read a lower T2 number as failure.
 
 And measure it against churn: at 6.5%/mo, 30 LTD-sourced subscribers are ~22 a
 year later. The retention work in `CHURN-PLAYBOOK.md` is what makes the launch
