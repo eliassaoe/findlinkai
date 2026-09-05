@@ -72,7 +72,7 @@ Rehearse this end to end first. Every `Target` label below is taken verbatim fro
 > Open I want to find.
 
 **07 Choose Company Email**
-> Select Company Email. This pairing costs one credit per company, the cheapest lookup on the platform.
+> Select Company Email. This pairing costs five credits per company — more than the other company lookups, because finding a real inbox takes more work than matching a website or a LinkedIn page.
 
 **08 Type A Company Name**
 > Enter a real company name, like Salesforce. Prove the pairing works on one company before you spend credits on fifty.
@@ -173,16 +173,20 @@ Then flip this row to `"status": "live"` in `catalog.json`.
 
 ## Voiceover
 
-Generated with `vidiq_voiceover_generate`, voice `iP95p4xoKVk53GoZ742B`
-(Chris — Charming, Down-to-Earth), the fixed voice per `METHOD.md`. Covers
-the cover line and all 24 step cards read in order.
+**Not yet generated (again).** A first pass was generated with
+`vidiq_voiceover_generate` (voice `iP95p4xoKVk53GoZ742B` — Chris, the fixed
+voice per `METHOD.md`), but its script said step 07 costs "one credit per
+company, the cheapest lookup on the platform." That number came from
+`CLAUDE.md`'s abbreviated `company_name_to_*: 1` note, which does not carry
+the one real exception: `app.html`'s actual `creditCosts` table has
+`company_name_to_email: 5`. The step-card text above is now corrected to
+five credits, and the stale MP3 (which spoke the wrong number) has been
+deleted rather than left in the repo mislabeled.
 
-- File: `claude/guidee/audio/company-to-email-vo.mp3`
-- Duration: 141.6s (2:22) — the click script targets ~2:40 for the full
-  video once card hold-times and the demo footage are cut in, so this
-  leaves headroom rather than needing a trim.
-- 2,194 characters synthesized.
-
-This is a full read of the narration for reference/pacing. Once the Guidde
-recording exists, re-cut this against the real footage in Descript per the
-production chain in `METHOD.md` — do not treat this file as the final mix.
+Re-synthesize the corrected script above through `vidiq_voiceover_generate`
+once the vidIQ account has credits again, and save the result to
+`claude/guidee/audio/company-to-email-vo.mp3`. Do not re-derive a credit
+cost from `CLAUDE.md`'s summary table for any other video in this
+catalog — check `app.html`'s `creditCosts` object directly; it has other
+exceptions to the `company_name_to_*: 1` pattern (`linkedin_company_to_linkedin_info: 6`,
+`email_to_linkedin_url: 5`, etc.).
