@@ -583,6 +583,80 @@ good outcome — it is just a different one, and worth knowing which you got.
 
 ---
 
+## 6.995 · Two windows, not one — Black Friday changes the shape
+
+Elias: *"I can let the launch run longer on the platform if needed, and I heard
+their Black Friday is pretty good."*
+
+**This is the strongest idea in the thread, and it repairs exactly the weakness
+§6.95 exposed.** The own push is too small to carry one launch. It does not have
+to.
+
+### The calendar is unusually kind
+
+| | |
+| --- | --- |
+| Today | 2026-09-05 |
+| **Black Friday 2026** | **Friday 27 November** — 83 days / **11.9 weeks** out |
+| Launch at +4 weeks | 2026-10-03 |
+| **Listing time before Black Friday** | **55 days — 7.9 weeks** |
+
+**Do not launch *at* Black Friday. Launch eight weeks before it.** Featuring is
+review-driven and reviews take weeks to accumulate; a deal that goes live cold
+into Black Friday competes against deals that already carry review counts and
+homepage placement. Eight weeks is close to ideal — enough to rank, not so long
+that the deal goes stale.
+
+### What two windows do to the target
+
+Cash in pocket:
+
+| | 30% | 50% | 70% |
+| --- | --- | --- | --- |
+| Launch only, modest (150) | $3,648 | $6,171 | $8,693 |
+| Launch only, good (300) | $7,297 | $12,341 | $17,386 |
+| **Launch 150 + BF 150** | $7,297 | $12,341 | $17,386 |
+| **Launch 150 + BF 300** | **$10,945** | **$18,512** | **$26,079** |
+| Launch 300 + BF 300 | $14,594 | $24,682 | $34,772 |
+
+**150 + 300 clears $10k even at a 30% share** — the column that failed every
+single-window scenario in §6.95. Two moderate windows beat one heroic one, and
+neither individually asks for anything near SendPilot's 1,219.
+
+### What it costs
+
+**1 · Support extends from two weeks to about three months.** This is the real
+price and it is not small. A solo founder cannot hold a five-minute median that
+long unaided — **`support-worker/` stops being a nice-to-have and becomes the
+thing that makes the strategy possible at all.** Deploy it in week 1 as planned.
+
+**2 · The quiet period is the risk.** A deal that sits between windows without
+momentum slides down the rankings, and arrives at Black Friday worse-placed than
+it started. **October–November is not idle time — it is when review velocity has
+to be maintained**, so that Black Friday finds you already on the lists.
+
+**3 · Payout spreads into next year.** Launch-window sales pay out around
+**17 December**; Black Friday sales around **10 February**. If the $10k has a
+date attached, that is the date to plan against — not November.
+
+**4 · Working capital gets easier, not harder.** Codes redeemed over three months
+each start their own 2–3 month consumption curve, so data cost is staggered
+rather than spiked. §6.5's numbers are the ceiling, and a longer window flattens
+them further.
+
+### The one thing to verify
+
+**Ask whether your listing type can stay live through Black Friday, and what it
+takes to be included in the Black Friday promotion.** Time-limited deals and
+evergreen listings are treated differently, and BF inclusion may be a separate
+selection rather than automatic. That is one question to the account manager and
+it decides whether this section is a plan or a hope.
+
+Put it in the same conversation as the seller share — both are free to ask and
+both change the numbers more than anything you can build.
+
+---
+
 ## 7. The honest bottom line
 
 **Target as of 2026-09-05 is $10k** (§6.8), which every featured scenario clears
