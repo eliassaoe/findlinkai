@@ -493,6 +493,96 @@ Model: `scripts/ltd-ownpush.py`.
 
 ---
 
+## 6.99 · The non-cash case — which parts of it survive the data
+
+Elias: *"if it's 10k awesome, else so be it — I also count on it to boost global
+traffic, brand awareness and SEO, changing the growth trajectory overall."*
+
+Right instinct, and it is the correct reason to launch even if the cash lands at
+$5k. But this repo has a habit of testing claims like this rather than agreeing
+with them (`docs/traffic-capture-verdict.md` did exactly that and found both
+halves of a plausible piece of advice wrong), so:
+
+### What survives
+
+**1 · Community and Reddit — the strongest one, and it is already proven here.**
+
+`docs/third-party-roundups-aeo.md` ranks every external referrer. Reddit is
+**720 people since May — the single biggest non-search source on the property**,
+ahead of YouTube (138) and every roundup site combined. AppSumo launches
+reliably generate Reddit, Facebook-group and YouTube-review discussion; Sumo-lings
+are unusually prolific content producers. **This is not a hypothetical channel for
+LinkFinder — it is the one external channel already demonstrated to work.**
+
+**2 · Reviews — the most concrete benefit, and it fixes something that is shrinking.**
+
+The G2 campaign has **65 addressable people and has produced 6 reviews**
+(`docs/g2-review-campaign-plan.md`). A 1,000-person LTD cohort is a **15× bigger
+pool**, and the machinery already exists and auto-verifies
+(`workers/onboarding-tasks/`). Credits-for-reviews stays allowed on G2 and
+Trustpilot — **just not on AppSumo itself** (§ the launch spec's warning on
+incentivised reviews).
+
+That matters because **AEO/LLM referrals are declining — 60/mo down to 21/mo**
+(`GROWTH-STRATEGY-REVIEW.md`), and third-party review corpora are the input to
+AI answer engines citing you. This is the one secondary benefit that plausibly
+does change a trajectory, because it feeds a channel that is currently going
+backwards.
+
+**3 · A permanent listing that ranks for branded queries.** Real, and it outlasts
+the launch.
+
+### What does not survive
+
+**Referral traffic quality will be poor.** Every external source this site has
+converts badly — the listicle pages pull real volume and convert at **1.3%, the
+worst landing type on the site, ten times worse than the homepage**. And the
+closest existing analogue to AppSumo is already in the data: **`dealify.com`, a
+deal site that already lists LinkFinder, has sent 20 people since May.** AppSumo
+is vastly bigger, so that is not a magnitude prediction — but it is a real
+datapoint about what deal-site traffic is worth once it arrives.
+
+**Check whether the listing link is `nofollow` before counting any SEO value.**
+Marketplace listing links very often are. If it is nofollow the backlink argument
+is worth roughly nothing and the SEO case rests entirely on the third-party
+coverage in (1), not on the listing itself.
+
+**"Changes the growth trajectory" is the claim to be most careful with.**
+`GROWTH-STRATEGY-REVIEW.md` is unambiguous: the constraint is **churn, not
+awareness**. At 6.5%/mo the ceiling is ~108 subscribers *no matter how much
+traffic arrives*. Awareness poured into an unrepaired funnel scales the leak.
+
+### But the sequencing is right this time, and that is the whole difference
+
+That growth review made one argument above all others: **fix the funnel first,
+then let the channels compound into it.** The launch prep *is* that work —
+the checkout leak, auto top-up, the post-first-result offer, the guards. So
+unlike the YouTube bet it critiqued, this traffic arrives *after* the repair
+rather than before it.
+
+**That is what makes the non-cash case legitimate rather than a consolation
+prize.** It is also conditional on actually doing items 3, 4 and 12 in the launch
+order, not just the ones that gate the codes shipping.
+
+### Measure it, so "it boosted traffic" cannot become unfalsifiable
+
+Baseline these the week before launch and read them at +30 and +90 days:
+
+| Metric | Where | Why |
+| --- | --- | --- |
+| Reddit + community referrers | PostHog, external referrers | The channel most likely to move |
+| `appsumo.com` referral volume **and its signup rate** | PostHog | Volume alone will flatter it |
+| G2 + Trustpilot review count | `user_task_completions` | The durable asset |
+| **LLM/AEO referrals** | PostHog | Currently 21/mo and falling — the trajectory claim lives or dies here |
+| Branded search impressions | Search Console | Awareness, measured rather than felt |
+| Direct traffic | PostHog | The lagging indicator of brand |
+
+**If LLM/AEO referrals are still falling at +90 days, the trajectory claim was
+wrong** and the launch was a cash event plus a review corpus. That is still a
+good outcome — it is just a different one, and worth knowing which you got.
+
+---
+
 ## 7. The honest bottom line
 
 **Target as of 2026-09-05 is $10k** (§6.8), which every featured scenario clears
