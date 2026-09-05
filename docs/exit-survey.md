@@ -5,6 +5,11 @@ cancel button on `account.html`. Copied in shape from Instantly's: the button
 that used to cancel now reads **Finish cancellation** and opens the form, and
 the real **Cancel my subscription** button sits on the screen after it.
 
+> The offers either side of these questions — pause the billing, and credit
+> packs that never expire — are documented in `docs/cancellation-offers.md`,
+> including the CRM rule that decides whether the packs card may be shown at
+> all. This file covers the questions only.
+
 ## Why it exists
 
 The reason grid on step 1 bought exactly one datapoint per churner out of six
@@ -49,11 +54,17 @@ Option values are stable strings on purpose. Change a label freely; changing a
 
 | event | when | key properties |
 | --- | --- | --- |
-| `exit_survey_started` | Finish cancellation clicked | `reason` |
+| `exit_survey_started` | Finish cancellation clicked | `reason`, `layout`, `resumed` |
 | `exit_survey_answered` | each answer, including re-answers after Back | `question`, `answer`, `answer_text` |
 | `exit_survey_question_skipped` | Skip this question | `question` |
 | `exit_survey_abandoned` | modal closed mid-survey | `last_question`, `answered_count` |
 | `exit_survey_completed` | last question resolved | `usage`, `cause`, `destination`, `*_text`, `answered_count`, `reason` |
+
+`resumed` is true when someone stepped out to the pause offer mid-survey and
+came back: answers are kept across that round trip, so the second pass resumes
+where they left off rather than re-asking three questions they just answered.
+It also means `exit_survey_started` can fire more than once per churner — count
+distinct people, not events.
 
 **Use `exit_survey_completed` for analysis** — one row per churner, all three
 answers on it, no join. `exit_survey_answered` is the keystroke-level stream
@@ -117,6 +128,10 @@ did not want to answer just clicked Skip three times and left nothing behind.
 
 `exit_survey_completed` carries a `layout` property, so the two stay comparable
 if the choice is ever revisited.
+
+The `inline` footer also carries one line offering to pause instead, above the
+cancel button, so that offer stays reachable for the whole survey without ever
+standing between anyone and cancelling.
 
 ## Rules
 

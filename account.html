@@ -234,6 +234,15 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
 .solution-features li{padding:.5rem 0;display:flex;align-items:flex-start;gap:.5rem;color:var(--gray-700);}
 .solution-features i{color:var(--success);font-size:1rem;margin-top:.2rem;}
 .btn-group{display:flex;gap:.75rem;margin-top:1.5rem;flex-wrap:wrap;}
+/* Retention offers - pause, and credit packs that outlive the subscription */
+.offer-pause{border-color:var(--success);background:rgba(16,185,129,.04);position:relative;}
+.offer-badge{position:absolute;top:-.7rem;left:1.25rem;background:var(--success);color:white;font-size:.66rem;font-weight:700;letter-spacing:.03em;text-transform:uppercase;padding:.2rem .55rem;border-radius:999px;}
+.solution-card .offer-status{text-align:center;font-size:.85rem;color:var(--success);font-weight:600;margin-top:.75rem;margin-bottom:0;}
+.solution-card .offer-note{font-size:.75rem;color:var(--gray-500);margin-top:.875rem;margin-bottom:0;line-height:1.5;}
+.payg-packs{display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem;margin:0 0 1.25rem;}
+.payg-pack{border:1px solid var(--gray-200);border-radius:8px;padding:.65rem .4rem;text-align:center;background:white;}
+.payg-pack strong{display:block;font-size:1.05rem;font-weight:700;color:var(--gray-900);}
+.payg-pack span{font-size:.72rem;color:var(--gray-500);}
 /* Exit survey — one question per screen, Typeform-style */
 .survey-progress{display:flex;align-items:center;gap:.75rem;margin-bottom:1.5rem;}
 .survey-dots{display:flex;gap:.375rem;flex:1;}
@@ -560,10 +569,12 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
     <div class="flow-step" id="step2"></div>
     <div class="flow-step" id="step3">
       <div class="flow-header">
-        <h2>One last thing before you go</h2>
-        <p>Three quick questions — it takes about 20 seconds, and it is the only way we find out what to fix.</p>
+        <h2>Before you go — pause instead?</h2>
+        <p>Cancelling closes the account down. Pausing costs nothing and keeps it exactly as it is.</p>
       </div>
+      <div id="step3Offers"></div>
       <div style="background:var(--gray-50);border:1px solid var(--gray-200);border-radius:10px;padding:1.25rem;margin-top:1rem;text-align:center;">
+        <p style="font-size:.8rem;color:var(--gray-500);margin-bottom:.75rem;">Still want to cancel? Three quick questions first — about 20 seconds, and it is the only way we find out what to fix.</p>
         <p style="font-size:.875rem;color:var(--gray-600);margin-bottom:1rem;">Your subscription stays active until the end of your current billing period either way.</p>
         <button id="startExitSurveyBtn" class="btn btn-danger" onclick="startExitSurvey()" style="width:100%;display:flex;justify-content:center;">
           Finish cancellation <i class="fas fa-arrow-right"></i>
@@ -588,6 +599,7 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
       <!-- Only rendered in the 'inline' layout: cancelling stays one click away
            for the whole survey, so no question is ever standing in the way. -->
       <div id="surveyCancelFooter" style="display:none;border-top:1px solid var(--gray-200);margin-top:1.25rem;padding-top:1rem;">
+        <p style="font-size:.8rem;color:var(--gray-500);margin-bottom:.75rem;text-align:center;">Not sure yet? <a href="#" onclick="backToPauseOffer();return false;" style="color:var(--success);font-weight:600;">Pause your billing instead</a> — 30 days at $0, nothing lost.</p>
         <button class="btn btn-danger js-confirm-cancel" onclick="exitSurveyCancelNow()" style="width:100%;display:flex;justify-content:center;">
           <i class="fas fa-times-circle"></i> Cancel my subscription
         </button>
@@ -600,6 +612,7 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
         <h2>Thank you — that genuinely helps</h2>
         <p>We read every one of these.</p>
       </div>
+      <div id="step5Offers"></div>
       <div style="background:var(--gray-50);border:1px solid var(--gray-200);border-radius:10px;padding:1.25rem;margin-top:1rem;text-align:center;">
         <p style="font-size:.875rem;color:var(--gray-600);margin-bottom:1rem;">Your subscription will remain active until the end of your current billing period.</p>
         <button id="confirmCancelBtn" class="btn btn-danger js-confirm-cancel" onclick="confirmCancel()" style="width:100%;display:flex;justify-content:center;">
@@ -607,6 +620,36 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
         </button>
         <p style="font-size:.75rem;color:var(--gray-400);margin-top:.75rem;">Changed your mind? <a href="#" onclick="closeCancellationModal();return false;" style="color:var(--primary);">Keep my plan</a></p>
       </div>
+    </div>
+
+    <!-- Pausing is a save, not a cancellation. It gets its own confirmation
+         screen rather than a green line under a button, on a page the reader
+         is still holding as "I am leaving". -->
+    <div class="flow-step" id="stepPaused">
+      <div class="flow-header">
+        <h2>Your billing is paused ⏸️</h2>
+        <p>Nothing will be charged for the next 30 days.</p>
+      </div>
+      <div class="solution-card offer-pause">
+        <h3><i class="fas fa-check-circle"></i> What happens now</h3>
+        <ul class="solution-features">
+          <li><i class="fas fa-check"></i> No charge until your subscription resumes automatically in 30 days</li>
+          <li><i class="fas fa-check"></i> Credits, enrichment history, API key and integrations are untouched</li>
+          <li><i class="fas fa-check"></i> Any credits you already hold stay usable while you are paused</li>
+        </ul>
+        <p class="offer-note">Want to come back sooner, or stay paused longer? Email <a href="mailto:support@linkfinderai.com" style="color:var(--primary);">support@linkfinderai.com</a> and we will sort it.</p>
+      </div>
+      <button class="btn" onclick="closeCancellationModal()" style="width:100%;display:flex;justify-content:center;">Back to my account</button>
+    </div>
+
+    <div class="flow-step" id="stepCancelled">
+      <div class="flow-header">
+        <h2>Your subscription is cancelled</h2>
+        <p>You keep full access until the end of your current billing period.</p>
+      </div>
+      <p style="text-align:center;font-size:.875rem;color:var(--gray-600);margin-bottom:1rem;">Your account, your remaining credits and your API key stay where they are — nothing is deleted.</p>
+      <div id="cancelledOffers"></div>
+      <button class="btn" onclick="closeCancellationModal()" style="width:100%;display:flex;justify-content:center;">Back to my account</button>
     </div>
   </div>
 </div>
@@ -1130,7 +1173,7 @@ function showPricingModal(trigger, extra) {
     // to subscribers too - "buy credits" is a distinct ask from "manage my
     // plan," and the modal title below still correctly says "Change Your
     // Plan" for subscribers regardless of which tab is showing.
-    if (trigger === 'buy_credits_btn') {
+    if (trigger === 'buy_credits_btn' || trigger === 'cancellation_payg') {
         billingMode = 'payg';
     }
     document.getElementById('paygBtn').classList.toggle('active', billingMode === 'payg');
@@ -1140,7 +1183,13 @@ function showPricingModal(trigger, extra) {
     if (neverExpireBanner) neverExpireBanner.style.display = (billingMode === 'payg') ? 'flex' : 'none';
     const modalTitle = document.getElementById('pricingModalTitle');
     const modalSubtitle = document.getElementById('pricingModalSubtitle');
-    if (isExistingSubscriber) {
+    if (trigger === 'cancellation_payg') {
+        // Checked before the subscriber branch on purpose: they are still a
+        // subscriber at this point, but "you only pay the difference" is the
+        // wrong sentence for a one-off pack they are buying to replace a plan.
+        if (modalTitle) modalTitle.textContent = 'Credits that never expire';
+        if (modalSubtitle) modalSubtitle.textContent = 'One-off packs — no subscription, no expiry date, use them whenever you need them.';
+    } else if (isExistingSubscriber) {
         if (modalTitle) modalTitle.textContent = 'Change Your Plan';
         if (modalSubtitle) modalSubtitle.textContent = 'You will only be charged the difference — no extra steps needed.';
     } else if (trigger === 'credits_exhausted') {
@@ -1360,6 +1409,9 @@ function showCancellationFlow() {
   exitSurveyAnswers = {};
   exitSurveyDone = false;
   clearTimeout(exitSurveyTimer);
+  // Fire and forget — the answer only has to be back before step3 renders,
+  // which is several screens away.
+  refreshCrmConnected();
 }
 function closeCancellationModal() {
   // Closing mid-survey is itself a signal: it says the questions cost more than
@@ -1379,18 +1431,169 @@ function selectReason(reason, event) {
   setTimeout(() => showSolutionForReason(reason), 500);
 }
 
+/* ── Retention offers: pause first, credit packs second ───────────────────
+   Two things now sit in front of every churner, in this order.
+
+   1. **Pause.** It was previously offered on exactly one of the six reasons
+      ("I'm not using it enough"), which is the only reason where the user has
+      already talked themselves into it. The other five — too expensive, a
+      competitor, a missing feature, a bug, "other" — are all months someone
+      does not want to pay for, which is the same problem pause solves. It now
+      appears on all six, above the reason-specific offer, and again on the two
+      screens before the cancel button. It costs one month of MRR against a
+      churn that costs all of it.
+
+   2. **Credit packs.** Cancelling reads as the end of the account, and it is
+      not: packs never expire, so someone can leave the subscription, keep the
+      account, and come back with $25 when they next have a list to run. Said
+      before they cancel and again on the way out.
+
+   CLAUDE.md rule, load-bearing: never recommend PAYG to a CRM user. Credits do
+   not open the HubSpot connection — that is a managed connection we pay for
+   monthly — so pointing a CRM customer at packs sells them something that
+   cannot do the job they came for. Two signals suppress it, either one enough:
+   a live Nango connection on the account, or the exit survey answer saying the
+   CRM is what they were using. See renderCrmOrPaygCard(). ─────────────────── */
+
+const CRM_STATUS_URL = 'https://nango-connect-session.hamoureliasse.workers.dev/status';
+
+// null = not looked up / lookup failed, true/false = answered.
+let crmConnected = null;
+
+/* Fire-and-forget at the top of the flow, so the answer has landed long before
+   the offers render on step3. A failure leaves it null rather than guessing. */
+async function refreshCrmConnected() {
+  if (!userToken) return;
+  if (surveyPreview) { console.log('%c[preview] would check CRM connection', 'color:#f59e0b;font-weight:700'); return; }
+  try {
+    const r = await fetch(CRM_STATUS_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: userToken })
+    });
+    const d = await r.json();
+    crmConnected = !!d.connected;
+  } catch(e) { crmConnected = null; }
+}
+
+function isCrmUser() {
+  if (crmConnected === true) return true;
+  const usage = exitSurveyAnswers && exitSurveyAnswers.usage;
+  return !!(usage && usage.value === 'crm');
+}
+
+/* Why pause fits *this* person, in one line. Generic copy on a save offer is
+   what makes it read as a speed bump instead of an answer. */
+const PAUSE_PITCH = {
+  notUsing:       "You said you are not using it much right now — that is exactly what pause is for.",
+  tooExpensive:   "Pause costs nothing. Your bill stops completely until you are ready to pick it back up.",
+  competitor:     "Trying something else? Pause first — your credits and your account stay put while you test them, at no cost.",
+  missingFeature: "Pause while we build it. You should not be paying for a month that is missing the thing you need.",
+  technical:      "Pause while we fix it. You should not be paying for a month that did not work.",
+  other:          "If this is a quiet month rather than a goodbye, pause instead — it costs nothing.",
+};
+
+function pauseCard(context, opts) {
+  opts = opts || {};
+  const ctx = escHtml(context);
+  // Fired here rather than by the caller so the six reason screens, which
+  // render the card on its own, are counted the same as the offer blocks.
+  surveyTrack('pause_offer_shown', { context, reason: selectedCancellationReason });
+  if (opts.compact) {
+    return `<div class="solution-card offer-pause">
+      <h3 style="font-size:1.1rem;margin-bottom:.5rem;"><i class="fas fa-pause-circle"></i> Last thought — pause instead?</h3>
+      <p style="font-size:.9rem;margin-bottom:1.25rem;">30 days at $0, then billing resumes on its own. Credits, history, API key and integrations untouched — nothing to set up again.</p>
+      <button class="btn btn-success js-pause-btn" data-offer-context="${ctx}" onclick="retentionAction('pause', this)" style="width:100%;display:flex;justify-content:center;"><i class="fas fa-pause"></i> Pause my billing for 30 days — free</button>
+      <p class="js-offer-status offer-status" style="display:none;"></p>
+    </div>`;
+  }
+  const pitch = opts.pitch || PAUSE_PITCH[selectedCancellationReason] || PAUSE_PITCH.other;
+  return `<div class="solution-card offer-pause">
+    <div class="offer-badge">Costs you nothing</div>
+    <h3><i class="fas fa-pause-circle"></i> Pause your billing instead</h3>
+    <p>${escHtml(pitch)} We freeze the subscription for 30 days and resume it automatically — you are not charged in the meantime, and you do not lose anything.</p>
+    <ul class="solution-features">
+      <li><i class="fas fa-check"></i> $0 for 30 days, then billing picks up again on its own</li>
+      <li><i class="fas fa-check"></i> Credits, enrichment history, API key and integrations stay exactly as they are</li>
+      <li><i class="fas fa-check"></i> Nothing to re-configure and no new signup when you come back</li>
+    </ul>
+    <button class="btn btn-success js-pause-btn" data-offer-context="${ctx}" onclick="retentionAction('pause', this)" style="width:100%;display:flex;justify-content:center;"><i class="fas fa-pause"></i> Pause my billing for 30 days — free</button>
+    <p class="js-offer-status offer-status" style="display:none;"></p>
+    <p class="offer-note">Need to come back sooner, or stay paused longer? Email support@linkfinderai.com and we will sort it.</p>
+  </div>`;
+}
+
+function paygCard(context) {
+  return `<div class="solution-card">
+    <h3><i class="fas fa-infinity"></i> Cancelling does not cut you off</h3>
+    <p>Credits bought as a one-off pack <strong>never expire</strong>. Drop the subscription, keep the account, and top up only when you actually have a list to run — no monthly commitment, no minimum, nothing to re-activate.</p>
+    <div class="payg-packs">
+      <div class="payg-pack"><strong>$25</strong><span>1,000 credits</span></div>
+      <div class="payg-pack"><strong>$75</strong><span>3,500 credits</span></div>
+      <div class="payg-pack"><strong>$200</strong><span>10,000 credits</span></div>
+    </div>
+    <button class="btn" onclick="openPaygFromCancellation('${escHtml(context)}')" style="width:100%;display:flex;justify-content:center;"><i class="fas fa-coins"></i> See credit packs</button>
+    <p class="offer-note">Packs work everywhere your plan did — the app, the API, MCP and the Google Sheets add-on. The HubSpot CRM sync is the one thing that needs an active subscription.</p>
+  </div>`;
+}
+
+/* Shown to CRM users in place of the packs. Credits genuinely cannot keep the
+   HubSpot connection open, so this is the honest version of the same screen —
+   and it points at the offer that does work for them. */
+function crmNoteCard() {
+  return `<div class="solution-card">
+    <h3><i class="fab fa-hubspot"></i> Your HubSpot sync stops when the plan does</h3>
+    <p>The CRM connection runs continuously on our side, so it needs an active subscription — credits on their own will not keep it open. If this is a quiet month rather than a goodbye, pausing keeps the connection and its field settings exactly as you left them.</p>
+    <p class="offer-note">Cancelling keeps your account and any credits you already hold. The only thing you lose is the automatic CRM enrichment, until you resubscribe.</p>
+  </div>`;
+}
+
+function renderCrmOrPaygCard(context) {
+  if (isCrmUser()) {
+    surveyTrack('payg_offer_suppressed_crm', {
+      context,
+      source: crmConnected === true ? 'nango_connection' : 'exit_survey',
+    });
+    return crmNoteCard();
+  }
+  surveyTrack('payg_offer_shown', { context, reason: selectedCancellationReason });
+  return paygCard(context);
+}
+
+function offerBlock(context, opts) {
+  return pauseCard(context, opts) + renderCrmOrPaygCard(context);
+}
+
+function openPaygFromCancellation(context) {
+  surveyTrack('payg_offer_clicked', { context, reason: selectedCancellationReason });
+  if (surveyPreview) { alert('PREVIEW — this opens the credit packs. Nothing was bought.'); return; }
+  closeCancellationModal();
+  billingMode = 'payg';
+  showPricingModal('cancellation_payg');
+}
+
+function renderStep3Offers() {
+  const el = document.getElementById('step3Offers');
+  if (el) el.innerHTML = offerBlock('pre_survey');
+}
+
+function renderStep5Offers() {
+  const el = document.getElementById('step5Offers');
+  if (el) el.innerHTML = offerBlock('final_confirm', { compact: true });
+}
+
+function renderCancelledOffers() {
+  const el = document.getElementById('cancelledOffers');
+  if (el) el.innerHTML = renderCrmOrPaygCard('after_cancel');
+}
+
 function showSolutionForReason(reason) {
   const step2 = document.getElementById('step2');
   const solutionMap = {
 
     notUsing: `
       <div class="flow-header"><h2>No worries — pause instead ⏸️</h2><p>Take a break without losing your account</p></div>
-      <div class="solution-card">
-        <h3><i class="fas fa-pause-circle"></i> Freeze your subscription for 1 month</h3>
-        <p>We'll pause your billing for 30 days and resume automatically. Your credits and data stay safe — no charges until you're back.</p>
-        <button id="pauseBtn" onclick="retentionAction('pause')" class="btn btn-success" style="width:100%;margin-bottom:.75rem;"><i class="fas fa-pause"></i> Pause billing for 1 month — free</button>
-        <div id="pauseStatus" style="display:none;text-align:center;font-size:.85rem;color:var(--success);margin-top:.5rem;"></div>
-      </div>
+      ${pauseCard('reason_notUsing')}
       <div class="solution-card">
         <h3><i class="fas fa-video"></i> Or book a free setup call</h3>
         <p>30 minutes with our team — we'll set everything up for you.</p>
@@ -1411,6 +1614,7 @@ function showSolutionForReason(reason) {
         <p>We might already have a workaround or it could be on our roadmap.</p>
         <a href="${CALENDLY_LINK}" target="_blank" class="btn" style="width:100%;"><i class="fas fa-calendar"></i> Book Product Call</a>
       </div>
+      ${pauseCard('reason_missingFeature')}
       <div class="btn-group"><button class="btn btn-danger" onclick="declineAllSolutions()">No, Continue to Cancel</button></div>`,
 
     technical: `
@@ -1426,15 +1630,17 @@ function showSolutionForReason(reason) {
         <p>We'll screenshare and fix it together.</p>
         <a href="${CALENDLY_LINK}" target="_blank" class="btn" style="width:100%;"><i class="fas fa-calendar-check"></i> Book Emergency Call</a>
       </div>
+      ${pauseCard('reason_technical')}
       <div class="btn-group"><button class="btn btn-danger" onclick="declineAllSolutions()">No, Continue to Cancel</button></div>`,
 
     competitor: `
       <div class="flow-header"><h2>We'll beat their price 💰</h2><p>Seriously — let us prove it</p></div>
+      ${pauseCard('reason_competitor')}
       <div class="solution-card">
         <h3><i class="fas fa-tag"></i> Get 30% off for 3 months</h3>
         <p>Stay on LinkFinder AI at a price that beats most competitors. Applied to your next 3 billing cycles — no strings attached.</p>
-        <button id="discountBtn" onclick="retentionAction('discount')" class="btn btn-success" style="width:100%;margin-bottom:.75rem;"><i class="fas fa-percent"></i> Apply 30% discount now</button>
-        <div id="discountStatus" style="display:none;text-align:center;font-size:.85rem;color:var(--success);margin-top:.5rem;"></div>
+        <button onclick="retentionAction('discount', this)" class="btn btn-success js-discount-btn" style="width:100%;display:flex;justify-content:center;"><i class="fas fa-percent"></i> Apply 30% discount now</button>
+        <p class="js-offer-status offer-status" style="display:none;"></p>
       </div>
       <div class="solution-card">
         <h3><i class="fas fa-chart-bar"></i> Compare us fairly</h3>
@@ -1448,12 +1654,13 @@ function showSolutionForReason(reason) {
       <div class="btn-group"><button class="btn btn-danger" onclick="declineAllSolutions()">No, Continue to Cancel</button></div>`,
 
     tooExpensive: `
-      <div class="flow-header"><h2>Let's make it affordable 💸</h2><p>Two options to lower your bill right now</p></div>
+      <div class="flow-header"><h2>Let's make it affordable 💸</h2><p>Three ways to stop paying full price right now</p></div>
+      ${pauseCard('reason_tooExpensive')}
       <div class="solution-card">
         <h3><i class="fas fa-tag"></i> Get 30% off for 3 months</h3>
         <p>Stay on your current plan at 30% off for the next 3 billing cycles.</p>
-        <button id="discountBtn" onclick="retentionAction('discount')" class="btn btn-success" style="width:100%;margin-bottom:.75rem;"><i class="fas fa-percent"></i> Apply 30% discount now</button>
-        <div id="discountStatus" style="display:none;text-align:center;font-size:.85rem;color:var(--success);margin-top:.5rem;"></div>
+        <button onclick="retentionAction('discount', this)" class="btn btn-success js-discount-btn" style="width:100%;display:flex;justify-content:center;"><i class="fas fa-percent"></i> Apply 30% discount now</button>
+        <p class="js-offer-status offer-status" style="display:none;"></p>
       </div>
       <div class="solution-card">
         <h3><i class="fas fa-arrow-down"></i> Or downgrade to a cheaper plan</h3>
@@ -1469,6 +1676,7 @@ function showSolutionForReason(reason) {
         <textarea id="otherReasonText" class="feedback-textarea" placeholder="What's making you consider canceling?"></textarea>
         <button onclick="submitOtherFeedback()" class="btn btn-success" style="width:100%;"><i class="fas fa-paper-plane"></i> Send Feedback</button>
       </div>
+      ${pauseCard('reason_other')}
       <div class="btn-group"><button class="btn btn-danger" onclick="declineAllSolutions()">No, Continue to Cancel</button></div>`
   };
   step2.innerHTML = solutionMap[reason] || solutionMap.other;
@@ -1502,6 +1710,7 @@ function submitOtherFeedback()   { submitFeedback('other_feedback',    'otherRea
 
 function declineAllSolutions() {
   try { posthog.capture('all_solutions_declined', { reason: selectedCancellationReason }); } catch(e) {}
+  renderStep3Offers();
   goToFlowStep('step3');
 }
 
@@ -1606,11 +1815,20 @@ function goToFlowStep(id) {
   if (el) el.classList.add('active');
 }
 
+// Stepping back to the pause offer mid-survey and then returning must not
+// re-ask three questions someone has just answered — a second pass produces
+// whichever answer clears the screen fastest, which is the noise this survey
+// exists to avoid. showCancellationFlow() is what resets the answers.
+function backToPauseOffer() {
+  clearTimeout(exitSurveyTimer);
+  surveyTrack('pause_offer_reopened_from_survey', { question: (EXIT_SURVEY[exitSurveyIndex] || {}).id || null });
+  renderStep3Offers();
+  goToFlowStep('step3');
+}
+
 function startExitSurvey() {
-  exitSurveyIndex   = 0;
-  exitSurveyAnswers = {};
-  exitSurveyDone    = false;
-  surveyTrack('exit_survey_started', { reason: selectedCancellationReason, layout: EXIT_SURVEY_LAYOUT });
+  if (exitSurveyIndex >= EXIT_SURVEY.length) exitSurveyIndex = 0;
+  surveyTrack('exit_survey_started', { reason: selectedCancellationReason, layout: EXIT_SURVEY_LAYOUT, resumed: Object.keys(exitSurveyAnswers).length > 0 });
   goToFlowStep('step4');
   renderExitSurveyQuestion();
 }
@@ -1760,6 +1978,9 @@ function flushExitSurvey(exitedVia) {
 
 function finishExitSurvey() {
   flushExitSurvey('completed');
+  // Rendered here rather than in the markup because the survey may have just
+  // told us this is a CRM user, which changes what may be offered.
+  renderStep5Offers();
   goToFlowStep('step5');
 }
 
@@ -1849,16 +2070,25 @@ function proceedToCancellation() { managePlanDirectly(); }
 
 const CANCEL_WORKER = 'https://cancel-subscription.hamoureliasse.workers.dev/';
 
-async function retentionAction(action) {
+async function retentionAction(action, btnEl) {
+  // Pause is offered from several cards on several steps at once, so the
+  // button and its status line are resolved from the click, not from a
+  // page-unique id that would now match the wrong card.
+  const activeStep = document.querySelector('.flow-step.active');
+  const btn = btnEl
+    || (activeStep && activeStep.querySelector('.js-' + action + '-btn'))
+    || document.querySelector('.js-' + action + '-btn');
+  const card   = btn ? btn.closest('.solution-card') : null;
+  const status = card ? card.querySelector('.js-offer-status') : null;
+  const orig   = btn ? btn.innerHTML : '';
+  const context = btn ? btn.getAttribute('data-offer-context') : null;
+
   if (surveyPreview) {
-    console.log('%c[preview] would apply retention offer', 'color:#f59e0b;font-weight:700', action);
+    console.log('%c[preview] would apply retention offer', 'color:#f59e0b;font-weight:700', action, currentSubscriptionId || '(no subscription on this account)');
+    if (action === 'pause') { goToFlowStep('stepPaused'); return; }
     alert('PREVIEW — the ' + action + ' offer was not applied.');
     return;
   }
-  const btnId   = action === 'pause' ? 'pauseBtn' : 'discountBtn';
-  const statusId = action === 'pause' ? 'pauseStatus' : 'discountStatus';
-  const btn    = document.getElementById(btnId);
-  const status = document.getElementById(statusId);
 
   // Wait up to 5s for subscription ID to be fetched
   if (!currentSubscriptionId) {
@@ -1876,12 +2106,16 @@ async function retentionAction(action) {
   }
 
   const labels = {
-    pause:    { loading: 'Pausing…', success: '✓ Billing paused for 1 month — you will be resumed automatically.' },
+    pause:    { loading: 'Pausing…' },
     discount: { loading: 'Applying discount…', success: '✓ 30% discount applied to your next 3 billing cycles!' },
   };
 
-  btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${labels[action].loading}`;
-  btn.disabled = true;
+  if (btn) {
+    btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${labels[action].loading}`;
+    btn.disabled = true;
+  }
+
+  const restore = () => { if (btn) { btn.disabled = false; btn.innerHTML = orig; } };
 
   try {
     const r = await fetch(CANCEL_WORKER, {
@@ -1891,20 +2125,18 @@ async function retentionAction(action) {
     });
     const d = await r.json();
     if (d.ok) {
+      try { posthog.capture('retention_' + action, { subscription_id: currentSubscriptionId, reason: selectedCancellationReason, context }); } catch(e) {}
+      if (action === 'pause') { goToFlowStep('stepPaused'); return; }
       btn.style.display = 'none';
-      status.textContent = labels[action].success;
-      status.style.display = 'block';
-      try { posthog.capture('retention_' + action, { subscription_id: currentSubscriptionId }); } catch(e) {}
+      if (status) { status.textContent = labels[action].success; status.style.display = 'block'; }
       // Close modal after 3 seconds
       setTimeout(() => closeCancellationModal(), 3000);
     } else {
-      btn.disabled = false;
-      btn.innerHTML = action === 'pause' ? '<i class="fas fa-pause"></i> Pause billing for 1 month — free' : '<i class="fas fa-percent"></i> Apply 30% discount now';
+      restore();
       alert('Something went wrong. Please try again.');
     }
   } catch(e) {
-    btn.disabled = false;
-    btn.innerHTML = action === 'pause' ? '<i class="fas fa-pause"></i> Pause billing for 1 month — free' : '<i class="fas fa-percent"></i> Apply 30% discount now';
+    restore();
     alert('Network error. Please try again.');
   }
 }
@@ -1914,8 +2146,8 @@ async function confirmCancel() {
   const btn = document.querySelector('.flow-step.active .js-confirm-cancel') || document.getElementById('confirmCancelBtn');
   if (surveyPreview) {
     console.log('%c[preview] would cancel subscription', 'color:#f59e0b;font-weight:700', currentSubscriptionId || '(no subscription on this account)');
-    alert('PREVIEW — nothing was cancelled.\n\nThis is where the real cancellation would fire.');
-    closeCancellationModal();
+    renderCancelledOffers();
+    goToFlowStep('stepCancelled');
     return;
   }
   if (!currentSubscriptionId) {
@@ -1933,9 +2165,12 @@ async function confirmCancel() {
     });
     const d = await r.json();
     if (d.ok) {
-      closeCancellationModal();
-      alert('Your subscription has been cancelled. You will keep access until the end of your current billing period.');
-      try { posthog.capture('subscription_cancelled', { subscription_id: currentSubscriptionId }); } catch(e) {}
+      try { posthog.capture('subscription_cancelled', { subscription_id: currentSubscriptionId, reason: selectedCancellationReason }); } catch(e) {}
+      // The moment someone has just cancelled is the one moment they are
+      // certain they want nothing recurring — which is exactly what a pack
+      // that never expires is. Say it here rather than in a dismissed alert.
+      renderCancelledOffers();
+      goToFlowStep('stepCancelled');
     } else {
       btn.innerHTML = '<i class="fas fa-times-circle"></i> Cancel my subscription';
       btn.disabled = false;

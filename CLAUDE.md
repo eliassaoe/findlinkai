@@ -56,6 +56,7 @@ into a file here in the same session, or it is gone.
 | App UI ground truth (never invent a label) | `claude/guidee/app-ui.md` |
 | CSV enrichments in History | `docs/csv-enrichment-history.md` |
 | What the account page counts as "found" | `docs/account-value-summary.md` |
+| What we offer before letting a subscriber cancel (pause, and packs) | `docs/cancellation-offers.md` |
 | The AI SDR service offer, and who is allowed to see it | `docs/ai-sdr-offer.md` |
 | Selling Done For You to the 67 idle pack buyers | `docs/dfy-activation-campaign.md` — read the correction in it before quoting any "paying accounts" number |
 | Who the SEO traffic actually is, before aiming an offer at it | `docs/traffic-capture-verdict.md` |
@@ -106,4 +107,7 @@ from the code. Adding any new Apps Script service (`DriveApp`, `GmailApp`,
 re-verifies it. A test enforces this.
 
 **Never recommend PAYG to a CRM user.** CRM users go to subscriptions; they are
-stickier and the HubSpot connection costs money every month.
+stickier and the HubSpot connection costs money every month — and credits alone
+do not open that connection, so packs cannot do the job they are here for. The
+cancellation flow enforces this in `renderCrmOrPaygCard()`; see
+`docs/cancellation-offers.md` before adding a second place that sells packs.
