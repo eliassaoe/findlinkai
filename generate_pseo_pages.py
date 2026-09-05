@@ -440,7 +440,6 @@ def build_html(keyword, slug, content):
           <a href="https://linkfinderai.com/linkedin-post-commenters-export">LinkedIn Post Commenters Export</a>
           <a href="https://linkfinderai.com/email-extractor-from-website">Email Extractor</a>
           <a href="https://linkfinderai.com/company-tech-stack-finder">Company Tech Stack Finder</a>
-          <a href="https://linkfinderai.com/free-linkedin-sales-navigator-scraper">Free Sales Navigator Scraper</a>
         </div>
       </div>
     </div>

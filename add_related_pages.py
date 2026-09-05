@@ -6,7 +6,7 @@ RELATED_PAGES = {
     # Alternative/Competitor pages
     'clay-alternative.html': [
         ('Phantombuster alternative', 'https://linkfinderai.com/phantombuster-alternative'),
-        ('Apollo alternative', 'https://linkfinderai.com/apollo-alternative'),
+        ('Apollo alternative', 'https://linkfinderai.com/apollo-api-alternative'),
         ('Captain Data alternative', 'https://linkfinderai.com/captain-data-alternative')
     ],
     'phantombuster-alternative.html': [
@@ -275,7 +275,7 @@ RELATED_PAGES = {
     # Alternative/Competitor pages
     'clay-alternative.html': [
         ('Phantombuster alternative', 'https://linkfinderai.com/phantombuster-alternative'),
-        ('Apollo alternative', 'https://linkfinderai.com/apollo-alternative'),
+        ('Apollo alternative', 'https://linkfinderai.com/apollo-api-alternative'),
         ('Captain Data alternative', 'https://linkfinderai.com/captain-data-alternative')
     ],
     'phantombuster-alternative.html': [

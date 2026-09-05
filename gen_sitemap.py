@@ -45,7 +45,8 @@ def iter_html(root):
 def clean_path(rel):
     """File path -> clean URL path (no .html, index.html -> '')."""
     p = rel.replace(os.sep, "/").lstrip("./")
-    if p.endswith("index.html"):
+    if p == "index.html" or p.endswith("/index.html"):
+        # a directory's own index, not a page that merely ends in "index"
         p = p[: -len("index.html")]
     elif p.endswith(".html"):
         p = p[:-5]
