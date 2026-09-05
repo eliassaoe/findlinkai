@@ -269,10 +269,80 @@ dashboard while refunds are still open.
 
 ---
 
+## 6.8 · Target revised to $10k — 2026-09-05
+
+Elias: *"if I end up with 10k in my pocket I am happy with the launch."*
+That is now the operating target, and it changes what to optimise for.
+
+### $10k is hit in every scenario except one
+
+| Scenario | Codes | 30% share | 50% | 70% |
+| --- | --- | --- | --- | --- |
+| **No featuring** | 140 | $3,405 | $5,759 | $8,113 |
+| **Featured** (SendPilot ratio) | 475 | **$11,553** | **$19,540** | **$27,527** |
+| Strong launch | 790 | $19,215 | $32,499 | $45,782 |
+
+Units needed for $10k: **411** at a 30% share, **243** at 50%, **173** at 70% —
+against SendPilot's 1,219.
+
+**Two consequences, and they matter more than the target change itself:**
+
+1. **The share stops being decisive.** At $50k it was the difference between
+   possible and impossible. At $10k every share clears it, provided you get
+   featured. Still worth knowing — it is free to ask — but it is no longer the
+   thing the launch hangs on.
+2. **Your own audience nearly covers it alone.** The day-one push is 75–115
+   codes (§4, lever 2). At a 70% share the target is 173. **You are 50–65% of
+   the way to $10k before AppSumo sends a single visitor.** That is the whole
+   risk profile changing shape.
+
+**The only failure case left is not getting featured.** Everything that matters
+now runs through that one gate: the day-one push, and support speed in week one.
+
+### So optimise for MRR, not units
+
+If $10k is enough cash, the marginal code is worth less than the marginal
+subscriber. What the same launch is worth recurring:
+
+| Codes | at 3%/2% upsell | at 5%/3% |
+| --- | --- | --- |
+| 300 | $478/mo · $5,738/yr | $761/mo · $9,137/yr |
+| **475** | **$757/mo · $9,086/yr** | **$1,206/mo · $14,467/yr** |
+| 790 | $1,259/mo · $15,111/yr | $2,005/mo · $24,060/yr |
+
+**475 codes converted well beats 790 converted badly** — $14,467/yr against
+$15,111/yr, from 40% fewer customers, 40% less support load and 40% less data
+cost. At a $10k cash target that trade is obviously right, and it was not
+obvious at $50k.
+
+Practically:
+
+- **Tier 3 is now optional.** It existed to lift AOV from $83 to $118, which
+  mattered when volume was the constraint. Ship it if it is easy; drop it if
+  week 3 is tight and seats are the thing holding it up.
+- **Serve a smaller cohort better.** Fewer customers at the same effort is a
+  higher review rate and a higher upsell rate — the two numbers that actually
+  decide both the featuring and the MRR.
+- **Report the two upsell rates weekly.** They are the scoreboard now, not units
+  sold.
+
+### What does NOT relax
+
+**Every guard in `docs/appsumo-launch-spec.md` §4 stays.** They are downside
+protection, not upside optimisation — a $10k launch with a permanent 3-star page
+and a data product that returns `⚠️ No Leads found` as a person is still a bad
+outcome, and a lower cash target buys no slack there. If anything the guards
+matter proportionally more: there is less margin to absorb a bad week.
+
+The launch date is still the date the guards are done.
+
+---
+
 ## 7. The honest bottom line
 
-**$20–25k in your pocket is a realistic target** if the share is 50%+ and you run
-levers 2 and 3 properly.
+**Target as of 2026-09-05 is $10k** (§6.8), which every featured scenario clears
+at any share. **$20–25k is the stretch** if the share is 50%+ and you run levers
+2 and 3 properly.
 
 **$50k requires either a 70% share or a SendPilot-equivalent launch** — 1,219+
 units. Plan for $20–25k, build so that $50k is possible, and treat anything above
