@@ -296,7 +296,7 @@ def build_html(keyword, slug, content):
         <a href="https://linkfinderai.com/#integrations">Integrations</a>
       </nav>
       <div class="auth-buttons">
-        <a href="https://linkfinderai.com/sign-in" class="btn btn-outline">Sign in</a>
+        <a href="https://linkfinderai.com/log-in" class="btn btn-outline">Sign in</a>
         <a href="https://linkfinderai.com/sign-up" class="btn">Get API Key</a>
       </div>
     </div>
@@ -486,7 +486,7 @@ def build_html(keyword, slug, content):
       <div class="footer-col">
         <h4>Company</h4>
         <a href="https://linkfinderai.com/sign-up">Sign Up</a>
-        <a href="https://linkfinderai.com/sign-in">Sign In</a>
+        <a href="https://linkfinderai.com/log-in">Sign In</a>
         <a href="mailto:support@linkfinderai.com">Support</a>
       </div>
     </div>
