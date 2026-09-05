@@ -1738,6 +1738,8 @@ async function maybeShowCheckoutRescue() {
     } else {
         bar.innerHTML = `You didn't quite finish signing up for ${planLabel}. `
             + `<a onclick="resumeCheckout()">Pick up where you left off &rarr;</a>`
+            + ` &nbsp;&middot;&nbsp; <a href="${dfyCallHref('checkout_abandoned')}" target="_blank" rel="noopener"`
+            + ` onclick="try{posthog.capture('dfy_cta_clicked',{source:'checkout_abandoned'})}catch(e){}">Or have us run it for you &rarr;</a>`
             + `<a onclick="try{posthog.capture('checkout_rescue_dismissed')}catch(e){}; document.getElementById('milestoneUpgradeBanner').style.display='none'" style="margin-left:0.75rem;color:inherit;">No thanks</a>`;
     }
     bar.style.display = 'block';
@@ -2553,7 +2555,9 @@ function closePricingModal() {
             bar.innerHTML = (remaining !== null
                 ? `You're ${remaining} credit${remaining===1?'':'s'} away from running out. <a onclick="showPricingModal('banner_reopen')">Upgrade to keep going &rarr;</a>`
                 : `Keep enrichments flowing. <a onclick="showPricingModal('banner_reopen')">Upgrade to keep going &rarr;</a>`
-            ) + ' <a onclick="document.getElementById(\'closedWithoutPurchaseBanner\').style.display=\'none\'" style="margin-left:0.75rem;color:inherit;">Dismiss</a>';
+            ) + ` &nbsp;&middot;&nbsp; <a href="${dfyCallHref('pricing_dismissed')}" target="_blank" rel="noopener"`
+              + ` onclick="try{posthog.capture('dfy_cta_clicked',{source:'pricing_dismissed'})}catch(e){}">Or have us run the outbound for you &rarr;</a>`
+              + ' <a onclick="document.getElementById(\'closedWithoutPurchaseBanner\').style.display=\'none\'" style="margin-left:0.75rem;color:inherit;">Dismiss</a>';
             bar.style.display = 'block';
         }
         sessionStorage.setItem('lf_closed_wo_purchase_shown', '1');
@@ -4709,6 +4713,13 @@ const AI_SDR_CALENDLY = 'https://calendly.com/hamoureliasse/offre-linkfinder-ai-
 // The founder call is a different conversation from the done-for-you setup
 // call, so it books a different event: this one is to listen, not to sell.
 const FOUNDER_CALL_CALENDLY = 'https://calendly.com/hamoureliasse/linkfinder-ai';
+
+// Every done-for-you CTA books the one consolidated Calendly and names its
+// surface in utm_content, so /call-booked can attribute a booking back to the
+// moment that produced it and the surfaces that produce none can be removed.
+function dfyCallHref(source){
+    return FOUNDER_CALL_CALENDLY + '?utm_source=app&utm_content=' + encodeURIComponent(source);
+}
 
 // Priced per booked call with a floor, so the number on screen is the number
 // they pay. Showing it is the point: qualifying the call is why this panel

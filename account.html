@@ -1503,6 +1503,38 @@ function submitOtherFeedback()   { submitFeedback('other_feedback',    'otherRea
 function declineAllSolutions() {
   try { posthog.capture('all_solutions_declined', { reason: selectedCancellationReason }); } catch(e) {}
   goToFlowStep('step3');
+  // Someone who declined every retention offer wanted the outcome, paid for the
+  // tool and did not get there - which is the done-for-you buyer described. Shown
+  // AFTER the step change and as a dismissible card appended to the body, so it
+  // cannot sit in front of the cancel button or alter the path to it. Cancelling
+  // must never get harder because of this.
+  showDfyExitOffer();
+}
+
+function showDfyExitOffer(){
+  if (document.getElementById('dfyExitOffer')) return;
+  var href = 'https://calendly.com/hamoureliasse/linkfinder-ai'
+           + '?utm_source=app&utm_content=cancellation_declined';
+  var el = document.createElement('div');
+  el.id = 'dfyExitOffer';
+  el.setAttribute('style','position:fixed;left:16px;bottom:16px;z-index:2147483000;max-width:340px;'
+    + 'background:#0f172a;color:#e2e8f0;border:1px solid rgba(148,163,184,.35);border-radius:12px;'
+    + 'padding:16px 18px;box-shadow:0 10px 40px rgba(0,0,0,.35);font-size:.92rem;line-height:1.55');
+  el.innerHTML =
+      '<div style="font-weight:700;margin-bottom:6px">Before you go &mdash; want us to run it instead?</div>'
+    + '<div style="opacity:.85;margin-bottom:12px">We build the list, send the campaign and book the meetings. '
+    + '<strong>$150 per meeting held</strong>, no retainer, nothing if no meeting happens.</div>'
+    + '<a href="' + href + '" target="_blank" rel="noopener" '
+    + 'style="display:inline-block;background:#2563eb;color:#fff;text-decoration:none;padding:9px 16px;border-radius:8px;font-weight:600">'
+    + 'Book a 15-min call</a>'
+    + '<a href="#" style="margin-left:12px;color:#94a3b8;text-decoration:underline" '
+    + 'onclick="var n=document.getElementById(\'dfyExitOffer\');if(n)n.remove();return false;">No thanks</a>';
+  document.body.appendChild(el);
+  var link = el.querySelector('a[target="_blank"]');
+  if (link) link.addEventListener('click', function(){
+    try { posthog.capture('dfy_cta_clicked', { source: 'cancellation_declined' }); } catch(e) {}
+  });
+  try { posthog.capture('dfy_exit_offer_shown', { source: 'cancellation_declined' }); } catch(e) {}
 }
 
 /* ── Exit survey ──────────────────────────────────────────────────────────
