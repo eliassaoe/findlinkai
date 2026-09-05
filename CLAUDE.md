@@ -60,6 +60,7 @@ into a file here in the same session, or it is gone.
 | Selling Done For You to the 67 idle pack buyers | `docs/dfy-activation-campaign.md` — read the correction in it before quoting any "paying accounts" number |
 | Who the SEO traffic actually is, before aiming an offer at it | `docs/traffic-capture-verdict.md` |
 | AppSumo / any lifetime deal — read before signing anything | `docs/appsumo-decision.md` |
+| The AppSumo launch itself: tiers, guards, upsell, order | `docs/appsumo-launch-spec.md` |
 | Listicle outreach on a cron (the `ai_keywords` table) | `docs/ai-keyword-outreach.md` — read it before adding keywords, it spends credits |
 | Explee AutoGTM: recovering replies that never booked, and the lead-source test | `workers/explee-autogtm/` — read `SENDING.md` and `BASELINE.md` for the real numbers, and its README before the first `--apply`; no call in it has ever reached the real API |
 | CRM cleanup + HubSpot | `CRM-SETUP.md` |
@@ -73,9 +74,19 @@ into a file here in the same session, or it is gone.
 **Credit costs** (`app.html`, `creditCosts` — authoritative):
 
     linkedin_profile_to_phone       50     linkedin_profile_to_email       10
-    linkedin_profile_to_linkedin_info 10   email_to_linkedin_url            5
-    lead_full_name_to_email          7     lead_full_name_to_linkedin_url   1
-    company_name_to_*                1
+    linkedin_profile_to_linkedin_info 10   lead_full_name_to_email          7
+    linkedin_company_to_linkedin_info 6    company_name_to_email            5
+    email_to_linkedin_url            5     everything else                  1
+
+`company_name_to_*` is **not** uniformly 1 — `company_name_to_email` is 5.
+
+**Two operations bill per record, not per call**, and they are the uncapped ones:
+
+    employees   app.html charges 0.5/employee; mcp-server documents 1/employee
+    reactions   1 per reaction, and NOTHING caps how many come back
+
+The employees disagreement is unresolved — the server is what actually bills.
+`updateAffordabilityWarning()` skips both, so neither has a pre-flight check.
 
 **Plans**: Starter $49 / 5,000 mo · Professional $89 / 20,000 · Enterprise $149
 / 50,000. `app.html` stores the ANNUAL figure and divides by 12 — that is not a
