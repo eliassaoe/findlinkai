@@ -127,3 +127,53 @@ select date_trunc('month', timestamp)::date as m,
        count(distinct user_id) as active_users, count(*) as rows
 from enrichment_history where timestamp >= '2026-01-01' group by 1 order by 1;
 ```
+
+---
+
+# Update, 2026-09-05 — the checkout leak is largely fixed
+
+`docs/checkout-leak.md` closes with the gap "still open and unexplained". It is
+no longer either. Work shipped after that doc was written — `checkout_rescue_banner_shown`,
+`checkout_rescue_clicked`, `checkout_rescue_direct_link_clicked`,
+`checkout_auto_redirect_fallback`, `checkout_blocked_missing_email` all now exist
+as live events and none of them appear in the August write-ups.
+
+Measured in PostHog, real users only (the three test accounts and
+`eliasseiapro@` excluded — the August doc warns they were the majority of
+checkout events by volume, which is why its raw counts look so much bigger):
+
+| step | Aug 1–22 (22d) | last 30d | per-day change |
+| --- | --- | --- | --- |
+| `pricing_modal_opened` | 32 | 154 | **3.5x** |
+| `upgrade_clicked` | 24 | 126 | 3.9x |
+| `plan_selected` | 6 | 35 | 4.3x |
+| `checkout_redirect_started` | 1 | 16 | 12x |
+| `checkout_payment_success` | 1 | 5 | 3.7x |
+
+**`plan_selected` -> `checkout_redirect_started` went from 17% to 46%.** The
+rescue banner and auto-redirect fallback worked. The dead-button failure mode
+that `docs/checkout-leak.md` was chasing is substantially closed.
+
+## The leak moved downstream
+
+The largest single drop is now **`checkout_redirect_started` 16 -> `checkout_payment_success` 5 (31%)**.
+Eleven people per month reach a real Dodo payment page and do not pay.
+
+That is the last row of the diagnostic table in `docs/checkout-leak.md`:
+
+> all three fire, and they navigate away, but never return | they reached Dodo
+> and did not pay | **a Dodo question, not a bug here**
+
+The premise of `workers/dodo-checkout/DODO-SUPPORT-TICKET.md` — which that doc
+said was not yet established — **is now established.** Sessions create, redirects
+fire, people land, and two thirds do not convert. The ticket is now supportable.
+
+## What this does not change
+
+Subscribers are still **31**, same plan mix, MRR ~$1,939. Five payments in the
+last 30 days against ~2/mo churn means most of those were credit packs or merely
+replaced churn. **Top-of-funnel intent tripled and subscriber count did not move.**
+
+So the ceiling arithmetic above stands, but the binding constraint has moved:
+it is no longer "people cannot check out". It is retention, plus whatever is
+losing 11 of 16 people at the payment page.
