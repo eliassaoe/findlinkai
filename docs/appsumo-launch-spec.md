@@ -302,25 +302,145 @@ one** — without it you take all the COGS and collect none of the upgrade reven
 
 ---
 
+## 5.5 · What the SendPilot launch teaches — and the one thing that does not transfer
+
+**Source:** SendPilot founder's own walkthrough, 13 days post-launch.
+$160,000 gross · 1,219 customers · **$131 AOV** · 57 reviews, all 5-star ·
+**3.5% refund rate** · 4.91% landing-page conversion · Launch Pad tier, not
+Select. Pre-launch they were at ~$5k MRR with **~30 active users** — a comparable
+stage to us (~$1,939 MRR, 8 active subscribers), which is why it is worth reading
+closely rather than dismissing as survivorship.
+
+### The mechanism, in his words
+
+> *"80% of the revenue is coming through AppSumo's channels."*
+> *"You can't compete with AppSumo's distribution. You need to get featured. And
+> the way to get featured is reviews."*
+> *"Instead of focusing on marketing, all we focused on was fast customer
+> response time."* — **average 3 minutes 19 seconds, nights and weekends.**
+
+Fast support → 5-star reviews → algorithmic featuring → AppSumo's email and
+affiliate machine → 80% of sales. He ranked #1 in **5 days** and got his first
+dedicated email on the Friday after a Monday launch.
+
+### This corrects §5 of this spec
+
+An earlier draft filed support under "staff the first 30 days as support" — a
+cost to absorb. **That was wrong. Support response time is the acquisition
+channel.** It is not a cost centre attached to the launch; it is the mechanism
+that produces the launch's revenue. Reordered accordingly in §6.
+
+### Three things that follow
+
+1. **Week 1 decides the whole outcome.** Featuring is won in ~5 days. There is no
+   "fix it in week two" — every guard in §4 must be live before the first code
+   ships, and the launch date is the date the guards are done, not a date chosen
+   first.
+2. **Deploy the support chat worker before launch.** `support-worker/` is an
+   LLM-backed support agent that already knows the pricing, product and policy
+   facts and can escalate to email + Calendly. Its README says *"This repo has no
+   Cloudflare account access wired up, so I couldn't deploy this for you."*
+   **Verify whether it is live.** A solo founder cannot hold a 3-minute median
+   across nights and weekends unaided; this worker is the only thing in the repo
+   that makes that number reachable. It is now a launch blocker, not a nice-to-have.
+3. **The refund target tightens.** He ran 3.5%. Use **< 5%**, not < 10%.
+
+### Do NOT point the review-credits machinery at AppSumo
+
+`user_task_completions` / `pending_reviews` already pay credits for G2 and
+Trustpilot reviews and auto-verify permalinks
+(`docs/g2-review-campaign-plan.md`). Reusing it for AppSumo is the obvious move
+and is probably **against AppSumo's terms** — incentivised reviews are a common
+prohibition and getting caught can pull the deal. **Read the terms before wiring
+anything.** The transferable part of his playbook is not an incentive; it is
+*resolve the problem fast, then ask*. Ask by hand, in the support thread, right
+after you have solved something.
+
+### The one thing that does not transfer: COGS
+
+SendPilot is **LinkedIn automation** — a seat-based tool whose marginal cost per
+extra user is near zero. His $160,000 is nearly all margin, so his "just do it,
+worst case is support load" is genuinely safe advice **for him**.
+
+LinkFinder resells third-party data. Every credit is a supplier invoice. This
+does not change the decision to launch — it is exactly why the monthly
+non-rollover cap in §3 is not negotiable, and why "unlimited" or a large
+stockpile, which SendPilot could have offered harmlessly, would be the one
+mistake capable of turning a $100k launch into a loss.
+
+His other warning lands squarely on us, though:
+
+> *"Your product will have bugs and it won't be perfect… but you just need to be
+> super fast in support."*
+
+True for UX bugs. **Not true for a data product that returns fabricated rows.**
+`find_company_employees` currently returns the Apify actor's marketing copy —
+`⚠️ No Leads found` — as if it were a person (§4 G10). No support response time
+saves a review from someone who paid for contact data and got that. Fix it.
+
+### Raise AOV with a third tier — on zero-COGS dimensions only
+
+His **$131 AOV** against our two-tier $83 says we are leaving money on the table.
+The fix is *not* more credits — that reopens the cannibalisation problem in §3.
+It is a third tier that escalates on things that cost us nothing per unit:
+
+| | Tier 1 | Tier 2 | **Tier 3** |
+| --- | --- | --- | --- |
+| Price | $59 | $119 | **$249** |
+| Credits/month, non-rollover | 2,500 | 5,000 | **8,000** |
+| API + MCP | — | ✓ | ✓ |
+| API rate limit | — | standard | **raised** |
+| Priority support | — | — | **✓** |
+| Team seats | — | — | **✓ (new build)** |
+| Phone · CRM sync · scheduled re-checks | excluded | excluded | **excluded** |
+| Upgrades to | Starter $49 | Professional $89 | Professional $89 |
+
+Economics, 45/35/20 split, 1,000 codes:
+
+| | Two tiers | **Three tiers** |
+| --- | --- | --- |
+| AOV | $83 | **$118** (90% of SendPilot's) |
+| Net to us | $24,900 | **$35,400** |
+| Kept at $0.002/credit | 96% | **97%** |
+| Kept at $0.008/credit | 82% | **87%** |
+
+**+$10,500 net and the data cost barely moves**, because T3's increment is mostly
+non-COGS and because 80% of codes never consume much regardless. T3 at 8,000/mo
+sits above Starter, so its upgrade path is Professional — which is correct, since
+T3 buyers are the ones who can pay $89. Seats are a genuine new build; if that is
+too much before launch, drop seats and keep the raised rate limit and priority
+support, and price T3 at $199.
+
+Model: `scripts/ltd-aov.py`.
+
+---
+
 ## 6. Launch order
 
-| # | Item | Guard |
-| --- | --- | --- |
-| 1 | COGS per credit from the supplier invoice | gate 1 |
-| 2 | Close the checkout leak | 5f |
-| 3 | Deploy auto top-up | 5a |
-| 4 | `source` column + monthly reset cron | G7, G1 |
-| 5 | Phone blocked server-side; reactions capped; employees price reconciled | G2, G3, G4 |
-| 6 | Fix the token leak | G8 |
-| 7 | Audit the redeem worker for single-use / stacking / revoke-on-refund | G9 |
-| 8 | Fix the employees placeholder bug | G10 |
-| 9 | API rate limits; 402 verified at zero balance | G5, G6 |
-| 10 | PostHog engagement events ON; lifecycle branch built | 5d |
-| 11 | Rewrite the post-first-result offer | 5e |
-| 12 | **Ship codes** | |
+Support capability is now item 1, not a footnote — §5.5 is why.
 
-Items 2, 3, 5e and 11 are worth doing whether or not AppSumo happens — they are
-the top of `docs/revenue-levers-2026-08.md` already.
+| # | Item | Ref |
+| --- | --- | --- |
+| 1 | **Support: chat worker deployed + a 5-min response commitment you can actually hold** | 5.5 |
+| 2 | COGS per credit from the supplier invoice | decision doc, gate 1 |
+| 3 | Close the checkout leak | 5f |
+| 4 | Deploy auto top-up | 5a |
+| 5 | `source` column + monthly reset cron | G1, G7 |
+| 6 | Phone blocked server-side; reactions capped; employees price reconciled | G2, G3, G4 |
+| 7 | Fix the employees placeholder bug — a data product cannot ship this | G10 |
+| 8 | Fix the auto-topup token leak | G8 |
+| 9 | Audit the redeem worker: single-use, stacking, revoke-on-refund | G9 |
+| 10 | API rate limits; 402 verified at zero balance | G5, G6 |
+| 11 | PostHog engagement events ON; lifecycle branch built | 5d |
+| 12 | Rewrite the post-first-result offer | 5e |
+| 13 | **Ship codes** — and then do nothing but support for two weeks | |
+
+Items 3, 4, 12 are worth doing whether or not AppSumo happens — they are already
+the top of `docs/revenue-levers-2026-08.md`.
+
+**The launch date is the date item 12 is done.** Featuring is won in the first
+five days and cannot be re-won later; shipping into a half-ready product spends
+the one week that decides the outcome.
 
 ---
 
@@ -333,11 +453,12 @@ Tag everything `source='appsumo'` and keep it out of the main funnel reporting.
 | Redemption rate | codes sold → accounts created | — |
 | **Activation** (ran an enrichment) | Baseline is 69% | ≥ 69% |
 | **CSV upload rate** | The payment predictor: bulk users pay at 8.3% vs ~1% | ≥ 25% |
-| **Refund rate** | The 60-day window | < 10% |
+| **Refund rate** | The 60-day window. SendPilot ran 3.5% | **< 5%** |
 | **Auto top-up enrolment** | The cost-recovery mechanism | ≥ 5% |
 | **LTD → subscription by day 90** | **The number the deal lives or dies on** | ≥ 3% |
 | Credits consumed per active code/month | Validates §2 against reality | < 1,500 |
-| Support tickets per 100 codes | Founder time is the hidden cost | — |
+| **Median support response time** | The acquisition channel, not a cost (§5.5) | **< 5 min** |
+| **AppSumo reviews, and the star average** | What wins featuring, which is 80% of sales | 5-star |
 
 **At 1,000 codes on the two-tier split (600 / 400), the upsell is worth:**
 
