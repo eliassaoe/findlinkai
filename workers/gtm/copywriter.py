@@ -34,7 +34,10 @@ from typing import Any, Sequence
 
 from models import Campaign, Lead, Pattern, Project, Prompt, Stage, Thread
 
-MODEL = "claude-opus-5"
+import llm
+
+# Chosen in llm.py so the provider (Anthropic or OpenRouter) is one setting.
+MODEL = llm.model_for("writer")
 
 # Effort: cold-email copy is short but judgement-heavy — the hard part is what
 # to leave out. "high" is the documented sweet spot; raise per campaign if a

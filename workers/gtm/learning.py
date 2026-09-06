@@ -25,12 +25,13 @@ from __future__ import annotations
 import json
 from typing import Any, Sequence
 
+import llm
 from models import Pattern, Stage
 
 # Classification is a labelling task at high volume: Haiku is the right tier.
-CLASSIFY_MODEL = "claude-haiku-4-5"
+CLASSIFY_MODEL = llm.model_for("classifier")
 # Mining is the judgement-heavy half and runs weekly at most.
-MINE_MODEL = "claude-opus-5"
+MINE_MODEL = llm.model_for("writer")
 
 # Below this many booked examples, there is nothing to learn and plenty to
 # overfit to. Ten is a guess, not a measurement — revisit once real bookings exist.

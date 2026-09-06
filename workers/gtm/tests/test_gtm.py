@@ -122,9 +122,12 @@ class TestPromptAssembly(unittest.TestCase):
         self.assertIn("Michael", task)
         self.assertIn("Foxglove-Partner", task)
 
-    def test_uses_opus_5_adaptive_thinking_and_structured_output(self):
+    def test_uses_the_configured_model_adaptive_thinking_and_structured_output(self):
+        import llm
         req = self.request()
-        self.assertEqual(req["model"], "claude-opus-5")
+        # Not a literal: the model is llm.py's call, so this keeps passing when
+        # the provider is switched to OpenRouter and the slug gains a prefix.
+        self.assertEqual(req["model"], llm.model_for("writer"))
         self.assertEqual(req["thinking"], {"type": "adaptive"})
         self.assertEqual(req["output_config"]["format"]["type"], "json_schema")
         # budget_tokens is rejected on Opus 5.

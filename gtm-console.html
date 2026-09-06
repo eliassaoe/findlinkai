@@ -299,7 +299,8 @@ const KEYS = [
   { id: 'EXPLEE_API_KEY', label: 'Explee', hint: 'explee.com → API Keys. Lead search and enrichment.' },
   { id: 'LINKFINDER_API_KEY', label: 'LinkFinder AI', hint: 'linkfinderai.com/api-access. Email resolution.' },
   { id: 'INSTANTLY_API_KEY', label: 'Instantly', hint: 'Instantly → Settings → Integrations. Sending.' },
-  { id: 'ANTHROPIC_API_KEY', label: 'Anthropic', hint: 'console.anthropic.com. The qualifier and the copywriter.' },
+  { id: 'OPENROUTER_API_KEY', label: 'OpenRouter', hint: 'openrouter.ai/keys. Used if set — the qualifier and copywriter run through its Anthropic Skin.' },
+  { id: 'ANTHROPIC_API_KEY', label: 'Anthropic (alternative)', hint: 'console.anthropic.com. Only used when OpenRouter is not set.' },
 ];
 const getKeys = () => store.get('keys', {});
 const mask = v => (!v ? '' : v.length < 12 ? '••••' : v.slice(0, 4) + '••••••••' + v.slice(-4));
@@ -312,6 +313,10 @@ $('#keys').onclick = () => {
 
   const body = el('div');
   const inputs = {};
+  const modelInput = el('input', {
+    type: 'text', id: 'k-LLM_MODEL', value: saved.LLM_MODEL || '',
+    placeholder: 'claude-opus-5  ·  or an OpenRouter slug like anthropic/claude-opus-4.5',
+  });
   for (const k of KEYS) {
     inputs[k.id] = el('input', {
       type: 'password', id: 'k-' + k.id, value: saved[k.id] || '',
@@ -333,6 +338,15 @@ $('#keys').onclick = () => {
       ]) sel.append(el('option', { value: v, selected: cur === v ? '' : null }, t));
       return sel;
     })(),
+    el('label', {}, 'Model', el('span', {}, ' — leave blank for the default')),
+    modelInput,
+    el('div', { class: 'note' },
+      el('strong', {}, 'OpenRouter wins if both keys are set.'),
+      ' It reaches Claude through the Anthropic Skin at openrouter.ai/api, which is ',
+      'wire-compatible, so no code changes. Two things are unverified there: ',
+      'structured JSON output and the web-search tool the qualifier uses for ',
+      el('code', {}, '--research'), '. Run ', el('code', {}, 'run.py capacity'),
+      ' — it makes two small live calls and tells you which work.'),
     el('div', { class: 'note' },
       'Explee charges only when it finds an address; LinkFinder charges either way. ',
       'On list price Explee is cheaper — but LinkFinder is our own product, so for our ',
@@ -344,11 +358,17 @@ $('#keys').onclick = () => {
     (() => {
       const pre = el('textarea', { class: 'code', rows: 5, readonly: '' });
       const render = () => {
-        pre.value = KEYS
-          .map(k => `gh secret set ${k.id} --body "${inputs[k.id].value || '<paste>'}"`)
-          .join('\n');
+        const set = KEYS
+          .filter(k => inputs[k.id].value)
+          .map(k => `gh secret set ${k.id} --body "${inputs[k.id].value}"`);
+        const model = modelInput.value.trim();
+        if (model) set.push(`gh variable set LLM_MODEL --body "${model}"`);
+        pre.value = set.length ? set.join('\n')
+          : KEYS.map(k => `gh secret set ${k.id} --body "<paste>"`).join('\n');
       };
       for (const k of KEYS) inputs[k.id].addEventListener('input', render);
+      // The model field is not a key, but it belongs in the generated commands.
+      modelInput.addEventListener('input', render);
       render();
       return pre;
     })(),
@@ -358,6 +378,8 @@ $('#keys').onclick = () => {
 
   $('#dlgOk').onclick = () => {
     const out = { resolver: $('#k-resolver').value };
+    const modelField = modelInput.value.trim();
+    if (modelField) out.LLM_MODEL = modelField;
     for (const k of KEYS) {
       const v = inputs[k.id].value.trim();
       if (v) out[k.id] = v;

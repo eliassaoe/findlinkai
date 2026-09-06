@@ -64,11 +64,9 @@ def load_config(path: str) -> tuple[Project, Campaign, dict[str, Prompt]]:
 
 
 def anthropic_client():
-    try:
-        import anthropic
-    except ImportError:
-        sys.exit("pip install anthropic")
-    return anthropic.Anthropic()
+    """Anthropic direct, or OpenRouter's Anthropic Skin. See llm.py."""
+    import llm
+    return llm.client()
 
 
 # ---------------------------------------------------------------- commands
@@ -99,6 +97,26 @@ def cmd_capacity(args) -> int:
         problems.append(f"Explee: {err}")
     except Exception as err:
         problems.append(f"Explee: {type(err).__name__}: {err}")
+
+    # The model provider, and — the part no documentation settles — whether
+    # structured outputs and the web_search server tool actually work here.
+    try:
+        import llm
+        cap = llm.probe()
+        print(f"LLM provider       : {cap['provider']} ({cap['model']})")
+        print(f"  structured JSON  : {'yes' if cap['structured_outputs'] else 'NO'}")
+        print(f"  web search tool  : {'yes' if cap['web_search'] else 'no'}")
+        for note in cap["notes"]:
+            problems.append(note)
+        if cap["reachable"] and not cap["structured_outputs"]:
+            problems.append(
+                "Structured outputs are not working. Every agent here parses JSON "
+                "from the reply, so this must be fixed before a real run."
+            )
+    except SystemExit as err:
+        problems.append(f"LLM: {err}")
+    except Exception as err:
+        problems.append(f"LLM: {type(err).__name__}: {err}")
 
     try:
         api = instantly_mod.Instantly()

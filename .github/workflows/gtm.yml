@@ -16,8 +16,9 @@
 # BOTH RUN DRY until you set the repository variable GTM_APPLY=true.
 # Settings -> Secrets and variables -> Actions -> Variables.
 #
-# Secrets needed: ANTHROPIC_API_KEY, EXPLEE_API_KEY, LINKFINDER_API_KEY,
-#                 INSTANTLY_API_KEY
+# Secrets needed: EXPLEE_API_KEY, LINKFINDER_API_KEY, INSTANTLY_API_KEY, and
+#                 ONE of OPENROUTER_API_KEY (preferred) or ANTHROPIC_API_KEY.
+# Optional variable: LLM_MODEL (e.g. anthropic/claude-opus-4.5 on OpenRouter).
 
 name: gtm
 
@@ -46,7 +47,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
+      # OpenRouter wins when set; llm.py falls back to Anthropic direct.
+      OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      LLM_MODEL: ${{ vars.LLM_MODEL }}
       EXPLEE_API_KEY: ${{ secrets.EXPLEE_API_KEY }}
       LINKFINDER_API_KEY: ${{ secrets.LINKFINDER_API_KEY }}
       INSTANTLY_API_KEY: ${{ secrets.INSTANTLY_API_KEY }}

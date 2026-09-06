@@ -165,5 +165,57 @@ class TestInstantly(unittest.TestCase):
         self.assertEqual(len(http.seen), 1)
 
 
+class TestProviderSelection(unittest.TestCase):
+    """llm.py picks the provider from the environment. No network."""
+
+    def setUp(self):
+        import llm
+        self.llm = llm
+        self.saved = {k: os.environ.get(k) for k in
+                      ("LLM_PROVIDER", "OPENROUTER_API_KEY", "ANTHROPIC_API_KEY", "LLM_MODEL")}
+
+    def tearDown(self):
+        for k, v in self.saved.items():
+            os.environ.pop(k, None)
+            if v is not None:
+                os.environ[k] = v
+        import importlib
+        importlib.reload(self.llm)
+
+    def reload(self):
+        import importlib
+        return importlib.reload(self.llm)
+
+    def test_anthropic_by_default(self):
+        os.environ.pop("OPENROUTER_API_KEY", None)
+        os.environ.pop("LLM_PROVIDER", None)
+        self.assertEqual(self.reload().provider(), "anthropic")
+
+    def test_an_openrouter_key_selects_openrouter(self):
+        os.environ.pop("LLM_PROVIDER", None)
+        os.environ["OPENROUTER_API_KEY"] = "sk-or-test"
+        self.assertEqual(self.reload().provider(), "openrouter")
+
+    def test_bare_claude_ids_get_namespaced_for_openrouter(self):
+        os.environ["LLM_PROVIDER"] = "openrouter"
+        os.environ.pop("LLM_MODEL", None)
+        m = self.reload()
+        self.assertEqual(m.model_for("writer"), "anthropic/claude-opus-5")
+        self.assertEqual(m.model_for("classifier"), "anthropic/claude-haiku-4-5")
+
+    def test_an_explicit_slug_is_left_alone(self):
+        os.environ["LLM_PROVIDER"] = "openrouter"
+        os.environ["LLM_MODEL"] = "anthropic/claude-opus-4.5"
+        self.assertEqual(self.reload().model_for("writer"), "anthropic/claude-opus-4.5")
+
+    def test_non_claude_models_are_never_prefixed(self):
+        os.environ["LLM_PROVIDER"] = "openrouter"
+        os.environ["LLM_MODEL"] = "deepseek/deepseek-chat"
+        self.assertEqual(self.reload().model_for("writer"), "deepseek/deepseek-chat")
+
+    def test_openrouter_points_at_the_anthropic_skin(self):
+        self.assertEqual(self.llm.OPENROUTER_BASE, "https://openrouter.ai/api")
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

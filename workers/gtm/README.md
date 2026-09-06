@@ -134,6 +134,15 @@ text to reuse".
 
 `ui/index.html` — one file, Supabase JS from a CDN, **no build step**.
 
+**The model provider is a setting, not a rewrite.** Anthropic direct by default;
+set `OPENROUTER_API_KEY` and everything runs through OpenRouter's **Anthropic
+Skin** at `openrouter.ai/api`, which is wire-compatible with the Messages API, so
+the SDK is unchanged. `llm.py` is the only file that decides. Two things are
+unverified through OpenRouter and both matter — **structured JSON output** (every
+agent parses JSON from the reply) and the **`web_search` server tool** the
+qualifier uses for `--research`. `run.py capacity` makes two small live calls and
+tells you which actually work rather than leaving you to find out mid-batch.
+
 **API keys go in the console's Keys panel** — Explee, LinkFinder, Instantly and
 Anthropic, saved in your browser only, never in Supabase or the repo. The panel
 also generates the `gh secret set` commands, because the agent runs on GitHub

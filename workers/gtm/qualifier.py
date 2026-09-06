@@ -60,7 +60,9 @@ from typing import Any, Sequence
 
 from models import Campaign, Lead, Project
 
-MODEL = "claude-opus-5"
+import llm
+
+MODEL = llm.model_for("qualifier")
 
 # This verdict decides whether a send — one of only 135 a day — gets spent, and
 # supplies the sentence the email opens on. It is the wrong place to save money;
