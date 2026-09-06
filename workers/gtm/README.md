@@ -77,6 +77,39 @@ need and let the resolver decide how many become leads.
 > up to 50 for `linkedin_profile_to_phone`" at the top of the same page. 10 and
 > 7 are the numbers the app bills.
 
+### Checking Explee by hand
+
+`check-explee.sh` runs the two calls the flow makes — balance, then
+`search/people` with the exact body the workflow sends — and prints the raw
+responses. Pass a task id to also poke a `find-and-enrich` job that never
+finished. **The agent sandbox cannot reach `api.explee.com`, `api.instantly.ai`
+or `api.linkfinderai.com`: the egress policy answers 403 to CONNECT.** Nothing
+in this directory has ever made a live call to any of them from a session, so
+this script is how the shapes get confirmed.
+
+### What has been confirmed live, through the MCP servers
+
+The LinkFinder MCP server runs outside the sandbox, so its half is checked:
+
+| Call | Result |
+| --- | --- |
+| `find_linkedin_url_from_name` "Satya Nadella"/"Microsoft" | `{"status":"success","result":"https://www.linkedin.com/in/satyanadella"}` |
+| `find_email_from_linkedin_profile` on that URL | `{"status":"success","result":""}` — looked, found nothing, still charged |
+| `find_leads_ai` | **403, broken in production** — see below |
+
+**`result` is a bare string, not an object.** Both the n8n Code node and
+`gtm.py` accept either (`typeof res === 'string' ? res : res && res.email`), so
+the parsing is right, and `""` meaning "found nothing" is the semantics both
+already assume.
+
+**`find_leads_ai` is returning 403 to callers right now.** The body is
+`full-permission-actor-not-approved` from Apify — the actor behind it needs its
+permissions approved at `console.apify.com/actors/IoSHqwTR9YGhzccez`. Two
+things worth fixing beyond the approval: every customer calling that endpoint
+gets this today, and the error is passed through raw, so the response leaks an
+internal stack trace with `node_modules` paths, the fact that the backend runs
+on n8n, and the Apify actor id. That should be a clean error message.
+
 ## Quick start
 
 ```bash
