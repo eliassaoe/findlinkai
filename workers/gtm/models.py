@@ -81,6 +81,11 @@ class Lead:
     audience_size: int | None = None
     content_types: tuple[str, ...] = ()
     fit_reason: str = ""
+    # From the qualifier. The specific thing the first email opens on, and where
+    # it was read. An observation without a source is dropped before it gets here
+    # — see qualifier.qualify.
+    observation: str = ""
+    observation_source: str = ""
     # Whatever the source returned. The copywriter is told to quote from this
     # rather than infer, so a thin lead produces a thin — not invented — email.
     raw: dict = field(default_factory=dict)

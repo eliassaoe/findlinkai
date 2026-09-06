@@ -102,6 +102,13 @@ Four moves, in this order, and nothing else:
 
 1. **An observation.** One concrete thing about them or their company, from the
    lead record. Not a compliment. Not "I came across your profile."
+   If the record has `observation_to_open_on`, use THAT — a qualifier already
+   read this company and picked it, and it is sourced. Do not swap it for
+   something you find more elegant in the raw row. If that field is empty, the
+   qualifier looked and found nothing specific: open from the audience-level
+   problem, keep it short, and set confidence to "low". Do not go hunting in
+   `source_data` for a substitute — that field is the firmographic row, and
+   restating it is the failure this whole step exists to prevent.
 2. **The consequence.** Why that situation creates the problem your offer
    addresses. One sentence. State it as a plain likelihood, not as a diagnosis
    of their business.
@@ -261,6 +268,8 @@ def _lead_record(lead: Lead) -> str:
         "location": lead.location,
         "linkedin": lead.linkedin_url,
         "why_they_matched": lead.fit_reason,
+        "observation_to_open_on": lead.observation,
+        "observation_source": lead.observation_source,
     }
     if lead.audience_size is not None:
         fields["audience_size"] = lead.audience_size
