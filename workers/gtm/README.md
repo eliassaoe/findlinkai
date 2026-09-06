@@ -48,6 +48,31 @@ python3 gtm.py \
 python3 gtm.py ... --apply              # creates the campaign, PAUSED
 ```
 
+**The n8n flow no longer uses the people search at all.** It went, in order:
+`find-and-enrich` (hung), `/search/people` (returned nothing), and now **Explee
+finds the companies and LinkFinder lists the people at each one**:
+
+```
+Config -> Explee: search companies -> Domains -> LinkFinder: employees at each
+       -> One item per lead -> LinkFinder: fill missing emails -> Write -> Instantly
+```
+
+`company_domain_to_employees` is 1 credit per employee **with the email included
+in that** — no second lookup for anyone who comes back with an address. This is
+the one part confirmed against the live API: `demos.fr` (a French training
+company, squarely in the ICP) returned five directors, two with emails, in one
+call. Filling in `Company domains` on the Campaign screen skips the Explee node
+entirely and uses your list.
+
+The company-search body is the documented one — `filters.definition` plus
+`page_size`, not `company_filters` and `limit`, which is what the earlier
+attempts sent. The path is a Config field (`explee_companies_path`) because it
+is the one shape not yet confirmed against a response; if it 404s, fix it there
+rather than in a node.
+
+`gtm.py` has **not** been moved to this path — it still calls `/search/people`.
+The n8n flow is the live one.
+
 **Why it searches rather than uses find-and-enrich.** `/search/people` is one
 request with one response. `/find-and-enrich` is the async sibling that also
 resolves emails, and it has never been seen to finish: two separate jobs sat at
@@ -76,6 +101,25 @@ need and let the resolver decide how many become leads.
 > 1 API request, regardless of endpoint" in Credits & Limits, "from 1 credit …
 > up to 50 for `linkedin_profile_to_phone`" at the top of the same page. 10 and
 > 7 are the numbers the app bills.
+
+### Diagnosing "no data" — `probe-explee.py`
+
+Run it from a machine that can reach the API. It walks a ladder and prints a
+verdict, because "no leads" has four different causes that need different fixes:
+
+| | | |
+| --- | --- | --- |
+| A | balance | free; everything 402s at or below zero |
+| B | `nl-to-filters` | free; Explee converts English into **its own** filter object |
+| C | search with B's filters | verbatim, so the shape is Explee's, not a guess |
+| C2 | `search/companies` | the documented `filters` + `page_size` body |
+| D / D2 | `search/people` | our body, then the same with `page_size` |
+| E | control | deliberately broad |
+
+C works and D does not → the body shape is wrong and B printed the right one.
+E works and C/D do not → the shape is fine, the ICP is too narrow. Nothing
+works → account level, and the status code says which. The verdict logic is
+exercised against a local mock in all four of those states.
 
 ### Checking Explee by hand
 
@@ -260,8 +304,12 @@ with your offer and facts in it, and the push to Instantly. Import with
 `⋯ → Import from File` and it runs there: no Python, no Actions, every step a
 node you can see and change.
 
-Eight nodes, three types (`manualTrigger`, `code`, `httpRequest`), one straight
-line, **no loop**. Anything that could have been a `splitOut` or a `Set` is a
+Ten nodes (nine with your own domain list), three types (`manualTrigger`,
+`code`, `httpRequest`), one straight line, **no loop**. The connections are
+derived from the node list rather than written out, so a node that is added or
+dropped cannot leave a dangling name or an unreachable node behind — the first
+version of the company-search change did exactly that, and the structural check
+caught it. Anything that could have been a `splitOut` or a `Set` is a
 Code node instead, because a workflow that fails to import is worse than one
 with an extra node.
 

@@ -168,7 +168,7 @@ const BLANK = {
   project: { name: '', domain: '', facts: '', booking_link: '', cc_email: '',
              sending_emails: [], daily_cap: 135 },
   campaign: { name: '', kind: 'b2b', offer: '', customer_problem: '', example_clients: [],
-              keywords: [], target_role: '', target_geography: '',
+              keywords: [], target_role: '', target_geography: '', company_domains: '',
               positive_criteria: [], negative_criteria: [], instantly_campaign_id: null },
   prompts: { first_email: [], follow_up: [], reply: [] },
 };
@@ -254,6 +254,10 @@ function viewCampaign() {
     text(c, 'target_role', 'Target role', 'comma separated'),
     text(c, 'target_geography', 'Geography'),
     chips(c, 'keywords', 'Company keywords', 'what kind of company — bounds the search'),
+    text(c, 'company_domains', 'Company domains',
+         'one per line — fill this in and the flow lists employees at each with LinkFinder ' +
+         'instead of searching Explee. Leave empty to search Explee.',
+         { area: true, mono: true, rows: 5 }),
     chips(c, 'positive_criteria', 'Should be'),
     chips(c, 'negative_criteria', 'Should NOT be', 'any match is an automatic skip'),
 
@@ -569,7 +573,18 @@ function n8nWorkflow({ withKeys = true } = {}) {
     instantly_campaign_id: c.instantly_campaign_id || 'PUT_INSTANTLY_CAMPAIGN_ID_HERE',
     // Search is free for the first 100 results, so look at more people than
     // you need and let LinkFinder decide how many turn into addresses.
-    limit: 25,
+    // Documented: filters.definition is the only required field, page_size
+    // pages the results (default 100, max 1000), first 100 results free.
+    page_size: 25,
+    domains: (c.company_domains || '').split(/[\s,;]+/)
+      .map(d => d.trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/.*$/, ''))
+      .filter(Boolean),
+    seniority: 'director',
+    per_company: 5,
+    // Explee finds the companies, LinkFinder lists the people at each. This
+    // path is a Config field because the company endpoint is the one shape
+    // that is not confirmed — if it 404s, fix it here, not in a node.
+    explee_companies_path: '/public/api/v1/search/companies',
     job_titles: (c.target_role || '').split(',').map(t => t.trim()).filter(Boolean),
     definition: [ (c.keywords || []).join(', ') || c.customer_problem || c.offer,
                   c.target_geography ? 'in ' + c.target_geography : '' ]
@@ -598,6 +613,8 @@ function n8nWorkflow({ withKeys = true } = {}) {
     'Reply with JSON only: {"subject": "...", "body": "..."}',
   ].join('\n');
 
+  const domains = cfg.domains;
+
   const node = (name, type, typeVersion, parameters, pos) =>
     ({ parameters, id: uid(), name, type: 'n8n-nodes-base.' + type, typeVersion, position: pos });
 
@@ -611,17 +628,89 @@ function n8nWorkflow({ withKeys = true } = {}) {
       'return [{ json: ' + JSON.stringify(cfg, null, 2).replace(/\n/g, '\n') + ' }];'
     ), [180, 300]),
 
-    node('Explee: search people', 'httpRequest', 4.2, {
+    ...(domains.length ? [] : [node('Explee: search companies', 'httpRequest', 4.2, {
       method: 'POST',
-      url: 'https://api.explee.com/public/api/v1/search/people',
+      url: "={{ 'https://api.explee.com' + $json.explee_companies_path }}",
       sendHeaders: true,
       headerParameters: { parameters: [
         { name: 'X-API-Key', value: '={{ $json.explee_key }}' }] },
       sendBody: true,
       specifyBody: 'json',
-      jsonBody: '={{ JSON.stringify({ people_filters: { job_titles: $json.job_titles, criteria: $json.criteria }, company_filters: { definition: $json.definition }, limit: $json.limit }) }}',
+      jsonBody: '={{ JSON.stringify({ filters: { definition: $json.definition, criteria: $json.criteria }, page_size: $json.page_size }) }}',
       options: {},
-    }, [400, 300]),
+    }, [400, 300])]),
+
+    node('Domains', 'code', 2, jsCode(
+      '// The one job here is to end up with a list of domains, and to say\n' +
+      '// exactly what came back when it cannot. Silent empties are what made\n' +
+      '// the last three attempts impossible to debug.\n' +
+      "const cfg = $('Config').first().json;\n" +
+      'if (cfg.domains && cfg.domains.length) {\n' +
+      '  return cfg.domains.map(domain => ({ json: { domain } }));\n' +
+      '}\n' +
+      'const j = $input.first().json;\n' +
+      'const rows = j.companies || j.results || j.items || j.data || [];\n' +
+      'const clean = d => String(d || \'\').trim().toLowerCase()\n' +
+      "  .replace(/^https?:\\/\\//, '').replace(/^www\\./, '').replace(/\\/.*$/, '');\n" +
+      'const domains = [...new Set(rows\n' +
+      '  .map(r => clean(r.domain || r.website || r.company_domain || r.companyWebsite ||\n' +
+      '                  r.company_website || r.url))\n' +
+      "  .filter(d => d.includes('.')))];\n" +
+      'if (!domains.length) {\n' +
+      "  throw new Error('No company domains in the Explee response. Top-level keys: ' +\n" +
+      "    Object.keys(j).join(', ') + '. First row: ' +\n" +
+      "    JSON.stringify(rows[0] || j).slice(0, 400));\n" +
+      '}\n' +
+      "console.log(domains.length + ' companies: ' + domains.join(', '));\n" +
+      'return domains.map(domain => ({ json: { domain } }));'
+    ), [620, 300]),
+
+    node('LinkFinder: employees at each domain', 'code', 2, jsCode(
+      '// One credit per employee returned, emails included in that — no second\n' +
+      '// lookup for the ones that come back with an address. Confirmed live on\n' +
+      '// demos.fr: five directors at a French training company, two with an\n' +
+      '// email, in one call.\n' +
+      '//\n' +
+      '// company_domain_to_employees is always async, so this posts and then\n' +
+      '// polls the job inline. In a Code node rather than a Wait/If loop\n' +
+      "// because that loop is what hung the last two versions of this flow.\n" +
+      "const cfg = $('Config').first().json;\n" +
+      'const canHttp = !!(this.helpers && this.helpers.httpRequest);\n' +
+      'if (!canHttp) throw new Error(\'This n8n has no this.helpers.httpRequest.\');\n' +
+      "if (!cfg.linkfinder_key || cfg.linkfinder_key.startsWith('PUT_')) {\n" +
+      "  throw new Error('No LinkFinder key in Config.');\n" +
+      '}\n' +
+      "const auth = { Authorization: 'Bearer ' + cfg.linkfinder_key };\n" +
+      "const API = 'https://api.linkfinderai.com';\n" +
+      'const http = opts => this.helpers.httpRequest(opts);\n' +
+      'const sleep = ms => new Promise(r => setTimeout(r, ms));\n' +
+      '\n' +
+      'const out = [];\n' +
+      'for (const { json: { domain } } of $input.all()) {\n' +
+      '  let r;\n' +
+      '  try {\n' +
+      "    r = await http({ method: 'POST', url: API, headers: auth, json: true, body: {\n" +
+      "      type: 'company_domain_to_employees', input_data: domain,\n" +
+      '      seniority: cfg.seniority, employee_count: cfg.per_company } });\n' +
+      "  } catch (e) { console.log(domain + ': ' + e.message); continue; }\n" +
+      '  // Always async: expect a job, poll it. Results expire after 10 minutes.\n' +
+      '  for (let n = 0; r && r.job_id && !r.result && n < 8; n++) {\n' +
+      '    await sleep(8000);\n' +
+      "    try { r = await http({ method: 'GET', headers: auth, json: true,\n" +
+      "      url: r.poll_url || API + '/status/' + r.job_id }); }\n" +
+      "    catch (e) { console.log(domain + ' poll: ' + e.message); r = null; }\n" +
+      '  }\n' +
+      '  const rows = (r && r.result) || [];\n' +
+      "  console.log(domain + ': ' + rows.length + ' people');\n" +
+      '  for (const p of rows) out.push(p);\n' +
+      '  await sleep(1100);\n' +
+      '}\n' +
+      'if (!out.length) {\n' +
+      "  throw new Error('No employees at any of: ' +\n" +
+      "    $input.all().map(i => i.json.domain).join(', '));\n" +
+      '}\n' +
+      'return [{ json: { people: out } }];'
+    ), [840, 300]),
 
     node('One item per lead', 'code', 2, jsCode(
       '// One item holding every person. Fan them out and normalise the two\n' +
@@ -629,6 +718,7 @@ function n8nWorkflow({ withKeys = true } = {}) {
       '// returns profiles, LinkFinder turns them into addresses next.\n' +
       'const j = $input.first().json;\n' +
       'const contacts = j.people || j.results || j.items || j.contacts || [];\n' +
+      '// Explee answers in snake_case, LinkFinder in camelCase. Read both.\n' +
       'if (!contacts.length) {\n' +
       "  throw new Error('Explee returned no people. It answered with: ' +\n" +
       '    JSON.stringify(j).slice(0, 400));\n' +
@@ -636,9 +726,16 @@ function n8nWorkflow({ withKeys = true } = {}) {
       'return contacts.map(c => ({ json: {\n' +
       '  ...c,\n' +
       "  email: c.email || '',\n" +
-      "  linkedin_url: c.linkedin_url || c.linkedin || '',\n" +
+      "  linkedin_url: c.linkedin_url || c.linkedinUrl || c.linkedin || '',\n" +
+      "  full_name: c.full_name || c.name ||\n" +
+      "    [c.firstName, c.lastName].filter(Boolean).join(' '),\n" +
+      "  first_name: c.first_name || c.firstName || '',\n" +
+      "  job_title: c.job_title || c.jobTitle || c.title || '',\n" +
+      "  company_name: c.company_name || c.company || '',\n" +
+      "  company_domain: c.company_domain || c.companyWebsite || c.domain || '',\n" +
+      "  location: c.location || c.city || c.country || '',\n" +
       '} }));'
-    ), [620, 300]),
+    ), [1060, 300]),
 
     node('LinkFinder: fill missing emails', 'code', 2, jsCode(
       '// Explee search returns profiles, not addresses. This is what turns\n' +
@@ -698,7 +795,7 @@ function n8nWorkflow({ withKeys = true } = {}) {
       '}\n' +
       "console.log('LinkFinder: ' + found + ' emails, ~' + spent + ' credits');\n" +
       'return sendable();'
-    ), [840, 300]),
+    ), [1280, 300]),
 
     node('Write the email', 'httpRequest', 4.2, {
       method: 'POST',
@@ -711,7 +808,7 @@ function n8nWorkflow({ withKeys = true } = {}) {
       specifyBody: 'json',
       jsonBody: "={{ JSON.stringify({ model: $('Config').first().json.model, messages: [ { role: 'system', content: " + JSON.stringify(CRAFT) + " }, { role: 'user', content: 'THE OFFER (the only facts you may assert)\\n' + $('Config').first().json.offer + '\\n\\nTHE FACTS\\n' + $('Config').first().json.facts + '\\n\\nTHE PROBLEM THEY LIKELY HAVE\\n' + $('Config').first().json.problem + '\\n\\nEXTRA INSTRUCTIONS\\n' + $('Config').first().json.instructions + '\\n\\nLEAD RECORD\\n' + JSON.stringify($json) } ] }) }}",
       options: {},
-    }, [1060, 300]),
+    }, [1500, 300]),
 
     node('Build the lead', 'code', 2, jsCode(
       "// Parse the model's JSON and shape one Instantly lead. The per-lead copy\n" +
@@ -739,7 +836,7 @@ function n8nWorkflow({ withKeys = true } = {}) {
       '  } });\n' +
       '}\n' +
       'return out;'
-    ), [1280, 300]),
+    ), [1720, 300]),
 
     node('Instantly: add leads', 'httpRequest', 4.2, {
       method: 'POST',
@@ -752,19 +849,16 @@ function n8nWorkflow({ withKeys = true } = {}) {
       specifyBody: 'json',
       jsonBody: "={{ JSON.stringify({ campaign_id: $('Config').first().json.instantly_campaign_id, skip_if_in_campaign: true, skip_if_in_workspace: true, leads: $input.all().map(i => i.json) }) }}",
       options: {},
-    }, [1500, 300]),
+    }, [1940, 300]),
   ];
 
-  const link = (from, to, out = 0) => ({ [from]: { main: [] } });
-  const connections = {
-    Start: { main: [[{ node: 'Config', type: 'main', index: 0 }]] },
-    Config: { main: [[{ node: 'Explee: search people', type: 'main', index: 0 }]] },
-    'Explee: search people': { main: [[{ node: 'One item per lead', type: 'main', index: 0 }]] },
-    'One item per lead': { main: [[{ node: 'LinkFinder: fill missing emails', type: 'main', index: 0 }]] },
-    'LinkFinder: fill missing emails': { main: [[{ node: 'Write the email', type: 'main', index: 0 }]] },
-    'Write the email': { main: [[{ node: 'Build the lead', type: 'main', index: 0 }]] },
-    'Build the lead': { main: [[{ node: 'Instantly: add leads', type: 'main', index: 0 }]] },
-  };
+  // One straight line, whichever nodes were generated. Built from the node
+  // list rather than written out, so a node that gets added or dropped cannot
+  // leave a dangling name or an unreachable node behind.
+  const connections = {};
+  nodes.slice(0, -1).forEach((n, i) => {
+    connections[n.name] = { main: [[{ node: nodes[i + 1].name, type: 'main', index: 0 }]] };
+  });
 
   return {
     name: (c.name || 'GTM') + ' — Explee to Instantly',
