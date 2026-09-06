@@ -132,74 +132,35 @@ text to reuse".
 
 ## The console
 
-`ui/index.html` — one file, Supabase JS from a CDN, **no build step**.
+`ui/index.html` — one file, **no build step, no database, no login, no library.**
+Hosted at `linkfinderai.com/gtm-console`. `ui/build.py --write` renders it to
+`gtm-console.html` at the repo root; edit the master, rebuild, commit both.
 
-**The model provider is a setting, not a rewrite.** Anthropic direct by default;
-set `OPENROUTER_API_KEY` and everything runs through OpenRouter's **Anthropic
-Skin** at `openrouter.ai/api`, which is wire-compatible with the Messages API, so
-the SDK is unchanged. `llm.py` is the only file that decides. Two things are
-unverified through OpenRouter and both matter — **structured JSON output** (every
-agent parses JSON from the reply) and the **`web_search` server tool** the
-qualifier uses for `--research`. `run.py capacity` makes two small live calls and
-tells you which actually work rather than leaving you to find out mid-batch.
+Everything lives in `localStorage`, seeded with a worked example, so it works the
+second you open it. Clients -> projects -> campaigns; per campaign the offer, the
+ICP as chips, a per-stage prompt editor with a live count against the 3000 cap,
+and a Sending tab with the Instantly campaign id.
 
-**API keys go in the console's Keys panel** — Explee, LinkFinder, Instantly and
-Anthropic, saved in your browser only, never in Supabase or the repo. The panel
-also generates the `gh secret set` commands, because the agent runs on GitHub
-Actions and reads its own copies from repository secrets; the browser copies are
-for the console's own live checks.
+**Prompts are versioned** — saving inserts a new version rather than updating, so
+a change in reply rate is attributable to a change in the prompt, and any prior
+version can be restored.
 
-**Hosted at `linkfinderai.com/gtm-console`.** `ui/index.html` is the master;
-`ui/build.py --write` renders it to `gtm-console.html` at the repo root, which is
-how a plain-HTML page gets served. Edit the master, rebuild, commit both — never
-hand-edit the root copy.
+### The handoff: Download JSON
 
-**It is noindex, not private.** The page carries `noindex, nofollow, noarchive`
-and is kept out of the sitemap (`NOINDEX_ONLY` in `gen_sitemap.py`), and it is
-deliberately *not* in robots.txt: that file is public, so a `Disallow` line would
-advertise the path, and blocking the crawler would stop it ever reading the
-noindex. Google will not list it. **Anyone with the URL can still open it** — put
-it behind Cloudflare Access if that matters. It embeds no credentials; your
-Supabase key lives in your own browser.
+The console is in your browser; the agent runs on GitHub's machines. **Download
+JSON** writes the exact shape `run.py load_config()` already reads — the same as
+`example-campaign.json`. Commit it and the workflow runs it. Import reads one
+back in.
 
-**Open it and it works.** With no Supabase configured it runs in **local mode**,
-backed by browser storage and seeded with a worked example, so you can click
-through the whole thing before any database exists. Nothing in local mode reaches
-a server, and the agent cannot see it.
+That is the whole integration. A shared database buys one thing — browser and
+runner seeing the same rows without a file between them — and costs a login, an
+RLS policy, and a public anon key sitting in front of lead data. Not a trade
+worth making for one operator.
 
-To connect it for real, hit **Connection** and paste your project URL and **anon**
-key, then **Sign in**. The URL is `https://<project-ref>.supabase.co` — the
-dashboard URL is a different thing and will not work.
-
-**Signing in is not optional.** The `gtm_*` tables are RLS'd to an operator
-allowlist (`gtm_operators`), so the anon key alone reads nothing. That is
-deliberate: the anon key is public — it ships in every browser that loads the
-app — and this project's `auth.users` is the app's own user table with thousands
-of customers in it, so neither "anon" nor "any authenticated user" is a safe
-audience for lead data. Add an operator with the service role key:
-
-```sql
-insert into gtm_operators (user_id, email)
-select id, email from auth.users where email = 'you@example.com';
-```
-
-The runner does not sign in — it uses the **service role key** in
-`SUPABASE_KEY`, which bypasses RLS. From then on `run.py --db` reads exactly what
-the console shows.
-
-Clients -> projects -> campaigns in the sidebar. Per campaign: the offer, the
-ICP with positive and negative criteria as chips, a per-stage prompt editor with
-a live character count against the 3000 cap, and a **Sending** tab holding the
-Instantly campaign id and the mailboxes.
-
-**You do not have to create the Instantly campaign yourself.** Leave the id empty
-and the first `send --apply` creates one, paused, and writes its id back into the
-console. Paste an id instead and leads are added to a campaign you already made.
-
-**Prompts are versioned, and the editor inserts rather than updates.** Every
-message records the version that wrote it, so a change in reply rate is
-attributable to a change in the prompt. The history table can restore any prior
-version into the editor.
+`store.py` and `run.py --db` still exist and still work if that changes. The
+`gtm_*` tables are live on the project behind an operator allowlist (see
+`schema.sql`), and the runner writes leads, replies and outcomes there with the
+**service key** — which never touches a browser. The console does not read them.
 
 ## Running itself
 

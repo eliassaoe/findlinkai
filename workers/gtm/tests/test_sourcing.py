@@ -292,5 +292,73 @@ class TestPipeline(unittest.TestCase):
         self.assertIn("nothing_to_say=1", report.line())
 
 
+class TestConsoleRoundTrip(unittest.TestCase):
+    """The console downloads JSON; run.py reads it. That handoff is the product."""
+
+    EXPORTED = {
+        "project": {"name": "linkfinderai.com", "domain": "linkfinderai.com",
+                    "facts": "We find B2B emails.", "booking_link": "https://cal.com/x",
+                    "cc_email": "", "sending_emails": [], "daily_cap": 135},
+        "campaign": {"name": "organismes de formation", "kind": "b2b",
+                     "offer": "Outbound, paid per meeting", "customer_problem": "prospecting stops",
+                     "example_clients": ["Cegos"], "keywords": ["organisme de formation"],
+                     "target_role": "Dirigeant", "target_geography": "FR",
+                     "positive_criteria": ["Vente B2B active"], "negative_criteria": ["subventionne"],
+                     "instantly_campaign_id": None},
+        "prompts": [{"stage": s, "instructions": f"i-{s}", "language": "lead",
+                     "follow_up_every_days": 3, "max_follow_ups": 2}
+                    for s in ("first_email", "follow_up", "reply")],
+    }
+
+    def write(self, data):
+        import json, tempfile, os
+        fd, path = tempfile.mkstemp(suffix=".json")
+        with os.fdopen(fd, "w") as f:
+            json.dump(data, f)
+        self.addCleanup(os.unlink, path)
+        return path
+
+    def load(self, data=None):
+        import run
+        return run.load_config(self.write(data or self.EXPORTED))
+
+    def test_a_console_export_loads(self):
+        project, campaign, prompts = self.load()
+        self.assertEqual(project.daily_cap, 135)
+        self.assertEqual(campaign.keywords, ("organisme de formation",))
+        self.assertEqual(sorted(prompts), ["first_email", "follow_up", "reply"])
+
+    def test_null_instantly_id_becomes_empty_not_none(self):
+        # The console exports null when unset; a None here would break `or` chains.
+        _, campaign, _ = self.load()
+        self.assertEqual(campaign.instantly_campaign_id, "")
+
+    def test_an_instantly_id_round_trips(self):
+        data = {**self.EXPORTED, "campaign": {**self.EXPORTED["campaign"],
+                                              "instantly_campaign_id": "abc-123"}}
+        _, campaign, _ = self.load(data)
+        self.assertEqual(campaign.instantly_campaign_id, "abc-123")
+
+    def test_an_unknown_field_is_ignored_not_fatal(self):
+        # The console will grow fields faster than the dataclasses do. A config
+        # file must never be able to stop a run.
+        data = {**self.EXPORTED,
+                "campaign": {**self.EXPORTED["campaign"], "some_future_field": 42}}
+        _, campaign, _ = self.load(data)
+        self.assertEqual(campaign.name, "organismes de formation")
+
+    def test_the_export_survives_all_the_way_into_the_prompt(self):
+        import copywriter
+        from models import Lead
+        project, campaign, prompts = self.load()
+        req = copywriter.build_request(
+            project, campaign, prompts["first_email"], Lead(full_name="A B"), "first_email"
+        )
+        ctx = req["system"][1]["text"]
+        self.assertIn("Vente B2B active", ctx)
+        self.assertIn("We find B2B emails", ctx)
+        self.assertIn("i-first_email", req["system"][2]["text"])
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

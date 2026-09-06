@@ -44,6 +44,9 @@ class Campaign:
     target_geography: str = ""
     positive_criteria: tuple[str, ...] = ()
     negative_criteria: tuple[str, ...] = ()
+    # Set once a campaign exists in Instantly, so a second send adds leads to it
+    # rather than creating another. The console writes it; run.py send reads it.
+    instantly_campaign_id: str = ""
 
 
 @dataclass(frozen=True)

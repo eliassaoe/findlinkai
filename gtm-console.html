@@ -9,7 +9,6 @@
 <title>GTM Console</title>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <style>
 :root{
   --bg:#fbfbfa; --panel:#fff; --line:#e4e2dd; --ink:#1c1b19; --muted:#6f6b64;
@@ -82,13 +81,13 @@ dialog::backdrop{background:#0008}
 
 <header>
   <h1>GTM Console</h1>
-  <span class="pill" id="who">not connected</span>
+  <span class="pill" id="who">this browser</span>
   <span class="sp"></span>
   <span class="status" id="status"></span>
   <button class="btn ghost" id="theme">◐</button>
-  <button class="btn" id="signin" hidden>Sign in</button>
   <button class="btn" id="keys">Keys</button>
-  <button class="btn" id="settings">Connection</button>
+  <button class="btn" id="importJson">Import</button>
+  <button class="btn primary" id="exportJson">Download JSON</button>
 </header>
 
 <div class="layout">
@@ -106,13 +105,13 @@ dialog::backdrop{background:#0008}
     <button class="btn ghost" id="newCampaign">+ campaign</button>
   </aside>
 
-  <main id="main"><div class="empty">Connect to Supabase to begin.</div></main>
+  <main id="main"><div class="empty">Loading…</div></main>
 </div>
 
 <dialog id="dlg">
-  <h2 style="margin:0 0 4px;font-size:15px" id="dlgTitle">Supabase connection</h2>
+  <h2 style="margin:0 0 4px;font-size:15px" id="dlgTitle">API keys</h2>
   <p class="sub" style="color:var(--muted);font-size:12.5px;margin:0 0 8px" id="dlgSub">
-    Stored in this browser only. Use the anon key with RLS on — never the service key.
+    Saved in this browser only.
   </p>
   <div id="dlgBody"></div>
   <div class="row" style="margin-top:16px;justify-content:flex-end">
@@ -159,11 +158,19 @@ $('#theme').onclick = () => {
   applyTheme(next); store.set('theme', next);
 };
 
-// ------------------------------------------------- local (no-Supabase) mode
-// A tiny stand-in for the slice of supabase-js this page uses, backed by
-// localStorage. It exists so you can open this file and try the console before
-// a Supabase project exists — and so the demo data below has somewhere to live.
-// Same call shape, so nothing else in the page knows the difference.
+// ---------------------------------------------------------------- storage
+// Everything lives in localStorage. No database, no login, no library — the
+// console is a config editor, and config is small.
+//
+// The agent runs on GitHub Actions and cannot read your browser, so the handoff
+// is the Download JSON button: it writes the exact shape run.py already reads
+// (see example-campaign.json). Commit that file and the workflow runs it.
+//
+// A shared database only buys one thing here — the browser and the runner
+// seeing the same rows without a file passing between them — and it costs a
+// login, an RLS policy, and a public anon key sitting in front of lead data.
+// Not worth it for one operator. The runner still uses Supabase for what it
+// accumulates over time (leads, replies, outcomes), with the service key.
 function localBackend() {
   const read = t => store.get('local:' + t, []);
   const write = (t, rows) => store.set('local:' + t, rows);
@@ -249,108 +256,13 @@ async function seedDemo() {
   }
 }
 
-// ------------------------------------------------------------------- auth
-// The gtm_* tables are RLS'd to the `authenticated` role. The anon key is
-// public — it ships in every browser that loads the app — so an anon policy
-// would put campaign config and lead lists behind a key anyone can read.
-// Signing in is what makes those rows visible. The runner does not sign in:
-// it uses the service role key from GitHub Actions, which bypasses RLS.
-let session = null;
-
-async function refreshSession() {
-  if (!sb || sb.local) { session = null; return null; }
-  const { data } = await sb.auth.getSession();
-  session = data?.session || null;
-  const who = $('#who');
-  if (session) {
-    who.textContent = session.user.email;
-    who.title = 'signed in';
-  } else {
-    who.textContent = 'signed out';
-    who.title = 'The tables need a signed-in user. Click Sign in.';
-  }
-  $('#signin').textContent = session ? 'Sign out' : 'Sign in';
-  $('#signin').hidden = false;
-  return session;
-}
-
-$('#signin').onclick = async () => {
-  if (!sb || sb.local) return say('Connect Supabase first.', true);
-  if (session) {
-    await sb.auth.signOut();
-    await refreshSession();
-    cache = { clients: [], projects: [], campaigns: [], prompts: [] };
-    S = { client: null, project: null, campaign: null, tab: 'offer' };
-    renderSidebar(); render();
-    return say('signed out');
-  }
-  $('#dlgTitle').textContent = 'Sign in';
-  $('#dlgSub').textContent =
-    'A Supabase user in this project. Create one under Authentication → Users if you have not.';
-  $('#dlgBody').replaceChildren(
-    el('label', {}, 'Email'), el('input', { type: 'text', id: 'f1', autocomplete: 'username' }),
-    el('label', {}, 'Password'), el('input', { type: 'password', id: 'f2', autocomplete: 'current-password' }),
-  );
-  $('#dlg').showModal();
-  $('#dlgOk').onclick = async () => {
-    const { error } = await sb.auth.signInWithPassword({
-      email: $('#f1').value.trim(), password: $('#f2').value,
-    });
-    if (error) return say(error.message, true);
-    $('#dlg').close();
-    await refreshSession();
-    await loadClients();
-    say('signed in');
-  };
-};
-
-// ---------------------------------------------------------------- connect
-function connect() {
-  const cfg = store.get('sb');
-  if (!cfg?.url || !cfg?.key) return false;
-  // The CDN can fail — offline, a blocked network, a bad day for jsdelivr. Falling
-  // back to local mode keeps a working page instead of a blank one, and says why.
-  if (!window.supabase?.createClient) {
-    say('Supabase library did not load — running in local mode. Reload when back online.', true);
-    return false;
-  }
-  try {
-    sb = window.supabase.createClient(cfg.url, cfg.key);
-  } catch (e) {
-    say('Could not connect: ' + e.message, true);
-    return false;
-  }
-  $('#who').textContent = new URL(cfg.url).hostname.split('.')[0];
-  $('#who').title = cfg.url;
-  return true;
-}
-
-$('#settings').onclick = () => {
-  const cfg = store.get('sb', {});
-  $('#dlgTitle').textContent = 'Supabase connection';
-  $('#dlgSub').textContent = sb?.local
-    ? 'You are in local mode — data lives in this browser. Connect Supabase to share it with the agent (run.py --db). Anon key with RLS on, never the service key.'
-    : 'Stored in this browser only. Use the anon key with RLS on — never the service key.';
-  $('#dlgBody').replaceChildren(
-    el('label', {}, 'Project URL'),
-    el('input', { type: 'text', id: 'f1', value: cfg.url || '', placeholder: 'https://xxxx.supabase.co' }),
-    el('label', {}, 'Anon key'),
-    el('input', { type: 'text', id: 'f2', value: cfg.key || '', placeholder: 'eyJhbGci...' }),
-  );
-  $('#dlg').showModal();
-  $('#dlgOk').onclick = async () => {
-    store.set('sb', { url: $('#f1').value.trim(), key: $('#f2').value.trim() });
-    $('#dlg').close();
-    if (connect()) await loadClients();
-  };
-};
 $('#dlgCancel').onclick = () => $('#dlg').close();
 
 // ------------------------------------------------------------------- keys
 // The four API keys. They live in THIS BROWSER only (localStorage), never in
-// Supabase and never in the repo. The console uses them for the live checks
-// below; the agent runs on GitHub's machines and reads its own copies from
-// repository secrets, which is why this panel shows the exact commands too.
+// localStorage only, never in the repo. The agent runs on GitHub's machines and
+// reads its own copies from repository secrets, which is why this panel also
+// generates the exact commands.
 const KEYS = [
   { id: 'EXPLEE_API_KEY', label: 'Explee', hint: 'explee.com → API Keys. Lead search and enrichment.' },
   { id: 'LINKFINDER_API_KEY', label: 'LinkFinder AI', hint: 'linkfinderai.com/api-access. Email resolution.' },
@@ -365,7 +277,7 @@ $('#keys').onclick = () => {
   const saved = getKeys();
   $('#dlgTitle').textContent = 'API keys';
   $('#dlgSub').textContent =
-    'Saved in this browser only — not in Supabase, not in the repo. The agent runs on GitHub and needs its own copies; the commands are below.';
+    'Saved in this browser only — never in the repo. The agent runs on GitHub and needs its own copies; the commands are below.';
 
   const body = el('div');
   const inputs = {};
@@ -449,6 +361,79 @@ $('#keys').onclick = () => {
   };
 };
 
+// --------------------------------------------------------- export / import
+// The handoff to the agent. Shape matches example-campaign.json exactly, which
+// is what run.py load_config() already parses — no --db, no bridge.
+function campaignJson() {
+  const p = S.project, c = S.campaign;
+  if (!p || !c) return null;
+  return {
+    project: {
+      name: p.name, domain: p.domain || '', facts: p.facts || '',
+      booking_link: p.booking_link || '', cc_email: p.cc_email || '',
+      sending_emails: p.sending_emails || [], daily_cap: p.daily_cap ?? 100,
+    },
+    campaign: {
+      name: c.name, kind: c.kind || 'b2b',
+      offer: c.offer || '', customer_problem: c.customer_problem || '',
+      example_clients: c.example_clients || [], keywords: c.keywords || [],
+      target_role: c.target_role || '', target_geography: c.target_geography || '',
+      positive_criteria: c.positive_criteria || [],
+      negative_criteria: c.negative_criteria || [],
+      instantly_campaign_id: c.instantly_campaign_id || null,
+    },
+    prompts: STAGES.map(stage => {
+      const h = head(stage);
+      return {
+        stage, instructions: h?.instructions || '', language: h?.language || 'lead',
+        follow_up_every_days: h?.follow_up_every_days ?? 3,
+        max_follow_ups: h?.max_follow_ups ?? 2,
+      };
+    }),
+  };
+}
+
+const slug = t => (t || 'campaign').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+
+$('#exportJson').onclick = () => {
+  const data = campaignJson();
+  if (!data) return say('pick a campaign first', true);
+  const a = el('a', {
+    href: URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })),
+    download: `${slug(data.campaign.name)}.json`,
+  });
+  a.click();
+  URL.revokeObjectURL(a.href);
+  say(`downloaded ${a.download} — run: python3 run.py source --campaign ${a.download}`);
+};
+
+$('#importJson').onclick = () => {
+  const picker = el('input', { type: 'file', accept: 'application/json,.json' });
+  picker.onchange = async () => {
+    const file = picker.files?.[0];
+    if (!file) return;
+    let data;
+    try {
+      data = JSON.parse(await file.text());
+      if (!data.project?.name || !data.campaign?.name) throw new Error('missing project.name or campaign.name');
+    } catch (err) {
+      return say('could not read that file: ' + err.message, true);
+    }
+    // Import into the selected client, creating project and campaign.
+    if (!S.client) return say('create a client first', true);
+    const proj = await sb.from('gtm_projects')
+      .insert({ client_id: S.client.id, archived: false, ...data.project }).select().single();
+    const camp = await sb.from('gtm_campaigns')
+      .insert({ project_id: proj.data.id, status: 'draft', ...data.campaign }).select().single();
+    for (const pr of (data.prompts || [])) {
+      await sb.from('gtm_prompts').insert({ campaign_id: camp.data.id, version: 1, ...pr });
+    }
+    say(`imported ${data.campaign.name}`);
+    await pickClient(S.client);
+  };
+  picker.click();
+};
+
 function prompt1(title, sub, label, cb, value = '') {
   $('#dlgTitle').textContent = title;
   $('#dlgSub').textContent = sub || '';
@@ -469,15 +454,7 @@ async function q(table, sel, filters = {}, order) {
   for (const [k, v] of Object.entries(filters)) b = b.eq(k, v);
   if (order) b = b.order(order.col, { ascending: order.asc !== false });
   const { data, error } = await b;
-  if (error) {
-    const hint = !session && sb && !sb.local
-      ? ' — you are signed out, and these tables need a signed-in user.'
-      : /does not exist/i.test(error.message)
-        ? ' — run the schema migration first (workers/gtm/schema.sql).'
-        : '';
-    say(error.message + hint, true);
-    return [];
-  }
+  if (error) { say(error.message, true); return []; }
   return data || [];
 }
 
@@ -793,23 +770,9 @@ function viewLeads() {
 
 // ---------------------------------------------------------------- boot
 async function boot() {
-  if (connect()) {
-    await refreshSession();
-    if (!session) {
-      $('#main').replaceChildren(el('div', { class: 'empty' },
-        'Connected to Supabase. Sign in to load your campaigns — the tables are ',
-        'restricted to signed-in users because the anon key is public.'));
-      return;
-    }
-    await loadClients();
-    return;
-  }
   sb = localBackend();
-  $('#who').textContent = 'local';
-  $('#who').title = 'Saved in this browser only. Connect Supabase to share it with the agent.';
   if (!store.get('local:gtm_clients', []).length) await seedDemo();
   await loadClients();
-  say('Local mode — nothing is saved to a server. Use Connection to point at Supabase.');
 }
 boot();
 </script>

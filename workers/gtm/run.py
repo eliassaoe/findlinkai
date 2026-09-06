@@ -51,13 +51,30 @@ def load_any(args) -> tuple[Project, Campaign, dict[str, Prompt], str, object]:
     return project, campaign, prompts, "", None
 
 
+def _fit(cls, data: dict, label: str):
+    """Build a dataclass from JSON, dropping keys it does not have.
+
+    The console exports more than the runner reads, and it will keep growing. An
+    unknown key is a note, never a crash — a config file should not be able to
+    stop a run.
+    """
+    from dataclasses import fields
+
+    known = {f.name for f in fields(cls)}
+    extra = sorted(set(data) - known)
+    if extra:
+        print(f"note: ignoring unknown {label} field(s): {', '.join(extra)}")
+    return cls(**{
+        k: (tuple(v) if isinstance(v, list) else ("" if v is None else v))
+        for k, v in data.items() if k in known
+    })
+
+
 def load_config(path: str) -> tuple[Project, Campaign, dict[str, Prompt]]:
     raw = json.loads(Path(path).read_text(encoding="utf-8"))
-    project = Project(**raw["project"])
-    campaign = Campaign(
-        **{k: (tuple(v) if isinstance(v, list) else v) for k, v in raw["campaign"].items()}
-    )
-    prompts = {p["stage"]: Prompt(**p) for p in raw.get("prompts", [])}
+    project = _fit(Project, raw["project"], "project")
+    campaign = _fit(Campaign, raw["campaign"], "campaign")
+    prompts = {p["stage"]: _fit(Prompt, p, "prompt") for p in raw.get("prompts", [])}
     for stage in ("first_email", "follow_up", "reply"):
         prompts.setdefault(stage, Prompt(stage=stage))
     return project, campaign, prompts
@@ -264,7 +281,7 @@ def cmd_send(args) -> int:
 
     # If the console has an Instantly campaign id set, add leads to that one
     # rather than making a new campaign every run.
-    target = args.instantly_campaign_id or (
+    target = args.instantly_campaign_id or campaign.instantly_campaign_id or (
         st.select("gtm_campaigns", id=campaign_id)[0].get("instantly_campaign_id")
         if st and campaign_id else None
     )
