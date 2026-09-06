@@ -34,11 +34,14 @@ tests/            64 tests, no network, no keys
 pip install anthropic
 cd workers/gtm
 
+# config from the console (Supabase), or drop --db to use example-campaign.json
+export SUPABASE_URL=... SUPABASE_KEY=...
+
 python3 run.py capacity                                   # what can send today
-python3 run.py source --campaign example-campaign.json \
+python3 run.py source --db --campaign "organismes de formation FR/BE/LU" \
         --limit 20 --research --resolve                   # search, qualify, draft
-python3 run.py send   --campaign example-campaign.json    # dry run
-python3 run.py send   --campaign example-campaign.json --apply   # creates PAUSED
+python3 run.py send   --db --campaign "..."               # dry run
+python3 run.py send   --db --campaign "..." --apply       # creates/uses PAUSED
 python3 run.py arm    --campaign-id <id> --apply          # actually go live
 ```
 
@@ -122,13 +125,25 @@ text to reuse".
 
 ## The console
 
-`ui/index.html` — one file, Supabase JS from a CDN, **no build step**. Open it
-locally or host it anywhere; paste your project URL and **anon** key (never the
-service key — this is a browser page, so turn RLS on).
+`ui/index.html` — one file, Supabase JS from a CDN, **no build step**.
+
+**Open it and it works.** With no Supabase configured it runs in **local mode**,
+backed by browser storage and seeded with a worked example, so you can click
+through the whole thing before any database exists. Nothing in local mode reaches
+a server, and the agent cannot see it.
+
+To connect it for real, hit **Connection** and paste your project URL and **anon**
+key (never the service key — this is a browser page, so turn RLS on). From then
+on `run.py --db` reads exactly what the console shows.
 
 Clients -> projects -> campaigns in the sidebar. Per campaign: the offer, the
-ICP with positive and negative criteria as chips, and a per-stage prompt editor
-with a live character count against the 3000 cap.
+ICP with positive and negative criteria as chips, a per-stage prompt editor with
+a live character count against the 3000 cap, and a **Sending** tab holding the
+Instantly campaign id and the mailboxes.
+
+**You do not have to create the Instantly campaign yourself.** Leave the id empty
+and the first `send --apply` creates one, paused, and writes its id back into the
+console. Paste an id instead and leads are added to a campaign you already made.
 
 **Prompts are versioned, and the editor inserts rather than updates.** Every
 message records the version that wrote it, so a change in reply rate is

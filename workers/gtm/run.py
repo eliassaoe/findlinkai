@@ -35,6 +35,22 @@ from explee_search import LeadSearch
 from models import Campaign, Lead, Pattern, Project, Prompt
 
 
+def load_any(args) -> tuple[Project, Campaign, dict[str, Prompt], str, object]:
+    """Config from Supabase when --db is set, else from a JSON file.
+
+    Returns (project, campaign, prompts, campaign_id, store_or_None). With --db
+    the console is the source of truth: what you edit in the UI is what the agent
+    uses on the next run.
+    """
+    if getattr(args, "db", False):
+        import store as store_mod
+        st = store_mod.Store()
+        project, campaign, prompts, campaign_id = st.load(args.campaign, getattr(args, "project", "") or "")
+        return project, campaign, prompts, campaign_id, st
+    project, campaign, prompts = load_config(args.campaign)
+    return project, campaign, prompts, "", None
+
+
 def load_config(path: str) -> tuple[Project, Campaign, dict[str, Prompt]]:
     raw = json.loads(Path(path).read_text(encoding="utf-8"))
     project = Project(**raw["project"])
@@ -81,8 +97,12 @@ def cmd_capacity(args) -> int:
 
 
 def cmd_source(args) -> int:
-    project, campaign, prompts = load_config(args.campaign)
+    project, campaign, prompts, campaign_id, st = load_any(args)
     client = anthropic_client()
+    patterns = st.patterns(campaign_id, "first_email") if st else []
+    suppression = st.suppression() if st else frozenset()
+    if patterns:
+        print(f"{len(patterns)} learned patterns in play")
 
     if args.leads:
         rows = json.loads(Path(args.leads).read_text(encoding="utf-8"))
@@ -106,11 +126,15 @@ def cmd_source(args) -> int:
 
     drafts, report = pipeline.run(
         client, project, campaign, prompts["first_email"], leads,
-        resolver=resolver, research=args.research,
+        patterns=patterns, resolver=resolver, research=args.research,
         daily_cap=args.cap or project.daily_cap,
         require_verified=not args.allow_unverified,
+        suppression=suppression,
     )
     print(report.line())
+
+    if st and drafts:
+        print(f"saved {st.save_drafts(campaign_id, drafts)} leads and drafts to Supabase")
 
     out = Path(args.out)
     out.write_text(
@@ -146,7 +170,7 @@ def cmd_source(args) -> int:
 
 
 def cmd_send(args) -> int:
-    project, campaign, prompts = load_config(args.campaign)
+    project, campaign, prompts, campaign_id, st = load_any(args)
     drafts = json.loads(Path(args.drafts).read_text(encoding="utf-8"))
     if not drafts:
         print("no drafts to send")
@@ -170,21 +194,30 @@ def cmd_send(args) -> int:
         print("\nRe-run with --apply to create it.")
         return 0
 
-    # One campaign per draft is wrong; one campaign, per-lead bodies is what
-    # Instantly's variables are for. Until store.py exists we push the first
-    # draft's copy as the sequence and carry the rest as a warning.
-    first = drafts[0]
-    created = api.create_campaign(
-        name=f"{project.name} — {campaign.name}",
-        steps=[{"day": 0, "subject": first["subject"], "body": first["body"]}],
-        sending_emails=[a["email"] for a in ready],
-        daily_limit=min(15, cap),
+    # If the console has an Instantly campaign id set, add leads to that one
+    # rather than making a new campaign every run.
+    target = args.instantly_campaign_id or (
+        st.select("gtm_campaigns", id=campaign_id)[0].get("instantly_campaign_id")
+        if st and campaign_id else None
     )
-    campaign_id = created.get("id")
-    print(f"created PAUSED campaign {campaign_id}")
+    if target:
+        print(f"using existing Instantly campaign {target}")
+    else:
+        first = drafts[0]
+        created = api.create_campaign(
+            name=f"{project.name} — {campaign.name}",
+            steps=[{"day": 0, "subject": first["subject"], "body": first["body"]}],
+            sending_emails=[a["email"] for a in ready],
+            daily_limit=min(15, cap),
+        )
+        target = created.get("id")
+        print(f"created PAUSED campaign {target}")
+        if st and campaign_id:
+            st.update("gtm_campaigns", {"instantly_campaign_id": target}, id=campaign_id)
+            print("  saved that id back to the console")
 
     api.add_leads(
-        campaign_id,
+        target,
         [
             {
                 "email": d["lead"]["email"],
@@ -197,8 +230,8 @@ def cmd_send(args) -> int:
             for d in drafts
         ],
     )
-    print(f"added {len(drafts)} leads. Campaign is PAUSED.")
-    print(f"Arm it with: python3 run.py arm --campaign-id {campaign_id} --apply")
+    print(f"added {len(drafts)} leads to {target}.")
+    print(f"Arm it with: python3 run.py arm --campaign-id {target} --apply")
     return 0
 
 
@@ -213,7 +246,7 @@ def cmd_arm(args) -> int:
 
 
 def cmd_replies(args) -> int:
-    project, campaign, prompts = load_config(args.campaign)
+    project, campaign, prompts, campaign_id, st = load_any(args)
     client = anthropic_client()
     api = instantly_mod.Instantly()
 
@@ -291,6 +324,8 @@ def main(argv=None) -> int:
     s = sub.add_parser("send", help="push drafts to Instantly (creates PAUSED)")
     s.add_argument("--campaign", required=True)
     s.add_argument("--drafts", default="drafts.json")
+    s.add_argument("--instantly-campaign-id", default="",
+                   help="add to this campaign instead of creating one")
     s.add_argument("--apply", action="store_true")
     s.set_defaults(fn=cmd_send)
 
@@ -312,6 +347,11 @@ def main(argv=None) -> int:
     s.add_argument("--stage", default="first_email")
     s.add_argument("--out", default="patterns.json")
     s.set_defaults(fn=cmd_learn)
+
+    for sp in (sub.choices[k] for k in ("source", "send", "replies", "learn")):
+        sp.add_argument("--db", action="store_true",
+                        help="load config from Supabase (the console) instead of a JSON file")
+        sp.add_argument("--project", default="", help="with --db, disambiguate a campaign name")
 
     args = ap.parse_args(argv)
     return args.fn(args)
