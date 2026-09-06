@@ -1106,7 +1106,8 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
         <div style="display:flex;gap:0.5rem;">
             <button id="sendAllToHubspotBtn" onclick="sendBulkToHubspot()" class="btn btn-outline hidden"><i class="fab fa-hubspot"></i> Send all to HubSpot</button>
             <div id="bulkOutreachAction" class="hidden" style="display:inline-flex;gap:0.4rem;align-items:center;">
-                <select id="bulkOutreachDestSelect" style="padding:0.4rem 0.6rem;border:1px solid var(--gray-300);border-radius:6px;font-size:0.8rem;"></select>
+                <select id="bulkOutreachDestSelect" onchange="onOutreachDestChange('bulkOutreachDestSelect','bulkOutreachTargetInput')" style="padding:0.4rem 0.6rem;border:1px solid var(--gray-300);border-radius:6px;font-size:0.8rem;"></select>
+                <input id="bulkOutreachTargetInput" type="text" style="padding:0.4rem 0.6rem;border:1px solid var(--gray-300);border-radius:6px;font-size:0.8rem;width:9rem;">
                 <button id="sendAllToOutreachBtn" onclick="sendBulkToOutreach()" class="btn btn-outline"><i class="fas fa-paper-plane"></i> Send all</button>
             </div>
             <button onclick="downloadResults()" class="btn"><i class="fas fa-download"></i> Export</button>
@@ -5965,10 +5966,21 @@ async function outreachCall(action, extra) {
 async function checkOutreachConnections() {
     try {
         const d = await outreachCall('list');
-        outreachConnections = (d.connections || []).map(c => ({ id: c.destination, label: c.label }));
+        const destByid = {};
+        (d.destinations || []).forEach(dest => { destByid[dest.id] = dest; });
+        outreachConnections = (d.connections || []).map(c => ({
+            id: c.destination,
+            label: c.label,
+            target: (c.target && c.target.id) || '',
+            targetLabel: (destByid[c.destination] && destByid[c.destination].targetLabel) || 'Campaign or list ID'
+        }));
     } catch (e) { outreachConnections = []; }
     renderOutreachActionUI();
     showBulkOutreachButtonIfApplicable();
+}
+
+function outreachConnectionById(id) {
+    return (outreachConnections || []).find(d => d.id === id) || null;
 }
 
 // Same email/phone/linkedin_url → {email|phone|linkedinUrl} mapping
@@ -6003,6 +6015,23 @@ function outreachDestOptionsHtml(selectId) {
     return (outreachConnections || []).map(d => `<option value="${d.id}">${d.label}</option>`).join('');
 }
 
+function escapeHtmlAttr(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+}
+
+// Switching the destination in either send UI resets the campaign/list field
+// to that destination's own saved default, rather than leaving behind a value
+// typed for a different tool.
+function onOutreachDestChange(selectId, inputId) {
+    const select = document.getElementById(selectId);
+    const input = document.getElementById(inputId);
+    if (!select || !input) return;
+    const conn = outreachConnectionById(select.value);
+    input.value = (conn && conn.target) || '';
+    input.placeholder = (conn && conn.targetLabel) || 'Campaign or list ID';
+    input.title = ((conn && conn.targetLabel) || 'Campaign or list ID') + ' — defaults to the one set on the Integrations page, editable per send';
+}
+
 function renderOutreachActionUI() {
     const container = document.getElementById('outreachActionContainer');
     if (!container) return;
@@ -6012,8 +6041,10 @@ function renderOutreachActionUI() {
 
     if (outreachConnections.length > 0) {
         container.classList.remove('hidden');
+        const first = outreachConnections[0];
         container.innerHTML = `<div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;">
-            <select id="outreachDestSelect" style="padding:0.55rem 0.75rem;border:1px solid var(--gray-300);border-radius:6px;font-size:0.875rem;">${outreachDestOptionsHtml()}</select>
+            <select id="outreachDestSelect" onchange="onOutreachDestChange('outreachDestSelect','outreachTargetInput')" style="padding:0.55rem 0.75rem;border:1px solid var(--gray-300);border-radius:6px;font-size:0.875rem;">${outreachDestOptionsHtml()}</select>
+            <input id="outreachTargetInput" type="text" value="${escapeHtmlAttr(first.target)}" placeholder="${escapeHtmlAttr(first.targetLabel)}" title="${escapeHtmlAttr(first.targetLabel)} — defaults to the one set on the Integrations page, editable per send" style="padding:0.55rem 0.75rem;border:1px solid var(--gray-300);border-radius:6px;font-size:0.875rem;width:11rem;">
             <button class="btn btn-outline" id="sendToOutreachBtn" onclick="sendToOutreach()"><i class="fas fa-paper-plane"></i> Send</button>
         </div>`;
     } else {
@@ -6031,6 +6062,8 @@ window.sendToOutreach = async function sendToOutreach() {
     const select = document.getElementById('outreachDestSelect');
     const destination = select && select.value;
     if (!destination) return;
+    const targetInput = document.getElementById('outreachTargetInput');
+    const targetId = (targetInput && targetInput.value || '').trim();
     const btn = document.getElementById('sendToOutreachBtn');
     const orig = btn.innerHTML;
     btn.disabled = true;
@@ -6038,6 +6071,7 @@ window.sendToOutreach = async function sendToOutreach() {
     try {
         const d = await outreachCall('push', {
             destination: destination,
+            target: targetId ? { id: targetId } : undefined,
             results: [{ input: window.lastOutreachPushInput, result: window.lastOutreachPushResult }]
         });
         if (d.pushed > 0) {
@@ -6062,7 +6096,7 @@ function showBulkOutreachButtonIfApplicable() {
     wrap.classList.toggle('hidden', !(applicable && hasConnections));
     if (applicable && hasConnections) {
         const select = document.getElementById('bulkOutreachDestSelect');
-        if (select) select.innerHTML = outreachDestOptionsHtml();
+        if (select) { select.innerHTML = outreachDestOptionsHtml(); onOutreachDestChange('bulkOutreachDestSelect', 'bulkOutreachTargetInput'); }
     }
 }
 
@@ -6070,6 +6104,8 @@ window.sendBulkToOutreach = async function sendBulkToOutreach() {
     const select = document.getElementById('bulkOutreachDestSelect');
     const destination = select && select.value;
     if (!destination) return;
+    const targetInput = document.getElementById('bulkOutreachTargetInput');
+    const targetId = (targetInput && targetInput.value || '').trim();
 
     const results = (bulkResults || [])
         .filter(row => row.status === 'Found')
@@ -6086,7 +6122,7 @@ window.sendBulkToOutreach = async function sendBulkToOutreach() {
     btn.disabled = true;
     btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Sending ${results.length}…`;
     try {
-        const d = await outreachCall('push', { destination: destination, results: results });
+        const d = await outreachCall('push', { destination: destination, target: targetId ? { id: targetId } : undefined, results: results });
         btn.innerHTML = `<i class="fas fa-check"></i> ${d.pushed || 0} sent`;
         if (d.failed && d.failed.length) btn.innerHTML += `, ${d.failed.length} failed`;
         try { posthog.capture('sent_to_outreach', { source: 'bulk', destination: destination, pushed: d.pushed, failed: (d.failed||[]).length }); } catch(e) {}
