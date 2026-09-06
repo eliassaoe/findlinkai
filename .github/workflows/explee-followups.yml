@@ -107,6 +107,7 @@ jobs:
       - name: Follow up
         if: env.TASK == 'followups'
         run: |
+          set -o pipefail
           if [ -n "$APPLY" ]; then
             echo "Sending is ON."
           else
@@ -118,6 +119,7 @@ jobs:
       - name: Measure replies by step
         if: env.TASK == 'measure'
         run: |
+          set -o pipefail
           ARGS=""
           [ -n "$CAMPAIGN" ] && ARGS="--campaign $CAMPAIGN"
           python3 sequence.py measure $ARGS --out sequence.json | tee out.txt
@@ -126,6 +128,7 @@ jobs:
       - name: Shorten the sequence
         if: env.TASK == 'shorten'
         run: |
+          set -o pipefail
           [ -n "$CAMPAIGN" ] || { echo "::error::shorten needs a campaign id"; exit 1; }
           [ -n "$APPLY" ] && echo "APPLY is ON - the campaign will be changed." || echo "DRY RUN - nothing changes."
           python3 sequence.py shorten --campaign "$CAMPAIGN" --emails "$EMAILS" $APPLY | tee out.txt
@@ -143,6 +146,7 @@ jobs:
       - name: Pre-qualify and import
         if: env.TASK == 'prequalify'
         run: |
+          set -o pipefail      # a failed script must fail the step, tee or not
           [ -n "$CAMPAIGN" ] || { echo "::error::prequalify needs the campaign whose audience to score"; exit 1; }
           [ -n "$APPLY" ] && echo "APPLY is ON - credits will be spent and a campaign created." || echo "DRY RUN - nothing spent."
           python3 prequalify.py plan --campaign "$CAMPAIGN" --out prequalify.json | tee out.txt

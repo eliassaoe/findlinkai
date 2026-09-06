@@ -1323,5 +1323,32 @@ class Projects(unittest.TestCase):
         self.assertEqual(sq.campaigns_for(Api(), args), [(None, {"id": 7})])
 
 
+class PrequalifyBalance(unittest.TestCase):
+    def test_enrichment_stops_on_402_and_keeps_what_it_has(self):
+        class Api:
+            calls = 0
+            def enrich_email_batch(self, contacts, preset="basic"):
+                Api.calls += 1
+                if Api.calls == 2:
+                    raise ExpleeError(402, "/enrich", "insufficient")
+                return {"task_id": "t"}
+            def enrich_email_batch_status(self, task_id):
+                return {"meta": {"status": "completed"},
+                        "contacts": [{"email": "found@x.com"}] * 100}
+        leads = [{"email": "", "first_name": str(i), "last_name": "L", "company_domain": "x.com"}
+                 for i in range(150)]
+        found, asked = pq.fill_emails(Api(), leads, out=io.StringIO(), sleep=lambda s: None)
+        self.assertEqual((found, asked), (100, 150))
+
+    def test_the_guard_asks_for_the_search_cost_not_the_worst_case(self):
+        class Api:
+            def balance(self):
+                return 5000.0
+        api = Api()
+        pq.require_balance(api, 3600 * 1.1)          # what a 2,500-person run needs
+        with self.assertRaises(SystemExit):
+            pq.require_balance(api, 7350)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
