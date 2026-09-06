@@ -390,6 +390,63 @@ dropped by size; a beauty "CRM Ambassador" dropped by score.
 sample read between scoring and sending. Those are loops with a judge in them,
 not filters.
 
+### The buying trigger
+
+The highest-leverage node in the flow, and the last one added. Explee's
+pre-built agents answer things like *is this company hiring right now*, *what
+did they just announce*, *did they raise* — `GET /public/api/v1/agents` lists
+them, `POST /agents/{id}/runs` starts one, `GET /agents/runs/{run_id}` polls
+it, **1 credit per run**.
+
+`Explee: signals per company` runs the agents named in `signal_agents` over the
+unique domains that survived `Qualify` — charged only on companies you are
+actually going to email, and one run amortised over every lead at that company.
+The result lands on the lead as `signal`, reaches the writer as
+`whats_happening_there`, and the prompt opens on it when it exists.
+
+Why this over more prompt work: signal-based cold email runs **5-18% reply
+against 1-3% generic**, and the same sources say signal *timing* moves reply
+rates more than the framework or the copy does. "You are hiring three AEs"
+beats any amount of tuning on "what your company does".
+
+A configured name matching no agent throws with the real id list, so a typo is
+self-correcting rather than a silent 404 per company. Everything else fails
+soft: no key, a failed run, a timeout, an empty result — the leads pass through
+untouched and the flow carries on without a signal.
+
+### What a lead actually costs
+
+Explee at 1 credit = $0.01, **LinkFinder at $0.019 — the real internal cost,
+not the $0.098 list price** — and the writer on whichever model Config names:
+
+| Step | Per lead |
+| --- | --- |
+| Explee company search, 0.5 cr/company over 5 people | $0.001 |
+| Explee people-by-domains, 1 cr + 3 criteria at 0.1 | $0.013 |
+| Qualify drops roughly half → sourcing per survivor | **$0.028** |
+| Signal agents, 1 cr each per company over 5 leads | $0.002-0.004 |
+| LinkFinder resolution | **$0.019** |
+| Writer, Opus 5 (~1,100 in / ~600 out with thinking) | **$0.021** |
+| Writer, Sonnet 5 instead | $0.008 |
+| Instantly, n8n, Railway | already paid |
+| **Total, Opus** | **~$0.071** |
+| **Total, Sonnet** | **~$0.058** |
+
+AutoGTM is $0.03 an email including the sending, so per email they are cheaper
+and always will be. Per **reply** is the number that decides it, and
+`BASELINE.md` has the measurement: 5,231 emails on their shared pool returned
+55 replies — **1.05%**, against 3-8% for cold email that reaches the inbox.
+
+| | $/email | Reply rate | $/reply |
+| --- | --- | --- | --- |
+| AutoGTM, shared pool | $0.03 | 1.05% measured | $2.86 |
+| This flow, same reply rate | $0.058 | 1.05% | $5.52 |
+| This flow, own warmed mailboxes | $0.058 | 3% | **$1.93** |
+
+The pipeline is not what pays for itself — the mailboxes are. Prompt caching
+does not help either way: the system prompt is ~800 tokens, under the minimum
+cacheable prefix, so it silently will not cache however identical it is.
+
 ### The prompt
 
 It is written into the agent node as **plain text**, not an expression, so what

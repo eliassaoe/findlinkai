@@ -169,7 +169,7 @@ const BLANK = {
              sending_emails: [], daily_cap: 135 },
   campaign: { name: '', kind: 'b2b', offer: '', customer_problem: '', example_clients: [],
               keywords: [], target_role: '', target_geography: '', company_domains: '',
-              title_keywords: '', title_exclude: '', min_company_size: 0,
+              title_keywords: '', title_exclude: '', min_company_size: 0, signal_agents: '',
               positive_criteria: [], negative_criteria: [], instantly_campaign_id: null },
   prompts: { first_email: [], follow_up: [], reply: [] },
 };
@@ -261,6 +261,11 @@ function viewCampaign() {
          'Manager; this is what keeps the ones you meant. Leave empty to keep all.'),
     text(c, 'title_exclude', 'Title must NOT contain',
          'comma separated — the off-segments you already know about'),
+    text(c, 'signal_agents', 'Buying-trigger agents',
+         'comma separated Explee agent ids — active_hiring, recent_news, funding, ' +
+         'is_active. 1 credit per agent per company, only on companies that pass ' +
+         'the filters above. This is the reply-rate lever: a real trigger moves ' +
+         'cold email from 1-3% to 5-18%. Empty to skip.'),
     text(c, 'min_company_size', 'Minimum company size',
          'headcount floor, 0 for none — drops the one-person shells'),
     text(c, 'company_domains', 'Company domains',
@@ -647,10 +652,12 @@ function n8nWorkflow({ withKeys = true } = {}) {
       '',
       '## HOW TO WRITE IT',
       'Four moves, in this order, nothing else:',
-      '1. An observation. One concrete thing from the lead brief you are given —',
-      '   what their company does, their role, where they are. Not a compliment,',
-      '   not "I came across your profile". This is the whole difference between',
-      '   a 3% reply rate and a 15% one, so make it specific or leave it out.',
+      '1. An observation. If the brief has whats_happening_there, open on that —',
+      '   it is a real, current trigger and it is why this email is worth sending',
+      '   today rather than last month. Otherwise use what their company does or',
+      '   their role. Not a compliment, not "I came across your profile". This is',
+      '   the whole difference between a 3% reply rate and a 15% one, so make it',
+      '   specific or leave it out.',
       '2. The consequence. Why that likely creates the problem above. One line.',
       '3. What we do. Concrete and operational, in the order it happens.',
       '4. One ask. A question they can answer in a line. Ask for a reply, not a',
@@ -719,6 +726,12 @@ function n8nWorkflow({ withKeys = true } = {}) {
     min_company_size: Number(c.min_company_size) || 0,
     // Explee scores each person 0-5 per criterion when criteria are sent.
     min_criterion_score: 3,
+    // The buying trigger. 1 credit per agent per company, charged only on
+    // companies that survived Qualify. GET /public/api/v1/agents lists the
+    // ids; a name that matches nothing throws with the real list.
+    signal_agents: (c.signal_agents || '').split(/[,;\n]+/).map(t => t.trim()).filter(Boolean),
+    signal_budget_seconds: 120,
+    signal_max_companies: 25,
     // Explee finds the companies, LinkFinder lists the people at each. This
     // path is a Config field because the company endpoint is the one shape
     // that is not confirmed — if it 404s, fix it here, not in a node.
@@ -923,6 +936,117 @@ function n8nWorkflow({ withKeys = true } = {}) {
       'return [{ json: { people: kept } }];'
     ), [1060, 300]),
 
+    node('Explee: signals per company', 'code', 2, jsCode(
+      "// One buying trigger per company, from Explee's pre-built agents.\n" +
+      "//\n" +
+      "// This is the highest-leverage node in the flow. Signal-based cold email runs\n" +
+      "// 5-18% reply against 1-3% for generic, and signal TIMING moves reply rates\n" +
+      "// more than the framework or the copy does. \"They are hiring three AEs\" beats\n" +
+      "// any amount of prompt tuning.\n" +
+      "//\n" +
+      "// 1 credit per agent run per company, and it runs AFTER Qualify on the unique\n" +
+      "// domains that survived \u2014 so it is charged on companies you are actually\n" +
+      "// going to email, and amortised over every lead at that company.\n" +
+      "//\n" +
+      "// Runs are async: POST returns a run_id, then poll. Same wall-clock budget as\n" +
+      "// the resolver, because n8n kills a Code node at 300s. Anything that fails \u2014\n" +
+      "// no key, a bad agent id, a timeout, an empty result \u2014 leaves the leads\n" +
+      "// untouched and the flow carries on without a signal.\n" +
+      "const cfg = $('Config').first().json;\n" +
+      "const people = $input.first().json.people || [];\n" +
+      "const passthrough = () => [{ json: { people } }];\n" +
+      "\n" +
+      "const wanted = (cfg.signal_agents || []).filter(Boolean);\n" +
+      "if (!wanted.length || !cfg.explee_key || cfg.explee_key.startsWith('PUT_')\n" +
+      "    || !this.helpers || !this.helpers.httpRequest) {\n" +
+      "  return passthrough();\n" +
+      "}\n" +
+      "\n" +
+      "const http = opts => this.helpers.httpRequest(opts);\n" +
+      "const sleep = ms => new Promise(r => setTimeout(r, ms));\n" +
+      "const API = 'https://api.explee.com/public/api/v1';\n" +
+      "const headers = { 'X-API-Key': cfg.explee_key };\n" +
+      "const deadline = Date.now() + (Number(cfg.signal_budget_seconds) || 120) * 1000;\n" +
+      "const left = () => deadline - Date.now();\n" +
+      "\n" +
+      "// Resolve the configured names against the real catalogue, so a typo shows up\n" +
+      "// as \"here are the ids that exist\" rather than a silent 404 per company.\n" +
+      "let agents;\n" +
+      "try {\n" +
+      "  const list = await http({ method: 'GET', url: API + '/agents', headers, json: true });\n" +
+      "  agents = (list && list.agents) || [];\n" +
+      "} catch (e) {\n" +
+      "  console.log('Could not list Explee agents: ' + e.message);\n" +
+      "  return passthrough();\n" +
+      "}\n" +
+      "const match = w => agents.find(a =>\n" +
+      "  String(a.id).toLowerCase() === String(w).toLowerCase() ||\n" +
+      "  String(a.id).toLowerCase().endsWith('/' + String(w).toLowerCase()) ||\n" +
+      "  String(a.name || '').toLowerCase() === String(w).toLowerCase());\n" +
+      "\n" +
+      "const chosen = wanted.map(w => [w, match(w)]);\n" +
+      "const missing = chosen.filter(([, a]) => !a).map(([w]) => w);\n" +
+      "if (missing.length) {\n" +
+      "  throw new Error('No Explee agent matches ' + missing.join(', ') +\n" +
+      "    '. Available ids: ' + agents.map(a => a.id).join(', '));\n" +
+      "}\n" +
+      "\n" +
+      "// Only the domains that survived Qualify, capped.\n" +
+      "const domains = [...new Set(people\n" +
+      "  .map(p => String(p.company_domain || p.companyWebsite || p.domain || '').toLowerCase())\n" +
+      "  .filter(Boolean))].slice(0, Number(cfg.signal_max_companies) || 25);\n" +
+      "\n" +
+      "async function runAgent(agent, domain) {\n" +
+      "  let started;\n" +
+      "  try {\n" +
+      "    started = await http({\n" +
+      "      method: 'POST', url: API + '/agents/' + encodeURIComponent(agent.id) + '/runs',\n" +
+      "      headers, json: true, body: { input_data: { domain } },\n" +
+      "    });\n" +
+      "  } catch (e) { console.log(domain + ' ' + agent.id + ': ' + e.message); return null; }\n" +
+      "\n" +
+      "  const runId = started && started.run_id;\n" +
+      "  if (!runId) return null;\n" +
+      "\n" +
+      "  for (let n = 0; n < 12 && left() > 12000; n++) {\n" +
+      "    await sleep(6000);\n" +
+      "    let got;\n" +
+      "    try {\n" +
+      "      got = await http({ method: 'GET', headers, json: true,\n" +
+      "                         url: API + '/agents/runs/' + encodeURIComponent(runId) });\n" +
+      "    } catch (e) { return null; }\n" +
+      "    const status = String((got.meta && got.meta.status) || '').toLowerCase();\n" +
+      "    if (got.result && Object.keys(got.result).length) return got.result;\n" +
+      "    if (['failed', 'error', 'cancelled'].includes(status)) return null;\n" +
+      "    if (['completed', 'done', 'success'].includes(status)) return got.result || null;\n" +
+      "  }\n" +
+      "  return null;   // still running when the budget ran out\n" +
+      "}\n" +
+      "\n" +
+      "const byDomain = {};\n" +
+      "let runs = 0, hits = 0;\n" +
+      "for (const domain of domains) {\n" +
+      "  if (left() < 20000) { console.log('Signals: out of time at ' + domain); break; }\n" +
+      "  const found = {};\n" +
+      "  for (const [, agent] of chosen) {\n" +
+      "    if (left() < 15000) break;\n" +
+      "    runs++;\n" +
+      "    const r = await runAgent(agent, domain);\n" +
+      "    if (r && Object.keys(r).length) { found[agent.id.split('/').pop()] = r; hits++; }\n" +
+      "  }\n" +
+      "  if (Object.keys(found).length) byDomain[domain] = found;\n" +
+      "  await sleep(400);\n" +
+      "}\n" +
+      "\n" +
+      "console.log('Signals: ' + hits + ' of ' + runs + ' runs returned something across ' +\n" +
+      "  domains.length + ' companies (~' + runs + ' credits)');\n" +
+      "\n" +
+      "return [{ json: { people: people.map(p => {\n" +
+      "  const d = String(p.company_domain || p.companyWebsite || p.domain || '').toLowerCase();\n" +
+      "  return byDomain[d] ? { ...p, signal: byDomain[d] } : p;\n" +
+      "}) } }];"
+    ), [1280, 300]),
+
     node('One item per lead', 'code', 2, jsCode(
       '// One item holding every person. Fan them out and normalise the two\n' +
       '// fields the rest of the flow reads. Nobody is dropped here — search\n' +
@@ -959,9 +1083,13 @@ function n8nWorkflow({ withKeys = true } = {}) {
       '    industry: c.company_industry || c.industry,\n' +
       '    company_size: c.company_size,\n' +
       '    where: c.city || c.location || c.geo || c.country,\n' +
+      '    // The buying trigger, when an Explee agent found one. This is the\n' +
+      '    // observation to open on: it is timely, specific, and nobody else\n' +
+      '    // emailing them today has it.\n' +
+      '    whats_happening_there: c.signal,\n' +
       '  }).filter(([, v]) => v)),\n' +
       '} }));'
-    ), [1280, 300]),
+    ), [1500, 300]),
 
     node('LinkFinder: fill missing emails', 'code', 2, jsCode(
       "// Explee returns profiles, not addresses. This is what turns them into leads:\n" +
@@ -1047,7 +1175,7 @@ function n8nWorkflow({ withKeys = true } = {}) {
       "  (skippedByCap ? '; ' + skippedByCap + ' past linkfinder_max' : '') +\n" +
       "  (stopped ? '; stopped early: ' + stopped : ''));\n" +
       "return done;"
-    ), [1500, 300]),
+    ), [1720, 300]),
 
     // An AI Agent rather than a raw HTTP call: the model is a dropdown, the
     // system prompt is a field you can edit in the UI, and when the writer
@@ -1066,7 +1194,7 @@ function n8nWorkflow({ withKeys = true } = {}) {
       name: 'Write the email',
       type: '@n8n/n8n-nodes-langchain.agent',
       typeVersion: 3.1,
-      position: [1720, 300],
+      position: [1940, 300],
     },
 
     // Pick your existing OpenAI credential on this node — the one pointed at
@@ -1077,7 +1205,7 @@ function n8nWorkflow({ withKeys = true } = {}) {
       name: 'Model',
       type: '@n8n/n8n-nodes-langchain.lmChatOpenAi',
       typeVersion: 1.1,
-      position: [1720, 480],
+      position: [1940, 480],
     },
 
     node('Build the lead', 'code', 2, jsCode(
@@ -1117,7 +1245,7 @@ function n8nWorkflow({ withKeys = true } = {}) {
       '}\n' +
       "console.log(out.length + ' leads ready for campaign ' + camp);\n" +
       'return out;'
-    ), [1940, 300]),
+    ), [2160, 300]),
 
     node('Instantly: add leads', 'httpRequest', 4.2, {
       method: 'POST',
@@ -1130,7 +1258,7 @@ function n8nWorkflow({ withKeys = true } = {}) {
       specifyBody: 'json',
       jsonBody: "={{ JSON.stringify({ campaign_id: $('Config').first().json.instantly_campaign_id, skip_if_in_campaign: true, skip_if_in_workspace: true, leads: $input.all().map(i => i.json) }) }}",
       options: {},
-    }, [2160, 300]),
+    }, [2380, 300]),
   ];
 
   // One straight line, whichever nodes were generated. Built from the node
