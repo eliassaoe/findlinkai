@@ -205,24 +205,51 @@ def as_lead(person):
             "_scores": scores_of(person)}
 
 
-def search_pages(api, plan, max_people, page=PAGE):
-    """Every page of the people search up to max_people. Paging is limit/offset,
-    the same convention as the inbox endpoints; a page shorter than `limit` ends it."""
+def person_key(person):
+    return (first_of(person, "person_id", "id", "linkedin_url", "email", default=None)
+            or json.dumps(person, sort_keys=True)[:200])
+
+
+def search_pages(api, plan, max_people, page=PAGE, out=sys.stdout):
+    """Every page of the people search up to max_people.
+
+    The search endpoint pages with `page` (1-based), not offset - seen live on
+    6 Sept 2026: 25 requests with offsets all came back as page 1, inside the
+    free zone, and the free zone is capped at 10 requests a minute (429). Only
+    page 1 is free; deeper pages are billed and not rate-capped that way. A
+    page that repeats the previous one means the paging parameter was ignored
+    again, so the loop stops rather than paying for the same people twice.
+    """
     body = {"company_filters": plan.get("company_filters") or {},
             "people_filters": dict(plan.get("people_filters") or {},
                                    criteria=list(plan["criteria"]))}
-    out, offset = [], 0
-    while len(out) < max_people:
-        limit = min(page, max_people - len(out))
-        got = api.search_people(dict(body, limit=limit, offset=offset))
+    people, seen, number = [], set(), 1
+    while len(people) < max_people:
+        limit = min(page, max_people - len(people))
+        got = api.search_people(dict(body, limit=limit, page=number))
         rows = first_of(got, "people", "results", "contacts", "items", default=[]) or []
         if not rows:
             break
-        out.extend(rows)
-        if len(rows) < limit:
+        fresh = []
+        for row in rows:                      # within a page too: one person once
+            key = person_key(row)
+            if key not in seen:
+                seen.add(key)
+                fresh.append(row)
+        if not fresh:
+            print("  !! page {} repeated page {} - the API ignored the page parameter; "
+                  "stopping at {} people".format(number, number - 1, len(people)), file=out)
             break
-        offset += len(rows)
-    return out[:max_people]
+        people.extend(fresh)
+        total = first_of(got, "total", "total_count", default=None)
+        more = first_of(got, "has_more", default=None)
+        print("  page {}: {} people ({} new){}".format(
+            number, len(rows), len(fresh),
+            "" if total is None else " of {}".format(total)), file=out)
+        if more is False or len(rows) < limit or (total and len(people) >= total):
+            break
+        number += 1
+    return people[:max_people]
 
 
 def fill_emails(api, leads, preset="basic", out=sys.stdout, sleep=time.sleep):

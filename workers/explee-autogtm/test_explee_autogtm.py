@@ -588,6 +588,19 @@ class Client(unittest.TestCase):
         api = Explee(api_key="k", opener=opener, sleep=lambda _s: None)
         return api, opener
 
+    def test_a_free_zone_429_waits_a_minute(self):
+        waits = []
+        api = Explee(api_key="k", sleep=waits.append)
+        calls = {"n": 0}
+        def send(method, url, payload):
+            calls["n"] += 1
+            if calls["n"] == 1:
+                raise ExpleeError(429, url, '{"detail":"Free preview quota exceeded (10 free"}')
+            return {"ok": True}
+        api._send = send
+        self.assertEqual(api.request("POST", "/x", body={}), {"ok": True})
+        self.assertEqual(waits, [60])
+
     def test_429_is_retried(self):
         api, opener = self.client([(429, {}), (200, {"remain": 4200})])
         self.assertEqual(api.balance(), 4200)
@@ -840,24 +853,36 @@ class Prequalify(unittest.TestCase):
         with self.assertRaises(ShapeError):
             pq.scores_of({"first_name": "A"})
 
-    def test_search_pages_and_stops(self):
+    def test_search_pages_by_page_number_and_stops(self):
         class Api:
             def __init__(self):
                 self.bodies = []
 
             def search_people(self, body):
                 self.bodies.append(body)
-                offset = body["offset"]
-                rows = [{"first_name": str(i), "criteria": [{"score": 5}]}
-                        for i in range(offset, min(offset + body["limit"], 150))]
-                return {"people": rows}
+                start = (body["page"] - 1) * body["limit"]
+                rows = [{"person_id": str(i), "criteria": [{"score": 5}]}
+                        for i in range(start, min(start + body["limit"], 150))]
+                return {"people": rows, "total": 150}
         api = Api()
         plan = {"company_filters": {"definition": "x"}, "people_filters": {"job_titles": ["CEO"]},
                 "criteria": ["a"]}
-        people = pq.search_pages(api, plan, 400, page=100)
+        people = pq.search_pages(api, plan, 400, page=100, out=io.StringIO())
         self.assertEqual(len(people), 150)
-        self.assertEqual([b["offset"] for b in api.bodies], [0, 100])
+        self.assertEqual([b["page"] for b in api.bodies], [1, 2])
         self.assertEqual(api.bodies[0]["people_filters"]["criteria"], ["a"])
+
+    def test_a_repeated_page_stops_the_search(self):
+        class Api:
+            calls = 0
+            def search_people(self, body):
+                Api.calls += 1
+                return {"people": [{"person_id": "same"}] * 5}
+        out = io.StringIO()
+        people = pq.search_pages(Api(), {"criteria": ["a"]}, 50, page=5, out=out)
+        self.assertEqual(len(people), 1)
+        self.assertEqual(Api.calls, 2)
+        self.assertIn("ignored the page parameter", out.getvalue())
 
     def test_missing_emails_are_filled_from_the_batch(self):
         class Api:
