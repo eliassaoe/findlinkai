@@ -152,6 +152,45 @@ class Decide(unittest.TestCase):
         return recover.decide({"person_id": 1}, thread_, note, CFG,
                               set(booked), set(views), now)
 
+    def test_a_question_is_left_to_a_human(self):
+        plan = self.plan(thread(("out", "hi"), ("in", "how does it work?")))
+        self.assertEqual(plan["action"], "skip")
+        self.assertIn("ANSWER THIS ONE YOURSELF", plan["next_action"])
+
+    def test_with_auto_reply_on_a_fresh_reply_waits_and_a_stale_one_does_not(self):
+        cfg = dict(CFG, auto_reply=True)
+        fresh = thread(("out", "hi", "2026-09-02T08:00:00Z"),
+                       ("in", "send me pricing", "2026-09-02T08:30:00Z"))
+        self.assertEqual(recover.decide({}, fresh, None, cfg, set(), set(), WED)["action"],
+                         "skip")
+        stale = thread(("out", "hi", "2026-08-30T08:00:00Z"),
+                       ("in", "send me pricing", "2026-08-30T08:30:00Z"))
+        self.assertEqual(recover.decide({}, stale, None, cfg, set(), set(), WED)["action"],
+                         "send")
+
+    def test_the_nudge_signs_as_the_persona_the_lead_wrote_to(self):
+        convo = thread(("out", "Bonjour Tom,\n\nblabla\n\nPete\nLiftember", "2026-08-28T08:00:00Z"),
+                       ("in", "Hi Pete,\n\nAny reference I could review?", "2026-08-28T09:00:00Z"),
+                       ("out", "Sure Tom, here", "2026-08-28T09:05:00Z"))
+        plan = recover.decide({}, convo, None, CFG, set(), set(), WED)
+        self.assertEqual((plan["action"], plan["bucket"]), ("send", "nudge"))
+        self.assertTrue(plan["message"].rstrip().endswith("Pete"), plan["message"])
+        self.assertNotIn("Eliasse", plan["message"])
+        # no greeting to read: the signature line of our first email
+        msgs, _ = recover.thread_view(thread(("out", "Bonjour,\n\nx\n\nZara"), ("in", "ok ?")))
+        self.assertEqual(recover.persona_name(msgs, "Eliasse"), "Zara")
+        msgs, _ = recover.thread_view(thread(("out", "x?"), ("in", "ok")))
+        self.assertEqual(recover.persona_name(msgs, "Eliasse"), "Eliasse")
+
+    def test_the_second_nudge_is_the_last_and_asks_for_a_no(self):
+        convo = thread(("out", "hi", "2026-08-20T08:00:00Z"),
+                       ("in", "send me pricing", "2026-08-20T09:00:00Z"),
+                       ("out", "here", "2026-08-20T09:05:00Z"),
+                       ("out", "nudge one", "2026-08-23T09:05:00Z"))
+        plan = recover.decide({}, convo, None, CFG, set(), set(), WED)
+        self.assertEqual((plan["action"], plan["bucket"]), ("send", "nudge_last"))
+        self.assertIn("Last note from me", plan["message"])
+
     def test_a_positive_reply_gets_two_times(self):
         plan = self.plan(thread(("out", "hi"), ("in", "can you send me pricing?")))
         self.assertEqual(plan["action"], "send")
@@ -1067,6 +1106,57 @@ class RealShapes(unittest.TestCase):
         rows = recover.collect_hot_leads(api, [{"id": 130465, "name": "ht2"}], 30475)
         self.assertEqual(rows[0]["first_name"], "Meyer")
         self.assertEqual(rows[0]["company"], "Amen.")
+
+
+class RealReplies(unittest.TestCase):
+    """Replies from the 6 Sept dry run that the first classifier got wrong."""
+    def bucket(self, text):
+        return fu.classify(text)[0]
+
+    def test_quoted_mail_and_links_do_not_count(self):
+        own = fu.own_words("non merci\n\nLe dim. 6 sept. 2026 à 10:05, Carl Sullivan "
+                           "<c@voxglide.com> a écrit :\n> Bonjour Rodolphe, ça vous dirait ?")
+        self.assertEqual(own, "non merci")
+        self.assertEqual(fu.own_words("Oui\n> pourquoi pas ?\n> https://x.y/?a=b"), "Oui")
+
+    def test_a_gmail_reaction_is_silent(self):
+        self.assertEqual(self.bucket("🤡  Rémi Villard a réagi depuis Gmail <https://www.google"
+                                     ".com/gmail/about/?utm_source=gmail-in-product>"),
+                         "auto_reply")
+
+    def test_out_of_office_variants(self):
+        for text in ("Bonjour,\n\nJe vous remercie pour votre message.\n\nJe suis actuellement "
+                     "absente et n'ai pas accès à mes mails",
+                     "Hello,\n\nThank you for your message.\n\nI am currently enjoying a "
+                     "sabbatical and will return in October",
+                     "Bonjour et merci pour votre message,\n\nJe suis actuellement en arrêt "
+                     "maladie jusqu'au 9",
+                     "!!! NOUVELLES COORDONNEES MAIL !!!\n\nmiguel@hawaiicom.fr\n\nMerci de "
+                     "les modifier dans vos contacts svp ?"):
+            self.assertEqual(self.bucket(text), "auto_reply", text[:40])
+
+    def test_french_noes(self):
+        for text in ("Non du tout merci beaucoup\n\nCordialement,\n\nNoé - ATECH\nTéléphone : ?",
+                     "Bonjour\nPas très convaincant comme approche, il faudrait déjà apprendre "
+                     "à envoyer des mails qui ne partent pas dans les spams",
+                     "désolé mais a ce tarif sachant que sur du rdv non recommandé le taux de "
+                     "transformation tourne à 10% ?",
+                     "bonjour Caleb.\n\nOn ne commence pas, cela me convient mieux. merci.\n\n"
+                     "Je reste à votre disposition ?"):
+            self.assertEqual(self.bucket(text), "negative", text[:40])
+
+    def test_a_booking_through_someone_else_is_still_a_booking(self):
+        self.assertEqual(self.bucket("Pourquoi ce n'est pas avec vous que j'ai RDV quand je "
+                                     "clique sur le calendly ?"), "booked")
+
+    def test_real_questions_and_yeses_still_send(self):
+        self.assertEqual(self.bucket("Bonjour,\n\nPourquoi pas ! Quels sont vos tarifs ?\n\n"
+                                     "Merci !\n<https://htmlsig.com/t/0001>"), "send_info")
+        self.assertEqual(self.bucket("Bonjour,\n\nOui, je veux bien plus d'explication.\n\n"
+                                     "Cordialement,\n\nDe : Tanner Fox\nEnvoyé : lundi"),
+                         "send_info")
+        self.assertEqual(self.bucket("Hi Pete,\n\nAny reference / resource presenting your "
+                                     "work that I could review?\n\nThanks,"), "question")
 
 
 if __name__ == "__main__":

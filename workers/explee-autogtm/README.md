@@ -110,6 +110,20 @@ interface:
   above its machine ledger.
 - **To see everything at once:** `/autogtm-report`, or `reports/latest.md`.
 
+Two things the first real dry run (6 September, 158 replied threads) taught
+it, both now in the code:
+
+- **Explee's auto-reply is already ON for this project** (delay 0), so every
+  fresh reply gets an AI answer within minutes. The loop therefore never
+  answers a fresh reply itself while that is on — it waits a day, and its job
+  is the nudge afterwards: 2 days after the answer, then a final one 5 days
+  later that asks for a plain yes or no. A reply that is a real **question** is
+  never answered from a template in either mode; the page flags it *ANSWER THIS
+  ONE YOURSELF*.
+- **Explee sends as invented personas** ("Pete" at getliftember.com), and an
+  API reply goes out from that same mailbox. So the nudge signs as the name the
+  lead wrote to — read off their own greeting ("Hi Pete,") — never as Eliasse.
+
 It runs every morning at 07:00 UTC as a **dry run** — the page and the report
 show exactly what it would have sent. To arm it: Settings → Secrets and
 variables → Actions → **Variables** → `EXPLEE_APPLY` = `true`. From then on a

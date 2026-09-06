@@ -244,9 +244,14 @@ class Explee:
             body={"message": message})
 
     def get_note(self, campaign_id, person_id):
-        got = self.request(
-            "GET", "/public/api/v1/autogtm/campaigns/{}/inbox/{}/note".format(
-                campaign_id, person_id))
+        try:
+            got = self.request(
+                "GET", "/public/api/v1/autogtm/campaigns/{}/inbox/{}/note".format(
+                    campaign_id, person_id))
+        except ExpleeError as err:
+            if err.status == 404:           # seen live: a replied contact with no note row
+                return None
+            raise
         return first_of(got, "note", default=None)
 
     def set_note(self, campaign_id, person_id, note):

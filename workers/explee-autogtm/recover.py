@@ -216,6 +216,36 @@ def thread_view(thread):
     return messages, bool(first_of(thread, "can_reply", default=False))
 
 
+GREETING = re.compile(r"^\s*(?:hi|hello|hey|dear|bonjour|salut|hallo)\s*,?\s+"
+                      r"(?P<name>[A-Z][\w'\-]+)\s*[,.!:\-]", re.I | re.M)
+
+
+def persona_name(messages, fallback):
+    """The name Explee's mailbox signs as, read off the thread.
+
+    Explee sends every campaign email from an invented persona - "Pete" at
+    p@getliftember.com - and a reply through the API goes out from that same
+    mailbox. A follow-up signed "Eliasse" under "Pete"'s address reads as two
+    people, so the nudge signs as the persona. The lead's own greeting is the
+    most reliable source ("Hi Pete,"); failing that, the last short line of our
+    first email; failing that, the configured sender.
+    """
+    for msg in messages:
+        if msg["direction"] == "in":
+            match = GREETING.search(msg.get("text") or "")
+            if match:
+                return match.group("name").strip()
+            break
+    for msg in messages:
+        if msg["direction"] == "out":
+            lines = [l.strip() for l in (msg.get("text") or "").strip().splitlines() if l.strip()]
+            if lines and 1 <= len(lines[-1].split()) <= 3 and len(lines[-1]) <= 30 \
+                    and lines[-1][0].isupper() and not lines[-1].endswith(("?", ".", "!")):
+                return lines[-1]
+            break
+    return fallback
+
+
 def person_fields(row, thread):
     """first name / company / email, from whichever of the two payloads has them."""
     def look(*keys):
@@ -299,6 +329,7 @@ def decide(row, thread, note, cfg, booked, calendar_views, now):
     if bucket in fu.SILENT:
         return dict(context, action="skip", reason="{} - {}".format(bucket, why),
                     bucket=bucket, who=who, next_action="none - {}".format(bucket))
+    persona = persona_name(messages, cfg.get("copy", {}).get("sender", ""))
 
     # --- they spoke last: answer them ---------------------------------------
     if replies_sent == 0:
@@ -311,8 +342,21 @@ def decide(row, thread, note, cfg, booked, calendar_views, now):
             return dict(context, action="queue", bucket=bucket, why=why, who=who,
                         due=when.isoformat(), note=write_marker(note, entries, language),
                         next_action="re-engage on {}".format(when.isoformat()))
+        if bucket in fu.NEEDS_HUMAN:
+            return dict(context, action="skip", bucket=bucket, who=who,
+                        reason="question - needs a real answer, not a template",
+                        next_action="ANSWER THIS ONE YOURSELF in the inbox")
+        # Explee's own auto-reply answers a fresh reply within minutes when it is
+        # on. Then the job here is only the nudge, later. It gets a day: a reply
+        # still unanswered after that is one the auto-reply will not handle.
+        if cfg.get("auto_reply"):
+            last_at = messages[last].get("at")
+            if last_at is None or (now - last_at).total_seconds() < 86400:
+                return dict(context, action="skip", bucket=bucket, who=who,
+                            reason="fresh reply - Explee's auto-reply answers first",
+                            next_action="waiting for Explee's auto-reply")
         return dict(context, **_send(who, bucket, why, key, entries, note, cfg, now,
-                                     language))
+                                     language, persona))
 
     # --- we spoke last: they went quiet -------------------------------------
     wrote_at = last_outbound_at(messages, entries, now)
@@ -330,22 +374,26 @@ def decide(row, thread, note, cfg, booked, calendar_views, now):
             return dict(context, action="skip", reason="queued until {}".format(due),
                         who=who, next_action="re-engage on {}".format(due))
         return dict(context, **_send(who, "re_engage", "re-engage due {}".format(due),
-                                     queued[-1]["msg"], entries, note, cfg, now, language))
+                                     queued[-1]["msg"], entries, note, cfg, now, language,
+                                     persona))
 
     wait = NUDGE_AFTER_DAYS[min(replies_sent, len(NUDGE_AFTER_DAYS)) - 1]
     if waited < wait:
         return dict(context, action="skip", who=who,
                     reason="nudge {} due in {:.1f}d".format(replies_sent, wait - waited),
                     next_action=(now + dt.timedelta(days=wait - waited)).date().isoformat())
-    return dict(context, **_send(who, "nudge", "no answer for {:.0f}d after our reply {}".format(
-        waited, replies_sent), key, entries, note, cfg, now, language))
+    kind = "nudge_last" if replies_sent >= MAX_REPLIES_PER_INBOUND - 1 else "nudge"
+    return dict(context, **_send(who, kind, "no answer for {:.0f}d after our reply {}".format(
+        waited, replies_sent), key, entries, note, cfg, now, language, persona))
 
 
-def _send(who, bucket, why, key, entries, note, cfg, now, language="en"):
+def _send(who, bucket, why, key, entries, note, cfg, now, language="en", persona=None):
     slots = [fu.say_slot(s, language)
              for s in fu.two_slots(now, cfg.get("timezone", "UTC"),
                                    tuple(cfg.get("slot_hours", fu.SLOT_HOURS)))]
     ctx = dict(cfg.get("copy", {}), slots=slots, **who)
+    if persona:
+        ctx["sender"] = persona
     message = fu.compose(bucket, ctx, language)
     entries = entries + [{"at": now.strftime("%Y-%m-%dT%H:%MZ"), "bucket": bucket,
                           "msg": key, "action": "sent"}]
@@ -571,6 +619,16 @@ def run_project(api, cfg, args, now, out=sys.stdout):
 
     hot = collect_hot_leads(api, campaigns, project_id)
     print("  {} hot leads flagged by Explee".format(len(hot)), file=out)
+    if project_id and "auto_reply" not in cfg:
+        try:
+            cfg["auto_reply"] = bool(first_of(api.autopilot(project_id), "auto_reply_enabled",
+                                              default=False))
+        except (ExpleeError, ShapeError) as err:
+            print("  !! autopilot settings unreadable ({}); assuming no auto-reply".format(err),
+                  file=out)
+            cfg["auto_reply"] = False
+    print("  Explee auto-reply is {}".format("ON - fresh replies are left to it" if cfg.get(
+        "auto_reply") else "OFF - fresh replies get answered here"), file=out)
     sheet, excluded, sheet_note = None, set(), ""
     if csv_url or webapp:
         # A sheet that is configured but unreadable stops the run: someone may have
