@@ -51,7 +51,9 @@ MIN_GAIN = 0.15            # do not touch a live sequence for less than a 15% cu
 MIN_REPLIES = 30           # below this the step shares are noise
 MIN_POSITIVE = 12          # positives decide when there are enough of them
 MIN_SHARE = 0.8            # a cut must keep 80% of the replies per lead
-SETTLED_DAYS = 14          # a thread this old has received its whole sequence
+SETTLED_DAYS = None        # derived from the sequence: (emails-1) x delay + 2; --settled-days overrides
+SETTLE_MARGIN = 2          # days after the last send for the reply to arrive
+FALLBACK_SETTLED = 14      # when the delay cannot be read off the campaign
 
 
 # --- reading one thread ------------------------------------------------------
@@ -93,7 +95,7 @@ def bucket_of(text):
 
 
 # --- the tally ---------------------------------------------------------------
-def tally_steps(threads, now, settled_days=SETTLED_DAYS):
+def tally_steps(threads, now, settled_days=FALLBACK_SETTLED):
     """threads: iterable of thread payloads -> counts by step.
 
     Returns {"replies": {step: n}, "positive": {step: n}, "auto": n,
@@ -154,6 +156,28 @@ def sequence_length(followups):
             return len(steps) + 1
     raise ShapeError("cannot read a sequence length from followups={!r}. Add its shape to "
                      "sequence_length() in sequence.py.".format(followups))
+
+
+def settle_window(followups, override=None):
+    """Days after the first email by which the whole sequence has gone out and
+    had time to be answered. Explee's field: {"max_touches": 2, "delay_days": 3}
+    -> 2 x 3 + 2 = 8 days. A fixed 14 excluded every thread of a two-week-old
+    campaign, which is how this function came to exist."""
+    if override:
+        return override
+    try:
+        emails = sequence_length(followups)
+    except ShapeError:
+        return FALLBACK_SETTLED
+    delay = None
+    if isinstance(followups, dict):
+        for key in ("delay_days", "interval_days", "days_between", "gap_days", "delay"):
+            if isinstance(followups.get(key), (int, float)):
+                delay = followups[key]
+                break
+    if delay is None:
+        return FALLBACK_SETTLED
+    return int((emails - 1) * delay + SETTLE_MARGIN)
 
 
 def shortened(followups, emails):
@@ -219,9 +243,9 @@ def recommend(tally, current, min_gain=MIN_GAIN):
 
 
 # --- output ------------------------------------------------------------------
-def print_report(name, cid, current, tally, out=sys.stdout, followups=None):
-    print("\n== {} ({}) - {} emails in the sequence (followups={})".format(
-        name, cid, current, json.dumps(followups)), file=out)
+def print_report(name, cid, current, tally, out=sys.stdout, followups=None, settled=None):
+    print("\n== {} ({}) - {} emails in the sequence (followups={}), settled after {}d".format(
+        name, cid, current, json.dumps(followups), settled), file=out)
     steps = sorted(set(tally["replies"]) | set(tally["positive"]) | set(range(1, current + 1)))
     print("  {:<6}{:>9}{:>11}{:>12}".format("step", "replies", "positive", "cum. share"),
           file=out)
@@ -275,6 +299,7 @@ def measure_campaign(api, cid, now, settled_days, out=sys.stdout):
     name = first_of(definition, "name", default=cid)
     followups = first_of(definition, "followups", "follow_ups", "sequence")
     current = sequence_length(followups)
+    settled_days = settle_window(followups, settled_days)
     threads = []
     for row in api.inbox_all(cid, tab="replied"):
         pid = first_of(row, "person_id", "id", "lead_id")
@@ -283,10 +308,11 @@ def measure_campaign(api, cid, now, settled_days, out=sys.stdout):
         except (ShapeError, ExpleeError) as err:
             print("  !! {}: {}".format(pid, err), file=out)
     tally = tally_steps(threads, now, settled_days)
-    pick = print_report(name, cid, current, tally, out=out, followups=followups)
+    pick = print_report(name, cid, current, tally, out=out, followups=followups,
+                        settled=settled_days)
     _, _, _, why = recommend(tally, current)
     return {"campaign_id": cid, "name": name, "emails": current, "followups": followups,
-            "tally": tally, "recommend": pick, "why": why}
+            "settled_days": settled_days, "tally": tally, "recommend": pick, "why": why}
 
 
 def cmd_measure(args):

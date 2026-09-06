@@ -1085,6 +1085,12 @@ class RealShapes(unittest.TestCase):
         self.assertEqual(recover.decide({}, self.THREAD, None, CFG, set(), set(), soon)["action"],
                          "skip")
 
+    def test_the_settle_window_comes_from_the_sequence(self):
+        self.assertEqual(sq.settle_window({"max_touches": 2, "delay_days": 3}), 8)
+        self.assertEqual(sq.settle_window({"max_touches": 2, "delay_days": 3}, 14), 14)
+        self.assertEqual(sq.settle_window([{"x": 1}]), sq.FALLBACK_SETTLED)
+        self.assertEqual(sq.settle_window("?"), sq.FALLBACK_SETTLED)
+
     def test_the_sequence_field(self):
         self.assertEqual(sq.sequence_length({"max_touches": 2, "delay_days": 3}), 3)
         self.assertEqual(sq.shortened({"max_touches": 2, "delay_days": 3}, 2),
