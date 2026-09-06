@@ -1392,5 +1392,32 @@ class PrequalifyBalance(unittest.TestCase):
             pq.require_balance(api, 7350)
 
 
+class PrequalifyLearning(unittest.TestCase):
+    REAL = {"target_company_size": "Petites agences (5–30), Agences marketing, Agences web, "
+                                   "Agences digitales, Cabinets de recrutement, Organismes de "
+                                   "formation, exclude Entreprises (51–500), exclude E-commerce"}
+
+    def test_the_campaign_list_becomes_the_definition(self):
+        got = pq.definition_from_target(self.REAL, {"definition": "marketing agency",
+                                                    "size": {"min": 5, "max": 30}})
+        self.assertTrue(got["definition"].startswith("Petites agences (5–30), Agences marketing"))
+        self.assertIn("Organismes de formation", got["definition"])
+        self.assertEqual(got["definition_exclude"], "Entreprises (51–500), E-commerce")
+        self.assertEqual(got["size"], {"min": 5, "max": 30})
+        # a short free-text size is left to nl-to-filters
+        short = pq.definition_from_target({"target_company_size": "50-500 employees"},
+                                          {"definition": "x"})
+        self.assertEqual(short["definition"], "x")
+
+    def test_the_score_report_names_the_killer_criterion(self):
+        people = [{"criteria": [{"score": 5}, {"score": 4}, {"score": 1}]}] * 10 + \
+                 [{"criteria": [{"score": 4}, {"score": 4}, {"score": 4}]}] * 2
+        report = pq.score_report(people, ["founder-led", "contract value", "outbound intent"], 4)
+        self.assertEqual(report["per_criterion"]["outbound intent"], {"1": 10, "4": 2})
+        self.assertEqual(report["would_keep"]["every >= 4"], 2)
+        self.assertEqual(report["would_keep"]["two of three >= 4"], 12)
+        self.assertEqual(report["would_keep"]["lowest criterion dropped, every >= 4"], 12)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
