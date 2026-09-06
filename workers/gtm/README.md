@@ -301,49 +301,60 @@ danger style behind a confirm.
 **Download n8n workflow** on the Run screen renders everything on these screens
 as an importable flow. `end-to-end.n8n.json` in this directory is that file
 with placeholder keys. Import it as a **new** workflow, pick your OpenRouter
-credential on the Model node, fill the placeholders in Config, run.
+credential on the Model node, fill the three placeholders in Config, run.
 
 ```
 Start -> Config -> Instantly: check campaign
-      -> Explee: nl-to-filters -> Filters -> Explee: search companies -> Domains
-      -> People at each domain -> Qualify
-      -> Signals: start -> Wait for the agents -> Signals: collect
-      -> One item per lead -> Loop Over Items <-> LinkFinder: fill missing emails
+      -> Explee: nl-to-filters -> Filters -> Explee: search people -> Qualify
+      -> Signals: start -> Wait -> Signals: collect -> One item per lead
+      -> Loop Over Items <-> LinkFinder: fill missing emails
       -> Write the email (+ Model) -> Build the lead -> Send? -> Instantly: add leads
 ```
 
-Twenty nodes (seventeen with your own domain list). **Runs dry by default** —
-`dry_run` in Config — which writes every email and never calls Instantly. Read
-them in `Build the lead`. Flip the Mode on the Run screen to send.
+Eighteen nodes. **Runs dry by default** — `dry_run` in Config — which writes
+every email and never calls Instantly. Read them in `Build the lead`. Flip the
+Mode on the Run screen to send.
 
-#### Built for a thousand leads a run
+#### Why it searches for people, not companies
 
-n8n kills a Code node at 300 seconds, and three steps would blow that at
-volume. Each is restructured rather than sped up:
+The first real company search taught two things at once. The prose definition
+matched **1,143,676 companies** — the geography inside the sentence was
+ignored, so Explee returned Microsoft's ESIC, McDonald's Hamburger University
+and the Smithsonian for a French training-company ICP. And the `domain` on a
+company row is the **parent's**: "ESIC - Centre de formation" sits on
+`microsoft.com`, three Indonesian centres share `kemnaker.go.id`, a GRETA sits
+on the académie's domain. Domain → people therefore hands you the parent's
+staff. That, not the filters, was the root of every wrong lead.
 
-| Step | At 1,000 leads | How |
-| --- | --- | --- |
-| People at each domain | ~450 companies | `people-by-domains` is a **bulk** endpoint: one call per 100 domains, rows mapped back by `company_domain`. LinkFinder covers the domains Explee leaves empty, capped at 40. |
-| Buying triggers | ~800 agent runs | **start → Wait 120s → collect.** One node fires every run in 8 parallel lanes, a Wait, one node fetches every result once. A thousand async jobs, no polling loop. Runs still pending after the wait are left without a signal and counted in the log. |
-| Email resolution | 1,000 lookups | `Loop Over Items`, batches of 60, four concurrent lookups per batch. Each batch is its own Code node run. The loop is over a finite list and terminates by construction — unlike the Wait/If poll on an external job that hung the early versions. |
-| Instantly | 1,000 leads | posted in chunks of 100 from a Code node, `skip_if_in_workspace` on |
+So the flow no longer joins on domain. `nl-to-filters` turns the ICP into
+Explee's structured filters (countries, size, definition); `Explee: search
+people` sends those as `company_filters` with the target roles as
+`people_filters`, and Explee joins person to company on its own identity. Each
+row arrives with its company fields, `Qualify` applies the ICP bounds per
+person — literal title word, country, size ceiling, sales-team ceiling, revenue
+ceiling, criterion score — ranks, and keeps `max_leads`.
 
-`max_leads` (Campaign screen, default 1,000) sizes the company search too:
-`page_size` ≈ 45% of it, because about a third of the people found survive
-Qualify and resolve to an address. Expect a thousand-lead run to take about an
-hour, most of it the writer, and cost roughly $50: ~$4 companies, ~$16 people,
-~$4 triggers, ~$19 addresses, ~$8 writing.
+Three more things the real response settled:
 
-#### The intent goes first
+- `criteria` comes back as an **object keyed by the criterion text**, not an
+  array. The old parser saw no array and never filtered on score.
+- "Equipe commerciale de moins de 5" scored **1 "not mentioned" on every one of
+  the 25 rows** — but `employees_by_department.employees_count_sales` is in the
+  row. Numeric bounds in your criteria ("moins de 5", "plus de 200 salariés")
+  are now read out and applied as numbers, and not sent to the AI (+0.1 credit
+  each, for nothing).
+- `hiring: true/false` is in the company row for free. It counts as a buying
+  trigger, and companies the search already flags are not spent an agent run.
 
-The prompt now has a section on reading the signal as a buyer would — hiring
-means the team is stretched and delivery will crowd out prospecting; a raise
-means budget and pressure; news means something to sell more of; a quiet
-company is not mentioned — and the first sentence of the email *is* that fact,
-stated plainly, never "I noticed" or "congratulations". Length is 50–80 words
-with a hard ceiling of 90; the example in the prompt is 50. Subject three to
-five words. The model echoes the lead's email, name and company so pairing
-never depends on item order.
+Your own domain list still works (Campaign screen) — it goes companies →
+people, and where the row carries a `linkedin_id` LinkFinder lists the entity's
+own LinkedIn page rather than the parent's domain.
+
+**Two things to read on the first real run.** The `Filters` node log says
+whether `nl-to-filters` produced structured filters or fell back to prose; the
+`Explee: search people` log prints the exact request and `meta.total`. If total
+is in the hundreds of thousands, the country is not reaching the request, and
+`page_size` should stay at 100 (free) until it does.
 
 #### Where the node bodies live
 

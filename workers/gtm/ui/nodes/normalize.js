@@ -15,13 +15,33 @@ if (!rows.length) throw new Error('No people reached the writer. Upstream answer
 // company is the most expensive kind to keep. On by default whenever trigger
 // agents are configured; the drop is logged and, if it takes everyone, the
 // error says so rather than sending nothing quietly.
-if (cfg.require_signal && (cfg.signal_agents || []).length) {
-  const withSignal = rows.filter(r => r.signal && Object.keys(r.signal).length);
+// A trigger is anything current and true about the company: what the agents
+// found, or what the search itself said — hiring, a recent round, growth.
+const builtIn = r => {
+  const s = {};
+  if (r._company_hiring === true) s.hiring = 'the company is hiring right now';
+  if (r._company_funding_date && /^\d{4}-\d{2}/.test(String(r._company_funding_date))) {
+    const months = (Date.now() - new Date(r._company_funding_date).getTime()) / 2.6e9;
+    if (months <= 18) s.funding = 'raised' + (r._company_funding_amount ? ' ' + Math.round(r._company_funding_amount / 1e6) + 'M' : '') + ' in ' + String(r._company_funding_date).slice(0, 7);
+  }
+  if (typeof r._company_traffic_growth === 'number' && r._company_traffic_growth >= 30) s.growth = 'web traffic up ' + r._company_traffic_growth + '% year on year';
+  return s;
+};
+rows = rows.map(r => { const b = builtIn(r); const sig = { ...b, ...(r.signal || {}) }; return Object.keys(sig).length ? { ...r, signal: sig } : r; });
+
+const withSignal = rows.filter(r => r.signal && Object.keys(r.signal).length);
+const agentsOn = (cfg.signal_agents || []).length > 0;
+if (cfg.require_signal && !agentsOn && !withSignal.length) {
+  // Nothing can feed the gate: no agents were run and the search reported no
+  // hiring / funding / growth on any company. Applying it would drop everyone
+  // for lack of data, not for lack of a trigger — so it is skipped, loudly.
+  console.log('Signal gate skipped: require_signal is on but no agents are configured and the search reported no trigger on any of ' + rows.length + ' companies. Add a signal agent in the console to filter on intent.');
+} else if (cfg.require_signal) {
   console.log('Signal gate: ' + withSignal.length + ' of ' + rows.length + ' leads have a live trigger; the rest are not emailed');
   if (!withSignal.length) {
-    throw new Error('None of ' + rows.length + ' qualified leads has a trigger from ' + cfg.signal_agents.join(', ') +
-      '. Either the agents returned nothing (check the Signals: collect log — was the Wait long enough?) or this segment is quiet. ' +
-      'Set require_signal false in Config to email them anyway.');
+    throw new Error('None of ' + rows.length + ' qualified leads has a trigger — not hiring, no recent round, no traffic growth, and nothing from ' +
+      ((cfg.signal_agents || []).join(', ') || 'the agents (none configured)') +
+      '. Check the Signals: collect log (was the Wait long enough?), or set require_signal false in Config to email them anyway.');
   }
   rows = withSignal;
 }

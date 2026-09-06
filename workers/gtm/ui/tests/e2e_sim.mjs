@@ -15,7 +15,7 @@ const CFG = {
   icp:'organisme de formation or centre de formation in France, Belgique, Luxembourg',
   definition:'organisme de formation, centre de formation', countries:['FR','BE','LU'], page_size:40,
   criteria:['Vente B2B active','Equipe commerciale de moins de 5','is NOT: Formation purement subventionnee'],
-  min_criterion_score:3, min_company_size:0, domains:[],
+  min_criterion_score:3, min_company_size:0, max_company_size:200, max_sales_team:5, max_revenue:50000000, domains:[],
   job_titles:['Dirigeant','responsable commercial'], seniority:'director', per_company:4, people_budget_seconds:200,
   title_keywords:[], title_exclude:[], max_leads:30,
   signal_agents:['active_hiring'], signal_budget_seconds:120, signal_max_companies:25,
@@ -41,7 +41,7 @@ const companies = { companies: [
 ]};
 // Explee people row: the real Yury Sychev shape, adapted per company
 const expleePerson = (first, last, title, dom, company, geo, sc) => ({ first_name:first, last_name:last, title, headline:`${title} @ ${company}`,
-  linkedin_url:`https://www.linkedin.com/in/${first.toLowerCase()}`, geo, company_name:company, company_domain:dom, company_size:'201-500',
+  linkedin_url:`https://www.linkedin.com/in/${first.toLowerCase()}`, geo, company_name:company, company_domain:dom, company_size:'51-200',
   company_description:'Organisme de formation', follower_count:120, company_industries_nace:[{code:'P85.5.9'}], criteria:[{score:sc}] });
 const peopleAt = {
   'demos.fr': [ expleePerson('Claire','Martin','Directrice commerciale','demos.fr','Demos','FR',5),
@@ -60,6 +60,7 @@ const httpFake = async o => {
   const u = o.url;
   // bulk: one call for a chunk of domains, rows carry company_domain
   if (u.includes('/people-by-domains')) return { people: o.body.domains.flatMap(d => peopleAt[d] || []) };
+  if (u.endsWith('/search/people')) return { people: Object.values(peopleAt).flat(), meta: { total: 4120, credits_charged: 0, remaining_balance: 2499 } };
   if (u.endsWith('api.linkfinderai.com') && o.body.type === 'company_domain_to_employees') return { job_id:'j1', poll_url:'https://api.linkfinderai.com/status/j1' };
   if (u.includes('/status/j1')) return { status:'done', result: lfEmployees };
   if (u.endsWith('api.linkfinderai.com') && o.body.type === 'linkedin_profile_to_email') {
@@ -75,11 +76,10 @@ const ctx = { helpers: { httpRequest: httpFake } };
 
 await run('Instantly: check campaign', 'check_campaign.js', [CFG], ctx);
 await run('Filters', 'filters.js', [nlToFilters], ctx);
-console.log('    filters sent:', JSON.stringify(store['Filters'][0]));
-await run('Domains', 'domains.js', [companies], ctx);
-console.log('    domains:', store['Domains'].map(d => d.domain + (d.score!=null?'('+d.score.toFixed(1)+')':'')));
-await run('People at each domain', 'people.js', store['Domains'], ctx);
-await run('Qualify', 'qualify.js', store['People at each domain'], ctx);
+console.log('    filters sent:', JSON.stringify(store['Filters'][0]).slice(0, 200));
+await run('Explee: search people', 'people_search.js', store['Filters'], ctx);
+console.log('    people:', store['Explee: search people'][0].people.map(p => p.first_name + ' ' + (p.title||'') + ' @' + p._company + ' [' + p.geo + ']'));
+await run('Qualify', 'qualify.js', store['Explee: search people'], ctx);
 console.log('    kept:', store['Qualify'][0].people.map(p => (p.first_name||p.firstName)+' '+(p.title||p.jobTitle)+' ['+(p.geo||p.country)+'] s='+p._score));
 await run('Signals: start', 'signals_start.js', store['Qualify'], ctx);
 console.log('    runs started:', store['Signals: start'][0].runs.length);

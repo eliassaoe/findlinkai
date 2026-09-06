@@ -18,6 +18,9 @@ const want = ((cfg.title_keywords || []).length ? cfg.title_keywords : derived).
 const banned = (cfg.title_exclude || []).map(norm).filter(Boolean);
 const allowed = (cfg.countries || []).map(c => String(c).toUpperCase());
 const floor = Number(cfg.min_company_size) || 0;
+const ceiling = Number(cfg.max_company_size) || 0;
+const maxSales = Number(cfg.max_sales_team) || 0;
+const maxRevenue = Number(cfg.max_revenue) || 0;
 const minScore = Number(cfg.min_criterion_score) || 0;
 
 const titleOf = p => norm(p.job_title || p.jobTitle || p.title) + ' ' + norm(p.headline);
@@ -31,6 +34,7 @@ const iso = v => { const s = String(v || '').trim(); if (!s) return '';
   if (/^[A-Za-z]{2}$/.test(s)) return s.toUpperCase(); return ISO[s.toLowerCase()] || ''; };
 const countryOf = p => iso(p.geo || p.country_code || p.country || p._company_country);
 const size = p => {
+  if (typeof p._company_size === 'number') return p._company_size;
   const nums = String(p.company_size || p.companySize || '').replace(/[,\s]/g, '').match(/\d+/g);
   return nums ? Math.max(...nums.map(Number)) : null;
 };
@@ -38,13 +42,15 @@ const size = p => {
 // two soft yeses — their log calls that out too.
 const score = p => {
   const c = p.criteria || p.criteria_scores || p.scores;
-  if (!Array.isArray(c) || !c.length) return null;
-  const v = c[0];
+  if (!c) return null;
+  const list = Array.isArray(c) ? c : Object.values(c);   // real shape: object keyed by criterion text
+  if (!list.length) return null;
+  const v = list[0];
   const n = Number(typeof v === 'object' ? (v.score ?? v.value) : v);
   return isNaN(n) ? null : n;
 };
 
-const dropped = { title: 0, banned: 0, country: 0, size: 0, score: 0, noname: 0 };
+const dropped = { title: 0, banned: 0, country: 0, size: 0, sales_team: 0, revenue: 0, score: 0, noname: 0 };
 const kept = [];
 for (const p of people) {
   const name = p.full_name || p.name || [p.first_name || p.firstName, p.last_name || p.lastName].filter(Boolean).join(' ');
@@ -56,6 +62,9 @@ for (const p of people) {
   if (allowed.length && cc && !allowed.includes(cc)) { dropped.country++; continue; }
   const n = size(p);
   if (floor && n !== null && n < floor) { dropped.size++; continue; }
+  if (ceiling && n !== null && n > ceiling) { dropped.size++; continue; }
+  if (maxSales && typeof p._company_sales_team === 'number' && p._company_sales_team > maxSales) { dropped.sales_team++; continue; }
+  if (maxRevenue && typeof p._company_revenue === 'number' && p._company_revenue > maxRevenue) { dropped.revenue++; continue; }
   const sc = score(p);
   if (minScore && sc !== null && sc < minScore) { dropped.score++; continue; }
   kept.push({ ...p, _score: sc, _name: name });

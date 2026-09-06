@@ -24,7 +24,9 @@ const covered = new Set();
 const push = (p, via, domain) => {
   const m = meta[domain] || {};
   out.push({ ...p, source: via, company_domain: domain, _company: m.company, _company_score: m.score,
-             _company_what: m.what, _company_country: m.country });
+             _company_what: m.what, _company_country: m.country, _company_size: m.size,
+             _company_hiring: m.hiring, _company_funding_date: m.funding_date, _company_funding_amount: m.funding_amount,
+             _company_traffic_growth: m.traffic_growth });
 };
 
 // 1. Explee, in chunks of domains.
@@ -66,9 +68,14 @@ if (hasLf && gaps.length) {
   for (const domain of gaps.slice(0, lfCap)) {
     if (left() < 30000) break;
     let r;
+    // The entity's own LinkedIn page is the precise key; the domain may be a parent's.
+    const m = meta[domain] || {};
+    const req = m.linkedin_id
+      ? { type: 'linkedin_company_to_employees', input_data: 'https://www.linkedin.com/company/' + m.linkedin_id }
+      : { type: 'company_domain_to_employees', input_data: domain };
     try {
       r = await http({ method: 'POST', url: LF, headers: auth, json: true, timeout: 30000, body: {
-        type: 'company_domain_to_employees', input_data: domain, seniority: cfg.seniority, employee_count: cfg.per_company } });
+        ...req, seniority: cfg.seniority, employee_count: cfg.per_company } });
     } catch (e) { continue; }
     for (let n = 0; r && r.job_id && !r.result && n < 6 && left() > 25000; n++) {
       await sleep(8000);

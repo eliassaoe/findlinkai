@@ -1,33 +1,38 @@
 // Turn the ICP into Explee's own structured filter object.
 //
-// The previous flow sent the ICP as a prose `definition` with the geography
-// mashed into the sentence, and Explee returned Microsoft for a French
-// training-company ICP. `definition` is meant to be a company type ("real
-// estate company"); countries and size are separate filters. nl-to-filters
-// is Explee's free converter from prose to that object, and their own agent
-// uses it — so use it, and fall back to prose only if it fails.
+// The first real search proved the point: a prose definition matched
+// 1,143,676 companies and the geography inside the sentence was ignored.
+// nl-to-filters is Explee's free converter from prose to the structured
+// object their own agent uses. This keeps BOTH halves it may return —
+// company_filters and people_filters — and falls back to prose only if it
+// gave nothing, saying so in the log.
 const cfg = $('Config').first().json;
 const nl = $input.first().json || {};
 
-// The HTTP node before this one continues on error, so a failure arrives
-// here as { error } rather than stopping the flow.
-const fromNl = !nl.error && (nl.filters || nl.company_filters ||
-  (nl.definition || nl.countries || nl.industries ? nl : null));
+const pick = o => {
+  if (!o || typeof o !== 'object' || o.error) return null;
+  if (o.company_filters || o.people_filters) return { company_filters: o.company_filters || {}, people_filters: o.people_filters || {} };
+  if (o.filters && typeof o.filters === 'object') return { company_filters: o.filters, people_filters: {} };
+  // A flat object of filter fields
+  const keys = Object.keys(o).filter(k => !['query', 'explanation', 'reasoning', 'success', 'meta'].includes(k));
+  return keys.length ? { company_filters: Object.fromEntries(keys.map(k => [k, o[k]])), people_filters: {} } : null;
+};
 
-let filters;
-if (fromNl && typeof fromNl === 'object') {
-  filters = { ...fromNl };
-  for (const k of ['query', 'explanation', 'reasoning', 'people_filters']) delete filters[k];
-  console.log('Filters from nl-to-filters: ' + JSON.stringify(filters).slice(0, 300));
+let out = pick(nl);
+if (out) {
+  console.log('Filters from nl-to-filters — company: ' + JSON.stringify(out.company_filters).slice(0, 400) +
+              ' | people: ' + JSON.stringify(out.people_filters).slice(0, 200));
 } else {
-  filters = { definition: cfg.definition };
-  console.log('nl-to-filters gave nothing usable' + (nl.error ? ' (' + JSON.stringify(nl.error).slice(0, 120) + ')' : '') +
-              ' — falling back to definition: ' + cfg.definition);
+  out = { company_filters: { definition: cfg.definition }, people_filters: {} };
+  console.log('nl-to-filters gave nothing usable' + (nl.error ? ' (' + JSON.stringify(nl.error).slice(0, 200) + ')' : ' (response: ' + JSON.stringify(nl).slice(0, 200) + ')') +
+              ' — FALLING BACK TO PROSE. The country and size will not be applied in the request; expect a very large match count.');
 }
-if (!filters.definition) filters.definition = cfg.definition;
+if (!out.company_filters.definition) out.company_filters.definition = cfg.definition;
+// Belt and braces: if the converter did not produce a country filter, add
+// the one field we are sure of the value for. The key name is the converter's
+// to decide; when it returned countries we keep its name, else we try the
+// plain one and the request log will show whether Explee accepted it.
+const hasCountry = Object.keys(out.company_filters).some(k => /countr|geo|location/i.test(k));
+if (!hasCountry && (cfg.countries || []).length) out.company_filters.countries = cfg.countries;
 
-// Criteria score companies 0-5 each. Explee 400s above three.
-const criteria = (cfg.criteria || []).slice(0, 3);
-if (criteria.length) filters.criteria = criteria;
-
-return [{ json: { filters, page_size: cfg.page_size } }];
+return [{ json: { ...out, filters: out.company_filters, page_size: cfg.page_size } }];

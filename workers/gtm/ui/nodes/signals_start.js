@@ -24,8 +24,12 @@ const chosen = wanted.map(w => [w, match(w)]);
 const missing = chosen.filter(([, a]) => !a).map(([w]) => w);
 if (missing.length) throw new Error('No Explee agent matches ' + missing.join(', ') + '. Available ids: ' + agents.map(a => a.id).join(', '));
 
+// The company search already says hiring true/false for free. Spend agent
+// runs only on companies it did not flag, unless told to run them on all.
+const known = new Set(cfg.agents_on_all ? [] : people.filter(p => p._company_hiring === true).map(p => String(p.company_domain || '').toLowerCase()));
 const domains = [...new Set(people.map(p => String(p.company_domain || '').toLowerCase()).filter(Boolean))]
-  .slice(0, Number(cfg.signal_max_companies) || 400);
+  .filter(d => !known.has(d)).slice(0, Number(cfg.signal_max_companies) || 400);
+if (known.size) console.log('Signals: ' + known.size + ' companies already flagged hiring by the search — no agent run for those');
 const jobs = [];
 for (const domain of domains) for (const [, agent] of chosen) jobs.push({ domain, agent: agent.id, key: agent.id.split('/').pop() });
 

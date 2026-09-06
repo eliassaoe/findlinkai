@@ -23,10 +23,10 @@ const ok = (label, cond) => console.log((cond ? '  ok   ' : '  FAIL ') + label);
 }
 // --- filters: nl-to-filters error falls back to definition --------------------
 {
-  const cfg = { definition:'organisme de formation', criteria:['a','b','c','d'], page_size:40 };
+  const cfg = { definition:'organisme de formation', countries:['FR','BE','LU'], page_size:100 };
   const out = await mk('filters.js').call({}, $of(cfg), items([{ error:{ message:'502' } }]), quiet);
-  ok('nl-to-filters error -> definition fallback, criteria capped at 3',
-     out[0].json.filters.definition === 'organisme de formation' && out[0].json.filters.criteria.length === 3);
+  ok('nl-to-filters error -> definition fallback; criteria no longer live here (they score people)',
+     out[0].json.filters.definition === 'organisme de formation' && !('criteria' in out[0].json.filters));
   const out2 = await mk('filters.js').call({}, $of(cfg), items([{ definition:'training company', countries:['FR'], query:'x', explanation:'y' }]), quiet);
   ok('flat nl response used, query/explanation stripped',
      out2[0].json.filters.countries[0] === 'FR' && !('query' in out2[0].json.filters));
@@ -122,8 +122,12 @@ const ok = (label, cond) => console.log((cond ? '  ok   ' : '  FAIL ') + label);
   ok('gate on: only the lead with a real trigger goes through (1 of 3)', on.length === 1 && on[0].json.full_name === 'A');
   const off = await mk('normalize.js').call({}, $of({ require_signal:false, signal_agents:['active_hiring'] }), items([{ people }]), quiet);
   ok('gate off: everyone qualified goes through', off.length === 3);
-  const noAgents = await mk('normalize.js').call({}, $of({ require_signal:true, signal_agents:[] }), items([{ people }]), quiet);
-  ok('gate on but no agents configured: not applied', noAgents.length === 3);
+  const bare = people.map(p => ({ ...p, signal: undefined }));
+  const noAgents = await mk('normalize.js').call({}, $of({ require_signal:true, signal_agents:[] }), items([{ people: bare }]), quiet);
+  ok('gate on, no agents, no trigger from the search anywhere: skipped, everyone passes', noAgents.length === 3);
+  const hiring = bare.map((p, i) => i === 1 ? { ...p, _company_hiring: true } : p);
+  const builtIn = await mk('normalize.js').call({}, $of({ require_signal:true, signal_agents:[] }), items([{ people: hiring }]), quiet);
+  ok('gate on, no agents, but the search says one company is hiring: that free trigger is enough (1 of 3)', builtIn.length === 1 && JSON.stringify(builtIn[0].json).includes('hiring right now'));
   try { await mk('normalize.js').call({}, $of({ require_signal:true, signal_agents:['active_hiring'] }), items([{ people: people.slice(1) }]), quiet); ok('gate takes everyone -> throws', false); }
   catch (e) { ok('gate takes everyone -> throws naming the fix', /require_signal false/.test(e.message)); }
 }
@@ -145,4 +149,57 @@ const ok = (label, cond) => console.log((cond ? '  ok   ' : '  FAIL ') + label);
   logs.length = 0;
   await mk('build_lead.js').call({}, $, items([{ output: JSON.stringify({ email:'c@demos.fr', subject:'s', body:'b', followup_1: Array(70).fill('mot').join(' '), followup_2:'ok' }) }]), log);
   ok('a 70-word follow-up is flagged against the 55 ceiling', logs.some(l => /follow-up 1 is 70 words/.test(l)));
+}
+
+// --- the real company response: domains are parents' domains, criteria is an object
+{
+  const { RESPONSE } = await import('./real_rows.mjs');
+  const cfg = { countries:['FR','BE','LU'], min_criterion_score:0, max_company_size:200, max_sales_team:5, max_revenue:50000000 };
+  const out = await mk('domains.js').call({}, $of(cfg), items([RESPONSE]), quiet);
+  const kept = out.map(i => i.json);
+  ok('real response: only Greta (FR, 175 people) survives country+size+revenue: ' + kept.map(k=>k.domain).join(','),
+     kept.length === 1 && kept[0].domain === 'ac-normandie.fr');
+  ok('the kept row carries linkedin_id for a precise people lookup', kept[0].linkedin_id === 69242996);
+  ok('microsoft.com dropped (revenue 305B on a 35-person entity)', !kept.some(k => k.domain === 'microsoft.com'));
+  // In this response the numeric criterion ("moins de 5 commerciaux") scored 1
+  // on every row, so no average reaches 3; the console no longer sends such
+  // criteria to Explee. A floor of 2 separates 1.7 (Microsoft) from 2.7.
+  const scored = await mk('domains.js').call({}, $of({ countries:[], min_criterion_score:2 }), items([RESPONSE]), quiet);
+  const sd = scored.map(i=>i.json.domain);
+  ok('criteria as an object keyed by text is read: score filter drops Microsoft (1,1,3 -> 1.7), keeps 2.7s: ' + sd.length + ' kept', !sd.includes('microsoft.com') && sd.includes('theknowledgeacademy.com') && sd[0] !== 'mcdonalds.com');
+  let threw = '';
+  try { await mk('domains.js').call({}, $of({ countries:[], min_criterion_score:3 }), items([RESPONSE]), quiet); } catch (e) { threw = e.message; }
+  ok('a floor nobody reaches throws and names the score drop count', /"score":12/.test(threw));
+  const unscored = await mk('domains.js').call({}, $of({ countries:[], min_criterion_score:0 }), items([RESPONSE]), quiet);
+  ok('hiring:true from the search is carried as a free signal', unscored.map(i=>i.json).filter(k => k.hiring === true).length === 3);
+}
+
+// --- the direct people search: filters into the request, rows carry company fields
+{
+  const seen = [];
+  const ctx = { helpers:{ httpRequest: async o => { seen.push(o.body); return { people: [
+    { first_name:'Anne', last_name:'Leroy', title:'Dirigeante', geo:'FR', company_name:'Cegos', company_domain:'https://www.cegos.fr/', company_size:'1001-5000',
+      company_description:'Formation', criteria:{ 'Vente B2B active': { score: 5 } } } ],
+    meta:{ total: 4120, credits_charged: 0, remaining_balance: 2499 } }; } } };
+  const cfg = { explee_key:'k', job_titles:['Dirigeant'], criteria:['Vente B2B active'], page_size:100 };
+  const filters = { company_filters:{ definition:'professional training company', countries:['FR','BE','LU'], criteria:['x'] }, people_filters:{ job_titles:['Dirigeant','Directeur commercial'] } };
+  const out = await mk('people_search.js').call(ctx, $of(cfg), items([filters]), quiet);
+  ok('request carries people_filters + company_filters + page_size, criteria on people not companies',
+     seen[0].page_size === 100 && seen[0].company_filters.countries[0] === 'FR' && !('criteria' in seen[0].company_filters) && seen[0].people_filters.criteria[0] === 'Vente B2B active');
+  ok('nl-to-filters job titles win over the console list when present', seen[0].people_filters.job_titles.length === 2);
+  const p = out[0].json.people[0];
+  ok('row normalised: domain cleaned, company fields lifted to _company_*', p.company_domain === 'cegos.fr' && p._company === 'Cegos' && p._company_size === 5000 && p._company_country === 'FR');
+  try { await mk('people_search.js').call({ helpers:{ httpRequest: async () => ({ people: [], meta:{ total: 0 } }) } }, $of(cfg), items([filters]), quiet); ok('empty -> throws', false); }
+  catch (e) { ok('empty people search throws with the request in the message', /request:/.test(e.message)); }
+}
+
+// --- Filters keeps both halves and adds countries when the converter forgot them
+{
+  const cfg = { definition:'organisme de formation', countries:['FR','BE','LU'], page_size:100 };
+  let out = await mk('filters.js').call({}, $of(cfg), items([{ company_filters:{ definition:'training company', countries:['FR'] }, people_filters:{ job_titles:['CEO'] } }]), quiet);
+  ok('converter output with both halves passes through', out[0].json.company_filters.countries[0] === 'FR' && out[0].json.people_filters.job_titles[0] === 'CEO');
+  out = await mk('filters.js').call({}, $of(cfg), items([{ filters:{ definition:'training company' } }]), quiet);
+  ok('converter output without a country gets ours added', JSON.stringify(out[0].json.company_filters.countries) === '["FR","BE","LU"]');
+  out = await mk('filters.js').call({}, $of(cfg), items([{ error:{ message:'boom' } }]), quiet);
+  ok('converter error -> prose fallback WITH countries', out[0].json.company_filters.definition === 'organisme de formation' && out[0].json.company_filters.countries.length === 3);
 }
