@@ -995,7 +995,8 @@ class StatePage(unittest.TestCase):
             "balance": 2500.0,
             "runs": [{"at": "2026-09-06T07:00:00Z", "task": "followups", "applied": False,
                       "outcome": "3 replied leads read"}],
-            "followups": {"at": "2026-09-06T07:00:00Z", "applied": False, "project_id": 30475,
+            "followups": {"linkfinderai": {"at": "2026-09-06T07:00:00Z", "applied": False,
+                          "project": "linkfinderai", "project_id": 30475,
                           "sends": 0, "tally": {"send_info": 1, "skip: negative": 1},
                           "rows": [{"email": "a@x.com", "first_name": "Ana", "company": "Acme",
                                     "campaign": "HT", "last_reply": "send <pricing>",
@@ -1008,8 +1009,12 @@ class StatePage(unittest.TestCase):
                           "hot": [{"email": "c@x.com", "first_name": "Cy", "company": "G",
                                    "job_title": "CEO", "campaign": "HT",
                                    "replied_at": "2026-09-05T10:00:00Z"}]},
+                          "acme": {"at": "2026-09-06T07:01:00Z", "applied": True,
+                                   "project": "Acme Corp", "project_id": 41, "sends": 2,
+                                   "tally": {"nudge": 2}, "rows": [], "hot": []}},
             "measure": {"at": "2026-09-06T07:30:00Z", "campaigns": [
-                {"name": "HT", "emails": 4, "recommend": 2, "why": "2 emails keep 85%",
+                {"name": "HT", "project": "linkfinderai", "emails": 4, "recommend": 2,
+                 "why": "2 emails keep 85%",
                  "tally": {"replies": {"1": 20, "2": 14, "3": 4, "4": 2},
                            "positive": {"1": 5}, "auto": 3, "young": 7, "no_step": 1}}]},
             "prequalify": {"at": "2026-09-06T08:00:00Z", "applied": True, "source_name": "HT",
@@ -1025,6 +1030,13 @@ class StatePage(unittest.TestCase):
         self.assertIn("no reply thread yet", page)
         self.assertIn("shorten to 2", page)
         self.assertIn("app-auto-gtm/p/30475/inbox", page)
+        self.assertIn("app-auto-gtm/p/41/inbox", page)          # the second project
+        self.assertIn("Acme Corp", page)
+        self.assertEqual(page.count("<h2>Follow-up loop"), 2)
+        # a state written before projects existed still renders
+        legacy = report_page.render({"runs": [], "followups": {"project_id": 30475,
+                                                                 "rows": [], "hot": []}})
+        self.assertEqual(legacy.count("<h2>Follow-up loop"), 1)
         self.assertIn("2026-09-20", page)
         self.assertNotIn("<script", page)
         empty = report_page.render({"runs": []})
@@ -1266,6 +1278,49 @@ class ReplyBody(unittest.TestCase):
         self.assertEqual(seen["method"], "POST")
         self.assertTrue(seen["path"].endswith("/inbox/d8b1/reply"))
         self.assertEqual(seen["body"], {"body_text": "Bonjour Tom"})
+
+
+class Projects(unittest.TestCase):
+    def test_state_keeps_one_entry_per_project(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "s.json"
+            state_mod.record("followups", "would send 1", False, section="followups",
+                             project="linkfinderai", payload={"rows": [1]}, path=path)
+            data = state_mod.record("followups", "sent 2", True, section="followups",
+                                    project="Acme Corp", payload={"rows": [1, 2]}, path=path)
+            self.assertEqual(sorted(data["followups"]), ["acme-corp", "linkfinderai"])
+            self.assertEqual(data["followups"]["acme-corp"]["project"], "Acme Corp")
+            self.assertEqual(data["runs"][0]["outcome"], "Acme Corp: sent 2")
+            # a pre-project single entry is replaced, not nested into
+            (path).write_text(json.dumps({"runs": [], "followups": {"rows": [], "project_id": 1}}))
+            data = state_mod.record("followups", "x", False, section="followups",
+                                    project="P", payload={"rows": []}, path=path)
+            self.assertEqual(list(data["followups"]), ["p"])
+
+    def test_reports_go_in_a_folder_per_project(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            with unittest.mock.patch.object(recover, "REPORTS", Path(tmp)):
+                path = recover.write_report("# x", WED, "Acme Corp")
+            self.assertEqual(path.parent.name, "acme-corp")
+            self.assertTrue((Path(tmp) / "acme-corp" / "latest.md").exists())
+
+    def test_committed_project_files_carry_no_token(self):
+        for path in sorted((Path(__file__).resolve().parent / "projects").glob("*.json")):
+            cfg = json.loads(path.read_text())
+            self.assertFalse((cfg.get("sheet") or {}).get("token"),
+                             "{} holds a sheet token - move it to SHEET_TOKEN".format(path.name))
+            self.assertTrue(cfg.get("project_id"), "{} has no project_id".format(path.name))
+
+    def test_measure_covers_every_project(self):
+        class Api:
+            def campaigns(self, project_id=None):
+                return [{"id": project_id * 10, "name": "c{}".format(project_id)}]
+        args = type("A", (), {"campaign": None, "project": None})()
+        with unittest.mock.patch.object(sq, "all_projects", lambda: [("A", 1), ("B", 2)]):
+            got = sq.campaigns_for(Api(), args)
+        self.assertEqual(got, [("A", {"id": 10, "name": "c1"}), ("B", {"id": 20, "name": "c2"})])
+        args.campaign = [7]
+        self.assertEqual(sq.campaigns_for(Api(), args), [(None, {"id": 7})])
 
 
 if __name__ == "__main__":
