@@ -14,6 +14,7 @@ a task never has to know what the others left behind.
 
 import datetime as dt
 import json
+import re
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -42,15 +43,33 @@ def stamp(now=None):
     return (now or dt.datetime.now(dt.timezone.utc)).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
+def slug(name):
+    return re.sub(r"[^a-z0-9]+", "-", str(name or "project").lower()).strip("-") or "project"
+
+
 def record(task, outcome, applied, section=None, payload=None, balance=None, now=None,
-           path=None):
-    """Append a run line and replace one section. Returns the whole state."""
+           path=None, project=None):
+    """Append a run line and replace one section. Returns the whole state.
+
+    With `project`, the section holds one entry per project (keyed by its slug)
+    instead of one entry overall - a run over several customer projects must not
+    leave only the last one on the page.
+    """
     path = path or STATE
     data = load(path)
     data["runs"] = ([{"at": stamp(now), "task": task, "applied": bool(applied),
-                      "outcome": outcome}] + data["runs"])[:MAX_RUNS]
+                      "outcome": ("{}: {}".format(project, outcome) if project else outcome)}]
+                    + data["runs"])[:MAX_RUNS]
     if section:
-        data[section] = dict(payload or {}, at=stamp(now), applied=bool(applied))
+        entry = dict(payload or {}, at=stamp(now), applied=bool(applied))
+        if project:
+            current = data.get(section)
+            if not isinstance(current, dict) or "rows" in current or "campaigns" in current:
+                current = {}                      # a pre-project single entry: start over
+            current[slug(project)] = dict(entry, project=project)
+            data[section] = current
+        else:
+            data[section] = entry
     if balance is not None:
         data["balance"] = balance
         data["balance_at"] = stamp(now)

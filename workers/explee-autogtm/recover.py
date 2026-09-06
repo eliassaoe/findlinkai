@@ -53,6 +53,7 @@ import csv
 import datetime as dt
 import hashlib
 import json
+import os
 import re
 import sys
 from pathlib import Path
@@ -581,10 +582,12 @@ def render_report(name, project_id, now, apply_, tally, sends, rows, hot, sheet_
     return "\n".join(out)
 
 
-def write_report(text, now):
-    REPORTS.mkdir(exist_ok=True)
-    (REPORTS / "latest.md").write_text(text)
-    dated = REPORTS / "{}.md".format(now.strftime("%Y-%m-%d"))
+def write_report(text, now, project="project"):
+    """reports/<project>/latest.md and a dated copy. One folder per project."""
+    folder = REPORTS / state.slug(project)
+    folder.mkdir(parents=True, exist_ok=True)
+    (folder / "latest.md").write_text(text)
+    dated = folder / "{}.md".format(now.strftime("%Y-%m-%d"))
     dated.write_text(text)
     return dated
 
@@ -624,7 +627,7 @@ def run_project(api, cfg, args, now, out=sys.stdout):
     sheet_cfg = cfg.get("sheet", {})
     csv_url = args.sheet_csv or sheet_cfg.get("csv_url")
     webapp = args.sheet_webapp or sheet_cfg.get("webapp_url")
-    token = args.sheet_token or sheet_cfg.get("token")
+    token = args.sheet_token or os.environ.get("SHEET_TOKEN") or sheet_cfg.get("token")
 
     hot = collect_hot_leads(api, campaigns, project_id)
     print("  {} hot leads flagged by Explee".format(len(hot)), file=out)
@@ -667,14 +670,15 @@ def run_project(api, cfg, args, now, out=sys.stdout):
     for label, count in sorted(tally.items(), key=lambda kv: -kv[1]):
         print("    {:<40} {}".format(label, count), file=out)
     path = write_report(render_report(name, project_id, now, args.apply, tally, sends,
-                                      updates, hot, sheet_note), now)
-    print("  report -> {} (and reports/latest.md)".format(path.name), file=out)
+                                      updates, hot, sheet_note), now, name)
+    print("  report -> reports/{}/{} (and latest.md)".format(path.parent.name, path.name),
+          file=out)
     would = sum(1 for u in updates if u["action"] == "send")
     state.record("followups",
                  "{} replied leads read, {} hot; {}".format(
                      len(updates), len(hot),
                      "sent {}".format(sends) if args.apply else "would send {}".format(would)),
-                 args.apply, section="followups", now=now,
+                 args.apply, section="followups", now=now, project=name,
                  payload={"project": name, "project_id": project_id, "rows": updates,
                           "hot": hot, "tally": tally, "sends": sends, "sheet": sheet_note},
                  balance=getattr(api, "last_balance", None))
@@ -695,9 +699,11 @@ Now, once per project:
   2. copy        - sender, offer, topic. This is what the follow-ups say.
   3. language    - "fr" or "en"; it switches the templates and the dates.
   4. Nothing else. Booked / stop is typed into the lead's note in the Explee
-     inbox. (A Google Sheet is optional: sheet.csv_url or sheet.webapp_url.)
+     inbox. (A Google Sheet is optional: sheet.csv_url or sheet.webapp_url;
+     a web-app token goes in the SHEET_TOKEN environment variable, never here.)
 
-Then it runs with every other project:
+Commit the file - GitHub Actions runs every project it finds in projects/:
+  git add projects/ && git commit -m "AutoGTM: add <name>"
   python3 recover.py --all            # dry run, all projects
   python3 recover.py --all --apply    # send
 """.format(path))

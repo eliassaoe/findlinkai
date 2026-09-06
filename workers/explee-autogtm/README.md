@@ -40,6 +40,31 @@ repository as `EXPLEE_API_KEY` (the scheduled runs reach Explee) and the
 balance was topped up. If a key ever gets pasted into a chat or a ticket,
 rotate it under API Keys and replace the secret.
 
+### Adding a customer project
+
+Every project you run for a customer lives in your Explee organisation, so
+the one `EXPLEE_API_KEY` reaches all of them. Adding one is a file:
+
+```bash
+python3 recover.py --init "Acme Corp"      # writes projects/acme-corp.json
+```
+
+Fill in `project_id` (the number in the Explee URL, `/app-auto-gtm/p/<id>`),
+`language`, and the `copy` block: `offer` is the one line the nudges carry,
+`sender` is the fallback signature (the nudge signs as the persona the lead
+wrote to whenever it can read one). Commit the file. From the next run:
+
+- the daily loop reads that project's replied threads and nudges like any other;
+- the page gets its own **Follow-up loop — Acme Corp** block, with its own inbox
+  link, and `reports/acme-corp/latest.md` its own report;
+- the Monday measure covers its campaigns;
+- `booked` / `stop` in a lead's note works the same, in their inbox.
+
+Project files carry no secrets. If a project uses the optional Google Sheet
+web app, its token goes in the `SHEET_TOKEN` environment variable, and a test
+refuses a committed file that holds one. Arming is still one switch for every
+project: `EXPLEE_APPLY`.
+
 ### 1. Shorten the sequence — `sequence.py`
 
 ```bash
@@ -117,7 +142,7 @@ interface:
 - **To see what the loop did to someone:** the same note. After every action it
   writes one plain line — *Suivi LinkFinder — 2026-09-06 : relance envoyée* —
   above its machine ledger.
-- **To see everything at once:** `/autogtm-report`, or `reports/latest.md`.
+- **To see everything at once:** `/autogtm-report`, or `reports/<project>/latest.md`.
 
 Two things the first real dry run (6 September, 158 replied threads) taught
 it, both now in the code:

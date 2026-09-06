@@ -71,16 +71,32 @@ def table(headers, rows):
         .format(head, body)
 
 
+def per_project(section):
+    """{slug: entry} whether the section was written per project or as one entry."""
+    if not section:
+        return {}
+    if "rows" in section or "campaigns" in section:
+        return {"project": section}
+    return section
+
+
 def section_followups(data):
-    fu = data.get("followups")
-    if not fu:
+    projects = per_project(data.get("followups"))
+    if not projects:
         return "<h2>Follow-up loop</h2><p class=\"mute\">has not run yet</p>"
+    return "\n".join(followups_block(fu) for fu in projects.values())
+
+
+def followups_block(fu):
     rows = fu.get("rows", [])
     acted = [r for r in rows if r.get("action") in ("send", "queue")]
     rest = [r for r in rows if r.get("action") == "skip"]
     hot = fu.get("hot", [])
     in_loop = {r.get("email") for r in rows}
-    out = ["<h2>Follow-up loop <span class=\"mute\">— recover.py, {} </span>{}</h2>".format(
+    inbox = INBOX_URL.format(fu["project_id"]) if fu.get("project_id") else None
+    out = ["<h2>Follow-up loop — {} <span class=\"mute\">— {} </span>{}</h2>".format(
+        ('<a href="{}">{}</a>'.format(esc(inbox), esc(fu.get("project", "project")))
+         if inbox else esc(fu.get("project", "project"))),
         esc(fu.get("at", "")[:16].replace("T", " ")), pill(fu.get("applied"), "SENT", "DRY RUN"))]
     out.append('<div class="cards">')
     for label, value in (("replied leads read", len(rows)),
@@ -125,6 +141,7 @@ def section_measure(data):
         return out[0] + "<p class=\"mute\">has not run yet</p>"
     for camp in ms.get("campaigns", []):
         tally = camp.get("tally", {})
+        project = camp.get("project")
         replies = {int(k): v for k, v in tally.get("replies", {}).items()}
         positive = {int(k): v for k, v in tally.get("positive", {}).items()}
         current = camp.get("emails", 0)
@@ -136,7 +153,8 @@ def section_measure(data):
                          ("num", positive.get(step, 0)),
                          ("num", "{:.0%}".format(seen / total) if total else "-")])
         pick = camp.get("recommend")
-        out.append("<h3>{} <span class=\"mute\">— {} emails in the sequence</span> {}</h3>".format(
+        out.append("<h3>{}{} <span class=\"mute\">— {} emails in the sequence</span> {}</h3>".format(
+            "<span class=\"mute\">{} · </span>".format(esc(project)) if project else "",
             esc(camp.get("name")), current,
             '<span class="pill warn">shorten to {}</span>'.format(pick) if pick
             else '<span class="pill">keep</span>'))
@@ -189,7 +207,9 @@ def render(data, project_id=None):
         "ok" if balance > 0 else "warn", balance, balance / 100.0)
         if isinstance(balance, (int, float)) else "")
     last = data["runs"][0] if data.get("runs") else None
-    project_id = project_id or (data.get("followups") or {}).get("project_id")
+    projects = per_project(data.get("followups"))
+    ids = [p.get("project_id") for p in projects.values() if p.get("project_id")]
+    project_id = project_id or (ids[0] if len(ids) == 1 else None)
     inbox = INBOX_URL.format(project_id) if project_id else "https://explee.com/app-auto-gtm"
     head = """<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="robots" content="noindex, nofollow, noarchive"><meta name="viewport" content="width=device-width,initial-scale=1">

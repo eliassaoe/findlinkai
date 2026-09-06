@@ -302,11 +302,27 @@ def default_project():
     return None
 
 
+def all_projects():
+    """[(name, project_id)] from projects/*.json (plus config.json if present)."""
+    out = []
+    for path in sorted((HERE / "projects").glob("*.json")) + [HERE / "config.json"]:
+        if path.exists():
+            cfg = json.loads(path.read_text())
+            if cfg.get("project_id") and cfg["project_id"] not in [p for _, p in out]:
+                out.append((cfg.get("name") or path.stem, cfg["project_id"]))
+    return out
+
+
 def campaigns_for(api, args):
+    """[(project name, campaign row)] - every project's campaigns unless narrowed."""
     if args.campaign:
-        return [{"id": c} for c in args.campaign]
-    project = args.project or default_project()
-    return api.campaigns(project_id=project)
+        return [(None, {"id": c}) for c in args.campaign]
+    if args.project:
+        return [(None, c) for c in api.campaigns(project_id=args.project)]
+    out = []
+    for name, pid in all_projects() or [(None, default_project())]:
+        out.extend((name, c) for c in api.campaigns(project_id=pid))
+    return out
 
 
 def measure_campaign(api, cid, now, settled_days, out=sys.stdout):
@@ -335,10 +351,11 @@ def cmd_measure(args):
     require_balance(api)
     now = dt.datetime.now(dt.timezone.utc)
     results = []
-    for campaign in campaigns_for(api, args):
+    for project, campaign in campaigns_for(api, args):
         cid = first_of(campaign, "id", "campaign_id")
         try:
-            results.append(measure_campaign(api, cid, now, args.settled_days))
+            results.append(dict(measure_campaign(api, cid, now, args.settled_days),
+                                project=project))
         except (ShapeError, ExpleeError) as err:
             print("\n== {}: {}".format(cid, err))
     if args.out:
