@@ -571,6 +571,11 @@ function n8nWorkflow({ withKeys = true } = {}) {
     // How many of those people LinkFinder resolves an address for. It is
     // charged whether or not it finds one, so this is a cap, not a target.
     linkfinder_max: 25,
+    // n8n kills a Code node at 300s. The resolver works to this budget and
+    // returns what it has rather than dying with nothing; concurrency trades
+    // wall time for requests/second (Starter allows 5/s).
+    linkfinder_budget_seconds: 240,
+    linkfinder_concurrency: 3,
     model: k.LLM_MODEL || 'anthropic/claude-opus-5',
     instantly_campaign_id: c.instantly_campaign_id || 'PUT_INSTANTLY_CAMPAIGN_ID_HERE',
     // Search is free for the first 100 results, so look at more people than
@@ -770,63 +775,89 @@ function n8nWorkflow({ withKeys = true } = {}) {
     ), [1060, 300]),
 
     node('LinkFinder: fill missing emails', 'code', 2, jsCode(
-      '// Explee search returns profiles, not addresses. This is what turns\n' +
-      '// them into leads: 10 credits from a LinkedIn URL, 7 from name +\n' +
-      '// company, charged whether or not one comes back. Hence the cap.\n' +
-      '//\n' +
-      '// One Code node instead of five, because pairing an HTTP node\'s\n' +
-      '// response back to its lead across a poll loop is exactly where a flow\n' +
-      '// like this breaks. If this n8n has no this.helpers.httpRequest the\n' +
-      '// node degrades to what the flow did before: no email, no send.\n' +
+      "// Explee returns profiles, not addresses. This is what turns them into leads:\n" +
+      "// 10 credits from a LinkedIn URL, 7 from name + company, charged whether or\n" +
+      "// not one comes back.\n" +
+      "//\n" +
+      "// n8n kills a Code node at 300s (N8N_RUNNERS_TASK_TIMEOUT). A serial loop over\n" +
+      "// 47 leads with a 1.1s spacer and an occasional 8s job poll blows that easily,\n" +
+      "// so this works to a wall-clock budget with a few lookups in flight at once,\n" +
+      "// and returns what it has when the budget runs out rather than dying with\n" +
+      "// nothing. Raising the cap or the concurrency past the plan's requests/second\n" +
+      "// is how you trade credits for 429s \u2014 the defaults sit under Starter's 5/s.\n" +
       "const cfg = $('Config').first().json;\n" +
-      'const leads = $input.all().map(i => i.json);\n' +
-      '// Called through an arrow so it keeps n8n\'s `this`.\n' +
-      'const canHttp = !!(this.helpers && this.helpers.httpRequest);\n' +
-      'const http = opts => this.helpers.httpRequest(opts);\n' +
-      'const sendable = () => leads.filter(l => l.email).map(json => ({ json }));\n' +
-      '\n' +
+      "const leads = $input.all().map(i => i.json);\n" +
+      "const canHttp = !!(this.helpers && this.helpers.httpRequest);\n" +
+      "const http = opts => this.helpers.httpRequest(opts);\n" +
+      "const sendable = () => leads.filter(l => l.email).map(json => ({ json }));\n" +
+      "\n" +
       "if (!canHttp || !cfg.linkfinder_key || cfg.linkfinder_key.startsWith('PUT_')) {\n" +
-      '  return sendable();\n' +
-      '}\n' +
-      '\n' +
+      "  return sendable();\n" +
+      "}\n" +
+      "\n" +
       "const auth = { Authorization: 'Bearer ' + cfg.linkfinder_key };\n" +
-      'const sleep = ms => new Promise(r => setTimeout(r, ms));\n' +
-      'let budget = Number(cfg.linkfinder_max || 0), spent = 0, found = 0;\n' +
-      '\n' +
-      'for (const lead of leads) {\n' +
-      '  if (lead.email || budget <= 0) continue;\n' +
-      '  const op = lead.linkedin_url\n' +
+      "const API = 'https://api.linkfinderai.com';\n" +
+      "const sleep = ms => new Promise(r => setTimeout(r, ms));\n" +
+      "const deadline = Date.now() + (Number(cfg.linkfinder_budget_seconds) || 240) * 1000;\n" +
+      "const left = () => deadline - Date.now();\n" +
+      "\n" +
+      "// Only the leads that need a lookup and give us something to look up by.\n" +
+      "const queue = [];\n" +
+      "for (const lead of leads) {\n" +
+      "  if (lead.email) continue;\n" +
+      "  const op = lead.linkedin_url\n" +
       "    ? { type: 'linkedin_profile_to_email', input_data: lead.linkedin_url }\n" +
       "    : { type: 'lead_full_name_to_email', input_data:\n" +
-      '        [lead.full_name || lead.name, lead.company_name || lead.company]\n' +
+      "        [lead.full_name || lead.name, lead.company_name || lead.company]\n" +
       "          .filter(Boolean).join(' ') };\n" +
-      '  if (!op.input_data) continue;\n' +
-      '  budget--;\n' +
-      "  spent += op.type === 'linkedin_profile_to_email' ? 10 : 7;\n" +
-      '  let r;\n' +
-      '  try {\n' +
-      "    r = await http({ method: 'POST', url: 'https://api.linkfinderai.com',\n" +
-      '      headers: auth, body: op, json: true });\n' +
-      '  } catch (e) {\n' +
-      '    // 402 out of credits, 401 bad key, 429 too fast. Stop, do not hammer.\n' +
-      "    console.log('LinkFinder stopped: ' + e.message);\n" +
-      '    break;\n' +
-      '  }\n' +
-      '  // Any endpoint can answer with a job instead of a result if the lookup\n' +
-      '  // runs past ~27s. Poll it, briefly.\n' +
-      '  for (let n = 0; r && r.job_id && !r.result && n < 4; n++) {\n' +
-      '    await sleep(8000);\n' +
-      "    try { r = await http({ method: 'GET', headers: auth, json: true,\n" +
-      "      url: r.poll_url || 'https://api.linkfinderai.com/status/' + r.job_id }); }\n" +
-      '    catch (e) { r = null; }\n' +
-      '  }\n' +
-      '  const res = r && r.result;\n' +
-      "  const email = typeof res === 'string' ? res : (res && res.email) || '';\n" +
-      '  if (email) { lead.email = email; found++; }\n' +
-      '  await sleep(1100);   // one request per second per key, or 429\n' +
-      '}\n' +
-      "console.log('LinkFinder: ' + found + ' emails, ~' + spent + ' credits');\n" +
-      'return sendable();'
+      "  if (!op.input_data) continue;\n" +
+      "  queue.push({ lead, op });\n" +
+      "}\n" +
+      "const budget = queue.splice(Number(cfg.linkfinder_max) || 0);\n" +
+      "const skippedByCap = budget.length;\n" +
+      "\n" +
+      "let found = 0, spent = 0, stopped = '';\n" +
+      "let next = 0;\n" +
+      "\n" +
+      "async function worker() {\n" +
+      "  while (next < queue.length && !stopped) {\n" +
+      "    if (left() < 15000) { stopped = 'out of time'; break; }\n" +
+      "    const { lead, op } = queue[next++];\n" +
+      "    spent += op.type === 'linkedin_profile_to_email' ? 10 : 7;\n" +
+      "    let r;\n" +
+      "    try {\n" +
+      "      r = await http({ method: 'POST', url: API, headers: auth, body: op,\n" +
+      "                       json: true, timeout: Math.min(30000, left()) });\n" +
+      "    } catch (e) {\n" +
+      "      // 402 out of credits, 401 bad key, 429 too fast: stop, do not hammer.\n" +
+      "      stopped = e.message;\n" +
+      "      break;\n" +
+      "    }\n" +
+      "    // Any endpoint can hand back a job instead of a result if it runs long.\n" +
+      "    // Poll only while there is budget to spare for it.\n" +
+      "    for (let n = 0; r && r.job_id && !r.result && n < 3 && left() > 20000; n++) {\n" +
+      "      await sleep(5000);\n" +
+      "      try {\n" +
+      "        r = await http({ method: 'GET', headers: auth, json: true,\n" +
+      "                         url: r.poll_url || API + '/status/' + r.job_id });\n" +
+      "      } catch (e) { r = null; }\n" +
+      "    }\n" +
+      "    const res = r && r.result;\n" +
+      "    const email = typeof res === 'string' ? res : (res && res.email) || '';\n" +
+      "    if (email) { lead.email = email; found++; }\n" +
+      "    await sleep(1100);          // per worker, so ~concurrency requests/second\n" +
+      "  }\n" +
+      "}\n" +
+      "\n" +
+      "const lanes = Math.max(1, Math.min(Number(cfg.linkfinder_concurrency) || 3, 5));\n" +
+      "await Promise.all(Array.from({ length: lanes }, worker));\n" +
+      "\n" +
+      "const done = sendable();\n" +
+      "console.log('LinkFinder: ' + found + ' emails, ~' + spent + ' credits, ' +\n" +
+      "  done.length + ' of ' + leads.length + ' sendable' +\n" +
+      "  (skippedByCap ? '; ' + skippedByCap + ' past linkfinder_max' : '') +\n" +
+      "  (stopped ? '; stopped early: ' + stopped : ''));\n" +
+      "return done;"
     ), [1280, 300]),
 
     node('Write the email', 'httpRequest', 4.2, {

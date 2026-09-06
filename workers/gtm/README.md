@@ -350,6 +350,20 @@ Instantly.
 console and ready to import: five placeholders in the Config node and nothing
 else to fill in.
 
+**The resolver works to a wall clock, not just a count.** n8n kills a Code
+node at 300s (`N8N_RUNNERS_TASK_TIMEOUT`), and a serial loop over 47 leads with
+a 1.1s spacer and the occasional 8s job poll goes straight through that — which
+is exactly what happened on the first real run. It now runs
+`linkfinder_concurrency` lookups at a time (3 by default, under Starter's 5
+requests/second) against a `linkfinder_budget_seconds` deadline (240), skips
+polling a job when there is not enough budget left for it, and **returns the
+leads it did resolve instead of dying with nothing**. The node log says what
+happened: how many emails, roughly how many credits, how many were past
+`linkfinder_max`, and why it stopped early if it did.
+
+The same 47 leads that timed out resolve in about 12 seconds of wall time in a
+harness with 200ms responses.
+
 **LinkFinder runs inside one Code node, not five.** The people from the search
 go through `linkedin_profile_to_email` (10 credits) or
 `lead_full_name_to_email` (7), capped by `linkfinder_max` in Config, spaced
