@@ -253,7 +253,9 @@ function viewCampaign() {
          'one per line — fill this in and the flow lists employees at each with LinkFinder ' +
          'instead of searching Explee. Leave empty to search Explee.',
          { area: true, mono: true, rows: 5 }),
-    chips(c, 'positive_criteria', 'Should be'),
+    chips(c, 'positive_criteria', 'Should be',
+          'Explee scores each company 0-5 against these, +0.1 credit each. It ' +
+          'allows three in total across both lists — positives are kept first.'),
     chips(c, 'negative_criteria', 'Should NOT be', 'any match is an automatic skip'),
 
     el('h2', {}, 'Project notes'),
@@ -584,8 +586,10 @@ function n8nWorkflow({ withKeys = true } = {}) {
     definition: [ (c.keywords || []).join(', ') || c.customer_problem || c.offer,
                   c.target_geography ? 'in ' + c.target_geography : '' ]
                 .filter(Boolean).join(' '),
+    // Explee 400s above three: {"detail":"Maximum 3 criteria allowed"}.
+    // Positives first, so the cap drops a "should NOT be" before a "should be".
     criteria: [...(c.positive_criteria || []),
-               ...(c.negative_criteria || []).map(x => 'is NOT: ' + x)].slice(0, 5),
+               ...(c.negative_criteria || []).map(x => 'is NOT: ' + x)].slice(0, 3),
     offer: c.offer, problem: c.customer_problem, facts: pr.facts,
     instructions: first.instructions || '', language: first.language || 'lead',
   };
@@ -631,7 +635,7 @@ function n8nWorkflow({ withKeys = true } = {}) {
         { name: 'X-API-Key', value: '={{ $json.explee_key }}' }] },
       sendBody: true,
       specifyBody: 'json',
-      jsonBody: '={{ JSON.stringify({ filters: { definition: $json.definition, criteria: $json.criteria }, page_size: $json.page_size }) }}',
+      jsonBody: '={{ JSON.stringify({ filters: { definition: $json.definition, criteria: ($json.criteria || []).slice(0, 3) }, page_size: $json.page_size }) }}',
       options: {},
     }, [400, 300])]),
 
