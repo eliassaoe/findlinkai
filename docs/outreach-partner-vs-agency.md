@@ -173,3 +173,69 @@ those two is the only number in this plan worth watching, and the whole reason
 - It does not close the door on white-label. It moves it from the opening ask to
   the expansion ask, where the risk is carried by a relationship that already
   works.
+
+---
+
+## Amendment, 2026-09-06 — founder time goes to the high-ticket offer
+
+Decision taken after the above: **Elias's own time goes to closing Done For You,
+not to the SaaS.** The SaaS is not being wound down — it is being left to
+compound while attention goes to the offer that justifies a call.
+
+This is consistent with the recommendation above (sell the recurring offer, not
+the $89 seat) and with what was already being shipped: `/prospection-b2b`, the
+flat 150 EUR, `/avant-votre-appel`, and the daily hot-lead follow-up cron were
+all committed in the days before this was written down.
+
+### Locate the compounding correctly
+
+The SaaS compounds. **Done For You does not** — it is linear in hours worked:
+list, campaign, replies, booking, per client, per month. Ten clients is a job,
+not an asset.
+
+So the time only pays for itself if it buys more than cash. It can, and the
+mechanism is already in this repo: **every DFY client is a forced dogfood of
+account-list maintenance** (`docs/data-provider-angle.md` §3.2). Deliver by
+hand, observe what repeats, automate that. Service revenue funds the product
+that compounds, and delivery replaces guessing about what to build.
+
+The failure mode to avoid is selling more meetings and never productising the
+delivery. That is a good income and a dead end.
+
+### What the SaaS is for now
+
+Its job stops being MRR and becomes **compounding traffic plus a free
+high-ticket lead source**: ~600 signups/month of people who have just
+self-identified as having a list problem, 67 idle pack buyers, the churned power
+users, and the in-app Done For You tab in front of everyone signed in. It is not
+owed retention work under this decision.
+
+Two things still do not run themselves, and both cap the compounding:
+
+- **Checkout is broken** — ~45 failure events against 8 payments in a month
+  (`docs/revenue-levers-2026-08.md`). Days of work, and it is the till the
+  compounding asset pays into.
+- **Search plateaued in July** (`GROWTH-STRATEGY-REVIEW.md` Finding 4). One
+  Search Console check tells you whether "it compounds" is still true.
+
+### Open items this decision makes urgent
+
+1. **The booking path is split across three Calendly events.**
+   `linkfinder-ai` (195 references), `offre-linkfinder-ai-outbound` (3, the
+   French LP), `offre-linkfinder-ai-clone` (1 — the in-app Done For You panel).
+   The highest-intent surface points at the single-reference event. Three
+   events means three intakes and no one pipeline view. Consolidate.
+2. **Two prices are live at once.** In-app `$150 x 5/month = $750` floor;
+   `/prospection-b2b` 150 EUR flat with no minimum and "sans engagement" as its
+   central argument. Already flagged as undecided in
+   `docs/prospection-b2b-fr-lp.md`. Decide which governs before a prospect finds
+   both.
+3. **Check the Explee balance.** It was **-$46.32** on 2026-09-02, and a
+   non-positive balance returns 402 on every Explee API request, free tier
+   included (`workers/explee-autogtm/BASELINE.md`). The daily follow-up workflow
+   was shipped after that date; if the balance was never topped up it has been
+   failing every morning at 07:00 UTC, on exactly the leak it exists to close.
+4. **Booked calls are still uninstrumented.** Calendly is off-site and nothing
+   reports back (`docs/revenue-levers-2026-08.md`, fix 4). If closing is now the
+   whole job, this is the only metric that matters and it cannot currently be
+   seen. A Calendly webhook into PostHog is an afternoon.
