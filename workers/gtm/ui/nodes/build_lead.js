@@ -5,8 +5,13 @@
 // Finds the JSON by brace matching rather than expecting the whole reply to
 // be JSON: an agent that adds a sentence first no longer loses the lead.
 const cfg = $('Config').first().json;
-const leads = $('One item per lead').all().map(i => i.json);
-const byEmail = Object.fromEntries(leads.map(l => [String(l.email).toLowerCase(), l]));
+// The resolved leads: the loop's "done" branch carries every batch's output.
+// Fall back to the pre-resolution list if that reference is unavailable.
+let leads = [];
+try { leads = $('Loop Over Items').all(0).map(i => i.json); } catch (e) { leads = []; }
+if (!leads.length) { try { leads = $('One item per lead').all().map(i => i.json); } catch (e) { leads = []; } }
+const byEmail = Object.fromEntries(leads.filter(l => l.email).map(l => [String(l.email).toLowerCase(), l]));
+const byName = Object.fromEntries(leads.map(l => [String(l.full_name + '|' + l.company_name).toLowerCase(), l]));
 
 const extract = text => {
   if (typeof text !== 'string') return null;
@@ -32,11 +37,11 @@ replies.forEach((item, i) => {
   const email = extract(text);
   if (!email || !email.subject || !email.body) { problems.push('item ' + i + ': no subject/body JSON in: ' + String(text).slice(0, 120)); return; }
   const key = String(email.email || '').toLowerCase();
-  const lead = byEmail[key] || leads[i];
-  if (!lead) { problems.push('item ' + i + ': could not pair to a lead'); return; }
+  const lead = byEmail[key] || byName[String((email.name || '') + '|' + (email.company || '')).toLowerCase()] || leads[i];
+  if (!lead || !lead.email) { problems.push('item ' + i + ': could not pair to a lead with an email (' + key + ')'); return; }
   const body = String(email.body).replace(/\r\n/g, '\n').trim();
   const words = body.split(/\s+/).length;
-  if (words > 160) problems.push(lead.email + ': ' + words + ' words, long for a cold email');
+  if (words > 95) problems.push(lead.email + ': ' + words + ' words — over the 90-word ceiling, sent anyway');
   out.push({ json: {
     email: lead.email,
     first_name: lead.first_name,

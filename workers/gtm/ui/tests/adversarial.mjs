@@ -31,24 +31,52 @@ const ok = (label, cond) => console.log((cond ? '  ok   ' : '  FAIL ') + label);
   ok('flat nl response used, query/explanation stripped',
      out2[0].json.filters.countries[0] === 'FR' && !('query' in out2[0].json.filters));
 }
-// --- signals: job titles survive compaction -----------------------------------
+// --- signals: start then collect; titles survive compaction; pending tolerated
 {
-  const cfg = { explee_key:'k', signal_agents:['active_hiring'], signal_budget_seconds:120, signal_max_companies:5 };
+  const cfg = { explee_key:'k', signal_agents:['active_hiring','recent_news'], signal_budget_seconds:120, signal_max_companies:400 };
+  let posts = 0;
   const ctx = { helpers:{ httpRequest: async o => {
-    if (o.url.endsWith('/agents')) return { agents:[{ id:'dev/active_hiring' }] };
-    if (o.method === 'POST') return { run_id:'r' };
+    if (o.url.endsWith('/agents')) return { agents:[{ id:'dev/active_hiring' },{ id:'dev/recent_news' }] };
+    if (o.method === 'POST') { posts++; return { run_id:'r' + posts }; }
+    if (o.url.endsWith('/r2')) return { result:{}, meta:{ status:'running' } };   // not finished after the wait
     return { result:{ is_actively_hiring:true, job_postings:[{ title:'Formateur management', url:'u' },{ title:'Business developer', url:'u' }], trajectory_url:'t' }, meta:{ status:'completed' } };
   } } };
-  const out = await mk('signals.js').call(ctx, $of(cfg), items([{ people:[{ company_domain:'demos.fr' }] }]), quiet);
+  const people = Array.from({ length: 120 }, (_, i) => ({ company_domain: 'c' + (i % 40) + '.fr' }));
+  const started = await mk('signals_start.js').call(ctx, $of(cfg), items([{ people }]), quiet);
+  ok('start: one run per agent per unique company (40 x 2 = 80), not per person', started[0].json.runs.length === 80 && posts === 80);
+  const out = await mk('signals_collect.js').call(ctx, $of(cfg), items(started.map(i => i.json)), quiet);
   const sig = out[0].json.people[0].signal.active_hiring;
-  ok('job posting titles kept, urls dropped: ' + JSON.stringify(sig), Array.isArray(sig.job_postings) && sig.job_postings[0] === 'Formateur management' && !('trajectory_url' in sig));
+  ok('collect: job posting titles kept, urls dropped: ' + JSON.stringify(sig).slice(0,90), Array.isArray(sig.job_postings) && sig.job_postings[0] === 'Formateur management' && !('trajectory_url' in sig));
+  ok('a run still pending after the wait leaves that key absent, nothing throws', out[0].json.people.length === 120);
+  const none = await mk('signals_start.js').call(ctx, $of({ ...cfg, signal_agents:[] }), items([{ people }]), quiet);
+  ok('no agents configured -> people pass through, zero runs', none[0].json.runs.length === 0 && none[0].json.people.length === 120);
+}
+// --- people: bulk call, rows mapped back to their domain, cap per company, gaps to LinkFinder
+{
+  const cfg = { explee_key:'k', linkfinder_key:'l', job_titles:['Dirigeant'], criteria:[], per_company:2, people_chunk:100, people_budget_seconds:240, linkfinder_fallback_max:40, seniority:'director' };
+  const calls = [];
+  const ctx = { helpers:{ httpRequest: async o => {
+    calls.push(o.url.includes('people-by-domains') ? 'bulk:' + o.body.domains.length : (o.body && o.body.type) || 'poll');
+    if (o.url.includes('people-by-domains')) return { people: [
+      { first_name:'A', company_domain:'a.fr' }, { first_name:'B', company_domain:'a.fr' }, { first_name:'C', company_domain:'a.fr' },
+      { first_name:'D', company_domain:'https://www.b.fr/about' } ] };
+    if (o.body && o.body.type === 'company_domain_to_employees') return { result: [{ firstName:'Z', companyWebsite:'c.fr' }] };
+    return {};
+  } } };
+  const companies = [{ domain:'a.fr', company:'A', score:5 }, { domain:'b.fr', company:'B', score:4 }, { domain:'c.fr', company:'C', score:3 }];
+  const out = await mk('people.js').call(ctx, $of(cfg), items(companies), quiet);
+  const ppl = out[0].json.people;
+  ok('one bulk call for three domains: ' + calls.join(','), calls[0] === 'bulk:3');
+  ok('per_company cap applied per domain (a.fr 3 -> 2)', ppl.filter(p => p.company_domain === 'a.fr').length === 2);
+  ok('messy domain in a row still maps to its company', ppl.some(p => p.first_name === 'D' && p.company_domain === 'b.fr' && p._company === 'B'));
+  ok('domain Explee left empty went to LinkFinder', ppl.some(p => p.firstName === 'Z' && p.source === 'linkfinder' && p.company_domain === 'c.fr'));
 }
 // --- build_lead: preamble, fence, pairing by email, missing subject -----------
 {
   const cfg = { dry_run:true };
   const leads = [{ email:'a@x.fr', first_name:'A', last_name:'A', company_name:'X', company_domain:'x.fr', full_name:'A A', brief:{} },
                  { email:'b@y.fr', first_name:'B', last_name:'B', company_name:'Y', company_domain:'y.fr', full_name:'B B', brief:{} }];
-  const $ = name => name === 'Config' ? { first:()=>({ json:cfg }) } : { all:()=>leads.map(json=>({ json })) };
+  const $ = name => name === 'Config' ? { first:()=>({ json:cfg }) } : { all:(b)=>leads.map(json=>({ json })) };
   // replies come back in REVERSED order, second one with a preamble; pairing must follow the echoed email
   const replies = [
     { output: 'Voici :\n{"email":"b@y.fr","subject":"s-b","body":"line1\\nline2"}' },

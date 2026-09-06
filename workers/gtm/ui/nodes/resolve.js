@@ -72,7 +72,7 @@ async function worker() {
   }
 }
 
-const lanes = Math.max(1, Math.min(Number(cfg.linkfinder_concurrency) || 3, 5));
+const lanes = Math.max(1, Math.min(Number(cfg.linkfinder_concurrency) || 4, 5));
 await Promise.all(Array.from({ length: lanes }, worker));
 
 const done = sendable();

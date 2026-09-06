@@ -306,16 +306,44 @@ credential on the Model node, fill the placeholders in Config, run.
 ```
 Start -> Config -> Instantly: check campaign
       -> Explee: nl-to-filters -> Filters -> Explee: search companies -> Domains
-      -> People at each domain -> Qualify -> Explee: signals per company
-      -> One item per lead -> LinkFinder: fill missing emails
+      -> People at each domain -> Qualify
+      -> Signals: start -> Wait for the agents -> Signals: collect
+      -> One item per lead -> Loop Over Items <-> LinkFinder: fill missing emails
       -> Write the email (+ Model) -> Build the lead -> Send? -> Instantly: add leads
 ```
 
-Seventeen nodes (fourteen with your own domain list). No loop anywhere: every
-async wait lives inside a Code node with a wall-clock budget, because two
-earlier versions hung on a Wait/If poll. **Runs dry by default** — `dry_run`
-in Config — which writes every email and never calls Instantly. Read them in
-`Build the lead`. Flip the Mode on the Run screen to send.
+Twenty nodes (seventeen with your own domain list). **Runs dry by default** —
+`dry_run` in Config — which writes every email and never calls Instantly. Read
+them in `Build the lead`. Flip the Mode on the Run screen to send.
+
+#### Built for a thousand leads a run
+
+n8n kills a Code node at 300 seconds, and three steps would blow that at
+volume. Each is restructured rather than sped up:
+
+| Step | At 1,000 leads | How |
+| --- | --- | --- |
+| People at each domain | ~450 companies | `people-by-domains` is a **bulk** endpoint: one call per 100 domains, rows mapped back by `company_domain`. LinkFinder covers the domains Explee leaves empty, capped at 40. |
+| Buying triggers | ~800 agent runs | **start → Wait 120s → collect.** One node fires every run in 8 parallel lanes, a Wait, one node fetches every result once. A thousand async jobs, no polling loop. Runs still pending after the wait are left without a signal and counted in the log. |
+| Email resolution | 1,000 lookups | `Loop Over Items`, batches of 60, four concurrent lookups per batch. Each batch is its own Code node run. The loop is over a finite list and terminates by construction — unlike the Wait/If poll on an external job that hung the early versions. |
+| Instantly | 1,000 leads | posted in chunks of 100 from a Code node, `skip_if_in_workspace` on |
+
+`max_leads` (Campaign screen, default 1,000) sizes the company search too:
+`page_size` ≈ 45% of it, because about a third of the people found survive
+Qualify and resolve to an address. Expect a thousand-lead run to take about an
+hour, most of it the writer, and cost roughly $50: ~$4 companies, ~$16 people,
+~$4 triggers, ~$19 addresses, ~$8 writing.
+
+#### The intent goes first
+
+The prompt now has a section on reading the signal as a buyer would — hiring
+means the team is stretched and delivery will crowd out prospecting; a raise
+means budget and pressure; news means something to sell more of; a quiet
+company is not mentioned — and the first sentence of the email *is* that fact,
+stated plainly, never "I noticed" or "congratulations". Length is 50–80 words
+with a hard ceiling of 90; the example in the prompt is 50. Subject three to
+five words. The model echoes the lead's email, name and company so pairing
+never depends on item order.
 
 #### Where the node bodies live
 

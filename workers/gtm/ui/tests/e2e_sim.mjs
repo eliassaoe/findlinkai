@@ -22,7 +22,7 @@ const CFG = {
   linkfinder_max:30, linkfinder_budget_seconds:240, linkfinder_concurrency:3, language:'fr',
 };
 const store = { Config: [CFG] };
-const $ = name => ({ first: () => ({ json: store[name][0] }), all: () => store[name].map(json => ({ json })) });
+const $ = name => ({ first: () => ({ json: store[name][0] }), all: (branch) => store[name].map(json => ({ json })) });
 const run = async (label, file, input, ctx = {}) => {
   process.stdout.write(`\n▶ ${label}\n`);
   const out = await mk(file).call(ctx, $, items(input), log);
@@ -58,7 +58,8 @@ const calls = [];
 const httpFake = async o => {
   calls.push(o.method + ' ' + o.url.replace(/^https?:\/\//,'').slice(0,60) + (o.body?.type ? ' ' + o.body.type : ''));
   const u = o.url;
-  if (u.includes('/people-by-domains')) return { people: peopleAt[o.body.domains[0]] || [] };
+  // bulk: one call for a chunk of domains, rows carry company_domain
+  if (u.includes('/people-by-domains')) return { people: o.body.domains.flatMap(d => peopleAt[d] || []) };
   if (u.endsWith('api.linkfinderai.com') && o.body.type === 'company_domain_to_employees') return { job_id:'j1', poll_url:'https://api.linkfinderai.com/status/j1' };
   if (u.includes('/status/j1')) return { status:'done', result: lfEmployees };
   if (u.endsWith('api.linkfinderai.com') && o.body.type === 'linkedin_profile_to_email') {
@@ -80,11 +81,22 @@ console.log('    domains:', store['Domains'].map(d => d.domain + (d.score!=null?
 await run('People at each domain', 'people.js', store['Domains'], ctx);
 await run('Qualify', 'qualify.js', store['People at each domain'], ctx);
 console.log('    kept:', store['Qualify'][0].people.map(p => (p.first_name||p.firstName)+' '+(p.title||p.jobTitle)+' ['+(p.geo||p.country)+'] s='+p._score));
-await run('Explee: signals per company', 'signals.js', store['Qualify'], ctx);
-await run('One item per lead', 'normalize.js', store['Explee: signals per company'], ctx);
+await run('Signals: start', 'signals_start.js', store['Qualify'], ctx);
+console.log('    runs started:', store['Signals: start'][0].runs.length);
+await run('Signals: collect', 'signals_collect.js', store['Signals: start'], ctx);
+await run('One item per lead', 'normalize.js', store['Signals: collect'], ctx);
 console.log('    brief[0]:', JSON.stringify(store['One item per lead'][0].brief));
-await run('LinkFinder: fill missing emails', 'resolve.js', store['One item per lead'], ctx);
-console.log('    sendable:', store['LinkFinder: fill missing emails'].map(l => l.full_name+' <'+l.email+'>'));
+{
+  const all = store['One item per lead'], done = [];
+  for (let i = 0; i < all.length; i += 60) {
+    const batch = await mk('resolve.js').call(ctx, $, items(all.slice(i, i + 60)), log);
+    done.push(...batch.map(b => b.json));
+  }
+  store['Loop Over Items'] = done;           // what the done branch carries
+  store['LinkFinder: fill missing emails'] = done;
+  console.log('\n▶ Loop Over Items -> LinkFinder: fill missing emails (batches of 60)');
+  console.log('    sendable:', done.map(l => l.full_name+' <'+l.email+'>'));
+}
 
 // the writer, faked as the agent would answer — one with a preamble, one fenced, one clean
 const drafts = store['LinkFinder: fill missing emails'].map((l, i) => ({ output:
@@ -95,4 +107,14 @@ await run('Build the lead', 'build_lead.js', drafts, ctx);
 console.log('\n=== INSTANTLY PAYLOAD (what would be posted) ===');
 for (const l of store['Build the lead']) { const { _preview, ...rest } = l; console.log(JSON.stringify(rest, null, 1).slice(0, 420)); }
 console.log('\n=== PREVIEW ===\n' + store['Build the lead'][0]._preview);
+// send mode: the chunked Instantly node
+{
+  store.Config = [{ ...CFG, dry_run:false, instantly_campaign_id:'camp-1' }];
+  const posted = [];
+  const ctxSend = { helpers:{ httpRequest: async o => { posted.push(o.body.leads.length); return { leads_uploaded: o.body.leads.length }; } } };
+  const many = Array.from({ length: 230 }, (_, i) => ({ email:'p'+i+'@x.fr', custom_variables:{ ai_subject:'s', ai_body:'b', ai_body_text:'b' }, _preview:'x' }));
+  const r = await mk('instantly_add.js').call(ctxSend, $, items(many), log);
+  console.log('\n▶ Instantly: add leads (send mode, 230 leads) -> chunks', posted, '| added', r[0].json.added);
+  if (posted.join(',') !== '100,100,30' || r[0].json.added !== 230) { console.log('CHUNKING FAIL'); process.exit(1); }
+}
 console.log('\n=== HTTP calls made (' + calls.length + ') ===\n' + calls.join('\n'));
