@@ -170,6 +170,27 @@ Buttons are weighted by risk: **Check capacity** is primary and free, sourcing
 and reply-drafting are dry runs, and the one button that sends real mail is a
 danger style behind a confirm.
 
+### Or: download an n8n workflow
+
+**Download n8n workflow** on the Run screen renders everything on these screens
+as an importable n8n flow — the Explee search built from your ICP, the prompt
+with your offer and facts in it, and the push to Instantly. Import with
+`⋯ → Import from File` and it runs there: no Python, no Actions, every step a
+node you can see and change.
+
+Ten nodes, five types (`manualTrigger`, `code`, `httpRequest`, `wait`, `if`) —
+anything that could have been a `splitOut` or a `Set` is a Code node instead,
+because a workflow that fails to import is worse than one with an extra node.
+The `Done?` node's false branch loops back to `Wait`, which is the poll.
+
+Two buttons: one embeds your keys so it runs on import (**keep that file local**),
+one leaves placeholders in the Config node.
+
+**Not verified against a live n8n.** The JSON is structurally checked — required
+fields on every node, no dangling or unreachable connections, unique ids, the
+loop closes — but nothing here has imported it. If a node comes in red, tell me
+which and it is a one-line fix.
+
 ### GitHub is the backend
 
 **Save** commits `campaigns/<slug>.json` to the repo through the GitHub contents
