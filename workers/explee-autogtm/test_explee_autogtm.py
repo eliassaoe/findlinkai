@@ -1256,5 +1256,17 @@ class ThirdDryRun(unittest.TestCase):
                          "send_info")
 
 
+class ReplyBody(unittest.TestCase):
+    def test_the_reply_is_sent_as_body_text(self):
+        api = Explee(api_key="k")
+        seen = {}
+        api.request = lambda method, path, body=None, params=None: seen.update(
+            method=method, path=path, body=body) or {}
+        api.reply(127292, "d8b1", "Bonjour Tom")
+        self.assertEqual(seen["method"], "POST")
+        self.assertTrue(seen["path"].endswith("/inbox/d8b1/reply"))
+        self.assertEqual(seen["body"], {"body_text": "Bonjour Tom"})
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

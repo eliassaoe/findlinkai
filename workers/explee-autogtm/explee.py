@@ -241,7 +241,9 @@ class Explee:
         return self.request(
             "POST", "/public/api/v1/autogtm/campaigns/{}/inbox/{}/reply".format(
                 campaign_id, person_id),
-            body={"message": message})
+            # The field is body_text - seen live 6 Sept 2026: {"message": ...} is a 422
+            # "body_text: Field required", and seven nudges were refused on it.
+            body={"body_text": message})
 
     def get_note(self, campaign_id, person_id):
         try:
