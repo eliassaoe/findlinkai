@@ -39,9 +39,13 @@ replies.forEach((item, i) => {
   const key = String(email.email || '').toLowerCase();
   const lead = byEmail[key] || byName[String((email.name || '') + '|' + (email.company || '')).toLowerCase()] || leads[i];
   if (!lead || !lead.email) { problems.push('item ' + i + ': could not pair to a lead with an email (' + key + ')'); return; }
-  const body = String(email.body).replace(/\r\n/g, '\n').trim();
-  const words = body.split(/\s+/).length;
-  if (words > 95) problems.push(lead.email + ': ' + words + ' words — over the 90-word ceiling, sent anyway');
+  const clean = t => String(t || '').replace(/\r\n/g, '\n').trim();
+  const body = clean(email.body), f1 = clean(email.followup_1), f2 = clean(email.followup_2);
+  const words = t => (t ? t.split(/\s+/).length : 0);
+  if (words(body) > 95) problems.push(lead.email + ': ' + words(body) + ' words — over the 90-word ceiling, sent anyway');
+  if (f1 && words(f1) > 60) problems.push(lead.email + ': follow-up 1 is ' + words(f1) + ' words, ceiling 55');
+  if (f2 && words(f2) > 60) problems.push(lead.email + ': follow-up 2 is ' + words(f2) + ' words, ceiling 55');
+  if (!f1 || !f2) problems.push(lead.email + ': missing a follow-up (steps 2-3 of the campaign will be empty for this lead)');
   out.push({ json: {
     email: lead.email,
     first_name: lead.first_name,
@@ -52,9 +56,14 @@ replies.forEach((item, i) => {
       ai_subject: String(email.subject).trim(),
       ai_body: body.replace(/\n/g, '<br>'),     // for an HTML step
       ai_body_text: body,                        // for a plain-text step
+      // Steps 2 and 3 of the campaign. 42% of replies come from follow-ups,
+      // and these cost nothing extra to reach — the lead is already resolved.
+      ai_followup_1: f1.replace(/\n/g, '<br>'), ai_followup_1_text: f1,
+      ai_followup_2: f2.replace(/\n/g, '<br>'), ai_followup_2_text: f2,
     },
     // Kept out of what is sent, useful in the node output.
-    _preview: '── ' + lead.full_name + ' <' + lead.email + '> · ' + lead.company_name + '\nSubject: ' + email.subject + '\n\n' + body,
+    _preview: '── ' + lead.full_name + ' <' + lead.email + '> · ' + lead.company_name + '\nSubject: ' + email.subject + '\n\n' + body +
+      (f1 ? '\n\n── follow-up 1 (+3 days)\n' + f1 : '') + (f2 ? '\n\n── follow-up 2 (+3 days)\n' + f2 : ''),
   } });
 });
 

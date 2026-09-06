@@ -41,4 +41,8 @@ if (!uses('ai_body')) {
 }
 console.log('Campaign "' + (camp.name || id) + '" uses {{ai_body}}' + (uses('ai_subject') ? ' and {{ai_subject}}' : ' (subject is the campaign\'s own)') +
   '; status ' + (camp.status ?? '?'));
+if (!uses('ai_followup_1')) {
+  console.log('NOTE: the campaign has no step using {{ai_followup_1}}. The flow writes two follow-ups per lead; ' +
+    'add steps 2 and 3 (3 days apart) with body {{ai_followup_1}} and {{ai_followup_2}} — 42% of replies come from follow-ups and these cost nothing more to send.');
+}
 return [{ json: cfg }];

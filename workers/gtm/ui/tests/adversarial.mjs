@@ -110,3 +110,39 @@ const ok = (label, cond) => console.log((cond ? '  ok   ' : '  FAIL ') + label);
   const out2 = await mk('domains.js').call({}, $of({ countries:['FR'], min_criterion_score:3 }), items([rows]), quiet);
   ok('ranked by company score, low dropped: ' + out2.map(i=>i.json.domain).join(','), out2.map(i=>i.json.domain).join(',') === 'hi.fr,mid.fr');
 }
+
+// --- the signal gate: only pay to reach people with a live trigger --------
+{
+  const people = [
+    { full_name:'A', company_name:'X', company_domain:'x.fr', signal:{ active_hiring:{ is_actively_hiring:true } } },
+    { full_name:'B', company_name:'Y', company_domain:'y.fr' },
+    { full_name:'C', company_name:'Z', company_domain:'z.fr', signal:{} },
+  ];
+  const on = await mk('normalize.js').call({}, $of({ require_signal:true, signal_agents:['active_hiring'] }), items([{ people }]), quiet);
+  ok('gate on: only the lead with a real trigger goes through (1 of 3)', on.length === 1 && on[0].json.full_name === 'A');
+  const off = await mk('normalize.js').call({}, $of({ require_signal:false, signal_agents:['active_hiring'] }), items([{ people }]), quiet);
+  ok('gate off: everyone qualified goes through', off.length === 3);
+  const noAgents = await mk('normalize.js').call({}, $of({ require_signal:true, signal_agents:[] }), items([{ people }]), quiet);
+  ok('gate on but no agents configured: not applied', noAgents.length === 3);
+  try { await mk('normalize.js').call({}, $of({ require_signal:true, signal_agents:['active_hiring'] }), items([{ people: people.slice(1) }]), quiet); ok('gate takes everyone -> throws', false); }
+  catch (e) { ok('gate takes everyone -> throws naming the fix', /require_signal false/.test(e.message)); }
+}
+
+// --- follow-ups ride as variables; lengths checked; missing ones reported ----
+{
+  const cfg = { dry_run:true };
+  const leads = [{ full_name:'Claire Martin', first_name:'Claire', last_name:'Martin', company_name:'Demos', company_domain:'demos.fr', email:'c@demos.fr', brief:{} }];
+  const logs = []; const log = { log: m => logs.push(String(m)) };
+  const $ = name => name === 'Config' ? { first:()=>({ json:cfg }) } : { all:(b)=>leads.map(json=>({ json })) };
+  const full = { output: JSON.stringify({ email:'c@demos.fr', subject:'s', body:'Bonjour Claire,\n\nligne.', followup_1:'Un trimestre sans prospection, c\'est un trimestre de moins. Toujours partante pour un test ?', followup_2:'Je peux vous envoyer 20 prospects de votre segment, gratuitement. Vous les voulez ?' }) };
+  const out = await mk('build_lead.js').call({}, $, items([full]), log);
+  const cv = out[0].json.custom_variables;
+  ok('follow-ups present as ai_followup_1/2 (+ _text)', !!(cv.ai_followup_1 && cv.ai_followup_2_text && cv.ai_followup_1.includes('Un trimestre')));
+  ok('preview shows all three messages', out[0].json._preview.includes('follow-up 1') && out[0].json._preview.includes('follow-up 2'));
+  logs.length = 0;
+  const out2 = await mk('build_lead.js').call({}, $, items([{ output: JSON.stringify({ email:'c@demos.fr', subject:'s', body:'b' }) }]), log);
+  ok('missing follow-ups: lead still built, problem logged', out2.length === 1 && logs.some(l => /missing a follow-up/.test(l)));
+  logs.length = 0;
+  await mk('build_lead.js').call({}, $, items([{ output: JSON.stringify({ email:'c@demos.fr', subject:'s', body:'b', followup_1: Array(70).fill('mot').join(' '), followup_2:'ok' }) }]), log);
+  ok('a 70-word follow-up is flagged against the 55 ceiling', logs.some(l => /follow-up 1 is 70 words/.test(l)));
+}

@@ -6,8 +6,25 @@
 // CN for Microsoft — noise that dilutes the signal and invites invention.
 const cfg = $('Config').first().json;
 const j = $input.first().json || {};
-const rows = j.people || j.results || j.items || j.contacts || [];
+let rows = j.people || j.results || j.items || j.contacts || [];
 if (!rows.length) throw new Error('No people reached the writer. Upstream answered: ' + JSON.stringify(j).slice(0, 400));
+
+// Only pay to reach people with a live trigger. Signal-based email runs
+// 5-18% reply against 1-3% generic, and every lead past this point costs an
+// address lookup and a model call — so a lead with nothing happening at their
+// company is the most expensive kind to keep. On by default whenever trigger
+// agents are configured; the drop is logged and, if it takes everyone, the
+// error says so rather than sending nothing quietly.
+if (cfg.require_signal && (cfg.signal_agents || []).length) {
+  const withSignal = rows.filter(r => r.signal && Object.keys(r.signal).length);
+  console.log('Signal gate: ' + withSignal.length + ' of ' + rows.length + ' leads have a live trigger; the rest are not emailed');
+  if (!withSignal.length) {
+    throw new Error('None of ' + rows.length + ' qualified leads has a trigger from ' + cfg.signal_agents.join(', ') +
+      '. Either the agents returned nothing (check the Signals: collect log — was the Wait long enough?) or this segment is quiet. ' +
+      'Set require_signal false in Config to email them anyway.');
+  }
+  rows = withSignal;
+}
 
 const pick = (...v) => v.find(x => x != null && x !== '') ?? '';
 const NAME = { FR:'France', BE:'Belgium', LU:'Luxembourg', CH:'Switzerland', DE:'Germany', ES:'Spain', IT:'Italy',

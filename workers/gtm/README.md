@@ -382,6 +382,25 @@ answers each one.
 | Any preamble before the JSON dropped the lead silently | `Build the lead` | JSON found by brace matching; pairs by the email the model echoes, not by position; problems logged |
 | The raw agent result went into the brief | `Explee: signals per company` | compacted: job postings become their titles, urls and reasoning dropped |
 
+#### Getting from $30 a call to $10
+
+Measured today: about $30 per held meeting. Cost per meeting is cost per email
+÷ (reply × hot share × show rate), so at ~$0.05 an email and a 25% hot share
+the target needs roughly a **3x** improvement. Two levers in the flow multiply
+to about that, and neither is a cost cut:
+
+| Lever | Where | Effect |
+| --- | --- | --- |
+| **Only email people with a live trigger** (`require_signal`, on by default) | `One item per lead`, before the address lookup and the writer | signal-based cold email runs 5-18% reply against 1-3% generic — roughly 2x, and the two expensive per-lead steps are spent only where they can pay |
+| **Two follow-ups written in the same pass** (`ai_followup_1`, `ai_followup_2`) | the prompt, `Build the lead` | 42% of replies come from steps 2-4; the lead is already resolved, so the marginal cost is one model call, about $0.01 |
+
+The follow-ups are 30-55 words each, a new angle every time (the cost of
+waiting, then a free sample list), never "just following up". Build the
+Instantly sequence as step 1 `{{ai_subject}}` / `{{ai_body}}`, step 2 (+3 days)
+`{{ai_followup_1}}`, step 3 (+3 days) `{{ai_followup_2}}`; the campaign check
+notes it if step 2 is missing. The gate, if it drops everyone, throws naming
+the fix rather than sending nothing quietly.
+
 **Model default is now Sonnet 5**: $0.008 an email against Opus's $0.021 for
 90 words from a structured brief. Change `LLM_MODEL` under Keys to override.
 
