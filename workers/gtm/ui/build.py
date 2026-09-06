@@ -35,6 +35,8 @@ HEAD = """<!-- GENERATED — do not edit. Master: workers/gtm/ui/index.html
 
 
 def render() -> str:
+    import subprocess
+    subprocess.run([sys.executable, str(HERE / "gen_nodes.py")], check=True)
     html = MASTER.read_text(encoding="utf-8")
     marker = "<title>"
     if marker not in html:

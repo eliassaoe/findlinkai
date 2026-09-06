@@ -160,11 +160,12 @@ function say(m, err) {
  * the prompt.
  */
 const BLANK = {
-  project: { name: '', domain: '', facts: '', booking_link: '', cc_email: '',
+  project: { name: '', domain: '', facts: '', booking_link: '', cc_email: '', sender_name: '',
              sending_emails: [], daily_cap: 135 },
   campaign: { name: '', kind: 'b2b', offer: '', customer_problem: '', example_clients: [],
               keywords: [], target_role: '', target_geography: '', company_domains: '',
               title_keywords: '', title_exclude: '', min_company_size: 0, signal_agents: '',
+              max_leads: 30, send_mode: 'dry',
               positive_criteria: [], negative_criteria: [], instantly_campaign_id: null },
   prompts: { first_email: [], follow_up: [], reply: [] },
 };
@@ -263,6 +264,8 @@ function viewCampaign() {
          'cold email from 1-3% to 5-18%. Empty to skip.'),
     text(c, 'min_company_size', 'Minimum company size',
          'headcount floor, 0 for none — drops the one-person shells'),
+    text(c, 'max_leads', 'Leads per run',
+         'after the filters, ranked best first. Each one costs an email lookup and a model call.'),
     text(c, 'company_domains', 'Company domains',
          'one per line — fill this in and the flow lists employees at each with LinkFinder ' +
          'instead of searching Explee. Leave empty to search Explee.',
@@ -275,6 +278,7 @@ function viewCampaign() {
     el('h2', {}, 'Project notes'),
     el('p', { class: 'hint' }, 'The only facts the agent may state as true. Anything not here, it will not claim.'),
     text(p, 'name', 'Project name'),
+    text(p, 'sender_name', 'Sender name', 'the person signing the email — first name is used'),
     text(p, 'facts', 'Facts', null, { area: true, mono: true, rows: 9 }),
     text(p, 'booking_link', 'Booking link', 'offered only after real interest'),
   ];
@@ -490,8 +494,19 @@ function viewRun() {
 
     el('h2', {}, 'Instantly campaign'),
     el('p', { class: 'hint' },
-      'Leave empty and the first send creates one, paused, and writes its id back. Arming is separate.'),
-    text(D.campaign, 'instantly_campaign_id', 'Campaign ID'),
+      'The workflow adds leads to this campaign with the written copy as {{ai_subject}} / {{ai_body}} ' +
+      '(or {{ai_body_text}} for a plain-text step). Its sequence must use those variables — the flow ' +
+      'checks before spending a credit and refuses if it does not.'),
+    text(D.campaign, 'instantly_campaign_id', 'Campaign ID', 'from the campaign URL'),
+    el('label', {}, 'Mode'),
+    (() => {
+      const sel = el('select', {},
+        el('option', { value: 'dry', selected: D.campaign.send_mode !== 'send' }, 'dry run — write the emails, never call Instantly'),
+        el('option', { value: 'send', selected: D.campaign.send_mode === 'send' }, 'send — add the leads to the campaign'));
+      sel.addEventListener('change', () => { D.campaign.send_mode = sel.value; save(); say('saved'); });
+      return sel;
+    })(),
+    el('p', { class: 'hint' }, 'Run dry first and read the emails in the Build the lead node. Flip to send when they read right.'),
 
     el('h2', {}, 'Repository'),
     (() => { const i = el('input', { type: 'text' }); i.value = repo();
@@ -581,10 +596,24 @@ $('#dlgCancel').onclick = () => $('#dlg').close();
  * Import it in n8n (⋯ → Import from File) and it runs there — no Python, no
  * Actions, and every step visible and editable as a node.
  *
- * Three node types only — manualTrigger, code, httpRequest — and no loop.
- * Anything that could have been splitOut or a Set is a Code node instead,
- * because a workflow that fails to import is worse than one with an extra node.
+ * Code node bodies come from nodes/*.js via gen_nodes.py (NODE_SRC below) —
+ * real files that are syntax-checked and run against fakes, never hand-escaped
+ * strings. No loops: every async wait lives inside a Code node with a budget.
  */
+/* NODES:BEGIN — generated from nodes/*.js by gen_nodes.py, do not edit */
+const NODE_SRC = {
+  "build_lead": "// From the writer's answer to one Instantly lead.\n//\n// Pairs by the email the model was asked to echo back, not by position, so a\n// skipped or reordered item cannot attach someone's copy to someone else.\n// Finds the JSON by brace matching rather than expecting the whole reply to\n// be JSON: an agent that adds a sentence first no longer loses the lead.\nconst cfg = $('Config').first().json;\nconst leads = $('One item per lead').all().map(i => i.json);\nconst byEmail = Object.fromEntries(leads.map(l => [String(l.email).toLowerCase(), l]));\n\nconst extract = text => {\n  if (typeof text !== 'string') return null;\n  const s = text.indexOf('{');\n  if (s < 0) return null;\n  let depth = 0, inStr = false, esc = false;\n  for (let i = s; i < text.length; i++) {\n    const ch = text[i];\n    if (inStr) { if (esc) esc = false; else if (ch === '\\\\') esc = true; else if (ch === '\"') inStr = false; continue; }\n    if (ch === '\"') inStr = true;\n    else if (ch === '{') depth++;\n    else if (ch === '}') { depth--; if (!depth) { try { return JSON.parse(text.slice(s, i + 1)); } catch (e) { return null; } } }\n  }\n  return null;\n};\n\nconst out = [], problems = [];\nconst replies = $input.all();\nreplies.forEach((item, i) => {\n  const r = item.json || {};\n  let text = r.output ?? r.text ?? r.choices?.[0]?.message?.content ?? '';\n  if (typeof text !== 'string') text = JSON.stringify(text);\n  const email = extract(text);\n  if (!email || !email.subject || !email.body) { problems.push('item ' + i + ': no subject/body JSON in: ' + String(text).slice(0, 120)); return; }\n  const key = String(email.email || '').toLowerCase();\n  const lead = byEmail[key] || leads[i];\n  if (!lead) { problems.push('item ' + i + ': could not pair to a lead'); return; }\n  const body = String(email.body).replace(/\\r\\n/g, '\\n').trim();\n  const words = body.split(/\\s+/).length;\n  if (words > 160) problems.push(lead.email + ': ' + words + ' words, long for a cold email');\n  out.push({ json: {\n    email: lead.email,\n    first_name: lead.first_name,\n    last_name: lead.last_name,\n    company_name: lead.company_name,\n    website: lead.company_domain,\n    custom_variables: {\n      ai_subject: String(email.subject).trim(),\n      ai_body: body.replace(/\\n/g, '<br>'),     // for an HTML step\n      ai_body_text: body,                        // for a plain-text step\n    },\n    // Kept out of what is sent, useful in the node output.\n    _preview: '── ' + lead.full_name + ' <' + lead.email + '> · ' + lead.company_name + '\\nSubject: ' + email.subject + '\\n\\n' + body,\n  } });\n});\n\nif (problems.length) console.log('Build the lead: ' + problems.length + ' problem(s)\\n' + problems.join('\\n'));\nconsole.log(out.length + ' emails ready' + (cfg.dry_run ? ' (dry run — read them in this node\\'s output, nothing is sent)' : ' for campaign ' + cfg.instantly_campaign_id));\nif (!out.length) throw new Error('Nothing to send — the writer produced no usable subject/body JSON. ' + problems.join(' | '));\nreturn out;",
+  "check_campaign": "// Fail early on the one thing that silently ruins every email.\n//\n// Leads are added to an EXISTING Instantly campaign with the per-lead copy as\n// custom variables {{ai_subject}} and {{ai_body}}. If that campaign's own\n// sequence does not reference those variables, Instantly sends its static\n// template to everyone and the personalised copy is never seen. That is an\n// easy way to get \"bad emails\" with a flow that looks like it worked.\n//\n// This runs right after Config, before a single credit is spent. In dry-run\n// mode it does nothing: the run produces the drafted emails as node output\n// and touches Instantly not at all.\nconst cfg = $input.first().json;\nif (cfg.dry_run) {\n  console.log('Dry run: Instantly will not be called. Flip dry_run in Config to send.');\n  return [{ json: cfg }];\n}\nconst id = cfg.instantly_campaign_id;\nif (!id || String(id).startsWith('PUT_')) {\n  throw new Error('dry_run is off but instantly_campaign_id is not set. Put the campaign id from the Instantly URL in Config.');\n}\nif (!cfg.instantly_key || String(cfg.instantly_key).startsWith('PUT_')) {\n  throw new Error('dry_run is off but instantly_key is not set.');\n}\nif (!this.helpers || !this.helpers.httpRequest) return [{ json: cfg }];\n\nlet camp;\ntry {\n  camp = await this.helpers.httpRequest({ method: 'GET', json: true,\n    url: 'https://api.instantly.ai/api/v2/campaigns/' + encodeURIComponent(id),\n    headers: { Authorization: 'Bearer ' + cfg.instantly_key } });\n} catch (e) {\n  throw new Error('Could not read Instantly campaign ' + id + ': ' + e.message);\n}\nconst text = JSON.stringify(camp.sequences || camp);\nconst uses = v => text.includes('{{' + v + '}}');\nif (!uses('ai_body')) {\n  throw new Error('Campaign \"' + (camp.name || id) + '\" does not use {{ai_body}} in its sequence, so every lead ' +\n    'would get the campaign\\'s static text instead of the email written for them. In Instantly, set the step ' +\n    'subject to {{ai_subject}} and the body to {{ai_body}} (or {{ai_body_text}} for a plain-text campaign), ' +\n    'then run again.');\n}\nconsole.log('Campaign \"' + (camp.name || id) + '\" uses {{ai_body}}' + (uses('ai_subject') ? ' and {{ai_subject}}' : ' (subject is the campaign\\'s own)') +\n  '; status ' + (camp.status ?? '?'));\nreturn [{ json: cfg }];",
+  "domains": "// From the company search to a ranked list of domains.\n//\n// Three things the earlier version did not do: read the criteria scores it\n// paid for, check the country, and rank. It took whatever came back in\n// whatever order and the resolution cap downstream then kept the first N.\nconst cfg = $('Config').first().json;\n\nif (cfg.domains && cfg.domains.length) {\n  return cfg.domains.map(domain => ({ json: { domain, source: 'manual' } }));\n}\n\nconst j = $input.first().json || {};\nconst rows = j.companies || j.results || j.items || j.data || [];\nconst clean = d => String(d || '').trim().toLowerCase()\n  .replace(/^https?:\\/\\//, '').replace(/^www\\./, '').replace(/\\/.*$/, '');\n\nconst allowed = (cfg.countries || []).map(c => String(c).toUpperCase());\n// Country as an ISO code whatever form it arrives in. \"Belgium\" sliced to two\n// letters is \"BE\" by luck; \"Germany\" would be \"GE\". Map names, keep codes.\nconst ISO = { france:'FR', belgium:'BE', belgique:'BE', luxembourg:'LU', switzerland:'CH', suisse:'CH', germany:'DE',\n  allemagne:'DE', spain:'ES', espagne:'ES', italy:'IT', italie:'IT', netherlands:'NL', 'pays-bas':'NL', portugal:'PT',\n  ireland:'IE', irlande:'IE', 'united kingdom':'GB', uk:'GB', 'united states':'US', usa:'US', canada:'CA',\n  russia:'RU', china:'CN', india:'IN', poland:'PL', austria:'AT', sweden:'SE', denmark:'DK', norway:'NO' };\nconst iso = v => { const s = String(v || '').trim(); if (!s) return '';\n  if (/^[A-Za-z]{2}$/.test(s)) return s.toUpperCase(); return ISO[s.toLowerCase()] || ''; };\nconst country = r => iso(r.country_code || r.country || r.company_country || r.geo);\nconst size = r => {\n  const nums = String(r.employee_count || r.company_size || r.size || '').replace(/[,\\s]/g, '').match(/\\d+/g);\n  return nums ? Math.max(...nums.map(Number)) : null;\n};\n// Explee attaches criteria scores 0-5 (with reasoning) when criteria are\n// sent. Average them; a company with no scores is neutral, not zero.\nconst score = r => {\n  const c = r.criteria || r.criteria_scores || r.scores;\n  if (!Array.isArray(c) || !c.length) return null;\n  const vals = c.map(v => Number(typeof v === 'object' ? (v.score ?? v.value) : v)).filter(n => !isNaN(n));\n  return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;\n};\n\nconst dropped = { nodomain: 0, country: 0, size: 0, score: 0 };\nconst seen = new Set();\nconst kept = [];\nfor (const r of rows) {\n  const domain = clean(r.domain || r.website || r.company_domain || r.companyWebsite || r.company_website || r.url);\n  if (!domain || !domain.includes('.') || seen.has(domain)) { if (!seen.has(domain)) dropped.nodomain++; continue; }\n  const cc = country(r);\n  if (allowed.length && cc && !allowed.includes(cc)) { dropped.country++; continue; }\n  const n = size(r);\n  if (cfg.min_company_size && n !== null && n < cfg.min_company_size) { dropped.size++; continue; }\n  const sc = score(r);\n  if (cfg.min_criterion_score && sc !== null && sc < cfg.min_criterion_score) { dropped.score++; continue; }\n  seen.add(domain);\n  kept.push({ domain, company: r.name || r.company_name || '', country: cc, score: sc,\n              what: r.description || r.company_description || '' });\n}\nkept.sort((a, b) => (b.score ?? 2.5) - (a.score ?? 2.5));\n\nconsole.log('Domains: ' + kept.length + ' of ' + rows.length + ' companies kept ' + JSON.stringify(dropped) +\n  (kept.length ? '; top: ' + kept.slice(0, 5).map(k => k.domain + (k.score != null ? '(' + k.score.toFixed(1) + ')' : '')).join(', ') : ''));\n\nif (!kept.length) {\n  throw new Error('No usable companies. ' + rows.length + ' returned, dropped ' + JSON.stringify(dropped) +\n    '. Response keys: ' + Object.keys(j).join(', ') + '. First row: ' + JSON.stringify(rows[0] || j).slice(0, 400));\n}\nreturn kept.map(k => ({ json: k }));",
+  "filters": "// Turn the ICP into Explee's own structured filter object.\n//\n// The previous flow sent the ICP as a prose `definition` with the geography\n// mashed into the sentence, and Explee returned Microsoft for a French\n// training-company ICP. `definition` is meant to be a company type (\"real\n// estate company\"); countries and size are separate filters. nl-to-filters\n// is Explee's free converter from prose to that object, and their own agent\n// uses it — so use it, and fall back to prose only if it fails.\nconst cfg = $('Config').first().json;\nconst nl = $input.first().json || {};\n\n// The HTTP node before this one continues on error, so a failure arrives\n// here as { error } rather than stopping the flow.\nconst fromNl = !nl.error && (nl.filters || nl.company_filters ||\n  (nl.definition || nl.countries || nl.industries ? nl : null));\n\nlet filters;\nif (fromNl && typeof fromNl === 'object') {\n  filters = { ...fromNl };\n  for (const k of ['query', 'explanation', 'reasoning', 'people_filters']) delete filters[k];\n  console.log('Filters from nl-to-filters: ' + JSON.stringify(filters).slice(0, 300));\n} else {\n  filters = { definition: cfg.definition };\n  console.log('nl-to-filters gave nothing usable' + (nl.error ? ' (' + JSON.stringify(nl.error).slice(0, 120) + ')' : '') +\n              ' — falling back to definition: ' + cfg.definition);\n}\nif (!filters.definition) filters.definition = cfg.definition;\n\n// Criteria score companies 0-5 each. Explee 400s above three.\nconst criteria = (cfg.criteria || []).slice(0, 3);\nif (criteria.length) filters.criteria = criteria;\n\nreturn [{ json: { filters, page_size: cfg.page_size } }];",
+  "normalize": "// One item per lead, in one shape, with a brief the writer can use.\n//\n// Explee answers in snake_case, LinkFinder in camelCase; the brief is the\n// curated subset the writer is allowed to notice. The raw row also carries\n// NACE sector scores, follower counts, photo urls and a company_geo that said\n// CN for Microsoft — noise that dilutes the signal and invites invention.\nconst cfg = $('Config').first().json;\nconst j = $input.first().json || {};\nconst rows = j.people || j.results || j.items || j.contacts || [];\nif (!rows.length) throw new Error('No people reached the writer. Upstream answered: ' + JSON.stringify(j).slice(0, 400));\n\nconst pick = (...v) => v.find(x => x != null && x !== '') ?? '';\nconst NAME = { FR:'France', BE:'Belgium', LU:'Luxembourg', CH:'Switzerland', DE:'Germany', ES:'Spain', IT:'Italy',\n  NL:'Netherlands', PT:'Portugal', IE:'Ireland', GB:'United Kingdom', US:'United States', CA:'Canada' };\nconst placeName = v => { const s = String(v || ''); return /^[A-Za-z]{2}$/.test(s) ? (NAME[s.toUpperCase()] || s) : s; };\nreturn rows.map(c => {\n  const first = pick(c.first_name, c.firstName);\n  const last = pick(c.last_name, c.lastName);\n  const full = pick(c._name, c.full_name, c.name, [first, last].filter(Boolean).join(' '));\n  const lead = {\n    full_name: full,\n    first_name: first || String(full).split(' ')[0] || '',\n    last_name: last || String(full).split(' ').slice(1).join(' '),\n    email: pick(c.email),\n    linkedin_url: pick(c.linkedin_url, c.linkedinUrl, c.linkedin),\n    job_title: pick(c.job_title, c.jobTitle, c.title),\n    company_name: pick(c.company_name, c.company, c._company),\n    company_domain: pick(c.company_domain, c.companyWebsite, c.domain),\n    location: placeName(pick(c.city, c.location, c.country, c.geo)),\n    source: c.source || '',\n    score: c._score ?? null,\n  };\n  const brief = Object.fromEntries(Object.entries({\n    name: full,\n    title: lead.job_title,\n    headline: c.headline,\n    company: lead.company_name,\n    what_the_company_does: pick(c.company_description, c._company_what),\n    industry: pick(c.company_industry, c.industry),\n    company_size: pick(c.company_size, c.companySize),\n    where: lead.location,\n    // The buying trigger, already compacted by the signals node.\n    whats_happening_there: c.signal,\n  }).filter(([, v]) => v != null && v !== ''));\n  return { json: { ...lead, brief, language: cfg.language || 'lead' } };\n});",
+  "people": "// Who to write to at each company. Explee first, LinkFinder second.\n//\n// Explee matches job titles semantically against the campaign's target roles.\n// LinkFinder's company_domain_to_employees takes a seniority bucket: a live\n// call on demos.fr returned a Technical Director in Russia and a CFO — real\n// directors, wrong people. So Explee leads and LinkFinder covers the domains\n// Explee has nobody for. Never both for one domain.\nconst cfg = $('Config').first().json;\nif (!this.helpers || !this.helpers.httpRequest) {\n  throw new Error('This n8n has no this.helpers.httpRequest in Code nodes.');\n}\nconst http = opts => this.helpers.httpRequest(opts);\nconst sleep = ms => new Promise(r => setTimeout(r, ms));\nconst LF = 'https://api.linkfinderai.com';\nconst hasExplee = cfg.explee_key && !cfg.explee_key.startsWith('PUT_');\nconst hasLf = cfg.linkfinder_key && !cfg.linkfinder_key.startsWith('PUT_');\nif (!hasExplee && !hasLf) throw new Error('No Explee or LinkFinder key in Config.');\nconst deadline = Date.now() + (Number(cfg.people_budget_seconds) || 200) * 1000;\nconst left = () => deadline - Date.now();\n\nasync function explee(domain) {\n  if (!hasExplee) return [];\n  try {\n    const x = await http({ method: 'POST', json: true, timeout: 45000,\n      url: 'https://api.explee.com/public/api/v1/search/people-by-domains',\n      headers: { 'X-API-Key': cfg.explee_key },\n      body: { domains: [domain],\n              job_titles: (cfg.job_titles || ['Founder', 'Director']).slice(0, 20),\n              criteria: (cfg.criteria || []).slice(0, 3),\n              people_per_company: cfg.per_company } });\n    return (x && (x.people || x.results || x.items)) || [];\n  } catch (e) { console.log(domain + ' explee: ' + e.message); return []; }\n}\n\n// Always async on LinkFinder's side: post, then poll the job inline.\nasync function linkfinder(domain) {\n  if (!hasLf) return [];\n  const auth = { Authorization: 'Bearer ' + cfg.linkfinder_key };\n  let r;\n  try {\n    r = await http({ method: 'POST', url: LF, headers: auth, json: true, timeout: 30000, body: {\n      type: 'company_domain_to_employees', input_data: domain,\n      seniority: cfg.seniority, employee_count: cfg.per_company } });\n  } catch (e) { console.log(domain + ' linkfinder: ' + e.message); return []; }\n  for (let n = 0; r && r.job_id && !r.result && n < 8 && left() > 20000; n++) {\n    await sleep(8000);\n    try { r = await http({ method: 'GET', headers: auth, json: true,\n      url: r.poll_url || LF + '/status/' + r.job_id }); }\n    catch (e) { return []; }\n  }\n  return (r && r.result) || [];\n}\n\nconst out = [];\nconst companies = $input.all().map(i => i.json);\nlet stopped = '';\nfor (const c of companies) {\n  if (left() < 25000) { stopped = 'out of time after ' + out.length + ' people'; break; }\n  const domain = c.domain;\n  let rows = await explee(domain), via = 'explee';\n  if (!rows.length) { rows = await linkfinder(domain); via = 'linkfinder'; }\n  for (const p of rows.slice(0, cfg.per_company)) {\n    out.push({ ...p, source: via, _company: c.company, _company_score: c.score,\n               _company_what: c.what, _company_country: c.country,\n               company_domain: p.company_domain || p.companyWebsite || domain });\n  }\n  await sleep(700);\n}\nconsole.log('People: ' + out.length + ' across ' + companies.length + ' companies (' +\n  out.filter(p => p.source === 'explee').length + ' explee, ' +\n  out.filter(p => p.source === 'linkfinder').length + ' linkfinder)' + (stopped ? '; ' + stopped : ''));\nif (!out.length) {\n  throw new Error('Neither Explee nor LinkFinder found anyone at: ' + companies.map(c => c.domain).join(', '));\n}\nreturn [{ json: { people: out } }];",
+  "qualify": "// The gate. Runs before anything that costs credits per person.\n//\n// Semantic title matching is how Explee finds people and why it over-returns;\n// Explee's own AutoGTM log shows \"Head of Sales Operations\" bleeding into 32k\n// generic \"Head of Sales\", fixed by requiring a literal on-target word in the\n// real title. This does that, plus country, size, the criterion score, and a\n// ranking so the cap downstream keeps the best rather than the first.\nconst cfg = $('Config').first().json;\nconst people = $input.first().json.people || [];\nconst norm = s => String(s || '').toLowerCase();\n\n// Title words: configured, else derived from the target roles so the gate\n// is on by default. Short function words are not evidence of anything.\nconst STOP = new Set(['de', 'du', 'des', 'la', 'le', 'les', 'et', 'of', 'the', 'and', 'in', 'at', 'for', 'en', 'a', 'à']);\nconst derived = (cfg.job_titles || []).flatMap(t => norm(t).split(/[\\s\\-\\/,]+/))\n  .filter(w => w.length > 2 && !STOP.has(w));\nconst want = ((cfg.title_keywords || []).length ? cfg.title_keywords : derived).map(norm).filter(Boolean);\nconst banned = (cfg.title_exclude || []).map(norm).filter(Boolean);\nconst allowed = (cfg.countries || []).map(c => String(c).toUpperCase());\nconst floor = Number(cfg.min_company_size) || 0;\nconst minScore = Number(cfg.min_criterion_score) || 0;\n\nconst titleOf = p => norm(p.job_title || p.jobTitle || p.title) + ' ' + norm(p.headline);\n// Country as an ISO code whatever form it arrives in. \"Belgium\" sliced to two\n// letters is \"BE\" by luck; \"Germany\" would be \"GE\". Map names, keep codes.\nconst ISO = { france:'FR', belgium:'BE', belgique:'BE', luxembourg:'LU', switzerland:'CH', suisse:'CH', germany:'DE',\n  allemagne:'DE', spain:'ES', espagne:'ES', italy:'IT', italie:'IT', netherlands:'NL', 'pays-bas':'NL', portugal:'PT',\n  ireland:'IE', irlande:'IE', 'united kingdom':'GB', uk:'GB', 'united states':'US', usa:'US', canada:'CA',\n  russia:'RU', china:'CN', india:'IN', poland:'PL', austria:'AT', sweden:'SE', denmark:'DK', norway:'NO' };\nconst iso = v => { const s = String(v || '').trim(); if (!s) return '';\n  if (/^[A-Za-z]{2}$/.test(s)) return s.toUpperCase(); return ISO[s.toLowerCase()] || ''; };\nconst countryOf = p => iso(p.geo || p.country_code || p.country || p._company_country);\nconst size = p => {\n  const nums = String(p.company_size || p.companySize || '').replace(/[,\\s]/g, '').match(/\\d+/g);\n  return nums ? Math.max(...nums.map(Number)) : null;\n};\n// Score against the FIRST criterion only. Summing buries a hard no under\n// two soft yeses — their log calls that out too.\nconst score = p => {\n  const c = p.criteria || p.criteria_scores || p.scores;\n  if (!Array.isArray(c) || !c.length) return null;\n  const v = c[0];\n  const n = Number(typeof v === 'object' ? (v.score ?? v.value) : v);\n  return isNaN(n) ? null : n;\n};\n\nconst dropped = { title: 0, banned: 0, country: 0, size: 0, score: 0, noname: 0 };\nconst kept = [];\nfor (const p of people) {\n  const name = p.full_name || p.name || [p.first_name || p.firstName, p.last_name || p.lastName].filter(Boolean).join(' ');\n  if (!name) { dropped.noname++; continue; }\n  const t = titleOf(p);\n  if (want.length && !want.some(w => t.includes(w))) { dropped.title++; continue; }\n  if (banned.some(b => t.includes(b))) { dropped.banned++; continue; }\n  const cc = countryOf(p);\n  if (allowed.length && cc && !allowed.includes(cc)) { dropped.country++; continue; }\n  const n = size(p);\n  if (floor && n !== null && n < floor) { dropped.size++; continue; }\n  const sc = score(p);\n  if (minScore && sc !== null && sc < minScore) { dropped.score++; continue; }\n  kept.push({ ...p, _score: sc, _name: name });\n}\n\n// Best first: person score, then company score, then the ones Explee found.\nkept.sort((a, b) =>\n  ((b._score ?? 2.5) - (a._score ?? 2.5)) ||\n  ((b._company_score ?? 2.5) - (a._company_score ?? 2.5)) ||\n  ((a.source === 'explee' ? 0 : 1) - (b.source === 'explee' ? 0 : 1)));\n\nconst cap = Number(cfg.max_leads) || kept.length;\nconst final = kept.slice(0, cap);\n\nconsole.log('Qualify: kept ' + final.length + ' of ' + people.length +\n  ' (dropped ' + JSON.stringify(dropped) + (kept.length > cap ? ', ' + (kept.length - cap) + ' past max_leads' : '') +\n  '); title words: ' + want.join('|'));\n\nif (!final.length) {\n  throw new Error('Nothing survived Qualify. ' + people.length + ' in, dropped ' + JSON.stringify(dropped) +\n    '. Title words were [' + want.join(', ') + '], countries [' + allowed.join(', ') + ']. Titles seen: ' +\n    [...new Set(people.map(p => p.job_title || p.jobTitle || p.title))].slice(0, 12).join(' | '));\n}\nreturn [{ json: { people: final } }];",
+  "resolve": "// Turn profiles into addresses. LinkFinder: 10 credits from a LinkedIn URL, 7\n// from name + company, charged whether or not one comes back. Leads that\n// already carry an email are never looked up.\n//\n// n8n kills a Code node at 300s (N8N_RUNNERS_TASK_TIMEOUT). A serial loop over\n// 47 leads with a 1.1s spacer and an occasional 8s job poll blows that easily,\n// so this works to a wall-clock budget with a few lookups in flight at once,\n// and returns what it has when the budget runs out rather than dying with\n// nothing. Raising the cap or the concurrency past the plan's requests/second\n// is how you trade credits for 429s — the defaults sit under Starter's 5/s.\nconst cfg = $('Config').first().json;\nconst leads = $input.all().map(i => i.json);\nconst canHttp = !!(this.helpers && this.helpers.httpRequest);\nconst http = opts => this.helpers.httpRequest(opts);\nconst sendable = () => leads.filter(l => l.email).map(json => ({ json }));\n\nif (!canHttp || !cfg.linkfinder_key || cfg.linkfinder_key.startsWith('PUT_')) {\n  return sendable();\n}\n\nconst auth = { Authorization: 'Bearer ' + cfg.linkfinder_key };\nconst API = 'https://api.linkfinderai.com';\nconst sleep = ms => new Promise(r => setTimeout(r, ms));\nconst deadline = Date.now() + (Number(cfg.linkfinder_budget_seconds) || 240) * 1000;\nconst left = () => deadline - Date.now();\n\n// Only the leads that need a lookup and give us something to look up by.\nconst queue = [];\nfor (const lead of leads) {\n  if (lead.email) continue;\n  const op = lead.linkedin_url\n    ? { type: 'linkedin_profile_to_email', input_data: lead.linkedin_url }\n    : { type: 'lead_full_name_to_email', input_data:\n        [lead.full_name || lead.name, lead.company_name || lead.company]\n          .filter(Boolean).join(' ') };\n  if (!op.input_data) continue;\n  queue.push({ lead, op });\n}\nconst budget = queue.splice(Number(cfg.linkfinder_max) || 0);\nconst skippedByCap = budget.length;\n\nlet found = 0, spent = 0, stopped = '';\nlet next = 0;\n\nasync function worker() {\n  while (next < queue.length && !stopped) {\n    if (left() < 15000) { stopped = 'out of time'; break; }\n    const { lead, op } = queue[next++];\n    spent += op.type === 'linkedin_profile_to_email' ? 10 : 7;\n    let r;\n    try {\n      r = await http({ method: 'POST', url: API, headers: auth, body: op,\n                       json: true, timeout: Math.min(30000, left()) });\n    } catch (e) {\n      // 402 out of credits, 401 bad key, 429 too fast: stop, do not hammer.\n      stopped = e.message;\n      break;\n    }\n    // Any endpoint can hand back a job instead of a result if it runs long.\n    // Poll only while there is budget to spare for it.\n    for (let n = 0; r && r.job_id && !r.result && n < 3 && left() > 20000; n++) {\n      await sleep(5000);\n      try {\n        r = await http({ method: 'GET', headers: auth, json: true,\n                         url: r.poll_url || API + '/status/' + r.job_id });\n      } catch (e) { r = null; }\n    }\n    const res = r && r.result;\n    const email = typeof res === 'string' ? res : (res && res.email) || '';\n    if (email) { lead.email = email; found++; }\n    await sleep(1100);          // per worker, so ~concurrency requests/second\n  }\n}\n\nconst lanes = Math.max(1, Math.min(Number(cfg.linkfinder_concurrency) || 3, 5));\nawait Promise.all(Array.from({ length: lanes }, worker));\n\nconst done = sendable();\nconsole.log('LinkFinder: ' + found + ' emails, ~' + spent + ' credits, ' +\n  done.length + ' of ' + leads.length + ' sendable' +\n  (skippedByCap ? '; ' + skippedByCap + ' past linkfinder_max' : '') +\n  (stopped ? '; stopped early: ' + stopped : ''));\nreturn done;",
+  "signals": "// One buying trigger per company, from Explee's pre-built agents.\n//\n// Signal-based cold email runs 5-18% reply against 1-3% for generic, and the\n// timing of the signal moves reply rates more than framework or copy. Runs\n// AFTER Qualify on the unique surviving domains: charged only on companies\n// that will be emailed, one run shared by every lead there. 1 credit per\n// agent per company. Everything fails soft — the leads pass through without\n// a signal rather than the flow stopping.\nconst cfg = $('Config').first().json;\nconst people = $input.first().json.people || [];\nconst passthrough = () => [{ json: { people } }];\nconst wanted = (cfg.signal_agents || []).filter(Boolean);\nif (!wanted.length || !cfg.explee_key || cfg.explee_key.startsWith('PUT_')\n    || !this.helpers || !this.helpers.httpRequest) return passthrough();\n\nconst http = opts => this.helpers.httpRequest(opts);\nconst sleep = ms => new Promise(r => setTimeout(r, ms));\nconst API = 'https://api.explee.com/public/api/v1';\nconst headers = { 'X-API-Key': cfg.explee_key };\nconst deadline = Date.now() + (Number(cfg.signal_budget_seconds) || 120) * 1000;\nconst left = () => deadline - Date.now();\n\nlet agents;\ntry {\n  const list = await http({ method: 'GET', url: API + '/agents', headers, json: true });\n  agents = (list && list.agents) || [];\n} catch (e) { console.log('Could not list Explee agents: ' + e.message); return passthrough(); }\nconst match = w => agents.find(a =>\n  String(a.id).toLowerCase() === String(w).toLowerCase() ||\n  String(a.id).toLowerCase().endsWith('/' + String(w).toLowerCase()) ||\n  String(a.name || '').toLowerCase() === String(w).toLowerCase());\nconst chosen = wanted.map(w => [w, match(w)]);\nconst missing = chosen.filter(([, a]) => !a).map(([w]) => w);\nif (missing.length) {\n  throw new Error('No Explee agent matches ' + missing.join(', ') + '. Available ids: ' + agents.map(a => a.id).join(', '));\n}\n\n// Compact the agent's answer to what a writer can use in one line. A raw\n// result can carry whole job-post arrays; the writer needs the fact.\nconst compact = (v, depth = 0) => {\n  if (v == null) return undefined;\n  if (typeof v === 'string') return v.length > 220 ? v.slice(0, 217) + '…' : v;\n  if (typeof v !== 'object') return v;\n  if (Array.isArray(v)) return v.slice(0, 3).map(x => compact(x, depth + 1)).filter(x => x !== undefined);\n  if (depth >= 2) {\n    // Deep objects collapse to the one string that names them — a job\n    // posting becomes its title, not nothing.\n    const label = v.title || v.name || v.role || v.headline || v.summary;\n    return typeof label === 'string' ? label.slice(0, 120) : undefined;\n  }\n  const o = {};\n  for (const [k, val] of Object.entries(v)) {\n    if (/url|trajectory|confidence_reasoning|raw|html/i.test(k)) continue;\n    const c = compact(val, depth + 1);\n    if (c !== undefined && c !== '' && !(Array.isArray(c) && !c.length)) o[k] = c;\n  }\n  return Object.keys(o).length ? o : undefined;\n};\n\nconst domains = [...new Set(people.map(p => String(p.company_domain || '').toLowerCase()).filter(Boolean))]\n  .slice(0, Number(cfg.signal_max_companies) || 25);\n\nasync function run(agent, domain) {\n  let started;\n  try {\n    started = await http({ method: 'POST', url: API + '/agents/' + encodeURIComponent(agent.id) + '/runs',\n                           headers, json: true, body: { input_data: { domain } } });\n  } catch (e) { console.log(domain + ' ' + agent.id + ': ' + e.message); return null; }\n  const runId = started && started.run_id;\n  if (!runId) return null;\n  for (let n = 0; n < 12 && left() > 12000; n++) {\n    await sleep(6000);\n    let got;\n    try { got = await http({ method: 'GET', headers, json: true, url: API + '/agents/runs/' + encodeURIComponent(runId) }); }\n    catch (e) { return null; }\n    const status = String((got.meta && got.meta.status) || '').toLowerCase();\n    if (got.result && Object.keys(got.result).length) return got.result;\n    if (['failed', 'error', 'cancelled', 'completed', 'done', 'success'].includes(status)) return got.result || null;\n  }\n  return null;\n}\n\nconst byDomain = {};\nlet runs = 0, hits = 0;\nfor (const domain of domains) {\n  if (left() < 20000) { console.log('Signals: out of time at ' + domain); break; }\n  const found = {};\n  for (const [, agent] of chosen) {\n    if (left() < 15000) break;\n    runs++;\n    const r = compact(await run(agent, domain));\n    if (r) { found[agent.id.split('/').pop()] = r; hits++; }\n  }\n  if (Object.keys(found).length) byDomain[domain] = found;\n  await sleep(400);\n}\nconsole.log('Signals: ' + hits + ' of ' + runs + ' runs returned something across ' + domains.length + ' companies (~' + runs + ' credits)');\nreturn [{ json: { people: people.map(p => {\n  const d = String(p.company_domain || '').toLowerCase();\n  return byDomain[d] ? { ...p, signal: byDomain[d] } : p;\n}) } }];"
+};
+/* NODES:END */
+
 const uid = () => (crypto.randomUUID ? crypto.randomUUID()
   : 'n-' + Math.random().toString(36).slice(2) + Date.now());
 
@@ -592,683 +621,267 @@ function n8nWorkflow({ withKeys = true } = {}) {
   const k = keys();
   const c = D.campaign, pr = D.project;
   const first = head('first_email');
+  const split = s => String(s || '').split(/[,;\n]+/).map(t => t.trim()).filter(Boolean);
 
-  // ------------------------------------------------------- the prompt
-  // Composed here, from the console, and written into the agent node as
-  // plain text — so what the model is told is what you read in n8n, not an
-  // expression pointing somewhere else.
-  //
-  // The craft rules are not taste. Cold email data from 2026: 50-125 words
-  // replies 2.4x better than over 200, and 75-100 is the peak; one ask beats
-  // two; a concrete signal about the prospect moves reply rates from 1-3%
-  // (generic) to 5-18%; subject lines of 4-7 words on curiosity plus
-  // relevance beat clever ones; the lowest-commitment ask wins, which for a
-  // first touch is a reply, not a call.
-  const list = (label, arr) => (arr || []).length
-    ? label + '\n' + arr.map(x => '- ' + x).join('\n') : null;
+  // Geography as prose -> ISO codes the filters can actually check. Explee
+  // returned Microsoft (company_geo CN, person in IE) for a "France, Belgique,
+  // Luxembourg" campaign because nothing downstream ever looked at a country.
+  const COUNTRY = {
+    france: 'FR', fr: 'FR', belgique: 'BE', belgium: 'BE', be: 'BE', luxembourg: 'LU', lu: 'LU',
+    suisse: 'CH', switzerland: 'CH', ch: 'CH', 'royaume-uni': 'GB', 'united kingdom': 'GB', uk: 'GB', gb: 'GB',
+    allemagne: 'DE', germany: 'DE', de: 'DE', espagne: 'ES', spain: 'ES', es: 'ES', italie: 'IT', italy: 'IT', it: 'IT',
+    'pays-bas': 'NL', netherlands: 'NL', nl: 'NL', portugal: 'PT', pt: 'PT', irlande: 'IE', ireland: 'IE', ie: 'IE',
+    'états-unis': 'US', 'etats-unis': 'US', usa: 'US', 'united states': 'US', us: 'US', canada: 'CA', ca: 'CA',
+  };
+  const countries = [...new Set(split(c.target_geography)
+    .map(g => COUNTRY[g.toLowerCase()] || (g.length === 2 ? g.toUpperCase() : null)).filter(Boolean))];
 
-  const systemPrompt = (() => {
-    const geo = c.target_geography ? ' in ' + c.target_geography : '';
-    // The domain only earns its place when it says something the name did not.
-    const who = [pr.name, pr.domain].filter(Boolean)
-      .filter((v, i, a) => a.indexOf(v) === i);
-    return [
-      'You write one cold email to one person. It is the only email they will',
-      'get from us this week, and it has to earn a reply on its own.',
-      '',
-      '## WHO YOU ARE WRITING AS',
-      who.length > 1 ? who[0] + ' (' + who[1] + ')' : (who[0] || 'us'),
-      '',
-      '## WHAT WE SELL',
-      c.offer || '(not set — say nothing about what we sell)',
-      '',
-      '## THE ONLY THINGS YOU MAY STATE AS TRUE',
-      'Everything below, and nothing else. If a claim is not here, it does not',
-      'exist. Never invent a metric, a client, a mutual connection, a funding',
-      'round or an event. A shorter email is always better than an invented one.',
-      '',
-      pr.facts || '(no facts given — then claim nothing beyond what we sell)',
-      '',
-      pr.booking_link
-        ? 'Booking link (use ONLY if the instructions below say to): ' + pr.booking_link
-        : null,
-      '',
-      list('Clients we may name:', c.example_clients),
-      '',
-      '## WHO YOU ARE WRITING TO',
-      'Role: ' + (c.target_role || 'the decision maker'),
-      'Company: ' + ((c.keywords || []).join(', ') || 'their company') + geo,
-      list('They typically:', c.positive_criteria),
-      '',
-      list('They are not:', c.negative_criteria),
-      '',
-      'The problem they likely have:',
-      c.customer_problem || '(not set — infer nothing, stay on the offer)',
-      '',
-      '## HOW TO WRITE IT',
-      'Four moves, in this order, nothing else:',
-      '1. An observation. If the brief has whats_happening_there, open on that —',
-      '   it is a real, current trigger and it is why this email is worth sending',
-      '   today rather than last month. Otherwise use what their company does or',
-      '   their role. Not a compliment, not "I came across your profile". This is',
-      '   the whole difference between a 3% reply rate and a 15% one, so make it',
-      '   specific or leave it out.',
-      '2. The consequence. Why that likely creates the problem above. One line.',
-      '3. What we do. Concrete and operational, in the order it happens.',
-      '4. One ask. A question they can answer in a line. Ask for a reply, not a',
-      '   call — the lowest-commitment ask wins the first touch. Never two asks.',
-      '',
-      'Length: 75-100 words. Never over 125. Under 200 words replies 2.4x better',
-      'than over, and shorter still wins inside that. Short paragraphs, one to',
-      'two lines each, blank line between.',
-      '',
-      'Subject: four to seven words, lowercase, curiosity plus relevance. It',
-      'should read like a person typed it to one person. No clickbait, no',
-      '"quick question", no company name padding.',
-      '',
-      'Language: write in the language of their country. If unclear, English.',
-      'Write as a native speaker writes business email — not translated English.',
-      '',
-      '## NEVER',
-      '- "I hope this finds you well", "I wanted to reach out", "I came across"',
-      '- "Quick question", "circle back", "touch base", "synergy", "leverage"',
-      '- "simply", "just", "easily", "solution", "game-changer"',
-      '- Compliments on their website, growth, or "impressive work"',
-      '- A second ask, a P.S., a signature block, or an unsubscribe line',
-      '- Anything you were not told above',
-      '',
-      first.instructions
-        ? '## EXTRA INSTRUCTIONS FOR THIS CAMPAIGN\n' + first.instructions + '\n'
-        : null,
-      '## OUTPUT',
-      'Reply with JSON and nothing else, no code fence:',
-      '{"subject": "...", "body": "..."}',
-    ].filter(x => x !== null && x !== undefined).join('\n')
-     // An absent optional section leaves its separator behind; collapse them.
-     .replace(/\n{3,}/g, '\n\n').trim();
-  })();
+  // The language the writer is told to use. The Emails screen has had this
+  // selector all along; it was never wired into the prompt.
+  const DEFAULT_LANG = { FR: 'French', BE: 'French', LU: 'French', CH: 'French', DE: 'German', ES: 'Spanish', IT: 'Italian', PT: 'Portuguese' };
+  const NAMED = { fr: 'French', en: 'English', de: 'German', es: 'Spanish' };
+  const language = NAMED[first.language]
+    || ("the language of the person's country; if unclear, " + (DEFAULT_LANG[countries[0]] || 'English'));
+
+  const icpProse = [
+    (c.keywords || []).join(' or ') || c.offer,
+    c.target_geography ? 'in ' + c.target_geography : '',
+    (c.positive_criteria || []).length ? '— ' + c.positive_criteria.join(', ') : '',
+    (c.negative_criteria || []).length ? '— not ' + c.negative_criteria.join(', not ') : '',
+  ].filter(Boolean).join(' ');
 
   const cfg = {
     explee_key: withKeys ? (k.EXPLEE_API_KEY || '') : 'PUT_EXPLEE_KEY_HERE',
     instantly_key: withKeys ? (k.INSTANTLY_API_KEY || '') : 'PUT_INSTANTLY_KEY_HERE',
-    openrouter_key: withKeys ? (k.OPENROUTER_API_KEY || '') : 'PUT_OPENROUTER_KEY_HERE',
     linkfinder_key: withKeys ? (k.LINKFINDER_API_KEY || '') : 'PUT_LINKFINDER_KEY_HERE',
-    // How many of those people LinkFinder resolves an address for. It is
-    // charged whether or not it finds one, so this is a cap, not a target.
-    linkfinder_max: 25,
-    // n8n kills a Code node at 300s. The resolver works to this budget and
-    // returns what it has rather than dying with nothing; concurrency trades
-    // wall time for requests/second (Starter allows 5/s).
-    linkfinder_budget_seconds: 240,
-    linkfinder_concurrency: 3,
-    model: k.LLM_MODEL || 'anthropic/claude-opus-5',
+    // The model on the Model node's credential (your OpenAI credential pointed
+    // at OpenRouter). Sonnet is plenty for 90 words from a structured brief.
+    model: k.LLM_MODEL || 'anthropic/claude-sonnet-5',
+
+    // ---- sending. dry_run true = write the emails, touch Instantly not at all.
+    dry_run: c.send_mode !== 'send',
     instantly_campaign_id: c.instantly_campaign_id || 'PUT_INSTANTLY_CAMPAIGN_ID_HERE',
-    // Search is free for the first 100 results, so look at more people than
-    // you need and let LinkFinder decide how many turn into addresses.
-    // Documented: filters.definition is the only required field, page_size
-    // pages the results (default 100, max 1000), first 100 results free.
-    page_size: 25,
-    domains: (c.company_domains || '').split(/[\s,;]+/)
-      .map(d => d.trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/.*$/, ''))
-      .filter(Boolean),
-    seniority: 'director',
-    per_company: 5,
-    // The qualify gate. title_keywords is the one that matters: semantic
-    // matching finds people, a literal word in their real title keeps the
-    // right ones. Explee's own AutoGTM run needed exactly this.
-    title_keywords: (c.title_keywords || '').split(/[,;\n]+/).map(t => t.trim()).filter(Boolean),
-    title_exclude: (c.title_exclude || '').split(/[,;\n]+/).map(t => t.trim()).filter(Boolean),
-    min_company_size: Number(c.min_company_size) || 0,
-    // Explee scores each person 0-5 per criterion when criteria are sent.
+
+    // ---- companies. Search is free for the first 100 results.
+    icp: icpProse,
+    definition: (c.keywords || []).join(', ') || c.customer_problem || c.offer,
+    countries,
+    page_size: 40,
+    // Explee 400s above three criteria. Positives first.
+    criteria: [...(c.positive_criteria || []), ...(c.negative_criteria || []).map(x => 'is NOT: ' + x)].slice(0, 3),
     min_criterion_score: 3,
-    // The buying trigger. 1 credit per agent per company, charged only on
-    // companies that survived Qualify. GET /public/api/v1/agents lists the
-    // ids; a name that matches nothing throws with the real list.
-    signal_agents: (c.signal_agents || '').split(/[,;\n]+/).map(t => t.trim()).filter(Boolean),
+    min_company_size: Number(c.min_company_size) || 0,
+    domains: split(c.company_domains).map(d => d.toLowerCase().replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/.*$/, '')),
+
+    // ---- people at each company
+    job_titles: split(c.target_role),
+    seniority: 'director',
+    per_company: 4,
+    people_budget_seconds: 200,
+
+    // ---- the gate
+    title_keywords: split(c.title_keywords),
+    title_exclude: split(c.title_exclude),
+    max_leads: Number(c.max_leads) || 30,
+
+    // ---- the buying trigger. 1 credit per agent per surviving company.
+    signal_agents: split(c.signal_agents),
     signal_budget_seconds: 120,
     signal_max_companies: 25,
-    // Explee finds the companies, LinkFinder lists the people at each. This
-    // path is a Config field because the company endpoint is the one shape
-    // that is not confirmed — if it 404s, fix it here, not in a node.
-    explee_companies_path: '/public/api/v1/search/companies',
-    job_titles: (c.target_role || '').split(',').map(t => t.trim()).filter(Boolean),
-    definition: [ (c.keywords || []).join(', ') || c.customer_problem || c.offer,
-                  c.target_geography ? 'in ' + c.target_geography : '' ]
-                .filter(Boolean).join(' '),
-    // Explee 400s above three: {"detail":"Maximum 3 criteria allowed"}.
-    // Positives first, so the cap drops a "should NOT be" before a "should be".
-    criteria: [...(c.positive_criteria || []),
-               ...(c.negative_criteria || []).map(x => 'is NOT: ' + x)].slice(0, 3),
+
+    // ---- email resolution
+    linkfinder_max: Number(c.max_leads) || 30,
+    linkfinder_budget_seconds: 240,
+    linkfinder_concurrency: 3,
+
+    // ---- for the record; the prompt below already has these baked in
+    language: first.language || 'lead',
     offer: c.offer, problem: c.customer_problem, facts: pr.facts,
-    instructions: first.instructions || '', language: first.language || 'lead',
   };
 
+  // ------------------------------------------------------- the prompt
+  // Composed here and written into the agent node as plain text, so what you
+  // read in n8n is what the model gets. Craft rules are anchored to 2026 cold
+  // email data: 50-125 words replies 2.4x better than over 200 and 75-100
+  // peaks; one ask beats two; a real signal moves reply from 1-3% to 5-18%;
+  // subjects of 4-7 words on curiosity + relevance beat clever ones.
+  const list = (label, arr) => (arr || []).length ? label + '\n' + arr.map(x => '- ' + x).join('\n') : null;
+  const who = [pr.name, pr.domain].filter(Boolean).filter((v, i, a) => a.indexOf(v) === i);
+  const sender = pr.sender_name || '';
 
-  const domains = cfg.domains;
+  const systemPrompt = [
+    'You write one cold email to one person. It is the only email they will get',
+    'from us this week, and it has to earn a reply on its own.',
+    '',
+    '## WHO IS WRITING',
+    (sender ? sender + ', ' : '') + (who.length > 1 ? who[0] + ' (' + who[1] + ')' : (who[0] || 'us')),
+    sender ? 'Sign off with the first name only: "' + sender.split(' ')[0] + '". Nothing else after it.' : 'No sign-off; the mailbox adds its own signature.',
+    '',
+    '## WHAT WE SELL',
+    c.offer || '(not set — say nothing about what we sell)',
+    '',
+    '## THE ONLY THINGS YOU MAY STATE AS TRUE',
+    'Everything below and nothing else. If a claim is not here, it does not exist.',
+    'Never invent a metric, a client, a mutual connection, a funding round or an',
+    'event. A shorter email is always better than an invented one.',
+    '',
+    pr.facts || '(no facts given — claim nothing beyond what we sell)',
+    '',
+    pr.booking_link ? 'Booking link (ONLY if the instructions below say to): ' + pr.booking_link : null,
+    '',
+    list('Clients we may name:', c.example_clients),
+    '',
+    '## WHO YOU ARE WRITING TO',
+    'Role: ' + (c.target_role || 'the decision maker'),
+    'Company: ' + ((c.keywords || []).join(', ') || 'their company') + (c.target_geography ? ' in ' + c.target_geography : ''),
+    list('They typically:', c.positive_criteria),
+    '',
+    list('They are not:', c.negative_criteria),
+    '',
+    'The problem they likely have:',
+    c.customer_problem || '(not set — infer nothing, stay on the offer)',
+    '',
+    '## LANGUAGE',
+    'Write in ' + language + '. Write as a native speaker writes a short business',
+    'email to a peer — not translated English, not formal boilerplate. In French,',
+    'use "vous". Subject line in the same language.',
+    '',
+    '## HOW TO WRITE IT',
+    'Four moves, in this order, nothing else:',
+    '1. An observation. If the brief has whats_happening_there, open on that: it is',
+    '   a real, current trigger and the reason this email is worth sending today.',
+    '   Otherwise use what their company does or their role. One sentence. Not a',
+    '   compliment, not "I came across your profile". This is the difference',
+    '   between a 3% reply rate and a 15% one — specific, or leave it out.',
+    '2. The consequence. Why that likely creates the problem above. One line.',
+    '3. What we do. Concrete and operational, in the order it happens. Two lines.',
+    '4. One ask. A question they can answer in a line. Ask for a reply, not a',
+    '   call. Never two asks.',
+    '',
+    'Length: 75-100 words. Never over 125. Short paragraphs, one or two lines',
+    'each, a blank line between them.',
+    '',
+    'Subject: four to seven words, lowercase, curiosity plus relevance, in their',
+    'language. Reads like a person typed it to one person. Never "quick question".',
+    '',
+    '## AN EXAMPLE OF THE SHAPE (do not copy its content)',
+    'Subject: vos formateurs prospectent entre deux sessions ?',
+    '',
+    'Bonjour Claire,',
+    '',
+    'Vous recrutez deux formateurs en ce moment — donc le carnet de commandes',
+    'suit, mais la prospection passe après les sessions.',
+    '',
+    'C\'est le schéma classique : le pipeline arrive par vagues.',
+    '',
+    'On construit la liste, on écrit, on envoie depuis vos boîtes et on qualifie',
+    'les réponses. Vous ne payez qu\'au rendez-vous tenu.',
+    '',
+    'Ça vaut un test sur un trimestre ?',
+    '',
+    sender ? sender.split(' ')[0] : '',
+    '',
+    '## NEVER',
+    '- "I hope this finds you well", "I wanted to reach out", "I came across"',
+    '- "Quick question", "circle back", "touch base", "synergy", "leverage"',
+    '- "simply", "just", "easily", "solution", "game-changer", "revolutionary"',
+    '- Compliments on their website, growth or "impressive work"',
+    '- A second ask, a P.S., a signature block, links, or an unsubscribe line',
+    '- Anything you were not told above',
+    '',
+    first.instructions ? '## EXTRA INSTRUCTIONS FOR THIS CAMPAIGN\n' + first.instructions + '\n' : null,
+    '## OUTPUT',
+    'Reply with JSON and nothing else — no code fence, no sentence before or after:',
+    '{"email": "<the email address from the brief, unchanged>", "subject": "...", "body": "..."}',
+    'Use \\n for line breaks inside body.',
+  ].filter(x => x !== null && x !== undefined).join('\n').replace(/\n{3,}/g, '\n\n').trim();
 
-  const node = (name, type, typeVersion, parameters, pos) =>
-    ({ parameters, id: uid(), name, type: 'n8n-nodes-base.' + type, typeVersion, position: pos });
+  // ------------------------------------------------------- the nodes
+  const node = (name, type, typeVersion, parameters, pos, extra = {}) =>
+    ({ parameters, id: uid(), name, type: 'n8n-nodes-base.' + type, typeVersion, position: pos, ...extra });
+  const code = (name, key, pos, extra) => node(name, 'code', 2, { jsCode: NODE_SRC[key] }, pos, extra);
+  const http = (name, params, pos, extra) => node(name, 'httpRequest', 4.2, params, pos, extra);
+  const explee = (path, jsonBody) => ({
+    method: 'POST', url: 'https://api.explee.com/public/api/v1' + path,
+    sendHeaders: true, headerParameters: { parameters: [{ name: 'X-API-Key', value: "={{ $('Config').first().json.explee_key }}" }] },
+    sendBody: true, specifyBody: 'json', jsonBody, options: {},
+  });
 
-  const jsCode = code => ({ jsCode: code });
+  const manual = cfg.domains.length > 0;
+  let x = -40;
+  const next = () => (x += 220, [x, 300]);
 
   const nodes = [
-    node('Start', 'manualTrigger', 1, {}, [-40, 300]),
-
-    node('Config', 'code', 2, jsCode(
+    node('Start', 'manualTrigger', 1, {}, next()),
+    node('Config', 'code', 2, { jsCode:
       '// Everything from the console. Edit here and the whole flow follows.\n' +
-      'return [{ json: ' + JSON.stringify(cfg, null, 2).replace(/\n/g, '\n') + ' }];'
-    ), [180, 300]),
-
-    ...(domains.length ? [] : [node('Explee: search companies', 'httpRequest', 4.2, {
-      method: 'POST',
-      url: "={{ 'https://api.explee.com' + $json.explee_companies_path }}",
-      sendHeaders: true,
-      headerParameters: { parameters: [
-        { name: 'X-API-Key', value: '={{ $json.explee_key }}' }] },
-      sendBody: true,
-      specifyBody: 'json',
-      jsonBody: '={{ JSON.stringify({ filters: { definition: $json.definition, criteria: ($json.criteria || []).slice(0, 3) }, page_size: $json.page_size }) }}',
-      options: {},
-    }, [400, 300])]),
-
-    node('Domains', 'code', 2, jsCode(
-      '// The one job here is to end up with a list of domains, and to say\n' +
-      '// exactly what came back when it cannot. Silent empties are what made\n' +
-      '// the last three attempts impossible to debug.\n' +
-      "const cfg = $('Config').first().json;\n" +
-      'if (cfg.domains && cfg.domains.length) {\n' +
-      '  return cfg.domains.map(domain => ({ json: { domain } }));\n' +
-      '}\n' +
-      'const j = $input.first().json;\n' +
-      'const rows = j.companies || j.results || j.items || j.data || [];\n' +
-      'const clean = d => String(d || \'\').trim().toLowerCase()\n' +
-      "  .replace(/^https?:\\/\\//, '').replace(/^www\\./, '').replace(/\\/.*$/, '');\n" +
-      'const domains = [...new Set(rows\n' +
-      '  .map(r => clean(r.domain || r.website || r.company_domain || r.companyWebsite ||\n' +
-      '                  r.company_website || r.url))\n' +
-      "  .filter(d => d.includes('.')))];\n" +
-      'if (!domains.length) {\n' +
-      "  throw new Error('No company domains in the Explee response. Top-level keys: ' +\n" +
-      "    Object.keys(j).join(', ') + '. First row: ' +\n" +
-      "    JSON.stringify(rows[0] || j).slice(0, 400));\n" +
-      '}\n' +
-      "console.log(domains.length + ' companies: ' + domains.join(', '));\n" +
-      'return domains.map(domain => ({ json: { domain } }));'
-    ), [620, 300]),
-
-    node('People at each domain', 'code', 2, jsCode(
-      '// Explee first, LinkFinder second.\n' +
-      '//\n' +
-      '// Explee matches job titles semantically against the campaign\'s target\n' +
-      "// roles, so it answers \"who at this company is my buyer\". LinkFinder's\n" +
-      "// company_domain_to_employees takes a seniority bucket instead: a live\n" +
-      '// call on demos.fr returned a Technical Director based in Russia and a\n' +
-      '// CFO — real directors, not the people this campaign is for.\n' +
-      '//\n' +
-      '// The trade is cost. Explee returns profiles without addresses at 1\n' +
-      '// credit each, so every one of them goes through email resolution\n' +
-      '// downstream. LinkFinder bundles the email into its 1 credit when it\n' +
-      '// has one. Precision is worth more than that on cold email.\n' +
-      "const cfg = $('Config').first().json;\n" +
-      'if (!this.helpers || !this.helpers.httpRequest) {\n' +
-      "  throw new Error('This n8n has no this.helpers.httpRequest in Code nodes.');\n" +
-      '}\n' +
-      'const http = opts => this.helpers.httpRequest(opts);\n' +
-      'const sleep = ms => new Promise(r => setTimeout(r, ms));\n' +
-      "const LF = 'https://api.linkfinderai.com';\n" +
-      "const hasExplee = cfg.explee_key && !cfg.explee_key.startsWith('PUT_');\n" +
-      "const hasLf = cfg.linkfinder_key && !cfg.linkfinder_key.startsWith('PUT_');\n" +
-      'if (!hasExplee && !hasLf) throw new Error(\'No Explee or LinkFinder key in Config.\');\n' +
-      '\n' +
-      '// Explee: the roles this campaign actually wants, matched semantically.\n' +
-      'async function explee(domain) {\n' +
-      '  if (!hasExplee) return [];\n' +
-      '  try {\n' +
-      "    const x = await http({ method: 'POST', json: true,\n" +
-      "      url: 'https://api.explee.com/public/api/v1/search/people-by-domains',\n" +
-      "      headers: { 'X-API-Key': cfg.explee_key },\n" +
-      '      body: { domains: [domain],\n' +
-      "              job_titles: (cfg.job_titles || ['Founder', 'Director']).slice(0, 20),\n" +
-      '              criteria: (cfg.criteria || []).slice(0, 3),\n' +
-      '              people_per_company: cfg.per_company } });\n' +
-      '    return (x && (x.people || x.results || x.items)) || [];\n' +
-      "  } catch (e) { console.log(domain + ' explee: ' + e.message); return []; }\n" +
-      '}\n' +
-      '\n' +
-      '// LinkFinder: always async, so post then poll the job inline. A Code\n' +
-      '// node rather than a Wait/If loop, because that loop is what hung the\n' +
-      '// first two versions of this flow.\n' +
-      'async function linkfinder(domain) {\n' +
-      '  if (!hasLf) return [];\n' +
-      "  const auth = { Authorization: 'Bearer ' + cfg.linkfinder_key };\n" +
-      '  let r;\n' +
-      '  try {\n' +
-      "    r = await http({ method: 'POST', url: LF, headers: auth, json: true, body: {\n" +
-      "      type: 'company_domain_to_employees', input_data: domain,\n" +
-      '      seniority: cfg.seniority, employee_count: cfg.per_company } });\n' +
-      "  } catch (e) { console.log(domain + ' linkfinder: ' + e.message); return []; }\n" +
-      '  for (let n = 0; r && r.job_id && !r.result && n < 8; n++) {\n' +
-      '    await sleep(8000);\n' +
-      "    try { r = await http({ method: 'GET', headers: auth, json: true,\n" +
-      "      url: r.poll_url || LF + '/status/' + r.job_id }); }\n" +
-      "    catch (e) { console.log(domain + ' poll: ' + e.message); return []; }\n" +
-      '  }\n' +
-      '  return (r && r.result) || [];\n' +
-      '}\n' +
-      '\n' +
-      'const out = [];\n' +
-      'for (const { json: { domain } } of $input.all()) {\n' +
-      '  let rows = await explee(domain);\n' +
-      "  let via = 'explee';\n" +
-      "  if (!rows.length) { rows = await linkfinder(domain); via = 'linkfinder'; }\n" +
-      "  console.log(domain + ': ' + rows.length + ' from ' + (rows.length ? via : 'neither'));\n" +
-      '  for (const p of rows.slice(0, cfg.per_company)) out.push({ ...p, source: via });\n' +
-      '  await sleep(1100);\n' +
-      '}\n' +
-      'if (!out.length) {\n' +
-      "  throw new Error('Neither Explee nor LinkFinder found anyone at: ' +\n" +
-      "    $input.all().map(i => i.json.domain).join(', '));\n" +
-      '}\n' +
-      'return [{ json: { people: out } }];'
-    ), [840, 300]),
-
-    node('Qualify', 'code', 2, jsCode(
-      "// Semantic title matching is why Explee finds people at all, and it is\n" +
-      '// also why it bleeds: ask for "responsable commercial" and you get every\n' +
-      '// Sales Manager. Explee\'s own AutoGTM run hit exactly this — "Head of\n' +
-      '// Sales Operations" pulled 32k generic "Head of Sales" — and fixed it by\n' +
-      "// requiring the person's LITERAL title to contain an on-target word.\n" +
-      '//\n' +
-      '// This runs before email resolution on purpose. Every lead that gets\n' +
-      '// past here costs 10 credits to resolve and one model call to write to,\n' +
-      '// so dropping a bad one here is the cheapest drop in the flow.\n' +
-      "const cfg = $('Config').first().json;\n" +
-      'const people = $input.first().json.people || [];\n' +
-      "const norm = s => String(s || '').toLowerCase();\n" +
-      'const want = (cfg.title_keywords || []).map(norm).filter(Boolean);\n' +
-      'const banned = (cfg.title_exclude || []).map(norm).filter(Boolean);\n' +
-      'const floor = Number(cfg.min_company_size) || 0;\n' +
-      'const minScore = Number(cfg.min_criterion_score) || 0;\n' +
-      '\n' +
-      "const size = p => {\n" +
-      "  const raw = String(p.company_size || p.companySize || '');\n" +
-      '  const nums = raw.replace(/[,\\s]/g, \'\').match(/\\d+/g);\n' +
-      '  return nums ? Math.max(...nums.map(Number)) : null;\n' +
-      '};\n' +
-      '// Explee returns criteria scores 0-5 with reasoning when criteria are\n' +
-      '// sent. Score the person against the FIRST criterion only: summing them\n' +
-      '// buries a hard no under two soft yeses.\n' +
-      'const score = p => {\n' +
-      '  const c = p.criteria || p.criteria_scores || p.scores;\n' +
-      '  if (Array.isArray(c) && c.length) {\n' +
-      '    const v = c[0];\n' +
-      "    return Number(typeof v === 'object' ? (v.score ?? v.value) : v);\n" +
-      '  }\n' +
-      '  return null;\n' +
-      '};\n' +
-      '\n' +
-      'const dropped = { title: 0, banned: 0, size: 0, score: 0 };\n' +
-      'const kept = people.filter(p => {\n' +
-      '  const t = norm(p.job_title || p.jobTitle || p.title) + \' \' + norm(p.headline);\n' +
-      '  if (want.length && !want.some(w => t.includes(w))) { dropped.title++; return false; }\n' +
-      '  if (banned.some(b => t.includes(b))) { dropped.banned++; return false; }\n' +
-      '  const n = size(p);\n' +
-      '  if (floor && n !== null && n < floor) { dropped.size++; return false; }\n' +
-      '  const sc = score(p);\n' +
-      '  if (minScore && sc !== null && sc < minScore) { dropped.score++; return false; }\n' +
-      '  return true;\n' +
-      '});\n' +
-      '\n' +
-      "console.log('Qualify: kept ' + kept.length + ' of ' + people.length +\n" +
-      "  ' (dropped ' + JSON.stringify(dropped) + ')');\n" +
-      'if (!kept.length) {\n' +
-      "  throw new Error('Nothing survived Qualify. ' + people.length + ' people in, ' +\n" +
-      "    JSON.stringify(dropped) + '. Loosen title_keywords or min_company_size in ' +\n" +
-      "    'Config — the titles seen were: ' +\n" +
-      "    [...new Set(people.map(p => p.job_title || p.jobTitle || p.title))]\n" +
-      "      .slice(0, 12).join(' | '));\n" +
-      '}\n' +
-      'return [{ json: { people: kept } }];'
-    ), [1060, 300]),
-
-    node('Explee: signals per company', 'code', 2, jsCode(
-      "// One buying trigger per company, from Explee's pre-built agents.\n" +
-      "//\n" +
-      "// This is the highest-leverage node in the flow. Signal-based cold email runs\n" +
-      "// 5-18% reply against 1-3% for generic, and signal TIMING moves reply rates\n" +
-      "// more than the framework or the copy does. \"They are hiring three AEs\" beats\n" +
-      "// any amount of prompt tuning.\n" +
-      "//\n" +
-      "// 1 credit per agent run per company, and it runs AFTER Qualify on the unique\n" +
-      "// domains that survived \u2014 so it is charged on companies you are actually\n" +
-      "// going to email, and amortised over every lead at that company.\n" +
-      "//\n" +
-      "// Runs are async: POST returns a run_id, then poll. Same wall-clock budget as\n" +
-      "// the resolver, because n8n kills a Code node at 300s. Anything that fails \u2014\n" +
-      "// no key, a bad agent id, a timeout, an empty result \u2014 leaves the leads\n" +
-      "// untouched and the flow carries on without a signal.\n" +
-      "const cfg = $('Config').first().json;\n" +
-      "const people = $input.first().json.people || [];\n" +
-      "const passthrough = () => [{ json: { people } }];\n" +
-      "\n" +
-      "const wanted = (cfg.signal_agents || []).filter(Boolean);\n" +
-      "if (!wanted.length || !cfg.explee_key || cfg.explee_key.startsWith('PUT_')\n" +
-      "    || !this.helpers || !this.helpers.httpRequest) {\n" +
-      "  return passthrough();\n" +
-      "}\n" +
-      "\n" +
-      "const http = opts => this.helpers.httpRequest(opts);\n" +
-      "const sleep = ms => new Promise(r => setTimeout(r, ms));\n" +
-      "const API = 'https://api.explee.com/public/api/v1';\n" +
-      "const headers = { 'X-API-Key': cfg.explee_key };\n" +
-      "const deadline = Date.now() + (Number(cfg.signal_budget_seconds) || 120) * 1000;\n" +
-      "const left = () => deadline - Date.now();\n" +
-      "\n" +
-      "// Resolve the configured names against the real catalogue, so a typo shows up\n" +
-      "// as \"here are the ids that exist\" rather than a silent 404 per company.\n" +
-      "let agents;\n" +
-      "try {\n" +
-      "  const list = await http({ method: 'GET', url: API + '/agents', headers, json: true });\n" +
-      "  agents = (list && list.agents) || [];\n" +
-      "} catch (e) {\n" +
-      "  console.log('Could not list Explee agents: ' + e.message);\n" +
-      "  return passthrough();\n" +
-      "}\n" +
-      "const match = w => agents.find(a =>\n" +
-      "  String(a.id).toLowerCase() === String(w).toLowerCase() ||\n" +
-      "  String(a.id).toLowerCase().endsWith('/' + String(w).toLowerCase()) ||\n" +
-      "  String(a.name || '').toLowerCase() === String(w).toLowerCase());\n" +
-      "\n" +
-      "const chosen = wanted.map(w => [w, match(w)]);\n" +
-      "const missing = chosen.filter(([, a]) => !a).map(([w]) => w);\n" +
-      "if (missing.length) {\n" +
-      "  throw new Error('No Explee agent matches ' + missing.join(', ') +\n" +
-      "    '. Available ids: ' + agents.map(a => a.id).join(', '));\n" +
-      "}\n" +
-      "\n" +
-      "// Only the domains that survived Qualify, capped.\n" +
-      "const domains = [...new Set(people\n" +
-      "  .map(p => String(p.company_domain || p.companyWebsite || p.domain || '').toLowerCase())\n" +
-      "  .filter(Boolean))].slice(0, Number(cfg.signal_max_companies) || 25);\n" +
-      "\n" +
-      "async function runAgent(agent, domain) {\n" +
-      "  let started;\n" +
-      "  try {\n" +
-      "    started = await http({\n" +
-      "      method: 'POST', url: API + '/agents/' + encodeURIComponent(agent.id) + '/runs',\n" +
-      "      headers, json: true, body: { input_data: { domain } },\n" +
-      "    });\n" +
-      "  } catch (e) { console.log(domain + ' ' + agent.id + ': ' + e.message); return null; }\n" +
-      "\n" +
-      "  const runId = started && started.run_id;\n" +
-      "  if (!runId) return null;\n" +
-      "\n" +
-      "  for (let n = 0; n < 12 && left() > 12000; n++) {\n" +
-      "    await sleep(6000);\n" +
-      "    let got;\n" +
-      "    try {\n" +
-      "      got = await http({ method: 'GET', headers, json: true,\n" +
-      "                         url: API + '/agents/runs/' + encodeURIComponent(runId) });\n" +
-      "    } catch (e) { return null; }\n" +
-      "    const status = String((got.meta && got.meta.status) || '').toLowerCase();\n" +
-      "    if (got.result && Object.keys(got.result).length) return got.result;\n" +
-      "    if (['failed', 'error', 'cancelled'].includes(status)) return null;\n" +
-      "    if (['completed', 'done', 'success'].includes(status)) return got.result || null;\n" +
-      "  }\n" +
-      "  return null;   // still running when the budget ran out\n" +
-      "}\n" +
-      "\n" +
-      "const byDomain = {};\n" +
-      "let runs = 0, hits = 0;\n" +
-      "for (const domain of domains) {\n" +
-      "  if (left() < 20000) { console.log('Signals: out of time at ' + domain); break; }\n" +
-      "  const found = {};\n" +
-      "  for (const [, agent] of chosen) {\n" +
-      "    if (left() < 15000) break;\n" +
-      "    runs++;\n" +
-      "    const r = await runAgent(agent, domain);\n" +
-      "    if (r && Object.keys(r).length) { found[agent.id.split('/').pop()] = r; hits++; }\n" +
-      "  }\n" +
-      "  if (Object.keys(found).length) byDomain[domain] = found;\n" +
-      "  await sleep(400);\n" +
-      "}\n" +
-      "\n" +
-      "console.log('Signals: ' + hits + ' of ' + runs + ' runs returned something across ' +\n" +
-      "  domains.length + ' companies (~' + runs + ' credits)');\n" +
-      "\n" +
-      "return [{ json: { people: people.map(p => {\n" +
-      "  const d = String(p.company_domain || p.companyWebsite || p.domain || '').toLowerCase();\n" +
-      "  return byDomain[d] ? { ...p, signal: byDomain[d] } : p;\n" +
-      "}) } }];"
-    ), [1280, 300]),
-
-    node('One item per lead', 'code', 2, jsCode(
-      '// One item holding every person. Fan them out and normalise the two\n' +
-      '// fields the rest of the flow reads. Nobody is dropped here — search\n' +
-      '// returns profiles, LinkFinder turns them into addresses next.\n' +
-      'const j = $input.first().json;\n' +
-      'const contacts = j.people || j.results || j.items || j.contacts || [];\n' +
-      '// Explee answers in snake_case, LinkFinder in camelCase. Read both.\n' +
-      'if (!contacts.length) {\n' +
-      "  throw new Error('Explee returned no people. It answered with: ' +\n" +
-      '    JSON.stringify(j).slice(0, 400));\n' +
-      '}\n' +
-      'return contacts.map(c => ({ json: {\n' +
-      '  ...c,\n' +
-      "  email: c.email || '',\n" +
-      "  linkedin_url: c.linkedin_url || c.linkedinUrl || c.linkedin || '',\n" +
-      "  full_name: c.full_name || c.name ||\n" +
-      "    [c.firstName, c.lastName].filter(Boolean).join(' '),\n" +
-      "  first_name: c.first_name || c.firstName || '',\n" +
-      "  job_title: c.job_title || c.jobTitle || c.title || '',\n" +
-      "  company_name: c.company_name || c.company || '',\n" +
-      "  company_domain: c.company_domain || c.companyWebsite || c.domain || '',\n" +
-      "  location: c.location || c.city || c.country || '',\n" +
-      '  // What the writer is allowed to notice. The raw row also carries NACE\n' +
-      '  // sector scores, follower counts, photo urls and a company_geo that\n' +
-      '  // said CN for Microsoft — noise that dilutes the signal and invites\n' +
-      '  // the model to invent from it.\n' +
-      '  brief: Object.fromEntries(Object.entries({\n' +
-      '    name: c.full_name || c.name ||\n' +
-      "      [c.firstName || c.first_name, c.lastName || c.last_name].filter(Boolean).join(' '),\n" +
-      '    title: c.job_title || c.jobTitle || c.title,\n' +
-      '    headline: c.headline,\n' +
-      '    company: c.company_name || c.company,\n' +
-      '    what_the_company_does: c.company_description,\n' +
-      '    industry: c.company_industry || c.industry,\n' +
-      '    company_size: c.company_size,\n' +
-      '    where: c.city || c.location || c.geo || c.country,\n' +
-      '    // The buying trigger, when an Explee agent found one. This is the\n' +
-      '    // observation to open on: it is timely, specific, and nobody else\n' +
-      '    // emailing them today has it.\n' +
-      '    whats_happening_there: c.signal,\n' +
-      '  }).filter(([, v]) => v)),\n' +
-      '} }));'
-    ), [1500, 300]),
-
-    node('LinkFinder: fill missing emails', 'code', 2, jsCode(
-      "// Explee returns profiles, not addresses. This is what turns them into leads:\n" +
-      "// 10 credits from a LinkedIn URL, 7 from name + company, charged whether or\n" +
-      "// not one comes back.\n" +
-      "//\n" +
-      "// n8n kills a Code node at 300s (N8N_RUNNERS_TASK_TIMEOUT). A serial loop over\n" +
-      "// 47 leads with a 1.1s spacer and an occasional 8s job poll blows that easily,\n" +
-      "// so this works to a wall-clock budget with a few lookups in flight at once,\n" +
-      "// and returns what it has when the budget runs out rather than dying with\n" +
-      "// nothing. Raising the cap or the concurrency past the plan's requests/second\n" +
-      "// is how you trade credits for 429s \u2014 the defaults sit under Starter's 5/s.\n" +
-      "const cfg = $('Config').first().json;\n" +
-      "const leads = $input.all().map(i => i.json);\n" +
-      "const canHttp = !!(this.helpers && this.helpers.httpRequest);\n" +
-      "const http = opts => this.helpers.httpRequest(opts);\n" +
-      "const sendable = () => leads.filter(l => l.email).map(json => ({ json }));\n" +
-      "\n" +
-      "if (!canHttp || !cfg.linkfinder_key || cfg.linkfinder_key.startsWith('PUT_')) {\n" +
-      "  return sendable();\n" +
-      "}\n" +
-      "\n" +
-      "const auth = { Authorization: 'Bearer ' + cfg.linkfinder_key };\n" +
-      "const API = 'https://api.linkfinderai.com';\n" +
-      "const sleep = ms => new Promise(r => setTimeout(r, ms));\n" +
-      "const deadline = Date.now() + (Number(cfg.linkfinder_budget_seconds) || 240) * 1000;\n" +
-      "const left = () => deadline - Date.now();\n" +
-      "\n" +
-      "// Only the leads that need a lookup and give us something to look up by.\n" +
-      "const queue = [];\n" +
-      "for (const lead of leads) {\n" +
-      "  if (lead.email) continue;\n" +
-      "  const op = lead.linkedin_url\n" +
-      "    ? { type: 'linkedin_profile_to_email', input_data: lead.linkedin_url }\n" +
-      "    : { type: 'lead_full_name_to_email', input_data:\n" +
-      "        [lead.full_name || lead.name, lead.company_name || lead.company]\n" +
-      "          .filter(Boolean).join(' ') };\n" +
-      "  if (!op.input_data) continue;\n" +
-      "  queue.push({ lead, op });\n" +
-      "}\n" +
-      "const budget = queue.splice(Number(cfg.linkfinder_max) || 0);\n" +
-      "const skippedByCap = budget.length;\n" +
-      "\n" +
-      "let found = 0, spent = 0, stopped = '';\n" +
-      "let next = 0;\n" +
-      "\n" +
-      "async function worker() {\n" +
-      "  while (next < queue.length && !stopped) {\n" +
-      "    if (left() < 15000) { stopped = 'out of time'; break; }\n" +
-      "    const { lead, op } = queue[next++];\n" +
-      "    spent += op.type === 'linkedin_profile_to_email' ? 10 : 7;\n" +
-      "    let r;\n" +
-      "    try {\n" +
-      "      r = await http({ method: 'POST', url: API, headers: auth, body: op,\n" +
-      "                       json: true, timeout: Math.min(30000, left()) });\n" +
-      "    } catch (e) {\n" +
-      "      // 402 out of credits, 401 bad key, 429 too fast: stop, do not hammer.\n" +
-      "      stopped = e.message;\n" +
-      "      break;\n" +
-      "    }\n" +
-      "    // Any endpoint can hand back a job instead of a result if it runs long.\n" +
-      "    // Poll only while there is budget to spare for it.\n" +
-      "    for (let n = 0; r && r.job_id && !r.result && n < 3 && left() > 20000; n++) {\n" +
-      "      await sleep(5000);\n" +
-      "      try {\n" +
-      "        r = await http({ method: 'GET', headers: auth, json: true,\n" +
-      "                         url: r.poll_url || API + '/status/' + r.job_id });\n" +
-      "      } catch (e) { r = null; }\n" +
-      "    }\n" +
-      "    const res = r && r.result;\n" +
-      "    const email = typeof res === 'string' ? res : (res && res.email) || '';\n" +
-      "    if (email) { lead.email = email; found++; }\n" +
-      "    await sleep(1100);          // per worker, so ~concurrency requests/second\n" +
-      "  }\n" +
-      "}\n" +
-      "\n" +
-      "const lanes = Math.max(1, Math.min(Number(cfg.linkfinder_concurrency) || 3, 5));\n" +
-      "await Promise.all(Array.from({ length: lanes }, worker));\n" +
-      "\n" +
-      "const done = sendable();\n" +
-      "console.log('LinkFinder: ' + found + ' emails, ~' + spent + ' credits, ' +\n" +
-      "  done.length + ' of ' + leads.length + ' sendable' +\n" +
-      "  (skippedByCap ? '; ' + skippedByCap + ' past linkfinder_max' : '') +\n" +
-      "  (stopped ? '; stopped early: ' + stopped : ''));\n" +
-      "return done;"
-    ), [1720, 300]),
-
-    // An AI Agent rather than a raw HTTP call: the model is a dropdown, the
-    // system prompt is a field you can edit in the UI, and when the writer
-    // eventually needs tools — read their site, check recent news — this is
-    // already the right shape. Node type and version are copied from the
-    // agent in the live LinkFinder workflow, so they are known good.
+      '// dry_run true: write the emails, never call Instantly. Read them in\n' +
+      "// 'Build the lead'. Flip to false when the copy is right.\n" +
+      'return [{ json: ' + JSON.stringify(cfg, null, 2) + ' }];' }, next()),
+    code('Instantly: check campaign', 'check_campaign', next()),
+    ...(manual ? [] : [
+      // Explee's own free converter from the ICP prose to its structured
+      // filters. Continues on error so a hiccup falls back to prose.
+      http('Explee: nl-to-filters',
+           explee('/search/nl-to-filters', "={{ JSON.stringify({ query: $('Config').first().json.icp }) }}"),
+           next(), { onError: 'continueRegularOutput' }),
+      code('Filters', 'filters', next()),
+      http('Explee: search companies',
+           explee('/search/companies', '={{ JSON.stringify({ filters: $json.filters, page_size: $json.page_size }) }}'),
+           next()),
+    ]),
+    code('Domains', 'domains', next()),
+    code('People at each domain', 'people', next()),
+    code('Qualify', 'qualify', next()),
+    code('Explee: signals per company', 'signals', next()),
+    code('One item per lead', 'normalize', next()),
+    code('LinkFinder: fill missing emails', 'resolve', next()),
+    // An AI Agent: model is a dropdown, prompt is a field, and when the writer
+    // needs tools later this is already the right shape. Node type and version
+    // copied from the agent in the live LinkFinder workflow.
     {
       parameters: {
         promptType: 'define',
-        text: "={{ 'Write one cold email to this person.\\n\\n' + JSON.stringify($json.brief, null, 2) }}",
-        // Plain text, not an expression: the prompt you read in the node is
-        // the prompt the model gets. Regenerate from the console to change it.
+        text: "={{ 'Write one cold email to this person. Their email address is ' + $json.email + '.\\n\\n' + JSON.stringify($json.brief, null, 2) }}",
         options: { systemMessage: systemPrompt },
       },
-      id: uid(),
-      name: 'Write the email',
-      type: '@n8n/n8n-nodes-langchain.agent',
-      typeVersion: 3.1,
-      position: [1940, 300],
+      id: uid(), name: 'Write the email', type: '@n8n/n8n-nodes-langchain.agent', typeVersion: 3.1, position: next(),
     },
-
-    // Pick your existing OpenAI credential on this node — the one pointed at
-    // OpenRouter, the same one the live app uses. The model id is in Config.
+    // Pick your existing OpenAI credential here (the one pointed at OpenRouter).
     {
       parameters: { model: "={{ $('Config').first().json.model }}", options: {} },
-      id: uid(),
-      name: 'Model',
-      type: '@n8n/n8n-nodes-langchain.lmChatOpenAi',
-      typeVersion: 1.1,
-      position: [1940, 480],
+      id: uid(), name: 'Model', type: '@n8n/n8n-nodes-langchain.lmChatOpenAi', typeVersion: 1.1, position: [x, 480],
     },
-
-    node('Build the lead', 'code', 2, jsCode(
-      "// Parse the model's JSON and shape one Instantly lead. The per-lead copy\n" +
-      '// rides as custom variables, so one campaign sends a different email to\n' +
-      '// everyone in it.\n' +
-      'const out = [];\n' +
-      'for (let i = 0; i < $input.all().length; i++) {\n' +
-      '  const reply = $input.all()[i].json;\n' +
-      "  const lead = $('LinkFinder: fill missing emails').all()[i].json;\n" +
-      '  // The agent answers in .output; a raw chat completion in .choices.\n' +
-      "  let text = reply.output ?? reply.choices?.[0]?.message?.content ?? '';\n" +
-      "  if (typeof text !== 'string') text = JSON.stringify(text);\n" +
-      "  if (text.startsWith('```')) text = text.split('```')[1].replace(/^json/, '').trim();\n" +
-      '  let email;\n' +
-      '  try { email = JSON.parse(text); }\n' +
-      "  catch (e) { continue; }   // model did not return JSON — skip, do not send junk\n" +
-      "  const full = lead.full_name || lead.name || '';\n" +
-      '  out.push({ json: {\n' +
-      '    email: lead.email,\n' +
-      "    first_name: lead.first_name || full.split(' ')[0] || '',\n" +
-      "    last_name: full.split(' ').slice(1).join(' '),\n" +
-      "    company_name: lead.company_name || lead.company || '',\n" +
-      '    custom_variables: {\n' +
-      '      subject: email.subject,\n' +
-      "      body: String(email.body).replace(/\\r\\n/g, '\\n').replace(/\\n/g, '<br>'),\n" +
-      '    },\n' +
-      '  } });\n' +
-      '}\n' +
-      'if (!out.length) throw new Error(\'Nothing to send — the writer returned no usable JSON.\');\n' +
-      '// Fail here rather than at the Instantly call, so the drafted emails\n' +
-      '// above are visible and only the destination is missing.\n' +
-      "const camp = $('Config').first().json.instantly_campaign_id;\n" +
-      "if (!camp || camp.startsWith('PUT_')) {\n" +
-      "  throw new Error(out.length + ' emails are written and ready. Put an Instantly ' +\n" +
-      "    'campaign id in the Config node to add them — the id is in the campaign URL.');\n" +
-      '}\n' +
-      "console.log(out.length + ' leads ready for campaign ' + camp);\n" +
-      'return out;'
-    ), [2160, 300]),
-
-    node('Instantly: add leads', 'httpRequest', 4.2, {
-      method: 'POST',
-      url: 'https://api.instantly.ai/api/v2/leads/list',
-      sendHeaders: true,
-      headerParameters: { parameters: [
+    code('Build the lead', 'build_lead', next()),
+    node('Send?', 'if', 2, {
+      conditions: {
+        options: { caseSensitive: true, leftValue: '', typeValidation: 'loose', version: 2 },
+        conditions: [{ id: uid(), leftValue: "={{ $('Config').first().json.dry_run }}", rightValue: false,
+                       operator: { type: 'boolean', operation: 'false', singleValue: true } }],
+        combinator: 'and',
+      }, options: {},
+    }, next()),
+    http('Instantly: add leads', {
+      method: 'POST', url: 'https://api.instantly.ai/api/v2/leads/list',
+      sendHeaders: true, headerParameters: { parameters: [
         { name: 'Authorization', value: "={{ 'Bearer ' + $('Config').first().json.instantly_key }}" },
         { name: 'Content-Type', value: 'application/json' }] },
-      sendBody: true,
-      specifyBody: 'json',
-      jsonBody: "={{ JSON.stringify({ campaign_id: $('Config').first().json.instantly_campaign_id, skip_if_in_campaign: true, skip_if_in_workspace: true, leads: $input.all().map(i => i.json) }) }}",
+      sendBody: true, specifyBody: 'json',
+      jsonBody: "={{ JSON.stringify({ campaign_id: $('Config').first().json.instantly_campaign_id, skip_if_in_campaign: true, skip_if_in_workspace: true, leads: $input.all().map(i => { const { _preview, ...lead } = i.json; return lead; }) }) }}",
       options: {},
-    }, [2380, 300]),
+    }, next()),
   ];
 
-  // One straight line, whichever nodes were generated. Built from the node
-  // list rather than written out, so a node that gets added or dropped cannot
-  // leave a dangling name or an unreachable node behind.
-  // The main line is every node but the language model, which hangs off the
-  // agent on its own connection type instead of sitting in the chain.
+  // One straight line derived from the node list, so nothing can be left
+  // dangling. The model hangs off the agent; Send?'s false branch ends.
   const chain = nodes.filter(n => n.name !== 'Model');
   const connections = {};
   chain.slice(0, -1).forEach((n, i) => {
-    connections[n.name] = { main: [[{ node: chain[i + 1].name, type: 'main', index: 0 }]] };
+    connections[n.name] = { main: n.name === 'Send?'
+      ? [[{ node: chain[i + 1].name, type: 'main', index: 0 }], []]
+      : [[{ node: chain[i + 1].name, type: 'main', index: 0 }]] };
   });
-  connections.Model = {
-    ai_languageModel: [[{ node: 'Write the email', type: 'ai_languageModel', index: 0 }]],
-  };
+  connections.Model = { ai_languageModel: [[{ node: 'Write the email', type: 'ai_languageModel', index: 0 }]] };
 
   return {
     name: (c.name || 'GTM') + ' — Explee to Instantly',

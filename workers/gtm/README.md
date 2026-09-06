@@ -299,240 +299,72 @@ danger style behind a confirm.
 ### Or: download an n8n workflow
 
 **Download n8n workflow** on the Run screen renders everything on these screens
-as an importable n8n flow — the Explee search built from your ICP, the prompt
-with your offer and facts in it, and the push to Instantly. Import with
-`⋯ → Import from File` and it runs there: no Python, no Actions, every step a
-node you can see and change.
+as an importable flow. `end-to-end.n8n.json` in this directory is that file
+with placeholder keys. Import it as a **new** workflow, pick your OpenRouter
+credential on the Model node, fill the placeholders in Config, run.
 
-Ten nodes (nine with your own domain list), three types (`manualTrigger`,
-`code`, `httpRequest`), one straight line, **no loop**. The connections are
-derived from the node list rather than written out, so a node that is added or
-dropped cannot leave a dangling name or an unreachable node behind — the first
-version of the company-search change did exactly that, and the structural check
-caught it. Anything that could have been a `splitOut` or a `Set` is a
-Code node instead, because a workflow that fails to import is worse than one
-with an extra node.
+```
+Start -> Config -> Instantly: check campaign
+      -> Explee: nl-to-filters -> Filters -> Explee: search companies -> Domains
+      -> People at each domain -> Qualify -> Explee: signals per company
+      -> One item per lead -> LinkFinder: fill missing emails
+      -> Write the email (+ Model) -> Build the lead -> Send? -> Instantly: add leads
+```
 
-**There is no polling because there is no job.** The first two versions of this
-flow used `/find-and-enrich` and hung — first on gating the loop on
-`meta.status === 'completed'` (Explee reports `pending` long past
-`progress_pct: 99`), then, once that was fixed to gate on the `contacts` array,
-on the job simply never closing: `found` climbed past `target` while
-`credits_charged` stayed `null`. Chasing that with a better loop was the wrong
-fix. `/search/people` answers synchronously and LinkFinder resolves the
-addresses, so every node either returns or fails visibly, and the whole class
-of bug is gone along with the `Wait`, `Ready?` and `Done?` nodes.
+Seventeen nodes (fourteen with your own domain list). No loop anywhere: every
+async wait lives inside a Code node with a wall-clock budget, because two
+earlier versions hung on a Wait/If poll. **Runs dry by default** — `dry_run`
+in Config — which writes every email and never calls Instantly. Read them in
+`Build the lead`. Flip the Mode on the Run screen to send.
 
-**Explee is the primary people source; LinkFinder is the fallback.** Explee
-`search/people-by-domains` matches job titles semantically against the
-campaign's target roles, so it answers "who at this company is my buyer".
-LinkFinder's `company_domain_to_employees` takes a seniority bucket instead,
-and the live call on `demos.fr` shows what that costs: a Technical Director
-based in Russia and a CFO came back — real directors, wrong people. Precision
-on who gets the email is worth more than the difference.
+#### Where the node bodies live
 
-The difference is cost. Explee returns profiles without addresses at 1 credit
-each, so every one goes through email resolution downstream at 10 credits a
-LinkedIn URL; LinkFinder bundles the email into its own 1 credit when it has
-one. On a domain Explee has nobody for, LinkFinder gets the turn — never both,
-and the two shapes normalise to the same fields, so the writer cannot tell
-which answered. If neither finds anyone the node throws naming the domains
-rather than handing an empty list to the writer.
+`ui/nodes/*.js`, one file per Code node, injected into the console by
+`gen_nodes.py` (which `build.py` runs). They are real JavaScript: syntax-checked
+in the async wrapper n8n uses, run end to end against fakes built from real
+API shapes, and hit with adversarial cases — `ui/tests/run.sh` does all of it
+and asserts the console carries the current bodies. The previous generator
+hand-escaped these as concatenated strings; three bugs in this flow's history
+were escaping mistakes and one deleted three nodes. That cannot happen now.
 
-**The flow stops at a paused campaign, and says so.** `Build the lead` throws
-if `instantly_campaign_id` is still a placeholder — after the emails are
-written, so they are visible in the node output and only the destination is
-missing. Leads are added with `skip_if_in_campaign` and
-`skip_if_in_workspace`; arming the campaign is still a decision you make in
-Instantly.
+#### What was wrong, and what each node does about it
 
-`end-to-end.n8n.json` in this directory is the whole thing, generated from the
-console and ready to import: five placeholders in the Config node and nothing
-else to fill in.
+The first real run produced people who were not the ICP and emails that were
+not the copy. Traced through the generated code: eleven causes. The rebuild
+answers each one.
 
-### Qualify before you spend
+**Bad leads**
 
-The first real run produced leads that were not the ICP. The cause is not the
-vendor — Explee's own AutoGTM run against the same API hit the identical
-problem and said so in its log: *"Head of Sales Operations" is bleeding into
-32k generic "Head of Sales"*, then *"Sales Manager" (31k) is bleeding in from
-the Sales Operations Manager semantic expansion*. Semantic title matching is
-why Explee finds anyone at all, and it is also why it over-returns.
+| Cause | Node | Fix |
+| --- | --- | --- |
+| The ICP went to Explee as prose with the geography inside the sentence; Explee returned Microsoft | `Explee: nl-to-filters` → `Filters` | Explee's own free converter turns the ICP into its structured filters. Continues on error and falls back to prose. |
+| Company criteria scores were paid for and never read | `Domains` | reads them, drops below `min_criterion_score`, **ranks** |
+| No country check anywhere; a lead in Ireland with company_geo CN went through | `Domains`, `Qualify` | ISO codes derived from the geography field; names mapped, not sliced |
+| `Qualify` was off unless `title_keywords` was filled | `Qualify` | title words derived from the target roles by default, so the literal-title gate is on from the first run |
+| The resolution cap kept the first 25 in arbitrary order | `Qualify` | person score, then company score, then Explee before LinkFinder; `max_leads` keeps the best |
 
-AutoGTM's fix was a loop, and its load-bearing step is free: **require the
-person's literal title to contain an on-target word.** The rest is a size
-floor, a per-company cap, AI scoring on the criteria, and two QA passes.
+**Bad emails**
 
-The `Qualify` node does the portable half, and it sits **before** email
-resolution and the writer — every lead past it costs 10 credits to resolve and
-a model call to write to, so this is the cheapest place in the flow to drop
-one:
+| Cause | Node | Fix |
+| --- | --- | --- |
+| Leads went into an existing campaign as `{{subject}}`/`{{body}}`; if the template did not use them, **everyone got the static text** and nothing noticed | `Instantly: check campaign` | fetches the campaign before a credit is spent and refuses unless the sequence uses `{{ai_body}}` |
+| `<br>` in a plain-text step renders literally | `Build the lead` | both `ai_body` (HTML) and `ai_body_text` (plain) |
+| The Language selector on the Emails screen was never wired to the prompt | prompt | `## LANGUAGE` section; default from the first target country |
+| No exemplar, no sender | prompt, console | one French example of the shape, `Sender name` on the project, first-name sign-off |
+| Any preamble before the JSON dropped the lead silently | `Build the lead` | JSON found by brace matching; pairs by the email the model echoes, not by position; problems logged |
+| The raw agent result went into the brief | `Explee: signals per company` | compacted: job postings become their titles, urls and reasoning dropped |
 
-| Config | What it does |
-| --- | --- |
-| `title_keywords` | the literal word that must appear in the real job title |
-| `title_exclude` | off-segments you already know (S&OP, ambassador, student) |
-| `min_company_size` | headcount floor, parsed out of Explee's size band |
-| `min_criterion_score` | Explee scores 0-5 per criterion; this reads the **first** criterion, not the sum — summing buries a hard no under two soft yeses, which AutoGTM's own log calls out |
+**Model default is now Sonnet 5**: $0.008 an email against Opus's $0.021 for
+90 words from a structured brief. Change `LLM_MODEL` under Keys to override.
 
-`criteria` now goes to the people search as well as the company search, which
-is what makes those scores exist (+0.1 credit per person per criterion). Every
-filter is inert when its field is empty, and a run where nothing survives
-throws with the titles it actually saw, so the fix is visible rather than
-guessed.
-
-Tested against the exact bleed from that log: Sales Operations Manager and
-Revenue Operations Director kept; Head of Sales and Sales Manager dropped on
-title; an S&OP planner dropped by exclusion; a CRM Manager at a 1-10 company
-dropped by size; a beauty "CRM Ambassador" dropped by score.
-
-**What is still missing versus AutoGTM:** the probe-and-size pass, and the QA
-sample read between scoring and sending. Those are loops with a judge in them,
-not filters.
-
-### The buying trigger
-
-The highest-leverage node in the flow, and the last one added. Explee's
-pre-built agents answer things like *is this company hiring right now*, *what
-did they just announce*, *did they raise* — `GET /public/api/v1/agents` lists
-them, `POST /agents/{id}/runs` starts one, `GET /agents/runs/{run_id}` polls
-it, **1 credit per run**.
-
-`Explee: signals per company` runs the agents named in `signal_agents` over the
-unique domains that survived `Qualify` — charged only on companies you are
-actually going to email, and one run amortised over every lead at that company.
-The result lands on the lead as `signal`, reaches the writer as
-`whats_happening_there`, and the prompt opens on it when it exists.
-
-Why this over more prompt work: signal-based cold email runs **5-18% reply
-against 1-3% generic**, and the same sources say signal *timing* moves reply
-rates more than the framework or the copy does. "You are hiring three AEs"
-beats any amount of tuning on "what your company does".
-
-A configured name matching no agent throws with the real id list, so a typo is
-self-correcting rather than a silent 404 per company. Everything else fails
-soft: no key, a failed run, a timeout, an empty result — the leads pass through
-untouched and the flow carries on without a signal.
-
-### What a lead actually costs
-
-Explee at 1 credit = $0.01, **LinkFinder at $0.019 — the real internal cost,
-not the $0.098 list price** — and the writer on whichever model Config names:
-
-| Step | Per lead |
-| --- | --- |
-| Explee company search, 0.5 cr/company over 5 people | $0.001 |
-| Explee people-by-domains, 1 cr + 3 criteria at 0.1 | $0.013 |
-| Qualify drops roughly half → sourcing per survivor | **$0.028** |
-| Signal agents, 1 cr each per company over 5 leads | $0.002-0.004 |
-| LinkFinder resolution | **$0.019** |
-| Writer, Opus 5 (~1,100 in / ~600 out with thinking) | **$0.021** |
-| Writer, Sonnet 5 instead | $0.008 |
-| Instantly, n8n, Railway | already paid |
-| **Total, Opus** | **~$0.071** |
-| **Total, Sonnet** | **~$0.058** |
-
-AutoGTM is $0.03 an email including the sending, so per email they are cheaper
-and always will be. Per **reply** is the number that decides it, and
-`BASELINE.md` has the measurement: 5,231 emails on their shared pool returned
-55 replies — **1.05%**, against 3-8% for cold email that reaches the inbox.
-
-| | $/email | Reply rate | $/reply |
-| --- | --- | --- | --- |
-| AutoGTM, shared pool | $0.03 | 1.05% measured | $2.86 |
-| This flow, same reply rate | $0.058 | 1.05% | $5.52 |
-| This flow, own warmed mailboxes | $0.058 | 3% | **$1.93** |
-
-The pipeline is not what pays for itself — the mailboxes are. Prompt caching
-does not help either way: the system prompt is ~800 tokens, under the minimum
-cacheable prefix, so it silently will not cache however identical it is.
-
-### The prompt
-
-It is written into the agent node as **plain text**, not an expression, so what
-you read in n8n is what the model is given. The Emails screen shows the same
-composition before you generate anything. Regenerate from the console to change
-it; editing it in n8n works too and lasts until the next import.
-
-Eight sections, composed from the console: who you are writing as (project name
-and domain), what we sell (the offer), the only things you may state as true
-(project facts, booking link, nameable clients), who you are writing to (role,
-company keywords, geography, should-be and should-not-be criteria, the problem
-they likely have), how to write it, never, the campaign's extra instructions,
-and the output contract.
-
-The craft rules are anchored to 2026 cold-email data rather than taste:
-
-| Rule | Why |
-| --- | --- |
-| 75-100 words, never over 125 | 50-125 words replies **2.4x** better than over 200; 75-100 peaks |
-| One concrete observation from the brief | signal-based personalisation runs **5-18%** reply against **1-3%** generic |
-| One ask, and it is a reply not a call | lowest-commitment CTA wins a first touch; two asks cause decision paralysis |
-| Subject 4-7 words, curiosity plus relevance | beats clever subject lines on opens |
-| Problem-first, in PAS order | signal-anchored PAS lands **8-15%** |
-
-Sources: [Instantly's 2026 benchmark report](https://instantly.ai/cold-email-benchmark-report-2026),
-[Saleshandy on 53M emails](https://www.saleshandy.com/blog/cold-email-statistics/),
-[Autobound's 2026 guide](https://www.autobound.ai/blog/cold-email-guide-2026),
-[Unify on PAS vs AIDA](https://www.unifygtm.com/explore/cold-email-frameworks-b2b-saas).
-
-Worth keeping in perspective: the same sources say signal timing moves reply
-rates more than framework choice does. The prompt is not the lever that matters
-most — who you send to, and when, is.
-
-**The writer is an n8n AI Agent, and it only sees a brief.** `Write the email`
-is `@n8n/n8n-nodes-langchain.agent` with an `lmChatOpenAi` model node on
-`ai_languageModel` — the node type and version copied from the agent in the
-live LinkFinder workflow rather than guessed. Pick your existing OpenAI
-credential (the one pointed at OpenRouter) on the Model node; the model id
-comes from Config, and the whole system prompt is one editable Config field.
-
-An agent is not needed to write one email from a record — that is a single
-completion with no tools to call. It is here because the model becomes a
-dropdown, the prompt becomes a field, and when the writer eventually needs to
-read the prospect's site or check recent news, the shape is already right.
-`Build the lead` reads the agent's `.output` and a raw completion's
-`.choices[0].message.content`, so swapping back is one node.
-
-Each lead gets its own call and its own subject and body — but the writer is
-handed `brief`, not the row. The raw Explee row carries NACE sector scores,
-follower counts, photo urls and a `company_geo` that said `CN` for Microsoft:
-noise that dilutes the signal and invites invention. The brief is name, title,
-headline, company, what the company does, industry, size and location — 391
-bytes instead of 697 on a real row, and `what_the_company_does` is exactly the
-concrete observation the prompt asks for.
-
-**The resolver works to a wall clock, not just a count.** n8n kills a Code
-node at 300s (`N8N_RUNNERS_TASK_TIMEOUT`), and a serial loop over 47 leads with
-a 1.1s spacer and the occasional 8s job poll goes straight through that — which
-is exactly what happened on the first real run. It now runs
-`linkfinder_concurrency` lookups at a time (3 by default, under Starter's 5
-requests/second) against a `linkfinder_budget_seconds` deadline (240), skips
-polling a job when there is not enough budget left for it, and **returns the
-leads it did resolve instead of dying with nothing**. The node log says what
-happened: how many emails, roughly how many credits, how many were past
-`linkfinder_max`, and why it stopped early if it did.
-
-The same 47 leads that timed out resolve in about 12 seconds of wall time in a
-harness with 200ms responses.
-
-**LinkFinder runs inside one Code node, not five.** The people from the search
-go through `linkedin_profile_to_email` (10 credits) or
-`lead_full_name_to_email` (7), capped by `linkfinder_max` in Config, spaced
-~1/s against the rate limit, and polled if a lookup answers with a `job_id`
-instead of a result. It is a Code node using `this.helpers.httpRequest` rather
-than an HTTP node plus a poll loop because pairing an HTTP node's response back
-to its lead across a loop is precisely where a flow like this breaks. If the
-key is a placeholder, or this n8n build has no `this.helpers.httpRequest`, the
-node degrades to what the flow did before: no email, no send.
-
-Two buttons: one embeds your keys so it runs on import (**keep that file local**),
-one leaves placeholders in the Config node.
-
-**Not verified against a live n8n.** The JSON is structurally checked — required
-fields on every node, no dangling or unreachable connections, unique ids, the
-loop closes — but nothing here has imported it. If a node comes in red, tell me
-which and it is a one-line fix.
+**Not verified against a live n8n or live APIs from this sandbox** — the
+egress policy blocks all three API hosts. What is verified: the simulation
+runs every Code node in order, from a company response to the Instantly
+payload, using the real row shapes seen in this session. Microsoft is dropped
+on country, a Sales Manager on title, a lead in Ireland on country, a Belgian
+company with no Explee people falls through to LinkFinder, scores rank the
+rest, a preamble and a fenced reply both parse, and dry run makes no Instantly
+call. Two keys and a campaign stand between this and a real result.
 
 ### GitHub is the backend
 
