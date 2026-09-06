@@ -990,5 +990,26 @@ class StatePage(unittest.TestCase):
         self.assertIn("has not run yet", empty)
 
 
+class InboxShape(unittest.TestCase):
+    def test_an_unknown_inbox_key_raises_instead_of_reading_as_empty(self):
+        api = Explee(api_key="k", opener=None)
+        api.request = lambda *a, **k: {"surprise": [{"person_id": 1}]}
+        with self.assertRaises(ShapeError):
+            api.inbox(9, tab="replied")
+        api.request = lambda *a, **k: {"leads": [{"person_id": 1}]}
+        self.assertEqual(api.inbox(9), [{"person_id": 1}])
+        api.request = lambda *a, **k: [{"person_id": 2}]
+        self.assertEqual(api.inbox(9), [{"person_id": 2}])
+
+    def test_the_run_survives_an_unreadable_inbox(self):
+        class Broken(FakeApi):
+            def inbox_all(self, cid, tab=None):
+                raise ShapeError("none of [...] in this payload")
+        tally, sends = recover.run(Broken({}), CFG, [{"id": 9, "name": "t"}], set(), set(),
+                                   WED, True, 25, out=io.StringIO())
+        self.assertEqual(sends, 0)
+        self.assertEqual(tally, {"error: inbox unreadable": 1})
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

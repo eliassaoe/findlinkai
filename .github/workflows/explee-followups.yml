@@ -36,7 +36,7 @@ on:
       task:
         description: 'What to run'
         type: choice
-        options: [followups, measure, shorten, prequalify]
+        options: [followups, measure, shorten, prequalify, probe]
         default: followups
       campaign:
         description: 'Campaign id (shorten, prequalify: required; measure: optional)'
@@ -130,6 +130,15 @@ jobs:
           [ -n "$APPLY" ] && echo "APPLY is ON - the campaign will be changed." || echo "DRY RUN - nothing changes."
           python3 sequence.py shorten --campaign "$CAMPAIGN" --emails "$EMAILS" $APPLY | tee out.txt
           { echo '```'; cat out.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+
+      # Prints the raw shape of every endpoint the loop reads. Run it when a
+      # task reports zero of something the dashboard says exists.
+      - name: Probe the response shapes
+        if: env.TASK == 'probe'
+        run: |
+          ARGS=""
+          [ -n "$CAMPAIGN" ] && ARGS="--campaign $CAMPAIGN"
+          python3 probe.py $ARGS
 
       - name: Pre-qualify and import
         if: env.TASK == 'prequalify'

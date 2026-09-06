@@ -206,11 +206,19 @@ class Explee:
             body=fields)
 
     # --- autogtm: inbox ----------------------------------------------------
+    INBOX_KEYS = ("conversations", "items", "people", "leads", "contacts", "threads",
+                  "results", "data", "inbox")
+
     def inbox(self, campaign_id, tab=None, limit=100, offset=0):
         got = self.request("GET",
                            "/public/api/v1/autogtm/campaigns/{}/inbox".format(campaign_id),
                            params={"tab": tab, "limit": limit, "offset": offset})
-        return first_of(got, "conversations", "items", "people", default=[])
+        if isinstance(got, list):
+            return got
+        # No default on purpose: an unknown key would read as "nobody replied" and
+        # the loop would quietly do nothing, which is the one failure it must not
+        # have. Run `python3 probe.py` and add the spelling to INBOX_KEYS.
+        return first_of(got, *self.INBOX_KEYS)
 
     def inbox_all(self, campaign_id, tab=None, page=100, cap=2000):
         """Every page of one tab, stopping at `cap` so a huge inbox cannot run away."""

@@ -371,7 +371,13 @@ def run(api, cfg, campaigns, booked, calendar_views, now, apply_, cap, out=sys.s
     for campaign in campaigns:
         cid = first_of(campaign, "id", "campaign_id")
         print("\n== {} ({})".format(first_of(campaign, "name", default=cid), cid), file=out)
-        for row in api.inbox_all(cid, tab="replied"):
+        try:
+            replied = api.inbox_all(cid, tab="replied")
+        except (ShapeError, ExpleeError) as err:
+            tally["error: inbox unreadable"] = tally.get("error: inbox unreadable", 0) + 1
+            print("  !! inbox: {}".format(err), file=out)
+            continue
+        for row in replied:
             pid = first_of(row, "person_id", "id", "lead_id")
             try:
                 thread = api.thread(cid, pid)
@@ -508,7 +514,8 @@ def render_report(name, project_id, now, apply_, tally, sends, rows, hot, sheet_
         for h in hot:
             out.append("| {} ({}) | {} | {} | {} | {} |".format(
                 cell(h["first_name"] or h["email"], 24), cell(h["company"], 24),
-                cell(h["job_title"], 30), cell(h["campaign"], 28), cell(h["replied_at"], 16),
+                cell(h["job_title"], 30), cell(h["campaign"], 28),
+                cell(str(h["replied_at"])[:10], 12),
                 "yes" if h["email"] in in_loop else "no reply thread yet"))
         out.append("")
     return "\n".join(out)
