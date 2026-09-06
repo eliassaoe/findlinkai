@@ -75,9 +75,44 @@ def anthropic_client():
 
 
 def cmd_capacity(args) -> int:
-    """What can actually send today. Run this before anything else."""
-    api = instantly_mod.Instantly()
-    ready, blocked = api.sendable_accounts()
+    """What can actually send today, and does every credential work.
+
+    This is the safest possible first real run: every call here is read-only and
+    free. It is the cheapest way to find out whether the keys are right and
+    whether the response shapes match what this code expects — both of which are
+    unverified until someone runs exactly this.
+    """
+    problems = []
+
+    # Explee first: it 402s every request, free tier included, at or below zero,
+    # so a negative balance means nothing else in the system can run either.
+    try:
+        from explee_search import LeadSearch
+        balance = LeadSearch().balance()
+        print(f"Explee balance     : {balance:.2f}")
+        if balance <= 0:
+            problems.append(
+                f"Explee balance is {balance:.2f}. Every request 402s at or below "
+                "zero, free tier included. Top up before anything else."
+            )
+    except SystemExit as err:
+        problems.append(f"Explee: {err}")
+    except Exception as err:
+        problems.append(f"Explee: {type(err).__name__}: {err}")
+
+    try:
+        api = instantly_mod.Instantly()
+        ready, blocked = api.sendable_accounts()
+    except SystemExit as err:
+        print(f"Instantly          : {err}")
+        for p in problems:
+            print(f"\n  ! {p}")
+        return 1
+    except Exception as err:
+        print(f"Instantly          : {type(err).__name__}: {err}")
+        for p in problems:
+            print(f"\n  ! {p}")
+        return 1
     print(f"sendable mailboxes : {len(ready)}")
     print(f"blocked mailboxes  : {len(blocked)}")
     for a in blocked:
@@ -87,12 +122,20 @@ def cmd_capacity(args) -> int:
         )
     cap = sum(int(a.get("daily_limit") or 0) for a in ready)
     print(f"daily capacity     : {cap} emails")
+
     if not ready:
-        print(
-            "\nNothing can send. All nine mailboxes read status=-1 on 2026-09-06 "
+        problems.append(
+            "No mailbox can send. All nine read status=-1 on 2026-09-06 "
             "(docs/own-gtm-agent-plan.md); this is the first blocker to clear."
         )
+
+    if problems:
+        print("\nBlockers:")
+        for p in problems:
+            print(f"  ! {p}")
         return 1
+
+    print("\nEverything checks out. Next: source --limit 5 to try the pipeline small.")
     return 0
 
 
