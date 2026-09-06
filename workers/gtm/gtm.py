@@ -4,6 +4,7 @@
 One file, three steps, no framework. Run it:
 
     export EXPLEE_API_KEY=... INSTANTLY_API_KEY=... OPENROUTER_API_KEY=...
+    export LINKFINDER_API_KEY=...   # optional: a second look at the no-email ones
 
     python3 gtm.py \
       --find "founders and heads of sales at B2B training companies in France" \
@@ -35,8 +36,12 @@ INSTANTLY = "https://api.instantly.ai/api/v2"
 
 # --------------------------------------------------------------------- http
 
-def call(url, key_header, key, body=None, method=None, timeout=95):
-    """One HTTP call. Prints and exits on failure rather than raising upward."""
+def call(url, key_header, key, body=None, method=None, timeout=95, soft=False):
+    """One HTTP call. Prints and exits on failure rather than raising upward.
+
+    soft=True returns {"_error": "..."} instead of exiting — for the calls that
+    are a bonus rather than the run, so a 402 on one of them does not throw
+    away leads already paid for."""
     data = json.dumps(body).encode() if body is not None else None
     req = urllib.request.Request(url, data=data, method=method or ("POST" if data else "GET"))
     req.add_header(key_header, key)
@@ -48,8 +53,13 @@ def call(url, key_header, key, body=None, method=None, timeout=95):
             return json.loads(r.read().decode() or "{}")
     except urllib.error.HTTPError as e:
         detail = e.read().decode(errors="replace")[:600]
-        sys.exit(f"\n{method or 'POST'} {url}\n  HTTP {e.code}: {detail}")
+        msg = f"\n{method or 'POST'} {url}\n  HTTP {e.code}: {detail}"
+        if soft:
+            return {"_error": f"HTTP {e.code}: {detail[:200]}"}
+        sys.exit(msg)
     except urllib.error.URLError as e:
+        if soft:
+            return {"_error": f"network: {e.reason}"}
         sys.exit(f"\n{url}\n  network: {e.reason}")
 
 
@@ -99,10 +109,15 @@ def find_leads(query, role, limit, preset):
         got = call(f"{EXPLEE}/public/api/v1/find-and-enrich/{task}", "X-API-Key", key, method="GET")
         meta = field(got, "meta", default={})
         status = str(field(meta, "status", default="pending")).lower()
-        if status == "completed":
-            contacts = field(got, "contacts", default=[]) or []
+        # Wait for the array, not for the word. Explee reports "pending" with
+        # contacts null well past progress_pct 99 and eta_seconds 0 — the
+        # search is done there but the per-contact enrichment is not, and the
+        # array only appears when the whole task closes.
+        if isinstance(got.get("contacts"), list) or status == "completed":
+            contacts = got.get("contacts") or []
             spent = field(meta, "credits_charged", default=0)
-            print(f"  found {len(contacts)} with an email ({spent} credits)")
+            with_email = sum(1 for c in contacts if c.get("email"))
+            print(f"  found {len(contacts)}, {with_email} with an email ({spent} credits)")
             return contacts
         if status == "failed":
             sys.exit(f"  Explee job failed: {field(meta, 'error', default='?')}")
@@ -110,6 +125,91 @@ def find_leads(query, role, limit, preset):
         if prog:
             print(f"  … {json.dumps(prog)[:80]}")
     sys.exit("  timed out after 10 minutes")
+
+
+# ------------------------------------- 1b. LinkFinder: the ones Explee missed
+
+LINKFINDER = "https://api.linkfinderai.com"
+
+
+def linkfinder_email(key, lead):
+    """One lookup. "" is "looked, found nothing" — still charged. None is "the
+    call did not complete", which is the signal to stop rather than retry."""
+    auth = ("Authorization", f"Bearer {key}")
+    if lead.get("linkedin_url") or lead.get("linkedin"):
+        op = "linkedin_profile_to_email"
+        arg = lead.get("linkedin_url") or lead.get("linkedin")
+    else:
+        # Space-joined name and company, the format app.html builds.
+        parts = [lead.get("full_name") or lead.get("name") or "",
+                 lead.get("company_name") or lead.get("company") or ""]
+        arg = " ".join(p.strip() for p in parts if p and p.strip())
+        op = "lead_full_name_to_email"
+        if len(arg.split()) < 2:
+            return None                       # nothing to look anything up by
+
+    got = call(LINKFINDER, *auth, {"type": op, "input_data": arg}, soft=True)
+    if got.get("_error"):
+        print(f"    ! LinkFinder: {got['_error']}")
+        return None
+
+    # Any endpoint can hand back a job instead of a result if the lookup runs
+    # past ~27s, so this is not only the always-async one.
+    job = got.get("job_id")
+    if job:
+        poll = got.get("poll_url") or f"{LINKFINDER}/status/{job}"
+        for _ in range(6):
+            time.sleep(10)
+            got = call(poll, *auth, method="GET", soft=True)
+            if got.get("_error"):
+                return None
+            state = str(got.get("status", "")).lower()
+            if state in ("failed", "error"):
+                return ""
+            if got.get("result") is not None or state in ("done", "success", "completed"):
+                break
+        else:
+            return None
+
+    res = got.get("result")
+    if isinstance(res, dict):
+        res = res.get("email")
+    return res.strip() if isinstance(res, str) else ""
+
+
+def fill_missing_emails(leads, cap):
+    """Explee charges only for emails it finds, so some contacts come back
+    without one. LinkFinder charges EITHER WAY — 10 credits from a LinkedIn
+    URL, 7 from name and company — which is why this takes a cap."""
+    missing = [l for l in leads if not l.get("email")]
+    if not missing:
+        return 0
+    key = os.environ.get("LINKFINDER_API_KEY")
+    if not key or cap <= 0:
+        why = "no LINKFINDER_API_KEY" if not key else "--linkfinder-max 0"
+        print(f"  {len(missing)} without an email, {why} — left alone")
+        return 0
+
+    print(f"  {len(missing)} without an email; LinkFinder gets {min(cap, len(missing))} "
+          f"of them (10 credits per LinkedIn URL, 7 per name, found or not)")
+    found = spent = 0
+    for i, lead in enumerate(missing[:cap]):
+        if i:
+            time.sleep(1.1)          # roughly one per second per key, or 429
+        name = lead.get("full_name") or lead.get("name") or "?"
+        got = linkfinder_email(key, lead)
+        if got is None:
+            print(f"    {name}: stopping here")
+            break
+        spent += 10 if (lead.get("linkedin_url") or lead.get("linkedin")) else 7
+        if got:
+            lead["email"] = got
+            found += 1
+            print(f"    {name}: {got}")
+        else:
+            print(f"    {name}: nothing found")
+    print(f"  LinkFinder found {found} ({spent} credits)")
+    return found
 
 
 # ------------------------------------------------------- 2. write the email
@@ -261,6 +361,9 @@ def main():
     ap.add_argument("--limit", type=int, default=5, help="how many leads with an email")
     ap.add_argument("--preset", default="premium", choices=["basic", "premium"],
                     help="premium ~$0.05/found email at ~78%%; basic ~$0.015 at ~50%%")
+    ap.add_argument("--linkfinder-max", type=int, default=10,
+                    help="how many no-email leads LinkFinder gets a second look at "
+                         "(charged found or not; 0 disables)")
     ap.add_argument("--name", default="", help="Instantly campaign name")
     ap.add_argument("--campaign-id", default="", help="add to this campaign instead of creating one")
     ap.add_argument("--apply", action="store_true", help="actually create the campaign in Instantly")
@@ -270,6 +373,9 @@ def main():
     leads = find_leads(a.find, a.role, a.limit, a.preset)
     if not leads:
         sys.exit("  Nothing came back. Try a broader --find or different --role.")
+
+    print("\n1b. RESOLVE — LinkFinder AI")
+    fill_missing_emails(leads, a.linkfinder_max)
 
     print("\n2. WRITE")
     drafted = []

@@ -10,10 +10,11 @@ numbers we have, and every design decision here traces back to one of them.
 
 ## Status
 
-All four phases are built. **64 offline tests pass.** No live API call has been
+All four phases are built. **108 offline tests pass.** No live API call has been
 made from this directory — see "What is unproven".
 
 ```
+gtm.py            the three steps in one file — start here
 schema.sql        the data model (Postgres/Supabase)
 models.py         typed config objects, no DB driver, so tests run offline
 explee_search.py  Explee as a lead-search API, with none of its sending
@@ -25,8 +26,43 @@ learning.py       classify replies; mine what made people book
 pipeline.py       search -> qualify -> resolve -> draft, with the gates
 run.py            the CLI. Dry by default; sending needs --apply
 ui/index.html     the console. One file, no build step
-tests/            64 tests, no network, no keys
+tests/            108 tests, no network, no keys
 ```
+
+## The short path: `gtm.py`
+
+Everything below this section is the full system. `gtm.py` is the three steps
+on their own — Explee finds the leads, we write the email, Instantly gets the
+campaign — in one stdlib file with no database, no config objects and no
+framework. It is what to reach for when the question is "does the flow work".
+
+```bash
+export EXPLEE_API_KEY=... INSTANTLY_API_KEY=... OPENROUTER_API_KEY=...
+export LINKFINDER_API_KEY=...          # optional, see 1b
+
+python3 gtm.py \
+  --find "B2B training companies in France" \
+  --role "Founder, CEO, Head of Sales" \
+  --offer "We run your outbound end to end. You pay per meeting held." \
+  --limit 10                            # dry run: prints the emails, stops
+python3 gtm.py ... --apply              # creates the campaign, PAUSED
+```
+
+**1b — the emails Explee did not find.** Explee charges only for addresses it
+finds, so a search for 10 routinely returns contacts with `email` empty.
+LinkFinder AI gets those a second look: the contact's LinkedIn URL if Explee
+gave one, otherwise name + company. `--linkfinder-max` caps how many (default
+10, `0` disables), and the cap matters because **LinkFinder charges whether or
+not it finds an address** — 10 credits from a LinkedIn URL, 7 from a name,
+against Explee's 1.5 charged only on a hit. These are the leads Explee already
+failed on, so expect to pay for misses. A 402 or 429 stops the lookups and
+keeps every lead already paid for; it does not end the run.
+
+> The credit numbers come from `app.html`'s `creditCosts`, which `CLAUDE.md`
+> names as authoritative. The public docs page contradicts itself — "1 credit =
+> 1 API request, regardless of endpoint" in Credits & Limits, "from 1 credit …
+> up to 50 for `linkedin_profile_to_phone`" at the top of the same page. 10 and
+> 7 are the numbers the app bills.
 
 ## Quick start
 
@@ -178,7 +214,7 @@ with your offer and facts in it, and the push to Instantly. Import with
 `⋯ → Import from File` and it runs there: no Python, no Actions, every step a
 node you can see and change.
 
-Eleven nodes, five types (`manualTrigger`, `code`, `httpRequest`, `wait`, `if`) —
+Twelve nodes, five types (`manualTrigger`, `code`, `httpRequest`, `wait`, `if`) —
 anything that could have been a `splitOut` or a `Set` is a Code node instead,
 because a workflow that fails to import is worse than one with an extra node.
 The `Done?` node's false branch loops back to `Wait`, which is the poll.
@@ -192,6 +228,16 @@ Code node now gates on `Array.isArray(contacts)`, raises on
 `meta.status === 'failed'`, and — because a Wait/If loop has no other exit —
 throws at `$runIndex >= 40`, about ten minutes at the 15s wait, naming the
 task id so you can check it in Explee rather than re-running and paying twice.
+
+**LinkFinder runs inside one Code node, not five.** The contacts Explee found
+no email for go through `linkedin_profile_to_email` (10 credits) or
+`lead_full_name_to_email` (7), capped by `linkfinder_max` in Config, spaced
+~1/s against the rate limit, and polled if a lookup answers with a `job_id`
+instead of a result. It is a Code node using `this.helpers.httpRequest` rather
+than an HTTP node plus a poll loop because pairing an HTTP node's response back
+to its lead across a loop is precisely where a flow like this breaks. If the
+key is a placeholder, or this n8n build has no `this.helpers.httpRequest`, the
+node degrades to what the flow did before: no email, no send.
 
 Two buttons: one embeds your keys so it runs on import (**keep that file local**),
 one leaves placeholders in the Config node.

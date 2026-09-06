@@ -19,7 +19,8 @@ import gtm  # noqa: E402
 # module before running any of them, and an OPENROUTER_API_KEY left in the
 # process environment changes which model slug llm.py returns for every other
 # suite.
-KEYS = {"EXPLEE_API_KEY": "e", "INSTANTLY_API_KEY": "i", "OPENROUTER_API_KEY": "o"}
+KEYS = {"EXPLEE_API_KEY": "e", "INSTANTLY_API_KEY": "i", "OPENROUTER_API_KEY": "o",
+        "LINKFINDER_API_KEY": "l"}
 _env = None
 
 
@@ -45,8 +46,17 @@ LEADS = [
 class FakeHTTP:
     """Answers the real URLs gtm.py calls; records every request."""
 
-    def __init__(self, balance=5000, accounts=None, poll_pending=1):
+    def __init__(self, balance=5000, accounts=None, poll_pending=1, lf=None,
+                 contacts=None, still_pending=False):
         self.calls = []
+        self.contacts = LEADS if contacts is None else contacts
+        # Explee reports pending with contacts already populated; the run
+        # should key off the array, not the word.
+        self.still_pending = still_pending
+        self.linkfinder = []
+        # Scripted LinkFinder replies, popped in order. An int raises that
+        # HTTP status. Empty means "looked, found nothing".
+        self.lf = list(lf or [])
         self.balance = balance
         self.accounts = accounts if accounts is not None else [
             {"email": "a@dom.com", "status": 1, "daily_limit": 15, "stat_warmup_score": 100},
@@ -74,7 +84,17 @@ class FakeHTTP:
             if self.poll_pending > 0:
                 self.poll_pending -= 1
                 return ok({"meta": {"status": "pending", "progress": {"eta_seconds": 5}}})
-            return ok({"contacts": LEADS, "meta": {"status": "completed", "credits_charged": 10}})
+            status = "pending" if self.still_pending else "completed"
+            return ok({"contacts": self.contacts,
+                       "meta": {"status": status, "credits_charged": 10}})
+        if url == gtm.LINKFINDER:
+            self.linkfinder.append(body)
+            item = self.lf.pop(0) if self.lf else {"result": None}
+            if isinstance(item, int):
+                raise urllib.error.HTTPError(url, item, "no", {}, io.BytesIO(b'{"m":"nope"}'))
+            return ok(item)
+        if "/status/" in url:
+            return ok(self.lf.pop(0) if self.lf else {"status": "done", "result": None})
         if "/accounts" in url:
             return ok({"items": self.accounts})
         if url.endswith("/campaigns"):
@@ -193,6 +213,77 @@ class TestFlow(unittest.TestCase):
         polls = [c for c in http.calls if "/find-and-enrich/t1" in c[1]]
         self.assertEqual(len(polls), 4)
         self.assertEqual(code, 0)
+
+
+class TestLinkFinderFallback(unittest.TestCase):
+    """Explee charges only for emails it finds. LinkFinder gets a second look
+    at the rest, and charges whether or not it finds one."""
+
+    def setUp(self):
+        sys.argv = ["gtm.py"] + BASE
+
+    def test_a_lead_with_no_email_gets_one_and_reaches_instantly(self):
+        sys.argv = ["gtm.py"] + BASE + ["--apply"]
+        code, out, http = run(sys.argv, http=FakeHTTP(lf=[{"result": {"email": "ceo@ghost.io"}}]))
+        self.assertEqual(code, 0)
+        self.assertIn("ceo@ghost.io", out)
+        # Two came from Explee, the third from LinkFinder.
+        self.assertIn("added 3 leads", out)
+        sent = [c for c in http.calls if c[1].endswith("/leads/list")][0][2]
+        self.assertIn("ceo@ghost.io", [l["email"] for l in sent["leads"]])
+
+    def test_a_linkedin_url_uses_the_url_endpoint_a_bare_name_does_not(self):
+        lead = {"full_name": "Ada Byron", "company_name": "Analytical",
+                "linkedin_url": "https://www.linkedin.com/in/ada"}
+        _, _, http = run(sys.argv, http=FakeHTTP(contacts=[lead],
+                                                 lf=[{"result": {"email": "ada@analytical.io"}}]))
+        self.assertEqual(http.linkfinder[0]["type"], "linkedin_profile_to_email")
+        self.assertEqual(http.linkfinder[0]["input_data"], "https://www.linkedin.com/in/ada")
+
+        _, _, http = run(sys.argv, http=FakeHTTP(lf=[{"result": {"email": "x@ghost.io"}}]))
+        self.assertEqual(http.linkfinder[0]["type"], "lead_full_name_to_email")
+        self.assertEqual(http.linkfinder[0]["input_data"], "No Email Ghost Ltd")
+
+    def test_a_402_stops_the_lookups_without_losing_the_leads_already_paid_for(self):
+        sys.argv = ["gtm.py"] + BASE + ["--apply"]
+        code, out, http = run(sys.argv, http=FakeHTTP(lf=[402]))
+        self.assertEqual(code, 0)
+        self.assertIn("402", out)
+        self.assertIn("added 2 leads", out)     # the two Explee found still go
+
+    def test_the_cap_is_a_cap(self):
+        sys.argv = ["gtm.py"] + BASE + ["--linkfinder-max", "0"]
+        code, out, http = run(sys.argv,
+                              http=FakeHTTP(lf=[{"result": {"email": "never@called.io"}}]))
+        self.assertEqual(http.linkfinder, [])
+        self.assertIn("--linkfinder-max 0", out)
+        self.assertIn("with 2 leads", out)
+
+    def test_nothing_to_look_up_by_is_not_a_lookup(self):
+        code, out, http = run(sys.argv, http=FakeHTTP(contacts=[{"job_title": "CEO"}]))
+        self.assertEqual(http.linkfinder, [])
+
+    def test_a_lookup_that_finds_nothing_is_still_charged_and_the_lead_dropped(self):
+        code, out, http = run(sys.argv, http=FakeHTTP(lf=[{"result": None}]))
+        self.assertEqual(len(http.linkfinder), 1)
+        self.assertIn("found 0 (7 credits)", out)   # name lookup, found or not
+        self.assertIn("with 2 leads", out)
+
+    def test_a_job_id_is_polled_rather_than_parsed_as_a_result(self):
+        code, out, http = run(sys.argv, http=FakeHTTP(lf=[
+            {"job_id": "j1", "poll_url": "https://api.linkfinderai.com/status/j1"},
+            {"status": "done", "result": {"email": "slow@ghost.io"}}]))
+        self.assertIn("slow@ghost.io", out)
+        self.assertTrue(any("/status/j1" in c[1] for c in http.calls))
+
+
+class TestExpleeReadiness(unittest.TestCase):
+    def test_contacts_end_the_poll_even_while_the_status_says_pending(self):
+        sys.argv = ["gtm.py"] + BASE
+        code, out, http = run(sys.argv, http=FakeHTTP(still_pending=True))
+        self.assertEqual(code, 0)
+        polls = [c for c in http.calls if "/find-and-enrich/t1" in c[1]]
+        self.assertEqual(len(polls), 2)         # one pending, then the array
 
 
 class TestShapes(unittest.TestCase):

@@ -556,6 +556,10 @@ function n8nWorkflow({ withKeys = true } = {}) {
     explee_key: withKeys ? (k.EXPLEE_API_KEY || '') : 'PUT_EXPLEE_KEY_HERE',
     instantly_key: withKeys ? (k.INSTANTLY_API_KEY || '') : 'PUT_INSTANTLY_KEY_HERE',
     openrouter_key: withKeys ? (k.OPENROUTER_API_KEY || '') : 'PUT_OPENROUTER_KEY_HERE',
+    linkfinder_key: withKeys ? (k.LINKFINDER_API_KEY || '') : 'PUT_LINKFINDER_KEY_HERE',
+    // How many second looks LinkFinder gets on contacts Explee found no email
+    // for. Charged whether or not it finds one, so it is a cap, not a target.
+    linkfinder_max: 10,
     model: k.LLM_MODEL || 'anthropic/claude-opus-5',
     instantly_campaign_id: c.instantly_campaign_id || 'PUT_INSTANTLY_CAMPAIGN_ID_HERE',
     limit: 10,
@@ -664,11 +668,77 @@ function n8nWorkflow({ withKeys = true } = {}) {
     }, [1280, 300]),
 
     node('One item per lead', 'code', 2, jsCode(
-      '// Explee returns one item holding every contact. Fan them out, and drop\n' +
-      '// anyone without an address — there is nothing to send to.\n' +
+      '// Explee returns one item holding every contact. Fan them out and\n' +
+      '// normalise the two fields the rest of the flow reads. Nobody is\n' +
+      '// dropped here — LinkFinder gets the ones with no email next.\n' +
       'const contacts = $input.first().json.contacts || [];\n' +
-      'return contacts.filter(c => c.email).map(c => ({ json: c }));'
+      'return contacts.map(c => ({ json: {\n' +
+      '  ...c,\n' +
+      "  email: c.email || '',\n" +
+      "  linkedin_url: c.linkedin_url || c.linkedin || '',\n" +
+      '} }));'
     ), [1500, 200]),
+
+    node('LinkFinder: fill missing emails', 'code', 2, jsCode(
+      '// Explee charges only for emails it finds, so some contacts arrive\n' +
+      '// without one. LinkFinder AI gets those a second look. It charges\n' +
+      '// EITHER WAY: 10 credits from a LinkedIn URL, 7 from name + company,\n' +
+      '// found or not. Hence a cap rather than a run over everyone.\n' +
+      '//\n' +
+      '// One Code node instead of five, because pairing an HTTP node\'s\n' +
+      '// response back to its lead across a poll loop is exactly where a flow\n' +
+      '// like this breaks. If this n8n has no this.helpers.httpRequest the\n' +
+      '// node degrades to what the flow did before: no email, no send.\n' +
+      "const cfg = $('Config').first().json;\n" +
+      'const leads = $input.all().map(i => i.json);\n' +
+      '// Called through an arrow so it keeps n8n\'s `this`.\n' +
+      'const canHttp = !!(this.helpers && this.helpers.httpRequest);\n' +
+      'const http = opts => this.helpers.httpRequest(opts);\n' +
+      'const sendable = () => leads.filter(l => l.email).map(json => ({ json }));\n' +
+      '\n' +
+      "if (!canHttp || !cfg.linkfinder_key || cfg.linkfinder_key.startsWith('PUT_')) {\n" +
+      '  return sendable();\n' +
+      '}\n' +
+      '\n' +
+      "const auth = { Authorization: 'Bearer ' + cfg.linkfinder_key };\n" +
+      'const sleep = ms => new Promise(r => setTimeout(r, ms));\n' +
+      'let budget = Number(cfg.linkfinder_max || 0), spent = 0, found = 0;\n' +
+      '\n' +
+      'for (const lead of leads) {\n' +
+      '  if (lead.email || budget <= 0) continue;\n' +
+      '  const op = lead.linkedin_url\n' +
+      "    ? { type: 'linkedin_profile_to_email', input_data: lead.linkedin_url }\n" +
+      "    : { type: 'lead_full_name_to_email', input_data:\n" +
+      '        [lead.full_name || lead.name, lead.company_name || lead.company]\n' +
+      "          .filter(Boolean).join(' ') };\n" +
+      '  if (!op.input_data) continue;\n' +
+      '  budget--;\n' +
+      "  spent += op.type === 'linkedin_profile_to_email' ? 10 : 7;\n" +
+      '  let r;\n' +
+      '  try {\n' +
+      "    r = await http({ method: 'POST', url: 'https://api.linkfinderai.com',\n" +
+      '      headers: auth, body: op, json: true });\n' +
+      '  } catch (e) {\n' +
+      '    // 402 out of credits, 401 bad key, 429 too fast. Stop, do not hammer.\n' +
+      "    console.log('LinkFinder stopped: ' + e.message);\n" +
+      '    break;\n' +
+      '  }\n' +
+      '  // Any endpoint can answer with a job instead of a result if the lookup\n' +
+      '  // runs past ~27s. Poll it, briefly.\n' +
+      '  for (let n = 0; r && r.job_id && !r.result && n < 4; n++) {\n' +
+      '    await sleep(8000);\n' +
+      "    try { r = await http({ method: 'GET', headers: auth, json: true,\n" +
+      "      url: r.poll_url || 'https://api.linkfinderai.com/status/' + r.job_id }); }\n" +
+      '    catch (e) { r = null; }\n' +
+      '  }\n' +
+      '  const res = r && r.result;\n' +
+      "  const email = typeof res === 'string' ? res : (res && res.email) || '';\n" +
+      '  if (email) { lead.email = email; found++; }\n' +
+      '  await sleep(1100);   // one request per second per key, or 429\n' +
+      '}\n' +
+      "console.log('LinkFinder: ' + found + ' emails, ~' + spent + ' credits');\n" +
+      'return sendable();'
+    ), [1720, 200]),
 
     node('Write the email', 'httpRequest', 4.2, {
       method: 'POST',
@@ -681,7 +751,7 @@ function n8nWorkflow({ withKeys = true } = {}) {
       specifyBody: 'json',
       jsonBody: "={{ JSON.stringify({ model: $('Config').first().json.model, messages: [ { role: 'system', content: " + JSON.stringify(CRAFT) + " }, { role: 'user', content: 'THE OFFER (the only facts you may assert)\\n' + $('Config').first().json.offer + '\\n\\nTHE FACTS\\n' + $('Config').first().json.facts + '\\n\\nTHE PROBLEM THEY LIKELY HAVE\\n' + $('Config').first().json.problem + '\\n\\nEXTRA INSTRUCTIONS\\n' + $('Config').first().json.instructions + '\\n\\nLEAD RECORD\\n' + JSON.stringify($json) } ] }) }}",
       options: {},
-    }, [1720, 200]),
+    }, [1940, 200]),
 
     node('Build the lead', 'code', 2, jsCode(
       "// Parse the model's JSON and shape one Instantly lead. The per-lead copy\n" +
@@ -690,7 +760,7 @@ function n8nWorkflow({ withKeys = true } = {}) {
       'const out = [];\n' +
       'for (let i = 0; i < $input.all().length; i++) {\n' +
       '  const reply = $input.all()[i].json;\n' +
-      "  const lead = $('One item per lead').all()[i].json;\n" +
+      "  const lead = $('LinkFinder: fill missing emails').all()[i].json;\n" +
       "  let text = reply.choices?.[0]?.message?.content ?? '';\n" +
       "  if (text.startsWith('```')) text = text.split('```')[1].replace(/^json/, '').trim();\n" +
       '  let email;\n' +
@@ -709,7 +779,7 @@ function n8nWorkflow({ withKeys = true } = {}) {
       '  } });\n' +
       '}\n' +
       'return out;'
-    ), [1940, 200]),
+    ), [2160, 200]),
 
     node('Instantly: add leads', 'httpRequest', 4.2, {
       method: 'POST',
@@ -722,7 +792,7 @@ function n8nWorkflow({ withKeys = true } = {}) {
       specifyBody: 'json',
       jsonBody: "={{ JSON.stringify({ campaign_id: $('Config').first().json.instantly_campaign_id, skip_if_in_campaign: true, skip_if_in_workspace: true, leads: $input.all().map(i => i.json) }) }}",
       options: {},
-    }, [2160, 200]),
+    }, [2380, 200]),
   ];
 
   const link = (from, to, out = 0) => ({ [from]: { main: [] } });
@@ -738,7 +808,8 @@ function n8nWorkflow({ withKeys = true } = {}) {
       [{ node: 'One item per lead', type: 'main', index: 0 }],
       [{ node: 'Wait', type: 'main', index: 0 }],
     ] },
-    'One item per lead': { main: [[{ node: 'Write the email', type: 'main', index: 0 }]] },
+    'One item per lead': { main: [[{ node: 'LinkFinder: fill missing emails', type: 'main', index: 0 }]] },
+    'LinkFinder: fill missing emails': { main: [[{ node: 'Write the email', type: 'main', index: 0 }]] },
     'Write the email': { main: [[{ node: 'Build the lead', type: 'main', index: 0 }]] },
     'Build the lead': { main: [[{ node: 'Instantly: add leads', type: 'main', index: 0 }]] },
   };

@@ -8,12 +8,26 @@ import unittest
 import urllib.error
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-os.environ.setdefault("LINKFINDER_API_KEY", "test")
-os.environ.setdefault("INSTANTLY_API_KEY", "test")
-
 import instantly as inst  # noqa: E402
 import linkfinder  # noqa: E402
 from models import Lead  # noqa: E402
+from unittest import mock  # noqa: E402
+
+# Set for this module's run, not at import. unittest imports every test module
+# before running any of them, so a key left in the process environment changes
+# what other suites see.
+KEYS = {"LINKFINDER_API_KEY": "test", "INSTANTLY_API_KEY": "test"}
+_env = None
+
+
+def setUpModule():
+    global _env
+    _env = mock.patch.dict(os.environ, KEYS)
+    _env.start()
+
+
+def tearDownModule():
+    _env.stop()
 
 
 class FakeHTTP:
