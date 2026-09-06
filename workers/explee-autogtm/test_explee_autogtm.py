@@ -9,7 +9,9 @@ the same reply. Those are the failure modes that cost a domain.
 import datetime as dt
 import io
 import json
+from pathlib import Path
 import unittest
+import unittest.mock
 import urllib.error
 
 import baseline
@@ -150,6 +152,45 @@ class Decide(unittest.TestCase):
         return recover.decide({"person_id": 1}, thread_, note, CFG,
                               set(booked), set(views), now)
 
+    def test_a_question_is_left_to_a_human(self):
+        plan = self.plan(thread(("out", "hi"), ("in", "how does it work?")))
+        self.assertEqual(plan["action"], "skip")
+        self.assertIn("ANSWER THIS ONE YOURSELF", plan["next_action"])
+
+    def test_with_auto_reply_on_a_fresh_reply_waits_and_a_stale_one_does_not(self):
+        cfg = dict(CFG, auto_reply=True)
+        fresh = thread(("out", "hi", "2026-09-02T08:00:00Z"),
+                       ("in", "send me pricing", "2026-09-02T08:30:00Z"))
+        self.assertEqual(recover.decide({}, fresh, None, cfg, set(), set(), WED)["action"],
+                         "skip")
+        stale = thread(("out", "hi", "2026-08-30T08:00:00Z"),
+                       ("in", "send me pricing", "2026-08-30T08:30:00Z"))
+        self.assertEqual(recover.decide({}, stale, None, cfg, set(), set(), WED)["action"],
+                         "send")
+
+    def test_the_nudge_signs_as_the_persona_the_lead_wrote_to(self):
+        convo = thread(("out", "Bonjour Tom,\n\nblabla\n\nPete\nLiftember", "2026-08-28T08:00:00Z"),
+                       ("in", "Hi Pete,\n\nAny reference I could review?", "2026-08-28T09:00:00Z"),
+                       ("out", "Sure Tom, here", "2026-08-28T09:05:00Z"))
+        plan = recover.decide({}, convo, None, CFG, set(), set(), WED)
+        self.assertEqual((plan["action"], plan["bucket"]), ("send", "nudge"))
+        self.assertTrue(plan["message"].rstrip().endswith("Pete"), plan["message"])
+        self.assertNotIn("Eliasse", plan["message"])
+        # no greeting to read: the signature line of our first email
+        msgs, _ = recover.thread_view(thread(("out", "Bonjour,\n\nx\n\nZara"), ("in", "ok ?")))
+        self.assertEqual(recover.persona_name(msgs, "Eliasse"), "Zara")
+        msgs, _ = recover.thread_view(thread(("out", "x?"), ("in", "ok")))
+        self.assertEqual(recover.persona_name(msgs, "Eliasse"), "Eliasse")
+
+    def test_the_second_nudge_is_the_last_and_asks_for_a_no(self):
+        convo = thread(("out", "hi", "2026-08-20T08:00:00Z"),
+                       ("in", "send me pricing", "2026-08-20T09:00:00Z"),
+                       ("out", "here", "2026-08-20T09:05:00Z"),
+                       ("out", "nudge one", "2026-08-23T09:05:00Z"))
+        plan = recover.decide({}, convo, None, CFG, set(), set(), WED)
+        self.assertEqual((plan["action"], plan["bucket"]), ("send", "nudge_last"))
+        self.assertIn("Last note from me", plan["message"])
+
     def test_a_positive_reply_gets_two_times(self):
         plan = self.plan(thread(("out", "hi"), ("in", "can you send me pricing?")))
         self.assertEqual(plan["action"], "send")
@@ -268,6 +309,9 @@ class FakeApi:
     def reply(self, cid, pid, message):
         self.sent.append((pid, message))
         return {}
+
+    def hot_leads(self, campaign_id=None, limit=100):
+        return []
 
 
 class Run(unittest.TestCase):
@@ -587,6 +631,629 @@ class Baseline(unittest.TestCase):
         out = io.StringIO()
         baseline.report({"label": "x", "spend": 1.0, "sent": 1, "replies": 1, "hot": 1}, out=out)
         self.assertIn("unknown", out.getvalue())
+
+
+# --- change 1: the sequence -----------------------------------------------------
+import prequalify as pq
+import sequence as sq
+import state as state_mod
+import tempfile
+
+# Every task writes reports/state.json. The tests write it somewhere disposable.
+_STATE_DIR = tempfile.TemporaryDirectory()
+state_mod.STATE = Path(_STATE_DIR.name) / "state.json"
+
+
+class SequenceReading(unittest.TestCase):
+    def test_step_is_how_many_we_sent_before_they_wrote(self):
+        msgs, _ = recover.thread_view(thread(("out", "1"), ("out", "2"), ("out", "3"),
+                                             ("in", "ok tell me more")))
+        self.assertEqual(sq.reply_step(msgs), 3)
+
+    def test_a_lead_who_wrote_first_has_no_step(self):
+        msgs, _ = recover.thread_view(thread(("in", "hello?")))
+        self.assertIsNone(sq.reply_step(msgs))
+        msgs, _ = recover.thread_view(thread(("out", "1"), ("out", "2")))
+        self.assertIsNone(sq.reply_step(msgs))
+
+    def test_lengths_in_every_shape(self):
+        self.assertEqual(sq.sequence_length(3), 4)
+        self.assertEqual(sq.sequence_length([{"delay_days": 3}, {"delay_days": 4}]), 3)
+        self.assertEqual(sq.sequence_length({"count": 2, "interval_days": 3}), 3)
+        self.assertEqual(sq.sequence_length({"steps": [1, 2, 3]}), 4)
+        with self.assertRaises(ShapeError):
+            sq.sequence_length("four")
+        with self.assertRaises(ShapeError):
+            sq.sequence_length({"mystery": 1})
+
+    def test_shortening_keeps_the_shape_and_never_lengthens(self):
+        self.assertEqual(sq.shortened(3, 2), 1)
+        self.assertEqual(sq.shortened([{"d": 3}, {"d": 4}, {"d": 5}], 2), [{"d": 3}])
+        self.assertEqual(sq.shortened({"count": 3, "interval_days": 3}, 2),
+                         {"count": 1, "interval_days": 3})
+        self.assertEqual(sq.shortened({"steps": [1, 2, 3]}, 1), {"steps": []})
+        with self.assertRaises(ValueError):
+            sq.shortened(3, 4)
+        with self.assertRaises(ValueError):
+            sq.shortened(3, 0)
+
+
+class SequenceTally(unittest.TestCase):
+    OLD = "2026-08-01T09:00:00Z"
+    NEW = "2026-09-01T09:00:00Z"
+
+    def threads(self):
+        return [
+            thread(("out", "1", self.OLD), ("in", "send me pricing")),           # step 1, +
+            thread(("out", "1", self.OLD), ("out", "2"), ("in", "non merci")),   # step 2, -
+            thread(("out", "1", self.OLD), ("out", "2"), ("out", "3"),
+                   ("in", "open pour un échange")),                              # step 3, +
+            thread(("out", "1", self.OLD), ("in", "I am out of the office until")),  # auto
+            thread(("out", "1", self.NEW), ("in", "yes")),                       # too young
+            thread(("out", "1"), ("in", "ok")),                                  # no timestamp
+        ]
+
+    def test_counts_by_step_and_kind(self):
+        tally = sq.tally_steps(self.threads(), WED)
+        self.assertEqual(tally["replies"], {1: 2, 2: 1, 3: 1})
+        self.assertEqual(tally["positive"], {1: 1, 3: 1})      # "ok" is unknown, not a yes
+        self.assertEqual(tally["auto"], 1)
+        self.assertEqual(tally["young"], 1)
+        self.assertEqual(tally["unknown_age"], 1)
+
+    def test_arithmetic(self):
+        rows = sq.arithmetic({1: 50, 2: 20, 3: 20, 4: 10}, 4)
+        by = {r["emails"]: r for r in rows}
+        self.assertAlmostEqual(by[2]["share"], 0.7)
+        self.assertAlmostEqual(by[2]["cost_ratio"], 0.5 / 0.7)
+        self.assertAlmostEqual(by[2]["pool_burn"], 2.0)
+        self.assertAlmostEqual(by[4]["cost_ratio"], 1.0)
+
+    def test_it_recommends_only_a_real_cut(self):
+        strong = {"replies": {1: 50, 2: 20, 3: 5, 4: 5}, "positive": {}, "auto": 0,
+                  "young": 0, "unknown_age": 0, "no_step": 0}
+        pick, basis, _, _ = sq.recommend(strong, 4)
+        self.assertEqual((pick, basis), (2, "replies"))
+        flat = {"replies": {1: 20, 2: 20, 3: 20, 4: 20}, "positive": {}, "auto": 0,
+                "young": 0, "unknown_age": 0, "no_step": 0}
+        self.assertIsNone(sq.recommend(flat, 4)[0])
+
+    def test_too_few_replies_says_wait(self):
+        thin = {"replies": {1: 5, 2: 1}, "positive": {}, "auto": 0, "young": 0,
+                "unknown_age": 0, "no_step": 0}
+        pick, _, rows, why = sq.recommend(thin, 4)
+        self.assertIsNone(pick)
+        self.assertEqual(rows, [])
+        self.assertIn("needs 30", why)
+
+    def test_positives_decide_when_there_are_enough(self):
+        tally = {"replies": {1: 20, 2: 20, 3: 20, 4: 20},
+                 "positive": {1: 10, 2: 5, 3: 0, 4: 0}, "auto": 0, "young": 0,
+                 "unknown_age": 0, "no_step": 0}
+        pick, basis, _, _ = sq.recommend(tally, 4)
+        self.assertEqual((pick, basis), (2, "positive"))
+
+
+class FakeSequenceApi:
+    def __init__(self, followups, threads):
+        self.followups = followups
+        self.threads = threads
+        self.patched = []
+
+    def balance(self):
+        return 500
+
+    def campaign(self, cid):
+        return {"id": cid, "name": "test", "followups": self.followups}
+
+    def inbox_all(self, cid, tab=None):
+        return [{"person_id": i} for i in range(len(self.threads))]
+
+    def thread(self, cid, pid):
+        return self.threads[pid]
+
+    def update_campaign(self, cid, fields):
+        self.patched.append((cid, fields))
+        self.followups = fields["followups"]
+        return self.campaign(cid)
+
+
+class SequenceRun(unittest.TestCase):
+    def test_measure_reports_and_recommends(self):
+        threads = ([thread(("out", "1", SequenceTally.OLD), ("in", "tell me more"))] * 30
+                   + [thread(("out", "1", SequenceTally.OLD), ("out", "2"), ("out", "3"),
+                             ("out", "4"), ("in", "tell me more"))] * 5)
+        api = FakeSequenceApi([{"d": 3}, {"d": 3}, {"d": 3}], threads)
+        out = io.StringIO()
+        got = sq.measure_campaign(api, 7, WED, 14, out=out)
+        self.assertEqual(got["emails"], 4)
+        self.assertEqual(got["recommend"], 1)
+        self.assertIn("SHORTEN to 1", out.getvalue())
+
+    def test_shorten_is_gated_and_dry_by_default(self):
+        threads = [thread(("out", "1", SequenceTally.OLD), ("out", "2"), ("out", "3"),
+                          ("out", "4"), ("in", "tell me more"))] * 40
+        api = FakeSequenceApi([{"d": 3}] * 3, threads)
+        with unittest.mock.patch.object(sq, "Explee", lambda: api):
+            with self.assertRaises(SystemExit):            # all replies on step 4: refused
+                sq.main(["shorten", "--campaign", "7", "--emails", "2"])
+            self.assertEqual(api.patched, [])
+            sq.main(["shorten", "--campaign", "7", "--emails", "2", "--force"])
+            self.assertEqual(api.patched, [])              # dry run
+            sq.main(["shorten", "--campaign", "7", "--emails", "2", "--force", "--apply"])
+        self.assertEqual(api.patched, [(7, {"followups": [{"d": 3}]})])
+
+
+# --- change 2: pre-qualification ---------------------------------------------------
+class Prequalify(unittest.TestCase):
+    DEF = {"name": "High ticket", "project_id": 30475,
+           "target_role": "Directeur commercial", "target_geography": "France",
+           "target_company_size": "50-500 employees",
+           "positive_criteria": "Sells B2B services\nHas an outbound sales team",
+           "negative_criteria": ["Recruitment agency"], "keywords": ["ESN", "conseil"],
+           "instructions": "one email", "followup_instructions": "short", "language": "fr"}
+
+    def test_the_target_reads_as_a_query(self):
+        self.assertEqual(pq.describe_target(self.DEF),
+                         "Directeur commercial at companies of 50-500 employees "
+                         "in ESN, conseil in France")
+
+    def test_criteria_from_both_lists(self):
+        self.assertEqual(pq.criteria_from(self.DEF),
+                         ["Sells B2B services", "Has an outbound sales team",
+                          "Is NOT the following: Recruitment agency"])
+        self.assertEqual(pq.criteria_from({"positive_criteria": ["a"] * 9}), ["a"] * 5)
+        self.assertEqual(pq.criteria_from({"positive_criteria": ["• Founder-led sales"]}),
+                         ["Founder-led sales"])
+        self.assertEqual(pq.criteria_from({"customer_problem": "no leads"}),
+                         ["Likely has this problem: no leads"])
+
+    def test_cost_has_a_free_zone(self):
+        search, emails = pq.search_cost(100, ["a", "b"])
+        self.assertEqual((search, emails), (0.0, 150.0))
+        search, _ = pq.search_cost(1000, ["a", "b", "c", "d"])
+        self.assertAlmostEqual(search, 900 * 1.4)
+
+    def test_scores_in_three_shapes(self):
+        self.assertEqual(pq.scores_of({"criteria": [{"criterion": "a", "score": 5},
+                                                    {"criterion": "b", "score": 3}]}), [5, 3])
+        self.assertEqual(pq.scores_of({"scores": {"a": 4, "b": 4}}), [4, 4])
+        self.assertTrue(pq.qualifies({"criteria_scores": [4, 5]}))
+        self.assertFalse(pq.qualifies({"criteria_scores": [4, 2]}))
+        with self.assertRaises(ShapeError):
+            pq.scores_of({"first_name": "A"})
+
+    def test_search_pages_and_stops(self):
+        class Api:
+            def __init__(self):
+                self.bodies = []
+
+            def search_people(self, body):
+                self.bodies.append(body)
+                offset = body["offset"]
+                rows = [{"first_name": str(i), "criteria": [{"score": 5}]}
+                        for i in range(offset, min(offset + body["limit"], 150))]
+                return {"people": rows}
+        api = Api()
+        plan = {"company_filters": {"definition": "x"}, "people_filters": {"job_titles": ["CEO"]},
+                "criteria": ["a"]}
+        people = pq.search_pages(api, plan, 400, page=100)
+        self.assertEqual(len(people), 150)
+        self.assertEqual([b["offset"] for b in api.bodies], [0, 100])
+        self.assertEqual(api.bodies[0]["people_filters"]["criteria"], ["a"])
+
+    def test_missing_emails_are_filled_from_the_batch(self):
+        class Api:
+            def enrich_email_batch(self, contacts, preset="basic"):
+                self.asked = contacts
+                return {"task_id": "t1"}
+
+            def enrich_email_batch_status(self, task_id):
+                return {"meta": {"status": "completed"},
+                        "contacts": [{"email": "a@x.com"}, {"email": None}]}
+        leads = [{"email": "", "first_name": "A", "last_name": "B", "company_domain": "x.com"},
+                 {"email": "", "first_name": "C", "last_name": "D", "company_domain": "y.com"},
+                 {"email": "e@z.com", "first_name": "E", "last_name": "F",
+                  "company_domain": "z.com"}]
+        api = Api()
+        found, asked = pq.fill_emails(api, leads, sleep=lambda s: None)
+        self.assertEqual((found, asked), (1, 2))
+        self.assertEqual(len(api.asked), 2)
+        self.assertEqual(leads[0]["email"], "a@x.com")
+        self.assertEqual(leads[1]["email"], "")
+
+    def test_import_strips_scores_and_writes_both_arms(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            plan = {"campaign_id": 1, "project_id": 30475, "name": "High ticket",
+                    "brief": {"instructions": "x", "followup_instructions": "", "language": "fr"},
+                    "brief_sha": "abcd1234"}
+            (Path(tmp) / "plan.json").write_text(json.dumps(plan))
+            (Path(tmp) / "leads.json").write_text(json.dumps(
+                [{"email": "a@x.com", "first_name": "A", "last_name": "B",
+                  "company_domain": "x.com", "job_title": "CEO", "_scores": [5]}]))
+
+            class Api:
+                def balance(self):
+                    return 100
+
+                def import_campaign(self, project_id, name, leads, **brief):
+                    self.leads, self.brief = leads, brief
+                    return {"task_id": "t"}
+
+                def import_status(self, task_id):
+                    return {"status": "completed", "result": {"campaign_id": 999}}
+            api = Api()
+            with unittest.mock.patch.object(pq, "Explee", lambda: api):
+                pq.main(["import", "--plan", str(Path(tmp) / "plan.json"),
+                         "--leads", str(Path(tmp) / "leads.json"),
+                         "--out", str(Path(tmp) / "q.arm.json"),
+                         "--control-out", str(Path(tmp) / "c.arm.json"), "--apply"])
+            self.assertNotIn("_scores", api.leads[0])
+            self.assertEqual(api.brief["language"], "fr")
+            variant = json.loads((Path(tmp) / "q.arm.json").read_text())
+            control = json.loads((Path(tmp) / "c.arm.json").read_text())
+            self.assertEqual(variant["campaign_id"], 999)
+            self.assertEqual(control["campaign_id"], 1)
+            self.assertEqual(variant["brief_sha"], control["brief_sha"])
+            self.assertTrue(control["live_campaign"])
+
+
+
+
+# --- change 3: the note is the interface, the report is the visibility ---------
+class NoteFlag(unittest.TestCase):
+    def test_booked_and_stop_in_both_languages(self):
+        self.assertEqual(recover.human_flag("booked 12/09"), "booked")
+        self.assertEqual(recover.human_flag("RDV pris jeudi"), "booked")
+        self.assertEqual(recover.human_flag("stop"), "stop")
+        self.assertEqual(recover.human_flag("ne pas relancer, déjà client"), "stop")
+        self.assertIsNone(recover.human_flag("Met at SaaStock. Wants phone data."))
+        self.assertIsNone(recover.human_flag(None))
+
+    def test_our_own_block_never_counts_as_a_flag(self):
+        note = recover.write_marker("", [{"at": "2026-09-02T10:00Z", "bucket": "nudge",
+                                          "msg": "abc123", "action": "sent"}], "en")
+        self.assertIn('Type "booked" or "stop"', note)      # the instruction line
+        self.assertIsNone(recover.human_flag(note))          # ...is not a flag
+        self.assertEqual(recover.human_flag("booked\n" + note), "booked")
+
+    def test_status_line_is_readable_and_parsed_around(self):
+        entries = [{"at": "2026-09-06T07:00Z", "bucket": "nudge", "msg": "a", "action": "sent"}]
+        note = recover.write_marker("client important", entries, "fr")
+        self.assertIn("Suivi LinkFinder — 2026-09-06 : relance envoyée", note)
+        self.assertEqual(recover.read_marker(note), entries)
+        self.assertEqual(recover.human_part(note), "client important")
+
+    def test_booked_in_the_note_stops_everything(self):
+        convo = thread(("out", "hi"), ("in", "send me pricing"))
+        plan = recover.decide({}, convo, "booked", CFG, set(), set(), WED)
+        self.assertEqual(plan["action"], "skip")
+        self.assertIn("booked", plan["reason"])
+        convo["messages"].append({"direction": "out", "body": "here", "sent_at": "2026-08-20T09:00:00Z"})
+        plan = recover.decide({}, convo, "stop", CFG, set(), set(), WED)
+        self.assertEqual(plan["action"], "skip")
+
+
+class Report(unittest.TestCase):
+    def rows(self):
+        return [{"email": "a@x.com", "first_name": "Ana", "company": "Acme", "campaign": "HT",
+                 "campaign_id": 9, "person_id": 1, "last_reply": "send me pricing | now",
+                 "followups_sent": 0, "action": "send", "bucket": "send_info",
+                 "next_action": "sent send_info today", "sent": True},
+                {"email": "b@x.com", "first_name": "Bo", "company": "Beta", "campaign": "HT",
+                 "campaign_id": 9, "person_id": 2, "last_reply": "non merci",
+                 "followups_sent": 0, "action": "skip", "bucket": "negative",
+                 "next_action": "none - negative", "sent": False}]
+
+    def test_report_names_everyone_and_the_mode(self):
+        hot = [{"email": "c@x.com", "first_name": "Cy", "company": "Gamma", "job_title": "CEO",
+                "campaign": "HT", "replied_at": "2026-09-05"}]
+        text = recover.render_report("linkfinderai", 30475, WED, True, {"send_info": 1},
+                                     1, self.rows(), hot)
+        self.assertIn("SENT 1 email", text)
+        self.assertIn("| Ana (Acme) | HT | send me pricing / now | sent send_info |", text)
+        self.assertIn("| Bo (Beta) | HT | non merci | none - negative |", text)
+        self.assertIn("Cy (Gamma) | CEO | HT | 2026-09-05 | no reply thread yet", text)
+        self.assertIn("app-auto-gtm/p/30475/inbox", text)
+        rows = self.rows(); rows[0]["sent"] = False
+        dry = recover.render_report("x", 1, WED, False, {}, 0, rows, [])
+        self.assertIn("DRY RUN", dry)
+        self.assertIn("would send send_info", dry)
+
+    def test_the_run_fills_the_rows_the_report_needs(self):
+        api = FakeApi({1: thread(("out", "hi"), ("in", "send me pricing"), email="a@x.com")})
+        updates = []
+        recover.run(api, CFG, [{"id": 9, "name": "test"}], set(), set(), WED, True, 25,
+                    out=io.StringIO(), updates=updates)
+        row = updates[0]
+        self.assertEqual((row["first_name"], row["company"], row["campaign"], row["sent"]),
+                         ("Sam", "Acme", "test", True))
+
+
+
+# --- the status page -------------------------------------------------------------
+import report_page
+
+
+class StatePage(unittest.TestCase):
+    def test_state_keeps_sections_and_a_bounded_run_log(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "state.json"
+            for i in range(45):
+                state_mod.record("followups", "run {}".format(i), False, path=path)
+            data = state_mod.record("measure", "measured", False, section="measure",
+                                    payload={"campaigns": []}, balance=1234.0, path=path)
+            self.assertEqual(len(data["runs"]), state_mod.MAX_RUNS)
+            self.assertEqual(data["runs"][0]["task"], "measure")
+            self.assertEqual(data["measure"]["campaigns"], [])
+            self.assertEqual(state_mod.load(path)["balance"], 1234.0)
+
+    def test_page_shows_the_loop_the_measure_and_the_warnings(self):
+        data = {
+            "balance": 2500.0,
+            "runs": [{"at": "2026-09-06T07:00:00Z", "task": "followups", "applied": False,
+                      "outcome": "3 replied leads read"}],
+            "followups": {"at": "2026-09-06T07:00:00Z", "applied": False, "project_id": 30475,
+                          "sends": 0, "tally": {"send_info": 1, "skip: negative": 1},
+                          "rows": [{"email": "a@x.com", "first_name": "Ana", "company": "Acme",
+                                    "campaign": "HT", "last_reply": "send <pricing>",
+                                    "action": "send", "bucket": "send_info", "sent": False,
+                                    "next_action": "sent send_info today"},
+                                   {"email": "b@x.com", "first_name": "Bo", "company": "Beta",
+                                    "campaign": "HT", "last_reply": "non merci",
+                                    "action": "skip", "bucket": "negative", "sent": False,
+                                    "next_action": "none - negative"}],
+                          "hot": [{"email": "c@x.com", "first_name": "Cy", "company": "G",
+                                   "job_title": "CEO", "campaign": "HT",
+                                   "replied_at": "2026-09-05T10:00:00Z"}]},
+            "measure": {"at": "2026-09-06T07:30:00Z", "campaigns": [
+                {"name": "HT", "emails": 4, "recommend": 2, "why": "2 emails keep 85%",
+                 "tally": {"replies": {"1": 20, "2": 14, "3": 4, "4": 2},
+                           "positive": {"1": 5}, "auto": 3, "young": 7, "no_step": 1}}]},
+            "prequalify": {"at": "2026-09-06T08:00:00Z", "applied": True, "source_name": "HT",
+                           "searched": 900, "qualified": 300, "usable": 250, "min_score": 4,
+                           "criteria": ["Sells B2B"], "campaign_id": 999,
+                           "compare_after": "2026-09-20"},
+        }
+        page = report_page.render(data)
+        self.assertIn('name="robots" content="noindex', page)
+        self.assertIn("balance 2500 credits ($25.00)", page)
+        self.assertIn("would send send_info", page)
+        self.assertIn("send &lt;pricing&gt;", page)          # escaped, never raw
+        self.assertIn("no reply thread yet", page)
+        self.assertIn("shorten to 2", page)
+        self.assertIn("app-auto-gtm/p/30475/inbox", page)
+        self.assertIn("2026-09-20", page)
+        self.assertNotIn("<script", page)
+        empty = report_page.render({"runs": []})
+        self.assertIn("has not run yet", empty)
+
+
+class InboxShape(unittest.TestCase):
+    def test_an_unknown_inbox_key_raises_instead_of_reading_as_empty(self):
+        api = Explee(api_key="k", opener=None)
+        api.request = lambda *a, **k: {"surprise": [{"person_id": 1}]}
+        with self.assertRaises(ShapeError):
+            api.inbox(9, tab="replied")
+        api.request = lambda *a, **k: {"leads": [{"person_id": 1}]}
+        self.assertEqual(api.inbox(9), [{"person_id": 1}])
+        api.request = lambda *a, **k: [{"person_id": 2}]
+        self.assertEqual(api.inbox(9), [{"person_id": 2}])
+
+    def test_the_run_survives_an_unreadable_inbox(self):
+        class Broken(FakeApi):
+            def inbox_all(self, cid, tab=None):
+                raise ShapeError("none of [...] in this payload")
+        tally, sends = recover.run(Broken({}), CFG, [{"id": 9, "name": "t"}], set(), set(),
+                                   WED, True, 25, out=io.StringIO())
+        self.assertEqual(sends, 0)
+        self.assertEqual(tally, {"error: inbox unreadable": 1})
+
+
+class RealShapes(unittest.TestCase):
+    """The payloads as api.explee.com actually returned them on 6 Sept 2026."""
+    THREAD = {"can_reply": True, "reply_blocked_reason": None, "latest_intent": "hot_lead",
+              "lead": {"name": "Tom Guerreau", "email": "tom@prescient.studio",
+                       "job_title": "Founder", "company_name": "Prescient",
+                       "company_domain": "prescient.studio", "note": None},
+              "messages": [
+                  {"type": "sent", "from_email": "p@x.com", "to_email": "tom@prescient.studio",
+                   "body_text": "Bonjour Tom, ...", "ts": "2026-09-04T07:25:11.504036Z"},
+                  {"type": "reply", "from_email": "tom@prescient.studio",
+                   "body_text": "Hi Pete, any reference / resource presenting your work that "
+                                "I could review?", "intent": "hot_lead",
+                   "ts": "2026-09-04T07:39:54Z"},
+                  {"type": "sent", "body_text": "Bien sûr Tom, voici ...",
+                   "ts": "2026-09-04T08:02:40.471903Z"}]}
+
+    def test_thread_reads_direction_body_and_time(self):
+        msgs, can = recover.thread_view(self.THREAD)
+        self.assertTrue(can)
+        self.assertEqual([m["direction"] for m in msgs], ["out", "in", "out"])
+        self.assertIn("any reference", msgs[1]["text"])
+        self.assertEqual(msgs[2]["at"].isoformat(), "2026-09-04T08:02:40.471903+00:00")
+        who = recover.person_fields({"person_id": "d8b1"}, self.THREAD)
+        self.assertEqual(who, {"first_name": "Tom", "company": "Prescient",
+                               "email": "tom@prescient.studio"})
+
+    def test_a_quiet_hot_lead_gets_the_nudge_after_two_days(self):
+        # Explee's auto-reply already answered (message 3); two days later, nudge.
+        now = dt.datetime(2026, 9, 7, 9, 0, tzinfo=UTC)
+        plan = recover.decide({}, self.THREAD, None, CFG, set(), set(), now)
+        self.assertEqual((plan["action"], plan["bucket"]), ("send", "nudge"))
+        soon = dt.datetime(2026, 9, 5, 9, 0, tzinfo=UTC)
+        self.assertEqual(recover.decide({}, self.THREAD, None, CFG, set(), set(), soon)["action"],
+                         "skip")
+
+    def test_the_settle_window_comes_from_the_sequence(self):
+        self.assertEqual(sq.settle_window({"max_touches": 2, "delay_days": 3}), 5)
+        self.assertEqual(sq.settle_window({"max_touches": 3, "delay_days": 3}), 8)
+        self.assertEqual(sq.settle_window({"max_touches": 2, "delay_days": 3}, 14), 14)
+        self.assertEqual(sq.settle_window([{"x": 1}]), sq.FALLBACK_SETTLED)
+        self.assertEqual(sq.settle_window("?"), sq.FALLBACK_SETTLED)
+
+    def test_the_sequence_field(self):
+        # max_touches counts the whole sequence: 47 real replies, none past step 2
+        self.assertEqual(sq.sequence_length({"max_touches": 2, "delay_days": 3}), 2)
+        self.assertEqual(sq.sequence_length({"max_touches": 3, "delay_days": 3}), 3)
+        self.assertEqual(sq.shortened({"max_touches": 3, "delay_days": 3}, 2),
+                         {"max_touches": 2, "delay_days": 3})
+        with self.assertRaises(ValueError):
+            sq.shortened({"max_touches": 2, "delay_days": 3}, 2)
+
+    def test_a_reply_beyond_the_sequence_is_shouted_about(self):
+        tally = {"replies": {1: 20, 2: 15, 3: 5}, "positive": {}, "auto": 0, "young": 0,
+                 "unknown_age": 0, "no_step": 0}
+        out = io.StringIO()
+        sq.print_report("x", 1, 2, tally, out=out)
+        self.assertIn("BEYOND the 2 emails", out.getvalue())
+
+    def test_the_real_split_says_keep(self):
+        tally = {"replies": {1: 28, 2: 19}, "positive": {1: 2, 2: 2}, "auto": 29, "young": 21,
+                 "unknown_age": 0, "no_step": 6}
+        pick, basis, rows, why = sq.recommend(tally, 2)
+        self.assertIsNone(pick)
+        self.assertEqual(basis, "replies")
+        self.assertAlmostEqual(rows[0]["share"], 28 / 47)
+        self.assertEqual(sq.reply_step(recover.thread_view(self.THREAD)[0]), 1)
+
+    def test_inbox_and_hot_leads_keys(self):
+        api = Explee(api_key="k")
+        api.request = lambda *a, **k: {"contacts": [{"person_id": "d8b1"}], "total": 103,
+                                       "has_more": True, "next_offset": 1}
+        self.assertEqual(api.inbox(127292, tab="replied"), [{"person_id": "d8b1"}])
+        api.request = lambda *a, **k: {"leads": [{"name": "Meyer Wassermann",
+                                                  "email": "meyer@amenagence.com",
+                                                  "company_name": "Amen.",
+                                                  "job_title": "Co-Founder",
+                                                  "person_id": "31e0", "campaign_id": 130465,
+                                                  "became_hot_at": "2026-09-04T14:58:49Z"}],
+                                       "total": 18}
+        rows = recover.collect_hot_leads(api, [{"id": 130465, "name": "ht2"}], 30475)
+        self.assertEqual(rows[0]["first_name"], "Meyer")
+        self.assertEqual(rows[0]["company"], "Amen.")
+
+
+class RealReplies(unittest.TestCase):
+    """Replies from the 6 Sept dry run that the first classifier got wrong."""
+    def bucket(self, text):
+        return fu.classify(text)[0]
+
+    def test_quoted_mail_and_links_do_not_count(self):
+        own = fu.own_words("non merci\n\nLe dim. 6 sept. 2026 à 10:05, Carl Sullivan "
+                           "<c@voxglide.com> a écrit :\n> Bonjour Rodolphe, ça vous dirait ?")
+        self.assertEqual(own, "non merci")
+        self.assertEqual(fu.own_words("Oui\n> pourquoi pas ?\n> https://x.y/?a=b"), "Oui")
+
+    def test_a_gmail_reaction_is_silent(self):
+        self.assertEqual(self.bucket("🤡  Rémi Villard a réagi depuis Gmail <https://www.google"
+                                     ".com/gmail/about/?utm_source=gmail-in-product>"),
+                         "auto_reply")
+
+    def test_out_of_office_variants(self):
+        for text in ("Bonjour,\n\nJe vous remercie pour votre message.\n\nJe suis actuellement "
+                     "absente et n'ai pas accès à mes mails",
+                     "Hello,\n\nThank you for your message.\n\nI am currently enjoying a "
+                     "sabbatical and will return in October",
+                     "Bonjour et merci pour votre message,\n\nJe suis actuellement en arrêt "
+                     "maladie jusqu'au 9",
+                     "!!! NOUVELLES COORDONNEES MAIL !!!\n\nmiguel@hawaiicom.fr\n\nMerci de "
+                     "les modifier dans vos contacts svp ?"):
+            self.assertEqual(self.bucket(text), "auto_reply", text[:40])
+
+    def test_french_noes(self):
+        for text in ("Non du tout merci beaucoup\n\nCordialement,\n\nNoé - ATECH\nTéléphone : ?",
+                     "Bonjour\nPas très convaincant comme approche, il faudrait déjà apprendre "
+                     "à envoyer des mails qui ne partent pas dans les spams",
+                     "désolé mais a ce tarif sachant que sur du rdv non recommandé le taux de "
+                     "transformation tourne à 10% ?",
+                     "bonjour Caleb.\n\nOn ne commence pas, cela me convient mieux. merci.\n\n"
+                     "Je reste à votre disposition ?"):
+            self.assertEqual(self.bucket(text), "negative", text[:40])
+
+    def test_a_booking_through_someone_else_is_still_a_booking(self):
+        self.assertEqual(self.bucket("Pourquoi ce n'est pas avec vous que j'ai RDV quand je "
+                                     "clique sur le calendly ?"), "booked")
+
+    def test_real_questions_and_yeses_still_send(self):
+        self.assertEqual(self.bucket("Bonjour,\n\nPourquoi pas ! Quels sont vos tarifs ?\n\n"
+                                     "Merci !\n<https://htmlsig.com/t/0001>"), "send_info")
+        self.assertEqual(self.bucket("Bonjour,\n\nOui, je veux bien plus d'explication.\n\n"
+                                     "Cordialement,\n\nDe : Tanner Fox\nEnvoyé : lundi"),
+                         "send_info")
+        self.assertEqual(self.bucket("Hi Pete,\n\nAny reference / resource presenting your "
+                                     "work that I could review?\n\nThanks,"), "question")
+
+
+class SecondDryRun(unittest.TestCase):
+    """The replies the second dry run (6 Sept, 20:41 UTC) still got wrong."""
+    def test_a_negated_interest_is_a_no(self):
+        self.assertEqual(fu.classify("Vous avez raison, je ne prospecte pas cependant je n'ai "
+                                     "pas le temps. Le rendez-vous ne m'intéresse pas si je "
+                                     "cherche quelqu'un se serait plus un réelle commerciale.")[0],
+                         "negative")
+        self.assertEqual(fu.classify("Pas de besoin en cette rentrée. Bonne journée !")[0],
+                         "negative")
+
+    def test_curly_apostrophes(self):
+        self.assertEqual(fu.classify("Oui, je veux bien plus d\u2019explication.")[0],
+                         "send_info")
+
+    def test_a_phone_number_means_call_them(self):
+        self.assertEqual(fu.classify("Nous pouvons en parler, contacter moi au 0033780585454. "
+                                     "David")[0], "call_me")
+        self.assertEqual(fu.classify("Call me on +44 20 7946 0958 tomorrow")[0], "call_me")
+        convo = thread(("out", "hi", "2026-08-28T08:00:00Z"),
+                       ("in", "contactez-moi au 06 12 34 56 78", "2026-08-28T09:00:00Z"),
+                       ("out", "auto answer", "2026-08-28T09:05:00Z"))
+        plan = recover.decide({}, convo, None, CFG, set(), set(), WED)
+        self.assertEqual(plan["action"], "skip")
+        self.assertIn("CALL THEM", plan["next_action"])
+
+    def test_a_soft_no_is_parked_even_after_we_answered(self):
+        convo = thread(("out", "hi", "2026-08-28T08:00:00Z"),
+                       ("in", "je ne suis pas sûr que cela corresponde à nos besoins actuels. "
+                              "Peut-être une autre fois ?", "2026-08-28T09:00:00Z"),
+                       ("out", "auto answer", "2026-08-28T09:05:00Z"))
+        plan = recover.decide({}, convo, None, CFG, set(), set(), WED)
+        self.assertEqual((plan["action"], plan["bucket"]), ("queue", "not_now"))
+        # and on the next run it stays parked rather than being nudged
+        again = recover.decide({}, convo, plan["note"], CFG, set(), set(), WED)
+        self.assertEqual(again["action"], "skip")
+        self.assertIn("queued until", again["reason"])
+
+
+class ThirdDryRun(unittest.TestCase):
+    def test_a_number_in_a_signature_is_not_an_invitation(self):
+        self.assertNotEqual(fu.classify("Bonjour Elena, je ne suis pas sûr que cela corresponde "
+                                        "à nos besoins. Peut-être une autre fois ?\n\nMax "
+                                        "Van Santen Co-founder max@substance.works "
+                                        "+32479672227")[0], "call_me")
+        self.assertEqual(fu.classify("Bonjour Sarah,\n\nAuriez-vous un site web où je peux "
+                                     "consulter vos services et vos tarifs ?\n\nAnthony "
+                                     "06 12 34 56 78")[0], "send_info")
+        self.assertEqual(fu.classify("Nous pouvons en parler, contacter moi au "
+                                     "0033780585454. David")[0], "call_me")
+
+    def test_gone_addresses_and_absences_are_silent(self):
+        for text in ("Merci de nous avoir contactés. Cette adresse e-mail n'est plus en service.",
+                     "Julie Ducasse ne travaille plus pour OPT'IN Recrutement.",
+                     "Je suis indisponible jusqu'au 4 septembre inclus.",
+                     "Je suis absence du 22 aout au 7 septembre 2026.",
+                     "En formation ce mardi, je n'aurai pas accès à mes mails.",
+                     "Western Consulting change de dénomination sociale pour devenir X."):
+            self.assertEqual(fu.classify(text)[0], "auto_reply", text[:40])
+
+    def test_more_french_noes(self):
+        self.assertEqual(fu.classify("merci pour l'intérêt porté à Zelie mais ce sujet n'est "
+                                     "pas d'actualité")[0], "negative")
+        self.assertEqual(fu.classify("Je n'ai jamais voulu qu'on démarre")[0], "negative")
+
+    def test_no_calendar_received_wants_the_link(self):
+        self.assertEqual(fu.classify("Bonjour Thomas,\n\nJe n'ai recu aucun calendrier.")[0],
+                         "send_info")
 
 
 if __name__ == "__main__":

@@ -1,18 +1,28 @@
 name: Explee follow-ups
 
-# api.explee.com cannot be reached from a development sandbox, so the follow-up
-# loop runs here instead - the same reason publish-integrations.yml exists.
+# Everything that talks to Explee runs here, because api.explee.com cannot be
+# reached from a development sandbox - the same reason publish-integrations.yml
+# exists. One workflow, four tasks:
 #
-# Once a day it reads the hot-leads sheet, skips everyone marked booked or
-# stopped, and follows up on the rest. Nobody has to open a terminal.
+#   followups   recover.py: answer and nudge the replies that never booked.
+#               Every day at 07:00 UTC. Dry run until EXPLEE_APPLY is `true`.
+#   measure     sequence.py: replies by sequence step per campaign and what
+#               shortening would do to cost per reply. Free GETs. Every Monday.
+#   shorten     sequence.py: cut one campaign's sequence to N emails, gated on
+#               the measurement. Dispatch only; dry run unless "apply" is ticked.
+#   prequalify  prequalify.py: plan -> search+score -> import a same-brief
+#               campaign holding only the people who scored. Spends credits.
+#               Dispatch only; dry run unless "apply" is ticked.
 #
 # Required secret - the job fails with a plain message if it is missing:
 #   EXPLEE_API_KEY   Explee -> account menu (bottom left) -> API Keys
+# Every request needs a POSITIVE balance, free ones included; a negative
+# balance fails the first step with the balance in the message.
 #
-# IT SENDS NOTHING UNTIL YOU SAY SO. The schedule runs a dry run and prints what
-# it would have sent. To turn sending on, set the repository variable
-# EXPLEE_APPLY to `true` (Settings -> Secrets and variables -> Actions ->
-# Variables). Set it back to anything else to stop, without touching the code.
+# IT SENDS NOTHING UNTIL YOU SAY SO. The daily schedule runs a dry run and
+# prints what it would have sent. To turn sending on, set the repository
+# variable EXPLEE_APPLY to `true` (Settings -> Secrets and variables ->
+# Actions -> Variables). Set it back to anything else to stop.
 on:
   schedule:
     # 07:00 UTC - 9am in Paris over summer, 8am over winter. A morning send, and
@@ -20,15 +30,37 @@ on:
     # is that same afternoon. GitHub's scheduler drifts by tens of minutes under
     # load; for a daily job that does not matter.
     - cron: '0 7 * * *'
+    - cron: '30 7 * * 1'       # Mondays: measure the sequences
   workflow_dispatch:
     inputs:
+      task:
+        description: 'What to run'
+        type: choice
+        options: [followups, measure, shorten, prequalify, probe]
+        default: followups
+      campaign:
+        description: 'Campaign id (shorten, prequalify: required; measure: optional)'
+        type: string
+        default: ''
+      emails:
+        description: 'shorten: total emails to keep, first one included'
+        type: string
+        default: '2'
+      max_people:
+        description: 'prequalify: people to search and score'
+        type: string
+        default: '1000'
+      min_score:
+        description: 'prequalify: every criterion must score at least this (0-5)'
+        type: string
+        default: '4'
       apply:
-        description: 'Actually send (off = show what it would send)'
+        description: 'Actually send / change / spend (off = show what it would do)'
         type: boolean
         default: false
 
 permissions:
-  contents: read
+  contents: write      # each run commits reports/ and autogtm-report.html
 
 concurrency:
   # Two runs at once would each read the sheet, each decide the same lead is due,
@@ -37,12 +69,23 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  follow-up:
-    name: Follow up on hot leads
+  explee:
+    name: ${{ inputs.task || (github.event.schedule == '30 7 * * 1' && 'measure' || 'followups') }}
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: workers/explee-autogtm
+    env:
+      EXPLEE_API_KEY: ${{ secrets.EXPLEE_API_KEY }}
+      TASK: ${{ inputs.task || (github.event.schedule == '30 7 * * 1' && 'measure' || 'followups') }}
+      CAMPAIGN: ${{ inputs.campaign }}
+      EMAILS: ${{ inputs.emails || '2' }}
+      MAX_PEOPLE: ${{ inputs.max_people || '1000' }}
+      MIN_SCORE: ${{ inputs.min_score || '4' }}
+      # The dispatch checkbox wins when the workflow is run by hand; the daily
+      # schedule reads the repository variable. measure/shorten/prequalify never
+      # read the variable - only the checkbox arms them.
+      APPLY: ${{ (inputs.apply || (github.event_name == 'schedule' && vars.EXPLEE_APPLY == 'true')) && '--apply' || '' }}
 
     steps:
       - uses: actions/checkout@v4
@@ -55,8 +98,6 @@ jobs:
         run: python3 test_explee_autogtm.py
 
       - name: Check the key is there
-        env:
-          EXPLEE_API_KEY: ${{ secrets.EXPLEE_API_KEY }}
         run: |
           if [ -z "$EXPLEE_API_KEY" ]; then
             echo "::error::EXPLEE_API_KEY is not set. Repository Settings -> Secrets and variables -> Actions -> New repository secret. Get the key from Explee's account menu -> API Keys."
@@ -64,29 +105,86 @@ jobs:
           fi
 
       - name: Follow up
-        env:
-          EXPLEE_API_KEY: ${{ secrets.EXPLEE_API_KEY }}
-          # The dispatch checkbox wins when the workflow is run by hand; the
-          # schedule reads the repository variable.
-          APPLY: ${{ inputs.apply || vars.EXPLEE_APPLY == 'true' }}
+        if: env.TASK == 'followups'
         run: |
-          if [ "$APPLY" = "true" ]; then
+          if [ -n "$APPLY" ]; then
             echo "Sending is ON."
-            python3 recover.py --all --apply
           else
             echo "DRY RUN - nothing will be sent. Set the EXPLEE_APPLY variable to 'true' to enable."
-            python3 recover.py --all
+          fi
+          python3 recover.py --all $APPLY | tee out.txt
+          { echo '```'; cat out.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Measure replies by step
+        if: env.TASK == 'measure'
+        run: |
+          ARGS=""
+          [ -n "$CAMPAIGN" ] && ARGS="--campaign $CAMPAIGN"
+          python3 sequence.py measure $ARGS --out sequence.json | tee out.txt
+          { echo '```'; cat out.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Shorten the sequence
+        if: env.TASK == 'shorten'
+        run: |
+          [ -n "$CAMPAIGN" ] || { echo "::error::shorten needs a campaign id"; exit 1; }
+          [ -n "$APPLY" ] && echo "APPLY is ON - the campaign will be changed." || echo "DRY RUN - nothing changes."
+          python3 sequence.py shorten --campaign "$CAMPAIGN" --emails "$EMAILS" $APPLY | tee out.txt
+          { echo '```'; cat out.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+
+      # Prints the raw shape of every endpoint the loop reads. Run it when a
+      # task reports zero of something the dashboard says exists.
+      - name: Probe the response shapes
+        if: env.TASK == 'probe'
+        run: |
+          ARGS=""
+          [ -n "$CAMPAIGN" ] && ARGS="--campaign $CAMPAIGN"
+          python3 probe.py $ARGS
+
+      - name: Pre-qualify and import
+        if: env.TASK == 'prequalify'
+        run: |
+          [ -n "$CAMPAIGN" ] || { echo "::error::prequalify needs the campaign whose audience to score"; exit 1; }
+          [ -n "$APPLY" ] && echo "APPLY is ON - credits will be spent and a campaign created." || echo "DRY RUN - nothing spent."
+          python3 prequalify.py plan --campaign "$CAMPAIGN" --out prequalify.json | tee out.txt
+          python3 prequalify.py search --plan prequalify.json --max-people "$MAX_PEOPLE" \
+              --min-score "$MIN_SCORE" --out qualified.leads.json $APPLY | tee -a out.txt
+          if [ -n "$APPLY" ]; then
+            python3 prequalify.py import --plan prequalify.json --leads qualified.leads.json --apply | tee -a out.txt
+          fi
+          { echo '```'; cat out.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+
+      # Every task writes reports/state.json. Render it into the private status
+      # page and commit both, so what the loop did is readable at
+      # linkfinderai.com/autogtm-report (noindex, linked from nowhere) and in
+      # reports/latest.md - not only in this log.
+      - name: Publish the status page
+        if: always()
+        run: |
+          python3 report_page.py --write
+          cd "$GITHUB_WORKSPACE"
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git add autogtm-report.html workers/explee-autogtm/reports
+          if git commit -q -m "AutoGTM loop: $TASK report $(date -u +'%Y-%m-%d %H:%M')"; then
+            git pull -q --rebase origin "$GITHUB_REF_NAME"
+            git push -q origin "HEAD:$GITHUB_REF_NAME"
+          else
+            echo "nothing new to publish"
           fi
 
-      # With a published-CSV sheet the loop can read it but not write to it, so
-      # new hot leads land in a file - which would die with the runner. Keep it
-      # as an artifact so they can be pasted in. The Apps Script web app makes
-      # this step unnecessary: then the leads append themselves.
-      - name: Keep the hot leads that could not be written to the sheet
+      # The plan, the scored leads and the arm files are what `compare` needs in
+      # two weeks; hot-leads-to-paste.csv exists only for read-only sheets. Keep
+      # them; the runner does not.
+      - name: Keep the outputs
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: hot-leads-to-paste
-          path: workers/explee-autogtm/hot-leads-to-paste.csv
+          name: explee-${{ env.TASK }}-${{ github.run_id }}
+          path: |
+            workers/explee-autogtm/hot-leads-to-paste.csv
+            workers/explee-autogtm/sequence.json
+            workers/explee-autogtm/prequalify.json
+            workers/explee-autogtm/qualified.leads.json
+            workers/explee-autogtm/*.arm.json
           if-no-files-found: ignore
-          retention-days: 30
+          retention-days: 90

@@ -13,6 +13,147 @@ actions, both staying on AutoGTM:
 
 Everything here talks to the Explee public API with the same `X-API-Key`.
 
+## The three changes applied on 6 September 2026
+
+Asked "what in the API cuts cost per lead", the answer was: nothing touches the
+$0.03 an email, so everything inside AutoGTM is a 10-30% lever. Three of them
+were chosen and built. Each is dry-run by default, gated on its own numbers,
+and runs from GitHub Actions because this sandbox cannot reach the API.
+
+| # | Change | Tool | What it needs from you |
+|---|---|---|---|
+| 1 | **Shorten the sequence** | `sequence.py` — `.github/workflows/explee-followups.yml`, task `measure` then `shorten` | Read Monday's `measure` table, then run `shorten` with **apply** ticked |
+| 2 | **Pre-qualify leads before sending** | `prequalify.py` — same workflow, task `prequalify` | Pick the campaign, tick **apply**; compare in two weeks |
+| 3 | **Win back replies that never booked** | `recover.py` — same workflow, task `followups`, already scheduled daily | Set the `EXPLEE_APPLY` variable to `true` |
+
+**Where to see what any of it did: `linkfinderai.com/autogtm-report`.** Every
+run rewrites that page (and `reports/latest.md`) and commits it: the last run
+of each task, every replied lead and what they said, what was sent or would
+have been, the sequence table, the run history, the balance. It is `noindex`,
+absent from the sitemap and linked from nowhere — the same arrangement as
+`/gtm-console` — which keeps it out of Google and nothing more: anyone with
+the URL can read it, and it names people. It goes live with the next deploy
+of `main`.
+
+**Both prerequisites were cleared on 6 September:** the key is in the
+repository as `EXPLEE_API_KEY` (the scheduled runs reach Explee) and the
+balance was topped up. If a key ever gets pasted into a chat or a ticket,
+rotate it under API Keys and replace the secret.
+
+### 1. Shorten the sequence — `sequence.py`
+
+```bash
+python3 sequence.py measure                              # every campaign in the project
+python3 sequence.py shorten --campaign 127292 --emails 2         # shows the PATCH
+python3 sequence.py shorten --campaign 127292 --emails 2 --apply # does it
+```
+
+`measure` reads every replied thread (free GETs), counts which email each
+person answered, and prints per campaign: replies and positive replies by step,
+and for every shorter length the share of replies kept, the cost per reply, and
+how much faster the lead pool burns. It recommends the shortest length that
+keeps 80% of the replies and cuts cost per reply by at least 15% — one email is
+always the cheapest per reply and also the one that throws away the most.
+Threads younger than 14 days are left out: they have not had time to receive
+email 3 or 4, so they can only flatter the early steps.
+
+`shorten` re-measures and refuses unless the requested length clears the 15%
+bar (`--force` overrides). It patches only `followups`; emails already sent are
+untouched.
+
+**Measured on 6 September, and the answer is: do not shorten.** The real field
+is `{"max_touches": 2, "delay_days": 3}`, and `max_touches` counts the whole
+sequence: of 47 settled human replies on *High ticket linkfinder AI*, 28 came
+on email 1, 19 on email 2, none on a third — there is no third. So the
+sequence is already two emails, the second one earns 40% of the replies, and
+cutting to one would raise cost per reply. `measure` keeps running every
+Monday; it will say so the week the split changes. (The first reading of the
+field, +1 for a first email, recommended "shorten to 2" — which would have set
+`max_touches` to 1. The zero at step 3 is what caught it, and `measure` now
+shouts if a reply ever lands beyond the length it read.)
+
+The workflow runs `measure` every Monday and writes the table into the job
+summary. Read it, then *Run workflow* → `shorten` with the campaign, the number
+of emails, and **apply** ticked.
+
+### 2. Pre-qualify leads before sending — `prequalify.py`
+
+```bash
+python3 prequalify.py plan   --campaign 127292 --out prequalify.json     # free
+python3 prequalify.py search --plan prequalify.json --max-people 1000 --min-score 4 \
+                             --out qualified.leads.json --apply
+python3 prequalify.py import --plan prequalify.json --leads qualified.leads.json --apply
+python3 leadsource_test.py compare --arm source.arm.json --arm qualified.arm.json --period 30d
+```
+
+`plan` reads the campaign's own definition — role, geography, size, keywords,
+positive and negative criteria, and the copy brief — turns the targeting into
+filters with `nl-to-filters` (free) and the criteria into Explee's 0-5 scoring
+criteria (negatives phrased so a high score means safe). `search` pages
+`/search/people` with those criteria, keeps everyone who scores at least
+`--min-score` on **every** criterion, batch-finds the missing emails, and
+writes an import-ready file. `import` creates a new campaign in the same
+project with the **same brief**, and writes both arm files so the existing
+`compare` verdict applies unchanged.
+
+What it costs: 1 credit a person plus 0.1 per criterion after the first 100,
+then 1.5 credits per email found. 1,000 people on 4 criteria is about $12.60 of
+search and at most $15 of emails; `search` prints the worst case and spends
+nothing without `--apply`. **It is a test.** The campaign already carries these
+criteria and Explee applies them its own way; this gates harder and on explicit
+scores, and `compare` decides in two weeks whether that lifted the reply rate.
+
+### 3. Win back replies that never booked — `recover.py`
+
+Rebuilt on 6 September so that **nothing outside Explee is needed.** The first
+live run died on the Google Sheet it used to depend on (the published CSV was
+empty), so the sheet is gone from the default path. The lead note is the whole
+interface:
+
+- **To stop the loop on someone:** open the lead in the Explee inbox and type
+  `booked` (or `rdv`, `stop`, `ne pas relancer`) in the note. Next run, they are
+  skipped. The classifier also stops on its own for a "non merci", an
+  out-of-office, an unsubscribe, or a reply that says the invite was accepted.
+- **To see what the loop did to someone:** the same note. After every action it
+  writes one plain line — *Suivi LinkFinder — 2026-09-06 : relance envoyée* —
+  above its machine ledger.
+- **To see everything at once:** `/autogtm-report`, or `reports/latest.md`.
+
+Two things the first real dry run (6 September, 158 replied threads) taught
+it, both now in the code:
+
+- **Explee's auto-reply is already ON for this project** (delay 0), so every
+  fresh reply gets an AI answer within minutes. The loop therefore never
+  answers a fresh reply itself while that is on — it waits a day, and its job
+  is the nudge afterwards: 2 days after the answer, then a final one 5 days
+  later that asks for a plain yes or no. A reply that is a real **question** is
+  never answered from a template in either mode; the page flags it *ANSWER THIS
+  ONE YOURSELF*.
+- **Explee sends as invented personas** ("Pete" at getliftember.com), and an
+  API reply goes out from that same mailbox. So the nudge signs as the name the
+  lead wrote to — read off their own greeting ("Hi Pete,") — never as Eliasse.
+
+It runs every morning at 07:00 UTC as a **dry run** — the page and the report
+show exactly what it would have sent. To arm it: Settings → Secrets and
+variables → Actions → **Variables** → `EXPLEE_APPLY` = `true`. From then on a
+hot lead who went quiet gets a nudge after 2 days and again 5 days later,
+three at most. A sheet is still supported (`sheet.csv_url` or
+`sheet.webapp_url` in the project file) for anyone who wants a list view, and
+if one is configured but unreadable the run stops rather than mail someone it
+could not check.
+
+**Also flip the zero-code half of this on**, so a fresh reply gets an answer in
+minutes rather than at 9am tomorrow:
+
+```bash
+python3 explee.py PATCH /public/api/v1/autogtm/projects/30475/autopilot \
+    '{"auto_reply_enabled": true, "auto_reply_delay_minutes": 30}'
+```
+
+Set the project's `reply_instructions` in the app to propose two specific
+times rather than a booking link — that is what `recover.py` does for the ones
+that then go quiet.
+
 ## ⚠️ No call in this directory has ever been answered by the real API
 
 `api.explee.com` is blocked by the sandbox this was written in, exactly like
@@ -150,7 +291,7 @@ python3 leadsource_test.py import --project <id> --name "Source test - Pharow" \
 
 # 5. two weeks later, both arms over the same days
 python3 leadsource_test.py compare --arm explee.arm.json --arm pharow.arm.json \
-    --period month --calls calls.json
+    --period 30d --calls calls.json
 ```
 
 **What it costs:** Pharow EUR 105 for 1,000 credits (better value than the EUR 90
@@ -205,9 +346,11 @@ more than a 30% edge is worth.
 
 ## Action 1 — the follow-up loop (the only lever left)
 
-**The design, in one line: every hot lead lands in a Google Sheet, you tick the
-ones who booked, and anyone unticked gets followed up — up to three times, then
-we stop.**
+**The design, in one line: every replied lead gets read, anyone who said
+something positive and then went quiet gets followed up — up to three times —
+and you stop it on one person by writing `booked` or `stop` in their note in
+the Explee inbox.** (The Google Sheet below is optional now; it used to be the
+only way to say who booked.)
 
 Explee's own support confirmed why this has to exist: *"once a lead replies, the
 automated sequence is over for them for good; there's no automatic win-back."*
@@ -380,11 +523,15 @@ from lead sourcing, fixed by confirmations and reminders, not by better data.
 |---|---|
 | `explee.py` | API client + `python3 explee.py GET <path>` for checking shapes |
 | `followups.py` | reply classifier, the two-slot generator, the templates |
-| `recover.py` | Action 1: scan the inboxes, decide, send, mark the note |
+| `recover.py` | Action 1: scan the inboxes, decide, send, mark the note; writes `reports/` |
+| `state.py` | `reports/state.json`: what every task last did, read by the page |
+| `report_page.py` | renders the state into `/autogtm-report.html` at the repo root |
+| `sequence.py` | replies by step, and shorten a campaign's sequence once the numbers say so |
+| `prequalify.py` | score people on the campaign's criteria, import only the ones that pass |
 | `leadsource_test.py` | Action 2: prepare / control / import / compare |
 | `baseline.py` | cost per call that actually showed up, before and after |
 | `instantly_leads.py` | Instantly SuperSearch leads -> the CSV `prepare` eats |
 | `SOURCES.md` | every lead source with real France coverage, priced per usable lead |
 | `leadsource_test.py overlap` | what share of another source's list Explee cannot reach |
 | `brief.json` | the campaign copy both arms share - per-record project, not the subscription |
-| `test_explee_autogtm.py` | 40 tests, offline |
+| `test_explee_autogtm.py` | 82 tests, offline |

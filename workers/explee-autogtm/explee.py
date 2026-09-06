@@ -190,12 +190,35 @@ class Explee:
     def campaign(self, campaign_id):
         return self.request("GET", "/public/api/v1/autogtm/campaigns/{}".format(campaign_id))
 
+    def update_campaign(self, campaign_id, fields):
+        """PATCH the definition: only the fields given change. Unknown names are a 422,
+        so a typo can never look like a successful write."""
+        return self.request("PATCH", "/public/api/v1/autogtm/campaigns/{}".format(campaign_id),
+                            body=fields)
+
+    def autopilot(self, project_id):
+        return self.request(
+            "GET", "/public/api/v1/autogtm/projects/{}/autopilot".format(project_id))
+
+    def set_autopilot(self, project_id, **fields):
+        return self.request(
+            "PATCH", "/public/api/v1/autogtm/projects/{}/autopilot".format(project_id),
+            body=fields)
+
     # --- autogtm: inbox ----------------------------------------------------
+    INBOX_KEYS = ("conversations", "items", "people", "leads", "contacts", "threads",
+                  "results", "data", "inbox")
+
     def inbox(self, campaign_id, tab=None, limit=100, offset=0):
         got = self.request("GET",
                            "/public/api/v1/autogtm/campaigns/{}/inbox".format(campaign_id),
                            params={"tab": tab, "limit": limit, "offset": offset})
-        return first_of(got, "conversations", "items", "people", default=[])
+        if isinstance(got, list):
+            return got
+        # No default on purpose: an unknown key would read as "nobody replied" and
+        # the loop would quietly do nothing, which is the one failure it must not
+        # have. Run `python3 probe.py` and add the spelling to INBOX_KEYS.
+        return first_of(got, *self.INBOX_KEYS)
 
     def inbox_all(self, campaign_id, tab=None, page=100, cap=2000):
         """Every page of one tab, stopping at `cap` so a huge inbox cannot run away."""
@@ -221,9 +244,14 @@ class Explee:
             body={"message": message})
 
     def get_note(self, campaign_id, person_id):
-        got = self.request(
-            "GET", "/public/api/v1/autogtm/campaigns/{}/inbox/{}/note".format(
-                campaign_id, person_id))
+        try:
+            got = self.request(
+                "GET", "/public/api/v1/autogtm/campaigns/{}/inbox/{}/note".format(
+                    campaign_id, person_id))
+        except ExpleeError as err:
+            if err.status == 404:           # seen live: a replied contact with no note row
+                return None
+            raise
         return first_of(got, "note", default=None)
 
     def set_note(self, campaign_id, person_id, note):
@@ -278,6 +306,20 @@ class Explee:
 
     def find_and_enrich_status(self, task_id):
         return self.request("GET", "/public/api/v1/find-and-enrich/{}".format(task_id))
+
+    def nl_to_filters(self, query):
+        """Plain English -> the filter shape the search endpoints want. Free."""
+        return self.request("POST", "/public/api/v1/search/nl-to-filters",
+                            body={"query": query})
+
+    def enrich_email_batch(self, contacts, preset="basic"):
+        """Up to 100 {first_name, last_name, company_domain} -> task_id. Charged only
+        per email found: 1.5 credits basic, 5 premium."""
+        return self.request("POST", "/public/api/v1/enrich/email/batch",
+                            body={"contacts": list(contacts)[:100], "preset": preset})
+
+    def enrich_email_batch_status(self, task_id):
+        return self.request("GET", "/public/api/v1/enrich/email/batch/{}".format(task_id))
 
 
 def _cli(argv):

@@ -46,6 +46,7 @@ EXCLUDE = {
 # needs to be genuinely private.
 NOINDEX_ONLY = {
     "gtm-console",
+    "autogtm-report",     # written by workers/explee-autogtm/report_page.py every run
 }
 
 # Whole directories to keep out. EXCLUDE above matches on the last path

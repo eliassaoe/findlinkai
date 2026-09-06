@@ -56,12 +56,16 @@ SENDING = {
     "send_info": True,
     "warm": True,
     "opened_no_book": True,
-    "question": True,
     "wrong_person": False,
     "re_engage": True,          # the dated queue below, fired on a later run
     "nudge": True,              # the win-back: they went quiet after we answered
+    "nudge_last": True,         # the second and final nudge: asks for a yes or a no
 }
 QUEUED = ("not_now",)                       # dated, fires on a later run
+# A real question gets a real answer from a person (or Explee's auto-reply),
+# never a canned line. It still counts as interest: if they go quiet after
+# being answered, they are nudged like anyone else.
+NEEDS_HUMAN = ("question", "call_me")
 SILENT = ("unsubscribe", "auto_reply", "negative", "booked", "unknown")
 
 # Ordered. The first pattern that matches wins, so every "no" sits above every "yes".
@@ -73,31 +77,56 @@ RULES = [
                     r"d[ée]sabonn|ne plus (me )?(recevoir|contacter)|retirez[- ]moi|"
                     r"supprimez mon"),
     ("auto_reply",  r"out of (the )?office|automatic(al)? repl|auto-repl|annual leave|"
-                    r"on (holiday|vacation|parental leave)|away until|"
-                    r"absent du bureau|je suis absent|en cong[ée]s?|de retour le|"
-                    r"message automatique"),
+                    r"on (holiday|vacation|sabbatical|parental leave)|away until|"
+                    r"will return|currently (away|out|absent|on)|back (in the office|on)|"
+                    r"absent du bureau|je suis absent|actuellement (absent|en cong|en d[ée]pl)|"
+                    r"\babsente?\b|en cong[ée]s?|de retour le|arr[êe]t maladie|"
+                    r"message automatique|hors (du )?bureau|"
+                    # a Gmail emoji reaction, a changed-address notice: nobody wrote these
+                    r"a r[ée]agi depuis gmail|reacted (via|from|to your)|"
+                    r"nouvelles? coordonn[ée]es|new (email )?address|"
+                    # gone: dead address, left the company, renamed, unavailable
+                    r"n'?est plus en service|ne travaille plus|no longer (works|with|at)|"
+                    r"has left|a quitt[ée]|change de d[ée]nomination|indisponible jusqu|"
+                    r"absence du|pas acc[èe]s [àa] (mes|ma|la) (mails|e-?mails|messagerie|"
+                    r"bo[îi]te)|will not be (reading|checking)"),
     ("negative",    r"not interested|no thank|we'?re all set|already (have|use|using)|"
                     r"don'?t need|not a (good )?fit|no need|"
-                    r"pas int[ée]ress|non merci|sans suite|je (dois )?d[ée]clin|"
-                    r"pas convaincant|pas pour nous|on a d[ée]j[àa]|nous avons d[ée]j[àa]|"
-                    r"\bspams?\b|pas le bon moment pour nous"),
+                    r"pas int[ée]ress|non,? merci|non du tout|pas du tout|sans suite|"
+                    r"je (dois )?d[ée]clin|d[ée]sol[ée]e?,? mais|"
+                    r"ne (m'|nous |vous )?int[ée]resse pas|n'?est pas int[ée]ress|"
+                    r"pas de besoin|pas un sujet|ne souhait(e|ons) pas|pas d'?actualit[ée]|"
+                    r"jamais voulu|"
+                    r"pas (tr[èe]s |vraiment |du tout )?convaincant|ne (nous |me )?convient pas|"
+                    r"on ne commence pas|je passe|pas pour nous|on a d[ée]j[àa]|"
+                    r"nous avons d[ée]j[àa]|\bspams?\b|pas le bon moment pour nous"),
     ("booked",      r"\bbooked\b|invite accepted|accepted (the|your) invite|see you (on|then)|"
                     r"calendar invite|confirmed for|added it to my calendar|"
                     r"invitation accept[ée]|c'?est not[ée]|[àa] (jeudi|vendredi|lundi|mardi|"
-                    r"mercredi|demain)|bien re[çc]u l'?invitation"),
+                    r"mercredi|demain)|bien re[çc]u l'?invitation|"
+                    r"j'?ai (pris |d[ée]j[àa] )?(un )?(rdv|rendez[- ]vous)|"
+                    r"(rdv|rendez[- ]vous) (pris|confirm[ée]|cal[ée])"),
     ("wrong_person", r"wrong person|not the right person|i don'?t (handle|own|manage)|"
                      r"not my (area|remit)|you'?d want|better (person|contact)|"
                      r"speak (to|with) my colleague|forwarded (this )?to|"
                      r"pas la bonne personne|ce n'?est pas moi qui|voir avec|"
                      r"adressez[- ]vous|je transmets|je fais suivre"),
+    # Explicit phrasing only. A phone number on its own is a signature, and
+    # every French signature has one: matching bare numbers ate 17 threads.
+    ("call_me",     r"(call|ring|phone) me (on|at|:)|contact(ez|er|e)[- ]moi (au|par t[ée]l)|"
+                    r"appelez[- ]moi|joignable au|mon (num[ée]ro|portable|t[ée]l[ée]phone) ?:|"
+                    r"(par|au) t[ée]l[ée]phone au"),
     ("not_now",     r"not (right )?now|next (quarter|year|month)|\bq[1-4]\b|circle back|"
                     r"revisit|too early|bad timing|after (the )?summer|budget.{0,20}next|"
                     r"reach out (again )?in|"
                     r"pas (pour )?le moment|plus tard|recontact|l'?ann[ée]e prochaine|"
-                    r"trop t[ôo]t|apr[èe]s (l'?[ée]t[ée]|les vacances)|en (janvier|septembre)"),
+                    r"trop t[ôo]t|apr[èe]s (l'?[ée]t[ée]|les vacances)|en (janvier|septembre)|"
+                    r"une autre fois|peut-?[êe]tre plus tard|pas s[uû]re? que"),
     ("send_info",   r"send (me|over|through)|more info|some info|pricing|how much|"
                     r"a deck|one[- ]pager|case stud|details|documentation|\bcosts?\b|"
-                    r"envoyez|envoie[zr]|plus d'?info|des informations|"
+                    r"envoyez|envoie[zr]|plus d'?(info|explication|d[ée]tail|pr[ée]cision)|"
+                    r"des informations|aucun (lien|calendrier)|pas re[çc]u (le|de|votre) "
+                    r"(lien|calendrier)|je n'?ai (rien|pas) re[çc]u|"
                     r"\btarifs?\b|combien|plaquette|une pr[ée]sentation|\bdevis\b"),
     ("question",    r"how does|does it|can you|can it|what about|is it|do you (support|have)|"
                     r"what'?s the|which|why would|"
@@ -110,9 +139,38 @@ RULES = [
 ]
 
 
+QUOTE_MARKERS = re.compile(
+    r"^(le .{3,90} a [ée]crit ?:|on .{3,140} wrote ?:|de ?: .*|from ?: .*|envoy[ée] ?: .*|"
+    r"sent ?: .*|-{2,} ?original message ?-{2,}|-{2,} ?message d'?origine ?-{2,}|"
+    r"_{5,}|\*\*\* ?(nouvelles|new) .*|cordialement,?$|bien [àa] vous,?$|best regards,?$|"
+    r"regards,?$|kind regards,?$|bonne journ[ée]e,?$|merci,?$|thanks,?$)", re.I | re.M)
+
+
+def own_words(text):
+    """What the lead typed: no quoted mail, no signature, no URLs, no addresses.
+
+    A reply carries the whole thread below it, and the thread carries our own
+    question marks, links and pitch. Classifying on the full text made a Gmail
+    emoji reaction look like a question. So: cut at the first quote marker or
+    sign-off, drop lines starting with '>', strip links and addresses.
+    """
+    body = (text or "").replace("\r", "")
+    for curly in ("\u2019", "\u2018", "\u02bc", "`"):       # d’explication -> d'explication
+        body = body.replace(curly, "'")
+    lines = [l for l in body.split("\n") if not l.lstrip().startswith(">")]
+    body = "\n".join(lines)
+    match = QUOTE_MARKERS.search(body)
+    head = body[:match.start()] if match else body
+    if not head.strip() and match:              # the reply IS the marker line, keep it all
+        head = body
+    head = re.sub(r"https?://\S+|www\.\S+", " ", head)
+    head = re.sub(r"[\w.+-]+@[\w-]+\.[\w.-]+", " ", head)
+    return head.strip()
+
+
 def classify(text, opened_calendar=False):
     """(bucket, evidence). `opened_calendar` promotes a would-be sender, never a no."""
-    body = (text or "").strip().lower()
+    body = own_words(text).lower()
     if not body:
         return "unknown", "empty message"
     for bucket, pattern in RULES:
@@ -214,8 +272,12 @@ TEMPLATES = {
         "re_engage": ("Bonjour {first},\n\nVous m'aviez dit de revenir plus tard - nous y "
                       "sommes.\n\n{offer}\n{proof}\n{slots}\n\nSi le timing ne va toujours "
                       "pas, dites-le-moi et j'arrête.\n\n{sender}"),
-        "nudge": ("Bonjour {first},\n\nJe reviens vers vous sur mon message précédent - "
-                  "toujours d'actualité de votre côté ?\n\n{slots}\n\n{sender}"),
+        "nudge": ("Bonjour {first},\n\nUn élément que je n'avais pas précisé : {offer}\n"
+                  "{proof}\nQuinze minutes suffisent pour voir ce que ça donnerait chez "
+                  "{company}.\n\n{slots}\n\n{sender}"),
+        "nudge_last": ("Bonjour {first},\n\nDernier message de ma part, promis. Si le sujet "
+                       "n'est pas pour vous, un simple « non » me suffit et je n'insiste "
+                       "pas.\n\nSi ça vaut quinze minutes :\n{slots}\n\n{sender}"),
     },
     "en": {
         "send_info": ("Hi {first},\n\nHere it is, short version: {offer}\n{proof}\n"
@@ -237,8 +299,12 @@ TEMPLATES = {
         "re_engage": ("Hi {first},\n\nYou asked me to come back to this later - it is "
                       "later.\n\n{offer}\n{proof}\n{slots}\n\nIf the timing is still "
                       "wrong, say so and I will stop.\n\n{sender}"),
-        "nudge": ("Hi {first},\n\nComing back to my last note - is this still live on your "
-                  "side?\n\n{slots}\n\n{sender}"),
+        "nudge": ("Hi {first},\n\nOne thing I had not spelled out: {offer}\n{proof}\n"
+                  "Fifteen minutes is enough to see what it would look like for {company}."
+                  "\n\n{slots}\n\n{sender}"),
+        "nudge_last": ("Hi {first},\n\nLast note from me, promise. If this is not for you, a "
+                       "plain \"no\" is all I need and I will stop.\n\nIf it is worth fifteen "
+                       "minutes:\n{slots}\n\n{sender}"),
     },
 }
 
