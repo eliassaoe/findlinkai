@@ -271,6 +271,9 @@ class FakeApi:
         self.sent.append((pid, message))
         return {}
 
+    def hot_leads(self, campaign_id=None, limit=100):
+        return []
+
 
 class Run(unittest.TestCase):
     def setUp(self):
@@ -594,6 +597,12 @@ class Baseline(unittest.TestCase):
 # --- change 1: the sequence -----------------------------------------------------
 import prequalify as pq
 import sequence as sq
+import state as state_mod
+import tempfile
+
+# Every task writes reports/state.json. The tests write it somewhere disposable.
+_STATE_DIR = tempfile.TemporaryDirectory()
+state_mod.STATE = Path(_STATE_DIR.name) / "state.json"
 
 
 class SequenceReading(unittest.TestCase):
@@ -849,6 +858,136 @@ class Prequalify(unittest.TestCase):
             self.assertTrue(control["live_campaign"])
 
 
+
+
+# --- change 3: the note is the interface, the report is the visibility ---------
+class NoteFlag(unittest.TestCase):
+    def test_booked_and_stop_in_both_languages(self):
+        self.assertEqual(recover.human_flag("booked 12/09"), "booked")
+        self.assertEqual(recover.human_flag("RDV pris jeudi"), "booked")
+        self.assertEqual(recover.human_flag("stop"), "stop")
+        self.assertEqual(recover.human_flag("ne pas relancer, déjà client"), "stop")
+        self.assertIsNone(recover.human_flag("Met at SaaStock. Wants phone data."))
+        self.assertIsNone(recover.human_flag(None))
+
+    def test_our_own_block_never_counts_as_a_flag(self):
+        note = recover.write_marker("", [{"at": "2026-09-02T10:00Z", "bucket": "nudge",
+                                          "msg": "abc123", "action": "sent"}], "en")
+        self.assertIn('Type "booked" or "stop"', note)      # the instruction line
+        self.assertIsNone(recover.human_flag(note))          # ...is not a flag
+        self.assertEqual(recover.human_flag("booked\n" + note), "booked")
+
+    def test_status_line_is_readable_and_parsed_around(self):
+        entries = [{"at": "2026-09-06T07:00Z", "bucket": "nudge", "msg": "a", "action": "sent"}]
+        note = recover.write_marker("client important", entries, "fr")
+        self.assertIn("Suivi LinkFinder — 2026-09-06 : relance envoyée", note)
+        self.assertEqual(recover.read_marker(note), entries)
+        self.assertEqual(recover.human_part(note), "client important")
+
+    def test_booked_in_the_note_stops_everything(self):
+        convo = thread(("out", "hi"), ("in", "send me pricing"))
+        plan = recover.decide({}, convo, "booked", CFG, set(), set(), WED)
+        self.assertEqual(plan["action"], "skip")
+        self.assertIn("booked", plan["reason"])
+        convo["messages"].append({"direction": "out", "body": "here", "sent_at": "2026-08-20T09:00:00Z"})
+        plan = recover.decide({}, convo, "stop", CFG, set(), set(), WED)
+        self.assertEqual(plan["action"], "skip")
+
+
+class Report(unittest.TestCase):
+    def rows(self):
+        return [{"email": "a@x.com", "first_name": "Ana", "company": "Acme", "campaign": "HT",
+                 "campaign_id": 9, "person_id": 1, "last_reply": "send me pricing | now",
+                 "followups_sent": 0, "action": "send", "bucket": "send_info",
+                 "next_action": "sent send_info today", "sent": True},
+                {"email": "b@x.com", "first_name": "Bo", "company": "Beta", "campaign": "HT",
+                 "campaign_id": 9, "person_id": 2, "last_reply": "non merci",
+                 "followups_sent": 0, "action": "skip", "bucket": "negative",
+                 "next_action": "none - negative", "sent": False}]
+
+    def test_report_names_everyone_and_the_mode(self):
+        hot = [{"email": "c@x.com", "first_name": "Cy", "company": "Gamma", "job_title": "CEO",
+                "campaign": "HT", "replied_at": "2026-09-05"}]
+        text = recover.render_report("linkfinderai", 30475, WED, True, {"send_info": 1},
+                                     1, self.rows(), hot)
+        self.assertIn("SENT 1 email", text)
+        self.assertIn("| Ana (Acme) | HT | send me pricing / now | sent send_info |", text)
+        self.assertIn("| Bo (Beta) | HT | non merci | none - negative |", text)
+        self.assertIn("Cy (Gamma) | CEO | HT | 2026-09-05 | no reply thread yet", text)
+        self.assertIn("app-auto-gtm/p/30475/inbox", text)
+        rows = self.rows(); rows[0]["sent"] = False
+        dry = recover.render_report("x", 1, WED, False, {}, 0, rows, [])
+        self.assertIn("DRY RUN", dry)
+        self.assertIn("would send send_info", dry)
+
+    def test_the_run_fills_the_rows_the_report_needs(self):
+        api = FakeApi({1: thread(("out", "hi"), ("in", "send me pricing"), email="a@x.com")})
+        updates = []
+        recover.run(api, CFG, [{"id": 9, "name": "test"}], set(), set(), WED, True, 25,
+                    out=io.StringIO(), updates=updates)
+        row = updates[0]
+        self.assertEqual((row["first_name"], row["company"], row["campaign"], row["sent"]),
+                         ("Sam", "Acme", "test", True))
+
+
+
+# --- the status page -------------------------------------------------------------
+import report_page
+
+
+class StatePage(unittest.TestCase):
+    def test_state_keeps_sections_and_a_bounded_run_log(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "state.json"
+            for i in range(45):
+                state_mod.record("followups", "run {}".format(i), False, path=path)
+            data = state_mod.record("measure", "measured", False, section="measure",
+                                    payload={"campaigns": []}, balance=1234.0, path=path)
+            self.assertEqual(len(data["runs"]), state_mod.MAX_RUNS)
+            self.assertEqual(data["runs"][0]["task"], "measure")
+            self.assertEqual(data["measure"]["campaigns"], [])
+            self.assertEqual(state_mod.load(path)["balance"], 1234.0)
+
+    def test_page_shows_the_loop_the_measure_and_the_warnings(self):
+        data = {
+            "balance": 2500.0,
+            "runs": [{"at": "2026-09-06T07:00:00Z", "task": "followups", "applied": False,
+                      "outcome": "3 replied leads read"}],
+            "followups": {"at": "2026-09-06T07:00:00Z", "applied": False, "project_id": 30475,
+                          "sends": 0, "tally": {"send_info": 1, "skip: negative": 1},
+                          "rows": [{"email": "a@x.com", "first_name": "Ana", "company": "Acme",
+                                    "campaign": "HT", "last_reply": "send <pricing>",
+                                    "action": "send", "bucket": "send_info", "sent": False,
+                                    "next_action": "sent send_info today"},
+                                   {"email": "b@x.com", "first_name": "Bo", "company": "Beta",
+                                    "campaign": "HT", "last_reply": "non merci",
+                                    "action": "skip", "bucket": "negative", "sent": False,
+                                    "next_action": "none - negative"}],
+                          "hot": [{"email": "c@x.com", "first_name": "Cy", "company": "G",
+                                   "job_title": "CEO", "campaign": "HT",
+                                   "replied_at": "2026-09-05T10:00:00Z"}]},
+            "measure": {"at": "2026-09-06T07:30:00Z", "campaigns": [
+                {"name": "HT", "emails": 4, "recommend": 2, "why": "2 emails keep 85%",
+                 "tally": {"replies": {"1": 20, "2": 14, "3": 4, "4": 2},
+                           "positive": {"1": 5}, "auto": 3, "young": 7, "no_step": 1}}]},
+            "prequalify": {"at": "2026-09-06T08:00:00Z", "applied": True, "source_name": "HT",
+                           "searched": 900, "qualified": 300, "usable": 250, "min_score": 4,
+                           "criteria": ["Sells B2B"], "campaign_id": 999,
+                           "compare_after": "2026-09-20"},
+        }
+        page = report_page.render(data)
+        self.assertIn('name="robots" content="noindex', page)
+        self.assertIn("balance 2500 credits ($25.00)", page)
+        self.assertIn("would send send_info", page)
+        self.assertIn("send &lt;pricing&gt;", page)          # escaped, never raw
+        self.assertIn("no reply thread yet", page)
+        self.assertIn("shorten to 2", page)
+        self.assertIn("app-auto-gtm/p/30475/inbox", page)
+        self.assertIn("2026-09-20", page)
+        self.assertNotIn("<script", page)
+        empty = report_page.render({"runs": []})
+        self.assertIn("has not run yet", empty)
 
 
 if __name__ == "__main__":

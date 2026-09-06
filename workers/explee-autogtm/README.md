@@ -22,19 +22,23 @@ and runs from GitHub Actions because this sandbox cannot reach the API.
 
 | # | Change | Tool | What it needs from you |
 |---|---|---|---|
-| 1 | **Shorten the sequence** | `sequence.py` — `.github/workflows/explee-optimise.yml` | Read Monday's `measure` table, then run `shorten` with **apply** ticked |
-| 2 | **Pre-qualify leads before sending** | `prequalify.py` — same workflow, action `prequalify` | Pick the campaign, tick **apply**; compare in two weeks |
-| 3 | **Win back replies that never booked** | `recover.py` — `.github/workflows/explee-followups.yml`, already scheduled daily | Set the `EXPLEE_APPLY` variable to `true` |
+| 1 | **Shorten the sequence** | `sequence.py` — `.github/workflows/explee-followups.yml`, task `measure` then `shorten` | Read Monday's `measure` table, then run `shorten` with **apply** ticked |
+| 2 | **Pre-qualify leads before sending** | `prequalify.py` — same workflow, task `prequalify` | Pick the campaign, tick **apply**; compare in two weeks |
+| 3 | **Win back replies that never booked** | `recover.py` — same workflow, task `followups`, already scheduled daily | Set the `EXPLEE_APPLY` variable to `true` |
 
-**Before any of them run: two things, in this order.**
+**Where to see what any of it did: `linkfinderai.com/autogtm-report`.** Every
+run rewrites that page (and `reports/latest.md`) and commits it: the last run
+of each task, every replied lead and what they said, what was sent or would
+have been, the sequence table, the run history, the balance. It is `noindex`,
+absent from the sitemap and linked from nowhere — the same arrangement as
+`/gtm-console` — which keeps it out of Google and nothing more: anyone with
+the URL can read it, and it names people. It goes live with the next deploy
+of `main`.
 
-1. **Top up the Explee balance.** It is **-$64.89**. Every request needs a
-   positive balance, free GETs included; the balance check is the first line of
-   every script here, so nothing runs until it is above zero.
-2. **Put the API key in the repository**, once: Settings → Secrets and
-   variables → Actions → New repository secret → `EXPLEE_API_KEY`. Never in a
-   file, never in a commit. A key that has been pasted into a chat or a ticket
-   is a key to rotate: make a new one under API Keys, use that.
+**Both prerequisites were cleared on 6 September:** the key is in the
+repository as `EXPLEE_API_KEY` (the scheduled runs reach Explee) and the
+balance was topped up. If a key ever gets pasted into a chat or a ticket,
+rotate it under API Keys and replace the secret.
 
 ### 1. Shorten the sequence — `sequence.py`
 
@@ -92,18 +96,28 @@ scores, and `compare` decides in two weeks whether that lifted the reply rate.
 
 ### 3. Win back replies that never booked — `recover.py`
 
-Already built, tested, and scheduled: `explee-followups.yml` runs it every
-morning as a **dry run** and prints what it would have sent. It is parked on
-one variable. Once the key is in and the balance is positive:
+Rebuilt on 6 September so that **nothing outside Explee is needed.** The first
+live run died on the Google Sheet it used to depend on (the published CSV was
+empty), so the sheet is gone from the default path. The lead note is the whole
+interface:
 
-1. Read two or three mornings of dry-run output in the Actions tab.
-2. Settings → Secrets and variables → Actions → **Variables** → `EXPLEE_APPLY`
-   = `true`.
+- **To stop the loop on someone:** open the lead in the Explee inbox and type
+  `booked` (or `rdv`, `stop`, `ne pas relancer`) in the note. Next run, they are
+  skipped. The classifier also stops on its own for a "non merci", an
+  out-of-office, an unsubscribe, or a reply that says the invite was accepted.
+- **To see what the loop did to someone:** the same note. After every action it
+  writes one plain line — *Suivi LinkFinder — 2026-09-06 : relance envoyée* —
+  above its machine ledger.
+- **To see everything at once:** `/autogtm-report`, or `reports/latest.md`.
 
-From then on every hot lead who went quiet gets a nudge after 2 days and again
-5 days later, three at most, never a "no", never anyone marked `booked` or
-`stop` in the sheet. `projects/example.json` is the live linkfinderai project
-(30475) and its published sheet.
+It runs every morning at 07:00 UTC as a **dry run** — the page and the report
+show exactly what it would have sent. To arm it: Settings → Secrets and
+variables → Actions → **Variables** → `EXPLEE_APPLY` = `true`. From then on a
+hot lead who went quiet gets a nudge after 2 days and again 5 days later,
+three at most. A sheet is still supported (`sheet.csv_url` or
+`sheet.webapp_url` in the project file) for anyone who wants a list view, and
+if one is configured but unreadable the run stops rather than mail someone it
+could not check.
 
 **Also flip the zero-code half of this on**, so a fresh reply gets an answer in
 minutes rather than at 9am tomorrow:
@@ -309,9 +323,11 @@ more than a 30% edge is worth.
 
 ## Action 1 — the follow-up loop (the only lever left)
 
-**The design, in one line: every hot lead lands in a Google Sheet, you tick the
-ones who booked, and anyone unticked gets followed up — up to three times, then
-we stop.**
+**The design, in one line: every replied lead gets read, anyone who said
+something positive and then went quiet gets followed up — up to three times —
+and you stop it on one person by writing `booked` or `stop` in their note in
+the Explee inbox.** (The Google Sheet below is optional now; it used to be the
+only way to say who booked.)
 
 Explee's own support confirmed why this has to exist: *"once a lead replies, the
 automated sequence is over for them for good; there's no automatic win-back."*
@@ -484,7 +500,9 @@ from lead sourcing, fixed by confirmations and reminders, not by better data.
 |---|---|
 | `explee.py` | API client + `python3 explee.py GET <path>` for checking shapes |
 | `followups.py` | reply classifier, the two-slot generator, the templates |
-| `recover.py` | Action 1: scan the inboxes, decide, send, mark the note |
+| `recover.py` | Action 1: scan the inboxes, decide, send, mark the note; writes `reports/` |
+| `state.py` | `reports/state.json`: what every task last did, read by the page |
+| `report_page.py` | renders the state into `/autogtm-report.html` at the repo root |
 | `sequence.py` | replies by step, and shorten a campaign's sequence once the numbers say so |
 | `prequalify.py` | score people on the campaign's criteria, import only the ones that pass |
 | `leadsource_test.py` | Action 2: prepare / control / import / compare |

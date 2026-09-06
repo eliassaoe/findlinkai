@@ -44,6 +44,7 @@ from pathlib import Path
 import followups as fu
 from explee import Explee, ExpleeError, ShapeError, first_of
 from recover import thread_view
+import state
 
 HERE = Path(__file__).resolve().parent
 MIN_GAIN = 0.15            # do not touch a live sequence for less than a 15% cut
@@ -279,8 +280,9 @@ def measure_campaign(api, cid, now, settled_days, out=sys.stdout):
             print("  !! {}: {}".format(pid, err), file=out)
     tally = tally_steps(threads, now, settled_days)
     pick = print_report(name, cid, current, tally, out=out)
+    _, _, _, why = recommend(tally, current)
     return {"campaign_id": cid, "name": name, "emails": current, "followups": followups,
-            "tally": tally, "recommend": pick}
+            "tally": tally, "recommend": pick, "why": why}
 
 
 def cmd_measure(args):
@@ -298,6 +300,11 @@ def cmd_measure(args):
         Path(args.out).write_text(json.dumps(results, indent=1, default=str))
         print("\n-> {}".format(args.out))
     picks = [r for r in results if r["recommend"]]
+    state.record("measure", "{} campaigns measured; {}".format(
+        len(results), ("shorten " + ", ".join("{} to {}".format(r["name"], r["recommend"])
+                                              for r in picks)) if picks else "keep every sequence"),
+                 False, section="measure", now=now, balance=api.last_balance,
+                 payload={"campaigns": results})
     if picks:
         print("\nTo apply: " + "  ".join(
             "python3 sequence.py shorten --campaign {} --emails {} --apply".format(
@@ -329,17 +336,26 @@ def cmd_shorten(args):
         args.campaign, json.dumps(patch, indent=1)))
     if not args.apply:
         print("DRY RUN - nothing changed. Add --apply.")
+        state.record("shorten", "campaign {} ({}): would go {} -> {} emails".format(
+            args.campaign, measured["name"], current, args.emails), False, now=now,
+            balance=api.last_balance)
         return 0
     got = api.update_campaign(args.campaign, patch)
     after = sequence_length(first_of(got, "followups", "follow_ups", "sequence"))
     print("done: the sequence is now {} emails (was {}). Emails already sent are not "
           "affected; the leads still to come get the shorter one.".format(after, current))
+    state.record("shorten", "campaign {} ({}): {} -> {} emails".format(
+        args.campaign, measured["name"], current, after), True, now=now,
+        balance=api.last_balance)
     return 0
 
 
 def require_balance(api):
     balance = api.balance()
+    api.last_balance = balance
     if balance <= 0:
+        state.record("measure", "balance is {} credits - nothing ran".format(balance), False,
+                     balance=balance)
         raise SystemExit("balance is {} credits - every request needs a positive balance, "
                          "free ones included. Top up at https://explee.com/billing".format(
                              balance))

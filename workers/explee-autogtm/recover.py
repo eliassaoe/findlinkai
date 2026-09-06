@@ -17,21 +17,35 @@ call and something near $27.
 
 HOW IT DECIDES NOT TO SEND
 --------------------------
-Five gates, in this order, and any one of them stops a send:
+Six gates, in this order, and any one of them stops a send:
 
-  1. `can_reply` is false on the thread                (Explee's own compliance gate)
-  2. the lead is in --booked                           (they already have a call)
-  3. someone already answered the lead's last message  (a human got there first)
-  4. the note already carries our marker for that exact message  (idempotency)
-  5. the classifier returned a silent bucket           (no, out of office, unknown)
+  1. the lead's note says "booked" or "stop"            (typed in the Explee inbox)
+  2. the lead is in the sheet / --booked, if configured (optional, same meaning)
+  3. `can_reply` is false on the thread                 (Explee's own compliance gate)
+  4. three replies already sent to their last message   (the API's own cap)
+  5. the classifier returned a silent bucket            (no, out of office, unknown)
+  6. the note already carries our marker for that exact message  (idempotency)
 
-Gate 3 and gate 4 are the ones that stop this becoming a bot that argues with
-your prospects. The marker is written into the lead's shared note, not only into
-local state, because the note is what a teammate sees in the app and it survives
-this script being run from a different machine with an empty state file.
+THE NOTE IS THE WHOLE INTERFACE
+-------------------------------
+Every lead in AutoGTM has a team-shared note, in the Lead info panel of the
+inbox - the page you already read replies on. This loop reads it and writes it:
+
+  * You type `booked` (or `rdv`, `stop`, `ne pas relancer`) in it -> the loop
+    leaves that person alone from the next run on. No sheet, no CSV, no paste.
+  * The loop writes one plain line back after every action - "relance 1 envoyée
+    le 6 sept." - so what it did is visible on the lead, where you look anyway.
+
+A Google Sheet is still supported (`sheet` in the project file) for teams who
+want a list view, but nothing depends on it any more.
+
+Every run also writes reports/latest.md - every replied lead, what they said,
+what happened, what is next - and the workflow commits it, so the state of the
+loop is one file in the repo rather than a log in the Actions tab.
 
 MAX_SENDS_PER_RUN exists because a classifier bug should cost you twenty five
 emails, not an inbox.
+
 """
 
 import argparse
@@ -40,13 +54,13 @@ import datetime as dt
 import hashlib
 import json
 import re
-import re
 import sys
 from pathlib import Path
 
 import followups as fu
 from explee import Explee, ExpleeError, ShapeError, first_of
 from sheet import Sheet, SheetError
+import state
 
 HERE = Path(__file__).resolve().parent
 PROJECTS = HERE / "projects"
@@ -71,11 +85,67 @@ MAX_SENDS_PER_RUN = 25
 MAX_REPLIES_PER_INBOUND = 3   # the API's own cap: 3 replies per message they sent
 NUDGE_AFTER_DAYS = (2, 5)     # reply #2 goes 2 days after ours, #3 five days after
 MARK_OPEN, MARK_CLOSE = "[explee-recovery]", "[/explee-recovery]"
+REPORTS = HERE / "reports"
+SHEET_KEYS = ("email", "last_reply", "followups_sent", "next_action")
+# What a human types in the note to take a lead out of the loop. Matched on the
+# human part of the note only - never on what this script wrote itself.
+BOOKED_WORDS = re.compile(r"\b(booked|book[ée]|rdv|rendez[- ]vous|meeting (set|booked)|"
+                          r"call (set|booked)|r[ée]serv[ée]|sign[ée]|client|won)\b", re.I)
+STOP_WORDS = re.compile(r"\b(stop|ne pas relancer|pas de relance|laisser tomber|"
+                        r"do not (contact|chase|follow)|no follow[- ]?up|leave (him|her|them)|"
+                        r"unsubscribe|d[ée]sabonn[ée]?)\b", re.I)
+STATUS_LINE = {
+    "fr": "Suivi LinkFinder — {date} : {what}. Écrire « booked » ou « stop » dans cette "
+          "note pour arrêter.",
+    "en": "LinkFinder follow-up — {date}: {what}. Type \"booked\" or \"stop\" in this "
+          "note to end it.",
+}
+WHAT = {
+    "fr": {"sent": "{bucket} envoyé", "queued": "reporté au {due}", "nudge": "relance envoyée"},
+    "en": {"sent": "{bucket} sent", "queued": "parked until {due}", "nudge": "nudge sent"},
+}
 ENTRY = re.compile(r"^(?P<at>\S+)\s+bucket=(?P<bucket>\S+)\s+msg=(?P<msg>\S+)"
                    r"\s+action=(?P<action>\S+)(?:\s+due=(?P<due>\S+))?")
 
 
 # --- the shared note, used as the ledger -------------------------------------
+def human_part(note):
+    """The note without our block - what a person typed."""
+    human = note or ""
+    if MARK_OPEN in human:
+        head, rest = human.split(MARK_OPEN, 1)
+        human = head + (rest.split(MARK_CLOSE, 1)[1] if MARK_CLOSE in rest else "")
+    return human.strip()
+
+
+def human_flag(note):
+    """'booked' / 'stop' / None, from what a human typed into the lead's note."""
+    text = human_part(note)
+    if not text:
+        return None
+    if STOP_WORDS.search(text):
+        return "stop"
+    if BOOKED_WORDS.search(text):
+        return "booked"
+    return None
+
+
+def status_line(entries, language="en"):
+    """One readable sentence about the last thing we did, for the person reading the note."""
+    if not entries:
+        return ""
+    last = entries[-1]
+    lang = language if language in STATUS_LINE else "en"
+    date = last["at"][:10]
+    if last["action"] == "queued":
+        what = WHAT[lang]["queued"].format(due=last.get("due", "?"))
+    elif last["bucket"] == "nudge":
+        what = WHAT[lang]["nudge"]
+    else:
+        what = WHAT[lang]["sent"].format(bucket=last["bucket"].replace("_", " "))
+    return STATUS_LINE[lang].format(date=date, what=what)
+
+
 def read_marker(note):
     """Our entries out of a note that may also contain whatever a human typed."""
     if not note or MARK_OPEN not in note:
@@ -89,20 +159,17 @@ def read_marker(note):
     return out
 
 
-def write_marker(note, entries):
+def write_marker(note, entries, language="en"):
     """Put the entries back, leaving the human part of the note untouched."""
-    human = note or ""
-    if MARK_OPEN in human:
-        head, rest = human.split(MARK_OPEN, 1)
-        human = head + (rest.split(MARK_CLOSE, 1)[1] if MARK_CLOSE in rest else "")
-    lines = []
+    human = human_part(note)
+    lines = [status_line(entries, language)] if entries else []
     for entry in entries[-20:]:
         line = "{at} bucket={bucket} msg={msg} action={action}".format(**entry)
         if entry.get("due"):
             line += " due={}".format(entry["due"])
         lines.append(line)
     block = "{}\n{}\n{}".format(MARK_OPEN, "\n".join(lines), MARK_CLOSE)
-    return (human.strip() + "\n\n" + block).strip()
+    return (human + "\n\n" + block).strip()
 
 
 # --- reading a thread without knowing its exact schema -----------------------
@@ -207,7 +274,11 @@ def decide(row, thread, note, cfg, booked, calendar_views, now):
     context = {"last_reply": (text or "").strip().replace("\n", " ")[:300],
                "replies_sent": replies_sent}
 
-    # Gate 1: the sheet. Checked before anything else, every single run.
+    # Gate 1: the note, then the sheet. Checked before anything else, every run.
+    flag = human_flag(note)
+    if flag:
+        return dict(context, action="skip", reason="{} - written in the note".format(flag),
+                    who=who, next_action="none - {} in the note".format(flag))
     if who["email"] and who["email"] in booked:
         return dict(context, action="skip", reason="booked or stopped in the sheet", who=who,
                     next_action="none - marked in the sheet")
@@ -237,7 +308,7 @@ def decide(row, thread, note, cfg, booked, calendar_views, now):
             entries.append({"at": now.strftime("%Y-%m-%dT%H:%MZ"), "bucket": bucket,
                             "msg": key, "action": "queued", "due": when.isoformat()})
             return dict(context, action="queue", bucket=bucket, why=why, who=who,
-                        due=when.isoformat(), note=write_marker(note, entries),
+                        due=when.isoformat(), note=write_marker(note, entries, language),
                         next_action="re-engage on {}".format(when.isoformat()))
         return dict(context, **_send(who, bucket, why, key, entries, note, cfg, now,
                                      language))
@@ -278,7 +349,7 @@ def _send(who, bucket, why, key, entries, note, cfg, now, language="en"):
     entries = entries + [{"at": now.strftime("%Y-%m-%dT%H:%MZ"), "bucket": bucket,
                           "msg": key, "action": "sent"}]
     return {"action": "send", "bucket": bucket, "why": why, "who": who,
-            "message": message, "note": write_marker(note, entries),
+            "message": message, "note": write_marker(note, entries, language),
             "next_action": "sent {} today".format(bucket)}
 
 
@@ -313,11 +384,18 @@ def run(api, cfg, campaigns, booked, calendar_views, now, apply_, cap, out=sys.s
 
             label = (plan["bucket"] if plan["action"] in ("send", "queue")
                      else "skip: " + plan.get("reason", "?").split(" - ")[0])
-            if plan.get("who", {}).get("email"):
-                updates.append({"email": plan["who"]["email"],
+            who = plan.get("who", {})
+            if who.get("email"):
+                updates.append({"email": who["email"],
+                                "first_name": who.get("first_name") or "",
+                                "company": who.get("company") or "",
+                                "campaign": first_of(campaign, "name", default=cid),
+                                "campaign_id": cid, "person_id": pid,
                                 "last_reply": (plan.get("last_reply") or "")[:300],
                                 "followups_sent": plan.get("replies_sent", 0),
-                                "next_action": plan.get("next_action", "")})
+                                "action": plan["action"], "bucket": plan.get("bucket", ""),
+                                "next_action": plan.get("next_action", ""),
+                                "sent": False})
             tally[label] = tally.get(label, 0) + 1
             if plan["action"] == "skip":
                 continue
@@ -347,11 +425,13 @@ def run(api, cfg, campaigns, booked, calendar_views, now, apply_, cap, out=sys.s
                 continue
             sends += 1
             api.set_note(cid, pid, plan["note"])
+            if updates:
+                updates[-1]["sent"] = True
     return tally, sends
 
 
-def sync_hot_leads(api, sheet, campaigns, project_id=None, out=sys.stdout):
-    """Every hot lead into the sheet. The Apps Script drops ones already there."""
+# --- the report: one file that says what the loop did and what is next --------
+def collect_hot_leads(api, campaigns, project_id=None):
     rows = []
     for campaign in campaigns:
         cid = first_of(campaign, "id", "campaign_id")
@@ -372,6 +452,79 @@ def sync_hot_leads(api, sheet, campaigns, project_id=None, out=sys.stdout):
                 "inbox": INBOX_URL.format(project_id) if project_id else "",
                 "booked": "", "stop": "",
             })
+    return rows
+
+
+def render_report(name, project_id, now, apply_, tally, sends, rows, hot, sheet_note=""):
+    """Markdown: what happened this run, lead by lead, and what to do about it."""
+    def cell(text, width=70):
+        text = str(text or "").replace("|", "/").replace("\n", " ").strip()
+        return text if len(text) <= width else text[:width - 1] + "…"
+
+    inbox = INBOX_URL.format(project_id) if project_id else ""
+    out = ["# Explee follow-ups — {} — {}".format(name, now.strftime("%Y-%m-%d %H:%M UTC")),
+           "",
+           "**{}**".format("SENT {} email{}".format(sends, "" if sends == 1 else "s")
+                           if apply_ else "DRY RUN — nothing was sent; the emails below are "
+                                          "what the next armed run sends"),
+           ""]
+    if sheet_note:
+        out += [sheet_note, ""]
+    out += ["To take someone out of the loop: open the lead in the [inbox]({}), write "
+            "`booked` or `stop` in the note. Next run it stops.".format(inbox or "#"), ""]
+    if tally:
+        out += ["| outcome | leads |", "|---|---|"]
+        out += ["| {} | {} |".format(cell(k, 50), v)
+                for k, v in sorted(tally.items(), key=lambda kv: -kv[1])]
+        out.append("")
+
+    acted = [r for r in rows if r["action"] in ("send", "queue")]
+    if acted:
+        out += ["## This run", "", "| who | campaign | they said | what happened |",
+                "|---|---|---|---|"]
+        for r in acted:
+            what = ("sent " if r["sent"] else "would send " if r["action"] == "send"
+                    else "parked: ") + (r["bucket"] or "")
+            out.append("| {} ({}) | {} | {} | {} |".format(
+                cell(r["first_name"] or r["email"], 24), cell(r["company"], 24),
+                cell(r["campaign"], 28), cell(r["last_reply"], 90), cell(what, 40)))
+        out.append("")
+
+    waiting = [r for r in rows if r["action"] == "skip"]
+    if waiting:
+        out += ["## Everyone else who replied", "",
+                "| who | campaign | they said | status |", "|---|---|---|---|"]
+        for r in waiting:
+            out.append("| {} ({}) | {} | {} | {} |".format(
+                cell(r["first_name"] or r["email"], 24), cell(r["company"], 24),
+                cell(r["campaign"], 28), cell(r["last_reply"], 90),
+                cell(r["next_action"], 44)))
+        out.append("")
+
+    if hot:
+        in_loop = {r["email"] for r in rows}
+        out += ["## Hot leads Explee flagged ({})".format(len(hot)), "",
+                "| who | title | campaign | went hot | in the loop |", "|---|---|---|---|---|"]
+        for h in hot:
+            out.append("| {} ({}) | {} | {} | {} | {} |".format(
+                cell(h["first_name"] or h["email"], 24), cell(h["company"], 24),
+                cell(h["job_title"], 30), cell(h["campaign"], 28), cell(h["replied_at"], 16),
+                "yes" if h["email"] in in_loop else "no reply thread yet"))
+        out.append("")
+    return "\n".join(out)
+
+
+def write_report(text, now):
+    REPORTS.mkdir(exist_ok=True)
+    (REPORTS / "latest.md").write_text(text)
+    dated = REPORTS / "{}.md".format(now.strftime("%Y-%m-%d"))
+    dated.write_text(text)
+    return dated
+
+
+def sync_hot_leads(api, sheet, campaigns, project_id=None, out=sys.stdout, rows=None):
+    """Every hot lead into the sheet. The Apps Script drops ones already there."""
+    rows = collect_hot_leads(api, campaigns, project_id) if rows is None else rows
     if not rows:
         print("no hot leads to sync", file=out)
         return 0
@@ -406,30 +559,48 @@ def run_project(api, cfg, args, now, out=sys.stdout):
     webapp = args.sheet_webapp or sheet_cfg.get("webapp_url")
     token = args.sheet_token or sheet_cfg.get("token")
 
+    hot = collect_hot_leads(api, campaigns, project_id)
+    print("  {} hot leads flagged by Explee".format(len(hot)), file=out)
+    sheet, excluded, sheet_note = None, set(), ""
     if csv_url or webapp:
+        # A sheet that is configured but unreadable stops the run: someone may have
+        # marked a booking in it this week, and an empty set would mail them.
         sheet = Sheet(csv_url or None, webapp or None, token)
         if not args.no_sync:
-            sync_hot_leads(api, sheet, campaigns, project_id, out=out)
+            sync_hot_leads(api, sheet, campaigns, project_id, out=out, rows=hot)
         booked, stopped = sheet.exclusions()
         print("  sheet: {} booked, {} stopped".format(len(booked), len(stopped)), file=out)
         excluded = booked | stopped
+        sheet_note = "Also read: the sheet ({} booked, {} stopped).".format(
+            len(booked), len(stopped))
     elif args.booked:
-        sheet, excluded = None, load_emails(args.booked)
+        excluded = load_emails(args.booked)
     else:
-        raise SystemExit("{}: no sheet configured. Add sheet.csv_url or sheet.webapp_url to "
-                         "its project file, or pass --sheet-csv.".format(name))
+        print("  booked / stop: read from each lead's note in the Explee inbox", file=out)
 
     updates = []
     tally, sends = run(api, cfg, campaigns, excluded, load_emails(args.calendar_views),
                        now, args.apply, args.limit, out=out, updates=updates)
     if sheet and args.apply and updates:
-        written = sheet.update(updates)
+        written = sheet.update([{k: u[k] for k in SHEET_KEYS} for u in updates])
         if written:
             print("  {} rows refreshed in the sheet".format(written), file=out)
 
     print("  " + ("sent {}".format(sends) if args.apply else "DRY RUN - nothing sent"), file=out)
     for label, count in sorted(tally.items(), key=lambda kv: -kv[1]):
         print("    {:<40} {}".format(label, count), file=out)
+    path = write_report(render_report(name, project_id, now, args.apply, tally, sends,
+                                      updates, hot, sheet_note), now)
+    print("  report -> {} (and reports/latest.md)".format(path.name), file=out)
+    would = sum(1 for u in updates if u["action"] == "send")
+    state.record("followups",
+                 "{} replied leads read, {} hot; {}".format(
+                     len(updates), len(hot),
+                     "sent {}".format(sends) if args.apply else "would send {}".format(would)),
+                 args.apply, section="followups", now=now,
+                 payload={"project": name, "project_id": project_id, "rows": updates,
+                          "hot": hot, "tally": tally, "sends": sends, "sheet": sheet_note},
+                 balance=getattr(api, "last_balance", None))
     return sends
 
 
@@ -446,10 +617,8 @@ Now, once per project:
   1. project_id  - the number in the Explee URL: /app-auto-gtm/p/<HERE>
   2. copy        - sender, offer, topic. This is what the follow-ups say.
   3. language    - "fr" or "en"; it switches the templates and the dates.
-  4. A Google Sheet with an `email` column and a `booked` column (add `stop` for
-     leads to leave alone for any other reason). Either publish it to the web as
-     CSV and put that in sheet.csv_url, or deploy sheet-bridge.gs and put its
-     /exec url and token in sheet.webapp_url / sheet.token.
+  4. Nothing else. Booked / stop is typed into the lead's note in the Explee
+     inbox. (A Google Sheet is optional: sheet.csv_url or sheet.webapp_url.)
 
 Then it runs with every other project:
   python3 recover.py --all            # dry run, all projects
@@ -497,9 +666,12 @@ def main(argv=None):
     api = Explee()
     balance = api.balance()
     if balance <= 0:
+        state.record("followups", "balance is {} credits - nothing ran".format(balance),
+                     args.apply, balance=balance)
         raise SystemExit("balance is {} credits - every request needs a positive balance, "
                          "free ones included. Top up at https://explee.com/billing".format(
                              balance))
+    api.last_balance = balance
 
     now = dt.datetime.now(dt.timezone.utc)
     total = 0

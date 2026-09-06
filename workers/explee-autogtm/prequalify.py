@@ -34,6 +34,7 @@ emails. `search` prints the worst case and spends nothing without --apply.
 """
 
 import argparse
+import datetime as dt
 import json
 import re
 import sys
@@ -42,6 +43,7 @@ from pathlib import Path
 
 from explee import Explee, ExpleeError, ShapeError, first_of
 from leadsource_test import brief_sha, clean_leads, lead_key
+import state
 
 HERE = Path(__file__).resolve().parent
 MAX_CRITERIA = 5             # each one is +10% on the search bill; five is plenty
@@ -233,8 +235,15 @@ def cmd_search(args):
         args.max_people, len(plan["criteria"]), args.min_score))
     print("worst case {:.0f} credits of search (${:.2f}) + up to {:.0f} of emails (${:.2f})"
           .format(search, search / 100, emails, emails / 100))
+    base = {"source_name": plan.get("name"), "source_campaign": plan.get("campaign_id"),
+            "criteria": plan["criteria"], "min_score": args.min_score,
+            "max_people": args.max_people, "worst_case_credits": search + emails}
     if not args.apply:
         print("DRY RUN - nothing spent. Add --apply.")
+        state.record("prequalify", "{}: would search {} people on {} criteria, worst case "
+                     "{:.0f} credits".format(plan.get("name"), args.max_people,
+                                              len(plan["criteria"]), search + emails),
+                     False, section="prequalify", payload=base)
         return 0
 
     api = Explee()
@@ -266,6 +275,12 @@ def cmd_search(args):
     print("{} import-ready leads -> {}".format(len(usable), args.out))
     for reason, count in sorted(dropped.items(), key=lambda kv: -kv[1]):
         print("  dropped {:>5}  {}".format(count, reason))
+    state.record("prequalify", "{}: {} searched, {} qualified, {} import-ready".format(
+        plan.get("name"), len(people), len(leads), len(usable)), True,
+        section="prequalify", balance=api.last_balance,
+        payload=dict(base, searched=len(people), qualified=len(leads), usable=len(usable),
+                     histogram={str(k): v for k, v in histogram.items()},
+                     dropped=dropped))
     return 0
 
 
@@ -316,11 +331,19 @@ def cmd_import(args):
                                                         args.control_out))
     print("In two weeks: python3 leadsource_test.py compare --arm {} --arm {} --period month"
           .format(args.control_out, args.out))
+    data = state.load()
+    section = dict(data.get("prequalify") or {}, campaign_id=campaign_id, campaign_name=name,
+                   leads_submitted=len(leads),
+                   compare_after=(dt.date.today() + dt.timedelta(days=14)).isoformat())
+    state.record("prequalify import", "{} leads -> campaign {} ({!r})".format(
+        len(leads), campaign_id, name), True, section="prequalify", payload=section,
+        balance=api.last_balance)
     return 0
 
 
 def require_balance(api, needed):
     balance = api.balance()
+    api.last_balance = balance
     if balance <= 0:
         raise SystemExit("balance is {} credits - every request needs a positive balance, "
                          "free ones included. Top up at https://explee.com/billing".format(
