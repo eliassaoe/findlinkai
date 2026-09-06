@@ -545,9 +545,9 @@ $('#dlgCancel').onclick = () => $('#dlg').close();
  * Import it in n8n (⋯ → Import from File) and it runs there — no Python, no
  * Actions, and every step visible and editable as a node.
  *
- * Five node types only — manualTrigger, code, httpRequest, wait, if — because
- * a workflow that fails to import is worse than one with an extra Code node.
- * Anything that could have been splitOut or a Set is a Code node instead.
+ * Three node types only — manualTrigger, code, httpRequest — and no loop.
+ * Anything that could have been splitOut or a Set is a Code node instead,
+ * because a workflow that fails to import is worse than one with an extra node.
  */
 const uid = () => (crypto.randomUUID ? crypto.randomUUID()
   : 'n-' + Math.random().toString(36).slice(2) + Date.now());
@@ -562,13 +562,14 @@ function n8nWorkflow({ withKeys = true } = {}) {
     instantly_key: withKeys ? (k.INSTANTLY_API_KEY || '') : 'PUT_INSTANTLY_KEY_HERE',
     openrouter_key: withKeys ? (k.OPENROUTER_API_KEY || '') : 'PUT_OPENROUTER_KEY_HERE',
     linkfinder_key: withKeys ? (k.LINKFINDER_API_KEY || '') : 'PUT_LINKFINDER_KEY_HERE',
-    // How many second looks LinkFinder gets on contacts Explee found no email
-    // for. Charged whether or not it finds one, so it is a cap, not a target.
-    linkfinder_max: 10,
+    // How many of those people LinkFinder resolves an address for. It is
+    // charged whether or not it finds one, so this is a cap, not a target.
+    linkfinder_max: 25,
     model: k.LLM_MODEL || 'anthropic/claude-opus-5',
     instantly_campaign_id: c.instantly_campaign_id || 'PUT_INSTANTLY_CAMPAIGN_ID_HERE',
-    limit: 10,
-    preset: 'premium',
+    // Search is free for the first 100 results, so look at more people than
+    // you need and let LinkFinder decide how many turn into addresses.
+    limit: 25,
     job_titles: (c.target_role || '').split(',').map(t => t.trim()).filter(Boolean),
     definition: [ (c.keywords || []).join(', ') || c.customer_problem || c.offer,
                   c.target_geography ? 'in ' + c.target_geography : '' ]
@@ -610,85 +611,39 @@ function n8nWorkflow({ withKeys = true } = {}) {
       'return [{ json: ' + JSON.stringify(cfg, null, 2).replace(/\n/g, '\n') + ' }];'
     ), [180, 300]),
 
-    node('Explee: find and enrich', 'httpRequest', 4.2, {
+    node('Explee: search people', 'httpRequest', 4.2, {
       method: 'POST',
-      url: 'https://api.explee.com/public/api/v1/find-and-enrich',
+      url: 'https://api.explee.com/public/api/v1/search/people',
       sendHeaders: true,
       headerParameters: { parameters: [
         { name: 'X-API-Key', value: '={{ $json.explee_key }}' }] },
       sendBody: true,
       specifyBody: 'json',
-      jsonBody: '={{ JSON.stringify({ people_filters: { job_titles: $json.job_titles, criteria: $json.criteria }, company_filters: { definition: $json.definition }, max_contacts: $json.limit, preset: $json.preset }) }}',
+      jsonBody: '={{ JSON.stringify({ people_filters: { job_titles: $json.job_titles, criteria: $json.criteria }, company_filters: { definition: $json.definition }, limit: $json.limit }) }}',
       options: {},
     }, [400, 300]),
 
-    node('Wait', 'wait', 1.1, { amount: 15, unit: 'seconds' }, [620, 300]),
-
-    node('Explee: check job', 'httpRequest', 4.2, {
-      method: 'GET',
-      url: "={{ 'https://api.explee.com/public/api/v1/find-and-enrich/' + $('Explee: find and enrich').first().json.task_id }}",
-      sendHeaders: true,
-      headerParameters: { parameters: [
-        { name: 'X-API-Key', value: "={{ $('Config').first().json.explee_key }}" }] },
-      options: {},
-    }, [840, 300]),
-
-    node('Ready?', 'code', 2, jsCode(
-      "// What we actually need is contacts, not a status string. Explee reports\n" +
-      "// pending with progress_pct 99 and eta 0 for a while before the array is\n" +
-      "// populated, so gating on status === 'completed' can spin a long time.\n" +
-      '//\n' +
-      '// $runIndex is this node\'s iteration inside the loop, which is the only\n' +
-      '// exit a Wait/If loop has. Without it a job that never finishes polls\n' +
-      '// forever.\n' +
-      'const j = $input.first().json;\n' +
-      'const meta = j.meta || {};\n' +
-      "if (meta.status === 'failed') {\n" +
-      "  throw new Error('Explee job failed: ' + (meta.error || 'no reason given'));\n" +
-      '}\n' +
-      'const contacts = j.contacts;\n' +
-      'const ready = Array.isArray(contacts);\n' +
-      'if (!ready && $runIndex >= 40) {\n' +
-      '  const p = meta.progress || {};\n' +
-      "  throw new Error('Still pending after ~10 minutes. Last progress: ' +\n" +
-      '    JSON.stringify(p) + \'. The task id is \' +\n' +
-      "    $('Explee: find and enrich').first().json.task_id +\n" +
-      "    ' — check it in Explee before re-running, the credits are already held.');\n" +
-      '}\n' +
-      'return [{ json: { ...j, ready } }];'
-    ), [1060, 300]),
-
-    node('Done?', 'if', 2, {
-      conditions: {
-        options: { caseSensitive: true, leftValue: '', typeValidation: 'loose', version: 2 },
-        conditions: [{
-          id: uid(),
-          leftValue: '={{ $json.ready }}',
-          rightValue: true,
-          operator: { type: 'boolean', operation: 'true', singleValue: true },
-        }],
-        combinator: 'and',
-      },
-      options: {},
-    }, [1280, 300]),
-
     node('One item per lead', 'code', 2, jsCode(
-      '// Explee returns one item holding every contact. Fan them out and\n' +
-      '// normalise the two fields the rest of the flow reads. Nobody is\n' +
-      '// dropped here — LinkFinder gets the ones with no email next.\n' +
-      'const contacts = $input.first().json.contacts || [];\n' +
+      '// One item holding every person. Fan them out and normalise the two\n' +
+      '// fields the rest of the flow reads. Nobody is dropped here — search\n' +
+      '// returns profiles, LinkFinder turns them into addresses next.\n' +
+      'const j = $input.first().json;\n' +
+      'const contacts = j.people || j.results || j.items || j.contacts || [];\n' +
+      'if (!contacts.length) {\n' +
+      "  throw new Error('Explee returned no people. It answered with: ' +\n" +
+      '    JSON.stringify(j).slice(0, 400));\n' +
+      '}\n' +
       'return contacts.map(c => ({ json: {\n' +
       '  ...c,\n' +
       "  email: c.email || '',\n" +
       "  linkedin_url: c.linkedin_url || c.linkedin || '',\n" +
       '} }));'
-    ), [1500, 200]),
+    ), [620, 300]),
 
     node('LinkFinder: fill missing emails', 'code', 2, jsCode(
-      '// Explee charges only for emails it finds, so some contacts arrive\n' +
-      '// without one. LinkFinder AI gets those a second look. It charges\n' +
-      '// EITHER WAY: 10 credits from a LinkedIn URL, 7 from name + company,\n' +
-      '// found or not. Hence a cap rather than a run over everyone.\n' +
+      '// Explee search returns profiles, not addresses. This is what turns\n' +
+      '// them into leads: 10 credits from a LinkedIn URL, 7 from name +\n' +
+      '// company, charged whether or not one comes back. Hence the cap.\n' +
       '//\n' +
       '// One Code node instead of five, because pairing an HTTP node\'s\n' +
       '// response back to its lead across a poll loop is exactly where a flow\n' +
@@ -743,7 +698,7 @@ function n8nWorkflow({ withKeys = true } = {}) {
       '}\n' +
       "console.log('LinkFinder: ' + found + ' emails, ~' + spent + ' credits');\n" +
       'return sendable();'
-    ), [1720, 200]),
+    ), [840, 300]),
 
     node('Write the email', 'httpRequest', 4.2, {
       method: 'POST',
@@ -756,7 +711,7 @@ function n8nWorkflow({ withKeys = true } = {}) {
       specifyBody: 'json',
       jsonBody: "={{ JSON.stringify({ model: $('Config').first().json.model, messages: [ { role: 'system', content: " + JSON.stringify(CRAFT) + " }, { role: 'user', content: 'THE OFFER (the only facts you may assert)\\n' + $('Config').first().json.offer + '\\n\\nTHE FACTS\\n' + $('Config').first().json.facts + '\\n\\nTHE PROBLEM THEY LIKELY HAVE\\n' + $('Config').first().json.problem + '\\n\\nEXTRA INSTRUCTIONS\\n' + $('Config').first().json.instructions + '\\n\\nLEAD RECORD\\n' + JSON.stringify($json) } ] }) }}",
       options: {},
-    }, [1940, 200]),
+    }, [1060, 300]),
 
     node('Build the lead', 'code', 2, jsCode(
       "// Parse the model's JSON and shape one Instantly lead. The per-lead copy\n" +
@@ -784,7 +739,7 @@ function n8nWorkflow({ withKeys = true } = {}) {
       '  } });\n' +
       '}\n' +
       'return out;'
-    ), [2160, 200]),
+    ), [1280, 300]),
 
     node('Instantly: add leads', 'httpRequest', 4.2, {
       method: 'POST',
@@ -797,22 +752,14 @@ function n8nWorkflow({ withKeys = true } = {}) {
       specifyBody: 'json',
       jsonBody: "={{ JSON.stringify({ campaign_id: $('Config').first().json.instantly_campaign_id, skip_if_in_campaign: true, skip_if_in_workspace: true, leads: $input.all().map(i => i.json) }) }}",
       options: {},
-    }, [2380, 200]),
+    }, [1500, 300]),
   ];
 
   const link = (from, to, out = 0) => ({ [from]: { main: [] } });
   const connections = {
     Start: { main: [[{ node: 'Config', type: 'main', index: 0 }]] },
-    Config: { main: [[{ node: 'Explee: find and enrich', type: 'main', index: 0 }]] },
-    'Explee: find and enrich': { main: [[{ node: 'Wait', type: 'main', index: 0 }]] },
-    Wait: { main: [[{ node: 'Explee: check job', type: 'main', index: 0 }]] },
-    'Explee: check job': { main: [[{ node: 'Ready?', type: 'main', index: 0 }]] },
-    'Ready?': { main: [[{ node: 'Done?', type: 'main', index: 0 }]] },
-    // true -> carry on; false -> back to Wait, which is the polling loop.
-    'Done?': { main: [
-      [{ node: 'One item per lead', type: 'main', index: 0 }],
-      [{ node: 'Wait', type: 'main', index: 0 }],
-    ] },
+    Config: { main: [[{ node: 'Explee: search people', type: 'main', index: 0 }]] },
+    'Explee: search people': { main: [[{ node: 'One item per lead', type: 'main', index: 0 }]] },
     'One item per lead': { main: [[{ node: 'LinkFinder: fill missing emails', type: 'main', index: 0 }]] },
     'LinkFinder: fill missing emails': { main: [[{ node: 'Write the email', type: 'main', index: 0 }]] },
     'Write the email': { main: [[{ node: 'Build the lead', type: 'main', index: 0 }]] },

@@ -10,7 +10,7 @@ One file, three steps, no framework. Run it:
       --find "founders and heads of sales at B2B training companies in France" \
       --offer "We run your outbound end to end. You pay per meeting held." \
       --problem "Prospecting stops whenever the team is delivering." \
-      --limit 5
+      --limit 25
 
 That is a dry run: it prints the emails and stops. Add --apply to create the
 Instantly campaign (paused — arming it is still a click in Instantly).
@@ -85,17 +85,59 @@ def field(obj, *names, default=None):
 
 # ------------------------------------------------------- 1. Explee: find
 
-def find_leads(query, role, limit, preset):
-    key = need("EXPLEE_API_KEY")
-
+def check_balance(key):
     balance = float(field(call(f"{EXPLEE}/public/api/v1/billing/balance", "X-API-Key", key,
                                method="GET"), "remain", "balance", default=0))
     print(f"  Explee balance: {balance:.0f} credits (${balance/100:.2f})")
     if balance <= 0:
         sys.exit("  Balance must be positive — Explee 402s every request at or below zero.")
+    return balance
+
+
+def people_filters(role):
+    return {"job_titles": [t.strip() for t in role.split(",") if t.strip()]}
+
+
+def search_people(query, role, limit):
+    """POST /search/people. One request, one response, nothing to poll.
+
+    This is the default because find-and-enrich, its async sibling, does not
+    reliably finish. Two separate jobs sat at status "pending" with contacts
+    null and progress_pct 99 while `found` climbed past `target` — 21 against
+    10 on the second — and credits_charged stayed null throughout. Search
+    returns profiles synchronously and LinkFinder resolves the addresses, so
+    every step either answers or fails where you can see it.
+
+    Search is free for the first 100 results, so ask for more people than you
+    need: only some will resolve to an address.
+    """
+    key = need("EXPLEE_API_KEY")
+    check_balance(key)
+    body = {"people_filters": people_filters(role),
+            "company_filters": {"definition": query},
+            "limit": limit}
+    print(f"  searching: {role} at \"{query}\"")
+    got = call(f"{EXPLEE}/public/api/v1/search/people", "X-API-Key", key, body)
+    people = got.get("people") or got.get("results") or got.get("items") or []
+    if not people:
+        # An empty list and a shape we did not expect look the same from here,
+        # so print what actually came back rather than "no results".
+        sys.exit("\n  No people in the response. It has: "
+                 f"{sorted(got) if isinstance(got, dict) else type(got).__name__}\n"
+                 f"  {json.dumps(got)[:600]}")
+    print(f"  {len(people)} people")
+    return people
+
+
+def find_leads(query, role, limit, preset):
+    """POST /find-and-enrich. Search and email resolution in one async job.
+
+    Only runs behind --explee-enrich. See search_people for why."""
+    key = need("EXPLEE_API_KEY")
+    check_balance(key)
 
     body = {
-        "people_filters": {"job_titles": [t.strip() for t in role.split(",") if t.strip()]},
+        "people_filters": people_filters(role),
         "company_filters": {"definition": query},
         "max_contacts": limit,
         "preset": preset,
@@ -358,9 +400,14 @@ def main():
     ap.add_argument("--offer", required=True, help="what you sell — the ONLY facts the email may assert")
     ap.add_argument("--problem", default="", help="the problem they likely have")
     ap.add_argument("--extra", default="", help="anything else the writer should know")
-    ap.add_argument("--limit", type=int, default=5, help="how many leads with an email")
+    ap.add_argument("--limit", type=int, default=25,
+                    help="how many people to search (free for the first 100 results)")
+    ap.add_argument("--explee-enrich", action="store_true",
+                    help="use Explee's async find-and-enrich for the emails instead of "
+                         "LinkFinder. It has not been seen to finish — see search_people")
     ap.add_argument("--preset", default="premium", choices=["basic", "premium"],
-                    help="premium ~$0.05/found email at ~78%%; basic ~$0.015 at ~50%%")
+                    help="--explee-enrich only: premium ~$0.05/found email at ~78%%; "
+                         "basic ~$0.015 at ~50%%")
     ap.add_argument("--linkfinder-max", type=int, default=10,
                     help="how many no-email leads LinkFinder gets a second look at "
                          "(charged found or not; 0 disables)")
@@ -370,7 +417,8 @@ def main():
     a = ap.parse_args()
 
     print("\n1. FIND — Explee")
-    leads = find_leads(a.find, a.role, a.limit, a.preset)
+    leads = (find_leads(a.find, a.role, a.limit, a.preset) if a.explee_enrich
+             else search_people(a.find, a.role, a.limit))
     if not leads:
         sys.exit("  Nothing came back. Try a broader --find or different --role.")
 

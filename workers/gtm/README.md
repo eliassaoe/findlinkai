@@ -10,7 +10,7 @@ numbers we have, and every design decision here traces back to one of them.
 
 ## Status
 
-All four phases are built. **108 offline tests pass.** No live API call has been
+All four phases are built. **111 offline tests pass.** No live API call has been
 made from this directory — see "What is unproven".
 
 ```
@@ -26,7 +26,7 @@ learning.py       classify replies; mine what made people book
 pipeline.py       search -> qualify -> resolve -> draft, with the gates
 run.py            the CLI. Dry by default; sending needs --apply
 ui/index.html     the console. One file, no build step
-tests/            108 tests, no network, no keys
+tests/            111 tests, no network, no keys
 ```
 
 ## The short path: `gtm.py`
@@ -48,15 +48,28 @@ python3 gtm.py \
 python3 gtm.py ... --apply              # creates the campaign, PAUSED
 ```
 
-**1b — the emails Explee did not find.** Explee charges only for addresses it
+**Why it searches rather than uses find-and-enrich.** `/search/people` is one
+request with one response. `/find-and-enrich` is the async sibling that also
+resolves emails, and it has never been seen to finish: two separate jobs sat at
+`status: "pending"` with `contacts: null` and `progress_pct: 99`, `eta_seconds:
+0`, while `found` climbed past `target` — 21 against a target of 10 on the
+second — and `credits_charged` stayed `null` throughout. It is still reachable
+behind `--explee-enrich`, and the n8n flow no longer offers it at all. If Explee
+fixes it, it is the cheaper path and worth going back to: its search half is
+free and it charges 1.5-5 credits only per address found.
+
+**1b — turning profiles into addresses.** Explee charges only for addresses it
 finds, so a search for 10 routinely returns contacts with `email` empty.
-LinkFinder AI gets those a second look: the contact's LinkedIn URL if Explee
-gave one, otherwise name + company. `--linkfinder-max` caps how many (default
-10, `0` disables), and the cap matters because **LinkFinder charges whether or
-not it finds an address** — 10 credits from a LinkedIn URL, 7 from a name,
-against Explee's 1.5 charged only on a hit. These are the leads Explee already
-failed on, so expect to pay for misses. A 402 or 429 stops the lookups and
-keeps every lead already paid for; it does not end the run.
+Search returns profiles, not addresses. LinkFinder AI resolves them: the
+person's LinkedIn URL if Explee gave one, otherwise name + company.
+`--linkfinder-max` caps how many (default 10, `0` disables), and the cap
+matters because **LinkFinder charges whether or not it finds an address** — 10
+credits from a LinkedIn URL, 7 from a name. A 402 or 429 stops the lookups and
+keeps every lead already resolved; it does not end the run.
+
+This is also why `--limit` defaults to 25 rather than the number of leads you
+want: search is free for the first 100 results, so look at more people than you
+need and let the resolver decide how many become leads.
 
 > The credit numbers come from `app.html`'s `creditCosts`, which `CLAUDE.md`
 > names as authoritative. The public docs page contradicts itself — "1 credit =
@@ -214,23 +227,23 @@ with your offer and facts in it, and the push to Instantly. Import with
 `⋯ → Import from File` and it runs there: no Python, no Actions, every step a
 node you can see and change.
 
-Twelve nodes, five types (`manualTrigger`, `code`, `httpRequest`, `wait`, `if`) —
-anything that could have been a `splitOut` or a `Set` is a Code node instead,
-because a workflow that fails to import is worse than one with an extra node.
-The `Done?` node's false branch loops back to `Wait`, which is the poll.
+Eight nodes, three types (`manualTrigger`, `code`, `httpRequest`), one straight
+line, **no loop**. Anything that could have been a `splitOut` or a `Set` is a
+Code node instead, because a workflow that fails to import is worse than one
+with an extra node.
 
-**The poll waits for `contacts`, not for a status string.** Explee reports
-`status: "pending"` with `contacts: null` well past `progress_pct: 99` and
-`eta_seconds: 0` — the search is done by then but the per-contact email
-enrichment is not, and the array only appears when the whole task closes. A
-first cut gated on `meta.status === 'completed'` and sat there. The `Ready?`
-Code node now gates on `Array.isArray(contacts)`, raises on
-`meta.status === 'failed'`, and — because a Wait/If loop has no other exit —
-throws at `$runIndex >= 40`, about ten minutes at the 15s wait, naming the
-task id so you can check it in Explee rather than re-running and paying twice.
+**There is no polling because there is no job.** The first two versions of this
+flow used `/find-and-enrich` and hung — first on gating the loop on
+`meta.status === 'completed'` (Explee reports `pending` long past
+`progress_pct: 99`), then, once that was fixed to gate on the `contacts` array,
+on the job simply never closing: `found` climbed past `target` while
+`credits_charged` stayed `null`. Chasing that with a better loop was the wrong
+fix. `/search/people` answers synchronously and LinkFinder resolves the
+addresses, so every node either returns or fails visibly, and the whole class
+of bug is gone along with the `Wait`, `Ready?` and `Done?` nodes.
 
-**LinkFinder runs inside one Code node, not five.** The contacts Explee found
-no email for go through `linkedin_profile_to_email` (10 credits) or
+**LinkFinder runs inside one Code node, not five.** The people from the search
+go through `linkedin_profile_to_email` (10 credits) or
 `lead_full_name_to_email` (7), capped by `linkfinder_max` in Config, spaced
 ~1/s against the rate limit, and polled if a lookup answers with a `job_id`
 instead of a result. It is a Code node using `this.helpers.httpRequest` rather

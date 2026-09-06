@@ -78,6 +78,8 @@ class FakeHTTP:
 
         if url.endswith("/billing/balance"):
             return ok({"remain": self.balance})
+        if url.endswith("/search/people"):
+            return ok({"people": self.contacts})
         if url.endswith("/find-and-enrich"):
             return ok({"task_id": "t1"})
         if "/find-and-enrich/t1" in url:
@@ -209,6 +211,7 @@ class TestFlow(unittest.TestCase):
         self.assertFalse([c for c in http.calls if c[1].endswith("/find-and-enrich")])
 
     def test_the_job_is_polled_until_it_completes(self):
+        sys.argv = ["gtm.py"] + BASE + ["--explee-enrich"]
         code, out, http = run(sys.argv, http=FakeHTTP(poll_pending=3))
         polls = [c for c in http.calls if "/find-and-enrich/t1" in c[1]]
         self.assertEqual(len(polls), 4)
@@ -278,8 +281,34 @@ class TestLinkFinderFallback(unittest.TestCase):
 
 
 class TestExpleeReadiness(unittest.TestCase):
-    def test_contacts_end_the_poll_even_while_the_status_says_pending(self):
+    """--explee-enrich only. The default path has no job and nothing to poll,
+    which is the point: two live find-and-enrich jobs never left "pending"."""
+
+    def test_search_is_the_default_and_never_starts_a_job(self):
         sys.argv = ["gtm.py"] + BASE
+        code, out, http = run(sys.argv)
+        self.assertEqual(code, 0)
+        self.assertTrue(any(c[1].endswith("/search/people") for c in http.calls))
+        self.assertFalse(any("find-and-enrich" in c[1] for c in http.calls))
+
+    def test_the_search_body_carries_the_titles_the_definition_and_the_limit(self):
+        sys.argv = ["gtm.py"] + BASE + ["--limit", "40"]
+        _, _, http = run(sys.argv)
+        body = [c for c in http.calls if c[1].endswith("/search/people")][0][2]
+        self.assertEqual(body["limit"], 40)
+        self.assertEqual(body["people_filters"]["job_titles"],
+                         ["Founder", "CEO", "Head of Sales"])
+        self.assertEqual(body["company_filters"]["definition"],
+                         "B2B training companies in France")
+
+    def test_an_empty_search_says_what_came_back_instead_of_going_quiet(self):
+        sys.argv = ["gtm.py"] + BASE
+        code, out, http = run(sys.argv, http=FakeHTTP(contacts=[]))
+        self.assertIn("No people in the response", str(code))
+        self.assertIn("people", str(code))       # names the keys that were there
+
+    def test_contacts_end_the_poll_even_while_the_status_says_pending(self):
+        sys.argv = ["gtm.py"] + BASE + ["--explee-enrich"]
         code, out, http = run(sys.argv, http=FakeHTTP(still_pending=True))
         self.assertEqual(code, 0)
         polls = [c for c in http.calls if "/find-and-enrich/t1" in c[1]]
