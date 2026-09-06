@@ -46,6 +46,8 @@ button,input,textarea,select{font:inherit;color:inherit}
 .btn:hover{border-color:var(--accent)}
 .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
 .btn.ghost{border:0;background:none;color:var(--muted);padding:6px 8px}
+.btn.danger{border-color:var(--danger);color:var(--danger)}
+.btn.danger:hover{background:var(--danger);color:#fff;border-color:var(--danger)}
 .btn:disabled{opacity:.5;cursor:not-allowed}
 label{display:block;margin:14px 0 4px;font-weight:600;font-size:12.5px}
 label span{font-weight:400;color:var(--muted)}
@@ -267,6 +269,7 @@ const KEYS = [
   { id: 'EXPLEE_API_KEY', label: 'Explee', hint: 'explee.com → API Keys. Lead search and enrichment.' },
   { id: 'LINKFINDER_API_KEY', label: 'LinkFinder AI', hint: 'linkfinderai.com/api-access. Email resolution.' },
   { id: 'INSTANTLY_API_KEY', label: 'Instantly', hint: 'Instantly → Settings → Integrations. Sending.' },
+  { id: 'GITHUB_TOKEN', label: 'GitHub token', hint: 'A fine-grained PAT with Actions: read and write on this repo. Lets the buttons below start a run.' },
   { id: 'OPENROUTER_API_KEY', label: 'OpenRouter', hint: 'openrouter.ai/keys. Used if set — the qualifier and copywriter run through its Anthropic Skin.' },
   { id: 'ANTHROPIC_API_KEY', label: 'Anthropic (alternative)', hint: 'console.anthropic.com. Only used when OpenRouter is not set.' },
 ];
@@ -615,14 +618,14 @@ function render() {
   const tabs = el('div', { class: 'tabs' }, ...[
     ['offer', 'Offer'], ['audience', 'Audience'],
     ['first_email', 'First email'], ['follow_up', 'Follow-ups'], ['reply', 'Replies'],
-    ['project', 'Project docs'], ['sending', 'Sending'], ['leads', 'Queue'],
+    ['project', 'Project docs'], ['sending', 'Sending'], ['run', 'Run'], ['leads', 'Queue'],
   ].map(([k, label]) => el('button', {
     class: 'tab' + (S.tab === k ? ' on' : ''), onclick: () => { S.tab = k; render(); },
   }, label)));
 
   m.replaceChildren(tabs, ...({
     offer: viewOffer, audience: viewAudience, project: viewProject,
-    sending: viewSending, leads: viewLeads,
+    sending: viewSending, run: viewRun, leads: viewLeads,
   }[S.tab] || (() => viewPrompt(S.tab)))(c));
 }
 
@@ -673,6 +676,126 @@ function viewProject() {
     field('Daily send cap', p.daily_cap, v => setP({ daily_cap: parseInt(v, 10) || 0 }),
       { hint: 'nine mailboxes at 15/day = 135' }),
   )];
+}
+
+// ------------------------------------------------------------------- runs
+// The workflow is the thing that can actually reach Explee, Instantly and the
+// model — GitHub's runners have open egress and hold the secrets. So "start a
+// campaign" here means dispatching it, not doing the work in the browser.
+const GH_REPO = store.get('gh_repo', 'eliassaoe/findlinkai');
+const GH_API = 'https://api.github.com';
+
+async function gh(path, opts = {}) {
+  const token = getKeys().GITHUB_TOKEN;
+  if (!token) throw new Error('No GitHub token — add one under Keys.');
+  const r = await fetch(`${GH_API}/repos/${store.get('gh_repo', GH_REPO)}${path}`, {
+    ...opts,
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: 'application/vnd.github+json',
+      'X-GitHub-Api-Version': '2022-11-28',
+      ...(opts.body ? { 'Content-Type': 'application/json' } : {}),
+    },
+  });
+  if (r.status === 204) return null;
+  const body = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(body.message || `GitHub ${r.status}`);
+  return body;
+}
+
+const dispatch = (job, apply = false) =>
+  gh('/actions/workflows/gtm.yml/dispatches', {
+    method: 'POST',
+    body: JSON.stringify({ ref: 'main', inputs: { job, apply: String(apply) } }),
+  });
+
+const RUN_ICON = { success: '✓', failure: '✗', cancelled: '–', in_progress: '•', queued: '·' };
+
+function viewRun() {
+  const runs = el('div', { class: 'card' }, el('h2', {}, 'Recent runs'), el('p', { class: 'sub' }, 'Loading…'));
+
+  const refresh = async () => {
+    try {
+      const data = await gh('/actions/workflows/gtm.yml/runs?per_page=8');
+      const rows = data.workflow_runs || [];
+      runs.replaceChildren(
+        el('h2', {}, 'Recent runs'),
+        el('p', { class: 'sub' }, `${store.get('gh_repo', GH_REPO)} · gtm.yml`),
+        rows.length ? el('table', {},
+          el('thead', {}, el('tr', {}, ...['', 'Started', 'Trigger', 'Status', ''].map(h => el('th', {}, h)))),
+          el('tbody', {}, ...rows.map(r => el('tr', {},
+            el('td', {}, RUN_ICON[r.conclusion || r.status] || '?'),
+            el('td', {}, new Date(r.created_at).toLocaleString()),
+            el('td', {}, r.event),
+            el('td', {}, r.conclusion || r.status),
+            el('td', {}, el('a', { href: r.html_url, target: '_blank', rel: 'noopener' }, 'logs')),
+          ))),
+        ) : el('div', { class: 'empty' }, 'No runs yet.'),
+      );
+    } catch (err) {
+      runs.replaceChildren(el('h2', {}, 'Recent runs'), el('div', { class: 'note warn' }, err.message));
+    }
+  };
+  refresh();
+
+  const go = (job, apply, label, tone = 'btn') => el('button', {
+    class: tone, type: 'button',
+    onclick: async (e) => {
+      if (apply && !confirm(
+        'This run can SEND email. Campaigns are still created paused and arming is separate, ' +
+        'but replies go out for real. Continue?')) return;
+      e.target.disabled = true;
+      try {
+        await dispatch(job, apply);
+        say(`started: ${job}${apply ? ' (apply)' : ' (dry run)'}`);
+        setTimeout(refresh, 2500);
+      } catch (err) {
+        say(err.message, true);
+      } finally {
+        e.target.disabled = false;
+      }
+    },
+  }, label);
+
+  return [
+    el('div', { class: 'card' },
+      el('h2', {}, 'Start a run'),
+      el('p', { class: 'sub' },
+        'Dispatches the gtm workflow on GitHub. That is where the secrets live and ' +
+        'where the APIs are reachable — the browser cannot call them directly.'),
+      el('div', { class: 'row', style: 'margin-top:12px' },
+        go('capacity', false, 'Check capacity', 'btn primary'),
+        go('source', false, 'Source and draft'),
+        go('replies', false, 'Draft replies'),
+      ),
+      el('div', { class: 'note' },
+        el('strong', {}, 'Start with Check capacity.'), ' Read-only and free: it reports the ',
+        'Explee balance, which mailboxes can actually send, and whether your model ',
+        'provider supports structured output and web search.'),
+      el('div', { class: 'row', style: 'margin-top:6px' },
+        go('replies', true, 'Draft and send replies (live)', 'btn danger')),
+      el('div', { class: 'note warn' },
+        'Everything except that last button is a dry run. Sourcing never sends — it ',
+        'writes drafts you download from the run. A campaign is created paused, and ',
+        'arming it is still ', el('code', {}, 'run.py arm --apply'), '.'),
+      el('label', {}, 'Repository'),
+      (() => {
+        const i = el('input', { type: 'text', value: store.get('gh_repo', GH_REPO) });
+        i.addEventListener('change', () => { store.set('gh_repo', i.value.trim()); refresh(); });
+        return i;
+      })(),
+    ),
+    runs,
+    el('div', { class: 'card' },
+      el('h2', {}, 'Before the first real run'),
+      el('p', { class: 'sub' }, 'Three things that are not code:'),
+      el('ol', { style: 'margin:6px 0 0;padding-left:20px;color:var(--muted);font-size:13px;line-height:1.7' },
+        el('li', {}, 'Secrets set on the repo — the Keys panel copies the commands.'),
+        el('li', {}, 'A positive Explee balance. Every request 402s at or below zero, free tier included.'),
+        el('li', {}, 'At least one Instantly mailbox that can actually send. Capacity tells you.'),
+      ),
+    ),
+  ];
 }
 
 function viewSending(c) {

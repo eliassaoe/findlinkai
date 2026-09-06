@@ -145,6 +145,18 @@ and a Sending tab with the Instantly campaign id.
 a change in reply rate is attributable to a change in the prompt, and any prior
 version can be restored.
 
+### Starting a run from the console
+
+The **Run** tab dispatches the `gtm` workflow on GitHub — that is where the
+secrets live and where the APIs are reachable, so the browser asks GitHub to do
+the work rather than trying to do it itself. Needs a fine-grained PAT with
+**Actions: read and write**, saved under Keys like the others; `api.github.com`
+sends CORS headers, so a static page can do this with no backend.
+
+Buttons are weighted by risk: **Check capacity** is primary and free, sourcing
+and reply-drafting are dry runs, and the one button that can actually send mail
+is styled as a danger and asks first. Recent runs are listed with links to logs.
+
 ### The handoff: Download JSON
 
 The console is in your browser; the agent runs on GitHub's machines. **Download
