@@ -320,9 +320,11 @@ $('#keys').onclick = () => {
       'On list price Explee is cheaper — but LinkFinder is our own product, so for our ',
       'own campaigns it costs infrastructure, not the list price.'),
     el('div', { class: 'note warn' },
-      el('strong', {}, 'The agent cannot read these.'), ' It runs on GitHub Actions. ',
-      'Put the same values in ', el('code', {}, 'Settings → Secrets and variables → Actions'),
-      ', or run:'),
+      el('strong', {}, 'Nothing can read these but this browser.'),
+      ' localStorage never leaves your machine — that is what keeps the keys safe, ',
+      'and it is also why the agent cannot see them. It runs on GitHub Actions and ',
+      'needs its own copies. Use a button below, or paste into ',
+      el('code', {}, 'Settings → Secrets and variables → Actions'), '.'),
     (() => {
       const pre = el('textarea', { class: 'code', rows: 5, readonly: '' });
       const render = () => {
@@ -340,6 +342,45 @@ $('#keys').onclick = () => {
       render();
       return pre;
     })(),
+    el('div', { class: 'row', style: 'margin-top:10px' },
+      el('button', {
+        class: 'btn', type: 'button',
+        onclick: async (e) => {
+          const text = KEYS.filter(k => inputs[k.id].value)
+            .map(k => `gh secret set ${k.id} --body "${inputs[k.id].value}"`)
+            .concat(modelInput.value.trim()
+              ? [`gh variable set LLM_MODEL --body "${modelInput.value.trim()}"`] : [])
+            .join('\n');
+          if (!text) return say('nothing to copy — fill a key first', true);
+          try {
+            await navigator.clipboard.writeText(text);
+            e.target.textContent = 'Copied';
+            setTimeout(() => { e.target.textContent = 'Copy gh commands'; }, 1800);
+          } catch {
+            say('clipboard blocked — select the text above and copy it', true);
+          }
+        },
+      }, 'Copy gh commands'),
+      el('button', {
+        class: 'btn', type: 'button',
+        onclick: () => {
+          const lines = KEYS.filter(k => inputs[k.id].value)
+            .map(k => `${k.id}=${inputs[k.id].value}`);
+          if (modelInput.value.trim()) lines.push(`LLM_MODEL=${modelInput.value.trim()}`);
+          if (!lines.length) return say('nothing to save — fill a key first', true);
+          const a = el('a', {
+            href: URL.createObjectURL(new Blob([lines.join('\n') + '\n'], { type: 'text/plain' })),
+            download: 'secrets.env',
+          });
+          a.click(); URL.revokeObjectURL(a.href);
+          say('secrets.env downloaded — it is gitignored; run: set -a && . ./secrets.env && set +a');
+        },
+      }, 'Download secrets.env'),
+    ),
+    el('div', { class: 'note' },
+      'To run it locally instead of on GitHub: put ', el('code', {}, 'secrets.env'),
+      ' next to ', el('code', {}, 'run.py'), ' — that filename is already gitignored — then ',
+      el('code', {}, 'set -a && . ./secrets.env && set +a && python3 run.py capacity'), '.'),
   );
   $('#dlgBody').replaceChildren(body);
   $('#dlg').showModal();
