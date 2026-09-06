@@ -1,0 +1,414 @@
+diff --git a/apps/autogtm/src/inngest/functions.ts b/apps/autogtm/src/inngest/functions.ts
+index 0810727..db171b0 100644
+--- a/apps/autogtm/src/inngest/functions.ts
++++ b/apps/autogtm/src/inngest/functions.ts
+@@ -21,7 +21,7 @@ import { determineCampaignForLead } from '@autogtm/core/ai/determineCampaign';
+ import { createDraftCampaignForLead } from '@autogtm/core/campaigns/createCampaignForPersona';
+ import { addLeadToCampaignCore, type AddLeadToCampaignResult } from '@autogtm/core/campaigns/addLeadToCampaign';
+ import type { AutoAddRunBreakdownEntry } from '@autogtm/core/types';
+-import { extractEmailFromEnrichmentData } from '@autogtm/core/ai/extractEmail';
++import { resolveEmail, findLinkedInUrl } from '@autogtm/core/ai/resolveEmail';
+ import { resolveOutreachPromptForLead } from '@/lib/outreachPromptResolver';
+ import { Resend } from 'resend';
+ import { createClient } from '@supabase/supabase-js';
+@@ -1077,19 +1077,25 @@ export const enrichLeadJob = inngest.createFunction(
+       );
+     });
+ 
+-    // Resolve email: use existing > enrichment agent found > AI extract from Exa data
+-    const resolvedEmail = await step.run('resolve-email', async () => {
+-      if (leadEmail) return leadEmail;
+-      if (enrichedData.email) return enrichedData.email;
+-      
+-      // Try AI extraction from Exa enrichment_data
+-      const { data: leadData } = await supabase.from('leads').select('enrichment_data').eq('id', leadId).single();
+-      if (leadData?.enrichment_data) {
+-        const extracted = await extractEmailFromEnrichmentData(leadData.enrichment_data);
+-        if (extracted) return extracted;
+-      }
+-      return null;
++    // Resolve email via LinkFinder, with provenance. An address is only marked
++    // verified if LinkFinder resolved it; Autopilot gates on that flag so a
++    // hallucinated address can never be auto-sent to. See resolveEmail.ts.
++    const resolved = await step.run('resolve-email', async () => {
++      const { data: leadData } = await supabase
++        .from('leads')
++        .select('enrichment_data, url')
++        .eq('id', leadId)
++        .single();
++
++      return resolveEmail({
++        existingEmail: leadEmail || enrichedData.email || null,
++        linkedinUrl: findLinkedInUrl(enrichedData.social_links, leadData?.url ?? leadUrl),
++        fullName: enrichedData.full_name,
++        title: enrichedData.title,
++        enrichmentData: leadData?.enrichment_data,
++      });
+     });
++    const resolvedEmail = resolved.email;
+ 
+     // Update lead with enriched data + resolved email
+     await step.run('update-lead', async () => {
+@@ -1110,6 +1116,9 @@ export const enrichLeadJob = inngest.createFunction(
+       if (resolvedEmail && !leadEmail) {
+         updateData.email = resolvedEmail;
+       }
++      updateData.email_source = resolved.source;
++      updateData.email_verified = resolved.verified;
++      updateData.email_credits_spent = resolved.creditsSpent;
+       const { error } = await supabase.from('leads').update(updateData).eq('id', leadId);
+       if (error) {
+         logger.error(`Failed to update lead ${leadId}:`, error);
+@@ -1117,7 +1126,7 @@ export const enrichLeadJob = inngest.createFunction(
+       }
+     });
+ 
+-    logger.info(`Enriched lead ${leadId}: ${enrichedData.full_name} (${enrichedData.category}) email: ${resolvedEmail || 'none'}`);
++    logger.info(`Enriched lead ${leadId}: ${enrichedData.full_name} (${enrichedData.category}) email: ${resolvedEmail || 'none'} [${resolved.source}, verified=${resolved.verified}, ${resolved.creditsSpent}cr]`);
+ 
+     // Auto-skip if still no email after all attempts
+     if (!resolvedEmail) {
+diff --git a/migrations/20260906_email_provenance.sql b/migrations/20260906_email_provenance.sql
+new file mode 100644
+index 0000000..db698c0
+--- /dev/null
++++ b/migrations/20260906_email_provenance.sql
+@@ -0,0 +1,29 @@
++-- Email provenance for the Autopilot gate.
++--
++-- Upstream AutoGTM has no pre-send email verification: ai/extractEmail.ts asks an LLM
++-- to pull an address out of scraped Exa text, and Autopilot then sends to it. These
++-- columns record where each address came from so automation can refuse to send to a
++-- guess. See packages/autogtm-core/src/ai/resolveEmail.ts.
++
++alter table leads
++  add column if not exists email_source text
++    check (email_source in ('existing','linkfinder_linkedin','linkfinder_name','llm_guess','none')),
++  add column if not exists email_verified boolean not null default false,
++  add column if not exists email_credits_spent integer not null default 0;
++
++comment on column leads.email_source is
++  'Where the address came from. linkfinder_* are resolved; llm_guess is a scrape.';
++comment on column leads.email_verified is
++  'True only for LinkFinder-resolved addresses. getEligibleLeadsForAutoAdd() requires it.';
++comment on column leads.email_credits_spent is
++  'LinkFinder credits spent resolving this lead (10 per LinkedIn lookup, 7 per name).';
++
++-- Autopilot filters on this pair; keep the sweep cheap.
++create index if not exists leads_autoadd_verified_idx
++  on leads (suggested_campaign_id, email_verified, promotion_fit_score desc);
++
++-- Existing rows predate verification. Default false already blocks them from
++-- Autopilot; label them so the UI can explain why.
++update leads
++   set email_source = 'llm_guess'
++ where email is not null and email <> '' and email_source is null;
+diff --git a/packages/autogtm-core/src/ai/resolveEmail.ts b/packages/autogtm-core/src/ai/resolveEmail.ts
+new file mode 100644
+index 0000000..1fdc73e
+--- /dev/null
++++ b/packages/autogtm-core/src/ai/resolveEmail.ts
+@@ -0,0 +1,138 @@
++/**
++ * Email resolution with provenance.
++ *
++ * Upstream AutoGTM resolves an address by asking gpt-4.1-nano to pull one out of
++ * scraped Exa text (`extractEmail.ts`) and then sends to it. Nothing verifies the
++ * address before the send, so a hallucinated-but-plausible address becomes a hard
++ * bounce, and hard bounces are the fastest way to burn a sending domain.
++ *
++ * This resolves against LinkFinder AI instead, and — the part that matters — records
++ * WHERE each address came from so Autopilot can refuse to send to guesses.
++ *
++ * Order, cheapest reliable first:
++ *   1. An address already on the lead            0 credits   verified: unknown
++ *   2. LinkedIn profile URL -> LinkFinder       10 credits   verified: true
++ *   3. Name (+title) -> LinkFinder               7 credits   verified: true
++ *   4. LLM scrape of Exa data (upstream path)    0 credits   verified: FALSE
++ *
++ * Step 4 is kept only so behaviour degrades rather than disappears when LinkFinder
++ * has no answer. Callers MUST honour `verified` — see gateForAutopilot below.
++ */
++
++import { emailFromLinkedIn, emailFromName, LinkFinderError } from '../clients/linkfinder';
++import { extractEmailFromEnrichmentData } from './extractEmail';
++
++export type EmailSource =
++  | 'existing'
++  | 'linkfinder_linkedin'
++  | 'linkfinder_name'
++  | 'llm_guess'
++  | 'none';
++
++export interface ResolvedEmail {
++  email: string | null;
++  source: EmailSource;
++  /** True only for addresses LinkFinder resolved. Never true for an LLM guess. */
++  verified: boolean;
++  /** LinkFinder credits spent on this lead. */
++  creditsSpent: number;
++}
++
++export interface ResolveEmailInput {
++  existingEmail?: string | null;
++  /** From enrichLead().social_links.linkedin, or the Exa item URL if it is a profile. */
++  linkedinUrl?: string | null;
++  fullName?: string | null;
++  company?: string | null;
++  title?: string | null;
++  location?: string | null;
++  /** Raw Exa enrichment blob, for the last-resort LLM path. */
++  enrichmentData?: unknown;
++}
++
++const LINKEDIN_PROFILE = /^https?:\/\/([a-z]{2,3}\.)?linkedin\.com\/in\/[^/?#]+/i;
++
++export function isLinkedInProfileUrl(url: unknown): url is string {
++  return typeof url === 'string' && LINKEDIN_PROFILE.test(url.trim());
++}
++
++/**
++ * Pull a LinkedIn profile URL out of enrichLead's free-form social_links object.
++ * The model is told to emit URLs but not which key to use, so check the values.
++ */
++export function findLinkedInUrl(socialLinks: unknown, fallbackUrl?: unknown): string | null {
++  if (isLinkedInProfileUrl(fallbackUrl)) return fallbackUrl.trim();
++  if (socialLinks && typeof socialLinks === 'object') {
++    for (const value of Object.values(socialLinks as Record<string, unknown>)) {
++      if (isLinkedInProfileUrl(value)) return value.trim();
++    }
++  }
++  return null;
++}
++
++export async function resolveEmail(input: ResolveEmailInput): Promise<ResolvedEmail> {
++  if (input.existingEmail?.trim()) {
++    return {
++      email: input.existingEmail.trim(),
++      source: 'existing',
++      verified: false,
++      creditsSpent: 0,
++    };
++  }
++
++  let creditsSpent = 0;
++
++  // 2. LinkedIn profile -> email. The strongest signal LinkFinder takes.
++  if (isLinkedInProfileUrl(input.linkedinUrl)) {
++    try {
++      creditsSpent += 10;
++      const email = await emailFromLinkedIn(input.linkedinUrl.trim());
++      if (email) {
++        return { email, source: 'linkfinder_linkedin', verified: true, creditsSpent };
++      }
++    } catch (error) {
++      // A hard failure (bad key, no credits) must not silently fall through to a
++      // guess — that is exactly the behaviour this module exists to prevent.
++      if (error instanceof LinkFinderError && !error.retryable) throw error;
++    }
++  }
++
++  // 3. Name (+ company / title / location) -> email.
++  if (input.fullName?.trim() && input.fullName.trim().toLowerCase() !== 'unknown') {
++    try {
++      creditsSpent += 7;
++      const email = await emailFromName({
++        name: input.fullName.trim(),
++        company: input.company?.trim() || undefined,
++        location: input.location?.trim() || undefined,
++        jobTitle: input.title?.trim() || undefined,
++      });
++      if (email) {
++        return { email, source: 'linkfinder_name', verified: true, creditsSpent };
++      }
++    } catch (error) {
++      if (error instanceof LinkFinderError && !error.retryable) throw error;
++    }
++  }
++
++  // 4. Last resort: the upstream LLM scrape. Explicitly unverified.
++  if (input.enrichmentData) {
++    const guessed = await extractEmailFromEnrichmentData(input.enrichmentData);
++    if (guessed) {
++      return { email: guessed, source: 'llm_guess', verified: false, creditsSpent };
++    }
++  }
++
++  return { email: null, source: 'none', verified: false, creditsSpent };
++}
++
++/**
++ * Whether Autopilot may add this lead to a campaign without a human looking at it.
++ *
++ * Only LinkFinder-resolved addresses qualify. An `existing` address came in with the
++ * lead and has never been checked either, so it needs the same human review as a
++ * guess. Manual approval in the UI can still override — this gates automation only.
++ */
++export function gateForAutopilot(resolved: ResolvedEmail): boolean {
++  return Boolean(resolved.email) && resolved.verified;
++}
+diff --git a/packages/autogtm-core/src/clients/linkfinder.ts b/packages/autogtm-core/src/clients/linkfinder.ts
+new file mode 100644
+index 0000000..0bfc102
+--- /dev/null
++++ b/packages/autogtm-core/src/clients/linkfinder.ts
+@@ -0,0 +1,143 @@
++/**
++ * LinkFinder AI client.
++ *
++ * The whole API is one POST with a `type` discriminator, plus a status endpoint for
++ * the operations that come back async. Any operation can fall back to async under
++ * load, so every call has to be prepared to poll.
++ *
++ * Docs: https://linkfinderai.com/api-access
++ */
++
++const API_BASE = process.env.LINKFINDER_API_BASE || 'https://api.linkfinderai.com';
++
++/** Credit cost per call. Source: integrations/catalog/operations.json (authoritative). */
++export const LINKFINDER_CREDITS = {
++  linkedin_profile_to_email: 10,
++  lead_full_name_to_email: 7,
++  lead_full_name_to_linkedin_url: 1,
++} as const;
++
++export type LinkFinderOp = keyof typeof LINKFINDER_CREDITS;
++
++export class LinkFinderError extends Error {
++  constructor(message: string, readonly status: number, readonly retryable: boolean) {
++    super(message);
++    this.name = 'LinkFinderError';
++  }
++}
++
++function getApiKey(): string {
++  const key = process.env.LINKFINDER_API_KEY;
++  if (!key) throw new Error('LINKFINDER_API_KEY is required');
++  return key;
++}
++
++const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
++
++/**
++ * A 200 can still carry an upstream provider failure in `result`. Seen in production
++ * on the Zapier app: a lookup returned an array whose only element was a provider
++ * permissions error. Treat that as "not found", never as a value.
++ */
++function isUpstreamError(result: unknown): boolean {
++  if (!result) return false;
++  const probe = Array.isArray(result) ? result[0] : result;
++  if (!probe || typeof probe !== 'object') return false;
++  const keys = Object.keys(probe as object).map((k) => k.toLowerCase());
++  return keys.includes('error') || keys.includes('detail');
++}
++
++function readScalar(result: unknown, field: string): string | null {
++  if (!result || isUpstreamError(result)) return null;
++  const row = Array.isArray(result) ? result[0] : result;
++  if (!row || typeof row !== 'object') return null;
++  const value = (row as Record<string, unknown>)[field];
++  return typeof value === 'string' && value.trim() ? value.trim() : null;
++}
++
++async function post(body: Record<string, unknown>, attempt = 0): Promise<Response> {
++  const response = await fetch(API_BASE, {
++    method: 'POST',
++    headers: {
++      Authorization: `Bearer ${getApiKey()}`,
++      'Content-Type': 'application/json',
++    },
++    body: JSON.stringify(body),
++  });
++
++  // Documented backoff: 1s, 2s, 4s, then give up.
++  if (response.status === 429 && attempt < 3) {
++    await sleep(1000 * 2 ** attempt);
++    return post(body, attempt + 1);
++  }
++  return response;
++}
++
++function assertOk(status: number, message?: string): void {
++  if (status === 401) throw new LinkFinderError('LinkFinder API key rejected.', 401, false);
++  if (status === 402) throw new LinkFinderError('LinkFinder account is out of credits.', 402, false);
++  if (status === 422) throw new LinkFinderError(message || 'LinkFinder rejected the input.', 422, false);
++  if (status === 429) throw new LinkFinderError('LinkFinder rate limit, retries exhausted.', 429, true);
++  if (status >= 500) throw new LinkFinderError(message || 'LinkFinder server error.', status, true);
++}
++
++/**
++ * Run one enrichment and return the scalar output field, or null if not found.
++ *
++ * `null` means "looked, found nothing" — a credit may still have been spent.
++ * A throw means the call did not complete; see LinkFinderError.retryable.
++ */
++export async function runEnrichment(
++  type: LinkFinderOp,
++  inputData: string,
++  outputField: string,
++  { maxPollMs = 45_000 }: { maxPollMs?: number } = {},
++): Promise<string | null> {
++  const first = await post({ type, input_data: inputData });
++  const data = (await first.json().catch(() => ({}))) as Record<string, any>;
++  assertOk(first.status, data?.message);
++
++  const isAsync = first.status === 202 || Boolean(data.job_id);
++  if (!isAsync) return readScalar(data.result ?? null, outputField);
++
++  const pollUrl: string | null =
++    data.poll_url || (data.job_id ? `${API_BASE}/status/${data.job_id}` : null);
++  if (!pollUrl) throw new LinkFinderError('Job accepted but no poll URL returned.', 502, true);
++
++  const deadline = Date.now() + maxPollMs;
++  let delay = 1500;
++  while (Date.now() < deadline) {
++    await sleep(delay);
++    const polled = await fetch(pollUrl, { headers: { Authorization: `Bearer ${getApiKey()}` } });
++    const body = (await polled.json().catch(() => ({}))) as Record<string, any>;
++    assertOk(polled.status, body?.message);
++    const status = String(body.status || '').toLowerCase();
++    if (status === 'success' || status === 'completed' || body.result !== undefined) {
++      return readScalar(body.result ?? null, outputField);
++    }
++    if (status === 'failed' || status === 'error') return null;
++    delay = Math.min(delay * 1.5, 5000);
++  }
++  throw new LinkFinderError('Timed out waiting for LinkFinder job.', 504, true);
++}
++
++/** LinkedIn profile URL -> professional email. 10 credits. */
++export function emailFromLinkedIn(linkedinUrl: string): Promise<string | null> {
++  return runEnrichment('linkedin_profile_to_email', linkedinUrl, 'email');
++}
++
++/**
++ * Name (+ company / location / job title) -> email. 7 credits.
++ * Parts are space-joined with empties dropped — the same string app.html builds.
++ */
++export function emailFromName(parts: {
++  name: string;
++  company?: string;
++  location?: string;
++  jobTitle?: string;
++}): Promise<string | null> {
++  const input = [parts.name, parts.company, parts.location, parts.jobTitle]
++    .filter((p) => p && p.trim())
++    .join(' ');
++  return runEnrichment('lead_full_name_to_email', input, 'email');
++}
+diff --git a/packages/autogtm-core/src/db/autogtmDbCalls.ts b/packages/autogtm-core/src/db/autogtmDbCalls.ts
+index ad1011b..60c3afe 100644
+--- a/packages/autogtm-core/src/db/autogtmDbCalls.ts
++++ b/packages/autogtm-core/src/db/autogtmDbCalls.ts
+@@ -673,6 +673,11 @@ export async function getEligibleLeadsForAutoAdd(
+     .gte('promotion_fit_score', minFitScore)
+     .not('email', 'is', null)
+     .neq('email', '')
++    // THE AUTOPILOT GATE. Only LinkFinder-resolved addresses may be auto-sent to.
++    // Unverified addresses (LLM guesses, addresses that arrived with the lead) stay
++    // in the queue for a human. Removing this line re-opens the bounce risk that
++    // upstream AutoGTM ships with. See packages/autogtm-core/src/ai/resolveEmail.ts.
++    .eq('email_verified', true)
+     .not('full_name', 'is', null)
+     .neq('full_name', '')
+     .order('promotion_fit_score', { ascending: false })

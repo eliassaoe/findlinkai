@@ -100,6 +100,48 @@ At Autopilot's default 5 leads/day that is 50 credits/day, ~1,500/month. Budget 
 before switching Autopilot on. The 1-vs-10 discrepancy flagged in
 `docs/gtm-mcp-swap-map.md` still needs resolving.
 
+## Is Exa actually a good lead finder?
+
+Asked separately; it decides whether the "keep Exa for discovery" half of the plan
+holds. Short answer: **for people with a public web footprint, yes. For firmographic
+B2B targeting, no — and AutoGTM's prompts make it worse.**
+
+**What Exa structurally is.** Exa searches the **open web** and verifies hits against
+natural-language criteria. Apollo and LinkFinder query a **structured contact
+database**. That difference decides everything: Exa finds people who have published
+something — a profile, a portfolio, a talk, a post. It cannot answer "VP Sales at a
+150-300 person B2B SaaS in DACH" the way a firmographic filter can, because that
+person's discoverability lives in a database, not on the open web.
+
+**Pricing.** Websets Starter $49/mo, Pro $449/mo. Underlying API: Search ~$7/1K,
+Deep Search ~$12-15/1K. Cheap relative to Apollo seats.
+
+**Independent validation is thin.** One G2 review (4.5) despite $361M raised. The
+strongest datapoint is HubSpot running 2.7M enrichments through Exa — real scale, but
+vendor-cited. Nobody has published a hit-rate or accuracy benchmark worth quoting.
+
+**The bigger problem is AutoGTM's own prompt, not Exa.**
+`packages/autogtm-core/src/ai/generateQueries.ts` instructs the model to focus on:
+
+> "Social media profiles (TikTok, Instagram, YouTube, LinkedIn), personal websites and
+> portfolios, blog posts and articles" ... "Focus on finding micro-influencers, content
+> creators, and active professionals in the relevant space."
+
+And the enriched-lead schema agrees: `total_audience`, `content_types`,
+`promotion_fit_score`, `promotion_fit_reason`, `category` — **and no company field at
+all.**
+
+**AutoGTM is an influencer/creator outreach engine wearing a B2B GTM name.** That is
+not a criticism of the code, which is clean, but it is a different product from what
+the README implies and from what `docs/ai-sdr-offer.md` describes. Using it for B2B
+buyer outreach means rewriting `generateQueries.ts`, the enrichment schema and the fit
+scoring — a much bigger job than the email patch.
+
+**So:** keep Exa where the target has a public footprint (creators, indie founders,
+people who write). Do not expect it to replace firmographic search. That is the same
+gap `docs/gtm-mcp-swap-map.md` found on the LinkFinder side — **neither candidate
+gives us company-search-by-filter, and that remains the unsolved piece.**
+
 ## The blocker: AGPL-3.0
 
 AGPL is not MIT. Section 13 means that if we modify AutoGTM and let users interact
@@ -120,7 +162,8 @@ author. AutoGTM's licence is unambiguous, properly filed, and copyleft. Nothing 
 1. Stand it up against our own Supabase for our own outbound. The Instantly and
    Supabase integrations we would otherwise have written are already there.
 2. **Before any send:** swap `extractEmail.ts` for LinkFinder and gate Autopilot on
-   verified-only leads. This is the first commit, not a follow-up.
+   verified-only leads. **Written: `docs/patches/autogtm-linkfinder-email.patch`** —
+   read its verification-status section, it has never made a live LinkFinder call.
 3. Keep Exa for discovery. It solves the top-of-funnel gap that has no LinkFinder
    answer.
 4. If the `ai-sdr-offer.md` product goes ahead, the architecture here is worth copying
