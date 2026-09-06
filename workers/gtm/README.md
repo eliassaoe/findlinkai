@@ -127,6 +127,19 @@ text to reuse".
 
 `ui/index.html` — one file, Supabase JS from a CDN, **no build step**.
 
+**Hosted at `linkfinderai.com/gtm-console`.** `ui/index.html` is the master;
+`ui/build.py --write` renders it to `gtm-console.html` at the repo root, which is
+how a plain-HTML page gets served. Edit the master, rebuild, commit both — never
+hand-edit the root copy.
+
+**It is noindex, not private.** The page carries `noindex, nofollow, noarchive`
+and is kept out of the sitemap (`NOINDEX_ONLY` in `gen_sitemap.py`), and it is
+deliberately *not* in robots.txt: that file is public, so a `Disallow` line would
+advertise the path, and blocking the crawler would stop it ever reading the
+noindex. Google will not list it. **Anyone with the URL can still open it** — put
+it behind Cloudflare Access if that matters. It embeds no credentials; your
+Supabase key lives in your own browser.
+
 **Open it and it works.** With no Supabase configured it runs in **local mode**,
 backed by browser storage and seeded with a worked example, so you can click
 through the whole thing before any database exists. Nothing in local mode reaches

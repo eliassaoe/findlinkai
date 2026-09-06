@@ -1,0 +1,613 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<!-- GENERATED — do not edit. Master: workers/gtm/ui/index.html
+     Rebuild: python3 workers/gtm/ui/build.py --write -->
+<meta name="robots" content="noindex, nofollow, noarchive">
+<meta name="googlebot" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<title>GTM Console</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<style>
+:root{
+  --bg:#fbfbfa; --panel:#fff; --line:#e4e2dd; --ink:#1c1b19; --muted:#6f6b64;
+  --accent:#2f5d50; --accent-soft:#eaf1ee; --danger:#a33a2a;
+  --radius:8px;
+  --sans:'Instrument Sans',ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+  --mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){
+  --bg:#16171a; --panel:#1d1f23; --line:#2f3238; --ink:#e9e7e3; --muted:#9a958c;
+  --accent:#7fb8a4; --accent-soft:#1f2b27; --danger:#d98675;
+}}
+:root[data-theme=dark]{
+  --bg:#16171a; --panel:#1d1f23; --line:#2f3238; --ink:#e9e7e3; --muted:#9a958c;
+  --accent:#7fb8a4; --accent-soft:#1f2b27; --danger:#d98675;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.55 var(--sans);-webkit-font-smoothing:antialiased}
+a{color:var(--accent)}
+header{display:flex;align-items:center;gap:14px;padding:12px 20px;border-bottom:1px solid var(--line);background:var(--panel);position:sticky;top:0;z-index:5}
+header h1{font-size:15px;margin:0;font-weight:600;letter-spacing:-.015em}
+header .sp{flex:1}
+.layout{display:grid;grid-template-columns:250px 1fr;min-height:calc(100vh - 50px)}
+@media(max-width:860px){.layout{grid-template-columns:1fr}aside{border-right:0!important;border-bottom:1px solid var(--line)}}
+aside{border-right:1px solid var(--line);padding:14px;background:var(--panel)}
+main{padding:22px;max-width:900px}
+.eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:16px 0 6px;font-weight:600}
+.eyebrow:first-child{margin-top:0}
+.item{display:block;width:100%;text-align:left;padding:7px 9px;border:0;border-radius:6px;background:none;color:var(--ink);cursor:pointer;font:inherit}
+.item:hover{background:var(--accent-soft)}
+.item.on{background:var(--accent-soft);color:var(--accent);font-weight:600}
+.item small{display:block;color:var(--muted);font-weight:400;font-size:11px}
+button,input,textarea,select{font:inherit;color:inherit}
+.btn{border:1px solid var(--line);background:var(--panel);padding:6px 12px;border-radius:6px;cursor:pointer}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.ghost{border:0;background:none;color:var(--muted);padding:6px 8px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+label{display:block;margin:14px 0 4px;font-weight:600;font-size:12.5px}
+label span{font-weight:400;color:var(--muted)}
+input[type=text],textarea,select{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:var(--bg)}
+textarea{resize:vertical;min-height:70px;font-family:inherit}
+textarea.code{font-family:var(--mono);font-size:12.5px;line-height:1.6}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:18px;margin-bottom:16px}
+.card h2{margin:0 0 2px;font-size:15px}
+.card p.sub{margin:0 0 6px;color:var(--muted);font-size:12.5px}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);margin-bottom:16px}
+.tab{padding:8px 14px;border:0;background:none;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px}
+.tab.on{color:var(--ink);border-bottom-color:var(--accent);font-weight:600}
+.chip{display:inline-flex;align-items:center;gap:6px;background:var(--accent-soft);color:var(--accent);border-radius:999px;padding:3px 10px;font-size:12px;margin:0 5px 5px 0}
+.chip button{border:0;background:none;cursor:pointer;color:inherit;opacity:.6;padding:0;line-height:1}
+.count{float:right;font-weight:400;color:var(--muted);font-size:11px}
+.count.over{color:var(--danger);font-weight:600}
+.note{background:var(--accent-soft);border-left:3px solid var(--accent);padding:10px 13px;border-radius:0 6px 6px 0;font-size:12.5px;margin:12px 0}
+.note.warn{background:color-mix(in srgb,var(--danger) 10%,transparent);border-left-color:var(--danger)}
+.empty{color:var(--muted);text-align:center;padding:40px 20px}
+table{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums}
+th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line)}
+th{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+.pill{font-size:11px;padding:2px 7px;border-radius:999px;background:var(--accent-soft);color:var(--accent);font-variant-numeric:tabular-nums}
+code{font-family:var(--mono);font-size:12px;background:var(--bg);padding:1px 5px;border-radius:4px;border:1px solid var(--line)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+.status{font-size:12px;color:var(--muted)}
+.status.err{color:var(--danger)}
+dialog{border:1px solid var(--line);border-radius:var(--radius);background:var(--panel);color:var(--ink);padding:20px;max-width:460px;width:92vw}
+dialog::backdrop{background:#0008}
+</style>
+
+<header>
+  <h1>GTM Console</h1>
+  <span class="pill" id="who">not connected</span>
+  <span class="sp"></span>
+  <span class="status" id="status"></span>
+  <button class="btn ghost" id="theme">◐</button>
+  <button class="btn" id="settings">Connection</button>
+</header>
+
+<div class="layout">
+  <aside>
+    <div class="eyebrow">Clients</div>
+    <div id="clients"></div>
+    <button class="btn ghost" id="newClient">+ client</button>
+
+    <div class="eyebrow">Projects</div>
+    <div id="projects"></div>
+    <button class="btn ghost" id="newProject">+ project</button>
+
+    <div class="eyebrow">Campaigns</div>
+    <div id="campaigns"></div>
+    <button class="btn ghost" id="newCampaign">+ campaign</button>
+  </aside>
+
+  <main id="main"><div class="empty">Connect to Supabase to begin.</div></main>
+</div>
+
+<dialog id="dlg">
+  <h2 style="margin:0 0 4px;font-size:15px" id="dlgTitle">Supabase connection</h2>
+  <p class="sub" style="color:var(--muted);font-size:12.5px;margin:0 0 8px" id="dlgSub">
+    Stored in this browser only. Use the anon key with RLS on — never the service key.
+  </p>
+  <div id="dlgBody"></div>
+  <div class="row" style="margin-top:16px;justify-content:flex-end">
+    <button class="btn ghost" id="dlgCancel">Cancel</button>
+    <button class="btn primary" id="dlgOk">Save</button>
+  </div>
+</dialog>
+
+<script>
+const $ = s => document.querySelector(s);
+const el = (t, a = {}, ...kids) => {
+  const n = document.createElement(t);
+  for (const [k, v] of Object.entries(a)) {
+    if (k === 'class') n.className = v;
+    else if (k.startsWith('on')) n.addEventListener(k.slice(2), v);
+    else if (v !== null && v !== undefined) n.setAttribute(k, v);
+  }
+  for (const kid of kids.flat()) if (kid != null) n.append(kid.nodeType ? kid : String(kid));
+  return n;
+};
+const store = {
+  get(k, d) { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+};
+const STAGES = ['first_email', 'follow_up', 'reply'];
+const MAX_INSTRUCTIONS = 3000;   // matches models.py and the schema CHECK
+
+let sb = null, S = { client: null, project: null, campaign: null, tab: 'offer' };
+let cache = { clients: [], projects: [], campaigns: [], prompts: [] };
+
+function say(msg, isErr) {
+  const n = $('#status');
+  n.textContent = msg || '';
+  n.className = 'status' + (isErr ? ' err' : '');
+  if (msg && !isErr) setTimeout(() => { if (n.textContent === msg) n.textContent = ''; }, 2500);
+}
+
+// ---------------------------------------------------------------- theme
+const applyTheme = t => document.documentElement.setAttribute('data-theme', t);
+if (store.get('theme')) applyTheme(store.get('theme'));
+$('#theme').onclick = () => {
+  const cur = document.documentElement.getAttribute('data-theme');
+  const next = cur === 'dark' ? 'light' : 'dark';
+  applyTheme(next); store.set('theme', next);
+};
+
+// ------------------------------------------------- local (no-Supabase) mode
+// A tiny stand-in for the slice of supabase-js this page uses, backed by
+// localStorage. It exists so you can open this file and try the console before
+// a Supabase project exists — and so the demo data below has somewhere to live.
+// Same call shape, so nothing else in the page knows the difference.
+function localBackend() {
+  const read = t => store.get('local:' + t, []);
+  const write = (t, rows) => store.set('local:' + t, rows);
+  const uid = () => (crypto.randomUUID ? crypto.randomUUID()
+                     : 'id-' + Math.random().toString(36).slice(2) + Date.now());
+
+  const result = rows => {
+    const p = Promise.resolve({ data: rows, error: null });
+    p.select = () => result(rows);
+    p.single = () => Promise.resolve({ data: rows[0] ?? null, error: null });
+    return p;
+  };
+
+  return {
+    local: true,
+    from(table) {
+      let rows = read(table), filters = [];
+      const api = {
+        select() { return api; },
+        eq(k, v) { filters.push([k, v]); return api; },
+        order(col, o) {
+          rows = [...rows].sort((a, b) => {
+            const x = a[col], y = b[col];
+            if (x === y) return 0;
+            return ((x > y) ? 1 : -1) * (o?.ascending === false ? -1 : 1);
+          });
+          return api;
+        },
+        insert(obj) {
+          const added = (Array.isArray(obj) ? obj : [obj]).map(r => ({
+            id: uid(), created_at: new Date().toISOString(), ...r,
+          }));
+          write(table, [...read(table), ...added]);
+          return result(added);
+        },
+        update(patch) {
+          return {
+            eq(k, v) {
+              const all = read(table).map(r => (r[k] === v ? { ...r, ...patch } : r));
+              write(table, all);
+              return Promise.resolve({ data: null, error: null });
+            },
+          };
+        },
+        then(res, rej) {
+          const out = rows.filter(r => filters.every(([k, v]) => r[k] === v));
+          return Promise.resolve({ data: out, error: null }).then(res, rej);
+        },
+      };
+      return api;
+    },
+  };
+}
+
+async function seedDemo() {
+  const c = await sb.from('gtm_clients').insert({ name: 'LinkFinder AI', slug: 'linkfinderai', archived: false }).select().single();
+  const p = await sb.from('gtm_projects').insert({
+    client_id: c.data.id, name: 'linkfinderai.com', domain: 'linkfinderai.com', archived: false,
+    facts: 'LinkFinder AI turns a name, company, email or LinkedIn URL into a verified business email or phone number. Plans start at $49/month for 5,000 credits. A LinkedIn-profile-to-email lookup costs 10 credits.\n\nThe outbound service: we build the list, write the campaign, run the sending and handle replies. You pay per meeting held.',
+    booking_link: 'https://calendly.com/hamoureliasse/offre-linkfinder-ai-outbound/',
+    cc_email: 'support@linkfinderai.com', daily_cap: 135, sending_emails: [],
+  }).select().single();
+  const camp = await sb.from('gtm_campaigns').insert({
+    project_id: p.data.id, name: 'organismes de formation FR/BE/LU', status: 'draft', kind: 'b2b',
+    offer: 'Outbound run end to end, paid per meeting held.',
+    customer_problem: 'Prospecting stops whenever the team is delivering training, so the pipeline arrives in waves.',
+    example_clients: ['Cegos', 'Demos', 'Orsys'], keywords: ['organisme de formation', 'centre de formation'],
+    target_role: 'Dirigeant, responsable commercial', target_geography: 'France, Belgique, Luxembourg',
+    positive_criteria: ['Vente B2B active', 'Equipe commerciale de moins de 5'],
+    negative_criteria: ['Formation purement subventionnee', 'Plus de 200 salaries'],
+    instantly_campaign_id: null,
+  }).select().single();
+  const instr = {
+    first_email: 'Ask for a reply, not a call. Never mention a discount. Name the pay-per-meeting model once — it is the whole reason this offer is different — and do not explain it twice.',
+    follow_up: 'New angle each time. Follow-up 1: the cost of waiting a quarter. Follow-up 2: offer a sample list of 20 prospects, free, no call needed.',
+    reply: 'Only facts from Project docs. No pressure. Send the booking link only once they have shown real interest.',
+  };
+  for (const stage of STAGES) {
+    await sb.from('gtm_prompts').insert({
+      campaign_id: camp.data.id, stage, version: 1, instructions: instr[stage],
+      language: 'lead', follow_up_every_days: 3, max_follow_ups: 2,
+    });
+  }
+}
+
+// ---------------------------------------------------------------- connect
+function connect() {
+  const cfg = store.get('sb');
+  if (!cfg?.url || !cfg?.key) return false;
+  sb = window.supabase.createClient(cfg.url, cfg.key);
+  $('#who').textContent = new URL(cfg.url).hostname.split('.')[0];
+  return true;
+}
+
+$('#settings').onclick = () => {
+  const cfg = store.get('sb', {});
+  $('#dlgTitle').textContent = 'Supabase connection';
+  $('#dlgSub').textContent = sb?.local
+    ? 'You are in local mode — data lives in this browser. Connect Supabase to share it with the agent (run.py --db). Anon key with RLS on, never the service key.'
+    : 'Stored in this browser only. Use the anon key with RLS on — never the service key.';
+  $('#dlgBody').replaceChildren(
+    el('label', {}, 'Project URL'),
+    el('input', { type: 'text', id: 'f1', value: cfg.url || '', placeholder: 'https://xxxx.supabase.co' }),
+    el('label', {}, 'Anon key'),
+    el('input', { type: 'text', id: 'f2', value: cfg.key || '', placeholder: 'eyJhbGci...' }),
+  );
+  $('#dlg').showModal();
+  $('#dlgOk').onclick = async () => {
+    store.set('sb', { url: $('#f1').value.trim(), key: $('#f2').value.trim() });
+    $('#dlg').close();
+    if (connect()) await loadClients();
+  };
+};
+$('#dlgCancel').onclick = () => $('#dlg').close();
+
+function prompt1(title, sub, label, cb, value = '') {
+  $('#dlgTitle').textContent = title;
+  $('#dlgSub').textContent = sub || '';
+  $('#dlgBody').replaceChildren(el('label', {}, label), el('input', { type: 'text', id: 'f1', value }));
+  $('#dlg').showModal();
+  setTimeout(() => $('#f1').focus(), 30);
+  $('#dlgOk').onclick = async () => {
+    const v = $('#f1').value.trim();
+    if (!v) return;
+    $('#dlg').close();
+    await cb(v);
+  };
+}
+
+// ---------------------------------------------------------------- data
+async function q(table, sel, filters = {}, order) {
+  let b = sb.from(table).select(sel);
+  for (const [k, v] of Object.entries(filters)) b = b.eq(k, v);
+  if (order) b = b.order(order.col, { ascending: order.asc !== false });
+  const { data, error } = await b;
+  if (error) { say(error.message, true); return []; }
+  return data || [];
+}
+
+async function loadClients() {
+  cache.clients = await q('gtm_clients', '*', { archived: false }, { col: 'name' });
+  renderSidebar();
+  if (cache.clients.length && !S.client) pickClient(cache.clients[0]);
+  else if (!cache.clients.length) $('#main').replaceChildren(el('div', { class: 'empty' }, 'No clients yet. Create one to start.'));
+}
+async function pickClient(c) {
+  S.client = c; S.project = S.campaign = null;
+  cache.projects = await q('gtm_projects', '*', { client_id: c.id, archived: false }, { col: 'name' });
+  cache.campaigns = [];
+  renderSidebar();
+  if (cache.projects.length) pickProject(cache.projects[0]); else render();
+}
+async function pickProject(p) {
+  S.project = p; S.campaign = null;
+  cache.campaigns = await q('gtm_campaigns', '*', { project_id: p.id }, { col: 'name' });
+  renderSidebar();
+  if (cache.campaigns.length) pickCampaign(cache.campaigns[0]); else render();
+}
+async function pickCampaign(c) {
+  S.campaign = c;
+  cache.prompts = await q('gtm_prompts', '*', { campaign_id: c.id }, { col: 'version', asc: false });
+  renderSidebar(); render();
+}
+const head = (stage) => cache.prompts.filter(p => p.stage === stage)[0] || null;
+
+// ---------------------------------------------------------------- sidebar
+function renderSidebar() {
+  const list = (host, rows, active, onPick, sub) => {
+    $(host).replaceChildren(...rows.map(r => el('button', {
+      class: 'item' + (active?.id === r.id ? ' on' : ''), onclick: () => onPick(r),
+    }, r.name, sub ? el('small', {}, sub(r)) : null)));
+  };
+  list('#clients', cache.clients, S.client, pickClient);
+  list('#projects', cache.projects, S.project, pickProject, p => p.domain || '');
+  list('#campaigns', cache.campaigns, S.campaign, pickCampaign, c => `${c.kind} · ${c.status}`);
+}
+
+$('#newClient').onclick = () => prompt1('New client', '', 'Name', async name => {
+  const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  const { error } = await sb.from('gtm_clients').insert({ name, slug });
+  if (error) return say(error.message, true);
+  say('client created'); await loadClients();
+});
+$('#newProject').onclick = () => {
+  if (!S.client) return say('pick a client first', true);
+  prompt1('New project', 'A brand or domain you send for.', 'Name', async name => {
+    const { error } = await sb.from('gtm_projects').insert({ client_id: S.client.id, name });
+    if (error) return say(error.message, true);
+    say('project created'); await pickClient(S.client);
+  });
+};
+$('#newCampaign').onclick = () => {
+  if (!S.project) return say('pick a project first', true);
+  prompt1('New campaign', 'One offer to one audience.', 'Name', async name => {
+    const { data, error } = await sb.from('gtm_campaigns')
+      .insert({ project_id: S.project.id, name }).select().single();
+    if (error) return say(error.message, true);
+    for (const stage of STAGES) {
+      await sb.from('gtm_prompts').insert({ campaign_id: data.id, stage, version: 1, instructions: '' });
+    }
+    say('campaign created'); await pickProject(S.project);
+  });
+};
+
+// ---------------------------------------------------------------- editors
+async function save(table, id, patch, label = 'saved') {
+  const { error } = await sb.from(table).update(patch).eq('id', id);
+  error ? say(error.message, true) : say(label);
+}
+
+function field(label, value, onSave, { area = false, hint = '' } = {}) {
+  const input = el(area ? 'textarea' : 'input', area ? {} : { type: 'text' });
+  input.value = value ?? '';
+  if (area) input.rows = 4;
+  input.addEventListener('change', () => onSave(input.value));
+  return el('div', {}, el('label', {}, label, hint ? el('span', {}, ' — ' + hint) : null), input);
+}
+
+function chips(label, values, onChange, hint) {
+  const wrap = el('div');
+  const draw = () => {
+    wrap.replaceChildren(
+      ...(values || []).map((v, i) => el('span', { class: 'chip' }, v,
+        el('button', { title: 'remove', onclick: () => { values.splice(i, 1); onChange([...values]); draw(); } }, '×'))),
+      el('input', {
+        type: 'text', placeholder: 'add and press Enter',
+        style: 'width:auto;min-width:190px;margin-top:4px',
+        onkeydown: e => {
+          if (e.key !== 'Enter') return;
+          e.preventDefault();
+          const v = e.target.value.trim();
+          if (!v) return;
+          values.push(v); onChange([...values]); e.target.value = ''; draw();
+        },
+      }),
+    );
+  };
+  draw();
+  return el('div', {}, el('label', {}, label, hint ? el('span', {}, ' — ' + hint) : null), wrap);
+}
+
+function render() {
+  const m = $('#main');
+  if (!S.campaign) {
+    m.replaceChildren(el('div', { class: 'empty' },
+      S.project ? 'No campaigns in this project yet.' : 'Create a client and project to begin.'));
+    return;
+  }
+  const c = S.campaign;
+  const tabs = el('div', { class: 'tabs' }, ...[
+    ['offer', 'Offer'], ['audience', 'Audience'],
+    ['first_email', 'First email'], ['follow_up', 'Follow-ups'], ['reply', 'Replies'],
+    ['project', 'Project docs'], ['sending', 'Sending'], ['leads', 'Queue'],
+  ].map(([k, label]) => el('button', {
+    class: 'tab' + (S.tab === k ? ' on' : ''), onclick: () => { S.tab = k; render(); },
+  }, label)));
+
+  m.replaceChildren(tabs, ...({
+    offer: viewOffer, audience: viewAudience, project: viewProject,
+    sending: viewSending, leads: viewLeads,
+  }[S.tab] || (() => viewPrompt(S.tab)))(c));
+}
+
+const setC = (patch) => { Object.assign(S.campaign, patch); return save('gtm_campaigns', S.campaign.id, patch); };
+const setP = (patch) => { Object.assign(S.project, patch); return save('gtm_projects', S.project.id, patch); };
+
+function viewOffer(c) {
+  return [el('div', { class: 'card' },
+    el('h2', {}, 'What this campaign sells, and to whom'),
+    el('p', { class: 'sub' }, 'The copywriter may only assert what is here and in Project docs.'),
+    field('What you offer', c.offer, v => setC({ offer: v }), { area: true }),
+    field('Customer problem', c.customer_problem, v => setC({ customer_problem: v }), { area: true }),
+    chips('Example clients', c.example_clients || [], v => setC({ example_clients: v })),
+    chips('Keywords', c.keywords || [], v => setC({ keywords: v }), 'feed the Explee search'),
+    el('label', {}, 'Audience kind'),
+    el('select', { onchange: e => setC({ kind: e.target.value }) },
+      ...['b2b', 'influencer'].map(k => el('option', { value: k, selected: c.kind === k ? '' : null }, k))),
+  )];
+}
+
+function viewAudience(c) {
+  return [el('div', { class: 'card' },
+    el('h2', {}, 'Who the agent looks for'),
+    el('p', { class: 'sub' }, 'The qualifier re-checks every lead against these — they are judgement, not just search filters.'),
+    field('Target role', c.target_role, v => setC({ target_role: v })),
+    field('Target geography', c.target_geography, v => setC({ target_geography: v })),
+    chips('Positive criteria', c.positive_criteria || [], v => setC({ positive_criteria: v })),
+    chips('Negative criteria', c.negative_criteria || [], v => setC({ negative_criteria: v }),
+      'any match here is an automatic skip'),
+    el('div', { class: 'note' },
+      'A negative criterion is the cheapest thing in this system. It stops a send before it costs anything.'),
+  )];
+}
+
+function viewProject() {
+  const p = S.project;
+  return [el('div', { class: 'card' },
+    el('h2', {}, 'Project docs'),
+    el('p', { class: 'sub' }, 'The only facts replies may assert. Anything not here, the agent will not claim.'),
+    (() => {
+      const ta = el('textarea', { class: 'code', rows: 14 });
+      ta.value = p.facts || '';
+      ta.addEventListener('change', () => setP({ facts: ta.value }));
+      return ta;
+    })(),
+    field('Booking link', p.booking_link, v => setP({ booking_link: v }), { hint: 'offered only after real interest' }),
+    field('CC on every reply', p.cc_email, v => setP({ cc_email: v })),
+    field('Daily send cap', p.daily_cap, v => setP({ daily_cap: parseInt(v, 10) || 0 }),
+      { hint: 'nine mailboxes at 15/day = 135' }),
+  )];
+}
+
+function viewSending(c) {
+  return [
+    el('div', { class: 'card' },
+      el('h2', {}, 'Instantly campaign'),
+      el('p', { class: 'sub' }, 'Leave empty and the first send creates a paused campaign and writes its id back here. Paste an existing id to add leads to a campaign you already made.'),
+      field('Instantly campaign ID', c.instantly_campaign_id,
+        v => setC({ instantly_campaign_id: v.trim() || null }),
+        { hint: 'the UUID in the Instantly campaign URL' }),
+      el('div', { class: 'note' },
+        'Either way the campaign stays PAUSED after leads are added. Going live is a separate step: ',
+        el('code', {}, 'run.py arm --campaign-id … --apply')),
+    ),
+    el('div', { class: 'card' },
+      el('h2', {}, 'Mailboxes'),
+      el('p', { class: 'sub' }, 'Which of your Instantly mailboxes this project sends from. Empty means all of them.'),
+      chips('Sending addresses', S.project.sending_emails || [],
+        v => setP({ sending_emails: v }), 'one per line, added with Enter'),
+      field('Daily cap', S.project.daily_cap, v => setP({ daily_cap: parseInt(v, 10) || 0 }),
+        { hint: 'nine mailboxes at 15/day = 135; warmup sets the real ceiling' }),
+      el('div', { class: 'note warn' },
+        'Check the mailboxes can actually send before a campaign is armed: ',
+        el('code', {}, 'python3 run.py capacity'),
+        '. On 2026-09-06 all nine reported status -1, which is not sendable.'),
+    ),
+  ];
+}
+
+function viewPrompt(stage) {
+  const cur = head(stage);
+  if (!cur) return [el('div', { class: 'empty' }, 'No prompt row for this stage yet.')];
+  const history = cache.prompts.filter(p => p.stage === stage);
+
+  const counter = el('span', { class: 'count' });
+  const ta = el('textarea', { class: 'code', rows: 14 });
+  ta.value = cur.instructions || '';
+  const tick = () => {
+    const n = ta.value.length;
+    counter.textContent = `${n} / ${MAX_INSTRUCTIONS}`;
+    counter.className = 'count' + (n > MAX_INSTRUCTIONS ? ' over' : '');
+    saveBtn.disabled = n > MAX_INSTRUCTIONS || ta.value === cur.instructions;
+  };
+  ta.addEventListener('input', tick);
+
+  const saveBtn = el('button', {
+    class: 'btn primary',
+    onclick: async () => {
+      // Prompts are versioned: insert, never update, so a reply-rate change
+      // can be attributed to a specific prompt.
+      const { error } = await sb.from('gtm_prompts').insert({
+        campaign_id: S.campaign.id, stage, version: cur.version + 1,
+        instructions: ta.value, language: cur.language,
+        follow_up_every_days: cur.follow_up_every_days, max_follow_ups: cur.max_follow_ups,
+      });
+      if (error) return say(error.message, true);
+      say(`saved as v${cur.version + 1}`);
+      await pickCampaign(S.campaign);
+    },
+  }, 'Save as new version');
+  tick();
+
+  const extras = [];
+  if (stage === 'follow_up') {
+    extras.push(el('div', { class: 'row' },
+      field('Every N days', cur.follow_up_every_days, v =>
+        save('gtm_prompts', cur.id, { follow_up_every_days: parseInt(v, 10) || 3 })),
+      field('How many', cur.max_follow_ups, v =>
+        save('gtm_prompts', cur.id, { max_follow_ups: parseInt(v, 10) || 2 })),
+    ));
+  }
+
+  return [
+    el('div', { class: 'card' },
+      el('h2', {}, 'Instructions ', el('span', { class: 'pill' }, 'v' + cur.version), counter),
+      el('p', { class: 'sub' }, 'Combined with the craft rules in copywriter.py. These win on style; they can never authorise a claim that is not in Project docs.'),
+      ta,
+      el('div', { class: 'row', style: 'margin-top:12px' }, saveBtn,
+        el('span', { class: 'status' }, `${history.length} version${history.length === 1 ? '' : 's'}`)),
+      ...extras,
+      el('label', {}, 'Language'),
+      el('select', { onchange: e => save('gtm_prompts', cur.id, { language: e.target.value }) },
+        ...[['lead', "the lead's own language"], ['fr', 'French'], ['en', 'English'], ['de', 'German'], ['es', 'Spanish']]
+          .map(([v, t]) => el('option', { value: v, selected: cur.language === v ? '' : null }, t))),
+    ),
+    history.length > 1 ? el('div', { class: 'card' },
+      el('h2', {}, 'Version history'),
+      el('table', {}, el('tbody', {}, ...history.map(h => el('tr', {},
+        el('td', {}, 'v' + h.version),
+        el('td', { style: 'color:var(--muted)' }, new Date(h.created_at).toLocaleString()),
+        el('td', {}, (h.instructions || '(empty)').slice(0, 80)),
+        el('td', {}, el('button', {
+          class: 'btn ghost',
+          onclick: () => { ta.value = h.instructions || ''; tick(); say(`loaded v${h.version} — save to make it current`); },
+        }, 'restore')),
+      )))),
+    ) : null,
+  ].filter(Boolean);
+}
+
+async function viewLeadsData() {
+  return q('gtm_leads', 'email,full_name,company,fit_score,fit_reason,email_verified,suppressed',
+    { campaign_id: S.campaign.id }, { col: 'fit_score', asc: false });
+}
+function viewLeads() {
+  const host = el('div', { class: 'card' }, el('h2', {}, 'Queue'), el('p', { class: 'sub' }, 'Loading…'));
+  viewLeadsData().then(rows => {
+    host.replaceChildren(
+      el('h2', {}, 'Queue'),
+      el('p', { class: 'sub' }, `${rows.length} leads · ${rows.filter(r => r.email_verified).length} verified and sendable`),
+      rows.length ? el('table', {},
+        el('thead', {}, el('tr', {}, ...['Name', 'Company', 'Fit', 'Email', 'Why'].map(h => el('th', {}, h)))),
+        el('tbody', {}, ...rows.slice(0, 200).map(r => el('tr', {},
+          el('td', {}, r.full_name || '—'),
+          el('td', {}, r.company || '—'),
+          el('td', {}, r.fit_score ?? '—'),
+          el('td', {}, r.suppressed ? el('span', { class: 'pill' }, 'suppressed')
+            : r.email_verified ? (r.email || '—')
+            : el('span', { class: 'pill' }, 'unverified')),
+          el('td', { style: 'color:var(--muted)' }, (r.fit_reason || '').slice(0, 90)),
+        ))),
+      ) : el('div', { class: 'empty' }, 'Nothing sourced yet. Run: python3 run.py source --campaign …'),
+    );
+  });
+  return [host];
+}
+
+// ---------------------------------------------------------------- boot
+async function boot() {
+  if (connect()) { await loadClients(); return; }
+  sb = localBackend();
+  $('#who').textContent = 'local';
+  $('#who').title = 'Saved in this browser only. Connect Supabase to share it with the agent.';
+  if (!store.get('local:gtm_clients', []).length) await seedDemo();
+  await loadClients();
+  say('Local mode — nothing is saved to a server. Use Connection to point at Supabase.');
+}
+boot();
+</script>

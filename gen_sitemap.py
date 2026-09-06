@@ -25,12 +25,39 @@ EXCLUDE = {
     "app-linkedin-leads",
 }
 
+# Pages kept out of the sitemap but NOT written into robots.txt.
+#
+# EXCLUDE above does two things at once: drops the page from the sitemap AND
+# adds a public "Disallow: /page" line. For a private page that is the wrong
+# trade, twice over:
+#
+#   1. robots.txt is world-readable, so a Disallow line ADVERTISES the path to
+#      anyone curious enough to open it.
+#   2. Disallow stops the crawler fetching the page at all, so it never sees the
+#      <meta name="robots" content="noindex"> inside — and a URL that gets
+#      linked from anywhere can still be indexed URL-only.
+#
+# For "keep this out of Google" the correct combination is: crawlable, carrying
+# a noindex meta, absent from the sitemap, linked from nowhere. That is what
+# this set does.
+#
+# NOTE: none of this is access control. A page listed here is still reachable by
+# anyone who knows or guesses the URL. Put it behind Cloudflare Access if it
+# needs to be genuinely private.
+NOINDEX_ONLY = {
+    "gtm-console",
+}
+
 # Whole directories to keep out. EXCLUDE above matches on the last path
 # segment, so it cannot retire a folder: "workflow" there would drop a page
 # called /workflow but not /workflow/anything. The workflow templates are
 # redirect stubs now, and a sitemap that still advertises them asks Google to
 # keep crawling pages that only bounce.
-EXCLUDE_DIRS = {"workflow", "clusters/workflows"}
+# "workers" holds source for things that run elsewhere (Cloudflare, GitHub
+# Actions). Any HTML in there is a master copy or a template, never a page
+# on the site — workers/gtm/ui/index.html is the console's master, published
+# to /gtm-console by workers/gtm/ui/build.py.
+EXCLUDE_DIRS = {"workflow", "clusters/workflows", "workers"}
 # ----------------------------------------
 
 
@@ -60,9 +87,12 @@ def is_safe(path_part):
 
 
 def is_excluded(clean):
+    """Keep this page out of the sitemap?"""
     if any(clean == d or clean.startswith(d + "/") for d in EXCLUDE_DIRS):
         return True
     base = clean.split("/")[-1] or clean
+    if base in NOINDEX_ONLY:
+        return True
     return any(base == e or base.startswith(e + "-") for e in EXCLUDE)
 
 
@@ -111,6 +141,7 @@ def main():
 
     print(f"Pages in sitemap : {len(included)}")
     print(f"Excluded (auth/app): {len(excluded)}")
+    print(f"  of those, noindex-only (not in robots.txt): {sorted(NOINDEX_ONLY)}")
     if skipped:
         print(f"SKIPPED (bad filename, rename these): {skipped}")
     print("-" * 50)
