@@ -1,6 +1,6 @@
-# Explee follow-ups — linkfinderai — 2026-09-06 22:44 UTC
+# Explee follow-ups — linkfinderai — 2026-09-06 22:48 UTC
 
-**DRY RUN — nothing was sent; the emails below are what the next armed run sends**
+**SENT 0 emails**
 
 To take someone out of the loop: open the lead in the [inbox](https://explee.com/app-auto-gtm/p/30475/inbox), write `booked` or `stop` in the note. Next run it stops.
 
@@ -8,12 +8,12 @@ To take someone out of the loop: open the lead in the [inbox](https://explee.com
 |---|---|
 | skip: auto_reply | 71 |
 | skip: negative | 34 |
-| skip: unknown | 33 |
+| skip: unknown | 32 |
+| refused | 7 |
 | nudge | 6 |
+| skip: booked | 5 |
 | skip: can_reply is false | 5 |
-| skip: reply cap (3) reached on this message | 4 |
-| skip: booked | 2 |
-| skip: call_me | 1 |
+| skip: reply cap (3) reached on this message | 3 |
 | nudge_last | 1 |
 | skip: question | 1 |
 | not_now | 1 |
@@ -37,11 +37,9 @@ To take someone out of the loop: open the lead in the [inbox](https://explee.com
 |---|---|---|---|
 | Jonathan (Optimum Informatique / …) | High ticket linkfinder AI | Prospection c’est Mehdi et José  Cordialement,  Jonathan PIRES Président - Directeur géné… | none - unknown |
 | Nelly (Agence Indie ✨) | High ticket linkfinder AI | Bonjour Laura  Pour l’instant notre prospection est très ciblée et non automatisée.  Mais… | none - unknown |
-| David (HelpySoft) | High ticket linkfinder AI | Bonjour, Nous pouvons en parler, contacter moi au 0033780585454. David  Le ven. 28 août 2… | CALL THEM - the number is in the reply |
 | Olivier (1erePlace.com) | High ticket linkfinder AI | Pourquoi ce n'est pas avec vous que j'ai RDV quand je clique sur le  calendly ?  Le 31/08… | none - booked |
 | Adrien (WHITE SQUARE CONSULTING) | High ticket linkfinder AI | Bonjour Rachel,  Vous êtes une IA ou une vrai personne?  Cordialement,    Adrien CHAMPEY … | none - 3 follow-ups sent, that is the limit |
 | Théo (Stand Indus) | High ticket linkfinder AI | Bonjour Kate,  Merci pour votre email. Nous pouvons échanger en visio entre 14h et 18h su… | none - 3 follow-ups sent, that is the limit |
-| Romain (RKS Consulting) | High ticket linkfinder AI | Bonjour Luke,  Effectivement payer au rdv tenu est intéressant. Aussi cela va dependre du… | none - 3 follow-ups sent, that is the limit |
 | Rodolphe (Webjungle) | High ticket linkfinder AI | non merci  Le dim. 6 sept. 2026 à 10:05, Carl Sullivan <c@voxglide.com> a écrit : | none - negative |
 | robin (ÇABOOST / Groupe EDG) | High ticket linkfinder AI | Bonjour,  Je ne suis pas intéressé merci.  -  Robin Vermandel  Fondateur  Le 6 sept. 2026… | none - negative |
 | Cédric (Insight Design for bran…) | High ticket linkfinder AI | Bonjour,  actuellement absent, je serai de retour le 07/09/26. Pour toute demande, vous p… | none - auto_reply |
@@ -74,6 +72,7 @@ To take someone out of the loop: open the lead in the [inbox](https://explee.com
 | Olivier (Mister Genius) | High ticket linkfinder AI | Bonjour Catherine,  Merci pour votre relance. Ce n'est pas un sujet sur lequel nous souha… | none - negative |
 | Gilles (LAITAO) | High ticket linkfinder AI | Je ne suis pas intéressé.  Gilles BABINET [Le Péril IA - Devenir des Machines ou Rester V… | none - negative |
 | Florent (22h40) | High ticket linkfinder AI | Bonjour, Non :) Bonne journée,  Le mar. 1 sept. 2026 à 12:23, Wyatt Holt <w@connectshiftp… | none - unknown |
+| David (HelpySoft) | High ticket linkfinder AI | Bonjour, Nous pouvons en parler, contacter moi au 0033780585454. David  Le ven. 28 août 2… | none - booked in the note |
 | Diane (HR Services S.A.) | High ticket linkfinder AI | I am out of the office today.  Please leave me a message and I will contact you as soon a… | none - auto_reply |
 | Pierre (Symbioz Recrutement) | High ticket linkfinder AI | Bonjour, je ne suis pas intéressé merci à vous   Pierre SEGUIN  Responsable du recrutemen… | none - negative |
 | Vincent (Irisée Management) | High ticket linkfinder AI | bonjour Caleb.  On ne commence pas, cela me convient mieux. merci.  Je reste à votre disp… | none - negative |
@@ -120,6 +119,7 @@ To take someone out of the loop: open the lead in the [inbox](https://explee.com
 | Frédéric (JANUS CONSULTING) | High ticket linkfinder AI | Bonjour,  En déplacement  avec un accès limité jusqu’au 31 août 2026, je prendrais connai… | none - unknown |
 | Boris (AQSIO) | High ticket linkfinder AI | ﻿﻿Bonjour    Je suis en congés du 24/08/2026 au 4/09/2026 inclus. Durant cette période vo… | none - auto_reply |
 | Marion (Rue Tandem) | High ticket linkfinder AI | Non merci !    Le jeu. 27 août 2026 à 09:45, Sam Reed <s@joinfreshprism.com> a écrit : | none - negative |
+| Romain (RKS Consulting) | High ticket linkfinder AI | Bonjour Luke,  Effectivement payer au rdv tenu est intéressant. Aussi cela va dependre du… | none - booked in the note |
 | François (KELVYA) | High ticket linkfinder AI | non merci  Le jeu. 27 août 2026 à 09:45, Brooke Dean <b@tryshiftanchor.com> a écrit :    … | none - negative |
 | guillaume (Ascensio RH) | High ticket linkfinder AI | Bonjour   Non merci   Cordialement   	 	   Le 27/08/2026 à 08:17, Constance Watson a écri… | none - negative |
 | Jean (Lamort Thomas) | High ticket linkfinder AI | Bonjour Mark,   merci pour cette proposition, mais nous ne déléguons pas ces tâches.  Bie… | none - unknown |
@@ -133,7 +133,6 @@ To take someone out of the loop: open the lead in the [inbox](https://explee.com
 | Maxime (7Experts France) | High ticket linkfinder AI | Hi,  I am on holidays and will come back september 1st. Thanks  Maxime LE BIDOIS    --  *… | none - auto_reply |
 | Romain (R Web) | High ticket linkfinder AI | Bonjour,  Nous nous appelons désormais La Factory ! Cette adresse n'est plus lue ni utili… | none - unknown |
 | Jonathan (Docteur Certif) | high ticket offer linkfinde… | La qualité de la prise de rdv et des critères respectés est aussi indispensable. | none - unknown |
-| Ismail (Strasforma) | high ticket offer linkfinde… | Bonjour,  Dites moi en plus | none - unknown |
 | Axel (Globe Créateur) | high ticket offer linkfinde… | Bonjour Rob,  Merci pour votre message. C'est en effet un sujet ouvert chez nous en ce mo… | none - 3 follow-ups sent, that is the limit |
 | Julie (Globellie) | high ticket offer linkfinde… | Bonjour,  Merci de votre contact, mais je ne suis pas intéressée.  Bien cordialement, Jul… | none - negative |
 | ANGOT (ANGOT Publicité) | high ticket offer linkfinde… | pas besoin !  merci  Le 04/09/2026 à 08:29, Julie Allen a écrit : -- | none - unknown |
@@ -154,6 +153,7 @@ To take someone out of the loop: open the lead in the [inbox](https://explee.com
 | marc (LS Formation) | high ticket offer linkfinde… | Bonjour Aaron,  Non, ce n'est pas un sujet nous concernant. Nous sommes déjà bien accompa… | none - negative |
 | Luc (Ex nihilo SRL) | high ticket offer linkfinde… | Bonjour Zara,  Merci mais je ne cherche pas à développer mon business…  Bien à vous  Luc | none - unknown |
 | Cédric (NOVA-EH!) | high ticket offer linkfinde… | Non merci.  ------------------------------------------------------------------------  Nov… | none - negative |
+| Ismail (Strasforma) | high ticket offer linkfinde… | Bonjour,  Dites moi en plus | none - booked in the note |
 | Florence (Aïna) | high ticket offer linkfinde… | Bonjour,  Je suis actuellement en congé et j'aurai un accès limité à mes emails. En cas d… | none - auto_reply |
 | Charlie (WILD ARCHITECTURE) | high ticket offer linkfinde… | Bonjour,  Ayant quitté mes fonctions de co-gérant de l'atelier WILD Architecture, pour to… | none - Explee will not accept a reply |
 | bernard.leveque (Syscodev/Qreo) | high ticket offer linkfinde… | Bonjour Non merci ; j’ai déjà trop d’activité, c’est la raison pour laquelle je n’entreti… | none - negative |
@@ -187,7 +187,7 @@ To take someone out of the loop: open the lead in the [inbox](https://explee.com
 | Patrice (Emergence Académie) | Organismes de formation FR/… | Bonjour, Vous êtes bien sur ma messagerie. Je ne suis pas disponible pour le moment. En r… | none - unknown |
 | David (Afc Prevention) | Organismes de formation FR/… | Bonjour,     Oui, je veux bien plus d’explication.     Cordialement,       De : Tanner Fo… | none - booked in the note |
 
-## Hot leads Explee flagged (17)
+## Hot leads Explee flagged (14)
 
 | who | title | campaign | went hot | in the loop |
 |---|---|---|---|---|
@@ -197,14 +197,11 @@ To take someone out of the loop: open the lead in the [inbox](https://explee.com
 | Cédric (Elorion) | Founder | High ticket linkfinder AI | 2026-09-03 | yes |
 | Nelly (Agence Indie ✨) | Founder | High ticket linkfinder AI | 2026-09-02 | yes |
 | Pierre (PERTUSATOFILMS) | Chief Executive Officer | High ticket linkfinder AI | 2026-09-01 | yes |
-| David (HelpySoft) | Founder | High ticket linkfinder AI | 2026-08-31 | yes |
 | Olivier (1erePlace.com) | Director | High ticket linkfinder AI | 2026-08-31 | yes |
 | Anthony (Appside) | Founder | High ticket linkfinder AI | 2026-08-28 | yes |
 | Adrien (WHITE SQUARE CONSULTING) | Founder | High ticket linkfinder AI | 2026-08-28 | yes |
 | Théo (Stand Indus) | Founder | High ticket linkfinder AI | 2026-08-27 | yes |
-| Romain (RKS Consulting) | Founder | High ticket linkfinder AI | 2026-08-27 | yes |
 | Richard (RDEM SYSTEMS) | Director | High ticket linkfinder AI | 2026-08-27 | yes |
 | Meyer (Amen.) | Co-Founder | high ticket offer linkfinde… | 2026-09-04 | yes |
 | Niels (Docteur Certif) | Founder | high ticket offer linkfinde… | 2026-09-01 | yes |
-| Ismaïl (Strasforma) | Chief Executive Officer | high ticket offer linkfinde… | 2026-08-31 | yes |
 | Axel (Globe Créateur) | Co-Founder | high ticket offer linkfinde… | 2026-08-29 | yes |
