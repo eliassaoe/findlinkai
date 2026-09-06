@@ -59,9 +59,18 @@ email 3 or 4, so they can only flatter the early steps.
 
 `shorten` re-measures and refuses unless the requested length clears the 15%
 bar (`--force` overrides). It patches only `followups`; emails already sent are
-untouched. **The shape of `followups` is not published** — three shapes are
-handled and anything else raises with the payload, so the first `measure` also
-verifies the field.
+untouched.
+
+**Measured on 6 September, and the answer is: do not shorten.** The real field
+is `{"max_touches": 2, "delay_days": 3}`, and `max_touches` counts the whole
+sequence: of 47 settled human replies on *High ticket linkfinder AI*, 28 came
+on email 1, 19 on email 2, none on a third — there is no third. So the
+sequence is already two emails, the second one earns 40% of the replies, and
+cutting to one would raise cost per reply. `measure` keeps running every
+Monday; it will say so the week the split changes. (The first reading of the
+field, +1 for a first email, recommended "shorten to 2" — which would have set
+`max_touches` to 1. The zero at step 3 is what caught it, and `measure` now
+shouts if a reply ever lands beyond the length it read.)
 
 The workflow runs `measure` every Monday and writes the table into the job
 summary. Read it, then *Run workflow* → `shorten` with the campaign, the number

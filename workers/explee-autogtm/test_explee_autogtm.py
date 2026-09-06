@@ -1086,15 +1086,35 @@ class RealShapes(unittest.TestCase):
                          "skip")
 
     def test_the_settle_window_comes_from_the_sequence(self):
-        self.assertEqual(sq.settle_window({"max_touches": 2, "delay_days": 3}), 8)
+        self.assertEqual(sq.settle_window({"max_touches": 2, "delay_days": 3}), 5)
+        self.assertEqual(sq.settle_window({"max_touches": 3, "delay_days": 3}), 8)
         self.assertEqual(sq.settle_window({"max_touches": 2, "delay_days": 3}, 14), 14)
         self.assertEqual(sq.settle_window([{"x": 1}]), sq.FALLBACK_SETTLED)
         self.assertEqual(sq.settle_window("?"), sq.FALLBACK_SETTLED)
 
     def test_the_sequence_field(self):
-        self.assertEqual(sq.sequence_length({"max_touches": 2, "delay_days": 3}), 3)
-        self.assertEqual(sq.shortened({"max_touches": 2, "delay_days": 3}, 2),
-                         {"max_touches": 1, "delay_days": 3})
+        # max_touches counts the whole sequence: 47 real replies, none past step 2
+        self.assertEqual(sq.sequence_length({"max_touches": 2, "delay_days": 3}), 2)
+        self.assertEqual(sq.sequence_length({"max_touches": 3, "delay_days": 3}), 3)
+        self.assertEqual(sq.shortened({"max_touches": 3, "delay_days": 3}, 2),
+                         {"max_touches": 2, "delay_days": 3})
+        with self.assertRaises(ValueError):
+            sq.shortened({"max_touches": 2, "delay_days": 3}, 2)
+
+    def test_a_reply_beyond_the_sequence_is_shouted_about(self):
+        tally = {"replies": {1: 20, 2: 15, 3: 5}, "positive": {}, "auto": 0, "young": 0,
+                 "unknown_age": 0, "no_step": 0}
+        out = io.StringIO()
+        sq.print_report("x", 1, 2, tally, out=out)
+        self.assertIn("BEYOND the 2 emails", out.getvalue())
+
+    def test_the_real_split_says_keep(self):
+        tally = {"replies": {1: 28, 2: 19}, "positive": {1: 2, 2: 2}, "auto": 29, "young": 21,
+                 "unknown_age": 0, "no_step": 6}
+        pick, basis, rows, why = sq.recommend(tally, 2)
+        self.assertIsNone(pick)
+        self.assertEqual(basis, "replies")
+        self.assertAlmostEqual(rows[0]["share"], 28 / 47)
         self.assertEqual(sq.reply_step(recover.thread_view(self.THREAD)[0]), 1)
 
     def test_inbox_and_hot_leads_keys(self):

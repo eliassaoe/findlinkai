@@ -127,10 +127,13 @@ def tally_steps(threads, now, settled_days=FALLBACK_SETTLED):
 
 
 # --- the campaign's sequence field, whatever shape it has ----------------------
-# Explee's real field, seen 6 Sept 2026: {"max_touches": 2, "delay_days": 3}. Read as
-# two follow-ups after the first email, so a three-email sequence; if replies never
-# show up at step 3 in `measure`, max_touches counts the whole sequence instead.
-COUNT_KEYS = ("max_touches", "count", "number", "n", "total", "emails", "steps")
+# Explee's real field, seen 6 Sept 2026: {"max_touches": 2, "delay_days": 3}.
+# `max_touches` counts the WHOLE sequence, first email included: the first
+# measure found 47 settled replies at steps 1 and 2 and none at a step 3. The
+# other keys are follow-ups after the first email (+1). `tally_steps` warns if a
+# reply ever lands beyond the length read here.
+TOTAL_KEYS = ("max_touches",)
+COUNT_KEYS = ("count", "number", "n", "total", "emails", "steps")
 
 
 def sequence_length(followups):
@@ -148,6 +151,9 @@ def sequence_length(followups):
     if isinstance(followups, list):
         return len(followups) + 1
     if isinstance(followups, dict):
+        for key in TOTAL_KEYS:
+            if isinstance(followups.get(key), int):
+                return followups[key]
         for key in COUNT_KEYS:
             if isinstance(followups.get(key), int):
                 return followups[key] + 1
@@ -193,6 +199,10 @@ def shortened(followups, emails):
     if isinstance(followups, list):
         return followups[:keep]
     out = dict(followups)
+    for key in TOTAL_KEYS:
+        if isinstance(out.get(key), int):
+            out[key] = emails
+            return out
     for key in COUNT_KEYS:
         if isinstance(out.get(key), int):
             out[key] = keep
@@ -260,6 +270,11 @@ def print_report(name, cid, current, tally, out=sys.stdout, followups=None, sett
     if tally["unknown_age"]:
         print("  !! {} threads carry no timestamp and were counted regardless".format(
             tally["unknown_age"]), file=out)
+    beyond = {s: n for s, n in tally["replies"].items() if s > current}
+    if beyond:
+        print("  !! {} replies arrived at a step BEYOND the {} emails read from the "
+              "campaign ({}). sequence_length() is reading the field wrong - fix it before "
+              "trusting any of this.".format(sum(beyond.values()), current, beyond), file=out)
 
     pick, basis, rows, why = recommend(tally, current)
     if rows:
