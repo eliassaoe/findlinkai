@@ -613,7 +613,7 @@ function n8nWorkflow({ withKeys = true } = {}) {
       options: {},
     }, [400, 300]),
 
-    node('Wait', 'wait', 1.1, { amount: 10, unit: 'seconds' }, [620, 300]),
+    node('Wait', 'wait', 1.1, { amount: 15, unit: 'seconds' }, [620, 300]),
 
     node('Explee: check job', 'httpRequest', 4.2, {
       method: 'GET',
@@ -624,26 +624,51 @@ function n8nWorkflow({ withKeys = true } = {}) {
       options: {},
     }, [840, 300]),
 
+    node('Ready?', 'code', 2, jsCode(
+      "// What we actually need is contacts, not a status string. Explee reports\n" +
+      "// pending with progress_pct 99 and eta 0 for a while before the array is\n" +
+      "// populated, so gating on status === 'completed' can spin a long time.\n" +
+      '//\n' +
+      '// $runIndex is this node\'s iteration inside the loop, which is the only\n' +
+      '// exit a Wait/If loop has. Without it a job that never finishes polls\n' +
+      '// forever.\n' +
+      'const j = $input.first().json;\n' +
+      'const meta = j.meta || {};\n' +
+      "if (meta.status === 'failed') {\n" +
+      "  throw new Error('Explee job failed: ' + (meta.error || 'no reason given'));\n" +
+      '}\n' +
+      'const contacts = j.contacts;\n' +
+      'const ready = Array.isArray(contacts);\n' +
+      'if (!ready && $runIndex >= 40) {\n' +
+      '  const p = meta.progress || {};\n' +
+      "  throw new Error('Still pending after ~10 minutes. Last progress: ' +\n" +
+      '    JSON.stringify(p) + \'. The task id is \' +\n' +
+      "    $('Explee: find and enrich').first().json.task_id +\n" +
+      "    ' — check it in Explee before re-running, the credits are already held.');\n" +
+      '}\n' +
+      'return [{ json: { ...j, ready } }];'
+    ), [1060, 300]),
+
     node('Done?', 'if', 2, {
       conditions: {
         options: { caseSensitive: true, leftValue: '', typeValidation: 'loose', version: 2 },
         conditions: [{
           id: uid(),
-          leftValue: '={{ $json.meta.status }}',
-          rightValue: 'completed',
-          operator: { type: 'string', operation: 'equals' },
+          leftValue: '={{ $json.ready }}',
+          rightValue: true,
+          operator: { type: 'boolean', operation: 'true', singleValue: true },
         }],
         combinator: 'and',
       },
       options: {},
-    }, [1060, 300]),
+    }, [1280, 300]),
 
     node('One item per lead', 'code', 2, jsCode(
       '// Explee returns one item holding every contact. Fan them out, and drop\n' +
       '// anyone without an address — there is nothing to send to.\n' +
       'const contacts = $input.first().json.contacts || [];\n' +
       'return contacts.filter(c => c.email).map(c => ({ json: c }));'
-    ), [1280, 200]),
+    ), [1500, 200]),
 
     node('Write the email', 'httpRequest', 4.2, {
       method: 'POST',
@@ -656,7 +681,7 @@ function n8nWorkflow({ withKeys = true } = {}) {
       specifyBody: 'json',
       jsonBody: "={{ JSON.stringify({ model: $('Config').first().json.model, messages: [ { role: 'system', content: " + JSON.stringify(CRAFT) + " }, { role: 'user', content: 'THE OFFER (the only facts you may assert)\\n' + $('Config').first().json.offer + '\\n\\nTHE FACTS\\n' + $('Config').first().json.facts + '\\n\\nTHE PROBLEM THEY LIKELY HAVE\\n' + $('Config').first().json.problem + '\\n\\nEXTRA INSTRUCTIONS\\n' + $('Config').first().json.instructions + '\\n\\nLEAD RECORD\\n' + JSON.stringify($json) } ] }) }}",
       options: {},
-    }, [1500, 200]),
+    }, [1720, 200]),
 
     node('Build the lead', 'code', 2, jsCode(
       "// Parse the model's JSON and shape one Instantly lead. The per-lead copy\n" +
@@ -684,7 +709,7 @@ function n8nWorkflow({ withKeys = true } = {}) {
       '  } });\n' +
       '}\n' +
       'return out;'
-    ), [1720, 200]),
+    ), [1940, 200]),
 
     node('Instantly: add leads', 'httpRequest', 4.2, {
       method: 'POST',
@@ -697,7 +722,7 @@ function n8nWorkflow({ withKeys = true } = {}) {
       specifyBody: 'json',
       jsonBody: "={{ JSON.stringify({ campaign_id: $('Config').first().json.instantly_campaign_id, skip_if_in_campaign: true, skip_if_in_workspace: true, leads: $input.all().map(i => i.json) }) }}",
       options: {},
-    }, [1940, 200]),
+    }, [2160, 200]),
   ];
 
   const link = (from, to, out = 0) => ({ [from]: { main: [] } });
@@ -706,7 +731,8 @@ function n8nWorkflow({ withKeys = true } = {}) {
     Config: { main: [[{ node: 'Explee: find and enrich', type: 'main', index: 0 }]] },
     'Explee: find and enrich': { main: [[{ node: 'Wait', type: 'main', index: 0 }]] },
     Wait: { main: [[{ node: 'Explee: check job', type: 'main', index: 0 }]] },
-    'Explee: check job': { main: [[{ node: 'Done?', type: 'main', index: 0 }]] },
+    'Explee: check job': { main: [[{ node: 'Ready?', type: 'main', index: 0 }]] },
+    'Ready?': { main: [[{ node: 'Done?', type: 'main', index: 0 }]] },
     // true -> carry on; false -> back to Wait, which is the polling loop.
     'Done?': { main: [
       [{ node: 'One item per lead', type: 'main', index: 0 }],

@@ -178,10 +178,20 @@ with your offer and facts in it, and the push to Instantly. Import with
 `⋯ → Import from File` and it runs there: no Python, no Actions, every step a
 node you can see and change.
 
-Ten nodes, five types (`manualTrigger`, `code`, `httpRequest`, `wait`, `if`) —
+Eleven nodes, five types (`manualTrigger`, `code`, `httpRequest`, `wait`, `if`) —
 anything that could have been a `splitOut` or a `Set` is a Code node instead,
 because a workflow that fails to import is worse than one with an extra node.
 The `Done?` node's false branch loops back to `Wait`, which is the poll.
+
+**The poll waits for `contacts`, not for a status string.** Explee reports
+`status: "pending"` with `contacts: null` well past `progress_pct: 99` and
+`eta_seconds: 0` — the search is done by then but the per-contact email
+enrichment is not, and the array only appears when the whole task closes. A
+first cut gated on `meta.status === 'completed'` and sat there. The `Ready?`
+Code node now gates on `Array.isArray(contacts)`, raises on
+`meta.status === 'failed'`, and — because a Wait/If loop has no other exit —
+throws at `$runIndex >= 40`, about ten minutes at the 15s wait, naming the
+task id so you can check it in Explee rather than re-running and paying twice.
 
 Two buttons: one embeds your keys so it runs on import (**keep that file local**),
 one leaves placeholders in the Config node.

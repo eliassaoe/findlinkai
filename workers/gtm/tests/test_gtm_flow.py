@@ -13,10 +13,24 @@ import urllib.error
 from unittest import mock
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-for k, v in {"EXPLEE_API_KEY": "e", "INSTANTLY_API_KEY": "i", "OPENROUTER_API_KEY": "o"}.items():
-    os.environ.setdefault(k, v)
-
 import gtm  # noqa: E402
+
+# Set inside the module's own run, not at import: unittest imports every test
+# module before running any of them, and an OPENROUTER_API_KEY left in the
+# process environment changes which model slug llm.py returns for every other
+# suite.
+KEYS = {"EXPLEE_API_KEY": "e", "INSTANTLY_API_KEY": "i", "OPENROUTER_API_KEY": "o"}
+_env = None
+
+
+def setUpModule():
+    global _env
+    _env = mock.patch.dict(os.environ, KEYS)
+    _env.start()
+
+
+def tearDownModule():
+    _env.stop()
 
 LEADS = [
     {"full_name": "Michael Meddoro", "first_name": "Michael", "job_title": "Gerant",
