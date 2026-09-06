@@ -1,0 +1,132 @@
+{
+  "name": "Explee companies -> LinkFinder people (test)",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "399de82e-d9e6-4e4c-9349-ff590eba3e6b",
+      "name": "Start",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -40,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ---- FILL THESE TWO IN --------------------------------------------------\nconst EXPLEE_KEY     = 'PUT_EXPLEE_KEY_HERE';\nconst LINKFINDER_KEY = 'PUT_LINKFINDER_KEY_HERE';\n\n// ---- and change this to whatever you want to find -----------------------\nconst DEFINITION  = 'organisme de formation, centre de formation in France';\nconst COMPANIES   = 5;          // Explee: first 100 results are free\nconst SENIORITY   = 'director'; // LinkFinder: which people at each company\nconst PER_COMPANY = 3;          // 1 credit per person returned, email included\n\nreturn [{ json: { EXPLEE_KEY, LINKFINDER_KEY, DEFINITION, COMPANIES,\n                  SENIORITY, PER_COMPANY } }];"
+      },
+      "id": "a361cd94-baa7-4884-a036-ab9b360dc13e",
+      "name": "Config",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        180,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.explee.com/public/api/v1/search/companies",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-API-Key",
+              "value": "={{ $json.EXPLEE_KEY }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ filters: { definition: $json.DEFINITION }, page_size: $json.COMPANIES }) }}",
+        "options": {}
+      },
+      "id": "2edc681e-826c-44f1-8536-1aff409fc1fe",
+      "name": "Explee: search companies",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        400,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Pull the domains out of whatever Explee returned. If the shape is not what\n// this expects it throws WITH the payload, so you can see it rather than\n// getting an empty run.\nconst j = $input.first().json;\nconst rows = j.companies || j.results || j.items || j.data || [];\nconst clean = d => String(d || '').trim().toLowerCase()\n  .replace(/^https?:\\/\\//, '').replace(/^www\\./, '').replace(/\\/.*$/, '');\nconst domains = [...new Set(rows\n  .map(r => clean(r.domain || r.website || r.company_domain || r.companyWebsite ||\n                  r.company_website || r.url))\n  .filter(d => d.includes('.')))];\n\nif (!domains.length) {\n  throw new Error('No domains found. Top-level keys: ' + Object.keys(j).join(', ') +\n    ' | first row: ' + JSON.stringify(rows[0] || j).slice(0, 500));\n}\nreturn domains.map(domain => ({ json: { domain } }));"
+      },
+      "id": "8700c3db-77b0-4135-ba32-0ec54b290208",
+      "name": "Domains",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        620,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// One credit per person returned, email included in that.\n// company_domain_to_employees is async, so post then poll the job here rather\n// than with a Wait/If loop.\nconst cfg = $('Config').first().json;\nif (!this.helpers || !this.helpers.httpRequest) {\n  throw new Error('This n8n has no this.helpers.httpRequest in Code nodes.');\n}\nconst http = opts => this.helpers.httpRequest(opts);\nconst sleep = ms => new Promise(r => setTimeout(r, ms));\nconst API = 'https://api.linkfinderai.com';\nconst auth = { Authorization: 'Bearer ' + cfg.LINKFINDER_KEY };\n\nconst out = [];\nfor (const { json: { domain } } of $input.all()) {\n  let r;\n  try {\n    r = await http({ method: 'POST', url: API, headers: auth, json: true, body: {\n      type: 'company_domain_to_employees', input_data: domain,\n      seniority: cfg.SENIORITY, employee_count: cfg.PER_COMPANY } });\n  } catch (e) { console.log(domain + ' -> ' + e.message); continue; }\n\n  for (let n = 0; r && r.job_id && !r.result && n < 8; n++) {\n    await sleep(8000);\n    try {\n      r = await http({ method: 'GET', headers: auth, json: true,\n        url: r.poll_url || API + '/status/' + r.job_id });\n    } catch (e) { console.log(domain + ' poll -> ' + e.message); r = null; }\n  }\n\n  const rows = (r && r.result) || [];\n  console.log(domain + ': ' + rows.length + ' people');\n  for (const p of rows) {\n    out.push({ json: {\n      domain,\n      name: p.name || [p.firstName, p.lastName].filter(Boolean).join(' '),\n      title: p.jobTitle || '',\n      email: p.email || '',\n      linkedin: p.linkedinUrl || '',\n      company: p.company || '',\n      country: p.country || '',\n    } });\n  }\n  await sleep(1100);\n}\nif (!out.length) throw new Error('No people at any domain. Check the node logs.');\nconsole.log(out.filter(i => i.json.email).length + ' of ' + out.length + ' have an email');\nreturn out;"
+      },
+      "id": "43a2eab0-7e79-4efe-8cce-df9a05c8d088",
+      "name": "LinkFinder: people at each",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        840,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Explee: search companies",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Explee: search companies": {
+      "main": [
+        [
+          {
+            "node": "Domains",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Domains": {
+      "main": [
+        [
+          {
+            "node": "LinkFinder: people at each",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}
