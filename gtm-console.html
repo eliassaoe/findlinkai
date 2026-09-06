@@ -563,6 +563,24 @@ function n8nWorkflow({ withKeys = true } = {}) {
   const c = D.campaign, pr = D.project;
   const first = head('first_email');
 
+  const CRAFT = [
+    'You write one cold email to one person. Four moves, nothing else:',
+    '1. An observation — one concrete thing about them or their company, from the lead record. Not a compliment, not "I came across your profile".',
+    '2. The consequence — why that likely creates the problem the offer addresses.',
+    '3. What you do — concrete and operational, in the order it happens.',
+    '4. One ask — a question they can answer in a line. Ask for a reply, not a call.',
+    '',
+    'Under 90 words. Write in the language of their country; if unclear, English. Write it as a native speaker writes business email, not translated English.',
+    '',
+    'You may state as fact only what is in THE OFFER and THE FACTS. You may refer to the lead record as something you noticed. Never invent metrics, clients, mutual connections or events. If the record is thin, write a shorter email.',
+    '',
+    'Never: "I hope this finds you well", "I wanted to reach out", "I came across", "Quick question", "simply", "just", "easily", "leverage", "solution". No compliments on their website. No second ask, no P.S.',
+    '',
+    'Subject: lowercase, four words or fewer, looks like a person wrote it.',
+    '',
+    'Reply with JSON only: {"subject": "...", "body": "..."}',
+  ].join('\n');
+
   const cfg = {
     explee_key: withKeys ? (k.EXPLEE_API_KEY || '') : 'PUT_EXPLEE_KEY_HERE',
     instantly_key: withKeys ? (k.INSTANTLY_API_KEY || '') : 'PUT_INSTANTLY_KEY_HERE',
@@ -601,26 +619,15 @@ function n8nWorkflow({ withKeys = true } = {}) {
     criteria: [...(c.positive_criteria || []),
                ...(c.negative_criteria || []).map(x => 'is NOT: ' + x)].slice(0, 3),
     offer: c.offer, problem: c.customer_problem, facts: pr.facts,
+    // One field for the agent to read, so the prompt is editable in one
+    // place instead of assembled inside an expression.
+    system_prompt: [CRAFT, '', 'THE OFFER (the only facts you may assert)', c.offer,
+                    '', 'THE FACTS', pr.facts,
+                    '', 'THE PROBLEM THEY LIKELY HAVE', c.customer_problem,
+                    '', 'EXTRA INSTRUCTIONS', first.instructions || ''].join('\n'),
     instructions: first.instructions || '', language: first.language || 'lead',
   };
 
-  const CRAFT = [
-    'You write one cold email to one person. Four moves, nothing else:',
-    '1. An observation — one concrete thing about them or their company, from the lead record. Not a compliment, not "I came across your profile".',
-    '2. The consequence — why that likely creates the problem the offer addresses.',
-    '3. What you do — concrete and operational, in the order it happens.',
-    '4. One ask — a question they can answer in a line. Ask for a reply, not a call.',
-    '',
-    'Under 90 words. Write in the language of their country; if unclear, English. Write it as a native speaker writes business email, not translated English.',
-    '',
-    'You may state as fact only what is in THE OFFER and THE FACTS. You may refer to the lead record as something you noticed. Never invent metrics, clients, mutual connections or events. If the record is thin, write a shorter email.',
-    '',
-    'Never: "I hope this finds you well", "I wanted to reach out", "I came across", "Quick question", "simply", "just", "easily", "leverage", "solution". No compliments on their website. No second ask, no P.S.',
-    '',
-    'Subject: lowercase, four words or fewer, looks like a person wrote it.',
-    '',
-    'Reply with JSON only: {"subject": "...", "body": "..."}',
-  ].join('\n');
 
   const domains = cfg.domains;
 
@@ -771,6 +778,21 @@ function n8nWorkflow({ withKeys = true } = {}) {
       "  company_name: c.company_name || c.company || '',\n" +
       "  company_domain: c.company_domain || c.companyWebsite || c.domain || '',\n" +
       "  location: c.location || c.city || c.country || '',\n" +
+      '  // What the writer is allowed to notice. The raw row also carries NACE\n' +
+      '  // sector scores, follower counts, photo urls and a company_geo that\n' +
+      '  // said CN for Microsoft — noise that dilutes the signal and invites\n' +
+      '  // the model to invent from it.\n' +
+      '  brief: Object.fromEntries(Object.entries({\n' +
+      '    name: c.full_name || c.name ||\n' +
+      "      [c.firstName || c.first_name, c.lastName || c.last_name].filter(Boolean).join(' '),\n" +
+      '    title: c.job_title || c.jobTitle || c.title,\n' +
+      '    headline: c.headline,\n' +
+      '    company: c.company_name || c.company,\n' +
+      '    what_the_company_does: c.company_description,\n' +
+      '    industry: c.company_industry || c.industry,\n' +
+      '    company_size: c.company_size,\n' +
+      '    where: c.city || c.location || c.geo || c.country,\n' +
+      '  }).filter(([, v]) => v)),\n' +
       '} }));'
     ), [1060, 300]),
 
@@ -860,18 +882,34 @@ function n8nWorkflow({ withKeys = true } = {}) {
       "return done;"
     ), [1280, 300]),
 
-    node('Write the email', 'httpRequest', 4.2, {
-      method: 'POST',
-      url: 'https://openrouter.ai/api/v1/chat/completions',
-      sendHeaders: true,
-      headerParameters: { parameters: [
-        { name: 'Authorization', value: "={{ 'Bearer ' + $('Config').first().json.openrouter_key }}" },
-        { name: 'Content-Type', value: 'application/json' }] },
-      sendBody: true,
-      specifyBody: 'json',
-      jsonBody: "={{ JSON.stringify({ model: $('Config').first().json.model, messages: [ { role: 'system', content: " + JSON.stringify(CRAFT) + " }, { role: 'user', content: 'THE OFFER (the only facts you may assert)\\n' + $('Config').first().json.offer + '\\n\\nTHE FACTS\\n' + $('Config').first().json.facts + '\\n\\nTHE PROBLEM THEY LIKELY HAVE\\n' + $('Config').first().json.problem + '\\n\\nEXTRA INSTRUCTIONS\\n' + $('Config').first().json.instructions + '\\n\\nLEAD RECORD\\n' + JSON.stringify($json) } ] }) }}",
-      options: {},
-    }, [1500, 300]),
+    // An AI Agent rather than a raw HTTP call: the model is a dropdown, the
+    // system prompt is a field you can edit in the UI, and when the writer
+    // eventually needs tools — read their site, check recent news — this is
+    // already the right shape. Node type and version are copied from the
+    // agent in the live LinkFinder workflow, so they are known good.
+    {
+      parameters: {
+        promptType: 'define',
+        text: "={{ 'Write to this person.\\n\\n' + JSON.stringify($json.brief, null, 2) }}",
+        options: { systemMessage: "={{ $('Config').first().json.system_prompt }}" },
+      },
+      id: uid(),
+      name: 'Write the email',
+      type: '@n8n/n8n-nodes-langchain.agent',
+      typeVersion: 3.1,
+      position: [1500, 300],
+    },
+
+    // Pick your existing OpenAI credential on this node — the one pointed at
+    // OpenRouter, the same one the live app uses. The model id is in Config.
+    {
+      parameters: { model: "={{ $('Config').first().json.model }}", options: {} },
+      id: uid(),
+      name: 'Model',
+      type: '@n8n/n8n-nodes-langchain.lmChatOpenAi',
+      typeVersion: 1.1,
+      position: [1500, 480],
+    },
 
     node('Build the lead', 'code', 2, jsCode(
       "// Parse the model's JSON and shape one Instantly lead. The per-lead copy\n" +
@@ -881,7 +919,9 @@ function n8nWorkflow({ withKeys = true } = {}) {
       'for (let i = 0; i < $input.all().length; i++) {\n' +
       '  const reply = $input.all()[i].json;\n' +
       "  const lead = $('LinkFinder: fill missing emails').all()[i].json;\n" +
-      "  let text = reply.choices?.[0]?.message?.content ?? '';\n" +
+      '  // The agent answers in .output; a raw chat completion in .choices.\n' +
+      "  let text = reply.output ?? reply.choices?.[0]?.message?.content ?? '';\n" +
+      "  if (typeof text !== 'string') text = JSON.stringify(text);\n" +
       "  if (text.startsWith('```')) text = text.split('```')[1].replace(/^json/, '').trim();\n" +
       '  let email;\n' +
       '  try { email = JSON.parse(text); }\n' +
@@ -927,10 +967,16 @@ function n8nWorkflow({ withKeys = true } = {}) {
   // One straight line, whichever nodes were generated. Built from the node
   // list rather than written out, so a node that gets added or dropped cannot
   // leave a dangling name or an unreachable node behind.
+  // The main line is every node but the language model, which hangs off the
+  // agent on its own connection type instead of sitting in the chain.
+  const chain = nodes.filter(n => n.name !== 'Model');
   const connections = {};
-  nodes.slice(0, -1).forEach((n, i) => {
-    connections[n.name] = { main: [[{ node: nodes[i + 1].name, type: 'main', index: 0 }]] };
+  chain.slice(0, -1).forEach((n, i) => {
+    connections[n.name] = { main: [[{ node: chain[i + 1].name, type: 'main', index: 0 }]] };
   });
+  connections.Model = {
+    ai_languageModel: [[{ node: 'Write the email', type: 'ai_languageModel', index: 0 }]],
+  };
 
   return {
     name: (c.name || 'GTM') + ' — Explee to Instantly',

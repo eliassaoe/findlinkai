@@ -350,6 +350,28 @@ Instantly.
 console and ready to import: five placeholders in the Config node and nothing
 else to fill in.
 
+**The writer is an n8n AI Agent, and it only sees a brief.** `Write the email`
+is `@n8n/n8n-nodes-langchain.agent` with an `lmChatOpenAi` model node on
+`ai_languageModel` — the node type and version copied from the agent in the
+live LinkFinder workflow rather than guessed. Pick your existing OpenAI
+credential (the one pointed at OpenRouter) on the Model node; the model id
+comes from Config, and the whole system prompt is one editable Config field.
+
+An agent is not needed to write one email from a record — that is a single
+completion with no tools to call. It is here because the model becomes a
+dropdown, the prompt becomes a field, and when the writer eventually needs to
+read the prospect's site or check recent news, the shape is already right.
+`Build the lead` reads the agent's `.output` and a raw completion's
+`.choices[0].message.content`, so swapping back is one node.
+
+Each lead gets its own call and its own subject and body — but the writer is
+handed `brief`, not the row. The raw Explee row carries NACE sector scores,
+follower counts, photo urls and a `company_geo` that said `CN` for Microsoft:
+noise that dilutes the signal and invites invention. The brief is name, title,
+headline, company, what the company does, industry, size and location — 391
+bytes instead of 697 on a real row, and `what_the_company_does` is exactly the
+concrete observation the prompt asks for.
+
 **The resolver works to a wall clock, not just a count.** n8n kills a Code
 node at 300s (`N8N_RUNNERS_TASK_TIMEOUT`), and a serial loop over 47 leads with
 a 1.1s spacer and the occasional 8s job poll goes straight through that — which
