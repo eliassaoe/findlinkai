@@ -23,7 +23,7 @@ and runs from GitHub Actions because this sandbox cannot reach the API.
 | # | Change | Tool | What it needs from you |
 |---|---|---|---|
 | 1 | **Shorten the sequence** | `sequence.py` — `.github/workflows/explee-followups.yml`, task `measure` then `shorten` | Read Monday's `measure` table, then run `shorten` with **apply** ticked |
-| 2 | **Pre-qualify leads before sending** | `prequalify.py` — same workflow, task `prequalify` | Pick the campaign, tick **apply**; compare in two weeks |
+| 2 | **Pre-qualify leads before sending** | `prequalify.py` — same workflow, task `prequalify` | Tried for real on 6 Sept: no pool and unobservable criteria, see below. Nothing to do. |
 | 3 | **Win back replies that never booked** | `recover.py` — same workflow, task `followups`, already scheduled daily | Set the `EXPLEE_APPLY` variable to `true` |
 
 **Where to see what any of it did: `linkfinderai.com/autogtm-report`.** Every
@@ -120,6 +120,19 @@ criteria (negatives phrased so a high score means safe). `search` pages
 writes an import-ready file. `import` creates a new campaign in the same
 project with the **same brief**, and writes both arm files so the existing
 `compare` verdict applies unchanged.
+
+**Run for real on 6 September, twice, and the verdict is: not a lever here.**
+Two runs (`marketing agency` as the definition, then the campaign's own list
+of business types) found 276 and 259 people for the whole target — AutoGTM's
+own discovery had already written to 3,276 in that campaign, so there is no
+larger pool to pre-qualify from. And Explee's scorer gives a 1 when it has no
+evidence: *contract value above $3,000* scored 1 for 205 of 259, *signs of
+outbound intent* for 238. Those are not visible from company data, so no gate
+keeps anyone (every ≥ 3 kept two people). *Founder-led sales*, the one it can
+judge, is what AutoGTM already targets. About $4.50 spent in total. The tool
+stays for a campaign whose criteria are observable — an industry, a
+technology, a size — and the page shows the per-criterion picture of the last
+run so the next attempt starts from evidence.
 
 What it costs: 1 credit a person plus 0.1 per criterion after the first 100,
 then 1.5 credits per email found. 1,000 people on 4 criteria is about $12.60 of
