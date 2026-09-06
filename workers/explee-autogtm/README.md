@@ -74,7 +74,7 @@ python3 prequalify.py plan   --campaign 127292 --out prequalify.json     # free
 python3 prequalify.py search --plan prequalify.json --max-people 1000 --min-score 4 \
                              --out qualified.leads.json --apply
 python3 prequalify.py import --plan prequalify.json --leads qualified.leads.json --apply
-python3 leadsource_test.py compare --arm source.arm.json --arm qualified.arm.json --period month
+python3 leadsource_test.py compare --arm source.arm.json --arm qualified.arm.json --period 30d
 ```
 
 `plan` reads the campaign's own definition — role, geography, size, keywords,
@@ -268,7 +268,7 @@ python3 leadsource_test.py import --project <id> --name "Source test - Pharow" \
 
 # 5. two weeks later, both arms over the same days
 python3 leadsource_test.py compare --arm explee.arm.json --arm pharow.arm.json \
-    --period month --calls calls.json
+    --period 30d --calls calls.json
 ```
 
 **What it costs:** Pharow EUR 105 for 1,000 credits (better value than the EUR 90

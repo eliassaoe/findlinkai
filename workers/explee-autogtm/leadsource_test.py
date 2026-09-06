@@ -600,7 +600,7 @@ def main(argv=None):
 
     cmp_ = sub.add_parser("compare", help="read both arms and call it")
     cmp_.add_argument("--arm", action="append", required=True)
-    cmp_.add_argument("--period")
+    cmp_.add_argument("--period", choices=("today", "7d", "30d", "all"))
     cmp_.add_argument("--calls", help='JSON: {"<campaign_id>": {"booked": 4, "showed": 2}}')
     cmp_.set_defaults(func=cmd_compare)
 

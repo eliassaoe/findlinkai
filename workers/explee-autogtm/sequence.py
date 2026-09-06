@@ -125,7 +125,10 @@ def tally_steps(threads, now, settled_days=SETTLED_DAYS):
 
 
 # --- the campaign's sequence field, whatever shape it has ----------------------
-COUNT_KEYS = ("count", "number", "n", "total", "emails", "steps")
+# Explee's real field, seen 6 Sept 2026: {"max_touches": 2, "delay_days": 3}. Read as
+# two follow-ups after the first email, so a three-email sequence; if replies never
+# show up at step 3 in `measure`, max_touches counts the whole sequence instead.
+COUNT_KEYS = ("max_touches", "count", "number", "n", "total", "emails", "steps")
 
 
 def sequence_length(followups):
@@ -216,8 +219,9 @@ def recommend(tally, current, min_gain=MIN_GAIN):
 
 
 # --- output ------------------------------------------------------------------
-def print_report(name, cid, current, tally, out=sys.stdout):
-    print("\n== {} ({}) - {} emails in the sequence".format(name, cid, current), file=out)
+def print_report(name, cid, current, tally, out=sys.stdout, followups=None):
+    print("\n== {} ({}) - {} emails in the sequence (followups={})".format(
+        name, cid, current, json.dumps(followups)), file=out)
     steps = sorted(set(tally["replies"]) | set(tally["positive"]) | set(range(1, current + 1)))
     print("  {:<6}{:>9}{:>11}{:>12}".format("step", "replies", "positive", "cum. share"),
           file=out)
@@ -279,7 +283,7 @@ def measure_campaign(api, cid, now, settled_days, out=sys.stdout):
         except (ShapeError, ExpleeError) as err:
             print("  !! {}: {}".format(pid, err), file=out)
     tally = tally_steps(threads, now, settled_days)
-    pick = print_report(name, cid, current, tally, out=out)
+    pick = print_report(name, cid, current, tally, out=out, followups=followups)
     _, _, _, why = recommend(tally, current)
     return {"campaign_id": cid, "name": name, "emails": current, "followups": followups,
             "tally": tally, "recommend": pick, "why": why}

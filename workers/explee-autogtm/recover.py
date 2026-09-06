@@ -195,7 +195,7 @@ def message_direction(msg):
 
 def message_time(msg):
     """When it was sent, if the payload says. None is a normal answer."""
-    for key in ("sent_at", "created_at", "timestamp", "date", "at", "time"):
+    for key in ("ts", "sent_at", "created_at", "timestamp", "date", "at", "time"):
         value = msg.get(key)
         if isinstance(value, str) and value.strip():
             try:
@@ -209,7 +209,8 @@ def thread_view(thread):
     """-> (messages oldest-first as {direction, text, at}, can_reply)."""
     raw = first_of(thread, "messages", "emails", "thread", "conversation", default=[])
     messages = [{"direction": message_direction(m),
-                 "text": first_of(m, "body", "text", "message", "content", default=""),
+                 "text": first_of(m, "body_text", "body", "text", "message", "content",
+                                  default=""),
                  "at": message_time(m)}
                 for m in raw]
     return messages, bool(first_of(thread, "can_reply", default=False))
@@ -445,9 +446,11 @@ def collect_hot_leads(api, campaigns, project_id=None):
             email = str(first_of(lead, "email", "email_address", default="")).strip().lower()
             if not email:
                 continue
+            full = str(first_of(lead, "name", "full_name", default="") or "")
             rows.append({
                 "email": email,
-                "first_name": first_of(lead, "first_name", "firstname", default=""),
+                "first_name": first_of(lead, "first_name", "firstname", default="")
+                or (full.split()[0] if full.split() else ""),
                 "company": first_of(lead, "company_name", "company", "company_domain",
                                     default=""),
                 "job_title": first_of(lead, "job_title", "title", default=""),

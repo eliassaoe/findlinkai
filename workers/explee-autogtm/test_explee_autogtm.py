@@ -1011,5 +1011,63 @@ class InboxShape(unittest.TestCase):
         self.assertEqual(tally, {"error: inbox unreadable": 1})
 
 
+class RealShapes(unittest.TestCase):
+    """The payloads as api.explee.com actually returned them on 6 Sept 2026."""
+    THREAD = {"can_reply": True, "reply_blocked_reason": None, "latest_intent": "hot_lead",
+              "lead": {"name": "Tom Guerreau", "email": "tom@prescient.studio",
+                       "job_title": "Founder", "company_name": "Prescient",
+                       "company_domain": "prescient.studio", "note": None},
+              "messages": [
+                  {"type": "sent", "from_email": "p@x.com", "to_email": "tom@prescient.studio",
+                   "body_text": "Bonjour Tom, ...", "ts": "2026-09-04T07:25:11.504036Z"},
+                  {"type": "reply", "from_email": "tom@prescient.studio",
+                   "body_text": "Hi Pete, any reference / resource presenting your work that "
+                                "I could review?", "intent": "hot_lead",
+                   "ts": "2026-09-04T07:39:54Z"},
+                  {"type": "sent", "body_text": "Bien sûr Tom, voici ...",
+                   "ts": "2026-09-04T08:02:40.471903Z"}]}
+
+    def test_thread_reads_direction_body_and_time(self):
+        msgs, can = recover.thread_view(self.THREAD)
+        self.assertTrue(can)
+        self.assertEqual([m["direction"] for m in msgs], ["out", "in", "out"])
+        self.assertIn("any reference", msgs[1]["text"])
+        self.assertEqual(msgs[2]["at"].isoformat(), "2026-09-04T08:02:40.471903+00:00")
+        who = recover.person_fields({"person_id": "d8b1"}, self.THREAD)
+        self.assertEqual(who, {"first_name": "Tom", "company": "Prescient",
+                               "email": "tom@prescient.studio"})
+
+    def test_a_quiet_hot_lead_gets_the_nudge_after_two_days(self):
+        # Explee's auto-reply already answered (message 3); two days later, nudge.
+        now = dt.datetime(2026, 9, 7, 9, 0, tzinfo=UTC)
+        plan = recover.decide({}, self.THREAD, None, CFG, set(), set(), now)
+        self.assertEqual((plan["action"], plan["bucket"]), ("send", "nudge"))
+        soon = dt.datetime(2026, 9, 5, 9, 0, tzinfo=UTC)
+        self.assertEqual(recover.decide({}, self.THREAD, None, CFG, set(), set(), soon)["action"],
+                         "skip")
+
+    def test_the_sequence_field(self):
+        self.assertEqual(sq.sequence_length({"max_touches": 2, "delay_days": 3}), 3)
+        self.assertEqual(sq.shortened({"max_touches": 2, "delay_days": 3}, 2),
+                         {"max_touches": 1, "delay_days": 3})
+        self.assertEqual(sq.reply_step(recover.thread_view(self.THREAD)[0]), 1)
+
+    def test_inbox_and_hot_leads_keys(self):
+        api = Explee(api_key="k")
+        api.request = lambda *a, **k: {"contacts": [{"person_id": "d8b1"}], "total": 103,
+                                       "has_more": True, "next_offset": 1}
+        self.assertEqual(api.inbox(127292, tab="replied"), [{"person_id": "d8b1"}])
+        api.request = lambda *a, **k: {"leads": [{"name": "Meyer Wassermann",
+                                                  "email": "meyer@amenagence.com",
+                                                  "company_name": "Amen.",
+                                                  "job_title": "Co-Founder",
+                                                  "person_id": "31e0", "campaign_id": 130465,
+                                                  "became_hot_at": "2026-09-04T14:58:49Z"}],
+                                       "total": 18}
+        rows = recover.collect_hot_leads(api, [{"id": 130465, "name": "ht2"}], 30475)
+        self.assertEqual(rows[0]["first_name"], "Meyer")
+        self.assertEqual(rows[0]["company"], "Amen.")
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

@@ -6,7 +6,7 @@
                                  --min-score 4 --out qualified.leads.json --apply
     python3 prequalify.py import --plan prequalify.json --leads qualified.leads.json --apply
     python3 leadsource_test.py compare --arm source.arm.json --arm qualified.arm.json \\
-                                 --period month          # two weeks later
+                                 --period 30d            # two weeks later
 
 WHAT THIS BUYS, AND WHAT IT DOES NOT
 ------------------------------------
@@ -329,7 +329,7 @@ def cmd_import(args):
         "live_campaign": True, "adopted_at": stamp}, indent=1))
     print("campaign {} -> {}\ncontrol arm -> {}".format(campaign_id, args.out,
                                                         args.control_out))
-    print("In two weeks: python3 leadsource_test.py compare --arm {} --arm {} --period month"
+    print("In two weeks: python3 leadsource_test.py compare --arm {} --arm {} --period 30d"
           .format(args.control_out, args.out))
     data = state.load()
     section = dict(data.get("prequalify") or {}, campaign_id=campaign_id, campaign_name=name,
