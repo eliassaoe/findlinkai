@@ -84,13 +84,19 @@ RULES = [
                     r"message automatique|hors (du )?bureau|"
                     # a Gmail emoji reaction, a changed-address notice: nobody wrote these
                     r"a r[ée]agi depuis gmail|reacted (via|from|to your)|"
-                    r"nouvelles? coordonn[ée]es|new (email )?address"),
+                    r"nouvelles? coordonn[ée]es|new (email )?address|"
+                    # gone: dead address, left the company, renamed, unavailable
+                    r"n'?est plus en service|ne travaille plus|no longer (works|with|at)|"
+                    r"has left|a quitt[ée]|change de d[ée]nomination|indisponible jusqu|"
+                    r"absence du|pas acc[èe]s [àa] (mes|ma|la) (mails|e-?mails|messagerie|"
+                    r"bo[îi]te)|will not be (reading|checking)"),
     ("negative",    r"not interested|no thank|we'?re all set|already (have|use|using)|"
                     r"don'?t need|not a (good )?fit|no need|"
                     r"pas int[ée]ress|non,? merci|non du tout|pas du tout|sans suite|"
                     r"je (dois )?d[ée]clin|d[ée]sol[ée]e?,? mais|"
                     r"ne (m'|nous |vous )?int[ée]resse pas|n'?est pas int[ée]ress|"
-                    r"pas de besoin|pas un sujet|ne souhait(e|ons) pas|"
+                    r"pas de besoin|pas un sujet|ne souhait(e|ons) pas|pas d'?actualit[ée]|"
+                    r"jamais voulu|"
                     r"pas (tr[èe]s |vraiment |du tout )?convaincant|ne (nous |me )?convient pas|"
                     r"on ne commence pas|je passe|pas pour nous|on a d[ée]j[àa]|"
                     r"nous avons d[ée]j[àa]|\bspams?\b|pas le bon moment pour nous"),
@@ -105,9 +111,11 @@ RULES = [
                      r"speak (to|with) my colleague|forwarded (this )?to|"
                      r"pas la bonne personne|ce n'?est pas moi qui|voir avec|"
                      r"adressez[- ]vous|je transmets|je fais suivre"),
-    ("call_me",     r"(call|ring|phone) me (on|at|:)|contactez?[- ]moi au|appelez[- ]moi|"
-                    r"joignable au|mon (num[ée]ro|portable|t[ée]l[ée]phone) ?:|"
-                    r"(?<![\d.])(?:\+33|0033|\+32|0)[1-9](?:[ .-]?\d{2}){4}\b"),
+    # Explicit phrasing only. A phone number on its own is a signature, and
+    # every French signature has one: matching bare numbers ate 17 threads.
+    ("call_me",     r"(call|ring|phone) me (on|at|:)|contact(ez|er|e)[- ]moi (au|par t[ée]l)|"
+                    r"appelez[- ]moi|joignable au|mon (num[ée]ro|portable|t[ée]l[ée]phone) ?:|"
+                    r"(par|au) t[ée]l[ée]phone au"),
     ("not_now",     r"not (right )?now|next (quarter|year|month)|\bq[1-4]\b|circle back|"
                     r"revisit|too early|bad timing|after (the )?summer|budget.{0,20}next|"
                     r"reach out (again )?in|"
@@ -116,7 +124,9 @@ RULES = [
                     r"une autre fois|peut-?[êe]tre plus tard|pas s[uû]re? que"),
     ("send_info",   r"send (me|over|through)|more info|some info|pricing|how much|"
                     r"a deck|one[- ]pager|case stud|details|documentation|\bcosts?\b|"
-                    r"envoyez|envoie[zr]|plus d'?(info|explication|d[ée]tail)|des informations|"
+                    r"envoyez|envoie[zr]|plus d'?(info|explication|d[ée]tail|pr[ée]cision)|"
+                    r"des informations|aucun (lien|calendrier)|pas re[çc]u (le|de|votre) "
+                    r"(lien|calendrier)|je n'?ai (rien|pas) re[çc]u|"
                     r"\btarifs?\b|combien|plaquette|une pr[ée]sentation|\bdevis\b"),
     ("question",    r"how does|does it|can you|can it|what about|is it|do you (support|have)|"
                     r"what'?s the|which|why would|"

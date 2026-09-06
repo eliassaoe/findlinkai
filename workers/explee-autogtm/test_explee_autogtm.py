@@ -1203,5 +1203,36 @@ class SecondDryRun(unittest.TestCase):
         self.assertIn("queued until", again["reason"])
 
 
+class ThirdDryRun(unittest.TestCase):
+    def test_a_number_in_a_signature_is_not_an_invitation(self):
+        self.assertNotEqual(fu.classify("Bonjour Elena, je ne suis pas sûr que cela corresponde "
+                                        "à nos besoins. Peut-être une autre fois ?\n\nMax "
+                                        "Van Santen Co-founder max@substance.works "
+                                        "+32479672227")[0], "call_me")
+        self.assertEqual(fu.classify("Bonjour Sarah,\n\nAuriez-vous un site web où je peux "
+                                     "consulter vos services et vos tarifs ?\n\nAnthony "
+                                     "06 12 34 56 78")[0], "send_info")
+        self.assertEqual(fu.classify("Nous pouvons en parler, contacter moi au "
+                                     "0033780585454. David")[0], "call_me")
+
+    def test_gone_addresses_and_absences_are_silent(self):
+        for text in ("Merci de nous avoir contactés. Cette adresse e-mail n'est plus en service.",
+                     "Julie Ducasse ne travaille plus pour OPT'IN Recrutement.",
+                     "Je suis indisponible jusqu'au 4 septembre inclus.",
+                     "Je suis absence du 22 aout au 7 septembre 2026.",
+                     "En formation ce mardi, je n'aurai pas accès à mes mails.",
+                     "Western Consulting change de dénomination sociale pour devenir X."):
+            self.assertEqual(fu.classify(text)[0], "auto_reply", text[:40])
+
+    def test_more_french_noes(self):
+        self.assertEqual(fu.classify("merci pour l'intérêt porté à Zelie mais ce sujet n'est "
+                                     "pas d'actualité")[0], "negative")
+        self.assertEqual(fu.classify("Je n'ai jamais voulu qu'on démarre")[0], "negative")
+
+    def test_no_calendar_received_wants_the_link(self):
+        self.assertEqual(fu.classify("Bonjour Thomas,\n\nJe n'ai recu aucun calendrier.")[0],
+                         "send_info")
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
