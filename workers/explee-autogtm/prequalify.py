@@ -66,6 +66,10 @@ def as_list(value):
     return [p.strip(" -*•\t") for p in parts if p.strip(" -*•\t")]
 
 
+def _tidy(items):
+    return [re.sub(r"^[\s\-*•]+", "", str(i)).strip() for i in items if str(i).strip()]
+
+
 def describe_target(definition):
     """The campaign's targeting as one plain-English query for nl-to-filters."""
     role = first_of(definition, "target_role", default="") or ""
@@ -84,8 +88,8 @@ def describe_target(definition):
 
 def criteria_from(definition, cap=MAX_CRITERIA):
     """Positive criteria as they are; negative ones phrased so a HIGH score means safe."""
-    out = list(as_list(first_of(definition, "positive_criteria", default=[])))
-    for neg in as_list(first_of(definition, "negative_criteria", default=[])):
+    out = _tidy(as_list(first_of(definition, "positive_criteria", default=[])))
+    for neg in _tidy(as_list(first_of(definition, "negative_criteria", default=[]))):
         out.append("Is NOT the following: {}".format(neg))
     problem = first_of(definition, "customer_problem", default="")
     if not out and problem:

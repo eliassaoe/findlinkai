@@ -803,6 +803,8 @@ class Prequalify(unittest.TestCase):
                          ["Sells B2B services", "Has an outbound sales team",
                           "Is NOT the following: Recruitment agency"])
         self.assertEqual(pq.criteria_from({"positive_criteria": ["a"] * 9}), ["a"] * 5)
+        self.assertEqual(pq.criteria_from({"positive_criteria": ["• Founder-led sales"]}),
+                         ["Founder-led sales"])
         self.assertEqual(pq.criteria_from({"customer_problem": "no leads"}),
                          ["Likely has this problem: no leads"])
 
