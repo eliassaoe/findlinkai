@@ -222,3 +222,39 @@ create index if not exists gtm_patterns_lookup_idx
 create or replace view gtm_active_patterns as
   select * from gtm_patterns
    where active and wins >= 3 and wins > losses * 2;
+
+-- ---------------------------------------------------------------------- RLS
+--
+-- Applied to the live project 2026-09-06. Two migrations, and the second one
+-- exists because the first was wrong in a way worth remembering.
+--
+-- The first cut granted `to authenticated using (true)`. That looked right and
+-- was not: auth.users in this project is the APP's user table — 5,116 rows,
+-- 3,841 confirmed — so every customer who signed in could have read and written
+-- campaign config and lead lists. "Authenticated" is not "us".
+--
+-- The fix is an explicit operator allowlist. Membership is granted with the
+-- service role key, out of band; nobody can add themselves.
+--
+-- The runner never signs in. It uses the service role key from GitHub Actions,
+-- which bypasses RLS entirely.
+
+create table if not exists gtm_operators (
+  user_id  uuid primary key references auth.users(id) on delete cascade,
+  email    text,
+  added_at timestamptz not null default now()
+);
+
+alter table gtm_operators enable row level security;
+
+create policy gtm_operators_read on gtm_operators
+  for select to authenticated using (user_id = auth.uid());
+
+create or replace function gtm_is_operator() returns boolean
+  language sql stable security definer set search_path = public
+as $$ select exists (select 1 from gtm_operators where user_id = auth.uid()) $$;
+
+-- Then, for every gtm_* table:
+--   alter table <t> enable row level security;
+--   create policy gtm_operators_all on <t> for all to authenticated
+--     using (gtm_is_operator()) with check (gtm_is_operator());

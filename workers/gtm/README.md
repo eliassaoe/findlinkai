@@ -168,8 +168,24 @@ through the whole thing before any database exists. Nothing in local mode reache
 a server, and the agent cannot see it.
 
 To connect it for real, hit **Connection** and paste your project URL and **anon**
-key (never the service key — this is a browser page, so turn RLS on). From then
-on `run.py --db` reads exactly what the console shows.
+key, then **Sign in**. The URL is `https://<project-ref>.supabase.co` — the
+dashboard URL is a different thing and will not work.
+
+**Signing in is not optional.** The `gtm_*` tables are RLS'd to an operator
+allowlist (`gtm_operators`), so the anon key alone reads nothing. That is
+deliberate: the anon key is public — it ships in every browser that loads the
+app — and this project's `auth.users` is the app's own user table with thousands
+of customers in it, so neither "anon" nor "any authenticated user" is a safe
+audience for lead data. Add an operator with the service role key:
+
+```sql
+insert into gtm_operators (user_id, email)
+select id, email from auth.users where email = 'you@example.com';
+```
+
+The runner does not sign in — it uses the **service role key** in
+`SUPABASE_KEY`, which bypasses RLS. From then on `run.py --db` reads exactly what
+the console shows.
 
 Clients -> projects -> campaigns in the sidebar. Per campaign: the offer, the
 ICP with positive and negative criteria as chips, a per-stage prompt editor with

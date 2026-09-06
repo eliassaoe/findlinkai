@@ -86,6 +86,7 @@ dialog::backdrop{background:#0008}
   <span class="sp"></span>
   <span class="status" id="status"></span>
   <button class="btn ghost" id="theme">◐</button>
+  <button class="btn" id="signin" hidden>Sign in</button>
   <button class="btn" id="keys">Keys</button>
   <button class="btn" id="settings">Connection</button>
 </header>
@@ -247,6 +248,61 @@ async function seedDemo() {
     });
   }
 }
+
+// ------------------------------------------------------------------- auth
+// The gtm_* tables are RLS'd to the `authenticated` role. The anon key is
+// public — it ships in every browser that loads the app — so an anon policy
+// would put campaign config and lead lists behind a key anyone can read.
+// Signing in is what makes those rows visible. The runner does not sign in:
+// it uses the service role key from GitHub Actions, which bypasses RLS.
+let session = null;
+
+async function refreshSession() {
+  if (!sb || sb.local) { session = null; return null; }
+  const { data } = await sb.auth.getSession();
+  session = data?.session || null;
+  const who = $('#who');
+  if (session) {
+    who.textContent = session.user.email;
+    who.title = 'signed in';
+  } else {
+    who.textContent = 'signed out';
+    who.title = 'The tables need a signed-in user. Click Sign in.';
+  }
+  $('#signin').textContent = session ? 'Sign out' : 'Sign in';
+  $('#signin').hidden = false;
+  return session;
+}
+
+$('#signin').onclick = async () => {
+  if (!sb || sb.local) return say('Connect Supabase first.', true);
+  if (session) {
+    await sb.auth.signOut();
+    await refreshSession();
+    cache = { clients: [], projects: [], campaigns: [], prompts: [] };
+    S = { client: null, project: null, campaign: null, tab: 'offer' };
+    renderSidebar(); render();
+    return say('signed out');
+  }
+  $('#dlgTitle').textContent = 'Sign in';
+  $('#dlgSub').textContent =
+    'A Supabase user in this project. Create one under Authentication → Users if you have not.';
+  $('#dlgBody').replaceChildren(
+    el('label', {}, 'Email'), el('input', { type: 'text', id: 'f1', autocomplete: 'username' }),
+    el('label', {}, 'Password'), el('input', { type: 'password', id: 'f2', autocomplete: 'current-password' }),
+  );
+  $('#dlg').showModal();
+  $('#dlgOk').onclick = async () => {
+    const { error } = await sb.auth.signInWithPassword({
+      email: $('#f1').value.trim(), password: $('#f2').value,
+    });
+    if (error) return say(error.message, true);
+    $('#dlg').close();
+    await refreshSession();
+    await loadClients();
+    say('signed in');
+  };
+};
 
 // ---------------------------------------------------------------- connect
 function connect() {
@@ -413,11 +469,22 @@ async function q(table, sel, filters = {}, order) {
   for (const [k, v] of Object.entries(filters)) b = b.eq(k, v);
   if (order) b = b.order(order.col, { ascending: order.asc !== false });
   const { data, error } = await b;
-  if (error) { say(error.message, true); return []; }
+  if (error) {
+    const hint = !session && sb && !sb.local
+      ? ' — you are signed out, and these tables need a signed-in user.'
+      : /does not exist/i.test(error.message)
+        ? ' — run the schema migration first (workers/gtm/schema.sql).'
+        : '';
+    say(error.message + hint, true);
+    return [];
+  }
   return data || [];
 }
 
 async function loadClients() {
+  cache = { clients: [], projects: [], campaigns: [], prompts: [] };
+  S.project = S.campaign = null;
+  renderSidebar();
   cache.clients = await q('gtm_clients', '*', { archived: false }, { col: 'name' });
   renderSidebar();
   if (cache.clients.length && !S.client) pickClient(cache.clients[0]);
@@ -726,7 +793,17 @@ function viewLeads() {
 
 // ---------------------------------------------------------------- boot
 async function boot() {
-  if (connect()) { await loadClients(); return; }
+  if (connect()) {
+    await refreshSession();
+    if (!session) {
+      $('#main').replaceChildren(el('div', { class: 'empty' },
+        'Connected to Supabase. Sign in to load your campaigns — the tables are ',
+        'restricted to signed-in users because the anon key is public.'));
+      return;
+    }
+    await loadClients();
+    return;
+  }
   sb = localBackend();
   $('#who').textContent = 'local';
   $('#who').title = 'Saved in this browser only. Connect Supabase to share it with the agent.';
