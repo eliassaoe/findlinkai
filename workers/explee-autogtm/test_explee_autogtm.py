@@ -1159,5 +1159,43 @@ class RealReplies(unittest.TestCase):
                                      "work that I could review?\n\nThanks,"), "question")
 
 
+class SecondDryRun(unittest.TestCase):
+    """The replies the second dry run (6 Sept, 20:41 UTC) still got wrong."""
+    def test_a_negated_interest_is_a_no(self):
+        self.assertEqual(fu.classify("Vous avez raison, je ne prospecte pas cependant je n'ai "
+                                     "pas le temps. Le rendez-vous ne m'intéresse pas si je "
+                                     "cherche quelqu'un se serait plus un réelle commerciale.")[0],
+                         "negative")
+        self.assertEqual(fu.classify("Pas de besoin en cette rentrée. Bonne journée !")[0],
+                         "negative")
+
+    def test_curly_apostrophes(self):
+        self.assertEqual(fu.classify("Oui, je veux bien plus d\u2019explication.")[0],
+                         "send_info")
+
+    def test_a_phone_number_means_call_them(self):
+        self.assertEqual(fu.classify("Nous pouvons en parler, contacter moi au 0033780585454. "
+                                     "David")[0], "call_me")
+        self.assertEqual(fu.classify("Call me on +44 20 7946 0958 tomorrow")[0], "call_me")
+        convo = thread(("out", "hi", "2026-08-28T08:00:00Z"),
+                       ("in", "contactez-moi au 06 12 34 56 78", "2026-08-28T09:00:00Z"),
+                       ("out", "auto answer", "2026-08-28T09:05:00Z"))
+        plan = recover.decide({}, convo, None, CFG, set(), set(), WED)
+        self.assertEqual(plan["action"], "skip")
+        self.assertIn("CALL THEM", plan["next_action"])
+
+    def test_a_soft_no_is_parked_even_after_we_answered(self):
+        convo = thread(("out", "hi", "2026-08-28T08:00:00Z"),
+                       ("in", "je ne suis pas sûr que cela corresponde à nos besoins actuels. "
+                              "Peut-être une autre fois ?", "2026-08-28T09:00:00Z"),
+                       ("out", "auto answer", "2026-08-28T09:05:00Z"))
+        plan = recover.decide({}, convo, None, CFG, set(), set(), WED)
+        self.assertEqual((plan["action"], plan["bucket"]), ("queue", "not_now"))
+        # and on the next run it stays parked rather than being nudged
+        again = recover.decide({}, convo, plan["note"], CFG, set(), set(), WED)
+        self.assertEqual(again["action"], "skip")
+        self.assertIn("queued until", again["reason"])
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

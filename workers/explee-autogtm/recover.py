@@ -331,21 +331,30 @@ def decide(row, thread, note, cfg, booked, calendar_views, now):
                     bucket=bucket, who=who, next_action="none - {}".format(bucket))
     persona = persona_name(messages, cfg.get("copy", {}).get("sender", ""))
 
+    # "Une autre fois", "circle back in Q1": parked to its own date whoever spoke
+    # last - a soft no is not a two-day nudge. The dated queue below fires it.
+    if bucket in fu.QUEUED and not any(e["msg"] == key and e["action"] == "queued"
+                                        for e in entries):
+        when = fu.re_engage_date(text, now)
+        entries.append({"at": now.strftime("%Y-%m-%dT%H:%MZ"), "bucket": bucket,
+                        "msg": key, "action": "queued", "due": when.isoformat()})
+        return dict(context, action="queue", bucket=bucket, why=why, who=who,
+                    due=when.isoformat(), note=write_marker(note, entries, language),
+                    next_action="re-engage on {}".format(when.isoformat()))
+    # A question, or a phone number to call: a person does this, never a template.
+    # (a question Explee already answered, then silence, is nudged like any other)
+    if bucket in fu.NEEDS_HUMAN and (replies_sent == 0 or bucket == "call_me") \
+            and not any(e["msg"] == key for e in entries):
+        ask = ("CALL THEM - the number is in the reply" if bucket == "call_me"
+               else "ANSWER THIS ONE YOURSELF in the inbox")
+        return dict(context, action="skip", bucket=bucket, who=who,
+                    reason="{} - needs a person, not a template".format(bucket),
+                    next_action=ask)
+
     # --- they spoke last: answer them ---------------------------------------
     if replies_sent == 0:
         if any(e["msg"] == key and e["action"] in ("sent", "queued") for e in entries):
             return {"action": "skip", "reason": "already handled (note marker)", "who": who}
-        if bucket in fu.QUEUED:
-            when = fu.re_engage_date(text, now)
-            entries.append({"at": now.strftime("%Y-%m-%dT%H:%MZ"), "bucket": bucket,
-                            "msg": key, "action": "queued", "due": when.isoformat()})
-            return dict(context, action="queue", bucket=bucket, why=why, who=who,
-                        due=when.isoformat(), note=write_marker(note, entries, language),
-                        next_action="re-engage on {}".format(when.isoformat()))
-        if bucket in fu.NEEDS_HUMAN:
-            return dict(context, action="skip", bucket=bucket, who=who,
-                        reason="question - needs a real answer, not a template",
-                        next_action="ANSWER THIS ONE YOURSELF in the inbox")
         # Explee's own auto-reply answers a fresh reply within minutes when it is
         # on. Then the job here is only the nudge, later. It gets a day: a reply
         # still unanswered after that is one the auto-reply will not handle.
