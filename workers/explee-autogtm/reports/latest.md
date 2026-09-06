@@ -1,6 +1,6 @@
-# Explee follow-ups — linkfinderai — 2026-09-06 22:48 UTC
+# Explee follow-ups — linkfinderai — 2026-09-06 22:51 UTC
 
-**SENT 0 emails**
+**SENT 7 emails**
 
 To take someone out of the loop: open the lead in the [inbox](https://explee.com/app-auto-gtm/p/30475/inbox), write `booked` or `stop` in the note. Next run it stops.
 
@@ -9,27 +9,25 @@ To take someone out of the loop: open the lead in the [inbox](https://explee.com
 | skip: auto_reply | 71 |
 | skip: negative | 34 |
 | skip: unknown | 32 |
-| refused | 7 |
 | nudge | 6 |
 | skip: booked | 5 |
 | skip: can_reply is false | 5 |
 | skip: reply cap (3) reached on this message | 3 |
 | nudge_last | 1 |
 | skip: question | 1 |
-| not_now | 1 |
+| skip: queued until 2026-12-05 | 1 |
 
 ## This run
 
 | who | campaign | they said | what happened |
 |---|---|---|---|
-| Tom (Prescient) | High ticket linkfinder AI | Hi Pete,  Any reference / resource presenting your work that I could review?  Thanks,  * … | would send nudge |
-| Valentine (Shoot For The Moon Films) | High ticket linkfinder AI | Bonjour,  Pourquoi pas ! Quels sont vos tarifs ?  Merci !  <https://htmlsig.com/t/000001C… | would send nudge |
-| Elorion (Elorion) | High ticket linkfinder AI | Bonjour Thomas,  Je n'ai recu aucun calendrier.    Cédric Duma Fondateur - Agence Elorion… | would send nudge |
-| Pierre (PERTUSATOFILMS) | High ticket linkfinder AI | Bonjour Zara,  Je vous remercie pour votre message. Cependant, je ne comprends pas exacte… | would send nudge |
-| Anthony (Appside) | High ticket linkfinder AI | Bonjour Sarah,  Merci pour votre message.  Auriez-vous un site web où je peux consulter v… | would send nudge_last |
-| Richard (RDEM SYSTEMS) | High ticket linkfinder AI | Le 2026-08-27 08:42, Greg Hansen a écrit :  Bonjour,   Cela dépends du tarif que vous fac… | would send nudge |
-| Meyer (Amen.) | high ticket offer linkfinde… | Bonjour Chris,  quelles sont les méthodes de prospection employées ?  Cordialement,  Meye… | would send nudge |
-| Maxime (SUBSTANCE) | high ticket offer linkfinde… | Bonjour Elena, je vous remercie pour votre proposition. Cependant, je ne suis pas sûr que… | parked: not_now |
+| Tom (Prescient) | High ticket linkfinder AI | Hi Pete,  Any reference / resource presenting your work that I could review?  Thanks,  * … | sent nudge |
+| Valentine (Shoot For The Moon Films) | High ticket linkfinder AI | Bonjour,  Pourquoi pas ! Quels sont vos tarifs ?  Merci !  <https://htmlsig.com/t/000001C… | sent nudge |
+| Elorion (Elorion) | High ticket linkfinder AI | Bonjour Thomas,  Je n'ai recu aucun calendrier.    Cédric Duma Fondateur - Agence Elorion… | sent nudge |
+| Pierre (PERTUSATOFILMS) | High ticket linkfinder AI | Bonjour Zara,  Je vous remercie pour votre message. Cependant, je ne comprends pas exacte… | sent nudge |
+| Anthony (Appside) | High ticket linkfinder AI | Bonjour Sarah,  Merci pour votre message.  Auriez-vous un site web où je peux consulter v… | sent nudge_last |
+| Richard (RDEM SYSTEMS) | High ticket linkfinder AI | Le 2026-08-27 08:42, Greg Hansen a écrit :  Bonjour,   Cela dépends du tarif que vous fac… | sent nudge |
+| Meyer (Amen.) | high ticket offer linkfinde… | Bonjour Chris,  quelles sont les méthodes de prospection employées ?  Cordialement,  Meye… | sent nudge |
 
 ## Everyone else who replied
 
@@ -153,6 +151,7 @@ To take someone out of the loop: open the lead in the [inbox](https://explee.com
 | marc (LS Formation) | high ticket offer linkfinde… | Bonjour Aaron,  Non, ce n'est pas un sujet nous concernant. Nous sommes déjà bien accompa… | none - negative |
 | Luc (Ex nihilo SRL) | high ticket offer linkfinde… | Bonjour Zara,  Merci mais je ne cherche pas à développer mon business…  Bien à vous  Luc | none - unknown |
 | Cédric (NOVA-EH!) | high ticket offer linkfinde… | Non merci.  ------------------------------------------------------------------------  Nov… | none - negative |
+| Maxime (SUBSTANCE) | high ticket offer linkfinde… | Bonjour Elena, je vous remercie pour votre proposition. Cependant, je ne suis pas sûr que… | re-engage on 2026-12-05 |
 | Ismail (Strasforma) | high ticket offer linkfinde… | Bonjour,  Dites moi en plus | none - booked in the note |
 | Florence (Aïna) | high ticket offer linkfinde… | Bonjour,  Je suis actuellement en congé et j'aurai un accès limité à mes emails. En cas d… | none - auto_reply |
 | Charlie (WILD ARCHITECTURE) | high ticket offer linkfinde… | Bonjour,  Ayant quitté mes fonctions de co-gérant de l'atelier WILD Architecture, pour to… | none - Explee will not accept a reply |
