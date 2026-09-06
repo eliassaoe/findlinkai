@@ -132,37 +132,49 @@ text to reuse".
 
 ## The console
 
-`ui/index.html` — one file, **no build step, no database, no login, no library.**
-Hosted at `linkfinderai.com/gtm-console`. `ui/build.py --write` renders it to
-`gtm-console.html` at the repo root; edit the master, rebuild, commit both.
+`ui/index.html` — one file, ~570 lines, **no build step, no database, no login,
+no library.** Hosted at `linkfinderai.com/gtm-console`; `ui/build.py --write`
+renders it to `gtm-console.html` at the repo root. Edit the master, rebuild,
+commit both.
 
-Everything lives in `localStorage`, seeded with a worked example, so it works the
-second you open it. Clients -> projects -> campaigns; per campaign the offer, the
-ICP as chips, a per-stage prompt editor with a live count against the 3000 cap,
-and a Sending tab with the Instantly campaign id.
+**Three screens**, because there are three decisions:
 
-**Prompts are versioned** — saving inserts a new version rather than updating, so
-a change in reply rate is attributable to a change in the prompt, and any prior
-version can be restored.
+| | |
+|---|---|
+| **Campaign** | what you sell, who to, and the facts the agent may state |
+| **Emails** | the per-stage instructions, versioned |
+| **Run** | start the workflow, watch it, hold the Instantly campaign id |
 
-### Starting a run from the console
+It was nine tabs, a three-level sidebar and four header buttons. Most of that
+was structure imposed on config that is really one page, plus a Queue tab that
+went dead when Supabase came out of the browser — it read lead rows localStorage
+never has, so it said "nothing sourced yet" forever.
 
-The **Run** tab dispatches the `gtm` workflow on GitHub — that is where the
-secrets live and where the APIs are reachable, so the browser asks GitHub to do
-the work rather than trying to do it itself. Needs a fine-grained PAT with
-**Actions: read and write**, saved under Keys like the others; `api.github.com`
-sends CORS headers, so a static page can do this with no backend.
+Prompts stay versioned: saving appends rather than overwrites, so a change in
+reply rate is attributable to a change in the prompt, and any prior version can
+be restored.
+
+**One campaign at a time, on purpose.** Multi-client lives in the JSON files —
+one per campaign, committed — which is simpler than a sidebar tree for one
+operator and is what the runner reads anyway.
+
+### Starting a run
+
+The **Run** screen dispatches the `gtm` workflow through the GitHub API. That is
+where the secrets live and where the APIs are reachable, so the browser asks
+GitHub to act rather than pretending it can call Explee itself; `api.github.com`
+sends CORS headers, so this needs no backend. Add a fine-grained PAT with
+**Actions: read and write** under Keys.
 
 Buttons are weighted by risk: **Check capacity** is primary and free, sourcing
-and reply-drafting are dry runs, and the one button that can actually send mail
-is styled as a danger and asks first. Recent runs are listed with links to logs.
+and reply-drafting are dry runs, and the one button that sends real mail is a
+danger style behind a confirm.
 
 ### The handoff: Download JSON
 
 The console is in your browser; the agent runs on GitHub's machines. **Download
-JSON** writes the exact shape `run.py load_config()` already reads — the same as
-`example-campaign.json`. Commit it and the workflow runs it. Import reads one
-back in.
+JSON** writes the exact shape `run.py load_config()` reads — the same as
+`example-campaign.json`. Commit it and the workflow runs it.
 
 That is the whole integration. A shared database buys one thing — browser and
 runner seeing the same rows without a file between them — and costs a login, an
@@ -170,9 +182,9 @@ RLS policy, and a public anon key sitting in front of lead data. Not a trade
 worth making for one operator.
 
 `store.py` and `run.py --db` still exist and still work if that changes. The
-`gtm_*` tables are live on the project behind an operator allowlist (see
-`schema.sql`), and the runner writes leads, replies and outcomes there with the
-**service key** — which never touches a browser. The console does not read them.
+`gtm_*` tables are live behind an operator allowlist (see `schema.sql`), and the
+runner writes leads, replies and outcomes there with the **service key**, which
+never touches a browser.
 
 ## Running itself
 

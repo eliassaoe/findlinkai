@@ -3,935 +3,569 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>GTM Console</title>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&display=swap">
 <style>
 :root{
-  --bg:#fbfbfa; --panel:#fff; --line:#e4e2dd; --ink:#1c1b19; --muted:#6f6b64;
-  --accent:#2f5d50; --accent-soft:#eaf1ee; --danger:#a33a2a;
-  --radius:8px;
-  --sans:'Instrument Sans',ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
-  --mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+  --bg:#fcfcfb; --ink:#191817; --muted:#75706a; --line:#e6e3dd;
+  --accent:#2f5d50; --soft:#edf2f0; --danger:#a33a2a;
+  --sans:'Instrument Sans',ui-sans-serif,system-ui,-apple-system,Segoe UI,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,monospace;
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme=light]){
-  --bg:#16171a; --panel:#1d1f23; --line:#2f3238; --ink:#e9e7e3; --muted:#9a958c;
-  --accent:#7fb8a4; --accent-soft:#1f2b27; --danger:#d98675;
+  --bg:#17181b; --ink:#eae8e4; --muted:#948f88; --line:#2c2f34;
+  --accent:#82bba7; --soft:#1e2a26; --danger:#d98675;
 }}
 :root[data-theme=dark]{
-  --bg:#16171a; --panel:#1d1f23; --line:#2f3238; --ink:#e9e7e3; --muted:#9a958c;
-  --accent:#7fb8a4; --accent-soft:#1f2b27; --danger:#d98675;
+  --bg:#17181b; --ink:#eae8e4; --muted:#948f88; --line:#2c2f34;
+  --accent:#82bba7; --soft:#1e2a26; --danger:#d98675;
 }
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.55 var(--sans);-webkit-font-smoothing:antialiased}
-a{color:var(--accent)}
-header{display:flex;align-items:center;gap:14px;padding:12px 20px;border-bottom:1px solid var(--line);background:var(--panel);position:sticky;top:0;z-index:5}
-header h1{font-size:15px;margin:0;font-weight:600;letter-spacing:-.015em}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.6 var(--sans);-webkit-font-smoothing:antialiased}
+.wrap{max-width:680px;margin:0 auto;padding:0 24px 80px}
+
+header{display:flex;align-items:baseline;gap:12px;padding:28px 0 20px}
+header h1{font-size:17px;margin:0;font-weight:600;letter-spacing:-.02em}
 header .sp{flex:1}
-.layout{display:grid;grid-template-columns:250px 1fr;min-height:calc(100vh - 50px)}
-@media(max-width:860px){.layout{grid-template-columns:1fr}aside{border-right:0!important;border-bottom:1px solid var(--line)}}
-aside{border-right:1px solid var(--line);padding:14px;background:var(--panel)}
-main{padding:22px;max-width:900px}
-.eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:16px 0 6px;font-weight:600}
-.eyebrow:first-child{margin-top:0}
-.item{display:block;width:100%;text-align:left;padding:7px 9px;border:0;border-radius:6px;background:none;color:var(--ink);cursor:pointer;font:inherit}
-.item:hover{background:var(--accent-soft)}
-.item.on{background:var(--accent-soft);color:var(--accent);font-weight:600}
-.item small{display:block;color:var(--muted);font-weight:400;font-size:11px}
-button,input,textarea,select{font:inherit;color:inherit}
-.btn{border:1px solid var(--line);background:var(--panel);padding:6px 12px;border-radius:6px;cursor:pointer}
-.btn:hover{border-color:var(--accent)}
-.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
-.btn.ghost{border:0;background:none;color:var(--muted);padding:6px 8px}
-.btn.danger{border-color:var(--danger);color:var(--danger)}
-.btn.danger:hover{background:var(--danger);color:#fff;border-color:var(--danger)}
-.btn:disabled{opacity:.5;cursor:not-allowed}
-label{display:block;margin:14px 0 4px;font-weight:600;font-size:12.5px}
-label span{font-weight:400;color:var(--muted)}
-input[type=text],textarea,select{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:var(--bg)}
-textarea{resize:vertical;min-height:70px;font-family:inherit}
-textarea.code{font-family:var(--mono);font-size:12.5px;line-height:1.6}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:18px;margin-bottom:16px}
-.card h2{margin:0 0 2px;font-size:15px}
-.card p.sub{margin:0 0 6px;color:var(--muted);font-size:12.5px}
-.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-.tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);margin-bottom:16px}
-.tab{padding:8px 14px;border:0;background:none;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px}
-.tab.on{color:var(--ink);border-bottom-color:var(--accent);font-weight:600}
-.chip{display:inline-flex;align-items:center;gap:6px;background:var(--accent-soft);color:var(--accent);border-radius:999px;padding:3px 10px;font-size:12px;margin:0 5px 5px 0}
-.chip button{border:0;background:none;cursor:pointer;color:inherit;opacity:.6;padding:0;line-height:1}
-.count{float:right;font-weight:400;color:var(--muted);font-size:11px}
-.count.over{color:var(--danger);font-weight:600}
-.note{background:var(--accent-soft);border-left:3px solid var(--accent);padding:10px 13px;border-radius:0 6px 6px 0;font-size:12.5px;margin:12px 0}
-.note.warn{background:color-mix(in srgb,var(--danger) 10%,transparent);border-left-color:var(--danger)}
-.empty{color:var(--muted);text-align:center;padding:40px 20px}
-table{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums}
-th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line)}
-th{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
-.pill{font-size:11px;padding:2px 7px;border-radius:999px;background:var(--accent-soft);color:var(--accent);font-variant-numeric:tabular-nums}
-code{font-family:var(--mono);font-size:12px;background:var(--bg);padding:1px 5px;border-radius:4px;border:1px solid var(--line)}
+#status{font-size:13px;color:var(--muted)}
+#status.err{color:var(--danger)}
+
+/* One row of plain-text switches. No tab chrome. */
+nav{display:flex;gap:20px;border-bottom:1px solid var(--line);margin-bottom:28px}
+nav button{border:0;background:none;font:inherit;color:var(--muted);cursor:pointer;
+  padding:0 0 10px;margin-bottom:-1px;border-bottom:1.5px solid transparent}
+nav button.on{color:var(--ink);border-bottom-color:var(--accent)}
+nav .sp{flex:1}
+nav a{color:var(--muted);text-decoration:none;font-size:13px;padding-bottom:10px;cursor:pointer}
+nav a:hover{color:var(--accent)}
+
+h2{font-size:14px;font-weight:600;margin:34px 0 2px;letter-spacing:-.01em}
+h2:first-of-type{margin-top:0}
+p.hint{margin:0 0 14px;color:var(--muted);font-size:13px}
+
+label{display:block;margin:18px 0 5px;font-size:13px;font-weight:500;color:var(--muted)}
+label .n{float:right;font-weight:400;font-variant-numeric:tabular-nums}
+label .n.over{color:var(--danger)}
+input,textarea,select{width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:6px;
+  background:transparent;color:inherit;font:inherit}
+textarea{resize:vertical;min-height:76px}
+textarea.mono{font-family:var(--mono);font-size:13px;line-height:1.65}
+input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
+
+button.b{border:1px solid var(--line);background:transparent;color:inherit;font:inherit;
+  padding:7px 14px;border-radius:6px;cursor:pointer}
+button.b:hover{border-color:var(--accent);color:var(--accent)}
+button.b.go{background:var(--accent);border-color:var(--accent);color:#fff}
+button.b.go:hover{color:#fff;opacity:.9}
+button.b.risk{border-color:var(--danger);color:var(--danger)}
+button.b.risk:hover{background:var(--danger);color:#fff}
+button.b:disabled{opacity:.45;cursor:not-allowed}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+
+.chip{display:inline-flex;align-items:center;gap:7px;background:var(--soft);color:var(--accent);
+  border-radius:5px;padding:3px 9px;font-size:13px;margin:0 6px 6px 0}
+.chip button{border:0;background:none;color:inherit;cursor:pointer;opacity:.55;padding:0;font-size:15px;line-height:1}
+.chip button:hover{opacity:1}
+.chips input{width:auto;min-width:170px;margin-top:2px;border-style:dashed}
+
+.note{color:var(--muted);font-size:13px;margin:12px 0;padding-left:12px;border-left:2px solid var(--line)}
+.note.warn{border-left-color:var(--danger)}
+code{font-family:var(--mono);font-size:12.5px}
+
+table{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums;margin-top:8px}
+td{padding:7px 0;border-bottom:1px solid var(--line);color:var(--muted)}
+td:first-child{color:var(--ink);width:1%;white-space:nowrap;padding-right:14px}
+td a{color:var(--accent)}
+
+dialog{border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);
+  padding:24px;max-width:520px;width:92vw}
+dialog::backdrop{background:#0009}
+dialog h3{margin:0 0 4px;font-size:15px}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
-.status{font-size:12px;color:var(--muted)}
-.status.err{color:var(--danger)}
-dialog{border:1px solid var(--line);border-radius:var(--radius);background:var(--panel);color:var(--ink);padding:20px;max-width:460px;width:92vw}
-dialog::backdrop{background:#0008}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 
-<header>
-  <h1>GTM Console</h1>
-  <span class="pill" id="who">this browser</span>
-  <span class="sp"></span>
-  <span class="status" id="status"></span>
-  <button class="btn ghost" id="theme">◐</button>
-  <button class="btn" id="keys">Keys</button>
-  <button class="btn" id="importJson">Import</button>
-  <button class="btn primary" id="exportJson">Download JSON</button>
-</header>
+<div class="wrap">
+  <header>
+    <h1>GTM Console</h1>
+    <span class="sp"></span>
+    <span id="status"></span>
+  </header>
 
-<div class="layout">
-  <aside>
-    <div class="eyebrow">Clients</div>
-    <div id="clients"></div>
-    <button class="btn ghost" id="newClient">+ client</button>
+  <nav>
+    <button data-v="campaign">Campaign</button>
+    <button data-v="emails">Emails</button>
+    <button data-v="run">Run</button>
+    <span class="sp"></span>
+    <a id="keysLink">Keys</a>
+  </nav>
 
-    <div class="eyebrow">Projects</div>
-    <div id="projects"></div>
-    <button class="btn ghost" id="newProject">+ project</button>
-
-    <div class="eyebrow">Campaigns</div>
-    <div id="campaigns"></div>
-    <button class="btn ghost" id="newCampaign">+ campaign</button>
-  </aside>
-
-  <main id="main"><div class="empty">Loading…</div></main>
+  <main id="main"></main>
 </div>
 
 <dialog id="dlg">
-  <h2 style="margin:0 0 4px;font-size:15px" id="dlgTitle">API keys</h2>
-  <p class="sub" style="color:var(--muted);font-size:12.5px;margin:0 0 8px" id="dlgSub">
-    Saved in this browser only.
-  </p>
+  <h3 id="dlgTitle"></h3>
+  <p class="hint" id="dlgSub"></p>
   <div id="dlgBody"></div>
-  <div class="row" style="margin-top:16px;justify-content:flex-end">
-    <button class="btn ghost" id="dlgCancel">Cancel</button>
-    <button class="btn primary" id="dlgOk">Save</button>
+  <div class="row" style="margin-top:20px;justify-content:flex-end">
+    <button class="b" id="dlgCancel">Cancel</button>
+    <button class="b go" id="dlgOk">Save</button>
   </div>
 </dialog>
 
 <script>
+/* GTM Console — one campaign, three screens.
+ *
+ * Everything is in localStorage. No database, no login, no library. The agent
+ * runs on GitHub Actions, so the two handoffs are: Download JSON (the config,
+ * in the exact shape run.py load_config reads) and the Run screen (dispatches
+ * the workflow through the GitHub API, which sends CORS headers).
+ *
+ * Deliberately one campaign at a time. Multi-client lives in the JSON files —
+ * one per campaign, committed — which is simpler than a sidebar tree for one
+ * operator, and is what the runner reads anyway.
+ */
 const $ = s => document.querySelector(s);
 const el = (t, a = {}, ...kids) => {
   const n = document.createElement(t);
   for (const [k, v] of Object.entries(a)) {
     if (k === 'class') n.className = v;
+    else if (k === 'html') n.innerHTML = v;
     else if (k.startsWith('on')) n.addEventListener(k.slice(2), v);
-    else if (v !== null && v !== undefined) n.setAttribute(k, v);
+    else if (v != null && v !== false) n.setAttribute(k, v === true ? '' : v);
   }
-  for (const kid of kids.flat()) if (kid != null) n.append(kid.nodeType ? kid : String(kid));
+  for (const k of kids.flat()) if (k != null) n.append(k.nodeType ? k : String(k));
   return n;
 };
 const store = {
-  get(k, d) { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } },
-  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+  get: (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } },
+  set: (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
 };
-const STAGES = ['first_email', 'follow_up', 'reply'];
-const MAX_INSTRUCTIONS = 3000;   // matches models.py and the schema CHECK
 
-let sb = null, S = { client: null, project: null, campaign: null, tab: 'offer' };
-let cache = { clients: [], projects: [], campaigns: [], prompts: [] };
+const STAGES = [['first_email', 'First email'], ['follow_up', 'Follow-ups'], ['reply', 'Replies']];
+const MAX_INSTR = 3000;            // matches models.py and the schema CHECK
+const DEFAULT_REPO = 'eliassaoe/findlinkai';
 
-function say(msg, isErr) {
+let view = store.get('view', 'campaign');
+let stage = 'first_email';
+
+function say(m, err) {
   const n = $('#status');
-  n.textContent = msg || '';
-  n.className = 'status' + (isErr ? ' err' : '');
-  if (msg && !isErr) setTimeout(() => { if (n.textContent === msg) n.textContent = ''; }, 2500);
+  n.textContent = m || ''; n.className = err ? 'err' : '';
+  if (m && !err) setTimeout(() => { if (n.textContent === m) n.textContent = ''; }, 3000);
 }
 
-// ---------------------------------------------------------------- theme
-const applyTheme = t => document.documentElement.setAttribute('data-theme', t);
-if (store.get('theme')) applyTheme(store.get('theme'));
-$('#theme').onclick = () => {
-  const cur = document.documentElement.getAttribute('data-theme');
-  const next = cur === 'dark' ? 'light' : 'dark';
-  applyTheme(next); store.set('theme', next);
+/* ---------------------------------------------------------------- the data
+ * One object. Prompts are a list because they are versioned: saving appends,
+ * never overwrites, so a change in reply rate is attributable to a change in
+ * the prompt.
+ */
+const BLANK = {
+  project: { name: '', domain: '', facts: '', booking_link: '', cc_email: '',
+             sending_emails: [], daily_cap: 135 },
+  campaign: { name: '', kind: 'b2b', offer: '', customer_problem: '', example_clients: [],
+              keywords: [], target_role: '', target_geography: '',
+              positive_criteria: [], negative_criteria: [], instantly_campaign_id: null },
+  prompts: { first_email: [], follow_up: [], reply: [] },
 };
 
-// ---------------------------------------------------------------- storage
-// Everything lives in localStorage. No database, no login, no library — the
-// console is a config editor, and config is small.
-//
-// The agent runs on GitHub Actions and cannot read your browser, so the handoff
-// is the Download JSON button: it writes the exact shape run.py already reads
-// (see example-campaign.json). Commit that file and the workflow runs it.
-//
-// A shared database only buys one thing here — the browser and the runner
-// seeing the same rows without a file passing between them — and it costs a
-// login, an RLS policy, and a public anon key sitting in front of lead data.
-// Not worth it for one operator. The runner still uses Supabase for what it
-// accumulates over time (leads, replies, outcomes), with the service key.
-function localBackend() {
-  const read = t => store.get('local:' + t, []);
-  const write = (t, rows) => store.set('local:' + t, rows);
-  const uid = () => (crypto.randomUUID ? crypto.randomUUID()
-                     : 'id-' + Math.random().toString(36).slice(2) + Date.now());
-
-  const result = rows => {
-    const p = Promise.resolve({ data: rows, error: null });
-    p.select = () => result(rows);
-    p.single = () => Promise.resolve({ data: rows[0] ?? null, error: null });
-    return p;
-  };
-
-  return {
-    local: true,
-    from(table) {
-      let rows = read(table), filters = [];
-      const api = {
-        select() { return api; },
-        eq(k, v) { filters.push([k, v]); return api; },
-        order(col, o) {
-          rows = [...rows].sort((a, b) => {
-            const x = a[col], y = b[col];
-            if (x === y) return 0;
-            return ((x > y) ? 1 : -1) * (o?.ascending === false ? -1 : 1);
-          });
-          return api;
-        },
-        insert(obj) {
-          const added = (Array.isArray(obj) ? obj : [obj]).map(r => ({
-            id: uid(), created_at: new Date().toISOString(), ...r,
-          }));
-          write(table, [...read(table), ...added]);
-          return result(added);
-        },
-        update(patch) {
-          return {
-            eq(k, v) {
-              const all = read(table).map(r => (r[k] === v ? { ...r, ...patch } : r));
-              write(table, all);
-              return Promise.resolve({ data: null, error: null });
-            },
-          };
-        },
-        then(res, rej) {
-          const out = rows.filter(r => filters.every(([k, v]) => r[k] === v));
-          return Promise.resolve({ data: out, error: null }).then(res, rej);
-        },
-      };
-      return api;
-    },
-  };
-}
-
-async function seedDemo() {
-  const c = await sb.from('gtm_clients').insert({ name: 'LinkFinder AI', slug: 'linkfinderai', archived: false }).select().single();
-  const p = await sb.from('gtm_projects').insert({
-    client_id: c.data.id, name: 'linkfinderai.com', domain: 'linkfinderai.com', archived: false,
+const SEED = {
+  project: {
+    name: 'linkfinderai.com', domain: 'linkfinderai.com',
     facts: 'LinkFinder AI turns a name, company, email or LinkedIn URL into a verified business email or phone number. Plans start at $49/month for 5,000 credits. A LinkedIn-profile-to-email lookup costs 10 credits.\n\nThe outbound service: we build the list, write the campaign, run the sending and handle replies. You pay per meeting held.',
     booking_link: 'https://calendly.com/hamoureliasse/offre-linkfinder-ai-outbound/',
-    cc_email: 'support@linkfinderai.com', daily_cap: 135, sending_emails: [],
-  }).select().single();
-  const camp = await sb.from('gtm_campaigns').insert({
-    project_id: p.data.id, name: 'organismes de formation FR/BE/LU', status: 'draft', kind: 'b2b',
+    cc_email: 'support@linkfinderai.com', sending_emails: [], daily_cap: 135,
+  },
+  campaign: {
+    name: 'organismes de formation FR/BE/LU', kind: 'b2b',
     offer: 'Outbound run end to end, paid per meeting held.',
     customer_problem: 'Prospecting stops whenever the team is delivering training, so the pipeline arrives in waves.',
-    example_clients: ['Cegos', 'Demos', 'Orsys'], keywords: ['organisme de formation', 'centre de formation'],
-    target_role: 'Dirigeant, responsable commercial', target_geography: 'France, Belgique, Luxembourg',
+    example_clients: ['Cegos', 'Demos', 'Orsys'],
+    keywords: ['organisme de formation', 'centre de formation'],
+    target_role: 'Dirigeant, responsable commercial',
+    target_geography: 'France, Belgique, Luxembourg',
     positive_criteria: ['Vente B2B active', 'Equipe commerciale de moins de 5'],
     negative_criteria: ['Formation purement subventionnee', 'Plus de 200 salaries'],
     instantly_campaign_id: null,
-  }).select().single();
-  const instr = {
-    first_email: 'Ask for a reply, not a call. Never mention a discount. Name the pay-per-meeting model once — it is the whole reason this offer is different — and do not explain it twice.',
-    follow_up: 'New angle each time. Follow-up 1: the cost of waiting a quarter. Follow-up 2: offer a sample list of 20 prospects, free, no call needed.',
-    reply: 'Only facts from Project docs. No pressure. Send the booking link only once they have shown real interest.',
-  };
-  for (const stage of STAGES) {
-    await sb.from('gtm_prompts').insert({
-      campaign_id: camp.data.id, stage, version: 1, instructions: instr[stage],
-      language: 'lead', follow_up_every_days: 3, max_follow_ups: 2,
-    });
-  }
-}
-
-$('#dlgCancel').onclick = () => $('#dlg').close();
-
-// ------------------------------------------------------------------- keys
-// The four API keys. They live in THIS BROWSER only (localStorage), never in
-// localStorage only, never in the repo. The agent runs on GitHub's machines and
-// reads its own copies from repository secrets, which is why this panel also
-// generates the exact commands.
-const KEYS = [
-  { id: 'EXPLEE_API_KEY', label: 'Explee', hint: 'explee.com → API Keys. Lead search and enrichment.' },
-  { id: 'LINKFINDER_API_KEY', label: 'LinkFinder AI', hint: 'linkfinderai.com/api-access. Email resolution.' },
-  { id: 'INSTANTLY_API_KEY', label: 'Instantly', hint: 'Instantly → Settings → Integrations. Sending.' },
-  { id: 'GITHUB_TOKEN', label: 'GitHub token', hint: 'A fine-grained PAT with Actions: read and write on this repo. Lets the buttons below start a run.' },
-  { id: 'OPENROUTER_API_KEY', label: 'OpenRouter', hint: 'openrouter.ai/keys. Used if set — the qualifier and copywriter run through its Anthropic Skin.' },
-  { id: 'ANTHROPIC_API_KEY', label: 'Anthropic (alternative)', hint: 'console.anthropic.com. Only used when OpenRouter is not set.' },
-];
-const getKeys = () => store.get('keys', {});
-const mask = v => (!v ? '' : v.length < 12 ? '••••' : v.slice(0, 4) + '••••••••' + v.slice(-4));
-
-$('#keys').onclick = () => {
-  const saved = getKeys();
-  $('#dlgTitle').textContent = 'API keys';
-  $('#dlgSub').textContent =
-    'Saved in this browser only — never in the repo. The agent runs on GitHub and needs its own copies; the commands are below.';
-
-  const body = el('div');
-  const inputs = {};
-  const modelInput = el('input', {
-    type: 'text', id: 'k-LLM_MODEL', value: saved.LLM_MODEL || '',
-    placeholder: 'claude-opus-5  ·  or an OpenRouter slug like anthropic/claude-opus-4.5',
-  });
-  for (const k of KEYS) {
-    inputs[k.id] = el('input', {
-      type: 'password', id: 'k-' + k.id, value: saved[k.id] || '',
-      placeholder: saved[k.id] ? mask(saved[k.id]) : 'not set', autocomplete: 'off',
-    });
-    body.append(el('label', {}, k.label, el('span', {}, ' — ' + k.hint)), inputs[k.id]);
-  }
-
-  body.append(
-    el('label', {}, 'Find emails with', el('span', {}, ' — who resolves the address')),
-    (() => {
-      const sel = el('select', { id: 'k-resolver' });
-      const cur = saved.resolver || 'linkfinder';
-      for (const [v, t] of [
-        ['linkfinder', 'LinkFinder AI — ours, so no marginal cost'],
-        ['explee_premium', 'Explee premium — 5cr (~$0.05) per found email, ~78%'],
-        ['explee_basic', 'Explee basic — 1.5cr (~$0.015) per found email, ~50%'],
-        ['none', "None — only use addresses the search returned (they send unverified, so they won't send)"],
-      ]) sel.append(el('option', { value: v, selected: cur === v ? '' : null }, t));
-      return sel;
-    })(),
-    el('label', {}, 'Model', el('span', {}, ' — leave blank for the default')),
-    modelInput,
-    el('div', { class: 'note' },
-      el('strong', {}, 'OpenRouter wins if both keys are set.'),
-      ' It reaches Claude through the Anthropic Skin at openrouter.ai/api, which is ',
-      'wire-compatible, so no code changes. Two things are unverified there: ',
-      'structured JSON output and the web-search tool the qualifier uses for ',
-      el('code', {}, '--research'), '. Run ', el('code', {}, 'run.py capacity'),
-      ' — it makes two small live calls and tells you which work.'),
-    el('div', { class: 'note' },
-      'Explee charges only when it finds an address; LinkFinder charges either way. ',
-      'On list price Explee is cheaper — but LinkFinder is our own product, so for our ',
-      'own campaigns it costs infrastructure, not the list price.'),
-    el('div', { class: 'note warn' },
-      el('strong', {}, 'Nothing can read these but this browser.'),
-      ' localStorage never leaves your machine — that is what keeps the keys safe, ',
-      'and it is also why the agent cannot see them. It runs on GitHub Actions and ',
-      'needs its own copies. Use a button below, or paste into ',
-      el('code', {}, 'Settings → Secrets and variables → Actions'), '.'),
-    (() => {
-      const pre = el('textarea', { class: 'code', rows: 5, readonly: '' });
-      const render = () => {
-        const set = KEYS
-          .filter(k => inputs[k.id].value)
-          .map(k => `gh secret set ${k.id} --body "${inputs[k.id].value}"`);
-        const model = modelInput.value.trim();
-        if (model) set.push(`gh variable set LLM_MODEL --body "${model}"`);
-        pre.value = set.length ? set.join('\n')
-          : KEYS.map(k => `gh secret set ${k.id} --body "<paste>"`).join('\n');
-      };
-      for (const k of KEYS) inputs[k.id].addEventListener('input', render);
-      // The model field is not a key, but it belongs in the generated commands.
-      modelInput.addEventListener('input', render);
-      render();
-      return pre;
-    })(),
-    el('div', { class: 'row', style: 'margin-top:10px' },
-      el('button', {
-        class: 'btn', type: 'button',
-        onclick: async (e) => {
-          const text = KEYS.filter(k => inputs[k.id].value)
-            .map(k => `gh secret set ${k.id} --body "${inputs[k.id].value}"`)
-            .concat(modelInput.value.trim()
-              ? [`gh variable set LLM_MODEL --body "${modelInput.value.trim()}"`] : [])
-            .join('\n');
-          if (!text) return say('nothing to copy — fill a key first', true);
-          try {
-            await navigator.clipboard.writeText(text);
-            e.target.textContent = 'Copied';
-            setTimeout(() => { e.target.textContent = 'Copy gh commands'; }, 1800);
-          } catch {
-            say('clipboard blocked — select the text above and copy it', true);
-          }
-        },
-      }, 'Copy gh commands'),
-      el('button', {
-        class: 'btn', type: 'button',
-        onclick: () => {
-          const lines = KEYS.filter(k => inputs[k.id].value)
-            .map(k => `${k.id}=${inputs[k.id].value}`);
-          if (modelInput.value.trim()) lines.push(`LLM_MODEL=${modelInput.value.trim()}`);
-          if (!lines.length) return say('nothing to save — fill a key first', true);
-          const a = el('a', {
-            href: URL.createObjectURL(new Blob([lines.join('\n') + '\n'], { type: 'text/plain' })),
-            download: 'secrets.env',
-          });
-          a.click(); URL.revokeObjectURL(a.href);
-          say('secrets.env downloaded — it is gitignored; run: set -a && . ./secrets.env && set +a');
-        },
-      }, 'Download secrets.env'),
-    ),
-    el('div', { class: 'note' },
-      'To run it locally instead of on GitHub: put ', el('code', {}, 'secrets.env'),
-      ' next to ', el('code', {}, 'run.py'), ' — that filename is already gitignored — then ',
-      el('code', {}, 'set -a && . ./secrets.env && set +a && python3 run.py capacity'), '.'),
-  );
-  $('#dlgBody').replaceChildren(body);
-  $('#dlg').showModal();
-
-  $('#dlgOk').onclick = () => {
-    const out = { resolver: $('#k-resolver').value };
-    const modelField = modelInput.value.trim();
-    if (modelField) out.LLM_MODEL = modelField;
-    for (const k of KEYS) {
-      const v = inputs[k.id].value.trim();
-      if (v) out[k.id] = v;
-      else if (saved[k.id]) out[k.id] = saved[k.id];   // blank means unchanged
-    }
-    store.set('keys', out);
-    $('#dlg').close();
-    const n = KEYS.filter(k => out[k.id]).length;
-    say(`${n} of ${KEYS.length} keys saved in this browser · resolver: ${out.resolver}`);
-    if (S.campaign) render();
-  };
+  },
+  prompts: {
+    first_email: [{ version: 1, instructions: 'Ask for a reply, not a call. Never mention a discount. Name the pay-per-meeting model once — it is the whole reason this offer is different — and do not explain it twice.', language: 'lead', at: Date.now() }],
+    follow_up: [{ version: 1, instructions: 'New angle each time. Follow-up 1: the cost of waiting a quarter. Follow-up 2: offer a sample list of 20 prospects, free, no call needed.', language: 'lead', follow_up_every_days: 3, max_follow_ups: 2, at: Date.now() }],
+    reply: [{ version: 1, instructions: 'Only facts from the project notes. No pressure. Send the booking link only once they have shown real interest.', language: 'lead', at: Date.now() }],
+  },
 };
 
-// --------------------------------------------------------- export / import
-// The handoff to the agent. Shape matches example-campaign.json exactly, which
-// is what run.py load_config() already parses — no --db, no bridge.
-function campaignJson() {
-  const p = S.project, c = S.campaign;
-  if (!p || !c) return null;
-  return {
-    project: {
-      name: p.name, domain: p.domain || '', facts: p.facts || '',
-      booking_link: p.booking_link || '', cc_email: p.cc_email || '',
-      sending_emails: p.sending_emails || [], daily_cap: p.daily_cap ?? 100,
-    },
-    campaign: {
-      name: c.name, kind: c.kind || 'b2b',
-      offer: c.offer || '', customer_problem: c.customer_problem || '',
-      example_clients: c.example_clients || [], keywords: c.keywords || [],
-      target_role: c.target_role || '', target_geography: c.target_geography || '',
-      positive_criteria: c.positive_criteria || [],
-      negative_criteria: c.negative_criteria || [],
-      instantly_campaign_id: c.instantly_campaign_id || null,
-    },
-    prompts: STAGES.map(stage => {
-      const h = head(stage);
-      return {
-        stage, instructions: h?.instructions || '', language: h?.language || 'lead',
-        follow_up_every_days: h?.follow_up_every_days ?? 3,
-        max_follow_ups: h?.max_follow_ups ?? 2,
-      };
+let D = store.get('gtm', null);
+if (!D) { D = SEED; store.set('gtm', D); }
+for (const k of Object.keys(BLANK)) D[k] = { ...BLANK[k], ...(D[k] || {}) };
+
+const save = () => store.set('gtm', D);
+const head = s => (D.prompts[s] || []).slice(-1)[0] || { version: 0, instructions: '', language: 'lead' };
+
+/* ------------------------------------------------------------------ fields */
+function text(obj, key, label, hint, { area = false, mono = false, rows = 3 } = {}) {
+  const i = el(area ? 'textarea' : 'input', area ? { rows, class: mono ? 'mono' : '' } : { type: 'text' });
+  i.value = obj[key] ?? '';
+  i.addEventListener('change', () => { obj[key] = i.value; save(); say('saved'); });
+  return el('div', {}, el('label', {}, label, hint ? el('span', { style: 'font-weight:400' }, ' · ' + hint) : null), i);
+}
+
+function chips(obj, key, label, hint) {
+  const box = el('div', { class: 'chips' });
+  const draw = () => box.replaceChildren(
+    ...(obj[key] || []).map((v, i) => el('span', { class: 'chip' }, v,
+      el('button', { title: 'remove', onclick: () => { obj[key].splice(i, 1); save(); draw(); } }, '×'))),
+    el('input', {
+      type: 'text', placeholder: '+ add',
+      onkeydown: e => {
+        if (e.key !== 'Enter') return;
+        e.preventDefault();
+        const v = e.target.value.trim();
+        if (!v) return;
+        (obj[key] ||= []).push(v); save(); e.target.value = ''; draw();
+      },
     }),
-  };
-}
-
-const slug = t => (t || 'campaign').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-
-$('#exportJson').onclick = () => {
-  const data = campaignJson();
-  if (!data) return say('pick a campaign first', true);
-  const a = el('a', {
-    href: URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })),
-    download: `${slug(data.campaign.name)}.json`,
-  });
-  a.click();
-  URL.revokeObjectURL(a.href);
-  say(`downloaded ${a.download} — run: python3 run.py source --campaign ${a.download}`);
-};
-
-$('#importJson').onclick = () => {
-  const picker = el('input', { type: 'file', accept: 'application/json,.json' });
-  picker.onchange = async () => {
-    const file = picker.files?.[0];
-    if (!file) return;
-    let data;
-    try {
-      data = JSON.parse(await file.text());
-      if (!data.project?.name || !data.campaign?.name) throw new Error('missing project.name or campaign.name');
-    } catch (err) {
-      return say('could not read that file: ' + err.message, true);
-    }
-    // Import into the selected client, creating project and campaign.
-    if (!S.client) return say('create a client first', true);
-    const proj = await sb.from('gtm_projects')
-      .insert({ client_id: S.client.id, archived: false, ...data.project }).select().single();
-    const camp = await sb.from('gtm_campaigns')
-      .insert({ project_id: proj.data.id, status: 'draft', ...data.campaign }).select().single();
-    for (const pr of (data.prompts || [])) {
-      await sb.from('gtm_prompts').insert({ campaign_id: camp.data.id, version: 1, ...pr });
-    }
-    say(`imported ${data.campaign.name}`);
-    await pickClient(S.client);
-  };
-  picker.click();
-};
-
-function prompt1(title, sub, label, cb, value = '') {
-  $('#dlgTitle').textContent = title;
-  $('#dlgSub').textContent = sub || '';
-  $('#dlgBody').replaceChildren(el('label', {}, label), el('input', { type: 'text', id: 'f1', value }));
-  $('#dlg').showModal();
-  setTimeout(() => $('#f1').focus(), 30);
-  $('#dlgOk').onclick = async () => {
-    const v = $('#f1').value.trim();
-    if (!v) return;
-    $('#dlg').close();
-    await cb(v);
-  };
-}
-
-// ---------------------------------------------------------------- data
-async function q(table, sel, filters = {}, order) {
-  let b = sb.from(table).select(sel);
-  for (const [k, v] of Object.entries(filters)) b = b.eq(k, v);
-  if (order) b = b.order(order.col, { ascending: order.asc !== false });
-  const { data, error } = await b;
-  if (error) { say(error.message, true); return []; }
-  return data || [];
-}
-
-async function loadClients() {
-  cache = { clients: [], projects: [], campaigns: [], prompts: [] };
-  S.project = S.campaign = null;
-  renderSidebar();
-  cache.clients = await q('gtm_clients', '*', { archived: false }, { col: 'name' });
-  renderSidebar();
-  if (cache.clients.length && !S.client) pickClient(cache.clients[0]);
-  else if (!cache.clients.length) $('#main').replaceChildren(el('div', { class: 'empty' }, 'No clients yet. Create one to start.'));
-}
-async function pickClient(c) {
-  S.client = c; S.project = S.campaign = null;
-  cache.projects = await q('gtm_projects', '*', { client_id: c.id, archived: false }, { col: 'name' });
-  cache.campaigns = [];
-  renderSidebar();
-  if (cache.projects.length) pickProject(cache.projects[0]); else render();
-}
-async function pickProject(p) {
-  S.project = p; S.campaign = null;
-  cache.campaigns = await q('gtm_campaigns', '*', { project_id: p.id }, { col: 'name' });
-  renderSidebar();
-  if (cache.campaigns.length) pickCampaign(cache.campaigns[0]); else render();
-}
-async function pickCampaign(c) {
-  S.campaign = c;
-  cache.prompts = await q('gtm_prompts', '*', { campaign_id: c.id }, { col: 'version', asc: false });
-  renderSidebar(); render();
-}
-const head = (stage) => cache.prompts.filter(p => p.stage === stage)[0] || null;
-
-// ---------------------------------------------------------------- sidebar
-function renderSidebar() {
-  const list = (host, rows, active, onPick, sub) => {
-    $(host).replaceChildren(...rows.map(r => el('button', {
-      class: 'item' + (active?.id === r.id ? ' on' : ''), onclick: () => onPick(r),
-    }, r.name, sub ? el('small', {}, sub(r)) : null)));
-  };
-  list('#clients', cache.clients, S.client, pickClient);
-  list('#projects', cache.projects, S.project, pickProject, p => p.domain || '');
-  list('#campaigns', cache.campaigns, S.campaign, pickCampaign, c => `${c.kind} · ${c.status}`);
-}
-
-$('#newClient').onclick = () => prompt1('New client', '', 'Name', async name => {
-  const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-  const { error } = await sb.from('gtm_clients').insert({ name, slug });
-  if (error) return say(error.message, true);
-  say('client created'); await loadClients();
-});
-$('#newProject').onclick = () => {
-  if (!S.client) return say('pick a client first', true);
-  prompt1('New project', 'A brand or domain you send for.', 'Name', async name => {
-    const { error } = await sb.from('gtm_projects').insert({ client_id: S.client.id, name });
-    if (error) return say(error.message, true);
-    say('project created'); await pickClient(S.client);
-  });
-};
-$('#newCampaign').onclick = () => {
-  if (!S.project) return say('pick a project first', true);
-  prompt1('New campaign', 'One offer to one audience.', 'Name', async name => {
-    const { data, error } = await sb.from('gtm_campaigns')
-      .insert({ project_id: S.project.id, name }).select().single();
-    if (error) return say(error.message, true);
-    for (const stage of STAGES) {
-      await sb.from('gtm_prompts').insert({ campaign_id: data.id, stage, version: 1, instructions: '' });
-    }
-    say('campaign created'); await pickProject(S.project);
-  });
-};
-
-// ---------------------------------------------------------------- editors
-async function save(table, id, patch, label = 'saved') {
-  const { error } = await sb.from(table).update(patch).eq('id', id);
-  error ? say(error.message, true) : say(label);
-}
-
-function field(label, value, onSave, { area = false, hint = '' } = {}) {
-  const input = el(area ? 'textarea' : 'input', area ? {} : { type: 'text' });
-  input.value = value ?? '';
-  if (area) input.rows = 4;
-  input.addEventListener('change', () => onSave(input.value));
-  return el('div', {}, el('label', {}, label, hint ? el('span', {}, ' — ' + hint) : null), input);
-}
-
-function chips(label, values, onChange, hint) {
-  const wrap = el('div');
-  const draw = () => {
-    wrap.replaceChildren(
-      ...(values || []).map((v, i) => el('span', { class: 'chip' }, v,
-        el('button', { title: 'remove', onclick: () => { values.splice(i, 1); onChange([...values]); draw(); } }, '×'))),
-      el('input', {
-        type: 'text', placeholder: 'add and press Enter',
-        style: 'width:auto;min-width:190px;margin-top:4px',
-        onkeydown: e => {
-          if (e.key !== 'Enter') return;
-          e.preventDefault();
-          const v = e.target.value.trim();
-          if (!v) return;
-          values.push(v); onChange([...values]); e.target.value = ''; draw();
-        },
-      }),
-    );
-  };
+  );
   draw();
-  return el('div', {}, el('label', {}, label, hint ? el('span', {}, ' — ' + hint) : null), wrap);
+  return el('div', {}, el('label', {}, label, hint ? el('span', { style: 'font-weight:400' }, ' · ' + hint) : null), box);
 }
 
-function render() {
-  const m = $('#main');
-  if (!S.campaign) {
-    m.replaceChildren(el('div', { class: 'empty' },
-      S.project ? 'No campaigns in this project yet.' : 'Create a client and project to begin.'));
-    return;
-  }
-  const c = S.campaign;
-  const tabs = el('div', { class: 'tabs' }, ...[
-    ['offer', 'Offer'], ['audience', 'Audience'],
-    ['first_email', 'First email'], ['follow_up', 'Follow-ups'], ['reply', 'Replies'],
-    ['project', 'Project docs'], ['sending', 'Sending'], ['run', 'Run'], ['leads', 'Queue'],
-  ].map(([k, label]) => el('button', {
-    class: 'tab' + (S.tab === k ? ' on' : ''), onclick: () => { S.tab = k; render(); },
-  }, label)));
+/* -------------------------------------------------------------- 1. campaign
+ * Offer, audience and the facts, on one screen. They are one decision — what
+ * you sell and who to — and splitting them across three tabs made it feel
+ * bigger than it is.
+ */
+function viewCampaign() {
+  const p = D.project, c = D.campaign;
+  return [
+    el('h2', {}, 'Offer'),
+    el('p', { class: 'hint' }, 'What this campaign sells, and to whom.'),
+    text(c, 'name', 'Campaign name'),
+    text(c, 'offer', 'What you offer', null, { area: true }),
+    text(c, 'customer_problem', 'The problem they have', null, { area: true }),
+    chips(c, 'example_clients', 'Example clients'),
 
-  m.replaceChildren(tabs, ...({
-    offer: viewOffer, audience: viewAudience, project: viewProject,
-    sending: viewSending, run: viewRun, leads: viewLeads,
-  }[S.tab] || (() => viewPrompt(S.tab)))(c));
+    el('h2', {}, 'Audience'),
+    el('p', { class: 'hint' }, 'The qualifier re-checks every lead against these — judgement, not just search filters.'),
+    text(c, 'target_role', 'Target role', 'comma separated'),
+    text(c, 'target_geography', 'Geography'),
+    chips(c, 'keywords', 'Company keywords', 'what kind of company — bounds the search'),
+    chips(c, 'positive_criteria', 'Should be'),
+    chips(c, 'negative_criteria', 'Should NOT be', 'any match is an automatic skip'),
+
+    el('h2', {}, 'Project notes'),
+    el('p', { class: 'hint' }, 'The only facts the agent may state as true. Anything not here, it will not claim.'),
+    text(p, 'name', 'Project name'),
+    text(p, 'facts', 'Facts', null, { area: true, mono: true, rows: 9 }),
+    text(p, 'booking_link', 'Booking link', 'offered only after real interest'),
+  ];
 }
 
-const setC = (patch) => { Object.assign(S.campaign, patch); return save('gtm_campaigns', S.campaign.id, patch); };
-const setP = (patch) => { Object.assign(S.project, patch); return save('gtm_projects', S.project.id, patch); };
+/* ---------------------------------------------------------------- 2. emails
+ * One screen, three stages behind a small switch, because the writing is one
+ * job — not three tabs' worth.
+ */
+function viewEmails() {
+  const cur = head(stage);
+  const list = D.prompts[stage];
 
-function viewOffer(c) {
-  return [el('div', { class: 'card' },
-    el('h2', {}, 'What this campaign sells, and to whom'),
-    el('p', { class: 'sub' }, 'The copywriter may only assert what is here and in Project docs.'),
-    field('What you offer', c.offer, v => setC({ offer: v }), { area: true }),
-    field('Customer problem', c.customer_problem, v => setC({ customer_problem: v }), { area: true }),
-    chips('Example clients', c.example_clients || [], v => setC({ example_clients: v })),
-    chips('Keywords', c.keywords || [], v => setC({ keywords: v }), 'feed the Explee search'),
-    el('label', {}, 'Audience kind'),
-    el('select', { onchange: e => setC({ kind: e.target.value }) },
-      ...['b2b', 'influencer'].map(k => el('option', { value: k, selected: c.kind === k ? '' : null }, k))),
-  )];
+  const counter = el('span', { class: 'n' });
+  const ta = el('textarea', { class: 'mono', rows: 14 });
+  ta.value = cur.instructions || '';
+
+  const saveBtn = el('button', {
+    class: 'b go',
+    onclick: () => {
+      list.push({ ...cur, version: (cur.version || 0) + 1, instructions: ta.value,
+                  language: langSel.value, at: Date.now() });
+      save(); say(`saved as v${(cur.version || 0) + 1}`); render();
+    },
+  }, 'Save version');
+
+  const tick = () => {
+    const n = ta.value.length;
+    counter.textContent = `${n} / ${MAX_INSTR}`;
+    counter.className = 'n' + (n > MAX_INSTR ? ' over' : '');
+    saveBtn.disabled = n > MAX_INSTR || ta.value === cur.instructions;
+  };
+  ta.addEventListener('input', tick);
+
+  const langSel = el('select', {},
+    ...[['lead', "the lead's own language"], ['fr', 'French'], ['en', 'English'],
+        ['de', 'German'], ['es', 'Spanish']]
+      .map(([v, t]) => el('option', { value: v, selected: cur.language === v }, t)));
+
+  const switcher = el('div', { class: 'row', style: 'margin-bottom:6px' },
+    ...STAGES.map(([k, label]) => el('button', {
+      class: 'b' + (stage === k ? ' go' : ''),
+      onclick: () => { stage = k; render(); },
+    }, label)));
+
+  tick();
+
+  const extras = stage === 'follow_up' ? [
+    el('label', {}, 'Cadence'),
+    el('div', { class: 'row' },
+      (() => { const i = el('input', { type: 'text', style: 'width:70px' });
+        i.value = cur.follow_up_every_days ?? 3;
+        i.addEventListener('change', () => { cur.follow_up_every_days = parseInt(i.value, 10) || 3; save(); });
+        return i; })(),
+      el('span', { style: 'color:var(--muted);font-size:13px' }, 'days apart,'),
+      (() => { const i = el('input', { type: 'text', style: 'width:70px' });
+        i.value = cur.max_follow_ups ?? 2;
+        i.addEventListener('change', () => { cur.max_follow_ups = parseInt(i.value, 10) || 2; save(); });
+        return i; })(),
+      el('span', { style: 'color:var(--muted);font-size:13px' }, 'of them'),
+    ),
+  ] : [];
+
+  const history = list.length > 1 ? [
+    el('h2', {}, 'Versions'),
+    el('table', {}, el('tbody', {}, ...[...list].reverse().map(v => el('tr', {},
+      el('td', {}, 'v' + v.version),
+      el('td', {}, (v.instructions || '(empty)').slice(0, 60)),
+      el('td', { style: 'text-align:right' }, el('a', {
+        href: '#', onclick: e => { e.preventDefault(); ta.value = v.instructions; tick();
+          say(`loaded v${v.version} — save to make it current`); },
+      }, 'restore')),
+    )))),
+  ] : [];
+
+  return [
+    switcher,
+    el('label', {}, 'Instructions', counter),
+    el('p', { class: 'hint' },
+      'Combined with the craft rules in the agent. These win on style — they can never ' +
+      'authorise a claim that is not in your project notes.'),
+    ta,
+    el('div', { class: 'row', style: 'margin-top:12px' }, saveBtn,
+      el('span', { style: 'color:var(--muted);font-size:13px' }, `current: v${cur.version || 0}`)),
+    el('label', {}, 'Language'),
+    langSel,
+    ...extras,
+    ...history,
+  ];
 }
 
-function viewAudience(c) {
-  return [el('div', { class: 'card' },
-    el('h2', {}, 'Who the agent looks for'),
-    el('p', { class: 'sub' }, 'The qualifier re-checks every lead against these — they are judgement, not just search filters.'),
-    field('Target role', c.target_role, v => setC({ target_role: v })),
-    field('Target geography', c.target_geography, v => setC({ target_geography: v })),
-    chips('Positive criteria', c.positive_criteria || [], v => setC({ positive_criteria: v })),
-    chips('Negative criteria', c.negative_criteria || [], v => setC({ negative_criteria: v }),
-      'any match here is an automatic skip'),
-    el('div', { class: 'note' },
-      'A negative criterion is the cheapest thing in this system. It stops a send before it costs anything.'),
-  )];
-}
-
-function viewProject() {
-  const p = S.project;
-  return [el('div', { class: 'card' },
-    el('h2', {}, 'Project docs'),
-    el('p', { class: 'sub' }, 'The only facts replies may assert. Anything not here, the agent will not claim.'),
-    (() => {
-      const ta = el('textarea', { class: 'code', rows: 14 });
-      ta.value = p.facts || '';
-      ta.addEventListener('change', () => setP({ facts: ta.value }));
-      return ta;
-    })(),
-    field('Booking link', p.booking_link, v => setP({ booking_link: v }), { hint: 'offered only after real interest' }),
-    field('CC on every reply', p.cc_email, v => setP({ cc_email: v })),
-    field('Daily send cap', p.daily_cap, v => setP({ daily_cap: parseInt(v, 10) || 0 }),
-      { hint: 'nine mailboxes at 15/day = 135' }),
-  )];
-}
-
-// ------------------------------------------------------------------- runs
-// The workflow is the thing that can actually reach Explee, Instantly and the
-// model — GitHub's runners have open egress and hold the secrets. So "start a
-// campaign" here means dispatching it, not doing the work in the browser.
-const GH_REPO = store.get('gh_repo', 'eliassaoe/findlinkai');
-const GH_API = 'https://api.github.com';
+/* ------------------------------------------------------------------- 3. run
+ * The browser cannot reach Explee, Instantly or the model — the secrets and the
+ * open network are on the runner. So this asks GitHub to act.
+ */
+const GH = 'https://api.github.com';
+const keys = () => store.get('keys', {});
+const repo = () => store.get('repo', DEFAULT_REPO);
 
 async function gh(path, opts = {}) {
-  const token = getKeys().GITHUB_TOKEN;
-  if (!token) throw new Error('No GitHub token — add one under Keys.');
-  const r = await fetch(`${GH_API}/repos/${store.get('gh_repo', GH_REPO)}${path}`, {
+  const t = keys().GITHUB_TOKEN;
+  if (!t) throw new Error('No GitHub token — add one under Keys.');
+  const r = await fetch(`${GH}/repos/${repo()}${path}`, {
     ...opts,
-    headers: {
-      Authorization: `Bearer ${token}`,
-      Accept: 'application/vnd.github+json',
-      'X-GitHub-Api-Version': '2022-11-28',
-      ...(opts.body ? { 'Content-Type': 'application/json' } : {}),
-    },
+    headers: { Authorization: `Bearer ${t}`, Accept: 'application/vnd.github+json',
+               'X-GitHub-Api-Version': '2022-11-28',
+               ...(opts.body ? { 'Content-Type': 'application/json' } : {}) },
   });
   if (r.status === 204) return null;
-  const body = await r.json().catch(() => ({}));
-  if (!r.ok) throw new Error(body.message || `GitHub ${r.status}`);
-  return body;
+  const b = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(b.message || `GitHub ${r.status}`);
+  return b;
 }
 
-const dispatch = (job, apply = false) =>
-  gh('/actions/workflows/gtm.yml/dispatches', {
-    method: 'POST',
-    body: JSON.stringify({ ref: 'main', inputs: { job, apply: String(apply) } }),
-  });
-
-const RUN_ICON = { success: '✓', failure: '✗', cancelled: '–', in_progress: '•', queued: '·' };
+const ICON = { success: '✓', failure: '✗', cancelled: '–', in_progress: '◦', queued: '·' };
 
 function viewRun() {
-  const runs = el('div', { class: 'card' }, el('h2', {}, 'Recent runs'), el('p', { class: 'sub' }, 'Loading…'));
+  const runs = el('div');
 
   const refresh = async () => {
     try {
-      const data = await gh('/actions/workflows/gtm.yml/runs?per_page=8');
-      const rows = data.workflow_runs || [];
+      const d = await gh('/actions/workflows/gtm.yml/runs?per_page=6');
+      const rows = d.workflow_runs || [];
       runs.replaceChildren(
         el('h2', {}, 'Recent runs'),
-        el('p', { class: 'sub' }, `${store.get('gh_repo', GH_REPO)} · gtm.yml`),
-        rows.length ? el('table', {},
-          el('thead', {}, el('tr', {}, ...['', 'Started', 'Trigger', 'Status', ''].map(h => el('th', {}, h)))),
-          el('tbody', {}, ...rows.map(r => el('tr', {},
-            el('td', {}, RUN_ICON[r.conclusion || r.status] || '?'),
-            el('td', {}, new Date(r.created_at).toLocaleString()),
-            el('td', {}, r.event),
-            el('td', {}, r.conclusion || r.status),
-            el('td', {}, el('a', { href: r.html_url, target: '_blank', rel: 'noopener' }, 'logs')),
-          ))),
-        ) : el('div', { class: 'empty' }, 'No runs yet.'),
+        rows.length
+          ? el('table', {}, el('tbody', {}, ...rows.map(r => el('tr', {},
+              el('td', {}, (ICON[r.conclusion || r.status] || '?') + '  ' + new Date(r.created_at).toLocaleString()),
+              el('td', {}, r.conclusion || r.status),
+              el('td', { style: 'text-align:right' },
+                 el('a', { href: r.html_url, target: '_blank', rel: 'noopener' }, 'logs')),
+            ))))
+          : el('p', { class: 'hint' }, 'No runs yet.'),
       );
-    } catch (err) {
-      runs.replaceChildren(el('h2', {}, 'Recent runs'), el('div', { class: 'note warn' }, err.message));
+    } catch (e) {
+      runs.replaceChildren(el('h2', {}, 'Recent runs'), el('p', { class: 'note warn' }, e.message));
     }
   };
   refresh();
 
-  const go = (job, apply, label, tone = 'btn') => el('button', {
-    class: tone, type: 'button',
-    onclick: async (e) => {
-      if (apply && !confirm(
-        'This run can SEND email. Campaigns are still created paused and arming is separate, ' +
-        'but replies go out for real. Continue?')) return;
+  const go = (job, apply, label, cls) => el('button', {
+    class: 'b ' + cls,
+    onclick: async e => {
+      if (apply && !confirm('This run can send real email. Continue?')) return;
       e.target.disabled = true;
       try {
-        await dispatch(job, apply);
-        say(`started: ${job}${apply ? ' (apply)' : ' (dry run)'}`);
+        await gh('/actions/workflows/gtm.yml/dispatches', {
+          method: 'POST',
+          body: JSON.stringify({ ref: 'main', inputs: { job, apply: String(apply) } }),
+        });
+        say(`started ${job}${apply ? ' (live)' : ''}`);
         setTimeout(refresh, 2500);
-      } catch (err) {
-        say(err.message, true);
-      } finally {
-        e.target.disabled = false;
-      }
+      } catch (err) { say(err.message, true); }
+      finally { e.target.disabled = false; }
     },
   }, label);
 
+  const missing = ['EXPLEE_API_KEY', 'INSTANTLY_API_KEY', 'GITHUB_TOKEN']
+    .filter(k => !keys()[k]);
+
   return [
-    el('div', { class: 'card' },
-      el('h2', {}, 'Start a run'),
-      el('p', { class: 'sub' },
-        'Dispatches the gtm workflow on GitHub. That is where the secrets live and ' +
-        'where the APIs are reachable — the browser cannot call them directly.'),
-      el('div', { class: 'row', style: 'margin-top:12px' },
-        go('capacity', false, 'Check capacity', 'btn primary'),
-        go('source', false, 'Source and draft'),
-        go('replies', false, 'Draft replies'),
-      ),
-      el('div', { class: 'note' },
-        el('strong', {}, 'Start with Check capacity.'), ' Read-only and free: it reports the ',
-        'Explee balance, which mailboxes can actually send, and whether your model ',
-        'provider supports structured output and web search.'),
-      el('div', { class: 'row', style: 'margin-top:6px' },
-        go('replies', true, 'Draft and send replies (live)', 'btn danger')),
-      el('div', { class: 'note warn' },
-        'Everything except that last button is a dry run. Sourcing never sends — it ',
-        'writes drafts you download from the run. A campaign is created paused, and ',
-        'arming it is still ', el('code', {}, 'run.py arm --apply'), '.'),
-      el('label', {}, 'Repository'),
-      (() => {
-        const i = el('input', { type: 'text', value: store.get('gh_repo', GH_REPO) });
-        i.addEventListener('change', () => { store.set('gh_repo', i.value.trim()); refresh(); });
-        return i;
-      })(),
+    el('h2', {}, 'Start a run'),
+    el('p', { class: 'hint' },
+      'Runs on GitHub — that is where the secrets are and where the APIs are reachable.'),
+    el('div', { class: 'row' },
+      go('capacity', false, 'Check capacity', 'go'),
+      go('source', false, 'Source & draft', ''),
+      go('replies', false, 'Draft replies', ''),
     ),
+    el('p', { class: 'note' },
+      'Start with capacity — free and read-only. It reports your Explee balance, which ' +
+      'mailboxes can actually send, and whether your model provider supports structured ' +
+      'output and web search. Sourcing writes drafts; it never sends.'),
+    el('div', { class: 'row' }, go('replies', true, 'Send replies (live)', 'risk')),
+    missing.length ? el('p', { class: 'note warn' },
+      'Not set in this browser: ' + missing.join(', ') + '. Open Keys.') : null,
+
+    el('h2', {}, 'Instantly campaign'),
+    el('p', { class: 'hint' },
+      'Leave empty and the first send creates one, paused, and writes its id back. Arming is separate.'),
+    text(D.campaign, 'instantly_campaign_id', 'Campaign ID'),
+
+    el('h2', {}, 'Repository'),
+    (() => { const i = el('input', { type: 'text' }); i.value = repo();
+      i.addEventListener('change', () => { store.set('repo', i.value.trim()); refresh(); });
+      return i; })(),
+
     runs,
-    el('div', { class: 'card' },
-      el('h2', {}, 'Before the first real run'),
-      el('p', { class: 'sub' }, 'Three things that are not code:'),
-      el('ol', { style: 'margin:6px 0 0;padding-left:20px;color:var(--muted);font-size:13px;line-height:1.7' },
-        el('li', {}, 'Secrets set on the repo — the Keys panel copies the commands.'),
-        el('li', {}, 'A positive Explee balance. Every request 402s at or below zero, free tier included.'),
-        el('li', {}, 'At least one Instantly mailbox that can actually send. Capacity tells you.'),
-      ),
-    ),
   ];
 }
 
-function viewSending(c) {
-  return [
-    el('div', { class: 'card' },
-      el('h2', {}, 'Instantly campaign'),
-      el('p', { class: 'sub' }, 'Leave empty and the first send creates a paused campaign and writes its id back here. Paste an existing id to add leads to a campaign you already made.'),
-      field('Instantly campaign ID', c.instantly_campaign_id,
-        v => setC({ instantly_campaign_id: v.trim() || null }),
-        { hint: 'the UUID in the Instantly campaign URL' }),
-      el('div', { class: 'note' },
-        'Either way the campaign stays PAUSED after leads are added. Going live is a separate step: ',
-        el('code', {}, 'run.py arm --campaign-id … --apply')),
-    ),
-    (() => {
-      const k = getKeys();
-      const missing = KEYS.filter(x => !k[x.id]);
-      return el('div', { class: missing.length ? 'note warn' : 'note' },
-        missing.length
-          ? `Not set in this browser: ${missing.map(x => x.label).join(', ')}. Open Keys.`
-          : `All four keys saved in this browser · emails via ${k.resolver || 'linkfinder'}.`,
-        ' The agent reads its own copies from GitHub Secrets either way.');
-    })(),
-    el('div', { class: 'card' },
-      el('h2', {}, 'Mailboxes'),
-      el('p', { class: 'sub' }, 'Which of your Instantly mailboxes this project sends from. Empty means all of them.'),
-      chips('Sending addresses', S.project.sending_emails || [],
-        v => setP({ sending_emails: v }), 'one per line, added with Enter'),
-      field('Daily cap', S.project.daily_cap, v => setP({ daily_cap: parseInt(v, 10) || 0 }),
-        { hint: 'nine mailboxes at 15/day = 135; warmup sets the real ceiling' }),
-      el('div', { class: 'note warn' },
-        'Check the mailboxes can actually send before a campaign is armed: ',
-        el('code', {}, 'python3 run.py capacity'),
-        '. On 2026-09-06 all nine reported status -1, which is not sendable.'),
-    ),
-  ];
-}
+/* ------------------------------------------------------------------- keys */
+const KEYS = [
+  ['EXPLEE_API_KEY', 'Explee', 'lead search and enrichment'],
+  ['LINKFINDER_API_KEY', 'LinkFinder AI', 'email resolution'],
+  ['INSTANTLY_API_KEY', 'Instantly', 'sending'],
+  ['OPENROUTER_API_KEY', 'OpenRouter', 'the qualifier and copywriter'],
+  ['GITHUB_TOKEN', 'GitHub', 'PAT with Actions read+write, to start runs'],
+];
 
-function viewPrompt(stage) {
-  const cur = head(stage);
-  if (!cur) return [el('div', { class: 'empty' }, 'No prompt row for this stage yet.')];
-  const history = cache.prompts.filter(p => p.stage === stage);
-
-  const counter = el('span', { class: 'count' });
-  const ta = el('textarea', { class: 'code', rows: 14 });
-  ta.value = cur.instructions || '';
-  const tick = () => {
-    const n = ta.value.length;
-    counter.textContent = `${n} / ${MAX_INSTRUCTIONS}`;
-    counter.className = 'count' + (n > MAX_INSTRUCTIONS ? ' over' : '');
-    saveBtn.disabled = n > MAX_INSTRUCTIONS || ta.value === cur.instructions;
-  };
-  ta.addEventListener('input', tick);
-
-  const saveBtn = el('button', {
-    class: 'btn primary',
-    onclick: async () => {
-      // Prompts are versioned: insert, never update, so a reply-rate change
-      // can be attributed to a specific prompt.
-      const { error } = await sb.from('gtm_prompts').insert({
-        campaign_id: S.campaign.id, stage, version: cur.version + 1,
-        instructions: ta.value, language: cur.language,
-        follow_up_every_days: cur.follow_up_every_days, max_follow_ups: cur.max_follow_ups,
-      });
-      if (error) return say(error.message, true);
-      say(`saved as v${cur.version + 1}`);
-      await pickCampaign(S.campaign);
-    },
-  }, 'Save as new version');
-  tick();
-
-  const extras = [];
-  if (stage === 'follow_up') {
-    extras.push(el('div', { class: 'row' },
-      field('Every N days', cur.follow_up_every_days, v =>
-        save('gtm_prompts', cur.id, { follow_up_every_days: parseInt(v, 10) || 3 })),
-      field('How many', cur.max_follow_ups, v =>
-        save('gtm_prompts', cur.id, { max_follow_ups: parseInt(v, 10) || 2 })),
-    ));
+$('#keysLink').onclick = () => {
+  const saved = keys();
+  const f = {};
+  const body = el('div');
+  for (const [id, label, hint] of KEYS) {
+    f[id] = el('input', { type: 'password', id: 'k-' + id, value: saved[id] || '', autocomplete: 'off' });
+    body.append(el('label', {}, label, el('span', { style: 'font-weight:400' }, ' · ' + hint)), f[id]);
   }
+  const model = el('input', { type: 'text', value: saved.LLM_MODEL || '',
+                              placeholder: 'anthropic/claude-opus-4.5' });
+  const resolver = el('select', {}, ...[
+    ['linkfinder', 'LinkFinder — ours, no marginal cost'],
+    ['explee_premium', 'Explee premium — ~$0.05 per found email, ~78%'],
+    ['explee_basic', 'Explee basic — ~$0.015 per found email, ~50%'],
+  ].map(([v, t]) => el('option', { value: v, selected: (saved.resolver || 'linkfinder') === v }, t)));
 
-  return [
-    el('div', { class: 'card' },
-      el('h2', {}, 'Instructions ', el('span', { class: 'pill' }, 'v' + cur.version), counter),
-      el('p', { class: 'sub' }, 'Combined with the craft rules in copywriter.py. These win on style; they can never authorise a claim that is not in Project docs.'),
-      ta,
-      el('div', { class: 'row', style: 'margin-top:12px' }, saveBtn,
-        el('span', { class: 'status' }, `${history.length} version${history.length === 1 ? '' : 's'}`)),
-      ...extras,
-      el('label', {}, 'Language'),
-      el('select', { onchange: e => save('gtm_prompts', cur.id, { language: e.target.value }) },
-        ...[['lead', "the lead's own language"], ['fr', 'French'], ['en', 'English'], ['de', 'German'], ['es', 'Spanish']]
-          .map(([v, t]) => el('option', { value: v, selected: cur.language === v ? '' : null }, t))),
+  const cmds = () => KEYS.filter(([id]) => f[id].value)
+    .map(([id]) => `gh secret set ${id} --body "${f[id].value}"`)
+    .concat(model.value.trim() ? [`gh variable set LLM_MODEL --body "${model.value.trim()}"`] : [])
+    .join('\n');
+
+  body.append(
+    el('label', {}, 'Model'), model,
+    el('label', {}, 'Find emails with'), resolver,
+    el('p', { class: 'note warn' },
+      'These stay in this browser — that is what keeps them safe, and why the agent ' +
+      'cannot read them. It runs on GitHub and needs its own copies.'),
+    el('div', { class: 'row' },
+      el('button', { class: 'b', onclick: async e => {
+        const t = cmds();
+        if (!t) return say('fill a key first', true);
+        try { await navigator.clipboard.writeText(t); e.target.textContent = 'Copied';
+              setTimeout(() => { e.target.textContent = 'Copy gh commands'; }, 1800); }
+        catch { say('clipboard blocked — use Download instead', true); }
+      } }, 'Copy gh commands'),
+      el('button', { class: 'b', onclick: () => {
+        const lines = KEYS.filter(([id]) => f[id].value).map(([id]) => `${id}=${f[id].value}`);
+        if (model.value.trim()) lines.push(`LLM_MODEL=${model.value.trim()}`);
+        if (!lines.length) return say('fill a key first', true);
+        download('secrets.env', lines.join('\n') + '\n', 'text/plain');
+        say('secrets.env downloaded — it is gitignored');
+      } }, 'Download secrets.env'),
     ),
-    history.length > 1 ? el('div', { class: 'card' },
-      el('h2', {}, 'Version history'),
-      el('table', {}, el('tbody', {}, ...history.map(h => el('tr', {},
-        el('td', {}, 'v' + h.version),
-        el('td', { style: 'color:var(--muted)' }, new Date(h.created_at).toLocaleString()),
-        el('td', {}, (h.instructions || '(empty)').slice(0, 80)),
-        el('td', {}, el('button', {
-          class: 'btn ghost',
-          onclick: () => { ta.value = h.instructions || ''; tick(); say(`loaded v${h.version} — save to make it current`); },
-        }, 'restore')),
-      )))),
-    ) : null,
-  ].filter(Boolean);
-}
+  );
 
-async function viewLeadsData() {
-  return q('gtm_leads', 'email,full_name,company,fit_score,fit_reason,email_verified,suppressed',
-    { campaign_id: S.campaign.id }, { col: 'fit_score', asc: false });
-}
-function viewLeads() {
-  const host = el('div', { class: 'card' }, el('h2', {}, 'Queue'), el('p', { class: 'sub' }, 'Loading…'));
-  viewLeadsData().then(rows => {
-    host.replaceChildren(
-      el('h2', {}, 'Queue'),
-      el('p', { class: 'sub' }, `${rows.length} leads · ${rows.filter(r => r.email_verified).length} verified and sendable`),
-      rows.length ? el('table', {},
-        el('thead', {}, el('tr', {}, ...['Name', 'Company', 'Fit', 'Email', 'Why'].map(h => el('th', {}, h)))),
-        el('tbody', {}, ...rows.slice(0, 200).map(r => el('tr', {},
-          el('td', {}, r.full_name || '—'),
-          el('td', {}, r.company || '—'),
-          el('td', {}, r.fit_score ?? '—'),
-          el('td', {}, r.suppressed ? el('span', { class: 'pill' }, 'suppressed')
-            : r.email_verified ? (r.email || '—')
-            : el('span', { class: 'pill' }, 'unverified')),
-          el('td', { style: 'color:var(--muted)' }, (r.fit_reason || '').slice(0, 90)),
-        ))),
-      ) : el('div', { class: 'empty' }, 'Nothing sourced yet. Run: python3 run.py source --campaign …'),
-    );
+  openDialog('API keys', 'Saved in this browser only.', body, () => {
+    const out = { resolver: resolver.value };
+    if (model.value.trim()) out.LLM_MODEL = model.value.trim();
+    for (const [id] of KEYS) { const v = f[id].value.trim(); if (v) out[id] = v; }
+    store.set('keys', out);
+    say(`${KEYS.filter(([id]) => out[id]).length} of ${KEYS.length} keys saved`);
+    if (view === 'run') render();
   });
-  return [host];
+};
+
+function openDialog(title, sub, body, onOk) {
+  $('#dlgTitle').textContent = title;
+  $('#dlgSub').textContent = sub;
+  $('#dlgBody').replaceChildren(body);
+  $('#dlg').showModal();
+  $('#dlgOk').onclick = () => { onOk(); $('#dlg').close(); };
+}
+$('#dlgCancel').onclick = () => $('#dlg').close();
+
+/* --------------------------------------------------------------- download */
+function download(name, text, type) {
+  const a = el('a', { href: URL.createObjectURL(new Blob([text], { type })), download: name });
+  a.click(); URL.revokeObjectURL(a.href);
 }
 
-// ---------------------------------------------------------------- boot
-async function boot() {
-  sb = localBackend();
-  if (!store.get('local:gtm_clients', []).length) await seedDemo();
-  await loadClients();
+// The shape run.py load_config() already reads. This is the whole integration.
+function exportJson() {
+  const out = {
+    project: { ...D.project },
+    campaign: { ...D.campaign },
+    prompts: STAGES.map(([s]) => {
+      const h = head(s);
+      return { stage: s, instructions: h.instructions || '', language: h.language || 'lead',
+               follow_up_every_days: h.follow_up_every_days ?? 3,
+               max_follow_ups: h.max_follow_ups ?? 2 };
+    }),
+  };
+  const name = (D.campaign.name || 'campaign').toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') + '.json';
+  download(name, JSON.stringify(out, null, 2), 'application/json');
+  say(`downloaded ${name}`);
 }
-boot();
+
+/* ------------------------------------------------------------------ render */
+function render() {
+  store.set('view', view);
+  document.querySelectorAll('nav button[data-v]').forEach(b => {
+    b.classList.toggle('on', b.dataset.v === view);
+  });
+  const body = { campaign: viewCampaign, emails: viewEmails, run: viewRun }[view]();
+  $('#main').replaceChildren(...body.filter(Boolean),
+    el('div', { class: 'row', style: 'margin-top:44px;padding-top:20px;border-top:1px solid var(--line)' },
+      el('button', { class: 'b go', onclick: exportJson }, 'Download JSON'),
+      el('span', { class: 'hint', style: 'margin:0' },
+         'then: python3 run.py source --campaign <file>.json'),
+      el('span', { style: 'flex:1' }),
+      el('button', { class: 'b', title: 'light / dark', onclick: () => {
+        const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', next); store.set('theme', next);
+      } }, '◐'),
+    ));
+}
+
+document.querySelectorAll('nav button[data-v]').forEach(b => {
+  b.onclick = () => { view = b.dataset.v; render(); };
+});
+if (store.get('theme')) document.documentElement.setAttribute('data-theme', store.get('theme'));
+render();
 </script>
