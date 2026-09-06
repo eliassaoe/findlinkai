@@ -206,9 +206,16 @@ def fill_emails(api, leads, preset="basic", out=sys.stdout, sleep=time.sleep):
     missing = [l for l in leads if not l["email"]]
     for start in range(0, len(missing), 100):
         chunk = missing[start:start + 100]
-        task = api.enrich_email_batch(
-            [{"first_name": l["first_name"], "last_name": l["last_name"],
-              "company_domain": l["company_domain"]} for l in chunk], preset=preset)
+        try:
+            task = api.enrich_email_batch(
+                [{"first_name": l["first_name"], "last_name": l["last_name"],
+                  "company_domain": l["company_domain"]} for l in chunk], preset=preset)
+        except ExpleeError as err:
+            if err.status == 402:
+                print("  credits ran out after {} of {} missing emails - keeping what was "
+                      "found".format(start, len(missing)), file=out)
+                break
+            raise
         task_id = first_of(task, "task_id", "id")
         while True:
             got = api.enrich_email_batch_status(task_id)
@@ -251,7 +258,13 @@ def cmd_search(args):
         return 0
 
     api = Explee()
-    require_balance(api, search + (0 if args.no_enrich else emails))
+    # The search cost is certain; the emails are charged only when found, and a
+    # 402 mid-enrichment simply stops the enrichment. Requiring the full worst
+    # case refused a 2,500-person run on a 5,000-credit balance for no reason.
+    require_balance(api, search * 1.1)
+    if not args.no_enrich and api.last_balance < search + emails:
+        print("note: balance {:.0f} covers the search but not every possible email; "
+              "enrichment stops when credits run out".format(api.last_balance))
     people = search_pages(api, plan, args.max_people)
     print("{} people returned".format(len(people)))
     if not people:
