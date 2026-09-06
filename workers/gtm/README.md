@@ -323,14 +323,21 @@ fix. `/search/people` answers synchronously and LinkFinder resolves the
 addresses, so every node either returns or fails visibly, and the whole class
 of bug is gone along with the `Wait`, `Ready?` and `Done?` nodes.
 
-**Explee is the fallback provider on the people, as well as the source of the
-companies.** Where `company_domain_to_employees` returns nobody for a domain,
-the same node calls Explee `search/people-by-domains` — synchronous, 1 credit
-per person, using the campaign's target roles as `job_titles`. It only ever
-runs where the first provider already came back empty, never both, and the two
-shapes normalise to the same fields downstream so the writer cannot tell which
-answered. If neither finds anyone the node throws naming the domains, rather
-than handing an empty list to the writer.
+**Explee is the primary people source; LinkFinder is the fallback.** Explee
+`search/people-by-domains` matches job titles semantically against the
+campaign's target roles, so it answers "who at this company is my buyer".
+LinkFinder's `company_domain_to_employees` takes a seniority bucket instead,
+and the live call on `demos.fr` shows what that costs: a Technical Director
+based in Russia and a CFO came back — real directors, wrong people. Precision
+on who gets the email is worth more than the difference.
+
+The difference is cost. Explee returns profiles without addresses at 1 credit
+each, so every one goes through email resolution downstream at 10 credits a
+LinkedIn URL; LinkFinder bundles the email into its own 1 credit when it has
+one. On a domain Explee has nobody for, LinkFinder gets the turn — never both,
+and the two shapes normalise to the same fields, so the writer cannot tell
+which answered. If neither finds anyone the node throws naming the domains
+rather than handing an empty list to the writer.
 
 **The flow stops at a paused campaign, and says so.** `Build the lead` throws
 if `instantly_campaign_id` is still a placeholder — after the emails are

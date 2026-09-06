@@ -3,7 +3,7 @@
   "nodes": [
     {
       "parameters": {},
-      "id": "3ad239f4-87b6-417d-96ce-1467b4d4b210",
+      "id": "c93d077a-0fd1-4aad-97f5-721f6f0bc11f",
       "name": "Start",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
@@ -16,7 +16,7 @@
       "parameters": {
         "jsCode": "// Everything from the console. Edit here and the whole flow follows.\nreturn [{ json: {\n  \"explee_key\": \"PUT_EXPLEE_KEY_HERE\",\n  \"instantly_key\": \"PUT_INSTANTLY_KEY_HERE\",\n  \"openrouter_key\": \"PUT_OPENROUTER_KEY_HERE\",\n  \"linkfinder_key\": \"PUT_LINKFINDER_KEY_HERE\",\n  \"linkfinder_max\": 25,\n  \"model\": \"anthropic/claude-opus-5\",\n  \"instantly_campaign_id\": \"PUT_INSTANTLY_CAMPAIGN_ID_HERE\",\n  \"page_size\": 25,\n  \"domains\": [],\n  \"seniority\": \"director\",\n  \"per_company\": 5,\n  \"explee_companies_path\": \"/public/api/v1/search/companies\",\n  \"job_titles\": [\n    \"Dirigeant\",\n    \"responsable commercial\"\n  ],\n  \"definition\": \"organisme de formation, centre de formation in France, Belgique, Luxembourg\",\n  \"criteria\": [\n    \"Vente B2B active\",\n    \"Equipe commerciale de moins de 5\",\n    \"is NOT: Formation purement subventionnee\"\n  ],\n  \"offer\": \"Outbound run end to end, paid per meeting held.\",\n  \"problem\": \"Prospecting stops whenever the team is delivering training, so the pipeline arrives in waves.\",\n  \"facts\": \"LinkFinder AI turns a name, company, email or LinkedIn URL into a verified business email or phone number. Plans start at $49/month for 5,000 credits. A LinkedIn-profile-to-email lookup costs 10 credits.\\n\\nThe outbound service: we build the list, write the campaign, run the sending and handle replies. You pay per meeting held.\",\n  \"instructions\": \"Ask for a reply, not a call. Never mention a discount. Name the pay-per-meeting model once \u2014 it is the whole reason this offer is different \u2014 and do not explain it twice.\",\n  \"language\": \"lead\"\n} }];"
       },
-      "id": "c10cb02e-e779-4bdd-bf82-6bd1414577a7",
+      "id": "bb84d40a-e309-4f41-8014-9393b48969ab",
       "name": "Config",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -43,7 +43,7 @@
         "jsonBody": "={{ JSON.stringify({ filters: { definition: $json.definition, criteria: ($json.criteria || []).slice(0, 3) }, page_size: $json.page_size }) }}",
         "options": {}
       },
-      "id": "9afc488d-2ffe-484e-9bed-f40177cbe0fc",
+      "id": "5e9fbfe9-044d-483d-a646-aa5ce39b8880",
       "name": "Explee: search companies",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -56,7 +56,7 @@
       "parameters": {
         "jsCode": "// The one job here is to end up with a list of domains, and to say\n// exactly what came back when it cannot. Silent empties are what made\n// the last three attempts impossible to debug.\nconst cfg = $('Config').first().json;\nif (cfg.domains && cfg.domains.length) {\n  return cfg.domains.map(domain => ({ json: { domain } }));\n}\nconst j = $input.first().json;\nconst rows = j.companies || j.results || j.items || j.data || [];\nconst clean = d => String(d || '').trim().toLowerCase()\n  .replace(/^https?:\\/\\//, '').replace(/^www\\./, '').replace(/\\/.*$/, '');\nconst domains = [...new Set(rows\n  .map(r => clean(r.domain || r.website || r.company_domain || r.companyWebsite ||\n                  r.company_website || r.url))\n  .filter(d => d.includes('.')))];\nif (!domains.length) {\n  throw new Error('No company domains in the Explee response. Top-level keys: ' +\n    Object.keys(j).join(', ') + '. First row: ' +\n    JSON.stringify(rows[0] || j).slice(0, 400));\n}\nconsole.log(domains.length + ' companies: ' + domains.join(', '));\nreturn domains.map(domain => ({ json: { domain } }));"
       },
-      "id": "f4316e7f-46be-4655-a8c5-909d8ac88534",
+      "id": "343f4ac9-9f76-4d0d-9571-debfe1d6a2bb",
       "name": "Domains",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -67,10 +67,10 @@
     },
     {
       "parameters": {
-        "jsCode": "// One credit per employee returned, emails included in that \u2014 no second\n// lookup for the ones that come back with an address. Confirmed live on\n// demos.fr: five directors at a French training company, two with an\n// email, in one call.\n//\n// company_domain_to_employees is always async, so this posts and then\n// polls the job inline. In a Code node rather than a Wait/If loop\n// because that loop is what hung the last two versions of this flow.\n//\n// Where LinkFinder has nobody, Explee people-by-domains gets a turn.\n// Second provider, same normalisation downstream, never both.\nconst cfg = $('Config').first().json;\nconst canHttp = !!(this.helpers && this.helpers.httpRequest);\nif (!canHttp) throw new Error('This n8n has no this.helpers.httpRequest.');\nif (!cfg.linkfinder_key || cfg.linkfinder_key.startsWith('PUT_')) {\n  throw new Error('No LinkFinder key in Config.');\n}\nconst auth = { Authorization: 'Bearer ' + cfg.linkfinder_key };\nconst API = 'https://api.linkfinderai.com';\nconst http = opts => this.helpers.httpRequest(opts);\nconst sleep = ms => new Promise(r => setTimeout(r, ms));\n\nconst out = [];\nfor (const { json: { domain } } of $input.all()) {\n  let r;\n  try {\n    r = await http({ method: 'POST', url: API, headers: auth, json: true, body: {\n      type: 'company_domain_to_employees', input_data: domain,\n      seniority: cfg.seniority, employee_count: cfg.per_company } });\n  } catch (e) { console.log(domain + ': ' + e.message); continue; }\n  // Always async: expect a job, poll it. Results expire after 10 minutes.\n  for (let n = 0; r && r.job_id && !r.result && n < 8; n++) {\n    await sleep(8000);\n    try { r = await http({ method: 'GET', headers: auth, json: true,\n      url: r.poll_url || API + '/status/' + r.job_id }); }\n    catch (e) { console.log(domain + ' poll: ' + e.message); r = null; }\n  }\n  let rows = (r && r.result) || [];\n\n  // Explee as a second provider on the domains LinkFinder has nothing\n  // for. people-by-domains is synchronous and 1 credit per person, and\n  // it only ever runs where the first provider already came back empty.\n  if (!rows.length && cfg.explee_key && !cfg.explee_key.startsWith('PUT_')) {\n    try {\n      const x = await http({ method: 'POST', json: true,\n        url: 'https://api.explee.com/public/api/v1/search/people-by-domains',\n        headers: { 'X-API-Key': cfg.explee_key },\n        body: { domains: [domain],\n                job_titles: (cfg.job_titles || ['Founder', 'Director']).slice(0, 20),\n                people_per_company: cfg.per_company } });\n      rows = (x && (x.people || x.results || x.items)) || [];\n      if (rows.length) console.log(domain + ': ' + rows.length + ' from Explee');\n    } catch (e) { console.log(domain + ' explee: ' + e.message); }\n  }\n\n  console.log(domain + ': ' + rows.length + ' people');\n  for (const p of rows) out.push(p);\n  await sleep(1100);\n}\nif (!out.length) {\n  throw new Error('Neither LinkFinder nor Explee found anyone at: ' +\n    $input.all().map(i => i.json.domain).join(', '));\n}\nreturn [{ json: { people: out } }];"
+        "jsCode": "// Explee first, LinkFinder second.\n//\n// Explee matches job titles semantically against the campaign's target\n// roles, so it answers \"who at this company is my buyer\". LinkFinder's\n// company_domain_to_employees takes a seniority bucket instead: a live\n// call on demos.fr returned a Technical Director based in Russia and a\n// CFO \u2014 real directors, not the people this campaign is for.\n//\n// The trade is cost. Explee returns profiles without addresses at 1\n// credit each, so every one of them goes through email resolution\n// downstream. LinkFinder bundles the email into its 1 credit when it\n// has one. Precision is worth more than that on cold email.\nconst cfg = $('Config').first().json;\nif (!this.helpers || !this.helpers.httpRequest) {\n  throw new Error('This n8n has no this.helpers.httpRequest in Code nodes.');\n}\nconst http = opts => this.helpers.httpRequest(opts);\nconst sleep = ms => new Promise(r => setTimeout(r, ms));\nconst LF = 'https://api.linkfinderai.com';\nconst hasExplee = cfg.explee_key && !cfg.explee_key.startsWith('PUT_');\nconst hasLf = cfg.linkfinder_key && !cfg.linkfinder_key.startsWith('PUT_');\nif (!hasExplee && !hasLf) throw new Error('No Explee or LinkFinder key in Config.');\n\n// Explee: the roles this campaign actually wants, matched semantically.\nasync function explee(domain) {\n  if (!hasExplee) return [];\n  try {\n    const x = await http({ method: 'POST', json: true,\n      url: 'https://api.explee.com/public/api/v1/search/people-by-domains',\n      headers: { 'X-API-Key': cfg.explee_key },\n      body: { domains: [domain],\n              job_titles: (cfg.job_titles || ['Founder', 'Director']).slice(0, 20),\n              people_per_company: cfg.per_company } });\n    return (x && (x.people || x.results || x.items)) || [];\n  } catch (e) { console.log(domain + ' explee: ' + e.message); return []; }\n}\n\n// LinkFinder: always async, so post then poll the job inline. A Code\n// node rather than a Wait/If loop, because that loop is what hung the\n// first two versions of this flow.\nasync function linkfinder(domain) {\n  if (!hasLf) return [];\n  const auth = { Authorization: 'Bearer ' + cfg.linkfinder_key };\n  let r;\n  try {\n    r = await http({ method: 'POST', url: LF, headers: auth, json: true, body: {\n      type: 'company_domain_to_employees', input_data: domain,\n      seniority: cfg.seniority, employee_count: cfg.per_company } });\n  } catch (e) { console.log(domain + ' linkfinder: ' + e.message); return []; }\n  for (let n = 0; r && r.job_id && !r.result && n < 8; n++) {\n    await sleep(8000);\n    try { r = await http({ method: 'GET', headers: auth, json: true,\n      url: r.poll_url || LF + '/status/' + r.job_id }); }\n    catch (e) { console.log(domain + ' poll: ' + e.message); return []; }\n  }\n  return (r && r.result) || [];\n}\n\nconst out = [];\nfor (const { json: { domain } } of $input.all()) {\n  let rows = await explee(domain);\n  let via = 'explee';\n  if (!rows.length) { rows = await linkfinder(domain); via = 'linkfinder'; }\n  console.log(domain + ': ' + rows.length + ' from ' + (rows.length ? via : 'neither'));\n  for (const p of rows.slice(0, cfg.per_company)) out.push({ ...p, source: via });\n  await sleep(1100);\n}\nif (!out.length) {\n  throw new Error('Neither Explee nor LinkFinder found anyone at: ' +\n    $input.all().map(i => i.json.domain).join(', '));\n}\nreturn [{ json: { people: out } }];"
       },
-      "id": "5e9b14d0-1a88-4c06-ba8f-0870484be36f",
-      "name": "LinkFinder: employees at each domain",
+      "id": "8c4d832b-9563-4356-b0ff-8082e040b1a6",
+      "name": "People at each domain",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
@@ -82,7 +82,7 @@
       "parameters": {
         "jsCode": "// One item holding every person. Fan them out and normalise the two\n// fields the rest of the flow reads. Nobody is dropped here \u2014 search\n// returns profiles, LinkFinder turns them into addresses next.\nconst j = $input.first().json;\nconst contacts = j.people || j.results || j.items || j.contacts || [];\n// Explee answers in snake_case, LinkFinder in camelCase. Read both.\nif (!contacts.length) {\n  throw new Error('Explee returned no people. It answered with: ' +\n    JSON.stringify(j).slice(0, 400));\n}\nreturn contacts.map(c => ({ json: {\n  ...c,\n  email: c.email || '',\n  linkedin_url: c.linkedin_url || c.linkedinUrl || c.linkedin || '',\n  full_name: c.full_name || c.name ||\n    [c.firstName, c.lastName].filter(Boolean).join(' '),\n  first_name: c.first_name || c.firstName || '',\n  job_title: c.job_title || c.jobTitle || c.title || '',\n  company_name: c.company_name || c.company || '',\n  company_domain: c.company_domain || c.companyWebsite || c.domain || '',\n  location: c.location || c.city || c.country || '',\n} }));"
       },
-      "id": "5f9fc61f-e36e-4dfa-838e-c90c301edea3",
+      "id": "8ead3fd3-5e29-4524-841e-5d5b71919ed2",
       "name": "One item per lead",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -95,7 +95,7 @@
       "parameters": {
         "jsCode": "// Explee search returns profiles, not addresses. This is what turns\n// them into leads: 10 credits from a LinkedIn URL, 7 from name +\n// company, charged whether or not one comes back. Hence the cap.\n//\n// One Code node instead of five, because pairing an HTTP node's\n// response back to its lead across a poll loop is exactly where a flow\n// like this breaks. If this n8n has no this.helpers.httpRequest the\n// node degrades to what the flow did before: no email, no send.\nconst cfg = $('Config').first().json;\nconst leads = $input.all().map(i => i.json);\n// Called through an arrow so it keeps n8n's `this`.\nconst canHttp = !!(this.helpers && this.helpers.httpRequest);\nconst http = opts => this.helpers.httpRequest(opts);\nconst sendable = () => leads.filter(l => l.email).map(json => ({ json }));\n\nif (!canHttp || !cfg.linkfinder_key || cfg.linkfinder_key.startsWith('PUT_')) {\n  return sendable();\n}\n\nconst auth = { Authorization: 'Bearer ' + cfg.linkfinder_key };\nconst sleep = ms => new Promise(r => setTimeout(r, ms));\nlet budget = Number(cfg.linkfinder_max || 0), spent = 0, found = 0;\n\nfor (const lead of leads) {\n  if (lead.email || budget <= 0) continue;\n  const op = lead.linkedin_url\n    ? { type: 'linkedin_profile_to_email', input_data: lead.linkedin_url }\n    : { type: 'lead_full_name_to_email', input_data:\n        [lead.full_name || lead.name, lead.company_name || lead.company]\n          .filter(Boolean).join(' ') };\n  if (!op.input_data) continue;\n  budget--;\n  spent += op.type === 'linkedin_profile_to_email' ? 10 : 7;\n  let r;\n  try {\n    r = await http({ method: 'POST', url: 'https://api.linkfinderai.com',\n      headers: auth, body: op, json: true });\n  } catch (e) {\n    // 402 out of credits, 401 bad key, 429 too fast. Stop, do not hammer.\n    console.log('LinkFinder stopped: ' + e.message);\n    break;\n  }\n  // Any endpoint can answer with a job instead of a result if the lookup\n  // runs past ~27s. Poll it, briefly.\n  for (let n = 0; r && r.job_id && !r.result && n < 4; n++) {\n    await sleep(8000);\n    try { r = await http({ method: 'GET', headers: auth, json: true,\n      url: r.poll_url || 'https://api.linkfinderai.com/status/' + r.job_id }); }\n    catch (e) { r = null; }\n  }\n  const res = r && r.result;\n  const email = typeof res === 'string' ? res : (res && res.email) || '';\n  if (email) { lead.email = email; found++; }\n  await sleep(1100);   // one request per second per key, or 429\n}\nconsole.log('LinkFinder: ' + found + ' emails, ~' + spent + ' credits');\nreturn sendable();"
       },
-      "id": "ff9db7ea-6739-452c-9eb1-5b127a1973cd",
+      "id": "ef460323-dc3d-4f5c-b42a-2ec270a21522",
       "name": "LinkFinder: fill missing emails",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -126,7 +126,7 @@
         "jsonBody": "={{ JSON.stringify({ model: $('Config').first().json.model, messages: [ { role: 'system', content: \"You write one cold email to one person. Four moves, nothing else:\\n1. An observation \u2014 one concrete thing about them or their company, from the lead record. Not a compliment, not \\\"I came across your profile\\\".\\n2. The consequence \u2014 why that likely creates the problem the offer addresses.\\n3. What you do \u2014 concrete and operational, in the order it happens.\\n4. One ask \u2014 a question they can answer in a line. Ask for a reply, not a call.\\n\\nUnder 90 words. Write in the language of their country; if unclear, English. Write it as a native speaker writes business email, not translated English.\\n\\nYou may state as fact only what is in THE OFFER and THE FACTS. You may refer to the lead record as something you noticed. Never invent metrics, clients, mutual connections or events. If the record is thin, write a shorter email.\\n\\nNever: \\\"I hope this finds you well\\\", \\\"I wanted to reach out\\\", \\\"I came across\\\", \\\"Quick question\\\", \\\"simply\\\", \\\"just\\\", \\\"easily\\\", \\\"leverage\\\", \\\"solution\\\". No compliments on their website. No second ask, no P.S.\\n\\nSubject: lowercase, four words or fewer, looks like a person wrote it.\\n\\nReply with JSON only: {\\\"subject\\\": \\\"...\\\", \\\"body\\\": \\\"...\\\"}\" }, { role: 'user', content: 'THE OFFER (the only facts you may assert)\\n' + $('Config').first().json.offer + '\\n\\nTHE FACTS\\n' + $('Config').first().json.facts + '\\n\\nTHE PROBLEM THEY LIKELY HAVE\\n' + $('Config').first().json.problem + '\\n\\nEXTRA INSTRUCTIONS\\n' + $('Config').first().json.instructions + '\\n\\nLEAD RECORD\\n' + JSON.stringify($json) } ] }) }}",
         "options": {}
       },
-      "id": "296a9d32-1b2f-4dc1-a246-6fff1f3ad6c3",
+      "id": "8b5b786c-ba0b-4c4a-b2fd-b2911c9bca94",
       "name": "Write the email",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -139,7 +139,7 @@
       "parameters": {
         "jsCode": "// Parse the model's JSON and shape one Instantly lead. The per-lead copy\n// rides as custom variables, so one campaign sends a different email to\n// everyone in it.\nconst out = [];\nfor (let i = 0; i < $input.all().length; i++) {\n  const reply = $input.all()[i].json;\n  const lead = $('LinkFinder: fill missing emails').all()[i].json;\n  let text = reply.choices?.[0]?.message?.content ?? '';\n  if (text.startsWith('```')) text = text.split('```')[1].replace(/^json/, '').trim();\n  let email;\n  try { email = JSON.parse(text); }\n  catch (e) { continue; }   // model did not return JSON \u2014 skip, do not send junk\n  const full = lead.full_name || lead.name || '';\n  out.push({ json: {\n    email: lead.email,\n    first_name: lead.first_name || full.split(' ')[0] || '',\n    last_name: full.split(' ').slice(1).join(' '),\n    company_name: lead.company_name || lead.company || '',\n    custom_variables: {\n      subject: email.subject,\n      body: String(email.body).replace(/\\r\\n/g, '\\n').replace(/\\n/g, '<br>'),\n    },\n  } });\n}\nif (!out.length) throw new Error('Nothing to send \u2014 the writer returned no usable JSON.');\n// Fail here rather than at the Instantly call, so the drafted emails\n// above are visible and only the destination is missing.\nconst camp = $('Config').first().json.instantly_campaign_id;\nif (!camp || camp.startsWith('PUT_')) {\n  throw new Error(out.length + ' emails are written and ready. Put an Instantly ' +\n    'campaign id in the Config node to add them \u2014 the id is in the campaign URL.');\n}\nconsole.log(out.length + ' leads ready for campaign ' + camp);\nreturn out;"
       },
-      "id": "ec1fd41b-250c-4383-9ba3-aaedf0c1a8d9",
+      "id": "d218b5ce-6a7c-4203-9f64-81c6d020544e",
       "name": "Build the lead",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -170,7 +170,7 @@
         "jsonBody": "={{ JSON.stringify({ campaign_id: $('Config').first().json.instantly_campaign_id, skip_if_in_campaign: true, skip_if_in_workspace: true, leads: $input.all().map(i => i.json) }) }}",
         "options": {}
       },
-      "id": "f75e5ff4-5b7a-4f68-b04f-80f6903431c4",
+      "id": "5cf16310-9714-49df-8785-1115fa94b7c5",
       "name": "Instantly: add leads",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -218,14 +218,14 @@
       "main": [
         [
           {
-            "node": "LinkFinder: employees at each domain",
+            "node": "People at each domain",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "LinkFinder: employees at each domain": {
+    "People at each domain": {
       "main": [
         [
           {
