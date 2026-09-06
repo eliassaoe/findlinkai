@@ -9,7 +9,9 @@ the same reply. Those are the failure modes that cost a domain.
 import datetime as dt
 import io
 import json
+from pathlib import Path
 import unittest
+import unittest.mock
 import urllib.error
 
 import baseline
@@ -587,6 +589,266 @@ class Baseline(unittest.TestCase):
         out = io.StringIO()
         baseline.report({"label": "x", "spend": 1.0, "sent": 1, "replies": 1, "hot": 1}, out=out)
         self.assertIn("unknown", out.getvalue())
+
+
+# --- change 1: the sequence -----------------------------------------------------
+import prequalify as pq
+import sequence as sq
+
+
+class SequenceReading(unittest.TestCase):
+    def test_step_is_how_many_we_sent_before_they_wrote(self):
+        msgs, _ = recover.thread_view(thread(("out", "1"), ("out", "2"), ("out", "3"),
+                                             ("in", "ok tell me more")))
+        self.assertEqual(sq.reply_step(msgs), 3)
+
+    def test_a_lead_who_wrote_first_has_no_step(self):
+        msgs, _ = recover.thread_view(thread(("in", "hello?")))
+        self.assertIsNone(sq.reply_step(msgs))
+        msgs, _ = recover.thread_view(thread(("out", "1"), ("out", "2")))
+        self.assertIsNone(sq.reply_step(msgs))
+
+    def test_lengths_in_every_shape(self):
+        self.assertEqual(sq.sequence_length(3), 4)
+        self.assertEqual(sq.sequence_length([{"delay_days": 3}, {"delay_days": 4}]), 3)
+        self.assertEqual(sq.sequence_length({"count": 2, "interval_days": 3}), 3)
+        self.assertEqual(sq.sequence_length({"steps": [1, 2, 3]}), 4)
+        with self.assertRaises(ShapeError):
+            sq.sequence_length("four")
+        with self.assertRaises(ShapeError):
+            sq.sequence_length({"mystery": 1})
+
+    def test_shortening_keeps_the_shape_and_never_lengthens(self):
+        self.assertEqual(sq.shortened(3, 2), 1)
+        self.assertEqual(sq.shortened([{"d": 3}, {"d": 4}, {"d": 5}], 2), [{"d": 3}])
+        self.assertEqual(sq.shortened({"count": 3, "interval_days": 3}, 2),
+                         {"count": 1, "interval_days": 3})
+        self.assertEqual(sq.shortened({"steps": [1, 2, 3]}, 1), {"steps": []})
+        with self.assertRaises(ValueError):
+            sq.shortened(3, 4)
+        with self.assertRaises(ValueError):
+            sq.shortened(3, 0)
+
+
+class SequenceTally(unittest.TestCase):
+    OLD = "2026-08-01T09:00:00Z"
+    NEW = "2026-09-01T09:00:00Z"
+
+    def threads(self):
+        return [
+            thread(("out", "1", self.OLD), ("in", "send me pricing")),           # step 1, +
+            thread(("out", "1", self.OLD), ("out", "2"), ("in", "non merci")),   # step 2, -
+            thread(("out", "1", self.OLD), ("out", "2"), ("out", "3"),
+                   ("in", "open pour un échange")),                              # step 3, +
+            thread(("out", "1", self.OLD), ("in", "I am out of the office until")),  # auto
+            thread(("out", "1", self.NEW), ("in", "yes")),                       # too young
+            thread(("out", "1"), ("in", "ok")),                                  # no timestamp
+        ]
+
+    def test_counts_by_step_and_kind(self):
+        tally = sq.tally_steps(self.threads(), WED)
+        self.assertEqual(tally["replies"], {1: 2, 2: 1, 3: 1})
+        self.assertEqual(tally["positive"], {1: 1, 3: 1})      # "ok" is unknown, not a yes
+        self.assertEqual(tally["auto"], 1)
+        self.assertEqual(tally["young"], 1)
+        self.assertEqual(tally["unknown_age"], 1)
+
+    def test_arithmetic(self):
+        rows = sq.arithmetic({1: 50, 2: 20, 3: 20, 4: 10}, 4)
+        by = {r["emails"]: r for r in rows}
+        self.assertAlmostEqual(by[2]["share"], 0.7)
+        self.assertAlmostEqual(by[2]["cost_ratio"], 0.5 / 0.7)
+        self.assertAlmostEqual(by[2]["pool_burn"], 2.0)
+        self.assertAlmostEqual(by[4]["cost_ratio"], 1.0)
+
+    def test_it_recommends_only_a_real_cut(self):
+        strong = {"replies": {1: 50, 2: 20, 3: 5, 4: 5}, "positive": {}, "auto": 0,
+                  "young": 0, "unknown_age": 0, "no_step": 0}
+        pick, basis, _, _ = sq.recommend(strong, 4)
+        self.assertEqual((pick, basis), (2, "replies"))
+        flat = {"replies": {1: 20, 2: 20, 3: 20, 4: 20}, "positive": {}, "auto": 0,
+                "young": 0, "unknown_age": 0, "no_step": 0}
+        self.assertIsNone(sq.recommend(flat, 4)[0])
+
+    def test_too_few_replies_says_wait(self):
+        thin = {"replies": {1: 5, 2: 1}, "positive": {}, "auto": 0, "young": 0,
+                "unknown_age": 0, "no_step": 0}
+        pick, _, rows, why = sq.recommend(thin, 4)
+        self.assertIsNone(pick)
+        self.assertEqual(rows, [])
+        self.assertIn("needs 30", why)
+
+    def test_positives_decide_when_there_are_enough(self):
+        tally = {"replies": {1: 20, 2: 20, 3: 20, 4: 20},
+                 "positive": {1: 10, 2: 5, 3: 0, 4: 0}, "auto": 0, "young": 0,
+                 "unknown_age": 0, "no_step": 0}
+        pick, basis, _, _ = sq.recommend(tally, 4)
+        self.assertEqual((pick, basis), (2, "positive"))
+
+
+class FakeSequenceApi:
+    def __init__(self, followups, threads):
+        self.followups = followups
+        self.threads = threads
+        self.patched = []
+
+    def balance(self):
+        return 500
+
+    def campaign(self, cid):
+        return {"id": cid, "name": "test", "followups": self.followups}
+
+    def inbox_all(self, cid, tab=None):
+        return [{"person_id": i} for i in range(len(self.threads))]
+
+    def thread(self, cid, pid):
+        return self.threads[pid]
+
+    def update_campaign(self, cid, fields):
+        self.patched.append((cid, fields))
+        self.followups = fields["followups"]
+        return self.campaign(cid)
+
+
+class SequenceRun(unittest.TestCase):
+    def test_measure_reports_and_recommends(self):
+        threads = ([thread(("out", "1", SequenceTally.OLD), ("in", "tell me more"))] * 30
+                   + [thread(("out", "1", SequenceTally.OLD), ("out", "2"), ("out", "3"),
+                             ("out", "4"), ("in", "tell me more"))] * 5)
+        api = FakeSequenceApi([{"d": 3}, {"d": 3}, {"d": 3}], threads)
+        out = io.StringIO()
+        got = sq.measure_campaign(api, 7, WED, 14, out=out)
+        self.assertEqual(got["emails"], 4)
+        self.assertEqual(got["recommend"], 1)
+        self.assertIn("SHORTEN to 1", out.getvalue())
+
+    def test_shorten_is_gated_and_dry_by_default(self):
+        threads = [thread(("out", "1", SequenceTally.OLD), ("out", "2"), ("out", "3"),
+                          ("out", "4"), ("in", "tell me more"))] * 40
+        api = FakeSequenceApi([{"d": 3}] * 3, threads)
+        with unittest.mock.patch.object(sq, "Explee", lambda: api):
+            with self.assertRaises(SystemExit):            # all replies on step 4: refused
+                sq.main(["shorten", "--campaign", "7", "--emails", "2"])
+            self.assertEqual(api.patched, [])
+            sq.main(["shorten", "--campaign", "7", "--emails", "2", "--force"])
+            self.assertEqual(api.patched, [])              # dry run
+            sq.main(["shorten", "--campaign", "7", "--emails", "2", "--force", "--apply"])
+        self.assertEqual(api.patched, [(7, {"followups": [{"d": 3}]})])
+
+
+# --- change 2: pre-qualification ---------------------------------------------------
+class Prequalify(unittest.TestCase):
+    DEF = {"name": "High ticket", "project_id": 30475,
+           "target_role": "Directeur commercial", "target_geography": "France",
+           "target_company_size": "50-500 employees",
+           "positive_criteria": "Sells B2B services\nHas an outbound sales team",
+           "negative_criteria": ["Recruitment agency"], "keywords": ["ESN", "conseil"],
+           "instructions": "one email", "followup_instructions": "short", "language": "fr"}
+
+    def test_the_target_reads_as_a_query(self):
+        self.assertEqual(pq.describe_target(self.DEF),
+                         "Directeur commercial at companies of 50-500 employees "
+                         "in ESN, conseil in France")
+
+    def test_criteria_from_both_lists(self):
+        self.assertEqual(pq.criteria_from(self.DEF),
+                         ["Sells B2B services", "Has an outbound sales team",
+                          "Is NOT the following: Recruitment agency"])
+        self.assertEqual(pq.criteria_from({"positive_criteria": ["a"] * 9}), ["a"] * 5)
+        self.assertEqual(pq.criteria_from({"customer_problem": "no leads"}),
+                         ["Likely has this problem: no leads"])
+
+    def test_cost_has_a_free_zone(self):
+        search, emails = pq.search_cost(100, ["a", "b"])
+        self.assertEqual((search, emails), (0.0, 150.0))
+        search, _ = pq.search_cost(1000, ["a", "b", "c", "d"])
+        self.assertAlmostEqual(search, 900 * 1.4)
+
+    def test_scores_in_three_shapes(self):
+        self.assertEqual(pq.scores_of({"criteria": [{"criterion": "a", "score": 5},
+                                                    {"criterion": "b", "score": 3}]}), [5, 3])
+        self.assertEqual(pq.scores_of({"scores": {"a": 4, "b": 4}}), [4, 4])
+        self.assertTrue(pq.qualifies({"criteria_scores": [4, 5]}))
+        self.assertFalse(pq.qualifies({"criteria_scores": [4, 2]}))
+        with self.assertRaises(ShapeError):
+            pq.scores_of({"first_name": "A"})
+
+    def test_search_pages_and_stops(self):
+        class Api:
+            def __init__(self):
+                self.bodies = []
+
+            def search_people(self, body):
+                self.bodies.append(body)
+                offset = body["offset"]
+                rows = [{"first_name": str(i), "criteria": [{"score": 5}]}
+                        for i in range(offset, min(offset + body["limit"], 150))]
+                return {"people": rows}
+        api = Api()
+        plan = {"company_filters": {"definition": "x"}, "people_filters": {"job_titles": ["CEO"]},
+                "criteria": ["a"]}
+        people = pq.search_pages(api, plan, 400, page=100)
+        self.assertEqual(len(people), 150)
+        self.assertEqual([b["offset"] for b in api.bodies], [0, 100])
+        self.assertEqual(api.bodies[0]["people_filters"]["criteria"], ["a"])
+
+    def test_missing_emails_are_filled_from_the_batch(self):
+        class Api:
+            def enrich_email_batch(self, contacts, preset="basic"):
+                self.asked = contacts
+                return {"task_id": "t1"}
+
+            def enrich_email_batch_status(self, task_id):
+                return {"meta": {"status": "completed"},
+                        "contacts": [{"email": "a@x.com"}, {"email": None}]}
+        leads = [{"email": "", "first_name": "A", "last_name": "B", "company_domain": "x.com"},
+                 {"email": "", "first_name": "C", "last_name": "D", "company_domain": "y.com"},
+                 {"email": "e@z.com", "first_name": "E", "last_name": "F",
+                  "company_domain": "z.com"}]
+        api = Api()
+        found, asked = pq.fill_emails(api, leads, sleep=lambda s: None)
+        self.assertEqual((found, asked), (1, 2))
+        self.assertEqual(len(api.asked), 2)
+        self.assertEqual(leads[0]["email"], "a@x.com")
+        self.assertEqual(leads[1]["email"], "")
+
+    def test_import_strips_scores_and_writes_both_arms(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            plan = {"campaign_id": 1, "project_id": 30475, "name": "High ticket",
+                    "brief": {"instructions": "x", "followup_instructions": "", "language": "fr"},
+                    "brief_sha": "abcd1234"}
+            (Path(tmp) / "plan.json").write_text(json.dumps(plan))
+            (Path(tmp) / "leads.json").write_text(json.dumps(
+                [{"email": "a@x.com", "first_name": "A", "last_name": "B",
+                  "company_domain": "x.com", "job_title": "CEO", "_scores": [5]}]))
+
+            class Api:
+                def balance(self):
+                    return 100
+
+                def import_campaign(self, project_id, name, leads, **brief):
+                    self.leads, self.brief = leads, brief
+                    return {"task_id": "t"}
+
+                def import_status(self, task_id):
+                    return {"status": "completed", "result": {"campaign_id": 999}}
+            api = Api()
+            with unittest.mock.patch.object(pq, "Explee", lambda: api):
+                pq.main(["import", "--plan", str(Path(tmp) / "plan.json"),
+                         "--leads", str(Path(tmp) / "leads.json"),
+                         "--out", str(Path(tmp) / "q.arm.json"),
+                         "--control-out", str(Path(tmp) / "c.arm.json"), "--apply"])
+            self.assertNotIn("_scores", api.leads[0])
+            self.assertEqual(api.brief["language"], "fr")
+            variant = json.loads((Path(tmp) / "q.arm.json").read_text())
+            control = json.loads((Path(tmp) / "c.arm.json").read_text())
+            self.assertEqual(variant["campaign_id"], 999)
+            self.assertEqual(control["campaign_id"], 1)
+            self.assertEqual(variant["brief_sha"], control["brief_sha"])
+            self.assertTrue(control["live_campaign"])
+
+
 
 
 if __name__ == "__main__":

@@ -60,7 +60,7 @@ into a file here in the same session, or it is gone.
 | Selling Done For You to the 67 idle pack buyers | `docs/dfy-activation-campaign.md` — read the correction in it before quoting any "paying accounts" number |
 | Who the SEO traffic actually is, before aiming an offer at it | `docs/traffic-capture-verdict.md` |
 | Listicle outreach on a cron (the `ai_keywords` table) | `docs/ai-keyword-outreach.md` — read it before adding keywords, it spends credits |
-| Explee AutoGTM: recovering replies that never booked, and the lead-source test | `workers/explee-autogtm/` — read `SENDING.md` and `BASELINE.md` for the real numbers, and its README before the first `--apply`; no call in it has ever reached the real API |
+| Explee AutoGTM: shorter sequences, pre-qualified leads, win-back of replies that never booked | `workers/explee-autogtm/` — the README's "three changes" section first, then `SENDING.md` and `BASELINE.md` for the real numbers; everything is dry-run by default and runs from `.github/workflows/explee-*.yml`; no call in it has ever reached the real API from a sandbox |
 | **Our own GTM system — the code** | `workers/gtm/` — read its README before touching it; nothing has made a live call, and `run.py capacity` is the first thing to run |
 | Why we built it and what it costs | `docs/own-gtm-agent-plan.md` — the economics, the 135/day capacity ceiling, and why leads are not the bottleneck |
 | Self-hosting an agentic outreach pipeline | `docs/autogtm-evaluation.md` first (the pick, and why it must not carry the paid offer), then `docs/gtm-mcp-swap-map.md` — read the credit-cost discrepancy in either before trusting a cost estimate |

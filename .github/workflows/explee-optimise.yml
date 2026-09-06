@@ -1,0 +1,131 @@
+name: Explee optimise
+
+# The two cost levers that live inside AutoGTM, run from here because
+# api.explee.com cannot be reached from a development sandbox:
+#
+#   measure     replies by sequence step, per campaign, and what shortening
+#               would do to cost per reply. Every call is a free GET. Runs on
+#               its own every Monday and writes the table into the job summary.
+#   shorten     cut one campaign's sequence to N emails. Gated on the
+#               measurement; dry run unless "apply" is ticked.
+#   prequalify  plan -> search+score -> import: a new campaign in the same
+#               project, same brief, holding only the people who scored >= the
+#               gate on the campaign's own criteria. Spends credits (the search
+#               and the emails found); dry run unless "apply" is ticked.
+#
+# Required secret: EXPLEE_API_KEY (Settings -> Secrets and variables -> Actions).
+# Every request needs a POSITIVE balance, free ones included - a negative
+# balance fails the first step with the balance in the message.
+on:
+  schedule:
+    - cron: '30 7 * * 1'          # Mondays, 07:30 UTC - after the follow-up run
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'What to run'
+        type: choice
+        options: [measure, shorten, prequalify]
+        default: measure
+      campaign:
+        description: 'Campaign id (shorten: required; prequalify: required; measure: optional)'
+        type: string
+        default: ''
+      emails:
+        description: 'shorten: total emails to keep, first one included'
+        type: string
+        default: '2'
+      max_people:
+        description: 'prequalify: people to search and score'
+        type: string
+        default: '1000'
+      min_score:
+        description: 'prequalify: every criterion must score at least this (0-5)'
+        type: string
+        default: '4'
+      apply:
+        description: 'Actually change / spend (off = show what it would do)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: explee-optimise
+  cancel-in-progress: false
+
+jobs:
+  optimise:
+    name: ${{ inputs.action || 'measure' }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: workers/explee-autogtm
+    env:
+      EXPLEE_API_KEY: ${{ secrets.EXPLEE_API_KEY }}
+      ACTION: ${{ inputs.action || 'measure' }}
+      CAMPAIGN: ${{ inputs.campaign }}
+      EMAILS: ${{ inputs.emails || '2' }}
+      MAX_PEOPLE: ${{ inputs.max_people || '1000' }}
+      MIN_SCORE: ${{ inputs.min_score || '4' }}
+      APPLY: ${{ inputs.apply && '--apply' || '' }}
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Tests
+        run: python3 test_explee_autogtm.py
+
+      - name: Check the key is there
+        run: |
+          if [ -z "$EXPLEE_API_KEY" ]; then
+            echo "::error::EXPLEE_API_KEY is not set. Repository Settings -> Secrets and variables -> Actions -> New repository secret. Get the key from Explee's account menu -> API Keys."
+            exit 1
+          fi
+
+      - name: Measure replies by step
+        if: env.ACTION == 'measure'
+        run: |
+          ARGS=""
+          [ -n "$CAMPAIGN" ] && ARGS="--campaign $CAMPAIGN"
+          python3 sequence.py measure $ARGS --out sequence.json | tee measure.txt
+          { echo '```'; cat measure.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Shorten the sequence
+        if: env.ACTION == 'shorten'
+        run: |
+          [ -n "$CAMPAIGN" ] || { echo "::error::shorten needs a campaign id"; exit 1; }
+          [ -n "$APPLY" ] && echo "APPLY is ON - the campaign will be changed." || echo "DRY RUN - nothing changes."
+          python3 sequence.py shorten --campaign "$CAMPAIGN" --emails "$EMAILS" $APPLY | tee shorten.txt
+          { echo '```'; cat shorten.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Pre-qualify and import
+        if: env.ACTION == 'prequalify'
+        run: |
+          [ -n "$CAMPAIGN" ] || { echo "::error::prequalify needs the campaign whose audience to score"; exit 1; }
+          [ -n "$APPLY" ] && echo "APPLY is ON - credits will be spent and a campaign created." || echo "DRY RUN - nothing spent."
+          python3 prequalify.py plan --campaign "$CAMPAIGN" --out prequalify.json | tee prequalify.txt
+          python3 prequalify.py search --plan prequalify.json --max-people "$MAX_PEOPLE" \
+              --min-score "$MIN_SCORE" --out qualified.leads.json $APPLY | tee -a prequalify.txt
+          if [ -n "$APPLY" ]; then
+            python3 prequalify.py import --plan prequalify.json --leads qualified.leads.json --apply | tee -a prequalify.txt
+          fi
+          { echo '```'; cat prequalify.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+
+      # The plan, the scored leads and the arm files are what `compare` needs
+      # in two weeks. Keep them; the runner does not.
+      - name: Keep the outputs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: explee-optimise-${{ inputs.action || 'measure' }}-${{ github.run_id }}
+          path: |
+            workers/explee-autogtm/sequence.json
+            workers/explee-autogtm/prequalify.json
+            workers/explee-autogtm/qualified.leads.json
+            workers/explee-autogtm/*.arm.json
+          if-no-files-found: ignore
+          retention-days: 90
