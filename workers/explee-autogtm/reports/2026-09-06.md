@@ -1,4 +1,4 @@
-# Explee follow-ups — linkfinderai — 2026-09-06 20:45 UTC
+# Explee follow-ups — linkfinderai — 2026-09-06 20:48 UTC
 
 **DRY RUN — nothing was sent; the emails below are what the next armed run sends**
 
@@ -6,37 +6,40 @@ To take someone out of the loop: open the lead in the [inbox](https://explee.com
 
 | outcome | leads |
 |---|---|
-| skip: auto_reply | 64 |
-| skip: negative | 33 |
-| skip: unknown | 29 |
-| skip: call_me | 17 |
-| nudge | 5 |
+| skip: auto_reply | 71 |
+| skip: negative | 34 |
+| skip: unknown | 33 |
+| nudge | 7 |
 | skip: can_reply is false | 5 |
 | skip: reply cap (3) reached on this message | 4 |
+| skip: call_me | 1 |
 | skip: booked | 1 |
+| nudge_last | 1 |
 | skip: question | 1 |
+| not_now | 1 |
 
 ## This run
 
 | who | campaign | they said | what happened |
 |---|---|---|---|
 | Tom (Prescient) | High ticket linkfinder AI | Hi Pete,  Any reference / resource presenting your work that I could review?  Thanks,  * … | would send nudge |
+| Valentine (Shoot For The Moon Films) | High ticket linkfinder AI | Bonjour,  Pourquoi pas ! Quels sont vos tarifs ?  Merci !  <https://htmlsig.com/t/000001C… | would send nudge |
+| Elorion (Elorion) | High ticket linkfinder AI | Bonjour Thomas,  Je n'ai recu aucun calendrier.    Cédric Duma Fondateur - Agence Elorion… | would send nudge |
 | Pierre (PERTUSATOFILMS) | High ticket linkfinder AI | Bonjour Zara,  Je vous remercie pour votre message. Cependant, je ne comprends pas exacte… | would send nudge |
+| Anthony (Appside) | High ticket linkfinder AI | Bonjour Sarah,  Merci pour votre message.  Auriez-vous un site web où je peux consulter v… | would send nudge_last |
 | Richard (RDEM SYSTEMS) | High ticket linkfinder AI | Le 2026-08-27 08:42, Greg Hansen a écrit :  Bonjour,   Cela dépends du tarif que vous fac… | would send nudge |
 | Meyer (Amen.) | high ticket offer linkfinde… | Bonjour Chris,  quelles sont les méthodes de prospection employées ?  Cordialement,  Meye… | would send nudge |
+| Maxime (SUBSTANCE) | high ticket offer linkfinde… | Bonjour Elena, je vous remercie pour votre proposition. Cependant, je ne suis pas sûr que… | parked: not_now |
 | David (Afc Prevention) | Organismes de formation FR/… | Bonjour,     Oui, je veux bien plus d’explication.     Cordialement,       De : Tanner Fo… | would send nudge |
 
 ## Everyone else who replied
 
 | who | campaign | they said | status |
 |---|---|---|---|
-| Valentine (Shoot For The Moon Films) | High ticket linkfinder AI | Bonjour,  Pourquoi pas ! Quels sont vos tarifs ?  Merci !  <https://htmlsig.com/t/000001C… | CALL THEM - the number is in the reply |
 | Jonathan (Optimum Informatique / …) | High ticket linkfinder AI | Prospection c’est Mehdi et José  Cordialement,  Jonathan PIRES Président - Directeur géné… | none - unknown |
-| Elorion (Elorion) | High ticket linkfinder AI | Bonjour Thomas,  Je n'ai recu aucun calendrier.    Cédric Duma Fondateur - Agence Elorion… | CALL THEM - the number is in the reply |
 | Nelly (Agence Indie ✨) | High ticket linkfinder AI | Bonjour Laura  Pour l’instant notre prospection est très ciblée et non automatisée.  Mais… | none - unknown |
 | David (HelpySoft) | High ticket linkfinder AI | Bonjour, Nous pouvons en parler, contacter moi au 0033780585454. David  Le ven. 28 août 2… | CALL THEM - the number is in the reply |
 | Olivier (1erePlace.com) | High ticket linkfinder AI | Pourquoi ce n'est pas avec vous que j'ai RDV quand je clique sur le  calendly ?  Le 31/08… | none - booked |
-| Anthony (Appside) | High ticket linkfinder AI | Bonjour Sarah,  Merci pour votre message.  Auriez-vous un site web où je peux consulter v… | CALL THEM - the number is in the reply |
 | Adrien (WHITE SQUARE CONSULTING) | High ticket linkfinder AI | Bonjour Rachel,  Vous êtes une IA ou une vrai personne?  Cordialement,    Adrien CHAMPEY … | none - 3 follow-ups sent, that is the limit |
 | Théo (Stand Indus) | High ticket linkfinder AI | Bonjour Kate,  Merci pour votre email. Nous pouvons échanger en visio entre 14h et 18h su… | none - 3 follow-ups sent, that is the limit |
 | Romain (RKS Consulting) | High ticket linkfinder AI | Bonjour Luke,  Effectivement payer au rdv tenu est intéressant. Aussi cela va dependre du… | none - 3 follow-ups sent, that is the limit |
@@ -51,7 +54,7 @@ To take someone out of the loop: open the lead in the [inbox](https://explee.com
 | Natacha (Kalamari) | High ticket linkfinder AI | Hi,  Thanks for your email. I'm out of the office for Labor Day weekend and will be back … | none - auto_reply |
 | Camille (ULTRAMEDIA) | High ticket linkfinder AI | Bonjour,  Je vous remercie pour votre mail.  Actuellement absent, je vous invite à contac… | none - auto_reply |
 | Alexandre (OXIALIS) | High ticket linkfinder AI | Bonjour,  Commencez par vous construire une vitrine avant de faire vous-même de la prospe… | none - unknown |
-| Gilles (Helioservice) | High ticket linkfinder AI | Bonjour,  Merci de nous avoir contactés. Cette adresse e-mail n'est plus en service.  Afi… | CALL THEM - the number is in the reply |
+| Gilles (Helioservice) | High ticket linkfinder AI | Bonjour,  Merci de nous avoir contactés. Cette adresse e-mail n'est plus en service.  Afi… | none - auto_reply |
 | Peter (Shearwater Global) | High ticket linkfinder AI | Exactement, le moment n’est pas venu. Merci quand même.  Peter  Peter Guilford Partner Sh… | none - unknown |
 | pascale.fressoz@milleni… (MILLENIUM ENTREPRISES) | High ticket linkfinder AI | Bonjour, Je suis actuellement en congés. Je prendrai connaissance de votre message à part… | none - auto_reply |
 | Chloe (THE CALLING) | High ticket linkfinder AI | FR : Absence – du 25/08 au 17/09    Chers Clients,    Je serai absente du bureau du 25/08… | none - auto_reply |
@@ -62,7 +65,7 @@ To take someone out of the loop: open the lead in the [inbox](https://explee.com
 | Tanguy (Iparcus) | High ticket linkfinder AI | Bonjour,  Je ne suis pas intéressé.  Cordialement,  Tanguy CHOQUEL   De : Jake Hart <j@tr… | none - negative |
 | Bianka (cownected) | High ticket linkfinder AI | Bonjour, non merci beaucoup. | none - negative |
 | Ursula (Intermedia Digital) | High ticket linkfinder AI | Auch Helden brauchen mal Urlaub   Deshalb nehme ich mir bis zum 04.09.2026 eine Auszeit u… | none - auto_reply |
-| Matthieu (Isatis) | High ticket linkfinder AI | JeJe n’ai jamais voulu qu’on démarre    Matthieu Valle 06 11 84 67 95 matthieu@isatis.io … | CALL THEM - the number is in the reply |
+| Matthieu (Isatis) | High ticket linkfinder AI | JeJe n’ai jamais voulu qu’on démarre    Matthieu Valle 06 11 84 67 95 matthieu@isatis.io … | none - negative |
 | Guillaume (CABINET KLING) | High ticket linkfinder AI | Bonjour Madame,  Merci pour votre message. Nous ne sommes pas intéressés par votre propos… | none - negative |
 | Katy (Mission RH) | High ticket linkfinder AI | Bonjour,  Absente jusqu'au 28 septembre inclus, je prendrai connaissance de votre mail à … | none - auto_reply |
 | EasyT (EasyT 2.0) | High ticket linkfinder AI | Non merci.   Cordialement,    easyt2.com <http://www.easyt2.com> ------------------------… | none - negative |
@@ -80,7 +83,7 @@ To take someone out of the loop: open the lead in the [inbox](https://explee.com
 | Mehdy (Lior Agency) | High ticket linkfinder AI | Non merci !  Le dim. 30 août 2026 à 16:58, Hailey <hailey@llmmove.org> a écrit :    --   … | none - negative |
 | delphine (Agilytae) | High ticket linkfinder AI | Madame, Monsieur bonjour,   Cette adresse de messagerie n'est plus active.  Afin que votr… | none - unknown |
 | IA-PME (IA-PME) | High ticket linkfinder AI | Bonjour Greg,   Merci pour votre proposition, mais j'ai des agents qui travaillent  dessu… | none - unknown |
-| Lagom (Lagom Productions) | High ticket linkfinder AI | Hello Greg,  Approche très humAIne et donc l'IA n'a pas trop sa place ici sauf dans quelq… | CALL THEM - the number is in the reply |
+| Lagom (Lagom Productions) | High ticket linkfinder AI | Hello Greg,  Approche très humAIne et donc l'IA n'a pas trop sa place ici sauf dans quelq… | none - unknown |
 | Sylvain (Everest) | High ticket linkfinder AI | Dear Sender,  Thank you for your email.  I am currently out of the office and will respon… | none - auto_reply |
 | Cedric (Ocke Studio) | High ticket linkfinder AI | Bonjour,  Merci pour votre message.  Je suis en congés jusqu'au 31 août et je ne consulte… | none - auto_reply |
 | Mélanie (AM DIGITAL PRO) | High ticket linkfinder AI | ﻿ Bonjour,  Actuellement en congés, je prendrai connaissance de votre mail dès mon retour… | none - auto_reply |
@@ -92,7 +95,7 @@ To take someone out of the loop: open the lead in the [inbox](https://explee.com
 | Cédric (Performance Agency) | High ticket linkfinder AI | Bonjour,   Actuellement absent jusqu'au 02 Aout inclus, je prendrai connaissance de votre… | none - auto_reply |
 | Frédéric (TAKE AND FREEZE) | High ticket linkfinder AI | Bonjour,  L'équipe *Take And Freeze* est en congés, sans accès à sa messagerie. Nous auro… | none - auto_reply |
 | Benoit (BLACKBART) | High ticket linkfinder AI | Bonjour  2015 n'est pas juste, comme je suppose que vous prospectez avec vos propres outi… | ANSWER THIS ONE YOURSELF in the inbox |
-| Hélène (zelie) | High ticket linkfinder AI | bonjour Andrew  merci pour l'intérêt porté à Zelie mais ce sujet n'est pas d'actualité   … | CALL THEM - the number is in the reply |
+| Hélène (zelie) | High ticket linkfinder AI | bonjour Andrew  merci pour l'intérêt porté à Zelie mais ce sujet n'est pas d'actualité   … | none - unknown |
 | Maxime (ATM CONSULTING) | High ticket linkfinder AI | Bonjour,  Je suis actuellement absent du bureau. Je prendrai connaissance de votre demand… | none - auto_reply |
 | s.veniel (DUNE INTERACTIVE) | High ticket linkfinder AI | Hello,  I am currently out of the office on leave until August 15th. I will read your mes… | none - auto_reply |
 | Aurelien (AC2M) | High ticket linkfinder AI | Bonjour,   Actuellement en congés, je prendrai connaissance de vos messages à mon retour … | none - auto_reply |
@@ -108,7 +111,7 @@ To take someone out of the loop: open the lead in the [inbox](https://explee.com
 | claniesse (AIXPONENTIELLE - accomp…) | High ticket linkfinder AI | Bonjour, Merci pour votre message.  Je suis actuellement en … mode recharge ! 😉, mon nive… | none - unknown |
 | Mathieu (LM CONSILIUM) | High ticket linkfinder AI | Bonjour, Je suis en congés du 28 aout au 10 septembre inclus, je vous invite a contacter … | none - auto_reply |
 | Marc (MULTI CHARIOTS) | High ticket linkfinder AI | Bonjour,  M. LAMBINET Marc ne fait plus partie de l'entreprise, cette adresse mail sera s… | none - unknown |
-| Florian (Western Consulting) | High ticket linkfinder AI | Bonjour,  Nous vous informons que Western Consulting change de dénomination sociale pour … | CALL THEM - the number is in the reply |
+| Florian (Western Consulting) | High ticket linkfinder AI | Bonjour,  Nous vous informons que Western Consulting change de dénomination sociale pour … | none - auto_reply |
 | Cyril (LPC Consulting) | High ticket linkfinder AI | Bonjour Sarah  Votre proposition est intéressante.  Cependant j’ai déjà testé le modèle o… | none - negative |
 | alexandre (Cornet Up) | High ticket linkfinder AI | tout est faux   Le jeu. 27 août 2026 à 09:27, Karen Wright <k@useclearvox.com> a écrit : … | none - unknown |
 | ATECH (ATECH services) | High ticket linkfinder AI | Non du tout merci beaucoup  Cordialement,   Noé Manderveld -  ATECH services  Téléphone :… | none - negative |
@@ -123,7 +126,7 @@ To take someone out of the loop: open the lead in the [inbox](https://explee.com
 | Jean (Lamort Thomas) | High ticket linkfinder AI | Bonjour Mark,   merci pour cette proposition, mais nous ne déléguons pas ces tâches.  Bie… | none - unknown |
 | gerald (SELEKTIV'RH) | High ticket linkfinder AI | Bonjour,  Je suis actuellment en congé, je serai de retour le 2 septembre 2024,  Poiur to… | none - auto_reply |
 | Alexandra (Watts) | High ticket linkfinder AI | Bonjour, Je vous remercie pour votre message. Je suis actuellement en congés jusqu'au 3 s… | none - auto_reply |
-| Julie (Opt’In Recrutement) | High ticket linkfinder AI | Bonjour,  Merci pour votre message. Julie Ducasse ne travaille plus pour OPT'IN Recruteme… | CALL THEM - the number is in the reply |
+| Julie (Opt’In Recrutement) | High ticket linkfinder AI | Bonjour,  Merci pour votre message. Julie Ducasse ne travaille plus pour OPT'IN Recruteme… | none - auto_reply |
 | Guillaume (Briosque Services Infor…) | High ticket linkfinder AI | ﻿Bonjour,  Je suis actuellement en congés annuels jusqu'au 28 aout inclu. Je serais donc … | none - auto_reply |
 | Pauline (PMM for Good) | High ticket linkfinder AI | Bonjour,  Merci pour votre message.  Je suis actuellement absente et probablement tout ab… | none - auto_reply |
 | Alexandre (PRO-GX) | High ticket linkfinder AI | ﻿Bonjour,  Je suis absent du bureau jusqu’au 02 septembre inclus. Je consulterai votre me… | none - auto_reply |
@@ -135,7 +138,7 @@ To take someone out of the loop: open the lead in the [inbox](https://explee.com
 | Axel (Globe Créateur) | high ticket offer linkfinde… | Bonjour Rob,  Merci pour votre message. C'est en effet un sujet ouvert chez nous en ce mo… | none - 3 follow-ups sent, that is the limit |
 | Julie (Globellie) | high ticket offer linkfinde… | Bonjour,  Merci de votre contact, mais je ne suis pas intéressée.  Bien cordialement, Jul… | none - negative |
 | ANGOT (ANGOT Publicité) | high ticket offer linkfinde… | pas besoin !  merci  Le 04/09/2026 à 08:29, Julie Allen a écrit : -- | none - unknown |
-| Boris (CFA Petite Camargue) | high ticket offer linkfinde… | Bonjour  Je ne manquerai pas de faire appel à vos services si besoin.  Tous les mails de … | CALL THEM - the number is in the reply |
+| Boris (CFA Petite Camargue) | high ticket offer linkfinde… | Bonjour  Je ne manquerai pas de faire appel à vos services si besoin.  Tous les mails de … | none - unknown |
 | Philippe (Decisions & Co) | high ticket offer linkfinde… | Non merci !  Bien à vous.   [image: photo]  Philippe Le Cam Co-fondateur, Décisions & Co … | none - negative |
 | Anthony (Com’I/O) | high ticket offer linkfinde… | Bonjour Finn,  Merci pour votre message. Je ne suis pas intéressé pour le moment mais je … | none - negative |
 | Matteo (METABOLE STUDIO) | high ticket offer linkfinde… | Non | none - unknown |
@@ -146,17 +149,16 @@ To take someone out of the loop: open the lead in the [inbox](https://explee.com
 | Vincent (Up Digit Agency) | high ticket offer linkfinde… | désolé mais a ce tarif sachant que sur du rdv non recommandé le taux de transformation to… | none - negative |
 | Claire (Bras Droit des Dirigean…) | high ticket offer linkfinde… | Bonjour, Je suis actuellement en congés et serai de retour le 7 septembre. En cas d'urgen… | none - auto_reply |
 | Willy (Nuük) | high ticket offer linkfinde… | Bonjour,   Je suis absent jusqu'au jeudi 3 septembre pour raisons familiales.   Pour obte… | none - auto_reply |
-| Sèverine (Veev Com) | high ticket offer linkfinde… | Bonjour,  En formation ce mardi 01/09 toute la journée, je n'aurai pas accès à mes mails.… | CALL THEM - the number is in the reply |
+| Sèverine (Veev Com) | high ticket offer linkfinde… | Bonjour,  En formation ce mardi 01/09 toute la journée, je n'aurai pas accès à mes mails.… | none - auto_reply |
 | Nina (atelier Midi Minuit) | high ticket offer linkfinde… | Bonjour,  En congés jusqu’au 24 Août, je vous répondrai à mon retour.  En cas d’urgence o… | none - auto_reply |
 | Alain (MAP Système) | high ticket offer linkfinde… | Bonjour, et merci pour l'intérêt que vous porter à MAP système. Mais pour l'instant nous … | none - negative |
 | marc (LS Formation) | high ticket offer linkfinde… | Bonjour Aaron,  Non, ce n'est pas un sujet nous concernant. Nous sommes déjà bien accompa… | none - negative |
 | Luc (Ex nihilo SRL) | high ticket offer linkfinde… | Bonjour Zara,  Merci mais je ne cherche pas à développer mon business…  Bien à vous  Luc | none - unknown |
 | Cédric (NOVA-EH!) | high ticket offer linkfinde… | Non merci.  ------------------------------------------------------------------------  Nov… | none - negative |
-| Maxime (SUBSTANCE) | high ticket offer linkfinde… | Bonjour Elena, je vous remercie pour votre proposition. Cependant, je ne suis pas sûr que… | CALL THEM - the number is in the reply |
 | Florence (Aïna) | high ticket offer linkfinde… | Bonjour,  Je suis actuellement en congé et j'aurai un accès limité à mes emails. En cas d… | none - auto_reply |
 | Charlie (WILD ARCHITECTURE) | high ticket offer linkfinde… | Bonjour,  Ayant quitté mes fonctions de co-gérant de l'atelier WILD Architecture, pour to… | none - Explee will not accept a reply |
 | bernard.leveque (Syscodev/Qreo) | high ticket offer linkfinde… | Bonjour Non merci ; j’ai déjà trop d’activité, c’est la raison pour laquelle je n’entreti… | none - negative |
-| Marie (NOVA-EH!) | high ticket offer linkfinde… | Bonjour,  Merci pour votre message. Après 11 années d’une aventure riche et inspirante, C… | CALL THEM - the number is in the reply |
+| Marie (NOVA-EH!) | high ticket offer linkfinde… | Bonjour,  Merci pour votre message. Après 11 années d’une aventure riche et inspirante, C… | none - unknown |
 | Ludivine (Level Up Cluster) | high ticket offer linkfinde… | Bonjour,  Je suis actuellement en congés. Je prendrai connaissance de votre message dès m… | none - auto_reply |
 | thomas (Instafluence) | high ticket offer linkfinde… | Bonjour,  Actuellement en congés, je prendrai connaissance de votre mail à mon retour, le… | none - auto_reply |
 | Gia (HEMERA) | high ticket offer linkfinde… | Bonjour, Je vous remercie pour votre message. L'été est aussi le temps de la coupure et d… | none - unknown |
@@ -172,16 +174,16 @@ To take someone out of the loop: open the lead in the [inbox](https://explee.com
 | Cosasei (COSA SEI) | high ticket offer linkfinde… | Bonjour, Je suis en vacances jusqu'au 30 août inclus. Pour toute urgence, je reste joigna… | none - auto_reply |
 | Rachel (The Henka Institute™) | high ticket offer linkfinde… | Hello,  Thank you for your email.  I am currently out of the office, with limited access … | none - auto_reply |
 | Stéphanie (L'Comunik) | high ticket offer linkfinde… | Bonjour,  Actuellement en pause estivale.  De retour le 31/08.  Bel été à tous.  Stéphanie | none - auto_reply |
-| David (IAventure) | high ticket offer linkfinde… | Bonjour,  Je suis indisponible jusqu’au 30 août inclus. Durant cette période, les délais … | CALL THEM - the number is in the reply |
+| David (IAventure) | high ticket offer linkfinde… | Bonjour,  Je suis indisponible jusqu’au 30 août inclus. Durant cette période, les délais … | none - auto_reply |
 | nicolas.boulanger@guide… (Guideline.care) | Organismes de formation FR/… | Bonjour Ben, Je reçois 4 à 5 e mails par jour de ce type générés par IA : le début est pa… | none - unknown |
 | Céline (Media Institute) | Organismes de formation FR/… | Bonjour,  je suis absente et vous retrouve mardi 8 septembre 🤗  pour toute urgence, écriv… | none - auto_reply |
-| Frédéric (DOLFI formation) | Organismes de formation FR/… | Bonjour,  Je suis absence du 22 aout au  7 septembre 2026.  Vous pouvez contacter :  Phil… | CALL THEM - the number is in the reply |
+| Frédéric (DOLFI formation) | Organismes de formation FR/… | Bonjour,  Je suis absence du 22 aout au  7 septembre 2026.  Vous pouvez contacter :  Phil… | none - auto_reply |
 | Lisa (Wyler x Wyler Intuitu P…) | Organismes de formation FR/… | Non merci !  Bien cordialement  *Lisa Wyler*  *Dirigeante  * *Conseil à la dirigeance et … | none - negative |
 | Marjolaine (NUMA) | Organismes de formation FR/… | Bonjour,  Je vous informe que j'ai quitté NUMA. Je n'ai donc plus accès à cette messageri… | none - Explee will not accept a reply |
 | LE (EVINCEL) | Organismes de formation FR/… | Bonjour,  Nous vous informons que, depuis le 4 juin 2026, L'Alliance 7 a changé de nom po… | none - Explee will not accept a reply |
 | Marie-Rose (FC2R) | Organismes de formation FR/… | Bonjour,  Nous vous informons que Mme Rovira ne fais plus partie de l'équipe FC2R. Votre … | none - Explee will not accept a reply |
 | Merwann (QHSE Lib) | Organismes de formation FR/… | Bonjour Lisa,   Merci pour votre mail. Actuellement nous avons pas mal de data prospect. … | none - unknown |
-| l.ortunez (SCAF by PILOCAP) | Organismes de formation FR/… | Bonjour,  Je suis indisponible jusqu'au 4 septembre inclus. N'ayant pas accès à ma messag… | CALL THEM - the number is in the reply |
+| l.ortunez (SCAF by PILOCAP) | Organismes de formation FR/… | Bonjour,  Je suis indisponible jusqu'au 4 septembre inclus. N'ayant pas accès à ma messag… | none - auto_reply |
 | Stéphanie (Equoranda) | Organismes de formation FR/… | Bonjour, Je suis absente , de retour jeudi 17 septembre. En cas de demande urgente, merci… | none - auto_reply |
 | Patrice (Emergence Académie) | Organismes de formation FR/… | Bonjour, Vous êtes bien sur ma messagerie. Je ne suis pas disponible pour le moment. En r… | none - unknown |
 
