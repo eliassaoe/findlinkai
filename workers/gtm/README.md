@@ -323,6 +323,26 @@ fix. `/search/people` answers synchronously and LinkFinder resolves the
 addresses, so every node either returns or fails visibly, and the whole class
 of bug is gone along with the `Wait`, `Ready?` and `Done?` nodes.
 
+**Explee is the fallback provider on the people, as well as the source of the
+companies.** Where `company_domain_to_employees` returns nobody for a domain,
+the same node calls Explee `search/people-by-domains` — synchronous, 1 credit
+per person, using the campaign's target roles as `job_titles`. It only ever
+runs where the first provider already came back empty, never both, and the two
+shapes normalise to the same fields downstream so the writer cannot tell which
+answered. If neither finds anyone the node throws naming the domains, rather
+than handing an empty list to the writer.
+
+**The flow stops at a paused campaign, and says so.** `Build the lead` throws
+if `instantly_campaign_id` is still a placeholder — after the emails are
+written, so they are visible in the node output and only the destination is
+missing. Leads are added with `skip_if_in_campaign` and
+`skip_if_in_workspace`; arming the campaign is still a decision you make in
+Instantly.
+
+`end-to-end.n8n.json` in this directory is the whole thing, generated from the
+console and ready to import: five placeholders in the Config node and nothing
+else to fill in.
+
 **LinkFinder runs inside one Code node, not five.** The people from the search
 go through `linkedin_profile_to_email` (10 credits) or
 `lead_full_name_to_email` (7), capped by `linkfinder_max` in Config, spaced
