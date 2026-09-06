@@ -1,4 +1,4 @@
-# Explee follow-ups — linkfinderai — 2026-09-06 20:48 UTC
+# Explee follow-ups — linkfinderai — 2026-09-06 22:44 UTC
 
 **DRY RUN — nothing was sent; the emails below are what the next armed run sends**
 
@@ -9,11 +9,11 @@ To take someone out of the loop: open the lead in the [inbox](https://explee.com
 | skip: auto_reply | 71 |
 | skip: negative | 34 |
 | skip: unknown | 33 |
-| nudge | 7 |
+| nudge | 6 |
 | skip: can_reply is false | 5 |
 | skip: reply cap (3) reached on this message | 4 |
+| skip: booked | 2 |
 | skip: call_me | 1 |
-| skip: booked | 1 |
 | nudge_last | 1 |
 | skip: question | 1 |
 | not_now | 1 |
@@ -30,7 +30,6 @@ To take someone out of the loop: open the lead in the [inbox](https://explee.com
 | Richard (RDEM SYSTEMS) | High ticket linkfinder AI | Le 2026-08-27 08:42, Greg Hansen a écrit :  Bonjour,   Cela dépends du tarif que vous fac… | would send nudge |
 | Meyer (Amen.) | high ticket offer linkfinde… | Bonjour Chris,  quelles sont les méthodes de prospection employées ?  Cordialement,  Meye… | would send nudge |
 | Maxime (SUBSTANCE) | high ticket offer linkfinde… | Bonjour Elena, je vous remercie pour votre proposition. Cependant, je ne suis pas sûr que… | parked: not_now |
-| David (Afc Prevention) | Organismes de formation FR/… | Bonjour,     Oui, je veux bien plus d’explication.     Cordialement,       De : Tanner Fo… | would send nudge |
 
 ## Everyone else who replied
 
@@ -186,8 +185,9 @@ To take someone out of the loop: open the lead in the [inbox](https://explee.com
 | l.ortunez (SCAF by PILOCAP) | Organismes de formation FR/… | Bonjour,  Je suis indisponible jusqu'au 4 septembre inclus. N'ayant pas accès à ma messag… | none - auto_reply |
 | Stéphanie (Equoranda) | Organismes de formation FR/… | Bonjour, Je suis absente , de retour jeudi 17 septembre. En cas de demande urgente, merci… | none - auto_reply |
 | Patrice (Emergence Académie) | Organismes de formation FR/… | Bonjour, Vous êtes bien sur ma messagerie. Je ne suis pas disponible pour le moment. En r… | none - unknown |
+| David (Afc Prevention) | Organismes de formation FR/… | Bonjour,     Oui, je veux bien plus d’explication.     Cordialement,       De : Tanner Fo… | none - booked in the note |
 
-## Hot leads Explee flagged (18)
+## Hot leads Explee flagged (17)
 
 | who | title | campaign | went hot | in the loop |
 |---|---|---|---|---|
@@ -208,4 +208,3 @@ To take someone out of the loop: open the lead in the [inbox](https://explee.com
 | Niels (Docteur Certif) | Founder | high ticket offer linkfinde… | 2026-09-01 | yes |
 | Ismaïl (Strasforma) | Chief Executive Officer | high ticket offer linkfinde… | 2026-08-31 | yes |
 | Axel (Globe Créateur) | Co-Founder | high ticket offer linkfinde… | 2026-08-29 | yes |
-| David (Afc Prevention) | President | Organismes de formation FR/… | 2026-09-04 | yes |
