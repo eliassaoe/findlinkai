@@ -246,8 +246,20 @@ async function seedDemo() {
 function connect() {
   const cfg = store.get('sb');
   if (!cfg?.url || !cfg?.key) return false;
-  sb = window.supabase.createClient(cfg.url, cfg.key);
+  // The CDN can fail — offline, a blocked network, a bad day for jsdelivr. Falling
+  // back to local mode keeps a working page instead of a blank one, and says why.
+  if (!window.supabase?.createClient) {
+    say('Supabase library did not load — running in local mode. Reload when back online.', true);
+    return false;
+  }
+  try {
+    sb = window.supabase.createClient(cfg.url, cfg.key);
+  } catch (e) {
+    say('Could not connect: ' + e.message, true);
+    return false;
+  }
   $('#who').textContent = new URL(cfg.url).hostname.split('.')[0];
+  $('#who').title = cfg.url;
   return true;
 }
 
