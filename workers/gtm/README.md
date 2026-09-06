@@ -350,6 +350,46 @@ Instantly.
 console and ready to import: five placeholders in the Config node and nothing
 else to fill in.
 
+### Qualify before you spend
+
+The first real run produced leads that were not the ICP. The cause is not the
+vendor — Explee's own AutoGTM run against the same API hit the identical
+problem and said so in its log: *"Head of Sales Operations" is bleeding into
+32k generic "Head of Sales"*, then *"Sales Manager" (31k) is bleeding in from
+the Sales Operations Manager semantic expansion*. Semantic title matching is
+why Explee finds anyone at all, and it is also why it over-returns.
+
+AutoGTM's fix was a loop, and its load-bearing step is free: **require the
+person's literal title to contain an on-target word.** The rest is a size
+floor, a per-company cap, AI scoring on the criteria, and two QA passes.
+
+The `Qualify` node does the portable half, and it sits **before** email
+resolution and the writer — every lead past it costs 10 credits to resolve and
+a model call to write to, so this is the cheapest place in the flow to drop
+one:
+
+| Config | What it does |
+| --- | --- |
+| `title_keywords` | the literal word that must appear in the real job title |
+| `title_exclude` | off-segments you already know (S&OP, ambassador, student) |
+| `min_company_size` | headcount floor, parsed out of Explee's size band |
+| `min_criterion_score` | Explee scores 0-5 per criterion; this reads the **first** criterion, not the sum — summing buries a hard no under two soft yeses, which AutoGTM's own log calls out |
+
+`criteria` now goes to the people search as well as the company search, which
+is what makes those scores exist (+0.1 credit per person per criterion). Every
+filter is inert when its field is empty, and a run where nothing survives
+throws with the titles it actually saw, so the fix is visible rather than
+guessed.
+
+Tested against the exact bleed from that log: Sales Operations Manager and
+Revenue Operations Director kept; Head of Sales and Sales Manager dropped on
+title; an S&OP planner dropped by exclusion; a CRM Manager at a 1-10 company
+dropped by size; a beauty "CRM Ambassador" dropped by score.
+
+**What is still missing versus AutoGTM:** the probe-and-size pass, and the QA
+sample read between scoring and sending. Those are loops with a judge in them,
+not filters.
+
 ### The prompt
 
 It is written into the agent node as **plain text**, not an expression, so what

@@ -169,6 +169,7 @@ const BLANK = {
              sending_emails: [], daily_cap: 135 },
   campaign: { name: '', kind: 'b2b', offer: '', customer_problem: '', example_clients: [],
               keywords: [], target_role: '', target_geography: '', company_domains: '',
+              title_keywords: '', title_exclude: '', min_company_size: 0,
               positive_criteria: [], negative_criteria: [], instantly_campaign_id: null },
   prompts: { first_email: [], follow_up: [], reply: [] },
 };
@@ -254,6 +255,14 @@ function viewCampaign() {
     text(c, 'target_role', 'Target role', 'comma separated'),
     text(c, 'target_geography', 'Geography'),
     chips(c, 'keywords', 'Company keywords', 'what kind of company — bounds the search'),
+    text(c, 'title_keywords', 'Title must contain one of',
+         'comma separated, matched against the real job title — the single best ' +
+         'filter there is. "responsable commercial" as a search finds every Sales ' +
+         'Manager; this is what keeps the ones you meant. Leave empty to keep all.'),
+    text(c, 'title_exclude', 'Title must NOT contain',
+         'comma separated — the off-segments you already know about'),
+    text(c, 'min_company_size', 'Minimum company size',
+         'headcount floor, 0 for none — drops the one-person shells'),
     text(c, 'company_domains', 'Company domains',
          'one per line — fill this in and the flow lists employees at each with LinkFinder ' +
          'instead of searching Explee. Leave empty to search Explee.',
@@ -702,6 +711,14 @@ function n8nWorkflow({ withKeys = true } = {}) {
       .filter(Boolean),
     seniority: 'director',
     per_company: 5,
+    // The qualify gate. title_keywords is the one that matters: semantic
+    // matching finds people, a literal word in their real title keeps the
+    // right ones. Explee's own AutoGTM run needed exactly this.
+    title_keywords: (c.title_keywords || '').split(/[,;\n]+/).map(t => t.trim()).filter(Boolean),
+    title_exclude: (c.title_exclude || '').split(/[,;\n]+/).map(t => t.trim()).filter(Boolean),
+    min_company_size: Number(c.min_company_size) || 0,
+    // Explee scores each person 0-5 per criterion when criteria are sent.
+    min_criterion_score: 3,
     // Explee finds the companies, LinkFinder lists the people at each. This
     // path is a Config field because the company endpoint is the one shape
     // that is not confirmed — if it 404s, fix it here, not in a node.
@@ -804,6 +821,7 @@ function n8nWorkflow({ withKeys = true } = {}) {
       "      headers: { 'X-API-Key': cfg.explee_key },\n" +
       '      body: { domains: [domain],\n' +
       "              job_titles: (cfg.job_titles || ['Founder', 'Director']).slice(0, 20),\n" +
+      '              criteria: (cfg.criteria || []).slice(0, 3),\n' +
       '              people_per_company: cfg.per_company } });\n' +
       '    return (x && (x.people || x.results || x.items)) || [];\n' +
       "  } catch (e) { console.log(domain + ' explee: ' + e.message); return []; }\n" +
@@ -846,6 +864,65 @@ function n8nWorkflow({ withKeys = true } = {}) {
       'return [{ json: { people: out } }];'
     ), [840, 300]),
 
+    node('Qualify', 'code', 2, jsCode(
+      "// Semantic title matching is why Explee finds people at all, and it is\n" +
+      '// also why it bleeds: ask for "responsable commercial" and you get every\n' +
+      '// Sales Manager. Explee\'s own AutoGTM run hit exactly this — "Head of\n' +
+      '// Sales Operations" pulled 32k generic "Head of Sales" — and fixed it by\n' +
+      "// requiring the person's LITERAL title to contain an on-target word.\n" +
+      '//\n' +
+      '// This runs before email resolution on purpose. Every lead that gets\n' +
+      '// past here costs 10 credits to resolve and one model call to write to,\n' +
+      '// so dropping a bad one here is the cheapest drop in the flow.\n' +
+      "const cfg = $('Config').first().json;\n" +
+      'const people = $input.first().json.people || [];\n' +
+      "const norm = s => String(s || '').toLowerCase();\n" +
+      'const want = (cfg.title_keywords || []).map(norm).filter(Boolean);\n' +
+      'const banned = (cfg.title_exclude || []).map(norm).filter(Boolean);\n' +
+      'const floor = Number(cfg.min_company_size) || 0;\n' +
+      'const minScore = Number(cfg.min_criterion_score) || 0;\n' +
+      '\n' +
+      "const size = p => {\n" +
+      "  const raw = String(p.company_size || p.companySize || '');\n" +
+      '  const nums = raw.replace(/[,\\s]/g, \'\').match(/\\d+/g);\n' +
+      '  return nums ? Math.max(...nums.map(Number)) : null;\n' +
+      '};\n' +
+      '// Explee returns criteria scores 0-5 with reasoning when criteria are\n' +
+      '// sent. Score the person against the FIRST criterion only: summing them\n' +
+      '// buries a hard no under two soft yeses.\n' +
+      'const score = p => {\n' +
+      '  const c = p.criteria || p.criteria_scores || p.scores;\n' +
+      '  if (Array.isArray(c) && c.length) {\n' +
+      '    const v = c[0];\n' +
+      "    return Number(typeof v === 'object' ? (v.score ?? v.value) : v);\n" +
+      '  }\n' +
+      '  return null;\n' +
+      '};\n' +
+      '\n' +
+      'const dropped = { title: 0, banned: 0, size: 0, score: 0 };\n' +
+      'const kept = people.filter(p => {\n' +
+      '  const t = norm(p.job_title || p.jobTitle || p.title) + \' \' + norm(p.headline);\n' +
+      '  if (want.length && !want.some(w => t.includes(w))) { dropped.title++; return false; }\n' +
+      '  if (banned.some(b => t.includes(b))) { dropped.banned++; return false; }\n' +
+      '  const n = size(p);\n' +
+      '  if (floor && n !== null && n < floor) { dropped.size++; return false; }\n' +
+      '  const sc = score(p);\n' +
+      '  if (minScore && sc !== null && sc < minScore) { dropped.score++; return false; }\n' +
+      '  return true;\n' +
+      '});\n' +
+      '\n' +
+      "console.log('Qualify: kept ' + kept.length + ' of ' + people.length +\n" +
+      "  ' (dropped ' + JSON.stringify(dropped) + ')');\n" +
+      'if (!kept.length) {\n' +
+      "  throw new Error('Nothing survived Qualify. ' + people.length + ' people in, ' +\n" +
+      "    JSON.stringify(dropped) + '. Loosen title_keywords or min_company_size in ' +\n" +
+      "    'Config — the titles seen were: ' +\n" +
+      "    [...new Set(people.map(p => p.job_title || p.jobTitle || p.title))]\n" +
+      "      .slice(0, 12).join(' | '));\n" +
+      '}\n' +
+      'return [{ json: { people: kept } }];'
+    ), [1060, 300]),
+
     node('One item per lead', 'code', 2, jsCode(
       '// One item holding every person. Fan them out and normalise the two\n' +
       '// fields the rest of the flow reads. Nobody is dropped here — search\n' +
@@ -884,7 +961,7 @@ function n8nWorkflow({ withKeys = true } = {}) {
       '    where: c.city || c.location || c.geo || c.country,\n' +
       '  }).filter(([, v]) => v)),\n' +
       '} }));'
-    ), [1060, 300]),
+    ), [1280, 300]),
 
     node('LinkFinder: fill missing emails', 'code', 2, jsCode(
       "// Explee returns profiles, not addresses. This is what turns them into leads:\n" +
@@ -970,7 +1047,7 @@ function n8nWorkflow({ withKeys = true } = {}) {
       "  (skippedByCap ? '; ' + skippedByCap + ' past linkfinder_max' : '') +\n" +
       "  (stopped ? '; stopped early: ' + stopped : ''));\n" +
       "return done;"
-    ), [1280, 300]),
+    ), [1500, 300]),
 
     // An AI Agent rather than a raw HTTP call: the model is a dropdown, the
     // system prompt is a field you can edit in the UI, and when the writer
@@ -989,7 +1066,7 @@ function n8nWorkflow({ withKeys = true } = {}) {
       name: 'Write the email',
       type: '@n8n/n8n-nodes-langchain.agent',
       typeVersion: 3.1,
-      position: [1500, 300],
+      position: [1720, 300],
     },
 
     // Pick your existing OpenAI credential on this node — the one pointed at
@@ -1000,7 +1077,7 @@ function n8nWorkflow({ withKeys = true } = {}) {
       name: 'Model',
       type: '@n8n/n8n-nodes-langchain.lmChatOpenAi',
       typeVersion: 1.1,
-      position: [1500, 480],
+      position: [1720, 480],
     },
 
     node('Build the lead', 'code', 2, jsCode(
@@ -1040,7 +1117,7 @@ function n8nWorkflow({ withKeys = true } = {}) {
       '}\n' +
       "console.log(out.length + ' leads ready for campaign ' + camp);\n" +
       'return out;'
-    ), [1720, 300]),
+    ), [1940, 300]),
 
     node('Instantly: add leads', 'httpRequest', 4.2, {
       method: 'POST',
@@ -1053,7 +1130,7 @@ function n8nWorkflow({ withKeys = true } = {}) {
       specifyBody: 'json',
       jsonBody: "={{ JSON.stringify({ campaign_id: $('Config').first().json.instantly_campaign_id, skip_if_in_campaign: true, skip_if_in_workspace: true, leads: $input.all().map(i => i.json) }) }}",
       options: {},
-    }, [1940, 300]),
+    }, [2160, 300]),
   ];
 
   // One straight line, whichever nodes were generated. Built from the node
