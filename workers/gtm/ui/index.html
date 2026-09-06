@@ -81,6 +81,7 @@ dialog::backdrop{background:#0008}
   <span class="sp"></span>
   <span class="status" id="status"></span>
   <button class="btn ghost" id="theme">◐</button>
+  <button class="btn" id="keys">Keys</button>
   <button class="btn" id="settings">Connection</button>
 </header>
 
@@ -283,6 +284,87 @@ $('#settings').onclick = () => {
   };
 };
 $('#dlgCancel').onclick = () => $('#dlg').close();
+
+// ------------------------------------------------------------------- keys
+// The four API keys. They live in THIS BROWSER only (localStorage), never in
+// Supabase and never in the repo. The console uses them for the live checks
+// below; the agent runs on GitHub's machines and reads its own copies from
+// repository secrets, which is why this panel shows the exact commands too.
+const KEYS = [
+  { id: 'EXPLEE_API_KEY', label: 'Explee', hint: 'explee.com → API Keys. Lead search and enrichment.' },
+  { id: 'LINKFINDER_API_KEY', label: 'LinkFinder AI', hint: 'linkfinderai.com/api-access. Email resolution.' },
+  { id: 'INSTANTLY_API_KEY', label: 'Instantly', hint: 'Instantly → Settings → Integrations. Sending.' },
+  { id: 'ANTHROPIC_API_KEY', label: 'Anthropic', hint: 'console.anthropic.com. The qualifier and the copywriter.' },
+];
+const getKeys = () => store.get('keys', {});
+const mask = v => (!v ? '' : v.length < 12 ? '••••' : v.slice(0, 4) + '••••••••' + v.slice(-4));
+
+$('#keys').onclick = () => {
+  const saved = getKeys();
+  $('#dlgTitle').textContent = 'API keys';
+  $('#dlgSub').textContent =
+    'Saved in this browser only — not in Supabase, not in the repo. The agent runs on GitHub and needs its own copies; the commands are below.';
+
+  const body = el('div');
+  const inputs = {};
+  for (const k of KEYS) {
+    inputs[k.id] = el('input', {
+      type: 'password', id: 'k-' + k.id, value: saved[k.id] || '',
+      placeholder: saved[k.id] ? mask(saved[k.id]) : 'not set', autocomplete: 'off',
+    });
+    body.append(el('label', {}, k.label, el('span', {}, ' — ' + k.hint)), inputs[k.id]);
+  }
+
+  body.append(
+    el('label', {}, 'Find emails with', el('span', {}, ' — who resolves the address')),
+    (() => {
+      const sel = el('select', { id: 'k-resolver' });
+      const cur = saved.resolver || 'linkfinder';
+      for (const [v, t] of [
+        ['linkfinder', 'LinkFinder AI — ours, so no marginal cost'],
+        ['explee_premium', 'Explee premium — 5cr (~$0.05) per found email, ~78%'],
+        ['explee_basic', 'Explee basic — 1.5cr (~$0.015) per found email, ~50%'],
+        ['none', "None — only use addresses the search returned (they send unverified, so they won't send)"],
+      ]) sel.append(el('option', { value: v, selected: cur === v ? '' : null }, t));
+      return sel;
+    })(),
+    el('div', { class: 'note' },
+      'Explee charges only when it finds an address; LinkFinder charges either way. ',
+      'On list price Explee is cheaper — but LinkFinder is our own product, so for our ',
+      'own campaigns it costs infrastructure, not the list price.'),
+    el('div', { class: 'note warn' },
+      el('strong', {}, 'The agent cannot read these.'), ' It runs on GitHub Actions. ',
+      'Put the same values in ', el('code', {}, 'Settings → Secrets and variables → Actions'),
+      ', or run:'),
+    (() => {
+      const pre = el('textarea', { class: 'code', rows: 5, readonly: '' });
+      const render = () => {
+        pre.value = KEYS
+          .map(k => `gh secret set ${k.id} --body "${inputs[k.id].value || '<paste>'}"`)
+          .join('\n');
+      };
+      for (const k of KEYS) inputs[k.id].addEventListener('input', render);
+      render();
+      return pre;
+    })(),
+  );
+  $('#dlgBody').replaceChildren(body);
+  $('#dlg').showModal();
+
+  $('#dlgOk').onclick = () => {
+    const out = { resolver: $('#k-resolver').value };
+    for (const k of KEYS) {
+      const v = inputs[k.id].value.trim();
+      if (v) out[k.id] = v;
+      else if (saved[k.id]) out[k.id] = saved[k.id];   // blank means unchanged
+    }
+    store.set('keys', out);
+    $('#dlg').close();
+    const n = KEYS.filter(k => out[k.id]).length;
+    say(`${n} of ${KEYS.length} keys saved in this browser · resolver: ${out.resolver}`);
+    if (S.campaign) render();
+  };
+};
 
 function prompt1(title, sub, label, cb, value = '') {
   $('#dlgTitle').textContent = title;
@@ -493,6 +575,15 @@ function viewSending(c) {
         'Either way the campaign stays PAUSED after leads are added. Going live is a separate step: ',
         el('code', {}, 'run.py arm --campaign-id … --apply')),
     ),
+    (() => {
+      const k = getKeys();
+      const missing = KEYS.filter(x => !k[x.id]);
+      return el('div', { class: missing.length ? 'note warn' : 'note' },
+        missing.length
+          ? `Not set in this browser: ${missing.map(x => x.label).join(', ')}. Open Keys.`
+          : `All four keys saved in this browser · emails via ${k.resolver || 'linkfinder'}.`,
+        ' The agent reads its own copies from GitHub Secrets either way.');
+    })(),
     el('div', { class: 'card' },
       el('h2', {}, 'Mailboxes'),
       el('p', { class: 'sub' }, 'Which of your Instantly mailboxes this project sends from. Empty means all of them.'),

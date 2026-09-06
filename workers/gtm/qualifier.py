@@ -6,7 +6,15 @@
 
     Explee matches 105M companies on firmographics; it cannot see intent.
 
-AutoGTM writes the email straight off that firmographic row. You can see it in
+**That is half right, and the published API shows which half.** Explee's search
+takes a `criteria` list and scores every result 0-5 against it with reasoning,
+for +0.1 credit per criterion. So it CAN judge fit — cheaply, and more cheaply
+than a model call per lead. Pass the campaign's criteria there
+(`explee_search.LeadSearch.criteria`) and let it do the filtering.
+
+What it still cannot do is read the company's site today and come back with one
+specific, sourced thing worth opening an email with. A 0-5 score is a filter, not
+a first line. AutoGTM writes the email straight off the firmographic row. You can see it in
 the drafts: "J'ai vu que Foxglove-Partner vend de l'optimisation SEO senior a
 Lyon" is the row read back as a sentence. Every lead in the segment gets the
 same shaped opener, because the same three columns are all the writer was given.
@@ -20,11 +28,19 @@ Two things are wrong and neither is fixable in the copy:
 2. **A firmographic row contains no reason to write today.** No amount of
    prompt engineering invents one; the copywriter can only restate the row.
 
-This module fixes both before a single email is drafted. It reads each lead
-against the campaign's real criteria and returns a verdict, and — when
-`research=True` — it reads the company's actual website first, so the
-observation the email opens on is something that required looking rather than
-a column.
+This module handles both before a single email is drafted, but the division of
+labour matters now that Explee's scoring is on the table:
+
+- **Fit** is Explee's job, in the search, at +0.1 credit per criterion. Cheaper
+  than anything here and it never leaves the search call.
+- **The observation** is this module's job, and only this module can do it: with
+  `research=True` it reads the company's actual site, so the line the email opens
+  on is something that required looking rather than a column restated.
+
+The verdict it returns still covers fit, because a fuzzy search returns matches
+that do not hold up and a second opinion on a lead is cheap next to a wasted
+send — but with Explee criteria in play, most of what it skips should already
+have been filtered, and a high skip rate here means the criteria need work.
 
 ## Why rejecting leads is the highest-value thing here
 

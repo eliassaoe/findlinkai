@@ -163,9 +163,16 @@ def cmd_source(args) -> int:
         leads = search.search(campaign, limit=args.limit)
         print(f"Explee returned {len(leads)} leads (~{cost:.0f} credits)")
 
-    resolver = pipeline.no_resolver
-    if args.resolve:
+    # Who resolves the address. Mirrors the Keys panel in the console.
+    choice = args.resolver if args.resolver else ("linkfinder" if args.resolve else "none")
+    if choice == "linkfinder":
         resolver = linkfinder.make_resolver(linkfinder.LinkFinder())
+    elif choice.startswith("explee"):
+        from explee_search import LeadSearch, make_resolver as explee_resolver
+        resolver = explee_resolver(LeadSearch(), preset=choice.split("_", 1)[1])
+    else:
+        resolver = pipeline.no_resolver
+    print(f"email resolution   : {choice}")
 
     drafts, report = pipeline.run(
         client, project, campaign, prompts["first_email"], leads,
@@ -360,7 +367,11 @@ def main(argv=None) -> int:
     s.add_argument("--out", default="drafts.json")
     s.add_argument("--show", type=int, default=3)
     s.add_argument("--research", action="store_true", help="let the qualifier read their site")
-    s.add_argument("--resolve", action="store_true", help="resolve emails via LinkFinder")
+    s.add_argument("--resolve", action="store_true", help="shorthand for --resolver linkfinder")
+    s.add_argument("--resolver", default="",
+                   choices=["", "linkfinder", "explee_premium", "explee_basic", "none"],
+                   help="who finds the email. linkfinder is ours (no marginal cost); "
+                        "explee charges only when it finds one (5cr premium / 1.5cr basic)")
     s.add_argument("--allow-unverified", action="store_true", help="dangerous; see README")
     s.set_defaults(fn=cmd_source)
 

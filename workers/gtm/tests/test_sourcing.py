@@ -63,24 +63,96 @@ class Client:
         return Response(payload, self._stop, self._extra)
 
 
-class TestDefinition(unittest.TestCase):
-    def test_renders_every_targeting_field(self):
-        d = explee_search.campaign_to_definition(CAMPAIGN)
-        for bit in ("Dirigeant", "FR/BE/LU", "Vente B2B active", "excluding"):
-            self.assertIn(bit, d)
+class TestCampaignToSearch(unittest.TestCase):
+    LS = explee_search.LeadSearch
+
+    def test_target_role_splits_into_job_titles(self):
+        c = Campaign(name="x", target_role="Dirigeant, responsable commercial / CEO")
+        self.assertEqual(self.LS.job_titles(c), ["Dirigeant", "responsable commercial", "CEO"])
+
+    def test_job_titles_respect_the_documented_cap_of_20(self):
+        c = Campaign(name="x", target_role=",".join(f"role{i}" for i in range(30)))
+        self.assertEqual(len(self.LS.job_titles(c)), 20)
+
+    def test_definition_is_plain_english_for_explee(self):
+        c = Campaign(name="x", keywords=("organisme de formation",), target_geography="FR/BE/LU")
+        d = self.LS.definition(c)
+        self.assertIn("organisme de formation", d)
+        self.assertIn("in FR/BE/LU", d)
+
+    def test_definition_falls_back_from_keywords_to_problem_to_offer(self):
+        problem = Campaign(name="x", customer_problem="prospecting stops")
+        self.assertEqual(self.LS.subject(problem), "prospecting stops")
+        offer = Campaign(name="x", offer="outbound as a service")
+        self.assertEqual(self.LS.subject(offer), "outbound as a service")
+
+    def test_a_geography_alone_is_refused_as_unbounded(self):
+        # "Dirigeant in France" is every director in the country. Refuse it
+        # rather than spend credits discovering that.
+        bare = Campaign(name="x", target_role="Dirigeant", target_geography="France")
+        search = self.LS.__new__(self.LS)
+        with self.assertRaises(ValueError) as ctx:
+            self.LS.search(search, bare)
+        self.assertIn("bounded only by job title and geography", str(ctx.exception))
+
+    def test_negative_criteria_become_scoreable_absences(self):
+        # Explee scores 0-5, it does not filter — so a negative has to be
+        # phrased as something to score LOW on.
+        crit = self.LS.criteria(CAMPAIGN)
+        self.assertIn("Vente B2B active", crit)
+        self.assertIn("is NOT: Formation purement subventionnee", crit)
+
+    def test_criteria_capped_at_five(self):
+        c = Campaign(name="x", positive_criteria=tuple(f"p{i}" for i in range(9)))
+        self.assertEqual(len(self.LS.criteria(c)), 5)
 
     def test_empty_campaign_refuses_to_search(self):
-        search = explee_search.LeadSearch.__new__(explee_search.LeadSearch)
+        search = self.LS.__new__(self.LS)
         with self.assertRaises(ValueError):
-            explee_search.LeadSearch.search(search, Campaign(name="empty"))
+            self.LS.search(search, Campaign(name="empty"))
 
     def test_mapping_survives_a_row_with_nothing_in_it(self):
-        self.assertEqual(explee_search.LeadSearch.to_lead({}).full_name, "")
+        self.assertEqual(self.LS.to_lead({}).full_name, "")
 
     def test_mapping_keeps_unknown_fields_for_the_qualifier(self):
-        lead = explee_search.LeadSearch.to_lead({"name": "A B", "mystery": 1})
-        self.assertEqual(lead.raw["mystery"], 1)
+        lead = self.LS.to_lead({"name": "A B", "criteria_scores": [{"score": 4}]})
+        self.assertEqual(lead.raw["criteria_scores"][0]["score"], 4)
         self.assertEqual(lead.first_name, "A")
+
+
+class TestExpleePricing(unittest.TestCase):
+    """The published pricing, encoded — SOURCES.md's ~$0.025/lead predates it."""
+
+    def test_first_hundred_results_are_free(self):
+        self.assertEqual(explee_search.LeadSearch.estimate(100)["search_credits"], 0.0)
+
+    def test_search_is_charged_only_beyond_the_free_zone(self):
+        # 500 people, 2 criteria: 400 billable x (1.0 + 0.2) = 480
+        self.assertEqual(
+            explee_search.LeadSearch.estimate(500, criteria=2)["search_credits"], 480.0
+        )
+
+    def test_premium_costs_more_and_finds_more_than_basic(self):
+        prem = explee_search.LeadSearch.estimate(500, preset="premium")
+        basic = explee_search.LeadSearch.estimate(500, preset="basic")
+        self.assertGreater(prem["total_usd"], basic["total_usd"])
+        self.assertGreater(prem["expected_emails"], basic["expected_emails"])
+
+    def test_unknown_preset_is_rejected(self):
+        with self.assertRaises(KeyError):
+            explee_search.LeadSearch.estimate(100, preset="cheapest")
+
+    def test_find_and_enrich_refuses_over_the_documented_cap(self):
+        ls = explee_search.LeadSearch.__new__(explee_search.LeadSearch)
+        with self.assertRaises(ValueError):
+            explee_search.LeadSearch.find_and_enrich(ls, ["CEO"], max_contacts=501)
+
+    def test_people_by_domains_enforces_both_documented_caps(self):
+        ls = explee_search.LeadSearch.__new__(explee_search.LeadSearch)
+        with self.assertRaises(ValueError):
+            explee_search.LeadSearch.people_by_domains(ls, ["x.com"] * 1001, ["CEO"])
+        with self.assertRaises(ValueError):
+            explee_search.LeadSearch.people_by_domains(ls, ["x.com"], ["t"] * 21)
 
 
 class TestQualifier(unittest.TestCase):

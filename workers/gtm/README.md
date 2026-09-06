@@ -55,6 +55,13 @@ send, so there are three doors.
 
 > Explee matches 105M companies on firmographics; **it cannot see intent.**
 
+**That is half right, and the published API says which half.** Explee's search
+takes a `criteria` list and scores every result 0-5 against it with reasoning,
+for +0.1 credit each. It CAN judge fit, more cheaply than a model call per lead —
+so we pass the campaign's criteria there and let it filter. What it cannot do is
+read the company's site today and return one sourced thing worth opening on. A
+0-5 score is a filter, not a first line.
+
 AutoGTM goes search -> write. The writer only ever sees the firmographic row, so
 the email can only restate it. It is visible in the live drafts: *"J'ai vu que
 Foxglove-Partner vend de l'optimisation SEO senior a Lyon"* is the search result
@@ -87,9 +94,9 @@ arithmetic — the opposite of the trade Explee makes at 747/day on a shared poo
 
 ### The gates, cheapest first
 
-    Explee search   ~$0.025/lead   finds people
+    Explee search   free to 100    then 1cr/person (+0.1/criterion)
     qualify         cents          decides if a send is worth spending
-    resolve email   7-10 credits   ONLY for leads that passed
+    resolve email   see below      ONLY for leads that passed
     write           cents          ONLY for verified addresses
 
 A test asserts a skipped lead never reaches the resolver. **Explee's own emails
@@ -126,6 +133,12 @@ text to reuse".
 ## The console
 
 `ui/index.html` — one file, Supabase JS from a CDN, **no build step**.
+
+**API keys go in the console's Keys panel** — Explee, LinkFinder, Instantly and
+Anthropic, saved in your browser only, never in Supabase or the repo. The panel
+also generates the `gh secret set` commands, because the agent runs on GitHub
+Actions and reads its own copies from repository secrets; the browser copies are
+for the console's own live checks.
 
 **Hosted at `linkfinderai.com/gtm-console`.** `ui/index.html` is the master;
 `ui/build.py --write` renders it to `gtm-console.html` at the repo root, which is
