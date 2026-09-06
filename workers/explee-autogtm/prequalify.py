@@ -46,7 +46,12 @@ from leadsource_test import brief_sha, clean_leads, lead_key
 import state
 
 HERE = Path(__file__).resolve().parent
-MAX_CRITERIA = 5             # each one is +10% on the search bill; five is plenty
+MAX_CRITERIA = 3             # Explee's hard cap: "Maximum 3 criteria allowed" (400)
+# Criteria that are really filters. Explee has a size filter and an is_b2b flag,
+# so these are not worth one of the three scoring slots; they are applied as
+# filters instead and only score if a slot is left over.
+FILTER_LIKE = re.compile(r"\b(\d+\s*[-–]\s*\d+\s*(employees|employ[ée]s|salari[ée]s|people|"
+                         r"staff|personnes)|b2b only|uniquement b2b|b2b uniquement)\b", re.I)
 MIN_SCORE = 4                # of 5, on every criterion
 PAGE = 100                   # people per search request
 SEARCH_CREDIT = 1.0
@@ -87,14 +92,32 @@ def describe_target(definition):
 
 
 def criteria_from(definition, cap=MAX_CRITERIA):
-    """Positive criteria as they are; negative ones phrased so a HIGH score means safe."""
+    """Positive criteria as they are; negative ones phrased so a HIGH score means safe.
+
+    Explee scores at most three, so the ones that a filter already enforces
+    (a size range, "B2B only") go to the back of the queue."""
     out = _tidy(as_list(first_of(definition, "positive_criteria", default=[])))
     for neg in _tidy(as_list(first_of(definition, "negative_criteria", default=[]))):
         out.append("Is NOT the following: {}".format(neg))
     problem = first_of(definition, "customer_problem", default="")
     if not out and problem:
         out.append("Likely has this problem: {}".format(str(problem).strip()))
-    return out[:cap]
+    judgement = [c for c in out if not FILTER_LIKE.search(c)]
+    filters = [c for c in out if FILTER_LIKE.search(c)]
+    return (judgement + filters)[:cap]
+
+
+def filters_from_criteria(definition, company_filters):
+    """The filter-like criteria, applied as filters. Returns the updated filters."""
+    out = dict(company_filters or {})
+    for crit in _tidy(as_list(first_of(definition, "positive_criteria", default=[]))):
+        if re.search(r"b2b only|uniquement b2b|b2b uniquement", crit, re.I):
+            out["is_b2b"] = True
+        match = re.search(r"(\d+)\s*[-–]\s*(\d+)\s*(employees|employ[ée]s|salari[ée]s|people|"
+                          r"staff|personnes)", crit, re.I)
+        if match and not (out.get("size") or {}).get("min"):
+            out["size"] = {"min": int(match.group(1)), "max": int(match.group(2))}
+    return out
 
 
 def search_cost(people, criteria, preset="basic"):
@@ -119,7 +142,8 @@ def cmd_plan(args):
         "project_id": first_of(definition, "project_id"),
         "name": first_of(definition, "name", default=str(args.campaign)),
         "query": query,
-        "company_filters": first_of(got, "companies_filters", "company_filters", default={}),
+        "company_filters": filters_from_criteria(
+            definition, first_of(got, "companies_filters", "company_filters", default={})),
         "people_filters": first_of(got, "people_filters", default={}),
         "criteria": criteria_from(definition),
         "brief": {

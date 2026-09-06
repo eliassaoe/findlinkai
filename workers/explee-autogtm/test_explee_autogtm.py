@@ -802,7 +802,24 @@ class Prequalify(unittest.TestCase):
         self.assertEqual(pq.criteria_from(self.DEF),
                          ["Sells B2B services", "Has an outbound sales team",
                           "Is NOT the following: Recruitment agency"])
-        self.assertEqual(pq.criteria_from({"positive_criteria": ["a"] * 9}), ["a"] * 5)
+        self.assertEqual(pq.criteria_from({"positive_criteria": ["a"] * 9}), ["a"] * 3)
+
+    def test_explee_scores_three_so_filter_like_criteria_yield_their_slot(self):
+        real = {"positive_criteria": [
+            "• Founder-led sales, or a sales team of 1–2 with no dedicated SDR",
+            "Sells a service or software with average contract value above $3,000",
+            "2–50 employees", "B2B only",
+            "Signs of outbound intent — recent SDR/BDR job posts, sales hires"]}
+        self.assertEqual(pq.criteria_from(real), [
+            "Founder-led sales, or a sales team of 1–2 with no dedicated SDR",
+            "Sells a service or software with average contract value above $3,000",
+            "Signs of outbound intent — recent SDR/BDR job posts, sales hires"])
+        filters = pq.filters_from_criteria(real, {"definition": "agency", "size": None})
+        self.assertTrue(filters["is_b2b"])
+        self.assertEqual(filters["size"], {"min": 2, "max": 50})
+        # a size the nl-to-filters step already set is left alone
+        kept = pq.filters_from_criteria(real, {"size": {"min": 5, "max": 30}})
+        self.assertEqual(kept["size"], {"min": 5, "max": 30})
         self.assertEqual(pq.criteria_from({"positive_criteria": ["• Founder-led sales"]}),
                          ["Founder-led sales"])
         self.assertEqual(pq.criteria_from({"customer_problem": "no leads"}),
