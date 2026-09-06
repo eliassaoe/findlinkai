@@ -170,16 +170,23 @@ Buttons are weighted by risk: **Check capacity** is primary and free, sourcing
 and reply-drafting are dry runs, and the one button that sends real mail is a
 danger style behind a confirm.
 
-### The handoff: Download JSON
+### GitHub is the backend
 
-The console is in your browser; the agent runs on GitHub's machines. **Download
-JSON** writes the exact shape `run.py load_config()` reads — the same as
-`example-campaign.json`. Commit it and the workflow runs it.
+**Save** commits `campaigns/<slug>.json` to the repo through the GitHub contents
+API, and the workflow reads it from the checkout. Edit here, run there, one loop —
+no file through your downloads folder, no server of ours, no database.
 
-That is the whole integration. A shared database buys one thing — browser and
-runner seeing the same rows without a file between them — and costs a login, an
-RLS policy, and a public anon key sitting in front of lead data. Not a trade
-worth making for one operator.
+The PUT is create-or-update: it fetches the blob sha first and omits it when the
+file is new. Content is base64 of UTF-8 bytes rather than `btoa`, which is
+latin-1 only and would mangle every accent in French copy.
+
+**Download** is still there as an escape hatch, and `run.py --campaign <file>`
+reads either.
+
+That is the whole integration. A database buys one thing — browser and runner
+seeing the same rows without a file between them — and costs a login, an RLS
+policy, and a public anon key in front of lead data. The repo already does the
+job, with version history for free.
 
 `store.py` and `run.py --db` still exist and still work if that changes. The
 `gtm_*` tables are live behind an operator allowlist (see `schema.sql`), and the

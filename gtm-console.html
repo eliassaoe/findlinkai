@@ -408,7 +408,8 @@ function viewRun() {
       try {
         await gh('/actions/workflows/gtm.yml/dispatches', {
           method: 'POST',
-          body: JSON.stringify({ ref: 'main', inputs: { job, apply: String(apply) } }),
+          body: JSON.stringify({ ref: 'main', inputs: {
+            job, apply: String(apply), campaign: campaignPath().split('/').pop() } }),
         });
         say(`started ${job}${apply ? ' (live)' : ''}`);
         setTimeout(refresh, 2500);
@@ -423,7 +424,7 @@ function viewRun() {
   return [
     el('h2', {}, 'Start a run'),
     el('p', { class: 'hint' },
-      'Runs on GitHub — that is where the secrets are and where the APIs are reachable.'),
+      `Runs on GitHub against ${campaignPath()} — save first if you have edited anything.`),
     el('div', { class: 'row' },
       go('capacity', false, 'Check capacity', 'go'),
       go('source', false, 'Source & draft', ''),
@@ -457,7 +458,7 @@ const KEYS = [
   ['LINKFINDER_API_KEY', 'LinkFinder AI', 'email resolution'],
   ['INSTANTLY_API_KEY', 'Instantly', 'sending'],
   ['OPENROUTER_API_KEY', 'OpenRouter', 'the qualifier and copywriter'],
-  ['GITHUB_TOKEN', 'GitHub', 'PAT with Actions read+write, to start runs'],
+  ['GITHUB_TOKEN', 'GitHub', 'PAT with Contents + Actions read & write — saves the campaign and starts runs'],
 ];
 
 $('#keysLink').onclick = () => {
@@ -524,15 +525,65 @@ function openDialog(title, sub, body, onOk) {
 }
 $('#dlgCancel').onclick = () => $('#dlg').close();
 
+/* ------------------------------------------------------------ save to repo
+ * GitHub is the backend. The console PUTs campaigns/<slug>.json through the
+ * contents API and the workflow reads it from the checkout — so editing here
+ * and running there is one loop, with no file passing through your downloads
+ * folder and no server of our own.
+ *
+ * Needs the PAT to carry Contents: read and write as well as Actions.
+ */
+const b64 = str => {
+  // btoa is latin-1 only; campaign copy is not.
+  const bytes = new TextEncoder().encode(str);
+  let s = '';
+  for (const b of bytes) s += String.fromCharCode(b);
+  return btoa(s);
+};
+
+const campaignPath = () =>
+  'campaigns/' + ((D.campaign.name || 'campaign').toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')) + '.json';
+
+async function saveToRepo(btn) {
+  const path = campaignPath();
+  const body = JSON.stringify(exportShape(), null, 2) + '\n';
+  const label = btn?.textContent;
+  if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+  try {
+    // An update needs the blob sha; a create must not send one.
+    let sha;
+    try {
+      const cur = await gh(`/contents/${path}?ref=main`);
+      sha = cur?.sha;
+    } catch (e) {
+      if (!/404|not found/i.test(e.message)) throw e;
+    }
+    await gh(`/contents/${path}`, {
+      method: 'PUT',
+      body: JSON.stringify({
+        message: `Update ${path} from the console`,
+        content: b64(body), branch: 'main', ...(sha ? { sha } : {}),
+      }),
+    });
+    store.set('campaign_path', path);
+    say(`saved ${path} to ${repo()}`);
+  } catch (e) {
+    say(e.message, true);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = label; }
+  }
+}
+
 /* --------------------------------------------------------------- download */
 function download(name, text, type) {
   const a = el('a', { href: URL.createObjectURL(new Blob([text], { type })), download: name });
   a.click(); URL.revokeObjectURL(a.href);
 }
 
-// The shape run.py load_config() already reads. This is the whole integration.
-function exportJson() {
-  const out = {
+// The shape run.py load_config() already reads.
+function exportShape() {
+  return {
     project: { ...D.project },
     campaign: { ...D.campaign },
     prompts: STAGES.map(([s]) => {
@@ -542,9 +593,11 @@ function exportJson() {
                max_follow_ups: h.max_follow_ups ?? 2 };
     }),
   };
-  const name = (D.campaign.name || 'campaign').toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') + '.json';
-  download(name, JSON.stringify(out, null, 2), 'application/json');
+}
+
+function exportJson() {
+  const name = campaignPath().split('/').pop();
+  download(name, JSON.stringify(exportShape(), null, 2), 'application/json');
   say(`downloaded ${name}`);
 }
 
@@ -557,9 +610,10 @@ function render() {
   const body = { campaign: viewCampaign, emails: viewEmails, run: viewRun }[view]();
   $('#main').replaceChildren(...body.filter(Boolean),
     el('div', { class: 'row', style: 'margin-top:44px;padding-top:20px;border-top:1px solid var(--line)' },
-      el('button', { class: 'b go', onclick: exportJson }, 'Download JSON'),
+      el('button', { class: 'b go', onclick: e => saveToRepo(e.target) }, 'Save'),
+      el('button', { class: 'b', onclick: exportJson, title: 'download a copy instead' }, 'Download'),
       el('span', { class: 'hint', style: 'margin:0' },
-         'then: python3 run.py source --campaign <file>.json'),
+         keys().GITHUB_TOKEN ? `commits ${campaignPath()}` : 'add a GitHub token under Keys to save'),
       el('span', { style: 'flex:1' }),
       el('button', { class: 'b', title: 'light / dark', onclick: () => {
         const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';

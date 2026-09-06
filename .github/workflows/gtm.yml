@@ -33,6 +33,10 @@ on:
         type: choice
         options: [replies, source, capacity]
         default: capacity
+      campaign:
+        description: Campaign file in campaigns/ (blank = the first one)
+        type: string
+        default: ''
       apply:
         description: Actually send (otherwise dry run)
         type: boolean
@@ -86,17 +90,34 @@ jobs:
             echo "MODE: DRY RUN — set the GTM_APPLY variable to true to arm."
           fi
 
+      # The console commits campaigns/<slug>.json through the GitHub API, so the
+      # repo is the backend and this reads whatever it wrote.
+      - name: Pick the campaign
+        id: pick
+        run: |
+          if [ -n "${{ inputs.campaign }}" ]; then
+            f="campaigns/${{ inputs.campaign }}"
+          else
+            f=$(ls campaigns/*.json 2>/dev/null | head -1)
+          fi
+          if [ ! -f "$f" ]; then
+            echo "No campaign file. The console's Save button writes one to campaigns/."
+            exit 1
+          fi
+          echo "file=$PWD/$f" >> "$GITHUB_OUTPUT"
+          echo "Using $f"
+
       - name: Replies
         if: github.event.schedule == '*/30 * * * *' || inputs.job == 'replies'
         run: |
           cd workers/gtm
-          python3 run.py replies --campaign example-campaign.json ${{ steps.mode.outputs.flag }}
+          python3 run.py replies --campaign "${{ steps.pick.outputs.file }}" ${{ steps.mode.outputs.flag }}
 
       - name: Source and draft
         if: github.event.schedule == '0 7 * * 1-5' || inputs.job == 'source'
         run: |
           cd workers/gtm
-          python3 run.py source --campaign example-campaign.json \
+          python3 run.py source --campaign "${{ steps.pick.outputs.file }}" \
             --limit 60 --research --resolve --out drafts.json
 
       - name: Keep the drafts
