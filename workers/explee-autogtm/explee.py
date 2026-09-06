@@ -137,7 +137,11 @@ class Explee:
             except ExpleeError as err:
                 if err.status in NO_RETRY or attempt == MAX_RETRIES - 1:
                     raise
-                wait = self._retry_after(err) or 2 ** attempt
+                if err.status == 429 and "free preview quota" in err.body.lower():
+                    # the free zone's per-minute cap: a minute, not a backoff
+                    wait = 61
+                else:
+                    wait = self._retry_after(err) or 2 ** attempt
                 self._sleep(min(wait, 60))
         raise AssertionError("unreachable")
 
