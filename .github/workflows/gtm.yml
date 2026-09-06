@@ -1,0 +1,104 @@
+# The GTM loop, on GitHub's machines.
+#
+# Same posture as explee-followups.yml, and for the same reason: this repo's
+# sandbox cannot reach linkfinderai.com, api.explee.com or api.instantly.ai, so
+# the loop has to run somewhere that can.
+#
+# TWO JOBS, DIFFERENT CADENCES — the split matters:
+#
+#   replies   every 30 min   Hot leads go cold in 24h and BASELINE.md records
+#                            one sitting three days in "Needs reply" before it
+#                            booked. This is where the money leaks.
+#   source    daily 07:00Z   Sending is capped by warmup at ~135/day and no
+#                            amount of scheduling raises that. Batching once a
+#                            day is correct; running it hourly just burns credits.
+#
+# BOTH RUN DRY until you set the repository variable GTM_APPLY=true.
+# Settings -> Secrets and variables -> Actions -> Variables.
+#
+# Secrets needed: ANTHROPIC_API_KEY, EXPLEE_API_KEY, LINKFINDER_API_KEY,
+#                 INSTANTLY_API_KEY
+
+name: gtm
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"   # replies
+    - cron: "0 7 * * 1-5"    # source, weekday mornings (09:00 Paris in summer)
+  workflow_dispatch:
+    inputs:
+      job:
+        description: Which job to run
+        type: choice
+        options: [replies, source, capacity]
+        default: capacity
+      apply:
+        description: Actually send (otherwise dry run)
+        type: boolean
+        default: false
+
+concurrency:
+  group: gtm-${{ github.ref }}
+  cancel-in-progress: false     # never interrupt a run mid-send
+
+jobs:
+  gtm:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      EXPLEE_API_KEY: ${{ secrets.EXPLEE_API_KEY }}
+      LINKFINDER_API_KEY: ${{ secrets.LINKFINDER_API_KEY }}
+      INSTANTLY_API_KEY: ${{ secrets.INSTANTLY_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install
+        run: pip install --quiet anthropic
+
+      - name: Tests
+        run: |
+          cd workers/gtm
+          for t in tests/test_*.py; do python3 "$t" -q || exit 1; done
+
+      # Nothing is worth running if no mailbox can send. All nine read
+      # status=-1 on 2026-09-06; this step is how we find out it changed.
+      - name: Capacity
+        id: cap
+        continue-on-error: true
+        run: cd workers/gtm && python3 run.py capacity
+
+      - name: Decide mode
+        id: mode
+        run: |
+          if [ "${{ vars.GTM_APPLY }}" = "true" ] || [ "${{ inputs.apply }}" = "true" ]; then
+            echo "flag=--apply" >> "$GITHUB_OUTPUT"
+            echo "MODE: APPLY — this run can send."
+          else
+            echo "flag=" >> "$GITHUB_OUTPUT"
+            echo "MODE: DRY RUN — set the GTM_APPLY variable to true to arm."
+          fi
+
+      - name: Replies
+        if: github.event.schedule == '*/30 * * * *' || inputs.job == 'replies'
+        run: |
+          cd workers/gtm
+          python3 run.py replies --campaign example-campaign.json ${{ steps.mode.outputs.flag }}
+
+      - name: Source and draft
+        if: github.event.schedule == '0 7 * * 1-5' || inputs.job == 'source'
+        run: |
+          cd workers/gtm
+          python3 run.py source --campaign example-campaign.json \
+            --limit 60 --research --resolve --out drafts.json
+
+      - name: Keep the drafts
+        if: always() && hashFiles('workers/gtm/drafts.json') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: drafts-${{ github.run_number }}
+          path: workers/gtm/drafts.json
+          retention-days: 14

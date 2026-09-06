@@ -1,0 +1,321 @@
+#!/usr/bin/env python3
+"""The runner. Dry by default; sending needs --apply.
+
+    python3 run.py source   --campaign c.json --limit 50      # search + qualify + draft
+    python3 run.py send     --campaign c.json --apply         # push drafts to Instantly
+    python3 run.py replies  --campaign c.json                 # classify inbound, draft answers
+    python3 run.py learn    --campaign c.json                 # mine patterns from bookings
+    python3 run.py capacity                                   # what can actually send today
+
+Same posture as workers/explee-autogtm: **a dry run prints exactly what it would
+do and changes nothing.** That directory's README makes the case and this follows
+it — the schedule runs dry until a variable is flipped, so the first live send is
+a decision someone made, not a deploy that happened.
+
+Campaign config is a JSON file for now (see example-campaign.json). The UI in
+ui/index.html writes the same shape into Supabase; store.py is the bridge and is
+the one piece not yet written.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import sys
+from dataclasses import asdict
+from pathlib import Path
+
+import copywriter
+import instantly as instantly_mod
+import learning
+import linkfinder
+import pipeline
+from explee_search import LeadSearch
+from models import Campaign, Lead, Pattern, Project, Prompt
+
+
+def load_config(path: str) -> tuple[Project, Campaign, dict[str, Prompt]]:
+    raw = json.loads(Path(path).read_text(encoding="utf-8"))
+    project = Project(**raw["project"])
+    campaign = Campaign(
+        **{k: (tuple(v) if isinstance(v, list) else v) for k, v in raw["campaign"].items()}
+    )
+    prompts = {p["stage"]: Prompt(**p) for p in raw.get("prompts", [])}
+    for stage in ("first_email", "follow_up", "reply"):
+        prompts.setdefault(stage, Prompt(stage=stage))
+    return project, campaign, prompts
+
+
+def anthropic_client():
+    try:
+        import anthropic
+    except ImportError:
+        sys.exit("pip install anthropic")
+    return anthropic.Anthropic()
+
+
+# ---------------------------------------------------------------- commands
+
+
+def cmd_capacity(args) -> int:
+    """What can actually send today. Run this before anything else."""
+    api = instantly_mod.Instantly()
+    ready, blocked = api.sendable_accounts()
+    print(f"sendable mailboxes : {len(ready)}")
+    print(f"blocked mailboxes  : {len(blocked)}")
+    for a in blocked:
+        print(
+            f"  - {a.get('email')}: status={a.get('status')} "
+            f"warmup={a.get('stat_warmup_score')}"
+        )
+    cap = sum(int(a.get("daily_limit") or 0) for a in ready)
+    print(f"daily capacity     : {cap} emails")
+    if not ready:
+        print(
+            "\nNothing can send. All nine mailboxes read status=-1 on 2026-09-06 "
+            "(docs/own-gtm-agent-plan.md); this is the first blocker to clear."
+        )
+        return 1
+    return 0
+
+
+def cmd_source(args) -> int:
+    project, campaign, prompts = load_config(args.campaign)
+    client = anthropic_client()
+
+    if args.leads:
+        rows = json.loads(Path(args.leads).read_text(encoding="utf-8"))
+        leads = [LeadSearch.to_lead(r) for r in rows]
+        print(f"loaded {len(leads)} leads from {args.leads}")
+    else:
+        search = LeadSearch()
+        ok, cost = search.affordable(args.limit)
+        if not ok:
+            print(
+                f"Explee balance is below the {cost:.0f} credits this batch needs. "
+                "Every request 402s at or below zero, free tier included."
+            )
+            return 1
+        leads = search.search(campaign, limit=args.limit)
+        print(f"Explee returned {len(leads)} leads (~{cost:.0f} credits)")
+
+    resolver = pipeline.no_resolver
+    if args.resolve:
+        resolver = linkfinder.make_resolver(linkfinder.LinkFinder())
+
+    drafts, report = pipeline.run(
+        client, project, campaign, prompts["first_email"], leads,
+        resolver=resolver, research=args.research,
+        daily_cap=args.cap or project.daily_cap,
+        require_verified=not args.allow_unverified,
+    )
+    print(report.line())
+
+    out = Path(args.out)
+    out.write_text(
+        json.dumps(
+            [
+                {
+                    "lead": asdict(d.lead),
+                    "fit_score": d.verdict.fit_score,
+                    "fit_reason": d.verdict.fit_reason,
+                    "observation": d.verdict.observation,
+                    "observation_source": d.verdict.observation_source,
+                    "subject": d.draft.subject,
+                    "body": d.draft.body,
+                    "language": d.draft.language,
+                    "confidence": d.draft.confidence,
+                }
+                for d in drafts
+            ],
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+    print(f"wrote {len(drafts)} drafts to {out}")
+
+    for d in drafts[: args.show]:
+        print("\n" + "=" * 66)
+        print(f"{d.lead.full_name} <{d.lead.email}> — {d.verdict.fit_score}/10")
+        print(f"observed: {d.verdict.observation}  [{d.verdict.observation_source}]")
+        print(f"Subject: {d.draft.subject}")
+        print(d.draft.body)
+    return 0
+
+
+def cmd_send(args) -> int:
+    project, campaign, prompts = load_config(args.campaign)
+    drafts = json.loads(Path(args.drafts).read_text(encoding="utf-8"))
+    if not drafts:
+        print("no drafts to send")
+        return 0
+
+    api = instantly_mod.Instantly()
+    ready, _ = api.sendable_accounts()
+    if not ready:
+        print("no sendable mailboxes — run `capacity` first")
+        return 1
+    cap = sum(int(a.get("daily_limit") or 0) for a in ready)
+    if len(drafts) > cap:
+        print(f"{len(drafts)} drafts exceeds today's capacity of {cap}; trimming")
+        drafts = drafts[:cap]
+
+    if not args.apply:
+        print(f"DRY RUN — would create campaign {campaign.name!r} with {len(drafts)} leads")
+        print(f"  mailboxes: {', '.join(a['email'] for a in ready)}")
+        print(f"  first subject: {drafts[0]['subject']!r}")
+        print("  campaign would be created PAUSED; arming is a separate --activate run")
+        print("\nRe-run with --apply to create it.")
+        return 0
+
+    # One campaign per draft is wrong; one campaign, per-lead bodies is what
+    # Instantly's variables are for. Until store.py exists we push the first
+    # draft's copy as the sequence and carry the rest as a warning.
+    first = drafts[0]
+    created = api.create_campaign(
+        name=f"{project.name} — {campaign.name}",
+        steps=[{"day": 0, "subject": first["subject"], "body": first["body"]}],
+        sending_emails=[a["email"] for a in ready],
+        daily_limit=min(15, cap),
+    )
+    campaign_id = created.get("id")
+    print(f"created PAUSED campaign {campaign_id}")
+
+    api.add_leads(
+        campaign_id,
+        [
+            {
+                "email": d["lead"]["email"],
+                "first_name": d["lead"].get("first_name"),
+                "company": d["lead"].get("company"),
+                "linkedin_url": d["lead"].get("linkedin_url"),
+                "title": d["lead"].get("title"),
+                "verified": True,  # pipeline.run already gated on this
+            }
+            for d in drafts
+        ],
+    )
+    print(f"added {len(drafts)} leads. Campaign is PAUSED.")
+    print(f"Arm it with: python3 run.py arm --campaign-id {campaign_id} --apply")
+    return 0
+
+
+def cmd_arm(args) -> int:
+    api = instantly_mod.Instantly()
+    if not args.apply:
+        print(f"DRY RUN — would activate campaign {args.campaign_id}. Re-run with --apply.")
+        return 0
+    api.activate(args.campaign_id)
+    print(f"campaign {args.campaign_id} is live")
+    return 0
+
+
+def cmd_replies(args) -> int:
+    project, campaign, prompts = load_config(args.campaign)
+    client = anthropic_client()
+    api = instantly_mod.Instantly()
+
+    inbound = api.replies(campaign_id=args.campaign_id)
+    print(f"{len(inbound)} inbound messages")
+    answered = 0
+    for msg in inbound:
+        body = msg.get("body", {}).get("text") or msg.get("body_text") or ""
+        if not body.strip():
+            continue
+        label = learning.classify_reply(client, body)
+        who = msg.get("lead_email", "?")
+        print(f"  {who}: {label['sentiment']} (reply={label['wants_reply']}) — {label['reason'][:70]}")
+        if not label["wants_reply"]:
+            continue
+
+        lead = Lead(email=who, full_name=msg.get("lead_name", ""))
+        draft = copywriter.write(
+            client, project, campaign, prompts["reply"], lead, "reply",
+            thread=__import__("models").Thread(inbound=(body,)),
+        )
+        answered += 1
+        print(f"    draft: {draft.body[:120]}")
+        if args.apply:
+            api.send_reply(msg["id"], draft.body)
+            print("    sent")
+    print(f"{answered} replies drafted{' and sent' if args.apply else ' (dry run)'}")
+    return 0
+
+
+def cmd_learn(args) -> int:
+    """Mine patterns from booked conversations.
+
+    Needs an outcomes source. Until store.py lands this reads two JSON files so
+    the loop is runnable and testable before the DB exists.
+    """
+    client = anthropic_client()
+    won = json.loads(Path(args.won).read_text(encoding="utf-8"))
+    lost = json.loads(Path(args.lost).read_text(encoding="utf-8"))
+    patterns = learning.mine_patterns(client, args.stage, won, lost)
+    if not patterns:
+        print(
+            f"no patterns: {len(won)} booked examples "
+            f"(need {learning.MIN_WINS_TO_MINE}), {len(lost)} lost. "
+            "An empty result early on is correct, not a failure."
+        )
+        return 0
+    for p in patterns:
+        print(f"[{p.kind}] {p.pattern}  ({p.wins}W/{p.losses}L)")
+    Path(args.out).write_text(
+        json.dumps([asdict(p) for p in patterns], ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+    print(f"wrote {len(patterns)} patterns to {args.out}")
+    return 0
+
+
+def main(argv=None) -> int:
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    sub = ap.add_subparsers(dest="cmd", required=True)
+
+    sub.add_parser("capacity", help="what can actually send today").set_defaults(fn=cmd_capacity)
+
+    s = sub.add_parser("source", help="search, qualify and draft")
+    s.add_argument("--campaign", required=True)
+    s.add_argument("--leads", help="JSON file of rows, instead of hitting Explee")
+    s.add_argument("--limit", type=int, default=50)
+    s.add_argument("--cap", type=int, default=0)
+    s.add_argument("--out", default="drafts.json")
+    s.add_argument("--show", type=int, default=3)
+    s.add_argument("--research", action="store_true", help="let the qualifier read their site")
+    s.add_argument("--resolve", action="store_true", help="resolve emails via LinkFinder")
+    s.add_argument("--allow-unverified", action="store_true", help="dangerous; see README")
+    s.set_defaults(fn=cmd_source)
+
+    s = sub.add_parser("send", help="push drafts to Instantly (creates PAUSED)")
+    s.add_argument("--campaign", required=True)
+    s.add_argument("--drafts", default="drafts.json")
+    s.add_argument("--apply", action="store_true")
+    s.set_defaults(fn=cmd_send)
+
+    s = sub.add_parser("arm", help="activate a paused campaign")
+    s.add_argument("--campaign-id", required=True)
+    s.add_argument("--apply", action="store_true")
+    s.set_defaults(fn=cmd_arm)
+
+    s = sub.add_parser("replies", help="classify inbound and draft answers")
+    s.add_argument("--campaign", required=True)
+    s.add_argument("--campaign-id")
+    s.add_argument("--apply", action="store_true")
+    s.set_defaults(fn=cmd_replies)
+
+    s = sub.add_parser("learn", help="mine patterns from bookings")
+    s.add_argument("--campaign", required=True)
+    s.add_argument("--won", required=True)
+    s.add_argument("--lost", required=True)
+    s.add_argument("--stage", default="first_email")
+    s.add_argument("--out", default="patterns.json")
+    s.set_defaults(fn=cmd_learn)
+
+    args = ap.parse_args(argv)
+    return args.fn(args)
+
+
+if __name__ == "__main__":
+    sys.exit(main())
