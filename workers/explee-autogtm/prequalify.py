@@ -107,6 +107,26 @@ def criteria_from(definition, cap=MAX_CRITERIA):
     return (judgement + filters)[:cap]
 
 
+def definition_from_target(definition, company_filters):
+    """The campaign's own list of business types as the search definition.
+
+    nl-to-filters collapsed "Agences marketing, Agences web, Agences digitales,
+    Agences SEO, Agences de communication, Agences IA, Cabinets de recrutement,
+    Organismes de formation, ..." into "marketing agency" and found 276 people.
+    When the campaign lists three or more types, that list is the definition;
+    the "exclude ..." items go to definition_exclude."""
+    out = dict(company_filters or {})
+    raw = str(first_of(definition, "target_company_size", default="") or "")
+    items = [i.strip(" .") for i in re.split(r"[,;\n]+", raw) if i.strip(" .")]
+    keep = [i for i in items if not re.match(r"(?i)exclude|sauf|hors ", i)]
+    drop = [re.sub(r"(?i)^(exclude|sauf|hors)\s+", "", i) for i in items if i not in keep]
+    if len(keep) >= 3:
+        out["definition"] = ", ".join(keep)
+        if drop and not out.get("definition_exclude"):
+            out["definition_exclude"] = ", ".join(drop)
+    return out
+
+
 def filters_from_criteria(definition, company_filters):
     """The filter-like criteria, applied as filters. Returns the updated filters."""
     out = dict(company_filters or {})
@@ -142,8 +162,8 @@ def cmd_plan(args):
         "project_id": first_of(definition, "project_id"),
         "name": first_of(definition, "name", default=str(args.campaign)),
         "query": query,
-        "company_filters": filters_from_criteria(
-            definition, first_of(got, "companies_filters", "company_filters", default={})),
+        "company_filters": definition_from_target(definition, filters_from_criteria(
+            definition, first_of(got, "companies_filters", "company_filters", default={}))),
         "people_filters": first_of(got, "people_filters", default={}),
         "criteria": criteria_from(definition),
         "brief": {
@@ -188,6 +208,37 @@ def scores_of(person):
         else:
             out.append(int(item))
     return out
+
+
+def score_report(people, criteria, min_score):
+    """What the scores looked like, criterion by criterion, and what each gate keeps.
+
+    "0 qualified" on its own says nothing. This says which criterion nobody
+    passes and how many a softer gate would have kept, so the next run is a
+    decision rather than a guess."""
+    per = [[0] * 6 for _ in criteria]
+    keep = {"every >= {}".format(min_score): 0, "every >= 3": 0, "average >= 3.5": 0,
+            "two of three >= 4": 0, "lowest criterion dropped, every >= 4": 0}
+    names = [c[:60] for c in criteria]
+    for person in people:
+        scores = scores_of(person)
+        for i, score in enumerate(scores[:len(per)]):
+            per[i][max(0, min(5, score))] += 1
+        if not scores:
+            continue
+        if min(scores) >= min_score:
+            keep["every >= {}".format(min_score)] += 1
+        if min(scores) >= 3:
+            keep["every >= 3"] += 1
+        if sum(scores) / len(scores) >= 3.5:
+            keep["average >= 3.5"] += 1
+        if sum(1 for s in scores if s >= 4) >= min(2, len(scores)):
+            keep["two of three >= 4"] += 1
+        if len(scores) > 1 and min(sorted(scores)[1:]) >= 4:
+            keep["lowest criterion dropped, every >= 4"] += 1
+    return {"per_criterion": {names[i]: {str(s): n for s, n in enumerate(row) if n}
+                              for i, row in enumerate(per)},
+            "would_keep": keep}
 
 
 def qualifies(person, min_score=MIN_SCORE):
@@ -332,6 +383,22 @@ def cmd_search(args):
         "{}: {}".format(k, histogram[k]) for k in sorted(histogram)))
     print("{} of {} qualify ({:.0%})".format(len(leads), len(people),
                                              len(leads) / len(people)))
+    report = score_report(people, plan["criteria"], args.min_score)
+    for name, dist in report["per_criterion"].items():
+        print("  {:<62} ".format(name) + "  ".join(
+            "{}:{}".format(s, n) for s, n in sorted(dist.items())))
+    for gate, n in report["would_keep"].items():
+        print("  gate {:<38} keeps {}".format(gate, n))
+    Path("scored.people.json").write_text(json.dumps(
+        [{"name": "{} {}".format(first_of(p, "first_name", default=""),
+                                 first_of(p, "last_name", default="")).strip(),
+          "company": first_of(p, "company_domain", "domain", default=""),
+          "job_title": first_of(p, "job_title", "title", default=""),
+          "scores": scores_of(p),
+          "reasons": [first_of(c, "reasoning", "reason", "explanation", default="")
+                      for c in (first_of(p, "criteria", "criteria_scores", default=[]) or [])
+                      if isinstance(c, dict)]} for p in people],
+        indent=1, ensure_ascii=False))
     if not args.no_enrich:
         found, asked = fill_emails(api, leads, args.preset)
         print("emails: {} of {} missing ones found".format(found, asked))
@@ -348,7 +415,9 @@ def cmd_search(args):
         section="prequalify", balance=api.last_balance,
         payload=dict(base, searched=len(people), qualified=len(leads), usable=len(usable),
                      histogram={str(k): v for k, v in histogram.items()},
-                     dropped=dropped))
+                     dropped=dropped, per_criterion=report["per_criterion"],
+                     would_keep=report["would_keep"],
+                     definition=(plan.get("company_filters") or {}).get("definition")))
     return 0
 
 

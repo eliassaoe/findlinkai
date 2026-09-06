@@ -185,9 +185,18 @@ def section_prequalify(data):
     if pq.get("criteria"):
         out.append("<p><b>Criteria scored 0–5:</b> " + " · ".join(
             esc(c, 80) for c in pq["criteria"]) + "</p>")
+    if pq.get("definition"):
+        out.append("<p class=\"mute\">search definition: {}</p>".format(esc(pq["definition"], 300)))
     if pq.get("histogram"):
         out.append("<p class=\"mute\">lowest score per person: " + "  ".join(
             "{}: {}".format(esc(k), v) for k, v in sorted(pq["histogram"].items())) + "</p>")
+    if pq.get("per_criterion"):
+        out.append(table(["criterion", "1", "2", "3", "4", "5"], [
+            [("", esc(name, 80))] + [("num", dist.get(str(s), 0)) for s in range(1, 6)]
+            for name, dist in pq["per_criterion"].items()]))
+    if pq.get("would_keep"):
+        out.append("<p class=\"mute\">what each gate would keep: " + " · ".join(
+            "{} → {}".format(esc(g), n) for g, n in pq["would_keep"].items()) + "</p>")
     if pq.get("compare_after"):
         out.append("<p>Compare the two campaigns after <b>{}</b>: same brief, same project, "
                    "the reply rate decides.</p>".format(esc(pq["compare_after"])))
