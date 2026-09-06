@@ -275,6 +275,15 @@ function viewCampaign() {
  * One screen, three stages behind a small switch, because the writing is one
  * job — not three tabs' worth.
  */
+function promptPreview() {
+  // The same composition the workflow embeds, shown here so the prompt is
+  // readable before anything is generated. "I don't see the prompt" was a
+  // fair complaint: it was only visible inside a downloaded file.
+  const wf = n8nWorkflow({ withKeys: false });
+  const agent = wf.nodes.find(n => n.type.endsWith('langchain.agent'));
+  return agent ? agent.parameters.options.systemMessage : '';
+}
+
 function viewEmails() {
   const cur = head(stage);
   const list = D.prompts[stage];
@@ -354,6 +363,18 @@ function viewEmails() {
     langSel,
     ...extras,
     ...history,
+
+    el('h2', {}, 'The whole prompt'),
+    el('p', { class: 'hint' },
+      'Exactly what the agent node is given, composed from this screen and the ' +
+      'Campaign screen. It goes into the workflow as plain text, so what you read ' +
+      'here is what the model reads.'),
+    (() => {
+      const box = el('textarea', { class: 'mono', rows: 18, readonly: true });
+      try { box.value = promptPreview(); }
+      catch (e) { box.value = 'could not compose: ' + e.message; }
+      return box;
+    })(),
   ];
 }
 
@@ -563,23 +584,98 @@ function n8nWorkflow({ withKeys = true } = {}) {
   const c = D.campaign, pr = D.project;
   const first = head('first_email');
 
-  const CRAFT = [
-    'You write one cold email to one person. Four moves, nothing else:',
-    '1. An observation — one concrete thing about them or their company, from the lead record. Not a compliment, not "I came across your profile".',
-    '2. The consequence — why that likely creates the problem the offer addresses.',
-    '3. What you do — concrete and operational, in the order it happens.',
-    '4. One ask — a question they can answer in a line. Ask for a reply, not a call.',
-    '',
-    'Under 90 words. Write in the language of their country; if unclear, English. Write it as a native speaker writes business email, not translated English.',
-    '',
-    'You may state as fact only what is in THE OFFER and THE FACTS. You may refer to the lead record as something you noticed. Never invent metrics, clients, mutual connections or events. If the record is thin, write a shorter email.',
-    '',
-    'Never: "I hope this finds you well", "I wanted to reach out", "I came across", "Quick question", "simply", "just", "easily", "leverage", "solution". No compliments on their website. No second ask, no P.S.',
-    '',
-    'Subject: lowercase, four words or fewer, looks like a person wrote it.',
-    '',
-    'Reply with JSON only: {"subject": "...", "body": "..."}',
-  ].join('\n');
+  // ------------------------------------------------------- the prompt
+  // Composed here, from the console, and written into the agent node as
+  // plain text — so what the model is told is what you read in n8n, not an
+  // expression pointing somewhere else.
+  //
+  // The craft rules are not taste. Cold email data from 2026: 50-125 words
+  // replies 2.4x better than over 200, and 75-100 is the peak; one ask beats
+  // two; a concrete signal about the prospect moves reply rates from 1-3%
+  // (generic) to 5-18%; subject lines of 4-7 words on curiosity plus
+  // relevance beat clever ones; the lowest-commitment ask wins, which for a
+  // first touch is a reply, not a call.
+  const list = (label, arr) => (arr || []).length
+    ? label + '\n' + arr.map(x => '- ' + x).join('\n') : null;
+
+  const systemPrompt = (() => {
+    const geo = c.target_geography ? ' in ' + c.target_geography : '';
+    // The domain only earns its place when it says something the name did not.
+    const who = [pr.name, pr.domain].filter(Boolean)
+      .filter((v, i, a) => a.indexOf(v) === i);
+    return [
+      'You write one cold email to one person. It is the only email they will',
+      'get from us this week, and it has to earn a reply on its own.',
+      '',
+      '## WHO YOU ARE WRITING AS',
+      who.length > 1 ? who[0] + ' (' + who[1] + ')' : (who[0] || 'us'),
+      '',
+      '## WHAT WE SELL',
+      c.offer || '(not set — say nothing about what we sell)',
+      '',
+      '## THE ONLY THINGS YOU MAY STATE AS TRUE',
+      'Everything below, and nothing else. If a claim is not here, it does not',
+      'exist. Never invent a metric, a client, a mutual connection, a funding',
+      'round or an event. A shorter email is always better than an invented one.',
+      '',
+      pr.facts || '(no facts given — then claim nothing beyond what we sell)',
+      '',
+      pr.booking_link
+        ? 'Booking link (use ONLY if the instructions below say to): ' + pr.booking_link
+        : null,
+      '',
+      list('Clients we may name:', c.example_clients),
+      '',
+      '## WHO YOU ARE WRITING TO',
+      'Role: ' + (c.target_role || 'the decision maker'),
+      'Company: ' + ((c.keywords || []).join(', ') || 'their company') + geo,
+      list('They typically:', c.positive_criteria),
+      '',
+      list('They are not:', c.negative_criteria),
+      '',
+      'The problem they likely have:',
+      c.customer_problem || '(not set — infer nothing, stay on the offer)',
+      '',
+      '## HOW TO WRITE IT',
+      'Four moves, in this order, nothing else:',
+      '1. An observation. One concrete thing from the lead brief you are given —',
+      '   what their company does, their role, where they are. Not a compliment,',
+      '   not "I came across your profile". This is the whole difference between',
+      '   a 3% reply rate and a 15% one, so make it specific or leave it out.',
+      '2. The consequence. Why that likely creates the problem above. One line.',
+      '3. What we do. Concrete and operational, in the order it happens.',
+      '4. One ask. A question they can answer in a line. Ask for a reply, not a',
+      '   call — the lowest-commitment ask wins the first touch. Never two asks.',
+      '',
+      'Length: 75-100 words. Never over 125. Under 200 words replies 2.4x better',
+      'than over, and shorter still wins inside that. Short paragraphs, one to',
+      'two lines each, blank line between.',
+      '',
+      'Subject: four to seven words, lowercase, curiosity plus relevance. It',
+      'should read like a person typed it to one person. No clickbait, no',
+      '"quick question", no company name padding.',
+      '',
+      'Language: write in the language of their country. If unclear, English.',
+      'Write as a native speaker writes business email — not translated English.',
+      '',
+      '## NEVER',
+      '- "I hope this finds you well", "I wanted to reach out", "I came across"',
+      '- "Quick question", "circle back", "touch base", "synergy", "leverage"',
+      '- "simply", "just", "easily", "solution", "game-changer"',
+      '- Compliments on their website, growth, or "impressive work"',
+      '- A second ask, a P.S., a signature block, or an unsubscribe line',
+      '- Anything you were not told above',
+      '',
+      first.instructions
+        ? '## EXTRA INSTRUCTIONS FOR THIS CAMPAIGN\n' + first.instructions + '\n'
+        : null,
+      '## OUTPUT',
+      'Reply with JSON and nothing else, no code fence:',
+      '{"subject": "...", "body": "..."}',
+    ].filter(x => x !== null && x !== undefined).join('\n')
+     // An absent optional section leaves its separator behind; collapse them.
+     .replace(/\n{3,}/g, '\n\n').trim();
+  })();
 
   const cfg = {
     explee_key: withKeys ? (k.EXPLEE_API_KEY || '') : 'PUT_EXPLEE_KEY_HERE',
@@ -619,12 +715,6 @@ function n8nWorkflow({ withKeys = true } = {}) {
     criteria: [...(c.positive_criteria || []),
                ...(c.negative_criteria || []).map(x => 'is NOT: ' + x)].slice(0, 3),
     offer: c.offer, problem: c.customer_problem, facts: pr.facts,
-    // One field for the agent to read, so the prompt is editable in one
-    // place instead of assembled inside an expression.
-    system_prompt: [CRAFT, '', 'THE OFFER (the only facts you may assert)', c.offer,
-                    '', 'THE FACTS', pr.facts,
-                    '', 'THE PROBLEM THEY LIKELY HAVE', c.customer_problem,
-                    '', 'EXTRA INSTRUCTIONS', first.instructions || ''].join('\n'),
     instructions: first.instructions || '', language: first.language || 'lead',
   };
 
@@ -890,8 +980,10 @@ function n8nWorkflow({ withKeys = true } = {}) {
     {
       parameters: {
         promptType: 'define',
-        text: "={{ 'Write to this person.\\n\\n' + JSON.stringify($json.brief, null, 2) }}",
-        options: { systemMessage: "={{ $('Config').first().json.system_prompt }}" },
+        text: "={{ 'Write one cold email to this person.\\n\\n' + JSON.stringify($json.brief, null, 2) }}",
+        // Plain text, not an expression: the prompt you read in the node is
+        // the prompt the model gets. Regenerate from the console to change it.
+        options: { systemMessage: systemPrompt },
       },
       id: uid(),
       name: 'Write the email',

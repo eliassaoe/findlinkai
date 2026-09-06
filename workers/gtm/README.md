@@ -350,6 +350,39 @@ Instantly.
 console and ready to import: five placeholders in the Config node and nothing
 else to fill in.
 
+### The prompt
+
+It is written into the agent node as **plain text**, not an expression, so what
+you read in n8n is what the model is given. The Emails screen shows the same
+composition before you generate anything. Regenerate from the console to change
+it; editing it in n8n works too and lasts until the next import.
+
+Eight sections, composed from the console: who you are writing as (project name
+and domain), what we sell (the offer), the only things you may state as true
+(project facts, booking link, nameable clients), who you are writing to (role,
+company keywords, geography, should-be and should-not-be criteria, the problem
+they likely have), how to write it, never, the campaign's extra instructions,
+and the output contract.
+
+The craft rules are anchored to 2026 cold-email data rather than taste:
+
+| Rule | Why |
+| --- | --- |
+| 75-100 words, never over 125 | 50-125 words replies **2.4x** better than over 200; 75-100 peaks |
+| One concrete observation from the brief | signal-based personalisation runs **5-18%** reply against **1-3%** generic |
+| One ask, and it is a reply not a call | lowest-commitment CTA wins a first touch; two asks cause decision paralysis |
+| Subject 4-7 words, curiosity plus relevance | beats clever subject lines on opens |
+| Problem-first, in PAS order | signal-anchored PAS lands **8-15%** |
+
+Sources: [Instantly's 2026 benchmark report](https://instantly.ai/cold-email-benchmark-report-2026),
+[Saleshandy on 53M emails](https://www.saleshandy.com/blog/cold-email-statistics/),
+[Autobound's 2026 guide](https://www.autobound.ai/blog/cold-email-guide-2026),
+[Unify on PAS vs AIDA](https://www.unifygtm.com/explore/cold-email-frameworks-b2b-saas).
+
+Worth keeping in perspective: the same sources say signal timing moves reply
+rates more than framework choice does. The prompt is not the lever that matters
+most — who you send to, and when, is.
+
 **The writer is an n8n AI Agent, and it only sees a brief.** `Write the email`
 is `@n8n/n8n-nodes-langchain.agent` with an `lmChatOpenAi` model node on
 `ai_languageModel` — the node type and version copied from the agent in the
