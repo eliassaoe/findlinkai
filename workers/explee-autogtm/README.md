@@ -46,13 +46,17 @@ Every project you run for a customer lives in your Explee organisation, so
 the one `EXPLEE_API_KEY` reaches all of them. Adding one is a file:
 
 ```bash
-python3 recover.py --init "Acme Corp"      # writes projects/acme-corp.json
+python3 recover.py --init "Acme Corp" --project 41      # writes projects/acme-corp.json
 ```
 
-Fill in `project_id` (the number in the Explee URL, `/app-auto-gtm/p/<id>`),
-`language`, and the `copy` block: `offer` is the one line the nudges carry,
-`sender` is the fallback signature (the nudge signs as the persona the lead
-wrote to whenever it can read one). Commit the file. From the next run:
+With `--project` (the number in the Explee URL, `/app-auto-gtm/p/<id>`) the
+file is pre-filled from the project's campaigns: the language, the booking
+link, and the `offer` line the nudges carry, taken from the first sentence of
+the campaign's own offer. Read that one line before committing — it is what
+every nudge says. `sender` is the project domain, only used when the nudge
+cannot read the persona the lead wrote to. Without `--project` or without the
+key, a blank template is written to fill in by hand. Commit the file. From the
+next run:
 
 - the daily loop reads that project's replied threads and nudges like any other;
 - the page gets its own **Follow-up loop — Acme Corp** block, with its own inbox

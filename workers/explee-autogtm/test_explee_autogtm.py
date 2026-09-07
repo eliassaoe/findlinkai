@@ -1464,5 +1464,61 @@ class BookingLink(unittest.TestCase):
         self.assertEqual(recover.booking_link(NoTarget({}), 9, {}), "")
 
 
+class InitFromExplee(unittest.TestCase):
+    OFFER = ("Des rendez-vous commerciaux qualifiés, posés directement dans l'agenda du "
+             "client, facturés à l'unité. Nous constituons la liste de prospects à partir "
+             "de notre plateforme.")
+
+    def test_the_offer_becomes_one_nudge_line(self):
+        self.assertEqual(recover.one_line_offer(self.OFFER),
+                         "des rendez-vous commerciaux qualifiés, posés directement dans "
+                         "l'agenda du client, facturés à l'unité.")
+        self.assertEqual(recover.one_line_offer("SEO audits for e-commerce"),
+                         "SEO audits for e-commerce.")
+        self.assertEqual(recover.one_line_offer(""), "")
+        self.assertTrue(recover.one_line_offer("x " * 200).endswith("…"))
+
+    def test_language_is_read_or_guessed(self):
+        self.assertEqual(recover.guess_language({"language": "en"}), "en")
+        self.assertEqual(recover.guess_language({"language": "auto", "offer": self.OFFER}), "fr")
+        self.assertEqual(recover.guess_language({"language": "auto",
+                                                 "offer": "Booked sales meetings."}), "en")
+
+    def test_init_prefills_from_the_campaign(self):
+        import tempfile
+
+        class Api:
+            def projects(self):
+                return [{"id": 41, "domain": "acme.fr"}]
+
+            def campaigns(self, project_id=None):
+                return [{"id": 7, "name": "Acme outbound"}]
+
+            def campaign(self, cid):
+                return {"id": cid, "name": "Acme outbound", "language": "auto",
+                        "offer": InitFromExplee.OFFER, "keywords": "prospection B2B, leads",
+                        "target_url": "https://calendly.com/acme/15min"}
+        with tempfile.TemporaryDirectory() as tmp:
+            with unittest.mock.patch.object(recover, "PROJECTS", Path(tmp)):
+                recover.scaffold("Acme Corp", 41, Api())
+                cfg = json.loads((Path(tmp) / "acme-corp.json").read_text())
+        self.assertEqual(cfg["project_id"], 41)
+        self.assertEqual(cfg["language"], "fr")
+        self.assertEqual(cfg["booking_url"], "https://calendly.com/acme/15min")
+        self.assertEqual(cfg["copy"]["sender"], "acme.fr")
+        self.assertEqual(cfg["copy"]["topic"], "prospection B2B")
+        self.assertTrue(cfg["copy"]["offer"].startswith("des rendez-vous commerciaux"))
+        self.assertEqual(cfg["sheet"]["token"], "")
+
+    def test_init_without_explee_still_writes_the_template(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            with unittest.mock.patch.object(recover, "PROJECTS", Path(tmp)):
+                recover.scaffold("Beta", None, None)
+                cfg = json.loads((Path(tmp) / "beta.json").read_text())
+        self.assertEqual(cfg["project_id"], 0)
+        self.assertEqual(cfg["copy"]["offer"], recover.TEMPLATE["copy"]["offer"])
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
