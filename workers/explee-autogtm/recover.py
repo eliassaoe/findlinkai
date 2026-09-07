@@ -702,28 +702,127 @@ def run_project(api, cfg, args, now, out=sys.stdout):
     return sends
 
 
-def scaffold(name):
-    """A new customer project, ready to fill in."""
+FRENCH_HINT = re.compile(r"[àâçéèêëîïôûùüÿœ]|\b(les|des|une|vous|nous|pour|avec|dans)\b", re.I)
+
+
+def one_line_offer(text):
+    """The first sentence of a campaign's offer paragraph, shaped for a nudge.
+
+    The nudge says "Un élément que je n'avais pas précisé : {offer}", so the
+    line has to read after a colon: first letter lowered unless it is an
+    acronym, a full stop at the end, and no longer than 180 characters.
+    """
+    text = re.sub(r"\s+", " ", str(text or "")).strip()
+    if not text:
+        return ""
+    first = re.split(r"(?<=[.!?])\s+", text, maxsplit=1)[0].strip()
+    if len(first) > 180:
+        first = first[:177].rsplit(" ", 1)[0] + "…"
+    if first and not first[:2].isupper():
+        first = first[0].lower() + first[1:]
+    if first and first[-1] not in ".!?…":
+        first += "."
+    return first
+
+
+def guess_language(campaign):
+    lang = str(first_of(campaign, "language", default="") or "").lower()
+    if lang in ("fr", "en"):
+        return lang
+    text = " ".join(str(first_of(campaign, k, default="") or "")
+                    for k in ("offer", "customer_problem", "target_role"))
+    return "fr" if len(FRENCH_HINT.findall(text)) >= 3 else "en"
+
+
+def project_from_explee(api, project_id):
+    """Everything a project file needs, read off the project's campaigns.
+
+    Returns (fields, campaign name it was read from, project domain)."""
+    domain = ""
+    for project in api.projects():
+        if str(first_of(project, "id", "project_id", default="")) == str(project_id):
+            domain = str(first_of(project, "domain", "name", default="") or "")
+    campaigns = api.campaigns(project_id=project_id)
+    if not campaigns:
+        return None, None, domain
+    # the campaign with a real offer of its own, else the first
+    picked, definition = None, None
+    for row in campaigns:
+        candidate = api.campaign(first_of(row, "id", "campaign_id"))
+        if first_of(candidate, "offer", default=""):
+            picked, definition = row, candidate
+            break
+        if definition is None:
+            picked, definition = row, candidate
+    language = guess_language(definition)
+    keywords = first_of(definition, "keywords", default="")
+    topic = (str(keywords).split(",")[0].strip() if keywords
+             else ("la prospection sortante" if language == "fr" else "outbound"))
+    fields = {
+        "language": language,
+        "booking_url": str(first_of(definition, "target_url", default="") or ""),
+        "copy": {
+            "sender": domain or "",
+            "offer": one_line_offer(first_of(definition, "offer", default="")),
+            "proof": "",
+            "topic": topic,
+            "answer": "Réponse courte : oui." if language == "fr" else "Short answer: yes.",
+        },
+    }
+    return fields, first_of(definition, "name", default=picked and first_of(
+        picked, "name", default="?")), domain
+
+
+def scaffold(name, project_id=None, api=None):
+    """A new customer project, pre-filled from Explee when it can be reached."""
     PROJECTS.mkdir(exist_ok=True)
     path = PROJECTS / "{}.json".format(re.sub(r"[^a-z0-9_-]+", "-", name.lower()))
     if path.exists():
         raise SystemExit("{} already exists".format(path))
-    path.write_text(json.dumps(dict(TEMPLATE, name=name), indent=2, ensure_ascii=False) + "\n")
-    print("""{} written.
+    cfg = dict(TEMPLATE, name=name)
+    if project_id:
+        cfg["project_id"] = int(project_id)
+    source = None
+    if project_id and api is not None:
+        try:
+            fields, source, domain = project_from_explee(api, project_id)
+        except (ExpleeError, ShapeError) as err:
+            print("!! could not read project {} from Explee ({}); writing the blank "
+                  "template".format(project_id, err))
+            fields = None
+        if fields:
+            cfg.update(fields)
+    path.write_text(json.dumps(cfg, indent=2, ensure_ascii=False) + "\n")
+    print("{} written.".format(path))
+    if source:
+        print("""
+Pre-filled from the campaign {!r}:
+  language     {}
+  offer        {}
+  booking_url  {}
+  sender       {}   (the nudge signs as the persona the lead wrote to; this is the fallback)
 
+Read the offer line once - it is what every nudge carries.""".format(
+            source, cfg["language"], cfg["copy"]["offer"] or "(empty - fill it in)",
+            cfg.get("booking_url") or "(none - the campaign target_url is read at run time)",
+            cfg["copy"]["sender"] or "(empty)"))
+    else:
+        print("""
 Now, once per project:
   1. project_id  - the number in the Explee URL: /app-auto-gtm/p/<HERE>
+                   (or re-run with --project <id> and the rest is pre-filled)
   2. copy        - sender, offer, topic. This is what the follow-ups say.
-  3. language    - "fr" or "en"; it switches the templates and the dates.
-  4. Nothing else. Booked / stop is typed into the lead's note in the Explee
-     inbox. (A Google Sheet is optional: sheet.csv_url or sheet.webapp_url;
-     a web-app token goes in the SHEET_TOKEN environment variable, never here.)
+  3. language    - "fr" or "en"; it switches the templates and the dates.""")
+    print("""
+Booked / stop is typed into the lead's note in the Explee inbox. (A Google
+Sheet is optional: sheet.csv_url or sheet.webapp_url; a web-app token goes in
+the SHEET_TOKEN environment variable, never here.)
 
 Commit the file - GitHub Actions runs every project it finds in projects/:
-  git add projects/ && git commit -m "AutoGTM: add <name>"
+  git add projects/ && git commit -m "AutoGTM: add {}"
   python3 recover.py --all            # dry run, all projects
   python3 recover.py --all --apply    # send
-""".format(path))
+""".format(name))
     return 0
 
 
@@ -745,7 +844,9 @@ def main(argv=None):
     ap.add_argument("--project-file", action="append",
                     help="a projects/<name>.json; repeatable")
     ap.add_argument("--all", action="store_true", help="every project in projects/")
-    ap.add_argument("--init", metavar="NAME", help="scaffold a new customer project and exit")
+    ap.add_argument("--init", metavar="NAME",
+                    help="scaffold a new customer project and exit; with --project <id> "
+                         "the offer, language and booking link are read from Explee")
     ap.add_argument("--campaign", type=int, action="append",
                     help="campaign id; repeatable. Default: every campaign in the project.")
     ap.add_argument("--project", type=int)
@@ -761,7 +862,13 @@ def main(argv=None):
     args = ap.parse_args(argv)
 
     if args.init:
-        return scaffold(args.init)
+        api = None
+        if args.project:
+            try:
+                api = Explee()
+            except SystemExit as err:            # no key: still write the template
+                print("!! {}".format(err))
+        return scaffold(args.init, args.project, api)
 
     api = Explee()
     balance = api.balance()
