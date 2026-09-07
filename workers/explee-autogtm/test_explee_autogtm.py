@@ -313,6 +313,9 @@ class FakeApi:
     def hot_leads(self, campaign_id=None, limit=100):
         return []
 
+    def campaign(self, cid):
+        return {"id": cid, "target_url": getattr(self, "link", "")}
+
 
 class Run(unittest.TestCase):
     def setUp(self):
@@ -1417,6 +1420,48 @@ class PrequalifyLearning(unittest.TestCase):
         self.assertEqual(report["would_keep"]["every >= 4"], 2)
         self.assertEqual(report["would_keep"]["two of three >= 4"], 12)
         self.assertEqual(report["would_keep"]["lowest criterion dropped, every >= 4"], 12)
+
+
+class BookingLink(unittest.TestCase):
+    LINK = "https://calendly.com/hamoureliasse/offre-linkfinder-ai-outbound/"
+
+    def test_the_link_replaces_the_two_slots_in_every_sending_bucket(self):
+        ctx = {"first_name": "Tom", "company": "Prescient", "offer": "One line.",
+               "sender": "Pete", "slots": [], "booking_url": self.LINK}
+        for bucket in ("nudge", "nudge_last", "warm", "send_info", "re_engage"):
+            fr = fu.compose(bucket, ctx, "fr")
+            self.assertIn(self.LINK, fr, bucket)
+            self.assertNotIn("créneaux", fr, bucket)
+            self.assertIn("voici mon agenda", fr, bucket)
+            en = fu.compose(bucket, ctx, "en")
+            self.assertIn(self.LINK, en, bucket)
+            self.assertNotIn("Would either", en, bucket)
+
+    def test_without_a_link_the_two_slots_still_work(self):
+        ctx = {"first_name": "Tom", "offer": "x", "sender": "Pete",
+               "slots": ["Tue 10:00", "Wed 15:00"]}
+        self.assertIn("Tue 10:00", fu.compose("nudge", ctx, "en"))
+
+    def test_the_run_reads_the_campaign_target_url(self):
+        api = FakeApi({1: thread(("out", "hi", "2026-08-28T08:00:00Z"),
+                                 ("in", "send me pricing", "2026-08-28T09:00:00Z"),
+                                 ("out", "auto answer", "2026-08-28T09:05:00Z"),
+                                 email="a@x.com")})
+        api.link = self.LINK
+        out = io.StringIO()
+        recover.run(api, CFG, [{"id": 9, "name": "test"}], set(), set(), WED, True, 25, out=out)
+        self.assertEqual(len(api.sent), 1)
+        self.assertIn(self.LINK, api.sent[0][1])
+        self.assertNotIn("Would either", api.sent[0][1])
+        self.assertIn("carry the booking link", out.getvalue())
+
+    def test_the_project_booking_url_is_the_fallback(self):
+        class NoTarget(FakeApi):
+            def campaign(self, cid):
+                return {"id": cid}
+        self.assertEqual(recover.booking_link(NoTarget({}), 9, {"booking_url": "https://c/x"}),
+                         "https://c/x")
+        self.assertEqual(recover.booking_link(NoTarget({}), 9, {}), "")
 
 
 if __name__ == "__main__":

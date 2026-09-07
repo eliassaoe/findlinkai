@@ -402,6 +402,8 @@ def _send(who, bucket, why, key, entries, note, cfg, now, language="en", persona
              for s in fu.two_slots(now, cfg.get("timezone", "UTC"),
                                    tuple(cfg.get("slot_hours", fu.SLOT_HOURS)))]
     ctx = dict(cfg.get("copy", {}), slots=slots, **who)
+    if cfg.get("booking_url"):
+        ctx["booking_url"] = cfg["booking_url"]
     if persona:
         ctx["sender"] = persona
     message = fu.compose(bucket, ctx, language)
@@ -413,6 +415,17 @@ def _send(who, bucket, why, key, entries, note, cfg, now, language="en", persona
 
 
 # --- the run -----------------------------------------------------------------
+def booking_link(api, campaign_id, cfg):
+    """The campaign's own target_url (its Calendly), or the project's booking_url."""
+    try:
+        definition = api.campaign(campaign_id)
+        link = str(first_of(definition, "target_url", default="") or "").strip()
+    except (ExpleeError, ShapeError, AttributeError):
+        link = ""
+    return link or str(cfg.get("booking_url") or cfg.get("copy", {}).get("booking_url")
+                       or "").strip()
+
+
 def load_emails(path):
     if not path:
         return set()
@@ -436,12 +449,16 @@ def run(api, cfg, campaigns, booked, calendar_views, now, apply_, cap, out=sys.s
             tally["error: inbox unreadable"] = tally.get("error: inbox unreadable", 0) + 1
             print("  !! inbox: {}".format(err), file=out)
             continue
+        ccfg = dict(cfg, booking_url=booking_link(api, cid, cfg))
+        print("  follow-ups carry {}".format(
+            "the booking link " + ccfg["booking_url"] if ccfg["booking_url"]
+            else "two proposed slots (no target_url on this campaign)"), file=out)
         for row in replied:
             pid = first_of(row, "person_id", "id", "lead_id")
             try:
                 thread = api.thread(cid, pid)
                 note = api.get_note(cid, pid)
-                plan = decide(row, thread, note, cfg, booked, calendar_views, now)
+                plan = decide(row, thread, note, ccfg, booked, calendar_views, now)
             except (ShapeError, ExpleeError) as err:
                 tally["error"] = tally.get("error", 0) + 1
                 print("  !! {}: {}".format(pid, err), file=out)
