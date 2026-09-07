@@ -294,6 +294,28 @@ src="https://www.facebook.com/tr?id=2717863625238535&ev=PageView&noscript=1"
     <script>
         // Your signup worker URL
         const WORKER_URL = 'https://linkfinderai-sign-up.hamoureliasse.workers.dev/';
+
+        // Set by /100free before it sent the visitor to Google. The OAuth round
+        // trip strips the query string, so the landing flag and its campaign
+        // parameters travel in localStorage instead, and an account that
+        // started on /100free is created through the worker's /100free route,
+        // which is what grants the 1,000 credits.
+        const SIGNUP_LANDING = localStorage.getItem('lf_landing') === '100free' ? '/100free' : null;
+        const SIGNUP_UTM = (function () {
+            try {
+                const saved = JSON.parse(localStorage.getItem('lf_landing_utm') || 'null');
+                if (saved && typeof saved === 'object' && Object.keys(saved).length) return saved;
+            } catch (e) {}
+            const attr = window.LF_ATTRIBUTION || {};
+            const keys = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'];
+            const out = {};
+            ['last_', 'first_'].some(prefix => {
+                keys.forEach(k => { if (attr[prefix + k]) out[k] = String(attr[prefix + k]).slice(0, 200); });
+                return Object.keys(out).length > 0;
+            });
+            return out;
+        })();
+        const SIGNUP_URL = SIGNUP_LANDING ? WORKER_URL + '100free' : WORKER_URL;
         
         console.log('🚀 DEBUG: Page loaded');
         console.log('🔗 DEBUG: Worker URL:', WORKER_URL);
@@ -414,14 +436,15 @@ src="https://www.facebook.com/tr?id=2717863625238535&ev=PageView&noscript=1"
             ref:   localStorage.getItem('lf_ref') || null,
             gclid: localStorage.getItem('gclid')  || null,
             fbc:   getCookie('_fbc') || null,
-            fbp:   getCookie('_fbp') || null
+            fbp:   getCookie('_fbp') || null,
+            utm:   SIGNUP_UTM
         };
         
         console.log('📝 DEBUG: Request body:', requestBody);
                 
                 console.log('📝 DEBUG: Request body:', requestBody);
                 
-                const response = await fetch(WORKER_URL, {
+                const response = await fetch(SIGNUP_URL, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json', 'X-API-Secret': window.LF_API_KEY,
@@ -451,7 +474,7 @@ src="https://www.facebook.com/tr?id=2717863625238535&ev=PageView&noscript=1"
 
                 if (serverData.token) {
                     console.log('🎫 DEBUG: Got token (first 20 chars):', serverData.token.substring(0, 20) + '...');
-                    return { success: true, token: serverData.token };
+                    return { success: true, token: serverData.token, signup_grant: serverData.signup_grant || null };
                 } else {
                     throw new Error('No token received from server');
                 }
@@ -504,11 +527,23 @@ src="https://www.facebook.com/tr?id=2717863625238535&ev=PageView&noscript=1"
                     showSuccess();
 
                     try {
-        posthog.identify(result.token, { email: email, signup_method: 'google' });
+        posthog.identify(result.token, {
+            email: email, signup_method: 'google',
+            ...(SIGNUP_LANDING ? { signup_landing: SIGNUP_LANDING, ...SIGNUP_UTM } : {})
+        });
         // Google verified this address before it ever reached us, so it is never
         // capped and never held back from marketing email.
         try { posthog.setPersonProperties({ email_verified: true }); } catch(e) {}
-        posthog.capture('signup_success', {method: 'google', ...(window.getAttributionProperties ? window.getAttributionProperties() : {})});
+        posthog.capture('signup_success', {
+            method: 'google',
+            ...(SIGNUP_LANDING ? { landing: SIGNUP_LANDING, signup_grant_credits: (result.signup_grant && result.signup_grant.credits_awarded) || 0 } : {}),
+            ...(window.getAttributionProperties ? window.getAttributionProperties() : {})
+        });
+        // The worker never fails a signup over the bonus, so a miss here means
+        // the account exists without its credits. Count it so it can be paid by hand.
+        if (SIGNUP_LANDING && !(result.signup_grant && result.signup_grant.credits_awarded)) {
+            posthog.capture('signup_grant_failed', { landing: SIGNUP_LANDING, method: 'google', reason: (result.signup_grant && result.signup_grant.error) || 'missing' });
+        }
     } catch(e) {}
                     
                     await supabaseClient.auth.signOut();
@@ -521,7 +556,9 @@ src="https://www.facebook.com/tr?id=2717863625238535&ev=PageView&noscript=1"
                            : `https://linkfinderai.com/app?token=${result.token}`;
 
                         localStorage.removeItem('gclid');
-                        localStorage.removeItem('lf_ref'); 
+                        localStorage.removeItem('lf_ref');
+                        localStorage.removeItem('lf_landing');
+                        localStorage.removeItem('lf_landing_utm');
                         console.log('🔄 DEBUG: Redirecting to app'); // appUrl embeds the bearer token
                         window.location.href = appUrl;
                     }, 1500);

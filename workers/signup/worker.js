@@ -6,6 +6,13 @@
 //
 // It validates, blocks disposable domains, rate-limits by IP, decides the geo
 // tier and the starting credit grant, then forwards everything to n8n.
+//
+// POST /100free is the same handler with one extra step: once n8n has created
+// the account and returned its token, the onboarding-tasks worker is asked to
+// grant the 1,000-credit signup bonus (task signup_100free) before the browser
+// gets its answer. The amount lives there, in TASK_CONFIG, next to the G2
+// reward it reuses; this file only names the task. Needs the SIGNUP_GRANT_KEY
+// secret, set in the dashboard alongside the KV bindings.
 
 export default {
     async fetch(request, env, ctx) {
@@ -26,7 +33,12 @@ export default {
 
         try {
             if (url.pathname === '/' && request.method === 'POST') {
-                return handleSignup(request, corsHeaders, env);
+                return handleSignup(request, corsHeaders, env, null);
+            }
+            // The grant is bound to this path and nothing else: no promo code,
+            // no query parameter, nothing the browser can lose on a redirect.
+            if (url.pathname === '/100free' && request.method === 'POST') {
+                return handleSignup(request, corsHeaders, env, SIGNUP_GRANT_TASKS['/100free']);
             }
 
             return new Response(JSON.stringify({ error: 'Not found' }), {
@@ -111,6 +123,83 @@ const LOW_CONVERSION_COUNTRIES = new Set(['IN', 'PK', 'NG', 'BD', 'EG']);
 // See docs/credit-grant.md for the full working.
 const SIGNUP_CREDITS = { low_conversion: 10, standard: 50 };
 
+// Landing pages that carry a signup bonus, mapped to the onboarding-tasks task
+// that pays it. The bonus is granted on top of SIGNUP_CREDITS, exactly as a G2
+// review is, and the amount is defined over there (TASK_CONFIG), not here.
+const SIGNUP_GRANT_TASKS = { '/100free': 'signup_100free' };
+const ONBOARDING_TASKS_URL = 'https://onboarding-tasks-worker.hamoureliasse.workers.dev';
+
+const UTM_KEYS = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'];
+
+// Only the five utm_* fields, trimmed and capped. Anything else the page sends
+// is dropped here, before it can reach n8n, a column, or an analytics property.
+function pickUtm(raw) {
+    const out = {};
+    if (!raw || typeof raw !== 'object') return out;
+    for (const key of UTM_KEYS) {
+        const value = raw[key];
+        if (typeof value !== 'string') continue;
+        const trimmed = value.trim().slice(0, 200);
+        if (trimmed) out[key] = trimmed;
+    }
+    return out;
+}
+
+// Pull the account token out of whatever n8n answered. The signup pages read
+// `token` off the JSON, so that is the one field this depends on.
+function tokenFromN8n(text) {
+    try {
+        const data = JSON.parse(text);
+        return data && typeof data.token === 'string' && data.token ? data.token : null;
+    } catch (e) {
+        return null;
+    }
+}
+
+// n8n's answer is passed to the browser verbatim. This adds a field to it
+// when it is JSON, and leaves it untouched when it is not.
+function mergeIntoJson(text, extra) {
+    try {
+        const data = JSON.parse(text);
+        if (!data || typeof data !== 'object' || Array.isArray(data)) return text;
+        return JSON.stringify({ ...data, ...extra });
+    } catch (e) {
+        return text;
+    }
+}
+
+// Ask the onboarding-tasks worker to pay the signup bonus. Same route shape as
+// its other task endpoints; the key is what makes it unreachable from a browser.
+// One retry on a network failure, none on a definite answer (a 409 means the
+// account was already paid, which is the guard working, not an error).
+async function grantSignupCredits(env, userToken, taskName, attribution) {
+    if (!env.SIGNUP_GRANT_KEY) {
+        console.error('❌ SIGNUP_GRANT_KEY not set - signup bonus NOT granted for', taskName);
+        return { error: 'grant_not_configured' };
+    }
+    const body = JSON.stringify({ key: env.SIGNUP_GRANT_KEY, user_token: userToken, task_name: taskName, attribution });
+    for (let attempt = 1; attempt <= 2; attempt++) {
+        try {
+            const res = await fetch(`${ONBOARDING_TASKS_URL}/tasks/signup-grant`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body,
+            });
+            const data = await res.json().catch(() => ({}));
+            if (res.ok) {
+                console.log(`🎁 Signup bonus granted: ${taskName} +${data.credits_awarded} -> balance ${data.credits_balance}`);
+                return { task_name: taskName, credits_awarded: data.credits_awarded, credits_balance: data.credits_balance };
+            }
+            console.error(`❌ Signup bonus refused (${res.status}):`, data.error || 'no detail');
+            return { error: data.error || `grant_failed_${res.status}`, status: res.status };
+        } catch (e) {
+            console.error(`⚠️ Signup bonus request failed (attempt ${attempt}/2):`, e.message);
+            if (attempt === 2) return { error: 'grant_unreachable' };
+        }
+    }
+    return { error: 'grant_unreachable' };
+}
+
 function getCountry(request) {
     return (request.cf && request.cf.country) || request.headers.get('CF-IPCountry') || null;
 }
@@ -121,11 +210,12 @@ function geoTierFromCountry(country) {
 
 // ─── Handler ─────────────────────────────────────────────────────────────────
 
-async function handleSignup(request, corsHeaders, env) {
+async function handleSignup(request, corsHeaders, env, grantTask) {
     try {
         const body = await request.json();
 
         const { email, password, provider, type, ref, firstName, lastName, companyName, fbc, fbp, gclid } = body;
+        const utm = pickUtm(body.utm);
 
         // ── 1. Basic email validation ──────────────────────────────────────────
         if (!email || !email.includes('@')) {
@@ -159,7 +249,9 @@ async function handleSignup(request, corsHeaders, env) {
             gclid: gclid || 'none',
             country: country || 'unknown',
             geoTier,
-            startingCredits
+            startingCredits,
+            grantTask: grantTask || 'none',
+            utm
         });
 
         // ── 3. Block disposable email domains ──────────────────────────────────
@@ -266,12 +358,35 @@ async function handleSignup(request, corsHeaders, env) {
                 gclid: gclid || null,
                 country: country || null,
                 geoTier: geoTier,
-                startingCredits: startingCredits
+                startingCredits: startingCredits,
+                // Attribution, forwarded so n8n can store it if it wants to. The
+                // authoritative write is the PATCH the onboarding-tasks worker
+                // does during the grant; this is belt and braces.
+                ...utm,
+                signupLanding: grantTask ? Object.keys(SIGNUP_GRANT_TASKS).find((k) => SIGNUP_GRANT_TASKS[k] === grantTask) : null
             })
         });
 
-        const responseData = await response.text();
+        let responseData = await response.text();
         console.log(`📡 n8n signup response: ${response.status}`);
+
+        // ── 5b. Signup bonus, before the browser hears back ────────────────────
+        //
+        // The account now exists and n8n has returned its token, but nobody has
+        // opened the app yet. Granting here is what makes "credited at account
+        // creation, before first login" literally true. A failed grant does not
+        // fail the signup: the account is real, the answer carries the failure,
+        // and the page reports it.
+        if (response.ok && grantTask) {
+            const token = tokenFromN8n(responseData);
+            if (!token) {
+                console.error('❌ n8n returned no token; signup bonus NOT granted for', grantTask);
+                responseData = mergeIntoJson(responseData, { signup_grant: { error: 'no_token' } });
+            } else {
+                const grant = await grantSignupCredits(env, token, grantTask, utm);
+                responseData = mergeIntoJson(responseData, { signup_grant: grant });
+            }
+        }
 
         // ── 6. Increment IP counter on success ─────────────────────────────────
         if (response.ok && env.RATE_LIMITS) {

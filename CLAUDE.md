@@ -64,6 +64,7 @@ into a file here in the same session, or it is gone.
 | **Our own GTM system — the code** | `workers/gtm/` — read its README before touching it; nothing has made a live call, and `run.py capacity` is the first thing to run |
 | Why we built it and what it costs | `docs/own-gtm-agent-plan.md` — the economics, the 135/day capacity ceiling, and why leads are not the bottleneck |
 | Self-hosting an agentic outreach pipeline | `docs/autogtm-evaluation.md` first (the pick, and why it must not carry the paid offer), then `docs/gtm-mcp-swap-map.md` — read the credit-cost discrepancy in either before trusting a cost estimate |
+| The /100free landing page (1,000 credits at signup, reuses the G2 payout) | `docs/100free-landing.md` — read "Deploying, in order" before sending traffic; the signup worker is edited in the dashboard, not deployed from git |
 | CRM cleanup + HubSpot | `CRM-SETUP.md` |
 | Outbound campaign | `OUTBOUND-CRM-AUDIT.md` |
 | Workers | `workers/` — but most live workers are NOT in this repo; read them with the Cloudflare connector |

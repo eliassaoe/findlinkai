@@ -21,8 +21,10 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
 <link rel="icon" type="image/png" href="https://i.ibb.co/jPjX9SSp/Screen-Shot-2025-03-28-at-8-16-15-PM.png">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Create Account — LinkFinder AI</title>
-<meta name="description" content="Create your free LinkFinder AI account. Free credits to start, no credit card, GDPR-compliant.">
+<title>1,000 Free Credits — LinkFinder AI</title>
+<meta name="description" content="Create your LinkFinder AI account on this page and start with 1,000 free credits. No credit card, GDPR-compliant.">
+<!-- Campaign landing page: the offer is tied to this URL, and it must not compete with /sign-up in search. -->
+<meta name="robots" content="noindex,follow">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script async src="https://plausible.io/js/pa-LTP3nlbjr9NybMEgzpwxU.js"></script>
 <script>window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};plausible.init()</script>
@@ -34,11 +36,14 @@ function getCookie(name){return document.cookie.split('; ').find(r=>r.startsWith
 function getFbc(){let fbc=getCookie('_fbc');if(!fbc){const fbclid=new URLSearchParams(window.location.search).get('fbclid');if(fbclid){fbc=`fb.1.${Date.now()}.${fbclid}`;document.cookie=`_fbc=${fbc}; path=/; max-age=7776000`;}}return fbc;}
 function getFbp(){return getCookie('_fbp');}
 </script>
-<link rel="canonical" href="https://linkfinderai.com/sign-up"/>
+<link rel="canonical" href="https://linkfinderai.com/100free"/>
 <style>
 *{box-sizing:border-box;}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f8fafc;margin:0;padding:20px;min-height:100vh;display:flex;justify-content:center;align-items:flex-start;}
 .container{background:#ffffff;padding:40px;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,0.1);width:100%;max-width:440px;margin:40px auto;border:1px solid #e5e7eb;}
+.offer-banner{background:#111827;color:#fff;border-radius:8px;padding:16px 18px;margin-bottom:22px;text-align:center;}
+.offer-amount{font-size:1.5rem;font-weight:700;letter-spacing:-0.01em;}
+.offer-text{font-size:0.85rem;color:#d1d5db;margin-top:4px;line-height:1.45;}
 .value-reminder{background:linear-gradient(135deg,#eff6ff 0%,#dbeafe 100%);border:1px solid #bfdbfe;border-radius:8px;padding:12px 16px;margin-bottom:24px;display:flex;align-items:flex-start;gap:10px;}
 .value-reminder-icon{font-size:1.25rem;flex-shrink:0;margin-top:1px;}
 .value-reminder-text{font-size:0.875rem;color:#1e40af;line-height:1.4;}
@@ -155,8 +160,8 @@ button#submitButton:disabled{opacity:0.6;cursor:not-allowed;}
     {
       "@type": "ListItem",
       "position": 2,
-      "name": "Sign Up",
-      "item": "https://linkfinderai.com/sign-up"
+      "name": "1,000 Free Credits",
+      "item": "https://linkfinderai.com/100free"
     }
   ]
 }
@@ -186,7 +191,12 @@ button#submitButton:disabled{opacity:0.6;cursor:not-allowed;}
     </div>
   </div>
 
-  <h1>Start for free</h1>
+  <div class="offer-banner">
+    <div class="offer-amount">1,000 free credits</div>
+    <div class="offer-text">On your account the moment it is created. 100 email finds, or 1,000 LinkedIn lookups, before you have even signed in.</div>
+  </div>
+
+  <h1>Create your account</h1>
   <p class="subtitle">No credit card required · Setup in 30 seconds</p>
 
   <div id="message" class="message"></div>
@@ -250,7 +260,7 @@ button#submitButton:disabled{opacity:0.6;cursor:not-allowed;}
     </div>
     <div class="trust-item">
       <svg width="16" height="16" fill="#1e40af" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
-      Free credits to start — no commitment
+      1,000 credits credited at signup, no commitment
     </div>
     <div class="trust-item">
       <svg width="16" height="16" fill="#1e40af" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
@@ -292,8 +302,31 @@ button#submitButton:disabled{opacity:0.6;cursor:not-allowed;}
 </div>
 
 <script>
-  const WORKER_URL = 'https://linkfinderai-sign-up.hamoureliasse.workers.dev/';
+  // The /100free path on the signup worker is what carries the 1,000-credit
+  // grant. There is no promo code and no query parameter to lose: an account
+  // created through this URL is credited server-side before this page hears back.
+  const WORKER_URL = 'https://linkfinderai-sign-up.hamoureliasse.workers.dev/100free';
+  const LANDING = '/100free';
   const urlParams = new URLSearchParams(window.location.search);
+
+  // Campaign parameters for this signup, in order of preference: the ones on
+  // this page's own URL, then the most recent touch lf-attribution.js recorded,
+  // then the first touch. Saved to localStorage before the Google redirect,
+  // because the OAuth round trip strips the query string and lands on
+  // /confirmation-signup, which reads them back from there.
+  const UTM_KEYS = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'];
+  function signupUtm() {
+    const out = {};
+    UTM_KEYS.forEach(k => { const v = urlParams.get(k); if (v) out[k] = v.slice(0, 200); });
+    if (Object.keys(out).length) return out;
+    const attr = window.LF_ATTRIBUTION || {};
+    ['last_', 'first_'].some(prefix => {
+      UTM_KEYS.forEach(k => { if (attr[prefix + k]) out[k] = String(attr[prefix + k]).slice(0, 200); });
+      return Object.keys(out).length > 0;
+    });
+    return out;
+  }
+  const SIGNUP_UTM = signupUtm();
 
   const supabaseClient = window.supabase.createClient(
     'https://snxhsboboatjywgwdeds.supabase.co',
@@ -302,7 +335,7 @@ button#submitButton:disabled{opacity:0.6;cursor:not-allowed;}
 
   (async () => { try { await supabaseClient.auth.signOut(); } catch(e) {} })();
 
-  try { posthog.capture('signup_page_viewed'); } catch(e) {}
+  try { posthog.capture('signup_page_viewed', { landing: LANDING, ...SIGNUP_UTM }); } catch(e) {}
 
   // Value reminder from localStorage (set by tool pages)
   (function() {
@@ -426,13 +459,16 @@ button#submitButton:disabled{opacity:0.6;cursor:not-allowed;}
   async function signUpWithGoogle() {
     try {
       hideMessage();
-      try { posthog.capture('signup_google_clicked'); } catch(e) {}
+      try { posthog.capture('signup_google_clicked', { landing: LANDING }); } catch(e) {}
       try { plausible('Signup Google Clicked'); } catch(e) {}
 
-      // A Google signup that starts here is a plain signup. /100free sets these
-      // before its own redirect so confirmation-signup routes the account
-      // through the grant; a stale flag from a visit to that page must not.
-      try { localStorage.removeItem('lf_landing'); localStorage.removeItem('lf_landing_utm'); } catch(e) {}
+      // Only a Google signup that starts HERE carries the offer. Set at click
+      // time, not page load, so someone who looked at this page and later
+      // signed up from /sign-up does not inherit it (that page clears it too).
+      try {
+        localStorage.setItem('lf_landing', '100free');
+        localStorage.setItem('lf_landing_utm', JSON.stringify(SIGNUP_UTM));
+      } catch(e) {}
 
       const gclid = urlParams.get('gclid');
       if (gclid) localStorage.setItem('gclid', gclid);
@@ -495,23 +531,28 @@ button#submitButton:disabled{opacity:0.6;cursor:not-allowed;}
           || null,
           fbc:   getFbc()               || null,
           fbp:   getFbp()               || null,
-          gclid: urlParams.get('gclid') || localStorage.getItem('gclid') || null
+          gclid: urlParams.get('gclid') || localStorage.getItem('gclid') || null,
+          utm: SIGNUP_UTM
         })
       });
 
       if (response.ok) {
         const data = await response.json();
         if (data.token) {
-          try { plausible('Signup Success', {props:{method:'email'}}); } catch(e) {}
-          try { posthog.identify(data.token, {email, signup_method:'email'}); } catch(e) {}
-          try { posthog.capture('signup_success', {method:'email', ...(window.getAttributionProperties ? window.getAttributionProperties() : {})}); } catch(e) {}
+          try { plausible('Signup Success', {props:{method:'email', landing:'100free'}}); } catch(e) {}
+          // identify() at creation, with the campaign on the person, so every
+          // later event - including the server-side signup_credits_granted -
+          // resolves to the same profile.
+          try { posthog.identify(data.token, {email, signup_method:'email', signup_landing: LANDING, ...SIGNUP_UTM}); } catch(e) {}
+          try { posthog.capture('signup_success', {method:'email', landing: LANDING, signup_grant_credits: (data.signup_grant && data.signup_grant.credits_awarded) || 0, ...(window.getAttributionProperties ? window.getAttributionProperties() : {})}); } catch(e) {}
+          reportGrant(data.signup_grant);
           // Typed into a form that never checked it, so it is unverified until proven
           // otherwise. Every marketing workflow filters on this, which is what keeps
           // hard bounces off a sending domain with no history to absorb them.
           try { posthog.setPersonProperties({ email_verified: false }); } catch(e) {}
           localStorage.removeItem('lf_lastSearch');
           localStorage.removeItem('lf_searchType');
-          showMessage('Account created! Redirecting to your dashboard...', 'success');
+          showMessage(grantMessage(data.signup_grant), 'success');
           setTimeout(() => redirectToApp(data.token), 800);
         } else {
           // Account was created server-side (response.ok) but no token came back -
@@ -529,8 +570,11 @@ button#submitButton:disabled{opacity:0.6;cursor:not-allowed;}
             const loginData = await loginResp.json().catch(() => ({}));
             if (loginResp.ok && loginData.token) {
               try { plausible('Signup Success', {props:{method:'email'}}); } catch(e) {}
-              try { posthog.identify(loginData.token, {email, signup_method:'email'}); } catch(e) {}
-              try { posthog.capture('signup_success', {method:'email', recovered_via_login: true, ...(window.getAttributionProperties ? window.getAttributionProperties() : {})}); } catch(e) {}
+              try { posthog.identify(loginData.token, {email, signup_method:'email', signup_landing: LANDING, ...SIGNUP_UTM}); } catch(e) {}
+              // The worker only grants when n8n hands back a token, so a recovered
+              // signup has not been credited. Count it so it can be paid by hand.
+              try { posthog.capture('signup_success', {method:'email', landing: LANDING, recovered_via_login: true, signup_grant_credits: 0, ...(window.getAttributionProperties ? window.getAttributionProperties() : {})}); } catch(e) {}
+              try { posthog.capture('signup_grant_failed', {landing: LANDING, reason: 'no_token_recovered_via_login'}); } catch(e) {}
               // Typed into a form that never checked it, so it is unverified until proven
               // otherwise. Every marketing workflow filters on this, which is what keeps
               // hard bounces off a sending domain with no history to absorb them.
@@ -567,7 +611,7 @@ button#submitButton:disabled{opacity:0.6;cursor:not-allowed;}
         else if (msg.toLowerCase().includes('already'))        reason = 'already_registered';
 
         try { plausible('Signup Failed', {props:{method:'email',reason}}); } catch(e) {}
-        try { posthog.capture('signup_failed', {method:'email', reason, status: response.status}); } catch(e) {}
+        try { posthog.capture('signup_failed', {method:'email', landing: LANDING, reason, status: response.status}); } catch(e) {}
 
         if (errorData.code === 'use_google_signin') {
           // A real gmail IS a Google account, so this is a redirect, not a refusal.
@@ -598,6 +642,21 @@ button#submitButton:disabled{opacity:0.6;cursor:not-allowed;}
       btn.disabled = false;
     }
   });
+
+  // The grant result rides on the signup response. Success is the normal case;
+  // a failure still means the account exists (the worker never fails a signup
+  // over the bonus), so the user goes into the app either way and the miss is
+  // counted where it can be followed up.
+  function reportGrant(grant) {
+    if (grant && grant.credits_awarded) return;
+    try { posthog.capture('signup_grant_failed', { landing: LANDING, reason: (grant && grant.error) || 'missing' }); } catch(e) {}
+  }
+  function grantMessage(grant) {
+    if (grant && grant.credits_awarded) {
+      return 'Account created with <strong>' + Number(grant.credits_awarded).toLocaleString('en-US') + ' free credits</strong>! Redirecting to your dashboard...';
+    }
+    return 'Account created! Redirecting to your dashboard...';
+  }
 
   function redirectToApp(token) {
     const gclid = urlParams.get('gclid');
