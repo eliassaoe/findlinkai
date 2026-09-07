@@ -175,7 +175,7 @@ it, both now in the code:
   API reply goes out from that same mailbox. So the nudge signs as the name the
   lead wrote to — read off their own greeting ("Hi Pete,") — never as Eliasse.
 
-It runs every morning at 07:00 UTC as a **dry run** — the page and the report
+It runs every weekday at 06:23 UTC (08:23 Paris in summer) as a **dry run** — the page and the report
 show exactly what it would have sent. To arm it: Settings → Secrets and
 variables → Actions → **Variables** → `EXPLEE_APPLY` = `true`. From then on a
 hot lead who went quiet gets a nudge after 2 days and again 5 days later,
