@@ -18,6 +18,43 @@ possible way for it to fail.
 
 **Change it in the Cloudflare dashboard editor instead.** It is one line.
 
+## The /100free route (7 Sept 2026)
+
+`POST /100free` is the same handler as `POST /`, plus one step: once n8n has
+created the account and returned its token, the worker calls the
+onboarding-tasks worker's `/tasks/signup-grant` and the account receives the
+`signup_100free` bonus (1,000 credits) before the browser gets its answer. It
+reuses the G2 review payout exactly: the same `user_task_completions` row, the
+same `increment_user_credits()` call, and the same unique index that makes it
+one grant per account. The amount lives in that worker's `TASK_CONFIG`, not
+here; this file only names the task.
+
+The bonus is on top of `SIGNUP_CREDITS`, as a G2 review would be: a standard
+/100free signup ends at 1,050, a low-conversion one at 1,010. If it should be
+exactly 1,000, send `startingCredits: 0` on that route.
+
+**One more binding to add in the dashboard**, next to the two KV namespaces:
+
+- `SIGNUP_GRANT_KEY` — a secret shared with the onboarding-tasks worker
+  (`wrangler secret put SIGNUP_GRANT_KEY` over there). Without it the route
+  still creates the account but grants nothing, and says so in the log and in
+  the response (`signup_grant: {error: 'grant_not_configured'}`).
+
+The page also sends `utm: {utm_source, ...}`. The five utm_* fields are
+whitelisted here, forwarded to n8n (which may ignore them), and passed to the
+grant call, which writes them onto `linkfinderai_users` and onto the PostHog
+`signup_credits_granted` event. See `docs/100free-landing.md`.
+
+Test: `node workers/signup/worker.test.mjs` (n8n and the grant call are faked).
+
+### `worker.paste-safe.js`
+
+Generated from `worker.js` by turning every `//` line comment into a `/* */`
+block, for pasting into the dashboard editor. The copy committed before this
+change had `*/` closers inside the `CONSUMER_DOMAINS` array and did not run;
+it is now regenerated from source, and a diff of the two files with comment
+lines removed is empty.
+
 ## The change (22 Aug 2026)
 
 ```js

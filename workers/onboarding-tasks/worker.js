@@ -6,6 +6,7 @@
  *
  * Bindings:
  *   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, ADMIN_API_KEY
+ *   SIGNUP_GRANT_KEY              shared with the signup worker; gates /tasks/signup-grant
  *   REVIEW_NOTIFICATION_WEBHOOK   optional, overrides the default
  *   TRUSTPILOT_POLICY             optional, 'auto' (default) or 'manual'
  *
@@ -21,6 +22,12 @@ const TASK_CONFIG = {
     g2_review:         { credits: 1000, kind: 'pending_review', platform: 'g2' },
     trustpilot_review: { credits: 500,  kind: 'pending_review', platform: 'trustpilot' },
     product_survey:    { credits: 500,  kind: 'survey' },
+    // Granted by the signup worker, server to server, the moment n8n has
+    // created an account through /100free. Same ledger row and the same
+    // increment_user_credits() call as a G2 review, just a different trigger.
+    // Never claimable from the browser: handleComplete refuses this kind, and
+    // the route that pays it out needs SIGNUP_GRANT_KEY.
+    signup_100free:    { credits: 1000, kind: 'signup_grant', landing: '/100free' },
 };
 
 // ===========================================================================
@@ -418,7 +425,7 @@ const insertCompletion = (env, row) =>
 // ===========================================================================
 // POST /tasks/complete   { user_token, task_name, submitted_url? }
 // ===========================================================================
-async function handleComplete(request, env) {
+export async function handleComplete(request, env) {
     const body = await request.json().catch(() => ({}));
     const { user_token, task_name, submitted_url } = body;
     if (!user_token || !task_name) return badRequest('user_token and task_name are required');
@@ -426,6 +433,9 @@ async function handleComplete(request, env) {
     const config = TASK_CONFIG[task_name];
     if (!config) return badRequest('Unknown task_name');
     if (config.kind === 'pending_review') return badRequest('Use /tasks/submit-review for review tasks');
+    // A signup grant is paid by the signup worker at account creation. Letting
+    // it through here would let anyone holding a token claim 1,000 credits.
+    if (config.kind === 'signup_grant') return badRequest('This task is granted at signup, not claimed');
 
     let surveyAnswers = null;
     if (config.kind === 'survey') {
@@ -493,6 +503,114 @@ async function handleComplete(request, env) {
             method: 'DELETE',
         }).catch(() => {});
         return json({ error: 'Could not credit your account. Please try again.' }, 500);
+    }
+}
+
+// ===========================================================================
+// POST /tasks/signup-grant   { key, user_token, task_name, attribution? }
+//
+// Server to server only. The signup worker calls this after n8n has created the
+// account and handed back its token, and before it answers the browser - so
+// the credits are on the account before the app is ever opened.
+//
+// Deliberately the same three steps as a G2 payout, in the same order: insert
+// the ledger row (the unique index on user_id + task_name decides any race),
+// credit atomically, and delete the row again if the credit fails. One grant
+// per account is therefore enforced by the database, not by this code.
+// ===========================================================================
+const UTM_KEYS = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'];
+
+// Keeps only the five utm_* fields, as trimmed strings capped at 200 chars.
+// Everything else the browser sends is dropped, so nothing unexpected reaches
+// a column or a PostHog property.
+export function pickUtm(raw) {
+    const out = {};
+    if (!raw || typeof raw !== 'object') return out;
+    for (const key of UTM_KEYS) {
+        const value = raw[key];
+        if (typeof value !== 'string') continue;
+        const trimmed = value.trim().slice(0, 200);
+        if (trimmed) out[key] = trimmed;
+    }
+    return out;
+}
+
+export async function handleSignupGrant(request, env) {
+    const body = await request.json().catch(() => ({}));
+    if (!adminKeyValid(body.key, env.SIGNUP_GRANT_KEY)) return json({ error: 'Unauthorized' }, 401);
+
+    const { user_token, task_name } = body;
+    if (!user_token || !task_name) return badRequest('user_token and task_name are required');
+
+    const config = TASK_CONFIG[task_name];
+    if (!config || config.kind !== 'signup_grant') return badRequest('Unknown signup grant');
+
+    let userId;
+    try {
+        userId = await resolveUserId(env, user_token);
+    } catch (e) {
+        return json({ error: 'Invalid user_token' }, 401);
+    }
+
+    const attribution = pickUtm(body.attribution);
+
+    const existing = await findCompletion(env, userId, task_name);
+    if (existing) return json({ error: 'Already granted', status: existing.status }, 409);
+
+    try {
+        await insertCompletion(env, {
+            user_id: userId,
+            task_name,
+            status: 'completed',
+            submitted_url: null,
+            credits: config.credits,
+            payload: { landing: config.landing, ...attribution },
+        });
+    } catch (e) {
+        if (e.isDuplicate) return json({ error: 'Already granted' }, 409);
+        return json({ error: 'Could not record grant' }, 500);
+    }
+
+    try {
+        const balance = await creditUser(env, userId, config.credits);
+        if (balance === null) throw new Error('no user row for credit grant');
+
+        // Attribution onto the user record, so PostHog is not the only place
+        // that knows which campaign an account came from. Non-fatal: the
+        // credits are the contract, these columns are for reporting, and the
+        // ledger row above already carries the same values in its payload.
+        try {
+            await supabaseFetch(env, `linkfinderai_users?token=${eq(userId)}`, {
+                method: 'PATCH',
+                prefer: 'return=minimal',
+                body: JSON.stringify({ signup_landing: config.landing, ...attribution }),
+            });
+        } catch (e) {
+            console.error('[tasks] signup attribution patch failed (non-fatal)', e);
+        }
+
+        // distinct_id is the user token, which is also what the landing page
+        // passes to posthog.identify(), so this lands on the same person.
+        await captureToPostHog(env, {
+            event: 'signup_credits_granted',
+            distinct_id: userId,
+            properties: {
+                task_name,
+                credits_awarded: config.credits,
+                credits_balance: balance,
+                landing_page: config.landing,
+                ...attribution,
+            },
+        });
+
+        return json({ success: true, task_name, credits_awarded: config.credits, credits_balance: balance });
+    } catch (e) {
+        // The completion row exists but the balance did not move. Roll it back
+        // rather than leaving a row that says "paid" and blocks a retry.
+        await supabaseFetch(env, `user_task_completions?user_id=${eq(userId)}&task_name=${eq(task_name)}`, {
+            method: 'DELETE',
+        }).catch(() => {});
+        return json({ error: 'Could not credit account' }, 500);
     }
 }
 
@@ -1039,6 +1157,7 @@ export default {
                 case '/tasks/submit-review':       return await handleSubmitReview(request, env);
                 case '/tasks/status':              return await handleStatus(request, env);
                 case '/tasks/dismiss-popup':       return await handleDismissPopup(request, env);
+                case '/tasks/signup-grant':        return await handleSignupGrant(request, env);
                 case '/admin/review/approve':      return await handleApproveReview(request, env);
                 case '/admin/review/reject':       return await handleRejectReview(request, env);
                 case '/admin/review/approve-link': return await handleReviewLinkAction(request, env, 'approve');
