@@ -25,12 +25,13 @@ name: Explee follow-ups
 # Actions -> Variables). Set it back to anything else to stop.
 on:
   schedule:
-    # 07:00 UTC - 9am in Paris over summer, 8am over winter. A morning send, and
-    # the two slots it proposes are always at least 18 hours out, so the earliest
-    # is that same afternoon. GitHub's scheduler drifts by tens of minutes under
-    # load; for a daily job that does not matter.
-    - cron: '0 7 * * *'
-    - cron: '30 7 * * 1'       # Mondays: measure the sequences
+    # Weekday mornings, off the hour on purpose: GitHub's scheduler queues
+    # on-the-hour crons behind everyone else's - '0 7 * * *' fired between
+    # 11:08 and 11:58 UTC on every scheduled day, and not at all on 7 Sept.
+    # 06:23 UTC is 08:23 in Paris over summer, 07:23 over winter. No weekend
+    # sends: a nudge on a Sunday morning reads as an automate.
+    - cron: '23 6 * * 1-5'
+    - cron: '41 6 * * 1'       # Mondays: measure the sequences
   workflow_dispatch:
     inputs:
       task:
@@ -70,14 +71,14 @@ concurrency:
 
 jobs:
   explee:
-    name: ${{ inputs.task || (github.event.schedule == '30 7 * * 1' && 'measure' || 'followups') }}
+    name: ${{ inputs.task || (github.event.schedule == '41 6 * * 1' && 'measure' || 'followups') }}
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: workers/explee-autogtm
     env:
       EXPLEE_API_KEY: ${{ secrets.EXPLEE_API_KEY }}
-      TASK: ${{ inputs.task || (github.event.schedule == '30 7 * * 1' && 'measure' || 'followups') }}
+      TASK: ${{ inputs.task || (github.event.schedule == '41 6 * * 1' && 'measure' || 'followups') }}
       CAMPAIGN: ${{ inputs.campaign }}
       EMAILS: ${{ inputs.emails || '2' }}
       MAX_PEOPLE: ${{ inputs.max_people || '1000' }}
