@@ -16,7 +16,7 @@ spam complaint on a domain that took months to warm.
 
 THE BUCKETS ARE THE PLAN'S TABLE
 --------------------------------
-    "Send me info"                 -> info + two named times, never a bare link
+    "Send me info"                 -> info + the campaign's booking link
     Warm, never opened calendar    -> drop the link, offer two specific slots
     Opened calendar, didn't book   -> one nudge (needs scheduler data, see below)
     "Not now"                      -> dated re-engage queue, fires automatically
@@ -27,7 +27,7 @@ THE BUCKETS ARE THE PLAN'S TABLE
 conversation, not what the lead did on your booking page. Feed it in with
 --calendar-views (a JSON list of emails that opened the scheduler and did not
 book, exported from Cal.com/Calendly). Without that file those leads land in
-`warm` and get the same two slots, which is a softer version of the right move.
+`warm` and get the same booking link, which is a softer version of the right move.
 
 TWO NAMED TIMES, ALWAYS
 -----------------------
@@ -314,17 +314,29 @@ SLOT_LINE = {
     "en": "Would either of these work? {} or {}. If neither does, tell me a day that suits "
           "and I will send an invite.",
 }
+# The booking link wins over two slots whenever a campaign has one: the
+# Calendly flow collects the phone number and plays the post-booking video,
+# which two typed times cannot do. Slots are the fallback for a campaign
+# without a target_url.
+LINK_LINE = {
+    "fr": "Si c'est plus simple, voici mon agenda : {}",
+    "en": "If it is easier, here is my calendar: {}",
+}
 
 
 def compose(bucket, ctx, language="en"):
-    """The follow-up body. Raises if a slot-bearing bucket lost its slots."""
+    """The follow-up body. Raises if a slot-bearing bucket lost its slots or link."""
     first = ctx.get("first_name") or "there"
     offer = ctx["offer"]                       # one line, from config
     proof = ctx.get("proof", "")               # optional second line
     sender = ctx["sender"]
     slots = ctx.get("slots") or []
+    link = (ctx.get("booking_url") or "").strip()
     lang = language if language in TEMPLATES else "en"
-    slot_line = SLOT_LINE[lang].format(*slots) if len(slots) == 2 else ""
+    if link:
+        slot_line = LINK_LINE[lang].format(link)
+    else:
+        slot_line = SLOT_LINE[lang].format(*slots) if len(slots) == 2 else ""
     body = TEMPLATES[lang].get(bucket)
     if body is None:
         raise ValueError("{} is not a sending bucket".format(bucket))
@@ -336,6 +348,11 @@ def compose(bucket, ctx, language="en"):
                           slots=slot_line)
     message = re.sub(r"\n{3,}", "\n\n", message).strip()
 
+    if SENDING.get(bucket) and link:
+        if link not in message:
+            raise ValueError("{} must carry the booking link - the template dropped it".format(
+                bucket))
+        return message
     if SENDING.get(bucket) and not all(slot in message for slot in slots):
         raise ValueError("{} must propose both times - the template dropped them".format(bucket))
     if SENDING.get(bucket) and not slots:

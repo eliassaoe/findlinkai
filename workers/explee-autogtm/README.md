@@ -156,6 +156,10 @@ interface:
   writes one plain line — *Suivi LinkFinder — 2026-09-06 : relance envoyée* —
   above its machine ledger.
 - **To see everything at once:** `/autogtm-report`, or `reports/<project>/latest.md`.
+- **Every follow-up carries the campaign's booking link** (`target_url`, the
+  Calendly), never two typed slots: the Calendly flow collects the phone number
+  and plays the post-booking video. Two slots are only the fallback for a
+  campaign with no `target_url` and no `booking_url` in its project file.
 
 Two things the first real dry run (6 September, 158 replied threads) taught
 it, both now in the code:
@@ -502,7 +506,7 @@ Delete any column you do not want; only `email` is required.
 2. **Read the booked column.** If the sheet cannot be read, **nothing sends** —
    an empty booked set would mail everyone who booked this week.
 3. **For every replied conversation**, one of two jobs:
-   - *they spoke last* → classify the reply and answer it with **two named times**
+   - *they spoke last* → classify the reply and answer it with **the campaign's booking link**
    - *we spoke last and they went quiet* → **nudge**, after 2 days, then 5 more
 
 ```bash
