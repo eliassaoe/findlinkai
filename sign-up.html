@@ -177,6 +177,15 @@ button#submitButton:disabled{opacity:0.6;cursor:not-allowed;}
     <span class="logo-text">LinkFinder AI</span>
   </div>
 
+  <!-- Campaign gift — shown when the visitor arrived with ?gift=<code> -->
+  <div id="giftBanner" class="value-reminder" style="display:none;">
+    <div class="value-reminder-icon">🎁</div>
+    <div class="value-reminder-text">
+      <strong id="giftHeading">Free credits are waiting for you</strong>
+      <span>Create your account and they land in your balance straight away. No card needed.</span>
+    </div>
+  </div>
+
   <!-- Value reminder — shown when coming from a tool page -->
   <div id="valueReminder" class="value-reminder" style="display:none;">
     <div class="value-reminder-icon">🔍</div>
@@ -294,6 +303,26 @@ button#submitButton:disabled{opacity:0.6;cursor:not-allowed;}
 <script>
   const WORKER_URL = 'https://linkfinderai-sign-up.hamoureliasse.workers.dev/';
   const urlParams = new URLSearchParams(window.location.search);
+
+  // Campaign gift code (?gift=<code>, e.g. from /100free). The Worker owns the
+  // code -> credits table (workers/signup/worker.js, GIFT_CREDITS); this page only
+  // carries the code. It is kept in localStorage so it survives the Google OAuth
+  // round-trip and a detour through other pages before signing up.
+  const GIFT_CODE = (function () {
+    const fromUrl = (urlParams.get('gift') || '').trim().toLowerCase();
+    if (fromUrl) { try { localStorage.setItem('lf_gift', fromUrl); } catch (e) {} return fromUrl; }
+    try { return localStorage.getItem('lf_gift') || null; } catch (e) { return null; }
+  })();
+  // Copy for the banner only. Keep in sync with GIFT_CREDITS in the Worker -
+  // an amount promised here that the Worker does not grant is a broken promise.
+  const GIFT_BANNERS = { coldemail_1000: 1000 };
+  if (GIFT_CODE && GIFT_BANNERS[GIFT_CODE]) {
+    const banner = document.getElementById('giftBanner');
+    document.getElementById('giftHeading').textContent =
+      GIFT_BANNERS[GIFT_CODE].toLocaleString('en-US') + ' free credits are waiting for you';
+    banner.style.display = 'flex';
+    try { posthog.capture('signup_gift_seen', { gift: GIFT_CODE }); } catch (e) {}
+  }
 
   const supabaseClient = window.supabase.createClient(
     'https://snxhsboboatjywgwdeds.supabase.co',
@@ -490,7 +519,8 @@ button#submitButton:disabled{opacity:0.6;cursor:not-allowed;}
           || null,
           fbc:   getFbc()               || null,
           fbp:   getFbp()               || null,
-          gclid: urlParams.get('gclid') || localStorage.getItem('gclid') || null
+          gclid: urlParams.get('gclid') || localStorage.getItem('gclid') || null,
+          gift:  GIFT_CODE || null
         })
       });
 
@@ -499,13 +529,14 @@ button#submitButton:disabled{opacity:0.6;cursor:not-allowed;}
         if (data.token) {
           try { plausible('Signup Success', {props:{method:'email'}}); } catch(e) {}
           try { posthog.identify(data.token, {email, signup_method:'email'}); } catch(e) {}
-          try { posthog.capture('signup_success', {method:'email', ...(window.getAttributionProperties ? window.getAttributionProperties() : {})}); } catch(e) {}
+          try { posthog.capture('signup_success', {method:'email', gift: GIFT_CODE || null, ...(window.getAttributionProperties ? window.getAttributionProperties() : {})}); } catch(e) {}
           // Typed into a form that never checked it, so it is unverified until proven
           // otherwise. Every marketing workflow filters on this, which is what keeps
           // hard bounces off a sending domain with no history to absorb them.
           try { posthog.setPersonProperties({ email_verified: false }); } catch(e) {}
           localStorage.removeItem('lf_lastSearch');
           localStorage.removeItem('lf_searchType');
+          localStorage.removeItem('lf_gift');
           showMessage('Account created! Redirecting to your dashboard...', 'success');
           setTimeout(() => redirectToApp(data.token), 800);
         } else {
@@ -532,6 +563,7 @@ button#submitButton:disabled{opacity:0.6;cursor:not-allowed;}
               try { posthog.setPersonProperties({ email_verified: false }); } catch(e) {}
               localStorage.removeItem('lf_lastSearch');
               localStorage.removeItem('lf_searchType');
+              localStorage.removeItem('lf_gift');
               showMessage('Account created! Redirecting to your dashboard...', 'success');
               setTimeout(() => redirectToApp(loginData.token), 800);
             } else {

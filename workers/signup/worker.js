@@ -6,6 +6,10 @@
 //
 // It validates, blocks disposable domains, rate-limits by IP, decides the geo
 // tier and the starting credit grant, then forwards everything to n8n.
+//
+// A campaign can override the grant with a gift code (`gift` in the body, put
+// there by sign-up.html from ?gift=<code> on the landing URL). The code is looked
+// up in GIFT_CREDITS below, so the amount itself never comes from the browser.
 
 export default {
     async fetch(request, env, ctx) {
@@ -111,6 +115,30 @@ const LOW_CONVERSION_COUNTRIES = new Set(['IN', 'PK', 'NG', 'BD', 'EG']);
 // See docs/credit-grant.md for the full working.
 const SIGNUP_CREDITS = { low_conversion: 10, standard: 50 };
 
+// Campaign gift codes -> starting credits.
+//
+// The landing page for a campaign (e.g. /100free for the cold-email sequence)
+// sends people to /sign-up?gift=<code>; sign-up.html keeps the code in
+// localStorage across the Google redirect and posts it here as `gift`. A known
+// code replaces the geo grant outright (the recipients were hand-picked, so the
+// low-conversion tier does not apply to them). An unknown, missing or malformed
+// code is ignored and the normal grant applies - nothing a visitor can type in
+// the URL turns into more than what is listed here.
+//
+// To run a new campaign: add a line here, paste the Worker into the Cloudflare
+// dashboard (see README), then link to /sign-up?gift=<code>.
+//
+//   coldemail_1000  8 Sep 2026  icp30k_recruiting cold-email sequence, email 1
+const GIFT_CREDITS = {
+    coldemail_1000: 1000
+};
+
+function giftFromBody(gift) {
+    if (typeof gift !== 'string') return null;
+    const code = gift.trim().toLowerCase().slice(0, 64);
+    return Object.prototype.hasOwnProperty.call(GIFT_CREDITS, code) ? code : null;
+}
+
 function getCountry(request) {
     return (request.cf && request.cf.country) || request.headers.get('CF-IPCountry') || null;
 }
@@ -125,7 +153,7 @@ async function handleSignup(request, corsHeaders, env) {
     try {
         const body = await request.json();
 
-        const { email, password, provider, type, ref, firstName, lastName, companyName, fbc, fbp, gclid } = body;
+        const { email, password, provider, type, ref, firstName, lastName, companyName, fbc, fbp, gclid, gift } = body;
 
         // ── 1. Basic email validation ──────────────────────────────────────────
         if (!email || !email.includes('@')) {
@@ -142,7 +170,8 @@ async function handleSignup(request, corsHeaders, env) {
         // ── 2b. Geo tier + starting credits ─────────────────────────────────────
         const country = getCountry(request);
         const geoTier = geoTierFromCountry(country);
-        const startingCredits = SIGNUP_CREDITS[geoTier];
+        const giftCode = giftFromBody(gift);
+        const startingCredits = giftCode ? GIFT_CREDITS[giftCode] : SIGNUP_CREDITS[geoTier];
 
         console.log('📧 Handling signup:', {
             email,
@@ -159,6 +188,7 @@ async function handleSignup(request, corsHeaders, env) {
             gclid: gclid || 'none',
             country: country || 'unknown',
             geoTier,
+            gift: giftCode || (gift ? `unknown:${String(gift).slice(0, 64)}` : 'none'),
             startingCredits
         });
 
@@ -266,6 +296,7 @@ async function handleSignup(request, corsHeaders, env) {
                 gclid: gclid || null,
                 country: country || null,
                 geoTier: geoTier,
+                gift: giftCode,
                 startingCredits: startingCredits
             })
         });
