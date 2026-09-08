@@ -5,7 +5,10 @@
 | **Slug** | `find-ceo-email` |
 | **Target page** | `resources/find-ceo-email.html` |
 | **Derived from** | that page's own steps — keep the two in sync |
-| **Length** | 11 steps, ~2 min |
+| **Demo data** | `tesla.com`, filtered to C-Suite, 5 results · then that CEO's LinkedIn profile URL |
+| **Length** | 12 steps, ~2 min |
+| **Title score** | not yet scored — `vidiq_score_title` was out of credits when this pass was written. Score before recording; this exact title is also what `CLAUDE.md` cites as the canonical tutorial-search example, so it should score well, but confirm rather than assume. |
+| **Tightened** | narration and click-script targets filled in from `app-ui.md`; a first draft from `derive.py` had placeholder targets and two TODOs |
 
 ## Cover
 
@@ -15,27 +18,35 @@
 
 Rehearse this before recording. Type each value in one go — a pause mid-field becomes two steps in the Guidde output.
 
-| # | Action | Target | Notes |
+| # | Action | Target | Type |
 | --- | --- | --- | --- |
-| 01 | (hold on the finished result) | exported CSV / found value | the payoff, before the how |
+| 01 | Hold | finished result: the CEO's name, title, and verified email on screen | — |
 | 02 | Click | first link in the video description | — |
 | 03 | Click | `Start Free Trial` | — |
-| 04 | Click / Fill | `—` | Choose your input and output types |
-| 05 | Click / Fill | `—` | Filter by seniority level |
-| 06 | Click / Fill | `—` | Set how many results you want |
-| 07 | Click / Fill | `Enrich Data to pull the matchin` | Enter the company domain and enrich |
-| 08 | Click / Fill | `—` | Review the results |
-| 09 | Click / Fill | `input to LinkedIn Profile URL` | Switch input to LinkedIn Profile URL |
-| 10 | Click / Fill | `Enrich Data to retrieve their c` | Paste the LinkedIn URL and enrich |
-| 11 | Click / Fill | `—` | View the enriched contact data |
-| 12 | (closing card) | — | — |
+| 04 | Click | `I have` | — |
+| 05 | Select | `Company Domain` | — |
+| 06 | Click | `I want to find` | — |
+| 07 | Select | `Company Employees List` | — |
+| 08 | Select | `Seniority` | `C-Suite` |
+| 09 | Fill | `Number of employees` | `5` |
+| 10 | Fill | `Enter Company Domain` | `tesla.com` |
+| 11 | Click | `Enrich Data` | — |
+| 12 | Hold | results list, CEO's row visible with name/title/LinkedIn URL | — |
+| 13 | Click | the CEO's row | — |
+| 14 | Click | `Copy` next to `LinkedIn URL` | — |
+| 15 | Click | `I have` | — |
+| 16 | Select | `LinkedIn Profile URL` | — |
+| 17 | Click | `I want to find` | — |
+| 18 | Select | `Email Address` | — |
+| 19 | Paste | `Enter LinkedIn Profile URL` | the copied URL |
+| 20 | Click | `Enrich Data` | — |
+| 21 | Hold | result panel showing the returned email | — |
+| 22 | Closing card | — | — |
 
 ## Step cards
 
-Narration lifted from the page, then tightened for speech. Anything still reading like prose needs a second pass — see STYLE.md.
-
 **01 What You End Up With**
-> TODO: one sentence naming the result the viewer is about to get.
+> This is a company's CEO, matched by title from a domain alone, with a verified email next to their name — that is what we are building in the next two minutes.
 
 **02 Open LinkFinder AI**
 > Click the first link in the video description to open LinkFinder AI.
@@ -45,34 +56,66 @@ Narration lifted from the page, then tightened for speech. Anything still readin
 
 <!-- section: Find executives by seniority level at a company -->
 
-**04 Choose your Input and Output Types**
-> Set the input to Company Domain and the output to Company Employees List to pull a filtered roster instead of a single lookup.
+**04 Open the Input Dropdown**
+> On your dashboard, open the I have dropdown.
 
-**05 Filter by Seniority Level**
-> Select the seniority levels you want — Founder, Owner, C-Suite, Director, or Partner — to narrow the list to decision-makers.
+**05 Choose Company Domain**
+> Select Company Domain.
 
-**06 Set How Many Results You Want**
-> Enter the number of employees to return, for example 25, to control the size of the result and the credits spent.
+**06 Open the Output Dropdown**
+> Open I want to find.
 
-**07 Enter the Company Domain and Enrich**
-> Type the domain — for example tesla.com — and click Enrich Data to pull the matching executives.
+**07 Choose Company Employees List**
+> Select Company Employees List. This one is priced per person found — half a credit each — not a flat rate, so a tight filter keeps the cost down.
 
-**08 Review the Results**
-> Each result includes the executive's name, title, and LinkedIn URL — click through to confirm the right person before enriching further.
+**08 Filter to C-Suite**
+> Set Seniority to C-Suite, so the results are the executives who actually run the company, not every employee on LinkedIn.
 
-<!-- section: Enrich a known executive's LinkedIn profile -->
+**09 Set How Many Results You Want**
+> Set Number of employees to 5. You only need the CEO, but a small buffer catches title variations like "Chief Executive Officer" versus "Co-CEO."
 
-**09 Switch Input to LinkedIn Profile URL**
-> Set the input type to LinkedIn Profile URL and choose an output such as Email Address or Phone Number.
+**10 Enter the Company Domain**
+> Type the domain, not the company name — tesla.com, not Tesla.
 
-**10 Paste the LinkedIn URL and Enrich**
-> Enter the executive's LinkedIn profile URL and click Enrich Data to retrieve their contact details.
+**11 Click Enrich Data**
+> LinkFinder AI returns the matching C-Suite executives at that domain.
 
-**11 View the Enriched Contact Data**
-> LinkFinder AI returns the verified email and any other requested fields tied to that profile.
+**12 Find the CEO**
+> Scan the results for the CEO's row — name, title, and LinkedIn URL are all there.
 
-**12 Closing card**
-> TODO: name the next action — start a free trial, or the next video in the series.
+**13 Open Their Row**
+> Click their row to expand the full result.
+
+**14 Copy Their LinkedIn URL**
+> Click Copy next to LinkedIn URL.
+
+<!-- section: Enrich the CEO's LinkedIn profile into a verified email -->
+
+**15 Switch The Input Type**
+> Click the I have dropdown again.
+
+**16 Choose LinkedIn Profile URL**
+> Select LinkedIn Profile URL.
+
+**17 Open The Output Dropdown**
+> Click the I want to find dropdown.
+
+**18 Choose Email Address**
+> Select Email Address. This pairing costs ten credits, since it is checked for deliverability before it comes back.
+
+**19 Paste The Profile URL**
+> Paste the LinkedIn URL you just copied.
+
+**20 Click Enrich Data**
+> LinkFinder AI returns the CEO's verified email tied to that exact profile — not a guessed name@domain.com pattern.
+
+**21 Confirm the Result**
+> There is the email. Two lookups, one filtered by title and one by profile, got you from a bare domain to a CEO's real inbox.
+
+## Closing card
+
+**22 Try It On Your Own Target**
+> Swap tesla.com for a company you are actually prospecting, and C-Suite for whatever seniority you need — the free credits on signup are enough to prove it before you pay anything.
 
 ## Deliberately not in this video
 
@@ -94,3 +137,11 @@ Paste into `resources/find-ceo-email.html`, matching the pattern in `linkedin-pr
     allowfullscreen></iframe>
 </div>
 ```
+
+## Voiceover
+
+Not yet generated — `vidiq_voiceover_generate` was out of credits on the
+connected account when this pass was written. Narration text above is
+final and ready to synthesize (voice `iP95p4xoKVk53GoZ742B`, Chris, the
+fixed voice per `METHOD.md`) once the account tops up. Save the result to
+`claude/guidee/audio/find-ceo-email-vo.mp3`.
