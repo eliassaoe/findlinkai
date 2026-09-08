@@ -1,5 +1,32 @@
 # campaign-signup
 
+> **Decision, 8 Sep 2026: NOT deployed.** The simpler route was taken instead —
+> `linkfinderai-team.com` is a plain Cloudflare redirect to
+> `linkfinderai.com/100free?utm_...`, so the email carries the throwaway domain
+> and the signup itself still happens on the main site. Setup is in
+> "The redirect that is actually live" below. Everything else in this folder
+> is the full standalone-signup version, kept for the day a redirect is not
+> enough (e.g. the throwaway domain gets listed and filters start following
+> redirects). It works; it just needs the four deploy steps.
+
+## The redirect that is actually live
+
+Cloudflare, zone `linkfinderai-team.com` (nameservers moved from Namecheap):
+
+1. DNS: `A` record, name `@`, value `192.0.2.1`, **Proxied** (orange cloud).
+   The IP is a placeholder — a proxied record just has to exist so the
+   request reaches Cloudflare, where the rule below answers it.
+2. Rules → Redirect Rules → Create: wildcard pattern
+   `https://linkfinderai-team.com/*` → target
+   `https://linkfinderai.com/100free?utm_source=coldemail&utm_medium=email&utm_campaign=icp30k_recruiting&utm_content=e1_credits`,
+   status **302**, preserve query string **off**.
+3. Link in the email: `https://linkfinderai-team.com/credits` (any path works).
+
+No worker, no Supabase change. The 1,000-credit gift still comes from
+`100free.html` on the main site + `GIFT_CREDITS` in `workers/signup/worker.js`.
+
+---
+
 The signup page for cold-email campaigns, served from a **throwaway domain** so
 the link in the email never points at `linkfinderai.com`.
 
