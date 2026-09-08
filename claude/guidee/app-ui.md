@@ -24,13 +24,28 @@ There are exactly 14. A dropdown pair outside this list does not exist.
 
 | `I have` | Field label | Placeholder | `I want to find` |
 | --- | --- | --- | --- |
-| Lead Full Name | Enter Lead Full Name + Company Name | `e.g., John Doe JP morgan, Sarah Smith Netflix` | LinkedIn Profile URL · Verified Email |
+| Lead Full Name | Enter Lead Full Name + Company Name | `e.g., John Doe JP morgan, Sarah Smith Netflix` | LinkedIn Profile URL |
+| Lead Full Name (Verified Email only) | Three separate fields: `First Name` (`e.g., Sarah`), `Last Name` (`e.g., Johnson`), `Company Domain` (`e.g., tesla.com`) — a domain, not a company name; both names must be a single word | — | Verified Email |
 | Company Name | Enter Company Name | `e.g., Tesla, Apple, Microsoft` | Company Website · Company Phone Number · Company LinkedIn URL · Company Email |
 | Email Address | Enter Email Address | `e.g., john.doe@company.com` | LinkedIn Profile URL |
 | Company Domain | Enter Company Domain | `e.g., tesla.com, apple.com` | Company Employees List |
 | LinkedIn Company URL | Enter LinkedIn Company URL | `e.g., linkedin.com/company/tesla` | LinkedIn Company Data · Employee Count |
 | LinkedIn Profile URL | Enter LinkedIn Profile URL | `e.g., linkedin.com/in/john-doe` | LinkedIn Profile Data · Phone Number · Email Address |
 | LinkedIn Post URL | Enter LinkedIn Post URL | `e.g., linkedin.com/feed/update/urn:li:activity:1234567890` | Post Reactions |
+
+## Bulk CSV column requirements
+
+The uploader's expected columns change with the active pairing, not just
+the input type:
+
+- Lead Full Name -> LinkedIn Profile URL: `name` (required), `company`
+  (required), `location` (optional), `job_title` (optional).
+- Lead Full Name -> Verified Email: `first_name`, `last_name`, `domain`
+  (all required) — matches the three-field single-lookup form above.
+- Company Domain / LinkedIn Company URL -> Company Employees List:
+  the relevant URL/domain column (required), plus optional `department`,
+  `seniority`, `employee_count`.
+- Every other pairing: one column matching the single-lookup field label.
 
 ## Filters (Company Employees List only)
 
