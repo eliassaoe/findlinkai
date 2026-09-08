@@ -31,22 +31,19 @@ never here. See `workers/signup/README.md`.
 
 ## Deploy
 
-**1. Pick the domain.** Either buy a fresh one (cleanest — nothing else depends
-on it) or use the root of one of the Instantly sending domains, which are
-already treated as disposable. Do **not** use `linkfinderai.com` or any
-subdomain of it: a subdomain shares the root's reputation.
+**1. The domain is `linkfinderai-team.com`** (Namecheap, 8 Sep 2026). It is
+not an Instantly sending domain and nothing else uses it, so it can be lost
+without consequence. Never swap in `linkfinderai.com` or a subdomain of it: a
+subdomain shares the root's reputation.
 
-**2. Put the zone on Cloudflare DNS.** A Worker custom domain needs that. If
-the domain is registered elsewhere, add it to the Cloudflare account and
-point its nameservers at Cloudflare.
+**2. Put the zone on Cloudflare DNS.** A Worker custom domain needs that.
+In Cloudflare: Add a domain → `linkfinderai-team.com` → Free plan → note the
+two nameservers it assigns. In Namecheap: Domain List → Manage → Nameservers
+→ **Custom DNS** → paste those two → save. Propagation is usually minutes,
+sometimes hours; Cloudflare emails when the zone is active.
 
-**3. Set the route** in `wrangler.toml`:
-
-```toml
-routes = [
-  { pattern = "go.your-throwaway-domain.com", custom_domain = true }
-]
-```
+**3. The route is already set** in `wrangler.toml`
+(`linkfinderai-team.com`, `custom_domain = true`).
 
 **4. Deploy.**
 
@@ -61,7 +58,7 @@ No secrets, no KV. Wrangler creates the DNS record and certificate.
 URL Configuration → Redirect URLs → add
 
 ```
-https://go.your-throwaway-domain.com/confirmation-signup
+https://linkfinderai-team.com/confirmation-signup
 ```
 
 Without this the Google button breaks: Supabase ignores an unlisted
@@ -71,16 +68,16 @@ routes them there), so this step is not optional.
 
 **6. Test before sending.** In a private window:
 
-- open `https://go.your-throwaway-domain.com/100free?utm_source=coldemail&utm_medium=email&utm_campaign=icp30k_recruiting&utm_content=e1_credits`
+- open `https://linkfinderai-team.com/100free?utm_source=coldemail&utm_medium=email&utm_campaign=icp30k_recruiting&utm_content=e1_credits`
 - sign up once with Google and once with a fresh work email
 - both should end on `linkfinderai.com/app` with a balance of 1,000
-- open `https://go.your-throwaway-domain.com/anything-else` and check it
+- open `https://linkfinderai-team.com/anything-else` and check it
   lands on `linkfinderai.com/anything-else`
 
 ## The link for the email
 
 ```
-https://go.your-throwaway-domain.com/100free?utm_source=coldemail&utm_medium=email&utm_campaign=icp30k_recruiting&utm_content=e1_credits
+https://linkfinderai-team.com/100free?utm_source=coldemail&utm_medium=email&utm_campaign=icp30k_recruiting&utm_content=e1_credits
 ```
 
 If Instantly's click tracking is on, the URL the recipient sees is the

@@ -10,10 +10,11 @@ html_handling = "auto-trailing-slash"
 # Unknown paths fall through to worker.js, which redirects to linkfinderai.com.
 not_found_handling = "none"
 
-# The throwaway domain. The zone has to be on Cloudflare DNS; on deploy wrangler
-# creates the DNS record and the certificate itself. Uncomment and set it, then
-# `wrangler deploy`. Until then the Worker is only reachable on its workers.dev
-# URL, which is fine for testing but must not go in an email.
-# routes = [
-#   { pattern = "go.your-throwaway-domain.com", custom_domain = true }
-# ]
+# The throwaway domain: linkfinderai-team.com (Namecheap, not an Instantly
+# sending domain, nothing else depends on it). Its nameservers must point at
+# Cloudflare for this to deploy; wrangler then creates the DNS record and the
+# certificate itself. If deploy says a record already exists at the apex,
+# delete that record in Cloudflare DNS and deploy again.
+routes = [
+  { pattern = "linkfinderai-team.com", custom_domain = true }
+]
