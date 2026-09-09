@@ -132,6 +132,87 @@
   document.body.appendChild(bubble);
   document.body.appendChild(panel);
 
+  // ---- Proactive high-ticket prompt ----------------------------------------
+  // The free finder pages pull one-off lookups and freebie hunters; the API,
+  // enrichment, pricing and comparison pages pull people evaluating a pipeline.
+  // Only the second group is worth a sales conversation, so this teaser is
+  // allowlisted to those paths rather than shown site-wide.
+  var DFY_CALL_URL = "https://calendly.com/hamoureliasse/offre-linkfinder-ai-outbound/";
+  var PROMPT_DISMISSED_KEY = "lfai_ht_prompt_dismissed";
+
+  var BUYER_PATHS = [
+    /^\/api/, /^\/pricing/, /^\/docs/, /^\/integrations/, /^\/app/,
+    /^\/crm-/, /^\/company-/, /^\/done-for-you-outbound/, /^\/lead-generation-api/,
+    /^\/best-/, /^\/bulk-/, /^\/migrate-from-/, /^\/clay-/,
+    /enrichment/, /-alternative/, /-competitors/, /-api$/
+  ];
+
+  function isBuyerPage() {
+    var path = (window.location.pathname || "/").replace(/\/+$/, "") || "/";
+    for (var i = 0; i < BUYER_PATHS.length; i++) {
+      if (BUYER_PATHS[i].test(path)) return true;
+    }
+    return false;
+  }
+
+  function promptDismissed() {
+    try { return window.localStorage.getItem(PROMPT_DISMISSED_KEY) === "1"; }
+    catch (e) { return false; }
+  }
+
+  function dismissPrompt(reason) {
+    try { window.localStorage.setItem(PROMPT_DISMISSED_KEY, "1"); } catch (e) {}
+    var el = document.getElementById("lfai-ht-prompt");
+    if (el && el.parentNode) el.parentNode.removeChild(el);
+    if (reason) track("high_ticket_prompt_dismissed", { reason: reason });
+  }
+
+  function showHighTicketPrompt() {
+    if (!isBuyerPage() || promptDismissed() || document.getElementById("lfai-ht-prompt")) return;
+
+    var wrap = document.createElement("div");
+    wrap.id = "lfai-ht-prompt";
+    wrap.innerHTML =
+      '<button id="lfai-ht-close" aria-label="Dismiss">&times;</button>' +
+      '<div class="lfai-ht-title">Not sure if LinkFinder AI fits your stack?</div>' +
+      '<div class="lfai-ht-body">Let&rsquo;s talk. 20 minutes &mdash; we&rsquo;ll look at where your leads live and ' +
+      'show you what running it on a schedule looks like.</div>' +
+      '<a class="lfai-ht-cta" href="' + DFY_CALL_URL + '" target="_blank" rel="noopener">Book a call &rarr;</a>';
+
+    document.body.appendChild(wrap);
+    track("high_ticket_prompt_shown", { path: window.location.pathname });
+
+    wrap.querySelector("#lfai-ht-close").addEventListener("click", function () {
+      dismissPrompt("close_button");
+    });
+    wrap.querySelector(".lfai-ht-cta").addEventListener("click", function () {
+      track("demo_booking_clicked", { location: "support_widget_prompt", path: window.location.pathname });
+      dismissPrompt(null);
+    });
+
+    // Opening the chat replaces the teaser - two panels stacked is noise.
+    bubble.addEventListener("click", function () { dismissPrompt(null); });
+  }
+
+  var htStyle = document.createElement("style");
+  htStyle.textContent =
+    "#lfai-ht-prompt{position:fixed;right:20px;bottom:88px;z-index:2147483646;width:288px;background:#0B0F1A;" +
+    "border:1px solid #232B40;border-radius:14px;padding:16px 16px 14px;color:#fff;font-family:inherit;" +
+    "box-shadow:0 12px 32px rgba(0,0,0,.34);animation:lfaiHtIn .28s ease both;}" +
+    "@keyframes lfaiHtIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}" +
+    "#lfai-ht-prompt .lfai-ht-title{font-size:14px;font-weight:700;line-height:1.35;margin-bottom:6px;padding-right:16px;}" +
+    "#lfai-ht-prompt .lfai-ht-body{font-size:12.5px;line-height:1.5;color:#9AA6BF;margin-bottom:12px;}" +
+    "#lfai-ht-prompt .lfai-ht-cta{display:inline-block;background:#4ADE80;color:#0B0F1A;text-decoration:none;" +
+    "font-size:12.5px;font-weight:700;padding:9px 14px;border-radius:8px;}" +
+    "#lfai-ht-close{position:absolute;top:8px;right:10px;background:none;border:none;color:#5C6784;" +
+    "font-size:18px;line-height:1;cursor:pointer;padding:2px 4px;}" +
+    "#lfai-ht-close:hover{color:#9AA6BF;}" +
+    "@media(max-width:480px){#lfai-ht-prompt{right:12px;left:12px;width:auto;bottom:80px;}}";
+  document.head.appendChild(htStyle);
+
+  // Long enough that it reads as an offer of help rather than a pop-up.
+  window.setTimeout(showHighTicketPrompt, 15000);
+
   var messagesEl = panel.querySelector("#lfai-chat-messages");
   var inputEl = panel.querySelector("#lfai-chat-input");
   var sendBtn = panel.querySelector("#lfai-chat-send");
