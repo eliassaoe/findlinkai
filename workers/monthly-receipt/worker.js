@@ -93,8 +93,12 @@ function receiptFor(row, now, periodDays) {
         month_label: monthLabel(now),
         month_key: monthKey(now),
         period_days: periodDays,
-        account_url: `${SITE}/account?token=${encodeURIComponent(token)}&src=monthly_receipt#what-you-found`,
-        history_url: `${SITE}/history?token=${encodeURIComponent(token)}&src=monthly_receipt`,
+        // One query parameter each, on purpose: PostHog's liquid escapes `&`
+        // to `&amp;` on output, which is right in the HTML and wrong in the
+        // plain-text part. Attribution comes from the hash instead - the
+        // account page fires value_receipt_link_opened on #what-you-found.
+        account_url: `${SITE}/account?token=${encodeURIComponent(token)}#what-you-found`,
+        history_url: `${SITE}/history?token=${encodeURIComponent(token)}`,
     };
 }
 
