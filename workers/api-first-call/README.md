@@ -14,14 +14,14 @@ Two events close the gap:
 
 | Event | When | Who fires it |
 | --- | --- | --- |
-| `api_first_call_succeeded` | The first 2xx response a person ever gets from `api.linkfinderai.com` | The app / API page / docs page today (source `in_app_test`, `api_access_test`, `api_docs_test`), the API worker for everything else (source `api`) |
+| `api_first_call_succeeded` | The first 2xx response a person ever gets from `api.linkfinderai.com` | The app / API page / docs page today (source `in_app_test`, `api_docs_test`), the API worker for everything else (source `api`) |
 | `api_call_made` | Daily rollup per person, **not** per request | The API worker only |
 
 The ratio that matters from then on: **`api_first_call_succeeded / api_key_copied`**.
 
 ## What already fires (this repo)
 
-`app.html`, `api-access.html` and `api-documentation.html` each have a **Run it
+`app.html` and `api-documentation.html` each have a **Run it
 now** button under the request they show. It POSTs to the public API from the
 browser with the person's real key and shows the response. On a 2xx it fires
 `api_test_call_succeeded` every time and `api_first_call_succeeded` once per

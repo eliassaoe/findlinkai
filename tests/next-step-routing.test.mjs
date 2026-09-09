@@ -234,12 +234,12 @@ const apiAccess = read('api-access.html');
 const apiDocs = read('api-documentation.html');
 const pricing = read('pricing.html');
 
-test('Run it now exists on all three API surfaces and fires the first-call event once', () => {
+test('Run it now exists under results and in the docs and fires the first-call event once', () => {
   assert.ok(appFn('runNextStepApiTest').includes("posthog.capture('api_first_call_succeeded', { source: 'in_app_test'"));
   assert.ok(appFn('runNextStepApiTest').includes("localStorage.getItem(API_FIRST_CALL_KEY)"), 'once per browser');
-  assert.ok(apiAccess.includes("posthog.capture('api_first_call_succeeded',{source:'api_access_test'"));
   assert.ok(apiDocs.includes("cap('api_first_call_succeeded', { source: 'api_docs_test'"));
-  for (const src of [app, apiAccess, apiDocs]) assert.ok(src.includes('could not reach the API directly'), 'a CORS/network failure degrades to the terminal, never to silence');
+  assert.ok(!apiAccess.includes('apiTestBox'), 'the API key page shows the key only; the runnable call lives under results and in the docs');
+  for (const src of [app, apiDocs]) assert.ok(src.includes('could not reach the API directly'), 'a CORS/network failure degrades to the terminal, never to silence');
 });
 
 test('the bulk credit gate is sized to the list and opens the modal on that plan', () => {
