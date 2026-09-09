@@ -164,3 +164,39 @@ left for a human.
 `integration_card_clicked` gains source `api_docs`;
 `bulk_results_upgrade_cta_clicked` unchanged but the modal it opens is now
 `pricing_modal_opened` trigger `bulk_credits_gated`.
+
+## Round three (9 Sep) — keep the integration alive, remember the value, pay for the integration
+
+| # | Change | Where |
+| --- | --- | --- |
+| 1 | **Auto top-up at the moment of integration.** Under a Run-it-now call that worked, and in the bulk panel's API note, one line: *Running this on a schedule? Turn on auto top-up so a job never stops for credits.* It links to the account page with `#auto-topup`, which opens the panel on arrival (that handler already existed for the low-credit bar). Nowhere else: a scheduled job dying at zero credits is how an integration quietly ends, and these two places are where someone is about to schedule one. The API route's first email says the same. Event: `auto_topup_offer_clicked` {source: `api_test_single` / `api_test_bulk` / `bulk_api_note`}. | `autoTopupUrl`, `autoTopupOfferClicked` in `app.html`; workflow 9 email 1 |
+| 2 | **Monthly value receipt.** On the 1st, `workers/monthly-receipt` counts what was *found* for every account with a lookup in the last 30 days (the account page's own RPC, `user_value_summary`, wrapped by `monthly_value_receipts`) and captures `monthly_value_receipt` with the numbers as properties. PostHog workflow 12 turns that into one email: the total, the breakdown by kind, the hours it would have taken by hand, a button to the account page's "What you've found" (`#what-you-found` scrolls there once it has loaded) and a link to the history. Nobody gets a receipt for zero. | `workers/monthly-receipt/`, `account.html`, workflow 12, `variants.json` step `monthly_receipt` |
+| 3 | **Credits for integrating.** Three rows in the credit tasks: *Make your first API call* (100), *Install the Google Sheets add-on* (100), *Connect HubSpot* (300). The first and third pay themselves: the app calls `otpAutoCompleteTask` when a Run-it-now call returns 2xx and when the CRM worker reports a live connection, and the worker verifies the HubSpot one against that same CRM worker before paying. The Sheets install is not observable, so it is on honour like the YouTube row. Auto-completion is silent on every failure — the person did not ask for anything, so a worker that is down must never turn "your call worked" into an error. | `OTP_TASKS_ALL`, `otpAutoCompleteTask` in `app.html`; `TASK_CONFIG`, `crmConnected` in `workers/onboarding-tasks/worker.js` |
+
+### Why these three
+
+The people who pay are the ones who put the product inside something. Round
+one and two get them there; this round is about what happens after. An
+integration that runs on a schedule fails silently at zero credits (auto
+top-up). A subscriber who never opens the account page never sees what the
+product did for them, and "not using" is the top cancellation reason (the
+receipt). And the tasks list was paying for reviews and YouTube subscriptions
+but not for the one behaviour that predicts paying (the credits).
+
+### Manual steps
+
+- `wrangler deploy` in `workers/onboarding-tasks` (new `TASK_CONFIG` rows; until
+  then the auto-completion gets a 400 and stays silent) and in
+  `workers/monthly-receipt` (secrets in its README).
+- Workflow 12 is a draft: Test run it with a real `monthly_value_receipt`
+  event, then enable. `workers/lifecycle-email/NEW_CAMPAIGNS.md`.
+
+### New events (round three)
+
+`auto_topup_offer_clicked` {source}; `monthly_value_receipt` {found_total,
+lookups, csv_batches, emails, phones, profiles, profiles_full, websites,
+companies, people, hours_saved, is_subscriber, plan_type, month_label,
+month_key, account_url, history_url}; `value_receipt_link_opened` (account page
+arrived at with `#what-you-found`); `onboarding_task_completed` gains
+`auto: true` and `source` for the two self-paying tasks; `sheets_addon_clicked`
+gains source `tasks`.

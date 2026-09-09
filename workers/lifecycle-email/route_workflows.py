@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""The route campaigns (7-10) and the idle-credits campaign (11), as
-workflows-create payloads.
+"""The route campaigns (7-10), the idle-credits campaign (11) and the monthly
+value receipt (12), as workflows-create payloads.
 
     python3 route_workflows.py            # writes build/<key>.json, one per workflow
     python3 route_workflows.py --print csv
@@ -280,6 +280,39 @@ def idle_workflow(library):
     }
 
 
+def receipt_workflow(library):
+    v = champion(library, "monthly_receipt")
+    trigger_filters = {
+        "source": "events",
+        "events": [ev("monthly_value_receipt")],
+        "properties": PERSON_FILTERS,
+    }
+    return {
+        "name": "12. Monthly value receipt — what you found last month",
+        "description": (
+            "On the 1st, workers/monthly-receipt counts what was FOUND for every account that ran "
+            "lookups in the last 30 days (same RPC as the account page's 'What you've found') and "
+            "captures monthly_value_receipt with the numbers as properties. This sends that as one "
+            "email with a link to the account page and to the history. Nobody gets a receipt for "
+            "zero: the worker skips them, and workflow 11 covers the idle case. Once per person per 25 days."
+        ),
+        "status": "draft",
+        "trigger_masking": {"hash": "{person.id}", "ttl": 2160000},
+        "exit_condition": "exit_only_at_end",
+        "actions": [
+            {"id": "trigger_1", "name": "Receipt computed", "description": "", "on_error": None, "filters": None,
+             "type": "trigger", "config": {"type": "event", "filters": trigger_filters}, "output_variable": None},
+            email_action("email_receipt", "Email — what you found last month", v),
+            {"id": "exit_1", "name": "Exit", "description": "", "on_error": None, "filters": None,
+             "type": "exit", "config": {"reason": "Sequence complete"}, "output_variable": None},
+        ],
+        "edges": [
+            {"from": "trigger_1", "to": "email_receipt", "type": "continue"},
+            {"from": "email_receipt", "to": "exit_1", "type": "continue"},
+        ],
+    }
+
+
 ROUTES = {
     "csv": dict(
         title="7. Route: CSV — picked it, never uploaded",
@@ -306,11 +339,12 @@ ROUTES = {
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--print", metavar="KEY", help="print one payload (csv|sheets|api|crm|idle)")
+    ap.add_argument("--print", metavar="KEY", help="print one payload (csv|sheets|api|crm|idle|receipt)")
     args = ap.parse_args()
     library = json.loads(LIBRARY.read_text())
     payloads = {r: route_workflow(library, r, **cfg) for r, cfg in ROUTES.items()}
     payloads["idle"] = idle_workflow(library)
+    payloads["receipt"] = receipt_workflow(library)
     if args.print:
         print(json.dumps(payloads[args.print], ensure_ascii=False))
         return

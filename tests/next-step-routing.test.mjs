@@ -291,4 +291,58 @@ test('the route and idle-credit campaigns are in the variants library with their
   }
 });
 
+// ---------------------------------------------------------------- round three
+const tasksWorker = read('workers/onboarding-tasks/worker.js');
+const receiptWorker = read('workers/monthly-receipt/worker.js');
+const account = read('account.html');
+
+test('credits for integrating: the three tasks exist in the app and the worker, and two pay on their own', () => {
+  for (const t of ['first_api_call', 'sheets_addon', 'hubspot_connected']) {
+    assert.ok(app.includes("name: '" + t + "'"), 'app row ' + t);
+    assert.ok(new RegExp('^\\s*' + t + ':\\s*\\{', 'm').test(tasksWorker), 'worker config ' + t);
+  }
+  assert.ok(tasksWorker.includes("hubspot_connected: { credits: 300,  kind: 'verified_crm' }"), 'HubSpot is verified, not honour');
+  assert.ok(tasksWorker.includes("if (config.kind === 'verified_crm')") && tasksWorker.includes('await crmConnected(env, user_token)'), 'the worker asks the CRM worker before paying');
+  const runTest = app.slice(app.indexOf('async function runNextStepApiTest('), app.indexOf('function nextStepClicked('));
+  assert.ok(runTest.includes("otpAutoCompleteTask('first_api_call', 'run_it_now')"), 'a working call credits itself');
+  const hs = app.slice(app.indexOf('async function checkHubspotConnection('), app.indexOf('function extractContactFromResult('));
+  assert.ok(hs.includes("if (hubspotConnected) otpAutoCompleteTask('hubspot_connected'"), 'a live HubSpot connection credits itself');
+  const auto = app.slice(app.indexOf('async function otpAutoCompleteTask('), app.indexOf('function otpCreditToast('));
+  assert.ok(auto.includes('if (res.status === 409) { remember(); return; }') && auto.includes('if (!res.ok) return;'), 'auto-completion is silent on every failure');
+  assert.ok(!auto.includes('otpShowFieldError'), 'it never shows an error for something the person did not ask for');
+});
+
+test('auto top-up is offered where an integration just worked, and only there', () => {
+  const runTest = app.slice(app.indexOf('async function runNextStepApiTest('), app.indexOf('function nextStepClicked('));
+  assert.ok(runTest.includes('ns-atu-offer') && runTest.includes("autoTopupOfferClicked(\\'api_test_'"), 'under a successful Run it now');
+  const bulkPanel = app.slice(app.indexOf('function renderNextStepPanel('), app.indexOf('async function runNextStepApiTest('));
+  assert.ok(bulkPanel.includes("autoTopupOfferClicked(\\'bulk_api_note\\')"), 'in the bulk API note');
+  assert.ok(app.includes("return addGclid('https://linkfinderai.com/account?token=' + userToken) + '#auto-topup';"), 'lands on the open panel');
+  assert.equal((app.match(/autoTopupOfferClicked\(/g) || []).length, 3, 'the definition and two call sites - no new interrupt');
+  const lib = JSON.parse(read('workers/lifecycle-email/variants.json'));
+  const apiMail = lib.steps.route_api_1.variants.find((v) => v.status === 'champion');
+  assert.ok(apiMail.after.some((l) => /auto top-up/.test(l)), 'the API route email says it too');
+});
+
+test('the monthly value receipt: worker, event, email and landing', () => {
+  assert.ok(read('workers/monthly-receipt/wrangler.toml').includes('crons = ["0 8 1 * *"]'), 'first of the month');
+  assert.ok(receiptWorker.includes("const EVENT = 'monthly_value_receipt'"));
+  assert.ok(receiptWorker.includes('if (r.found_total < minFound) { skipped += 1; continue; }'), 'nobody gets a receipt for zero');
+  assert.ok(receiptWorker.includes("'monthly_value_receipts'") && read('workers/monthly-receipt/README.md').includes('public.user_value_summary(u.token)'), 'same counting as the account page');
+  assert.ok(receiptWorker.includes('#what-you-found') && account.includes("window.location.hash === '#what-you-found'"), 'the button lands on the section');
+  const lib = JSON.parse(read('workers/lifecycle-email/variants.json'));
+  const step = lib.steps.monthly_receipt;
+  const v = step.variants.find((x) => x.status === 'champion');
+  assert.ok(/^01a0/.test(step.workflow_id), 'workflow id recorded');
+  for (const prop of ['found_total', 'month_label', 'lookups', 'hours_saved', 'account_url', 'history_url']) {
+    assert.ok(JSON.stringify(v).includes('event.properties.' + prop), 'email uses ' + prop);
+  }
+  for (const cat of ['emails', 'phones', 'profiles', 'profiles_full', 'websites', 'companies', 'people']) {
+    assert.ok(v.body[1].includes('{% if event.properties.' + cat + ' > 0 %}'), cat + ' line is conditional');
+    assert.ok(receiptWorker.includes("'" + cat + "'"), 'worker counts ' + cat);
+  }
+  assert.ok(!JSON.stringify(v).includes("'other'") && !receiptWorker.includes("'other'"), 'other is never shown, as on the page');
+  assert.ok(read('workers/lifecycle-email/route_workflows.py').includes('def receipt_workflow('));
+});
+
 console.log(`\n${passed} passed`);

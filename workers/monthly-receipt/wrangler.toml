@@ -1,0 +1,18 @@
+name = "monthly-receipt"
+main = "worker.js"
+compatibility_date = "2026-09-01"
+
+# Secrets are set with `wrangler secret put`, never committed:
+#   SUPABASE_URL                - https://xxxx.supabase.co
+#   SUPABASE_SERVICE_ROLE_KEY   - service role key, server-side only
+#   POSTHOG_API_KEY             - the project token (phc_...), used to capture
+#   ADMIN_API_KEY               - shared secret for the manual /run endpoint
+#
+# Optional:
+#   PERIOD_DAYS                 - how far back the receipt looks (default 30)
+#   MIN_FOUND                   - smallest found-count that gets a receipt (default 1)
+
+# 08:00 UTC on the first of every month. The email itself is sent by PostHog
+# workflow 12, which fires on the monthly_value_receipt event this captures.
+[triggers]
+crons = ["0 8 1 * *"]

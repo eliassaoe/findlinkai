@@ -14,6 +14,7 @@ Test run it, then enable — that is a decision, not a default.
 | 9 | Route: API — no key copied, no call made | `01a084b1-6362-0000-cab5-f9ba8d0ca0e4` | route=api → +1h, +3d | `api_key_copied`, `api_first_call_succeeded` |
 | 10 | Route: CRM — HubSpot never connected | `01a084b2-7854-0000-b403-c589239e1475` | route=crm → +1h, +3d (second mail offers the setup call) | `hubspot_connected` |
 | 11 | Paid, then went quiet — credits sitting there | `01a084ad-4c2f-0000-222b-5f9f54819516` | `subscription_renewed` / `checkout_payment_success` → wait 20d for any `enrich_started` → email only if none | `enrich_started` |
+| 12 | Monthly value receipt — what you found last month | `01a08515-b49a-0000-acba-bb887b5034e9` | `monthly_value_receipt`, captured on the 1st by `workers/monthly-receipt` for every account with something found in the last 30 days → one email, numbers from the event's properties (liquid), button to `/account#what-you-found`, link to `/history` | none (one email; masked 25d per person) |
 
 All five carry the same audience guard as campaign 6 (`signup_method` = google,
 `email_verified` is not false) because `email_verified` is not trustworthy for
@@ -22,6 +23,17 @@ email signups (`docs/email-verified-is-wrong.md`). Once per person per 30 days.
 `onboarding_route_picked` only started firing on 9 Sep (the first-visit route
 chooser in `app.html`), so 7–10 will show no volume until real signups pick a
 route. 11 fires on renewals, so it has an audience from the day it is enabled.
+
+**Before enabling 12:** deploy `workers/monthly-receipt` (secrets in its
+README) and hit `/run?dry=1` once to see the counts — on 9 Sep it listed 600
+active accounts, 536 with something found. Then **Test run** the workflow with a
+real `monthly_value_receipt` event so the liquid (`{{ event.properties.* }}`,
+including the subject) is seen rendering before anyone gets it. The worker
+captures nothing until it is deployed, and the draft sends nothing until it is
+enabled, so the order does not matter; both have to happen.
+
+Workflow 9's first email was patched on 9 Sep (`text-2` and the plain text) with
+one line offering auto top-up for scheduled jobs; `variants.json` matches.
 
 **Before enabling 9:** `api_first_call_succeeded` is fired today by the
 Run-it-now buttons only. If the API worker patch in `workers/api-first-call/`

@@ -770,6 +770,7 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
 .otp-check{color:#10b981;font-weight:600;font-size:0.85rem;display:inline-flex;align-items:center;gap:0.375rem;}
 .otp-pending-badge{color:#b45309;font-weight:600;font-size:0.8rem;display:inline-flex;align-items:center;gap:0.375rem;background:#fef3c7;padding:0.3rem 0.6rem;border-radius:6px;}
 .otp-honor-row{display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;}
+.ns-atu-offer{margin-top:0.35rem;}
 .otp-checkbox-label{display:flex;align-items:center;gap:0.4rem;font-size:0.83rem;color:var(--gray-700);cursor:pointer;}
 .otp-link-btn{font-size:0.8rem;font-weight:600;color:var(--primary);text-decoration:none;border-bottom:1px dashed rgba(37,99,235,0.4);}
 .otp-link-btn-block{display:inline-block;margin-bottom:0.5rem;}
@@ -6318,6 +6319,7 @@ async function checkHubspotConnection() {
         hubspotConnected = !!(d && d.connected);
     } catch (e) { hubspotConnected = false; }
     renderHubspotActionButton();
+    if (hubspotConnected) otpAutoCompleteTask('hubspot_connected', 'connection_check');
 }
 
 // Pulls whatever person-identifiable fields are available out of a single
@@ -6495,6 +6497,20 @@ const SHEETS_ADDON_URL = 'https://workspace.google.com/marketplace/app/linkfinde
 const BULK_WALKTHROUGH_URL = 'https://www.youtube.com/watch?v=69icgFGsJhg';
 const PUBLIC_API_URL = 'https://api.linkfinderai.com/';
 
+/*
+ * Auto top-up, offered at the moment of integration and nowhere new. Someone
+ * who has just seen their API call work, or has the loop for a bulk run in
+ * front of them, is about to put this on a schedule - and a scheduled job
+ * that stops at zero credits is how an integration quietly dies. The account
+ * page already has the panel; #auto-topup opens it on arrival.
+ */
+function autoTopupUrl() {
+    return addGclid('https://linkfinderai.com/account?token=' + userToken) + '#auto-topup';
+}
+function autoTopupOfferClicked(source) {
+    try { posthog.capture('auto_topup_offer_clicked', { source: source }); } catch (e) {}
+}
+
 // Same derivation as api-access.html, so the snippet carries the real key.
 function lfApiKey() {
     const t = userToken || '';
@@ -6591,7 +6607,8 @@ function renderNextStepPanel(context, opts) {
             + '<div id="nsApiBoxBulk" class="ns-api-box"><button type="button" class="ns-copy" onclick="copyNextStepSnippet(this,\'bulk\')"><i class="fas fa-copy"></i> Copy</button>'
             + '<pre id="nsApiSnippetBulk">' + nsEsc(nextStepApiSnippet(example)) + '</pre>'
             + nsRunBlock('bulk', example, cost)
-            + '<div class="ns-api-note">One request per row, your real key already in it. Loop it from n8n, Make, Zapier or a script &mdash; <a href="' + apiUrl + '" onclick="nextStepClicked(\'api_docs\',\'bulk\')">docs, MCP server and key management &rarr;</a></div></div>'
+            + '<div class="ns-api-note">One request per row, your real key already in it. Loop it from n8n, Make, Zapier or a script &mdash; <a href="' + apiUrl + '" onclick="nextStepClicked(\'api_docs\',\'bulk\')">docs, MCP server and key management &rarr;</a>'
+            + ' Running it on a schedule? <a href="' + autoTopupUrl() + '" onclick="autoTopupOfferClicked(\'bulk_api_note\')">Turn on auto top-up</a> so the job never stops for credits.</div></div>'
             + '</div>';
     }
 
@@ -6662,8 +6679,10 @@ async function runNextStepApiTest(context) {
                 + '<pre>' + nsEsc(pretty.slice(0, 1500)) + (pretty.length > 1500 ? '\n\u2026' : '') + '</pre>'
                 + '<div class="ns-api-run-note">That is the whole integration: same request, any input, from anywhere. '
                 + (r.status === 202 ? 'This type runs async &mdash; poll <code>/status/{job_id}</code> for the result. ' : '')
-                + '<a href="' + apiUrl + '" onclick="nextStepClicked(\'api_docs\',\'' + context + '\')">Docs and MCP server &rarr;</a></div>';
+                + '<a href="' + apiUrl + '" onclick="nextStepClicked(\'api_docs\',\'' + context + '\')">Docs and MCP server &rarr;</a></div>'
+                + '<div class="ns-api-run-note ns-atu-offer">Running this on a schedule? <a href="' + autoTopupUrl() + '" onclick="autoTopupOfferClicked(\'api_test_' + context + '\')">Turn on auto top-up</a> so a job never stops for credits.</div>';
             if (r.status === 200) deductCredits(cost);
+            otpAutoCompleteTask('first_api_call', 'run_it_now');
             try { posthog.capture('api_test_call_succeeded', { context: context, type: type, http_status: r.status, ms: ms }); } catch (e) {}
             try {
                 if (!localStorage.getItem(API_FIRST_CALL_KEY)) {
@@ -7401,6 +7420,20 @@ const OTP_TASKS_ALL = [
     { name: 'affiliate', kind: 'link_out', credits: 0, rewardLabel: 'up to +$500', notCountedInProgress: true,
       label: 'Refer someone who pays', sub: 'You get 25% of what they pay us, up to $500 each. No limit on how many.',
       realValue: 'Paid in cash, not credits', linkLabel: 'Get your link' },
+    // Credits for integrating. The people who pay are the ones who put the
+    // product inside something (CSV, Sheets, API, CRM - docs/next-step-routing.md),
+    // so the tasks list pays for the three that are observable. Two of them are
+    // credited on their own the moment the thing works (kind 'auto': the app
+    // calls otpAutoCompleteTask when a Run-it-now call returns 2xx or the CRM
+    // worker reports HubSpot connected); the worker checks the HubSpot one
+    // against the CRM worker before paying. The Sheets install cannot be
+    // observed, so that one is on honour like the YouTube row.
+    { name: 'first_api_call', kind: 'auto', label: 'Make your first API call', sub: 'Press Run it now under any result, or call the API from your own code. Credited the moment it works.',
+      credits: 100, realValue: '= 100 LinkedIn profiles', href: () => addGclid('https://linkfinderai.com/api-access?token=' + userToken), linkLabel: 'Open the API page' },
+    { name: 'sheets_addon', kind: 'honor_click', label: 'Install the Google Sheets add-on', sub: 'Enrich a column without leaving the sheet.',
+      credits: 100, realValue: '= 100 LinkedIn profiles', linkUrl: SHEETS_ADDON_URL, linkLabel: 'Open the add-on' },
+    { name: 'hubspot_connected', kind: 'auto', label: 'Connect HubSpot', sub: 'Every result lands in your CRM in one click. Credited once the connection is live.',
+      credits: 300, realValue: '= 30 emails or 300 LinkedIn profiles', href: () => addGclid('https://linkfinderai.com/crm-sync?token=' + userToken), linkLabel: 'Connect HubSpot' },
     { name: 'youtube_subscribe', kind: 'honor_click', label: 'Subscribe to our YouTube channel', credits: 100, realValue: '= 100 LinkedIn profiles', linkUrl: OTP_LINKS.youtube, linkLabel: 'Open channel' },
     // linkedin_share was removed on 31 Aug: two completions in its whole life,
     // and it was the one task whose "proof" was any linkedin.com URL, so it
@@ -7576,6 +7609,12 @@ function renderOnboardingTasksPopup() {
             actionHtml = `<div class="otp-honor-row">
                 <a href="${task.linkUrl}" target="_blank" rel="noreferrer" class="otp-link-btn otp-link-btn-block" onclick="otpCompleteHonorTask('${task.name}')">${isBusy?'Saving\u2026':otpEsc(task.linkLabel)}</a>
             </div>`;
+        } else if (task.kind === 'auto') {
+            // Nothing to submit: the credit arrives on its own when the thing
+            // works (otpAutoCompleteTask). The button only takes them there.
+            actionHtml = `<div class="otp-honor-row">
+                <a href="${task.href()}" class="otp-link-btn otp-link-btn-block" onclick="otpTrackStarted('${task.name}')">${otpEsc(task.linkLabel)}</a>
+            </div>`;
         } else if (task.kind === 'link_out') {
             const href = `https://linkfinderai.com/affiliate?token=${encodeURIComponent(userToken || '')}`;
             actionHtml = `<div class="otp-honor-row">
@@ -7647,6 +7686,7 @@ function otpShowFieldError(taskName, message) {
 async function otpCompleteHonorTask(taskName) {
     if (otpBusyTask) return;
     const task = OTP_TASKS.find(t => t.name === taskName);
+    if (taskName === 'sheets_addon') { try { posthog.capture('sheets_addon_clicked', { source: 'tasks' }); } catch (e) {} }
     otpBusyTask = taskName;
     renderOnboardingTasksPopup();
     try {
@@ -7667,6 +7707,56 @@ async function otpCompleteHonorTask(taskName) {
     }
     otpBusyTask = null;
     renderOnboardingTasksPopup();
+}
+
+/*
+ * Credits for integrating, paid without a click. Called from the places that
+ * can see the thing happen: runNextStepApiTest on a 2xx (first_api_call) and
+ * checkHubspotConnection when the CRM worker says connected (hubspot_connected).
+ *
+ * Quiet on purpose. It never shows an error: the person did not ask for
+ * anything, so a worker that is down or not yet deployed with the task must
+ * not turn "your API call worked" into a red message. It asks at most once
+ * per browser per task (localStorage), and a 409 from the worker means the
+ * credit was already paid in another browser - also remembered, also silent.
+ */
+const OTP_AUTO_DONE_PREFIX = 'lf_task_done_';
+async function otpAutoCompleteTask(taskName, source) {
+    const task = OTP_TASKS_ALL.find(t => t.name === taskName);
+    if (!task || !userToken) return;
+    const doneKey = OTP_AUTO_DONE_PREFIX + taskName;
+    try { if (localStorage.getItem(doneKey)) return; } catch (e) {}
+    const remember = () => { try { localStorage.setItem(doneKey, '1'); } catch (e) {} };
+    if (otpStatusLoaded && otpStatusFor(taskName) === 'completed') { remember(); return; }
+    try {
+        const res = await fetch(`${ONBOARDING_TASKS_WORKER}/tasks/complete`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_token: userToken, task_name: taskName }),
+        });
+        if (res.status === 409) { remember(); return; }
+        if (!res.ok) return;
+        remember();
+        otpCompletions = otpCompletions.filter(c => c.task_name !== taskName)
+            .concat([{ task_name: taskName, status: 'completed', credits: task.credits }]);
+        addCredits(task.credits);
+        try { posthog.capture('onboarding_task_completed', { task_name: taskName, geo_tier: otpGeoTier, credits_awarded: task.credits, source: source || 'auto', auto: true }); } catch (e) {}
+        otpCreditToast(`+${task.credits} credits for ${task.name === 'hubspot_connected' ? 'connecting HubSpot' : 'your first API call'}`);
+        if (document.getElementById('otpTaskList')) { try { renderOnboardingTasksPopup(); } catch (e) {} }
+    } catch (e) {}
+}
+
+function otpCreditToast(message) {
+    let el = document.getElementById('otpCreditToast');
+    if (!el) {
+        el = document.createElement('div');
+        el.id = 'otpCreditToast';
+        el.className = 'success-toast';
+        document.body.appendChild(el);
+    }
+    el.innerHTML = '<i class="fas fa-coins"></i> ' + otpEsc(message);
+    requestAnimationFrame(() => el.classList.add('show'));
+    clearTimeout(el._t);
+    el._t = setTimeout(() => el.classList.remove('show'), 4200);
 }
 
 /*

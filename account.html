@@ -1983,8 +1983,20 @@ document.addEventListener('DOMContentLoaded', () => {
     .catch(() => {});
   }
 
-  loadValueSummary();
+  const valueLoaded = loadValueSummary();
   loadAutoTopup();
+
+  // The monthly value receipt email links here with #what-you-found. The
+  // section is hidden until the RPC answers, so the scroll waits for it.
+  if (window.location.hash === '#what-you-found') {
+    try { posthog.capture('value_receipt_link_opened'); } catch(e) {}
+    Promise.resolve(valueLoaded).then(() => {
+      const section = document.getElementById('valueSection');
+      if (section && section.style.display !== 'none') {
+        requestAnimationFrame(() => section.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+      }
+    });
+  }
 
   // The low-credit bar in the app links here with #auto-topup. Arriving on a
   // collapsed panel would waste the one moment someone actually wants this.

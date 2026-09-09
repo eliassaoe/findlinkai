@@ -115,6 +115,14 @@ grant execute on function public.user_value_summary(text) to anon, authenticated
 Live on project `snxhsboboatjywgwdeds`. Checked against the owner's own account:
 5,319 lookups, 4,983 found.
 
+## Once a month, by email
+
+The same numbers go out as the monthly value receipt (`workers/monthly-receipt`,
+PostHog workflow 12): `monthly_value_receipts(p_days)` calls
+`user_value_summary` for every account with a lookup in the period, so the
+email and this section cannot disagree. The email's button lands here with
+`#what-you-found`, which scrolls to the section once the RPC has answered.
+
 ## Sharing it
 
 The **Share** button next to the range toggle opens a card built for a feed —

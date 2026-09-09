@@ -21,7 +21,35 @@ const TASK_CONFIG = {
     g2_review:         { credits: 1000, kind: 'pending_review', platform: 'g2' },
     trustpilot_review: { credits: 500,  kind: 'pending_review', platform: 'trustpilot' },
     product_survey:    { credits: 500,  kind: 'survey' },
+    // Credits for integrating (docs/next-step-routing.md, round three). The
+    // app pays these without a click: first_api_call when a Run-it-now call
+    // returns 2xx, hubspot_connected when the CRM worker reports a live
+    // connection. The HubSpot one is checked here against that worker before
+    // it pays, because 300 credits on honour would be a faucet. The API one
+    // is honour at 100: the API worker cannot yet tell us (workers/api-first-call).
+    first_api_call:    { credits: 100,  kind: 'honor' },
+    sheets_addon:      { credits: 100,  kind: 'honor' },
+    hubspot_connected: { credits: 300,  kind: 'verified_crm' },
 };
+
+// The Nango session worker answers `status` for a user token with
+// { connected: boolean }. Same endpoint app.html polls for the HubSpot button.
+const DEFAULT_CRM_SYNC_WORKER = 'https://nango-connect-session.hamoureliasse.workers.dev/';
+async function crmConnected(env, userToken) {
+    try {
+        const base = env.CRM_SYNC_WORKER || DEFAULT_CRM_SYNC_WORKER;
+        const res = await fetch(base.replace(/\/?$/, '/') + 'status', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: userToken }),
+        });
+        const data = await res.json().catch(() => ({}));
+        return !!(res.ok && data && data.connected);
+    } catch (e) {
+        console.error('[tasks] CRM status check failed', e);
+        return false;
+    }
+}
 
 // ===========================================================================
 // The product survey
@@ -452,6 +480,13 @@ async function handleComplete(request, env) {
 
     const existing = await findCompletion(env, userId, task_name);
     if (existing) return json({ error: 'Task already completed', status: existing.status }, 409);
+
+    // After the duplicate check so a repeat never costs a round trip to the
+    // CRM worker, before the insert so a "not connected" leaves no row behind.
+    if (config.kind === 'verified_crm') {
+        const connected = await crmConnected(env, user_token);
+        if (!connected) return badRequest('HubSpot is not connected on this account yet. Connect it first - the credits arrive on their own once it is.');
+    }
 
     // Insert first. The unique index makes this the point where a concurrent
     // duplicate loses, so the credit below happens at most once.

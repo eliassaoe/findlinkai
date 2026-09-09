@@ -58,6 +58,7 @@ into a file here in the same session, or it is gone.
 | The `api_first_call_succeeded` event: what fires it today, the 20-line patch the API worker still needs, and the CORS headers the Run-it-now buttons depend on | `workers/api-first-call/README.md` |
 | **How CSV / Google Sheets / API / CRM are offered in the app** — inside the result, never as a popup; which prompts were retired and why | `docs/next-step-routing.md` — read it before adding any nudge, banner or popup to `app.html` |
 | What the account page counts as "found" | `docs/account-value-summary.md` |
+| The monthly value receipt email — how the numbers are computed, the worker, workflow 12 | `workers/monthly-receipt/README.md` |
 | The AI SDR service offer, and who is allowed to see it | `docs/ai-sdr-offer.md` |
 | Selling Done For You to the 67 idle pack buyers | `docs/dfy-activation-campaign.md` — read the correction in it before quoting any "paying accounts" number |
 | Who the SEO traffic actually is, before aiming an offer at it | `docs/traffic-capture-verdict.md` |
