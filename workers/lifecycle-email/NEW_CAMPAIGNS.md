@@ -1,3 +1,33 @@
+# Campaign state — 9 Sep
+
+## DRAFT — created 9 Sep, not enabled (the route campaigns and the idle-credits one)
+
+Built by `route_workflows.py` from `variants.json`; the four-row skeleton is the
+same one build_email.py patches, so the Monday loop sees them once enabled.
+Background: `docs/next-step-routing.md`. **A draft never runs.** Open each one,
+Test run it, then enable — that is a decision, not a default.
+
+| # | Workflow | id | Fires | Exits on |
+|---|---|---|---|---|
+| 7 | Route: CSV — picked it, never uploaded | `01a084b0-2b74-0000-2123-b3365cace5f5` | `onboarding_route_picked` route=csv → +1h email, +3d email if still nothing | `csv_uploaded` |
+| 8 | Route: Google Sheets — never opened the add-on | `01a084ae-e12b-0000-17bf-41cd27bb9d47` | route=sheets → +1h, +3d | `sheets_addon_clicked` |
+| 9 | Route: API — no key copied, no call made | `01a084b1-6362-0000-cab5-f9ba8d0ca0e4` | route=api → +1h, +3d | `api_key_copied`, `api_first_call_succeeded` |
+| 10 | Route: CRM — HubSpot never connected | `01a084b2-7854-0000-b403-c589239e1475` | route=crm → +1h, +3d (second mail offers the setup call) | `hubspot_connected` |
+| 11 | Paid, then went quiet — credits sitting there | `01a084ad-4c2f-0000-222b-5f9f54819516` | `subscription_renewed` / `checkout_payment_success` → wait 20d for any `enrich_started` → email only if none | `enrich_started` |
+
+All five carry the same audience guard as campaign 6 (`signup_method` = google,
+`email_verified` is not false) because `email_verified` is not trustworthy for
+email signups (`docs/email-verified-is-wrong.md`). Once per person per 30 days.
+
+`onboarding_route_picked` only started firing on 9 Sep (the first-visit route
+chooser in `app.html`), so 7–10 will show no volume until real signups pick a
+route. 11 fires on renewals, so it has an audience from the day it is enabled.
+
+**Before enabling 9:** `api_first_call_succeeded` is fired today by the
+Run-it-now buttons only. If the API worker patch in `workers/api-first-call/`
+is not deployed, someone who wires the API from their own code without ever
+pressing the button will still get email 2. Acceptable but worth knowing.
+
 # Campaign state — 22 Aug
 
 ## LIVE (sending to real users now)

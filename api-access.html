@@ -210,6 +210,20 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
                     <i class="fas fa-exclamation-circle"></i> <span id="resetKeyErrorText">Could not reset your API key. Please try again.</span>
                 </div>
             </div>
+            <!-- The first call, made from here. Nothing else on this page proves
+                 the key works; this does, at the cost of one credit. -->
+            <div id="apiTestBox" style="margin-top:1rem;background:#0f172a;color:#e2e8f0;border-radius:8px;padding:0.9rem 1rem;font-size:0.8rem;line-height:1.5;">
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:0.75rem;flex-wrap:wrap;margin-bottom:0.5rem;">
+                    <div style="font-weight:700;">Your first call, from this page</div>
+                    <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
+                        <button type="button" id="apiTestRun" onclick="runApiTestCall()" style="background:#22c55e;color:#052e16;border:none;border-radius:6px;padding:0.45rem 0.9rem;font-weight:700;font-size:0.8rem;cursor:pointer;font-family:inherit;"><i class="fas fa-play"></i> Run it now</button>
+                        <button type="button" onclick="copyApiTestSnippet(this)" style="background:#1e293b;border:1px solid #334155;color:#e2e8f0;font-size:0.75rem;padding:0.4rem 0.7rem;border-radius:6px;cursor:pointer;font-family:inherit;"><i class="fas fa-copy"></i> Copy</button>
+                        <span style="color:#94a3b8;font-size:0.72rem;">1 credit</span>
+                    </div>
+                </div>
+                <pre id="apiTestSnippet" style="margin:0;white-space:pre-wrap;word-break:break-all;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:0.76rem;color:#e2e8f0;"></pre>
+                <div id="apiTestOut" style="display:none;margin-top:0.7rem;border-radius:6px;padding:0.7rem 0.8rem;border:1px solid #1e293b;background:#111c33;"></div>
+            </div>
             <div class="card-footer-row">
                 <p>Keep this key secure — don't share it publicly.</p>
                 <a href="https://LinkFinderai.com/api-documentation" target="_blank" class="btn"
@@ -395,6 +409,7 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
         userToken=token;apiToken=transformerToken(token);
         document.getElementById('apiKeyInput').value=apiToken;
         document.getElementById('mcpUrlInput').value=MCP_SERVER_URL+apiToken;
+        renderApiTestSnippet();
     }
 
     function setupNavigation(){
@@ -408,6 +423,53 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
             case 'crmSync':window.location.href=addGclid('https://linkfinderai.com/crm-sync?token='+userToken);break;
             case 'integrations':window.location.href=addGclid('https://linkfinderai.com/app-integrations?token='+userToken);break;
         }
+    }
+
+    // ===== FIRST CALL FROM THIS PAGE =====
+    const API_TEST_TYPE = 'company_name_to_website';
+    const API_TEST_INPUT = 'Tesla';
+    function apiTestSnippetText(){
+        return 'curl -X POST https://api.linkfinderai.com/ \\\n  -H "Authorization: Bearer ' + apiToken + '" \\\n  -H "Content-Type: application/json" \\\n  -d \'{"type":"' + API_TEST_TYPE + '","input_data":"' + API_TEST_INPUT + '"}\'';
+    }
+    function renderApiTestSnippet(){
+        const el=document.getElementById('apiTestSnippet'); if(el) el.textContent=apiTestSnippetText();
+    }
+    function copyApiTestSnippet(btn){
+        const text=apiTestSnippetText();
+        const done=()=>{btn.innerHTML='<i class="fas fa-check"></i> Copied';setTimeout(()=>{btn.innerHTML='<i class="fas fa-copy"></i> Copy';},2000);};
+        try{navigator.clipboard.writeText(text).then(done).catch(done);}catch(e){done();}
+        try{posthog.capture('api_key_copied',{source:'api_access_snippet'});}catch(e){}
+        try{posthog.capture('api_snippet_copied',{context:'api_access_page',type:API_TEST_TYPE});}catch(e){}
+    }
+    function escHtml(v){return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+    async function runApiTestCall(){
+        const out=document.getElementById('apiTestOut'), btn=document.getElementById('apiTestRun');
+        if(!out) return;
+        out.style.display='block'; out.style.borderColor='#1e293b'; out.style.background='#111c33'; out.style.color='#cbd5e1';
+        out.innerHTML='Calling api.linkfinderai.com with your key\u2026';
+        if(btn){btn.disabled=true;btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Calling\u2026';}
+        try{posthog.capture('api_test_call_started',{context:'api_access_page',type:API_TEST_TYPE});}catch(e){}
+        const t0=Date.now();
+        try{
+            const r=await fetch('https://api.linkfinderai.com/',{method:'POST',headers:{'Authorization':'Bearer '+apiToken,'Content-Type':'application/json'},body:JSON.stringify({type:API_TEST_TYPE,input_data:API_TEST_INPUT})});
+            const text=await r.text(); let pretty=text; try{pretty=JSON.stringify(JSON.parse(text),null,2);}catch(e){}
+            const ms=Date.now()-t0;
+            if(r.ok){
+                out.style.borderColor='#16a34a'; out.style.background='#052e16'; out.style.color='#dcfce7';
+                out.innerHTML='<div style="font-weight:700;margin-bottom:0.4rem;"><i class="fas fa-check-circle"></i> Your API call worked &middot; HTTP '+r.status+' in '+ms+' ms</div><pre style="margin:0;white-space:pre-wrap;word-break:break-all;font-family:ui-monospace,Menlo,monospace;font-size:0.72rem;max-height:220px;overflow:auto;">'+escHtml(pretty.slice(0,1500))+'</pre><div style="margin-top:0.5rem;opacity:0.85;">Same request, any of the 17 types, from n8n, Make, Zapier or your own code. The full list is in the <a href="https://linkfinderai.com/api-documentation" target="_blank" style="color:inherit;">docs</a>.</div>';
+                try{posthog.capture('api_test_call_succeeded',{context:'api_access_page',type:API_TEST_TYPE,http_status:r.status,ms:ms});}catch(e){}
+                try{ if(!localStorage.getItem('lf_api_first_call_ok')){ localStorage.setItem('lf_api_first_call_ok','1'); posthog.capture('api_first_call_succeeded',{source:'api_access_test',type:API_TEST_TYPE,http_status:r.status,ms:ms}); } }catch(e){}
+            }else{
+                out.style.borderColor='#b45309'; out.style.background='#2a1a05'; out.style.color='#fde68a';
+                const why=r.status===401?'The key was not accepted.':r.status===402?'Out of credits.':r.status===429?'Rate limited \u2014 wait a moment.':'';
+                out.innerHTML='<div style="font-weight:700;margin-bottom:0.4rem;"><i class="fas fa-circle-exclamation"></i> HTTP '+r.status+'</div>'+why+'<pre style="margin:0.3rem 0 0;white-space:pre-wrap;word-break:break-all;font-family:ui-monospace,Menlo,monospace;font-size:0.72rem;">'+escHtml(pretty.slice(0,800))+'</pre>';
+                try{posthog.capture('api_test_call_failed',{context:'api_access_page',type:API_TEST_TYPE,http_status:r.status});}catch(e){}
+            }
+        }catch(e){
+            out.style.borderColor='#b45309'; out.style.background='#2a1a05'; out.style.color='#fde68a';
+            out.innerHTML='<div style="font-weight:700;margin-bottom:0.4rem;"><i class="fas fa-circle-exclamation"></i> This browser could not reach the API directly</div>A network or cross-origin block stopped the call from this page. Copy the command above and run it in a terminal \u2014 it is the same request and works the same.';
+            try{posthog.capture('api_test_call_failed',{context:'api_access_page',type:API_TEST_TYPE,http_status:'network'});}catch(e){}
+        }finally{ if(btn){btn.disabled=false;btn.innerHTML='<i class="fas fa-play"></i> Run it again';} }
     }
 
     function copyApiKey(){

@@ -2,6 +2,68 @@
 <html lang="en">
 <head>
 <script src="/js/lf-attribution.js"></script>
+<script>
+// Fills the first-call box with the reader's real key when they are signed in.
+// Same derivation as api-access.html (transformerToken): chars + 7, hex, joined by Z.
+(function () {
+    function keyFromToken(t) { var r = ''; for (var i = 0; i < t.length; i++) { r += (t.charCodeAt(i) + 7).toString(16).padStart(2, '0') + 'Z'; } return r.slice(0, -1); }
+    var TYPE = 'company_name_to_website', INPUT = 'Tesla';
+    var token = null;
+    try { token = new URLSearchParams(location.search).get('token') || localStorage.getItem('LinkFinderToken') || localStorage.getItem('linkFinderToken'); } catch (e) {}
+    var key = token ? keyFromToken(token) : null;
+    function snippet() {
+        return 'curl -X POST https://api.linkfinderai.com/ \\\n  -H "Authorization: Bearer ' + (key || 'YOUR_API_KEY') + '" \\\n  -H "Content-Type: application/json" \\\n  -d \'{"type":"' + TYPE + '","input_data":"' + INPUT + '"}\'';
+    }
+    function esc(v) { return String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+    function cap(e, p) { try { if (window.posthog && posthog.capture) posthog.capture(e, p); } catch (x) {} }
+    window.docsCopyFirstCall = function (btn) {
+        var text = snippet();
+        var done = function () { btn.innerHTML = '<i class="fas fa-check"></i> Copied'; setTimeout(function () { btn.innerHTML = '<i class="fas fa-copy"></i> Copy'; }, 2000); };
+        try { navigator.clipboard.writeText(text).then(done).catch(done); } catch (e) { done(); }
+        if (key) cap('api_key_copied', { source: 'api_docs_snippet' });
+        cap('api_snippet_copied', { context: 'api_docs', type: TYPE, signed_in: !!key });
+    };
+    window.docsRunFirstCall = async function () {
+        if (!key) return;
+        var out = document.getElementById('docsFirstCallOut'), btn = document.getElementById('docsFirstCallRun');
+        out.style.display = 'block'; out.style.borderColor = '#1e293b'; out.style.background = '#111c33'; out.style.color = '#cbd5e1';
+        out.innerHTML = 'Calling api.linkfinderai.com with your key\u2026';
+        if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Calling\u2026'; }
+        cap('api_test_call_started', { context: 'api_docs', type: TYPE });
+        var t0 = Date.now();
+        try {
+            var r = await fetch('https://api.linkfinderai.com/', { method: 'POST', headers: { 'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json' }, body: JSON.stringify({ type: TYPE, input_data: INPUT }) });
+            var text = await r.text(), pretty = text; try { pretty = JSON.stringify(JSON.parse(text), null, 2); } catch (e) {}
+            var ms = Date.now() - t0;
+            if (r.ok) {
+                out.style.borderColor = '#16a34a'; out.style.background = '#052e16'; out.style.color = '#dcfce7';
+                out.innerHTML = '<div style="font-weight:700;margin-bottom:0.4rem;"><i class="fas fa-check-circle"></i> Your API call worked &middot; HTTP ' + r.status + ' in ' + ms + ' ms</div><pre style="margin:0;white-space:pre-wrap;word-break:break-all;font-family:ui-monospace,Menlo,monospace;font-size:0.72rem;max-height:220px;overflow:auto;">' + esc(pretty.slice(0, 1500)) + '</pre>';
+                cap('api_test_call_succeeded', { context: 'api_docs', type: TYPE, http_status: r.status, ms: ms });
+                try { if (!localStorage.getItem('lf_api_first_call_ok')) { localStorage.setItem('lf_api_first_call_ok', '1'); cap('api_first_call_succeeded', { source: 'api_docs_test', type: TYPE, http_status: r.status, ms: ms }); } } catch (e) {}
+            } else {
+                out.style.borderColor = '#b45309'; out.style.background = '#2a1a05'; out.style.color = '#fde68a';
+                out.innerHTML = '<div style="font-weight:700;margin-bottom:0.4rem;"><i class="fas fa-circle-exclamation"></i> HTTP ' + r.status + '</div><pre style="margin:0;white-space:pre-wrap;word-break:break-all;font-family:ui-monospace,Menlo,monospace;font-size:0.72rem;">' + esc(pretty.slice(0, 800)) + '</pre>';
+                cap('api_test_call_failed', { context: 'api_docs', type: TYPE, http_status: r.status });
+            }
+        } catch (e) {
+            out.style.borderColor = '#b45309'; out.style.background = '#2a1a05'; out.style.color = '#fde68a';
+            out.innerHTML = '<div style="font-weight:700;margin-bottom:0.4rem;"><i class="fas fa-circle-exclamation"></i> This browser could not reach the API directly</div>Copy the command and run it in a terminal \u2014 it is the same request.';
+            cap('api_test_call_failed', { context: 'api_docs', type: TYPE, http_status: 'network' });
+        } finally { if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-play"></i> Run it again'; } }
+    };
+    function init() {
+        var pre = document.getElementById('docsFirstCallSnippet'); if (pre) pre.textContent = snippet();
+        if (key) {
+            var s = document.getElementById('docsFirstCallSignup'), b = document.getElementById('docsFirstCallRun'), n = document.getElementById('docsFirstCallNote'), t = document.getElementById('docsFirstCallTitle'), h = document.getElementById('docsHeaderKeyBtn');
+            if (s) s.style.display = 'none'; if (b) b.style.display = 'inline-block';
+            if (t) t.textContent = 'Your first call, with your key already in it';
+            if (n) n.innerHTML = 'That is your real key. Keep this page private, or <a href="https://linkfinderai.com/api-access" style="color:#93c5fd;">reset the key</a> after sharing a screen.';
+            if (h) { h.href = 'https://linkfinderai.com/api-access'; h.innerHTML = '<i class="fas fa-key"></i> Your API key'; }
+        }
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
+})();
+</script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LinkFinder AI API Documentation</title>
@@ -338,7 +400,7 @@
         <div class="top-header">
             <span class="top-header-title">API Documentation</span>
             <div class="header-actions">
-                <a href="https://linkfinderai.com/sign-up" class="btn-sm btn-ghost"><i class="fas fa-key"></i> Get API Key</a>
+                <a href="https://linkfinderai.com/sign-up?intent=api" class="btn-sm btn-ghost" id="docsHeaderKeyBtn"><i class="fas fa-key"></i> Get API Key</a>
                 <a href="https://linkfinderai.com/pricing" class="btn-sm btn-primary"><i class="fas fa-arrow-up-right-from-square"></i> View Plans</a>
             </div>
         </div>
@@ -348,7 +410,43 @@
             <!-- ══ QUICK START ══ -->
             <div class="doc-section" id="quickstart">
                 <h2 class="section-heading"><i class="fas fa-rocket"></i> Quick Start</h2>
-                <p class="section-sub">Make your first API call in under 2 minutes.</p>
+                <p class="section-sub">One endpoint, one request. Sixty seconds to a first result.</p>
+
+                <!-- Signed in: the request below already carries the reader's key
+                     and can be run from here. Signed out: it carries a placeholder
+                     and the button is the sign-up, which lands on the API route. -->
+                <div id="docsFirstCall" style="background:#0f172a;color:#e2e8f0;border-radius:10px;padding:1rem 1.1rem;margin:0 0 1.25rem;font-size:0.85rem;line-height:1.5;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;gap:0.75rem;flex-wrap:wrap;margin-bottom:0.6rem;">
+                        <div style="font-weight:700;font-size:0.95rem;" id="docsFirstCallTitle">Your first call</div>
+                        <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;" id="docsFirstCallActions">
+                            <a href="https://linkfinderai.com/sign-up?intent=api" id="docsFirstCallSignup" style="background:#22c55e;color:#052e16;border-radius:6px;padding:0.45rem 0.9rem;font-weight:700;font-size:0.8rem;text-decoration:none;"><i class="fas fa-key"></i> Get a key and run it</a>
+                            <button type="button" id="docsFirstCallRun" onclick="docsRunFirstCall()" style="display:none;background:#22c55e;color:#052e16;border:none;border-radius:6px;padding:0.45rem 0.9rem;font-weight:700;font-size:0.8rem;cursor:pointer;font-family:inherit;"><i class="fas fa-play"></i> Run it now &middot; 1 credit</button>
+                            <button type="button" onclick="docsCopyFirstCall(this)" style="background:#1e293b;border:1px solid #334155;color:#e2e8f0;font-size:0.75rem;padding:0.4rem 0.7rem;border-radius:6px;cursor:pointer;font-family:inherit;"><i class="fas fa-copy"></i> Copy</button>
+                        </div>
+                    </div>
+                    <pre id="docsFirstCallSnippet" style="margin:0;white-space:pre-wrap;word-break:break-all;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:0.78rem;color:#e2e8f0;">curl -X POST https://api.linkfinderai.com/ \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"type":"company_name_to_website","input_data":"Tesla"}'</pre>
+                    <div id="docsFirstCallOut" style="display:none;margin-top:0.7rem;border-radius:6px;padding:0.7rem 0.8rem;border:1px solid #1e293b;background:#111c33;font-size:0.78rem;"></div>
+                    <div style="margin-top:0.6rem;color:#94a3b8;font-size:0.75rem;" id="docsFirstCallNote">Signed in to LinkFinder? Open this page from the <a href="https://linkfinderai.com/api-access" style="color:#93c5fd;">API &amp; MCP tab</a> and your key is filled in here.</div>
+                </div>
+
+                <!-- Three one-click ways in, before any endpoint reference. -->
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:0.75rem;margin:0 0 1.5rem;">
+                    <a href="https://www.npmjs.com/package/n8n-nodes-linkfinderai" target="_blank" rel="noopener" onclick="try{posthog.capture('integration_card_clicked',{source:'api_docs',platform:'n8n'})}catch(e){}" style="display:block;border:1px solid #e2e8f0;border-radius:10px;padding:0.9rem 1rem;text-decoration:none;color:#0f172a;background:#fff;">
+                        <div style="font-weight:700;margin-bottom:0.2rem;"><span style="display:inline-block;width:1.4rem;height:1.4rem;border-radius:5px;background:#ea4b71;color:#fff;font-size:0.75rem;font-weight:800;text-align:center;line-height:1.4rem;margin-right:0.4rem;">n</span>n8n community node</div>
+                        <div style="font-size:0.8rem;color:#64748b;">Settings &rarr; Community nodes &rarr; install <code>n8n-nodes-linkfinderai</code>. Every lookup is a node.</div>
+                    </a>
+                    <a href="https://zapier.com/developer/public-invite/235719/7244430282f42f35ad6bd25db6ac39bf/" target="_blank" rel="noopener" onclick="try{posthog.capture('integration_card_clicked',{source:'api_docs',platform:'zapier'})}catch(e){}" style="display:block;border:1px solid #e2e8f0;border-radius:10px;padding:0.9rem 1rem;text-decoration:none;color:#0f172a;background:#fff;">
+                        <div style="font-weight:700;margin-bottom:0.2rem;"><span style="display:inline-block;width:1.4rem;height:1.4rem;border-radius:5px;background:#ff4a00;color:#fff;font-size:0.75rem;font-weight:800;text-align:center;line-height:1.4rem;margin-right:0.4rem;">Z</span>Zapier app</div>
+                        <div style="font-size:0.8rem;color:#64748b;">Accept the invite, paste your key once, use LinkFinder as a Zap action.</div>
+                    </a>
+                    <a href="https://linkfinderai.com/app-integrations" onclick="try{posthog.capture('integration_card_clicked',{source:'api_docs',platform:'make'})}catch(e){}" style="display:block;border:1px solid #e2e8f0;border-radius:10px;padding:0.9rem 1rem;text-decoration:none;color:#0f172a;background:#fff;">
+                        <div style="font-weight:700;margin-bottom:0.2rem;"><span style="display:inline-block;width:1.4rem;height:1.4rem;border-radius:5px;background:#6d00cc;color:#fff;font-size:0.75rem;font-weight:800;text-align:center;line-height:1.4rem;margin-right:0.4rem;">M</span>Make, Claude, ChatGPT</div>
+                        <div style="font-size:0.8rem;color:#64748b;">The Make app, and the MCP server for any assistant, from your integrations page.</div>
+                    </a>
+                </div>
 
                 <div class="stats-row">
                     <div class="stat-card"><div class="val">1</div><div class="lbl">Endpoint for everything</div></div>

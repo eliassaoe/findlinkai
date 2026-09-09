@@ -134,3 +134,33 @@ For this change specifically:
 - CRM route copy never mentions PAYG. CRM users go to subscriptions.
 - The panel is not rendered on a "Not found" result, and not after a bulk run
   that hit the credit wall.
+
+## Round two (9 Sep) — attract integrators, then keep them integrated
+
+Six changes on top of the panel, all built the same way: earn, then show.
+
+| # | Change | Where |
+| --- | --- | --- |
+| 1 | **Run it now.** The API request under a result, on the API page and in the docs sends itself with the person's real key and shows the response. First 2xx per browser fires `api_first_call_succeeded` (sources `in_app_test`, `api_access_test`, `api_docs_test`); every run fires `api_test_call_started` / `_succeeded` / `_failed`. The worker-side half, for calls made from outside the app, is specified in `workers/api-first-call/README.md`. | `app.html` (`runNextStepApiTest`), `api-access.html`, `api-documentation.html` |
+| 2 | **Intent on every integration page.** 61 pages whose subject is Sheets, CRM, the API or bulk now send their sign-up links with `?intent=`, so the account opens on the route the page was about. Tool pages keep their own offer. YouTube description links are the one place this was not applied (see below). | 61 `*.html` |
+| 3 | **Route lifecycle emails.** Four PostHog workflows on `onboarding_route_picked` (csv / sheets / api / crm): the how-to an hour later, the usual blocker three days later, stopping the moment the thing happens. Drafts; ids in `workers/lifecycle-email/NEW_CAMPAIGNS.md`. | PostHog workflows 7–10, `workers/lifecycle-email/route_workflows.py` |
+| 4 | **List-sized paywall.** The bulk credit gate says how many rows are left, what they cost, and the smallest plan that covers them, how many times over. The pricing modal opens on that plan with the same sentence. The pricing page leads with the four routes and lists them first on every plan. | `sizePlanForRows`, `showUpgradeBanner`, `showPricingModal` (`bulk_credits_gated`), `pricing.html` |
+| 5 | **Idle credits.** A subscriber with a renewal or payment and no lookup for 20 days gets one email with a list to run and the pause option; the pause-instead-of-cancel flow already existed on the account page for the "not using" reason. | PostHog workflow 11 |
+| 6 | **Sixty-second docs.** The quick start opens with the request, the reader's key already in it when signed in, a Run button, and three one-click ways in (n8n community node, Zapier app, Make / MCP). The header key button carries `intent=api`. | `api-documentation.html` |
+
+### The one manual step
+
+YouTube description links. Every video in `claude/guidee/catalog.json` should
+link to sign-up with the intent its topic implies (bulk → `?intent=csv`, API
+and n8n → `?intent=api`, Sheets → `?intent=sheets`), so the channel's traffic
+lands on a route too. Editing descriptions is a channel-side change and was
+left for a human.
+
+### New events (round two)
+
+`api_test_call_started`, `api_test_call_succeeded`, `api_test_call_failed`
+{context, type, http_status}; `api_first_call_succeeded` {source};
+`api_key_copied` gains sources `api_access_snippet` and `api_docs_snippet`;
+`integration_card_clicked` gains source `api_docs`;
+`bulk_results_upgrade_cta_clicked` unchanged but the modal it opens is now
+`pricing_modal_opened` trigger `bulk_credits_gated`.

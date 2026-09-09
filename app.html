@@ -841,6 +841,19 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
 .ns-api-box .ns-copy:hover{background:#334155;}
 .ns-api-box .ns-api-note{margin-top:0.55rem;color:#94a3b8;}
 .ns-api-box .ns-api-note a{color:#93c5fd;}
+.ns-api-actions{margin-top:0.7rem;display:flex;gap:0.6rem;align-items:center;flex-wrap:wrap;}
+.ns-run{background:#22c55e;color:#052e16;border:none;border-radius:6px;padding:0.45rem 0.9rem;font-weight:700;font-size:0.78rem;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:0.4rem;}
+.ns-run:hover{background:#16a34a;color:#fff;}
+.ns-run:disabled{opacity:0.6;cursor:wait;}
+.ns-run-hint{color:#94a3b8;font-size:0.72rem;}
+.ns-api-run{display:none;margin-top:0.7rem;border-radius:6px;padding:0.7rem 0.8rem;font-size:0.76rem;line-height:1.5;background:#111c33;border:1px solid #1e293b;color:#cbd5e1;}
+.ns-api-run.show{display:block;}
+.ns-api-run.ok{border-color:#16a34a;background:#052e16;color:#dcfce7;}
+.ns-api-run.err{border-color:#b45309;background:#2a1a05;color:#fde68a;}
+.ns-api-run-head{font-weight:700;margin-bottom:0.4rem;display:flex;align-items:center;gap:0.4rem;}
+.ns-api-run pre{margin:0.3rem 0 0;max-height:220px;overflow:auto;white-space:pre-wrap;word-break:break-all;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:0.72rem;color:inherit;padding-right:0;}
+.ns-api-run-note{margin-top:0.5rem;opacity:0.85;}
+.ns-api-run-note a{color:inherit;text-decoration:underline;}
 #hubspotActionContainer{display:contents;}
 #hubspotActionContainer.hidden{display:none;}
 @media (max-width:640px){.next-step{padding:0.9rem 0.9rem;}}
@@ -2078,6 +2091,8 @@ function renderPlansGrid() {
     let recommendedIndex = 0; // Starter
     if (lifetimeEnrichments > 150) recommendedIndex = 2;      // Enterprise
     else if (lifetimeEnrichments > 30) recommendedIndex = 1;  // Professional
+    // A bulk gate knows the list size; that beats a usage guess.
+    if (typeof window.__lfSizedPlanIndex === 'number' && plans[window.__lfSizedPlanIndex]) recommendedIndex = window.__lfSizedPlanIndex;
     const socialProof = ['Used by solo founders and small teams', 'Used by 40+ sales teams', 'Used by agencies running high-volume outreach'];
 
     grid.innerHTML = plans.map(function(plan, index) {
@@ -2578,6 +2593,12 @@ function showPricingModal(trigger, extra) {
     } else if (trigger === 'credits_exhausted') {
         if (modalTitle) modalTitle.textContent = "You're out of credits";
         if (modalSubtitle) modalSubtitle.textContent = 'Pick a plan to keep enriching — takes 30 seconds.';
+    } else if (trigger === 'bulk_credits_gated' && extra) {
+        const sizedPlan = plans[extra.planIndex] || plans[0];
+        const monthlyCredits = Math.round(sizedPlan.credits / 12);
+        const times = Math.floor(monthlyCredits / Math.max(1, extra.credits));
+        if (modalTitle) modalTitle.textContent = `${extra.lockedRows.toLocaleString()} rows still to enrich`;
+        if (modalSubtitle) modalSubtitle.textContent = `${sizedPlan.name} ($${sizedPlan.monthlyPrice}/mo) covers this list${times >= 2 ? ' ' + times + '× over' : ''} every month — plus bulk CSV, the Google Sheets add-on, the API and HubSpot sync.`;
     } else if (trigger === 'export_gated') {
         const n = (extra && extra.totalRows) || bulkResults.length;
         // A short list is fully covered by the preview, so telling that person
@@ -2596,7 +2617,7 @@ function showPricingModal(trigger, extra) {
         }
     } else {
         if (modalTitle) modalTitle.textContent = 'Choose Your Plan';
-        if (modalSubtitle) modalSubtitle.textContent = 'Cancel anytime · No questions asked';
+        if (modalSubtitle) modalSubtitle.textContent = 'Every plan includes bulk CSV, the Google Sheets add-on, the API + MCP server and HubSpot sync · Cancel anytime';
     }
     document.getElementById('pricingModal').classList.add('show');
     document.body.style.overflow = 'hidden';
@@ -4598,6 +4619,18 @@ function renderGatedResults(processedCount) {
     table.innerHTML = html;
 }
 
+// The smallest plan whose monthly credits cover N more rows of the current
+// lookup. plans[] stores annual credit figures (see CLAUDE.md); monthly is /12.
+function sizePlanForRows(rows) {
+    const cost = getCreditCost(currentInputType, currentOutputType);
+    const needed = Math.max(1, Math.ceil(rows * cost));
+    let index = plans.findIndex(p => Math.round(p.credits / 12) >= needed);
+    if (index === -1) index = plans.length - 1;
+    const plan = plans[index];
+    const monthlyCredits = Math.round(plan.credits / 12);
+    return { needed, index, plan, monthlyCredits, times: Math.floor(monthlyCredits / needed) };
+}
+
 function showUpgradeBanner(processedCount, totalCount) {
     // Remove existing banner if any
     const existingBanner = document.getElementById('upgradeBanner');
@@ -4619,15 +4652,20 @@ function showUpgradeBanner(processedCount, totalCount) {
     `;
     
     const lockedCount = totalCount - processedCount;
+    // Sized to the list in front of them, not to a price list: how many rows
+    // are left, what they cost, and the smallest plan that covers them - and
+    // how many times over, every month, because the next list is coming too.
+    const sized = sizePlanForRows(lockedCount);
+    window.__lfBulkGate = { totalRows: totalCount, lockedRows: lockedCount, credits: sized.needed, planKey: sized.plan.key, planIndex: sized.index };
     banner.innerHTML = `
         <div style="display: flex; align-items: center; gap: 0.75rem;">
             <i class="fas fa-lock" style="color: #f59e0b; font-size: 1.25rem;"></i>
             <div>
                 <div style="font-weight: 600; color: var(--gray-800);">
-                    Upgrade to see all ${totalCount} results
+                    ${lockedCount.toLocaleString()} row${lockedCount === 1 ? '' : 's'} still to enrich &middot; ${sized.needed.toLocaleString()} credit${sized.needed === 1 ? '' : 's'}
                 </div>
                 <div style="font-size: 0.875rem; color: var(--gray-600);">
-                    ${processedCount} results available · ${lockedCount} locked · Starter plan ($49/mo) unlocks full results
+                    ${sized.plan.name} ($${sized.plan.monthlyPrice}/mo) gives ${sized.monthlyCredits.toLocaleString()} credits a month &mdash; ${sized.times >= 2 ? 'this list ' + sized.times + '&times; over' : 'this whole list'}, and the next one.
                 </div>
             </div>
         </div>
@@ -4647,7 +4685,7 @@ function showUpgradeBanner(processedCount, totalCount) {
                 align-items: center;
                 gap: 0.5rem;
             " onmouseover="this.style.background='var(--primary-hover)'" onmouseout="this.style.background='var(--primary)'">
-                <i class="fas fa-rocket"></i> Upgrade
+                <i class="fas fa-rocket"></i> Unlock all ${totalCount.toLocaleString()} rows with ${sized.plan.name}
             </button>
             <button onclick="this.closest('#upgradeBanner').style.display='none'" style="
                 background: transparent;
@@ -4677,8 +4715,15 @@ async function handleUpgradeFromBulk() {
         });
     } catch(e) {}
     
-    // Open the upgrade modal
-    await handleAddCredits();
+    // Straight to the modal, sized to the list. handleAddCredits() is the
+    // header button's path and labels the click as "buy credits".
+    const gate = window.__lfBulkGate || null;
+    if (gate) {
+        window.__lfSizedPlanIndex = gate.planIndex;
+        showPricingModal('bulk_credits_gated', gate);
+    } else {
+        await handleAddCredits();
+    }
 }
 
 // showAutomationNudge() used to live here (n8n / Make / Zapier / API row under a
@@ -6523,6 +6568,7 @@ function renderNextStepPanel(context, opts) {
             + '</div>'
             + '<div id="nsApiBoxSingle" class="ns-api-box"><button type="button" class="ns-copy" onclick="copyNextStepSnippet(this,\'single\')"><i class="fas fa-copy"></i> Copy</button>'
             + '<pre id="nsApiSnippetSingle">' + nsEsc(nextStepApiSnippet(opts.apiInput || row.inputData)) + '</pre>'
+            + nsRunBlock('single', opts.apiInput || row.inputData, cost)
             + '<div class="ns-api-note">That is your real key. Same request from n8n, Make, Zapier or any language &mdash; <a href="' + apiUrl + '" onclick="nextStepClicked(\'api_docs\',\'single\')">docs, MCP server and key management &rarr;</a></div></div>'
             + '<div class="next-step-foot">'
             + '<button type="button" onclick="nextStepClicked(\'download_row\',\'single\')"><i class="fas fa-download"></i> Download this row as CSV</button>'
@@ -6544,6 +6590,7 @@ function renderNextStepPanel(context, opts) {
             + '</div>'
             + '<div id="nsApiBoxBulk" class="ns-api-box"><button type="button" class="ns-copy" onclick="copyNextStepSnippet(this,\'bulk\')"><i class="fas fa-copy"></i> Copy</button>'
             + '<pre id="nsApiSnippetBulk">' + nsEsc(nextStepApiSnippet(example)) + '</pre>'
+            + nsRunBlock('bulk', example, cost)
             + '<div class="ns-api-note">One request per row, your real key already in it. Loop it from n8n, Make, Zapier or a script &mdash; <a href="' + apiUrl + '" onclick="nextStepClicked(\'api_docs\',\'bulk\')">docs, MCP server and key management &rarr;</a></div></div>'
             + '</div>';
     }
@@ -6559,6 +6606,89 @@ function renderNextStepPanel(context, opts) {
             rows: context === 'bulk' ? (opts.rows || 0) : 1
         });
     } catch (e) {}
+}
+
+// "Run it now": the request in the box, sent from this page with the real
+// key, response shown underneath. There was no event for a first successful
+// API call anywhere - 157 people copied a key in 90 days and nobody knows how
+// many ever ran one. This is that moment, made visible, at the cost of one
+// lookup. The API worker should emit the same event server-side for calls
+// that come from outside the app (workers/api-first-call/README.md).
+const API_FIRST_CALL_KEY = 'lf_api_first_call_ok';
+
+function nsRunBlock(context, input, cost) {
+    const cap = context === 'bulk' ? 'Bulk' : 'Single';
+    return '<div class="ns-api-actions">'
+        + '<button type="button" class="ns-run" id="nsApiRunBtn' + cap + '" onclick="runNextStepApiTest(\'' + context + '\')"><i class="fas fa-play"></i> Run it now</button>'
+        + '<span class="ns-run-hint">Sends this exact request with your key &middot; ' + cost + ' credit' + (cost === 1 ? '' : 's') + '</span>'
+        + '</div>'
+        + '<div id="nsApiRun' + cap + '" class="ns-api-run" data-input="' + nsEsc(input) + '"></div>';
+}
+
+async function runNextStepApiTest(context) {
+    const cap = context === 'bulk' ? 'Bulk' : 'Single';
+    const out = document.getElementById('nsApiRun' + cap);
+    const btn = document.getElementById('nsApiRunBtn' + cap);
+    if (!out) return;
+    const type = generateCombinationType(currentInputType, currentOutputType);
+    const input = out.getAttribute('data-input') || '';
+    const cost = getCreditCost(currentInputType, currentOutputType);
+    const apiUrl = addGclid('https://linkfinderai.com/api-access?token=' + userToken);
+    out.className = 'ns-api-run show';
+    if (currentCredits !== null && currentCredits < cost) {
+        out.classList.add('err');
+        out.innerHTML = '<div class="ns-api-run-head"><i class="fas fa-circle-exclamation"></i> Not enough credits for a live call</div>This request costs ' + cost + ' credit' + (cost === 1 ? '' : 's') + ' and you have ' + Math.round(currentCredits * 10) / 10 + '.';
+        return;
+    }
+    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Calling\u2026'; }
+    out.innerHTML = 'Calling api.linkfinderai.com with your key\u2026';
+    try { posthog.capture('api_test_call_started', { context: context, type: type }); } catch (e) {}
+    const t0 = Date.now();
+    let status = 'network';
+    try {
+        const r = await fetch(PUBLIC_API_URL, {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + lfApiKey(), 'Content-Type': 'application/json' },
+            body: JSON.stringify({ type: type, input_data: input })
+        });
+        status = r.status;
+        const text = await r.text();
+        let pretty = text;
+        try { pretty = JSON.stringify(JSON.parse(text), null, 2); } catch (e) {}
+        const ms = Date.now() - t0;
+        if (r.ok) {
+            out.classList.add('ok');
+            out.innerHTML = '<div class="ns-api-run-head"><i class="fas fa-check-circle"></i> Your API call worked &middot; HTTP ' + r.status + ' in ' + ms + ' ms</div>'
+                + '<pre>' + nsEsc(pretty.slice(0, 1500)) + (pretty.length > 1500 ? '\n\u2026' : '') + '</pre>'
+                + '<div class="ns-api-run-note">That is the whole integration: same request, any input, from anywhere. '
+                + (r.status === 202 ? 'This type runs async &mdash; poll <code>/status/{job_id}</code> for the result. ' : '')
+                + '<a href="' + apiUrl + '" onclick="nextStepClicked(\'api_docs\',\'' + context + '\')">Docs and MCP server &rarr;</a></div>';
+            if (r.status === 200) deductCredits(cost);
+            try { posthog.capture('api_test_call_succeeded', { context: context, type: type, http_status: r.status, ms: ms }); } catch (e) {}
+            try {
+                if (!localStorage.getItem(API_FIRST_CALL_KEY)) {
+                    localStorage.setItem(API_FIRST_CALL_KEY, '1');
+                    posthog.capture('api_first_call_succeeded', { source: 'in_app_test', context: context, type: type, http_status: r.status, ms: ms });
+                }
+            } catch (e) {}
+        } else {
+            out.classList.add('err');
+            const why = r.status === 401 ? 'The key was not accepted. Reset it on the API page and try again.'
+                : r.status === 402 ? 'Out of credits on the API side.'
+                : r.status === 429 ? 'Rate limited &mdash; wait a moment and run it again.'
+                : r.status === 422 ? 'The input was not in the shape this type expects.' : '';
+            out.innerHTML = '<div class="ns-api-run-head"><i class="fas fa-circle-exclamation"></i> HTTP ' + r.status + '</div>' + (why ? why + ' ' : '')
+                + '<pre>' + nsEsc(pretty.slice(0, 800)) + '</pre>';
+            try { posthog.capture('api_test_call_failed', { context: context, type: type, http_status: r.status }); } catch (e) {}
+        }
+    } catch (e) {
+        out.classList.add('err');
+        out.innerHTML = '<div class="ns-api-run-head"><i class="fas fa-circle-exclamation"></i> This browser could not reach the API directly</div>'
+            + 'A network or cross-origin block stopped the call from this page. Copy the command above and run it in a terminal &mdash; it is the same request and works the same.';
+        try { posthog.capture('api_test_call_failed', { context: context, type: type, http_status: 'network' }); } catch (e) {}
+    } finally {
+        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-play"></i> Run it again'; }
+    }
 }
 
 function nextStepClicked(route, context) {

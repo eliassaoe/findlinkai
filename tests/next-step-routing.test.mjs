@@ -229,4 +229,66 @@ test('bulk mode exists before any dropdown is set, with the drop zone locked', (
   assert.ok(app.includes('id="bulkLockNotice"'), 'the locked state says what to do');
 });
 
+// ---------------------------------------------------------------- round two
+const apiAccess = read('api-access.html');
+const apiDocs = read('api-documentation.html');
+const pricing = read('pricing.html');
+
+test('Run it now exists on all three API surfaces and fires the first-call event once', () => {
+  assert.ok(appFn('runNextStepApiTest').includes("posthog.capture('api_first_call_succeeded', { source: 'in_app_test'"));
+  assert.ok(appFn('runNextStepApiTest').includes("localStorage.getItem(API_FIRST_CALL_KEY)"), 'once per browser');
+  assert.ok(apiAccess.includes("posthog.capture('api_first_call_succeeded',{source:'api_access_test'"));
+  assert.ok(apiDocs.includes("cap('api_first_call_succeeded', { source: 'api_docs_test'"));
+  for (const src of [app, apiAccess, apiDocs]) assert.ok(src.includes('could not reach the API directly'), 'a CORS/network failure degrades to the terminal, never to silence');
+});
+
+test('the bulk credit gate is sized to the list and opens the modal on that plan', () => {
+  const fn = appFn('sizePlanForRows');
+  assert.ok(fn.includes('Math.round(p.credits / 12) >= needed'), 'monthly credits are annual / 12, per CLAUDE.md');
+  assert.ok(app.includes('still to enrich &middot; ${sized.needed.toLocaleString()} credit'));
+  assert.ok(app.includes("showPricingModal('bulk_credits_gated', gate)"));
+  assert.ok(app.includes("trigger === 'bulk_credits_gated' && extra"));
+  assert.ok(app.includes('recommendedIndex = window.__lfSizedPlanIndex'));
+  const branch = app.slice(app.indexOf("trigger === 'bulk_credits_gated' && extra"), app.indexOf("trigger === 'export_gated'"));
+  assert.ok(!/payg|pay as you go|pack/i.test(branch), 'the sized gate never mentions PAYG or packs');
+});
+
+test('integration-intent pages carry ?intent= on their sign-up links', () => {
+  const expect = { 'linkedIn-enrichment-google-sheets.html': 'sheets', 'hubspot-crm-enrichment.html': 'crm', 'n8n-linkedin-automation.html': 'api', 'bulk-linkedin-enrichment.html': 'csv', 'crm-audit.html': 'crm' };
+  for (const [file, intent] of Object.entries(expect)) {
+    const src = read(file);
+    assert.ok(src.includes('intent=' + intent), file + ' → ' + intent);
+    assert.ok(!/linkfinderai\.com\/sign-up["'#\s>]/.test(src), file + ' has no bare sign-up link left');
+  }
+  assert.ok(!read('linkedin-email-finder.html').includes('?intent='), 'tool pages keep their own offer');
+});
+
+test('the docs open with a runnable first call and three one-click routes', () => {
+  assert.ok(apiDocs.includes('id="docsFirstCall"'));
+  assert.ok(apiDocs.includes('sign-up?intent=api'));
+  for (const s of ['n8n-nodes-linkfinderai', 'zapier.com/developer/public-invite', 'app-integrations']) assert.ok(apiDocs.includes(s), s);
+  assert.ok(apiDocs.includes("localStorage.getItem('LinkFinderToken') || localStorage.getItem('linkFinderToken')"), 'either token spelling signs the reader in');
+});
+
+test('pricing leads with the routes and lists them first on every plan', () => {
+  assert.ok(pricing.includes('class="pricing-routes"'));
+  for (const i of ['csv', 'sheets', 'api', 'crm']) assert.ok(pricing.includes('sign-up?intent=' + i), i);
+  assert.equal((pricing.match(/Google Sheets add-on<\/li>/g) || []).length, 3);
+});
+
+test('the route and idle-credit campaigns are in the variants library with their workflow ids', () => {
+  const lib = JSON.parse(read('workers/lifecycle-email/variants.json'));
+  for (const k of ['route_csv_1', 'route_csv_2', 'route_sheets_1', 'route_sheets_2', 'route_api_1', 'route_api_2', 'route_crm_1', 'route_crm_2', 'idle_credits']) {
+    const step = lib.steps[k];
+    assert.ok(step, k);
+    assert.ok(/^01a0/.test(step.workflow_id), k + ' has a workflow id');
+    const champions = step.variants.filter((v) => v.status === 'champion');
+    assert.equal(champions.length, 1, k + ' has exactly one champion');
+    for (const v of step.variants) {
+      assert.ok(!/&[a-z]+;/.test(v.subject), k + ' subject is plain text');
+      assert.ok(!/PAYG|pay as you go/i.test(JSON.stringify(v)) || k !== 'route_crm_1' && k !== 'route_crm_2', 'CRM mail never mentions PAYG');
+    }
+  }
+});
+
 console.log(`\n${passed} passed`);
