@@ -626,6 +626,15 @@ button#submitButton:disabled{opacity:0.6;cursor:not-allowed;}
     }
   });
 
+  // The tool pages' first-result offer says which route the visitor chose
+  // (csv / sheets / api / crm). The app reads it on first load and lands them
+  // there instead of asking. Stored, not appended to the redirect, so it
+  // survives the Google OAuth round-trip and the email-confirmation page.
+  try {
+    const intent = urlParams.get('intent');
+    if (intent && /^[a-z_]{1,20}$/.test(intent)) localStorage.setItem('lf_intent', intent);
+  } catch (e) {}
+
   function redirectToApp(token) {
     const gclid = urlParams.get('gclid');
     window.location.href = gclid

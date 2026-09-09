@@ -64,6 +64,28 @@ Company: `Website`, `Industry`, `Company Size`, `Headquarters`, `Founded`,
 `LinkedIn Followers`, `View company page`
 Each result row has `Copy`. Feedback prompt: `Very useful` / `Not useful`.
 
+## Under every successful result: the next-step panel
+
+Rendered inside the result, after the value (see `docs/next-step-routing.md`).
+Single lookup: heading `That's one row. Your whole list is next.`, a small
+spreadsheet with the row just enriched as line 1 and three empty rows, then
+four cards: `Upload a CSV` (blue), `Do it in Google Sheets`, `</> Run it from
+code` (opens a `curl` snippet with a `Copy` button and the link `docs, MCP
+server and key management →`), and either `Send to HubSpot` (connected) or
+`Sync to my CRM`. Footer links: `Download this row as CSV`, `2-min walkthrough
+of a bulk run`.
+After a bulk run: heading `N of M rows enriched. Next time, skip the upload.`
+with `Enrich inside Google Sheets`, `</> Automate this run`, and `Send all to
+HubSpot` / `Sync to my CRM`.
+
+## First visit only: the route chooser
+
+Above `Popular searches`: `Where is the data you want to enrich?` with four
+cards — `In a CSV or spreadsheet`, `In Google Sheets`, `In my own code or n8n /
+Make`, `In my CRM (HubSpot)` — and the link `I just need one lookup for now`.
+It is gone after any choice or any enrichment, so a recording made on a used
+account will not show it.
+
 ## Other surfaces
 
 `API & MCP` tab — `API Key`, `MCP Server`, `View API Docs`

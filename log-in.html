@@ -219,6 +219,12 @@ button:disabled{opacity:0.6;cursor:not-allowed;}
   });
 
   const urlParams = new URLSearchParams(window.location.search);
+  // See sign-up.html: a tool page can send someone here already knowing where
+  // their data lives, and /app routes them there on load.
+  try {
+    const intent = urlParams.get('intent');
+    if (intent && /^[a-z_]{1,20}$/.test(intent)) localStorage.setItem('lf_intent', intent);
+  } catch (e) {}
   const error = urlParams.get('error');
   if (error) {
     const msgs = {
