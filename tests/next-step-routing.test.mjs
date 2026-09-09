@@ -148,9 +148,14 @@ test('the first-visit route chooser is inline, once, and never after use', () =>
   assert.ok(app.includes('id="routeChooser" class="route-chooser hidden"'), 'starts hidden; JS decides');
   const fn = appFn('maybeShowRouteChooser');
   assert.ok(fn.includes("localStorage.getItem(ROUTE_PICKED_KEY)"));
-  assert.ok(fn.includes("localStorage.getItem('lf_csv_uploaded_ever')"));
-  assert.ok(fn.includes("localStorage.getItem('lf_enrich_count')"));
+  assert.ok(fn.includes('lfHasUsedProduct()'));
+  const used = appFn('lfHasUsedProduct');
+  assert.ok(used.includes("localStorage.getItem('lf_csv_uploaded_ever')"));
+  assert.ok(used.includes("localStorage.getItem('lf_enrich_count')"));
   assert.ok(app.includes('hideRouteChooser(); // they have found their own way in'));
+  // a pick collapses it to the strip rather than removing every route
+  assert.ok(app.includes('id="routeStrip" class="route-strip hidden"'));
+  assert.ok(fn.includes("params.get('route_test') === '1'"), 'a way to see it again on a used account');
 });
 
 test('?intent= and lf_intent skip the question and land on the route', () => {
@@ -160,7 +165,8 @@ test('?intent= and lf_intent skip the question and land on the route', () => {
   assert.ok(fn.includes("localStorage.removeItem('lf_intent')"), 'one-shot');
   assert.ok(fn.includes("pickRoute(intent, 'intent')"));
   const pick = appFn('pickRoute');
-  assert.ok(pick.includes("case 'csv'") && pick.includes("switchMode('bulk')"), 'csv sets bulk mode before the types are picked');
+  assert.ok(pick.includes("case 'csv'") && pick.includes("switchMode('bulk')"), 'csv opens bulk mode whether or not the types are picked');
+  assert.ok(pick.includes('lfAskForPair('), 'and points at the dropdowns when they are empty');
   assert.ok(pick.includes("case 'api'") && pick.includes("navigateToPage('api')"));
   assert.ok(pick.includes("case 'crm'") && pick.includes("navigateToPage('crmSync')"));
   assert.ok(pick.includes("case 'sheets'") && pick.includes('SHEETS_ADDON_URL'));
@@ -207,6 +213,20 @@ test('the offer still renders in the tool-page DOM the gate tests use', () => {
   assert.equal(captured.length, 1, 'offer inserted');
   assert.ok(captured[0]._html.includes('your lookup'), 'falls back when it cannot read the input');
   assert.ok(captured[0]._html.includes('Enrich my list free'));
+});
+
+// ---------------------------------------------------------------- bulk before a pair is picked
+test('bulk mode exists before any dropdown is set, with the drop zone locked', () => {
+  assert.ok(app.includes('<div id="modeToggle" class="mode-toggle">'), 'the toggle is visible from load');
+  assert.ok(!app.includes("document.getElementById('modeToggle').classList.add('hidden')"), 'and nothing hides it again');
+  const sw = appFn('switchMode');
+  assert.ok(!sw.includes('if (currentInputType && currentOutputType)'), 'switchMode no longer needs a pair');
+  const show = appFn('showInputSections');
+  assert.ok(show.includes('setBulkLocked(!configured)'));
+  assert.ok(appFn('handleFile').includes('if(!lfConfigured()){ lfAskForPair(); return; }'), 'no file is parsed without a pair');
+  assert.ok(appFn('openCsvPicker').includes('if (!lfConfigured()) { lfAskForPair(); return; }'), 'the picker does not open without a pair');
+  assert.ok(app.includes("ua.addEventListener('drop',(e)=>{if(!lfConfigured()){lfAskForPair();return;}"), 'nor does a drop');
+  assert.ok(app.includes('id="bulkLockNotice"'), 'the locked state says what to do');
 });
 
 console.log(`\n${passed} passed`);

@@ -130,6 +130,11 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
     .form-group input:focus,.form-group textarea:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(37,99,235,0.1);}
     .btn-full{width:100%;padding:0.875rem;font-size:1rem;margin-top:0.5rem;}
     .upload-area{border:2px dashed var(--gray-300);border-radius:8px;padding:2rem 1rem;text-align:center;cursor:pointer;background:var(--gray-50);transition:all 0.2s ease;position:relative;}
+.upload-area.upload-locked{opacity:0.55;cursor:not-allowed;}
+.upload-area.upload-locked #selectFileBtn{pointer-events:none;opacity:0.6;}
+.bulk-lock-notice{display:flex;align-items:center;gap:0.625rem;background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:0.75rem 1rem;margin-bottom:0.75rem;font-size:0.8125rem;color:#78350f;line-height:1.45;}
+.bulk-lock-notice i{flex-shrink:0;}
+.config-form.pulse{box-shadow:0 0 0 4px rgba(37,99,235,0.35);border-radius:10px;transition:box-shadow 0.3s ease;}
     .upload-area:hover{border-color:var(--primary);background:rgba(37,99,235,0.05);}
     .upload-area.drag-over{border-color:var(--primary);background:rgba(37,99,235,0.1);transform:scale(1.02);}
     .upload-icon{font-size:2rem;color:var(--gray-400);margin-bottom:1rem;}
@@ -855,6 +860,10 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
 .route-card.route-crm b i{color:#ff7a59;}
 .route-card span{font-size:0.75rem;color:var(--gray-500);line-height:1.35;text-align:left;display:block;width:100%;}
 .route-skip{margin-top:0.7rem;background:none;border:none;color:var(--gray-500);font-size:0.78rem;cursor:pointer;font-family:inherit;padding:0;text-decoration:underline;}
+.route-strip{display:flex;flex-wrap:wrap;align-items:center;gap:0.4rem 1rem;font-size:0.8rem;color:var(--gray-500);margin-bottom:1rem;padding:0.55rem 0.9rem;border:1px solid var(--gray-200);border-radius:8px;background:#fff;}
+.route-strip a{color:var(--primary);font-weight:600;text-decoration:none;white-space:nowrap;}
+.route-strip a:hover{text-decoration:underline;}
+.route-strip a i{margin-right:0.25rem;}
 .route-skip:hover{color:var(--gray-700);}
 </style>
 <script async src="https://plausible.io/js/pa-LTP3nlbjr9NybMEgzpwxU.js"></script>
@@ -973,6 +982,16 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
                 </div>
                 <button type="button" class="route-skip" onclick="pickRoute('single')">I just need one lookup for now</button>
             </div>
+            <!-- What the chooser collapses into after a pick. Stays until the
+                 first enrichment or CSV upload, so a wrong click is one click
+                 to undo and the other routes never vanish. -->
+            <div id="routeStrip" class="route-strip hidden">
+                <span>Where is your data?</span>
+                <a href="#" onclick="pickRoute('csv','strip');return false;"><i class="fas fa-file-csv"></i> CSV</a>
+                <a href="#" onclick="pickRoute('sheets','strip');return false;"><i class="fas fa-table" style="color:#16a34a;"></i> Google Sheets</a>
+                <a href="#" onclick="pickRoute('api','strip');return false;"><i class="fas fa-code"></i> API / n8n</a>
+                <a href="#" onclick="pickRoute('crm','strip');return false;"><i class="fab fa-hubspot" style="color:#ff7a59;"></i> HubSpot</a>
+            </div>
             <div class="quickstart-label">Popular searches — click to try instantly</div>
             <div class="quickstart-grid">
                 <div class="qs-card" onclick="quickStart('lead_full_name','linkedin_url','Sarah Johnson',null,true,'Salesforce')">
@@ -1070,7 +1089,7 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
                     </div>
                 </div>
         
-        <div id="modeToggle" class="mode-toggle hidden">
+        <div id="modeToggle" class="mode-toggle">
             <div class="mode-switch">
                 <button class="mode-option active" onclick="switchMode('single')" id="singleMode">Single lookup</button>
                 <button class="mode-option" onclick="switchMode('bulk')" id="bulkMode">📤 Upload CSV (bulk)</button>
@@ -1132,13 +1151,20 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
                 <i class="fas fa-circle-info" style="flex-shrink:0;"></i>
                 <span id="exportGateNoticeText">Exporting bulk results to CSV requires a subscription plan. Credits still cover processing — <a href="#" onclick="showPricingModal('export_gate_notice');return false;" style="color:inherit;font-weight:700;text-decoration:underline;">see plans</a>.</span>
             </div>
-            <div class="upload-area" id="uploadArea" onclick="document.getElementById('csvFile').click()">
+            <!-- Bulk exists before anything is picked: the panel is always
+                 reachable from the toggle, but the drop zone stays locked until
+                 both dropdowns above have a value (setBulkLocked). -->
+            <div id="bulkLockNotice" class="bulk-lock-notice" style="display:none;">
+                <i class="fas fa-arrow-up"></i>
+                <span>First choose <strong>what you have</strong> and <strong>what you want to find</strong> above. Then drop your list here and every row gets the same lookup.</span>
+            </div>
+            <div class="upload-area" id="uploadArea" onclick="openCsvPicker(event)">
                 <i class="fas fa-cloud-upload-alt upload-icon"></i>
                 <div class="upload-text">Drop your CSV file here or click to upload</div>
                 <div class="upload-subtext" id="uploadSubtext">CSV file (max 10000 rows)</div>
                 <input type="file" id="csvFile" accept=".csv,.tsv,.txt,.xlsx,.xlsm,.xls,.ods" class="hidden">
-                <button type="button" class="btn" onclick="event.stopPropagation();document.getElementById('csvFile').click()"><i class="fas fa-file-csv"></i> Select File</button>
-                <button type="button" class="btn" style="background:transparent;color:var(--primary);border:1px solid var(--primary);margin-left:0.5rem;" onclick="event.stopPropagation();useSampleCsv()"><i class="fas fa-wand-magic-sparkles"></i> Try a sample list</button>
+                <button type="button" class="btn" id="selectFileBtn" onclick="event.stopPropagation();openCsvPicker(event)"><i class="fas fa-file-csv"></i> Select File</button>
+                <button type="button" class="btn" id="sampleCsvBtn" style="background:transparent;color:var(--primary);border:1px solid var(--primary);margin-left:0.5rem;" onclick="event.stopPropagation();useSampleCsv()"><i class="fas fa-wand-magic-sparkles"></i> Try a sample list</button>
             </div>
             <!-- Offered here rather than buried in a menu: this is the moment
                  someone is exporting a sheet, uploading it, and about to import
@@ -3044,16 +3070,47 @@ function cimSeeSubscriptionPlans() {
 
 function logout() { localStorage.removeItem('linkFinderToken'); window.location.href=addGclid('https://linkfinderai.com/'); }
 
+// Bulk is reachable before anything is picked. The single form needs an
+// input/output pair to mean anything, so it stays hidden until then; the bulk
+// panel shows straight away with its drop zone locked, so a person who came
+// for a list sees where the list goes and what to pick to unlock it.
 function switchMode(mode) {
     currentMode = mode;
     document.getElementById('singleMode').classList.toggle('active', mode==='single');
     document.getElementById('bulkMode').classList.toggle('active', mode==='bulk');
-    if (currentInputType && currentOutputType) {
-        document.getElementById('singleSearch').classList.toggle('hidden', mode!=='single');
-        document.getElementById('bulkSearch').classList.toggle('hidden', mode!=='bulk');
-    }
+    showInputSections();
     hideResults();
     updateSubmitButtonState();
+}
+
+function lfConfigured() { return !!(currentInputType && currentOutputType); }
+
+function setBulkLocked(locked) {
+    const ua = document.getElementById('uploadArea');
+    const notice = document.getElementById('bulkLockNotice');
+    if (ua) ua.classList.toggle('upload-locked', !!locked);
+    if (notice) notice.style.display = locked ? 'flex' : 'none';
+    const sel = document.getElementById('selectFileBtn');
+    if (sel) sel.disabled = !!locked;
+}
+
+// Points at the two dropdowns when a locked drop zone is used.
+function lfAskForPair(message) {
+    showAlert(message || 'Choose what you have and what you want to find first, then upload your list.', 'warning');
+    const form = document.querySelector('.config-form');
+    const sel = document.getElementById('inputType');
+    if (form) {
+        form.classList.add('pulse');
+        setTimeout(() => form.classList.remove('pulse'), 2000);
+        if (form.scrollIntoView) form.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    if (sel && sel.focus) setTimeout(() => sel.focus(), 350);
+}
+
+function openCsvPicker(event) {
+    if (event && event.stopPropagation) event.stopPropagation();
+    if (!lfConfigured()) { lfAskForPair(); return; }
+    document.getElementById('csvFile').click();
 }
 
 // Target for the activation nudges below. Bulk is where a casual visitor turns
@@ -3064,8 +3121,8 @@ function switchMode(mode) {
 function jumpToBulkUpload(source) {
     try { posthog.capture('activation_nudge_clicked', { target: 'bulk', source: source }); } catch (e) {}
 
-    var configured = currentInputType && currentOutputType;
-    if (configured) switchMode('bulk');
+    var configured = lfConfigured();
+    switchMode('bulk');
 
     var target = document.getElementById(configured ? 'bulkSearch' : 'inputType');
     if (target && target.scrollIntoView) {
@@ -3103,13 +3160,13 @@ function setupDropdowns() {
             if (prev) {
                 const [prevInput] = prev.split('__');
                 if (prevInput===sel) { outputSel.value=prev; currentInputType=sel; currentOutputType=prev.split('__')[1]; configureEnrichment(); }
-                else { outputSel.value=''; currentInputType=sel; currentOutputType=''; hideInputSections(); document.getElementById('modeToggle').classList.add('hidden'); document.getElementById('creditCost').style.display='none'; }
+                else { outputSel.value=''; currentInputType=sel; currentOutputType=''; hideInputSections(); document.getElementById('creditCost').style.display='none'; }
             } else { currentInputType=sel; }
-        } else { populateOutputOptions(null); currentInputType=''; currentOutputType=''; hideInputSections(); document.getElementById('modeToggle').classList.add('hidden'); document.getElementById('creditCost').style.display='none'; }
+        } else { populateOutputOptions(null); currentInputType=''; currentOutputType=''; hideInputSections(); document.getElementById('creditCost').style.display='none'; }
     });
     outputSel.addEventListener('change', function() {
         const val = this.value;
-        if (!val) { currentOutputType=''; hideInputSections(); document.getElementById('modeToggle').classList.add('hidden'); document.getElementById('creditCost').style.display='none'; return; }
+        if (!val) { currentOutputType=''; hideInputSections(); document.getElementById('creditCost').style.display='none'; return; }
         const [inf, out] = val.split('__');
         currentInputType=inf; currentOutputType=out;
         inputSel.value=inf; populateOutputOptions(inf); outputSel.value=val;
@@ -3166,14 +3223,22 @@ function configureEnrichment() {
 }
 
 function showInputSections() {
-    if (currentMode==='single') { document.getElementById('singleSearch').classList.remove('hidden'); document.getElementById('bulkSearch').classList.add('hidden'); }
-    else { document.getElementById('singleSearch').classList.add('hidden'); document.getElementById('bulkSearch').classList.remove('hidden'); }
+    const configured = lfConfigured();
+    const single = document.getElementById('singleSearch');
+    const bulk = document.getElementById('bulkSearch');
+    if (currentMode === 'single') {
+        single.classList.toggle('hidden', !configured);
+        bulk.classList.add('hidden');
+    } else {
+        single.classList.add('hidden');
+        bulk.classList.remove('hidden');
+        setBulkLocked(!configured);
+    }
 }
 
+// Called when a dropdown is cleared. The toggle stays; bulk stays too, locked.
 function hideInputSections() {
-    document.getElementById('modeToggle').classList.add('hidden');
-    document.getElementById('singleSearch').classList.add('hidden');
-    document.getElementById('bulkSearch').classList.add('hidden');
+    showInputSections();
 }
 
 async function fetchCredits() {
@@ -5112,9 +5177,22 @@ function checkAuth(){
 const ROUTE_PICKED_KEY = 'lf_route_picked';
 const ROUTE_INTENTS = ['csv', 'sheets', 'api', 'crm'];
 
+// Has this browser ever done the real thing? Once yes, neither the chooser
+// nor the strip has a job any more.
+function lfHasUsedProduct() {
+    try {
+        if (localStorage.getItem('lf_csv_uploaded_ever')) return true;
+        if (parseInt(localStorage.getItem('lf_enrich_count') || '0', 10) > 0) return true;
+    } catch (e) {}
+    return false;
+}
+
 function maybeShowRouteChooser() {
     try {
-        let intent = new URLSearchParams(window.location.search).get('intent');
+        const params = new URLSearchParams(window.location.search);
+        // ?route_test=1 forces the full chooser on any account, for checking it.
+        const forced = params.get('route_test') === '1';
+        let intent = params.get('intent');
         if (!intent) { intent = localStorage.getItem('lf_intent'); }
         if (intent) {
             localStorage.removeItem('lf_intent');
@@ -5123,19 +5201,26 @@ function maybeShowRouteChooser() {
                 return;
             }
         }
-        if (localStorage.getItem(ROUTE_PICKED_KEY)) return;
-        if (localStorage.getItem('lf_csv_uploaded_ever')) return;
-        if (parseInt(localStorage.getItem('lf_enrich_count') || '0', 10) > 0) return;
+        if (!forced && lfHasUsedProduct()) return;
+        if (!forced && localStorage.getItem(ROUTE_PICKED_KEY)) {
+            const strip = document.getElementById('routeStrip');
+            if (strip) strip.classList.remove('hidden');
+            return;
+        }
         const el = document.getElementById('routeChooser');
         if (!el) return;
         el.classList.remove('hidden');
-        try { posthog.capture('onboarding_route_shown'); } catch (e) {}
+        try { posthog.capture('onboarding_route_shown', { forced: forced }); } catch (e) {}
     } catch (e) {}
 }
 
+// After a pick: the big chooser goes, the one-line strip stays until the
+// product has actually been used. After use: both go.
 function hideRouteChooser() {
     const el = document.getElementById('routeChooser');
     if (el) el.classList.add('hidden');
+    const strip = document.getElementById('routeStrip');
+    if (strip) strip.classList.toggle('hidden', lfHasUsedProduct());
 }
 
 function pickRoute(route, source) {
@@ -5143,12 +5228,16 @@ function pickRoute(route, source) {
     hideRouteChooser();
     try { posthog.capture('onboarding_route_picked', { route: route, source: source || 'chooser' }); } catch (e) {}
     switch (route) {
-        case 'csv':
-            // Set the mode first so that, once they pick an input/output pair,
-            // the bulk panel (not the single form) is what opens.
+        case 'csv': {
+            // Bulk opens whether or not a pair is picked; when it is not, the
+            // drop zone is locked and the dropdowns get pointed at.
             switchMode('bulk');
-            jumpToBulkUpload('onboarding_route');
+            const bulk = document.getElementById('bulkSearch');
+            if (bulk && bulk.scrollIntoView) bulk.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            if (!lfConfigured()) lfAskForPair('Bulk mode is open. Pick what you have and what you want to find, then drop your list.');
+            else jumpToBulkUpload('onboarding_route');
             break;
+        }
         case 'sheets':
             try { posthog.capture('sheets_addon_clicked', { source: 'onboarding_route' }); } catch (e) {}
             window.open(SHEETS_ADDON_URL, '_blank', 'noopener');
@@ -5344,7 +5433,7 @@ function setupDragAndDrop(){
     ['dragenter','dragover','dragleave','drop'].forEach(e=>{ua.addEventListener(e,pD,false);document.body.addEventListener(e,pD,false);});
     ['dragenter','dragover'].forEach(e=>ua.addEventListener(e,()=>ua.classList.add('drag-over'),false));
     ['dragleave','drop'].forEach(e=>ua.addEventListener(e,()=>ua.classList.remove('drag-over'),false));
-    ua.addEventListener('drop',(e)=>{const files=e.dataTransfer.files;if(files.length>0)handleFile(files[0]);},false);
+    ua.addEventListener('drop',(e)=>{if(!lfConfigured()){lfAskForPair();return;}const files=e.dataTransfer.files;if(files.length>0)handleFile(files[0]);},false);
     function pD(e){e.preventDefault();e.stopPropagation();}
 }
 // The bulk card asked people to go and find a CSV before they could see what
@@ -5364,7 +5453,20 @@ const SAMPLE_CSV = [
 ].join('\n');
 
 function useSampleCsv() {
-    try { posthog.capture('sample_csv_used', { rows: SAMPLE_CSV.split('\n').length - 1 }); } catch (e) {}
+    try { posthog.capture('sample_csv_used', { rows: SAMPLE_CSV.split('\n').length - 1, preselected: !lfConfigured() }); } catch (e) {}
+    // The sample is names + companies, so it can pick its own pairing when the
+    // dropdowns are still empty: it is the one bulk action that never needs
+    // homework first.
+    if (!lfConfigured()) {
+        const inputSel = document.getElementById('inputType');
+        inputSel.value = 'lead_full_name'; inputSel.dispatchEvent(new Event('change'));
+        setTimeout(() => {
+            const outputSel = document.getElementById('outputType');
+            outputSel.value = 'lead_full_name__linkedin_url'; outputSel.dispatchEvent(new Event('change'));
+            setTimeout(useSampleCsv, 80);
+        }, 60);
+        return;
+    }
     try {
         const file = new File([SAMPLE_CSV], 'sample-leads.csv', { type: 'text/csv' });
         handleFile(file);
@@ -5392,6 +5494,7 @@ function lfLoadXlsx(){
     return lfXlsxLoader;
 }
 function handleFile(file){
+    if(!lfConfigured()){ lfAskForPair(); return; }
     const n = (file.name||'').toLowerCase();
     lfUploadedFileName = file.name || '';
     if(/\.(xlsx|xlsm|xls|ods)$/.test(n)){
