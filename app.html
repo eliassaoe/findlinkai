@@ -1291,6 +1291,13 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
             <i class="fas fa-infinity" style="color:#16a34a;"></i>
             <span><strong>Credits never expire</strong> — buy once, use whenever you need them.</span>
         </div>
+        <div id="planIncludesStrip" style="display:flex;flex-wrap:wrap;justify-content:center;gap:0.35rem 1rem;font-size:0.72rem;color:var(--gray-600);background:var(--gray-50);border:1px solid var(--gray-200);border-radius:8px;padding:0.55rem 0.75rem;margin:0 0 0.75rem;">
+            <span style="font-weight:600;color:var(--gray-700);">Every plan includes</span>
+            <span><i class="fas fa-check" style="color:#16a34a;font-size:0.65rem;"></i> Bulk CSV</span>
+            <span><i class="fas fa-check" style="color:#16a34a;font-size:0.65rem;"></i> Google Sheets add-on</span>
+            <span><i class="fas fa-check" style="color:#16a34a;font-size:0.65rem;"></i> API + MCP server</span>
+            <span><i class="fas fa-check" style="color:#16a34a;font-size:0.65rem;"></i> HubSpot sync</span>
+        </div>
         <div class="plans-grid" id="plansGrid"></div>
         <div class="pricing-faq">
             <div class="pricing-faq-item"><i class="fas fa-check-circle"></i> Cancel anytime, no questions</div>
@@ -2073,6 +2080,9 @@ function renderPlansGrid() {
     if (!grid) return;
 
     // NEW: PAYG branch — render credit packs instead of subscription plans
+    const includesStrip = document.getElementById('planIncludesStrip');
+    if (includesStrip) includesStrip.style.display = (billingMode === 'payg') ? 'none' : 'flex';
+
     if (billingMode === 'payg') {
         grid.innerHTML = renderPaygCards();
         return;
@@ -2094,6 +2104,13 @@ function renderPlansGrid() {
     else if (lifetimeEnrichments > 30) recommendedIndex = 1;  // Professional
     // A bulk gate knows the list size; that beats a usage guess.
     if (typeof window.__lfSizedPlanIndex === 'number' && plans[window.__lfSizedPlanIndex]) recommendedIndex = window.__lfSizedPlanIndex;
+    // The badge used to be withheld until someone had enriched at least once,
+    // which is exactly backwards: a visitor with no usage history is the one
+    // with no basis to choose, and three equally-weighted cards is what they
+    // got. 80% of people who opened this modal picked no plan at all. With no
+    // signal, Starter is the honest default — it is the cheapest way in and
+    // upgrading is one click from the same modal.
+    const showRecommendation = true;
     const socialProof = ['Used by solo founders and small teams', 'Used by 40+ sales teams', 'Used by agencies running high-volume outreach'];
 
     grid.innerHTML = plans.map(function(plan, index) {
@@ -2125,19 +2142,35 @@ function renderPlansGrid() {
         }
         const currentBadge = isCurrentPlan
             ? '<div style="background:#dcfce7;color:#15803d;font-size:0.62rem;font-weight:700;padding:0.2rem 0.55rem;border-radius:4px;margin-bottom:0.35rem;display:inline-block;text-transform:uppercase;letter-spacing:0.05em;">✓ Your plan</div>'
-            : (index === recommendedIndex && lifetimeEnrichments > 0
+            : (index === recommendedIndex && showRecommendation
                 ? '<div style="background:#eff6ff;color:#2563eb;font-size:0.62rem;font-weight:700;padding:0.2rem 0.55rem;border-radius:4px;margin-bottom:0.35rem;display:inline-block;text-transform:uppercase;letter-spacing:0.05em;">Recommended for you</div>'
                 : '');
         const ctaDisabled = isCurrentPlan ? 'disabled style="opacity:0.5;cursor:not-allowed;"' : '';
+        // What the plan actually buys, in the three units people run lists in.
+        // The old line printed the same number twice ("~5,000 enrichments
+        // (~5,000 LinkedIn URLs...)") and skipped emails entirely, which is the
+        // lookup most people are here for. Costs come from the live creditCosts
+        // table so these can never drift from what the account is debited.
         const anchorCredits = isAnnual ? plan.credits : Math.round(plan.credits/12);
-        const anchorLinkedIn = anchorCredits.toLocaleString();
-        const anchorPhone = Math.floor(anchorCredits/50).toLocaleString();
         const periodWord = isAnnual ? 'year' : 'month';
-        const anchorPrice = isAnnual ? annualTotal : monthlyEquiv;
-        const valueAnchor = '<div style="font-size:0.68rem;color:var(--gray-500);line-height:1.4;margin-top:0.5rem;padding-top:0.5rem;border-top:1px dashed var(--gray-200);">$'+anchorPrice+'/'+periodWord+' &asymp; '+anchorLinkedIn+' enrichments<br>(~'+anchorLinkedIn+' LinkedIn URLs or ~'+anchorPhone+' phone lookups)</div>';
+        const capacityRows = [
+            ['LinkedIn URLs &amp; company data', creditCosts['company_name_to_linkedin_url']],
+            ['Work emails',                      creditCosts['company_name_to_email']],
+            ['Phone numbers',                    creditCosts['linkedin_profile_to_phone']]
+        ].map(function (row) {
+            const n = Math.floor(anchorCredits / row[1]).toLocaleString();
+            return '<div style="display:flex;justify-content:space-between;gap:0.4rem;">'
+                 + '<span style="color:var(--gray-500);">' + row[0] + '</span>'
+                 + '<strong style="color:var(--gray-700);white-space:nowrap;">' + n + '</strong>'
+                 + '</div>';
+        }).join('');
+        const valueAnchor = '<div style="font-size:0.68rem;line-height:1.6;margin-top:0.5rem;padding-top:0.5rem;border-top:1px dashed var(--gray-200);text-align:left;">'
+            + '<div style="color:var(--gray-400);margin-bottom:0.2rem;">Enrich per ' + periodWord + ', up to:</div>'
+            + capacityRows
+            + '</div>';
         const socialProofLine = '<div style="font-size:0.68rem;color:var(--gray-400);margin-top:0.35rem;">'+socialProof[index]+'</div>';
         return '<div class="plan-item '+(isPopular && !isCurrentPlan ?'plan-item-popular':'')+'" onmouseenter="window.__lfLastHoveredPlanIndex='+index+'">'
-            + (isPopular && !isCurrentPlan && !(index === recommendedIndex && lifetimeEnrichments > 0) ? '<div class="plan-popular-badge">Most Popular</div>' : '')
+            + (isPopular && !isCurrentPlan && !(index === recommendedIndex && showRecommendation) ? '<div class="plan-popular-badge">Most Popular</div>' : '')
             + '<div class="plan-item-name">'+plan.name+'</div>'
             + '<div class="plan-item-price"><span class="plan-item-amount">$'+monthlyEquiv+'</span><span class="plan-item-period">/mo</span></div>'
             + (isAnnual ? '<div class="plan-item-annual">billed $'+annualTotal+'/year</div>' : '<div class="plan-item-annual">&nbsp;</div>')
