@@ -60,6 +60,7 @@ into a file here in the same session, or it is gone.
 | What the account page counts as "found" | `docs/account-value-summary.md` |
 | The monthly value receipt email — how the numbers are computed, the worker, workflow 12 | `workers/monthly-receipt/README.md` |
 | The AI SDR service offer, and who is allowed to see it | `docs/ai-sdr-offer.md` |
+| **The sales-led motion** — the Enterprise tier, `/talk-to-sales`, the page CTA and the three high-ticket lifecycle emails | `docs/sales-led-motion.md` — read it before touching `plans[]`, the pricing modal, or `js/lf-highticket-cta.js` |
 | Selling Done For You to the 67 idle pack buyers | `docs/dfy-activation-campaign.md` — read the correction in it before quoting any "paying accounts" number |
 | Who the SEO traffic actually is, before aiming an offer at it | `docs/traffic-capture-verdict.md` |
 | Listicle outreach on a cron (the `ai_keywords` table) | `docs/ai-keyword-outreach.md` — read it before adding keywords, it spends credits |
@@ -91,9 +92,22 @@ lookup" claim in a video script (see git history on
 `creditCosts` object in `app.html` before stating a cost in anything
 user-facing — don't extrapolate from the `company_name_to_*` pattern.
 
-**Plans**: Starter $49 / 5,000 mo · Professional $89 / 20,000 · Enterprise $149
+**Plans**: Starter $49 / 5,000 mo · Professional $89 / 20,000 · **Scale** $149
 / 50,000. `app.html` stores the ANNUAL figure and divides by 12 — that is not a
 bug. **Packs**: $25 / 1,000 · $75 / 3,500 · $200 / 10,000.
+
+**"Scale" is a display name; the plan KEY is still `enterprise`.** The $149 tier
+was called Enterprise until a sales-led tier took that name. The key was left
+alone deliberately — it is the database `plan_number`, the Dodo product, and the
+`?plan=enterprise` in every abandoned-checkout email already delivered.
+`PLAN_PARAM_ALIASES` resolves both `enterprise` and `scale` to it. So: **UI says
+Scale, code says enterprise, and neither is wrong.** A test pins this
+(`tests/sales-led-motion.test.mjs`).
+
+**Enterprise is the fourth tier and has no price, no product and no checkout.**
+Quoted on a call, from $999/month, 250,000+ credits. Its button goes to
+`/talk-to-sales`, which writes to `sales_leads` before redirecting to Calendly.
+It is not in `plans[]` — `renderEnterpriseCard()` appends it.
 
 **Who counts as a subscriber**: `subscription_id IS NOT NULL` on
 `linkfinderai_users`. `is_unlimited` and `plan_type` do NOT mean subscribed —

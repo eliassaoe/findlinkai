@@ -289,6 +289,8 @@ footer{padding:56px 0 44px;background:var(--paper);border-top:1px solid var(--li
       <a href="https://linkfinderai.com/#pricing">Pricing</a>
       <a href="https://linkfinderai.com/blog">Blog</a>
       <a href="https://linkfinderai.com/login">Login</a>
+      <a href="https://linkfinderai.com/talk-to-sales?offer=dfy&amp;src=dfy_page_nav"
+         onclick="try{posthog.capture('dfy_book_call_clicked',{source:'nav'})}catch(e){}">Book a call</a>
       <a class="nav-cta" href="#start">Get a sample list</a>
     </div>
   </div>
@@ -543,6 +545,12 @@ footer{padding:56px 0 44px;background:var(--paper);border-top:1px solid var(--li
         <button type="submit">Send me the sample list →</button>
         <p class="form-note">Back within 2 working days.</p>
         <div class="status" id="status" role="status" aria-live="polite"></div>
+        <p class="form-note" style="margin-top:1rem;padding-top:1rem;border-top:1px solid #e5e7eb;">
+          Already decided? <a href="https://linkfinderai.com/talk-to-sales?offer=dfy&amp;src=dfy_page_form"
+             onclick="try{posthog.capture('dfy_book_call_clicked',{source:'form'})}catch(e){}"
+             style="font-weight:600;">Book the call instead →</a><br>
+          $150 per meeting held, minimum 5 a month. Nothing up front.
+        </p>
       </form>
     </div>
   </div>
@@ -603,6 +611,39 @@ footer{padding:56px 0 44px;background:var(--paper);border-top:1px solid var(--li
 const FORM_ENDPOINT = "";
 const FALLBACK_INBOX = "support@linkfinderai.com";
 
+/* The sample-list request is a Done-For-You lead, so it lands in the same
+   table as every other one (supabase/migrations/*_sales_leads.sql) and shows
+   up in sales_lead_inbox next to the ones that came from /talk-to-sales.
+   mailto stays as the last resort, not the first. */
+const SB_URL = 'https://snxhsboboatjywgwdeds.supabase.co';
+const SB_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNueGhzYm9ib2F0anl3Z3dkZWRzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYwMTY5NzgsImV4cCI6MjA2MTU5Mjk3OH0.qkoiXJoqujQ4iUByOqSAsacuJVtJx32j19PTuy7brMo';
+
+async function storeDfyLead(data) {
+  const q = new URLSearchParams(location.search);
+  try {
+    const res = await fetch(SB_URL + '/rest/v1/rpc/sales_lead_request', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'apikey': SB_ANON,
+                 'Authorization': 'Bearer ' + SB_ANON },
+      body: JSON.stringify({
+        p_offer: 'dfy',
+        p_email: data.email,
+        p_site: data.site || null,
+        p_target: data.who || null,
+        p_volume: data.goal || null,
+        p_message: data.competitor ? ('closest competitor: ' + data.competitor) : null,
+        p_src: 'dfy_sample_list',
+        p_landing: location.pathname + location.search,
+        p_utm: { utm_source: q.get('utm_source') || null,
+                 utm_campaign: q.get('utm_campaign') || null,
+                 referrer: document.referrer || null },
+      }),
+    });
+    const out = await res.json().catch(() => null);
+    return !!(res.ok && out && (out.ok || /already received/.test(out.error || '')));
+  } catch (e) { return false; }
+}
+
 const form = document.getElementById("sample-form");
 const statusEl = document.getElementById("status");
 function say(msg){ statusEl.textContent = msg; statusEl.classList.add("show"); }
@@ -634,6 +675,14 @@ form.addEventListener("submit", async (e) => {
     } catch (err) {
       return say("That didn't send. Email " + FALLBACK_INBOX + " and we'll pick it up from there.");
     }
+  }
+
+  // Write the lead before falling back to anything.
+  if (await storeDfyLead(data)) {
+    if (window.posthog) posthog.capture("sample_list_requested", { goal: data.goal, via: "supabase" });
+    form.reset();
+    return say("Got it. Your sample list is on the way — back within 2 working days. "
+             + "If you'd rather talk it through now, the calendar is linked under the form.");
   }
 
   const body = [
