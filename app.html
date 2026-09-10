@@ -157,8 +157,6 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
     .plan-item-cta:hover{background:var(--gray-50);border-color:var(--primary);color:var(--primary);}
     .plan-item-cta-popular{background:var(--primary);border-color:var(--primary);color:white;}
     .plan-item-cta-popular:hover{background:var(--primary-hover);border-color:var(--primary-hover);color:white;}
-    @media(max-width:700px){.plans-grid{grid-template-columns:repeat(2,1fr);}}
-    @media(max-width:420px){.plans-grid{grid-template-columns:1fr;}}
     .pricing-modal{background:white;border-radius:16px;padding:2rem;max-width:520px;width:100%;position:relative;transform:scale(0.9);transition:transform 0.3s ease;box-shadow:0 20px 25px -5px rgba(0,0,0,0.1),0 10px 10px -5px rgba(0,0,0,0.04);max-height:90vh;overflow-y:auto;}
     .result-grid > div[style*="border-top"] h4{font-size:1rem;font-weight:600;display:flex;align-items:center;gap:0.5rem;}
     .result-item[style*="grid-column"]{grid-column:1/-1;}
@@ -375,6 +373,35 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
     .modal-overlay.show{opacity:1;visibility:visible;}
     .pricing-modal{background:white;border-radius:16px;padding:2rem;max-width:480px;width:100%;position:relative;transform:scale(0.9);transition:transform 0.3s ease;box-shadow:0 20px 25px -5px rgba(0,0,0,0.1),0 10px 10px -5px rgba(0,0,0,0.04);max-height:90vh;overflow-y:auto;}
     .modal-overlay.show .pricing-modal{transform:scale(1);}
+    .pricing-modal-wide{max-width:900px;width:min(900px,calc(100vw - 2rem));}
+    /* ---------------------------------------------------------- Pricing on a phone
+     * Stacked at 390px the three plans made a 1,741px scroll inside a 760px
+     * box: card 2 started at y=855 and card 3 at y=1,214, so a phone user
+     * scrolled a nested container twice before seeing a plan other than
+     * Starter. In the same three weeks mobile reached the pricing step at 9.7%
+     * against desktop's 23.6% and bought nothing at all.
+     *
+     * Side-by-side with scroll-snap puts all three in one swipe, and the next
+     * card deliberately peeks past the edge so it is obvious there are more.
+     * Everything here is inside the media query — desktop is unchanged. */
+    @media(max-width:640px){
+        .modal-overlay{padding:0;align-items:stretch;}
+        .pricing-modal-wide{max-width:none;width:100%;max-height:100vh;height:100%;border-radius:0;padding:1.25rem 0 1.5rem;}
+        /* The grid is the only thing allowed to reach the screen edge, so the
+           peeking card reads as "swipe me" rather than a broken margin. */
+        .pricing-modal-wide > *:not(.plans-grid){padding-left:1rem;padding-right:1rem;}
+        .pricing-modal-wide .modal-close{padding-left:0;padding-right:0;}
+        .pricing-modal-header h2{font-size:1.25rem;}
+        .billing-toggle{margin-bottom:0.75rem;}
+        #planIncludesStrip{gap:0.25rem 0.7rem;font-size:0.68rem;padding:0.45rem 0.6rem;}
+        .plans-grid{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;
+                    gap:0.6rem;padding:0.6rem 1rem 0.25rem;margin:0 0 0.5rem;scrollbar-width:none;}
+        .plans-grid::-webkit-scrollbar{display:none;}
+        .plan-item{flex:0 0 82%;scroll-snap-align:center;padding:1rem 0.75rem;}
+        /* 35px tall, on the one button the whole funnel runs through. */
+        .plan-item-cta{min-height:44px;margin-top:0.65rem;}
+        .pricing-faq{flex-wrap:wrap;gap:0.35rem 0.9rem;font-size:0.72rem;}
+    }
     .modal-close{position:absolute;top:1rem;right:1rem;background:var(--gray-100);border:none;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--gray-500);transition:all 0.2s ease;}
     .modal-close:hover{background:var(--gray-200);color:var(--gray-700);}
     .pricing-modal-header{text-align:center;margin-bottom:2rem;}
@@ -499,12 +526,9 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
         .results-table td:before{content:attr(data-label) ": ";position:absolute;left:0;width:35%;font-weight:600;color:var(--gray-600);font-size:0.75rem;}
     }
     @media(max-width:700px){
-    .billing-toggle{flex-direction:column;}
-    .billing-btn{width:100%;text-align:center;}
-    .plans-grid{grid-template-columns:1fr 1fr;}
-}
-@media(max-width:420px){
-    .plans-grid{grid-template-columns:1fr;}
+    .billing-toggle{gap:0.25rem;}
+    .billing-btn{padding:0.6rem 0.35rem;font-size:0.78rem;gap:0.25rem;min-height:44px;}
+    .billing-btn .save-tag{font-size:0.62rem;padding:0.1rem 0.25rem;}
 }
 
 .nps-widget{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:white;border:1px solid var(--gray-200);border-radius:12px;padding:1.25rem 1.5rem;width:400px;max-width:calc(100vw - 2rem);box-shadow:0 8px 24px rgba(0,0,0,0.12);z-index:9997;animation:nudge-in 0.3s ease;}
@@ -1276,7 +1300,7 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
 
 <!-- Pricing Modal -->
 <div id="pricingModal" class="modal-overlay">
-    <div class="pricing-modal" style="max-width:900px;width:min(900px,calc(100vw - 2rem));">
+    <div class="pricing-modal pricing-modal-wide">
         <button class="modal-close" onclick="closePricingModal()"><i class="fas fa-times"></i></button>
         <div class="pricing-modal-header">
             <h2 id="pricingModalTitle">Choose Your Plan</h2>

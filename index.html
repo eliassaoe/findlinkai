@@ -225,6 +225,50 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
         .container { padding: 0 0.75rem; }
         .footer-grid { grid-template-columns: 1fr; }
         .hero-ctas { flex-direction: column; align-items: center; }
+        .hero-ctas .btn { width: 100%; max-width: 320px; }
+        /* Footer links render at 22px tall, half a comfortable thumb target,
+           and on one column they are the only navigation left on the page. */
+        .footer-links li { margin-bottom: 0; }
+        .footer-links a { padding: 0.6rem 0; }
+      }
+
+      /* Mobile header.
+         .logo and .auth-buttons are both flex-shrink:0 with a 2rem gap between
+         them, which needs ~436px. On a 390px phone the header overflowed and
+         the whole page scrolled sideways with "Start Free Trial" hanging off
+         the right edge — on 29% of our traffic. Everything below is inside a
+         media query, so the desktop header is byte-for-byte unchanged. */
+      @media (max-width: 768px) {
+        .header-content { gap: 0.75rem; }
+        .auth-buttons { gap: 0.5rem; min-width: 0; }
+        .logo { min-width: 0; }
+        .logo-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      }
+      @media (max-width: 640px) {
+        .header { padding: 0.75rem 0; }
+        .logo-icon { width: 28px; height: 28px; }
+        .logo-text { font-size: 1.0625rem; }
+        /* Keeps the 44px tap height from .btn; only the horizontal padding goes. */
+        .auth-buttons .btn { padding: 0.75rem 0.85rem; font-size: 0.8125rem; }
+      }
+      /* Tablet / small-laptop header.
+         Above 768px the seven nav links come back, and logo + nav + auth
+         buttons need ~1144px with nothing allowed to shrink — so the header
+         overflowed on iPad landscape and 1024px laptops too. Bounded to this
+         range so the full-width desktop header is untouched. */
+      @media (min-width: 769px) and (max-width: 1100px) {
+        .header-content { gap: 1rem; }
+        .nav-menu { min-width: 0; flex-wrap: wrap; gap: 0.4rem 0.9rem; justify-content: center; }
+        .nav-menu a { font-size: 0.8125rem; }
+        .auth-buttons .btn { padding: 0.75rem 1rem; font-size: 0.8125rem; }
+      }
+
+      @media (max-width: 365px) {
+        /* Last resort before overflow returns: the wordmark goes, the icon
+           stays as the link home. Both buttons keep their labels, because the
+           CTA is the point of the header and "Login" is what returning users
+           reach for. */
+        .logo-text { display: none; }
       }
     </style>
     <script>!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version="2.0";n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,"script","https://connect.facebook.net/en_US/fbevents.js");fbq("init","2717863625238535");fbq("track","PageView");</script>
