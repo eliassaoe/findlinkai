@@ -290,12 +290,17 @@ footer a{color:var(--muted);}
     .forEach(function (btn, i) {
       if (!btn) return;
       btn.setAttribute('href', target);
+      // sendBeacon, not the default XHR: clicking this link navigates away
+      // immediately, and an XHR queued on the way out is cancelled when the
+      // document unloads. The first hour live recorded 59 landings and zero
+      // clicks for exactly that reason. sendBeacon is handed to the browser
+      // and survives the unload.
       btn.addEventListener('click', function () {
         try {
           posthog.capture('credits_landing_cta_clicked', {
             gift: CODE,
             position: i === 0 ? 'hero' : 'footer'
-          });
+          }, { transport: 'sendBeacon' });
         } catch (e) {}
       });
     });
