@@ -496,59 +496,103 @@
 /* =====================================================================
    BOUTON « AJOUTER À MON AGENDA GOOGLE » — 1 CLIC
    ---------------------------------------------------------------------
-   Le lien se construit tout seul. Deux façons de lui donner la date :
+   À FAIRE DANS CALENDLY (une seule fois) :
+   Scheduling > votre event type > Edit > More options > Confirmation page
+     - After booking .............. Redirect to an external site
+     - URL de redirection ......... https://linkfinderai.com/avant-votre-appel
+     - COCHER ..................... « Passer les détails de l'événement
+                                     à votre page redirigée »
 
-   1) Par l'URL de la page (recommandé — Calendly peut la passer) :
-      ...?start=2026-09-15T14:00:00&tz=Europe/Paris&name=Jean%20Dupont
+   Calendly ajoute alors ces paramètres à l'URL, et le bouton se remplit
+   tout seul avec la vraie date, la vraie heure et le nom de l'invité :
+     event_start_time, event_end_time  (ISO 8601, fuseau de l'invité)
+     event_type_name, assigned_to
+     invitee_full_name, invitee_first_name, invitee_email
 
-   2) En dur, en modifiant DEFAUT ci-dessous.
-
-   Sans date, le bouton propose la création d'un événement vide :
-   pensez à passer le paramètre start.
+   Rien d'autre à configurer. Pour tester sans réserver, ouvrez la page
+   avec :  ?event_start_time=2026-09-15T14:00:00%2B02:00
    ===================================================================== */
 (function () {
-  var DEFAUT = {
-    duree: 30,                                  // minutes
-    titre: "Appel LinkFinder AI — cadrage de votre cible",
-    lieu: "Google Meet — lien envoyé par e-mail",
-    details: "30 minutes avec Elias pour cadrer votre cible.\n\n" +
-             "À revoir avant l'appel : https://linkfinderai.com/avant-votre-appel\n" +
-             "Besoin de décaler ? https://calendly.com/hamoureliasse/offre-linkfinder-ai-outbound/"
+
+  var CFG = {
+    dureeParDefaut: 30,                                    // minutes
+    titreParDefaut: "Appel LinkFinder AI — cadrage de votre cible",
+    lieu: "Visio — le lien est dans votre e-mail de confirmation",
+    pageVideo: "https://linkfinderai.com/avant-votre-appel",
+    replanifier: "https://calendly.com/hamoureliasse/offre-linkfinder-ai-outbound/"
   };
 
   var p = new URLSearchParams(window.location.search);
-  var start = p.get("start");   // ex. 2026-09-15T14:00:00
-  var duree = parseInt(p.get("duration"), 10) || DEFAUT.duree;
 
-  function fmt(d) {
+  function get(k) {
+    var v = p.get(k);
+    return v && v.trim() ? v.trim() : null;
+  }
+
+  var debut  = get("event_start_time");
+  var fin    = get("event_end_time");
+  var nomRdv = get("event_type_name");
+  var hote   = get("assigned_to");
+  var prenom = get("invitee_first_name") || (get("invitee_full_name") || "").split(" ")[0];
+
+  var dDebut = debut ? new Date(debut) : null;
+  var dFin   = fin   ? new Date(fin)   : null;
+
+  if (dDebut && isNaN(dDebut.getTime())) dDebut = null;
+  if (dFin   && isNaN(dFin.getTime()))   dFin   = null;
+  if (dDebut && !dFin) dFin = new Date(dDebut.getTime() + CFG.dureeParDefaut * 60000);
+
+  /* --- format attendu par Google Calendar : 20260915T120000Z --- */
+  function gFormat(d) {
     return d.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
   }
 
-  var url = "https://calendar.google.com/calendar/render?action=TEMPLATE";
-  url += "&text=" + encodeURIComponent(DEFAUT.titre);
-  url += "&details=" + encodeURIComponent(DEFAUT.details);
-  url += "&location=" + encodeURIComponent(DEFAUT.lieu);
+  var titre = nomRdv
+    ? nomRdv + (hote ? " — " + hote : "")
+    : CFG.titreParDefaut;
 
-  if (start) {
-    var debut = new Date(start);
-    if (!isNaN(debut)) {
-      var fin = new Date(debut.getTime() + duree * 60000);
-      url += "&dates=" + fmt(debut) + "/" + fmt(fin);
+  var details =
+    (prenom ? "Bonjour " + prenom + ",\n\n" : "") +
+    "Votre appel avec LinkFinder AI est confirmé.\n\n" +
+    "À revoir avant l'appel (2 min 12) : " + CFG.pageVideo + "\n" +
+    "Besoin de décaler ? " + CFG.replanifier;
 
-      var label = document.getElementById("slot-label");
-      if (label) {
-        label.textContent = debut.toLocaleDateString("fr-FR", {
-          weekday: "long", day: "numeric", month: "long",
-          hour: "2-digit", minute: "2-digit"
-        }) + " · " + duree + " minutes";
-      }
-    }
+  var url = "https://calendar.google.com/calendar/render?action=TEMPLATE" +
+            "&text="     + encodeURIComponent(titre) +
+            "&details="  + encodeURIComponent(details) +
+            "&location=" + encodeURIComponent(CFG.lieu);
+
+  if (dDebut && dFin) {
+    url += "&dates=" + gFormat(dDebut) + "/" + gFormat(dFin);
   }
 
+  /* --- la ligne sous « Votre appel est réservé » --- */
+  var label = document.getElementById("slot-label");
+  if (label && dDebut) {
+    var jour = dDebut.toLocaleDateString("fr-FR", {
+      weekday: "long", day: "numeric", month: "long"
+    });
+    var heure = dDebut.toLocaleTimeString("fr-FR", {
+      hour: "2-digit", minute: "2-digit"
+    });
+    var minutes = dFin ? Math.round((dFin - dDebut) / 60000) : CFG.dureeParDefaut;
+    label.textContent = jour.charAt(0).toUpperCase() + jour.slice(1) +
+                        " à " + heure + " · " + minutes + " minutes";
+  }
+
+  /* --- personnalisation du titre de confirmation --- */
+  var titreConf = document.querySelector(".confirmed strong");
+  if (titreConf && prenom) {
+    titreConf.textContent = prenom + ", votre appel est réservé.";
+  }
+
+  /* --- si Calendly n'a pas passé la date, le bouton reste utile mais
+         on n'affiche pas une heure inventée --- */
   ["gcal-link", "gcal-link-2"].forEach(function (id) {
     var el = document.getElementById(id);
     if (el) el.href = url;
   });
+
 })();
 </script>
 
