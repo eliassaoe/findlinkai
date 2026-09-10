@@ -130,6 +130,23 @@ test('sales_leads is locked down and callable by the public pages', () => {
   assert.match(migration, /left\(btrim\(p_target\), 2000\)/, 'inputs must be length-capped');
 });
 
+test('the inbox view cannot leak leads to the anon key', () => {
+  // Found live before launch: a view with no security_invoker runs with its
+  // OWNER's rights and bypasses the table's RLS. anon read 1 row through
+  // sales_lead_inbox while reading 0 from sales_leads. The anon key is
+  // published in the page source, so that was every lead's email address.
+  assert.match(migration, /alter view public\.sales_lead_inbox set \(security_invoker = on\)/,
+    'the view must evaluate as the caller');
+  assert.match(migration, /revoke all on public\.sales_lead_inbox from anon, authenticated/,
+    'the API roles must not hold the view at all');
+  assert.match(migration, /revoke all on public\.sales_leads from anon, authenticated/,
+    'RLS is not enough — this project grants anon SELECT on public by default');
+  // The revoke has to come after the grant-by-default, i.e. after the table exists.
+  assert.ok(migration.indexOf('create table if not exists public.sales_leads')
+            < migration.indexOf('revoke all on public.sales_leads'),
+    'revoke must follow the create');
+});
+
 // ------------------------------------------------------------------ the page CTA
 function tierFor(slug) {
   // The module is an IIFE that touches document/location on load, so give it

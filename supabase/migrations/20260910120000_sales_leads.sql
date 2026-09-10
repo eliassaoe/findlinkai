@@ -49,6 +49,14 @@ create index if not exists sales_leads_email_idx   on public.sales_leads (lower(
 alter table public.sales_leads enable row level security;
 -- No policies on purpose: nothing reaches this table except the security
 -- definer function below. anon can insert a lead and can read nothing.
+--
+-- RLS alone is NOT enough here, and this was caught the hard way. This project
+-- grants anon SELECT on everything in `public` by schema default, so the table
+-- privileges have to come off explicitly -- otherwise the only thing standing
+-- between a published anon key and every lead's email address is "there
+-- happens to be no policy yet", and the first permissive policy anyone adds
+-- silently opens it.
+revoke all on public.sales_leads from anon, authenticated;
 
 /*
  * Stores one request and returns only what the browser needs to build the
@@ -144,10 +152,26 @@ $fn$;
 revoke all on function public.sales_lead_request(text,text,text,text,text,text,text,text,text,jsonb,text) from public;
 grant execute on function public.sales_lead_request(text,text,text,text,text,text,text,text,text,jsonb,text) to anon, authenticated;
 
--- What to read before a call.
+-- What to read before a call. NOT an API surface.
+--
+-- A view with no security_invoker executes with its OWNER's rights, so it
+-- bypasses the RLS on the table underneath it. Created without these two
+-- lines, this view returned every lead to anyone holding the anon key -- which
+-- is published in the page source. Measured before the fix: anon read 1 row
+-- through the view while reading 0 rows from the table.
 create or replace view public.sales_lead_inbox as
 select id, created_at, offer, email, company_site, role, volume_band, src,
        landing_page, target, message, booked,
        credits_at_request, enrichments_at_request
   from public.sales_leads
  order by created_at desc;
+
+-- Evaluate as the caller, so the table's RLS applies through the view...
+alter view public.sales_lead_inbox set (security_invoker = on);
+-- ...and do not hand it to the API roles in the first place.
+revoke all on public.sales_lead_inbox from anon, authenticated;
+
+-- Applied to production as two migrations: `sales_leads`, then
+-- `sales_leads_lock_down_inbox_view` carrying the three lines above. Folded
+-- together here so a fresh environment never has the gap. Every statement in
+-- this file is idempotent, so applying it over either state is safe.
