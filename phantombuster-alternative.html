@@ -26,7 +26,7 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
             var f,n,i;
             w[u]=w[u]||[],f=function()
             {
-                var o={ti:"343223134", enableAutoSpaTracking: true};
+                if(typeof UET!=="function")return;var o={ti:"343223134", enableAutoSpaTracking: true};
                 o.q=w[u],w[u]=new UET(o),w[u].push("pageLoad")
             },
             n=d.createElement(t),n.src=r,n.async=1,n.onload=n.onreadystatechange=function()
@@ -1113,5 +1113,105 @@ src="https://www.facebook.com/tr?id=2717863625238535&ev=PageView&noscript=1"
       </div>
     </footer>
 
+<script>
+/*
+ * The quiz markup shipped without its behaviour: every quiz-option button
+ * called quizAnswer(), which this page never defined, so the first click threw
+ * a ReferenceError and the widget was inert (PostHog caught it on
+ * /phantombuster-alternative). Same three-step state machine the other
+ * comparison pages use, with results specific to this page's six tools.
+ */
+const quizState = { size: null, need: null, budget: null };
+let quizStepIndex = 1;
+
+function quizShowStep(n) {
+  document.querySelectorAll('.quiz-step').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.quiz-result').forEach(el => el.classList.remove('active'));
+  const target = document.querySelector('.quiz-step[data-step="' + n + '"]');
+  if (target) target.classList.add('active');
+  document.querySelectorAll('.quiz-dot').forEach(dot => {
+    dot.classList.toggle('done', parseInt(dot.dataset.dot, 10) < n);
+  });
+}
+
+function quizAnswer(key, value) {
+  quizState[key] = value;
+  if (quizStepIndex < 3) {
+    quizStepIndex += 1;
+    quizShowStep(quizStepIndex);
+  } else {
+    quizShowResult();
+  }
+}
+
+function quizBack() {
+  if (quizStepIndex > 1) {
+    quizStepIndex -= 1;
+    quizShowStep(quizStepIndex);
+  }
+}
+
+function quizRestart() {
+  quizState.size = null; quizState.need = null; quizState.budget = null;
+  quizStepIndex = 1;
+  quizShowStep(1);
+}
+
+function quizShowResult() {
+  document.querySelectorAll('.quiz-dot').forEach(dot => dot.classList.add('done'));
+  document.querySelectorAll('.quiz-step').forEach(el => el.classList.remove('active'));
+  const result = document.querySelector('.quiz-result');
+  if (result) result.classList.add('active');
+
+  const titleEl = document.getElementById('quizResultTitle');
+  const textEl = document.getElementById('quizResultText');
+  const ctaEl = document.getElementById('quizResultCta');
+  if (!titleEl || !textEl || !ctaEl) return;
+
+  const { need, budget } = quizState;
+  let title, text, cta, href;
+
+  if (need === 'multichannel') {
+    title = 'La Growth Machine is your best fit';
+    text = "You want LinkedIn, email and Twitter running in one sequence, which is exactly what La Growth Machine is built around \u2014 at roughly $60/mo per identity. It does not enrich contact data well, so pairing it with LinkFinder AI for the emails and phone numbers is the usual setup.";
+    cta = 'Try LinkFinder AI alongside it \u2014 free';
+    href = 'https://linkfinderai.com/sign-up';
+  } else if (need === 'pipelines' && (budget === 'high' || budget === 'enterprise')) {
+    title = 'Clay is your best fit';
+    text = "Multi-source enrichment waterfalls with custom logic is Clay's core product, and at your budget the $185/mo Launch plan is workable. Many teams use LinkFinder AI as one of the cheaper sources inside those waterfalls rather than paying per-provider credits for every lookup.";
+    cta = 'See the LinkFinder AI API';
+    href = 'https://linkfinderai.com/api-access';
+  } else if (need === 'pipelines') {
+    title = 'LinkFinder AI is your best fit';
+    text = "You want custom enrichment pipelines, but Clay \u2014 the obvious tool for that \u2014 starts at $185/mo, well above your budget. LinkFinder AI gives you the same lookups through a plain REST API and an MCP server you can wire into n8n, Make or your own code, at $49/mo flat.";
+    cta = 'Try LinkFinder AI Free';
+    href = 'https://linkfinderai.com/sign-up';
+  } else if (need === 'linkedin-safe' && budget === 'low') {
+    title = 'Waalaxy is your best fit';
+    text = "You want LinkedIn automation on a small budget, and Waalaxy starts around \u20ac19/mo with a free plan at 80 invites a month. Be clear-eyed that any tool automating your logged-in session carries account risk \u2014 if that worries you, the data-only route below avoids it entirely.";
+    cta = 'Or get the data without the risk \u2014 free';
+    href = 'https://linkfinderai.com/sign-up';
+  } else if (need === 'linkedin-safe') {
+    title = 'Expandi is your best fit';
+    text = "Safer account handling is Expandi's whole pitch \u2014 dedicated IPs and human-like activity limits \u2014 at around \u20ac99/mo per identity. It automates outreach but does not supply contact data, so most teams run an enrichment source next to it.";
+    cta = 'Try LinkFinder AI alongside it \u2014 free';
+    href = 'https://linkfinderai.com/sign-up';
+  } else {
+    title = 'LinkFinder AI is your best fit';
+    text = "You want contact and company data without automating your LinkedIn account, which is the one thing PhantomBuster cannot give you. Flat $49/mo, no execution-hour or phantom-slot quotas to juggle, and 150 credits to test without a card.";
+    cta = 'Try LinkFinder AI Free';
+    href = 'https://linkfinderai.com/sign-up';
+  }
+
+  titleEl.textContent = title;
+  textEl.textContent = text;
+  ctaEl.textContent = cta;
+  ctaEl.href = href;
+
+  try {
+    if (window.posthog) posthog.capture('quiz_completed', { tool: 'phantombuster-alternative', result: title, need: need, budget: budget });
+  } catch (e) {}
+}
+</script>
 </body>
 </html>

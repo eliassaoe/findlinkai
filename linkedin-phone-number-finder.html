@@ -836,16 +836,17 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
       const input = document.getElementById('linkedinUrl');
       const errorMsg = document.getElementById('urlError');
       const btn = document.getElementById('findPhoneBtn');
+      if (!input || !btn) return;
       const url = input.value.trim();
       const isValid = isValidLinkedInUrl(url);
       if (url && !isValid) {
         input.classList.add('input-error');
-        errorMsg.classList.add('show');
+        if (errorMsg) errorMsg.classList.add('show');
         btn.disabled = true;
         btn.style.opacity = '0.5';
       } else {
         input.classList.remove('input-error');
-        errorMsg.classList.remove('show');
+        if (errorMsg) errorMsg.classList.remove('show');
         btn.disabled = false;
         btn.style.opacity = '1';
       }
@@ -870,7 +871,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 
     async function findPhone() {
       if (!checkSearchLimit()) {
-        document.getElementById('limitModal').style.display = 'flex';
+        { const gate = document.getElementById('limitModal'); if (gate) gate.style.display = 'flex'; }
         return;
       }
 
@@ -1031,7 +1032,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     }
 
     async function processBulkSearch() {
-      if (!checkSearchLimit()) { document.getElementById('limitModal').style.display = 'flex'; return; }
+      if (!checkSearchLimit()) { { const gate = document.getElementById('limitModal'); if (gate) gate.style.display = 'flex'; } return; }
       document.getElementById('csvPreview').classList.add('hidden');
       document.getElementById('resultsSection').classList.remove('hidden');
       document.getElementById('singleResult').classList.add('hidden');
@@ -1065,7 +1066,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
           bulkResults.push({ ...row, phone: 'Error', status: 'Error' });
         }
         processed++;
-        progressBar.style.width = `${(processed / csvData.length) * 100}%`;
+        if (progressBar) progressBar.style.width = `${(processed / csvData.length) * 100}%`;
         updateBulkResultsTable();
       }
 

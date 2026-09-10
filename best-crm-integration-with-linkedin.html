@@ -26,7 +26,7 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
             var f,n,i;
             w[u]=w[u]||[],f=function()
             {
-                var o={ti:"343223134", enableAutoSpaTracking: true};
+                if(typeof UET!=="function")return;var o={ti:"343223134", enableAutoSpaTracking: true};
                 o.q=w[u],w[u]=new UET(o),w[u].push("pageLoad")
             },
             n=d.createElement(t),n.src=r,n.async=1,n.onload=n.onreadystatechange=function()
@@ -1999,5 +1999,114 @@ src="https://www.facebook.com/tr?id=2717863625238535&ev=PageView&noscript=1"
       </div>
     </footer>
 
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script></body>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script>
+<script>
+/*
+ * This page shipped the quiz and FAQ markup without their behaviour, so every
+ * quiz-option and faq-question button threw a ReferenceError on click and both
+ * widgets were inert. Same implementations the sibling comparison pages use.
+ */
+function toggleFAQ(button) {
+  const answer = button.nextElementSibling;
+  const isActive = button.classList.contains('active');
+
+  document.querySelectorAll('.faq-question').forEach(q => {
+    q.classList.remove('active');
+    if (q.nextElementSibling) q.nextElementSibling.classList.remove('show');
+  });
+
+  if (!isActive) {
+    button.classList.add('active');
+    if (answer) answer.classList.add('show');
+  }
+}
+
+const quizState = { crm: null, need: null, budget: null };
+let quizStepIndex = 1;
+
+function quizShowStep(n) {
+  document.querySelectorAll('.quiz-step').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.quiz-result').forEach(el => el.classList.remove('active'));
+  const target = document.querySelector('.quiz-step[data-step="' + n + '"]');
+  if (target) target.classList.add('active');
+  document.querySelectorAll('.quiz-dot').forEach(dot => {
+    dot.classList.toggle('done', parseInt(dot.dataset.dot, 10) < n);
+  });
+}
+
+function quizAnswer(key, value) {
+  quizState[key] = value;
+  if (quizStepIndex < 3) {
+    quizStepIndex += 1;
+    quizShowStep(quizStepIndex);
+  } else {
+    quizShowResult();
+  }
+}
+
+function quizBack() {
+  if (quizStepIndex > 1) {
+    quizStepIndex -= 1;
+    quizShowStep(quizStepIndex);
+  }
+}
+
+function quizRestart() {
+  quizState.crm = null; quizState.need = null; quizState.budget = null;
+  quizStepIndex = 1;
+  quizShowStep(1);
+}
+
+function quizShowResult() {
+  document.querySelectorAll('.quiz-dot').forEach(dot => dot.classList.add('done'));
+  document.querySelectorAll('.quiz-step').forEach(el => el.classList.remove('active'));
+  const result = document.querySelector('.quiz-result');
+  if (result) result.classList.add('active');
+
+  const titleEl = document.getElementById('quizResultTitle');
+  const textEl = document.getElementById('quizResultText');
+  const ctaEl = document.getElementById('quizResultCta');
+  if (!titleEl || !textEl || !ctaEl) return;
+
+  const { crm, need, budget } = quizState;
+  let title, text, cta, href;
+
+  if (need === 'research') {
+    title = 'LinkedIn Sales Navigator is your best fit';
+    text = "Researching people inside LinkedIn itself is what Sales Navigator does best. Its weak spot is getting that data out \u2014 exports cap at 25 contacts at a time \u2014 so most teams pair it with an enrichment API to actually fill CRM fields.";
+    cta = 'Add the data layer \u2014 free';
+    href = 'https://linkfinderai.com/sign-up?intent=crm';
+  } else if (need === 'enterprise' && (budget === 'high' || budget === 'enterprise')) {
+    title = 'ZoomInfo is probably your best fit';
+    text = "Intent data plus account-level coverage at enterprise scale is ZoomInfo's territory, and at your budget it is a fair call. Teams often still run a cheaper API for routine LinkedIn and email lookups so those do not burn enterprise credits.";
+    cta = 'See the LinkFinder AI API';
+    href = 'https://linkfinderai.com/api-access';
+  } else if (crm === 'none') {
+    title = 'Nimble is a good place to start';
+    text = "You do not have a CRM yet, and Nimble builds social and LinkedIn context into the record from day one \u2014 a lighter start than standing up HubSpot or Salesforce first. Once records exist, an enrichment API keeps them from going stale.";
+    cta = 'Try LinkFinder AI Free';
+    href = 'https://linkfinderai.com/sign-up?intent=crm';
+  } else if (need === 'bulk') {
+    title = 'LinkFinder AI is your best fit';
+    text = "Bulk-enriching a list you already have is exactly the job here: upload the CSV, get emails, phones and LinkedIn URLs back on every row, then push it into " + (crm === 'hubspot' ? 'HubSpot' : 'your CRM') + ". $29/month, and free credits to test the match rate on your own list first.";
+    cta = 'Enrich my list free';
+    href = 'https://linkfinderai.com/sign-up?intent=csv';
+  } else {
+    title = 'LinkFinder AI is your best fit';
+    text = "You want CRM records that fill themselves in \u2014 emails, phone numbers and LinkedIn profiles \u2014 rather than another place to do research by hand. That is a data layer, not a CRM feature, and it is what the API is for" + (crm === 'hubspot' ? ', with a native HubSpot sync' : '') + ".";
+    cta = 'Try LinkFinder AI Free';
+    href = 'https://linkfinderai.com/sign-up?intent=crm';
+  }
+
+  titleEl.textContent = title;
+  textEl.textContent = text;
+  ctaEl.textContent = cta;
+  ctaEl.href = href;
+
+  try {
+    if (window.posthog) posthog.capture('quiz_completed', { tool: 'best-crm-integration-with-linkedin', result: title, crm: crm, need: need, budget: budget });
+  } catch (e) {}
+}
+</script>
+</body>
 </html>

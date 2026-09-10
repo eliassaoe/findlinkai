@@ -17,7 +17,7 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
 </script>
 <script src="/js/lf-attribution.js"></script>
 <script src="/js/lf-gate.js"></script>
-<script>(function(w,d,t,r,u){var f,n,i;w[u]=w[u]||[],f=function(){var o={ti:"343223134",enableAutoSpaTracking:true};o.q=w[u],w[u]=new UET(o),w[u].push("pageLoad")},n=d.createElement(t),n.src=r,n.async=1,n.onload=n.onreadystatechange=function(){var s=this.readyState;s&&s!=="loaded"&&s!=="complete"||(f(),n.onload=n.onreadystatechange=null)},i=d.getElementsByTagName(t)[0],i.parentNode.insertBefore(n,i)})(window,document,"script","//bat.bing.com/bat.js","uetq");</script>
+<script>(function(w,d,t,r,u){var f,n,i;w[u]=w[u]||[],f=function(){if(typeof UET!=="function")return;var o={ti:"343223134",enableAutoSpaTracking:true};o.q=w[u],w[u]=new UET(o),w[u].push("pageLoad")},n=d.createElement(t),n.src=r,n.async=1,n.onload=n.onreadystatechange=function(){var s=this.readyState;s&&s!=="loaded"&&s!=="complete"||(f(),n.onload=n.onreadystatechange=null)},i=d.getElementsByTagName(t)[0],i.parentNode.insertBefore(n,i)})(window,document,"script","//bat.bing.com/bat.js","uetq");</script>
 <script async src="https://www.googletagmanager.com/gtag/js?id=AW-17588707745"></script>
 <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','AW-17588707745');</script>
 
@@ -736,7 +736,7 @@ const WORKER_URL = 'https://linkfinder-free-tools.hamoureliasse.workers.dev/';
 
   function showLoadingResult(searchTerm) {
     document.getElementById('resultsSection').classList.remove('hidden');
-    document.getElementById('singleResult').style.display = 'block';
+    { const sr = document.getElementById('singleResult'); if (sr) sr.style.display = 'block'; }
     document.getElementById('bulkResults').classList.add('hidden');
     const card = document.getElementById('resultCard');
     card.className = 'result-card loading';
@@ -783,7 +783,7 @@ const WORKER_URL = 'https://linkfinder-free-tools.hamoureliasse.workers.dev/';
   }
 
   async function findProfile() {
-    if (!checkSearchLimit()) { document.getElementById('limitModal').style.display = 'flex'; return; }
+    if (!checkSearchLimit()) { { const gate = document.getElementById('limitModal'); if (gate) gate.style.display = 'flex'; } return; }
 
     let requestBody = { type: currentSearchType === 'person' ? 'professional_profile_finder' : 'company_linkedin_finder' };
     let searchTerm = '';
@@ -939,9 +939,9 @@ const WORKER_URL = 'https://linkfinder-free-tools.hamoureliasse.workers.dev/';
   }
 
   async function processBulkSearch() {
-    if (!checkSearchLimit()) { document.getElementById('limitModal').style.display = 'flex'; return; }
+    if (!checkSearchLimit()) { { const gate = document.getElementById('limitModal'); if (gate) gate.style.display = 'flex'; } return; }
     document.getElementById('resultsSection').classList.remove('hidden');
-    document.getElementById('singleResult').style.display = 'none';
+    { const sr = document.getElementById('singleResult'); if (sr) sr.style.display = 'none'; }
     document.getElementById('bulkResults').classList.remove('hidden');
 
     const btn = document.getElementById('processBulkBtn');
@@ -969,7 +969,7 @@ const WORKER_URL = 'https://linkfinder-free-tools.hamoureliasse.workers.dev/';
         bulkResults.push({ ...row, linkedinUrl: 'Error', status: 'Error' });
       }
       processed++;
-      document.getElementById('progressBar').style.width = `${(processed / csvData.length) * 100}%`;
+      { const pb = document.getElementById('progressBar'); if (pb) pb.style.width = `${(processed / csvData.length) * 100}%`; }
       renderBulkTable();
       await new Promise(r => setTimeout(r, 100));
     }
