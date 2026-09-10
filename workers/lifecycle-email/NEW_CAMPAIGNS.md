@@ -24,6 +24,42 @@ email signups (`docs/email-verified-is-wrong.md`). Once per person per 30 days.
 chooser in `app.html`), so 7–10 will show no volume until real signups pick a
 route. 11 fires on renewals, so it has an audience from the day it is enabled.
 
+## DRAFT — created 10 Sep, not enabled (the high-ticket ones)
+
+Built by `highticket_workflows.py`, same four-row skeleton, copy in
+`variants.json`. Background and the audience argument:
+`docs/sales-led-motion.md`. **A draft never runs.**
+
+| # | Workflow | id | Fires | Exits on |
+|---|---|---|---|---|
+| 13 | Picked the biggest plan — the tier above it isn't on the page | `01a08a8c-8ec1-0000-cb47-c515a7ed4f10` | `checkout_redirect_started` with `plan_key` `enterprise_monthly`/`enterprise_annual` → +14d → Enterprise mail | `sales_lead_submitted` |
+| 14 | API call succeeded — production without an SLA | `01a08a8d-6775-0000-9132-f7c9e6035766` | `api_first_call_succeeded` → +7d → sells the SLA, not the credits | `sales_lead_submitted` |
+| 15 | Bought credits, never ran anything — done-for-you | `01a08a8e-3be5-0000-d891-0dc78ea7f279` | `checkout_redirect_started` with `plan_key` `payg_medium`/`payg_large` → wait 21d for any `enrich_started` → mail only if none | `enrich_started`, `sales_lead_submitted` |
+
+Three things about these differ from 7–12 and are deliberate:
+
+**They carry no audience guard.** 7–12 narrow to `signup_method = google`
+because `email_verified` is untrustworthy. All three of these trigger on an act
+that verifies an address better than a signup method does — a completed card
+payment, or an authenticated API call — so the guard would have excluded most of
+the paying base from the only emails aimed at the paying base.
+
+**`plan_key` is standing in for volume.** PostHog triggers cannot express "did
+event X N times in M days", and this project has no `plan` person property, so
+"is on the top plan" is not filterable. Picking the largest listed plan is the
+closest observable proxy there is. (`enterprise_*` is the plan the pricing page
+now displays as **Scale** — the key never changed. See `CLAUDE.md`.)
+
+**`sales_lead_submitted` has never fired.** It is captured by
+`talk-to-sales.html`, which ships with the same change. Until that page is live
+the conversion goals never match, which is correct, not a misconfiguration.
+
+None of the three carries a Calendly link directly: all three button through to
+`/talk-to-sales`, which writes the qualification answers to `sales_leads` and
+only then sends the person to Calendly — `linkfinder-ai` for Enterprise,
+`offre-linkfinder-ai-clone` for done-for-you, the same event `app.html` already
+uses for that offer. So the consolidation note below still holds.
+
 **Before enabling 12:** deploy `workers/monthly-receipt` (secrets in its
 README) and hit `/run?dry=1` once to see the counts — on 9 Sep it listed 600
 active accounts, 536 with something found. Then **Test run** the workflow with a

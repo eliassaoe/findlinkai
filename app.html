@@ -140,10 +140,16 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
     .upload-icon{font-size:2rem;color:var(--gray-400);margin-bottom:1rem;}
     .upload-text{font-weight:500;color:var(--gray-700);margin-bottom:0.5rem;}
     .upload-subtext{color:var(--gray-500);font-size:0.875rem;margin-bottom:1rem;}
-    .plans-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:0.75rem;margin:0.25rem 0 0.75rem;}
+    .plans-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(172px,1fr));gap:0.75rem;margin:0.25rem 0 0.75rem;}
     .plan-item{border:2px solid var(--gray-200);border-radius:12px;padding:1.25rem 0.875rem;text-align:center;position:relative;transition:border-color .2s,box-shadow .2s;display:flex;flex-direction:column;}
     .plan-item:hover{border-color:var(--primary);box-shadow:0 4px 16px rgba(37,99,235,0.1);}
     .plan-item-popular{border-color:var(--primary);background:#f0f5ff;box-shadow:0 4px 16px rgba(37,99,235,0.12);}
+    /* The sales-led card. Darker, quieter, and deliberately not competing with
+       the Professional card for attention -- it is for the account that already
+       knows it needs a contract. */
+    .plan-item-enterprise{border-color:var(--gray-900);background:linear-gradient(180deg,#fbfbfd 0%,#fff 60%);}
+    .plan-item-enterprise:hover{border-color:var(--gray-900);box-shadow:0 4px 16px rgba(17,24,39,0.14);}
+    .plan-item-enterprise .plan-item-cta{color:#fff;}
     .plan-popular-badge{position:absolute;top:-11px;left:50%;transform:translateX(-50%);background:var(--primary);color:white;font-size:0.62rem;font-weight:700;padding:0.2rem 0.55rem;border-radius:4px;white-space:nowrap;text-transform:uppercase;letter-spacing:0.06em;}
     .plan-item-name{font-size:0.72rem;font-weight:700;color:var(--gray-500);text-transform:uppercase;letter-spacing:0.07em;margin-top:0.5rem;}
     .plan-item-price{display:flex;align-items:baseline;justify-content:center;gap:0.1rem;margin:0.5rem 0 0;}
@@ -1276,7 +1282,7 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
 
 <!-- Pricing Modal -->
 <div id="pricingModal" class="modal-overlay">
-    <div class="pricing-modal" style="max-width:900px;width:min(900px,calc(100vw - 2rem));">
+    <div class="pricing-modal" style="max-width:1020px;width:min(1020px,calc(100vw - 2rem));">
         <button class="modal-close" onclick="closePricingModal()"><i class="fas fa-times"></i></button>
         <div class="pricing-modal-header">
             <h2 id="pricingModalTitle">Choose Your Plan</h2>
@@ -1298,11 +1304,11 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
             <div class="pricing-faq-item"><i class="fas fa-check-circle"></i> Secure payment</div>
         </div>
         <p style="text-align:center;font-size:0.72rem;color:var(--gray-400);margin-top:0.75rem;">Prices in USD</p>
-        <p style="text-align:center;font-size:0.75rem;color:var(--gray-500);margin-top:0.375rem;">Need more credits? <a href="mailto:support@linkfinderai.com" style="color:var(--primary);font-weight:500;">Email us</a> — we'll set up a custom plan for you.</p>
+        <p style="text-align:center;font-size:0.75rem;color:var(--gray-500);margin-top:0.375rem;">Need more than 50,000 credits a month, an SLA, or an invoice your finance team can process? <a onclick="openEnterpriseCall('pricing_modal_footer')" style="color:var(--primary);font-weight:500;cursor:pointer;">Book a call</a> — Enterprise is quoted against your volume.</p>
     </div>
 </div>
 
-<!-- Sales-assist intercept: shown when someone who viewed Professional/Enterprise closes the pricing modal without buying -->
+<!-- Sales-assist intercept: shown when someone who viewed Professional/Scale closes the pricing modal without buying -->
 <div id="salesInterceptModal" class="cim-overlay">
     <div class="cim-modal" role="dialog" aria-modal="true" aria-labelledby="sciHeadline">
         <div class="cim-icon-wrap">
@@ -2019,11 +2025,23 @@ const DODO_CHECKOUT_WORKER = 'https://dodo-checkout.hamoureliasse.workers.dev/';
 
 const INDUSTRY_AVG_PER_CREDIT = 0.15;
 
+// The top self-serve tier is DISPLAYED as "Scale". Its key is still
+// `enterprise` -- that is the database plan_number, the Dodo product, and the
+// ?plan=enterprise already sitting in abandoned-checkout inboxes. Renaming the
+// key would break all three; the name "Enterprise" was needed for the tier
+// below, which is sold on a call rather than with a card.
+// See docs/sales-led-motion.md.
 const plans = [
     { name:'Starter',      key:'starter',    monthlyPrice:49,  credits:60000  },
     { name:'Professional', key:'pro',        monthlyPrice:89,  credits:240000 },
-    { name:'Enterprise',   key:'enterprise', monthlyPrice:149, credits:600000 },
+    { name:'Scale',        key:'enterprise', monthlyPrice:149, credits:600000 },
 ];
+
+// The sales-led tier. It has no price, no Dodo product and no checkout, because
+// what it is worth depends on volume and what it needs is a contract. It is
+// rendered as a fourth card by renderPlansGrid and goes to /talk-to-sales.
+const ENTERPRISE_FLOOR_USD = 999;
+const ENTERPRISE_CREDITS_FROM = 250000;
 let isAnnualBilling = false;
 
 /*
@@ -2047,7 +2065,9 @@ let isAnnualBilling = false;
 const PLAN_PARAM_ALIASES = {
     starter: 'starter',
     pro: 'pro', professional: 'pro',
-    enterprise: 'enterprise',
+    // Both names resolve to the same plan: `enterprise` for every link already
+    // in an inbox, `scale` for what the pricing page calls it now.
+    enterprise: 'enterprise', scale: 'enterprise',
 };
 
 function resolvePlanParam(planParam, billingParam) {
@@ -2090,7 +2110,7 @@ function renderPlansGrid() {
     // actually do, instead of letting three equally-weighted options stall them.
     const lifetimeEnrichments = parseInt(localStorage.getItem('lf_enrich_count') || '0');
     let recommendedIndex = 0; // Starter
-    if (lifetimeEnrichments > 150) recommendedIndex = 2;      // Enterprise
+    if (lifetimeEnrichments > 150) recommendedIndex = 2;      // Scale
     else if (lifetimeEnrichments > 30) recommendedIndex = 1;  // Professional
     // A bulk gate knows the list size; that beats a usage guess.
     if (typeof window.__lfSizedPlanIndex === 'number' && plans[window.__lfSizedPlanIndex]) recommendedIndex = window.__lfSizedPlanIndex;
@@ -2148,7 +2168,51 @@ function renderPlansGrid() {
             + currentBadge
             + '<button class="'+ctaClass+'" onclick="proceedToCheckoutDirect('+index+', this)" '+ctaDisabled+'>'+ctaLabel+'</button>'
             + '</div>';
-    }).join('');
+    }).join('') + renderEnterpriseCard();
+}
+
+/*
+ * The Enterprise card: a fourth column with no price and no checkout.
+ *
+ * It is here because every plan above it is capped at $149/mo, and an account
+ * that needs 500k credits, an SLA and a purchase order cannot buy that with a
+ * card -- so today it either emails support or leaves. The card is deliberately
+ * the plainest one in the row: no "most popular" badge, no recommendation, no
+ * competing with the Professional card that actually converts.
+ *
+ * docs/traffic-capture-verdict.md is right that the DONE-FOR-YOU service does
+ * not belong in this modal -- someone opening the plans wants to buy a tool, not
+ * to be sold an agency. An Enterprise tier is a different thing: it is the same
+ * tool, bought the way a company with procurement buys things. Done For You
+ * stays where it is, on its own tab, behind its own qualification.
+ */
+function renderEnterpriseCard() {
+    return '<div class="plan-item plan-item-enterprise">'
+        + '<div class="plan-item-name">Enterprise</div>'
+        + '<div class="plan-item-price"><span class="plan-item-amount" style="font-size:1.5rem;">Custom</span></div>'
+        + '<div class="plan-item-annual">from $' + ENTERPRISE_FLOOR_USD.toLocaleString() + '/month</div>'
+        + '<div class="plan-item-credits">' + ENTERPRISE_CREDITS_FROM.toLocaleString() + '+ credits/mo</div>'
+        + '<div class="plan-item-per-credit">volume pricing, quoted</div>'
+        + '<div style="font-size:0.68rem;color:var(--gray-500);line-height:1.5;margin-top:0.5rem;padding-top:0.5rem;border-top:1px dashed var(--gray-200);text-align:left;">'
+        +   '&#10003; Contracted credit allocation<br>'
+        +   '&#10003; 99.9% uptime SLA, named engineer<br>'
+        +   '&#10003; Invoicing, PO, MSA, DPA, security review'
+        + '</div>'
+        + '<div style="font-size:0.68rem;color:var(--gray-400);margin-top:0.35rem;">For teams with procurement</div>'
+        + '<button class="plan-item-cta" style="background:var(--gray-900);border-color:var(--gray-900);" onclick="openEnterpriseCall(\'pricing_modal\')">Book a call</button>'
+        + '</div>';
+}
+
+/*
+ * Sends someone to the qualification form rather than straight to Calendly.
+ * The form writes the row before the redirect, so a person who asks and never
+ * books is still a lead -- the same reasoning as ai_sdr_request()
+ * (docs/ai-sdr-offer.md). Straight-to-Calendly loses exactly those people.
+ */
+function openEnterpriseCall(source) {
+    try { posthog.capture('enterprise_cta_clicked', { source: source || 'unknown' }); } catch(e) {}
+    const url = 'https://linkfinderai.com/talk-to-sales?src=' + encodeURIComponent('app_' + (source || 'unknown'));
+    window.open(url, '_blank', 'noopener');
 }
 
 // NEW: PAYG card renderer — reuses your exact plan-item-* class names so styling matches automatically
@@ -2632,7 +2696,7 @@ function closePricingModal() {
     const toast = document.getElementById('modalToast');
     if (toast) { toast.classList.add('show'); setTimeout(() => toast.classList.remove('show'), 4000); }
 
-    // Higher-tier lookers (Professional/Enterprise) who bail without buying are
+    // Higher-tier lookers (Professional/Scale) who bail without buying are
     // the self-serve-isn't-enough segment — offer a call instead of the generic
     // "you're low on credits" banner below.
     const shownSalesIntercept = maybeShowSalesIntercept();
@@ -2667,7 +2731,7 @@ function closePricingModal() {
 
 // Exit-intent for anyone who opens the plans and closes them without picking one.
 //
-// This used to require hovering Professional or Enterprise on the subscription
+// This used to require hovering Professional or Scale on the subscription
 // tab. Over 60 days that gate let it fire for exactly ONE person, against 219
 // who clicked upgrade and 160 who never selected a plan. The rescue existed and
 // was switched off by its own conditions. (The one person who saw it clicked
