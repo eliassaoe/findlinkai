@@ -31,6 +31,9 @@ SECTIONS = {
             ("enrich-ats-candidate-export", "Enrich an ATS Candidate Export"),
             ("enrich-apollo-export", "Enrich an Apollo Export"),
             ("enrich-crm-contact-list", "Enrich a CRM Contact List"),
+            ("for-revops-teams", "RevOps &amp; Data Teams"),
+            ("for-finance-teams", "Finance Teams"),
+            ("crm-enrichment-pipeline", "CRM Enrichment Pipeline"),
         ],
     ),
     "linkedin.html": (
