@@ -1,5 +1,5 @@
 /**
- * The "What you've found" section under Billing on account.html.
+ * The "What you've found" section at the top of account.html, above Billing.
  *
  * This is the section a subscriber reads just before deciding whether to renew,
  * so the ways it can be wrong are the expensive kind:
@@ -9,7 +9,7 @@
  *      several times the value that was actually delivered.
  *   2. A hero number that does not equal the tiles printed under it — the RPC
  *      also returns an `other` bucket, which has no tile.
- *   3. A brand-new account greeted by a wall of zeroes on its billing page.
+ *   3. A brand-new account greeted by a wall of zeroes on its account page.
  *
  * The page is one large inline script against a live DOM, so as elsewhere in
  * this repo the render functions are lifted out and run against stubs.

@@ -68,8 +68,8 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
 /* Billing section */
 /* Value summary. A hero figure plus a KPI row — the form for "a handful of
    headline numbers". Deliberately not a chart: seven bars would carry less than
-   seven numbers do, and this sits under Billing, where the question is "what did
-   I get for this". */
+   seven numbers do, and this leads the page, above Billing, so the answer to
+   "what did I get for this" is in view before the cost is. */
 .value-section{margin-bottom:2rem;}
 .value-card{background:white;border:1px solid var(--gray-200);border-radius:8px;padding:1.25rem;}
 .value-head{display:flex;align-items:flex-end;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-bottom:1.25rem;}
@@ -356,6 +356,30 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
 <div class="container">
   <div class="main">
 
+    <div class="value-section" id="valueSection" style="display:none;">
+      <div class="section-title">What you've found</div>
+      <div class="value-card">
+        <div class="value-head">
+          <div>
+            <div class="value-hero" id="valueHero">—</div>
+            <div class="value-hero-sub" id="valueHeroSub">contacts and companies found</div>
+            <div class="value-hero-meta" id="valueHeroMeta"></div>
+          </div>
+          <div class="value-head-actions">
+            <div class="value-range" role="group" aria-label="Time range">
+              <button id="valueRange30" class="active" onclick="setValueRange('last_30')">Last 30 days</button>
+              <button id="valueRangeAll" onclick="setValueRange('all_time')">All time</button>
+            </div>
+            <button class="value-share-btn" id="valueShareBtn" onclick="openValueShare()">
+              <i class="fas fa-share-nodes"></i> Share
+            </button>
+          </div>
+        </div>
+        <div class="value-grid" id="valueGrid"></div>
+        <div class="value-note">Counts what came back with a result — lookups that found nothing are not included.</div>
+      </div>
+    </div>
+
     <div class="billing-section">
       <div class="section-title">Billing</div>
       <div class="billing-card">
@@ -427,30 +451,6 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
           <div id="atuOk" class="atu-msg atu-msg-ok"><i class="fas fa-check"></i> <span id="atuOkText">Saved.</span></div>
           <div id="atuErr" class="atu-msg atu-msg-err"><i class="fas fa-exclamation-circle"></i> <span id="atuErrText"></span></div>
         </div>
-      </div>
-    </div>
-
-    <div class="value-section" id="valueSection" style="display:none;">
-      <div class="section-title">What you've found</div>
-      <div class="value-card">
-        <div class="value-head">
-          <div>
-            <div class="value-hero" id="valueHero">—</div>
-            <div class="value-hero-sub" id="valueHeroSub">contacts and companies found</div>
-            <div class="value-hero-meta" id="valueHeroMeta"></div>
-          </div>
-          <div class="value-head-actions">
-            <div class="value-range" role="group" aria-label="Time range">
-              <button id="valueRange30" class="active" onclick="setValueRange('last_30')">Last 30 days</button>
-              <button id="valueRangeAll" onclick="setValueRange('all_time')">All time</button>
-            </div>
-            <button class="value-share-btn" id="valueShareBtn" onclick="openValueShare()">
-              <i class="fas fa-share-nodes"></i> Share
-            </button>
-          </div>
-        </div>
-        <div class="value-grid" id="valueGrid"></div>
-        <div class="value-note">Counts what came back with a result — lookups that found nothing are not included.</div>
       </div>
     </div>
 
@@ -2313,7 +2313,7 @@ window.atuChangeCard = atuChangeCard;
 document.addEventListener('input', (e) => { if (e.target && e.target.id === 'atuThreshold') atuUpdateSummary(); });
 
 /* ---------------------------------------------------------------------
-   What you've found — the value summary under Billing.
+   What you've found — the value summary above Billing.
 
    The number that belongs on a billing page is what the tool FOUND, not what
    it tried. Hit rates run from 93% (company websites) down to 10% (mobile
