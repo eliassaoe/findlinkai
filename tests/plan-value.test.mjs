@@ -86,6 +86,12 @@ test('pricing page and homepage state the same allowances', () => {
         assert.ok(home.includes(`<b>${phones}</b> phone numbers`), `index.html: ${p.name} phones ${phones}`);
         assert.ok(home.includes(`<b>${emails}</b> verified emails`), `index.html: ${p.name} emails ${emails}`);
     }
+    for (const k of V.PACKS) {
+        const a = V.allowance(k.credits);
+        const phones = a.phones.toLocaleString('en-US'), emails = a.emails.toLocaleString('en-US');
+        assert.ok(pricing.includes(`<b>${phones}</b> phone numbers`), `pricing.html: pack ${k.name} phones ${phones}`);
+        assert.ok(home.includes(`<b>${phones}</b> phone numbers <i>or</i> <b>${emails}</b> emails`), `index.html: pack ${k.name} ${phones}/${emails}`);
+    }
     // The old contradiction must not come back.
     assert.ok(!pricing.includes('Look up a business phone number = <strong>1 credit</strong>'));
     assert.ok(!pricing.includes("that's 2,500 fully enriched leads"));
