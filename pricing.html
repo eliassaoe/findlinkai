@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <script src="/js/lf-attribution.js"></script>
+<script src="/js/lf-plan-value.js"></script>
   <meta charset="utf-8" />
   <link rel="icon" href="https://i.ibb.co/jPjX9SSp/Screen-Shot-2025-03-28-at-8-16-15-PM.png">
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -149,6 +150,8 @@
     .payg-credits-info { background: var(--gray-50); padding: 0.75rem; border-radius: 8px; margin-bottom: 1.25rem; }
     .payg-credits-amount { font-size: 1.25rem; font-weight: 700; color: var(--primary); }
     .payg-credits-label { font-size: 0.72rem; color: var(--gray-600); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.35rem; }
+    .payg-what { font-size: 0.74rem; color: var(--gray-600); margin-top: 0.45rem; line-height: 1.45; }
+    .payg-what strong { color: var(--gray-900); font-weight: 600; }
     .payg-per-credit { font-size: 0.75rem; color: var(--gray-500); font-weight: 500; }
     .payg-per-credit span { color: var(--success); font-weight: 700; }
     .payg-note { text-align: center; font-size: 0.8125rem; color: var(--gray-600); margin-top: 1.75rem; }
@@ -278,6 +281,14 @@
   "mainEntity": [
     {
       "@type": "Question",
+      "name": "How much for 100 phone numbers a month?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Starter, $49/month ($29/month billed annually). A phone number costs 50 credits and Starter includes 5,000 credits a month, so that is exactly 100 phone numbers, about $0.49 each. Professional ($89/month, 20,000 credits) covers 400 phone numbers or 2,000 emails a month; Scale ($149/month, 50,000 credits) covers 1,000 phone numbers or 5,000 emails. One-time packs: $25 for 20 phone numbers, $75 for 70, $200 for 200, and they never expire."
+      }
+    },
+    {
+      "@type": "Question",
       "name": "How many credits does each lookup cost?",
       "acceptedAnswer": {
         "@type": "Answer",
@@ -289,7 +300,7 @@
       "name": "What's the difference between plans?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Credits volume — that's it. Every plan includes identical features: all enrichment tools, full API access, batch CSV processing, business email and phone discovery, and CSV/JSON/Excel exports. The only thing that changes is how many credits you get per month: Starter: 5,000 credits/mo — roughly 250 fully enriched leads Professional: 20,000 credits/mo — roughly 1,000 fully enriched leads Scale: 50,000 credits/mo — roughly 2,500 fully enriched leads Above that there is Enterprise, which is not self-serve: volume pricing, a contracted credit allocation, an uptime SLA, invoicing and a named engineer, agreed on a call."
+        "text": "Credits volume — that's it. Every plan includes identical features: all enrichment tools, full API access, batch CSV processing, business email and phone discovery, and CSV/JSON/Excel exports. The only thing that changes is how many credits you get per month: Starter: 5,000 credits/mo — 100 phone numbers, or 500 emails, or 5,000 LinkedIn URLs. Professional: 20,000 credits/mo — 400 phone numbers, or 2,000 emails, or 20,000 LinkedIn URLs. Scale: 50,000 credits/mo — 1,000 phone numbers, or 5,000 emails, or 50,000 LinkedIn URLs. Above that there is Enterprise, which is not self-serve: volume pricing, a contracted credit allocation, an uptime SLA, invoicing and a named engineer, agreed on a call."
       }
     },
     {
@@ -381,6 +392,7 @@
         <span class="logo-text">LinkFinder AI</span>
       </a>
       <div class="auth-buttons">
+        <a href="https://linkfinderai.com/talk-to-sales?src=pricing_header" class="btn btn-outline" style="width:auto;" data-lf-sales-cta="pricing_header">Talk to sales</a>
         <a href="https://linkfinderai.com/log-in" class="btn btn-outline" style="width:auto;">Login</a>
         <a href="https://linkfinderai.com/sign-up" class="btn" style="width:auto;">Start Free Trial</a>
       </div>
@@ -393,7 +405,7 @@
   <!-- HERO -->
   <div class="pricing-hero">
     <h1>Simple, Transparent Pricing</h1>
-    <p>Pay for the credits you need. All plans include every feature — no paywalled tools, no hidden fees.</p>
+    <p>Plans are sized by how many phone numbers, emails and LinkedIn URLs you need each month. Every feature is in every plan — no paywalled tools, no hidden fees.</p>
     <!-- What a plan actually buys is a place for the data to live. Every
          paying customer uploaded a CSV or copied an API key first, so the
          routes come before the credit counts. -->
@@ -402,6 +414,7 @@
       <a href="https://linkfinderai.com/sign-up?intent=sheets"><i class="fas fa-table"></i> Google Sheets add-on</a>
       <a href="https://linkfinderai.com/sign-up?intent=api"><i class="fas fa-code"></i> API + MCP server</a>
       <a href="https://linkfinderai.com/sign-up?intent=crm"><i class="fab fa-hubspot"></i> HubSpot sync</a>
+      <a href="https://linkfinderai.com/talk-to-sales?src=pricing_hero" data-lf-sales-cta="pricing_hero"><i class="fas fa-comments"></i> Talk to sales</a>
     </div>
     <style>
       .pricing-routes{display:flex;flex-wrap:wrap;justify-content:center;gap:0.5rem 0.6rem;margin-top:1.1rem;}
@@ -435,6 +448,10 @@
     <span class="savings-badge">Save up to 40%</span>
   </div>
 
+  <!-- PLAN CALCULATOR: "how much for 100 phone numbers?" answered on the page
+       instead of by email. js/lf-plan-value.js owns the numbers. -->
+  <div id="pricingCalc" style="margin-bottom:1.5rem;"></div>
+
   <!-- CREDIT EXPLAINER -->
   <div class="credit-explainer">
     <div class="credit-explainer-title"><i class="fas fa-info-circle" style="margin-right:4px"></i> What does a credit cost?</div>
@@ -465,7 +482,7 @@
       </div>
     </div>
     <p class="credit-note">
-      <strong>How many do you need?</strong> A fully enriched lead (profile + business email) costs 20 credits. That makes Starter about 250 enriched leads a month, Professional about 1,000, and Scale about 2,500. Phone numbers are the expensive one at 50 credits each &mdash; budget separately if you need them.
+      <strong>In plain numbers:</strong> Starter is 100 phone numbers, or 500 emails, or 5,000 LinkedIn URLs a month. Professional is 400 / 2,000 / 20,000. Scale is 1,000 / 5,000 / 50,000. Mix them however you like &mdash; a phone number costs 50 credits, an email 10, a LinkedIn URL 1.
     </p>
   </div>
 
@@ -495,6 +512,7 @@
         </div>
         <div class="credit-cost">= <span class="cost-per-credit" data-monthly="$0.0098" data-annual="$0.0058">$0.0058</span> per credit</div>
       </div>
+      <div class="lfpv-block"><div class="lfpv-title">Enough for, each month</div><div class="lfpv-row"><span class="lfpv-ico">📞</span><b>100</b> phone numbers <span class="lfpv-per">/ mo</span></div><div class="lfpv-or">or</div><div class="lfpv-row"><span class="lfpv-ico">✉️</span><b>500</b> verified emails <span class="lfpv-per">/ mo</span></div><div class="lfpv-or">or</div><div class="lfpv-row"><span class="lfpv-ico">🔗</span><b>5,000</b> LinkedIn URLs <span class="lfpv-per">/ mo</span></div><div class="lfpv-note">Any mix. 5,000 credits/mo · phone 50 · email 10 · LinkedIn URL 1</div></div>
       <ul class="plan-features">
         <li><span class="check">&#10003;</span> Bulk CSV, unlimited list size, full export</li>
         <li><span class="check">&#10003;</span> Google Sheets add-on</li>
@@ -532,6 +550,7 @@
         </div>
         <div class="credit-cost">= <span class="cost-per-credit" data-monthly="$0.0045" data-annual="$0.0027">$0.0027</span> per credit</div>
       </div>
+      <div class="lfpv-block"><div class="lfpv-title">Enough for, each month</div><div class="lfpv-row"><span class="lfpv-ico">📞</span><b>400</b> phone numbers <span class="lfpv-per">/ mo</span></div><div class="lfpv-or">or</div><div class="lfpv-row"><span class="lfpv-ico">✉️</span><b>2,000</b> verified emails <span class="lfpv-per">/ mo</span></div><div class="lfpv-or">or</div><div class="lfpv-row"><span class="lfpv-ico">🔗</span><b>20,000</b> LinkedIn URLs <span class="lfpv-per">/ mo</span></div><div class="lfpv-note">Any mix. 20,000 credits/mo · phone 50 · email 10 · LinkedIn URL 1</div></div>
       <ul class="plan-features">
         <li><span class="check">&#10003;</span> Bulk CSV, unlimited list size, full export</li>
         <li><span class="check">&#10003;</span> Google Sheets add-on</li>
@@ -571,6 +590,7 @@
         </div>
         <div class="credit-cost">= <span class="cost-per-credit" data-monthly="$0.0030" data-annual="$0.0018">$0.0018</span> per credit</div>
       </div>
+      <div class="lfpv-block"><div class="lfpv-title">Enough for, each month</div><div class="lfpv-row"><span class="lfpv-ico">📞</span><b>1,000</b> phone numbers <span class="lfpv-per">/ mo</span></div><div class="lfpv-or">or</div><div class="lfpv-row"><span class="lfpv-ico">✉️</span><b>5,000</b> verified emails <span class="lfpv-per">/ mo</span></div><div class="lfpv-or">or</div><div class="lfpv-row"><span class="lfpv-ico">🔗</span><b>50,000</b> LinkedIn URLs <span class="lfpv-per">/ mo</span></div><div class="lfpv-note">Any mix. 50,000 credits/mo · phone 50 · email 10 · LinkedIn URL 1</div></div>
       <ul class="plan-features">
         <li><span class="check">&#10003;</span> Bulk CSV, unlimited list size, full export</li>
         <li><span class="check">&#10003;</span> Google Sheets add-on</li>
@@ -601,6 +621,7 @@
       <div class="credits-info">
         <div class="credits-amount">250,000+</div>
         <div class="credits-label">credits per month</div>
+        <div class="credit-cost">5,000+ phone numbers or 25,000+ emails a month</div>
         <div class="credit-cost">volume pricing — <span>quoted per contract</span></div>
       </div>
       <ul class="plan-features">
@@ -657,6 +678,7 @@
           <div class="payg-credits-label">Credits</div>
           <div class="payg-credits-amount">1,000</div>
           <div class="payg-per-credit">≈ <span>$0.0250</span> / credit</div>
+          <div class="payg-what">Enough for <strong>20 phone numbers · 100 emails · 1,000 LinkedIn URLs</strong></div>
         </div>
         <a href="https://linkfinderai.com/sign-up?payg=small" class="btn-trial">Buy Credits</a>
       </div>
@@ -671,6 +693,7 @@
           <div class="payg-credits-label">Credits</div>
           <div class="payg-credits-amount">3,500</div>
           <div class="payg-per-credit">≈ <span>$0.0214</span> / credit</div>
+          <div class="payg-what">Enough for <strong>70 phone numbers · 350 emails · 3,500 LinkedIn URLs</strong></div>
         </div>
         <a href="https://linkfinderai.com/sign-up?payg=medium" class="btn-trial featured-btn">Buy Credits</a>
       </div>
@@ -684,6 +707,7 @@
           <div class="payg-credits-label">Credits</div>
           <div class="payg-credits-amount">10,000</div>
           <div class="payg-per-credit">≈ <span>$0.0200</span> / credit</div>
+          <div class="payg-what">Enough for <strong>200 phone numbers · 1,000 emails · 10,000 LinkedIn URLs</strong></div>
         </div>
         <a href="https://linkfinderai.com/sign-up?payg=large" class="btn-trial">Buy Credits</a>
       </div>
@@ -775,18 +799,30 @@
 
       <div class="faq-item">
         <button class="faq-question" onclick="toggleFAQ(this)">
-          What exactly counts as 1 credit?
+          How much for 100 phone numbers a month?
           <i class="fas fa-chevron-down icon"></i>
         </button>
         <div class="faq-answer">
-          One credit = one enrichment request:
+          <strong>Starter — $49/month ($29/month billed annually).</strong> A phone number costs 50 credits and Starter includes 5,000 credits a month, so that is exactly 100 phone numbers, about $0.49 each ($0.29 on annual). Need 400 a month? Professional at $89. 1,000 a month? Scale at $149. Just a one-off 100? The $200 pack covers 200 phone numbers and never expires. Or type your numbers into the calculator at the top of this page and it will pick for you.
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question" onclick="toggleFAQ(this)">
+          What exactly does a credit buy?
+          <i class="fas fa-chevron-down icon"></i>
+        </button>
+        <div class="faq-answer">
+          Credits are priced per lookup, because a phone number costs far more to source than a URL:
           <ul>
-            <li>Enrich a professional profile = <strong>1 credit</strong></li>
-            <li>Find a business email address = <strong>1 credit</strong></li>
-            <li>Enrich a company record = <strong>1 credit</strong></li>
-            <li>Look up a business phone number = <strong>1 credit</strong></li>
+            <li>Business phone number = <strong>50 credits</strong></li>
+            <li>Verified business email = <strong>10 credits</strong></li>
+            <li>Full LinkedIn profile enrichment = <strong>10 credits</strong></li>
+            <li>LinkedIn URL from an email = <strong>5 credits</strong></li>
+            <li>LinkedIn URL from a name, or any company lookup = <strong>1 credit</strong></li>
+            <li>Employee or lead search = <strong>1 credit</strong> per record returned</li>
           </ul>
-          A typical sales workflow (enrich profile + find email) costs <strong>2 credits per lead</strong>. At 5,000 credits/month on the Starter plan, that's 2,500 fully enriched leads per month.
+          So each month Starter (5,000 credits) is 100 phone numbers <em>or</em> 500 emails <em>or</em> 5,000 LinkedIn URLs; Professional (20,000) is 400 / 2,000 / 20,000; Scale (50,000) is 1,000 / 5,000 / 50,000. Any mix works — the meter just counts down.
         </div>
       </div>
 
@@ -798,9 +834,9 @@
         <div class="faq-answer">
           <strong>Credits volume — that's it.</strong> Every plan includes identical features: all enrichment tools, full API access, batch CSV processing, business email and phone discovery, and CSV/JSON/Excel exports. The only thing that changes is how many credits you get per month:
           <ul>
-            <li><strong>Starter:</strong> 5,000 credits/mo — roughly 250 fully enriched leads</li>
-            <li><strong>Professional:</strong> 20,000 credits/mo — roughly 1,000 fully enriched leads</li>
-            <li><strong>Scale:</strong> 50,000 credits/mo — roughly 2,500 fully enriched leads</li>
+            <li><strong>Starter:</strong> 5,000 credits/mo — 100 phone numbers, or 500 emails, or 5,000 LinkedIn URLs</li>
+            <li><strong>Professional:</strong> 20,000 credits/mo — 400 phone numbers, or 2,000 emails, or 20,000 LinkedIn URLs</li>
+            <li><strong>Scale:</strong> 50,000 credits/mo — 1,000 phone numbers, or 5,000 emails, or 50,000 LinkedIn URLs</li>
             <li><strong>Enterprise:</strong> 250,000+ credits/mo on a contract — quoted on a call, with an SLA and a named engineer</li>
           </ul>
           Pick the plan that matches your monthly lead volume. Upgrade or downgrade any time.
@@ -1052,6 +1088,7 @@
     });
     document.querySelectorAll('.monthly-text').forEach(el => el.classList.toggle('hidden', isAnnual));
     document.querySelectorAll('.annual-text').forEach(el => el.classList.toggle('hidden', !isAnnual));
+    if (window.__lfCalc) window.__lfCalc.render();
   }
 
   function toggleFAQ(button) {
@@ -1064,7 +1101,21 @@
     if (!isActive) { button.classList.add('active'); answer.classList.add('show'); }
   }
 
-  document.addEventListener('DOMContentLoaded', () => setBilling(isAnnual));
+  document.addEventListener('DOMContentLoaded', () => {
+    setBilling(isAnnual);
+    // Default CTAs: sign-up with the plan preselected, pack sign-up, or the
+    // sales form. The calculator reads the billing toggle when it mounts.
+    if (window.LFPlanValue) {
+      window.__lfCalc = LFPlanValue.mountCalculator(document.getElementById('pricingCalc'), {
+        source: 'pricing_page',
+        annual: function () { return isAnnual; },
+        onEnterprise: function () {
+          try { posthog.capture('enterprise_cta_clicked', { source: 'pricing_calculator', page: 'pricing' }); } catch (e) {}
+          location.href = 'https://linkfinderai.com/talk-to-sales?src=pricing_calculator';
+        }
+      });
+    }
+  });
 </script>
 <script src="/js/lf-highticket-cta.js" defer></script>
 </body>

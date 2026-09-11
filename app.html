@@ -13,6 +13,7 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
     })
 </script>
 <script src="/js/lf-attribution.js"></script>
+<script src="/js/lf-plan-value.js"></script>
 <script>
     (function(w,d,t,r,u){var f,n,i;w[u]=w[u]||[],f=function(){var o={ti:"343223134", enableAutoSpaTracking: true};o.q=w[u],w[u]=new UET(o),w[u].push("pageLoad")},n=d.createElement(t),n.src=r,n.async=1,n.onload=n.onreadystatechange=function(){var s=this.readyState;s&&s!=="loaded"&&s!=="complete"||(f(),n.onload=n.onreadystatechange=null)},i=d.getElementsByTagName(t)[0],i.parentNode.insertBefore(n,i)})(window,document,"script","//bat.bing.com/bat.js","uetq");
 </script>
@@ -446,6 +447,7 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
     .cim-tier.selected .cim-tier-check{ display:flex; }
     .cim-tier-badge{ position:absolute; top:-8px; left:50%; transform:translateX(-50%); background:var(--primary); color:#fff; font-size:0.55rem; font-weight:700; letter-spacing:0.03em; text-transform:uppercase; padding:0.1rem 0.4rem; border-radius:4px; white-space:nowrap; }
     .cim-tier-name{ font-size:0.7rem; font-weight:600; color:var(--gray-500); text-transform:uppercase; letter-spacing:0.03em; margin-bottom:0.35rem; }
+    .cim-tier-what{ display:block; font-size:0.62rem; font-weight:500; color:var(--gray-500); text-transform:none; letter-spacing:0; margin-top:0.15rem; line-height:1.3; }
     .cim-tier-credits{ font-size:0.85rem; font-weight:700; color:var(--gray-900); margin-bottom:0.15rem; }
     .cim-tier-price{ font-size:0.8rem; color:var(--gray-600); font-weight:500; }
     .cim-cta{ width:100%; background:var(--primary); color:#fff; border:none; padding:0.875rem; border-radius:8px; font-size:0.95rem; font-weight:600; cursor:pointer; font-family:inherit; transition:background 120ms ease; }
@@ -475,7 +477,7 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
         .cim-tiers{ flex-direction:column; }
         .cim-tier{ display:flex; align-items:center; justify-content:space-between; text-align:left; padding:0.75rem 0.875rem; }
         .cim-tier-badge{ top:-8px; left:0.875rem; transform:none; }
-        .cim-tier-name{ margin-bottom:0; flex:0 0 auto; width:64px; }
+        .cim-tier-name{ margin-bottom:0; flex:1 1 auto; }
         .cim-tier-right{ text-align:right; }
         .cim-tier-right .cim-tier-credits{ margin-bottom:0.1rem; }
     }
@@ -1287,6 +1289,10 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
         <div class="pricing-modal-header">
             <h2 id="pricingModalTitle">Choose Your Plan</h2>
             <p id="pricingModalSubtitle" style="color:var(--gray-500);font-size:0.875rem;margin-top:0.25rem;">Cancel anytime &nbsp;·&nbsp; No questions asked</p>
+            <div class="lf-modal-actions">
+                <button type="button" class="lf-modal-calc-toggle" onclick="togglePricingCalc()">&#128222; How many phone numbers or emails do I get?</button>
+                <button type="button" class="lf-modal-sales" onclick="openEnterpriseCall('pricing_modal_header')">Talk to sales</button>
+            </div>
         </div>
       <div class="billing-toggle">
     <button type="button" class="billing-btn" id="monthlyBtn" onclick="setBilling('monthly')">Monthly</button>
@@ -1297,6 +1303,7 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
             <i class="fas fa-infinity" style="color:#16a34a;"></i>
             <span><strong>Credits never expire</strong> — buy once, use whenever you need them.</span>
         </div>
+        <div id="pricingCalc" style="display:none;"></div>
         <div class="plans-grid" id="plansGrid"></div>
         <div class="pricing-faq">
             <div class="pricing-faq-item"><i class="fas fa-check-circle"></i> Cancel anytime, no questions</div>
@@ -1304,7 +1311,7 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
             <div class="pricing-faq-item"><i class="fas fa-check-circle"></i> Secure payment</div>
         </div>
         <p style="text-align:center;font-size:0.72rem;color:var(--gray-400);margin-top:0.75rem;">Prices in USD</p>
-        <p style="text-align:center;font-size:0.75rem;color:var(--gray-500);margin-top:0.375rem;">Need more than 50,000 credits a month, an SLA, or an invoice your finance team can process? <a onclick="openEnterpriseCall('pricing_modal_footer')" style="color:var(--primary);font-weight:500;cursor:pointer;">Book a call</a> — Enterprise is quoted against your volume.</p>
+        <p style="text-align:center;font-size:0.75rem;color:var(--gray-500);margin-top:0.375rem;">Need more than 1,000 phone numbers or 5,000 emails a month, an SLA, or an invoice your finance team can process? <a onclick="openEnterpriseCall('pricing_modal_footer')" style="color:var(--primary);font-weight:500;cursor:pointer;">Talk to sales</a> — Enterprise is quoted against your volume.</p>
     </div>
 </div>
 
@@ -1367,7 +1374,7 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
             <div class="cim-tiers" id="cimTiers">
                 <div class="cim-tier" data-index="0" data-credits="1000" data-price="25" onclick="cimSelectTier(this)">
                     <span class="cim-tier-check">✓</span>
-                    <div class="cim-tier-name">Small</div>
+                    <div class="cim-tier-name">Small<span class="cim-tier-what">20 phone numbers · 100 emails · 1,000 LinkedIn URLs</span></div>
                     <div class="cim-tier-right">
                         <div class="cim-tier-credits">1,000</div>
                         <div class="cim-tier-price">$25</div>
@@ -1376,7 +1383,7 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
                 <div class="cim-tier selected" data-index="1" data-credits="3500" data-price="75" onclick="cimSelectTier(this)">
                     <span class="cim-tier-check">✓</span>
                     <span class="cim-tier-badge">Best value</span>
-                    <div class="cim-tier-name">Medium</div>
+                    <div class="cim-tier-name">Medium<span class="cim-tier-what">70 phone numbers · 350 emails · 3,500 LinkedIn URLs</span></div>
                     <div class="cim-tier-right">
                         <div class="cim-tier-credits">3,500</div>
                         <div class="cim-tier-price">$75</div>
@@ -1384,7 +1391,7 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
                 </div>
                 <div class="cim-tier" data-index="2" data-credits="10000" data-price="200" onclick="cimSelectTier(this)">
                     <span class="cim-tier-check">✓</span>
-                    <div class="cim-tier-name">Large</div>
+                    <div class="cim-tier-name">Large<span class="cim-tier-what">200 phone numbers · 1,000 emails · 10,000 LinkedIn URLs</span></div>
                     <div class="cim-tier-right">
                         <div class="cim-tier-credits">10,000</div>
                         <div class="cim-tier-price">$200</div>
@@ -1396,7 +1403,7 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
         </div>
 
         <hr class="cim-divider">
-        <p class="cim-sub-line">Need credits regularly? Starter plan gives 60,000 credits/mo for $49 — 24× cheaper per credit.</p>
+        <p class="cim-sub-line">Need them every month? Starter is $49/mo for 5,000 credits — 100 phone numbers or 500 emails a month, about half the price per credit of a pack (a third on annual).</p>
         <div class="cim-sub-link-wrap">
             <button type="button" class="cim-sub-link" onclick="cimSeeSubscriptionPlans()">See subscription plans →</button>
         </div>
@@ -2148,21 +2155,14 @@ function renderPlansGrid() {
                 ? '<div style="background:#eff6ff;color:#2563eb;font-size:0.62rem;font-weight:700;padding:0.2rem 0.55rem;border-radius:4px;margin-bottom:0.35rem;display:inline-block;text-transform:uppercase;letter-spacing:0.05em;">Recommended for you</div>'
                 : '');
         const ctaDisabled = isCurrentPlan ? 'disabled style="opacity:0.5;cursor:not-allowed;"' : '';
-        const anchorCredits = isAnnual ? plan.credits : Math.round(plan.credits/12);
-        const anchorLinkedIn = anchorCredits.toLocaleString();
-        const anchorPhone = Math.floor(anchorCredits/50).toLocaleString();
-        const periodWord = isAnnual ? 'year' : 'month';
-        const anchorPrice = isAnnual ? annualTotal : monthlyEquiv;
-        const valueAnchor = '<div style="font-size:0.68rem;color:var(--gray-500);line-height:1.4;margin-top:0.5rem;padding-top:0.5rem;border-top:1px dashed var(--gray-200);">$'+anchorPrice+'/'+periodWord+' &asymp; '+anchorLinkedIn+' enrichments<br>(~'+anchorLinkedIn+' LinkedIn URLs or ~'+anchorPhone+' phone lookups)</div>';
         const socialProofLine = '<div style="font-size:0.68rem;color:var(--gray-400);margin-top:0.35rem;">'+socialProof[index]+'</div>';
         return '<div class="plan-item '+(isPopular && !isCurrentPlan ?'plan-item-popular':'')+'" onmouseenter="window.__lfLastHoveredPlanIndex='+index+'">'
             + (isPopular && !isCurrentPlan && !(index === recommendedIndex && lifetimeEnrichments > 0) ? '<div class="plan-popular-badge">Most Popular</div>' : '')
             + '<div class="plan-item-name">'+plan.name+'</div>'
             + '<div class="plan-item-price"><span class="plan-item-amount">$'+monthlyEquiv+'</span><span class="plan-item-period">/mo</span></div>'
             + (isAnnual ? '<div class="plan-item-annual">billed $'+annualTotal+'/year</div>' : '<div class="plan-item-annual">&nbsp;</div>')
-            + '<div class="plan-item-credits">'+creditsLabel+'</div>'
-            + '<div class="plan-item-per-credit">&asymp; $'+perCredit+' / credit</div>'
-            + valueAnchor
+            + LFPlanValue.allowanceHTML(Math.round(plan.credits/12), { period: 'mo' })
+            + '<div class="plan-item-per-credit">'+creditsLabel+' &middot; &asymp; $'+perCredit+' / credit</div>'
             + socialProofLine
             + currentBadge
             + '<button class="'+ctaClass+'" onclick="proceedToCheckoutDirect('+index+', this)" '+ctaDisabled+'>'+ctaLabel+'</button>'
@@ -2228,8 +2228,8 @@ function renderPaygCards() {
             + '<div class="plan-item-name">'+pack.name+'</div>'
             + '<div class="plan-item-price"><span class="plan-item-amount">$'+pack.price+'</span></div>'
             + '<div class="plan-item-annual">one-time · never expires</div>'
-            + '<div class="plan-item-credits">'+pack.credits.toLocaleString()+' credits</div>'
-            + '<div class="plan-item-per-credit">&asymp; $'+pack.perCredit+' / credit</div>'
+            + LFPlanValue.allowanceHTML(pack.credits, { title: 'Enough for', note: pack.credits.toLocaleString()+' credits, never expire · phone 50 · email 10 · LinkedIn URL 1' })
+            + '<div class="plan-item-per-credit">'+pack.credits.toLocaleString()+' credits &middot; &asymp; $'+pack.perCredit+' / credit</div>'
             + '<button class="plan-item-cta'+(pack.featured ? ' plan-item-cta-popular' : '')+'" onclick="proceedToPaygCheckout('+index+', this)">Buy Credits</button>'
             + '</div>';
     }).join('');
@@ -2619,6 +2619,7 @@ async function proceedToPaygCheckout(index, btnEl) {
 
 function setBilling(type) {
     billingMode = type; // 'payg' | 'monthly' | 'annual'
+    if (window.__lfCalc) window.__lfCalc.render();
     document.getElementById('paygBtn').classList.toggle('active', billingMode === 'payg');
     document.getElementById('monthlyBtn').classList.toggle('active', billingMode === 'monthly');
     document.getElementById('annualBtn').classList.toggle('active', billingMode === 'annual');
@@ -2686,7 +2687,46 @@ function showPricingModal(trigger, extra) {
     document.getElementById('pricingModal').classList.add('show');
     document.body.style.overflow = 'hidden';
     renderPlansGrid();
+    // Someone sent here by a gate they hit at a known size does not need the
+    // calculator; someone browsing the plans usually does.
+    togglePricingCalc(!(trigger === 'bulk_credits_gated' || trigger === 'export_gated' || isExistingSubscriber));
     try { posthog.capture('pricing_modal_opened', { credits_remaining: currentCredits, is_subscriber: isExistingSubscriber, trigger: trigger || 'manual' }); } catch(e) {}
+}
+
+/*
+ * The plan calculator. "How much for 100 phone numbers?" is the question
+ * people actually email, and "5,000 credits/mo" is not an answer to it.
+ * js/lf-plan-value.js owns the conversions; this just mounts it inside the
+ * modal, collapsed by default so someone who already knows the plan is not
+ * pushed past three inputs to reach the cards.
+ */
+let __lfPricingCalcMounted = false;
+function mountPricingCalculator() {
+    const host = document.getElementById('pricingCalc');
+    if (!host || !window.LFPlanValue || __lfPricingCalcMounted) return;
+    __lfPricingCalcMounted = true;
+    window.__lfCalc = LFPlanValue.mountCalculator(host, {
+        source: 'app_modal',
+        annual: function () { return billingMode !== 'monthly'; },
+        onPlan: function (index) {
+            if (billingMode === 'payg') setBilling('annual');
+            proceedToCheckoutDirect(index, null);
+        },
+        onPack: function (index) { proceedToPaygCheckout(index, null); },
+        onEnterprise: function () { openEnterpriseCall('pricing_calculator'); }
+    });
+}
+function togglePricingCalc(force) {
+    const host = document.getElementById('pricingCalc');
+    if (!host) return;
+    const open = typeof force === 'boolean' ? force : host.style.display === 'none';
+    host.style.display = open ? 'block' : 'none';
+    if (open) {
+        mountPricingCalculator();
+        const first = host.querySelector('input');
+        if (first) { try { first.focus(); first.select(); } catch (e) {} }
+    }
+    try { posthog.capture('pricing_calculator_toggled', { open: open, page: 'app' }); } catch (e) {}
 }
 
 function closePricingModal() {

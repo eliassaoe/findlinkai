@@ -15,6 +15,7 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
 posthog.init('phc_HqgzMyWAMtzH7K5j9CLw0dijB0I9W1VjPkkyzg9KOFG',{api_host:'https://us.i.posthog.com',defaults:'2025-11-30',person_profiles:'identified_only',sanitize_properties:window.__lfSanitize});
 </script>
 <script src="/js/lf-attribution.js"></script>
+<script src="/js/lf-plan-value.js"></script>
 <script>(function(w,d,t,r,u){var f,n,i;w[u]=w[u]||[],f=function(){var o={ti:"343223134",enableAutoSpaTracking:true};o.q=w[u],w[u]=new UET(o),w[u].push("pageLoad")},n=d.createElement(t),n.src=r,n.async=1,n.onload=n.onreadystatechange=function(){var s=this.readyState;s&&s!=="loaded"&&s!=="complete"||(f(),n.onload=n.onreadystatechange=null)},i=d.getElementsByTagName(t)[0],i.parentNode.insertBefore(n,i)})(window,document,"script","//bat.bing.com/bat.js","uetq");</script>
 <script async src="https://www.googletagmanager.com/gtag/js?id=AW-17588707745"></script>
 <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','AW-17588707745');</script>
@@ -499,6 +500,10 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
     <div class="pricing-modal-header">
       <h2 id="pricingModalTitle">Choose Your Plan</h2>
       <p id="pricingModalSubtitle" style="color:var(--gray-500);font-size:.875rem;margin-top:.25rem;">Cancel anytime · No questions asked</p>
+      <div class="lf-modal-actions">
+                <button type="button" class="lf-modal-calc-toggle" onclick="togglePricingCalc()">&#128222; How many phone numbers or emails do I get?</button>
+                <button type="button" class="lf-modal-sales" onclick="openEnterpriseCall('pricing_modal_header')">Talk to sales</button>
+            </div>
     </div>
     <div class="billing-toggle">
       <button class="billing-btn" id="monthlyBtn" onclick="setBilling('monthly')">Monthly</button>
@@ -509,6 +514,7 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
       <i class="fas fa-infinity" style="color:#16a34a;"></i>
       <span><strong>Credits never expire</strong> — buy once, use whenever you need them.</span>
     </div>
+    <div id="pricingCalc" style="display:none;"></div>
     <div class="plans-grid" id="plansGrid"></div>
     <div class="pricing-faq">
       <div class="pricing-faq-item"><i class="fas fa-check-circle"></i> Cancel anytime, no questions</div>
@@ -516,7 +522,7 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
       <div class="pricing-faq-item"><i class="fas fa-check-circle"></i> Secure payment</div>
     </div>
     <p style="text-align:center;font-size:.72rem;color:var(--gray-400);margin-top:.75rem;">Prices in USD · Secure payment · Cancel anytime</p>
-    <p style="text-align:center;font-size:.75rem;color:var(--gray-500);margin-top:.375rem;">Not sure which plan? <a href="mailto:support@linkfinderai.com" style="color:var(--primary);font-weight:500;">Email us</a> — we'll recommend the right one.</p>
+    <p style="text-align:center;font-size:.75rem;color:var(--gray-500);margin-top:.375rem;">Not sure which plan? <a onclick="togglePricingCalc(true)" style="color:var(--primary);font-weight:500;cursor:pointer;">Tell us how many phone numbers or emails you need</a>, or <a onclick="openEnterpriseCall('pricing_modal_footer')" style="color:var(--primary);font-weight:500;cursor:pointer;">talk to sales</a>.</p>
   </div>
 </div>
 
@@ -648,7 +654,7 @@ const INDUSTRY_AVG_PER_CREDIT = 0.15;
 const plans = [
     { name:'Starter',      key:'starter',    monthlyPrice:49,  credits:60000  },
     { name:'Professional', key:'pro',        monthlyPrice:89,  credits:240000 },
-    { name:'Enterprise',   key:'enterprise', monthlyPrice:149, credits:600000 },
+    { name:'Scale',        key:'enterprise', monthlyPrice:149, credits:600000 },
 ];
 let billingMode = 'annual'; // 'payg' | 'monthly' | 'annual'
 
@@ -914,21 +920,14 @@ function renderPlansGrid() {
                 ? '<div style="background:#eff6ff;color:#2563eb;font-size:0.62rem;font-weight:700;padding:0.2rem 0.55rem;border-radius:4px;margin-bottom:0.35rem;display:inline-block;text-transform:uppercase;letter-spacing:0.05em;">Recommended for you</div>'
                 : '');
         const ctaDisabled = isCurrentPlan ? 'disabled style="opacity:0.5;cursor:not-allowed;"' : '';
-        const anchorCredits = isAnnual ? plan.credits : Math.round(plan.credits/12);
-        const anchorLinkedIn = anchorCredits.toLocaleString();
-        const anchorPhone = Math.floor(anchorCredits/50).toLocaleString();
-        const periodWord = isAnnual ? 'year' : 'month';
-        const anchorPrice = isAnnual ? annualTotal : monthlyEquiv;
-        const valueAnchor = '<div style="font-size:0.68rem;color:var(--gray-500);line-height:1.4;margin-top:0.5rem;padding-top:0.5rem;border-top:1px dashed var(--gray-200);">$'+anchorPrice+'/'+periodWord+' &asymp; '+anchorLinkedIn+' enrichments<br>(~'+anchorLinkedIn+' LinkedIn URLs or ~'+anchorPhone+' phone lookups)</div>';
         const socialProofLine = '<div style="font-size:0.68rem;color:var(--gray-400);margin-top:0.35rem;">'+socialProof[index]+'</div>';
         return '<div class="plan-item '+(isPopular && !isCurrentPlan ?'plan-item-popular':'')+'">'
             + (isPopular && !isCurrentPlan && !(index === recommendedIndex && lifetimeEnrichments > 0) ? '<div class="plan-popular-badge">Most Popular</div>' : '')
             + '<div class="plan-item-name">'+plan.name+'</div>'
             + '<div class="plan-item-price"><span class="plan-item-amount">$'+monthlyEquiv+'</span><span class="plan-item-period">/mo</span></div>'
             + (isAnnual ? '<div class="plan-item-annual">billed $'+annualTotal+'/year</div>' : '<div class="plan-item-annual">&nbsp;</div>')
-            + '<div class="plan-item-credits">'+creditsLabel+'</div>'
-            + '<div class="plan-item-per-credit">&asymp; $'+perCredit+' / credit</div>'
-            + valueAnchor
+            + LFPlanValue.allowanceHTML(Math.round(plan.credits/12), { period: 'mo' })
+            + '<div class="plan-item-per-credit">'+creditsLabel+' &middot; &asymp; $'+perCredit+' / credit</div>'
             + socialProofLine
             + currentBadge
             + '<button class="'+ctaClass+'" onclick="proceedToCheckoutDirect('+index+', this)" '+ctaDisabled+'>'+ctaLabel+'</button>'
@@ -949,8 +948,8 @@ function renderPaygCards() {
             + '<div class="plan-item-name">'+pack.name+'</div>'
             + '<div class="plan-item-price"><span class="plan-item-amount">$'+pack.price+'</span></div>'
             + '<div class="plan-item-annual">one-time · never expires</div>'
-            + '<div class="plan-item-credits">'+pack.credits.toLocaleString()+' credits</div>'
-            + '<div class="plan-item-per-credit">&asymp; $'+pack.perCredit+' / credit</div>'
+            + LFPlanValue.allowanceHTML(pack.credits, { title: 'Enough for', note: pack.credits.toLocaleString()+' credits, never expire · phone 50 · email 10 · LinkedIn URL 1' })
+            + '<div class="plan-item-per-credit">'+pack.credits.toLocaleString()+' credits &middot; &asymp; $'+pack.perCredit+' / credit</div>'
             + '<button class="plan-item-cta'+(pack.featured ? ' plan-item-cta-popular' : '')+'" onclick="proceedToPaygCheckout('+index+', this)">Buy Credits</button>'
             + '</div>';
     }).join('');
@@ -1113,6 +1112,7 @@ function showToast() {
 
 function setBilling(type) {
     billingMode = type; // 'payg' | 'monthly' | 'annual'
+    if (window.__lfCalc) window.__lfCalc.render();
     document.getElementById('paygBtn').classList.toggle('active', billingMode === 'payg');
     document.getElementById('monthlyBtn').classList.toggle('active', billingMode === 'monthly');
     document.getElementById('annualBtn').classList.toggle('active', billingMode === 'annual');
@@ -1153,7 +1153,51 @@ function showPricingModal(trigger, extra) {
     document.getElementById('pricingModal').classList.add('show');
     document.body.style.overflow = 'hidden';
     renderPlansGrid();
+    togglePricingCalc(!isExistingSubscriber);
     try { posthog.capture('pricing_modal_opened', { credits_remaining: currentCredits, is_subscriber: isExistingSubscriber, trigger: trigger || 'manual', page: 'account' }); } catch(e) {}
+}
+
+/*
+ * The plan calculator. "How much for 100 phone numbers?" is the question
+ * people actually email, and "5,000 credits/mo" is not an answer to it.
+ * js/lf-plan-value.js owns the conversions; this just mounts it inside the
+ * modal, collapsed by default so someone who already knows the plan is not
+ * pushed past three inputs to reach the cards.
+ */
+let __lfPricingCalcMounted = false;
+function mountPricingCalculator() {
+    const host = document.getElementById('pricingCalc');
+    if (!host || !window.LFPlanValue || __lfPricingCalcMounted) return;
+    __lfPricingCalcMounted = true;
+    window.__lfCalc = LFPlanValue.mountCalculator(host, {
+        source: 'account_modal',
+        annual: function () { return billingMode !== 'monthly'; },
+        onPlan: function (index) {
+            if (billingMode === 'payg') setBilling('annual');
+            proceedToCheckoutDirect(index, null);
+        },
+        onPack: function (index) { proceedToPaygCheckout(index, null); },
+        onEnterprise: function () { openEnterpriseCall('pricing_calculator'); }
+    });
+}
+function togglePricingCalc(force) {
+    const host = document.getElementById('pricingCalc');
+    if (!host) return;
+    const open = typeof force === 'boolean' ? force : host.style.display === 'none';
+    host.style.display = open ? 'block' : 'none';
+    if (open) {
+        mountPricingCalculator();
+        const first = host.querySelector('input');
+        if (first) { try { first.focus(); first.select(); } catch (e) {} }
+    }
+    try { posthog.capture('pricing_calculator_toggled', { open: open, page: 'account' }); } catch (e) {}
+}
+
+// Same routing as app.html: the qualification form writes the lead before
+// the Calendly redirect, so a person who asks and never books still exists.
+function openEnterpriseCall(source) {
+    try { posthog.capture('enterprise_cta_clicked', { source: source || 'unknown', page: 'account' }); } catch(e) {}
+    window.open('https://linkfinderai.com/talk-to-sales?src=' + encodeURIComponent('account_' + (source || 'unknown')), '_blank', 'noopener');
 }
 
 function closePricingModal() {
