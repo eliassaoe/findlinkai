@@ -525,7 +525,7 @@ PAGES.append({
 PAGES.append({
     "slug": "linkedin-xray-search-generator",
     "shape": "tool",
-    "title": "LinkedIn X-Ray Search Generator - Free Google Search Builder | LinkFinder AI",
+    "title": "LinkedIn X-Ray Search Generator - Free Tool | LinkFinder AI",
     "description": "Free LinkedIn X-ray search generator. Build a Google search that finds public LinkedIn profiles by title, skill, company and location. No Recruiter seat needed.",
     "h1": "LinkedIn X-Ray Search Generator",
     "subtitle": "Search public LinkedIn profiles through Google. No Recruiter seat, no Sales Navigator subscription.",
@@ -651,7 +651,7 @@ PAGES.append({
 PAGES.append({
     "slug": "enrich-sales-navigator-export",
     "shape": "landing",
-    "title": "Enrich a Sales Navigator Export with Emails and Phone Numbers | LinkFinder AI",
+    "title": "Enrich a Sales Navigator Export with Emails | LinkFinder AI",
     "description": "Upload your Sales Navigator export and get verified work emails and direct dial phone numbers back. Handles the export's column names automatically. 10 free credits.",
     "h1": "Enrich a Sales Navigator Export",
     "subtitle": "Upload the CSV you exported from Sales Navigator. Get verified work emails and direct dials back, ready for your sequencer.",
@@ -713,7 +713,7 @@ PAGES.append({
 PAGES.append({
     "slug": "enrich-ats-candidate-export",
     "shape": "landing",
-    "title": "Enrich an ATS Candidate Export - Add Missing Emails and Phones | LinkFinder AI",
+    "title": "Enrich an ATS Candidate Export - Emails &amp; Phones | LinkFinder AI",
     "description": "Upload a candidate export from Greenhouse, Lever, Workable, Bullhorn or Recruitee and fill in missing emails and mobile numbers. 10 free credits, no card.",
     "h1": "Enrich an ATS Candidate Export",
     "subtitle": "Upload a candidate export and fill in the missing emails and mobile numbers, so your pipeline is reachable again.",
