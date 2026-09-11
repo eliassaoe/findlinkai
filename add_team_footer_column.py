@@ -26,12 +26,14 @@ HEADING = "For your team"
 LINKS = [
     ("/for-recruiting-teams", "Recruitment Data Enrichment"),
     ("/for-sales-teams", "Sales Team Data Enrichment"),
+    ("/for-revops-teams", "RevOps &amp; Data Teams"),
+    ("/for-finance-teams", "Finance Teams"),
+    ("/crm-enrichment-pipeline", "CRM Enrichment Pipeline"),
     ("/enrich-sales-navigator-export", "Enrich a Sales Navigator Export"),
     ("/enrich-ats-candidate-export", "Enrich an ATS Export"),
     ("/bulk-linkedin-email-finder", "Bulk LinkedIn Email Finder"),
     ("/bulk-linkedin-phone-number-finder", "Bulk LinkedIn Phone Finder"),
     ("/email-permutator", "Free Email Permutator"),
-    ("/boolean-search-string-generator", "Free Boolean Search Generator"),
 ]
 
 

@@ -74,6 +74,9 @@
       'text-decoration:none;font-weight:600;padding:.8rem 1.25rem;border-radius:8px;font-size:.95rem;}',
       '.lfup-btn:hover{background:#1e40af;}',
       '.lfup-btn:focus-visible{outline:2px solid #1e40af;outline-offset:2px;}',
+      '.lfup-route{margin-top:.9rem;border:1px solid var(--lfup-bd);border-radius:10px;padding:1rem 1.1rem;background:#f9fafb;}',
+      '.lfup-route-n{font-weight:600;font-size:1rem;margin-bottom:.3rem;}',
+      '.lfup-route p{font-size:.875rem;color:#374151;line-height:1.6;margin:0 0 .85rem;}',
       '.lfup-again{display:inline-block;margin-top:.7rem;font-size:.83rem;color:var(--lfup-mut);',
       'background:none;border:0;cursor:pointer;text-decoration:underline;font-family:inherit;}'
     ].join('');
@@ -139,6 +142,17 @@
       if (file.files && file.files[0]) read(file.files[0]);
     });
 
+    // Hand the list forward so signing up does not throw the work away.
+    // The app can read lf_pending_list and pre-load these rows.
+    function savePending(total, rows, column) {
+      try {
+        localStorage.setItem(PENDING_KEY, JSON.stringify({
+          ts: Date.now(), source: tool, column: column,
+          total: total, rows: (rows || []).slice(0, MAX_PENDING)
+        }));
+      } catch (e) { /* private mode, quota — the preview still works */ }
+    }
+
     function fail(msg) {
       out.innerHTML = '<div class="lfup-err">' + msg + '</div>';
     }
@@ -164,10 +178,29 @@
       }
       var col = w.lfFindColumn(parsed.headers, 'linkedin_profile');
       if (col === -1) {
-        capture('preview_no_url_column', { tool: tool, headers: parsed.headers.length });
+        // No profile URLs, but a name/company file is still a real list and a
+        // real customer. Route it instead of dead-ending on an error.
+        var nameCol = w.lfFindColumn(parsed.headers, 'full_name');
+        var coCol = w.lfFindColumn(parsed.headers, 'company');
+        var domCol = w.lfFindColumn(parsed.headers, 'company_domain');
+        capture('preview_no_url_column', {
+          tool: tool, rows: parsed.rows.length,
+          has_name: nameCol !== -1, has_company: coCol !== -1 || domCol !== -1
+        });
+        if (nameCol !== -1 && (coCol !== -1 || domCol !== -1)) {
+          savePending(parsed.rows.length, [], 'name_company');
+          out.innerHTML = '<div class="lfup-route">'
+            + '<div class="lfup-route-n">' + parsed.rows.length
+            + ' rows with names and companies</div>'
+            + '<p>This file has no LinkedIn URL column, which is fine &mdash; names plus '
+            + 'companies work too, they just run through a different finder.</p>'
+            + '<a class="lfup-btn" href="https://linkfinderai.com/csv-email-finder">'
+            + 'Enrich these ' + parsed.rows.length + ' rows</a></div>';
+          return;
+        }
         fail('No LinkedIn profile URL column found. The columns in this file are: <strong>'
            + esc(parsed.headers.slice(0, 8).join(', ')) + '</strong>.<br>'
-           + 'Working from names and companies instead? Use the '
+           + 'A list of names and companies works too &mdash; use the '
            + '<a href="https://linkfinderai.com/csv-email-finder">CSV email finder</a>.');
         return;
       }
@@ -250,17 +283,7 @@
       var shown = Math.min(sampleSize, urls.length);
       render(urls, results, false);
 
-      // Hand the list forward so signing up does not throw the work away.
-      // The app can read lf_pending_list and pre-load these rows.
-      try {
-        localStorage.setItem(PENDING_KEY, JSON.stringify({
-          ts: Date.now(),
-          source: tool,
-          column: 'linkedin_url',
-          total: urls.length,
-          rows: urls.slice(0, MAX_PENDING)
-        }));
-      } catch (e) { /* private mode, quota — the preview still works */ }
+      savePending(urls.length, urls, 'linkedin_url');
 
       var i = 0;
       (function next() {

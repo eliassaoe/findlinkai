@@ -224,6 +224,21 @@ PAGE = """<!DOCTYPE html>
 </html>
 """
 
+ROUTER_SCRIPTS = """
+<script src="/js/lf-csv.js"></script>
+<script src="/js/lf-tools-key.js"></script>
+<script src="/js/lf-upload-preview.js"></script>
+<script src="/js/lf-data-router.js"></script>
+<script>
+  lfDataRouter.mount({
+    container: '#lfRouter',
+    tool: '%s',
+    enrichType: '%s',
+    question: '%s'
+  });
+</script>
+"""
+
 WIDGET_SCRIPTS = """
 <script src="/js/lf-csv.js"></script>
 <script src="/js/lf-tools-key.js"></script>
@@ -341,6 +356,7 @@ PAGES.append({
         <p><strong>A permutator produces guesses, not verified addresses.</strong> Only one of these is usually live, and sending to the rest costs you deliverability. Upload your list and get back the address that actually exists.</p>
         <a href="{site}/sign-up" class="btn btn-full">Verify these with 10 free credits</a>
       </div>
+      <div id="lfRouter" style="margin-top:1.25rem;padding-top:1.25rem;border-top:1px solid var(--gray-200);"></div>
     </div>
   </div>
 
@@ -411,6 +427,7 @@ PAGES.append({
   })();
   </script>
 """,
+    "scripts": ROUTER_SCRIPTS % ("email_permutator", "business_email_finder", "Got a whole list of people to find?"),
     "cta": {
         "title": "Stop guessing one address at a time",
         "text": "Upload a CSV of names and companies. Get verified emails and direct dials back, ready for your sequencer or your ATS.",
@@ -466,6 +483,7 @@ PAGES.append({
         <p><strong>A search string finds profiles. It does not find contact details.</strong> Once you have your shortlist, export the profile URLs and get emails and mobile numbers back for the whole list in one run.</p>
         <a href="{site}/for-recruiting-teams" class="btn btn-full">See recruitment data enrichment</a>
       </div>
+      <div id="lfRouter" style="margin-top:1.25rem;padding-top:1.25rem;border-top:1px solid var(--gray-200);"></div>
     </div>
   </div>
 
@@ -531,6 +549,7 @@ PAGES.append({
   })();
   </script>
 """,
+    "scripts": ROUTER_SCRIPTS % ("boolean_generator", "business_email_finder", "Found your candidates? Now reach them."),
     "cta": {
         "title": "You found the candidates. Now reach them.",
         "text": "Upload your shortlist and get verified emails and mobile numbers back in one run, ready to import into your ATS.",
@@ -598,6 +617,7 @@ PAGES.append({
         <p><strong>X-ray gives you profile URLs, not contact details.</strong> Copy the URLs into a CSV and get emails and direct dials back for all of them at once.</p>
         <a href="{site}/csv-email-finder" class="btn btn-full">Turn profile URLs into contacts</a>
       </div>
+      <div id="lfRouter" style="margin-top:1.25rem;padding-top:1.25rem;border-top:1px solid var(--gray-200);"></div>
     </div>
   </div>
 
@@ -655,6 +675,7 @@ PAGES.append({
   })();
   </script>
 """,
+    "scripts": ROUTER_SCRIPTS % ("xray_generator", "business_email_finder", "Got your profile URLs? Turn them into contacts."),
     "cta": {
         "title": "From profile URLs to people you can actually reach",
         "text": "Upload the URLs your X-ray search found. Get verified emails and mobile numbers back in one run.",
@@ -1051,6 +1072,7 @@ PAGES.append({
       <div class="next-step">
         <p style="margin:0;">Or start with a free tool that needs no account: <a href="{site}/boolean-search-string-generator">Boolean search string generator</a> &middot; <a href="{site}/linkedin-xray-search-generator">X-ray search generator</a></p>
       </div>
+      <div id="lfRouter" style="margin-top:1.25rem;padding-top:1.25rem;border-top:1px solid var(--gray-200);"></div>
     </div>
   </div>
 
@@ -1096,6 +1118,7 @@ PAGES.append({
     </div>
   </section>
 """,
+    "scripts": ROUTER_SCRIPTS % ("hub_recruiting", "business_phone_finder", "Where does your candidate data live?"),
     "cta": {
         "title": "Built for the list you already have",
         "text": "Ten free credits, no card, no call. Enough to run a real shortlist and judge it on your own numbers.",
@@ -1116,6 +1139,7 @@ PAGES.append({
       <div class="next-step">
         <p style="margin:0;">Or try a free tool with no account: <a href="{site}/email-permutator">Email permutator</a> &middot; <a href="{site}/linkedin-xray-search-generator">X-ray search generator</a></p>
       </div>
+      <div id="lfRouter" style="margin-top:1.25rem;padding-top:1.25rem;border-top:1px solid var(--gray-200);"></div>
     </div>
   </div>
 
@@ -1161,6 +1185,7 @@ PAGES.append({
     </div>
   </section>
 """,
+    "scripts": ROUTER_SCRIPTS % ("hub_sales", "business_email_finder", "Where does your prospect data live?"),
     "cta": {
         "title": "Enrich the list before the sequence goes out",
         "text": "Ten free credits, no card. Enough to run a real segment and see the fill rate on your own data.",
@@ -1279,6 +1304,196 @@ PAGES.append({
     "cta": {
         "title": "Clean list, then contactable list",
         "text": "However you got the export, ten free credits will tell you how many of its rows we can make reachable.",
+    },
+})
+
+
+PAGES.append({
+    "slug": "for-finance-teams",
+    "shape": "landing",
+    "title": "Contact Data Enrichment for Finance Teams | LinkFinder AI",
+    "description": "Find the current billing contact when the one on file has left. Enrich receivables, vendor and counterparty lists with verified emails and direct dials.",
+    "h1": "Contact Data Enrichment for Finance Teams",
+    "subtitle": "The invoice is overdue and the billing contact left four months ago. This is the part nobody built a tool for.",
+    "body": """
+  <div class="container">
+    <div class="tool-card">
+      <a href="{site}/sign-up" class="btn btn-full"><i class="fas fa-cloud-upload-alt"></i> Enrich a contact list &mdash; 10 free credits</a>
+      <div id="lfRouter" style="margin-top:1.25rem;padding-top:1.25rem;border-top:1px solid var(--gray-200);"></div>
+    </div>
+  </div>
+
+  <section class="block alt">
+    <div class="container narrow">
+      <h2>Chasing an invoice at a company that has moved on</h2>
+      <p>Receivables age for a reason that has nothing to do with willingness to pay. The person who approved the purchase order left, the shared mailbox is unmonitored, and the reminder emails are landing in a mailbox nobody owns. The account is not disputed. It is unreachable.</p>
+      <p>Upload the aged receivables list with whatever contact you have on file. What comes back is the person who currently holds that role, their verified work email, and a direct dial where one exists &mdash; which is what turns a fourth reminder email into a phone call that gets answered.</p>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="container narrow">
+      <h2>Three lists finance teams bring</h2>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>The list</th><th>What you get back</th></tr></thead>
+          <tbody>
+            <tr><td>Aged receivables with stale billing contacts</td><td>The current holder of that role, verified email, direct dial where available.</td></tr>
+            <tr><td>Vendor and supplier master data</td><td>Current contacts and company details, so renewal and dispute conversations reach a person.</td></tr>
+            <tr><td>Counterparty lists before onboarding</td><td>Company domain, headcount and registered details, for the checks you already run.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p style="margin-top:1rem;">Every enriched row also returns the person's current employer, so a contact who has left shows up as having left rather than as a silent non-reply.</p>
+    </div>
+  </section>
+
+  <section class="block alt">
+    <div class="container narrow">
+      <h2>On handling and retention</h2>
+      <p>We return business contact data for people in their professional capacity. Nothing you upload is used to train anything, and you control retention on your own records. If your finance function needs a data processing agreement before uploading anything, ask and we will send one rather than pointing you at a policy page.</p>
+      <h2>Related</h2>
+      <p class="inline-links">Keeping the whole database current instead of enriching one list at a time is <a href="{site}/crm-enrichment-pipeline">a recurring enrichment pipeline</a>. If the records live in your CRM, start at <a href="{site}/enrich-crm-contact-list">enrich a CRM contact list</a>.</p>
+    </div>
+  </section>
+""",
+    "scripts": ROUTER_SCRIPTS % ("hub_finance", "business_phone_finder", "Where does your contact data live?"),
+    "cta": {
+        "title": "Make the unreachable accounts reachable",
+        "text": "Ten free credits is enough to run a sample of your aged receivables and see how many stale contacts come back with a current person.",
+    },
+})
+
+PAGES.append({
+    "slug": "for-revops-teams",
+    "shape": "landing",
+    "title": "Data Enrichment for RevOps and Data Teams | LinkFinder AI",
+    "description": "Enrich, dedupe and keep CRM records current through an API or scheduled pipeline. Built for RevOps and data teams who own the database, not a list.",
+    "h1": "Data Enrichment for RevOps and Data Teams",
+    "subtitle": "You do not have a list. You have a database, a decay rate, and everyone downstream complaining about both.",
+    "body": """
+  <div class="container">
+    <div class="tool-card">
+      <a href="{site}/api-documentation" class="btn btn-full"><i class="fas fa-code"></i> Read the API documentation</a>
+      <div id="lfRouter" style="margin-top:1.25rem;padding-top:1.25rem;border-top:1px solid var(--gray-200);"></div>
+    </div>
+  </div>
+
+  <section class="block alt">
+    <div class="container narrow">
+      <h2>The problem is the decay rate, not the backlog</h2>
+      <p>Contact data decays at roughly two to three percent a month. A one-off cleanup fixes the backlog and then starts rotting the day it finishes, which is why the same project gets re-run every eighteen months by whoever inherited it.</p>
+      <p>What actually holds is enrichment wired into the system: on record creation, on a schedule for anything older than a threshold you set, and on demand for a segment before a campaign. That is an API problem rather than a CSV problem, which is why this page leads with the docs.</p>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="container narrow">
+      <h2>What RevOps teams wire up</h2>
+      <ul class="checks">
+        <li><i class="fas fa-check"></i> <span><strong>On create.</strong> A new record arrives with an email or a LinkedIn URL and comes out with title, company, domain and headcount, so routing and scoring have something to work with immediately.</span></li>
+        <li><i class="fas fa-check"></i> <span><strong>On a schedule.</strong> Re-check anything untouched for ninety days. The output is both corrected fields and a job-change list, which is the single most useful thing a stale database can produce.</span></li>
+        <li><i class="fas fa-check"></i> <span><strong>Before a send.</strong> Verify a segment ahead of a campaign so bounce rate never teaches the mailbox providers something you cannot unteach.</span></li>
+        <li><i class="fas fa-check"></i> <span><strong>As a dedupe key.</strong> Resolving names and companies to a canonical domain and profile URL is what makes duplicates actually collapse.</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="block alt">
+    <div class="container narrow">
+      <h2>How it plugs in</h2>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Route</th><th>Use when</th></tr></thead>
+          <tbody>
+            <tr><td><a href="{site}/api-documentation">REST API</a></td><td>You are writing the integration yourself. One endpoint, an OpenAPI spec, credits charged on results rather than calls.</td></tr>
+            <tr><td><a href="{site}/n8n-linkedin-automation">n8n</a> or Make</td><td>You want the pipeline visible and editable without shipping code.</td></tr>
+            <tr><td><a href="{site}/hubspot-crm-enrichment">HubSpot sync</a></td><td>The records live in HubSpot and should stay there.</td></tr>
+            <tr><td><a href="{site}/linkedIn-enrichment-google-sheets">Google Sheets</a></td><td>The team works in sheets and a migration is not happening this quarter.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p style="margin-top:1rem;" class="inline-links">Designing the recurring job itself is covered on <a href="{site}/crm-enrichment-pipeline">the enrichment pipeline page</a>. Migrating off a provider that shut down? See <a href="{site}/migrate-from-proxycurl">the Proxycurl migration guide</a>.</p>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="container narrow">
+      <h2>What we will not claim</h2>
+      <p>Match rates vary by market, seniority and how good your input field is. A LinkedIn URL resolves far better than a name and a company, and phone coverage is materially thinner than email everywhere. Benchmark it against a sample of your own database rather than a published figure, including ours.</p>
+    </div>
+  </section>
+""",
+    "scripts": ROUTER_SCRIPTS % ("hub_revops", "business_email_finder", "Where does your data live right now?"),
+    "cta": {
+        "title": "Wire it in once instead of cleaning up every eighteen months",
+        "text": "Free credits and a documented endpoint. Enough to prototype the job before you put it in front of anyone.",
+    },
+})
+
+PAGES.append({
+    "slug": "crm-enrichment-pipeline",
+    "shape": "landing",
+    "title": "Build a CRM Enrichment Pipeline That Runs on a Schedule | LinkFinder AI",
+    "description": "Set up recurring contact enrichment so CRM records stay current instead of decaying between cleanups. Job-change detection, scheduled refresh, API or no-code.",
+    "h1": "A CRM Enrichment Pipeline That Runs on a Schedule",
+    "subtitle": "A one-off cleanup starts decaying the day it finishes. This is how to make enrichment a job that runs, not a project that repeats.",
+    "body": """
+  <div class="container">
+    <div class="tool-card">
+      <ul class="checks">
+        <li><i class="fas fa-check"></i> <span>Enrich on record creation, so nothing enters the database empty.</span></li>
+        <li><i class="fas fa-check"></i> <span>Re-check on a schedule, so the decay never compounds past your threshold.</span></li>
+        <li><i class="fas fa-check"></i> <span>Return a job-change list on every run, which is pipeline rather than hygiene.</span></li>
+        <li><i class="fas fa-check"></i> <span>Credits spent on rows that return data, so a scheduled job has a predictable cost.</span></li>
+      </ul>
+      <a href="{site}/api-documentation" class="btn btn-full"><i class="fas fa-code"></i> Read the API documentation</a>
+    </div>
+  </div>
+
+  <section class="block alt">
+    <div class="container narrow">
+      <h2>Why the one-off cleanup keeps coming back</h2>
+      <p>The project runs, the database looks correct, everyone moves on. Two to three percent of contacts go stale every month, and eighteen months later the same proposal gets written by somebody new. The work was never wrong; it was just scheduled once.</p>
+      <p>A pipeline changes the shape of the problem. Instead of a large periodic cleanup you run a small continuous one, and the database has a known freshness rather than an unknown one.</p>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="container narrow">
+      <h2>The three triggers worth wiring</h2>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Trigger</th><th>What it does</th><th>Frequency</th></tr></thead>
+          <tbody>
+            <tr><td>On create</td><td>Fills title, company, domain and headcount so routing and scoring work from the first minute.</td><td>Immediate</td></tr>
+            <tr><td>Staleness threshold</td><td>Re-enriches anything untouched past your limit. Ninety days is a reasonable starting point.</td><td>Weekly sweep</td></tr>
+            <tr><td>Pre-campaign</td><td>Verifies a segment before a send, so bounce rate never damages the sending domain.</td><td>On demand</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section class="block alt">
+    <div class="container narrow">
+      <h2>The output nobody expects to be the valuable one</h2>
+      <p>Corrected email addresses are the obvious result. The job-change list is the one that pays for the pipeline.</p>
+      <p>Every refreshed row returns the person's current employer. Run that across a closed-lost list or a former-customer list and the diff tells you who has just arrived somewhere new. Someone who already knows your product, in a new seat, with a mandate to change things, is the warmest outbound available to anyone &mdash; and it falls out of a hygiene job as a by-product.</p>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="container narrow">
+      <h2>Where to build it</h2>
+      <p class="inline-links">Writing code: the <a href="{site}/api-documentation">REST API</a> with its OpenAPI spec. Keeping it no-code and visible: <a href="{site}/n8n-linkedin-automation">n8n</a> or Make. Records living in HubSpot: <a href="{site}/hubspot-crm-enrichment">HubSpot CRM enrichment</a>. Just want one list done now rather than a schedule: <a href="{site}/enrich-crm-contact-list">enrich a CRM contact list</a>.</p>
+      <p class="inline-links">Team pages: <a href="{site}/for-revops-teams">RevOps and data teams</a>, <a href="{site}/for-sales-teams">sales teams</a>, <a href="{site}/for-recruiting-teams">recruiting teams</a>, <a href="{site}/for-finance-teams">finance teams</a>.</p>
+    </div>
+  </section>
+""",
+    "cta": {
+        "title": "Stop scheduling the same cleanup every eighteen months",
+        "text": "Prototype the recurring job on free credits and see what the first job-change list turns up in your own database.",
     },
 })
 
