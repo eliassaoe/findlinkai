@@ -1348,8 +1348,29 @@ function checkAuth() {
 }
 
 /* ── Cancellation flow ── */
+
+/* One id per opened flow, stamped onto every event in it by surveyTrack.
+   Without it the funnel cannot be read: cancellation_flow_started has fired 402
+   times for 85 people and cancellation_reason_selected 234 times for 26, because
+   both re-fire every time the modal is reopened or the reason is changed. The id
+   joins the steps of one attempt together, and `reopened` / `is_change` below
+   mark the repeats, so counting first attempts becomes a filter rather than a
+   guess about how much of the inflation was real. */
+let cancellationFlowId    = null;
+let cancellationFlowOpens = 0;
+
+function newCancellationFlowId() {
+  try { if (crypto && crypto.randomUUID) return crypto.randomUUID(); } catch(e) {}
+  return 'cf_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
+}
+
 function showCancellationFlow() {
-  try { posthog.capture('cancellation_flow_started'); } catch(e) {}
+  cancellationFlowId = newCancellationFlowId();
+  cancellationFlowOpens++;
+  surveyTrack('cancellation_flow_started', {
+    reopened:   cancellationFlowOpens > 1,
+    open_count: cancellationFlowOpens,
+  });
   document.getElementById('cancellationModal').classList.add('show');
   document.body.style.overflow = 'hidden';
   document.querySelectorAll('.flow-step').forEach(s => s.classList.remove('active'));
@@ -1372,10 +1393,18 @@ function closeCancellationModal() {
 }
 
 function selectReason(reason, event) {
+  // Changing your mind on the reason grid re-fires this event, which is most of
+  // the gap between 234 events and 26 people. The reason itself stays the last
+  // one picked; `is_change` is what lets a query keep one row per churner.
+  const previousReason = selectedCancellationReason;
   selectedCancellationReason = reason;
   document.querySelectorAll('.reason-option').forEach(o => o.classList.remove('selected'));
   event.currentTarget.classList.add('selected');
-  try { posthog.capture('cancellation_reason_selected', { reason }); } catch(e) {}
+  surveyTrack('cancellation_reason_selected', {
+    reason,
+    is_change:    !!previousReason && previousReason !== reason,
+    changed_from: previousReason || null,
+  });
   setTimeout(() => showSolutionForReason(reason), 500);
 }
 
@@ -1489,7 +1518,7 @@ async function submitFeedback(type, textId, captureEvent) {
   try {
     const r = await fetch(FEEDBACK_ENDPOINT, { method:'POST', headers:{'Content-Type':'application/json','X-API-Secret':window.LF_API_KEY}, body: JSON.stringify(payload) });
     if (r.ok) {
-      try { posthog.capture(captureEvent, { reason: selectedCancellationReason }); } catch(e) {}
+      surveyTrack(captureEvent, { reason: selectedCancellationReason });
       closeCancellationModal();
       alert('Thank you! Our team will reach out within 24 hours.');
     } else { alert('Error submitting. Please try again.'); }
@@ -1501,7 +1530,7 @@ function submitTechnicalIssue()  { submitFeedback('technical_issue',   'technica
 function submitOtherFeedback()   { submitFeedback('other_feedback',    'otherReasonText',     'other_feedback_submitted'); }
 
 function declineAllSolutions() {
-  try { posthog.capture('all_solutions_declined', { reason: selectedCancellationReason }); } catch(e) {}
+  surveyTrack('all_solutions_declined', { reason: selectedCancellationReason });
   goToFlowStep('step3');
 }
 
@@ -1589,9 +1618,13 @@ let EXIT_SURVEY_LAYOUT = 'inline';
    are printed to the console instead so you can check the payloads. */
 let surveyPreview = false;
 
-function surveyTrack(name, props) {
-  if (surveyPreview) { console.log('%c[preview] would capture', 'color:#f59e0b;font-weight:700', name, props || {}); return; }
-  try { posthog.capture(name, props); } catch(e) {}
+/* Every event in the cancellation flow goes through here, so all of them carry
+   the same flow_id and honour preview mode. `opts` is passed to PostHog
+   untouched — the one caller that needs it asks for a transport. */
+function surveyTrack(name, props, opts) {
+  const payload = Object.assign({ flow_id: cancellationFlowId }, props || {});
+  if (surveyPreview) { console.log('%c[preview] would capture', 'color:#f59e0b;font-weight:700', name, payload); return; }
+  try { posthog.capture(name, payload, opts); } catch(e) {}
 }
 
 function escHtml(v) {
@@ -1894,7 +1927,13 @@ async function retentionAction(action) {
       btn.style.display = 'none';
       status.textContent = labels[action].success;
       status.style.display = 'block';
-      try { posthog.capture('retention_' + action, { subscription_id: currentSubscriptionId }); } catch(e) {}
+      // A save carries the reason it saved: "pause" beating "notUsing" and
+      // "discount" beating "tooExpensive" are different offers with different
+      // economics, and the flow_id ties each save back to the attempt it ended.
+      surveyTrack('retention_' + action, {
+        subscription_id: currentSubscriptionId,
+        reason:          selectedCancellationReason,
+      });
       // Close modal after 3 seconds
       setTimeout(() => closeCancellationModal(), 3000);
     } else {
@@ -1922,7 +1961,13 @@ async function confirmCancel() {
     alert('Could not find your subscription. Please contact support@linkfinderai.com');
     return;
   }
-  if (!confirm('Are you sure you want to cancel? Your access continues until the end of your billing period.')) return;
+  if (!confirm('Are you sure you want to cancel? Your access continues until the end of your billing period.')) {
+    // Backing out at the final confirm is a save, and it was previously silent:
+    // the flow recorded someone reaching the cancel button and nothing after it,
+    // which reads identically to a cancellation whose event went missing.
+    surveyTrack('cancellation_confirm_declined', { reason: selectedCancellationReason });
+    return;
+  }
   btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Cancelling...';
   btn.disabled = true;
   try {
@@ -1933,15 +1978,49 @@ async function confirmCancel() {
     });
     const d = await r.json();
     if (d.ok) {
+      // Captured BEFORE the alert, not after it. alert() blocks the main thread
+      // until it is dismissed, and people close the tab on this one rather than
+      // clicking OK — so a capture queued behind it never got the chance to run.
+      // That ordering is the likeliest reason 85 people entered this flow and
+      // only 7 ever produced a subscription_cancelled event.
+      //
+      // Default transport on purpose: the page does not navigate here, so the
+      // request is dispatched immediately and completes in the background while
+      // the alert blocks. sendBeacon would buy nothing and can be silently
+      // dropped when it returns false.
+      //
+      // The reason and the survey answers ride along, so churn breaks down
+      // without joining back to earlier events in the flow.
+      surveyTrack('subscription_cancelled', {
+        subscription_id:       currentSubscriptionId,
+        reason:                selectedCancellationReason,
+        survey_answered_count: Object.keys(exitSurveyAnswers).length,
+        plan:                  currentPlanNumber || null,
+      });
       closeCancellationModal();
       alert('Your subscription has been cancelled. You will keep access until the end of your current billing period.');
-      try { posthog.capture('subscription_cancelled', { subscription_id: currentSubscriptionId }); } catch(e) {}
     } else {
+      // A cancel that fails is worse than one that succeeds and goes untracked:
+      // the customer believes they cancelled, the next charge lands anyway, and
+      // it arrives as a support ticket or a chargeback with nothing in PostHog
+      // explaining it. Both failure paths are recorded before the alert.
+      surveyTrack('subscription_cancel_failed', {
+        subscription_id: currentSubscriptionId,
+        reason:          selectedCancellationReason,
+        failure:         'worker_rejected',
+        detail:          (d && (d.error || d.message)) || null,
+      });
       btn.innerHTML = '<i class="fas fa-times-circle"></i> Cancel my subscription';
       btn.disabled = false;
       alert('Something went wrong. Please try again or contact support@linkfinderai.com');
     }
   } catch(e) {
+    surveyTrack('subscription_cancel_failed', {
+      subscription_id: currentSubscriptionId,
+      reason:          selectedCancellationReason,
+      failure:         'network_error',
+      detail:          e && e.message ? e.message : null,
+    });
     btn.innerHTML = '<i class="fas fa-times-circle"></i> Cancel my subscription';
     btn.disabled = false;
     alert('Network error. Please try again.');
