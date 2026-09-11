@@ -21,11 +21,23 @@
   var WORKER = 'https://linkfinder-free-tools.hamoureliasse.workers.dev/';
   var PENDING_KEY = 'lf_pending_list';
   var MAX_ROWS = 25000;
-  var MAX_PENDING = 5000;
+  // localStorage is ~5MB per origin and 25k URLs is about 1MB, so the cap
+  // is a safety rail rather than a routine trim. When it does bite, or the
+  // write fails, the stored record says so instead of quietly holding half.
+  var MAX_PENDING = 25000;
+  var MAX_PENDING_BYTES = 2 * 1024 * 1024;
 
   function capture(name, props) {
     try { if (w.posthog) w.posthog.capture(name, props || {}); } catch (e) {}
   }
+
+  function fmt(n) {
+    try { return Number(n).toLocaleString('en-US'); }
+    catch (e) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+  }
+
+  // "1 rows" on a signup CTA reads like a bug.
+  function nRows(n) { return fmt(n) + (Number(n) === 1 ? ' row' : ' rows'); }
 
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
@@ -111,7 +123,8 @@
       + 'aria-label="Upload a CSV of LinkedIn profile URLs">'
       + '<div class="lfup-ico"><i class="fas fa-cloud-upload-alt"></i></div>'
       + '<div class="lfup-t">Drop your CSV here</div>'
-      + '<div class="lfup-s">A column of LinkedIn profile URLs. Nothing is stored until you choose to.</div>'
+      + '<div class="lfup-s">A column of LinkedIn profile URLs. Any size. '
+      + 'We enrich the first few so you can see it working; the rest stays in your browser.</div>'
       + '</div>'
       + '<input type="file" id="lfupFile" accept=".csv,text/csv" hidden>'
       + '<div id="lfupOut"></div>';
@@ -145,12 +158,31 @@
     // Hand the list forward so signing up does not throw the work away.
     // The app can read lf_pending_list and pre-load these rows.
     function savePending(total, rows, column) {
-      try {
-        localStorage.setItem(PENDING_KEY, JSON.stringify({
+      var keep = (rows || []).slice(0, MAX_PENDING);
+      var payload, json;
+      // Shrink until it fits rather than failing the write outright, and record
+      // whether the stored list is the whole list.
+      for (;;) {
+        payload = {
           ts: Date.now(), source: tool, column: column,
-          total: total, rows: (rows || []).slice(0, MAX_PENDING)
-        }));
-      } catch (e) { /* private mode, quota — the preview still works */ }
+          total: total, rows: keep, truncated: keep.length < (rows || []).length
+        };
+        json = JSON.stringify(payload);
+        if (json.length <= MAX_PENDING_BYTES || keep.length <= 100) break;
+        keep = keep.slice(0, Math.floor(keep.length / 2));
+      }
+      try {
+        localStorage.setItem(PENDING_KEY, json);
+      } catch (e) {
+        // Private mode or quota. Keep the count so the app still knows how big
+        // the job was, even though the rows themselves did not survive.
+        try {
+          localStorage.setItem(PENDING_KEY, JSON.stringify({
+            ts: Date.now(), source: tool, column: column,
+            total: total, rows: [], truncated: true
+          }));
+        } catch (e2) { /* nothing more to do; the preview still works */ }
+      }
     }
 
     function fail(msg) {
@@ -190,12 +222,12 @@
         if (nameCol !== -1 && (coCol !== -1 || domCol !== -1)) {
           savePending(parsed.rows.length, [], 'name_company');
           out.innerHTML = '<div class="lfup-route">'
-            + '<div class="lfup-route-n">' + parsed.rows.length
-            + ' rows with names and companies</div>'
+            + '<div class="lfup-route-n">' + nRows(parsed.rows.length)
+            + ' with names and companies</div>'
             + '<p>This file has no LinkedIn URL column, which is fine &mdash; names plus '
             + 'companies work too, they just run through a different finder.</p>'
             + '<a class="lfup-btn" href="https://linkfinderai.com/csv-email-finder">'
-            + 'Enrich these ' + parsed.rows.length + ' rows</a></div>';
+            + 'Enrich ' + nRows(parsed.rows.length) + '</a></div>';
           return;
         }
         fail('No LinkedIn profile URL column found. The columns in this file are: <strong>'
@@ -241,21 +273,21 @@
       }
 
       var head = done
-        ? shown + ' of ' + n + ' rows enriched'
-        : 'Enriching ' + shown + ' of ' + n + ' rows';
+        ? fmt(shown) + ' of ' + nRows(n) + ' enriched'
+        : 'Enriching ' + fmt(shown) + ' of ' + nRows(n);
       var sub = done
-        ? (found + ' of ' + shown + ' sample rows returned a result')
+        ? (fmt(found) + ' of ' + fmt(shown) + ' sample rows returned a result')
         : 'Running against your actual file';
 
       var cta = '';
       if (done) {
         cta = '<div class="lfup-cta"><p>'
             + (locked > 0
-                ? 'The remaining <strong>' + locked + ' rows</strong> are ready. '
+                ? 'The remaining <strong>' + nRows(locked) + '</strong> are ready. '
                   + 'Create a free account to run them and export the file.'
                 : 'Create a free account to export this file.')
             + '</p><a class="lfup-btn" id="lfupCta" href="' + esc(signupUrl) + '">'
-            + 'Unlock all ' + n + ' rows &mdash; free account</a>'
+            + 'Unlock all ' + nRows(n) + ' &mdash; free account</a>'
             + '<button class="lfup-again" id="lfupAgain" type="button">Use a different file</button>'
             + '</div>';
       }
