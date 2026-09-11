@@ -219,9 +219,23 @@ PAGE = """<!DOCTYPE html>
 {body}
   </main>
 {footer}
-<script src="/js/lf-highticket-cta.js"></script>
+<script src="/js/lf-highticket-cta.js"></script>{scripts}
 </body>
 </html>
+"""
+
+WIDGET_SCRIPTS = """
+<script src="/js/lf-csv.js"></script>
+<script src="/js/lf-tools-key.js"></script>
+<script src="/js/lf-upload-preview.js"></script>
+<script>
+  lfUploadPreview.mount({
+    container: '#lfUpload',
+    tool: '%s',
+    enrichType: '%s',
+    signupUrl: 'https://linkfinderai.com/sign-up'
+  });
+</script>
 """
 
 CTA_BAND = """  <section class="cta-band">
@@ -269,6 +283,7 @@ def build(cfg):
         h1=cfg["h1"],
         subtitle=cfg["subtitle"],
         body=body,
+        scripts=cfg.get("scripts", ""),
     )
     path = os.path.join(OUT, cfg["slug"] + ".html")
     with open(path, "w", encoding="utf-8") as fh:
@@ -664,7 +679,7 @@ PAGES.append({
         <li><i class="fas fa-check"></i> <span>Returns verified work email, direct dial, job title, company and company domain.</span></li>
         <li><i class="fas fa-check"></i> <span>Download as CSV, or push straight into HubSpot.</span></li>
       </ul>
-      <a href="{site}/sign-up" class="btn btn-full"><i class="fas fa-cloud-upload-alt"></i> Upload your export &mdash; 10 free credits</a>
+      <div id="lfUpload"></div>
       <div class="next-step">
         <p style="margin:0;">Already have an account? <a href="{site}/app">Go to bulk enrichment</a>.</p>
       </div>
@@ -704,6 +719,7 @@ PAGES.append({
     </div>
   </section>
 """,
+    "scripts": WIDGET_SCRIPTS % ("sales_navigator_export", "business_email_finder"),
     "cta": {
         "title": "Your export is one upload away from being useful",
         "text": "Ten free credits, no card. Enough to run a real sample of your list and check the match rate yourself before you pay for anything.",
@@ -883,7 +899,7 @@ PAGES.append({
         <li><i class="fas fa-check"></i> <span>Up to 25,000 profiles a month on a standard plan.</span></li>
         <li><i class="fas fa-check"></i> <span>Credits are only spent on rows where a number is actually found.</span></li>
       </ul>
-      <a href="{site}/sign-up" class="btn btn-full"><i class="fas fa-cloud-upload-alt"></i> Upload your list &mdash; 10 free credits</a>
+      <div id="lfUpload"></div>
       <div class="next-step">
         <p style="margin:0;">Looking up one person instead? Use the <a href="{site}/linkedin-phone-number-finder">single LinkedIn phone number finder</a>.</p>
       </div>
@@ -906,6 +922,7 @@ PAGES.append({
     </div>
   </section>
 """,
+    "scripts": WIDGET_SCRIPTS % ("bulk_linkedin_phone_finder", "business_phone_finder"),
     "cta": {
         "title": "Stop looking people up one at a time",
         "text": "If you are opening profiles one by one to find numbers, you are spending a week on something that takes one upload.",
@@ -928,7 +945,7 @@ PAGES.append({
         <li><i class="fas fa-check"></i> <span>Every address verified before it is returned. No permutation guesses.</span></li>
         <li><i class="fas fa-check"></i> <span>Export to CSV or push straight into HubSpot.</span></li>
       </ul>
-      <a href="{site}/sign-up" class="btn btn-full"><i class="fas fa-cloud-upload-alt"></i> Upload your list &mdash; 10 free credits</a>
+      <div id="lfUpload"></div>
       <div class="next-step">
         <p style="margin:0;">Looking up one profile instead? Use the <a href="{site}/linkedin-email-finder">single LinkedIn email finder</a>.</p>
       </div>
@@ -958,6 +975,7 @@ PAGES.append({
     </div>
   </section>
 """,
+    "scripts": WIDGET_SCRIPTS % ("bulk_linkedin_email_finder", "business_email_finder"),
     "cta": {
         "title": "One upload instead of a week of tabs",
         "text": "Ten free credits, no card. Enough to run a real sample of your own list and judge the match rate yourself.",
@@ -979,7 +997,7 @@ PAGES.append({
         <li><i class="fas fa-check"></i> <span>Column headers are detected automatically, in English and in French.</span></li>
         <li><i class="fas fa-check"></i> <span>Every address is verified before it is returned. Unverifiable rows come back blank.</span></li>
       </ul>
-      <a href="{site}/sign-up" class="btn btn-full"><i class="fas fa-cloud-upload-alt"></i> Upload a CSV &mdash; 10 free credits</a>
+      <div id="lfUpload"></div>
     </div>
   </div>
 
@@ -1010,6 +1028,7 @@ PAGES.append({
     </div>
   </section>
 """,
+    "scripts": WIDGET_SCRIPTS % ("csv_email_finder", "business_email_finder"),
     "cta": {
         "title": "One upload, one enriched file back",
         "text": "Ten free credits, no card. Enough to test your own file and see the match rate before you decide anything.",
