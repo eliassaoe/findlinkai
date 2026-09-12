@@ -1,8 +1,58 @@
 # Lead sources with real France coverage
 
+> **Decision, 2 Sept 2026: stay on Explee. The lead source is not the problem.**
+>
+> Explee is the cheapest lead in this file at ~$0.025 - 3x under a Sirene plus
+> FullEnrich build, 7x under Instantly. The one challenger that got a real trial,
+> Pharow, produced a clean export from a thin pool: 83 rows for the whole ICP,
+> a quarter of them people already in the funnel, and no demonstrated
+> incrementality. Nothing here is worth switching to on price, and nothing has
+> shown better reach.
+>
+> **One thread stays open rather than closed:** we never proved Explee's *search*
+> surfaces the right French *people* for a niche ICP - only that it holds the
+> companies and costs least. If the reply rate stays near 1%, revisit that with
+> `leadsource_test.py overlap` and by reading the campaign targeting, not by
+> buying another database.
+>
+> Everything below is the working that got here. It stands; it just is not the
+> live question any more.
+
 The constraint, in order: **France coverage first, an API second, pay as you go
 third.** The intent-first version of this file was wrong for this market - the
 measurements are kept at the bottom because the reasoning still matters.
+
+## "The list is the highest leverage in cold email" — true, and not what this file is about
+
+It is the standard advice and it is correct. But *list* in that sentence means
+**who you write to**, not **which vendor's row you bought**. Those are different
+decisions worth wildly different amounts:
+
+| Decision | Leverage | Why |
+|---|---|---|
+| **Targeting** — French *responsables d'achat* at 250-person ESNs, or SaaS founders under 25 staff? | **enormous** | changes reply rate by multiples. This is what "the list" means. |
+| **Vendor** — Explee's row or Pharow's row for the *same person*? | small | both return roughly the same human. Worth 17% on cost, and 2.17x is what a swap must clear. |
+| **Vendor, when only one can reach them at all** | **enormous again** | not a price comparison: there is no competing row. `leadsource_test.py overlap` measures exactly this. |
+
+So the two claims sit together. Targeting is the biggest lever there is; swapping
+data suppliers for the same audience is not, unless it buys reach you did not
+have. Everything priced in this file is the second question. The first one is
+free and lives in the campaign definition.
+
+**And it is readable over the API for nothing:**
+
+    python3 explee.py GET /public/api/v1/autogtm/campaigns/130465
+
+returns `offer`, `target_role`, `target_geography`, `target_company_size`,
+`positive_criteria`, `negative_criteria`, `example_clients` and the derived
+`keywords` — the whole targeting, in one free call, for each of the three
+campaigns. At a 1.05% reply rate that is the first thing to read, before any
+invoice to anybody.
+
+One caveat that is not a hedge: a list can only be judged once the mail arrives.
+The pool is shared and a prospect has written back saying it landed in spam, so
+some of that 1.05% is placement rather than targeting. Both are real; only one of
+them is free to fix today.
 
 ## The one-line answer
 
@@ -180,6 +230,58 @@ That is a good thing to buy. It is a pipeline lever, not a cost lever, and the
 original goal - get cost per call under $50 - is not what it delivers. Worth
 knowing which one is being bought before the invoice, because the two get judged
 by different numbers: this one is judged on calls per month, not dollars per call.
+
+## The Pharow answer, from the import screen rather than the campaign
+
+2 Sept, importing 83 Pharow leads into campaign 140491:
+
+| | | |
+|---|---|---|
+| Rows in file | 83 | |
+| **Skipped** | **0** | every row had a usable email, name, domain and title |
+| **Enriched from Explee's base** | **80 (96%)** | Explee already holds these people |
+| Not in Explee's base | **3 (4%)** | |
+| Deduped / DNC | 21 (25%) | already contacted by this project |
+| Imported | 62 (75%) | |
+
+Two of those numbers settle two different arguments.
+
+**Pharow's data is clean.** Zero rows skipped: every one of the 83 arrived with a
+complete, well-formed contact. That is better than most exports and it is a real
+point in their favour - the 78.7% coverage claim looks honest at this sample.
+
+**And "96% enriched from our base" proves less than it looks like.** An earlier
+version of this file read it as "Explee already had these 80 people" and called
+the reach argument dead. That was over-read, and the correction matters.
+
+Explee is a **company** database first - its own documentation opens with
+"search millions of companies" and treats people as employees found *at* matching
+companies. So enrichment against a lead can mean either of two things, and they
+support opposite conclusions:
+
+| What "enriched" might mean | What it implies |
+|---|---|
+| Explee had **this person** | it can already reach them; Pharow is the same names at 3.4x |
+| Explee had **their company**, and filled in industry, size, description | it says **nothing** about whether Explee knows that individual. Pharow's value survives intact |
+
+With 105M companies in the base, matching the *company* for 80 of 83 French firms
+is unremarkable. Matching 80 named *responsables d'achat* would be a much stronger
+claim. Nothing on the import screen distinguishes them.
+
+**So the verdict is unresolved, not negative** - and the resolver is the call this
+directory already has:
+
+    python3 leadsource_test.py overlap --leads pharow.leads.json --apply
+
+It asks `people-by-domains` for the same titles at the same domains and sorts each
+of the 62 into exactly the three buckets that matter: *Explee has this person*,
+*Explee has the company but not this person*, *Explee has neither*. The middle
+bucket is the one the import screen cannot show and the whole Pharow case rests
+on. About $1-4, and blocked only by the balance.
+
+What is confirmed either way: for the 62 that shipped, **$5.24 of Pharow against
+$1.55 of Explee**, a quarter of the export was people already in the funnel, and
+the export itself was clean.
 
 ## The decision: Pharow gets a shot
 
