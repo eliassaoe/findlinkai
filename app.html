@@ -149,8 +149,7 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
        knows it needs a contract. */
     .plan-item-enterprise{border-color:var(--gray-900);background:linear-gradient(180deg,#fbfbfd 0%,#fff 60%);}
     .plan-item-enterprise:hover{border-color:var(--gray-900);box-shadow:0 4px 16px rgba(17,24,39,0.14);}
-    .plan-item-enterprise .plan-item-cta{color:#fff;}
-    .plan-popular-badge{position:absolute;top:-11px;left:50%;transform:translateX(-50%);background:var(--primary);color:white;font-size:0.62rem;font-weight:700;padding:0.2rem 0.55rem;border-radius:4px;white-space:nowrap;text-transform:uppercase;letter-spacing:0.06em;}
+    .plan-item-enterprise     .plan-popular-badge{position:absolute;top:-11px;left:50%;transform:translateX(-50%);background:var(--primary);color:white;font-size:0.62rem;font-weight:700;padding:0.2rem 0.55rem;border-radius:4px;white-space:nowrap;text-transform:uppercase;letter-spacing:0.06em;}
     .plan-item-name{font-size:0.72rem;font-weight:700;color:var(--gray-500);text-transform:uppercase;letter-spacing:0.07em;margin-top:0.5rem;}
     .plan-item-price{display:flex;align-items:baseline;justify-content:center;gap:0.1rem;margin:0.5rem 0 0;}
     .plan-item-amount{font-size:1.85rem;font-weight:700;color:var(--gray-900);line-height:1;}
@@ -159,9 +158,10 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
     .plan-item-credits{font-size:0.73rem;font-weight:600;color:var(--gray-700);margin-top:0.5rem;}
     .plan-item-per-credit{font-size:0.67rem;color:var(--gray-400);background:var(--gray-100);border-radius:4px;padding:0.18rem 0.4rem;display:inline-block;margin:0.35rem auto 0;}
     .plan-roi-badge{font-size:0.62rem;font-weight:700;background:#dcfce7;color:#15803d;border-radius:4px;padding:0.18rem 0.45rem;display:inline-block;margin:0.3rem auto 0;letter-spacing:0.01em;}
-    .plan-item-cta{width:100%;padding:0.6rem;border-radius:7px;border:1.5px solid var(--gray-300);background:white;color:var(--gray-700);font-weight:600;font-size:0.76rem;cursor:pointer;transition:all .2s;font-family:inherit;margin-top:0.875rem;}
-    .plan-item-cta:hover{background:var(--gray-50);border-color:var(--primary);color:var(--primary);}
-    .plan-item-cta-popular{background:var(--primary);border-color:var(--primary);color:white;}
+    .plan-item-cta{width:100%;padding:0.85rem 0.75rem;border-radius:8px;border:1.5px solid var(--primary);background:var(--primary);color:#fff;font-weight:700;font-size:0.95rem;letter-spacing:-0.01em;cursor:pointer;transition:filter .15s ease, transform .15s ease;font-family:inherit;margin-top:0.875rem;box-shadow:0 2px 8px rgba(37,99,235,0.25);}
+    .plan-item-cta:hover{filter:brightness(0.93);transform:translateY(-1px);}
+.plan-item-cta:disabled{background:var(--gray-200);border-color:var(--gray-200);color:var(--gray-500);box-shadow:none;cursor:default;transform:none;filter:none;}
+    .plan-item-cta-popular{box-shadow:0 5px 16px rgba(37,99,235,0.4);transform:scale(1.02);}
     .plan-item-cta-popular:hover{background:var(--primary-hover);border-color:var(--primary-hover);color:white;}
     @media(max-width:700px){.plans-grid{grid-template-columns:repeat(2,1fr);}}
     @media(max-width:420px){.plans-grid{grid-template-columns:1fr;}}
@@ -2125,7 +2125,7 @@ function renderPlansGrid() {
         const perCredit      = (totalForCalc / creditsForCalc).toFixed(4);
         const savingsPct     = Math.round((1 - parseFloat(perCredit) / INDUSTRY_AVG_PER_CREDIT) * 100);
 
-        let ctaLabel = 'Get Started';
+        let ctaLabel = 'Get ' + plan.name;
         let isCurrentPlan = false;
         let ctaClass = 'plan-item-cta' + (isPopular ? ' plan-item-cta-popular' : '');
         if (isExistingSubscriber && currentIndex !== null) {
@@ -2147,7 +2147,7 @@ function renderPlansGrid() {
             : (index === recommendedIndex && lifetimeEnrichments > 0
                 ? '<div style="background:#eff6ff;color:#2563eb;font-size:0.62rem;font-weight:700;padding:0.2rem 0.55rem;border-radius:4px;margin-bottom:0.35rem;display:inline-block;text-transform:uppercase;letter-spacing:0.05em;">Recommended for you</div>'
                 : '');
-        const ctaDisabled = isCurrentPlan ? 'disabled style="opacity:0.5;cursor:not-allowed;"' : '';
+        const ctaDisabled = isCurrentPlan ? 'disabled' : '';
         const anchorCredits = isAnnual ? plan.credits : Math.round(plan.credits/12);
         const anchorLinkedIn = anchorCredits.toLocaleString();
         const anchorPhone = Math.floor(anchorCredits/50).toLocaleString();
