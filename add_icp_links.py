@@ -11,6 +11,11 @@ Deliberately NOT wired: the Instagram pages. Linking consumer lookup traffic
 into recruiting content tells Google the two topics belong together, which is
 the exact association we are trying to break.
 
+Two waves of donors. The first covered the highest-traffic tool pages. The
+second exists because a footer link is boilerplate Google discounts: six ICP
+pages were in the footer and in the sitemap but had no contextual link from any
+page with real traffic, so they had no path to rank.
+
 Idempotent - re-running replaces the block rather than stacking copies.
 """
 
@@ -92,6 +97,58 @@ DONORS = {
         'whole list, use the <a href="{s}/csv-email-finder">CSV email finder</a>, or '
         '<a href="{s}/enrich-crm-contact-list">enrich a CRM contact list</a> if the '
         'companies already live in your CRM.',
+    ),
+    # --- Second wave -------------------------------------------------------
+    # The first wave left six ICP pages reachable only from the site-wide
+    # footer, which Google discounts as boilerplate: for-revops-teams,
+    # enrich-apollo-export, clay-alternative, recruiting-enrichment-api,
+    # linkedIn-enrichment-google-sheets and best-b2b-lead-generation-agencies.
+    # These donors are the highest-traffic *marketing* pages that were not
+    # already giving, each paired with the ICP page whose topic it continues.
+    # api-access is deliberately absent: it looks high-traffic in analytics but
+    # it is the logged-in API settings screen, so Google never sees it.
+    "company-employee-finder.html": (
+        "From a company to its whole team",
+        'Finding the people at one company is the first step; most teams then want the same '
+        'for a list of companies. Run that through the '
+        '<a href="{s}/csv-email-finder">CSV email finder</a>, or '
+        '<a href="{s}/enrich-crm-contact-list">enrich a CRM contact list</a> if those '
+        'accounts already sit in your CRM. Talent teams working a headcount list should '
+        'start at <a href="{s}/for-recruiting-teams">recruitment data enrichment</a>.',
+    ),
+    "find-company-employee-count.html": (
+        "Sizing a territory, not just a company",
+        'Headcount is a firmographic, which makes it most useful applied across a whole '
+        'account list rather than one company at a time. Revenue teams segmenting on it '
+        'should read <a href="{s}/for-sales-teams">sales team data enrichment</a>; if you own '
+        'the data model behind that segmentation, '
+        '<a href="{s}/for-revops-teams">RevOps data enrichment</a> covers keeping the field '
+        'accurate as companies grow.',
+    ),
+    "scrape-linkedIn-jobs.html": (
+        "Job posts are a hiring signal - here is what to do with them",
+        'A company posting roles is a company with budget, which is why job data feeds both '
+        'recruiting and sales pipelines. Talent teams should continue at '
+        '<a href="{s}/for-recruiting-teams">recruitment data enrichment</a>; to pull '
+        'candidate or hiring-manager contact data straight into an ATS, the '
+        '<a href="{s}/recruiting-enrichment-api">recruiting enrichment API</a> does it '
+        'without an export step.',
+    ),
+    "linkedin-company-scraper.html": (
+        "Running this for clients, or at list scale",
+        'Agencies scraping company data for several clients at once need it repeatable rather '
+        'than manual - <a href="{s}/best-b2b-lead-generation-agencies">lead generation for '
+        'agencies</a> covers how that is usually set up. If the account list already lives in '
+        'Apollo, <a href="{s}/enrich-apollo-export">enrich an Apollo export</a> fills the gaps '
+        'while keeping the export&rsquo;s original columns.',
+    ),
+    "best-linkedin-api.html": (
+        "Where the data lands matters as much as the API",
+        'Most teams evaluating an API are really choosing where the enriched rows end up. If '
+        'that is a spreadsheet, <a href="{s}/linkedIn-enrichment-google-sheets">LinkedIn '
+        'enrichment in Google Sheets</a> runs the same data in-cell with no code. If you are '
+        'replacing a table-based enrichment tool, see the '
+        '<a href="{s}/clay-alternative">Clay alternative</a> comparison.',
     ),
 }
 
