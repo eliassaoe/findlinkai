@@ -1,0 +1,84 @@
+name: Publish MCP server
+
+# Manual only, same reasoning as the n8n node workflow: npm version numbers can
+# never be reused, so a push trigger would let an accidental merge burn one.
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Build and pack without publishing'
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+  # Lets npm authenticate by OIDC instead of a token. Trusted publishing can
+  # only be configured on npm AFTER a package exists, so the FIRST publish still
+  # needs NPM_TOKEN. Once linkfinderai-mcp-server is on the registry, set the
+  # trusted publisher on npmjs.com (repo eliassaoe/findlinkai, workflow
+  # publish-mcp-server.yml) and the secret can be deleted - later runs will
+  # authenticate with this instead.
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mcp-server
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          registry-url: 'https://registry.npmjs.org'
+
+      # OIDC publishing needs npm >= 11.5.1; Node 22 still ships npm 10.x.
+      # Harmless for the token path, required for the tokenless one.
+      - name: Use an npm new enough for OIDC
+        run: npm install -g npm@latest
+
+      - name: Check auth is available
+        if: ${{ inputs.dry_run == false }}
+        run: |
+          if [ -z "${{ secrets.NPM_TOKEN }}" ]; then
+            echo "::notice::NPM_TOKEN is not set - relying on OIDC trusted publishing. That only works once the package already exists on npm and a trusted publisher is configured. For the first publish, add an npm Automation token as the NPM_TOKEN secret."
+          fi
+
+      - run: npm install
+
+      - name: Build
+        run: npm run build
+
+      # The bin entry is useless without an executable shebang, and the failure
+      # only shows up for whoever runs npx afterwards.
+      - name: Check the bin entry is runnable
+        run: |
+          head -1 dist/index.js | grep -q '^#!/usr/bin/env node' \
+            || { echo "::error::dist/index.js is missing its shebang; the bin entry would not run."; exit 1; }
+
+      - name: Check this version is not already published
+        run: |
+          NAME=$(node -p "require('./package.json').name")
+          VER=$(node -p "require('./package.json').version")
+          echo "Publishing $NAME@$VER"
+          if npm view "$NAME@$VER" version 2>/dev/null; then
+            echo "::error::$NAME@$VER is already on npm. Bump the version first."
+            exit 1
+          fi
+
+      - name: Pack
+        run: npm pack
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mcp-tarball
+          path: mcp-server/*.tgz
+
+      - name: Publish
+        if: ${{ inputs.dry_run == false }}
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

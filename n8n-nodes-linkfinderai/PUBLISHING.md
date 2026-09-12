@@ -18,9 +18,16 @@ Checked 2026-08-23 on this branch:
 | Operations | 17 across 7 resources, matching the MCP server |
 | AI lead search | removed — see `docs/lead-search-bugs.md` |
 
-Never published. Version is `0.1.0` and should stay there for the first
-release: nobody has yet run this inside a real n8n instance, and patching
-`0.1.x` after the first bug report is less awkward than patching `1.0.1`.
+Never published. Version is now `0.2.0` (this note said `0.1.0` when written on
+2026-08-23; the package moved on and the note did not). Either is fine and the
+reasoning is unchanged: stay on `0.x` for the first release, because nobody has
+yet run this inside a real n8n instance and patching `0.2.x` after the first bug
+report is less awkward than patching `1.0.1`.
+
+Since 2026-09-12 both this workflow and `publish-mcp-server.yml` request
+`id-token: write`, so once each package exists on the registry a trusted
+publisher can be configured on npmjs.com and `NPM_TOKEN` deleted - the first
+publish is the only one that needs a token at all.
 
 ---
 

@@ -10,6 +10,15 @@ on:
         type: boolean
         default: true
 
+permissions:
+  contents: read
+  # Lets npm authenticate by OIDC instead of a token. Trusted publishing can only
+  # be configured on npm AFTER a package exists, so the FIRST publish still needs
+  # NPM_TOKEN. Once n8n-nodes-linkfinderai is on the registry, set the trusted
+  # publisher on npmjs.com (repo eliassaoe/findlinkai, workflow
+  # publish-n8n-node.yml) and the secret can be deleted.
+  id-token: write
+
 jobs:
   publish:
     runs-on: ubuntu-latest
@@ -40,6 +49,10 @@ jobs:
             echo "::error::NPM_TOKEN is not set. Create an Automation token at npmjs.com (Access Tokens -> Generate -> Automation), then add it under Settings -> Secrets and variables -> Actions as NPM_TOKEN."
             exit 1
           fi
+
+      # OIDC publishing needs npm >= 11.5.1; Node 22 still ships npm 10.x.
+      - name: Use an npm new enough for OIDC
+        run: npm install -g npm@latest
 
       - run: npm ci
 
