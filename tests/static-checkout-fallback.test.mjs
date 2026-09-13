@@ -61,7 +61,7 @@ function boot({ links = {}, force = false, workerImpl, visible = true } = {}) {
         slice('async function launchCheckout(', '// The checkout worker builds a return_url'),
     ].join('\n')
       .replace(/const DODO_PAYMENT_LINKS = \{[\s\S]*?\};/, 'const DODO_PAYMENT_LINKS = ' + JSON.stringify(links) + ';')
-      .replace('const FORCE_STATIC_CHECKOUT = false;', `const FORCE_STATIC_CHECKOUT = ${force};`);
+      .replace(/const FORCE_STATIC_CHECKOUT = (true|false);/, `const FORCE_STATIC_CHECKOUT = ${force};`);
 
     const events = [];
     const timers = [];
