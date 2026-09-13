@@ -5,14 +5,38 @@ Everything below is evidence already confirmed from our own analytics — no gue
 
 ---
 
-**Subject: Checkout sessions create successfully (HTTP 200) but no payment has completed since 13 Aug — live mode**
+**Subject: Checkout sessions create successfully (HTTP 200) but the hosted page refuses them — zero payments since 26 Aug, live mode**
 
 Hi,
 
-Since **13 August 2026, 18:05 UTC** we have taken **zero** payments. Before that date
-payments completed normally — 13 August alone had 4 successful payments. Nothing was
-deployed on our side that touches checkout: the only change to our app that day was an
-unrelated navigation label, and our checkout worker has not changed at all.
+Our last completed payment was on **26 August 2026**. Since **27 August** we have
+created **10 checkout sessions and taken zero payments**. Payments were completing
+normally right up to that date — 23, 24 and 26 August all had successful payments —
+and nothing was deployed on our side that touches checkout: our checkout worker has
+not changed at all.
+
+**Two sessions on the same account, one that paid and one that did not**
+
+- Working: `sub_0Nm6PkMITtarm7xu7bgEo` — paid on 24 August.
+- Failing: `cks_0NnSyw0WXQO3Az3HMOZE8` — created 12 September, HTTP 200, valid
+  `checkout_url`, customer redirected, customer back on our site within seconds
+  having typed nothing.
+
+Same account, same worker, same request shape, same products. Whatever differs
+between those two is the fault, and it is only visible on your side.
+
+**The measurement**
+
+Of every visitor who picked a plan and was handed a `checkout_url`:
+
+| Window | Picked a plan | Paid | Bounced back without typing |
+| --- | --- | --- | --- |
+| 22 Jun – 26 Aug | 73 | 19 (26%) | 17 (23%) |
+| Since 27 Aug | 12 | 0 | 11 (92%) |
+
+A jump from 23% to 92% bouncing straight back off the hosted page is not noise
+(z = 4.7, p < 0.00001). It happens *after* the browser has left our domain for
+yours, so it is not our code, our card form or our customers' cards.
 
 **What still works**
 
@@ -47,21 +71,22 @@ This is consistent with a session that is valid to *create* but not valid to *pa
   - `pdt_0Nfl5YPolhxfkTEMxOJYp` — Professional monthly (subscription)
   - `pdt_0Nj62gByZ53OzYoz3bCBr` — PAYG Small (one-time)
   - `pdt_0Nj62kQhG7EzZWogTmjfE` — PAYG Medium (one-time)
-- Last successful payment: **2026-08-13 18:05:32 UTC**
-- Failing attempts since: ~30 across 14–21 August, from US, France, Pakistan, India,
-  Japan — so it is not region or card specific
+- Last successful payment: **26 August 2026**
+- Failing attempts since: 10 sessions created 27 August – 12 September, none paid,
+  from several countries — so it is not region or card specific
+- Example failing session: `cks_0NnSyw0WXQO3Az3HMOZE8` (12 September)
+- Example working session, same account: `sub_0Nm6PkMITtarm7xu7bgEo` (24 August)
 
 **What we are asking**
 
 Please check, for our account:
 
 1. Is the account restricted, under review, or otherwise unable to accept live
-   payments? Our highest-ever payment day was 13 August (4 payments) immediately
-   before this started, which looks like it could have triggered an automated review.
+   payments since 26–27 August? Nothing changed on our side on that date.
 2. Are these products active and payable in live mode?
-3. Can you look at any recent checkout session we created and tell us why it did not
-   proceed to payment? The API reports success, so the reason is only visible on your
-   side.
+3. Compare `cks_0NnSyw0WXQO3Az3HMOZE8` (failing) with `sub_0Nm6PkMITtarm7xu7bgEo`
+   (paid on 24 August) and tell us why the first did not proceed to payment. The API
+   reports success, so the reason is only visible on your side.
 
 If there is an account action we need to complete (verification, KYC, payout setup),
 please tell us exactly what — this is currently costing us all of our revenue.
@@ -73,6 +98,7 @@ Eliasse — LinkFinder AI
 
 ## Before you send
 
-Add a session id if you have one to hand: after deploying the worker patch, click buy
-once and copy `session_id` from the response. It lets them look up the exact session
-instead of searching. Not required — the timestamp and product ids are enough to start.
+The two session ids above are the strongest thing support can be handed: a working
+and a broken session on the same account. If you have deployed the worker patch
+(PATCH.md), also paste the `dodo_raw` body from one fresh attempt so they can see
+exactly what their API answered.

@@ -2023,6 +2023,69 @@ function getRefCookie() {
 // Update this URL after deploying dodo-checkout-worker.js
 const DODO_CHECKOUT_WORKER = 'https://dodo-checkout.hamoureliasse.workers.dev/';
 
+// Static Dodo payment links, one per plan key. These do NOT involve the Checkout
+// Sessions API — they are the fallback when session creation succeeds but the
+// hosted page refuses the session (the 27 Aug – 13 Sept outage).
+// Leave a value empty to fall back to normal behaviour for that plan.
+//
+// Where they come from: Dodo dashboard → Products → each product → Payment Link.
+// Dodo product ids per plan are listed in workers/discount-code/wrangler.toml.
+// Only https://*.dodopayments.com links pass validateCheckoutUrl(); a link on
+// any other host is ignored and logged as checkout_static_link_invalid.
+// buildStaticCheckoutLink() appends the buyer's token, email and return URL so
+// the payment webhook (workers/dodo-webhook) can still credit the account.
+const DODO_PAYMENT_LINKS = {
+  payg_small:         '',
+  payg_medium:        '',
+  payg_large:         '',
+  starter_monthly:    '',
+  starter_annual:     '',
+  pro_monthly:        '',
+  pro_annual:         '',
+  // The "Scale" tier keeps the key `enterprise` (see `plans` above).
+  enterprise_monthly: '',
+  enterprise_annual:  '',
+};
+
+// Kill switch. Flip to true to bypass the worker entirely and send every buyer
+// straight to the static link for their plan.
+const FORCE_STATIC_CHECKOUT = false;
+
+// The static payment link for a plan, ready to navigate to, or null when none
+// is configured (the normal case). A static link carries none of the metadata
+// the worker puts on a checkout session, and workers/dodo-webhook credits an
+// account only from `metadata.user_token`; so the token, email and return URL
+// travel as Dodo's payment-link query parameters (`metadata_<key>`, `email`,
+// `redirect_url`) instead. Never throws: a broken value must not take down
+// the worker path it exists to back up.
+function buildStaticCheckoutLink(planKey) {
+    try {
+        const raw = DODO_PAYMENT_LINKS[planKey];
+        if (typeof raw !== 'string' || !raw.trim()) return null;
+        const link = raw.trim();
+        if (!validateCheckoutUrl(link)) {
+            try { posthog.capture('checkout_static_link_invalid', { plan_key: planKey }); } catch (_) {}
+            return null;
+        }
+        const u = new URL(link);
+        if (!u.searchParams.has('quantity')) u.searchParams.set('quantity', '1');
+        if (!u.searchParams.has('redirect_url')) u.searchParams.set('redirect_url', window.location.origin + '/app');
+        if (userToken && typeof userToken === 'string') {
+            u.searchParams.set('metadata_user_token', userToken);
+            u.searchParams.set('metadata_distinct_id', userToken);
+        }
+        u.searchParams.set('metadata_plan_key', planKey);
+        u.searchParams.set('metadata_attempt_id', lastCheckoutAttemptId || '');
+        u.searchParams.set('metadata_checkout_path', 'static_link');
+        const email = (typeof window.currentUserEmail === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(window.currentUserEmail.trim()))
+            ? window.currentUserEmail.trim().toLowerCase() : '';
+        if (email && !u.searchParams.has('email')) u.searchParams.set('email', email);
+        return u.toString();
+    } catch (_) {
+        return null;
+    }
+}
+
 const INDUSTRY_AVG_PER_CREDIT = 0.15;
 
 // The top self-serve tier is DISPLAYED as "Scale". Its key is still
@@ -2332,6 +2395,31 @@ async function launchCheckout({ planKey, analyticsPlanName, value, billingLabel,
     checkoutInFlight = true;
     lastCheckoutAttemptId = genCheckoutId();
 
+    // Kill switch: skip the Checkout Sessions API entirely and hand the buyer
+    // Dodo's static payment link for this plan. Only when a link is configured;
+    // a plan without one goes through the worker as before.
+    if (FORCE_STATIC_CHECKOUT && typeof DODO_PAYMENT_LINKS[planKey] === 'string' && DODO_PAYMENT_LINKS[planKey].trim()) {
+        // Same optional email wait as the worker path, so the link can prefill
+        // the buyer's address and the webhook can match the customer.
+        try { await waitForUserEmail(4000, 150); } catch (_) {}
+        const staticLink = buildStaticCheckoutLink(planKey);
+        if (staticLink) {
+            try { sessionStorage.setItem('lf_checkout_value', JSON.stringify({ value, plan: analyticsPlanName })); } catch (e) {}
+            window.__lfCheckout = { value, currency: 'USD', plan: analyticsPlanName, fired: false };
+            backupAuthToken();
+            rememberPendingCheckout({ planKey, analyticsPlanName, value, billingLabel, checkoutUrl: staticLink });
+            await captureBeforeUnload('checkout_static_link_used', {
+                attempt_id: lastCheckoutAttemptId,
+                plan: analyticsPlanName,
+                plan_key: planKey,
+                billing: billingLabel,
+                value: value
+            });
+            window.location.href = staticLink;
+            return;
+        }
+    }
+
     // Last-resort watchdog. Every *known* failure path resets checkoutInFlight, but
     // "known" is doing a lot of work: if the worker call never settles, the flag
     // stays true for the life of the page and every later click is swallowed above.
@@ -2477,16 +2565,30 @@ async function launchCheckout({ planKey, analyticsPlanName, value, billingLabel,
                 });
             } catch (_) {}
             checkoutInFlight = false;
+            // During an outage the session URL is the exact thing that just
+            // failed, so offering it again is useless. When a static payment
+            // link exists for this plan, offer that instead.
+            const staticLink = buildStaticCheckoutLink(planKey);
+            if (staticLink) {
+                try { posthog.capture('checkout_static_fallback_shown', { attempt_id: lastCheckoutAttemptId, plan_key: planKey, reason: 'redirect_stalled' }); } catch (_) {}
+            }
             showCheckoutError(
                 'The payment page did not open. Use the button below to continue — or contact us and we will take payment directly.',
-                { checkoutUrl: data.checkout_url }
+                { checkoutUrl: staticLink || data.checkout_url }
             );
-        }, 5000);
+        }, 3500);
 
     } catch (e) {
         console.error('Checkout error:', e);
+        // If the worker call itself failed, a static payment link (when one is
+        // configured) is a way through that does not depend on the worker.
+        const staticLink = buildStaticCheckoutLink(planKey);
+        if (staticLink) {
+            try { posthog.capture('checkout_static_fallback_shown', { attempt_id: lastCheckoutAttemptId, plan_key: planKey, reason: 'worker_error' }); } catch (_) {}
+        }
         showCheckoutError(e.message || 'We could not open checkout.', {
-            onRetry: () => launchCheckout({ planKey, analyticsPlanName, value, billingLabel, btnEl })
+            onRetry: () => launchCheckout({ planKey, analyticsPlanName, value, billingLabel, btnEl }),
+            checkoutUrl: staticLink || undefined
         });
         try { posthog.capture('checkout_error', { message: e.message, plan: planKey }); } catch (_) {}
         checkoutInFlight = false;
