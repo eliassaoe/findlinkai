@@ -26,12 +26,12 @@ const slice = (from, to) => {
     return app.slice(a, b);
 };
 
-test('shipped configuration: no links, switch off', () => {
+test('shipped configuration: switch off, any filled link is a Dodo static link', () => {
     const cfg = slice('const DODO_PAYMENT_LINKS = {', 'const FORCE_STATIC_CHECKOUT');
     const values = [...cfg.matchAll(/^\s*(\w+):\s*'([^']*)',/gm)];
     const keys = values.map(m => m[1]);
     assert.deepEqual(keys, ['payg_small','payg_medium','payg_large','starter_monthly','starter_annual','pro_monthly','pro_annual','enterprise_monthly','enterprise_annual']);
-    for (const [, key, url] of values) assert.equal(url, '', `${key} link should ship empty`);
+    for (const [, key, url] of values) if (url) assert.match(url, /^https:\/\/checkout\.dodopayments\.com\/buy\/pdt_[A-Za-z0-9]+$/, `${key} link must be a Dodo static payment link`);
     assert.match(app, /const FORCE_STATIC_CHECKOUT = false;/);
 });
 
