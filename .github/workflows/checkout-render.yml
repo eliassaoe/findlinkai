@@ -44,7 +44,13 @@ jobs:
           const page = await ctx.newPage();
           page.on('console', m => { if (m.type() === 'error' || m.type() === 'warning') consoleErrors.push(`[${m.type()}] ${m.text().slice(0, 300)}`); });
           page.on('requestfailed', r => failedRequests.push(`${r.method()} ${r.url().slice(0, 160)} :: ${r.failure()?.errorText}`));
-          page.on('response', r => { if (r.status() >= 400) badResponses.push(`${r.status()} ${r.request().method()} ${r.url().slice(0, 160)}`); });
+          page.on('response', async r => {
+            if (r.status() < 400) return;
+            let body = '';
+            if (/dodopayments\.(com|tech)/.test(r.url())) { try { body = (await r.text()).slice(0, 600); } catch (_) {} }
+            const reqBody = /dodopayments\.com\/api/.test(r.url()) ? (r.request().postData() || '').slice(0, 400) : '';
+            badResponses.push(`${r.status()} ${r.request().method()} ${r.url().slice(0, 160)}${reqBody ? '\n    request: ' + reqBody : ''}${body ? '\n    response: ' + body : ''}`);
+          });
           console.log('opening', url);
           const resp = await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 45000 });
           console.log('navigation status:', resp && resp.status(), 'final url:', page.url());
@@ -92,6 +98,24 @@ jobs:
             let cardInputs = [];
             for (const f of page.frames()) { try { cardInputs.push(...await f.evaluate(() => [...document.querySelectorAll('input')].map(i => `${location.hostname}: ${i.name || i.id || i.placeholder || i.autocomplete || 'input'}`))); } catch (_) {} }
             console.log(`\n===== inputs across all frames after submit (${cardInputs.length}) =====\n${cardInputs.slice(0, 40).join('\n')}`);
+            // Type a card (never submitted) to see whether Pay now ever enables.
+            const payBtn = page.locator('button#submit, button:has-text("Pay now")').first();
+            const payState = async () => (await payBtn.count()) ? `disabled=${await payBtn.isDisabled()} text=${(await payBtn.innerText()).trim()}` : 'no pay button';
+            console.log('pay button before card:', await payState());
+            const sdk = page.frames().find(f => /sdk-v2\.hs\.dodopayments\.com/.test(f.url()));
+            if (sdk) {
+              const typeIn = async (ph, val) => { const l = sdk.locator(`input[placeholder="${ph}"]`).first(); if (await l.count()) { await l.click(); await l.pressSequentially(val, { delay: 40 }); return true; } return false; };
+              const ok1 = await typeIn('1234 1234 1234 1234', '4242424242424242');
+              const ok2 = await typeIn('MM / YY', '1234');
+              const ok3 = await typeIn('CVC', '123');
+              console.log('typed card:', ok1, ok2, ok3);
+              await page.waitForTimeout(4000);
+              console.log('pay button after card:', await payState());
+              const sdkText = await sdk.evaluate(() => document.body.innerText).catch(() => '');
+              console.log('payment frame text:', sdkText.replace(/\s+/g, ' ').slice(0, 400));
+              const pageText = await page.evaluate(() => document.body.innerText);
+              console.log('page text after card:', pageText.replace(/\s+/g, ' ').slice(0, 500));
+            } else { console.log('payment SDK frame not found'); }
           }
           console.log(`\n===== console errors/warnings (${consoleErrors.length}) =====\n${consoleErrors.slice(0, 40).join('\n')}`);
           console.log(`\n===== failed requests (${failedRequests.length}) =====\n${failedRequests.slice(0, 40).join('\n')}`);
