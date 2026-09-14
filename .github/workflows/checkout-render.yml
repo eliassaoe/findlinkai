@@ -34,8 +34,8 @@ jobs:
           RENDER_EMAIL: ${{ inputs.email }}
         run: |
           npm init -y >/dev/null 2>&1 && npm i --silent playwright@1.47.2 >/dev/null 2>&1
-          node - <<'JS'
-          const { chromium } = require('playwright');
+          cat > render.mjs <<'JS'
+          import { chromium } from 'playwright';
           const url = process.env.RENDER_URL; const email = process.env.RENDER_EMAIL || '';
           const consoleErrors = [], failedRequests = [], badResponses = [];
           const browser = await chromium.launch();
@@ -77,3 +77,4 @@ jobs:
           console.log(`\n===== HTTP 4xx/5xx responses (${badResponses.length}) =====\n${badResponses.slice(0, 40).join('\n')}`);
           await browser.close();
           JS
+          node render.mjs
