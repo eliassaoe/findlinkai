@@ -1,3 +1,51 @@
+# UPDATE 14 September 2026 - read this first
+
+The verdict table in `docs/checkout-leak.md` now points at its last row. The
+premise this ticket needed is established, and the facts below supersede the
+"since 13 August" numbers further down.
+
+**Last real customer payments: 23-26 August** (two customers, both via the
+normal flow). **Since 27 August: zero.** Renewals of existing subscriptions
+still land, so the account is not fully disabled; it is new checkouts that fail.
+
+Every attempt since 27 August, real traffic, looks identical in our analytics:
+
+1. `checkout_worker_request_started` -> `checkout_session_created`
+   (`has_checkout_url: true`, `worker_env: live`, host
+   `checkout.dodopayments.com`) -> `checkout_redirect_started`. Zero
+   `checkout_error`, zero `checkout_stuck_watchdog`. The session is created and
+   the browser navigates to it, every time.
+2. The customer stays on the Dodo page for a long time - median 87 to 136
+   seconds, max 318 - and comes back to `/app` with **no `status` parameter**
+   in the URL. So they are not being returned by Dodo's own redirect; they are
+   leaving the page themselves after minutes on it.
+3. `checkout_abandoned` and the rescue banner fire, and `checkout_payment_page_opened`
+   has fired zero times since 27 August.
+
+Before 27 August the failures were different: median 4 seconds on the Dodo
+page, i.e. the session was refused on load. Now the page loads and holds a
+customer for minutes and still produces no payment. That pattern is a payment
+form that renders but cannot complete: a card form that errors on submit, a
+missing payment method for the customer's country, or an account-side block
+that only surfaces at charge time.
+
+Most recent session ids (all live, all with a valid `checkout_url`, none paid):
+
+    cks_0NnZa5k61rWEcLNfrLIpn
+    cks_0NnWkiMB2NHkBTt0aDD7M
+    cks_0NnSyw0WXQO3Az3HMOZE8
+    cks_0NnShJV4QaVKlh5chILJC
+    cks_0NnS9wmVefVjLafcbEpDx
+
+Ask Dodo to open any of these and state, for each: was a payment attempted, and
+if so why did it fail (decline code, 3DS outcome, account restriction).
+
+Note: the worker patch in `PATCH.md` was never deployed - `dodo_raw` is `null`
+on every redirect event - so we still have nothing from Dodo's side of the
+session in our own data. Deploy it before sending if you can; it costs nothing.
+
+---
+
 # Ticket to send to Dodo Payments support
 
 Send to their support channel (dashboard chat, or support@dodopayments.com).

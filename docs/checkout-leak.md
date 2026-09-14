@@ -68,6 +68,15 @@ have not established: it reads as "sessions create but nobody pays", when the
 truth so far is that almost nobody reaches a payment page to begin with. Do not
 send it until the table above points at that last row.
 
+## Verdict, 14 September 2026
+
+Walked the table with real traffic from 27 August to 14 September. Every row
+above the last one is clear: request started, session created with a URL,
+redirect started, no errors, no watchdog. Customers then spend minutes on the
+Dodo page and return without a status parameter. **It is the last row.** The
+ticket in `workers/dodo-checkout/DODO-SUPPORT-TICKET.md` is updated with the
+session ids and can be sent. Last real payments were 23-26 August.
+
 ## Caveat
 
 Every checkout attempt logged on 21-22 August came from my own three accounts
