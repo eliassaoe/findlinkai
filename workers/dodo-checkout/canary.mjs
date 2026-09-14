@@ -25,7 +25,10 @@ const EMAIL = process.env.LF_CANARY_EMAIL || '';
 const PLAN = process.env.LF_CANARY_PLAN || 'payg_small';
 // Keep in sync with DODO_DIRECT_PRODUCTS in app.html (tests/checkout-second-door.test.mjs pins it).
 const DIRECT_PRODUCT = 'pdt_0Nj62gByZ53OzYoz3bCBr';
-const BAD_PAGE = /(session|link|checkout)[^<]{0,40}(expired|invalid|not found|unavailable)|something went wrong|page not found/i;
+// Only rendered text counts: Dodo's page ships its whole translation bundle
+// as JSON ("linkExpired":{"title":"Payment Link Expired"}) on every load, so
+// the words alone prove nothing. A real error state is a text node: >...<.
+const BAD_PAGE = />\s*[^<"{}]*\b(?:session|link|checkout|page)\b[^<"{}]{0,40}\b(?:expired|invalid|not found|unavailable)\b[^<]*<|>\s*something went wrong\s*<|>\s*page not found\s*</i;
 
 const failures = [];
 const fail = (msg) => { failures.push(msg); console.log('::error::' + msg); };
