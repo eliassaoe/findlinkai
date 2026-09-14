@@ -47,18 +47,39 @@ const failures = [];
 const fail = (msg) => { failures.push(msg); console.log('::error::' + msg); };
 const ok = (msg) => console.log('ok   ' + msg);
 
+// One deadline for headers AND body. A server that streams the page and keeps
+// the connection open (Dodo's does, for a browser Accept header) would
+// otherwise hang the body read forever after the header timeout was cleared.
 async function fetchWithTimeout(url, opts = {}, ms = 20000) {
   const ac = new AbortController();
   const t = setTimeout(() => ac.abort(), ms);
-  try { return await fetch(url, { ...opts, signal: ac.signal, redirect: 'follow' }); }
-  finally { clearTimeout(t); }
+  try {
+    const r = await fetch(url, { ...opts, signal: ac.signal, redirect: 'follow' });
+    let body = '';
+    if (r.body) {
+      const reader = r.body.getReader();
+      const dec = new TextDecoder();
+      try {
+        while (body.length < 3_000_000) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          body += dec.decode(value, { stream: true });
+        }
+      } catch (e) {
+        if (!body) throw e; // aborted before anything arrived
+      } finally {
+        try { await reader.cancel(); } catch (_) {}
+      }
+    }
+    return { status: r.status, url: r.url, ok: r.ok, body, json() { try { return JSON.parse(body); } catch (_) { return {}; } } };
+  } finally { clearTimeout(t); }
 }
 
 async function checkPage(label, url) {
   let r;
   try { r = await fetchWithTimeout(url, { headers: { 'User-Agent': 'Mozilla/5.0 (LinkFinder checkout canary)' } }); }
   catch (e) { return fail(`${label}: could not be fetched (${e.name}: ${e.message})`); }
-  const body = await r.text().catch(() => '');
+  const body = r.body;
   if (r.status === 403 && /just a moment|cf-chl|challenge-platform|cf-browser-verification/i.test(body)) {
     return console.log(`::warning::${label}: answered with a bot challenge (HTTP 403), so a robot cannot verify it; a browser is not affected.`);
   }
@@ -88,7 +109,7 @@ if (!TOKEN) {
       headers: { 'Content-Type': 'application/json', 'Origin': 'https://linkfinderai.com' },
       body: JSON.stringify(payload),
     });
-    data = await r.json().catch(() => ({}));
+    data = r.json();
   } catch (e) {
     fail(`worker: unreachable (${e.name}: ${e.message})`);
   }
