@@ -25,6 +25,11 @@ on:
         required: false
         type: string
         default: ''
+      mobile:
+        description: Render as a phone (iPhone viewport and user agent)
+        required: false
+        type: boolean
+        default: false
       worker_token:
         description: user_token for the worker call (only if LF_CANARY_USER_TOKEN secret is not set); fake tokens may be refused
         required: false
@@ -48,6 +53,7 @@ jobs:
           RENDER_URL: ${{ inputs.url }}
           RENDER_EMAIL: ${{ inputs.email }}
           RENDER_COUNTRY: ${{ inputs.country }}
+          RENDER_MOBILE: ${{ inputs.mobile }}
           VIA_WORKER_PLAN: ${{ inputs.via_worker_plan }}
           WORKER_TOKEN: ${{ secrets.LF_CANARY_USER_TOKEN || inputs.worker_token }}
         run: |
@@ -68,8 +74,13 @@ jobs:
           }
           const consoleErrors = [], failedRequests = [], badResponses = [];
           const browser = await chromium.launch();
-          const ctx = await browser.newContext({ locale: 'en-US', viewport: { width: 1280, height: 900 },
-            userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0 Safari/537.36' });
+          const mobile = process.env.RENDER_MOBILE === 'true';
+          const ctx = await browser.newContext(mobile
+            ? { locale: 'en-US', viewport: { width: 390, height: 844 }, deviceScaleFactor: 3, isMobile: true, hasTouch: true,
+                userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1' }
+            : { locale: 'en-US', viewport: { width: 1280, height: 900 },
+                userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0 Safari/537.36' });
+          console.log('device:', mobile ? 'phone 390x844' : 'desktop 1280x900');
           const page = await ctx.newPage();
           page.on('console', m => { if (m.type() === 'error' || m.type() === 'warning') consoleErrors.push(`[${m.type()}] ${m.text().slice(0, 300)}`); });
           page.on('requestfailed', r => failedRequests.push(`${r.method()} ${r.url().slice(0, 160)} :: ${r.failure()?.errorText}`));
@@ -130,7 +141,7 @@ jobs:
             const mapsCalls = [];
             page.on('response', r => { if (/maps\.googleapis|places|autocomplete|geocod/i.test(r.url())) mapsCalls.push(`${r.status()} ${r.url().slice(0, 140)}`); });
             const auto = page.locator('input[placeholder="Address Line"]:not([name])').first();
-            if (await auto.count()) {
+            if (await auto.count() && await auto.isVisible()) {
               await auto.click(); await auto.pressSequentially(addr[0] + ' ' + addr[1], { delay: 60 });
               await page.waitForTimeout(4000);
               const suggestions = await page.evaluate(() => [...document.querySelectorAll('[role="option"], [role="listbox"] *, .pac-item, [class*="suggestion" i], [class*="autocomplete" i] li')].map(e => (e.innerText || '').trim()).filter(Boolean).slice(0, 10));
@@ -143,7 +154,7 @@ jobs:
               if (await b.count()) { try { await b.click({ timeout: 4000 }); } catch (_) {} }
               await page.waitForTimeout(2500);
               console.log('AUTOCOMPLETE: submit after typing into suggestion box only -> still on step 1:', /id="step1"/.test(await page.evaluate(() => document.body.innerHTML)), '| messages:', JSON.stringify((await errors()).filter(t => t.length < 80)));
-            } else { console.log('\nAUTOCOMPLETE: no suggestion box found'); }
+            } else { console.log('\nAUTOCOMPLETE: suggestion box absent or hidden; humans see the plain address fields'); }
             const manual = page.locator('button:has-text("Enter address manually")').first();
             if (await manual.count()) { try { await manual.click({ timeout: 3000 }); filled.push('manual-address'); } catch (_) {} }
             if (await fill('input[name="addressLine"]', addr[0])) filled.push('addressLine');
@@ -159,7 +170,11 @@ jobs:
             console.log('all disabled controls on step 1:', JSON.stringify(disabledAll));
             console.log('validation before submit:', JSON.stringify(await errors()));
             const next = page.locator('button#step1, button:has-text("Continue to Payment"), button[type="submit"]').first();
-            if (await next.count()) { try { await next.click({ timeout: 5000 }); console.log('clicked:', (await next.innerText()).trim()); } catch (e) { console.log('could not click continue:', e.message.slice(0, 120)); } }
+            if (await next.count()) {
+              const box = await next.boundingBox();
+              console.log('continue button: visible=' + await next.isVisible() + ' box=' + JSON.stringify(box) + ' viewport=' + JSON.stringify(page.viewportSize()));
+              try { await next.click({ timeout: 5000 }); console.log('clicked:', (await next.innerText()).trim()); } catch (e) { console.log('could not click continue:', e.message.slice(0, 160)); }
+            }
             await page.waitForTimeout(10000);
             console.log('validation after submit:', JSON.stringify(await errors()));
             console.log('url after submit:', page.url());
