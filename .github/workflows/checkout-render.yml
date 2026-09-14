@@ -1,0 +1,79 @@
+name: Render checkout page
+# Opens a Dodo checkout URL in a real headless Chromium from a GitHub runner
+# (this sandbox cannot reach Dodo) and prints what a customer would see: the
+# visible text, whether a card/payment field rendered, payment-method iframes,
+# console errors and failed network requests. Enters no card, pays nothing.
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: Checkout URL to render
+        required: true
+        type: string
+      email:
+        description: Email to type into the form if it asks for one (optional)
+        required: false
+        type: string
+        default: ''
+permissions:
+  contents: read
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install Playwright Chromium
+        run: npx --yes playwright@1.47.2 install --with-deps chromium
+      - name: Render like a customer
+        shell: bash
+        env:
+          RENDER_URL: ${{ inputs.url }}
+          RENDER_EMAIL: ${{ inputs.email }}
+        run: |
+          npm init -y >/dev/null 2>&1 && npm i --silent playwright@1.47.2 >/dev/null 2>&1
+          node - <<'JS'
+          const { chromium } = require('playwright');
+          const url = process.env.RENDER_URL; const email = process.env.RENDER_EMAIL || '';
+          const consoleErrors = [], failedRequests = [], badResponses = [];
+          const browser = await chromium.launch();
+          const ctx = await browser.newContext({ locale: 'en-US', viewport: { width: 1280, height: 900 },
+            userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0 Safari/537.36' });
+          const page = await ctx.newPage();
+          page.on('console', m => { if (m.type() === 'error' || m.type() === 'warning') consoleErrors.push(`[${m.type()}] ${m.text().slice(0, 300)}`); });
+          page.on('requestfailed', r => failedRequests.push(`${r.method()} ${r.url().slice(0, 160)} :: ${r.failure()?.errorText}`));
+          page.on('response', r => { if (r.status() >= 400) badResponses.push(`${r.status()} ${r.request().method()} ${r.url().slice(0, 160)}`); });
+          console.log('opening', url);
+          const resp = await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 45000 });
+          console.log('navigation status:', resp && resp.status(), 'final url:', page.url());
+          await page.waitForTimeout(8000);
+          try { await page.waitForLoadState('networkidle', { timeout: 15000 }); } catch (_) { console.log('(network never went idle within 15s)'); }
+          const snapshot = async (label) => {
+            const text = await page.evaluate(() => document.body.innerText);
+            const inputs = await page.evaluate(() => [...document.querySelectorAll('input,select,button')].map(e => `${e.tagName.toLowerCase()}${e.type ? '[' + e.type + ']' : ''} name=${e.name || '-'} id=${e.id || '-'} placeholder=${e.placeholder || '-'} text=${(e.innerText || e.value || '').trim().slice(0, 40)} disabled=${e.disabled}`));
+            const frames = page.frames().map(f => f.url()).filter(u => u && u !== 'about:blank' && u !== page.url());
+            console.log(`\n===== ${label}: visible text (${text.length} chars) =====\n${text.slice(0, 3500)}`);
+            console.log(`\n===== ${label}: form controls (${inputs.length}) =====\n${inputs.slice(0, 60).join('\n')}`);
+            console.log(`\n===== ${label}: iframes (${frames.length}) =====\n${frames.join('\n')}`);
+            const cardish = await page.evaluate(() => !!document.querySelector('input[autocomplete*="cc-"],input[name*="card" i],iframe[src*="stripe" i],iframe[src*="adyen" i],iframe[src*="checkout" i],iframe[name*="card" i]'));
+            console.log(`\n${label}: card/payment field detected: ${cardish}`);
+          };
+          await snapshot('initial');
+          if (email) {
+            const box = page.locator('input[type="email"], input[name*="email" i], input[placeholder*="email" i]').first();
+            if (await box.count()) {
+              await box.fill(email);
+              console.log('\ntyped email into the form');
+              const next = page.locator('button:has-text("Continue"), button:has-text("Next"), button:has-text("Pay"), button[type="submit"]').first();
+              if (await next.count()) { try { await next.click({ timeout: 5000 }); console.log('clicked:', (await next.innerText()).trim()); } catch (e) { console.log('could not click continue:', e.message.slice(0, 120)); } }
+              await page.waitForTimeout(8000);
+              await snapshot('after email');
+            } else { console.log('\nno email field found to fill'); }
+          }
+          console.log(`\n===== console errors/warnings (${consoleErrors.length}) =====\n${consoleErrors.slice(0, 40).join('\n')}`);
+          console.log(`\n===== failed requests (${failedRequests.length}) =====\n${failedRequests.slice(0, 40).join('\n')}`);
+          console.log(`\n===== HTTP 4xx/5xx responses (${badResponses.length}) =====\n${badResponses.slice(0, 40).join('\n')}`);
+          await browser.close();
+          JS
