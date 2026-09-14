@@ -1828,6 +1828,17 @@ async function maybeShowCheckoutRescue() {
     // link, which is a user-initiated click rather than a scripted navigation.
     const wasBounced = offer.elapsedMs < 60 * 1000;
 
+    // Both variants get the second door and a human. Someone who reached a
+    // payment page and came back without paying is the most valuable person in
+    // the funnel, and "try the same link again" is not the only thing we can say.
+    const directRescue = (function () {
+        const d = buildDirectPaymentLink(offer.plan_key, null, offer.attempt_id);
+        return d
+            ? ` <a href="${otpEsc(d)}" onclick="try{posthog.capture('checkout_direct_link_clicked',{source:'rescue_banner'})}catch(e){}" style="margin-left:0.75rem;">Pay with a direct payment link &rarr;</a>`
+            : '';
+    })();
+    const contactRescue = ` <a href="mailto:support@linkfinderai.com?subject=${encodeURIComponent('Payment page problem')}" onclick="try{posthog.capture('checkout_contact_clicked',{source:'rescue_banner'})}catch(e){}" style="margin-left:0.75rem;">Email us</a>`;
+
     if (wasBounced) {
         // Re-validate on the way out as well as on the way in: this URL has been
         // sitting in localStorage since the attempt, and it is about to become an
@@ -1835,12 +1846,12 @@ async function maybeShowCheckoutRescue() {
         const direct = validateCheckoutUrl(offer.checkout_url)
             ? ` <a href="${otpEsc(offer.checkout_url)}" onclick="try{posthog.capture('checkout_rescue_direct_link_clicked')}catch(e){}">Open the payment page &rarr;</a>`
             : '';
-        bar.innerHTML = `Your payment page for ${planLabel} didn't load properly — that's on us, not you.${direct}`
+        bar.innerHTML = `Your payment page for ${planLabel} didn't load properly — that's on us, not you.${direct}${directRescue}${contactRescue}`
             + ` <a onclick="resumeCheckout()" style="margin-left:0.75rem;">Try again</a>`
             + `<a onclick="try{posthog.capture('checkout_rescue_dismissed')}catch(e){}; document.getElementById('milestoneUpgradeBanner').style.display='none'" style="margin-left:0.75rem;color:inherit;">Dismiss</a>`;
     } else {
-        bar.innerHTML = `You didn't quite finish signing up for ${planLabel}. `
-            + `<a onclick="resumeCheckout()">Pick up where you left off &rarr;</a>`
+        bar.innerHTML = `Your ${planLabel} payment didn't go through. If the payment page didn't work for you, that's on us. `
+            + `<a onclick="resumeCheckout()">Try again &rarr;</a>${directRescue}${contactRescue}`
             + `<a onclick="try{posthog.capture('checkout_rescue_dismissed')}catch(e){}; document.getElementById('milestoneUpgradeBanner').style.display='none'" style="margin-left:0.75rem;color:inherit;">No thanks</a>`;
     }
     bar.style.display = 'block';
@@ -2022,6 +2033,47 @@ function getRefCookie() {
 // Cloudflare Worker that creates Dodo Checkout Sessions
 // Update this URL after deploying dodo-checkout-worker.js
 const DODO_CHECKOUT_WORKER = 'https://dodo-checkout.hamoureliasse.workers.dev/';
+
+// ===== The second door to payment =====
+// The worker-created checkout session is the primary path. If the worker is
+// down, slow, answers with something invalid, or Dodo hands back a session its
+// own page will not take, the buyer must still land on a Dodo payment page for
+// the plan they picked. Dodo's static payment links are a separate surface from
+// checkout sessions: one fixed URL per product, no API call, nothing for our
+// worker to get wrong. They carry the same email and user_token metadata the
+// worker sends, so the payment webhook attributes the payment identically.
+//
+// Product ids are the live ones the checkout worker uses, documented in
+// workers/discount-code/README.md and workers/dodo-checkout/DODO-SUPPORT-TICKET.md.
+// A plan without a documented id has no direct link and keeps the session URL
+// plus the contact line. Add ids here as they are confirmed in the Dodo dashboard.
+const DODO_DIRECT_PRODUCTS = {
+    starter_monthly: 'pdt_0Nfl5LZfppnjJBM2mvons',
+    pro_monthly:     'pdt_0Nfl5YPolhxfkTEMxOJYp',
+    payg_small:      'pdt_0Nj62gByZ53OzYoz3bCBr',
+    payg_medium:     'pdt_0Nj62kQhG7EzZWogTmjfE'
+};
+const DODO_DIRECT_RETURN_URL = 'https://linkfinderai.com/app';
+
+function buildDirectPaymentLink(planKey, email, attemptId) {
+    const productId = DODO_DIRECT_PRODUCTS[planKey];
+    if (!productId || !userToken || typeof userToken !== 'string' || userToken.length < 8) return null;
+    try {
+        const u = new URL('https://checkout.dodopayments.com/buy/' + productId);
+        u.searchParams.set('quantity', '1');
+        u.searchParams.set('redirect_url', DODO_DIRECT_RETURN_URL);
+        if (typeof email === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+            u.searchParams.set('email', email.trim().toLowerCase());
+        }
+        u.searchParams.set('metadata_user_token', userToken);
+        if (attemptId) u.searchParams.set('metadata_attempt_id', String(attemptId));
+        u.searchParams.set('metadata_source', 'direct_link');
+        return u.toString();
+    } catch (_) {
+        return null;
+    }
+}
+
 
 const INDUSTRY_AVG_PER_CREDIT = 0.15;
 
@@ -2291,9 +2343,13 @@ function showCheckoutError(message, opts = {}) {
     }
     const retryBtn = opts.onRetry ? `<button id="checkoutErrorRetryBtn" style="margin-top:0.6rem;margin-right:0.5rem;background:#2563eb;color:white;border:none;padding:0.45rem 0.9rem;border-radius:6px;font-weight:600;cursor:pointer;font-family:inherit;">Retry</button>` : '';
     const fallbackLink = opts.checkoutUrl ? `<a href="${opts.checkoutUrl}" style="background:#16a34a;color:white;font-weight:700;margin-top:0.6rem;padding:0.5rem 1rem;border-radius:6px;text-decoration:none;display:inline-block;">Continue to payment page &rarr;</a>` : '';
+    // The second door. A static Dodo payment link needs nothing from our worker,
+    // so it is offered on every failure path that has one for the plan.
+    const directLink = opts.directUrl ? `<a href="${opts.directUrl}" onclick="try{posthog.capture('checkout_direct_link_clicked',{source:'error_toast'})}catch(e){}" style="background:#0f766e;color:white;font-weight:700;margin-top:0.6rem;margin-left:0.5rem;padding:0.5rem 1rem;border-radius:6px;text-decoration:none;display:inline-block;">Pay with a direct payment link &rarr;</a>` : '';
+    const contactLine = `<div style="margin-top:0.55rem;color:#9ca3af;font-size:0.8125rem;">Still stuck? <a href="mailto:support@linkfinderai.com?subject=${encodeURIComponent('Payment page problem')}" onclick="try{posthog.capture('checkout_contact_clicked',{source:'error_toast'})}catch(e){}" style="color:#93c5fd;">Email us</a> and we will take payment another way.</div>`;
     el.innerHTML = `<div style="display:flex;gap:0.6rem;align-items:flex-start;">
         <i class="fas fa-exclamation-triangle" style="color:#f59e0b;margin-top:0.15rem;"></i>
-        <div><div>${message}</div><div>${retryBtn}${fallbackLink}</div></div>
+        <div><div>${message}</div><div>${retryBtn}${fallbackLink}${directLink}</div>${contactLine}</div>
         <button onclick="document.getElementById('checkoutErrorToast').remove()" style="background:none;border:none;color:#9ca3af;cursor:pointer;font-size:1.1rem;margin-left:auto;">&times;</button>
     </div>`;
     if (opts.onRetry) document.getElementById('checkoutErrorRetryBtn').onclick = () => { el.remove(); opts.onRetry(); };
@@ -2347,7 +2403,9 @@ async function launchCheckout({ planKey, analyticsPlanName, value, billingLabel,
             });
         } catch (e) {}
         checkoutInFlight = false;
-        showCheckoutError('Checkout did not open. Please try again - or contact us and we will take payment directly.');
+        showCheckoutError('Checkout did not open. Please try again - or contact us and we will take payment directly.', {
+            directUrl: buildDirectPaymentLink(planKey, null, watchdogAttemptId)
+        });
     }, 20000);
 
     const originalText = btnEl ? btnEl.textContent : '';
@@ -2356,9 +2414,10 @@ async function launchCheckout({ planKey, analyticsPlanName, value, billingLabel,
         btnEl.disabled = true;
     }
 
+    let email = null;
     try {
         // Email optional: do NOT block checkout if missing
-        const email = await waitForUserEmail(4000, 150);
+        email = await waitForUserEmail(4000, 150);
         if (!email) {
             try { posthog.capture('checkout_email_missing_proceeding'); } catch (e) {}
         }
@@ -2479,17 +2538,50 @@ async function launchCheckout({ planKey, analyticsPlanName, value, billingLabel,
             checkoutInFlight = false;
             showCheckoutError(
                 'The payment page did not open. Use the button below to continue — or contact us and we will take payment directly.',
-                { checkoutUrl: data.checkout_url }
+                { checkoutUrl: data.checkout_url, directUrl: buildDirectPaymentLink(planKey, email, lastCheckoutAttemptId) }
             );
         }, 5000);
 
     } catch (e) {
         console.error('Checkout error:', e);
-        showCheckoutError(e.message || 'We could not open checkout.', {
-            onRetry: () => launchCheckout({ planKey, analyticsPlanName, value, billingLabel, btnEl })
-        });
         try { posthog.capture('checkout_error', { message: e.message, plan: planKey }); } catch (_) {}
         checkoutInFlight = false;
+
+        // The session path failed. If this plan has a static Dodo payment link,
+        // the buyer still goes to a payment page: the second door needs nothing
+        // from our worker. The toast stays behind as a manual link in case this
+        // navigation does not commit either.
+        const direct = buildDirectPaymentLink(planKey, email, lastCheckoutAttemptId);
+        if (direct) {
+            try {
+                posthog.capture('checkout_direct_link_fallback', {
+                    attempt_id: lastCheckoutAttemptId,
+                    plan: analyticsPlanName,
+                    plan_key: planKey,
+                    reason: e.message || 'unknown'
+                });
+            } catch (_) {}
+            rememberPendingCheckout({ planKey, analyticsPlanName, value, billingLabel, checkoutUrl: direct });
+            showCheckoutError('Opening the payment page another way&hellip;', {
+                directUrl: direct,
+                onRetry: () => launchCheckout({ planKey, analyticsPlanName, value, billingLabel, btnEl })
+            });
+            await captureBeforeUnload('checkout_redirect_started', {
+                attempt_id: lastCheckoutAttemptId,
+                plan: analyticsPlanName,
+                plan_key: planKey,
+                billing: billingLabel,
+                value: value,
+                checkout_host: 'checkout.dodopayments.com',
+                checkout_url: direct.split('?')[0],
+                worker_env: 'direct_link'
+            });
+            window.location.href = direct;
+        } else {
+            showCheckoutError(e.message || 'We could not open checkout.', {
+                onRetry: () => launchCheckout({ planKey, analyticsPlanName, value, billingLabel, btnEl })
+            });
+        }
     } finally {
         if (btnEl) {
             btnEl.disabled = false;

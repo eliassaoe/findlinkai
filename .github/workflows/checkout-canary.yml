@@ -1,0 +1,51 @@
+name: Checkout canary
+# Every hour, prove that clicking Buy lands on a live Dodo payment page:
+# workers/dodo-checkout/canary.mjs. A failure fails this run (GitHub emails the
+# owner) and opens or refreshes one issue labelled checkout-canary.
+on:
+  schedule:
+    - cron: '17 * * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+  issues: write
+concurrency:
+  group: checkout-canary
+  cancel-in-progress: false
+jobs:
+  canary:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Click Buy like a customer would
+        id: canary
+        env:
+          LF_CANARY_USER_TOKEN: ${{ secrets.LF_CANARY_USER_TOKEN }}
+          LF_CANARY_EMAIL: ${{ secrets.LF_CANARY_EMAIL }}
+        run: node workers/dodo-checkout/canary.mjs 2>&1 | tee canary.log
+      - name: Open or refresh the alarm issue
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          title="Checkout canary failing: buyers may not reach a payment page"
+          body=$(printf 'The hourly checkout canary failed.\n\nRun: %s\n\n```\n%s\n```\n\nWhat to do: workers/dodo-checkout/README first; the Dodo dashboard second. This issue is refreshed on every failing run and can be closed once a run passes.' "$RUN_URL" "$(tail -c 3000 canary.log)")
+          gh label create checkout-canary --color B60205 --description "Hourly checkout canary" 2>/dev/null || true
+          existing=$(gh issue list --label checkout-canary --state open --json number --jq '.[0].number')
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --body "$body"
+          else
+            gh issue create --title "$title" --label checkout-canary --body "$body"
+          fi
+      - name: Close the alarm issue when green
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          existing=$(gh issue list --label checkout-canary --state open --json number --jq '.[0].number')
+          [ -n "$existing" ] && gh issue close "$existing" --comment "Canary passed again." || true
