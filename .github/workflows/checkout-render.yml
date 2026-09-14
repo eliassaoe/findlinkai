@@ -54,23 +54,44 @@ jobs:
             const text = await page.evaluate(() => document.body.innerText);
             const inputs = await page.evaluate(() => [...document.querySelectorAll('input,select,button')].map(e => `${e.tagName.toLowerCase()}${e.type ? '[' + e.type + ']' : ''} name=${e.name || '-'} id=${e.id || '-'} placeholder=${e.placeholder || '-'} text=${(e.innerText || e.value || '').trim().slice(0, 40)} disabled=${e.disabled}`));
             const frames = page.frames().map(f => f.url()).filter(u => u && u !== 'about:blank' && u !== page.url());
-            console.log(`\n===== ${label}: visible text (${text.length} chars) =====\n${text.slice(0, 3500)}`);
+            console.log(`\n===== ${label}: visible text (${text.length} chars) =====\n${text.replace(/\n[A-Z][^\n]{1,40} \+\d{1,4}(?=\n)/g, '').slice(0, 2500)}`);
             console.log(`\n===== ${label}: form controls (${inputs.length}) =====\n${inputs.slice(0, 60).join('\n')}`);
             console.log(`\n===== ${label}: iframes (${frames.length}) =====\n${frames.join('\n')}`);
             const cardish = await page.evaluate(() => !!document.querySelector('input[autocomplete*="cc-"],input[name*="card" i],iframe[src*="stripe" i],iframe[src*="adyen" i],iframe[src*="checkout" i],iframe[name*="card" i]'));
             console.log(`\n${label}: card/payment field detected: ${cardish}`);
           };
           await snapshot('initial');
+          // Validation messages: anything the page marks as an alert or error.
+          const errors = async () => page.evaluate(() => [...document.querySelectorAll('[role="alert"],[aria-invalid="true"],[class*="error" i],[class*="destructive" i],p[id$="-form-item-message"]')]
+            .map(e => (e.innerText || e.getAttribute('aria-label') || e.name || '').trim()).filter(Boolean).slice(0, 30));
           if (email) {
-            const box = page.locator('input[type="email"], input[name*="email" i], input[placeholder*="email" i]').first();
-            if (await box.count()) {
-              await box.fill(email);
-              console.log('\ntyped email into the form');
-              const next = page.locator('button:has-text("Continue"), button:has-text("Next"), button:has-text("Pay"), button[type="submit"]').first();
-              if (await next.count()) { try { await next.click({ timeout: 5000 }); console.log('clicked:', (await next.innerText()).trim()); } catch (e) { console.log('could not click continue:', e.message.slice(0, 120)); } }
-              await page.waitForTimeout(8000);
-              await snapshot('after email');
-            } else { console.log('\nno email field found to fill'); }
+            const fill = async (sel, val) => { const l = page.locator(sel).first(); if (await l.count()) { await l.fill(val); return true; } return false; };
+            const filled = [];
+            if (await fill('input[name="fullName"]', 'Probe Customer')) filled.push('fullName');
+            if (await fill('input[name="email"], input[type="email"]', email)) filled.push('email');
+            if (await fill('input[type="tel"]', '+1 415 555 0134')) filled.push('phone');
+            const country = page.locator('select[name="country"]').first();
+            if (await country.count()) { try { await country.selectOption({ label: 'United States' }); filled.push('country=US'); } catch (e) { console.log('country select failed:', e.message.slice(0, 100)); } }
+            const manual = page.locator('button:has-text("Enter address manually")').first();
+            if (await manual.count()) { try { await manual.click({ timeout: 3000 }); filled.push('manual-address'); } catch (_) {} }
+            if (await fill('input[name="addressLine"]', '1 Market St')) filled.push('addressLine');
+            if (await fill('input[name="city"]', 'San Francisco')) filled.push('city');
+            if (await fill('input[name="zipCode"]', '94105')) filled.push('zipCode');
+            if (await fill('input[name="state"]', 'CA')) filled.push('state');
+            const cb = page.locator('input[type="checkbox"]').first();
+            if (await cb.count()) { try { if (!(await cb.isChecked())) await cb.check({ force: true }); filled.push('checkbox'); } catch (e) { console.log('checkbox:', e.message.slice(0, 80)); } }
+            console.log('\nfilled step 1:', filled.join(', '));
+            console.log('validation before submit:', JSON.stringify(await errors()));
+            const next = page.locator('button#step1, button:has-text("Continue to Payment"), button[type="submit"]').first();
+            if (await next.count()) { try { await next.click({ timeout: 5000 }); console.log('clicked:', (await next.innerText()).trim()); } catch (e) { console.log('could not click continue:', e.message.slice(0, 120)); } }
+            await page.waitForTimeout(10000);
+            console.log('validation after submit:', JSON.stringify(await errors()));
+            console.log('url after submit:', page.url());
+            await snapshot('after submit');
+            // Is there a card number field now, in the page or in any iframe?
+            let cardInputs = [];
+            for (const f of page.frames()) { try { cardInputs.push(...await f.evaluate(() => [...document.querySelectorAll('input')].map(i => `${location.hostname}: ${i.name || i.id || i.placeholder || i.autocomplete || 'input'}`))); } catch (_) {} }
+            console.log(`\n===== inputs across all frames after submit (${cardInputs.length}) =====\n${cardInputs.slice(0, 40).join('\n')}`);
           }
           console.log(`\n===== console errors/warnings (${consoleErrors.length}) =====\n${consoleErrors.slice(0, 40).join('\n')}`);
           console.log(`\n===== failed requests (${failedRequests.length}) =====\n${failedRequests.slice(0, 40).join('\n')}`);
