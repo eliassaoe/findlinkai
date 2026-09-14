@@ -27,8 +27,21 @@ const PLAN = process.env.LF_CANARY_PLAN || 'payg_small';
 const DIRECT_PRODUCT = 'pdt_0Nj62gByZ53OzYoz3bCBr';
 // Only rendered text counts: Dodo's page ships its whole translation bundle
 // as JSON ("linkExpired":{"title":"Payment Link Expired"}) on every load, so
-// the words alone prove nothing. A real error state is a text node: >...<.
-const BAD_PAGE = />\s*[^<"{}]*\b(?:session|link|checkout|page)\b[^<"{}]{0,40}\b(?:expired|invalid|not found|unavailable)\b[^<]*<|>\s*something went wrong\s*<|>\s*page not found\s*</i;
+// the words alone prove nothing. A real error state is a text node between
+// tags. Scanned linearly, one text node at a time: the page is one very large
+// script with few tags, and a backtracking regex over the whole body hangs.
+const ERROR_TEXT = /\b(?:session|link|checkout|page)\b.{0,40}\b(?:expired|invalid|not found|unavailable)\b|^\s*something went wrong\s*$|^\s*page not found\s*$/i;
+function renderedErrorText(body) {
+  const chunks = body.split('<');
+  for (const c of chunks) {
+    const i = c.indexOf('>');
+    if (i === -1) continue;
+    const text = c.slice(i + 1);
+    if (!text.trim() || text.length > 300 || /["{}]/.test(text)) continue; // script/JSON, not prose
+    if (ERROR_TEXT.test(text)) return text.trim();
+  }
+  return null;
+}
 
 const failures = [];
 const fail = (msg) => { failures.push(msg); console.log('::error::' + msg); };
@@ -50,8 +63,8 @@ async function checkPage(label, url) {
     return console.log(`::warning::${label}: answered with a bot challenge (HTTP 403), so a robot cannot verify it; a browser is not affected.`);
   }
   if (r.status !== 200) return fail(`${label}: HTTP ${r.status} at ${r.url}`);
-  const m = body.match(BAD_PAGE);
-  if (m) return fail(`${label}: page says "${m[0].slice(0, 80)}"`);
+  const m = renderedErrorText(body);
+  if (m) return fail(`${label}: page says "${m.slice(0, 80)}"`);
   ok(`${label}: 200, ${body.length} bytes`);
 }
 
