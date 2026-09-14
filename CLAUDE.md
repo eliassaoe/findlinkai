@@ -72,6 +72,7 @@ into a file here in the same session, or it is gone.
 | Outbound campaign | `OUTBOUND-CRM-AUDIT.md` |
 | Workers | `workers/` — but most live workers are NOT in this repo; read them with the Cloudflare connector |
 | Integrations (all generated from one catalog) | `integrations/` — `integrations/catalog/` is the source; `npm run build && npm test` in `integrations/` |
+| **API, bulk and Google Sheets page for every tool, and the "Also available as" strip on the parent** | `build_tool_variants.py` — read its docstring before adding a tool page; re-run it after adding one so the three siblings and the strip exist |
 | **The published Google Sheets add-on** | `integrations/google-sheets-addon/` — read its README before touching it |
 
 ## Facts that are easy to get wrong
