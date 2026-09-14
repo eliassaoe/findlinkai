@@ -100,7 +100,14 @@ jobs:
           const errors = async () => page.evaluate(() => [...document.querySelectorAll('[role="alert"],[aria-invalid="true"],[class*="error" i],[class*="destructive" i],p[id$="-form-item-message"]')]
             .map(e => (e.innerText || e.getAttribute('aria-label') || e.name || '').trim()).filter(Boolean).slice(0, 30));
           if (email) {
-            const fill = async (sel, val) => { const l = page.locator(sel).first(); if (await l.count()) { await l.fill(val); return true; } return false; };
+            // A field the session pre-filled and locked is reported, not fought.
+            const locked = [];
+            const fill = async (sel, val) => {
+              const l = page.locator(sel).first();
+              if (!(await l.count())) return false;
+              if (await l.isDisabled() || (await l.getAttribute('readonly')) !== null) { locked.push(`${sel} = "${await l.inputValue().catch(() => '')}"`); return false; }
+              await l.fill(val, { timeout: 8000 }); return true;
+            };
             const filled = [];
             if (await fill('input[name="fullName"]', 'Probe Customer')) filled.push('fullName');
             if (await fill('input[name="email"], input[type="email"]', email)) filled.push('email');
@@ -114,7 +121,7 @@ jobs:
               console.log('validation messages:', JSON.stringify(await errors()));
             }
             const country = page.locator('select[name="country"]').first();
-            if (await country.count()) { try { await country.selectOption({ label: countryLabel }); filled.push('country=' + countryLabel); } catch (e) { console.log('country select failed:', e.message.slice(0, 100)); } }
+            if (await country.count()) { if (await country.isDisabled()) { locked.push('select[name="country"] = "' + await country.inputValue().catch(() => '') + '"'); } else { try { await country.selectOption({ label: countryLabel }, { timeout: 8000 }); filled.push('country=' + countryLabel); } catch (e) { console.log('country select failed:', e.message.slice(0, 100)); } } }
             await page.waitForTimeout(1000);
             const manual = page.locator('button:has-text("Enter address manually")').first();
             if (await manual.count()) { try { await manual.click({ timeout: 3000 }); filled.push('manual-address'); } catch (_) {} }
@@ -127,6 +134,9 @@ jobs:
             const cb = page.locator('input[type="checkbox"]').first();
             if (await cb.count()) { try { if (!(await cb.isChecked())) await cb.check({ force: true }); filled.push('checkbox'); } catch (e) { console.log('checkbox:', e.message.slice(0, 80)); } }
             console.log('\nfilled step 1:', filled.join(', '));
+            console.log('locked (disabled/readonly) fields:', locked.length ? locked.join(' | ') : '(none)');
+            const disabledAll = await page.evaluate(() => [...document.querySelectorAll('input,select,button')].filter(e => e.disabled).map(e => `${e.tagName.toLowerCase()} ${e.name || e.id || e.placeholder || (e.innerText || '').trim().slice(0, 30)}`));
+            console.log('all disabled controls on step 1:', JSON.stringify(disabledAll));
             console.log('validation before submit:', JSON.stringify(await errors()));
             const next = page.locator('button#step1, button:has-text("Continue to Payment"), button[type="submit"]').first();
             if (await next.count()) { try { await next.click({ timeout: 5000 }); console.log('clicked:', (await next.innerText()).trim()); } catch (e) { console.log('could not click continue:', e.message.slice(0, 120)); } }
