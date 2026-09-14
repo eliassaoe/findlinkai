@@ -15,6 +15,21 @@ on:
         required: false
         type: string
         default: ''
+      country:
+        description: Customer country to simulate (label as shown in the form, e.g. United States, France, India)
+        required: false
+        type: string
+        default: 'United States'
+      via_worker_plan:
+        description: If set (e.g. payg_small), create the session through the dodo-checkout worker first and render that URL instead
+        required: false
+        type: string
+        default: ''
+      worker_token:
+        description: user_token for the worker call (only if LF_CANARY_USER_TOKEN secret is not set); fake tokens may be refused
+        required: false
+        type: string
+        default: ''
 permissions:
   contents: read
 jobs:
@@ -32,11 +47,25 @@ jobs:
         env:
           RENDER_URL: ${{ inputs.url }}
           RENDER_EMAIL: ${{ inputs.email }}
+          RENDER_COUNTRY: ${{ inputs.country }}
+          VIA_WORKER_PLAN: ${{ inputs.via_worker_plan }}
+          WORKER_TOKEN: ${{ secrets.LF_CANARY_USER_TOKEN || inputs.worker_token }}
         run: |
           npm init -y >/dev/null 2>&1 && npm i --silent playwright@1.47.2 >/dev/null 2>&1
           cat > render.mjs <<'JS'
           import { chromium } from 'playwright';
-          const url = process.env.RENDER_URL; const email = process.env.RENDER_EMAIL || '';
+          let url = process.env.RENDER_URL; const email = process.env.RENDER_EMAIL || '';
+          const countryLabel = process.env.RENDER_COUNTRY || 'United States';
+          if (process.env.VIA_WORKER_PLAN) {
+            const body = { plan: process.env.VIA_WORKER_PLAN, user_token: process.env.WORKER_TOKEN || 'render_probe_token_000', force_new_session: true,
+              request_id: 'render-' + Date.now().toString(36), requested_at: new Date().toISOString(), attribution_source: 'render_probe' };
+            if (email) body.email = email;
+            const wr = await fetch('https://dodo-checkout.hamoureliasse.workers.dev/', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Origin': 'https://linkfinderai.com' }, body: JSON.stringify(body) });
+            const wd = await wr.json().catch(() => ({}));
+            console.log('worker:', wr.status, JSON.stringify(wd).slice(0, 400));
+            if (!wd.checkout_url) { console.log('::error::worker gave no checkout_url; cannot render the worker path'); process.exit(1); }
+            url = wd.checkout_url;
+          }
           const consoleErrors = [], failedRequests = [], badResponses = [];
           const browser = await chromium.launch();
           const ctx = await browser.newContext({ locale: 'en-US', viewport: { width: 1280, height: 900 },
@@ -61,8 +90,8 @@ jobs:
             const inputs = await page.evaluate(() => [...document.querySelectorAll('input,select,button')].map(e => `${e.tagName.toLowerCase()}${e.type ? '[' + e.type + ']' : ''} name=${e.name || '-'} id=${e.id || '-'} placeholder=${e.placeholder || '-'} text=${(e.innerText || e.value || '').trim().slice(0, 40)} disabled=${e.disabled}`));
             const frames = page.frames().map(f => f.url()).filter(u => u && u !== 'about:blank' && u !== page.url());
             console.log(`\n===== ${label}: visible text (${text.length} chars) =====\n${text.replace(/\n[A-Z][^\n]{1,40} \+\d{1,4}(?=\n)/g, '').slice(0, 2500)}`);
-            console.log(`\n===== ${label}: form controls (${inputs.length}) =====\n${inputs.slice(0, 60).join('\n')}`);
-            console.log(`\n===== ${label}: iframes (${frames.length}) =====\n${frames.join('\n')}`);
+            console.log(`\n===== ${label}: form controls (${inputs.length}) =====\n${inputs.map(i => i.replace(/\n[\s\S]*$/, '')).slice(0, 60).join('\n')}`);
+            console.log(`\n===== ${label}: iframes (${frames.length}) =====\n${frames.map(u => u.replace(/[?#].*$/, '')).join('\n')}`);
             const cardish = await page.evaluate(() => !!document.querySelector('input[autocomplete*="cc-"],input[name*="card" i],iframe[src*="stripe" i],iframe[src*="adyen" i],iframe[src*="checkout" i],iframe[name*="card" i]'));
             console.log(`\n${label}: card/payment field detected: ${cardish}`);
           };
@@ -75,15 +104,26 @@ jobs:
             const filled = [];
             if (await fill('input[name="fullName"]', 'Probe Customer')) filled.push('fullName');
             if (await fill('input[name="email"], input[type="email"]', email)) filled.push('email');
-            if (await fill('input[type="tel"]', '+1 415 555 0134')) filled.push('phone');
+            // First: what does step 1 demand when a customer gives only name and email?
+            {
+              const b = page.locator('button#step1, button:has-text("Continue to Payment")').first();
+              if (await b.count()) { try { await b.click({ timeout: 4000 }); } catch (_) {} }
+              await page.waitForTimeout(2500);
+              const req = await page.evaluate(() => [...document.querySelectorAll('input,select')].filter(e => e.required || e.getAttribute('aria-required') === 'true' || e.getAttribute('aria-invalid') === 'true').map(e => `${e.name || e.placeholder || e.tagName} invalid=${e.getAttribute('aria-invalid')}`));
+              console.log('\nSTEP 1 with name+email only -> still on step 1:', /step1|Continue to Payment/.test(await page.evaluate(() => document.body.innerHTML)), '| required/invalid fields:', JSON.stringify(req));
+              console.log('validation messages:', JSON.stringify(await errors()));
+            }
             const country = page.locator('select[name="country"]').first();
-            if (await country.count()) { try { await country.selectOption({ label: 'United States' }); filled.push('country=US'); } catch (e) { console.log('country select failed:', e.message.slice(0, 100)); } }
+            if (await country.count()) { try { await country.selectOption({ label: countryLabel }); filled.push('country=' + countryLabel); } catch (e) { console.log('country select failed:', e.message.slice(0, 100)); } }
+            await page.waitForTimeout(1000);
             const manual = page.locator('button:has-text("Enter address manually")').first();
             if (await manual.count()) { try { await manual.click({ timeout: 3000 }); filled.push('manual-address'); } catch (_) {} }
-            if (await fill('input[name="addressLine"]', '1 Market St')) filled.push('addressLine');
-            if (await fill('input[name="city"]', 'San Francisco')) filled.push('city');
-            if (await fill('input[name="zipCode"]', '94105')) filled.push('zipCode');
-            if (await fill('input[name="state"]', 'CA')) filled.push('state');
+            const addr = countryLabel === 'France' ? ['10 rue de Rivoli', 'Paris', '75001', 'Île-de-France'] : countryLabel === 'India' ? ['12 MG Road', 'Bengaluru', '560001', 'Karnataka'] : ['1 Market St', 'San Francisco', '94105', 'CA'];
+            if (await fill('input[name="addressLine"]', addr[0])) filled.push('addressLine');
+            if (await fill('input[name="city"]', addr[1])) filled.push('city');
+            if (await fill('input[name="zipCode"]', addr[2])) filled.push('zipCode');
+            if (await fill('input[name="state"]', addr[3])) filled.push('state');
+            if (await fill('input[type="tel"]', countryLabel === 'France' ? '+33 6 12 34 56 78' : '+1 415 555 0134')) filled.push('phone');
             const cb = page.locator('input[type="checkbox"]').first();
             if (await cb.count()) { try { if (!(await cb.isChecked())) await cb.check({ force: true }); filled.push('checkbox'); } catch (e) { console.log('checkbox:', e.message.slice(0, 80)); } }
             console.log('\nfilled step 1:', filled.join(', '));
