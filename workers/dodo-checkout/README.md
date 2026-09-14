@@ -17,10 +17,10 @@ this repo. This folder holds what surrounds it.
    stalled notice, the 20s watchdog, and the come-back rescue banner, next to a
    mailto so a human can take payment another way.
 
-   Only plans with a documented live product id have a second door: Starter
-   monthly, Professional monthly, PAYG Small, PAYG Medium. Add the annual,
-   Scale and PAYG Large ids to `DODO_DIRECT_PRODUCTS` once read from the Dodo
-   dashboard; `tests/checkout-second-door.test.mjs` pins the four known ones.
+   Every checkout plan key has a second door: the nine live product ids were
+   read from the Dodo dashboard on 14 September 2026 and
+   `tests/checkout-second-door.test.mjs` pins all of them. If a product is ever
+   recreated in Dodo, update `DODO_DIRECT_PRODUCTS` the same day.
 
 Neither door can make Dodo's page charge a card. If a session is created, the
 buyer lands on it, stays minutes and comes back unpaid, the fault is on Dodo's

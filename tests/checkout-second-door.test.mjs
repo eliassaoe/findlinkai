@@ -23,15 +23,24 @@ console.log('checkout second door');
 
 const mapSrc = app.match(/const DODO_DIRECT_PRODUCTS = \{[\s\S]*?\};/);
 
-test('the direct-link product map exists and holds the four documented live products', () => {
+test('the direct-link product map covers every checkout plan key with its live Dodo product', () => {
   assert.ok(mapSrc, 'DODO_DIRECT_PRODUCTS not found in app.html');
+  // Ids read from the Dodo dashboard (live mode) on 14 Sep 2026.
   for (const [key, id] of [
     ['starter_monthly', 'pdt_0Nfl5LZfppnjJBM2mvons'],
     ['pro_monthly', 'pdt_0Nfl5YPolhxfkTEMxOJYp'],
+    ['enterprise_monthly', 'pdt_0Nfl5euCguHp4Nh03MAVk'],
+    ['starter_annual', 'pdt_0Nfl5q5bWWWymf2XQnJUD'],
+    ['pro_annual', 'pdt_0Nfl5zzZR6gaiA1YQPxqj'],
+    ['enterprise_annual', 'pdt_0Nfl68GPfL6s7UCzsoxwr'],
     ['payg_small', 'pdt_0Nj62gByZ53OzYoz3bCBr'],
     ['payg_medium', 'pdt_0Nj62kQhG7EzZWogTmjfE'],
+    ['payg_large', 'pdt_0Nj62scEtjXTicj4P2thT'],
   ]) {
     assert.match(mapSrc[0], new RegExp(`${key}:\\s*'${id}'`), `${key} must map to ${id}`);
+  }
+  // The two subscription ids the worker docs name must agree with the map.
+  for (const id of ['pdt_0Nfl5LZfppnjJBM2mvons', 'pdt_0Nfl5YPolhxfkTEMxOJYp']) {
     assert.ok(productDoc.includes(id), `${id} must be one of the documented worker products`);
   }
 });
