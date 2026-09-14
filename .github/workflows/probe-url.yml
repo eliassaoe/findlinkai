@@ -1,0 +1,54 @@
+name: Probe URL
+# Follows a URL one redirect at a time from a GitHub runner and prints each hop,
+# so a redirect chain can be inspected from somewhere that can reach it.
+# Used to confirm whether Dodo's dodo.pe short links keep query parameters
+# (the checkout metadata) through to the checkout page.
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: URL to probe
+        required: true
+        type: string
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Follow redirects hop by hop
+        shell: bash
+        env:
+          PROBE_URL: ${{ inputs.url }}
+        run: |
+          node - <<'JS'
+          const start = process.env.PROBE_URL;
+          const want = new URL(start).searchParams;
+          let url = start;
+          for (let hop = 0; hop < 8; hop++) {
+            const ac = new AbortController(); const t = setTimeout(() => ac.abort(), 15000);
+            let r;
+            try { r = await fetch(url, { redirect: 'manual', signal: ac.signal, headers: { 'User-Agent': 'Mozilla/5.0 (LinkFinder probe)', 'Accept': 'text/html' } }); }
+            catch (e) { console.log(`hop ${hop}: ${url}\n  fetch failed: ${e.name} ${e.message}`); process.exit(1); }
+            finally { clearTimeout(t); }
+            const loc = r.headers.get('location');
+            console.log(`hop ${hop}: ${url}\n  -> HTTP ${r.status}${loc ? ' Location: ' + loc : ''}`);
+            if (r.status >= 300 && r.status < 400 && loc) { url = new URL(loc, url).toString(); continue; }
+            const final = new URL(url);
+            const kept = [...want.keys()].filter(k => final.searchParams.get(k) === want.get(k));
+            const lost = [...want.keys()].filter(k => final.searchParams.get(k) !== want.get(k));
+            console.log(`\nfinal: ${url}`);
+            console.log(`query params kept: ${kept.length ? kept.join(', ') : '(none)'}`);
+            console.log(`query params lost: ${lost.length ? lost.join(', ') : '(none)'}`);
+            // A JS app may also read the original URL client-side; show whether the page ships the token.
+            const body = await r.text().catch(() => '');
+            const tok = want.get('metadata_user_token');
+            if (tok) console.log(`token present in page HTML: ${body.includes(tok)}`);
+            process.exit(0);
+          }
+          console.log('too many redirects'); process.exit(1);
+          JS
