@@ -43,6 +43,12 @@ function renderedErrorText(body) {
   return null;
 }
 
+// Nothing after the checks may keep the process alive: a cancelled streaming
+// socket does, and a canary that passes but never exits sits at the job
+// timeout and looks like a failure. Exit explicitly on every path, and if
+// anything still holds the loop open, this unref'd timer ends it.
+setTimeout(() => { console.log('::error::canary did not exit within 90s'); process.exit(2); }, 90000).unref();
+
 const failures = [];
 const fail = (msg) => { failures.push(msg); console.log('::error::' + msg); };
 const ok = (msg) => console.log('ok   ' + msg);
@@ -68,7 +74,7 @@ async function fetchWithTimeout(url, opts = {}, ms = 20000) {
       } catch (e) {
         if (!body) throw e; // aborted before anything arrived
       } finally {
-        try { await reader.cancel(); } catch (_) {}
+        try { reader.cancel().catch(() => {}); } catch (_) {}
       }
     }
     return { status: r.status, url: r.url, ok: r.ok, body, json() { try { return JSON.parse(body); } catch (_) { return {}; } } };
@@ -137,3 +143,4 @@ if (failures.length) {
   process.exit(1);
 }
 console.log('\nAll checkout paths answered. (Whether a card can be charged is the PostHog alert\'s job.)');
+process.exit(0);
