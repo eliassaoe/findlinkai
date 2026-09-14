@@ -156,7 +156,7 @@ RELATED_PAGES = {
         ('Best web spider', 'https://linkfinderai.com/best-web-spider'),
         ('Best tool to scrape website', 'https://linkfinderai.com/best-tool-to-scrape-website')
     ],
-    'best-recruitment-sofware-tools.html': [
+    'best-recruitment-software-tools.html': [
         ('Best LinkedIn scrapers', 'https://linkfinderai.com/best-linkedin-scrapers'),
         ('Best company research tool', 'https://linkfinderai.com/best-company-research-tool-for-prospecting'),
         ('Best email enrichment', 'https://linkfinderai.com/best-email-enrichment-tools')
@@ -425,7 +425,7 @@ RELATED_PAGES = {
         ('Best web spider', 'https://linkfinderai.com/best-web-spider'),
         ('Best tool to scrape website', 'https://linkfinderai.com/best-tool-to-scrape-website')
     ],
-    'best-recruitment-sofware-tools.html': [
+    'best-recruitment-software-tools.html': [
         ('Best LinkedIn scrapers', 'https://linkfinderai.com/best-linkedin-scrapers'),
         ('Best company research tool', 'https://linkfinderai.com/best-company-research-tool-for-prospecting'),
         ('Best email enrichment', 'https://linkfinderai.com/best-email-enrichment-tools')

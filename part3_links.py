@@ -81,7 +81,7 @@ CONTENT_LINKS_PART3 = {
         ('data extraction', '<a href="https://linkfinderai.com/linkedin-profile-scraper">data extraction</a>'),
         ('scraping tools', '<a href="https://linkfinderai.com/best-tool-to-scrape-website">scraping tools</a>')
     ],
-    'best-recruitment-sofware-tools.html': [
+    'best-recruitment-software-tools.html': [
         ('LinkedIn scraper', '<a href="https://linkfinderai.com/linkedin-scraper">LinkedIn scraper</a>'),
         ('candidate profiles', '<a href="https://linkfinderai.com/linkedin-profile-scraper">candidate profiles</a>'),
         ('email finder', '<a href="https://linkfinderai.com/linkedin-email-finder">email finder</a>'),
