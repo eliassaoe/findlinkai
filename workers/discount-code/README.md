@@ -38,7 +38,7 @@ the checkout worker:
 
 ```
 pdt_0Nfl5LZfppnjJBM2mvons   Starter monthly
-pdt_0Nfl5YPolhxfkTEMxOJYp   Professional monthly
+pdt_0NnrQ671IEcqUSHaPJDi3   Professional monthly
 ```
 
 Add the Enterprise and annual ids too, or those plans will silently reject the

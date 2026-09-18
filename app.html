@@ -1304,7 +1304,7 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
             <div class="pricing-faq-item"><i class="fas fa-check-circle"></i> Secure payment</div>
         </div>
         <p style="text-align:center;font-size:0.72rem;color:var(--gray-400);margin-top:0.75rem;">Prices in USD</p>
-        <p style="text-align:center;font-size:0.75rem;color:var(--gray-500);margin-top:0.375rem;">Need more than 50,000 credits a month, an SLA, or an invoice your finance team can process? <a onclick="openEnterpriseCall('pricing_modal_footer')" style="color:var(--primary);font-weight:500;cursor:pointer;">Book a call</a> — Enterprise is quoted against your volume.</p>
+        <p style="text-align:center;font-size:0.75rem;color:var(--gray-500);margin-top:0.375rem;">Need more than 70,000 credits a month, an SLA, or an invoice your finance team can process? <a onclick="openEnterpriseCall('pricing_modal_footer')" style="color:var(--primary);font-weight:500;cursor:pointer;">Book a call</a> — Enterprise is quoted against your volume.</p>
     </div>
 </div>
 
@@ -2050,11 +2050,16 @@ const DODO_CHECKOUT_WORKER = 'https://dodo-checkout.hamoureliasse.workers.dev/';
 const DODO_DIRECT_PRODUCTS = {
     // Read from the Dodo dashboard product list on 14 Sep 2026 (live mode).
     starter_monthly:    'pdt_0Nfl5LZfppnjJBM2mvons',   // Starter Plan            $49/mo
-    pro_monthly:        'pdt_0Nfl5YPolhxfkTEMxOJYp',   // Professional Plan       $89/mo
-    enterprise_monthly: 'pdt_0Nfl5euCguHp4Nh03MAVk',   // Enterprise Plan (Scale) $149/mo
+    // Repriced 18 Sep 2026: new live products for the two monthly tiers.
+    pro_monthly:        'pdt_0NnrQ671IEcqUSHaPJDi3',   // Professional Plan       $99/mo
+    enterprise_monthly: 'pdt_0NnrQDVB0ntSL23rbahfh',   // Enterprise Plan (Scale) $249/mo
     starter_annual:     'pdt_0Nfl5q5bWWWymf2XQnJUD',   // Annual Starter          $348/yr
-    pro_annual:         'pdt_0Nfl5zzZR6gaiA1YQPxqj',   // Annual Professional     $636/yr
-    enterprise_annual:  'pdt_0Nfl68GPfL6s7UCzsoxwr',   // Annual Enterprise       $1,068/yr
+    // STALE -- these two still bill the OLD annual amounts. The pricing page and
+    // the modal now advertise Professional $59/mo annual ($708/yr) and Scale
+    // $149/mo annual ($1,788/yr). Create both annual products in Dodo and swap
+    // the ids, or anyone choosing annual is undercharged.
+    pro_annual:         'pdt_0Nfl5zzZR6gaiA1YQPxqj',   // Annual Professional     BILLS $636/yr -> needs $708/yr
+    enterprise_annual:  'pdt_0Nfl68GPfL6s7UCzsoxwr',   // Annual Enterprise       BILLS $1,068/yr -> needs $1,788/yr
     payg_small:         'pdt_0Nj62gByZ53OzYoz3bCBr',   // Pay As You Go Small     $25
     payg_medium:        'pdt_0Nj62kQhG7EzZWogTmjfE',   // Pay As You Go Medium    $75
     payg_large:         'pdt_0Nj62scEtjXTicj4P2thT'    // Pay As You Go Large     $200
@@ -2091,8 +2096,8 @@ const INDUSTRY_AVG_PER_CREDIT = 0.15;
 // See docs/sales-led-motion.md.
 const plans = [
     { name:'Starter',      key:'starter',    monthlyPrice:49,  credits:60000  },
-    { name:'Professional', key:'pro',        monthlyPrice:89,  credits:240000 },
-    { name:'Scale',        key:'enterprise', monthlyPrice:149, credits:600000 },
+    { name:'Professional', key:'pro',        monthlyPrice:99,  credits:240000 },
+    { name:'Scale',        key:'enterprise', monthlyPrice:249, credits:840000 },
 ];
 
 // The sales-led tier. It has no price, no Dodo product and no checkout, because
@@ -2231,7 +2236,7 @@ function renderPlansGrid() {
 /*
  * The Enterprise card: a fourth column with no price and no checkout.
  *
- * It is here because every plan above it is capped at $149/mo, and an account
+ * It is here because every plan above it is capped at $249/mo, and an account
  * that needs 500k credits, an SLA and a purchase order cannot buy that with a
  * card -- so today it either emails support or leaves. The card is deliberately
  * the plainest one in the row: no "most popular" badge, no recommendation, no
