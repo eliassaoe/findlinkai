@@ -92,7 +92,7 @@ This is consistent with a session that is valid to *create* but not valid to *pa
   `customer: { email }`, plus `metadata`
 - Affected products (all of them, subscription and one-time alike):
   - `pdt_0Nfl5LZfppnjJBM2mvons` — Starter monthly (subscription)
-  - `pdt_0NnrQ671IEcqUSHaPJDi3` — Professional monthly (subscription)
+  - `pdt_0Nfl5YPolhxfkTEMxOJYp` — Professional monthly (subscription)
   - `pdt_0Nj62gByZ53OzYoz3bCBr` — PAYG Small (one-time)
   - `pdt_0Nj62kQhG7EzZWogTmjfE` — PAYG Medium (one-time)
 - Last successful payment: **2026-08-13 18:05:32 UTC**
