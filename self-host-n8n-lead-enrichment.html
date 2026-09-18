@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script src="/js/lf-attribution.js"></script>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Where to Host n8n for Lead Enrichment Workflows: Docker, Railway or FlowEngine (2026) — LinkFinder AI</title>
+  <meta name="description" content="A practical guide to self-hosting n8n for lead generation and contact enrichment pipelines. Compare Docker on a VPS, Railway and FlowEngine managed hosting, then wire LinkFinder AI into your first workflow."/>
+  <meta name="keywords" content="self-host n8n, n8n hosting, where to host n8n, n8n docker, n8n railway, flowengine, n8n lead enrichment, n8n lead generation workflow, open source automation"/>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+  <style>
+    :root {
+      --primary-color: #2563eb;
+      --primary-dark: #1e40af;
+      --success-color: #10b981;
+      --text-dark: #1f2937;
+      --text-gray: #6b7280;
+      --border-color: #e5e7eb;
+      --bg-light: #f9fafb;
+      --code-bg: #0f172a;
+      --code-bar: #1e293b;
+      --code-text: #e2e8f0;
+      --code-dim: #94a3b8;
+      --mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Monaco, Consolas, monospace;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      line-height: 1.6;
+      color: var(--text-dark);
+      background: #ffffff;
+    }
+    .container { max-width: 1100px; margin: 0 auto; padding: 0 2rem; }
+
+    /* Header */
+    .header {
+      background: white;
+      border-bottom: 1px solid var(--border-color);
+      position: sticky; top: 0; z-index: 1000;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    .header-content {
+      max-width: 1100px; margin: 0 auto; padding: 1rem 2rem;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .logo {
+      font-size: 1.5rem; font-weight: 800; color: var(--primary-color);
+      text-decoration: none; display: flex; align-items: center; gap: 0.5rem;
+    }
+    .logo i { font-size: 1.75rem; }
+    .btn {
+      padding: 0.625rem 1.5rem; border-radius: 0.5rem; text-decoration: none;
+      font-weight: 600; transition: all 0.2s; display: inline-block; font-size: 0.9375rem;
+    }
+    .btn-outline { background: transparent; color: var(--primary-color); border: 2px solid var(--primary-color); margin-right: 0.75rem; }
+    .btn-outline:hover { background: var(--primary-color); color: white; }
+    .btn:not(.btn-outline) { background: var(--primary-color); color: white; border: 2px solid var(--primary-color); }
+    .btn:not(.btn-outline):hover { background: var(--primary-dark); border-color: var(--primary-dark); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3); }
+
+    /* Hero */
+    .hero {
+      background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+      color: white; padding: 4rem 0; text-align: center;
+    }
+    .hero .eyebrow {
+      display: inline-block; font-family: var(--mono); font-size: 0.8125rem;
+      letter-spacing: 0.08em; text-transform: uppercase; font-weight: 600;
+      background: rgba(255,255,255,0.15); padding: 0.4rem 0.9rem; border-radius: 999px; margin-bottom: 1.25rem;
+    }
+    .hero h1 { font-size: 3rem; font-weight: 800; margin-bottom: 1rem; line-height: 1.2; }
+    .hero p { font-size: 1.2rem; opacity: 0.95; max-width: 720px; margin: 0 auto; }
+    .hero a { color: white; }
+
+    /* Article */
+    .article { padding: 3.5rem 0; }
+    .intro-text { font-size: 1.0625rem; line-height: 1.85; margin-bottom: 2.5rem; }
+    .intro-text p { margin-bottom: 1.25rem; }
+
+    /* On this page */
+    .toc {
+      background: var(--bg-light); border: 1px solid var(--border-color);
+      border-radius: 0.9rem; padding: 1.75rem 2rem; margin-bottom: 3rem;
+    }
+    .toc h2 { font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-gray); margin-bottom: 1rem; }
+    .toc ol { list-style: none; counter-reset: toc; display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem 2rem; }
+    .toc li { counter-increment: toc; }
+    .toc a { text-decoration: none; color: var(--text-dark); font-weight: 500; display: flex; gap: 0.7rem; align-items: baseline; }
+    .toc a:hover { color: var(--primary-color); }
+    .toc a::before {
+      content: counter(toc, decimal-leading-zero); font-family: var(--mono);
+      font-size: 0.8rem; color: var(--primary-color); font-weight: 600;
+    }
+
+    /* Step blocks */
+    .step { margin: 3.25rem 0; scroll-margin-top: 90px; }
+    .step-head { display: flex; align-items: center; gap: 1rem; margin-bottom: 1.25rem; }
+    .step-num {
+      flex: none; width: 2.6rem; height: 2.6rem; border-radius: 0.7rem;
+      background: var(--primary-color); color: white; display: flex; align-items: center;
+      justify-content: center; font-family: var(--mono); font-weight: 600; font-size: 1.05rem;
+    }
+    .step h2 { font-size: 1.6rem; font-weight: 700; line-height: 1.25; }
+    .step p { margin: 1rem 0 1.25rem; line-height: 1.8; font-size: 1.0625rem; }
+    .step h3 { font-size: 1.15rem; font-weight: 700; margin: 1.75rem 0 0.75rem; }
+    .step ul { margin: 1rem 0 1.25rem 1.4rem; }
+    .step li { margin-bottom: 0.6rem; line-height: 1.7; }
+    code.inline {
+      font-family: var(--mono); font-size: 0.86em; background: #eef2ff;
+      color: var(--primary-dark); padding: 0.15em 0.4em; border-radius: 0.35em;
+    }
+
+    /* Code blocks with language tabs */
+    .code-tabs { margin: 1.5rem 0; border-radius: 0.75rem; overflow: hidden; border: 1px solid var(--code-bar); background: var(--code-bg); }
+    .code-tabbar { display: flex; align-items: center; background: var(--code-bar); padding: 0 0.4rem; }
+    .code-tab {
+      font-family: var(--mono); font-size: 0.8rem; font-weight: 500; color: var(--code-dim);
+      background: transparent; border: none; padding: 0.7rem 1rem; cursor: pointer;
+      border-bottom: 2px solid transparent; transition: color 0.15s, border-color 0.15s;
+    }
+    .code-tab:hover { color: var(--code-text); }
+    .code-tab.active { color: #fff; border-bottom-color: #60a5fa; }
+    .code-copy {
+      margin-left: auto; font-family: var(--mono); font-size: 0.74rem; color: var(--code-dim);
+      background: transparent; border: 1px solid #334155; border-radius: 0.4rem;
+      padding: 0.3rem 0.7rem; cursor: pointer; transition: all 0.15s;
+    }
+    .code-copy:hover { color: #fff; border-color: #475569; }
+    .code-pane { display: none; margin: 0; }
+    .code-pane.active { display: block; }
+    .code-pane pre {
+      margin: 0; padding: 1.25rem 1.4rem; overflow-x: auto;
+      font-family: var(--mono); font-size: 0.86rem; line-height: 1.7; color: var(--code-text);
+      tab-size: 2;
+    }
+    .code-pane pre code { font-family: inherit; white-space: pre; }
+
+    /* Callouts */
+    .note, .warn {
+      border-radius: 0.7rem; padding: 1.1rem 1.3rem; margin: 1.5rem 0; font-size: 0.97rem; line-height: 1.7;
+      display: flex; gap: 0.8rem;
+    }
+    .note { background: #eff6ff; border-left: 4px solid var(--primary-color); }
+    .warn { background: #fffbeb; border-left: 4px solid #f59e0b; }
+    .note i { color: var(--primary-color); margin-top: 0.2rem; }
+    .warn i { color: #d97706; margin-top: 0.2rem; }
+    .note strong, .warn strong { font-weight: 700; }
+
+    /* Tables */
+    .table-wrapper { overflow-x: auto; border: 1px solid var(--border-color); border-radius: 0.75rem; margin: 1.5rem 0; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.94rem; }
+    th { background: var(--bg-light); padding: 0.85rem 1rem; text-align: left; font-weight: 600; border-bottom: 2px solid var(--border-color); }
+    td { padding: 0.85rem 1rem; border-bottom: 1px solid var(--border-color); vertical-align: top; }
+    tr:last-child td { border-bottom: none; }
+    td code, th code { font-family: var(--mono); font-size: 0.85em; background: #f1f5f9; padding: 0.1em 0.35em; border-radius: 0.3em; }
+    .pill { font-family: var(--mono); font-size: 0.78rem; font-weight: 600; padding: 0.15rem 0.5rem; border-radius: 0.35rem; }
+    .pill-ok { background: #d1fae5; color: #065f46; }
+    .pill-err { background: #fee2e2; color: #991b1b; }
+
+    /* CTA */
+    .cta-box {
+      background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+      color: white; padding: 3rem; border-radius: 1rem; text-align: center; margin: 3.5rem 0 1rem;
+    }
+    .cta-box h2 { color: white; margin-bottom: 1rem; font-size: 1.75rem; }
+    .cta-box p { color: white; opacity: 0.92; margin: 1rem auto; max-width: 600px; }
+    .cta-box .btn { background: white; color: var(--primary-color); font-size: 1.05rem; padding: 0.875rem 2rem; margin-top: 1rem; }
+    .cta-box .btn:hover { background: var(--bg-light); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.15); }
+    .cta-fine { font-size: 0.85rem; margin-top: 1rem; opacity: 0.8; }
+
+    /* Related */
+    .related-pages-box { max-width: 760px; margin: 3rem auto 0; padding: 24px; background: #fef3c7; border-left: 4px solid #f59e0b; border-radius: 8px; }
+    .related-pages-box p { margin: 0 0 16px; font-size: 15px; font-weight: 600; color: #78350f; }
+    .related-pages-box .links { display: flex; flex-direction: column; gap: 10px; }
+    .related-pages-box a { padding: 12px 16px; background: white; border: 1px solid #fde68a; border-radius: 6px; text-decoration: none; color: #b45309; font-size: 14px; transition: all 0.2s; display: block; }
+    .related-pages-box a:hover { border-color: #f59e0b; }
+
+    /* Footer */
+    .footer { background: var(--text-dark); color: white; padding: 3rem 0 1.5rem; margin-top: 4rem; }
+    .footer-content { max-width: 1100px; margin: 0 auto 2rem; padding: 0 2rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 2rem; }
+    .footer h4 { margin-bottom: 1rem; font-size: 1.125rem; }
+    .footer p.fdesc { color: rgba(255,255,255,0.75); font-size: 0.95rem; }
+    .footer-links { list-style: none; }
+    .footer-links li { margin-bottom: 0.5rem; }
+    .footer-links a { color: rgba(255,255,255,0.8); text-decoration: none; transition: color 0.2s; }
+    .footer-links a:hover { color: white; }
+    .footer-bottom { text-align: center; padding: 2rem 2rem 0; border-top: 1px solid rgba(255,255,255,0.1); color: rgba(255,255,255,0.6); max-width: 1100px; margin: 0 auto; }
+    .footer-bottom .legal-line { color: #6b7280; font-size: 0.78rem; margin-top: 0.5rem; }
+
+    @media (max-width: 768px) {
+      .hero h1 { font-size: 2rem; }
+      .toc ol { grid-template-columns: 1fr; }
+      .cta-box { padding: 2rem 1.5rem; }
+      .step h2 { font-size: 1.35rem; }
+    }
+  </style>
+
+  <link rel="canonical" href="https://linkfinderai.com/self-host-n8n-lead-enrichment" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Where to Host n8n for Lead Enrichment Workflows: Docker, Railway or FlowEngine",
+    "description": "A practical guide to self-hosting n8n for lead generation and contact enrichment pipelines. Compare Docker on a VPS, Railway and FlowEngine managed hosting, then wire LinkFinder AI into your first workflow.",
+    "author": { "@type": "Organization", "name": "LinkFinder AI", "url": "https://linkfinderai.com" },
+    "publisher": { "@type": "Organization", "name": "LinkFinder AI", "logo": { "@type": "ImageObject", "url": "https://i.ibb.co/jPjX9SSp/Screen-Shot-2025-03-28-at-8-16-15-PM.png" } },
+    "datePublished": "2026-09-18",
+    "dateModified": "2026-09-18",
+    "mainEntityOfPage": "https://linkfinderai.com/self-host-n8n-lead-enrichment"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://linkfinderai.com" },
+      { "@type": "ListItem", "position": 2, "name": "Blog", "item": "https://linkfinderai.com/blog" },
+      { "@type": "ListItem", "position": 3, "name": "Where to Host n8n for Lead Enrichment Workflows", "item": "https://linkfinderai.com/self-host-n8n-lead-enrichment" }
+    ]
+  }
+  </script>
+<script nowprocket nitro-exclude type="text/javascript" id="sa-dynamic-optimization" data-uuid="f798a946-99a9-49d0-a114-0cf9faf0accc" src="https://dashboard.searchatlas.com/scripts/dynamic_optimization.js"></script>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-content">
+    <a href="https://linkfinderai.com" class="logo"><i class="fas fa-search"></i> LinkFinder AI</a>
+    <div>
+      <a href="https://linkfinderai.com/api-documentation" class="btn btn-outline">API Docs</a>
+      <a href="https://linkfinderai.com/sign-up?intent=api" class="btn">Get API key</a>
+    </div>
+  </div>
+</header>
+
+<div class="hero">
+  <div class="container">
+    <span class="eyebrow">Hosting Guide</span>
+    <h1>Where to Host n8n for Lead Enrichment Workflows</h1>
+    <p>Docker on a VPS, Railway, or a managed n8n platform: what each option costs you in setup and maintenance, and how to connect <a href="https://linkfinderai.com/data-enrichment-api">LinkFinder AI</a> once the instance is live.</p>
+  </div>
+</div>
+
+<article class="article">
+  <div class="container">
+
+    <div class="intro-text">
+      <p>n8n is the open-source workflow engine most lead-gen teams end up on once Zapier and Make bills start scaling with lead volume. It is fair-code licensed, self-hostable, and treats an HTTP request like a first-class node, which is exactly what you want when every lead needs three or four enrichment calls before it reaches the CRM.</p>
+      <p>The question we get most from LinkFinder AI users is not "how do I build the workflow" but "where should I run n8n?" This guide covers the three options we see in practice, what each one costs you in setup and maintenance, and how to connect LinkFinder AI once the instance is running.</p>
+    </div>
+
+    <nav class="toc" aria-label="On this page">
+      <h2>On this page</h2>
+      <ol>
+        <li><a href="#why">Why self-host n8n for enrichment</a></li>
+        <li><a href="#docker">Option 1: Docker on a VPS</a></li>
+        <li><a href="#railway">Option 2: Railway</a></li>
+        <li><a href="#flowengine">Option 3: FlowEngine managed hosting</a></li>
+        <li><a href="#compare">Quick comparison</a></li>
+        <li><a href="#linkfinder">Connecting LinkFinder AI</a></li>
+        <li><a href="#pick">Which one should you pick?</a></li>
+      </ol>
+    </nav>
+
+    <section class="step" id="why">
+      <div class="step-head"><span class="step-num">1</span><h2>Why self-host n8n for enrichment pipelines</h2></div>
+      <p>n8n Cloud is a fine product, but enrichment workflows have a specific shape that pushes people toward self-hosting:</p>
+      <ul>
+        <li><strong>Execution volume.</strong> A single inbound lead can trigger a LinkedIn URL lookup, an email finder, a phone lookup and a company enrichment call. Cloud plans meter executions, and lead volume is spiky. Self-hosted n8n has no per-execution cost.</li>
+        <li><strong>Data residency.</strong> Contact data flows through the instance. Running it on infrastructure you control makes GDPR and DPA conversations much shorter.</li>
+        <li><strong>Long-running batches.</strong> Enriching a 5,000-row CSV overnight is a normal job for a self-hosted worker. It is an awkward fit for a metered plan.</li>
+        <li><strong>Custom nodes.</strong> Community nodes, including the <a href="https://linkfinderai.com/n8n-linkedin-automation">LinkFinder AI n8n node</a>, install cleanly on a self-hosted instance.</li>
+      </ul>
+      <p>The trade-off is operations. Somebody has to keep the container up, patch it, back up the database and rotate the encryption key if it leaks. The three options below sit at different points on that spectrum.</p>
+    </section>
+
+    <section class="step" id="docker">
+      <div class="step-head"><span class="step-num">2</span><h2>Option 1: Docker on a VPS</h2></div>
+      <p>The classic route. You rent a small VPS, install Docker, and run n8n next to a Postgres container. A minimal <code class="inline">docker-compose.yml</code>:</p>
+      <div class="code-tabs">
+        <div class="code-tabbar"><button class="code-tab active" data-lang="x">docker-compose.yml</button><button class="code-copy" type="button">Copy</button></div>
+        <div class="code-pane active" data-lang="x"><pre><code>services:
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: n8n
+      POSTGRES_PASSWORD: change-me
+      POSTGRES_DB: n8n
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  n8n:
+    image: n8nio/n8n:latest
+    restart: unless-stopped
+    ports:
+      - &quot;5678:5678&quot;
+    environment:
+      DB_TYPE: postgresdb
+      DB_POSTGRESDB_HOST: postgres
+      DB_POSTGRESDB_DATABASE: n8n
+      DB_POSTGRESDB_USER: n8n
+      DB_POSTGRESDB_PASSWORD: change-me
+      N8N_ENCRYPTION_KEY: generate-a-long-random-string
+      N8N_HOST: n8n.yourdomain.com
+      WEBHOOK_URL: https://n8n.yourdomain.com/
+      GENERIC_TIMEZONE: Europe/Paris
+      EXECUTIONS_DATA_PRUNE: &quot;true&quot;
+      EXECUTIONS_DATA_MAX_AGE: 168
+    volumes:
+      - n8n_data:/home/node/.n8n
+    depends_on:
+      - postgres
+
+volumes:
+  postgres_data:
+  n8n_data:</code></pre></div>
+      </div>
+      <p>Put a reverse proxy with TLS in front of it (Caddy is the least effort) and you are done.</p>
+      <p><strong>Good for:</strong> teams with someone who already runs servers, or workloads with strict data residency requirements.</p>
+      <div class="warn"><i class="fas fa-triangle-exclamation"></i><div><strong>Watch out for:</strong> you own backups, upgrades and uptime. A $6/month VPS is cheap until the disk fills up with execution logs at 3 a.m. Set <code class="inline">EXECUTIONS_DATA_PRUNE</code> from day one.</div></div>
+    </section>
+
+    <section class="step" id="railway">
+      <div class="step-head"><span class="step-num">3</span><h2>Option 2: Railway</h2></div>
+      <p>Railway is the "I want a container, not a server" option. It is what we run our own enrichment workflows on, and the whole setup is two files.</p>
+      <div class="code-tabs">
+        <div class="code-tabbar"><button class="code-tab active" data-lang="x">Dockerfile</button><button class="code-copy" type="button">Copy</button></div>
+        <div class="code-pane active" data-lang="x"><pre><code>FROM n8nio/n8n:latest</code></pre></div>
+      </div>
+      <div class="code-tabs">
+        <div class="code-tabbar"><button class="code-tab active" data-lang="x">railway.json</button><button class="code-copy" type="button">Copy</button></div>
+        <div class="code-pane active" data-lang="x"><pre><code>{
+  &quot;$schema&quot;: &quot;https://railway.app/railway.schema.json&quot;,
+  &quot;build&quot;: { &quot;builder&quot;: &quot;DOCKERFILE&quot; },
+  &quot;deploy&quot;: {
+    &quot;startCommand&quot;: &quot;n8n start&quot;,
+    &quot;restartPolicyType&quot;: &quot;ON_FAILURE&quot;
+  }
+}</code></pre></div>
+      </div>
+      <p>Push that to a GitHub repo, point a Railway service at it, and n8n boots. Three things to add in the Railway dashboard before you trust it with real data:</p>
+      <ul>
+        <li><strong>A volume</strong> mounted at <code class="inline">/home/node/.n8n</code>. Without it, every redeploy wipes your workflows and credentials.</li>
+        <li><strong>A Postgres service</strong> from Railway's template, with the <code class="inline">DB_*</code> variables from the compose example above pointed at it. SQLite works for a demo and will hurt you in production.</li>
+        <li><strong><code class="inline">N8N_ENCRYPTION_KEY</code> and <code class="inline">WEBHOOK_URL</code></strong> as environment variables. Set the webhook URL to the public Railway domain so inbound webhooks (form submissions, CRM triggers) resolve correctly.</li>
+      </ul>
+      <p><strong>Good for:</strong> solo builders and small teams who want Git-based deploys and predictable usage-based pricing without touching a shell.</p>
+      <div class="warn"><i class="fas fa-triangle-exclamation"></i><div><strong>Watch out for:</strong> Railway is general-purpose infrastructure. It knows nothing about n8n, so backups, version pinning and scaling workers are still on you. Pin the image tag once you are stable; <code class="inline">latest</code> will eventually ship a breaking change on a Tuesday.</div></div>
+    </section>
+
+    <section class="step" id="flowengine">
+      <div class="step-head"><span class="step-num">4</span><h2>Option 3: FlowEngine, managed n8n built for AI agents</h2></div>
+      <p>If you want n8n hosted by people who only host n8n, look at <a href="https://flowengine.cloud" target="_blank" rel="noopener">FlowEngine</a>. It is a managed n8n platform: you get a running instance in about thirty seconds, automatic backups, auto-deploy from GitHub for custom Docker images, and an official n8n node plus an MCP server so you can generate workflows from a text description instead of dragging nodes around.</p>
+      <p>What makes it interesting for enrichment work specifically is where the platform is heading. FlowEngine's upcoming v2 positions it as a Railway built for AI agents, and the feature list maps closely to the pain points of running lead pipelines at scale:</p>
+      <ul>
+        <li><strong>Shared vaults</strong> for API keys and credentials across instances, so your LinkFinder AI key, CRM token and email provider credentials live in one place instead of being pasted into every workflow.</li>
+        <li><strong>Memory sandboxes</strong> for agents that need state between runs, which is what a "re-enrich this account when something changes" agent actually needs.</li>
+        <li><strong>Built-in rotated IPs</strong>, useful when your workflows call rate-limited or geo-sensitive endpoints.</li>
+        <li><strong>An AI app builder</strong> that can, for example, connect a database to n8n without you writing the glue.</li>
+        <li><strong>A fleet agent</strong> that monitors instances and scales them up when a batch job saturates a worker.</li>
+      </ul>
+      <p><strong>Good for:</strong> teams who want the control of self-hosted n8n without hiring for it, and anyone planning to run agentic workflows rather than simple linear automations.</p>
+      <div class="note"><i class="fas fa-circle-info"></i><div><strong>Watch out for:</strong> it is a managed service, so you are trusting a vendor with uptime and data handling. Read their enterprise and on-premise options if your compliance team needs them.</div></div>
+    </section>
+
+    <section class="step" id="compare">
+      <div class="step-head"><span class="step-num">5</span><h2>Quick comparison</h2></div>
+      <div class="table-wrapper">
+        <table>
+          <thead><tr><th></th><th>Docker on a VPS</th><th>Railway</th><th>FlowEngine</th></tr></thead>
+          <tbody>
+            <tr><td>Time to first workflow</td><td>1 to 2 hours</td><td>15 minutes</td><td>Under a minute</td></tr>
+            <tr><td>Who handles upgrades</td><td>You</td><td>You</td><td>FlowEngine</td></tr>
+            <tr><td>Backups</td><td>You</td><td>You (volume snapshots)</td><td>Built in</td></tr>
+            <tr><td>Custom nodes</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+            <tr><td>Git-based deploy</td><td>Manual</td><td>Yes</td><td>Yes</td></tr>
+            <tr><td>Agent-focused features</td><td>No</td><td>No</td><td>Yes (v2)</td></tr>
+            <tr><td>Best for</td><td>Ops-capable teams</td><td>Solo builders</td><td>Teams shipping agents</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="step" id="linkfinder">
+      <div class="step-head"><span class="step-num">6</span><h2>Connecting LinkFinder AI to your instance</h2></div>
+      <p>Once n8n is running, the enrichment step is the same on all three hosts. LinkFinder AI is a single REST endpoint, <code class="inline">POST https://api.linkfinderai.com</code>, and a <code class="inline">type</code> field in the body selects the lookup. An HTTP Request node is enough; if you would rather have Resource and Operation dropdowns, install the <a href="https://linkfinderai.com/n8n-linkedin-automation">LinkFinder AI community node</a> from the n8n community nodes settings page.</p>
+      <p>A minimal enrichment flow is a trigger followed by three HTTP Request nodes and a write-back:</p>
+      <h3>1. Find the LinkedIn URL from a name and company (1 credit)</h3>
+      <p>Store your API key as an n8n <em>Header Auth</em> credential rather than in the node itself, so it is encrypted at rest with your <code class="inline">N8N_ENCRYPTION_KEY</code>.</p>
+      <div class="code-tabs">
+        <div class="code-tabbar"><button class="code-tab active" data-lang="x">HTTP Request node</button><button class="code-copy" type="button">Copy</button></div>
+        <div class="code-pane active" data-lang="x"><pre><code>Method:  POST
+URL:     https://api.linkfinderai.com
+Auth:    Header Auth credential
+         Name:  Authorization
+         Value: Bearer YOUR_API_KEY
+Body:    JSON
+{
+  &quot;type&quot;: &quot;lead_full_name_to_linkedin_url&quot;,
+  &quot;input_data&quot;: &quot;{{ $json.full_name }} {{ $json.company }}&quot;
+}</code></pre></div>
+      </div>
+      <h3>2. Find the email from the LinkedIn URL (10 credits)</h3>
+      <div class="code-tabs">
+        <div class="code-tabbar"><button class="code-tab active" data-lang="x">Body (JSON)</button><button class="code-copy" type="button">Copy</button></div>
+        <div class="code-pane active" data-lang="x"><pre><code>{
+  &quot;type&quot;: &quot;linkedin_profile_to_email&quot;,
+  &quot;input_data&quot;: &quot;{{ $json.linkedin_url }}&quot;
+}</code></pre></div>
+      </div>
+      <h3>3. Enrich the company (1 credit)</h3>
+      <div class="code-tabs">
+        <div class="code-tabbar"><button class="code-tab active" data-lang="x">Body (JSON)</button><button class="code-copy" type="button">Copy</button></div>
+        <div class="code-pane active" data-lang="x"><pre><code>{
+  &quot;type&quot;: &quot;company_name_to_employee_count&quot;,
+  &quot;input_data&quot;: &quot;{{ $json.company }}&quot;
+}</code></pre></div>
+      </div>
+      <h3>4. Write back</h3>
+      <p>Update the CRM record, append to a Google Sheet, or hand the lead to your outreach tool. The full list of <code class="inline">type</code> values and their credit costs is in the <a href="https://linkfinderai.com/api-documentation">API documentation</a>.</p>
+      <div class="note"><i class="fas fa-circle-info"></i><div><strong>Batch, don't hammer.</strong> For CSV jobs, use the Split In Batches node with a short Wait between batches. Your credits go further and you avoid retry storms.</div></div>
+      <div class="note"><i class="fas fa-circle-info"></i><div><strong>Handle "not found" explicitly.</strong> Route empty results to a separate branch instead of letting them fall through as blanks in the CRM. A lead with no email is still a lead; it just needs a different sequence.</div></div>
+      <p>Ready-to-import templates for n8n, Make and Zapier are on the <a href="https://linkfinderai.com/integrations">integrations page</a>, and a code-first version of the same flow is in <a href="https://linkfinderai.com/how-to-enrich-leads-with-api">How to enrich leads with an API</a>.</p>
+    </section>
+
+    <section class="step" id="pick">
+      <div class="step-head"><span class="step-num">7</span><h2>Which one should you pick?</h2></div>
+      <ul>
+        <li><strong>You have an ops person and strict data rules:</strong> Docker on a VPS.</li>
+        <li><strong>You are one person shipping fast and comfortable in a dashboard:</strong> Railway, with a volume and Postgres from day one.</li>
+        <li><strong>You want managed n8n and plan to run agents, not just automations:</strong> <a href="https://flowengine.cloud" target="_blank" rel="noopener">FlowEngine</a>.</li>
+      </ul>
+      <p>Whichever you choose, the enrichment layer is the same three HTTP calls. Get the instance stable first, then connect LinkFinder AI and let the workflow run.</p>
+    </section>
+
+    <div class="cta-box">
+      <h2>Plug LinkFinder AI into your n8n instance</h2>
+      <p>Free credits to start, an API on every plan, and one endpoint for LinkedIn URLs, emails, phones and company data.</p>
+      <a href="https://linkfinderai.com/sign-up?intent=api" class="btn">Get your API key</a>
+      <p class="cta-fine">No credit card required • API on every plan • Cancel anytime</p>
+    </div>
+
+    <div class="related-pages-box">
+      <p>🔗 Keep reading:</p>
+      <div class="links">
+        <a href="https://linkfinderai.com/n8n-linkedin-automation">→ n8n LinkedIn automation with LinkFinder AI</a>
+        <a href="https://linkfinderai.com/how-to-enrich-leads-with-api">→ How to enrich leads with an API</a>
+        <a href="https://linkfinderai.com/crm-enrichment-pipeline">→ Build a CRM enrichment pipeline</a>
+        <a href="https://linkfinderai.com/api-documentation">→ Full API documentation</a>
+      </div>
+    </div>
+
+  </div>
+</article>
+
+<footer class="footer">
+      <div class="container">
+        <div class="footer-grid">
+          <div class="footer-section">
+            <div class="footer-logo"><div class="logo-icon"><i class="fas fa-search"></i></div><span class="logo-text">LinkFinder AI</span></div>
+            <p class="footer-description">Find anyone's LinkedIn, email & phone number, then keep your CRM current automatically. B2B data enrichment for sales and revenue teams — GDPR-compliant.</p>
+            <a href="https://www.producthunt.com/products/link-finder?embed=true&amp;utm_source=badge-featured&amp;utm_medium=badge&amp;utm_campaign=badge-linkfinder-ai-2-0" target="_blank" rel="noopener noreferrer" style="display:inline-block;" onclick="posthog.capture('product_hunt_badge_clicked')"><img alt="LinkFinder AI 2.0 -   Find emails, scrape LinkedIn profiles — via API or no-code | Product Hunt" width="250" height="54" src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1149928&amp;theme=light&amp;t=1779862497527" style="display:block;max-width:100%;height:auto;"></a>
+          </div>
+          <div class="footer-section">
+            <h4 class="footer-heading">Platform</h4>
+            <ul class="footer-links">
+              <li><a href="https://linkfinderai.com/b2b-data-enrichment">B2B Data Enrichment</a></li>
+              <li><a href="https://linkfinderai.com/linkedin-search-by-email">Profile Search by Email</a></li>
+              <li><a href="https://linkfinderai.com/linkedin-email-finder">Business Email Finder</a></li>
+              <li><a href="https://linkfinderai.com/linkedin-profile-scraper">LinkedIn Profile Scraper</a></li>
+              <li><a href="https://linkfinderai.com/linkedin-url-finder">LinkedIn Profile Finder</a></li>
+              <li><a href="https://linkfinderai.com/company-url-finder">Company URL Finder</a></li>
+              <li><a href="https://linkfinderai.com/data-enrichment-api">Enrichment API</a></li>
+              <li><a href="https://linkfinderai.com/api-access">API Access</a></li>
+              <li><a href="https://linkfinderai.com/pricing">Pricing</a></li>
+            </ul>
+          </div>
+          <div class="footer-section" data-lf-team-column="1">
+            <h4 class="footer-heading">For your team</h4>
+            <ul class="footer-links">
+              <li><a href="https://linkfinderai.com/for-recruiting-teams">Recruitment Data Enrichment</a></li>
+              <li><a href="https://linkfinderai.com/for-sales-teams">Sales Team Data Enrichment</a></li>
+              <li><a href="https://linkfinderai.com/for-revops-teams">RevOps &amp; Data Teams</a></li>
+              <li><a href="https://linkfinderai.com/for-finance-teams">Finance Teams</a></li>
+              <li><a href="https://linkfinderai.com/crm-enrichment-pipeline">CRM Enrichment Pipeline</a></li>
+              <li><a href="https://linkfinderai.com/enrich-sales-navigator-export">Enrich a Sales Navigator Export</a></li>
+              <li><a href="https://linkfinderai.com/enrich-ats-candidate-export">Enrich an ATS Export</a></li>
+              <li><a href="https://linkfinderai.com/bulk-linkedin-email-finder">Bulk LinkedIn Email Finder</a></li>
+              <li><a href="https://linkfinderai.com/bulk-linkedin-phone-number-finder">Bulk LinkedIn Phone Finder</a></li>
+              <li><a href="https://linkfinderai.com/email-permutator">Free Email Permutator</a></li>
+            </ul>
+          </div>
+          <div class="footer-section">
+            <h4 class="footer-heading">Compare</h4>
+            <ul class="footer-links">
+              <li><a href="https://linkfinderai.com/clearbit-alternative">Clearbit Alternative</a></li>
+              <li><a href="https://linkfinderai.com/phantombuster-alternative">PhantomBuster Alternative</a></li>
+              <li><a href="https://linkfinderai.com/apify-alternative">Apify Alternative</a></li>
+              <li><a href="https://linkfinderai.com/hunter-io-alternative">Hunter.io Alternative</a></li>
+              <li><a href="https://linkfinderai.com/clusters/alternatives">View All Alternatives &rarr;</a></li>
+            </ul>
+          </div>
+          <div class="footer-section">
+            <h4 class="footer-heading">Support & Legal</h4>
+            <ul class="footer-links">
+              <li><a href="https://linkfinderai.com/resources">Help Center</a></li>
+              <li><a href="https://linkfinderai.com/api-documentation">API Documentation</a></li>
+              <li><a href="https://linkfinderai.com/about-us">About Us</a></li>
+              <li><a href="https://linkfinderai.com/privacy">Privacy Policy</a></li>
+              <li><a href="https://linkfinderai.com/terms">Terms of Service</a></li>
+              <li><a href="https://linkfinderai.com/refund-policy">Refund Policy</a></li>
+              <li><a href="mailto:support@linkfinderai.com">support@linkfinderai.com</a></li>
+              <li><a href="https://calendly.com/hamoureliasse/linkfinder-ai" target="_blank"><i class="fas fa-calendar-alt"></i> Book a Call</a></li>
+              <li><a href="https://trustpilot.com/review/linkfinderai.com" target="_blank"><i class="fas fa-star"></i> Trustpilot Reviews</a></li>
+            </ul>
+          </div>
+        </div>
+        <div class="footer-bottom" style="border-top:1px solid var(--gray-800);padding-top:1.5rem;">
+          <p style="margin-bottom:0.5rem;">&copy; 2026 LinkFinder AI. All rights reserved.</p>
+          <p style="font-size:0.75rem;color:var(--gray-500);line-height:1.5;">LinkFinder AI is operated by Hamour Eliasse, Entrepreneur Individuel registered in France · SIRET 937 788 172 00016 · 26 rue de la Coopération, 93240 Stains, France · VAT FR02937788172 · Contact: support@linkfinderai.com</p>
+        </div>
+      </div>
+    </footer>
+
+<script>
+  // Language tabs
+  document.querySelectorAll('.code-tabs').forEach(function (group) {
+    var tabs = group.querySelectorAll('.code-tab');
+    var panes = group.querySelectorAll('.code-pane');
+    tabs.forEach(function (tab) {
+      tab.addEventListener('click', function () {
+        var lang = tab.getAttribute('data-lang');
+        tabs.forEach(function (t) { t.classList.toggle('active', t.getAttribute('data-lang') === lang); });
+        panes.forEach(function (p) { p.classList.toggle('active', p.getAttribute('data-lang') === lang); });
+      });
+    });
+    // Copy button copies the visible pane
+    var copyBtn = group.querySelector('.code-copy');
+    if (copyBtn) {
+      copyBtn.addEventListener('click', function () {
+        var active = group.querySelector('.code-pane.active code');
+        if (!active) return;
+        var text = active.innerText;
+        var done = function () {
+          var old = copyBtn.textContent;
+          copyBtn.textContent = 'Copied';
+          setTimeout(function () { copyBtn.textContent = old; }, 1400);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(done).catch(function () {});
+        }
+      });
+    }
+  });
+</script>
+<script src="/js/lf-highticket-cta.js" defer></script>
+</body>
+</html>
