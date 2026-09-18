@@ -427,11 +427,11 @@
 <div class="container">
 
   <div class="billing-toggle">
-    <span class="billing-label active" id="monthlyLabel" onclick="setBilling(false)">Monthly</span>
+    <span class="billing-label" id="monthlyLabel" onclick="setBilling(false)">Monthly</span>
     <div class="toggle-switch" id="billingToggle" onclick="toggleBilling()">
       <div class="toggle-slider"></div>
     </div>
-    <span class="billing-label" id="annualLabel" onclick="setBilling(true)">Annual</span>
+    <span class="billing-label active" id="annualLabel" onclick="setBilling(true)">Annual</span>
     <span class="savings-badge">Save up to 40%</span>
   </div>
 
@@ -997,7 +997,9 @@
     </footer>
 
 <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
-  let isAnnual = false;
+  // Annual is the default view. Prepaid years remove a churn decision every
+  // month and bring the cash forward; monthly stays one click away.
+  let isAnnual = true;
 
   function setBilling(annual) {
     isAnnual = annual;
@@ -1022,6 +1024,10 @@
     document.querySelectorAll('.monthly-text').forEach(el => el.classList.toggle('hidden', isAnnual));
     document.querySelectorAll('.annual-text').forEach(el => el.classList.toggle('hidden', !isAnnual));
   }
+
+  // Apply the annual default to the markup, which is authored monthly so the
+  // page still reads correctly with JavaScript off.
+  setBilling(isAnnual);
 
   function toggleFAQ(button) {
     const answer = button.nextElementSibling;
