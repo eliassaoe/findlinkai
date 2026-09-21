@@ -1,50 +1,42 @@
-# Explee follow-ups — linkfinderai — 2026-09-21 09:43 UTC
+# Explee follow-ups — linkfinderai — 2026-09-21 14:18 UTC
 
-**SENT 9 emails**
+**SENT 0 emails**
 
 To take someone out of the loop: open the lead in the [inbox](https://explee.com/app-auto-gtm/p/30475/inbox), write `booked` or `stop` in the note. Next run it stops.
 
 | outcome | leads |
 |---|---|
 | skip: auto_reply | 87 |
-| skip: unknown | 64 |
+| skip: unknown | 65 |
 | skip: negative | 55 |
-| nudge | 9 |
 | skip: can_reply is false | 9 |
 | skip: reply cap (3) reached on this message | 9 |
+| skip: nudge 2 due in 4.8d | 8 |
 | skip: booked | 4 |
+| skip: nudge 1 due in 1.8d | 3 |
 | skip: question | 2 |
-| skip: fresh reply | 1 |
-| skip: nudge 1 due in 2.0d | 1 |
-| skip: nudge 1 due in 1.9d | 1 |
-| skip: nudge 2 due in 1.0d | 1 |
+| skip: nudge 2 due in 0.8d | 1 |
 | skip: queued until 2026-12-05 | 1 |
-
-## This run
-
-| who | campaign | they said | what happened |
-|---|---|---|---|
-| davidkia (DK Origins) | High ticket linkfinder AI | Bonjour Benjamin,   Merci pour vos messages. Je vous avoue être submergé par des proposit… | sent nudge |
-| Ibrahim (Skillhubs) | High ticket linkfinder AI | Bonjour Avez-vous un numéro de téléphone ? De quelle société appelez-vous ?  IA  Envoyé à… | sent nudge |
-| Daniel (EMDS CONSEIL) | High ticket linkfinder AI | Bonjour monsieur,  Adressez-moi plus d’informations sur votre fonctionnement.  Merci bien… | sent nudge |
-| Hugo (AntheDesign) | High ticket linkfinder AI | ?   		[Hugo ESSIQUE]  		Hugo ESSIQUE  		CEO / Chef de projet  		[Logo] [https://www.anthe… | sent nudge |
-| Pedro (AMORE Global) | High ticket linkfinder AI | Bonjour Ellen,   Oui ça m'intéresse.   Merci | sent nudge |
-| Eric (Crawler Agency) | High ticket linkfinder AI | Bonjour Sun,  Merci pour votre e-mail Votre approche pourrait m’intéresser mais comment p… | sent nudge |
-| Thino (Surf Web Development) | High ticket linkfinder AI | Bonjour Brad,  Merci à vous de m’avoir contacté.  Puis-je en savoir plus sur votre tarif … | sent nudge |
-| Fabrice (FinDiT Consulting) | High ticket linkfinder AI | Bonjour  Nous n’accompagnons pas les FinTech mais les institution financières (banque / f… | sent nudge |
-| Michael (WANT:HEAD) | High ticket linkfinder AI | Hello Bryce,   On peut en discuter oui !     Vendredi après-midi ?                       … | sent nudge |
 
 ## Everyone else who replied
 
 | who | campaign | they said | status |
 |---|---|---|---|
-| Samuel (Le P'tit Logiciel) | High ticket linkfinder AI | Bonjour,  Oui, le sujet est ouvert chez nous en ce moment.  Pour me faire une idée, j'aur… | waiting for Explee's auto-reply |
+| Samuel (Le P'tit Logiciel) | High ticket linkfinder AI | Bonjour,  Oui, le sujet est ouvert chez nous en ce moment.  Pour me faire une idée, j'aur… | 2026-09-23 |
 | Stéphane (Arceane) | High ticket linkfinder AI | Bonjour dîtes m'en plus,   *Stéphane AUBIN *  *Associé*    1, rue de Stockholm 75008 Pari… | none - unknown |
 | Fabrice (S-Team Experience) | High ticket linkfinder AI | Bonjour, Qui êtes vous?   *Fabrice Periac* *Fondateur S-Team Experience* *Docteur en scie… | 2026-09-23 |
 | Tristan (Hélicon-Ia) | High ticket linkfinder AI | Pouvez vous me donner un tarif au rdv ?  Le lundi 21 septembre 2026 à 09:36, Thomas Cole … | 2026-09-23 |
+| Ibrahim (Skillhubs) | High ticket linkfinder AI | Bonjour Avez-vous un numéro de téléphone ? De quelle société appelez-vous ?  IA  Envoyé à… | 2026-09-26 |
+| Daniel (EMDS CONSEIL) | High ticket linkfinder AI | Bonjour monsieur,  Adressez-moi plus d’informations sur votre fonctionnement.  Merci bien… | 2026-09-26 |
+| Hugo (AntheDesign) | High ticket linkfinder AI | ?   		[Hugo ESSIQUE]  		Hugo ESSIQUE  		CEO / Chef de projet  		[Logo] [https://www.anthe… | 2026-09-26 |
 | Jonathan (Optimum Informatique / …) | High ticket linkfinder AI | Vous etes déjà en copie  Cordialement,  Jonathan PIRES Président - Directeur général  [ci… | none - unknown |
+| Pedro (AMORE Global) | High ticket linkfinder AI | Bonjour Ellen,   Oui ça m'intéresse.   Merci | 2026-09-26 |
+| Eric (Crawler Agency) | High ticket linkfinder AI | Bonjour Sun,  Merci pour votre e-mail Votre approche pourrait m’intéresser mais comment p… | 2026-09-26 |
 | Nelly (BIRDS Coaching) | High ticket linkfinder AI | Bonjour Oui Nelly | none - unknown |
+| Thino (Surf Web Development) | High ticket linkfinder AI | Bonjour Brad,  Merci à vous de m’avoir contacté.  Puis-je en savoir plus sur votre tarif … | 2026-09-26 |
 | Michel (VO Event) | High ticket linkfinder AI | Bonjour Pouvez vous donner plus de détails Merci  Michel Culot Board Member NouVO +32 475… | none - unknown |
+| Fabrice (FinDiT Consulting) | High ticket linkfinder AI | Bonjour  Nous n’accompagnons pas les FinTech mais les institution financières (banque / f… | 2026-09-26 |
+| davidkia (DK Origins) | High ticket linkfinder AI | Bonjour,  Je n'ai pas le temps actuellement de consulter votre proposition. Je reviendrai… | none - unknown |
 | Thierry (B-Three Consulting) | High ticket linkfinder AI | Bonjour Sun,     Nous sommes sous contrat avec Capgemini et ne sommes pas en recherche ac… | none - unknown |
 | Katrin (Change-iT) | High ticket linkfinder AI | Non merci Bonne journee!  Met vriendelijk groeten, Katrin Boermans LinkedIn<https://www.l… | none - negative |
 | Tariq (Joti & Associés) | High ticket linkfinder AI | Bonjour Monsieur,   Je ne suis pas intéressé.   Bonne journée, | none - negative |
@@ -95,6 +87,7 @@ To take someone out of the loop: open the lead in the [inbox](https://explee.com
 | Elise (EliLoCom) | High ticket linkfinder AI | Bonjour,  Nous ne sommes pas intéressés.  Merci    Le 10/09/2026 à 10:04, Hannah Knight a… | none - negative |
 | Gérald (Event International) | High ticket linkfinder AI | Bonjour, Veuillez noter que mon adresse e-mail gpalacios@eventinternational.com a récemme… | none - 3 follow-ups sent, that is the limit |
 | Clément (GET A ROOM STUDIO) | High ticket linkfinder AI | Thank you for contacting ‎Corock‎. We regret to inform you that ‎Clément Khoury‎ is no lo… | 2026-09-22 |
+| Michael (WANT:HEAD) | High ticket linkfinder AI | Hello Bryce,   On peut en discuter oui !     Vendredi après-midi ?                       … | 2026-09-26 |
 | Justine (Creapills 💊) | High ticket linkfinder AI | Bonjour,  J’ai quitté mes fonctions au sein de Creapills et cette adresse e-mail n’est dé… | none - unknown |
 | Théo (LOUN'ART) | High ticket linkfinder AI | Bonjour,  Merci pour votre mail, absent jusqu’au 20/09/2026 inclus, je prendrais connaiss… | none - auto_reply |
 | Alain (Meent (ex Sportcarriere)) | High ticket linkfinder AI | Bonjour,  Sportcarriere change de nom pour devenir MEENT. À cette occasion, mon adresse m… | none - unknown |
@@ -274,7 +267,7 @@ To take someone out of the loop: open the lead in the [inbox](https://explee.com
 | Patrice (Emergence Académie) | Organismes de formation FR/… | Bonjour, Vous êtes bien sur ma messagerie. Je ne suis pas disponible pour le moment. En r… | none - unknown |
 | David (Afc Prevention) | Organismes de formation FR/… | Bonjour,     Oui, je veux bien plus d’explication.     Cordialement,       De : Tanner Fo… | none - booked in the note |
 
-## Hot leads Explee flagged (26)
+## Hot leads Explee flagged (25)
 
 | who | title | campaign | went hot | in the loop |
 |---|---|---|---|---|
@@ -282,7 +275,6 @@ To take someone out of the loop: open the lead in the [inbox](https://explee.com
 | Stéphane (Arceane) | Co-Founder | High ticket linkfinder AI | 2026-09-21 | yes |
 | Fabrice (S-Team Experience) | Founder | High ticket linkfinder AI | 2026-09-21 | yes |
 | Willys (Hélicon-Ia) | President | High ticket linkfinder AI | 2026-09-21 | yes |
-| David (DK Origins) | Founder | High ticket linkfinder AI | 2026-09-18 | yes |
 | Ibrahim (Skillhubs) | Chief Executive Officer | High ticket linkfinder AI | 2026-09-18 | yes |
 | Daniel (EMDS CONSEIL) | Founder | High ticket linkfinder AI | 2026-09-18 | yes |
 | Hugo (AntheDesign) | Managing Partner | High ticket linkfinder AI | 2026-09-18 | yes |
