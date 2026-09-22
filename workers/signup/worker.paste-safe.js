@@ -259,6 +259,27 @@ const ACCOUNTS_PER_IP_PER_DAY = 1;
 /* the verify-email worker was live and correct, and nothing was ever calling it. */
 const VERIFY_CAP = 10;
 
+/* ⚠️ HARD PREREQUISITE: Supabase must have a CUSTOM SMTP server configured. */
+/* */
+/* Supabase's built-in mailer "will refuse to deliver messages to addresses that */
+/* are not part of the project's team" (Supabase docs, Custom SMTP). It is not a */
+/* rate limit you can live with - it is a refusal for every address that is not */
+/* yours. It also creates the auth row and reports success while doing it, so */
+/* provisionVerification() below sees a 200, caps the grant, and the person never */
+/* receives anything. They sit on 10 credits with a resend button that cannot */
+/* work, and nothing in any log says why. */
+/* */
+/* That is the one failure this whole design is supposed to avoid, and it is the */
+/* one case the code cannot detect from here. Hence this switch. */
+/* */
+/* Set VERIFY_HOLD to false to keep sending the mail but stop capping the grant. */
+/* Use it if confirmations are not arriving: it restores full grants in one line */
+/* without reverting anything else in this file. */
+/* */
+/* Before turning this on for real: sign up with an address that is NOT on the */
+/* Supabase team and confirm the mail actually lands. */
+const VERIFY_HOLD = true;
+
 /* Where to ask for the confirmation email. Supabase credentials live in the */
 /* verify-email worker, which already holds them, so they are not duplicated */
 /* here; this worker only needs the URL and a shared secret. */
@@ -600,7 +621,7 @@ async function bumpDomainCount(domain, env) {
         let grantedNow = startingCredits;
         let heldCredits = 0;
 
-        if (!isGoogle && startingCredits > VERIFY_CAP) {
+        if (VERIFY_HOLD && !isGoogle && startingCredits > VERIFY_CAP) {
             const mailed = await provisionVerification(normalizedEmail, env);
             if (mailed) {
                 grantedNow = VERIFY_CAP;
@@ -629,7 +650,14 @@ async function bumpDomainCount(domain, env) {
             }
         }
 
-        console.log('✉️ verification:', { isGoogle, grantedNow, heldCredits });
+        /* With VERIFY_HOLD off we still want the address confirmed - it is what */
+        /* keeps unverified people out of lifecycle email, which is the other half */
+        /* of why verify-email was built. Only the credit cap is skipped. */
+        if (!VERIFY_HOLD && !isGoogle) {
+            await provisionVerification(normalizedEmail, env);
+        }
+
+        console.log('✉️ verification:', { isGoogle, verifyHold: VERIFY_HOLD, grantedNow, heldCredits });
 
         /* ── 5. Forward to n8n ────────────────────────────────────────────────── */
         const response = await fetch('https://scalelinkfinderai-production.up.railway.app/webhook/751f84b6-ee4b-4f80-a724-fa64d89580ff', {

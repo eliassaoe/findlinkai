@@ -86,9 +86,25 @@ Supabase auth row and makes Supabase send the mail. Credentials stay in
 - `PROVISION_SECRET` — any long random string, the same value on both workers.
 - Set the same `PROVISION_SECRET` on `verifyemail` with `wrangler secret put`.
 
-**Supabase must have email confirmation switched on** (Authentication →
-Sign In / Providers → Confirm email), or `/provision` creates the auth row and
-no mail is sent.
+**Supabase must have a CUSTOM SMTP server configured — this is a hard
+prerequisite, not a nice-to-have.** The built-in mailer *"will refuse to deliver
+messages to addresses that are not part of the project's team"*. It refuses
+silently: the auth row is created, `/provision` sees a 200, the grant is capped,
+and the person never receives anything. They sit on 10 credits with a resend
+button that cannot work.
+
+`support@linkfinderai.com` is already a verified sender for lifecycle email
+(PostHog integration 238896) — point Supabase at the same provider:
+Authentication → Emails → SMTP Settings. Also switch on Authentication →
+Sign In / Providers → Confirm email.
+
+With custom SMTP the auth-email rate limit is 30 new users/hour, against roughly
+30–40 email/password signups **per week**. Ample.
+
+**Before trusting it:** sign up with an address that is *not* on the Supabase
+team and check the mail lands. If confirmations are not arriving, set
+`VERIFY_HOLD = false` in the Worker — the mail still goes out, the grant stops
+being capped, and nothing else has to be reverted.
 
 **If any of that is missing the signup gets the FULL grant and the log shouts.**
 Capping without a working email would leave real people on 10 credits with
