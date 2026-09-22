@@ -2,6 +2,13 @@
 
 Decision record, 22 Sep 2026. Supersedes the "not yet" in `docs/geo-pricing.md`.
 
+> **Superseded the same day.** The policy moved from this blocklist to an
+> allowlist (`COUNTRY_POLICY = 'allowlist'`). The numbers below still explain
+> why IN/PK/NG/BD/EG are not in `ALLOWED_COUNTRIES`, and the caveats below —
+> especially a paying customer's team abroad — apply with more force under an
+> allowlist, because it refuses far more countries than this ever did. See
+> `workers/signup/README.md`.
+
 `COUNTRY_POLICY = 'block'` in `workers/signup/worker.js`. IN, PK, NG, BD and EG
 can no longer create an account. Everything else about the site is unchanged.
 

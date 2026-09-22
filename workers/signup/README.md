@@ -63,6 +63,30 @@ nothing:
 and do not ship it without a cap on redemptions. A public code worth 20x the
 normal grant, repeatable, is a mint.
 
+## Allowlist + multi-account rules (22 Sep 2026)
+
+`COUNTRY_POLICY = 'allowlist'`. Only `ALLOWED_COUNTRIES` can sign up — proven
+revenue markets (US, FR, GB, UA, CA, NL, SG, JP) plus high-income peers. A new
+market now has to be let in on purpose instead of being admitted by default.
+
+**US/UK only would cost 46% of the customer base** — 11 of the 24 paying
+customers outside the blocked tier, France first among them, which converts
+better than the US. `new Set(['US','GB'])` is the one-line change if that is
+wanted anyway.
+
+Multi-account rules, all failing open when KV is missing:
+
+| rule | value | why |
+|---|---|---|
+| `ACCOUNTS_PER_IP_PER_DAY` | 1 | was 3; catches the second free account from one machine |
+| `DOMAIN_SIGNUPS_PER_DAY` | 2 | was 5; the farm averaged 434 per domain |
+| `FARM_EMAIL_SHAPE` | `lf-` + 8 chars w/ digit | narrow on purpose |
+| `BLOCKED_SIGNUP_DOMAINS` | 23 domains | the farm's own list |
+
+The IP rule refuses a second colleague behind one office NAT on the same day.
+They are routed to sales rather than a dead end; for a product sold to teams
+that is arguably the right destination, but it is a real cost, not a free win.
+
 ## Country block (22 Sep 2026)
 
 `COUNTRY_POLICY` decides what `LOW_CONVERSION_COUNTRIES` means at the door:

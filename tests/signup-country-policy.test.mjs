@@ -144,6 +144,47 @@ await test('a gift code is no longer a way around the country block', async () =
   assert.equal(res.status, 403, 'the exemption went with the code that justified it');
 });
 
+// ---- allowlist -------------------------------------------------------------
+
+console.log('\nallowlist');
+
+await test('a country that is simply not on the list is refused', async () => {
+  // The point of the allowlist over the blocklist: BR and MX were never on any
+  // blocked tier, and under 'block' they signed up freely. A new market now has
+  // to be let in on purpose.
+  for (const country of ['BR', 'MX', 'TR', 'ZA', 'VN']) {
+    const { env } = makeEnv();
+    const res = await worker.fetch(makeRequest({ country, body: BODY }), env, {});
+    assert.equal(res.status, 403, `${country} is not on the allowlist`);
+  }
+});
+
+await test('every country that has produced a paying customer is allowed', async () => {
+  // US 11 | FR 3 | GB 2 | UA 2 | CA 1 | NL 1 | SG 1 | JP 1 over 180 days.
+  // If a change to the list ever refuses one of these, it is refusing revenue
+  // that already exists.
+  for (const country of ['US', 'FR', 'GB', 'UA', 'CA', 'NL', 'SG', 'JP']) {
+    const { env } = makeEnv();
+    const n8n = stubN8n();
+    try {
+      const res = await worker.fetch(makeRequest({ country, body: BODY }), env, {});
+      assert.equal(res.status, 200, `${country} has paying customers and must stay allowed`);
+    } finally { n8n.restore(); }
+  }
+});
+
+await test('an unknown country still fails OPEN under the allowlist', async () => {
+  // This matters more here than it did on the blocklist: "not in the allowed
+  // set" is trivially true of null, so a strict reading refuses everyone on
+  // earth the moment request.cf breaks.
+  const { env } = makeEnv();
+  const n8n = stubN8n();
+  try {
+    const res = await worker.fetch(makeRequest({ country: undefined, body: BODY }), env, {});
+    assert.equal(res.status, 200, 'a geo lookup failure must not read as a global outage');
+  } finally { n8n.restore(); }
+});
+
 // ---- signup farm -----------------------------------------------------------
 
 console.log('\nsignup farm');

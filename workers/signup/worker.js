@@ -100,36 +100,66 @@ const LOW_CONVERSION_COUNTRIES = new Set(['IN', 'PK', 'NG', 'BD', 'EG']);
 
 // ─── Country policy ─────────────────────────────────────────────────────────
 //
-// What LOW_CONVERSION_COUNTRIES actually means at the signup door. One line to
-// change; nothing else in this file has to move.
+//   'allowlist' - ONLY the countries in ALLOWED_COUNTRIES can sign up. This is
+//                 the strict setting and the one in force. Everywhere else is
+//                 refused at the door, whether or not we have ever heard of it.
+//   'block'     - the inverse: everyone signs up except LOW_CONVERSION_COUNTRIES.
+//   'grant'     - everyone signs up, LOW_CONVERSION_COUNTRIES get zero credits.
+//   'tier'      - the original: the tier only decides the grant size.
 //
-//   'tier'  - everyone can sign up, the tier only decides the grant (10 vs 50).
-//   'grant' - everyone can sign up, the tier gets ZERO free credits. The site,
-//             the SEO pages and the pricing page stay reachable; only the free
-//             enrichment budget goes away. This removes the cost without
-//             removing the market.
-//   'block' - the tier cannot create an account at all. Hard refusal at the
-//             door, before any KV read, so a blocked attempt costs nothing.
-//
-// Measured over the 180 days to 22 Sep 2026 (PostHog, whole site):
-//
-//   tier             signups  enrich runs  saw pricing  paid
-//   standard           1,151        5,038        1,196    24
-//   low_conversion     1,420        4,470          401     1
-//
-// 55% of signups, 47% of the enrichment we pay a supplier for, 4% of customers.
-// 'block' therefore removes ~47% of free-tier API spend and one customer per
-// six months. 'grant' removes the same spend and keeps the customer.
-//
-// See docs/geo-block.md for the full working and what this does NOT cover.
-const COUNTRY_POLICY = 'block';
+// An allowlist is the right shape for "serious customers only". A blocklist is
+// a list of the farms you have already met; every new one is admitted until
+// somebody notices. This inverts that: a new market has to be let in on
+// purpose, which is a decision someone makes once, not an incident.
+const COUNTRY_POLICY = 'allowlist';
 
-// Never refuse on an unknown country. getCountry() returns null when request.cf
-// is unavailable (local dev, preview, or a Cloudflare change); treating that as
-// "blocked" would refuse every signup on earth the day it happens. Only a
-// positive match on a country code blocks, so this fails open by construction.
+// Where the money actually is. Paying customers by country, 180 days to
+// 22 Sep 2026:
+//
+//   US 11 | FR 3 | GB 2 | UA 2 | CA 1 | NL 1 | SG 1 | JP 1
+//
+// The list below is those countries plus high-income markets that sell the same
+// way - the rest of Western Europe, the Nordics, ANZ, the Gulf, Hong Kong,
+// Korea. It is deliberately not "US and UK only".
+//
+// US + UK alone would be 13 of the 24 paying customers outside the blocked
+// tier. The other 11 - France first among them, which converts at 3.75%
+// against the US's 3.46% and is the second-best market on the site - would be
+// refused at signup. That is a 46% cut to the customer base to close a hole
+// that none of those countries opened: the farm used invented US-shaped
+// business domains, and the abuse rules below are what stopped it, not this
+// list.
+//
+// To go US/UK-only anyway, replace this set with new Set(['US','GB']). One
+// line, and the number above is what it costs.
+const ALLOWED_COUNTRIES = new Set([
+    // proven revenue
+    'US', 'GB', 'FR', 'CA', 'NL', 'SG', 'JP', 'UA',
+    // Western Europe
+    'DE', 'IE', 'BE', 'AT', 'CH', 'LU', 'IT', 'ES', 'PT',
+    // Nordics
+    'SE', 'NO', 'DK', 'FI', 'IS',
+    // ANZ
+    'AU', 'NZ',
+    // other high-income
+    'IL', 'AE', 'SA', 'QA', 'KW', 'HK', 'KR', 'TW',
+    // Central/Eastern Europe with real B2B SaaS spend
+    'PL', 'CZ', 'EE', 'LT', 'LV', 'SI', 'SK', 'HU', 'RO', 'GR', 'HR', 'BG', 'CY', 'MT',
+]);
+
+// Both gates below fail OPEN on an unknown country.
+//
+// getCountry() returns null when request.cf is unavailable - local dev, a
+// preview environment, or a Cloudflare change. On an allowlist that matters far
+// more than it did on a blocklist: "not in the allowed set" would be true of
+// null, so a strict reading would refuse every signup on earth the moment geo
+// lookup breaks, and it would look like the product was down rather than like a
+// policy. A country we cannot identify is let through and lands in the standard
+// tier; the abuse rules further down are what catch a farm, not this.
 function isBlockedCountry(country) {
-    return COUNTRY_POLICY === 'block' && !!country && LOW_CONVERSION_COUNTRIES.has(country);
+    if (!country) return false;
+    if (COUNTRY_POLICY === 'allowlist') return !ALLOWED_COUNTRIES.has(country);
+    return COUNTRY_POLICY === 'block' && LOW_CONVERSION_COUNTRIES.has(country);
 }
 
 // 22 Aug 2026: standard 150 -> 50, low_conversion 25 -> 10.
@@ -191,7 +221,23 @@ const FARM_EMAIL_SHAPE = /^lf[-.](?=[a-z0-9]{8}$)[a-z0-9]*\d[a-z0-9]*$/;
 // own login, which is the one check a script cannot cheaply fake. Business
 // domains are the opposite: five new accounts a day on one company domain is
 // already generous, and the farm averaged 434.
-const DOMAIN_SIGNUPS_PER_DAY = 5;
+//
+// 22 Sep, second pass: 5 -> 2. A real company onboarding its team does it once
+// and can mail us; a farm needs volume every day. The error routes to sales, so
+// the third colleague on a genuine domain is a conversation, not a lost lead.
+const DOMAIN_SIGNUPS_PER_DAY = 2;
+
+// Accounts one IP may open per 24h. Was 3; the farm walked through it on
+// rotating proxies, so 3 was never the thing holding the line - but it is the
+// rule that catches the cheap version of multi-accounting, someone opening a
+// second free account from their own machine when the credits run out. At 1,
+// that stops being possible without new infrastructure.
+//
+// The cost is real and worth naming: two colleagues behind one office NAT, on
+// the same day, means the second one is refused. They are sent to sales rather
+// than to a dead end, which for a product sold to teams is arguably where they
+// should have gone anyway.
+const ACCOUNTS_PER_IP_PER_DAY = 1;
 
 const SIGNUP_CREDITS = { low_conversion: 10, standard: 50 };
 
@@ -460,7 +506,7 @@ async function bumpDomainCount(domain, env) {
                 ipAttempts = { count: 0, firstAttempt: now };
             }
 
-            if (ipAttempts.count >= 3) {
+            if (ipAttempts.count >= ACCOUNTS_PER_IP_PER_DAY) {
                 console.log('🚫 Rate limit exceeded for IP:', ip);
                 const hoursLeft = Math.ceil((oneDay - (now - ipAttempts.firstAttempt)) / (60 * 60 * 1000));
                 return new Response(JSON.stringify({
@@ -476,7 +522,7 @@ async function bumpDomainCount(domain, env) {
                 });
             }
 
-            console.log(`✅ IP ${ip} - Attempt ${ipAttempts.count + 1}/3`);
+            console.log(`✅ IP ${ip} - Attempt ${ipAttempts.count + 1}/${ACCOUNTS_PER_IP_PER_DAY}`);
         }
 
         // ── 5. Forward to n8n ──────────────────────────────────────────────────
@@ -520,7 +566,7 @@ async function bumpDomainCount(domain, env) {
                     expirationTtl: 86400
                 });
 
-                console.log(`✅ Signup successful. IP now at ${ipAttempts.count}/3 attempts`);
+                console.log(`✅ Signup successful. IP now at ${ipAttempts.count}/${ACCOUNTS_PER_IP_PER_DAY} attempts`);
                 await bumpDomainCount(emailDomain, env);
             } catch (e) {
                 console.error('⚠️ Failed to update rate limit (non-critical):', e);
