@@ -141,8 +141,13 @@ const ALLOWED_COUNTRIES = new Set([
     'SE', 'NO', 'DK', 'FI', 'IS',
     /* ANZ */
     'AU', 'NZ',
+    /* Gulf */
+    'AE', 'SA', 'QA', 'KW', 'BH', 'OM',
     /* other high-income */
-    'IL', 'AE', 'SA', 'QA', 'KW', 'HK', 'KR', 'TW',
+    'IL', 'HK', 'MO', 'KR', 'TW', 'BN',
+    /* European microstates - tiny, but they are on the list because the rule is */
+    /* "high income", and leaving one out only ever shows up as a refused customer */
+    'MC', 'LI', 'AD', 'SM',
     /* Central/Eastern Europe with real B2B SaaS spend */
     'PL', 'CZ', 'EE', 'LT', 'LV', 'SI', 'SK', 'HU', 'RO', 'GR', 'HR', 'BG', 'CY', 'MT',
 ]);

@@ -65,9 +65,16 @@ normal grant, repeatable, is a mint.
 
 ## Allowlist + multi-account rules (22 Sep 2026)
 
-`COUNTRY_POLICY = 'allowlist'`. Only `ALLOWED_COUNTRIES` can sign up — proven
-revenue markets (US, FR, GB, UA, CA, NL, SG, JP) plus high-income peers. A new
-market now has to be let in on purpose instead of being admitted by default.
+`COUNTRY_POLICY = 'allowlist'`. Only `ALLOWED_COUNTRIES` can sign up — 54
+countries: the proven revenue markets (US, FR, GB, UA, CA, NL, SG, JP) plus
+every high-income market that sells the same way. A new market now has to be let
+in on purpose instead of being admitted by default.
+
+The rule for the list is "high income", not "has paid us yet" — Western Europe,
+the Nordics, ANZ, the Gulf, the Asian financial centres, the richer parts of
+Central/Eastern Europe, and the European microstates. Ukraine is the one entry
+that is there on revenue rather than income: it has produced two paying
+customers.
 
 **US/UK only would cost 46% of the customer base** — 11 of the 24 paying
 customers outside the blocked tier, France first among them, which converts
