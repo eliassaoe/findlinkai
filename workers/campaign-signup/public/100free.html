@@ -202,28 +202,23 @@ button#submitButton:disabled{opacity:0.6;cursor:not-allowed;}
 
   const urlParams = new URLSearchParams(window.location.search);
 
-  // Every visit to this domain is a campaign visit, so the gift applies by
-  // default; ?gift=<code> can still name a different one. The Worker owns the
-  // code -> credits table (workers/signup/worker.js, GIFT_CREDITS); this page
-  // only carries the code, and keeps it in localStorage across the Google
-  // OAuth round-trip.
-  const DEFAULT_GIFT = 'coldemail_1000';
-  const GIFT_CODE = (function () {
-    const fromUrl = (urlParams.get('gift') || '').trim().toLowerCase();
-    let code = fromUrl;
-    if (!code) { try { code = localStorage.getItem('lf_gift') || ''; } catch (e) {} }
-    if (!code) code = DEFAULT_GIFT;
-    try { localStorage.setItem('lf_gift', code); } catch (e) {}
-    return code;
-  })();
-  // Banner copy only. Keep in sync with GIFT_CREDITS in the Worker.
-  const GIFT_BANNERS = { coldemail_1000: 1000 };
-  if (GIFT_BANNERS[GIFT_CODE]) {
-    document.getElementById('giftHeading').textContent =
-      GIFT_BANNERS[GIFT_CODE].toLocaleString('en-US') + ' free credits are waiting for you';
-    document.getElementById('giftBanner').style.display = 'flex';
-    try { posthog.capture('signup_gift_seen', { gift: GIFT_CODE, campaign_site: true }); } catch (e) {}
-  }
+  // Gift codes are retired, 22 Sep 2026. coldemail_1000 was public and uncapped
+  // and minted 9,991 accounts in nine days; GIFT_CREDITS in
+  // workers/signup/worker.js is now empty, so the Worker ignores any code this
+  // page could send. See docs/incident-signup-farm.md.
+  //
+  // This page kept a DEFAULT_GIFT, so every visit to the campaign domain asked
+  // for the 1,000-credit grant whether or not the visitor came from the email -
+  // the second door, and the one that would still have been open after the
+  // landing page on the main site was taken down.
+  //
+  // The banner is gone with it. Leaving it up would promise credits the Worker
+  // will not grant, which is a worse first impression than no banner at all.
+  //
+  // Anything already in localStorage from an earlier visit is cleared, so a
+  // stale code cannot keep riding along on this browser.
+  const GIFT_CODE = '';
+  try { localStorage.removeItem('lf_gift'); } catch (e) {}
 
   const gclid = urlParams.get('gclid');
   if (gclid) { try { localStorage.setItem('gclid', gclid); } catch (e) {} }
