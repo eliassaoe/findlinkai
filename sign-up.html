@@ -591,6 +591,7 @@ button#submitButton:disabled{opacity:0.6;cursor:not-allowed;}
         let reason = 'server_error';
         if (errorData.code === 'use_google_signin')            reason = 'routed_to_google';
         else if (errorData.code === 'business_email_required') reason = 'consumer_domain_blocked';
+        else if (errorData.code === 'country_not_supported')   reason = 'country_blocked';
         else if (msg.toLowerCase().includes('already'))        reason = 'already_registered';
 
         try { plausible('Signup Failed', {props:{method:'email',reason}}); } catch(e) {}
@@ -609,6 +610,14 @@ button#submitButton:disabled{opacity:0.6;cursor:not-allowed;}
           showFieldError('email', 'emailError');
           document.getElementById('emailError').textContent =
             'Please use your work email address to sign up.';
+        } else if (errorData.code === 'country_not_supported') {
+          // Geo refusal from the signup worker (COUNTRY_POLICY, workers/signup).
+          // Shown as a message rather than a field error: nothing they can type
+          // in the form fixes it, so highlighting the email box would send them
+          // round the retry loop forever. Sales stays reachable on purpose -
+          // this closes the free tier, not the door to a real buyer.
+          try { posthog.capture('signup_blocked_country', {method:'email'}); } catch(e) {}
+          showMessage('We\u2019re not taking new signups in your country right now. If you need access for a team, <a href="https://linkfinderai.com/talk-to-sales" style="color:#2563eb;font-weight:600;">talk to sales \u2192</a>');
         } else if (msg.toLowerCase().includes('already')) {
           showFieldError('email', 'emailError');
           document.getElementById('emailError').innerHTML = 'This email is already registered. <a href="https://linkfinderai.com/log-in" style="color:#2563eb;font-weight:600;">Sign in instead →</a>';

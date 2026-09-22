@@ -43,6 +43,34 @@ this changes nothing. **Sign up with a fresh email and check the balance reads
 50, not 150.** If it still says 150, the number is also hardcoded in n8n and has
 to change there too.
 
+## Country block (22 Sep 2026)
+
+`COUNTRY_POLICY` decides what `LOW_CONVERSION_COUNTRIES` means at the door:
+
+```js
+const COUNTRY_POLICY = 'block';   // 'block' | 'grant' | 'tier'
+```
+
+- `'tier'`  - the old behaviour: everyone signs up, the tier only sets the grant.
+- `'grant'` - everyone signs up, the tier gets zero free credits.
+- `'block'` - the tier cannot create an account. **Current setting.**
+
+The refusal is a 403 with `code: 'country_not_supported'`; `sign-up.html` and
+`confirmation-signup.html` both branch on that exact string, so changing it
+breaks the message on two pages. It fires `signup_blocked_country` in PostHog.
+
+Two properties worth not breaking, both pinned by
+`tests/signup-country-policy.test.mjs`:
+
+- It refuses **before** either KV read, so a blocked attempt costs nothing.
+- It **fails open** on an unknown country. `getCountry()` returns null when
+  `request.cf` is unavailable; blocking on null would refuse every signup on
+  earth the day that happens.
+
+Login is a different Worker, so existing accounts - including a paying
+customer's team in one of those countries - are unaffected. The rationale, the
+numbers and the caveats are in `docs/geo-block.md`.
+
 ## Campaign gift codes (8 Sep 2026)
 
 A campaign link can hand out a bigger starting grant than the geo tier. The

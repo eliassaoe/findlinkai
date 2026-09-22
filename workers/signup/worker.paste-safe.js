@@ -98,6 +98,40 @@ async function isDisposable(domain, env) {
 /* request.cf is ever unavailable (e.g. certain local dev/preview setups). */
 const LOW_CONVERSION_COUNTRIES = new Set(['IN', 'PK', 'NG', 'BD', 'EG']);
 
+/* ─── Country policy ───────────────────────────────────────────────────────── */
+/*  */
+/* What LOW_CONVERSION_COUNTRIES actually means at the signup door. One line to */
+/* change; nothing else in this file has to move. */
+/*  */
+/*   'tier'  - everyone can sign up, the tier only decides the grant (10 vs 50). */
+/*   'grant' - everyone can sign up, the tier gets ZERO free credits. The site, */
+/*             the SEO pages and the pricing page stay reachable; only the free */
+/*             enrichment budget goes away. This removes the cost without */
+/*             removing the market. */
+/*   'block' - the tier cannot create an account at all. Hard refusal at the */
+/*             door, before any KV read, so a blocked attempt costs nothing. */
+/*  */
+/* Measured over the 180 days to 22 Sep 2026 (PostHog, whole site): */
+/*  */
+/*   tier             signups  enrich runs  saw pricing  paid */
+/*   standard           1,151        5,038        1,196    24 */
+/*   low_conversion     1,420        4,470          401     1 */
+/*  */
+/* 55% of signups, 47% of the enrichment we pay a supplier for, 4% of customers. */
+/* 'block' therefore removes ~47% of free-tier API spend and one customer per */
+/* six months. 'grant' removes the same spend and keeps the customer. */
+/*  */
+/* See docs/geo-block.md for the full working and what this does NOT cover. */
+const COUNTRY_POLICY = 'block';
+
+/* Never refuse on an unknown country. getCountry() returns null when request.cf */
+/* is unavailable (local dev, preview, or a Cloudflare change); treating that as */
+/* "blocked" would refuse every signup on earth the day it happens. Only a */
+/* positive match on a country code blocks, so this fails open by construction. */
+function isBlockedCountry(country) {
+    return COUNTRY_POLICY === 'block' && !!country && LOW_CONVERSION_COUNTRIES.has(country);
+}
+
 /* 22 Aug 2026: standard 150 -> 50, low_conversion 25 -> 10. */
 /* */
 /* The grant was 50 until mid-June, then raised to 150 to show more value. The */
@@ -171,7 +205,11 @@ async function handleSignup(request, corsHeaders, env) {
         const country = getCountry(request);
         const geoTier = geoTierFromCountry(country);
         const giftCode = giftFromBody(gift);
-        const startingCredits = giftCode ? GIFT_CREDITS[giftCode] : SIGNUP_CREDITS[geoTier];
+        const startingCredits = giftCode
+            ? GIFT_CREDITS[giftCode]
+            : (COUNTRY_POLICY === 'grant' && geoTier === 'low_conversion')
+                ? 0
+                : SIGNUP_CREDITS[geoTier];
 
         console.log('📧 Handling signup:', {
             email,
@@ -191,6 +229,31 @@ async function handleSignup(request, corsHeaders, env) {
             gift: giftCode || (gift ? `unknown:${String(gift).slice(0, 64)}` : 'none'),
             startingCredits
         });
+
+        /* ── 2c. Country policy ───────────────────────────────────────────────── */
+        /*  */
+        /* Placed after the log above (so a refusal is still fully visible in the */
+        /* tail) and before every KV read below, so a blocked attempt costs zero */
+        /* reads on DISPOSABLE_DOMAINS and RATE_LIMITS. */
+        /*  */
+        /* A gift code is exempt: those recipients were hand-picked for a campaign */
+        /* and the code is checked against GIFT_CREDITS, so nothing a visitor can */
+        /* type in the URL gets past this. */
+        /*  */
+        /* This is the signup door only. Existing accounts - including a paying */
+        /* customer whose team works from one of these countries - sign in through */
+        /* the login worker and are not affected. The marketing pages, the API and */
+        /* the MCP server are not affected either. See docs/geo-block.md. */
+        if (!giftCode && isBlockedCountry(country)) {
+            console.log('🚫 Country blocked at signup:', country, normalizedEmail);
+            return new Response(JSON.stringify({
+                error: 'We are not taking new signups in your country right now.',
+                code: 'country_not_supported'
+            }), {
+                status: 403,
+                headers: { 'Content-Type': 'application/json', ...corsHeaders }
+            });
+        }
 
         /* ── 3. Block disposable email domains ────────────────────────────────── */
         const disposable = await isDisposable(emailDomain, env);

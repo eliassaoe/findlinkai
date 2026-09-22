@@ -444,6 +444,23 @@ src="https://www.facebook.com/tr?id=2717863625238535&ev=PageView&noscript=1"
                             showLoginLink: true 
                         };
                     }
+
+                    // Geo refusal from the signup worker (COUNTRY_POLICY, see
+                    // workers/signup/worker.js). Handled here as well as on
+                    // sign-up.html because the Google button posts straight to
+                    // the worker from this page - without this the visitor would
+                    // see a raw 'Server error: 403'.
+                    if (response.status === 403) {
+                        let code = '';
+                        try { code = (JSON.parse(responseText) || {}).code || ''; } catch (e) {}
+                        if (code === 'country_not_supported') {
+                            try { posthog.capture('signup_blocked_country', {method:'google'}); } catch (e) {}
+                            return {
+                                success: false,
+                                error: 'We\u2019re not taking new signups in your country right now.'
+                            };
+                        }
+                    }
                     throw new Error(`Server error: ${response.status} - ${responseText}`);
                 }
 
