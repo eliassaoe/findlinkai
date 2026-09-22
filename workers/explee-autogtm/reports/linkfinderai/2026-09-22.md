@@ -1,4 +1,4 @@
-# Explee follow-ups — linkfinderai — 2026-09-22 14:04 UTC
+# Explee follow-ups — linkfinderai — 2026-09-22 15:32 UTC
 
 **SENT 0 emails**
 
@@ -14,7 +14,7 @@ To take someone out of the loop: open the lead in the [inbox](https://explee.com
 | skip: booked | 4 |
 | skip: nudge 2 due in 0.9d | 2 |
 | skip: question | 2 |
-| skip: nudge 1 due in 0.2d | 1 |
+| skip: nudge 1 due in 0.1d | 1 |
 | skip: fresh reply | 1 |
 | skip: queued until 2026-12-05 | 1 |
 
