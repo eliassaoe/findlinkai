@@ -85,10 +85,11 @@ All in this commit, none of it live until deployed (see below).
 2. **The 23 domains are blocked** at signup, and so is the farm's email shape
    (`lf-` + 8 chars including a digit). The shape rule is deliberately narrow:
    `lf-outreach@` is a plausible team alias and must still get through.
-3. **A per-domain cap: 5 new accounts per domain per 24h.** This is the rule
-   that generalises — the next farm buys 23 different domains, and 23 × 5 is
-   115 accounts a day instead of 3,760. Consumer mailboxes are exempt, because
-   gmail is 75.5% of real signups and a cap there refuses real people.
+3. **A per-domain cap: 2 new accounts per domain per 24h**, and **1 per IP**
+   (was 3). The domain cap is the rule that generalises — the next farm buys 23
+   different domains, and 23 × 2 is 46 accounts a day instead of 3,760. Consumer
+   mailboxes are exempt, because gmail is 75.5% of real signups and a cap there
+   refuses real people.
 4. **A miss now costs credits** — 25% of the listed price, minimum 1, via
    `CSV_MISS_CHARGE_RATE`. Set it to 1 to charge misses in full.
 5. **`credits_used` is logged as the amount actually charged.**
@@ -96,19 +97,25 @@ All in this commit, none of it live until deployed (see below).
    what `app.html` quotes the user. It was under-billing every background row.
 7. **The gift exemption from the country block is gone**, so a future campaign
    code cannot become a way around it.
+8. **The country gate is now an allowlist**, not a blocklist — 54 high-income
+   markets. A blocklist is a list of the farms you have already met; every new
+   one is admitted until somebody notices.
+9. **A confirmation email is sent at signup**, and an email/password signup is
+   funded to 10 credits until it is clicked. See "Still open" item 3.
 
-`tests/signup-country-policy.test.mjs` (15) and `tests/credit-charging.test.mjs`
-(7) pin all of it, including the two failure modes that matter more than the
-abuse: both limiters **fail open** when KV is missing, and the shape rule does
-not catch real addresses.
+`tests/signup-country-policy.test.mjs` (24) and `tests/credit-charging.test.mjs`
+(7) pin all of it, including the failure modes that matter more than the abuse:
+the limiters and the country gate **fail open**, an unmailable signup is **not**
+capped, and the shape rule does not catch real addresses like `lf-outreach@`.
 
 ## Still open
 
-1. **9.4M credits are banked on the 9,991 accounts and this commit does not
-   touch them.** Killing the code stops new ones being minted; it does nothing
-   about the ones already holding ~940 credits each. At the PAYG rate that is
-   ~$235,000 of provisioned value, and the accounts are still live. **This is
-   the most urgent remaining item and it is a decision, not a patch.**
+1. ~~9.4M credits are banked on the 9,991 accounts.~~ **Done, 22 Sep.** 9,872
+   accounts zeroed (`credits` and `protected_credits`; `total_credit` is a
+   generated column and cannot be written directly). The filter was
+   `lf-%@%`-or-`lf.<digits>@`, unverified, never paid — checked first to contain
+   0 verified and 0 paying accounts. The 153 legitimate accounts holding >500
+   credits and the 860,133 credits on paying accounts were untouched.
 2. **The direct enrichment endpoint is in n8n, not in this repo.** The farm's
    55,127 email lookups went through it, not through `csv-batch-runner` — only
    75 CSV batches exist in the whole database. So fix 4 and 5 above are correct
@@ -126,8 +133,16 @@ not catch real addresses.
 
 ## Deploying
 
-The signup Worker is **not** deployed with `wrangler` — see
-`workers/signup/README.md`. Paste `worker.paste-safe.js` into the Cloudflare
-dashboard editor. Until that paste happens, the farm can keep signing up.
+Nothing here is live until it is deployed, and the farm was still creating
+accounts while this was being written — 685 enrichments in one 30-minute window,
+and credits reappearing on fresh `lf-` accounts minutes after the zeroing ran.
 
-`csv-batch-runner` deploys as a normal Supabase edge function.
+1. **Signup Worker — paste, do not `wrangler deploy`.** See
+   `workers/signup/README.md`. Paste `worker.paste-safe.js` into the Cloudflare
+   dashboard editor. **This is the one that stops the bleeding.**
+2. **Bind `PROVISION_SECRET`** on both `linkfinderai-sign-up` (dashboard
+   variable) and `verifyemail` (`wrangler secret put`), same value, and turn on
+   Supabase's confirm-email setting. Without these the grant is not capped.
+3. **`verify-email`** — `wrangler deploy` from its folder, which has a
+   `wrangler.toml` and the right bindings.
+4. **`csv-batch-runner`** — a normal Supabase edge function deploy.
