@@ -43,6 +43,26 @@ this changes nothing. **Sign up with a fresh email and check the balance reads
 50, not 150.** If it still says 150, the number is also hardcoded in n8n and has
 to change there too.
 
+## Signup farm + retired gift code (22 Sep 2026)
+
+`coldemail_1000` was minted 9,991 accounts between 13 and 22 Sep. `GIFT_CREDITS`
+is now **empty** — old `/100free` links fall back to the standard grant, nothing
+breaks. Full write-up in `docs/incident-signup-farm.md`.
+
+Three checks were added, all before the KV reads so a scripted attempt costs
+nothing:
+
+- `BLOCKED_SIGNUP_DOMAINS` — the 23 domains the farm rotated through.
+- `FARM_EMAIL_SHAPE` — `lf-` + 8 chars including a digit. Narrow on purpose:
+  `lf-outreach@` is a plausible team alias and must still get through.
+- `DOMAIN_SIGNUPS_PER_DAY` (5) — per-domain daily cap, the rule that
+  generalises to the next farm. Consumer mailboxes are exempt; gmail is 75.5%
+  of real signups and capping it would refuse real people all day.
+
+**If you add a campaign code again:** keep the amount near the standard grant,
+and do not ship it without a cap on redemptions. A public code worth 20x the
+normal grant, repeatable, is a mint.
+
 ## Country block (22 Sep 2026)
 
 `COUNTRY_POLICY` decides what `LOW_CONVERSION_COUNTRIES` means at the door:

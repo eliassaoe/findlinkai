@@ -124,22 +124,135 @@ await test('an unknown country fails OPEN, not closed', async () => {
   } finally { n8n.restore(); }
 });
 
-await test('a campaign gift code is exempt from the block', async () => {
+await test('the retired gift code no longer mints 1,000 credits', async () => {
   const { env } = makeEnv();
   const n8n = stubN8n();
   try {
+    // GIFT_CREDITS is empty since the Sep 2026 farm. Old /100free links must
+    // still work - they just fall back to the normal grant.
     const res = await worker.fetch(
-      makeRequest({ country: 'IN', body: { ...BODY, gift: 'coldemail_1000' } }), env, {});
-    assert.equal(res.status, 200, 'hand-picked campaign recipients were invited on purpose');
-    assert.equal(n8n.calls[0].startingCredits, 1000);
+      makeRequest({ country: 'US', body: { ...BODY, gift: 'coldemail_1000' } }), env, {});
+    assert.equal(res.status, 200, 'an old campaign link must not break');
+    assert.equal(n8n.calls[0].startingCredits, 50, 'it must fall back to the standard grant, not 1000');
   } finally { n8n.restore(); }
 });
 
-await test('an unknown gift code does not buy a way past the block', async () => {
+await test('a gift code is no longer a way around the country block', async () => {
   const { env } = makeEnv();
   const res = await worker.fetch(
-    makeRequest({ country: 'IN', body: { ...BODY, gift: 'nice_try_1000000' } }), env, {});
-  assert.equal(res.status, 403, 'only codes listed in GIFT_CREDITS are exempt');
+    makeRequest({ country: 'IN', body: { ...BODY, gift: 'coldemail_1000' } }), env, {});
+  assert.equal(res.status, 403, 'the exemption went with the code that justified it');
+});
+
+// ---- signup farm -----------------------------------------------------------
+
+console.log('\nsignup farm');
+
+await test("the farm's 23 domains are refused", async () => {
+  for (const domain of ['acmecorp.com', 'mycompany.org', 'summitpartners.com', 'silverline.co']) {
+    const { env } = makeEnv();
+    const res = await worker.fetch(
+      makeRequest({ country: 'US', body: { ...BODY, email: `someone@${domain}` } }), env, {});
+    assert.equal(res.status, 400, `${domain} should be refused`);
+  }
+});
+
+await test("the farm's email shape is refused on any domain", async () => {
+  // The point of the shape rule: the next farm buys different domains.
+  const { env } = makeEnv();
+  const res = await worker.fetch(
+    makeRequest({ country: 'US', body: { ...BODY, email: 'lf-1n5qjc43@some-new-domain.com' } }), env, {});
+  assert.equal(res.status, 400);
+  const json = JSON.parse(await res.text());
+  assert.equal(json.code, 'business_email_required',
+    'it must not tell a script which rule it tripped');
+});
+
+await test('a real lf- address is not caught by the shape rule', async () => {
+  // These are the false positives the rule is tuned to avoid. 'lf-outreach' is
+  // exactly eight characters, so length alone would have refused a real team
+  // alias; requiring a digit is what keeps it out.
+  for (const email of ['lf-marketing@realcompany.com', 'lf-outreach@realcompany.com',
+                       'lf.team@realcompany.com', 'lfdata@realcompany.com']) {
+    const { env } = makeEnv();
+    const n8n = stubN8n();
+    try {
+      const res = await worker.fetch(makeRequest({ country: 'US', body: { ...BODY, email } }), env, {});
+      assert.equal(res.status, 200, `${email} is a person, not a farm`);
+    } finally { n8n.restore(); }
+  }
+});
+
+await test('a farm signup is refused before any KV read', async () => {
+  const { env, reads } = makeEnv();
+  await worker.fetch(
+    makeRequest({ country: 'US', body: { ...BODY, email: 'lf-jlb5rsjp@acmecorp.com' } }), env, {});
+  assert.deepEqual(reads, [], 'thousands of scripted attempts must not cost a read each');
+});
+
+// ---- per-domain cap --------------------------------------------------------
+
+console.log('\nper-domain daily cap');
+
+// KV that actually remembers, so the cap can be exercised rather than asserted.
+function statefulEnv(seed = {}) {
+  const store = new Map(Object.entries(seed));
+  const kv = {
+    get: async (k) => (store.has(k) ? store.get(k) : null),
+    put: async (k, v) => { store.set(k, v); },
+  };
+  return { env: { DISPOSABLE_DOMAINS: { get: async () => null }, RATE_LIMITS: kv }, store };
+}
+
+await test('a business domain is capped at 5 new accounts a day', async () => {
+  const { env } = statefulEnv({
+    dom_burstco: JSON.stringify({ count: 5, firstAttempt: Date.now() }),
+  });
+  // key is dom_<domain>, so seed under the real name
+  const seeded = statefulEnv({
+    'dom_burstco.com': JSON.stringify({ count: 5, firstAttempt: Date.now() }),
+  });
+  const res = await worker.fetch(
+    makeRequest({ country: 'US', body: { ...BODY, email: 'sixth@burstco.com' } }), seeded.env, {});
+  assert.equal(res.status, 429);
+  const json = JSON.parse(await res.text());
+  assert.equal(json.code, 'domain_signup_cap');
+});
+
+await test('the cap does not apply to gmail', async () => {
+  const seeded = statefulEnv({
+    'dom_gmail.com': JSON.stringify({ count: 9999, firstAttempt: Date.now() }),
+  });
+  const n8n = stubN8n();
+  try {
+    // gmail is 75.5% of signups and is a shared mailbox provider - capping it
+    // would refuse real people all day. Google's own login is the check there.
+    const res = await worker.fetch(
+      makeRequest({ country: 'US', body: { email: 'someone@gmail.com', provider: 'google' } }),
+      seeded.env, {});
+    assert.equal(res.status, 200);
+  } finally { n8n.restore(); }
+});
+
+await test('a stale 24h window resets the cap', async () => {
+  const seeded = statefulEnv({
+    'dom_oldco.com': JSON.stringify({ count: 99, firstAttempt: Date.now() - 25 * 60 * 60 * 1000 }),
+  });
+  const n8n = stubN8n();
+  try {
+    const res = await worker.fetch(
+      makeRequest({ country: 'US', body: { ...BODY, email: 'fresh@oldco.com' } }), seeded.env, {});
+    assert.equal(res.status, 200, 'yesterday must not block today');
+  } finally { n8n.restore(); }
+});
+
+await test('the cap fails OPEN when KV is missing', async () => {
+  const n8n = stubN8n();
+  try {
+    const res = await worker.fetch(
+      makeRequest({ country: 'US', body: { ...BODY, email: 'a@nokv.com' } }), {}, {});
+    assert.equal(res.status, 200, 'no KV binding must never mean no signups');
+  } finally { n8n.restore(); }
 });
 
 unquiet();

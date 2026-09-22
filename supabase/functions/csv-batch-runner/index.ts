@@ -48,14 +48,44 @@ const ROW_LEASE_SECONDS = 120;
 // pipeline in direct proportion — that, not this runner, is the ceiling.
 const ROW_CONCURRENCY = Number(Deno.env.get('CSV_ROW_CONCURRENCY') ?? 8);
 
+// What a lookup that returns nothing costs the user.
+//
+// It used to cost nothing: `credits: status === 'Found' ? cost : 0`. The
+// supplier is paid for the attempt either way, so a miss was pure loss - and
+// once that is true, feeding the endpoint garbage input is free. The Sep 2026
+// farm did exactly that: across 191 accounts and 53,922 runs we delivered
+// 537,519 credits of work and charged 182,497 of it, 34%.
+//
+// Charging full price for a miss is the other extreme and is a worse product:
+// a legitimate user with a messy list would see a bill they cannot predict and
+// did not get value for. 0.25 keeps a normal user's bill close to what it is
+// today (their hit rates are high) while making a run of pure garbage cost
+// real credits. Set CSV_MISS_CHARGE_RATE=1 to charge misses in full.
+//
+// Whatever the rate, a miss always costs at least 1 credit. A rate that rounds
+// to zero would quietly restore the hole this closes.
+const MISS_CHARGE_RATE = Number(Deno.env.get('CSV_MISS_CHARGE_RATE') ?? 0.25);
+
 const CREDIT_COSTS: Record<string, number> = {
     company_name_to_website: 1, company_name_to_phone: 1, company_name_to_linkedin_url: 1,
     email_to_linkedin_url: 5, company_name_to_employees: 1, company_name_to_employee_count: 1,
-    company_name_to_email: 1, linkedin_company_to_linkedin_info: 6, linkedin_company_to_employees: 1,
+    // company_name_to_email was 1 here and 5 in app.html. The user is quoted 5
+    // before pressing the button, so 5 is the honest number and 1 was silently
+    // under-billing every background row. tests/credit-charging.test.mjs pins
+    // this table against app.html so the two cannot drift again.
+    company_name_to_email: 5, linkedin_company_to_linkedin_info: 6, linkedin_company_to_employees: 1,
     linkedin_company_to_employee_count: 1, linkedin_profile_to_linkedin_info: 10,
     lead_full_name_to_linkedin_url: 1, linkedin_profile_to_email: 10, company_domain_to_employees: 1,
     linkedin_post_to_reactions: 1, linkedin_profile_to_phone: 50, lead_full_name_to_email: 7,
 };
+
+// One place that answers "what does this row cost?", so the number billed and
+// the number logged can never drift apart again.
+function chargeFor(inputType: string, outputType: string, found: boolean): number {
+    const full = CREDIT_COSTS[`${inputType}_to_${outputType}`] ?? 1;
+    if (found) return full;
+    return Math.max(1, Math.round(full * MISS_CHARGE_RATE));
+}
 
 const db = (path: string, init: RequestInit = {}) =>
     fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
@@ -191,7 +221,13 @@ async function enrichRow(
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     action: 'fire', token: b.user_id, type: payload.type,
-                    input: row.inputData, result: parsed, credits_used: 1,
+                    // Was hardcoded to 1 for every type, including the
+                    // 50-credit phone lookup, which is why enrichment_history
+                    // could not be used to audit consumption: every row in the
+                    // table read 1 credit regardless of what was actually
+                    // billed. Report what chargeFor() decided.
+                    input: row.inputData, result: parsed,
+                    credits_used: chargeFor(inputType, outputType, shaped.row.status === 'Found'),
                 }),
             }).catch(() => {});
         }
@@ -203,7 +239,7 @@ async function enrichRow(
     return {
         lines: renderRange(spanFrom, row.srcIndex, false, csvHeaders, csvRows, bySrc, inputType, outputType),
         found: shaped.row.status === 'Found',
-        credits: shaped.row.status === 'Found' ? (CREDIT_COSTS[`${inputType}_to_${outputType}`] ?? 1) : 0,
+        credits: chargeFor(inputType, outputType, shaped.row.status === 'Found'),
     };
 }
 
