@@ -244,6 +244,30 @@ const DOMAIN_SIGNUPS_PER_DAY = 2;
 // should have gone anyway.
 const ACCOUNTS_PER_IP_PER_DAY = 1;
 
+// ─── Email verification ─────────────────────────────────────────────────────
+//
+// An email/password signup gets this much until the address is confirmed. The
+// rest is stashed in KV under held_<normalized-email> and released by the
+// verify-email worker when the confirmation link is clicked.
+//
+// Google signups are exempt and see no friction at all: Google verified the
+// address before it reached us, and they are 76% of real signups.
+//
+// This is the patch described in workers/verify-email/SIGNUP_PATCH.md, which was
+// written in August and never applied. That is why the farm's 9,991 accounts -
+// every one of them an unverified email/password signup - collected full grants:
+// the verify-email worker was live and correct, and nothing was ever calling it.
+const VERIFY_CAP = 10;
+
+// Where to ask for the confirmation email. Supabase credentials live in the
+// verify-email worker, which already holds them, so they are not duplicated
+// here; this worker only needs the URL and a shared secret.
+//
+// Both come from the Cloudflare dashboard (Settings -> Variables). If either is
+// missing the signup still succeeds at the FULL grant - see provisionVerification().
+const VERIFY_WORKER_URL = 'https://verifyemail.hamoureliasse.workers.dev/provision';
+
+
 const SIGNUP_CREDITS = { low_conversion: 10, standard: 50 };
 
 // Campaign gift codes -> starting credits.
@@ -371,6 +395,44 @@ async function handleSignup(request, corsHeaders, env) {
                 headers: { 'Content-Type': 'application/json', ...corsHeaders }
             });
         }
+
+// Ask verify-email to create the Supabase auth row, which is what makes Supabase
+// send the confirmation mail.
+//
+// Returns true only if the mail was actually requested. That return value decides
+// whether the grant is capped, and the direction matters: if this worker is
+// misconfigured - no secret bound, verify-email down - capping anyway would leave
+// real people on 10 credits with no email to click and no way out, and the only
+// signal would be silence. So a failure grants in full and shouts in the log. The
+// cap is the protection; the email is the remedy, and it is not honest to apply
+// one without the other.
+async function provisionVerification(email, env) {
+    if (!env.PROVISION_SECRET) {
+        console.error('⚠️ PROVISION_SECRET not bound - granting in full, NOT capping. ' +
+                      'Bind it in the dashboard or every signup is unverified and unheld.');
+        return false;
+    }
+    try {
+        const r = await fetch(VERIFY_WORKER_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, secret: env.PROVISION_SECRET })
+        });
+        if (!r.ok) {
+            console.error('⚠️ provision failed', r.status, '- granting in full');
+            return false;
+        }
+        const body = await r.json().catch(() => ({}));
+        if (!body.ok) {
+            console.error('⚠️ provision rejected - granting in full');
+            return false;
+        }
+        return true;
+    } catch (e) {
+        console.error('⚠️ provision threw - granting in full:', e);
+        return false;
+    }
+}
 
 // A domain nobody should be able to sign up from, by name or by shape.
 function isFarmSignup(localPart, domain) {
@@ -530,6 +592,45 @@ async function bumpDomainCount(domain, env) {
             console.log(`✅ IP ${ip} - Attempt ${ipAttempts.count + 1}/${ACCOUNTS_PER_IP_PER_DAY}`);
         }
 
+        // ── 4c. Email verification hold ────────────────────────────────────────
+        //
+        // Last thing before the account is created, so nothing above can be
+        // skipped by it and a refused signup never triggers a confirmation mail.
+        const isGoogle = (provider || 'email') === 'google';
+        let grantedNow = startingCredits;
+        let heldCredits = 0;
+
+        if (!isGoogle && startingCredits > VERIFY_CAP) {
+            const mailed = await provisionVerification(normalizedEmail, env);
+            if (mailed) {
+                grantedNow = VERIFY_CAP;
+                heldCredits = startingCredits - grantedNow;
+
+                // Stash what is owed so verify-email releases exactly the right
+                // number later. Keyed by normalized email because the account row
+                // does not exist yet - this worker only forwards to n8n.
+                if (env.RATE_LIMITS) {
+                    try {
+                        await env.RATE_LIMITS.put(`held_${normalizedEmail}`, String(heldCredits), {
+                            expirationTtl: 60 * 60 * 24 * 90
+                        });
+                    } catch (e) {
+                        // Rather than strand someone's credits with no record of
+                        // what they are owed, hand over the full grant.
+                        console.error('⚠️ held-credit stash failed, granting in full:', e);
+                        grantedNow = startingCredits;
+                        heldCredits = 0;
+                    }
+                } else {
+                    console.error('⚠️ RATE_LIMITS not bound - cannot stash held credits, granting in full');
+                    grantedNow = startingCredits;
+                    heldCredits = 0;
+                }
+            }
+        }
+
+        console.log('✉️ verification:', { isGoogle, grantedNow, heldCredits });
+
         // ── 5. Forward to n8n ──────────────────────────────────────────────────
         const response = await fetch('https://scalelinkfinderai-production.up.railway.app/webhook/751f84b6-ee4b-4f80-a724-fa64d89580ff', {
             method: 'POST',
@@ -552,7 +653,13 @@ async function bumpDomainCount(domain, env) {
                 country: country || null,
                 geoTier: geoTier,
                 gift: giftCode,
-                startingCredits: startingCredits
+                // grantedNow, not startingCredits: an unconfirmed email/password
+                // signup is funded to VERIFY_CAP and the rest is released by
+                // verify-email when the link is clicked. n8n needs no change - it
+                // keeps storing whatever number it is handed.
+                startingCredits: grantedNow,
+                emailVerified: isGoogle,
+                heldCredits: heldCredits
             })
         });
 

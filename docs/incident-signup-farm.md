@@ -114,10 +114,13 @@ not catch real addresses.
    75 CSV batches exist in the whole database. So fix 4 and 5 above are correct
    but they are *not* on the path the farm actually used. The same two changes
    have to be made in the n8n workflow or the hole stays open.
-3. **Nothing requires email verification before credits can be spent.** 0 of
-   9,991 farm accounts were verified. This is the single highest-leverage fix
-   left and it also lives in n8n. `docs/email-verified-is-wrong.md` is the prior
-   thinking on it.
+3. ~~Nothing requires email verification before credits can be spent.~~
+   **Done, 22 Sep.** `SIGNUP_PATCH.md` had been written in August and never
+   applied, which is the direct reason the farm collected full grants. An
+   email/password signup now gets 10 credits and a confirmation email; the rest
+   is held in KV and released when the link is clicked. Google signups (76%) are
+   untouched. Needs `PROVISION_SECRET` on both workers and Supabase's confirm-email
+   setting on — without them the grant is **not** capped, by design.
 4. **`linkedin_profile_to_email` is the exposure.** Whatever is decided about
    grants, that one call is where the money goes.
 

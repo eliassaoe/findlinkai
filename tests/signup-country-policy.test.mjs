@@ -46,25 +46,35 @@ function makeEnv() {
     get: async (key) => { reads.push(`${name}:${key}`); return null; },
     put: async () => {},
   });
-  return { env: { DISPOSABLE_DOMAINS: kv('disposable'), RATE_LIMITS: kv('rate') }, reads };
+  return { env: { DISPOSABLE_DOMAINS: kv('disposable'), RATE_LIMITS: kv('rate'),
+                  PROVISION_SECRET: 'test-secret' }, reads };
 }
 
 // The worker forwards to n8n on the allowed path. Stub it so the tests never
 // touch the network, and so "did it get through?" is observable.
-function stubN8n() {
+function stubN8n({ provisionOk = true } = {}) {
   const calls = [];
+  const provisions = [];
   const real = globalThis.fetch;
   globalThis.fetch = async (url, init) => {
-    calls.push(JSON.parse(init.body));
+    const body = JSON.parse(init.body);
+    // The worker talks to two places: verify-email for the confirmation mail,
+    // and n8n to actually create the account.
+    if (String(url).includes('/provision')) {
+      provisions.push(body);
+      return { ok: provisionOk, status: provisionOk ? 200 : 500,
+               json: async () => ({ ok: provisionOk }), text: async () => '' };
+    }
+    calls.push(body);
     return { ok: true, status: 200, text: async () => JSON.stringify({ token: 'tok_test' }) };
   };
-  return { calls, restore: () => { globalThis.fetch = real; } };
+  return { calls, provisions, restore: () => { globalThis.fetch = real; } };
 }
 
 const quiet = () => {
-  const log = console.log, warn = console.warn;
-  console.log = () => {}; console.warn = () => {};
-  return () => { console.log = log; console.warn = warn; };
+  const log = console.log, warn = console.warn, err = console.error;
+  console.log = () => {}; console.warn = () => {}; console.error = () => {};
+  return () => { console.log = log; console.warn = warn; console.error = err; };
 };
 
 const BODY = { email: 'priya@acme-corp.com', password: 'x'.repeat(12) };
@@ -107,7 +117,7 @@ await test('a standard country still gets through to n8n', async () => {
     assert.equal(res.status, 200);
     assert.equal(n8n.calls.length, 1);
     assert.equal(n8n.calls[0].geoTier, 'standard');
-    assert.equal(n8n.calls[0].startingCredits, 50);
+    assert.equal(n8n.calls[0].startingCredits, 10, 'capped until the address is confirmed');
   } finally { n8n.restore(); }
 });
 
@@ -133,7 +143,8 @@ await test('the retired gift code no longer mints 1,000 credits', async () => {
     const res = await worker.fetch(
       makeRequest({ country: 'US', body: { ...BODY, gift: 'coldemail_1000' } }), env, {});
     assert.equal(res.status, 200, 'an old campaign link must not break');
-    assert.equal(n8n.calls[0].startingCredits, 50, 'it must fall back to the standard grant, not 1000');
+    assert.equal(n8n.calls[0].startingCredits, 10, 'the standard grant, then capped pending verification');
+    assert.equal(n8n.calls[0].heldCredits, 40, 'the rest is held, not lost');
   } finally { n8n.restore(); }
 });
 
@@ -242,7 +253,8 @@ function statefulEnv(seed = {}) {
     get: async (k) => (store.has(k) ? store.get(k) : null),
     put: async (k, v) => { store.set(k, v); },
   };
-  return { env: { DISPOSABLE_DOMAINS: { get: async () => null }, RATE_LIMITS: kv }, store };
+  return { env: { DISPOSABLE_DOMAINS: { get: async () => null }, RATE_LIMITS: kv,
+                  PROVISION_SECRET: 'test-secret' }, store };
 }
 
 await test('a business domain is capped at 5 new accounts a day', async () => {
@@ -294,6 +306,80 @@ await test('the cap fails OPEN when KV is missing', async () => {
       makeRequest({ country: 'US', body: { ...BODY, email: 'a@nokv.com' } }), {}, {});
     assert.equal(res.status, 200, 'no KV binding must never mean no signups');
   } finally { n8n.restore(); }
+});
+
+// ---- email verification ----------------------------------------------------
+
+console.log('\nemail verification');
+
+await test('a password signup is capped and the rest is held', async () => {
+  const { env } = makeEnv();
+  const n8n = stubN8n();
+  try {
+    await worker.fetch(makeRequest({ country: 'US', body: BODY }), env, {});
+    assert.equal(n8n.calls[0].startingCredits, 10);
+    assert.equal(n8n.calls[0].heldCredits, 40, '50 - 10, released on confirmation');
+    assert.equal(n8n.calls[0].emailVerified, false);
+  } finally { n8n.restore(); }
+});
+
+await test('the confirmation email is requested at signup', async () => {
+  const { env } = makeEnv();
+  const n8n = stubN8n();
+  try {
+    await worker.fetch(makeRequest({ country: 'US', body: BODY }), env, {});
+    assert.equal(n8n.provisions.length, 1, 'nobody should have to find a resend button');
+    assert.equal(n8n.provisions[0].email, 'priya@acme-corp.com');
+    assert.equal(n8n.provisions[0].secret, 'test-secret');
+  } finally { n8n.restore(); }
+});
+
+await test('a Google signup is never capped and gets no extra email', async () => {
+  const { env } = makeEnv();
+  const n8n = stubN8n();
+  try {
+    await worker.fetch(
+      makeRequest({ country: 'US', body: { email: 'someone@gmail.com', provider: 'google' } }), env, {});
+    assert.equal(n8n.calls[0].startingCredits, 50, 'Google already verified the address');
+    assert.equal(n8n.calls[0].emailVerified, true);
+    assert.equal(n8n.provisions.length, 0, '76% of signups must see no friction at all');
+  } finally { n8n.restore(); }
+});
+
+await test('if the mail cannot be sent, the grant is NOT capped', async () => {
+  // The direction that matters. Capping without a working email leaves real
+  // people on 10 credits with nothing to click, and the only signal is silence.
+  const { env } = makeEnv();
+  const n8n = stubN8n({ provisionOk: false });
+  try {
+    await worker.fetch(makeRequest({ country: 'US', body: BODY }), env, {});
+    assert.equal(n8n.calls[0].startingCredits, 50, 'a broken mailer must not become a broken product');
+    assert.equal(n8n.calls[0].heldCredits, 0);
+  } finally { n8n.restore(); }
+});
+
+await test('no PROVISION_SECRET means no cap, not a silent cap', async () => {
+  const n8n = stubN8n();
+  try {
+    await worker.fetch(makeRequest({ country: 'US', body: BODY }),
+      { DISPOSABLE_DOMAINS: { get: async () => null }, RATE_LIMITS: { get: async () => null, put: async () => {} } }, {});
+    assert.equal(n8n.calls[0].startingCredits, 50);
+    assert.equal(n8n.provisions.length, 0);
+  } finally { n8n.restore(); }
+});
+
+await test('a refused signup never triggers a confirmation email', async () => {
+  for (const req of [
+    { country: 'BR', body: BODY },
+    { country: 'US', body: { ...BODY, email: 'lf-1n5qjc43@acmecorp.com' } },
+  ]) {
+    const { env } = makeEnv();
+    const n8n = stubN8n();
+    try {
+      await worker.fetch(makeRequest(req), env, {});
+      assert.equal(n8n.provisions.length, 0, 'mailing a refused signup is free bounce risk');
+    } finally { n8n.restore(); }
+  }
 });
 
 unquiet();

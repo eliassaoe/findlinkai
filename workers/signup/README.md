@@ -63,6 +63,38 @@ nothing:
 and do not ship it without a cap on redemptions. A public code worth 20x the
 normal grant, repeatable, is a mint.
 
+## Email verification (22 Sep 2026)
+
+`SIGNUP_PATCH.md` in `workers/verify-email/` was written in August and **never
+applied**. That is why the farm's 9,991 accounts — every one an unverified
+email/password signup — collected full grants: the verify-email worker was live
+and correct, and nothing was calling it. It is applied now.
+
+| | Google (76% of signups) | Email + password |
+|---|---|---|
+| Confirmation email | already verified by Google | **sent at signup** |
+| Credits now | full grant (50) | `VERIFY_CAP` (10) |
+| Rest of the grant | — | held in KV, released on confirmation |
+| Can use / pay | yes | yes — the cap is not a lockout |
+
+At signup this worker calls `verify-email` `/provision`, which creates the
+Supabase auth row and makes Supabase send the mail. Credentials stay in
+`verify-email`, which already has them; this worker only needs the shared secret.
+
+**Two dashboard variables are required** (Settings → Variables):
+
+- `PROVISION_SECRET` — any long random string, the same value on both workers.
+- Set the same `PROVISION_SECRET` on `verifyemail` with `wrangler secret put`.
+
+**Supabase must have email confirmation switched on** (Authentication →
+Sign In / Providers → Confirm email), or `/provision` creates the auth row and
+no mail is sent.
+
+**If any of that is missing the signup gets the FULL grant and the log shouts.**
+Capping without a working email would leave real people on 10 credits with
+nothing to click and no signal but silence. The cap is the protection, the email
+is the remedy, and shipping one without the other is not honest.
+
 ## Allowlist + multi-account rules (22 Sep 2026)
 
 `COUNTRY_POLICY = 'allowlist'`. Only `ALLOWED_COUNTRIES` can sign up — 54

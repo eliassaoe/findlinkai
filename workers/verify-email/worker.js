@@ -48,6 +48,25 @@ export default {
 
         let body;
         try { body = await request.json(); } catch (e) { return json({ error: 'Bad JSON' }, 400, cors); }
+
+        // /provision is machine-to-machine: the signup worker calls it the moment
+        // an account is created, so the confirmation email goes out immediately
+        // instead of waiting for someone to press "resend" in an app they have no
+        // reason to think is gated. It is keyed by email, not token, and carries a
+        // shared secret rather than a bearer token, because at that moment the
+        // caller has an address and nothing else.
+        if (route === 'provision') {
+            if (!env.PROVISION_SECRET || body.secret !== env.PROVISION_SECRET) {
+                return json({ error: 'Unauthorized' }, 401, JSON_HEADERS);
+            }
+            try {
+                return json(await provision(env, body.email), 200, JSON_HEADERS);
+            } catch (err) {
+                console.error('provision failed', err && err.message);
+                return json({ ok: false, error: 'Internal error' }, 500, JSON_HEADERS);
+            }
+        }
+
         const token = body && body.token;
         if (!token) return json({ error: 'Missing token' }, 400, cors);
 
@@ -75,6 +94,62 @@ async function status(env, user) {
         verify_cap: capOf(env),
         credits_pending: user.email_verified ? 0 : await heldFor(env, user.email)
     };
+}
+
+// Create the Supabase auth row for an email/password signup, which is what makes
+// Supabase send the confirmation email.
+//
+// Accounts are created by n8n, which does not touch Supabase auth at all - that
+// is why 4,616 accounts have no auth row and nobody ever confirmed them
+// (docs/email-verified-is-wrong.md). The auth row exists here purely as the
+// verification record: `email_is_confirmed` reads it, and nothing signs in with
+// it. The password below is random and thrown away on purpose; the real one
+// lives in the n8n account row.
+//
+// Idempotent. An address that already has an auth row comes back 422
+// ("User already registered"), which is a success for our purposes - we just ask
+// for the mail to be sent again.
+async function provision(env, rawEmail) {
+    const email = String(rawEmail || '').toLowerCase().trim();
+    if (!email || !email.includes('@')) return { ok: false, error: 'Bad email' };
+
+    const r = await fetch(env.SUPABASE_URL + '/auth/v1/signup', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'apikey': env.SUPABASE_SERVICE_KEY,
+            'Authorization': 'Bearer ' + env.SUPABASE_SERVICE_KEY
+        },
+        body: JSON.stringify({ email, password: randomPassword() })
+    });
+
+    if (r.ok) return { ok: true, created: true };
+
+    const text = await r.text();
+    if (r.status === 422 || /already registered/i.test(text)) {
+        const again = await fetch(env.SUPABASE_URL + '/auth/v1/resend', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'apikey': env.SUPABASE_SERVICE_KEY,
+                'Authorization': 'Bearer ' + env.SUPABASE_SERVICE_KEY
+            },
+            body: JSON.stringify({ type: 'signup', email })
+        });
+        if (again.status === 429) return { ok: true, created: false, rate_limited: true };
+        return { ok: again.ok, created: false };
+    }
+
+    console.error('provision signup failed', r.status, text);
+    return { ok: false };
+}
+
+// Never used to sign in - see provision(). Generated rather than constant so a
+// leaked value cannot unlock every provisioned row at once.
+function randomPassword() {
+    const b = new Uint8Array(24);
+    crypto.getRandomValues(b);
+    return Array.from(b, (x) => x.toString(16).padStart(2, '0')).join('');
 }
 
 async function resend(env, user) {
