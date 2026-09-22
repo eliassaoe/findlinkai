@@ -84,7 +84,7 @@ TEMPLATE = {
 }
 MAX_SENDS_PER_RUN = 25
 MAX_REPLIES_PER_INBOUND = 3   # the API's own cap: 3 replies per message they sent
-NUDGE_AFTER_DAYS = (2, 5)     # reply #2 goes 2 days after ours, #3 five days after
+NUDGE_AFTER_DAYS = (1, 1)     # daily: reply #2 one day after ours, #3 the day after that
 MARK_OPEN, MARK_CLOSE = "[explee-recovery]", "[/explee-recovery]"
 REPORTS = HERE / "reports"
 SHEET_KEYS = ("email", "last_reply", "followups_sent", "next_action")

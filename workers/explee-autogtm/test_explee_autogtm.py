@@ -1135,12 +1135,14 @@ class RealShapes(unittest.TestCase):
         self.assertEqual(who, {"first_name": "Tom", "company": "Prescient",
                                "email": "tom@prescient.studio"})
 
-    def test_a_quiet_hot_lead_gets_the_nudge_after_two_days(self):
-        # Explee's auto-reply already answered (message 3); two days later, nudge.
+    def test_a_quiet_hot_lead_gets_the_nudge_the_next_day(self):
+        # Explee's auto-reply already answered (message 3, 4 Sept 08:02); the
+        # cadence is daily, so the nudge is due a day later and not before.
         now = dt.datetime(2026, 9, 7, 9, 0, tzinfo=UTC)
         plan = recover.decide({}, self.THREAD, None, CFG, set(), set(), now)
         self.assertEqual((plan["action"], plan["bucket"]), ("send", "nudge"))
-        soon = dt.datetime(2026, 9, 5, 9, 0, tzinfo=UTC)
+        # Same day, a few hours after our reply: still inside the cooldown.
+        soon = dt.datetime(2026, 9, 4, 18, 0, tzinfo=UTC)
         self.assertEqual(recover.decide({}, self.THREAD, None, CFG, set(), set(), soon)["action"],
                          "skip")
 
