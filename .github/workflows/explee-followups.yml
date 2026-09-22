@@ -5,7 +5,9 @@ name: Explee follow-ups
 # exists. One workflow, four tasks:
 #
 #   followups   recover.py: answer and nudge the replies that never booked.
-#               Every day at 07:00 UTC. Dry run until EXPLEE_APPLY is `true`.
+#               Four attempts every weekday (see the schedule below); the first
+#               one that lands works, the rest no-op. Dry run until
+#               EXPLEE_APPLY is `true`.
 #   measure     sequence.py: replies by sequence step per campaign and what
 #               shortening would do to cost per reply. Free GETs. Every Monday.
 #   shorten     sequence.py: cut one campaign's sequence to N emails, gated on
@@ -25,13 +27,26 @@ name: Explee follow-ups
 # Actions -> Variables). Set it back to anything else to stop.
 on:
   schedule:
-    # Weekday mornings, off the hour on purpose: GitHub's scheduler queues
-    # on-the-hour crons behind everyone else's - '0 7 * * *' fired between
-    # 11:08 and 11:58 UTC on every scheduled day, and not at all on 7 Sept.
-    # 07:23 UTC is 09:23 in Paris over summer, 08:23 over winter - the hour
-    # drifts because cron is UTC and has no daylight saving. No weekend
-    # sends: a nudge on a Sunday morning reads as an automate.
+    # FOUR ATTEMPTS A DAY, ON PURPOSE. One a day is a single point of failure:
+    # GitHub's scheduler runs these hours late - measured at +5h05 to +5h30 all
+    # of mid-September - and on 7 Sept it did not fire at all. A skipped firing
+    # used to cost a whole day of follow-ups and meant running the workflow by
+    # hand, so the schedule now tries four times and only the first one that
+    # lands does any work.
+    #
+    # The repeats are free. A lead who was just nudged is inside the one-day
+    # cooldown in recover.py, and one already handled carries its marker in the
+    # Explee note, so every later run of the day skips them and sends nothing.
+    # The concurrency group below keeps two from ever overlapping.
+    #
+    # Off the hour because on-the-hour crons queue behind everyone else's. The
+    # spread also means that whatever the delay turns out to be, at least one
+    # attempt lands inside French working hours. No weekend sends: a nudge on a
+    # Sunday morning reads as an automate.
+    - cron: '23 5 * * 1-5'
     - cron: '23 7 * * 1-5'
+    - cron: '23 9 * * 1-5'
+    - cron: '23 11 * * 1-5'
     - cron: '41 6 * * 1'       # Mondays: measure the sequences
   workflow_dispatch:
     inputs:
@@ -74,6 +89,11 @@ jobs:
   explee:
     name: ${{ inputs.task || (github.event.schedule == '41 6 * * 1' && 'measure' || 'followups') }}
     runs-on: ubuntu-latest
+    # A normal followups run takes two to three minutes; one took twelve on
+    # 22 Sept without failing. Without this the job inherits GitHub's six-hour
+    # default, and a hung Explee call would hold the concurrency group all day
+    # and silently cancel the rest of the day's attempts.
+    timeout-minutes: 30
     defaults:
       run:
         working-directory: workers/explee-autogtm
