@@ -57,3 +57,19 @@ test('pricing modal shows AGENCY50 to /agency visitors on monthly only', () => {
     const fn = app.match(/function agencyOfferActive\(\) \{([\s\S]*?)\n\}/)[1];
     assert.match(fn, /if \(isExistingSubscriber\) return false/);
 });
+
+test('checkout asks the worker to pre-apply AGENCY50, and the worker allow-lists it', () => {
+    const worker = read('workers/dodo-checkout/worker.js');
+    assert.match(app, /AGENCY_OFFER_CHECKOUT_PLANS = \['pro_monthly', 'enterprise_monthly'\]/);
+    assert.match(app, /payload\.discount_code = 'AGENCY50'/);
+    assert.match(worker, /AGENCY50: \['pro_monthly', 'enterprise_monthly'\]/);
+    assert.match(worker, /p\.discount_codes = \[discount\]/);
+    // A rejected code must fall back to a session without it.
+    assert.match(worker, /if \(!dodoResp\.ok && discountApplied\)/);
+});
+
+test('pricing modal never opens on pay-as-you-go by default', () => {
+    const open = app.match(/function showPricingModal\(trigger, extra\) \{([\s\S]*?)const modalTitle/)[1];
+    assert.doesNotMatch(open, /billingMode = 'payg'/);
+    assert.match(open, /billingMode = 'annual'/);
+});

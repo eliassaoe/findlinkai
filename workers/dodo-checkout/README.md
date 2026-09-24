@@ -44,6 +44,10 @@ last real payment on 26 August 2026.
 
 ## Files
 
+- `worker.js` - master copy of the live worker (24 Sep 2026). Paste it into
+  Cloudflare -> Workers & Pages -> `dodo-checkout` and Deploy. Adds allow-listed
+  discount pre-application (`ALLOWED_DISCOUNTS`, AGENCY50 for /agency visitors,
+  retried without the code if Dodo rejects it) and includes the `PATCH.md` change.
 - `PATCH.md` - the three-line worker change that returns Dodo's raw session
   response to the browser. Not deployed as of 14 September 2026 (`dodo_raw` is
   null on every redirect event). Deploy it.

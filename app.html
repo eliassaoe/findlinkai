@@ -1955,6 +1955,13 @@ async function createCheckoutSessionViaWorker(planKey, email) {
         attribution_campaign: attribution.attribution_campaign || undefined
     };
 
+    // /agency visitors: ask the worker to pre-apply AGENCY50 to the session.
+    // The worker only honours this code on these two plans, and retries
+    // without it if Dodo rejects the code, so this can never block a checkout.
+    if (agencyOfferActive() && AGENCY_OFFER_CHECKOUT_PLANS.includes(planKey)) {
+        payload.discount_code = 'AGENCY50';
+    }
+
     // Only send email if it's a non-empty valid string
     if (typeof email === 'string') {
         const normalizedEmail = email.trim().toLowerCase();
@@ -2481,6 +2488,13 @@ async function launchCheckout({ planKey, analyticsPlanName, value, billingLabel,
 
         // Pass email if present; worker accepts missing email
         const data = await createCheckoutSessionViaWorker(planKey, email || undefined);
+        if (data && (data.discount_applied || data.discount_rejected)) {
+            try { posthog.capture('checkout_discount', {
+                plan_key: planKey,
+                applied: data.discount_applied || null,
+                rejected: !!data.discount_rejected,
+            }); } catch(e) {}
+        }
 
         try {
             posthog.capture('checkout_session_created', {
@@ -2740,6 +2754,7 @@ async function proceedToPaygCheckout(index, btnEl) {
  * Hidden from subscribers: a plan change is not a first month.
  */
 const AGENCY_OFFER_PLAN_KEYS = ['pro', 'enterprise'];
+const AGENCY_OFFER_CHECKOUT_PLANS = ['pro_monthly', 'enterprise_monthly'];
 const AGENCY_OFFER_TTL_MS = 60 * 24 * 60 * 60 * 1000;
 
 function agencyOfferActive() {
@@ -2780,18 +2795,17 @@ function showPricingModal(trigger, extra) {
     // buying from those deserves the rescue rather than the generic banner.
     window.__lfPricingTrigger = trigger || null;
     try { window.uetq = window.uetq || []; window.uetq.push('event', 'begin_checkout', {}); } catch(e) {}
-    // Someone clicking "buy credits" wants more credits now, not necessarily a
-    // monthly commitment - default them to the $25 one-time PAYG pack instead
-    // of leading with the $49/mo subscription (the modal's default). Applies
-    // to subscribers too - "buy credits" is a distinct ask from "manage my
-    // plan," and the modal title below still correctly says "Change Your
-    // Plan" for subscribers regardless of which tab is showing.
-    if (trigger === 'buy_credits_btn') {
-        billingMode = 'payg';
-    } else if (agencyOfferActive() && billingMode === 'annual') {
-        // AGENCY50 only applies to monthly plans; open where the code works.
+    // Every open starts on the subscription plans. The always-visible header
+    // button (trigger 'buy_credits_btn') used to open on Pay as you go, and
+    // because billingMode is global that choice then stuck for every later
+    // open, whatever the trigger - so most people met the modal on one-time
+    // packs. PAYG stays one click away on its tab.
+    // /agency visitors open on Monthly: AGENCY50 only covers monthly plans.
+    if (agencyOfferActive()) {
         billingMode = 'monthly';
         try { posthog.capture('agency_offer_modal_shown', { trigger: trigger || null }); } catch(e) {}
+    } else {
+        billingMode = 'annual';
     }
     document.getElementById('paygBtn').classList.toggle('active', billingMode === 'payg');
     document.getElementById('monthlyBtn').classList.toggle('active', billingMode === 'monthly');
