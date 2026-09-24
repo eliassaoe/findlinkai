@@ -5309,6 +5309,26 @@ function checkAuth(){
         try { posthog.capture('discount_email_landed'); } catch(e) {}
         cimOpenRescueOnPrice();
     },600);
+    // A plan picked on /agency by someone with no account yet. The page stores
+    // it and sends them to /sign-up, which cannot carry it through the Google
+    // OAuth round-trip or email confirmation - so it waits in localStorage and
+    // opens that plan's checkout on the first load after signup. Read once and
+    // removed, so it can never reopen checkout on a later visit.
+    else {
+        let pendingPlan = null;
+        try {
+            pendingPlan = localStorage.getItem('lf_pending_plan');
+            localStorage.removeItem('lf_pending_plan');
+        } catch(e) {}
+        const pending = pendingPlan ? resolvePlanParam(pendingPlan, null) : null;
+        if (pending){
+            billingMode = pending.billing;
+            try { posthog.capture('pending_plan_checkout', {
+                plan: plans[pending.index].key, billing: pending.billing, source: 'agency_page',
+            }); } catch(e) {}
+            setTimeout(()=>proceedToCheckoutDirect(pending.index, null), 300);
+        }
+    }
     // Silently check subscription status on load. Kept as a promise so anything
     // whose behaviour depends on being a subscriber can wait for the real answer
     // instead of racing a timeout and guessing wrong on a slow connection.
