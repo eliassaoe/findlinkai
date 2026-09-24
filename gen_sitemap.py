@@ -48,6 +48,7 @@ NOINDEX_ONLY = {
     "gtm-console",
     "autogtm-report",     # written by workers/explee-autogtm/report_page.py every run
     "100free",            # cold-email landing; bounces to /sign-up?gift=coldemail_1000
+    "agency",             # outbound landing, sent by hand to agencies that replied yes
     "best-recruitment-sofware-tools",  # typo URL, redirect stub -> /best-recruitment-software-tools
 }
 
