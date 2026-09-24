@@ -47,3 +47,13 @@ test('app picks up lf_pending_plan once and opens checkout', () => {
     assert.match(block, /resolvePlanParam\(pendingPlan/);
     assert.match(block, /proceedToCheckoutDirect\(pending\.index/);
 });
+
+test('pricing modal shows AGENCY50 to /agency visitors on monthly only', () => {
+    assert.match(page, /localStorage\.setItem\('lf_agency_offer'/);
+    assert.match(app, /id="agencyOfferBanner"/);
+    assert.match(app, /localStorage\.getItem\('lf_agency_offer'/);
+    assert.match(app, /const agencyOffer = agencyOfferActive\(\) && billingMode === 'monthly'/);
+    assert.match(app, /AGENCY_OFFER_PLAN_KEYS = \['pro', 'enterprise'\]/);
+    const fn = app.match(/function agencyOfferActive\(\) \{([\s\S]*?)\n\}/)[1];
+    assert.match(fn, /if \(isExistingSubscriber\) return false/);
+});
