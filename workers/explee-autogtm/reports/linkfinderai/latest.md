@@ -1,6 +1,6 @@
-# Explee follow-ups — linkfinderai — 2026-09-25 14:38 UTC
+# Explee follow-ups — linkfinderai — 2026-09-25 15:51 UTC
 
-**SENT 1 email**
+**SENT 0 emails**
 
 To take someone out of the loop: open the lead in the [inbox](https://explee.com/app-auto-gtm/p/30475/inbox), write `booked` or `stop` in the note. Next run it stops.
 
@@ -8,28 +8,22 @@ To take someone out of the loop: open the lead in the [inbox](https://explee.com
 |---|---|
 | skip: auto_reply | 98 |
 | skip: unknown | 81 |
-| skip: negative | 64 |
-| skip: reply cap (3) reached on this message | 19 |
+| skip: negative | 65 |
+| skip: reply cap (3) reached on this message | 18 |
 | skip: can_reply is false | 13 |
-| skip: nudge 2 due in 0.9d | 8 |
+| skip: nudge 2 due in 0.9d | 9 |
 | skip: booked | 5 |
 | skip: question | 2 |
-| nudge | 1 |
 | skip: nudge 1 due in 0.8d | 1 |
 | skip: nudge 1 due in 0.7d | 1 |
 | skip: call_me | 1 |
 | skip: queued until 2026-12-05 | 1 |
 
-## This run
-
-| who | campaign | they said | what happened |
-|---|---|---|---|
-| Stephane (Optimum Executive) | High ticket linkfinder AI | Bonjour Tim,     Je vous remercie pour votre message.     Pouvez-vous me dire comment se … | sent nudge |
-
 ## Everyone else who replied
 
 | who | campaign | they said | status |
 |---|---|---|---|
+| Maxime (Alta Advisory) | High ticket linkfinder AI | Bonjour Trevor,  Nous ne sommes pas intéressés pour le moment.  Bien à vous,    [Logo] Ma… | none - negative |
 | julien.berthomier@axiom… (Axiome Digital - Expert…) | High ticket linkfinder AI | Bonjour,  Combien couterait  le rendez vous pris?  Dois je fournir une liste de prospects… | none - booked |
 | DAYAN (IFLAS PARIS) | High ticket linkfinder AI | Donnez moi vos tarifs directement j’ai pas le temps d’un appel ni visio    Dayan YALAP Pr… | 2026-09-26 |
 | Pierre (ALTITUDE BLEUE CONSULTI…) | High ticket linkfinder AI | Why not On s’appelle ?   Pierre Jean-Michel ROBERT CEO 3, impasse des Ribes 03100 MONTLUÇ… | 2026-09-26 |
@@ -40,7 +34,7 @@ To take someone out of the loop: open the lead in the [inbox](https://explee.com
 | Fabrice (S-Team Experience) | High ticket linkfinder AI | Bonjour Eliasse,  J'ai regardé le site de LinkFinder AI. le pricing proposé  (abonnement … | 2026-09-26 |
 | Christophe (VENTE DIRECTE CONSULTING) | High ticket linkfinder AI | Bonjour Sun,  Intéressant si je lis votre mail, quand est-il de la réalité derrière ? A v… | 2026-09-26 |
 | Fritz (Digimove / Digitaal Mar…) | High ticket linkfinder AI | Bonjour,  J'ai jamais recu une message de votre part     Met vriendelijke groeten ‑ Bien … | 2026-09-26 |
-| Maxime (Alta Advisory) | High ticket linkfinder AI | Bonjour Trevor,  Nous n'exercons pas exclusivement l'activité de direction financière à t… | none - 3 follow-ups sent, that is the limit |
+| Stephane (Optimum Executive) | High ticket linkfinder AI | Bonjour Tim,     Je vous remercie pour votre message.     Pouvez-vous me dire comment se … | 2026-09-26 |
 | Stéphane (Arceane) | High ticket linkfinder AI | Bonjour dîtes m'en plus,   *Stéphane AUBIN *  *Associé*    1, rue de Stockholm 75008 Pari… | none - unknown |
 | Ibrahim (Skillhubs) | High ticket linkfinder AI | Bonjour Avez-vous un numéro de téléphone ? De quelle société appelez-vous ?  IA  Envoyé à… | none - 3 follow-ups sent, that is the limit |
 | Daniel (EMDS CONSEIL) | High ticket linkfinder AI | Bonjour monsieur,  Adressez-moi plus d’informations sur votre fonctionnement.  Merci bien… | none - 3 follow-ups sent, that is the limit |
