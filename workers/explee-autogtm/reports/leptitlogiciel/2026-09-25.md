@@ -1,4 +1,4 @@
-# Explee follow-ups — leptitlogiciel — 2026-09-25 12:49 UTC
+# Explee follow-ups — leptitlogiciel — 2026-09-25 14:38 UTC
 
 **SENT 0 emails**
 
@@ -8,13 +8,14 @@ To take someone out of the loop: open the lead in the [inbox](https://explee.com
 |---|---|
 | skip: auto_reply | 8 |
 | skip: unknown | 7 |
-| skip: negative | 5 |
+| skip: negative | 6 |
 | skip: can_reply is false | 5 |
 
 ## Everyone else who replied
 
 | who | campaign | they said | status |
 |---|---|---|---|
+| Laurent (Move Up) | PME industrielles sur-mesur… | Bonjour Monsieur,  Nous ne sommes pas intéressés.  Laurent Geais    [cid:image001.png@01D… | none - negative |
 | Marc (Chaudesaigues) | PME industrielles sur-mesur… | Bonjour,  Actuellement en déplacement, avec un accès limité aux emails.  Si nécessaire, m… | none - auto_reply |
 | CIEVET (BERTHILLOT) | PME industrielles sur-mesur… | Non merci  De : Samuel Pomin <s@trypivotpeak.com> Envoyé : vendredi 25 septembre 2026 11:… | none - negative |
 | Gering (GRILLET) | PME industrielles sur-mesur… | Bonjour,   non, pas du tout.   Cordialement,  GERING Alain  Tel: 03 84 42 68 61        De… | none - negative |

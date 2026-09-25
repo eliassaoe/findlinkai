@@ -1,47 +1,46 @@
-# Explee follow-ups — linkfinderai — 2026-09-25 12:49 UTC
+# Explee follow-ups — linkfinderai — 2026-09-25 14:38 UTC
 
-**SENT 9 emails**
+**SENT 1 email**
 
 To take someone out of the loop: open the lead in the [inbox](https://explee.com/app-auto-gtm/p/30475/inbox), write `booked` or `stop` in the note. Next run it stops.
 
 | outcome | leads |
 |---|---|
 | skip: auto_reply | 98 |
-| skip: unknown | 80 |
+| skip: unknown | 81 |
 | skip: negative | 64 |
-| skip: reply cap (3) reached on this message | 18 |
+| skip: reply cap (3) reached on this message | 19 |
 | skip: can_reply is false | 13 |
-| nudge | 8 |
-| skip: booked | 4 |
+| skip: nudge 2 due in 0.9d | 8 |
+| skip: booked | 5 |
 | skip: question | 2 |
-| skip: nudge 1 due in 0.9d | 1 |
+| nudge | 1 |
 | skip: nudge 1 due in 0.8d | 1 |
+| skip: nudge 1 due in 0.7d | 1 |
 | skip: call_me | 1 |
-| nudge_last | 1 |
 | skip: queued until 2026-12-05 | 1 |
 
 ## This run
 
 | who | campaign | they said | what happened |
 |---|---|---|---|
-| Emmanuelle (Time to Be) | High ticket linkfinder AI | Bonjour, je n'ai pas accès à votre agenda ? | sent nudge |
-| Ali (Concorde Conseil) | High ticket linkfinder AI | Bonjour  Pourquoi pas. Vos tarifs ?  Ali BENYAHIA  Associé  58, rue de Monceau, 75008 Par… | sent nudge |
-| Fabrice (S-Team Experience) | High ticket linkfinder AI | Bonjour Eliasse,  J'ai regardé le site de LinkFinder AI. le pricing proposé  (abonnement … | sent nudge |
-| Christophe (VENTE DIRECTE CONSULTING) | High ticket linkfinder AI | Bonjour Sun,  Intéressant si je lis votre mail, quand est-il de la réalité derrière ? A v… | sent nudge |
-| Fritz (Digimove / Digitaal Mar…) | High ticket linkfinder AI | Bonjour,  J'ai jamais recu une message de votre part     Met vriendelijke groeten ‑ Bien … | sent nudge |
-| Maxime (Alta Advisory) | High ticket linkfinder AI | Bonjour Trevor,  Nous n'exercons pas exclusivement l'activité de direction financière à t… | sent nudge_last |
-| Shahways (Valuency) | High ticket linkfinder AI | Hi,  Bedankt voor je mail. Ik ben momenteel op reis voor het werk. Opnieuw op post en gra… | sent nudge |
-| Maxime (Univers Solutions) | High ticket linkfinder AI | Bonjour Tara,  Si votre modèle repose uniquement sur une rémunération au résultat, sans f… | sent nudge |
-| ☀️ (Puramis) | high ticket offer linkfinde… | Bonjour,   Pourquoi pas auriez-vous un moment pour discuter semaine prochaine ?   Bien à … | sent nudge |
+| Stephane (Optimum Executive) | High ticket linkfinder AI | Bonjour Tim,     Je vous remercie pour votre message.     Pouvez-vous me dire comment se … | sent nudge |
 
 ## Everyone else who replied
 
 | who | campaign | they said | status |
 |---|---|---|---|
+| julien.berthomier@axiom… (Axiome Digital - Expert…) | High ticket linkfinder AI | Bonjour,  Combien couterait  le rendez vous pris?  Dois je fournir une liste de prospects… | none - booked |
 | DAYAN (IFLAS PARIS) | High ticket linkfinder AI | Donnez moi vos tarifs directement j’ai pas le temps d’un appel ni visio    Dayan YALAP Pr… | 2026-09-26 |
 | Pierre (ALTITUDE BLEUE CONSULTI…) | High ticket linkfinder AI | Why not On s’appelle ?   Pierre Jean-Michel ROBERT CEO 3, impasse des Ribes 03100 MONTLUÇ… | 2026-09-26 |
 | Marc (Novastea) | High ticket linkfinder AI | Bonjour Je vous propose d’échanger le 02/10. Vous avez mon agenda en ligne : https://Cale… | none - unknown |
+| Emmanuelle (Time to Be) | High ticket linkfinder AI | Bonjour, je n'ai pas accès à votre agenda ? | 2026-09-26 |
+| Ali (Concorde Conseil) | High ticket linkfinder AI | Bonjour  Pourquoi pas. Vos tarifs ?  Ali BENYAHIA  Associé  58, rue de Monceau, 75008 Par… | 2026-09-26 |
 | Gouvernance (Gouvernance et Valeurs) | High ticket linkfinder AI | Appelez moi demain au 0786766974 Bien à vous  Envoyé de mon iPhone | CALL THEM - the number is in the reply |
+| Fabrice (S-Team Experience) | High ticket linkfinder AI | Bonjour Eliasse,  J'ai regardé le site de LinkFinder AI. le pricing proposé  (abonnement … | 2026-09-26 |
+| Christophe (VENTE DIRECTE CONSULTING) | High ticket linkfinder AI | Bonjour Sun,  Intéressant si je lis votre mail, quand est-il de la réalité derrière ? A v… | 2026-09-26 |
+| Fritz (Digimove / Digitaal Mar…) | High ticket linkfinder AI | Bonjour,  J'ai jamais recu une message de votre part     Met vriendelijke groeten ‑ Bien … | 2026-09-26 |
+| Maxime (Alta Advisory) | High ticket linkfinder AI | Bonjour Trevor,  Nous n'exercons pas exclusivement l'activité de direction financière à t… | none - 3 follow-ups sent, that is the limit |
 | Stéphane (Arceane) | High ticket linkfinder AI | Bonjour dîtes m'en plus,   *Stéphane AUBIN *  *Associé*    1, rue de Stockholm 75008 Pari… | none - unknown |
 | Ibrahim (Skillhubs) | High ticket linkfinder AI | Bonjour Avez-vous un numéro de téléphone ? De quelle société appelez-vous ?  IA  Envoyé à… | none - 3 follow-ups sent, that is the limit |
 | Daniel (EMDS CONSEIL) | High ticket linkfinder AI | Bonjour monsieur,  Adressez-moi plus d’informations sur votre fonctionnement.  Merci bien… | none - 3 follow-ups sent, that is the limit |
@@ -71,6 +70,7 @@ To take someone out of the loop: open the lead in the [inbox](https://explee.com
 | David (RAMSAI) | High ticket linkfinder AI | Bonjour,  Je serai absent du 12/09 jusqu'au 11/10 Je prendrai connaissance de votre messa… | none - auto_reply |
 | Joris (Tropos.io) | High ticket linkfinder AI | Thank you for your message. I am currently out of the office and will return on 29  Augus… | none - auto_reply |
 | Michel (CABINET MICHEL KLOPFER) | High ticket linkfinder AI | Vous devez commettre une erreur de destinataire, nous ne sommes pas en relation.    De : … | none - unknown |
+| Shahways (Valuency) | High ticket linkfinder AI | Hi,  Bedankt voor je mail. Ik ben momenteel op reis voor het werk. Opnieuw op post en gra… | 2026-09-26 |
 | Maxime (Adeliom) | High ticket linkfinder AI | -- Répondeur --  Bonjour,  Je suis actuellement en congés, je serai de retour le 28 septe… | none - auto_reply |
 | Walter (open lande) | High ticket linkfinder AI | Bonjour,  Merci pour votre message.  Je vous informe que j'ai quitté l'aventure Open Land… | none - unknown |
 | Hannes (Datatune) | High ticket linkfinder AI | Dag allemaal, Ivm. ziekte ben ik deze week niet beschikbaar voor VRT. Vanaf volgende week… | none - unknown |
@@ -79,6 +79,8 @@ To take someone out of the loop: open the lead in the [inbox](https://explee.com
 | Serge (SB Consultancy) | High ticket linkfinder AI | morning and not interested  thx | none - negative |
 | Erick (Black Pebble Advisors) | High ticket linkfinder AI | Non merci  Erick PARRAUD  0687875721 | none - negative |
 | Tristan (Hélicon-Ia) | High ticket linkfinder AI | je n'est jamais recu le lien pour notre visio   Le 2026-09-21T10:29:12.000+02:00, Thomas … | none - unknown |
+| Maxime (Univers Solutions) | High ticket linkfinder AI | Bonjour Tara,  Si votre modèle repose uniquement sur une rémunération au résultat, sans f… | 2026-09-26 |
+| Daniel (Eliacor Consulting) | High ticket linkfinder AI | Je vous remercie pour votre intérêt. EC possède toutefois déjà l’infrastructure nécessair… | none - unknown |
 | Christophe (CODA Design / Agence Pa…) | High ticket linkfinder AI | Merci, je ne suis pas intéressé.     Christophe PAULI  Consultant Fondateur  06.03.58.90.… | none - negative |
 | Adrien (Splendiose !) | High ticket linkfinder AI | Bonjour ,  La société est en cours de fermeture.  Cordialement  Le mar. 22 sept. 2026 à 0… | none - unknown |
 | davidkia (DK Origins) | High ticket linkfinder AI | Bonjour,  Je n'ai pas le temps actuellement de consulter votre proposition. Je reviendrai… | none - unknown |
@@ -259,6 +261,7 @@ To take someone out of the loop: open the lead in the [inbox](https://explee.com
 | Maxime (7Experts France) | High ticket linkfinder AI | Hi,  I am on holidays and will come back september 1st. Thanks  Maxime LE BIDOIS    --  *… | none - auto_reply |
 | Romain (R Web) | High ticket linkfinder AI | Bonjour,  Nous nous appelons désormais La Factory ! Cette adresse n'est plus lue ni utili… | none - unknown |
 | Maurice (L'Arte Noir) | high ticket offer linkfinde… | Bonjour Maya,  discutons. | none - unknown |
+| ☀️ (Puramis) | high ticket offer linkfinde… | Bonjour,   Pourquoi pas auriez-vous un moment pour discuter semaine prochaine ?   Bien à … | 2026-09-26 |
 | Raphaël (Studio Ange) | high ticket offer linkfinde… | Nous vous informons que Raphael Lancrey Javal n'est plus en fonction au sein de STUDIO AN… | none - unknown |
 | brigitte (Alpes Ressources) | high ticket offer linkfinde… | Cette adresse n'existe plus. Merci d'envoyer vos mails Ã  brigitte.lebail@alpes-ressource… | none - unknown |
 | Lydie (ici Barbès) | high ticket offer linkfinde… | Bonjour, vos interlocuteurs sont désormais les suivants concernant ICI BARBES et/ou BABEL… | none - unknown |
@@ -322,10 +325,11 @@ To take someone out of the loop: open the lead in the [inbox](https://explee.com
 | Patrice (Emergence Académie) | Organismes de formation FR/… | Bonjour, Vous êtes bien sur ma messagerie. Je ne suis pas disponible pour le moment. En r… | none - unknown |
 | David (Afc Prevention) | Organismes de formation FR/… | Bonjour,     Oui, je veux bien plus d’explication.     Cordialement,       De : Tanner Fo… | none - booked in the note |
 
-## Hot leads Explee flagged (32)
+## Hot leads Explee flagged (34)
 
 | who | title | campaign | went hot | in the loop |
 |---|---|---|---|---|
+| Julien (Axiome Digital - Expert…) | President | High ticket linkfinder AI | 2026-09-25 | yes |
 | Dayan (IFLAS PARIS) | President | High ticket linkfinder AI | 2026-09-25 | yes |
 | Pierre (ALTITUDE BLEUE CONSULTI…) | President | High ticket linkfinder AI | 2026-09-25 | yes |
 | Marc (Novastea) | President | High ticket linkfinder AI | 2026-09-24 | yes |
@@ -335,6 +339,7 @@ To take someone out of the loop: open the lead in the [inbox](https://explee.com
 | Fabrice (S-Team Experience) | Founder | High ticket linkfinder AI | 2026-09-23 | yes |
 | Christophe (VENTE DIRECTE CONSULTING) | President | High ticket linkfinder AI | 2026-09-22 | yes |
 | Fritz (Digimove / Digitaal Mar…) | Owner | High ticket linkfinder AI | 2026-09-22 | yes |
+| Stephane (Optimum Executive) | President | High ticket linkfinder AI | 2026-09-22 | yes |
 | Maxime (Alta Advisory) | Co-Founder | High ticket linkfinder AI | 2026-09-21 | yes |
 | Stéphane (Arceane) | Co-Founder | High ticket linkfinder AI | 2026-09-21 | yes |
 | Ibrahim (Skillhubs) | Chief Executive Officer | High ticket linkfinder AI | 2026-09-18 | yes |
