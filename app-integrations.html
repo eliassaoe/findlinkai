@@ -462,8 +462,8 @@ async function loadApiState(){
 /* Everything not yet connectable. Listed rather than hidden, because "which of
    these do you use" is the only signal for what to wire up next. */
 const WORKFLOW = [
-  { name:'n8n',    desc:'Works today — call any lookup from the HTTP node with your LinkFinder key.',
-    icon:'n', bg:'#fdf2f5', fg:'#ea4b71', href:'api-access', state:'live' },
+  { name:'n8n',    desc:'Official node — in n8n, go to Settings → Community Nodes and install n8n-nodes-linkfinderai.',
+    icon:'n', bg:'#fdf2f5', fg:'#ea4b71', url:'https://www.npmjs.com/package/n8n-nodes-linkfinderai', state:'live' },
   { name:'Make',   desc:'Nineteen modules, one per lookup. Built and tested, not yet submitted to Make.', icon:'M', bg:'#f5f0fd', fg:'#6d28d9', state:'ready' },
   { name:'Zapier', desc:'Nineteen searches. Built and tested, not yet submitted to Zapier.', icon:'Z', bg:'#fff3ee', fg:'#ff4a00', state:'ready' },
   { name:'Clay',   desc:'Works today — add an HTTP API enrichment with your LinkFinder key.', icon:'C', bg:'#eef2ff', fg:'#4338ca', state:'live', href:'api-access' }
@@ -497,7 +497,9 @@ const STATE = {
 };
 
 function cardFor(item, wanted){
-  const action = item.href
+  const action = item.url
+    ? '<a class="btn btn-outline btn-sm" href="' + item.url + '" target="_blank" rel="noopener" onclick="track(\'integration_opened\',\'' + item.name + '\')">Open</a>'
+    : item.href
     ? '<button class="btn btn-outline btn-sm" onclick="openPage(\'' + item.href + '\')">Open</button>'
     : '<button class="btn btn-outline btn-sm" onclick="wantIt(this,\'' + item.name + '\')">' +
       (wanted ? '<i class=\'fas fa-check\'></i> Requested' : 'I use this') + '</button>';
