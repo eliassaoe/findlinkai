@@ -78,8 +78,20 @@ jobs:
           name: tarball
           path: n8n-nodes-linkfinderai/*.tgz
 
+      # Trusted publishing fails silently into ENEEDAUTH, so say up front whether
+      # the runner can mint an OIDC token at all and which npm is doing the publish.
+      - name: Check OIDC is available
+        if: ${{ inputs.dry_run == false }}
+        run: |
+          npm --version
+          if [ -z "$ACTIONS_ID_TOKEN_REQUEST_URL" ]; then
+            echo "::error::No OIDC token available to this job. Check that id-token: write is granted."
+            exit 1
+          fi
+          echo "OIDC token request URL is set."
+
       - name: Publish
         if: ${{ inputs.dry_run == false }}
-        run: npm publish --access public --provenance
+        run: npm publish --access public --provenance --loglevel verbose
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
