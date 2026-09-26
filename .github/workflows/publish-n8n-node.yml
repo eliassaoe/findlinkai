@@ -42,13 +42,9 @@ jobs:
       # Checked before doing any work: without this the run builds, lints, packs, and
       # only then fails on `npm publish` with a bare ENEEDAUTH, which reads like a
       # broken workflow rather than a missing secret.
-      - name: Check for an npm token
-        if: ${{ inputs.dry_run == false }}
-        run: |
-          if [ -z "${{ secrets.NPM_TOKEN }}" ]; then
-            echo "::error::NPM_TOKEN is not set. Create an Automation token at npmjs.com (Access Tokens -> Generate -> Automation), then add it under Settings -> Secrets and variables -> Actions as NPM_TOKEN."
-            exit 1
-          fi
+      # No token check: n8n-nodes-linkfinderai exists on npm, so publishing goes
+      # through the trusted publisher configured on npmjs.com (OIDC). NPM_TOKEN is
+      # still passed below and used if set, but is not required.
 
       # OIDC publishing needs npm >= 11.5.1; Node 22 still ships npm 10.x.
       - name: Use an npm new enough for OIDC
@@ -84,6 +80,6 @@ jobs:
 
       - name: Publish
         if: ${{ inputs.dry_run == false }}
-        run: npm publish --access public
+        run: npm publish --access public --provenance
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
