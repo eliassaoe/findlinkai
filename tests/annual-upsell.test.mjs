@@ -44,3 +44,14 @@ test('a monthly subscriber who buys annual raises the cancel-the-old-plan alert'
     assert.match(ret, /posthog\.capture\('annual_switch_paid'/);
     assert.match(ret, /old_subscription_id: pending\.replaces_subscription_id/);
 });
+
+test('the 30-day annual guarantee is stated where annual is sold, and in the policy', () => {
+    const policy = readFileSync(new URL('../refund-policy.html', import.meta.url), 'utf8');
+    const agency = readFileSync(new URL('../agency.html', import.meta.url), 'utf8');
+    assert.match(policy, /id="annual-guarantee"/);
+    assert.match(policy, /within <strong>30 days of your first annual payment<\/strong>/);
+    assert.match(agency, /30-day money-back guarantee/);
+    assert.match(agency, /href="\/refund-policy#annual-guarantee"/);
+    assert.match(app, /id="annualGuaranteeLine"/);
+    assert.match(app, /guaranteeLine\.style\.display = isAnnual \? 'block' : 'none'/);
+});
