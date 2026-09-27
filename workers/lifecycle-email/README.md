@@ -241,3 +241,15 @@ written to the person as `agency_demo_rows / _file_rows / _emails / _phones`.
 Ran the test within 2 days: 2 days later their results and the next step, then
 4 days later which plan fits an agency. Didn't: "did the page work?", and the
 same path if they run it within 4 more days. Exits on any payment.
+
+## Agency prospects who opened the link but never tested or signed up (workflow 19)
+
+Same trigger as 18. Waits 6 days (when 18's check-in path ends); anyone who
+ran the free test, signed up, logged in or paid leaves. Everyone else gets
+three emails pushing a free signup to test on their own list (day 6, 10, 15),
+and leaves the moment they sign up, log in, run the test or pay.
+
+Together: every prospect who reaches /agency from the emailed link is followed
+up. Tested -> 18 (results, then plan). Opened only -> 18's check-in, then 19.
+Signed up -> the app's own activation workflows (3 and on). Paid monthly or a
+pack -> 16 (switch to annual).
