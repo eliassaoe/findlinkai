@@ -5449,6 +5449,10 @@ function checkAuth(){
                 plan: plans[pending.index].key, billing: pending.billing, source: 'agency_page',
             }); } catch(e) {}
             setTimeout(()=>proceedToCheckoutDirect(pending.index, null), 300);
+        } else {
+            // The list tested on /agency, waiting to run. After checkout it is
+            // still there, so a plan picked on /agency does not lose it.
+            setTimeout(lfLoadAgencyList, 700);
         }
     }
     // Silently check subscription status on load. Kept as a promise so anything
@@ -5845,6 +5849,48 @@ function lfLoadXlsx(){
         document.head.appendChild(sc);
     });
     return lfXlsxLoader;
+}
+/*
+ * The list a prospect dropped into the /agency free test. That page keeps it in
+ * localStorage (lf_agency_pending_csv: name, text, op, rows, savedAt) so that
+ * the first thing they see after signing up is their own list, ready to run:
+ * the operation is picked for them (LinkedIn profile -> email, or name +
+ * company -> email) and the file goes through the real upload path, exactly
+ * like the sample CSV and the CRM audit hand-off. Read once, then removed.
+ */
+const LF_AGENCY_LIST_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+const LF_AGENCY_LIST_OPS = ['linkedin_profile__email', 'lead_full_name__email'];
+function lfLoadAgencyList(){
+    let saved = null;
+    try { saved = JSON.parse(localStorage.getItem('lf_agency_pending_csv') || 'null'); } catch(e) {}
+    if (!saved || !saved.text) return;
+    try { localStorage.removeItem('lf_agency_pending_csv'); } catch(e) {}
+    if (Date.now() - (saved.savedAt || 0) > LF_AGENCY_LIST_TTL_MS) return;
+    if (!LF_AGENCY_LIST_OPS.includes(saved.op)) return;
+    const input = saved.op.split('__')[0];
+    let name = String(saved.name || 'my-list.csv');
+    if (!/\.(csv|tsv|txt)$/i.test(name)) name += '.csv';
+    try { posthog.capture('agency_list_loaded', { rows: saved.rows || null, op: saved.op }); } catch(e) {}
+    if (typeof switchMode === 'function') switchMode('bulk');
+    const inputSel = document.getElementById('inputType');
+    inputSel.value = input; inputSel.dispatchEvent(new Event('change'));
+    setTimeout(() => {
+        const outputSel = document.getElementById('outputType');
+        outputSel.value = saved.op; outputSel.dispatchEvent(new Event('change'));
+        setTimeout(() => {
+            const file = new File([saved.text], name, { type: 'text/csv' });
+            try {
+                const el = document.getElementById('csvFile');
+                const dt = new DataTransfer();
+                dt.items.add(file);
+                el.files = dt.files;
+                el.dispatchEvent(new Event('change'));
+            } catch(e) {
+                handleFile(file);
+            }
+            showAlert('Your list from the free test is loaded' + (saved.rows ? ': ' + saved.rows + ' leads' : '') + ', ready to run.', 'success');
+        }, 80);
+    }, 60);
 }
 function handleFile(file){
     if(!lfConfigured()){ lfAskForPair(); return; }

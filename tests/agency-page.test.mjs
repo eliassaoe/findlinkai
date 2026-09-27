@@ -160,3 +160,39 @@ test('the email is stripped and kept for a real link', () => {
     assert.equal(win.__lfLeadEmail, 'ann@acme.com');
     assert.equal(replaced, '/agency?utm_source=explee&utm_content=acme');
 });
+
+test('the tested list is carried to the app and opens ready to run', () => {
+    const signup = read('sign-up.html');
+    // /agency keeps the file, with the operation the app should run.
+    assert.match(page, /localStorage\.setItem\('lf_agency_pending_csv'/);
+    assert.match(page, /saveList\(file\.name \|\| 'my-list\.csv', text, 'linkedin_profile__email', urls\.length\)/);
+    assert.match(page, /saveList\(file\.name \|\| 'my-list\.csv', text, 'lead_full_name__email', people\.length\)/);
+    // Both ops exist in the app's own configuration.
+    assert.match(app, /lead_full_name: \{[^}]*outputs:\{[^}]*email:/);
+    assert.match(app, /linkedin_profile: \{[^}]*outputs:\{[^}]*email:/);
+    // The app reads it once and pushes it through the real upload path.
+    const fn = app.match(/function lfLoadAgencyList\(\)\{[\s\S]*?\n\}/)[0];
+    assert.match(fn, /localStorage\.removeItem\('lf_agency_pending_csv'\)/);
+    assert.match(fn, /LF_AGENCY_LIST_OPS\.includes\(saved\.op\)/);
+    assert.match(fn, /el\.dispatchEvent\(new Event\('change'\)\)/);
+    assert.match(app, /setTimeout\(lfLoadAgencyList, 700\)/);
+    // Signup says the list is saved, prefills the email and can go straight to Google.
+    assert.match(signup, /lf_agency_pending_csv/);
+    assert.match(signup, /localStorage\.getItem\('lf_agency_lead_email'\)/);
+    assert.match(signup, /urlParams\.get\('google'\) === '1'/);
+    assert.match(page, /href="\/sign-up\?google=1"/);
+});
+
+test('the rest of the file is shown blurred, and the expected shapes are spelled out', () => {
+    assert.match(page, /if \(rest > 0\) renderLocked\(more, rest, source === 'names'\)/);
+    assert.match(page, /\.locked \.vals\{filter:blur/);
+    assert.match(page, /class="formats"/);
+    assert.match(page, /download="linkfinder-sample\.csv"/);
+    // The sample itself is a names + company file the demo accepts.
+    const w = {};
+    new Function('window', read('js/lf-csv.js'))(w);
+    const src = page.match(/function extractPeople\(text\) \{[\s\S]*?\n  \}/)[0];
+    const extractPeople = new Function('window', src + '; return extractPeople;')(w);
+    const sample = decodeURIComponent(page.match(/href="data:text\/csv;charset=utf-8,([^"]+)"/)[1]);
+    assert.equal(extractPeople(sample).length, 5);
+});
