@@ -4,12 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <!-- Outbound landing page for agencies, built for a cold click: the visitor
-     has never heard of us. They enrich up to 5 of their own leads before
-     being asked for anything (#try), then sign up to run the rest.
+     has never heard of us. They drop a client CSV (or paste URLs) and get
+     emails and phones for 5 of their own leads before being asked for anything (#try), then sign up to run the rest.
      Not for search. Plans, credits and prices mirror plans[] in app.html. -->
 <meta name="robots" content="noindex, nofollow">
 <title>LinkFinder AI for Outbound Agencies</title>
-<meta name="description" content="Paste 5 LinkedIn profiles from a client's list and get their verified work emails. No signup. Flat monthly price, no seats.">
+<meta name="description" content="Drop a client's CSV and get verified work emails and mobile numbers for 5 leads. No signup. Flat monthly price, no seats.">
 <script>
   // The hand-sent link is the short /agency. Stamp the campaign on it before
   // lf-attribution.js reads the URL, so every signup and payment from this
@@ -113,6 +113,15 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
     box-shadow:var(--shadow-lg);background:#fff;}
   .try h3{font-family:var(--heading);font-weight:800;font-size:1.2rem;letter-spacing:-0.02em;}
   .try .sub{margin-top:4px;font-size:14px;color:var(--muted);}
+  .drop{position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;margin-top:14px;padding:28px 16px;
+    border:2px dashed var(--primary);border-radius:14px;background:var(--soft);text-align:center;cursor:pointer;transition:background .15s ease;}
+  .drop.over{background:#E3ECFD;}
+  .drop input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;}
+  .drop b{font-family:var(--heading);font-weight:800;font-size:1.05rem;}
+  .drop span{font-size:14px;color:var(--muted);}
+  .paste{margin-top:12px;border:0;padding:0;}
+  .paste summary{font-size:14px;font-weight:700;color:var(--fg);}
+  .hint{margin-top:10px;text-align:center;}
   .try textarea{display:block;width:100%;min-height:128px;margin-top:14px;padding:12px 14px;border:2px solid var(--line);
     border-radius:12px;font-family:var(--mono);font-size:13px;line-height:1.6;color:var(--fg);resize:vertical;}
   .try textarea:focus{outline:none;border-color:var(--primary);}
@@ -123,9 +132,11 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
   .try .msg:empty{display:none;}
   .results{margin-top:16px;display:grid;gap:8px;}
   .results:empty{display:none;}
-  .res{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 12px;border-radius:12px;background:var(--soft);font-size:14px;}
-  .res .who{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted);font-family:var(--mono);font-size:12px;}
-  .res .val{flex:none;max-width:60%;overflow-wrap:anywhere;text-align:right;font-weight:700;font-family:var(--mono);font-size:13px;}
+  .res{padding:10px 12px;border-radius:12px;background:var(--soft);font-size:14px;}
+  .res .who{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted);font-family:var(--mono);font-size:12px;}
+  .res .vals{display:flex;flex-wrap:wrap;gap:4px 16px;margin-top:4px;}
+  .res .val{overflow-wrap:anywhere;font-weight:700;font-family:var(--mono);font-size:13px;}
+  .res .val i{font-style:normal;font-weight:500;color:var(--muted);margin-right:6px;}
   .res .val.ok{color:var(--green);}
   .res .val.no{color:var(--muted);font-weight:500;}
   .after{margin-top:16px;padding:16px;border-radius:14px;background:var(--soft);text-align:center;}
@@ -205,23 +216,31 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
     <section class="first">
       <p class="eyebrow">For outbound agencies</p>
       <h1>Test us on your own client's leads. No signup.</h1>
-      <p class="lede">Paste up to 5 LinkedIn profiles from a list you're working on right now. See the verified work emails we find in under a minute, then decide.</p>
+      <p class="lede">Drop the CSV a client just sent you. We pull the first 5 LinkedIn profiles out of it and find their verified work emails and mobile numbers in under a minute. Then decide.</p>
 
       <div class="try" id="try">
-        <h3>Find emails for 5 leads, free</h3>
-        <p class="sub">One LinkedIn profile URL per line. No account, no card.</p>
-        <textarea id="tryInput" spellcheck="false" autocomplete="off" aria-label="LinkedIn profile URLs, one per line"
-          placeholder="https://www.linkedin.com/in/first-lead&#10;https://www.linkedin.com/in/second-lead&#10;..."></textarea>
-        <div class="row">
-          <button type="button" class="btn" id="tryBtn">Find their emails</button>
-          <button type="button" class="linkbtn" id="tryExample">No list handy? Use an example</button>
-        </div>
+        <h3>Emails + phones for 5 leads, free</h3>
+        <p class="sub">No account, no card. Any CSV works, as long as it has a column of LinkedIn profile links.</p>
+        <label class="drop" id="tryDrop">
+          <input type="file" id="tryFile" accept=".csv,.tsv,.txt,text/csv,text/plain">
+          <b>Drop your client's CSV here</b>
+          <span>or click to choose a file</span>
+        </label>
+        <details class="paste" id="tryPaste">
+          <summary>Or paste LinkedIn URLs</summary>
+          <textarea id="tryInput" spellcheck="false" autocomplete="off" aria-label="LinkedIn profile URLs, one per line"
+            placeholder="https://www.linkedin.com/in/first-lead&#10;https://www.linkedin.com/in/second-lead&#10;..."></textarea>
+          <div class="row">
+            <button type="button" class="btn" id="tryBtn">Find emails + phones</button>
+          </div>
+        </details>
+        <p class="hint"><button type="button" class="linkbtn" id="tryExample">No list handy? Try an example</button></p>
         <p class="msg" id="tryMsg" role="alert"></p>
         <div class="results" id="tryResults" aria-live="polite"></div>
         <div class="after" id="tryAfter" hidden>
           <p id="tryAfterText"></p>
           <a class="btn" href="/sign-up" data-cta="demo_signup">Run the whole list: get 150 free credits</a>
-          <p class="fine">Upload the full CSV in the app. Free account, no card.</p>
+          <p class="fine">Upload the same CSV in the app. Free account, no card.</p>
         </div>
       </div>
     </section>
@@ -337,7 +356,7 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
         </details>
         <details>
           <summary>Can I test it before paying?</summary>
-          <p>Yes, twice. Try 5 leads at the top of this page without an account. Then the free account comes with 150 credits, enough for about 15 more emails, so you can check the data on a real list before you pay.</p>
+          <p>Yes, twice. Drop a CSV at the top of this page and get emails and phones for 5 leads without an account. Then the free account comes with 150 credits, enough for about 15 more emails, so you can check the data on a real list before you pay.</p>
         </details>
         <details>
           <summary>How do I use the AGENCY50 code?</summary>
@@ -411,17 +430,26 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
   });
 
   // No-signup demo. A cold visitor gets the product working on their own
-  // leads before we ask for anything. Same worker and request as the free
-  // LinkedIn email finder page; capped at DEMO_MAX profiles, once per browser.
+  // leads before we ask for anything: they drop a client CSV (or paste URLs)
+  // and we look up email and phone for the first DEMO_MAX LinkedIn profiles in
+  // it. Same worker and requests as the free LinkedIn email and phone finder
+  // pages. Once per browser.
   var DEMO_MAX = 5;
   var DEMO_USED_KEY = 'lf_agency_demo_used';
   var DEMO_EXAMPLE = 'https://www.linkedin.com/in/eliasse-hamour-08194821a/';
+  var WORKER = 'https://linkfinder-free-tools.hamoureliasse.workers.dev/';
+  // Finds profile links anywhere in the text, whatever the column is called or
+  // the file's delimiter; lf-linkedin-url.js has the final say on each one.
+  var PROFILE_RE = /(?:https?:\/\/)?(?:[a-z0-9-]+\.)?linkedin\.com\/(?:[a-z]{2}\/)?(?:in|pub)\/[^\s,;"'|<>]+/gi;
   var tryInput = document.getElementById('tryInput');
   var tryBtn = document.getElementById('tryBtn');
+  var tryFile = document.getElementById('tryFile');
+  var tryDrop = document.getElementById('tryDrop');
   var tryMsg = document.getElementById('tryMsg');
   var tryResults = document.getElementById('tryResults');
   var tryAfter = document.getElementById('tryAfter');
   var tryAfterText = document.getElementById('tryAfterText');
+  var running = false;
 
   function demoUsed() { try { return !!localStorage.getItem(DEMO_USED_KEY); } catch (e) { return false; } }
 
@@ -432,100 +460,163 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
     var n = window.LFLinkedIn && window.LFLinkedIn.normalize(url);
     return n || (/^https?:\/\//i.test(url) ? url : 'https://' + url);
   }
-
-  function showUsedUp() {
-    tryMsg.textContent = '';
-    tryAfterText.textContent = 'You’ve used your free test on this browser. Your free account comes with 150 more credits.';
-    tryAfter.hidden = false;
-  }
-
-  function addRow(url) {
-    var row = document.createElement('div');
-    row.className = 'res';
-    var who = document.createElement('span');
-    who.className = 'who';
-    who.textContent = url.replace(/^https?:\/\/(www\.)?/i, '');
-    var val = document.createElement('span');
-    val.className = 'val no';
-    val.textContent = 'Searching…';
-    row.appendChild(who);
-    row.appendChild(val);
-    tryResults.appendChild(row);
-    return val;
-  }
-
-  async function lookup(url, bulk) {
-    var res = await fetch('https://linkfinder-free-tools.hamoureliasse.workers.dev/', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-API-Secret': window.LF_API_KEY, 'Accept': 'application/json' },
-      body: JSON.stringify({ type: 'business_email_finder', linkedin_url: url, is_bulk: bulk })
-    });
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    var data = await res.json();
-    return data && data.email ? String(data.email) : '';
-  }
-
-  async function runDemo() {
-    if (demoUsed()) { track('agency_demo_blocked'); showUsedUp(); return; }
-
-    var lines = tryInput.value.split(/[\s,]+/).map(function (s) { return s.trim(); }).filter(Boolean);
+  function extractProfiles(text) {
     var seen = {};
-    var urls = lines.filter(isProfile).map(normalize).filter(function (u) {
+    return (String(text || '').match(PROFILE_RE) || []).filter(isProfile).map(normalize).filter(function (u) {
       var k = u.toLowerCase().replace(/\/+$/, '');
       if (seen[k]) return false;
       seen[k] = true;
       return true;
     });
-    if (!urls.length) {
+  }
+  function plural(n, word) { return n + ' ' + word + (n === 1 ? '' : 's'); }
+
+  function showUsedUp(fileTotal) {
+    tryMsg.textContent = '';
+    tryAfterText.textContent = fileTotal
+      ? 'Your file has ' + plural(fileTotal, 'LinkedIn profile') + '. You’ve used your free test on this browser, so sign up and upload it: the free account comes with 150 credits.'
+      : 'You’ve used your free test on this browser. Your free account comes with 150 more credits.';
+    tryAfter.hidden = false;
+  }
+
+  function valueCell(parent, label) {
+    var v = document.createElement('span');
+    v.className = 'val no';
+    var l = document.createElement('i');
+    l.textContent = label;
+    v.appendChild(l);
+    v.appendChild(document.createTextNode('Searching…'));
+    parent.appendChild(v);
+    return v;
+  }
+  function setCell(cell, text, ok) {
+    cell.className = 'val ' + (ok ? 'ok' : 'no');
+    cell.lastChild.nodeValue = text;
+  }
+  function addRow(url) {
+    var row = document.createElement('div');
+    row.className = 'res';
+    var who = document.createElement('div');
+    who.className = 'who';
+    who.textContent = url.replace(/^https?:\/\/(www\.)?/i, '');
+    var vals = document.createElement('div');
+    vals.className = 'vals';
+    row.appendChild(who);
+    row.appendChild(vals);
+    tryResults.appendChild(row);
+    return { email: valueCell(vals, 'Email'), phone: valueCell(vals, 'Phone') };
+  }
+
+  async function lookup(type, url, bulk) {
+    var res = await fetch(WORKER, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-API-Secret': window.LF_API_KEY, 'Accept': 'application/json' },
+      body: JSON.stringify({ type: type, linkedin_url: url, is_bulk: bulk })
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    return res.json();
+  }
+
+  // Resolves to 'found' | 'none' | 'error' and fills the cell either way.
+  function fill(cell, promise, field) {
+    return promise.then(function (data) {
+      var v = data && data[field] ? String(data[field]) : '';
+      setCell(cell, v || 'Not found', !!v);
+      return v ? 'found' : 'none';
+    }, function () {
+      setCell(cell, 'Lookup failed', false);
+      return 'error';
+    });
+  }
+
+  async function runDemo(source, fileTotal) {
+    if (running) return;
+    if (demoUsed()) { track('agency_demo_blocked', { source: source }); showUsedUp(fileTotal); return; }
+
+    var all = extractProfiles(tryInput.value);
+    if (!all.length) {
       tryMsg.textContent = 'Paste at least one LinkedIn profile URL (linkedin.com/in/…).';
       return;
     }
-    var skipped = urls.length > DEMO_MAX ? urls.length - DEMO_MAX : 0;
-    urls = urls.slice(0, DEMO_MAX);
+    var total = fileTotal || all.length;
+    var urls = all.slice(0, DEMO_MAX);
 
+    running = true;
     tryMsg.textContent = '';
     tryResults.innerHTML = '';
     tryAfter.hidden = true;
     tryBtn.disabled = true;
-    tryBtn.textContent = 'Finding emails…';
+    tryBtn.textContent = 'Searching…';
     try { localStorage.setItem(DEMO_USED_KEY, String(Date.now())); } catch (e) {}
-    track('agency_demo_started', { rows: urls.length, skipped: skipped });
+    track('agency_demo_started', { source: source, rows: urls.length, file_rows: total });
 
-    var found = 0, failed = 0;
+    var emails = 0, phones = 0, errors = 0;
     for (var i = 0; i < urls.length; i++) {
-      var cell = addRow(urls[i]);
-      try {
-        var email = await lookup(urls[i], urls.length > 1);
-        if (email) { found++; cell.className = 'val ok'; cell.textContent = email; }
-        else { cell.textContent = 'Not found'; }
-      } catch (e) {
-        failed++;
-        cell.textContent = 'Lookup failed';
-      }
+      var cells = addRow(urls[i]);
+      var bulk = urls.length > 1;
+      // Both lookups for a lead run at the same time.
+      var out = await Promise.all([
+        fill(cells.email, lookup('business_email_finder', urls[i], bulk), 'email'),
+        fill(cells.phone, lookup('business_phone_finder', urls[i], bulk), 'phone')
+      ]);
+      if (out[0] === 'found') emails++;
+      if (out[1] === 'found') phones++;
+      errors += (out[0] === 'error') + (out[1] === 'error');
     }
 
+    running = false;
     tryBtn.disabled = false;
-    tryBtn.textContent = 'Find their emails';
-    track('agency_demo_run', { rows: urls.length, found: found, failed: failed });
+    tryBtn.textContent = 'Find emails + phones';
+    track('agency_demo_run', { source: source, rows: urls.length, file_rows: total, found: emails, phones: phones, failed: errors });
 
     // Every lookup failed: that's on us, so give the test back.
-    if (failed === urls.length) {
+    if (errors === urls.length * 2) {
       try { localStorage.removeItem(DEMO_USED_KEY); } catch (e) {}
       tryMsg.textContent = 'Our lookup service didn’t answer. Give it a minute and try again.';
       return;
     }
 
-    tryAfterText.textContent = (found
-      ? 'Found ' + found + ' of ' + urls.length + ' verified emails.'
-      : 'No emails found for these profiles.') +
-      (skipped ? ' We only ran the first ' + DEMO_MAX + '.' : '') +
-      ' The rest of your list is next: sign up and upload the CSV.';
+    var rest = total - urls.length;
+    tryAfterText.textContent = 'Found ' + plural(emails, 'email') + ' and ' + plural(phones, 'mobile number') +
+      ' for ' + plural(urls.length, 'lead') + '.' +
+      (rest > 0
+        ? (source === 'csv' ? ' Your file has ' + rest + ' more LinkedIn profiles.' : ' You pasted ' + rest + ' more.') +
+          ' Sign up and upload the same CSV to run them.'
+        : ' Sign up to run a full client list.');
     tryAfter.hidden = false;
   }
 
-  tryBtn.addEventListener('click', runDemo);
+  async function handleFile(file) {
+    if (!file || running) return;
+    tryMsg.textContent = '';
+    if (file.size > 20 * 1024 * 1024) { tryMsg.textContent = 'That file is over 20 MB. Upload it in the app instead.'; return; }
+    var text;
+    try { text = await file.text(); } catch (e) { tryMsg.textContent = 'We couldn’t read that file. Try a .csv export.'; return; }
+    var all = extractProfiles(text);
+    track('agency_demo_file', { file_rows: all.length });
+    if (!all.length) {
+      tryMsg.textContent = 'We didn’t find any LinkedIn profile links (linkedin.com/in/…) in that file. The free test needs them; the app also handles name + company lists.';
+      return;
+    }
+    tryInput.value = all.slice(0, DEMO_MAX).join('\n');
+    runDemo('csv', all.length);
+  }
+
+  tryFile.addEventListener('change', function () { handleFile(tryFile.files[0]); tryFile.value = ''; });
+  ['dragenter', 'dragover'].forEach(function (ev) {
+    tryDrop.addEventListener(ev, function (e) { e.preventDefault(); tryDrop.classList.add('over'); });
+  });
+  ['dragleave', 'drop'].forEach(function (ev) {
+    tryDrop.addEventListener(ev, function () { tryDrop.classList.remove('over'); });
+  });
+  tryDrop.addEventListener('drop', function (e) {
+    e.preventDefault();
+    handleFile(e.dataTransfer && e.dataTransfer.files[0]);
+  });
+  tryBtn.addEventListener('click', function () { runDemo('paste'); });
   document.getElementById('tryExample').addEventListener('click', function () {
     tryInput.value = DEMO_EXAMPLE;
+    document.getElementById('tryPaste').open = true;
     tryMsg.textContent = '';
     track('agency_demo_example');
   });

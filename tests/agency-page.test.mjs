@@ -78,16 +78,32 @@ test('cold visitors can enrich a few leads before signing up', () => {
     // The demo sits above everything that asks for an account.
     assert.ok(page.indexOf('id="try"') < page.indexOf('href="/sign-up"'),
         'the no-signup demo must come before any signup link');
-    // Same worker, key and request as the free LinkedIn email finder page.
+    // Same worker, key and requests as the free LinkedIn email and phone finder pages.
     assert.ok(page.indexOf('/js/lf-tools-key.js') < page.indexOf("window.LF_API_KEY"));
     assert.match(page, /\/js\/lf-linkedin-url\.js/);
     assert.match(page, /linkfinder-free-tools\.hamoureliasse\.workers\.dev/);
-    assert.match(page, /type: 'business_email_finder', linkedin_url: url/);
+    assert.match(page, /lookup\('business_email_finder', urls\[i\]/);
+    assert.match(page, /lookup\('business_phone_finder', urls\[i\]/);
+    assert.match(page, /body: JSON\.stringify\(\{ type: type, linkedin_url: url/);
     // Capped, and once per browser.
     assert.match(page, /var DEMO_MAX = 5;/);
-    assert.match(page, /urls = urls\.slice\(0, DEMO_MAX\)/);
+    assert.match(page, /var urls = all\.slice\(0, DEMO_MAX\)/);
     assert.match(page, /localStorage\.setItem\(DEMO_USED_KEY/);
     // Worker output is never parsed as HTML.
     assert.doesNotMatch(page, /innerHTML\s*=(?!\s*'';)/);
-    assert.match(page, /cell\.textContent = email/);
+    assert.match(page, /cell\.lastChild\.nodeValue = text/);
+});
+
+test('a dropped CSV feeds the demo, whatever its columns', () => {
+    assert.match(page, /<input type="file" id="tryFile" accept="\.csv/);
+    assert.match(page, /tryDrop\.addEventListener\('drop'/);
+    const re = new Function('return ' + page.match(/var PROFILE_RE = (\/.*\/gi);/)[1])();
+    const csv = 'Name;Company;LI\n"Ann";Acme;https://www.linkedin.com/in/ann-1/\n' +
+        'Bob,"Beta, Inc",fr.linkedin.com/in/bob\nno link here\n' +
+        'Dup;X;https://www.linkedin.com/in/ann-1/\tco;https://www.linkedin.com/company/acme\n';
+    assert.deepEqual(csv.match(re), [
+        'https://www.linkedin.com/in/ann-1/',
+        'fr.linkedin.com/in/bob',
+        'https://www.linkedin.com/in/ann-1/',
+    ]);
 });
