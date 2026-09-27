@@ -18,26 +18,29 @@ test('page stays out of search and carries attribution', () => {
         'UTMs must be stamped before lf-attribution.js reads the URL');
 });
 
-test('prices on the page match plans[] in app.html', () => {
+test('prices on the page match plans[] in app.html, annual first', () => {
     const plans = [...app.matchAll(/key:'(\w+)',\s*monthlyPrice:(\d+),\s*credits:(\d+)/g)]
-        .map(m => ({ key: m[1], price: Number(m[2]), monthlyCredits: Number(m[3]) / 12 }));
+        .map(m => ({ key: m[1], price: Number(m[2]), credits: Number(m[3]) }));
     assert.equal(plans.length, 3);
+    // The app's own annual maths: 40% off monthly, rounded the same way.
+    assert.match(app, /const monthlyEquiv\s+= isAnnual \? Math\.round\(plan\.monthlyPrice \* 0\.6\) : plan\.monthlyPrice;/);
+    assert.match(app, /const annualTotal\s+= Math\.round\(plan\.monthlyPrice \* 0\.6 \* 12\);/);
     for (const p of plans) {
-        assert.ok(page.includes('$' + p.price), `page is missing $${p.price} for ${p.key}`);
-        assert.ok(page.includes(p.monthlyCredits.toLocaleString('en-US') + ' credits a month'),
-            `page is missing ${p.monthlyCredits} credits for ${p.key}`);
-        if (p.key !== 'starter') {
-            const half = (p.price / 2).toFixed(2);
-            assert.ok(page.includes('$' + half), `AGENCY50 price $${half} missing for ${p.key}`);
-        }
+        const perMonth = Math.round(p.price * 0.6), perYear = Math.round(p.price * 0.6 * 12);
+        assert.ok(page.includes('<b>$' + perMonth + '</b><s>$' + p.price + '</s>'), `annual price for ${p.key}`);
+        assert.ok(page.includes('billed $' + perYear.toLocaleString('en-US') + ' a year'), `yearly total for ${p.key}`);
+        assert.ok(page.includes(p.credits.toLocaleString('en-US') + ' credits a year (' + (p.credits / 12).toLocaleString('en-US') + ' credits a month)'),
+            `credits for ${p.key}`);
     }
+    assert.doesNotMatch(page, /AGENCY50/);
 });
 
-test('every plan button uses a key the app resolves', () => {
+test('every plan button uses a key the app resolves, annual first', () => {
     const aliases = app.match(/const PLAN_PARAM_ALIASES = \{([\s\S]*?)\};/)[1];
-    const keys = [...page.matchAll(/data-plan="(\w+)_(monthly|annual)"/g)].map(m => m[1]);
-    assert.deepEqual(keys, ['starter', 'pro', 'enterprise']);
-    for (const k of keys) assert.match(aliases, new RegExp('\\b' + k + ':'));
+    const keys = [...page.matchAll(/data-plan="(\w+)_(monthly|annual)"/g)].map(m => m[1] + '_' + m[2]);
+    assert.deepEqual(keys, ['starter_annual', 'pro_annual', 'enterprise_annual',
+        'starter_monthly', 'pro_monthly', 'enterprise_monthly']);
+    for (const k of keys) assert.match(aliases, new RegExp('\\b' + k.split('_')[0] + ':'));
 });
 
 test('app picks up lf_pending_plan once and opens checkout', () => {
@@ -48,24 +51,26 @@ test('app picks up lf_pending_plan once and opens checkout', () => {
     assert.match(block, /proceedToCheckoutDirect\(pending\.index/);
 });
 
-test('pricing modal shows AGENCY50 to /agency visitors on monthly only', () => {
+test('/agency visitors get annual plus a setup call, never a discount code', () => {
     assert.match(page, /localStorage\.setItem\('lf_agency_offer'/);
     assert.match(app, /id="agencyOfferBanner"/);
-    assert.match(app, /localStorage\.getItem\('lf_agency_offer'/);
-    assert.match(app, /const agencyOffer = agencyOfferActive\(\) && billingMode === 'monthly'/);
-    assert.match(app, /AGENCY_OFFER_PLAN_KEYS = \['pro', 'enterprise'\]/);
+    assert.match(app, /const agencyOffer = agencyOfferActive\(\) && billingMode === 'annual'/);
     const fn = app.match(/function agencyOfferActive\(\) \{([\s\S]*?)\n\}/)[1];
     assert.match(fn, /if \(isExistingSubscriber\) return false/);
+    // No code is requested at checkout any more.
+    assert.doesNotMatch(app, /payload\.discount_code/);
+    assert.doesNotMatch(app, /'AGENCY50'/);
 });
 
-test('checkout asks the worker to pre-apply AGENCY50, and the worker allow-lists it', () => {
-    const worker = read('workers/dodo-checkout/worker.js');
-    assert.match(app, /AGENCY_OFFER_CHECKOUT_PLANS = \['pro_monthly', 'enterprise_monthly'\]/);
-    assert.match(app, /payload\.discount_code = 'AGENCY50'/);
-    assert.match(worker, /AGENCY50: \['pro_monthly', 'enterprise_monthly'\]/);
-    assert.match(worker, /p\.discount_codes = \[discount\]/);
-    // A rejected code must fall back to a session without it.
-    assert.match(worker, /if \(!dodoResp\.ok && discountApplied\)/);
+test('a paid annual agency plan shows the setup call booking prompt', () => {
+    assert.match(app, /AGENCY_SETUP_CALL_PLANS = \['pro_annual', 'enterprise_annual'\]/);
+    const ret = app.match(/function handleDodoReturnStatus\(\) \{([\s\S]*?)\n\}/)[1];
+    const prompt = ret.indexOf('showAgencySetupCallPrompt(pending.plan_key)');
+    assert.ok(prompt > 0, 'checkout return must show the prompt');
+    // Must run before the upgrade-intent call flips isExistingSubscriber.
+    assert.ok(prompt < ret.indexOf('fetch(UPGRADE_INTENT_WORKER'));
+    assert.match(ret, /AGENCY_SETUP_CALL_PLANS\.includes\(pending\?\.plan_key\)/);
+    assert.match(app, /agency_setup_call_clicked/);
 });
 
 test('pricing modal never opens on pay-as-you-go by default', () => {
