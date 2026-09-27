@@ -124,14 +124,16 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
     box-shadow:var(--shadow-lg);background:#fff;}
   .try h3{font-family:var(--heading);font-weight:800;font-size:1.2rem;letter-spacing:-0.02em;}
   .try .sub{margin-top:4px;font-size:14px;color:var(--muted);}
-  .drop{position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;margin-top:14px;padding:28px 16px;
+  .drop{position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;margin-top:0;padding:24px 16px;
     border:2px dashed var(--primary);border-radius:14px;background:var(--soft);text-align:center;cursor:pointer;transition:background .15s ease;}
   .drop.over{background:#E3ECFD;}
   .drop input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;}
   .drop b{font-family:var(--heading);font-weight:800;font-size:1.05rem;}
   .drop span{font-size:14px;color:var(--muted);}
-  .paste{margin-top:12px;border:0;padding:0;}
-  .paste summary{font-size:14px;font-weight:700;color:var(--fg);}
+  .paste{margin-top:6px;border:0;padding:0;text-align:center;}
+  .paste summary{display:inline;font-size:13px;font-weight:500;color:var(--muted);text-decoration:underline;}
+  .paste summary::after{content:none !important;}
+  .paste[open]{text-align:left;}
   .hint{margin-top:10px;text-align:center;}
   .try textarea{display:block;width:100%;min-height:128px;margin-top:14px;padding:12px 14px;border:2px solid var(--line);
     border-radius:12px;font-family:var(--mono);font-size:13px;line-height:1.6;color:var(--fg);resize:vertical;}
@@ -156,6 +158,12 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
   .after-ctas{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin-top:12px;}
   .btn--google{background:#fff;color:var(--fg);border-color:var(--line);box-shadow:var(--shadow);}
   .btn--google svg{width:18px;height:18px;flex:none;}
+  .shapes{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px;margin-top:12px;}
+  .shapes em{font-style:normal;font-size:12px;font-weight:700;color:var(--muted);}
+  @media(max-width:520px){.shapes{flex-direction:column;gap:4px;}}
+  .shapes table{border-collapse:collapse;font-family:var(--mono);font-size:11px;background:#fff;}
+  .shapes th,.shapes td{padding:3px 7px;border:1px solid var(--line);text-align:left;white-space:nowrap;}
+  .shapes th{color:var(--muted);font-weight:700;}
   .formats{display:grid;gap:10px;margin-top:12px;}
   @media(min-width:560px){.formats{grid-template-columns:1fr 1.4fr;}}
   .fmt{padding:10px 12px;border-radius:12px;background:var(--soft);font-size:13px;min-width:0;}
@@ -242,39 +250,29 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
 
     <section class="first">
       <p class="eyebrow">For outbound agencies</p>
-      <h1>Test us on your own client's leads. No signup.</h1>
-      <p class="lede">Drop the CSV a client just sent you, with LinkedIn links or just names and companies. We take the first 5 leads and find their verified work emails and mobile numbers in under a minute. Then decide.</p>
+      <h1>Emails and mobiles for your client's leads</h1>
+      <p class="lede">Try 5 leads free. No signup.</p>
 
       <div class="try" id="try">
-        <h3>Emails + phones for 5 leads, free</h3>
-        <p class="sub">No account, no card. Your file needs one of these two shapes:</p>
-        <div class="formats" aria-label="Accepted file formats">
-          <div class="fmt">
-            <b>A. A LinkedIn column</b>
-            <table><thead><tr><th>LinkedIn URL</th></tr></thead>
-              <tbody><tr><td>linkedin.com/in/jane-doe</td></tr><tr><td>linkedin.com/in/sam-lee</td></tr></tbody></table>
-          </div>
-          <div class="fmt">
-            <b>B. Names and company</b>
-            <table><thead><tr><th>First name</th><th>Last name</th><th>Company</th></tr></thead>
-              <tbody><tr><td>Jane</td><td>Doe</td><td>Acme</td></tr><tr><td>Sam</td><td>Lee</td><td>Globex</td></tr></tbody></table>
-          </div>
-        </div>
-        <p class="fmt-note">Other columns are fine and ignored. Headers can be named your way ("Profile URL", "Full name", "Company Name"...). From Excel or Google Sheets, save as CSV. <a href="data:text/csv;charset=utf-8,First%20Name%2CLast%20Name%2CCompany%0ASatya%2CNadella%2CMicrosoft%0ARyan%2CRoslansky%2CLinkedIn%0AMelanie%2CPerkins%2CCanva%0AJensen%2CHuang%2CNVIDIA%0ADylan%2CField%2CFigma%0A" download="linkfinder-sample.csv" id="sampleCsv">Download a sample CSV</a></p>
         <label class="drop" id="tryDrop">
-          <input type="file" id="tryFile" accept=".csv,.tsv,.txt,text/csv,text/plain">
-          <b>Drop your client's CSV here</b>
-          <span>or click to choose a file</span>
+          <input type="file" id="tryFile" accept=".csv,.tsv,.txt,text/csv,text/plain" aria-label="Choose a CSV file">
+          <b>Drop a CSV</b>
+          <span>or click to choose one</span>
+          <span class="shapes" aria-label="The file needs a LinkedIn column, or first name, last name and company">
+            <table><tr><th>LinkedIn URL</th></tr><tr><td>linkedin.com/in/jane-doe</td></tr></table>
+            <em>or</em>
+            <table><tr><th>First name</th><th>Last name</th><th>Company</th></tr><tr><td>Jane</td><td>Doe</td><td>Acme</td></tr></table>
+          </span>
         </label>
+        <p class="hint"><button type="button" class="linkbtn" id="tryExample">No file? Try a sample</button></p>
         <details class="paste" id="tryPaste">
-          <summary>Or paste LinkedIn URLs</summary>
+          <summary>or paste LinkedIn URLs</summary>
           <textarea id="tryInput" spellcheck="false" autocomplete="off" aria-label="LinkedIn profile URLs, one per line"
             placeholder="https://www.linkedin.com/in/first-lead&#10;https://www.linkedin.com/in/second-lead&#10;..."></textarea>
           <div class="row">
             <button type="button" class="btn" id="tryBtn">Find emails + phones</button>
           </div>
         </details>
-        <p class="hint"><button type="button" class="linkbtn" id="tryExample">No list handy? Try an example</button></p>
         <p class="msg" id="tryMsg" role="alert"></p>
         <div class="results" id="tryResults" aria-live="polite"></div>
         <div class="after" id="tryAfter" hidden>
@@ -283,7 +281,7 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
             <a class="btn btn--google" id="ctaGoogle" href="/sign-up?google=1" data-cta="demo_signup_google"><svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg><span id="ctaGoogleText">Continue with Google</span></a>
             <a class="btn btn--ghost" id="ctaEmail" href="/sign-up" data-cta="demo_signup">Sign up with email</a>
           </div>
-          <p class="fine" id="tryAfterFine">Free account: 150 credits, no card.</p>
+          <p class="fine" id="tryAfterFine">150 free credits, no card.</p>
         </div>
       </div>
     </section>
@@ -474,7 +472,6 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
   // pages. Once per browser.
   var DEMO_MAX = 5;
   var DEMO_USED_KEY = 'lf_agency_demo_used';
-  var DEMO_EXAMPLE = 'https://www.linkedin.com/in/eliasse-hamour-08194821a/';
   var WORKER = 'https://linkfinder-free-tools.hamoureliasse.workers.dev/';
   // Finds profile links anywhere in the text, whatever the column is called or
   // the file's delimiter; lf-linkedin-url.js has the final say on each one.
@@ -512,8 +509,8 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
   function showUsedUp(fileTotal, noun) {
     tryMsg.textContent = '';
     tryAfterText.textContent = fileTotal
-      ? 'Your file has ' + plural(fileTotal, noun || 'LinkedIn profile') + '. You’ve used your free test on this browser, so sign up and upload it: the free account comes with 150 credits.'
-      : 'You’ve used your free test on this browser. Your free account comes with 150 more credits.';
+      ? plural(fileTotal, noun || 'LinkedIn profile') + ' ready. Free test already used: sign up to run them.'
+      : 'Free test already used on this browser. Sign up to keep going.';
     tryAfter.hidden = false;
   }
 
@@ -609,8 +606,10 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
   // items: [{url, label}] or, for a name + company list, [{first, last, company, label}].
   async function runDemo(source, items, total) {
     if (running) return;
-    var noun = source === 'names' ? 'lead' : 'LinkedIn profile';
-    if (demoUsed()) { track('agency_demo_blocked', { source: source }); showUsedUp(total, noun); return; }
+    // The sample list never uses up the visitor's one free test.
+    var isSample = source === 'sample';
+    var noun = (source === 'names' || isSample) ? 'lead' : 'LinkedIn profile';
+    if (!isSample && demoUsed()) { track('agency_demo_blocked', { source: source }); showUsedUp(total, noun); return; }
     if (!items.length) {
       tryMsg.textContent = 'Paste at least one LinkedIn profile URL (linkedin.com/in/…).';
       return;
@@ -625,7 +624,7 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
     tryAfter.hidden = true;
     tryBtn.disabled = true;
     tryBtn.textContent = 'Searching…';
-    try { localStorage.setItem(DEMO_USED_KEY, String(Date.now())); } catch (e) {}
+    if (!isSample) { try { localStorage.setItem(DEMO_USED_KEY, String(Date.now())); } catch (e) {} }
     track('agency_demo_started', { source: source, rows: items.length, file_rows: total });
 
     var bulk = items.length > 1;
@@ -679,13 +678,11 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
     }
 
     var rest = total - items.length;
-    if (rest > 0) renderLocked(more, rest, source === 'names');
-    tryAfterText.textContent = 'Found ' + (source === 'names' ? plural(profiles, 'LinkedIn profile') + ', ' : '') +
-      plural(emails, 'email') + ' and ' + plural(phones, 'mobile number') + ' for ' + plural(items.length, 'lead') + '.' +
-      (rest > 0
-        ? (source === 'paste' ? ' You pasted ' + rest + ' more.' : ' Your file has ' + plural(rest, 'more ' + noun) + '.') +
-          ' Create your free account and they run in the app.'
-        : ' Create your free account to run a full client list.');
+    if (rest > 0) renderLocked(more, rest, noun === 'lead');
+    tryAfterText.textContent = isSample
+      ? 'That was a sample. Drop your own CSV to try 5 of your leads.'
+      : 'Found ' + plural(emails, 'email') + ' and ' + plural(phones, 'mobile') + '.' +
+        (rest > 0 ? ' ' + rest + ' more ' + (rest === 1 ? 'lead is' : 'leads are') + ' waiting.' : '');
     tryAfter.hidden = false;
   }
 
@@ -721,7 +718,7 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
     var cta = document.createElement('div');
     cta.className = 'lock-cta';
     var b = document.createElement('b');
-    b.textContent = rest + ' more ' + (rest === 1 ? 'lead' : 'leads') + ' from your file are waiting';
+    b.textContent = rest + ' more ' + (rest === 1 ? 'lead' : 'leads') + ' waiting';
     var a = document.createElement('a');
     a.className = 'btn';
     a.href = document.getElementById('ctaGoogle').getAttribute('href');
@@ -739,7 +736,7 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
     try {
       if (text.length > 4000000) return false;
       localStorage.setItem('lf_agency_pending_csv', JSON.stringify({ name: name, text: text, op: op, rows: rows, savedAt: Date.now() }));
-      document.getElementById('tryAfterFine').textContent = 'Your file is saved: it opens in the app ready to run. Free account: 150 credits, no card.';
+      document.getElementById('tryAfterFine').textContent = 'Your list opens in the app, ready to run. 150 free credits, no card.';
       return true;
     } catch (e) { return false; }
   }
@@ -783,11 +780,15 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
     var urls = extractProfiles(tryInput.value);
     runDemo('paste', urlItems(urls), urls.length);
   });
+  var SAMPLE_CSV = 'First Name,Last Name,Company\nSatya,Nadella,Microsoft\nRyan,Roslansky,LinkedIn\n' +
+    'Melanie,Perkins,Canva\nJensen,Huang,NVIDIA\nDylan,Field,Figma\n';
+  var sampleRan = false;
   document.getElementById('tryExample').addEventListener('click', function () {
-    tryInput.value = DEMO_EXAMPLE;
-    document.getElementById('tryPaste').open = true;
+    if (running || sampleRan) return;
+    sampleRan = true;
     tryMsg.textContent = '';
     track('agency_demo_example');
+    runDemo('sample', extractPeople(SAMPLE_CSV), 5);
   });
   if (demoUsed()) showUsedUp();
 

@@ -184,15 +184,15 @@ test('the tested list is carried to the app and opens ready to run', () => {
 });
 
 test('the rest of the file is shown blurred, and the expected shapes are spelled out', () => {
-    assert.match(page, /if \(rest > 0\) renderLocked\(more, rest, source === 'names'\)/);
+    assert.match(page, /if \(rest > 0\) renderLocked\(more, rest, noun === 'lead'\)/);
     assert.match(page, /\.locked \.vals\{filter:blur/);
-    assert.match(page, /class="formats"/);
-    assert.match(page, /download="linkfinder-sample\.csv"/);
-    // The sample itself is a names + company file the demo accepts.
+    assert.match(page, /class="shapes"/);
+    // The sample runs through the demo without using up the free test.
+    assert.match(page, /if \(!isSample\) \{ try \{ localStorage\.setItem\(DEMO_USED_KEY/);
     const w = {};
     new Function('window', read('js/lf-csv.js'))(w);
     const src = page.match(/function extractPeople\(text\) \{[\s\S]*?\n  \}/)[0];
     const extractPeople = new Function('window', src + '; return extractPeople;')(w);
-    const sample = decodeURIComponent(page.match(/href="data:text\/csv;charset=utf-8,([^"]+)"/)[1]);
+    const sample = new Function('return ' + page.match(/var SAMPLE_CSV = ([\s\S]*?);\n/)[1])();
     assert.equal(extractPeople(sample).length, 5);
 });
