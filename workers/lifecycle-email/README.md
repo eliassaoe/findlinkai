@@ -230,3 +230,14 @@ pay-as-you-go buyer is walked towards it.
 
 Both were created as drafts on 27 September 2026. The in-app banner for
 monthly subscribers (`showAnnualBanner`) names the same per-plan saving.
+
+## Agency prospects who open the emailed link (workflow 18)
+
+The /agency link sent to a prospect who replied yes carries `&email=`. The page
+takes it off the URL before PostHog loads (it never reaches `$current_url`),
+sets it as `person.properties.email` with `agency_lead: true`, and fires
+`agency_page_viewed` with `email_link: true`, the trigger. Free-test results are
+written to the person as `agency_demo_rows / _file_rows / _emails / _phones`.
+Ran the test within 2 days: 2 days later their results and the next step, then
+4 days later which plan fits an agency. Didn't: "did the page work?", and the
+same path if they run it within 4 more days. Exits on any payment.

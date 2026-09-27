@@ -135,3 +135,28 @@ test('a list with only names and companies finds the LinkedIn profile first', ()
         [['Jane', 'Doe', 'Beta Inc'], ['John', 'Smith Jr', 'Gamma']]);
     assert.deepEqual(extractPeople('email,phone\na@b.com,1\n'), []);
 });
+
+test('the emailed link enrols the prospect without leaking their email', () => {
+    const stamp = page.match(/<script>\s*\/\/ The hand-sent link[\s\S]*?<\/script>/)[0];
+    // Taken off the URL before PostHog is even loaded.
+    assert.ok(page.indexOf(stamp) < page.indexOf('posthog.init('));
+    assert.match(stamp, /u\.searchParams\.delete\('email'\)/);
+    assert.match(stamp, /history\.replaceState/);
+    // Belt and braces: the URL scrubber redacts it too.
+    assert.match(page, /\|secret\|email\)=\[\^&#\]\*\/gi/);
+    // Stored on the person, which is what the follow-up workflow sends to.
+    assert.match(page, /posthog\.setPersonProperties\(\{ email: leadEmail, agency_lead: true/);
+    assert.match(page, /track\('agency_page_viewed', \{ email_link: !!leadEmail \}\)/);
+    // Test results go on the person so the email can quote them.
+    assert.match(page, /agency_demo_emails: emails, agency_demo_phones: phones/);
+});
+
+test('the email is stripped and kept for a real link', () => {
+    const stamp = page.match(/<script>\s*\/\/ The hand-sent link[\s\S]*?<\/script>/)[0]
+        .replace(/^<script>/, '').replace(/<\/script>$/, '');
+    let replaced = null;
+    const win = { location: { href: 'https://linkfinderai.com/agency?utm_source=explee&utm_content=acme&email=Ann%40Acme.com' } };
+    new Function('window', 'history', 'URL', stamp)(win, { replaceState: (a, b, url) => { replaced = url; } }, URL);
+    assert.equal(win.__lfLeadEmail, 'ann@acme.com');
+    assert.equal(replaced, '/agency?utm_source=explee&utm_content=acme');
+});
