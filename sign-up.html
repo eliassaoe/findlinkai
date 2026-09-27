@@ -197,6 +197,7 @@ button#submitButton:disabled{opacity:0.6;cursor:not-allowed;}
 
   <h1>Start for free</h1>
   <p class="subtitle">No credit card required · Setup in 30 seconds</p>
+  <p id="listSaved" hidden style="margin:12px 0 0;padding:10px 12px;border-radius:10px;background:#ecfdf5;color:#065f46;font-size:0.9rem;line-height:1.5;text-align:center;"></p>
 
   <div id="message" class="message"></div>
 
@@ -653,6 +654,31 @@ button#submitButton:disabled{opacity:0.6;cursor:not-allowed;}
     };
     showMessage(msgs[error] || 'Signup failed. Please try again.');
   }
+
+  // Hand-off from /agency: the file they tested is saved in this browser and
+  // opens in the app ready to run (app.html, lf_agency_pending_csv). Say so,
+  // prefill the email we already know, and ?google=1 (the /agency "Continue
+  // with Google" button) goes straight to Google instead of asking twice.
+  (function () {
+    try {
+      const pending = JSON.parse(localStorage.getItem('lf_agency_pending_csv') || 'null');
+      const el = document.getElementById('listSaved');
+      if (el && pending && pending.rows && Date.now() - (pending.savedAt || 0) < 7 * 24 * 3600 * 1000) {
+        el.textContent = 'Your list is saved (' + pending.rows + ' leads). Create your account and it opens ready to run.';
+        el.hidden = false;
+      }
+      const known = localStorage.getItem('lf_agency_lead_email');
+      const input = document.getElementById('email');
+      if (known && input && !input.value) {
+        input.value = known;
+        input.dispatchEvent(new Event('input'));
+      }
+    } catch (e) {}
+    if (urlParams.get('google') === '1' && !error) {
+      try { posthog.capture('signup_google_autostart', { source: 'agency' }); } catch (e) {}
+      setTimeout(signUpWithGoogle, 150);
+    }
+  })();
 </script>
 </body>
 </html>

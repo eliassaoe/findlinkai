@@ -153,7 +153,23 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
   .after{margin-top:16px;padding:16px;border-radius:14px;background:var(--soft);text-align:center;}
   .after[hidden]{display:none;}
   .after p{font-size:15px;}
-  .after .btn{margin-top:12px;}
+  .after-ctas{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin-top:12px;}
+  .btn--google{background:#fff;color:var(--fg);border-color:var(--line);box-shadow:var(--shadow);}
+  .btn--google svg{width:18px;height:18px;flex:none;}
+  .formats{display:grid;gap:10px;margin-top:12px;}
+  @media(min-width:560px){.formats{grid-template-columns:1fr 1.4fr;}}
+  .fmt{padding:10px 12px;border-radius:12px;background:var(--soft);font-size:13px;min-width:0;}
+  .fmt b{display:block;margin-bottom:6px;font-size:13px;}
+  .fmt table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:11.5px;table-layout:fixed;}
+  .fmt th,.fmt td{text-align:left;padding:3px 6px;border:1px solid var(--line);background:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .fmt th{font-weight:700;color:var(--muted);}
+  .fmt-note{margin-top:8px;font-size:12.5px;color:var(--muted);line-height:1.5;}
+  .locked{position:relative;display:grid;gap:8px;}
+  .locked .res{user-select:none;pointer-events:none;}
+  .locked .vals{filter:blur(4px);}
+  .lock-cta{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;
+    text-align:center;padding:12px;background:linear-gradient(to bottom,rgba(255,255,255,0),rgba(255,255,255,.55) 35%,rgba(255,255,255,.55) 65%,rgba(255,255,255,0));border-radius:12px;}
+  .lock-cta b{font-family:var(--heading);font-size:1.1rem;background:#fff;padding:6px 14px;border-radius:999px;box-shadow:0 2px 10px rgba(15,28,51,.12);}
 
   .points{display:grid;gap:12px;margin-top:24px;}
   @media(min-width:720px){.points{grid-template-columns:repeat(3,1fr);}}
@@ -231,7 +247,20 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
 
       <div class="try" id="try">
         <h3>Emails + phones for 5 leads, free</h3>
-        <p class="sub">No account, no card. Any CSV works: LinkedIn profile links, or first name, last name and company.</p>
+        <p class="sub">No account, no card. Your file needs one of these two shapes:</p>
+        <div class="formats" aria-label="Accepted file formats">
+          <div class="fmt">
+            <b>A. A LinkedIn column</b>
+            <table><thead><tr><th>LinkedIn URL</th></tr></thead>
+              <tbody><tr><td>linkedin.com/in/jane-doe</td></tr><tr><td>linkedin.com/in/sam-lee</td></tr></tbody></table>
+          </div>
+          <div class="fmt">
+            <b>B. Names and company</b>
+            <table><thead><tr><th>First name</th><th>Last name</th><th>Company</th></tr></thead>
+              <tbody><tr><td>Jane</td><td>Doe</td><td>Acme</td></tr><tr><td>Sam</td><td>Lee</td><td>Globex</td></tr></tbody></table>
+          </div>
+        </div>
+        <p class="fmt-note">Other columns are fine and ignored. Headers can be named your way ("Profile URL", "Full name", "Company Name"...). From Excel or Google Sheets, save as CSV. <a href="data:text/csv;charset=utf-8,First%20Name%2CLast%20Name%2CCompany%0ASatya%2CNadella%2CMicrosoft%0ARyan%2CRoslansky%2CLinkedIn%0AMelanie%2CPerkins%2CCanva%0AJensen%2CHuang%2CNVIDIA%0ADylan%2CField%2CFigma%0A" download="linkfinder-sample.csv" id="sampleCsv">Download a sample CSV</a></p>
         <label class="drop" id="tryDrop">
           <input type="file" id="tryFile" accept=".csv,.tsv,.txt,text/csv,text/plain">
           <b>Drop your client's CSV here</b>
@@ -250,8 +279,11 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
         <div class="results" id="tryResults" aria-live="polite"></div>
         <div class="after" id="tryAfter" hidden>
           <p id="tryAfterText"></p>
-          <a class="btn" href="/sign-up" data-cta="demo_signup">Run the whole list: get 150 free credits</a>
-          <p class="fine">Upload the same CSV in the app. Free account, no card.</p>
+          <div class="after-ctas">
+            <a class="btn btn--google" id="ctaGoogle" href="/sign-up?google=1" data-cta="demo_signup_google"><svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg><span id="ctaGoogleText">Continue with Google</span></a>
+            <a class="btn btn--ghost" id="ctaEmail" href="/sign-up" data-cta="demo_signup">Sign up with email</a>
+          </div>
+          <p class="fine" id="tryAfterFine">Free account: 150 credits, no card.</p>
         </div>
       </div>
     </section>
@@ -584,6 +616,7 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
       return;
     }
     total = total || items.length;
+    var more = items.slice(DEMO_MAX, DEMO_MAX + 8);
     items = items.slice(0, DEMO_MAX);
 
     running = true;
@@ -646,13 +679,69 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
     }
 
     var rest = total - items.length;
+    if (rest > 0) renderLocked(more, rest, source === 'names');
     tryAfterText.textContent = 'Found ' + (source === 'names' ? plural(profiles, 'LinkedIn profile') + ', ' : '') +
       plural(emails, 'email') + ' and ' + plural(phones, 'mobile number') + ' for ' + plural(items.length, 'lead') + '.' +
       (rest > 0
         ? (source === 'paste' ? ' You pasted ' + rest + ' more.' : ' Your file has ' + plural(rest, 'more ' + noun) + '.') +
-          ' Sign up and upload the same CSV to run them.'
-        : ' Sign up to run a full client list.');
+          ' Create your free account and they run in the app.'
+        : ' Create your free account to run a full client list.');
     tryAfter.hidden = false;
+  }
+
+  // The rest of their file, blurred: the rows are real (their own leads), the
+  // values are placeholders, and the overlay says plainly that these still
+  // have to be run. Seeing their own list waiting beats a line of text.
+  function renderLocked(more, rest, withLinkedIn) {
+    if (!more.length) return;
+    var wrap = document.createElement('div');
+    wrap.className = 'locked';
+    wrap.setAttribute('aria-hidden', 'true');
+    more.forEach(function (it, i) {
+      var row = document.createElement('div');
+      row.className = 'res';
+      var who = document.createElement('div');
+      who.className = 'who';
+      who.textContent = it.label;
+      var vals = document.createElement('div');
+      vals.className = 'vals';
+      function v(label, text) {
+        var el = document.createElement('span');
+        el.className = 'val ok';
+        var l = document.createElement('i'); l.textContent = label;
+        el.appendChild(l); el.appendChild(document.createTextNode(text));
+        vals.appendChild(el);
+      }
+      if (withLinkedIn) v('LinkedIn', 'linkedin.com/in/xxxxxxxx');
+      v('Email', ['jxxxxx', 'mxxxxxxxx', 'sxxxx'][i % 3] + '@xxxxxxx.com');
+      v('Phone', '+1 xxx xxx ' + (1000 + i * 137));
+      row.appendChild(who); row.appendChild(vals);
+      wrap.appendChild(row);
+    });
+    var cta = document.createElement('div');
+    cta.className = 'lock-cta';
+    var b = document.createElement('b');
+    b.textContent = rest + ' more ' + (rest === 1 ? 'lead' : 'leads') + ' from your file are waiting';
+    var a = document.createElement('a');
+    a.className = 'btn';
+    a.href = document.getElementById('ctaGoogle').getAttribute('href');
+    a.textContent = hasAccount ? 'Run them in the app' : 'Sign up free to run them';
+    a.addEventListener('click', function () { track('agency_cta_clicked', { cta: 'locked_rows' }); });
+    cta.appendChild(b); cta.appendChild(a);
+    wrap.appendChild(cta);
+    tryResults.appendChild(wrap);
+    track('agency_locked_rows_shown', { rest: rest });
+  }
+
+  // Keeps the dropped file in this browser so the app can open it ready to
+  // run right after signup (app.html reads lf_agency_pending_csv once).
+  function saveList(name, text, op, rows) {
+    try {
+      if (text.length > 4000000) return false;
+      localStorage.setItem('lf_agency_pending_csv', JSON.stringify({ name: name, text: text, op: op, rows: rows, savedAt: Date.now() }));
+      document.getElementById('tryAfterFine').textContent = 'Your file is saved: it opens in the app ready to run. Free account: 150 credits, no card.';
+      return true;
+    } catch (e) { return false; }
   }
 
   async function handleFile(file) {
@@ -664,6 +753,7 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
     var urls = extractProfiles(text);
     if (urls.length) {
       track('agency_demo_file', { file_rows: urls.length, kind: 'linkedin' });
+      saveList(file.name || 'my-list.csv', text, 'linkedin_profile__email', urls.length);
       tryInput.value = urls.slice(0, DEMO_MAX).join('\n');
       runDemo('csv', urlItems(urls), urls.length);
       return;
@@ -674,6 +764,7 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
       tryMsg.textContent = 'We couldn’t find LinkedIn profile links, or first name, last name and company columns, in that file.';
       return;
     }
+    saveList(file.name || 'my-list.csv', text, 'lead_full_name__email', people.length);
     runDemo('names', people, people.length);
   }
 
@@ -714,7 +805,16 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
     var company = null;
     try { company = new URL(window.location.href).searchParams.get('utm_content'); } catch (e) {}
     try { posthog.setPersonProperties({ email: leadEmail, agency_lead: true, agency_lead_company: company }); } catch (e) {}
-    try { localStorage.setItem(LEAD_KEY, '1'); } catch (e) {}
+    try { localStorage.setItem(LEAD_KEY, '1'); localStorage.setItem('lf_agency_lead_email', leadEmail); } catch (e) {}
+  }
+
+  // Someone who already has an account goes straight to the app, where the
+  // saved list is waiting; nobody should be sent through signup twice.
+  if (hasAccount) {
+    document.getElementById('ctaGoogle').href = '/app';
+    document.getElementById('ctaGoogleText').textContent = 'Open it in the app';
+    document.getElementById('ctaEmail').hidden = true;
+    document.querySelector('#ctaGoogle svg').style.display = 'none';
   }
 
   track('agency_page_viewed', { email_link: !!leadEmail });
