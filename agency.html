@@ -40,6 +40,7 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
 <script src="/js/lf-attribution.js"></script>
 <script src="/js/lf-tools-key.js"></script>
 <script src="/js/lf-linkedin-url.js"></script>
+<script src="/js/lf-csv.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Hanken+Grotesk:wght@400;500;700&family=Geist+Mono:wght@500;700&display=swap" rel="stylesheet">
@@ -216,11 +217,11 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
     <section class="first">
       <p class="eyebrow">For outbound agencies</p>
       <h1>Test us on your own client's leads. No signup.</h1>
-      <p class="lede">Drop the CSV a client just sent you. We pull the first 5 LinkedIn profiles out of it and find their verified work emails and mobile numbers in under a minute. Then decide.</p>
+      <p class="lede">Drop the CSV a client just sent you, with LinkedIn links or just names and companies. We take the first 5 leads and find their verified work emails and mobile numbers in under a minute. Then decide.</p>
 
       <div class="try" id="try">
         <h3>Emails + phones for 5 leads, free</h3>
-        <p class="sub">No account, no card. Any CSV works, as long as it has a column of LinkedIn profile links.</p>
+        <p class="sub">No account, no card. Any CSV works: LinkedIn profile links, or first name, last name and company.</p>
         <label class="drop" id="tryDrop">
           <input type="file" id="tryFile" accept=".csv,.tsv,.txt,text/csv,text/plain">
           <b>Drop your client's CSV here</b>
@@ -466,12 +467,47 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
   }
   function plural(n, word) { return n + ' ' + word + (n === 1 ? '' : 's'); }
 
-  function showUsedUp(fileTotal) {
+  function showUsedUp(fileTotal, noun) {
     tryMsg.textContent = '';
     tryAfterText.textContent = fileTotal
-      ? 'Your file has ' + plural(fileTotal, 'LinkedIn profile') + '. You’ve used your free test on this browser, so sign up and upload it: the free account comes with 150 credits.'
+      ? 'Your file has ' + plural(fileTotal, noun || 'LinkedIn profile') + '. You’ve used your free test on this browser, so sign up and upload it: the free account comes with 150 credits.'
       : 'You’ve used your free test on this browser. Your free account comes with 150 more credits.';
     tryAfter.hidden = false;
+  }
+
+  // A list without LinkedIn links: find the name and company columns, whatever
+  // they're called (lf-csv.js knows "First Name", "prénom", "Account Name"...).
+  function extractPeople(text) {
+    if (!window.lfCsvRows || !window.lfFindColumn) return [];
+    var t = window.lfCsvRows(text), h = t.headers;
+    var fi = window.lfFindColumn(h, 'first_name');
+    var li = window.lfFindColumn(h, 'last_name', [fi]);
+    // First and last only count as a pair; "Full name" alone also looks like a
+    // last-name column ("lname"), so without a pair use the full-name column.
+    var ni = -1;
+    if (fi < 0 || li < 0) { fi = li = -1; ni = window.lfFindColumn(h, 'full_name'); }
+    var ci = window.lfFindColumn(h, 'company', [fi, li, ni]);
+    if (ci < 0 || (fi < 0 && ni < 0)) return [];
+    var seen = {}, out = [];
+    t.rows.forEach(function (r) {
+      var first, last;
+      if (fi >= 0 && li >= 0) { first = r[fi]; last = r[li]; }
+      else {
+        var parts = String(window.lfCsvNormalizeName(r[ni] || '')).trim().split(/\s+/);
+        first = parts.shift(); last = parts.join(' ');
+      }
+      var company = (r[ci] || '').trim();
+      first = (first || '').trim(); last = (last || '').trim();
+      if (!first || !last || !company) return;
+      var k = (first + '|' + last + '|' + company).toLowerCase();
+      if (seen[k]) return;
+      seen[k] = true;
+      out.push({ first: first, last: last, company: company, label: first + ' ' + last + ' · ' + company });
+    });
+    return out;
+  }
+  function urlItems(urls) {
+    return urls.map(function (u) { return { url: u, label: u.replace(/^https?:\/\/(www\.)?/i, '') }; });
   }
 
   function valueCell(parent, label) {
@@ -488,25 +524,29 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
     cell.className = 'val ' + (ok ? 'ok' : 'no');
     cell.lastChild.nodeValue = text;
   }
-  function addRow(url) {
+  function addRow(label, withLinkedIn) {
     var row = document.createElement('div');
     row.className = 'res';
     var who = document.createElement('div');
     who.className = 'who';
-    who.textContent = url.replace(/^https?:\/\/(www\.)?/i, '');
+    who.textContent = label;
     var vals = document.createElement('div');
     vals.className = 'vals';
     row.appendChild(who);
     row.appendChild(vals);
     tryResults.appendChild(row);
-    return { email: valueCell(vals, 'Email'), phone: valueCell(vals, 'Phone') };
+    return {
+      li: withLinkedIn ? valueCell(vals, 'LinkedIn') : null,
+      email: valueCell(vals, 'Email'),
+      phone: valueCell(vals, 'Phone')
+    };
   }
 
-  async function lookup(type, url, bulk) {
+  async function lookup(body) {
     var res = await fetch(WORKER, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-API-Secret': window.LF_API_KEY, 'Accept': 'application/json' },
-      body: JSON.stringify({ type: type, linkedin_url: url, is_bulk: bulk })
+      body: JSON.stringify(body)
     });
     if (!res.ok) throw new Error('HTTP ' + res.status);
     return res.json();
@@ -524,17 +564,17 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
     });
   }
 
-  async function runDemo(source, fileTotal) {
+  // items: [{url, label}] or, for a name + company list, [{first, last, company, label}].
+  async function runDemo(source, items, total) {
     if (running) return;
-    if (demoUsed()) { track('agency_demo_blocked', { source: source }); showUsedUp(fileTotal); return; }
-
-    var all = extractProfiles(tryInput.value);
-    if (!all.length) {
+    var noun = source === 'names' ? 'lead' : 'LinkedIn profile';
+    if (demoUsed()) { track('agency_demo_blocked', { source: source }); showUsedUp(total, noun); return; }
+    if (!items.length) {
       tryMsg.textContent = 'Paste at least one LinkedIn profile URL (linkedin.com/in/…).';
       return;
     }
-    var total = fileTotal || all.length;
-    var urls = all.slice(0, DEMO_MAX);
+    total = total || items.length;
+    items = items.slice(0, DEMO_MAX);
 
     running = true;
     tryMsg.textContent = '';
@@ -543,16 +583,35 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
     tryBtn.disabled = true;
     tryBtn.textContent = 'Searching…';
     try { localStorage.setItem(DEMO_USED_KEY, String(Date.now())); } catch (e) {}
-    track('agency_demo_started', { source: source, rows: urls.length, file_rows: total });
+    track('agency_demo_started', { source: source, rows: items.length, file_rows: total });
 
-    var emails = 0, phones = 0, errors = 0;
-    for (var i = 0; i < urls.length; i++) {
-      var cells = addRow(urls[i]);
-      var bulk = urls.length > 1;
+    var bulk = items.length > 1;
+    var profiles = 0, emails = 0, phones = 0, errors = 0, lookups = 0;
+    for (var i = 0; i < items.length; i++) {
+      var it = items[i];
+      var cells = addRow(it.label, !it.url);
+      var url = it.url;
+      if (!url) {
+        // Name + company: find the LinkedIn profile first, then use it.
+        lookups++;
+        var r = await fill(cells.li, lookup({ type: 'professional_profile_finder', first_name: it.first,
+          last_name: it.last, company_name: it.company, is_bulk: bulk }), 'linkedin_url');
+        if (r === 'error') errors++;
+        if (r === 'found') {
+          profiles++;
+          url = normalize(cells.li.lastChild.nodeValue);
+          setCell(cells.li, url.replace(/^https?:\/\/(www\.)?/i, ''), true);
+        } else {
+          setCell(cells.email, '—', false);
+          setCell(cells.phone, '—', false);
+          continue;
+        }
+      }
       // Both lookups for a lead run at the same time.
+      lookups += 2;
       var out = await Promise.all([
-        fill(cells.email, lookup('business_email_finder', urls[i], bulk), 'email'),
-        fill(cells.phone, lookup('business_phone_finder', urls[i], bulk), 'phone')
+        fill(cells.email, lookup({ type: 'business_email_finder', linkedin_url: url, is_bulk: bulk }), 'email'),
+        fill(cells.phone, lookup({ type: 'business_phone_finder', linkedin_url: url, is_bulk: bulk }), 'phone')
       ]);
       if (out[0] === 'found') emails++;
       if (out[1] === 'found') phones++;
@@ -562,20 +621,20 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
     running = false;
     tryBtn.disabled = false;
     tryBtn.textContent = 'Find emails + phones';
-    track('agency_demo_run', { source: source, rows: urls.length, file_rows: total, found: emails, phones: phones, failed: errors });
+    track('agency_demo_run', { source: source, rows: items.length, file_rows: total, profiles: profiles, found: emails, phones: phones, failed: errors });
 
     // Every lookup failed: that's on us, so give the test back.
-    if (errors === urls.length * 2) {
+    if (errors === lookups) {
       try { localStorage.removeItem(DEMO_USED_KEY); } catch (e) {}
       tryMsg.textContent = 'Our lookup service didn’t answer. Give it a minute and try again.';
       return;
     }
 
-    var rest = total - urls.length;
-    tryAfterText.textContent = 'Found ' + plural(emails, 'email') + ' and ' + plural(phones, 'mobile number') +
-      ' for ' + plural(urls.length, 'lead') + '.' +
+    var rest = total - items.length;
+    tryAfterText.textContent = 'Found ' + (source === 'names' ? plural(profiles, 'LinkedIn profile') + ', ' : '') +
+      plural(emails, 'email') + ' and ' + plural(phones, 'mobile number') + ' for ' + plural(items.length, 'lead') + '.' +
       (rest > 0
-        ? (source === 'csv' ? ' Your file has ' + rest + ' more LinkedIn profiles.' : ' You pasted ' + rest + ' more.') +
+        ? (source === 'paste' ? ' You pasted ' + rest + ' more.' : ' Your file has ' + plural(rest, 'more ' + noun) + '.') +
           ' Sign up and upload the same CSV to run them.'
         : ' Sign up to run a full client list.');
     tryAfter.hidden = false;
@@ -587,14 +646,20 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
     if (file.size > 20 * 1024 * 1024) { tryMsg.textContent = 'That file is over 20 MB. Upload it in the app instead.'; return; }
     var text;
     try { text = await file.text(); } catch (e) { tryMsg.textContent = 'We couldn’t read that file. Try a .csv export.'; return; }
-    var all = extractProfiles(text);
-    track('agency_demo_file', { file_rows: all.length });
-    if (!all.length) {
-      tryMsg.textContent = 'We didn’t find any LinkedIn profile links (linkedin.com/in/…) in that file. The free test needs them; the app also handles name + company lists.';
+    var urls = extractProfiles(text);
+    if (urls.length) {
+      track('agency_demo_file', { file_rows: urls.length, kind: 'linkedin' });
+      tryInput.value = urls.slice(0, DEMO_MAX).join('\n');
+      runDemo('csv', urlItems(urls), urls.length);
       return;
     }
-    tryInput.value = all.slice(0, DEMO_MAX).join('\n');
-    runDemo('csv', all.length);
+    var people = extractPeople(text);
+    track('agency_demo_file', { file_rows: people.length, kind: people.length ? 'names' : 'unusable' });
+    if (!people.length) {
+      tryMsg.textContent = 'We couldn’t find LinkedIn profile links, or first name, last name and company columns, in that file.';
+      return;
+    }
+    runDemo('names', people, people.length);
   }
 
   tryFile.addEventListener('change', function () { handleFile(tryFile.files[0]); tryFile.value = ''; });
@@ -608,7 +673,10 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
     e.preventDefault();
     handleFile(e.dataTransfer && e.dataTransfer.files[0]);
   });
-  tryBtn.addEventListener('click', function () { runDemo('paste'); });
+  tryBtn.addEventListener('click', function () {
+    var urls = extractProfiles(tryInput.value);
+    runDemo('paste', urlItems(urls), urls.length);
+  });
   document.getElementById('tryExample').addEventListener('click', function () {
     tryInput.value = DEMO_EXAMPLE;
     document.getElementById('tryPaste').open = true;
