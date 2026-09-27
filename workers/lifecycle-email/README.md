@@ -208,3 +208,25 @@ with an open rate, something has been changed that should not have been.
 Steps too quiet to ever produce a readable test — `checkout_2` sends a handful a week —
 are reported as `UNDERPOWERED` with the arithmetic, rather than pretending a better
 subject line is the answer. For those the fix is more traffic into the step.
+
+## Annual upsell (workflows 16 and 17)
+
+Annual is the plan that funds outbound, so every monthly subscriber and
+pay-as-you-go buyer is walked towards it.
+
+- **16. Monthly or pay-as-you-go buyer — switch to annual.** Trigger:
+  `checkout_payment_success` with `billing` monthly or payg (the browser event;
+  it carries `plan_key` and an identified person with an email, unlike the
+  server-side `payg_credits_purchased`). Wait 3d, email; 7d, email; 14d, email.
+  Monthly buyers see their own plan's figures (annual = monthly x 12 x 0.6, from
+  `plans[]` in `app.html`); the last one lands about a week before the first
+  renewal. Exits on an annual `checkout_payment_success` or `annual_switch_paid`.
+- **17. Internal — monthly to annual switch paid.** A monthly subscriber who
+  buys annual gets a **second** Dodo subscription; nothing cancels the monthly
+  one. `app.html` remembers the subscription being replaced at checkout and
+  fires `annual_switch_paid` on return; this emails support@ with the old
+  subscription id to cancel. The customer is told it happens within one
+  business day, so enable 17 before 16, and cancel the same day.
+
+Both were created as drafts on 27 September 2026. The in-app banner for
+monthly subscribers (`showAnnualBanner`) names the same per-plan saving.

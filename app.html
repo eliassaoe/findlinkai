@@ -954,9 +954,9 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
 <div id="resumeCsvBanner" style="display:none;background:linear-gradient(135deg,#eff6ff,#dbeafe);border-bottom:1px solid #bfdbfe;padding:0.75rem 1rem;font-size:0.85rem;color:#1e3a8a;"></div>
     
 <div id="annualBanner" style="display:none;background:linear-gradient(135deg,#f0fdf4,#dcfce7);border-bottom:1px solid #bbf7d0;padding:0.5rem 1rem;text-align:center;font-size:0.8rem;color:#166534;font-weight:500;">
-  💡 You're on monthly — <strong>switch to annual and save 40%</strong> ($240/year) 
-  <button onclick="setBilling('annual');showPricingModal();" style="background:#16a34a;color:white;border:none;padding:0.2rem 0.75rem;border-radius:4px;font-size:0.75rem;font-weight:600;cursor:pointer;margin-left:0.5rem;font-family:inherit;">Switch now</button>
-  <button onclick="this.parentElement.style.display='none';localStorage.setItem('annual_banner_dismissed','1')" style="background:none;border:none;color:#166534;cursor:pointer;margin-left:0.5rem;font-size:1rem;">×</button>
+  <span id="annualBannerText">💡 You're on monthly — <strong>switch to annual and save 40%</strong></span>
+  <button onclick="try{posthog.capture('annual_banner_clicked',{plan_number:currentPlanNumber})}catch(e){};setBilling('annual');showPricingModal('annual_banner');" style="background:#16a34a;color:white;border:none;padding:0.2rem 0.75rem;border-radius:4px;font-size:0.75rem;font-weight:600;cursor:pointer;margin-left:0.5rem;font-family:inherit;">Switch now</button>
+  <button onclick="this.parentElement.style.display='none';localStorage.setItem('annual_banner_dismissed',String(Date.now()))" style="background:none;border:none;color:#166534;cursor:pointer;margin-left:0.5rem;font-size:1rem;">×</button>
 </div>
 
 <!-- Shown only to people who signed up with an email and password and have not
@@ -1748,8 +1748,15 @@ async function captureBeforeUnload(eventName, properties) {
 }
 
 function rememberPendingCheckout(info) {
+    // A monthly subscriber buying annual gets a second Dodo subscription; nothing
+    // cancels the monthly one. Remember which one it replaces so the return
+    // handler can raise annual_switch_paid, which emails support@ to cancel it.
+    const replacing = info.billingLabel === 'annual' && isExistingSubscriber
+        && currentPlanNumber && currentPlanNumber <= 3 && currentSubscriptionId;
     try {
         localStorage.setItem(PENDING_CHECKOUT_KEY, JSON.stringify({
+            replaces_subscription_id: replacing ? currentSubscriptionId : null,
+            replaces_plan_number: replacing ? currentPlanNumber : null,
             attempt_id: lastCheckoutAttemptId,
             plan: info.analyticsPlanName,
             plan_key: info.planKey,
@@ -2671,6 +2678,19 @@ function handleDodoReturnStatus() {
         } catch(e) {}
         fireGoogleAdsConversion({ data: { payment_id: paymentId, subscription_id: subscriptionId } });
 
+        if (pending?.replaces_subscription_id) {
+            try {
+                posthog.capture('annual_switch_paid', {
+                    old_subscription_id: pending.replaces_subscription_id,
+                    old_plan_number: pending.replaces_plan_number,
+                    new_subscription_id: subscriptionId,
+                    new_plan_key: pending.plan_key || null,
+                    email: window.currentUserEmail || null
+                });
+            } catch(e) {}
+            showAlert('Annual is active. We\'ll cancel your monthly plan within one business day, so you won\'t be charged for it again.', 'success');
+        }
+
         // Read before the upgrade-intent call below marks them a subscriber,
         // which switches agencyOfferActive() off.
         if (agencyOfferActive() && AGENCY_SETUP_CALL_PLANS.includes(pending?.plan_key)) {
@@ -2755,6 +2775,35 @@ async function proceedToPaygCheckout(index, btnEl) {
  * is not a new agency.
  */
 const AGENCY_OFFER_PLAN_KEYS = ['pro', 'enterprise'];
+
+// Monthly subscribers: the annual banner names their own plan's saving. It used
+// to quote a flat $240 a year to everyone, which is Starter's figure and undersold annual
+// by half on Professional and by five times on Scale - the plans agencies buy.
+// Dismissing it hides it for 14 days, not forever: moving monthly subscribers
+// to annual is the upsell that matters most.
+const ANNUAL_BANNER_SNOOZE_MS = 14 * 24 * 60 * 60 * 1000;
+function annualSaving(plan) {
+    const monthlyYear = plan.monthlyPrice * 12;
+    const annualTotal = Math.round(plan.monthlyPrice * 0.6 * 12);
+    return { monthlyYear, annualTotal, saving: monthlyYear - annualTotal };
+}
+function showAnnualBanner(planNumber) {
+    const plan = plans[planNumber - 1];
+    const banner = document.getElementById('annualBanner');
+    const text = document.getElementById('annualBannerText');
+    if (!plan || !banner || !text) return;
+    try {
+        const dismissed = parseInt(localStorage.getItem('annual_banner_dismissed') || '0', 10);
+        if (dismissed && Date.now() - dismissed < ANNUAL_BANNER_SNOOZE_MS) return;
+    } catch (e) {}
+    const s = annualSaving(plan);
+    text.innerHTML = '💡 ' + plan.name + ' monthly costs $' + s.monthlyYear.toLocaleString('en-US')
+        + ' a year. <strong>On annual it\'s $' + s.annualTotal.toLocaleString('en-US')
+        + ' for the same ' + plan.credits.toLocaleString('en-US') + ' credits: you keep $'
+        + s.saving.toLocaleString('en-US') + '.</strong>';
+    banner.style.display = 'block';
+    try { posthog.capture('annual_banner_shown', { plan: plan.key, saving: s.saving }); } catch (e) {}
+}
 const AGENCY_SETUP_CALL_PLANS = ['pro_annual', 'enterprise_annual'];
 const AGENCY_SETUP_CALL_URL = 'https://calendly.com/hamoureliasse/linkfinder-ai?utm_source=agency-annual';
 
@@ -5417,9 +5466,7 @@ function checkAuth(){
             currentPlanNumber = d.plan || null;
             currentSubscriptionId = d.subscription_id || null;
             // Plans 1-3 are monthly, 5-7 are annual
-            if (currentPlanNumber && currentPlanNumber <= 3 && !localStorage.getItem('annual_banner_dismissed')) {
-                document.getElementById('annualBanner').style.display = 'block';
-            }
+            if (currentPlanNumber && currentPlanNumber <= 3) showAnnualBanner(currentPlanNumber);
         }
         updateExportGateNotice();
         window.currentUserReferredBy = d.refered_by || null;
