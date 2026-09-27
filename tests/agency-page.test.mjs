@@ -73,3 +73,21 @@ test('pricing modal never opens on pay-as-you-go by default', () => {
     assert.doesNotMatch(open, /billingMode = 'payg'/);
     assert.match(open, /billingMode = 'annual'/);
 });
+
+test('cold visitors can enrich a few leads before signing up', () => {
+    // The demo sits above everything that asks for an account.
+    assert.ok(page.indexOf('id="try"') < page.indexOf('href="/sign-up"'),
+        'the no-signup demo must come before any signup link');
+    // Same worker, key and request as the free LinkedIn email finder page.
+    assert.ok(page.indexOf('/js/lf-tools-key.js') < page.indexOf("window.LF_API_KEY"));
+    assert.match(page, /\/js\/lf-linkedin-url\.js/);
+    assert.match(page, /linkfinder-free-tools\.hamoureliasse\.workers\.dev/);
+    assert.match(page, /type: 'business_email_finder', linkedin_url: url/);
+    // Capped, and once per browser.
+    assert.match(page, /var DEMO_MAX = 5;/);
+    assert.match(page, /urls = urls\.slice\(0, DEMO_MAX\)/);
+    assert.match(page, /localStorage\.setItem\(DEMO_USED_KEY/);
+    // Worker output is never parsed as HTML.
+    assert.doesNotMatch(page, /innerHTML\s*=(?!\s*'';)/);
+    assert.match(page, /cell\.textContent = email/);
+});

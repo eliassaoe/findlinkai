@@ -3,11 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<!-- Outbound landing page: the link sent by hand to agencies that replied yes.
+<!-- Outbound landing page for agencies, built for a cold click: the visitor
+     has never heard of us. They enrich up to 5 of their own leads before
+     being asked for anything (#try), then sign up to run the rest.
      Not for search. Plans, credits and prices mirror plans[] in app.html. -->
 <meta name="robots" content="noindex, nofollow">
 <title>LinkFinder AI for Outbound Agencies</title>
-<meta name="description" content="Turn every new client's target list into verified work emails, mobile numbers and LinkedIn profiles. Flat monthly price, no seats.">
+<meta name="description" content="Paste 5 LinkedIn profiles from a client's list and get their verified work emails. No signup. Flat monthly price, no seats.">
 <script>
   // The hand-sent link is the short /agency. Stamp the campaign on it before
   // lf-attribution.js reads the URL, so every signup and payment from this
@@ -36,6 +38,8 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
     })
 </script>
 <script src="/js/lf-attribution.js"></script>
+<script src="/js/lf-tools-key.js"></script>
+<script src="/js/lf-linkedin-url.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Hanken+Grotesk:wght@400;500;700&family=Geist+Mono:wght@500;700&display=swap" rel="stylesheet">
@@ -104,6 +108,36 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
   @media(max-width:420px){.btn--sm .long{display:none;}.btn--sm .short{display:inline;}}
   @media(max-width:350px){.logo-text{font-size:1rem;}.btn--sm{padding:0 10px;}}
 
+  /* no-signup demo */
+  .try{max-width:680px;margin:28px auto 0;padding:22px 20px;border:2px solid var(--primary);border-radius:20px;
+    box-shadow:var(--shadow-lg);background:#fff;}
+  .try h3{font-family:var(--heading);font-weight:800;font-size:1.2rem;letter-spacing:-0.02em;}
+  .try .sub{margin-top:4px;font-size:14px;color:var(--muted);}
+  .try textarea{display:block;width:100%;min-height:128px;margin-top:14px;padding:12px 14px;border:2px solid var(--line);
+    border-radius:12px;font-family:var(--mono);font-size:13px;line-height:1.6;color:var(--fg);resize:vertical;}
+  .try textarea:focus{outline:none;border-color:var(--primary);}
+  .try .row{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;margin-top:12px;}
+  .try .row .btn{flex:1 1 200px;}
+  .linkbtn{background:none;border:0;padding:0;font:inherit;font-size:14px;color:var(--primary);text-decoration:underline;cursor:pointer;}
+  .try .msg{margin-top:10px;font-size:14px;color:#B42318;}
+  .try .msg:empty{display:none;}
+  .results{margin-top:16px;display:grid;gap:8px;}
+  .results:empty{display:none;}
+  .res{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 12px;border-radius:12px;background:var(--soft);font-size:14px;}
+  .res .who{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted);font-family:var(--mono);font-size:12px;}
+  .res .val{flex:none;max-width:60%;overflow-wrap:anywhere;text-align:right;font-weight:700;font-family:var(--mono);font-size:13px;}
+  .res .val.ok{color:var(--green);}
+  .res .val.no{color:var(--muted);font-weight:500;}
+  .after{margin-top:16px;padding:16px;border-radius:14px;background:var(--soft);text-align:center;}
+  .after[hidden]{display:none;}
+  .after p{font-size:15px;}
+  .after .btn{margin-top:12px;}
+
+  .points{display:grid;gap:12px;margin-top:24px;}
+  @media(min-width:720px){.points{grid-template-columns:repeat(3,1fr);}}
+  .point{padding:16px 18px;border-radius:14px;background:var(--soft);font-size:15px;line-height:1.55;}
+  .point b{display:block;font-family:var(--heading);font-weight:800;font-size:1.05rem;margin-bottom:4px;}
+
   /* steps */
   .steps{display:grid;gap:14px;margin-top:28px;}
   @media(min-width:720px){.steps{grid-template-columns:repeat(3,1fr);}}
@@ -161,7 +195,7 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
       </span>
       <span class="logo-text">LinkFinder <span>AI</span></span>
     </a>
-    <a class="btn btn--sm" href="/sign-up" data-cta="header_signup"><span class="long">Create free account</span><span class="short">Sign up free</span></a>
+    <a class="btn btn--sm" href="#try" data-cta="header_try"><span class="long">Try it free, no signup</span><span class="short">Try free</span></a>
   </div>
 </header>
 
@@ -170,17 +204,44 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
 
     <section class="first">
       <p class="eyebrow">For outbound agencies</p>
-      <h1>Every new client's list, turned into verified emails in minutes</h1>
-      <p class="lede">Upload the target list your client sent. Get back work emails, mobile numbers and LinkedIn profiles, verified so they don't bounce and burn the client's sending domains.</p>
+      <h1>Test us on your own client's leads. No signup.</h1>
+      <p class="lede">Paste up to 5 LinkedIn profiles from a list you're working on right now. See the verified work emails we find in under a minute, then decide.</p>
 
+      <div class="try" id="try">
+        <h3>Find emails for 5 leads, free</h3>
+        <p class="sub">One LinkedIn profile URL per line. No account, no card.</p>
+        <textarea id="tryInput" spellcheck="false" autocomplete="off" aria-label="LinkedIn profile URLs, one per line"
+          placeholder="https://www.linkedin.com/in/first-lead&#10;https://www.linkedin.com/in/second-lead&#10;..."></textarea>
+        <div class="row">
+          <button type="button" class="btn" id="tryBtn">Find their emails</button>
+          <button type="button" class="linkbtn" id="tryExample">No list handy? Use an example</button>
+        </div>
+        <p class="msg" id="tryMsg" role="alert"></p>
+        <div class="results" id="tryResults" aria-live="polite"></div>
+        <div class="after" id="tryAfter" hidden>
+          <p id="tryAfterText"></p>
+          <a class="btn" href="/sign-up" data-cta="demo_signup">Run the whole list: get 150 free credits</a>
+          <p class="fine">Upload the full CSV in the app. Free account, no card.</p>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <p class="eyebrow">Why agencies switch</p>
+      <h2>Built for running lists for many clients</h2>
+      <div class="points">
+        <div class="point"><b>Verified, not guessed</b>Emails are checked before you get them, so a bad list doesn't bounce and burn your client's sending domains.</div>
+        <div class="point"><b>No per-seat pricing</b>One flat monthly price. Adding a client or a teammate doesn't add a seat.</div>
+        <div class="point"><b>Pay for what you ask for</b>Need emails only? You only spend credits on emails. Phones and profiles are opt-in, per list.</div>
+      </div>
+    </section>
+
+    <section>
+      <p class="eyebrow">See the full flow</p>
+      <h2>A whole client list, start to finish</h2>
       <div class="video">
         <video controls playsinline preload="metadata" src="/assets/video/agency-bulk-coldemail.mp4#t=0.5"></video>
       </div>
-
-      <div class="actions">
-        <a class="btn" href="/sign-up" data-cta="hero_signup">Create your free account</a>
-      </div>
-      <p class="fine">Free account with 150 credits, enough to test it on about 15 of your own leads.</p>
     </section>
 
     <section>
@@ -267,12 +328,16 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
       <h2>Before you sign up</h2>
       <div class="faq">
         <details>
+          <summary>What happens to the leads I paste in the free test?</summary>
+          <p>We look up their emails and show them to you. Nothing is sent to the people on your list, and you don't need an account to see the results.</p>
+        </details>
+        <details>
           <summary>What does a credit buy?</summary>
           <p>A verified email from a LinkedIn profile is 10 credits, a mobile number is 50, and a LinkedIn URL from a name is 1. You only spend credits on what you ask for.</p>
         </details>
         <details>
           <summary>Can I test it before paying?</summary>
-          <p>Yes. The free account comes with 150 credits, enough for about 15 emails on your own leads, so you can check the data before you pay.</p>
+          <p>Yes, twice. Try 5 leads at the top of this page without an account. Then the free account comes with 150 credits, enough for about 15 more emails, so you can check the data on a real list before you pay.</p>
         </details>
         <details>
           <summary>How do I use the AGENCY50 code?</summary>
@@ -288,7 +353,7 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
     <section class="final">
       <h2>Try it on your next client's list</h2>
       <div class="actions">
-        <a class="btn" href="/sign-up" data-cta="final_signup">Create your free account</a>
+        <a class="btn" href="#try" data-cta="final_try">Test 5 leads, no signup</a>
         <a class="btn btn--ghost" id="callLink" href="https://calendly.com/hamoureliasse/linkfinder-ai" target="_blank" rel="noopener" data-cta="setup_call">Book a 15-min setup call</a>
       </div>
     </section>
@@ -344,6 +409,127 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
       });
     } catch (e) {}
   });
+
+  // No-signup demo. A cold visitor gets the product working on their own
+  // leads before we ask for anything. Same worker and request as the free
+  // LinkedIn email finder page; capped at DEMO_MAX profiles, once per browser.
+  var DEMO_MAX = 5;
+  var DEMO_USED_KEY = 'lf_agency_demo_used';
+  var DEMO_EXAMPLE = 'https://www.linkedin.com/in/eliasse-hamour-08194821a/';
+  var tryInput = document.getElementById('tryInput');
+  var tryBtn = document.getElementById('tryBtn');
+  var tryMsg = document.getElementById('tryMsg');
+  var tryResults = document.getElementById('tryResults');
+  var tryAfter = document.getElementById('tryAfter');
+  var tryAfterText = document.getElementById('tryAfterText');
+
+  function demoUsed() { try { return !!localStorage.getItem(DEMO_USED_KEY); } catch (e) { return false; } }
+
+  function isProfile(url) {
+    return window.LFLinkedIn ? window.LFLinkedIn.isProfileUrl(url) : /linkedin\.com\/(in|pub)\//i.test(url);
+  }
+  function normalize(url) {
+    var n = window.LFLinkedIn && window.LFLinkedIn.normalize(url);
+    return n || (/^https?:\/\//i.test(url) ? url : 'https://' + url);
+  }
+
+  function showUsedUp() {
+    tryMsg.textContent = '';
+    tryAfterText.textContent = 'You’ve used your free test on this browser. Your free account comes with 150 more credits.';
+    tryAfter.hidden = false;
+  }
+
+  function addRow(url) {
+    var row = document.createElement('div');
+    row.className = 'res';
+    var who = document.createElement('span');
+    who.className = 'who';
+    who.textContent = url.replace(/^https?:\/\/(www\.)?/i, '');
+    var val = document.createElement('span');
+    val.className = 'val no';
+    val.textContent = 'Searching…';
+    row.appendChild(who);
+    row.appendChild(val);
+    tryResults.appendChild(row);
+    return val;
+  }
+
+  async function lookup(url, bulk) {
+    var res = await fetch('https://linkfinder-free-tools.hamoureliasse.workers.dev/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-API-Secret': window.LF_API_KEY, 'Accept': 'application/json' },
+      body: JSON.stringify({ type: 'business_email_finder', linkedin_url: url, is_bulk: bulk })
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    var data = await res.json();
+    return data && data.email ? String(data.email) : '';
+  }
+
+  async function runDemo() {
+    if (demoUsed()) { track('agency_demo_blocked'); showUsedUp(); return; }
+
+    var lines = tryInput.value.split(/[\s,]+/).map(function (s) { return s.trim(); }).filter(Boolean);
+    var seen = {};
+    var urls = lines.filter(isProfile).map(normalize).filter(function (u) {
+      var k = u.toLowerCase().replace(/\/+$/, '');
+      if (seen[k]) return false;
+      seen[k] = true;
+      return true;
+    });
+    if (!urls.length) {
+      tryMsg.textContent = 'Paste at least one LinkedIn profile URL (linkedin.com/in/…).';
+      return;
+    }
+    var skipped = urls.length > DEMO_MAX ? urls.length - DEMO_MAX : 0;
+    urls = urls.slice(0, DEMO_MAX);
+
+    tryMsg.textContent = '';
+    tryResults.innerHTML = '';
+    tryAfter.hidden = true;
+    tryBtn.disabled = true;
+    tryBtn.textContent = 'Finding emails…';
+    try { localStorage.setItem(DEMO_USED_KEY, String(Date.now())); } catch (e) {}
+    track('agency_demo_started', { rows: urls.length, skipped: skipped });
+
+    var found = 0, failed = 0;
+    for (var i = 0; i < urls.length; i++) {
+      var cell = addRow(urls[i]);
+      try {
+        var email = await lookup(urls[i], urls.length > 1);
+        if (email) { found++; cell.className = 'val ok'; cell.textContent = email; }
+        else { cell.textContent = 'Not found'; }
+      } catch (e) {
+        failed++;
+        cell.textContent = 'Lookup failed';
+      }
+    }
+
+    tryBtn.disabled = false;
+    tryBtn.textContent = 'Find their emails';
+    track('agency_demo_run', { rows: urls.length, found: found, failed: failed });
+
+    // Every lookup failed: that's on us, so give the test back.
+    if (failed === urls.length) {
+      try { localStorage.removeItem(DEMO_USED_KEY); } catch (e) {}
+      tryMsg.textContent = 'Our lookup service didn’t answer. Give it a minute and try again.';
+      return;
+    }
+
+    tryAfterText.textContent = (found
+      ? 'Found ' + found + ' of ' + urls.length + ' verified emails.'
+      : 'No emails found for these profiles.') +
+      (skipped ? ' We only ran the first ' + DEMO_MAX + '.' : '') +
+      ' The rest of your list is next: sign up and upload the CSV.';
+    tryAfter.hidden = false;
+  }
+
+  tryBtn.addEventListener('click', runDemo);
+  document.getElementById('tryExample').addEventListener('click', function () {
+    tryInput.value = DEMO_EXAMPLE;
+    tryMsg.textContent = '';
+    track('agency_demo_example');
+  });
+  if (demoUsed()) showUsedUp();
 
   // Lets app.html show AGENCY50 in its pricing modal after signup.
   try { localStorage.setItem('lf_agency_offer', String(Date.now())); } catch (e) {}
