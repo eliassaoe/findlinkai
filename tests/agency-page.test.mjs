@@ -87,12 +87,11 @@ test('cold visitors can enrich a few leads before signing up', () => {
     assert.ok(page.indexOf('/js/lf-tools-key.js') < page.indexOf("window.LF_API_KEY"));
     assert.match(page, /\/js\/lf-linkedin-url\.js/);
     assert.match(page, /linkfinder-free-tools\.hamoureliasse\.workers\.dev/);
-    assert.match(page, /lookup\('business_email_finder', urls\[i\]/);
-    assert.match(page, /lookup\('business_phone_finder', urls\[i\]/);
-    assert.match(page, /body: JSON\.stringify\(\{ type: type, linkedin_url: url/);
+    assert.match(page, /lookup\(\{ type: 'business_email_finder', linkedin_url: url/);
+    assert.match(page, /lookup\(\{ type: 'business_phone_finder', linkedin_url: url/);
     // Capped, and once per browser.
     assert.match(page, /var DEMO_MAX = 5;/);
-    assert.match(page, /var urls = all\.slice\(0, DEMO_MAX\)/);
+    assert.match(page, /items = items\.slice\(0, DEMO_MAX\)/);
     assert.match(page, /localStorage\.setItem\(DEMO_USED_KEY/);
     // Worker output is never parsed as HTML.
     assert.doesNotMatch(page, /innerHTML\s*=(?!\s*'';)/);
@@ -111,4 +110,28 @@ test('a dropped CSV feeds the demo, whatever its columns', () => {
         'fr.linkedin.com/in/bob',
         'https://www.linkedin.com/in/ann-1/',
     ]);
+});
+
+test('a list with only names and companies finds the LinkedIn profile first', () => {
+    assert.ok(page.indexOf('/js/lf-csv.js') < page.indexOf('function extractPeople'));
+    // Same request as the free LinkedIn URL finder page.
+    assert.match(page, /type: 'professional_profile_finder', first_name: it\.first,\s*last_name: it\.last, company_name: it\.company/);
+    // LinkedIn links win; names are the fallback.
+    const hf = page.match(/async function handleFile\(file\) \{[\s\S]*?\n  \}/)[0];
+    assert.ok(hf.indexOf('extractProfiles(text)') < hf.indexOf('extractPeople(text)'));
+
+    // Run the page's own parser over two real-world shapes.
+    const w = {};
+    new Function('window', read('js/lf-csv.js'))(w);
+    const src = page.match(/function extractPeople\(text\) \{[\s\S]*?\n  \}/)[0];
+    const extractPeople = new Function('window', src + '; return extractPeople;')(w);
+    assert.deepEqual(
+        extractPeople('First Name,Last Name,Title,Company Name\nAnn,Lee,CEO,Acme\nBob,Ray,,\nAnn,Lee,CEO,Acme\n')
+            .map(p => [p.first, p.last, p.company]),
+        [['Ann', 'Lee', 'Acme']]);
+    assert.deepEqual(
+        extractPeople('Full name;Entreprise\n"Doe, Jane";Beta Inc\nJohn Smith Jr;Gamma\n')
+            .map(p => [p.first, p.last, p.company]),
+        [['Jane', 'Doe', 'Beta Inc'], ['John', 'Smith Jr', 'Gamma']]);
+    assert.deepEqual(extractPeople('email,phone\na@b.com,1\n'), []);
 });
