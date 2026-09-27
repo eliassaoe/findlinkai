@@ -14,21 +14,31 @@
   // The hand-sent link is the short /agency. Stamp the campaign on it before
   // lf-attribution.js reads the URL, so every signup and payment from this
   // page is credited to outbound. A link that already carries UTMs keeps them.
+  //
+  // The link sent to a prospect who replied also carries &email=. It is taken
+  // off the URL here, before PostHog or anything else reads it, so it never
+  // lands in $current_url, the referrer or browser history; the page stores it
+  // on the person instead (see LEAD_EMAIL below), which is what enrols them in
+  // the follow-up workflow.
   (function () {
     try {
-      var u = new URL(window.location.href);
+      var u = new URL(window.location.href), changed = false;
+      var em = (u.searchParams.get('email') || '').trim().toLowerCase();
+      if (u.searchParams.has('email')) { u.searchParams.delete('email'); changed = true; }
+      if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) window.__lfLeadEmail = em;
       if (!u.searchParams.get('utm_source')) {
         u.searchParams.set('utm_source', 'explee');
         u.searchParams.set('utm_medium', 'email');
         u.searchParams.set('utm_campaign', 'agency_10plus');
-        history.replaceState(null, '', u.pathname + u.search + u.hash);
+        changed = true;
       }
+      if (changed) history.replaceState(null, '', u.pathname + u.search + u.hash);
     } catch (e) {}
   })();
 </script>
 <script>
     !function(t,e){var o,n,p,r;e.__SV||(window.posthog && window.posthog.__loaded)||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]),t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}(p=t.createElement("script")).type="text/javascript",p.crossOrigin="anonymous",p.async=!0,p.src=s.api_host.replace(".i.posthog.com","-assets.i.posthog.com")+"/static/array.js",(r=t.getElementsByTagName("script")[0]).parentNode.insertBefore(p,r);var u=e;for(void 0!==a?u=e[a]=[]:a="posthog",u.people=u.people||[],u.toString=function(t){var e="posthog";return"posthog"!==a&&(e+="."+a),t||(e+=" (stub)"),e},u.people.toString=function(){return u.toString(1)+".people (stub)"},o="init zr Wr fi Br Gr ci Nr Hr capture Ui calculateEventProperties Kr register register_once register_for_session unregister unregister_for_session Zr getFeatureFlag getFeatureFlagPayload isFeatureEnabled reloadFeatureFlags updateEarlyAccessFeatureEnrollment getEarlyAccessFeatures on onFeatureFlags onSurveysLoaded onSessionId getSurveys getActiveMatchingSurveys renderSurvey displaySurvey cancelPendingSurvey canRenderSurvey canRenderSurveyAsync identify setPersonProperties group resetGroups setPersonPropertiesForFlags resetPersonPropertiesForFlags setGroupPropertiesForFlags resetGroupPropertiesForFlags reset get_distinct_id getGroups get_session_id get_session_replay_url alias set_config startSessionRecording stopSessionRecording sessionRecordingStarted captureException loadToolbar get_property getSessionProperty Xr Jr createPersonProfile Qr jr ts opt_in_capturing opt_out_capturing has_opted_in_capturing has_opted_out_capturing get_explicit_consent_status is_capturing clear_opt_in_out_capturing Vr debug O Yr getPageViewId captureTraceFeedback captureTraceMetric Or".split(" "),n=0;n<o.length;n++)g(u,o[n]);e._i.push([i,s,a])},e.__SV=1)}(document,window.posthog||[]);
-window.__lfScrubUrl=function(v){return typeof v==='string'?v.replace(/([?&#])(access_token|refresh_token|provider_token|provider_refresh_token|id_token|token|api_key|apikey|password|secret)=[^&#]*/gi,'$1$2=[redacted]'):v;};
+window.__lfScrubUrl=function(v){return typeof v==='string'?v.replace(/([?&#])(access_token|refresh_token|provider_token|provider_refresh_token|id_token|token|api_key|apikey|password|secret|email)=[^&#]*/gi,'$1$2=[redacted]'):v;};
 window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_url','$initial_referrer','$session_entry_url','$pathname'].forEach(function(k){if(p[k])p[k]=window.__lfScrubUrl(p[k]);});return p;};
     posthog.init('phc_HqgzMyWAMtzH7K5j9CLw0dijB0I9W1VjPkkyzg9KOFG', {
         api_host: 'https://us.i.posthog.com',
@@ -622,6 +632,11 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
     tryBtn.disabled = false;
     tryBtn.textContent = 'Find emails + phones';
     track('agency_demo_run', { source: source, rows: items.length, file_rows: total, profiles: profiles, found: emails, phones: phones, failed: errors });
+    // Results on the person, so the follow-up email can quote them.
+    if (knownLead()) {
+      try { posthog.setPersonProperties({ agency_demo_rows: items.length, agency_demo_file_rows: total,
+        agency_demo_emails: emails, agency_demo_phones: phones, agency_demo_at: new Date().toISOString() }); } catch (e) {}
+    }
 
     // Every lookup failed: that's on us, so give the test back.
     if (errors === lookups) {
@@ -689,7 +704,20 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
   // setup-call offer, and a paid annual plan gets the booking prompt.
   try { localStorage.setItem('lf_agency_offer', String(Date.now())); } catch (e) {}
 
-  track('agency_page_viewed');
+  // A prospect who arrived from the emailed link: store their email on the
+  // person (this is what the follow-up workflow sends to) and remember them on
+  // this browser, so a later visit without the link still counts as them.
+  var LEAD_KEY = 'lf_agency_lead';
+  function knownLead() { try { return !!localStorage.getItem(LEAD_KEY); } catch (e) { return !!window.__lfLeadEmail; } }
+  var leadEmail = window.__lfLeadEmail || null;
+  if (leadEmail) {
+    var company = null;
+    try { company = new URL(window.location.href).searchParams.get('utm_content'); } catch (e) {}
+    try { posthog.setPersonProperties({ email: leadEmail, agency_lead: true, agency_lead_company: company }); } catch (e) {}
+    try { localStorage.setItem(LEAD_KEY, '1'); } catch (e) {}
+  }
+
+  track('agency_page_viewed', { email_link: !!leadEmail });
 })();
 </script>
 </body>
