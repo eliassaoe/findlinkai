@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -300,20 +299,23 @@
      - Fichier  : https://…/video.mp4  (doit exister sur le serveur !)
    Lien vide ""  →  carte « Vidéo en cours de tournage ».
    ===================================================================== */
-var VIDEO_PRINCIPALE = "https://linkfinderai.com/assets/video/avant-votre-appel.mp4";
-var POSTER_PRINCIPAL = "https://linkfinderai.com/assets/video/avant-votre-appel-poster.jpg";
+/* Vidéo principale : fichier à côté de la page (dossier assets/video/).
+   Si la page est mise en ligne sans ce dossier, on essaie l'adresse de secours. */
+var VIDEO_PRINCIPALE = "assets/video/avant-votre-appel-finale.mp4";
+var VIDEO_SECOURS    = "https://linkfinderai.com/assets/video/avant-votre-appel-finale.mp4";
+var POSTER_PRINCIPAL = "";
 
 var FAQ = [
-  { q: "Vous êtes qui, concrètement ?", video: "",
+  { q: "Vous êtes qui, concrètement ?", video: "assets/video/faq/faq1-vous-etes-qui.mp4",
     a: "LinkFinder AI, fondé par Elias. On fait de la prospection B2B externalisée : on trouve vos prospects, on les contacte et on pose les rendez-vous dans votre agenda." },
   { q: "Combien ça coûte, je paie quoi, quand ?", video: "",
-    a: "150 € par rendez-vous tenu. Pas d'abonnement, pas de frais de setup, pas d'outil à acheter." },
-  { q: "Et si le prospect ne vient pas ?", video: "",
-    a: "Un no-show n'est jamais facturé, et on le remplace. Le risque est de notre côté." },
-  { q: "C'est quoi, un rendez-vous « qualifié » ?", video: "",
-    a: "Une entreprise qui colle aux critères écrits ensemble avant le lancement : secteur, taille, fonction de l'interlocuteur. Hors critères = pas facturé." },
+    a: "200 € par rendez-vous tenu. Pas d'abonnement, pas de frais de setup. Mois test : 5 rendez-vous minimum, puis en général 10 à 25 rendez-vous par mois." },
+  { q: "Et si le prospect ne vient pas ?", video: "assets/video/faq/faq3-si-le-prospect-ne-vient-pas.mp4",
+    a: "Il ne compte pas, et on le remplace. On s'engage sur un nombre de rendez-vous qualifiés et tenus : on remplace jusqu'à ce que vous l'ayez atteint." },
+  { q: "C'est quoi, un rendez-vous « qualifié » ?", video: "assets/video/faq/faq4-rendez-vous-qualifie.mp4",
+    a: "Une entreprise qui colle aux critères écrits ensemble avant le lancement : secteur, taille, fonction de l'interlocuteur. Hors critères = il ne compte pas, on le remplace." },
   { q: "J'ai déjà payé une agence, ça n'a rien donné.", video: "",
-    a: "C'est justement pour ça qu'on ne facture que les rendez-vous qui ont lieu. Pas de résultat, pas de facture." },
+    a: "Chez nous, pas de forfait : on s'engage sur un nombre de rendez-vous qualifiés et tenus, et on remplace chaque no-show jusqu'à ce que vous l'ayez atteint." },
   { q: "Qu'est-ce que je dois faire de mon côté ?", video: "",
     a: "Honorer les rendez-vous et closer. La liste, le contact et les relances, c'est nous." }
 ];
@@ -348,8 +350,10 @@ var CFG = {
       return iframe("https://www.loom.com/embed/" + m[1] + "?hide_owner=true&hide_share=true&hideEmbedTopBar=true", title);
     if ((m = url.match(/vimeo\.com\/(?:video\/)?(\d+)/)))
       return iframe("https://player.vimeo.com/video/" + m[1] + "?dnt=1", title);
+    /* sans image de couverture, #t=0.1 affiche la première image de la vidéo */
     return '<video controls preload="metadata" playsinline' +
-      (poster ? ' poster="' + esc(poster) + '"' : '') + ' src="' + esc(url) + '"></video>';
+      (poster ? ' poster="' + esc(poster) + '"' : '') +
+      ' src="' + esc(poster ? url : url + "#t=0.1") + '"></video>';
   }
   function iframe(src, title) {
     return '<iframe src="' + src + '" title="' + esc(title) + '" loading="lazy" ' +
@@ -361,11 +365,12 @@ var CFG = {
       '<p class="title">' + esc(title) + '</p>' +
       '<p class="tag">Vidéo en cours de tournage</p></div>';
   }
-  function fill(el, url, title, poster) {
+  function fill(el, url, title, poster, secours) {
     el.innerHTML = embed(url, title, poster) || placeholder(title);
-    /* fichier .mp4 introuvable → on remet la carte au lieu d'un lecteur cassé */
+    /* fichier .mp4 introuvable → adresse de secours, sinon message clair */
     var v = el.querySelector("video");
     if (v) v.addEventListener("error", function () {
+      if (secours) return fill(el, secours, title, poster);
       el.innerHTML = '<div class="placeholder" role="img" aria-label="' + esc(title) + '">' +
         '<span class="icon">' + ICON + '</span>' +
         '<p class="title">' + esc(title) + '</p>' +
@@ -374,7 +379,7 @@ var CFG = {
   }
 
   var main = document.querySelector('[data-video="main"]');
-  if (main) fill(main, VIDEO_PRINCIPALE, main.getAttribute("data-title"), POSTER_PRINCIPAL);
+  if (main) fill(main, VIDEO_PRINCIPALE, main.getAttribute("data-title"), POSTER_PRINCIPAL, VIDEO_SECOURS);
 
   var faq = document.getElementById("faq");
   FAQ.forEach(function (item, i) {
@@ -383,7 +388,8 @@ var CFG = {
       '<div class="video video--small"></div>' +
       '<p class="q"><span class="n">' + (i + 1) + '</span>' + esc(item.q) + '</p>' +
       '<p class="a">' + esc(item.a) + '</p>';
-    fill(art.querySelector(".video"), item.video, "Réponse n°" + (i + 1));
+    fill(art.querySelector(".video"), item.video, "Réponse n°" + (i + 1), "",
+      /^assets\//.test(item.video) ? "https://linkfinderai.com/" + item.video : "");
     faq.appendChild(art);
   });
 
