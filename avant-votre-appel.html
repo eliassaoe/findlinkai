@@ -71,7 +71,7 @@
   .video{position:relative;aspect-ratio:16/9;width:100%;overflow:hidden;border-radius:24px;
     border:2px solid var(--line);background:var(--fg);box-shadow:var(--shadow);}
   .video--main{box-shadow:var(--shadow-lg);margin-top:20px;}
-  .video iframe,.video video{position:absolute;inset:0;width:100%;height:100%;border:0;background:#000;}
+  .video iframe,.video video,.video wistia-player{position:absolute;inset:0;width:100%;height:100%;border:0;background:#000;}
   .placeholder{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;
     justify-content:center;gap:12px;padding:0 24px;text-align:center;color:#fff;}
   .placeholder .icon{width:56px;height:56px;border-radius:30%;background:var(--primary);
@@ -296,27 +296,29 @@
      - YouTube  : https://www.youtube.com/watch?v=XXXX  ou  https://youtu.be/XXXX
      - Loom     : https://www.loom.com/share/XXXX
      - Vimeo    : https://vimeo.com/123456789
+     - Wistia   : https://fast.wistia.com/embed/medias/XXXX  ou  wistia:XXXX
      - Fichier  : https://…/video.mp4  (doit exister sur le serveur !)
    Lien vide ""  →  carte « Vidéo en cours de tournage ».
    ===================================================================== */
-/* Vidéo principale : fichier à côté de la page (dossier assets/video/).
-   Si la page est mise en ligne sans ce dossier, on essaie l'adresse de secours. */
-var VIDEO_PRINCIPALE = "assets/video/avant-votre-appel-finale.mp4";
+/* Vidéo principale : hébergée sur Wistia (lecture adaptée à la connexion).
+   Si le lecteur Wistia ne charge pas (bloqueur, réseau), on retombe sur le .mp4. */
+var VIDEO_PRINCIPALE = "wistia:34wtxhc9e0";
 var VIDEO_SECOURS    = "https://linkfinderai.com/assets/video/avant-votre-appel-finale.mp4";
 var POSTER_PRINCIPAL = "";
 
+/* FAQ : "video" = lien principal (Wistia de préférence), "mp4" = fichier de secours. */
 var FAQ = [
-  { q: "Vous êtes qui, concrètement ?", video: "assets/video/faq/faq1-vous-etes-qui.mp4",
+  { q: "Vous êtes qui, concrètement ?", video: "wistia:wt3ugpzl85", mp4: "assets/video/faq/faq1-vous-etes-qui.mp4",
     a: "LinkFinder AI, fondé par Elias. On fait de la prospection B2B externalisée : on trouve vos prospects, on les contacte et on pose les rendez-vous dans votre agenda." },
-  { q: "Combien ça coûte, je paie quoi, quand ?", video: "assets/video/faq/faq2-combien-ca-coute.mp4",
+  { q: "Combien ça coûte, je paie quoi, quand ?", video: "wistia:i4tcuwax47", mp4: "assets/video/faq/faq2-combien-ca-coute.mp4",
     a: "200 € par rendez-vous qualifié et tenu, payé en début de mois comme un budget ads : ça nous permet de lancer votre campagne. Mois test : 5 rendez-vous minimum, puis en général 10 à 25 par mois. Le nombre payé est garanti : chaque no-show est remplacé." },
-  { q: "Et si le prospect ne vient pas ?", video: "assets/video/faq/faq3-si-le-prospect-ne-vient-pas.mp4",
+  { q: "Et si le prospect ne vient pas ?", video: "wistia:fs5nqvd8zm", mp4: "assets/video/faq/faq3-si-le-prospect-ne-vient-pas.mp4",
     a: "Il ne compte pas, et on le remplace. On s'engage sur un nombre de rendez-vous qualifiés et tenus : on remplace jusqu'à ce que vous l'ayez atteint." },
-  { q: "C'est quoi, un rendez-vous « qualifié » ?", video: "assets/video/faq/faq4-rendez-vous-qualifie.mp4",
+  { q: "C'est quoi, un rendez-vous « qualifié » ?", video: "wistia:r8uggublie", mp4: "assets/video/faq/faq4-rendez-vous-qualifie.mp4",
     a: "Une entreprise qui colle aux critères écrits ensemble avant le lancement : secteur, taille, fonction de l'interlocuteur. Hors critères = il ne compte pas, on le remplace." },
-  { q: "J'ai déjà payé une agence, ça n'a rien donné.", video: "assets/video/faq/faq5-deja-paye-agence.mp4",
+  { q: "J'ai déjà payé une agence, ça n'a rien donné.", video: "wistia:kzl8ijtamj", mp4: "assets/video/faq/faq5-deja-paye-agence.mp4",
     a: "Les agences vendent des moyens (e-mails envoyés, forfait au mois). Nous, un résultat : vous payez un nombre de rendez-vous qualifiés et tenus, et on remplace chaque no-show jusqu'à ce que vous l'ayez atteint." },
-  { q: "Qu'est-ce que je dois faire de mon côté ?", video: "assets/video/faq/faq6-mon-cote.mp4",
+  { q: "Qu'est-ce que je dois faire de mon côté ?", video: "wistia:hpghtv4omn", mp4: "assets/video/faq/faq6-mon-cote.mp4",
     a: "Honorer les rendez-vous et closer. La liste, le contact et les relances, c'est nous." }
 ];
 
@@ -350,10 +352,24 @@ var CFG = {
       return iframe("https://www.loom.com/embed/" + m[1] + "?hide_owner=true&hide_share=true&hideEmbedTopBar=true", title);
     if ((m = url.match(/vimeo\.com\/(?:video\/)?(\d+)/)))
       return iframe("https://player.vimeo.com/video/" + m[1] + "?dnt=1", title);
+    if ((m = url.match(/^wistia:(\w+)$|wistia\.(?:com|net)\/(?:embed\/)?medias\/(\w+)/)))
+      return wistia(m[1] || m[2]);
     /* sans image de couverture, #t=0.1 affiche la première image de la vidéo */
     return '<video controls preload="metadata" playsinline' +
       (poster ? ' poster="' + esc(poster) + '"' : '') +
       ' src="' + esc(poster ? url : url + "#t=0.1") + '"></video>';
+  }
+  function wistia(id) {
+    return '<wistia-player media-id="' + esc(id) + '" aspect="1.7777777777777777"></wistia-player>';
+  }
+  var scripts = {};
+  function loadScript(src, type) {
+    return scripts[src] || (scripts[src] = new Promise(function (ok, ko) {
+      var s = document.createElement("script");
+      s.src = src; s.async = true; if (type) s.type = type;
+      s.onload = ok; s.onerror = ko;
+      document.head.appendChild(s);
+    }));
   }
   function iframe(src, title) {
     return '<iframe src="' + src + '" title="' + esc(title) + '" loading="lazy" ' +
@@ -367,6 +383,21 @@ var CFG = {
   }
   function fill(el, url, title, poster, secours) {
     el.innerHTML = embed(url, title, poster) || placeholder(title);
+    /* Wistia : charge le lecteur ; s'il échoue (bloqueur, réseau) → .mp4 de secours */
+    var w = el.querySelector("wistia-player");
+    if (w) {
+      var id = w.getAttribute("media-id"), done = false;
+      var fallback = function () {
+        if (done || customElements.get("wistia-player")) return;
+        done = true;
+        if (secours) fill(el, secours, title, poster);
+      };
+      loadScript("https://fast.wistia.com/player.js").then(function () {
+        return loadScript("https://fast.wistia.com/embed/" + id + ".js", "module");
+      }).catch(fallback);
+      setTimeout(fallback, 8000);
+      return;
+    }
     /* fichier .mp4 introuvable → adresse de secours, sinon message clair */
     var v = el.querySelector("video");
     if (v) v.addEventListener("error", function () {
@@ -388,8 +419,9 @@ var CFG = {
       '<div class="video video--small"></div>' +
       '<p class="q"><span class="n">' + (i + 1) + '</span>' + esc(item.q) + '</p>' +
       '<p class="a">' + esc(item.a) + '</p>';
+    var mp4 = item.mp4 || (/^assets\//.test(item.video) ? item.video : "");
     fill(art.querySelector(".video"), item.video, "Réponse n°" + (i + 1), "",
-      /^assets\//.test(item.video) ? "https://linkfinderai.com/" + item.video : "");
+      mp4 ? "https://linkfinderai.com/" + mp4 : "");
     faq.appendChild(art);
   });
 
