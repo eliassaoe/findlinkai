@@ -169,3 +169,24 @@ order by s.mrr desc, a.last_used asc;
 ```
 
 The same people are listed with emails in the three PostHog cohorts linked above.
+
+---
+
+## Automation live (30 Sep 2026)
+
+The backlog was handled by hand in August; from here the plays fire on their own.
+
+| Piece | Where | Does |
+| --- | --- | --- |
+| `capture_churn_signals(p_mode)` | Supabase function (migration `churn_signals_to_posthog`) | For every subscriber, finds the last `enrichment_history` row (app, API, MCP and CSV all count, so the 8% PostHog cannot see are covered). Quiet 14–29 days = stage `14d`, 30+ days or never used = stage `30d`. Captures `subscriber_went_quiet` to PostHog with `distinct_id = token`, `$set.email`, and `stage`, `days_quiet`, `runs_ever`, `credits_left`, `plan_type`, `archetype` (`never_started` / `credit_wall` / `power_user` / `regular`), `first_name`. Modes: `dry` (counts only), `seed` (mark as handled, send nothing), `send`. |
+| `churn_signal_log` | Supabase table, RLS on, no policies | One row per signal. A stage fires once per quiet spell: someone who comes back and goes quiet again is eligible again. |
+| `churn-signals-daily` | pg_cron job 317, `7 9 * * *` | `select capture_churn_signals('send')` |
+| Workflow 21 | PostHog, stage `14d` | "the list you were working on": CSV prompt + "reply with who you sell to" |
+| Workflow 22 | PostHog, stage `30d` + `credit_wall` | "you ran out of credits": next plan or pack (archetype C) |
+| Workflow 23 | PostHog, stage `30d`, any other archetype | "what changed": one question, no offer, pause instead of cancel (archetype B) |
+
+The 31 subscribers already quiet on 30 Sep were seeded (`seeded = true`), so the first sends are people who go quiet after that date.
+
+Known gaps, not fixed here:
+- `subscription_cancelled` comes from the n8n Dodo webhook with the fields sent as literal `{{ $json... }}` text (the expression toggle is off), so every cancellation lands on one fake person and the reason is lost.
+- `subscription_renewed` uses the email as `distinct_id`, not the token, so 19 of 21 renewals sit on a person with no email and no history. Workflow 11 ("Paid, then went quiet") depends on it and stays a draft; workflows 21–23 replace it.
