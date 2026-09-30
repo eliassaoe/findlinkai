@@ -190,3 +190,14 @@ The 31 subscribers already quiet on 30 Sep were seeded (`seeded = true`), so the
 Known gaps, not fixed here:
 - `subscription_cancelled` comes from the n8n Dodo webhook with the fields sent as literal `{{ $json... }}` text (the expression toggle is off), so every cancellation lands on one fake person and the reason is lost.
 - `subscription_renewed` uses the email as `distinct_id`, not the token, so 19 of 21 renewals sit on a person with no email and no history. Workflow 11 ("Paid, then went quiet") depends on it and stays a draft; workflows 21–23 replace it.
+
+### Weekly value recap (30 Sep 2026)
+
+| Piece | Where | Does |
+| --- | --- | --- |
+| `user_value_window(token, since)` | Supabase function | Same counting rules as `user_value_summary` (the account page), over any window. `user_value_summary` itself is untouched. |
+| `capture_weekly_value_recap(p_mode)` | Supabase function, `dry` / `send` | Paying subscribers (`subscription_id` or `is_unlimited`) who found something in the last 7 days. Captures `weekly_value_recap` with `found_total`, `emails`, `phones`, `profiles`, `companies`, `people`, `lookups`, `found_all_time`, `hours_saved` (found × 2 min), `first_name`, `$set.email`. Zero weeks are skipped. `value_recap_log` stops a double send in the same ISO week. |
+| `weekly-value-recap` | pg_cron job 318, `13 8 * * 1` (Monday 08:13 UTC) | `select capture_weekly_value_recap('send')` |
+| Workflow 24 | PostHog | "your week on linkfinder: N found", one line per category that is above zero, button to `/account#what-you-found`. |
+
+The monthly receipt (worker `monthly-receipt` + workflow 12) never sent anything: workflow 12 is a draft and no `monthly_value_receipt` event has ever reached PostHog. Leave it off while workflow 24 runs, or the same people get both.
