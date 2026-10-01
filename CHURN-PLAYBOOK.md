@@ -196,8 +196,9 @@ Known gaps, not fixed here:
 | Piece | Where | Does |
 | --- | --- | --- |
 | `user_value_window(token, since)` | Supabase function | Same counting rules as `user_value_summary` (the account page), over any window. `user_value_summary` itself is untouched. |
-| `capture_weekly_value_recap(p_mode)` | Supabase function, `dry` / `send` | Paying subscribers (`subscription_id` or `is_unlimited`) who found something in the last 7 days. Captures `weekly_value_recap` with `found_total`, `emails`, `phones`, `profiles`, `companies`, `people`, `lookups`, `found_all_time`, `hours_saved` (found × 2 min), `first_name`, `$set.email`. Zero weeks are skipped. `value_recap_log` stops a double send in the same ISO week. |
+| `capture_weekly_value_recap(p_mode)` | Supabase function, `dry` / `send` | Anyone who found something in the last 7 days: paying subscribers (`subscription_id` or `is_unlimited`), plus free accounts whose `email_verified` is not false (same deliverability guard as the other lifecycle emails). Adds `is_subscriber` and `credits_left`. Captures `weekly_value_recap` with `found_total`, `emails`, `phones`, `profiles`, `companies`, `people`, `lookups`, `found_all_time`, `hours_saved` (found × 2 min), `first_name`, `$set.email`. Zero weeks are skipped. `value_recap_log` stops a double send in the same ISO week. |
 | `weekly-value-recap` | pg_cron job 318, `13 8 * * 1` (Monday 08:13 UTC) | `select capture_weekly_value_recap('send')` |
-| Workflow 24 | PostHog | "your week on linkfinder: N found", one line per category that is above zero, button to `/account#what-you-found`. |
+| Workflow 24 | PostHog, `is_subscriber = true` | "your week on linkfinder: N found", one line per category that is above zero, button to `/account#what-you-found`. |
+| Workflow 25 | PostHog, `is_subscriber = false` | Same recap plus "N credits left on the free plan" and a button to `/pricing?utm_campaign=weekly_recap_free`. |
 
 The monthly receipt (worker `monthly-receipt` + workflow 12) never sent anything: workflow 12 is a draft and no `monthly_value_receipt` event has ever reached PostHog. Leave it off while workflow 24 runs, or the same people get both.
