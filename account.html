@@ -558,50 +558,12 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
       </div>
     </div>
     <div class="flow-step" id="step2"></div>
-    <div class="flow-step" id="step3">
-      <div class="flow-header">
-        <h2>One last thing before you go</h2>
-        <p>Three quick questions — it takes about 20 seconds, and it is the only way we find out what to fix.</p>
-      </div>
-      <div style="background:var(--gray-50);border:1px solid var(--gray-200);border-radius:10px;padding:1.25rem;margin-top:1rem;text-align:center;">
-        <p style="font-size:.875rem;color:var(--gray-600);margin-bottom:1rem;">Your subscription stays active until the end of your current billing period either way.</p>
-        <button id="startExitSurveyBtn" class="btn btn-danger" onclick="startExitSurvey()" style="width:100%;display:flex;justify-content:center;">
-          Finish cancellation <i class="fas fa-arrow-right"></i>
-        </button>
-        <p style="font-size:.75rem;color:var(--gray-400);margin-top:.75rem;">Or <a href="#" onclick="closeCancellationModal();isExistingSubscriber=true;showPricingModal();return false;" style="color:var(--primary);">downgrade to a cheaper plan</a> instead</p>
-      </div>
-    </div>
-
-    <!-- Exit survey: one question at a time, then the real cancel button on step5.
-         Every question is skippable — trapping someone in a form to let them
-         cancel would poison the answers we are collecting in the first place. -->
-    <div class="flow-step" id="step4">
-      <div class="survey-progress">
-        <div class="survey-dots" id="surveyDots"></div>
-        <span class="survey-count" id="surveyCount"></span>
-      </div>
-      <div id="exitSurveyBody"></div>
-      <div class="survey-nav">
-        <button class="survey-link" id="surveyBackBtn" onclick="exitSurveyBack()"><i class="fas fa-arrow-left"></i> Back</button>
-        <button class="survey-link" id="surveySkipBtn" onclick="exitSurveySkip()">Skip this question</button>
-      </div>
-      <!-- Only rendered in the 'inline' layout: cancelling stays one click away
-           for the whole survey, so no question is ever standing in the way. -->
-      <div id="surveyCancelFooter" style="display:none;border-top:1px solid var(--gray-200);margin-top:1.25rem;padding-top:1rem;">
-        <button class="btn btn-danger js-confirm-cancel" onclick="exitSurveyCancelNow()" style="width:100%;display:flex;justify-content:center;">
-          <i class="fas fa-times-circle"></i> Cancel my subscription
-        </button>
-        <p style="font-size:.72rem;color:var(--gray-400);margin-top:.5rem;text-align:center;">You can cancel at any point — answering is optional.</p>
-      </div>
-    </div>
-
     <div class="flow-step" id="step5">
       <div class="flow-header">
-        <h2>Thank you — that genuinely helps</h2>
-        <p>We read every one of these.</p>
+        <h2>Confirm your cancellation</h2>
+        <p>No more charges. You keep access and your remaining credits until the end of your current billing period.</p>
       </div>
       <div style="background:var(--gray-50);border:1px solid var(--gray-200);border-radius:10px;padding:1.25rem;margin-top:1rem;text-align:center;">
-        <p style="font-size:.875rem;color:var(--gray-600);margin-bottom:1rem;">Your subscription will remain active until the end of your current billing period.</p>
         <button id="confirmCancelBtn" class="btn btn-danger js-confirm-cancel" onclick="confirmCancel()" style="width:100%;display:flex;justify-content:center;">
           <i class="fas fa-times-circle"></i> Cancel my subscription
         </button>
@@ -1130,7 +1092,7 @@ function showPricingModal(trigger, extra) {
     // to subscribers too - "buy credits" is a distinct ask from "manage my
     // plan," and the modal title below still correctly says "Change Your
     // Plan" for subscribers regardless of which tab is showing.
-    if (trigger === 'buy_credits_btn') {
+    if (trigger === 'buy_credits_btn' || trigger === 'cancel_flow_payg') {
         billingMode = 'payg';
     }
     document.getElementById('paygBtn').classList.toggle('active', billingMode === 'payg');
@@ -1377,17 +1339,9 @@ function showCancellationFlow() {
   document.getElementById('step1').classList.add('active');
   document.querySelectorAll('.reason-option').forEach(o => o.classList.remove('selected'));
   selectedCancellationReason = null;
-  exitSurveyIndex = 0;
-  exitSurveyAnswers = {};
-  exitSurveyDone = false;
-  clearTimeout(exitSurveyTimer);
+  currentRetentionOffer = null;
 }
 function closeCancellationModal() {
-  // Closing mid-survey is itself a signal: it says the questions cost more than
-  // the answer was worth, and which one they walked out on.
-  if (!exitSurveyDone && Object.keys(exitSurveyAnswers).length) {
-    surveyTrack('exit_survey_abandoned', { last_question: (EXIT_SURVEY[exitSurveyIndex] || {}).id || null, answered_count: Object.keys(exitSurveyAnswers).length });
-  }
   document.getElementById('cancellationModal').classList.remove('show');
   document.body.style.overflow = '';
 }
@@ -1408,101 +1362,101 @@ function selectReason(reason, event) {
   setTimeout(() => showSolutionForReason(reason), 500);
 }
 
-function showSolutionForReason(reason) {
-  const step2 = document.getElementById('step2');
-  const solutionMap = {
+/* One offer per reason, and the cancel button right under it.
+   The old screen stacked two or three offers (pause + setup call, discount +
+   compare + call, …) and then a three-question survey before the real cancel
+   button — six or seven clicks. Now: reason → one offer or "No thanks" →
+   confirm. The reason picked on step1 is the survey.
 
-    notUsing: `
-      <div class="flow-header"><h2>No worries — pause instead ⏸️</h2><p>Take a break without losing your account</p></div>
+   "notUsing" is the biggest bucket (34%). Its offer is the pause, which keeps a
+   CRM sync alive; pay-as-you-go is offered as a link under it, never as the
+   headline, because CRM users must not be pushed to PAYG (see CLAUDE.md). */
+const RETENTION_OFFERS = {
+  notUsing: {
+    offer: 'pause',
+    html: `
+      <div class="flow-header"><h2>Take a break instead ⏸️</h2><p>Pause billing for a month. Your account, credits and data stay put.</p></div>
       <div class="solution-card">
-        <h3><i class="fas fa-pause-circle"></i> Freeze your subscription for 1 month</h3>
-        <p>We'll pause your billing for 30 days and resume automatically. Your credits and data stay safe — no charges until you're back.</p>
-        <button id="pauseBtn" onclick="retentionAction('pause')" class="btn btn-success" style="width:100%;margin-bottom:.75rem;"><i class="fas fa-pause"></i> Pause billing for 1 month — free</button>
+        <h3><i class="fas fa-pause-circle"></i> Pause your subscription for 1 month — free</h3>
+        <p>No charge for 30 days, then it resumes automatically. You can cancel any time during the pause.</p>
+        <button id="pauseBtn" onclick="retentionAction('pause')" class="btn btn-success" style="width:100%;"><i class="fas fa-pause"></i> Pause for 1 month</button>
         <div id="pauseStatus" style="display:none;text-align:center;font-size:.85rem;color:var(--success);margin-top:.5rem;"></div>
-      </div>
+        <p style="font-size:.8rem;color:var(--gray-500);margin-top:.75rem;text-align:center;">Only need a few lookups now and then? <a href="#" onclick="switchToPayg();return false;" style="color:var(--primary);">Switch to pay-as-you-go credits that never expire</a></p>
+      </div>`,
+  },
+  tooExpensive: {
+    offer: 'discount',
+    html: `
+      <div class="flow-header"><h2>Stay for 30% less 💸</h2><p>Keep your plan at 30% off for your next 3 billing cycles.</p></div>
       <div class="solution-card">
-        <h3><i class="fas fa-video"></i> Or book a free setup call</h3>
-        <p>30 minutes with our team — we'll set everything up for you.</p>
-        <a href="${CALENDLY_LINK}" target="_blank" class="btn" style="width:100%;"><i class="fas fa-calendar"></i> Book Free Setup Call</a>
-      </div>
-      <div class="btn-group"><button class="btn btn-danger" onclick="declineAllSolutions()">No, Continue to Cancel</button></div>`,
-
-    missingFeature: `
-      <div class="flow-header"><h2>Tell Us What You Need 🔧</h2><p>Your feedback shapes our roadmap</p></div>
+        <h3><i class="fas fa-tag"></i> 30% off for 3 months</h3>
+        <p>Applied automatically to your next 3 invoices. No strings attached.</p>
+        <button id="discountBtn" onclick="retentionAction('discount')" class="btn btn-success" style="width:100%;"><i class="fas fa-percent"></i> Apply 30% discount</button>
+        <div id="discountStatus" style="display:none;text-align:center;font-size:.85rem;color:var(--success);margin-top:.5rem;"></div>
+      </div>`,
+  },
+  competitor: {
+    offer: 'discount',
+    html: `
+      <div class="flow-header"><h2>We'll beat their price 💰</h2><p>Keep LinkFinder AI at 30% off for your next 3 billing cycles.</p></div>
       <div class="solution-card">
-        <h3><i class="fas fa-lightbulb"></i> Request your feature</h3>
-        <p>We ship new features every week based on user requests. Tell us what's missing:</p>
-        <textarea id="featureRequestText" class="feedback-textarea" placeholder="What feature would make LinkFinder AI perfect for you?"></textarea>
-        <button onclick="submitFeatureRequest()" class="btn btn-success" style="width:100%;"><i class="fas fa-paper-plane"></i> Submit — we'll notify you when it ships</button>
-      </div>
+        <h3><i class="fas fa-tag"></i> 30% off for 3 months</h3>
+        <p>Applied automatically to your next 3 invoices. No strings attached.</p>
+        <button id="discountBtn" onclick="retentionAction('discount')" class="btn btn-success" style="width:100%;"><i class="fas fa-percent"></i> Apply 30% discount</button>
+        <div id="discountStatus" style="display:none;text-align:center;font-size:.85rem;color:var(--success);margin-top:.5rem;"></div>
+      </div>`,
+  },
+  missingFeature: {
+    offer: 'feature_request',
+    html: `
+      <div class="flow-header"><h2>Tell us what's missing 🔧</h2><p>We ship features every week from requests like yours.</p></div>
       <div class="solution-card">
-        <h3><i class="fas fa-phone"></i> Talk to our product team</h3>
-        <p>We might already have a workaround or it could be on our roadmap.</p>
-        <a href="${CALENDLY_LINK}" target="_blank" class="btn" style="width:100%;"><i class="fas fa-calendar"></i> Book Product Call</a>
-      </div>
-      <div class="btn-group"><button class="btn btn-danger" onclick="declineAllSolutions()">No, Continue to Cancel</button></div>`,
-
-    technical: `
-      <div class="flow-header"><h2>Let's Fix This Right Now 🛠️</h2><p>We take technical issues seriously</p></div>
+        <textarea id="featureRequestText" class="feedback-textarea" placeholder="What would make LinkFinder AI work for you?"></textarea>
+        <button onclick="submitFeatureRequest()" class="btn btn-success" style="width:100%;"><i class="fas fa-paper-plane"></i> Send — we'll tell you when it ships</button>
+      </div>`,
+  },
+  technical: {
+    offer: 'priority_support',
+    html: `
+      <div class="flow-header"><h2>Let us fix it first 🛠️</h2><p>Priority support, answer within 2 hours.</p></div>
       <div class="solution-card">
-        <h3><i class="fas fa-headset"></i> Priority support — 2 hour response</h3>
-        <p>Describe your issue and our technical team will fix it fast:</p>
         <textarea id="technicalIssueText" class="feedback-textarea" placeholder="What's not working? Be as specific as possible..."></textarea>
-        <button onclick="submitTechnicalIssue()" class="btn btn-success" style="width:100%;"><i class="fas fa-ambulance"></i> Get Immediate Help</button>
-      </div>
+        <button onclick="submitTechnicalIssue()" class="btn btn-success" style="width:100%;"><i class="fas fa-ambulance"></i> Get help now</button>
+      </div>`,
+  },
+  other: {
+    offer: 'feedback',
+    html: `
+      <div class="flow-header"><h2>Help us understand 💬</h2><p>One line is plenty — we read every one.</p></div>
       <div class="solution-card">
-        <h3><i class="fas fa-video"></i> Live troubleshooting call</h3>
-        <p>We'll screenshare and fix it together.</p>
-        <a href="${CALENDLY_LINK}" target="_blank" class="btn" style="width:100%;"><i class="fas fa-calendar-check"></i> Book Emergency Call</a>
-      </div>
-      <div class="btn-group"><button class="btn btn-danger" onclick="declineAllSolutions()">No, Continue to Cancel</button></div>`,
+        <textarea id="otherReasonText" class="feedback-textarea" placeholder="What's making you cancel?"></textarea>
+        <button onclick="submitOtherFeedback()" class="btn btn-success" style="width:100%;"><i class="fas fa-paper-plane"></i> Send feedback</button>
+      </div>`,
+  },
+};
 
-    competitor: `
-      <div class="flow-header"><h2>We'll beat their price 💰</h2><p>Seriously — let us prove it</p></div>
-      <div class="solution-card">
-        <h3><i class="fas fa-tag"></i> Get 30% off for 3 months</h3>
-        <p>Stay on LinkFinder AI at a price that beats most competitors. Applied to your next 3 billing cycles — no strings attached.</p>
-        <button id="discountBtn" onclick="retentionAction('discount')" class="btn btn-success" style="width:100%;margin-bottom:.75rem;"><i class="fas fa-percent"></i> Apply 30% discount now</button>
-        <div id="discountStatus" style="display:none;text-align:center;font-size:.85rem;color:var(--success);margin-top:.5rem;"></div>
-      </div>
-      <div class="solution-card">
-        <h3><i class="fas fa-chart-bar"></i> Compare us fairly</h3>
-        <ul class="solution-features">
-          <li><i class="fas fa-check"></i> More accurate data than most alternatives</li>
-          <li><i class="fas fa-check"></i> Native Zapier, n8n & Google Sheets integration</li>
-          <li><i class="fas fa-check"></i> Credits never expire</li>
-        </ul>
-        <a href="${CALENDLY_LINK}" target="_blank" class="btn" style="width:100%;"><i class="fas fa-phone"></i> Talk to our team</a>
-      </div>
-      <div class="btn-group"><button class="btn btn-danger" onclick="declineAllSolutions()">No, Continue to Cancel</button></div>`,
+let currentRetentionOffer = null;
 
-    tooExpensive: `
-      <div class="flow-header"><h2>Let's make it affordable 💸</h2><p>Two options to lower your bill right now</p></div>
-      <div class="solution-card">
-        <h3><i class="fas fa-tag"></i> Get 30% off for 3 months</h3>
-        <p>Stay on your current plan at 30% off for the next 3 billing cycles.</p>
-        <button id="discountBtn" onclick="retentionAction('discount')" class="btn btn-success" style="width:100%;margin-bottom:.75rem;"><i class="fas fa-percent"></i> Apply 30% discount now</button>
-        <div id="discountStatus" style="display:none;text-align:center;font-size:.85rem;color:var(--success);margin-top:.5rem;"></div>
-      </div>
-      <div class="solution-card">
-        <h3><i class="fas fa-arrow-down"></i> Or downgrade to a cheaper plan</h3>
-        <p>Keep access at a lower monthly cost — you can always upgrade later.</p>
-        <button onclick="closeCancellationModal();isExistingSubscriber=true;showPricingModal();" class="btn" style="width:100%;"><i class="fas fa-layer-group"></i> See cheaper plans</button>
-      </div>
-      <div class="btn-group"><button class="btn btn-danger" onclick="declineAllSolutions()">No, Continue to Cancel</button></div>`,
+function showSolutionForReason(reason) {
+  const entry = RETENTION_OFFERS[reason] || RETENTION_OFFERS.other;
+  currentRetentionOffer = entry.offer;
+  document.getElementById('step2').innerHTML = entry.html + `
+      <div class="btn-group"><button class="btn btn-danger" onclick="declineAllSolutions()">No thanks, cancel my subscription</button></div>`;
+  goToFlowStep('step2');
+  // Shown and accepted are both recorded, so the save rate of each offer is
+  // accepted / shown per reason instead of a guess from acceptances alone.
+  surveyTrack('retention_offer_shown', { reason: selectedCancellationReason, offer: currentRetentionOffer });
+}
 
-    other: `
-      <div class="flow-header"><h2>Help Us Understand 💬</h2><p>Your feedback is invaluable</p></div>
-      <div class="solution-card">
-        <h3><i class="fas fa-comment-alt"></i> Tell Us More</h3>
-        <textarea id="otherReasonText" class="feedback-textarea" placeholder="What's making you consider canceling?"></textarea>
-        <button onclick="submitOtherFeedback()" class="btn btn-success" style="width:100%;"><i class="fas fa-paper-plane"></i> Send Feedback</button>
-      </div>
-      <div class="btn-group"><button class="btn btn-danger" onclick="declineAllSolutions()">No, Continue to Cancel</button></div>`
-  };
-  step2.innerHTML = solutionMap[reason] || solutionMap.other;
-  document.querySelectorAll('.flow-step').forEach(s => s.classList.remove('active'));
-  step2.classList.add('active');
+function trackOfferAccepted(offer) {
+  surveyTrack('retention_offer_accepted', { reason: selectedCancellationReason, offer });
+}
+
+function switchToPayg() {
+  trackOfferAccepted('payg');
+  closeCancellationModal();
+  isExistingSubscriber = true;
+  showPricingModal('cancel_flow_payg');
 }
 
 async function submitFeedback(type, textId, captureEvent) {
@@ -1519,6 +1473,7 @@ async function submitFeedback(type, textId, captureEvent) {
     const r = await fetch(FEEDBACK_ENDPOINT, { method:'POST', headers:{'Content-Type':'application/json','X-API-Secret':window.LF_API_KEY}, body: JSON.stringify(payload) });
     if (r.ok) {
       surveyTrack(captureEvent, { reason: selectedCancellationReason });
+      trackOfferAccepted(currentRetentionOffer);
       closeCancellationModal();
       alert('Thank you! Our team will reach out within 24 hours.');
     } else { alert('Error submitting. Please try again.'); }
@@ -1530,107 +1485,21 @@ function submitTechnicalIssue()  { submitFeedback('technical_issue',   'technica
 function submitOtherFeedback()   { submitFeedback('other_feedback',    'otherReasonText',     'other_feedback_submitted'); }
 
 function declineAllSolutions() {
-  surveyTrack('all_solutions_declined', { reason: selectedCancellationReason });
-  goToFlowStep('step3');
+  surveyTrack('all_solutions_declined', { reason: selectedCancellationReason, offer: currentRetentionOffer });
+  goToFlowStep('step5');
 }
 
-/* ── Exit survey ──────────────────────────────────────────────────────────
-   The reason grid on step1 buys exactly one datapoint per churner, out of six
-   buckets, and PostHog says the two biggest are "notUsing" (34%) and "other"
-   (23%) — neither of which names anything fixable. Worse, of the 17 people who
-   picked "other", 2 ever typed what they meant, because the free text sat
-   behind a Send button they had no reason to press.
-
-   So these three questions run AFTER the retention offers are declined, on the
-   path to the cancel button rather than beside it, one screen at a time. They
-   are deliberately structured (single-select, stable option values) so the
-   answers break down in PostHog instead of arriving as prose nobody reads.
-
-   Skipping is allowed on every question and the cancel button is always the
-   next screen: a survey someone is trapped in returns whatever gets them out
-   fastest, which is worse than no data. */
-
-const EXIT_SURVEY = [
-  {
-    id: 'usage',
-    question: 'What were you mainly using LinkFinder AI for?',
-    hint: 'Tells us which part of the product lost you.',
-    options: [
-      { value: 'one_off',    label: 'One-off lookups — a few contacts at a time' },
-      { value: 'bulk_csv',   label: 'Bulk CSV enrichment' },
-      { value: 'api',        label: 'API or automation (Zapier, n8n, Make, MCP)' },
-      { value: 'crm',        label: 'Keeping my CRM enriched' },
-      { value: 'never_got_going', label: 'I never really got it working' },
-    ],
-  },
-  {
-    id: 'cause',
-    question: "What's the main thing that made you cancel?",
-    hint: 'Pick the one that weighed heaviest.',
-    options: [
-      { value: 'no_results',   label: "I couldn't find the contacts I needed" },
-      { value: 'bad_data',     label: 'The data I got back was wrong or outdated' },
-      { value: 'credits',      label: 'Credits ran out faster than I expected' },
-      { value: 'too_hard',     label: 'It took too long or was too fiddly to use' },
-      { value: 'price',        label: "The price didn't match what I got out of it" },
-      { value: 'no_longer_needed', label: 'My project or job changed — I no longer need this' },
-      { value: 'other',        label: 'Something else', text: true, placeholder: 'What was it?' },
-    ],
-  },
-  {
-    id: 'destination',
-    question: "Where's this work going now?",
-    hint: "No wrong answer — we'd rather know than guess.",
-    options: [
-      { value: 'apollo',      label: 'Apollo' },
-      { value: 'clay',        label: 'Clay' },
-      { value: 'hunter',      label: 'Hunter' },
-      { value: 'lusha',       label: 'Lusha' },
-      { value: 'other_tool',  label: 'Another tool', text: true, placeholder: 'Which one?' },
-      { value: 'manual',      label: 'Back to doing it by hand' },
-      { value: 'stopping',    label: "We've stopped doing this work altogether" },
-    ],
-  },
-];
-
-let exitSurveyIndex   = 0;
-let exitSurveyAnswers = {};
-let exitSurveyDone    = false;
-let exitSurveyTimer   = null;
-
-/* Layout of the cancel button during the survey:
-     'inline' — cancel button visible under every question  (shipping)
-     'gate'   — survey first, cancel button on the screen after it
-
-   'inline' on purpose. The point of these three questions is data we can act
-   on, and an answer someone picked to get past a screen is not that — it is
-   noise, and at roughly six cancellations per six months a couple of junk rows
-   would swamp the real ones. Making the survey optional costs some completion
-   rate and buys answers worth reading. It also keeps cancelling to two clicks,
-   which is what ROSCA's "simple mechanism" and California's ARL are about.
-
-   Compare them without cancelling anything:
-   lfPreview.survey('inline') / lfPreview.survey('gate'). */
-let EXIT_SURVEY_LAYOUT = 'inline';
-
 /* Preview mode. Nothing that leaves the browser runs while this is on: no
-   PostHog events, no feedback email, no call to the cancel worker. Captures
+   PostHog events, no feedback email, no call to the cancel workers. Captures
    are printed to the console instead so you can check the payloads. */
 let surveyPreview = false;
 
 /* Every event in the cancellation flow goes through here, so all of them carry
-   the same flow_id and honour preview mode. `opts` is passed to PostHog
-   untouched — the one caller that needs it asks for a transport. */
+   the same flow_id and honour preview mode. */
 function surveyTrack(name, props, opts) {
   const payload = Object.assign({ flow_id: cancellationFlowId }, props || {});
   if (surveyPreview) { console.log('%c[preview] would capture', 'color:#f59e0b;font-weight:700', name, payload); return; }
   try { posthog.capture(name, payload, opts); } catch(e) {}
-}
-
-function escHtml(v) {
-  return String(v == null ? '' : v).replace(/[&<>"']/g, (c) => (
-    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
-  ));
 }
 
 function goToFlowStep(id) {
@@ -1639,189 +1508,10 @@ function goToFlowStep(id) {
   if (el) el.classList.add('active');
 }
 
-function startExitSurvey() {
-  exitSurveyIndex   = 0;
-  exitSurveyAnswers = {};
-  exitSurveyDone    = false;
-  surveyTrack('exit_survey_started', { reason: selectedCancellationReason, layout: EXIT_SURVEY_LAYOUT });
-  goToFlowStep('step4');
-  renderExitSurveyQuestion();
-}
-
-function renderExitSurveyQuestion() {
-  const q = EXIT_SURVEY[exitSurveyIndex];
-  if (!q) return finishExitSurvey();
-
-  const dots = EXIT_SURVEY.map((_, i) =>
-    `<div class="survey-dot${i <= exitSurveyIndex ? ' done' : ''}"></div>`).join('');
-  document.getElementById('surveyDots').innerHTML = dots;
-  document.getElementById('surveyCount').textContent = `${exitSurveyIndex + 1} of ${EXIT_SURVEY.length}`;
-
-  const prior = exitSurveyAnswers[q.id];
-  const opts = q.options.map((o, i) => {
-    const selected = prior && prior.value === o.value;
-    return `<button type="button" class="survey-option${selected ? ' selected' : ''}" onclick="answerExitSurvey('${o.value}')">
-      <span class="survey-key">${i + 1}</span><span>${escHtml(o.label)}</span>
-    </button>`;
-  }).join('');
-
-  // A free-text option reveals its box in place and waits for Continue, instead
-  // of auto-advancing like the plain options do.
-  const needsText = prior && prior.value && q.options.find(o => o.value === prior.value && o.text);
-  const textBlock = needsText ? `
-    <textarea class="survey-textarea" id="surveyText" placeholder="${escHtml(needsText.placeholder || '')}">${escHtml(prior.text || '')}</textarea>
-    <button class="btn btn-danger" style="width:100%;margin-top:.75rem;display:flex;justify-content:center;" onclick="submitExitSurveyText()">Continue <i class="fas fa-arrow-right"></i></button>` : '';
-
-  document.getElementById('exitSurveyBody').innerHTML = `
-    <div class="survey-question">${escHtml(q.question)}</div>
-    <div class="survey-hint">${escHtml(q.hint)}</div>
-    <div class="survey-options">${opts}</div>
-    ${textBlock}`;
-
-  document.getElementById('surveyBackBtn').hidden = exitSurveyIndex === 0;
-  document.getElementById('surveyCancelFooter').style.display = EXIT_SURVEY_LAYOUT === 'inline' ? 'block' : 'none';
-  if (needsText) { const t = document.getElementById('surveyText'); if (t) t.focus(); }
-}
-
-function answerExitSurvey(value) {
-  const q = EXIT_SURVEY[exitSurveyIndex];
-  const option = q.options.find(o => o.value === value);
-  if (!option) return;
-
-  exitSurveyAnswers[q.id] = { value, label: option.label, text: (exitSurveyAnswers[q.id] || {}).text || '' };
-
-  if (option.text) { renderExitSurveyQuestion(); return; }  // reveal the box, stay put
-  recordExitSurveyAnswer(q, exitSurveyAnswers[q.id]);
-  renderExitSurveyQuestion();
-  // Short pause so the selected state is visible before the screen changes.
-  // Cleared first: a second click before it fires would otherwise queue two
-  // advances and silently skip the next question.
-  clearTimeout(exitSurveyTimer);
-  exitSurveyTimer = setTimeout(nextExitSurveyQuestion, 220);
-}
-
-function submitExitSurveyText() {
-  const q = EXIT_SURVEY[exitSurveyIndex];
-  const el = document.getElementById('surveyText');
-  exitSurveyAnswers[q.id].text = el ? el.value.trim() : '';
-  recordExitSurveyAnswer(q, exitSurveyAnswers[q.id]);
-  nextExitSurveyQuestion();
-}
-
-function recordExitSurveyAnswer(q, answer) {
-  surveyTrack('exit_survey_answered', {
-    question: q.id,
-    answer: answer.value,
-    answer_text: answer.text || null,
-    reason: selectedCancellationReason,
-  });
-}
-
-function nextExitSurveyQuestion() {
-  exitSurveyIndex++;
-  if (exitSurveyIndex >= EXIT_SURVEY.length) return finishExitSurvey();
-  renderExitSurveyQuestion();
-}
-
-function exitSurveyBack() {
-  clearTimeout(exitSurveyTimer);
-  if (exitSurveyIndex === 0) return;
-  exitSurveyIndex--;
-  renderExitSurveyQuestion();
-}
-
-function exitSurveySkip() {
-  clearTimeout(exitSurveyTimer);
-  const q = EXIT_SURVEY[exitSurveyIndex];
-  surveyTrack('exit_survey_question_skipped', { question: q.id, reason: selectedCancellationReason });
-  nextExitSurveyQuestion();
-}
-
-// Recording the answers and moving to the next screen are separate, because
-// the inline layout cancels straight from the survey and must still flush
-// whatever was answered on the way out. Idempotent — never sends twice.
-function flushExitSurvey(exitedVia) {
-  if (exitSurveyDone) return;
-  exitSurveyDone = true;
-
-  const flat = {};
-  EXIT_SURVEY.forEach((q) => {
-    const a = exitSurveyAnswers[q.id];
-    flat[q.id] = a ? a.value : null;
-    if (a && a.text) flat[q.id + '_text'] = a.text;
-  });
-  const answered = EXIT_SURVEY.filter(q => exitSurveyAnswers[q.id]).length;
-
-  // One event carrying all three answers, so churn breaks down in a single
-  // PostHog query instead of a three-way join across per-question events.
-  surveyTrack('exit_survey_completed', {
-    ...flat,
-    answered_count: answered,
-    reason: selectedCancellationReason,
-    layout: EXIT_SURVEY_LAYOUT,
-    exited_via: exitedVia || 'completed',
-    subscription_id: currentSubscriptionId || null,
-  });
-
-  if (!answered) return;
-
-  const lines = ['EXIT SURVEY — ' + (selectedCancellationReason || 'no reason picked')];
-  EXIT_SURVEY.forEach((q) => {
-    const a = exitSurveyAnswers[q.id];
-    lines.push(`${q.question} ${a ? a.label + (a.text ? ' — "' + a.text + '"' : '') : '(skipped)'}`);
-  });
-
-  if (surveyPreview) { console.log('%c[preview] would email', 'color:#f59e0b;font-weight:700', lines.join('\n')); return; }
-
-  // Best-effort copy to the feedback inbox — never blocks the cancel button.
-  try {
-    fetch(FEEDBACK_ENDPOINT, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-API-Secret': window.LF_API_KEY },
-      body: JSON.stringify({
-        user_token: userToken,
-        type: 'feedback',
-        message: lines.join('\n'),
-        page: 'account/cancellation',
-        exit_survey: flat,
-        cancellation_reason: selectedCancellationReason,
-        timestamp: new Date().toISOString(),
-      }),
-    }).catch(() => {});
-  } catch(e) {}
-}
-
-function finishExitSurvey() {
-  flushExitSurvey('completed');
-  goToFlowStep('step5');
-}
-
-// Inline layout only: cancel from inside the survey, keeping whatever was
-// answered up to that point.
-function exitSurveyCancelNow() {
-  clearTimeout(exitSurveyTimer);
-  flushExitSurvey('cancelled_from_survey');
-  confirmCancel();
-}
-
 /* ── Dev preview ──────────────────────────────────────────────────────────
-   Walk the cancellation flow on any account, subscriber or not, without
-   cancelling anything. From the browser console on /account:
-
-     lfPreview.cancel()            whole flow from the reason grid
-     lfPreview.survey()            jump straight to the three questions
-     lfPreview.survey('inline')    same, with cancel visible under every question
-     lfPreview.survey('gate')      same, with cancel on the screen after (shipping)
-     lfPreview.compare()           what the two layouts cost in clicks
-     lfPreview.answers()           what has been answered so far
-     lfPreview.off()               leave preview mode
-
-   Or by URL:  /account?token=…&preview=survey&variant=inline
-
-   While preview is on, nothing leaves the browser: PostHog captures, the
-   feedback email and the cancel worker are all replaced by console logs
-   prefixed [preview]. The layout override lasts until the page reloads —
-   EXIT_SURVEY_LAYOUT above is what actually ships. */
+   Walk the cancellation flow on any account without cancelling anything.
+   From the browser console on /account:  lfPreview.cancel()  /  lfPreview.off()
+   Or by URL:  /account?token=…&preview=cancel */
 
 function renderPreviewBanner() {
   const el = document.getElementById('previewBanner');
@@ -1830,51 +1520,22 @@ function renderPreviewBanner() {
   el.style.display = 'block';
   el.innerHTML = `<div style="background:#fef3c7;border:1px solid #fcd34d;color:#92400e;border-radius:8px;padding:.625rem .875rem;margin-bottom:1.25rem;font-size:.8rem;display:flex;align-items:center;gap:.5rem;">
     <i class="fas fa-flask"></i>
-    <span><strong>Preview mode</strong> — layout <code>${escHtml(EXIT_SURVEY_LAYOUT)}</code>. Nothing is cancelled and no events are sent. Payloads are logged to the console.</span>
+    <span><strong>Preview mode</strong> — nothing is cancelled and no events are sent. Payloads are logged to the console.</span>
   </div>`;
 }
 
-function enterPreview(variant) {
-  surveyPreview = true;
-  if (variant === 'inline' || variant === 'gate') EXIT_SURVEY_LAYOUT = variant;
-  renderPreviewBanner();
-}
-
 window.lfPreview = {
-  cancel(variant) {
-    enterPreview(variant);
+  cancel() {
+    surveyPreview = true;
     showCancellationFlow();
     renderPreviewBanner();               // showCancellationFlow resets the modal
-    console.log('[preview] cancellation flow open, layout =', EXIT_SURVEY_LAYOUT);
     return 'pick a reason to walk the whole flow';
   },
-  survey(variant) {
-    enterPreview(variant);
-    // Skip the reason grid and the retention offers — this is the part under
-    // review, and a preview that makes you click through four screens first
-    // is a preview nobody runs twice.
-    document.getElementById('cancellationModal').classList.add('show');
-    document.body.style.overflow = 'hidden';
-    selectedCancellationReason = selectedCancellationReason || 'preview';
-    renderPreviewBanner();
-    startExitSurvey();
-    console.log('[preview] survey open, layout =', EXIT_SURVEY_LAYOUT);
-    return `layout '${EXIT_SURVEY_LAYOUT}' — try lfPreview.survey('${EXIT_SURVEY_LAYOUT === 'inline' ? 'gate' : 'inline'}') to compare`;
-  },
-  compare() {
-    console.table([
-      { layout: 'gate',   'clicks to cancel without answering': 5, 'cancel reachable during survey': 'no',  shipping: EXIT_SURVEY_LAYOUT === 'gate' },
-      { layout: 'inline', 'clicks to cancel without answering': 2, 'cancel reachable during survey': 'yes', shipping: EXIT_SURVEY_LAYOUT === 'inline' },
-    ]);
-    return "From step 3 — gate: Finish cancellation, Skip x3, Cancel. inline: Finish cancellation, Cancel. Both then hit the confirm dialog.";
-  },
-  answers() { console.log(JSON.parse(JSON.stringify(exitSurveyAnswers))); return exitSurveyAnswers; },
-  layout(v) { if (v) EXIT_SURVEY_LAYOUT = v; renderPreviewBanner(); return EXIT_SURVEY_LAYOUT; },
   off() {
     surveyPreview = false;
     closeCancellationModal();
     renderPreviewBanner();
-    return 'preview off — reload to reset the layout override';
+    return 'preview off';
   },
 };
 
@@ -1934,6 +1595,7 @@ async function retentionAction(action) {
         subscription_id: currentSubscriptionId,
         reason:          selectedCancellationReason,
       });
+      trackOfferAccepted(action);
       // Close modal after 3 seconds
       setTimeout(() => closeCancellationModal(), 3000);
     } else {
@@ -1948,83 +1610,98 @@ async function retentionAction(action) {
   }
 }
 
+/* The cancel button must never leave a customer subscribed.
+   1. the original worker, which handles Dodo subscription ids (sub_0N…);
+   2. if it rejects, CANCEL_FALLBACK_WORKER, which looks the subscription up
+      from the token and also handles Dodo customer ids (cus_…) and Paddle
+      subscriptions (sub_01…) — workers/cancel-subscription/;
+   3. if that fails too, a manual cancellation request to the support inbox,
+      and the customer is told it is handled — not "please try again".
+   A Paddle subscriber hit step 1 twice on 2026-10-01 and was left subscribed. */
+const CANCEL_FALLBACK_WORKER = 'https://cancel-subscription-v2.hamoureliasse.workers.dev/';
+
+async function postJson(url, body) {
+  const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  try { return await r.json(); } catch(e) { return { ok: false, error: 'http_' + r.status }; }
+}
+
 async function confirmCancel() {
-  // Either layout can own the button — the inline one lives on step4.
-  const btn = document.querySelector('.flow-step.active .js-confirm-cancel') || document.getElementById('confirmCancelBtn');
+  const btn = document.getElementById('confirmCancelBtn');
   if (surveyPreview) {
     console.log('%c[preview] would cancel subscription', 'color:#f59e0b;font-weight:700', currentSubscriptionId || '(no subscription on this account)');
     alert('PREVIEW — nothing was cancelled.\n\nThis is where the real cancellation would fire.');
     closeCancellationModal();
     return;
   }
-  if (!currentSubscriptionId) {
-    alert('Could not find your subscription. Please contact support@linkfinderai.com');
-    return;
-  }
-  if (!confirm('Are you sure you want to cancel? Your access continues until the end of your billing period.')) {
-    // Backing out at the final confirm is a save, and it was previously silent:
-    // the flow recorded someone reaching the cancel button and nothing after it,
-    // which reads identically to a cancellation whose event went missing.
-    surveyTrack('cancellation_confirm_declined', { reason: selectedCancellationReason });
-    return;
-  }
   btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Cancelling...';
   btn.disabled = true;
-  try {
-    const r = await fetch(CANCEL_WORKER, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'cancel', subscription_id: currentSubscriptionId })
-    });
-    const d = await r.json();
-    if (d.ok) {
-      // Captured BEFORE the alert, not after it. alert() blocks the main thread
-      // until it is dismissed, and people close the tab on this one rather than
-      // clicking OK — so a capture queued behind it never got the chance to run.
-      // That ordering is the likeliest reason 85 people entered this flow and
-      // only 7 ever produced a subscription_cancelled event.
-      //
-      // Default transport on purpose: the page does not navigate here, so the
-      // request is dispatched immediately and completes in the background while
-      // the alert blocks. sendBeacon would buy nothing and can be silently
-      // dropped when it returns false.
-      //
-      // The reason and the survey answers ride along, so churn breaks down
-      // without joining back to earlier events in the flow.
-      surveyTrack('subscription_cancelled', {
-        subscription_id:       currentSubscriptionId,
-        reason:                selectedCancellationReason,
-        survey_answered_count: Object.keys(exitSurveyAnswers).length,
-        plan:                  currentPlanNumber || null,
-      });
-      closeCancellationModal();
-      alert('Your subscription has been cancelled. You will keep access until the end of your current billing period.');
-    } else {
-      // A cancel that fails is worse than one that succeeds and goes untracked:
-      // the customer believes they cancelled, the next charge lands anyway, and
-      // it arrives as a support ticket or a chargeback with nothing in PostHog
-      // explaining it. Both failure paths are recorded before the alert.
-      surveyTrack('subscription_cancel_failed', {
-        subscription_id: currentSubscriptionId,
-        reason:          selectedCancellationReason,
-        failure:         'worker_rejected',
-        detail:          (d && (d.error || d.message)) || null,
-      });
-      btn.innerHTML = '<i class="fas fa-times-circle"></i> Cancel my subscription';
-      btn.disabled = false;
-      alert('Something went wrong. Please try again or contact support@linkfinderai.com');
+
+  const failures = [];
+  let cancelledVia = null;
+
+  if (currentSubscriptionId) {
+    try {
+      const d = await postJson(CANCEL_WORKER, { action: 'cancel', subscription_id: currentSubscriptionId });
+      if (d && d.ok) cancelledVia = 'primary';
+      else failures.push({ worker: 'primary', failure: 'worker_rejected', detail: (d && (d.error || d.message)) || null });
+    } catch(e) {
+      failures.push({ worker: 'primary', failure: 'network_error', detail: e && e.message ? e.message : null });
     }
-  } catch(e) {
-    surveyTrack('subscription_cancel_failed', {
+  }
+
+  if (!cancelledVia) {
+    try {
+      const d = await postJson(CANCEL_FALLBACK_WORKER, { token: userToken });
+      if (d && d.ok) cancelledVia = 'fallback';
+      else failures.push({ worker: 'fallback', failure: 'worker_rejected', detail: (d && (d.error + (d.detail ? ': ' + d.detail : ''))) || null });
+    } catch(e) {
+      failures.push({ worker: 'fallback', failure: 'network_error', detail: e && e.message ? e.message : null });
+    }
+  }
+
+  // Every failed attempt is recorded, even when a later step saves the day,
+  // so a broken worker shows up in PostHog before a customer complains.
+  failures.forEach((f) => surveyTrack('subscription_cancel_failed', {
+    subscription_id: currentSubscriptionId,
+    reason:          selectedCancellationReason,
+    ...f,
+  }));
+
+  if (cancelledVia) {
+    // Captured BEFORE the alert: alert() blocks, and people close the tab on it.
+    surveyTrack('subscription_cancelled', {
       subscription_id: currentSubscriptionId,
       reason:          selectedCancellationReason,
-      failure:         'network_error',
-      detail:          e && e.message ? e.message : null,
+      plan:            currentPlanNumber || null,
+      via:             cancelledVia,
     });
-    btn.innerHTML = '<i class="fas fa-times-circle"></i> Cancel my subscription';
-    btn.disabled = false;
-    alert('Network error. Please try again.');
+    closeCancellationModal();
+    alert('Your subscription has been cancelled. You will keep access until the end of your current billing period.');
+    return;
   }
+
+  // Neither worker could cancel. File it for a human and tell the customer it
+  // is taken care of — retrying the same button cannot succeed.
+  surveyTrack('cancellation_request_filed', {
+    subscription_id: currentSubscriptionId,
+    reason:          selectedCancellationReason,
+  });
+  try {
+    await fetch(FEEDBACK_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-API-Secret': window.LF_API_KEY },
+      body: JSON.stringify({
+        token:   userToken,
+        type:    'cancellation_request',
+        feedback: `URGENT — CANCEL MANUALLY BEFORE NEXT RENEWAL\nEmail: ${window.currentUserEmail || 'unknown'}\nSubscription: ${currentSubscriptionId || 'none on file'}\nReason: ${selectedCancellationReason || 'none'}\nErrors: ${failures.map(f => f.worker + '=' + (f.detail || f.failure)).join(' | ')}`,
+        reason:  selectedCancellationReason,
+        page:    'account/cancellation',
+        timestamp: new Date().toISOString(),
+      }),
+    });
+  } catch(e) {}
+  closeCancellationModal();
+  alert("We've received your cancellation request. Our team will finish it within 24 hours and you will not be charged again. A confirmation will be sent to your email.");
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -2033,11 +1710,9 @@ document.addEventListener('DOMContentLoaded', () => {
   handleDodoReturnStatus();
 
   const preview = new URLSearchParams(window.location.search).get('preview');
-  if (preview === 'survey' || preview === 'cancel') {
-    const variant = new URLSearchParams(window.location.search).get('variant');
-    // Deferred so the subscriber lookup below has settled first — the flow
-    // reads currentSubscriptionId for its labels.
-    setTimeout(() => window.lfPreview[preview === 'survey' ? 'survey' : 'cancel'](variant), 600);
+  if (preview === 'cancel') {
+    // Deferred so the subscriber lookup below has settled first.
+    setTimeout(() => window.lfPreview.cancel(), 600);
   }
 
   // Pre-fetch subscriber status so the manage button, grid, and plan label know the state
