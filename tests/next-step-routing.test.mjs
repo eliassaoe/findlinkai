@@ -273,7 +273,9 @@ test('the docs open with a runnable first call and three one-click routes', () =
 test('pricing leads with the routes and lists them first on every plan', () => {
   assert.ok(pricing.includes('class="pricing-routes"'));
   for (const i of ['csv', 'sheets', 'api', 'crm']) assert.ok(pricing.includes('sign-up?intent=' + i), i);
-  assert.equal((pricing.match(/Google Sheets add-on<\/li>/g) || []).length, 3);
+  // Two cards inline, the entry plan's card in js/lf-starter-plan.js.
+  const starterCard = read('js/lf-starter-plan.js');
+  assert.equal((pricing.match(/Google Sheets add-on<\/li>/g) || []).length + (starterCard.match(/Google Sheets add-on<\/li>/g) || []).length, 3);
 });
 
 test('the route and idle-credit campaigns are in the variants library with their workflow ids', () => {

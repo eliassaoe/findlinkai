@@ -29,8 +29,9 @@ console.log('sales-led motion');
 
 // ------------------------------------------------------- the rename is display-only
 test('the top self-serve plan is displayed as Scale but keyed enterprise', () => {
-  const plans = app.match(/const plans = \[[\s\S]*?\];/);
-  assert.ok(plans, 'plans[] not found in app.html');
+  // plans[] is filled at runtime (agency segment); the static list is SUBSCRIPTION_PLANS.
+  const plans = app.match(/const SUBSCRIPTION_PLANS = \[[\s\S]*?\];/);
+  assert.ok(plans, 'SUBSCRIPTION_PLANS not found in app.html');
   assert.match(plans[0], /name:'Scale',\s*key:'enterprise'/, 'Scale must keep key enterprise');
   assert.equal(/name:'Enterprise'/.test(plans[0]), false,
     'Enterprise must NOT be a checkout plan — it is quoted on a call');
@@ -49,7 +50,8 @@ test('the $149 plan price and credit figures are untouched', () => {
 
 // -------------------------------------------------------------- the fourth card
 test('app pricing modal renders a fourth, quoted Enterprise card', () => {
-  assert.match(app, /\}\)\.join\(''\) \+ renderEnterpriseCard\(\);/);
+  // Agency accounts get the custom-plan card instead (docs/agency-pricing.md).
+  assert.match(app, /\}\)\.join\(''\) \+ \(isAgencySegment\(\) \? renderCustomPlanCard\('pricing_modal'\) : renderEnterpriseCard\(\)\);/);
   assert.match(app, /function renderEnterpriseCard\(\)/);
   assert.match(app, /function openEnterpriseCall\(source\)/);
   // The card is built inside a JS string, so the quotes are backslash-escaped

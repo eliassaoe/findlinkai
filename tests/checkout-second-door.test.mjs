@@ -21,7 +21,11 @@ function test(name, fn) {
 
 console.log('checkout second door');
 
-const mapSrc = app.match(/const DODO_DIRECT_PRODUCTS = \{[\s\S]*?\};/);
+const starterFile = read('js/lf-starter-plan.js');
+// The entry plan's ids live in js/lf-starter-plan.js (kept out of agency
+// visitors' page source, docs/agency-pricing.md) and are merged in at runtime.
+const mapSrc = [app.match(/const DODO_DIRECT_PRODUCTS = \{[\s\S]*?\};/)[0]
+  + starterFile.match(/window\.LF_STARTER_PRODUCTS = \{[\s\S]*?\};/)[0]];
 
 test('the direct-link product map covers every checkout plan key with its live Dodo product', () => {
   assert.ok(mapSrc, 'DODO_DIRECT_PRODUCTS not found in app.html');
@@ -39,6 +43,7 @@ test('the direct-link product map covers every checkout plan key with its live D
   ]) {
     assert.match(mapSrc[0], new RegExp(`${key}:\\s*'${id}'`), `${key} must map to ${id}`);
   }
+  assert.match(app, /DODO_DIRECT_PRODUCTS\[k\] = entryProducts\[k\]/, 'the entry plan ids must be merged into the map');
   // The two subscription ids the worker docs name must agree with the map.
   for (const id of ['pdt_0Nfl5LZfppnjJBM2mvons', 'pdt_0Nfl5YPolhxfkTEMxOJYp']) {
     assert.ok(productDoc.includes(id), `${id} must be one of the documented worker products`);

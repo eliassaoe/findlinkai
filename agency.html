@@ -332,27 +332,13 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
       <p class="lede">Paying yearly costs 40% less than monthly, and your price doesn't grow with every client you sign or every person you add to the team.</p>
 
       <div class="code">
-        <p><strong>Every annual plan: 30-day money-back guarantee.</strong> Annual Professional and Scale also include a 1:1 setup call on your first client list.</p>
+        <p><strong>Every annual plan: 30-day money-back guarantee.</strong> Annual Pro and Business also include a 1:1 setup call on your first client list.</p>
       </div>
 
       <div class="plans">
-        <div class="plan">
-          <h3>Starter</h3>
-          <p class="for">One client at a time</p>
-          <div class="price"><b>$29</b><s>$49</s><span>/month</span></div>
-          <p class="then">billed $353 a year</p>
-          <ul>
-            <li>60,000 credits a year (5,000 credits a month)</li>
-            <li>About 500 verified emails a month from LinkedIn profiles</li>
-            <li>CSV, Google Sheets, API and HubSpot sync</li>
-          </ul>
-          <div class="spacer"></div>
-          <button type="button" class="btn btn--ghost btn--block" data-plan="starter_annual">Choose Starter</button>
-        </div>
-
         <div class="plan plan--pick">
           <span class="badge">Most agencies</span>
-          <h3>Professional</h3>
+          <h3>Pro</h3>
           <p class="for">Several clients every month</p>
           <div class="price"><b>$59</b><s>$99</s><span>/month</span></div>
           <p class="then">billed $713 a year + free setup call</p>
@@ -363,11 +349,11 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
             <li>1:1 setup call on your first client list</li>
           </ul>
           <div class="spacer"></div>
-          <button type="button" class="btn btn--block" data-plan="pro_annual">Choose Professional</button>
+          <button type="button" class="btn btn--block" data-plan="pro_annual">Choose Pro</button>
         </div>
 
         <div class="plan">
-          <h3>Scale</h3>
+          <h3>Business</h3>
           <p class="for">High-volume client work</p>
           <div class="price"><b>$149</b><s>$249</s><span>/month</span></div>
           <p class="then">billed $1,793 a year + free setup call</p>
@@ -378,10 +364,24 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
             <li>1:1 setup call on your first client list</li>
           </ul>
           <div class="spacer"></div>
-          <button type="button" class="btn btn--ghost btn--block" data-plan="enterprise_annual">Choose Scale</button>
+          <button type="button" class="btn btn--ghost btn--block" data-plan="enterprise_annual">Choose Business</button>
+        </div>
+
+        <div class="plan">
+          <h3>Need more?</h3>
+          <p class="for">Many clients, or a volume you want priced</p>
+          <div class="price"><b>Custom</b></div>
+          <p class="then">priced to your volume on a call</p>
+          <ul>
+            <li>Everything in Business</li>
+            <li>Credit allocation sized to your clients</li>
+            <li>Onboarding call included</li>
+          </ul>
+          <div class="spacer"></div>
+          <a class="btn btn--ghost btn--block" href="https://calendly.com/hamoureliasse/linkfinder-ai" target="_blank" rel="noopener" data-custom-plan>Book a custom plan</a>
         </div>
       </div>
-      <p class="fine">Prefer to pay monthly? <button type="button" class="linkbtn" data-plan="starter_monthly">Starter $49</button> · <button type="button" class="linkbtn" data-plan="pro_monthly">Professional $99</button> · <button type="button" class="linkbtn" data-plan="enterprise_monthly">Scale $249</button> a month, cancel anytime. Setup call not included.</p>
+      <p class="fine">Prefer to pay monthly? <button type="button" class="linkbtn" data-plan="pro_monthly">Pro $99</button> · <button type="button" class="linkbtn" data-plan="enterprise_monthly">Business $249</button> a month, cancel anytime. Setup call not included.</p>
       <p class="fine">Email counts assume 10 credits per email found from a LinkedIn profile.</p>
     </section>
 
@@ -403,7 +403,7 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
         </details>
         <details>
           <summary>What happens on the setup call?</summary>
-          <p>It comes with annual Professional or Scale. We connect LinkFinder to your stack (Clay, n8n, HubSpot, Google Sheets or the API) and run the first list you're working on for a client together, so your team leaves with a process that works. You get the booking link right after checkout.</p>
+          <p>It comes with annual Pro or Business. We connect LinkFinder to your stack (Clay, n8n, HubSpot, Google Sheets or the API) and run the first list you're working on for a client together, so your team leaves with a process that works. You get the booking link right after checkout.</p>
         </details>
         <details>
           <summary>What if it isn't right for us?</summary>
@@ -411,7 +411,7 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
         </details>
         <details>
           <summary>Can I pay monthly instead?</summary>
-          <p>Yes. Every plan is also sold monthly at the full price ($49, $99 or $249), cancel anytime. Yearly is 40% cheaper and includes the setup call on Professional and Scale.</p>
+          <p>Yes. Both plans are also sold monthly at the full price ($99 or $249), cancel anytime. Yearly is 40% cheaper and includes the setup call.</p>
         </details>
         <details>
           <summary>Can someone help me set it up?</summary>
@@ -445,10 +445,19 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
   // A plan picked here before the visitor has an account is stored and picked
   // up by app.html right after signup (lf_pending_plan), which opens that
   // plan's checkout. Someone already signed in goes straight to it.
+  // Every visitor here is in the agency segment (lf-attribution.js: the page
+  // stamps utm_campaign=agency_10plus), so the page sells Pro and Business and
+  // a custom plan. docs/agency-pricing.md.
+  track('pricing_viewed', { surface: 'agency_page', page: 'agency' });
+  document.querySelectorAll('[data-custom-plan]').forEach(function (a) {
+    a.addEventListener('click', function () { track('custom_plan_clicked', { surface: 'agency_page' }); });
+  });
+
   document.querySelectorAll('[data-plan]').forEach(function (btn) {
     btn.addEventListener('click', function () {
       var plan = btn.getAttribute('data-plan');
       track('agency_plan_clicked', { plan: plan, has_account: hasAccount });
+      track('plan_selected', { plan: window.LFSegment ? LFSegment.planId(plan) : plan, plan_key: plan, surface: 'agency_page', has_account: hasAccount });
       if (hasAccount) {
         window.location.href = '/app?action=upgrade&plan=' + encodeURIComponent(plan);
         return;
