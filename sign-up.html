@@ -589,10 +589,18 @@ button#submitButton:disabled{opacity:0.6;cursor:not-allowed;}
         // registered, a Gmail redirect and a genuine 500 all landed in the same
         // bucket. That is why 'server_error' was the only reason ever recorded,
         // and why the bucket could not be acted on.
+        //
+        // 403 and 429 are deliberate refusals, not faults: 403 is the signup
+        // Worker's country restriction, 429 its 3-accounts-per-network-per-day
+        // limit. Both used to land in 'server_error' with a "please try again"
+        // message, so people retried, then tried Google - which posts to the
+        // same Worker and is refused the same way. See docs/signup-refusals.md.
         let reason = 'server_error';
         if (errorData.code === 'use_google_signin')            reason = 'routed_to_google';
         else if (errorData.code === 'business_email_required') reason = 'consumer_domain_blocked';
         else if (msg.toLowerCase().includes('already'))        reason = 'already_registered';
+        else if (response.status === 403)                      reason = 'geo_restricted';
+        else if (response.status === 429)                      reason = 'rate_limited';
 
         try { plausible('Signup Failed', {props:{method:'email',reason}}); } catch(e) {}
         try { posthog.capture('signup_failed', {method:'email', reason, status: response.status}); } catch(e) {}
@@ -613,6 +621,19 @@ button#submitButton:disabled{opacity:0.6;cursor:not-allowed;}
         } else if (msg.toLowerCase().includes('already')) {
           showFieldError('email', 'emailError');
           document.getElementById('emailError').innerHTML = 'This email is already registered. <a href="https://linkfinderai.com/log-in" style="color:#2563eb;font-weight:600;">Sign in instead →</a>';
+        } else if (reason === 'geo_restricted') {
+          // Say it once, plainly, and say Google will not work either - 39 of
+          // the first 52 people refused here went on to try Google and were
+          // refused again on /confirmation-signup.
+          showMessage('New accounts can’t be created from your region right now — this applies to Google sign-up too. ' +
+            'If you already have an account, <a href="https://linkfinderai.com/log-in" style="color:#991b1b;font-weight:600;">sign in</a>. ' +
+            'Otherwise write to <a href="mailto:support@linkfinderai.com" style="color:#991b1b;font-weight:600;">support@linkfinderai.com</a>.');
+        } else if (reason === 'rate_limited') {
+          const hours = Number(errorData.retryAfter) || 24;
+          showMessage('Too many accounts were created from this network today. ' +
+            'If you already have one, <a href="https://linkfinderai.com/log-in" style="color:#991b1b;font-weight:600;">sign in</a>. ' +
+            'Otherwise try again in ' + hours + ' hour' + (hours === 1 ? '' : 's') + ', from another network, or write to ' +
+            '<a href="mailto:support@linkfinderai.com" style="color:#991b1b;font-weight:600;">support@linkfinderai.com</a>.');
         } else {
           showMessage(msg || 'Failed to create account. Please try again.');
         }

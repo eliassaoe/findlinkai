@@ -285,7 +285,7 @@ src="https://www.facebook.com/tr?id=2717863625238535&ev=PageView&noscript=1"
                     <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
                 </svg>
             </div>
-            <h1 class="error">Account Already Exists</h1>
+            <h1 class="error" id="errorTitle">We couldn't create your account</h1>
             <p class="subtitle" id="errorMessage">We couldn't create your account.</p>
             <a href="https://linkfinderai.com/log-in" class="back-button">Log In Instead</a>
         </div>
@@ -354,9 +354,14 @@ src="https://www.facebook.com/tr?id=2717863625238535&ev=PageView&noscript=1"
             }
         }
 
-        function showError(message) {
+        // The heading used to read "Account Already Exists" for every failure -
+        // a country refusal, a rate limit and a timeout included. Each caller
+        // now passes the heading that matches what happened.
+        function showError(message, title) {
             console.log('❌ DEBUG: Calling showError() with message:', message);
-            
+            const titleEl = document.getElementById('errorTitle');
+            if (titleEl) titleEl.textContent = title || "We couldn't create your account";
+
             const loadingEl = document.getElementById('loadingState');
             const successEl = document.getElementById('successState');  
             const errorEl = document.getElementById('errorState');
@@ -438,10 +443,36 @@ src="https://www.facebook.com/tr?id=2717863625238535&ev=PageView&noscript=1"
                     console.log('❌ DEBUG: Worker error response text:', responseText);
                     
                     if (response.status === 409) {
-                        return { 
-                            success: false, 
+                        return {
+                            success: false,
+                            title: 'Account Already Exists',
                             error: 'This email already has an account. Please log in instead.',
-                            showLoginLink: true 
+                            reason: 'already_registered',
+                            status: 409,
+                            showLoginLink: true
+                        };
+                    }
+                    // 403 is the signup Worker's country restriction and 429 its
+                    // per-network daily limit - both deliberate, neither fixed by
+                    // retrying. See docs/signup-refusals.md.
+                    if (response.status === 403) {
+                        return {
+                            success: false,
+                            title: 'Sign-up not available in your region',
+                            error: 'New accounts can’t be created from your region right now. If you already have an account, log in below. Otherwise write to support@linkfinderai.com.',
+                            reason: 'geo_restricted',
+                            status: 403
+                        };
+                    }
+                    if (response.status === 429) {
+                        let hours = 24;
+                        try { hours = Number(JSON.parse(responseText).retryAfter) || 24; } catch (e) {}
+                        return {
+                            success: false,
+                            title: 'Too many sign-ups from this network',
+                            error: 'Too many accounts were created from this network today. If you already have one, log in below. Otherwise try again in ' + hours + ' hour' + (hours === 1 ? '' : 's') + ', from another network, or write to support@linkfinderai.com.',
+                            reason: 'rate_limited',
+                            status: 429
                         };
                     }
                     throw new Error(`Server error: ${response.status} - ${responseText}`);
@@ -528,11 +559,15 @@ src="https://www.facebook.com/tr?id=2717863625238535&ev=PageView&noscript=1"
                         window.location.href = appUrl;
                     }, 1500);
                 } else {
-                    showError(result.error);
+                    // Google failures were never reported, so when this path
+                    // stopped working for whole countries nothing showed it.
+                    try { posthog.capture('signup_failed', { method: 'google', reason: result.reason || 'server_error', status: result.status || null }); } catch(e) {}
+                    showError(result.error, result.title);
                 }
-                
+
             } catch (error) {
                 console.log('❌ DEBUG: Processing error:', error.message);
+                try { posthog.capture('signup_failed', { method: 'google', reason: 'session_error' }); } catch(e) {}
                 showError(error.message);
             }
         }
@@ -552,6 +587,7 @@ src="https://www.facebook.com/tr?id=2717863625238535&ev=PageView&noscript=1"
             const loadingState = document.getElementById('loadingState');
             if (loadingState && window.getComputedStyle(loadingState).display !== 'none') {
                 console.log('⏰ DEBUG: Timeout reached - showing error');
+                try { posthog.capture('signup_failed', { method: 'google', reason: 'timeout' }); } catch(e) {}
                 showError('Account creation timed out. Please try again.');
             }
         }, 15000);
