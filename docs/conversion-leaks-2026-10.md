@@ -79,3 +79,30 @@ accounts (97% dismiss) and get users to a second session. See
 pricing with their 50 free credits untouched (14 people), which is curiosity,
 not intent. The checkout numbers are too small to act on yet; watch
 `checkout_abandoned` by plan (PAYG Small/Medium are what actually sells).
+
+## Which pages bring payers, and is traffic the lever? (180 days)
+
+First pageview per person, payers = `checkout_payment_success`,
+`subscription_upgraded` or `subscription_renewed`.
+
+| Landing page | Visitors | Payers | Per 1k visitors | Google visitors Jul → Sep |
+| --- | --- | --- | --- | --- |
+| `/` | 5,891 | 10 | 1.7 | 577 → 652 |
+| `/linkedin-search-by-email` | 4,988 | 4 | 0.8 | 1,100 → 622 (−43%) |
+| `/company-url-finder` | 1,261 | 1 | 0.8 | 217 → 182 |
+| `/linkedin-url-finder` | 4,414 | 2 | 0.45 | 561 → 362 (−35%) |
+| `/linkedin-email-finder` | 4,928 | 0 | 0 | 1,228 → 630 |
+| `/instagram-profile-url-finder` | 6,386 | 0 | 0 | 1,961 → 512 |
+
+- Even the best tool pages produce about one payer per 1,000 visitors.
+  Doubling traffic to all of them adds roughly 1–2 payers a month. Traffic is
+  not the binding constraint; visitor → payer is (same conclusion as
+  `docs/traffic-capture-verdict.md`).
+- Payers are API buyers: 22 of ~26 payers in the window viewed `/api-access`,
+  against 539 of ~2,500 free signups.
+- Alternative / vs pages showed 1 payer from 144 visitors here. That is one
+  person; `docs/listicle-aeo-results.md` measured the group at a 1.3% signup
+  rate on 1,313 visitors. Do not read it as a winning page type.
+- Paid search has barely been tried: 9 paid-click visitors in 180 days.
+- The −35–43% drop on the two best tool pages needs Search Console (rankings
+  vs clicks) to diagnose. PostHog cannot tell the difference.
