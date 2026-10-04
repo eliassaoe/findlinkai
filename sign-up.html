@@ -341,7 +341,14 @@ button#submitButton:disabled{opacity:0.6;cursor:not-allowed;}
     const reminder = document.getElementById('valueReminder');
     const heading = document.getElementById('reminderHeading');
     const subtext = document.getElementById('reminderSubtext');
-    if (lastSearch) {
+    // Set by a tool page that masked the visitor's result (tool-result-reveal-gate).
+    let revealPending = false;
+    try { revealPending = !!localStorage.getItem('lf_reveal_pending'); } catch (e) {}
+    if (revealPending) {
+      reminder.style.display = 'flex';
+      heading.textContent = 'Your result is ready';
+      subtext.textContent = 'Create your free account and it opens straight away, with free credits for your next lookups.';
+    } else if (lastSearch) {
       reminder.style.display = 'flex';
       if (searchType === 'profile') {
         heading.textContent = `You're one step away from finding ${lastSearch}'s profile`;
