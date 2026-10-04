@@ -64,6 +64,7 @@ into a file here in the same session, or it is gone.
 | **The sales-led motion** — the Enterprise tier, `/talk-to-sales`, the page CTA and the three high-ticket lifecycle emails | `docs/sales-led-motion.md` — read it before touching `plans[]`, the pricing modal, or `js/lf-highticket-cta.js` |
 | Selling Done For You to the 67 idle pack buyers | `docs/dfy-activation-campaign.md` — read the correction in it before quoting any "paying accounts" number |
 | Who the SEO traffic actually is, before aiming an offer at it | `docs/traffic-capture-verdict.md` |
+| **Where people drop (30-day funnel, Oct 2026)** and the `tool-result-reveal-gate` experiment on the tool pages | `docs/conversion-leaks-2026-10.md` — read it before touching `js/lf-gate.js`; the Sept signup drop is the geo block, not a bug |
 | Listicle outreach on a cron (the `ai_keywords` table) | `docs/ai-keyword-outreach.md` — read it before adding keywords, it spends credits |
 | Explee AutoGTM: shorter sequences, pre-qualified leads, win-back of replies that never booked | `workers/explee-autogtm/` — the README's "three changes" section first, then `SENDING.md` and `BASELINE.md` for the real numbers; everything is dry-run by default and runs from `.github/workflows/explee-*.yml`; no call in it has ever reached the real API from a sandbox |
 | **Our own GTM system — the code** | `workers/gtm/` — read its README before touching it; nothing has made a live call, and `run.py capacity` is the first thing to run |
