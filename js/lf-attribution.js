@@ -146,3 +146,203 @@
         }
     } catch (e) {}
 })();
+
+// ── Segment: agency pricing ─────────────────────────────────────────────────
+//
+// A visitor is "agency" when they land on any URL with utm_campaign=agency*
+// or an email= parameter. Agency visitors see two plans (Pro, Business) plus a
+// "Book a custom plan" card; the $49 Starter plan does not exist for them.
+//
+// Where the segment lives:
+//   - before signup: a first-party cookie, segment=agency, 365 days;
+//   - after signup:  linkfinderai_users.segment, which is the source of truth.
+//     LFSegment.sync(token) copies the cookie onto a NEW account (the database
+//     refuses accounts that existed before this shipped, or that already pay)
+//     and then rewrites the cookie to whatever the database says, so a login
+//     on another device gets agency pricing, and an existing $49 customer who
+//     clicks an agency link keeps seeing their own plan.
+//
+// Keeping Starter out of the page source: the plan is not in any page's HTML.
+// It lives in /js/lf-starter-plan.js, which LFSegment.writeStarterScript()
+// loads only for visitors who are NOT agency. An agency browser never fetches
+// it, so neither the card, the price nor the Dodo product ids reach it.
+//
+// docs/agency-pricing.md has the whole flow, the tracking plan and the checkout
+// worker's server-side refusal.
+(function () {
+    'use strict';
+
+    var COOKIE = 'segment';
+    var AGENCY = 'agency';
+    var MAX_AGE = 365 * 24 * 60 * 60;
+    var SUPABASE_URL = 'https://snxhsboboatjywgwdeds.supabase.co';
+    var SUPABASE_KEY = 'sb_publishable_RKidGRs4ch1ixmRfXoYSww_UsQMSe5w';
+    var STARTER_SRC = '/js/lf-starter-plan.js';
+
+    // Paths that are redirect targets inside the product, not landing pages.
+    // upgrade-confirmation.html sends every buyer to /app?email=..., which must
+    // not make every buyer an agency.
+    var INTERNAL_EMAIL_PATHS = /^\/(app|account|upgrade-confirmation|confirmation-signup)(\.html)?\/?$/;
+
+    function readCookie() {
+        try {
+            var m = document.cookie.match(/(?:^|;\s*)segment=([^;]*)/);
+            return m ? decodeURIComponent(m[1]) : null;
+        } catch (e) {
+            return null;
+        }
+    }
+
+    function cookieDomain() {
+        var host = window.location.hostname;
+        return /(^|\.)linkfinderai\.com$/.test(host) ? '; Domain=linkfinderai.com' : '';
+    }
+
+    function writeCookie(value, maxAge) {
+        try {
+            document.cookie = COOKIE + '=' + encodeURIComponent(value)
+                + '; Max-Age=' + maxAge + '; Path=/; SameSite=Lax'
+                + (window.location.protocol === 'https:' ? '; Secure' : '')
+                + cookieDomain();
+        } catch (e) {}
+    }
+
+    function sameSiteReferrer() {
+        try {
+            return !!document.referrer && new URL(document.referrer).hostname === window.location.hostname;
+        } catch (e) {
+            return false;
+        }
+    }
+
+    // Does THIS page view put the visitor in the agency segment?
+    function landedAsAgency() {
+        var params;
+        try { params = new URLSearchParams(window.location.search); } catch (e) { return false; }
+        var campaign = (params.get('utm_campaign') || '').trim().toLowerCase();
+        if (campaign.indexOf(AGENCY) === 0) return true;
+        // agency.html strips email= off the URL before this file runs, and
+        // leaves the address in window.__lfLeadEmail.
+        var hasEmail = params.has('email') || !!window.__lfLeadEmail;
+        if (!hasEmail) return false;
+        if (INTERNAL_EMAIL_PATHS.test(window.location.pathname)) return false;
+        if (sameSiteReferrer()) return false;
+        return true;
+    }
+
+    function tellPosthog(isAgency) {
+        try {
+            var ph = window.posthog;
+            if (!ph) return;
+            if (isAgency) {
+                // Super property: every event from here on carries it.
+                if (typeof ph.register === 'function') ph.register({ segment: AGENCY });
+                if (ph.people && typeof ph.people.set === 'function') ph.people.set({ segment: AGENCY });
+                else if (typeof ph.setPersonProperties === 'function') ph.setPersonProperties({ segment: AGENCY });
+            } else if (typeof ph.unregister === 'function') {
+                ph.unregister('segment');
+            }
+        } catch (e) {}
+    }
+
+    var agency = readCookie() === AGENCY;
+    if (!agency && landedAsAgency()) {
+        writeCookie(AGENCY, MAX_AGE);
+        agency = true;
+    } else if (agency) {
+        // Keep the 365 days rolling from the latest visit.
+        writeCookie(AGENCY, MAX_AGE);
+    }
+    if (agency) tellPosthog(true);
+
+    var starterPromise = null;
+
+    var LFSegment = {
+        CUSTOM_PLAN_URL: 'https://calendly.com/hamoureliasse/linkfinder-ai',
+
+        isAgency: function () { return agency; },
+        get: function () { return agency ? AGENCY : null; },
+
+        // Agency visitors see the plans under these names (keys are unchanged:
+        // `pro` and `enterprise` are the Dodo products and database plan numbers).
+        planName: function (key, fallback) {
+            if (!agency) return fallback;
+            if (key === 'pro') return 'Pro';
+            if (key === 'enterprise') return 'Business';
+            return fallback;
+        },
+
+        // The analytics id of a plan: starter / pro / business.
+        planId: function (key) {
+            var k = String(key || '').replace(/_(monthly|annual)$/, '');
+            if (k === 'enterprise' || k === 'scale') return 'business';
+            if (k === 'pro' || k === 'professional') return 'pro';
+            if (k === 'starter') return 'starter';
+            return k || null;
+        },
+
+        // Call synchronously from <head>, right after this file: loads the
+        // Starter plan for everyone except agency visitors.
+        writeStarterScript: function () {
+            if (agency || window.LF_STARTER_PLAN) return;
+            document.write('<script src="' + STARTER_SRC + '"><\/script>');
+        },
+
+        // The same, after the page has loaded (an account the database says is
+        // not agency, in a browser whose cookie said it was).
+        loadStarter: function () {
+            if (window.LF_STARTER_PLAN) return Promise.resolve(window.LF_STARTER_PLAN);
+            if (starterPromise) return starterPromise;
+            starterPromise = new Promise(function (resolve) {
+                var s = document.createElement('script');
+                s.src = STARTER_SRC;
+                s.onload = function () { resolve(window.LF_STARTER_PLAN || null); };
+                s.onerror = function () { starterPromise = null; resolve(null); };
+                document.head.appendChild(s);
+            });
+            return starterPromise;
+        },
+
+        // The database's answer wins. Rewrites the cookie and PostHog to match
+        // and reports whether anything changed.
+        applyServerSegment: function (segment) {
+            var next = segment === AGENCY;
+            var changed = next !== agency;
+            agency = next;
+            if (next) writeCookie(AGENCY, MAX_AGE);
+            else writeCookie('', 0);
+            tellPosthog(next);
+            return changed;
+        },
+
+        // For a signed-in account: claims the segment if the cookie carries it
+        // (accepted only for a brand-new account), then syncs to the database.
+        // Resolves to the account's segment, or undefined if the database could
+        // not be reached (the cookie is then left alone).
+        sync: function (token) {
+            if (!token || typeof token !== 'string' || token.length < 8) return Promise.resolve(undefined);
+            return fetch(SUPABASE_URL + '/rest/v1/rpc/claim_user_segment', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    apikey: SUPABASE_KEY,
+                    Authorization: 'Bearer ' + SUPABASE_KEY
+                },
+                body: JSON.stringify({ p_token: token, p_segment: agency ? AGENCY : null })
+            })
+                .then(function (r) { return r.ok ? r.json() : null; })
+                .then(function (d) {
+                    if (!d || d.ok !== true) return undefined;
+                    var segment = d.segment || null;
+                    LFSegment.applyServerSegment(segment);
+                    if (d.claimed) {
+                        try { window.posthog.capture('segment_claimed', { segment: segment }); } catch (e) {}
+                    }
+                    return segment;
+                })
+                .catch(function () { return undefined; });
+        }
+    };
+
+    window.LFSegment = LFSegment;
+})();

@@ -48,6 +48,8 @@ last real payment on 26 August 2026.
   Cloudflare -> Workers & Pages -> `dodo-checkout` and Deploy. Adds allow-listed
   discount pre-application (`ALLOWED_DISCOUNTS`, AGENCY50 for /agency visitors,
   retried without the code if Dodo rejects it) and includes the `PATCH.md` change.
+  4 Oct 2026: refuses Starter to agency accounts and opens Pro instead
+  (`plan_redirected`); see `docs/agency-pricing.md`. Not live until re-pasted.
 - `PATCH.md` - the three-line worker change that returns Dodo's raw session
   response to the browser. Not deployed as of 14 September 2026 (`dodo_raw` is
   null on every redirect event). Deploy it.

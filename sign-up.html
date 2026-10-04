@@ -531,6 +531,9 @@ button#submitButton:disabled{opacity:0.6;cursor:not-allowed;}
           try { plausible('Signup Success', {props:{method:'email'}}); } catch(e) {}
           try { posthog.identify(data.token, {email, signup_method:'email'}); } catch(e) {}
           try { posthog.capture('signup_success', {method:'email', gift: GIFT_CODE || null, ...(window.getAttributionProperties ? window.getAttributionProperties() : {})}); } catch(e) {}
+          // Agency segment: copy the cookie onto the new account (docs/agency-pricing.md).
+          // /app retries this on load, so a navigation that cancels it loses nothing.
+          try { if (window.LFSegment) LFSegment.sync(data.token); } catch(e) {}
           // Typed into a form that never checked it, so it is unverified until proven
           // otherwise. Every marketing workflow filters on this, which is what keeps
           // hard bounces off a sending domain with no history to absorb them.
@@ -558,6 +561,9 @@ button#submitButton:disabled{opacity:0.6;cursor:not-allowed;}
               try { plausible('Signup Success', {props:{method:'email'}}); } catch(e) {}
               try { posthog.identify(loginData.token, {email, signup_method:'email'}); } catch(e) {}
               try { posthog.capture('signup_success', {method:'email', recovered_via_login: true, ...(window.getAttributionProperties ? window.getAttributionProperties() : {})}); } catch(e) {}
+              // Agency segment: copy the cookie onto the new account (docs/agency-pricing.md).
+              // /app retries this on load, so a navigation that cancels it loses nothing.
+              try { if (window.LFSegment) LFSegment.sync(loginData.token); } catch(e) {}
               // Typed into a form that never checked it, so it is unverified until proven
               // otherwise. Every marketing workflow filters on this, which is what keeps
               // hard bounces off a sending domain with no history to absorb them.

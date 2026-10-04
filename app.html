@@ -13,6 +13,7 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
     })
 </script>
 <script src="/js/lf-attribution.js"></script>
+<script>LFSegment.writeStarterScript();</script>
 <script>
     (function(w,d,t,r,u){var f,n,i;w[u]=w[u]||[],f=function(){var o={ti:"343223134", enableAutoSpaTracking: true};o.q=w[u],w[u]=new UET(o),w[u].push("pageLoad")},n=d.createElement(t),n.src=r,n.async=1,n.onload=n.onreadystatechange=function(){var s=this.readyState;s&&s!=="loaded"&&s!=="complete"||(f(),n.onload=n.onreadystatechange=null)},i=d.getElementsByTagName(t)[0],i.parentNode.insertBefore(n,i)})(window,document,"script","//bat.bing.com/bat.js","uetq");
 </script>
@@ -1294,7 +1295,7 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
     <button type="button" class="billing-btn" id="paygBtn" onclick="setBilling('payg')">Pay as you go</button>
 </div>
         <div id="agencyOfferBanner" style="display:none;align-items:center;justify-content:center;flex-wrap:wrap;gap:0.5rem 0.75rem;margin:0.75rem auto 1rem;padding:0.6rem 1rem;max-width:640px;border:2px dashed var(--primary);border-radius:10px;background:#eff6ff;font-size:0.85rem;text-align:center;">
-            <span><strong>Agencies on annual Professional or Scale get a free 1:1 setup call.</strong> We connect it to your stack and run your first client list with you. The booking link appears right after checkout.</span>
+            <span><strong>Agencies on an annual plan get a free 1:1 setup call.</strong> We connect it to your stack and run your first client list with you. The booking link appears right after checkout.</span>
         </div>
         <div id="annualGuaranteeLine" style="display:none;text-align:center;margin:0.25rem auto 0.75rem;font-size:0.85rem;color:#15803d;font-weight:600;">
             &#10003; 30-day money-back guarantee on every annual plan. <a href="/refund-policy#annual-guarantee" target="_blank" rel="noopener" style="color:#15803d;">Details</a>
@@ -1310,7 +1311,7 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
             <div class="pricing-faq-item"><i class="fas fa-check-circle"></i> Secure payment</div>
         </div>
         <p style="text-align:center;font-size:0.72rem;color:var(--gray-400);margin-top:0.75rem;">Prices in USD</p>
-        <p style="text-align:center;font-size:0.75rem;color:var(--gray-500);margin-top:0.375rem;">Need more than 70,000 credits a month, an SLA, or an invoice your finance team can process? <a onclick="openEnterpriseCall('pricing_modal_footer')" style="color:var(--primary);font-weight:500;cursor:pointer;">Book a call</a> — Enterprise is quoted against your volume.</p>
+        <p id="pricingModalFooterEnterprise" style="text-align:center;font-size:0.75rem;color:var(--gray-500);margin-top:0.375rem;">Need more than 70,000 credits a month, an SLA, or an invoice your finance team can process? <a onclick="openEnterpriseCall('pricing_modal_footer')" style="color:var(--primary);font-weight:500;cursor:pointer;">Book a call</a> — Enterprise is quoted against your volume.</p>
     </div>
 </div>
 
@@ -1402,7 +1403,7 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
         </div>
 
         <hr class="cim-divider">
-        <p class="cim-sub-line">Need credits regularly? Starter plan gives 60,000 credits/mo for $49 — 24× cheaper per credit.</p>
+        <p class="cim-sub-line" id="cimSubLine"></p>
         <div class="cim-sub-link-wrap">
             <button type="button" class="cim-sub-link" onclick="cimSeeSubscriptionPlans()">See subscription plans →</button>
         </div>
@@ -2065,14 +2066,14 @@ const DODO_CHECKOUT_WORKER = 'https://dodo-checkout.hamoureliasse.workers.dev/';
 // plus the contact line. Add ids here as they are confirmed in the Dodo dashboard.
 const DODO_DIRECT_PRODUCTS = {
     // Read from the Dodo dashboard product list on 14 Sep 2026 (live mode).
-    starter_monthly:    'pdt_0Nfl5LZfppnjJBM2mvons',   // Starter Plan            $49/mo
+    // The entry plan's two ids live in /js/lf-starter-plan.js and are added by
+    // applySegmentToPlans() for visitors outside the agency segment.
     // A reprice is done by editing the amount on the Dodo product, not by
     // creating a new one, so these ids stay put. The amounts below are what each
     // product must bill after the 18 Sep 2026 reprice -- if one of them is wrong
     // the fix is in the Dodo dashboard, not in this map.
     pro_monthly:        'pdt_0Nfl5YPolhxfkTEMxOJYp',   // Professional Plan       $99/mo
     enterprise_monthly: 'pdt_0Nfl5euCguHp4Nh03MAVk',   // Enterprise Plan (Scale) $249/mo
-    starter_annual:     'pdt_0Nfl5q5bWWWymf2XQnJUD',   // Annual Starter          $348/yr
     pro_annual:         'pdt_0Nfl5zzZR6gaiA1YQPxqj',   // Annual Professional     $708/yr
     enterprise_annual:  'pdt_0Nfl68GPfL6s7UCzsoxwr',   // Annual Enterprise       $1,788/yr
     payg_small:         'pdt_0Nj62gByZ53OzYoz3bCBr',   // Pay As You Go Small     $25
@@ -2109,11 +2110,57 @@ const INDUSTRY_AVG_PER_CREDIT = 0.15;
 // key would break all three; the name "Enterprise" was needed for the tier
 // below, which is sold on a call rather than with a card.
 // See docs/sales-led-motion.md.
-const plans = [
-    { name:'Starter',      key:'starter',    monthlyPrice:49,  credits:60000  },
+const SUBSCRIPTION_PLANS = [
     { name:'Professional', key:'pro',        monthlyPrice:99,  credits:240000 },
     { name:'Scale',        key:'enterprise', monthlyPrice:249, credits:840000 },
 ];
+
+// What this visitor can buy, cheapest first. Filled by applySegmentToPlans():
+// the entry plan (window.LF_STARTER_PLAN, from /js/lf-starter-plan.js) first,
+// then SUBSCRIPTION_PLANS. Agency visitors never load that file, so for them
+// plans[] is Pro + Business and the entry plan is not in this page at all.
+// docs/agency-pricing.md. Mutated in place, never reassigned: indexes into it
+// are only valid until the next applySegmentToPlans().
+const plans = [];
+
+// Database plan_number -> plan key. 1-3 monthly, 5-7 annual.
+const PLAN_NUMBER_KEYS = { 1:'starter', 2:'pro', 3:'enterprise', 5:'starter', 6:'pro', 7:'enterprise' };
+function planByNumber(planNumber) {
+    const key = PLAN_NUMBER_KEYS[planNumber];
+    return key ? (plans.find(p => p.key === key) || null) : null;
+}
+
+function isAgencySegment() {
+    return !!(window.LFSegment && LFSegment.isAgency());
+}
+
+function applySegmentToPlans() {
+    const agency = isAgencySegment();
+    const entry = window.LF_STARTER_PLAN;
+    const list = (!agency && entry ? [entry] : []).concat(SUBSCRIPTION_PLANS);
+    plans.length = 0;
+    list.forEach(function (p) {
+        plans.push(Object.assign({}, p, { name: window.LFSegment ? LFSegment.planName(p.key, p.name) : p.name }));
+    });
+    const entryProducts = window.LF_STARTER_PRODUCTS || {};
+    Object.keys(entryProducts).forEach(function (k) {
+        if (agency) delete DODO_DIRECT_PRODUCTS[k];
+        else DODO_DIRECT_PRODUCTS[k] = entryProducts[k];
+    });
+    if (entry) {
+        if (agency) delete PLAN_PARAM_ALIASES[entry.key];
+        else PLAN_PARAM_ALIASES[entry.key] = entry.key;
+    }
+}
+
+// After the database answers (LFSegment.sync in checkAuth): rebuild plans[]
+// and redraw the modal if it is open.
+function onSegmentResolved() {
+    applySegmentToPlans();
+    const modal = document.getElementById('pricingModal');
+    if (modal && modal.classList.contains('show')) renderPlansGrid();
+    updateCreditWallSubLine();
+}
 
 // The sales-led tier. It has no price, no Dodo product and no checkout, because
 // what it is worth depends on volume and what it needs is a contract. It is
@@ -2140,12 +2187,15 @@ const ENTERPRISE_CREDITS_FROM = 250000;
  * rather than guessing a plan the person never chose.
  */
 const PLAN_PARAM_ALIASES = {
-    starter: 'starter',
+    // The entry plan's alias is added by applySegmentToPlans(), only for
+    // visitors who can buy it.
     pro: 'pro', professional: 'pro',
     // Both names resolve to the same plan: `enterprise` for every link already
     // in an inbox, `scale` for what the pricing page calls it now.
     enterprise: 'enterprise', scale: 'enterprise',
 };
+
+applySegmentToPlans();
 
 function resolvePlanParam(planParam, billingParam) {
     if (!planParam) return null;
@@ -2182,24 +2232,26 @@ function renderPlansGrid() {
     const guaranteeLine = document.getElementById('annualGuaranteeLine');
     if (guaranteeLine) guaranteeLine.style.display = isAnnual ? 'block' : 'none';
 
-    // Map plan numbers to plan index + billing
-    const planNumToIndex = { 1:0, 2:1, 3:2, 4:3, 5:0, 6:1, 7:2, 8:3 };
+    // Map plan numbers to plan index + billing. By key, not position: plans[]
+    // has no entry plan for agency visitors, so positions shift.
     const planNumIsAnnual = { 1:false, 2:false, 3:false, 4:false, 5:true, 6:true, 7:true, 8:true };
-    const currentIndex  = currentPlanNumber ? (planNumToIndex[currentPlanNumber] ?? null) : null;
+    const currentPlan   = currentPlanNumber ? planByNumber(currentPlanNumber) : null;
+    const currentIndex  = currentPlan ? plans.indexOf(currentPlan) : null;
     const currentIsAnn  = currentPlanNumber ? (planNumIsAnnual[currentPlanNumber] ?? null) : null;
 
     // Usage-based recommendation: point people at the plan sized for what they
     // actually do, instead of letting three equally-weighted options stall them.
     const lifetimeEnrichments = parseInt(localStorage.getItem('lf_enrich_count') || '0');
-    let recommendedIndex = 0; // Starter
-    if (lifetimeEnrichments > 150) recommendedIndex = 2;      // Scale
-    else if (lifetimeEnrichments > 30) recommendedIndex = 1;  // Professional
+    const recommendedKey = lifetimeEnrichments > 150 ? 'enterprise'   // Scale
+        : lifetimeEnrichments > 30 ? 'pro'                               // Professional
+        : null;                                                          // the cheapest plan
+    let recommendedIndex = recommendedKey ? Math.max(0, plans.findIndex(p => p.key === recommendedKey)) : 0;
     // A bulk gate knows the list size; that beats a usage guess.
     if (typeof window.__lfSizedPlanIndex === 'number' && plans[window.__lfSizedPlanIndex]) recommendedIndex = window.__lfSizedPlanIndex;
-    const socialProof = ['Used by solo founders and small teams', 'Used by 40+ sales teams', 'Used by agencies running high-volume outreach'];
+    const socialProof = { pro: 'Used by 40+ sales teams', enterprise: 'Used by agencies running high-volume outreach' };
 
     grid.innerHTML = plans.map(function(plan, index) {
-        const isPopular      = plan.name === 'Professional';
+        const isPopular      = plan.key === 'pro';
         const monthlyEquiv   = isAnnual ? Math.round(plan.monthlyPrice * 0.6) : plan.monthlyPrice;
         const annualTotal    = Math.round(plan.monthlyPrice * 0.6 * 12);
         const creditsLabel   = isAnnual ? plan.credits.toLocaleString()+' credits/yr' : Math.round(plan.credits/12).toLocaleString()+' credits/mo';
@@ -2237,7 +2289,7 @@ function renderPlansGrid() {
         const periodWord = isAnnual ? 'year' : 'month';
         const anchorPrice = isAnnual ? annualTotal : monthlyEquiv;
         const valueAnchor = '<div style="font-size:0.68rem;color:var(--gray-500);line-height:1.4;margin-top:0.5rem;padding-top:0.5rem;border-top:1px dashed var(--gray-200);">$'+anchorPrice+'/'+periodWord+' &asymp; '+anchorLinkedIn+' enrichments<br>(~'+anchorLinkedIn+' LinkedIn URLs or ~'+anchorPhone+' phone lookups)</div>';
-        const socialProofLine = '<div style="font-size:0.68rem;color:var(--gray-400);margin-top:0.35rem;">'+socialProof[index]+'</div>';
+        const socialProofLine = '<div style="font-size:0.68rem;color:var(--gray-400);margin-top:0.35rem;">'+(socialProof[plan.key] || 'Used by solo founders and small teams')+'</div>';
         return '<div class="plan-item '+(isPopular && !isCurrentPlan ?'plan-item-popular':'')+'" onmouseenter="window.__lfLastHoveredPlanIndex='+index+'">'
             + (isPopular && !isCurrentPlan && !(index === recommendedIndex && lifetimeEnrichments > 0) ? '<div class="plan-popular-badge">Most Popular</div>' : '')
             + '<div class="plan-item-name">'+plan.name+'</div>'
@@ -2253,7 +2305,33 @@ function renderPlansGrid() {
             + currentBadge
             + '<button class="'+ctaClass+'" onclick="proceedToCheckoutDirect('+index+', this)" '+ctaDisabled+'>'+ctaLabel+'</button>'
             + '</div>';
-    }).join('') + renderEnterpriseCard();
+    }).join('') + (isAgencySegment() ? renderCustomPlanCard('pricing_modal') : renderEnterpriseCard());
+}
+
+/*
+ * Agency visitors get this card instead of Enterprise: two plans (Pro,
+ * Business) and a way to ask for more, booked straight on the calendar.
+ * docs/agency-pricing.md.
+ */
+function renderCustomPlanCard(source) {
+    return '<div class="plan-item plan-item-enterprise">'
+        + '<div class="plan-item-name">Need more?</div>'
+        + '<div class="plan-item-price"><span class="plan-item-amount" style="font-size:1.5rem;">Custom</span></div>'
+        + '<div class="plan-item-annual">priced to your volume</div>'
+        + '<div class="plan-item-credits">More credits, more clients</div>'
+        + '<div class="plan-item-per-credit">sized on a 15-minute call</div>'
+        + '<div style="font-size:0.68rem;color:var(--gray-500);line-height:1.5;margin-top:0.5rem;padding-top:0.5rem;border-top:1px dashed var(--gray-200);text-align:left;">'
+        +   '&#10003; Everything in Business<br>'
+        +   '&#10003; Credit allocation sized to your clients<br>'
+        +   '&#10003; Onboarding call included'
+        + '</div>'
+        + '<button class="plan-item-cta" style="background:var(--gray-900);border-color:var(--gray-900);" onclick="openCustomPlanCall(\'' + source + '\')">Book a custom plan</button>'
+        + '</div>';
+}
+
+function openCustomPlanCall(source) {
+    try { posthog.capture('custom_plan_clicked', { surface: source || 'unknown' }); } catch(e) {}
+    window.open(LFSegment.CUSTOM_PLAN_URL, '_blank', 'noopener');
 }
 
 /*
@@ -2468,6 +2546,9 @@ async function launchCheckout({ planKey, analyticsPlanName, value, billingLabel,
             try { localStorage.setItem('lf_plan_selected_ever', '1'); } catch (_) {}
             posthog.capture('plan_selected', {
                 plan: analyticsPlanName,
+                plan_id: window.LFSegment ? LFSegment.planId(planKey) : null,   // starter / pro / business
+                plan_key: planKey,
+                surface: window.__lfPricingTrigger === 'credits_exhausted' ? 'credits_exhausted_modal' : 'upgrade_modal',
                 billing: billingLabel,
                 credits_remaining: currentCredits,
                 is_subscriber: isExistingSubscriber
@@ -2493,6 +2574,21 @@ async function launchCheckout({ planKey, analyticsPlanName, value, billingLabel,
 
         // Pass email if present; worker accepts missing email
         const data = await createCheckoutSessionViaWorker(planKey, email || undefined);
+        // The worker refuses the entry plan to agency accounts and opens Pro
+        // instead (docs/agency-pricing.md). Follow it, so the pending marker
+        // and every event after this one name what is actually being bought.
+        if (data && data.plan_redirected && data.plan_redirected.to) {
+            const to = String(data.plan_redirected.to);
+            const toPlan = SUBSCRIPTION_PLANS.find(p => to.indexOf(p.key + '_') === 0);
+            try { posthog.capture('checkout_plan_redirected', {
+                from: planKey, to: to, reason: data.plan_redirected.reason || null,
+            }); } catch(e) {}
+            planKey = to;
+            if (toPlan) {
+                analyticsPlanName = window.LFSegment ? LFSegment.planName(toPlan.key, toPlan.name) : toPlan.name;
+                value = /_annual$/.test(to) ? Math.round(toPlan.monthlyPrice * 0.6 * 12) : toPlan.monthlyPrice;
+            }
+        }
         if (data && (data.discount_applied || data.discount_rejected)) {
             try { posthog.capture('checkout_discount', {
                 plan_key: planKey,
@@ -2675,6 +2771,7 @@ function handleDodoReturnStatus() {
                 payment_id: paymentId, subscription_id: subscriptionId, status: dodoStatus,
                 attempt_id: pending?.attempt_id || null,
                 plan: pending?.plan || null,
+                plan_id: pending?.plan_key && window.LFSegment ? LFSegment.planId(pending.plan_key) : null,
                 plan_key: pending?.plan_key || null,
                 billing: pending?.billing || null,
                 value: pending?.value ?? null,
@@ -2782,7 +2879,7 @@ async function proceedToPaygCheckout(index, btnEl) {
 const AGENCY_OFFER_PLAN_KEYS = ['pro', 'enterprise'];
 
 // Monthly subscribers: the annual banner names their own plan's saving. It used
-// to quote a flat $240 a year to everyone, which is Starter's figure and undersold annual
+// to quote a flat $240 a year to everyone, which is the entry plan's figure and undersold annual
 // by half on Professional and by five times on Scale - the plans agencies buy.
 // Dismissing it hides it for 14 days, not forever: moving monthly subscribers
 // to annual is the upsell that matters most.
@@ -2793,7 +2890,7 @@ function annualSaving(plan) {
     return { monthlyYear, annualTotal, saving: monthlyYear - annualTotal };
 }
 function showAnnualBanner(planNumber) {
-    const plan = plans[planNumber - 1];
+    const plan = planByNumber(planNumber);
     const banner = document.getElementById('annualBanner');
     const text = document.getElementById('annualBannerText');
     if (!plan || !banner || !text) return;
@@ -2905,19 +3002,27 @@ function showPricingModal(trigger, extra) {
             : Math.max(0, n - 5);
         if (locked > 0) {
             if (modalTitle) modalTitle.textContent = "You've previewed 5 results";
-            if (modalSubtitle) modalSubtitle.textContent = `Starter plan ($49/mo) unlocks export for all ${n.toLocaleString()} rows`;
+            if (modalSubtitle) modalSubtitle.textContent = `${plans[0].name} plan ($${plans[0].monthlyPrice}/mo) unlocks export for all ${n.toLocaleString()} rows`;
         } else {
             if (modalTitle) modalTitle.textContent = `All ${n.toLocaleString()} row${n === 1 ? '' : 's'} exported`;
-            if (modalSubtitle) modalSubtitle.textContent = 'Free exports stop at 5 rows — Starter ($49/mo) runs lists of any size';
+            if (modalSubtitle) modalSubtitle.textContent = `Free exports stop at 5 rows — ${plans[0].name} ($${plans[0].monthlyPrice}/mo) runs lists of any size`;
         }
     } else {
         if (modalTitle) modalTitle.textContent = 'Choose Your Plan';
         if (modalSubtitle) modalSubtitle.textContent = 'Every plan includes bulk CSV, the Google Sheets add-on, the API + MCP server and HubSpot sync · Cancel anytime';
     }
+    const footerEnterprise = document.getElementById('pricingModalFooterEnterprise');
+    if (footerEnterprise) {
+        if (!footerEnterprise.dataset.enterpriseHtml) footerEnterprise.dataset.enterpriseHtml = footerEnterprise.innerHTML;
+        footerEnterprise.innerHTML = isAgencySegment()
+            ? 'Need more credits or a plan sized to your clients? <a onclick="openCustomPlanCall(\'pricing_modal_footer\')" style="color:var(--primary);font-weight:500;cursor:pointer;">Book a custom plan</a>'
+            : footerEnterprise.dataset.enterpriseHtml;
+    }
     document.getElementById('pricingModal').classList.add('show');
     document.body.style.overflow = 'hidden';
     renderPlansGrid();
     try { posthog.capture('pricing_modal_opened', { credits_remaining: currentCredits, is_subscriber: isExistingSubscriber, trigger: trigger || 'manual' }); } catch(e) {}
+    try { posthog.capture('pricing_viewed', { surface: trigger === 'credits_exhausted' ? 'credits_exhausted_modal' : 'upgrade_modal', trigger: trigger || 'manual', page: 'app' }); } catch(e) {}
 }
 
 function closePricingModal() {
@@ -3104,6 +3209,7 @@ function showInsufficientCreditsModal(trigger = 'single_enrichment') {
     document.getElementById('insufficientCreditsModal').classList.add('show');
     document.body.style.overflow = 'hidden';
 
+    updateCreditWallSubLine();
     try {
         posthog.capture('credits_exhausted_modal_shown', {
             trigger: trigger,
@@ -3112,6 +3218,7 @@ function showInsufficientCreditsModal(trigger = 'single_enrichment') {
             is_enhanced: true
         });
     } catch(e) {}
+    try { posthog.capture('pricing_viewed', { surface: 'credits_exhausted_modal', trigger: trigger, page: 'app' }); } catch(e) {}
 }
 
 // Mints a real, single-use, 24-hour 40% code via workers/discount-code. Deployed
@@ -3222,7 +3329,7 @@ function cimPriceFallbackHtml() {
 
 async function cimPriceBranch() {
     // For the low-conversion tier, "it costs more than I expected" is not a
-    // negotiating position - $25 is out of range and 40% off $49 is still $29.
+    // negotiating position - $25 is out of range and 40% off the entry plan is still $29.
     // They are 55% of signups and 0.55% of them convert after seeing the price,
     // against 9.3% everywhere else. Money is the wrong currency to offer here.
     //
@@ -3371,6 +3478,20 @@ async function cimGetCreditsNow(btnEl) {
     } catch(e) {}
     // Reuses the existing PAYG checkout flow (packs are Small/Medium/Large at index 0/1/2)
     await proceedToPaygCheckout(cimSelectedTierIndex, btnEl);
+}
+
+// The one-line subscription pitch under the packs, from the cheapest plan this
+// visitor can buy (Pro for agency accounts). Compared with the $75 / 3,500
+// credits pack the wall leads with. It used to be static and quoted the
+// yearly credit figure as monthly.
+function updateCreditWallSubLine() {
+    const line = document.getElementById('cimSubLine');
+    const plan = plans[0];
+    if (!line || !plan) return;
+    const monthly = Math.round(plan.credits / 12);
+    const ratio = (75 / 3500) / (plan.monthlyPrice / monthly);
+    line.textContent = 'Need credits regularly? ' + plan.name + ' gives ' + monthly.toLocaleString('en-US')
+        + ' credits/mo for $' + plan.monthlyPrice + ' — ' + (Math.round(ratio * 10) / 10) + '× cheaper per credit.';
 }
 
 function cimSeeSubscriptionPlans() {
@@ -5337,6 +5458,22 @@ function checkAuth(){
     else{localStorage.setItem('linkFinderToken',token);}
     if(!token){window.location.href=withUtms('https://linkfinderai.com/');return;}
     userToken=token;
+
+    // Agency segment: the database is the source of truth once there is an
+    // account. sync() claims the cookie's segment for a brand-new account, then
+    // rewrites the cookie to the database's answer. An account that turns out
+    // NOT to be agency in a browser whose cookie said it was gets the entry plan
+    // loaded now (it was never written into this page). docs/agency-pricing.md.
+    if (window.LFSegment) {
+        LFSegment.sync(token).then(function (segment) {
+            if (segment === undefined) return;
+            if (segment !== 'agency' && !window.LF_STARTER_PLAN) {
+                LFSegment.loadStarter().then(onSegmentResolved);
+            } else {
+                onSegmentResolved();
+            }
+        });
+    }
 
     // Counts authenticated app loads. Nothing fires on it any more (the
     // second-visit tutorial popup is retired) but the number is still useful
@@ -7516,7 +7653,7 @@ function updatePhCountdown() {
                 <span>🎉 We're live on Product Hunt today!</span>
                 <a href="https://www.producthunt.com/products/link-finder?launch=linkfinder-ai-2-0" target="_blank" rel="noopener noreferrer"
                    style="background:rgba(255,255,255,0.25);padding:0.3rem 0.875rem;border-radius:20px;color:white;font-weight:700;text-decoration:none;">
-                   ↑ Upvote us — get 1 free month of Starter
+                   ↑ Upvote us${window.LF_STARTER_PLAN && !isAgencySegment() ? ' — get 1 free month of ' + window.LF_STARTER_PLAN.name : ''}
                 </a>
                 <button class="ph-banner-close" onclick="closePhBanner()">×</button>
             </div>`;

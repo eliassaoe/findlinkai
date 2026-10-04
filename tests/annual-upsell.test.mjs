@@ -9,7 +9,11 @@ import { test } from 'node:test';
 
 const app = readFileSync(new URL('../app.html', import.meta.url), 'utf8');
 
-const plansSrc = app.match(/const plans = (\[[\s\S]*?\]);/)[1];
+// Every plan a monthly subscriber can be on: the entry plan (its own file, see
+// docs/agency-pricing.md) and SUBSCRIPTION_PLANS.
+const starterSrc = readFileSync(new URL('../js/lf-starter-plan.js', import.meta.url), 'utf8');
+const entry = starterSrc.match(/window\.LF_STARTER_PLAN = (\{[^}]*\});/)[1];
+const plansSrc = '[' + entry + ',' + app.match(/const SUBSCRIPTION_PLANS = \[([\s\S]*?)\];/)[1] + ']';
 const savingSrc = app.match(/function annualSaving\(plan\) \{[\s\S]*?\n\}/)[0];
 const annualSaving = new Function(savingSrc + '; return annualSaving;')();
 const plans = new Function('return ' + plansSrc)();
@@ -27,7 +31,7 @@ test('each monthly plan sees its own annual saving', () => {
 test('the banner is driven by the subscriber\'s plan, not a fixed figure', () => {
     assert.doesNotMatch(app, /\$240\/year/);
     assert.match(app, /if \(currentPlanNumber && currentPlanNumber <= 3\) showAnnualBanner\(currentPlanNumber\);/);
-    assert.match(app, /const plan = plans\[planNumber - 1\];/);
+    assert.match(app, /const plan = planByNumber\(planNumber\);/);
 });
 
 test('dismissing snoozes the banner instead of hiding it forever', () => {

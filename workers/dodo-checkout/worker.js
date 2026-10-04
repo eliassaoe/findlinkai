@@ -19,6 +19,16 @@
  *   limit reached, deleted), the worker retries WITHOUT it, so a bad code can
  *   never block a checkout.
  * - Returns Dodo's raw response (dodo_raw) on success; see PATCH.md.
+ *
+ * Added 4 Oct 2026 (docs/agency-pricing.md):
+ * - Agency accounts cannot buy the $49 Starter plan. Before a starter_* session
+ *   is created, the account's segment is read from Supabase
+ *   (get_user_segment, keyed by user_token). If it is 'agency', the session is
+ *   created for Pro at the same billing period instead, and the response says
+ *   so in `plan_redirected`. Existing $49 customers are never in the segment
+ *   (the database only flags accounts created after this shipped), so their
+ *   plan is untouched. If Supabase cannot be reached, the request goes through
+ *   unchanged: a lookup outage must never block a checkout.
  */
 
 const ALLOWED_ORIGINS = [
@@ -56,6 +66,19 @@ const PACK_CREDITS = {
 // applied to. Anything else in the request body is ignored.
 const ALLOWED_DISCOUNTS = {
   AGENCY50: ['pro_monthly', 'enterprise_monthly'],
+};
+
+// The account's pricing segment. The publishable key is the same one the
+// browser uses; get_user_segment returns only the caller's own segment.
+// Override with SUPABASE_URL / SUPABASE_KEY env vars if needed.
+const SUPABASE_URL_DEFAULT = 'https://snxhsboboatjywgwdeds.supabase.co';
+const SUPABASE_KEY_DEFAULT = 'sb_publishable_RKidGRs4ch1ixmRfXoYSww_UsQMSe5w';
+const SEGMENT_LOOKUP_TIMEOUT_MS = 3000;
+
+// Plans an agency account may not buy, and what it gets instead.
+const AGENCY_PLAN_REDIRECTS = {
+  starter_monthly: 'pro_monthly',
+  starter_annual: 'pro_annual',
 };
 
 const RETURN_URL_BASE = 'https://linkfinderai.com/app';
@@ -121,6 +144,29 @@ function resolveDiscount(requested, plan) {
   const code = requested.trim().toUpperCase();
   const plans = ALLOWED_DISCOUNTS[code];
   return plans && plans.includes(plan) ? code : null;
+}
+
+// 'agency', null, or undefined when the lookup failed.
+async function fetchSegment(userToken, env) {
+  const base = (env.SUPABASE_URL || SUPABASE_URL_DEFAULT).replace(/\/$/, '');
+  const key = env.SUPABASE_KEY || SUPABASE_KEY_DEFAULT;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), SEGMENT_LOOKUP_TIMEOUT_MS);
+  try {
+    const resp = await fetch(`${base}/rest/v1/rpc/get_user_segment`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', apikey: key, Authorization: `Bearer ${key}` },
+      body: JSON.stringify({ p_token: String(userToken) }),
+      signal: controller.signal,
+    });
+    if (!resp.ok) return undefined;
+    const segment = await resp.json();
+    return typeof segment === 'string' ? segment : null;
+  } catch {
+    return undefined;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }
 
 async function shortHash(text) {
@@ -226,6 +272,16 @@ export default {
 
     if (!user_token || typeof user_token !== 'string' || user_token.length < 8) {
       return json({ error: 'Missing or invalid user_token' }, 400, origin);
+    }
+
+    // Agency accounts are refused Starter and sent to Pro (see header).
+    let planRedirected = null;
+    if (AGENCY_PLAN_REDIRECTS[plan]) {
+      const segment = await fetchSegment(user_token, env);
+      if (segment === 'agency') {
+        planRedirected = { from: plan, to: AGENCY_PLAN_REDIRECTS[plan], reason: 'agency_segment' };
+        plan = AGENCY_PLAN_REDIRECTS[plan];
+      }
     }
 
     const productId = PRODUCT_IDS[plan];
@@ -351,6 +407,9 @@ export default {
       dodo_raw: dodoData,
       dodo_status: dodoResp.status,
       product_id_used: productId,
+
+      // Set when an agency account asked for Starter and was given Pro.
+      plan_redirected: planRedirected,
     }, 200, origin);
   },
 };

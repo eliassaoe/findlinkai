@@ -19,9 +19,13 @@ test('page stays out of search and carries attribution', () => {
 });
 
 test('prices on the page match plans[] in app.html, annual first', () => {
-    const plans = [...app.matchAll(/key:'(\w+)',\s*monthlyPrice:(\d+),\s*credits:(\d+)/g)]
+    // /agency visitors are in the agency segment: Pro and Business only
+    // (SUBSCRIPTION_PLANS), never the entry plan. docs/agency-pricing.md.
+    const list = app.match(/const SUBSCRIPTION_PLANS = \[[\s\S]*?\];/)[0];
+    const plans = [...list.matchAll(/key:'(\w+)',\s*monthlyPrice:(\d+),\s*credits:(\d+)/g)]
         .map(m => ({ key: m[1], price: Number(m[2]), credits: Number(m[3]) }));
-    assert.equal(plans.length, 3);
+    assert.equal(plans.length, 2);
+    assert.doesNotMatch(page, /starter|Starter|\$49/);
     // The app's own annual maths: 40% off monthly, rounded the same way.
     assert.match(app, /const monthlyEquiv\s+= isAnnual \? Math\.round\(plan\.monthlyPrice \* 0\.6\) : plan\.monthlyPrice;/);
     assert.match(app, /const annualTotal\s+= Math\.round\(plan\.monthlyPrice \* 0\.6 \* 12\);/);
@@ -38,8 +42,7 @@ test('prices on the page match plans[] in app.html, annual first', () => {
 test('every plan button uses a key the app resolves, annual first', () => {
     const aliases = app.match(/const PLAN_PARAM_ALIASES = \{([\s\S]*?)\};/)[1];
     const keys = [...page.matchAll(/data-plan="(\w+)_(monthly|annual)"/g)].map(m => m[1] + '_' + m[2]);
-    assert.deepEqual(keys, ['starter_annual', 'pro_annual', 'enterprise_annual',
-        'starter_monthly', 'pro_monthly', 'enterprise_monthly']);
+    assert.deepEqual(keys, ['pro_annual', 'enterprise_annual', 'pro_monthly', 'enterprise_monthly']);
     for (const k of keys) assert.match(aliases, new RegExp('\\b' + k.split('_')[0] + ':'));
 });
 
