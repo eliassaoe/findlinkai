@@ -56,8 +56,8 @@ test('app picks up lf_pending_plan once and opens checkout', () => {
 
 test('/agency visitors get annual plus a setup call, never a discount code', () => {
     assert.match(page, /localStorage\.setItem\('lf_agency_offer'/);
-    assert.match(app, /id="agencyOfferBanner"/);
-    assert.match(app, /const agencyOffer = agencyOfferActive\(\) && billingMode === 'annual'/);
+    // /agency sells the call; the pricing modal no longer advertises it.
+    assert.doesNotMatch(app, /agencyOfferBanner|\+ free 1:1 setup call/);
     const fn = app.match(/function agencyOfferActive\(\) \{([\s\S]*?)\n\}/)[1];
     assert.match(fn, /if \(isExistingSubscriber\) return false/);
     // No code is requested at checkout any more.
