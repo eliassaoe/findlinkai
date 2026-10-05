@@ -5400,8 +5400,14 @@ function lfCaptureRef() {
 // referred user is attributed even if the signup worker never saw the code.
 async function lfAttributeReferral() {
     let ref;
-    try { ref = localStorage.getItem('lf_ref'); } catch(e) { return; }
-    if (!ref || !userToken) return;
+    try { ref = localStorage.getItem('lf_ref'); } catch(e) {}
+    // Email signups only ever had the code in the cookie (sign-up.html posts it
+    // to the signup worker, which writes the v1 column, not v2), so fall back.
+    if (!ref) {
+        const m = document.cookie.match(/(?:^|;\s*)lf_ref=([^;]+)/);
+        if (m) ref = decodeURIComponent(m[1]).trim().toLowerCase();
+    }
+    if (!ref || !/^[a-z0-9]{6,24}$/.test(ref) || !userToken) return;
     try {
         const res = await fetch('https://referral.hamoureliasse.workers.dev/attribute', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -5412,8 +5418,17 @@ async function lfAttributeReferral() {
         // self-referral code is not retried on every page load forever.
         if (data && (data.ok || data.reason)) {
             try { localStorage.removeItem('lf_ref'); } catch(e) {}
-            if (data.ok && !data.already) {
-                try { posthog.capture('referral_attributed', { code: ref }); } catch(e) {}
+            try { document.cookie = 'lf_ref=; max-age=0; path=/; domain=.linkfinderai.com'; } catch(e) {}
+            if (data.ok) {
+                // Person property so payments, retention and LTV can be broken
+                // down by referring partner in PostHog without a join.
+                const lockedCode = data.code || ref;
+                try { posthog.setPersonProperties({}, { referred_by_code: lockedCode }); } catch(e) {}
+                if (!data.already) {
+                    try { posthog.capture('referral_attributed', { code: lockedCode }); } catch(e) {}
+                }
+            } else {
+                try { posthog.capture('referral_attribution_rejected', { code: ref, reason: data.reason }); } catch(e) {}
             }
         }
     } catch(e) {}

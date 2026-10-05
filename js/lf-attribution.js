@@ -147,6 +147,46 @@
     } catch (e) {}
 })();
 
+// ── Referral code capture ───────────────────────────────────────────────────
+//
+// Affiliates link to whatever page fits their audience (an alternative page, a
+// tool page, the API docs), not only the homepage. Until this ran on every
+// page, ?ref= was read on three pages (index, sign-up, app), so a partner who
+// linked /phantombuster-alternative?ref=abc123xy lost the referral the moment
+// the visitor clicked through.
+//
+// First touch wins, same rule as workers/referral: the code is stored once and
+// never overwritten. /app sends it to POST /attribute after signup, and the
+// worker is the one that decides whether the code is real.
+(function () {
+    'use strict';
+    var code;
+    try {
+        code = (new URLSearchParams(window.location.search).get('ref') || '').trim().toLowerCase();
+    } catch (e) { return; }
+    // Same shape as referral_partners.code; anything else is a v1 marketing tag.
+    if (!/^[a-z0-9]{6,24}$/.test(code)) return;
+
+    var host = window.location.hostname;
+    var domain = /(^|\.)linkfinderai\.com$/.test(host) ? '; domain=.linkfinderai.com' : '';
+    try {
+        if (!window.localStorage.getItem('lf_ref')) {
+            window.localStorage.setItem('lf_ref', code);
+            window.localStorage.setItem('lf_ref_at', String(Date.now()));
+            if (!/(?:^|;\s*)lf_ref=/.test(document.cookie)) {
+                document.cookie = 'lf_ref=' + code + '; max-age=' + (90 * 86400) + '; path=/; SameSite=Lax' + domain;
+            }
+            try {
+                var ph = window.posthog;
+                if (ph && typeof ph.register_once === 'function') ph.register_once({ referral_code: code });
+                if (ph && typeof ph.capture === 'function') {
+                    ph.capture('referral_link_landed', { code: code, landing_page: window.location.pathname });
+                }
+            } catch (e) {}
+        }
+    } catch (e) {}
+})();
+
 // ── Segment: agency pricing ─────────────────────────────────────────────────
 //
 // A visitor is "agency" when they land on any URL with utm_campaign=agency*
