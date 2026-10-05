@@ -60,6 +60,26 @@ Before Dodo's fees. Opens and clicks measure nothing here: PostHog flags
 email opens and clicks as bot traffic (`docs/revenue-levers-2026-08.md`).
 **`ltd_purchased` is the metric.**
 
+## Who gets the plan
+
+Nobody has to be logged in to pay. The purchase lands on an account in one
+of three ways, in this order:
+
+1. **Logged in on this browser** — the page passes the account token to Dodo
+   (`metadata_user_token`), so the plan attaches instantly.
+2. **Not logged in, paid with the account's email** — `ltd_fulfill` matches
+   the Dodo customer email to `linkfinderai_users.email`. Instant.
+3. **Email matches no account** — the purchase is stored `unmatched` with a
+   one-time code (`LTD-` + 10 characters). PostHog workflow **29** emails it
+   to the payer. They log in (or sign up), open
+   `/lifetime-deal?code=…#claim` and press Claim; `ltd_claim` attaches it to
+   the logged-in account. The code works once, and not after a refund.
+
+This is deliberately separate from the old `/redeem-code` page and its
+`linkfinder-redeem` worker. It also doesn't use `upgrade-intent`: that worker
+only *reads* subscriber status for the app, and the app keeps working
+for LTD buyers because they carry `is_unlimited = true` like pack buyers.
+
 ## How it fits together
 
 ```
@@ -83,9 +103,10 @@ PostHog workflow 28 (draft) ──email──▶ /lifetime-deal?utm_source=email
 |---|---|
 | Audience table + rebuild function | `supabase/migrations/20261005210000_ltd_campaign_audience.sql` |
 | Tiers, settings, purchases, fulfil/reverse/top-up, public RPCs, cron | `supabase/migrations/20261005211000_ltd_fulfillment.sql` |
+| Claim codes for unmatched buyers (`ltd_claim`) | `supabase/migrations/20261005220000_ltd_claim_codes.sql` |
 | Webhook | `supabase/functions/ltd-webhook/index.ts` → `https://snxhsboboatjywgwdeds.supabase.co/functions/v1/ltd-webhook` |
 | Sales page | `lifetime-deal.html` (noindex, `NOINDEX_ONLY` in `gen_sitemap.py`, linked from nowhere) |
-| Emails | PostHog workflow **28** `01a10e05-0773-0000-3299-8f139fd83adf` (draft) |
+| Emails | PostHog workflow **28** `01a10e05-0773-0000-3299-8f139fd83adf` (campaign, draft) and **29** `01a10e12-6019-0000-a90a-d9186bdd40d9` (claim code, draft) |
 | Cohorts | `616268` wave A, `616269` wave B (static, 5 Oct) |
 | Warehouse table | `postgres_ltd_campaign_audience` (PostHog Postgres source, 6-hourly) |
 | Scoreboard | PostHog insight `sIZUtCst` "LTD launch — scoreboard" |
@@ -153,15 +174,17 @@ No first names (most accounts have none) and no `email=` in links: an
    ```sql
    update ltd_settings set ends_at = now() + interval '7 days 12 hours';
    ```
-9. **PostHog → workflow 28:** test-run, enable, dispatch (wave A).
-10. A few hours later, if bounces < 2% and no spam complaints: change the
+9. **PostHog → workflow 29** (claim code email): enable it. It only fires on a real unmatched purchase.
+10. **PostHog → workflow 28:** test-run, enable, dispatch (wave A).
+11. A few hours later, if bounces < 2% and no spam complaints: change the
     trigger cohort to `616269` and dispatch again — **within 6 hours of wave
     A**, so email 5 ("last few hours") still lands before `ends_at`.
 
 ## Running it
 
-- **Unmatched buyer** (paid with an email that has no account,
-  `unmatched_to_fix` on the scoreboard):
+- **Unmatched buyer** (`unmatched_to_fix` on the scoreboard): workflow 29
+  has already emailed them a claim code. Only if they write in instead, attach
+  it by hand:
   ```sql
   update ltd_purchases set user_token = '<their token>', status = 'active', last_topup_at = now()
    where payment_id = '…';

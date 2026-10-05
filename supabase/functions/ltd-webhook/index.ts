@@ -77,7 +77,10 @@ Deno.serve(async (req: Request) => {
   if (r.body?.ignored || r.body?.duplicate) return json(r.body);
 
   const matched = r.body?.status === "active";
-  await capture(r.body?.user_token || "ltd_unmatched", matched ? "ltd_purchased" : "ltd_purchase_unmatched", {
+  // An unmatched buyer gets their own PostHog person, keyed by payment, so
+  // workflow 29 can email them their claim code without lumping every
+  // unmatched buyer into one person.
+  await capture(r.body?.user_token || `ltd_unmatched_${paymentId}`, matched ? "ltd_purchased" : "ltd_purchase_unmatched", {
     payment_id: paymentId,
     tier: r.body?.tier,
     monthly_credits: r.body?.monthly_credits,
@@ -87,7 +90,9 @@ Deno.serve(async (req: Request) => {
     customer_email: data.customer?.email || null,
     attribution_source: md.attribution_source || md.utm_source || null,
     attribution_campaign: md.attribution_campaign || md.utm_campaign || null,
+    claim_code: r.body?.claim_code || undefined,
     source: "ltd_webhook",
+    ...(matched ? {} : { $set: { email: data.customer?.email || null } }),
   });
   return json({ ok: true, status: r.body?.status, tier: r.body?.tier });
 });
