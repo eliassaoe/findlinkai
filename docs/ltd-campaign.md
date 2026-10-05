@@ -112,6 +112,41 @@ edge function (`ltd-webhook`, never given a secret, answers 503), a
 `ltd_claim`, workflow 29 archived). None of it ever took a payment. The
 earlier migrations stay as the record of what was applied.
 
+### The n8n node that grants it
+
+In the Dodo flow, route `payment.succeeded` whose `product_cart[0].product_id`
+is one of the two LTD ids to this node, never to the subscription node. It adds
+credits (keeps the free balance), never sets `plan_type` / `subscription_id`
+(a one-time payment has neither; `plan_type = 5` would show Annual Pro), is a
+no-op on a webhook retry, and upgrades Core to Plus by granting the difference.
+
+```sql
+UPDATE linkfinderai_users u
+SET
+  credits = COALESCE(u.credits, 0) + (v.n - COALESCE(u.ltd_monthly_credits, 0)),
+  is_unlimited = true,
+  ltd_monthly_credits = v.n
+FROM (
+  SELECT CASE '{{ $('Webhook').first().json.body.data.product_cart[0].product_id }}'
+           WHEN 'pdt_0Np6hfk426N6l9EhVrFYO' THEN 2500   -- Tier 1, $149
+           WHEN 'pdt_0Np6hjktXBH06Wqf5OT5o' THEN 7500   -- Tier 2, $299
+         END AS n
+) v
+WHERE v.n IS NOT NULL
+  AND v.n > COALESCE(u.ltd_monthly_credits, 0)
+  AND u.token = (
+    SELECT token FROM linkfinderai_users
+    WHERE token = '{{ $('Webhook').first().json.body.data.metadata.user_token ?? '' }}'
+       OR ( '{{ $('Webhook').first().json.body.data.metadata.user_token ?? '' }}' = ''
+            AND lower(email) = lower('{{ $('Webhook').first().json.body.data.customer.email }}') )
+    ORDER BY (token = '{{ $('Webhook').first().json.body.data.metadata.user_token ?? '' }}') DESC
+    LIMIT 1
+  );
+```
+
+Core + Plus do not stack: buying Plus after Core moves the account to 7,500
+(the page FAQ says so, and offers to refund the Core payment).
+
 ## Win-back: churned subscribers
 
 The same deal, offered to people who cancelled a subscription. From Dodo's
