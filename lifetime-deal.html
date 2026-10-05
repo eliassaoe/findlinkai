@@ -159,7 +159,7 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
         <a class="buy" href="#" data-buy="ltd_plus" aria-disabled="true">Opening soon</a>
       </div>
     </div>
-    <p class="fine">Secure checkout by Dodo Payments. Pay with the email you use to log in to LinkFinder: that is how the deal is attached to your account.</p>
+    <p class="fine">Secure checkout by Dodo Payments. You need to be logged in: the plan is attached to the LinkFinder account you're logged in with.</p>
     <div class="seats" id="seats" hidden><strong id="seats-left">–</strong> of <span id="seats-cap">–</span> lifetime seats left
       <div class="meter"><div id="seats-meter"></div></div>
     </div>
@@ -289,10 +289,22 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
         a.removeAttribute('aria-disabled');
         a.textContent = 'Get ' + tier.name + ' for $' + fmt(tier.price);
         a.href = buyLink(tier);
+        a.removeAttribute('target');
         a.onclick = function () { capture('ltd_checkout_clicked', { tier: tier.key, value: Number(tier.price) }); };
+      } else if (state === 'login') {
+        // Buying is tied to an account, so a visitor without a session logs in
+        // first. The login opens in a new tab; the 'storage' listener below
+        // unlocks this page the moment the app writes the token.
+        a.removeAttribute('aria-disabled');
+        a.textContent = 'Log in to buy';
+        a.href = '/log-in';
+        a.target = '_blank';
+        a.rel = 'noopener';
+        a.onclick = function () { capture('ltd_login_clicked', { tier: a.getAttribute('data-buy') }); };
       } else {
         a.setAttribute('aria-disabled', 'true');
         a.removeAttribute('href');
+        a.removeAttribute('target');
         a.textContent = state === 'closed' ? 'This deal has closed' : state === 'blocked' ? 'Not available on your account' : 'Opening soon';
       }
     });
@@ -319,16 +331,18 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
     bar.innerHTML = 'Closes in <strong>' + (d ? d + 'd ' : '') + h + 'h ' + String(m).padStart(2, '0') + 'm ' + String(s).padStart(2, '0') + 's</strong>';
   }
 
+  var ticking = null;
+  function load() {
   var stateP = rpc('ltd_public_state');
   var eligP = token ? rpc('ltd_eligibility', { p_token: token }).catch(function () { return null; }) : Promise.resolve(null);
 
-  Promise.all([stateP, eligP]).then(function (res) {
+  return Promise.all([stateP, eligP]).then(function (res) {
     var st = res[0], elig = res[1];
     var tiers = st.tiers || [];
     fillTiers(tiers);
 
     endsAt = st.ends_at ? new Date(st.ends_at).getTime() : null;
-    tick(); setInterval(tick, 1000);
+    tick(); if (!ticking) ticking = setInterval(tick, 1000);
 
     if (st.seat_cap) {
       document.getElementById('seats').hidden = false;
@@ -358,7 +372,10 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
     } else {
       setButtons('open', tiers);
       if (!token) {
-        notice('info', 'Tip: <a href="/log-in">log in</a> in this browser first, or pay with the same email as your LinkFinder account, so the deal attaches to your account straight away.');
+        setButtons('login', tiers);
+        notice('info', '<b>Log in to buy.</b> The lifetime plan is attached to your LinkFinder account. <a href="/log-in" target="_blank" rel="noopener">Log in</a> in a new tab and this page unlocks by itself.');
+      } else {
+        notice('', '');
       }
     }
   }).catch(function () {
@@ -366,6 +383,20 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
     setButtons('soon', []);
     notice('warn', 'We couldn\'t load the offer. Refresh in a minute, or write to <a href="mailto:support@linkfinderai.com">support@linkfinderai.com</a>.');
     capture('ltd_page_load_failed');
+  });
+  }
+  load();
+
+  // Logged in from the other tab: the app stores the token in localStorage,
+  // which fires 'storage' here. Re-check eligibility and unlock the buttons.
+  window.addEventListener('storage', function (e) {
+    if (e.key !== 'linkFinderToken' && e.key !== 'lf_token_backup') return;
+    var t = e.newValue;
+    if (!t || t.length < 8 || t === token) return;
+    token = t;
+    try { posthog.identify(token); } catch (err) {}
+    capture('ltd_login_completed');
+    load();
   });
 })();
 </script>
