@@ -253,3 +253,22 @@ Together: every prospect who reaches /agency from the emailed link is followed
 up. Tested -> 18 (results, then plan). Opened only -> 18's check-in, then 19.
 Signed up -> the app's own activation workflows (3 and on). Paid monthly or a
 pack -> 16 (switch to annual).
+
+## 13 and 14. Affiliate invites
+
+Built by `affiliate_workflows.py` (copy lives there, not in variants.json, so the
+Monday loop never A/B-tests a money promise). Terms in the copy must match
+`workers/referral/worker.js`: 30% for 12 months, $50 minimum, 30-day hold, PayPal.
+
+| | 13. Paying customers | 14. Active free users |
+|---|---|---|
+| Trigger | `checkout_payment_success` or `subscription_renewed` | `enrichment_milestone` with count = 3 |
+| Audience | anyone with an email (they paid) | same guard as 6-12: Google signups, not email_verified=false |
+| Shape | wait 5d, email, wait up to 7d, reminder | wait 1d, email, wait up to 7d, reminder |
+| Exit | `referral_modal_opened`, `referral_link_copied`, `affiliate_email_landed` | same |
+| Masking | once per person per 90 days | same |
+
+Both buttons land on `/app?action=refer`, which opens the referral modal. Do not
+enable them before that handler and the 30% worker are live, or the email
+promises terms the worker does not yet pay.
+

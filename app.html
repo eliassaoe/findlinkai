@@ -5578,6 +5578,11 @@ function checkAuth(){
             showAlert('Your enrichment is set up — select your CSV again to start.','warning');
         }
     },700);
+    // From the affiliate emails (workflows 13/14): land on the referral modal.
+    else if(action==='refer') setTimeout(()=>{
+        try{posthog.capture('affiliate_email_landed',{utm_campaign:p.get('utm_campaign')||null})}catch(e){}
+        openReferralModal();
+    },600);
     else if(action==='tasks') setTimeout(()=>{
         try { posthog.capture('tasks_email_landed'); } catch(e) {}
         if (typeof openOnboardingTasksPopupManually === 'function') openOnboardingTasksPopupManually();
