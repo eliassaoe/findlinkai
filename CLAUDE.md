@@ -63,6 +63,7 @@ into a file here in the same session, or it is gone.
 | **Checkout: the two doors to a Dodo payment page, and the hourly canary** | `workers/dodo-checkout/README.md` — read it before touching `launchCheckout()`, `showCheckoutError()` or the rescue banner in `app.html`; `tests/checkout-second-door.test.mjs` pins the wiring |
 | **Agency pricing** — who is "agency" (cookie → `linkfinderai_users.segment`), why the $49 plan lives only in `js/lf-starter-plan.js`, and the checkout worker's refusal | `docs/agency-pricing.md` — read it before touching `plans[]`, `SUBSCRIPTION_PLANS` or the pricing cards; `tests/agency-pricing.test.mjs` pins it |
 | **The sales-led motion** — the Enterprise tier, `/talk-to-sales`, the page CTA and the three high-ticket lifecycle emails | `docs/sales-led-motion.md` — read it before touching `plans[]`, the pricing modal, or `js/lf-highticket-cta.js` |
+| **Lifetime deal campaign** — the audience, `/lifetime-deal`, the `ltd-webhook` edge function, workflow 28, and the launch checklist | `docs/ltd-campaign.md` — read it before changing `ltd_*` tables, the page, or sending anything to free users |
 | Selling Done For You to the 67 idle pack buyers | `docs/dfy-activation-campaign.md` — read the correction in it before quoting any "paying accounts" number |
 | Who the SEO traffic actually is, before aiming an offer at it | `docs/traffic-capture-verdict.md` |
 | Listicle outreach on a cron (the `ai_keywords` table) | `docs/ai-keyword-outreach.md` — read it before adding keywords, it spends credits |
