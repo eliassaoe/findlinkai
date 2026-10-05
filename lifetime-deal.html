@@ -104,15 +104,6 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
     details p { margin-top: 8px; color: var(--gray-600); }
     .final { text-align: center; }
     .final .buy { display: inline-block; width: auto; padding: 15px 34px; }
-    .claim { max-width: 560px; margin: 0 auto; border: 1px solid var(--gray-200); border-radius: 14px; padding: 22px; background: var(--gray-50); }
-    .claim h3 { font-size: 1.2rem; margin-bottom: 6px; }
-    .claim p { font-size: .92rem; color: var(--gray-600); margin-bottom: 12px; }
-    .claim form { display: flex; gap: 8px; flex-wrap: wrap; }
-    .claim input { flex: 1 1 220px; min-width: 0; padding: 12px 14px; border: 1px solid var(--gray-300); border-radius: 10px; font: inherit; text-transform: uppercase; letter-spacing: .04em; }
-    .claim button { flex: 0 0 auto; width: auto; padding: 12px 20px; }
-    .claim .msg { margin-top: 10px; font-size: .92rem; }
-    .claim .msg.ok { color: var(--success); font-weight: 600; }
-    .claim .msg.err { color: #b91c1c; }
     footer { text-align: center; font-size: .82rem; color: var(--gray-500); padding: 30px 16px 40px; border-top: 1px solid var(--gray-100); }
   </style>
 </head>
@@ -228,21 +219,6 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
     </div>
   </section>
 
-  <section id="claim">
-    <div class="wrap">
-      <div class="claim">
-        <h3>Already paid? Claim your lifetime code</h3>
-        <p>If you paid with an email that isn't on a LinkFinder account, we emailed you a code that starts with <b>LTD-</b>. Enter it here to attach the lifetime plan to the account you're logged in with.</p>
-        <div id="claim-login" hidden><p style="margin:0"><a href="/log-in">Log in</a> or <a href="/sign-up">create your account</a> in this browser, then open this page again from your email.</p></div>
-        <form id="claim-form" hidden>
-          <input id="claim-code" name="code" placeholder="LTD-XXXXXXXXXX" autocomplete="off" maxlength="20" aria-label="Lifetime code">
-          <button class="buy" type="submit">Claim</button>
-        </form>
-        <div class="msg" id="claim-msg" role="status"></div>
-      </div>
-    </div>
-  </section>
-
   <section class="final">
     <div class="wrap">
       <h3>Pay once and keep LinkFinder for life</h3>
@@ -342,38 +318,6 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
     var d = Math.floor(ms / 864e5), h = Math.floor(ms / 36e5) % 24, m = Math.floor(ms / 6e4) % 60, s = Math.floor(ms / 1e3) % 60;
     bar.innerHTML = 'Closes in <strong>' + (d ? d + 'd ' : '') + h + 'h ' + String(m).padStart(2, '0') + 'm ' + String(s).padStart(2, '0') + 's</strong>';
   }
-
-  // ── Claim a code (buyer whose checkout email matched no account) ──
-  (function () {
-    var code = (qs.get('code') || '').trim();
-    var form = document.getElementById('claim-form'), msg = document.getElementById('claim-msg');
-    if (!token) { document.getElementById('claim-login').hidden = false; }
-    else { form.hidden = false; if (code) document.getElementById('claim-code').value = code; }
-    if (code) { capture('ltd_claim_link_opened'); setTimeout(function () { document.getElementById('claim').scrollIntoView(); }, 300); }
-    var ERR = {
-      invalid_code: 'That code isn\'t valid. Check it against the email, or write to support@linkfinderai.com.',
-      already_claimed: 'This code has already been used.',
-      refunded: 'This purchase was refunded, so the code no longer works.',
-      not_logged_in: 'Your session expired. Log in again, then reopen this page from your email.'
-    };
-    form.addEventListener('submit', function (e) {
-      e.preventDefault();
-      var c = document.getElementById('claim-code').value.trim();
-      if (!c) return;
-      msg.className = 'msg'; msg.textContent = 'Checking…';
-      rpc('ltd_claim', { p_token: token, p_code: c }).then(function (r) {
-        if (r && r.ok) {
-          msg.className = 'msg ok';
-          msg.innerHTML = 'Done. ' + fmt(r.monthly_credits) + ' credits are on your account and refill every month. <a href="/app">Open the app →</a>';
-          form.hidden = true;
-          capture('ltd_claimed', { tier: r.tier });
-        } else {
-          msg.className = 'msg err'; msg.textContent = ERR[r && r.error] || ERR.invalid_code;
-          capture('ltd_claim_failed', { reason: r && r.error });
-        }
-      }).catch(function () { msg.className = 'msg err'; msg.textContent = 'Something went wrong. Try again in a minute.'; });
-    });
-  })();
 
   var stateP = rpc('ltd_public_state');
   var eligP = token ? rpc('ltd_eligibility', { p_token: token }).catch(function () { return null; }) : Promise.resolve(null);

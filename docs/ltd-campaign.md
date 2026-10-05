@@ -3,9 +3,8 @@
 A one-week lifetime deal (LTD), sold by email only to free accounts that have
 never paid, in high-income countries. Built 5 Oct 2026.
 
-**Nothing has been sent and nobody can buy yet.** The workflow is a draft, the
-tiers have no Dodo product ids, and the page is not on `main`. The launch
-checklist at the bottom is the full list of what is left.
+**Nothing has been sent yet.** The workflow is a draft and the page is not on
+`main`. The launch checklist at the bottom is the full list of what is left.
 
 ## The offer
 
@@ -20,9 +19,10 @@ checklist at the bottom is the full list of what is left.
 - **Capped at 150 seats** (`ltd_settings.seat_cap`), closes on
   `ltd_settings.ends_at`. Both are real: the page reads them live, and Email 3
   says "capped at 150".
-- **14-day refund.** A refund or dispute ends the plan and takes back the
-  current month's grant (`ltd_reverse`).
-- **Never sold to someone who has paid.** The audience excludes them, and the page
+- **14-day refund.** A refund ends the plan: set `ltd_monthly_credits` back
+  to null on the user (refills stop). Remove the granted credits by hand.
+- **Never sold to someone who has paid** — except churned customers invited
+  back on purpose (`ltd_allowlist`). The audience excludes payers, and the page
   checks the visitor's own token (`ltd_eligibility`) and hides the buy
   buttons for any account that has ever paid or already holds an LTD. A
   forwarded email cannot turn into a refund request from a subscriber.
@@ -60,76 +60,106 @@ Before Dodo's fees. Opens and clicks measure nothing here: PostHog flags
 email opens and clicks as bot traffic (`docs/revenue-levers-2026-08.md`).
 **`ltd_purchased` is the metric.**
 
-## Who gets the plan
+## How a payment becomes a lifetime account
 
-Nobody has to be logged in to pay. The purchase lands on an account in one
-of three ways, in this order:
+The LTD state lives **on the user row**, `linkfinderai_users.ltd_monthly_credits`.
+There is no separate fulfilment service.
 
-1. **Logged in on this browser** — the page passes the account token to Dodo
-   (`metadata_user_token`), so the plan attaches instantly.
-2. **Not logged in, paid with the account's email** — `ltd_fulfill` matches
-   the Dodo customer email to `linkfinderai_users.email`. Instant.
-3. **Email matches no account** — the purchase is stored `unmatched` with a
-   one-time code (`LTD-` + 10 characters). PostHog workflow **29** emails it
-   to the payer. They log in (or sign up), open
-   `/lifetime-deal?code=…#claim` and press Claim; `ltd_claim` attaches it to
-   the logged-in account. The code works once, and not after a refund.
-
-This is deliberately separate from the old `/redeem-code` page and its
-`linkfinder-redeem` worker. It also doesn't use `upgrade-intent`: that worker
-only *reads* subscriber status for the app, and the app keeps working
-for LTD buyers because they carry `is_unlimited = true` like pack buyers.
-
-## How it fits together
+1. The page sends the buyer to Dodo's static payment link for the tier, with
+   `metadata_user_token` when they are logged in on that browser.
+2. **The existing Dodo flow (`dodo-webhook-handler`) credits the payment** like
+   any other, and for the two LTD products also sets `ltd_monthly_credits` =
+   2500 (Tier 1) or 7500 (Tier 2) on the user. That one column is the only
+   thing it has to know about.
+3. Supabase does the rest:
+   - trigger `ltd_on_grant` stamps `ltd_topup_at` and captures
+     `ltd_purchased` (with revenue) to PostHog, which stops workflow 28 for the
+     buyer and feeds the scoreboard;
+   - cron `ltd-monthly-topup` (daily, 03:17 UTC) raises the balance up to the
+     allotment once a month (`ltd_monthly_topup`);
+   - `ltd_public_state()` counts seats from the column, `ltd_eligibility()`
+     reads it.
 
 ```
-PostHog workflow 28 (draft) ──email──▶ /lifetime-deal?utm_source=email&utm_campaign=ltd_launch&utm_content=eN
-                                          │  reads ltd_public_state()  (tiers, seats, deadline, product ids)
-                                          │  reads ltd_eligibility(token)  (hide buy for payers)
-                                          ▼
-                       Dodo static payment link  checkout.dodopayments.com/buy/<pdt>
-                         metadata_user_token, metadata_attribution_source/campaign
-                                          │
-                       Dodo webhook ──────▼─────────────────────────────
-                       supabase/functions/ltd-webhook (verify_jwt off, Standard Webhooks signature)
-                         payment.succeeded → ltd_fulfill()  → credits + is_unlimited + ltd_purchases row
-                         refund/dispute    → ltd_reverse()
-                         → PostHog: ltd_purchased / ltd_purchase_unmatched / ltd_refunded (with revenue)
-                                          │
-                       pg_cron 'ltd-monthly-topup' daily 03:17 UTC → ltd_monthly_topup()
+workflow 28 ──email──▶ /lifetime-deal ──▶ Dodo payment link
+                          │ ltd_public_state(), ltd_eligibility(token)
+                          ▼
+            Dodo ──▶ dodo-webhook-handler (existing) ──▶ credits += N, ltd_monthly_credits = N
+                                                             │ trigger ltd_on_grant → PostHog ltd_purchased
+                                                             ▼
+                                         pg_cron ltd-monthly-topup → refill monthly
 ```
 
 | Piece | Where |
 |---|---|
 | Audience table + rebuild function | `supabase/migrations/20261005210000_ltd_campaign_audience.sql` |
-| Tiers, settings, purchases, fulfil/reverse/top-up, public RPCs, cron | `supabase/migrations/20261005211000_ltd_fulfillment.sql` |
-| Claim codes for unmatched buyers (`ltd_claim`) | `supabase/migrations/20261005220000_ltd_claim_codes.sql` |
-| Webhook | `supabase/functions/ltd-webhook/index.ts` → `https://snxhsboboatjywgwdeds.supabase.co/functions/v1/ltd-webhook` |
+| Tiers, settings, cron | `supabase/migrations/20261005211000_ltd_fulfillment.sql` |
+| **The final shape**: user-row columns, trigger, top-up, seats, eligibility, allowlist | `supabase/migrations/20261005230000_ltd_on_users_table.sql` |
 | Sales page | `lifetime-deal.html` (noindex, `NOINDEX_ONLY` in `gen_sitemap.py`, linked from nowhere) |
-| Emails | PostHog workflow **28** `01a10e05-0773-0000-3299-8f139fd83adf` (campaign, draft) and **29** `01a10e12-6019-0000-a90a-d9186bdd40d9` (claim code, draft) |
+| Emails | PostHog workflow **28** `01a10e05-0773-0000-3299-8f139fd83adf` (draft) |
 | Cohorts | `616268` wave A, `616269` wave B (static, 5 Oct) |
 | Warehouse table | `postgres_ltd_campaign_audience` (PostHog Postgres source, 6-hourly) |
 | Scoreboard | PostHog insight `sIZUtCst` "LTD launch — scoreboard" |
 
-All of it was tested before commit: fulfil, duplicate delivery, unmatched
-email, non-LTD product, monthly top-up and refund ran inside a rolled-back
-transaction on the live database; the signature check was verified against a
-reference HMAC (good / tampered / stale); the page was rendered in Chromium at
-1280 px and 390 px in all four states (soon, open, already paid, closed).
+Tested on the live database inside rolled-back transactions: setting the
+column stamps the refill clock and takes a seat, the page sees `has_ltd`, no
+double refill the same month, a balance of 100 is refilled to 2,500 after a
+month, and clearing the column stops refills.
 
-### Why its own webhook
+**Superseded, left unused:** an earlier version fulfilled through its own
+edge function (`ltd-webhook`, never given a secret, answers 503), a
+`ltd_purchases` table and claim codes (`ltd_fulfill`, `ltd_reverse`,
+`ltd_claim`, workflow 29 archived). None of it ever took a payment. The
+earlier migrations stay as the record of what was applied.
 
-The live `dodo-webhook-handler` (Cloudflare, not in this repo) grants pack
-credits. The LTD needs a monthly allotment, a seat count and a refund
-reversal, none of which that handler knows. `ltd_fulfill` ignores every
-product not in `ltd_tiers`, so the two can share Dodo's event stream. **Check
-the other way round too** — see step 2 of the checklist.
+## Win-back: churned subscribers
+
+The same deal, offered to people who cancelled a subscription. From Dodo's
+subscription list (5 Oct): 8 "Annulé". Excluded the founder's own account,
+`t80635019@gmail.com` (still on auto top-up, so still a customer) and
+`gdloi619g1@dayingjischool.org` (throwaway domain, failed annual attempts).
+"Échoué" and "En attente" never paid and are not churn.
+
+The 7 left are in `ltd_allowlist`, which is what lets the page sell to them
+despite their payment history. Only 2 are PostHog persons
+(`jmichaud@endhunger.com`, `j.plakhotniuk@devotedstudios.com`, both already in
+workflow 27), and `richard@verisq.ai` / `jimmy@brightmove.com` have no account
+under that email. So this is a **personal send from the founder's inbox**, the
+same call as `docs/dfy-activation-campaign.md`: seven people who paid once
+deserve a person, not a broadcast.
+
+> **Subject:** a way back to LinkFinder, without a subscription
+>
+> Hi,
+>
+> You had a LinkFinder subscription and cancelled it. Fair enough. Paying
+> every month for a tool you need in bursts is hard to justify.
+>
+> So this week I'm offering past customers something I have never sold
+> before: LinkFinder for life, paid once.
+>
+> - $149 once: 2,500 credits refilled every month, forever
+> - $299 once: 7,500 credits every month
+>
+> Nothing renews and nothing expires. When you're not prospecting it costs you
+> nothing; when a campaign comes around, the credits are there. And if a month
+> needs more, pay-as-you-go packs go on top, also one-off.
+>
+> https://linkfinderai.com/lifetime-deal?utm_source=email&utm_campaign=ltd_winback
+>
+> It closes in 7 days. If you'd rather tell me why you left, I read every reply.
+>
+> Eliasse
+
+Log in to LinkFinder with the address you have on file first: the page reads
+your account to unlock the offer. For Richard and Jimmy, whose account email
+differs, ask them to reply so the purchase can be attached by hand.
 
 ### The emails
 
 Five plain founder-style emails from `support@linkfinderai.com`, message
 category *marketing* (one-click unsubscribe), paced at 200/hour, exit on
-`ltd_purchased`, `ltd_purchase_unmatched` or `checkout_payment_success`.
+`ltd_purchased` (from the trigger) or `checkout_payment_success`.
 
 | # | When | Subject |
 |---|---|---|
@@ -145,52 +175,37 @@ No first names (most accounts have none) and no `email=` in links: an
 
 ## Launch checklist
 
-1. ✅ *Done 5 Oct, ids written to `ltd_tiers`.* **Dodo → Products:** create two one-time products, "LinkFinder Lifetime
-   Core" $149 and "LinkFinder Lifetime Plus" $299. Then:
-   ```sql
-   update ltd_tiers set dodo_product_id = 'pdt_…' where tier_key = 'ltd_core';
-   update ltd_tiers set dodo_product_id = 'pdt_…' where tier_key = 'ltd_plus';
-   ```
-2. **Check `dodo-webhook-handler`** in Cloudflare grants nothing for an
-   unknown product id. If it has a default branch (e.g. treats any payment as
-   a pack), an LTD buyer would be credited twice.
-3. **Dodo → Webhooks → Add endpoint**
-   `https://snxhsboboatjywgwdeds.supabase.co/functions/v1/ltd-webhook`,
-   events `payment.succeeded`, `refund.succeeded`, `dispute.opened`,
-   `payment.cancelled`. Copy its `whsec_…`.
-4. **Supabase → Edge Functions → Secrets:** `DODO_LTD_WEBHOOK_SECRET` = that
-   `whsec_…`. Until it is set the function answers 503, so Dodo keeps
-   retrying instead of losing a payment.
-5. **Merge this branch to `main`** so `/lifetime-deal` goes live.
-6. **Buy it yourself** on a free test account (or a 100% Dodo discount code):
-   confirm `ltd_purchases` has a row, credits went up by 2,500, the scoreboard
-   shows a purchase. Refund it in Dodo and confirm the row says `refunded`.
-   Then `delete from ltd_purchases where payment_id = '…'` so it does not
-   take a seat.
-7. **Refresh the audience** if more than a day has passed:
+1. ✅ Dodo products created (`pdt_0Np6hfk426N6l9EhVrFYO`, `pdt_0Np6hjktXBH06Wqf5OT5o`), ids in `ltd_tiers`.
+2. ✅ (per the founder) `dodo-webhook-handler` credits both products. **Confirm
+   it also sets `ltd_monthly_credits`** (2500 / 7500) — without it nothing
+   refills and no seat is counted.
+3. **Merge this branch to `main`** so `/lifetime-deal` goes live.
+4. **Buy it yourself** on a free test account: credits +2,500,
+   `ltd_monthly_credits = 2500`, `ltd_topup_at` set, scoreboard shows a
+   purchase. Then reset that account (`ltd_monthly_credits = null`, credits back).
+5. **Refresh the audience** if more than a day has passed:
    `select refresh_ltd_campaign_audience();`, reload the PostHog schema, and
    re-create both cohorts from their queries (they are static snapshots).
-8. **Set the deadline** right before dispatching wave A:
+6. **Set the deadline** right before dispatching wave A:
    ```sql
    update ltd_settings set ends_at = now() + interval '7 days 12 hours';
    ```
-9. **PostHog → workflow 29** (claim code email): enable it. It only fires on a real unmatched purchase.
-10. **PostHog → workflow 28:** test-run, enable, dispatch (wave A).
-11. A few hours later, if bounces < 2% and no spam complaints: change the
-    trigger cohort to `616269` and dispatch again — **within 6 hours of wave
-    A**, so email 5 ("last few hours") still lands before `ends_at`.
+7. **PostHog → workflow 28:** test-run, enable, dispatch (wave A).
+8. A few hours later, if bounces < 2% and no spam complaints: change the
+   trigger cohort to `616269` and dispatch again — **within 6 hours of wave
+   A**, so email 5 ("last few hours") still lands before `ends_at`.
+9. Send the win-back email above to the 7 churned customers, the same day.
 
 ## Running it
 
-- **Unmatched buyer** (`unmatched_to_fix` on the scoreboard): workflow 29
-  has already emailed them a claim code. Only if they write in instead, attach
-  it by hand:
+- **Buyer paid with an email that has no account:** they reply or write to
+  support. Set it by hand on the right account:
   ```sql
-  update ltd_purchases set user_token = '<their token>', status = 'active', last_topup_at = now()
-   where payment_id = '…';
-  update linkfinderai_users set credits = coalesce(credits,0) + <monthly_credits>, is_unlimited = true
-   where token = '<their token>';
+  update linkfinderai_users set credits = coalesce(credits,0) + 2500, is_unlimited = true,
+         ltd_monthly_credits = 2500 where token = '<their token>';
   ```
+- **Refund:** `update linkfinderai_users set ltd_monthly_credits = null where token = '…';`
+  and take back the credits if appropriate.
 - **Close early / extend:** `update ltd_settings set ends_at = …` or
   `seat_cap = …`. The page follows immediately.
 - **After the week:** archive workflow 28. `/lifetime-deal` shows "closed" on
@@ -206,6 +221,5 @@ No first names (most accounts have none) and no `email=` in links: an
   ~$0.005 in data spend, a fully-used Plus seat stops paying for itself in
   under a year. Check before raising the seat cap.
 - **Lifetime credits sit in the same `credits` column as everything else.**
-  The refund reversal subtracts the monthly allotment from the whole balance,
-  so a buyer who also bought a pack and then refunds the LTD can lose up to
-  one allotment of pack credits. Rare; fix by hand if it happens.
+  The refill raises the balance *up to* the allotment, so pack credits on top
+  are never taken, but a refund has to be sorted out by hand.
