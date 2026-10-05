@@ -129,3 +129,32 @@ ALTER TABLE referral_partners     ENABLE ROW LEVEL SECURITY;
 ALTER TABLE referral_attributions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE referral_commissions  ENABLE ROW LEVEL SECURITY;
 ALTER TABLE referral_clicks       ENABLE ROW LEVEL SECURITY;
+
+-- --------------------------------------------------------------------------
+-- What to pay, to whom, and when. Read this on the 1st of each month.
+-- --------------------------------------------------------------------------
+-- One row per partner who has any commission. `owed_now` is approved money
+-- (past the 30-day refund hold). `payable` is true once owed_now reaches the
+-- $50 minimum AND a payout email is set - those are the rows to pay this run.
+-- security_invoker + RLS-with-no-policies on the tables means only the
+-- service role (dashboard SQL editor, workers) can read it.
+CREATE OR REPLACE VIEW referral_payouts_due WITH (security_invoker = true) AS
+SELECT
+    p.user_id                                                           AS partner_user_id,
+    p.code,
+    p.payout_email,
+    p.payout_method,
+    p.status                                                            AS partner_status,
+    COALESCE(SUM(c.commission_amount) FILTER (WHERE c.status = 'approved'), 0) AS owed_now,
+    COALESCE(SUM(c.commission_amount) FILTER (WHERE c.status = 'pending'),  0) AS in_refund_hold,
+    COUNT(*) FILTER (WHERE c.status = 'review')                         AS needs_review,
+    COALESCE(SUM(c.commission_amount) FILTER (WHERE c.status = 'paid'),     0) AS paid_to_date,
+    MIN(c.created_at) FILTER (WHERE c.status = 'pending') + interval '30 days' AS next_hold_release,
+    (COALESCE(SUM(c.commission_amount) FILTER (WHERE c.status = 'approved'), 0) >= 50
+        AND p.payout_email IS NOT NULL AND p.status = 'active')         AS payable,
+    (date_trunc('month', now()) + interval '1 month')::date             AS next_payout_run
+FROM referral_partners p
+JOIN referral_commissions c ON c.partner_user_id = p.user_id
+GROUP BY p.user_id, p.code, p.payout_email, p.payout_method, p.status;
+
+REVOKE ALL ON referral_payouts_due FROM anon, authenticated;

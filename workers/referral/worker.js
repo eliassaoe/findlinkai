@@ -30,12 +30,15 @@
 //
 // Deploy: see README.md.
 
-const COMMISSION_RATE = 0.25;      // 25% of what the referred customer pays
-// Capped per referred customer, not per partner and not per payment: someone
-// who sends five paying customers can earn five times this. The cap is what
-// makes "up to $500" a true statement rather than marketing - without it the
-// 25% runs forever and the real number is unbounded.
-const COMMISSION_CAP_PER_REFERRED = 500;
+const COMMISSION_RATE = 0.30;      // 30% of what the referred customer pays
+// Earned on every payment the referred customer makes during the 12 months
+// that start with their FIRST paid invoice - not with their signup, so someone
+// who signs up through a partner and only buys months later still earns that
+// partner a full year. After the window closes the customer stays theirs (the
+// attribution is never moved) but stops earning. A time limit rather than a
+// dollar cap: "30% for a year" is a promise a partner can check against their
+// own customer's invoices, which "up to $500" never was.
+const COMMISSION_WINDOW_DAYS = 365;
 const HOLD_DAYS       = 30;        // refund window before a commission is owed
 const PAYOUT_MINIMUM  = 50;        // USD, below which a payout is not run
 const SITE            = 'https://linkfinderai.com';
@@ -193,7 +196,7 @@ async function handleMe(env, userId) {
         payout_email: partner.payout_email || null,
         status: partner.status,
         rate: COMMISSION_RATE,
-        cap_per_referred: COMMISSION_CAP_PER_REFERRED,
+        window_months: 12,
         hold_days: HOLD_DAYS,
         payout_minimum: PAYOUT_MINIMUM,
         stats: {
@@ -349,23 +352,23 @@ async function handleDodoWebhook(request, env) {
     const gross = typeof data.total_amount === 'number' ? data.total_amount / 100 : 0;
     if (gross <= 0) return json({ ok: true, warning: 'zero amount' });
 
-    // Apply the per-referred-customer cap. Voided commissions do not count
-    // towards it - money we clawed back should not eat someone's allowance.
+    // The 12-month window, measured from the first commissioned payment for
+    // this customer. Voided rows still mark the start: a refunded first month
+    // does not restart someone's year.
     let prior;
     try {
         prior = await sbSelect(env, 'referral_commissions',
-            `referred_user_id=eq.${enc(payerId)}&status=neq.void&select=commission_amount`);
+            `referred_user_id=eq.${enc(payerId)}&select=created_at&order=created_at.asc&limit=1`);
     } catch (e) {
-        // Failing open here would mean paying past the cap. Better to leave
+        // Failing open here would mean paying past the window. Better to leave
         // the payment unrecorded and let a retry pick it up.
         return json({ ok: false, error: 'could not read prior commissions' }, 500);
     }
-    const already = prior.reduce((t, c) => t + Number(c.commission_amount || 0), 0);
-    const remaining = round2(COMMISSION_CAP_PER_REFERRED - already);
-    if (remaining <= 0) {
-        return json({ ok: true, capped: true, referred_user_id: payerId });
+    const firstAt = prior.length && prior[0].created_at ? Date.parse(prior[0].created_at) : null;
+    if (firstAt && Date.now() - firstAt > COMMISSION_WINDOW_DAYS * 86400000) {
+        return json({ ok: true, window_closed: true, referred_user_id: payerId });
     }
-    const amount = Math.min(round2(gross * COMMISSION_RATE), remaining);
+    const amount = round2(gross * COMMISSION_RATE);
 
     const inserted = await sb(env, 'referral_commissions', {
         method: 'POST',

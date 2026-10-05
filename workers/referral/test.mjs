@@ -140,13 +140,13 @@ await t('same-domain detection ignores free providers', async () => {
   assert(sameDomain('a@acme.com', 'b@other.com') === false, 'different domains fine');
 });
 
-await t('valid webhook writes a pending commission at 25%', async () => {
+await t('valid webhook writes a pending commission at 30%', async () => {
   resetDb();
   const res = await worker.fetch(await signedRequest(payment()), env);
   assert(res.status === 200, 'status ' + res.status);
   const c = db.referral_commissions;
   assert(c.length === 1, 'one commission, got ' + c.length);
-  assert(c[0].commission_amount === 22.25, 'amount ' + c[0].commission_amount);
+  assert(c[0].commission_amount === 26.7, 'amount ' + c[0].commission_amount);
   assert(c[0].gross_amount === 89, 'gross ' + c[0].gross_amount);
   assert(c[0].status === 'pending', 'status ' + c[0].status);
   assert(c[0].partner_user_id === 'partner1', 'partner');
@@ -227,7 +227,7 @@ await t('renewal pays again - it is a different payment id', async () => {
   await worker.fetch(await signedRequest(payment()), env);
   await worker.fetch(await signedRequest({ type: 'subscription.renewed', data: { payment_id: 'pay_2', total_amount: 8900, currency: 'USD', customer: { email: 'buyer@corp.com' } } }), env);
   assert(db.referral_commissions.length === 2, 'got ' + db.referral_commissions.length);
-  assert(round2(db.referral_commissions.reduce((t, c) => t + c.commission_amount, 0)) === 44.5, 'total');
+  assert(round2(db.referral_commissions.reduce((t, c) => t + c.commission_amount, 0)) === 53.4, 'total');
 });
 
 await t('zero-amount payment writes nothing', async () => {
@@ -281,51 +281,57 @@ await t('unauthenticated request is refused', async () => {
 });
 
 // ---------------------------------------------------------------------------
-// The $500-per-referred-customer cap. "Up to $500" is only true if this holds.
+// 30% for 12 months. "30% for a year" is only true if both halves hold.
 // ---------------------------------------------------------------------------
 const bigPayment = (id, cents) => ({
   type: 'payment.succeeded',
   data: { payment_id: id, total_amount: cents, currency: 'USD', customer: { email: 'buyer@corp.com' } },
 });
+const DAY = 86400000;
 
-await t('renewals stop earning once $500 is reached for one customer', async () => {
+await t('every payment inside the year earns 30%, uncapped', async () => {
   resetDb();
-  // $1000 a time at 25% = $250 each. Three of them would be $750 uncapped.
   for (const id of ['p1', 'p2', 'p3']) {
-    await worker.fetch(await signedRequest(bigPayment(id, 100000)), env);
+    await worker.fetch(await signedRequest(bigPayment(id, 100000)), env); // $1000 each
   }
-  const total = round2(db.referral_commissions.reduce((t, c) => t + Number(c.commission_amount), 0));
-  assert(total === 500, 'total should stop at 500, got ' + total);
-  assert(db.referral_commissions.length === 2, 'third payment writes nothing, got ' + db.referral_commissions.length);
-});
-
-await t('the final commission is trimmed to what is left, not dropped', async () => {
-  resetDb();
-  await worker.fetch(await signedRequest(bigPayment('p1', 160000)), env); // $400
-  await worker.fetch(await signedRequest(bigPayment('p2', 160000)), env); // would be $400, only $100 left
   const amounts = db.referral_commissions.map(c => Number(c.commission_amount));
-  assert(amounts[0] === 400, 'first ' + amounts[0]);
-  assert(amounts[1] === 100, 'second should be trimmed to 100, got ' + amounts[1]);
+  assert(amounts.length === 3 && amounts.every(a => a === 300), 'three x $300, got ' + JSON.stringify(amounts));
+  assert(db.referral_commissions.every(c => Number(c.rate) === 0.3), 'rate stored as 0.3');
 });
 
-await t('the cap is per referred customer, not per partner', async () => {
+await t('payments after 12 months from the first one earn nothing', async () => {
+  resetDb();
+  db.referral_commissions.push({ referred_user_id: 'buyer1', partner_user_id: 'partner1', dodo_payment_id: 'old',
+    commission_amount: 30, status: 'paid', created_at: new Date(Date.now() - 366 * DAY).toISOString() });
+  await worker.fetch(await signedRequest(bigPayment('p2', 10000)), env);
+  assert(db.referral_commissions.length === 1, 'nothing written past the window, got ' + db.referral_commissions.length);
+});
+
+await t('a payment on day 364 still earns', async () => {
+  resetDb();
+  db.referral_commissions.push({ referred_user_id: 'buyer1', partner_user_id: 'partner1', dodo_payment_id: 'old',
+    commission_amount: 30, status: 'paid', created_at: new Date(Date.now() - 364 * DAY).toISOString() });
+  await worker.fetch(await signedRequest(bigPayment('p2', 10000)), env);
+  assert(db.referral_commissions.length === 2, 'inside the window, got ' + db.referral_commissions.length);
+  assert(Number(db.referral_commissions[1].commission_amount) === 30, '30% of $100');
+});
+
+await t('a refunded first payment does not restart the year', async () => {
+  resetDb();
+  db.referral_commissions.push({ referred_user_id: 'buyer1', partner_user_id: 'partner1', dodo_payment_id: 'old',
+    commission_amount: 30, status: 'void', created_at: new Date(Date.now() - 400 * DAY).toISOString() });
+  await worker.fetch(await signedRequest(bigPayment('p2', 10000)), env);
+  assert(db.referral_commissions.length === 1, 'window still closed, got ' + db.referral_commissions.length);
+});
+
+await t('each referred customer has their own year', async () => {
   resetDb();
   db.linkfinderai_users.push({ token: 'buyer2', email: 'other@else.com' });
   db.referral_attributions.push({ referred_user_id: 'buyer2', partner_user_id: 'partner1', code: 'abc123xy', flagged_reason: null });
-  await worker.fetch(await signedRequest(bigPayment('p1', 400000)), env); // buyer1 maxes out
-  await worker.fetch(await signedRequest({ type: 'payment.succeeded', data: { payment_id: 'p9', total_amount: 100000, currency: 'USD', customer: { email: 'other@else.com' } } }), env);
-  const total = round2(db.referral_commissions.reduce((t, c) => t + Number(c.commission_amount), 0));
-  assert(total === 750, 'one partner, two customers: 500 + 250 = 750, got ' + total);
-});
-
-await t('voided commissions do not eat the allowance', async () => {
-  resetDb();
-  await worker.fetch(await signedRequest(bigPayment('p1', 200000)), env); // $500, capped out
-  await worker.fetch(await signedRequest({ type: 'refund.succeeded', data: { payment_id: 'p1' } }), env);
-  await worker.fetch(await signedRequest(bigPayment('p2', 100000)), env); // $250 should be allowed again
-  const live = db.referral_commissions.filter(c => c.status !== 'void');
-  assert(live.length === 1 && Number(live[0].commission_amount) === 250,
-    'refunded money must not count against the cap: ' + JSON.stringify(live.map(c => c.commission_amount)));
+  db.referral_commissions.push({ referred_user_id: 'buyer1', partner_user_id: 'partner1', dodo_payment_id: 'old',
+    commission_amount: 30, status: 'paid', created_at: new Date(Date.now() - 400 * DAY).toISOString() });
+  await worker.fetch(await signedRequest({ type: 'payment.succeeded', data: { payment_id: 'p9', total_amount: 10000, currency: 'USD', customer: { email: 'other@else.com' } } }), env);
+  assert(db.referral_commissions.length === 2, "buyer1's closed window does not affect buyer2");
 });
 
 console.log(results.map(([s, n]) => `${s}  ${n}`).join('\n'));

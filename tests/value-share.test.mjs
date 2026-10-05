@@ -289,8 +289,8 @@ test('the modal states the privacy of the card either way', () => {
 
 test('the commission is only promised when there is a code to earn it', () => {
   const ctx = context();
-  assert.match(ctx.shareFootText('ELIAS42'), /25%/);
-  assert.doesNotMatch(ctx.shareFootText(''), /25%/,
+  assert.match(ctx.shareFootText('ELIAS42'), /30%/);
+  assert.doesNotMatch(ctx.shareFootText(''), /30%/,
     'a user with no referral code must not be told they earn commission');
 });
 

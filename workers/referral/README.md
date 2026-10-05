@@ -1,13 +1,17 @@
 # Referral program v2
 
-Pays a partner **25% of what a referred customer actually pays, up to $500 per
-referred customer**, and pays it only when Dodo says over a signed webhook that
-money moved.
+Pays a partner **30% of everything a referred customer pays during their first
+12 months as a paying customer**, uncapped, and pays it only when Dodo says over
+a signed webhook that money moved.
 
-The cap is per referred customer, not per partner: ten paying referrals is ten
-separate $500 allowances. Voided commissions do not count against it, so a
-refund gives the allowance back. A payment that would cross the cap is trimmed
-to what is left rather than dropped.
+The year starts at the referred customer's first commissioned payment, not at
+signup, so someone who signs up through a partner and buys months later still
+earns that partner a full year. Each referred customer has their own year. A
+refunded first payment does not restart it. After the year the customer stays
+attributed to the partner but stops earning.
+
+(Until Oct 2026 this was 25% capped at $500 per referred customer. No
+commission had been written under those terms, so nothing needed migrating.)
 
 ## Why v1 was not extended
 
@@ -163,10 +167,61 @@ shared invite link could swap `ref=` for `token=` and be inside that account.
 v2 codes are generated (`abc123xy`), authenticate nothing, and are safe to post
 anywhere. Fixed in `app.html` in the same change that repointed the modal.
 
+## Paying partners: the monthly run
+
+Commission states: `pending` (inside the 30-day refund hold) → `approved`
+(owed) → `paid`. The nightly cron does pending → approved. Paying is manual.
+
+**On the 1st–5th of each month**, in the Supabase SQL editor:
+
+```sql
+-- 1. Who to pay this run (owed >= $50 and a PayPal email set)
+SELECT code, payout_email, owed_now, in_refund_hold, needs_review
+FROM referral_payouts_due WHERE payable ORDER BY owed_now DESC;
+
+-- 2. Anything flagged (same email domain etc.) needs a decision first
+SELECT * FROM referral_commissions WHERE status = 'review';
+-- approve:  UPDATE referral_commissions SET status='approved', approved_at=now() WHERE id='...';
+-- reject:   UPDATE referral_commissions SET status='void' WHERE id='...';
+```
+
+3. Send each `owed_now` amount via PayPal (Payouts or a normal send) to
+   `payout_email`.
+4. Mark exactly what you paid, with a batch name you can trace back:
+
+```sql
+UPDATE referral_commissions
+SET status = 'paid', paid_at = now(), payout_batch = '2026-11'
+WHERE status = 'approved'
+  AND partner_user_id IN (SELECT partner_user_id FROM referral_payouts_due WHERE payable);
+```
+
+Partners see `owed` drop and `paid` rise on /affiliate and in the app modal
+right after step 4. Below $50 the balance rolls over to the next month.
+
+## Tracking: link → signup → payment
+
+```
+?ref=CODE on ANY page  ->  js/lf-attribution.js stores it first-touch
+                           (localStorage lf_ref + cookie, PostHog super
+                           property referral_code, event referral_link_landed)
+signup (email or Google) -> /app -> POST /attribute -> referral_attributions
+                           (PostHog person property referred_by_code,
+                           event referral_attributed / _rejected)
+Dodo payment webhook     -> referral_commissions (pending)
+```
+
+Before Oct 2026 the code was dropped on the way: only three pages read
+`?ref=`, the Google signup redirect cleared it, and email signups only had it
+in a cookie /app never read. `tests/referral-capture.test.mjs` pins all three.
+
+In PostHog, break `checkout_payment_success` down by the person property
+`referred_by_code` to see revenue per partner.
+
 ## Not done yet
 
-- **The payout run.** `approved` → `paid` is still manual: nothing here sends
-  money. It marks a batch; someone pays it. Automating it means PayPal Payouts
+- **Automated payouts.** `approved` → `paid` is manual (see the monthly run
+  above): nothing here sends money. Automating it means PayPal Payouts
   or Dodo's own affiliate payouts, and neither should be wired up before the
   first real commission exists.
 - **`referral-program.html`** is the v1 page and still points at the v1

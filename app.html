@@ -980,6 +980,8 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
             <a href="#" class="nav-tab" data-page="integrations"><i class="fas fa-puzzle-piece"></i> Integrations</a>
             <a href="#" class="nav-tab" data-page="history"><i class="fas fa-history"></i> History</a>
             <a href="#" class="nav-tab" data-page="account"><i class="fas fa-user"></i> Account</a>
+            <!-- Not a .nav-tab: those navigate pages. This only opens the referral modal. -->
+            <a href="#" class="nav-earn" onclick="try{posthog.capture('affiliate_nav_clicked',{is_subscriber:!!isExistingSubscriber})}catch(e){};openReferralModal();return false;" style="margin-left:auto;align-self:center;font-size:0.8rem;font-weight:600;color:#15803d;text-decoration:none;white-space:nowrap;"><i class="fas fa-gift"></i> Earn 30%</a>
         </div>
     </div>
 </nav>
@@ -1567,9 +1569,9 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
         </div>
         <div id="refPanel-invite" class="ref-panel active" role="tabpanel">
             <div class="ref-invite-hero">
-                <div class="ref-pill"><i class="fas fa-gift"></i> Earn up to $500</div>
+                <div class="ref-pill"><i class="fas fa-gift"></i> 30% for 12 months</div>
                 <h2>Invite friends to LinkFinder AI</h2>
-                <p>Earn 25% of their revenue, up to $500 per referral. Paid out monthly once you hit $100.</p>
+                <p>Earn 30% of everything they pay us in their first 12 months, uncapped. Paid out monthly once you're owed $50.</p>
             </div>
             <label class="ref-field-label" for="referralLink">Your invite link</label>
             <div class="ref-input-row">
@@ -1596,9 +1598,9 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
                     Payout schedule
                 </div>
                 <dl class="ref-info-grid">
-                    <dt>Minimum</dt><dd>$100</dd>
+                    <dt>Minimum</dt><dd>$50</dd>
                     <dt>Schedule</dt><dd>1st–5th of each month</dd>
-                    <dt>Commission</dt><dd>25% on all referrals</dd>
+                    <dt>Commission</dt><dd>30% for 12 months</dd>
                     <dt>Method</dt><dd>PayPal</dd>
                 </dl>
             </div>
@@ -7383,6 +7385,44 @@ function checkEnrichmentMilestone() {
             try { posthog.capture('ai_sdr_usage_banner_shown', { enrich_count: n }); } catch(e) {}
         }
     }
+    maybeShowAffiliatePrompt(n);
+}
+
+// Affiliate prompt. The old referral toast (removed 23 Aug) went to every
+// signup and 329 of 361 dismissed it: most free users run one lookup and never
+// come back, and they do not recommend tools. This one only reaches people who
+// have something to recommend - subscribers, or anyone past their 3rd
+// enrichment - right after a lookup worked, which is when it is believable.
+// At most 3 times ever, 21 days apart, never on top of another banner.
+function maybeShowAffiliatePrompt(n) {
+    if (!(isExistingSubscriber || n >= 3)) return;
+    const COUNT_KEY = 'lf_aff_prompt_count', AT_KEY = 'lf_aff_prompt_at', OFF_KEY = 'lf_aff_prompt_off';
+    let shown = 0, last = 0;
+    try {
+        if (localStorage.getItem(OFF_KEY)) return;
+        shown = parseInt(localStorage.getItem(COUNT_KEY) || '0', 10);
+        last = parseInt(localStorage.getItem(AT_KEY) || '0', 10);
+    } catch (e) { return; }
+    if (shown >= 3 || (last && Date.now() - last < 21 * 86400000)) return;
+    const bar = document.getElementById('milestoneUpgradeBanner');
+    if (!bar || bar.style.display === 'block') return;
+    try {
+        localStorage.setItem(COUNT_KEY, String(shown + 1));
+        localStorage.setItem(AT_KEY, String(Date.now()));
+    } catch (e) {}
+    const props = { enrich_count: n, is_subscriber: !!isExistingSubscriber, times_shown: shown + 1 };
+    bar.innerHTML = `Know someone who needs this? Earn <strong>30% of everything they pay for 12 months</strong>. <a id="affPromptCta">Get your link &rarr;</a> <a id="affPromptDismiss" style="margin-left:0.75rem;color:inherit;">Not now</a>`;
+    bar.style.display = 'block';
+    document.getElementById('affPromptCta').onclick = function () {
+        bar.style.display = 'none';
+        try { posthog.capture('affiliate_prompt_clicked', props); } catch (e) {}
+        openReferralModal();
+    };
+    document.getElementById('affPromptDismiss').onclick = function () {
+        bar.style.display = 'none';
+        try { posthog.capture('affiliate_prompt_dismissed', props); } catch (e) {}
+    };
+    try { posthog.capture('affiliate_prompt_shown', props); } catch (e) {}
 }
 
 // Catches signups who come back but never hit an enrichment-count milestone or a
@@ -7928,8 +7968,8 @@ const OTP_TASKS_ALL = [
     // lives here rather than in the nav or the corner because it is the same
     // kind of thing as the rest - something you can do for a reward - and a
     // separate entry point for it just crowded the screen.
-    { name: 'affiliate', kind: 'link_out', credits: 0, rewardLabel: 'up to +$500', notCountedInProgress: true,
-      label: 'Refer someone who pays', sub: 'You get 25% of what they pay us, up to $500 each. No limit on how many.',
+    { name: 'affiliate', kind: 'link_out', credits: 0, rewardLabel: '30% for 12 mo', notCountedInProgress: true,
+      label: 'Refer someone who pays', sub: 'You get 30% of what they pay us for a full year. No limit on how many.',
       realValue: 'Paid in cash, not credits', linkLabel: 'Get your link' },
     // Credits for integrating. The people who pay are the ones who put the
     // product inside something (CSV, Sheets, API, CRM - docs/next-step-routing.md),
