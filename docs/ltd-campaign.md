@@ -11,8 +11,8 @@ checklist at the bottom is the full list of what is left.
 
 | Tier | Price | Credits | Dodo product |
 |---|---|---|---|
-| Lifetime Core (`ltd_core`) | $149 once | 2,500 / month, for life | to create |
-| Lifetime Plus (`ltd_plus`) | $299 once | 7,500 / month, for life | to create |
+| Lifetime Core (`ltd_core`) | $149 once | 2,500 / month, for life | `pdt_0Np6hfk426N6l9EhVrFYO` ("Lifetime Deal Tier 1") |
+| Lifetime Plus (`ltd_plus`) | $299 once | 7,500 / month, for life | `pdt_0Np6hjktXBH06Wqf5OT5o` ("Lifetime Deal Tier 2") |
 
 - **Monthly refill, no rollover.** Each month the balance is raised *up to* the
   allotment (`greatest(credits, allotment)`). Unused lifetime credits never
@@ -124,7 +124,7 @@ No first names (most accounts have none) and no `email=` in links: an
 
 ## Launch checklist
 
-1. **Dodo → Products:** create two one-time products, "LinkFinder Lifetime
+1. ✅ *Done 5 Oct, ids written to `ltd_tiers`.* **Dodo → Products:** create two one-time products, "LinkFinder Lifetime
    Core" $149 and "LinkFinder Lifetime Plus" $299. Then:
    ```sql
    update ltd_tiers set dodo_product_id = 'pdt_…' where tier_key = 'ltd_core';
