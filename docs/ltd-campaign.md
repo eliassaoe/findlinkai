@@ -3,8 +3,9 @@
 A one-week lifetime deal (LTD), sold by email only to free accounts that have
 never paid, in high-income countries. Built 5 Oct 2026.
 
-**Nothing has been sent yet.** The workflow is a draft and the page is not on
-`main`. The launch checklist at the bottom is the full list of what is left.
+**Live since 5 Oct 2026, 22:36 UTC.** Page on `main`, `ends_at` = 13 Oct 10:36 UTC,
+wave A (350) dispatched; wave B (202) pending a bounce check. Churn win-back
+(workflow 30, cohort `616375`, 7 people) dispatched 22:39 UTC.
 
 ## The offer
 
@@ -159,9 +160,11 @@ The 7 left are in `ltd_allowlist`, which is what lets the page sell to them
 despite their payment history. Only 2 are PostHog persons
 (`jmichaud@endhunger.com`, `j.plakhotniuk@devotedstudios.com`, both already in
 workflow 27), and `richard@verisq.ai` / `jimmy@brightmove.com` have no account
-under that email. So this is a **personal send from the founder's inbox**, the
-same call as `docs/dfy-activation-campaign.md`: seven people who paid once
-deserve a person, not a broadcast.
+under that email. The founder chose to send it from PostHog anyway: the 5 missing people were
+identified into PostHog from Supabase (`$identify` with their token, or their
+email when they have no account), cohort `616375`, **workflow 30**
+`01a10e37-fe52-0000-5bc7-588d85ce9c60` — this email now, "closes tomorrow" on
+day 6, exit on purchase. Replies land in `support@`.
 
 > **Subject:** a way back to LinkFinder, without a subscription
 >
