@@ -42,6 +42,11 @@ except Exception:  # Windows sans tzdata
     TZ = timezone(timedelta(hours=2))
 
 BASE = "https://api.explee.com/public/api/v1"
+USER_AGENT = "linkfinderai-relance/1.0 (+https://linkfinderai.com)"
+try:  # dans le dépôt, réutiliser l'identifiant qui passe déjà chez Explee
+    from explee import USER_AGENT  # noqa: F811
+except Exception:
+    pass
 PORT = int(os.environ.get("RELANCE_PORT", "8787"))
 HERE = Path(__file__).resolve().parent
 STATE_FILE = HERE / "relance_state.json"
@@ -582,7 +587,9 @@ class Explee:
         if params:
             url += "?" + urllib.parse.urlencode({k: v for k, v in params.items() if v is not None})
         data = json.dumps(body).encode() if body is not None else None
-        headers = {"X-API-Key": self.key, "Accept": "application/json"}
+        # Cloudflare devant Explee bannit l'user-agent par défaut de urllib (erreur 1010) :
+        # même identifiant que explee.py, qui passe.
+        headers = {"X-API-Key": self.key, "Accept": "application/json", "User-Agent": USER_AGENT}
         if data:
             headers["Content-Type"] = "application/json"
         for attempt in range(retries):
