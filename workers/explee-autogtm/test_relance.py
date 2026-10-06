@@ -88,6 +88,14 @@ class Cadence(unittest.TestCase):
         self.assertIn("Tom de Spoctus", v["drafts"]["call"])
         self.assertNotIn("budget pub", v["drafts"]["call"])
 
+    def test_signature_words_are_not_a_call_request(self):
+        self.assertFalse(R.wants_call("Comment souhaitez-vous procéder ?\nAxel\nMobile : 06 78 97 87 05"))
+        self.assertTrue(R.wants_call("Vous pouvez m'appeler demain"))
+
+    def test_english_month_quote_header_is_cut(self):
+        t = "Je n'ai reçu aucun calendrier.\nCédric\n\nLe Sep 3, 2026, 11:17 +0200, Thomas <t@x.com>, a écrit :\n> 06 11 22 33 44"
+        self.assertEqual(R.strip_quoted(t), "Je n'ai reçu aucun calendrier.\nCédric")
+
     def test_misreads_from_real_replies(self):
         jm = "vous encourage à me recontacter sur mon portable après 17h30 ou lundi.\n📞06 82 11 37 76"
         self.assertIsNone(R.detect_wait_until(jm, date(2026, 10, 2)))

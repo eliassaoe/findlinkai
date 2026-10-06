@@ -151,7 +151,7 @@ def fr_day(d, ref=None):
 # ═══════════════════════════════════════════════════════════ texte des emails
 
 QUOTE_CUT = re.compile(
-    r"(^[ \t>]*Le \d.{0,140}?a écrit ?:|^[ \t>]*Le (?:lun|mar|mer|jeu|ven|sam|dim).{0,140}?a écrit ?:|"
+    r"(^[ \t>]*Le .{0,140}?a écrit ?:|"
     r"^[ \t>]*On .{0,140}?wrote:|-----Original Message-----|"
     r"^[ \t]*De ?: .{0,140}?\n.{0,12}Envoy|^[ \t]*From: .{0,140}?\nSent:)", re.S | re.M)
 
@@ -263,7 +263,8 @@ def detect_wait_until(text, ref):
     return None
 
 
-CALL_ME = re.compile(r"(appel|rappel|recontact|joindre|t[ée]l[ée]phon|portable|mobile|\bcall\b|ring|anruf|telefon)", re.I)
+CALL_ME = re.compile(r"(appelez|m.appeler|me rappeler|rappelez|recontacter|me joindre|me t[ée]l[ée]phoner|"
+                     r"par t[ée]l[ée]phone|call me|give me a (?:call|ring)|phone me|anrufen)", re.I)
 NO_CALL = re.compile(r"(pas d.appel|pas par t[ée]l[ée]phone|par (e-?mail|écrit) uniquement|no calls?)", re.I)
 
 
