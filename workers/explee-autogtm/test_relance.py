@@ -33,6 +33,9 @@ class Phones(unittest.TestCase):
         self.assertEqual(R.extract_phones("📱 +33763679767 / +33687132959"), ["+33763679767", "+33687132959"])
         self.assertEqual(R.extract_phones("Tél. 02 38 24 10 10"), ["+33238241010"])
 
+    def test_trunk_zero_and_dedupe(self):
+        self.assertEqual(R.extract_phones("+33 (0)6 61 99 29 49 / 06 61 99 29 49 / 08 25 67 10 10"), ["+33661992949"])
+
     def test_quoted_part_is_ignored(self):
         txt = "Ok\n\nLe lun. 5 oct. 2026 à 09:08, Tom a écrit :\n> appelez le 06 11 22 33 44"
         self.assertEqual(R.extract_phones(txt), [])
@@ -55,6 +58,19 @@ class Waiting(unittest.TestCase):
 
 
 class Cadence(unittest.TestCase):
+    def test_real_explee_shape_ts_and_no_direction_word(self):
+        # champ de date réel : « ts » ; sans date du tout, l'ordre de l'API fait foi
+        lead = {"person_id": "x", "campaign_id": 1, "email": "a@b.fr", "first_name": "Ana"}
+        msgs = [{"direction": "outbound", "ts": "2026-10-01T08:00:00Z", "body": "Bonjour Ana\n\nTom"},
+                {"direction": "inbound", "ts": "2026-10-02T08:00:00Z", "body": "Ok pour un échange"},
+                {"direction": "outbound", "ts": "2026-10-02T09:00:00Z", "body": "Merci, voici le lien https://cal.link/x\n\nCordialement,\nTom"}]
+        v = R.compute(lead, {"messages": msgs}, None, REF)
+        self.assertEqual((v["bucket"], v["next"]["key"]), ("today", "email1"))
+        undated = [{k: x for k, x in m.items() if k != "ts"} for m in msgs]
+        v = R.compute(lead, {"messages": undated}, None, REF)
+        self.assertEqual(v["status"], "active")
+        self.assertEqual(v["expect_after"], 1)
+
     def test_lead_waiting_for_us_is_reply(self):
         v = R.compute(*lead("Jean-Marie"), None, REF)
         self.assertEqual(v["bucket"], "reply")

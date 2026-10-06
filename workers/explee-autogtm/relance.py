@@ -150,12 +150,18 @@ def normalize_phone(raw):
     raw = raw.strip()
     digits = re.sub(r"\D", "", raw)
     if raw.startswith("00"):
-        return "+" + digits[2:]
-    if raw.startswith("+"):
-        return "+" + digits
-    if len(digits) == 10 and digits.startswith("0"):
-        return "+33" + digits[1:]
-    return digits
+        out = "+" + digits[2:]
+    elif raw.startswith("+"):
+        out = "+" + digits
+    elif len(digits) == 10 and digits.startswith("0"):
+        out = "+33" + digits[1:]
+    else:
+        return digits
+    # « +33 (0)4 28… » : le 0 national ne se compose pas après l'indicatif
+    for cc in ("33", "32", "41", "352", "377", "44", "49", "39", "34"):
+        if out.startswith("+" + cc + "0"):
+            return "+" + cc + out[len(cc) + 2:]
+    return out
 
 
 def pretty_phone(p):
@@ -178,10 +184,13 @@ def extract_phones(text):
     for rx in (INTL, FR_NATIONAL):
         for m in rx.finditer(flat):
             p = normalize_phone(m.group(0))
-            if 9 <= len(re.sub(r"\D", "", p)) <= 15 and p not in out:
-                out.append(p)
+            if not 9 <= len(re.sub(r"\D", "", p)) <= 15 or p in out:
+                continue
+            if p.startswith("+338"):
+                continue          # 08 surtaxés : standard, pas le dirigeant
+            out.append(p)
     out.sort(key=lambda p: not is_mobile(p))  # mobile d'abord
-    return out
+    return out[:3]
 
 
 LINK_RX = re.compile(r"https?://(?:cal\.link|calendly\.com|cal\.com|zcal\.co|tidycal\.com|"
@@ -342,15 +351,23 @@ def msg_text(m):
 
 
 def msg_date(m):
-    return parse_dt(pick(m, "sent_at", "date", "created_at", "received_at", "timestamp", default=""))
+    # « ts » est le champ réel d'Explee (lu par recover.py en production)
+    v = pick(m, "ts", "sent_at", "date", "created_at", "received_at", "timestamp", "at", "time", default="")
+    if isinstance(v, (int, float)) and v > 0:
+        return datetime.fromtimestamp(v / 1000 if v > 1e12 else v, TZ)
+    return parse_dt(v)
 
 
 def from_lead(m, lead_email):
-    d = str(pick(m, "direction", "type", "kind", "role", default="")).lower()
-    if d in ("inbound", "in", "received", "reply", "incoming", "lead", "contact"):
-        return True
-    if d in ("outbound", "out", "sent", "outgoing", "us", "user", "agent", "followup", "first"):
-        return False
+    for k in ("direction", "type", "kind", "role", "sender", "from_type", "author"):
+        d = m.get(k)
+        if not isinstance(d, str):
+            continue
+        d = d.strip().lower()
+        if d in ("inbound", "in", "received", "reply", "incoming", "lead", "contact", "from_lead", "them"):
+            return True
+        if d in ("outbound", "out", "sent", "outgoing", "us", "me", "user", "agent", "followup", "first", "campaign"):
+            return False
     for f in ("is_inbound", "from_lead", "is_reply", "is_from_lead", "incoming"):
         if isinstance(m.get(f), bool):
             return m[f]
@@ -424,13 +441,15 @@ def compute(lead, thread, state, ref_dt=None):
     today = ref_dt.date()
     email = str(pick(lead, "email", "person.email"))
     msgs = first_list(thread or {}, "messages", "thread", "emails", "items", "conversation")
-    msgs = sorted(msgs, key=lambda m: msg_date(m) or datetime.min.replace(tzinfo=TZ))
+    if msgs and all(msg_date(m) for m in msgs):
+        msgs = sorted(msgs, key=msg_date)        # sinon : l'ordre de l'API, déjà chronologique
 
     inbound = [m for m in msgs if from_lead(m, email)]
     outbound = [m for m in msgs if not from_lead(m, email)]
     last_in = inbound[-1] if inbound else None
     last_in_dt = msg_date(last_in) if last_in else None
-    after = [m for m in outbound if last_in_dt and (msg_date(m) or ref_dt) > last_in_dt]
+    last_in_i = max((i for i, m in enumerate(msgs) if m is last_in), default=-1)
+    after = [m for m in msgs[last_in_i + 1:] if not from_lead(m, email)] if last_in is not None else []
 
     phones = []
     for m in inbound:
@@ -471,7 +490,9 @@ def compute(lead, thread, state, ref_dt=None):
     # ---- statut et prochaine action
     cadence = CADENCE_WITH_PHONE if phones else CADENCE_NO_PHONE
     steps, nxt, status = [], None, "active"
-    base = msg_date(after[0]).date() if after else None
+    # date de notre réponse ; à défaut celle de sa réponse, puis « devenu hot »
+    _d = (msg_date(after[0]) if after else None) or last_in_dt or parse_dt(pick(lead, "became_hot_at"))
+    base = (_d.date() if _d else today) if after else None
     relances_sent = max(0, len(after) - 1)
     call = st.get("call") or {}
 
@@ -483,7 +504,7 @@ def compute(lead, thread, state, ref_dt=None):
         status = "unknown"
 
     email_i = 0
-    sent_dates = [msg_date(m).date() for m in after[1:]]
+    sent_dates = [(msg_date(m).date() if msg_date(m) else None) for m in after[1:]]
     prev_done = base
     for key, offset in cadence:
         sched = add_bdays(base, offset) if base else None
