@@ -68,6 +68,20 @@ def unseal(blob, password):
     return decrypt(blob, password)
 
 
+def auto_projects():
+    """Projets déjà relancés automatiquement par recover.py (projects/*.json) :
+    la page n'y propose pas d'envoyer d'email, pour ne pas doubler la cadence."""
+    ids = set()
+    for f in sorted((HERE / "projects").glob("*.json")):
+        try:
+            pid = json.loads(f.read_text("utf-8")).get("project_id")
+        except Exception:
+            continue
+        if pid:
+            ids.add(str(pid))
+    return ids
+
+
 def notes_for(store):
     """{clé lead → note Explee}. Un GET gratuit par hot lead."""
     if store.demo:
@@ -88,8 +102,11 @@ def build(store):
     notes = notes_for(store)
     states = {k: R.state_from_note(n) for k, n in notes.items()}
     view = store.view(states=states)
+    auto = auto_projects()
     for lead in view["leads"]:
         lead["note"] = notes.get(lead["key"], "")
+        lead["auto"] = str(lead.get("project_id")) in auto
+    view["auto_projects"] = sorted(auto)
     view["generated_at"] = R.now().isoformat(timespec="seconds")
     return view
 

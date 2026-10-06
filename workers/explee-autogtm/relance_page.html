@@ -389,7 +389,7 @@ function markDone(l, entry){
 
 /* Email prêt à partir pour ce lead (étape du jour), ou null. */
 function sendable(l){
-  if(S.done[l.key]) return null;
+  if(S.done[l.key] || l.auto) return null;    // l.auto : recover.py envoie déjà les relances de ce projet
   if(l.bucket==='reply') return l.review ? null : {step:'reply', text:l.drafts.reply};
   if(l.bucket==='today' && l.next && /^email\d$/.test(l.next.key)) return {step:l.next.key, text:l.drafts[l.next.key]};
   return null;
@@ -572,6 +572,7 @@ function actionCell(l){
   const sd = sendable(l);
   if(sd) return `<button class="btn sm primary" data-send="${esc(l.key)}" title="${esc(sd.text.slice(0,400))}">Envoyer ${STEP[sd.step]}</button>`;
   if(l.bucket==='call' && l.phones.length) return `<button class="btn sm primary" data-script="${esc(l.key)}">📞 Appeler</button>`;
+  if(l.auto && ['today','reply'].includes(l.bucket)) return `<span class="badge b-scheduled" title="Les emails de ce projet partent déjà automatiquement (recover.py)">Relance auto</span>`;
   if(l.bucket==='reply' && l.review) return `<button class="btn sm" data-open="${esc(l.key)}" title="Le lead pose une question : réponse à écrire">À relire</button>`;
   return `<span class="badge b-${l.bucket}">${BUCKET[l.bucket].l}</span>`;
 }
@@ -661,8 +662,8 @@ function openLead(key, keepTpl){
       <div class="outs"><button class="btn" data-out="booked">✓ RDV calé</button><button class="btn" data-out="voicemail">Message laissé</button><button class="btn" data-out="no_answer">Pas de réponse</button><button class="btn" data-out="not_interested">Pas intéressé</button></div>
       <div class="inline note">À rappeler le <input type="date" id="retryAt"> <button class="btn sm" data-out="retry">Planifier</button></div>`;
   } else {
-    const direct = mode()!=='copy', dn = S.done[l.key];
-    h += `${l.review && S.tpl==='reply'?'<div class="warn">Le lead pose une question : relisez et complétez la réponse avant d\'envoyer.</div>':''}<textarea id="draft">${esc(l.drafts[S.tpl]||'')}</textarea>
+    const direct = mode()!=='copy' && !l.auto, dn = S.done[l.key];
+    h += `${l.auto?'<div class="warn">Ce projet est déjà relancé automatiquement par la boucle recover.py : n\'envoyez à la main que si vous l\'avez arrêtée pour ce lead (note « stop »).</div>':''}${l.review && S.tpl==='reply'?'<div class="warn">Le lead pose une question : relisez et complétez la réponse avant d\'envoyer.</div>':''}<textarea id="draft">${esc(l.drafts[S.tpl]||'')}</textarea>
       <div class="actions">${dn&&dn.queued?`<button class="btn" data-undo="${esc(l.key)}">Annuler l'envoi</button>`:(direct?`<button class="btn primary" id="send">Envoyer</button><button class="btn" data-copy="draft">Copier</button>`:`<button class="btn primary" id="copyopen">Copier et ouvrir l'inbox</button>`)}<a class="btn ghost" href="${esc(l.inbox_url)}" target="_blank" rel="noopener">Inbox ↗</a></div>
       <div class="note">${direct?'Part dans le fil existant, depuis votre boîte d\'envoi Explee. Annulable quelques secondes.':'Collez le texte en réponse dans le fil. La relance suivante se recale toute seule à la prochaine synchro. <a href="#" id="setk">Activer l\'envoi en un clic</a>'}</div>`;
   }

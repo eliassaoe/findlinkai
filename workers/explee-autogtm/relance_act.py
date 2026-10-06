@@ -33,7 +33,7 @@ import os
 import sys
 
 import relance as R
-from relance_page import unseal
+from relance_page import auto_projects, unseal
 
 MAX_ACTIONS = 40
 MAX_TEXT = 5000
@@ -64,7 +64,10 @@ def run(api, actions, dry=False, ref=None):
         pid = R.pick(lead, "person_id", "contact_id", "id")
         by_key[f"{cid}:{pid}"] = (lead, thread, cid, pid)
 
-    n = {"sent": 0, "notes": 0, "skipped_moved": 0, "skipped_unknown": 0, "failed": 0, "limited": 0}
+    camp_project = {str(R.pick(c, "id")): str(R.pick(c, "project_id")) for c in store.raw["campaigns"]}
+    auto = auto_projects()
+    n = {"sent": 0, "notes": 0, "skipped_moved": 0, "skipped_unknown": 0, "skipped_auto": 0,
+         "failed": 0, "limited": 0}
     for a in actions:
         key = str(a.get("key", ""))
         if key not in by_key:
@@ -72,6 +75,9 @@ def run(api, actions, dry=False, ref=None):
             continue
         lead, thread, cid, pid = by_key[key]
         try:
+            if a.get("type") == "reply" and camp_project.get(str(cid)) in auto:
+                n["skipped_auto"] += 1           # recover.py relance déjà ce projet
+                continue
             if a.get("type") == "reply":
                 text = str(a.get("text") or "").strip()
                 if not text or len(text) > MAX_TEXT:
@@ -121,7 +127,7 @@ def main():
         sys.exit("Solde Explee négatif : rien n'est parti." if e.code == 402 else f"Explee HTTP {e.code}")
     summary = (f"{'DRY RUN · ' if dry else ''}{n['sent']} email(s) envoyé(s) · {n['notes']} note(s) · "
                f"{n['skipped_moved']} ignoré(s) car le fil a bougé · {n['limited']} limité(s) par Explee · "
-               f"{n['failed']} échec(s) · {n['skipped_unknown']} inconnu(s)")
+               f"{n['failed']} échec(s) · {n['skipped_unknown']} inconnu(s) · {n['skipped_auto']} laissé(s) à recover.py")
     print(summary)
     out = os.environ.get("GITHUB_STEP_SUMMARY")
     if out:

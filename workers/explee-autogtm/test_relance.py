@@ -202,6 +202,17 @@ class Act(unittest.TestCase):
         self.assertEqual((n["sent"], n["skipped_moved"]), (0, 1))
         self.assertEqual(len(api.sent), 1)
 
+    def test_recover_py_projects_are_left_alone(self):
+        import relance_page as P
+        orig = P.auto_projects
+        self.A.auto_projects = lambda: {"37293"}       # le projet des données démo
+        try:
+            api = FakeExplee()
+            n = self.A.run(api, [{"type": "reply", "key": "187263:p2", "text": "t", "expect_after": 1}], ref=REF)
+            self.assertEqual((n["sent"], n["skipped_auto"], api.sent), (0, 1, []))
+        finally:
+            self.A.auto_projects = orig
+
     def test_unknown_lead_is_never_mailed(self):
         api = FakeExplee()
         n = self.A.run(api, [{"type": "reply", "key": "999:x", "text": "hi", "expect_after": 0}], ref=REF)

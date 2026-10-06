@@ -242,9 +242,13 @@ never go out in "Tout envoyer". Without a token the page falls back to "copy +
 open the inbox". (Sending straight from the browser to `api.explee.com` is kept
 as an "advanced" option; whether Explee allows it — CORS — is unverified.)
 
-**Do not put a project in both this page and `recover.py`.** `recover.py`
-nudges on its own; a lead in both would get both cadences. Today `recover.py`
-runs on `linkfinderai` and `leptitlogiciel`; Prescient is only here.
+**Projects with a `projects/*.json` file belong to `recover.py`** (today
+`linkfinderai` 30475 and `leptitlogiciel` 39965): it already emails their hot
+leads, so the page shows them with a "Relance auto" badge, no email button,
+and `relance_act.py` refuses to email them — calls stay available, the loop
+does not phone. Every other project (Prescient, eastrategies, spoctus,
+linkfinderai-outbound) is emailed from the page. Adding a project file moves
+that project to the loop automatically.
 
 **Local version:** `python3 relance.py <EXPLEE_API_KEY>` serves the same
 cockpit on localhost (state in `relance_state.json`), `--demo` for sample data.
