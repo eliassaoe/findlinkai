@@ -43,7 +43,7 @@ SKIP = {
     "upgrade-confirmation.html", "say-goodbye.html",
     "history.html", "history-beta.html",
     "api-access.html", "api-access-beta.html",
-    "gtm-console.html", "autogtm-report.html", "crm-audit.html",
+    "gtm-console.html", "autogtm-report.html", "relance.html", "crm-audit.html",
     "crm-audit-privacy.html", "avant-votre-appel.html", "linkfinder-vip.html",
     "talk-to-sales.html", "done-for-you-outbound.html",
     "end-of-bookmarks-bar.html", "badge.html", "100free.html",

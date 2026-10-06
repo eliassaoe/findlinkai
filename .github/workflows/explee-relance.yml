@@ -1,0 +1,74 @@
+name: Explee relance
+
+# Rebuilds linkfinderai.com/relance — the hot-lead follow-up cockpit for every
+# Explee project in the organisation (3 emails + 1 call when the lead's
+# signature carries a phone number). See workers/explee-autogtm/README.md,
+# section "/relance".
+#
+# READ-ONLY on Explee: free GETs (hot leads, threads, notes, analytics). It never
+# sends an email and never writes a note — the page does that, from the browser,
+# when you click.
+#
+# Required secrets (Settings -> Secrets and variables -> Actions):
+#   EXPLEE_API_KEY     already there, shared with explee-followups.yml
+#   RELANCE_PASSWORD   the password that opens the page. The repository is
+#                      public, so the page's data is encrypted with it;
+#                      without it the page is published empty.
+#
+# Explee refuses every call, free ones included, while the balance is negative.
+# The run then keeps the last published page and says so in the job summary.
+on:
+  schedule:
+    # Every two hours over the French working day, off the hour (on-the-hour
+    # crons queue behind everyone else's). One pass on weekend mornings.
+    - cron: '17 5-17/2 * * 1-5'
+    - cron: '47 7 * * 0,6'
+  workflow_dispatch:
+
+permissions:
+  contents: write      # commits relance.html
+
+concurrency:
+  group: explee-relance
+  cancel-in-progress: false
+
+jobs:
+  page:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: workers/explee-autogtm
+    env:
+      EXPLEE_API_KEY: ${{ secrets.EXPLEE_API_KEY }}
+      RELANCE_PASSWORD: ${{ secrets.RELANCE_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install
+        run: pip install --quiet cryptography
+      - name: Tests
+        run: python3 test_relance.py
+      - name: Check the secrets are there
+        run: |
+          [ -n "$EXPLEE_API_KEY" ] || { echo "::error::EXPLEE_API_KEY is not set."; exit 1; }
+          [ -n "$RELANCE_PASSWORD" ] || echo "::warning::RELANCE_PASSWORD is not set - the page will be published without data."
+      - name: Build the page
+        run: |
+          set -o pipefail
+          python3 relance_page.py --write | tee out.txt
+          { echo '```'; cat out.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+      - name: Publish
+        run: |
+          cd "$GITHUB_WORKSPACE"
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git add relance.html
+          if git commit -q -m "Relance: page $(date -u +'%Y-%m-%d %H:%M')"; then
+            git pull -q --rebase origin "$GITHUB_REF_NAME"
+            git push -q origin "HEAD:$GITHUB_REF_NAME"
+          else
+            echo "nothing new to publish"
+          fi

@@ -110,7 +110,7 @@
     /^privacy/, /^terms/, /^refund-policy/, /^mention-legales/,
     /^crm-audit/,              // its own funnel, already books calls
     /^done-for-you-outbound$/, // this page IS the offer; it has its own CTA
-    /^history/, /^gtm-console/, /^autogtm-report/, /^linkfinder-vip/,
+    /^history/, /^gtm-console/, /^autogtm-report/, /^relance$/, /^linkfinder-vip/,
     /^beta-/, /-beta$/, /-beta-2$/,
   ];
 

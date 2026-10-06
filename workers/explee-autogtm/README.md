@@ -200,6 +200,44 @@ Set the project's `reply_instructions` in the app to propose two specific
 times rather than a booking link — that is what `recover.py` does for the ones
 that then go quiet.
 
+## `/relance` — the hot-lead follow-up cockpit (added 6 October 2026)
+
+`linkfinderai.com/relance`, built by `relance_page.py` from
+`.github/workflows/explee-relance.yml` every two hours on weekdays. It covers
+**every project in the Explee organisation** (Prescient included), one entry per
+campaign in the sidebar, with its stats.
+
+**The sequence, per hot lead**, counted in working days from our answer to them:
+J+1 email 1 (one precise slot, "un simple oui suffit") · J+2 **phone call, only
+when a number sits in their signature** · J+4 email 2 (value angle) · J+8 email 3
+(close). A reply from the lead puts them back in "À répondre"; "après le 14",
+"semaine prochaine", "en novembre" in their reply delays the first step on its
+own. Engine and tests: `relance.py`, `test_relance.py`.
+
+**State lives in the Explee lead note**, one line per action, last line wins:
+`booked` / `rdv` / `stop` / `ne pas relancer` (the same words `recover.py`
+honours), `Appel : message laissé`, `Appel : à rappeler le 2026-10-09`,
+`Attendre jusqu'au 2026-10-15`, `Séquence réactivée`. The page writes them; they
+can also be typed by hand in the inbox. Sent emails are read from the thread.
+
+**The repository is public, so the page is encrypted** (AES-256-GCM, PBKDF2
+310k) with the `RELANCE_PASSWORD` secret. Without that secret the page is
+published empty. `noindex`, out of the sitemap, not in robots.txt (see
+`gen_sitemap.py`).
+
+**Sending from the page** needs the Explee key pasted once in the page's
+"Explee" settings (kept in that browser only). Whether `api.explee.com` accepts
+calls from a browser (CORS) has **not been verified** — if it refuses, the page
+falls back to "copy + open the inbox" and says so. Without a key everything
+works the same way.
+
+**Do not put a project in both this page and `recover.py`.** `recover.py`
+nudges on its own; a lead in both would get both cadences. Today `recover.py`
+runs on `linkfinderai` and `leptitlogiciel`; Prescient is only here.
+
+**Local version:** `python3 relance.py <EXPLEE_API_KEY>` serves the same
+cockpit on localhost (state in `relance_state.json`), `--demo` for sample data.
+
 ## ⚠️ No call in this directory has ever been answered by the real API
 
 `api.explee.com` is blocked by the sandbox this was written in, exactly like

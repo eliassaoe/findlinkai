@@ -1,0 +1,560 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow, noarchive">
+<meta name="referrer" content="no-referrer">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Relance</title>
+<!-- Gabarit de /relance. Généré par workers/explee-autogtm/relance_page.py : ne pas
+     éditer relance.html à la racine, il est réécrit à chaque synchro. Les données sont
+     chiffrées (AES-GCM, mot de passe = secret RELANCE_PASSWORD). -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f6f7f9;--panel:#fff;--panel2:#fbfbfc;--line:#e7e9ee;--line2:#f0f1f4;
+  --ink:#14161b;--ink2:#4a505c;--ink3:#8a909c;
+  --accent:#4f46e5;--accent-ink:#fff;--accent-soft:#eef0ff;
+  --red:#dc2626;--red-soft:#fef1f1;--amber:#b45309;--amber-soft:#fff6e6;
+  --green:#15803d;--green-soft:#ecfaf0;--blue:#1d4ed8;--blue-soft:#eef4ff;
+  --violet:#7c3aed;--violet-soft:#f4efff;--gray-soft:#f2f3f5;
+  --shadow:0 1px 2px rgba(16,24,40,.04),0 1px 3px rgba(16,24,40,.06);
+  --shadow-lg:0 20px 50px rgba(16,24,40,.18);
+  --r:10px;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#0e1014;--panel:#15181e;--panel2:#191c23;--line:#262a33;--line2:#1f232b;
+  --ink:#eceef2;--ink2:#b3b8c3;--ink3:#7d8390;
+  --accent:#818cf8;--accent-ink:#0e1014;--accent-soft:#1f2240;
+  --red:#f87171;--red-soft:#2a1617;--amber:#fbbf24;--amber-soft:#2a2112;
+  --green:#4ade80;--green-soft:#11251a;--blue:#93b4ff;--blue-soft:#141e33;
+  --violet:#c4b5fd;--violet-soft:#1f1833;--gray-soft:#1e2128;
+  --shadow:0 1px 2px rgba(0,0,0,.3);--shadow-lg:0 20px 50px rgba(0,0,0,.5);
+}}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;background:var(--bg);color:var(--ink);font-size:14px;line-height:1.45;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;cursor:pointer}
+a{color:inherit}
+.app{display:grid;grid-template-columns:268px 1fr;height:100vh}
+/* sidebar */
+.side{background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
+.brand{display:flex;align-items:center;gap:10px;padding:18px 18px 14px}
+.logo{width:30px;height:30px;border-radius:8px;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font-weight:700}
+.brand b{font-size:15px}.brand small{display:block;color:var(--ink3);font-size:12px;margin-top:-2px}
+.nav{overflow:auto;padding:4px 10px 10px;flex:1}
+.nav h6{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink3);margin:16px 8px 6px;font-weight:600}
+.nitem{display:flex;align-items:center;gap:8px;width:100%;border:0;background:none;text-align:left;padding:8px 10px;border-radius:8px;color:var(--ink2)}
+.nitem:hover{background:var(--gray-soft)}
+.nitem.on{background:var(--accent-soft);color:var(--ink);font-weight:600}
+.nitem .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cnt{font-size:12px;color:var(--ink3);font-variant-numeric:tabular-nums}
+.due{font-size:11px;font-weight:600;background:var(--red);color:#fff;border-radius:99px;padding:1px 7px;font-variant-numeric:tabular-nums}
+.sidefoot{border-top:1px solid var(--line);padding:12px 16px;font-size:12px;color:var(--ink3);display:flex;align-items:center;justify-content:space-between;gap:8px}
+/* main */
+.main{display:flex;flex-direction:column;min-width:0;min-height:0}
+.top{display:flex;align-items:center;gap:12px;padding:16px 24px;border-bottom:1px solid var(--line);background:var(--panel)}
+.top h1{font-size:18px;margin:0;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.top h1 small{font-weight:400;color:var(--ink3);font-size:13px;margin-left:8px}
+.search{position:relative}
+.search input{width:240px;padding:8px 12px 8px 32px;border:1px solid var(--line);border-radius:8px;background:var(--panel2);color:var(--ink);font:inherit}
+.search svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--ink3)}
+.btn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--panel);padding:7px 12px;border-radius:8px;font-weight:500;white-space:nowrap;text-decoration:none}
+.btn:hover{background:var(--gray-soft)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.primary:hover{filter:brightness(1.07)}
+.btn.sm{padding:5px 10px;font-size:13px}
+.btn.ghost{border-color:transparent;background:none}
+.btn:disabled{opacity:.55;cursor:default}
+.scroll{overflow:auto;flex:1;padding:20px 24px 40px}
+.demo{background:var(--amber-soft);color:var(--amber);border:1px solid color-mix(in srgb,var(--amber) 25%,transparent);padding:8px 12px;border-radius:8px;margin-bottom:16px;font-size:13px}
+/* kpis */
+.kpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px;margin-bottom:16px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;box-shadow:var(--shadow);text-align:left}
+button.kpi:hover{border-color:var(--accent)}
+.kpi .v{font-size:26px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.kpi .l{font-size:12px;color:var(--ink3);display:flex;align-items:center;gap:6px}
+.dot{width:8px;height:8px;border-radius:99px;display:inline-block}
+.campstats{display:flex;gap:28px;flex-wrap:wrap;background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:12px 18px;margin-bottom:16px;box-shadow:var(--shadow)}
+.campstats div{font-size:12px;color:var(--ink3)}.campstats b{display:block;font-size:16px;color:var(--ink);font-variant-numeric:tabular-nums}
+/* tabs */
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:14px}
+.tab{border:0;background:none;padding:9px 12px;color:var(--ink3);font-weight:500;border-bottom:2px solid transparent;margin-bottom:-1px}
+.tab.on{color:var(--ink);border-color:var(--accent)}
+.tab .cnt{margin-left:4px}
+/* list */
+.group h3{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink3);margin:18px 2px 8px;display:flex;align-items:center;gap:8px}
+.list{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden}
+.row{display:grid;grid-template-columns:minmax(220px,1.6fr) minmax(140px,1fr) 170px minmax(150px,1fr) auto;gap:16px;align-items:center;padding:12px 16px;border-top:1px solid var(--line2);cursor:pointer}
+.row:first-child{border-top:0}
+.row:hover{background:var(--panel2)}
+.who{display:flex;gap:10px;align-items:center;min-width:0}
+.av{width:34px;height:34px;border-radius:99px;display:grid;place-items:center;font-weight:600;font-size:12px;flex:none;background:var(--gray-soft);color:var(--ink2)}
+.who .t{min-width:0}.who b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sub{font-size:12px;color:var(--ink3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:12px;padding:2px 8px;border-radius:99px;background:var(--gray-soft);color:var(--ink2);white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+.tel{display:inline-flex;align-items:center;gap:6px;font-variant-numeric:tabular-nums;text-decoration:none;font-weight:500}
+.tel:hover{color:var(--accent)}
+.muted{color:var(--ink3)}
+/* cadence */
+.cad{display:flex;align-items:center;gap:0}
+.st{display:flex;flex-direction:column;align-items:center;gap:3px;width:40px;position:relative}
+.st i{width:22px;height:22px;border-radius:99px;display:grid;place-items:center;font-style:normal;font-size:10px;font-weight:700;border:1.5px solid var(--line);background:var(--panel);color:var(--ink3)}
+.st span{font-size:10px;color:var(--ink3)}
+.st.done i{background:var(--green);border-color:var(--green);color:#fff}
+.st.now i{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);box-shadow:0 0 0 3px var(--accent-soft)}
+.st.late i{background:var(--red);border-color:var(--red);color:#fff;box-shadow:0 0 0 3px var(--red-soft)}
+.st.skip i{border-style:dashed}
+.st+.st:before{content:"";position:absolute;top:11px;right:31px;width:18px;height:1.5px;background:var(--line)}
+.next{display:flex;flex-direction:column;gap:2px;min-width:0}
+.next b{font-size:13px}
+.when{font-size:12px;color:var(--ink3)}.when.late{color:var(--red);font-weight:600}.when.today{color:var(--accent);font-weight:600}
+.badge{font-size:11px;font-weight:600;padding:2px 8px;border-radius:99px;white-space:nowrap}
+.b-reply{background:var(--violet-soft);color:var(--violet)}.b-call{background:var(--blue-soft);color:var(--blue)}
+.b-today{background:var(--accent-soft);color:var(--accent)}.b-scheduled{background:var(--gray-soft);color:var(--ink2)}
+.b-booked{background:var(--green-soft);color:var(--green)}.b-finished{background:var(--amber-soft);color:var(--amber)}
+.b-lost{background:var(--gray-soft);color:var(--ink3)}.b-unknown{background:var(--gray-soft);color:var(--ink3)}
+.empty{padding:40px;text-align:center;color:var(--ink3)}
+/* board */
+.board{display:grid;grid-template-columns:repeat(7,minmax(168px,1fr));gap:12px;overflow-x:auto;padding-bottom:8px}
+.col{background:var(--panel2);border:1px solid var(--line);border-radius:var(--r);padding:10px;min-height:120px}
+.col h4{margin:2px 4px 10px;font-size:12px;display:flex;justify-content:space-between;color:var(--ink2)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px;margin-bottom:8px;cursor:pointer;box-shadow:var(--shadow)}
+.card:hover{border-color:var(--accent)}
+.card b{display:block;font-size:13px}.card .sub{margin-top:1px}
+.card .foot{display:flex;justify-content:space-between;align-items:center;margin-top:8px;gap:6px}
+/* drawer */
+.veil{position:fixed;inset:0;background:rgba(10,12,16,.35);opacity:0;pointer-events:none;transition:opacity .18s}
+.veil.on{opacity:1;pointer-events:auto}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(580px,100vw);background:var(--panel);box-shadow:var(--shadow-lg);transform:translateX(100%);transition:transform .22s ease;display:flex;flex-direction:column;z-index:10}
+.drawer.on{transform:none}
+.dh{padding:18px 20px;border-bottom:1px solid var(--line);display:flex;gap:12px;align-items:flex-start}
+.dh .av{width:42px;height:42px;font-size:14px}
+.dh h2{margin:0;font-size:17px}
+.dh .x{margin-left:auto}
+.links{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.db{overflow:auto;flex:1;padding:16px 20px 30px}
+.sec{margin-bottom:22px}
+.sec h5{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink3);margin:0 0 8px;font-weight:600}
+.tl{display:flex;flex-direction:column;gap:0;border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.tli{display:flex;gap:10px;align-items:center;padding:9px 12px;border-top:1px solid var(--line2);font-size:13px}
+.tli:first-child{border-top:0}
+.tli .st{width:auto}.tli .st+.st:before{display:none}
+.tli .grow{flex:1}
+.tli.cur{background:var(--accent-soft)}
+textarea{width:100%;min-height:260px;padding:12px;border:1px solid var(--line);border-radius:8px;background:var(--panel2);color:var(--ink);font:inherit;line-height:1.5;resize:vertical}
+textarea:focus,input:focus,select:focus{outline:2px solid var(--accent);outline-offset:-1px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;margin-bottom:10px}
+.seg button{border:0;background:none;padding:6px 11px;font-size:13px;color:var(--ink2);border-left:1px solid var(--line)}
+.seg button:first-child{border-left:0}.seg button.on{background:var(--accent-soft);color:var(--ink);font-weight:600}
+.actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px}
+.script{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:12px 84px 12px 12px;white-space:pre-wrap;font-size:13px;margin-bottom:8px;position:relative}
+.script .btn{position:absolute;top:8px;right:8px}
+.outs{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.outs .btn{justify-content:center}
+.inline{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+input[type=date]{padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--panel2);color:var(--ink);font:inherit}
+.msg{border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:8px;font-size:13px;white-space:pre-wrap;word-wrap:break-word}
+.msg.lead{background:var(--violet-soft);border-color:transparent}
+.msg .mh{display:flex;justify-content:space-between;font-size:11px;color:var(--ink3);margin-bottom:4px;white-space:normal}
+.note{font-size:12px;color:var(--ink3);margin-top:6px}
+.check{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--ink2)}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-size:13px;opacity:0;transition:.2s;z-index:20;max-width:90vw}
+.toast.on{opacity:1;transform:translateX(-50%)}
+.toast.err{background:var(--red);color:#fff}
+.loading{display:grid;place-items:center;height:60vh;color:var(--ink3)}
+.spin{width:22px;height:22px;border:2.5px solid var(--line);border-top-color:var(--accent);border-radius:99px;animation:sp 0.8s linear infinite;margin:0 auto 10px}
+@keyframes sp{to{transform:rotate(360deg)}}
+.hide-m{}
+@media (max-width:1100px){.kpis{grid-template-columns:repeat(3,1fr)}.row{grid-template-columns:minmax(180px,1.4fr) 170px minmax(140px,1fr) auto}.row .c-camp{display:none}}
+@media (max-width:760px){.app{grid-template-columns:1fr}.side{display:none}.row{grid-template-columns:1fr auto}.row .c-cad,.row .c-next{display:none}.search input{width:140px}.kpis{grid-template-columns:repeat(2,1fr)}.top{padding:12px 16px}.scroll{padding:16px}}
+
+/* page site : verrou, réglages, actions faites */
+.lock{min-height:100vh;display:grid;place-items:center;padding:24px}
+.lockcard{width:min(400px,100%);background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:28px;box-shadow:var(--shadow)}
+.lockcard h1{font-size:18px;margin:14px 0 4px}.lockcard p{color:var(--ink3);margin:0 0 18px;font-size:13px}
+.field{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--panel2);color:var(--ink);font:inherit;margin-bottom:10px}
+.lockcard .btn{width:100%;justify-content:center;padding:10px}
+.err{color:var(--red);font-size:13px;min-height:18px;margin-top:8px}
+.modal{position:fixed;inset:0;display:none;place-items:center;background:rgba(10,12,16,.4);z-index:30;padding:16px}
+.modal.on{display:grid}
+.modal .lockcard{width:min(480px,100%)}
+.row.handled{opacity:.55}.card.handled{opacity:.55}
+.handled-tag{font-size:11px;color:var(--green);font-weight:600}
+.conn{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--ink3)}
+.conn i{width:7px;height:7px;border-radius:99px;background:var(--ink3);display:inline-block}
+.conn.on i{background:var(--green)}
+.warn{background:var(--red-soft);color:var(--red);border:1px solid color-mix(in srgb,var(--red) 25%,transparent);padding:10px 12px;border-radius:8px;margin-bottom:16px;font-size:13px}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<div class="veil" id="veil"></div>
+<aside class="drawer" id="drawer"></aside>
+<div class="toast" id="toast"></div>
+<div class="modal" id="settings"></div>
+
+<script>
+const PAGE = {"blob": null, "status": {"at": "2026-10-06T20:20:40+02:00", "ok": false, "message": "Mot de passe de la page non configuré (secret RELANCE_PASSWORD)."}};
+const REPO_ACTIONS = 'https://github.com/eliassaoe/findlinkai/actions/workflows/explee-relance.yml';
+const API = 'https://api.explee.com/public/api/v1';
+const LS = {pw:'relance.pw', key:'relance.explee_key', done:'relance.done', cors:'relance.cors'};
+const store = {
+  get(k){ try{ return localStorage.getItem(k); }catch{ return null; } },
+  set(k,v){ try{ v==null?localStorage.removeItem(k):localStorage.setItem(k,v); }catch{} },
+};
+const S = {data:null, scope:{type:'all'}, tab:'today', q:'', open:null, tpl:null, done:{}};
+const BUCKET = {
+  reply:{l:'À répondre',c:'var(--violet)'}, call:{l:'À appeler',c:'var(--blue)'}, today:{l:'À relancer',c:'var(--accent)'},
+  scheduled:{l:'Planifié',c:'var(--ink3)'}, booked:{l:'RDV calé',c:'var(--green)'}, finished:{l:'Séquence finie',c:'var(--amber)'},
+  lost:{l:'Pas intéressé',c:'var(--ink3)'}, unknown:{l:'Inconnu',c:'var(--ink3)'}
+};
+const SHORT = {email1:'E1',call:'☎',email2:'E2',email3:'E3'};
+const OUT = {no_answer:'pas de réponse',voicemail:'message laissé',retry:'à rappeler',booked:'RDV calé',not_interested:'pas intéressé'};
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const initials = n => (n||'?').split(/[\s\-@.]+/).filter(Boolean).slice(0,2).map(w=>w[0].toUpperCase()).join('');
+const hue = s => [...(s||'')].reduce((a,c)=>a+c.charCodeAt(0),0)%360;
+const avStyle = n => `background:hsl(${hue(n)} 70% 92%);color:hsl(${hue(n)} 45% 32%)`;
+const todayIso = () => { const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
+const MOIS = ['janv.','févr.','mars','avr.','mai','juin','juil.','août','sept.','oct.','nov.','déc.'];
+const JOURS = ['dim.','lun.','mar.','mer.','jeu.','ven.','sam.'];
+function dd(iso){ if(!iso) return ''; const d=new Date(iso.slice(0,10)+'T12:00:00'); return `${JOURS[d.getDay()]} ${d.getDate()} ${MOIS[d.getMonth()]}`; }
+function diff(iso){ return Math.round((new Date(iso.slice(0,10)+'T12:00:00') - new Date(todayIso()+'T12:00:00'))/864e5); }
+function when(iso){ if(!iso) return {t:'',c:''}; const n=diff(iso);
+  if(n<0) return {t:`en retard de ${-n} j`,c:'late'}; if(n===0) return {t:"aujourd'hui",c:'today'}; if(n===1) return {t:'demain',c:''}; return {t:dd(iso),c:''}; }
+function dtFr(iso){ if(!iso) return ''; const d=new Date(iso); return `${d.getDate()} ${MOIS[d.getMonth()]} · ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; }
+function ago(iso){ const m=Math.round((Date.now()-new Date(iso))/6e4); if(m<60) return `il y a ${m} min`; const h=Math.round(m/60); if(h<48) return `il y a ${h} h`; return `il y a ${Math.round(h/24)} j`; }
+function stamp(){ const d=new Date(); const p=n=>String(n).padStart(2,'0'); return `[${p(d.getDate())}/${p(d.getMonth()+1)} ${p(d.getHours())}:${p(d.getMinutes())}]`; }
+function toast(t, err){ const e=$('#toast'); e.textContent=t; e.className='toast on'+(err?' err':''); clearTimeout(e._t); e._t=setTimeout(()=>e.className='toast'+(err?' err':''),3600); }
+
+/* ───────── déchiffrement ───────── */
+const b64 = s => Uint8Array.from(atob(s), c=>c.charCodeAt(0));
+async function decrypt(blob, pw){
+  const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(pw), 'PBKDF2', false, ['deriveKey']);
+  const key = await crypto.subtle.deriveKey({name:'PBKDF2', salt:b64(blob.salt), iterations:blob.iter, hash:'SHA-256'}, base, {name:'AES-GCM', length:256}, false, ['decrypt']);
+  const pt = await crypto.subtle.decrypt({name:'AES-GCM', iv:b64(blob.iv)}, key, b64(blob.ct));
+  return JSON.parse(new TextDecoder().decode(pt));
+}
+function lockScreen(msg){
+  const st = PAGE && PAGE.status || {};
+  if(!PAGE || !PAGE.blob){
+    $('#root').innerHTML = `<div class="lock"><div class="lockcard"><div class="logo">R</div><h1>Relance</h1><p>Pas encore de données.</p><div class="warn">${esc(st.message||'La page n\'a pas encore été générée.')}</div><a class="btn primary" href="${REPO_ACTIONS}" target="_blank" rel="noopener">Lancer une synchro ↗</a></div></div>`;
+    return;
+  }
+  $('#root').innerHTML = `<div class="lock"><form class="lockcard" id="lf"><div class="logo">R</div><h1>Relance</h1><p>Page privée. Entrez le mot de passe.</p>
+    <input class="field" type="password" id="pw" placeholder="Mot de passe" autocomplete="current-password" autofocus>
+    <label class="check" style="margin-bottom:14px"><input type="checkbox" id="rem" checked> Se souvenir sur cet appareil</label>
+    <button class="btn primary" id="go">Ouvrir</button><div class="err" id="perr">${esc(msg||'')}</div></form></div>`;
+  $('#lf').onsubmit = async e => { e.preventDefault(); const pw=$('#pw').value; $('#go').disabled=true; $('#go').textContent='…';
+    const rem=$('#rem').checked; try{ await open_(pw); if(rem) store.set(LS.pw,pw); }
+    catch{ $('#perr').textContent='Mot de passe incorrect.'; $('#go').disabled=false; $('#go').textContent='Ouvrir'; } };
+}
+async function open_(pw){
+  S.data = await decrypt(PAGE.blob, pw);
+  try{ S.done = JSON.parse(store.get(LS.done)||'{}'); }catch{ S.done={}; }
+  // une action faite ici avant la dernière synchro est déjà dans les données
+  for(const k of Object.keys(S.done)) if(!S.done[k].at || new Date(S.done[k].at) < new Date(S.data.generated_at)) delete S.done[k];
+  store.set(LS.done, JSON.stringify(S.done));
+  shell(); render();
+}
+
+/* ───────── Explee depuis le navigateur (facultatif) ───────── */
+const ekey = () => store.get(LS.key);
+async function api(method, path, body){
+  const k = ekey(); if(!k) throw Object.assign(new Error('nokey'),{nokey:true});
+  let r;
+  try{ r = await fetch(API+path,{method,headers:{'X-API-Key':k,'Accept':'application/json',...(body?{'Content-Type':'application/json'}:{})},body:body?JSON.stringify(body):undefined}); }
+  catch(e){ store.set(LS.cors,'blocked'); throw Object.assign(new Error('Explee ne répond pas au navigateur (CORS)'),{cors:true}); }
+  store.set(LS.cors,'ok');
+  const txt = await r.text(); let j={}; try{ j=JSON.parse(txt); }catch{}
+  if(!r.ok){ const m = r.status===402?'Solde Explee négatif : Explee bloque les appels.':r.status===429?'Explee limite les réponses à ce contact pour l\'instant.':r.status===403?'Explee bloque l\'envoi à ce contact.':r.status===401?'Clé Explee refusée.':`Explee ${r.status} : ${txt.slice(0,160)}`;
+    throw Object.assign(new Error(m),{status:r.status,body:txt}); }
+  return j;
+}
+async function apiReply(l, text){
+  const path = `/autogtm/campaigns/${l.campaign_id}/inbox/${encodeURIComponent(l.person_id)}/reply`;
+  for(const f of ['message','text','body']){
+    try{ return await api('POST', path, {[f]:text}); }
+    catch(e){ if(e.status===422 && /missing|required|extra|not permitted|unknown field/i.test(e.body||'')) continue; throw e; }
+  }
+}
+async function apiAppendNote(l, line){
+  const path = `/autogtm/campaigns/${l.campaign_id}/inbox/${encodeURIComponent(l.person_id)}/note`;
+  const cur = await api('GET', path); const old = (cur && cur.note) || '';
+  await api('POST', path, {note: old ? old+'\n'+line : line});
+}
+function canApi(){ return !!ekey() && store.get(LS.cors)!=='blocked'; }
+
+/* Enregistre une action : note Explee si possible, sinon copie + inbox. */
+async function record(l, entry, opts={}){
+  const line = `${stamp()} Relance · ${entry}`;
+  let viaApi = false;
+  if(canApi()){
+    try{ await apiAppendNote(l, line); viaApi = true; }
+    catch(e){ if(!e.cors){ toast(e.message,true); return false; } }
+  }
+  if(!viaApi){
+    await copyText(line, true);
+    window.open(l.inbox_url,'_blank','noopener');
+    toast('Ligne copiée : collez-la dans la note du lead (inbox Explee)');
+  } else toast(opts.ok || 'Enregistré dans la note Explee ✓');
+  markDone(l, entry);
+  return true;
+}
+function markDone(l, entry){
+  S.done[l.key] = {at:new Date().toISOString(), text:entry};
+  store.set(LS.done, JSON.stringify(S.done)); render(); if(S.open) openLead(S.open, true);
+}
+
+/* ───────── coque ───────── */
+function shell(){
+  $('#root').innerHTML = `<div class="app">
+  <aside class="side">
+    <div class="brand"><div class="logo">R</div><div><b>Relance</b><small>Hot leads Explee</small></div></div>
+    <nav class="nav" id="nav"></nav>
+    <div class="sidefoot"><span id="sync" title="${esc(S.data.generated_at)}">Synchro ${esc(ago(S.data.generated_at))}</span><a class="btn sm" href="${REPO_ACTIONS}" target="_blank" rel="noopener" title="Run workflow pour mettre à jour maintenant">↻</a></div>
+  </aside>
+  <main class="main">
+    <div class="top">
+      <h1 id="title"></h1>
+      <label class="search"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="q" placeholder="Rechercher un lead…"></label>
+      <button class="btn" id="csv">⤓ CSV</button>
+      <button class="btn" id="gear" title="Envoyer depuis la page"><span class="conn ${ekey()?'on':''}"><i></i></span> Explee</button>
+    </div>
+    <div class="scroll" id="content"></div>
+  </main></div>`;
+  $('#q').oninput=e=>{S.q=e.target.value.trim(); renderMain();};
+  $('#csv').onclick=exportCsv; $('#gear').onclick=settings;
+}
+function settings(){
+  const m=$('#settings'); const k=ekey(); const cors=store.get(LS.cors);
+  m.innerHTML = `<div class="lockcard"><h1 style="margin-top:0">Envoyer depuis la page</h1>
+    <p>Avec votre clé API Explee, les emails partent directement d'ici et les actions s'écrivent dans la note du lead. La clé reste dans ce navigateur, elle n'est envoyée qu'à api.explee.com.</p>
+    ${cors==='blocked'?'<div class="warn">Explee a refusé l\'appel depuis le navigateur (CORS). La page bascule sur « copier + ouvrir l\'inbox ».</div>':''}
+    <input class="field" type="password" id="ek" placeholder="Clé API Explee" value="${k?'••••••••••••':''}">
+    <div class="actions"><button class="btn primary" id="eks">Enregistrer</button>${k?'<button class="btn" id="ekt">Tester</button><button class="btn ghost" id="ekd">Retirer la clé</button>':''}<button class="btn ghost" id="ekc">Fermer</button></div>
+    <p class="note" style="margin-top:12px">Sans clé, tout marche quand même : la page copie le texte et ouvre l'inbox Explee.</p>
+    <p class="note"><a href="#" id="lockme">Verrouiller la page sur cet appareil</a></p></div>`;
+  m.classList.add('on');
+  $('#ekc').onclick=()=>m.classList.remove('on');
+  $('#eks').onclick=()=>{ const v=$('#ek').value.trim(); if(v && !v.startsWith('•')){ store.set(LS.key,v); store.set(LS.cors,null); } m.classList.remove('on'); shell(); render(); toast('Clé enregistrée sur cet appareil'); };
+  if($('#ekd')) $('#ekd').onclick=()=>{ store.set(LS.key,null); m.classList.remove('on'); shell(); render(); };
+  if($('#ekt')) $('#ekt').onclick=async()=>{ try{ const b=await api('GET','/billing/balance'); toast(`Connecté ✓ · solde ${b.remain} crédits`, (b.remain||0)<=0); }catch(e){ toast(e.message,true); } };
+  $('#lockme').onclick=e=>{ e.preventDefault(); store.set(LS.pw,null); location.reload(); };
+}
+
+/* ───────── rendu ───────── */
+function inScope(l){
+  const s=S.scope;
+  if(s.type==='project' && String(l.project_id)!==String(s.id)) return false;
+  if(s.type==='campaign' && String(l.campaign_id)!==String(s.id)) return false;
+  if(S.q){ const q=S.q.toLowerCase(); if(![l.name,l.company,l.email,l.campaign].join(' ').toLowerCase().includes(q)) return false; }
+  return true;
+}
+const isAction = l => ['reply','call','today'].includes(l.bucket) && !S.done[l.key];
+const prio = l => ({reply:0,call:1,today:2,scheduled:3,booked:4,finished:5,lost:6,unknown:7})[l.bucket];
+const byPrio = (a,b) => (!!S.done[a.key])-(!!S.done[b.key]) || prio(a)-prio(b) || ((a.next||{}).due||'9').localeCompare((b.next||{}).due||'9');
+function render(){ renderNav(); renderMain(); }
+
+function renderNav(){
+  const d=S.data, leads=d.leads;
+  const cnt = f => leads.filter(f).length;
+  const due = f => leads.filter(l=>f(l)&&isAction(l)).length;
+  const item = (scope,name,f,extra='') => {
+    const on = S.scope.type===scope.type && String(S.scope.id)===String(scope.id); const n=due(f);
+    return `<button class="nitem ${on?'on':''}" data-scope='${esc(JSON.stringify(scope))}'>${extra}<span class="nm">${esc(name)}</span>${n?`<span class="due">${n}</span>`:''}<span class="cnt">${cnt(f)}</span></button>`;
+  };
+  let h = item({type:'all'},'Tous les projets',()=>true,'<span>◎</span>');
+  const projs = d.projects.length ? d.projects : [{id:null,name:'Projet'}];
+  for(const p of projs){
+    const camps = d.campaigns.filter(c=>!p.id || String(c.project_id)===String(p.id));
+    const pl = leads.filter(l=>!p.id || String(l.project_id)===String(p.id));
+    if(!pl.length && !camps.length) continue;
+    h += `<h6>${esc(p.name)}</h6>`;
+    if(projs.length>1) h += item({type:'project',id:p.id},'Toutes les campagnes',l=>String(l.project_id)===String(p.id));
+    camps.sort((a,b)=>cnt(l=>String(l.campaign_id)===String(b.id))-cnt(l=>String(l.campaign_id)===String(a.id)));
+    for(const c of camps) h += item({type:'campaign',id:c.id},c.name,l=>String(l.campaign_id)===String(c.id),`<span class="dot" style="background:hsl(${hue(c.name)} 60% 55%)"></span>`);
+  }
+  $('#nav').innerHTML = h;
+  $('#nav').querySelectorAll('[data-scope]').forEach(b=>b.onclick=()=>{S.scope=JSON.parse(b.dataset.scope); render();});
+}
+function scopeTitle(){
+  const s=S.scope, d=S.data;
+  if(s.type==='campaign'){ const c=d.campaigns.find(c=>String(c.id)===String(s.id)); return c?c.name:'Campagne'; }
+  if(s.type==='project'){ const p=d.projects.find(p=>String(p.id)===String(s.id)); return p?p.name:'Projet'; }
+  return 'Tous les projets';
+}
+function renderMain(){
+  const d=S.data, leads=d.leads.filter(inScope);
+  $('#title').innerHTML = `${esc(scopeTitle())}<small>${leads.length} hot lead${leads.length>1?'s':''}</small>`;
+  const n = b => leads.filter(l=>l.bucket===b && (['reply','call','today'].includes(b)?!S.done[l.key]:true)).length;
+  const actions = leads.filter(l=>['reply','call','today'].includes(l.bucket));
+  const conv = leads.length ? Math.round(100*leads.filter(l=>l.bucket==='booked').length/leads.length) : 0;
+  let h = d.demo ? `<div class="demo">Données d'exemple : aucun email n'est envoyé.</div>` : '';
+  const ageH = (Date.now()-new Date(d.generated_at))/36e5;
+  if(ageH>26) h += `<div class="warn">Dernière synchro ${esc(ago(d.generated_at))}. ${esc((PAGE.status&&!PAGE.status.ok&&PAGE.status.message)||'Vérifiez le workflow « Explee relance » et le solde Explee.')} <a href="${REPO_ACTIONS}" target="_blank" rel="noopener">Relancer ↗</a></div>`;
+  const k = (b,v,l,c) => `<button class="kpi" data-k="${b}"><div class="l"><span class="dot" style="background:${c}"></span>${l}</div><div class="v">${v}</div></button>`;
+  h += `<div class="kpis">${k('reply',n('reply'),'À répondre',BUCKET.reply.c)}${k('call',n('call'),'Appels du jour',BUCKET.call.c)}${k('today',n('today'),'Relances du jour',BUCKET.today.c)}${k('scheduled',n('scheduled'),'Planifiés',BUCKET.scheduled.c)}${k('booked',n('booked'),'RDV calés',BUCKET.booked.c)}<div class="kpi"><div class="l">Hot → RDV</div><div class="v">${conv}%</div></div></div>`;
+  if(S.scope.type==='campaign'){
+    const c=d.campaigns.find(c=>String(c.id)===String(S.scope.id))||{};
+    const f=(v,suf='')=>v==null||v===''?'—':(typeof v==='number'?v.toLocaleString('fr-FR',{maximumFractionDigits:1}):v)+suf;
+    const rr = c.reply_rate!=null ? (c.reply_rate<=1? c.reply_rate*100 : c.reply_rate) : null;
+    h += `<div class="campstats"><div>Emails envoyés<b>${f(c.sent)}</b></div><div>Réponses<b>${f(c.replies)}</b></div><div>Taux de réponse<b>${f(rr,' %')}</b></div><div>Hot leads<b>${f(c.hot ?? leads.length)}</b></div><div>Dépense<b>${f(c.spend,' $')}</b></div><div>Coût / hot lead<b>${f(c.cpl ?? (c.spend&&leads.length? c.spend/leads.length:null),' $')}</b></div><div>Statut<b>${esc(c.status||'—')}</b></div></div>`;
+  }
+  const todo = actions.filter(l=>!S.done[l.key]).length;
+  const tabs=[['today','Actions du jour',todo],['board','Pipeline',null],['all','Tous',leads.length]];
+  h += `<div class="tabs">${tabs.map(([id,l,c])=>`<button class="tab ${S.tab===id?'on':''}" data-tab="${id}">${l}${c!=null?`<span class="cnt">${c}</span>`:''}</button>`).join('')}</div>`;
+  if(S.tab==='board') h += board(leads);
+  else if(S.tab==='today') h += actions.length ? groups(actions,['reply','call','today']) : `<div class="list"><div class="empty">Rien à faire aujourd'hui 🎉<br><span class="sub">${n('scheduled')} relance(s) planifiée(s) plus tard.</span></div></div>`;
+  else h += leads.length ? groups(leads,['reply','call','today','scheduled','booked','finished','lost','unknown']) : `<div class="list"><div class="empty">Aucun hot lead ici.</div></div>`;
+  $('#content').innerHTML = h;
+  $('#content').querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{S.tab=b.dataset.tab; renderMain();});
+  $('#content').querySelectorAll('[data-k]').forEach(b=>b.onclick=()=>{S.tab=['reply','call','today'].includes(b.dataset.k)?'today':'all'; renderMain(); const g=document.getElementById('g-'+b.dataset.k); g&&g.scrollIntoView({behavior:'smooth'});});
+  $('#content').querySelectorAll('[data-key]').forEach(r=>r.onclick=e=>{ if(e.target.closest('a')) return; openLead(r.dataset.key);});
+}
+function groups(leads, order){
+  let h='';
+  for(const b of order){
+    const g = leads.filter(l=>l.bucket===b).sort(byPrio); if(!g.length) continue;
+    h += `<div class="group" id="g-${b}"><h3><span class="dot" style="background:${BUCKET[b].c}"></span>${BUCKET[b].l}<span class="cnt">${g.length}</span></h3><div class="list">${g.map(row).join('')}</div></div>`;
+  }
+  return h;
+}
+function cadence(l){
+  if(!l.steps||!l.steps.length) return '<span class="muted">—</span>';
+  return `<div class="cad">${l.steps.map(s=>{
+    const isNext = l.next && l.next.key===s.key && ['today','call','scheduled'].includes(l.bucket);
+    let cls = s.done?'done':''; if(isNext) cls = s.due && diff(s.due)<0 ? 'late' : (s.due && diff(s.due)===0 ? 'now':'');
+    const tip = s.done ? `${s.label} · fait${s.done_at?' le '+dd(s.done_at):''}${s.outcome?' · '+(OUT[s.outcome]||s.outcome):''}` : `${s.label} · prévu ${dd(s.due)}`;
+    return `<div class="st ${cls}" title="${esc(tip)}"><i>${s.done?'✓':SHORT[s.key]}</i><span>${s.key==='call'?'Appel':s.label.replace('Email ','E')}</span></div>`;
+  }).join('')}</div>`;
+}
+function nextCell(l){
+  const dn = S.done[l.key]; if(dn) return `<div class="next"><span class="handled-tag">✓ ${esc(dn.text)}</span><span class="when">pris en compte à la prochaine synchro</span></div>`;
+  if(['booked','lost','finished','unknown'].includes(l.bucket)) return `<div class="next"><span class="badge b-${l.bucket}">${BUCKET[l.bucket].l}</span></div>`;
+  const w=when(l.next&&l.next.due);
+  const extra = l.bucket==='reply' ? 'Le lead attend votre réponse' : (l.wait_until && l.bucket==='scheduled' ? `Attendre le ${dd(l.wait_until)}${l.wait_auto?' (demandé)':''}` : '');
+  return `<div class="next"><b>${esc(l.next?l.next.label:'')}</b><span class="when ${w.c}">${w.t}${extra?' · '+esc(extra):''}</span></div>`;
+}
+function phoneCell(l){
+  if(!l.phones.length) return '<span class="muted sub">Pas de numéro</span>';
+  const p=l.phones[0]; return `<a class="tel" href="tel:${esc(p.raw)}" title="Appeler">${p.mobile?'📱':'☎'} ${esc(p.pretty)}</a>${l.phones.length>1?`<span class="sub"> +${l.phones.length-1}</span>`:''}`;
+}
+function row(l){
+  return `<div class="row ${S.done[l.key]?'handled':''}" data-key="${esc(l.key)}">
+    <div class="who"><div class="av" style="${avStyle(l.name)}">${esc(initials(l.name))}</div><div class="t"><b>${esc(l.name)}</b><div class="sub">${esc([l.title,l.company].filter(Boolean).join(' · '))}</div></div></div>
+    <div class="c-camp"><span class="chip" title="${esc(l.campaign)}">${esc(l.campaign.replace(/^Prescient\s*[–-]\s*/,''))}</span><div class="sub" style="margin-top:4px">${phoneCell(l)}</div></div>
+    <div class="c-cad">${cadence(l)}</div><div class="c-next">${nextCell(l)}</div>
+    <div><span class="badge b-${l.bucket}">${BUCKET[l.bucket].l}</span></div></div>`;
+}
+function board(leads){
+  const cols=[['reply','À répondre',l=>l.bucket==='reply'],['email1','Email 1',l=>l.next&&l.next.key==='email1'&&['today','scheduled'].includes(l.bucket)],
+    ['call','Appel',l=>l.next&&l.next.key==='call'&&['call','scheduled'].includes(l.bucket)],['email2','Email 2',l=>l.next&&l.next.key==='email2'&&['today','scheduled'].includes(l.bucket)],
+    ['email3','Email 3',l=>l.next&&l.next.key==='email3'&&['today','scheduled'].includes(l.bucket)],['booked','RDV calé',l=>l.bucket==='booked'],
+    ['done','Terminé',l=>['finished','lost','unknown'].includes(l.bucket)]];
+  return `<div class="board">${cols.map(([id,t,f])=>{ const g=leads.filter(f).sort(byPrio); return `<div class="col"><h4>${t}<span class="cnt">${g.length}</span></h4>${g.map(l=>{const w=when(l.next&&l.next.due); return `<div class="card ${S.done[l.key]?'handled':''}" data-key="${esc(l.key)}"><b>${esc(l.name)}</b><div class="sub">${esc(l.company)}</div><div class="foot">${['booked','finished','lost'].includes(l.bucket)?`<span class="badge b-${l.bucket}">${BUCKET[l.bucket].l}</span>`:`<span class="when ${w.c}">${w.t}</span>`}${l.phones.length?'<span title="Numéro trouvé">📱</span>':''}</div></div>`;}).join('')}</div>`;}).join('')}</div>`;
+}
+
+/* ───────── fiche lead ───────── */
+function openLead(key, keepTpl){
+  const l = S.data.leads.find(x=>x.key===key); if(!l) return closeLead();
+  S.open = key;
+  const defTpl = l.bucket==='reply' ? 'reply' : (l.next && l.next.key) || 'email1';
+  if(!keepTpl || !S.tpl) S.tpl = defTpl;
+  const links = [`<a class="btn sm" href="${esc(l.inbox_url)}" target="_blank" rel="noopener">Inbox Explee ↗</a>`,
+    l.linkedin?`<a class="btn sm" href="${esc(l.linkedin)}" target="_blank" rel="noopener">LinkedIn ↗</a>`:'',
+    `<a class="btn sm" href="mailto:${esc(l.email)}">${esc(l.email)}</a>`,
+    ...l.phones.map(p=>`<a class="btn sm" href="tel:${esc(p.raw)}">${p.mobile?'📱':'☎'} ${esc(p.pretty)}</a>`)].join('');
+  const dn = S.done[l.key];
+  let h = `<div class="dh"><div class="av" style="${avStyle(l.name)}">${esc(initials(l.name))}</div><div style="min-width:0"><h2>${esc(l.name)}</h2><div class="sub">${esc([l.title,l.company,l.campaign].filter(Boolean).join(' · '))}</div><div class="links">${links}</div></div><button class="btn ghost x" id="close" aria-label="Fermer">✕</button></div><div class="db">`;
+  const statusBtns = l.bucket==='booked'||l.bucket==='lost'
+    ? `<button class="btn sm" data-status="reactivate">Réactiver la séquence</button>`
+    : `<button class="btn sm" data-status="booked">✓ RDV calé</button><button class="btn sm" data-status="lost">Pas intéressé</button>`;
+  h += `<div class="sec"><div class="inline"><span class="badge b-${l.bucket}">${BUCKET[l.bucket].l}</span>${dn?`<span class="handled-tag">✓ ${esc(dn.text)}</span>`:(l.next&&!['booked','lost','finished'].includes(l.bucket)?`<span class="sub">Prochaine étape : <b>${esc(l.next.label)}</b> · ${when(l.next.due).t}</span>`:'')}<span style="flex:1"></span>${statusBtns}</div></div>`;
+  if(l.steps.length){
+    h += `<div class="sec"><h5>Séquence de relance</h5><div class="tl">${l.steps.map(s=>{
+      const cur = l.next && l.next.key===s.key && !['booked','lost'].includes(l.bucket); const late = cur && s.due && diff(s.due)<0;
+      const cls = s.done?'done':(cur?(late?'late':'now'):'');
+      const right = s.done ? `<span class="sub">fait${s.done_at?' le '+dd(s.done_at):''}${s.outcome?' · '+(OUT[s.outcome]||''):''}</span>` : `<span class="when ${cur?when(s.due).c:''}">${s.due?(cur?when(s.due).t:dd(s.due)):''}</span>`;
+      return `<div class="tli ${cur?'cur':''}"><div class="st ${cls}"><i>${s.done?'✓':SHORT[s.key]}</i></div><div class="grow"><b>${esc(s.label)}</b> <span class="sub">${{email1:'créneau précis',call:'si numéro en signature',email2:'angle valeur',email3:'clôture'}[s.key]||''}</span></div>${right}</div>`;
+    }).join('')}</div>
+    <div class="inline note">Attendre jusqu'au <input type="date" id="snooze" value="${esc(l.wait_until||'')}"> <button class="btn sm" id="snoozeBtn">Appliquer</button>${l.wait_auto?'<span>détecté dans sa réponse</span>':''}</div></div>`;
+  }
+  const tpls = [['reply','Réponse'],['email1','Email 1'],['email2','Email 2'],['email3','Email 3']];
+  if(l.phones.length) tpls.splice(2,0,['call','Appel']);
+  h += `<div class="sec"><h5>Action</h5><div class="seg">${tpls.map(([k,t])=>`<button data-tpl="${k}" class="${S.tpl===k?'on':''}">${t}</button>`).join('')}</div>`;
+  if(S.tpl==='call'){
+    const d=l.drafts;
+    h += `<div class="script"><button class="btn sm" data-copy="call">Copier</button><b>Script</b>\n${esc(d.call)}</div>
+      <div class="script"><button class="btn sm" data-copy="voicemail">Copier</button><b>Messagerie</b>\n${esc(d.voicemail)}</div>
+      <div class="script"><button class="btn sm" data-copy="sms">Copier</button><b>SMS après l'appel</b>\n${esc(d.sms)}</div>
+      <div class="actions" style="margin:4px 0 12px"><a class="btn primary" href="tel:${esc(l.phones[0].raw)}">📞 Appeler ${esc(l.phones[0].pretty)}</a></div>
+      <h5 style="margin-top:6px">Résultat de l'appel</h5>
+      <div class="outs"><button class="btn" data-out="booked">✓ RDV calé</button><button class="btn" data-out="voicemail">Message laissé</button><button class="btn" data-out="no_answer">Pas de réponse</button><button class="btn" data-out="not_interested">Pas intéressé</button></div>
+      <div class="inline note">À rappeler le <input type="date" id="retryAt"> <button class="btn sm" data-out="retry">Planifier</button></div>`;
+  } else {
+    const direct = canApi();
+    h += `<textarea id="draft">${esc(l.drafts[S.tpl]||'')}</textarea>
+      <div class="actions">${direct?`<button class="btn primary" id="send">Envoyer via Explee</button><button class="btn" data-copy="draft">Copier</button>`:`<button class="btn primary" id="copyopen">Copier et ouvrir l'inbox</button>`}<a class="btn ghost" href="${esc(l.inbox_url)}" target="_blank" rel="noopener">Inbox ↗</a></div>
+      <div class="note">${direct?'Part dans le fil existant, depuis la boîte d\'envoi Explee. Relisez avant d\'envoyer.':'Collez le texte en réponse dans le fil. La relance suivante se recale toute seule à la prochaine synchro. <a href="#" id="setk">Envoyer directement d\'ici ?</a>'}</div>`;
+  }
+  h += `</div>`;
+  if(l.note) h += `<div class="sec"><h5>Note Explee</h5><div class="msg">${esc(l.note)}</div></div>`;
+  h += `<div class="sec"><h5>Conversation</h5>${l.thread.length? l.thread.map(m=>`<div class="msg ${m.from}"><div class="mh"><span>${m.from==='lead'?esc(l.first_name||l.name):'Vous'}${m.subject?' · '+esc(m.subject):''}</span><span>${dtFr(m.at)}</span></div>${esc(m.text||'(vide)')}</div>`).join('') : '<div class="sub">Conversation indisponible.</div>'}</div></div>`;
+
+  const dr=$('#drawer'); dr.innerHTML=h; dr.classList.add('on'); $('#veil').classList.add('on');
+  $('#close').onclick=closeLead;
+  dr.querySelectorAll('[data-tpl]').forEach(b=>b.onclick=()=>{S.tpl=b.dataset.tpl; openLead(key,true);});
+  dr.querySelectorAll('[data-copy]').forEach(b=>b.onclick=e=>{e.stopPropagation(); const k=b.dataset.copy; copyText(k==='draft'?$('#draft').value:l.drafts[k]);});
+  dr.querySelectorAll('[data-out]').forEach(b=>b.onclick=()=>callOutcome(l,b.dataset.out));
+  dr.querySelectorAll('[data-status]').forEach(b=>b.onclick=()=>({booked:()=>record(l,'RDV calé'),lost:()=>record(l,'Pas intéressé'),reactivate:()=>record(l,'Séquence réactivée')})[b.dataset.status]());
+  const sb=$('#snoozeBtn'); if(sb) sb.onclick=()=>{ const v=$('#snooze').value; if(!v) return toast('Choisissez une date',true); record(l,`Attendre jusqu'au ${v}`); };
+  const send=$('#send'); if(send) send.onclick=()=>sendMail(l);
+  const co=$('#copyopen'); if(co) co.onclick=async()=>{ await copyText($('#draft').value,true); window.open(l.inbox_url,'_blank','noopener'); toast('Texte copié : collez-le en réponse dans le fil'); markDone(l, `${({reply:'Réponse',email1:'Email 1',email2:'Email 2',email3:'Email 3'})[S.tpl]} préparé`); };
+  const sk=$('#setk'); if(sk) sk.onclick=e=>{e.preventDefault(); settings();};
+}
+function closeLead(){ S.open=null; S.tpl=null; $('#drawer').classList.remove('on'); $('#veil').classList.remove('on'); }
+$('#veil').onclick=closeLead;
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeLead(); $('#settings').classList.remove('on'); } if(e.key==='/' && !['TEXTAREA','INPUT'].includes(document.activeElement.tagName) && $('#q')){ e.preventDefault(); $('#q').focus(); }});
+
+async function copyText(t, quiet){ try{ await navigator.clipboard.writeText(t); if(!quiet) toast('Copié'); }catch{ if(!quiet) toast('Copie impossible',true); } }
+function callOutcome(l, o){
+  if(o==='retry'){ const v=$('#retryAt').value; if(!v) return toast('Choisissez une date de rappel',true); return record(l,`Appel : à rappeler le ${v}`); }
+  return record(l, `Appel : ${OUT[o]}`);
+}
+async function sendMail(l){
+  const text=$('#draft').value.trim(); if(!text) return toast('Message vide',true);
+  const label = {reply:'la réponse',email1:"l'email 1",email2:"l'email 2",email3:"l'email 3"}[S.tpl]||"l'email";
+  if(!confirm(`Envoyer ${label} à ${l.name} (${l.email}) maintenant ?`)) return;
+  const b=$('#send'); b.disabled=true; b.textContent='Envoi…';
+  const step = ({reply:'Réponse',email1:'Email 1',email2:'Email 2',email3:'Email 3'})[S.tpl];
+  try{
+    await apiReply(l, text);
+    try{ await apiAppendNote(l, `${stamp()} Relance · Email envoyé : ${step}`); }catch{}
+    toast('Email envoyé ✓'); markDone(l, `${step} envoyé`);
+  }catch(e){
+    if(e.cors){ toast('Explee refuse les appels depuis le navigateur : copie + inbox à la place',true); openLead(l.key,true); }
+    else toast(e.message,true);
+    b.disabled=false; b.textContent='Envoyer via Explee';
+  }
+}
+function exportCsv(){
+  const lab = Object.fromEntries(Object.entries(BUCKET).map(([k,v])=>[k,v.l]));
+  const head = ['Statut','Prochaine action','Échéance','Nom','Téléphone','Email','Poste','Entreprise','Site','LinkedIn','Projet','Campagne','Hot depuis','Relances envoyées','Dernier msg de','Jours de silence',"Attendre jusqu'au",'Dernière réponse du lead','Inbox'];
+  const q = v => { v = String(v ?? ''); return /[;"\n]/.test(v) ? '"'+v.replace(/"/g,'""')+'"' : v; };
+  const rows = S.data.leads.filter(inScope).sort(byPrio).map(l=>[lab[l.bucket],(l.next||{}).label,(l.next||{}).due,l.name,l.phones.map(p=>p.pretty).join(' | '),l.email,l.title,l.company,l.domain,l.linkedin,l.project,l.campaign,l.hot_since,l.relances_sent,{lead:'Lead',me:'Moi'}[l.last_from]||'',l.days_silent,l.wait_until,l.last_reply,l.inbox_url]);
+  const csv = '﻿'+[head,...rows].map(r=>r.map(q).join(';')).join('\n');
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'})); a.download=`hot_leads_${todayIso()}.csv`; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+}
+
+/* ───────── démarrage ───────── */
+(async()=>{
+  const pw = store.get(LS.pw);
+  if(PAGE && PAGE.blob && pw){ try{ await open_(pw); return; }catch{ store.set(LS.pw,null); } }
+  lockScreen();
+})();
+</script>
+</body>
+</html>
