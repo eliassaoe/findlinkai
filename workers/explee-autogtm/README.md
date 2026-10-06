@@ -220,10 +220,12 @@ honours), `Appel : message laissé`, `Appel : à rappeler le 2026-10-09`,
 `Attendre jusqu'au 2026-10-15`, `Séquence réactivée`. The page writes them; they
 can also be typed by hand in the inbox. Sent emails are read from the thread.
 
-**The repository is public, so the page is encrypted** (AES-256-GCM, PBKDF2
-310k) with the `RELANCE_PASSWORD` secret. Without that secret the page is
-published empty. `noindex`, out of the sitemap, not in robots.txt (see
-`gen_sitemap.py`).
+**No password, by the owner's choice (6 Oct 2026).** The page is `noindex`,
+out of the sitemap, not in robots.txt (see `gen_sitemap.py`) and linked from
+nowhere — but the repository is public, so `relance.html` (names, emails,
+phones, threads) is also readable on GitHub. Adding a `RELANCE_PASSWORD`
+secret switches everything to encrypted (AES-256-GCM, PBKDF2 310k) with a
+lock screen, and the send payloads too; nothing else to change.
 
 **One-click sending.** Every due email is already written (from the thread:
 first name, the slot they asked for, Teams, their booking link, your sign-off),
@@ -231,9 +233,8 @@ each call has its script, voicemail and follow-up SMS. "Envoyer" on a row, or
 "Tout envoyer", queues the emails (6 s to undo) and fires
 `.github/workflows/explee-relance-act.yml` through the GitHub API with a
 fine-grained token pasted once in the page (Actions: read & write on this repo
-only, kept in that browser). The one dispatch input is **encrypted with the page
-password** — dispatch inputs are public on a public repo — and
-`relance_act.py` prints counters only. Before sending it re-reads the thread and
+only, kept in that browser). The one dispatch input is encrypted when the page
+has a password, in clear otherwise; `relance_act.py` prints counters only. Before sending it re-reads the thread and
 skips any lead whose thread moved since the page was built (`expect_after`), so
 a double click or a reply sent by hand never gives two emails. It then rebuilds
 the page. Replies to a lead who asked a real question are flagged "À relire" and

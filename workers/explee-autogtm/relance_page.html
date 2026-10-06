@@ -8,7 +8,7 @@
 <title>Relance</title>
 <!-- Gabarit de /relance. Généré par workers/explee-autogtm/relance_page.py : ne pas
      éditer relance.html à la racine, il est réécrit à chaque synchro. Les données sont
-     chiffrées (AES-GCM, mot de passe = secret RELANCE_PASSWORD). -->
+     chiffrées seulement si le secret RELANCE_PASSWORD existe (sinon en clair). -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -252,7 +252,7 @@ function lockScreen(msg){
     catch{ $('#perr').textContent='Mot de passe incorrect.'; $('#go').disabled=false; $('#go').textContent='Ouvrir'; } };
 }
 async function open_(pw){
-  S.data = await decrypt(PAGE.blob, pw); S.pw = pw;
+  S.data = PAGE.blob.plain ? PAGE.blob.plain : await decrypt(PAGE.blob, pw); S.pw = PAGE.blob.plain ? null : pw;
   try{ S.done = JSON.parse(store.get(LS.done)||'{}'); }catch{ S.done={}; }
   // une action faite ici avant la dernière synchro est déjà dans les données
   for(const k of Object.keys(S.done)) if(!S.done[k].at || new Date(S.done[k].at) < new Date(S.data.generated_at)) delete S.done[k];
@@ -294,6 +294,7 @@ const GH_REPO = 'eliassaoe/findlinkai', GH_WF = 'explee-relance-act.yml';
 const ghToken = () => store.get(LS.gh);
 const mode = () => ghToken() ? 'github' : (canApi() ? 'explee' : 'copy');
 async function encryptFor(obj){
+  if(!S.pw) return JSON.stringify(obj);           // page sans mot de passe : envoi en clair
   const salt=crypto.getRandomValues(new Uint8Array(16)), iv=crypto.getRandomValues(new Uint8Array(12)), iter=310000;
   const base=await crypto.subtle.importKey('raw', new TextEncoder().encode(S.pw), 'PBKDF2', false, ['deriveKey']);
   const key=await crypto.subtle.deriveKey({name:'PBKDF2', salt, iterations:iter, hash:'SHA-256'}, base, {name:'AES-GCM', length:256}, false, ['encrypt']);
@@ -444,7 +445,7 @@ function settings(){
       ${cors==='blocked'?'<div class="warn" style="margin-top:8px">Explee a refusé l\'appel depuis le navigateur (CORS) : utilisez le jeton GitHub.</div>':''}
       <input class="field" style="margin-top:8px" type="password" id="ek" placeholder="Clé API Explee" value="${k?'••••••••••••':''}">
       <div class="actions"><button class="btn sm" id="eks">Enregistrer la clé</button>${k?'<button class="btn sm" id="ekt">Tester</button><button class="btn sm ghost" id="ekd">Retirer</button>':''}</div></details>
-    <p class="note" style="margin-top:14px">Sans rien activer, tout marche quand même : la page copie le texte et ouvre l'inbox Explee. · <a href="#" id="lockme">Verrouiller la page</a></p></div>`;
+    <p class="note" style="margin-top:14px">Sans rien activer, tout marche quand même : la page copie le texte et ouvre l'inbox Explee.${S.pw?' · <a href="#" id="lockme">Verrouiller la page</a>':''}</p></div>`;
   m.classList.add('on');
   const close=()=>{ m.classList.remove('on'); shell(); render(); };
   $('#ekc').onclick=()=>m.classList.remove('on');
@@ -454,7 +455,7 @@ function settings(){
   $('#eks').onclick=()=>{ const v=$('#ek').value.trim(); if(v && !v.startsWith('•')){ store.set(LS.key,v); store.set(LS.cors,null); } close(); };
   if($('#ekd')) $('#ekd').onclick=()=>{ store.set(LS.key,null); close(); };
   if($('#ekt')) $('#ekt').onclick=async()=>{ try{ const b=await api('GET','/billing/balance'); toast(`Explee connecté ✓ · solde ${b.remain} crédits`, (b.remain||0)<=0); }catch(e){ toast(e.message,true); } };
-  $('#lockme').onclick=e=>{ e.preventDefault(); store.set(LS.pw,null); location.reload(); };
+  if($('#lockme')) $('#lockme').onclick=e=>{ e.preventDefault(); store.set(LS.pw,null); location.reload(); };
 }
 
 /* ───────── rendu ───────── */
@@ -702,6 +703,7 @@ function exportCsv(){
 /* ───────── démarrage ───────── */
 (async()=>{
   const pw = store.get(LS.pw);
+  if(PAGE && PAGE.blob && PAGE.blob.plain){ await open_(null); return; }
   if(PAGE && PAGE.blob && pw){ try{ await open_(pw); return; }catch{ store.set(LS.pw,null); } }
   lockScreen();
 })();

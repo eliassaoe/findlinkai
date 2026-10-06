@@ -136,6 +136,14 @@ class Page(unittest.TestCase):
         self.assertEqual(len(self.P.decrypt(prev["blob"], "pw")["leads"]), 6)
         self.assertTrue(self.P.unchanged(html, view, "pw"))
 
+    def test_plain_page_without_password(self):
+        view = self.P.build(R.Store(demo=True))
+        blob = self.P.seal(view, "")
+        html = self.P.render(blob, {"ok": True})
+        self.assertIn("Claire", html)                       # en clair, voulu
+        self.assertEqual(len(self.P.unseal(blob, "")["leads"]), 6)
+        self.assertTrue(self.P.unchanged(html, view, ""))
+
     def test_without_password_no_data(self):
         html = self.P.render(None, {"ok": False, "message": "x"})
         self.assertIn('"blob": null', html)
@@ -193,6 +201,10 @@ class Act(unittest.TestCase):
         api = FakeExplee()
         n = self.A.run(api, [{"type": "reply", "key": "187263:p2", "text": "t", "expect_after": 1}], dry=True, ref=REF)
         self.assertEqual((n["sent"], api.sent), (1, []))
+
+    def test_plain_payload(self):
+        acts = self.A.decode(json.dumps({"actions": [{"type": "note", "key": "k", "line": "l"}]}), "")
+        self.assertEqual(acts[0]["line"], "l")
 
     def test_payload_roundtrip(self):
         import relance_page as P

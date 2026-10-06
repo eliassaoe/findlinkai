@@ -6,17 +6,18 @@ calcule pour chacun la prochaine relance avec le moteur de relance.py (3 emails 
 1 appel si un numéro figure dans la signature), et écrit `relance.html` à la
 racine du site.
 
-LE DÉPÔT EST PUBLIC. Les données (noms, emails, téléphones, conversations) sont
-donc chiffrées dans la page : AES-256-GCM, clé dérivée du mot de passe par
-PBKDF2-SHA256 (310 000 itérations). Le navigateur déchiffre après saisie du mot
-de passe. Sans le secret RELANCE_PASSWORD, rien n'est publié.
+Mot de passe FACULTATIF. Sans le secret RELANCE_PASSWORD (choix actuel), la page
+est publiée en clair : noindex, hors sitemap, liée de nulle part — mais le dépôt
+est public, donc ses données sont aussi lisibles dans relance.html sur GitHub.
+Avec le secret, tout est chiffré (AES-256-GCM, PBKDF2-SHA256 310 000 itérations)
+et la page demande le mot de passe.
 
 L'état de chaque lead (RDV calé, appel passé, attendre jusqu'au…) vit dans la
 NOTE du lead sur Explee — la page y écrit, ce script la relit. Les emails envoyés
 se lisent directement dans le fil. Rien d'autre n'est stocké.
 
-    EXPLEE_API_KEY=... RELANCE_PASSWORD=... python3 relance_page.py --write
-    RELANCE_PASSWORD=test python3 relance_page.py --demo --write    # données d'exemple
+    EXPLEE_API_KEY=... python3 relance_page.py --write
+    python3 relance_page.py --demo --write          # données d'exemple
 
 Lancé par .github/workflows/explee-relance.yml. Lecture seule côté Explee
 (GET gratuits) : ce script n'envoie aucun email et n'écrit aucune note.
@@ -57,6 +58,16 @@ def decrypt(blob: dict, password: str) -> dict:
     return json.loads(AESGCM(key).decrypt(d(blob["iv"]), d(blob["ct"]), None))
 
 
+def seal(view, password):
+    return encrypt(view, password) if password else {"plain": view}
+
+
+def unseal(blob, password):
+    if isinstance(blob, dict) and "plain" in blob:
+        return blob["plain"]
+    return decrypt(blob, password)
+
+
 def notes_for(store):
     """{clé lead → note Explee}. Un GET gratuit par hot lead."""
     if store.demo:
@@ -92,7 +103,7 @@ def unchanged(prev_html, view, password, max_age_h=12):
         return False
     try:
         prev = json.loads(m.group(1).replace("<\\/", "</"))
-        old = decrypt(prev["blob"], password)
+        old = unseal(prev["blob"], password)
     except Exception:
         return False
     if render(prev["blob"], prev.get("status")) != prev_html:
@@ -118,40 +129,35 @@ def main():
     password = os.environ.get("RELANCE_PASSWORD", "")
     status = {"at": R.now().isoformat(timespec="seconds"), "ok": False, "message": ""}
 
-    if not password:
-        print("::warning::RELANCE_PASSWORD n'est pas défini : la page est publiée sans données.")
-        status["message"] = "Mot de passe de la page non configuré (secret RELANCE_PASSWORD)."
+    if demo:
+        store = R.Store(demo=True)
+    else:
+        key = os.environ.get("EXPLEE_API_KEY", "").strip()
+        if not key:
+            sys.exit("EXPLEE_API_KEY manquant")
+        store = R.Store(api=R.Explee(key))
+    try:
+        view = build(store)
+    except R.ApiError as e:
+        msg = {401: "Clé API Explee refusée.",
+               402: "Solde Explee négatif : Explee bloque tous les appels, même gratuits. "
+                    "Rechargez sur explee.com/app-auto-gtm/billing."}.get(e.code, f"Erreur Explee : {e}")
+        print(f"::warning::{msg}")
+        # On garde la page précédente (et ses données) : on n'écrase rien.
+        if OUT.exists() and write and '"blob": null' not in OUT.read_text("utf-8"):
+            print("Page précédente conservée.")
+            return
+        status["message"] = msg
         blob = None
     else:
-        if demo:
-            store = R.Store(demo=True)
-        else:
-            key = os.environ.get("EXPLEE_API_KEY", "").strip()
-            if not key:
-                sys.exit("EXPLEE_API_KEY manquant")
-            store = R.Store(api=R.Explee(key))
-        try:
-            view = build(store)
-        except R.ApiError as e:
-            msg = {401: "Clé API Explee refusée.",
-                   402: "Solde Explee négatif : Explee bloque tous les appels, même gratuits. "
-                        "Rechargez sur explee.com/app-auto-gtm/billing."}.get(e.code, f"Erreur Explee : {e}")
-            print(f"::warning::{msg}")
-            # On garde la page précédente (et ses données) : on n'écrase rien.
-            if OUT.exists() and write and '"blob": null' not in OUT.read_text("utf-8"):
-                print("Page précédente conservée.")
-                return
-            status["message"] = msg
-            blob = None
-        else:
-            status.update(ok=True, message=f"{len(view['leads'])} hot leads")
-            blob = encrypt(view, password)
-            n = {b: sum(1 for l in view["leads"] if l["bucket"] == b) for b in ("reply", "call", "today", "scheduled", "booked")}
-            print(f"{len(view['leads'])} hot leads · à répondre {n['reply']} · appels {n['call']} · "
-                  f"relances {n['today']} · planifiés {n['scheduled']} · RDV {n['booked']}")
+        status.update(ok=True, message=f"{len(view['leads'])} hot leads")
+        blob = seal(view, password)
+        n = {b: sum(1 for l in view["leads"] if l["bucket"] == b) for b in ("reply", "call", "today", "scheduled", "booked")}
+        print(f"{len(view['leads'])} hot leads · à répondre {n['reply']} · appels {n['call']} · "
+              f"relances {n['today']} · planifiés {n['scheduled']} · RDV {n['booked']}")
 
-    # Le chiffré change à chaque run (sel et IV aléatoires) : sans ce garde-fou,
-    # chaque synchro ferait un commit et un redéploiement du site pour rien.
+    # Sans ce garde-fou, chaque synchro (2 h) ferait un commit et un redéploiement
+    # du site pour rien (et le chiffré, s'il y en a un, change à chaque run).
     if write and blob and OUT.exists() and unchanged(OUT.read_text("utf-8"), view, password):
         print("rien de nouveau depuis la dernière synchro : relance.html inchangé")
         return

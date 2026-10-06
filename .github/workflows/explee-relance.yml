@@ -9,11 +9,12 @@ name: Explee relance
 # sends an email and never writes a note — the page does that, from the browser,
 # when you click.
 #
-# Required secrets (Settings -> Secrets and variables -> Actions):
-#   EXPLEE_API_KEY     already there, shared with explee-followups.yml
-#   RELANCE_PASSWORD   the password that opens the page. The repository is
-#                      public, so the page's data is encrypted with it;
-#                      without it the page is published empty.
+# Secrets (Settings -> Secrets and variables -> Actions):
+#   EXPLEE_API_KEY     required, shared with explee-followups.yml
+#   RELANCE_PASSWORD   optional. Unset (the owner's choice, 6 Oct 2026): the page
+#                      is published in clear - noindex and linked from nowhere,
+#                      but the repo is public, so relance.html is readable on
+#                      GitHub too. Set it and the page is encrypted + locked.
 #
 # Explee refuses every call, free ones included, while the balance is negative.
 # The run then keeps the last published page and says so in the job summary.
@@ -54,7 +55,6 @@ jobs:
       - name: Check the secrets are there
         run: |
           [ -n "$EXPLEE_API_KEY" ] || { echo "::error::EXPLEE_API_KEY is not set."; exit 1; }
-          [ -n "$RELANCE_PASSWORD" ] || echo "::warning::RELANCE_PASSWORD is not set - the page will be published without data."
       - name: Build the page
         run: |
           set -o pipefail

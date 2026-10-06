@@ -3,9 +3,9 @@
 
 La page ne parle pas directement à Explee (rien ne garantit qu'Explee accepte les
 appels d'un navigateur). Elle déclenche .github/workflows/explee-relance-act.yml
-avec UN champ `payload` : la liste des actions, chiffrée avec le mot de passe de
-la page (même schéma que relance_page.py), parce que les entrées d'un workflow
-sont visibles par tous sur un dépôt public.
+avec UN champ `payload` : la liste des actions — chiffrée avec le mot de passe de
+la page si RELANCE_PASSWORD est défini (les entrées d'un workflow sont visibles
+sur un dépôt public), en clair sinon.
 
     {"v":1, "actions":[
         {"type":"reply", "key":"187263:p2", "text":"Bonjour Xavier…", "step":"email1", "expect_after":1},
@@ -33,7 +33,7 @@ import os
 import sys
 
 import relance as R
-from relance_page import decrypt
+from relance_page import unseal
 
 MAX_ACTIONS = 40
 MAX_TEXT = 5000
@@ -41,8 +41,9 @@ MAX_TEXT = 5000
 
 def decode(payload, password):
     try:
-        blob = json.loads(payload)
-        data = decrypt(blob, password)
+        data = json.loads(payload)
+        if not (isinstance(data, dict) and "actions" in data):
+            data = unseal(data, password)       # payload chiffré (page avec mot de passe)
     except Exception:
         sys.exit("payload illisible : mauvais mot de passe ou contenu tronqué")
     actions = data.get("actions") if isinstance(data, dict) else None
@@ -111,8 +112,8 @@ def main():
     password = os.environ.get("RELANCE_PASSWORD", "")
     key = os.environ.get("EXPLEE_API_KEY", "").strip()
     payload = os.environ.get("RELANCE_PAYLOAD", "")
-    if not (password and key and payload):
-        sys.exit("RELANCE_PASSWORD, EXPLEE_API_KEY et RELANCE_PAYLOAD sont requis")
+    if not (key and payload):
+        sys.exit("EXPLEE_API_KEY et RELANCE_PAYLOAD sont requis")
     actions = decode(payload, password)
     try:
         n = run(R.Explee(key), actions, dry=dry)
