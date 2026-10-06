@@ -71,6 +71,29 @@ class Cadence(unittest.TestCase):
         self.assertEqual(v["status"], "active")
         self.assertEqual(v["expect_after"], 1)
 
+    def test_english_campaign_gets_english_drafts_and_persona(self):
+        lead = {"person_id": "x", "campaign_id": 1, "email": "m@montdior.com", "first_name": "Mickey"}
+        msgs = [{"direction": "outbound", "ts": "2026-10-01T08:00:00Z", "body": "Hi Mickey,\n\nWorth a chat?\n\nPete"},
+                {"direction": "inbound", "ts": "2026-10-02T08:00:00Z", "body": "Hi Pete, sure."},
+                {"direction": "outbound", "ts": "2026-10-02T09:00:00Z", "body": "Great\n\nPete"}]
+        v = R.compute(lead, {"messages": msgs}, None, REF, camp={"brand": "LinkFinder AI", "language": "en",
+                                                                 "booking": "https://calendly.com/x/15min?month=2026-09"})
+        self.assertTrue(v["drafts"]["email1"].startswith("Hi Mickey,"))
+        self.assertTrue(v["drafts"]["email1"].endswith("Best,\nPete"))
+        self.assertIn("https://calendly.com/x/15min\n", v["drafts"]["email1"] + "\n")
+        self.assertIn("Pete from LinkFinder AI", v["drafts"]["call"])
+
+    def test_brand_is_the_project_not_prescient(self):
+        v = R.compute(*lead("Xavier"), None, REF, camp={"brand": "Spoctus"})
+        self.assertIn("Tom de Spoctus", v["drafts"]["call"])
+        self.assertNotIn("budget pub", v["drafts"]["call"])
+
+    def test_misreads_from_real_replies(self):
+        jm = "vous encourage à me recontacter sur mon portable après 17h30 ou lundi.\n📞06 82 11 37 76"
+        self.assertIsNone(R.detect_wait_until(jm, date(2026, 10, 2)))
+        self.assertTrue(R.wants_call(jm))
+        self.assertIsNone(R.detect_wait_until("ich sehe im ersten Mail kein Dokument", date(2026, 10, 2)))
+
     def test_lead_waiting_for_us_is_reply(self):
         v = R.compute(*lead("Jean-Marie"), None, REF)
         self.assertEqual(v["bucket"], "reply")
@@ -175,6 +198,7 @@ class FakeExplee:
     def projects(self): return self.d["projects"]
     def campaigns(self): return self.d["campaigns"]
     def analytics(self, cid): return {}
+    def definition(self, cid): return {"language": "fr", "offer": "Offre test."}
     def hot_leads(self): return [l for l, _ in self.d["leads"]]
     def thread(self, cid, pid): return self.threads[f"{cid}:{pid}"]
     def reply(self, cid, pid, text): self.sent.append((f"{cid}:{pid}", text))

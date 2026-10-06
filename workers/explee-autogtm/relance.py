@@ -54,6 +54,8 @@ STATE_FILE = HERE / "relance_state.json"
 # Cadence : (étape, jours ouvrés après votre réponse)
 CADENCE_WITH_PHONE = [("email1", 1), ("call", 2), ("email2", 4), ("email3", 8)]
 CADENCE_NO_PHONE = [("email1", 1), ("email2", 4), ("email3", 8)]
+# le lead a demandé qu'on l'appelle : l'appel passe en premier
+CADENCE_CALL_FIRST = [("call", 0), ("email1", 2), ("email2", 4), ("email3", 8)]
 STEP_LABEL = {"reply": "Répondre", "email1": "Email 1", "call": "Appel",
               "email2": "Email 2", "email3": "Email 3"}
 
@@ -115,6 +117,27 @@ def next_bday(d):
 JOURS = ["lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche"]
 MOIS = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août",
         "septembre", "octobre", "novembre", "décembre"]
+
+
+EN_DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+EN_MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September",
+             "October", "November", "December"]
+
+
+def en_day(d, ref=None):
+    ref = ref or now().date()
+    if d == ref + timedelta(days=1):
+        return f"tomorrow ({EN_DAYS[d.weekday()]})"
+    if (d - ref).days < 7:
+        return f"{EN_DAYS[d.weekday()]} the {d.day}{'th' if 10 < d.day % 100 < 14 else {1: 'st', 2: 'nd', 3: 'rd'}.get(d.day % 10, 'th')}"
+    return f"{EN_DAYS[d.weekday()]} {EN_MONTHS[d.month - 1]} {d.day}"
+
+
+def slot_text(d, ref, hour, lang):
+    if lang == "en":
+        h = f"{hour - 12}pm" if hour > 12 else (f"{hour}am" if hour < 12 else "noon")
+        return f"{en_day(d, ref)} at {h}"
+    return f"{fr_day(d, ref)} à {hour}h"
 
 
 def fr_day(d, ref=None):
@@ -206,7 +229,7 @@ def clean_cal_link(url):
 def detect_wait_until(text, ref):
     """Le lead demande d'attendre → date à partir de laquelle relancer."""
     t = strip_quoted(text).lower()
-    m = re.search(r"(?:après|apres|à partir du|a partir du|dès le|des le|pas avant le|pas avant)\s+(?:le\s+)?(\d{1,2})"
+    m = re.search(r"\b(?:après le|apres le|à partir du|a partir du|dès le|des le|pas avant le)\s+(\d{1,2})(?![\d:h])"
                   r"(?:\s+(" + "|".join(MOIS) + r"))?", t)
     if m:
         day = int(m.group(1))
@@ -229,7 +252,7 @@ def detect_wait_until(text, ref):
             return next_bday(d + timedelta(days=1 if starts_after else 0))
     if "semaine prochaine" in t:
         return ref + timedelta(days=7 - ref.weekday())
-    m = re.search(r"(?:en|début|debut|courant|fin)\s+(" + "|".join(MOIS) + r")", t)
+    m = re.search(r"\b(?:en|début|debut|courant|fin)\s+(" + "|".join(MOIS) + r")\b", t)
     if m:
         month = MOIS.index(m.group(1)) + 1
         year = ref.year + (1 if month < ref.month else 0)
@@ -238,6 +261,15 @@ def detect_wait_until(text, ref):
     if re.search(r"rentrée|rentree", t) and ref.month in (6, 7, 8):
         return next_bday(date(ref.year, 9, 1))
     return None
+
+
+CALL_ME = re.compile(r"(appel|rappel|recontact|joindre|t[ée]l[ée]phon|portable|mobile|\bcall\b|ring|anruf|telefon)", re.I)
+NO_CALL = re.compile(r"(pas d.appel|pas par t[ée]l[ée]phone|par (e-?mail|écrit) uniquement|no calls?)", re.I)
+
+
+def wants_call(text):
+    t = strip_quoted(text or "")
+    return bool(CALL_ME.search(t)) and not NO_CALL.search(t)
 
 
 def preferred_hour(text):
@@ -380,14 +412,18 @@ def from_lead(m, lead_email):
     return False
 
 
+SIGNOFF_WORDS = re.compile(r"^(Bien|Très|Cordialement|Belle|Bonne|Merci|Best|Kind|Thanks|Cheers|Regards)$", re.I)
+
+
 def sender_identity(outbound_texts):
     signoff, name = "Cordialement", "Tom"
     for t in reversed(outbound_texts):
         body = strip_quoted(t)
-        m = re.search(r"(Bien cordialement|Très cordialement|Cordialement|Belle journée|Bonne journée|"
-                      r"Bien à vous|À bientôt|Merci)\s*,?\s*\n+\s*([A-ZÉÈ][\w\-éèï]+)", body)
-        if m:
-            return m.group(1), m.group(2)
+        for m in re.finditer(r"(Bien cordialement|Très cordialement|Cordialement|Belle journée|Bonne journée|"
+                             r"Bien à vous|À bientôt|Best regards|Kind regards|Best|Thanks|Cheers|Merci)"
+                             r"\s*,?[ \t]*\n+\s*([A-ZÉÈ][\w\-éèï]+)\s*$", body, re.M):
+            if not SIGNOFF_WORDS.match(m.group(2)):
+                return m.group(1), m.group(2)
     return signoff, name
 
 # ═══════════════════════════════════════════════════════════ brouillons
@@ -403,40 +439,131 @@ def needs_review(text):
     questions = [q for q in re.split(r"(?<=\?)", body) if q.strip().endswith("?")]
     return any(not AVAILABILITY_Q.search(q) for q in questions)
 
+BRANDS = {"prescient.studio": "Prescient", "linkfinderai.com": "LinkFinder AI",
+          "linkfinderai-outbound.com": "LinkFinder AI", "leptitlogiciel.fr": "Le P'tit Logiciel",
+          "spoctus.com": "Spoctus", "eastrategies.fr": "EA Stratégies"}
+
+
+def brand_for(project):
+    project = str(project or "").lower()
+    if project in BRANDS:
+        return BRANDS[project]
+    stem = project.split(".")[0].replace("-", " ").strip()
+    return stem.title() if stem else ""
+
+
+def first_sentence(text, limit=180):
+    t = re.sub(r"\s+", " ", str(text or "")).strip()
+    m = re.match(r"(.+?[.!?])(\s|$)", t)
+    t = m.group(1) if m else t
+    return t if len(t) <= limit else t[:limit - 1].rsplit(" ", 1)[0] + "…"
+
+
+def cap(s):
+    return s[:1].upper() + s[1:] if s else s
+
+
 def drafts_for(ctx):
-    p, co, link = ctx["first_name"], ctx["company"], ctx["cal_link"]
+    return (drafts_en if ctx.get("lang") == "en" else drafts_fr)(ctx)
+
+
+def drafts_fr(ctx):
+    p, co, link, brand = ctx["first_name"], ctx["company"], ctx["cal_link"], ctx.get("brand") or ""
     hello = f"Bonjour {p}," if p else "Bonjour,"
     sig = f"{ctx['signoff']},\n{ctx['me']}"
     via = " sur Teams" if ctx["teams"] else ""
     s1, s2 = ctx["slot1"], ctx["slot2"]
     link_line = f"Sinon, un autre moment ici :\n{link}" if link else "Sinon, dites-moi ce qui vous arrange."
-    ref = f"vous m'aviez répondu par email au sujet de {co}" if co else "vous m'aviez répondu par email"
+    me = f"{ctx['me']}{(' de ' + brand) if brand else ''}"
+    ref = "vous m'aviez proposé de vous appeler" if ctx.get("asked_call") else (
+        f"vous m'aviez répondu par email au sujet de {co}" if co else "vous m'aviez répondu par email")
+    if brand == "Prescient":
+        value = (f"Pour que le quart d'heure vous serve vraiment, je regarde avant l'appel vos publicités en cours "
+                 f"et vos pages d'arrivée{(' chez ' + co) if co else ''}. Vous repartez avec la liste de ce qu'il faut "
+                 f"corriger, que l'on travaille ensemble ou non.")
+        objection = "Le quart d'heure sert à vous montrer où part votre budget pub. Vous gardez l'analyse, même sans suite."
+    else:
+        value = (f"Pour que l'échange vous serve vraiment, je le prépare à partir de ce que fait {co or 'votre entreprise'}. "
+                 f"Vous repartez avec des pistes concrètes, que l'on travaille ensemble ou non.")
+        objection = "Un quart d'heure, et vous repartez avec des pistes concrètes, même sans suite."
+    offer = f"\n\nRappel de l'offre : {ctx['offer']}" if ctx.get("offer") else ""
     return {
         "reply": (f"{hello}\n\nMerci, avec plaisir. Je vous propose {s1}{via}, cela vous irait ?\n\n"
                   f"Un simple « oui » suffit et je vous envoie l'invitation. {link_line}\n\n{sig}"),
         "email1": (f"{hello}\n\nJe vous propose de caler notre quart d'heure : {s1}{via}, cela vous irait ?\n\n"
                    f"Un simple « oui » suffit et je vous envoie l'invitation. {link_line}\n\n{sig}"),
-        "email2": (f"{hello}\n\nPour que le quart d'heure vous serve vraiment, je regarde avant l'appel vos "
-                   f"publicités en cours et vos pages d'arrivée{(' chez ' + co) if co else ''}. Vous repartez "
-                   f"avec la liste de ce qu'il faut corriger, que l'on travaille ensemble ou non.\n\n"
-                   f"{s2[0].upper() + s2[1:]}{via} ?" + (f" Ou ici :\n{link}" if link else "") + f"\n\n{sig}"),
+        "email2": (f"{hello}\n\n{value}\n\n{cap(s2)}{via} ?" + (f" Ou ici :\n{link}" if link else "") + f"\n\n{sig}"),
         "email3": (f"{hello}\n\nJe ne veux pas encombrer votre boîte. Si le moment n'est pas le bon, "
                    f"je ferme le dossier de mon côté.\n\nSi c'est toujours d'actualité, répondez simplement "
                    f"« oui » et je m'adapte à votre agenda." + (f"\n{link}" if link else "") + f"\n\n{sig}"),
-        "call": (f"« Bonjour {p or '…'}, {ctx['me']} de Prescient, {ref}. Je vous appelle trente secondes "
-                 f"pour caler le quart d'heure : {s1} ou {s2}, qu'est-ce qui vous arrange ? »\n\n"
+        "call": (f"« Bonjour {p or '…'}, {me}, {ref}. Je vous appelle trente secondes pour caler le quart "
+                 f"d'heure : {s1} ou {s2}, qu'est-ce qui vous arrange ? »\n\n"
                  f"S'il dit oui → envoyez l'invitation pendant l'appel.\n"
-                 f"S'il hésite → « Le quart d'heure sert à vous montrer où part votre budget pub. "
-                 f"Vous gardez l'analyse, même sans suite. »"),
-        "voicemail": (f"« Bonjour {p or ''}, {ctx['me']} de Prescient, suite à votre réponse par email. "
+                 f"S'il hésite → « {objection} »{offer}"),
+        "voicemail": (f"« Bonjour {p or ''}, {me}, suite à votre réponse par email. "
                       f"Je vous renvoie un créneau par écrit, vous n'aurez qu'à dire oui. Bonne journée. »"),
-        "sms": (f"Bonjour {p}, {ctx['me']} de Prescient (suite à votre email). {s1[0].upper() + s1[1:]}"
-                f"{via} pour notre quart d'heure, ça vous va ?" + (f" Sinon : {link}" if link else "")),
+        "sms": (f"Bonjour {p}, {me} (suite à votre email). {cap(s1)}{via} pour notre quart d'heure, "
+                f"ça vous va ?" + (f" Sinon : {link}" if link else "")),
+    }
+
+
+def drafts_en(ctx):
+    p, co, link, brand = ctx["first_name"], ctx["company"], ctx["cal_link"], ctx.get("brand") or ""
+    hello = f"Hi {p}," if p else "Hi,"
+    so = ctx["signoff"] if ctx["signoff"] in ("Best", "Thanks", "Cheers", "Best regards", "Kind regards") else "Best"
+    sig = f"{so},\n{ctx['me']}"
+    via = " on Teams" if ctx["teams"] else ""
+    s1, s2 = ctx["slot1"], ctx["slot2"]
+    link_line = f"Or pick any time here:\n{link}" if link else "Or tell me what works for you."
+    me = f"{ctx['me']}{(' from ' + brand) if brand else ''}"
+    ref = "you suggested I give you a call" if ctx.get("asked_call") else "you replied to my email"
+    offer = f"\n\nThe offer, as a reminder: {ctx['offer']}" if ctx.get("offer") else ""
+    return {
+        "reply": (f"{hello}\n\nThanks! Would {s1}{via} work for a quick 15 minutes?\n\n"
+                  f"A simple \"yes\" is enough and I'll send the invite. {link_line}\n\n{sig}"),
+        "email1": (f"{hello}\n\nShall we lock in our 15 minutes? {cap(s1)}{via} would work on my side.\n\n"
+                   f"A simple \"yes\" is enough and I'll send the invite. {link_line}\n\n{sig}"),
+        "email2": (f"{hello}\n\nTo make the 15 minutes worth it, I'll prepare from what {co or 'your team'} does, "
+                   f"so you leave with concrete next steps whether we work together or not.\n\n"
+                   f"Would {s2}{via} suit you?" + (f" Or here:\n{link}" if link else "") + f"\n\n{sig}"),
+        "email3": (f"{hello}\n\nI don't want to clutter your inbox. If now isn't the right time, I'll close the "
+                   f"loop on my side.\n\nIf it's still on your list, just reply \"yes\" and I'll work around "
+                   f"your schedule." + (f"\n{link}" if link else "") + f"\n\n{sig}"),
+        "call": (f"\"Hi {p or '…'}, it's {me}, {ref}. Thirty seconds to set up our 15 minutes: "
+                 f"{s1} or {s2}, which works best?\"\n\n"
+                 f"If yes → send the invite while on the phone.\n"
+                 f"If they hesitate → \"15 minutes, and you leave with concrete next steps, even if we stop there.\"{offer}"),
+        "voicemail": (f"\"Hi {p or ''}, it's {me}, following up on your email. I'll send you a time in writing, "
+                      f"you'll only need to say yes. Have a good day.\""),
+        "sms": (f"Hi {p}, {me} here (following your email). {cap(s1)}{via} for our 15 minutes, does that work?"
+                + (f" Otherwise: {link}" if link else "")),
     }
 
 # ═══════════════════════════════════════════════════════════ moteur de cadence
 
-def compute(lead, thread, state, ref_dt=None):
+def detect_lang(texts):
+    t = " ".join(texts)[:4000].lower()
+    fr = len(re.findall(r"\b(bonjour|merci|vous|votre|nous|avec|pour|cordialement)\b", t))
+    en = len(re.findall(r"\b(hi|hello|thanks|you|your|with|for|best|regards)\b", t))
+    return "en" if en > fr * 1.5 and en >= 3 else "fr"
+
+
+def persona(outbound_texts, inbound_texts, fallback):
+    """Le prénom sous lequel Explee a écrit à ce lead (chaque projet a son persona)."""
+    for t in inbound_texts:
+        m = re.search(r"^\s*(?:bonjour|hello|hi|hey|dear|salut|hallo)\s+([A-ZÉ][\w\-é]+)\s*[,.!]", strip_quoted(t), re.I | re.M)
+        if m and m.group(1).lower() not in ("monsieur", "madame", "mr", "mrs", "ms", "herr", "frau"):
+            return m.group(1)
+    for t in outbound_texts:
+        lines = [l.strip() for l in strip_quoted(t).splitlines() if l.strip()]
+        if lines and 1 <= len(lines[-1].split()) <= 2 and len(lines[-1]) <= 24 and lines[-1][0].isupper() \
+                and not lines[-1].endswith(("?", ".", "!", ",")) and not SIGNOFF_WORDS.match(lines[-1].split()[0]):
+            return lines[-1]
+    return fallback
+
+
+def compute(lead, thread, state, ref_dt=None, camp=None):
+    camp = camp or {}
     ref_dt = ref_dt or now()
     today = ref_dt.date()
     email = str(pick(lead, "email", "person.email"))
@@ -465,7 +592,15 @@ def compute(lead, thread, state, ref_dt=None):
     lead_texts = " \n".join(msg_text(m) for m in inbound)
     last_in_text = msg_text(last_in) if last_in else ""
     links = [clean_cal_link(u) for m in outbound for u in LINK_RX.findall(msg_text(m))]
-    signoff, me = sender_identity([msg_text(m) for m in outbound])
+    if not links and camp.get("booking"):
+        links = [clean_cal_link(camp["booking"])]
+    out_texts = [msg_text(m) for m in outbound]
+    signoff, me = sender_identity(out_texts)
+    if (signoff, me) == ("Cordialement", "Tom"):          # rien trouvé : persona du fil
+        me = persona(out_texts, [msg_text(m) for m in inbound], camp.get("sender") or "Tom")
+    lang = (str(camp.get("language") or "").lower()[:2] or detect_lang(out_texts)) if camp.get("language") \
+        else detect_lang(out_texts)
+    lang = "en" if lang == "en" else "fr"
 
     first = str(pick(lead, "first_name", "person.first_name"))
     last = str(pick(lead, "last_name", "person.last_name"))
@@ -488,7 +623,8 @@ def compute(lead, thread, state, ref_dt=None):
     teams = bool(re.search(r"\bteams\b", lead_texts, re.I))
 
     # ---- statut et prochaine action
-    cadence = CADENCE_WITH_PHONE if phones else CADENCE_NO_PHONE
+    asked_call = bool(phones) and wants_call(last_in_text)
+    cadence = CADENCE_CALL_FIRST if asked_call else (CADENCE_WITH_PHONE if phones else CADENCE_NO_PHONE)
     steps, nxt, status = [], None, "active"
     # date de notre réponse ; à défaut celle de sa réponse, puis « devenu hot »
     _d = (msg_date(after[0]) if after else None) or last_in_dt or parse_dt(pick(lead, "became_hot_at"))
@@ -553,8 +689,9 @@ def compute(lead, thread, state, ref_dt=None):
     d2 = add_bdays(d1, 1)
     h2 = 17 if hour != 17 else 11
     ctx = {"first_name": first, "company": company, "cal_link": links[-1] if links else "",
+           "lang": lang, "brand": camp.get("brand", ""), "offer": first_sentence(camp.get("offer", "")),
            "signoff": signoff, "me": me, "teams": teams,
-           "slot1": f"{fr_day(d1, today)} à {hour}h", "slot2": f"{fr_day(d2, today)} à {h2}h"}
+           "slot1": slot_text(d1, today, hour, lang), "slot2": slot_text(d2, today, h2, lang), "asked_call": asked_call}
 
     drafts = drafts_for(ctx)
     # le script d'appel est lu le jour de l'appel : créneaux comptés depuis ce jour-là
@@ -562,7 +699,7 @@ def compute(lead, thread, state, ref_dt=None):
     if call_step and date.fromisoformat(call_step["due"]) > today:
         cday = date.fromisoformat(call_step["due"])
         c1 = next_bday(max(cday + timedelta(days=1), wait_until or cday))
-        cctx = dict(ctx, slot1=f"{fr_day(c1, cday)} à {hour}h", slot2=f"{fr_day(add_bdays(c1, 1), cday)} à {h2}h")
+        cctx = dict(ctx, slot1=slot_text(c1, cday, hour, lang), slot2=slot_text(add_bdays(c1, 1), cday, h2, lang))
         drafts.update({k: v for k, v in drafts_for(cctx).items() if k in ("call", "voicemail", "sms")})
 
     last_msg = msgs[-1] if msgs else None
@@ -640,6 +777,12 @@ class Explee:
     def analytics(self, cid):
         try:
             return self.req("GET", f"/autogtm/campaigns/{cid}/analytics", {"period": "all"})
+        except ApiError:
+            return {}
+
+    def definition(self, cid):
+        try:
+            return self.req("GET", f"/autogtm/campaigns/{cid}")
         except ApiError:
             return {}
 
@@ -721,10 +864,11 @@ class Store:
             leads = self.api.hot_leads()
             with ThreadPoolExecutor(max_workers=8) as ex:
                 threads = list(ex.map(lambda l: self._thread(l), leads))
-                analytics = dict(zip([pick(c, "id") for c in campaigns],
-                                     ex.map(lambda c: self.api.analytics(pick(c, "id")), campaigns)))
+                ids = [pick(c, "id") for c in campaigns]
+                analytics = dict(zip(ids, ex.map(self.api.analytics, ids)))
+                definitions = dict(zip(ids, ex.map(self.api.definition, ids)))
             self.raw = {"projects": projects, "campaigns": campaigns, "analytics": analytics,
-                        "leads": list(zip(leads, threads))}
+                        "definitions": definitions, "leads": list(zip(leads, threads))}
         self.fetched_at = now().isoformat()
 
     def _thread(self, lead):
@@ -752,14 +896,20 @@ class Store:
         projects = {pick(p, "id"): p for p in self.raw["projects"]}
         camps = {pick(c, "id"): c for c in self.raw["campaigns"]}
         leads = []
+        defs = self.raw.get("definitions", {})
         for lead, thread in self.raw["leads"]:
-            v = compute(lead, thread, None)
-            v = compute(lead, thread, state.get(v["key"]))
-            c = camps.get(v["campaign_id"], {})
+            cid = pick(lead, "campaign_id", "campaign.id")
+            c = camps.get(cid, {})
+            project_id = pick(c, "project_id", default=pick(lead, "project_id"))
+            project = str(pick(projects.get(project_id, {}), "domain", "name", default=project_id or "Projet"))
+            d = defs.get(cid) or {}
+            camp = {"brand": brand_for(project), "offer": pick(d, "offer"), "language": pick(d, "language"),
+                    "booking": pick(d, "target_url", default=pick(c, "target_url"))}
+            v = compute(lead, thread, None, camp=camp)
+            v = compute(lead, thread, state.get(v["key"]), camp=camp)
             v["campaign"] = str(pick(c, "name", default=pick(lead, "campaign_name", default="Campagne")))
-            v["project_id"] = pick(c, "project_id", default=pick(lead, "project_id"))
-            v["project"] = str(pick(projects.get(v["project_id"], {}), "domain", "name",
-                                    default=v["project_id"] or "Projet"))
+            v["project_id"] = project_id
+            v["project"] = project
             v["inbox_url"] = (f"https://explee.com/app-auto-gtm/p/{v['project_id']}/inbox"
                               if v["project_id"] else "https://explee.com/app-auto-gtm")
             leads.append(v)
