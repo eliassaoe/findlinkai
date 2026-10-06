@@ -96,6 +96,16 @@ class Cadence(unittest.TestCase):
         t = "Je n'ai reçu aucun calendrier.\nCédric\n\nLe Sep 3, 2026, 11:17 +0200, Thomas <t@x.com>, a écrit :\n> 06 11 22 33 44"
         self.assertEqual(R.strip_quoted(t), "Je n'ai reçu aucun calendrier.\nCédric")
 
+    def test_call_script_recaps_before_proposing(self):
+        v = R.compute(*lead("Khaled"), None, REF, camp={"brand": "LinkFinder AI", "offer":
+            "Des rendez-vous commerciaux qualifiés, posés dans l'agenda du client, facturés à l'unité."})
+        call = v["drafts"]["call"]
+        self.assertIn("chez LinkFinder AI, on apporte des rendez-vous", call)
+        self.assertLess(call.index("RESITUER"), call.index("PROPOSER LE CRÉNEAU"))
+        v = R.compute(*lead("Khaled"), None, REF, camp={"brand": "Prescient", "offer":
+            "Prescient (agence fondée par 2 ex-Googlers) pilote l'acquisition : Google Ads, Meta Ads."})
+        self.assertIn("Prescient, agence fondée par deux ex-Googlers, pilote l'acquisition.", v["drafts"]["call"])
+
     def test_misreads_from_real_replies(self):
         jm = "vous encourage à me recontacter sur mon portable après 17h30 ou lundi.\n📞06 82 11 37 76"
         self.assertIsNone(R.detect_wait_until(jm, date(2026, 10, 2)))
@@ -272,6 +282,13 @@ class Act(unittest.TestCase):
         with self.assertRaises(SystemExit):
             self.A.decode(json.dumps(blob), "wrong")
 
+
+class ReplyField(unittest.TestCase):
+    def test_reply_sends_body_text_first(self):
+        api = R.Explee("k"); calls = []
+        api.req = lambda method, path, params=None, body=None, retries=4: calls.append(body) or {}
+        api.reply(1, "p", "hello")
+        self.assertEqual(calls, [{"body_text": "hello"}])   # {"message": …} est refusé en 422 par Explee
 
 if __name__ == "__main__":
     unittest.main(verbosity=1)

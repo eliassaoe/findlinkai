@@ -460,6 +460,41 @@ def first_sentence(text, limit=180):
     return t if len(t) <= limit else t[:limit - 1].rsplit(" ", 1)[0] + "…"
 
 
+def pitch_from_offer(offer):
+    """L'offre de la campagne, rendue prononçable : parenthèses en incises, liste
+    d'outils après « : » retirée, « 2 » en lettres, une ou deux phrases au plus."""
+    t = re.sub(r"\s+", " ", str(offer or "")).strip()
+    if not t:
+        return ""
+    t = re.sub(r"\s*\(([^)]{3,80})\)", r", \1,", t)
+    t = re.sub(r"\b2 ex-", "deux ex-", t)
+    sentences = re.findall(r"[^.!?]+[.!?]?", t)
+    t = " ".join(x.strip() for x in sentences[:2])
+    head, sep, tail = t.partition(":")
+    if sep and len(head) >= 40:
+        t = head
+    t = t.strip().rstrip(" ,;—-…").rstrip(".")
+    if len(t) > 260:
+        t = t[:260].rsplit(" ", 1)[0]
+    return t
+
+
+def spoken_pitch(pitch, brand, lang):
+    """Fait de l'offre une phrase qu'on peut dire : « chez X, on apporte des… »."""
+    if not pitch:
+        return ""
+    low = pitch[:1].lower() + pitch[1:]
+    if brand and pitch.lower().startswith(brand.lower()[:5]):
+        return pitch
+    if lang == "en":
+        return f"at {brand}, we offer {low}" if brand else pitch
+    if re.match(r"(?i)(nous|on)\b", pitch):
+        return f"chez {brand}, {low}" if brand else pitch
+    if re.match(r"(?i)(des|un|une|le|la|les|du|l')\b", pitch):
+        return f"chez {brand}, on apporte {low}" if brand else pitch
+    return f"chez {brand} : {low}" if brand else pitch
+
+
 def cap(s):
     return s[:1].upper() + s[1:] if s else s
 
@@ -476,18 +511,18 @@ def drafts_fr(ctx):
     s1, s2 = ctx["slot1"], ctx["slot2"]
     link_line = f"Sinon, un autre moment ici :\n{link}" if link else "Sinon, dites-moi ce qui vous arrange."
     me = f"{ctx['me']}{(' de ' + brand) if brand else ''}"
-    ref = "vous m'aviez proposé de vous appeler" if ctx.get("asked_call") else (
-        f"vous m'aviez répondu par email au sujet de {co}" if co else "vous m'aviez répondu par email")
     if brand == "Prescient":
         value = (f"Pour que le quart d'heure vous serve vraiment, je regarde avant l'appel vos publicités en cours "
                  f"et vos pages d'arrivée{(' chez ' + co) if co else ''}. Vous repartez avec la liste de ce qu'il faut "
                  f"corriger, que l'on travaille ensemble ou non.")
-        objection = "Le quart d'heure sert à vous montrer où part votre budget pub. Vous gardez l'analyse, même sans suite."
+        why = ("Concrètement, en un quart d'heure on regarde où part votre budget pub et ce qu'il faudrait corriger. "
+               "Vous gardez l'analyse, même si on en reste là.")
     else:
         value = (f"Pour que l'échange vous serve vraiment, je le prépare à partir de ce que fait {co or 'votre entreprise'}. "
                  f"Vous repartez avec des pistes concrètes, que l'on travaille ensemble ou non.")
-        objection = "Un quart d'heure, et vous repartez avec des pistes concrètes, même sans suite."
-    offer = f"\n\nRappel de l'offre : {ctx['offer']}" if ctx.get("offer") else ""
+        why = (f"L'idée, c'est de regarder ensemble votre situation{(' chez ' + co) if co else ''} et de voir si "
+               f"ça peut vous être utile. Vous repartez avec des pistes concrètes, même si on en reste là.")
+    pitch = spoken_pitch(pitch_from_offer(ctx.get("offer")), brand, "fr")
     return {
         "reply": (f"{hello}\n\nMerci, avec plaisir. Je vous propose {s1}{via}, cela vous irait ?\n\n"
                   f"Un simple « oui » suffit et je vous envoie l'invitation. {link_line}\n\n{sig}"),
@@ -497,12 +532,25 @@ def drafts_fr(ctx):
         "email3": (f"{hello}\n\nJe ne veux pas encombrer votre boîte. Si le moment n'est pas le bon, "
                    f"je ferme le dossier de mon côté.\n\nSi c'est toujours d'actualité, répondez simplement "
                    f"« oui » et je m'adapte à votre agenda." + (f"\n{link}" if link else "") + f"\n\n{sig}"),
-        "call": (f"« Bonjour {p or '…'}, {me}, {ref}. Je vous appelle trente secondes pour caler le quart "
-                 f"d'heure : {s1} ou {s2}, qu'est-ce qui vous arrange ? »\n\n"
-                 f"S'il dit oui → envoyez l'invitation pendant l'appel.\n"
-                 f"S'il hésite → « {objection} »{offer}"),
-        "voicemail": (f"« Bonjour {p or ''}, {me}, suite à votre réponse par email. "
-                      f"Je vous renvoie un créneau par écrit, vous n'aurez qu'à dire oui. Bonne journée. »"),
+        "call": (f"OUVERTURE\n"
+                 f"« Bonjour {p or '…'}, c'est {me}. "
+                 + ("Vous m'aviez proposé de vous appeler, c'est un bon moment ? »" if ctx.get("asked_call") else
+                    f"Vous m'aviez répondu par email il y a quelques jours, je me permets de vous appeler. "
+                    f"Vous avez deux minutes ? »")
+                 + f"\n\nRESITUER (en quelques phrases)\n"
+                 f"« Pour resituer rapidement : {pitch or (brand + ' accompagne des entreprises comme ' + (co or 'la vôtre'))}. "
+                 f"{why} »\n\n"
+                 f"PROPOSER LE CRÉNEAU\n"
+                 f"« Le plus simple, c'est qu'on se prenne un quart d'heure pour en parler{via}. "
+                 f"Je peux vous proposer {s1} ou {s2}, qu'est-ce qui vous arrange le mieux ? »\n\n"
+                 f"S'il dit oui → envoyez l'invitation pendant l'appel"
+                 + (f" ({link})" if link else "") + ".\n"
+                 f"S'il veut réfléchir → « Bien sûr. Je vous envoie un mail avec deux créneaux et le lien, "
+                 f"vous choisirez quand ça vous arrange. »\n"
+                 f"S'il n'est pas intéressé → remerciez, puis cliquez « Pas intéressé »."),
+        "voicemail": (f"« Bonjour {p or ''}, c'est {me}, suite à votre réponse par email. "
+                      + (f"Pour resituer : {pitch}. " if pitch else "")
+                      + "Je vous renvoie deux créneaux par écrit, vous n'aurez qu'à choisir. Bonne journée. »"),
         "sms": (f"Bonjour {p}, {me} (suite à votre email). {cap(s1)}{via} pour notre quart d'heure, "
                 f"ça vous va ?" + (f" Sinon : {link}" if link else "")),
     }
@@ -517,8 +565,7 @@ def drafts_en(ctx):
     s1, s2 = ctx["slot1"], ctx["slot2"]
     link_line = f"Or pick any time here:\n{link}" if link else "Or tell me what works for you."
     me = f"{ctx['me']}{(' from ' + brand) if brand else ''}"
-    ref = "you suggested I give you a call" if ctx.get("asked_call") else "you replied to my email"
-    offer = f"\n\nThe offer, as a reminder: {ctx['offer']}" if ctx.get("offer") else ""
+    pitch = spoken_pitch(pitch_from_offer(ctx.get("offer")), brand, "en")
     return {
         "reply": (f"{hello}\n\nThanks! Would {s1}{via} work for a quick 15 minutes?\n\n"
                   f"A simple \"yes\" is enough and I'll send the invite. {link_line}\n\n{sig}"),
@@ -530,12 +577,24 @@ def drafts_en(ctx):
         "email3": (f"{hello}\n\nI don't want to clutter your inbox. If now isn't the right time, I'll close the "
                    f"loop on my side.\n\nIf it's still on your list, just reply \"yes\" and I'll work around "
                    f"your schedule." + (f"\n{link}" if link else "") + f"\n\n{sig}"),
-        "call": (f"\"Hi {p or '…'}, it's {me}, {ref}. Thirty seconds to set up our 15 minutes: "
-                 f"{s1} or {s2}, which works best?\"\n\n"
-                 f"If yes → send the invite while on the phone.\n"
-                 f"If they hesitate → \"15 minutes, and you leave with concrete next steps, even if we stop there.\"{offer}"),
-        "voicemail": (f"\"Hi {p or ''}, it's {me}, following up on your email. I'll send you a time in writing, "
-                      f"you'll only need to say yes. Have a good day.\""),
+        "call": (f"OPENING\n"
+                 f"\"Hi {p or '…'}, it's {me}. "
+                 + ("You suggested I give you a call, is now a good time?\"" if ctx.get("asked_call") else
+                    "You replied to my email a few days ago, so I thought I'd give you a quick call. "
+                    "Do you have two minutes?\"")
+                 + f"\n\nRECAP (a few sentences)\n"
+                 f"\"Quick recap: {pitch or (brand + ' works with companies like ' + (co or 'yours'))}. "
+                 f"The idea is to look at where {co or 'you'} stand{'s' if co else ''} today and see if it can help. "
+                 f"You leave with concrete next steps, even if we stop there.\"\n\n"
+                 f"PROPOSE THE CALL\n"
+                 f"\"The easiest is to take 15 minutes to go through it{via}. "
+                 f"Would {s1} or {s2} work better for you?\"\n\n"
+                 f"If yes → send the invite while on the phone" + (f" ({link})" if link else "") + ".\n"
+                 f"If they want to think → \"Of course. I'll email you two times and the link, pick whatever suits you.\"\n"
+                 f"If not interested → thank them, then click « Pas intéressé »."),
+        "voicemail": (f"\"Hi {p or ''}, it's {me}, following up on your email. "
+                      + (f"Quick recap: {pitch}. " if pitch else "")
+                      + "I'll email you two times, you'll only need to pick one. Have a good day.\""),
         "sms": (f"Hi {p}, {me} here (following your email). {cap(s1)}{via} for our 15 minutes, does that work?"
                 + (f" Otherwise: {link}" if link else "")),
     }
@@ -698,7 +757,7 @@ def compute(lead, thread, state, ref_dt=None, camp=None):
     d2 = add_bdays(d1, 1)
     h2 = 17 if hour != 17 else 11
     ctx = {"first_name": first, "company": company, "cal_link": links[-1] if links else "",
-           "lang": lang, "brand": camp.get("brand", ""), "offer": first_sentence(camp.get("offer", "")),
+           "lang": lang, "brand": camp.get("brand", ""), "offer": re.sub(r"\s+", " ", str(camp.get("offer") or "")).strip()[:600],
            "signoff": signoff, "me": me, "teams": teams,
            "slot1": slot_text(d1, today, hour, lang), "slot2": slot_text(d2, today, h2, lang), "asked_call": asked_call}
 
@@ -812,7 +871,8 @@ class Explee:
     def reply(self, cid, pid, text):
         path = f"/autogtm/campaigns/{cid}/inbox/{urllib.parse.quote(str(pid))}/reply"
         last = None
-        for field in ("message", "text", "body"):
+        # « body_text » : vu en production par explee.py le 6 sept. 2026 ({"message": …} → 422)
+        for field in ("body_text", "message", "text", "body"):
             try:
                 return self.req("POST", path, body={field: text})
             except ApiError as e:
