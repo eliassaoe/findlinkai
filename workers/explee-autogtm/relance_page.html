@@ -199,12 +199,12 @@ input[type=date]{padding:6px 8px;border:1px solid var(--line);border-radius:8px;
 const PAGE = /*__RELANCE_BLOB__*/null;
 const REPO_ACTIONS = 'https://github.com/eliassaoe/findlinkai/actions/workflows/explee-relance.yml';
 const API = 'https://api.explee.com/public/api/v1';
-const LS = {pw:'relance.pw', key:'relance.explee_key', done:'relance.done', cors:'relance.cors'};
+const LS = {pw:'relance.pw', key:'relance.explee_key', gh:'relance.gh_token', done:'relance.done', cors:'relance.cors'};
 const store = {
   get(k){ try{ return localStorage.getItem(k); }catch{ return null; } },
   set(k,v){ try{ v==null?localStorage.removeItem(k):localStorage.setItem(k,v); }catch{} },
 };
-const S = {data:null, scope:{type:'all'}, tab:'today', q:'', open:null, tpl:null, done:{}};
+const S = {data:null, pw:null, scope:{type:'all'}, tab:'today', q:'', open:null, tpl:null, done:{}};
 const BUCKET = {
   reply:{l:'À répondre',c:'var(--violet)'}, call:{l:'À appeler',c:'var(--blue)'}, today:{l:'À relancer',c:'var(--accent)'},
   scheduled:{l:'Planifié',c:'var(--ink3)'}, booked:{l:'RDV calé',c:'var(--green)'}, finished:{l:'Séquence finie',c:'var(--amber)'},
@@ -252,7 +252,7 @@ function lockScreen(msg){
     catch{ $('#perr').textContent='Mot de passe incorrect.'; $('#go').disabled=false; $('#go').textContent='Ouvrir'; } };
 }
 async function open_(pw){
-  S.data = await decrypt(PAGE.blob, pw);
+  S.data = await decrypt(PAGE.blob, pw); S.pw = pw;
   try{ S.done = JSON.parse(store.get(LS.done)||'{}'); }catch{ S.done={}; }
   // une action faite ici avant la dernière synchro est déjà dans les données
   for(const k of Object.keys(S.done)) if(!S.done[k].at || new Date(S.done[k].at) < new Date(S.data.generated_at)) delete S.done[k];
@@ -287,19 +287,97 @@ async function apiAppendNote(l, line){
 }
 function canApi(){ return !!ekey() && store.get(LS.cors)!=='blocked'; }
 
-/* Enregistre une action : note Explee si possible, sinon copie + inbox. */
+/* ───────── envoi en un clic : GitHub Actions ─────────
+   La page déclenche explee-relance-act.yml avec les actions chiffrées par le mot de
+   passe de la page. L'Action, qui détient la clé Explee, envoie et réécrit la note. */
+const GH_REPO = 'eliassaoe/findlinkai', GH_WF = 'explee-relance-act.yml';
+const ghToken = () => store.get(LS.gh);
+const mode = () => ghToken() ? 'github' : (canApi() ? 'explee' : 'copy');
+async function encryptFor(obj){
+  const salt=crypto.getRandomValues(new Uint8Array(16)), iv=crypto.getRandomValues(new Uint8Array(12)), iter=310000;
+  const base=await crypto.subtle.importKey('raw', new TextEncoder().encode(S.pw), 'PBKDF2', false, ['deriveKey']);
+  const key=await crypto.subtle.deriveKey({name:'PBKDF2', salt, iterations:iter, hash:'SHA-256'}, base, {name:'AES-GCM', length:256}, false, ['encrypt']);
+  const ct=new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM', iv}, key, new TextEncoder().encode(JSON.stringify(obj))));
+  const b=u=>btoa(String.fromCharCode(...u));
+  return JSON.stringify({v:1, kdf:'PBKDF2-SHA256', iter, salt:b(salt), iv:b(iv), ct:b(ct)});
+}
+async function gh(method, path, body){
+  const r = await fetch('https://api.github.com'+path,{method,headers:{'Authorization':'Bearer '+ghToken(),'Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28',...(body?{'Content-Type':'application/json'}:{})},body:body?JSON.stringify(body):undefined});
+  if(!r.ok){ const t=await r.text(); throw new Error(r.status===401?'Jeton GitHub refusé (expiré ?)':r.status===403||r.status===404?'Le jeton GitHub n\'a pas le droit Actions : écriture sur findlinkai':`GitHub ${r.status} : ${t.slice(0,140)}`); }
+  return r.status===204 ? {} : r.json();
+}
+const Q = {items:[], timer:null};
+const UNDO_MS = 6000;
+function enqueue(l, action, label){
+  Q.items = Q.items.filter(b=>!(b.l.key===l.key && b.action.type===action.type));
+  Q.items.push({l, action, label});
+  S.done[l.key] = {at:new Date().toISOString(), text:label, pending:true, queued:true};
+  store.set(LS.done, JSON.stringify(S.done)); render(); if(S.open) openLead(S.open,true);
+  clearTimeout(Q.timer); Q.timer = setTimeout(flush, UNDO_MS);   // délai pour annuler, et regroupe les clics
+}
+function unqueue(key){
+  Q.items = Q.items.filter(b=>b.l.key!==key); delete S.done[key];
+  store.set(LS.done, JSON.stringify(S.done)); render(); if(S.open) openLead(S.open,true); toast('Annulé');
+}
+async function flush(){
+  const batch = Q.items.splice(0); if(!batch.length) return;
+  if(mode()!=='github') return flushDirect(batch);
+  const t0 = Date.now();
+  for(const b of batch) S.done[b.l.key] = {at:new Date().toISOString(), text:b.label+' · envoi…', pending:true};
+  render();
+  try{
+    const payload = await encryptFor({v:1, actions: batch.map(b=>({key:b.l.key, ...b.action}))});
+    await gh('POST', `/repos/${GH_REPO}/actions/workflows/${GH_WF}/dispatches`, {ref:'main', inputs:{payload}});
+    for(const b of batch) S.done[b.l.key] = {at:new Date().toISOString(), text:b.label+' · en cours', pending:true};
+    store.set(LS.done, JSON.stringify(S.done)); render();
+    toast(`${batch.length} action(s) lancée(s) · résultat dans ~1 min`);
+    watch(t0, batch);
+  }catch(e){
+    for(const b of batch) delete S.done[b.l.key];
+    store.set(LS.done, JSON.stringify(S.done)); render();
+    toast(e.message, true);
+  }
+}
+async function watch(t0, batch){
+  for(let i=0;i<30;i++){
+    await new Promise(r=>setTimeout(r, 8000));
+    try{
+      const j = await gh('GET', `/repos/${GH_REPO}/actions/workflows/${GH_WF}/runs?event=workflow_dispatch&per_page=5`);
+      const run = (j.workflow_runs||[]).find(r=>new Date(r.created_at).getTime() >= t0-15000);
+      if(!run || run.status!=='completed') continue;
+      const ok = run.conclusion==='success';
+      for(const b of batch) S.done[b.l.key] = {at:new Date().toISOString(), text: b.label+(ok?' ✓':' · échec'), failed:!ok, run:run.html_url};
+      store.set(LS.done, JSON.stringify(S.done)); render(); if(S.open) openLead(S.open,true);
+      toast(ok?`${batch.length} action(s) faite(s) ✓`:'L\'envoi a échoué : voir le détail sur GitHub', !ok);
+      return;
+    }catch{ }
+  }
+}
+
+async function flushDirect(batch){
+  let ok=0;
+  for(const b of batch){
+    try{
+      if(b.action.type==='reply'){ await apiReply(b.l, b.action.text); try{ await apiAppendNote(b.l, `${stamp()} Relance · Email envoyé : ${STEP[b.action.step]}`); }catch{} }
+      else await apiAppendNote(b.l, b.action.line);
+      S.done[b.l.key] = {at:new Date().toISOString(), text:b.label+' ✓'}; ok++;
+    }catch(e){
+      delete S.done[b.l.key];
+      if(e.cors){ store.set(LS.cors,'blocked'); toast('Explee refuse les appels du navigateur : activez l\'envoi via GitHub', true); settings(); break; }
+      toast(e.message, true);
+    }
+  }
+  store.set(LS.done, JSON.stringify(S.done)); render(); if(S.open) openLead(S.open,true);
+  if(ok) toast(`${ok} action(s) faite(s) ✓`);
+}
+
+/* Enregistre une action dans la note du lead : GitHub, sinon Explee direct, sinon copie + inbox. */
 async function record(l, entry, opts={}){
   const line = `${stamp()} Relance · ${entry}`;
-  let viaApi = false;
-  if(canApi()){
-    try{ await apiAppendNote(l, line); viaApi = true; }
-    catch(e){ if(!e.cors){ toast(e.message,true); return false; } }
-  }
-  if(!viaApi){
-    await copyText(line, true);
-    window.open(l.inbox_url,'_blank','noopener');
-    toast('Ligne copiée : collez-la dans la note du lead (inbox Explee)');
-  } else toast(opts.ok || 'Enregistré dans la note Explee ✓');
+  if(mode()!=='copy'){ enqueue(l, {type:'note', line}, entry); return true; }
+  await copyText(line, true);
+  window.open(l.inbox_url,'_blank','noopener');
+  toast('Ligne copiée : collez-la dans la note du lead (inbox Explee)');
   markDone(l, entry);
   return true;
 }
@@ -308,8 +386,30 @@ function markDone(l, entry){
   store.set(LS.done, JSON.stringify(S.done)); render(); if(S.open) openLead(S.open, true);
 }
 
+/* Email prêt à partir pour ce lead (étape du jour), ou null. */
+function sendable(l){
+  if(S.done[l.key]) return null;
+  if(l.bucket==='reply') return l.review ? null : {step:'reply', text:l.drafts.reply};
+  if(l.bucket==='today' && l.next && /^email\d$/.test(l.next.key)) return {step:l.next.key, text:l.drafts[l.next.key]};
+  return null;
+}
+const STEP = {reply:'Réponse', email1:'Email 1', email2:'Email 2', email3:'Email 3'};
+async function sendNow(l, step, text){
+  if(mode()!=='copy'){ enqueue(l, {type:'reply', text, step, expect_after:l.expect_after}, STEP[step]+' envoyé'); return; }
+  await copyText(text, true); window.open(l.inbox_url,'_blank','noopener');
+  toast('Texte copié : collez-le en réponse dans le fil'); markDone(l, STEP[step]+' préparé');
+}
+async function sendAll(list){
+  if(mode()!=='github' && mode()!=='explee'){ settings(); return toast('Activez l\'envoi en un clic d\'abord', true); }
+  const names = list.map(x=>`• ${x.l.name} — ${STEP[x.s.step]}`).join('\n');
+  if(!confirm(`Envoyer ${list.length} email(s) maintenant ?\n\n${names}`)) return;
+  for(const x of list) await sendNow(x.l, x.s.step, x.s.text);
+  toast(`${list.length} email(s) en file · annulable ${UNDO_MS/1000} s`);
+}
+
 /* ───────── coque ───────── */
 function shell(){
+  const m = mode();
   $('#root').innerHTML = `<div class="app">
   <aside class="side">
     <div class="brand"><div class="logo">R</div><div><b>Relance</b><small>Hot leads Explee</small></div></div>
@@ -321,7 +421,7 @@ function shell(){
       <h1 id="title"></h1>
       <label class="search"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="q" placeholder="Rechercher un lead…"></label>
       <button class="btn" id="csv">⤓ CSV</button>
-      <button class="btn" id="gear" title="Envoyer depuis la page"><span class="conn ${ekey()?'on':''}"><i></i></span> Explee</button>
+      <button class="btn" id="gear" title="Envoi en un clic"><span class="conn ${m!=='copy'?'on':''}"><i></i></span> ${m==='copy'?'Activer l\'envoi':'Envoi actif'}</button>
     </div>
     <div class="scroll" id="content"></div>
   </main></div>`;
@@ -329,19 +429,31 @@ function shell(){
   $('#csv').onclick=exportCsv; $('#gear').onclick=settings;
 }
 function settings(){
-  const m=$('#settings'); const k=ekey(); const cors=store.get(LS.cors);
-  m.innerHTML = `<div class="lockcard"><h1 style="margin-top:0">Envoyer depuis la page</h1>
-    <p>Avec votre clé API Explee, les emails partent directement d'ici et les actions s'écrivent dans la note du lead. La clé reste dans ce navigateur, elle n'est envoyée qu'à api.explee.com.</p>
-    ${cors==='blocked'?'<div class="warn">Explee a refusé l\'appel depuis le navigateur (CORS). La page bascule sur « copier + ouvrir l\'inbox ».</div>':''}
-    <input class="field" type="password" id="ek" placeholder="Clé API Explee" value="${k?'••••••••••••':''}">
-    <div class="actions"><button class="btn primary" id="eks">Enregistrer</button>${k?'<button class="btn" id="ekt">Tester</button><button class="btn ghost" id="ekd">Retirer la clé</button>':''}<button class="btn ghost" id="ekc">Fermer</button></div>
-    <p class="note" style="margin-top:12px">Sans clé, tout marche quand même : la page copie le texte et ouvre l'inbox Explee.</p>
-    <p class="note"><a href="#" id="lockme">Verrouiller la page sur cet appareil</a></p></div>`;
+  const m=$('#settings'); const t=ghToken(); const k=ekey(); const cors=store.get(LS.cors);
+  const newTok = 'https://github.com/settings/personal-access-tokens/new?name=Relance%20linkfinderai&description=Bouton%20Envoyer%20de%20%2Frelance&target_name=eliassaoe&expires_in=366&actions=write';
+  m.innerHTML = `<div class="lockcard"><h1 style="margin-top:0">Envoi en un clic</h1>
+    <p>Les emails partent depuis GitHub, qui détient déjà votre clé Explee. Il faut un jeton GitHub, une seule fois, gardé dans ce navigateur.</p>
+    <ol class="note" style="padding-left:18px;margin:0 0 12px;line-height:1.7">
+      <li><a href="${newTok}" target="_blank" rel="noopener">Créer le jeton ↗</a></li>
+      <li>Repository access → <b>Only select repositories</b> → <b>findlinkai</b></li>
+      <li>Permissions → <b>Actions : Read and write</b> → Generate token</li>
+      <li>Collez-le ici</li></ol>
+    <input class="field" type="password" id="ght" placeholder="github_pat_…" value="${t?'••••••••••••':''}">
+    <div class="actions"><button class="btn primary" id="ghs">Enregistrer</button>${t?'<button class="btn" id="ght2">Tester</button><button class="btn ghost" id="ghd">Retirer</button>':''}<button class="btn ghost" id="ekc">Fermer</button></div>
+    <details style="margin-top:16px"><summary class="note" style="cursor:pointer">Avancé : envoyer directement par l'API Explee</summary>
+      ${cors==='blocked'?'<div class="warn" style="margin-top:8px">Explee a refusé l\'appel depuis le navigateur (CORS) : utilisez le jeton GitHub.</div>':''}
+      <input class="field" style="margin-top:8px" type="password" id="ek" placeholder="Clé API Explee" value="${k?'••••••••••••':''}">
+      <div class="actions"><button class="btn sm" id="eks">Enregistrer la clé</button>${k?'<button class="btn sm" id="ekt">Tester</button><button class="btn sm ghost" id="ekd">Retirer</button>':''}</div></details>
+    <p class="note" style="margin-top:14px">Sans rien activer, tout marche quand même : la page copie le texte et ouvre l'inbox Explee. · <a href="#" id="lockme">Verrouiller la page</a></p></div>`;
   m.classList.add('on');
+  const close=()=>{ m.classList.remove('on'); shell(); render(); };
   $('#ekc').onclick=()=>m.classList.remove('on');
-  $('#eks').onclick=()=>{ const v=$('#ek').value.trim(); if(v && !v.startsWith('•')){ store.set(LS.key,v); store.set(LS.cors,null); } m.classList.remove('on'); shell(); render(); toast('Clé enregistrée sur cet appareil'); };
-  if($('#ekd')) $('#ekd').onclick=()=>{ store.set(LS.key,null); m.classList.remove('on'); shell(); render(); };
-  if($('#ekt')) $('#ekt').onclick=async()=>{ try{ const b=await api('GET','/billing/balance'); toast(`Connecté ✓ · solde ${b.remain} crédits`, (b.remain||0)<=0); }catch(e){ toast(e.message,true); } };
+  $('#ghs').onclick=()=>{ const v=$('#ght').value.trim(); if(v && !v.startsWith('•')) store.set(LS.gh,v); close(); toast('Envoi en un clic activé sur cet appareil'); };
+  if($('#ghd')) $('#ghd').onclick=()=>{ store.set(LS.gh,null); close(); };
+  if($('#ght2')) $('#ght2').onclick=async()=>{ try{ await gh('GET',`/repos/${GH_REPO}/actions/workflows/${GH_WF}`); toast('Jeton GitHub OK ✓'); }catch(e){ toast(e.message,true); } };
+  $('#eks').onclick=()=>{ const v=$('#ek').value.trim(); if(v && !v.startsWith('•')){ store.set(LS.key,v); store.set(LS.cors,null); } close(); };
+  if($('#ekd')) $('#ekd').onclick=()=>{ store.set(LS.key,null); close(); };
+  if($('#ekt')) $('#ekt').onclick=async()=>{ try{ const b=await api('GET','/billing/balance'); toast(`Explee connecté ✓ · solde ${b.remain} crédits`, (b.remain||0)<=0); }catch(e){ toast(e.message,true); } };
   $('#lockme').onclick=e=>{ e.preventDefault(); store.set(LS.pw,null); location.reload(); };
 }
 
@@ -404,15 +516,18 @@ function renderMain(){
     h += `<div class="campstats"><div>Emails envoyés<b>${f(c.sent)}</b></div><div>Réponses<b>${f(c.replies)}</b></div><div>Taux de réponse<b>${f(rr,' %')}</b></div><div>Hot leads<b>${f(c.hot ?? leads.length)}</b></div><div>Dépense<b>${f(c.spend,' $')}</b></div><div>Coût / hot lead<b>${f(c.cpl ?? (c.spend&&leads.length? c.spend/leads.length:null),' $')}</b></div><div>Statut<b>${esc(c.status||'—')}</b></div></div>`;
   }
   const todo = actions.filter(l=>!S.done[l.key]).length;
-  const tabs=[['today','Actions du jour',todo],['board','Pipeline',null],['all','Tous',leads.length]];
+  const calls = leads.filter(l=>l.bucket==='call');
+  const tabs=[['today','Actions du jour',todo],['calls','Appels',calls.filter(l=>!S.done[l.key]).length],['board','Pipeline',null],['all','Tous',leads.length]];
   h += `<div class="tabs">${tabs.map(([id,l,c])=>`<button class="tab ${S.tab===id?'on':''}" data-tab="${id}">${l}${c!=null?`<span class="cnt">${c}</span>`:''}</button>`).join('')}</div>`;
   if(S.tab==='board') h += board(leads);
-  else if(S.tab==='today') h += actions.length ? groups(actions,['reply','call','today']) : `<div class="list"><div class="empty">Rien à faire aujourd'hui 🎉<br><span class="sub">${n('scheduled')} relance(s) planifiée(s) plus tard.</span></div></div>`;
+  else if(S.tab==='calls') h += callList(calls, leads.filter(l=>l.bucket==='scheduled'&&l.next&&l.next.key==='call'&&l.phones.length));
+  else if(S.tab==='today') h += bulkBar(actions, calls) + (actions.length ? groups(actions,['reply','call','today']) : `<div class="list"><div class="empty">Rien à faire aujourd'hui 🎉<br><span class="sub">${n('scheduled')} relance(s) planifiée(s) plus tard.</span></div></div>`);
   else h += leads.length ? groups(leads,['reply','call','today','scheduled','booked','finished','lost','unknown']) : `<div class="list"><div class="empty">Aucun hot lead ici.</div></div>`;
   $('#content').innerHTML = h;
   $('#content').querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{S.tab=b.dataset.tab; renderMain();});
   $('#content').querySelectorAll('[data-k]').forEach(b=>b.onclick=()=>{S.tab=['reply','call','today'].includes(b.dataset.k)?'today':'all'; renderMain(); const g=document.getElementById('g-'+b.dataset.k); g&&g.scrollIntoView({behavior:'smooth'});});
-  $('#content').querySelectorAll('[data-key]').forEach(r=>r.onclick=e=>{ if(e.target.closest('a')) return; openLead(r.dataset.key);});
+  $('#content').querySelectorAll('[data-key]').forEach(r=>r.onclick=e=>{ if(e.target.closest('a,button,input')) return; openLead(r.dataset.key);});
+  wireActions($('#content'));
 }
 function groups(leads, order){
   let h='';
@@ -447,7 +562,57 @@ function row(l){
     <div class="who"><div class="av" style="${avStyle(l.name)}">${esc(initials(l.name))}</div><div class="t"><b>${esc(l.name)}</b><div class="sub">${esc([l.title,l.company].filter(Boolean).join(' · '))}</div></div></div>
     <div class="c-camp"><span class="chip" title="${esc(l.campaign)}">${esc(l.campaign.replace(/^Prescient\s*[–-]\s*/,''))}</span><div class="sub" style="margin-top:4px">${phoneCell(l)}</div></div>
     <div class="c-cad">${cadence(l)}</div><div class="c-next">${nextCell(l)}</div>
-    <div><span class="badge b-${l.bucket}">${BUCKET[l.bucket].l}</span></div></div>`;
+    <div class="c-act">${actionCell(l)}</div></div>`;
+}
+function actionCell(l){
+  const dn = S.done[l.key];
+  if(dn && dn.queued) return `<button class="btn sm" data-undo="${esc(l.key)}">Annuler</button>`;
+  if(dn) return dn.failed ? `<a class="badge b-finished" href="${esc(dn.run||REPO_ACTIONS)}" target="_blank" rel="noopener">échec ↗</a>` : `<span class="badge b-booked">${dn.pending?'…':'✓'}</span>`;
+  const sd = sendable(l);
+  if(sd) return `<button class="btn sm primary" data-send="${esc(l.key)}" title="${esc(sd.text.slice(0,400))}">Envoyer ${STEP[sd.step]}</button>`;
+  if(l.bucket==='call' && l.phones.length) return `<button class="btn sm primary" data-script="${esc(l.key)}">📞 Appeler</button>`;
+  if(l.bucket==='reply' && l.review) return `<button class="btn sm" data-open="${esc(l.key)}" title="Le lead pose une question : réponse à écrire">À relire</button>`;
+  return `<span class="badge b-${l.bucket}">${BUCKET[l.bucket].l}</span>`;
+}
+function bulkBar(actions, calls){
+  const ready = actions.map(l=>({l, s:sendable(l)})).filter(x=>x.s);
+  const c = calls.filter(l=>!S.done[l.key]).length;
+  if(!ready.length && !c) return '';
+  const m = mode();
+  return `<div class="campstats" style="align-items:center;justify-content:space-between">
+    <div style="font-size:13px;color:var(--ink2)"><b style="display:inline;font-size:15px">${ready.length}</b> email${ready.length>1?'s':''} prêt${ready.length>1?'s':''} à partir${c?` · <b style="display:inline;font-size:15px">${c}</b> appel${c>1?'s':''} à passer`:''}<div class="sub">Rédigés automatiquement à partir de chaque conversation. Survolez « Envoyer » pour lire, cliquez sur la ligne pour modifier.</div></div>
+    <div class="inline">${c?`<button class="btn" data-tabgo="calls">📞 Scripts d'appel</button>`:''}${ready.length?`<button class="btn primary" id="sendall">${m==='copy'?'Activer l\'envoi en un clic':`Tout envoyer (${ready.length})`}</button>`:''}</div></div>`;
+}
+function callList(calls, later){
+  let h = calls.length ? `<div class="group"><h3><span class="dot" style="background:${BUCKET.call.c}"></span>À appeler aujourd'hui<span class="cnt">${calls.length}</span></h3>${callCards(calls)}</div>`
+                       : `<div class="list" style="margin-bottom:14px"><div class="empty">Aucun appel à passer aujourd'hui.</div></div>`;
+  if(later && later.length) h += `<div class="group"><h3><span class="dot" style="background:var(--ink3)"></span>Prochains appels<span class="cnt">${later.length}</span></h3>${callCards(later, true)}</div>`;
+  return h;
+}
+function callCards(calls, later){
+  return calls.sort(byPrio).map(l=>{ const d=l.drafts, p=l.phones[0], dn=S.done[l.key];
+    return `<div class="list" style="margin-bottom:14px;${dn?'opacity:.55':''}"><div style="padding:16px">
+      <div class="inline" style="justify-content:space-between"><div class="who"><div class="av" style="${avStyle(l.name)}">${esc(initials(l.name))}</div><div class="t"><b>${esc(l.name)}</b><div class="sub">${esc([l.title,l.company,l.campaign].filter(Boolean).join(' · '))}</div></div></div>
+      ${dn?`<span class="handled-tag">✓ ${esc(dn.text)}</span>`:`<div class="inline">${later?`<span class="when">${esc(when(l.next.due).t)}</span>`:''}<a class="btn ${later?'':'primary'}" href="tel:${esc(p.raw)}">📞 ${esc(p.pretty)}</a></div>`}</div>
+      <div class="sub" style="margin:10px 0 6px">Sa réponse : « ${esc(l.last_reply.slice(0,220))} »</div>
+      <div class="script"><button class="btn sm" data-copytxt="${esc(d.call)}">Copier</button><b>Script</b>\n${esc(d.call)}</div>
+      <div class="script"><button class="btn sm" data-copytxt="${esc(d.voicemail)}">Copier</button><b>Messagerie</b>\n${esc(d.voicemail)}</div>
+      <div class="script"><button class="btn sm" data-copytxt="${esc(d.sms)}">Copier</button><b>SMS après l'appel</b>\n${esc(d.sms)}</div>
+      ${dn?'':`<div class="outs" style="grid-template-columns:repeat(4,1fr)"><button class="btn" data-callout="booked" data-k="${esc(l.key)}">✓ RDV calé</button><button class="btn" data-callout="voicemail" data-k="${esc(l.key)}">Message laissé</button><button class="btn" data-callout="no_answer" data-k="${esc(l.key)}">Pas de réponse</button><button class="btn" data-callout="not_interested" data-k="${esc(l.key)}">Pas intéressé</button></div>`}
+    </div></div>`; }).join('');
+}
+function wireActions(root){
+  const L = k => S.data.leads.find(x=>x.key===k);
+  root.querySelectorAll('[data-send]').forEach(b=>b.onclick=e=>{ e.stopPropagation(); const l=L(b.dataset.send); const sd=sendable(l); if(!sd) return;
+    if(mode()==='copy'){ settings(); return toast('Activez l\'envoi en un clic (une seule fois)'); } sendNow(l, sd.step, sd.text); toast(`${STEP[sd.step]} à ${l.name} · annulable ${UNDO_MS/1000} s`); });
+  root.querySelectorAll('[data-undo]').forEach(b=>b.onclick=e=>{ e.stopPropagation(); unqueue(b.dataset.undo); });
+  root.querySelectorAll('[data-script]').forEach(b=>b.onclick=e=>{ e.stopPropagation(); S.tpl='call'; openLead(b.dataset.script,true); });
+  root.querySelectorAll('[data-open]').forEach(b=>b.onclick=e=>{ e.stopPropagation(); openLead(b.dataset.open); });
+  root.querySelectorAll('[data-tabgo]').forEach(b=>b.onclick=()=>{ S.tab=b.dataset.tabgo; renderMain(); });
+  root.querySelectorAll('[data-copytxt]').forEach(b=>b.onclick=()=>copyText(b.dataset.copytxt));
+  root.querySelectorAll('[data-callout]').forEach(b=>b.onclick=()=>record(L(b.dataset.k), `Appel : ${OUT[b.dataset.callout]}`));
+  const sa=root.querySelector('#sendall'); if(sa) sa.onclick=()=>{ if(mode()==='copy') return settings();
+    const leads=S.data.leads.filter(inScope).filter(l=>['reply','call','today'].includes(l.bucket)); sendAll(leads.map(l=>({l, s:sendable(l)})).filter(x=>x.s)); };
 }
 function board(leads){
   const cols=[['reply','À répondre',l=>l.bucket==='reply'],['email1','Email 1',l=>l.next&&l.next.key==='email1'&&['today','scheduled'].includes(l.bucket)],
@@ -495,10 +660,10 @@ function openLead(key, keepTpl){
       <div class="outs"><button class="btn" data-out="booked">✓ RDV calé</button><button class="btn" data-out="voicemail">Message laissé</button><button class="btn" data-out="no_answer">Pas de réponse</button><button class="btn" data-out="not_interested">Pas intéressé</button></div>
       <div class="inline note">À rappeler le <input type="date" id="retryAt"> <button class="btn sm" data-out="retry">Planifier</button></div>`;
   } else {
-    const direct = canApi();
-    h += `<textarea id="draft">${esc(l.drafts[S.tpl]||'')}</textarea>
-      <div class="actions">${direct?`<button class="btn primary" id="send">Envoyer via Explee</button><button class="btn" data-copy="draft">Copier</button>`:`<button class="btn primary" id="copyopen">Copier et ouvrir l'inbox</button>`}<a class="btn ghost" href="${esc(l.inbox_url)}" target="_blank" rel="noopener">Inbox ↗</a></div>
-      <div class="note">${direct?'Part dans le fil existant, depuis la boîte d\'envoi Explee. Relisez avant d\'envoyer.':'Collez le texte en réponse dans le fil. La relance suivante se recale toute seule à la prochaine synchro. <a href="#" id="setk">Envoyer directement d\'ici ?</a>'}</div>`;
+    const direct = mode()!=='copy', dn = S.done[l.key];
+    h += `${l.review && S.tpl==='reply'?'<div class="warn">Le lead pose une question : relisez et complétez la réponse avant d\'envoyer.</div>':''}<textarea id="draft">${esc(l.drafts[S.tpl]||'')}</textarea>
+      <div class="actions">${dn&&dn.queued?`<button class="btn" data-undo="${esc(l.key)}">Annuler l'envoi</button>`:(direct?`<button class="btn primary" id="send">Envoyer</button><button class="btn" data-copy="draft">Copier</button>`:`<button class="btn primary" id="copyopen">Copier et ouvrir l'inbox</button>`)}<a class="btn ghost" href="${esc(l.inbox_url)}" target="_blank" rel="noopener">Inbox ↗</a></div>
+      <div class="note">${direct?'Part dans le fil existant, depuis votre boîte d\'envoi Explee. Annulable quelques secondes.':'Collez le texte en réponse dans le fil. La relance suivante se recale toute seule à la prochaine synchro. <a href="#" id="setk">Activer l\'envoi en un clic</a>'}</div>`;
   }
   h += `</div>`;
   if(l.note) h += `<div class="sec"><h5>Note Explee</h5><div class="msg">${esc(l.note)}</div></div>`;
@@ -511,7 +676,8 @@ function openLead(key, keepTpl){
   dr.querySelectorAll('[data-out]').forEach(b=>b.onclick=()=>callOutcome(l,b.dataset.out));
   dr.querySelectorAll('[data-status]').forEach(b=>b.onclick=()=>({booked:()=>record(l,'RDV calé'),lost:()=>record(l,'Pas intéressé'),reactivate:()=>record(l,'Séquence réactivée')})[b.dataset.status]());
   const sb=$('#snoozeBtn'); if(sb) sb.onclick=()=>{ const v=$('#snooze').value; if(!v) return toast('Choisissez une date',true); record(l,`Attendre jusqu'au ${v}`); };
-  const send=$('#send'); if(send) send.onclick=()=>sendMail(l);
+  const send=$('#send'); if(send) send.onclick=()=>{ const t=$('#draft').value.trim(); if(!t) return toast('Message vide',true); sendNow(l, S.tpl, t); toast(`${STEP[S.tpl]} à ${l.name} · annulable ${UNDO_MS/1000} s`); };
+  wireActions(dr);
   const co=$('#copyopen'); if(co) co.onclick=async()=>{ await copyText($('#draft').value,true); window.open(l.inbox_url,'_blank','noopener'); toast('Texte copié : collez-le en réponse dans le fil'); markDone(l, `${({reply:'Réponse',email1:'Email 1',email2:'Email 2',email3:'Email 3'})[S.tpl]} préparé`); };
   const sk=$('#setk'); if(sk) sk.onclick=e=>{e.preventDefault(); settings();};
 }
@@ -523,22 +689,6 @@ async function copyText(t, quiet){ try{ await navigator.clipboard.writeText(t); 
 function callOutcome(l, o){
   if(o==='retry'){ const v=$('#retryAt').value; if(!v) return toast('Choisissez une date de rappel',true); return record(l,`Appel : à rappeler le ${v}`); }
   return record(l, `Appel : ${OUT[o]}`);
-}
-async function sendMail(l){
-  const text=$('#draft').value.trim(); if(!text) return toast('Message vide',true);
-  const label = {reply:'la réponse',email1:"l'email 1",email2:"l'email 2",email3:"l'email 3"}[S.tpl]||"l'email";
-  if(!confirm(`Envoyer ${label} à ${l.name} (${l.email}) maintenant ?`)) return;
-  const b=$('#send'); b.disabled=true; b.textContent='Envoi…';
-  const step = ({reply:'Réponse',email1:'Email 1',email2:'Email 2',email3:'Email 3'})[S.tpl];
-  try{
-    await apiReply(l, text);
-    try{ await apiAppendNote(l, `${stamp()} Relance · Email envoyé : ${step}`); }catch{}
-    toast('Email envoyé ✓'); markDone(l, `${step} envoyé`);
-  }catch(e){
-    if(e.cors){ toast('Explee refuse les appels depuis le navigateur : copie + inbox à la place',true); openLead(l.key,true); }
-    else toast(e.message,true);
-    b.disabled=false; b.textContent='Envoyer via Explee';
-  }
 }
 function exportCsv(){
   const lab = Object.fromEntries(Object.entries(BUCKET).map(([k,v])=>[k,v.l]));

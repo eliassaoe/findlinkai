@@ -1,0 +1,63 @@
+name: Explee relance - envoyer
+
+# Fired by the "Envoyer" buttons on linkfinderai.com/relance (GitHub API
+# workflow_dispatch, with a fine-grained token kept in the browser). Sends the
+# follow-up emails and writes the lead notes through Explee, then rebuilds the
+# page. See workers/explee-autogtm/relance_act.py.
+#
+# The repository is public and dispatch inputs are visible to anyone: the one
+# input is ENCRYPTED with the page password (secret RELANCE_PASSWORD), and the
+# script prints counters only - no name, address or text reaches the log.
+#
+# No concurrency group on purpose: GitHub keeps only one PENDING run per group
+# and cancels the others, which would silently drop clicks. Double sends are
+# prevented in relance_act.py instead (it re-reads the thread before sending).
+on:
+  workflow_dispatch:
+    inputs:
+      payload:
+        description: 'Encrypted actions (written by the /relance page)'
+        type: string
+        required: true
+
+permissions:
+  contents: write      # commits the rebuilt relance.html
+
+jobs:
+  act:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: workers/explee-autogtm
+    env:
+      EXPLEE_API_KEY: ${{ secrets.EXPLEE_API_KEY }}
+      RELANCE_PASSWORD: ${{ secrets.RELANCE_PASSWORD }}
+      RELANCE_PAYLOAD: ${{ inputs.payload }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install
+        run: pip install --quiet cryptography
+      - name: Send
+        run: python3 relance_act.py
+      - name: Rebuild the page
+        if: always()
+        run: python3 relance_page.py --write
+      - name: Publish
+        if: always()
+        run: |
+          cd "$GITHUB_WORKSPACE"
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git add relance.html
+          if git commit -q -m "Relance: page after send $(date -u +'%Y-%m-%d %H:%M')"; then
+            # relance.html is regenerated from Explee every time: on a clash with
+            # another run, the version built last (ours) is the right one.
+            git pull -q --rebase -X theirs origin "$GITHUB_REF_NAME"
+            git push -q origin "HEAD:$GITHUB_REF_NAME"
+          else
+            echo "nothing new to publish"
+          fi

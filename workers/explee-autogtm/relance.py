@@ -370,6 +370,17 @@ def sender_identity(outbound_texts):
 
 # ═══════════════════════════════════════════════════════════ brouillons
 
+AVAILABILITY_Q = re.compile(r"dispo|disponibilit|quand|créneau|creneau|horaire|heure|quel jour|lien|calendly|agenda", re.I)
+
+
+def needs_review(text):
+    """Une vraie question (prix, détails…) ne part pas sur un modèle : à relire."""
+    body = strip_quoted(text or "")
+    if "?" not in body:
+        return False
+    questions = [q for q in re.split(r"(?<=\?)", body) if q.strip().endswith("?")]
+    return any(not AVAILABILITY_Q.search(q) for q in questions)
+
 def drafts_for(ctx):
     p, co, link = ctx["first_name"], ctx["company"], ctx["cal_link"]
     hello = f"Bonjour {p}," if p else "Bonjour,"
@@ -519,6 +530,15 @@ def compute(lead, thread, state, ref_dt=None):
            "signoff": signoff, "me": me, "teams": teams,
            "slot1": f"{fr_day(d1, today)} à {hour}h", "slot2": f"{fr_day(d2, today)} à {h2}h"}
 
+    drafts = drafts_for(ctx)
+    # le script d'appel est lu le jour de l'appel : créneaux comptés depuis ce jour-là
+    call_step = next((s for s in steps if s["key"] == "call" and not s["done"] and s["due"]), None)
+    if call_step and date.fromisoformat(call_step["due"]) > today:
+        cday = date.fromisoformat(call_step["due"])
+        c1 = next_bday(max(cday + timedelta(days=1), wait_until or cday))
+        cctx = dict(ctx, slot1=f"{fr_day(c1, cday)} à {hour}h", slot2=f"{fr_day(add_bdays(c1, 1), cday)} à {h2}h")
+        drafts.update({k: v for k, v in drafts_for(cctx).items() if k in ("call", "voicemail", "sms")})
+
     last_msg = msgs[-1] if msgs else None
     last_dt = msg_date(last_msg) if last_msg else None
     cid = pick(lead, "campaign_id", "campaign.id")
@@ -533,6 +553,10 @@ def compute(lead, thread, state, ref_dt=None):
         "hot_since": str(pick(lead, "became_hot_at"))[:10],
         "status": status, "bucket": bucket, "next": nxt, "steps": steps,
         "relances_sent": relances_sent,
+        # nombre de nos messages après sa dernière réponse : relance_act.py refuse
+        # d'envoyer si le fil a bougé depuis (évite un double envoi)
+        "expect_after": len(after),
+        "review": needs_review(last_in_text) if status == "reply" else False,
         "wait_until": wait_until.isoformat() if wait_until else None,
         "wait_auto": bool(auto_wait and not st.get("snooze_until")),
         "last_from": ("lead" if from_lead(last_msg, email) else "me") if last_msg else None,
@@ -543,7 +567,7 @@ def compute(lead, thread, state, ref_dt=None):
                     "at": (msg_date(m).isoformat() if msg_date(m) else ""),
                     "subject": str(pick(m, "subject")),
                     "text": strip_quoted(msg_text(m))[:3000]} for m in msgs],
-        "drafts": drafts_for(ctx), "ctx": ctx,
+        "drafts": drafts, "ctx": ctx,
         "log": st.get("log", []), "note": st.get("note", ""),
     }
 

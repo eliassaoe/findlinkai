@@ -141,5 +141,66 @@ class Page(unittest.TestCase):
         self.assertIn('"blob": null', html)
 
 
+class FakeExplee:
+    """Explee en mémoire, alimenté par les données démo."""
+    def __init__(self):
+        d = R.demo_data()
+        self.d, self.sent, self.notes = d, [], {}
+        self.threads = {f"{l['campaign_id']}:{l['person_id']}": t for l, t in d["leads"]}
+
+    def projects(self): return self.d["projects"]
+    def campaigns(self): return self.d["campaigns"]
+    def analytics(self, cid): return {}
+    def hot_leads(self): return [l for l, _ in self.d["leads"]]
+    def thread(self, cid, pid): return self.threads[f"{cid}:{pid}"]
+    def reply(self, cid, pid, text): self.sent.append((f"{cid}:{pid}", text))
+    def get_note(self, cid, pid): return self.notes.get(f"{cid}:{pid}", "")
+    def set_note(self, cid, pid, note): self.notes[f"{cid}:{pid}"] = note
+
+
+class Act(unittest.TestCase):
+    def setUp(self):
+        try:
+            import relance_act
+        except ImportError:
+            self.skipTest("pip install cryptography")
+        self.A = relance_act
+
+    def test_sends_once_then_refuses_when_thread_moved(self):
+        api = FakeExplee()
+        acts = [{"type": "reply", "key": "187263:p2", "text": "Bonjour Xavier", "step": "email1", "expect_after": 1}]
+        n = self.A.run(api, acts, ref=REF)
+        self.assertEqual(n["sent"], 1)
+        self.assertIn("Email envoyé : Email 1", api.notes["187263:p2"])
+        # la page affichait encore expect_after=1 : un second clic ne doit rien envoyer
+        api.threads["187263:p2"]["messages"].append({"direction": "outbound", "sent_at": "2026-10-06T19:00:00Z", "body": "Bonjour Xavier"})
+        n = self.A.run(api, acts, ref=REF)
+        self.assertEqual((n["sent"], n["skipped_moved"]), (0, 1))
+        self.assertEqual(len(api.sent), 1)
+
+    def test_unknown_lead_is_never_mailed(self):
+        api = FakeExplee()
+        n = self.A.run(api, [{"type": "reply", "key": "999:x", "text": "hi", "expect_after": 0}], ref=REF)
+        self.assertEqual((n["sent"], n["skipped_unknown"], api.sent), (0, 1, []))
+
+    def test_note_appends(self):
+        api = FakeExplee()
+        api.notes["187262:p3"] = "booked"
+        self.A.run(api, [{"type": "note", "key": "187262:p3", "line": "x"}], ref=REF)
+        self.assertEqual(api.notes["187262:p3"], "booked\nx")
+
+    def test_dry_run_sends_nothing(self):
+        api = FakeExplee()
+        n = self.A.run(api, [{"type": "reply", "key": "187263:p2", "text": "t", "expect_after": 1}], dry=True, ref=REF)
+        self.assertEqual((n["sent"], api.sent), (1, []))
+
+    def test_payload_roundtrip(self):
+        import relance_page as P
+        blob = P.encrypt({"v": 1, "actions": [{"type": "note", "key": "k", "line": "l"}]}, "pw")
+        self.assertEqual(self.A.decode(json.dumps(blob), "pw")[0]["line"], "l")
+        with self.assertRaises(SystemExit):
+            self.A.decode(json.dumps(blob), "wrong")
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=1)

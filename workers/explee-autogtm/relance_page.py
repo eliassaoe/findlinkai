@@ -95,6 +95,8 @@ def unchanged(prev_html, view, password, max_age_h=12):
         old = decrypt(prev["blob"], password)
     except Exception:
         return False
+    if render(prev["blob"], prev.get("status")) != prev_html:
+        return False                     # le gabarit a changé depuis : republier
     age = R.now() - R.parse_dt(old.get("generated_at"))
     if age.total_seconds() > max_age_h * 3600:
         return False

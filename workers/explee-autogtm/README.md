@@ -225,11 +225,21 @@ can also be typed by hand in the inbox. Sent emails are read from the thread.
 published empty. `noindex`, out of the sitemap, not in robots.txt (see
 `gen_sitemap.py`).
 
-**Sending from the page** needs the Explee key pasted once in the page's
-"Explee" settings (kept in that browser only). Whether `api.explee.com` accepts
-calls from a browser (CORS) has **not been verified** — if it refuses, the page
-falls back to "copy + open the inbox" and says so. Without a key everything
-works the same way.
+**One-click sending.** Every due email is already written (from the thread:
+first name, the slot they asked for, Teams, their booking link, your sign-off),
+each call has its script, voicemail and follow-up SMS. "Envoyer" on a row, or
+"Tout envoyer", queues the emails (6 s to undo) and fires
+`.github/workflows/explee-relance-act.yml` through the GitHub API with a
+fine-grained token pasted once in the page (Actions: read & write on this repo
+only, kept in that browser). The one dispatch input is **encrypted with the page
+password** — dispatch inputs are public on a public repo — and
+`relance_act.py` prints counters only. Before sending it re-reads the thread and
+skips any lead whose thread moved since the page was built (`expect_after`), so
+a double click or a reply sent by hand never gives two emails. It then rebuilds
+the page. Replies to a lead who asked a real question are flagged "À relire" and
+never go out in "Tout envoyer". Without a token the page falls back to "copy +
+open the inbox". (Sending straight from the browser to `api.explee.com` is kept
+as an "advanced" option; whether Explee allows it — CORS — is unverified.)
 
 **Do not put a project in both this page and `recover.py`.** `recover.py`
 nudges on its own; a lead in both would get both cadences. Today `recover.py`
