@@ -545,7 +545,11 @@ def detect_lang(texts):
     t = " ".join(texts)[:4000].lower()
     fr = len(re.findall(r"\b(bonjour|merci|vous|votre|nous|avec|pour|cordialement)\b", t))
     en = len(re.findall(r"\b(hi|hello|thanks|you|your|with|for|best|regards)\b", t))
-    return "en" if en > fr * 1.5 and en >= 3 else "fr"
+    if en > fr * 1.5 and en >= 3:
+        return "en"
+    if fr > en * 1.5 and fr >= 3:
+        return "fr"
+    return None
 
 
 def persona(outbound_texts, inbound_texts, fallback):
@@ -598,13 +602,17 @@ def compute(lead, thread, state, ref_dt=None, camp=None):
     signoff, me = sender_identity(out_texts)
     if (signoff, me) == ("Cordialement", "Tom"):          # rien trouvé : persona du fil
         me = persona(out_texts, [msg_text(m) for m in inbound], camp.get("sender") or "Tom")
-    lang = (str(camp.get("language") or "").lower()[:2] or detect_lang(out_texts)) if camp.get("language") \
-        else detect_lang(out_texts)
-    lang = "en" if lang == "en" else "fr"
+    # la langue réellement écrite dans le fil prime sur le réglage de la campagne
+    lang = detect_lang(out_texts) or ("en" if str(camp.get("language") or "").lower().startswith("en") else "fr")
 
     first = str(pick(lead, "first_name", "person.first_name"))
     last = str(pick(lead, "last_name", "person.last_name"))
     full = str(pick(lead, "full_name", "name", "person.name", default=f"{first} {last}".strip()))
+    nice = lambda x: "-".join(w.capitalize() for w in x.split("-")) if (x.islower() or x.isupper()) else x
+    full = " ".join(nice(w) for w in full.split())
+    first = nice(first) if first else ""
+    if not first and full and "@" not in full:
+        first = full.split()[0]
     if not first:
         local = email.split("@")[0].split(".")[0]
         if local.isalpha() and len(local) > 2 and local.lower() not in ("contact", "info", "hello", "bonjour", "admin"):
