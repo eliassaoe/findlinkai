@@ -104,6 +104,20 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
     details p { margin-top: 8px; color: var(--gray-600); }
     .final { text-align: center; }
     .final .buy { display: inline-block; width: auto; padding: 15px 34px; }
+    .bar { position: sticky; top: 0; z-index: 60; }
+    .bar.urgent { background: #b91c1c; }
+    .countdown { max-width: 560px; margin: 26px auto 0; background: var(--gray-900); color: #fff; border-radius: 16px; padding: 18px 18px 16px; text-align: center; }
+    .countdown.urgent { background: #b91c1c; animation: pulse 2s ease-in-out infinite; }
+    @keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(185,28,28,.45); } 50% { box-shadow: 0 0 0 10px rgba(185,28,28,0); } }
+    .countdown .label { font-size: .78rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #fde68a; margin-bottom: 10px; }
+    .countdown.urgent .label { color: #fff; }
+    .cd-units { display: flex; justify-content: center; gap: 10px; }
+    .cd-unit { background: rgba(255,255,255,.1); border-radius: 10px; min-width: 70px; padding: 10px 6px 8px; }
+    .cd-num { font-size: 2.4rem; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+    .cd-lbl { font-size: .7rem; text-transform: uppercase; letter-spacing: .06em; opacity: .75; margin-top: 4px; }
+    .countdown .when { font-size: .85rem; opacity: .85; margin-top: 10px; }
+    .cd-inline { text-align: center; font-weight: 700; color: #b91c1c; margin: 6px 0 0; font-size: 1rem; }
+    @media (max-width: 420px) { .cd-unit { min-width: 0; flex: 1; } .cd-num { font-size: 1.9rem; } }
     footer { text-align: center; font-size: .82rem; color: var(--gray-500); padding: 30px 16px 40px; border-top: 1px solid var(--gray-100); }
   </style>
 </head>
@@ -120,9 +134,19 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
 
 <main>
   <div class="wrap hero">
-    <span class="eyebrow">One-time offer · Closes soon</span>
+    <span class="eyebrow" id="eyebrow">Limited-time offer · Ends soon</span>
     <h1>Pay once. Get LinkFinder credits every month, for life.</h1>
     <p class="lede">You already have a free LinkFinder AI account. For a few days, you can turn it into a lifetime account with a single payment. No subscription, no renewals.</p>
+    <div class="countdown" id="countdown" hidden>
+      <div class="label" id="cd-label">This offer ends in</div>
+      <div class="cd-units">
+        <div class="cd-unit"><div class="cd-num" data-cd="d">0</div><div class="cd-lbl">days</div></div>
+        <div class="cd-unit"><div class="cd-num" data-cd="h">00</div><div class="cd-lbl">hours</div></div>
+        <div class="cd-unit"><div class="cd-num" data-cd="m">00</div><div class="cd-lbl">min</div></div>
+        <div class="cd-unit"><div class="cd-num" data-cd="s">00</div><div class="cd-lbl">sec</div></div>
+      </div>
+      <div class="when" id="cd-when"></div>
+    </div>
     <div class="notice" id="notice"></div>
   </div>
 
@@ -160,6 +184,7 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
       </div>
     </div>
     <p class="fine">Secure checkout by Dodo Payments. You need to be logged in: the plan is attached to the LinkFinder account you're logged in with.</p>
+    <p class="cd-inline" id="cd-inline" hidden></p>
     <div class="seats" id="seats" hidden><strong id="seats-left">–</strong> of <span id="seats-cap">–</span> lifetime seats left
       <div class="meter"><div id="seats-meter"></div></div>
     </div>
@@ -223,6 +248,7 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
     <div class="wrap">
       <h3>Pay once and keep LinkFinder for life</h3>
       <p style="margin-bottom:20px;color:var(--gray-600)" id="final-line">The offer closes when the seats or the week run out.</p>
+      <p class="cd-inline" id="cd-final" hidden style="margin-bottom:16px"></p>
       <a class="buy" href="#tiers-top" onclick="document.querySelector('.tiers').scrollIntoView({behavior:'smooth'});return false;">Choose your lifetime plan ↑</a>
     </div>
   </section>
@@ -322,13 +348,42 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
   }
 
   var endsAt = null;
+  function pad(n) { return String(n).padStart(2, '0'); }
   function tick() {
     var bar = document.getElementById('bar-time');
-    if (!endsAt) { bar.textContent = ''; return; }
+    var box = document.getElementById('countdown');
+    var lines = [document.getElementById('cd-inline'), document.getElementById('cd-final')];
+    if (!endsAt) { bar.textContent = ''; box.hidden = true; lines.forEach(function (l) { l.hidden = true; }); return; }
     var ms = endsAt - Date.now();
-    if (ms <= 0) { bar.innerHTML = '<strong>Closed.</strong>'; return; }
-    var d = Math.floor(ms / 864e5), h = Math.floor(ms / 36e5) % 24, m = Math.floor(ms / 6e4) % 60, s = Math.floor(ms / 1e3) % 60;
-    bar.innerHTML = 'Closes in <strong>' + (d ? d + 'd ' : '') + h + 'h ' + String(m).padStart(2, '0') + 'm ' + String(s).padStart(2, '0') + 's</strong>';
+    if (ms <= 0) {
+      bar.innerHTML = '<strong>This offer has ended.</strong>';
+      document.getElementById('eyebrow').textContent = 'This offer has ended';
+      box.hidden = true; lines.forEach(function (l) { l.hidden = true; });
+      return;
+    }
+    var d = Math.floor(ms / 864e5), h = Math.floor(ms / 36e5) % 24, m = Math.floor(ms / 6e4) % 60, sec = Math.floor(ms / 1e3) % 60;
+    var urgent = ms < 864e5;
+    var short = (d ? d + 'd ' : '') + h + 'h ' + pad(m) + 'm ' + pad(sec) + 's';
+    bar.innerHTML = (urgent ? 'Last day: closes in <strong>' : 'Limited-time offer: closes in <strong>') + short + '</strong>';
+    document.getElementById('topbar').classList.toggle('urgent', urgent);
+    box.hidden = false;
+    box.classList.toggle('urgent', urgent);
+    document.getElementById('cd-label').textContent = urgent ? 'Last day — this offer ends in' : 'This offer ends in';
+    box.querySelector('[data-cd="d"]').textContent = d;
+    box.querySelector('[data-cd="h"]').textContent = pad(h);
+    box.querySelector('[data-cd="m"]').textContent = pad(m);
+    box.querySelector('[data-cd="s"]').textContent = pad(sec);
+    lines.forEach(function (l) { l.hidden = false; l.textContent = '⏳ Price and lifetime credits end in ' + short; });
+    document.getElementById('eyebrow').textContent = urgent ? 'Last day · Final hours' : 'Limited-time offer · Ends soon';
+  }
+  function setWhen() {
+    var el = document.getElementById('cd-when');
+    if (!endsAt) { el.textContent = ''; return; }
+    var f;
+    try {
+      f = new Date(endsAt).toLocaleString(undefined, { weekday: 'long', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZoneName: 'short' });
+    } catch (e) { f = new Date(endsAt).toUTCString(); }
+    el.textContent = 'Ends ' + f;
   }
 
   var ticking = null;
@@ -342,7 +397,7 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
     fillTiers(tiers);
 
     endsAt = st.ends_at ? new Date(st.ends_at).getTime() : null;
-    tick(); if (!ticking) ticking = setInterval(tick, 1000);
+    setWhen(); tick(); if (!ticking) ticking = setInterval(tick, 1000);
 
     if (st.seat_cap) {
       document.getElementById('seats').hidden = false;
