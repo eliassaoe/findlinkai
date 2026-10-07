@@ -1,6 +1,6 @@
-# Explee follow-ups — linkfinderai — 2026-10-07 16:39 UTC
+# Explee follow-ups — linkfinderai — 2026-10-07 17:51 UTC
 
-**SENT 2 emails**
+**SENT 0 emails**
 
 To take someone out of the loop: open the lead in the [inbox](https://explee.com/app-auto-gtm/p/30475/inbox), write `booked` or `stop` in the note. Next run it stops.
 
@@ -18,17 +18,10 @@ To take someone out of the loop: open the lead in the [inbox](https://explee.com
 | skip: nudge 1 due in 0.8d | 5 |
 | skip: call_me | 3 |
 | skip: nudge 1 due in 0.9d | 2 |
-| nudge | 2 |
+| skip: nudge 2 due in 1.0d | 2 |
 | skip: already handled (note marker) | 2 |
 | skip: nudge 1 due in 0.6d | 1 |
 | skip: queued until 2026-12-05 | 1 |
-
-## This run
-
-| who | campaign | they said | what happened |
-|---|---|---|---|
-| Lydie (MB CONCEPT Usinage 3D) | High ticket linkfinder AI | Pourriez vous m’indiquer votre fonction ?  Envoyé à partir de Outlook pour iOS De : Elias… | sent nudge |
-| Tatiana (OPERA CYBER) | High ticket linkfinder AI | Oui :)  Envoyé à partir de Outlook pour iOS<https://aka.ms/o0ukef> ______________________… | sent nudge |
 
 ## Everyone else who replied
 
@@ -41,10 +34,12 @@ To take someone out of the loop: open the lead in the [inbox](https://explee.com
 | Gilles (ENNEA GROUPE) | High ticket linkfinder AI | Bonjour Monsieur Appelez moi en fin de semaine En revanche, révisez vos informations ... … | CALL THEM - the number is in the reply |
 | Mourad (LYSECURITE sas) | High ticket linkfinder AI | Bonjour, Je ne comprends pas vraiment votre message. Vous proposez quel service exactemen… | 2026-10-08 |
 | Mathieu (Ameo Industrie) | High ticket linkfinder AI | Bonjour,     C’est un sujet qui peut faire sens.           Cordialement.       _____    M… | none - unknown |
+| Lydie (MB CONCEPT Usinage 3D) | High ticket linkfinder AI | Pourriez vous m’indiquer votre fonction ?  Envoyé à partir de Outlook pour iOS De : Elias… | 2026-10-08 |
 | Theodore (OPSYRE) | High ticket linkfinder AI | Bonjour,  Merci de me contacter au 0661992949.  Ensemble, créons et déployons votre strat… | none - unknown |
 | Jean (CRNA) | High ticket linkfinder AI | Bonjour Eliasse,  Je n’ai aucun message de vous la semaine dernière.  De quoi s’agit-il ?… | 2026-10-08 |
 | Thibaut (ODY-C) | High ticket linkfinder AI | Bonjour  Appelez moi   [https://storage.letsignit.com/64649b3ccacd9996373f7976/generated/… | CALL THEM - the number is in the reply |
 | Aurore (Athermelec) | High ticket linkfinder AI | Bonjour,  Quand seriez-vous disponible ?  Merci       Bien cordialement,  [cid:image001.p… | 2026-10-08 |
+| Tatiana (OPERA CYBER) | High ticket linkfinder AI | Oui :)  Envoyé à partir de Outlook pour iOS<https://aka.ms/o0ukef> ______________________… | 2026-10-08 |
 | Gérard (Eman) | High ticket linkfinder AI | Bonjour, Je n'ai pas eu de mail la semaine dernière, je n'ai pas votre agenda en pièce jo… | 2026-10-08 |
 | Antoine (SEKAOP) | High ticket linkfinder AI | Bonjour ,  Je n’ai pas compris votre mail.  Bonne journée.  Le ven. 2 oct. 2026 à 11:11, … | none - unknown |
 | Franck (ISYBOT) | High ticket linkfinder AI | Bonjour,  Merci de me donner plus de détails sur votre service.  Franck  获取 Outlook for i… | none - unknown |
