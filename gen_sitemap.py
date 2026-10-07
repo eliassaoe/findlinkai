@@ -52,6 +52,12 @@ NOINDEX_ONLY = {
     "agency",             # outbound landing, sent by hand to agencies that replied yes
     "lifetime-deal",      # LTD campaign landing, email-only (docs/ltd-campaign.md)
     "best-recruitment-sofware-tools",  # typo URL, redirect stub -> /best-recruitment-software-tools
+    # Redirect stubs. Each one used to compete with the page it now bounces to.
+    "skrapp-competitors",              # -> /skrapp-alternative
+    "company-url-finder-lp",           # -> /company-url-finder
+    "linkedin-url-finder-lp",          # -> /linkedin-url-finder
+    "instagram-profile-scraper",       # -> /instagram-profile-url-finder
+    "instagram-scraper-api",           # -> /instagram-profile-url-finder
 }
 
 # Whole directories to keep out. EXCLUDE above matches on the last path
@@ -63,7 +69,11 @@ NOINDEX_ONLY = {
 # Actions). Any HTML in there is a master copy or a template, never a page
 # on the site — workers/gtm/ui/index.html is the console's master, published
 # to /gtm-console by workers/gtm/ui/build.py.
-EXCLUDE_DIRS = {"workflow", "clusters/workflows", "workers"}
+# The two Google Sheets folders hold the add-on's Apps Script HTML (sidebar,
+# settings, help panels). They render inside Sheets, not on the site, and have
+# no <title> -- Google was being asked to index bare UI fragments.
+EXCLUDE_DIRS = {"workflow", "clusters/workflows", "workers",
+                "integrations/google-sheets-addon", "integrations/google-sheets"}
 # ----------------------------------------
 
 
