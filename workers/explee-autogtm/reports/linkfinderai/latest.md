@@ -1,86 +1,68 @@
-# Explee follow-ups — linkfinderai — 2026-10-07 11:52 UTC
+# Explee follow-ups — linkfinderai — 2026-10-07 14:34 UTC
 
-**SENT 25 emails**
+**SENT 0 emails**
 
 To take someone out of the loop: open the lead in the [inbox](https://explee.com/app-auto-gtm/p/30475/inbox), write `booked` or `stop` in the note. Next run it stops.
 
 | outcome | leads |
 |---|---|
-| skip: unknown | 173 |
+| skip: unknown | 175 |
 | skip: auto_reply | 137 |
-| skip: negative | 122 |
+| skip: negative | 123 |
 | skip: can_reply is false | 37 |
-| skip: reply cap (3) reached on this message | 24 |
-| nudge | 13 |
-| skip: question | 12 |
+| skip: reply cap (3) reached on this message | 28 |
+| skip: question | 13 |
+| skip: nudge 2 due in 0.9d | 11 |
 | skip: booked | 6 |
-| nudge_last | 4 |
-| warm | 4 |
-| send_info | 4 |
+| skip: nudge 1 due in 0.9d | 6 |
+| skip: fresh reply | 4 |
 | skip: call_me | 3 |
-| skip: nudge 1 due in 0.1d | 2 |
-| not_now | 2 |
-| skip: nudge 1 due in 0.9d | 1 |
-| skip: nudge 1 due in 0.8d | 1 |
-| skip: fresh reply | 1 |
+| skip: nudge 1 due in 0.0d | 2 |
+| skip: already handled (note marker) | 2 |
+| skip: nudge 1 due in 0.7d | 1 |
 | skip: queued until 2026-12-05 | 1 |
-
-## This run
-
-| who | campaign | they said | what happened |
-|---|---|---|---|
-| Jean (CRNA) | High ticket linkfinder AI | Bonjour Eliasse,  Je n’ai aucun message de vous la semaine dernière.  De quoi s’agit-il ?… | sent nudge |
-| Aurore (Athermelec) | High ticket linkfinder AI | Bonjour,  Quand seriez-vous disponible ?  Merci       Bien cordialement,  [cid:image001.p… | sent nudge |
-| Gérard (Eman) | High ticket linkfinder AI | Bonjour, Je n'ai pas eu de mail la semaine dernière, je n'ai pas votre agenda en pièce jo… | sent nudge |
-| Sandra (DataChain® By Adobis Gr…) | High ticket linkfinder AI | Bonjour,  Quel est votre modèle économique et le type de clients dont vous pouvez fournir… | sent nudge |
-| Alain (Asas Tech) | High ticket linkfinder AI | Bonjour  Vous etes qui ? pour quoi ?  Cordialement Alain PRIETO  Le 2026-10-02 08:07, Eli… | sent nudge |
-| Atenia (Atenia) | High ticket linkfinder AI | Bonjour Thomas,  Merci pour votre relance.  Votre proposition peut en effet être intéress… | sent nudge |
-| Contact (Hydralink) | High ticket linkfinder AI | Bonjour,  Oui nous pouvons en discuter. À combien vous estimez le rdv? Et vous pensez pou… | sent nudge |
-| ffernandez (FJFM) | High ticket linkfinder AI | bjr    vous êtes qui?           Francisco Fernández            +33 783 389 745          h… | sent nudge |
-| RAPHAEL (ElectroLED by Habitat E…) | High ticket linkfinder AI | Vous proposez quoi ?   Cordialement,  Raphael - ElectroLED  06 68 16 82 76   Le jeu. 1 oc… | sent nudge |
-| Mounis (KYTL Security) | High ticket linkfinder AI | Bonjour,  Oui le sujet est ouvert.  On paie uniquement les rdv qualifie ? C'est bien ca e… | sent nudge |
-| Ludmilla (QOSE SAS) | High ticket linkfinder AI | Bonjour,     Vous occupez-vous de la prospection pour obtenir de nouveaux clients ?      … | sent nudge |
-| Johan (United Focus) | High ticket linkfinder AI | Si je ne paie que les rdv qualifié, je suis ouvert.  A quel prix le rdv ?  De : Eliasse H… | sent nudge |
-| Kevin (Net Konsulting) | High ticket linkfinder AI | Bonjour Eliasse,  Pouvez-vous me dire le coût par rendez-vous ?  Cordialement  Le mar. 29… | sent nudge_last |
-| Jonathan (Pro-Info) | High ticket linkfinder AI | Bonjour Eliasse,  Ce n'est pas le moment, je ne suis pas à la recherche de prospects.  Co… | parked: not_now |
-| jq@secur-alarmsystemen.… (SecuriPlus-Security) | High ticket linkfinder AI | Beste Eliasse,  Bedankt voor je bericht en je herinnering.  Onze excuses voor de late rea… | sent warm |
-| Gilbert (GMACX) | High ticket linkfinder AI | Bonjour, Je suis à l'étranger jusqu'au 10 octobre inclus. Je ne pourrai peut être pas con… | parked: not_now |
-| SINTHYLENE (SINTHYLENE) | High ticket linkfinder AI | Bonjour,  Merci pour votre message. Nous l’avons bien reçu et nous reviendrons vers vous … | sent send_info |
-| Olivier (DBWO) | High ticket linkfinder AI | Monsieur, Je ne suis intéressé par ce service Bien à vous   Envoyé à partir de Outlook po… | sent warm |
-| Steve (Belinus) | High ticket linkfinder AI | Je ne comprends pas votre message. Pourquoi envoyez vous sur cette adresse un email conce… | sent send_info |
-| Bryan (No More Crash) | High ticket linkfinder AI | Bonjour Eliasse,  Effectivement c’est un sujet d’actualité, cela m’intéresse de creuser l… | sent nudge |
-| Michael (Wheelen Consulting SAS) | High ticket linkfinder AI | Hello Hailey,  Yes this could be interesting. Please send me more information.   -- Cordi… | sent send_info |
-| VINCENT (AEC - Audit Environneme…) | High ticket linkfinder AI | Bonjour Nullement intéressé Cordialement  Envoyé à partir de Outlook pour iOS<https://aka… | sent warm |
-| Marc (Marc Touati) | High ticket linkfinder AI | Bonjour,  Merci beaucoup pour votre proposition et pour votre message.  Pour le moment, c… | sent warm |
-| Davy (ECOPART) | High ticket linkfinder AI | Bonjour,  Après plus de 12 années passées à la direction des entreprises ECOPART et BET S… | sent send_info |
-| Gaël (Skalab) | High ticket linkfinder AI | Bonjour Eliasse,  Je prends quelques missions mais la majorité de mon CA est sur une logi… | sent nudge_last |
-| DAYAN (IFLAS PARIS) | High ticket linkfinder AI | Donnez moi vos tarifs directement j’ai pas le temps d’un appel ni visio    Dayan YALAP Pr… | sent nudge_last |
-| Pierre (ALTITUDE BLEUE CONSULTI…) | High ticket linkfinder AI | Why not On s’appelle ?   Pierre Jean-Michel ROBERT CEO 3, impasse des Ribes 03100 MONTLUÇ… | sent nudge_last |
 
 ## Everyone else who replied
 
 | who | campaign | they said | status |
 |---|---|---|---|
+| PBureau (Up In Solutions Ltd.) | High ticket linkfinder AI | Il ne s agit pas de success fees  nous concernant donc le montant tarif ne me parait pas … | waiting for Explee's auto-reply |
+| Guillaume (Styx Consulting) | High ticket linkfinder AI | Bonjour Eliasse,     Merci pour ton message.     Le sujet peut effectivement nous intéres… | waiting for Explee's auto-reply |
+| Mounis (KYTL Security) | High ticket linkfinder AI | Bonjour Eliasse,      Merci pour l’envoi du contrat.  Après relecture, il faudrait simple… | none - unknown |
+| ffernandez (FJFM) | High ticket linkfinder AI | Bonjour  On peut avoir une appelle dans l’AM? Merci           Francisco Fernández        … | ANSWER THIS ONE YOURSELF in the inbox |
 | Alexandre (Damois) | High ticket linkfinder AI | Bonjour, Je n’ai pas eu votre précèdent message, Pouvez vous me le renvoyer,   Bien cordi… | none - unknown |
-| PBureau (Up In Solutions Ltd.) | High ticket linkfinder AI | Bonjour Oui très bien mais soumettez moi les prospects peut être avant : loueurs automobi… | 2026-10-08 |
 | Yannick (Carbono) | High ticket linkfinder AI | Bonjour,  Je vous laisse me proposer des dates.  Le mer. 7 oct. 2026 à 10:00, Eliasse Ham… | none - unknown |
 | Gilles (ENNEA GROUPE) | High ticket linkfinder AI | Bonjour Monsieur Appelez moi en fin de semaine En revanche, révisez vos informations ... … | CALL THEM - the number is in the reply |
 | Mourad (LYSECURITE sas) | High ticket linkfinder AI | Bonjour, Je ne comprends pas vraiment votre message. Vous proposez quel service exactemen… | 2026-10-08 |
 | Mathieu (Ameo Industrie) | High ticket linkfinder AI | Bonjour,     C’est un sujet qui peut faire sens.           Cordialement.       _____    M… | none - unknown |
 | Lydie (MB CONCEPT Usinage 3D) | High ticket linkfinder AI | Pourriez vous m’indiquer votre fonction ?  Envoyé à partir de Outlook pour iOS De : Elias… | 2026-10-07 |
 | Theodore (OPSYRE) | High ticket linkfinder AI | Bonjour,  Merci de me contacter au 0661992949.  Ensemble, créons et déployons votre strat… | none - unknown |
+| Jean (CRNA) | High ticket linkfinder AI | Bonjour Eliasse,  Je n’ai aucun message de vous la semaine dernière.  De quoi s’agit-il ?… | 2026-10-08 |
 | Thibaut (ODY-C) | High ticket linkfinder AI | Bonjour  Appelez moi   [https://storage.letsignit.com/64649b3ccacd9996373f7976/generated/… | CALL THEM - the number is in the reply |
+| Aurore (Athermelec) | High ticket linkfinder AI | Bonjour,  Quand seriez-vous disponible ?  Merci       Bien cordialement,  [cid:image001.p… | 2026-10-08 |
 | Tatiana (OPERA CYBER) | High ticket linkfinder AI | Oui :)  Envoyé à partir de Outlook pour iOS<https://aka.ms/o0ukef> ______________________… | 2026-10-07 |
+| Gérard (Eman) | High ticket linkfinder AI | Bonjour, Je n'ai pas eu de mail la semaine dernière, je n'ai pas votre agenda en pièce jo… | 2026-10-08 |
 | Antoine (SEKAOP) | High ticket linkfinder AI | Bonjour ,  Je n’ai pas compris votre mail.  Bonne journée.  Le ven. 2 oct. 2026 à 11:11, … | none - unknown |
 | Franck (ISYBOT) | High ticket linkfinder AI | Bonjour,  Merci de me donner plus de détails sur votre service.  Franck  获取 Outlook for i… | none - unknown |
+| Sandra (DataChain® By Adobis Gr…) | High ticket linkfinder AI | Bonjour,  Quel est votre modèle économique et le type de clients dont vous pouvez fournir… | 2026-10-08 |
+| Alain (Asas Tech) | High ticket linkfinder AI | Bonjour  Vous etes qui ? pour quoi ?  Cordialement Alain PRIETO  Le 2026-10-02 08:07, Eli… | 2026-10-08 |
 | Pierre (ZENITH SOLAR DISTRIBUTI…) | High ticket linkfinder AI | Bonjour je préfère que vous m’appeliez. Mon numéro est affiché ci-dessous. Je ne pratique… | none - unknown |
 | Hugues (VMH ENERGIES) | High ticket linkfinder AI | Si mais ce que vous me proposer c’est de l’appel entrant      De : Tara Knight <t@useforg… | none - unknown |
+| Atenia (Atenia) | High ticket linkfinder AI | Bonjour Thomas,  Merci pour votre relance.  Votre proposition peut en effet être intéress… | 2026-10-08 |
+| Contact (Hydralink) | High ticket linkfinder AI | Bonjour,  Oui nous pouvons en discuter. À combien vous estimez le rdv? Et vous pensez pou… | 2026-10-08 |
 | Cyril (ZESTE INFORMATIQUE) | High ticket linkfinder AI | Vous pouvez m'appeler maintenant , je suis à mon bureau.  Le jeu. 1 oct. 2026 à 14:50, Cy… | none - booked in the note |
 | christophe (IsNan informatique) | High ticket linkfinder AI | Très bonne idée !  Le jeu. 1 oct. 2026 à 11:35, Eliasse Hamour <e@launchbrightvox.com> a … | none - unknown |
+| RAPHAEL (ElectroLED by Habitat E…) | High ticket linkfinder AI | Vous proposez quoi ?   Cordialement,  Raphael - ElectroLED  06 68 16 82 76   Le jeu. 1 oc… | 2026-10-08 |
 | marcel@magelan.be (MAGELAN Software Inc.) | High ticket linkfinder AI | oui  	Marcel GEVART Direction générale  marcel@magelan.be +32 64 800 600 www.magelan.be <… | none - unknown |
+| Ludmilla (QOSE SAS) | High ticket linkfinder AI | Bonjour,     Vous occupez-vous de la prospection pour obtenir de nouveaux clients ?      … | 2026-10-08 |
+| Johan (United Focus) | High ticket linkfinder AI | Si je ne paie que les rdv qualifié, je suis ouvert.  A quel prix le rdv ?  De : Eliasse H… | 2026-10-08 |
+| Kevin (Net Konsulting) | High ticket linkfinder AI | Bonjour Eliasse,  Pouvez-vous me dire le coût par rendez-vous ?  Cordialement  Le mar. 29… | none - 3 follow-ups sent, that is the limit |
 | ali.benyahia@concorde-c… (Concorde Conseil) | High ticket linkfinder AI | Bonsoir Tyler,  J'en parle avec mon associé et je te reviens !  Bonne soirée  Ali BENYAHI… | none - unknown |
 | julien.berthomier@axiom… (Axiome Digital - Expert…) | High ticket linkfinder AI | Bonjour,  Combien couterait  le rendez vous pris?  Dois je fournir une liste de prospects… | none - booked |
 | Marc (Novastea) | High ticket linkfinder AI | Bonjour Je vous propose d’échanger le 02/10. Vous avez mon agenda en ligne : https://Cale… | none - unknown |
+| CANTOGREL (revoco by setec) | High ticket linkfinder AI | Bonjour Eliasse,  Nous sommes déjà accompagnés.  Merci et bonne journée,  Charles _______… | none - unknown |
+| Steve (Belinus) | High ticket linkfinder AI | Non merciSent from my Galaxy<div> </div><div> </div><!-- originalMessage --><div>--------… | none - negative |
+| jq@secur-alarmsystemen.… (SecuriPlus-Security) | High ticket linkfinder AI | Beste Eliasse,  Bedankt voor uw bericht.  Wij waarderen uw interesse in onze diensten en … | waiting for Explee's auto-reply |
 | Marc (Lenmatec Group) | High ticket linkfinder AI | Bonjour pas interessé  Van: Eliasse Hamour <e@hellospiralline.com> Verzonden: woensdag 7 … | none - negative |
 | Wladislwa (GOPACK) | High ticket linkfinder AI | Dear Sender,  Thank you for your email. This mailbox is no longer available. Please conta… | none - unknown |
 | Philip (Coatal) | High ticket linkfinder AI | Beste klant, leverancier, relatie,  Mijn ‘shift’ zit er op. Vanaf 30/6/26 geef ik de fakk… | none - unknown |
@@ -111,6 +93,7 @@ To take someone out of the loop: open the lead in the [inbox](https://explee.com
 | thibaut.gourin (E-DEN Cars) | High ticket linkfinder AI | Bonjour  Nous sommes déjà accompagné sur des sujets  Cdlt   Thibaut Gourin  +33 6 29 40 2… | none - unknown |
 | Philippe (ROCK PROTECTION INCENDIE) | High ticket linkfinder AI | Bonjour  Pas interessé  Cordialement  Philippe LOPEZ  [cid:image001.png@01DD5623.77F19CB0… | none - negative |
 | Philippe (Moë-Kan) | High ticket linkfinder AI | Cher Eliasse,     Bien reçu et merci pour cette proposition.  Pas de besoin dans le cadre… | none - negative |
+| Jonathan (Pro-Info) | High ticket linkfinder AI |  |  |
 | Julien (incidences) | High ticket linkfinder AI | Bonjour Eliasse, Non merci, je ne suis pas intéressé. Bonne continuation.  Julien GARÇON … | none - negative |
 | Antonio (Sapiologie) | High ticket linkfinder AI | Bonjour,  Je n'ai pas besoin de vos services  Merci ________________________________ From… | none - unknown |
 | Laurent (SMG Confrere) | High ticket linkfinder AI | Bonjour   Non merci pas de besoin   Cordialement   Envoyé de mon iPhone | none - negative |
@@ -119,6 +102,7 @@ To take someone out of the loop: open the lead in the [inbox](https://explee.com
 | Yan (AISI - Expert Cybersécu…) | High ticket linkfinder AI | Bonjour,  merci pour votre message.  Yan RICHARD ne fait plus partie de la société AISI. … | none - Explee will not accept a reply |
 | Boris (GB Informatique) | High ticket linkfinder AI | Bonjour Eliasse,  Merci beaucoup pour votre retour très clair et pour les précisions  app… | none - unknown |
 | Laurent (GFC - Global Finance Co…) | High ticket linkfinder AI | ﻿ Thank you for your e-mail.  I am on holiday in the mountains between Spain and France u… | none - auto_reply |
+| Gilbert (GMACX) | High ticket linkfinder AI |  |  |
 | jbouvier@acfilconcept.c… (acfilconcept) | High ticket linkfinder AI | Bonjour,  En congés jusqu'au 19 Octobre au matin. Je prendrais conaissance de vos mails à… | none - auto_reply |
 | Albert (COPWELL) | High ticket linkfinder AI | Non merci   Bien Cordialement [cid:image003.png@01DD5579.C900CEA0]<https://copwell.fr/>  … | none - negative |
 | 03/10/2026 (CBAS - Circuit Breaker …) | High ticket linkfinder AI | Je serai hors réseau et donc momentanément injoignable jusqu’au 20 octobre inclus. Je pre… | none - unknown |
@@ -152,6 +136,7 @@ To take someone out of the loop: open the lead in the [inbox](https://explee.com
 | Edouard (CODIPLAS) | High ticket linkfinder AI | Bonjour Sophia,  Votre approche est assez particulière et manque de précisions concernant… | none - negative |
 | Nathalie (Cepelec) | High ticket linkfinder AI | Bonjour, Cette adresse mail n'est plus active.  Pour toute urgence relative à Cepelec, me… | none - unknown |
 | Onciny (SNELCOATING) | High ticket linkfinder AI | Ik ben vandaag afwezig en heb slechts beperkte toegang tot mijn mails.  Je suis absent au… | none - auto_reply |
+| SINTHYLENE (SINTHYLENE) | High ticket linkfinder AI | Bonjour,  Merci pour votre message. Nous l’avons bien reçu et nous reviendrons vers vous … | 2026-10-08 |
 | Abdelkarim (ExpertNow) | High ticket linkfinder AI | Not interested. Thank you  Le mar. 6 oct. 2026, 08:15, Eliasse Hamour <e@launchturncore.c… | none - negative |
 | Thorsten (INCO Logistics S.à r.l.) | High ticket linkfinder AI | Ich befinde mich bis zum einschließlich 09.10.2026 nicht im Haus. Ihre Mails werden nicht… | none - unknown |
 | Arthur (Skysun) | High ticket linkfinder AI | Chère Madame, Cher Monsieur,  Je vous remercie pour votre e-mail. Je suis actuellement ab… | none - auto_reply |
@@ -182,6 +167,7 @@ To take someone out of the loop: open the lead in the [inbox](https://explee.com
 | Emmanuel (Groupe WATT & Co) | High ticket linkfinder AI | bojnur pas intéressé , merci  [https://cdn.boostmymail.com/images/37722/20250717-082426-t… | none - negative |
 | François (Mexar) | High ticket linkfinder AI | Pas intéressé.  Merci pour la proposition  Le lun. 5 oct. 2026 à 08:48, Eliasse Hamour <e… | none - Explee will not accept a reply |
 | Souad (COZEN) | High ticket linkfinder AI | Bonjour,  Je ne fais désormais plus partie d’OMNEGY.  Pour toute demande veuillez contact… | none - unknown |
+| Olivier (DBWO) | High ticket linkfinder AI | Monsieur, Je ne suis intéressé par ce service Bien à vous   Envoyé à partir de Outlook po… | 2026-10-08 |
 | David (CLABAUT) | High ticket linkfinder AI | Bonjour,  Je serai absent du 2/10/26 au 13/10/26 inclus. Vous pouvez contacter Mr Stéphan… | none - auto_reply |
 | Teo (Stellarwind) | High ticket linkfinder AI | Bonjour Eliasse, bien tenté comme prospection mais on ne travaille pas avec des agences d… | none - negative |
 | Alexandre (Diag75) | High ticket linkfinder AI | Bonjour Eliasse,  Merci pour votre relance.  Ce n'est pas un sujet pour nous actuellement… | none - negative |
@@ -252,10 +238,12 @@ To take someone out of the loop: open the lead in the [inbox](https://explee.com
 | Anthony (Lycéa) | High ticket linkfinder AI | Bonjour, Merci de votre offre de service à laquelle nous ne donnerons pas suite. Bien cor… | none - unknown |
 | Christian (Sharecom) | High ticket linkfinder AI | ﻿﻿Geachte klant,  Ik ben de dinsdagen en woensdagen niet op kantoor, en kan mijn emails n… | none - unknown |
 | Benoit (Enerfox) | High ticket linkfinder AI | Bonjour,   Ayant quitté mes fonctions au sein d'Enerfox, je vous invite à contacter le bu… | none - Explee will not accept a reply |
+| Bryan (No More Crash) | High ticket linkfinder AI | Bonjour Eliasse,  Effectivement c’est un sujet d’actualité, cela m’intéresse de creuser l… | 2026-10-08 |
 | Van (AegiX) | High ticket linkfinder AI | Beste,  Hoe kom je voor Aegix aan dit emailadres?                  “A ship in port is saf… | ANSWER THIS ONE YOURSELF in the inbox |
 | Philippe (SAUViX) | High ticket linkfinder AI | Bonjour Eliasse,  Non, ce n'est pas un sujet pour nous actuellement.  Bonne journée  Sign… | none - negative |
 | 🤖 (Aitola) | High ticket linkfinder AI | Bonjour  Pas de Marc chez nous, c est mon associé qui gère les prospects et nous automati… | ANSWER THIS ONE YOURSELF in the inbox |
 | Cathy (HYDROMETAL France) | High ticket linkfinder AI | Bonjour,  nous vous remercions pour votre mail. Nous ne sommes pas intéressés, ayant un d… | none - negative |
+| Michael (Wheelen Consulting SAS) | High ticket linkfinder AI | Hello Hailey,  Yes this could be interesting. Please send me more information.   -- Cordi… | 2026-10-08 |
 | Anthonio (Menouthias IT) | High ticket linkfinder AI | Bonjour, Mettez moi un point ce vendredi matin. Cordialement     Anthonio Vaniarison Dire… | none - unknown |
 | Luc (Defcon1) | High ticket linkfinder AI | Bonjour   Non la prospection n’est pas un sujet d’actualité   Cordialement | none - negative |
 | Steve (SAUViX) | High ticket linkfinder AI | Bonjour Eliasse,  Merci pour votre message. Nous ne sommes actuellement pas en recherche … | none - unknown |
@@ -273,7 +261,9 @@ To take someone out of the loop: open the lead in the [inbox](https://explee.com
 | Vincent (Calopsys 🦜) | High ticket linkfinder AI | Bonjour,  Je ne suis pas intéressé.  Cordialement,  ---  Vincent Trinquier  Calopsys - So… | none - negative |
 | Cedric (JALIX) | High ticket linkfinder AI | ﻿ ﻿ Bonjour  Je vous remercie de votre message  Je suis en déplacement  / absent jusqu'au… | none - auto_reply |
 | MARION (FIDEXPERT CONSEILS) | High ticket linkfinder AI | ﻿ Bonjour, Je suis absente pour une durée indéterminée. Je vous remercie pour votre messa… | none - auto_reply |
+| VINCENT (AEC - Audit Environneme…) | High ticket linkfinder AI | Bonjour Nullement intéressé Cordialement  Envoyé à partir de Outlook pour iOS<https://aka… | 2026-10-08 |
 | Maxime (Univers Solutions) | High ticket linkfinder AI | Trop cher 150 par rdv  [Univers Solutions]      MAXIME MORA  UNIVERS SOLUTIONS   ●    06 … | none - unknown |
+| Marc (Marc Touati) | High ticket linkfinder AI | Bonjour,  Merci beaucoup pour votre proposition et pour votre message.  Pour le moment, c… | 2026-10-08 |
 | Sebastien (LFE / La Financière des…) | High ticket linkfinder AI | Je ne suis pas intéressé, merci. | none - negative |
 | Pascal (TELANODE) | High ticket linkfinder AI | Nos  IA se battent entre elles pour avoir le droit de le faire.   Le 28/09/2026 à 10:53, … | none - unknown |
 | Thierry (Exelat-Solution) | High ticket linkfinder AI | Merci mais pas de besoin   Envoyé de mon iPad | none - negative |
@@ -284,6 +274,7 @@ To take someone out of the loop: open the lead in the [inbox](https://explee.com
 | guypascau (LR Mesures) | High ticket linkfinder AI | Bonjour, Nous vous remercions pour votre email. Guy Pascau étant à la retraite depuis le … | none - Explee will not accept a reply |
 | Marion (MAOBI User-Centric & Su…) | High ticket linkfinder AI | pas d'intérêt cdt  *Marion LAPREE *  Co-founder & CEO, Eco-design and LCA *I* +33 6 67 61… | none - unknown |
 | Simon (Scalene Partners) | High ticket linkfinder AI | Je ne suis pas intéressé.  ________________________________ From: Thomas Cole <t@launchbu… | none - negative |
+| Davy (ECOPART) | High ticket linkfinder AI | Bonjour,  Après plus de 12 années passées à la direction des entreprises ECOPART et BET S… | 2026-10-08 |
 | annabelle (SOLLOG - Odoo) | High ticket linkfinder AI | pas interressé  MErci Le lundi 28 septembre 2026 à 07:23 +0000, Eliasse Hamour a écrit : … | none - unknown |
 | Simon (NovaBorne) | High ticket linkfinder AI | Bonjour,  Je vous informe que mon adresse e-mail a évolué.  Dans le cadre de la structura… | none - unknown |
 | Séverine (LeSensPremier) | High ticket linkfinder AI | Bonjour Tim Pour l'instant nous n'avons ce type de besoin. J'y penserai le cas échéant Bi… | none - unknown |
@@ -293,12 +284,14 @@ To take someone out of the loop: open the lead in the [inbox](https://explee.com
 | Patrick (ALBUS Conseil) | High ticket linkfinder AI | Pas du tout, merci   Envoyé de mon iPhone | none - Explee will not accept a reply |
 | Philippe (PAGE CONSEILS) | High ticket linkfinder AI | Hello  Not interested thanks  Philippe | none - Explee will not accept a reply |
 | Emmanuelle (Time to Be) | High ticket linkfinder AI | Bonjour, j’ai annulé le rendez-vous vous demain, la vidéo à permis de clarifier votre fon… | none - unknown |
+| Gaël (Skalab) | High ticket linkfinder AI | Bonjour Eliasse,  Je prends quelques missions mais la majorité de mon CA est sur une logi… | none - 3 follow-ups sent, that is the limit |
 | Juliana (Nomada & Toast) | High ticket linkfinder AI | Non merci.  Juliana Hoyos Nomada & Toast Project Manager    Our Socials: Instagram   <htt… | none - negative |
 | Alain (49-99 - Assist & Coach) | High ticket linkfinder AI | Bonjour Thomas,  Je n’ai pas besoin de votre service sachant que mon développement se fai… | none - unknown |
 | Maxime (Alta Advisory) | High ticket linkfinder AI | Bonjour Trevor,  Nous ne sommes pas intéressés pour le moment.  Bien à vous,    [Logo] Ma… | none - negative |
 | Samuel (ACA ATTIA CONSEILS & AS…) | High ticket linkfinder AI | Je ne suis pas intéressé pour le moment Merci   [https://img.signitic.app/w/01KKBESH8SVSE… | none - negative |
 | Bertrand (VIP-IT [plenITude résil…) | High ticket linkfinder AI | ﻿    Bonjour,  Actuellement en congés jusqu'au  28/09/2026   Cordialement,  I am out of t… | none - auto_reply |
 | David (TEAMPARSEC) | High ticket linkfinder AI | Bonjour,  Je vous remercie pour votre message. Je suis absent du bureau jusqu'au 8 octobr… | none - auto_reply |
+| DAYAN (IFLAS PARIS) | High ticket linkfinder AI | Donnez moi vos tarifs directement j’ai pas le temps d’un appel ni visio    Dayan YALAP Pr… | none - 3 follow-ups sent, that is the limit |
 | Chloé (Chloé de Quillacq) | High ticket linkfinder AI | Non merci !  06 16 77 11 73 1 Rue du Pré Saint-Gervais 93500 Pantin   Le ven. 25 sept. 20… | none - negative |
 | Rémy (E-NOVIA CONSEILS ET EXP…) | High ticket linkfinder AI | Bonjour, Je suis absent du cabinet du 24/09/2026 au 28/09/2026. Durant mon d’absence, je … | none - auto_reply |
 | Pauline (Cabinet Belle & Dhaine) | High ticket linkfinder AI | Bonjour et merci pour votre message.  Mme Pourteigt a quitté ses fonctions du sein du cab… | none - Explee will not accept a reply |
@@ -306,6 +299,7 @@ To take someone out of the loop: open the lead in the [inbox](https://explee.com
 | Yannick (ANAMY SOLUTIONS) | High ticket linkfinder AI | Bonjour,  Merci à vous.   Je n’ai aucun besoin de ce côté là.  Cdt   Envoyé depuis un sma… | none - unknown |
 | Nathalie (SYNERGY PREM1UM BUSINESS) | High ticket linkfinder AI | Bonjour,  Merci pour votre message.  Nous sommes actuellement en congés et bénéficions de… | none - auto_reply |
 | Michel (Orchidée Consulting) | High ticket linkfinder AI | non merci   Michel LAMON  Directeur  +33 6 49 13 20 38  Réservez un créneau pour échanger… | none - negative |
+| Pierre (ALTITUDE BLEUE CONSULTI…) | High ticket linkfinder AI | Why not On s’appelle ?   Pierre Jean-Michel ROBERT CEO 3, impasse des Ribes 03100 MONTLUÇ… | none - 3 follow-ups sent, that is the limit |
 | Aude (ITDM France) | High ticket linkfinder AI | Bonjour,  Merci pour votre mail.  J'aurai un accès restreint à mes mails du 10 avril 2023… | none - unknown |
 | Vincent (Savinianne) | High ticket linkfinder AI | Bonjour,  Je serai de retour le 29 Septembre, avec un accès très limité aux messages, en … | none - auto_reply |
 | Thomas (The360Lab) | High ticket linkfinder AI | Bonjour,  Je suis actuellement absent pour raisons de santé et ne suis pas en mesure de c… | none - auto_reply |
@@ -582,10 +576,13 @@ To take someone out of the loop: open the lead in the [inbox](https://explee.com
 | Patrice (Emergence Académie) | Organismes de formation FR/… | Bonjour, Vous êtes bien sur ma messagerie. Je ne suis pas disponible pour le moment. En r… | none - unknown |
 | David (Afc Prevention) | Organismes de formation FR/… | Bonjour,     Oui, je veux bien plus d’explication.     Cordialement,       De : Tanner Fo… | none - booked in the note |
 
-## Hot leads Explee flagged (45)
+## Hot leads Explee flagged (46)
 
 | who | title | campaign | went hot | in the loop |
 |---|---|---|---|---|
+| Guillaume (Styx Consulting) | Owner | High ticket linkfinder AI | 2026-10-07 | yes |
+| Mounis (KYTL Security) | Chief Security Advisor | High ticket linkfinder AI | 2026-10-07 | yes |
+| Francisco (FJFM) | Chief Executive Officer | High ticket linkfinder AI | 2026-10-07 | yes |
 | Alexandre (Damois) | President | High ticket linkfinder AI | 2026-10-07 | yes |
 | Pascal (Up In Solutions Ltd.) | Chief Executive Officer | High ticket linkfinder AI | 2026-10-07 | yes |
 | Yannick (Carbono) | Chief Executive Officer | High ticket linkfinder AI | 2026-10-07 | yes |
@@ -607,11 +604,9 @@ To take someone out of the loop: open the lead in the [inbox](https://explee.com
 | Hugues (VMH ENERGIES) | Chief Executive Officer | High ticket linkfinder AI | 2026-10-02 | yes |
 | Florent (Atenia) | Co-Founder | High ticket linkfinder AI | 2026-10-02 | yes |
 | Sabri (Hydralink) | Co-Founder | High ticket linkfinder AI | 2026-10-02 | yes |
-| Francisco (FJFM) | Chief Executive Officer | High ticket linkfinder AI | 2026-10-02 | yes |
 | Cyril (ZESTE INFORMATIQUE) | Manager | High ticket linkfinder AI | 2026-10-01 | yes |
 | Christophe (IsNan informatique) | Founder | High ticket linkfinder AI | 2026-10-01 | yes |
 | Raphael (ElectroLED by Habitat E…) | President | High ticket linkfinder AI | 2026-10-01 | yes |
-| Mounis (KYTL Security) | Chief Security Advisor | High ticket linkfinder AI | 2026-10-01 | yes |
 | Marcel (MAGELAN Software Inc.) | Chief Executive Officer | High ticket linkfinder AI | 2026-09-30 | yes |
 | Ludmilla (QOSE SAS) | Chief Executive Officer | High ticket linkfinder AI | 2026-09-30 | yes |
 | Johan (United Focus) | Principal Managing Partner | High ticket linkfinder AI | 2026-09-30 | yes |
