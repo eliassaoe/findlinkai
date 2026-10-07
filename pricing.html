@@ -16,6 +16,7 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
 </script>
 <script src="/js/lf-attribution.js"></script>
 <script>LFSegment.writeStarterScript();</script>
+<script src="/js/lf-agency-plans.js"></script>
   <meta charset="utf-8" />
   <link rel="icon" href="https://i.ibb.co/jPjX9SSp/Screen-Shot-2025-03-28-at-8-16-15-PM.png">
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -635,6 +636,62 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
         + '<a href="' + LFSegment.CUSTOM_PLAN_URL + '" target="_blank" rel="noopener" class="btn-call" data-lf-custom-plan="pricing"><i class="fas fa-calendar-alt"></i> Book a custom plan →</a>'
         + '<p class="no-cc"><i class="fas fa-clock"></i> 15 minutes, with the founder</p>';
       if (sales) grid.replaceChild(custom, sales); else grid.appendChild(custom);
+
+      // Outbound plans (js/lf-agency-plans.js, docs/agency-outbound-pricing.md),
+      // once their Dodo products exist: they replace Pro/Business, and the
+      // monthly/annual toggle and the packs go. Until then this returns here
+      // and the renamed Pro/Business above stay.
+      var A = window.LF_AGENCY_PLANS;
+      if (!A || !A.live) return;
+      function money(n) { return '$' + n.toLocaleString('en-US'); }
+      var hasAccount = false;
+      try { hasAccount = !!localStorage.getItem('linkFinderToken'); } catch (e) {}
+      var customFirst = custom.querySelector('li');
+      if (customFirst) customFirst.lastChild.textContent = ' Everything in Agency Pro';
+      ['pro', 'enterprise'].forEach(function (key) {
+        var card = grid.querySelector('.pricing-card[data-plan="' + key + '"]');
+        if (card) card.remove();
+      });
+      A.plans.slice().reverse().forEach(function (plan, r) {
+        var index = A.plans.length - 1 - r;
+        var y = plan.options[0];
+        var q = plan.options[1];
+        var card = document.createElement('div');
+        card.className = 'pricing-card' + (index === 0 ? ' featured' : '');
+        card.setAttribute('data-agency-card', plan.key);
+        card.innerHTML = ''
+          + (index === 0 ? '<div class="popular-badge">Most agencies</div>' : '')
+          + '<span class="best-for">' + (index === 0 ? 'Agencies with several clients' : 'High-volume client work') + '</span>'
+          + '<div class="plan-name">' + plan.name + '</div>'
+          + '<p class="plan-description">' + plan.creditsPerMonth.toLocaleString('en-US') + ' credits a month, all of them up front</p>'
+          + '<div class="price-row"><span class="price-currency">$</span><span class="price-amount">' + y.perMonth + '</span></div>'
+          + '<p class="price-period">per month, billed ' + money(y.price) + ' yearly</p>'
+          + '<p class="price-was">' + (q ? 'or ' + money(q.price) + ' every 3 months' : 'yearly only') + '</p>'
+          + '<div class="credits-info"><div class="credits-amount">' + y.credits.toLocaleString('en-US') + '</div>'
+          +   '<div class="credits-label">credits on yearly</div></div>'
+          + '<ul class="plan-features">' + A.perks.map(function (p) { return '<li><span class="check">&#10003;</span> ' + p + '</li>'; }).join('')
+          +   '<li><span class="check">&#10003;</span> Bulk CSV, Google Sheets, API and HubSpot sync</li></ul>'
+          + '<a href="#" class="btn-trial' + (index === 0 ? ' featured-btn' : '') + '" data-agency-plan="' + y.planKey + '">Choose ' + plan.name + ' yearly →</a>'
+          + (q ? '<a href="#" class="btn-trial" style="background:#fff;color:var(--primary);border:1px solid var(--primary);" data-agency-plan="' + q.planKey + '">Pay quarterly: ' + money(q.price) + '</a>' : '');
+        grid.insertBefore(card, grid.firstChild);
+      });
+      grid.querySelectorAll('[data-agency-plan]').forEach(function (a) {
+        a.addEventListener('click', function (ev) {
+          ev.preventDefault();
+          var plan = a.getAttribute('data-agency-plan');
+          try { posthog.capture('plan_selected', { plan: LFSegment.planId(plan), plan_key: plan, surface: 'pricing_page', page: 'pricing', has_account: hasAccount }); } catch (e) {}
+          if (hasAccount) { window.location.href = '/app?action=upgrade&plan=' + encodeURIComponent(plan); return; }
+          try { localStorage.setItem('lf_pending_plan', plan); } catch (e) {}
+          window.location.href = '/sign-up';
+        });
+      });
+      var toggle = document.querySelector('.billing-toggle');
+      if (toggle) toggle.style.display = 'none';
+      // The packs section comes after this script in the page.
+      document.addEventListener('DOMContentLoaded', function () {
+        var payg = document.getElementById('payg');
+        if (payg) payg.style.display = 'none';
+      });
     })();
 
     // Tracking: pricing_viewed, plan_selected (the plan's trial button) and

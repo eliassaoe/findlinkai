@@ -16,6 +16,7 @@ posthog.init('phc_HqgzMyWAMtzH7K5j9CLw0dijB0I9W1VjPkkyzg9KOFG',{api_host:'https:
 </script>
 <script src="/js/lf-attribution.js"></script>
 <script>LFSegment.writeStarterScript();</script>
+<script src="/js/lf-agency-plans.js"></script>
 <script>(function(w,d,t,r,u){var f,n,i;w[u]=w[u]||[],f=function(){var o={ti:"343223134",enableAutoSpaTracking:true};o.q=w[u],w[u]=new UET(o),w[u].push("pageLoad")},n=d.createElement(t),n.src=r,n.async=1,n.onload=n.onreadystatechange=function(){var s=this.readyState;s&&s!=="loaded"&&s!=="complete"||(f(),n.onload=n.onreadystatechange=null)},i=d.getElementsByTagName(t)[0],i.parentNode.insertBefore(n,i)})(window,document,"script","//bat.bing.com/bat.js","uetq");</script>
 <script async src="https://www.googletagmanager.com/gtag/js?id=AW-17588707745"></script>
 <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','AW-17588707745');</script>
@@ -874,9 +875,32 @@ function showCheckoutError(message, opts = {}) {
     } catch(e) {}
 }
 
+// Outbound (agency) accounts: their two plans from js/lf-agency-plans.js, no
+// billing toggle, no packs. Same rule as app.html. docs/agency-outbound-pricing.md.
+function agencyPlansActive() {
+    return isAgencySegment() && !!(window.LF_AGENCY_PLANS && LF_AGENCY_PLANS.live);
+}
+
+async function proceedToAgencyCheckout(planKey, btnEl) {
+    const o = LF_AGENCY_PLANS.option(planKey);
+    if (!o) return;
+    await launchCheckout({ planKey: o.planKey, analyticsPlanName: o.plan.name, value: o.price, billingLabel: o.billing, btnEl });
+}
+
 function renderPlansGrid() {
     const grid = document.getElementById('plansGrid');
     if (!grid) return;
+
+    const toggle = document.querySelector('#pricingModal .billing-toggle');
+    const agencyPlansOn = agencyPlansActive();
+    if (toggle) toggle.style.display = agencyPlansOn ? 'none' : '';
+    if (agencyPlansOn) {
+        const banner = document.getElementById('paygNeverExpireBanner');
+        if (banner) banner.style.display = 'none';
+        const current = isExistingSubscriber && currentPlanNumber ? LF_AGENCY_PLANS.byPlanNumber(currentPlanNumber) : null;
+        grid.innerHTML = LF_AGENCY_PLANS.cardsHtml(current ? current.planKey : null) + renderCustomPlanCard();
+        return;
+    }
 
     if (billingMode === 'payg') {
         grid.innerHTML = renderPaygCards();

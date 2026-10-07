@@ -48,6 +48,7 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
     })
 </script>
 <script src="/js/lf-attribution.js"></script>
+<script src="/js/lf-agency-plans.js"></script>
 <script src="/js/lf-tools-key.js"></script>
 <script src="/js/lf-linkedin-url.js"></script>
 <script src="/js/lf-csv.js"></script>
@@ -384,6 +385,67 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
       <p class="fine">Prefer to pay monthly? <button type="button" class="linkbtn" data-plan="pro_monthly">Pro $99</button> · <button type="button" class="linkbtn" data-plan="enterprise_monthly">Business $249</button> a month, cancel anytime. Setup call not included.</p>
       <p class="fine">Email counts assume 10 credits per email found from a LinkedIn profile.</p>
     </section>
+    <script>
+      // Outbound plans (js/lf-agency-plans.js, docs/agency-outbound-pricing.md).
+      // Once their Dodo products exist they replace Pro/Business above; until
+      // then this does nothing and the static plans stay. Runs before the click
+      // handlers below are bound, so the new buttons get them.
+      (function () {
+        var A = window.LF_AGENCY_PLANS;
+        if (!A || !A.live) return;
+        var sec = document.getElementById('pricing');
+        if (!sec) return;
+        function money(n) { return '$' + n.toLocaleString('en-US'); }
+        // Built with DOM calls, never innerHTML (tests/agency-page.test.mjs).
+        function el(tag, attrs, kids) {
+          var e = document.createElement(tag);
+          Object.keys(attrs || {}).forEach(function (k) { e.setAttribute(k, attrs[k]); });
+          (kids || []).forEach(function (k) { e.appendChild(typeof k === 'string' ? document.createTextNode(k) : k); });
+          return e;
+        }
+        sec.querySelector('h2').textContent = 'Pay yearly or quarterly. No seats.';
+        sec.querySelector('.lede').textContent = "All of your term's credits land on day one, and your price doesn't grow with every client you sign or every person you add to the team.";
+        var codeP = sec.querySelector('.code p');
+        codeP.textContent = '';
+        codeP.appendChild(el('strong', {}, ['Every plan: we run your first client list with you on a setup call.']));
+        codeP.appendChild(document.createTextNode(' Yearly plans also carry a 30-day money-back guarantee.'));
+        var plansEl = sec.querySelector('.plans');
+        var custom = plansEl.querySelector('[data-custom-plan]');
+        var customCard = custom ? custom.closest('.plan') : null;
+        while (plansEl.firstChild) plansEl.removeChild(plansEl.firstChild);
+        A.plans.forEach(function (plan, index) {
+          var y = plan.options[0];
+          var q = plan.options[1];
+          var kids = [];
+          if (index === 0) kids.push(el('span', { 'class': 'badge' }, ['Most agencies']));
+          kids.push(el('h3', {}, [plan.name]));
+          kids.push(el('p', { 'class': 'for' }, [index === 0 ? 'Several clients every month' : 'High-volume client work']));
+          kids.push(el('div', { 'class': 'price' }, [el('b', {}, [money(y.perMonth)]), el('span', {}, ['/month'])]));
+          kids.push(el('p', { 'class': 'then' }, ['billed ' + money(y.price) + ' a year' + (q ? ', or ' + money(q.price) + ' every 3 months' : ', yearly only')]));
+          kids.push(el('ul', {}, [
+            el('li', {}, [plan.creditsPerMonth.toLocaleString('en-US') + ' credits a month, all ' + y.credits.toLocaleString('en-US') + ' up front on yearly']),
+            el('li', {}, ['About ' + Math.round(plan.creditsPerMonth / 10).toLocaleString('en-US') + ' verified emails a month from LinkedIn profiles']),
+            el('li', {}, ['CSV, Google Sheets, API and HubSpot sync']),
+            el('li', {}, ['We run your first client list with you on a setup call'])
+          ]));
+          kids.push(el('div', { 'class': 'spacer' }));
+          kids.push(el('button', { type: 'button', 'class': 'btn' + (index === 0 ? '' : ' btn--ghost') + ' btn--block', 'data-plan': y.planKey }, ['Choose ' + plan.name + ' yearly']));
+          if (q) kids.push(el('button', { type: 'button', 'class': 'btn btn--ghost btn--block', style: 'margin-top:8px;', 'data-plan': q.planKey }, ['Pay quarterly: ' + money(q.price)]));
+          plansEl.appendChild(el('div', { 'class': 'plan' + (index === 0 ? ' plan--pick' : '') }, kids));
+        });
+        if (customCard) {
+          var first = customCard.querySelector('li');
+          if (first) first.textContent = 'Everything in Agency Pro';
+          plansEl.appendChild(customCard);
+        }
+        var fine = sec.querySelectorAll('.fine');
+        if (fine[0]) fine[0].textContent = 'No monthly plan: Agency is billed yearly or every 3 months, Agency Pro yearly. The money-back guarantee covers yearly plans.';
+        var setup = document.querySelector('[data-faq="setup-call"]');
+        if (setup) setup.textContent = "It comes with every Agency and Agency Pro plan. We connect LinkFinder to your stack (Clay, n8n, HubSpot, Google Sheets or the API) and run the first list you're working on for a client together, so your team leaves with a process that works. You get the booking link right after checkout.";
+        var monthly = document.querySelector('[data-faq="monthly"]');
+        if (monthly) monthly.textContent = 'There is no month-to-month plan. Agency can be paid every 3 months (' + money(A.option('agency_quarterly').price) + ') instead of yearly; Agency Pro is yearly only.';
+      })();
+    </script>
 
     <section>
       <p class="eyebrow">Questions</p>
@@ -403,7 +465,7 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
         </details>
         <details>
           <summary>What happens on the setup call?</summary>
-          <p>It comes with annual Pro or Business. We connect LinkFinder to your stack (Clay, n8n, HubSpot, Google Sheets or the API) and run the first list you're working on for a client together, so your team leaves with a process that works. You get the booking link right after checkout.</p>
+          <p data-faq="setup-call">It comes with annual Pro or Business. We connect LinkFinder to your stack (Clay, n8n, HubSpot, Google Sheets or the API) and run the first list you're working on for a client together, so your team leaves with a process that works. You get the booking link right after checkout.</p>
         </details>
         <details>
           <summary>What if it isn't right for us?</summary>
@@ -411,7 +473,7 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
         </details>
         <details>
           <summary>Can I pay monthly instead?</summary>
-          <p>Yes. Both plans are also sold monthly at the full price ($99 or $249), cancel anytime. Yearly is 40% cheaper and includes the setup call.</p>
+          <p data-faq="monthly">Yes. Both plans are also sold monthly at the full price ($99 or $249), cancel anytime. Yearly is 40% cheaper and includes the setup call.</p>
         </details>
         <details>
           <summary>Can someone help me set it up?</summary>

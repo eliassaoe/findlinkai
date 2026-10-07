@@ -20,6 +20,11 @@
  *   never block a checkout.
  * - Returns Dodo's raw response (dodo_raw) on success; see PATCH.md.
  *
+ * Added 7 Oct 2026 (docs/agency-outbound-pricing.md):
+ * - agency_quarterly / agency_annual / agency_pro_annual, the plans outbound
+ *   (agency segment) accounts see. Their ids are empty until the Dodo products
+ *   exist, which makes them answer "Plan not configured".
+ *
  * Added 4 Oct 2026 (docs/agency-pricing.md):
  * - Agency accounts cannot buy the $49 Starter plan. Before a starter_* session
  *   is created, the account's segment is read from Supabase
@@ -51,6 +56,14 @@ const PRODUCT_IDS = {
   payg_small:         'pdt_0Nj62gByZ53OzYoz3bCBr',
   payg_medium:        'pdt_0Nj62kQhG7EzZWogTmjfE',
   payg_large:         'pdt_0Nj62scEtjXTicj4P2thT',
+  // Outbound (agency segment) plans, docs/agency-outbound-pricing.md. Empty
+  // until the products are created in Dodo; an empty id answers
+  // "Plan not configured" (400), so nothing is sold before they exist.
+  // Must equal the `product` fields in js/lf-agency-plans.js
+  // (tests/agency-outbound-plans.test.mjs).
+  agency_quarterly:   '',   // Agency, $417 every 3 months, 90,000 credits per quarter
+  agency_annual:      '',   // Agency, $1,428/yr, 360,000 credits
+  agency_pro_annual:  '',   // Agency Pro, $2,988/yr, 900,000 credits
 };
 
 const PACK_CREDITS = {

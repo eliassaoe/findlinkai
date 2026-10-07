@@ -1,5 +1,7 @@
 # Agency pricing
 
+> **Next step built 2026-10-07:** once its Dodo products exist, the agency segment sees Agency / Agency Pro instead of Pro / Business. See `docs/agency-outbound-pricing.md`. Who is in the segment (below) is unchanged.
+
 **Shipped:** 2026-10-04 · **Tests:** `tests/agency-pricing.test.mjs`
 
 Agency visitors see two plans, **Pro** (key `pro`, $99) and **Business** (key

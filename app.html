@@ -14,6 +14,7 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
 </script>
 <script src="/js/lf-attribution.js"></script>
 <script>LFSegment.writeStarterScript();</script>
+<script src="/js/lf-agency-plans.js"></script>
 <script>
     (function(w,d,t,r,u){var f,n,i;w[u]=w[u]||[],f=function(){var o={ti:"343223134", enableAutoSpaTracking: true};o.q=w[u],w[u]=new UET(o),w[u].push("pageLoad")},n=d.createElement(t),n.src=r,n.async=1,n.onload=n.onreadystatechange=function(){var s=this.readyState;s&&s!=="loaded"&&s!=="complete"||(f(),n.onload=n.onreadystatechange=null)},i=d.getElementsByTagName(t)[0],i.parentNode.insertBefore(n,i)})(window,document,"script","//bat.bing.com/bat.js","uetq");
 </script>
@@ -2219,6 +2220,21 @@ function renderPlansGrid() {
     const grid = document.getElementById('plansGrid');
     if (!grid) return;
 
+    // Outbound (agency) accounts get their own two plans, quarterly/yearly
+    // inside each card, and no billing toggle: no monthly, no packs.
+    // docs/agency-outbound-pricing.md.
+    const toggle = document.querySelector('#pricingModal .billing-toggle');
+    const agencyPlansOn = agencyPlansActive();
+    if (toggle) toggle.style.display = agencyPlansOn ? 'none' : '';
+    if (agencyPlansOn) {
+        ['agencyOfferBanner', 'annualGuaranteeLine', 'paygNeverExpireBanner'].forEach(function (id) {
+            const el = document.getElementById(id);
+            if (el) el.style.display = 'none';
+        });
+        grid.innerHTML = renderAgencyPlanCards() + renderCustomPlanCard('pricing_modal');
+        return;
+    }
+
     // NEW: PAYG branch — render credit packs instead of subscription plans
     if (billingMode === 'payg') {
         grid.innerHTML = renderPaygCards();
@@ -2309,6 +2325,40 @@ function renderPlansGrid() {
 }
 
 /*
+ * The outbound plans (js/lf-agency-plans.js), for agency accounts once their
+ * Dodo products exist. Until then agencyPlansActive() is false and agency
+ * accounts keep Pro/Business below. docs/agency-outbound-pricing.md.
+ */
+function agencyPlansActive() {
+    return isAgencySegment() && !!(window.LF_AGENCY_PLANS && LF_AGENCY_PLANS.live);
+}
+
+// ?plan= / lf_pending_plan naming an outbound plan ("agency_annual"...), or
+// null. Only once those plans are live; before that the key means nothing and
+// the caller falls back to the modal.
+function agencyPlanParam(planParam) {
+    if (!planParam || !window.LF_AGENCY_PLANS || !LF_AGENCY_PLANS.live) return null;
+    return LF_AGENCY_PLANS.option(String(planParam).trim().toLowerCase());
+}
+
+function renderAgencyPlanCards() {
+    const current = isExistingSubscriber && currentPlanNumber ? LF_AGENCY_PLANS.byPlanNumber(currentPlanNumber) : null;
+    return LF_AGENCY_PLANS.cardsHtml(current ? current.planKey : null);
+}
+
+async function proceedToAgencyCheckout(planKey, btnEl) {
+    const o = LF_AGENCY_PLANS.option(planKey);
+    if (!o) return;
+    await launchCheckout({
+        planKey: o.planKey,
+        analyticsPlanName: o.plan.name,
+        value: o.price,
+        billingLabel: o.billing,
+        btnEl
+    });
+}
+
+/*
  * Agency visitors get this card instead of Enterprise: two plans (Pro,
  * Business) and a way to ask for more, booked straight on the calendar.
  * docs/agency-pricing.md.
@@ -2321,7 +2371,7 @@ function renderCustomPlanCard(source) {
         + '<div class="plan-item-credits">More credits, more clients</div>'
         + '<div class="plan-item-per-credit">sized on a 15-minute call</div>'
         + '<div style="font-size:0.68rem;color:var(--gray-500);line-height:1.5;margin-top:0.5rem;padding-top:0.5rem;border-top:1px dashed var(--gray-200);text-align:left;">'
-        +   '&#10003; Everything in Business<br>'
+        +   '&#10003; Everything in ' + (agencyPlansActive() ? 'Agency Pro' : 'Business') + '<br>'
         +   '&#10003; Credit allocation sized to your clients<br>'
         +   '&#10003; Onboarding call included'
         + '</div>'
@@ -2795,7 +2845,8 @@ function handleDodoReturnStatus() {
 
         // Read before the upgrade-intent call below marks them a subscriber,
         // which switches agencyOfferActive() off.
-        if (agencyOfferActive() && AGENCY_SETUP_CALL_PLANS.includes(pending?.plan_key)) {
+        if ((agencyOfferActive() && AGENCY_SETUP_CALL_PLANS.includes(pending?.plan_key))
+            || AGENCY_PLAN_KEYS.includes(pending?.plan_key)) {
             showAgencySetupCallPrompt(pending.plan_key);
         }
 
@@ -2907,6 +2958,8 @@ function showAnnualBanner(planNumber) {
     try { posthog.capture('annual_banner_shown', { plan: plan.key, saving: s.saving }); } catch (e) {}
 }
 const AGENCY_SETUP_CALL_PLANS = ['pro_annual', 'enterprise_annual'];
+// Every outbound plan includes the setup call ("we run your first client list").
+const AGENCY_PLAN_KEYS = ['agency_annual', 'agency_quarterly', 'agency_pro_annual'];
 const AGENCY_SETUP_CALL_URL = 'https://calendly.com/hamoureliasse/linkfinder-ai?utm_source=agency-annual';
 
 function showAgencySetupCallPrompt(planKey) {
@@ -3162,6 +3215,11 @@ let cimSelectedTierIndex = 1;
 
 function showInsufficientCreditsModal(trigger = 'single_enrichment') {
     creditsExhaustedTrigger = trigger;
+    // Outbound accounts are not sold packs: their wall is their two plans.
+    if (agencyPlansActive()) {
+        showPricingModal('credits_exhausted');
+        return;
+    }
 
     // Reset tier selection to Medium (best AOV) every time the modal opens
     const tiersEl = document.getElementById('cimTiers');
@@ -5499,8 +5557,12 @@ function checkAuth(){
         // skip the modal and mint the payment session now. Without one - or with
         // a plan we do not recognise - open the modal and let them choose, which
         // is the old behaviour and the only safe fallback.
-        const resumed = resolvePlanParam(p.get('plan'), p.get('billing'));
-        if (resumed){
+        const resumedAgency = agencyPlanParam(p.get('plan'));
+        const resumed = resumedAgency ? null : resolvePlanParam(p.get('plan'), p.get('billing'));
+        if (resumedAgency){
+            try { posthog.capture('email_resume_checkout', { plan: resumedAgency.planKey, billing: resumedAgency.billing }); } catch(e) {}
+            setTimeout(()=>proceedToAgencyCheckout(resumedAgency.planKey, null), 300);
+        } else if (resumed){
             billingMode = resumed.billing;
             try { posthog.capture('email_resume_checkout', {
                 plan: plans[resumed.index].key, billing: resumed.billing,
@@ -5584,8 +5646,14 @@ function checkAuth(){
             pendingPlan = localStorage.getItem('lf_pending_plan');
             localStorage.removeItem('lf_pending_plan');
         } catch(e) {}
-        const pending = pendingPlan ? resolvePlanParam(pendingPlan, null) : null;
-        if (pending){
+        const pendingAgency = agencyPlanParam(pendingPlan);
+        const pending = pendingPlan && !pendingAgency ? resolvePlanParam(pendingPlan, null) : null;
+        if (pendingAgency){
+            try { posthog.capture('pending_plan_checkout', {
+                plan: pendingAgency.planKey, billing: pendingAgency.billing, source: 'agency_page',
+            }); } catch(e) {}
+            setTimeout(()=>proceedToAgencyCheckout(pendingAgency.planKey, null), 300);
+        } else if (pending){
             billingMode = pending.billing;
             try { posthog.capture('pending_plan_checkout', {
                 plan: plans[pending.index].key, billing: pending.billing, source: 'agency_page',

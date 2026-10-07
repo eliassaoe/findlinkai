@@ -274,7 +274,7 @@
 
         // The analytics id of a plan: starter / pro / business.
         planId: function (key) {
-            var k = String(key || '').replace(/_(monthly|annual)$/, '');
+            var k = String(key || '').replace(/_(monthly|annual|quarterly)$/, '');
             if (k === 'enterprise' || k === 'scale') return 'business';
             if (k === 'pro' || k === 'professional') return 'pro';
             if (k === 'starter') return 'starter';
