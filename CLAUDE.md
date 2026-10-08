@@ -58,6 +58,7 @@ into a file here in the same session, or it is gone.
 | The `api_first_call_succeeded` event: what fires it today, the 20-line patch the API worker still needs, and the CORS headers the Run-it-now buttons depend on | `workers/api-first-call/README.md` |
 | **How CSV / Google Sheets / API / CRM are offered in the app** — inside the result, never as a popup; which prompts were retired and why | `docs/next-step-routing.md` — read it before adding any nudge, banner or popup to `app.html` |
 | What the account page counts as "found" | `docs/account-value-summary.md` |
+| **API calls in History and "What you've found"** — the `source` column, `record_api_enrichment`, and the patch the API worker still needs | `workers/api-history/README.md` |
 | The monthly value receipt email — how the numbers are computed, the worker, workflow 12 | `workers/monthly-receipt/README.md` |
 | The AI SDR service offer, and who is allowed to see it | `docs/ai-sdr-offer.md` |
 | **Checkout: the two doors to a Dodo payment page, and the hourly canary** | `workers/dodo-checkout/README.md` — read it before touching `launchCheckout()`, `showCheckoutError()` or the rescue banner in `app.html`; `tests/checkout-second-door.test.mjs` pins the wiring |

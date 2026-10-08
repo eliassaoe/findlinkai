@@ -115,6 +115,13 @@ grant execute on function public.user_value_summary(text) to anon, authenticated
 Live on project `snxhsboboatjywgwdeds`. Checked against the owner's own account:
 5,319 lookups, 4,983 found.
 
+## API lookups count too
+
+Lookups made through the public API are written to `enrichment_history` with
+`source = 'api'` (`workers/api-history/README.md`). This function counts every
+row whatever its source, so nothing here needs to change for them, and it must
+stay that way: filtering on `source` would hide the heaviest users' value.
+
 ## Once a month, by email
 
 The same numbers go out as the monthly value receipt (`workers/monthly-receipt`,
