@@ -1,4 +1,4 @@
-# Explee follow-ups — leptitlogiciel — 2026-10-08 14:39 UTC
+# Explee follow-ups — leptitlogiciel — 2026-10-08 16:37 UTC
 
 **SENT 0 emails**
 
@@ -11,7 +11,7 @@ To take someone out of the loop: open the lead in the [inbox](https://explee.com
 | skip: auto_reply | 18 |
 | skip: can_reply is false | 8 |
 | skip: reply cap (3) reached on this message | 6 |
-| skip: nudge 2 due in 0.9d | 2 |
+| skip: nudge 2 due in 0.8d | 2 |
 
 ## Everyone else who replied
 
