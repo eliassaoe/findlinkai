@@ -7860,6 +7860,9 @@ const ONBOARDING_TASKS_WORKER = 'https://onboarding-tasks-worker.hamoureliasse.w
 
 const OTP_LINKS = {
     youtube: 'https://www.youtube.com/@EliasIA694',
+    // LinkedIn's share dialog, prefilled with the site. They write the post,
+    // then paste its link back (linkedin_share).
+    linkedinShare: 'https://www.linkedin.com/sharing/share-offsite/?url=https%3A%2F%2Flinkfinderai.com',
     twitter: 'https://twitter.com/linkfinderai',
     // Both must be the WRITE form, not the listing page. Sending people to
     // /reviews showed them other people's reviews with nothing to fill in, and
@@ -7971,12 +7974,18 @@ const OTP_TASKS_ALL = [
       credits: 100, realValue: '= 100 LinkedIn profiles', linkUrl: SHEETS_ADDON_URL, linkLabel: 'Open the add-on' },
     { name: 'hubspot_connected', kind: 'auto', label: 'Connect HubSpot', sub: 'Every result lands in your CRM in one click. Credited once the connection is live.',
       credits: 300, realValue: '= 30 emails or 300 LinkedIn profiles', href: () => addGclid('https://linkfinderai.com/crm-sync?token=' + userToken), linkLabel: 'Connect HubSpot' },
-    { name: 'youtube_subscribe', kind: 'honor_click', label: 'Subscribe to our YouTube channel', credits: 100, realValue: '= 100 LinkedIn profiles', linkUrl: OTP_LINKS.youtube, linkLabel: 'Open channel' },
-    // linkedin_share was removed on 31 Aug: two completions in its whole life,
-    // and it was the one task whose "proof" was any linkedin.com URL, so it
-    // paid 150 credits for pasting a link to somebody else's post. It stays in
-    // the worker's TASK_CONFIG so the two people who did complete it keep
-    // their credits and their history renders.
+    // Replaced youtube_subscribe on 9 Oct (owner's call): a post puts the
+    // product in front of the person's own network, a subscribe does not.
+    // youtube_subscribe stays in the worker's TASK_CONFIG so the people who
+    // did it keep their credits and their history renders.
+    //
+    // This task was removed once before (31 Aug) because its proof was any
+    // linkedin.com URL, so it paid for pasting a link to somebody else's post.
+    // The proof now has to be a link to a post (LI_POST_URL, checked here and
+    // in the worker); it still cannot prove the post is theirs, which is why
+    // it stays at 150.
+    { name: 'linkedin_share', kind: 'url', label: 'Share LinkFinder AI on LinkedIn', sub: 'Write a short post about us, then paste the link to your post.',
+      credits: 150, realValue: '= 150 LinkedIn profiles', placeholder: 'Paste the link to your LinkedIn post', linkUrl: OTP_LINKS.linkedinShare, linkLabel: 'Write the post on LinkedIn' },
 ];
 
 /*
@@ -8404,6 +8413,10 @@ async function otpSubmitSurvey(taskName) {
 }
 window.otpSubmitSurvey = otpSubmitSurvey;
 
+// A link to one post: linkedin.com/posts/<slug> or /feed/update/urn:li:activity:<id>.
+// Profile, company and search URLs do not count. Same pattern in the worker.
+const LI_POST_URL = /^https?:\/\/(?:[a-z]{2,3}\.)?linkedin\.com\/(?:posts\/[^/?#]+|feed\/update\/urn:li:(?:activity|share|ugcPost):\d+)/i;
+
 async function otpSubmitUrlTask(taskName) {
     if (otpBusyTask) return;
     const task = OTP_TASKS.find(t => t.name === taskName);
@@ -8411,6 +8424,10 @@ async function otpSubmitUrlTask(taskName) {
     const url = (input?.value || '').trim();
     if (!url) { otpShowFieldError(taskName, 'Paste a URL before submitting.'); return; }
     try { new URL(url); } catch(e) { otpShowFieldError(taskName, 'That doesn\u2019t look like a valid URL.'); return; }
+    if (taskName === 'linkedin_share' && !LI_POST_URL.test(url)) {
+        otpShowFieldError(taskName, 'Paste the link to your post: open it on LinkedIn, click \u2026 and choose \u201cCopy link to post\u201d.');
+        return;
+    }
 
     otpBusyTask = taskName;
     renderOnboardingTasksPopup();

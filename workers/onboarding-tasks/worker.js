@@ -466,8 +466,11 @@ async function handleComplete(request, env) {
         if (!submitted_url) return badRequest('submitted_url is required for this task');
         // Previously any parseable URL earned 150 credits, which made this a
         // free credit faucet for anyone who pasted example.com.
-        if (!/^https?:\/\/(?:[a-z]{2,3}\.)?linkedin\.com\/.+/i.test(String(submitted_url).trim())) {
-            return badRequest('That is not a LinkedIn URL. Paste the link to your own post.');
+        // Any linkedin.com URL used to pass, so a profile or someone else's
+        // page earned the credits. It now has to be a link to one post (same
+        // pattern as LI_POST_URL in app.html).
+        if (!/^https?:\/\/(?:[a-z]{2,3}\.)?linkedin\.com\/(?:posts\/[^/?#]+|feed\/update\/urn:li:(?:activity|share|ugcPost):\d+)/i.test(String(submitted_url).trim())) {
+            return badRequest('That is not a link to a LinkedIn post. Open your post, click \u2026 and choose "Copy link to post".');
         }
     }
 

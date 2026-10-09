@@ -47,4 +47,18 @@ test('rail traffic is told apart from the button', () => {
   assert.ok(appFn('openOnboardingTasksPopupManually').includes("trigger === 'rail' ? 'rail' : 'manual_reopen'"));
 });
 
+test('LinkedIn share replaced the YouTube subscribe, and only a post link counts', () => {
+  const tasks = app.slice(app.indexOf('const OTP_TASKS_ALL = ['), app.indexOf('const AFFILIATE_LIVE'));
+  assert.ok(!tasks.includes("name: 'youtube_subscribe'"), 'YouTube row is gone');
+  assert.ok(tasks.includes("name: 'linkedin_share', kind: 'url'"), 'LinkedIn share is a url task');
+  assert.ok(/name: 'linkedin_share'[\s\S]*?credits: 150,/.test(tasks), '150, matching the worker');
+  assert.ok(appFn('otpSubmitUrlTask').includes("taskName === 'linkedin_share' && !LI_POST_URL.test(url)"));
+  const m = app.match(/const LI_POST_URL = (\/.*\/i);/);
+  const re = eval(m[1]);
+  assert.ok(re.test('https://www.linkedin.com/posts/someone_linkfinder-activity-7123-ab'));
+  assert.ok(re.test('https://www.linkedin.com/feed/update/urn:li:activity:7123456789/'));
+  assert.ok(!re.test('https://www.linkedin.com/in/someone'), 'a profile is not a post');
+  assert.ok(!re.test('https://www.linkedin.com/company/linkfinder-ai'), 'a company page is not a post');
+});
+
 console.log(`${passed} passed`);

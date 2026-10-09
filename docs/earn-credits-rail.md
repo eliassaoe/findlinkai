@@ -46,6 +46,19 @@ The share of signups with any `onboarding_task_started` (around 5% today), and
 G2 `onboarding_task_completed`. Credits handed out are a cost: if completions
 rise with no lift in activation or payment, trim the list rather than add to it.
 
+## LinkedIn share replaced YouTube subscribe (same day)
+
+`youtube_subscribe` (100, honour) is out of the list; `linkedin_share` (150)
+is back in. It was removed on 31 Aug because any linkedin.com URL counted as
+proof. Proof now has to be a link to one post (`LI_POST_URL` in `app.html`,
+the same pattern in `workers/onboarding-tasks/worker.js`). The button opens
+LinkedIn's share dialog prefilled with linkfinderai.com.
+
+**The worker change needs a `wrangler deploy` in `workers/onboarding-tasks`.**
+Until then the live worker still accepts any linkedin.com URL; only the app's
+own check stands in front of it. Both tasks stay in the worker's
+`TASK_CONFIG`, so past completions keep their credits.
+
 ## Not done
 
 No browser extension exists, so there is no "install the extension" task.
