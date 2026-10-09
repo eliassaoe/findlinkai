@@ -300,6 +300,9 @@ def build(cfg):
         body=body,
         scripts=cfg.get("scripts", ""),
     )
+    if cfg.get("signup_intent"):
+        html = html.replace('href="' + SITE + '/sign-up"',
+                            'href="' + SITE + '/sign-up?intent=' + cfg["signup_intent"] + '"')
     path = os.path.join(OUT, cfg["slug"] + ".html")
     with open(path, "w", encoding="utf-8") as fh:
         fh.write(html)
@@ -1434,6 +1437,9 @@ PAGES.append({
 PAGES.append({
     "slug": "crm-enrichment-pipeline",
     "shape": "landing",
+    # Readers arrive wanting the API / n8n / Make / Zapier route (it is the
+    # page partner listings link to), so sign-up opens the app on that route.
+    "signup_intent": "api",
     "title": "Build a CRM Enrichment Pipeline That Runs on a Schedule | LinkFinder AI",
     "description": "Set up recurring contact enrichment so CRM records stay current instead of decaying between cleanups. Job-change detection, scheduled refresh, API or no-code.",
     "h1": "A CRM Enrichment Pipeline That Runs on a Schedule",
@@ -1486,7 +1492,15 @@ PAGES.append({
   <section class="block">
     <div class="container narrow">
       <h2>Where to build it</h2>
-      <p class="inline-links">Writing code: the <a href="{site}/api-documentation">REST API</a> with its OpenAPI spec. Keeping it no-code and visible: <a href="{site}/n8n-linkedin-automation">n8n</a> or Make. Records living in HubSpot: <a href="{site}/hubspot-crm-enrichment">HubSpot CRM enrichment</a>. Just want one list done now rather than a schedule: <a href="{site}/enrich-crm-contact-list">enrich a CRM contact list</a>.</p>
+      <p class="inline-links">Writing code: the <a href="{site}/api-documentation">REST API</a> with its OpenAPI spec. Keeping it no-code and visible: n8n, Make or Zapier (below). Records living in HubSpot: <a href="{site}/hubspot-crm-enrichment">HubSpot CRM enrichment</a>. Just want one list done now rather than a schedule: <a href="{site}/enrich-crm-contact-list">enrich a CRM contact list</a>.</p>
+      <h3>Run it from n8n, Make or Zapier</h3>
+      <p>The schedule lives in the tool you already use; LinkFinder AI is the enrichment step inside it. The shape is the same in all three: a schedule trigger, a step that pulls the records due for a refresh from your CRM, one LinkFinder AI step per row, and a step that writes the result back.</p>
+      <ul>
+        <li><strong>n8n</strong> &mdash; install the <a href="https://www.npmjs.com/package/n8n-nodes-linkfinderai" target="_blank" rel="noopener">LinkFinder AI community node</a> and start from a Schedule Trigger. Walkthrough: <a href="{site}/n8n-linkedin-automation">n8n LinkedIn automation</a>.</li>
+        <li><strong>Zapier</strong> &mdash; add the <a href="https://zapier.com/developer/public-invite/235719/7244430282f42f35ad6bd25db6ac39bf/" target="_blank" rel="noopener">LinkFinder AI Zapier app</a> and put it after a Schedule by Zapier trigger.</li>
+        <li><strong>Make</strong> &mdash; connect LinkFinder AI from the integrations page in your account, and run the scenario on Make&rsquo;s built-in scheduler.</li>
+      </ul>
+      <p>Each step uses the same API key and the same credits as the app. Your key is on the <a href="{site}/api-documentation">API page</a> once you sign up.</p>
       <p class="inline-links">Team pages: <a href="{site}/for-revops-teams">RevOps and data teams</a>, <a href="{site}/for-sales-teams">sales teams</a>, <a href="{site}/for-recruiting-teams">recruiting teams</a>, <a href="{site}/for-finance-teams">finance teams</a>.</p>
     </div>
   </section>
