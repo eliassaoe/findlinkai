@@ -1,52 +1,23 @@
-# Earn-credits tasks: a rail beside the form, not a button
+# Earn-credits tasks: the corner button only
 
-**Date:** 2026-10-09 · **Source:** PostHog, last 60 days · **Test:** `tests/tasks-rail.test.mjs`
-
-## Why
+**Test:** `tests/tasks-button-only.test.mjs`
 
 The credit tasks (G2 review, referral, first API call, Sheets add-on,
-HubSpot, YouTube) were only reachable through the corner **Get Free Credits**
-button (`#reopenTasksBtn`). Over 60 days:
+HubSpot, YouTube) open from the corner **Get Free Credits** button
+(`#reopenTasksBtn`) and nowhere else.
 
-| | People |
-| --- | --- |
-| Signups | 1,111 |
-| Opened the tasks from the button | 56 |
-| Auto popup on 2nd enrichment (since retired) | 76 |
-| Started the G2 review | 42 |
-| G2 completed / waiting for a check | 5 / 7 |
+## History
 
-About 11% of signups ever saw the list. The idea comes from Derrick, whose
-home page keeps "Earn free credits" visible next to the main content.
+- **2026-10-09, added:** an always-on rail (`<aside id="tasksRail">`) to the
+  left of the form on screens 1200px and wider, listing every task with its
+  reward. Only about 11% of signups had ever opened the tasks from the button
+  (56 manual opens out of 1,111 signups over 60 days), and the idea came from
+  Derrick.
+- **2026-10-09, removed:** the owner found the rail annoying. `renderTasksRail`,
+  `openTaskFromRail`, the `tasks-rail` styles and the `tasks_rail_shown` /
+  `tasks_rail_clicked` events were deleted. `onboarding_popup_shown` is back
+  to `trigger: 'manual_reopen'` only.
 
-## What shipped (`app.html`)
-
-- `<aside id="tasksRail">`: fixed on the left of the 680px column, **only at
-  1200px and wider**. Below that it would cover the form, so the corner button
-  stays. When the rail is visible the button is hidden (`body.lf-rail-on`).
-- `renderTasksRail()` lists `OTP_TASKS` in the modal's order (open first,
-  done last), one line each with its reward, plus a total of the credits still
-  available. Called once task status has loaded, and from
-  `renderOnboardingTasksPopup()`, so a completion in the modal updates it.
-- A row opens the existing modal (`openTaskFromRail` →
-  `openOnboardingTasksPopupManually('rail')`) and scrolls to that task. The
-  rail has no inputs: the modal stays the one place a task is done.
-- It is not a popup and never auto-opens. That follows the rule in
-  `docs/next-step-routing.md`: interrupting prompts converted at about 1%.
-
-## Events
-
-`tasks_rail_shown` {credits_available, open_tasks}; `tasks_rail_clicked`
-{task_name}; `onboarding_popup_shown` now has `trigger: 'rail'` beside
-`manual_reopen`.
-
-## What to watch
-
-The share of signups with any `onboarding_task_started` (around 5% today), and
-G2 `onboarding_task_completed`. Credits handed out are a cost: if completions
-rise with no lift in activation or payment, trim the list rather than add to it.
-
-## Not done
-
-No browser extension exists, so there is no "install the extension" task.
-The Google Sheets add-on is the closest thing and is already a task (100 credits).
+Do not bring back an always-visible task list or an auto-opening popup
+without asking. See also `docs/next-step-routing.md`: interrupting prompts
+converted at about 1%.
