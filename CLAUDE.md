@@ -58,6 +58,7 @@ into a file here in the same session, or it is gone.
 | The `api_first_call_succeeded` event: what fires it today, the 20-line patch the API worker still needs, and the CORS headers the Run-it-now buttons depend on | `workers/api-first-call/README.md` |
 | **How CSV / Google Sheets / API / CRM are offered in the app** — inside the result, never as a popup; which prompts were retired and why | `docs/next-step-routing.md` — read it before adding any nudge, banner or popup to `app.html` |
 | **Bulk is the default mode in `/app`; single lookup is second** — the numbers behind it and the 25+-row north star | `docs/bulk-first-default.md` — read it before changing the mode toggle, `currentMode`, or the quick-start cards; `tests/bulk-first-default.test.mjs` pins it |
+| **Earn-credits tasks shown in a rail beside the form** (wide screens), not only behind the corner button | `docs/earn-credits-rail.md` — read it before touching `OTP_TASKS_ALL`, `renderTasksRail` or `#reopenTasksBtn`; `tests/tasks-rail.test.mjs` pins it |
 | What the account page counts as "found" | `docs/account-value-summary.md` |
 | The monthly value receipt email — how the numbers are computed, the worker, workflow 12 | `workers/monthly-receipt/README.md` |
 | The AI SDR service offer, and who is allowed to see it | `docs/ai-sdr-offer.md` |

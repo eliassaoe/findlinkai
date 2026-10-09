@@ -770,6 +770,25 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
 .otp-task-text{display:flex;flex-direction:column;min-width:0;}
 .otp-task-label{font-weight:600;font-size:0.9rem;color:var(--gray-900);}
 .otp-task-sub{font-weight:400;font-size:0.76rem;color:var(--gray-500);margin-top:0.15rem;}
+.tasks-rail{display:none;}
+/* The earn-credits list, always on screen to the left of the 680px column,
+   like a sidebar. Only where there is room for it: below 1200px it would
+   cover the form, so narrow screens keep the "Get Free Credits" button. */
+@media (min-width:1200px){
+  body.lf-rail-on .tasks-rail{display:block;position:fixed;top:150px;left:calc(50% - 340px - 272px);width:248px;max-height:calc(100vh - 170px);overflow-y:auto;background:white;border:1px solid var(--gray-200);border-radius:12px;padding:1rem;box-shadow:0 1px 3px 0 rgba(0,0,0,0.08);z-index:5;}
+  body.lf-rail-on #reopenTasksBtn{display:none !important;}
+}
+.tasks-rail-title{font-size:0.9375rem;font-weight:700;color:var(--gray-900);display:flex;align-items:center;gap:0.4rem;}
+.tasks-rail-title i{color:var(--primary);}
+.tasks-rail-sub{font-size:0.75rem;color:var(--gray-500);margin:0.2rem 0 0.75rem;}
+.tasks-rail-row{display:flex;align-items:center;justify-content:space-between;gap:0.5rem;width:100%;text-align:left;background:var(--gray-50);border:1px solid var(--gray-200);border-radius:8px;padding:0.55rem 0.65rem;margin-bottom:0.4rem;cursor:pointer;font-family:inherit;transition:border-color 0.15s ease,background 0.15s ease;}
+.tasks-rail-row:hover{border-color:var(--primary);background:#f0f5ff;}
+.tasks-rail-row.done{cursor:default;opacity:0.6;}
+.tasks-rail-row.done:hover{border-color:var(--gray-200);background:var(--gray-50);}
+.tasks-rail-label{font-size:0.8125rem;font-weight:500;color:var(--gray-800);line-height:1.3;}
+.tasks-rail-reward{flex-shrink:0;font-size:0.72rem;font-weight:700;color:var(--primary);white-space:nowrap;}
+.tasks-rail-reward.money{color:#15803d;}
+.tasks-rail-row.done .tasks-rail-reward{color:#16a34a;}
 .otp-task-badge{flex-shrink:0;font-size:0.72rem;font-weight:700;color:var(--primary);background:rgba(37,99,235,0.08);padding:0.25rem 0.55rem;border-radius:6px;white-space:nowrap;}
 /* Cash, not credits. Green so the one payout on the list does not read as
    just another credit grant sitting among four blue ones. */
@@ -990,6 +1009,10 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
 </nav>
 
 <div class="container">
+<!-- Earn-credits rail (renderTasksRail). Inline, never a popup: the tasks were
+     behind a corner button and ~11% of signups ever opened them. Rows open
+     the existing tasks modal, where the actions and inputs live. -->
+<aside id="tasksRail" class="tasks-rail" aria-label="Earn free credits"></aside>
     <div class="main">
 
         <div class="quickstart-section" id="quickstartSection">
@@ -5662,6 +5685,7 @@ function checkAuth(){
         // them that panel had no door.
         const reopenBtn = document.getElementById('reopenTasksBtn');
         if (reopenBtn) reopenBtn.style.display = '';
+        renderTasksRail();
 
     });
     maybeShowRouteChooser();
@@ -8062,7 +8086,7 @@ async function maybeShowOnboardingTasksPopup(trigger) {
 // Manual reopen via the header "Tasks" button — always works, regardless of
 // whether the popup was already auto-shown/dismissed once. Users should
 // always be able to come back and finish earning credits.
-async function openOnboardingTasksPopupManually() {
+async function openOnboardingTasksPopupManually(trigger) {
     const btn = document.getElementById('reopenTasksBtn');
     if (btn) { btn.disabled = true; }
     document.getElementById('otpLoadingNote').classList.remove('hidden');
@@ -8073,12 +8097,51 @@ async function openOnboardingTasksPopupManually() {
     renderOnboardingTasksPopup();
     document.getElementById('onboardingTasksModal').classList.add('show');
     document.body.style.overflow = 'hidden';
-    try { posthog.capture('onboarding_popup_shown', { geo_tier: otpGeoTier, trigger: 'manual_reopen' }); } catch(e) {}
+    try { posthog.capture('onboarding_popup_shown', { geo_tier: otpGeoTier, trigger: trigger === 'rail' ? 'rail' : 'manual_reopen' }); } catch(e) {}
 }
 
 function otpEsc(str){ return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
+// Same tasks and same order as the modal (open first, done last), one line
+// each. Clicking a row opens the modal on it; the rail itself never takes
+// input, so there is one place where a task is actually done.
+let tasksRailShown = false;
+function renderTasksRail() {
+    const rail = document.getElementById('tasksRail');
+    if (!rail || !otpStatusLoaded) return;
+    const ordered = [...OTP_TASKS].sort((a, b) =>
+        (otpStatusFor(a.name) === 'completed' ? 1 : 0) - (otpStatusFor(b.name) === 'completed' ? 1 : 0));
+    const open = OTP_TASKS.filter(t => !t.rewardLabel && otpStatusFor(t.name) === 'idle');
+    const available = open.reduce((sum, t) => sum + (t.credits || 0), 0);
+    rail.innerHTML = `<div class="tasks-rail-title"><i class="fas fa-gift"></i> Earn free credits</div>
+        <div class="tasks-rail-sub">${available > 0 ? `+${available.toLocaleString()} credits available` : 'Thanks, you have done them all.'}</div>
+        ${ordered.map(t => {
+            const status = otpStatusFor(t.name);
+            const done = status === 'completed';
+            const reward = done ? '<i class="fas fa-check"></i> Done'
+                : status === 'pending' ? 'Being checked'
+                : (t.rewardLabel ? otpEsc(t.rewardLabel) : `+${t.credits.toLocaleString()}`);
+            return `<button type="button" class="tasks-rail-row${done ? ' done' : ''}" ${done ? 'disabled' : `onclick="openTaskFromRail('${t.name}')"`}>
+                <span class="tasks-rail-label">${otpEsc(t.label)}</span>
+                <span class="tasks-rail-reward${t.rewardLabel && !done ? ' money' : ''}">${reward}</span>
+            </button>`;
+        }).join('')}`;
+    document.body.classList.add('lf-rail-on');
+    if (!tasksRailShown && window.matchMedia && window.matchMedia('(min-width:1200px)').matches) {
+        tasksRailShown = true;
+        try { posthog.capture('tasks_rail_shown', { credits_available: available, open_tasks: open.length }); } catch (e) {}
+    }
+}
+
+async function openTaskFromRail(taskName) {
+    try { posthog.capture('tasks_rail_clicked', { task_name: taskName }); } catch (e) {}
+    await openOnboardingTasksPopupManually('rail');
+    const row = document.getElementById('otp-row-' + taskName);
+    if (row && row.scrollIntoView) row.scrollIntoView({ block: 'center' });
+}
+
 function renderOnboardingTasksPopup() {
+    renderTasksRail();
     const copy = otpCopy();
     document.getElementById('otpTitle').textContent = copy.title;
     document.getElementById('otpSubtitle').textContent = copy.subtitle;
