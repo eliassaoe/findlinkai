@@ -14,9 +14,21 @@ Three controls, in this order:
 3. The input field, whose label and placeholder change per selection
 4. **`Enrich Data`** — submit button
 
-Mode toggle above the form: **`Single`** / **`Bulk`**.
+Mode toggle under the dropdowns: **`📤 Upload CSV (bulk)`** (first, wider,
+selected on load) / **`Single lookup`** (second). Since 2026-10-09 the app
+**opens in bulk** (`docs/bulk-first-default.md`), so a storyboard that shows a
+single lookup must click **`Single lookup`** first — or start from one of the
+links on the line `No list yet? Try one lookup instantly:`, which switch to it.
 Bulk path: **`Upload CSV (bulk)`** -> **`Select File`** -> **`Process N items`**
 -> **`Export CSV`**.
+
+Quick-start area (above the dropdowns, hidden after the first click): heading
+`Enrich a list — pick what you have, then drop your CSV`, four cards that set
+the pair and open the drop zone (`Names → LinkedIn URLs`,
+`LinkedIn URLs → Emails`, `Emails → LinkedIn profiles`,
+`LinkedIn URLs → Phone numbers`), then the single-lookup line
+(`Name → LinkedIn`, `LinkedIn → Email`, `Email → LinkedIn`,
+`LinkedIn → Phone`).
 
 ## Valid input -> output combinations
 
@@ -80,7 +92,7 @@ HubSpot` / `Sync to my CRM`.
 
 ## First visit only: the route chooser
 
-Above `Popular searches`: `Where is the data you want to enrich?` with four
+Above the quick-start cards: `Where is the data you want to enrich?` with four
 cards — `In a CSV or spreadsheet`, `In Google Sheets`, `In my own code or n8n /
 Make`, `In my CRM (HubSpot)` — and the link `I just need one lookup for now`.
 It is gone after any choice or any enrichment, so a recording made on a used

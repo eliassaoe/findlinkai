@@ -124,6 +124,8 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
     .mode-switch{display:flex;background:var(--gray-100);border-radius:8px;padding:0.25rem;}
     .mode-option{flex:1;padding:0.75rem;border:none;background:transparent;border-radius:6px;font-weight:500;color:var(--gray-600);cursor:pointer;transition:all 0.2s ease;font-size:0.875rem;}
     .mode-option.active{background:white;color:var(--gray-900);box-shadow:0 1px 2px 0 rgba(0,0,0,0.05);}
+    .mode-option.mode-primary{flex:2;font-weight:600;}
+    .mode-option.mode-secondary{font-size:0.8125rem;}
     .card{background:white;border:1px solid var(--gray-200);border-radius:12px;padding:1.5rem;margin-bottom:1.5rem;box-shadow:0 1px 3px 0 rgba(0,0,0,0.1);}
     .form-group{margin-bottom:1rem;}
     .form-group label{display:block;margin-bottom:0.5rem;font-weight:500;color:var(--gray-700);font-size:0.875rem;}
@@ -131,7 +133,10 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
     .form-group input:focus,.form-group textarea:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(37,99,235,0.1);}
     .btn-full{width:100%;padding:0.875rem;font-size:1rem;margin-top:0.5rem;}
     .upload-area{border:2px dashed var(--gray-300);border-radius:8px;padding:2rem 1rem;text-align:center;cursor:pointer;background:var(--gray-50);transition:all 0.2s ease;position:relative;}
-.upload-area.upload-locked{opacity:0.55;cursor:not-allowed;}
+/* Fade everything but the sample list: it picks its own pair, so it works
+   while the drop zone is locked, and bulk is now the landing view. */
+.upload-area.upload-locked{cursor:not-allowed;}
+.upload-area.upload-locked > :not(#sampleCsvBtn){opacity:0.55;}
 .upload-area.upload-locked #selectFileBtn{pointer-events:none;opacity:0.6;}
 .bulk-lock-notice{display:flex;align-items:center;gap:0.625rem;background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:0.75rem 1rem;margin-bottom:0.75rem;font-size:0.8125rem;color:#78350f;line-height:1.45;}
 .bulk-lock-notice i{flex-shrink:0;}
@@ -267,6 +272,9 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
     .qs-card-title{font-size:0.8125rem;font-weight:600;color:var(--gray-900);margin-bottom:0.2rem;}
     .qs-card-sub{font-size:0.72rem;color:var(--gray-500);line-height:1.4;}
     @media(max-width:480px){.quickstart-grid{grid-template-columns:1fr;}}
+    .qs-single-line{display:flex;flex-wrap:wrap;gap:0.375rem 0.875rem;align-items:center;margin-top:0.75rem;font-size:0.8125rem;color:var(--gray-500);}
+    .qs-single-line a{color:var(--primary);text-decoration:none;font-weight:500;}
+    .qs-single-line a:hover{text-decoration:underline;}
     .modal-toast{position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%) translateY(100px);background:var(--gray-900);color:white;padding:0.75rem 1.25rem;border-radius:8px;font-size:0.875rem;font-weight:500;z-index:9999;transition:transform 0.35s ease;display:flex;align-items:center;gap:0.75rem;box-shadow:0 4px 16px rgba(0,0,0,0.25);pointer-events:none;}
     .modal-toast.show{transform:translateX(-50%) translateY(0);pointer-events:auto;}
     .modal-toast a{color:#93c5fd;text-decoration:none;font-weight:600;cursor:pointer;}
@@ -1013,28 +1021,39 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
                 <a href="#" onclick="pickRoute('api','strip');return false;"><i class="fas fa-code"></i> API / n8n</a>
                 <a href="#" onclick="pickRoute('crm','strip');return false;"><i class="fab fa-hubspot" style="color:#ff7a59;"></i> HubSpot</a>
             </div>
-            <div class="quickstart-label">Popular searches — click to try instantly</div>
+            <!-- Bulk first: each card sets the pair and opens the drop zone
+                 (quickStartBulk). The instant single tries are one line under
+                 them, not gone: single-then-bulk users pay best of all
+                 (docs/bulk-first-default.md). -->
+            <div class="quickstart-label">Enrich a list — pick what you have, then drop your CSV</div>
             <div class="quickstart-grid">
-                <div class="qs-card" onclick="quickStart('lead_full_name','linkedin_url','Sarah Johnson',null,true,'Salesforce')">
+                <div class="qs-card" onclick="quickStartBulk('lead_full_name','linkedin_url')">
                     <div class="qs-card-icon">🔗</div>
-                    <div class="qs-card-title">Find LinkedIn Profile URL</div>
-                    <div class="qs-card-sub">Name + Company → LinkedIn URL</div>
+                    <div class="qs-card-title">Names → LinkedIn URLs</div>
+                    <div class="qs-card-sub">A list of names + companies → a LinkedIn URL per row</div>
                 </div>
-                <div class="qs-card" onclick="quickStart('email','linkedin_url',null,null,false)">
-                    <div class="qs-card-icon">📧</div>
-                    <div class="qs-card-title">Email → LinkedIn Profile</div>
-                    <div class="qs-card-sub">Paste an email → LinkedIn URL</div>
-                </div>
-                <div class="qs-card" onclick="quickStart('linkedin_profile','phone',null,null,false)">
-                    <div class="qs-card-icon">📱</div>
-                    <div class="qs-card-title">LinkedIn → Phone Number</div>
-                    <div class="qs-card-sub">Paste a LinkedIn URL → mobile number</div>
-                </div>
-                <div class="qs-card" onclick="quickStart('linkedin_profile','email',null,null,false)">
+                <div class="qs-card" onclick="quickStartBulk('linkedin_profile','email')">
                     <div class="qs-card-icon">✉️</div>
-                    <div class="qs-card-title">LinkedIn → Email</div>
-                    <div class="qs-card-sub">Paste a LinkedIn URL → verified email</div>
+                    <div class="qs-card-title">LinkedIn URLs → Emails</div>
+                    <div class="qs-card-sub">A column of LinkedIn URLs → verified emails</div>
                 </div>
+                <div class="qs-card" onclick="quickStartBulk('email','linkedin_url')">
+                    <div class="qs-card-icon">📧</div>
+                    <div class="qs-card-title">Emails → LinkedIn profiles</div>
+                    <div class="qs-card-sub">A column of emails → a LinkedIn URL per row</div>
+                </div>
+                <div class="qs-card" onclick="quickStartBulk('linkedin_profile','phone')">
+                    <div class="qs-card-icon">📱</div>
+                    <div class="qs-card-title">LinkedIn URLs → Phone numbers</div>
+                    <div class="qs-card-sub">A column of LinkedIn URLs → mobile numbers</div>
+                </div>
+            </div>
+            <div class="qs-single-line">
+                <span>No list yet? Try one lookup instantly:</span>
+                <a href="#" onclick="quickStart('lead_full_name','linkedin_url','Sarah Johnson',null,true,'Salesforce');return false;">Name → LinkedIn</a>
+                <a href="#" onclick="quickStart('linkedin_profile','email',null,null,false);return false;">LinkedIn → Email</a>
+                <a href="#" onclick="quickStart('email','linkedin_url',null,null,false);return false;">Email → LinkedIn</a>
+                <a href="#" onclick="quickStart('linkedin_profile','phone',null,null,false);return false;">LinkedIn → Phone</a>
             </div>
         </div>
 
@@ -1112,12 +1131,12 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
         
         <div id="modeToggle" class="mode-toggle">
             <div class="mode-switch">
-                <button class="mode-option active" onclick="switchMode('single')" id="singleMode">Single lookup</button>
-                <button class="mode-option" onclick="switchMode('bulk')" id="bulkMode">📤 Upload CSV (bulk)</button>
+                <button class="mode-option mode-primary active" onclick="switchMode('bulk','toggle')" id="bulkMode">📤 Upload CSV (bulk)</button>
+                <button class="mode-option mode-secondary" onclick="switchMode('single','toggle')" id="singleMode">Single lookup</button>
             </div>
             <div style="display:flex;gap:1rem;margin-top:0.5rem;font-size:0.75rem;color:var(--gray-500);">
-                <div style="flex:1;"><strong style="color:var(--gray-600);">Single</strong> — look up one contact or company at a time</div>
-                <div style="flex:1;"><strong style="color:var(--gray-600);">Bulk</strong> — upload a CSV to enrich multiple rows at once</div>
+                <div style="flex:2;"><strong style="color:var(--gray-600);">List</strong> — upload a CSV and every row gets the same lookup</div>
+                <div style="flex:1;"><strong style="color:var(--gray-600);">Single</strong> — one contact or company</div>
             </div>
         </div>
 
@@ -1630,7 +1649,9 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
  
 <script>
 
-let currentMode = 'single';
+// Bulk is the default: people who run a list pay at ~6%, single-only at
+// 0.2% (docs/bulk-first-default.md). Single stays one click away.
+let currentMode = 'bulk';
 let csvData = [];
 let bulkResults = [];
 let lastSingleEmployeesData = null;
@@ -3511,7 +3532,10 @@ function logout() { localStorage.removeItem('linkFinderToken'); window.location.
 // input/output pair to mean anything, so it stays hidden until then; the bulk
 // panel shows straight away with its drop zone locked, so a person who came
 // for a list sees where the list goes and what to pick to unlock it.
-function switchMode(mode) {
+function switchMode(mode, source) {
+    if (source && mode !== currentMode) {
+        try { posthog.capture('mode_switched', { to: mode, from: currentMode, source: source }); } catch (e) {}
+    }
     currentMode = mode;
     document.getElementById('singleMode').classList.toggle('active', mode==='single');
     document.getElementById('bulkMode').classList.toggle('active', mode==='bulk');
@@ -5224,6 +5248,8 @@ function flushCsvBatchOnExit(){
 document.addEventListener('DOMContentLoaded',()=>{
     checkAuth(); fetchCredits(); checkHubspotConnection(); setupFileUpload(); setupDragAndDrop();
     setupNavigation(); setupModalEvents(); setupDropdowns();
+    showInputSections();
+    try { posthog.register({ app_default_mode: 'bulk' }); } catch (e) {}
     handleDodoReturnStatus();
     // Must run after handleDodoReturnStatus(), which clears the marker on a real
     // checkout return. Anything left over is someone who bailed out on Dodo.
@@ -5748,6 +5774,7 @@ function pickRoute(route, source) {
             navigateToPage('crmSync');
             break;
         default: {
+            switchMode('single');
             const sel = document.getElementById('inputType');
             if (sel && sel.focus) sel.focus();
         }
@@ -7499,6 +7526,7 @@ function quickStartBulk(inputType,outputType){
 function quickStart(inputType,outputType,exampleData,employeeCount,autoRun,exampleCompany){
     if(autoRun===undefined) autoRun=true;   // existing cards keep auto-running
     const qs=document.getElementById('quickstartSection');if(qs)qs.style.display='none';
+    switchMode('single');
     const inputSel=document.getElementById('inputType');inputSel.value=inputType;inputSel.dispatchEvent(new Event('change'));
     setTimeout(()=>{
         const outputSel=document.getElementById('outputType');outputSel.value=inputType+'__'+outputType;outputSel.dispatchEvent(new Event('change'));
