@@ -35,9 +35,14 @@ Two readings, and the change follows both:
 | --- | --- |
 | `currentMode = 'single'`; the toggle reads Single / Bulk, single selected | `currentMode = 'bulk'`; bulk is first, wider and selected; `Single lookup` is second |
 | Bulk panel appears only after a toggle click | Bulk panel is drawn on load, locked until a pair is picked (`showInputSections()` at init) |
-| Quick-start: "Popular searches", four cards that run a single lookup | "Enrich a list…", four cards that call `quickStartBulk` (set the pair, open the drop zone); the four single tries are a link line underneath |
+| Quick-start: "Popular searches", four cards that run a single lookup | "Enrich a list…", four cards that call `quickStartBulk` (set the pair, open the drop zone). Single is reached only through the toggle or the "I just need one lookup" route choice |
 | — | `quickStart` and the "I just need one lookup" route call `switchMode('single')` themselves |
 | Locked drop zone fades everything | `Try a sample list` stays at full strength: it picks its own pair, so it is the zero-homework way into bulk |
+
+A line of four instant single-lookup links ("No list yet? Try one lookup
+instantly: …") briefly sat under the cards and was removed the same day
+because it made the landing view too busy. `quickStart()` still exists but
+nothing on the page calls it.
 
 The button label `Upload CSV (bulk)` is unchanged on purpose: video storyboards
 in `claude/guidee/scripts/` quote it. A storyboard that shows a single lookup now
