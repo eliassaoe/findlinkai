@@ -41,6 +41,19 @@ test('wide screens only, and the corner button steps aside there', () => {
   assert.ok(app.includes('.tasks-rail{display:none;}'), 'hidden by default (narrow screens keep the button)');
 });
 
+test('it can be closed for good, and the corner button comes back', () => {
+  assert.ok(app.includes('class="tasks-rail-close" onclick="closeTasksRail()"'));
+  const close = appFn('closeTasksRail');
+  assert.ok(close.includes("localStorage.setItem('lf_tasks_rail_closed', '1')"));
+  assert.ok(close.includes("document.body.classList.remove('lf-rail-on')"), 'removing the class un-hides the button');
+  assert.ok(close.includes("posthog.capture('tasks_rail_closed')"));
+  assert.ok(appFn('renderTasksRail').includes("if (tasksRailClosed()) { document.body.classList.remove('lf-rail-on'); return; }"), 'stays closed on the next visit');
+});
+
+test('it sits at the far left edge, out of the way of the form', () => {
+  assert.ok(/body\.lf-rail-on \.tasks-rail\{[^}]*left:16px;width:196px;/.test(app));
+});
+
 test('rail traffic is told apart from the button', () => {
   assert.ok(appFn('renderTasksRail').includes("posthog.capture('tasks_rail_shown'"));
   assert.ok(appFn('openTaskFromRail').includes("posthog.capture('tasks_rail_clicked'"));

@@ -21,8 +21,11 @@ home page keeps "Earn free credits" visible next to the main content.
 
 ## What shipped (`app.html`)
 
-- `<aside id="tasksRail">`: fixed on the left of the 680px column, **only at
-  1200px and wider**. Below that it would cover the form, so the corner button
+- `<aside id="tasksRail">`: fixed at the **far left edge** (16px), 196px
+  wide, compact rows; **only at 1200px and wider**. (It first sat right next
+  to the form at 248px and crowded the tool, so it was moved and shrunk the
+  same day.) An ✕ closes it for good on that browser
+  (`localStorage.lf_tasks_rail_closed`), and the corner button comes back. Below that it would cover the form, so the corner button
   stays. When the rail is visible the button is hidden (`body.lf-rail-on`).
 - `renderTasksRail()` lists `OTP_TASKS` in the modal's order (open first,
   done last), one line each with its reward, plus a total of the credits still
@@ -36,7 +39,7 @@ home page keeps "Earn free credits" visible next to the main content.
 
 ## Events
 
-`tasks_rail_shown` {credits_available, open_tasks}; `tasks_rail_clicked`
+`tasks_rail_shown` {credits_available, open_tasks}; `tasks_rail_closed`; `tasks_rail_clicked`
 {task_name}; `onboarding_popup_shown` now has `trigger: 'rail'` beside
 `manual_reopen`.
 
