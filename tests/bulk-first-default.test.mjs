@@ -52,13 +52,12 @@ test('every single-lookup entry point switches to single itself', () => {
   assert.ok(def.includes("switchMode('single');"), '"I just need one lookup for now"');
 });
 
-test('the quick-start cards open bulk; single tries are a secondary line', () => {
+test('the quick-start cards open bulk; single lives only in the toggle', () => {
   const qs = app.slice(app.indexOf('id="quickstartSection"'), app.indexOf('<div class="config-form">'));
-  const grid = qs.slice(qs.indexOf('class="quickstart-grid"'), qs.indexOf('class="qs-single-line"'));
+  const grid = qs.slice(qs.indexOf('class="quickstart-grid"'));
   assert.equal((grid.match(/quickStartBulk\(/g) || []).length, 4, 'four bulk cards');
-  assert.ok(!grid.includes('quickStart('), 'no single lookup in the card grid');
-  const line = qs.slice(qs.indexOf('class="qs-single-line"'));
-  assert.equal((line.match(/quickStart\('/g) || []).length, 4, 'the four single tries survive as links');
+  assert.ok(!qs.includes("quickStart('"), 'no single-lookup shortcuts on the landing view');
+  assert.ok(!app.includes('qs-single-line'), 'the link line under the cards was removed (too busy)');
 });
 
 console.log(`${passed} passed`);

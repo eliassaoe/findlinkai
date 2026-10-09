@@ -17,8 +17,7 @@ Three controls, in this order:
 Mode toggle under the dropdowns: **`📤 Upload CSV (bulk)`** (first, wider,
 selected on load) / **`Single lookup`** (second). Since 2026-10-09 the app
 **opens in bulk** (`docs/bulk-first-default.md`), so a storyboard that shows a
-single lookup must click **`Single lookup`** first — or start from one of the
-links on the line `No list yet? Try one lookup instantly:`, which switch to it.
+single lookup must click **`Single lookup`** first.
 Bulk path: **`Upload CSV (bulk)`** -> **`Select File`** -> **`Process N items`**
 -> **`Export CSV`**.
 
@@ -26,9 +25,7 @@ Quick-start area (above the dropdowns, hidden after the first click): heading
 `Enrich a list — pick what you have, then drop your CSV`, four cards that set
 the pair and open the drop zone (`Names → LinkedIn URLs`,
 `LinkedIn URLs → Emails`, `Emails → LinkedIn profiles`,
-`LinkedIn URLs → Phone numbers`), then the single-lookup line
-(`Name → LinkedIn`, `LinkedIn → Email`, `Email → LinkedIn`,
-`LinkedIn → Phone`).
+`LinkedIn URLs → Phone numbers`). There is no single-lookup shortcut there.
 
 ## Valid input -> output combinations
 
