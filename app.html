@@ -771,22 +771,26 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
 .otp-task-label{font-weight:600;font-size:0.9rem;color:var(--gray-900);}
 .otp-task-sub{font-weight:400;font-size:0.76rem;color:var(--gray-500);margin-top:0.15rem;}
 .tasks-rail{display:none;}
-/* The earn-credits list, always on screen to the left of the 680px column,
-   like a sidebar. Only where there is room for it: below 1200px it would
-   cover the form, so narrow screens keep the "Get Free Credits" button. */
+/* The earn-credits list, on screen at the far left edge, away from the form.
+   Small and closable: it must never compete with the tool. Only at 1200px+,
+   where it cannot overlap the 680px column; narrow screens, and anyone who
+   closed it, get the "Get Free Credits" button instead. */
 @media (min-width:1200px){
-  body.lf-rail-on .tasks-rail{display:block;position:fixed;top:150px;left:calc(50% - 340px - 272px);width:248px;max-height:calc(100vh - 170px);overflow-y:auto;background:white;border:1px solid var(--gray-200);border-radius:12px;padding:1rem;box-shadow:0 1px 3px 0 rgba(0,0,0,0.08);z-index:5;}
+  body.lf-rail-on .tasks-rail{display:block;position:fixed;top:150px;left:16px;width:196px;max-height:calc(100vh - 170px);overflow-y:auto;background:white;border:1px solid var(--gray-200);border-radius:10px;padding:0.65rem 0.65rem 0.4rem;box-shadow:0 1px 2px 0 rgba(0,0,0,0.06);z-index:5;}
   body.lf-rail-on #reopenTasksBtn{display:none !important;}
 }
-.tasks-rail-title{font-size:0.9375rem;font-weight:700;color:var(--gray-900);display:flex;align-items:center;gap:0.4rem;}
-.tasks-rail-title i{color:var(--primary);}
-.tasks-rail-sub{font-size:0.75rem;color:var(--gray-500);margin:0.2rem 0 0.75rem;}
-.tasks-rail-row{display:flex;align-items:center;justify-content:space-between;gap:0.5rem;width:100%;text-align:left;background:var(--gray-50);border:1px solid var(--gray-200);border-radius:8px;padding:0.55rem 0.65rem;margin-bottom:0.4rem;cursor:pointer;font-family:inherit;transition:border-color 0.15s ease,background 0.15s ease;}
-.tasks-rail-row:hover{border-color:var(--primary);background:#f0f5ff;}
-.tasks-rail-row.done{cursor:default;opacity:0.6;}
-.tasks-rail-row.done:hover{border-color:var(--gray-200);background:var(--gray-50);}
-.tasks-rail-label{font-size:0.8125rem;font-weight:500;color:var(--gray-800);line-height:1.3;}
-.tasks-rail-reward{flex-shrink:0;font-size:0.72rem;font-weight:700;color:var(--primary);white-space:nowrap;}
+.tasks-rail-head{display:flex;align-items:center;justify-content:space-between;gap:0.4rem;}
+.tasks-rail-title{font-size:0.8125rem;font-weight:700;color:var(--gray-900);display:flex;align-items:center;gap:0.35rem;}
+.tasks-rail-title i{color:var(--primary);font-size:0.75rem;}
+.tasks-rail-close{background:none;border:none;color:var(--gray-400);cursor:pointer;font-size:1rem;padding:0.15rem 0.25rem;line-height:1;border-radius:4px;}
+.tasks-rail-close:hover{color:var(--gray-700);background:var(--gray-100);}
+.tasks-rail-sub{font-size:0.6875rem;color:var(--gray-500);margin:0.1rem 0 0.45rem;}
+.tasks-rail-row{display:flex;align-items:center;justify-content:space-between;gap:0.4rem;width:100%;text-align:left;background:none;border:none;border-top:1px solid var(--gray-100);padding:0.4rem 0.15rem;cursor:pointer;font-family:inherit;}
+.tasks-rail-row:hover .tasks-rail-label{color:var(--primary);}
+.tasks-rail-row.done{cursor:default;opacity:0.55;}
+.tasks-rail-row.done:hover .tasks-rail-label{color:var(--gray-700);}
+.tasks-rail-label{font-size:0.72rem;font-weight:500;color:var(--gray-700);line-height:1.3;}
+.tasks-rail-reward{flex-shrink:0;font-size:0.6875rem;font-weight:700;color:var(--primary);white-space:nowrap;}
 .tasks-rail-reward.money{color:#15803d;}
 .tasks-rail-row.done .tasks-rail-reward{color:#16a34a;}
 .otp-task-badge{flex-shrink:0;font-size:0.72rem;font-weight:700;color:var(--primary);background:rgba(37,99,235,0.08);padding:0.25rem 0.55rem;border-radius:6px;white-space:nowrap;}
@@ -7860,6 +7864,9 @@ const ONBOARDING_TASKS_WORKER = 'https://onboarding-tasks-worker.hamoureliasse.w
 
 const OTP_LINKS = {
     youtube: 'https://www.youtube.com/@EliasIA694',
+    // LinkedIn's share dialog, prefilled with the site. They write the post,
+    // then paste its link back (linkedin_share).
+    linkedinShare: 'https://www.linkedin.com/sharing/share-offsite/?url=https%3A%2F%2Flinkfinderai.com',
     twitter: 'https://twitter.com/linkfinderai',
     // Both must be the WRITE form, not the listing page. Sending people to
     // /reviews showed them other people's reviews with nothing to fill in, and
@@ -7971,12 +7978,18 @@ const OTP_TASKS_ALL = [
       credits: 100, realValue: '= 100 LinkedIn profiles', linkUrl: SHEETS_ADDON_URL, linkLabel: 'Open the add-on' },
     { name: 'hubspot_connected', kind: 'auto', label: 'Connect HubSpot', sub: 'Every result lands in your CRM in one click. Credited once the connection is live.',
       credits: 300, realValue: '= 30 emails or 300 LinkedIn profiles', href: () => addGclid('https://linkfinderai.com/crm-sync?token=' + userToken), linkLabel: 'Connect HubSpot' },
-    { name: 'youtube_subscribe', kind: 'honor_click', label: 'Subscribe to our YouTube channel', credits: 100, realValue: '= 100 LinkedIn profiles', linkUrl: OTP_LINKS.youtube, linkLabel: 'Open channel' },
-    // linkedin_share was removed on 31 Aug: two completions in its whole life,
-    // and it was the one task whose "proof" was any linkedin.com URL, so it
-    // paid 150 credits for pasting a link to somebody else's post. It stays in
-    // the worker's TASK_CONFIG so the two people who did complete it keep
-    // their credits and their history renders.
+    // Replaced youtube_subscribe on 9 Oct (owner's call): a post puts the
+    // product in front of the person's own network, a subscribe does not.
+    // youtube_subscribe stays in the worker's TASK_CONFIG so the people who
+    // did it keep their credits and their history renders.
+    //
+    // This task was removed once before (31 Aug) because its proof was any
+    // linkedin.com URL, so it paid for pasting a link to somebody else's post.
+    // The proof now has to be a link to a post (LI_POST_URL, checked here and
+    // in the worker); it still cannot prove the post is theirs, which is why
+    // it stays at 150.
+    { name: 'linkedin_share', kind: 'url', label: 'Share LinkFinder AI on LinkedIn', sub: 'Write a short post about us, then paste the link to your post.',
+      credits: 150, realValue: '= 150 LinkedIn profiles', placeholder: 'Paste the link to your LinkedIn post', linkUrl: OTP_LINKS.linkedinShare, linkLabel: 'Write the post on LinkedIn' },
 ];
 
 /*
@@ -8109,11 +8122,13 @@ let tasksRailShown = false;
 function renderTasksRail() {
     const rail = document.getElementById('tasksRail');
     if (!rail || !otpStatusLoaded) return;
+    if (tasksRailClosed()) { document.body.classList.remove('lf-rail-on'); return; }
     const ordered = [...OTP_TASKS].sort((a, b) =>
         (otpStatusFor(a.name) === 'completed' ? 1 : 0) - (otpStatusFor(b.name) === 'completed' ? 1 : 0));
     const open = OTP_TASKS.filter(t => !t.rewardLabel && otpStatusFor(t.name) === 'idle');
     const available = open.reduce((sum, t) => sum + (t.credits || 0), 0);
-    rail.innerHTML = `<div class="tasks-rail-title"><i class="fas fa-gift"></i> Earn free credits</div>
+    rail.innerHTML = `<div class="tasks-rail-head"><div class="tasks-rail-title"><i class="fas fa-gift"></i> Earn free credits</div>
+        <button type="button" class="tasks-rail-close" onclick="closeTasksRail()" aria-label="Close" title="Close">&times;</button></div>
         <div class="tasks-rail-sub">${available > 0 ? `+${available.toLocaleString()} credits available` : 'Thanks, you have done them all.'}</div>
         ${ordered.map(t => {
             const status = otpStatusFor(t.name);
@@ -8131,6 +8146,17 @@ function renderTasksRail() {
         tasksRailShown = true;
         try { posthog.capture('tasks_rail_shown', { credits_available: available, open_tasks: open.length }); } catch (e) {}
     }
+}
+
+// Closed for good on this browser. The corner button comes back, so the
+// tasks are still one click away.
+function tasksRailClosed() {
+    try { return localStorage.getItem('lf_tasks_rail_closed') === '1'; } catch (e) { return false; }
+}
+function closeTasksRail() {
+    try { localStorage.setItem('lf_tasks_rail_closed', '1'); } catch (e) {}
+    document.body.classList.remove('lf-rail-on');
+    try { posthog.capture('tasks_rail_closed'); } catch (e) {}
 }
 
 async function openTaskFromRail(taskName) {
@@ -8404,6 +8430,10 @@ async function otpSubmitSurvey(taskName) {
 }
 window.otpSubmitSurvey = otpSubmitSurvey;
 
+// A link to one post: linkedin.com/posts/<slug> or /feed/update/urn:li:activity:<id>.
+// Profile, company and search URLs do not count. Same pattern in the worker.
+const LI_POST_URL = /^https?:\/\/(?:[a-z]{2,3}\.)?linkedin\.com\/(?:posts\/[^/?#]+|feed\/update\/urn:li:(?:activity|share|ugcPost):\d+)/i;
+
 async function otpSubmitUrlTask(taskName) {
     if (otpBusyTask) return;
     const task = OTP_TASKS.find(t => t.name === taskName);
@@ -8411,6 +8441,10 @@ async function otpSubmitUrlTask(taskName) {
     const url = (input?.value || '').trim();
     if (!url) { otpShowFieldError(taskName, 'Paste a URL before submitting.'); return; }
     try { new URL(url); } catch(e) { otpShowFieldError(taskName, 'That doesn\u2019t look like a valid URL.'); return; }
+    if (taskName === 'linkedin_share' && !LI_POST_URL.test(url)) {
+        otpShowFieldError(taskName, 'Paste the link to your post: open it on LinkedIn, click \u2026 and choose \u201cCopy link to post\u201d.');
+        return;
+    }
 
     otpBusyTask = taskName;
     renderOnboardingTasksPopup();

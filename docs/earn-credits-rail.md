@@ -21,8 +21,11 @@ home page keeps "Earn free credits" visible next to the main content.
 
 ## What shipped (`app.html`)
 
-- `<aside id="tasksRail">`: fixed on the left of the 680px column, **only at
-  1200px and wider**. Below that it would cover the form, so the corner button
+- `<aside id="tasksRail">`: fixed at the **far left edge** (16px), 196px
+  wide, compact rows; **only at 1200px and wider**. (It first sat right next
+  to the form at 248px and crowded the tool, so it was moved and shrunk the
+  same day.) An ✕ closes it for good on that browser
+  (`localStorage.lf_tasks_rail_closed`), and the corner button comes back. Below that it would cover the form, so the corner button
   stays. When the rail is visible the button is hidden (`body.lf-rail-on`).
 - `renderTasksRail()` lists `OTP_TASKS` in the modal's order (open first,
   done last), one line each with its reward, plus a total of the credits still
@@ -36,7 +39,7 @@ home page keeps "Earn free credits" visible next to the main content.
 
 ## Events
 
-`tasks_rail_shown` {credits_available, open_tasks}; `tasks_rail_clicked`
+`tasks_rail_shown` {credits_available, open_tasks}; `tasks_rail_closed`; `tasks_rail_clicked`
 {task_name}; `onboarding_popup_shown` now has `trigger: 'rail'` beside
 `manual_reopen`.
 
@@ -45,6 +48,19 @@ home page keeps "Earn free credits" visible next to the main content.
 The share of signups with any `onboarding_task_started` (around 5% today), and
 G2 `onboarding_task_completed`. Credits handed out are a cost: if completions
 rise with no lift in activation or payment, trim the list rather than add to it.
+
+## LinkedIn share replaced YouTube subscribe (same day)
+
+`youtube_subscribe` (100, honour) is out of the list; `linkedin_share` (150)
+is back in. It was removed on 31 Aug because any linkedin.com URL counted as
+proof. Proof now has to be a link to one post (`LI_POST_URL` in `app.html`,
+the same pattern in `workers/onboarding-tasks/worker.js`). The button opens
+LinkedIn's share dialog prefilled with linkfinderai.com.
+
+**The worker change needs a `wrangler deploy` in `workers/onboarding-tasks`.**
+Until then the live worker still accepts any linkedin.com URL; only the app's
+own check stands in front of it. Both tasks stay in the worker's
+`TASK_CONFIG`, so past completions keep their credits.
 
 ## Not done
 

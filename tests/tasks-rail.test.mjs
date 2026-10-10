@@ -41,10 +41,37 @@ test('wide screens only, and the corner button steps aside there', () => {
   assert.ok(app.includes('.tasks-rail{display:none;}'), 'hidden by default (narrow screens keep the button)');
 });
 
+test('it can be closed for good, and the corner button comes back', () => {
+  assert.ok(app.includes('class="tasks-rail-close" onclick="closeTasksRail()"'));
+  const close = appFn('closeTasksRail');
+  assert.ok(close.includes("localStorage.setItem('lf_tasks_rail_closed', '1')"));
+  assert.ok(close.includes("document.body.classList.remove('lf-rail-on')"), 'removing the class un-hides the button');
+  assert.ok(close.includes("posthog.capture('tasks_rail_closed')"));
+  assert.ok(appFn('renderTasksRail').includes("if (tasksRailClosed()) { document.body.classList.remove('lf-rail-on'); return; }"), 'stays closed on the next visit');
+});
+
+test('it sits at the far left edge, out of the way of the form', () => {
+  assert.ok(/body\.lf-rail-on \.tasks-rail\{[^}]*left:16px;width:196px;/.test(app));
+});
+
 test('rail traffic is told apart from the button', () => {
   assert.ok(appFn('renderTasksRail').includes("posthog.capture('tasks_rail_shown'"));
   assert.ok(appFn('openTaskFromRail').includes("posthog.capture('tasks_rail_clicked'"));
   assert.ok(appFn('openOnboardingTasksPopupManually').includes("trigger === 'rail' ? 'rail' : 'manual_reopen'"));
+});
+
+test('LinkedIn share replaced the YouTube subscribe, and only a post link counts', () => {
+  const tasks = app.slice(app.indexOf('const OTP_TASKS_ALL = ['), app.indexOf('const AFFILIATE_LIVE'));
+  assert.ok(!tasks.includes("name: 'youtube_subscribe'"), 'YouTube row is gone');
+  assert.ok(tasks.includes("name: 'linkedin_share', kind: 'url'"), 'LinkedIn share is a url task');
+  assert.ok(/name: 'linkedin_share'[\s\S]*?credits: 150,/.test(tasks), '150, matching the worker');
+  assert.ok(appFn('otpSubmitUrlTask').includes("taskName === 'linkedin_share' && !LI_POST_URL.test(url)"));
+  const m = app.match(/const LI_POST_URL = (\/.*\/i);/);
+  const re = eval(m[1]);
+  assert.ok(re.test('https://www.linkedin.com/posts/someone_linkfinder-activity-7123-ab'));
+  assert.ok(re.test('https://www.linkedin.com/feed/update/urn:li:activity:7123456789/'));
+  assert.ok(!re.test('https://www.linkedin.com/in/someone'), 'a profile is not a post');
+  assert.ok(!re.test('https://www.linkedin.com/company/linkfinder-ai'), 'a company page is not a post');
 });
 
 console.log(`${passed} passed`);
