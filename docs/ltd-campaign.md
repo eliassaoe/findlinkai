@@ -3,9 +3,51 @@
 A one-week lifetime deal (LTD), sold by email only to free accounts that have
 never paid, in high-income countries. Built 5 Oct 2026.
 
-**Live since 5 Oct 2026, 22:36 UTC.** Page on `main`, `ends_at` = 13 Oct 10:36 UTC,
-wave A (350) dispatched; wave B (202) pending a bounce check. Churn win-back
-(workflow 30, cohort `616375`, 7 people) dispatched 22:39 UTC.
+**Closed 13 Oct 2026, 00:00 UTC. Result: 0 sales, $0.** Workflows 28 and 30
+were archived on 13 Oct. The page shows "This offer has ended" by itself, and
+`ltd_public_state()` reports 150 of 150 seats left. The monthly top-up cron is
+still scheduled, but it has nobody to refill.
+
+## Results (read this before running another LTD)
+
+Measured 13 Oct from PostHog events and `linkfinderai_users`. Wave A (350) was
+dispatched 5 Oct 22:36 UTC, wave B (202) 6 Oct 06:37 UTC, and the churn list
+(7) 5 Oct 22:39 UTC.
+
+| Step | Count |
+| --- | --- |
+| People emailed | 559 (552 free + 7 churned) |
+| Emails sent / delivered | 2,822 / 2,770 to 609 people (this includes other lifecycle workflows during the week) |
+| People who opened | 330 |
+| People who clicked a link | 37 |
+| People who viewed `/lifetime-deal` | 20 |
+| Paid users stopped by the page guard | 1 (the guard worked) |
+| People who clicked checkout | 1, on launch night: Core, then Plus. Did not pay. |
+| Rows with `ltd_monthly_credits > 0` | **0** |
+| Unsubscribes | 15 |
+| People with at least one bounce | 24 |
+
+The one `checkout_payment_success` during the week (9 Oct) was an ordinary
+credit pack. That buyer was not on either list.
+
+**What this says.** Free never-paid users don't buy a $149 lifetime deal by
+email. Of the 37 who clicked, 20 reached the page and 1 started a checkout. The
+offer reached them, so the problem is demand at this price from this audience,
+not deliverability. The 7 churned subscribers were too few to read anything
+from. Don't size a future LTD on this list. Treat the 5 Oct estimate in this
+doc as disproved.
+
+**A sequencing bug to fix before reusing workflow 28.** Email 4's delay was
+changed from 1d to 42h after dispatch. The people already in the workflow kept
+the old 1d delay. As a result:
+- "closes tomorrow" went out on 10 Oct, two days early;
+- "last few hours" went out 11 Oct 16:36 UTC to wave A (31 hours before close)
+  and around 01:00 UTC on 12 Oct to wave B (23 hours before);
+- nothing was sent in the real final hours.
+
+In PostHog, editing a delay does not reschedule runs already in it. Set every
+delay before dispatch. For a deadline email, use a separate one-shot batch
+sent at a fixed time, not a delay chain.
 
 ## The offer
 
@@ -246,7 +288,7 @@ No first names (most accounts have none) and no `email=` in links: an
   and take back the credits if appropriate.
 - **Close early / extend:** `update ltd_settings set ends_at = …` or
   `seat_cap = …`. The page follows immediately.
-- **After the week:** archive workflow 28. `/lifetime-deal` shows "closed" on
+- **After the week:** archive workflows 28 and 30 (done 13 Oct 2026). `/lifetime-deal` shows "closed" on
   its own once `ends_at` passes. Leave the cron running: it is what honours
   the lifetime promise.
 

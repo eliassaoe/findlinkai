@@ -5,6 +5,13 @@ buying, sent by email, with a deadline.** The lifetime deal (`docs/ltd-campaign.
 and annual-by-default were both this. Ranked by speed × size, cheapest first.
 Numbers are from 5 Oct 2026; re-measure before acting.
 
+**Update 13 Oct 2026: the LTD to free users made $0** (559 emailed, 20 page views,
+1 checkout click, 0 sales; see `docs/ltd-campaign.md`). That counts against
+#1 (the same offer at a lower price to a poorer list) and against #3, whose list
+is a single person. Free users who never paid don't respond to a discount
+offer. Prefer offers aimed at people who already paid, or at a concrete job
+they are stuck on (#4).
+
 | # | Offer | Who | Why it should work | Effort |
 |---|---|---|---|---|
 | 1 | **Regional lifetime deal** ($49 / $99) | The ~1,500 confirmed never-paid users outside the high-income list (India 838, Pakistan 180, Nigeria, Bangladesh, Philippines…) | Same machinery as the LTD — new tiers + Dodo products, a cohort, a copy of workflow 28. Excluded from the first LTD only on price, not intent. Run *after* the main LTD closes so nobody sees two prices. | ~1 h |
