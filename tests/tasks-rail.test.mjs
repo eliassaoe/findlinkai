@@ -35,6 +35,17 @@ test('it lists the same tasks as the modal and opens the modal, never a form of 
   assert.ok(appFn('openTaskFromRail').includes("openOnboardingTasksPopupManually('rail')"));
 });
 
+test('a row goes straight to the task link, with no modal in between', () => {
+  const r = appFn('renderTasksRail');
+  assert.ok(r.includes('railTaskLink(t)') && r.includes('<a class="tasks-rail-row"'), 'linkable rows render as links');
+  const l = appFn('railTaskLink');
+  for (const kind of ['honor_click', 'auto', 'link_out', 'url']) assert.ok(l.includes(`t.kind === '${kind}'`), kind + ' goes direct');
+  const c = appFn('railTaskClicked');
+  assert.ok(!c.includes('openOnboardingTasksPopupManually'), 'a direct click never opens the modal');
+  assert.ok(c.includes('otpCompleteHonorTask(taskName)'), 'honour tasks are credited on the click, as in the modal');
+  assert.ok(c.includes('otpTrackStarted(taskName)'));
+});
+
 test('wide screens only, and the corner button steps aside there', () => {
   assert.ok(app.includes('@media (min-width:1200px){\n  body.lf-rail-on .tasks-rail{display:block;'));
   assert.ok(app.includes('body.lf-rail-on #reopenTasksBtn{display:none !important;}'));

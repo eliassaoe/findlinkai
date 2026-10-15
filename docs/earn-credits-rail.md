@@ -28,16 +28,23 @@ home page keeps "Earn free credits" visible next to the main content.
   done last), one line each with its reward, plus a total of the credits still
   available. Called once task status has loaded, and from
   `renderOnboardingTasksPopup()`, so a completion in the modal updates it.
-- A row opens the existing modal (`openTaskFromRail` →
-  `openOnboardingTasksPopupManually('rail')`) and scrolls to that task. The
-  rail has no inputs: the modal stays the one place a task is done.
+- A row goes **straight to the task's link** (`railTaskLink`), the same one
+  the modal's button uses: G2, the Sheets add-on, YouTube, the API page, the
+  HubSpot page, the affiliate page. No modal in between (changed 2026-10-15;
+  the extra popup was a step people complained about). `railTaskClicked`
+  does what the modal's button does on that click: honour tasks are
+  credited, the others fire `onboarding_task_started`.
+- Only rows that need typing open the modal (`openTaskFromRail` →
+  `openOnboardingTasksPopupManually('rail')`): the G2 row *after* they have
+  been to G2, so they can paste the review URL, and the survey. The rail
+  itself still has no inputs.
 - It is not a popup and never auto-opens. That follows the rule in
   `docs/next-step-routing.md`: interrupting prompts converted at about 1%.
 
 ## Events
 
 `tasks_rail_shown` {credits_available, open_tasks}; `tasks_rail_clicked`
-{task_name}; `onboarding_popup_shown` now has `trigger: 'rail'` beside
+{task_name, direct (true when the row went straight to the link)}; `onboarding_popup_shown` now has `trigger: 'rail'` beside
 `manual_reopen`.
 
 ## What to watch

@@ -781,7 +781,7 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
 .tasks-rail-title{font-size:0.9375rem;font-weight:700;color:var(--gray-900);display:flex;align-items:center;gap:0.4rem;}
 .tasks-rail-title i{color:var(--primary);}
 .tasks-rail-sub{font-size:0.75rem;color:var(--gray-500);margin:0.2rem 0 0.75rem;}
-.tasks-rail-row{display:flex;align-items:center;justify-content:space-between;gap:0.5rem;width:100%;text-align:left;background:var(--gray-50);border:1px solid var(--gray-200);border-radius:8px;padding:0.55rem 0.65rem;margin-bottom:0.4rem;cursor:pointer;font-family:inherit;transition:border-color 0.15s ease,background 0.15s ease;}
+.tasks-rail-row{box-sizing:border-box;color:inherit;text-decoration:none;display:flex;align-items:center;justify-content:space-between;gap:0.5rem;width:100%;text-align:left;background:var(--gray-50);border:1px solid var(--gray-200);border-radius:8px;padding:0.55rem 0.65rem;margin-bottom:0.4rem;cursor:pointer;font-family:inherit;transition:border-color 0.15s ease,background 0.15s ease;}
 .tasks-rail-row:hover{border-color:var(--primary);background:#f0f5ff;}
 .tasks-rail-row.done{cursor:default;opacity:0.6;}
 .tasks-rail-row.done:hover{border-color:var(--gray-200);background:var(--gray-50);}
@@ -8121,16 +8121,40 @@ function renderTasksRail() {
             const reward = done ? '<i class="fas fa-check"></i> Done'
                 : status === 'pending' ? 'Being checked'
                 : (t.rewardLabel ? otpEsc(t.rewardLabel) : `+${t.credits.toLocaleString()}`);
-            return `<button type="button" class="tasks-rail-row${done ? ' done' : ''}" ${done ? 'disabled' : `onclick="openTaskFromRail('${t.name}')"`}>
-                <span class="tasks-rail-label">${otpEsc(t.label)}</span>
-                <span class="tasks-rail-reward${t.rewardLabel && !done ? ' money' : ''}">${reward}</span>
-            </button>`;
+            const inner = `<span class="tasks-rail-label">${otpEsc(t.label)}</span>
+                <span class="tasks-rail-reward${t.rewardLabel && !done ? ' money' : ''}">${reward}</span>`;
+            const link = done || status === 'pending' ? null : railTaskLink(t);
+            if (link) {
+                return `<a class="tasks-rail-row" href="${otpEsc(link.href)}"${link.newTab ? ' target="_blank" rel="noreferrer"' : ''} onclick="railTaskClicked('${t.name}')">${inner}</a>`;
+            }
+            return `<button type="button" class="tasks-rail-row${done ? ' done' : ''}" ${done ? 'disabled' : `onclick="openTaskFromRail('${t.name}')"`}>${inner}</button>`;
         }).join('')}`;
     document.body.classList.add('lf-rail-on');
     if (!tasksRailShown && window.matchMedia && window.matchMedia('(min-width:1200px)').matches) {
         tasksRailShown = true;
         try { posthog.capture('tasks_rail_shown', { credits_available: available, open_tasks: open.length }); } catch (e) {}
     }
+}
+
+// Where a rail row goes when clicked: straight to the task's own page, the
+// same link the modal's button uses. Only rows that need typing open the
+// modal: the survey, and the G2 row once they have been to G2 (to paste the
+// review URL).
+function railTaskLink(t) {
+    if (t.kind === 'honor_click' && t.linkUrl) return { href: t.linkUrl, newTab: true };
+    if (t.kind === 'auto' && t.href) return { href: t.href(), newTab: false };
+    if (t.kind === 'link_out') return { href: `https://linkfinderai.com/affiliate?token=${encodeURIComponent(userToken || '')}`, newTab: false };
+    if (t.kind === 'url' && t.linkUrl && !otpStartedTasks.has(t.name)) return { href: t.linkUrl, newTab: true };
+    return null;
+}
+
+function railTaskClicked(taskName) {
+    try { posthog.capture('tasks_rail_clicked', { task_name: taskName, direct: true }); } catch (e) {}
+    const task = OTP_TASKS.find(t => t.name === taskName);
+    if (task && task.kind === 'honor_click') { otpCompleteHonorTask(taskName); return; }
+    otpTrackStarted(taskName);
+    // The G2 row now opens the paste box next time, instead of G2 again.
+    if (task && task.kind === 'url') setTimeout(renderTasksRail, 0);
 }
 
 async function openTaskFromRail(taskName) {
