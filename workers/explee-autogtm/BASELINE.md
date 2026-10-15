@@ -84,6 +84,32 @@ What it does *not* do is the win-back: the lead who replied warmly, got an answe
 and then went silent. That one still needs the API, and it is where the 45
 leaking replies a month actually sit.
 
+## The Pharow arm, as imported
+
+Campaign **140491**, "Pharow : linkfinder AI high ticket", 2 Sept: **83 exported
+from Pharow, 62 survived** Explee's validation and dedup. The 21 dropped are
+either rows missing a mandatory field or people the project has already
+contacted - worth knowing which, since only the first is a data-quality signal.
+
+**What 62 leads can answer**, over ~248 sends and about $7.44:
+
+- **bounce rate** - the number Pharow's 78.7% email-coverage claim actually cashes
+  out as, and the one that costs sending reputation when it is wrong
+- **title accuracy** - are they the buyers the filter asked for
+- **whether the segment exists at all** - a full search returning 83 rows is a
+  thin pool. Instantly returns 2,535 for a comparable French ICP.
+
+**What it cannot answer:** whether Pharow's leads reply better. At 1.05% those
+248 sends produce **2.6 replies**; at 3% they produce 7.4. The gate is 300 leads
+a side for a reason, and reading a winner out of three replies is how a test
+launders noise into a decision.
+
+Two things to watch while it runs. Autopilot is ON and the project budget is $30
+a day across what are now **four** campaigns, so this arm takes spend from *High
+ticket linkfinder AI* - the only proven converter, at 1.2% and nine hot leads. And
+if the import brief differs from the other campaigns', the comparison measures
+the copy rather than the data.
+
 ## Three things wrong right now
 
 **1. ~~A hot lead has been waiting three days.~~ Answered and booked.** Jérôme
