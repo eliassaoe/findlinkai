@@ -60,7 +60,7 @@ def cluster_name(cid):
     return cid
 
 def build_block(page,members,cid):
-    pillar_url=f"{BASE_URL}clusters/{cid}.html"; pillar_label=cluster_name(cid)
+    pillar_url=f"{BASE_URL}clusters/{cid}"; pillar_label=cluster_name(cid)
     others=[m for m in members if m["slug"]!=page["slug"]]
     if others:
         idx=next(i for i,m in enumerate(members) if m["slug"]==page["slug"])
@@ -97,7 +97,7 @@ def write_pillar(cid,members):
     html=('<!DOCTYPE html>\n<html lang="en">\n<head>\n  <meta charset="utf-8">\n'
         f"  <title>{escape(label)} | LinkFinder AI</title>\n"
         f'  <meta name="description" content="{escape(label)} — guides, tools and APIs from LinkFinder AI.">\n'
-        f'  <link rel="canonical" href="{BASE_URL}clusters/{cid}.html">\n</head>\n<body>\n'
+        f'  <link rel="canonical" href="{BASE_URL}clusters/{cid}">\n</head>\n<body>\n'
         f"  <h1>{escape(label)}</h1>\n  <p>Replace this with 2-3 paragraphs of original overview content.</p>\n  <ul>\n"+lis+"\n  </ul>\n</body>\n</html>\n")
     if not DRY_RUN:
         PILLAR_DIR.mkdir(exist_ok=True); (PILLAR_DIR/f"{cid}.html").write_text(html,encoding="utf-8")
