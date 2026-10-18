@@ -12,7 +12,7 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
   <meta charset="utf-8"/>
   <link rel="icon" href="https://i.ibb.co/jPjX9SSp/Screen-Shot-2025-03-28-at-8-16-15-PM.png">
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>LinkedIn API for Developers - LinkFinder AI | Profile & Company Data</title>
+  <title>LinkedIn API: Profile &amp; Company Data, No Approval Needed</title>
   <meta name="description" content="The LinkedIn data API for developers — no Marketing Developer Platform approval required. Get profile data, company info, work emails, and lead search from one REST endpoint. Free API key, monthly billing."/>
   <meta name="keywords" content="linkedin api, linkedin data api, linkedin profile api, linkedin company api, linkedin api alternative, unofficial linkedin api, linkedin enrichment api"/>
   <link rel="canonical" href="https://linkfinderai.com/linkedin-api"/>
@@ -170,7 +170,7 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
       "name": "How is the LinkedIn API priced?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Pricing is simple: 1 credit equals 1 API request, regardless of which type of lookup you make. New accounts get free credits to start, and billing is monthly with no long-term commitment. See the pricing page for current plan limits."
+        "text": "Each request type has a fixed credit price: 1 credit for a LinkedIn URL from a name or a company website, 5 for an email-to-LinkedIn lookup, 10 for a full profile or a work email, 50 for a phone number. New accounts get free credits, and billing is monthly with no long-term commitment."
       }
     },
     {
@@ -187,6 +187,30 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
       "acceptedAnswer": {
         "@type": "Answer",
         "text": "Yes. Because it is a standard REST API, you can call it from the HTTP action or module in Zapier, Make, and n8n without any custom integration. Point the request at the single endpoint, add your API key as a Bearer token, and set the type field."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Is the LinkedIn API free?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "LinkedIn's free self-serve products, such as Sign In with LinkedIn and Share on LinkedIn, only return the signed-in member's own basic profile. Looking up other people's profiles or company data requires an approved partner program. LinkFinder AI gives you free credits to start, with no card, and paid plans from $49/month."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Does LinkedIn have an API to look up any profile?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Not publicly. LinkedIn's official APIs do not let you fetch an arbitrary person's profile by URL unless you are an approved partner. LinkFinder AI's linkedin_profile_to_linkedin_info request returns structured profile data from any public LinkedIn profile URL."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How do I get a LinkedIn API key?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "For LinkedIn's official API, create an app in the LinkedIn Developer Portal and request access to each product; most data products need partner approval. For LinkFinder AI, create a free account and copy your key from the API access page. It works immediately, with no approval step."
       }
     }
   ]
@@ -280,8 +304,8 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
     <div class="stats-grid">
       <div><div class="stat-number">1</div><div class="stat-label">Endpoint for Everything</div></div>
       <div><div class="stat-number">~3s</div><div class="stat-label">Avg Response Time</div></div>
-      <div><div class="stat-number">1</div><div class="stat-label">Credit per Request</div></div>
-      <div><div class="stat-number">25</div><div class="stat-label">Free Credits to Start</div></div>
+      <div><div class="stat-number">1</div><div class="stat-label">Credit for the cheapest lookup</div></div>
+      <div><div class="stat-number">$0</div><div class="stat-label">To start, no card</div></div>
     </div>
   </div>
 </div>
@@ -307,7 +331,7 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
         </tbody>
       </table>
     </div>
-    <p style="font-size:.8rem;color:var(--gray-400);margin-top:.75rem;">Official LinkedIn API access terms verified from public sources, 2026. LinkFinder AI is an independent data provider and is not affiliated with or endorsed by LinkedIn.</p>
+    <p style="font-size:.8rem;color:var(--gray-400);margin-top:.75rem;">Official LinkedIn API access terms verified from public sources, 2026. LinkFinder AI is an independent data provider and is not affiliated with or endorsed by LinkedIn. Comparing more providers? See the <a href="https://linkfinderai.com/best-linkedin-api">12 best LinkedIn APIs, tested and ranked</a>.</p>
   </div>
 </section>
 
@@ -368,7 +392,7 @@ console.log(status, result);</pre></div>
     "connections": 2431
   }
 }</pre></div>
-    <p style="font-size:.8rem;color:var(--gray-500);margin-top:1rem;">Every request costs 1 credit. A successful call can still return an empty <code>result</code> if no match is found. See the full reference in the <a href="https://linkfinderai.com/api-documentation" style="color:var(--primary);">API documentation</a>.</p>
+    <p style="font-size:.8rem;color:var(--gray-500);margin-top:1rem;">The example above costs 10 credits; each request type has its own price (listed below). A successful call can still return an empty <code>result</code> if no match is found. See the full reference in the <a href="https://linkfinderai.com/api-documentation" style="color:var(--primary);">API documentation</a>.</p>
   </div>
 </section>
 
@@ -378,18 +402,34 @@ console.log(status, result);</pre></div>
     <div class="section-title">What the LinkedIn API can do</div>
     <div class="section-sub">All from the same endpoint — just change the request type.</div>
     <div class="endpoint-row">
+      <span class="endpoint-type">linkedin_profile_to_linkedin_info</span>
+      <span class="endpoint-desc"><strong>Profile data.</strong> Structured profile from a LinkedIn URL: name, headline, job title, company, location, experience. <em>10 credits.</em></span>
+    </div>
+    <div class="endpoint-row">
+      <span class="endpoint-type">linkedin_profile_to_email</span>
+      <span class="endpoint-desc"><strong>Work email.</strong> Verified work email for a LinkedIn profile URL. <em>10 credits.</em></span>
+    </div>
+    <div class="endpoint-row">
+      <span class="endpoint-type">linkedin_profile_to_phone</span>
+      <span class="endpoint-desc"><strong>Phone number.</strong> Direct dial or mobile number for a LinkedIn profile URL. <em>50 credits.</em></span>
+    </div>
+    <div class="endpoint-row">
+      <span class="endpoint-type">email_to_linkedin_url</span>
+      <span class="endpoint-desc"><strong>Reverse lookup.</strong> The LinkedIn profile behind an email address. <em>5 credits.</em></span>
+    </div>
+    <div class="endpoint-row">
+      <span class="endpoint-type">lead_full_name_to_linkedin_url</span>
+      <span class="endpoint-desc"><strong>Find a profile.</strong> LinkedIn profile URL from a full name and company. <em>1 credit.</em></span>
+    </div>
+    <div class="endpoint-row">
+      <span class="endpoint-type">linkedin_company_to_linkedin_info</span>
+      <span class="endpoint-desc"><strong>Company data.</strong> Company details from a LinkedIn company page URL. <em>6 credits.</em></span>
+    </div>
+    <div class="endpoint-row">
       <span class="endpoint-type">company_name_to_website</span>
-      <span class="endpoint-desc"><strong>Company resolution.</strong> Turn a company name into its website and core company details.</span>
+      <span class="endpoint-desc"><strong>Company resolution.</strong> A company's official website from its name. <em>1 credit.</em></span>
     </div>
-    <div class="endpoint-row">
-      <span class="endpoint-type">profile_lookup</span>
-      <span class="endpoint-desc"><strong>Profile data.</strong> Pull structured profile information from a LinkedIn URL — name, title, experience, and more. <em>(Confirm the exact type string in your API docs.)</em></span>
-    </div>
-    <div class="endpoint-row">
-      <span class="endpoint-type">company_enrichment</span>
-      <span class="endpoint-desc"><strong>Company enrichment.</strong> Employee count, industry, and firmographics for a company. <em>(Confirm the exact type string in your API docs.)</em></span>
-    </div>
-    <div style="margin-top:1.25rem;">
+        <div style="margin-top:1.25rem;">
       <a href="https://linkfinderai.com/api-documentation" style="color:var(--primary);font-size:.9rem;font-weight:500;text-decoration:none;">See all request types in the API docs →</a>
     </div>
   </div>
@@ -491,7 +531,19 @@ console.log(status, result);</pre></div>
       </div>
       <div class="faq-item">
         <div class="faq-q" onclick="toggleFaq(this)">How is the API priced? <i class="fas fa-chevron-down"></i></div>
-        <div class="faq-a">Simple: 1 credit = 1 API request, regardless of the lookup type. New accounts get free credits, and billing is monthly with no long-term commitment. See the <a href="https://linkfinderai.com/pricing">pricing page</a> for current limits.</div>
+        <div class="faq-a">Each request type has a fixed credit price: 1 credit for a LinkedIn URL from a name or a company website, 5 for an email-to-LinkedIn lookup, 10 for a full profile or a work email, 50 for a phone number. New accounts get free credits, and billing is monthly with no long-term commitment. See the <a href="https://linkfinderai.com/pricing">pricing page</a> for current limits.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)">Is the LinkedIn API free? <i class="fas fa-chevron-down"></i></div>
+        <div class="faq-a">LinkedIn's free self-serve products, such as Sign In with LinkedIn and Share on LinkedIn, only return the signed-in member's own basic profile. Looking up other people's profiles or company data requires an approved partner program. LinkFinder AI gives you free credits to start, with no card, and paid plans from $49/month.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)">Does LinkedIn have an API to look up any profile? <i class="fas fa-chevron-down"></i></div>
+        <div class="faq-a">Not publicly. LinkedIn's official APIs do not let you fetch an arbitrary person's profile by URL unless you are an approved partner. LinkFinder AI's <code>linkedin_profile_to_linkedin_info</code> request returns structured profile data from any public LinkedIn profile URL.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)">How do I get a LinkedIn API key? <i class="fas fa-chevron-down"></i></div>
+        <div class="faq-a">For LinkedIn's official API, create an app in the LinkedIn Developer Portal and request access to each product; most data products need partner approval. For LinkFinder AI, create a free account and copy your key from the <a href="https://linkfinderai.com/api-access">API access page</a>. It works immediately, with no approval step.</div>
       </div>
       <div class="faq-item">
         <div class="faq-q" onclick="toggleFaq(this)">What languages and tools are supported? <i class="fas fa-chevron-down"></i></div>
@@ -575,8 +627,8 @@ console.log(status, result);</pre></div>
             <h4 class="footer-heading">Platform</h4>
             <ul class="footer-links">
               <li><a href="https://linkfinderai.com/b2b-data-enrichment">B2B Data Enrichment</a></li>
-              <li><a href="https://linkfinderai.com/linkedin-search-by-email">Profile Search by Email</a></li>
-              <li><a href="https://linkfinderai.com/linkedin-email-finder">Business Email Finder</a></li>
+              <li><a href="https://linkfinderai.com/linkedin-search-by-email">Email to LinkedIn Finder</a></li>
+              <li><a href="https://linkfinderai.com/linkedin-email-finder">LinkedIn Email Finder</a></li>
               <li><a href="https://linkfinderai.com/linkedin-phone-number-finder">LinkedIn Phone Number Finder</a></li>
               <li><a href="https://linkfinderai.com/linkedin-profile-scraper">LinkedIn Profile Scraper</a></li>
               <li><a href="https://linkfinderai.com/linkedin-url-finder">LinkedIn Profile Finder</a></li>
