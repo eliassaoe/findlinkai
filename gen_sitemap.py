@@ -4,7 +4,7 @@
 DRY-RUN by default (prints what it would write). Pass --write to create the files.
 Writes sitemap.xml and robots.txt in the current folder. Review with git diff.
 """
-import argparse, os, sys
+import argparse, os, re, subprocess, sys
 from datetime import date
 from xml.sax.saxutils import escape
 
@@ -72,6 +72,11 @@ NOINDEX_ONLY = {
 # The two Google Sheets folders hold the add-on's Apps Script HTML (sidebar,
 # settings, help panels). They render inside Sheets, not on the site, and have
 # no <title> -- Google was being asked to index bare UI fragments.
+# Logged-in app screens that are not in EXCLUDE (they carry no noindex, so the
+# automatic check below cannot catch them). Kept out of the sitemap only; Search
+# Console showed all three as "Discovered - currently not indexed".
+APP_ONLY = {"history", "history-beta", "api-access-beta"}
+
 EXCLUDE_DIRS = {"workflow", "clusters/workflows", "workers",
                 "integrations/google-sheets-addon", "integrations/google-sheets"}
 # ----------------------------------------
@@ -88,7 +93,9 @@ def iter_html(root):
 def clean_path(rel):
     """File path -> clean URL path (no .html, index.html -> '')."""
     p = rel.replace(os.sep, "/").lstrip("./")
-    if p.endswith("index.html"):
+    # Only a file named exactly index.html maps to its folder. Matching on the
+    # suffix turned beta-index.html into the URL "/beta-" in the sitemap.
+    if p == "index.html" or p.endswith("/index.html"):
         p = p[: -len("index.html")]
     elif p.endswith(".html"):
         p = p[:-5]
@@ -107,9 +114,48 @@ def is_excluded(clean):
     if any(clean == d or clean.startswith(d + "/") for d in EXCLUDE_DIRS):
         return True
     base = clean.split("/")[-1] or clean
-    if base in NOINDEX_ONLY:
+    if base in NOINDEX_ONLY or base in APP_ONLY:
         return True
     return any(base == e or base.startswith(e + "-") for e in EXCLUDE)
+
+
+ROBOTS_NOINDEX = re.compile(
+    r'<meta[^>]+name=["\']robots["\'][^>]*content=["\'][^"\']*noindex', re.I)
+META_REFRESH = re.compile(r'<meta[^>]+http-equiv=["\']refresh["\']', re.I)
+
+
+def self_excluded(path):
+    """A page that says noindex, or is a meta-refresh redirect stub, does not
+    belong in the sitemap. Reading the page itself means nobody has to remember
+    to add it to NOINDEX_ONLY (/affiliate, /badge and /verify-email were all
+    noindex and still submitted)."""
+    with open(path, encoding="utf-8", errors="ignore") as fh:
+        head = fh.read(20000)
+    if ROBOTS_NOINDEX.search(head):
+        return "noindex"
+    if META_REFRESH.search(head):
+        return "redirect"
+    return None
+
+
+def git_lastmod():
+    """Last commit date per file, in one git call. File mtimes are useless here:
+    on a fresh CI checkout every file has today's date, so every URL claimed to
+    have changed every day and Google learns to ignore lastmod. Needs full
+    history (fetch-depth: 0); returns {} when git is unavailable."""
+    try:
+        out = subprocess.run(
+            ["git", "log", "--format=@%cs", "--name-only", "--", "*.html", "*.htm"],
+            capture_output=True, text=True, check=True, cwd=ROOT).stdout
+    except (OSError, subprocess.CalledProcessError):
+        return {}
+    dates, current = {}, None
+    for line in out.splitlines():
+        if line.startswith("@"):
+            current = line[1:]
+        elif line and current:
+            dates.setdefault(line, current)   # log is newest-first
+    return dates
 
 
 def main():
@@ -117,7 +163,8 @@ def main():
     ap.add_argument("--write", action="store_true", help="actually create the files")
     args = ap.parse_args()
 
-    included, excluded, skipped = [], [], []
+    included, excluded, skipped, self_skipped = [], [], [], []
+    lastmods = git_lastmod()
     for path in iter_html(ROOT):
         rel = os.path.relpath(path, ROOT)
         clean = clean_path(rel)
@@ -131,7 +178,12 @@ def main():
         if is_excluded(clean):
             excluded.append(clean)
             continue
-        lastmod = date.fromtimestamp(os.path.getmtime(path)).isoformat()
+        why = self_excluded(path)
+        if why:
+            self_skipped.append(f"{clean} ({why})")
+            continue
+        lastmod = (lastmods.get(rel.replace(os.sep, "/"))
+                   or date.fromtimestamp(os.path.getmtime(path)).isoformat())
         included.append((url, lastmod))
 
     included.sort()
@@ -158,6 +210,9 @@ def main():
     print(f"Pages in sitemap : {len(included)}")
     print(f"Excluded (auth/app): {len(excluded)}")
     print(f"  of those, noindex-only (not in robots.txt): {sorted(NOINDEX_ONLY)}")
+    print(f"Left out because the page itself is noindex or a redirect: {len(self_skipped)}")
+    for p in sorted(self_skipped):
+        print(f"  {p}")
     if skipped:
         print(f"SKIPPED (bad filename, rename these): {skipped}")
     print("-" * 50)
