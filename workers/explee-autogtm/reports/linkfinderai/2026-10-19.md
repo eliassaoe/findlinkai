@@ -1,4 +1,4 @@
-# Explee follow-ups — linkfinderai — 2026-10-19 16:32 UTC
+# Explee follow-ups — linkfinderai — 2026-10-19 17:34 UTC
 
 **SENT 0 emails**
 
@@ -6,24 +6,24 @@ To take someone out of the loop: open the lead in the [inbox](https://explee.com
 
 | outcome | leads |
 |---|---|
-| skip: unknown | 248 |
-| skip: auto_reply | 189 |
+| skip: unknown | 250 |
+| skip: auto_reply | 190 |
 | skip: negative | 149 |
-| skip: can_reply is false | 58 |
+| skip: can_reply is false | 59 |
 | skip: reply cap (3) reached on this message | 46 |
 | skip: question | 25 |
-| skip: nudge 2 due in 0.8d | 16 |
+| skip: nudge 2 due in 0.7d | 16 |
 | skip: no reply from this lead | 10 |
 | skip: booked | 8 |
 | skip: call_me | 4 |
+| skip: nudge 1 due in 0.6d | 4 |
 | skip: nudge 2 due in 0.9d | 3 |
-| skip: nudge 1 due in 0.7d | 2 |
-| skip: nudge 1 due in 0.6d | 2 |
 | skip: nudge 1 due in 0.9d | 1 |
-| skip: nudge 1 due in 0.8d | 1 |
+| skip: nudge 1 due in 0.7d | 1 |
 | skip: already handled (note marker) | 1 |
 | skip: queued until 2027-01-05 | 1 |
 | skip: queued until 2026-12-05 | 1 |
+| skip: nudge 1 due in 1.0d | 1 |
 | skip: fresh reply | 1 |
 
 ## Everyone else who replied
@@ -759,12 +759,16 @@ To take someone out of the loop: open the lead in the [inbox](https://explee.com
 | Stéphanie (Equoranda) | Organismes de formation FR/… | Bonjour, Je suis absente , de retour jeudi 17 septembre. En cas de demande urgente, merci… | none - auto_reply |
 | Patrice (Emergence Académie) | Organismes de formation FR/… | Bonjour, Vous êtes bien sur ma messagerie. Je ne suis pas disponible pour le moment. En r… | none - unknown |
 | David (Afc Prevention) | Organismes de formation FR/… | Bonjour,     Oui, je veux bien plus d’explication.     Cordialement,       De : Tanner Fo… | none - booked in the note |
-| markus (Solutionis) | Growth partners — marketpla… | Hej Eliasse! Kul att du hör av dig! Kikat lite på LinkFinder AI och ser faktiskt en möjli… | ANSWER THIS ONE YOURSELF in the inbox |
-| Tanvir (Vieerx.com) | Growth partners — marketpla… | Not interested in a commissioned approach to this | none - negative |
+| markus (Solutionis) | Growth partners — marketpla… | Hej Eliasse! Kul att du hör av dig! Kikat lite på LinkFinder AI och ser faktiskt en möjli… | 2026-10-20 |
 | Dustin (Virelix) | Growth partners — marketpla… | Give me a call I’ll be available to listen this evening 252-558-2239 | none - unknown |
 | David (Rainbow Jet) | Growth partners — marketpla… | Hi Eliasse,  Please send me all the relevant documents, and we can take a look at it.  Th… | 2026-10-20 |
 | Sudhansu (Subserve IT Solutions P…) | Growth partners — marketpla… | Hi Eliasse,  Thanks for reaching out, LinkFinder AI looks interesting, especially the MCP… | 2026-10-20 |
+| Kaj (Toronto Business Develo…) | Growth partners — marketpla… | Thank you for your email. Please note that Sen Sachi is no longer with TBDC.  For any fut… | none - auto_reply |
+| Adam (ASCVC) | Growth partners — marketpla… | Hi,  I'll be delayed in responding to your message. For quicker response, please email me… | none - unknown |
+| David (Matrix) | Growth partners — marketpla… | I have retired from making new investments. But I wish you the best of luck with the vent… | none - unknown |
+| Offboarding: (Duo by Amplemarket) | Growth partners — marketpla… | Hello! Thank you for your message. I am no longer with Amplemarket, so we're directing th… | none - Explee will not accept a reply |
 | Osborne (Himalayan Capital) | Growth partners — marketpla… | Thanks for reaching out, Eliasse. Not a fit at the moment. Wishing you the best in your r… | none - negative |
+| Tanvir (Vieerx.com) | Growth partners — marketpla… | Not interested in a commissioned approach to this | none - negative |
 | Steve (InvestorX) | Growth partners — marketpla… | Bonjour Eliasse,   Merci mais je ne suis pas intéressé,   Bonne chasse,   Steve  CIO Inve… | none - negative |
 | Sam (HighTechXL) | Growth partners — marketpla… | Dear Eliasse,  Thank you for reaching out. We are unfortunately only focused on hardware … | none - unknown |
 | Lynn (Navus) | Growth partners — marketpla… | Dear sender,  I am on holiday until the 26th of October, with limited access to emails.  … | none - auto_reply |
@@ -783,10 +787,11 @@ To take someone out of the loop: open the lead in the [inbox](https://explee.com
 | Silk (Blackbird) | Growth partners — marketpla… | Thanks for your email, I’m travelling for work in SF on PT time (18 hours behind) and may… | ANSWER THIS ONE YOURSELF in the inbox |
 | Ben (Enterprise Fund) | Growth partners — marketpla… | Hi there traveller,  I am currently holidaying until Tuesday 20th October.  If the matter… | none - unknown |
 | Georgia (Smart Communications.) | Growth partners — marketpla… | Hello!  I am on parental leave until mid-2026.  In my absence please contact Malcolm Jaco… | none - auto_reply |
-| Daniela (NachoNacho) | Lifetime-deal marketplaces … | Hi Eliasse,   Thanks for your interest in joining NachoNacho! 🚀   We’re excited to learn … | none - unknown |
 | Pratyush (DealMirror) | Lifetime-deal marketplaces … | Hey,  Great to hear from you.  Can you please let me know more details about your tool, a… | 2026-10-20 |
+| Cary (Infostack) | Lifetime-deal marketplaces … | Hi Eliasse,  Yes, I'm the guy.  Do you have a few minutes this week to jump on a call?  I… | ANSWER THIS ONE YOURSELF in the inbox |
+| Daniela (NachoNacho) | Lifetime-deal marketplaces … | Hi Eliasse,   Thanks for your interest in joining NachoNacho! 🚀   We’re excited to learn … | none - unknown |
 
-## Hot leads Explee flagged (66)
+## Hot leads Explee flagged (65)
 
 | who | title | campaign | went hot | in the loop |
 |---|---|---|---|---|
@@ -851,8 +856,7 @@ To take someone out of the loop: open the lead in the [inbox](https://explee.com
 | Frantz (Odyssey Export) | Chief Executive Officer | High ticket FR services B2B | 2026-09-15 | yes |
 | Markus (Solutionis) | Chief Executive Officer | Growth partners — marketpla… | 2026-10-19 | yes |
 | Dustin (Virelix) | Founder | Growth partners — marketpla… | 2026-10-19 | yes |
-| Tanvir (Vieerx.com) | Founder | Growth partners — marketpla… | 2026-10-19 | yes |
 | David (Rainbow Jet) | Partner | Growth partners — marketpla… | 2026-10-19 | yes |
 | Sudhansu (Subserve IT Solutions P…) | Founder | Growth partners — marketpla… | 2026-10-19 | yes |
-| Daniela (NachoNacho) | Business Development Manager | Lifetime-deal marketplaces … | 2026-10-19 | yes |
+| Cary (Infostack) | Founder | Lifetime-deal marketplaces … | 2026-10-19 | yes |
 | Pratyush (DealMirror) | Business Development Manager | Lifetime-deal marketplaces … | 2026-10-19 | yes |
