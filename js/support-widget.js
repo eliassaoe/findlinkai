@@ -375,6 +375,10 @@
   });
   closeBtn.addEventListener("click", closePanel);
 
+  // app.html's "talk to support" buttons (sales-call intercept, credit-wall
+  // rescue) call this first and fall back to mail when it is missing.
+  window.lfOpenSupportChat = openPanel;
+
   function autoGrow() {
     inputEl.style.height = "auto";
     inputEl.style.height = Math.min(inputEl.scrollHeight, 100) + "px";
