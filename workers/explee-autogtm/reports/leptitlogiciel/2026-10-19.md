@@ -1,4 +1,4 @@
-# Explee follow-ups — leptitlogiciel — 2026-10-19 14:44 UTC
+# Explee follow-ups — leptitlogiciel — 2026-10-19 16:32 UTC
 
 **SENT 0 emails**
 
@@ -6,19 +6,20 @@ To take someone out of the loop: open the lead in the [inbox](https://explee.com
 
 | outcome | leads |
 |---|---|
-| skip: unknown | 60 |
+| skip: unknown | 61 |
 | skip: auto_reply | 58 |
 | skip: negative | 42 |
 | skip: can_reply is false | 16 |
 | skip: reply cap (3) reached on this message | 9 |
-| skip: nudge 1 due in 0.9d | 2 |
-| skip: nudge 2 due in 0.8d | 1 |
+| skip: nudge 1 due in 0.8d | 2 |
+| skip: nudge 2 due in 0.7d | 1 |
 | skip: question | 1 |
 
 ## Everyone else who replied
 
 | who | campaign | they said | status |
 |---|---|---|---|
+| Michel (FERTEMIS) | Fabrication à la commande —… | Bonjour,  Merci de me faire suivre vos coordonnées téléphoniques pour en parler de vive v… | none - unknown |
 | Aude (OBIOSEED) | Fabrication à la commande —… | Bonjour,  Pourriez-vous m’en dire plus sur vos logiciels ? Peuvent-ils être reliés direct… | 2026-10-20 |
 | Antoine (KANTEMIR - Precision ma…) | Fabrication à la commande —… | Bonjour,  Je vous remercie pour cette proposition, mais nous ne sommes actuellement pas e… | none - unknown |
 | Fabrice (Plastiques Renforcés de…) | Fabrication à la commande —… | Non merci.  Bien cordialement,   Fabrice DOOSTERLINCK Président +33 (0)2 54 96 48 47 +33 … | none - negative |
@@ -209,10 +210,11 @@ To take someone out of the loop: open the lead in the [inbox](https://explee.com
 | Yann (NAUDIN SAS) | Fabrication à la commande —… | Bonjour,  Je suis absent du lundi 21 septembre au vendredi 2 octobre inclu.  Pour toute q… | none - auto_reply |
 | Régis (CHARVIN INDUSTRIES) | Fabrication à la commande —… | Bonjour, merci de ne plus utiliser cette adresse de messagerie ou uniquement si vous souh… | none - unknown |
 
-## Hot leads Explee flagged (4)
+## Hot leads Explee flagged (5)
 
 | who | title | campaign | went hot | in the loop |
 |---|---|---|---|---|
+| Michel (FERTEMIS) | Operations Director | Fabrication à la commande —… | 2026-10-19 | yes |
 | Aude (OBIOSEED) | Production Manager | Fabrication à la commande —… | 2026-10-16 | yes |
 | Bruno (PLVplus) | General Director | Fabrication à la commande —… | 2026-09-30 | yes |
 | Jean-Franck (SAFAS) | Chief Executive Officer | Fabrication à la commande —… | 2026-09-28 | yes |
