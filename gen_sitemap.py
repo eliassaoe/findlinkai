@@ -173,6 +173,10 @@ def main():
             continue
         if clean == "":              # homepage
             url = SITE_URL
+        elif rel.replace(os.sep, "/").endswith("/index.html"):
+            # A folder page. GitHub Pages serves /resources by redirecting to
+            # /resources/, so the sitemap must list the URL that answers 200.
+            url = f"{SITE_URL}/{clean}/"
         else:
             url = f"{SITE_URL}/{clean}"
         if is_excluded(clean):
