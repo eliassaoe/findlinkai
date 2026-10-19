@@ -1,5 +1,11 @@
 # LinkFinder AI — Support Chat Worker
 
+> **Superseded (2026-10-19).** The widget now talks to the
+> `support-agent` Supabase edge function, which can read the user's account,
+> History and CSV files and start enrichments. See
+> `supabase/functions/support-agent/README.md`. This Worker is no longer
+> called by the site and can be deleted from Cloudflare.
+
 Replaces the old `@n8n/chat` widget, which pointed at a placeholder/cold-sleeping
 webhook (`eliasse-n8n.onrender.com`) with no logic behind it. This Worker has
 the actual logic — it calls an LLM via OpenRouter, knows the site's real
