@@ -1,83 +1,86 @@
-# Explee follow-ups — linkfinderai — 2026-10-20 10:12 UTC
+# Explee follow-ups — linkfinderai — 2026-10-20 12:47 UTC
 
-**SENT 3 emails**
+**SENT 15 emails**
 
 To take someone out of the loop: open the lead in the [inbox](https://explee.com/app-auto-gtm/p/30475/inbox), write `booked` or `stop` in the note. Next run it stops.
 
 | outcome | leads |
 |---|---|
-| skip: unknown | 260 |
-| skip: auto_reply | 201 |
-| skip: negative | 150 |
+| skip: unknown | 263 |
+| skip: auto_reply | 202 |
+| skip: negative | 151 |
 | skip: can_reply is false | 60 |
 | skip: reply cap (3) reached on this message | 48 |
-| skip: question | 26 |
-| skip: nudge 2 due in 0.0d | 14 |
+| skip: question | 27 |
+| nudge_last | 14 |
 | skip: no reply from this lead | 10 |
 | skip: booked | 8 |
-| skip: nudge 1 due in 1.0d | 4 |
+| skip: nudge 1 due in 0.9d | 5 |
 | skip: call_me | 4 |
-| skip: nudge 2 due in 0.2d | 3 |
-| skip: nudge 1 due in 0.9d | 2 |
-| skip: fresh reply | 2 |
-| nudge | 2 |
-| skip: nudge 1 due in 0.2d | 1 |
-| skip: nudge 1 due in 0.0d | 1 |
-| skip: already handled (note marker) | 1 |
+| skip: fresh reply | 4 |
+| skip: nudge 2 due in 0.1d | 3 |
+| skip: nudge 1 due in 0.8d | 2 |
+| skip: already handled (note marker) | 2 |
+| skip: nudge 2 due in 0.9d | 2 |
+| not_now | 1 |
+| skip: nudge 1 due in 0.1d | 1 |
+| nudge | 1 |
 | skip: queued until 2027-01-05 | 1 |
 | skip: queued until 2026-12-05 | 1 |
-| skip: nudge 1 due in 0.8d | 1 |
-| not_now | 1 |
+| skip: nudge 1 due in 1.0d | 1 |
+| skip: nudge 1 due in 0.2d | 1 |
 | skip: nudge 1 due in 0.3d | 1 |
-| send_info | 1 |
-| skip: nudge 1 due in 0.4d | 1 |
 
 ## This run
 
 | who | campaign | they said | what happened |
 |---|---|---|---|
-| Sylvia (Platform Calgary) | Growth partners — marketpla… | Hi Eliasse,  Thanks for reaching out and for thinking of Platform Calgary!  As we're gett… | parked: not_now |
-| David (Rainbow Jet) | Growth partners — marketpla… | Hi Eliasse,  Please send me all the relevant documents, and we can take a look at it.  Th… | sent nudge |
-| Sudhansu (Subserve IT Solutions P…) | Growth partners — marketpla… | Hi Eliasse,  Thanks for reaching out, LinkFinder AI looks interesting, especially the MCP… | sent nudge |
-| Sharmila (Corefactors) | Growth partners — marketpla… | Hello there,  Good Day!  Im on leave today.  If you need my response urgently, kindly sen… | sent send_info |
+| Sylvain (AdaptConsult) | Prestataires B2B à offre au… | Ok merci. On en reparle en Janvier  Cordialement / Regards Sylvain CERISE Président Adapt… | parked: not_now |
+| Stéphane (Logistique 2000) | Prestataires B2B à offre au… | Bonjour,  De quoi parlez vous svp ?    ________________________________ De: Eliasse Hamou… | sent nudge_last |
+| Anis (Nautilus) | Prestataires B2B à offre au… | Bonjour Eliasse, Je vous remercie pour votre initiative. Je vous propose d’organiser un m… | sent nudge_last |
+| Patrice (CRL GROUP) | Prestataires B2B à offre au… | Oui, bien sûr.  Envoyé à partir de Outlook pour iOS<https://aka.ms/o0ukef> ______________… | sent nudge_last |
+| Mehdi (PME Cert) | Prestataires B2B à offre au… | Bonjour Eliasse,  Auriez-vous une possibilité pour un petit call prochainement? Vous pouv… | sent nudge_last |
+| Luk (Duferco Logistique) | Prestataires B2B à offre au… | Bonjour,  Merci, vous pouvez me faire une proposition.  Bàv Luk  Van: Eliasse Hamour <e@h… | sent nudge_last |
+| Mathieu (Brain E-Log) | Prestataires B2B à offre au… | Qui etes vous ?  De : Eliasse Hamour <e@trypulseember.com> Envoyé : mardi 13 octobre 2026… | sent nudge_last |
+| VALERO (RECYCLE) | Prestataires B2B à offre au… | Bonjour,  C’est quoi votre proposition concrètement ?   Belle journée/soirée,  ￼  Mon org… | sent nudge_last |
+| phrellier@smgi.bzh (SMGI (Sociéte de Mainte…) | Prestataires B2B à offre au… | Bonjour,  Oui, nous pouvons être intéressé.  Nos domaines de compétences sont:     * La m… | sent nudge_last |
+| Adil (Management Square) | Prestataires B2B à offre au… | Bonjour Zara,  Je vous remercie pour votre message.  Oui ça peut m'intéresser. Pouvez-vou… | sent nudge_last |
+| Dario (Groupe Abri) | Prestataires B2B à offre au… | Bonjour, Je souhaiterai connaitre comment vous fait la prospection, sur quel liste de con… | sent nudge_last |
+| Ludmilla (QOSE SAS) | Prestataires B2B à offre au… | Bonjour,     Quel est le nom de votre entreprise svp ?           Cordialement,     Ludmil… | sent nudge_last |
+| Contact (PHATOPHY) | Prestataires B2B à offre au… | Bjr,  De quelle Société etes vous ?  merci   ________________________________ De: 'Ethan … | sent nudge_last |
+| Etienne (EXPORT-NET) | Prestataires B2B à offre au… | Bonjour Eliasse,  Vous avez parfaitement compris, oui, le sujet m'intéresse.  Cordialemen… | sent nudge_last |
+| j.teixeira (Steel Manager) | Prestataires B2B à offre au… | Bonjour,  Pourriez-vous me téléphoner jeudi 15/10 à 14h ?  Merci  Bien à vous  [cid:f00d5… | sent nudge_last |
+| Franky (Germond NV - Machinery …) | Prestataires B2B à offre au… | Beste,  Geen interesse.  Met vriendelijke groeten Sincères salutations Kind regards Freun… | sent nudge |
 
 ## Everyone else who replied
 
 | who | campaign | they said | status |
 |---|---|---|---|
+| Auditherm (Auditherm) | Prestataires B2B à offre au… | Bonjour, Tout d’abord, pouvez-vous vous présenter. Une signature uniquement avec un préno… | none - unknown |
 | Foubet (S.E.R.I.A.N.E.) | Prestataires B2B à offre au… | Bonjour Eliasse,  Réfléchissons ensemble à ce que vous proposez.  Si les rendez-vous arri… | 2026-10-21 |
 | Rodolphe (AGORA DES ENERGIES) | Prestataires B2B à offre au… | Bonjour Eliasse,  Que proposez vous exactement? de la leadgen qualifiée B2B?      El mar,… | 2026-10-21 |
 | Cyril (Make it Happen) | Prestataires B2B à offre au… | Bonjour Eliasse,  je vous remercie pour votre message. Non je n'accompagne pas les fabric… | 2026-10-21 |
 | Nicolas (ENERSO) | Prestataires B2B à offre au… | Bonjour  Pouvez vous m’appeler qu’on en discute  Envoyé à partir de Outlook pour iOS<http… | 2026-10-21 |
 | Laurent (KLEVA FACILITIES MANAGE…) | Prestataires B2B à offre au… | Bonjour Je serai intéressé pour avoir un rdv téléphonique mercredi après midi si possible… | 2026-10-20 |
 | Olivier (KRYPTSYS Innovation et …) | Prestataires B2B à offre au… | Bonjour Eliasse,     C’est pas le cas.   Mais je suis ouvert à la discussion.     Cordial… | none - unknown |
-| Stéphane (Logistique 2000) | Prestataires B2B à offre au… | Bonjour,  De quoi parlez vous svp ?    ________________________________ De: Eliasse Hamou… | 2026-10-20 |
 | Harold (Pomelo Energie) | Prestataires B2B à offre au… | Ça vaudrait le coup oui | none - unknown |
 | Oualid (MN Système) | Prestataires B2B à offre au… | Oui je vous écoute  [image: https://mns-solutions.fr/] <https://mns-solutions.fr/>  Le ve… | none - unknown |
-| Anis (Nautilus) | Prestataires B2B à offre au… | Bonjour Eliasse, Je vous remercie pour votre initiative. Je vous propose d’organiser un m… | 2026-10-20 |
-| Patrice (CRL GROUP) | Prestataires B2B à offre au… | Oui, bien sûr.  Envoyé à partir de Outlook pour iOS<https://aka.ms/o0ukef> ______________… | 2026-10-20 |
-| Mehdi (PME Cert) | Prestataires B2B à offre au… | Bonjour Eliasse,  Auriez-vous une possibilité pour un petit call prochainement? Vous pouv… | 2026-10-20 |
 | r.mercyano@groupelevine… (GROUPE LEVINERGY) | Prestataires B2B à offre au… | Bonjour,  Appelez moi  merci   Cordialement  -------------  [https://prffdnls8tsmqhwy.pub… | CALL THEM - the number is in the reply |
 | C (DELTAZUR EQUIPEMENTS) | Prestataires B2B à offre au… | Bonjour,  Alors votre mail est incompréhensible… je n’ai pas du tout compris ce que vous … | none - negative |
 | Fabrice, (Republik Formation) | Prestataires B2B à offre au… | Bien sûr C est une sujet qui m'intéresse Pouvez vous m en dire plus     Fabrice Durand  D… | none - 3 follow-ups sent, that is the limit |
-| Luk (Duferco Logistique) | Prestataires B2B à offre au… | Bonjour,  Merci, vous pouvez me faire une proposition.  Bàv Luk  Van: Eliasse Hamour <e@h… | 2026-10-20 |
-| Mathieu (Brain E-Log) | Prestataires B2B à offre au… | Qui etes vous ?  De : Eliasse Hamour <e@trypulseember.com> Envoyé : mardi 13 octobre 2026… | 2026-10-20 |
-| VALERO (RECYCLE) | Prestataires B2B à offre au… | Bonjour,  C’est quoi votre proposition concrètement ?   Belle journée/soirée,  ￼  Mon org… | 2026-10-20 |
 | Contact (Brigade des Transports) | Prestataires B2B à offre au… | Bonjour Eliasse,  Je ne comprend pas votre mail.     Le mar. 13 oct. 2026 à 08:49, Eliass… | none - unknown |
 | Anatole (e-CoRessources) | Prestataires B2B à offre au… | Bonsoir Eliasse,  Merci pour votre sollicitation, nous aimerions échanger avec vous en éc… | none - 3 follow-ups sent, that is the limit |
-| phrellier@smgi.bzh (SMGI (Sociéte de Mainte…) | Prestataires B2B à offre au… | Bonjour,  Oui, nous pouvons être intéressé.  Nos domaines de compétences sont:     * La m… | 2026-10-20 |
-| Adil (Management Square) | Prestataires B2B à offre au… | Bonjour Zara,  Je vous remercie pour votre message.  Oui ça peut m'intéresser. Pouvez-vou… | 2026-10-20 |
-| Dario (Groupe Abri) | Prestataires B2B à offre au… | Bonjour, Je souhaiterai connaitre comment vous fait la prospection, sur quel liste de con… | 2026-10-20 |
 | Thibaut (digitori-fr) | Prestataires B2B à offre au… | Oui, je veux bien.   Thibaut Ozturk *Fondateur Digitori* *Visibilité locale pour artisans… | none - unknown |
 | Hocine (Borne For You) | Prestataires B2B à offre au… | Bonjour, oui  Le ven. 9 oct. 2026 à 15:46, Eliasse Hamour <e@pureember.org> a écrit : | none - unknown |
 | Corentin (Global Smart Développem…) | Prestataires B2B à offre au… | Contactez moi.   Merci,    Corentin Rémond Président 06 85 47 55 22 www.globalsmartdevelo… | none - unknown |
-| Ludmilla (QOSE SAS) | Prestataires B2B à offre au… | Bonjour,     Quel est le nom de votre entreprise svp ?           Cordialement,     Ludmil… | 2026-10-20 |
-| Contact (PHATOPHY) | Prestataires B2B à offre au… | Bjr,  De quelle Société etes vous ?  merci   ________________________________ De: 'Ethan … | 2026-10-20 |
 | Guillaume (Styx Consulting) | Prestataires B2B à offre au… | Bonjour Eliasse,     Merci pour ton message.     Le sujet peut effectivement nous intéres… | none - 3 follow-ups sent, that is the limit |
 | Alexandre (Damois) | Prestataires B2B à offre au… | Bonjour, Je n’ai pas eu votre précèdent message, Pouvez vous me le renvoyer,   Bien cordi… | none - unknown |
 | Yannick (Carbono) | Prestataires B2B à offre au… | Bonjour,  Je vous laisse me proposer des dates.  Le mer. 7 oct. 2026 à 10:00, Eliasse Ham… | none - unknown |
 | Mourad (LYSECURITE sas) | Prestataires B2B à offre au… | Bonjour, Je ne comprends pas vraiment votre message. Vous proposez quel service exactemen… | none - 3 follow-ups sent, that is the limit |
 | Lydie (MB CONCEPT Usinage 3D) | Prestataires B2B à offre au… | Pourriez vous m’indiquer votre fonction ?  Envoyé à partir de Outlook pour iOS De : Elias… | none - 3 follow-ups sent, that is the limit |
+| Josse (Arqsoft) | Prestataires B2B à offre au… | Bonjour Eliasse,  Non, l'activité est définitivement arrêtée.  Le 20/10/2026 à 11:58, Eli… | none - unknown |
+| Alberto (ORVEN) | Prestataires B2B à offre au… | Bonjour Eliasse,  Merci pour votre proposition, mais j'ai déjà développé mon propre systè… | none - negative |
+| celine@gdrh.fr (GDRH) | Prestataires B2B à offre au… | Bonjour,  Je suis absente jusqu'au 20/10/2026.  En cas d'urgence contactez l'équipe GDRH … | none - auto_reply |
 | Mikael (Order To Cash) | Prestataires B2B à offre au… | non   Mikaël Posnic  Directeur Associé  Ordertocash  4-6 rue du Buisson Saint Louis· 7501… | none - unknown |
 | PatriceExport-Pro (AMITA) | Prestataires B2B à offre au… | Bonjour, Non pas de besoin Cordialement PMonod  Le 20 oct. 2026 10:47, Eliasse Hamour <e@… | none - negative |
 | Clément (ACSIO Energie) | Prestataires B2B à offre au… | Bonjour,  Etant actuellement indisponible, je prendrai  connaissance de votre message à m… | none - unknown |
@@ -129,7 +132,6 @@ To take someone out of the loop: open the lead in the [inbox](https://explee.com
 | Emmanuel (CALIP GROUP) | Prestataires B2B à offre au… | Bonjour,  Je suis actuellement absent du bureau et prendrai connaissance de votre message… | none - auto_reply |
 | Jerome (SOVIMEF - FROID, GENIE …) | Prestataires B2B à offre au… | ﻿Bonjour,  Je suis actuellement en congés sans accès à ma messagerie. Je prendrais connai… | none - auto_reply |
 | Sébastien (MS Sécurité SARL) | Prestataires B2B à offre au… | JE N'AI PAS BESOIN DE VOS SERVICES  [cid:image001.jpg@01DD5C8E.828245F0] Sébastien Millet… | none - unknown |
-| Etienne (EXPORT-NET) | Prestataires B2B à offre au… | Bonjour Eliasse,  Vous avez parfaitement compris, oui, le sujet m'intéresse.  Cordialemen… | 2026-10-20 |
 | Murielle (ABLE SAS) | Prestataires B2B à offre au… | Bonjour,  Je suis en déplacement jusqu'au jeudi 15 octobre inclus , Je dispose d'un accès… | none - unknown |
 | Jules (Stoïk) | Prestataires B2B à offre au… | Non merci   *Jules Veyrat* CEO / Stoïk +33 6 13 78 81 04  Le jeu. 15 oct. 2026 à 08:10, E… | none - negative |
 | DAVID (Quinson-Fonlupt) | Prestataires B2B à offre au… | Bonjour, Je vous informe que je suis actuellement absente. Ainsi, je ne suis pas en mesur… | none - auto_reply |
@@ -144,7 +146,6 @@ To take someone out of the loop: open the lead in the [inbox](https://explee.com
 | Tonny (DeskDrive) | Prestataires B2B à offre au… | Dag,  ik ben er even tussenuit. Voor support kan je terecht bij de support op ons telefoo… | none - unknown |
 | jacqueline.vankan (VK Safety & Advice) | Prestataires B2B à offre au… | Beste bedankt maar geen interesse Verzonden vanaf mijn Galaxy -------- Oorspronkelijk ber… | ANSWER THIS ONE YOURSELF in the inbox |
 | DEMPLUS (DEMPLUS Services) | Prestataires B2B à offre au… | Oui, je veux bien. [image: created with MySignature.io] <https://mysignature.io/?utm_sour… | none - unknown |
-| j.teixeira (Steel Manager) | Prestataires B2B à offre au… | Bonjour,  Pourriez-vous me téléphoner jeudi 15/10 à 14h ?  Merci  Bien à vous  [cid:f00d5… | 2026-10-20 |
 | Patrick (MPMM) | Prestataires B2B à offre au… | Non pas du tout   K.Patrick MPMM Envoyé de mon iPhone | none - negative |
 | Bertrand (Custax & Legal) | Prestataires B2B à offre au… | good joke !   <https://app.signitic.com/l/NFp3V3BadmNaRmJhNnlHRjBUUmdQdz09-SGFZSjBLKzN4YX… | none - unknown |
 | jerome (Love your waste) | Prestataires B2B à offre au… | Jake,  Sur la base d'un rendez-vous tenu (donc avec une personne identifiée avec son nom,… | none - unknown |
@@ -204,7 +205,6 @@ To take someone out of the loop: open the lead in the [inbox](https://explee.com
 | Frederic (Befesa Zinc Recytech) | Prestataires B2B à offre au… | Non  Frédéric HEYMANS General Manager BZR & BZG  [Une image contenant Police, logo, Graph… | none - unknown |
 | François (Oxibox) | Prestataires B2B à offre au… | Je sais que l'IA rend possible de spammer massivement facilement et mais  là un petit eff… | ANSWER THIS ONE YOURSELF in the inbox |
 | Romain (Tungstène Solutions) | Prestataires B2B à offre au… | Non merci    ROMAIN TUDELA / 06 18 12 57 05 / ROMAIN@TUNGSTENE.EU                        … | none - negative |
-| Franky (Germond NV - Machinery …) | Prestataires B2B à offre au… | Beste,  Geen interesse.  Met vriendelijke groeten Sincères salutations Kind regards Freun… | 2026-10-20 |
 | Julie (SMA PROPRETE) | Prestataires B2B à offre au… | ﻿Bonjour,  Je suis absente jusqu'au 18 décembre 2025.  Vos mails seront traités à mon ret… | none - auto_reply |
 | Eric (SEMSO) | Prestataires B2B à offre au… | Non, pas du tout. Cordialement, Eric DUBROCA Directeur Général SEMSO SEREM SOCOREM www.se… | none - negative |
 | Martin (TDX Customs - Customs f…) | Prestataires B2B à offre au… | Thank you for your message. I am currently out of the office and will be back on Tuesday … | none - auto_reply |
@@ -794,12 +794,18 @@ To take someone out of the loop: open the lead in the [inbox](https://explee.com
 | Stéphanie (Equoranda) | Organismes de formation FR/… | Bonjour, Je suis absente , de retour jeudi 17 septembre. En cas de demande urgente, merci… | none - auto_reply |
 | Patrice (Emergence Académie) | Organismes de formation FR/… | Bonjour, Vous êtes bien sur ma messagerie. Je ne suis pas disponible pour le moment. En r… | none - unknown |
 | David (Afc Prevention) | Organismes de formation FR/… | Bonjour,     Oui, je veux bien plus d’explication.     Cordialement,       De : Tanner Fo… | none - booked in the note |
+| Djoni (Keen Venture Partners) | Growth partners — marketpla… | HI Eliasse,  It's a bit unclear to me what you're looking for: money, time, people, somet… | ANSWER THIS ONE YOURSELF in the inbox |
+| Kyle (Vantage XO) | Growth partners — marketpla… | Hi Eliasse,  Yes, I'm the right person to connect with. Feel free to send over more detai… | waiting for Explee's auto-reply |
+| Abhishek (Middha Ventures) | Growth partners — marketpla… | Hi Eliasse,  Thanks for getting in touch. Kindly share any pitch deck if you have so that… | none - unknown |
 | Aksel (Northern Workflow) | Growth partners — marketpla… | Hi,  This sounds potentially interesting, can you please send me more information?   Than… | waiting for Explee's auto-reply |
+| Deep (Techstars Startup Weeke…) | Growth partners — marketpla… | We tried getting contact details of one linkedin profile but it did not give any mail or … | 2026-10-21 |
 | François (BREEGA) | Growth partners — marketpla… | Hi Eliasse  If you are based in Europe you can send me your deck so that I can forward it… | 2026-10-21 |
 | Anees (Mercsons Technology LLP) | Growth partners — marketpla… | Hi Eliasse,  Thanks for reaching out. LinkFinder AI sounds interesting.  Before we set up… | 2026-10-21 |
-| Deep (Techstars Startup Weeke…) | Growth partners — marketpla… | Hey Ethan,  Good to know what you are building, excited to explore further. What is good … | 2026-10-21 |
+| Sylvia (Platform Calgary) | Growth partners — marketpla… |  |  |
 | markus (Solutionis) | Growth partners — marketpla… | Hej Eliasse! Kul att du hör av dig! Kikat lite på LinkFinder AI och ser faktiskt en möjli… | 2026-10-20 |
 | Dustin (Virelix) | Growth partners — marketpla… | Give me a call I’ll be available to listen this evening 252-558-2239 | none - unknown |
+| David (Rainbow Jet) | Growth partners — marketpla… | Hi Eliasse,  Please send me all the relevant documents, and we can take a look at it.  Th… | 2026-10-21 |
+| Sudhansu (Subserve IT Solutions P…) | Growth partners — marketpla… | Hi Eliasse,  Thanks for reaching out, LinkFinder AI looks interesting, especially the MCP… | 2026-10-21 |
 | Tobias (Innovation Industries) | Growth partners — marketpla… | Please note that I no longer work for Innovation Industries.  For urgent matters please r… | none - Explee will not accept a reply |
 | Antoine (ADN Booster) | Growth partners — marketpla… | Bonjour Eliasse, je suis en ligne depuis 10h15, est ce que tu es dispo?  Le lun. 19 oct. … | ANSWER THIS ONE YOURSELF in the inbox |
 | Ricardo (Orient Growth Ventures) | Growth partners — marketpla… | Dear sender,  Thank you for your message. I’m currently on a due diligence trip in Southe… | none - auto_reply |
@@ -827,18 +833,22 @@ To take someone out of the loop: open the lead in the [inbox](https://explee.com
 | Yash (Grit) | Growth partners — marketpla… | I'll check it out; if it makes sense, we'll connect sometime next week. | none - unknown |
 | Chandran (Campus Angels Network) | Growth partners — marketpla… | Would not be of interest, Eliasse.  Best regards  Chandran | none - unknown |
 | Adith (Gemba Capital) | Growth partners — marketpla… | Hello,  Please msg me on WhatsApp, if there is anything urgent and important I will have … | none - unknown |
+| Sharmila (Corefactors) | Growth partners — marketpla… | Hello there,  Good Day!  Im on leave today.  If you need my response urgently, kindly sen… | 2026-10-21 |
 | Silk (Blackbird) | Growth partners — marketpla… | Thanks for your email, I’m travelling for work in SF on PT time (18 hours behind) and may… | ANSWER THIS ONE YOURSELF in the inbox |
 | Ben (Enterprise Fund) | Growth partners — marketpla… | Hi there traveller,  I am currently holidaying until Tuesday 20th October.  If the matter… | none - unknown |
 | Georgia (Smart Communications.) | Growth partners — marketpla… | Hello!  I am on parental leave until mid-2026.  In my absence please contact Malcolm Jaco… | none - auto_reply |
 | Sam (SaaS Mantra) | Lifetime-deal marketplaces … | Hey Eliasse,  Would love to chat more.  Got a link to your calendar? | 2026-10-20 |
+| Laura (Uptodown) | Lifetime-deal marketplaces … | Hi Eliasse,  Thanks for your email. Is it an app? You can register for free in our Develo… | waiting for Explee's auto-reply |
 | Pratyush (DealMirror) | Lifetime-deal marketplaces … | Thank you for sharing the account,  I will review it and get back to you soon.  Best Rega… | none - unknown |
 | Cary (Infostack) | Lifetime-deal marketplaces … | Hi Eliasse,  Yes, I'm the guy.  Do you have a few minutes this week to jump on a call?  I… | ANSWER THIS ONE YOURSELF in the inbox |
 | Daniela (NachoNacho) | Lifetime-deal marketplaces … | Hi Eliasse,   Thanks for your interest in joining NachoNacho! 🚀   We’re excited to learn … | none - unknown |
 
-## Hot leads Explee flagged (73)
+## Hot leads Explee flagged (78)
 
 | who | title | campaign | went hot | in the loop |
 |---|---|---|---|---|
+| Sylvain (AdaptConsult) | President | Prestataires B2B à offre au… | 2026-10-20 | yes |
+| Said (Auditherm) | Manager | Prestataires B2B à offre au… | 2026-10-20 | yes |
 | Patrick (S.E.R.I.A.N.E.) | Manager | Prestataires B2B à offre au… | 2026-10-20 | yes |
 | Rodolphe (AGORA DES ENERGIES) | Sales Director | Prestataires B2B à offre au… | 2026-10-20 | yes |
 | Cyril (Make it Happen) | Sales Manager | Prestataires B2B à offre au… | 2026-10-20 | yes |
@@ -902,9 +912,12 @@ To take someone out of the loop: open the lead in the [inbox](https://explee.com
 | Maurice (L'Arte Noir) | Chief Executive Officer | high ticket offer linkfinde… | 2026-09-19 | yes |
 | Axel (Globe Créateur) | Co-Founder | high ticket offer linkfinde… | 2026-08-29 | yes |
 | Frantz (Odyssey Export) | Chief Executive Officer | High ticket FR services B2B | 2026-09-15 | yes |
+| Djoni (Keen Venture Partners) | Principal | Growth partners — marketpla… | 2026-10-20 | yes |
+| Deep (Techstars Startup Weeke…) | Partner | Growth partners — marketpla… | 2026-10-20 | yes |
+| Kyle (Vantage XO) | Founder | Growth partners — marketpla… | 2026-10-20 | yes |
+| Abhishek (Middha Ventures) | Founder | Growth partners — marketpla… | 2026-10-20 | yes |
 | François (BREEGA) | Founder | Growth partners — marketpla… | 2026-10-20 | yes |
 | ANEES (Mercsons Technology LLP) | Partner | Growth partners — marketpla… | 2026-10-20 | yes |
-| Deep (Techstars Startup Weeke…) | Partner | Growth partners — marketpla… | 2026-10-20 | yes |
 | Aksel (Northern Workflow) | Founder | Growth partners — marketpla… | 2026-10-19 | yes |
 | Sylvia (Platform Calgary) | Program Manager | Growth partners — marketpla… | 2026-10-19 | yes |
 | Markus (Solutionis) | Chief Executive Officer | Growth partners — marketpla… | 2026-10-19 | yes |
