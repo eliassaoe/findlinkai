@@ -1,28 +1,22 @@
-# Explee follow-ups — leptitlogiciel — 2026-10-20 12:47 UTC
+# Explee follow-ups — leptitlogiciel — 2026-10-20 14:23 UTC
 
-**SENT 2 emails**
+**SENT 0 emails**
 
 To take someone out of the loop: open the lead in the [inbox](https://explee.com/app-auto-gtm/p/39965/inbox), write `booked` or `stop` in the note. Next run it stops.
 
 | outcome | leads |
 |---|---|
-| skip: unknown | 81 |
+| skip: unknown | 83 |
 | skip: auto_reply | 80 |
-| skip: negative | 51 |
+| skip: negative | 52 |
 | skip: can_reply is false | 19 |
 | skip: reply cap (3) reached on this message | 10 |
-| nudge | 2 |
-| skip: nudge 1 due in 0.9d | 1 |
+| skip: nudge 2 due in 0.9d | 2 |
+| skip: nudge 1 due in 0.8d | 1 |
+| skip: question | 1 |
 | skip: already handled (note marker) | 1 |
 | skip: fresh reply | 1 |
-| skip: nudge 1 due in 0.8d | 1 |
-
-## This run
-
-| who | campaign | they said | what happened |
-|---|---|---|---|
-| Georges (Hyline) | Fabrication à la commande —… | Merci Samuel. Nous sommes équipés. Bien cordialement  Envoyé à partir de Outlook pour And… | sent nudge |
-| Guillaume (LELOUTRE INDUSTRIE - Tô…) | Fabrication à la commande —… | Bonjour, Je vous remercie mais nous utilisons notre ERP pour tout le cycle de vie d’une f… | sent nudge |
+| skip: nudge 1 due in 0.7d | 1 |
 
 ## Everyone else who replied
 
@@ -31,6 +25,10 @@ To take someone out of the loop: open the lead in the [inbox](https://explee.com
 | François (Ideal Therm) | Fabrication à la commande —… | Bonjour Samuel, avant d’en parler, pouvez-vous me préciser le nom de votre société, votre… | 2026-10-21 |
 | Michel (FERTEMIS) | Fabrication à la commande —… | Bonjour,  Merci de me faire suivre vos coordonnées téléphoniques pour en parler de vive v… | none - unknown |
 | Aude (OBIOSEED) | Fabrication à la commande —… | Bonjour,  Pourriez-vous m’en dire plus sur vos logiciels ? Peuvent-ils être reliés direct… | none - 3 follow-ups sent, that is the limit |
+| FRELIER (MECANALU) | Fabrication à la commande —… | Désolé nous sommes déjà pourvu   Steven FRELIER Directeur Commercial Tel: 01 60 81 11 00 … | none - unknown |
+| Benoit (SM Béton) | Fabrication à la commande —… | C’est qui ????  [cid:image001.jpg@01DD60AC.87BCC640]  De : Samuel Pomin <s@getliftpeak.co… | ANSWER THIS ONE YOURSELF in the inbox |
+| Francois (ACTiLED Lighting) | Fabrication à la commande —… | Bonjour Samuel,  Merci pour votre message, nous utilisons déjà un ERP, qui est couplé à u… | none - unknown |
+| Nils (Affaire d'Idées) | Fabrication à la commande —… | Pas intéressé   Merci  Nils Lemaître | none - negative |
 | Isabelle (Alma Mater) | Fabrication à la commande —… | Bonjour,  Non merci.  Cordialement, Isabelle    [cid:image001.png@01DD608B.25EA36D0]  De … | none - negative |
 | Frederic (AXILAB) | Fabrication à la commande —… | Bonjour, Je suis absent jusqu'au 25/10 inclus et prendrai connaissance de votre demande à… | none - auto_reply |
 | Camille (SAMS Levage) | Fabrication à la commande —… | Bonjour,  Je suis actuellement absent, sans accès à mes mails.  Pendant cette période, po… | none - auto_reply |
@@ -176,10 +174,12 @@ To take someone out of the loop: open the lead in the [inbox](https://explee.com
 | Kristelle (SMAC SAS) | Fabrication à la commande —… | Bonjour,  Pas de besoin identifié merci  [cid:image001.png@01DD5B17.6A91AC10]<https://fr.… | none - negative |
 | José (GravitHy) | Fabrication à la commande —… | Bonjour, Je vous informe que je ne fais plus partie de l'entreprise. Cette boîte mail n'e… | none - auto_reply |
 | Bernard (Baumert) | Fabrication à la commande —… | Rémy SCHMIDT ayant quitté l'entreprise merci d'adresser vos emails à Bernard DE CHAMPS : … | none - unknown |
+| Georges (Hyline) | Fabrication à la commande —… | Merci Samuel. Nous sommes équipés. Bien cordialement  Envoyé à partir de Outlook pour And… | 2026-10-21 |
 | James (Forster France Solution…) | Fabrication à la commande —… | I am currently away from the business with no access to emails. Your email will not be fo… | none - auto_reply |
 | Juluan (PELLET ASC) | Fabrication à la commande —… | Bonjour,  Actuellement en arrêt maladie, je dispose d'un accès restreint à mes mails. Je … | none - auto_reply |
 | Eric (SASIC France) | Fabrication à la commande —… | Bonjour,   Ceci est un message automatique, cette adresse mail n'est plus utilisee, nous … | none - 3 follow-ups sent, that is the limit |
 | David (Lombardot) | Fabrication à la commande —… | Bonjour Samuel,    Désolé. Je ne prendrai pas le risque de faire un projet avec une entre… | none - unknown |
+| Guillaume (LELOUTRE INDUSTRIE - Tô…) | Fabrication à la commande —… | Bonjour, Je vous remercie mais nous utilisons notre ERP pour tout le cycle de vie d’une f… | 2026-10-21 |
 | Gonzague (MPAP Molding Injection) | Fabrication à la commande —… | Bonjour,  Je ne suis pas disponible  Vos e-mails ne seront pas traités  Pour toute questi… | none - auto_reply |
 | Bruno (U2R) | Fabrication à la commande —… | Bonjour  En retraite depuis deux ans, je suis bien loin de tous ces sujets. Bien cordiale… | none - Explee will not accept a reply |
 | Frédéric (LUTZ PVC & ALU) | Fabrication à la commande —… | Bonjour,  Nous avons nos propres logiciels pour un grand nombre de gestion de tâches (sui… | none - negative |
