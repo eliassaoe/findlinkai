@@ -1,26 +1,83 @@
-# Explee follow-ups — leptitlogiciel — 2026-10-19 17:34 UTC
+# Explee follow-ups — leptitlogiciel — 2026-10-20 10:12 UTC
 
-**SENT 0 emails**
+**SENT 1 email**
 
 To take someone out of the loop: open the lead in the [inbox](https://explee.com/app-auto-gtm/p/39965/inbox), write `booked` or `stop` in the note. Next run it stops.
 
 | outcome | leads |
 |---|---|
-| skip: unknown | 61 |
-| skip: auto_reply | 58 |
-| skip: negative | 42 |
-| skip: can_reply is false | 16 |
+| skip: unknown | 78 |
+| skip: auto_reply | 75 |
+| skip: negative | 50 |
+| skip: can_reply is false | 19 |
 | skip: reply cap (3) reached on this message | 9 |
-| skip: nudge 1 due in 0.7d | 2 |
-| skip: nudge 2 due in 0.6d | 1 |
-| skip: question | 1 |
+| skip: nudge 1 due in 0.0d | 2 |
+| skip: nudge 1 due in 1.0d | 1 |
+| nudge_last | 1 |
+| not_now | 1 |
+| skip: fresh reply | 1 |
+| skip: nudge 1 due in 0.9d | 1 |
+
+## This run
+
+| who | campaign | they said | what happened |
+|---|---|---|---|
+| Aude (OBIOSEED) | Fabrication à la commande —… | Bonjour,  Pourriez-vous m’en dire plus sur vos logiciels ? Peuvent-ils être reliés direct… | sent nudge_last |
+| Xavier (LignaTech) | Fabrication à la commande —… | Bonjour,  Cette adresse ne sera plus valide en Janvier, merci de renvoyer votre mail à l’… | parked: not_now |
 
 ## Everyone else who replied
 
 | who | campaign | they said | status |
 |---|---|---|---|
+| François (Ideal Therm) | Fabrication à la commande —… | Bonjour Samuel, avant d’en parler, pouvez-vous me préciser le nom de votre société, votre… | 2026-10-21 |
 | Michel (FERTEMIS) | Fabrication à la commande —… | Bonjour,  Merci de me faire suivre vos coordonnées téléphoniques pour en parler de vive v… | none - unknown |
-| Aude (OBIOSEED) | Fabrication à la commande —… | Bonjour,  Pourriez-vous m’en dire plus sur vos logiciels ? Peuvent-ils être reliés direct… | 2026-10-20 |
+| Christophe (Imprimerie Leonce Deprez) | Fabrication à la commande —… | Bonjour Monsieur, Je vous remercie pour votre proposition, mais nous avons tous les outil… | none - unknown |
+| David (MEGA-P) | Fabrication à la commande —… | Merci d’avoir contacté ‎MEGA P‎. Nous sommes désolés de vous informer que ‎Anthony BIA‎ n… | none - unknown |
+| Jeremy (PI System Automation) | Fabrication à la commande —… | Merci d’avoir contacté ‎PI SYSTEM AUTOMATION‎. Nous sommes désolés de vous informer que ‎… | none - unknown |
+| Axel (BMA Conception Fabricat…) | Fabrication à la commande —… | Bonjour Samuel,  Nous venons juste de changer d'ERP.  Bonne recherche !  [cid:0c1d40b2-15… | none - unknown |
+| EM2 (EM2 TUPACK) | Fabrication à la commande —… | Bonjour,  Merci mais nous avons déjà un système ERP depuis l'an passé, ainsi qu'un espace… | none - negative |
+| Pascal (Chevalier) | Fabrication à la commande —… | ﻿ ﻿Bonjour,  Je suis actuellement en congés sans accès à mes mails ; je serai de retour l… | none - auto_reply |
+| Krämer, (Hermetic) | Fabrication à la commande —… | ﻿ ﻿﻿Sehr geehrte Damen und Herren,  vielen Dank für Ihre Nachricht. Ich bin ab dem 29.10.… | none - unknown |
+| Nathalie (MULTI FENETRES) | Fabrication à la commande —… | Bonjour,  Sylvain Pruneau n'est plus à l'emploi de l'organisation.  Vous devez maintenant… | none - unknown |
+| Daniel (Hallucine) | Fabrication à la commande —… | j utilise claude code  Merci qd meme  Le ven. 16 oct. 2026 à 14:50, Samuel Pomin <s@launc… | none - unknown |
+| Devis (PRANA ENVIRONNEMENT) | Fabrication à la commande —… | Pas intéresser   [Benjamin Lequertier Resp. Marketing de Facebook - L'ADN]<https://www.fa… | none - negative |
+| Houssein (I-SEE) | Fabrication à la commande —… | Bonjour Samuel,  Nous vous remercions pour l’intérêt que vous portez à notre entreprise a… | none - negative |
+| Marc (Maison Francis Kurkdjian) | Fabrication à la commande —… | Bonjour,  Je suis actuellement absent du bureau et ne pourrai pas répondre à votre messag… | none - auto_reply |
+| Flora (Aptissen France) | Fabrication à la commande —… | Bonjour,  Je suis absente et serai de retour Lundi 26 Octobre. Merci de contacter l'équip… | none - auto_reply |
+| Meggane (WENES STAND) | Fabrication à la commande —… | Bonjour,  Merci pour votre mail !  Actuellement absente jusqu'au 2 novembre, je prendrai … | none - auto_reply |
+| Giuseppe (CNSE) | Fabrication à la commande —… | Bonjour,    Après dix années passées au sein de la société il est aujourd’hui temps pour … | none - unknown |
+| Thierry (Waves System) | Fabrication à la commande —… | Bonjour, Je suis en congés jusqu'au 29 Octobre 2026 inclus.  Pour les sujets commerciaux,… | none - auto_reply |
+| Thierry (Transitube) | Fabrication à la commande —… | Bonjour Je vous remercie pour votre message mais je n’ai pas de besoins à ce jour  Cordia… | none - negative |
+| Kelly (Nydel Paris) | Fabrication à la commande —… | Bonjour,   Suite au départ de Mme Rondreux, merci de transmettre vos mails à  Mme Kelly P… | none - unknown |
+| DE (Mediagraphic) | Fabrication à la commande —… | Cher Samuel,  Suite à votre mail, petite précision, nous ne vendons pas des supports impr… | none - unknown |
+| Eric (Groupe IDEAFORM) | Fabrication à la commande —… | Bonjour,  Merci pour votre message.  Axel Diot ne fait plus partie de l'entreprise Ideafo… | none - unknown |
+| X (TECHNIREL) | Fabrication à la commande —… | Bonjour,  je suis actuellement absent . Pour toute demande urgente, je vous invite à cont… | none - auto_reply |
+| Romain (IMPRIMERIE GEIGER) | Fabrication à la commande —… | ﻿﻿Bonjour,  Actuellement absent et de retour à partir du 23 octobre 2026 vos mails ne ser… | none - auto_reply |
+| Jeremy (Orosys SAS) | Fabrication à la commande —… | Hello, Thank you for your email. I am currently out of the office and back in the saddle … | none - auto_reply |
+| Ludovic (R. Chevalier) | Fabrication à la commande —… | Bonjour,  Nous n’avons pas de besoin actuellement.  Cordialement, [cid:image006.png@01DD6… | none - negative |
+| Christophe (ERMO) | Fabrication à la commande —… | Absent pour congés du 15 au 31octobre, je prendrai connaissance de vos mails à mon retour… | none - auto_reply |
+| Jean-Pierre (DOREGRILL) | Fabrication à la commande —… | Chers clients, Chers partenaires.  Actuellement en déplacement à l'étranger du 16/10/2026… | none - auto_reply |
+| Clara (L'Atelier Luxe) | Fabrication à la commande —… | ﻿ Bonjour, Je serai absente jusqu’au 1er décembre inclus. Merci, pour tout suivi de proje… | none - auto_reply |
+| Emeline (Servi Doryl) | Fabrication à la commande —… | ﻿  Hello,  I am currently out of the office with no access to my emails until the 23/10/2… | none - auto_reply |
+| Christophe (CEGEPLAST) | Fabrication à la commande —… | Bonjour,  Je vous informe que Jérôme Laivier ne fait plus partie des effectifs de notre s… | none - auto_reply |
+| Mélanie (Cosfibel) | Fabrication à la commande —… | Bonjour, Je ne fais plus partie de GPA Global et ne suis donc plus en mesure de répondre … | none - unknown |
+| Gilles (MANUFACTURE DE STORES D…) | Fabrication à la commande —… | non merci  Cordialement, [cid:lsi-attach-effects_eb0f0785c2ac56292b10869582f3a42c39a34c05… | none - negative |
+| Cédric (BECHEM France) | Fabrication à la commande —… | Bonjour,  Je serais en déplacement à l'étranger jusqu'au mercredi 28 octobre inclus.  Je … | waiting for Explee's auto-reply |
+| [ARCHIVE] (Pompes Grosclaude) | Fabrication à la commande —… | Bonjour, Cette personne ne fait désormais plus partie de notre société. Pour toute demand… | none - Explee will not accept a reply |
+| Christophe (CHAUDRONNERIE COGNACAISE) | Fabrication à la commande —… | Bonjour,  Merci pour votre message !  Après de belles années passées au sein de la chaudr… | none - Explee will not accept a reply |
+| Pauline (SEEMI) | Fabrication à la commande —… | Bonjour,  Nous vous informons que M. Rami AMOUS ne fait plus partie des effectifs de la S… | none - unknown |
+| Bruno (Hydro CTA) | Fabrication à la commande —… | Cette adresse mail n'est plus active  Dorénavant, pour toute demande concernant HydroCTA,… | none - Explee will not accept a reply |
+| Peter (The Acoustics Company) | Fabrication à la commande —… | Bonjour Samuel,  Je vous remercie pour votre message et votre intérêt pour notre activité… | none - unknown |
+| Lorie (SYLVEA METAL - Construc…) | Fabrication à la commande —… | Bonjour,  Je vous remercie pour votre intérêt, en revanche nous sommes en pleine étude d’… | none - unknown |
+| Thomas (Bioret) | Fabrication à la commande —… | Bonjour, je suis absent du 07 au 22 octobre  pour toutes demandes veuillez contacter le  … | none - auto_reply |
+| Bertrand (AD majoris) | Fabrication à la commande —… | Veuillez noter que je suis absent jusqu'au mardi 27/10/26 matin.  Dès mon retour, je pren… | none - auto_reply |
+| Tony (SBC PREFA) | Fabrication à la commande —… | Bonjour , Merci de votre intérêt mais ce n’est pas un sujet nous nous.  respectueusement … | none - negative |
+| Alain (FFMI) | Fabrication à la commande —… | Bonjour,  Je suis absent du 19/10 au 23/10 inclus la société CIRA reste ouverte sur la pé… | none - auto_reply |
+| Damien (Ozembal) | Fabrication à la commande —… | Bonjour Samuel,  Désolé, en toute transparence vous arriver trop tard, nous sommes déjà e… | none - unknown |
+| Philippe (Ellenkos) | Fabrication à la commande —… | Bonjour Aujourd’hui nous avons une personne qui développe notre propre ERP en liaison ave… | none - unknown |
+| Laurent (MD Logistic) | Fabrication à la commande —… | Bonjour,  Actuellement en congés, je prendrai connaissance de votre mail à mon retour le … | none - auto_reply |
+| Production (DAP - bespoke High-Pres…) | Fabrication à la commande —… | Non merci  Envoyé à partir de Outlook pour Android<https://aka.ms/AAb9ysg> ______________… | none - negative |
+| Jean-Marie (ALGAIA - JRS Group) | Fabrication à la commande —… | Bonjour, j'ai quitté les effectifs Algaia. Vous pouvez miantenant vous adresser à Jean-Ma… | none - unknown |
 | Antoine (KANTEMIR - Precision ma…) | Fabrication à la commande —… | Bonjour,  Je vous remercie pour cette proposition, mais nous ne sommes actuellement pas e… | none - unknown |
 | Fabrice (Plastiques Renforcés de…) | Fabrication à la commande —… | Non merci.  Bien cordialement,   Fabrice DOOSTERLINCK Président +33 (0)2 54 96 48 47 +33 … | none - negative |
 | Julien (Créadent) | Fabrication à la commande —… | Bonjour  Désolé mais cela ne m’intéresse pas.  Bonne continuation  Julien | none - negative |
@@ -31,7 +88,7 @@ To take someone out of the loop: open the lead in the [inbox](https://explee.com
 | Agnes (SAONOISE DE MOBILIERS) | Fabrication à la commande —… | Bonjour,   M LOUME Emmanuel a quitte ses fonctions au sein de la SAONOISE DE MOBILIERS et… | none - auto_reply |
 | g.laudren@adf-service.c… (ANTIDEFLAGRANT SERVICE) | Fabrication à la commande —… | Bonjour, Merci pour votre message. Je suis actuellement en congés avec une connexion rest… | none - auto_reply |
 | Elodie (JOGAM Composants) | Fabrication à la commande —… | Bonjour,  Je suis absente ce jour.  Je prendrai connaissance de votre message à mon retou… | none - auto_reply |
-| Steven (UAC CEFIVAL) | Fabrication à la commande —… | Dear Sender, I am no longer working with Asco Industries as of October 12, 2026. Please d… | ANSWER THIS ONE YOURSELF in the inbox |
+| Steven (UAC CEFIVAL) | Fabrication à la commande —… | Dear Sender, I am no longer working with Asco Industries as of October 12, 2026. Please d… | 2026-10-21 |
 | Florent (ID UNLIMITED FRANCE / A…) | Fabrication à la commande —… | Je suis absent du bureau. Je prendrai connaissance de votre mail le 29 octobre 2026 au ma… | none - auto_reply |
 | Js (RHEAVENDORS France) | Fabrication à la commande —… | Bonjour,  Actuellement absent jusqu'au jeudi 29 octobre inclus,  vous pouvez contacter le… | none - auto_reply |
 | Ayoub, (Eurorad) | Fabrication à la commande —… | Bonjour Samuel.  Merci de votre email.  nous avons notre propre procédé et logiciel de fa… | none - unknown |
@@ -75,7 +132,6 @@ To take someone out of the loop: open the lead in the [inbox](https://explee.com
 | MEGROIAN (Mecanhor animalerie) | Fabrication à la commande —… | Bonjour,  Je vous remercie pour proposition mais ce sujet n’est pas d’actualité.   cordia… | none - negative |
 | Pierre (COCENTAL) | Fabrication à la commande —… | Bonjour, Mr Thomas REIN a quittÃÂ© ses fonctions de la sociÃÂ©tÃÂ© COCENTAL ÃÂ  compt… | none - unknown |
 | Eric (ERIES) | Fabrication à la commande —… | Ne plus utiliser cette adresse eric.lechat@....  Il faut maintenant utiliser eric@.....  … | none - unknown |
-| Damien (Ozembal) | Fabrication à la commande —… | Bonjour,  Je vous informe que j'ai quitté la Société Ozembal. Merci de transmettre votre … | none - unknown |
 | Pierre (Sodistra) | Fabrication à la commande —… | ﻿ 💡 Note d'information : Mon aventure au sein du Groupe SODISTRA prendra fin le 30 juin 2… | none - unknown |
 | Denis (Lelong & Cie) | Fabrication à la commande —… | Bonjour Monsieur,     Je n’ai pas de projet dans ce sens.     Cordialement          De : … | none - unknown |
 | Xavier (VALOGREEN) | Fabrication à la commande —… | Bonjour,  M. Delacour a quitté la société ValoGreen. Pour toute demande, vous pouvez cont… | none - auto_reply |
@@ -210,10 +266,11 @@ To take someone out of the loop: open the lead in the [inbox](https://explee.com
 | Yann (NAUDIN SAS) | Fabrication à la commande —… | Bonjour,  Je suis absent du lundi 21 septembre au vendredi 2 octobre inclu.  Pour toute q… | none - auto_reply |
 | Régis (CHARVIN INDUSTRIES) | Fabrication à la commande —… | Bonjour, merci de ne plus utiliser cette adresse de messagerie ou uniquement si vous souh… | none - unknown |
 
-## Hot leads Explee flagged (5)
+## Hot leads Explee flagged (6)
 
 | who | title | campaign | went hot | in the loop |
 |---|---|---|---|---|
+| François (Ideal Therm) | Chief Executive Officer | Fabrication à la commande —… | 2026-10-20 | yes |
 | Michel (FERTEMIS) | Operations Director | Fabrication à la commande —… | 2026-10-19 | yes |
 | Aude (OBIOSEED) | Production Manager | Fabrication à la commande —… | 2026-10-16 | yes |
 | Bruno (PLVplus) | General Director | Fabrication à la commande —… | 2026-09-30 | yes |
