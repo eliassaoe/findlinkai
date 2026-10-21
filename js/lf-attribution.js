@@ -147,6 +147,49 @@
     } catch (e) {}
 })();
 
+// ── Referral code capture ───────────────────────────────────────────────────
+//
+// Partners link to content pages (/n8n-linkedin-automation?ref=CODE), not only
+// to the homepage, and before this only index.html, sign-up.html and app.html
+// read ?ref=. Anywhere else the code was dropped on the first click. This keeps
+// it in the same two places those pages already read at signup: the lf_ref
+// cookie (sign-up.html) and localStorage lf_ref (app.html -> POST /attribute).
+// First touch wins, matching the worker: a second link never moves a visitor.
+(function () {
+    'use strict';
+
+    var code;
+    try {
+        code = (new URLSearchParams(window.location.search).get('ref') || '').trim().toLowerCase();
+    } catch (e) {
+        return;
+    }
+    if (!/^[a-z0-9]{6,24}$/.test(code)) return;
+
+    try {
+        if (!/(?:^|;\s*)lf_ref=/.test(document.cookie)) {
+            var domain = /(^|\.)linkfinderai\.com$/.test(window.location.hostname) ? '; Domain=linkfinderai.com' : '';
+            document.cookie = 'lf_ref=' + code + '; Max-Age=' + (90 * 86400) + '; Path=/; SameSite=Lax' + domain;
+        }
+    } catch (e) {}
+    var isNew = false;
+    try {
+        if (!window.localStorage.getItem('lf_ref')) {
+            window.localStorage.setItem('lf_ref', code);
+            window.localStorage.setItem('lf_ref_at', String(Date.now()));
+            isNew = true;
+        }
+    } catch (e) {}
+    try {
+        if (window.posthog && typeof window.posthog.register === 'function') {
+            window.posthog.register({ referral_code: code });
+            // app.html fires this only when it is first to store the code; on
+            // pages that load this file it now never is, so fire it here.
+            if (isNew) window.posthog.capture('referral_link_landed', { code: code });
+        }
+    } catch (e) {}
+})();
+
 // ── Segment: agency pricing ─────────────────────────────────────────────────
 //
 // A visitor is "agency" when they land on any URL with utm_campaign=agency*

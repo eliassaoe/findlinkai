@@ -163,6 +163,23 @@ shared invite link could swap `ref=` for `token=` and be inside that account.
 v2 codes are generated (`abc123xy`), authenticate nothing, and are safe to post
 anywhere. Fixed in `app.html` in the same change that repointed the modal.
 
+## Sale alerts and partner statements
+
+`partner-alerts.sql` (applied live 2026-10-21) adds a trigger on
+`referral_commissions` that sends `referral_sale` on every new commission and
+`referral_refund` when one is voided, straight from Postgres to PostHog. The
+PostHog workflow **"Internal — referral sale → email Eliasse"** emails each one
+to support@linkfinderai.com. It runs whichever version of the worker wrote the
+row, so it needs no redeploy. Payment ids starting `TEST_` are ignored by the
+workflow, which is how the path is tested without an email.
+
+`referral_partner_monthly` is the monthly statement: per partner code and
+month, paying customers, payments, revenue, commission and voided.
+
+`?ref=CODE` is captured on every page that loads `js/lf-attribution.js`, not
+only the homepage, sign-up and app, so a partner can link straight to a
+content page.
+
 ## Not done yet
 
 - **The payout run.** `approved` → `paid` is still manual: nothing here sends
