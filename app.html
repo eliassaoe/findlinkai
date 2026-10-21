@@ -5438,7 +5438,16 @@ function lfCaptureRef() {
 // referred user is attributed even if the signup worker never saw the code.
 async function lfAttributeReferral() {
     let ref;
-    try { ref = localStorage.getItem('lf_ref'); } catch(e) { return; }
+    // localStorage is only filled on some paths (Google signup, landing on
+    // /app with ?ref=). The homepage and email signup only ever set the
+    // lf_ref cookie, so without this fallback an email+password signup from a
+    // partner's homepage link was never attributed. lf_ref_done stops the
+    // 90-day cookie re-asking the worker on every load.
+    try {
+        ref = localStorage.getItem('lf_ref')
+            || (!localStorage.getItem('lf_ref_done') && getRefCookie())
+            || null;
+    } catch(e) { return; }
     if (!ref || !userToken) return;
     try {
         const res = await fetch('https://referral.hamoureliasse.workers.dev/attribute', {
@@ -5449,7 +5458,7 @@ async function lfAttributeReferral() {
         // Clear it once it has landed one way or the other, so an unknown or
         // self-referral code is not retried on every page load forever.
         if (data && (data.ok || data.reason)) {
-            try { localStorage.removeItem('lf_ref'); } catch(e) {}
+            try { localStorage.removeItem('lf_ref'); localStorage.setItem('lf_ref_done', '1'); } catch(e) {}
             if (data.ok && !data.already) {
                 try { posthog.capture('referral_attributed', { code: ref }); } catch(e) {}
             }
