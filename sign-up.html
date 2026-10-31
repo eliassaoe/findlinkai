@@ -453,10 +453,10 @@ button#submitButton:disabled{opacity:0.6;cursor:not-allowed;}
     });
   })();
 
-  async function signUpWithGoogle() {
+  async function signUpWithGoogle(source) {
     try {
       hideMessage();
-      try { posthog.capture('signup_google_clicked'); } catch(e) {}
+      try { posthog.capture('signup_google_clicked', source ? { source: source } : {}); } catch(e) {}
       try { plausible('Signup Google Clicked'); } catch(e) {}
 
       const gclid = urlParams.get('gclid');
@@ -680,9 +680,13 @@ button#submitButton:disabled{opacity:0.6;cursor:not-allowed;}
         input.dispatchEvent(new Event('input'));
       }
     } catch (e) {}
+    // ?google=1 also comes from the free-limit gate on the tool pages
+    // (js/lf-gate.js, &source=gate). Skipped after a Google error so a failed
+    // attempt can't loop.
     if (urlParams.get('google') === '1' && !error) {
-      try { posthog.capture('signup_google_autostart', { source: 'agency' }); } catch (e) {}
-      setTimeout(signUpWithGoogle, 150);
+      const source = urlParams.get('source') === 'gate' ? 'gate_modal' : 'agency';
+      try { posthog.capture('signup_google_autostart', { source: source }); } catch (e) {}
+      setTimeout(function () { signUpWithGoogle(source); }, 150);
     }
   })();
 </script>

@@ -72,6 +72,7 @@
             var props = {
                 placement: isOffer ? 'first_result' : inGate ? 'gate_modal' : 'page'
             };
+            if (inGate) props.method = el.getAttribute('data-lf-method') || 'email';
             if (isOffer) {
                 props.variant = 'spreadsheet';
                 props.route = el.getAttribute('data-lf-route') || 'csv';
@@ -315,12 +316,52 @@
         }).observe(results, { attributes: true, attributeFilter: ['class', 'style'] });
     }
 
+    // ---- Google first in the gate -----------------------------------------
+    //
+    // US, 60 days to 2026-10-31: 208 visitors hit the gate, 57 clicked its one
+    // button (27%), 34 signed up. That button went to /sign-up, a second page
+    // with a form on it. Once someone clicks "Continue with Google" there, ~90%
+    // finish signing up; the email form loses people to typos, passwords and
+    // server errors. So the gate now leads with Google and goes straight to the
+    // account picker (/sign-up?google=1 starts the OAuth redirect on
+    // load, the same hand-off /agency uses), and email stays one link underneath. Done here, not in the 26
+    // modal copies, so every tool page gets it at once.
+    // free_limit_cta_clicked carries method: 'google' | 'email' to compare.
+    var GOOGLE_G = '<svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true" style="flex-shrink:0">' +
+        '<path fill="#4285F4" d="M16.51 8H8.98v3h4.3c-.18 1-.74 1.48-1.6 2.04v2.01h2.6a7.8 7.8 0 002.38-5.88c0-.57-.05-.66-.15-1.18z"/>' +
+        '<path fill="#34A853" d="M8.98 17c2.16 0 3.97-.72 5.3-1.94l-2.6-2.04a4.8 4.8 0 01-7.18-2.54H1.83v2.07A8 8 0 008.98 17z"/>' +
+        '<path fill="#FBBC05" d="M4.5 10.52a4.8 4.8 0 010-3.04V5.41H1.83a8 8 0 000 7.18l2.67-2.07z"/>' +
+        '<path fill="#EA4335" d="M8.98 4.18c1.17 0 2.23.4 3.06 1.2l2.3-2.3A8 8 0 001.83 5.4L4.5 7.49a4.77 4.77 0 014.48-3.31z"/></svg>';
+
+    function addGoogleToGate(modal) {
+        try {
+            if (!modal.querySelector || !document.createElement) return;
+            if (modal.querySelector('[data-lf-method="google"]')) return;
+            var emailLink = modal.querySelector('a[href*="/sign-up"]');
+            if (!emailLink || !emailLink.parentNode) return;
+
+            var google = document.createElement('a');
+            google.href = SIGN_UP + '?google=1&source=gate';
+            google.setAttribute('data-lf-method', 'google');
+            google.style.cssText = 'display:flex;align-items:center;justify-content:center;gap:.6rem;background:#2563eb;' +
+                'color:#fff;padding:1rem;border-radius:8px;font-weight:600;font-size:1rem;text-decoration:none;margin-bottom:.75rem;';
+            google.innerHTML = '<span style="display:inline-flex;background:#fff;border-radius:4px;padding:3px">' + GOOGLE_G +
+                '</span>Continue with Google';
+            emailLink.parentNode.insertBefore(google, emailLink);
+
+            emailLink.setAttribute('data-lf-method', 'email');
+            emailLink.textContent = 'or sign up with email';
+            emailLink.style.cssText = 'display:block;color:#2563eb;font-weight:500;font-size:.9rem;text-decoration:none;margin-bottom:.75rem;';
+        } catch (e) {}
+    }
+
     // The gate modal is shown by pages writing style.display directly, in ~26
     // different call sites. Watching the element is cheaper and safer than
     // rewriting all of them, and catches any future call site for free.
     function watchGate() {
         var modal = document.getElementById('limitModal');
         if (!modal || typeof MutationObserver === 'undefined') return;
+        addGoogleToGate(modal);
 
         function report() {
             capture('free_limit_modal_shown', { free_lookups: window.LF_FREE_LOOKUPS });

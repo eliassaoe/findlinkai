@@ -59,6 +59,7 @@ into a file here in the same session, or it is gone.
 | **How CSV / Google Sheets / API / CRM are offered in the app** — inside the result, never as a popup; which prompts were retired and why | `docs/next-step-routing.md` — read it before adding any nudge, banner or popup to `app.html` |
 | **Single lookup is the default mode in `/app`; bulk is one click away** (bulk-first was tried 9 Oct 2026 and rolled back: activation fell 68% → 41%) | `docs/bulk-first-default.md` — read the "Result" section before changing the mode toggle, `currentMode`, or the quick-start cards; `tests/default-mode.test.mjs` pins it |
 | **Earn-credits tasks shown in a rail beside the form** (wide screens), not only behind the corner button | `docs/earn-credits-rail.md` — read it before touching `OTP_TASKS_ALL`, `renderTasksRail` or `#reopenTasksBtn`; `tests/tasks-rail.test.mjs` pins it |
+| **Free-limit gate leads with "Continue with Google"**, email one link below (added at runtime to all 26 tool pages) | `docs/gate-google-first.md` — the numbers, the re-check date and how to roll back; `tests/gate-google-first.test.mjs` pins it |
 | What the account page counts as "found" | `docs/account-value-summary.md` |
 | The monthly value receipt email — how the numbers are computed, the worker, workflow 12 | `workers/monthly-receipt/README.md` |
 | The AI SDR service offer, and who is allowed to see it | `docs/ai-sdr-offer.md` |
