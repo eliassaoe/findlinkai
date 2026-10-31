@@ -14,10 +14,11 @@ Three controls, in this order:
 3. The input field, whose label and placeholder change per selection
 4. **`Enrich Data`** — submit button
 
-Mode toggle under the dropdowns: **`📤 Upload CSV (bulk)`** (first, wider,
-selected on load) / **`Single lookup`** (second). Since 2026-10-09 the app
-**opens in bulk** (`docs/bulk-first-default.md`), so a storyboard that shows a
-single lookup must click **`Single lookup`** first.
+Mode toggle under the dropdowns: **`Single lookup`** (first, selected on
+load) / **`📤 Upload CSV (bulk)`** (second). The app **opens in single**; it
+opened in bulk from 2026-10-09 to 2026-10-31 and was rolled back
+(`docs/bulk-first-default.md`, "Result"), so a storyboard that shows a list
+must click **`Upload CSV (bulk)`** first.
 Bulk path: **`Upload CSV (bulk)`** -> **`Select File`** -> **`Process N items`**
 -> **`Export CSV`**.
 

@@ -81,3 +81,29 @@ Rough estimate per 1,000 signups (about 10 payers today): **+15% to +40%
 payers**, from bulk reach going from ~13% to 20–25% of signups at ~3%
 conversion for the new, lower-intent list users. This is a modelled estimate,
 not a measured result.
+
+## Result (31 Oct 2026): rolled back to single-first
+
+Measured in PostHog, signups outside the blocked low-conversion countries,
+counting what each person did in the 14 days after signup:
+
+| | Single default (1 Aug – 8 Oct) | Bulk default (9 Oct – 23 Oct) |
+|---|---|---|
+| Signups | 529 | 79 |
+| Ran an enrichment | 68% | 41% |
+| Uploaded a CSV | 10% | 16% |
+| Ran out of credits | 8% | 4% |
+| Upgrade click or checkout opened | 16% | 13% |
+| Paid | 2.1% (11) | 0% (0) |
+
+US only: 66% → 44% ran an enrichment, 1.7% → 0% paid.
+
+Activation fell about 27 points, well past the 10-point guardrail above. List
+uploads rose by 6 points, far too few to make up for it, and every step after
+activation is lower. The bulk-first sample is small (0 payers where ~1.6 were
+expected), but nothing points the other way, so the app opens on single lookup
+again. What stays from this change: the `mode_switched` event, the
+`app_default_mode` super property (now `'single'`), and one-click list
+shortcuts under the quick-start cards (`qs-list-line`, `quickStartBulk`), since
+single-then-list is still the path that pays best. `tests/default-mode.test.mjs`
+pins the current default.
