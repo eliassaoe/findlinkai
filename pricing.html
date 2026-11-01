@@ -655,6 +655,36 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
         });
       });
     })();
+
+    // "Buy Credits" on the pay-as-you-go packs. These used to be plain links to
+    // /sign-up?payg=<pack>, and nothing downstream reads ?payg= - so someone who
+    // clicked "Buy Credits $25" signed up (or was sent on to /app if already
+    // signed in) and landed in the app with no checkout open: the purchase was
+    // dropped. Same handoff as /agency (lf_pending_plan): the pack waits in
+    // localStorage and app.html opens its checkout on the next load, which
+    // survives Google OAuth and email confirmation. Signed-in visitors go
+    // straight to /app. The packs are further down the page than this script,
+    // so wire them once the DOM is parsed. docs/checkout-leak.md.
+    document.addEventListener('DOMContentLoaded', function () {
+      var hasAccount = false;
+      try { hasAccount = !!localStorage.getItem('linkFinderToken'); } catch (e) {}
+      document.querySelectorAll('a.btn-trial[href*="sign-up?payg="]').forEach(function (a) {
+        var m = a.getAttribute('href').match(/payg=(small|medium|large)/);
+        if (!m) return;
+        var pack = m[1];
+        a.addEventListener('click', function (ev) {
+          try {
+            posthog.capture('plan_selected', {
+              plan: 'payg_' + pack, surface: 'pricing_page_payg', page: 'pricing', has_account: hasAccount
+            });
+          } catch (e) {}
+          var stored = false;
+          try { localStorage.setItem('lf_pending_payg', pack + '|' + Date.now()); stored = true; } catch (e) {}
+          // Without storage the handoff cannot work; the link behaves as before.
+          if (stored && hasAccount) { ev.preventDefault(); window.location.href = '/app'; }
+        });
+      });
+    });
   </script>
 
   <!-- DONE FOR YOU — the other high-ticket door. Someone reading a pricing page

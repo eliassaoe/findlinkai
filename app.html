@@ -5635,8 +5635,24 @@ function checkAuth(){
             pendingPlan = localStorage.getItem('lf_pending_plan');
             localStorage.removeItem('lf_pending_plan');
         } catch(e) {}
+        // A pay-as-you-go pack picked with "Buy Credits" on /pricing: same
+        // handoff, stored as "<pack>|<ms>". Read once and removed, and ignored
+        // after 24h so a stale click never opens checkout days later.
+        let paygIndex = -1;
+        try {
+            const rawPayg = localStorage.getItem('lf_pending_payg');
+            localStorage.removeItem('lf_pending_payg');
+            const parts = rawPayg ? rawPayg.split('|') : [];
+            const fresh = parts.length === 2 && (Date.now() - Number(parts[1])) < 24 * 60 * 60 * 1000;
+            if (fresh && !looksLikeDodoReturn) paygIndex = ['small', 'medium', 'large'].indexOf(parts[0]);
+        } catch(e) {}
         const pending = pendingPlan ? resolvePlanParam(pendingPlan, null) : null;
-        if (pending){
+        if (paygIndex !== -1 && !pending){
+            try { posthog.capture('pending_plan_checkout', {
+                plan: 'payg_' + ['small', 'medium', 'large'][paygIndex], billing: 'payg', source: 'pricing_page',
+            }); } catch(e) {}
+            setTimeout(()=>proceedToPaygCheckout(paygIndex, null), 300);
+        } else if (pending){
             billingMode = pending.billing;
             try { posthog.capture('pending_plan_checkout', {
                 plan: plans[pending.index].key, billing: pending.billing, source: 'agency_page',
