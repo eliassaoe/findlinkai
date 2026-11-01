@@ -128,3 +128,30 @@ users, so the next one to hit it will produce either
 `..._request_started` with no `..._session_created`, and that names it.
 
 Until then, nothing here justifies sending the Dodo ticket.
+
+---
+
+# Pricing page PAYG handoff, 1 November 2026
+
+The three "Buy Credits" buttons on `/pricing` ($25 / $75 / $200 packs) linked to
+`/sign-up?payg=<pack>`. Nothing reads `?payg=`: not `sign-up.html`, not
+`app.html`. So a buyer who clicked "Buy Credits" signed up, or was sent on to
+`/app` if already signed in, and landed with 25 free credits and no checkout.
+The purchase never reached `launchCheckout`, so none of the telemetry above
+could see it, and the clicks were not tracked at all (the `plan_selected`
+listener on `/pricing` only covers the subscription cards).
+
+Fix: the same localStorage handoff `/agency` uses for `lf_pending_plan`.
+`pricing.html` stores `lf_pending_payg = "<pack>|<ms>"` on click and fires
+`plan_selected` with `surface: pricing_page_payg`; signed-in visitors go
+straight to `/app`. `app.html` reads it once, ignores it after 24h or on a Dodo
+return URL, fires `pending_plan_checkout` with `source: pricing_page`, and
+calls `proceedToPaygCheckout`. `tests/pricing-payg-handoff.test.mjs` pins it.
+
+How to read it after deploy: `plan_selected` where `surface = pricing_page_payg`,
+then `pending_plan_checkout` with `source = pricing_page`, then the usual
+`checkout_redirect_started`. A big gap between the first two is people who
+clicked "Buy Credits" and then never finished signing up.
+
+Not changed: the subscription cards on `/pricing` say "Start Free Trial" and
+promise no card, so they still go to plain signup without opening checkout.
