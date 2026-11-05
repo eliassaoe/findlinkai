@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Page d'essai en français pour la prospection (campagne Explee « Cabinets de
+     recrutement »). Le plus simple possible : on dépose une liste, les emails
+     profils et emails trouvés s'affichent (emails en partie masqués), et « Télécharger ma liste » fait
+     créer un compte puis télécharge le fichier dans l'app (app.html,
+     lfDownloadFreeList, clé lf_free_list_results). Profil LinkedIn complet +
+     email ; pas de numéros : ils ne sont disponibles que pour les contacts aux États-Unis.
+     Pas pour le SEO. -->
+<meta name="robots" content="noindex, nofollow">
+<title>Profils LinkedIn complets + emails | LinkFinder AI</title>
+<meta name="description" content="Déposez votre liste LinkedIn. Vous récupérez le profil complet et l'email de chaque personne. Gratuit.">
+<script>
+  // UTMs posés avant que lf-attribution.js lise l'URL, pour que chaque
+  // inscription venant de cette page soit créditée à la campagne email.
+  (function () {
+    try {
+      var u = new URL(window.location.href), changed = false;
+      var em = (u.searchParams.get('email') || '').trim().toLowerCase();
+      if (u.searchParams.has('email')) { u.searchParams.delete('email'); changed = true; }
+      if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) window.__lfLeadEmail = em;
+      if (!u.searchParams.get('utm_source')) {
+        u.searchParams.set('utm_source', 'explee');
+        u.searchParams.set('utm_medium', 'email');
+        u.searchParams.set('utm_campaign', 'fr_liste_gratuite');
+        changed = true;
+      }
+      if (changed) history.replaceState(null, '', u.pathname + u.search + u.hash);
+    } catch (e) {}
+  })();
+</script>
+<script>
+    !function(t,e){var o,n,p,r;e.__SV||(window.posthog && window.posthog.__loaded)||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]),t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}(p=t.createElement("script")).type="text/javascript",p.crossOrigin="anonymous",p.async=!0,p.src=s.api_host.replace(".i.posthog.com","-assets.i.posthog.com")+"/static/array.js",(r=t.getElementsByTagName("script")[0]).parentNode.insertBefore(p,r);var u=e;for(void 0!==a?u=e[a]=[]:a="posthog",u.people=u.people||[],u.toString=function(t){var e="posthog";return"posthog"!==a&&(e+="."+a),t||(e+=" (stub)"),e},u.people.toString=function(){return u.toString(1)+".people (stub)"},o="init zr Wr fi Br Gr ci Nr Hr capture Ui calculateEventProperties Kr register register_once register_for_session unregister unregister_for_session Zr getFeatureFlag getFeatureFlagPayload isFeatureEnabled reloadFeatureFlags updateEarlyAccessFeatureEnrollment getEarlyAccessFeatures on onFeatureFlags onSurveysLoaded onSessionId getSurveys getActiveMatchingSurveys renderSurvey displaySurvey cancelPendingSurvey canRenderSurvey canRenderSurveyAsync identify setPersonProperties group resetGroups setPersonPropertiesForFlags resetPersonPropertiesForFlags setGroupPropertiesForFlags resetGroupPropertiesForFlags reset get_distinct_id getGroups get_session_id get_session_replay_url alias set_config startSessionRecording stopSessionRecording sessionRecordingStarted captureException loadToolbar get_property getSessionProperty Xr Jr createPersonProfile Qr jr ts opt_in_capturing opt_out_capturing has_opted_in_capturing has_opted_out_capturing get_explicit_consent_status is_capturing clear_opt_in_out_capturing Vr debug O Yr getPageViewId captureTraceFeedback captureTraceMetric Or".split(" "),n=0;n<o.length;n++)g(u,o[n]);e._i.push([i,s,a])},e.__SV=1)}(document,window.posthog||[]);
+window.__lfScrubUrl=function(v){return typeof v==='string'?v.replace(/([?&#])(access_token|refresh_token|provider_token|provider_refresh_token|id_token|token|api_key|apikey|password|secret|email)=[^&#]*/gi,'$1$2=[redacted]'):v;};
+window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_url','$initial_referrer','$session_entry_url','$pathname'].forEach(function(k){if(p[k])p[k]=window.__lfScrubUrl(p[k]);});return p;};
+    posthog.init('phc_HqgzMyWAMtzH7K5j9CLw0dijB0I9W1VjPkkyzg9KOFG', {
+        api_host: 'https://us.i.posthog.com',
+        defaults: '2025-11-30',
+        person_profiles: 'identified_only',
+        sanitize_properties: window.__lfSanitize,
+    })
+</script>
+<script src="/js/lf-attribution.js"></script>
+<script src="/js/lf-tools-key.js"></script>
+<script src="/js/lf-linkedin-url.js"></script>
+<script src="/js/lf-csv.js"></script>
+<script src="/js/lf-attribution.js"></script>
+<script src="/js/lf-tools-key.js"></script>
+<script src="/js/lf-linkedin-url.js"></script>
+<script src="/js/lf-csv.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Hanken+Grotesk:wght@400;500;700&family=Geist+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FFFFFF;
+    --fg:#0F1C33;
+    --muted:#5B6576;
+    --line:rgba(15,28,51,.10);
+    --soft:#F4F7FD;
+    --primary:#1B6BF0;
+    --primary-fg:#FFFFFF;
+    --green:#0E9F6E;
+    --shadow-lg:6px 6px 0 0 var(--primary);
+    --shadow:4px 4px 0 0 var(--primary);
+    --heading:'Bricolage Grotesque',system-ui,sans-serif;
+    --body:'Hanken Grotesk',system-ui,-apple-system,'Segoe UI',sans-serif;
+    --mono:'Geist Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+  }
+  *{box-sizing:border-box;}
+  html{-webkit-text-size-adjust:100%;}
+  body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);
+    font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased;}
+  a{color:var(--primary);}
+  strong{font-weight:700;}
+  h1,h2,h3,p{margin:0;}
+  .container{max-width:880px;margin:0 auto;padding:0 16px;}
+
+  header .container{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:20px;padding-bottom:8px;}
+  .logo{display:inline-flex;align-items:center;gap:8px;text-decoration:none;color:var(--fg);}
+  .logo-mark{width:28px;height:28px;border-radius:6px;background:var(--primary);display:grid;place-items:center;color:#fff;}
+  .logo-mark svg{width:16px;height:16px;}
+  .logo-text{font-family:var(--heading);font-weight:800;font-size:1.125rem;letter-spacing:-0.02em;line-height:1;}
+  .logo-text span{color:var(--primary);}
+
+  main{padding:24px 0 48px;}
+  section{margin-top:64px;}
+  section.first{margin-top:28px;}
+
+  .eyebrow{display:flex;align-items:center;justify-content:center;gap:12px;font-family:var(--mono);
+    font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--primary);}
+  .eyebrow::before,.eyebrow::after{content:"";width:24px;height:2px;background:var(--primary);}
+  h1{max-width:700px;margin:14px auto 0;text-align:center;font-family:var(--heading);font-weight:800;
+    font-size:2rem;line-height:1.08;letter-spacing:-0.03em;}
+  h2{max-width:640px;margin:12px auto 0;text-align:center;font-family:var(--heading);font-weight:800;
+    font-size:1.6rem;line-height:1.15;letter-spacing:-0.03em;}
+  @media(min-width:640px){h1{font-size:2.7rem;}h2{font-size:2rem;}}
+  .lede{max-width:620px;margin:16px auto 0;text-align:center;font-size:17px;line-height:1.65;color:var(--muted);}
+  .fine{max-width:560px;margin:12px auto 0;text-align:center;font-size:13px;color:var(--muted);}
+
+  .video{position:relative;aspect-ratio:16/9;width:100%;overflow:hidden;border-radius:20px;
+    border:2px solid var(--line);background:#000;box-shadow:var(--shadow-lg);margin-top:28px;}
+  .video video{position:absolute;inset:0;width:100%;height:100%;background:#000;}
+
+  .actions{display:flex;flex-wrap:wrap;justify-content:center;gap:12px;margin-top:24px;}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:50px;padding:0 24px;
+    border-radius:16px;border:2px solid var(--primary);background:var(--primary);color:var(--primary-fg);
+    font-family:var(--body);font-weight:700;font-size:16px;text-decoration:none;box-shadow:var(--shadow);
+    cursor:pointer;transition:transform .15s ease;}
+  .btn:hover{transform:translateY(-2px);}
+  .btn--ghost{background:#fff;color:var(--fg);border-color:var(--line);box-shadow:none;}
+  .btn--block{width:100%;}
+  .btn--sm{min-height:40px;padding:0 14px;font-size:14px;border-radius:12px;box-shadow:none;white-space:nowrap;}
+  .logo-text{white-space:nowrap;}
+  .btn--sm .short{display:none;}
+  @media(max-width:420px){.btn--sm .long{display:none;}.btn--sm .short{display:inline;}}
+  @media(max-width:350px){.logo-text{font-size:1rem;}.btn--sm{padding:0 10px;}}
+
+  /* no-signup demo */
+  .try{max-width:680px;margin:28px auto 0;padding:22px 20px;border:2px solid var(--primary);border-radius:20px;
+    box-shadow:var(--shadow-lg);background:#fff;}
+  .try h3{font-family:var(--heading);font-weight:800;font-size:1.2rem;letter-spacing:-0.02em;}
+  .try .sub{margin-top:4px;font-size:14px;color:var(--muted);}
+  .drop{position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;margin-top:0;padding:24px 16px;
+    border:2px dashed var(--primary);border-radius:14px;background:var(--soft);text-align:center;cursor:pointer;transition:background .15s ease;}
+  .drop.over{background:#E3ECFD;}
+  .drop input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;}
+  .drop b{font-family:var(--heading);font-weight:800;font-size:1.05rem;}
+  .drop span{font-size:14px;color:var(--muted);}
+  .paste{margin-top:6px;border:0;padding:0;text-align:center;}
+  .paste summary{display:inline;font-size:13px;font-weight:500;color:var(--muted);text-decoration:underline;}
+  .paste summary::after{content:none !important;}
+  .paste[open]{text-align:left;}
+  .hint{margin-top:10px;text-align:center;}
+  .try textarea{display:block;width:100%;min-height:128px;margin-top:14px;padding:12px 14px;border:2px solid var(--line);
+    border-radius:12px;font-family:var(--mono);font-size:13px;line-height:1.6;color:var(--fg);resize:vertical;}
+  .try textarea:focus{outline:none;border-color:var(--primary);}
+  .try .row{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;margin-top:12px;}
+  .try .row .btn{flex:1 1 200px;}
+  .linkbtn{background:none;border:0;padding:0;font:inherit;font-size:14px;color:var(--primary);text-decoration:underline;cursor:pointer;}
+  .try .msg{margin-top:10px;font-size:14px;color:#B42318;}
+  .try .msg:empty{display:none;}
+  .results{margin-top:16px;display:grid;gap:8px;}
+  .results:empty{display:none;}
+  .res{padding:10px 12px;border-radius:12px;background:var(--soft);font-size:14px;}
+  .res .who{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted);font-family:var(--mono);font-size:12px;}
+  .res .vals{display:flex;flex-wrap:wrap;gap:4px 16px;margin-top:4px;}
+  .res .val{overflow-wrap:anywhere;font-weight:700;font-family:var(--mono);font-size:13px;}
+  .res .val i{font-style:normal;font-weight:500;color:var(--muted);margin-right:6px;}
+  .res .val.ok{color:var(--green);}
+  .res .val.no{color:var(--muted);font-weight:500;}
+  .after{margin-top:16px;padding:16px;border-radius:14px;background:var(--soft);text-align:center;}
+  .after[hidden]{display:none;}
+  .after p{font-size:15px;}
+  .after-ctas{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin-top:12px;}
+  .btn--google{background:#fff;color:var(--fg);border-color:var(--line);box-shadow:var(--shadow);}
+  .btn--google svg{width:18px;height:18px;flex:none;}
+  .shapes{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px;margin-top:12px;}
+  .shapes em{font-style:normal;font-size:12px;font-weight:700;color:var(--muted);}
+  @media(max-width:520px){.shapes{flex-direction:column;gap:4px;}}
+  .shapes table{border-collapse:collapse;font-family:var(--mono);font-size:11px;background:#fff;}
+  .shapes th,.shapes td{padding:3px 7px;border:1px solid var(--line);text-align:left;white-space:nowrap;}
+  .shapes th{color:var(--muted);font-weight:700;}
+  .formats{display:grid;gap:10px;margin-top:12px;}
+  @media(min-width:560px){.formats{grid-template-columns:1fr 1.4fr;}}
+  .fmt{padding:10px 12px;border-radius:12px;background:var(--soft);font-size:13px;min-width:0;}
+  .fmt b{display:block;margin-bottom:6px;font-size:13px;}
+  .fmt table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:11.5px;table-layout:fixed;}
+  .fmt th,.fmt td{text-align:left;padding:3px 6px;border:1px solid var(--line);background:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .fmt th{font-weight:700;color:var(--muted);}
+  .fmt-note{margin-top:8px;font-size:12.5px;color:var(--muted);line-height:1.5;}
+  .locked{position:relative;display:grid;gap:8px;}
+  .locked .res{user-select:none;pointer-events:none;}
+  .locked .vals{filter:blur(4px);}
+  .lock-cta{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;
+    text-align:center;padding:12px;background:linear-gradient(to bottom,rgba(255,255,255,0),rgba(255,255,255,.55) 35%,rgba(255,255,255,.55) 65%,rgba(255,255,255,0));border-radius:12px;}
+  .lock-cta b{font-family:var(--heading);font-size:1.1rem;background:#fff;padding:6px 14px;border-radius:999px;box-shadow:0 2px 10px rgba(15,28,51,.12);}
+
+  .points{display:grid;gap:12px;margin-top:24px;}
+  @media(min-width:720px){.points{grid-template-columns:repeat(3,1fr);}}
+  .point{padding:16px 18px;border-radius:14px;background:var(--soft);font-size:15px;line-height:1.55;}
+  .point b{display:block;font-family:var(--heading);font-weight:800;font-size:1.05rem;margin-bottom:4px;}
+
+  /* steps */
+  .steps{display:grid;gap:14px;margin-top:28px;}
+  @media(min-width:720px){.steps{grid-template-columns:repeat(3,1fr);}}
+  .stepcard{border:2px solid var(--line);border-radius:16px;padding:20px;}
+  .stepcard .n{width:28px;height:28px;border-radius:9px;background:var(--primary);color:#fff;font-family:var(--mono);
+    font-size:13px;font-weight:700;display:grid;place-items:center;}
+  .stepcard h3{margin-top:12px;font-family:var(--heading);font-weight:800;font-size:1.1rem;letter-spacing:-0.01em;}
+  .stepcard p{margin-top:6px;font-size:15px;color:var(--muted);line-height:1.6;}
+
+  /* pricing */
+  .code{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:10px;max-width:560px;
+    margin:22px auto 0;padding:14px 16px;border-radius:16px;background:var(--soft);border:2px dashed var(--primary);text-align:center;}
+  .code p{font-size:15px;}
+  .code button{font-family:var(--mono);font-weight:700;font-size:15px;letter-spacing:.06em;padding:8px 14px;
+    border-radius:10px;border:2px solid var(--primary);background:#fff;color:var(--primary);cursor:pointer;}
+  .plans{display:grid;gap:16px;margin-top:28px;}
+  @media(min-width:760px){.plans{grid-template-columns:repeat(3,1fr);align-items:stretch;}}
+  .plan{position:relative;display:flex;flex-direction:column;border:2px solid var(--line);border-radius:20px;padding:24px 20px;}
+  .plan--pick{border-color:var(--primary);box-shadow:var(--shadow-lg);}
+  .badge{position:absolute;top:-13px;left:50%;transform:translateX(-50%);white-space:nowrap;background:var(--primary);
+    color:#fff;font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+    padding:5px 12px;border-radius:999px;}
+  .plan h3{font-family:var(--heading);font-weight:800;font-size:1.25rem;letter-spacing:-0.02em;}
+  .plan .for{margin-top:4px;font-size:14px;color:var(--muted);}
+  .price{margin-top:16px;display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;}
+  .price b{font-family:var(--heading);font-weight:800;font-size:2.3rem;letter-spacing:-0.03em;line-height:1;}
+  .price s{color:var(--muted);font-size:1.1rem;}
+  .price span{color:var(--muted);font-size:14px;}
+  .then{margin-top:4px;font-size:13px;color:var(--green);font-weight:700;min-height:20px;}
+  .plan ul{list-style:none;margin:18px 0 22px;padding:0;display:grid;gap:9px;font-size:15px;}
+  .plan li{display:flex;gap:9px;align-items:flex-start;line-height:1.45;}
+  .plan li::before{content:"\2713";flex:none;color:var(--primary);font-weight:700;}
+  .plan .spacer{flex:1;}
+
+  /* faq */
+  .faq{max-width:680px;margin:24px auto 0;display:grid;gap:10px;}
+  details{border:2px solid var(--line);border-radius:14px;padding:14px 18px;}
+  summary{cursor:pointer;font-weight:700;font-size:16px;list-style:none;display:flex;justify-content:space-between;gap:12px;}
+  summary::-webkit-details-marker{display:none;}
+  summary::after{content:"+";font-family:var(--mono);color:var(--primary);font-weight:700;}
+  details[open] summary::after{content:"–";}
+  details p{margin-top:10px;font-size:15px;color:var(--muted);line-height:1.65;}
+
+  .final{margin-top:64px;padding:32px 20px;border-radius:24px;background:var(--soft);text-align:center;}
+  footer{padding:24px 0 40px;text-align:center;font-size:13px;color:var(--muted);}
+  footer a{color:var(--muted);}
+</style>
+<style>
+  .first h1{max-width:620px;}
+  .steps3{display:flex;justify-content:center;gap:18px;flex-wrap:wrap;margin-top:14px;font-size:15px;color:var(--muted);}
+  .steps3 b{display:inline-grid;place-items:center;width:22px;height:22px;margin-right:6px;border-radius:7px;background:var(--primary);color:#fff;font-family:var(--mono);font-size:12px;}
+  .count{margin-top:16px;text-align:center;font-family:var(--heading);font-weight:800;font-size:1.25rem;}
+  .count:empty{display:none;}
+  .dl{margin-top:14px;text-align:center;}
+  .dl[hidden]{display:none;}
+  .dl .btn{font-size:17px;min-height:56px;padding:0 28px;}
+  .dl .fine{margin-top:10px;}
+  .res .info{margin-top:3px;font-size:13px;color:var(--fg);}
+  .res .info:empty{display:none;}
+</style>
+</head>
+<body>
+<header>
+  <div class="container">
+    <a class="logo" href="/">
+      <span class="logo-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg>
+      </span>
+      <span class="logo-text">LinkFinder <span>AI</span></span>
+    </a>
+      </div>
+</header>
+
+<main>
+  <div class="container">
+    <section class="first">
+      <h1>Tout le profil LinkedIn + l'email, pour chaque candidat</h1>
+      <p class="lede">Expériences, formation, poste, localisation et email pro. Déposez votre liste, c'est gratuit.</p>
+      <div class="steps3"><span><b>1</b>Déposez</span><span><b>2</b>Regardez</span><span><b>3</b>Téléchargez</span></div>
+
+      <div class="try" id="try">
+        <label class="drop" id="tryDrop">
+          <input type="file" id="tryFile" accept=".csv,.tsv,.txt,text/csv,text/plain" aria-label="Choisir un fichier">
+          <b>Glissez votre fichier ici</b>
+          <span>ou cliquez pour le choisir (CSV ou export LinkedIn, jusqu'à 50 personnes)</span>
+        </label>
+        <details class="paste" id="tryPaste">
+          <summary>ou collez des liens LinkedIn</summary>
+          <textarea id="tryInput" spellcheck="false" autocomplete="off" aria-label="Liens LinkedIn, un par ligne"
+            placeholder="https://www.linkedin.com/in/premier-contact&#10;https://www.linkedin.com/in/deuxieme-contact&#10;..."></textarea>
+          <div class="row">
+            <button type="button" class="btn" id="tryBtn">Récupérer les profils</button>
+          </div>
+        </details>
+        <p class="msg" id="tryMsg" role="alert"></p>
+        <p class="count" id="tryCount" aria-live="polite"></p>
+        <div class="results" id="tryResults" aria-live="polite"></div>
+        <div class="dl" id="tryDl" hidden>
+          <a class="btn" id="dlBtn" href="/sign-up?google=1" data-cta="fr_download">Télécharger ma liste</a>
+          <p class="fine" id="dlFine">Le fichier contient tout : expériences, formation, poste, localisation, email. Gratuit, sans carte bancaire : vous créez votre compte en 1 clic et il se télécharge.</p>
+        </div>
+      </div>
+    </section>
+  </div>
+</main>
+
+<footer>
+  <a href="/privacy-policy">Confidentialité</a> · <a href="/mention-legales">Mentions légales</a>
+</footer>
+
+<script>
+(function () {
+  function track(name, props) { try { posthog.capture(name, props || {}); } catch (e) {} }
+  var hasAccount = false;
+  try { hasAccount = !!localStorage.getItem('linkFinderToken'); } catch (e) {}
+
+  // Une liste par navigateur, 50 personnes maximum. Même worker et mêmes
+  // requêtes que la démo de /agency, mais emails seulement.
+  var MAX = 50;
+  var USED_KEY = 'lf_fr_free_list_used';
+  var RESULTS_KEY = 'lf_free_list_results';
+  var WORKER = 'https://linkfinder-free-tools.hamoureliasse.workers.dev/';
+  // Profil complet (expériences, formation, poste...) : même service que la page linkedin-profile-scraper.
+  var PROFILE_WORKER = 'https://linkedin-url-finder.hamoureliasse.workers.dev/';
+  var PROFILE_RE = /(?:https?:\/\/)?(?:[a-z0-9-]+\.)?linkedin\.com\/(?:[a-z]{2}\/)?(?:in|pub)\/[^\s,;"'|<>]+/gi;
+  var tryInput = document.getElementById('tryInput');
+  var tryBtn = document.getElementById('tryBtn');
+  var tryFile = document.getElementById('tryFile');
+  var tryDrop = document.getElementById('tryDrop');
+  var tryMsg = document.getElementById('tryMsg');
+  var tryCount = document.getElementById('tryCount');
+  var tryResults = document.getElementById('tryResults');
+  var tryDl = document.getElementById('tryDl');
+  var dlBtn = document.getElementById('dlBtn');
+  var running = false;
+  var found = [];   // une ligne par personne : profil complet + email
+  var listName = 'ma-liste.csv';
+
+  function used() { try { return !!localStorage.getItem(USED_KEY); } catch (e) { return false; } }
+  function isProfile(url) { return window.LFLinkedIn ? window.LFLinkedIn.isProfileUrl(url) : /linkedin\.com\/(in|pub)\//i.test(url); }
+  function normalize(url) {
+    var n = window.LFLinkedIn && window.LFLinkedIn.normalize(url);
+    return n || (/^https?:\/\//i.test(url) ? url : 'https://' + url);
+  }
+  function extractProfiles(text) {
+    var seen = {};
+    return (String(text || '').match(PROFILE_RE) || []).filter(isProfile).map(normalize).filter(function (u) {
+      var k = u.toLowerCase().replace(/\/+$/, '');
+      if (seen[k]) return false;
+      seen[k] = true;
+      return true;
+    });
+  }
+  // Liste sans liens LinkedIn : colonnes prénom, nom, entreprise (lf-csv.js les reconnaît).
+  function extractPeople(text) {
+    if (!window.lfCsvRows || !window.lfFindColumn) return [];
+    var t = window.lfCsvRows(text), h = t.headers;
+    var fi = window.lfFindColumn(h, 'first_name');
+    var li = window.lfFindColumn(h, 'last_name', [fi]);
+    var ni = -1;
+    if (fi < 0 || li < 0) { fi = li = -1; ni = window.lfFindColumn(h, 'full_name'); }
+    var ci = window.lfFindColumn(h, 'company', [fi, li, ni]);
+    if (ci < 0 || (fi < 0 && ni < 0)) return [];
+    var seen = {}, out = [];
+    t.rows.forEach(function (r) {
+      var first, last;
+      if (fi >= 0 && li >= 0) { first = r[fi]; last = r[li]; }
+      else {
+        var parts = String(window.lfCsvNormalizeName(r[ni] || '')).trim().split(/\s+/);
+        first = parts.shift(); last = parts.join(' ');
+      }
+      var company = (r[ci] || '').trim();
+      first = (first || '').trim(); last = (last || '').trim();
+      if (!first || !last || !company) return;
+      var k = (first + '|' + last + '|' + company).toLowerCase();
+      if (seen[k]) return;
+      seen[k] = true;
+      out.push({ first: first, last: last, company: company, label: first + ' ' + last + ' · ' + company });
+    });
+    return out;
+  }
+  function urlItems(urls) { return urls.map(function (u) { return { url: u, label: u.replace(/^https?:\/\/(www\.)?/i, '') }; }); }
+
+  // j•••••@cabinet-rh.fr : on voit que ça marche, le vrai email est dans le fichier.
+  function mask(email) {
+    var at = email.indexOf('@');
+    if (at < 1) return '•••••';
+    return email[0] + '•••••' + email.slice(at);
+  }
+
+  function addRow(label) {
+    var row = document.createElement('div');
+    row.className = 'res';
+    var who = document.createElement('div');
+    who.className = 'who';
+    who.textContent = label;
+    var vals = document.createElement('div');
+    vals.className = 'vals';
+    var v = document.createElement('span');
+    v.className = 'val no';
+    v.textContent = 'Recherche…';
+    vals.appendChild(v);
+    var info = document.createElement('div');
+    info.className = 'info';
+    row.appendChild(who);
+    row.appendChild(info);
+    row.appendChild(vals);
+    tryResults.appendChild(row);
+    v._who = who; v._info = info;
+    return v;
+  }
+  function setCell(cell, text, ok) { cell.className = 'val ' + (ok ? 'ok' : 'no'); cell.textContent = text; }
+
+  async function lookup(body) {
+    var res = await fetch(WORKER, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-API-Secret': window.LF_API_KEY, 'Accept': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    return res.json();
+  }
+
+  async function profileLookup(url) {
+    var res = await fetch(PROFILE_WORKER, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-API-Secret': window.LF_API_KEY, 'Accept': 'application/json' },
+      body: JSON.stringify({ linkedinUrl: url, is_bulk: true })
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    return res.json();
+  }
+  function txt(v) { return v == null ? '' : String(v).trim(); }
+  function expList(d) {
+    var ex = Array.isArray(d && d.experiences) ? d.experiences : [];
+    return ex.map(function (e) {
+      var period = [txt(e.jobStartedOn), e.jobStillWorking ? "aujourd'hui" : txt(e.jobEndedOn)].filter(Boolean).join(' - ');
+      return [txt(e.title), txt(e.companyName)].filter(Boolean).join(' chez ') + (period ? ' (' + period + ')' : '');
+    }).filter(Boolean);
+  }
+  function eduList(d) {
+    var ed = (d && (d.educations || d.education || d.schools)) || [];
+    if (!Array.isArray(ed)) ed = [ed];
+    return ed.map(function (e) {
+      if (typeof e === 'string') return e.trim();
+      var period = [txt(e.startedOn || e.start || e.startYear), txt(e.endedOn || e.end || e.endYear)].filter(Boolean).join(' - ');
+      return [txt(e.title || e.degree || e.degreeName), txt(e.subtitle || e.schoolName || e.school || e.name)].filter(Boolean).join(', ') + (period ? ' (' + period + ')' : '');
+    }).filter(Boolean);
+  }
+
+  function showUsed() {
+    tryMsg.textContent = '';
+    tryCount.textContent = 'Vous avez déjà fait votre essai gratuit sur ce navigateur.';
+    dlBtn.textContent = hasAccount ? 'Ouvrir LinkFinder AI' : 'Créer mon compte gratuit';
+    if (hasAccount) dlBtn.href = '/app';
+    document.getElementById('dlFine').textContent = 'Gratuit, sans carte bancaire.';
+    tryDl.hidden = false;
+  }
+
+  async function run(source, items) {
+    if (running) return;
+    if (used()) { track('fr_list_blocked', { source: source }); showUsed(); return; }
+    if (!items.length) { tryMsg.textContent = 'Ajoutez au moins un lien LinkedIn (linkedin.com/in/…).'; return; }
+    var total = items.length;
+    items = items.slice(0, MAX);
+
+    running = true;
+    found = [];
+    tryMsg.textContent = '';
+    tryResults.innerHTML = '';
+    tryDl.hidden = true;
+    tryBtn.disabled = true;
+    tryBtn.textContent = 'Recherche…';
+    try { localStorage.setItem(USED_KEY, String(Date.now())); } catch (e) {}
+    track('fr_list_started', { source: source, rows: items.length, file_rows: total });
+
+    var bulk = items.length > 1, emails = 0, profiles = 0, errors = 0, lookups = 0, done = 0;
+    function counter() { tryCount.textContent = profiles + ' profils, ' + emails + ' emails trouvés sur ' + done + '…'; }
+    counter();
+    // 4 personnes à la fois : assez rapide, sans saturer le service.
+    var queue = items.slice(), cells = items.map(function (it) { return addRow(it.label); });
+    async function worker() {
+      while (queue.length) {
+        var idx = items.length - queue.length, it = queue.shift(), cell = cells[idx], url = it.url;
+        try {
+          if (!url) {
+            lookups++;
+            var p = await lookup({ type: 'professional_profile_finder', first_name: it.first, last_name: it.last, company_name: it.company, is_bulk: bulk });
+            url = p && p.linkedin_url ? normalize(String(p.linkedin_url)) : '';
+            if (!url) { setCell(cell, 'Pas trouvé', false); done++; counter(); continue; }
+          }
+          // Profil complet et email en même temps.
+          lookups += 2;
+          var both = await Promise.all([
+            profileLookup(url).catch(function () { return null; }),
+            lookup({ type: 'business_email_finder', linkedin_url: url, is_bulk: bulk }).catch(function () { return null; })
+          ]);
+          var pr = both[0] || {}, d = both[1];
+          if (!both[0] && !both[1]) throw new Error('both failed');
+          var em = d && d.email ? String(d.email) : '';
+          var rec = {
+            name: txt(pr.name) || it.label, title: txt(pr.jobTitle), company: txt(pr.company), location: txt(pr.location),
+            headline: txt(pr.headline), about: txt(pr.about), exps: expList(pr), edus: eduList(pr), url: url, email: em
+          };
+          if (rec.name || rec.title || em) { profiles++; found.push(rec); }
+          if (txt(pr.name)) cell._who.textContent = pr.name;
+          var line = [rec.title, rec.company].filter(Boolean).join(' chez ');
+          var extra = [rec.exps.length ? rec.exps.length + (rec.exps.length > 1 ? ' expériences' : ' expérience') : '',
+                       rec.edus.length ? rec.edus.length + (rec.edus.length > 1 ? ' formations' : ' formation') : ''].filter(Boolean).join(', ');
+          cell._info.textContent = [line, rec.location].filter(Boolean).join(' · ') + (extra ? '  —  ' + extra + ' dans le fichier' : '');
+          if (em) { emails++; setCell(cell, mask(em) + '  ✓', true); }
+          else setCell(cell, 'Email pas trouvé', false);
+        } catch (e) { errors++; setCell(cell, 'Erreur, réessayez', false); }
+        done++; counter();
+      }
+    }
+    await Promise.all([worker(), worker(), worker(), worker()]);
+
+    running = false;
+    tryBtn.disabled = false;
+    tryBtn.textContent = 'Récupérer les profils';
+    track('fr_list_run', { source: source, rows: items.length, file_rows: total, found: emails, profiles: profiles, failed: errors });
+
+    if (lookups && errors === lookups) {
+      try { localStorage.removeItem(USED_KEY); } catch (e) {}
+      tryCount.textContent = '';
+      tryMsg.textContent = 'Notre service ne répond pas. Réessayez dans une minute.';
+      return;
+    }
+    tryCount.textContent = profiles + ' profils complets et ' + emails + ' emails trouvés sur ' + items.length + '.' +
+      (total > items.length ? ' (Les ' + items.length + ' premiers de votre liste.)' : '');
+    if (!found.length) { tryMsg.textContent = 'Rien trouvé sur cette liste.'; return; }
+    saveResults();
+    dlBtn.textContent = 'Télécharger ma liste (' + found.length + ' profils)';
+    if (hasAccount) { dlBtn.href = '#'; document.getElementById('dlFine').textContent = 'Votre fichier se télécharge tout de suite.'; }
+    tryDl.hidden = false;
+  }
+
+  function toCsv() {
+    var esc = function (s) { s = String(s == null ? '' : s); return /[",\n;]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+    var head = ['Nom', 'Poste actuel', 'Entreprise', 'Localisation', 'Titre LinkedIn', 'Email', 'Expériences', 'Formation', 'Résumé', 'LinkedIn'];
+    return head.join(',') + '\n' + found.map(function (f) {
+      return [f.name, f.title, f.company, f.location, f.headline, f.email, f.exps.join(' | '), f.edus.join(' | '), f.about, f.url].map(esc).join(',');
+    }).join('\n') + '\n';
+  }
+  // Gardé dans ce navigateur : app.html (lfDownloadFreeList) le télécharge juste après l'inscription.
+  function saveResults() {
+    try { localStorage.setItem(RESULTS_KEY, JSON.stringify({ name: listName.replace(/\.(csv|tsv|txt)$/i, '') + '-profils.csv', csv: toCsv(), found: found.length, savedAt: Date.now() })); } catch (e) {}
+  }
+  function downloadNow() {
+    var blob = new Blob(['\ufeff' + toCsv()], { type: 'text/csv;charset=utf-8' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = listName.replace(/\.(csv|tsv|txt)$/i, '') + '-profils.csv';
+    document.body.appendChild(a); a.click(); a.remove();
+  }
+  dlBtn.addEventListener('click', function (e) {
+    track('fr_list_download_clicked', { found: found.length, has_account: hasAccount });
+    if (hasAccount && found.length) {
+      e.preventDefault();
+      downloadNow();
+      try { localStorage.removeItem(RESULTS_KEY); } catch (err) {}
+    }
+  });
+
+  async function handleFile(file) {
+    if (!file || running) return;
+    tryMsg.textContent = '';
+    if (file.size > 20 * 1024 * 1024) { tryMsg.textContent = 'Fichier trop lourd (plus de 20 Mo).'; return; }
+    var text;
+    try { text = await file.text(); } catch (e) { tryMsg.textContent = 'Impossible de lire ce fichier. Essayez un export .csv.'; return; }
+    listName = file.name || 'ma-liste.csv';
+    var urls = extractProfiles(text);
+    if (urls.length) { track('fr_list_file', { rows: urls.length, kind: 'linkedin' }); run('csv', urlItems(urls)); return; }
+    var people = extractPeople(text);
+    track('fr_list_file', { rows: people.length, kind: people.length ? 'names' : 'unusable' });
+    if (!people.length) {
+      tryMsg.textContent = 'Il faut des liens LinkedIn, ou des colonnes prénom, nom et entreprise.';
+      return;
+    }
+    run('names', people);
+  }
+
+  tryFile.addEventListener('change', function () { handleFile(tryFile.files[0]); tryFile.value = ''; });
+  ['dragenter', 'dragover'].forEach(function (ev) {
+    tryDrop.addEventListener(ev, function (e) { e.preventDefault(); tryDrop.classList.add('over'); });
+  });
+  ['dragleave', 'drop'].forEach(function (ev) {
+    tryDrop.addEventListener(ev, function () { tryDrop.classList.remove('over'); });
+  });
+  tryDrop.addEventListener('drop', function (e) { e.preventDefault(); handleFile(e.dataTransfer && e.dataTransfer.files[0]); });
+  tryBtn.addEventListener('click', function () { listName = 'ma-liste.csv'; run('paste', urlItems(extractProfiles(tryInput.value))); });
+  if (used()) showUsed();
+
+  // Le prospect venu du lien envoyé par email : on garde son adresse pour
+  // préremplir l'inscription (sign-up.html lit lf_agency_lead_email).
+  var leadEmail = window.__lfLeadEmail || null;
+  if (leadEmail) {
+    try { posthog.setPersonProperties({ email: leadEmail, fr_list_lead: true }); } catch (e) {}
+    try { localStorage.setItem('lf_agency_lead_email', leadEmail); } catch (e) {}
+  }
+  track('fr_list_page_viewed', { email_link: !!leadEmail });
+})();
+</script>
+</body>
+</html>
