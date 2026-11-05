@@ -364,7 +364,7 @@ src="https://www.facebook.com/tr?id=2717863625238535&ev=PageView&noscript=1"
     <div class="main-content">
         <div class="container">
             <h1>Redeem Your Code</h1>
-            <p class="subtitle">Enter your access code to start enriching leads and companies</p>
+            <p class="subtitle">Enter your access code (AppSumo codes too) to start enriching leads and companies</p>
             
             <form id="redeemForm">
                 <div class="form-group">
@@ -374,7 +374,7 @@ src="https://www.facebook.com/tr?id=2717863625238535&ev=PageView&noscript=1"
                         id="code" 
                         class="form-input"
                         required 
-                        placeholder="Enter your LinkFinder AI code"
+                        placeholder="e.g. LFAS-XXXX-XXXX-XXXX"
                         autocomplete="off"
                     >
                 </div>
@@ -436,6 +436,12 @@ src="https://www.facebook.com/tr?id=2717863625238535&ev=PageView&noscript=1"
             
             // Clear previous messages
             messageDiv.style.display = 'none';
+
+            // AppSumo codes (LFAS-...) are redeemed in Supabase; older codes keep using the worker.
+            if (/^LFAS-/i.test(code)) {
+                await redeemAppSumo(code, email, password);
+                return;
+            }
             
             try {
                 // Show loading state
@@ -491,6 +497,62 @@ src="https://www.facebook.com/tr?id=2717863625238535&ev=PageView&noscript=1"
             }
         });
 
+        // AppSumo: rpc appsumo_redeem creates the account (or credits the existing one)
+        // and adds 60,000 credits/year. See docs/appsumo-codes.md.
+        const SUPABASE_URL = 'https://snxhsboboatjywgwdeds.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNueGhzYm9ib2F0anl3Z3dkZWRzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYwMTY5NzgsImV4cCI6MjA2MTU5Mjk3OH0.qkoiXJoqujQ4iUByOqSAsacuJVtJx32j19PTuy7brMo';
+        const APPSUMO_ERRORS = {
+            invalid_code: 'This AppSumo code is not valid. Please check it and try again.',
+            already_redeemed: 'This code has already been redeemed. Log in to your account to use your credits.',
+            revoked: 'This code has been refunded and is no longer valid.',
+            account_exists: 'An account with this email already exists. Enter your current LinkFinder AI password, or log in first and come back to this page.',
+            weak_password: 'Password must be at least 6 characters long.',
+            invalid_email: 'Please enter a valid email address.'
+        };
+
+        async function redeemAppSumo(code, email, password) {
+            const submitBtn = document.getElementById('submitBtn');
+            let token = null;
+            try { token = localStorage.getItem('lf_token_backup'); } catch (e) {}
+            try {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+                showMessage('Validating your AppSumo code...', 'loading');
+
+                const response = await fetch(SUPABASE_URL + '/rest/v1/rpc/appsumo_redeem', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
+                    },
+                    body: JSON.stringify({ p_code: code, p_email: email, p_password: password, p_token: token })
+                });
+                const data = await response.json().catch(() => null);
+
+                if (response.ok && data && data.ok && data.token) {
+                    try { localStorage.setItem('lf_token_backup', data.token); } catch (e) {}
+                    try {
+                        posthog.identify(data.token, { email: email });
+                        posthog.capture('appsumo_redeemed', { new_account: data.new_account, credits_added: data.credits_added, yearly_credits: data.yearly_credits });
+                    } catch (e) {}
+                    showMessage('Success! ' + Number(data.credits_added).toLocaleString('en-US') + ' credits added. Redirecting to LinkFinder AI...', 'success');
+                    setTimeout(() => {
+                        window.location.href = 'https://linkfinderai.com/app?token=' + encodeURIComponent(data.token);
+                    }, 1500);
+                    return;
+                }
+                const err = data && data.error;
+                try { posthog.capture('appsumo_redeem_failed', { reason: err || ('http_' + response.status) }); } catch (e) {}
+                showMessage(APPSUMO_ERRORS[err] || 'Something went wrong. Please try again or contact support.', 'error');
+                resetButton();
+            } catch (error) {
+                console.error('Network error:', error);
+                showMessage('Connection error. Please check your internet and try again.', 'error');
+                resetButton();
+            }
+        }
+
         function showMessage(text, type) {
             const messageDiv = document.getElementById('message');
             messageDiv.textContent = text;
@@ -506,6 +568,13 @@ src="https://www.facebook.com/tr?id=2717863625238535&ev=PageView&noscript=1"
 
         // Auto-focus on the code input when page loads
         document.addEventListener('DOMContentLoaded', function() {
+            // AppSumo redemption link: /redeem-code?code=LFAS-...
+            const preset = new URLSearchParams(window.location.search).get('code');
+            if (preset && /^[A-Za-z0-9-]{4,40}$/.test(preset)) {
+                document.getElementById('code').value = preset.toUpperCase();
+                document.getElementById('email').focus();
+                return;
+            }
             document.getElementById('code').focus();
         });
 

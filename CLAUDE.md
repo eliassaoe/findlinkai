@@ -68,6 +68,7 @@ into a file here in the same session, or it is gone.
 | **The sales-led motion** — the Enterprise tier, `/talk-to-sales`, the page CTA and the three high-ticket lifecycle emails | `docs/sales-led-motion.md` — read it before touching `plans[]`, the pricing modal, or `js/lf-highticket-cta.js` |
 | Next quick-cash offers to run (ranked) | `docs/quick-cash-ideas.md` |
 | **Lifetime deal campaign** — the audience, `/lifetime-deal`, the `ltd_monthly_credits` column, workflow 28, the churn win-back, and the launch checklist | `docs/ltd-campaign.md` — read it before changing `ltd_*` tables, the page, or sending anything to free users |
+| **AppSumo codes** — `/redeem-code` with `LFAS-` codes, 60,000 credits/year, account created on redeem; generating, exporting and revoking codes | `docs/appsumo-codes.md` — never commit codes, this repo is public |
 | Selling Done For You to the 67 idle pack buyers | `docs/dfy-activation-campaign.md` — read the correction in it before quoting any "paying accounts" number |
 | Who the SEO traffic actually is, before aiming an offer at it | `docs/traffic-capture-verdict.md` |
 | **Which pages bring organic visitors, signups and payments** — and why more competitor pages won't move it | `docs/organic-to-paid-2026-10.md` |
