@@ -20,6 +20,13 @@ Garde-fous :
     (même nombre de nos messages après sa dernière réponse, et toujours pas de
     nouvelle réponse) : deux clics, deux onglets ou une relance déjà faite à la
     main ne donnent pas deux emails ;
+  - un email ne part que s'il est encore autorisé au moment de l'envoi, recalculé
+    ici avec la note Explee du lead (pas la page, qui peut dater de plusieurs heures) :
+      · jamais si un call est pris (note « RDV calé »/« booked », champ ou statut
+        Explee, ou le lead l'a écrit dans le fil), ni si le lead est « Pas intéressé » ;
+      · une réponse (step « reply ») seulement si le dernier message est celui du lead ;
+      · une relance (email1/2/3) seulement si c'est bien l'étape due aujourd'hui et que
+        notre dernier message a au moins 48 h sans réponse ;
   - 40 actions au plus par exécution, 5 000 caractères au plus par email.
 
 Les journaux du dépôt sont publics : ce script n'imprime aucun nom, aucune
@@ -67,7 +74,7 @@ def run(api, actions, dry=False, ref=None):
     camp_project = {str(R.pick(c, "id")): str(R.pick(c, "project_id")) for c in store.raw["campaigns"]}
     auto = auto_projects()
     n = {"sent": 0, "notes": 0, "skipped_moved": 0, "skipped_unknown": 0, "skipped_auto": 0,
-         "failed": 0, "limited": 0}
+         "skipped_booked": 0, "skipped_too_soon": 0, "failed": 0, "limited": 0}
     for a in actions:
         key = str(a.get("key", ""))
         if key not in by_key:
@@ -83,9 +90,9 @@ def run(api, actions, dry=False, ref=None):
                 if not text or len(text) > MAX_TEXT:
                     n["failed"] += 1
                     continue
-                v = R.compute(lead, thread, None, ref)
-                if v["status"] in ("unknown",) or v["expect_after"] != int(a.get("expect_after", -1)):
-                    n["skipped_moved"] += 1      # le fil a bougé : déjà relancé, ou il a répondu
+                verdict = allowed(api, lead, thread, cid, pid, a, ref)
+                if verdict != "ok":
+                    n["skipped_" + verdict] += 1
                     continue
                 if not dry:
                     api.reply(cid, pid, text)
@@ -108,6 +115,24 @@ def run(api, actions, dry=False, ref=None):
     return n
 
 
+def allowed(api, lead, thread, cid, pid, a, ref=None):
+    """'ok', ou la raison du refus : 'booked', 'moved' ou 'too_soon'."""
+    st = R.state_from_note(api.get_note(cid, pid) or "", (ref or R.now()).date())
+    v = R.compute(lead, thread, st, ref)
+    if v["status"] in ("booked", "lost"):
+        return "booked"                          # call pris (ou stop) : on n'écrit plus
+    if v["status"] == "unknown" or v["expect_after"] != int(a.get("expect_after", -1)):
+        return "moved"                           # le fil a bougé : déjà relancé, ou il a répondu
+    step = a.get("step")
+    if step == "reply":
+        return "ok" if v["status"] == "reply" else "moved"
+    if v["status"] != "active" or not v["next"] or v["next"]["key"] != step:
+        return "moved"
+    if not v["relance_ok"] or v["bucket"] != "today":
+        return "too_soon"                        # moins de 48 h de silence, ou pas encore l'échéance
+    return "ok"
+
+
 def _append(api, cid, pid, line):
     old = api.get_note(cid, pid)
     api.set_note(cid, pid, f"{old}\n{line}".strip() if old else line)
@@ -126,7 +151,9 @@ def main():
     except R.ApiError as e:
         sys.exit("Solde Explee négatif : rien n'est parti." if e.code == 402 else f"Explee HTTP {e.code}")
     summary = (f"{'DRY RUN · ' if dry else ''}{n['sent']} email(s) envoyé(s) · {n['notes']} note(s) · "
-               f"{n['skipped_moved']} ignoré(s) car le fil a bougé · {n['limited']} limité(s) par Explee · "
+               f"{n['skipped_moved']} ignoré(s) car le fil a bougé · "
+               f"{n['skipped_booked']} bloqué(s) car call déjà pris · "
+               f"{n['skipped_too_soon']} bloqué(s) car moins de 48 h sans réponse · {n['limited']} limité(s) par Explee · "
                f"{n['failed']} échec(s) · {n['skipped_unknown']} inconnu(s) · {n['skipped_auto']} laissé(s) à recover.py")
     print(summary)
     out = os.environ.get("GITHUB_STEP_SUMMARY")

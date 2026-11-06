@@ -154,6 +154,64 @@ class Cadence(unittest.TestCase):
         self.assertEqual(R.slot_text(d, date(2026, 10, 6), 11, "fr"), "mercredi 7 octobre à 11h")
         self.assertEqual(R.slot_text(d, date(2026, 10, 6), 17, "en"), "Wednesday, October 7 at 5pm")
 
+    def _thread(self, *msgs):
+        lead = {"person_id": "x", "campaign_id": 1, "email": "a@b.fr", "first_name": "Ana"}
+        return lead, {"messages": [{"direction": d, "ts": ts, "body": b} for d, ts, b in msgs]}
+
+    def test_no_relance_before_48h_of_silence(self):
+        lead, th = self._thread(("outbound", "2026-10-01T08:00:00Z", "Bonjour Ana\n\nTom"),
+                                ("inbound", "2026-10-05T08:00:00Z", "Ok pour un échange"),
+                                ("outbound", "2026-10-05T19:00:00Z", "Merci, je vous propose mardi.\n\nTom"))
+        v = R.compute(lead, th, None, REF)            # 06/10 20h : 25 h seulement
+        self.assertEqual(v["bucket"], "scheduled")
+        self.assertFalse(v["relance_ok"])
+        self.assertIn("48 h", v["hold"])
+        v = R.compute(lead, th, None, datetime(2026, 10, 7, 21, 30, tzinfo=R.TZ))   # 48 h passées
+        self.assertEqual((v["bucket"], v["next"]["key"]), ("today", "email1"))
+        self.assertTrue(v["relance_ok"])
+        self.assertIsNone(v["hold"])
+
+    def test_undated_thread_is_never_relanced_automatically(self):
+        lead, th = self._thread(("outbound", "", "Bonjour Ana\n\nTom"), ("inbound", "", "Ok pour un échange"),
+                                ("outbound", "", "Merci\n\nTom"))
+        for m in th["messages"]:
+            m.pop("ts")
+        v = R.compute(lead, th, None, REF)
+        self.assertFalse(v["relance_ok"])
+        self.assertNotEqual(v["bucket"], "today")
+
+    def test_booked_in_thread_stops_everything(self):
+        for said in ("C'est noté pour jeudi, merci", "J'ai pris un créneau sur votre agenda",
+                     "Rendez-vous confirmé", "I booked a slot, see you then"):
+            lead, th = self._thread(("outbound", "2026-10-01T08:00:00Z", "Bonjour Ana\n\nTom"),
+                                    ("inbound", "2026-10-02T08:00:00Z", said))
+            v = R.compute(lead, th, None, REF)
+            self.assertEqual((v["status"], v["bucket"]), ("booked", "booked"), said)
+            self.assertFalse(v["relance_ok"])
+            self.assertTrue(v["booked_why"])
+
+    def test_booked_field_from_explee_stops_everything(self):
+        lead, th = self._thread(("outbound", "2026-10-01T08:00:00Z", "Bonjour Ana\n\nTom"),
+                                ("inbound", "2026-10-02T08:00:00Z", "Ok pour un échange"),
+                                ("outbound", "2026-10-02T09:00:00Z", "Merci\n\nTom"))
+        lead["meeting_booked"] = True
+        self.assertEqual(R.compute(lead, th, None, REF)["bucket"], "booked")
+        lead.pop("meeting_booked"); lead["status"] = "Meeting booked"
+        self.assertEqual(R.compute(lead, th, None, REF)["bucket"], "booked")
+
+    def test_reactivation_overrides_auto_booked(self):
+        lead, th = self._thread(("outbound", "2026-10-01T08:00:00Z", "Bonjour Ana\n\nTom"),
+                                ("inbound", "2026-10-02T08:00:00Z", "C'est noté"),
+                                ("outbound", "2026-10-02T09:00:00Z", "Merci\n\nTom"))
+        st = R.state_from_note("[03/10] Relance · Séquence réactivée", REF.date())
+        self.assertEqual(R.compute(lead, th, st, REF)["bucket"], "today")
+
+    def test_interested_reply_is_not_booked(self):
+        for said in ("Ok pour un échange", "Oui pourquoi pas, quelles sont vos dispos ?", "Avec plaisir"):
+            lead, th = self._thread(("outbound", "2026-10-01T08:00:00Z", "Bonjour Ana\n\nTom"),
+                                    ("inbound", "2026-10-02T08:00:00Z", said))
+            self.assertEqual(R.compute(lead, th, None, REF)["status"], "reply", said)
+
     def test_booking_link_loses_the_september_month(self):
         v = R.compute(*lead("Claire"), None, REF)
         self.assertEqual(v["ctx"]["cal_link"], "https://calendly.com/tom-prescient/15min")
@@ -162,7 +220,10 @@ class Cadence(unittest.TestCase):
         v = R.compute(*lead("Khaled"), None, REF)
         self.assertEqual([s["key"] for s in v["steps"]], ["email1", "call", "email2", "email3"])
         self.assertTrue(v["steps"][0]["done"])
-        self.assertEqual((v["next"]["key"], v["next"]["due"]), ("call", "2026-10-07"))
+        # email 1 parti le 06/10 à 19h57 : pas d'appel avant 48 h de silence
+        self.assertEqual((v["next"]["key"], v["next"]["due"]), ("call", "2026-10-08"))
+        self.assertEqual(v["bucket"], "scheduled")
+        self.assertFalse(v["relance_ok"])
 
     def test_call_outcome_moves_to_email2(self):
         st = R.state_from_note("[06/10 20:12] Relance · Appel : message laissé", REF.date())
@@ -189,7 +250,10 @@ class Notes(unittest.TestCase):
         self.assertEqual(self.parse("Suivi LinkFinder — 2026-09-06 : relance envoyée"), {})
 
     def test_last_line_wins(self):
-        self.assertEqual(self.parse("[05/10] Relance · RDV calé\n[06/10] Relance · Séquence réactivée"), {})
+        self.assertEqual(self.parse("[05/10] Relance · RDV calé\n[06/10] Relance · Séquence réactivée"),
+                         {"reactivated": True})
+        self.assertEqual(self.parse("[05/10] Relance · Séquence réactivée\n[06/10] Relance · RDV calé"),
+                         {"status": "booked"})
 
     def test_retry_and_wait_dates(self):
         self.assertEqual(self.parse("Appel : à rappeler le 2026-10-09")["call"]["retry_at"][:10], "2026-10-09")
@@ -252,6 +316,9 @@ class FakeExplee:
     def set_note(self, cid, pid, note): self.notes[f"{cid}:{pid}"] = note
 
 
+LATER = datetime(2026, 10, 7, 20, 0, tzinfo=R.TZ)   # > 48 h après notre dernier message à Xavier
+
+
 class Act(unittest.TestCase):
     def setUp(self):
         try:
@@ -263,12 +330,12 @@ class Act(unittest.TestCase):
     def test_sends_once_then_refuses_when_thread_moved(self):
         api = FakeExplee()
         acts = [{"type": "reply", "key": "187263:p2", "text": "Bonjour Xavier", "step": "email1", "expect_after": 1}]
-        n = self.A.run(api, acts, ref=REF)
+        n = self.A.run(api, acts, ref=LATER)
         self.assertEqual(n["sent"], 1)
         self.assertIn("Email envoyé : Email 1", api.notes["187263:p2"])
         # la page affichait encore expect_after=1 : un second clic ne doit rien envoyer
-        api.threads["187263:p2"]["messages"].append({"direction": "outbound", "sent_at": "2026-10-06T19:00:00Z", "body": "Bonjour Xavier"})
-        n = self.A.run(api, acts, ref=REF)
+        api.threads["187263:p2"]["messages"].append({"direction": "outbound", "sent_at": "2026-10-07T18:00:00Z", "body": "Bonjour Xavier"})
+        n = self.A.run(api, acts, ref=LATER)
         self.assertEqual((n["sent"], n["skipped_moved"]), (0, 1))
         self.assertEqual(len(api.sent), 1)
 
@@ -296,8 +363,38 @@ class Act(unittest.TestCase):
 
     def test_dry_run_sends_nothing(self):
         api = FakeExplee()
-        n = self.A.run(api, [{"type": "reply", "key": "187263:p2", "text": "t", "expect_after": 1}], dry=True, ref=REF)
+        n = self.A.run(api, [{"type": "reply", "key": "187263:p2", "text": "t", "step": "email1", "expect_after": 1}],
+                       dry=True, ref=LATER)
         self.assertEqual((n["sent"], api.sent), (1, []))
+
+    def test_relance_refused_before_48h(self):
+        api = FakeExplee()
+        acts = [{"type": "reply", "key": "187263:p2", "text": "Bonjour Xavier", "step": "email1", "expect_after": 1}]
+        n = self.A.run(api, acts, ref=REF)             # notre message date de moins de 48 h
+        self.assertEqual((n["sent"], n["skipped_too_soon"], api.sent), (0, 1, []))
+
+    def test_relance_refused_when_call_booked_in_note(self):
+        api = FakeExplee()
+        api.notes["187263:p2"] = "[06/10 21:00] Relance · RDV calé"
+        acts = [{"type": "reply", "key": "187263:p2", "text": "Bonjour Xavier", "step": "email1", "expect_after": 1}]
+        n = self.A.run(api, acts, ref=LATER)
+        self.assertEqual((n["sent"], n["skipped_booked"], api.sent), (0, 1, []))
+
+    def test_relance_refused_when_lead_says_booked(self):
+        api = FakeExplee()
+        api.threads["187263:p2"]["messages"].append(
+            {"direction": "inbound", "sent_at": "2026-10-07T08:00:00Z", "body": "C'est noté pour jeudi, merci"})
+        acts = [{"type": "reply", "key": "187263:p2", "text": "Bonjour Xavier", "step": "email1", "expect_after": 1}]
+        n = self.A.run(api, acts, ref=LATER)
+        self.assertEqual((n["sent"], n["skipped_booked"], api.sent), (0, 1, []))
+
+    def test_wrong_step_is_refused(self):
+        api = FakeExplee()
+        for step in ("email2", "reply", None):
+            acts = [{"type": "reply", "key": "187263:p2", "text": "t", "step": step, "expect_after": 1}]
+            n = self.A.run(api, acts, ref=LATER)
+            self.assertEqual(n["sent"], 0, step)
+        self.assertEqual(api.sent, [])
 
     def test_plain_payload(self):
         acts = self.A.decode(json.dumps({"actions": [{"type": "note", "key": "k", "line": "l"}]}), "")

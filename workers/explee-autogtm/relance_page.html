@@ -368,11 +368,24 @@ function markDone(l, entry){
   store.set(LS.done, JSON.stringify(S.done)); render(); if(S.open) openLead(S.open, true);
 }
 
+/* Pourquoi ce modèle ne peut pas partir maintenant (null s'il peut). relance_act.py refait
+   les mêmes vérifications au moment de l'envoi, avec la note Explee à jour. */
+function sendBlock(l, tpl){
+  if(l.bucket==='booked') return `Call déjà pris${l.booked_why?' ('+l.booked_why+')':''} : pas de relance. Cliquez « Réactiver la séquence » si c'est une erreur.`;
+  if(l.bucket==='lost') return 'Lead marqué « Pas intéressé » : pas de relance.';
+  if(tpl==='reply') return l.bucket==='reply' ? null : 'Le lead n\'attend pas de réponse : le dernier message est le vôtre.';
+  if(/^email\d$/.test(tpl)){
+    if(!l.next || l.next.key!==tpl) return `Ce n'est pas l'étape en cours${l.next?' (prochaine : '+l.next.label+')':''}.`;
+    if(l.hold) return `Relance bloquée : ${l.hold}.`;
+    if(!l.relance_ok || l.bucket!=='today') return `Relance prévue le ${dd(l.next.due)}, pas avant.`;
+  }
+  return null;
+}
 /* Email prêt à partir pour ce lead (étape du jour), ou null. */
 function sendable(l){
   if(S.done[l.key] || l.auto) return null;    // l.auto : recover.py envoie déjà les relances de ce projet
   if(l.bucket==='reply') return l.review ? null : {step:'reply', text:l.drafts.reply};
-  if(l.bucket==='today' && l.next && /^email\d$/.test(l.next.key)) return {step:l.next.key, text:l.drafts[l.next.key]};
+  if(l.bucket==='today' && l.relance_ok && l.next && /^email\d$/.test(l.next.key)) return {step:l.next.key, text:l.drafts[l.next.key]};
   return null;
 }
 const STEP = {reply:'Réponse', email1:'Email 1', email2:'Email 2', email3:'Email 3'};
@@ -580,9 +593,10 @@ function openLead(key, keepTpl){
       <div class="outs"><button class="btn sm" data-out="booked">RDV calé</button><button class="btn sm" data-out="voicemail">Message laissé</button><button class="btn sm" data-out="no_answer">Pas de réponse</button><button class="btn sm" data-out="not_interested">Pas intéressé</button></div>
       <div class="inline note">Rappeler le <input type="date" id="retryAt"> <button class="btn sm" data-out="retry">OK</button></div>`;
   } else {
-    const direct = mode()!=='copy' && !l.auto;
-    h += `${l.auto?'<div class="note" style="margin-bottom:8px">Ce projet est relancé automatiquement par recover.py.</div>':''}${l.review && S.tpl==='reply'?'<div class="warn" style="margin:0 0 10px">Le lead pose une question : complétez la réponse.</div>':''}<textarea id="draft">${esc(l.drafts[S.tpl]||'')}</textarea>
-      <div class="actions">${dn&&dn.queued?`<button class="btn" data-undo="${esc(l.key)}">Annuler l'envoi</button>`:(direct?`<button class="btn primary" id="send">Envoyer</button>`:`<button class="btn primary" id="copyopen">Copier et ouvrir l'inbox</button>`)}<button class="btn ghost" data-copytxt-draft="1">Copier</button></div>`;
+    const block = sendBlock(l, S.tpl);
+    const direct = mode()!=='copy' && !l.auto && !block;
+    h += `${block?`<div class="warn" style="margin:0 0 10px">${esc(block)}</div>`:''}${l.auto?'<div class="note" style="margin-bottom:8px">Ce projet est relancé automatiquement par recover.py.</div>':''}${l.review && S.tpl==='reply'?'<div class="warn" style="margin:0 0 10px">Le lead pose une question : complétez la réponse.</div>':''}<textarea id="draft">${esc(l.drafts[S.tpl]||'')}</textarea>
+      <div class="actions">${dn&&dn.queued?`<button class="btn" data-undo="${esc(l.key)}">Annuler l'envoi</button>`:(block?'':(direct?`<button class="btn primary" id="send">Envoyer</button>`:`<button class="btn primary" id="copyopen">Copier et ouvrir l'inbox</button>`))}<button class="btn ghost" data-copytxt-draft="1">Copier</button></div>`;
   }
   const status = l.bucket==='booked'||l.bucket==='lost'
     ? `<button class="link" data-status="reactivate">Réactiver la séquence</button>`

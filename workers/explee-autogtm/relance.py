@@ -13,6 +13,12 @@ Séquence par lead (jours ouvrés, comptés depuis votre réponse au lead) :
 Les créneaux proposés sont toujours deux jours ouvrés différents, après le jour
 d'envoi (jamais le jour même), écrits en date complète (« mardi 10 novembre à 11h »).
 La page les recalcule à l'ouverture, même si elle a été générée la veille.
+Garde-fous avant toute relance (recalculés par relance_act.py au moment d'envoyer) :
+  - jamais si un call est pris : note « RDV calé »/« booked », champ ou statut Explee,
+    ou le lead l'a écrit (« c'est noté pour jeudi », « rdv confirmé »…). « Réactiver la
+    séquence » dans la page passe outre une détection erronée ;
+  - jamais avant 48 h de silence après notre dernier message (ni si ce message n'est
+    pas daté : à vérifier à la main).
 La séquence s'arrête dès que le lead répond (il repasse en « À répondre »),
 quand vous marquez « RDV calé » ou « Pas intéressé ».
 Si le lead a demandé d'attendre (« après le 14 », « semaine prochaine »…),
@@ -338,6 +344,7 @@ def state_from_note(note, ref=None):
         low = re.sub(r"^relance\s*·\s*", "", low)
         if re.search(r"réactiv|reactiv", low):
             st.pop("status", None)
+            st["reactivated"] = True          # passe outre la détection automatique de RDV
             continue
         if low.startswith(("appel", "call")):
             out = None
@@ -360,6 +367,7 @@ def state_from_note(note, ref=None):
                 st["call"] = call
                 if out == "booked":
                     st["status"] = "booked"
+                    st.pop("reactivated", None)
                 if out == "not_interested":
                     st["status"] = "lost"
             continue
@@ -374,6 +382,7 @@ def state_from_note(note, ref=None):
             continue
         if re.search(r"\b(booked|rdv|rendez-vous|meeting booked)\b", low):
             st["status"] = "booked"
+            st.pop("reactivated", None)
         elif re.search(r"\b(stop|ne pas relancer|pas intéressée?|pas interessee?|not interested|perdu)\b", low):
             st["status"] = "lost"
     return st
@@ -632,6 +641,43 @@ def persona(outbound_texts, inbound_texts, fallback):
     return fallback
 
 
+# ═══════════════════════════════════════════════════════════ garde-fous de relance
+
+RELANCE_MIN_SILENCE = timedelta(hours=48)   # pas de relance avant 48 h sans réponse
+RELANCE_STEPS = ("email1", "email2", "email3", "call")
+
+# Le lead dit avoir pris / accepté le rendez-vous (même liste que followups.py).
+BOOKED_IN_THREAD = re.compile(
+    r"\bbooked\b|invite accepted|accepted (the|your) invite|see you (on|then)|"
+    r"calendar invite|confirmed for|added it to my calendar|"
+    r"invitation accept[ée]e?|c'?est not[ée]|[àa] (lundi|mardi|mercredi|jeudi|vendredi|demain)\b|"
+    r"bien re[çc]u l'?invitation|"
+    r"j'?ai (pris |d[ée]j[àa] pris |r[ée]serv[ée] )?(un |le )?(cr[ée]neau|rdv|rendez[- ]vous)|"
+    r"(rdv|rendez[- ]vous|cr[ée]neau|call|appel) (est )?(pris|confirm[ée]e?|cal[ée]|r[ée]serv[ée]|book[ée])|"
+    r"je (viens de|l'?ai) r[ée]serv|j'?ai book[ée]", re.I)
+# Champs Explee qui disent qu'un rendez-vous existe (noms défensifs : l'API varie).
+BOOKED_FIELDS = ("meeting_booked", "booked", "has_meeting", "meeting_scheduled", "call_booked")
+BOOKED_STATUS = re.compile(r"book|meeting|rdv|rendez|call[ _-]?(set|scheduled)|won|client", re.I)
+
+
+def booked_evidence(lead, inbound_texts):
+    """Une raison (texte court) si on a des signes qu'un call est déjà pris, sinon None."""
+    for f in BOOKED_FIELDS:
+        v = pick(lead, f, default=None)
+        if v not in (None, "", 0, False, "false", "False", "0", "no"):
+            return f"champ Explee « {f} »"
+    for f in ("status", "stage", "lead_status", "label", "labels", "tags", "outcome"):
+        v = pick(lead, f, default="")
+        v = " ".join(map(str, v)) if isinstance(v, (list, tuple)) else str(v or "")
+        if v and BOOKED_STATUS.search(v):
+            return f"statut Explee « {v[:40]} »"
+    for t in inbound_texts:
+        m = BOOKED_IN_THREAD.search(strip_quoted(t or ""))
+        if m:
+            return f"le lead a écrit « {m.group(0)} »"
+    return None
+
+
 def compute(lead, thread, state, ref_dt=None, camp=None):
     camp = camp or {}
     ref_dt = ref_dt or now()
@@ -706,8 +752,13 @@ def compute(lead, thread, state, ref_dt=None, camp=None):
     relances_sent = max(0, len(after) - 1)
     call = st.get("call") or {}
 
+    booked_why = None if st.get("reactivated") else booked_evidence(lead, [msg_text(m) for m in inbound])
     if st.get("status") in ("booked", "lost"):
         status = st["status"]
+        if status == "booked":
+            booked_why = booked_why or "marqué « RDV calé »"
+    elif booked_why:
+        status = "booked"                       # un call est déjà pris : on ne relance pas
     elif last_in is not None and not after:
         status = "reply"
     elif not msgs:
@@ -748,12 +799,25 @@ def compute(lead, thread, state, ref_dt=None, camp=None):
     if status == "reply":
         nxt = {"key": "reply", "label": "Répondre", "due": (last_in_dt.date() if last_in_dt else today).isoformat()}
 
+    # pas de relance tant que notre dernier message a moins de 48 h (ou n'est pas daté)
+    last_out_dt = msg_date(after[-1]) if after else None
+    relance_ok_at = (last_out_dt + RELANCE_MIN_SILENCE) if last_out_dt else None
+    hold = None
+    if status == "active" and nxt and nxt["key"] in RELANCE_STEPS:
+        if relance_ok_at is None:
+            hold = "date de notre dernier message inconnue : relance à vérifier à la main"
+        elif ref_dt < relance_ok_at:
+            hold = f"le lead a moins de 48 h pour répondre (relance possible le {relance_ok_at.astimezone(TZ):%d/%m à %Hh%M})"
+            nxt["due"] = max(date.fromisoformat(nxt["due"]), relance_ok_at.astimezone(TZ).date()).isoformat() \
+                if nxt.get("due") else relance_ok_at.astimezone(TZ).date().isoformat()
+    relance_ok = status == "active" and bool(nxt) and nxt["key"] in RELANCE_STEPS and hold is None
+
     due_d = date.fromisoformat(nxt["due"]) if nxt and nxt.get("due") else None
     if status == "reply":
         bucket = "reply"
     elif status in ("booked", "lost", "finished", "unknown"):
         bucket = status
-    elif due_d and due_d <= today:
+    elif due_d and due_d <= today and hold is None:
         bucket = "call" if nxt["key"] == "call" else "today"
     else:
         bucket = "scheduled"
@@ -796,6 +860,9 @@ def compute(lead, thread, state, ref_dt=None, camp=None):
         "hot_since": str(pick(lead, "became_hot_at"))[:10],
         "status": status, "bucket": bucket, "next": nxt, "steps": steps,
         "relances_sent": relances_sent,
+        # garde-fous : relance_act.py les recalcule avant tout envoi
+        "relance_ok": relance_ok, "hold": hold, "booked_why": booked_why if status == "booked" else None,
+        "relance_ok_at": relance_ok_at.isoformat() if relance_ok_at else None,
         # nombre de nos messages après sa dernière réponse : relance_act.py refuse
         # d'envoyer si le fil a bougé depuis (évite un double envoi)
         "expect_after": len(after),
