@@ -6,10 +6,13 @@ Relance — pilote de relance des hot leads Explee.
   python3 relance.py --demo             → même interface avec des données d'exemple
 
 Séquence par lead (jours ouvrés, comptés depuis votre réponse au lead) :
-  J+1  Email 1  — créneau précis, « un simple oui suffit »
+  J+1  Email 1  — deux créneaux datés, « un simple oui suffit »
   J+2  Appel    — seulement si un numéro figure dans sa signature
-  J+4  Email 2  — angle valeur (ce qu'il repart avec)
+  J+4  Email 2  — angle valeur (ce qu'il repart avec) + deux créneaux
   J+8  Email 3  — clôture polie
+Les créneaux proposés sont toujours deux jours ouvrés différents, après le jour
+d'envoi (jamais le jour même), écrits en date complète (« mardi 10 novembre à 11h »).
+La page les recalcule à l'ouverture, même si elle a été générée la veille.
 La séquence s'arrête dès que le lead répond (il repasse en « À répondre »),
 quand vous marquez « RDV calé » ou « Pas intéressé ».
 Si le lead a demandé d'attendre (« après le 14 », « semaine prochaine »…),
@@ -125,12 +128,9 @@ EN_MONTHS = ["January", "February", "March", "April", "May", "June", "July", "Au
 
 
 def en_day(d, ref=None):
-    ref = ref or now().date()
-    if d == ref + timedelta(days=1):
-        return f"tomorrow ({EN_DAYS[d.weekday()]})"
-    if (d - ref).days < 7:
-        return f"{EN_DAYS[d.weekday()]} the {d.day}{'th' if 10 < d.day % 100 < 14 else {1: 'st', 2: 'nd', 3: 'rd'}.get(d.day % 10, 'th')}"
-    return f"{EN_DAYS[d.weekday()]} {EN_MONTHS[d.month - 1]} {d.day}"
+    # Toujours une date absolue : le texte peut partir un autre jour que celui où il a
+    # été généré, « tomorrow » deviendrait alors « aujourd'hui ».
+    return f"{EN_DAYS[d.weekday()]}, {EN_MONTHS[d.month - 1]} {d.day}"
 
 
 def slot_text(d, ref, hour, lang):
@@ -141,12 +141,14 @@ def slot_text(d, ref, hour, lang):
 
 
 def fr_day(d, ref=None):
-    ref = ref or now().date()
-    if d == ref + timedelta(days=1):
-        return f"demain {JOURS[d.weekday()]}"
-    if (d - ref).days < 7:
-        return f"{JOURS[d.weekday()]} {d.day}"
+    # Toujours une date absolue (jamais « demain ») : voir en_day.
     return f"{JOURS[d.weekday()]} {d.day} {MOIS[d.month - 1]}"
+
+
+def two_slot_days(send_day, wait_until=None):
+    """Deux jours ouvrés distincts, strictement après le jour d'envoi : jamais le jour même."""
+    d1 = next_bday(max(send_day + timedelta(days=1), wait_until or send_day))
+    return d1, add_bdays(d1, 1)
 
 # ═══════════════════════════════════════════════════════════ texte des emails
 
@@ -524,11 +526,13 @@ def drafts_fr(ctx):
                f"ça peut vous être utile. Vous repartez avec des pistes concrètes, même si on en reste là.")
     pitch = spoken_pitch(pitch_from_offer(ctx.get("offer")), brand, "fr")
     return {
-        "reply": (f"{hello}\n\nMerci, avec plaisir. Je vous propose {s1}{via}, cela vous irait ?\n\n"
+        "reply": (f"{hello}\n\nMerci, avec plaisir. Je vous propose {s1} ou {s2}{via}, lequel vous arrange ?\n\n"
                   f"Un simple « oui » suffit et je vous envoie l'invitation. {link_line}\n\n{sig}"),
-        "email1": (f"{hello}\n\nJe vous propose de caler notre quart d'heure : {s1}{via}, cela vous irait ?\n\n"
+        "email1": (f"{hello}\n\nJe vous propose de caler notre quart d'heure dans les prochains jours : "
+                   f"{s1} ou {s2}{via}, lequel vous arrange ?\n\n"
                    f"Un simple « oui » suffit et je vous envoie l'invitation. {link_line}\n\n{sig}"),
-        "email2": (f"{hello}\n\n{value}\n\n{cap(s2)}{via} ?" + (f" Ou ici :\n{link}" if link else "") + f"\n\n{sig}"),
+        "email2": (f"{hello}\n\n{value}\n\n{cap(s1)} ou {s2}{via}, lequel vous arrange ?"
+                   + (f" Ou un autre moment ici :\n{link}" if link else "") + f"\n\n{sig}"),
         "email3": (f"{hello}\n\nJe ne veux pas encombrer votre boîte. Si le moment n'est pas le bon, "
                    f"je ferme le dossier de mon côté.\n\nSi c'est toujours d'actualité, répondez simplement "
                    f"« oui » et je m'adapte à votre agenda." + (f"\n{link}" if link else "") + f"\n\n{sig}"),
@@ -551,8 +555,8 @@ def drafts_fr(ctx):
         "voicemail": (f"« Bonjour {p or ''}, c'est {me}, suite à votre réponse par email. "
                       + (f"Pour resituer : {pitch}. " if pitch else "")
                       + "Je vous renvoie deux créneaux par écrit, vous n'aurez qu'à choisir. Bonne journée. »"),
-        "sms": (f"Bonjour {p}, {me} (suite à votre email). {cap(s1)}{via} pour notre quart d'heure, "
-                f"ça vous va ?" + (f" Sinon : {link}" if link else "")),
+        "sms": (f"Bonjour {p}, {me} (suite à votre email). {cap(s1)} ou {s2}{via} pour notre quart d'heure, "
+                f"lequel vous va ?" + (f" Sinon : {link}" if link else "")),
     }
 
 
@@ -567,13 +571,15 @@ def drafts_en(ctx):
     me = f"{ctx['me']}{(' from ' + brand) if brand else ''}"
     pitch = spoken_pitch(pitch_from_offer(ctx.get("offer")), brand, "en")
     return {
-        "reply": (f"{hello}\n\nThanks! Would {s1}{via} work for a quick 15 minutes?\n\n"
+        "reply": (f"{hello}\n\nThanks! Would {s1} or {s2}{via} work for a quick 15 minutes?\n\n"
                   f"A simple \"yes\" is enough and I'll send the invite. {link_line}\n\n{sig}"),
-        "email1": (f"{hello}\n\nShall we lock in our 15 minutes? {cap(s1)}{via} would work on my side.\n\n"
+        "email1": (f"{hello}\n\nShall we lock in our 15 minutes in the coming days? "
+                   f"{cap(s1)} or {s2}{via}, which works better for you?\n\n"
                    f"A simple \"yes\" is enough and I'll send the invite. {link_line}\n\n{sig}"),
         "email2": (f"{hello}\n\nTo make the 15 minutes worth it, I'll prepare from what {co or 'your team'} does, "
                    f"so you leave with concrete next steps whether we work together or not.\n\n"
-                   f"Would {s2}{via} suit you?" + (f" Or here:\n{link}" if link else "") + f"\n\n{sig}"),
+                   f"Would {s1} or {s2}{via} suit you?" + (f" Or pick another time here:\n{link}" if link else "")
+                   + f"\n\n{sig}"),
         "email3": (f"{hello}\n\nI don't want to clutter your inbox. If now isn't the right time, I'll close the "
                    f"loop on my side.\n\nIf it's still on your list, just reply \"yes\" and I'll work around "
                    f"your schedule." + (f"\n{link}" if link else "") + f"\n\n{sig}"),
@@ -595,7 +601,7 @@ def drafts_en(ctx):
         "voicemail": (f"\"Hi {p or ''}, it's {me}, following up on your email. "
                       + (f"Quick recap: {pitch}. " if pitch else "")
                       + "I'll email you two times, you'll only need to pick one. Have a good day.\""),
-        "sms": (f"Hi {p}, {me} here (following your email). {cap(s1)}{via} for our 15 minutes, does that work?"
+        "sms": (f"Hi {p}, {me} here (following your email). {cap(s1)} or {s2}{via} for our 15 minutes, which works?"
                 + (f" Otherwise: {link}" if link else "")),
     }
 
@@ -752,22 +758,28 @@ def compute(lead, thread, state, ref_dt=None, camp=None):
     else:
         bucket = "scheduled"
 
-    # créneaux proposés : prochain jour ouvré ≥ max(demain, attente)
-    d1 = next_bday(max(today + timedelta(days=1), wait_until or today))
-    d2 = add_bdays(d1, 1)
+    # créneaux proposés : comptés depuis le jour où l'email partira (aujourd'hui, ou la
+    # date prévue de l'étape si elle est plus tard), jamais le jour même. La page les
+    # recalcule à l'ouverture (refreshSlots) : elle peut être lue un ou plusieurs jours
+    # après sa génération.
+    send_day = today
+    if nxt and nxt.get("due") and nxt.get("key") != "call":
+        send_day = max(today, date.fromisoformat(nxt["due"]))
+    d1, d2 = two_slot_days(send_day, wait_until)
     h2 = 17 if hour != 17 else 11
     ctx = {"first_name": first, "company": company, "cal_link": links[-1] if links else "",
            "lang": lang, "brand": camp.get("brand", ""), "offer": re.sub(r"\s+", " ", str(camp.get("offer") or "")).strip()[:600],
            "signoff": signoff, "me": me, "teams": teams,
-           "slot1": slot_text(d1, today, hour, lang), "slot2": slot_text(d2, today, h2, lang), "asked_call": asked_call}
+           "slot1": slot_text(d1, today, hour, lang), "slot2": slot_text(d2, today, h2, lang), "asked_call": asked_call,
+           "slot_hours": [hour, h2], "slot_from": send_day.isoformat()}
 
     drafts = drafts_for(ctx)
     # le script d'appel est lu le jour de l'appel : créneaux comptés depuis ce jour-là
     call_step = next((s for s in steps if s["key"] == "call" and not s["done"] and s["due"]), None)
     if call_step and date.fromisoformat(call_step["due"]) > today:
         cday = date.fromisoformat(call_step["due"])
-        c1 = next_bday(max(cday + timedelta(days=1), wait_until or cday))
-        cctx = dict(ctx, slot1=slot_text(c1, cday, hour, lang), slot2=slot_text(add_bdays(c1, 1), cday, h2, lang))
+        c1, c2 = two_slot_days(cday, wait_until)
+        cctx = dict(ctx, slot1=slot_text(c1, cday, hour, lang), slot2=slot_text(c2, cday, h2, lang))
         drafts.update({k: v for k, v in drafts_for(cctx).items() if k in ("call", "voicemail", "sms")})
 
     last_msg = msgs[-1] if msgs else None

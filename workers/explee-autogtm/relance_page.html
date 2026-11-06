@@ -191,6 +191,7 @@ function lockScreen(msg){
 }
 async function open_(pw){
   S.data = PAGE.blob.plain ? PAGE.blob.plain : await decrypt(PAGE.blob, pw); S.pw = PAGE.blob.plain ? null : pw;
+  refreshSlots(S.data.leads);
   try{ S.done = JSON.parse(store.get(LS.done)||'{}'); }catch{ S.done={}; }
   // une action faite ici avant la dernière synchro est déjà dans les données
   for(const k of Object.keys(S.done)) if(!S.done[k].at || new Date(S.done[k].at) < new Date(S.data.generated_at)) delete S.done[k];
@@ -224,6 +225,48 @@ async function apiAppendNote(l, line){
   await api('POST', path, {note: old ? old+'\n'+line : line});
 }
 function canApi(){ return !!ekey() && store.get(LS.cors)!=='blocked'; }
+
+/* ───────── créneaux proposés ─────────
+   La page est générée toutes les 2 h en semaine, et seulement si quelque chose a changé :
+   on peut l'ouvrir un ou plusieurs jours plus tard. Les créneaux écrits par relance.py
+   (« mardi 10 novembre à 11h ») sont donc recalculés ici, depuis la date du jour à Paris :
+   deux jours ouvrés distincts, toujours après le jour d'envoi, jamais le jour même. */
+const SLOT_JOURS=['dimanche','lundi','mardi','mercredi','jeudi','vendredi','samedi'];
+const SLOT_MOIS=['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+const SLOT_EN_DAYS=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+const SLOT_EN_MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
+const isoDay = s => { const [y,m,d]=String(s).slice(0,10).split('-').map(Number); return new Date(Date.UTC(y,m-1,d)); };
+const parisToday = () => isoDay(new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Paris',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date()));
+const plusDays = (d,n) => new Date(d.getTime()+n*864e5);
+const nextBday = d => { while([0,6].includes(d.getUTCDay())) d=plusDays(d,1); return d; };
+function slotDays(sendDay, waitUntil){
+  let d1 = plusDays(sendDay,1); if(waitUntil && waitUntil>d1) d1=waitUntil; d1=nextBday(d1);
+  return [d1, nextBday(plusDays(d1,1))];
+}
+function slotText(d, hour, lang){
+  if(lang==='en'){ const h = hour>12?`${hour-12}pm`:(hour<12?`${hour}am`:'noon');
+    return `${SLOT_EN_DAYS[d.getUTCDay()]}, ${SLOT_EN_MONTHS[d.getUTCMonth()]} ${d.getUTCDate()} at ${h}`; }
+  return `${SLOT_JOURS[d.getUTCDay()]} ${d.getUTCDate()} ${SLOT_MOIS[d.getUTCMonth()]} à ${hour}h`;
+}
+const capFirst = s => s ? s[0].toUpperCase()+s.slice(1) : s;
+function refreshSlots(leads){
+  const today = parisToday();
+  for(const l of leads||[]){
+    const c=l.ctx; if(!c || !c.slot1 || !c.slot2 || !c.slot_hours || !l.drafts) continue;
+    let send = today;
+    if(l.next && l.next.key!=='call' && l.next.due){ const due=isoDay(l.next.due); if(due>send) send=due; }
+    const [d1,d2] = slotDays(send, l.wait_until ? isoDay(l.wait_until) : null);
+    const n1 = slotText(d1, c.slot_hours[0], c.lang), n2 = slotText(d2, c.slot_hours[1], c.lang);
+    if(n1===c.slot1 && n2===c.slot2) continue;
+    const pairs = [[capFirst(c.slot1),capFirst(n1)],[c.slot1,n1],[capFirst(c.slot2),capFirst(n2)],[c.slot2,n2]];
+    for(const k of Object.keys(l.drafts)){
+      let t = l.drafts[k]; if(typeof t!=='string') continue;
+      for(const [a,b] of pairs) t = t.split(a).join(b);
+      l.drafts[k] = t;
+    }
+    c.slot1=n1; c.slot2=n2;
+  }
+}
 
 /* ───────── envoi en un clic : GitHub Actions ─────────
    La page déclenche explee-relance-act.yml avec les actions chiffrées par le mot de

@@ -122,9 +122,37 @@ class Cadence(unittest.TestCase):
 
     def test_teams_and_late_afternoon_go_into_the_draft(self):
         v = R.compute(*lead("Xavier"), None, REF)
-        self.assertIn("17h sur Teams", v["drafts"]["email1"])
+        self.assertIn("à 17h ou ", v["drafts"]["email1"])
+        self.assertIn("sur Teams", v["drafts"]["email1"])
         self.assertIn("https://cal.link/FdEm9re", v["drafts"]["email1"])
         self.assertTrue(v["drafts"]["email1"].rstrip().endswith("Bien cordialement,\nTom"))
+
+    def test_slots_are_two_later_business_days_never_the_send_day(self):
+        for name in ("Xavier", "Jean-Marie", "Claire"):
+            v = R.compute(*lead(name), None, REF)
+            send = max(REF.date(), date.fromisoformat(v["next"]["due"]))
+            d1, d2 = R.two_slot_days(send, date.fromisoformat(v["wait_until"]) if v["wait_until"] else None)
+            self.assertGreater(d1, send)
+            self.assertGreater(d2, d1)
+            self.assertLess(d1.weekday(), 5)
+            self.assertLess(d2.weekday(), 5)
+            ctx = v["ctx"]
+            self.assertEqual(ctx["slot_from"], send.isoformat())
+            for key in ("reply", "email1", "email2"):
+                self.assertIn(ctx["slot1"], v["drafts"][key].lower(), (name, key))
+                self.assertIn(ctx["slot2"], v["drafts"][key], (name, key))
+                self.assertNotIn("demain", v["drafts"][key])
+                self.assertNotIn("aujourd", v["drafts"][key])
+
+    def test_friday_send_skips_the_weekend(self):
+        fri = date(2026, 10, 9)
+        self.assertEqual(R.two_slot_days(fri), (date(2026, 10, 12), date(2026, 10, 13)))
+        self.assertEqual(R.two_slot_days(date(2026, 10, 10)), (date(2026, 10, 12), date(2026, 10, 13)))
+
+    def test_slot_text_is_absolute(self):
+        d = date(2026, 10, 7)
+        self.assertEqual(R.slot_text(d, date(2026, 10, 6), 11, "fr"), "mercredi 7 octobre à 11h")
+        self.assertEqual(R.slot_text(d, date(2026, 10, 6), 17, "en"), "Wednesday, October 7 at 5pm")
 
     def test_booking_link_loses_the_september_month(self):
         v = R.compute(*lead("Claire"), None, REF)
