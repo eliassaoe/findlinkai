@@ -162,3 +162,16 @@ PostHog events: `search_picked` (unchanged), `more_searches_toggled`,
 `search_example_used`, `search_change_clicked`.
 **Re-check ~14 Nov 2026**: first-lookup rate and `search_picked` split vs the week before.
 Pinned by `tests/smart-start.test.mjs`.
+
+## 7 Nov 2026, 22:18 — "Where is your data?" is back on first visit
+
+Owner's call: the question pushes people to look at bulk, Sheets and API/MCP instead
+of only ever doing single lookups. `maybeShowRouteChooser` no longer skips it when the
+search cards exist. First visit (no lookup and no CSV yet, no route picked) shows only
+the chooser: CSV / Google Sheets / my own code or n8n / Make / HubSpot, plus "I just
+need one lookup for now". While it is up, `body.rc-open` hides the cards and the
+Single/CSV toggle so the two questions are never stacked. Any pick hides it and shows
+the cards; the one-line "Where is your data? CSV · Google Sheets · API / n8n ·
+HubSpot" strip stays above them until the first lookup or upload. The events are
+the same as before: `onboarding_route_shown`, `onboarding_route_picked`.
+Pinned by `tests/smart-start.test.mjs`.

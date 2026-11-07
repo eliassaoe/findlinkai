@@ -895,6 +895,7 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
 
 /* ---- First-visit route chooser: shown once, inline, above the quick-start
    cards. Not a popup; it disappears the moment the user does anything. */
+body.rc-open .config-form,body.rc-open #modeToggle{display:none;}
 .route-chooser{border:1px solid #bfdbfe;border-radius:12px;background:linear-gradient(135deg,#eff6ff,#f8faff);padding:1.1rem 1.25rem;margin-bottom:1rem;}
 .route-chooser-title{font-weight:700;color:#1e3a8a;font-size:1rem;margin-bottom:0.15rem;}
 .route-chooser-sub{font-size:0.8rem;color:#3b5b8c;margin-bottom:0.8rem;}
@@ -1087,7 +1088,7 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
                  kept, unused, for the classifier tests (docs/smart-start.md). -->
             <div id="routeChooser" class="route-chooser hidden">
                 <div class="route-chooser-title">Where is the data you want to enrich?</div>
-                <div class="route-chooser-sub">Pick one and we take you straight there. A single lookup is always available below.</div>
+                <div class="route-chooser-sub">Pick one and we take you straight there.</div>
                 <div class="route-grid">
                     <button type="button" class="route-card route-csv" onclick="pickRoute('csv')"><b><i class="fas fa-file-csv"></i> In a CSV or spreadsheet</b><span>Upload it, enrich every row, download the result.</span></button>
                     <button type="button" class="route-card route-sheets" onclick="pickRoute('sheets')"><b><i class="fas fa-table"></i> In Google Sheets</b><span>Enrich the column where it sits. No export, no re-import.</span></button>
@@ -5974,13 +5975,14 @@ function maybeShowRouteChooser() {
             if (strip) strip.classList.remove('hidden');
             return;
         }
-        // The smart-start box above it offers the same four routes in one line,
-        // plus the single lookup, so the big question is not stacked on top of
-        // it any more (docs/smart-start.md). ?route_test=1 still shows it.
-        if (!forced && document.getElementById('searchPicker')) return;
+        // Back on first visit (owner, 7 Nov 2026 22:18): the question pushes people
+        // towards bulk / Sheets / API instead of only single lookups. While it is
+        // up, the search cards wait under it (body.rc-open) so the two are not
+        // stacked; any pick, including "one lookup", reveals them.
         const el = document.getElementById('routeChooser');
         if (!el) return;
         el.classList.remove('hidden');
+        document.body.classList.add('rc-open');
         try { posthog.capture('onboarding_route_shown', { forced: forced }); } catch (e) {}
     } catch (e) {}
 }
@@ -5990,6 +5992,7 @@ function maybeShowRouteChooser() {
 function hideRouteChooser() {
     const el = document.getElementById('routeChooser');
     if (el) el.classList.add('hidden');
+    document.body.classList.remove('rc-open');
     const strip = document.getElementById('routeStrip');
     if (strip) strip.classList.toggle('hidden', lfHasUsedProduct());
 }

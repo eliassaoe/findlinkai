@@ -66,8 +66,15 @@ test('it hands over to the existing lookup, not a copy of it', () => {
   assert.ok(appFn('smartStartRoute').includes("pickRoute(route, 'smart_start')"));
 });
 
-test('the big route chooser does not come back while the cards are the start', () => {
-  assert.ok(appFn('maybeShowRouteChooser').includes("document.getElementById('searchPicker')"));
+// Owner, 7 Nov 2026 22:18: the "Where is your data?" question is back on first
+// visit, to push people towards bulk / Sheets / API. The cards wait under it.
+test('first visit asks where the data is, and the cards wait until a route is picked', () => {
+  const fn = appFn('maybeShowRouteChooser');
+  assert.ok(!fn.includes("document.getElementById('searchPicker')"));
+  assert.ok(fn.includes("classList.add('rc-open')"));
+  assert.ok(appFn('hideRouteChooser').includes("classList.remove('rc-open')"));
+  assert.match(app, /body\.rc-open \.config-form/);
+  for (const r of ['csv', 'sheets', 'api', 'single']) assert.ok(app.includes(`pickRoute('${r}')`));
 });
 
 test('the dropdowns are replaced by a card per search, which drives the same selects', () => {
