@@ -53,7 +53,16 @@ Two behaviour changes that are deliberate, not accidental:
   and 3. A miss now costs up to three Serper calls instead of one; the
   customer's charge is unchanged (1 on a hit, 0.5 on a miss).
 
-Why Google and not a people database: Filtrat (checked 7 Nov) has no
+- **LinkedIn's own people search as the last step** (Apify actor
+  `harvestapi/linkedin-profile-search-by-name`, "Short" mode, about $0.004 a
+  call, about 4 s). It's only called after every Google pass missed, and only
+  when the `APIFY_TOKEN` secret is set. A row is accepted only if its headline
+  names the company we were given (generic words like "group" or "family"
+  don't count). Tested 7 Nov on 6 people every Google query missed: 2
+  confirmed (Turning Point Brands, ANA Inc), 2 probable at a new employer
+  (rejected on purpose), 2 not found. Google found 0 of 6.
+
+Why not Filtrat: Filtrat (checked 7 Nov) has no
 name → LinkedIn endpoint, only name + domain → email. A database would be a
 second vendor; the slot for it is right after the loop in `fetch()`.
 
@@ -68,6 +77,7 @@ cd workers/enrich-name-to-linkedin
 npx wrangler secret put SUPABASE_URL
 npx wrangler secret put SUPABASE_SERVICE_KEY
 npx wrangler secret put SERPER_API_KEY
+npx wrangler secret put APIFY_TOKEN      # optional: enables the LinkedIn-search fallback
 npx wrangler deploy
 ```
 

@@ -122,3 +122,27 @@ What would move it, in order:
   (1–15%).
 - **None of this is live until the worker is deployed** and the n8n branch
   routes to it (README in `workers/enrich-name-to-linkedin/`).
+
+## 7 Nov 2026: LinkedIn people search (Apify) as the second source
+
+Google can't return a profile it hasn't indexed. LinkedIn's own people search
+(Apify `harvestapi/linkedin-profile-search-by-name`, about $0.004 a search,
+about 4 s) has no such gap. Tested on the 6 people every Google query missed:
+
+| Person (company searched) | LinkedIn search |
+| --- | --- |
+| Alicia Carrasco (Turning Point Brands) | found, headline names the company |
+| Alicia Waineo (ANA, Inc.) | found, headline names the company |
+| Brent Hanston (A. Duda & Sons) | one result, CFO elsewhere: probably him after a job change |
+| Hendrik Stel (Agro-K, Minneapolis) | Minneapolis accountant: probably him |
+| Pierce Pondi | nothing |
+| Katie Jones (JM Family) | 10 strangers; with the company filter, 1 JM Family Katie with another surname |
+
+The worker calls it last, only on a miss, and accepts a row only when the
+headline names the company. That keeps precision over recall: the two
+"probable" job-changers are rejected. Cost at today's volume is about
+$10–15/month. Enabled by the `APIFY_TOKEN` secret.
+
+A later improvement for common names: resolve the company's LinkedIn URL
+(company_name → linkedin_url, 1 credit, 84%) and pass it as
+`currentCompanies`. Not done yet: it doubles the calls on the hardest rows.

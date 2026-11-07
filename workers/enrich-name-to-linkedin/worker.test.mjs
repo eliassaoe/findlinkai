@@ -256,3 +256,53 @@ test('a miss on the first query tries the next shapes before giving up', async (
     assert.equal((await res.json()).result, PROFILE);
     assert.equal(serperCalls, 2, 'stops at the first confident match');
 });
+
+// --- LinkedIn people search as the last resort (Apify) ------------------------
+
+const { pickFromLinkedInSearch, splitName } = m;
+const row = (name, position, linkedinUrl) => ({ name, position, linkedinUrl });
+
+test('accepts a LinkedIn search row only when its headline names the company', () => {
+    const p = parseInput('Alicia Carrasco Turning Point Brands Inc');
+    const rows = [
+        row('Alicia Carrasco', 'Associate Chief of Staff for Primary Care', 'https://www.linkedin.com/in/alicia-carrasco-a8948931'),
+        row('Alicia C.', 'SVP, Chief People & Enablement Officer at Turning Point Brands (NYSE:TPB)', 'https://www.linkedin.com/in/alicia-carrasco')
+    ];
+    assert.equal(pickFromLinkedInSearch(p, rows).link, 'https://www.linkedin.com/in/alicia-carrasco');
+});
+
+test('a lone result at another company is not accepted', () => {
+    const p = parseInput('Brent Hanston A. Duda & Sons, Inc.');
+    const rows = [row('Brent Hanston', 'Chief Financial Officer at Gerawan Farming Partners Inc.', 'https://www.linkedin.com/in/brent-hanston-89024440')];
+    assert.equal(pickFromLinkedInSearch(p, rows), null);
+});
+
+test('generic company words never make a match on their own', () => {
+    const p = parseInput('Katie Jones JM Family Enterprises, Inc.');
+    const rows = [row('Katie Jones', 'Head of Family Office at Smith Enterprises', 'https://www.linkedin.com/in/kj')];
+    assert.equal(pickFromLinkedInSearch(p, rows), null);
+});
+
+test('it is only asked after every Google pass missed, and only with a token', async () => {
+    let serperCalls = 0, apifyCalls = 0;
+    globalThis.fetch = async (url) => {
+        const u = String(url);
+        if (u.includes('serper.dev')) { serperCalls++; return { ok: true, status: 200, json: async () => ({ organic: [] }) }; }
+        if (u.includes('api.apify.com')) {
+            apifyCalls++;
+            return { ok: true, status: 200, json: async () => [row('Alicia W.', 'Co-Founder & CFO, ANA, Inc.', 'https://www.linkedin.com/in/aliciawaineo')] };
+        }
+        return { ok: true, status: 200, json: async () => [{ credits: 100, protected_credits: 0, token: 'x' }] };
+    };
+    let res = await m.default.fetch(post({ user_token: 'tok-12345678', input_data: 'Alicia Waineo ANA, Inc' }), { ...ENV, APIFY_TOKEN: 't' });
+    assert.equal((await res.json()).result, 'https://www.linkedin.com/in/aliciawaineo');
+    assert.equal(apifyCalls, 1);
+    assert.ok(serperCalls >= 2);
+    res = await m.default.fetch(post({ user_token: 'tok-12345678', input_data: 'Alicia Waineo ANA, Inc' }), { ...ENV, APIFY_TOKEN: '' });
+    assert.equal((await res.json()).result, '');
+    assert.equal(apifyCalls, 1, 'no token, no call');
+});
+
+test('first name, then the rest as the last name', () => {
+    assert.deepEqual(splitName(parseInput('Martha Yolanda Diaz acme.com')), { firstName: 'martha', lastName: 'yolanda diaz' });
+});

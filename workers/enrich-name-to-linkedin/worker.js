@@ -331,6 +331,14 @@ export default {
                 best = pickBest(parsed, await serper(env, q));
                 if (best) break;
             }
+            // Google only knows profiles it has indexed. LinkedIn's own people
+            // search does not have that gap: on 6 people every Google query
+            // missed, it confirmed 2 and probably found 2 more (7 Nov 2026,
+            // docs/find-rate.md). Only asked on a miss, ~$0.004 a call.
+            if (!best && env.APIFY_TOKEN) {
+                try { best = pickFromLinkedInSearch(parsed, await linkedinSearch(env, parsed)); }
+                catch (e) { /* the fallback failing is still a plain miss */ }
+            }
         } catch (e) {
             // An upstream failure is ours, not the customer's: return an error
             // and charge nothing, rather than reporting a false "not found".
@@ -345,6 +353,46 @@ export default {
         return json({ result: best ? best.link : '', status: 'success' }, 200, cors);
     }
 };
+
+// harvestapi/linkedin-profile-search-by-name, "Short" mode: up to 10
+// {name, position, linkedinUrl} rows from LinkedIn's people search.
+export const APIFY_ACTOR = 'harvestapi~linkedin-profile-search-by-name';
+export function splitName(parsed) {
+    const t = parsed.nameTokens;
+    return { firstName: t[0] || '', lastName: t.slice(1).join(' ') };
+}
+async function linkedinSearch(env, parsed) {
+    const { firstName, lastName } = splitName(parsed);
+    if (!firstName || !lastName) return [];
+    const res = await fetch(`https://api.apify.com/v2/acts/${APIFY_ACTOR}/run-sync-get-dataset-items?timeout=25&maxTotalChargeUsd=0.02`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${env.APIFY_TOKEN}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ profileScraperMode: 'Short', firstName, lastName, strictSearch: true, maxPages: 1 })
+    });
+    if (!res.ok) throw new Error(`apify ${res.status}`);
+    const rows = await res.json();
+    return Array.isArray(rows) ? rows : [];
+}
+
+// Accept a LinkedIn search row only when its headline names the company we
+// were given. A common name returns ten strangers; a rare one can return the
+// right person at a new employer, but without the company in the headline we
+// cannot tell, and a wrong profile is worse than an honest blank.
+export function pickFromLinkedInSearch(parsed, rows) {
+    const words = cleanCompanyWords(parsed.companyWords).filter(w => w.length > 2 && !GENERIC_COMPANY_WORDS.has(w));
+    if (parsed.domain) words.push(parsed.domain.split('.')[0]);
+    if (!words.length) return null;
+    for (const r of rows || []) {
+        if (!r || !isProfileUrl(r.linkedinUrl)) continue;
+        const headline = normalize(r.position);
+        const nameOk = normalize(r.name).split(' ').some(w => w.length > 1 && parsed.nameTokens.includes(w));
+        if (nameOk && words.some(w => headline.includes(w))) {
+            return { link: String(r.linkedinUrl).split('?')[0], score: MIN_SCORE, source: 'linkedin_search' };
+        }
+    }
+    return null;
+}
+const GENERIC_COMPANY_WORDS = new Set(['the', 'and', 'group', 'company', 'services', 'solutions', 'international', 'global', 'holdings', 'enterprises', 'partners', 'consulting', 'systems', 'technologies', 'technology', 'brands', 'foods', 'family']);
 
 async function serper(env, q) {
     const res = await fetch('https://google.serper.dev/search', {
