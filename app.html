@@ -927,6 +927,17 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
 .smart-start-credits{margin-top:8px;font-size:12px;color:#6b7280;}
 .smart-start-list{margin-top:12px;padding-top:10px;border-top:1px solid #e5e7eb;font-size:13px;color:#4b5563;}
 .smart-start-list a{color:#2563eb;font-weight:600;margin-left:12px;white-space:nowrap;}
+
+.search-picker-label{font-size:0.75rem;font-weight:600;color:var(--gray-400);text-transform:uppercase;letter-spacing:0.06em;margin:0 0 0.6rem;}
+.search-picker{display:block;}
+.sp-group{margin-bottom:0.9rem;}
+.sp-group-title{font-size:0.8rem;font-weight:700;color:var(--gray-700,#374151);margin-bottom:0.4rem;}
+.sp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:0.5rem;}
+.sp-card{border:1.5px solid var(--gray-200,#e5e7eb);border-radius:10px;padding:0.65rem 0.8rem;background:#fff;cursor:pointer;text-align:left;font:inherit;transition:border-color .15s,background .15s;}
+.sp-card:hover{border-color:var(--primary,#2563eb);background:#f0f5ff;}
+.sp-card.active{border-color:var(--primary,#2563eb);background:#eff6ff;box-shadow:0 0 0 3px rgba(37,99,235,.15);}
+.sp-card-title{display:block;font-size:0.85rem;font-weight:600;color:var(--gray-900,#111827);}
+.sp-card-cost{display:block;font-size:0.72rem;color:var(--gray-500,#6b7280);margin-top:0.15rem;}
 </style>
 <script async src="https://plausible.io/js/pa-LTP3nlbjr9NybMEgzpwxU.js"></script>
 <script>window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};plausible.init()</script>
@@ -1094,7 +1105,14 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
         </div>
 
         <div class="config-form">
-            <div class="form-grid">
+            <!-- Search picker (docs/smart-start.md): every input -> output pair as
+                 a card, instead of the "I have / I want to find" dropdowns. The
+                 selects below stay in the DOM, hidden: quickStart, saved
+                 searches, bulk and the API panel all set them, and a card click
+                 sets them the same way. -->
+            <div class="search-picker-label">Or pick a search</div>
+            <div id="searchPicker" class="search-picker"></div>
+            <div class="form-grid" style="display:none;">
                 <div class="form-field">
                     <label class="form-label">I have</label>
                     <select id="inputType" class="form-select">
@@ -3594,7 +3612,7 @@ function setBulkLocked(locked) {
 
 // Points at the two dropdowns when a locked drop zone is used.
 function lfAskForPair(message) {
-    showAlert(message || 'Choose what you have and what you want to find first, then upload your list.', 'warning');
+    showAlert(message || 'Pick a search first, then upload your list.', 'warning');
     const form = document.querySelector('.config-form');
     const sel = document.getElementById('inputType');
     if (form) {
@@ -3645,6 +3663,73 @@ function populateOutputOptions(filterInputType) {
     }
 }
 
+
+/* ------------------------------------------------- Search picker
+ * Every pair as a card, grouped, with its credit cost. Clicking a card drives
+ * the hidden selects exactly like a person picking both dropdowns, so all the
+ * existing wiring (configureEnrichment, bulk, saved searches) is unchanged.
+ */
+const SEARCH_PICKER_GROUPS = [
+    { title: 'People', items: [
+        ['linkedin_profile', 'email', 'LinkedIn profile \u2192 Work email'],
+        ['linkedin_profile', 'phone', 'LinkedIn profile \u2192 Phone number'],
+        ['lead_full_name', 'email', 'Name + company \u2192 Verified email'],
+        ['lead_full_name', 'linkedin_url', 'Name + company \u2192 LinkedIn profile'],
+        ['email', 'linkedin_url', 'Email \u2192 LinkedIn profile'],
+        ['linkedin_profile', 'linkedin_info', 'LinkedIn profile \u2192 Full profile data'],
+    ]},
+    { title: 'Companies', items: [
+        ['company_name', 'website', 'Company name \u2192 Website'],
+        ['company_name', 'phone', 'Company name \u2192 Phone number'],
+        ['company_name', 'email', 'Company name \u2192 Contact email'],
+        ['company_name', 'linkedin_url', 'Company name \u2192 LinkedIn page'],
+        ['company_domain', 'employees', 'Company domain \u2192 Employees list'],
+        ['linkedin_company', 'linkedin_info', 'LinkedIn company page \u2192 Company data'],
+        ['linkedin_company', 'employee_count', 'LinkedIn company page \u2192 Employee count'],
+    ]},
+    { title: 'LinkedIn posts', items: [
+        ['linkedin_post', 'reactions', 'LinkedIn post \u2192 People who reacted'],
+    ]},
+];
+function searchPickerCost(input, output) {
+    const c = (typeof creditCosts === 'object' && creditCosts) ? creditCosts[input + '_to_' + output] : null;
+    if (c == null) return '';
+    if (output === 'employees' || output === 'reactions') return c + ' credit per person found';
+    return c + ' credit' + (c === 1 ? '' : 's');
+}
+function renderSearchPicker() {
+    const box = document.getElementById('searchPicker');
+    if (!box) return;
+    box.innerHTML = SEARCH_PICKER_GROUPS.map(function (g) {
+        const cards = g.items.filter(function (it) {
+            return dataConfigurations[it[0]] && dataConfigurations[it[0]].outputs && dataConfigurations[it[0]].outputs[it[1]];
+        }).map(function (it) {
+            return '<button type="button" class="sp-card" data-pair="' + it[0] + '__' + it[1] + '" onclick="pickSearch(\'' + it[0] + '\',\'' + it[1] + '\')">'
+                + '<span class="sp-card-title">' + it[2] + '</span>'
+                + '<span class="sp-card-cost">' + searchPickerCost(it[0], it[1]) + '</span></button>';
+        }).join('');
+        return '<div class="sp-group"><div class="sp-group-title">' + g.title + '</div><div class="sp-grid">' + cards + '</div></div>';
+    }).join('');
+    syncSearchPicker();
+}
+function syncSearchPicker() {
+    const pair = (currentInputType && currentOutputType) ? currentInputType + '__' + currentOutputType : '';
+    document.querySelectorAll('#searchPicker .sp-card').forEach(function (el) {
+        el.classList.toggle('active', el.getAttribute('data-pair') === pair);
+    });
+}
+function pickSearch(input, output) {
+    const inputSel = document.getElementById('inputType');
+    const outputSel = document.getElementById('outputType');
+    inputSel.value = input; inputSel.dispatchEvent(new Event('change'));
+    outputSel.value = input + '__' + output; outputSel.dispatchEvent(new Event('change'));
+    syncSearchPicker();
+    try { posthog.capture('search_picked', { input_type: input, output_type: output, mode: (typeof currentMode !== 'undefined') ? currentMode : null }); } catch (e) {}
+    setTimeout(function () {
+        const target = (input === 'lead_full_name' && output === 'email') ? document.getElementById('leadFirstName') : document.getElementById('inputData');
+        if (target && target.offsetParent !== null && target.focus) { target.focus(); if (target.scrollIntoView) target.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+    }, 80);
+}
 function setupDropdowns() {
     const inputSel = document.getElementById('inputType');
     const outputSel = document.getElementById('outputType');
@@ -3669,7 +3754,9 @@ function setupDropdowns() {
         currentInputType=inf; currentOutputType=out;
         inputSel.value=inf; populateOutputOptions(inf); outputSel.value=val;
         configureEnrichment();
+        try { syncSearchPicker(); } catch (e) {}
     });
+    try { renderSearchPicker(); } catch (e) {}
 }
 
 function updateOptionalFields() {
@@ -5818,7 +5905,7 @@ function pickRoute(route, source) {
             switchMode('bulk');
             const bulk = document.getElementById('bulkSearch');
             if (bulk && bulk.scrollIntoView) bulk.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            if (!lfConfigured()) lfAskForPair('Bulk mode is open. Pick what you have and what you want to find, then drop your list.');
+            if (!lfConfigured()) lfAskForPair('Bulk mode is open. Pick a search, then drop your list.');
             else jumpToBulkUpload('onboarding_route');
             break;
         }
@@ -7584,7 +7671,7 @@ function smartStartClassify(raw) {
     if (/linkedin\.com\/(posts|feed)\//.test(low)) return { input: 'linkedin_post', output: 'reactions', label: 'Get who reacted', alt: [], hint: 'LinkedIn post detected: we list the people who reacted.' };
     if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) return { input: 'email', output: 'linkedin_url', label: 'Find LinkedIn profile', alt: [], hint: 'Email detected: we find the LinkedIn profile behind it (5 credits).' };
     if (/^(https?:\/\/)?(www\.)?[a-z0-9-]+(\.[a-z0-9-]+)+\/?$/i.test(v)) return { input: 'company_domain', output: 'employees', label: 'Find employees', alt: [], hint: 'Company domain detected: we list its employees.', noAuto: true };
-    if (/\s/.test(v)) return { input: 'lead_full_name', output: 'email', label: 'Find email', alt: [{ output: 'linkedin_url', label: 'Find LinkedIn profile instead' }], hint: "Looks like a person's name. Add their company on the next step.", noAuto: true };
+    if (/\s/.test(v)) return { input: 'lead_full_name', output: 'email', label: 'Find email', alt: [{ output: 'linkedin_url', label: 'Find LinkedIn profile instead' }], hint: "Looks like a person's name. Add their company (domain for the email) on the next step.", noAuto: true };
     return { input: 'company_name', output: 'website', label: 'Find website', alt: [{ output: 'linkedin_url', label: 'Company LinkedIn page' }, { output: 'phone', label: 'Company phone' }, { output: 'email', label: 'Company email' }], hint: 'Company name detected.' };
 }
 function smartStartCreditsLine() {
@@ -7635,7 +7722,19 @@ function smartStartRun(outputOverride) {
     try { posthog.capture('smart_start_used', { input_type: k.input, output_type: output, auto_run: auto, override: !!outputOverride }); } catch (e) {}
     if (k.input === 'lead_full_name') {
         quickStart('lead_full_name', output, v, null, false);
-        setTimeout(function () { const cf = document.getElementById('leadCompany'); if (cf) cf.focus(); }, 450);
+        setTimeout(function () {
+            if (output === 'email') {
+                // Name -> email uses split fields (first, last, company domain).
+                const parts = v.split(/\s+/);
+                const fn = document.getElementById('leadFirstName'), ln = document.getElementById('leadLastName'), dm = document.getElementById('leadDomain');
+                if (fn) fn.value = parts[0] || '';
+                if (ln) ln.value = parts.slice(1).join(' ');
+                if (dm) dm.focus();
+                try { updateSubmitButtonState(); } catch (e) {}
+            } else {
+                const cf = document.getElementById('leadCompany'); if (cf) cf.focus();
+            }
+        }, 450);
         return;
     }
     quickStart(k.input, output, v, null, auto);

@@ -48,3 +48,12 @@ test('it hands over to the existing lookup, not a copy of it', () => {
 test('the big route chooser does not stack under it', () => {
   assert.ok(appFn('maybeShowRouteChooser').includes("document.getElementById('smartStart')"));
 });
+
+test('the dropdowns are replaced by a card per search, which drives the same selects', () => {
+  assert.ok(app.includes('id="searchPicker"'));
+  assert.ok(app.includes('<div class="form-grid" style="display:none;">'), 'selects stay in the DOM, hidden');
+  const pick = appFn('pickSearch');
+  assert.ok(pick.includes("inputSel.dispatchEvent(new Event('change'))"));
+  assert.ok(pick.includes("outputSel.dispatchEvent(new Event('change'))"));
+  assert.ok(appFn('setupDropdowns').includes('renderSearchPicker()'));
+});

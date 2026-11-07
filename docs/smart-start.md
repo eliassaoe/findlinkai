@@ -85,3 +85,13 @@ do not flip the default again without asking.
 The four quick-start cards under the box are gone; the box covers the same four lookups from whatever is pasted.
 The one-line list shortcuts (`qs-list-line`, `quickStartBulk`) stay. `quickStart()` is still the function every
 single lookup goes through. `tests/default-mode.test.mjs` pins the new shape.
+
+## Addendum: the two dropdowns are replaced by a card per search (7 Nov 2026, owner's call)
+
+`#searchPicker` ("Or pick a search") lists every pair as a card, grouped People / Companies / LinkedIn posts, with
+the credit cost from `creditCosts` (e.g. `LinkedIn profile → Work email · 10 credits`). `pickSearch(input, output)`
+sets the hidden `#inputType` / `#outputType` selects and fires their `change` events, so `configureEnrichment`, bulk,
+saved searches and the API panel are untouched; `syncSearchPicker()` highlights the card whatever set the selects.
+The `.form-grid` with the selects is kept in the DOM with `display:none`. New event: `search_picked`
+{input_type, output_type, mode}. Also fixed: a pasted name going to email now fills first / last name
+(`#leadFirstName`, `#leadLastName`) and focuses the domain field. `tests/smart-start.test.mjs` pins the picker.
