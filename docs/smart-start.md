@@ -74,18 +74,8 @@ auto-run, they ask for a LinkedIn URL the person may not have open.
   accounts, so it looks like a logging bug, not under-billing — but some 50-credit accounts show 4-7 email/phone rows.
   Check in n8n whether lookups past a zero balance return data.
 
-## Addendum, same day: the pricing modal opens on Monthly (agencies still on Annual)
+## Addendum: annual default kept (owner decision, 7 Nov 2026)
 
-Released on the owner's go-ahead. `showPricingModal` set `billingMode = 'annual'` for everyone. What people picked
-over 120 days to 7 Nov 2026 (`plan_selected`, unique people):
-
-| tab | people | paid (`checkout_payment_success` with billing) |
-| --- | --- | --- |
-| Monthly | 61 | 3 |
-| Pay as you go | 48 | 5 |
-| Annual | 13 | 0 |
-
-The default was the least-chosen option, so most buyers had to switch tabs first. Now
-`billingMode = agencyOfferActive() ? 'annual' : 'monthly'` (agencies keep Annual: the setup call is their offer).
-`tests/agency-page.test.mjs` pins it. Watch `plan_selected` → `checkout_redirect_started` (about 50% today) and
-annual share of payments; if annual revenue was carrying more than it looks, revert the one line.
+The Monthly default above was reverted the same day. The owner keeps Annual as the default tab for everyone. The
+120-day split (Monthly 61, Pay as you go 48, Annual 13 people picking) is left here as data, not as a pending change:
+do not flip the default again without asking.

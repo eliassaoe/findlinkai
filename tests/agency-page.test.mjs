@@ -76,10 +76,10 @@ test('a paid annual agency plan shows the setup call booking prompt', () => {
     assert.match(app, /agency_setup_call_clicked/);
 });
 
-test('pricing modal never opens on pay-as-you-go by default; agencies open on annual, everyone else on monthly', () => {
+test('pricing modal never opens on pay-as-you-go by default', () => {
     const open = app.match(/function showPricingModal\(trigger, extra\) \{([\s\S]*?)const modalTitle/)[1];
     assert.doesNotMatch(open, /billingMode = 'payg'/);
-    assert.match(open, /billingMode = agencyOfferActive\(\) \? 'annual' : 'monthly'/);
+    assert.match(open, /billingMode = 'annual'/);
 });
 
 test('cold visitors can enrich a few leads before signing up', () => {
