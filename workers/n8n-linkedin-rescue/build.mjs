@@ -175,3 +175,22 @@ return [{ json: { found: !!best, organic: [{ link: best || plan.original }] } }]
 `;
 export const FT_CO_LINKEDIN = CO_LINKEDIN.replace("$('Webhook1')", "$('Webhook')");
 writeFileSync(new URL('./nodes.json', import.meta.url), JSON.stringify({ LI_TOP10, LI_RETRY, LI_LINKEDIN, CO_LINKEDIN, FT_TOP10, FT_RETRY, FT_LINKEDIN, FT_CO_LINKEDIN }, null, 1));
+
+// ---- v2 (7 Nov 2026, 21:30): owner's call — keep the original Google step
+// exactly as it was; the ONLY addition is LinkedIn people search (Apify) when
+// that step returns nothing. No top-10 rescoring, no extra Google queries.
+export const LI_PREP = LIB + String.raw`
+const p = parsePerson($('Webhook1').first().json.body.input_data || '');
+return [{ json: { skip: !p.companyKey.length || p.name.length < 2,
+  firstName: p.name[0] || '', lastName: p.name.slice(1).join(' '), organic: [{ title: '', link: '' }] } }];
+`;
+export const FT_PREP = LIB + FT_PARSE + String.raw`
+const organic = ($input.first().json || {}).organic || [];
+const original = (organic[0] || {}).link || '';
+return [{ json: {
+  found: !!original, skip: !p.companyKey.length || p.name.length < 2, original,
+  organic: [{ link: original }],
+  firstName: p.name[0] || '', lastName: p.name.slice(1).join(' ')
+}}];
+`;
+export const FT_LINKEDIN2 = FT_LINKEDIN.replace("$('FT rescue: top 10')", "$('FT rescue: prepare')");

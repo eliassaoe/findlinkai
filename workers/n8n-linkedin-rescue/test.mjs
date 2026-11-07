@@ -94,3 +94,21 @@ test('free tools company: reads the free-tools Webhook node', () => {
   const dr = [{ name: 'D.R. Ferroviaria Italia Srl', linkedinUrl: 'https://www.linkedin.com/company/dr-ferroviaria-italia/' }];
   assert.equal(run(FT_CO_LINKEDIN, dr, { Webhook: { body: { input_data: 'D.R. FERROVIARIA ITALIA SRL' } } }).bestUrl, 'https://www.linkedin.com/company/dr-ferroviaria-italia/');
 });
+
+// ---- v2: Apify only, original Google step untouched ----
+import { LI_PREP, FT_PREP, FT_LINKEDIN2 } from './build.mjs';
+test('v2 app: prepare only splits the name and decides whether to ask LinkedIn', () => {
+  const out = run(LI_PREP, [{}], wh('Alicia Waineo ANA, Inc'));
+  assert.deepEqual([out.skip, out.firstName, out.lastName], [false, 'alicia', 'waineo']);
+  assert.equal(run(LI_PREP, [{}], wh('Jane Smith')).skip, true);
+});
+test('v2 free tools: any Google link is returned as before; Apify only when Google gave nothing', () => {
+  const hit = run(FT_PREP, [{ organic: [{ title: 'Whatever', link: 'https://www.linkedin.com/company/x' }] }], ft('Jane', 'Doe', 'Acme'));
+  assert.equal(hit.found, true); assert.equal(hit.organic[0].link, 'https://www.linkedin.com/company/x');
+  const miss = run(FT_PREP, [{ organic: [] }], ft('Jane', 'Doe', 'Acme'));
+  assert.equal(miss.found, false); assert.equal(miss.skip, false);
+  assert.ok(FT_LINKEDIN2.includes("$('FT rescue: prepare')") && !FT_LINKEDIN2.includes("top 10"));
+  const nodes = { ...ft('Jane', 'Doe', 'Acme'), 'FT rescue: prepare': miss };
+  assert.equal(run(FT_LINKEDIN2, [{ name: 'Jane Doe', position: 'CEO at Acme', linkedinUrl: 'https://www.linkedin.com/in/jane-acme' }], nodes).organic[0].link, 'https://www.linkedin.com/in/jane-acme');
+  assert.equal(run(FT_LINKEDIN2, [{}], nodes).organic[0].link, '');
+});
