@@ -1078,7 +1078,7 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
                 </div>
                 <div id="smartStartDetected" class="smart-start-detected hidden"></div>
                 <div id="smartStartExtra" class="smart-start-extra hidden">
-                    <input type="text" id="smartStartCompany" class="smart-start-input" autocomplete="off" placeholder="Company domain, e.g. microsoft.com"
+                    <input type="text" id="smartStartCompany" class="smart-start-input" autocomplete="off" placeholder="Their company, e.g. Microsoft or microsoft.com"
                            onkeydown="if(event.key==='Enter'){event.preventDefault();smartStartRun();}">
                 </div>
                 <div id="smartStartActions" class="smart-start-actions hidden"></div>
@@ -4142,6 +4142,8 @@ async function enrichData(event) {
         hideLoading();
         if (currentOutputType==='reactions'&&Array.isArray(data)&&data.length>0) { deductCredits(data.length); showSingleResultReactions(inputValue,data); renderNextStepPanel('single', { row: { inputData: inputValue, reactions: data, status: 'Found' } }); checkEnrichmentMilestone(); maybeTriggerFirstSuccessPrompts(); showSavedPill(); showSuccessToast('Result found'); return; }
         if (currentOutputType==='employee_count') { deductCredits(getCreditCost(currentInputType,currentOutputType)); showSingleResultEmployeeCount(inputValue,data); renderNextStepPanel('single', { row: { inputData: inputValue, employeeCount: (data && data.result) || data, status: 'Found' } }); checkEnrichmentMilestone(); maybeTriggerFirstSuccessPrompts(); showSavedPill(); showSuccessToast('Result found'); return; }
+        if (currentOutputType==='employees'&&Array.isArray(data)) { data = lfRealEmployees(data); }
+        if (currentOutputType==='employees'&&Array.isArray(data)&&data.length===0) { showSingleResult(inputValue,'Not found'); return; }
         if (currentOutputType==='employees'&&Array.isArray(data)&&data.length>0) { deductCredits(data.length*0.5); showSingleResultEmployees(inputValue,data); renderNextStepPanel('single', { row: { inputData: inputValue, employees: data, status: 'Found' } }); checkEnrichmentMilestone(); maybeTriggerFirstSuccessPrompts(); showSavedPill(); showSuccessToast('Result found'); return; }
         if (response.status===403&&data.code===403) {
     try { posthog.capture('credits_exhausted', { input_type: currentInputType, output_type: currentOutputType, credits_remaining: currentCredits }); } catch(e) {}
@@ -4174,8 +4176,9 @@ async function enrichData(event) {
             maybeTriggerFirstSuccessPrompts();
             showSavedPill();
             showSuccessToast('Result found');
-        } else { showSingleResult(inputValue,'Not found'); }
-    } catch(error) { hideLoading(); showAlert('Enrichment error \u2014 please try again.','error'); }
+            lfContinueChain(data);
+        } else { lfChain = null; showSingleResult(inputValue,'Not found'); }
+    } catch(error) { lfChain = null; hideLoading(); showAlert('Enrichment error \u2014 please try again.','error'); }
     finally { restoreBtn(); }
 }
 
@@ -5953,6 +5956,62 @@ function pickRoute(route, source) {
     }
 }
 
+// ---- When a lookup finds nothing: offer the search most likely to work instead.
+// Find rates (Supabase enrichment_history, Aug-Nov 2026): name+domain -> email
+// 1-15%; name+company -> LinkedIn URL 77%; LinkedIn URL -> email 50% (free
+// accounts) to 88% (subscribers). So for a name, going through LinkedIn finds
+// the email several times more often. See docs/find-rate.md.
+let lfChain = null;
+function lfRealEmployees(rows) {
+    return (rows || []).filter(function (r) {
+        return r && typeof r === 'object' && (r.name || r.email || r.linkedinUrl || r.lastName);
+    });
+}
+function missRescueHTML(inputData) {
+    const pair = currentInputType + '__' + currentOutputType;
+    const btn = function (label, cost, fn) {
+        return '<div style="margin-top:0.75rem;"><button type="button" class="ss-action primary" onclick="' + fn + '">' + label + '<small>' + cost + '</small></button></div>';
+    };
+    if (pair === 'lead_full_name__email') {
+        const c1 = getCreditCost('lead_full_name', 'linkedin_url'), c2 = getCreditCost('linkedin_profile', 'email');
+        return '<p style="margin-top:0.6rem;font-size:0.85rem;color:var(--gray-700);">Name + domain rarely works. Going through their LinkedIn profile finds the email far more often.</p>'
+            + btn('Find their LinkedIn, then the email', 'up to ' + (c1 + c2) + ' credits', 'missRescue(\'name_via_linkedin\')');
+    }
+    if (pair === 'linkedin_profile__phone') {
+        return btn('Get their work email instead', getCreditCost('linkedin_profile', 'email') + ' credits', 'missRescue(\'profile_email\')');
+    }
+    if (pair === 'linkedin_profile__email') {
+        return btn('Get their full profile instead', getCreditCost('linkedin_profile', 'linkedin_info') + ' credits', 'missRescue(\'profile_info\')');
+    }
+    return '';
+}
+function missRescue(kind) {
+    try { posthog.capture('miss_rescue_clicked', { kind: kind, from: currentInputType + '__' + currentOutputType }); } catch (e) {}
+    if (kind === 'name_via_linkedin') {
+        const fn = (document.getElementById('leadFirstName') || {}).value || '';
+        const ln = (document.getElementById('leadLastName') || {}).value || '';
+        const dom = ((document.getElementById('leadDomain') || {}).value || '').trim();
+        // "acme.com" -> "acme" is what the name search matches on.
+        const company = dom.replace(/^https?:\/\//i, '').replace(/^www\./i, '').split('/')[0].split('.')[0];
+        lfChain = { after: 'lead_full_name__linkedin_url', then: 'email' };
+        quickStart('lead_full_name', 'linkedin_url', (fn + ' ' + ln).trim(), null, true, company);
+        return;
+    }
+    const url = (document.getElementById('inputData') || {}).value || '';
+    if (kind === 'profile_email') quickStart('linkedin_profile', 'email', url, null, true);
+    if (kind === 'profile_info') quickStart('linkedin_profile', 'linkedin_info', url, null, true);
+}
+function lfContinueChain(data) {
+    if (!lfChain) return;
+    const pair = currentInputType + '__' + currentOutputType;
+    const chain = lfChain; lfChain = null;
+    if (pair !== chain.after) return;
+    const url = data && typeof data.result === 'string' ? data.result : '';
+    if (url.toLowerCase().indexOf('linkedin.com/in/') === -1) return;
+    try { posthog.capture('miss_rescue_chained', { to: 'linkedin_profile__' + chain.then }); } catch (e) {}
+    setTimeout(function () { quickStart('linkedin_profile', chain.then, url, null, true); }, 1200);
+}
+
 function showSingleResult(inputData,result,confidence){
     const resultText=document.getElementById('resultText');
     const resultLink=document.getElementById('resultLink');
@@ -5980,7 +6039,7 @@ function showSingleResult(inputData,result,confidence){
     let html='<div class="result-card">';
     const notFoundSuggestions={'linkedin_profile':'Check that the LinkedIn URL is correct and points to a real profile.','linkedin_company':'Check that the LinkedIn company URL is correct.','linkedin_post':'Check that the post URL is correct and the post is still public.','company_domain':'Try the company\u2019s root domain (e.g. acme.com, not www.acme.com/about).','email':'Double check the email address for typos.','company_name':'Try the full legal or common name of the company.','lead_full_name':'Try adding the company name, or double-check the spelling.'};
     const suggestionText = notFoundSuggestions[currentInputType] || 'Try a different input type or double-check your input.';
-    html+=`<div class="result-header">${linkedInFields?.profilePic?`<img src="${linkedInFields.profilePic}" alt="Profile" style="width:60px;height:60px;border-radius:50%;object-fit:cover;margin-right:1rem;">`:`<div class="result-header-icon"><i class="fas ${result==='Not found'?'fa-times-circle':'fa-check-circle'}"></i></div>`}<div class="result-header-text"><h3>${result==='Not found'?'No result found for this input':'Profile Data Found! \u2728'}</h3><p>${inputData}</p>${result==='Not found'?`<p style="margin-top:0.35rem;font-size:0.8rem;color:var(--gray-500);"><i class="fas fa-lightbulb" style="color:var(--warning);margin-right:0.25rem;"></i>${suggestionText}</p>`:''}</div></div>`;
+    html+=`<div class="result-header">${linkedInFields?.profilePic?`<img src="${linkedInFields.profilePic}" alt="Profile" style="width:60px;height:60px;border-radius:50%;object-fit:cover;margin-right:1rem;">`:`<div class="result-header-icon"><i class="fas ${result==='Not found'?'fa-times-circle':'fa-check-circle'}"></i></div>`}<div class="result-header-text"><h3>${result==='Not found'?'No result found for this input':'Profile Data Found! \u2728'}</h3><p>${inputData}</p>${result==='Not found'?`<p style="margin-top:0.35rem;font-size:0.8rem;color:var(--gray-500);"><i class="fas fa-lightbulb" style="color:var(--warning);margin-right:0.25rem;"></i>${suggestionText}</p>${missRescueHTML(inputData)}`:''}</div></div>`;
     if(linkedInFields?.backgroundPic&&linkedInFields.backgroundPic!=='Not specified'){html+=`<div style="margin:1rem 0;border-radius:8px;overflow:hidden;max-height:200px;"><img src="${linkedInFields.backgroundPic}" alt="Background" style="width:100%;height:auto;object-fit:cover;"></div>`;}
     if(isLinkedInData&&linkedInFields){
         html+='<div class="result-grid">';
@@ -7746,9 +7805,11 @@ function smartStartDetect() {
     det.innerHTML = '<i class="' + k.icon + '"></i>' + k.what + ' detected';
     det.classList.remove('hidden');
     extra.classList.toggle('hidden', !k.needsCompany);
-    if (k.needsCompany && comp) comp.placeholder = 'Their company domain, e.g. microsoft.com';
+    if (k.needsCompany && comp) comp.placeholder = 'Their company, e.g. Microsoft or microsoft.com';
     acts.innerHTML = k.options.map(function (o, idx) {
-        const cost = k.perPerson ? '1 credit per person' : smartStartCost(k.input, o[0]);
+        const cost = k.perPerson ? '1 credit per person'
+            : (k.input === 'lead_full_name' && o[0] === 'email') ? 'up to ' + (getCreditCost('lead_full_name', 'linkedin_url') + getCreditCost('linkedin_profile', 'email')) + ' credits'
+            : smartStartCost(k.input, o[0]);
         return '<button type="button" class="ss-action' + (idx === 0 ? ' primary' : '') + '" onclick="smartStartRun(\'' + o[0] + '\')">' + o[1] + (cost ? '<small>' + cost + '</small>' : '') + '</button>';
     }).join('');
     acts.classList.remove('hidden');
@@ -7776,6 +7837,14 @@ function smartStartRun(outputOverride) {
     }
     try { localStorage.setItem(ROUTE_PICKED_KEY, 'single'); } catch (e) {}
     try { posthog.capture('smart_start_used', { input_type: k.input, output_type: output, override: !!outputOverride }); } catch (e) {}
+    if (k.input === 'lead_full_name' && output === 'email') {
+        // Name + domain finds an email 1-15% of the time; name -> LinkedIn ->
+        // email finds one several times more often (docs/find-rate.md).
+        const stem = company.replace(/^https?:\/\//i, '').replace(/^www\./i, '').split('/')[0].split('.')[0];
+        lfChain = { after: 'lead_full_name__linkedin_url', then: 'email' };
+        quickStart('lead_full_name', 'linkedin_url', v, null, true, stem);
+        return;
+    }
     if (k.input === 'lead_full_name') {
         // Name lookups have their own fields; fill them, then run.
         quickStart('lead_full_name', output, output === 'email' ? null : v, null, false);

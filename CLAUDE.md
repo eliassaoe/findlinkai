@@ -62,6 +62,7 @@ into a file here in the same session, or it is gone.
 | **Earn-credits tasks shown in a rail beside the form** (wide screens), not only behind the corner button | `docs/earn-credits-rail.md` — read it before touching `OTP_TASKS_ALL`, `renderTasksRail` or `#reopenTasksBtn`; `tests/tasks-rail.test.mjs` pins it |
 | **Free-limit gate leads with "Continue with Google"**, email one link below (added at runtime to all 26 tool pages) | `docs/gate-google-first.md` — the numbers, the re-check date and how to roll back; `tests/gate-google-first.test.mjs` pins it |
 | What the account page counts as "found" | `docs/account-value-summary.md` |
+| **Find rate per lookup: subscribers ~88% email, a free account's first lookup 40%; name→email 1–15%; misses cost 2.5 credits; employee search broken since 19 Oct** | `docs/find-rate.md` — read it before promising a find rate or touching `missRescueHTML` / `lfChain`; `tests/find-rate.test.mjs` pins it |
 | The monthly value receipt email — how the numbers are computed, the worker, workflow 12 | `workers/monthly-receipt/README.md` |
 | The AI SDR service offer, and who is allowed to see it | `docs/ai-sdr-offer.md` |
 | **Checkout: the two doors to a Dodo payment page, and the hourly canary** | `workers/dodo-checkout/README.md` — read it before touching `launchCheckout()`, `showCheckoutError()` or the rescue banner in `app.html`; `tests/checkout-second-door.test.mjs` pins the wiring |
