@@ -157,7 +157,7 @@ test('every lookup and its real price is in the generated table', () => {
 
     const row = table.slice(table.indexOf(`<code>${op.type}</code>`));
     const cell = row.slice(0, row.indexOf('</tr>'));
-    const expected = op.perEmployeeBilling ? '0.5 &times; employees' : `<td>${op.credits}</td>`;
+    const expected = op.perEmployeeBilling ? '2 &times; employees' : `<td>${op.credits}</td>`;
     assert.ok(cell.includes(expected), `${op.type} costs ${op.credits} but the table says otherwise`);
   }
 });

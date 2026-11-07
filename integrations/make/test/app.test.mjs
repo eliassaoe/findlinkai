@@ -89,7 +89,7 @@ test('every module states its real credit cost', () => {
   for (const dir of moduleDirs) {
     const { description } = read('modules', dir, 'metadata.json');
     const op = byKey[dir];
-    const expected = op.perEmployeeBilling ? '0.5 credits per employee' : `${op.credits} credit`;
+    const expected = op.perEmployeeBilling ? '2 credits per employee' : `${op.credits} credit`;
     assert.ok(description.includes(expected), `${dir} description omits its cost (${expected})`);
   }
 });

@@ -96,7 +96,7 @@ by operation, because some data is far more expensive to source than others:
    1 credit   every company-name lookup, find_linkedin_url_from_name,
               find_linkedin_company_employee_count
 
-find_company_employees (1 credit per employee returned) and
+find_company_employees (2 credits per employee returned) and
 find_linkedin_post_reactions (1 credit per reaction returned) bill per record
 instead of per call.
 
@@ -201,7 +201,7 @@ export function createServer(apiKey: string): McpServer {
     {
       title: "Find company employees (by domain)",
       description:
-        'Get a list of employees (name, job title, LinkedIn URL, location) at a company from its DOMAIN, e.g. "tesla.com" — not the company name; call find_company_website first if you only have the name. Optionally filter by department/seniority and cap the number of results. Costs 1 credit per employee returned. May respond asynchronously under load; this tool auto-polls for up to ~55s before falling back to a job_id you can poll with check_job_status.',
+        'Get a list of employees (name, job title, LinkedIn URL, location) at a company from its DOMAIN, e.g. "tesla.com" — not the company name; call find_company_website first if you only have the name. Optionally filter by department/seniority and cap the number of results. Costs 2 credits per employee returned. May respond asynchronously under load; this tool auto-polls for up to ~55s before falling back to a job_id you can poll with check_job_status.',
       inputSchema: {
         company_domain: z.string().min(1).describe('The company domain to look up, e.g. "tesla.com".'),
         department: z.string().optional().describe('Optional department filter, e.g. "marketing", "engineering".'),

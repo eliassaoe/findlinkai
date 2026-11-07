@@ -62,7 +62,7 @@ into a file here in the same session, or it is gone.
 | **Earn-credits tasks shown in a rail beside the form** (wide screens), not only behind the corner button | `docs/earn-credits-rail.md` — read it before touching `OTP_TASKS_ALL`, `renderTasksRail` or `#reopenTasksBtn`; `tests/tasks-rail.test.mjs` pins it |
 | **Free-limit gate leads with "Continue with Google"**, email one link below (added at runtime to all 26 tool pages) | `docs/gate-google-first.md` — the numbers, the re-check date and how to roll back; `tests/gate-google-first.test.mjs` pins it |
 | What the account page counts as "found" | `docs/account-value-summary.md` |
-| **Find rate per lookup: subscribers ~88% email, a free account's first lookup 40%; name→email 1–15%; misses cost 2.5 credits; employee search broken since 19 Oct** | `docs/find-rate.md` — read it before promising a find rate or touching `missRescueHTML` / `lfChain`; `tests/find-rate.test.mjs` pins it |
+| **Find rate per lookup: subscribers ~88% email, a free account's first lookup 40%; name→email 1–15%; misses cost 2.5 credits; employee search fixed 7 Nov (b2bsearch → braveleads waterfall, 2 credits per employee)** | `docs/find-rate.md` — read it before promising a find rate or touching `missRescueHTML` / `lfChain`; `tests/find-rate.test.mjs` pins it |
 | **LinkedIn rescue in n8n: Apify LinkedIn search as a backup only when the original Google step finds nothing** (name and company → LinkedIn, app v4 + free tools; original step untouched by owner decision) | `workers/n8n-linkedin-rescue/README.md` — node names, the rollback, the live checks |
 | The monthly value receipt email — how the numbers are computed, the worker, workflow 12 | `workers/monthly-receipt/README.md` |
 | The AI SDR service offer, and who is allowed to see it | `docs/ai-sdr-offer.md` |
@@ -100,6 +100,7 @@ into a file here in the same session, or it is gone.
     linkedin_company_to_linkedin_info 6    linkedin_company_to_employee_count 1
     company_name_to_email            5     company_name_to_* (website/phone/
     linkedin_url/employee_count)     1
+    *_to_employees  2 per employee returned (was 0.5 until 7 Nov 2026)
 
 `company_name_to_email` is 5, not 1 — the only exception to the
 `company_name_to_*` pattern. This has already caused one wrong "cheapest

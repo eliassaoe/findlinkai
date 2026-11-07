@@ -405,7 +405,7 @@ var LINKFINDER_OPERATIONS = [
         "name": "employee_count",
         "label": "Max Employees",
         "type": "integer",
-        "help": "Cap how many employees come back. Billed 0.5 credits each."
+        "help": "Cap how many employees come back. Billed 2 credits each."
       }
     ]
   },
@@ -483,7 +483,7 @@ var LINKFINDER_OPERATIONS = [
         "name": "employee_count",
         "label": "Max Employees",
         "type": "integer",
-        "help": "Cap how many employees come back. Billed 0.5 credits each."
+        "help": "Cap how many employees come back. Billed 2 credits each."
       }
     ]
   },
@@ -561,7 +561,7 @@ var LINKFINDER_OPERATIONS = [
         "name": "employee_count",
         "label": "Max Employees",
         "type": "integer",
-        "help": "Cap how many employees come back. Billed 0.5 credits each."
+        "help": "Cap how many employees come back. Billed 2 credits each."
       }
     ]
   },

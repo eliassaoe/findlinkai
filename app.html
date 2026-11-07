@@ -3714,7 +3714,8 @@ const SEARCH_PICKER_GROUPS = [
 function searchPickerCost(input, output) {
     const c = (typeof creditCosts === 'object' && creditCosts) ? creditCosts[input + '_to_' + output] : null;
     if (c == null) return '';
-    if (output === 'employees' || output === 'reactions') return c + ' credit per person found';
+    if (output === 'employees') return '2 credits per person found';
+    if (output === 'reactions') return c + ' credit per person found';
     return c + ' credit' + (c === 1 ? '' : 's');
 }
 // The four searches shown first (7 Nov 2026): fewer choices, faster first click.
@@ -4216,7 +4217,7 @@ async function enrichData(event) {
         if (currentOutputType==='employee_count') { deductCredits(getCreditCost(currentInputType,currentOutputType)); showSingleResultEmployeeCount(inputValue,data); renderNextStepPanel('single', { row: { inputData: inputValue, employeeCount: (data && data.result) || data, status: 'Found' } }); checkEnrichmentMilestone(); maybeTriggerFirstSuccessPrompts(); showSavedPill(); showSuccessToast('Result found'); return; }
         if (currentOutputType==='employees'&&Array.isArray(data)) { data = lfRealEmployees(data); }
         if (currentOutputType==='employees'&&Array.isArray(data)&&data.length===0) { showSingleResult(inputValue,'Not found'); return; }
-        if (currentOutputType==='employees'&&Array.isArray(data)&&data.length>0) { deductCredits(data.length*0.5); showSingleResultEmployees(inputValue,data); renderNextStepPanel('single', { row: { inputData: inputValue, employees: data, status: 'Found' } }); checkEnrichmentMilestone(); maybeTriggerFirstSuccessPrompts(); showSavedPill(); showSuccessToast('Result found'); return; }
+        if (currentOutputType==='employees'&&Array.isArray(data)&&data.length>0) { deductCredits(data.length*2); showSingleResultEmployees(inputValue,data); renderNextStepPanel('single', { row: { inputData: inputValue, employees: data, status: 'Found' } }); checkEnrichmentMilestone(); maybeTriggerFirstSuccessPrompts(); showSavedPill(); showSuccessToast('Result found'); return; }
         if (response.status===403&&data.code===403) {
     try { posthog.capture('credits_exhausted', { input_type: currentInputType, output_type: currentOutputType, credits_remaining: currentCredits }); } catch(e) {}
     currentCredits = 0;
@@ -5083,7 +5084,7 @@ async function processBulk(resuming) {
                     }
                 } else if (currentOutputType === 'employees' && (Array.isArray(data) || (data.employees && Array.isArray(data.employees)))) {
                     const employees = Array.isArray(data) ? data : data.employees;
-                    const cost = employees.length * 0.5;
+                    const cost = employees.length * 2; // 2 credits per employee since 7 Nov 2026
                     bulkResults[slot] = {
                         inputData: row.inputData,
                         result: `${employees.length} employees found`,
@@ -7012,7 +7013,7 @@ function getCreditCost(inputType,outputType){return creditCosts[generateCombinat
 function updateCreditCostDisplay(){
     const div=document.getElementById('creditCost');
     if(!currentInputType||!currentOutputType){div.style.display='none';updateAffordabilityWarning();return;}
-    if(currentOutputType==='employees'){div.innerHTML=`<i class="fas fa-coins"></i>Cost: <span class="credit-cost-value">0.5 credit per 1 employee found</span>`;}
+    if(currentOutputType==='employees'){div.innerHTML=`<i class="fas fa-coins"></i>Cost: <span class="credit-cost-value">2 credits per employee found</span>`;}
     else{const cost=getCreditCost(currentInputType,currentOutputType);div.innerHTML=`<i class="fas fa-coins"></i>Cost: <span class="credit-cost-value">${cost===1?'1 credit':cost+' credits'}</span> per enrichment`;}
     div.style.display='block';
     updateAffordabilityWarning();

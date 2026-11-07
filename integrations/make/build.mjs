@@ -299,7 +299,7 @@ for (const op of catalog.operations) {
   const dir = join(HERE, 'modules', op.key);
 
   const costLine = op.perEmployeeBilling
-    ? 'Billed 0.5 credits per employee returned.'
+    ? 'Billed 2 credits per employee returned.'
     : `Costs ${credits(op.credits)} per lookup, including lookups that find nothing.`;
 
   writeJson(join(dir, 'metadata.json'), {

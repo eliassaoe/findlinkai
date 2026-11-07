@@ -57,7 +57,7 @@ and CI runs `npm ci`, so without it nothing here builds on a clean machine.
 Each search states its real cost in its description, from the catalog. They are not all
 1 credit: `Find Phone from LinkedIn Profile` is **50**, `Get LinkedIn Profile Details`
 and `Find Email from LinkedIn Profile` are **10**, `Find Email from Name` is **7**.
-Employee-list searches bill 0.5 credits per employee returned rather than a flat fee.
+Employee-list searches bill 2 credits per employee returned rather than a flat fee.
 
 **Every call is charged, including one that finds nothing** — a search returning no
 results still cost credits. This matters in Zapier more than anywhere else, because a

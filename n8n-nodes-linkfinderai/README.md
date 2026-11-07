@@ -59,7 +59,7 @@ anything under `generated/` — change the catalog and rebuild.
 
 `URL → Phone` costs **50 credits**; `URL → Full Profile Info` and `URL → Email` cost
 **10**; `Full Name → Email` costs **7**; most company lookups cost **1**. Employee
-lists bill 0.5 credits per employee returned. Every call is charged, including one
+lists bill 2 credits per employee returned. Every call is charged, including one
 that finds nothing — which matters in a workflow that runs unattended over a list.
 
 ### How the async handling works

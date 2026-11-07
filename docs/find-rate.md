@@ -31,14 +31,43 @@ Comparing balances with history: a missed profile → email costs **2.5
 credits** server-side (25% of 10). The app deducts nothing on a miss
 client-side, so the balance shown drifts until the next refresh.
 
-## Broken: employee search (since 19 Oct 2026)
+## Employee search — fixed 7 Nov 2026 (was broken 19 Oct – 7 Nov)
 
-`company_domain_to_employees` has returned only rows of nulls since 19 Oct
-(766 rows in the week of 2 Nov). One row's `firstName` is the scraper
-vendor's banner ("We improve the Actor everyday…"), so the scraper's output
-format changed. The fix is in n8n and is not in this repo. Until then the app
-treats blank rows as a miss (`lfRealEmployees`) instead of showing an empty
-table and deducting 0.5 per blank row.
+**Why it broke:** n8n called `build_matrix/company-employees-scraper`. Since
+19 Oct it needs "full access" to the Apify account; without that it wrote one
+promo row ("❤️ We improve the Actor everyday…") and nothing else. The braveleads
+fallback behind it was broken too (it now refuses `maxResults` < 100, and its
+seniority/department values had changed), so every lookup returned blank rows,
+and the refund counted the blank rows as found (0.5 credit each).
+
+**Now (n8n "linkfinder ai app v 4", published 7 Nov):** a waterfall.
+1. `b2bsearch/company-employees` — domain in; name, title, LinkedIn, work email,
+   sometimes phone. Low-signal (fake) profiles excluded. Tested: aak.com 100
+   people, 84 with an email (63 @aak.com); 3tech.net 69 people.
+2. If it finds nobody → `braveleads` (Apollo-style), input fixed, trimmed to the
+   paid limit.
+3. Still nobody → full refund (tested with a made-up domain).
+
+New nodes: `Employees: normalize b2bsearch`, `…1`, `…2` (map b2bsearch rows to
+the old snake_case shape so nothing downstream changed; one company label per
+list). Changed: `Code in JavaScript13/14/17/18`, `HTTP Request20/35/39`,
+`Code55/57`, `Precheck Credits1`, `Refund Calc (Not Found)24/25/26/28`, `Code98`.
+Rollback: n8n version history, the version before "Employees: b2bsearch first…".
+
+**Price: 2 credits per employee (was 0.5),** owner's call 7 Nov. b2bsearch with
+contacts costs ~$0.0072 per person; 0.5 credit was under cost on every plan.
+Changed in n8n (precheck, refunds, Code98), `app.html`, the employee tool pages,
+`openapi.json`, the integrations catalog (rebuilt), the MCP server text.
+The live Google Sheets add-on in Drive still says 0.5 until it is re-pushed.
+
+**Found while testing:** API/MCP calls send no `output_type`, so `Precheck
+Credits1` billed an employee list as one flat 1-credit lookup and ignored
+`employee_count` (100 people for 1 credit). Fix in progress 7 Nov: derive
+`employees` from a `*_to_employees` type in `Precheck Credits1` — the browser
+disconnected mid-edit, so check the node contains `_to_employees$` and is
+published.
+
+The app also still treats blank rows as a miss (`lfRealEmployees`).
 
 ## Shipped 7 Nov 2026 (app.html)
 

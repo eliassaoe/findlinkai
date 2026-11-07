@@ -62,7 +62,7 @@ const esc = (s) =>
   String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 
 const price = (op) =>
-  op.perEmployeeBilling ? '0.5 &times; employees' : `${op.credits}`;
+  op.perEmployeeBilling ? '2 &times; employees' : `${op.credits}`;
 
 // What a spreadsheet user actually needs from a column of their own: which of
 // their columns feeds it, not the API's phrasing of the input.

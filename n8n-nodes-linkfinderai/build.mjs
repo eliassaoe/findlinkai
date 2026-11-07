@@ -48,7 +48,7 @@ const operationProperties = Object.entries(catalog.n8nResources).map(([resource,
   const options = ops.map((op) => {
     // Cost belongs in the picker: someone choosing "URL → Phone" over "URL → Email"
     // is choosing 50 credits over 10, and the node is where they decide.
-    const cost = op.perEmployeeBilling ? '0.5 credits per employee returned' : credits(op.credits);
+    const cost = op.perEmployeeBilling ? '2 credits per employee returned' : credits(op.credits);
     const description = [op.n8n.description, `Costs ${cost}`].filter(Boolean).join('. ');
 
     return {

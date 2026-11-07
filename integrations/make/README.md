@@ -58,7 +58,7 @@ never hangs on a stuck job.
 Module descriptions carry the real cost. They are not uniform — `Find Phone from
 LinkedIn Profile` is **50 credits**, `Get LinkedIn Profile Details` and `Find Email
 from LinkedIn Profile` are **10**, `Find Email from Name` is **7**, most company
-lookups are **1**. Employee lists bill 0.5 credits per employee returned.
+lookups are **1**. Employee lists bill 2 credits per employee returned.
 
 Every call is charged, **including one that finds nothing**.
 

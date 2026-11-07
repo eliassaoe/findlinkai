@@ -181,7 +181,7 @@ const operations = specTypes
       // `async: true` means it ALWAYS returns 202. Everything else can still fall
       // back to 202 under load, so wrappers must handle the job branch regardless.
       alwaysAsync: Boolean(s.async),
-      perEmployeeBilling: /0\.5 credits per employee/.test(s.note ?? ''),
+      perEmployeeBilling: /2 credits per employee/.test(s.note ?? ''),
       input: {
         label: o.inputLabel,
         help: o.inputHelp,
