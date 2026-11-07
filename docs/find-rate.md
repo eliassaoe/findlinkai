@@ -163,3 +163,12 @@ legal forms from two different countries, searches domains as domains, and
 falls back to LinkedIn company search (Apify, ~$0.003). On 10 of the hardest
 names, LinkedIn company search found 3, all right, 2 of them never found by
 Google, and guessed none. Rollout prompt: `N8N-SETUP-PROMPT.md` in that folder.
+
+## 7 Nov 2026, evening: shipped in n8n, not in the workers
+
+The owner asked for the n8n workflows to be changed directly, so the rescue
+logic went into **linkfinder ai app v 4** and **Linkfinderai free tools** as
+added nodes, live and published, additive only. See
+`workers/n8n-linkedin-rescue/README.md`. The two Cloudflare workers
+(`enrich-name-to-linkedin`, `enrich-company-to-linkedin`) are **not
+deployed** and not needed for this; keep them as reference.
