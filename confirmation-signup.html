@@ -500,6 +500,11 @@ src="https://www.facebook.com/tr?id=2717863625238535&ev=PageView&noscript=1"
                 
                 // Send ONLY the email to your server
                 const result = await sendEmailToServer(email);
+                // signup_success from Google fell from ~170/week to ~40/week from
+                // the week of 20 Sep 2026 while signup_google_clicked stayed ~210/week
+                // and real accounts kept rising (docs/smart-start.md). This records
+                // what the signup worker answered, so the gap can be read directly.
+                try { posthog.capture('signup_google_result', { success: !!(result && result.success), error: (result && result.error) ? String(result.error).slice(0, 120) : null }); } catch (e) {}
                 
                 if (result.success) {
                     showSuccess();
@@ -535,6 +540,7 @@ src="https://www.facebook.com/tr?id=2717863625238535&ev=PageView&noscript=1"
                 
             } catch (error) {
                 console.log('❌ DEBUG: Processing error:', error.message);
+                try { posthog.capture('signup_google_result', { success: false, error: String(error.message || '').slice(0, 120), stage: 'exception' }); } catch (e) {}
                 showError(error.message);
             }
         }

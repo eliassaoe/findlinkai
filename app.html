@@ -913,6 +913,20 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
 .route-strip a:hover{text-decoration:underline;}
 .route-strip a i{margin-right:0.25rem;}
 .route-skip:hover{color:var(--gray-700);}
+
+.smart-start{background:#fff;border:2px solid #2563eb;border-radius:14px;padding:18px 20px;margin:0 0 18px;box-shadow:0 6px 20px rgba(37,99,235,.08);}
+.smart-start-title{font-size:18px;font-weight:700;color:#111827;margin-bottom:10px;}
+.smart-start-row{display:flex;gap:10px;flex-wrap:wrap;}
+.smart-start-input{flex:1 1 320px;min-width:0;padding:13px 14px;border:1px solid #d1d5db;border-radius:10px;font-size:15px;}
+.smart-start-input:focus{outline:none;border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.15);}
+.smart-start-btn{padding:13px 22px;background:#2563eb;color:#fff;border:0;border-radius:10px;font-weight:700;font-size:15px;cursor:pointer;white-space:nowrap;}
+.smart-start-btn:hover{background:#1d4ed8;}
+.smart-start-hint{margin-top:8px;font-size:13px;color:#4b5563;}
+.smart-start-alt{margin-top:6px;font-size:13px;}
+.smart-start-alt a{color:#2563eb;font-weight:600;cursor:pointer;margin-right:12px;}
+.smart-start-credits{margin-top:8px;font-size:12px;color:#6b7280;}
+.smart-start-list{margin-top:12px;padding-top:10px;border-top:1px solid #e5e7eb;font-size:13px;color:#4b5563;}
+.smart-start-list a{color:#2563eb;font-weight:600;margin-left:12px;white-space:nowrap;}
 </style>
 <script async src="https://plausible.io/js/pa-LTP3nlbjr9NybMEgzpwxU.js"></script>
 <script>window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};plausible.init()</script>
@@ -1023,6 +1037,28 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
                  popup: every interrupt-style prompt this app ever shipped
                  converted at ~1%, so this one sits where the eye already is
                  and vanishes on the first action. -->
+            <!-- Smart start (docs/smart-start.md). One box, no dropdowns: paste
+                 whatever you have and the pair is picked for you. Half of new
+                 signups never ran a lookup; the "I have / I want to find" form
+                 asks two questions before the first result. -->
+            <div id="smartStart" class="smart-start">
+                <div class="smart-start-title">Paste what you have. We'll find the rest.</div>
+                <div class="smart-start-row">
+                    <input type="text" id="smartStartInput" class="smart-start-input" autocomplete="off"
+                           placeholder="A LinkedIn profile URL, an email, a person's name or a company"
+                           oninput="smartStartDetect()" onkeydown="if(event.key==='Enter'){event.preventDefault();smartStartRun();}">
+                    <button type="button" id="smartStartBtn" class="smart-start-btn" onclick="smartStartRun()">Find email</button>
+                </div>
+                <div id="smartStartHint" class="smart-start-hint">Paste a LinkedIn profile URL to get the person's work email or phone number.</div>
+                <div id="smartStartAlt" class="smart-start-alt hidden"></div>
+                <div class="smart-start-credits" id="smartStartCredits"></div>
+                <div class="smart-start-list">Got a whole list instead?
+                    <a href="#" onclick="smartStartRoute('csv');return false;"><i class="fas fa-file-csv"></i> Upload a CSV</a>
+                    <a href="#" onclick="smartStartRoute('sheets');return false;"><i class="fas fa-table" style="color:#16a34a;"></i> Google Sheets</a>
+                    <a href="#" onclick="smartStartRoute('api');return false;"><i class="fas fa-code"></i> API / n8n</a>
+                    <a href="#" onclick="smartStartRoute('crm');return false;"><i class="fab fa-hubspot" style="color:#ff7a59;"></i> HubSpot</a>
+                </div>
+            </div>
             <div id="routeChooser" class="route-chooser hidden">
                 <div class="route-chooser-title">Where is the data you want to enrich?</div>
                 <div class="route-chooser-sub">Pick one and we take you straight there. A single lookup is always available below.</div>
@@ -5718,6 +5754,7 @@ function checkAuth(){
 
     });
     maybeShowRouteChooser();
+    try { smartStartCreditsLine(); } catch (e) {}
 
     // Arriving from a done-for-you link elsewhere. The panel lives on this
     // page only, so everywhere else links in and asks for it by name.
@@ -5774,6 +5811,10 @@ function maybeShowRouteChooser() {
             if (strip) strip.classList.remove('hidden');
             return;
         }
+        // The smart-start box above it offers the same four routes in one line,
+        // plus the single lookup, so the big question is not stacked on top of
+        // it any more (docs/smart-start.md). ?route_test=1 still shows it.
+        if (!forced && document.getElementById('smartStart')) return;
         const el = document.getElementById('routeChooser');
         if (!el) return;
         el.classList.remove('hidden');
@@ -7551,6 +7592,78 @@ function downloadExampleCSV(){
     try{posthog.capture('example_csv_downloaded',{input_type:currentInputType});}catch(e){}
 }
 
+
+/* ------------------------------------------------- Smart start
+ * One input instead of two dropdowns. Detects what was pasted, picks the
+ * matching input/output pair, and hands over to quickStart(), so the real
+ * lookup, credit deduction and result panel are exactly the existing ones.
+ * docs/smart-start.md has the numbers behind it and what to watch.
+ */
+function smartStartClassify(raw) {
+    const v = (raw || '').trim();
+    if (!v) return null;
+    const low = v.toLowerCase();
+    if (/linkedin\.com\/in\//.test(low)) return { input: 'linkedin_profile', output: 'email', label: 'Find email', alt: [{ output: 'phone', label: 'Find phone number instead' }, { output: 'linkedin_info', label: 'Get full profile' }], hint: 'LinkedIn profile detected. Work email: 10 credits. Phone number: 50 credits.' };
+    if (/linkedin\.com\/company\//.test(low)) return { input: 'linkedin_company', output: 'linkedin_info', label: 'Get company data', alt: [{ output: 'employee_count', label: 'Employee count only' }], hint: 'LinkedIn company page detected.' };
+    if (/linkedin\.com\/(posts|feed)\//.test(low)) return { input: 'linkedin_post', output: 'reactions', label: 'Get who reacted', alt: [], hint: 'LinkedIn post detected: we list the people who reacted.' };
+    if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) return { input: 'email', output: 'linkedin_url', label: 'Find LinkedIn profile', alt: [], hint: 'Email detected: we find the LinkedIn profile behind it (5 credits).' };
+    if (/^(https?:\/\/)?(www\.)?[a-z0-9-]+(\.[a-z0-9-]+)+\/?$/i.test(v)) return { input: 'company_domain', output: 'employees', label: 'Find employees', alt: [], hint: 'Company domain detected: we list its employees.', noAuto: true };
+    if (/\s/.test(v)) return { input: 'lead_full_name', output: 'email', label: 'Find email', alt: [{ output: 'linkedin_url', label: 'Find LinkedIn profile instead' }], hint: "Looks like a person's name. Add their company on the next step.", noAuto: true };
+    return { input: 'company_name', output: 'website', label: 'Find website', alt: [{ output: 'linkedin_url', label: 'Company LinkedIn page' }, { output: 'phone', label: 'Company phone' }, { output: 'email', label: 'Company email' }], hint: 'Company name detected.' };
+}
+function smartStartCreditsLine() {
+    const el = document.getElementById('smartStartCredits');
+    if (!el) return;
+    const c = (typeof currentCredits === 'number') ? Math.floor(currentCredits) : null;
+    if (c === null) { el.textContent = ''; return; }
+    if (c <= 0) { el.textContent = 'You are out of credits.'; return; }
+    const emails = Math.floor(c / 10);
+    el.textContent = 'You have ' + c + ' credits' + (emails > 0 ? ', enough for about ' + emails + ' work email' + (emails === 1 ? '' : 's') + ' from LinkedIn profiles.' : '.');
+}
+function smartStartDetect() {
+    const inp = document.getElementById('smartStartInput');
+    const btn = document.getElementById('smartStartBtn');
+    const hint = document.getElementById('smartStartHint');
+    const alt = document.getElementById('smartStartAlt');
+    const k = smartStartClassify(inp ? inp.value : '');
+    smartStartCreditsLine();
+    if (!k) {
+        btn.textContent = 'Find email';
+        hint.textContent = "Paste a LinkedIn profile URL to get the person's work email or phone number.";
+        alt.classList.add('hidden'); alt.innerHTML = '';
+        return;
+    }
+    btn.textContent = k.label;
+    hint.textContent = k.hint;
+    if (k.alt && k.alt.length) {
+        alt.innerHTML = k.alt.map(function (o) { return '<a onclick="smartStartRun(\'' + o.output + '\')">' + o.label + '</a>'; }).join('');
+        alt.classList.remove('hidden');
+    } else { alt.classList.add('hidden'); alt.innerHTML = ''; }
+}
+function smartStartRoute(route) {
+    try { posthog.capture('smart_start_list_clicked', { route: route }); } catch (e) {}
+    pickRoute(route, 'smart_start');
+}
+function smartStartRun(outputOverride) {
+    const inp = document.getElementById('smartStartInput');
+    const v = inp ? inp.value.trim() : '';
+    const k = smartStartClassify(v);
+    if (!k) {
+        if (inp) { inp.focus(); inp.style.borderColor = '#ef4444'; setTimeout(function () { inp.style.borderColor = ''; }, 1500); }
+        try { posthog.capture('smart_start_empty'); } catch (e) {}
+        return;
+    }
+    const output = outputOverride || k.output;
+    const auto = !k.noAuto;
+    try { localStorage.setItem(ROUTE_PICKED_KEY, 'single'); } catch (e) {}
+    try { posthog.capture('smart_start_used', { input_type: k.input, output_type: output, auto_run: auto, override: !!outputOverride }); } catch (e) {}
+    if (k.input === 'lead_full_name') {
+        quickStart('lead_full_name', output, v, null, false);
+        setTimeout(function () { const cf = document.getElementById('leadCompany'); if (cf) cf.focus(); }, 450);
+        return;
+    }
+    quickStart(k.input, output, v, null, auto);
+}
 function quickStartBulk(inputType,outputType){
     const qs=document.getElementById('quickstartSection'); if(qs) qs.style.display='none';
     const inputSel=document.getElementById('inputType'); inputSel.value=inputType; inputSel.dispatchEvent(new Event('change'));
