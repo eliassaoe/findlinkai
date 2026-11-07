@@ -146,3 +146,20 @@ $10–15/month. Enabled by the `APIFY_TOKEN` secret.
 A later improvement for common names: resolve the company's LinkedIn URL
 (company_name → linkedin_url, 1 credit, 84%) and pass it as
 `currentCompanies`. Not done yet: it doubles the calls on the hardest rows.
+
+## Company name → LinkedIn company page (7 Nov 2026)
+
+77% "found" (4,700 runs in 150 days), but the n8n branch takes Google's first
+result unchecked. About 3% of all results are another company (Krause Rail →
+SRS Rail, Nihon Yamamura Glass → San Miguel Yamamura Australasia). A domain
+typed as the company finds 2.9%, against 85% for a plain name. Legal suffixes
+barely matter here (82% against 85%).
+
+Stripping suffixes in the Google query is double-edged: it found MZA Makas
+Fabrikası (correct) but also returned an Indian Meta-Tronix for an Italian
+Metatronix Srl. So the fix is checking the match, not rewriting the query.
+`workers/enrich-company-to-linkedin`: checks the Google top 10 by name, rejects
+legal forms from two different countries, searches domains as domains, and
+falls back to LinkedIn company search (Apify, ~$0.003). On 10 of the hardest
+names, LinkedIn company search found 3, all right, 2 of them never found by
+Google, and guessed none. Rollout prompt: `N8N-SETUP-PROMPT.md` in that folder.
