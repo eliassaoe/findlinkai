@@ -219,24 +219,17 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
       <div class="hero-preview">
         <div class="hero-preview-bar">
           <div class="hero-preview-dots"><span style="background:#ef4444"></span><span style="background:#f59e0b"></span><span style="background:#10b981"></span></div>
-          <div class="hero-preview-endpoint">POST /linkedin_profile_to_linkedin_info</div>
+          <div class="hero-preview-endpoint">POST linkedin_profile_to_email</div>
         </div>
         <pre>{
-  <span class="tok-key">&quot;success&quot;</span>: true,
-  <span class="tok-key">&quot;profile_url&quot;</span>: <span class="tok-str">&quot;https://linkedin.com/in/john-doe-stripe&quot;</span>,
-  <span class="tok-key">&quot;email&quot;</span>: <span class="tok-str">&quot;john.doe@stripe.com&quot;</span>,
-  <span class="tok-key">&quot;confidence_score&quot;</span>: <span class="tok-num">0.95</span>,
-  <span class="tok-key">&quot;verified&quot;</span>: true,
-  <span class="tok-key">&quot;full_name&quot;</span>: <span class="tok-str">&quot;John Doe&quot;</span>,
-  <span class="tok-key">&quot;job_title&quot;</span>: <span class="tok-str">&quot;Senior Software Engineer&quot;</span>,
-  <span class="tok-key">&quot;company&quot;</span>: <span class="tok-str">&quot;Stripe&quot;</span>,
-  <span class="tok-key">&quot;location&quot;</span>: <span class="tok-str">&quot;San Francisco, CA&quot;</span>,
-  <span class="tok-key">&quot;profile_picture&quot;</span>: <span class="tok-str">&quot;https://media.linkedin.com/...&quot;</span>,
-  <span class="tok-key">&quot;additional_emails&quot;</span>: [],
-  <span class="tok-key">&quot;last_updated&quot;</span>: <span class="tok-str">&quot;2024-01-15T10:30:00Z&quot;</span>,
-  <span class="tok-key">&quot;data_sources&quot;</span>: [&quot;linkedin&quot;, &quot;public_records&quot;],
-  <span class="tok-key">&quot;rate_limit_remaining&quot;</span>: <span class="tok-num">4999</span>,
-  <span class="tok-key">&quot;credits_used&quot;</span>: <span class="tok-num">1</span>
+  <span class="tok-key">&quot;type&quot;</span>: <span class="tok-str">&quot;linkedin_profile_to_email&quot;</span>,
+  <span class="tok-key">&quot;input_data&quot;</span>: <span class="tok-str">&quot;https://linkedin.com/in/john-doe-stripe&quot;</span>
+}
+
+<span style="opacity:.6">// response, 10 credits</span>
+{
+  <span class="tok-key">&quot;result&quot;</span>: <span class="tok-str">&quot;john.doe@stripe.com&quot;</span>,
+  <span class="tok-key">&quot;status&quot;</span>: <span class="tok-str">&quot;success&quot;</span>
 }</pre>
       </div>
     </div>
@@ -289,59 +282,50 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
       <button class="demo-tab" onclick="showTab('node', this)">Node.js</button>
       <button class="demo-tab" onclick="showTab('response', this)">Response</button>
     </div>
-    <div id="tab-curl" class="code-block"><pre>curl -X POST 'https://api.linkfinderai.com/linkedin_profile_to_linkedin_info' \
+    <div id="tab-curl" class="code-block"><pre>curl -X POST 'https://api.linkfinderai.com' \
   -H 'Authorization: Bearer YOUR_API_KEY' \
   -H 'Content-Type: application/json' \
-  -d '{"linkedin_url": "https://linkedin.com/in/john-doe-stripe"}'</pre></div>
+  -d '{
+    "type": "linkedin_profile_to_email",
+    "input_data": "https://linkedin.com/in/john-doe-stripe"
+  }'</pre></div>
     <div id="tab-python" class="code-block" style="display:none;"><pre>import requests
 
-url = 'https://api.linkfinderai.com/linkedin_profile_to_linkedin_info'
-headers = {
-    'Authorization': 'Bearer YOUR_API_KEY',
-    'Content-Type': 'application/json'
-}
-data = {
-    'linkedin_url': 'https://linkedin.com/in/john-doe-stripe'
-}
-
-response = requests.post(url, headers=headers, json=data)
-email_data = response.json()
-print(f"Found email: {email_data['email']}")</pre></div>
-    <div id="tab-node" class="code-block" style="display:none;"><pre>const fetch = require('node-fetch');
-
-const findEmail = async () => {
-  const response = await fetch('https://api.linkfinderai.com/linkedin_profile_to_linkedin_info', {
-    method: 'POST',
-    headers: {
-      'Authorization': 'Bearer YOUR_API_KEY',
-      'Content-Type': 'application/json'
+resp = requests.post(
+    "https://api.linkfinderai.com",
+    headers={"Authorization": "Bearer YOUR_API_KEY"},
+    json={
+        "type": "linkedin_profile_to_email",
+        "input_data": "https://linkedin.com/in/john-doe-stripe",
     },
-    body: JSON.stringify({
-      linkedin_url: 'https://linkedin.com/in/john-doe-stripe'
-    })
-  });
-  
-  const emailData = await response.json();
-  console.log('Found email:', emailData.email);
-};
+)
+data = resp.json()
+if data["status"] == "success":
+    print("Found email:", data["result"])</pre></div>
+    <div id="tab-node" class="code-block" style="display:none;"><pre>const resp = await fetch("https://api.linkfinderai.com", {
+  method: "POST",
+  headers: {
+    "Authorization": "Bearer YOUR_API_KEY",
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    type: "linkedin_profile_to_email",
+    input_data: "https://linkedin.com/in/john-doe-stripe",
+  }),
+});
+const data = await resp.json();
+if (data.status === "success") console.log("Found email:", data.result);</pre></div>
+    <div id="tab-response" class="code-block" style="display:none;"><pre>// Found (10 credits)
+{
+  "result": "john.doe@stripe.com",
+  "status": "success"
+}
 
-findEmail();</pre></div>
-    <div id="tab-response" class="code-block" style="display:none;"><pre>{
-  "success": true,
-  "profile_url": "https://linkedin.com/in/john-doe-stripe",
-  "email": "john.doe@stripe.com",
-  "confidence_score": 0.95,
-  "verified": true,
-  "full_name": "John Doe",
-  "job_title": "Senior Software Engineer",
-  "company": "Stripe",
-  "location": "San Francisco, CA",
-  "profile_picture": "https://media.linkedin.com/...",
-  "additional_emails": [],
-  "last_updated": "2024-01-15T10:30:00Z",
-  "data_sources": ["linkedin", "public_records"],
-  "rate_limit_remaining": 4999,
-  "credits_used": 1
+// Not found
+{
+  "result": null,
+  "status": "error",
+  "message": "..."
 }</pre></div>
   </div>
 </section>

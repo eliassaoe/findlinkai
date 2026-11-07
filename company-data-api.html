@@ -220,23 +220,17 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
       <div class="hero-preview">
         <div class="hero-preview-bar">
           <div class="hero-preview-dots"><span style="background:#ef4444"></span><span style="background:#f59e0b"></span><span style="background:#10b981"></span></div>
-          <div class="hero-preview-endpoint">POST /company_domain_to_employees</div>
+          <div class="hero-preview-endpoint">POST &middot; company_domain_to_employees</div>
         </div>
         <pre>{
-  <span class="tok-key">"company"</span>: {
-    <span class="tok-key">"name"</span>: <span class="tok-str">"Stripe"</span>,
-    <span class="tok-key">"domain"</span>: <span class="tok-str">"stripe.com"</span>,
-    <span class="tok-key">"employee_count"</span>: <span class="tok-num">4000</span>,
-    <span class="tok-key">"linkedin_url"</span>: <span class="tok-str">"linkedin.com/company/stripe"</span>
-  },
-  <span class="tok-key">"employees"</span>: [
+  <span class="tok-key">&quot;result&quot;</span>: [
     {
-      <span class="tok-key">"name"</span>: <span class="tok-str">"Patrick Collison"</span>,
-      <span class="tok-key">"title"</span>: <span class="tok-str">"CEO"</span>,
-      <span class="tok-key">"email"</span>: <span class="tok-str">"patrick@stripe.com"</span>
+      <span class="tok-key">&quot;full_name&quot;</span>: <span class="tok-str">&quot;Jane Doe&quot;</span>,
+      <span class="tok-key">&quot;job_title&quot;</span>: <span class="tok-str">&quot;Director of Marketing&quot;</span>,
+      <span class="tok-key">&quot;linkedin_url&quot;</span>: <span class="tok-str">&quot;https://linkedin.com/in/jane-doe-example&quot;</span>
     }
   ],
-  <span class="tok-key">"total_found"</span>: <span class="tok-num">4000</span>
+  <span class="tok-key">&quot;status&quot;</span>: <span class="tok-str">&quot;success&quot;</span>
 }</pre>
       </div>
     </div>
@@ -271,28 +265,38 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
       <button class="demo-tab" onclick="showTab('node', this)">Node.js</button>
       <button class="demo-tab" onclick="showTab('response', this)">Response</button>
     </div>
-    <div id="tab-curl" class="code-block"><pre>curl -X POST 'https://api.linkfinderai.com/company_domain_to_employees' \
+    <div id="tab-curl" class="code-block"><pre>curl -X POST 'https://api.linkfinderai.com' \
   -H 'Authorization: Bearer YOUR_API_KEY' \
   -H 'Content-Type: application/json' \
-  -d '{"domain": "stripe.com", "limit": 50}'</pre></div>
+  -d '{
+    "type": "company_domain_to_employees",
+    "input_data": "stripe.com",
+    "seniority": "director",
+    "employee_count": 50
+  }'</pre></div>
     <div id="tab-python" class="code-block" style="display:none;"><pre>import requests
 
-url = 'https://api.linkfinderai.com/company_domain_to_employees'
+url = 'https://api.linkfinderai.com'
 headers = {
     'Authorization': 'Bearer YOUR_API_KEY',
     'Content-Type': 'application/json'
 }
 data = {
-    'domain': 'stripe.com',
-    'limit': 50
+    'type': 'company_domain_to_employees',
+    'input_data': 'stripe.com',
+    'seniority': 'director',     # optional filter
+    'employee_count': 50         # optional: max results
 }
 
 response = requests.post(url, headers=headers, json=data)
 company_data = response.json()
-print(f"Found {len(company_data['employees'])} employees")</pre></div>
+# Large lists can exceed the ~27s sync window: if the response has a
+# job_id, poll GET /status/&lt;job_id> until "status" is "done"
+if 'job_id' not in company_data:
+    print(f"Found {len(company_data['result'])} employees")</pre></div>
     <div id="tab-node" class="code-block" style="display:none;"><pre>const fetch = require('node-fetch');
 
-const url = 'https://api.linkfinderai.com/company_domain_to_employees';
+const url = 'https://api.linkfinderai.com';
 const options = {
   method: 'POST',
   headers: {
@@ -300,35 +304,33 @@ const options = {
     'Content-Type': 'application/json'
   },
   body: JSON.stringify({
-    domain: 'stripe.com',
-    limit: 50
+    type: 'company_domain_to_employees',
+    input_data: 'stripe.com',
+    seniority: 'director',
+    employee_count: 50
   })
 };
 
 fetch(url, options)
   .then(res => res.json())
-  .then(data => console.log(data));</pre></div>
+  .then(data => console.log(data.job_id ? `Poll /status/${data.job_id}` : data.result));</pre></div>
     <div id="tab-response" class="code-block" style="display:none;"><pre>{
-  "company": {
-    "name": "Stripe",
-    "domain": "stripe.com",
-    "employee_count": 4000,
-    "industry": "Financial Technology",
-    "linkedin_url": "https://linkedin.com/company/stripe"
-  },
-  "employees": [
+  "result": [
     {
-      "name": "Patrick Collison",
-      "title": "CEO",
-      "linkedin_url": "https://linkedin.com/in/patrickcollison",
-      "email": "patrick@stripe.com"
+      "full_name": "Jane Doe",
+      "job_title": "Director of Marketing",
+      "linkedin_url": "https://linkedin.com/in/jane-doe-example"
+    },
+    {
+      "full_name": "John Smith",
+      "job_title": "Director of Engineering",
+      "linkedin_url": "https://linkedin.com/in/john-smith-example"
     }
   ],
-  "total_found": 4000,
-  "page": 1
+  "status": "success"
 }</pre></div>
     <div class="inline-cta">
-      <p><strong>Ready to run this yourself?</strong> Free accounts start with 25 credits — no card required.</p>
+      <p><strong>Ready to run this yourself?</strong> Free accounts start with free credits — no card required.</p>
       <a href="https://linkfinderai.com/sign-up?intent=api" class="btn">Get API Key Free</a>
     </div>
   </div>

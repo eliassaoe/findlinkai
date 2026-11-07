@@ -219,22 +219,20 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
       <div class="hero-preview">
         <div class="hero-preview-bar">
           <div class="hero-preview-dots"><span style="background:#ef4444"></span><span style="background:#f59e0b"></span><span style="background:#10b981"></span></div>
-          <div class="hero-preview-endpoint">POST /email_to_linkedin_url</div>
+          <div class="hero-preview-endpoint">POST &middot; instagram_profile_to_instagram_info</div>
         </div>
         <pre>{
-  <span class="tok-key">&quot;success&quot;</span>: true,
-  <span class="tok-key">&quot;linkedin_url&quot;</span>: <span class="tok-str">&quot;https://linkedin.com/in/sarah-chen-notion&quot;</span>,
-  <span class="tok-key">&quot;profile_data&quot;</span>: {
-    <span class="tok-key">&quot;name&quot;</span>: <span class="tok-str">&quot;Sarah Chen&quot;</span>,
-    <span class="tok-key">&quot;headline&quot;</span>: <span class="tok-str">&quot;Product Manager at Notion&quot;</span>,
-    <span class="tok-key">&quot;location&quot;</span>: <span class="tok-str">&quot;San Francisco, CA&quot;</span>,
-    <span class="tok-key">&quot;company&quot;</span>: <span class="tok-str">&quot;Notion&quot;</span>,
-    <span class="tok-key">&quot;industry&quot;</span>: <span class="tok-str">&quot;Software Development&quot;</span>
+  <span class="tok-key">&quot;result&quot;</span>: {
+    <span class="tok-key">&quot;username&quot;</span>: <span class="tok-str">&quot;acmecoffee&quot;</span>,
+    <span class="tok-key">&quot;full_name&quot;</span>: <span class="tok-str">&quot;Acme Coffee Roasters&quot;</span>,
+    <span class="tok-key">&quot;biography&quot;</span>: <span class="tok-str">&quot;Small-batch coffee, roasted in Austin.&quot;</span>,
+    <span class="tok-key">&quot;followers&quot;</span>: <span class="tok-num">48200</span>,
+    <span class="tok-key">&quot;following&quot;</span>: <span class="tok-num">312</span>,
+    <span class="tok-key">&quot;posts&quot;</span>: <span class="tok-num">1240</span>,
+    <span class="tok-key">&quot;is_verified&quot;</span>: false,
+    <span class="tok-key">&quot;external_url&quot;</span>: <span class="tok-str">&quot;https://acmecoffee-example.com&quot;</span>
   },
-  <span class="tok-key">&quot;confidence_score&quot;</span>: <span class="tok-num">0.95</span>,
-  <span class="tok-key">&quot;last_updated&quot;</span>: <span class="tok-str">&quot;2024-01-15T10:30:00Z&quot;</span>,
-  <span class="tok-key">&quot;credits_used&quot;</span>: <span class="tok-num">1</span>,
-  <span class="tok-key">&quot;request_id&quot;</span>: <span class="tok-str">&quot;req_instagram_enrich_789&quot;</span>
+  <span class="tok-key">&quot;status&quot;</span>: <span class="tok-str">&quot;success&quot;</span>
 }</pre>
       </div>
     </div>
@@ -269,52 +267,64 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
       <button class="demo-tab" onclick="showTab('node', this)">Node.js</button>
       <button class="demo-tab" onclick="showTab('response', this)">Response</button>
     </div>
-    <div id="tab-curl" class="code-block"><pre>curl -X POST 'https://api.linkfinderai.com/email_to_linkedin_url' \
+    <div id="tab-curl" class="code-block"><pre>curl -X POST 'https://api.linkfinderai.com' \
   -H 'Authorization: Bearer YOUR_API_KEY' \
   -H 'Content-Type: application/json' \
-  -d '{"email": "john.doe@stripe.com"}'</pre></div>
+  -d '{"type": "instagram_profile_to_instagram_info", "input_data": "https://www.instagram.com/natgeo"}'</pre></div>
     <div id="tab-python" class="code-block" style="display:none;"><pre>import requests
-import json
 
-url = 'https://api.linkfinderai.com/email_to_linkedin_url'
+url = 'https://api.linkfinderai.com'
 headers = {
     'Authorization': 'Bearer YOUR_API_KEY',
     'Content-Type': 'application/json'
 }
-data = {'email': 'sarah.chen@notion.so'}
+data = {
+    'type': 'instagram_profile_to_instagram_info',
+    'input_data': 'https://www.instagram.com/natgeo'
+}
 
 response = requests.post(url, headers=headers, json=data)
-linkedin_data = response.json()
-print(f"LinkedIn URL: {linkedin_data['linkedin_url']}")</pre></div>
+result = response.json()
+if result['status'] == 'success':
+    print(f"{result['result']['full_name']}: {result['result']['followers']} followers")
+else:
+    print(result.get('message'))  # e.g. Profile not found</pre></div>
     <div id="tab-node" class="code-block" style="display:none;"><pre>const fetch = require('node-fetch');
 
-const enrichInstagramProfile = async (email) => {
-  const response = await fetch('https://api.linkfinderai.com/email_to_linkedin_url', {
+const enrichInstagramProfile = async (input) => {
+  const response = await fetch('https://api.linkfinderai.com', {
     method: 'POST',
     headers: {
       'Authorization': 'Bearer YOUR_API_KEY',
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify({ email: email })
+    body: JSON.stringify({ type: 'instagram_profile_to_instagram_info', input_data: input })
   });
-  return await response.json();
+  const { status, result, message } = await response.json();
+  return status === 'success' ? result : message;
 };
 
-enrichInstagramProfile('mike.johnson@hubspot.com');</pre></div>
-    <div id="tab-response" class="code-block" style="display:none;"><pre>{
-  "success": true,
-  "linkedin_url": "https://linkedin.com/in/sarah-chen-notion",
-  "profile_data": {
-    "name": "Sarah Chen",
-    "headline": "Product Manager at Notion",
-    "location": "San Francisco, CA",
-    "company": "Notion",
-    "industry": "Software Development"
+enrichInstagramProfile('https://www.instagram.com/natgeo').then((profile) => console.log(profile));</pre></div>
+    <div id="tab-response" class="code-block" style="display:none;"><pre>// Success
+{
+  "result": {
+    "username": "acmecoffee",
+    "full_name": "Acme Coffee Roasters",
+    "biography": "Small-batch coffee, roasted in Austin.",
+    "followers": 48200,
+    "following": 312,
+    "posts": 1240,
+    "is_verified": false,
+    "external_url": "https://acmecoffee-example.com"
   },
-  "confidence_score": 0.95,
-  "last_updated": "2024-01-15T10:30:00Z",
-  "credits_used": 1,
-  "request_id": "req_instagram_enrich_789"
+  "status": "success"
+}
+
+// Not found
+{
+  "result": null,
+  "status": "error",
+  "message": "Profile not found"
 }</pre></div>
   </div>
 </section>

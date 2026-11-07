@@ -374,49 +374,55 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
       <button class="demo-tab" onclick="showTab('node', this)">Node.js</button>
       <button class="demo-tab" onclick="showTab('response', this)">Response</button>
     </div>
-    <div id="tab-curl" class="code-block"><pre>curl -X GET "https://api.linkfinderai.com/email_to_linkedin_url?email=jane.doe@acmecorp-example.com" -H "Authorization: Bearer YOUR_API_KEY" -H "Content-Type: application/json"</pre></div>
+    <div id="tab-curl" class="code-block"><pre>curl -X POST "https://api.linkfinderai.com" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"type": "email_to_linkedin_url", "input_data": "jane.doe@acmecorp-example.com"}'</pre></div>
     <div id="tab-python" class="code-block" style="display:none;"><pre>import requests
 
-url = "https://api.linkfinderai.com/email_to_linkedin_url"
+url = "https://api.linkfinderai.com"
 headers = {
     "Authorization": "Bearer YOUR_API_KEY",
     "Content-Type": "application/json"
 }
-params = {"email": "jane.doe@acmecorp-example.com"}
+data = {
+    "type": "email_to_linkedin_url",
+    "input_data": "jane.doe@acmecorp-example.com"
+}
 
-response = requests.get(url, headers=headers, params=params)
-data = response.json()
-print(f"LinkedIn URL: {data['linkedin_url']}")</pre></div>
+response = requests.post(url, headers=headers, json=data)
+result = response.json()
+if result["status"] == "success":
+    print(f"LinkedIn URL: {result['result']}")
+else:
+    print(result.get("message"))  # e.g. LinkedIn profile not found</pre></div>
     <div id="tab-node" class="code-block" style="display:none;"><pre>const fetch = require('node-fetch');
 
-const url = 'https://api.linkfinderai.com/email_to_linkedin_url?email=jane.doe@acmecorp-example.com';
-const options = {
-  method: 'GET',
-  headers: {
-    'Authorization': 'Bearer YOUR_API_KEY',
-    'Content-Type': 'application/json'
-  }
+const findLinkedIn = async (input) => {
+  const response = await fetch('https://api.linkfinderai.com', {
+    method: 'POST',
+    headers: {
+      'Authorization': 'Bearer YOUR_API_KEY',
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ type: 'email_to_linkedin_url', input_data: input })
+  });
+  const { status, result, message } = await response.json();
+  return status === 'success' ? result : message;
 };
 
-fetch(url, options)
-  .then(response => response.json())
-  .then(data => console.log('LinkedIn Profile:', data.linkedin_url));</pre></div>
-    <div id="tab-response" class="code-block" style="display:none;"><pre>{
-  "success": true,
-  "email": "jane.doe@acmecorp-example.com",
-  "linkedin_url": "https://linkedin.com/in/jane-doe-example",
-  "profile_data": {
-    "name": "Jane Doe",
-    "title": "Product Manager",
-    "company": "Acme Corp",
-    "location": "Austin, TX",
-    "verified": true,
-    "phone": "+1-512-555-0100",
-    "social_profiles": {
-      "twitter": "@janedoe_pm"
-    }
-  },
-  "credits_used": 1
+findLinkedIn('jane.doe@acmecorp-example.com').then((linkedinUrl) => console.log('LinkedIn Profile:', linkedinUrl));</pre></div>
+    <div id="tab-response" class="code-block" style="display:none;"><pre>// Success
+{
+  "result": "https://linkedin.com/in/jane-doe-example",
+  "status": "success"
+}
+
+// Not found
+{
+  "result": null,
+  "status": "error",
+  "message": "LinkedIn profile not found"
 }</pre></div>
   </div>
 </section>

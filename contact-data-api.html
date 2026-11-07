@@ -219,27 +219,11 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
       <div class="hero-preview">
         <div class="hero-preview-bar">
           <div class="hero-preview-dots"><span style="background:#ef4444"></span><span style="background:#f59e0b"></span><span style="background:#10b981"></span></div>
-          <div class="hero-preview-endpoint">POST /linkedin_profile_to_phone</div>
+          <div class="hero-preview-endpoint">POST &middot; linkedin_profile_to_phone</div>
         </div>
         <pre>{
-  <span class="tok-key">&quot;success&quot;</span>: true,
-  <span class="tok-key">&quot;data&quot;</span>: {
-    <span class="tok-key">&quot;linkedin_url&quot;</span>: <span class="tok-str">&quot;https://linkedin.com/in/johndoe&quot;</span>,
-    <span class="tok-key">&quot;phone_number&quot;</span>: <span class="tok-str">&quot;+1-555-123-4567&quot;</span>,
-    <span class="tok-key">&quot;phone_type&quot;</span>: <span class="tok-str">&quot;mobile&quot;</span>,
-    <span class="tok-key">&quot;country_code&quot;</span>: <span class="tok-str">&quot;US&quot;</span>,
-    <span class="tok-key">&quot;is_verified&quot;</span>: true,
-    <span class="tok-key">&quot;confidence_score&quot;</span>: <span class="tok-num">0.95</span>,
-    <span class="tok-key">&quot;last_updated&quot;</span>: <span class="tok-str">&quot;2024-01-15T10:30:00Z&quot;</span>,
-    <span class="tok-key">&quot;additional_data&quot;</span>: {
-      <span class="tok-key">&quot;full_name&quot;</span>: <span class="tok-str">&quot;John Doe&quot;</span>,
-      <span class="tok-key">&quot;job_title&quot;</span>: <span class="tok-str">&quot;VP of Sales&quot;</span>,
-      <span class="tok-key">&quot;company&quot;</span>: <span class="tok-str">&quot;Stripe&quot;</span>,
-      <span class="tok-key">&quot;location&quot;</span>: <span class="tok-str">&quot;San Francisco, CA&quot;</span>
-    }
-  },
-  <span class="tok-key">&quot;credits_used&quot;</span>: <span class="tok-num">1</span>,
-  <span class="tok-key">&quot;request_id&quot;</span>: <span class="tok-str">&quot;req_abc123&quot;</span>
+  <span class="tok-key">&quot;result&quot;</span>: <span class="tok-str">&quot;+1 415 555 0198&quot;</span>,
+  <span class="tok-key">&quot;status&quot;</span>: <span class="tok-str">&quot;success&quot;</span>
 }</pre>
       </div>
     </div>
@@ -274,31 +258,35 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
       <button class="demo-tab" onclick="showTab('node', this)">Node.js</button>
       <button class="demo-tab" onclick="showTab('response', this)">Response</button>
     </div>
-    <div id="tab-curl" class="code-block"><pre>curl -X POST https://api.linkfinderai.com/linkedin_profile_to_phone \
+    <div id="tab-curl" class="code-block"><pre>curl -X POST "https://api.linkfinderai.com" \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"linkedin_url": "https://linkedin.com/in/johndoe"}'</pre></div>
+  -d '{"type": "linkedin_profile_to_phone", "input_data": "https://linkedin.com/in/johndoe"}'</pre></div>
     <div id="tab-python" class="code-block" style="display:none;"><pre>import requests
 
-url = "https://api.linkfinderai.com/linkedin_profile_to_phone"
+url = "https://api.linkfinderai.com"
 headers = {
     "Authorization": "Bearer YOUR_API_KEY",
     "Content-Type": "application/json"
 }
 data = {
-    "linkedin_url": "https://linkedin.com/in/johndoe"
+    "type": "linkedin_profile_to_phone",
+    "input_data": "https://linkedin.com/in/johndoe"
 }
 
 response = requests.post(url, headers=headers, json=data)
-contact_data = response.json()
-print(f"Phone: {contact_data['phone_number']}")</pre></div>
+result = response.json()
+if result["status"] == "success":
+    print(f"Phone: {result['result']}")
+else:
+    print(result.get("message"))  # e.g. Phone not found</pre></div>
     <div id="tab-node" class="code-block" style="display:none;"><pre>const axios = require('axios');
 
 const enrichContact = async () => {
   try {
     const response = await axios.post(
-      'https://api.linkfinderai.com/linkedin_profile_to_phone',
-      { linkedin_url: 'https://linkedin.com/in/johndoe' },
+      'https://api.linkfinderai.com',
+      { type: 'linkedin_profile_to_phone', input_data: 'https://linkedin.com/in/johndoe' },
       {
         headers: {
           'Authorization': 'Bearer YOUR_API_KEY',
@@ -306,32 +294,25 @@ const enrichContact = async () => {
         }
       }
     );
-    console.log('Phone:', response.data.phone_number);
+    const { status, result, message } = response.data;
+    console.log(status === 'success' ? `Phone: ${result}` : message);
   } catch (error) {
     console.error('Error:', error.message);
   }
 };
 
 enrichContact();</pre></div>
-    <div id="tab-response" class="code-block" style="display:none;"><pre>{
-  "success": true,
-  "data": {
-    "linkedin_url": "https://linkedin.com/in/johndoe",
-    "phone_number": "+1-555-123-4567",
-    "phone_type": "mobile",
-    "country_code": "US",
-    "is_verified": true,
-    "confidence_score": 0.95,
-    "last_updated": "2024-01-15T10:30:00Z",
-    "additional_data": {
-      "full_name": "John Doe",
-      "job_title": "VP of Sales",
-      "company": "Stripe",
-      "location": "San Francisco, CA"
-    }
-  },
-  "credits_used": 1,
-  "request_id": "req_abc123"
+    <div id="tab-response" class="code-block" style="display:none;"><pre>// Success
+{
+  "result": "+1 415 555 0198",
+  "status": "success"
+}
+
+// Not found
+{
+  "result": null,
+  "status": "error",
+  "message": "Phone not found"
 }</pre></div>
   </div>
 </section>

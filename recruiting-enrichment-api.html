@@ -219,29 +219,38 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
       <div class="hero-preview">
         <div class="hero-preview-bar">
           <div class="hero-preview-dots"><span style="background:#ef4444"></span><span style="background:#f59e0b"></span><span style="background:#10b981"></span></div>
-          <div class="hero-preview-endpoint">POST /linkedin_profile_to_linkedin_info</div>
+          <div class="hero-preview-endpoint">POST &middot; linkedin_profile_to_linkedin_info (async)</div>
         </div>
         <pre>{
-  <span class="tok-key">&quot;full_name&quot;</span>: <span class="tok-str">&quot;Sarah Johnson&quot;</span>,
-  <span class="tok-key">&quot;headline&quot;</span>: <span class="tok-str">&quot;Senior Marketing Manager at HubSpot&quot;</span>,
-  <span class="tok-key">&quot;location&quot;</span>: <span class="tok-str">&quot;Boston, MA&quot;</span>,
-  <span class="tok-key">&quot;company&quot;</span>: <span class="tok-str">&quot;HubSpot&quot;</span>,
-  <span class="tok-key">&quot;position&quot;</span>: <span class="tok-str">&quot;Senior Marketing Manager&quot;</span>,
-  <span class="tok-key">&quot;industry&quot;</span>: <span class="tok-str">&quot;Marketing Technology&quot;</span>,
-  <span class="tok-key">&quot;experience&quot;</span>: [
-    {
+  <span class="tok-key">&quot;status&quot;</span>: <span class="tok-str">&quot;done&quot;</span>,
+  <span class="tok-key">&quot;data&quot;</span>: {
+    <span class="tok-key">&quot;result&quot;</span>: {
+      <span class="tok-key">&quot;full_name&quot;</span>: <span class="tok-str">&quot;Sarah Johnson&quot;</span>,
+      <span class="tok-key">&quot;headline&quot;</span>: <span class="tok-str">&quot;Senior Marketing Manager at HubSpot&quot;</span>,
+      <span class="tok-key">&quot;job_title&quot;</span>: <span class="tok-str">&quot;Senior Marketing Manager&quot;</span>,
       <span class="tok-key">&quot;company&quot;</span>: <span class="tok-str">&quot;HubSpot&quot;</span>,
-      <span class="tok-key">&quot;position&quot;</span>: <span class="tok-str">&quot;Senior Marketing Manager&quot;</span>,
-      <span class="tok-key">&quot;duration&quot;</span>: <span class="tok-str">&quot;2021-Present&quot;</span>
+      <span class="tok-key">&quot;location&quot;</span>: <span class="tok-str">&quot;Boston, MA&quot;</span>,
+      <span class="tok-key">&quot;experience&quot;</span>: [
+        {
+          <span class="tok-key">&quot;title&quot;</span>: <span class="tok-str">&quot;Senior Marketing Manager&quot;</span>,
+          <span class="tok-key">&quot;company&quot;</span>: <span class="tok-str">&quot;HubSpot&quot;</span>,
+          <span class="tok-key">&quot;duration&quot;</span>: <span class="tok-str">&quot;2021 - Present&quot;</span>
+        },
+        {
+          <span class="tok-key">&quot;title&quot;</span>: <span class="tok-str">&quot;Marketing Specialist&quot;</span>,
+          <span class="tok-key">&quot;company&quot;</span>: <span class="tok-str">&quot;Salesforce&quot;</span>,
+          <span class="tok-key">&quot;duration&quot;</span>: <span class="tok-str">&quot;2019 - 2021&quot;</span>
+        }
+      ],
+      <span class="tok-key">&quot;education&quot;</span>: [
+        {
+          <span class="tok-key">&quot;school&quot;</span>: <span class="tok-str">&quot;Boston University&quot;</span>,
+          <span class="tok-key">&quot;degree&quot;</span>: <span class="tok-str">&quot;MBA Marketing&quot;</span>
+        }
+      ]
     },
-    {
-      <span class="tok-key">&quot;company&quot;</span>: <span class="tok-str">&quot;Salesforce&quot;</span>,
-      <span class="tok-key">&quot;position&quot;</span>: <span class="tok-str">&quot;Marketing Specialist&quot;</span>,
-      <span class="tok-key">&quot;duration&quot;</span>: <span class="tok-str">&quot;2019-2021&quot;</span>
-    }
-  ],
-  <span class="tok-key">&quot;skills&quot;</span>: [&quot;Digital Marketing&quot;, &quot;Lead Generation&quot;, &quot;Marketing Automation&quot;],
-  <span class="tok-key">&quot;education&quot;</span>: <span class="tok-str">&quot;MBA Marketing, Boston University&quot;</span>
+    <span class="tok-key">&quot;status&quot;</span>: <span class="tok-str">&quot;success&quot;</span>
+  }
 }</pre>
       </div>
     </div>
@@ -276,64 +285,108 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
       <button class="demo-tab" onclick="showTab('node', this)">Node.js</button>
       <button class="demo-tab" onclick="showTab('response', this)">Response</button>
     </div>
-    <div id="tab-curl" class="code-block"><pre>curl -X POST 'https://api.linkfinderai.com/linkedin_profile_to_linkedin_info' \
+    <div id="tab-curl" class="code-block"><pre># 1. Start the job (always async: returns a job_id right away)
+curl -X POST 'https://api.linkfinderai.com' \
   -H 'Authorization: Bearer YOUR_API_KEY' \
   -H 'Content-Type: application/json' \
-  -d '{"linkedin_url": "https://linkedin.com/in/john-doe-engineer"}'</pre></div>
-    <div id="tab-python" class="code-block" style="display:none;"><pre>import requests
+  -d '{"type": "linkedin_profile_to_linkedin_info", "input_data": "https://linkedin.com/in/sarah-marketing-manager"}'
 
-url = 'https://api.linkfinderai.com/linkedin_profile_to_linkedin_info'
+# 2. Wait ~60s, then poll every 10-15s until "status" is "done"
+curl 'https://api.linkfinderai.com/status/JOB_ID' \
+  -H 'Authorization: Bearer YOUR_API_KEY'</pre></div>
+    <div id="tab-python" class="code-block" style="display:none;"><pre>import time
+import requests
+
+url = 'https://api.linkfinderai.com'
 headers = {
     'Authorization': 'Bearer YOUR_API_KEY',
     'Content-Type': 'application/json'
 }
 data = {
-    'linkedin_url': 'https://linkedin.com/in/sarah-marketing-manager'
+    'type': 'linkedin_profile_to_linkedin_info',
+    'input_data': 'https://linkedin.com/in/sarah-marketing-manager'
 }
 
-response = requests.post(url, headers=headers, json=data)
-candidate_data = response.json()
-print(f"Candidate: {candidate_data['full_name']} at {candidate_data['company']}")</pre></div>
+# 1. Start the job: this endpoint always returns a job_id
+job = requests.post(url, headers=headers, json=data).json()
+
+# 2. The scrape takes about a minute: wait ~60s, then poll every 10-15s
+time.sleep(60)
+while True:
+    poll = requests.get(f'https://api.linkfinderai.com/status/{job["job_id"]}', headers=headers).json()
+    if poll['status'] != 'processing':
+        break
+    time.sleep(15)
+
+profile = poll['data']['result']
+print(f"Candidate: {profile['full_name']} at {profile['company']}")</pre></div>
     <div id="tab-node" class="code-block" style="display:none;"><pre>const fetch = require('node-fetch');
 
-const enrichCandidate = async () => {
-  const response = await fetch('https://api.linkfinderai.com/linkedin_profile_to_linkedin_info', {
-    method: 'POST',
-    headers: {
-      'Authorization': 'Bearer YOUR_API_KEY',
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      linkedin_url: 'https://linkedin.com/in/tech-recruiter-mike'
-    })
-  });
-  
-  const candidateData = await response.json();
-  console.log(`Enriched: ${candidateData.full_name}`);
+const API_URL = 'https://api.linkfinderai.com';
+const headers = {
+  'Authorization': 'Bearer YOUR_API_KEY',
+  'Content-Type': 'application/json'
 };
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-enrichCandidate();</pre></div>
-    <div id="tab-response" class="code-block" style="display:none;"><pre>{
-  "full_name": "Sarah Johnson",
-  "headline": "Senior Marketing Manager at HubSpot",
-  "location": "Boston, MA",
-  "company": "HubSpot",
-  "position": "Senior Marketing Manager",
-  "industry": "Marketing Technology",
-  "experience": [
-    {
+async function getProfile(linkedinUrl) {
+  // 1. Start the job: this endpoint always returns a job_id
+  const res = await fetch(API_URL, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ type: 'linkedin_profile_to_linkedin_info', input_data: linkedinUrl })
+  });
+  const { job_id } = await res.json();
+
+  // 2. Wait ~60s, then poll every 10-15s until the scrape is done
+  await sleep(60000);
+  while (true) {
+    const poll = await (await fetch(`${API_URL}/status/${job_id}`, { headers })).json();
+    if (poll.status !== 'processing') return poll.data.result;
+    await sleep(15000);
+  }
+}
+
+getProfile('https://linkedin.com/in/sarah-marketing-manager')
+  .then((profile) => console.log(`Enriched: ${profile.full_name}`));</pre></div>
+    <div id="tab-response" class="code-block" style="display:none;"><pre>// 1. POST returns immediately
+{
+  "job_id": "c9f1e2a0-...",
+  "status": "processing",
+  "poll_url": "https://api.linkfinderai.com/status/c9f1e2a0-..."
+}
+
+// 2. GET /status/c9f1e2a0-... once the scrape finishes (~60s)
+{
+  "status": "done",
+  "data": {
+    "result": {
+      "full_name": "Sarah Johnson",
+      "headline": "Senior Marketing Manager at HubSpot",
+      "job_title": "Senior Marketing Manager",
       "company": "HubSpot",
-      "position": "Senior Marketing Manager",
-      "duration": "2021-Present"
+      "location": "Boston, MA",
+      "experience": [
+        {
+          "title": "Senior Marketing Manager",
+          "company": "HubSpot",
+          "duration": "2021 - Present"
+        },
+        {
+          "title": "Marketing Specialist",
+          "company": "Salesforce",
+          "duration": "2019 - 2021"
+        }
+      ],
+      "education": [
+        {
+          "school": "Boston University",
+          "degree": "MBA Marketing"
+        }
+      ]
     },
-    {
-      "company": "Salesforce",
-      "position": "Marketing Specialist",
-      "duration": "2019-2021"
-    }
-  ],
-  "skills": ["Digital Marketing", "Lead Generation", "Marketing Automation"],
-  "education": "MBA Marketing, Boston University"
+    "status": "success"
+  }
 }</pre></div>
   </div>
 </section>

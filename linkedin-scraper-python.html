@@ -219,30 +219,34 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
       <div class="hero-preview">
         <div class="hero-preview-bar">
           <div class="hero-preview-dots"><span style="background:#ef4444"></span><span style="background:#f59e0b"></span><span style="background:#10b981"></span></div>
-          <div class="hero-preview-endpoint">POST /linkedin_profile_to_linkedin_info</div>
+          <div class="hero-preview-endpoint">POST &middot; linkedin_profile_to_linkedin_info (async)</div>
         </div>
         <pre>{
-  <span class="tok-key">&quot;success&quot;</span>: true,
+  <span class="tok-key">&quot;status&quot;</span>: <span class="tok-str">&quot;done&quot;</span>,
   <span class="tok-key">&quot;data&quot;</span>: {
-    <span class="tok-key">&quot;full_name&quot;</span>: <span class="tok-str">&quot;John Doe&quot;</span>,
-    <span class="tok-key">&quot;headline&quot;</span>: <span class="tok-str">&quot;Senior Software Engineer at Stripe&quot;</span>,
-    <span class="tok-key">&quot;location&quot;</span>: <span class="tok-str">&quot;San Francisco, CA&quot;</span>,
-    <span class="tok-key">&quot;current_company&quot;</span>: <span class="tok-str">&quot;Stripe&quot;</span>,
-    <span class="tok-key">&quot;current_position&quot;</span>: <span class="tok-str">&quot;Senior Software Engineer&quot;</span>,
-    <span class="tok-key">&quot;experience&quot;</span>: [
-      {
-        <span class="tok-key">&quot;company&quot;</span>: <span class="tok-str">&quot;Stripe&quot;</span>,
-        <span class="tok-key">&quot;title&quot;</span>: <span class="tok-str">&quot;Senior Software Engineer&quot;</span>,
-        <span class="tok-key">&quot;duration&quot;</span>: <span class="tok-str">&quot;2021 - Present&quot;</span>
-      }
-    ],
-    <span class="tok-key">&quot;education&quot;</span>: [
-      {
-        <span class="tok-key">&quot;school&quot;</span>: <span class="tok-str">&quot;Stanford University&quot;</span>,
-        <span class="tok-key">&quot;degree&quot;</span>: <span class="tok-str">&quot;BS Computer Science&quot;</span>
-      }
-    ],
-  ...</pre>
+    <span class="tok-key">&quot;result&quot;</span>: {
+      <span class="tok-key">&quot;full_name&quot;</span>: <span class="tok-str">&quot;John Doe&quot;</span>,
+      <span class="tok-key">&quot;headline&quot;</span>: <span class="tok-str">&quot;Senior Software Engineer at Stripe&quot;</span>,
+      <span class="tok-key">&quot;job_title&quot;</span>: <span class="tok-str">&quot;Senior Software Engineer&quot;</span>,
+      <span class="tok-key">&quot;company&quot;</span>: <span class="tok-str">&quot;Stripe&quot;</span>,
+      <span class="tok-key">&quot;location&quot;</span>: <span class="tok-str">&quot;San Francisco, CA&quot;</span>,
+      <span class="tok-key">&quot;experience&quot;</span>: [
+        {
+          <span class="tok-key">&quot;title&quot;</span>: <span class="tok-str">&quot;Senior Software Engineer&quot;</span>,
+          <span class="tok-key">&quot;company&quot;</span>: <span class="tok-str">&quot;Stripe&quot;</span>,
+          <span class="tok-key">&quot;duration&quot;</span>: <span class="tok-str">&quot;2021 - Present&quot;</span>
+        }
+      ],
+      <span class="tok-key">&quot;education&quot;</span>: [
+        {
+          <span class="tok-key">&quot;school&quot;</span>: <span class="tok-str">&quot;Stanford University&quot;</span>,
+          <span class="tok-key">&quot;degree&quot;</span>: <span class="tok-str">&quot;BS Computer Science&quot;</span>
+        }
+      ]
+    },
+    <span class="tok-key">&quot;status&quot;</span>: <span class="tok-str">&quot;success&quot;</span>
+  }
+}</pre>
       </div>
     </div>
   </div>
@@ -276,63 +280,104 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
       <button class="demo-tab" onclick="showTab('node', this)">Node.js</button>
       <button class="demo-tab" onclick="showTab('response', this)">Response</button>
     </div>
-    <div id="tab-curl" class="code-block"><pre>curl -X POST https://api.linkfinderai.com/linkedin_profile_to_linkedin_info \
+    <div id="tab-curl" class="code-block"><pre># 1. Start the job (always async: returns a job_id right away)
+curl -X POST "https://api.linkfinderai.com" \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"linkedin_url": "https://linkedin.com/in/john-doe"}'</pre></div>
-    <div id="tab-python" class="code-block" style="display:none;"><pre>import requests
+  -d '{"type": "linkedin_profile_to_linkedin_info", "input_data": "https://linkedin.com/in/john-doe"}'
 
-url = "https://api.linkfinderai.com/linkedin_profile_to_linkedin_info"
+# 2. Wait ~60s, then poll every 10-15s until "status" is "done"
+curl "https://api.linkfinderai.com/status/JOB_ID" \
+  -H "Authorization: Bearer YOUR_API_KEY"</pre></div>
+    <div id="tab-python" class="code-block" style="display:none;"><pre>import time
+import requests
+
+url = "https://api.linkfinderai.com"
 headers = {
     "Authorization": "Bearer YOUR_API_KEY",
     "Content-Type": "application/json"
 }
-data = {"linkedin_url": "https://linkedin.com/in/john-doe"}
+data = {
+    "type": "linkedin_profile_to_linkedin_info",
+    "input_data": "https://linkedin.com/in/john-doe"
+}
 
-response = requests.post(url, headers=headers, json=data)
-profile_data = response.json()
+# 1. Start the job: this endpoint always returns a job_id
+job = requests.post(url, headers=headers, json=data).json()
 
-print(f"Name: {profile_data['full_name']}")
-print(f"Title: {profile_data['headline']}")
-print(f"Company: {profile_data['current_company']}")</pre></div>
+# 2. The scrape takes about a minute: wait ~60s, then poll every 10-15s
+time.sleep(60)
+while True:
+    poll = requests.get(f"https://api.linkfinderai.com/status/{job['job_id']}", headers=headers).json()
+    if poll["status"] != "processing":
+        break
+    time.sleep(15)
+
+profile = poll["data"]["result"]
+print(f"Name: {profile['full_name']}")
+print(f"Title: {profile['headline']}")
+print(f"Company: {profile['company']}")</pre></div>
     <div id="tab-node" class="code-block" style="display:none;"><pre>const fetch = require('node-fetch');
 
-const url = 'https://api.linkfinderai.com/linkedin_profile_to_linkedin_info';
-const options = {
-  method: 'POST',
-  headers: {
-    'Authorization': 'Bearer YOUR_API_KEY',
-    'Content-Type': 'application/json'
-  },
-  body: JSON.stringify({linkedin_url: 'https://linkedin.com/in/john-doe'})
+const API_URL = 'https://api.linkfinderai.com';
+const headers = {
+  'Authorization': 'Bearer YOUR_API_KEY',
+  'Content-Type': 'application/json'
 };
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-fetch(url, options)
-  .then(response => response.json())
-  .then(data => console.log(data))
-  .catch(error => console.error('Error:', error));</pre></div>
-    <div id="tab-response" class="code-block" style="display:none;"><pre>{
-  "success": true,
+async function getProfile(linkedinUrl) {
+  // 1. Start the job: this endpoint always returns a job_id
+  const res = await fetch(API_URL, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ type: 'linkedin_profile_to_linkedin_info', input_data: linkedinUrl })
+  });
+  const { job_id } = await res.json();
+
+  // 2. Wait ~60s, then poll every 10-15s until the scrape is done
+  await sleep(60000);
+  while (true) {
+    const poll = await (await fetch(`${API_URL}/status/${job_id}`, { headers })).json();
+    if (poll.status !== 'processing') return poll.data.result;
+    await sleep(15000);
+  }
+}
+
+getProfile('https://linkedin.com/in/john-doe')
+  .then((profile) => console.log(profile));</pre></div>
+    <div id="tab-response" class="code-block" style="display:none;"><pre>// 1. POST returns immediately
+{
+  "job_id": "c9f1e2a0-...",
+  "status": "processing",
+  "poll_url": "https://api.linkfinderai.com/status/c9f1e2a0-..."
+}
+
+// 2. GET /status/c9f1e2a0-... once the scrape finishes (~60s)
+{
+  "status": "done",
   "data": {
-    "full_name": "John Doe",
-    "headline": "Senior Software Engineer at Stripe",
-    "location": "San Francisco, CA",
-    "current_company": "Stripe",
-    "current_position": "Senior Software Engineer",
-    "experience": [
-      {
-        "company": "Stripe",
-        "title": "Senior Software Engineer",
-        "duration": "2021 - Present"
-      }
-    ],
-    "education": [
-      {
-        "school": "Stanford University",
-        "degree": "BS Computer Science"
-      }
-    ],
-    "profile_url": "https://linkedin.com/in/john-doe"
+    "result": {
+      "full_name": "John Doe",
+      "headline": "Senior Software Engineer at Stripe",
+      "job_title": "Senior Software Engineer",
+      "company": "Stripe",
+      "location": "San Francisco, CA",
+      "experience": [
+        {
+          "title": "Senior Software Engineer",
+          "company": "Stripe",
+          "duration": "2021 - Present"
+        }
+      ],
+      "education": [
+        {
+          "school": "Stanford University",
+          "degree": "BS Computer Science"
+        }
+      ]
+    },
+    "status": "success"
   }
 }</pre></div>
   </div>

@@ -219,7 +219,7 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
       <div class="hero-preview">
         <div class="hero-preview-bar">
           <div class="hero-preview-dots"><span style="background:#ef4444"></span><span style="background:#f59e0b"></span><span style="background:#10b981"></span></div>
-          <div class="hero-preview-endpoint">POST /linkedin_profile_to_linkedin_info</div>
+          <div class="hero-preview-endpoint">POST linkedin_profile_to_linkedin_info</div>
         </div>
         <pre>{
   <span class="tok-key">&quot;success&quot;</span>: true,
@@ -272,55 +272,50 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
       <button class="demo-tab" onclick="showTab('node', this)">Node.js</button>
       <button class="demo-tab" onclick="showTab('response', this)">Response</button>
     </div>
-    <div id="tab-curl" class="code-block"><pre>curl -X POST 'https://api.linkfinderai.com/linkedin_profile_to_linkedin_info' \
+    <div id="tab-curl" class="code-block"><pre>curl -X POST 'https://api.linkfinderai.com' \
   -H 'Authorization: Bearer YOUR_API_KEY' \
   -H 'Content-Type: application/json' \
-  -d '{"linkedin_url": "https://linkedin.com/in/john-doe-ceo"}'</pre></div>
+  -d '{
+    "type": "linkedin_profile_to_email",
+    "input_data": "https://linkedin.com/in/john-doe-ceo"
+  }'</pre></div>
     <div id="tab-python" class="code-block" style="display:none;"><pre>import requests
 
-url = 'https://api.linkfinderai.com/linkedin_profile_to_linkedin_info'
-headers = {
-    'Authorization': 'Bearer YOUR_API_KEY',
-    'Content-Type': 'application/json'
-}
-data = {'linkedin_url': 'https://linkedin.com/in/john-doe-ceo'}
-
-response = requests.post(url, headers=headers, json=data)
-enriched_lead = response.json()
-print(f"Enriched: {enriched_lead['full_name']} at {enriched_lead['company']}")</pre></div>
-    <div id="tab-node" class="code-block" style="display:none;"><pre>const fetch = require('node-fetch');
-
-const enrichLead = async () => {
-  const response = await fetch('https://api.linkfinderai.com/linkedin_profile_to_linkedin_info', {
-    method: 'POST',
-    headers: {
-      'Authorization': 'Bearer YOUR_API_KEY',
-      'Content-Type': 'application/json'
+resp = requests.post(
+    "https://api.linkfinderai.com",
+    headers={"Authorization": "Bearer YOUR_API_KEY"},
+    json={
+        "type": "linkedin_profile_to_email",
+        "input_data": "https://linkedin.com/in/john-doe-ceo",
     },
-    body: JSON.stringify({linkedin_url: 'https://linkedin.com/in/john-doe-ceo'})
-  });
-  const enrichedData = await response.json();
-  console.log(`Enriched: ${enrichedData.full_name}`);
-};
+)
+data = resp.json()
+if data["status"] == "success":
+    print("Work email:", data["result"])</pre></div>
+    <div id="tab-node" class="code-block" style="display:none;"><pre>const resp = await fetch("https://api.linkfinderai.com", {
+  method: "POST",
+  headers: {
+    "Authorization": "Bearer YOUR_API_KEY",
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    type: "linkedin_profile_to_email",
+    input_data: "https://linkedin.com/in/john-doe-ceo",
+  }),
+});
+const data = await resp.json();
+if (data.status === "success") console.log("Work email:", data.result);</pre></div>
+    <div id="tab-response" class="code-block" style="display:none;"><pre>// Found
+{
+  "result": "john.doe@techcorp.com",
+  "status": "success"
+}
 
-enrichLead();</pre></div>
-    <div id="tab-response" class="code-block" style="display:none;"><pre>{
-  "success": true,
-  "data": {
-    "full_name": "John Doe",
-    "headline": "CEO at TechCorp | B2B SaaS Leadership",
-    "location": "San Francisco, CA",
-    "industry": "Technology",
-    "company": "TechCorp",
-    "company_size": "201-500 employees",
-    "job_title": "Chief Executive Officer",
-    "experience_years": 12,
-    "education": "Stanford University - MBA",
-    "skills": ["Leadership", "SaaS", "Strategy"],
-    "phone": "+1-555-0123",
-    "email": "john.doe@techcorp.com",
-    "last_updated": "2024-01-15T10:30:00Z"
-  }
+// Not found
+{
+  "result": null,
+  "status": "error",
+  "message": "..."
 }</pre></div>
   </div>
 </section>
@@ -426,6 +421,46 @@ enrichLead();</pre></div>
   </div>
 </section>
 
+
+<section class="section" id="what-is-lead-enrichment-api">
+  <div class="container" style="max-width:900px;">
+    <h2 style="font-size:1.75rem;font-weight:700;color:#111827;margin-bottom:1rem;">What is a lead enrichment API?</h2>
+    <p>A lead enrichment API takes the little you know about a lead (a LinkedIn URL, a name and company, an email address or just a company name) and returns the missing pieces: work email, phone number, job title, company website, headcount and LinkedIn data. Your CRM, form, Clay table or script sends the request, and the API sends back structured JSON you can write straight into the record.</p>
+    <p>The flow is the same whatever the input: <strong>send the identifier &rarr; LinkFinder AI matches it to a real person or company &rarr; you get the field back, or a clear "not found"</strong>. Most lookups are synchronous and return in one call; full LinkedIn profile extraction runs as a job you poll for the result.</p>
+
+    <h3 style="font-size:1.3rem;font-weight:700;color:#111827;margin:2rem 0 .75rem;">Inputs, outputs and credit cost</h3>
+    <div style="overflow-x:auto;">
+    <table style="width:100%;border-collapse:collapse;font-size:.95rem;">
+      <thead><tr style="background:#f3f4f6;text-align:left;"><th style="padding:.6rem .8rem;">You have</th><th style="padding:.6rem .8rem;">You get</th><th style="padding:.6rem .8rem;">API <code>type</code></th><th style="padding:.6rem .8rem;">Credits</th></tr></thead>
+      <tbody>
+        <tr><td style="padding:.6rem .8rem;border-top:1px solid #e5e7eb;">LinkedIn profile URL</td><td style="padding:.6rem .8rem;border-top:1px solid #e5e7eb;">Work email</td><td style="padding:.6rem .8rem;border-top:1px solid #e5e7eb;"><code>linkedin_profile_to_email</code></td><td style="padding:.6rem .8rem;border-top:1px solid #e5e7eb;">10</td></tr>
+        <tr><td style="padding:.6rem .8rem;border-top:1px solid #e5e7eb;">LinkedIn profile URL</td><td style="padding:.6rem .8rem;border-top:1px solid #e5e7eb;">Phone number</td><td style="padding:.6rem .8rem;border-top:1px solid #e5e7eb;"><code>linkedin_profile_to_phone</code></td><td style="padding:.6rem .8rem;border-top:1px solid #e5e7eb;">50</td></tr>
+        <tr><td style="padding:.6rem .8rem;border-top:1px solid #e5e7eb;">LinkedIn profile URL</td><td style="padding:.6rem .8rem;border-top:1px solid #e5e7eb;">Full profile (title, company, experience)</td><td style="padding:.6rem .8rem;border-top:1px solid #e5e7eb;"><code>linkedin_profile_to_linkedin_info</code> (async)</td><td style="padding:.6rem .8rem;border-top:1px solid #e5e7eb;">10</td></tr>
+        <tr><td style="padding:.6rem .8rem;border-top:1px solid #e5e7eb;">First name, last name, company domain</td><td style="padding:.6rem .8rem;border-top:1px solid #e5e7eb;">Verified work email</td><td style="padding:.6rem .8rem;border-top:1px solid #e5e7eb;">In the app and bulk CSV</td><td style="padding:.6rem .8rem;border-top:1px solid #e5e7eb;">7</td></tr>
+        <tr><td style="padding:.6rem .8rem;border-top:1px solid #e5e7eb;">Full name + company</td><td style="padding:.6rem .8rem;border-top:1px solid #e5e7eb;">LinkedIn profile URL</td><td style="padding:.6rem .8rem;border-top:1px solid #e5e7eb;"><code>lead_full_name_to_linkedin_url</code></td><td style="padding:.6rem .8rem;border-top:1px solid #e5e7eb;">1</td></tr>
+        <tr><td style="padding:.6rem .8rem;border-top:1px solid #e5e7eb;">Email address</td><td style="padding:.6rem .8rem;border-top:1px solid #e5e7eb;">LinkedIn profile URL</td><td style="padding:.6rem .8rem;border-top:1px solid #e5e7eb;"><code>email_to_linkedin_url</code></td><td style="padding:.6rem .8rem;border-top:1px solid #e5e7eb;">5</td></tr>
+        <tr><td style="padding:.6rem .8rem;border-top:1px solid #e5e7eb;">Company name</td><td style="padding:.6rem .8rem;border-top:1px solid #e5e7eb;">Website, phone, LinkedIn page, headcount</td><td style="padding:.6rem .8rem;border-top:1px solid #e5e7eb;"><code>company_name_to_website</code> and siblings</td><td style="padding:.6rem .8rem;border-top:1px solid #e5e7eb;">1 each</td></tr>
+        <tr><td style="padding:.6rem .8rem;border-top:1px solid #e5e7eb;">Company name</td><td style="padding:.6rem .8rem;border-top:1px solid #e5e7eb;">Company contact email</td><td style="padding:.6rem .8rem;border-top:1px solid #e5e7eb;"><code>company_name_to_email</code></td><td style="padding:.6rem .8rem;border-top:1px solid #e5e7eb;">5</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p style="margin-top:1rem;">Full parameters and response shapes are in the <a href="https://linkfinderai.com/api-documentation">API documentation</a>.</p>
+
+    <h3 style="font-size:1.3rem;font-weight:700;color:#111827;margin:2rem 0 .75rem;">What it costs in practice</h3>
+    <p>New accounts get free credits to test on real leads. After that, pay-as-you-go packs start at $25 for 1,000 credits, or you can move to a monthly plan on the <a href="https://linkfinderai.com/pricing">pricing page</a>. A worked example: enriching 500 LinkedIn URLs with a work email is 500 &times; 10 = 5,000 credits; adding phone numbers to the 100 leads you actually plan to call is another 100 &times; 50 = 5,000 credits. Enrich the field you need, for the leads you will use.</p>
+
+    <h3 style="font-size:1.3rem;font-weight:700;color:#111827;margin:2rem 0 .75rem;">Ways to plug it in</h3>
+    <ul>
+      <li><strong>Real time, on form fill or CRM create:</strong> call the API from a webhook, <a href="https://linkfinderai.com/hubspot-crm-enrichment">HubSpot workflow</a> or Zapier step when a new lead arrives.</li>
+      <li><strong>Batch:</strong> upload a CSV in the app, or loop over rows in Python or <a href="https://linkfinderai.com/self-host-n8n-lead-enrichment">n8n</a>.</li>
+      <li><strong>Spreadsheets:</strong> run the same lookups in-cell with <a href="https://linkfinderai.com/linkedIn-enrichment-google-sheets">LinkedIn enrichment in Google Sheets</a>.</li>
+      <li><strong>Clay and AI agents:</strong> add it as an HTTP column in Clay (see the <a href="https://linkfinderai.com/clay-enrichment-api">Clay enrichment API</a> guide), or connect an assistant through the MCP server from the API &amp; MCP tab of your account.</li>
+    </ul>
+
+    <h3 style="font-size:1.3rem;font-weight:700;color:#111827;margin:2rem 0 .75rem;">Match rate: what to expect</h3>
+    <p>No provider finds every lead. Match rates depend mostly on the input: a LinkedIn profile URL or a name plus company domain identifies the person precisely, while a name and company name alone can be ambiguous. Before you commit, run 50 to 100 leads you already know through the API and check the results against what you have. If you are comparing vendors on exactly that, our ranking of the <a href="https://linkfinderai.com/best-data-enrichment-api">best data enrichment APIs</a> covers the main alternatives and how they price.</p>
+  </div>
+</section>
 
 <section class="related-section">
   <div class="container">

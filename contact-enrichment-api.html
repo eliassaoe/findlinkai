@@ -219,22 +219,11 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
       <div class="hero-preview">
         <div class="hero-preview-bar">
           <div class="hero-preview-dots"><span style="background:#ef4444"></span><span style="background:#f59e0b"></span><span style="background:#10b981"></span></div>
-          <div class="hero-preview-endpoint">POST /email_to_linkedin_url</div>
+          <div class="hero-preview-endpoint">POST &middot; email_to_linkedin_url</div>
         </div>
         <pre>{
-  <span class="tok-key">&quot;success&quot;</span>: true,
-  <span class="tok-key">&quot;email&quot;</span>: <span class="tok-str">&quot;john.doe@stripe.com&quot;</span>,
-  <span class="tok-key">&quot;full_name&quot;</span>: <span class="tok-str">&quot;John Doe&quot;</span>,
-  <span class="tok-key">&quot;linkedin_url&quot;</span>: <span class="tok-str">&quot;https://linkedin.com/in/johndoe&quot;</span>,
-  <span class="tok-key">&quot;job_title&quot;</span>: <span class="tok-str">&quot;Senior Product Manager&quot;</span>,
-  <span class="tok-key">&quot;company&quot;</span>: <span class="tok-str">&quot;Stripe&quot;</span>,
-  <span class="tok-key">&quot;company_domain&quot;</span>: <span class="tok-str">&quot;stripe.com&quot;</span>,
-  <span class="tok-key">&quot;location&quot;</span>: <span class="tok-str">&quot;San Francisco, CA&quot;</span>,
-  <span class="tok-key">&quot;industry&quot;</span>: <span class="tok-str">&quot;Financial Services&quot;</span>,
-  <span class="tok-key">&quot;company_size&quot;</span>: <span class="tok-str">&quot;1001-5000&quot;</span>,
-  <span class="tok-key">&quot;profile_picture&quot;</span>: <span class="tok-str">&quot;https://media.licdn.com/dms/image/...&quot;</span>,
-  <span class="tok-key">&quot;confidence_score&quot;</span>: <span class="tok-num">0.95</span>,
-  <span class="tok-key">&quot;last_updated&quot;</span>: <span class="tok-str">&quot;2024-01-15T10:30:00Z&quot;</span>
+  <span class="tok-key">&quot;result&quot;</span>: <span class="tok-str">&quot;https://linkedin.com/in/johndoe&quot;</span>,
+  <span class="tok-key">&quot;status&quot;</span>: <span class="tok-str">&quot;success&quot;</span>
 }</pre>
       </div>
     </div>
@@ -269,52 +258,55 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
       <button class="demo-tab" onclick="showTab('node', this)">Node.js</button>
       <button class="demo-tab" onclick="showTab('response', this)">Response</button>
     </div>
-    <div id="tab-curl" class="code-block"><pre>curl -X POST 'https://api.linkfinderai.com/email_to_linkedin_url' \
+    <div id="tab-curl" class="code-block"><pre>curl -X POST 'https://api.linkfinderai.com' \
   -H 'Authorization: Bearer YOUR_API_KEY' \
   -H 'Content-Type: application/json' \
-  -d '{"email": "john.doe@stripe.com"}'</pre></div>
+  -d '{"type": "email_to_linkedin_url", "input_data": "john.doe@stripe.com"}'</pre></div>
     <div id="tab-python" class="code-block" style="display:none;"><pre>import requests
 
-url = 'https://api.linkfinderai.com/email_to_linkedin_url'
+url = 'https://api.linkfinderai.com'
 headers = {
     'Authorization': 'Bearer YOUR_API_KEY',
     'Content-Type': 'application/json'
 }
-data = {'email': 'sarah.jones@notion.so'}
+data = {
+    'type': 'email_to_linkedin_url',
+    'input_data': 'john.doe@stripe.com'
+}
 
 response = requests.post(url, headers=headers, json=data)
-enriched_contact = response.json()
-print(f"LinkedIn: {enriched_contact['linkedin_url']}")
-print(f"Name: {enriched_contact['full_name']}")</pre></div>
+result = response.json()
+if result['status'] == 'success':
+    print(f"LinkedIn: {result['result']}")
+else:
+    print(result.get('message'))  # e.g. LinkedIn profile not found</pre></div>
     <div id="tab-node" class="code-block" style="display:none;"><pre>const fetch = require('node-fetch');
 
-const enrichContact = async (email) => {
-  const response = await fetch('https://api.linkfinderai.com/email_to_linkedin_url', {
+const enrichContact = async (input) => {
+  const response = await fetch('https://api.linkfinderai.com', {
     method: 'POST',
     headers: {
       'Authorization': 'Bearer YOUR_API_KEY',
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify({ email: 'mike.chen@hubspot.com' })
+    body: JSON.stringify({ type: 'email_to_linkedin_url', input_data: input })
   });
-  
-  const data = await response.json();
-  return data;
-};</pre></div>
-    <div id="tab-response" class="code-block" style="display:none;"><pre>{
-  "success": true,
-  "email": "john.doe@stripe.com",
-  "full_name": "John Doe",
-  "linkedin_url": "https://linkedin.com/in/johndoe",
-  "job_title": "Senior Product Manager",
-  "company": "Stripe",
-  "company_domain": "stripe.com",
-  "location": "San Francisco, CA",
-  "industry": "Financial Services",
-  "company_size": "1001-5000",
-  "profile_picture": "https://media.licdn.com/dms/image/...",
-  "confidence_score": 0.95,
-  "last_updated": "2024-01-15T10:30:00Z"
+  const { status, result, message } = await response.json();
+  return status === 'success' ? result : message;
+};
+
+enrichContact('john.doe@stripe.com').then((linkedinUrl) => console.log('LinkedIn:', linkedinUrl));</pre></div>
+    <div id="tab-response" class="code-block" style="display:none;"><pre>// Success
+{
+  "result": "https://linkedin.com/in/johndoe",
+  "status": "success"
+}
+
+// Not found
+{
+  "result": null,
+  "status": "error",
+  "message": "LinkedIn profile not found"
 }</pre></div>
   </div>
 </section>

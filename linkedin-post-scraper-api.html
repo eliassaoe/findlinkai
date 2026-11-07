@@ -219,25 +219,18 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
       <div class="hero-preview">
         <div class="hero-preview-bar">
           <div class="hero-preview-dots"><span style="background:#ef4444"></span><span style="background:#f59e0b"></span><span style="background:#10b981"></span></div>
-          <div class="hero-preview-endpoint">POST /linkedin_profile_to_linkedin_info</div>
+          <div class="hero-preview-endpoint">POST &middot; linkedin_post_to_reactions</div>
         </div>
         <pre>{
-  <span class="tok-key">&quot;profile&quot;</span>: {
-    <span class="tok-key">&quot;name&quot;</span>: <span class="tok-str">&quot;Reid Hoffman&quot;</span>,
-    <span class="tok-key">&quot;headline&quot;</span>: <span class="tok-str">&quot;Co-Founder, Partner at Greylock Partners&quot;</span>,
-    <span class="tok-key">&quot;company&quot;</span>: <span class="tok-str">&quot;Greylock Partners&quot;</span>
-  },
-  <span class="tok-key">&quot;posts&quot;</span>: [
+  <span class="tok-key">&quot;result&quot;</span>: [
     {
-      <span class="tok-key">&quot;id&quot;</span>: <span class="tok-str">&quot;7154891234567890&quot;</span>,
-      <span class="tok-key">&quot;content&quot;</span>: <span class="tok-str">&quot;Excited to share insights on AI entrepreneurship...&quot;</span>,
-      <span class="tok-key">&quot;timestamp&quot;</span>: <span class="tok-str">&quot;2024-01-15T10:30:00Z&quot;</span>,
-      <span class="tok-key">&quot;likes&quot;</span>: <span class="tok-num">1247</span>,
-      <span class="tok-key">&quot;comments&quot;</span>: <span class="tok-num">89</span>,
-      <span class="tok-key">&quot;shares&quot;</span>: <span class="tok-num">156</span>,
-      <span class="tok-key">&quot;url&quot;</span>: <span class="tok-str">&quot;https://linkedin.com/posts/reidhoffman_...&quot;</span>
+      <span class="tok-key">&quot;full_name&quot;</span>: <span class="tok-str">&quot;Jane Doe&quot;</span>,
+      <span class="tok-key">&quot;headline&quot;</span>: <span class="tok-str">&quot;VP of Sales at Acme Corp&quot;</span>,
+      <span class="tok-key">&quot;linkedin_url&quot;</span>: <span class="tok-str">&quot;https://linkedin.com/in/jane-doe-example&quot;</span>,
+      <span class="tok-key">&quot;reaction&quot;</span>: <span class="tok-str">&quot;LIKE&quot;</span>
     }
-  ]
+  ],
+  <span class="tok-key">&quot;status&quot;</span>: <span class="tok-str">&quot;success&quot;</span>
 }</pre>
       </div>
     </div>
@@ -290,62 +283,68 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
       <button class="demo-tab" onclick="showTab('node', this)">Node.js</button>
       <button class="demo-tab" onclick="showTab('response', this)">Response</button>
     </div>
-    <div id="tab-curl" class="code-block"><pre>curl -X POST 'https://api.linkfinderai.com/linkedin_profile_to_linkedin_info' \
+    <div id="tab-curl" class="code-block"><pre>curl -X POST 'https://api.linkfinderai.com' \
   -H 'Authorization: Bearer YOUR_API_KEY' \
   -H 'Content-Type: application/json' \
-  -d '{
-    "linkedin_url": "https://linkedin.com/in/reidhoffman",
-    "include_posts": true,
-    "post_limit": 10
-  }'</pre></div>
+  -d '{"type": "linkedin_post_to_reactions", "input_data": "https://www.linkedin.com/feed/update/urn:li:activity:1234567890"}'</pre></div>
     <div id="tab-python" class="code-block" style="display:none;"><pre>import requests
 
-url = 'https://api.linkfinderai.com/linkedin_profile_to_linkedin_info'
+url = 'https://api.linkfinderai.com'
 headers = {
     'Authorization': 'Bearer YOUR_API_KEY',
     'Content-Type': 'application/json'
 }
 data = {
-    'linkedin_url': 'https://linkedin.com/in/reidhoffman',
-    'include_posts': True,
-    'post_limit': 10
+    'type': 'linkedin_post_to_reactions',
+    'input_data': 'https://www.linkedin.com/feed/update/urn:li:activity:1234567890'
 }
 
 response = requests.post(url, headers=headers, json=data)
-post_data = response.json()</pre></div>
+result = response.json()
+if result['status'] == 'success':
+    print(f"{len(result['result'])} people reacted")
+else:
+    print(result.get('message'))  # e.g. No reactions found</pre></div>
     <div id="tab-node" class="code-block" style="display:none;"><pre>const fetch = require('node-fetch');
 
-const response = await fetch('https://api.linkfinderai.com/linkedin_profile_to_linkedin_info', {
-  method: 'POST',
-  headers: {
-    'Authorization': 'Bearer YOUR_API_KEY',
-    'Content-Type': 'application/json'
-  },
-  body: JSON.stringify({
-    linkedin_url: 'https://linkedin.com/in/reidhoffman',
-    include_posts: true,
-    post_limit: 10
-  })
-});
+const getPostReactions = async (input) => {
+  const response = await fetch('https://api.linkfinderai.com', {
+    method: 'POST',
+    headers: {
+      'Authorization': 'Bearer YOUR_API_KEY',
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ type: 'linkedin_post_to_reactions', input_data: input })
+  });
+  const { status, result, message } = await response.json();
+  return status === 'success' ? result : message;
+};
 
-const postData = await response.json();</pre></div>
-    <div id="tab-response" class="code-block" style="display:none;"><pre>{
-  "profile": {
-    "name": "Reid Hoffman",
-    "headline": "Co-Founder, Partner at Greylock Partners",
-    "company": "Greylock Partners"
-  },
-  "posts": [
+getPostReactions('https://www.linkedin.com/feed/update/urn:li:activity:1234567890').then((reactions) => console.log(reactions));</pre></div>
+    <div id="tab-response" class="code-block" style="display:none;"><pre>// Success
+{
+  "result": [
     {
-      "id": "7154891234567890",
-      "content": "Excited to share insights on AI entrepreneurship...",
-      "timestamp": "2024-01-15T10:30:00Z",
-      "likes": 1247,
-      "comments": 89,
-      "shares": 156,
-      "url": "https://linkedin.com/posts/reidhoffman_..."
+      "full_name": "Jane Doe",
+      "headline": "VP of Sales at Acme Corp",
+      "linkedin_url": "https://linkedin.com/in/jane-doe-example",
+      "reaction": "LIKE"
+    },
+    {
+      "full_name": "John Smith",
+      "headline": "Founder at Example Labs",
+      "linkedin_url": "https://linkedin.com/in/john-smith-example",
+      "reaction": "PRAISE"
     }
-  ]
+  ],
+  "status": "success"
+}
+
+// Not found
+{
+  "result": null,
+  "status": "error",
+  "message": "No reactions found"
 }</pre></div>
   </div>
 </section>
