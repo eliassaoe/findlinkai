@@ -45,11 +45,11 @@ test('deliberate switches are recorded', () => {
   assert.ok(sw.includes("posthog.capture('mode_switched'"));
 });
 
-test('single lookups start from the smart-start box; lists are one line below', () => {
+test('single lookups start from the search cards; lists are one line under them', () => {
   const qs = app.slice(app.indexOf('id="quickstartSection"'), app.indexOf('<div class="config-form">'));
-  assert.ok(qs.includes('id="smartStart"'), 'the smart-start box replaced the four cards');
   assert.ok(!qs.includes('class="quickstart-grid"'), 'no popular-searches grid any more');
-  const line = qs.slice(qs.indexOf('class="qs-list-line"'));
+  const form = app.slice(app.indexOf('<div class="config-form">'));
+  const line = form.slice(form.indexOf('class="qs-list-line"'), form.indexOf('class="qs-list-line"') + 1500);
   assert.equal((line.match(/quickStartBulk\('/g) || []).length, 4, 'four list shortcuts');
   assert.ok(appFn('quickStartBulk').includes("switchMode('bulk')"), 'list shortcuts open bulk');
   assert.ok(appFn('quickStart').includes("switchMode('single');"), 'single lookups stay in single');

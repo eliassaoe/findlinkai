@@ -120,3 +120,21 @@ form to type the company. Now:
 Events: `smart_start_used` now carries `override` (true when a non-default button
 was clicked); new `smart_start_example_clicked` and `smart_start_empty`.
 `tests/smart-start.test.mjs` checks every offered choice exists in `creditCosts`.
+
+## 7 Nov 2026, 21:50: the paste box is gone (owner's call)
+
+"Paste what you have. We'll find the rest." with its Try chips and credits line
+was removed. The owner prefers the search cards. The page now opens on:
+
+1. **"What do you want to find?"**, the goal-grouped cards, with **Find a
+   LinkedIn profile first**, then email, phone, company data, profile data.
+2. Right under the cards, one line for lists: *Have a list? Upload a CSV:
+   Names → LinkedIn · LinkedIn → Emails · Emails → LinkedIn · LinkedIn →
+   Phones · or Google Sheets*.
+
+`maybeShowRouteChooser` now stays quiet while `#searchPicker` exists, so the
+old full-screen "Where is your data?" chooser doesn't come back.
+`smartStart*` functions remain in `app.html`, unused, and are still
+unit-tested (`tests/smart-start.test.mjs`); delete them if the box isn't
+coming back. Events to watch: `search_picked` (cards), `quickstart_bulk_used`
+(list line), `onboarding_route_picked` with source `list_line` (Sheets).

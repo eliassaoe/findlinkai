@@ -1,6 +1,6 @@
-// The enrichment page opens on one box: paste anything, the input/output pair is
-// picked for you, and a LinkedIn profile URL goes to the work email (the result
-// people pay for). Background: docs/smart-start.md.
+// The enrichment page opens on the search cards ("What do you want to find?"),
+// LinkedIn profile first. The "Paste what you have" box was removed on 7 Nov 2026
+// (owner's call); its classifier is kept and still tested. docs/smart-start.md.
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -17,9 +17,14 @@ function appFn(name) {
 
 const classify = new Function(appFn('smartStartClassify') + '\nreturn smartStartClassify;')();
 
-test('the box is the first thing in the quick-start section', () => {
-  const qs = app.slice(app.indexOf('id="quickstartSection"'));
-  assert.ok(qs.indexOf('id="smartStart"') < qs.indexOf('id="routeChooser"'));
+test('no paste box: the cards are the start, LinkedIn profile first, lists one line under them', () => {
+  assert.ok(!app.includes('id="smartStart"'), 'the paste box is gone');
+  assert.ok(app.includes('<div class="search-picker-label">What do you want to find?</div>'));
+  const groups = app.slice(app.indexOf('const SEARCH_PICKER_GROUPS'));
+  assert.ok(groups.indexOf("'Find a LinkedIn profile'") < groups.indexOf("'Find an email'"));
+  const form = app.slice(app.indexOf('<div class="config-form">'));
+  assert.ok(form.indexOf('id="searchPicker"') < form.indexOf('class="qs-list-line"'));
+  assert.ok(form.slice(form.indexOf('class="qs-list-line"'), form.indexOf('class="qs-list-line"') + 1200).includes("pickRoute('sheets'"), 'Google Sheets is offered with the lists');
 });
 
 test('what was pasted decides the pair', () => {
@@ -49,8 +54,7 @@ test('every choice offered is a real search with a real credit cost', () => {
   }
 });
 
-test('a name gets its company inside the box, then runs', () => {
-  assert.ok(app.includes('id="smartStartCompany"'));
+test('a name gets its company, then runs', () => {
   assert.equal(classify('Satya Nadella').needsCompany, true);
   const run = appFn('smartStartRun');
   assert.ok(run.includes("getElementById('leadDomain')") && run.includes("getElementById('leadCompany')"));
@@ -62,8 +66,8 @@ test('it hands over to the existing lookup, not a copy of it', () => {
   assert.ok(appFn('smartStartRoute').includes("pickRoute(route, 'smart_start')"));
 });
 
-test('the big route chooser does not stack under it', () => {
-  assert.ok(appFn('maybeShowRouteChooser').includes("document.getElementById('smartStart')"));
+test('the big route chooser does not come back while the cards are the start', () => {
+  assert.ok(appFn('maybeShowRouteChooser').includes("document.getElementById('searchPicker')"));
 });
 
 test('the dropdowns are replaced by a card per search, which drives the same selects', () => {

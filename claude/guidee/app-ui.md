@@ -124,3 +124,13 @@ filled blue (LinkedIn profile → "Find work email 10 credits", "Find phone numb
 50 credits", "Get full profile 10 credits"). A person's name adds a second field
 "Their company domain, e.g. microsoft.com" and two buttons ("Find work email 7
 credits", "Find LinkedIn profile 1 credit"). Enter runs the first button.
+
+**Start screen (since 7 Nov 2026, 21:50, replaces the smart-start box above).**
+Heading "What do you want to find?", then card groups in this order:
+"Find a LinkedIn profile", "Find an email", "Find a phone number",
+"Get company data", "Get profile data". Each card shows what you start from
+and its credit cost (e.g. "From a name + company · 1 credit"). Under the
+cards: "Have a list? Upload a CSV: Names → LinkedIn · LinkedIn → Emails ·
+Emails → LinkedIn · LinkedIn → Phones · or Google Sheets". There is no
+paste box any more.
+

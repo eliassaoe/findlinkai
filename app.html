@@ -937,7 +937,9 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
 .smart-start-list{margin-top:12px;padding-top:10px;border-top:1px solid #e5e7eb;font-size:13px;color:#4b5563;}
 .smart-start-list a{color:#2563eb;font-weight:600;margin-left:12px;white-space:nowrap;}
 
-.search-picker-label{font-size:0.75rem;font-weight:600;color:var(--gray-400);text-transform:uppercase;letter-spacing:0.06em;margin:0 0 0.6rem;}
+.search-picker-label{font-size:1.15rem;font-weight:700;color:var(--gray-900);margin:0 0 0.8rem;}
+.config-form .qs-list-line{margin:0.4rem 0 1.2rem;}
+.qs-or{color:var(--gray-400);margin:0 0.15rem;}
 .search-picker{display:block;}
 .sp-group{margin-bottom:0.9rem;}
 .sp-group{padding:0.8rem 0.9rem;border:1px solid var(--gray-200,#e5e7eb);border-radius:12px;background:#fafbff;}
@@ -1059,38 +1061,9 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
                  popup: every interrupt-style prompt this app ever shipped
                  converted at ~1%, so this one sits where the eye already is
                  and vanishes on the first action. -->
-            <!-- Smart start (docs/smart-start.md). One box, no dropdowns: paste
-                 whatever you have and the pair is picked for you. Half of new
-                 signups never ran a lookup; the "I have / I want to find" form
-                 asks two questions before the first result. -->
-            <div id="smartStart" class="smart-start">
-                <div class="smart-start-title">Paste what you have. We'll find the rest.</div>
-                <div class="smart-start-row">
-                    <input type="text" id="smartStartInput" class="smart-start-input" autocomplete="off"
-                           placeholder="A LinkedIn profile URL, an email, a person's name or a company"
-                           oninput="smartStartDetect()" onpaste="setTimeout(smartStartDetect,0)" onkeydown="if(event.key==='Enter'){event.preventDefault();smartStartRun();}">
-                </div>
-                <div id="smartStartExamples" class="smart-start-examples">Try:
-                    <a onclick="smartStartExample('https://www.linkedin.com/in/satyanadella/')">a LinkedIn profile</a>
-                    <a onclick="smartStartExample('Satya Nadella')">a person's name</a>
-                    <a onclick="smartStartExample('jane.doe@microsoft.com')">an email</a>
-                    <a onclick="smartStartExample('Tesla')">a company</a>
-                </div>
-                <div id="smartStartDetected" class="smart-start-detected hidden"></div>
-                <div id="smartStartExtra" class="smart-start-extra hidden">
-                    <input type="text" id="smartStartCompany" class="smart-start-input" autocomplete="off" placeholder="Their company, e.g. Microsoft or microsoft.com"
-                           onkeydown="if(event.key==='Enter'){event.preventDefault();smartStartRun();}">
-                </div>
-                <div id="smartStartActions" class="smart-start-actions hidden"></div>
-                <div id="smartStartHint" class="smart-start-hint"></div>
-                <div class="smart-start-credits" id="smartStartCredits"></div>
-                <div class="smart-start-list">Got a whole list instead?
-                    <a href="#" onclick="smartStartRoute('csv');return false;"><i class="fas fa-file-csv"></i> Upload a CSV</a>
-                    <a href="#" onclick="smartStartRoute('sheets');return false;"><i class="fas fa-table" style="color:#16a34a;"></i> Google Sheets</a>
-                    <a href="#" onclick="smartStartRoute('api');return false;"><i class="fas fa-code"></i> API / n8n</a>
-                    <a href="#" onclick="smartStartRoute('crm');return false;"><i class="fab fa-hubspot" style="color:#ff7a59;"></i> HubSpot</a>
-                </div>
-            </div>
+            <!-- The "Paste what you have" box was removed on 7 Nov 2026 at the owner's
+                 call: the search cards below are clearer. Its JS (smartStart*) is
+                 kept, unused, for the classifier tests (docs/smart-start.md). -->
             <div id="routeChooser" class="route-chooser hidden">
                 <div class="route-chooser-title">Where is the data you want to enrich?</div>
                 <div class="route-chooser-sub">Pick one and we take you straight there. A single lookup is always available below.</div>
@@ -1116,13 +1089,7 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
                  smart-start box above does the same job from whatever is pasted
                  (docs/smart-start.md). The list shortcuts stay: single-then-list
                  is still the path that pays best (docs/bulk-first-default.md). -->
-            <div class="qs-list-line">
-                <span>Have a list? Upload a CSV:</span>
-                <a href="#" onclick="quickStartBulk('lead_full_name','linkedin_url');return false;">Names → LinkedIn</a>
-                <a href="#" onclick="quickStartBulk('linkedin_profile','email');return false;">LinkedIn → Emails</a>
-                <a href="#" onclick="quickStartBulk('email','linkedin_url');return false;">Emails → LinkedIn</a>
-                <a href="#" onclick="quickStartBulk('linkedin_profile','phone');return false;">LinkedIn → Phones</a>
-            </div>
+
         </div>
 
         <div class="config-form">
@@ -1131,8 +1098,17 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
                  selects below stay in the DOM, hidden: quickStart, saved
                  searches, bulk and the API panel all set them, and a card click
                  sets them the same way. -->
-            <div class="search-picker-label">Or pick what you want to find</div>
+            <div class="search-picker-label">What do you want to find?</div>
             <div id="searchPicker" class="search-picker"></div>
+            <div class="qs-list-line">
+                <span>Have a list? Upload a CSV:</span>
+                <a href="#" onclick="quickStartBulk('lead_full_name','linkedin_url');return false;">Names → LinkedIn</a>
+                <a href="#" onclick="quickStartBulk('linkedin_profile','email');return false;">LinkedIn → Emails</a>
+                <a href="#" onclick="quickStartBulk('email','linkedin_url');return false;">Emails → LinkedIn</a>
+                <a href="#" onclick="quickStartBulk('linkedin_profile','phone');return false;">LinkedIn → Phones</a>
+                <span class="qs-or">or</span>
+                <a href="#" onclick="pickRoute('sheets','list_line');return false;"><i class="fas fa-table" style="color:#16a34a;"></i> Google Sheets</a>
+            </div>
             <div class="form-grid" style="display:none;">
                 <div class="form-field">
                     <label class="form-label">I have</label>
@@ -3692,6 +3668,11 @@ function populateOutputOptions(filterInputType) {
  */
 const SEARCH_PICKER_GROUPS = [
     // Grouped by what the person wants to find; each card says what they start from.
+    { title: 'Find a LinkedIn profile', icon: 'fa-linkedin', brand: true, items: [
+        ['lead_full_name', 'linkedin_url', 'From a name + company'],
+        ['email', 'linkedin_url', 'From an email address'],
+        ['company_name', 'linkedin_url', "A company's LinkedIn page, from its name"],
+    ]},
     { title: 'Find an email', icon: 'fa-envelope', items: [
         ['linkedin_profile', 'email', 'From a LinkedIn profile URL'],
         ['lead_full_name', 'email', 'From a name + company domain'],
@@ -3700,11 +3681,6 @@ const SEARCH_PICKER_GROUPS = [
     { title: 'Find a phone number', icon: 'fa-phone', items: [
         ['linkedin_profile', 'phone', 'Mobile, from a LinkedIn profile URL'],
         ['company_name', 'phone', "A company's phone, from its name"],
-    ]},
-    { title: 'Find a LinkedIn profile', icon: 'fa-linkedin', brand: true, items: [
-        ['lead_full_name', 'linkedin_url', 'From a name + company'],
-        ['email', 'linkedin_url', 'From an email address'],
-        ['company_name', 'linkedin_url', "A company's LinkedIn page, from its name"],
     ]},
     { title: 'Get company data', icon: 'fa-building', items: [
         ['company_name', 'website', 'Website, from a company name'],
@@ -5926,7 +5902,7 @@ function maybeShowRouteChooser() {
         // The smart-start box above it offers the same four routes in one line,
         // plus the single lookup, so the big question is not stacked on top of
         // it any more (docs/smart-start.md). ?route_test=1 still shows it.
-        if (!forced && document.getElementById('smartStart')) return;
+        if (!forced && document.getElementById('searchPicker')) return;
         const el = document.getElementById('routeChooser');
         if (!el) return;
         el.classList.remove('hidden');
