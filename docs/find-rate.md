@@ -85,7 +85,7 @@ with the cleaned company, gave 3/9 both ways (different people). The raw "Katie
 Jones" hit was probably the wrong profile. The suffix tracks *who* is being
 searched (long-tail US mid-market and non-US firms from CSV lists), not the
 search failing. The app now strips suffixes and country codes anyway
-(`lfSearchCompany`, single and CSV), because it costs nothing, but **don't
+(`lfSearchCompany`, single lookups only: the CSV input must stay byte-identical to the server runner, see `tests/csv-export-parity.test.mjs`), because it costs nothing, but **don't
 quote it as a lift**.
 
 **The real ceiling.** Web searches for the 6 people who missed both ways found

@@ -37,5 +37,6 @@ test('company names lose legal suffixes and country codes before the name search
   assert.equal(clean('Agronic Food Pvt. Ltd. India'), 'Agronic Food India');
   assert.equal(clean('US Foods'), 'US Foods');
   assert.equal(clean('Salesforce'), 'Salesforce');
-  assert.ok(app.includes('lfSearchCompany(leadCompany)') && app.includes('lfSearchCompany(companyVal)'));
+  assert.ok(app.includes('lfSearchCompany(leadCompany)'));
+  // Not in the CSV path: it must stay byte-identical to supabase/functions/csv-batch-runner (tests/csv-export-parity).
 });
