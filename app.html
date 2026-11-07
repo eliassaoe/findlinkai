@@ -948,8 +948,11 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
 .sp-card-sub{display:block;font-size:0.8rem;color:var(--gray-600,#4b5563);margin-top:0.2rem;}
 .sp-big .sp-card-cost{margin-top:auto;padding-top:0.5rem;color:var(--gray-400,#9ca3af);}
 .sp-more-wrap{margin-top:0.8rem;}
-.sp-more-toggle{font-size:0.85rem;font-weight:600;color:var(--gray-600,#4b5563);text-decoration:none;}
-.sp-more-toggle:hover{color:var(--primary,#2563eb);}
+.sp-more-toggle{display:flex;align-items:center;gap:0.6rem;width:100%;padding:0.85rem 1.1rem;border:1.5px dashed var(--primary,#2563eb);border-radius:14px;background:#f8faff;color:var(--primary,#2563eb);font-size:0.95rem;text-align:left;cursor:pointer;font-family:inherit;}
+.sp-more-toggle:hover{background:#eff6ff;}
+.sp-more-plus{display:inline-flex;align-items:center;justify-content:center;width:1.6rem;height:1.6rem;border-radius:50%;background:var(--primary,#2563eb);color:#fff;font-weight:700;flex-shrink:0;}
+.sp-more-hint{color:var(--gray-500,#6b7280);font-size:0.85rem;}
+.sp-more-open .sp-more-plus{transform:rotate(45deg);}
 .sp-more{margin-top:0.8rem;}
 #searchPicker.sp-picked .sp-top,#searchPicker.sp-picked .sp-more-wrap{display:none;}
 .sp-has-pick .search-picker-label,.sp-has-pick .qs-list-line{display:none;}
@@ -3747,7 +3750,7 @@ function renderSearchPicker() {
         return '<div class="sp-group"><div class="sp-group-title"><i class="' + (g.brand ? 'fab' : 'fas') + ' ' + g.icon + '"></i> ' + g.title + '</div><div class="sp-grid">' + cards + '</div></div>';
     }).join('');
     box.innerHTML = '<div class="sp-top">' + top + '</div>'
-        + '<div class="sp-more-wrap"><a href="#" class="sp-more-toggle" onclick="toggleMoreSearches();return false;">More searches <i class="fas fa-chevron-down"></i></a>'
+        + '<div class="sp-more-wrap"><button type="button" class="sp-more-toggle" onclick="toggleMoreSearches()"><span class="sp-more-plus">+</span> <span><strong>More searches</strong> <span class="sp-more-hint">· email → LinkedIn, company data, employees, full profiles…</span></span></button>'
         + '<div id="spMore" class="sp-more hidden">' + groups + '</div></div>'
         + '<div id="spChosen" class="sp-chosen hidden"></div>';
     syncSearchPicker();
@@ -3756,6 +3759,7 @@ function toggleMoreSearches() {
     const m = document.getElementById('spMore');
     if (!m) return;
     m.classList.toggle('hidden');
+    const t = document.querySelector('.sp-more-toggle'); if (t) t.classList.toggle('sp-more-open', !m.classList.contains('hidden'));
     try { posthog.capture('more_searches_toggled', { open: !m.classList.contains('hidden') }); } catch (e) {}
 }
 function changeSearch() {

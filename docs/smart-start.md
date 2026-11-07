@@ -148,7 +148,7 @@ The owner asked for simpler. The start screen now shows **four big cards**, in t
 3. Find a company website — company name, 1 credit (~95% found)
 4. Find a phone number — LinkedIn URL, 50 credits
 
-Every other search is in the old grouped grid, hidden behind **More searches**.
+Every other search is in the old grouped grid, behind a full-width dashed **"+ More searches · email → LinkedIn, company data, employees, full profiles…"** button (a plain text link was too easy to miss).
 After a pick, the cards collapse into one blue bar ("Find a LinkedIn profile · From a
 name + company · 1 credit") with **Try an example** (fills Satya Nadella / Microsoft,
 the LinkedIn URL, or Tesla — it does NOT press Find, so no credits move by surprise)
