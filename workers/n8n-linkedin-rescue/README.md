@@ -26,6 +26,30 @@ Live checks after v2:
 Rollback: version history on each workflow. v2 is "LinkedIn rescue v2: Apify
 backup only…"; v1 and the pre-change version are below it.
 
+## Measured on 40 real misses (7 Nov 2026, 21:40) and v3
+
+40 recent name → LinkedIn lookups the Google step had answered "not found"
+(from `enrichment_history`, max 15 per account, junk inputs kept). Each was
+run through the same LinkedIn people search the backup uses:
+
+| Outcome (v2 rule) | Count |
+| --- | --- |
+| Right person, company in the headline | 9 (Monica Weaver/TGI Direct, Tom Bené/Breakthru Beverage, Jack Burton/Amalgamated Sugar, Katarína Vavreková/Tesena, Liv Williams/IMPALÈ, Devon Rice/Glazed Nuts, Matúš Krška/Blocshop, Sebastiano Gianello/Tempocasa, Goutam Ghosh/Amit) |
+| Probably right, matched only on a job word ("software") | 3 |
+| **Wrong person** | **4**: three on a country ("India", "Pakistan", "Indonesia"), one on "lead" inside "Leadership" |
+| Still not found | 24 (junk inputs, or a headline without the company) |
+
+**v3 (published 21:48, both workflows):** countries, cities and job words
+never count as the company (`NOTCO`), and company words must match whole
+(`hasWord`). Re-scored on the same 40: **9 right, 0 wrong.** That's about 22%
+of misses recovered. Misses are 31% of name → LinkedIn lookups (8,254 of
+26,813 in 90 days), so the overall find rate goes from about 69% to about
+76%, at about $0.004 per miss.
+
+Also fixed in v3: legal forms like "s.r.o." and tokens like "1.PF," were being
+read as web domains, and initials were ending up in the surname ("t gallant").
+Both made LinkedIn's strict name search fail.
+
 ---
 
 ## History: v1 (21:19–21:33, replaced)

@@ -112,3 +112,25 @@ test('v2 free tools: any Google link is returned as before; Apify only when Goog
   assert.equal(run(FT_LINKEDIN2, [{ name: 'Jane Doe', position: 'CEO at Acme', linkedinUrl: 'https://www.linkedin.com/in/jane-acme' }], nodes).organic[0].link, 'https://www.linkedin.com/in/jane-acme');
   assert.equal(run(FT_LINKEDIN2, [{}], nodes).organic[0].link, '');
 });
+
+test('legal forms and odd tokens are not domains; initials are not surnames (7 Nov fix)', () => {
+  const a = run(LI_PREP, [{}], wh('Matus Krska Blocshop, s.r.o. CZ Software Engineer'));
+  assert.deepEqual([a.firstName, a.lastName, a.skip], ['matus', 'krska', false]);
+  const b = run(LI_PREP, [{}], wh('JAMIE T. GALLANT CITY OF MANCHESTER'));
+  assert.deepEqual([b.firstName, b.lastName], ['jamie', 'gallant']);
+  const c = run(LI_PREP, [{}], wh('Gabriel Karady 1.PF, s.r.o. SK Software Engineer'));
+  assert.equal(c.lastName, 'karady');
+  assert.equal(run(LI_PREP, [{}], wh('Jane Smith acme.com')).skip, false);
+});
+
+test('measured false positives are refused: countries and job words are not the company (7 Nov, 40 misses)', () => {
+  const rows = (name, position) => [{ name, position, linkedinUrl: 'https://www.linkedin.com/in/x' }];
+  const miss = (input, name, position) => assert.equal(run(LI_LINKEDIN, rows(name, position), wh(input)).found, false, input);
+  const hit = (input, name, position) => assert.equal(run(LI_LINKEDIN, rows(name, position), wh(input)).found, true, input);
+  miss('Manohar Jagtap No Satara Maharashtra India', 'Manohar Jagtap', 'QA Manager at Associated Flexibles & Wires Pvt. Ltd. - India');
+  miss('Laiba Faisal Lahore, Pakistan Mern stack', 'Laiba Faisal', 'Student at The Institute of Chartered Accountants of Pakistan');
+  miss('Antonio Barbosa Cavipor Portugal Export Lead', 'Barbosa António', 'Emergency Operations Leadership');
+  hit('Tom Bene Breakthru Beverage Group', 'Tom Bené', 'President & CEO, Breakthru Beverage Group');
+  hit('Matus Krska Blocshop, s.r.o. CZ Software Engineer', 'Matúš Krška', 'Sofware engineer at Blocshop / Backend Developer at Erste Group IT');
+  hit('Sebastiano Gianello Tempocasa Milano - Cimiano', 'Sebastiano Gianello', 'Agente immobiliare presso Gruppo Tempocasa');
+});

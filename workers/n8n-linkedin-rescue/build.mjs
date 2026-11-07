@@ -11,17 +11,22 @@ function norm(s){return String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').to
 const JOIN = new Set(['de','da','do','dos','das','del','della','di','du','la','le','van','von','der','den','ter','bin','bint','al','el','ibn','st','mc','mac']);
 const LEGAL = new Set(['inc','incorporated','llc','ltd','limited','gmbh','mbh','corp','corporation','co','company','sro','srl','spa','sas','sarl','sa','pvt','private','plc','ag','kg','bv','nv','oy','oyj','ab','as','asa','pty','lp','llp','pllc','bhd','sdn','kft','zrt','sti','ltda','sl','se','holding','holdings','the']);
 const GENERIC = new Set(['group','services','solutions','international','global','enterprises','partners','consulting','systems','technologies','technology','brands','foods','family','and']);
+// Measured 7 Nov on 40 real misses: countries ("India") and job words
+// ("software", "lead") in the company field matched strangers' headlines.
+// They never count as the company, and a company word must match whole.
+const NOTCO = new Set(['india','pakistan','indonesia','united','states','kingdom','america','usa','france','italy','germany','spain','portugal','china','japan','canada','australia','brazil','mexico','uae','dubai','london','paris','milan','milano','new','york','california','texas','europe','asia','africa','city','state','north','south','east','west','software','engineer','engineering','developer','manager','director','lead','leader','analyst','business','sales','marketing','export','assistant','assistante','commerciale','representative','specialist','consultant','ceo','cto','cfo','coo','founder','owner','president','head','officer','executive','senior','junior','controls','corporate','test','student','general','none']);
+function hasWord(text, w){ return (' ' + text + ' ').includes(' ' + w + ' '); }
 function parsePerson(raw){
   const toks = String(raw||'').trim().split(/\s+/).filter(Boolean); let domain=null; const rest=[];
   for (const t0 of toks){ const t=t0.replace(/[),.]+$/,'');
     if(domain===null && /@/.test(t)){domain=t.split('@').pop().toLowerCase();continue;}
-    if(domain===null && /^[a-z0-9-]+(\.[a-z0-9-]+)+$/i.test(t) && !/^[a-z]\.$/i.test(t)){domain=t.toLowerCase();continue;}
+    if(domain===null && /^(?:[a-z0-9-]{2,}\.)+[a-z]{2,}$/i.test(t)){domain=t.toLowerCase();continue;}
     rest.push(t);}
   let n; const j = s => { s=String(s||'').toLowerCase().replace(/\.$/,''); return s.length===1||JOIN.has(s); };
   if(domain!==null) n=Math.min(rest.length,4); else if(rest.length>=3&&j(rest[1])) n=3; else n=Math.min(rest.length,2);
   const name=rest.slice(0,n).map(norm).filter(Boolean);
   const company=rest.slice(n).map(norm).join(' ').split(' ').filter(Boolean);
-  const companyKey=company.filter((w,i)=>w.length>2&&!LEGAL.has(w)&&!GENERIC.has(w));
+  const companyKey=company.filter((w,i)=>w.length>2&&!LEGAL.has(w)&&!GENERIC.has(w)&&!NOTCO.has(w));
   if(domain){const b=domain.split('.')[0]; if(b.length>2) companyKey.push(b);}
   return {name, company, companyKey, domain};
 }
@@ -34,7 +39,7 @@ function scorePerson(p, item){
   const words=new Set(title.split(' '));
   let s=0; for(const t of p.name){ if(words.has(t)) s+=1; else if(t.length===1&&[...words].some(w=>w.startsWith(t))) s+=0.5; else if(t.length>2&&title.includes(t)) s+=0.5; }
   if(s<Math.min(2,p.name.length)) return 0;
-  if(!p.companyKey.some(w=>text.includes(w))) return 0;
+  if(!p.companyKey.some(w=>hasWord(text, w))) return 0;
   return s+1;
 }
 function pickPerson(p, organic){
@@ -88,7 +93,7 @@ for (const it of $input.all()) {
   if (!isProfile(r.linkedinUrl)) continue;
   const head = norm(r.position), nameWords = norm(r.name).split(' ');
   const nameOk = nameWords.some(w => w.length > 1 && p.name.includes(w));
-  if (nameOk && p.companyKey.some(w => head.includes(w))) { best = String(r.linkedinUrl).split('?')[0]; break; }
+  if (nameOk && p.companyKey.some(w => hasWord(head, w))) { best = String(r.linkedinUrl).split('?')[0]; break; }
 }
 return [{ json: { found: !!best, organic: [{ title: best ? p.name.join(' ') : '', link: best || '' }], rescue: best ? 'linkedin_search' : null } }];
 `;
@@ -138,7 +143,7 @@ const FT_PARSE = String.raw`
 const b = $('Webhook').first().json.body || {};
 const p = { name: norm((b.first_name||'') + ' ' + (b.last_name||'')).split(' ').filter(Boolean),
             company: norm(b.company_name||'').split(' ').filter(Boolean), domain: null };
-p.companyKey = p.company.filter(w => w.length > 2 && !LEGAL.has(w) && !GENERIC.has(w));
+p.companyKey = p.company.filter(w => w.length > 2 && !LEGAL.has(w) && !GENERIC.has(w) && !NOTCO.has(w));
 `;
 export const FT_TOP10 = LIB + FT_PARSE + String.raw`
 const organic = ($input.first().json || {}).organic || [];
@@ -169,7 +174,7 @@ for (const it of $input.all()) {
   const r = it.json || {};
   if (!isProfile(r.linkedinUrl)) continue;
   const head = norm(r.position), nameWords = norm(r.name).split(' ');
-  if (nameWords.some(w => w.length > 1 && p.name.includes(w)) && p.companyKey.some(w => head.includes(w))) { best = String(r.linkedinUrl).split('?')[0]; break; }
+  if (nameWords.some(w => w.length > 1 && p.name.includes(w)) && p.companyKey.some(w => hasWord(head, w))) { best = String(r.linkedinUrl).split('?')[0]; break; }
 }
 return [{ json: { found: !!best, organic: [{ link: best || plan.original }] } }];
 `;
@@ -182,7 +187,7 @@ writeFileSync(new URL('./nodes.json', import.meta.url), JSON.stringify({ LI_TOP1
 export const LI_PREP = LIB + String.raw`
 const p = parsePerson($('Webhook1').first().json.body.input_data || '');
 return [{ json: { skip: !p.companyKey.length || p.name.length < 2,
-  firstName: p.name[0] || '', lastName: p.name.slice(1).join(' '), organic: [{ title: '', link: '' }] } }];
+  firstName: p.name[0] || '', lastName: p.name.slice(1).filter(w => w.length > 1).join(' '), organic: [{ title: '', link: '' }] } }];
 `;
 export const FT_PREP = LIB + FT_PARSE + String.raw`
 const organic = ($input.first().json || {}).organic || [];
