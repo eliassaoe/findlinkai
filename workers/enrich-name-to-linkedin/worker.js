@@ -104,11 +104,16 @@ export function parseInput(raw) {
         rest.push(cleaned);
     }
 
-    // Everything up to the company hint is the name. With no hint, the first
-    // two tokens are the name and anything after is treated as company words -
-    // which is the same assumption n8n makes, but it is only used to enrich the
-    // search query here, never to decide a match.
-    const nameTokens = rest.slice(0, Math.max(2, Math.min(rest.length, 3)));
+    // With a domain or email present, everything else is the name. Without
+    // one, the name is two tokens - three when the second is an initial or a
+    // particle ("John F Kennedy", "Ana de Souza") - and the rest is company.
+    // Taking three by default turned "Jane Smith Acme" into a three-word name
+    // with no company, which then fails the company requirement below.
+    let nameLen;
+    if (domain !== null) nameLen = Math.min(rest.length, 4);
+    else if (rest.length >= 3 && isNameJoiner(rest[1])) nameLen = 3;
+    else nameLen = Math.min(rest.length, 2);
+    const nameTokens = rest.slice(0, nameLen);
     const companyWords = rest.slice(nameTokens.length);
 
     return {
@@ -117,6 +122,67 @@ export function parseInput(raw) {
         domain,
         raw: tokens.join(' ')
     };
+}
+
+const NAME_JOINERS = new Set(['de', 'da', 'do', 'dos', 'das', 'del', 'della', 'di', 'du', 'la', 'le', 'van', 'von', 'der', 'den', 'ter', 'bin', 'bint', 'al', 'el', 'ibn', 'st', 'mc', 'mac']);
+function isNameJoiner(tok) {
+    const t = String(tok || '').toLowerCase().replace(/\.$/, '');
+    return t.length === 1 || NAME_JOINERS.has(t);
+}
+
+// The API and the app can also send the parts separately. When they do, trust
+// them over any guess made from the joined string.
+export function parseRequest(body) {
+    const b = body || {};
+    const first = String(b.first_name || '').trim(), last = String(b.last_name || '').trim();
+    const company = String(b.company || b.company_name || '').trim();
+    if ((first || last) && company) {
+        const p = parseInput([first, last].filter(Boolean).join(' ') + ' ' + company);
+        const nameTokens = [first, last].join(' ').split(/\s+/).map(normalize).filter(Boolean);
+        const isDomain = /^[a-z0-9-]+(\.[a-z0-9-]+)+$/i.test(company);
+        return {
+            nameTokens,
+            companyWords: isDomain ? [] : company.split(/\s+/).map(normalize).filter(Boolean),
+            domain: isDomain ? company.toLowerCase() : p.domain,
+            raw: p.raw
+        };
+    }
+    const p = parseInput(b.input_data);
+    if (company && !p.companyWords.length && !p.domain) {
+        p.companyWords = company.split(/\s+/).map(normalize).filter(Boolean);
+    }
+    return p;
+}
+
+// A name with no company is not worth a lookup: on the logged history, name-only
+// "hits" carried the searched surname in the URL 38% of the time - most were a
+// different person. Refuse it, free, and say what to add.
+export function hasCompany(parsed) {
+    return !!(parsed.domain || (parsed.companyWords && parsed.companyWords.length));
+}
+
+// Legal suffixes and country codes are noise to Google: a headline says "Acme",
+// not "Acme Holdings, Inc. US".
+const LEGAL_SUFFIX = /^(inc|incorporated|llc|ltd|limited|gmbh|mbh|corp|corporation|co|sro|srl|spa|sas|sarl|sa|pvt|private|plc|ag|kg|bv|nv|oy|oyj|ab|as|asa|pty|lp|llp|pllc|bhd|sdn|kft|zrt)$/;
+const COUNTRY = /^(us|usa|uk|gb|cz|at|hu|de|fr|it|es|nl|be|ch|pl|se|no|dk|fi|ie|pt|br|mx|ca|au|nz|sg|ae|za|jp|cn|hk|tr|ro)$/;
+export function cleanCompanyWords(words) {
+    const kept = (words || []).filter((w, i) => i === 0 || !(LEGAL_SUFFIX.test(w) || COUNTRY.test(w)));
+    return kept.length ? kept : (words || []);
+}
+
+// The queries tried in order, stopping at the first confident match. Each one
+// is a Serper call, so a miss costs up to three instead of one - a fraction of
+// a cent - against a credit the customer pays either way.
+export function buildQueries(parsed) {
+    const name = parsed.nameTokens.join(' ');
+    const company = cleanCompanyWords(parsed.companyWords).join(' ')
+        || (parsed.domain ? parsed.domain.split('.')[0] : '');
+    const qs = [
+        buildQuery(parsed),                                   // what n8n sends today
+        `"${name}" "${company}" linkedin`,                   // exact phrases, no site: filter
+        `${name} ${company.split(' ')[0]} site:linkedin.com/in` // shortest company form
+    ];
+    return [...new Set(qs.filter(q => q && !/""/.test(q)))];
 }
 
 export function isProfileUrl(link) {
@@ -246,29 +312,31 @@ export default {
         if (!token || String(token).length < 8) return json({ error: 'Missing or invalid token' }, 401, cors);
         if (!input || !String(input).trim()) return json({ error: 'Missing input_data' }, 400, cors);
 
-        const parsed = parseInput(input);
+        const parsed = parseRequest(body);
         // Without at least one name token there is nothing to search for, and
         // nothing to charge for either. n8n would have spent a credit here.
         if (!parsed.nameTokens.length) {
             return json({ result: '', status: 'success', reason: 'no_name_in_input' }, 200, cors);
         }
+        if (!hasCompany(parsed)) {
+            return json({
+                error: 'company_required', status: 'error',
+                message: 'Add the company after the name, e.g. "Jane Smith Acme" or "Jane Smith acme.com". Not charged.'
+            }, 422, cors);
+        }
 
-        let organic = [];
+        let best = null;
         try {
-            const res = await fetch('https://google.serper.dev/search', {
-                method: 'POST',
-                headers: { 'X-API-KEY': env.SERPER_API_KEY, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ q: buildQuery(parsed), num: MAX_CANDIDATES })
-            });
-            if (!res.ok) throw new Error(`serper ${res.status}`);
-            organic = (await res.json()).organic || [];
+            for (const q of buildQueries(parsed)) {
+                best = pickBest(parsed, await serper(env, q));
+                if (best) break;
+            }
         } catch (e) {
             // An upstream failure is ours, not the customer's: return an error
             // and charge nothing, rather than reporting a false "not found".
             return json({ error: 'Lookup provider unavailable', status: 'error' }, 502, cors);
         }
 
-        const best = pickBest(parsed, organic);
         const charge = await chargeCredits(env, token, best ? CREDIT_COST : CREDIT_COST_NOT_FOUND);
         if (!charge.ok && charge.reason === 'insufficient_credits') {
             return json({ error: 'Insufficient credits', status: 'error' }, 402, cors);
@@ -277,6 +345,16 @@ export default {
         return json({ result: best ? best.link : '', status: 'success' }, 200, cors);
     }
 };
+
+async function serper(env, q) {
+    const res = await fetch('https://google.serper.dev/search', {
+        method: 'POST',
+        headers: { 'X-API-KEY': env.SERPER_API_KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ q, num: MAX_CANDIDATES })
+    });
+    if (!res.ok) throw new Error(`serper ${res.status}`);
+    return (await res.json()).organic || [];
+}
 
 function corsHeaders(origin) {
     const allowed = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];

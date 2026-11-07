@@ -168,7 +168,7 @@ test('returns the profile and charges the full credit', async () => {
 
 test('an empty result is still a success response, matching n8n', async () => {
     withStubs({ organic: [hit('Acme Corp', 'https://www.linkedin.com/company/acme')] });
-    const res = await m.default.fetch(post({ user_token: 'tok-12345678', input_data: 'Jane Smith' }), ENV);
+    const res = await m.default.fetch(post({ user_token: 'tok-12345678', input_data: 'Jane Smith Acme' }), ENV);
     assert.deepEqual(await res.json(), { result: '', status: 'success' });
 });
 
@@ -176,7 +176,7 @@ test('an upstream outage errors instead of reporting a false not-found', async (
     globalThis.fetch = async (url) => String(url).includes('serper.dev')
         ? { ok: false, status: 503, json: async () => ({}) }
         : { ok: true, status: 200, json: async () => [{ credits: 100, protected_credits: 0 }] };
-    const res = await m.default.fetch(post({ user_token: 'tok-12345678', input_data: 'Jane Smith' }), ENV);
+    const res = await m.default.fetch(post({ user_token: 'tok-12345678', input_data: 'Jane Smith Acme' }), ENV);
     assert.equal(res.status, 502);
 });
 
@@ -195,6 +195,64 @@ test('a short token is rejected', async () => {
 
 test('insufficient credits returns 402', async () => {
     withStubs({ organic: [hit('Jane Smith - Acme', PROFILE)], rows: [{ credits: 0, protected_credits: 0 }] });
-    const res = await m.default.fetch(post({ user_token: 'tok-12345678', input_data: 'Jane Smith' }), ENV);
+    const res = await m.default.fetch(post({ user_token: 'tok-12345678', input_data: 'Jane Smith Acme' }), ENV);
     assert.equal(res.status, 402);
+});
+
+// --- company required + extra passes (7 Nov 2026, docs/find-rate.md) ----------
+
+const { parseRequest, hasCompany, buildQueries, cleanCompanyWords } = m;
+
+test('a name with no company is refused, a name with one is not', () => {
+    assert.equal(hasCompany(parseInput('Jane Smith')), false);
+    assert.equal(hasCompany(parseInput('Jane Smith Acme')), true);
+    assert.equal(hasCompany(parseInput('Jane Smith acme.com')), true);
+    assert.equal(hasCompany(parseInput('John F Kennedy')), false, 'an initial makes a three-part name, not a company');
+    assert.equal(hasCompany(parseInput('Ana de Souza')), false);
+});
+
+test('structured fields win over guessing', () => {
+    const p = parseRequest({ first_name: 'Jean Pierre', last_name: 'Dupont', company: 'Acme Corp' });
+    assert.deepEqual(p.nameTokens, ['jean', 'pierre', 'dupont']);
+    assert.deepEqual(p.companyWords, ['acme', 'corp']);
+    assert.equal(parseRequest({ input_data: 'Jane Smith', company: 'Acme' }).companyWords[0], 'acme');
+    assert.equal(parseRequest({ first_name: 'Jane', last_name: 'Smith', company: 'acme.com' }).domain, 'acme.com');
+});
+
+test('the first query is unchanged, then two more shapes, no duplicates', () => {
+    const p = parseInput('Alicia Carrasco Turning Point Brands Inc');
+    const qs = buildQueries(p);
+    assert.equal(qs[0], buildQuery(p));
+    assert.ok(qs.some(q => q === '"alicia carrasco" "turning point brands" linkedin'));
+    assert.ok(qs.some(q => q === 'alicia carrasco turning site:linkedin.com/in'));
+    assert.equal(new Set(qs).size, qs.length);
+    assert.ok(qs.length <= 3);
+});
+
+test('legal suffixes and country codes leave the company, its first word never does', () => {
+    assert.deepEqual(cleanCompanyWords(['eviden', 'austria', 'gmbh', 'at']), ['eviden', 'austria']);
+    assert.deepEqual(cleanCompanyWords(['us', 'foods']), ['us', 'foods']);
+});
+
+test('a name with no company is refused with 422 and not charged', async () => {
+    const calls = withStubs({ organic: [hit('Jane Smith - Acme', PROFILE)] });
+    const res = await m.default.fetch(post({ user_token: 'tok-12345678', input_data: 'Jane Smith' }), ENV);
+    assert.equal(res.status, 422);
+    assert.equal((await res.json()).error, 'company_required');
+    assert.equal(calls.filter(c => c[0] === 'PATCH').length, 0, 'must not charge');
+});
+
+test('a miss on the first query tries the next shapes before giving up', async () => {
+    let serperCalls = 0;
+    globalThis.fetch = async (url, init) => {
+        if (String(url).includes('serper.dev')) {
+            serperCalls++;
+            const organic = serperCalls === 2 ? [hit('Alicia Carrasco - Turning Point Brands', PROFILE)] : [];
+            return { ok: true, status: 200, json: async () => ({ organic }) };
+        }
+        return { ok: true, status: 200, json: async () => [{ credits: 100, protected_credits: 0, token: 'x' }] };
+    };
+    const res = await m.default.fetch(post({ user_token: 'tok-12345678', input_data: 'Alicia Carrasco Turning Point Brands Inc' }), ENV);
+    assert.equal((await res.json()).result, PROFILE);
+    assert.equal(serperCalls, 2, 'stops at the first confident match');
 });

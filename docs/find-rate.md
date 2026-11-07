@@ -105,3 +105,20 @@ What would move it, in order:
    the wrong person, which is worse than a blank because they email the wrong
    person. The app already requires a company; the free tool page and the API
    don't.
+
+## 7 Nov 2026, later: #2 and #3 decided
+
+- **#3 (company required).** Already enforced on the free tool page
+  (`linkedin-url-finder.html`) and in the app, both the single form and the
+  CSV mapper (`lfCompanyRequired`). The leftover name-only traffic was CSVs from
+  June–Sept with the wrong column mapped (emails, URLs and company names in the
+  name column, about 1% found) and 13 rows in October. The API is the
+  remaining gap: the worker now refuses a name without a company (422, free).
+- **#2 (second source).** Filtrat has no name → LinkedIn endpoint. Its API
+  covers `POST /v1/finder/search` (first + last + domain → email, about
+  $0.01 per email found, nothing when not found), verification and domain
+  lookups. So the second source for name → LinkedIn is two more Google passes
+  in the worker. **Filtrat fits name → email instead**, today's worst lookup
+  (1–15%).
+- **None of this is live until the worker is deployed** and the n8n branch
+  routes to it (README in `workers/enrich-name-to-linkedin/`).

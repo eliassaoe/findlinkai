@@ -35,6 +35,32 @@ Two behaviour changes that are deliberate, not accidental:
   when Serper is down bills the customer for our failure and poisons the fill-rate
   numbers.
 
+## Added 7 Nov 2026 (docs/find-rate.md)
+
+- **A company is required.** Two tokens with no company or domain ("Jane
+  Smith") get a `422 {error: "company_required"}` and are **not charged**.
+  On the logged history, name-only "hits" carried the searched surname in
+  the URL 38% of the time, so most were a different person. Three-part names
+  are recognised ("John F Kennedy", "Ana de Souza"), so they aren't mistaken
+  for name + company. Structured `first_name` / `last_name` / `company`
+  (or `company_name`) in the body are used when present.
+- **Up to three Google passes on a miss**, stopping at the first confident
+  match (`buildQueries`):
+  1. the n8n query, unchanged;
+  2. `"first last" "company" linkedin` (exact phrases, no `site:` filter);
+  3. `first last <first company word> site:linkedin.com/in`.
+  Legal suffixes and country codes are dropped from the company in passes 2
+  and 3. A miss now costs up to three Serper calls instead of one; the
+  customer's charge is unchanged (1 on a hit, 0.5 on a miss).
+
+Why Google and not a people database: Filtrat (checked 7 Nov) has no
+name → LinkedIn endpoint, only name + domain → email. A database would be a
+second vendor; the slot for it is right after the loop in `fetch()`.
+
+**API behaviour change to announce when this goes live:** a name with no
+company used to return an empty result and charge 0.5; it now returns 422 and
+charges nothing. Update `api-documentation.html` in the same release.
+
 ## Deploy
 
 ```bash
