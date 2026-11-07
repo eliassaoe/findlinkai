@@ -78,3 +78,17 @@ test('the dropdowns are replaced by a card per search, which drives the same sel
   assert.ok(pick.includes("outputSel.dispatchEvent(new Event('change'))"));
   assert.ok(appFn('setupDropdowns').includes('renderSearchPicker()'));
 });
+
+// 7 Nov 2026, later: four big cards first, the rest behind "More searches".
+test('start screen shows four cards, LinkedIn profile first, the rest behind More searches', () => {
+  const html = readFileSync(new URL('../app.html', import.meta.url), 'utf8');
+  const top = html.slice(html.indexOf('const SEARCH_PICKER_TOP'), html.indexOf('function searchPickerLabel'));
+  const pairs = [...top.matchAll(/pair: \['(\w+)', '(\w+)'\]/g)].map(m => m[1] + '__' + m[2]);
+  assert.deepEqual(pairs, ['lead_full_name__linkedin_url', 'linkedin_profile__email', 'company_name__website', 'linkedin_profile__phone']);
+  assert.match(html, /id="spMore" class="sp-more hidden"/);
+  assert.match(html, /More searches/);
+  assert.match(html, /function trySearchExample\(\)/);
+  // the example only fills the form: autoRun must stay false so no credits move by surprise
+  assert.match(html, /quickStart\(currentInputType, currentOutputType, l\.example\[0\], null, false, l\.example\[1\]\)/);
+  assert.doesNotMatch(html, /one contact or company<\/div>/);
+});

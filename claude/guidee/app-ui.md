@@ -134,3 +134,15 @@ cards: "Have a list? Upload a CSV: Names → LinkedIn · LinkedIn → Emails ·
 Emails → LinkedIn · LinkedIn → Phones · or Google Sheets". There is no
 paste box any more.
 
+**Start screen (since 7 Nov 2026, later — replaces the grouped cards above).**
+Heading "What do you want to find?", then four big cards: "Find a LinkedIn
+profile / From a name + company / 1 credit", "Find a work email / From a
+LinkedIn profile URL / 10 credits", "Find a company website / From a company
+name / 1 credit", "Find a phone number / From a LinkedIn profile URL / 50
+credits". Under them a "More searches" link (opens the grouped cards) and the
+CSV / Google Sheets line. Clicking a card collapses everything into a blue bar
+"Find a LinkedIn profile  From a name + company · 1 credit  Try an example  Change";
+the form ("Enter Full Name", "Company Name", Location optional, Job Title
+optional, button "Enrich Data") is below the "Single lookup / Upload CSV (bulk)"
+toggle. "Try an example" fills Satya Nadella / Microsoft but does not run it.
+

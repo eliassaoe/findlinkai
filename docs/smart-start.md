@@ -138,3 +138,27 @@ old full-screen "Where is your data?" chooser doesn't come back.
 unit-tested (`tests/smart-start.test.mjs`); delete them if the box isn't
 coming back. Events to watch: `search_picked` (cards), `quickstart_bulk_used`
 (list line), `onboarding_route_picked` with source `list_line` (Sheets).
+
+## 7 Nov 2026, later — four cards, the rest behind "More searches"
+
+The owner asked for simpler. The start screen now shows **four big cards**, in this order:
+
+1. Find a LinkedIn profile — name + company, 1 credit (~76% found with the Apify backup)
+2. Find a work email — LinkedIn URL, 10 credits
+3. Find a company website — company name, 1 credit (~95% found)
+4. Find a phone number — LinkedIn URL, 50 credits
+
+Every other search is in the old grouped grid, hidden behind **More searches**.
+After a pick, the cards collapse into one blue bar ("Find a LinkedIn profile · From a
+name + company · 1 credit") with **Try an example** (fills Satya Nadella / Microsoft,
+the LinkedIn URL, or Tesla — it does NOT press Find, so no credits move by surprise)
+and **Change** (brings the cards back). The CSV / Google Sheets line stays under the
+cards and hides once a search is picked. The duplicate "Single — … / List — …"
+captions under the mode toggle were removed.
+
+Code: `SEARCH_PICKER_TOP`, `renderSearchPicker`, `syncSearchPicker`,
+`trySearchExample`, `changeSearch`, `toggleMoreSearches` in `app.html`.
+PostHog events: `search_picked` (unchanged), `more_searches_toggled`,
+`search_example_used`, `search_change_clicked`.
+**Re-check ~14 Nov 2026**: first-lookup rate and `search_picked` split vs the week before.
+Pinned by `tests/smart-start.test.mjs`.

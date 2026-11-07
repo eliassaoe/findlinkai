@@ -941,6 +941,24 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
 .config-form .qs-list-line{margin:0.4rem 0 1.2rem;}
 .qs-or{color:var(--gray-400);margin:0 0.15rem;}
 .search-picker{display:block;}
+.sp-top{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:0.75rem;}
+.sp-card.sp-big{padding:1.1rem 1.1rem 1rem;border-radius:14px;min-height:118px;display:flex;flex-direction:column;}
+.sp-big-icon{font-size:1.25rem;color:var(--primary,#2563eb);margin-bottom:0.55rem;}
+.sp-big .sp-card-title{font-size:1rem;}
+.sp-card-sub{display:block;font-size:0.8rem;color:var(--gray-600,#4b5563);margin-top:0.2rem;}
+.sp-big .sp-card-cost{margin-top:auto;padding-top:0.5rem;color:var(--gray-400,#9ca3af);}
+.sp-more-wrap{margin-top:0.8rem;}
+.sp-more-toggle{font-size:0.85rem;font-weight:600;color:var(--gray-600,#4b5563);text-decoration:none;}
+.sp-more-toggle:hover{color:var(--primary,#2563eb);}
+.sp-more{margin-top:0.8rem;}
+#searchPicker.sp-picked .sp-top,#searchPicker.sp-picked .sp-more-wrap{display:none;}
+.sp-has-pick .search-picker-label,.sp-has-pick .qs-list-line{display:none;}
+.sp-chosen{display:flex;flex-wrap:wrap;align-items:baseline;gap:0.35rem 0.9rem;padding:0.8rem 1rem;margin-bottom:1rem;border:1.5px solid var(--primary,#2563eb);border-radius:12px;background:#eff6ff;}
+.sp-chosen-title{font-weight:700;color:var(--gray-900,#111827);}
+.sp-chosen-sub{font-size:0.85rem;color:var(--gray-600,#4b5563);}
+.sp-chosen-link{font-size:0.85rem;font-weight:600;color:var(--primary,#2563eb);cursor:pointer;}
+.sp-chosen-links{margin-left:auto;display:inline-flex;gap:1rem;white-space:nowrap;}
+
 .sp-group{margin-bottom:0.9rem;}
 .sp-group{padding:0.8rem 0.9rem;border:1px solid var(--gray-200,#e5e7eb);border-radius:12px;background:#fafbff;}
 .sp-group-title{font-size:1rem;font-weight:700;color:var(--gray-900,#111827);margin-bottom:0.55rem;}
@@ -1184,10 +1202,6 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
             <div class="mode-switch">
                 <button class="mode-option active" onclick="switchMode('single','toggle')" id="singleMode">Single lookup</button>
                 <button class="mode-option" onclick="switchMode('bulk','toggle')" id="bulkMode">📤 Upload CSV (bulk)</button>
-            </div>
-            <div style="display:flex;gap:1rem;margin-top:0.5rem;font-size:0.75rem;color:var(--gray-500);">
-                <div style="flex:1;"><strong style="color:var(--gray-600);">Single</strong> — one contact or company</div>
-                <div style="flex:1;"><strong style="color:var(--gray-600);">List</strong> — upload a CSV and every row gets the same lookup</div>
             </div>
         </div>
 
@@ -3699,26 +3713,83 @@ function searchPickerCost(input, output) {
     if (output === 'employees' || output === 'reactions') return c + ' credit per person found';
     return c + ' credit' + (c === 1 ? '' : 's');
 }
+// The four searches shown first (7 Nov 2026): fewer choices, faster first click.
+// Order favours a first lookup that finds something: name -> LinkedIn ~76%
+// with the Apify backup, company -> website ~95% (docs/find-rate.md).
+const SEARCH_PICKER_TOP = [
+    { pair: ['lead_full_name', 'linkedin_url'], title: 'Find a LinkedIn profile', sub: 'From a name + company', icon: 'fab fa-linkedin', example: ['Satya Nadella', 'Microsoft'] },
+    { pair: ['linkedin_profile', 'email'], title: 'Find a work email', sub: 'From a LinkedIn profile URL', icon: 'fas fa-envelope', example: ['https://www.linkedin.com/in/satyanadella/'] },
+    { pair: ['company_name', 'website'], title: 'Find a company website', sub: 'From a company name', icon: 'fas fa-globe', example: ['Tesla'] },
+    { pair: ['linkedin_profile', 'phone'], title: 'Find a phone number', sub: 'From a LinkedIn profile URL', icon: 'fas fa-phone', example: ['https://www.linkedin.com/in/satyanadella/'] }
+];
+function searchPickerLabel(input, output) {
+    for (const t of SEARCH_PICKER_TOP) if (t.pair[0] === input && t.pair[1] === output) return { title: t.title, sub: t.sub, example: t.example };
+    for (const g of SEARCH_PICKER_GROUPS) for (const it of g.items) if (it[0] === input && it[1] === output) return { title: g.title, sub: it[2], example: null };
+    return null;
+}
 function renderSearchPicker() {
     const box = document.getElementById('searchPicker');
     if (!box) return;
-    box.innerHTML = SEARCH_PICKER_GROUPS.map(function (g) {
-        const cards = g.items.filter(function (it) {
-            return dataConfigurations[it[0]] && dataConfigurations[it[0]].outputs && dataConfigurations[it[0]].outputs[it[1]];
-        }).map(function (it) {
+    const ok = function (a, b) { return dataConfigurations[a] && dataConfigurations[a].outputs && dataConfigurations[a].outputs[b]; };
+    const top = SEARCH_PICKER_TOP.filter(function (t) { return ok(t.pair[0], t.pair[1]); }).map(function (t) {
+        return '<button type="button" class="sp-card sp-big" data-pair="' + t.pair[0] + '__' + t.pair[1] + '" onclick="pickSearch(\'' + t.pair[0] + '\',\'' + t.pair[1] + '\')">'
+            + '<i class="' + t.icon + ' sp-big-icon"></i>'
+            + '<span class="sp-card-title">' + t.title + '</span>'
+            + '<span class="sp-card-sub">' + t.sub + '</span>'
+            + '<span class="sp-card-cost">' + searchPickerCost(t.pair[0], t.pair[1]) + '</span></button>';
+    }).join('');
+    const groups = SEARCH_PICKER_GROUPS.map(function (g) {
+        const cards = g.items.filter(function (it) { return ok(it[0], it[1]); }).map(function (it) {
             return '<button type="button" class="sp-card" data-pair="' + it[0] + '__' + it[1] + '" onclick="pickSearch(\'' + it[0] + '\',\'' + it[1] + '\')">'
                 + '<span class="sp-card-title">' + it[2] + '</span>'
                 + '<span class="sp-card-cost">' + searchPickerCost(it[0], it[1]) + '</span></button>';
         }).join('');
         return '<div class="sp-group"><div class="sp-group-title"><i class="' + (g.brand ? 'fab' : 'fas') + ' ' + g.icon + '"></i> ' + g.title + '</div><div class="sp-grid">' + cards + '</div></div>';
     }).join('');
+    box.innerHTML = '<div class="sp-top">' + top + '</div>'
+        + '<div class="sp-more-wrap"><a href="#" class="sp-more-toggle" onclick="toggleMoreSearches();return false;">More searches <i class="fas fa-chevron-down"></i></a>'
+        + '<div id="spMore" class="sp-more hidden">' + groups + '</div></div>'
+        + '<div id="spChosen" class="sp-chosen hidden"></div>';
     syncSearchPicker();
+}
+function toggleMoreSearches() {
+    const m = document.getElementById('spMore');
+    if (!m) return;
+    m.classList.toggle('hidden');
+    try { posthog.capture('more_searches_toggled', { open: !m.classList.contains('hidden') }); } catch (e) {}
+}
+function changeSearch() {
+    const box = document.getElementById('searchPicker');
+    if (box) box.classList.remove('sp-picked');
+    const form = document.querySelector('.config-form');
+    if (form) form.classList.remove('sp-has-pick');
+    try { posthog.capture('search_change_clicked'); } catch (e) {}
+    if (box && box.scrollIntoView) box.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+function trySearchExample() {
+    const l = searchPickerLabel(currentInputType, currentOutputType);
+    if (!l || !l.example) return;
+    try { posthog.capture('search_example_used', { input_type: currentInputType, output_type: currentOutputType }); } catch (e) {}
+    // Fills the example; the person still presses Find, so no credits move by surprise.
+    quickStart(currentInputType, currentOutputType, l.example[0], null, false, l.example[1]);
 }
 function syncSearchPicker() {
     const pair = (currentInputType && currentOutputType) ? currentInputType + '__' + currentOutputType : '';
     document.querySelectorAll('#searchPicker .sp-card').forEach(function (el) {
         el.classList.toggle('active', el.getAttribute('data-pair') === pair);
     });
+    const box = document.getElementById('searchPicker'), chosen = document.getElementById('spChosen');
+    if (!box || !chosen) return;
+    const l = pair ? searchPickerLabel(currentInputType, currentOutputType) : null;
+    box.classList.toggle('sp-picked', !!l);
+    const form = document.querySelector('.config-form');
+    if (form) form.classList.toggle('sp-has-pick', !!l);
+    if (!l) { chosen.classList.add('hidden'); chosen.innerHTML = ''; return; }
+    chosen.innerHTML = '<span class="sp-chosen-title">' + l.title + '</span><span class="sp-chosen-sub">' + l.sub + ' · ' + searchPickerCost(currentInputType, currentOutputType) + '</span>'
+        + '<span class="sp-chosen-links">'
+        + (l.example ? '<a href="#" class="sp-chosen-link" onclick="trySearchExample();return false;">Try an example</a>' : '')
+        + '<a href="#" class="sp-chosen-link" onclick="changeSearch();return false;">Change</a></span>';
+    chosen.classList.remove('hidden');
 }
 function pickSearch(input, output) {
     const inputSel = document.getElementById('inputType');
