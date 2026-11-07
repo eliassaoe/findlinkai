@@ -931,7 +931,9 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
 .search-picker-label{font-size:0.75rem;font-weight:600;color:var(--gray-400);text-transform:uppercase;letter-spacing:0.06em;margin:0 0 0.6rem;}
 .search-picker{display:block;}
 .sp-group{margin-bottom:0.9rem;}
-.sp-group-title{font-size:0.8rem;font-weight:700;color:var(--gray-700,#374151);margin-bottom:0.4rem;}
+.sp-group{padding:0.8rem 0.9rem;border:1px solid var(--gray-200,#e5e7eb);border-radius:12px;background:#fafbff;}
+.sp-group-title{font-size:1rem;font-weight:700;color:var(--gray-900,#111827);margin-bottom:0.55rem;}
+.sp-group-title i{color:var(--primary,#2563eb);margin-right:0.35rem;}
 .sp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:0.5rem;}
 .sp-card{border:1.5px solid var(--gray-200,#e5e7eb);border-radius:10px;padding:0.65rem 0.8rem;background:#fff;cursor:pointer;text-align:left;font:inherit;transition:border-color .15s,background .15s;}
 .sp-card:hover{border-color:var(--primary,#2563eb);background:#f0f5ff;}
@@ -1110,7 +1112,7 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
                  selects below stay in the DOM, hidden: quickStart, saved
                  searches, bulk and the API panel all set them, and a card click
                  sets them the same way. -->
-            <div class="search-picker-label">Or pick a search</div>
+            <div class="search-picker-label">Or pick what you want to find</div>
             <div id="searchPicker" class="search-picker"></div>
             <div class="form-grid" style="display:none;">
                 <div class="form-field">
@@ -3670,25 +3672,30 @@ function populateOutputOptions(filterInputType) {
  * existing wiring (configureEnrichment, bulk, saved searches) is unchanged.
  */
 const SEARCH_PICKER_GROUPS = [
-    { title: 'People', items: [
-        ['linkedin_profile', 'email', 'LinkedIn profile \u2192 Work email'],
-        ['linkedin_profile', 'phone', 'LinkedIn profile \u2192 Phone number'],
-        ['lead_full_name', 'email', 'Name + company \u2192 Verified email'],
-        ['lead_full_name', 'linkedin_url', 'Name + company \u2192 LinkedIn profile'],
-        ['email', 'linkedin_url', 'Email \u2192 LinkedIn profile'],
-        ['linkedin_profile', 'linkedin_info', 'LinkedIn profile \u2192 Full profile data'],
+    // Grouped by what the person wants to find; each card says what they start from.
+    { title: 'Find an email', icon: 'fa-envelope', items: [
+        ['linkedin_profile', 'email', 'From a LinkedIn profile URL'],
+        ['lead_full_name', 'email', 'From a name + company domain'],
+        ['company_name', 'email', "A company's contact email, from its name"],
     ]},
-    { title: 'Companies', items: [
-        ['company_name', 'website', 'Company name \u2192 Website'],
-        ['company_name', 'phone', 'Company name \u2192 Phone number'],
-        ['company_name', 'email', 'Company name \u2192 Contact email'],
-        ['company_name', 'linkedin_url', 'Company name \u2192 LinkedIn page'],
-        ['company_domain', 'employees', 'Company domain \u2192 Employees list'],
-        ['linkedin_company', 'linkedin_info', 'LinkedIn company page \u2192 Company data'],
-        ['linkedin_company', 'employee_count', 'LinkedIn company page \u2192 Employee count'],
+    { title: 'Find a phone number', icon: 'fa-phone', items: [
+        ['linkedin_profile', 'phone', 'Mobile, from a LinkedIn profile URL'],
+        ['company_name', 'phone', "A company's phone, from its name"],
     ]},
-    { title: 'LinkedIn posts', items: [
-        ['linkedin_post', 'reactions', 'LinkedIn post \u2192 People who reacted'],
+    { title: 'Find a LinkedIn profile', icon: 'fa-linkedin', brand: true, items: [
+        ['lead_full_name', 'linkedin_url', 'From a name + company'],
+        ['email', 'linkedin_url', 'From an email address'],
+        ['company_name', 'linkedin_url', "A company's LinkedIn page, from its name"],
+    ]},
+    { title: 'Get company data', icon: 'fa-building', items: [
+        ['company_name', 'website', 'Website, from a company name'],
+        ['company_domain', 'employees', 'Employees list, from a domain'],
+        ['linkedin_company', 'linkedin_info', 'Full company data, from its LinkedIn page'],
+        ['linkedin_company', 'employee_count', 'Employee count, from its LinkedIn page'],
+    ]},
+    { title: 'Get profile data', icon: 'fa-id-card', items: [
+        ['linkedin_profile', 'linkedin_info', 'Title, company, experience, from a LinkedIn URL'],
+        ['linkedin_post', 'reactions', 'Everyone who reacted to a LinkedIn post'],
     ]},
 ];
 function searchPickerCost(input, output) {
@@ -3708,7 +3715,7 @@ function renderSearchPicker() {
                 + '<span class="sp-card-title">' + it[2] + '</span>'
                 + '<span class="sp-card-cost">' + searchPickerCost(it[0], it[1]) + '</span></button>';
         }).join('');
-        return '<div class="sp-group"><div class="sp-group-title">' + g.title + '</div><div class="sp-grid">' + cards + '</div></div>';
+        return '<div class="sp-group"><div class="sp-group-title"><i class="' + (g.brand ? 'fab' : 'fas') + ' ' + g.icon + '"></i> ' + g.title + '</div><div class="sp-grid">' + cards + '</div></div>';
     }).join('');
     syncSearchPicker();
 }

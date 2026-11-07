@@ -95,3 +95,6 @@ saved searches and the API panel are untouched; `syncSearchPicker()` highlights 
 The `.form-grid` with the selects is kept in the DOM with `display:none`. New event: `search_picked`
 {input_type, output_type, mode}. Also fixed: a pasted name going to email now fills first / last name
 (`#leadFirstName`, `#leadLastName`) and focuses the domain field. `tests/smart-start.test.mjs` pins the picker.
+
+Same day: the picker is grouped **by what the person wants to find** (Find an email / phone / LinkedIn profile / Get
+company data / Get profile data), each card naming the starting input, instead of grouping by input type.

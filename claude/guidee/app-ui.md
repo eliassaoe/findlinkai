@@ -101,12 +101,13 @@ instead?` `Upload a CSV` · `Google Sheets` · `API / n8n` · `HubSpot`.
 Below the box, one line: `Have a list? Upload a CSV:` with four pair
 shortcuts. The four "Popular searches" cards no longer exist.
 
-Under it, `OR PICK A SEARCH` replaces the `I have` / `I want to find`
-dropdowns: cards grouped `People`, `Companies`, `LinkedIn posts`, each titled
-`<input> → <result>` with its cost, e.g. `LinkedIn profile → Work email` /
-`10 credits`, `Name + company → Verified email` / `7 credits`, `Company name →
-Website` / `1 credit`. The picked card is highlighted. Storyboards that say
-"select X in the I have dropdown" must now say "click the X → Y card".
+Under it, `OR PICK WHAT YOU WANT TO FIND` replaces the `I have` / `I want to
+find` dropdowns: one block per goal — `Find an email`, `Find a phone number`,
+`Find a LinkedIn profile`, `Get company data`, `Get profile data` — each with
+cards saying what you start from and the cost, e.g. under `Find an email`:
+`From a LinkedIn profile URL` / `10 credits`, `From a name + company domain` /
+`7 credits`. The picked card is highlighted. Storyboards that say "select X in
+the I have dropdown" must now say "under Find an email, click From a …".
 
 The route chooser (`Where is the data you want to enrich?`) is no longer shown
 by default; only `?route_test=1` brings it back.
