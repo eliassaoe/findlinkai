@@ -79,3 +79,9 @@ auto-run, they ask for a LinkedIn URL the person may not have open.
 The Monthly default above was reverted the same day. The owner keeps Annual as the default tab for everyone. The
 120-day split (Monthly 61, Pay as you go 48, Annual 13 people picking) is left here as data, not as a pending change:
 do not flip the default again without asking.
+
+## Addendum: "Popular searches" cards removed (7 Nov 2026, owner's call)
+
+The four quick-start cards under the box are gone; the box covers the same four lookups from whatever is pasted.
+The one-line list shortcuts (`qs-list-line`, `quickStartBulk`) stay. `quickStart()` is still the function every
+single lookup goes through. `tests/default-mode.test.mjs` pins the new shape.

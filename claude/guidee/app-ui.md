@@ -88,13 +88,21 @@ After a bulk run: heading `N of M rows enriched. Next time, skip the upload.`
 with `Enrich inside Google Sheets`, `</> Automate this run`, and `Send all to
 HubSpot` / `Sync to my CRM`.
 
-## First visit only: the route chooser
+## Top of the enrichment page: the smart-start box (since 7 Nov 2026)
 
-Above the quick-start cards: `Where is the data you want to enrich?` with four
-cards — `In a CSV or spreadsheet`, `In Google Sheets`, `In my own code or n8n /
-Make`, `In my CRM (HubSpot)` — and the link `I just need one lookup for now`.
-It is gone after any choice or any enrichment, so a recording made on a used
-account will not show it.
+Heading `Paste what you have. We'll find the rest.`, one input
+(placeholder `A LinkedIn profile URL, an email, a person's name or a company`)
+and a button whose label follows what was pasted: `Find email` (LinkedIn
+profile URL or a name), `Find phone number instead` / `Get full profile` as
+links under it for a profile, `Find LinkedIn profile` (email), `Get company
+data` (LinkedIn company URL), `Get who reacted` (post), `Find employees`
+(domain), `Find website` (company name). Under it: `Got a whole list
+instead?` `Upload a CSV` · `Google Sheets` · `API / n8n` · `HubSpot`.
+Below the box, one line: `Have a list? Upload a CSV:` with four pair
+shortcuts. The four "Popular searches" cards no longer exist.
+
+The route chooser (`Where is the data you want to enrich?`) is no longer shown
+by default; only `?route_test=1` brings it back.
 
 ## Other surfaces
 
