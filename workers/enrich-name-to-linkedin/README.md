@@ -70,6 +70,20 @@ second vendor; the slot for it is right after the loop in `fetch()`.
 company used to return an empty result and charge 0.5; it now returns 422 and
 charges nothing. Update `api-documentation.html` in the same release.
 
+## Called from n8n (the rollout mode)
+
+When the request carries `X-Worker-Key` equal to the `N8N_SHARED_SECRET`
+secret, the worker **only searches**. It doesn't read or charge credits and
+doesn't need a user token, because n8n keeps its own charging (`Code97` /
+`Code24`) and history logging. The response is `{result, status, source}`,
+where `source` is `google`, `linkedin_search` or `none`. A missing or wrong
+secret falls back to the normal paid path, so the no-charge mode can't be used
+to borrow our Serper and Apify keys. `422 company_required` is returned on both
+paths.
+
+Step-by-step dashboard setup (Cloudflare + n8n, written as a prompt for Claude
+in Chrome): `N8N-SETUP-PROMPT.md`.
+
 ## Deploy
 
 ```bash
@@ -78,6 +92,7 @@ npx wrangler secret put SUPABASE_URL
 npx wrangler secret put SUPABASE_SERVICE_KEY
 npx wrangler secret put SERPER_API_KEY
 npx wrangler secret put APIFY_TOKEN      # optional: enables the LinkedIn-search fallback
+npx wrangler secret put N8N_SHARED_SECRET # n8n mode: search only, n8n charges
 npx wrangler deploy
 ```
 

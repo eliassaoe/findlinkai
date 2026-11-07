@@ -309,7 +309,7 @@ export default {
 
         const token = body.user_token || body.token;
         const input = body.input_data;
-        if (!token || String(token).length < 8) return json({ error: 'Missing or invalid token' }, 401, cors);
+        if (!fromN8n(request, env) && (!token || String(token).length < 8)) return json({ error: 'Missing or invalid token' }, 401, cors);
         if (!input || !String(input).trim()) return json({ error: 'Missing input_data' }, 400, cors);
 
         const parsed = parseRequest(body);
@@ -343,6 +343,12 @@ export default {
             // An upstream failure is ours, not the customer's: return an error
             // and charge nothing, rather than reporting a false "not found".
             return json({ error: 'Lookup provider unavailable', status: 'error' }, 502, cors);
+        }
+
+        // Called from n8n with the shared secret: n8n keeps its own charging
+        // (Code97/Code24) and history logging, so this must not charge too.
+        if (fromN8n(request, env)) {
+            return json({ result: best ? best.link : '', status: 'success', source: best ? (best.source || 'google') : 'none' }, 200, cors);
         }
 
         const charge = await chargeCredits(env, token, best ? CREDIT_COST : CREDIT_COST_NOT_FOUND);
@@ -393,6 +399,14 @@ export function pickFromLinkedInSearch(parsed, rows) {
     return null;
 }
 const GENERIC_COMPANY_WORDS = new Set(['the', 'and', 'group', 'company', 'services', 'solutions', 'international', 'global', 'holdings', 'enterprises', 'partners', 'consulting', 'systems', 'technologies', 'technology', 'brands', 'foods', 'family']);
+
+// n8n proves itself with X-Worker-Key. Without the secret configured, or with
+// a wrong one, the request is treated as a normal paying request, so nobody
+// can use the no-charge path to borrow our Serper and Apify keys.
+export function fromN8n(request, env) {
+    const key = request.headers.get('X-Worker-Key') || '';
+    return !!(env.N8N_SHARED_SECRET && key && key === env.N8N_SHARED_SECRET);
+}
 
 async function serper(env, q) {
     const res = await fetch('https://google.serper.dev/search', {

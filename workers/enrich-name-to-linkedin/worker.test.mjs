@@ -306,3 +306,32 @@ test('it is only asked after every Google pass missed, and only with a token', a
 test('first name, then the rest as the last name', () => {
     assert.deepEqual(splitName(parseInput('Martha Yolanda Diaz acme.com')), { firstName: 'martha', lastName: 'yolanda diaz' });
 });
+
+// --- called from n8n: n8n charges, the worker must not ------------------------
+
+const postFromN8n = (body, key) => new Request('https://w.test/', {
+    method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Worker-Key': key }, body: JSON.stringify(body)
+});
+
+test('with the right shared secret it returns the result and never charges', async () => {
+    const calls = withStubs({ organic: [hit('Jane Smith - Acme', PROFILE)] });
+    const res = await m.default.fetch(postFromN8n({ input_data: 'Jane Smith Acme' }, 's3cret'), { ...ENV, N8N_SHARED_SECRET: 's3cret' });
+    const out = await res.json();
+    assert.equal(out.result, PROFILE);
+    assert.equal(out.status, 'success');
+    assert.equal(calls.filter(c => c[0] === 'PATCH').length, 0, 'n8n charges, not the worker');
+});
+
+test('a wrong or missing secret falls back to the normal paid path', async () => {
+    withStubs({ organic: [hit('Jane Smith - Acme', PROFILE)] });
+    let res = await m.default.fetch(postFromN8n({ input_data: 'Jane Smith Acme' }, 'guess'), { ...ENV, N8N_SHARED_SECRET: 's3cret' });
+    assert.equal(res.status, 401, 'no token, wrong secret: refused');
+    res = await m.default.fetch(postFromN8n({ input_data: 'Jane Smith Acme' }, 's3cret'), { ...ENV });
+    assert.equal(res.status, 401, 'secret not configured: the header means nothing');
+});
+
+test('company_required still comes back from the n8n path, free', async () => {
+    withStubs({ organic: [] });
+    const res = await m.default.fetch(postFromN8n({ input_data: 'Jane Smith' }, 's3cret'), { ...ENV, N8N_SHARED_SECRET: 's3cret' });
+    assert.equal(res.status, 422);
+});
