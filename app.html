@@ -922,8 +922,17 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
 .smart-start-btn{padding:13px 22px;background:#2563eb;color:#fff;border:0;border-radius:10px;font-weight:700;font-size:15px;cursor:pointer;white-space:nowrap;}
 .smart-start-btn:hover{background:#1d4ed8;}
 .smart-start-hint{margin-top:8px;font-size:13px;color:#4b5563;}
-.smart-start-alt{margin-top:6px;font-size:13px;}
-.smart-start-alt a{color:#2563eb;font-weight:600;cursor:pointer;margin-right:12px;}
+.smart-start-examples{margin-top:8px;font-size:13px;color:#6b7280;}
+.smart-start-examples a{display:inline-block;margin:4px 0 0 6px;padding:3px 10px;border:1px solid #d1d5db;border-radius:999px;color:#374151;cursor:pointer;background:#f9fafb;}
+.smart-start-examples a:hover{border-color:#2563eb;color:#2563eb;}
+.smart-start-detected{margin-top:10px;font-size:13px;color:#065f46;font-weight:600;}
+.smart-start-detected i{margin-right:6px;}
+.smart-start-extra{margin-top:8px;display:flex;}
+.smart-start-actions{margin-top:10px;display:flex;flex-wrap:wrap;gap:8px;}
+.ss-action{padding:11px 18px;border-radius:10px;font-weight:700;font-size:14px;cursor:pointer;border:2px solid #2563eb;background:#fff;color:#2563eb;}
+.ss-action.primary{background:#2563eb;color:#fff;}
+.ss-action:hover{filter:brightness(.95);}
+.ss-action small{font-weight:500;opacity:.85;margin-left:6px;}
 .smart-start-credits{margin-top:8px;font-size:12px;color:#6b7280;}
 .smart-start-list{margin-top:12px;padding-top:10px;border-top:1px solid #e5e7eb;font-size:13px;color:#4b5563;}
 .smart-start-list a{color:#2563eb;font-weight:600;margin-left:12px;white-space:nowrap;}
@@ -1059,11 +1068,21 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
                 <div class="smart-start-row">
                     <input type="text" id="smartStartInput" class="smart-start-input" autocomplete="off"
                            placeholder="A LinkedIn profile URL, an email, a person's name or a company"
-                           oninput="smartStartDetect()" onkeydown="if(event.key==='Enter'){event.preventDefault();smartStartRun();}">
-                    <button type="button" id="smartStartBtn" class="smart-start-btn" onclick="smartStartRun()">Find email</button>
+                           oninput="smartStartDetect()" onpaste="setTimeout(smartStartDetect,0)" onkeydown="if(event.key==='Enter'){event.preventDefault();smartStartRun();}">
                 </div>
-                <div id="smartStartHint" class="smart-start-hint">Paste a LinkedIn profile URL to get the person's work email or phone number.</div>
-                <div id="smartStartAlt" class="smart-start-alt hidden"></div>
+                <div id="smartStartExamples" class="smart-start-examples">Try:
+                    <a onclick="smartStartExample('https://www.linkedin.com/in/satyanadella/')">a LinkedIn profile</a>
+                    <a onclick="smartStartExample('Satya Nadella')">a person's name</a>
+                    <a onclick="smartStartExample('jane.doe@microsoft.com')">an email</a>
+                    <a onclick="smartStartExample('Tesla')">a company</a>
+                </div>
+                <div id="smartStartDetected" class="smart-start-detected hidden"></div>
+                <div id="smartStartExtra" class="smart-start-extra hidden">
+                    <input type="text" id="smartStartCompany" class="smart-start-input" autocomplete="off" placeholder="Company domain, e.g. microsoft.com"
+                           onkeydown="if(event.key==='Enter'){event.preventDefault();smartStartRun();}">
+                </div>
+                <div id="smartStartActions" class="smart-start-actions hidden"></div>
+                <div id="smartStartHint" class="smart-start-hint"></div>
                 <div class="smart-start-credits" id="smartStartCredits"></div>
                 <div class="smart-start-list">Got a whole list instead?
                     <a href="#" onclick="smartStartRoute('csv');return false;"><i class="fas fa-file-csv"></i> Upload a CSV</a>
@@ -5824,7 +5843,7 @@ function checkAuth(){
 
     });
     maybeShowRouteChooser();
-    try { smartStartCreditsLine(); } catch (e) {}
+    try { smartStartCreditsLine(); smartStartDetect(); } catch (e) {}
 
     // Arriving from a done-for-you link elsewhere. The panel lives on this
     // page only, so everywhere else links in and asks for it by name.
@@ -7673,13 +7692,25 @@ function smartStartClassify(raw) {
     const v = (raw || '').trim();
     if (!v) return null;
     const low = v.toLowerCase();
-    if (/linkedin\.com\/in\//.test(low)) return { input: 'linkedin_profile', output: 'email', label: 'Find email', alt: [{ output: 'phone', label: 'Find phone number instead' }, { output: 'linkedin_info', label: 'Get full profile' }], hint: 'LinkedIn profile detected. Work email: 10 credits. Phone number: 50 credits.' };
-    if (/linkedin\.com\/company\//.test(low)) return { input: 'linkedin_company', output: 'linkedin_info', label: 'Get company data', alt: [{ output: 'employee_count', label: 'Employee count only' }], hint: 'LinkedIn company page detected.' };
-    if (/linkedin\.com\/(posts|feed)\//.test(low)) return { input: 'linkedin_post', output: 'reactions', label: 'Get who reacted', alt: [], hint: 'LinkedIn post detected: we list the people who reacted.' };
-    if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) return { input: 'email', output: 'linkedin_url', label: 'Find LinkedIn profile', alt: [], hint: 'Email detected: we find the LinkedIn profile behind it (5 credits).' };
-    if (/^(https?:\/\/)?(www\.)?[a-z0-9-]+(\.[a-z0-9-]+)+\/?$/i.test(v)) return { input: 'company_domain', output: 'employees', label: 'Find employees', alt: [], hint: 'Company domain detected: we list its employees.', noAuto: true };
-    if (/\s/.test(v)) return { input: 'lead_full_name', output: 'email', label: 'Find email', alt: [{ output: 'linkedin_url', label: 'Find LinkedIn profile instead' }], hint: "Looks like a person's name. Add their company (domain for the email) on the next step.", noAuto: true };
-    return { input: 'company_name', output: 'website', label: 'Find website', alt: [{ output: 'linkedin_url', label: 'Company LinkedIn page' }, { output: 'phone', label: 'Company phone' }, { output: 'email', label: 'Company email' }], hint: 'Company name detected.' };
+    if (/linkedin\.com\/in\//.test(low)) return { input: 'linkedin_profile', what: 'LinkedIn profile', icon: 'fab fa-linkedin',
+        options: [['email', 'Find work email'], ['phone', 'Find phone number'], ['linkedin_info', 'Get full profile']] };
+    if (/linkedin\.com\/company\//.test(low)) return { input: 'linkedin_company', what: 'LinkedIn company page', icon: 'fas fa-building',
+        options: [['linkedin_info', 'Get company data'], ['employee_count', 'Employee count']] };
+    if (/linkedin\.com\/(posts|feed)\//.test(low)) return { input: 'linkedin_post', what: 'LinkedIn post', icon: 'fab fa-linkedin',
+        options: [['reactions', 'Get who reacted']] };
+    if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) return { input: 'email', what: 'Email address', icon: 'fas fa-at',
+        options: [['linkedin_url', 'Find LinkedIn profile']] };
+    if (/^(https?:\/\/)?(www\.)?[a-z0-9-]+(\.[a-z0-9-]+)+\/?$/i.test(v)) return { input: 'company_domain', what: 'Company domain', icon: 'fas fa-globe',
+        options: [['employees', 'Find employees']], perPerson: true };
+    if (/\s/.test(v)) return { input: 'lead_full_name', what: "Person's name", icon: 'fas fa-user',
+        options: [['email', 'Find work email'], ['linkedin_url', 'Find LinkedIn profile']], needsCompany: true };
+    return { input: 'company_name', what: 'Company name', icon: 'fas fa-building',
+        options: [['website', 'Find website'], ['linkedin_url', 'LinkedIn page'], ['phone', 'Phone'], ['email', 'Contact email']] };
+}
+// Kept for compatibility with tests and callers: the first option is the default.
+function smartStartDefault(k) { return k ? k.options[0][0] : null; }
+function smartStartCost(input, output) {
+    try { const c = creditCosts[input + '_to_' + output]; return c == null ? '' : c + ' credit' + (c === 1 ? '' : 's'); } catch (e) { return ''; }
 }
 function smartStartCreditsLine() {
     const el = document.getElementById('smartStartCredits');
@@ -7690,25 +7721,38 @@ function smartStartCreditsLine() {
     const emails = Math.floor(c / 10);
     el.textContent = 'You have ' + c + ' credits' + (emails > 0 ? ', enough for about ' + emails + ' work email' + (emails === 1 ? '' : 's') + ' from LinkedIn profiles.' : '.');
 }
+function smartStartExample(v) {
+    const inp = document.getElementById('smartStartInput');
+    if (!inp) return;
+    inp.value = v; smartStartDetect(); inp.focus();
+    try { posthog.capture('smart_start_example_clicked', { example: v.indexOf('linkedin') !== -1 ? 'linkedin' : (v.indexOf('@') !== -1 ? 'email' : (/\s/.test(v) ? 'name' : 'company')) }); } catch (e) {}
+}
 function smartStartDetect() {
     const inp = document.getElementById('smartStartInput');
-    const btn = document.getElementById('smartStartBtn');
+    const det = document.getElementById('smartStartDetected');
+    const acts = document.getElementById('smartStartActions');
+    const extra = document.getElementById('smartStartExtra');
+    const comp = document.getElementById('smartStartCompany');
+    const ex = document.getElementById('smartStartExamples');
     const hint = document.getElementById('smartStartHint');
-    const alt = document.getElementById('smartStartAlt');
     const k = smartStartClassify(inp ? inp.value : '');
     smartStartCreditsLine();
     if (!k) {
-        btn.textContent = 'Find email';
-        hint.textContent = "Paste a LinkedIn profile URL to get the person's work email or phone number.";
-        alt.classList.add('hidden'); alt.innerHTML = '';
+        det.classList.add('hidden'); acts.classList.add('hidden'); acts.innerHTML = ''; extra.classList.add('hidden');
+        ex.classList.remove('hidden'); hint.textContent = '';
         return;
     }
-    btn.textContent = k.label;
-    hint.textContent = k.hint;
-    if (k.alt && k.alt.length) {
-        alt.innerHTML = k.alt.map(function (o) { return '<a onclick="smartStartRun(\'' + o.output + '\')">' + o.label + '</a>'; }).join('');
-        alt.classList.remove('hidden');
-    } else { alt.classList.add('hidden'); alt.innerHTML = ''; }
+    ex.classList.add('hidden');
+    det.innerHTML = '<i class="' + k.icon + '"></i>' + k.what + ' detected';
+    det.classList.remove('hidden');
+    extra.classList.toggle('hidden', !k.needsCompany);
+    if (k.needsCompany && comp) comp.placeholder = 'Their company domain, e.g. microsoft.com';
+    acts.innerHTML = k.options.map(function (o, idx) {
+        const cost = k.perPerson ? '1 credit per person' : smartStartCost(k.input, o[0]);
+        return '<button type="button" class="ss-action' + (idx === 0 ? ' primary' : '') + '" onclick="smartStartRun(\'' + o[0] + '\')">' + o[1] + (cost ? '<small>' + cost + '</small>' : '') + '</button>';
+    }).join('');
+    acts.classList.remove('hidden');
+    hint.textContent = k.needsCompany ? 'Add their company so we find the right person.' : 'Press Enter for the first option.';
 }
 function smartStartRoute(route) {
     try { posthog.capture('smart_start_list_clicked', { route: route }); } catch (e) {}
@@ -7723,28 +7767,36 @@ function smartStartRun(outputOverride) {
         try { posthog.capture('smart_start_empty'); } catch (e) {}
         return;
     }
-    const output = outputOverride || k.output;
-    const auto = !k.noAuto;
+    const output = outputOverride || smartStartDefault(k);
+    const compEl = document.getElementById('smartStartCompany');
+    const company = compEl ? compEl.value.trim() : '';
+    if (k.needsCompany && !company) {
+        if (compEl) { compEl.focus(); compEl.style.borderColor = '#ef4444'; setTimeout(function () { compEl.style.borderColor = ''; }, 1500); }
+        return;
+    }
     try { localStorage.setItem(ROUTE_PICKED_KEY, 'single'); } catch (e) {}
-    try { posthog.capture('smart_start_used', { input_type: k.input, output_type: output, auto_run: auto, override: !!outputOverride }); } catch (e) {}
+    try { posthog.capture('smart_start_used', { input_type: k.input, output_type: output, override: !!outputOverride }); } catch (e) {}
     if (k.input === 'lead_full_name') {
-        quickStart('lead_full_name', output, v, null, false);
+        // Name lookups have their own fields; fill them, then run.
+        quickStart('lead_full_name', output, output === 'email' ? null : v, null, false);
         setTimeout(function () {
+            const parts = v.split(/\s+/);
             if (output === 'email') {
-                // Name -> email uses split fields (first, last, company domain).
-                const parts = v.split(/\s+/);
                 const fn = document.getElementById('leadFirstName'), ln = document.getElementById('leadLastName'), dm = document.getElementById('leadDomain');
                 if (fn) fn.value = parts[0] || '';
                 if (ln) ln.value = parts.slice(1).join(' ');
-                if (dm) dm.focus();
-                try { updateSubmitButtonState(); } catch (e) {}
+                if (dm) dm.value = company.replace(/^https?:\/\//i, '').replace(/^www\./i, '').replace(/\/.*$/, '');
             } else {
-                const cf = document.getElementById('leadCompany'); if (cf) cf.focus();
+                const f = document.getElementById('inputData'); if (f) f.value = v;
+                const cf = document.getElementById('leadCompany'); if (cf) cf.value = company;
             }
+            try { updateSubmitButtonState(); } catch (e) {}
+            const eb = document.querySelector('#singleSearch button[type="submit"]');
+            if (eb) setTimeout(function () { try { updateSubmitButtonState(); } catch (e) {} eb.click(); }, 200);
         }, 450);
         return;
     }
-    quickStart(k.input, output, v, null, auto);
+    quickStart(k.input, output, v, null, true);
 }
 function quickStartBulk(inputType,outputType){
     const qs=document.getElementById('quickstartSection'); if(qs) qs.style.display='none';

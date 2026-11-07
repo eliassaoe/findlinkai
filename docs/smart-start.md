@@ -98,3 +98,25 @@ The `.form-grid` with the selects is kept in the DOM with `display:none`. New ev
 
 Same day: the picker is grouped **by what the person wants to find** (Find an email / phone / LinkedIn profile / Get
 company data / Get profile data), each card naming the starting input, instead of grouping by input type.
+
+## Addendum, 7 Nov 2026: the box itself got clearer
+
+The owner said the "paste what you have" box could be better. It was one button
+plus small text links for the other outputs, and a name sent you down into the
+form to type the company. Now:
+
+- **Empty box shows example chips** (LinkedIn profile, name, email, company).
+  A click fills the box and shows the choices; it does not run or spend credits.
+- **What was pasted is named** ("LinkedIn profile detected").
+- **Every possible result is a button with its credit cost** — e.g. for a
+  LinkedIn URL: *Find work email · 10*, *Find phone number · 50*, *Get full
+  profile · 10*. The first is the default and is what Enter runs. Costs are read
+  from `creditCosts`, never typed in.
+- **A name asks for the company in the box** and runs from there: first/last
+  name go to `#leadFirstName`/`#leadLastName`, the company (stripped to a domain)
+  to `#leadDomain` for the email, or to `#leadCompany` for the LinkedIn URL.
+  Without a company it refuses to run and highlights the field.
+
+Events: `smart_start_used` now carries `override` (true when a non-default button
+was clicked); new `smart_start_example_clicked` and `smart_start_empty`.
+`tests/smart-start.test.mjs` checks every offered choice exists in `creditCosts`.

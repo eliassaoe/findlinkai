@@ -116,3 +116,11 @@ by default; only `?route_test=1` brings it back.
 
 `API & MCP` tab — `API Key`, `MCP Server`, `View API Docs`
 `Buy Credits`, `Get Free Credits`, `Referral program`, `Logout`
+
+**Smart-start box (since 7 Nov 2026).** Empty: four "Try:" chips (a LinkedIn
+profile, a person's name, an email, a company). After pasting: a green line
+"<Type> detected", then one button per result with its credit cost, first one
+filled blue (LinkedIn profile → "Find work email 10 credits", "Find phone number
+50 credits", "Get full profile 10 credits"). A person's name adds a second field
+"Their company domain, e.g. microsoft.com" and two buttons ("Find work email 7
+credits", "Find LinkedIn profile 1 credit"). Enter runs the first button.

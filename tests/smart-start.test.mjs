@@ -35,9 +35,26 @@ test('what was pasted decides the pair', () => {
   for (const [v, input, output] of cases) {
     const k = classify(v);
     assert.equal(k.input, input, v);
-    assert.equal(k.output, output, v);
+    assert.equal(k.options[0][0], output, v + ' (first choice)');
   }
   assert.equal(classify('   '), null);
+});
+
+test('every choice offered is a real search with a real credit cost', () => {
+  const costs = app.slice(app.indexOf('const creditCosts='), app.indexOf('};', app.indexOf('const creditCosts=')));
+  for (const v of ['linkedin.com/in/x', 'linkedin.com/company/x', 'linkedin.com/posts/x', 'a@b.co', 'stripe.com', 'Satya Nadella', 'Tesla']) {
+    for (const [out] of classify(v).options) {
+      assert.ok(costs.includes("'" + classify(v).input + '_to_' + out + "'"), v + ' -> ' + out);
+    }
+  }
+});
+
+test('a name gets its company inside the box, then runs', () => {
+  assert.ok(app.includes('id="smartStartCompany"'));
+  assert.equal(classify('Satya Nadella').needsCompany, true);
+  const run = appFn('smartStartRun');
+  assert.ok(run.includes("getElementById('leadDomain')") && run.includes("getElementById('leadCompany')"));
+  assert.ok(run.includes('eb.click()'));
 });
 
 test('it hands over to the existing lookup, not a copy of it', () => {
