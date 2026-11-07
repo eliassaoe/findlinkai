@@ -4066,6 +4066,26 @@ function updateAffordabilityWarning(){
     updateSubmitButtonState();
 }
 
+// The name -> LinkedIn search is a Google query. LinkedIn headlines say "Acme",
+// not "Acme Holdings, Inc." or "Eviden Austria GmbH AT". Over 150 days, inputs
+// with a legal suffix found a profile 40% of the time vs 67% without, and a
+// country code 23% vs 56% (docs/find-rate.md). Strip both before searching.
+const LF_LEGAL_SUFFIX = /^(inc|incorporated|llc|l\.l\.c|ltd|limited|gmbh|mbh|corp|corporation|co|s\.?r\.?o|s\.?r\.?l|s\.?p\.?a|s\.?a\.?s|sarl|sa|pvt|plc|ag|kg|bv|b\.v|nv|n\.v|oy|oyj|ab|as|asa|pty|lp|llp|pllc|bhd|sdn|spa|srl|gmbh&co|kft|zrt|sp\.?z\.?o\.?o)\.?$/i;
+const LF_COUNTRY_CODE = /^\(?(US|USA|UK|GB|CZ|AT|HU|DE|FR|IT|ES|IN|NL|BE|CH|PL|SE|NO|DK|FI|IE|PT|BR|MX|CA|AU|NZ|SG|AE|SA|ZA|JP|CN|HK|TR|RO|GR|SK|SI|HR|BG|LT|LV|EE|LU)\)?$/;
+function lfSearchCompany(raw) {
+    const words = String(raw || '').replace(/[,;]/g, ' ').trim().split(/\s+/).filter(Boolean);
+    const kept = words.filter(function (w, i) {
+        if (i === 0) return true;                     // "US Foods", "AB InBev" keep their first word
+        if (LF_LEGAL_SUFFIX.test(w)) return false;
+        if (LF_COUNTRY_CODE.test(w)) return false;
+        if (/^\([^)]*\)$/.test(w) && w.length <= 6) return false;   // "(HU)"
+        return true;
+    });
+    // "Private Limited" -> "Private" is left dangling after "Limited" goes.
+    while (kept.length > 1 && /^(private|pvt\.?)$/i.test(kept[kept.length - 1])) kept.pop();
+    return (kept.length ? kept : words).join(' ');
+}
+
 async function enrichData(event) {
     event.preventDefault();
     const submitBtn = event.target.querySelector('button[type="submit"]');
@@ -4112,7 +4132,7 @@ async function enrichData(event) {
             const leadLocation = document.getElementById('leadLocation').value.trim();
             const leadJobTitle = document.getElementById('leadJobTitle').value.trim();
             if (!leadCompany) { showAlert('Company name is required.', 'error'); restoreBtn(); return; }
-            effectiveInputValue = [inputValue, leadCompany, leadLocation, leadJobTitle].filter(Boolean).join(' ');
+            effectiveInputValue = [inputValue, lfSearchCompany(leadCompany), leadLocation, leadJobTitle].filter(Boolean).join(' ');
         }
     }
 
@@ -6494,7 +6514,7 @@ function lfBuildCsvData(){
         }
         const companyVal = at(vals,m.company), locationVal = at(vals,m.location), jobTitleVal = at(vals,m.job_title);
         const inputData = currentInputType === 'lead_full_name'
-            ? [nameVal, companyVal, locationVal, jobTitleVal].filter(Boolean).join(' ')
+            ? [nameVal, lfSearchCompany(companyVal), locationVal, jobTitleVal].filter(Boolean).join(' ')
             : nameVal;
         const countRaw = at(vals,m.employee_count);
         csvData.push({

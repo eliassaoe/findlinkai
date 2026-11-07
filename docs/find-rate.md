@@ -66,3 +66,42 @@ Events: `miss_rescue_clicked` {kind, from}, `miss_rescue_chained`.
 3. **Fix the employee scraper in n8n.**
 4. **Name → email in the API and CSV.** Route `lead_full_name_to_email`
    through LinkedIn server-side too. Today only the app does it.
+
+## Name → LinkedIn URL, looked at closely (7 Nov 2026)
+
+"Found" was 69–77%, but the right number is lower:
+
+| Input | Who | Found | Last name in the returned URL |
+| --- | --- | --- | --- |
+| name + company (3–6 words) | subscribers | 79–83% | 75–77% |
+| name + company (4–7 words) | free accounts | 15–35% | ~30% |
+| name only | free accounts | 66% | **38%**: about half are the wrong person |
+| name only | subscribers | 8% | 1% |
+
+**Legal suffixes looked like the cause and aren't.** Over 150 days, inputs with
+Inc/LLC/GmbH/Corp found 40% against 67% without, and country codes 23% against
+56%. Re-running 9 past misses on the live API, with the raw company and then
+with the cleaned company, gave 3/9 both ways (different people). The raw "Katie
+Jones" hit was probably the wrong profile. The suffix tracks *who* is being
+searched (long-tail US mid-market and non-US firms from CSV lists), not the
+search failing. The app now strips suffixes and country codes anyway
+(`lfSearchCompany`, single and CSV), because it costs nothing, but **don't
+quote it as a lift**.
+
+**The real ceiling.** Web searches for the 6 people who missed both ways found
+no public LinkedIn profile for any of them. The lookup is one Serper query,
+`<input> site:linkedin.com/in`, accepting only `organic[0]`. A profile Google
+hasn't indexed can't be found that way, however clean the query.
+
+What would move it, in order:
+1. **Deploy `workers/enrich-name-to-linkedin`** (written, tested, never
+   switched on). It scores the top 10 results instead of the first, rejects
+   non-profile URLs, handles accents and middle names, and doesn't charge
+   input with no name. It recovers people Google *does* know about.
+2. **A second source on a miss.** A people database queried by name +
+   company, or by name + company domain. This is the only fix for people
+   Google doesn't index. It costs a provider fee per miss.
+3. **Name only should ask for the company.** Without one, half the "hits" are
+   the wrong person, which is worse than a blank because they email the wrong
+   person. The app already requires a company; the free tool page and the API
+   don't.

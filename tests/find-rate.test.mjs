@@ -28,3 +28,14 @@ test('blank employee rows are a miss, not a result', () => {
   assert.equal(keep([{ name: 'Jane Doe' }]).length, 1);
   assert.ok(app.includes("data = lfRealEmployees(data);"));
 });
+
+test('company names lose legal suffixes and country codes before the name search', () => {
+  const a = app.indexOf('const LF_LEGAL_SUFFIX'), b = app.indexOf('async function enrichData');
+  const clean = new Function(app.slice(a, b) + '\nreturn lfSearchCompany;')();
+  assert.equal(clean('Turning Point Brands, Inc.'), 'Turning Point Brands');
+  assert.equal(clean('Eviden Austria GmbH AT'), 'Eviden Austria');
+  assert.equal(clean('Agronic Food Pvt. Ltd. India'), 'Agronic Food India');
+  assert.equal(clean('US Foods'), 'US Foods');
+  assert.equal(clean('Salesforce'), 'Salesforce');
+  assert.ok(app.includes('lfSearchCompany(leadCompany)') && app.includes('lfSearchCompany(companyVal)'));
+});
