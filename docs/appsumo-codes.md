@@ -41,3 +41,4 @@ Codes are **never** committed — this repo is public.
     select code, status, redeemed_email, redeemed_at from appsumo_codes where status <> 'available';
 
 Batch `appsumo-2026-11`: 1,000 codes generated 5 Nov 2026.
+Batch `appsumo-2026-11-b`: 5,000 codes generated 8 Nov 2026.
