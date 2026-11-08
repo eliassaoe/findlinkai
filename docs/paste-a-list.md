@@ -175,3 +175,19 @@ flow (needs the owner's login on the second n8n instance): create the Supabase
 user with `email_confirm: false` so Supabase sends the confirmation, then the
 existing `/claim` + `email_verified` person property do the rest and the flows'
 existing `email_verified is_not false` filter can drop `signup_method = google`.
+
+**Follow-up, same day — where signup actually runs.** The main n8n
+(`primary-fie`) has a workflow "linkfinderai sign up" (`wBvQdciQu5K95p0l`):
+Webhook → `If provider != google` → Code → Postgres insert → respond → POST the
+address to `api-unlimited-email-verifier.hamoureliasse.workers.dev` → if
+`message == "Accepted"` → add to Instantly campaign
+`0bd2fe48-6290-4ffd-ab5e-f025b1a4c494`. But it has **no recorded executions at
+all** while the other workflows there run constantly, so it is most likely a
+stale copy and live signups go through the second instance
+(`scalelinkfinderai`, needs the owner's login). And that Instantly campaign id is
+**not found** in either connected Instantly workspace (deleted, or a third
+account), so even where that step runs it may add people to nothing. Nothing was
+changed. Next step needs the owner: sign in to the second instance, read the
+live signup flow first, then decide between (a) Supabase confirmation as in
+`workers/verify-email/SIGNUP_PATCH.md` or (b) reusing the deliverability check
+above to mark the PostHog person as safe to email.
