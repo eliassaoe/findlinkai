@@ -62,10 +62,9 @@ The live Google Sheets add-on in Drive still says 0.5 until it is re-pushed.
 
 **Found while testing:** API/MCP calls send no `output_type`, so `Precheck
 Credits1` billed an employee list as one flat 1-credit lookup and ignored
-`employee_count` (100 people for 1 credit). Fix in progress 7 Nov: derive
-`employees` from a `*_to_employees` type in `Precheck Credits1` — the browser
-disconnected mid-edit, so check the node contains `_to_employees$` and is
-published.
+`employee_count` (100 people for 1 credit). Fixed and published 8 Nov:
+`Precheck Credits1` derives `employees` from a `*_to_employees` type. Checked
+through the MCP: 3tech.net with employee_count 3 returned 3 people.
 
 The app also still treats blank rows as a miss (`lfRealEmployees`).
 
@@ -212,3 +211,45 @@ recognised (`lfLinkedInUrlKind`, `lfAutoSwitchLinkedInKind`): person URL in
 company data → person profile data (10 credits), company URL in person data →
 company data (6). If it only notices at submit, it switches and asks for a
 second click, because the price changed. PostHog: `linkedin_kind_autoswitched`.
+
+
+## Email backups in n8n (8 Nov 2026)
+
+Both email lookups already run Filtrat. A backup actor now runs only after every
+existing step missed, and a backup hit is charged like any other hit (misses are
+still refunded by the existing refund path).
+
+**LinkedIn → email** (`linkedin_profile_to_email`): anchor actor → Filtrat
+`linkedin-search` → **new:** `harvestapi/linkedin-profile-scraper` with email
+search ($0.01 a profile). Keeps `status: valid`, not catch-all, not a free
+mailbox. Nodes: `LPE backup: LinkedIn profile + email (Apify)`, `… pick valid
+email`, `… found?` (between `If48` false and `Respond to Webhook55`; a hit goes
+to `Respond to Webhook60`).
+- Offline test on 14 misses from the last 3 weeks: 3 valid emails (+2 catch-all
+  "risky", not kept).
+- Live 8 Nov: 4 of those misses re-run. Filtrat itself now found 2
+  (camilla-capasso, bandaradnan), the backup found mario-skoric@allianz.com,
+  and one miss was refunded after the backup ran. So Filtrat is helping now;
+  the backup catches part of what is left.
+
+**Name + domain → email** (`lead_full_name_to_email`): Filtrat finder → pattern
+guess + Filtrat verify → **new:** `clearpath/email-finder-api` (patterns checked
+by SMTP, ~$0.008 a pattern, `optimized` = up to 4). Keeps `validationStatus:
+safe` only, no catch-all. Nodes: `Name email backup: pattern + SMTP (Apify)`,
+`… pick safe email`, `… found?` (between `If Verified Personal Email Found
+[FullName]1` false and `Wait1`; a hit goes to `Respond Verified Personal Email
+[FullName]1`).
+- Offline test on 12 people: 9 found; among real October misses it found
+  marco.ligabue@01s.it and g.ottati@qcore.it.
+- Not tested live: the MCP has no name → email tool. Re-check in
+  `enrichment_history` after the next real lookups.
+- The 16% in October was mostly one CSV with wrong inputs (French Viatris staff
+  with `viatris.it`, `linkedin.com` as the domain, company names instead of
+  domains). No provider fixes that; the app could warn on a domain like
+  `linkedin.com` or a value with no dot.
+
+Rejected: `snipercoder/email-finder-by-name-and-domain` (it says it solves
+Cloudflare captchas on another site), `bovi/email-finder` (12 lookups were still
+running after 3 minutes).
+Rollback: n8n version history, the version before "Email backups: harvestapi
+after LinkedIn->email miss, clearpath after name->email miss".
