@@ -253,6 +253,13 @@ body.dm-open{overflow:hidden}
   .dl .fine{margin-top:10px;}
   .res .info{margin-top:3px;font-size:13px;color:var(--fg);}
   .res .info:empty{display:none;}
+  .res .more{display:grid;grid-template-columns:1fr 1fr;gap:4px 18px;margin-top:6px;}
+  .res .more:empty{display:none;}
+  .res .blk-t{margin:0 0 2px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);}
+  .res .blk ul{margin:0;padding-left:16px;font-size:12.5px;line-height:1.45;color:var(--fg);}
+  .res .blk li{margin:0;}
+  .res .blk li.more-n{list-style:none;margin-left:-16px;color:var(--muted);font-style:italic;}
+  @media (max-width:640px){ .res .more{grid-template-columns:1fr;} }
 </style>
 </head>
 <body>
@@ -410,12 +417,42 @@ body.dm-open{overflow:hidden}
     vals.appendChild(v);
     var info = document.createElement('div');
     info.className = 'info';
+    var more = document.createElement('div');
+    more.className = 'more';
     row.appendChild(who);
     row.appendChild(info);
+    row.appendChild(more);
     row.appendChild(vals);
     tryResults.appendChild(row);
-    v._who = who; v._info = info;
+    v._who = who; v._info = info; v._more = more;
     return v;
+  }
+  // Expériences et formation visibles dans la page (8 nov. 2026) : les 3
+  // dernières expériences et les 2 formations, le reste est dans le fichier.
+  function renderMore(box, rec) {
+    if (!box) return;
+    box.textContent = '';
+    function block(title, items, max, unit) {
+      if (!items.length) return;
+      var wrap = document.createElement('div');
+      wrap.className = 'blk';
+      var h = document.createElement('p');
+      h.className = 'blk-t';
+      h.textContent = title;
+      wrap.appendChild(h);
+      var ul = document.createElement('ul');
+      items.slice(0, max).forEach(function (t) { var li = document.createElement('li'); li.textContent = t; ul.appendChild(li); });
+      if (items.length > max) {
+        var li2 = document.createElement('li');
+        li2.className = 'more-n';
+        li2.textContent = '+ ' + (items.length - max) + ' ' + unit + (items.length - max > 1 ? 's' : '') + ' dans le fichier';
+        ul.appendChild(li2);
+      }
+      wrap.appendChild(ul);
+      box.appendChild(wrap);
+    }
+    block('Expériences', rec.exps, 3, 'autre expérience');
+    block('Formation', rec.edus, 2, 'autre formation');
   }
   function setCell(cell, text, ok) { cell.className = 'val ' + (ok ? 'ok' : 'no'); cell.textContent = text; }
 
@@ -531,7 +568,8 @@ body.dm-open{overflow:hidden}
           var line = [rec.title, rec.company].filter(Boolean).join(' chez ');
           var extra = [rec.exps.length ? rec.exps.length + (rec.exps.length > 1 ? ' expériences' : ' expérience') : '',
                        rec.edus.length ? rec.edus.length + (rec.edus.length > 1 ? ' formations' : ' formation') : ''].filter(Boolean).join(', ');
-          cell._info.textContent = [line, rec.location].filter(Boolean).join(' · ') + (extra ? '  —  ' + extra + ' dans le fichier' : '');
+          cell._info.textContent = [line, rec.location].filter(Boolean).join(' · ');
+          renderMore(cell._more, rec);
           if (em) { emails++; setCell(cell, mask(em) + '  ✓', true); }
           else setCell(cell, 'Email pas trouvé', false);
         } catch (e) {

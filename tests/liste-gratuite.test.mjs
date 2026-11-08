@@ -27,3 +27,14 @@ test('the app downloads the saved free list after signup', () => {
   assert.match(app, /localStorage\.getItem\('lf_free_list_results'\)/);
   assert.match(app, /setTimeout\(function\(\)\{ try \{ lfDownloadFreeList\(\); \} catch\(e\) \{\} \}, 1500\);/);
 });
+
+test('each row shows experiences and education, email stays masked', () => {
+  assert.match(page, /function renderMore\(box, rec\)/);
+  assert.match(page, /block\('Expériences', rec\.exps, 3, 'autre expérience'\);/);
+  assert.match(page, /block\('Formation', rec\.edus, 2, 'autre formation'\);/);
+  assert.match(page, /renderMore\(cell\._more, rec\);/);
+  assert.match(page, /setCell\(cell, mask\(em\) \+ '  ✓', true\)/);
+  // untrusted profile text goes in with textContent, never innerHTML
+  const fn = page.slice(page.indexOf('function renderMore'), page.indexOf('function setCell'));
+  assert.doesNotMatch(fn, /innerHTML/);
+});

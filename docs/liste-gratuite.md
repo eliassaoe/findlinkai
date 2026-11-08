@@ -27,6 +27,9 @@ company), get up to 50 full profiles + emails, download after a free signup.
   "les N autres lignes vous attendent dans l'app" when the file had more than 50.
   Signed-in visitors get "Télécharger ma liste" instead. Events
   `fr_list_modal_shown`, `fr_list_modal_clicked {choice}`, `fr_list_modal_closed`.
+- Each row now shows the person's last 3 experiences and 2 educations ("+ N dans le
+  fichier" for the rest), so the value is visible before signup. The email stays
+  masked (`j•••••@acme.com`) — that is what the signup unlocks.
 - `app.html` `lfDownloadFreeList()`: on the first signed-in load (1.5 s after
   `checkAuth`), downloads the saved CSV once if under 7 days old, removes it,
   shows a confirmation, fires `fr_list_downloaded_after_signup`.
