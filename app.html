@@ -942,7 +942,14 @@ body.rc-open .config-form,body.rc-open #modeToggle{display:none;}
 .config-form .qs-list-line{margin:0.4rem 0 1.2rem;}
 .qs-or{color:var(--gray-400);margin:0 0.15rem;}
 .search-picker{display:block;}
-.sp-top{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:0.75rem;}
+.sp-top{display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:0.75rem;}
+.sp-chosen-row{display:flex;flex-wrap:wrap;align-items:baseline;gap:0.35rem 0.9rem;width:100%;}
+.sp-chosen-cost{font-size:0.85rem;color:var(--gray-500,#6b7280);}
+.sp-have{display:flex;flex-wrap:wrap;align-items:center;gap:0.4rem;width:100%;margin-top:0.55rem;}
+.sp-have-label{font-size:0.85rem;font-weight:600;color:var(--gray-700,#374151);margin-right:0.2rem;}
+.sp-have-pill{font:inherit;font-size:0.85rem;padding:0.35rem 0.8rem;border-radius:999px;border:1.5px solid #bfdbfe;background:#fff;color:var(--gray-700,#374151);cursor:pointer;}
+.sp-have-pill:hover{border-color:var(--primary,#2563eb);}
+.sp-have-pill.on{background:var(--primary,#2563eb);border-color:var(--primary,#2563eb);color:#fff;font-weight:600;}
 .sp-card.sp-big{padding:1.1rem 1.1rem 1rem;border-radius:14px;min-height:118px;display:flex;flex-direction:column;}
 .sp-big-icon{font-size:1.25rem;color:var(--primary,#2563eb);margin-bottom:0.55rem;}
 .sp-big .sp-card-title{font-size:1rem;}
@@ -957,7 +964,9 @@ body.rc-open .config-form,body.rc-open #modeToggle{display:none;}
 .sp-more{margin-top:0.8rem;}
 #searchPicker.sp-picked .sp-top,#searchPicker.sp-picked .sp-more-wrap{display:none;}
 .sp-has-pick .search-picker-label,.sp-has-pick .qs-list-line{display:none;}
-.sp-chosen{display:flex;flex-wrap:wrap;align-items:baseline;gap:0.35rem 0.9rem;padding:0.8rem 1rem;margin-bottom:1rem;border:1.5px solid var(--primary,#2563eb);border-radius:12px;background:#eff6ff;}
+.sp-has-pick .sp-chosen{margin-bottom:0;}
+body.sp-has-pick #creditCost{display:none !important;}
+.sp-chosen{display:flex;flex-wrap:wrap;align-items:center;gap:0.35rem 0.9rem;padding:0.8rem 1rem;margin-bottom:1rem;border:1.5px solid var(--primary,#2563eb);border-radius:12px;background:#eff6ff;}
 .sp-chosen-title{font-weight:700;color:var(--gray-900,#111827);}
 .sp-chosen-sub{font-size:0.85rem;color:var(--gray-600,#4b5563);}
 .sp-chosen-link{font-size:0.85rem;font-weight:600;color:var(--primary,#2563eb);cursor:pointer;}
@@ -3718,17 +3727,44 @@ function searchPickerCost(input, output) {
     if (output === 'reactions') return c + ' credit per person found';
     return c + ' credit' + (c === 1 ? '' : 's');
 }
-// The four searches shown first (7 Nov 2026): fewer choices, faster first click.
-// Order favours a first lookup that finds something: name -> LinkedIn ~76%
-// with the Apify backup, company -> website ~95% (docs/find-rate.md).
-const SEARCH_PICKER_TOP = [
-    { pair: ['lead_full_name', 'linkedin_url'], title: 'Find a LinkedIn profile', sub: 'From a name + company', icon: 'fab fa-linkedin', example: ['Satya Nadella', 'Microsoft'] },
-    { pair: ['linkedin_profile', 'email'], title: 'Find a work email', sub: 'From a LinkedIn profile URL', icon: 'fas fa-envelope', example: ['https://www.linkedin.com/in/satyanadella/'] },
-    { pair: ['company_name', 'website'], title: 'Find a company website', sub: 'From a company name', icon: 'fas fa-globe', example: ['Tesla'] },
-    { pair: ['linkedin_profile', 'phone'], title: 'Find a phone number', sub: 'From a LinkedIn profile URL', icon: 'fas fa-phone', example: ['https://www.linkedin.com/in/satyanadella/'] }
+// Start screen, 8 Nov 2026 (owner): pick WHAT you want to find; WHAT YOU HAVE is
+// chosen inside the form ("I have: Name + company | Email"). One card per goal
+// instead of one card per input/output pair.
+const SEARCH_GOALS = [
+    { id: 'linkedin', title: 'LinkedIn profile', icon: 'fab fa-linkedin', haves: [
+        { label: 'Name + company', pair: ['lead_full_name', 'linkedin_url'], example: ['Satya Nadella', 'Microsoft'] },
+        { label: 'Email', pair: ['email', 'linkedin_url'] },
+    ]},
+    { id: 'email', title: 'Work email', icon: 'fas fa-envelope', haves: [
+        { label: 'LinkedIn URL', pair: ['linkedin_profile', 'email'], example: ['https://www.linkedin.com/in/satyanadella/'] },
+        { label: 'Name + company domain', pair: ['lead_full_name', 'email'] },
+        { label: 'Company name (contact email)', pair: ['company_name', 'email'], example: ['Tesla'] },
+    ]},
+    { id: 'phone', title: 'Phone number', icon: 'fas fa-phone', haves: [
+        { label: 'LinkedIn URL', pair: ['linkedin_profile', 'phone'], example: ['https://www.linkedin.com/in/satyanadella/'] },
+        { label: 'Company name (main line)', pair: ['company_name', 'phone'], example: ['Tesla'] },
+    ]},
+    { id: 'website', title: 'Company website', icon: 'fas fa-globe', haves: [
+        { label: 'Company name', pair: ['company_name', 'website'], example: ['Tesla'] },
+    ]},
+    { id: 'employees', title: 'Company employees', icon: 'fas fa-users', haves: [
+        { label: 'Company domain', pair: ['company_domain', 'employees'] },
+    ]},
 ];
+function searchGoalFor(input, output) {
+    for (const g of SEARCH_GOALS) for (const h of g.haves) if (h.pair[0] === input && h.pair[1] === output) return { goal: g, have: h };
+    return null;
+}
+function searchGoalCostLine(g) {
+    if (g.id === 'employees') return '2 credits per person found';
+    const costs = g.haves.map(function (h) { return (typeof creditCosts === 'object' && creditCosts) ? creditCosts[h.pair[0] + '_to_' + h.pair[1]] : null; }).filter(function (c) { return c != null; });
+    if (!costs.length) return '';
+    const min = Math.min.apply(null, costs);
+    return (Math.max.apply(null, costs) !== min ? 'from ' : '') + min + ' credit' + (min === 1 ? '' : 's');
+}
 function searchPickerLabel(input, output) {
-    for (const t of SEARCH_PICKER_TOP) if (t.pair[0] === input && t.pair[1] === output) return { title: t.title, sub: t.sub, example: t.example };
+    const gh = searchGoalFor(input, output);
+    if (gh) return { title: 'Find a ' + (/^LinkedIn/.test(gh.goal.title) ? gh.goal.title : gh.goal.title.charAt(0).toLowerCase() + gh.goal.title.slice(1)), sub: 'From ' + gh.have.label.charAt(0).toLowerCase() + gh.have.label.slice(1), example: gh.have.example || null, goal: gh.goal, have: gh.have };
     for (const g of SEARCH_PICKER_GROUPS) for (const it of g.items) if (it[0] === input && it[1] === output) return { title: g.title, sub: it[2], example: null };
     return null;
 }
@@ -3736,12 +3772,15 @@ function renderSearchPicker() {
     const box = document.getElementById('searchPicker');
     if (!box) return;
     const ok = function (a, b) { return dataConfigurations[a] && dataConfigurations[a].outputs && dataConfigurations[a].outputs[b]; };
-    const top = SEARCH_PICKER_TOP.filter(function (t) { return ok(t.pair[0], t.pair[1]); }).map(function (t) {
-        return '<button type="button" class="sp-card sp-big" data-pair="' + t.pair[0] + '__' + t.pair[1] + '" onclick="pickSearch(\'' + t.pair[0] + '\',\'' + t.pair[1] + '\')">'
-            + '<i class="' + t.icon + ' sp-big-icon"></i>'
-            + '<span class="sp-card-title">' + t.title + '</span>'
-            + '<span class="sp-card-sub">' + t.sub + '</span>'
-            + '<span class="sp-card-cost">' + searchPickerCost(t.pair[0], t.pair[1]) + '</span></button>';
+    const top = SEARCH_GOALS.map(function (g) {
+        g = Object.assign({}, g, { haves: g.haves.filter(function (h) { return ok(h.pair[0], h.pair[1]); }) });
+        if (!g.haves.length) return '';
+        const h0 = g.haves[0].pair;
+        return '<button type="button" class="sp-card sp-big" data-goal="' + g.id + '" onclick="pickSearch(\'' + h0[0] + '\',\'' + h0[1] + '\')">'
+            + '<i class="' + g.icon + ' sp-big-icon"></i>'
+            + '<span class="sp-card-title">' + g.title + '</span>'
+            + '<span class="sp-card-sub">From ' + g.haves.map(function (h) { return h.label.replace(/ \(.*\)$/, '').replace(/^(Name|Email|Company)/, function (m) { return m.toLowerCase(); }); }).join(', ') + '</span>'
+            + '<span class="sp-card-cost">' + searchGoalCostLine(g) + '</span></button>';
     }).join('');
     const groups = SEARCH_PICKER_GROUPS.map(function (g) {
         const cards = g.items.filter(function (it) { return ok(it[0], it[1]); }).map(function (it) {
@@ -3752,7 +3791,7 @@ function renderSearchPicker() {
         return '<div class="sp-group"><div class="sp-group-title"><i class="' + (g.brand ? 'fab' : 'fas') + ' ' + g.icon + '"></i> ' + g.title + '</div><div class="sp-grid">' + cards + '</div></div>';
     }).join('');
     box.innerHTML = '<div class="sp-top">' + top + '</div>'
-        + '<div class="sp-more-wrap"><button type="button" class="sp-more-toggle" onclick="toggleMoreSearches()"><span class="sp-more-plus">+</span> <span><strong>More searches</strong> <span class="sp-more-hint">· email → LinkedIn, company data, employees, full profiles…</span></span></button>'
+        + '<div class="sp-more-wrap"><button type="button" class="sp-more-toggle" onclick="toggleMoreSearches()"><span class="sp-more-plus">+</span> <span><strong>More searches</strong> <span class="sp-more-hint">· company LinkedIn pages, company data, full profiles, post reactions…</span></span></button>'
         + '<div id="spMore" class="sp-more hidden">' + groups + '</div></div>'
         + '<div id="spChosen" class="sp-chosen hidden"></div>';
     syncSearchPicker();
@@ -3781,8 +3820,9 @@ function trySearchExample() {
 }
 function syncSearchPicker() {
     const pair = (currentInputType && currentOutputType) ? currentInputType + '__' + currentOutputType : '';
+    const curGoal = pair ? searchGoalFor(currentInputType, currentOutputType) : null;
     document.querySelectorAll('#searchPicker .sp-card').forEach(function (el) {
-        el.classList.toggle('active', el.getAttribute('data-pair') === pair);
+        el.classList.toggle('active', el.getAttribute('data-pair') === pair || (!!curGoal && el.getAttribute('data-goal') === curGoal.goal.id));
     });
     const box = document.getElementById('searchPicker'), chosen = document.getElementById('spChosen');
     if (!box || !chosen) return;
@@ -3790,11 +3830,21 @@ function syncSearchPicker() {
     box.classList.toggle('sp-picked', !!l);
     const form = document.querySelector('.config-form');
     if (form) form.classList.toggle('sp-has-pick', !!l);
+    document.body.classList.toggle('sp-has-pick', !!l);
     if (!l) { chosen.classList.add('hidden'); chosen.innerHTML = ''; return; }
-    chosen.innerHTML = '<span class="sp-chosen-title">' + l.title + '</span><span class="sp-chosen-sub">' + l.sub + ' · ' + searchPickerCost(currentInputType, currentOutputType) + '</span>'
+    const haves = l.goal ? l.goal.haves.filter(function (h) { const c = dataConfigurations[h.pair[0]]; return c && c.outputs && c.outputs[h.pair[1]]; }) : [];
+    const havesHTML = haves.length > 1
+        ? '<span class="sp-have"><span class="sp-have-label">I have:</span>' + haves.map(function (h) {
+            const on = h.pair[0] === currentInputType && h.pair[1] === currentOutputType;
+            return '<button type="button" class="sp-have-pill' + (on ? ' on' : '') + '" onclick="pickSearch(\'' + h.pair[0] + '\',\'' + h.pair[1] + '\')">' + h.label + '</button>';
+          }).join('') + '</span>'
+        : '<span class="sp-chosen-sub sp-have">' + l.sub + '</span>';
+    chosen.innerHTML = '<div class="sp-chosen-row"><span class="sp-chosen-title">' + l.title + '</span>'
+        + '<span class="sp-chosen-cost">' + searchPickerCost(currentInputType, currentOutputType) + '</span>'
         + '<span class="sp-chosen-links">'
         + (l.example ? '<a href="#" class="sp-chosen-link" onclick="trySearchExample();return false;">Try an example</a>' : '')
-        + '<a href="#" class="sp-chosen-link" onclick="changeSearch();return false;">Change</a></span>';
+        + '<a href="#" class="sp-chosen-link" onclick="changeSearch();return false;">Change</a></span></div>'
+        + havesHTML;
     chosen.classList.remove('hidden');
 }
 function pickSearch(input, output) {

@@ -175,3 +175,25 @@ the cards; the one-line "Where is your data? CSV · Google Sheets · API / n8n �
 HubSpot" strip stays above them until the first lookup or upload. The events are
 the same as before: `onboarding_route_shown`, `onboarding_route_picked`.
 Pinned by `tests/smart-start.test.mjs`.
+
+## 8 Nov 2026 — one card per thing to find; "I have" is chosen in the form
+
+Owner's idea: people pick what they WANT (LinkedIn profile, work email, phone
+number, company website, company employees), not an input→output pair. After
+the pick, the blue bar shows "I have:" pills and the form below switches with
+them:
+
+| Card | I have |
+| --- | --- |
+| LinkedIn profile | Name + company · Email |
+| Work email | LinkedIn URL · Name + company domain · Company name (contact email) |
+| Phone number | LinkedIn URL · Company name (main line) |
+| Company website | Company name |
+| Company employees | Company domain (2 credits per person found) |
+
+Everything else (company LinkedIn page, company data, full profile, post
+reactions) is under "More searches". The separate "Cost: X credits" box is hidden
+while a search is picked, since the bar already shows the cost.
+Code: `SEARCH_GOALS`, `searchGoalFor`, `searchGoalCostLine`, the `sp-have-pill`
+buttons in `syncSearchPicker`. Each pill calls `pickSearch`, so `search_picked`
+still records the exact pair.

@@ -146,3 +146,13 @@ the form ("Enter Full Name", "Company Name", Location optional, Job Title
 optional, button "Enrich Data") is below the "Single lookup / Upload CSV (bulk)"
 toggle. "Try an example" fills Satya Nadella / Microsoft but does not run it.
 
+
+
+**Start screen (since 8 Nov 2026 — replaces the four-card version above).**
+"What do you want to find?" and five cards: "LinkedIn profile", "Work email",
+"Phone number", "Company website", "Company employees". Each card shows "From …"
+and a cost ("from 1 credit", "2 credits per person found"). After a click the bar
+reads e.g. "Find a work email  10 credits  Try an example  Change", with a row
+"I have: [LinkedIn URL] [Name + company domain] [Company name (contact email)]";
+the selected pill is filled blue and the form under the "Single lookup / Upload
+CSV (bulk)" toggle matches it.
