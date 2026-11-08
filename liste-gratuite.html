@@ -47,10 +47,6 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
 <script src="/js/lf-tools-key.js"></script>
 <script src="/js/lf-linkedin-url.js"></script>
 <script src="/js/lf-csv.js"></script>
-<script src="/js/lf-attribution.js"></script>
-<script src="/js/lf-tools-key.js"></script>
-<script src="/js/lf-linkedin-url.js"></script>
-<script src="/js/lf-csv.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Hanken+Grotesk:wght@400;500;700&family=Geist+Mono:wght@500;700&display=swap" rel="stylesheet">
@@ -230,6 +226,20 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
   .final{margin-top:64px;padding:32px 20px;border-radius:24px;background:var(--soft);text-align:center;}
   footer{padding:24px 0 40px;text-align:center;font-size:13px;color:var(--muted);}
   footer a{color:var(--muted);}
+
+/* Fin d'enrichissement (8 nov. 2026) */
+.dm-backdrop{position:fixed;inset:0;background:rgba(15,23,42,.55);display:flex;align-items:center;justify-content:center;padding:16px;z-index:1000}
+.dm-backdrop[hidden]{display:none}
+.dm{position:relative;background:#fff;border-radius:14px;max-width:440px;width:100%;padding:28px 24px 22px;text-align:center;box-shadow:0 20px 50px rgba(0,0,0,.25)}
+.dm-x{position:absolute;top:8px;right:10px;border:0;background:none;font-size:24px;line-height:1;color:#6b7280;cursor:pointer}
+.dm-check{width:44px;height:44px;margin:0 auto 10px;border-radius:50%;background:#dcfce7;color:#16a34a;font-size:24px;line-height:44px;font-weight:700}
+.dm h2{margin:0 0 8px;font-size:22px;color:#111827}
+.dm-stats{margin:0 0 6px;font-size:16px;color:#111827;font-weight:600}
+.dm-rest{margin:0 0 6px;font-size:14px;color:#4b5563}
+.dm-main{display:flex;align-items:center;justify-content:center;min-height:48px;padding-top:0;padding-bottom:0;margin:16px 0 10px;text-align:center}
+.dm-alt{display:inline-block;font-size:14px;color:#2563eb;margin-bottom:12px}
+.dm-fine{margin:0;font-size:12.5px;color:#6b7280;line-height:1.5}
+body.dm-open{overflow:hidden}
 </style>
 <style>
   .first h1{max-width:620px;}
@@ -284,6 +294,18 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
         <div class="dl" id="tryDl" hidden>
           <a class="btn" id="dlBtn" href="/sign-up?google=1" data-cta="fr_download">Télécharger ma liste</a>
           <p class="fine" id="dlFine">Le fichier contient tout : expériences, formation, poste, localisation, email. Gratuit, sans carte bancaire : vous créez votre compte en 1 clic et il se télécharge.</p>
+        </div>
+        <div class="dm-backdrop" id="doneModal" hidden role="dialog" aria-modal="true" aria-labelledby="dmTitle">
+          <div class="dm">
+            <button type="button" class="dm-x" id="dmClose" aria-label="Fermer">×</button>
+            <p class="dm-check">✓</p>
+            <h2 id="dmTitle">Votre liste est prête</h2>
+            <p class="dm-stats" id="dmStats"></p>
+            <p class="dm-rest" id="dmRest" hidden></p>
+            <a class="btn dm-main" id="dmGoogle" href="/sign-up?google=1" data-cta="fr_modal_google">Continuer avec Google et télécharger</a>
+            <a class="dm-alt" id="dmEmail" href="/sign-up" data-cta="fr_modal_email">ou créer mon compte avec un email</a>
+            <p class="dm-fine" id="dmFine">Gratuit, sans carte bancaire. Votre fichier se télécharge dès que votre compte est créé, et vous recevez des crédits gratuits pour enrichir la suite de vos listes.</p>
+          </div>
         </div>
       </div>
     </section>
@@ -397,6 +419,17 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
   }
   function setCell(cell, text, ok) { cell.className = 'val ' + (ok ? 'ok' : 'no'); cell.textContent = text; }
 
+  function pause(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+  // 3 essais : tout de suite, après 1,5 s, après 4 s.
+  async function withRetry(fn) {
+    var waits = [0, 1500, 4000], last;
+    for (var k = 0; k < waits.length; k++) {
+      if (waits[k]) await pause(waits[k]);
+      try { return await fn(); } catch (e) { last = e; }
+    }
+    throw last;
+  }
+
   async function lookup(body) {
     var res = await fetch(WORKER, {
       method: 'POST',
@@ -459,28 +492,33 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
     tryBtn.textContent = 'Recherche…';
     try { localStorage.setItem(USED_KEY, String(Date.now())); } catch (e) {}
     track('fr_list_started', { source: source, rows: items.length, file_rows: total });
+    tryMsg.textContent = 'Une personne à la fois pour des résultats fiables : gardez cette page ouverte (quelques secondes par personne).';
 
     var bulk = items.length > 1, emails = 0, profiles = 0, errors = 0, lookups = 0, done = 0;
     function counter() { tryCount.textContent = profiles + ' profils, ' + emails + ' emails trouvés sur ' + done + '…'; }
     counter();
-    // 4 personnes à la fois : assez rapide, sans saturer le service.
-    var queue = items.slice(), cells = items.map(function (it) { return addRow(it.label); });
-    async function worker() {
-      while (queue.length) {
-        var idx = items.length - queue.length, it = queue.shift(), cell = cells[idx], url = it.url;
+    // Une personne à la fois, profil puis email (8 nov. 2026). À 4 personnes x 2
+    // appels en parallèle, 41 lignes sur 50 finissaient en erreur : les services
+    // ne tiennent pas la charge. Chaque appel est retenté 2 fois, puis les lignes
+    // en erreur repassent une dernière fois à la fin.
+    var cells = items.map(function (it) { return addRow(it.label); });
+    var failedIdx = [];
+    async function processOne(idx, lastTry) {
+        var it = items[idx], cell = cells[idx], url = it.url;
         try {
           if (!url) {
             lookups++;
-            var p = await lookup({ type: 'professional_profile_finder', first_name: it.first, last_name: it.last, company_name: it.company, is_bulk: bulk });
+            var p = await withRetry(function () { return lookup({ type: 'professional_profile_finder', first_name: it.first, last_name: it.last, company_name: it.company, is_bulk: bulk }); });
             url = p && p.linkedin_url ? normalize(String(p.linkedin_url)) : '';
-            if (!url) { setCell(cell, 'Pas trouvé', false); done++; counter(); continue; }
+            if (!url) { setCell(cell, 'Pas trouvé', false); done++; counter(); return; }
           }
-          // Profil complet et email en même temps.
+          // Profil complet, puis email : l'un après l'autre, jamais en même temps.
           lookups += 2;
-          var both = await Promise.all([
-            profileLookup(url).catch(function () { return null; }),
-            lookup({ type: 'business_email_finder', linkedin_url: url, is_bulk: bulk }).catch(function () { return null; })
-          ]);
+          setCell(cell, 'Profil…', false);
+          var prof = await withRetry(function () { return profileLookup(url); }).catch(function () { return null; });
+          setCell(cell, 'Email…', false);
+          var mail = await withRetry(function () { return lookup({ type: 'business_email_finder', linkedin_url: url, is_bulk: bulk }); }).catch(function () { return null; });
+          var both = [prof, mail];
           var pr = both[0] || {}, d = both[1];
           if (!both[0] && !both[1]) throw new Error('both failed');
           var em = d && d.email ? String(d.email) : '';
@@ -496,18 +534,27 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
           cell._info.textContent = [line, rec.location].filter(Boolean).join(' · ') + (extra ? '  —  ' + extra + ' dans le fichier' : '');
           if (em) { emails++; setCell(cell, mask(em) + '  ✓', true); }
           else setCell(cell, 'Email pas trouvé', false);
-        } catch (e) { errors++; setCell(cell, 'Erreur, réessayez', false); }
+        } catch (e) {
+          if (!lastTry) { failedIdx.push(idx); setCell(cell, 'Nouvel essai à la fin…', false); return; }
+          errors++; setCell(cell, 'Pas de réponse', false);
+        }
         done++; counter();
-      }
     }
-    await Promise.all([worker(), worker(), worker(), worker()]);
+    for (var i = 0; i < items.length; i++) { await processOne(i, false); await pause(250); }
+    if (failedIdx.length) {
+      track('fr_list_second_pass', { rows: failedIdx.length });
+      await pause(3000);
+      var again = failedIdx.slice(); failedIdx = [];
+      for (var j = 0; j < again.length; j++) { await processOne(again[j], true); await pause(600); }
+    }
 
     running = false;
     tryBtn.disabled = false;
     tryBtn.textContent = 'Récupérer les profils';
+    tryMsg.textContent = '';
     track('fr_list_run', { source: source, rows: items.length, file_rows: total, found: emails, profiles: profiles, failed: errors });
 
-    if (lookups && errors === lookups) {
+    if (errors && errors === items.length) {
       try { localStorage.removeItem(USED_KEY); } catch (e) {}
       tryCount.textContent = '';
       tryMsg.textContent = 'Notre service ne répond pas. Réessayez dans une minute.';
@@ -520,7 +567,48 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
     dlBtn.textContent = 'Télécharger ma liste (' + found.length + ' profils)';
     if (hasAccount) { dlBtn.href = '#'; document.getElementById('dlFine').textContent = 'Votre fichier se télécharge tout de suite.'; }
     tryDl.hidden = false;
+    showDoneModal(profiles, emails, items.length, total);
   }
+
+  // Fin de l'enrichissement : un seul message, clair, avec un seul geste à faire.
+  function showDoneModal(profiles, emails, n, total) {
+    var m = document.getElementById('doneModal');
+    if (!m) return;
+    document.getElementById('dmStats').textContent = profiles + ' profils complets et ' + emails + ' emails trouvés sur ' + n + '.';
+    var rest = total - n;
+    var restEl = document.getElementById('dmRest');
+    restEl.textContent = rest > 0 ? 'Votre fichier compte ' + total + ' lignes : les ' + rest + ' autres vous attendent dans l\'app, avec vos crédits gratuits.' : '';
+    restEl.hidden = !(rest > 0);
+    var go = document.getElementById('dmGoogle'), alt = document.getElementById('dmEmail'), fine = document.getElementById('dmFine');
+    if (hasAccount) {
+      go.textContent = 'Télécharger ma liste (' + found.length + ' profils)';
+      go.href = '#';
+      alt.textContent = 'Enrichir la suite dans l\'app';
+      alt.href = '/app';
+      fine.textContent = 'Le fichier contient tout : poste, entreprise, expériences, formation, email.';
+    }
+    m.hidden = false;
+    document.body.classList.add('dm-open');
+    track('fr_list_modal_shown', { profiles: profiles, emails: emails, rows: n, file_rows: total, has_account: hasAccount });
+  }
+  function closeDoneModal() {
+    var m = document.getElementById('doneModal');
+    if (m) m.hidden = true;
+    document.body.classList.remove('dm-open');
+  }
+  (function wireDoneModal() {
+    var m = document.getElementById('doneModal');
+    if (!m) return;
+    document.getElementById('dmClose').addEventListener('click', function () { track('fr_list_modal_closed', {}); closeDoneModal(); });
+    m.addEventListener('click', function (e) { if (e.target === m) { track('fr_list_modal_closed', { via: 'backdrop' }); closeDoneModal(); } });
+    document.getElementById('dmGoogle').addEventListener('click', function (e) {
+      track('fr_list_modal_clicked', { choice: hasAccount ? 'download' : 'google', found: found.length });
+      if (hasAccount && found.length) { e.preventDefault(); downloadNow(); try { localStorage.removeItem(RESULTS_KEY); } catch (err) {} closeDoneModal(); }
+    });
+    document.getElementById('dmEmail').addEventListener('click', function () {
+      track('fr_list_modal_clicked', { choice: hasAccount ? 'app' : 'email', found: found.length });
+    });
+  })();
 
   function toCsv() {
     var esc = function (s) { s = String(s == null ? '' : s); return /[",\n;]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };

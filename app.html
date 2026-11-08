@@ -5974,6 +5974,31 @@ function captureUTMs() {
     return utms;
 }
 
+// /liste-gratuite keeps the enriched file in this browser (lf_free_list_results)
+// and tells the visitor it downloads as soon as their account exists. This is
+// that download: once, on the first signed-in load, within 7 days. The file is
+// plain CSV text built on that page from the visitor's own lookups.
+function lfDownloadFreeList() {
+    let saved = null;
+    try { saved = JSON.parse(localStorage.getItem('lf_free_list_results') || 'null'); } catch (e) {}
+    if (!saved || typeof saved.csv !== 'string' || !saved.csv) return;
+    try { localStorage.removeItem('lf_free_list_results'); } catch (e) {}
+    if (!saved.savedAt || Date.now() - Number(saved.savedAt) > 7 * 24 * 60 * 60 * 1000) return;
+    const name = String(saved.name || 'ma-liste-profils.csv').replace(/[^\w.\-]+/g, '-').slice(0, 80) || 'ma-liste-profils.csv';
+    const download = () => {
+        const blob = new Blob(['\ufeff' + saved.csv], { type: 'text/csv;charset=utf-8' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = /\.csv$/i.test(name) ? name : name + '.csv';
+        document.body.appendChild(a); a.click(); a.remove();
+    };
+    download();
+    window.lfRedownloadFreeList = download;
+    try { posthog.capture('fr_list_downloaded_after_signup', { found: saved.found || null }); } catch (e) {}
+    const n = Number(saved.found) || 0;
+    showAlert('Votre liste gratuite est téléchargée' + (n ? ' (' + n + ' profils)' : '') + '. Vos crédits gratuits sont sur votre compte pour enrichir la suite.', 'success');
+}
+
 function checkAuth(){
     const utms = captureUTMs();
     lfCaptureRef();
@@ -6008,6 +6033,9 @@ function checkAuth(){
         window.location.href=withUtms('https://linkfinderai.com/');return;
     }
     userToken=token;
+    // The free list from /liste-gratuite, promised "it downloads as soon as your
+    // account exists" - nothing picked it up until 8 Nov 2026. lfDownloadFreeList.
+    setTimeout(function(){ try { lfDownloadFreeList(); } catch(e) {} }, 1500);
 
     // Agency segment: the database is the source of truth once there is an
     // account. sync() claims the cookie's segment for a brand-new account, then
