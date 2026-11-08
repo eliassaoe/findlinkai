@@ -321,3 +321,25 @@ the rescue ran 63 times, got pages back 10 times and accepted 5. That is the inp
 not a broken lookup. If funds are a real use case, the honest option is a
 separate "find the fund manager's page" step, which returns a different entity
 and must say so.
+
+## API / MCP lookups that took over ~25 s never returned (fixed 8 Nov 2026)
+
+The API waits about 25 s for n8n, then hands the caller a `job_id` and waits for
+n8n to POST the result to `callback_url`. In app v4, the LinkedIn → email endings
+added this week — the Apify backup's found (`Respond to Webhook60`) and not-found
+(`Respond to Webhook55`), and the Filtrat hit (`Respond to Webhook75`) — answered
+the webhook but never called back. The backup takes 30–40 s, so for API and MCP
+users its finds were always lost and the job stayed "processing" forever.
+
+Fix (published): after each of those three, `Callback? · …` (copy of
+`If callback (not found)1`) → `Callback · …` (copy of `HTTP Request52`, same URL
+and secret header, body `{http_status: 200, data: {result}}`). Checked live: the
+9 lookups that had hung now return, and two backup finds (glenn@av.vc,
+grace.beverley@wearetala.com) came back through the callback.
+
+**Rule:** any new ending in app v4 needs both a Respond node and the callback
+pair, or it works in the app and silently fails on the API and the connector.
+
+**Rerun in progress:** the LinkedIn → email inputs from the last 30 days are
+being re-run on the current pipeline (89 of 120 done; results kept outside the
+repo). Phone is not re-run until it changes.
