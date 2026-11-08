@@ -4193,6 +4193,38 @@ function lfSearchCompany(raw) {
     return (kept.length ? kept : words).join(' ');
 }
 
+// 8 Nov 2026: people paste a person's profile into "company data" (every miss of
+// linkedin_company_to_linkedin_info in Oct was a /in/ URL) and the reverse.
+// Switch the search to the right kind as soon as the URL is recognised.
+function lfLinkedInUrlKind(v) {
+    v = String(v || '').toLowerCase();
+    if (/linkedin\.com\/(in|pub)\//.test(v)) return 'person';
+    if (/linkedin\.com\/(company|school|showcase)\//.test(v)) return 'company';
+    return null;
+}
+function lfAutoSwitchLinkedInKind(fromSubmit) {
+    const el = document.getElementById('inputData');
+    if (!el || currentOutputType !== 'linkedin_info') return false;
+    const kind = lfLinkedInUrlKind(el.value);
+    let to = null;
+    if (kind === 'person' && currentInputType === 'linkedin_company') to = 'linkedin_profile';
+    if (kind === 'company' && currentInputType === 'linkedin_profile') to = 'linkedin_company';
+    if (!to) return false;
+    const val = el.value;
+    pickSearch(to, 'linkedin_info');
+    const el2 = document.getElementById('inputData');
+    if (el2) el2.value = val;
+    if (typeof updateSubmitButtonState === 'function') updateSubmitButtonState();
+    const msg = to === 'linkedin_profile'
+        ? "That's a person's profile, so we switched to person profile data (" + getCreditCost('linkedin_profile', 'linkedin_info') + ' credits).'
+        : "That's a company page, so we switched to company data (" + getCreditCost('linkedin_company', 'linkedin_info') + ' credits).';
+    showAlert(msg + (fromSubmit ? ' Press the button again to run it.' : ''), 'warning');
+    try { posthog.capture('linkedin_kind_autoswitched', { to: to, at: fromSubmit ? 'submit' : 'typing' }); } catch (e) {}
+    return true;
+}
+document.addEventListener('input', function (e) {
+    if (e.target && e.target.id === 'inputData') lfAutoSwitchLinkedInKind(false);
+});
 async function enrichData(event) {
     event.preventDefault();
     const submitBtn = event.target.querySelector('button[type="submit"]');
@@ -4201,6 +4233,7 @@ async function enrichData(event) {
     submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Finding results\u2026';
     submitBtn.style.opacity = '0.8';
     const restoreBtn = () => { submitBtn.innerHTML=originalBtnHTML; submitBtn.style.opacity=''; updateSubmitButtonState(); };
+    if (lfAutoSwitchLinkedInKind(true)) { restoreBtn(); return; }
     try { posthog.capture('enrich_started',{input_type:currentInputType,output_type:currentOutputType}); } catch(e) {}
 
     if (currentOutputType !== 'employees' && currentCredits !== null) {

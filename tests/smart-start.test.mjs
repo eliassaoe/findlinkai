@@ -103,3 +103,12 @@ test('start screen: one card per goal, LinkedIn profile first, "I have" choice i
   assert.match(html, /quickStart\(currentInputType, currentOutputType, l\.example\[0\], null, false, l\.example\[1\]\)/);
   assert.doesNotMatch(html, /one contact or company<\/div>/);
 });
+
+// 8 Nov 2026: every miss of company data in Oct was a person's /in/ URL.
+test('a person URL in company data (or the reverse) switches the search', () => {
+  const html = readFileSync(new URL('../app.html', import.meta.url), 'utf8');
+  assert.match(html, /function lfLinkedInUrlKind\(v\)/);
+  assert.match(html, /kind === 'person' && currentInputType === 'linkedin_company'\) to = 'linkedin_profile'/);
+  assert.match(html, /kind === 'company' && currentInputType === 'linkedin_profile'\) to = 'linkedin_company'/);
+  assert.match(html, /if \(lfAutoSwitchLinkedInKind\(true\)\) \{ restoreBtn\(\); return; \}/);
+});

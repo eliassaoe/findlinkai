@@ -201,3 +201,14 @@ added nodes, live and published, additive only. See
 `workers/n8n-linkedin-rescue/README.md`. The two Cloudflare workers
 (`enrich-name-to-linkedin`, `enrich-company-to-linkedin`) are **not
 deployed** and not needed for this; keep them as reference.
+
+
+## Company LinkedIn data misses were wrong URLs (8 Nov 2026)
+
+`linkedin_company_to_linkedin_info` showed 11% found over 30 days, but every
+miss was a person's `/in/` URL pasted into the company search; real company
+pages all came back. `app.html` now switches the search as soon as the URL is
+recognised (`lfLinkedInUrlKind`, `lfAutoSwitchLinkedInKind`): person URL in
+company data → person profile data (10 credits), company URL in person data →
+company data (6). If it only notices at submit, it switches and asks for a
+second click, because the price changed. PostHog: `linkedin_kind_autoswitched`.
