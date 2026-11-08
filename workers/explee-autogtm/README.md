@@ -219,6 +219,14 @@ them with 368313 on $/hot lead **and** hot → trial/paid after two weeks — at
 the time 368313 had 2 hot leads for $44, too few to judge. Two campaigns made
 by mistake the same day in 30475 (389446, 389453) were archived unsent.
 
+**Budget decision, 8 Nov evening (owner): $25/day for the whole project.** So
+the SaaS-editors campaign (389498) stays *Not started* — judged the least
+likely to work — and the test is recruitment (368313, cap $12) against agencies
+(389491, cap $13, started 8 Nov). At that budget expect ~5-6 hot leads each by
+23 Nov: judge on positive replies and free-test requests too, and only call it
+on hot leads by mid-December. Explee's cap field: clear it with End +
+Backspace; ctrl+a does not select it and once turned 25 into $300.
+
 ## `/relance` — the hot-lead follow-up cockpit (added 6 October 2026)
 
 `linkfinderai.com/relance`, built by `relance_page.py` from
