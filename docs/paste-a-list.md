@@ -145,3 +145,33 @@ Before checkout opens, `lfEmailCheckoutNotice()` shows "Opening checkout for
 <email>. Credits go to this account. Not you? …" so a shared or second-account
 browser is noticed before paying, and Dodo pre-fills the same email.
 Pinned by `tests/paste-a-list.test.mjs`.
+
+## 6. Two follow-ups (8 Nov 2026)
+
+**Welcome flow (workflow 3), `email_upgrade`** — the day-7 "worth a plan?" email
+linked to `/app?action=upgrade` (the plan picker). Now it carries the same two
+direct buttons (Starter monthly, $25 pack), mentions pasting a list, and keeps
+the "reply with your volume" offer. Version 20.
+
+**Workflow 6 (API / MCP) deliberately not changed.** Its button goes to
+`/api-access` and its goal is `api_key_copied`, not a payment; key copiers pay at
+3.2% vs 0.17% for single lookups. Pointing it at checkout would trade that away.
+
+**Email+password signups are still never emailed — and it is not the filter.**
+Checked 8 Nov:
+- ~10 real email+password signups a week (117 in 60 days vs 485 Google; the
+  3,637 in the week of 5 Oct are a bulk import, ignore them).
+- **None can confirm.** Of 3,686 email+password rows in 60 days, 1 has an
+  `auth.users` row. Accounts are created by the n8n signup flow without a
+  Supabase auth user, so Supabase never sends a confirmation email, the
+  `email_verified` event has not fired in 120 days, and these accounts sit at
+  ≤10 credits (`VERIFY_CAP`) with no way to release the rest.
+- **Do not just open the filter.** Lifecycle email already bounces at ~2.5%
+  (120 of 4,787 in 60 days); SES reviews a sender at 5%. Unconfirmed addresses
+  are where fakes come from (`docs/email-verified-is-wrong.md`).
+
+The fix is to finish `workers/verify-email/SIGNUP_PATCH.md` in the n8n signup
+flow (needs the owner's login on the second n8n instance): create the Supabase
+user with `email_confirm: false` so Supabase sends the confirmation, then the
+existing `/claim` + `email_verified` person property do the rest and the flows'
+existing `email_verified is_not false` filter can drop `signup_method = google`.
