@@ -38,3 +38,11 @@ test('each row shows experiences and education, email stays masked', () => {
   const fn = page.slice(page.indexOf('function renderMore'), page.indexOf('function setCell'));
   assert.doesNotMatch(fn, /innerHTML/);
 });
+
+test('conversion: reassurance line, call offer, sticky bar after the run', () => {
+  assert.match(page, /class="trust"/);
+  assert.match(page, /id="dmCall"[^>]*data-cta="fr_modal_call"|data-cta="fr_modal_call"[^>]*id="dmCall"/);
+  assert.match(page, /calendly\.com\/hamoureliasse\/linkfinder-ai\?utm_source=liste-gratuite/);
+  assert.match(page, /id="stickyCta" hidden/);
+  assert.match(page, /showDoneModal\(profiles, emails, items\.length, total\);\n    showSticky\(\);/);
+});

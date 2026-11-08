@@ -40,5 +40,15 @@ Tested in Playwright with both workers mocked: max 1 call in flight, 3 forced
 failures all recovered, popup shown, and the app downloaded the file after
 "signup". Pinned by `tests/liste-gratuite.test.mjs`.
 
+**Conversion pass (same day):** a reassurance line under the headline (50 profils
+gratuits · sans carte · CSV prêt pour votre ATS); in the popup, a setup-call offer
+("Vous recrutez en volume ? 15 min avec Eliasse") to
+`calendly.com/hamoureliasse/linkfinder-ai?utm_source=liste-gratuite`; a bar fixed
+at the bottom after the run ("Votre liste de N profils est prête → Créer mon compte
+et télécharger") for people who close the popup; and under the tool, "Ce que vous
+recevez", "Après les 50 premiers" with a signup button, and a "Un sourcing sur
+mesure ?" call card. Events: `fr_list_sticky_shown/clicked`,
+`fr_list_call_clicked {where}`, `fr_list_signup_clicked`.
+
 **Measure:** `fr_list_run.failed` (was 41/50), `fr_list_modal_clicked`, signups
 with `data-cta=fr_modal_google`, `fr_list_downloaded_after_signup`, then payments.
