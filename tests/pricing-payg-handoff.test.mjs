@@ -39,5 +39,6 @@ test('app reads the pack once, expires it, and opens that pack\'s checkout', () 
 test('pack order in the handoff matches proceedToPaygCheckout', () => {
     const fn = app.slice(app.indexOf('async function proceedToPaygCheckout'));
     const keys = [...fn.slice(0, 600).matchAll(/key: 'payg_([a-z]+)'/g)].map((m) => m[1]);
-    assert.deepEqual(keys, ['small', 'medium', 'large']);
+    // 0-2 are the public packs the handoff indexes; 3 is the first-purchase $10 Mini (8 Nov 2026).
+    assert.deepEqual(keys, ['small', 'medium', 'large', 'mini']);
 });

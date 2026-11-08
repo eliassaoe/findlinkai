@@ -62,6 +62,7 @@ into a file here in the same session, or it is gone.
 | **Earn-credits tasks shown in a rail beside the form** (wide screens), not only behind the corner button | `docs/earn-credits-rail.md` — read it before touching `OTP_TASKS_ALL`, `renderTasksRail` or `#reopenTasksBtn`; `tests/tasks-rail.test.mjs` pins it |
 | **Free-limit gate leads with "Continue with Google"**, email one link below (added at runtime to all 26 tool pages) | `docs/gate-google-first.md` — the numbers, the re-check date and how to roll back; `tests/gate-google-first.test.mjs` pins it |
 | What the account page counts as "found" | `docs/account-value-summary.md` |
+| **$10 / 300-credit Mini pack** — first purchase only, out-of-credits popup only, switched off until the second n8n grants credits | `docs/payg-mini.md` — read it before touching `LF_MINI_ENABLED`, `lfMiniEligible` or `payg_mini` |
 | **Find rate per lookup: subscribers ~88% email, a free account's first lookup 40%; name→email 1–15%; misses cost 2.5 credits; employee search fixed 7 Nov (b2bsearch → braveleads waterfall, 2 credits per employee)** | `docs/find-rate.md` — read it before promising a find rate or touching `missRescueHTML` / `lfChain`; `tests/find-rate.test.mjs` pins it |
 | **LinkedIn rescue in n8n: Apify LinkedIn search as a backup only when the original Google step finds nothing** (name and company → LinkedIn, app v4 + free tools; original step untouched by owner decision) | `workers/n8n-linkedin-rescue/README.md` — node names, the rollback, the live checks |
 | The monthly value receipt email — how the numbers are computed, the worker, workflow 12 | `workers/monthly-receipt/README.md` |
@@ -111,7 +112,7 @@ user-facing — don't extrapolate from the `company_name_to_*` pattern.
 
 **Plans**: Starter $49 / 5,000 mo · Professional $89 / 20,000 · **Scale** $149
 / 50,000. `app.html` stores the ANNUAL figure and divides by 12 — that is not a
-bug. **Packs**: $25 / 1,000 · $75 / 3,500 · $200 / 10,000.
+bug. **Packs**: $25 / 1,000 · $75 / 3,500 · $200 / 10,000 (+ $10 / 300 "Mini", never-paid accounts only, see `docs/payg-mini.md`).
 
 **"Scale" is a display name; the plan KEY is still `enterprise`.** The $149 tier
 was called Enterprise until a sales-led tier took that name. The key was left

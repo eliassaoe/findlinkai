@@ -48,6 +48,7 @@ const PRODUCT_IDS = {
   pack_quick:         'pdt_0Ngb1PwVoM24kOEydcDkT',
   pack_power:         'pdt_0Ngb1URNW4fRAC4F3jyow',
   pack_pro:           'pdt_0Ngb1YZbYwRS1gxfVaN9R',
+  payg_mini:          'pdt_0NrUVU7FcbHe2odqgY1WA', // $10, first purchase only (docs/payg-mini.md)
   payg_small:         'pdt_0Nj62gByZ53OzYoz3bCBr',
   payg_medium:        'pdt_0Nj62kQhG7EzZWogTmjfE',
   payg_large:         'pdt_0Nj62scEtjXTicj4P2thT',
@@ -57,6 +58,7 @@ const PACK_CREDITS = {
   pack_quick: 1000,
   pack_power: 3000,
   pack_pro: 10000,
+  payg_mini: 300,
   payg_small: 1000,
   payg_medium: 3500,
   payg_large: 10000,

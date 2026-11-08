@@ -1469,6 +1469,15 @@ body.sp-has-pick #creditCost{display:none !important;}
             <div class="cim-payg-tag">Quick top-up</div>
 
             <div class="cim-tiers" id="cimTiers">
+                <div class="cim-tier cim-tier-mini" data-index="3" data-credits="300" data-price="10" onclick="cimSelectTier(this)" style="display:none;">
+                    <span class="cim-tier-check">✓</span>
+                    <span class="cim-tier-badge">First top-up</span>
+                    <div class="cim-tier-name">Mini</div>
+                    <div class="cim-tier-right">
+                        <div class="cim-tier-credits">300</div>
+                        <div class="cim-tier-price">$10</div>
+                    </div>
+                </div>
                 <div class="cim-tier" data-index="0" data-credits="1000" data-price="25" onclick="cimSelectTier(this)">
                     <span class="cim-tier-check">✓</span>
                     <div class="cim-tier-name">Small</div>
@@ -2176,6 +2185,7 @@ const DODO_DIRECT_PRODUCTS = {
     enterprise_monthly: 'pdt_0Nfl5euCguHp4Nh03MAVk',   // Enterprise Plan (Scale) $249/mo
     pro_annual:         'pdt_0Nfl5zzZR6gaiA1YQPxqj',   // Annual Professional     $708/yr
     enterprise_annual:  'pdt_0Nfl68GPfL6s7UCzsoxwr',   // Annual Enterprise       $1,788/yr
+    payg_mini:          'pdt_0NrUVU7FcbHe2odqgY1WA',   // Pay As You Go Mini      $10 (8 Nov 2026, first purchase only)
     payg_small:         'pdt_0Nj62gByZ53OzYoz3bCBr',   // Pay As You Go Small     $25
     payg_medium:        'pdt_0Nj62kQhG7EzZWogTmjfE',   // Pay As You Go Medium    $75
     payg_large:         'pdt_0Nj62scEtjXTicj4P2thT'    // Pay As You Go Large     $200
@@ -2953,7 +2963,8 @@ async function proceedToPaygCheckout(index, btnEl) {
     const packs = [
         { key: 'payg_small',  name: 'Pay As You Go — Small',  price: 25  },
         { key: 'payg_medium', name: 'Pay As You Go — Medium', price: 75  },
-        { key: 'payg_large',  name: 'Pay As You Go — Large',  price: 200 }
+        { key: 'payg_large',  name: 'Pay As You Go — Large',  price: 200 },
+        { key: 'payg_mini',   name: 'Pay As You Go — Mini',   price: 10  }
     ];
     const pack = packs[index];
 
@@ -3260,16 +3271,33 @@ let creditsExhaustedTrigger = null; // Add this at top of file with other variab
 // Which PAYG tier is currently selected inside the out-of-credits modal (0=Small,1=Medium,2=Large)
 let cimSelectedTierIndex = 1;
 
+// $10 / 300-credit pack (8 Nov 2026, docs/payg-mini.md): shown only to accounts
+// that have never paid, so it cannot pull buyers down from the $25+ packs, and
+// only in this out-of-credits popup. Off until LF_MINI_ENABLED is true, which is
+// flipped once a $10 test purchase has granted exactly 300 credits.
+const LF_MINI_ENABLED = false;
+let lfHasEverPaid = null; // from the credits worker (is_unlimited / has_paid) when it sends one
+function lfMiniEligible() {
+    if (!LF_MINI_ENABLED || isExistingSubscriber) return false;
+    if (lfHasEverPaid === true) return false;
+    if (lfHasEverPaid === false) return true;
+    // Field not sent yet: free accounts start with ~50 credits, buyers with 1,000+.
+    return startingCredits !== null && startingCredits < 200;
+}
 function showInsufficientCreditsModal(trigger = 'single_enrichment') {
     creditsExhaustedTrigger = trigger;
+    const lfMini = lfMiniEligible();
+    const miniEl = document.querySelector('#cimTiers .cim-tier-mini');
+    if (miniEl) miniEl.style.display = lfMini ? '' : 'none';
+    if (lfMini) { try { posthog.capture('payg_mini_shown', { trigger: trigger }); } catch (e) {} }
 
     // Reset tier selection to Medium (best AOV) every time the modal opens
     const tiersEl = document.getElementById('cimTiers');
     if (tiersEl) {
         tiersEl.querySelectorAll('.cim-tier').forEach(t => t.classList.remove('selected'));
-        const defaultTier = tiersEl.querySelector('[data-index="1"]');
+        const defaultTier = tiersEl.querySelector(lfMini ? '[data-index="3"]' : '[data-index="1"]');
         if (defaultTier) defaultTier.classList.add('selected');
-        cimSelectedTierIndex = 1;
+        cimSelectedTierIndex = lfMini ? 3 : 1;
         const cta = document.getElementById('cimCta');
         if (cta && defaultTier) cta.textContent = cimFormatCta(defaultTier.dataset.credits, defaultTier.dataset.price);
     }
@@ -3967,6 +3995,8 @@ async function fetchCredits() {
             const d=await r.json();
             const c=Math.max(0,d.credits||0);
             currentCredits=c;
+            if (typeof d.is_unlimited === 'boolean') lfHasEverPaid = d.is_unlimited;
+            else if (typeof d.has_paid === 'boolean') lfHasEverPaid = d.has_paid;
             applyVerificationState(d);
             if (startingCredits === null && c > 0) startingCredits = c;
             document.getElementById('creditsCount').textContent=c;
@@ -4240,6 +4270,8 @@ async function enrichData(event) {
         const upfrontCost = getCreditCost(currentInputType, currentOutputType);
         if (currentCredits < upfrontCost) {
             showAlert(`You need ${upfrontCost} credit${upfrontCost===1?'':'s'} for this lookup. You have ${Math.round(currentCredits*10)/10}.`, 'error');
+            // 8 Nov 2026: this was a dead end (an alert only). Open the top-up popup.
+            try { showInsufficientCreditsModal('not_enough_for_lookup'); } catch (e) {}
             restoreBtn();
             return;
         }
