@@ -253,3 +253,33 @@ Cloudflare captchas on another site), `bovi/email-finder` (12 lookups were still
 running after 3 minutes).
 Rollback: n8n version history, the version before "Email backups: harvestapi
 after LinkedIn->email miss, clearpath after name->email miss".
+
+## LinkedIn → email accuracy test, 100 people (8 Nov 2026)
+
+Live lookups through the MCP (the real n8n pipeline: anchor → Filtrat → harvestapi).
+Known answers came from `b2bsearch/company-employees` (46 people at HubSpot,
+Allianz, Freshworks, Zendesk, current-employer work emails) and 54 AAK staff
+whose @aak.com email was known. Where our answer was at another company, the
+person's current LinkedIn headline was checked (harvestapi, short mode).
+
+| Outcome | Count |
+| --- | --- |
+| Email returned | **87 / 100** |
+| Exactly the known email | 62 |
+| Known to be right (person moved; we returned the new employer's email: Atlassian, SmartBear, Esker, MongoDB, Arborea) | 5 |
+| Probably right: same company, other address form (`kevin.devine@` vs `kd@aak.com`, `milica.ilic@` vs `ilic.milica@allianz.com`…) or a plausible new job (Veeam, CarGurus, wati.io) | 13 |
+| Doubtful: initials only at a big catch-all company (`aa@allianz.com`, `rh@allianz.com`) | 2 |
+| **Wrong**: `jason@ov.beer` for Zendesk's CTO, `lucas@bnpparibas.com` and `jason@bnpparibas.com` for AAK staff, `rodrigo.guardini@aak.com` for Rodrigo Miyake | 4 |
+| Personal mailbox returned (`…@aol.com`) | 1 |
+| Nothing found (refunded) | 13 |
+
+So of 87 answers: 67 confirmed right (77%), ~80 right or very likely right
+(~92%), 4 wrong (5%), 3 doubtful.
+
+Not yet known: which step produced the 4 wrong ones (Chrome disconnected before
+the n8n executions could be read). Cheap guard to add whichever step it is: reject
+an email whose local part contains neither the first nor the last name (nor the
+initials) of the profile's name, and never return a free mailbox (aol/gmail…).
+Async note: under parallel load the API answered 14 of the 100 with a job_id
+whose result never arrived (still "processing" after 5+ minutes, then expired);
+re-running them one by one worked. Worth checking the async path in the API worker.
