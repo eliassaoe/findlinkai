@@ -200,24 +200,24 @@ Set the project's `reply_instructions` in the app to propose two specific
 times rather than a booking link — that is what `recover.py` does for the ones
 that then go quiet.
 
-## Two niche campaigns added 8 Nov 2026 (not started)
+## Two SaaS campaigns added 8 Nov 2026 — project `linkfinderai-outbound` (37934)
 
-Created in project 30475 from the app (Auto-create), to compare niches against
-the running *Niches B2B ultra-spécifiques* campaign. Picked from who actually
-pays and uses LinkFinder AI (`linkfinderai_users` with `subscription_id` or
-`is_unlimited`, ranked by `enrichment_history` volume): outbound / lead-gen
-agencies (Sales Ignition, Constant Pipeline, sales-automation.ai, Frictionless,
-JDemand) and small B2B SaaS / GTM-tool teams (Topo, Guidance, Cambium, Hellooh,
-Legistify, Coefficient).
+Project 37934 sells the **tool** (self-serve subscription); project 30475 sells
+the done-for-you meetings and is left alone. Both new campaigns copy the
+running *FR - Cabinets de recrutement et chasseurs de têtes* (368313): FR, BE,
+LU, CH, French copy, hook = free test (up to 50 LinkedIn profiles back
+completed within 24 h — the `/liste-gratuite` offer), then self-serve
+subscription, project Calendly as the link.
 
-| Campaign | Segment | Offer | Why |
-| --- | --- | --- | --- |
-| *Outbound lead gen & appointment-setting agencies (2-50 staff)* — 389446 | US, UK, EU | the tool: waterfall enrichment, bulk/API/Sheets, ~$0.03 per verified email at volume (Scale plan maths: $149 / 50,000 credits × 10) | heaviest users among payers |
-| *Seed to Series A B2B SaaS founders doing founder-led outbound (5-50 staff)* — 389453 | US, UK, EU | done-for-you meetings, $150 per meeting held, minimum 5 a month (`docs/ai-sdr-offer.md`) | second group of payers; they buy outcomes |
+| Campaign | Id | Why this niche |
+| --- | --- | --- |
+| *FR - Agences de prospection, lead gen et prise de RDV B2B* | 389491 | outbound / lead-gen agencies are the heaviest users among payers (Sales Ignition, Constant Pipeline, sales-automation.ai, Frictionless, JDemand) |
+| *FR - Éditeurs SaaS B2B et startups avec équipe commerciale (SDR/BDR)* | 389498 | second group of payers: small SaaS / GTM teams (Topo, Guidance, Cambium, Hellooh, Legistify, Coefficient) |
 
-Both use the project booking link (the outbound Calendly). They need a positive
-balance and *Start campaign* to run; compare $/hot lead **and** hot → booked
-after two weeks, not reply rate alone.
+Created *Not started*; the organisation balance was -$9.63 that day. Compare
+them with 368313 on $/hot lead **and** hot → trial/paid after two weeks — at
+the time 368313 had 2 hot leads for $44, too few to judge. Two campaigns made
+by mistake the same day in 30475 (389446, 389453) were archived unsent.
 
 ## `/relance` — the hot-lead follow-up cockpit (added 6 October 2026)
 
