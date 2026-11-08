@@ -283,3 +283,41 @@ initials) of the profile's name, and never return a free mailbox (aol/gmail…).
 Async note: under parallel load the API answered 14 of the 100 with a job_id
 whose result never arrived (still "processing" after 5+ minutes, then expired);
 re-running them one by one worked. Worth checking the async path in the API worker.
+
+## Company name → LinkedIn page (checked 8 Nov 2026)
+
+**How it works** (app v4, `company_name_to_linkedin_url`): Serper Google search
+`"<name> site:linkedin.com/company"` (`HTTP Request6`) → scorer
+`Code in JavaScript9` picks a page → if "Not found", the Apify
+`harvestapi/linkedin-company` search rescue (`Co rescue: …`) → refund on a miss.
+
+**Live test, 26 companies:** every well-known name right (Microsoft, Tesla →
+`tesla-motors`, Salesforce, Doctolib, Qonto, Lemlist, Notion → `notionhq`, Mistral
+AI, Back Market, Pennylane SAS → `pennylaneaccounting`, Siemens Healthineers GmbH,
+Meta, Spendesk, Société Générale, Škoda Auto, Hermès, Ledger → `ledgerhq`,
+Captain Data, Lemon Learning). Problems found:
+
+| Input | Got | Why |
+| --- | --- | --- |
+| La Fourche | `lafourche-parish-government` | **Fixed.** Six results tied at 6.5 and the tie went to Google's order; the real `lafourche` (16.9K followers) was 6th |
+| Zöllner Signal GmbH | `zollner-uk-ltd` | Partial-name match accepted; still open |
+| Waalaxy | not found | Its page is not in Google's `site:` results, and the Apify search returns nothing for it either |
+
+**The fix (published 8 Nov, n8n version history has the previous code):** in
+the scorer's sort, equal scores now go to the page whose LinkedIn **title** is
+exactly the company name, then — only among those — the bigger page (follower
+count Google shows), then Google's order. A title is not "exact" when its legal
+form is from another country than the input's (`Inc.` vs `Private Limited`).
+Replayed on all 136 company lookups still in n8n's history (~4 hours kept): only
+La Fourche changed, find count identical (73/136). An earlier version that used
+followers for every tie moved 5 other picks, 2 of them for the worse — that is
+why followers only break ties between exact titles.
+
+**Why it "struggles" today:** most of the day's 217 company lookups were one list
+of **investment-fund legal entities** ("Cyrus Opportunities Master Fund II,
+Ltd.", "LifeSci Venture SPV 18, LLC", "Imperial Diversification Fund L.P.").
+Those vehicles almost never have their own LinkedIn page. Google found 73 of 136;
+the rescue ran 63 times, got pages back 10 times and accepted 5. That is the input,
+not a broken lookup. If funds are a real use case, the honest option is a
+separate "find the fund manager's page" step, which returns a different entity
+and must say so.
