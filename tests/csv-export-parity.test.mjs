@@ -55,9 +55,10 @@ function browserImpl({ headers, rows, inputType, outputType, mapping }) {
             email: { label: 'Enter Email Address', outputs: { linkedin_url: 'LinkedIn Profile URL' } },
             company_domain: { label: 'Enter Company Domain', outputs: { employees: 'Company Employees List' } },
             linkedin_company: { label: 'Enter LinkedIn Company URL', outputs: { linkedin_info: 'LinkedIn Company Data', employee_count: 'Employee Count' } },
-            linkedin_profile: { label: 'Enter LinkedIn Profile URL', outputs: { linkedin_info: 'LinkedIn Profile Data', phone: 'Phone Number', email: 'Email Address' } },
+            linkedin_profile: { label: 'Enter LinkedIn Profile URL', outputs: { linkedin_info: 'LinkedIn Profile Data', profile_email: 'LinkedIn Profile + Email', phone: 'Phone Number', email: 'Email Address' } },
             linkedin_post: { label: 'Enter LinkedIn Post URL', outputs: { reactions: 'Post Reactions' } },
         },
+        lfProfileOut: () => outputType === 'linkedin_info' || outputType === 'profile_email',
         showAlert: () => {},
         cipFounded: (f) => {
             const empty = (v) => v === undefined || v === null || v === '' || v === 'Not specified' || v === 'Not found';

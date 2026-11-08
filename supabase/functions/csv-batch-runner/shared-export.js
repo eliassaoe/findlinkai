@@ -13,7 +13,7 @@ export const OUTPUT_LABELS = {
     email: { linkedin_url: 'LinkedIn Profile URL' },
     company_domain: { employees: 'Company Employees List' },
     linkedin_company: { linkedin_info: 'LinkedIn Company Data', employee_count: 'Employee Count' },
-    linkedin_profile: { linkedin_info: 'LinkedIn Profile Data', phone: 'Phone Number', email: 'Email Address' },
+    linkedin_profile: { linkedin_info: 'LinkedIn Profile Data', profile_email: 'LinkedIn Profile + Email', phone: 'Phone Number', email: 'Email Address' },
     linkedin_post: { reactions: 'Post Reactions' },
 };
 
@@ -54,7 +54,7 @@ export function enrichColumns(inputType, outputType) {
     if (outputType === 'employee_count') return ['Employee Count', 'Status'];
     if (inputType === 'linkedin_post' && outputType === 'reactions')
         return ['Reaction Name', 'Reaction Job Title', 'Reaction Profile Info', 'Reaction LinkedIn URL'];
-    if (inputType === 'linkedin_profile' && outputType === 'linkedin_info')
+    if (inputType === 'linkedin_profile' && (outputType === 'linkedin_info' || outputType === 'profile_email'))
         return ['Name', 'Headline', 'Current Title', 'Current Company', 'Location', 'Country', 'Industry',
                 'Connections', 'Followers', 'Website', 'Email', 'Mobile', 'About', 'Education', 'Experience', 'Skills', 'Status'];
     if (inputType === 'linkedin_company' && outputType === 'linkedin_info')
@@ -125,7 +125,7 @@ export function enrichCells(row, inputType, outputType) {
         });
     }
 
-    if (inputType === 'linkedin_profile' && outputType === 'linkedin_info') {
+    if (inputType === 'linkedin_profile' && (outputType === 'linkedin_info' || outputType === 'profile_email')) {
         const cur = currentExp(d.experiences);
         return [[
             clean(d.name), clean(d.headline), clean((cur && cur.title) || d.jobTitle), clean(cur && cur.companyName),

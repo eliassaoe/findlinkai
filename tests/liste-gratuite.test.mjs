@@ -62,6 +62,7 @@ test('download goes through signup into the app, where the list opens with the n
   assert.match(page, /'\/app\?action=free_list'/);
   assert.match(page, /rows: rows, found: found\.length/);
   assert.match(app, /const box = el\('section', 'lf-fl'\); box\.id = 'lfFreeList';/);
-  assert.match(app, /quickStartBulk\('linkedin_profile', 'email'\)/);
+  assert.match(app, /outputSel\.value = 'linkedin_profile__profile_email'/);
+  assert.match(app, /lfFreeListPreset\('free_list_preset'\)/);
   assert.match(app, /fr_list_next_list_clicked/);
 });

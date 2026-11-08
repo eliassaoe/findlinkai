@@ -2169,7 +2169,7 @@ const dataConfigurations = {
     email: { label:"Enter Email Address", placeholder:"e.g., john.doe@company.com", outputs:{linkedin_url:"LinkedIn Profile URL"} },
     company_domain: { label:"Enter Company Domain", placeholder:"e.g., tesla.com, apple.com, microsoft.com", outputs:{employees:"Company Employees List"} },
     linkedin_company: { label:"Enter LinkedIn Company URL", placeholder:"e.g., linkedin.com/company/tesla", outputs:{linkedin_info:"LinkedIn Company Data",employee_count:"Employee Count"} },
-    linkedin_profile: { label:"Enter LinkedIn Profile URL", placeholder:"e.g., linkedin.com/in/john-doe", outputs:{linkedin_info:"LinkedIn Profile Data",phone:"Phone Number",email:"Email Address"} },
+    linkedin_profile: { label:"Enter LinkedIn Profile URL", placeholder:"e.g., linkedin.com/in/john-doe", outputs:{linkedin_info:"LinkedIn Profile Data",profile_email:"LinkedIn Profile + Email",phone:"Phone Number",email:"Email Address"} },
     linkedin_post: { label:"Enter LinkedIn Post URL", placeholder:"e.g., linkedin.com/feed/update/urn:li:activity:1234567890", outputs:{reactions:"Post Reactions"} },
 };
 
@@ -3777,6 +3777,7 @@ const SEARCH_PICKER_GROUPS = [
         ['linkedin_company', 'employee_count', 'Employee count, from its LinkedIn page'],
     ]},
     { title: 'Get profile data', icon: 'fa-id-card', items: [
+        ['linkedin_profile', 'profile_email', 'Full profile and work email, from a LinkedIn URL'],
         ['linkedin_profile', 'linkedin_info', 'Title, company, experience, from a LinkedIn URL'],
         ['linkedin_post', 'reactions', 'Everyone who reacted to a LinkedIn post'],
     ]},
@@ -5490,7 +5491,7 @@ function renderGatedResults(processedCount) {
                 <td>${isLocked ? '<span class="status-badge" style="background: var(--gray-100); color: var(--gray-500);">Locked</span>' : `<span class="status-badge ${row.status === 'Found' ? 'status-success' : 'status-error'}">${row.status}</span>`}
             </tr>`;
         };
-    } else if (currentInputType === 'linkedin_profile' && currentOutputType === 'linkedin_info') {
+    } else if (currentInputType === 'linkedin_profile' && lfProfileOut()) {
         headers = ['LinkedIn URL', 'Name', 'Title', 'Company', 'Location', 'Status'];
         rowRenderer = (row, index) => {
             const isLocked = index >= processedCount;
@@ -6057,11 +6058,9 @@ function lfDownloadFreeList() {
     const next = el('button', 'btn btn-outline lf-fl-next', 'Lancer une nouvelle liste →'); next.type = 'button';
     next.onclick = () => {
         try { posthog.capture('fr_list_next_list_clicked', { found: found }); } catch (e) {}
-        // Same lookup they just saw work: LinkedIn URLs -> emails, as a list.
-        try {
-            if (typeof quickStartBulk === 'function') quickStartBulk('linkedin_profile', 'email');
-            else if (typeof switchMode === 'function') switchMode('bulk', 'free_list_next');
-        } catch (e) { try { switchMode('bulk', 'free_list_next'); } catch (e2) {} }
+        // Same thing they just got: full LinkedIn profile + email, as a list.
+        // Already set up under the panel; this re-applies it if they changed it.
+        lfFreeListPreset('free_list_next');
         const up = document.getElementById('uploadArea');
         if (up) { up.scrollIntoView({ behavior: 'smooth', block: 'center' }); up.classList.add('lf-fl-glow'); setTimeout(() => up.classList.remove('lf-fl-glow'), 2400); }
     };
@@ -6074,8 +6073,8 @@ function lfDownloadFreeList() {
     const iv = setInterval(() => {
         tries++;
         if (typeof currentCredits === 'number' && currentCredits > 0) {
-            const n = Math.floor(currentCredits / 10);
-            if (n > 0) credit.textContent = 'Vous avez ' + Math.floor(currentCredits).toLocaleString('fr-FR') + ' crédits : de quoi trouver l\'email de ' + n.toLocaleString('fr-FR') + ' profils de plus. Déposez votre prochaine liste juste en dessous.';
+            const n = Math.floor(currentCredits / getCreditCost('linkedin_profile', 'profile_email'));
+            if (n > 0) credit.textContent = 'Vous avez ' + Math.floor(currentCredits).toLocaleString('fr-FR') + ' crédits : de quoi obtenir le profil complet et l\'email de ' + n.toLocaleString('fr-FR') + ' personnes de plus. Déposez votre prochaine liste juste en dessous.';
             clearInterval(iv);
         } else if (tries > 20) clearInterval(iv);
     }, 400);
@@ -6083,8 +6082,27 @@ function lfDownloadFreeList() {
     const anchor = document.querySelector('.config-form');
     if (anchor && anchor.parentNode) anchor.parentNode.insertBefore(box, anchor);
     else document.body.insertBefore(box, document.body.firstChild);
-    try { box.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) {}
+    // The form right under the panel is already on "LinkedIn profile + email",
+    // in list mode: the next list is one drop away.
+    lfFreeListPreset('free_list_preset');
+    setTimeout(() => { try { box.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) {} }, 400);
     try { posthog.capture('fr_list_opened_in_app', { found: found, emails: emails }); } catch (e) {}
+}
+
+// Sets the form to LinkedIn profile + email in list mode without scrolling
+// away from the free-list panel (quickStartBulk scrolls to the upload box).
+function lfFreeListPreset(source){
+    try {
+        const qs = document.getElementById('quickstartSection'); if (qs) qs.style.display = 'none';
+        const inputSel = document.getElementById('inputType');
+        if (!inputSel) return;
+        inputSel.value = 'linkedin_profile'; inputSel.dispatchEvent(new Event('change'));
+        setTimeout(() => {
+            const outputSel = document.getElementById('outputType');
+            if (outputSel) { outputSel.value = 'linkedin_profile__profile_email'; outputSel.dispatchEvent(new Event('change')); }
+            setTimeout(() => { try { switchMode('bulk', source); } catch (e) {} }, 120);
+        }, 60);
+    } catch (e) {}
 }
 
 function checkAuth(){
@@ -7180,7 +7198,7 @@ function initializeBulkResultsTable(){
     document.getElementById('confidenceFilterBar').style.display = currentInputType === 'email' ? 'flex' : 'none';
     let html='';
     if(currentInputType==='linkedin_post'&&currentOutputType==='reactions'){html=`<table class="results-table"><thead><tr><th>Name</th><th>Job Title</th><th>Profile Info</th><th>LinkedIn URL</th></tr></thead><tbody></tbody></table>`;}
-    else if(currentInputType==='linkedin_profile'&&currentOutputType==='linkedin_info'){html=`<table class="results-table"><thead><tr><th>LinkedIn URL</th><th>Name</th><th>Job Title</th><th>Company</th><th>Location</th></tr></thead><tbody></tbody></table>`;}
+    else if(currentInputType==='linkedin_profile'&&lfProfileOut()){html=`<table class="results-table"><thead><tr><th>LinkedIn URL</th><th>Name</th><th>Job Title</th><th>Company</th><th>Location</th></tr></thead><tbody></tbody></table>`;}
     else if(currentInputType==='linkedin_company'&&currentOutputType==='linkedin_info'){html=`<table class="results-table"><thead><tr><th>LinkedIn URL</th><th>Company Name</th><th>Industry</th><th>Company Size</th><th>Location</th></tr></thead><tbody></tbody></table>`;}
     else if(currentOutputType==='employee_count'){const c=dataConfigurations[currentInputType];html=`<table class="results-table"><thead><tr><th>${c.label.replace('Enter ','')}</th><th>Employee Count</th><th>Status</th></tr></thead><tbody></tbody></table>`;}
     else{
@@ -7205,7 +7223,7 @@ function updateBulkResultsTable(){
         html=`<table class="results-table"><thead><tr><th>Name</th><th>Job Title</th><th>Profile Info</th><th>LinkedIn URL</th></tr></thead><tbody>`;
         bulkResults.forEach(pr=>{if(pr.reactions&&Array.isArray(pr.reactions)){pr.reactions.forEach(r=>{const p=parseReactionTitle(r.title);const ud=r.link&&r.link.length>50?r.link.substring(0,50)+'...':(r.link||'N/A');html+=`<tr><td>${p.name}</td><td>${p.jobInfo||'Not specified'}</td><td>${r.snippet||'Not specified'}</td><td>${r.link?`<a href="${r.link}" target="_blank" style="color:var(--primary);text-decoration:none;">${ud}</a>`:'Not specified'}</td></tr>`;});}});
         html+='</tbody></table>';
-    } else if(currentInputType==='linkedin_profile'&&currentOutputType==='linkedin_info'){
+    } else if(currentInputType==='linkedin_profile'&&lfProfileOut()){
         html=`<table class="results-table"><thead><tr><th>LinkedIn URL</th><th>Name</th><th>Title</th><th>Company</th><th>Location</th><th>Email</th><th>Mobile</th><th>Status</th></tr></thead><tbody>`;
         bulkResults.forEach(row=>{
             const d=row.rawData||{}; const cur=csvCurrentExp(d.experiences);
@@ -7252,7 +7270,7 @@ function csvEnrichColumns(){
     if(currentOutputType === 'employee_count') return ['Employee Count','Status'];
     if(currentInputType === 'linkedin_post' && currentOutputType === 'reactions')
         return ['Reaction Name','Reaction Job Title','Reaction Profile Info','Reaction LinkedIn URL'];
-    if(currentInputType === 'linkedin_profile' && currentOutputType === 'linkedin_info')
+    if(currentInputType === 'linkedin_profile' && lfProfileOut())
         return ['Name','Headline','Current Title','Current Company','Location','Country','Industry',
                 'Connections','Followers','Website','Email','Mobile','About','Education','Experience','Skills','Status'];
     if(currentInputType === 'linkedin_company' && currentOutputType === 'linkedin_info')
@@ -7291,7 +7309,7 @@ function csvEnrichCells(row){
         });
     }
 
-    if(currentInputType === 'linkedin_profile' && currentOutputType === 'linkedin_info'){
+    if(currentInputType === 'linkedin_profile' && lfProfileOut()){
         const cur = csvCurrentExp(d.experiences);
         return [[
             clean(d.name), clean(d.headline), clean((cur && cur.title) || d.jobTitle), clean(cur && cur.companyName),
@@ -7452,7 +7470,9 @@ function showSavedPill(targetEl) {
     resultsSection.insertBefore(pill, resultsSection.firstChild);
 }
 
-const creditCosts={'company_name_to_website':1,'company_name_to_phone':1,'company_name_to_linkedin_url':1,'email_to_linkedin_url':5,'company_name_to_employees':1,'company_name_to_employee_count':1,'company_name_to_email':5,'linkedin_company_to_linkedin_info':6,'linkedin_company_to_employees':1,'linkedin_company_to_employee_count':1,'linkedin_profile_to_linkedin_info':10,'lead_full_name_to_linkedin_url':1,'linkedin_profile_to_email':10,'company_domain_to_employees':1,'linkedin_post_to_reactions':1,'linkedin_profile_to_phone':50, 'lead_full_name_to_email':7,};
+const creditCosts={'company_name_to_website':1,'company_name_to_phone':1,'company_name_to_linkedin_url':1,'email_to_linkedin_url':5,'company_name_to_employees':1,'company_name_to_employee_count':1,'company_name_to_email':5,'linkedin_company_to_linkedin_info':6,'linkedin_company_to_employees':1,'linkedin_company_to_employee_count':1,'linkedin_profile_to_linkedin_info':10,'lead_full_name_to_linkedin_url':1,'linkedin_profile_to_email':10,'company_domain_to_employees':1,'linkedin_post_to_reactions':1,'linkedin_profile_to_phone':50, 'lead_full_name_to_email':7,'linkedin_profile_to_profile_email':15,};
+// LinkedIn profile + email (8 Nov 2026): same table and CSV as "LinkedIn Profile Data", email always searched.
+function lfProfileOut(){ return currentOutputType === 'linkedin_info' || currentOutputType === 'profile_email'; }
 function getCreditCost(inputType,outputType){return creditCosts[generateCombinationType(inputType,outputType)]||1;}
 
 function updateCreditCostDisplay(){
@@ -8272,7 +8292,7 @@ function smartStartClassify(raw) {
     if (!v) return null;
     const low = v.toLowerCase();
     if (/linkedin\.com\/in\//.test(low)) return { input: 'linkedin_profile', what: 'LinkedIn profile', icon: 'fab fa-linkedin',
-        options: [['email', 'Find work email'], ['phone', 'Find phone number'], ['linkedin_info', 'Get full profile']] };
+        options: [['email', 'Find work email'], ['profile_email', 'Full profile + email'], ['phone', 'Find phone number'], ['linkedin_info', 'Get full profile']] };
     if (/linkedin\.com\/company\//.test(low)) return { input: 'linkedin_company', what: 'LinkedIn company page', icon: 'fas fa-building',
         options: [['linkedin_info', 'Get company data'], ['employee_count', 'Employee count']] };
     if (/linkedin\.com\/(posts|feed)\//.test(low)) return { input: 'linkedin_post', what: 'LinkedIn post', icon: 'fab fa-linkedin',

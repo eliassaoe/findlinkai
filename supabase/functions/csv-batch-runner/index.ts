@@ -54,7 +54,7 @@ const CREDIT_COSTS: Record<string, number> = {
     company_name_to_email: 1, linkedin_company_to_linkedin_info: 6, linkedin_company_to_employees: 1,
     linkedin_company_to_employee_count: 1, linkedin_profile_to_linkedin_info: 10,
     lead_full_name_to_linkedin_url: 1, linkedin_profile_to_email: 10, company_domain_to_employees: 1,
-    linkedin_post_to_reactions: 1, linkedin_profile_to_phone: 50, lead_full_name_to_email: 7,
+    linkedin_post_to_reactions: 1, linkedin_profile_to_phone: 50, lead_full_name_to_email: 7, linkedin_profile_to_profile_email: 15,
 };
 
 const db = (path: string, init: RequestInit = {}) =>

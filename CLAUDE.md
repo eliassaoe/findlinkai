@@ -61,6 +61,7 @@ into a file here in the same session, or it is gone.
 | **Start screen: "What do you want to find?" search cards, LinkedIn profile first, list line (CSV / Google Sheets) under them**; the paste box was removed 7 Nov 2026 at the owner's call | `docs/smart-start.md` — read it before touching `#smartStart`, `smartStartClassify`, `quickStart` or the route chooser; also explains the PostHog signup under-count since 20 Sep 2026 |
 | **Earn-credits tasks shown in a rail beside the form** (wide screens), not only behind the corner button | `docs/earn-credits-rail.md` — read it before touching `OTP_TASKS_ALL`, `renderTasksRail` or `#reopenTasksBtn`; `tests/tasks-rail.test.mjs` pins it |
 | **Free-limit gate leads with "Continue with Google"**, email one link below (added at runtime to all 26 tool pages) | `docs/gate-google-first.md` — the numbers, the re-check date and how to roll back; `tests/gate-google-first.test.mjs` pins it |
+| **LinkedIn profile + email** (`linkedin_profile_to_profile_email`, 15 credits): harvest then Filtrat, pre-set under the free-list panel in the app | `docs/profile-email.md` — the n8n `PE ·` branch, the app's `lfProfileOut()`, the runner; `tests/profile-email.test.mjs` pins it |
 | What the account page counts as "found" | `docs/account-value-summary.md` |
 | **/liste-gratuite** (free 50-profile list, FR): one person at a time, end-of-run signup popup, and the app downloads the saved list after signup | `docs/liste-gratuite.md` — read it before touching `run()`/`processOne` there or `lfDownloadFreeList` in `app.html`; `tests/liste-gratuite.test.mjs` pins it |
 | **Lists are where payment comes from** (CSV users pay 5.4% vs 0.17% single-only): paste a list into the search box, the "your list stopped at X of Y" email, the banner's direct monthly/pack checkout, and the 8 Nov email changes (workflows 2, 5, 7 now link straight to checkout or the sample list) | `docs/paste-a-list.md` — read it before touching the paste handler, `showUpgradeBanner`, `?action=` links, `bulk_results_gated_shown` props or PostHog workflows 2/5/7 |
@@ -98,6 +99,7 @@ into a file here in the same session, or it is gone.
 **Credit costs** (`app.html`, `creditCosts` — authoritative):
 
     linkedin_profile_to_phone       50     linkedin_profile_to_email       10
+    linkedin_profile_to_profile_email 15  (full profile + email, 8 Nov 2026)
     linkedin_profile_to_linkedin_info 10   email_to_linkedin_url            5
     lead_full_name_to_email          7     lead_full_name_to_linkedin_url   1
     linkedin_company_to_linkedin_info 6    linkedin_company_to_employee_count 1

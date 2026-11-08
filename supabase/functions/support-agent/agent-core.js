@@ -17,7 +17,7 @@ export const CREDIT_COSTS = {
     company_name_to_email: 5, linkedin_company_to_linkedin_info: 6, linkedin_company_to_employees: 1,
     linkedin_company_to_employee_count: 1, linkedin_profile_to_linkedin_info: 10,
     lead_full_name_to_linkedin_url: 1, linkedin_profile_to_email: 10, company_domain_to_employees: 1,
-    linkedin_post_to_reactions: 1, linkedin_profile_to_phone: 50, lead_full_name_to_email: 7,
+    linkedin_post_to_reactions: 1, linkedin_profile_to_phone: 50, lead_full_name_to_email: 7, linkedin_profile_to_profile_email: 15,
 };
 
 // app.html, `dataConfigurations` — the combinations the app offers in bulk.
@@ -27,7 +27,7 @@ export const ENRICHMENTS = {
     email: { label: 'Email Address', outputs: { linkedin_url: 'LinkedIn Profile URL' } },
     company_domain: { label: 'Company Domain', outputs: { employees: 'Company Employees List' } },
     linkedin_company: { label: 'LinkedIn Company URL', outputs: { linkedin_info: 'LinkedIn Company Data', employee_count: 'Employee Count' } },
-    linkedin_profile: { label: 'LinkedIn Profile URL', outputs: { linkedin_info: 'LinkedIn Profile Data', phone: 'Phone Number', email: 'Email Address' } },
+    linkedin_profile: { label: 'LinkedIn Profile URL', outputs: { linkedin_info: 'LinkedIn Profile Data', profile_email: 'LinkedIn Profile + Email', phone: 'Phone Number', email: 'Email Address' } },
     linkedin_post: { label: 'LinkedIn Post URL', outputs: { reactions: 'Post Reactions' } },
 };
 

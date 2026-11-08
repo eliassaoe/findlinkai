@@ -84,9 +84,12 @@ No download on the landing page any more — the free list is the hook into the 
 - Signed in: they go to `/app?action=free_list`.
 - In the app, `lfDownloadFreeList()` opens a "Votre liste gratuite est prête" panel
   above the search: the table (name, title, company, email, LinkedIn), **Télécharger
-  ma liste (CSV)**, and **Lancer une nouvelle liste →**, which runs
-  `quickStartBulk('linkedin_profile', 'email')` and highlights the upload area,
-  plus "Vous avez N crédits : de quoi trouver l'email de N/10 profils de plus".
+  ma liste (CSV)**, and **Lancer une nouvelle liste →**, which scrolls to and
+  highlights the upload area. Since 8 Nov the form under the panel is already set
+  to **LinkedIn profile + email** (15 credits, `docs/profile-email.md`) in list
+  mode the moment the panel opens (`lfFreeListPreset()`), so the next list is one
+  drop away; plus "Vous avez N crédits : de quoi obtenir le profil complet et
+  l'email de N/15 personnes de plus".
   Kept 7 days or until closed. All values rendered with `textContent`.
 - Events: `fr_list_opened_in_app`, `fr_list_downloaded_in_app`,
   `fr_list_next_list_clicked`, `fr_list_panel_closed`.
