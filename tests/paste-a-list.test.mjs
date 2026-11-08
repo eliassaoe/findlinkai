@@ -38,3 +38,17 @@ test('email deep links: one-time pack checkout and the sample list', () => {
   assert.match(html, /else if\(action==='sample' \|\| action==='bulk'\)/);
   assert.match(html, /if \(action === 'sample' && typeof useSampleCsv === 'function'\)/);
 });
+
+test('email checkout links credit the right account: kept through sign-in, account named, shared launcher', () => {
+  const html = readFileSync(new URL('../app.html', import.meta.url), 'utf8');
+  // Signed out: the plan is kept for the first signed-in load, not dropped.
+  assert.match(html, /localStorage\.setItem\('lf_pending_email_checkout', pl \+ '\|' \+ Date\.now\(\)\)/);
+  assert.match(html, /\(Date\.now\(\) - Number\(parts\[1\]\)\) < 24 \* 60 \* 60 \* 1000;\s*if \(fresh && !looksLikeDodoReturn\) \{\s*emailPayg/);
+  assert.match(html, /if \(emailPayg !== -1\) paygIndex = emailPayg;/);
+  // The account the payment goes to is named before checkout opens.
+  assert.match(html, /if \(paygEmailIndex !== -1 \|\| resumed\) lfEmailCheckoutNotice\(\);/);
+  // Every email/banner door goes through launchCheckout (token on the session,
+  // second door, rescue banner) - never a hand-built payment URL.
+  const gate = html.slice(html.indexOf('async function lfGateCheckout'), html.indexOf('function showUpgradeBanner('));
+  assert.doesNotMatch(gate, /dodopayments\.com/);
+});

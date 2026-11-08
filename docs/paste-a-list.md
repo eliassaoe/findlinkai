@@ -119,3 +119,27 @@ New app links these depend on (`app.html`, `checkAuth`):
 Re-check on **6 Dec 2026**: per-workflow paid-within-14d with the table query
 above, `email_resume_checkout` by plan, `bulk_email_landed`, and workflow 7's
 open rate.
+
+## 5. Paying from an email credits the right account (8 Nov 2026)
+
+Credits are granted to the account whose token rides on the Dodo session
+(`metadata.user_token`, set by `dodo-checkout` from the signed-in browser; the
+static second-door link carries the same `metadata_user_token`). So an email
+link pays into **whoever is signed in on that browser**. Before 8 Nov the
+`?action=upgrade&plan=` path had never fired in production
+(`email_resume_checkout`: 0 in 120 days), so it was checked end to end offline,
+worker intercepted (scratchpad `emailpay.js` / `rescue.js`):
+
+| Case | What reaches the worker |
+| --- | --- |
+| signed in, `plan=payg_small` | `payg_small`, that account's token |
+| signed in, `plan=starter_monthly` | `starter_monthly`, that account's token |
+| signed out | no checkout; redirected to sign in; plan kept 24h in `lf_pending_email_checkout` |
+| first load after signing in as B | `payg_small`, **B's** token; key removed, next load opens nothing |
+| worker down | static Dodo link for the pack, `metadata_user_token` = the account |
+| came back unpaid | rescue banner: open page / direct payment link / email us / try again |
+
+Before checkout opens, `lfEmailCheckoutNotice()` shows "Opening checkout for
+<email>. Credits go to this account. Not you? …" so a shared or second-account
+browser is noticed before paying, and Dodo pre-fills the same email.
+Pinned by `tests/paste-a-list.test.mjs`.

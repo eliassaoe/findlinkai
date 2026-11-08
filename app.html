@@ -2020,6 +2020,16 @@ function resumeCheckout() {
 }
 
 
+// Checkout opened from an email link: say whose account it is for. The payment
+// is credited to the signed-in account (its token rides on the Dodo session),
+// so on a shared or second-account browser this is the moment to notice.
+async function lfEmailCheckoutNotice() {
+    try {
+        const email = await waitForUserEmail(4000, 150);
+        if (email) showAlert('Opening checkout for ' + email + '. Credits go to this account. Not you? Close the payment page and log out first.', 'warning');
+    } catch (e) {}
+}
+
 async function waitForUserEmail(maxMs = 5000, intervalMs = 150) {
     const start = Date.now();
 
@@ -5984,7 +5994,19 @@ function checkAuth(){
     let token=p.get('token');
     if(!token){token=localStorage.getItem('linkFinderToken');}
     else{localStorage.setItem('linkFinderToken',token);}
-    if(!token){window.location.href=withUtms('https://linkfinderai.com/');return;}
+    if(!token){
+        // An email's checkout link opened on a browser that is not signed in.
+        // Keep the plan for 24h so the first signed-in load opens it - under the
+        // account they sign in to, which is what the payment is credited to
+        // (the checkout carries that account's token). docs/paste-a-list.md.
+        try {
+            const pl = String(p.get('plan') || '').trim().toLowerCase();
+            if (p.get('action') === 'upgrade' && /^[a-z_]{3,40}$/.test(pl)) {
+                localStorage.setItem('lf_pending_email_checkout', pl + '|' + Date.now());
+            }
+        } catch(e) {}
+        window.location.href=withUtms('https://linkfinderai.com/');return;
+    }
     userToken=token;
 
     // Agency segment: the database is the source of truth once there is an
@@ -6031,6 +6053,7 @@ function checkAuth(){
         // ?action=upgrade&plan=payg_small|payg_medium|payg_large: an email's
         // one-time-pack button, straight to that pack's payment page.
         const paygEmailIndex = ['payg_small', 'payg_medium', 'payg_large'].indexOf(String(p.get('plan') || '').toLowerCase());
+        if (paygEmailIndex !== -1 || resumed) lfEmailCheckoutNotice();
         if (paygEmailIndex !== -1 && !looksLikeDodoReturn){
             try { posthog.capture('email_resume_checkout', { plan: ['payg_small', 'payg_medium', 'payg_large'][paygEmailIndex], billing: 'payg' }); } catch(e) {}
             setTimeout(()=>proceedToPaygCheckout(paygEmailIndex, null), 300);
@@ -6127,6 +6150,19 @@ function checkAuth(){
             pendingPlan = localStorage.getItem('lf_pending_plan');
             localStorage.removeItem('lf_pending_plan');
         } catch(e) {}
+        let emailPayg = -1;
+        try {
+            const rawEmail = localStorage.getItem('lf_pending_email_checkout');
+            localStorage.removeItem('lf_pending_email_checkout');
+            const parts = rawEmail ? rawEmail.split('|') : [];
+            const fresh = parts.length === 2 && (Date.now() - Number(parts[1])) < 24 * 60 * 60 * 1000;
+            if (fresh && !looksLikeDodoReturn) {
+                emailPayg = ['payg_small', 'payg_medium', 'payg_large'].indexOf(parts[0]);
+                if (emailPayg === -1 && !pendingPlan) pendingPlan = parts[0];
+                lfEmailCheckoutNotice();
+                try { posthog.capture('email_resume_checkout', { plan: parts[0], after_sign_in: true }); } catch(e) {}
+            }
+        } catch(e) {}
         // A pay-as-you-go pack picked with "Buy Credits" on /pricing: same
         // handoff, stored as "<pack>|<ms>". Read once and removed, and ignored
         // after 24h so a stale click never opens checkout days later.
@@ -6138,6 +6174,8 @@ function checkAuth(){
             const fresh = parts.length === 2 && (Date.now() - Number(parts[1])) < 24 * 60 * 60 * 1000;
             if (fresh && !looksLikeDodoReturn) paygIndex = ['small', 'medium', 'large'].indexOf(parts[0]);
         } catch(e) {}
+        // The email's pack, kept through sign-in (same index order as above).
+        if (emailPayg !== -1) paygIndex = emailPayg;
         const pending = pendingPlan ? resolvePlanParam(pendingPlan, null) : null;
         if (paygIndex !== -1 && !pending){
             try { posthog.capture('pending_plan_checkout', {
