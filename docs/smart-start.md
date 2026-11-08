@@ -189,6 +189,7 @@ them:
 | Work email | LinkedIn URL · Name + company domain · Company name (contact email) |
 | Phone number | LinkedIn URL · Company name (main line) |
 | Company website | Company name |
+| Scrape LinkedIn data | Person profile URL (10) · Company page URL (6) — added 8 Nov at the owner's request |
 | Company employees | Company domain (2 credits per person found) |
 
 Everything else (company LinkedIn page, company data, full profile, post

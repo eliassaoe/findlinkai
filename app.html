@@ -3747,6 +3747,10 @@ const SEARCH_GOALS = [
     { id: 'website', title: 'Company website', icon: 'fas fa-globe', haves: [
         { label: 'Company name', pair: ['company_name', 'website'], example: ['Tesla'] },
     ]},
+    { id: 'scrape', title: 'Scrape LinkedIn data', bar: 'Scrape LinkedIn data', sub: 'From a person or company page URL', icon: 'fas fa-id-card', haves: [
+        { label: 'Person profile URL', pair: ['linkedin_profile', 'linkedin_info'], example: ['https://www.linkedin.com/in/satyanadella/'] },
+        { label: 'Company page URL', pair: ['linkedin_company', 'linkedin_info'], example: ['https://www.linkedin.com/company/microsoft/'] },
+    ]},
     { id: 'employees', title: 'Company employees', icon: 'fas fa-users', haves: [
         { label: 'Company domain', pair: ['company_domain', 'employees'] },
     ]},
@@ -3764,7 +3768,7 @@ function searchGoalCostLine(g) {
 }
 function searchPickerLabel(input, output) {
     const gh = searchGoalFor(input, output);
-    if (gh) return { title: 'Find a ' + (/^LinkedIn/.test(gh.goal.title) ? gh.goal.title : gh.goal.title.charAt(0).toLowerCase() + gh.goal.title.slice(1)), sub: 'From ' + gh.have.label.charAt(0).toLowerCase() + gh.have.label.slice(1), example: gh.have.example || null, goal: gh.goal, have: gh.have };
+    if (gh) return { title: gh.goal.bar ? gh.goal.bar : 'Find a ' + (/^LinkedIn/.test(gh.goal.title) ? gh.goal.title : gh.goal.title.charAt(0).toLowerCase() + gh.goal.title.slice(1)), sub: 'From ' + gh.have.label.charAt(0).toLowerCase() + gh.have.label.slice(1), example: gh.have.example || null, goal: gh.goal, have: gh.have };
     for (const g of SEARCH_PICKER_GROUPS) for (const it of g.items) if (it[0] === input && it[1] === output) return { title: g.title, sub: it[2], example: null };
     return null;
 }
@@ -3779,7 +3783,7 @@ function renderSearchPicker() {
         return '<button type="button" class="sp-card sp-big" data-goal="' + g.id + '" onclick="pickSearch(\'' + h0[0] + '\',\'' + h0[1] + '\')">'
             + '<i class="' + g.icon + ' sp-big-icon"></i>'
             + '<span class="sp-card-title">' + g.title + '</span>'
-            + '<span class="sp-card-sub">From ' + g.haves.map(function (h) { return h.label.replace(/ \(.*\)$/, '').replace(/^(Name|Email|Company)/, function (m) { return m.toLowerCase(); }); }).join(', ') + '</span>'
+            + '<span class="sp-card-sub">' + (g.sub ? g.sub : 'From ' + g.haves.map(function (h) { return h.label.replace(/ \(.*\)$/, '').replace(/^(Name|Email|Company|Person)/, function (m) { return m.toLowerCase(); }); }).join(', ')) + '</span>'
             + '<span class="sp-card-cost">' + searchGoalCostLine(g) + '</span></button>';
     }).join('');
     const groups = SEARCH_PICKER_GROUPS.map(function (g) {
@@ -3791,7 +3795,7 @@ function renderSearchPicker() {
         return '<div class="sp-group"><div class="sp-group-title"><i class="' + (g.brand ? 'fab' : 'fas') + ' ' + g.icon + '"></i> ' + g.title + '</div><div class="sp-grid">' + cards + '</div></div>';
     }).join('');
     box.innerHTML = '<div class="sp-top">' + top + '</div>'
-        + '<div class="sp-more-wrap"><button type="button" class="sp-more-toggle" onclick="toggleMoreSearches()"><span class="sp-more-plus">+</span> <span><strong>More searches</strong> <span class="sp-more-hint">· company LinkedIn pages, company data, full profiles, post reactions…</span></span></button>'
+        + '<div class="sp-more-wrap"><button type="button" class="sp-more-toggle" onclick="toggleMoreSearches()"><span class="sp-more-plus">+</span> <span><strong>More searches</strong> <span class="sp-more-hint">· company LinkedIn page, employee count, post reactions…</span></span></button>'
         + '<div id="spMore" class="sp-more hidden">' + groups + '</div></div>'
         + '<div id="spChosen" class="sp-chosen hidden"></div>';
     syncSearchPicker();

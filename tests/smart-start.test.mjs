@@ -91,10 +91,11 @@ test('start screen: one card per goal, LinkedIn profile first, "I have" choice i
   const html = readFileSync(new URL('../app.html', import.meta.url), 'utf8');
   const goals = html.slice(html.indexOf('const SEARCH_GOALS'), html.indexOf('function searchGoalFor'));
   const ids = [...goals.matchAll(/\{ id: '(\w+)'/g)].map(m => m[1]);
-  assert.deepEqual(ids, ['linkedin', 'email', 'phone', 'website', 'employees']);
+  assert.deepEqual(ids, ['linkedin', 'email', 'phone', 'website', 'scrape', 'employees']);
   // LinkedIn profile from a name + company or from an email; email from LinkedIn or name + domain
   assert.match(goals, /id: 'linkedin'[\s\S]*?\['lead_full_name', 'linkedin_url'\][\s\S]*?\['email', 'linkedin_url'\]/);
   assert.match(goals, /id: 'email'[\s\S]*?\['linkedin_profile', 'email'\][\s\S]*?\['lead_full_name', 'email'\]/);
+  assert.match(goals, /id: 'scrape'[\s\S]*?\['linkedin_profile', 'linkedin_info'\][\s\S]*?\['linkedin_company', 'linkedin_info'\]/);
   assert.match(html, /class="sp-have-label">I have:/);
   assert.match(html, /id="spMore" class="sp-more hidden"/);
   assert.match(html, /function trySearchExample\(\)/);
