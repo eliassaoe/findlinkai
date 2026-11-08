@@ -27,3 +27,16 @@ Rules that carry over from the LTD:
 - Never pitch a cheaper deal to someone who already paid more (refund risk) unless they are
   churned and allowlisted on purpose.
 - Revenue is measured server-side (`ltd_purchased`, payment events), never by opens/clicks.
+
+## Dropped 8 Nov 2026: "Find best leads" card (lookalikes + post engagement)
+
+Idea: a start-screen card returning the 10–25 best leads from a best customer's
+domain (lookalike companies → decision-makers) or a LinkedIn post (reactors).
+Dropped by the owner. Why it was not straightforward on Filtrat: its look-alike
+feature drafts an ICP and searches through **one connected Sales Navigator account**
+(Growth plan+), only via its MCP, with no documented REST endpoint. Serving every
+customer through one Sales Nav seat risks a LinkedIn restriction. If revisited: an
+Apify lookalike actor for the companies, Filtrat only for emails; the post half
+already exists as `linkedin_post_to_reactions`. Conversion data at the time (30d):
+773 signups → 599 hit the free-limit popup → 38 opened pricing → 1 paid; a
+prospecting feature does not change that wall.
