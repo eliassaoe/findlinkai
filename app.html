@@ -5517,6 +5517,62 @@ function sizePlanForRows(rows) {
     return { needed, index, plan, monthlyCredits, times: Math.floor(monthlyCredits / needed) };
 }
 
+// The list-stopped banner used to send everyone to the pricing modal, which
+// opens on annual billing. 25 people clicked it in 6 months; all 25 saw the
+// modal, 5 started a checkout and those 5 paid - the 20 others stopped at the
+// plan picker. So the banner now carries the checkout itself: the smallest
+// plan that covers the rows left, MONTHLY (both paid plans with a known key
+// were monthly), and the one-time pack when one covers the list. The modal
+// stays one link away. Subscribers keep the old button: a new checkout would
+// be wrong for them, they change plan inside the modal.
+// See docs/paste-a-list.md, "The list-stopped banner".
+const LF_GATE_PACKS = [
+    { index: 0, credits: 1000,  price: 25  },
+    { index: 1, credits: 3500,  price: 75  },
+    { index: 2, credits: 10000, price: 200 }
+];
+function lfGatePackFor(needed) {
+    for (let i = 0; i < LF_GATE_PACKS.length; i++) if (LF_GATE_PACKS[i].credits >= needed) return LF_GATE_PACKS[i];
+    return null;
+}
+function lfGateButtonsHTML(sized, lockedCount, totalCount, legacyButtonHTML) {
+    if (typeof isExistingSubscriber !== 'undefined' && isExistingSubscriber) return legacyButtonHTML;
+    const pack = lfGatePackFor(sized.needed);
+    const btn = 'background:var(--primary);color:#fff;border:none;padding:0.625rem 1.1rem;border-radius:6px;font-weight:600;cursor:pointer;font-size:0.875rem;font-family:inherit;display:inline-flex;align-items:center;gap:0.5rem;';
+    const btn2 = 'background:#fff;color:var(--gray-800);border:1px solid var(--gray-300);padding:0.6rem 1rem;border-radius:6px;font-weight:600;cursor:pointer;font-size:0.875rem;font-family:inherit;';
+    return '<div class="lf-gate-actions" style="display:flex;flex-wrap:wrap;gap:0.5rem;align-items:center;">'
+        + '<button class="lf-gate-sub" onclick="lfGateCheckout(\'plan\', this)" style="' + btn + '"><i class="fas fa-rocket"></i> Finish my list &middot; ' + sized.plan.name + ' $' + sized.plan.monthlyPrice + '/mo</button>'
+        + (pack ? '<button class="lf-gate-pack" onclick="lfGateCheckout(\'pack\', this)" style="' + btn2 + '">$' + pack.price + ' one-time &middot; ' + pack.credits.toLocaleString() + ' credits</button>' : '')
+        + '<a onclick="lfGateCheckout(\'all\', this)" style="font-size:0.8125rem;color:var(--gray-600);cursor:pointer;text-decoration:underline;">See all plans</a>'
+        + '</div>';
+}
+async function lfGateCheckout(choice, btnEl) {
+    const gate = window.__lfBulkGate || {};
+    try {
+        posthog.capture('bulk_gate_direct_checkout', {
+            choice: choice,
+            batch_id: currentCsvBatchId || null,
+            locked_rows: gate.lockedRows, credits_needed: gate.credits, plan_key: gate.planKey
+        });
+    } catch (e) {}
+    if (choice === 'all') return handleUpgradeFromBulk();
+    // Same event the modal path fires, so the gated funnel keeps one entry step.
+    try {
+        posthog.capture('bulk_results_upgrade_cta_clicked', {
+            credits_remaining: currentCredits, input_type: currentInputType, output_type: currentOutputType,
+            total_rows: csvData.length, processed_rows: bulkResults.filter(r => r.status !== 'Locked').length,
+            surface: 'banner_direct', choice: choice
+        });
+    } catch (e) {}
+    window.__lfPricingTrigger = 'bulk_credits_gated';
+    if (choice === 'pack') {
+        const pack = lfGatePackFor(gate.credits || 1);
+        if (pack) return proceedToPaygCheckout(pack.index, btnEl);
+    }
+    billingMode = 'monthly';
+    return proceedToCheckoutDirect(typeof gate.planIndex === 'number' ? gate.planIndex : 0, btnEl);
+}
+
 function showUpgradeBanner(processedCount, totalCount) {
     // Remove existing banner if any
     const existingBanner = document.getElementById('upgradeBanner');
@@ -5556,7 +5612,7 @@ function showUpgradeBanner(processedCount, totalCount) {
             </div>
         </div>
         <div style="display: flex; gap: 0.5rem; align-items: center;">
-            <button onclick="handleUpgradeFromBulk()" style="
+            ${lfGateButtonsHTML(sized, lockedCount, totalCount, `<button onclick="handleUpgradeFromBulk()" style="
                 background: var(--primary);
                 color: white;
                 border: none;
@@ -5572,7 +5628,7 @@ function showUpgradeBanner(processedCount, totalCount) {
                 gap: 0.5rem;
             " onmouseover="this.style.background='var(--primary-hover)'" onmouseout="this.style.background='var(--primary)'">
                 <i class="fas fa-rocket"></i> Unlock all ${totalCount.toLocaleString()} rows with ${sized.plan.name}
-            </button>
+            </button>`)}
             <button onclick="this.closest('#upgradeBanner').style.display='none'" style="
                 background: transparent;
                 border: none;
@@ -5972,7 +6028,14 @@ function checkAuth(){
         // a plan we do not recognise - open the modal and let them choose, which
         // is the old behaviour and the only safe fallback.
         const resumed = resolvePlanParam(p.get('plan'), p.get('billing'));
-        if (resumed){
+        // ?action=upgrade&plan=payg_small|payg_medium|payg_large: an email's
+        // one-time-pack button, straight to that pack's payment page.
+        const paygEmailIndex = ['payg_small', 'payg_medium', 'payg_large'].indexOf(String(p.get('plan') || '').toLowerCase());
+        if (paygEmailIndex !== -1 && !looksLikeDodoReturn){
+            try { posthog.capture('email_resume_checkout', { plan: ['payg_small', 'payg_medium', 'payg_large'][paygEmailIndex], billing: 'payg' }); } catch(e) {}
+            setTimeout(()=>proceedToPaygCheckout(paygEmailIndex, null), 300);
+        }
+        else if (resumed){
             billingMode = resumed.billing;
             try { posthog.capture('email_resume_checkout', {
                 plan: plans[resumed.index].key, billing: resumed.billing,
@@ -6033,6 +6096,14 @@ function checkAuth(){
             showAlert('Your enrichment is set up — select your CSV again to start.','warning');
         }
     },700);
+    // ?action=sample / ?action=bulk: the bulk email's button. Opens list mode,
+    // and with sample, loads the sample list so they can watch one run.
+    else if(action==='sample' || action==='bulk') setTimeout(()=>{
+        try { posthog.capture('bulk_email_landed', { action: action }); } catch(e) {}
+        try { if (typeof hideRouteChooser === 'function') hideRouteChooser(); } catch(e) {}
+        if (typeof switchMode === 'function') switchMode('bulk', 'email_' + action);
+        if (action === 'sample' && typeof useSampleCsv === 'function') setTimeout(()=>useSampleCsv(), 200);
+    },600);
     else if(action==='tasks') setTimeout(()=>{
         try { posthog.capture('tasks_email_landed'); } catch(e) {}
         if (typeof openOnboardingTasksPopupManually === 'function') openOnboardingTasksPopupManually();

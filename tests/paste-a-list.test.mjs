@@ -20,3 +20,21 @@ test('the list-stopped event carries what the finish-your-list email needs', () 
   assert.equal(n, 2);
   assert.match(app, /found_rows: \(function\(\)\{ try \{ return csvResumeFoundRows \+ csvBatchFoundRows\(\); \}/);
 });
+
+test('list-stopped banner checks out directly, monthly, with the pack as second door', () => {
+  const html = readFileSync(new URL('../app.html', import.meta.url), 'utf8');
+  assert.match(html, /\$\{lfGateButtonsHTML\(sized, lockedCount, totalCount,/);
+  const fn = html.slice(html.indexOf('async function lfGateCheckout'), html.indexOf('function showUpgradeBanner('));
+  assert.match(fn, /billingMode = 'monthly';\s*return proceedToCheckoutDirect\(/);
+  assert.match(fn, /proceedToPaygCheckout\(pack\.index, btnEl\)/);
+  assert.match(fn, /choice === 'all'\) return handleUpgradeFromBulk\(\)/);
+  assert.match(html, /if \(typeof isExistingSubscriber !== 'undefined' && isExistingSubscriber\) return legacyButtonHTML;/);
+});
+
+test('email deep links: one-time pack checkout and the sample list', () => {
+  const html = readFileSync(new URL('../app.html', import.meta.url), 'utf8');
+  assert.match(html, /\['payg_small', 'payg_medium', 'payg_large'\]\.indexOf\(String\(p\.get\('plan'\) \|\| ''\)\.toLowerCase\(\)\)/);
+  assert.match(html, /proceedToPaygCheckout\(paygEmailIndex, null\)/);
+  assert.match(html, /else if\(action==='sample' \|\| action==='bulk'\)/);
+  assert.match(html, /if \(action === 'sample' && typeof useSampleCsv === 'function'\)/);
+});

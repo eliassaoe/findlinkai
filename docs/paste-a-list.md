@@ -53,3 +53,69 @@ Starter is 5,000 credits a month. Fix the copy in the PostHog editor.
 
 Re-check in 4 weeks: `paste_list_run` count, CSV uploaders per week, and payments
 from people who received the list email (workflow stats).
+
+## 3. The list-stopped banner checks out directly (8 Nov 2026)
+
+**Why:** in 6 months, 25 people clicked upgrade on the list-stopped banner. All
+25 saw the pricing modal (which opens on **annual** billing); 5 started a
+checkout and all 5 paid. The 20 others stopped at the plan picker. The
+payments with a known plan were monthly (Starter, Professional).
+
+**Now** the banner (`showUpgradeBanner` → `lfGateButtonsHTML`) shows:
+`[Finish my list · Starter $49/mo]  [$25 one-time · 1,000 credits]  See all plans`
+- the plan is the smallest one whose monthly credits cover the rows left
+  (`sizePlanForRows`), checked out **monthly** via `proceedToCheckoutDirect`;
+- the pack is the smallest of $25 / $75 / $200 that covers the rows left, and is
+  hidden when none does;
+- "See all plans" is the old modal path;
+- subscribers keep the old single button (they change plan in the modal).
+
+Event: `bulk_gate_direct_checkout {choice: plan|pack|all}`; the plan and pack
+clicks also fire `bulk_results_upgrade_cta_clicked` with `surface: banner_direct`
+so the old funnel stays comparable. Re-check: of the clickers, how many reach
+`checkout_worker_request_started` (was 5 of 25).
+
+## 4. Email changes for conversion (8 Nov 2026)
+
+Read-out first (PostHog, 90 days, payments seen in the browser only — the Dodo
+server-side event is not in this project, so these undercount):
+
+| Workflow | Reached | Opened | Clicked | Paid within 14d |
+| --- | --- | --- | --- | --- |
+| 3. New user activation | 816 | 325 | 53 | 4 |
+| 7. Bulk upload | 729 | 144 (20%) | 14 | 1 |
+| 6. Never found the API/MCP | 501 | 159 | 11 | 0 |
+| 5. Pricing seen, no payment | 144 | 31 | 2 | 0 |
+| 2. Credit wall | 81 | 14 | 5 | 1 |
+| 1. Checkout recovery | 19 | 6 | 3 | 2 |
+
+Checkout recovery — a direct link back to the plan they picked — converts best
+by far. The other emails sent people to a modal or a call. So:
+
+- **Workflow 2, `email_1`** (credit wall, not a list): said "$49/month — 60,000
+  credits" (wrong: 5,000 a month) and linked to the plan picker. Now states the
+  real figures and has two direct buttons:
+  `/app?action=upgrade&plan=starter_monthly` and `/app?action=upgrade&plan=payg_small`.
+  Version 11.
+- **Workflow 5** (pricing seen, no payment): new **day-1** email "the two ways to
+  pay for LinkFinder (one is $25)" with the same two direct buttons, before the
+  existing day-3 research/call email (which is unchanged, by the owner's intent).
+  Skipped when the modal was opened from the credit wall
+  (`trigger` = `credits_exhausted` / `bulk_credits_gated`) because workflow 2
+  already emailed them. Most modal opens come from the header "Buy credits"
+  button (200 people / 90 days). Version 8.
+- **Workflow 7** (bulk, 24h after signup): subject "stop doing these one at a
+  time" assumed they had run lookups and opened at 20% vs 40% for the welcome
+  email. Now "got a list? run all of it at once", mentions pasting a list, and
+  the button is `/app?action=sample` (opens bulk with the sample list loaded);
+  a text link `/app?action=bulk` for their own file. Version 2.
+
+New app links these depend on (`app.html`, `checkAuth`):
+- `?action=upgrade&plan=payg_small|payg_medium|payg_large` → that pack's checkout
+  (`email_resume_checkout {billing: payg}`).
+- `?action=sample` / `?action=bulk` → list mode, sample loaded for `sample`
+  (`bulk_email_landed`).
+
+Re-check on **6 Dec 2026**: per-workflow paid-within-14d with the table query
+above, `email_resume_checkout` by plan, `bulk_email_landed`, and workflow 7's
+open rate.
