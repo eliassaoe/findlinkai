@@ -200,6 +200,25 @@ Set the project's `reply_instructions` in the app to propose two specific
 times rather than a booking link — that is what `recover.py` does for the ones
 that then go quiet.
 
+## Two niche campaigns added 8 Nov 2026 (not started)
+
+Created in project 30475 from the app (Auto-create), to compare niches against
+the running *Niches B2B ultra-spécifiques* campaign. Picked from who actually
+pays and uses LinkFinder AI (`linkfinderai_users` with `subscription_id` or
+`is_unlimited`, ranked by `enrichment_history` volume): outbound / lead-gen
+agencies (Sales Ignition, Constant Pipeline, sales-automation.ai, Frictionless,
+JDemand) and small B2B SaaS / GTM-tool teams (Topo, Guidance, Cambium, Hellooh,
+Legistify, Coefficient).
+
+| Campaign | Segment | Offer | Why |
+| --- | --- | --- | --- |
+| *Outbound lead gen & appointment-setting agencies (2-50 staff)* — 389446 | US, UK, EU | the tool: waterfall enrichment, bulk/API/Sheets, ~$0.03 per verified email at volume (Scale plan maths: $149 / 50,000 credits × 10) | heaviest users among payers |
+| *Seed to Series A B2B SaaS founders doing founder-led outbound (5-50 staff)* — 389453 | US, UK, EU | done-for-you meetings, $150 per meeting held, minimum 5 a month (`docs/ai-sdr-offer.md`) | second group of payers; they buy outcomes |
+
+Both use the project booking link (the outbound Calendly). They need a positive
+balance and *Start campaign* to run; compare $/hot lead **and** hot → booked
+after two weeks, not reply rate alone.
+
 ## `/relance` — the hot-lead follow-up cockpit (added 6 October 2026)
 
 `linkfinderai.com/relance`, built by `relance_page.py` from
