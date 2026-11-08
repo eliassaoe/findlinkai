@@ -340,6 +340,22 @@ grace.beverley@wearetala.com) came back through the callback.
 **Rule:** any new ending in app v4 needs both a Respond node and the callback
 pair, or it works in the app and silently fails on the API and the connector.
 
-**Rerun in progress:** the LinkedIn → email inputs from the last 30 days are
-being re-run on the current pipeline (89 of 120 done; results kept outside the
-repo). Phone is not re-run until it changes.
+## Rerun of the last 30 days on the 8 Nov pipeline
+
+Every distinct input of the last 30 days, re-run through the app's bulk path
+(`linkfinderapp` worker, `is_bulk: true`), compared with what the same inputs
+got at the time (`enrichment_history`). Results kept outside the repo.
+
+| Lookup | Inputs | Found then | Found now |
+| --- | --- | --- | --- |
+| LinkedIn → email | 120 | 45 (37.5%) | **67 (55.8%)** |
+| Name + company → LinkedIn | 309 | 81 (26.2%) | **149 (48.2%)** |
+
+- LinkedIn → email: of the 67, 2 are personal AOL addresses, so 65 work emails
+  (54%). The first 85 inputs were matched by position in a list that had shifted
+  by a few rows when the comparison was made, so the per-row overlap is not
+  reliable; the totals are over the same inputs.
+- Name → LinkedIn was compared input by input: 78 found both times, 71 new
+  finds, 3 lost. The new finds were not hand-checked for being the right person.
+- Email → LinkedIn (1,001 inputs, 39% then) and phone were not re-run. Phone
+  waits until its pipeline changes.
