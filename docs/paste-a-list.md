@@ -45,8 +45,10 @@ before. Same audience rules as before (Google sign-ups, verified), same
 once-per-30-days masking, payers exit.
 
 Routing tested with `workflows-test-run` on the draft (list event → list email,
-plain `credits_exhausted` → old email). The liquid rendering of the event
-properties was not seen in a real inbox yet — check the first one that goes out.
+plain `credits_exhausted` → old email). Rendering confirmed 8 Nov: a real test
+send (`workflows-test-run`, `current_action_id: email_list`,
+`mock_async_functions: false`) reached the owner's inbox with the list name,
+counts and button filled in correctly.
 
 Known, not changed: the old email (`email_1`) says "$49/month — 60,000 credits";
 Starter is 5,000 credits a month. Fix the copy in the PostHog editor.
