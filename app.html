@@ -942,6 +942,13 @@ body.rc-open .config-form,body.rc-open #modeToggle{display:none;}
 .config-form .qs-list-line{margin:0.4rem 0 1.2rem;}
 .qs-or{color:var(--gray-400);margin:0 0.15rem;}
 .search-picker{display:block;}
+.lf-paste-list{margin-top:0.6rem;padding:0.75rem 0.9rem;border:1.5px solid var(--primary,#2563eb);border-radius:10px;background:#eff6ff;font-size:0.9rem;color:var(--gray-800,#1f2937);}
+.lf-paste-list-row{display:flex;gap:0.5rem;align-items:baseline;}
+.lf-paste-list-row i{color:var(--primary,#2563eb);}
+.lf-paste-list-actions{display:flex;gap:1rem;align-items:center;margin-top:0.6rem;flex-wrap:wrap;}
+.lf-paste-list-run{font:inherit;font-weight:600;padding:0.5rem 1rem;border:none;border-radius:8px;background:var(--primary,#2563eb);color:#fff;cursor:pointer;}
+.lf-paste-list-actions a{font-size:0.85rem;color:var(--gray-600,#4b5563);}
+
 .sp-top{display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:0.75rem;}
 .sp-chosen-row{display:flex;flex-wrap:wrap;align-items:baseline;gap:0.35rem 0.9rem;width:100%;}
 .sp-chosen-cost{font-size:0.85rem;color:var(--gray-500,#6b7280);}
@@ -4255,6 +4262,91 @@ function lfAutoSwitchLinkedInKind(fromSubmit) {
 if (typeof document !== 'undefined') document.addEventListener('input', function (e) {
     if (e.target && e.target.id === 'inputData') lfAutoSwitchLinkedInKind(false);
 });
+// Paste a list (8 Nov 2026, docs/paste-a-list.md). People who run a list pay
+// ~30x as often as single-lookup users (5.4% vs 0.17%, 6 months), and the CSV
+// file is the barrier. Pasting several lines into the search box (a column copied
+// from a spreadsheet, names typed one per line) now offers to run them all as a
+// list. Nothing runs until they press "Run all" and then the usual Process button.
+function lfPastedLines(text) {
+    return String(text || '').split(/\r\n|\r|\n/).map(function (l) { return l.trim(); }).filter(Boolean);
+}
+function lfPasteListCsv(lines) {
+    const isLead = currentInputType === 'lead_full_name';
+    const primaryKey = isLead ? 'full_name' : (LF_PRIMARY_SYNONYMS[currentInputType] || 'full_name');
+    // Their own header row (copied with the column title) is kept as is.
+    const firstCells = lines[0].split('\t');
+    const looksLikeHeader = firstCells.some(function (c) { return lfScore(c, primaryKey) >= 2 || (isLead && lfScore(c, 'first_name') >= 2); });
+    const hasTab = lines.some(function (l) { return l.indexOf('\t') !== -1; });
+    if (looksLikeHeader) return { text: lines.join('\n'), rows: lines.length - 1, cols: firstCells.length };
+    const q = function (v) { return '"' + String(v).replace(/"/g, '""') + '"'; };
+    const names = isLead ? ['full name', 'company', 'location', 'job title'] : [primaryKey === 'company' ? 'company' : (LF_HEADER_SYNONYMS[primaryKey] || ['value'])[0]];
+    if (isLead) {
+        // Each line on its own: tab-separated (spreadsheet) or "Name, Company" typed.
+        const rows = lines.map(function (l) {
+            if (l.indexOf('\t') !== -1) return l.split('\t').map(function (v) { return v.trim(); });
+            const p = l.split(',');
+            return p.length === 2 ? [p[0].trim(), p[1].trim()] : [l];
+        });
+        const cols = Math.min(4, Math.max.apply(null, rows.map(function (r) { return r.length; })));
+        return { text: names.slice(0, cols).join(',') + '\n' + rows.map(function (r) { return r.slice(0, cols).map(q).join(','); }).join('\n'), rows: rows.length, cols: cols };
+    }
+    if (hasTab) {
+        const cols = Math.max.apply(null, lines.map(function (l) { return l.split('\t').length; }));
+        const header = [];
+        for (let i = 0; i < cols; i++) header.push(names[i] || ('column ' + (i + 1)));
+        return { text: header.join('\t') + '\n' + lines.join('\n'), rows: lines.length, cols: cols };
+    }
+    return { text: names[0] + '\n' + lines.map(q).join('\n'), rows: lines.length, cols: 1 };
+}
+function lfShowPasteListOffer(lines) {
+    const input = document.getElementById('inputData');
+    if (!input) return;
+    let box = document.getElementById('lfPasteList');
+    if (!box) {
+        box = document.createElement('div');
+        box.id = 'lfPasteList';
+        box.className = 'lf-paste-list';
+        input.insertAdjacentElement('afterend', box);
+    }
+    const parsed = lfPasteListCsv(lines);
+    const per = getCreditCost(currentInputType, currentOutputType) || 0;
+    const needCompany = (typeof lfCompanyRequired === 'function') && lfCompanyRequired() && parsed.cols < 2;
+    box.innerHTML = '<div class="lf-paste-list-row"><i class="fas fa-list"></i> <span><strong>' + parsed.rows + ' rows pasted.</strong> '
+        + (needCompany ? 'Add the company after each name (Jane Smith, Acme) to run them as a list.' : 'Run them all as a list' + (per ? ' (up to ' + (Math.round(per * parsed.rows * 10) / 10).toLocaleString() + ' credits)' : '') + '?')
+        + '</span></div><div class="lf-paste-list-actions">'
+        + (needCompany ? '' : '<button type="button" class="lf-paste-list-run" onclick="lfRunPastedList()">Run all ' + parsed.rows + '</button>')
+        + '<a href="#" onclick="lfDismissPasteList();return false;">Just the first one</a></div>';
+    box.style.display = '';
+}
+function lfDismissPasteList() {
+    const box = document.getElementById('lfPasteList');
+    if (box) box.style.display = 'none';
+    window.__lfPasted = null;
+}
+function lfRunPastedList() {
+    const lines = window.__lfPasted || [];
+    if (lines.length < 2 || !lfConfigured()) return;
+    const parsed = lfPasteListCsv(lines);
+    try { posthog.capture('paste_list_run', { rows: parsed.rows, cols: parsed.cols, input_type: currentInputType, output_type: currentOutputType }); } catch (e) {}
+    lfDismissPasteList();
+    lfUploadedFileName = 'Pasted list';
+    switchMode('bulk', 'paste_list');
+    parseCSV(parsed.text);
+    setTimeout(function () { const pv = document.getElementById('csvPreview'); if (pv && !pv.classList.contains('hidden') && pv.scrollIntoView) pv.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 250);
+}
+if (typeof document !== 'undefined') document.addEventListener('paste', function (e) {
+    const t = e.target;
+    if (!t || t.id !== 'inputData' || !lfConfigured()) return;
+    const text = (e.clipboardData || window.clipboardData).getData('text');
+    const lines = lfPastedLines(text);
+    if (lines.length < 2) return;
+    e.preventDefault();
+    t.value = lines[0];
+    window.__lfPasted = lines;
+    lfShowPasteListOffer(lines);
+    try { posthog.capture('paste_list_detected', { rows: lines.length, input_type: currentInputType, output_type: currentOutputType }); } catch (err) {}
+    if (typeof updateSubmitButtonState === 'function') updateSubmitButtonState();
+});
 async function enrichData(event) {
     event.preventDefault();
     const submitBtn = event.target.querySelector('button[type="submit"]');
@@ -5129,6 +5221,9 @@ async function processBulk(resuming) {
                 // Fire analytics event for gated results shown
                 try {
                     posthog.capture('bulk_results_gated_shown', {
+                        batch_id: currentCsvBatchId || null,
+                        found_rows: (function(){ try { return csvResumeFoundRows + csvBatchFoundRows(); } catch (e) { return null; } })(),
+                        list_name: lfUploadedFileName || 'your list',
                         total_rows: csvData.length,
                         processed_rows: csvResumeFrom + processedCount,
                         locked_rows: csvData.length - (csvResumeFrom + processedCount),
@@ -5262,6 +5357,9 @@ async function processBulk(resuming) {
                     
                     try {
                         posthog.capture('bulk_results_gated_shown', {
+                            batch_id: currentCsvBatchId || null,
+                            found_rows: (function(){ try { return csvResumeFoundRows + csvBatchFoundRows(); } catch (e) { return null; } })(),
+                            list_name: lfUploadedFileName || 'your list',
                             total_rows: csvData.length,
                             processed_rows: processedCount,
                             locked_rows: csvData.length - processedCount,

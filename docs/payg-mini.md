@@ -1,4 +1,9 @@
-# $10 / 300-credit "Pay As You Go Mini" (8 Nov 2026)
+# $10 / 300-credit "Pay As You Go Mini" (8 Nov 2026) — DROPPED
+
+**Owner dropped it the same day** ("focus on what can really impact conversion
+meaningfully"). Code stays in `app.html` behind `LF_MINI_ENABLED = false`; the Dodo
+product exists but nothing links to it. See `docs/paste-a-list.md` for what was
+done instead.
 
 **Why:** the first purchase is the hard one. Cheapest option was $25. Owner agreed
 to a $10 pack on condition it can't pull buyers down from the bigger packs.
