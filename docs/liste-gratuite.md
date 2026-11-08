@@ -93,3 +93,15 @@ No download on the landing page any more — the free list is the hook into the 
   Kept 7 days or until closed. All values rendered with `textContent`.
 - Events: `fr_list_opened_in_app`, `fr_list_downloaded_in_app`,
   `fr_list_next_list_clicked`, `fr_list_panel_closed`.
+
+## Rate limit on the free-tools worker (8 Nov 2026)
+
+The page calls `linkfinder-free-tools.hamoureliasse.workers.dev` once per person
+for the profile and once for the email. That worker limits each tool type per IP
+to 5 a minute / 20 an hour, which made 41 of 50 rows fail. Calls sent with
+`is_bulk: true` for `linkedin_profile_to_linkedin_info`, `business_email_finder`
+or `professional_profile_finder` now get **40 a minute / 150 an hour**; every
+other call keeps the old limit. The change is one line in the worker (line 73,
+`const limits = …`), deployed from the Cloudflare quick editor as version
+`a6383003`; the worker is not in this repo. Checked live: 9 bulk calls in a row
+passed, a non-bulk tool still stopped at 5.
