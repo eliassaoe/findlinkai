@@ -11,9 +11,11 @@ const app = readFileSync(new URL('../app.html', import.meta.url), 'utf8');
 test('lookups run one at a time, with retries and a second pass', () => {
   assert.doesNotMatch(page, /Promise\.all\(\[worker\(\)/);
   assert.doesNotMatch(page, /Promise\.all\(\[\s*profileLookup/);
-  assert.match(page, /for \(var i = 0; i < items\.length; i\+\+\) \{ await processOne\(i, false\);/);
+  // two lanes, one per service: profile N+1 loads while email N is searched
+  assert.match(page, /await profileStage\(i\);/);
+  assert.match(page, /emailLane = emailLane\.then\(function \(\) \{ return emailStage\(k, false\); \}\);/);
   assert.match(page, /async function withRetry\(fn\)/);
-  assert.match(page, /await processOne\(again\[j\], true\)/);
+  assert.match(page, /await profileStage\(again\[j\]\); await emailStage\(again\[j\], true\);/);
 });
 
 test('the end of a run opens the signup popup', () => {
@@ -32,7 +34,7 @@ test('each row shows experiences and education, email stays masked', () => {
   assert.match(page, /function renderMore\(box, rec\)/);
   assert.match(page, /block\('Expériences', rec\.exps, 3, 'autre expérience'\);/);
   assert.match(page, /block\('Formation', rec\.edus, 2, 'autre formation'\);/);
-  assert.match(page, /renderMore\(cell\._more, rec\);/);
+  assert.match(page, /renderMore\(cell\._more, \{ exps: expList\(pr\), edus: eduList\(pr\) \}\);/);
   assert.match(page, /setCell\(cell, mask\(em\) \+ '  ✓', true\)/);
   // untrusted profile text goes in with textContent, never innerHTML
   const fn = page.slice(page.indexOf('function renderMore'), page.indexOf('function setCell'));

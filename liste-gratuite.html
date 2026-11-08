@@ -260,6 +260,39 @@ body.dm-open{overflow:hidden}
 .sticky-cta[hidden]{display:none;}
 body.has-sticky{padding-bottom:76px;}
 @media (max-width:700px){.after-grid{grid-template-columns:1fr;}.call-card{flex-direction:column;align-items:flex-start;}}
+
+/* Effet "en direct" (8 nov. 2026) */
+.live{margin-top:16px;}
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.tile{background:var(--soft);border-radius:12px;padding:12px;text-align:center;}
+.tile b{display:block;font-family:var(--heading);font-size:2rem;line-height:1.1;color:var(--fg);}
+.tile-g b{color:var(--green);}
+.tile span{font-size:12.5px;color:var(--muted);}
+.tile b.bump{animation:bump .35s ease;}
+@keyframes bump{0%{transform:scale(1)}40%{transform:scale(1.25)}100%{transform:scale(1)}}
+.bar-wrap{position:relative;margin-top:10px;height:22px;border-radius:11px;background:var(--soft);overflow:hidden;}
+.bar{height:100%;width:0;background:linear-gradient(90deg,#2563eb,#22c55e);transition:width .4s ease;}
+.bar-wrap span{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#0f172a;}
+.res.enter{animation:slideIn .35s ease both;}
+@keyframes slideIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.res .hd{display:flex;gap:10px;align-items:center;}
+.res .hd-t{min-width:0;flex:1;}
+.res .av{flex:none;width:40px;height:40px;border-radius:50%;background:#e0e7ff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;color:#1e293b;overflow:hidden;}
+.res .av img{width:100%;height:100%;object-fit:cover;}
+.res.has-name .who{color:var(--fg);font-family:var(--heading);font-weight:700;font-size:15px;}
+.res .sk{display:none;}
+.res.loading .sk{display:grid;gap:5px;margin-top:6px;}
+.res.loading .sk i{display:block;height:9px;border-radius:5px;background:linear-gradient(90deg,#e5e7eb 25%,#f3f4f6 50%,#e5e7eb 75%);background-size:200% 100%;animation:shimmer 1.1s linear infinite;}
+.res.loading .sk i:nth-child(2){width:80%}.res.loading .sk i:nth-child(3){width:55%}
+.res.loading .av{animation:shimmer 1.1s linear infinite;background:linear-gradient(90deg,#e5e7eb 25%,#f3f4f6 50%,#e5e7eb 75%);background-size:200% 100%;}
+@keyframes shimmer{from{background-position:200% 0}to{background-position:-200% 0}}
+.res .blk li{animation:fadeUp .3s ease both;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.res .val.searching::after{content:'';display:inline-block;width:10px;height:10px;margin-left:8px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:spin .7s linear infinite;vertical-align:-1px;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.res .val.pop{animation:pop .45s ease;background:#dcfce7;border-radius:6px;padding:1px 6px;}
+@keyframes pop{0%{transform:scale(.8);opacity:0}60%{transform:scale(1.08);opacity:1}100%{transform:scale(1)}}
+@media (prefers-reduced-motion:reduce){.res.enter,.res .blk li,.res .val.pop,.tile b.bump{animation:none}}
 </style>
 <style>
   .first h1{max-width:620px;}
@@ -318,6 +351,13 @@ body.has-sticky{padding-bottom:76px;}
         </details>
         <p class="msg" id="tryMsg" role="alert"></p>
         <p class="count" id="tryCount" aria-live="polite"></p>
+        <div class="live" id="liveStats" hidden>
+          <div class="tiles">
+            <div class="tile"><b id="statProfiles">0</b><span>profils LinkedIn</span></div>
+            <div class="tile tile-g"><b id="statEmails">0</b><span>emails trouvés</span></div>
+          </div>
+          <div class="bar-wrap" id="statBarWrap"><div class="bar" id="statBar"></div><span id="statDone">0 / 0</span></div>
+        </div>
         <div class="results" id="tryResults" aria-live="polite"></div>
         <div class="dl" id="tryDl" hidden>
           <a class="btn" id="dlBtn" href="/sign-up?google=1" data-cta="fr_download">Télécharger ma liste</a>
@@ -464,27 +504,50 @@ body.has-sticky{padding-bottom:76px;}
 
   function addRow(label) {
     var row = document.createElement('div');
-    row.className = 'res';
-    var who = document.createElement('div');
-    who.className = 'who';
-    who.textContent = label;
-    var vals = document.createElement('div');
-    vals.className = 'vals';
-    var v = document.createElement('span');
-    v.className = 'val no';
-    v.textContent = 'Recherche…';
+    row.className = 'res enter';
+    var hd = document.createElement('div'); hd.className = 'hd';
+    var av = document.createElement('div'); av.className = 'av'; av.textContent = '…';
+    var txtBox = document.createElement('div'); txtBox.className = 'hd-t';
+    var who = document.createElement('div'); who.className = 'who'; who.textContent = label;
+    var info = document.createElement('div'); info.className = 'info';
+    var sk = document.createElement('div'); sk.className = 'sk'; sk.innerHTML = '<i></i><i></i><i></i>';
+    txtBox.appendChild(who); txtBox.appendChild(info); txtBox.appendChild(sk);
+    hd.appendChild(av); hd.appendChild(txtBox);
+    var more = document.createElement('div'); more.className = 'more';
+    var vals = document.createElement('div'); vals.className = 'vals';
+    var v = document.createElement('span'); v.className = 'val no'; v.textContent = 'Recherche du profil…';
     vals.appendChild(v);
-    var info = document.createElement('div');
-    info.className = 'info';
-    var more = document.createElement('div');
-    more.className = 'more';
-    row.appendChild(who);
-    row.appendChild(info);
-    row.appendChild(more);
-    row.appendChild(vals);
+    row.appendChild(hd); row.appendChild(more); row.appendChild(vals);
     tryResults.appendChild(row);
-    v._who = who; v._info = info; v._more = more;
+    try { row.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } catch (e) {}
+    v._row = row; v._who = who; v._info = info; v._more = more; v._av = av;
     return v;
+  }
+  // Initiales en secours ; la photo LinkedIn quand le service en renvoie une.
+  function initials(name) {
+    var p = String(name || '').replace(/[^\p{L}\s-]/gu, ' ').trim().split(/\s+/);
+    return ((p[0] || '?')[0] + (p.length > 1 ? p[p.length - 1][0] : '')).toUpperCase();
+  }
+  function photoOf(pr) {
+    var u = pr && (pr.photo || pr.profilePicture || pr.profilePic || pr.picture || pr.image || pr.avatar);
+    if (typeof u !== 'string') return '';
+    try { var x = new URL(u); return x.protocol === 'https:' && /(^|\.)(licdn\.com|linkedin\.com)$/.test(x.hostname) ? u : ''; } catch (e) { return ''; }
+  }
+  function showProfile(cell, pr, it) {
+    var name = txt(pr.name) || it.label;
+    cell._who.textContent = name;
+    cell._row.classList.add('has-name');
+    var title = [txt(pr.jobTitle), txt(pr.company)].filter(Boolean).join(' chez ');
+    cell._info.textContent = [title, txt(pr.location)].filter(Boolean).join(' · ');
+    var ph = photoOf(pr);
+    cell._av.textContent = initials(name);
+    cell._av.style.background = 'hsl(' + (Array.from(name).reduce(function (a, c) { return a + c.charCodeAt(0); }, 0) % 360) + ' 70% 92%)';
+    if (ph) {
+      var img = new Image(); img.alt = ''; img.referrerPolicy = 'no-referrer';
+      img.onload = function () { cell._av.textContent = ''; cell._av.appendChild(img); };
+      img.src = ph;
+    }
+    renderMore(cell._more, { exps: expList(pr), edus: eduList(pr) });
   }
   // Expériences et formation visibles dans la page (8 nov. 2026) : les 3
   // dernières expériences et les 2 formations, le reste est dans le fichier.
@@ -500,7 +563,7 @@ body.has-sticky{padding-bottom:76px;}
       h.textContent = title;
       wrap.appendChild(h);
       var ul = document.createElement('ul');
-      items.slice(0, max).forEach(function (t) { var li = document.createElement('li'); li.textContent = t; ul.appendChild(li); });
+      items.slice(0, max).forEach(function (t, k) { var li = document.createElement('li'); li.textContent = t; li.style.animationDelay = (k * 90) + 'ms'; ul.appendChild(li); });
       if (items.length > max) {
         var li2 = document.createElement('li');
         li2.className = 'more-n';
@@ -512,6 +575,16 @@ body.has-sticky{padding-bottom:76px;}
     }
     block('Expériences', rec.exps, 3, 'autre expérience');
     block('Formation', rec.edus, 2, 'autre formation');
+  }
+  function showLive(n) {
+    var box = document.getElementById('liveStats'); if (!box) return;
+    box.hidden = false;
+    document.getElementById('statBar').style.width = '0%';
+  }
+  function hideLiveBar() { var b = document.getElementById('statBarWrap'); if (b) b.classList.add('done'); }
+  function setStat(id, val) {
+    var el = document.getElementById(id); if (!el) return;
+    if (el.textContent !== String(val)) { el.textContent = String(val); el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump'); }
   }
   function setCell(cell, text, ok) { cell.className = 'val ' + (ok ? 'ok' : 'no'); cell.textContent = text; }
 
@@ -591,59 +664,78 @@ body.has-sticky{padding-bottom:76px;}
     tryMsg.textContent = 'Une personne à la fois pour des résultats fiables : gardez cette page ouverte (quelques secondes par personne).';
 
     var bulk = items.length > 1, emails = 0, profiles = 0, errors = 0, lookups = 0, done = 0;
-    function counter() { tryCount.textContent = profiles + ' profils, ' + emails + ' emails trouvés sur ' + done + '…'; }
-    counter();
-    // Une personne à la fois, profil puis email (8 nov. 2026). À 4 personnes x 2
-    // appels en parallèle, 41 lignes sur 50 finissaient en erreur : les services
-    // ne tiennent pas la charge. Chaque appel est retenté 2 fois, puis les lignes
-    // en erreur repassent une dernière fois à la fin.
-    var cells = items.map(function (it) { return addRow(it.label); });
-    var failedIdx = [];
-    async function processOne(idx, lastTry) {
-        var it = items[idx], cell = cells[idx], url = it.url;
-        try {
-          if (!url) {
-            lookups++;
-            var p = await withRetry(function () { return lookup({ type: 'professional_profile_finder', first_name: it.first, last_name: it.last, company_name: it.company, is_bulk: bulk }); });
-            url = p && p.linkedin_url ? normalize(String(p.linkedin_url)) : '';
-            if (!url) { setCell(cell, 'Pas trouvé', false); done++; counter(); return; }
-          }
-          // Profil complet, puis email : l'un après l'autre, jamais en même temps.
-          lookups += 2;
-          setCell(cell, 'Profil…', false);
-          var prof = await withRetry(function () { return profileLookup(url); }).catch(function () { return null; });
-          setCell(cell, 'Email…', false);
-          var mail = await withRetry(function () { return lookup({ type: 'business_email_finder', linkedin_url: url, is_bulk: bulk }); }).catch(function () { return null; });
-          var both = [prof, mail];
-          var pr = both[0] || {}, d = both[1];
-          if (!both[0] && !both[1]) throw new Error('both failed');
-          var em = d && d.email ? String(d.email) : '';
-          var rec = {
-            name: txt(pr.name) || it.label, title: txt(pr.jobTitle), company: txt(pr.company), location: txt(pr.location),
-            headline: txt(pr.headline), about: txt(pr.about), exps: expList(pr), edus: eduList(pr), url: url, email: em
-          };
-          if (rec.name || rec.title || em) { profiles++; found.push(rec); }
-          if (txt(pr.name)) cell._who.textContent = pr.name;
-          var line = [rec.title, rec.company].filter(Boolean).join(' chez ');
-          var extra = [rec.exps.length ? rec.exps.length + (rec.exps.length > 1 ? ' expériences' : ' expérience') : '',
-                       rec.edus.length ? rec.edus.length + (rec.edus.length > 1 ? ' formations' : ' formation') : ''].filter(Boolean).join(', ');
-          cell._info.textContent = [line, rec.location].filter(Boolean).join(' · ');
-          renderMore(cell._more, rec);
-          if (em) { emails++; setCell(cell, mask(em) + '  ✓', true); }
-          else setCell(cell, 'Email pas trouvé', false);
-        } catch (e) {
-          if (!lastTry) { failedIdx.push(idx); setCell(cell, 'Nouvel essai à la fin…', false); return; }
-          errors++; setCell(cell, 'Pas de réponse', false);
-        }
-        done++; counter();
+    var n = items.length;
+    function counter() {
+      tryCount.textContent = '';
+      setStat('statProfiles', profiles); setStat('statEmails', emails);
+      var bar = document.getElementById('statBar'); if (bar) bar.style.width = Math.round(100 * done / n) + '%';
+      var lbl = document.getElementById('statDone'); if (lbl) lbl.textContent = done + ' / ' + n;
     }
-    for (var i = 0; i < items.length; i++) { await processOne(i, false); await pause(250); }
+    showLive(n);
+    counter();
+    // Deux files, une par service (8 nov. 2026) : pendant que l'email de la
+    // personne N est cherché, le profil de la personne N+1 se charge. Chaque
+    // service ne voit jamais qu'un appel à la fois - à 8 appels en parallèle,
+    // 41 lignes sur 50 finissaient en erreur. Chaque appel est retenté 2 fois,
+    // puis les lignes en erreur repassent une dernière fois à la fin.
+    var state = items.map(function () { return {}; });
+    var failedIdx = [];
+    function cellOf(i) {
+      if (!state[i].cell) { state[i].cell = addRow(items[i].label); }
+      return state[i].cell;
+    }
+    async function profileStage(i) {
+      var it = items[i], cell = cellOf(i), st = state[i];
+      st.url = it.url; st.skip = false; st.pr = null;
+      cell._row.classList.add('loading');
+      if (!st.url) {
+        lookups++;
+        var p = await withRetry(function () { return lookup({ type: 'professional_profile_finder', first_name: it.first, last_name: it.last, company_name: it.company, is_bulk: bulk }); }).catch(function () { return null; });
+        st.url = p && p.linkedin_url ? normalize(String(p.linkedin_url)) : '';
+        if (!st.url) { st.skip = true; cell._row.classList.remove('loading'); setCell(cell, 'Profil LinkedIn pas trouvé', false); done++; counter(); return; }
+      }
+      lookups++;
+      st.pr = await withRetry(function () { return profileLookup(st.url); }).catch(function () { return null; });
+      cell._row.classList.remove('loading');
+      if (st.pr) { showProfile(cell, st.pr, it); profiles++; counter(); }
+      setCell(cell, 'Recherche de l\'email…', false); cell.classList.add('searching');
+    }
+    async function emailStage(i, lastTry) {
+      var it = items[i], cell = cellOf(i), st = state[i];
+      if (st.skip) return;
+      lookups++;
+      var mail = await withRetry(function () { return lookup({ type: 'business_email_finder', linkedin_url: st.url, is_bulk: bulk }); }).catch(function () { return null; });
+      cell.classList.remove('searching');
+      if (!st.pr && !mail) {
+        if (!lastTry) { failedIdx.push(i); setCell(cell, 'Nouvel essai à la fin…', false); return; }
+        errors++; setCell(cell, 'Pas de réponse', false); done++; counter(); return;
+      }
+      var pr = st.pr || {}, em = mail && mail.email ? String(mail.email) : '';
+      var rec = {
+        name: txt(pr.name) || it.label, title: txt(pr.jobTitle), company: txt(pr.company), location: txt(pr.location),
+        headline: txt(pr.headline), about: txt(pr.about), exps: expList(pr), edus: eduList(pr), url: st.url, email: em
+      };
+      if (rec.name || rec.title || em) { found.push(rec); if (!st.pr) profiles++; }
+      if (em) { emails++; setCell(cell, mask(em) + '  ✓', true); cell.classList.add('pop'); }
+      else setCell(cell, 'Email pas trouvé', false);
+      done++; counter();
+    }
+    var emailLane = Promise.resolve();
+    for (var i = 0; i < n; i++) {
+      await profileStage(i);
+      (function (k) { emailLane = emailLane.then(function () { return emailStage(k, false); }); })(i);
+      await pause(150);
+    }
+    await emailLane;
     if (failedIdx.length) {
       track('fr_list_second_pass', { rows: failedIdx.length });
       await pause(3000);
       var again = failedIdx.slice(); failedIdx = [];
-      for (var j = 0; j < again.length; j++) { await processOne(again[j], true); await pause(600); }
+      for (var j = 0; j < again.length; j++) {
+        await profileStage(again[j]); await emailStage(again[j], true); await pause(600);
+      }
     }
+    hideLiveBar();
 
     running = false;
     tryBtn.disabled = false;

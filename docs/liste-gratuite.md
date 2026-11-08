@@ -40,6 +40,16 @@ Tested in Playwright with both workers mocked: max 1 call in flight, 3 forced
 failures all recovered, popup shown, and the app downloaded the file after
 "signup". Pinned by `tests/liste-gratuite.test.mjs`.
 
+**Live results (same day):** two lanes, one per service — while person N's email
+is searched, person N+1's profile loads (`profileStage` / `emailStage`), so each
+service still sees one call at a time but the list runs about twice as fast.
+Each card appears when its person starts (shimmer placeholder), the profile shows
+the moment it arrives (photo when the profile service returns a LinkedIn image
+URL, otherwise initials; experiences and education fade in one by one), and the
+email pops in green. Two live counters (profils, emails) and a progress bar sit
+above the results. Tested with 8 people and forced failures: max 1 call in
+flight per service, 8/8 recovered.
+
 **Conversion pass (same day):** a reassurance line under the headline (50 profils
 gratuits · sans carte · CSV prêt pour votre ATS); in the popup, a setup-call offer
 ("Vous recrutez en volume ? 15 min avec Eliasse") to
