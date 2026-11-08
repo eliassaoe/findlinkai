@@ -4259,6 +4259,9 @@ async function enrichData(event) {
         if (!leadFirstName || leadFirstName.includes(' ')) { showAlert('First name is required and must be a single word.', 'error'); restoreBtn(); return; }
         if (!leadLastName || leadLastName.includes(' ')) { showAlert('Last name is required and must be a single word.', 'error'); restoreBtn(); return; }
         if (!leadDomain) { showAlert('Company domain is required.', 'error'); restoreBtn(); return; }
+        // 8 Nov 2026: most October misses were a company name or linkedin.com typed as the domain.
+        if (!/^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(leadDomain)) { showAlert('Enter the company\'s website domain, like acme.com (not the company name).', 'error'); restoreBtn(); return; }
+        if (/^(linkedin|gmail|googlemail|yahoo|hotmail|outlook|icloud|facebook|instagram)\./.test(leadDomain)) { showAlert(leadDomain + ' is not the company\'s domain. Enter the domain of the company the person works at, like acme.com.', 'error'); restoreBtn(); return; }
 
         inputValue = `${leadFirstName} ${leadLastName}`;
         effectiveInputValue = `${leadFirstName} ${leadLastName} ${leadDomain}`;
