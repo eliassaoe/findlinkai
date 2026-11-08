@@ -48,3 +48,20 @@ test('conversion: reassurance line, call offer, sticky bar after the run', () =>
   assert.match(page, /id="stickyCta" hidden/);
   assert.match(page, /showDoneModal\(profiles, emails, items\.length, total\);\n    showSticky\(\);/);
 });
+
+test('profiles come from the free tools workflow, not the deleted linkedin-url-finder', () => {
+  assert.doesNotMatch(page, /linkedin-url-finder\.hamoureliasse/);
+  assert.match(page, /type: 'linkedin_profile_to_linkedin_info', input_data: url/);
+  const scraper = readFileSync(new URL('../linkedin-profile-scraper.html', import.meta.url), 'utf8');
+  assert.doesNotMatch(scraper, /linkedin-url-finder\.hamoureliasse/);
+});
+
+test('download goes through signup into the app, where the list opens with the next one a click away', () => {
+  // no download on the landing page any more
+  assert.doesNotMatch(page, /if \(hasAccount && found\.length\) \{ e\.preventDefault\(\); downloadNow\(\)/);
+  assert.match(page, /'\/app\?action=free_list'/);
+  assert.match(page, /rows: rows, found: found\.length/);
+  assert.match(app, /const box = el\('section', 'lf-fl'\); box\.id = 'lfFreeList';/);
+  assert.match(app, /quickStartBulk\('linkedin_profile', 'email'\)/);
+  assert.match(app, /fr_list_next_list_clicked/);
+});

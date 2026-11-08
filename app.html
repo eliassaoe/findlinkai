@@ -989,6 +989,22 @@ body.sp-has-pick #creditCost{display:none !important;}
 .sp-card.active{border-color:var(--primary,#2563eb);background:#eff6ff;box-shadow:0 0 0 3px rgba(37,99,235,.15);}
 .sp-card-title{display:block;font-size:0.85rem;font-weight:600;color:var(--gray-900,#111827);}
 .sp-card-cost{display:block;font-size:0.72rem;color:var(--gray-500,#6b7280);margin-top:0.15rem;}
+
+/* Free list opened from /liste-gratuite (8 Nov 2026) */
+.lf-fl{position:relative;margin:0 0 1.25rem;padding:1.1rem 1.2rem;border:2px solid #22c55e;border-radius:12px;background:#f0fdf4;}
+.lf-fl-x{position:absolute;top:.4rem;right:.6rem;border:0;background:none;font-size:1.4rem;line-height:1;color:var(--gray-500);cursor:pointer;}
+.lf-fl-k{margin:0;font-size:.8rem;font-weight:700;color:#15803d;text-transform:uppercase;letter-spacing:.03em;}
+.lf-fl-h{margin:.25rem 0 .75rem;font-size:1.15rem;color:var(--gray-800);}
+.lf-fl-tw{max-height:320px;overflow:auto;border:1px solid #d1fae5;border-radius:8px;background:#fff;}
+.lf-fl-t{width:100%;border-collapse:collapse;font-size:.82rem;}
+.lf-fl-t th{position:sticky;top:0;background:#ecfdf5;text-align:left;padding:.45rem .6rem;font-weight:600;color:var(--gray-700);}
+.lf-fl-t td{padding:.4rem .6rem;border-top:1px solid #f1f5f9;vertical-align:top;}
+.lf-fl-n{font-weight:600;}
+.lf-fl-e{color:#15803d;font-weight:600;word-break:break-all;}
+.lf-fl-none{color:var(--gray-400);}
+.lf-fl-a{display:flex;flex-wrap:wrap;gap:.6rem;margin-top:.9rem;}
+.lf-fl-c{margin:.6rem 0 0;font-size:.85rem;color:var(--gray-600);}
+.lf-fl-glow{box-shadow:0 0 0 4px rgba(34,197,94,.45);transition:box-shadow .3s;}
 </style>
 <script async src="https://plausible.io/js/pa-LTP3nlbjr9NybMEgzpwxU.js"></script>
 <script>window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};plausible.init()</script>
@@ -5974,29 +5990,101 @@ function captureUTMs() {
     return utms;
 }
 
-// /liste-gratuite keeps the enriched file in this browser (lf_free_list_results)
-// and tells the visitor it downloads as soon as their account exists. This is
-// that download: once, on the first signed-in load, within 7 days. The file is
-// plain CSV text built on that page from the visitor's own lookups.
-function lfDownloadFreeList() {
+// /liste-gratuite keeps the enriched list in this browser (lf_free_list_results)
+// and sends the visitor here - straight in when signed in, after signup
+// otherwise. The list opens as a finished result at the top of the app: the
+// table, the download, and the next list one click away, so the free list
+// turns into the first of many (8 Nov 2026, docs/liste-gratuite.md). Kept 7 days
+// or until closed. Every value is rendered with textContent: it comes from
+// third-party profile data.
+function lfReadFreeList() {
     let saved = null;
     try { saved = JSON.parse(localStorage.getItem('lf_free_list_results') || 'null'); } catch (e) {}
-    if (!saved || typeof saved.csv !== 'string' || !saved.csv) return;
-    try { localStorage.removeItem('lf_free_list_results'); } catch (e) {}
-    if (!saved.savedAt || Date.now() - Number(saved.savedAt) > 7 * 24 * 60 * 60 * 1000) return;
+    if (!saved || typeof saved.csv !== 'string' || !saved.csv) return null;
+    if (!saved.savedAt || Date.now() - Number(saved.savedAt) > 7 * 24 * 60 * 60 * 1000) {
+        try { localStorage.removeItem('lf_free_list_results'); } catch (e) {}
+        return null;
+    }
+    return saved;
+}
+function lfDownloadFreeListFile(saved) {
     const name = String(saved.name || 'ma-liste-profils.csv').replace(/[^\w.\-]+/g, '-').slice(0, 80) || 'ma-liste-profils.csv';
-    const download = () => {
-        const blob = new Blob(['\ufeff' + saved.csv], { type: 'text/csv;charset=utf-8' });
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = /\.csv$/i.test(name) ? name : name + '.csv';
-        document.body.appendChild(a); a.click(); a.remove();
+    const blob = new Blob(['﻿' + saved.csv], { type: 'text/csv;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = /\.csv$/i.test(name) ? name : name + '.csv';
+    document.body.appendChild(a); a.click(); a.remove();
+}
+function lfDownloadFreeList() {
+    const saved = lfReadFreeList();
+    if (!saved || document.getElementById('lfFreeList')) return;
+    try { if (typeof hideRouteChooser === 'function') hideRouteChooser(); } catch (e) {}
+    const rows = Array.isArray(saved.rows) ? saved.rows.slice(0, 50) : [];
+    const found = Number(saved.found) || rows.length;
+    const emails = typeof saved.emails === 'number' ? saved.emails : rows.filter(r => r && r.email).length;
+    const el = (tag, cls, text) => { const x = document.createElement(tag); if (cls) x.className = cls; if (text != null) x.textContent = text; return x; };
+
+    const box = el('section', 'lf-fl'); box.id = 'lfFreeList';
+    const close = el('button', 'lf-fl-x', '×'); close.type = 'button'; close.setAttribute('aria-label', 'Fermer');
+    close.onclick = () => { try { posthog.capture('fr_list_panel_closed', {}); } catch (e) {} try { localStorage.removeItem('lf_free_list_results'); } catch (e) {} box.remove(); };
+    box.appendChild(close);
+    box.appendChild(el('p', 'lf-fl-k', '✓ Votre liste gratuite est prête'));
+    box.appendChild(el('h3', 'lf-fl-h', found + ' profils complets, ' + emails + ' emails trouvés'));
+
+    if (rows.length) {
+        const wrap = el('div', 'lf-fl-tw');
+        const t = el('table', 'lf-fl-t');
+        const hr = el('tr'); ['Nom', 'Poste', 'Entreprise', 'Email', 'LinkedIn'].forEach(h => hr.appendChild(el('th', null, h)));
+        const th = el('thead'); th.appendChild(hr); t.appendChild(th);
+        const tb = el('tbody');
+        rows.forEach(r => {
+            const tr = el('tr');
+            tr.appendChild(el('td', 'lf-fl-n', r.name || ''));
+            tr.appendChild(el('td', null, r.title || ''));
+            tr.appendChild(el('td', null, r.company || ''));
+            tr.appendChild(el('td', r.email ? 'lf-fl-e' : 'lf-fl-none', r.email || '-'));
+            const td = el('td');
+            if (r.url && /^https:\/\/([a-z]+\.)?linkedin\.com\//i.test(r.url)) { const a = el('a', null, 'Profil'); a.href = r.url; a.target = '_blank'; a.rel = 'noopener'; td.appendChild(a); }
+            tr.appendChild(td);
+            tb.appendChild(tr);
+        });
+        t.appendChild(tb); wrap.appendChild(t); box.appendChild(wrap);
+    }
+
+    const acts = el('div', 'lf-fl-a');
+    const dl = el('button', 'btn lf-fl-dl', 'Télécharger ma liste (CSV)'); dl.type = 'button';
+    dl.onclick = () => { lfDownloadFreeListFile(saved); dl.textContent = 'Téléchargée ✓  Télécharger à nouveau'; try { posthog.capture('fr_list_downloaded_in_app', { found: found }); } catch (e) {} };
+    const next = el('button', 'btn btn-outline lf-fl-next', 'Lancer une nouvelle liste →'); next.type = 'button';
+    next.onclick = () => {
+        try { posthog.capture('fr_list_next_list_clicked', { found: found }); } catch (e) {}
+        // Same lookup they just saw work: LinkedIn URLs -> emails, as a list.
+        try {
+            if (typeof quickStartBulk === 'function') quickStartBulk('linkedin_profile', 'email');
+            else if (typeof switchMode === 'function') switchMode('bulk', 'free_list_next');
+        } catch (e) { try { switchMode('bulk', 'free_list_next'); } catch (e2) {} }
+        const up = document.getElementById('uploadArea');
+        if (up) { up.scrollIntoView({ behavior: 'smooth', block: 'center' }); up.classList.add('lf-fl-glow'); setTimeout(() => up.classList.remove('lf-fl-glow'), 2400); }
     };
-    download();
-    window.lfRedownloadFreeList = download;
-    try { posthog.capture('fr_list_downloaded_after_signup', { found: saved.found || null }); } catch (e) {}
-    const n = Number(saved.found) || 0;
-    showAlert('Votre liste gratuite est téléchargée' + (n ? ' (' + n + ' profils)' : '') + '. Vos crédits gratuits sont sur votre compte pour enrichir la suite.', 'success');
+    acts.appendChild(dl); acts.appendChild(next);
+    box.appendChild(acts);
+    const credit = el('p', 'lf-fl-c', 'Déposez votre prochaine liste juste en dessous : un CSV, un export LinkedIn ou des liens collés.');
+    box.appendChild(credit);
+    // Once the balance is known, say what it buys (LinkedIn -> email is 10 credits).
+    let tries = 0;
+    const iv = setInterval(() => {
+        tries++;
+        if (typeof currentCredits === 'number' && currentCredits > 0) {
+            const n = Math.floor(currentCredits / 10);
+            if (n > 0) credit.textContent = 'Vous avez ' + Math.floor(currentCredits).toLocaleString('fr-FR') + ' crédits : de quoi trouver l\'email de ' + n.toLocaleString('fr-FR') + ' profils de plus. Déposez votre prochaine liste juste en dessous.';
+            clearInterval(iv);
+        } else if (tries > 20) clearInterval(iv);
+    }, 400);
+
+    const anchor = document.querySelector('.config-form');
+    if (anchor && anchor.parentNode) anchor.parentNode.insertBefore(box, anchor);
+    else document.body.insertBefore(box, document.body.firstChild);
+    try { box.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) {}
+    try { posthog.capture('fr_list_opened_in_app', { found: found, emails: emails }); } catch (e) {}
 }
 
 function checkAuth(){

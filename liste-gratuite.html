@@ -262,6 +262,7 @@ body.has-sticky{padding-bottom:76px;}
 @media (max-width:700px){.after-grid{grid-template-columns:1fr;}.call-card{flex-direction:column;align-items:flex-start;}}
 
 /* Effet "en direct" (8 nov. 2026) */
+.live-note{margin:6px 0 0;text-align:center;font-size:12.5px;color:var(--muted);}
 .live{margin-top:16px;}
 .tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
 .tile{background:var(--soft);border-radius:12px;padding:12px;text-align:center;}
@@ -357,11 +358,12 @@ body.has-sticky{padding-bottom:76px;}
             <div class="tile tile-g"><b id="statEmails">0</b><span>emails trouvés</span></div>
           </div>
           <div class="bar-wrap" id="statBarWrap"><div class="bar" id="statBar"></div><span id="statDone">0 / 0</span></div>
+          <p class="live-note">Les profils arrivent un par un : gardez cette page ouverte.</p>
         </div>
         <div class="results" id="tryResults" aria-live="polite"></div>
         <div class="dl" id="tryDl" hidden>
           <a class="btn" id="dlBtn" href="/sign-up?google=1" data-cta="fr_download">Télécharger ma liste</a>
-          <p class="fine" id="dlFine">Le fichier contient tout : expériences, formation, poste, localisation, email. Gratuit, sans carte bancaire : vous créez votre compte en 1 clic et il se télécharge.</p>
+          <p class="fine" id="dlFine">Le fichier contient tout : expériences, formation, poste, localisation, email. Gratuit, sans carte bancaire : vous créez votre compte en 1 clic et votre liste s'ouvre, prête à télécharger.</p>
         </div>
         <div class="dm-backdrop" id="doneModal" hidden role="dialog" aria-modal="true" aria-labelledby="dmTitle">
           <div class="dm">
@@ -372,7 +374,7 @@ body.has-sticky{padding-bottom:76px;}
             <p class="dm-rest" id="dmRest" hidden></p>
             <a class="btn dm-main" id="dmGoogle" href="/sign-up?google=1" data-cta="fr_modal_google">Continuer avec Google et télécharger</a>
             <a class="dm-alt" id="dmEmail" href="/sign-up" data-cta="fr_modal_email">ou créer mon compte avec un email</a>
-            <p class="dm-fine" id="dmFine">Gratuit, sans carte bancaire. Votre fichier se télécharge dès que votre compte est créé, et vous recevez des crédits gratuits pour enrichir la suite de vos listes.</p>
+            <p class="dm-fine" id="dmFine">Gratuit, sans carte bancaire. Votre liste s'ouvre dans votre espace dès que votre compte est créé, prête à télécharger, avec des crédits gratuits pour enrichir la suivante.</p>
             <div class="dm-call">
               <p><b>Vous recrutez en volume ?</b> 15 minutes avec Eliasse, le fondateur, pour configurer votre sourcing avec vous. Gratuit.</p>
               <a href="https://calendly.com/hamoureliasse/linkfinder-ai?utm_source=liste-gratuite" target="_blank" rel="noopener" id="dmCall" data-cta="fr_modal_call">Réserver un appel de 15 min</a>
@@ -434,8 +436,6 @@ body.has-sticky{padding-bottom:76px;}
   var USED_KEY = 'lf_fr_free_list_used';
   var RESULTS_KEY = 'lf_free_list_results';
   var WORKER = 'https://linkfinder-free-tools.hamoureliasse.workers.dev/';
-  // Profil complet (expériences, formation, poste...) : même service que la page linkedin-profile-scraper.
-  var PROFILE_WORKER = 'https://linkedin-url-finder.hamoureliasse.workers.dev/';
   var PROFILE_RE = /(?:https?:\/\/)?(?:[a-z0-9-]+\.)?linkedin\.com\/(?:[a-z]{2}\/)?(?:in|pub)\/[^\s,;"'|<>]+/gi;
   var tryInput = document.getElementById('tryInput');
   var tryBtn = document.getElementById('tryBtn');
@@ -531,7 +531,7 @@ body.has-sticky{padding-bottom:76px;}
   function photoOf(pr) {
     var u = pr && (pr.photo || pr.profilePicture || pr.profilePic || pr.picture || pr.image || pr.avatar);
     if (typeof u !== 'string') return '';
-    try { var x = new URL(u); return x.protocol === 'https:' && /(^|\.)(licdn\.com|linkedin\.com)$/.test(x.hostname) ? u : ''; } catch (e) { return ''; }
+    try { var x = new URL(u); return x.protocol === 'https:' && (/(^|\.)(licdn\.com|linkedin\.com)$/.test(x.hostname) || (x.hostname === 'storage.googleapis.com' && /^\/linkedin_profile_picture\//.test(x.pathname))) ? u : ''; } catch (e) { return ''; }
   }
   function showProfile(cell, pr, it) {
     var name = txt(pr.name) || it.label;
@@ -609,14 +609,14 @@ body.has-sticky{padding-bottom:76px;}
     return res.json();
   }
 
+  // Profil complet via le workflow free tools (type linkedin_profile_to_linkedin_info).
+  // L'ancien service linkedin-url-finder a été supprimé de Cloudflare : chaque
+  // appel échouait, d'où des cartes sans données (8 nov. 2026).
   async function profileLookup(url) {
-    var res = await fetch(PROFILE_WORKER, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-API-Secret': window.LF_API_KEY, 'Accept': 'application/json' },
-      body: JSON.stringify({ linkedinUrl: url, is_bulk: true })
-    });
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    return res.json();
+    var d = await lookup({ type: 'linkedin_profile_to_linkedin_info', input_data: url, is_bulk: true });
+    if (Array.isArray(d)) d = d[0];
+    if (!d || (!d.name && !d.jobTitle && !(d.experiences && d.experiences.length))) throw new Error('empty profile');
+    return d;
   }
   function txt(v) { return v == null ? '' : String(v).trim(); }
   function expList(d) {
@@ -631,8 +631,9 @@ body.has-sticky{padding-bottom:76px;}
     if (!Array.isArray(ed)) ed = [ed];
     return ed.map(function (e) {
       if (typeof e === 'string') return e.trim();
-      var period = [txt(e.startedOn || e.start || e.startYear), txt(e.endedOn || e.end || e.endYear)].filter(Boolean).join(' - ');
-      return [txt(e.title || e.degree || e.degreeName), txt(e.subtitle || e.schoolName || e.school || e.name)].filter(Boolean).join(', ') + (period ? ' (' + period + ')' : '');
+      var period = [txt(e.startedOn || e.startDate || e.start || e.startYear), txt(e.endedOn || e.endDate || e.end || e.endYear)].filter(Boolean).join(' - ');
+      var degree = [txt(e.title || e.degree || e.degreeName), txt(e.fieldOfStudy)].filter(Boolean).join(' - ');
+      return [degree, txt(e.subtitle || e.schoolName || e.school || e.name)].filter(Boolean).join(', ') + (period ? ' (' + period + ')' : '');
     }).filter(Boolean);
   }
 
@@ -640,7 +641,7 @@ body.has-sticky{padding-bottom:76px;}
     tryMsg.textContent = '';
     tryCount.textContent = 'Vous avez déjà fait votre essai gratuit sur ce navigateur.';
     dlBtn.textContent = hasAccount ? 'Ouvrir LinkFinder AI' : 'Créer mon compte gratuit';
-    if (hasAccount) dlBtn.href = '/app';
+    if (hasAccount) dlBtn.href = '/app?action=free_list';
     document.getElementById('dlFine').textContent = 'Gratuit, sans carte bancaire.';
     tryDl.hidden = false;
   }
@@ -661,7 +662,6 @@ body.has-sticky{padding-bottom:76px;}
     tryBtn.textContent = 'Recherche…';
     try { localStorage.setItem(USED_KEY, String(Date.now())); } catch (e) {}
     track('fr_list_started', { source: source, rows: items.length, file_rows: total });
-    tryMsg.textContent = 'Une personne à la fois pour des résultats fiables : gardez cette page ouverte (quelques secondes par personne).';
 
     var bulk = items.length > 1, emails = 0, profiles = 0, errors = 0, lookups = 0, done = 0;
     var n = items.length;
@@ -673,9 +673,9 @@ body.has-sticky{padding-bottom:76px;}
     }
     showLive(n);
     counter();
-    // Deux files, une par service (8 nov. 2026) : pendant que l'email de la
-    // personne N est cherché, le profil de la personne N+1 se charge. Chaque
-    // service ne voit jamais qu'un appel à la fois - à 8 appels en parallèle,
+    // Deux files (8 nov. 2026) : pendant que l'email de la personne N est
+    // cherché, le profil de la personne N+1 se charge. Jamais plus de 2 appels
+    // en cours (un par type de recherche) - à 8 appels en parallèle,
     // 41 lignes sur 50 finissaient en erreur. Chaque appel est retenté 2 fois,
     // puis les lignes en erreur repassent une dernière fois à la fin.
     var state = items.map(function () { return {}; });
@@ -754,7 +754,7 @@ body.has-sticky{padding-bottom:76px;}
     if (!found.length) { tryMsg.textContent = 'Rien trouvé sur cette liste.'; return; }
     saveResults();
     dlBtn.textContent = 'Télécharger ma liste (' + found.length + ' profils)';
-    if (hasAccount) { dlBtn.href = '#'; document.getElementById('dlFine').textContent = 'Votre fichier se télécharge tout de suite.'; }
+    if (hasAccount) { dlBtn.href = '/app?action=free_list'; document.getElementById('dlFine').textContent = 'Votre liste s\'ouvre dans votre espace, prête à télécharger.'; }
     tryDl.hidden = false;
     showDoneModal(profiles, emails, items.length, total);
     showSticky();
@@ -764,7 +764,7 @@ body.has-sticky{padding-bottom:76px;}
     if (!bar || !found.length) return;
     document.getElementById('stickyText').textContent = 'Votre liste de ' + found.length + ' profils est prête';
     var btn = document.getElementById('stickyBtn');
-    if (hasAccount) { btn.textContent = 'Télécharger ma liste'; btn.href = '#'; }
+    if (hasAccount) { btn.textContent = 'Ouvrir ma liste'; btn.href = '/app?action=free_list'; }
     bar.hidden = false;
     document.body.classList.add('has-sticky');
     track('fr_list_sticky_shown', { found: found.length, has_account: hasAccount });
@@ -781,11 +781,11 @@ body.has-sticky{padding-bottom:76px;}
     restEl.hidden = !(rest > 0);
     var go = document.getElementById('dmGoogle'), alt = document.getElementById('dmEmail'), fine = document.getElementById('dmFine');
     if (hasAccount) {
-      go.textContent = 'Télécharger ma liste (' + found.length + ' profils)';
-      go.href = '#';
-      alt.textContent = 'Enrichir la suite dans l\'app';
-      alt.href = '/app';
-      fine.textContent = 'Le fichier contient tout : poste, entreprise, expériences, formation, email.';
+      go.textContent = 'Ouvrir ma liste et la télécharger';
+      go.href = '/app?action=free_list';
+      alt.textContent = 'Lancer une nouvelle liste';
+      alt.href = '/app?action=free_list';
+      fine.textContent = 'Votre liste vous attend dans votre espace, avec poste, entreprise, expériences, formation et email.';
     }
     m.hidden = false;
     document.body.classList.add('dm-open');
@@ -800,7 +800,7 @@ body.has-sticky{padding-bottom:76px;}
     var sb = document.getElementById('stickyBtn');
     if (sb) sb.addEventListener('click', function (e) {
       track('fr_list_sticky_clicked', { found: found.length, has_account: hasAccount });
-      if (hasAccount && found.length) { e.preventDefault(); downloadNow(); }
+
     });
     ['dmCall', 'callSection'].forEach(function (id) {
       var el = document.getElementById(id);
@@ -817,7 +817,7 @@ body.has-sticky{padding-bottom:76px;}
     m.addEventListener('click', function (e) { if (e.target === m) { track('fr_list_modal_closed', { via: 'backdrop' }); closeDoneModal(); } });
     document.getElementById('dmGoogle').addEventListener('click', function (e) {
       track('fr_list_modal_clicked', { choice: hasAccount ? 'download' : 'google', found: found.length });
-      if (hasAccount && found.length) { e.preventDefault(); downloadNow(); try { localStorage.removeItem(RESULTS_KEY); } catch (err) {} closeDoneModal(); }
+
     });
     document.getElementById('dmEmail').addEventListener('click', function () {
       track('fr_list_modal_clicked', { choice: hasAccount ? 'app' : 'email', found: found.length });
@@ -833,7 +833,8 @@ body.has-sticky{padding-bottom:76px;}
   }
   // Gardé dans ce navigateur : app.html (lfDownloadFreeList) le télécharge juste après l'inscription.
   function saveResults() {
-    try { localStorage.setItem(RESULTS_KEY, JSON.stringify({ name: listName.replace(/\.(csv|tsv|txt)$/i, '') + '-profils.csv', csv: toCsv(), found: found.length, savedAt: Date.now() })); } catch (e) {}
+    var rows = found.map(function (f) { return { name: f.name, title: f.title, company: f.company, location: f.location, email: f.email, url: f.url, exps: f.exps.length, edus: f.edus.length }; });
+    try { localStorage.setItem(RESULTS_KEY, JSON.stringify({ name: listName.replace(/\.(csv|tsv|txt)$/i, '') + '-profils.csv', csv: toCsv(), rows: rows, found: found.length, emails: rows.filter(function (r) { return r.email; }).length, savedAt: Date.now() })); } catch (e) {}
   }
   function downloadNow() {
     var blob = new Blob(['\ufeff' + toCsv()], { type: 'text/csv;charset=utf-8' });
@@ -842,13 +843,10 @@ body.has-sticky{padding-bottom:76px;}
     a.download = listName.replace(/\.(csv|tsv|txt)$/i, '') + '-profils.csv';
     document.body.appendChild(a); a.click(); a.remove();
   }
-  dlBtn.addEventListener('click', function (e) {
+  // Pas de téléchargement sur la page : la liste s'ouvre dans l'app (inscription
+  // d'abord si besoin), où l'on télécharge et où l'on enchaîne la liste suivante.
+  dlBtn.addEventListener('click', function () {
     track('fr_list_download_clicked', { found: found.length, has_account: hasAccount });
-    if (hasAccount && found.length) {
-      e.preventDefault();
-      downloadNow();
-      try { localStorage.removeItem(RESULTS_KEY); } catch (err) {}
-    }
   });
 
   async function handleFile(file) {
