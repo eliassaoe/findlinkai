@@ -200,6 +200,16 @@ Set the project's `reply_instructions` in the app to propose two specific
 times rather than a booking link — that is what `recover.py` does for the ones
 that then go quiet.
 
+## Reply rule in 37934 (9 Nov 2026): page link, then the call link under it
+
+Owner's rule: a hot lead never gets just a list. Every "yes" reply in project
+37934 (Email sequence → Replies → Instructions, shared by all 4 campaigns) sends
+the personalised `/liste-gratuite` link and, on the line right under it, the
+booking link ("Ou si vous préférez, 15 min ensemble : [lien de réservation]" /
+"Or a 15-min call with me: [booking link]"). The old "no calendar link unless
+they ask for a call" line was replaced. To make room under the 3,000-char limit
+the RGPD line and the "unknown question" line were merged (same answer).
+
 ## Two SaaS campaigns added 8 Nov 2026 — project `linkfinderai-outbound` (37934)
 
 Project 37934 sells the **tool** (self-serve subscription); project 30475 sells
