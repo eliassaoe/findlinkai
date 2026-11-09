@@ -51,3 +51,24 @@ Given in return: `workinsiders.com/deliverability/` (anchor "land in spam") on
 `workinsiders.com/ats/` (anchor "applicant tracking systems") on
 `/best-recruitment-software-tools`. Keep them: removing a swapped link is how
 partners notice and pull theirs.
+
+## Internal links pointing at them (9 Nov 2026)
+
+Free and immediate, so done first:
+
+- **Site footer "Compare" column** (234 pages): Hunter.io (out of reach)
+  replaced by Coresignal, Kaspr, Wiza and Skrapp; Clearbit, PhantomBuster and
+  Apify stay.
+- **"See how Linkfinder compares" block on the seven tool pages that bring the
+  organic traffic**, four relevant alternatives each:
+
+| Tool page | Links to |
+| --- | --- |
+| `/linkedin-email-finder` | Kaspr, Skrapp, Wiza, ContactOut (was Hunter, Snov, Apollo, ContactOut) |
+| `/linkedin-phone-number-finder` | Kaspr, ContactOut, Wiza, RocketReach |
+| `/linkedin-search-by-email` | ContactOut, People Data Labs, Proxycurl, Coresignal |
+| `/linkedin-url-finder` | Proxycurl, People Data Labs, Skrapp, Coresignal |
+| `/linkedin-profile-scraper` | Proxycurl, Apify, PhantomBuster, Coresignal |
+| `/company-url-finder` | Clearbit, Coresignal, People Data Labs, Apify |
+
+Re-check positions in Search Console around 9 Dec 2026.
