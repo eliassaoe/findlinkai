@@ -39,17 +39,19 @@ Search Console clicks: ~190-250 a day from May to early November, no upward
 trend. The impression spike from 31 Oct is bot noise (CTR fell to 0.2-0.4%).
 PostHog `signup_success` is under-counted since 20 Sep (`docs/smart-start.md`).
 
-## Projection to December 2027
+## Projection to December 2027 — owner's rule: count Gumroad as $0
 
-At 15-20% monthly churn the subscriber count settles within about six months,
-so end-2027 MRR ≈ (new subscriptions per month ÷ churn) × ~$65.
+Base: Dodo only, **7 subscribers, ≈$394 MRR, ARPU ≈$56**. Recent pace ~2-2.5 new
+subscriptions and ~2 cancellations a month on that base, i.e. ~22% monthly
+churn. At that churn the count settles within about six months, so end-2027
+MRR ≈ (new per month ÷ churn) × ARPU.
 
-| Scenario | New subs / month | Monthly churn | MRR end 2027 |
-| --- | --- | --- | --- |
-| Nothing changes | 2.5 | 18% | ~$900 |
-| Alternative pages rank (+1.5 to 2/month from mid-2027) | 4.5 | 18% | **~$1,600** |
-| Same, and churn halved | 4.5 | 9% | ~$3,200 |
-| Same, churn halved, agencies on $149 lift ARPU to ~$90 | 4.5 | 9% | ~$4,500 |
+| Scenario | New subs / month | Monthly churn | ARPU | MRR end 2027 |
+| --- | --- | --- | --- | --- |
+| Nothing changes | 2-2.5 | 22% | $56 | **~$500-650** |
+| Alternative pages rank (+2/month from mid-2027) | 4.5 | 22% | $56 | **~$1,150** |
+| Same, and churn halved | 4.5 | 11% | $56 | ~$2,300 |
+| Same, churn halved, agencies on $149 lift ARPU to ~$90 | 4.5 | 11% | $90 | ~$3,700 |
 
 Churn is the biggest lever: halving it doubles MRR; the SEO plan alone adds
-roughly $700.
+roughly $500-600.
