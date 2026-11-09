@@ -82,7 +82,9 @@ def run(api, actions, dry=False, ref=None):
             continue
         lead, thread, cid, pid = by_key[key]
         try:
-            if a.get("type") == "reply" and camp_project.get(str(cid)) in auto:
+            # override_auto : envoi demandé explicitement sur un projet de recover.py
+            # (9 nov. 2026 : recover.py en échec depuis le 6, ces leads n'étaient plus relancés)
+            if a.get("type") == "reply" and camp_project.get(str(cid)) in auto and not a.get("override_auto"):
                 n["skipped_auto"] += 1           # recover.py relance déjà ce projet
                 continue
             if a.get("type") == "reply":

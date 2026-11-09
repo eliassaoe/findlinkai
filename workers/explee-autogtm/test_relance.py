@@ -316,6 +316,17 @@ class Act(unittest.TestCase):
         n = self.A.run(api, [{"type": "reply", "key": "187263:p2", "text": "t", "step": "email1", "expect_after": 1}], ref=REF)
         self.assertEqual((n["sent"], api.sent), (0, []))
 
+    def test_override_auto_sends_on_a_recover_project(self):
+        orig = self.A.auto_projects
+        self.A.auto_projects = lambda: {"37293"}
+        try:
+            api = FakeExplee()
+            n = self.A.run(api, [{"type": "reply", "key": "187263:p2", "text": "t", "step": "email1",
+                                  "expect_after": 1, "override_auto": True}], ref=REF)
+            self.assertEqual((n["sent"], n["skipped_auto"]), (1, 0))
+        finally:
+            self.A.auto_projects = orig
+
     def test_unknown_lead_is_never_mailed(self):
         api = FakeExplee()
         n = self.A.run(api, [{"type": "reply", "key": "999:x", "text": "hi", "expect_after": 0}], ref=REF)
