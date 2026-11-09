@@ -206,8 +206,9 @@ that then go quiet.
 simple version the owner uses: one row per client with the TOTAL paid (€), the
 Explee cost ($) and other costs (€). It ships with NO client data (this repo is
 public): numbers live in the browser's localStorage and move with Export/Import
-JSON. The import file with the Explee numbers was handed to the owner, never
-committed. An earlier private claude.ai artifact ("Rentabilité agence", db-backed)
+JSON. The owner's figures also ship in the page AES-256-GCM encrypted (PBKDF2,
+250k rounds); the password was given to the owner in chat and is not in the
+repo. To update them, re-encrypt the JSON with the same scheme. An earlier private claude.ai artifact ("Rentabilité agence", db-backed)
 does the same per payment: delivery cost = that
 client's Explee project spend × USD→EUR + other costs, and acquisition = project
 30475's total Explee spend split equally across clients. Explee's

@@ -72,6 +72,12 @@ button.x:hover{color:var(--loss)}
     <p>Pour chaque client : ce qu'il t'a payé au total, moins son coût Explee et ta part du coût d'acquisition. Les chiffres restent dans ce navigateur ; utilise Exporter pour les sauvegarder ou les ouvrir ailleurs.</p>
   </header>
 
+  <form id="unlock" class="card" style="padding:14px 16px;display:flex;gap:10px;flex-wrap:wrap;align-items:end">
+    <label style="display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted);flex:1;min-width:200px">Mot de passe pour charger les données enregistrées sur le site
+      <input id="pw" type="password" autocomplete="current-password"></label>
+    <button class="primary" type="submit">Charger</button>
+  </form>
+
   <section class="card verdict">
     <div>
       <div class="label">Profit net</div>
@@ -124,6 +130,8 @@ button.x:hover{color:var(--loss)}
 <script>
 (() => {
   const KEY = "lf_agency_profit_v1";
+  // Client figures, AES-256-GCM encrypted (PBKDF2-SHA256, 250k rounds). The password is not in this repo.
+  const SEED = {"salt":"18lQnUp6duGHFyK3+QlKTQ==","iv":"k1aH4FdAec5z5SVm","ct":"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"};
   const $ = (id) => document.getElementById(id);
   const blank = () => ({ settings: { acq_usd: 0, acq_extra_eur: 0, hot: 0, rate: 0.86 }, clients: [] });
   let state = load();
@@ -216,6 +224,22 @@ button.x:hover{color:var(--loss)}
       save(); renderSettings(); renderTable(); toast(`${state.clients.length} clients importés`);
     } catch { toast("Fichier non reconnu"); }
     e.target.value = "";
+  });
+
+  const b64 = (s) => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+  async function decrypt(pw) {
+    const base = await crypto.subtle.importKey("raw", new TextEncoder().encode(pw), "PBKDF2", false, ["deriveKey"]);
+    const key = await crypto.subtle.deriveKey({ name: "PBKDF2", salt: b64(SEED.salt), iterations: 250000, hash: "SHA-256" }, base, { name: "AES-GCM", length: 256 }, false, ["decrypt"]);
+    const plain = await crypto.subtle.decrypt({ name: "AES-GCM", iv: b64(SEED.iv) }, key, b64(SEED.ct));
+    return JSON.parse(new TextDecoder().decode(plain));
+  }
+  $("unlock").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    try {
+      const d = await decrypt($("pw").value);
+      state = { settings: { ...blank().settings, ...(d.settings || {}) }, clients: d.clients };
+      save(); renderSettings(); renderTable(); $("pw").value = ""; toast(`${state.clients.length} clients chargés`);
+    } catch { toast("Mot de passe incorrect"); }
   });
 
   renderSettings(); renderTable();
