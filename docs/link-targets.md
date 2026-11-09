@@ -1,0 +1,53 @@
+# Where link-building links should point (decided 9 Nov 2026)
+
+**Rule:** every link swap or paid placement points at an *alternative* page of a
+mid-size competitor, with the page's keyword as the anchor. Not the homepage,
+not `company-data-api` / `b2b-data-enrichment`, not the big names (Apollo,
+ZoomInfo, Lusha, Hunter, Clay) — those SERPs are out of reach. Owner's call:
+alternative pages convert better per visitor than the tool pages; they just
+don't rank, for lack of backlinks. Stack 2-3 links on one page before moving to
+the next: one page with three links climbs, ten pages with one link each don't.
+
+Source: Search Console, 11 Aug – 8 Nov 2026 (90 days). Impressions include some
+bot noise (`docs/gsc-seo-2026-10.md`); the position is what matters here.
+
+## Priority 1 — page 2-3, mid-size competitor: links move these most
+
+| Page | Impressions | Avg. position | Anchor to ask for |
+| --- | --- | --- | --- |
+| `/coresignal-alternative` | 816 | 23 | Coresignal alternative |
+| `/apify-alternative` | 705 | 26 | Apify alternative |
+| `/kaspr-alternative` | 420 | 25 | Kaspr alternative |
+| `/skrapp-alternative` | 380 | 19 | Skrapp alternative |
+| `/wiza-alternative` | 369 | 28 | Wiza alternative |
+| `/contact-out-alternative` | 311 | 23 | ContactOut alternative |
+| `/proxycurl-alternative` | 234 | 14 | Proxycurl alternative |
+| `/people-data-labs-alternative` | 176 | 17 | People Data Labs alternative |
+
+## Priority 2 — big demand, far back: needs 3+ links each, long play
+
+| Page | Impressions | Avg. position | Anchor |
+| --- | --- | --- | --- |
+| `/clearbit-alternative` | 2,483 | 47 | Clearbit alternative (Clearbit was folded into HubSpot, so searchers are actively switching) |
+| `/phantombuster-alternative` | 372 | 50 | PhantomBuster alternative |
+| `/rocketreach-alternative` | 376 | 48 | RocketReach alternative |
+
+## Already on page 1 — no links needed for now
+
+`/derrick-app-alternative` (3.3), `/ninjapear-alternative` (4.1),
+`/scrapingdog-alternative` (5.5), `/enrichlayer-alternative` (6.4),
+`/surfe-alternative` (9.0), `/scrapin-alternative` (9.0),
+`/captain-data-alternative` (10.8).
+
+## Links already placed
+
+| Date | From | Anchor | To |
+| --- | --- | --- | --- |
+| 9 Nov 2026 | apollotechnical.com/top-company-data-apis-by-use-case-tools-compared | company data API | `/company-data-api` |
+| 9 Nov 2026 | apollotechnical.com/what-is-pipeline-management-why-it-matters | B2B data enrichment | `/b2b-data-enrichment` |
+
+Given in return: `workinsiders.com/deliverability/` (anchor "land in spam") on
+`/resources/scraped-vs-purchased-email-lists-deliverability`, and
+`workinsiders.com/ats/` (anchor "applicant tracking systems") on
+`/best-recruitment-software-tools`. Keep them: removing a swapped link is how
+partners notice and pull theirs.

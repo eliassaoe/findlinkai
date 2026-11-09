@@ -77,6 +77,7 @@ into a file here in the same session, or it is gone.
 | **Lifetime deal campaign** — the audience, `/lifetime-deal`, the `ltd_monthly_credits` column, workflow 28, the churn win-back, and the launch checklist | `docs/ltd-campaign.md` — read it before changing `ltd_*` tables, the page, or sending anything to free users |
 | **AppSumo codes** — `/redeem-code` with `LFAS-` codes, 60,000 credits/year, account created on redeem; generating, exporting and revoking codes | `docs/appsumo-codes.md` — never commit codes, this repo is public |
 | Selling Done For You to the 67 idle pack buyers | `docs/dfy-activation-campaign.md` — read the correction in it before quoting any "paying accounts" number |
+| **Link building: which page every swap or paid link points at** (mid-size competitor *alternative* pages on page 2-3, keyword anchor; never the big names) and the links already traded | `docs/link-targets.md` — read it before answering any MentionAgent thread |
 | Who the SEO traffic actually is, before aiming an offer at it | `docs/traffic-capture-verdict.md` |
 | **Which pages bring organic visitors, signups and payments** — and why more competitor pages won't move it | `docs/organic-to-paid-2026-10.md` |
 | **Search Console read-out: bot impressions, the bulk-retitle results, and the email-finder title decision** | `docs/gsc-seo-2026-10.md` — read it before changing a tool page's title or judging a page by CTR |
