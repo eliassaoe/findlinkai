@@ -45,8 +45,9 @@ bot noise (`docs/gsc-seo-2026-10.md`); the position is what matters here.
 | --- | --- | --- | --- |
 | 9 Nov 2026 | apollotechnical.com/top-company-data-apis-by-use-case-tools-compared | company data API | `/company-data-api` |
 | 9 Nov 2026 | apollotechnical.com/what-is-pipeline-management-why-it-matters | B2B data enrichment | `/b2b-data-enrichment` |
+| 9 Nov 2026 | adaptlypost.com/blog/facebook-phone-number-search-guide | LinkedIn phone number finder API | `/linkedin-phone-number-finder-api` |
 
-Given in return: `workinsiders.com/deliverability/` (anchor "land in spam") on
+Given in return: AdaptlyPost as #12 (entry + table row, dofollow to adaptlypost.com) on `/best-instagram-api-for-automations`; `workinsiders.com/deliverability/` (anchor "land in spam") on
 `/resources/scraped-vs-purchased-email-lists-deliverability`, and
 `workinsiders.com/ats/` (anchor "applicant tracking systems") on
 `/best-recruitment-software-tools`. Keep them: removing a swapped link is how
