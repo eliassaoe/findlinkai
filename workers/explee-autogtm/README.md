@@ -246,6 +246,14 @@ own. Engine and tests: `relance.py`, `test_relance.py`.
 have passed since our last message (`not_before`); the page refuses to send it
 before then and `relance_act.py` skips it (`skipped_too_soon`).
 
+**Explee refuses a 4th reply after the lead's last message** (seen 9 Nov 2026:
+every "Email 3" to a thread that already held our answer + 2 relances came back
+HTTP 429, on retry too). So with the 3-email cadence, Email 3 only goes out when
+our answer was not itself a reply in that thread; otherwise it must be sent by
+hand from the mailbox, or not at all. 113 relances were sent that day by batch
+(`override_auto` on linkfinderai.com, whose `recover.py` has failed since 6 Nov):
+93 went out, the 20 Email 3 hit that cap.
+
 **Slots follow the real date, not the sync date** (9 Nov 2026). The page used
 to propose "demain mardi" all day Tuesday when it was built on Monday, and
 Friday's page still offered Monday slots on Monday (no sync over the weekend).
