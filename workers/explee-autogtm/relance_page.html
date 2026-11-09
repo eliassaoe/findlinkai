@@ -162,6 +162,53 @@ function dd(iso){ if(!iso) return ''; const d=new Date(iso.slice(0,10)+'T12:00:0
 function diff(iso){ return Math.round((new Date(iso.slice(0,10)+'T12:00:00') - new Date(todayIso()+'T12:00:00'))/864e5); }
 function when(iso){ if(!iso) return {t:'',c:''}; const n=diff(iso);
   if(n<0) return {t:`en retard de ${-n} j`,c:'late'}; if(n===0) return {t:"aujourd'hui",c:'today'}; if(n===1) return {t:'demain',c:''}; return {t:dd(iso),c:''}; }
+/* ───────── date du jour réelle ─────────
+   La page est générée toutes les 2 h en semaine (une fois le week-end) : ses brouillons
+   disent « demain » par rapport au jour de la synchro. On les recale ici sur la date
+   du jour du navigateur, avec la même règle que relance.py (fresh_slots) : prochain
+   jour ouvré ≥ max(demain, attente demandée), puis le jour ouvré suivant. */
+const FR_J = ['dimanche','lundi','mardi','mercredi','jeudi','vendredi','samedi'];
+const FR_M = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+const EN_J = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+const EN_M = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const dOf = iso => new Date(iso.slice(0,10)+'T12:00:00');
+const addD = (d,n) => { const x=new Date(d); x.setDate(x.getDate()+n); return x; };
+const nextBday = d => { let x=new Date(d); while(x.getDay()===0||x.getDay()===6) x=addD(x,1); return x; };
+const dayGap = (a,b) => Math.round((a-b)/864e5);
+function frDay(d, ref){ if(dayGap(d,ref)===1) return `demain ${FR_J[d.getDay()]}`;
+  if(dayGap(d,ref)<7) return `${FR_J[d.getDay()]} ${d.getDate()}`; return `${FR_J[d.getDay()]} ${d.getDate()} ${FR_M[d.getMonth()]}`; }
+function enDay(d, ref){ if(dayGap(d,ref)===1) return `tomorrow (${EN_J[d.getDay()]})`;
+  const n=d.getDate(), th=(n%100>10&&n%100<14)?'th':({1:'st',2:'nd',3:'rd'}[n%10]||'th');
+  if(dayGap(d,ref)<7) return `${EN_J[d.getDay()]} the ${n}${th}`; return `${EN_J[d.getDay()]} ${EN_M[d.getMonth()]} ${n}`; }
+function slotTxt(d, ref, h, lang){ if(lang==='en') return `${enDay(d,ref)} at ${h>12?(h-12)+'pm':(h<12?h+'am':'noon')}`; return `${frDay(d,ref)} à ${h}h`; }
+function freshSlots(c, todayStr){
+  const ref=dOf(todayStr), tomorrow=addD(ref,1), wait=c.wait_until?dOf(c.wait_until):null;
+  const d1=nextBday(wait && wait>tomorrow ? wait : tomorrow), d2=nextBday(addD(d1,1));
+  return [slotTxt(d1,ref,c.hour||10,c.lang||'fr'), slotTxt(d2,ref,c.hour2||17,c.lang||'fr')];
+}
+function swapSlots(text, old, fresh){
+  const pairs=(old||[]).map((o,i)=>[o,fresh[i]]).filter(([o,n])=>o&&n&&o!==n).sort((a,b)=>b[0].length-a[0].length);
+  if(!text||!pairs.length) return text;
+  const rx=new RegExp(pairs.map(([o])=>o.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('|'),'g'), t=Object.fromEntries(pairs);
+  return text.replace(rx, m=>t[m]);
+}
+/* Recale un lead sur aujourd'hui : créneaux des brouillons, et « à relancer » seulement
+   si l'étape est due ET que 24 h se sont écoulées depuis notre dernier email. */
+function toToday(l){
+  const c=l.ctx||{}, today=todayIso();
+  if(c.hour!=null){
+    const fresh=freshSlots(c, today), old=[c.slot1,c.slot2];
+    for(const k of Object.keys(l.drafts||{}))
+      l.drafts[k]=swapSlots(swapSlots(l.drafts[k], old, fresh), ['call','voicemail','sms'].includes(k)?c.call_slots:null, fresh);
+    c.slot1=fresh[0]; c.slot2=fresh[1]; c.call_slots=null;
+  }
+  if(l.next && l.next.due && ['scheduled','today','call'].includes(l.bucket)){
+    const due=l.next.due<=today, gapOk=!l.not_before || Date.now()>=new Date(l.not_before);
+    if(/^email\d$/.test(l.next.key)) l.bucket = due&&gapOk ? 'today' : 'scheduled';
+    else if(l.next.key==='call') l.bucket = due ? 'call' : 'scheduled';
+  }
+}
+const tooSoon = l => l.not_before && Date.now() < new Date(l.not_before);
 function dtFr(iso){ if(!iso) return ''; const d=new Date(iso); return `${d.getDate()} ${MOIS[d.getMonth()]} · ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; }
 function ago(iso){ const m=Math.round((Date.now()-new Date(iso))/6e4); if(m<60) return `il y a ${m} min`; const h=Math.round(m/60); if(h<48) return `il y a ${h} h`; return `il y a ${Math.round(h/24)} j`; }
 function stamp(){ const d=new Date(); const p=n=>String(n).padStart(2,'0'); return `[${p(d.getDate())}/${p(d.getMonth()+1)} ${p(d.getHours())}:${p(d.getMinutes())}]`; }
@@ -195,6 +242,8 @@ async function open_(pw){
   // une action faite ici avant la dernière synchro est déjà dans les données
   for(const k of Object.keys(S.done)) if(!S.done[k].at || new Date(S.done[k].at) < new Date(S.data.generated_at)) delete S.done[k];
   store.set(LS.done, JSON.stringify(S.done));
+  for(const l of S.data.leads) toToday(l);
+  S.data.today = todayIso();
   shell(); render();
 }
 
@@ -334,7 +383,9 @@ function sendable(l){
 }
 const STEP = {reply:'Réponse', email1:'Email 1', email2:'Email 2', email3:'Email 3'};
 async function sendNow(l, step, text){
-  if(mode()!=='copy'){ enqueue(l, {type:'reply', text, step, expect_after:l.expect_after}, STEP[step]+' envoyé'); return; }
+  if(step!=='reply' && tooSoon(l)) return toast(`Pas avant ${dtFr(l.not_before)} : 24 h minimum entre deux emails`, true);
+  const slots=[l.ctx&&l.ctx.slot1, l.ctx&&l.ctx.slot2];      // relance_act.py les recale si le jour a changé
+  if(mode()!=='copy'){ enqueue(l, {type:'reply', text, step, expect_after:l.expect_after, slots}, STEP[step]+' envoyé'); return; }
   await copyText(text, true); window.open(l.inbox_url,'_blank','noopener');
   toast('Texte copié : collez-le en réponse dans le fil'); markDone(l, STEP[step]+' préparé');
 }
@@ -538,7 +589,7 @@ function openLead(key, keepTpl){
       <div class="inline note">Rappeler le <input type="date" id="retryAt"> <button class="btn sm" data-out="retry">OK</button></div>`;
   } else {
     const direct = mode()!=='copy' && !l.auto;
-    h += `${l.auto?'<div class="note" style="margin-bottom:8px">Ce projet est relancé automatiquement par recover.py.</div>':''}${l.review && S.tpl==='reply'?'<div class="warn" style="margin:0 0 10px">Le lead pose une question : complétez la réponse.</div>':''}<textarea id="draft">${esc(l.drafts[S.tpl]||'')}</textarea>
+    h += `${l.auto?'<div class="note" style="margin-bottom:8px">Ce projet est relancé automatiquement par recover.py.</div>':''}${l.review && S.tpl==='reply'?'<div class="warn" style="margin:0 0 10px">Le lead pose une question : complétez la réponse.</div>':''}${S.tpl!=='reply' && tooSoon(l)?`<div class="note" style="margin-bottom:8px">Dernier email il y a moins de 24 h : relance possible à partir du ${esc(dtFr(l.not_before))}.</div>`:''}<textarea id="draft">${esc(l.drafts[S.tpl]||'')}</textarea>
       <div class="actions">${dn&&dn.queued?`<button class="btn" data-undo="${esc(l.key)}">Annuler l'envoi</button>`:(direct?`<button class="btn primary" id="send">Envoyer</button>`:`<button class="btn primary" id="copyopen">Copier et ouvrir l'inbox</button>`)}<button class="btn ghost" data-copytxt-draft="1">Copier</button></div>`;
   }
   const status = l.bucket==='booked'||l.bucket==='lost'
@@ -554,8 +605,8 @@ function openLead(key, keepTpl){
   dr.querySelectorAll('[data-status]').forEach(b=>b.onclick=()=>({booked:()=>record(l,'RDV calé'),lost:()=>record(l,'Pas intéressé'),reactivate:()=>record(l,'Séquence réactivée')})[b.dataset.status]());
   const sz=$('#snooze'); if(sz) sz.onchange=()=>{ if(sz.value) record(l,`Attendre jusqu'au ${sz.value}`); };
   const cd=dr.querySelector('[data-copytxt-draft]'); if(cd) cd.onclick=()=>copyText($('#draft').value);
-  const send=$('#send'); if(send) send.onclick=()=>{ const t=$('#draft').value.trim(); if(!t) return toast('Message vide',true); sendNow(l, S.tpl, t); toast(`${STEP[S.tpl]} à ${l.name} · annulable ${UNDO_MS/1000} s`); };
-  const co=$('#copyopen'); if(co) co.onclick=async()=>{ await copyText($('#draft').value,true); window.open(l.inbox_url,'_blank','noopener'); toast('Texte copié : collez-le en réponse dans le fil'); markDone(l, `${STEP[S.tpl]} préparé`); };
+  const send=$('#send'); if(send) send.onclick=()=>{ const t=$('#draft').value.trim(); if(!t) return toast('Message vide',true); if(S.tpl!=='reply' && tooSoon(l)) return toast(`Pas avant ${dtFr(l.not_before)} : 24 h minimum entre deux emails`, true); sendNow(l, S.tpl, t); toast(`${STEP[S.tpl]} à ${l.name} · annulable ${UNDO_MS/1000} s`); };
+  const co=$('#copyopen'); if(co) co.onclick=async()=>{ if(S.tpl!=='reply' && tooSoon(l)) return toast(`Pas avant ${dtFr(l.not_before)} : 24 h minimum entre deux emails`, true); await copyText($('#draft').value,true); window.open(l.inbox_url,'_blank','noopener'); toast('Texte copié : collez-le en réponse dans le fil'); markDone(l, `${STEP[S.tpl]} préparé`); };
   wireActions(dr);
 }
 function closeLead(){ S.open=null; S.tpl=null; $('#drawer').classList.remove('on'); $('#veil').classList.remove('on'); }

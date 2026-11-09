@@ -241,6 +241,21 @@ when a number sits in their signature** · J+4 email 2 (value angle) · J+8 emai
 "semaine prochaine", "en novembre" in their reply delays the first step on its
 own. Engine and tests: `relance.py`, `test_relance.py`.
 
+**Never two of our emails less than 24 h apart** (`MIN_GAP_H`, added 9 Nov
+2026). A step that is due the day after we wrote stays "Planifié" until 24 h
+have passed since our last message (`not_before`); the page refuses to send it
+before then and `relance_act.py` skips it (`skipped_too_soon`).
+
+**Slots follow the real date, not the sync date** (9 Nov 2026). The page used
+to propose "demain mardi" all day Tuesday when it was built on Monday, and
+Friday's page still offered Monday slots on Monday (no sync over the weekend).
+Now the page recomputes both slots from the browser's date on load
+(`toToday()`, same rule as `relance.fresh_slots`: next working day ≥ tomorrow
+and ≥ any wait the lead asked for), and `relance_act.py` recomputes them again
+at send time from the slot strings the page sends (`slots`), leaving any hand
+edit intact. It also re-reads the lead's note first, so a "RDV calé" or
+"attendre jusqu'au…" written since the build is honoured.
+
 **State lives in the Explee lead note**, one line per action, last line wins:
 `booked` / `rdv` / `stop` / `ne pas relancer` (the same words `recover.py`
 honours), `Appel : message laissé`, `Appel : à rappeler le 2026-10-09`,

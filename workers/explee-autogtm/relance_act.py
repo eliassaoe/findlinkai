@@ -8,7 +8,8 @@ la page si RELANCE_PASSWORD est défini (les entrées d'un workflow sont visible
 sur un dépôt public), en clair sinon.
 
     {"v":1, "actions":[
-        {"type":"reply", "key":"187263:p2", "text":"Bonjour Xavier…", "step":"email1", "expect_after":1},
+        {"type":"reply", "key":"187263:p2", "text":"Bonjour Xavier…", "step":"email1", "expect_after":1,
+         "slots":["demain mardi à 10h", "mercredi 8 à 17h"]},
         {"type":"note",  "key":"187262:p3", "line":"[06/10 20:12] Relance · Appel : message laissé"}
     ]}
 
@@ -20,6 +21,11 @@ Garde-fous :
     (même nombre de nos messages après sa dernière réponse, et toujours pas de
     nouvelle réponse) : deux clics, deux onglets ou une relance déjà faite à la
     main ne donnent pas deux emails ;
+  - jamais deux de nos emails à moins de 24 h d'écart (R.MIN_GAP_H) : une relance
+    cliquée trop tôt est ignorée, elle repassera à la prochaine synchro ;
+  - les créneaux du texte (`slots`, tels qu'écrits dans le brouillon) sont
+    recalculés pour le jour de l'envoi : jamais un créneau d'aujourd'hui ou passé,
+    même si la page a été générée la veille ou le vendredi ;
   - 40 actions au plus par exécution, 5 000 caractères au plus par email.
 
 Les journaux du dépôt sont publics : ce script n'imprime aucun nom, aucune
@@ -66,8 +72,9 @@ def run(api, actions, dry=False, ref=None):
 
     camp_project = {str(R.pick(c, "id")): str(R.pick(c, "project_id")) for c in store.raw["campaigns"]}
     auto = auto_projects()
+    ref = ref or R.now()
     n = {"sent": 0, "notes": 0, "skipped_moved": 0, "skipped_unknown": 0, "skipped_auto": 0,
-         "failed": 0, "limited": 0}
+         "skipped_too_soon": 0, "failed": 0, "limited": 0, "slots_refreshed": 0}
     for a in actions:
         key = str(a.get("key", ""))
         if key not in by_key:
@@ -83,10 +90,23 @@ def run(api, actions, dry=False, ref=None):
                 if not text or len(text) > MAX_TEXT:
                     n["failed"] += 1
                     continue
-                v = R.compute(lead, thread, None, ref)
+                # état relu dans la note (RDV calé, attendre jusqu'au…) et date du jour réelle
+                state = R.state_from_note(api.get_note(cid, pid), ref.date())
+                v = R.compute(lead, thread, state, ref)
                 if v["status"] in ("unknown",) or v["expect_after"] != int(a.get("expect_after", -1)):
                     n["skipped_moved"] += 1      # le fil a bougé : déjà relancé, ou il a répondu
                     continue
+                if v["status"] in ("booked", "lost") and a.get("step") != "reply":
+                    n["skipped_moved"] += 1      # marqué RDV calé / pas intéressé entre-temps
+                    continue
+                if v["not_before"] and ref < R.parse_dt(v["not_before"]):
+                    n["skipped_too_soon"] += 1   # moins de 24 h depuis notre dernier email
+                    continue
+                fresh = R.fresh_slots(v["ctx"], ref.date())
+                new_text = R.refresh_slots(text, a.get("slots"), fresh)
+                if new_text != text:
+                    n["slots_refreshed"] += 1
+                    text = new_text
                 if not dry:
                     api.reply(cid, pid, text)
                     line = f"[{R.now():%d/%m %H:%M}] Relance · Email envoyé : {R.STEP_LABEL.get(a.get('step'), 'Email')}"
@@ -126,7 +146,9 @@ def main():
     except R.ApiError as e:
         sys.exit("Solde Explee négatif : rien n'est parti." if e.code == 402 else f"Explee HTTP {e.code}")
     summary = (f"{'DRY RUN · ' if dry else ''}{n['sent']} email(s) envoyé(s) · {n['notes']} note(s) · "
-               f"{n['skipped_moved']} ignoré(s) car le fil a bougé · {n['limited']} limité(s) par Explee · "
+               f"{n['skipped_moved']} ignoré(s) car le fil a bougé · "
+               f"{n['skipped_too_soon']} reporté(s) (moins de 24 h depuis le dernier email) · "
+               f"{n['slots_refreshed']} créneau(x) recalé(s) sur la date du jour · {n['limited']} limité(s) par Explee · "
                f"{n['failed']} échec(s) · {n['skipped_unknown']} inconnu(s) · {n['skipped_auto']} laissé(s) à recover.py")
     print(summary)
     out = os.environ.get("GITHUB_STEP_SUMMARY")

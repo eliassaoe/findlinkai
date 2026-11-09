@@ -206,6 +206,41 @@ class Page(unittest.TestCase):
         self.assertIn('"blob": null', html)
 
 
+class GapAndToday(unittest.TestCase):
+    """Au moins 24 h entre deux de nos emails ; créneaux toujours à partir du lendemain."""
+    def test_no_relance_within_24h_of_our_last_email(self):
+        # notre réponse à Xavier : lundi 5 oct. 14:41 → email 1 dû mardi, mais pas avant 14:41
+        v = R.compute(*lead("Xavier"), None, datetime(2026, 10, 6, 8, 0, tzinfo=R.TZ))
+        self.assertEqual((v["bucket"], v["next"]["key"]), ("scheduled", "email1"))
+        self.assertEqual(v["not_before"], "2026-10-06T14:41:00+02:00")
+        v = R.compute(*lead("Xavier"), None, datetime(2026, 10, 6, 15, 0, tzinfo=R.TZ))
+        self.assertEqual(v["bucket"], "today")
+
+    def test_gap_holds_a_same_day_relance(self):
+        # email 1 parti jeudi 8 à 18h ; email 2 dû vendredi 9 : pas avant vendredi 18h
+        l = {"person_id": "x", "campaign_id": 1, "email": "a@b.fr", "first_name": "Ana"}
+        msgs = [{"direction": "inbound", "ts": "2026-10-05T07:00:00Z", "body": "Ok, intéressée"},
+                {"direction": "outbound", "ts": "2026-10-05T08:00:00Z", "body": "Merci\n\nTom"},
+                {"direction": "outbound", "ts": "2026-10-08T16:00:00Z", "body": "Email 1\n\nTom"}]
+        v = R.compute(l, {"messages": msgs}, None, datetime(2026, 10, 9, 10, 0, tzinfo=R.TZ))
+        self.assertEqual((v["next"]["key"], v["next"]["due"], v["bucket"]), ("email2", "2026-10-09", "scheduled"))
+        self.assertEqual(v["not_before"], "2026-10-09T18:00:00+02:00")
+        v = R.compute(l, {"messages": msgs}, None, datetime(2026, 10, 9, 18, 30, tzinfo=R.TZ))
+        self.assertEqual(v["bucket"], "today")
+
+    def test_slots_start_tomorrow_and_skip_weekend(self):
+        ctx = {"hour": 10, "hour2": 17, "lang": "fr", "wait_until": None}
+        self.assertEqual(R.fresh_slots(ctx, date(2026, 11, 9)), ("demain mardi à 10h", "mercredi 11 à 17h"))
+        self.assertEqual(R.fresh_slots(ctx, date(2026, 11, 13)), ("lundi 16 à 10h", "mardi 17 à 17h"))
+        self.assertEqual(R.fresh_slots(dict(ctx, wait_until="2026-11-20"), date(2026, 11, 9)),
+                         ("vendredi 20 novembre à 10h", "lundi 23 novembre à 17h"))
+
+    def test_refresh_keeps_hand_edits(self):
+        t = "Bonjour,\nDemain : demain mardi à 10h ou mercredi 11 à 17h ? (ajouté à la main)"
+        out = R.refresh_slots(t, ["demain mardi à 10h", "mercredi 11 à 17h"], ("demain mercredi à 10h", "jeudi 12 à 17h"))
+        self.assertEqual(out, "Bonjour,\nDemain : demain mercredi à 10h ou jeudi 12 à 17h ? (ajouté à la main)")
+
+
 class FakeExplee:
     """Explee en mémoire, alimenté par les données démo."""
     def __init__(self):
@@ -254,6 +289,32 @@ class Act(unittest.TestCase):
             self.assertEqual((n["sent"], n["skipped_auto"], api.sent), (0, 1, []))
         finally:
             self.A.auto_projects = orig
+
+    def test_too_soon_is_not_sent(self):
+        api = FakeExplee()
+        acts = [{"type": "reply", "key": "187263:p2", "text": "Bonjour Xavier", "step": "email1", "expect_after": 1}]
+        n = self.A.run(api, acts, ref=datetime(2026, 10, 6, 9, 0, tzinfo=R.TZ))   # 18 h après notre email
+        self.assertEqual((n["sent"], n["skipped_too_soon"], api.sent), (0, 1, []))
+
+    def test_stale_page_slots_are_moved_to_the_send_day(self):
+        # page générée mardi 6 au soir, clic jeudi 8 : « demain mercredi » serait passé
+        built = R.compute(*lead("Xavier"), None, REF)
+        text = built["drafts"]["email1"]
+        slots = [built["ctx"]["slot1"], built["ctx"]["slot2"]]
+        self.assertIn("demain mercredi à 17h", text)
+        api = FakeExplee()
+        n = self.A.run(api, [{"type": "reply", "key": "187263:p2", "text": text, "step": "email1",
+                              "expect_after": 1, "slots": slots}], ref=datetime(2026, 10, 8, 9, 0, tzinfo=R.TZ))
+        self.assertEqual((n["sent"], n["slots_refreshed"]), (1, 1))
+        sent = api.sent[0][1]
+        self.assertNotIn("mercredi", sent)
+        self.assertIn("demain vendredi à 17h", sent)
+
+    def test_booked_in_note_is_not_mailed(self):
+        api = FakeExplee()
+        api.notes["187263:p2"] = "rdv"
+        n = self.A.run(api, [{"type": "reply", "key": "187263:p2", "text": "t", "step": "email1", "expect_after": 1}], ref=REF)
+        self.assertEqual((n["sent"], api.sent), (0, []))
 
     def test_unknown_lead_is_never_mailed(self):
         api = FakeExplee()

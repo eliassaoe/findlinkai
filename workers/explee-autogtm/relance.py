@@ -10,6 +10,10 @@ Séquence par lead (jours ouvrés, comptés depuis votre réponse au lead) :
   J+2  Appel    — seulement si un numéro figure dans sa signature
   J+4  Email 2  — angle valeur (ce qu'il repart avec)
   J+8  Email 3  — clôture polie
+Jamais deux de nos emails à moins de 24 h d'écart (MIN_GAP_H) : une relance
+due avant que 24 h se soient écoulées depuis notre dernier message attend.
+Les créneaux proposés sont toujours à partir du lendemain du jour où l'email
+part réellement (recalculés à l'envoi par relance_act.py et par la page).
 La séquence s'arrête dès que le lead répond (il repasse en « À répondre »),
 quand vous marquez « RDV calé » ou « Pas intéressé ».
 Si le lead a demandé d'attendre (« après le 14 », « semaine prochaine »…),
@@ -56,6 +60,8 @@ CADENCE_WITH_PHONE = [("email1", 1), ("call", 2), ("email2", 4), ("email3", 8)]
 CADENCE_NO_PHONE = [("email1", 1), ("email2", 4), ("email3", 8)]
 # le lead a demandé qu'on l'appelle : l'appel passe en premier
 CADENCE_CALL_FIRST = [("call", 0), ("email1", 2), ("email2", 4), ("email3", 8)]
+# Au moins 24 h entre deux de nos emails au même lead : ne pas être envahissant.
+MIN_GAP_H = 24
 STEP_LABEL = {"reply": "Répondre", "email1": "Email 1", "call": "Appel",
               "email2": "Email 2", "email3": "Email 3"}
 
@@ -147,6 +153,26 @@ def fr_day(d, ref=None):
     if (d - ref).days < 7:
         return f"{JOURS[d.weekday()]} {d.day}"
     return f"{JOURS[d.weekday()]} {d.day} {MOIS[d.month - 1]}"
+
+def fresh_slots(ctx, ref):
+    """Les deux créneaux tels qu'ils doivent s'écrire le jour `ref` (date) :
+    prochain jour ouvré ≥ max(lendemain, attente demandée), puis le jour ouvré suivant."""
+    wait = date.fromisoformat(ctx["wait_until"]) if ctx.get("wait_until") else None
+    d1 = next_bday(max(ref + timedelta(days=1), wait or ref))
+    hour, h2, lang = ctx.get("hour") or 10, ctx.get("hour2") or 17, ctx.get("lang") or "fr"
+    return slot_text(d1, ref, hour, lang), slot_text(add_bdays(d1, 1), ref, h2, lang)
+
+
+def refresh_slots(text, old, new):
+    """Remplace dans `text` les créneaux écrits un autre jour (`old`) par ceux du
+    jour (`new`). Le reste du texte, retouches à la main comprises, est intact."""
+    pairs = [(o, n) for o, n in zip(old or [], new) if o and o != n]
+    if not pairs:
+        return text
+    # en une passe : « demain mardi » → « mardi 10 » ne doit pas être re-remplacé
+    rx = re.compile("|".join(re.escape(o) for o, _ in sorted(pairs, key=lambda x: -len(x[0]))))
+    table = dict(pairs)
+    return rx.sub(lambda m: table[m.group(0)], text)
 
 # ═══════════════════════════════════════════════════════════ texte des emails
 
@@ -743,11 +769,19 @@ def compute(lead, thread, state, ref_dt=None, camp=None):
         nxt = {"key": "reply", "label": "Répondre", "due": (last_in_dt.date() if last_in_dt else today).isoformat()}
 
     due_d = date.fromisoformat(nxt["due"]) if nxt and nxt.get("due") else None
+    # au moins MIN_GAP_H heures entre deux de nos emails : la relance attend
+    last_out_dt = msg_date(after[-1]) if after else None
+    not_before = None
+    if status == "active" and nxt and nxt["key"].startswith("email") and last_out_dt:
+        not_before = last_out_dt + timedelta(hours=MIN_GAP_H)
+        if due_d and due_d < not_before.date():
+            due_d = not_before.date()
+            nxt["due"] = due_d.isoformat()          # nxt est l'étape de steps : la frise suit
     if status == "reply":
         bucket = "reply"
     elif status in ("booked", "lost", "finished", "unknown"):
         bucket = status
-    elif due_d and due_d <= today:
+    elif due_d and due_d <= today and not (not_before and ref_dt < not_before):
         bucket = "call" if nxt["key"] == "call" else "today"
     else:
         bucket = "scheduled"
@@ -759,7 +793,10 @@ def compute(lead, thread, state, ref_dt=None, camp=None):
     ctx = {"first_name": first, "company": company, "cal_link": links[-1] if links else "",
            "lang": lang, "brand": camp.get("brand", ""), "offer": re.sub(r"\s+", " ", str(camp.get("offer") or "")).strip()[:600],
            "signoff": signoff, "me": me, "teams": teams,
-           "slot1": slot_text(d1, today, hour, lang), "slot2": slot_text(d2, today, h2, lang), "asked_call": asked_call}
+           "slot1": slot_text(d1, today, hour, lang), "slot2": slot_text(d2, today, h2, lang), "asked_call": asked_call,
+           # de quoi recalculer les créneaux le jour où l'email part vraiment (page + relance_act.py)
+           "today": today.isoformat(), "hour": hour, "hour2": h2,
+           "wait_until": wait_until.isoformat() if wait_until else None}
 
     drafts = drafts_for(ctx)
     # le script d'appel est lu le jour de l'appel : créneaux comptés depuis ce jour-là
@@ -769,6 +806,7 @@ def compute(lead, thread, state, ref_dt=None, camp=None):
         c1 = next_bday(max(cday + timedelta(days=1), wait_until or cday))
         cctx = dict(ctx, slot1=slot_text(c1, cday, hour, lang), slot2=slot_text(add_bdays(c1, 1), cday, h2, lang))
         drafts.update({k: v for k, v in drafts_for(cctx).items() if k in ("call", "voicemail", "sms")})
+        ctx["call_slots"] = [cctx["slot1"], cctx["slot2"]]
 
     last_msg = msgs[-1] if msgs else None
     last_dt = msg_date(last_msg) if last_msg else None
@@ -787,6 +825,8 @@ def compute(lead, thread, state, ref_dt=None, camp=None):
         # nombre de nos messages après sa dernière réponse : relance_act.py refuse
         # d'envoyer si le fil a bougé depuis (évite un double envoi)
         "expect_after": len(after),
+        # pas d'email avant cette heure-là (24 h après notre dernier message)
+        "not_before": not_before.isoformat() if not_before else None,
         "review": needs_review(last_in_text) if status == "reply" else False,
         "wait_until": wait_until.isoformat() if wait_until else None,
         "wait_auto": bool(auto_wait and not st.get("snooze_until")),
