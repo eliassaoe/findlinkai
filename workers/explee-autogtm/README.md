@@ -202,8 +202,13 @@ that then go quiet.
 
 ## Agency profitability calculator (9 Nov 2026)
 
-A private claude.ai artifact ("Rentabilité agence", db-backed, owner/editors only)
-holds one row per agency client: payments received (€), delivery cost = that
+`/rentabilite-agence` (noindex, linked from nowhere, out of the sitemap) is the
+simple version the owner uses: one row per client with the TOTAL paid (€), the
+Explee cost ($) and other costs (€). It ships with NO client data (this repo is
+public): numbers live in the browser's localStorage and move with Export/Import
+JSON. The import file with the Explee numbers was handed to the owner, never
+committed. An earlier private claude.ai artifact ("Rentabilité agence", db-backed)
+does the same per payment: delivery cost = that
 client's Explee project spend × USD→EUR + other costs, and acquisition = project
 30475's total Explee spend split equally across clients. Explee's
 `/api/app-auto-gtm/projects/<id>/dashboard?period=all` gives a project's

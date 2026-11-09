@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>Rentabilité agence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<style>
+/* Internal tool. No client data ships with this page: everything lives in this browser (localStorage) and moves with Export / Import. */
+:root{
+  --bg:#f5f6f3;--surface:#fff;--sunk:#eceee9;--line:#d9ddd5;--fg:#16201c;--muted:#5d6b64;
+  --accent:#1f5f8b;--gain:#1b7a4b;--gain-soft:#dff1e7;--loss:#b4372f;--loss-soft:#f8e2df;--wait:#8a6a12;--wait-soft:#f6edd2;
+  --sans:"Instrument Sans",ui-sans-serif,system-ui,sans-serif;--mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+  color-scheme:light}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#111614;--surface:#18201c;--sunk:#0d1210;--line:#2a3530;--fg:#e7ece9;--muted:#93a39b;
+  --accent:#7fb6dd;--gain:#5fcf94;--gain-soft:#163024;--loss:#f08a80;--loss-soft:#3a1d1a;--wait:#e2c264;--wait-soft:#33290f;color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 var(--sans);
+  padding:28px max(16px,env(safe-area-inset-right)) 64px max(16px,env(safe-area-inset-left))}
+.wrap{max-width:980px;margin:0 auto;display:flex;flex-direction:column;gap:22px}
+h1{font-size:clamp(26px,4vw,32px);margin:0;letter-spacing:-.02em}
+.muted{color:var(--muted)}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+header p{margin:6px 0 0;color:var(--muted);max-width:62ch}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px}
+.verdict{padding:20px;display:grid;grid-template-columns:1fr 2fr;gap:20px}
+@media (max-width:720px){.verdict{grid-template-columns:1fr}}
+.big{font-family:var(--mono);font-size:clamp(32px,6vw,44px);font-weight:600;letter-spacing:-.03em;line-height:1.1}
+.label{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;background:var(--line);border-radius:10px;overflow:hidden}
+@media (max-width:520px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.kpi{background:var(--surface);padding:11px 13px;min-width:0}
+.kpi .k{font-size:12px;color:var(--muted);display:block}
+.kpi .v{font-family:var(--mono);font-size:18px;font-weight:600;font-variant-numeric:tabular-nums}
+.pill{display:inline-block;font-size:12px;font-weight:600;padding:2px 10px;border-radius:999px}
+.gain{color:var(--gain)}.loss{color:var(--loss)}
+.pill.gain{background:var(--gain-soft)}.pill.loss{background:var(--loss-soft)}.pill.wait{background:var(--wait-soft);color:var(--wait)}
+.tablewrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:680px}
+th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+th{font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em;background:var(--sunk)}
+th:first-child,td:first-child{text-align:left}
+td{font-family:var(--mono);font-variant-numeric:tabular-nums}
+tfoot td{font-weight:600;background:var(--sunk)}
+input{font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:6px 8px;width:100%;min-width:0}
+td input{width:110px;text-align:right;font-family:var(--mono)}
+td input.name{width:180px;text-align:left;font-family:var(--sans);font-weight:600}
+input:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+button{font:inherit;cursor:pointer;border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:8px;padding:8px 14px}
+button:hover{border-color:var(--accent)}
+button.primary{background:var(--accent);border-color:var(--accent);color:var(--surface);font-weight:600}
+button.x{border:0;background:none;color:var(--muted);padding:4px 6px}
+button.x:hover{color:var(--loss)}
+.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--line)}
+.settings{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;padding:16px}
+@media (max-width:720px){.settings{grid-template-columns:1fr 1fr}}
+.settings label{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted)}
+.how{font-size:13.5px;color:var(--muted);max-width:75ch}
+.how b{color:var(--fg)}
+.toast{position:fixed;right:16px;bottom:16px;background:var(--fg);color:var(--bg);padding:8px 14px;border-radius:8px;font-size:13px;opacity:0;transition:opacity .2s}
+.toast.on{opacity:1}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Rentabilité agence</h1>
+    <p>Pour chaque client : ce qu'il t'a payé au total, moins son coût Explee et ta part du coût d'acquisition. Les chiffres restent dans ce navigateur ; utilise Exporter pour les sauvegarder ou les ouvrir ailleurs.</p>
+  </header>
+
+  <section class="card verdict">
+    <div>
+      <div class="label">Profit net</div>
+      <div id="kProfit" class="big">—</div>
+      <div id="kVerdict" style="margin-top:6px"></div>
+    </div>
+    <div class="kpis">
+      <div class="kpi"><span class="k">Encaissé</span><span id="kRev" class="v">—</span></div>
+      <div class="kpi"><span class="k">Coûts totaux</span><span id="kCost" class="v">—</span></div>
+      <div class="kpi"><span class="k">Marge</span><span id="kMargin" class="v">—</span></div>
+      <div class="kpi"><span class="k">CAC par client</span><span id="kCac" class="v">—</span></div>
+      <div class="kpi"><span class="k">Revenu moyen / client</span><span id="kAvg" class="v">—</span></div>
+      <div class="kpi"><span class="k">Clients rentables</span><span id="kWin" class="v">—</span></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="bar">
+      <strong>Clients</strong>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button id="add" class="primary" type="button">Ajouter un client</button>
+        <button id="export" type="button">Exporter</button>
+        <button id="importBtn" type="button">Importer</button>
+        <input id="importFile" type="file" accept="application/json,.json" hidden>
+      </div>
+    </div>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Client</th><th>Total payé (€)</th><th>Coût Explee ($)</th><th>Autres frais (€)</th><th>Profit</th><th>Statut</th><th></th></tr></thead>
+        <tbody id="rows"></tbody>
+        <tfoot id="foot"></tfoot>
+      </table>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="bar"><strong>Coût d'acquisition</strong><span class="muted" style="font-size:13px">campagne Explee de l'agence, partagée entre tous les clients</span></div>
+    <div class="settings">
+      <label>Dépense Explee acquisition ($)<input id="sAcq" inputmode="decimal"></label>
+      <label>Autres frais d'acquisition (€)<input id="sExtra" inputmode="decimal" placeholder="0"></label>
+      <label>Réponses chaudes<input id="sHot" inputmode="numeric"></label>
+      <label>Taux USD → EUR<input id="sRate" inputmode="decimal"></label>
+    </div>
+  </section>
+
+  <p class="how"><b>Profit</b> = total payé − coût Explee du client × taux − autres frais − CAC. <b>CAC</b> = (dépense acquisition × taux + autres frais d'acquisition) ÷ nombre de clients. Un client sans paiement est « Pas encore payé ».</p>
+</div>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<script>
+(() => {
+  const KEY = "lf_agency_profit_v1";
+  const $ = (id) => document.getElementById(id);
+  const blank = () => ({ settings: { acq_usd: 0, acq_extra_eur: 0, hot: 0, rate: 0.86 }, clients: [] });
+  let state = load();
+
+  function load() {
+    try { const s = JSON.parse(localStorage.getItem(KEY)); if (s && Array.isArray(s.clients)) return s; } catch {}
+    return blank();
+  }
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch { toast("Impossible d'enregistrer dans ce navigateur"); } }
+  const num = (v) => { const n = Number(String(v ?? "").replace(/\s/g, "").replace(",", ".")); return isFinite(n) ? n : 0; };
+  const eur = (n) => new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(n);
+  const esc = (s) => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const toast = (m) => { const t = $("toast"); t.textContent = m; t.classList.add("on"); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove("on"), 1800); };
+
+  function calc() {
+    const s = state.settings, rate = num(s.rate) || 0.86, n = state.clients.length;
+    const acq = num(s.acq_usd) * rate + num(s.acq_extra_eur);
+    const cac = n ? acq / n : 0;
+    const rows = state.clients.map(c => {
+      const paid = num(c.paid), cost = num(c.explee_usd) * rate + num(c.other_eur) + cac;
+      return { paid, cost, profit: paid - cost, status: paid === 0 ? "wait" : paid - cost >= 0 ? "gain" : "loss" };
+    });
+    const rev = rows.reduce((a, r) => a + r.paid, 0), cost = rows.reduce((a, r) => a + r.cost, 0);
+    return { rows, n, cac, rev, cost, profit: rev - cost, win: rows.filter(r => r.status === "gain").length };
+  }
+
+  function renderTable() {
+    $("rows").innerHTML = state.clients.length ? state.clients.map((c, i) => `<tr data-i="${i}">
+      <td><input class="name" data-f="name" value="${esc(c.name)}" aria-label="Nom du client"></td>
+      <td><input data-f="paid" inputmode="decimal" value="${esc(c.paid ?? "")}" placeholder="0" aria-label="Total payé"></td>
+      <td><input data-f="explee_usd" inputmode="decimal" value="${esc(c.explee_usd ?? "")}" placeholder="à compléter" aria-label="Coût Explee"></td>
+      <td><input data-f="other_eur" inputmode="decimal" value="${esc(c.other_eur ?? "")}" placeholder="0" aria-label="Autres frais"></td>
+      <td data-profit></td><td data-status></td>
+      <td><button class="x" type="button" data-del="${i}" aria-label="Supprimer ${esc(c.name)}">✕</button></td></tr>`).join("")
+      : `<tr><td colspan="7" class="muted" style="font-family:var(--sans);padding:22px">Aucun client. Clique « Importer » pour charger le fichier fourni, ou « Ajouter un client ».</td></tr>`;
+    renderNumbers();
+  }
+
+  function renderNumbers() {
+    const m = calc();
+    m.rows.forEach((r, i) => {
+      const tr = document.querySelector(`tr[data-i="${i}"]`); if (!tr) return;
+      const p = tr.querySelector("[data-profit]"); p.textContent = eur(r.profit); p.className = r.profit >= 0 ? "gain" : "loss";
+      tr.querySelector("[data-status]").innerHTML = r.status === "gain" ? '<span class="pill gain">Rentable</span>' : r.status === "loss" ? '<span class="pill loss">En perte</span>' : '<span class="pill wait">Pas encore payé</span>';
+    });
+    $("foot").innerHTML = m.n ? `<tr><td style="font-family:var(--sans)">Total · ${m.n} clients</td><td>${eur(m.rev)}</td><td colspan="2" class="muted" style="font-weight:400">coûts ${eur(m.cost)} (dont CAC ${eur(m.cac * m.n)})</td><td class="${m.profit >= 0 ? "gain" : "loss"}">${eur(m.profit)}</td><td colspan="2"></td></tr>` : "";
+    $("kProfit").textContent = eur(m.profit); $("kProfit").className = "big " + (m.profit >= 0 ? "gain" : "loss");
+    $("kVerdict").innerHTML = !m.n ? "" : m.rev === 0 ? '<span class="pill wait">Saisis ce que chaque client a payé</span>' : m.profit >= 0 ? '<span class="pill gain">L\'agence est rentable</span>' : '<span class="pill loss">L\'agence perd de l\'argent pour l\'instant</span>';
+    $("kRev").textContent = eur(m.rev); $("kCost").textContent = eur(m.cost);
+    $("kMargin").textContent = m.rev > 0 ? Math.round(m.profit / m.rev * 100) + " %" : "—";
+    $("kCac").textContent = m.n ? eur(m.cac) : "—";
+    $("kAvg").textContent = m.n ? eur(m.rev / m.n) : "—";
+    $("kWin").textContent = m.n ? `${m.win} / ${m.n}` : "—";
+  }
+
+  function renderSettings() {
+    const s = state.settings;
+    $("sAcq").value = s.acq_usd ?? ""; $("sExtra").value = s.acq_extra_eur ?? ""; $("sHot").value = s.hot ?? ""; $("sRate").value = s.rate ?? "";
+  }
+
+  $("rows").addEventListener("input", (e) => {
+    const f = e.target.dataset.f, tr = e.target.closest("tr[data-i]"); if (!f || !tr) return;
+    state.clients[+tr.dataset.i][f] = e.target.value; save(); renderNumbers();
+  });
+  $("rows").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-del]"); if (!b) return;
+    if (b.dataset.sure !== "1") { b.dataset.sure = "1"; b.textContent = "Supprimer ?"; b.style.color = "var(--loss)"; return; }
+    state.clients.splice(+b.dataset.del, 1); save(); renderTable(); toast("Client supprimé");
+  });
+  $("add").addEventListener("click", () => {
+    state.clients.push({ name: "Nouveau client", paid: "", explee_usd: "", other_eur: "" }); save(); renderTable();
+    const inputs = document.querySelectorAll("input.name"); const last = inputs[inputs.length - 1]; last.focus(); last.select();
+  });
+  [["sAcq", "acq_usd"], ["sExtra", "acq_extra_eur"], ["sHot", "hot"], ["sRate", "rate"]].forEach(([id, k]) =>
+    $(id).addEventListener("input", (e) => { state.settings[k] = e.target.value; save(); renderNumbers(); }));
+
+  $("export").addEventListener("click", () => {
+    const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
+    a.download = "rentabilite-agence-" + new Date().toISOString().slice(0, 10) + ".json"; a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  });
+  $("importBtn").addEventListener("click", () => $("importFile").click());
+  $("importFile").addEventListener("change", async (e) => {
+    const f = e.target.files[0]; if (!f) return;
+    try {
+      const d = JSON.parse(await f.text());
+      if (!d || !Array.isArray(d.clients)) throw 0;
+      state = { settings: { ...blank().settings, ...(d.settings || {}) }, clients: d.clients.map(c => ({ name: String(c.name || "Client"), paid: c.paid ?? "", explee_usd: c.explee_usd ?? "", other_eur: c.other_eur ?? "" })) };
+      save(); renderSettings(); renderTable(); toast(`${state.clients.length} clients importés`);
+    } catch { toast("Fichier non reconnu"); }
+    e.target.value = "";
+  });
+
+  renderSettings(); renderTable();
+})();
+</script>
+</body>
+</html>
