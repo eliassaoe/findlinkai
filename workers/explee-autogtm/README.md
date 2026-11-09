@@ -200,6 +200,15 @@ Set the project's `reply_instructions` in the app to propose two specific
 times rather than a booking link — that is what `recover.py` does for the ones
 that then go quiet.
 
+## Agency profitability calculator (9 Nov 2026)
+
+A private claude.ai artifact ("Rentabilité agence", db-backed, owner/editors only)
+holds one row per agency client: payments received (€), delivery cost = that
+client's Explee project spend × USD→EUR + other costs, and acquisition = project
+30475's total Explee spend split equally across clients. Explee's
+`/api/app-auto-gtm/projects/<id>/dashboard?period=all` gives a project's
+`total_spend_usd`; archived projects return 404, so their cost is typed by hand.
+
 ## Reply rule in 37934 (9 Nov 2026): page link, then the call link under it
 
 Owner's rule: a hot lead never gets just a list. Every "yes" reply in project
