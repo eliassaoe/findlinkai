@@ -110,7 +110,7 @@ def run(api, actions, dry=False, ref=None):
                     n["slots_refreshed"] += 1
                     text = new_text
                 if not dry:
-                    api.reply(cid, pid, text)
+                    _reply_paced(api, cid, pid, text)
                     line = f"[{R.now():%d/%m %H:%M}] Relance · Email envoyé : {R.STEP_LABEL.get(a.get('step'), 'Email')}"
                     _append(api, cid, pid, line)
                 n["sent"] += 1
@@ -128,6 +128,24 @@ def run(api, actions, dry=False, ref=None):
             n["limited" if e.code == 429 else "failed"] += 1
             print(f"::warning::action refusée par Explee (HTTP {e.code})")
     return n
+
+
+# Explee répond 429 quand les réponses s'enchaînent (9 nov. 2026 : 4 puis 16
+# refus sur des lots de 40) : une pause entre deux envois, et une seconde
+# tentative après une minute en cas de 429.
+PACE_S = float(os.environ.get("RELANCE_PACE_S", "4"))
+
+
+def _reply_paced(api, cid, pid, text):
+    import time
+    try:
+        api.reply(cid, pid, text)
+    except R.ApiError as e:
+        if e.code != 429:
+            raise
+        time.sleep(60)
+        api.reply(cid, pid, text)
+    time.sleep(PACE_S)
 
 
 def _append(api, cid, pid, line):

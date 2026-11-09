@@ -11,6 +11,7 @@ import unittest
 from datetime import date, datetime
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+os.environ.setdefault("RELANCE_PACE_S", "0")
 import relance as R  # noqa: E402
 
 REF = datetime(2026, 10, 6, 20, 0, tzinfo=R.TZ)
