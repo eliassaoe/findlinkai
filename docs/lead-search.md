@@ -1,5 +1,10 @@
 # Lead search — `/lead-search` (10 Nov 2026)
 
+**17:10, owner's call: no Lead Search tab in the app for now.** The page and
+the backend stay live but unlinked. The search starts as an *input* instead:
+"no list? describe who you want" on `/liste-gratuite`, and "no URLs? search
+LinkedIn" for LinkedIn profile enrichment in the app (sections below).
+
 A separate tool next to `/app` (nav tab "Lead Search"): the user describes who
 they want (search words, current job titles, cities, seniority, company size,
 10/25/50/100 leads) and gets each person's full LinkedIn profile and email,

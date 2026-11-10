@@ -71,10 +71,9 @@ test('the proxy secret and URL are not in the repo', () => {
     assert.doesNotMatch(fn, /webhook\/lf-lead-search-/);
 });
 
-test('the app links to the lead search page and the page bills what the server bills', () => {
+test('no Lead Search tab in the app (owner, 10 Nov: an enrichment input first); the page bills what the server bills', () => {
     const app = readFileSync(new URL('../app.html', import.meta.url), 'utf8');
-    assert.match(app, /data-page="leadSearch"/);
-    assert.match(app, /case 'leadSearch':.*lead-search\?token=/);
+    assert.doesNotMatch(app, /data-page="leadSearch"/);
     const page = readFileSync(new URL('../lead-search.html', import.meta.url), 'utf8');
     assert.match(page, /PER_EMAIL = 15, PER_PROFILE = 5/);
     assert.match(page, /noindex/);
