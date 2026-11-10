@@ -1,8 +1,16 @@
 # LinkedIn rescue nodes in n8n
 
-## v4 (10 Nov 2026, app v4 only): Filtrat company → LinkedIn as the last step — REMOVED the same day
+## v4 (10 Nov 2026, app v4 only): Filtrat company → LinkedIn as the last step — ON (re-added 20:54 after a 17:10 removal)
 
-**Removed at 17:10 on the owner's call** (cost not settled), published as
+**Back on at 20:54, owner: "ajoute si ça augmente le finding rate".** Published as
+"Filtrat company backup on (owner confirmed 10 Nov 20:54)". Live check:
+"VIS Suomen Kiskokalustotehdas Oy" → its company page in 9 s, and execution
+2067858 shows `rescue: filtrat_company`. Expected effect: company → LinkedIn was
+84.5% found over the last 30 days (2,592 / 3,067); Filtrat recovers ~28% of the
+misses, so about 88-89%, ~130 more companies a month for ~20-23k Filtrat
+credits a month.
+
+History: **removed at 17:10 on the owner's call** (cost not settled), published as
 "Remove Filtrat company backup": the three `Co filtrat:` nodes are deleted and
 `Co rescue: found?` goes straight to Respond to Webhook65 again, as in v3. To put
 it back, republish version "Filtrat company to LinkedIn as last backup" or redo
