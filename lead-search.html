@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>Lead search · LinkFinder AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<style>
+/* Lead search, a separate tool next to /app. Same blue and type as the app.
+   Backend: supabase/functions/lead-search (docs/lead-search.md). */
+:root{--primary:#2563eb;--primary-hover:#1d4ed8;--bg:#f8fafc;--surface:#fff;--line:#e2e8f0;--fg:#0f172a;--muted:#64748b;
+  --ok:#15803d;--ok-soft:#dcfce7;--warn:#a16207;--warn-soft:#fef9c3;--err:#b91c1c;--err-soft:#fee2e2;--chip:#eff6ff}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
+  padding:0 max(16px,env(safe-area-inset-right)) 64px max(16px,env(safe-area-inset-left))}
+.top{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:16px 0;max-width:1180px;margin:0 auto;flex-wrap:wrap}
+.top a{color:var(--muted);text-decoration:none;font-size:14px}.top a:hover{color:var(--primary)}
+.credits{font-size:14px;color:var(--muted)}.credits b{color:var(--fg)}
+.wrap{max-width:1180px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+h1{font-size:28px;margin:4px 0 4px;letter-spacing:-.02em}
+.sub{color:var(--muted);margin:0;max-width:70ch}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:20px}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+@media (max-width:820px){.grid{grid-template-columns:1fr}}
+label{display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600;color:#334155;min-width:0}
+label small{font-weight:400;color:var(--muted)}
+input[type=text]{font:inherit;padding:10px 12px;border:1px solid var(--line);border-radius:8px;width:100%;min-width:0;background:#fff;color:var(--fg)}
+input[type=text]:focus{outline:2px solid var(--primary);outline-offset:0;border-color:transparent}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font:inherit;font-size:13px;border:1px solid var(--line);background:#fff;color:#334155;border-radius:999px;padding:5px 11px;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--chip);border-color:var(--primary);color:var(--primary);font-weight:600}
+.row{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end;justify-content:space-between;margin-top:16px}
+.cost{font-size:14px;color:var(--muted);max-width:60ch}.cost b{color:var(--fg)}
+button.go{font:inherit;font-weight:600;background:var(--primary);color:#fff;border:0;border-radius:8px;padding:11px 22px;cursor:pointer}
+button.go:hover{background:var(--primary-hover)}button.go:disabled{opacity:.55;cursor:default}
+button.sec{font:inherit;font-size:14px;border:1px solid var(--line);background:#fff;border-radius:8px;padding:8px 14px;cursor:pointer;color:var(--fg)}
+button.sec:hover{border-color:var(--primary);color:var(--primary)}
+.msg{border-radius:8px;padding:10px 14px;font-size:14px}
+.msg.err{background:var(--err-soft);color:var(--err)}.msg.warn{background:var(--warn-soft);color:var(--warn)}.msg.ok{background:var(--ok-soft);color:var(--ok)}
+.msg a{color:inherit;font-weight:600}
+.progress{display:flex;gap:14px;align-items:center}
+.spin{width:20px;height:20px;border:3px solid var(--chip);border-top-color:var(--primary);border-radius:50%;animation:s 1s linear infinite;flex:none}
+@keyframes s{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.spin{animation:none}}
+.res-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.res-head h2{font-size:18px;margin:0}
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px}
+table{width:100%;border-collapse:collapse;min-width:900px;font-size:14px}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{background:#f1f5f9;font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);position:sticky;top:0}
+td a{color:var(--primary);text-decoration:none}td a:hover{text-decoration:underline}
+td .t{color:var(--muted);font-size:13px}
+.st{font-size:11px;font-weight:600;border-radius:999px;padding:1px 7px;margin-left:6px}
+.st.valid{background:var(--ok-soft);color:var(--ok)}.st.risky{background:var(--warn-soft);color:var(--warn)}
+.none{color:#cbd5e1}
+.hist{display:flex;flex-direction:column;gap:6px}
+.hist button{font:inherit;text-align:left;border:1px solid var(--line);background:#fff;border-radius:8px;padding:9px 12px;cursor:pointer;display:flex;justify-content:space-between;gap:10px;color:var(--fg)}
+.hist button:hover{border-color:var(--primary)}
+.hist .m{color:var(--muted);font-size:13px;white-space:nowrap}
+.empty{color:var(--muted);font-size:14px}
+</style>
+</head>
+<body>
+<div class="top">
+  <a href="/app">← Back to the app</a>
+  <span class="credits" id="credits">&nbsp;</span>
+</div>
+<div class="wrap">
+  <div>
+    <h1>Lead search</h1>
+    <p class="sub">Describe who you are looking for. We search LinkedIn for you, with no LinkedIn account or cookies needed, and return each person's full profile and email.</p>
+  </div>
+
+  <form class="card" id="form" autocomplete="off">
+    <div class="grid">
+      <label>Search words <small>Skills, role or anything on their profile</small>
+        <input type="text" id="query" placeholder="java developer" maxlength="200"></label>
+      <label>Job titles <small>Current title, separate with commas</small>
+        <input type="text" id="titles" placeholder="Head of Sales, Sales Director"></label>
+      <label>Locations <small>City or country, in English, separate with commas</small>
+        <input type="text" id="locations" placeholder="Paris, Lyon"></label>
+    </div>
+    <div class="grid" style="margin-top:16px">
+      <label>Seniority <small>Optional</small>
+        <div class="chips" id="seniority">
+          <button type="button" class="chip" data-v="110" aria-pressed="false">Entry</button>
+          <button type="button" class="chip" data-v="120" aria-pressed="false">Senior</button>
+          <button type="button" class="chip" data-v="210" aria-pressed="false">Manager</button>
+          <button type="button" class="chip" data-v="220" aria-pressed="false">Director</button>
+          <button type="button" class="chip" data-v="300" aria-pressed="false">VP</button>
+          <button type="button" class="chip" data-v="310" aria-pressed="false">C-level</button>
+          <button type="button" class="chip" data-v="320" aria-pressed="false">Owner / Partner</button>
+        </div></label>
+      <label>Company size <small>Optional, employees</small>
+        <div class="chips" id="headcount">
+          <button type="button" class="chip" data-v="B" aria-pressed="false">1–10</button>
+          <button type="button" class="chip" data-v="C" aria-pressed="false">11–50</button>
+          <button type="button" class="chip" data-v="D" aria-pressed="false">51–200</button>
+          <button type="button" class="chip" data-v="E" aria-pressed="false">201–500</button>
+          <button type="button" class="chip" data-v="F" aria-pressed="false">501–1,000</button>
+          <button type="button" class="chip" data-v="G" aria-pressed="false">1,001–5,000</button>
+          <button type="button" class="chip" data-v="H" aria-pressed="false">5,000+</button>
+        </div></label>
+      <label>Number of leads
+        <div class="chips" id="count">
+          <button type="button" class="chip" data-v="10" aria-pressed="false">10</button>
+          <button type="button" class="chip" data-v="25" aria-pressed="true">25</button>
+          <button type="button" class="chip" data-v="50" aria-pressed="false">50</button>
+          <button type="button" class="chip" data-v="100" aria-pressed="false">100</button>
+        </div></label>
+    </div>
+    <div class="row">
+      <p class="cost" id="cost"></p>
+      <button class="go" id="go" type="submit">Find leads</button>
+    </div>
+    <div id="formMsg" class="msg err" hidden style="margin-top:12px"></div>
+  </form>
+
+  <section class="card" id="progress" hidden>
+    <div class="progress"><div class="spin" aria-hidden="true"></div>
+      <div><b id="progTitle">Searching LinkedIn…</b><div class="empty" id="progText">About 2 minutes for 25 leads. You can leave this page: the search keeps running and appears below when it is done.</div></div></div>
+  </section>
+
+  <section class="card" id="results" hidden>
+    <div class="res-head">
+      <h2 id="resTitle">Results</h2>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="sec" id="csv" type="button">Download CSV</button></div>
+    </div>
+    <div id="resMsg" class="msg ok" hidden style="margin-bottom:12px"></div>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Name</th><th>Title · Company</th><th>Location</th><th>Work email</th><th>Personal email</th><th>Experience</th></tr></thead>
+      <tbody id="rows"></tbody></table></div>
+  </section>
+
+  <section class="card">
+    <div class="res-head"><h2>Your searches</h2></div>
+    <div class="hist" id="hist"><span class="empty">Loading…</span></div>
+  </section>
+</div>
+
+<script>
+(() => {
+  const API = 'https://snxhsboboatjywgwdeds.supabase.co/functions/v1/lead-search';
+  const PER_EMAIL = 15, PER_PROFILE = 5;
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const fmt = (n) => new Intl.NumberFormat('en-US').format(n);
+  let token = null;
+  try { token = new URLSearchParams(location.search).get('token') || localStorage.getItem('linkFinderToken'); } catch (e) {}
+  if (!token) { location.href = '/app'; return; }
+  try { if (new URLSearchParams(location.search).has('token')) history.replaceState(null, '', location.pathname); } catch (e) {}
+  let current = null, pollTimer = null, startedAt = 0, credits = null;
+  const track = (ev, props) => { try { window.posthog && posthog.capture(ev, props || {}); } catch (e) {} };
+
+  async function call(action, extra) {
+    const r = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action, token, ...extra }) });
+    let d = {}; try { d = await r.json(); } catch (e) {}
+    return { ok: r.ok, status: r.status, d };
+  }
+
+  const pressed = (id) => [...$(id).querySelectorAll('.chip[aria-pressed="true"]')].map(b => b.dataset.v);
+  document.querySelectorAll('.chips').forEach(g => g.addEventListener('click', (e) => {
+    const b = e.target.closest('.chip'); if (!b) return;
+    if (g.id === 'count') g.querySelectorAll('.chip').forEach(x => x.setAttribute('aria-pressed', 'false'));
+    b.setAttribute('aria-pressed', b.getAttribute('aria-pressed') === 'true' && g.id !== 'count' ? 'false' : 'true');
+    showCost();
+  }));
+  const count = () => Number(pressed('count')[0] || 25);
+  function showCost() {
+    const n = count();
+    $('cost').innerHTML = `Up to <b>${fmt(n * PER_EMAIL)} credits</b>: ${PER_EMAIL} per lead with an email, ${PER_PROFILE} per lead without one. Credits you don't use come back when the search ends.`
+      + (credits != null && credits < n * PER_EMAIL ? ` <br><span style="color:var(--err)">You have ${fmt(credits)} credits.</span>` : '');
+  }
+  showCost();
+
+  function setCredits(c) { if (c == null) return; credits = c; $('credits').innerHTML = `<b>${fmt(Math.floor(c))}</b> credits`; showCost(); }
+
+  $('form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    $('formMsg').hidden = true;
+    const criteria = { query: $('query').value.trim(), titles: $('titles').value, locations: $('locations').value,
+      seniority: pressed('seniority'), headcount: pressed('headcount'), maxItems: count() };
+    if (!criteria.query && !criteria.titles.trim()) { showErr('Enter search words or at least one job title.'); $('query').focus(); return; }
+    $('go').disabled = true;
+    const { ok, status, d } = await call('start', { criteria });
+    $('go').disabled = false;
+    if (!ok) {
+      if (status === 402) {
+        showErr(`This search needs up to ${fmt(d.needed)} credits and you have ${fmt(Math.floor(d.credits || 0))}. `
+          + (d.max_affordable > 0 ? `Pick ${d.max_affordable < 10 ? 'fewer leads' : 'a smaller number of leads'}, or ` : '')
+          + `<a href="/app?action=upgrade">get more credits</a>.`);
+        track('lead_search_blocked_credits', { needed: d.needed });
+      } else showErr(esc(d.error || 'The search could not start. Try again in a minute.'));
+      return;
+    }
+    track('lead_search_started', { max_items: d.max_items });
+    if (d.credits_left != null) setCredits(d.credits_left);
+    watch(d.id, criteria);
+    loadHistory();
+  });
+  function showErr(html) { $('formMsg').innerHTML = html; $('formMsg').hidden = false; }
+
+  function watch(id, criteria) {
+    current = id; startedAt = Date.now();
+    $('results').hidden = true; $('progress').hidden = false;
+    $('progTitle').textContent = 'Searching LinkedIn…';
+    const n = criteria && criteria.maxItems || 25;
+    $('progText').textContent = `About ${Math.max(1, Math.round(n / 25 * 2))} minute${n > 25 ? 's' : 's'} for ${n} leads. You can leave this page: the search keeps running and appears under "Your searches" when it is done.`;
+    clearTimeout(pollTimer); poll();
+  }
+  async function poll() {
+    const id = current; if (!id) return;
+    const { ok, d } = await call('status', { id });
+    if (id !== current) return;
+    if (ok && d.status === 'running') {
+      const s = Math.round((Date.now() - startedAt) / 1000);
+      $('progTitle').textContent = `Searching LinkedIn… ${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+      pollTimer = setTimeout(poll, 6000); return;
+    }
+    $('progress').hidden = true;
+    if (ok && d.status === 'done') { show(d); track('lead_search_done', { leads: d.leads_count, emails: d.emails_count }); loadHistory(); }
+    else if (ok && d.status === 'failed') { showErr('The search failed on our side. Your credits were given back.'); loadHistory(); }
+    else pollTimer = setTimeout(poll, 10000);
+  }
+
+  let shown = [];
+  function show(d) {
+    shown = d.leads || [];
+    $('results').hidden = false;
+    const c = d.criteria || {};
+    $('resTitle').textContent = `${shown.length} lead${shown.length === 1 ? '' : 's'}` + (c.query ? ` · ${c.query}` : '') + (c.locations ? ` · ${typeof c.locations === 'string' ? c.locations : c.locations.join(', ')}` : '');
+    const back = Number(d.credits_reserved || 0) - Number(d.credits_charged || 0);
+    $('resMsg').hidden = false;
+    $('resMsg').textContent = `${d.emails_count || 0} of ${shown.length} with an email. ${fmt(d.credits_charged || 0)} credits used` + (back > 0 ? `, ${fmt(back)} given back.` : '.');
+    $('rows').innerHTML = shown.length ? shown.map(r => `<tr>
+      <td>${r.linkedin_url ? `<a href="${esc(r.linkedin_url)}" target="_blank" rel="noopener">${esc(r.full_name || 'Profile')}</a>` : esc(r.full_name)}${r.open_to_work ? ' <span class="st valid">open to work</span>' : ''}</td>
+      <td>${esc(r.job_title || r.headline)}<div class="t">${esc(r.company)}</div></td>
+      <td>${esc(r.location)}</td>
+      <td>${r.email ? esc(r.email) + `<span class="st ${r.email_status === 'valid' ? 'valid' : 'risky'}">${r.email_status === 'valid' ? 'valid' : 'risky'}</span>` : '<span class="none">—</span>'}</td>
+      <td>${r.personal_email ? esc(r.personal_email) : '<span class="none">—</span>'}</td>
+      <td class="t">${esc(r.experience)}</td></tr>`).join('')
+      : '<tr><td colspan="6" class="empty">Nobody matched. Try fewer filters or broader words.</td></tr>';
+    $('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  const COLS = ['full_name','first_name','last_name','job_title','company','company_website','company_linkedin','location','email','email_status','personal_email','linkedin_url','headline','experience','education','skills','open_to_work'];
+  $('csv').addEventListener('click', () => {
+    const q = (v) => { const s = String(v ?? ''); return /[",\n;]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+    const csv = [COLS.join(',')].concat(shown.map(r => COLS.map(k => q(r[k])).join(','))).join('\n');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' }));
+    a.download = 'linkfinder-leads-' + new Date().toISOString().slice(0, 10) + '.csv'; a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    track('lead_search_csv', { leads: shown.length });
+  });
+
+  async function loadHistory() {
+    const { ok, d } = await call('list', {});
+    if (!ok) { $('hist').innerHTML = '<span class="empty">Could not load your searches.</span>'; return; }
+    setCredits(d.credits);
+    const runs = d.runs || [];
+    $('hist').innerHTML = runs.length ? runs.map(r => {
+      const c = r.criteria || {};
+      const label = [c.query, c.titles, typeof c.locations === 'string' ? c.locations : (c.locations || []).join(', ')].filter(Boolean).join(' · ') || 'Search';
+      const when = new Date(r.created_at).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+      const st = r.status === 'done' ? `${r.leads_count} leads, ${r.emails_count} emails` : r.status === 'failed' ? 'failed, credits given back' : 'running…';
+      return `<button type="button" data-id="${r.id}" data-st="${r.status}"><span>${esc(label)}</span><span class="m">${esc(st)} · ${esc(when)}</span></button>`;
+    }).join('') : '<span class="empty">No searches yet. Your first one will appear here.</span>';
+    const running = runs.find(r => r.status === 'running' || r.status === 'starting' || r.status === 'finalizing');
+    if (running && !current) watch(running.id, running.criteria);
+  }
+  $('hist').addEventListener('click', async (e) => {
+    const b = e.target.closest('button[data-id]'); if (!b) return;
+    if (b.dataset.st !== 'done') { if (b.dataset.st !== 'failed') watch(b.dataset.id); return; }
+    const { ok, d } = await call('status', { id: b.dataset.id });
+    if (ok) { current = null; show(d); }
+  });
+  loadHistory();
+})();
+</script>
+</body>
+</html>
