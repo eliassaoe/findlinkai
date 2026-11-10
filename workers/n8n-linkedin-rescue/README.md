@@ -1,6 +1,13 @@
 # LinkedIn rescue nodes in n8n
 
-## v4 (10 Nov 2026, app v4 only): Filtrat company → LinkedIn as the last step
+## v4 (10 Nov 2026, app v4 only): Filtrat company → LinkedIn as the last step — REMOVED the same day
+
+**Removed at 17:10 on the owner's call** (cost not settled), published as
+"Remove Filtrat company backup": the three `Co filtrat:` nodes are deleted and
+`Co rescue: found?` goes straight to Respond to Webhook65 again, as in v3. To put
+it back, republish version "Filtrat company to LinkedIn as last backup" or redo
+the wiring below. The test numbers stay valid.
+
 
 `company_name_to_linkedin_url` in "linkfinder ai app v 4": when `Co rescue:
 found?` still says "Not found", the lookup now goes to
