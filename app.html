@@ -942,6 +942,12 @@ body.rc-open .config-form,body.rc-open #modeToggle{display:none;}
 .config-form .qs-list-line{margin:0.4rem 0 1.2rem;}
 .qs-or{color:var(--gray-400);margin:0 0.15rem;}
 .search-picker{display:block;}
+.lf-li-search{margin-top:0.875rem;padding:0.875rem 1rem;border:1px solid var(--gray-200,#e5e7eb);border-radius:10px;background:#f8fafc;font-size:0.875rem;color:var(--gray-700,#374151);}
+.lf-li-search-head i{color:#0a66c2;}
+.lf-li-search-grid{display:grid;grid-template-columns:2fr 1.3fr 1fr auto;gap:0.5rem;margin-top:0.6rem;}
+@media (max-width:720px){.lf-li-search-grid{grid-template-columns:1fr;}}
+.lf-li-search-grid input,.lf-li-search-grid select{font:inherit;padding:0.55rem 0.7rem;border:1px solid var(--gray-300,#d1d5db);border-radius:8px;background:#fff;min-width:0;}
+.lf-li-search-note{margin-top:0.5rem;font-size:0.8rem;color:var(--gray-500,#6b7280);}
 .lf-paste-list{margin-top:0.6rem;padding:0.75rem 0.9rem;border:1.5px solid var(--primary,#2563eb);border-radius:10px;background:#eff6ff;font-size:0.9rem;color:var(--gray-800,#1f2937);}
 .lf-paste-list-row{display:flex;gap:0.5rem;align-items:baseline;}
 .lf-paste-list-row i{color:var(--primary,#2563eb);}
@@ -1306,6 +1312,20 @@ body.sp-has-pick #creditCost{display:none !important;}
                 <input type="file" id="csvFile" accept=".csv,.tsv,.txt,.xlsx,.xlsm,.xls,.ods" class="hidden">
                 <button type="button" class="btn" id="selectFileBtn" onclick="event.stopPropagation();openCsvPicker(event)"><i class="fas fa-file-csv"></i> Select File</button>
                 <button type="button" class="btn" id="sampleCsvBtn" style="background:transparent;color:var(--primary);border:1px solid var(--primary);margin-left:0.5rem;" onclick="event.stopPropagation();useSampleCsv()"><i class="fas fa-wand-magic-sparkles"></i> Try a sample list</button>
+            </div>
+            <!-- No URLs? A LinkedIn search fills the list (10 Nov 2026,
+                 docs/lead-search.md "App input"). Shown only when the input is
+                 a LinkedIn profile; 1 credit per profile found, then the usual
+                 lookup runs on the list like any uploaded CSV. -->
+            <div id="lfLiSearch" class="lf-li-search" style="display:none;">
+                <div class="lf-li-search-head"><i class="fab fa-linkedin"></i> <strong>No LinkedIn URLs?</strong> Search LinkedIn and we build the list for you.</div>
+                <div class="lf-li-search-grid">
+                    <input type="text" id="lfLiQuery" maxlength="200" placeholder="Job title or keywords, e.g. java developer">
+                    <input type="text" id="lfLiWhere" maxlength="80" placeholder="City or country, e.g. Paris">
+                    <select id="lfLiCount"><option value="25">25 profiles</option><option value="50" selected>50 profiles</option><option value="100">100 profiles</option><option value="200">200 profiles</option></select>
+                    <button type="button" class="btn" id="lfLiBtn" onclick="lfLiSearchRun()"><i class="fas fa-search"></i> Find profiles</button>
+                </div>
+                <div class="lf-li-search-note" id="lfLiNote">1 credit per profile found, no LinkedIn account needed. The list then runs like an uploaded file.</div>
             </div>
             <!-- Offered here rather than buried in a menu: this is the moment
                  someone is exporting a sheet, uploading it, and about to import
@@ -3998,6 +4018,7 @@ function configureEnrichment() {
     document.getElementById('modeToggle').classList.remove('hidden');
     updateCreditCostDisplay();
     updateOptionalFields();
+    lfLiSearchToggle();
     showInputSections();
     updateSubmitButtonState();
 }
@@ -6830,6 +6851,65 @@ function lfLoadAgencyList(){
         }, 80);
     }, 60);
 }
+// LinkedIn search as an input (10 Nov 2026, docs/lead-search.md "App input"):
+// for LinkedIn profile lookups without URLs, a search builds the list of
+// profile URLs (Supabase function lead-search, kind "urls", 1 credit per
+// profile), then the list goes through parseCSV like an uploaded file.
+const LF_LI_SEARCH_API = 'https://snxhsboboatjywgwdeds.supabase.co/functions/v1/lead-search';
+function lfLiSearchToggle() {
+    const box = document.getElementById('lfLiSearch');
+    if (box) box.style.display = currentInputType === 'linkedin_profile' ? '' : 'none';
+}
+async function lfLiSearchCall(body) {
+    const r = await fetch(LF_LI_SEARCH_API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(Object.assign({ token: userToken }, body)) });
+    let d = {}; try { d = await r.json(); } catch (e) {}
+    return { status: r.status, d: d };
+}
+async function lfLiSearchRun() {
+    if (!lfConfigured()) { lfAskForPair(); return; }
+    const q = (document.getElementById('lfLiQuery').value || '').trim();
+    const where = (document.getElementById('lfLiWhere').value || '').trim();
+    const n = Number(document.getElementById('lfLiCount').value) || 50;
+    const note = document.getElementById('lfLiNote'), btn = document.getElementById('lfLiBtn');
+    if (q.length < 2) { showAlert('Enter a job title or keywords to search LinkedIn.', 'warning'); document.getElementById('lfLiQuery').focus(); return; }
+    btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Searching LinkedIn…';
+    note.textContent = 'Searching LinkedIn. About 1 minute per 50 profiles; keep this tab open.';
+    try { posthog.capture('li_search_input_started', { n: n, has_location: !!where, output_type: currentOutputType }); } catch (e) {}
+    const reset = () => { btn.disabled = false; btn.innerHTML = '<i class="fas fa-search"></i> Find profiles'; };
+    const s = await lfLiSearchCall({ action: 'start', kind: 'urls', criteria: { query: q, locations: where, maxItems: n } }).catch(() => ({ status: 0, d: {} }));
+    if (s.status !== 200 || !s.d.id) {
+        reset();
+        if (s.status === 402) { note.textContent = 'This search needs up to ' + s.d.needed + ' credits and you have ' + Math.floor(s.d.credits || 0) + '.'; showPricingModal('li_search_input'); }
+        else note.textContent = s.d.error || 'The search could not start. Try again in a minute.';
+        return;
+    }
+    const t0 = Date.now();
+    let leads = null;
+    for (let k = 0; k < 120; k++) {
+        await new Promise(r => setTimeout(r, 5000));
+        const sec = Math.round((Date.now() - t0) / 1000);
+        note.textContent = 'Searching LinkedIn… ' + Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0');
+        const st = await lfLiSearchCall({ action: 'status', id: s.d.id }).catch(() => ({ status: 0, d: {} }));
+        if (st.status === 200 && st.d.status === 'done') { leads = st.d.leads || []; break; }
+        if (st.status === 200 && st.d.status === 'failed') { leads = []; break; }
+    }
+    reset();
+    const urls = (leads || []).map(l => l.linkedin_url).filter(Boolean);
+    if (!urls.length) {
+        note.textContent = leads ? 'Nobody matched on LinkedIn. Try broader words. No credits were used.' : 'The search is taking long. It will finish in the background; try again in a few minutes.';
+        try { posthog.capture('li_search_input_empty', { timeout: !leads }); } catch (e) {}
+        return;
+    }
+    try { posthog.capture('li_search_input_done', { profiles: urls.length, seconds: Math.round((Date.now() - t0) / 1000) }); } catch (e) {}
+    note.textContent = urls.length + ' profiles found (' + urls.length + ' credits). Check the list below, then run it.';
+    const q2 = v => '"' + String(v || '').replace(/"/g, '""') + '"';
+    const csv = 'linkedin url,full name,job title,company,location\n' + (leads || []).filter(l => l.linkedin_url)
+        .map(l => [l.linkedin_url, l.full_name, l.job_title, l.company, l.location].map(q2).join(',')).join('\n');
+    lfUploadedFileName = 'LinkedIn search: ' + q + (where ? ' (' + where + ')' : '');
+    parseCSV(csv);
+    setTimeout(function () { const pv = document.getElementById('csvPreview'); if (pv && !pv.classList.contains('hidden') && pv.scrollIntoView) pv.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 250);
+}
+
 function handleFile(file){
     if(!lfConfigured()){ lfAskForPair(); return; }
     const n = (file.name||'').toLowerCase();

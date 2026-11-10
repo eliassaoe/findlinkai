@@ -294,6 +294,12 @@ body.has-sticky{padding-bottom:76px;}
 .res .val.pop{animation:pop .45s ease;background:#dcfce7;border-radius:6px;padding:1px 6px;}
 @keyframes pop{0%{transform:scale(.8);opacity:0}60%{transform:scale(1.08);opacity:1}100%{transform:scale(1)}}
 @media (prefers-reduced-motion:reduce){.res.enter,.res .blk li,.res .val.pop,.tile b.bump{animation:none}}
+  /* "pas de liste ?" : recherche LinkedIn (10 nov. 2026, docs/lead-search.md) */
+  .q-grid{display:grid;grid-template-columns:2fr 1.2fr 1fr;gap:10px;margin-top:10px}
+  @media (max-width:640px){.q-grid{grid-template-columns:1fr}}
+  .q-grid label{display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:600;color:#334155;min-width:0}
+  .q-grid input,.q-grid select{font:inherit;font-weight:400;padding:10px 12px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;color:#0f172a;width:100%;min-width:0}
+  .q-note{font-size:13px;color:#64748b;margin:8px 0 0}
 </style>
 <style>
   .first h1{max-width:620px;}
@@ -349,6 +355,18 @@ body.has-sticky{padding-bottom:76px;}
           <div class="row">
             <button type="button" class="btn" id="tryBtn">Récupérer les profils</button>
           </div>
+        </details>
+        <details class="paste" id="tryQuery">
+          <summary>ou pas de liste ? décrivez qui vous cherchez</summary>
+          <div class="q-grid">
+            <label>Poste ou mots-clés<input type="text" id="qWhat" maxlength="150" placeholder="développeur java, chargé de recrutement…"></label>
+            <label>Ville ou pays<input type="text" id="qWhere" maxlength="80" placeholder="Paris"></label>
+            <label>Nombre<select id="qCount"><option value="25">25 profils</option><option value="50" selected>50 profils</option></select></label>
+          </div>
+          <div class="row">
+            <button type="button" class="btn" id="qBtn">Trouver les profils</button>
+          </div>
+          <p class="q-note">On cherche sur LinkedIn pour vous, sans votre compte LinkedIn. Puis profils complets et emails, comme pour une liste.</p>
         </details>
         <p class="msg" id="tryMsg" role="alert"></p>
         <p class="count" id="tryCount" aria-live="polite"></p>
@@ -694,8 +712,11 @@ body.has-sticky{padding-bottom:76px;}
         st.url = p && p.linkedin_url ? normalize(String(p.linkedin_url)) : '';
         if (!st.url) { st.skip = true; cell._row.classList.remove('loading'); setCell(cell, 'Profil LinkedIn pas trouvé', false); done++; counter(); return; }
       }
-      lookups++;
-      st.pr = await withRetry(function () { return profileLookup(st.url); }).catch(function () { return null; });
+      if (it.pre) { st.pr = it.pre; await pause(120); }  // déjà fourni par la recherche LinkedIn
+      else {
+        lookups++;
+        st.pr = await withRetry(function () { return profileLookup(st.url); }).catch(function () { return null; });
+      }
       cell._row.classList.remove('loading');
       if (st.pr) { showProfile(cell, st.pr, it); profiles++; counter(); }
       setCell(cell, 'Recherche de l\'email…', false); cell.classList.add('searching');
@@ -876,6 +897,68 @@ body.has-sticky{padding-bottom:76px;}
   });
   tryDrop.addEventListener('drop', function (e) { e.preventDefault(); handleFile(e.dataTransfer && e.dataTransfer.files[0]); });
   tryBtn.addEventListener('click', function () { listName = 'ma-liste.csv'; run('paste', urlItems(extractProfiles(tryInput.value))); });
+
+  // « Pas de liste ? » (10 nov. 2026) : une recherche LinkedIn sans cookies
+  // (fonction Supabase lead-search, action preview : gratuite, 2 par jour et
+  // par IP, 60 par jour en tout) donne jusqu'à 50 profils complets ; la page
+  // cherche ensuite les emails comme pour une liste déposée.
+  var LS_API = 'https://snxhsboboatjywgwdeds.supabase.co/functions/v1/lead-search';
+  var qBtn = document.getElementById('qBtn');
+  function leadToItem(l) {
+    var exps = (l.exp_list || []).map(function (e) { return { title: e.title, companyName: e.company, jobStartedOn: e.start, jobEndedOn: e.end, jobStillWorking: !e.end || /present|aujourd/i.test(e.end) }; });
+    var edus = (l.edu_list || []).map(function (e) { return { title: e.degree, fieldOfStudy: e.field, subtitle: e.school, startedOn: e.start, endedOn: e.end }; });
+    return { url: l.linkedin_url, label: l.full_name || l.linkedin_url,
+      pre: { name: l.full_name, jobTitle: l.job_title, company: l.company, location: l.location, headline: l.headline, photo: l.photo, experiences: exps, educations: edus } };
+  }
+  async function lsCall(body) {
+    var r = await fetch(LS_API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    var d = {}; try { d = await r.json(); } catch (e) {}
+    return { status: r.status, d: d };
+  }
+  async function runQuery() {
+    if (running) return;
+    if (used()) { track('fr_list_blocked', { source: 'query' }); showUsed(); return; }
+    var what = document.getElementById('qWhat').value.trim();
+    var where = document.getElementById('qWhere').value.trim();
+    var n = Number(document.getElementById('qCount').value) || 50;
+    if (what.length < 2) { tryMsg.textContent = 'Indiquez un poste ou des mots-clés.'; document.getElementById('qWhat').focus(); return; }
+    tryMsg.textContent = '';
+    qBtn.disabled = true; qBtn.textContent = 'Recherche sur LinkedIn…';
+    tryCount.textContent = 'Recherche sur LinkedIn en cours. Comptez 1 à 3 minutes, gardez la page ouverte.';
+    track('fr_list_query_started', { has_location: !!where, n: n });
+    var t0 = Date.now();
+    var reset = function () { qBtn.disabled = false; qBtn.textContent = 'Trouver les profils'; };
+    var s = await lsCall({ action: 'preview', criteria: { query: what, locations: where, maxItems: n } }).catch(function () { return { status: 0, d: {} }; });
+    if (s.status !== 200 || !s.d.id) {
+      reset(); tryCount.textContent = '';
+      tryMsg.textContent = s.d.error === 'limit_ip' ? 'Vous avez déjà fait 2 recherches aujourd\'hui. Créez un compte gratuit pour continuer.'
+        : s.d.error === 'limit_day' ? 'Beaucoup de recherches aujourd\'hui : réessayez demain, ou créez un compte gratuit.'
+        : 'La recherche n\'a pas pu démarrer. Réessayez dans une minute.';
+      track('fr_list_query_failed', { reason: s.d.error || ('http_' + s.status) });
+      return;
+    }
+    var leads = null;
+    for (var k = 0; k < 80; k++) {
+      await pause(5000);
+      var sec = Math.round((Date.now() - t0) / 1000);
+      tryCount.textContent = 'Recherche sur LinkedIn en cours… ' + Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0') + '. Gardez la page ouverte.';
+      var st = await lsCall({ action: 'preview_status', id: s.d.id }).catch(function () { return { status: 0, d: {} }; });
+      if (st.status === 200 && st.d.status === 'done') { leads = st.d.leads || []; break; }
+      if (st.status === 200 && st.d.status === 'failed') { leads = []; break; }
+    }
+    reset();
+    if (!leads || !leads.length) {
+      tryCount.textContent = '';
+      tryMsg.textContent = leads ? 'Personne trouvé sur LinkedIn pour cette recherche. Essayez des mots plus larges.' : 'La recherche prend trop de temps. Réessayez dans un moment.';
+      track('fr_list_query_empty', { timeout: !leads });
+      return;
+    }
+    track('fr_list_query_done', { profiles: leads.length, seconds: Math.round((Date.now() - t0) / 1000) });
+    listName = ('recherche-' + what + (where ? '-' + where : '')).toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 60) + '.csv';
+    run('query', leads.filter(function (l) { return l.linkedin_url; }).map(leadToItem));
+  }
+  qBtn.addEventListener('click', runQuery);
+  ['qWhat', 'qWhere'].forEach(function (id) { document.getElementById(id).addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); runQuery(); } }); });
   if (used()) showUsed();
 
   // Le prospect venu du lien envoyé par email : on garde son adresse pour

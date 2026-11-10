@@ -49,6 +49,7 @@ export function mapLead(it) {
         company_website: site,
         location: s(it.location && (it.location.linkedinText || (it.location.parsed && it.location.parsed.text))),
         linkedin_url: linkedin,
+        photo: s(it.photo || (it.profilePicture && it.profilePicture.url)),
         email: e.email,
         email_status: e.email_status,
         personal_email: e.personal_email,
@@ -57,6 +58,15 @@ export function mapLead(it) {
             + (fmtDuration(x) ? ` (${fmtDuration(x)})` : '')).filter(Boolean).join(' | '),
         education: edu.slice(0, 2).map((x) => [s(x.schoolName), s(x.degree)].filter(Boolean).join(', ')).filter(Boolean).join(' | '),
         skills: (Array.isArray(it.topSkills) ? it.topSkills.join(', ') : s(it.topSkills)).slice(0, 300),
+        // Structured copies for pages that draw the profile (free list page).
+        exp_list: exp.slice(0, 6).map((x) => ({
+            title: s(x.position), company: s(x.companyName),
+            start: s(x.startDate && x.startDate.text), end: s(x.endDate && x.endDate.text),
+        })),
+        edu_list: edu.slice(0, 4).map((x) => ({
+            school: s(x.schoolName), degree: s(x.degree), field: s(x.fieldOfStudy),
+            start: s(x.startDate && x.startDate.text), end: s(x.endDate && x.endDate.text),
+        })),
     };
 }
 
@@ -74,12 +84,12 @@ const list = (v, max = 10) => (Array.isArray(v) ? v : s(v).split(/[,;\n]/))
     .map((x) => s(x)).filter(Boolean).slice(0, max).map((x) => x.slice(0, 120));
 
 // Criteria from the page -> the actor's input. Returns {error} on bad input.
-export function buildInput(c, withEmails = true) {
+export function buildInput(c, withEmails = true, max = MAX_ITEMS) {
     const query = s(c && c.query).slice(0, 200);
     const titles = list(c && c.titles);
     const locations = list(c && c.locations, 5);
     if (!query && !titles.length) return { error: 'Enter a search or at least one job title.' };
-    const n = Math.max(1, Math.min(MAX_ITEMS, Math.floor(Number(c && c.maxItems) || 25)));
+    const n = Math.max(1, Math.min(max, Math.floor(Number(c && c.maxItems) || 25)));
     const input = { profileScraperMode: withEmails ? 'Full + email search' : 'Full', maxItems: n };
     if (query) input.searchQuery = query;
     if (titles.length) input.currentJobTitles = titles;
@@ -93,7 +103,24 @@ export function buildInput(c, withEmails = true) {
     return { input, n };
 }
 
+// Three kinds of search (10 Nov 2026, docs/lead-search.md):
+//   leads   - /lead-search page: full profile + email, 15 / 5 credits a lead
+//   urls    - app input "no URLs? search LinkedIn": full profile, no email,
+//             1 credit per profile found; the app then runs its usual lookup
+//   preview - /liste-gratuite "pas de liste ?": anonymous, free, max 50,
+//             full profile, no email (the page finds the emails itself)
+export const KINDS = {
+    leads: { withEmails: true, reservePer: CREDITS_WITH_EMAIL, max: MAX_ITEMS },
+    urls: { withEmails: false, reservePer: 1, max: 200 },
+    preview: { withEmails: false, reservePer: 0, max: 50 },
+};
+export function chargeFor(kind, rows) {
+    if (kind === 'urls') return rows.length;
+    if (kind === 'preview') return 0;
+    return priceFor(rows);
+}
+
 // What Apify may bill for one run, used as its spending cap.
 export function maxUsdFor(n) {
-    return Math.round((0.1 * Math.ceil(n / 25) + 0.011 * n + 0.1) * 100) / 100;
+    return Math.min(3, Math.round((0.1 * Math.ceil(n / 25) + 0.011 * n + 0.1) * 100) / 100);
 }

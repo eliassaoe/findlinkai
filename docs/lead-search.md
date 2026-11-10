@@ -48,6 +48,22 @@ A search left running when the tab closes is settled the next time the user
 opens the page (`list` checks up to 3 running searches), which also returns the
 unused credits.
 
+## As an input (10 Nov 2026, evening) — the owner's scope for now
+
+Two places, same function (`kind` in `map.js` `KINDS`), both in "Full" mode
+without email search (~$0.0036 a profile + $0.10 a page of 25):
+
+| Where | What | Cost to the user |
+| --- | --- | --- |
+| `/liste-gratuite`, "ou pas de liste ? décrivez qui vous cherchez" | poste/mots-clés + ville + 25/50 → action `preview` (no account) → up to 50 full profiles go straight into the page's usual run; only the email is looked up per person (`it.pre` skips the profile call). Events `fr_list_query_started/done/empty/failed` | Free. Capped at **2 searches per IP per 24 h** and **60 anonymous searches a day** in total (`PREVIEW_PER_IP_PER_DAY`, `PREVIEW_PER_DAY` in `index.ts`) |
+| App, bulk card, input = LinkedIn profile: "No LinkedIn URLs? Search LinkedIn" (`#lfLiSearch`, `lfLiSearchRun`) | query + location + 25/50/100/200 → action `start` with `kind: 'urls'` → the found profiles become a CSV (`linkedin url, full name, job title, company, location`) passed to `parseCSV`, then the user runs their chosen lookup as for an uploaded file. Events `li_search_input_started/done/empty` | 1 credit per profile found (reserved up front, the rest returned); history type `linkedin_search_to_linkedin_url` |
+
+Live, same evening: preview "chargé de recrutement", Lyon, 25 → 25 profiles
+(vanity URLs, 25 with experience, 22 with a photo), 0 credits. `urls` "data
+engineer", Bordeaux, 25 → 25 profiles, 25 credits. The free list page was run in
+Playwright with both services mocked: 6 profiles from the search, 0 profile
+calls, 6 email calls, popup shown.
+
 ## Live check, 10 Nov
 
 Through the deployed function with an internal test account: "head of sales",

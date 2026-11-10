@@ -16,8 +16,11 @@
 //   start  {token, criteria}       -> {id, max_items, reserved}
 //   status {token, id}             -> {status, leads?, charged?, refunded?}
 //   list   {token}                 -> {runs: [...]}
+//   start {kind:'urls'}            -> app input: profiles without email, 1 credit each
+//   preview {criteria}             -> /liste-gratuite, no account: free, capped per IP and per day
+//   preview_status {id}            -> poll an anonymous preview
 
-import { buildInput, mapLead, priceFor, hasEmail, maxUsdFor, CREDITS_WITH_EMAIL } from './map.js';
+import { buildInput, mapLead, hasEmail, maxUsdFor, KINDS, chargeFor } from './map.js';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -97,26 +100,58 @@ function publicRun(r: any) {
     };
 }
 
-async function start(token: string, criteria: any) {
-    const user = await getUser(token);
-    if (!user) return json({ error: 'Sign in again: your session was not recognised.' }, 401);
-    const built = buildInput(criteria, true);
+const PREVIEW_PER_IP_PER_DAY = 2;
+const PREVIEW_PER_DAY = 60;
+
+async function ipKey(req: Request) {
+    const ip = req.headers.get('cf-connecting-ip') || (req.headers.get('x-forwarded-for') || '').split(',')[0].trim() || 'unknown';
+    const d = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('lf-preview:' + ip));
+    return 'anon:' + [...new Uint8Array(d)].slice(0, 12).map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function countRuns(filter: string) {
+    const r = await db(`lead_finder_runs?select=id&${filter}`, { headers: { Prefer: 'count=exact', Range: '0-0' } });
+    const cr = r.headers.get('content-range') || '';
+    return Number(cr.split('/')[1]) || 0;
+}
+
+async function start(token: string, criteria: any, kind = 'leads') {
+    const K = (KINDS as any)[kind] || KINDS.leads;
+    const anon = kind === 'preview';
+    let user: any = null;
+    if (!anon) {
+        user = await getUser(token);
+        if (!user) return json({ error: 'Sign in again: your session was not recognised.' }, 401);
+    } else {
+        const since = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
+        if (await countRuns(`user_token=eq.${encodeURIComponent(token)}&created_at=gte.${since}`) >= PREVIEW_PER_IP_PER_DAY) {
+            return json({ error: 'limit_ip' }, 429);
+        }
+        const day = new Date(); day.setUTCHours(0, 0, 0, 0);
+        if (await countRuns(`user_token=like.anon:*&created_at=gte.${day.toISOString()}`) >= PREVIEW_PER_DAY) {
+            return json({ error: 'limit_day' }, 429);
+        }
+    }
+    const built = buildInput(criteria, K.withEmails, K.max);
     if ('error' in built) return json({ error: built.error }, 400);
     const { input, n } = built as { input: Record<string, unknown>; n: number };
-    const reserve = n * CREDITS_WITH_EMAIL;
-    const credits = Number(user.credits) || 0;
-    if (credits < reserve) {
-        return json({ error: 'insufficient_credits', credits, needed: reserve,
-            max_affordable: Math.floor(credits / CREDITS_WITH_EMAIL) }, 402);
-    }
-    const left = await addCredits(token, -reserve);
-    if (left == null || left < 0) {
-        await addCredits(token, reserve);
-        return json({ error: 'insufficient_credits', credits, needed: reserve }, 402);
+    const reserve = n * K.reservePer;
+    let left: number | null = null;
+    if (reserve > 0) {
+        const credits = Number(user.credits) || 0;
+        if (credits < reserve) {
+            return json({ error: 'insufficient_credits', credits, needed: reserve,
+                max_affordable: Math.floor(credits / K.reservePer) }, 402);
+        }
+        left = await addCredits(token, -reserve);
+        if (left == null || left < 0) {
+            await addCredits(token, reserve);
+            return json({ error: 'insufficient_credits', credits, needed: reserve }, 402);
+        }
     }
     const ins = await db('lead_finder_runs', {
         method: 'POST', headers: { Prefer: 'return=representation' },
-        body: JSON.stringify({ user_token: token, criteria, max_items: n, credits_reserved: reserve, status: 'starting' }),
+        body: JSON.stringify({ user_token: token, criteria: { ...criteria, _kind: kind }, max_items: n, credits_reserved: reserve, status: 'starting' }),
     });
     const row = (await ins.json())[0];
     try {
@@ -125,7 +160,7 @@ async function start(token: string, criteria: any) {
         if (!d || !d.id) throw new Error('no run id');
         await patchRun(row.id, { status: 'running', apify_run_id: d.id, dataset_id: d.defaultDatasetId });
     } catch (e) {
-        await addCredits(token, reserve);
+        if (reserve > 0) await addCredits(token, reserve);
         await patchRun(row.id, { status: 'failed', error: String(e).slice(0, 300), credits_charged: 0 });
         return json({ error: 'The search could not start. No credits were used.', id: row.id }, 502);
     }
@@ -154,7 +189,8 @@ async function finalize(row: any, runStatus: string) {
         await patchRun(row.id, { status: 'failed', error: String(e).slice(0, 300), credits_charged: 0 });
         return { status: 'failed' };
     }
-    const charged = Math.min(priceFor(leads), Number(row.credits_reserved));
+    const kind = (row.criteria && row.criteria._kind) || 'leads';
+    const charged = Math.min(chargeFor(kind, leads), Number(row.credits_reserved));
     const refund = Number(row.credits_reserved) - charged;
     if (refund > 0) await addCredits(row.user_token, refund);
     const emails = leads.filter(hasEmail).length;
@@ -163,11 +199,12 @@ async function finalize(row: any, runStatus: string) {
         leads, leads_count: leads.length, emails_count: emails, credits_charged: charged,
         error: runStatus === 'SUCCEEDED' ? null : `provider run ${runStatus}`,
     });
+    if (String(row.user_token).startsWith('anon:')) return { status: 'done' };
     try {
         await db('enrichment_history', {
             method: 'POST',
             body: JSON.stringify({
-                user_id: row.user_token, type: 'linkedin_people_search', source: 'app',
+                user_id: row.user_token, type: kind === 'urls' ? 'linkedin_search_to_linkedin_url' : 'linkedin_people_search', source: 'app',
                 input: JSON.stringify(row.criteria).slice(0, 1000),
                 result: JSON.stringify({ result: `${leads.length} leads, ${emails} emails`, status: 'success' }),
                 credits_used: charged,
@@ -219,7 +256,16 @@ Deno.serve(async (req) => {
     try { body = await req.json(); } catch { return json({ error: 'bad json' }, 400); }
     const token = String(body.token || '');
     try {
-        if (body.action === 'start') return await start(token, body.criteria || {});
+        if (body.action === 'start') return await start(token, body.criteria || {}, body.kind === 'urls' ? 'urls' : 'leads');
+        if (body.action === 'preview') return await start(await ipKey(req), body.criteria || {}, 'preview');
+        if (body.action === 'preview_status') {
+            const id = String(body.id || '');
+            if (!/^[0-9a-f-]{36}$/.test(id)) return json({ error: 'bad id' }, 400);
+            const r = await db(`lead_finder_runs?id=eq.${id}&user_token=like.anon:*&select=user_token`);
+            const row = (await r.json())[0];
+            if (!row) return json({ error: 'not found' }, 404);
+            return await status(row.user_token, id);
+        }
         if (body.action === 'status') return await status(token, String(body.id || ''));
         if (body.action === 'list') return await list(token);
         return json({ error: 'unknown action' }, 400);

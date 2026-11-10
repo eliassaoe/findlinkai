@@ -78,3 +78,30 @@ test('no Lead Search tab in the app (owner, 10 Nov: an enrichment input first); 
     assert.match(page, /PER_EMAIL = 15, PER_PROFILE = 5/);
     assert.match(page, /noindex/);
 });
+
+test('search kinds: urls bills 1 per profile, preview is free and capped at 50, leads stays 15/5', async () => {
+    const { KINDS, chargeFor } = await import('../supabase/functions/lead-search/map.js');
+    const rows = [mapLead(item()), mapLead(item({ linkedinUrl: 'https://www.linkedin.com/in/b' }))];
+    assert.equal(chargeFor('urls', rows), 2);
+    assert.equal(chargeFor('preview', rows), 0);
+    assert.equal(chargeFor('leads', rows), 10);
+    assert.equal(KINDS.preview.max, 50);
+    assert.equal(KINDS.urls.withEmails, false);
+    assert.equal(buildInput({ query: 'x', maxItems: 500 }, false, KINDS.preview.max).n, 50);
+    assert.ok(Array.isArray(mapLead(item()).exp_list));
+});
+
+test('free list page offers "pas de liste ?" and reuses the found profile', () => {
+    const lp = readFileSync(new URL('../liste-gratuite.html', import.meta.url), 'utf8');
+    assert.match(lp, /id="tryQuery"/);
+    assert.match(lp, /action: 'preview'/);
+    assert.match(lp, /if \(it\.pre\) \{ st\.pr = it\.pre;/);
+});
+
+test('app: LinkedIn search fills the list for LinkedIn profile lookups', () => {
+    const app = readFileSync(new URL('../app.html', import.meta.url), 'utf8');
+    assert.match(app, /id="lfLiSearch"/);
+    assert.match(app, /currentInputType === 'linkedin_profile' \? '' : 'none'/);
+    assert.match(app, /kind: 'urls'/);
+    assert.match(app, /parseCSV\(csv\)/);
+});
