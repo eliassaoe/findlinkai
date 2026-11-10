@@ -1,5 +1,33 @@
 # LinkedIn rescue nodes in n8n
 
+## v4 (10 Nov 2026, app v4 only): Filtrat company → LinkedIn as the last step
+
+`company_name_to_linkedin_url` in "linkfinder ai app v 4": when `Co rescue:
+found?` still says "Not found", the lookup now goes to
+`Co filtrat: company-to-linkedin` (POST `api.filtrat.io/v1/company-to-linkedin`,
+credential "Filtrat api"; a bare domain is sent as `domain`, anything else as
+`name`) → `Co filtrat: pick` (only `status: matched` counts) →
+`Co filtrat: found?` → Respond to Webhook29 (hit) / Respond to Webhook65 (miss +
+refund, unchanged). Published as version "Filtrat company to LinkedIn as last
+backup". Not added to the free-tools workflow: every match costs Filtrat
+credits, and free users would spend them.
+
+**Test on our last 100 distinct misses** (from `enrichment_history`, mostly one
+rail-industry list of 3 Nov, through a temporary n8n workflow since deactivated):
+
+| Filtrat answer | Count | Read |
+| --- | --- | --- |
+| matched (all "likely") | 28 | Spot-checked names line up (ZOS Zvolen, V-Bahn AG, Telergon, Sirail…) |
+| possible | 6 | Mixed: Teleste right, Vogel & Plötscher → "ROBEL Metrics" wrong. Not accepted |
+| not_found | 66 | Free |
+
+So about **28% of our company misses come back**. Cost: 150 Filtrat credits per
+match by name (50 by domain); 33 of the 34 non-misses were billed 150, "possible"
+included despite the docs saying it is free — 4,950 credits for the 100. Our
+price for this lookup is 1 credit, so check what a Filtrat credit costs before
+leaving it on for big lists. Live check through the app worker:
+"Zastrova, a.s." → `linkedin.com/company/zastrova-a.s./` in 14 s.
+
 ## Current state (v2, published 7 Nov 2026 21:33): Apify backup ONLY
 
 The owner's call: **keep the original Google step exactly as it was, and add
