@@ -116,8 +116,7 @@ lookup" claim in a video script (see git history on
 `creditCosts` object in `app.html` before stating a cost in anything
 user-facing — don't extrapolate from the `company_name_to_*` pattern.
 
-**Plans** (checked in `app.html` 10 Nov 2026): Starter $49 / 5,000 mo · Professional $99 / 20,000 · **Scale** $249 / 70,000 — annual is 40% off. Older notes said Pro $89 and Scale $149 / 50,000
-/ 50,000. `app.html` stores the ANNUAL figure and divides by 12 — that is not a
+**Plans** (checked in `app.html` 10 Nov 2026): Starter $49 / 5,000 mo · Professional $99 / 20,000 · **Scale** $249 / 70,000 — annual is 40% off. Older notes said Pro $89 and Scale $149 / 50,000. `app.html` stores the ANNUAL figure and divides by 12 — that is not a
 bug. **Packs**: $25 / 1,000 · $75 / 3,500 · $200 / 10,000 (+ $10 / 300 "Mini", never-paid accounts only, see `docs/payg-mini.md`).
 
 **"Scale" is a display name; the plan KEY is still `enterprise`.** The $149 tier
