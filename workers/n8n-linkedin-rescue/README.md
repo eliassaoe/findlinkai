@@ -1,5 +1,15 @@
 # LinkedIn rescue nodes in n8n
 
+## 12 Nov 2026: `LI rescue: LinkedIn search` runs once per request (app v4)
+
+Owner: the harvest node was running several times on one name → LinkedIn
+lookup (one Apify run per incoming item). `LI rescue: LinkedIn search` now has
+**Execute Once** on (only the first item goes to Apify). Published as "LI rescue
+LinkedIn search: execute once (owner 12 Nov)"; it was the only difference from
+the live version. The free-tools workflow's `LinkedIn search` node was not
+changed.
+
+
 ## v4 (10 Nov 2026, app v4 only): Filtrat company → LinkedIn as the last step — ON (re-added 20:54 after a 17:10 removal)
 
 **Back on at 20:54, owner: "ajoute si ça augmente le finding rate".** Published as
