@@ -9,6 +9,39 @@ LinkedIn search: execute once (owner 12 Nov)"; it was the only difference from
 the live version. The free-tools workflow's `LinkedIn search` node was not
 changed.
 
+### Same evening: Execute Once on every paid call (draft saved, owner publishes)
+
+Owner: "tous les nœuds Filtrat… tous les nœuds après des search Google… c'est de
+l'argent pour moi". Measured on the last 100 executions of app v4:
+
+- **`Switch1` received 2 items in 9 of 100 runs**, so the whole branch ran twice:
+  2 Serper searches, 2 Apify runs, and so on.
+  - Cause: `Postgres1-Reserve2` updates `WHERE token = …`, and **4 tokens are shared by
+    2 accounts each** (8 rows, different emails). Each such lookup also deducts credits
+    on both accounts.
+  - The owner decides how to split those tokens.
+- **The LinkedIn search returns up to 10 profiles**, so `If` → `Respond to Webhook88` →
+  `Refund Calc (Not Found)21` got 10 items. The refund code runs once for all items, so
+  it was not refunded 10 times.
+
+Change: `executeOnce: true` on `Switch1` and on 54 paid nodes (Serper, Apify,
+Filtrat, AI agent, the HTTP callbacks after Filtrat adapters), bringing the total from
+13 to 68. Nothing else differs from the live version.
+
+**Deliberately NOT Execute Once.** These verify each email candidate, one item per
+candidate, up to 25; Execute Once would verify only the first and lower the find rate:
+
+- `Verify Generic Emails [Email]1`
+- `Verify Personal Emails [FullName]1`
+- `HTTP Request8` (after `Extract Email (Domain-Scoped)`)
+
+The fallbacks right after them (`Search Email (Domain-Scoped) [Email]1` and
+`Name email backup: pattern + SMTP (Apify)`) did run once per unverified candidate, and are
+now Execute Once.
+
+The draft is saved. **Publishing was blocked for the agent**, so the owner clicks Publish
+in n8n. The free-tools workflow was not touched.
+
 
 ## v4 (10 Nov 2026, app v4 only): Filtrat company → LinkedIn as the last step — ON (re-added 20:54 after a 17:10 removal)
 
