@@ -245,6 +245,21 @@ Expected, at last month's rates (1% reply, ~1/3 of replies hot): ~2,700 emails �
 - Morning report: `select * from ltd_sales_by_channel;` (day × source × first
   source × sales × revenue). Ask Claude for it each day of BF week.
 
+## Paid placements and marketplaces (11 Nov, 23:59)
+
+- **The Follow Up** (40K B2B salespeople, 54% open, ~200 clicks/send, Tue/Thu):
+  Passionfroot request filled — $300 budget, main slot Tue 24 Nov (Cyber
+  Monday as fallback). Submitting creates a Passionfroot account, so the
+  **owner clicks "Submit request"** (tab left open on the review page).
+- **AppSumo rejected LinkFinder AI on 10 Nov** ("not a good fit"); a new
+  submission is allowed after 30 days (10 Dec), so not for Black Friday. The
+  6,000 `LFAS-` codes stay unused.
+- Site traffic for scale: 7,278 visitors / 15,547 pageviews in the last 30 days
+  (PostHog) — the banner reaches ~1,700 people a week; a retargeting audience
+  would be small.
+- LTD marketplaces still open: PitchGround (agency tools), SaaSMantra (owner
+  emailed), DealMirror (in), Dealify (pitched), DealFuel (live).
+
 ## InfoStack price renegotiation (sent 11 Nov, 22:45)
 
 Owner: $99 for 10,000 credits/month is too low next to our own $299/7,500 and
