@@ -364,7 +364,7 @@ src="https://www.facebook.com/tr?id=2717863625238535&ev=PageView&noscript=1"
     <div class="main-content">
         <div class="container">
             <h1>Redeem Your Code</h1>
-            <p class="subtitle">Enter your access code (AppSumo codes too) to start enriching leads and companies</p>
+            <p class="subtitle">Enter your access code (AppSumo and InfoStack codes too) to start enriching leads and companies</p>
             
             <form id="redeemForm">
                 <div class="form-group">
@@ -437,8 +437,9 @@ src="https://www.facebook.com/tr?id=2717863625238535&ev=PageView&noscript=1"
             // Clear previous messages
             messageDiv.style.display = 'none';
 
-            // AppSumo codes (LFAS-...) are redeemed in Supabase; older codes keep using the worker.
-            if (/^LFAS-/i.test(code)) {
+            // AppSumo (LFAS-...) and partner lifetime codes (LFIS-... InfoStack) are
+            // redeemed in Supabase; older codes keep using the worker. docs/partner-ltd-codes.md
+            if (/^LF(AS|IS)-/i.test(code)) {
                 await redeemAppSumo(code, email, password);
                 return;
             }
@@ -502,7 +503,7 @@ src="https://www.facebook.com/tr?id=2717863625238535&ev=PageView&noscript=1"
         const SUPABASE_URL = 'https://snxhsboboatjywgwdeds.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNueGhzYm9ib2F0anl3Z3dkZWRzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYwMTY5NzgsImV4cCI6MjA2MTU5Mjk3OH0.qkoiXJoqujQ4iUByOqSAsacuJVtJx32j19PTuy7brMo';
         const APPSUMO_ERRORS = {
-            invalid_code: 'This AppSumo code is not valid. Please check it and try again.',
+            invalid_code: 'This code is not valid. Please check it and try again.',
             already_redeemed: 'This code has already been redeemed. Log in to your account to use your credits.',
             revoked: 'This code has been refunded and is no longer valid.',
             account_exists: 'An account with this email already exists. Enter your current LinkFinder AI password, or log in first and come back to this page.',
@@ -517,7 +518,7 @@ src="https://www.facebook.com/tr?id=2717863625238535&ev=PageView&noscript=1"
             try {
                 submitBtn.disabled = true;
                 submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
-                showMessage('Validating your AppSumo code...', 'loading');
+                showMessage('Validating your code...', 'loading');
 
                 const response = await fetch(SUPABASE_URL + '/rest/v1/rpc/appsumo_redeem', {
                     method: 'POST',
@@ -534,9 +535,9 @@ src="https://www.facebook.com/tr?id=2717863625238535&ev=PageView&noscript=1"
                     try { localStorage.setItem('lf_token_backup', data.token); } catch (e) {}
                     try {
                         posthog.identify(data.token, { email: email });
-                        posthog.capture('appsumo_redeemed', { new_account: data.new_account, credits_added: data.credits_added, yearly_credits: data.yearly_credits });
+                        posthog.capture('appsumo_redeemed', { new_account: data.new_account, credits_added: data.credits_added, yearly_credits: data.yearly_credits, monthly_credits: data.monthly_credits || null, partner: data.partner || 'appsumo' });
                     } catch (e) {}
-                    showMessage('Success! ' + Number(data.credits_added).toLocaleString('en-US') + ' credits added. Redirecting to LinkFinder AI...', 'success');
+                    showMessage('Success! ' + Number(data.credits_added).toLocaleString('en-US') + (data.monthly_credits ? ' credits added, refilled every month for life.' : ' credits added.') + ' Redirecting to LinkFinder AI...', 'success');
                     setTimeout(() => {
                         window.location.href = 'https://linkfinderai.com/app?token=' + encodeURIComponent(data.token);
                     }, 1500);

@@ -52,6 +52,7 @@ NOINDEX_ONLY = {
     "agency",             # outbound landing, sent by hand to agencies that replied yes
     "lifetime-deal",      # LTD campaign landing, email-only (docs/ltd-campaign.md)
     "best-recruitment-sofware-tools",  # typo URL, redirect stub -> /best-recruitment-software-tools
+    "redeem",                          # -> /redeem-code (partner link, docs/partner-ltd-codes.md)
     # Redirect stubs. Each one used to compete with the page it now bounces to.
     "skrapp-competitors",              # -> /skrapp-alternative
     "company-url-finder-lp",           # -> /company-url-finder
