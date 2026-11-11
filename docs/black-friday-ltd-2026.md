@@ -61,3 +61,24 @@ campaigns), so nothing to recover there.
 - Fulfilment is the n8n node in `docs/ltd-campaign.md` ("The n8n node that
   grants it"), keyed on the buyer's token. It has never processed a real LTD
   payment: make one test purchase before 27 Nov.
+
+## Email to our own free users (built 11 Nov, sends 27 Nov)
+
+- Audience: PostHog static cohort **712192** "Black Friday 2026 LTD — confirmed,
+  never paid (all countries)", 2,084 people on 11 Nov. Source is Supabase
+  `refresh_ltd_campaign_audience()` (confirmed email, never paid anywhere, no
+  colleague of a payer) joined to PostHog persons with no payment event.
+  Refreshed on 11 Nov: 2,832 rows in `ltd_campaign_audience`.
+- Workflow **`01a1cbcf-82d9-0000-1fb9-97bdd54d69ed`** "Black Friday 2026 —
+  lifetime deal (free accounts)", **draft**. Batch trigger on cohort 712192,
+  from support@, marketing category, 600/hour, exits on any payment.
+  - Fri 27 (at dispatch): "Black Friday: LinkFinder AI for life, paid once"
+  - Sun 29 (+2d): "the math on the Black Friday deal"
+  - Mon 30 (+1d): "last day: the Black Friday deal closes tonight"
+  - Links `utm_source=email&utm_campaign=bf2026&utm_content=e1..e3`.
+  - All three steps test-ran clean (mocked) on 11 Nov.
+- **26 Nov (reminder set in the session):** refresh the audience, re-create the
+  cohort, check the page, then blast-radius preview → owner confirms the count
+  → enable → one-off dispatch Fri 27 Nov 14:00 UTC.
+- October's LTD email to 559 free users sold 0. Black Friday is the reason to
+  try again, at 4x the audience; don't size anything on it.
