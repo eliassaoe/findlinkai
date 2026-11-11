@@ -260,6 +260,33 @@ Expected, at last month's rates (1% reply, ~1/3 of replies hot): ~2,700 emails �
 - LTD marketplaces still open: PitchGround (agency tools), SaaSMantra (owner
   emailed), DealMirror (in), Dealify (pitched), DealFuel (live).
 
+## Own audiences, by warmth (owner, 11 Nov 23:06)
+
+| Audience | Size (11 Nov) | Emails |
+| --- | --- | --- |
+| Free LinkFinder accounts that **used the tool** (`ltd_campaign_audience.enrichments > 0`, segment `free`) | 1,562 | a sequence: Tue 24 early access, Fri 27, Sat 28, Sun 29, Mon 30 |
+| Free accounts that never used it (`enrichments = 0`) | 1,272 | 2 max: Fri 27, Mon 30 |
+| Past customers (`winback`) | 119 | sequence like the warm free accounts |
+| **Unlimited Leads** users (`public.users`, owner's old product), minus anyone already in `linkfinderai_users` | 12,184 | 2 max, only after verification (below) |
+
+Unlimited Leads list quality: only 1 of 15,175 has `Account_confirmed`, 6,461
+signed up in Dec 2025 alone (a burst), and disposable domains appear
+(fogdiver, chaineor, delaeb, forexzig…). Sending 12k unverified addresses from
+`support@linkfinderai.com` two days before the main Black Friday send would
+risk the domain's inbox placement for the emails that matter. Run it through
+an email verifier first (~$40–60 for 12k), drop invalid/disposable/catch-all,
+then send from PostHog after identifying the survivors (as for cohort 616375).
+
+Reminder set for 23 Nov to build the warm cohort + sequence before Tue 24.
+
+## Partner outreach at scale
+
+The project 37934 campaign "Partnerships — newsletters, affiliates, creators,
+resellers" exists and is paused with 0 sent. Restarted with a Black Friday
+affiliate offer (30% of lifetime-deal sales from their link, free lifetime
+account, no upfront fee), it reaches thousands of newsletters / creators /
+communities instead of the dozen contacted by hand. Needs the Explee top-up.
+
 ## InfoStack price renegotiation (sent 11 Nov, 22:45)
 
 Owner: $99 for 10,000 credits/month is too low next to our own $299/7,500 and
