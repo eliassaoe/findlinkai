@@ -532,6 +532,13 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
         <p>Before you leave, can you tell us why?</p>
       </div>
       <div class="reason-grid">
+        <!-- First on purpose (11 Nov 2026, docs/churn-pause.md): most subscribers
+             who leave ran one list in one to three days and stopped. That is a
+             finished project, not a complaint, and the answer is a pause. -->
+        <div class="reason-option" onclick="selectReason('projectDone',event)">
+          <div class="reason-icon">✅</div>
+          <div class="reason-text"><strong>I finished my list / project</strong><span>I'll need it again for the next one</span></div>
+        </div>
         <div class="reason-option" onclick="selectReason('notUsing',event)">
           <div class="reason-icon">⏸️</div>
           <div class="reason-text"><strong>I'm not using it enough</strong><span>I don't have time right now</span></div>
@@ -570,6 +577,13 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
           Finish cancellation <i class="fas fa-arrow-right"></i>
         </button>
         <p style="font-size:.75rem;color:var(--gray-400);margin-top:.75rem;">Or <a href="#" onclick="closeCancellationModal();isExistingSubscriber=true;showPricingModal();return false;" style="color:var(--primary);">downgrade to a cheaper plan</a> instead</p>
+      </div>
+      <!-- Last-chance pause, whatever reason was picked (11 Nov 2026,
+           docs/churn-pause.md). Hidden when step 2 already offered it. -->
+      <div id="lastPauseCard" style="border:1px dashed var(--gray-300);border-radius:10px;padding:1rem;margin-top:1rem;text-align:center;">
+        <p style="font-size:.85rem;color:var(--gray-700);margin-bottom:.6rem;"><strong>Only need a break?</strong> Pause billing for a month instead. Nothing is charged, your plan resumes on its own.</p>
+        <button id="lastPauseBtn" class="btn btn-success" onclick="retentionAction('pause','lastPauseBtn','lastPauseStatus')" style="width:100%;display:flex;justify-content:center;"><i class="fas fa-pause"></i> Pause for 1 month instead</button>
+        <div id="lastPauseStatus" style="display:none;text-align:center;font-size:.85rem;color:var(--success);margin-top:.5rem;"></div>
       </div>
     </div>
 
@@ -1474,6 +1488,21 @@ function showSolutionForReason(reason) {
   const step2 = document.getElementById('step2');
   const solutionMap = {
 
+    projectDone: `
+      <div class="flow-header"><h2>Pause until your next list ⏸️</h2><p>No need to cancel between projects</p></div>
+      <div class="solution-card">
+        <h3><i class="fas fa-pause-circle"></i> Pause billing for 1 month — free</h3>
+        <p>Nothing is charged for 30 days, then your plan resumes on its own. Your account, history and credits stay as they are, ready for the next list.</p>
+        <button id="pauseBtn" onclick="retentionAction('pause')" class="btn btn-success" style="width:100%;margin-bottom:.75rem;"><i class="fas fa-pause"></i> Pause billing for 1 month</button>
+        <div id="pauseStatus" style="display:none;text-align:center;font-size:.85rem;color:var(--success);margin-top:.5rem;"></div>
+      </div>
+      <div class="solution-card">
+        <h3><i class="fas fa-arrow-down"></i> Or keep a smaller plan</h3>
+        <p>Lists come back. A cheaper plan keeps you ready without paying for volume you don't need this month.</p>
+        <button onclick="closeCancellationModal();isExistingSubscriber=true;showPricingModal();" class="btn" style="width:100%;"><i class="fas fa-layer-group"></i> See cheaper plans</button>
+      </div>
+      <div class="btn-group"><button class="btn btn-danger" onclick="declineAllSolutions()">No, Continue to Cancel</button></div>`,
+
     notUsing: `
       <div class="flow-header"><h2>No worries — pause instead ⏸️</h2><p>Take a break without losing your account</p></div>
       <div class="solution-card">
@@ -1593,6 +1622,9 @@ function submitOtherFeedback()   { submitFeedback('other_feedback',    'otherRea
 
 function declineAllSolutions() {
   surveyTrack('all_solutions_declined', { reason: selectedCancellationReason });
+  // The reasons whose step 2 was a pause offer already saw it; don't ask twice.
+  const lp = document.getElementById('lastPauseCard');
+  if (lp) lp.style.display = (selectedCancellationReason === 'notUsing' || selectedCancellationReason === 'projectDone') ? 'none' : 'block';
   goToFlowStep('step3');
 }
 
@@ -1944,14 +1976,16 @@ function proceedToCancellation() { managePlanDirectly(); }
 
 const CANCEL_WORKER = 'https://cancel-subscription.hamoureliasse.workers.dev/';
 
-async function retentionAction(action) {
+async function retentionAction(action, btnIdArg, statusIdArg) {
   if (surveyPreview) {
-    console.log('%c[preview] would apply retention offer', 'color:#f59e0b;font-weight:700', action);
+    console.log('%c[preview] would apply retention offer', 'color:#f59e0b;font-weight:700', action, btnIdArg ? 'from ' + btnIdArg : '');
     alert('PREVIEW — the ' + action + ' offer was not applied.');
     return;
   }
-  const btnId   = action === 'pause' ? 'pauseBtn' : 'discountBtn';
-  const statusId = action === 'pause' ? 'pauseStatus' : 'discountStatus';
+  // Step 3's last-chance pause passes its own ids: step 2 may hold a hidden
+  // #pauseBtn too, and getElementById would pick that one.
+  const btnId   = btnIdArg || (action === 'pause' ? 'pauseBtn' : 'discountBtn');
+  const statusId = statusIdArg || (action === 'pause' ? 'pauseStatus' : 'discountStatus');
   const btn    = document.getElementById(btnId);
   const status = document.getElementById(statusId);
 
@@ -1995,6 +2029,7 @@ async function retentionAction(action) {
       surveyTrack('retention_' + action, {
         subscription_id: currentSubscriptionId,
         reason:          selectedCancellationReason,
+        offered_at:      btnIdArg === 'lastPauseBtn' ? 'last_chance' : 'reason_offer',
       });
       // Close modal after 3 seconds
       setTimeout(() => closeCancellationModal(), 3000);
