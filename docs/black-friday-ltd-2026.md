@@ -197,6 +197,23 @@ is no longer reachable). Re-test: 9 of 9 US profiles that had a number in
 September returned one again (app path), the free tool `business_phone_finder`
 too. Rotate that token once things are stable (it was pasted in a chat).
 
+## US campaign in Explee (prepared 11 Nov, 23:00 — Not started)
+
+Project 37934, campaign **412273** "US - Lead gen, outbound and
+appointment-setting agencies (Black Friday)": US, 10–150 employees, founders /
+heads of sales; offer + problem written for agencies. First-email
+instructions are a **campaign override** (Email sequence → "First email
+instructions for" → this campaign → Custom): project copy with S4 replaced by
+the Black Friday line, no price ("Try it on your own list, and through Monday
+it's one payment instead of monthly."). Preview checked. Follow-ups = project
+default. Auto-replies are project-wide only: the English block now sends
+`/free-list?email=…` + booking link and answers price questions with "pay once
+instead of monthly", no figure (the FR block is untouched). The old English block
+pointed at `/agency` with a wrong "$59/month" line.
+To send: top up Explee (balance was −$8.13), then Start campaign on Tue 24 Nov.
+Volume is capped by mailboxes (~380 first emails/day on the live FR campaign),
+so a week is ~2,500–3,000 emails (~$90), not tens of thousands.
+
 ## InfoStack price renegotiation (sent 11 Nov, 22:45)
 
 Owner: $99 for 10,000 credits/month is too low next to our own $299/7,500 and
