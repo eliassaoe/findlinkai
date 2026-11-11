@@ -150,6 +150,29 @@ short countdown, start before Black Friday. `tests/bf-banner.test.mjs`.
 
 Each admin gets `?utm_source=fb_<group>&utm_campaign=bf2026`.
 
+## Done 11 Nov, 21:15–22:00 Paris
+
+- PRs opened from the owner's fork: trungdq88/Awesome-Black-Friday-Cyber-Monday
+  **#2626**, danmindru/rare-big-deal **#851** (Sales Tools, `utm_source=rarebigdeal`).
+- Deal submissions by email from the owner's Gmail: saas.blackfriday
+  (`info@`), Gaurav Tiwari's deals page (25% affiliate offered).
+- Ken Moo (Facebook LTD group, 9k+): inquiry form at kenmoo.me/contact filled,
+  **blocked by a reCAPTCHA** — the owner ticks it and submits. Their terms:
+  30–50% commission, buyers pay on our site, founder answers in the group.
+- Black Friday Times needs an account (the owner signed in himself 11 Nov).
+- **LTD fulfilment tested end to end on the live n8n webhook**: a
+  `payment.succeeded` for the Core product with the token of
+  hamoureliasse54@gmail.com took it 50 → 2,550 credits, `ltd_monthly_credits`
+  2500, `is_unlimited` true, `plan_type` and `subscription_id` untouched. Test
+  account reset afterwards. Side effect: one `ltd_purchased` PostHog event
+  (attribution_source `internal_test`) — exclude it from sales counts.
+- **Security gap found**: the n8n Dodo webhook
+  (`scalelinkfinderai-production…/webhook/9ffa2c7e-…`) accepts a POST without
+  Dodo's signature. Anyone with that URL can grant themselves credits. Fix in
+  n8n: verify the `webhook-signature` header (Standard Webhooks, secret on the
+  Dodo endpoint page), or re-fetch the payment from the Dodo API by
+  `payment_id` and check `status = succeeded` before any grant.
+
 ## Cold email variant (prepared, NOT live)
 
 Owner, 11 Nov: "il faut tester" selling the lifetime deal in cold email instead
