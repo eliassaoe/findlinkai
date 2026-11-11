@@ -45,3 +45,18 @@ incubators and VCs, which have no audience to sell to. Only these fit:
 
 Instantly has no influencer or newsletter campaign (only the 4 agency
 campaigns), so nothing to recover there.
+
+## Deal page state (set 11 Nov 2026, 19:00 Paris)
+
+- `ltd_settings`: `seat_cap` 50 (49 left: one LTD seat already existed),
+  `ends_at` 2026-12-01 07:59 UTC = Cyber Monday 23:59 Pacific. The page is
+  open now; partners post on 27 Nov.
+- `/lifetime-deal` copy rewritten for new visitors (it was written for free
+  account holders in October); visitors with no account get "Create a free
+  account to buy" → `/sign-up`.
+- Partner links carry `utm_source=<partner>&utm_campaign=bf2026`; the page
+  passes them to Dodo as `metadata_attribution_source` / `_campaign`.
+- SaaS Pirate: paid $129 on 11 Nov, link `?utm_source=saaspirate&utm_campaign=bf2026`.
+- Fulfilment is the n8n node in `docs/ltd-campaign.md` ("The n8n node that
+  grants it"), keyed on the buyer's token. It has never processed a real LTD
+  payment: make one test purchase before 27 Nov.
