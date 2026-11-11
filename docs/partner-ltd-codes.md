@@ -51,3 +51,17 @@ credits roll over (docs/ltd-campaign.md describes a "raise up to the allotment"
 refill that is not what the live function does). Generous to buyers, but it is
 a growing cost on heavy accounts. Changing it affects every lifetime account,
 so it is the owner's call.
+
+## Sent to InfoStack (11 Nov 2026, 20:41 Paris)
+
+Reply in Cary's Gmail thread "LinkFinder LTD: Codes, Guarantee and Dates": the
+500 `infostack-2026-11` codes in the body (the browser could not attach a file),
+the separate test code (`infostack-test` batch), redeem URL `/redeem-code`
+(and `?code=` prefill), refunds = send us the code, **30-day guarantee**, and
+the dates confirmed: waitlist 23, 25, 28, 29 Nov; sale 30 Nov and 1 Dec. The
+27–30 Nov dates Cary saw were the Black Friday LTD for other partners
+(docs/black-friday-ltd-2026.md), a separate promotion.
+
+After Cary tests: reset the test code with
+`update appsumo_codes set status='available', user_token=null, redeemed_email=null, redeemed_at=null where batch='infostack-test';`
+and remove the test account's lifetime allowance if needed.
