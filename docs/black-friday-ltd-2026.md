@@ -122,6 +122,59 @@ short countdown, start before Black Friday. `tests/bf-banner.test.mjs`.
   pitched.
 - StackSocial: inbound-only and weak founder results; not pitched.
 
+## What worked for other founders (research, 11 Nov)
+
+- **Usermaven** sold $120k self-hosted in 3 weeks (373 buyers, 5.7% refunds,
+  30-day guarantee). Biggest driver: **Facebook LTD groups** (MarTech Wise,
+  SaaS Warrior, Ken Moo, Lifetimo), whose admins got a free lifetime account to
+  post it. Then their own list (3 emails) and Twitter. Their page had one CTA,
+  a demo video, a timer, testimonials and a live FAQ.
+- Another founder made **$6k in 15 days** with Facebook LTD groups (Ken Moo,
+  LTDHunt, "LTD deals with Kabir", DownloadSilo) at **25% commission** instead
+  of AppSumo, plus giveaways in the groups. Find more by searching "LTD" on
+  Facebook.
+- Hive Index sizes: MarTech Wise 10k, Ken Moo 9k, Use your LTDs 3k.
+- Founder video the owner shared: start early, timer only in the last days,
+  top banner, founder face on video, a Cyber Monday bonus.
+- Free listings: `danmindru/rare-big-deal` (PR, Marketing → Sales Tools, gives a
+  page + backlink on rarebigdeal.com), on top of the trungdq88 list.
+
+### Facebook group admin DM (owner sends from his own Facebook account)
+
+> Hi {name}, I run LinkFinder AI (finds emails, phones and LinkedIn data from a
+> name, company or LinkedIn URL). We're doing a Black Friday lifetime deal,
+> $149 once for 2,500 credits every month, 27–30 Nov. Would you post it in
+> {group}? You get a free lifetime account for yourself and 25% of every sale
+> from your link, paid in December. Happy to send a demo account now so you can
+> try it first.
+
+Each admin gets `?utm_source=fb_<group>&utm_campaign=bf2026`.
+
+## Cold email variant (prepared, NOT live)
+
+Owner, 11 Nov: "il faut tester" selling the lifetime deal in cold email instead
+of a subscription. Proposal: 27–30 Nov only, **half of the new leads** of the
+SaaS campaign (Explee 37934) get this, half keep the normal sequence, so we can
+compare. Risk: a cold prospect who would have paid $49/month takes $149 once.
+Sales from it carry `utm_source=cold_ltd`.
+
+1. Subject: `{company}'s prospect emails, for life`
+   > Hi {first_name}, LinkFinder AI turns a LinkedIn URL, a name or a company
+   > into a verified email and phone. For Black Friday only, it's $149 once
+   > instead of a monthly plan: 2,500 credits every month, for life. Ends Monday
+   > night. Want me to run 10 of your prospects through it first so you can
+   > see the find rate?
+2. (+1 day) Subject: `re: {company}'s prospect emails, for life`
+   > The math: 2,500 credits a month is ~250 emails found from LinkedIn
+   > profiles. Our Starter plan is $49/month for 5,000. Paying once and keeping
+   > it beats 3 months of subscription. Link: linkfinderai.com/lifetime-deal
+3. (Mon 30) Subject: `closes tonight`
+   > Last note: the lifetime deal closes at midnight Pacific tonight, then it's
+   > back to monthly plans only.
+
+Buying needs a free account first (the page says so), so step 1 offers the
+10-prospect test, which gets them to sign up.
+
 ## Own audience, widened (11 Nov evening, owner: "bourriner")
 
 - **Past customers are allowed to buy**: 119 added to `ltd_allowlist` (reason
