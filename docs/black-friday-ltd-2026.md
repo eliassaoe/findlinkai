@@ -173,6 +173,38 @@ Each admin gets `?utm_source=fb_<group>&utm_campaign=bf2026`.
   Dodo endpoint page), or re-fetch the payment from the Dodo API by
   `payment_id` and check `status = succeeded` before any grant.
 
+## Phone lookups broken: the Apify token in n8n is dead (found 11 Nov, 22:40)
+
+n8n `primary-fie-production.up.railway.app`, workflow "linkfinder ai app v 4"
+(`LntSghdJrXAAFYmr`): LinkedIn → phone goes through `HTTP Request31`, Apify actor
+`x_guru~linkedin-phone-scraper-no-cookies`, credential **"apify api key"**
+(httpQueryAuth). Apify answers **401 `user-or-token-not-found`** ("User was not
+found or authentication token is not valid"). The same credential is used by
+**23 Apify nodes** in that workflow (phone, skip trace, HarvestAPI profile,
+LinkedIn rescue…): 28 of the last 100 executions (2 h) hit that 401. The phone
+find rate fell from 85% (late Sept) to ~11% from mid-October, which is probably
+when the token stopped working; misses are refunded, so nobody was charged.
+Fix (owner, needs the secret): Apify console → Settings → API & Integrations →
+copy the personal API token → n8n → Credentials → "apify api key" → paste it as
+the query parameter value (`token`) → save. Then re-test 3 US profiles that had a
+number in September (`enrichment_history`, type `linkedin_profile_to_phone`,
+week of 28 Sept). Check the free-tools workflow (`KmQzVWHBMOXOWXZD`) uses the same
+credential.
+
+## InfoStack price renegotiation (sent 11 Nov, 22:45)
+
+Owner: $99 for 10,000 credits/month is too low next to our own $299/7,500 and
+$599/25,000. Reply in Cary's thread "LinkFinder LTD: Codes, Guarantee and Dates":
+option 1 = $199 for the same 10,000/month; option 2 = keep $99 with 3,000/month.
+Split, guarantee, dates and codes unchanged. If he picks option 2:
+`update appsumo_codes set monthly_credits = 3000 where partner = 'infostack';`
+(before redemption; redeemed codes also need `ltd_monthly_credits` updated).
+
+## Cold email: no price (owner, 11 Nov 22:22)
+
+Prices in cold email land in spam. `brief.bf-us.json` now has no figure at all:
+"Through Monday, you can pay once for it instead of every month."
+
 ## Price ladder + Agency tier (owner, 11 Nov 22:00: "plusieurs paliers, $150 pour le volume, une offre bien plus chère pour les gros payeurs, augmentation par palier")
 
 | Tier | Credits / month | Price steps (Dodo product) |
