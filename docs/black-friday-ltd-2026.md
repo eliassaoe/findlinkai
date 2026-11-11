@@ -173,6 +173,35 @@ Each admin gets `?utm_source=fb_<group>&utm_campaign=bf2026`.
   Dodo endpoint page), or re-fetch the payment from the Dodo API by
   `payment_id` and check `status = succeeded` before any grant.
 
+## Price ladder + Agency tier (owner, 11 Nov 22:00: "plusieurs paliers, $150 pour le volume, une offre bien plus chère pour les gros payeurs, augmentation par palier")
+
+| Tier | Credits / month | Price steps (Dodo product) |
+| --- | --- | --- |
+| Core | 2,500 (adds up, as before) | $149 first 50 sold (`pdt_0Np6hfk426N6l9EhVrFYO`) → $179 next 50 (`pdt_0Nrk0zRIGgPyuicb1YawD`) → $199 (`pdt_0Nrk16AWNOG8WwyM8ydyN`) |
+| Plus | 7,500 (adds up) | $299 (`pdt_0Np6hjktXBH06Wqf5OT5o`) |
+| Agency | 25,000, **topped back up to 25,000** each month, no rollover (owner didn't answer; my call) | $599 first 10 (`pdt_0Nrk1CAeR4RthDkU58OL6`) → $699 next 15 (`pdt_0Nrk1GkNaPFgE4eM6Icn4`) → $799 (`pdt_0Nrk1K7pLE4Mr6oxcocYY`) |
+
+- `ltd_price_steps` (migration `20261111230000_ltd_price_ladder.sql`): one row per
+  Dodo product. `ltd_public_state()` returns, per tier, the current step's price
+  and product, `left_at_price` and `next_price`; the page shows "N left at $149,
+  then $179" and the buy button follows the current product. Sales per tier =
+  accounts whose `ltd_monthly_credits` equals the tier's amount.
+- n8n "upgrade dodo" (`Azd5dYtQWHKqWcUm`, scalelinkfinderai instance), published
+  11 Nov "LTD price ladder + Agency tier": `Switch2` rule 10 now *matches regex*
+  over the 7 product ids, and `Postgres46` takes the monthly credits from
+  `ltd_credits_for_product(product_id)` instead of a hard-coded CASE. Adding a
+  step later = a Dodo product + a row in `ltd_price_steps` + the id in that regex.
+  `Postgres47` (old Tier 2 branch) is no longer reached.
+- Tested: Agency payment on the test account → 50 → 25,050 credits,
+  `ltd_monthly_credits` 25,000; reset afterwards. Ladder moves to $179 / $799 when
+  50 Core / 25 Agency sales are simulated (rolled back).
+- Page: headline "Pay once for your sourcing tool…", Agency card (setup call with
+  the founder), math table with Professional monthly and Agency rows.
+  `tests/ltd-price-ladder.test.mjs`.
+- Cold email (`brief.bf-us.json`): "pay once for your sourcing tool instead of
+  every month", only price quoted is "from $149"; Agency is offered by hand when
+  a reply shows a team.
+
 ## US cold campaign (owner, 11 Nov evening: "go, US, I'll fund it")
 
 **Page:** `/free-list` — English copy of `/liste-gratuite` (same flow, same
