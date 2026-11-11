@@ -287,6 +287,21 @@ affiliate offer (30% of lifetime-deal sales from their link, free lifetime
 account, no upfront fee), it reaches thousands of newsletters / creators /
 communities instead of the dozen contacted by hand. Needs the Explee top-up.
 
+## Passionfroot requests sent (11 Nov, 23:30) — nothing is paid until a creator accepts and the owner pays the link
+
+| Newsletter | Audience | Package | Our ask |
+| --- | --- | --- | --- |
+| The Follow Up | 40K B2B salespeople, 54% open, ~200 clicks | Main sponsor | $300, Tue 24 (owner submitted) |
+| GTM w/ AI | 22K founders/sales, 45% open | Dedicated email (list $400) | $300, BF week |
+| B2B Whales | 42K founders/CEOs/sales, 90% US, ~200 clicks | Classified (list $300) | $300, BF week |
+| Practical Prospecting (Jed Mahrle) | 22.7K sales, 49% open, 7% CTR | Classified (list $500) | $300, BF week |
+
+Other storefronts found (not requested): Death to Fluff (Belal Batrawy, 8K
+sellers + 60K LinkedIn), The Sales Journal (Positano Media, $750), Revenue
+Squared (4.4K, €500), Failory (founders, $350–700), Founders' Fuel, SellersGrowth.
+Each accepted request = a payment link to the owner; give it its own
+`utm_source` (thefollowup, gtmwai, b2bwhales, practicalprospecting).
+
 ## InfoStack price renegotiation (sent 11 Nov, 22:45)
 
 Owner: $99 for 10,000 credits/month is too low next to our own $299/7,500 and
