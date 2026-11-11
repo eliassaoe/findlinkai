@@ -419,3 +419,69 @@ Buying needs a free account first (the page says so), so step 1 offers the
   past customers", Mon 30 "last day". Test-ran clean. Draft.
 - Reminder set for 26 Nov 17:05 Paris: re-create both cohorts (free cohort gets
   `segment = 'free'`), show the owner the counts, schedule both for Fri 27 14:00 UTC.
+
+## Unlimited Leads list → Explee: refused (12 Nov, 00:30)
+
+Explee's "Import leads" requires first name, last name, company domain and job
+title on every row. `public.users` (Unlimited Leads) holds **only an email** —
+all 1,000 test rows were skipped, no campaign was created, nothing was sent.
+The temporary export function (`tmp_ul_export`) was revoked from anon and
+dropped the same minute. Two ways forward (owner's call): enrich the business
+addresses with our own email → LinkedIn (5 credits each; gmail rows won't
+match), or send the 2 emails from a tool that accepts email-only leads
+(PostHog, as for the free cohort, after an email verifier).
+
+## submitlist.io triage (12 Nov) — what can still sell before 30 Nov
+
+Catalog read through its API: 122 directories, 70 marketplaces, 37
+newsletters, 25 communities, 13 launch sites, ~1,600 subreddits.
+
+**Marketplaces: none lands before Black Friday.** Airtable Extensions wants a
+built extension, a walkthrough video, a read-only example base and a review;
+Zapier, HubSpot, Google Workspace and Microsoft all review in weeks. The only
+fast one is the **n8n community node** (`n8n-nodes-linkfinderai`, ready): the
+owner runs Actions → "Publish n8n node" → `dry_run: false`
+(`integrations/SUBMITTING.md`). Long-term value, not BF cash.
+
+**Launch sites worth a BF launch (owner signs in, week of 23 Nov):** Product
+Hunt (DR 91), Peerlist (77), Uneed (75, paid skip-the-line), PeerPush (73),
+TinyLaunch (73), OpenHunts (70), DevHunt (63, dev-leaning). Use
+`utm_source=<site>&utm_campaign=bf2026`.
+
+**Free directories (long-term SEO, not BF cash):** G2, Capterra, Gartner Peer
+Insights, Findstack, SelectHub, Technology Advice, TechBehemoths, SaaSpo,
+Future Tools, AI Tools directories. Do after 1 Dec.
+
+**Newsletters on submitlist:** big generic lists, no rates; the B2B sales ones
+are on Passionfroot (below).
+
+**Passionfroot, 12 Nov:** request sent to **Death to Fluff** (Belal Batrawy,
+8.6K sellers, 38% open, ~150 clicks/send) — Sponsor of the Week, $300,
+24–30 Nov, `utm_source=deathtofluff`. Not requested, by the numbers: Failory
+(34K founders but 60 clicks for $350–700) and Founders' Fuel (50 clicks for
+$599) — under the 2x bar at $149 a sale.
+
+### Reddit (owner posts from his account; most sales subs ban tools)
+
+Where a tool post is allowed, per submitlist's rules snapshot: r/SideProject
+and r/Emailmarketing (direct post, no cold-email talk), r/Recruitment and
+r/SaaS (megathread / weekly promo thread only), r/GrowthHacking and r/AI_Sales
+(ask mods first). r/Entrepreneur, r/LeadGeneration and r/LinkedInTips ban
+promotion — don't post there.
+
+Post (r/SideProject; trim for megathreads), link
+`linkfinderai.com/lifetime-deal?utm_source=reddit_<sub>&utm_campaign=bf2026`:
+
+> **I built a tool that turns a LinkedIn URL into a verified email and mobile
+> number — doing a pay-once Black Friday deal**
+>
+> I run LinkFinder AI. You give it a LinkedIn profile (or a name + company, or
+> a CSV of 500), it returns the work email, the mobile number and the full
+> profile. Recruiters and agencies use it to reach people without InMail.
+>
+> For Black Friday (27–30 Nov) I'm doing something I won't repeat: pay once
+> and get credits every month for life, instead of a monthly plan. Capped
+> seats, price goes up as they sell.
+>
+> Happy to run 10 of your prospects through it for free in the comments if you
+> want to check the find rate before buying anything.
