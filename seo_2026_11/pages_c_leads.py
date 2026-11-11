@@ -1,8 +1,10 @@
 """Lead lists and LinkedIn export cluster. Facts (docs/lead-search.md, 12 Nov 2026):
-- Lead Search: search words, job titles, locations, seniority, company size;
-  10/25/50/100 leads per run; no LinkedIn account or cookie used; returns name,
-  title, company, location, work email, personal email, experience; CSV download;
-  15 credits per lead with an email, 5 without; ~2 minutes for 25 leads.
+- The standalone Lead Search tab is unlinked since 10 Nov (owner). What users
+  reach today: app bulk card, "No LinkedIn URLs? Search LinkedIn": query (title
+  or keywords) + location, 25/50/100/200 people, 1 credit per profile found,
+  no LinkedIn account or cookie; returns linkedin url, full name, job title,
+  company, location as a list, then any lookup (email 10 credits) runs on it.
+  No seniority or company-size filter. Do not promise one.
 - Post reactions: 1 credit per person returned.
 - LinkedIn has no native export of search results.
 """
@@ -11,47 +13,45 @@ S = "https://linkfinderai.com"
 
 LEAD_SEARCH = """
       <div class="tbl-wrap"><table>
-        <thead><tr><th>You describe</th><th>You get back, per lead</th></tr></thead>
+        <thead><tr><th>You give</th><th>You get back, per person</th></tr></thead>
         <tbody>
-          <tr><td>Job titles (several, comma separated)</td><td>Full name</td></tr>
-          <tr><td>Keywords or skills on the profile</td><td>Current title and company</td></tr>
-          <tr><td>Locations (cities or countries)</td><td>Location and LinkedIn profile URL</td></tr>
-          <tr><td>Seniority (entry to C-level, owner)</td><td>Work email, and personal email when one is found</td></tr>
-          <tr><td>Company size (1-10 to 5,000+)</td><td>Experience history</td></tr>
+          <tr><td>A job title or keywords (for example <em>Head of Sales</em>)</td><td>LinkedIn profile URL and full name</td></tr>
+          <tr><td>A location (city or country)</td><td>Current job title and company</td></tr>
+          <tr><td>How many people: 25, 50, 100 or 200</td><td>Location, then a verified work email if you add it</td></tr>
         </tbody></table></div>
-      <p style="margin-top:1rem;">Runs of 10, 25, 50 or 100 leads, about two minutes for 25. 15 credits per lead with an email, 5 per lead without. No LinkedIn account, Sales Navigator seat or cookie involved.</p>"""
+      <p style="margin-top:1rem;">It runs from the bulk enrichment card in the app ("No LinkedIn URLs? Search LinkedIn"), with no LinkedIn account, Sales Navigator seat or cookie involved. 1 credit per profile found, plus 10 credits per work email: about 11 credits per lead with an email.</p>"""
 
 PAGES = [
     dict(
         slug="linkedin-lead-extractor",
         title="LinkedIn Lead Extractor: Profiles and Emails, No Cookies",
-        description="Describe the people you want: titles, location, seniority, company size. Get LinkedIn profiles with work emails in a CSV, without your LinkedIn account.",
+        description="Type a job title and a location, get matching LinkedIn profiles, then their verified work emails, in a CSV. No LinkedIn account, cookie or extension.",
         h1="LinkedIn Lead Extractor Without Cookies",
         crumb="LinkedIn Lead Extractor",
-        subtitle="Tell LinkFinder AI who you are looking for. It searches LinkedIn for you, without your account or a Sales Navigator seat, and gives back each lead's profile and work email.",
+        subtitle="Tell LinkFinder AI the job title and location you are after. It searches LinkedIn for you, without your account or a Sales Navigator seat, and adds each lead's work email.",
         checks=[
             "No LinkedIn login, cookie or browser extension",
-            "Job titles, keywords, locations, seniority and company size",
-            "Profiles and work emails together, downloadable as CSV",
+            "A job title or keywords, a location, 25 to 200 people",
+            "Profiles first (1 credit each), then verified work emails (10 credits each)",
         ],
         actions=[("Extract leads free", f"{S}/sign-up"), ("Already have a list? Enrich it", f"{S}/bulk-linkedin-email-finder")],
         sections=[
             ("What the lead extractor does", """
-      <p>Most LinkedIn lead extractors are scrapers: they open your search in your logged-in browser and copy the results, which puts your account at risk and still gives you no email addresses. LinkFinder AI's Lead Search works the other way round. You give it criteria, it finds matching LinkedIn profiles without touching your account, and it adds the work email for each one.</p>""" + LEAD_SEARCH),
+      <p>Most LinkedIn lead extractors are scrapers: they open your search in your logged-in browser and copy the results, which puts your account at risk and still gives you no email addresses. LinkFinder AI's Lead Search works the other way round. You give it a job title and a location, it finds matching LinkedIn profiles without touching your account, and you add the work email for each one in the same run.</p>""" + LEAD_SEARCH),
             ("How to extract a lead list", """
       <ol>
-        <li>Sign up and open Lead Search in the app.</li>
-        <li>Enter job titles (for example <em>Head of Sales, VP Sales</em>), locations and, if you want, seniority and company size.</li>
-        <li>Pick how many leads you want and start the search. You can leave the page while it runs.</li>
-        <li>Download the CSV, or send it to HubSpot, Google Sheets or your sequencer.</li>
+        <li>Sign up and open the bulk enrichment card in the app, with LinkedIn profile as the input.</li>
+        <li>Click <em>No LinkedIn URLs? Search LinkedIn</em>, type a job title or keywords (for example <em>Head of Sales</em>) and a location.</li>
+        <li>Pick 25, 50, 100 or 200 people. The profiles found become your list.</li>
+        <li>Choose work email as the lookup, run it, and download the CSV or send it to HubSpot or Google Sheets.</li>
       </ol>"""),
             ("Already extracted a list somewhere else?", """
       <p>If you have profile URLs from Sales Navigator, an event, a post or another tool, you do not need to search again. Upload them to the <a href="https://linkfinderai.com/bulk-linkedin-email-finder">bulk LinkedIn email finder</a> for work emails (10 credits each) or the <a href="https://linkfinderai.com/bulk-linkedin-phone-number-finder">bulk phone finder</a> for direct dials (50 credits each).</p>"""),
         ],
         faq=[
             ("Is the LinkedIn lead extractor safe for my account?", "Yes. It never logs in to LinkedIn as you and never asks for a cookie, so there is nothing on your account for LinkedIn to restrict."),
-            ("Do I need Sales Navigator?", "No. Lead Search uses its own access to LinkedIn data and filters by title, keywords, location, seniority and company size."),
-            ("How much does it cost per lead?", "15 credits per lead returned with an email, 5 per lead without one."),
+            ("Do I need Sales Navigator?", "No. The search uses its own access to LinkedIn data and filters by job title or keywords and location. For finer filters such as seniority or company size, build the list elsewhere and upload it."),
+            ("How much does it cost per lead?", "1 credit per LinkedIn profile found, plus 10 credits for the verified work email: about 11 credits per lead with an email."),
         ],
         related=[
             ("b2b-lead-lists", "B2B lead lists", "Build one for your market"),
@@ -83,7 +83,7 @@ PAGES = [
       <h3 class="sub">2. Use a browser extension</h3>
       <p>Extensions page through the search while you are logged in and save what they see. Fast, but it is your account doing the browsing, which is how accounts get restricted. And the file still has no emails.</p>
       <h3 class="sub">3. Run the search somewhere that exports</h3>
-      <p>Put the same filters into the <a href="https://linkfinderai.com/linkedin-lead-extractor">LinkedIn lead extractor</a>: job titles, keywords, locations, seniority, company size. It searches without your account and gives you a CSV with profile URLs and work emails, which opens in Excel or Google Sheets directly. 15 credits per lead with an email.</p>"""),
+      <p>Search by job title or keywords and location with the <a href="https://linkfinderai.com/linkedin-lead-extractor">LinkedIn lead extractor</a>. It searches without your account and gives you a CSV with profile URLs, titles and companies (1 credit per profile), plus work emails if you add them (10 credits each). It opens in Excel or Google Sheets directly.</p>"""),
             ("Opening the CSV in Excel without breaking it", """
       <p>Open Excel first and use <em>Data &gt; From Text/CSV</em>, choosing UTF-8, so accented names display correctly. Keep the LinkedIn URL column as text: it is the key every enrichment step matches on.</p>"""),
             ("Adding emails to an exported list", """
@@ -105,12 +105,12 @@ PAGES = [
     dict(
         slug="b2b-lead-lists",
         title="B2B Lead Lists: Build Your Own with Verified Emails",
-        description="Build B2B lead lists from your exact criteria: job titles, locations, seniority, company size. LinkedIn profiles with verified work emails, exported as CSV.",
+        description="Build B2B lead lists from job titles, locations or your target companies: current LinkedIn profiles with verified work emails, exported as CSV.",
         h1="Build B2B Lead Lists with Verified Emails",
         crumb="B2B Lead Lists",
         subtitle="Bought lists are stale and shared with every competitor. Build your own B2B lead list from your criteria, fresh from LinkedIn, with a verified work email for each lead.",
         checks=[
-            "Your criteria: titles, keywords, locations, seniority, company size",
+            "From a job title and location, or from your list of target companies",
             "Current LinkedIn profiles, not a database last updated a year ago",
             "Verified work emails, phone numbers on request, CSV export",
         ],
@@ -135,7 +135,7 @@ PAGES = [
         ],
         faq=[
             ("Where can I get B2B lead lists?", "You can buy them from data vendors, or build them from LinkedIn with a tool like LinkFinder AI, which gives current profiles with verified work emails for your exact criteria."),
-            ("How much does a B2B lead list cost to build?", "With LinkFinder AI's Lead Search, 15 credits per lead with an email. The Starter plan is $49 a month for 5,000 credits."),
+            ("How much does a B2B lead list cost to build?", "With LinkFinder AI, about 11 credits per lead with an email: 1 to find the profile, 10 for the email. The Starter plan is $49 a month for 5,000 credits."),
             ("Are the emails verified?", "Yes. Work emails are checked before they are returned; leads without a verified address are marked so you can leave them out."),
         ],
         related=[
@@ -258,11 +258,11 @@ PAGES = [
           <tr><td>Sequencers</td><td>Send and follow up at scale</td><td>Outreach once the list is ready</td></tr>
         </tbody></table></div>"""),
             ("Where LinkFinder AI fits", """
-      <p>LinkFinder AI covers the middle three: finding the right people on LinkedIn without your account (Lead Search), adding verified emails and phones to any list, and doing both from an API, Google Sheets, n8n, Make, Zapier or HubSpot. It is not a sequencer: it hands your list to the one you already use.</p>
+      <p>LinkFinder AI covers the middle three: finding people on LinkedIn by job title and location without your account, adding verified emails and phones to any list, and doing both from an API, Google Sheets, n8n, Make, Zapier or HubSpot. It is not a sequencer: it hands your list to the one you already use.</p>
       <div class="tbl-wrap"><table>
         <thead><tr><th>Job</th><th>Credits</th></tr></thead>
         <tbody>
-          <tr><td>Lead from criteria, with email</td><td>15</td></tr>
+          <tr><td>LinkedIn profile from a title and location search</td><td>1</td></tr>
           <tr><td>Work email from a LinkedIn profile</td><td>10</td></tr>
           <tr><td>Phone from a LinkedIn profile</td><td>50</td></tr>
           <tr><td>People at a company, per person</td><td>2</td></tr>
@@ -304,9 +304,9 @@ PAGES = [
         actions=[("Find your first leads", f"{S}/linkedin-lead-extractor")],
         sections=[
             ("Step 1: pick a target you can write one message for", """
-      <p>"Marketing leaders" is too broad. "Heads of Demand Gen at B2B SaaS companies of 50-200 people in the US who are hiring SDRs" is a target: you can say something specific to all of them. Write it down as job titles, locations, seniority and company size, because those are the filters you will search with.</p>"""),
+      <p>"Marketing leaders" is too broad. "Heads of Demand Gen at B2B SaaS companies of 50-200 people in the US who are hiring SDRs" is a target: you can say something specific to all of them. Write it down as job titles, locations and the companies you want, because those are what you will search with.</p>"""),
             ("Step 2: find the people", """
-      <p>Search with those filters in the <a href="https://linkfinderai.com/linkedin-lead-extractor">LinkedIn lead extractor</a>. It returns matching profiles with work emails, without your LinkedIn account. If you prefer Sales Navigator, build the list there and <a href="https://linkfinderai.com/export-sales-navigator-leads">export it</a>.</p>"""),
+      <p>Search by job title and location in the <a href="https://linkfinderai.com/linkedin-lead-extractor">LinkedIn lead extractor</a>, or list the people at your target companies with the <a href="https://linkfinderai.com/company-employee-finder">company employee finder</a>. Both work without your LinkedIn account, and both feed straight into the email lookup. If you prefer Sales Navigator, build the list there and <a href="https://linkfinderai.com/export-sales-navigator-leads">export it</a>.</p>"""),
             ("Step 3: warm them up on LinkedIn", """
       <p>Post about the problem you solve, once or twice a week. The people who react are your warmest leads: the <a href="https://linkfinderai.com/linkedin-post-likers-export">post likers export</a> lists them, so you can follow up with the ones who match your target. A clean, readable post helps; the free <a href="https://linkfinderai.com/linkedin-post-formatter">LinkedIn post formatter</a> adds bold, italics and bullets that LinkedIn's editor lacks.</p>"""),
             ("Step 4: reach out on two channels", """

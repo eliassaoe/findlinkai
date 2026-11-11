@@ -5,7 +5,8 @@
 - Core $119.99/mo ($89.99/mo billed yearly), Advanced $159.99/mo ($149.99/mo
   yearly), Advanced Plus on quote (LinkedIn compare-plans page, Oct 2026).
 - LinkFinder: profile URL -> email 10 credits, -> phone 50, -> full profile 10;
-  Lead Search 15 credits per lead with email, 5 without, no cookies.
+  App search (bulk card, "No LinkedIn URLs? Search LinkedIn", docs/lead-search.md): job title or
+  keywords + location, 25-200 people, 1 credit per profile found, no cookies; emails 10 credits each.
 """
 
 S = "https://linkfinderai.com"
@@ -37,7 +38,7 @@ PAGES = [
       <h3 class="sub">3. A cloud scraper using your session cookie</h3>
       <p>Same idea, run from a server. You paste your <code>li_at</code> cookie and the service browses as you. It handles larger volumes, and it carries the same account risk, because LinkedIn sees your account doing the browsing.</p>
       <h3 class="sub">4. Rebuild the list without Sales Navigator</h3>
-      <p>If what you need is "VPs of Sales at 50-200 person SaaS companies in Germany", you do not have to extract it from Sales Navigator at all. LinkFinder AI's Lead Search takes job titles, locations, seniority and company size, searches LinkedIn without using your account or any cookie, and returns each person's profile and work email in a CSV. It costs 15 credits per lead with an email and 5 per lead without one.</p>"""),
+      <p>If what you need is "VPs of Sales in Germany", you do not have to extract it from Sales Navigator at all. In the LinkFinder AI app, the bulk enrichment card has a <em>Search LinkedIn</em> option: type a job title or keywords and a location, pick 25 to 200 people, and it finds matching LinkedIn profiles without using your account or any cookie, for 1 credit per profile found. Add their work emails in the same run for 10 credits each, about 11 credits per lead with an email.</p>"""),
             ("Exporting Sales Navigator leads to Excel", """
       <p>Whichever export you use, you end up with a CSV. Excel opens it directly, but two things go wrong often enough to check:</p>
       <ol>
@@ -81,7 +82,7 @@ PAGES = [
         subtitle="Sales Navigator scrapers page through your searches while logged in as you. Here is how they work, where the risk is, and how to get the same leads, with emails, without handing over your account.",
         checks=[
             "LinkFinder AI does not ask for your LinkedIn login or session cookie",
-            "Lead Search: describe the people you want, get profiles and work emails back",
+            "Search LinkedIn by job title and location, then add work emails",
             "Already have a scraped export? Upload it and get emails and phones added",
         ],
         actions=[("Find leads without my account", f"{S}/sign-up"),
@@ -96,7 +97,7 @@ PAGES = [
             ("Get the leads without scraping your account", """
       <p>LinkFinder AI takes a different route, on purpose. It does not log in to LinkedIn as you and never asks for a cookie.</p>
       <ul class="plain">
-        <li><strong>If you do not have the list yet:</strong> Lead Search takes job titles, keywords, locations, seniority and company size, searches LinkedIn without any account, and returns each person's profile and work email. 15 credits per lead with an email, 5 per lead without.</li>
+        <li><strong>If you do not have the list yet:</strong> LinkFinder AI can search LinkedIn for you from a job title or keywords and a location, without your account or any cookie, for 1 credit per profile found, then add each person's work email for 10 credits. About 11 credits per lead with an email.</li>
         <li><strong>If you already exported or scraped a list:</strong> upload it. Matching on the profile URL, LinkFinder adds a verified work email (10 credits), a direct dial when one exists (50 credits) and a refreshed profile (10 credits).</li>
         <li><strong>If you want it in your own stack:</strong> the same lookups run from the <a href="https://linkfinderai.com/data-enrichment-api">API</a>, n8n, Make, Zapier or the Google Sheets add-on.</li>
       </ul>"""),
@@ -113,7 +114,7 @@ PAGES = [
         ],
         faq=[
             ("Is scraping Sales Navigator against LinkedIn's terms?", "LinkedIn's user agreement does not allow automated access to its services, including through extensions that browse as you. That is why accounts that scrape heavily get restricted."),
-            ("Does LinkFinder AI scrape Sales Navigator?", "No. It never logs in to LinkedIn as you. It finds people from criteria you give it (Lead Search) or enriches a list you already have, matched on the LinkedIn profile URL."),
+            ("Does LinkFinder AI scrape Sales Navigator?", "No. It never logs in to LinkedIn as you. It finds people from a job title and location you give it, or enriches a list you already have, matched on the LinkedIn profile URL."),
             ("Can a Sales Navigator scraper get email addresses?", "Not on its own. Sales Navigator pages do not show work emails, so a scraper only gives you names, titles, companies and URLs. An enrichment step adds the emails."),
             ("What does it cost to get emails for a scraped list?", "With LinkFinder AI, 10 credits per verified work email and 50 per phone number, matched on the profile URL in your file."),
         ],
@@ -214,13 +215,13 @@ PAGES = [
       <p>That is the gap LinkFinder AI fills. Upload any list with LinkedIn profile URLs and get verified work emails back for 10 credits each and direct dials for 50. See <a href="https://linkfinderai.com/export-sales-navigator-leads">how to export Sales Navigator leads</a> first if your list is still inside Sales Navigator.</p>"""),
             ("Do you need Sales Navigator at all?", """
       <p>It depends on what you use it for. If your team lives in InMail and account alerts, a seat earns its price. If you mainly use it to build lists and then hunt for emails elsewhere, you are paying twice.</p>
-      <p>LinkFinder AI's Lead Search covers the list-building part without a seat: give it job titles, keywords, locations, seniority and company size, and it returns LinkedIn profiles with work emails, 15 credits per lead with an email. A Starter plan is $49 a month for 5,000 credits.</p>"""),
+      <p>LinkFinder AI covers the list-building part without a seat for simple targets: give it a job title or keywords and a location, and it finds the LinkedIn profiles (1 credit each) and their work emails (10 credits each). Sales Navigator's finer filters, such as seniority or company growth, are not part of it. A Starter plan is $49 a month for 5,000 credits.</p>"""),
         ],
         faq=[
             ("How much is LinkedIn Sales Navigator per month?", "Core is $119.99 a month billed monthly or $89.99 a month billed yearly. Advanced is $159.99 monthly or $149.99 a month yearly. Advanced Plus is quoted. Prices vary by country and before tax."),
             ("Is there a free trial of Sales Navigator?", "LinkedIn regularly offers a one-month free trial of Sales Navigator Core to eligible accounts. Check the offer shown on your own account."),
             ("Does Sales Navigator include email addresses?", "No. Sales Navigator does not show work emails or phone numbers for leads. You need an enrichment tool for that step."),
-            ("What is a cheaper way to build B2B lead lists?", "If you mainly use Sales Navigator for lists, a lead search tool that returns profiles and emails together can replace that part. LinkFinder AI's Lead Search costs 15 credits per lead with a work email."),
+            ("What is a cheaper way to build B2B lead lists?", "If you mainly use Sales Navigator for lists, a lead search tool that returns profiles and emails together can replace that part. With LinkFinder AI, about 11 credits per lead: 1 to find the profile from a title and location, 10 for the work email."),
         ],
         related=[
             ("export-sales-navigator-leads", "Export Sales Navigator leads", "CSV and Excel, step by step"),

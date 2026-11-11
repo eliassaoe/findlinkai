@@ -1,5 +1,7 @@
 # SEO pages plan, November 2026: what to build, and what it is worth
 
+> **12 Nov 2026:** some pages of this plan are already live (export-sales-navigator-leads, the facebook/twitter/youtube email finders, and pages covering business-email-addresses and email-lookup). See `docs/seo/built-2026-11-12.md` before building anything here.
+
 **Date:** 2026-11-12 · **Owner's brief:** 50–100 new pages on keywords with SEMrush KD < 10,
 at least ~50 searches a month, buying intent, picked from an audit of what exists.
 **Sources:** repo + `sitemap.xml`; Search Console (`sc-domain:linkfinderai.com`, 90 days to
