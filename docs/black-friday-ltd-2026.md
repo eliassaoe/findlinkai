@@ -87,7 +87,7 @@ campaigns), so nothing to recover there.
 
 - Explee (project 30475, Deal-blast campaign), replies in-thread: Chase Dimond
   (structured.agency), Nicola (CMO Circle), The Breakdown AI, Toast Media (FR),
-  CreatorToolsList (30% affiliate), InfoStack (listing). Newsletters: $100 +
+  CreatorToolsList (30% affiliate), InfoStack (listing — sent by mistake: owner had already won InfoStack, do not contact again). Newsletters: $100 +
   25% of LTD sales from their link.
 - Gmail (owner's main account): The AI Valley (media kit + fee + 25%), Spry PR
   (30% affiliate), blackfridaydeals.dev (email submission).
