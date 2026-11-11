@@ -6,6 +6,20 @@ Nothing here is live until these are done — the badges on `integrations.html` 
 "Rolling out" for exactly that reason, and should be flipped to "Live" per integration
 as each one lands.
 
+## Status 12 Nov 2026 — what is blocked on a login only the owner has
+
+| Marketplace | State | The owner's step |
+| --- | --- | --- |
+| n8n node (npm) | `0.2.1` built, linted, packed in run #10; **publish failed**: npm OIDC exchange says "package not found" = no trusted publisher set, and no `NPM_TOKEN` secret | npmjs.com → `n8n-nodes-linkfinderai` → Settings → Trusted Publisher → GitHub Actions, repo `eliassaoe/findlinkai`, workflow `publish-n8n-node.yml`. Then re-run the workflow with `dry_run` off. |
+| MCP server (npm) | `linkfinderai-mcp-server` not on npm yet | first publish needs an `NPM_TOKEN` secret (granular, publish-only), then the same trusted-publisher step |
+| Zapier | never registered (no `.zapierapprc`) | `npx zapier login` + `register` (section 3) |
+| Make | not imported | section 4, needs a Make login + API token |
+| Airtable Extensions | nothing built — needs an extension, a walkthrough video, an example base and a review | not started |
+| awesome-remote-mcp-servers | needs a **Glama connector** listing first, and a shared (not per-user) endpoint | list the hosted server on glama.ai/mcp/connectors |
+
+PRs opened 12 Nov from `eliassaoe` forks: punkpeye/awesome-mcp-servers **#19252**
+(Customer Data Platforms), cipher387/osint_stuff_tool_collection **#289** (LinkedIn).
+
 ---
 
 ## 1. n8n node → npm  ·  ready to go
