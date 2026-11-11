@@ -8,7 +8,7 @@ audience, so cash comes in upfront instead of slowly through subscriptions.
 
 - A small fee upfront, or none, plus **25% of lifetime-deal sales from their link**.
 - Each partner gets its own tracked link.
-- One window for everyone, 27–30 Nov, **50 seats** shared across all partners.
+- One window for everyone, 27–30 Nov, **no seat cap** (owner, 11 Nov: sell as many as we can).
 - Never pay a flat fee on views alone. Break-even is ~4–5 Core sales ($149)
   per $500 spent.
 
@@ -48,9 +48,10 @@ campaigns), so nothing to recover there.
 
 ## Deal page state (set 11 Nov 2026, 19:00 Paris)
 
-- `ltd_settings`: `seat_cap` 50 (49 left: one LTD seat already existed),
-  `ends_at` 2026-12-01 07:59 UTC = Cyber Monday 23:59 Pacific. The page is
-  open now; partners post on 27 Nov.
+- `ltd_settings`: `seat_cap` **0 = no cap** (the column is NOT NULL; the page
+  treats 0 as unlimited and hides the seat counter, see `closed` in
+  `lifetime-deal.html`), `ends_at` 2026-12-01 07:59 UTC = Cyber Monday 23:59
+  Pacific. The page is open now; partners post on 27 Nov.
 - `/lifetime-deal` copy rewritten for new visitors (it was written for free
   account holders in October); visitors with no account get "Create a free
   account to buy" → `/sign-up`.
