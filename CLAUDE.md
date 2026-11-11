@@ -85,6 +85,7 @@ into a file here in the same session, or it is gone.
 | **Link building: which page every swap or paid link points at** (mid-size competitor *alternative* pages on page 2-3, keyword anchor; never the big names) and the links already traded | `docs/link-targets.md` — read it before answering any MentionAgent thread |
 | Who the SEO traffic actually is, before aiming an offer at it | `docs/traffic-capture-verdict.md` |
 | **Which pages bring organic visitors, signups and payments** — and why more competitor pages won't move it | `docs/organic-to-paid-2026-10.md` |
+| **SEO pages plan (Nov 2026): ~65 pages on KD<10 keywords, "[role/industry] email list" is the money family, revenue estimate** | `docs/seo/seo-pages-plan-2026-11.md` + `docs/seo/keyword-plan-2026-11.csv` — read before creating any SEO page |
 | **Search Console read-out: bot impressions, the bulk-retitle results, and the email-finder title decision** | `docs/gsc-seo-2026-10.md` — read it before changing a tool page's title or judging a page by CTR |
 | Listicle outreach on a cron (the `ai_keywords` table) | `docs/ai-keyword-outreach.md` — read it before adding keywords, it spends credits |
 | Explee AutoGTM: shorter sequences, pre-qualified leads, win-back of replies that never booked | `workers/explee-autogtm/` — the README's "three changes" section first, then `SENDING.md` and `BASELINE.md` for the real numbers; everything is dry-run by default and runs from `.github/workflows/explee-*.yml`; no call in it has ever reached the real API from a sandbox |
