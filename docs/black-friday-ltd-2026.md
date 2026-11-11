@@ -214,6 +214,16 @@ To send: top up Explee (balance was −$8.13), then Start campaign on Tue 24 Nov
 Volume is capped by mailboxes (~380 first emails/day on the live FR campaign),
 so a week is ~2,500–3,000 emails (~$90), not tens of thousands.
 
+Update 11 Nov 23:15 (owner: "dis clairement Black Friday", "full US", two
+campaigns): S4 now names the deal — "We're running a Black Friday deal: one
+payment instead of a monthly subscription, for 3 days." (no price, no figure).
+Second campaign **412321** "US - Recruiting and staffing firms, executive search
+(Black Friday)", same override + "say candidates, never clients or leads". Both
+Not started. The project's ~380 first emails/day are shared by every running
+campaign: pause the FR ones 24–30 Nov if the US ones should get the full volume.
+Expected, at last month's rates (1% reply, ~1/3 of replies hot): ~2,700 emails →
+~27 replies → ~9 interested → 1–3 sales. Cold email is the test, not the $5k.
+
 ## InfoStack price renegotiation (sent 11 Nov, 22:45)
 
 Owner: $99 for 10,000 credits/month is too low next to our own $299/7,500 and
