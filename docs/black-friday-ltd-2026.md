@@ -82,3 +82,17 @@ campaigns), so nothing to recover there.
   → enable → one-off dispatch Fri 27 Nov 14:00 UTC.
 - October's LTD email to 559 free users sold 0. Black Friday is the reason to
   try again, at 4x the audience; don't size anything on it.
+
+## Sent 11 Nov 2026, evening
+
+- Explee (project 30475, Deal-blast campaign), replies in-thread: Chase Dimond
+  (structured.agency), Nicola (CMO Circle), The Breakdown AI, Toast Media (FR),
+  CreatorToolsList (30% affiliate), InfoStack (listing). Newsletters: $100 +
+  25% of LTD sales from their link.
+- Gmail (owner's main account): The AI Valley (media kit + fee + 25%), Spry PR
+  (30% affiliate), blackfridaydeals.dev (email submission).
+- GitHub: LinkFinder AI row added at the end of "Marketing Tools" in
+  trungdq88/Awesome-Black-Friday-Cyber-Monday on the owner's fork
+  (eliassaoe, branch patch-1); the PR itself is opened by the owner.
+- DealMirror: owner already in. SaaSMantra and SenderCircle: owner sent.
+- Each partner has its own `utm_source`; filter `utm_campaign=bf2026`.
