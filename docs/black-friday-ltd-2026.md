@@ -121,3 +121,19 @@ short countdown, start before Black Friday. `tests/bf-banner.test.mjs`.
   elsewhere ("we are the first stop"). LinkFinder AI is on DealFuel, so not
   pitched.
 - StackSocial: inbound-only and weak founder results; not pitched.
+
+## Own audience, widened (11 Nov evening, owner: "bourriner")
+
+- **Past customers are allowed to buy**: 119 added to `ltd_allowlist` (reason
+  `bf2026_winback`) — paid before, no lifetime plan, no AppSumo code, and not an
+  active subscriber (anyone with a subscription who used the product in the
+  last 60 days is left out, so we don't swap $49+/month for $149 once).
+  The 28 legacy Gumroad payers are NOT included: Gumroad renewals still run and
+  we can't tell who churned there without Gumroad access.
+- `ltd_campaign_audience` has a `segment` column: 2,834 `free` (confirmed,
+  never paid) + 119 `winback`.
+- Second workflow **`01a1cc36-40eb-0000-a5e4-dbbc968bebe7`** "past customers
+  win-back", cohort **712475**: Fri 27 "Black Friday: LinkFinder for life, for
+  past customers", Mon 30 "last day". Test-ran clean. Draft.
+- Reminder set for 26 Nov 17:05 Paris: re-create both cohorts (free cohort gets
+  `segment = 'free'`), show the owner the counts, schedule both for Fri 27 14:00 UTC.
