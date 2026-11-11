@@ -173,6 +173,40 @@ Each admin gets `?utm_source=fb_<group>&utm_campaign=bf2026`.
   Dodo endpoint page), or re-fetch the payment from the Dodo API by
   `payment_id` and check `status = succeeded` before any grant.
 
+## US cold campaign (owner, 11 Nov evening: "go, US, I'll fund it")
+
+**Page:** `/free-list` — English copy of `/liste-gratuite` (same flow, same
+download-after-signup, events `us_list_*`, `utm_campaign=us_free_list_bf2026`),
+plus a Black Friday line in the end-of-run popup; the site banner shows on it.
+`tests/free-list.test.mjs`.
+
+**Copy:** `workers/explee-autogtm/brief.bf-us.json`, derived from
+`brief.saas.json` (same 5-sentence form, no link in cold emails, link sent by
+hand on "yes"). The 4th sentence becomes the Black Friday reason: "Through
+Monday, it's $149 once for life instead of a monthly plan." Last follow-up on
+Mon 30: "It goes back to monthly plans after tonight." When it's set up in
+Explee, the reply instructions for this campaign must send `/free-list`, not
+`/liste-gratuite`.
+
+**Economics (from `BASELINE.md`):** $0.03 per email sent, ~1% reply, **$11.21
+per interested lead**. If 1 interested lead in 10 buys: ~$110 per sale; 1 in 20:
+~$225. Core ($149) roughly breaks even, Plus ($299) pays. A Starter subscriber
+is worth ~$49 / 0.22 churn ≈ $220, so a $299 lifetime sale is worth more than a
+subscription from the same lead. A $500 test ≈ 16,000 emails ≈ 45 interested
+leads ≈ 2–5 sales. Research (firstsales.io): B2B buyers ignore retail "Black
+Friday sale" language; keep it a plain, checkable offer with a real deadline.
+
+**Blocker — phones:** `linkedin_profile_to_phone` found 5 numbers in 44 lookups
+since 12 Oct (85% in late September); re-running 3 US profiles that had a
+number in September returned nothing, in the app and in the free tool
+(`business_phone_finder` answers empty in <1 s). The copy leads with mobile
+numbers, so the campaign launches only after the phone step in n8n is fixed and
+checked on 10 known US profiles. `/free-list` does not look up phones.
+
+**To launch:** phone fixed → Explee balance funded (it was negative) → campaign
+created in project 37934 from `brief.bf-us.json`, US filters, start Tue 24 Nov →
+reply instructions point at `/free-list`.
+
 ## Cold email variant (prepared, NOT live)
 
 Owner, 11 Nov: "il faut tester" selling the lifetime deal in cold email instead
