@@ -9,6 +9,44 @@ LinkedIn search: execute once (owner 12 Nov)"; it was the only difference from
 the live version. The free-tools workflow's `LinkedIn search` node was not
 changed.
 
+### Same night: the LinkedIn search now filters by company (draft, owner publishes)
+
+Owner: "le harvest me sort des résultats… pas les bons… uniquement nom et prénom, ça va pas
+le faire".
+
+- **Before.** The `pick LinkedIn search` step (headline must name the company) had been
+  replaced by an `If` that only checked first and last name, then answered with the first
+  same-name stranger.
+  - Example: execution 2075439, "Walter Keenan Cartiga, LLC" → "President at Retirement".
+  - That success path also went through `Refund Calc (Not Found)21`.
+- **Actor support.** `harvestapi/linkedin-profile-search-by-name` does take
+  `currentCompanies`, but only as **LinkedIn company URLs**, not names.
+  - Checked on Apify: Satya Nadella + `linkedin.com/company/microsoft` returns exactly
+    1 profile.
+  - Walter Keenan + `linkedin.com/company/cartiga` returns 0, which is now "not found"
+    instead of a wrong person.
+
+New chain after `LI rescue: has company?`:
+
+1. `LI rescue: company page search`: Serper, `"<company>" site:linkedin.com/company`, or
+   the domain when we have one.
+2. `LI rescue: company URL`: first `/company/` result whose title or slug contains the
+   company words.
+3. `LI rescue: LinkedIn search`: adds `currentCompanies: [url]` when a URL was found.
+   Always outputs data; HTTP errors don't stop it.
+4. `LI rescue: pick match`:
+   - The name must contain the first and last name.
+   - Without a company URL, the headline must also name the company.
+5. `If` (`linkedinUrl` not empty):
+   - true → `LI rescue: respond found`, with no refund;
+   - false → `Respond to Webhook88`, which answers "" and refunds.
+
+`LI rescue: prepare` now also returns `company`, `companyKey` and `domain`. All new nodes
+are Execute Once. The code was checked in the browser on 3 cases (Cartiga → none,
+Microsoft → satyanadella, no company page → headline check). It has not run live.
+
+Extra cost per rescue: one Serper search.
+
 ### Same evening: Execute Once on every paid call (draft saved, owner publishes)
 
 Owner: "tous les nœuds Filtrat… tous les nœuds après des search Google… c'est de
