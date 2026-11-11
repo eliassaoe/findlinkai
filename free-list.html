@@ -1,0 +1,980 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- English copy of /liste-gratuite for the US cold-email campaign
+     (docs/black-friday-ltd-2026.md, "US cold campaign"). Same flow and same
+     localStorage keys (lf_free_list_results → app.html lfDownloadFreeList), events
+     prefixed us_list_. Phone numbers are NOT looked up here: the phone lookup
+     was returning almost nothing on 11 Nov 2026, so the page does not promise
+     them. Black Friday: the site banner (js/lf-bf-banner.js) and the popup line
+     point to /lifetime-deal. Not for SEO. -->
+<meta name="robots" content="noindex, nofollow">
+<title>Full LinkedIn profiles + emails, free | LinkFinder AI</title>
+<meta name="description" content="Drop your LinkedIn list. Get back the full profile and the work email of every person. Free.">
+<script>
+  // UTMs set before lf-attribution.js reads the URL, so every signup from
+  // this page is credited to the email campaign.
+  (function () {
+    try {
+      var u = new URL(window.location.href), changed = false;
+      var em = (u.searchParams.get('email') || '').trim().toLowerCase();
+      if (u.searchParams.has('email')) { u.searchParams.delete('email'); changed = true; }
+      if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) window.__lfLeadEmail = em;
+      if (!u.searchParams.get('utm_source')) {
+        u.searchParams.set('utm_source', 'explee');
+        u.searchParams.set('utm_medium', 'email');
+        u.searchParams.set('utm_campaign', 'us_free_list_bf2026');
+        changed = true;
+      }
+      if (changed) history.replaceState(null, '', u.pathname + u.search + u.hash);
+    } catch (e) {}
+  })();
+</script>
+<script>
+    !function(t,e){var o,n,p,r;e.__SV||(window.posthog && window.posthog.__loaded)||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]),t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}(p=t.createElement("script")).type="text/javascript",p.crossOrigin="anonymous",p.async=!0,p.src=s.api_host.replace(".i.posthog.com","-assets.i.posthog.com")+"/static/array.js",(r=t.getElementsByTagName("script")[0]).parentNode.insertBefore(p,r);var u=e;for(void 0!==a?u=e[a]=[]:a="posthog",u.people=u.people||[],u.toString=function(t){var e="posthog";return"posthog"!==a&&(e+="."+a),t||(e+=" (stub)"),e},u.people.toString=function(){return u.toString(1)+".people (stub)"},o="init zr Wr fi Br Gr ci Nr Hr capture Ui calculateEventProperties Kr register register_once register_for_session unregister unregister_for_session Zr getFeatureFlag getFeatureFlagPayload isFeatureEnabled reloadFeatureFlags updateEarlyAccessFeatureEnrollment getEarlyAccessFeatures on onFeatureFlags onSurveysLoaded onSessionId getSurveys getActiveMatchingSurveys renderSurvey displaySurvey cancelPendingSurvey canRenderSurvey canRenderSurveyAsync identify setPersonProperties group resetGroups setPersonPropertiesForFlags resetPersonPropertiesForFlags setGroupPropertiesForFlags resetGroupPropertiesForFlags reset get_distinct_id getGroups get_session_id get_session_replay_url alias set_config startSessionRecording stopSessionRecording sessionRecordingStarted captureException loadToolbar get_property getSessionProperty Xr Jr createPersonProfile Qr jr ts opt_in_capturing opt_out_capturing has_opted_in_capturing has_opted_out_capturing get_explicit_consent_status is_capturing clear_opt_in_out_capturing Vr debug O Yr getPageViewId captureTraceFeedback captureTraceMetric Or".split(" "),n=0;n<o.length;n++)g(u,o[n]);e._i.push([i,s,a])},e.__SV=1)}(document,window.posthog||[]);
+window.__lfScrubUrl=function(v){return typeof v==='string'?v.replace(/([?&#])(access_token|refresh_token|provider_token|provider_refresh_token|id_token|token|api_key|apikey|password|secret|email)=[^&#]*/gi,'$1$2=[redacted]'):v;};
+window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_url','$initial_referrer','$session_entry_url','$pathname'].forEach(function(k){if(p[k])p[k]=window.__lfScrubUrl(p[k]);});return p;};
+    posthog.init('phc_HqgzMyWAMtzH7K5j9CLw0dijB0I9W1VjPkkyzg9KOFG', {
+        api_host: 'https://us.i.posthog.com',
+        defaults: '2025-11-30',
+        person_profiles: 'identified_only',
+        sanitize_properties: window.__lfSanitize,
+    })
+</script>
+<script src="/js/lf-attribution.js"></script>
+<script src="/js/lf-tools-key.js"></script>
+<script src="/js/lf-linkedin-url.js"></script>
+<script src="/js/lf-csv.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Hanken+Grotesk:wght@400;500;700&family=Geist+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FFFFFF;
+    --fg:#0F1C33;
+    --muted:#5B6576;
+    --line:rgba(15,28,51,.10);
+    --soft:#F4F7FD;
+    --primary:#1B6BF0;
+    --primary-fg:#FFFFFF;
+    --green:#0E9F6E;
+    --shadow-lg:6px 6px 0 0 var(--primary);
+    --shadow:4px 4px 0 0 var(--primary);
+    --heading:'Bricolage Grotesque',system-ui,sans-serif;
+    --body:'Hanken Grotesk',system-ui,-apple-system,'Segoe UI',sans-serif;
+    --mono:'Geist Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+  }
+  *{box-sizing:border-box;}
+  html{-webkit-text-size-adjust:100%;}
+  body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);
+    font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased;}
+  a{color:var(--primary);}
+  strong{font-weight:700;}
+  h1,h2,h3,p{margin:0;}
+  .container{max-width:880px;margin:0 auto;padding:0 16px;}
+
+  header .container{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:20px;padding-bottom:8px;}
+  .logo{display:inline-flex;align-items:center;gap:8px;text-decoration:none;color:var(--fg);}
+  .logo-mark{width:28px;height:28px;border-radius:6px;background:var(--primary);display:grid;place-items:center;color:#fff;}
+  .logo-mark svg{width:16px;height:16px;}
+  .logo-text{font-family:var(--heading);font-weight:800;font-size:1.125rem;letter-spacing:-0.02em;line-height:1;}
+  .logo-text span{color:var(--primary);}
+
+  main{padding:24px 0 48px;}
+  section{margin-top:64px;}
+  section.first{margin-top:28px;}
+
+  .eyebrow{display:flex;align-items:center;justify-content:center;gap:12px;font-family:var(--mono);
+    font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--primary);}
+  .eyebrow::before,.eyebrow::after{content:"";width:24px;height:2px;background:var(--primary);}
+  h1{max-width:700px;margin:14px auto 0;text-align:center;font-family:var(--heading);font-weight:800;
+    font-size:2rem;line-height:1.08;letter-spacing:-0.03em;}
+  h2{max-width:640px;margin:12px auto 0;text-align:center;font-family:var(--heading);font-weight:800;
+    font-size:1.6rem;line-height:1.15;letter-spacing:-0.03em;}
+  @media(min-width:640px){h1{font-size:2.7rem;}h2{font-size:2rem;}}
+  .lede{max-width:620px;margin:16px auto 0;text-align:center;font-size:17px;line-height:1.65;color:var(--muted);}
+  .fine{max-width:560px;margin:12px auto 0;text-align:center;font-size:13px;color:var(--muted);}
+
+  .video{position:relative;aspect-ratio:16/9;width:100%;overflow:hidden;border-radius:20px;
+    border:2px solid var(--line);background:#000;box-shadow:var(--shadow-lg);margin-top:28px;}
+  .video video{position:absolute;inset:0;width:100%;height:100%;background:#000;}
+
+  .actions{display:flex;flex-wrap:wrap;justify-content:center;gap:12px;margin-top:24px;}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:50px;padding:0 24px;
+    border-radius:16px;border:2px solid var(--primary);background:var(--primary);color:var(--primary-fg);
+    font-family:var(--body);font-weight:700;font-size:16px;text-decoration:none;box-shadow:var(--shadow);
+    cursor:pointer;transition:transform .15s ease;}
+  .btn:hover{transform:translateY(-2px);}
+  .btn--ghost{background:#fff;color:var(--fg);border-color:var(--line);box-shadow:none;}
+  .btn--block{width:100%;}
+  .btn--sm{min-height:40px;padding:0 14px;font-size:14px;border-radius:12px;box-shadow:none;white-space:nowrap;}
+  .logo-text{white-space:nowrap;}
+  .btn--sm .short{display:none;}
+  @media(max-width:420px){.btn--sm .long{display:none;}.btn--sm .short{display:inline;}}
+  @media(max-width:350px){.logo-text{font-size:1rem;}.btn--sm{padding:0 10px;}}
+
+  /* no-signup demo */
+  .try{max-width:680px;margin:28px auto 0;padding:22px 20px;border:2px solid var(--primary);border-radius:20px;
+    box-shadow:var(--shadow-lg);background:#fff;}
+  .try h3{font-family:var(--heading);font-weight:800;font-size:1.2rem;letter-spacing:-0.02em;}
+  .try .sub{margin-top:4px;font-size:14px;color:var(--muted);}
+  .drop{position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;margin-top:0;padding:24px 16px;
+    border:2px dashed var(--primary);border-radius:14px;background:var(--soft);text-align:center;cursor:pointer;transition:background .15s ease;}
+  .drop.over{background:#E3ECFD;}
+  .drop input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;}
+  .drop b{font-family:var(--heading);font-weight:800;font-size:1.05rem;}
+  .drop span{font-size:14px;color:var(--muted);}
+  .paste{margin-top:6px;border:0;padding:0;text-align:center;}
+  .paste summary{display:inline;font-size:13px;font-weight:500;color:var(--muted);text-decoration:underline;}
+  .paste summary::after{content:none !important;}
+  .paste[open]{text-align:left;}
+  .hint{margin-top:10px;text-align:center;}
+  .try textarea{display:block;width:100%;min-height:128px;margin-top:14px;padding:12px 14px;border:2px solid var(--line);
+    border-radius:12px;font-family:var(--mono);font-size:13px;line-height:1.6;color:var(--fg);resize:vertical;}
+  .try textarea:focus{outline:none;border-color:var(--primary);}
+  .try .row{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;margin-top:12px;}
+  .try .row .btn{flex:1 1 200px;}
+  .linkbtn{background:none;border:0;padding:0;font:inherit;font-size:14px;color:var(--primary);text-decoration:underline;cursor:pointer;}
+  .try .msg{margin-top:10px;font-size:14px;color:#B42318;}
+  .try .msg:empty{display:none;}
+  .results{margin-top:16px;display:grid;gap:8px;}
+  .results:empty{display:none;}
+  .res{padding:10px 12px;border-radius:12px;background:var(--soft);font-size:14px;}
+  .res .who{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted);font-family:var(--mono);font-size:12px;}
+  .res .vals{display:flex;flex-wrap:wrap;gap:4px 16px;margin-top:4px;}
+  .res .val{overflow-wrap:anywhere;font-weight:700;font-family:var(--mono);font-size:13px;}
+  .res .val i{font-style:normal;font-weight:500;color:var(--muted);margin-right:6px;}
+  .res .val.ok{color:var(--green);}
+  .res .val.no{color:var(--muted);font-weight:500;}
+  .after{margin-top:16px;padding:16px;border-radius:14px;background:var(--soft);text-align:center;}
+  .after[hidden]{display:none;}
+  .after p{font-size:15px;}
+  .after-ctas{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin-top:12px;}
+  .btn--google{background:#fff;color:var(--fg);border-color:var(--line);box-shadow:var(--shadow);}
+  .btn--google svg{width:18px;height:18px;flex:none;}
+  .shapes{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px;margin-top:12px;}
+  .shapes em{font-style:normal;font-size:12px;font-weight:700;color:var(--muted);}
+  @media(max-width:520px){.shapes{flex-direction:column;gap:4px;}}
+  .shapes table{border-collapse:collapse;font-family:var(--mono);font-size:11px;background:#fff;}
+  .shapes th,.shapes td{padding:3px 7px;border:1px solid var(--line);text-align:left;white-space:nowrap;}
+  .shapes th{color:var(--muted);font-weight:700;}
+  .formats{display:grid;gap:10px;margin-top:12px;}
+  @media(min-width:560px){.formats{grid-template-columns:1fr 1.4fr;}}
+  .fmt{padding:10px 12px;border-radius:12px;background:var(--soft);font-size:13px;min-width:0;}
+  .fmt b{display:block;margin-bottom:6px;font-size:13px;}
+  .fmt table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:11.5px;table-layout:fixed;}
+  .fmt th,.fmt td{text-align:left;padding:3px 6px;border:1px solid var(--line);background:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .fmt th{font-weight:700;color:var(--muted);}
+  .fmt-note{margin-top:8px;font-size:12.5px;color:var(--muted);line-height:1.5;}
+  .locked{position:relative;display:grid;gap:8px;}
+  .locked .res{user-select:none;pointer-events:none;}
+  .locked .vals{filter:blur(4px);}
+  .lock-cta{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;
+    text-align:center;padding:12px;background:linear-gradient(to bottom,rgba(255,255,255,0),rgba(255,255,255,.55) 35%,rgba(255,255,255,.55) 65%,rgba(255,255,255,0));border-radius:12px;}
+  .lock-cta b{font-family:var(--heading);font-size:1.1rem;background:#fff;padding:6px 14px;border-radius:999px;box-shadow:0 2px 10px rgba(15,28,51,.12);}
+
+  .points{display:grid;gap:12px;margin-top:24px;}
+  @media(min-width:720px){.points{grid-template-columns:repeat(3,1fr);}}
+  .point{padding:16px 18px;border-radius:14px;background:var(--soft);font-size:15px;line-height:1.55;}
+  .point b{display:block;font-family:var(--heading);font-weight:800;font-size:1.05rem;margin-bottom:4px;}
+
+  /* steps */
+  .steps{display:grid;gap:14px;margin-top:28px;}
+  @media(min-width:720px){.steps{grid-template-columns:repeat(3,1fr);}}
+  .stepcard{border:2px solid var(--line);border-radius:16px;padding:20px;}
+  .stepcard .n{width:28px;height:28px;border-radius:9px;background:var(--primary);color:#fff;font-family:var(--mono);
+    font-size:13px;font-weight:700;display:grid;place-items:center;}
+  .stepcard h3{margin-top:12px;font-family:var(--heading);font-weight:800;font-size:1.1rem;letter-spacing:-0.01em;}
+  .stepcard p{margin-top:6px;font-size:15px;color:var(--muted);line-height:1.6;}
+
+  /* pricing */
+  .code{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:10px;max-width:560px;
+    margin:22px auto 0;padding:14px 16px;border-radius:16px;background:var(--soft);border:2px dashed var(--primary);text-align:center;}
+  .code p{font-size:15px;}
+  .code button{font-family:var(--mono);font-weight:700;font-size:15px;letter-spacing:.06em;padding:8px 14px;
+    border-radius:10px;border:2px solid var(--primary);background:#fff;color:var(--primary);cursor:pointer;}
+  .plans{display:grid;gap:16px;margin-top:28px;}
+  @media(min-width:760px){.plans{grid-template-columns:repeat(3,1fr);align-items:stretch;}}
+  .plan{position:relative;display:flex;flex-direction:column;border:2px solid var(--line);border-radius:20px;padding:24px 20px;}
+  .plan--pick{border-color:var(--primary);box-shadow:var(--shadow-lg);}
+  .badge{position:absolute;top:-13px;left:50%;transform:translateX(-50%);white-space:nowrap;background:var(--primary);
+    color:#fff;font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+    padding:5px 12px;border-radius:999px;}
+  .plan h3{font-family:var(--heading);font-weight:800;font-size:1.25rem;letter-spacing:-0.02em;}
+  .plan .for{margin-top:4px;font-size:14px;color:var(--muted);}
+  .price{margin-top:16px;display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;}
+  .price b{font-family:var(--heading);font-weight:800;font-size:2.3rem;letter-spacing:-0.03em;line-height:1;}
+  .price s{color:var(--muted);font-size:1.1rem;}
+  .price span{color:var(--muted);font-size:14px;}
+  .then{margin-top:4px;font-size:13px;color:var(--green);font-weight:700;min-height:20px;}
+  .plan ul{list-style:none;margin:18px 0 22px;padding:0;display:grid;gap:9px;font-size:15px;}
+  .plan li{display:flex;gap:9px;align-items:flex-start;line-height:1.45;}
+  .plan li::before{content:"\2713";flex:none;color:var(--primary);font-weight:700;}
+  .plan .spacer{flex:1;}
+
+  /* faq */
+  .faq{max-width:680px;margin:24px auto 0;display:grid;gap:10px;}
+  details{border:2px solid var(--line);border-radius:14px;padding:14px 18px;}
+  summary{cursor:pointer;font-weight:700;font-size:16px;list-style:none;display:flex;justify-content:space-between;gap:12px;}
+  summary::-webkit-details-marker{display:none;}
+  summary::after{content:"+";font-family:var(--mono);color:var(--primary);font-weight:700;}
+  details[open] summary::after{content:"–";}
+  details p{margin-top:10px;font-size:15px;color:var(--muted);line-height:1.65;}
+
+  .final{margin-top:64px;padding:32px 20px;border-radius:24px;background:var(--soft);text-align:center;}
+  footer{padding:24px 0 40px;text-align:center;font-size:13px;color:var(--muted);}
+  footer a{color:var(--muted);}
+
+/* Fin d'enrichissement (8 nov. 2026) */
+.dm-backdrop{position:fixed;inset:0;background:rgba(15,23,42,.55);display:flex;align-items:center;justify-content:center;padding:16px;z-index:1000}
+.dm-backdrop[hidden]{display:none}
+.dm{position:relative;background:#fff;border-radius:14px;max-width:440px;width:100%;padding:28px 24px 22px;text-align:center;box-shadow:0 20px 50px rgba(0,0,0,.25)}
+.dm-x{position:absolute;top:8px;right:10px;border:0;background:none;font-size:24px;line-height:1;color:#6b7280;cursor:pointer}
+.dm-check{width:44px;height:44px;margin:0 auto 10px;border-radius:50%;background:#dcfce7;color:#16a34a;font-size:24px;line-height:44px;font-weight:700}
+.dm h2{margin:0 0 8px;font-size:22px;color:#111827}
+.dm-stats{margin:0 0 6px;font-size:16px;color:#111827;font-weight:600}
+.dm-rest{margin:0 0 6px;font-size:14px;color:#4b5563}
+.dm-main{display:flex;align-items:center;justify-content:center;min-height:48px;padding-top:0;padding-bottom:0;margin:16px 0 10px;text-align:center}
+.dm-alt{display:inline-block;font-size:14px;color:#2563eb;margin-bottom:12px}
+.dm-fine{margin:0;font-size:12.5px;color:#6b7280;line-height:1.5}
+.dm-bf{margin:12px 0 0;padding:10px 12px;border-radius:10px;background:#111827;color:#fff;font-size:13px;line-height:1.45;text-align:left}
+.dm-bf a{color:#fcd34d;font-weight:700}
+body.dm-open{overflow:hidden}
+
+/* Conversion (8 nov. 2026) */
+.trust{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 18px;margin:10px 0 0;font-size:13.5px;color:var(--muted);}
+.trust span{white-space:nowrap;}
+.dm-call{margin-top:16px;padding-top:14px;border-top:1px solid #e5e7eb;text-align:left;}
+.dm-call p{margin:0 0 8px;font-size:13.5px;line-height:1.5;color:#374151;}
+.dm-call a{font-size:14px;font-weight:600;color:#2563eb;}
+.after{max-width:880px;margin:40px auto 0;padding:0 16px;}
+.after-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.after-card,.call-card{text-align:left;background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:20px;}
+.after h2{margin:0 0 10px;font-size:18px;}
+.after ul{margin:0;padding-left:18px;font-size:14.5px;line-height:1.6;}
+.after-btn{display:inline-flex;margin-top:14px;}
+.call-card{margin-top:16px;display:flex;align-items:center;justify-content:space-between;gap:18px;background:#f8fafc;}
+.call-card p{margin:0;font-size:14.5px;line-height:1.6;color:#374151;}
+.call-btn{white-space:nowrap;}
+.sticky-cta{position:fixed;left:0;right:0;bottom:0;z-index:900;display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap;padding:12px 16px;background:#fff;border-top:1px solid #e5e7eb;box-shadow:0 -6px 20px rgba(0,0,0,.08);font-weight:600;}
+.sticky-cta[hidden]{display:none;}
+body.has-sticky{padding-bottom:76px;}
+@media (max-width:700px){.after-grid{grid-template-columns:1fr;}.call-card{flex-direction:column;align-items:flex-start;}}
+
+/* Effet "en direct" (8 nov. 2026) */
+.live-note{margin:6px 0 0;text-align:center;font-size:12.5px;color:var(--muted);}
+.live{margin-top:16px;}
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.tile{background:var(--soft);border-radius:12px;padding:12px;text-align:center;}
+.tile b{display:block;font-family:var(--heading);font-size:2rem;line-height:1.1;color:var(--fg);}
+.tile-g b{color:var(--green);}
+.tile span{font-size:12.5px;color:var(--muted);}
+.tile b.bump{animation:bump .35s ease;}
+@keyframes bump{0%{transform:scale(1)}40%{transform:scale(1.25)}100%{transform:scale(1)}}
+.bar-wrap{position:relative;margin-top:10px;height:22px;border-radius:11px;background:var(--soft);overflow:hidden;}
+.bar{height:100%;width:0;background:linear-gradient(90deg,#2563eb,#22c55e);transition:width .4s ease;}
+.bar-wrap span{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#0f172a;}
+.res.enter{animation:slideIn .35s ease both;}
+@keyframes slideIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.res .hd{display:flex;gap:10px;align-items:center;}
+.res .hd-t{min-width:0;flex:1;}
+.res .av{flex:none;width:40px;height:40px;border-radius:50%;background:#e0e7ff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;color:#1e293b;overflow:hidden;}
+.res .av img{width:100%;height:100%;object-fit:cover;}
+.res.has-name .who{color:var(--fg);font-family:var(--heading);font-weight:700;font-size:15px;}
+.res .sk{display:none;}
+.res.loading .sk{display:grid;gap:5px;margin-top:6px;}
+.res.loading .sk i{display:block;height:9px;border-radius:5px;background:linear-gradient(90deg,#e5e7eb 25%,#f3f4f6 50%,#e5e7eb 75%);background-size:200% 100%;animation:shimmer 1.1s linear infinite;}
+.res.loading .sk i:nth-child(2){width:80%}.res.loading .sk i:nth-child(3){width:55%}
+.res.loading .av{animation:shimmer 1.1s linear infinite;background:linear-gradient(90deg,#e5e7eb 25%,#f3f4f6 50%,#e5e7eb 75%);background-size:200% 100%;}
+@keyframes shimmer{from{background-position:200% 0}to{background-position:-200% 0}}
+.res .blk li{animation:fadeUp .3s ease both;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.res .val.searching::after{content:'';display:inline-block;width:10px;height:10px;margin-left:8px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:spin .7s linear infinite;vertical-align:-1px;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.res .val.pop{animation:pop .45s ease;background:#dcfce7;border-radius:6px;padding:1px 6px;}
+@keyframes pop{0%{transform:scale(.8);opacity:0}60%{transform:scale(1.08);opacity:1}100%{transform:scale(1)}}
+@media (prefers-reduced-motion:reduce){.res.enter,.res .blk li,.res .val.pop,.tile b.bump{animation:none}}
+  /* "pas de liste ?" : recherche LinkedIn (10 nov. 2026, docs/lead-search.md) */
+  .q-grid{display:grid;grid-template-columns:2fr 1.2fr 1fr;gap:10px;margin-top:10px}
+  @media (max-width:640px){.q-grid{grid-template-columns:1fr}}
+  .q-grid label{display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:600;color:#334155;min-width:0}
+  .q-grid input,.q-grid select{font:inherit;font-weight:400;padding:10px 12px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;color:#0f172a;width:100%;min-width:0}
+  .q-note{font-size:13px;color:#64748b;margin:8px 0 0}
+</style>
+<style>
+  .first h1{max-width:620px;}
+  .steps3{display:flex;justify-content:center;gap:18px;flex-wrap:wrap;margin-top:14px;font-size:15px;color:var(--muted);}
+  .steps3 b{display:inline-grid;place-items:center;width:22px;height:22px;margin-right:6px;border-radius:7px;background:var(--primary);color:#fff;font-family:var(--mono);font-size:12px;}
+  .count{margin-top:16px;text-align:center;font-family:var(--heading);font-weight:800;font-size:1.25rem;}
+  .count:empty{display:none;}
+  .dl{margin-top:14px;text-align:center;}
+  .dl[hidden]{display:none;}
+  .dl .btn{font-size:17px;min-height:56px;padding:0 28px;}
+  .dl .fine{margin-top:10px;}
+  .res .info{margin-top:3px;font-size:13px;color:var(--fg);}
+  .res .info:empty{display:none;}
+  .res .more{display:grid;grid-template-columns:1fr 1fr;gap:4px 18px;margin-top:6px;}
+  .res .more:empty{display:none;}
+  .res .blk-t{margin:0 0 2px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);}
+  .res .blk ul{margin:0;padding-left:16px;font-size:12.5px;line-height:1.45;color:var(--fg);}
+  .res .blk li{margin:0;}
+  .res .blk li.more-n{list-style:none;margin-left:-16px;color:var(--muted);font-style:italic;}
+  @media (max-width:640px){ .res .more{grid-template-columns:1fr;} }
+</style>
+</head>
+<body>
+<header>
+  <div class="container">
+    <a class="logo" href="/">
+      <span class="logo-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg>
+      </span>
+      <span class="logo-text">LinkFinder <span>AI</span></span>
+    </a>
+      </div>
+</header>
+
+<main>
+  <div class="container">
+    <section class="first">
+      <h1>The full LinkedIn profile + the work email, for every prospect</h1>
+      <p class="lede">Current role, company, location, experience, education and work email. Drop your list, it's free.</p>
+      <div class="steps3"><span><b>1</b>Drop</span><span><b>2</b>Watch</span><span><b>3</b>Download</span></div>
+      <p class="trust"><span>✓ 50 free profiles</span><span>✓ No credit card</span><span>✓ CSV ready for your CRM</span></p>
+
+      <div class="try" id="try">
+        <label class="drop" id="tryDrop">
+          <input type="file" id="tryFile" accept=".csv,.tsv,.txt,text/csv,text/plain" aria-label="Choose a file">
+          <b>Drop your file here</b>
+          <span>or click to choose it (CSV or Sales Navigator export, up to 50 people)</span>
+        </label>
+        <details class="paste" id="tryPaste">
+          <summary>or paste LinkedIn links</summary>
+          <textarea id="tryInput" spellcheck="false" autocomplete="off" aria-label="LinkedIn links, one per line"
+            placeholder="https://www.linkedin.com/in/first-prospect&#10;https://www.linkedin.com/in/second-prospect&#10;..."></textarea>
+          <div class="row">
+            <button type="button" class="btn" id="tryBtn">Get the profiles</button>
+          </div>
+        </details>
+        <details class="paste" id="tryQuery">
+          <summary>or no list? describe who you're looking for</summary>
+          <div class="q-grid">
+            <label>Job title or keywords<input type="text" id="qWhat" maxlength="150" placeholder="VP of Sales SaaS, marketing agency owner…"></label>
+            <label>City, state or country<input type="text" id="qWhere" maxlength="80" placeholder="Austin, Texas"></label>
+            <label>How many<select id="qCount"><option value="25">25 profiles</option><option value="50" selected>50 profiles</option></select></label>
+          </div>
+          <div class="row">
+            <button type="button" class="btn" id="qBtn">Find the profiles</button>
+          </div>
+          <p class="q-note">We search LinkedIn for you, without your LinkedIn account. Then full profiles and emails, same as a list.</p>
+        </details>
+        <p class="msg" id="tryMsg" role="alert"></p>
+        <p class="count" id="tryCount" aria-live="polite"></p>
+        <div class="live" id="liveStats" hidden>
+          <div class="tiles">
+            <div class="tile"><b id="statProfiles">0</b><span>LinkedIn profiles</span></div>
+            <div class="tile tile-g"><b id="statEmails">0</b><span>emails found</span></div>
+          </div>
+          <div class="bar-wrap" id="statBarWrap"><div class="bar" id="statBar"></div><span id="statDone">0 / 0</span></div>
+          <p class="live-note">Profiles come in one by one: keep this page open.</p>
+        </div>
+        <div class="results" id="tryResults" aria-live="polite"></div>
+        <div class="dl" id="tryDl" hidden>
+          <a class="btn" id="dlBtn" href="/sign-up?google=1" data-cta="us_download">Download my list</a>
+          <p class="fine" id="dlFine">The file has everything: experience, education, role, location, email. Free, no credit card: create your account in one click and your list opens, ready to download.</p>
+        </div>
+        <div class="dm-backdrop" id="doneModal" hidden role="dialog" aria-modal="true" aria-labelledby="dmTitle">
+          <div class="dm">
+            <button type="button" class="dm-x" id="dmClose" aria-label="Close">×</button>
+            <p class="dm-check">✓</p>
+            <h2 id="dmTitle">Your list is ready</h2>
+            <p class="dm-stats" id="dmStats"></p>
+            <p class="dm-rest" id="dmRest" hidden></p>
+            <a class="btn dm-main" id="dmGoogle" href="/sign-up?google=1" data-cta="us_modal_google">Continue with Google and download</a>
+            <a class="dm-alt" id="dmEmail" href="/sign-up" data-cta="us_modal_email">or sign up with an email</a>
+            <p class="dm-fine" id="dmFine">Free, no credit card. Your list opens in your account as soon as it's created, ready to download, with free credits for the next one.</p>
+            <p class="dm-bf"><b>Black Friday:</b> LinkFinder AI for life, paid once, from $149 for 2,500 credits every month. Until Monday 30 Nov. <a href="/lifetime-deal?utm_source=us_free_list&amp;utm_campaign=bf2026" id="dmBf" data-cta="us_modal_bf">See the deal</a></p>
+            <div class="dm-call">
+              <p><b>Prospecting at volume?</b> 15 minutes with Eliasse, the founder, to set up your workflow with you. Free.</p>
+              <a href="https://calendly.com/hamoureliasse/linkfinder-ai?utm_source=us-free-list" target="_blank" rel="noopener" id="dmCall" data-cta="us_modal_call">Book a 15-min call</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="after">
+      <div class="after-grid">
+        <div class="after-card">
+          <h2>What you get</h2>
+          <ul>
+            <li><b>The full profile</b>: role, company, location, experience, education, summary.</li>
+            <li><b>The work email</b>, found and verified for each person when one exists.</li>
+            <li><b>A clean CSV</b> for your CRM, your sequencer or Google Sheets.</li>
+          </ul>
+        </div>
+        <div class="after-card">
+          <h2>After the first 50</h2>
+          <ul>
+            <li>Your free account comes with <b>free credits</b> for the rest of your list.</li>
+            <li>Lists of any size, Google Sheets add-on, API, phone numbers for US contacts: all included.</li>
+            <li><b>Black Friday</b>: pay once, get credits every month for life, from $149. Until 30 Nov.</li>
+          </ul>
+          <a class="btn after-btn" href="/sign-up?google=1" data-cta="us_after_signup">Create my free account</a>
+        </div>
+      </div>
+      <div class="call-card">
+        <div>
+          <h2>A custom prospect list?</h2>
+          <p>Looking for specific prospects (industry, role, region), or working hundreds of leads a month? We look at your process together and show you how to run it on autopilot. 15 minutes, free, with the founder.</p>
+        </div>
+        <a class="btn call-btn" href="https://calendly.com/hamoureliasse/linkfinder-ai?utm_source=us-free-list&utm_content=section" target="_blank" rel="noopener" id="callSection" data-cta="us_section_call">Book a call</a>
+      </div>
+    </section>
+  </div>
+</main>
+
+<div class="sticky-cta" id="stickyCta" hidden>
+  <span id="stickyText">Your list is ready</span>
+  <a class="btn" id="stickyBtn" href="/sign-up?google=1" data-cta="us_sticky_google">Create my account and download</a>
+</div>
+
+<footer>
+  <a href="/privacy-policy">Privacy</a> · <a href="/terms">Terms</a>
+</footer>
+
+<script>
+(function () {
+  function track(name, props) { try { posthog.capture(name, props || {}); } catch (e) {} }
+  var hasAccount = false;
+  try { hasAccount = !!localStorage.getItem('linkFinderToken'); } catch (e) {}
+
+  // Une liste par navigateur, 50 personnes maximum. Même worker et mêmes
+  // requêtes que la démo de /agency, mais emails seulement.
+  var MAX = 50;
+  var USED_KEY = 'lf_fr_free_list_used';
+  var RESULTS_KEY = 'lf_free_list_results';
+  var WORKER = 'https://linkfinder-free-tools.hamoureliasse.workers.dev/';
+  var PROFILE_RE = /(?:https?:\/\/)?(?:[a-z0-9-]+\.)?linkedin\.com\/(?:[a-z]{2}\/)?(?:in|pub)\/[^\s,;"'|<>]+/gi;
+  var tryInput = document.getElementById('tryInput');
+  var tryBtn = document.getElementById('tryBtn');
+  var tryFile = document.getElementById('tryFile');
+  var tryDrop = document.getElementById('tryDrop');
+  var tryMsg = document.getElementById('tryMsg');
+  var tryCount = document.getElementById('tryCount');
+  var tryResults = document.getElementById('tryResults');
+  var tryDl = document.getElementById('tryDl');
+  var dlBtn = document.getElementById('dlBtn');
+  var running = false;
+  var found = [];   // une ligne par personne : profil complet + email
+  var listName = 'my-list.csv';
+
+  function used() { try { return !!localStorage.getItem(USED_KEY); } catch (e) { return false; } }
+  function isProfile(url) { return window.LFLinkedIn ? window.LFLinkedIn.isProfileUrl(url) : /linkedin\.com\/(in|pub)\//i.test(url); }
+  function normalize(url) {
+    var n = window.LFLinkedIn && window.LFLinkedIn.normalize(url);
+    return n || (/^https?:\/\//i.test(url) ? url : 'https://' + url);
+  }
+  function extractProfiles(text) {
+    var seen = {};
+    return (String(text || '').match(PROFILE_RE) || []).filter(isProfile).map(normalize).filter(function (u) {
+      var k = u.toLowerCase().replace(/\/+$/, '');
+      if (seen[k]) return false;
+      seen[k] = true;
+      return true;
+    });
+  }
+  // Liste sans liens LinkedIn : colonnes prénom, nom, entreprise (lf-csv.js les reconnaît).
+  function extractPeople(text) {
+    if (!window.lfCsvRows || !window.lfFindColumn) return [];
+    var t = window.lfCsvRows(text), h = t.headers;
+    var fi = window.lfFindColumn(h, 'first_name');
+    var li = window.lfFindColumn(h, 'last_name', [fi]);
+    var ni = -1;
+    if (fi < 0 || li < 0) { fi = li = -1; ni = window.lfFindColumn(h, 'full_name'); }
+    var ci = window.lfFindColumn(h, 'company', [fi, li, ni]);
+    if (ci < 0 || (fi < 0 && ni < 0)) return [];
+    var seen = {}, out = [];
+    t.rows.forEach(function (r) {
+      var first, last;
+      if (fi >= 0 && li >= 0) { first = r[fi]; last = r[li]; }
+      else {
+        var parts = String(window.lfCsvNormalizeName(r[ni] || '')).trim().split(/\s+/);
+        first = parts.shift(); last = parts.join(' ');
+      }
+      var company = (r[ci] || '').trim();
+      first = (first || '').trim(); last = (last || '').trim();
+      if (!first || !last || !company) return;
+      var k = (first + '|' + last + '|' + company).toLowerCase();
+      if (seen[k]) return;
+      seen[k] = true;
+      out.push({ first: first, last: last, company: company, label: first + ' ' + last + ' · ' + company });
+    });
+    return out;
+  }
+  function urlItems(urls) { return urls.map(function (u) { return { url: u, label: u.replace(/^https?:\/\/(www\.)?/i, '') }; }); }
+
+  // j•••••@cabinet-rh.fr : on voit que ça marche, le vrai email est dans le fichier.
+  function mask(email) {
+    var at = email.indexOf('@');
+    if (at < 1) return '•••••';
+    return email[0] + '•••••' + email.slice(at);
+  }
+
+  function addRow(label) {
+    var row = document.createElement('div');
+    row.className = 'res enter';
+    var hd = document.createElement('div'); hd.className = 'hd';
+    var av = document.createElement('div'); av.className = 'av'; av.textContent = '…';
+    var txtBox = document.createElement('div'); txtBox.className = 'hd-t';
+    var who = document.createElement('div'); who.className = 'who'; who.textContent = label;
+    var info = document.createElement('div'); info.className = 'info';
+    var sk = document.createElement('div'); sk.className = 'sk'; sk.innerHTML = '<i></i><i></i><i></i>';
+    txtBox.appendChild(who); txtBox.appendChild(info); txtBox.appendChild(sk);
+    hd.appendChild(av); hd.appendChild(txtBox);
+    var more = document.createElement('div'); more.className = 'more';
+    var vals = document.createElement('div'); vals.className = 'vals';
+    var v = document.createElement('span'); v.className = 'val no'; v.textContent = 'Looking up the profile…';
+    vals.appendChild(v);
+    row.appendChild(hd); row.appendChild(more); row.appendChild(vals);
+    tryResults.appendChild(row);
+    try { row.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } catch (e) {}
+    v._row = row; v._who = who; v._info = info; v._more = more; v._av = av;
+    return v;
+  }
+  // Initiales en secours ; la photo LinkedIn quand le service en renvoie une.
+  function initials(name) {
+    var p = String(name || '').replace(/[^\p{L}\s-]/gu, ' ').trim().split(/\s+/);
+    return ((p[0] || '?')[0] + (p.length > 1 ? p[p.length - 1][0] : '')).toUpperCase();
+  }
+  function photoOf(pr) {
+    var u = pr && (pr.photo || pr.profilePicture || pr.profilePic || pr.picture || pr.image || pr.avatar);
+    if (typeof u !== 'string') return '';
+    try { var x = new URL(u); return x.protocol === 'https:' && (/(^|\.)(licdn\.com|linkedin\.com)$/.test(x.hostname) || (x.hostname === 'storage.googleapis.com' && /^\/linkedin_profile_picture\//.test(x.pathname))) ? u : ''; } catch (e) { return ''; }
+  }
+  function showProfile(cell, pr, it) {
+    var name = txt(pr.name) || it.label;
+    cell._who.textContent = name;
+    cell._row.classList.add('has-name');
+    var title = [txt(pr.jobTitle), txt(pr.company)].filter(Boolean).join(' at ');
+    cell._info.textContent = [title, txt(pr.location)].filter(Boolean).join(' · ');
+    var ph = photoOf(pr);
+    cell._av.textContent = initials(name);
+    cell._av.style.background = 'hsl(' + (Array.from(name).reduce(function (a, c) { return a + c.charCodeAt(0); }, 0) % 360) + ' 70% 92%)';
+    if (ph) {
+      var img = new Image(); img.alt = ''; img.referrerPolicy = 'no-referrer';
+      img.onload = function () { cell._av.textContent = ''; cell._av.appendChild(img); };
+      img.src = ph;
+    }
+    renderMore(cell._more, { exps: expList(pr), edus: eduList(pr) });
+  }
+  // Expériences et formation visibles dans la page (8 nov. 2026) : les 3
+  // dernières expériences et les 2 formations, le reste est dans le fichier.
+  function renderMore(box, rec) {
+    if (!box) return;
+    box.textContent = '';
+    function block(title, items, max, unit) {
+      if (!items.length) return;
+      var wrap = document.createElement('div');
+      wrap.className = 'blk';
+      var h = document.createElement('p');
+      h.className = 'blk-t';
+      h.textContent = title;
+      wrap.appendChild(h);
+      var ul = document.createElement('ul');
+      items.slice(0, max).forEach(function (t, k) { var li = document.createElement('li'); li.textContent = t; li.style.animationDelay = (k * 90) + 'ms'; ul.appendChild(li); });
+      if (items.length > max) {
+        var li2 = document.createElement('li');
+        li2.className = 'more-n';
+        li2.textContent = '+ ' + (items.length - max) + ' ' + unit + (items.length - max > 1 ? 's' : '') + ' in the file';
+        ul.appendChild(li2);
+      }
+      wrap.appendChild(ul);
+      box.appendChild(wrap);
+    }
+    block('Experience', rec.exps, 3, 'more role');
+    block('Education', rec.edus, 2, 'more school');
+  }
+  function showLive(n) {
+    var box = document.getElementById('liveStats'); if (!box) return;
+    box.hidden = false;
+    document.getElementById('statBar').style.width = '0%';
+  }
+  function hideLiveBar() { var b = document.getElementById('statBarWrap'); if (b) b.classList.add('done'); }
+  function setStat(id, val) {
+    var el = document.getElementById(id); if (!el) return;
+    if (el.textContent !== String(val)) { el.textContent = String(val); el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump'); }
+  }
+  function setCell(cell, text, ok) { cell.className = 'val ' + (ok ? 'ok' : 'no'); cell.textContent = text; }
+
+  function pause(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+  // 3 essais : tout de suite, après 1,5 s, après 4 s.
+  async function withRetry(fn) {
+    var waits = [0, 1500, 4000], last;
+    for (var k = 0; k < waits.length; k++) {
+      if (waits[k]) await pause(waits[k]);
+      try { return await fn(); } catch (e) { last = e; }
+    }
+    throw last;
+  }
+
+  async function lookup(body) {
+    var res = await fetch(WORKER, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-API-Secret': window.LF_API_KEY, 'Accept': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    return res.json();
+  }
+
+  // Profil complet via le workflow free tools (type linkedin_profile_to_linkedin_info).
+  // L'ancien service linkedin-url-finder a été supprimé de Cloudflare : chaque
+  // appel échouait, d'où des cartes sans données (8 nov. 2026).
+  async function profileLookup(url) {
+    var d = await lookup({ type: 'linkedin_profile_to_linkedin_info', input_data: url, is_bulk: true });
+    if (Array.isArray(d)) d = d[0];
+    if (!d || (!d.name && !d.jobTitle && !(d.experiences && d.experiences.length))) throw new Error('empty profile');
+    return d;
+  }
+  function txt(v) { return v == null ? '' : String(v).trim(); }
+  function expList(d) {
+    var ex = Array.isArray(d && d.experiences) ? d.experiences : [];
+    return ex.map(function (e) {
+      var period = [txt(e.jobStartedOn), e.jobStillWorking ? "present" : txt(e.jobEndedOn)].filter(Boolean).join(' - ');
+      return [txt(e.title), txt(e.companyName)].filter(Boolean).join(' at ') + (period ? ' (' + period + ')' : '');
+    }).filter(Boolean);
+  }
+  function eduList(d) {
+    var ed = (d && (d.educations || d.education || d.schools)) || [];
+    if (!Array.isArray(ed)) ed = [ed];
+    return ed.map(function (e) {
+      if (typeof e === 'string') return e.trim();
+      var period = [txt(e.startedOn || e.startDate || e.start || e.startYear), txt(e.endedOn || e.endDate || e.end || e.endYear)].filter(Boolean).join(' - ');
+      var degree = [txt(e.title || e.degree || e.degreeName), txt(e.fieldOfStudy)].filter(Boolean).join(' - ');
+      return [degree, txt(e.subtitle || e.schoolName || e.school || e.name)].filter(Boolean).join(', ') + (period ? ' (' + period + ')' : '');
+    }).filter(Boolean);
+  }
+
+  function showUsed() {
+    tryMsg.textContent = '';
+    tryCount.textContent = 'You already used your free test in this browser.';
+    dlBtn.textContent = hasAccount ? 'Open LinkFinder AI' : 'Create my free account';
+    if (hasAccount) dlBtn.href = '/app?action=free_list';
+    document.getElementById('dlFine').textContent = 'Free, no credit card.';
+    tryDl.hidden = false;
+  }
+
+  async function run(source, items) {
+    if (running) return;
+    if (used()) { track('us_list_blocked', { source: source }); showUsed(); return; }
+    if (!items.length) { tryMsg.textContent = 'Add at least one LinkedIn link (linkedin.com/in/…).'; return; }
+    var total = items.length;
+    items = items.slice(0, MAX);
+
+    running = true;
+    found = [];
+    tryMsg.textContent = '';
+    tryResults.innerHTML = '';
+    tryDl.hidden = true;
+    tryBtn.disabled = true;
+    tryBtn.textContent = 'Searching…';
+    try { localStorage.setItem(USED_KEY, String(Date.now())); } catch (e) {}
+    track('us_list_started', { source: source, rows: items.length, file_rows: total });
+
+    var bulk = items.length > 1, emails = 0, profiles = 0, errors = 0, lookups = 0, done = 0;
+    var n = items.length;
+    function counter() {
+      tryCount.textContent = '';
+      setStat('statProfiles', profiles); setStat('statEmails', emails);
+      var bar = document.getElementById('statBar'); if (bar) bar.style.width = Math.round(100 * done / n) + '%';
+      var lbl = document.getElementById('statDone'); if (lbl) lbl.textContent = done + ' / ' + n;
+    }
+    showLive(n);
+    counter();
+    // Deux files (8 nov. 2026) : pendant que l'email de la personne N est
+    // cherché, le profil de la personne N+1 se charge. Jamais plus de 2 appels
+    // en cours (un par type de recherche) - à 8 appels en parallèle,
+    // 41 lignes sur 50 finissaient en erreur. Chaque appel est retenté 2 fois,
+    // puis les lignes en erreur repassent une dernière fois à la fin.
+    var state = items.map(function () { return {}; });
+    var failedIdx = [];
+    function cellOf(i) {
+      if (!state[i].cell) { state[i].cell = addRow(items[i].label); }
+      return state[i].cell;
+    }
+    async function profileStage(i) {
+      var it = items[i], cell = cellOf(i), st = state[i];
+      st.url = it.url; st.skip = false; st.pr = null;
+      cell._row.classList.add('loading');
+      if (!st.url) {
+        lookups++;
+        var p = await withRetry(function () { return lookup({ type: 'professional_profile_finder', first_name: it.first, last_name: it.last, company_name: it.company, is_bulk: bulk }); }).catch(function () { return null; });
+        st.url = p && p.linkedin_url ? normalize(String(p.linkedin_url)) : '';
+        if (!st.url) { st.skip = true; cell._row.classList.remove('loading'); setCell(cell, 'LinkedIn profile not found', false); done++; counter(); return; }
+      }
+      if (it.pre) { st.pr = it.pre; await pause(120); }  // déjà fourni par la recherche LinkedIn
+      else {
+        lookups++;
+        st.pr = await withRetry(function () { return profileLookup(st.url); }).catch(function () { return null; });
+      }
+      cell._row.classList.remove('loading');
+      if (st.pr) { showProfile(cell, st.pr, it); profiles++; counter(); }
+      setCell(cell, 'Looking up the email…', false); cell.classList.add('searching');
+    }
+    async function emailStage(i, lastTry) {
+      var it = items[i], cell = cellOf(i), st = state[i];
+      if (st.skip) return;
+      lookups++;
+      var mail = await withRetry(function () { return lookup({ type: 'business_email_finder', linkedin_url: st.url, is_bulk: bulk }); }).catch(function () { return null; });
+      cell.classList.remove('searching');
+      if (!st.pr && !mail) {
+        if (!lastTry) { failedIdx.push(i); setCell(cell, 'Retrying at the end…', false); return; }
+        errors++; setCell(cell, 'No answer', false); done++; counter(); return;
+      }
+      var pr = st.pr || {}, em = mail && mail.email ? String(mail.email) : '';
+      var rec = {
+        name: txt(pr.name) || it.label, title: txt(pr.jobTitle), company: txt(pr.company), location: txt(pr.location),
+        headline: txt(pr.headline), about: txt(pr.about), exps: expList(pr), edus: eduList(pr), url: st.url, email: em
+      };
+      if (rec.name || rec.title || em) { found.push(rec); if (!st.pr) profiles++; }
+      if (em) { emails++; setCell(cell, mask(em) + '  ✓', true); cell.classList.add('pop'); }
+      else setCell(cell, 'Email not found', false);
+      done++; counter();
+    }
+    var emailLane = Promise.resolve();
+    for (var i = 0; i < n; i++) {
+      await profileStage(i);
+      (function (k) { emailLane = emailLane.then(function () { return emailStage(k, false); }); })(i);
+      await pause(150);
+    }
+    await emailLane;
+    if (failedIdx.length) {
+      track('us_list_second_pass', { rows: failedIdx.length });
+      await pause(3000);
+      var again = failedIdx.slice(); failedIdx = [];
+      for (var j = 0; j < again.length; j++) {
+        await profileStage(again[j]); await emailStage(again[j], true); await pause(600);
+      }
+    }
+    hideLiveBar();
+
+    running = false;
+    tryBtn.disabled = false;
+    tryBtn.textContent = 'Get the profiles';
+    tryMsg.textContent = '';
+    track('us_list_run', { source: source, rows: items.length, file_rows: total, found: emails, profiles: profiles, failed: errors });
+
+    if (errors && errors === items.length) {
+      try { localStorage.removeItem(USED_KEY); } catch (e) {}
+      tryCount.textContent = '';
+      tryMsg.textContent = 'Our service is not answering. Try again in a minute.';
+      return;
+    }
+    tryCount.textContent = profiles + ' full profiles and ' + emails + ' emails found out of ' + items.length + '.' +
+      (total > items.length ? ' (The first ' + items.length + ' of your list.)' : '');
+    if (!found.length) { tryMsg.textContent = 'Nothing found on this list.'; return; }
+    saveResults();
+    dlBtn.textContent = 'Download my list (' + found.length + ' profiles)';
+    if (hasAccount) { dlBtn.href = '/app?action=free_list'; document.getElementById('dlFine').textContent = 'Your list opens in your account, ready to download.'; }
+    tryDl.hidden = false;
+    showDoneModal(profiles, emails, items.length, total);
+    showSticky();
+  }
+  function showSticky() {
+    var bar = document.getElementById('stickyCta');
+    if (!bar || !found.length) return;
+    document.getElementById('stickyText').textContent = 'Your list of ' + found.length + ' profiles is ready';
+    var btn = document.getElementById('stickyBtn');
+    if (hasAccount) { btn.textContent = 'Open my list'; btn.href = '/app?action=free_list'; }
+    bar.hidden = false;
+    document.body.classList.add('has-sticky');
+    track('us_list_sticky_shown', { found: found.length, has_account: hasAccount });
+  }
+
+  // Fin de l'enrichissement : un seul message, clair, avec un seul geste à faire.
+  function showDoneModal(profiles, emails, n, total) {
+    var m = document.getElementById('doneModal');
+    if (!m) return;
+    document.getElementById('dmStats').textContent = profiles + ' full profiles and ' + emails + ' emails found out of ' + n + '.';
+    var rest = total - n;
+    var restEl = document.getElementById('dmRest');
+    restEl.textContent = rest > 0 ? 'Your file has ' + total + ' rows: the other ' + rest + ' are waiting in the app, with your free credits.' : '';
+    restEl.hidden = !(rest > 0);
+    var go = document.getElementById('dmGoogle'), alt = document.getElementById('dmEmail'), fine = document.getElementById('dmFine');
+    if (hasAccount) {
+      go.textContent = 'Open my list and download it';
+      go.href = '/app?action=free_list';
+      alt.textContent = 'Start a new list';
+      alt.href = '/app?action=free_list';
+      fine.textContent = 'Your list is waiting in your account, with role, company, experience, education and email.';
+    }
+    m.hidden = false;
+    document.body.classList.add('dm-open');
+    track('us_list_modal_shown', { profiles: profiles, emails: emails, rows: n, file_rows: total, has_account: hasAccount });
+  }
+  function closeDoneModal() {
+    var m = document.getElementById('doneModal');
+    if (m) m.hidden = true;
+    document.body.classList.remove('dm-open');
+  }
+  (function wireConversion() {
+    var sb = document.getElementById('stickyBtn');
+    if (sb) sb.addEventListener('click', function (e) {
+      track('us_list_sticky_clicked', { found: found.length, has_account: hasAccount });
+
+    });
+    var bfl = document.getElementById('dmBf');
+    if (bfl) bfl.addEventListener('click', function () { track('us_list_bf_clicked', { found: found.length, has_account: hasAccount }); });
+    ['dmCall', 'callSection'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) el.addEventListener('click', function () { track('us_list_call_clicked', { where: id === 'dmCall' ? 'popup' : 'section', found: found.length }); });
+    });
+    document.querySelectorAll('[data-cta="us_after_signup"]').forEach(function (el) {
+      el.addEventListener('click', function () { track('us_list_signup_clicked', { where: 'section' }); });
+    });
+  })();
+  (function wireDoneModal() {
+    var m = document.getElementById('doneModal');
+    if (!m) return;
+    document.getElementById('dmClose').addEventListener('click', function () { track('us_list_modal_closed', {}); closeDoneModal(); });
+    m.addEventListener('click', function (e) { if (e.target === m) { track('us_list_modal_closed', { via: 'backdrop' }); closeDoneModal(); } });
+    document.getElementById('dmGoogle').addEventListener('click', function (e) {
+      track('us_list_modal_clicked', { choice: hasAccount ? 'download' : 'google', found: found.length });
+
+    });
+    document.getElementById('dmEmail').addEventListener('click', function () {
+      track('us_list_modal_clicked', { choice: hasAccount ? 'app' : 'email', found: found.length });
+    });
+  })();
+
+  function toCsv() {
+    var esc = function (s) { s = String(s == null ? '' : s); return /[",\n;]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+    var head = ['Name', 'Current role', 'Company', 'Location', 'LinkedIn headline', 'Email', 'Experience', 'Education', 'Summary', 'LinkedIn'];
+    return head.join(',') + '\n' + found.map(function (f) {
+      return [f.name, f.title, f.company, f.location, f.headline, f.email, f.exps.join(' | '), f.edus.join(' | '), f.about, f.url].map(esc).join(',');
+    }).join('\n') + '\n';
+  }
+  // Gardé dans ce navigateur : app.html (lfDownloadFreeList) le télécharge juste après l'inscription.
+  function saveResults() {
+    var rows = found.map(function (f) { return { name: f.name, title: f.title, company: f.company, location: f.location, email: f.email, url: f.url, exps: f.exps.length, edus: f.edus.length }; });
+    try { localStorage.setItem(RESULTS_KEY, JSON.stringify({ name: listName.replace(/\.(csv|tsv|txt)$/i, '') + '-profiles.csv', csv: toCsv(), rows: rows, found: found.length, emails: rows.filter(function (r) { return r.email; }).length, savedAt: Date.now() })); } catch (e) {}
+  }
+  function downloadNow() {
+    var blob = new Blob(['\ufeff' + toCsv()], { type: 'text/csv;charset=utf-8' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = listName.replace(/\.(csv|tsv|txt)$/i, '') + '-profiles.csv';
+    document.body.appendChild(a); a.click(); a.remove();
+  }
+  // Pas de téléchargement sur la page : la liste s'ouvre dans l'app (inscription
+  // d'abord si besoin), où l'on télécharge et où l'on enchaîne la liste suivante.
+  dlBtn.addEventListener('click', function () {
+    track('us_list_download_clicked', { found: found.length, has_account: hasAccount });
+  });
+
+  async function handleFile(file) {
+    if (!file || running) return;
+    tryMsg.textContent = '';
+    if (file.size > 20 * 1024 * 1024) { tryMsg.textContent = 'File too large (over 20 MB).'; return; }
+    var text;
+    try { text = await file.text(); } catch (e) { tryMsg.textContent = 'Could not read this file. Try a .csv export.'; return; }
+    listName = file.name || 'ma-liste.csv';
+    var urls = extractProfiles(text);
+    if (urls.length) { track('us_list_file', { rows: urls.length, kind: 'linkedin' }); run('csv', urlItems(urls)); return; }
+    var people = extractPeople(text);
+    track('us_list_file', { rows: people.length, kind: people.length ? 'names' : 'unusable' });
+    if (!people.length) {
+      tryMsg.textContent = 'The file needs LinkedIn links, or first name, last name and company columns.';
+      return;
+    }
+    run('names', people);
+  }
+
+  tryFile.addEventListener('change', function () { handleFile(tryFile.files[0]); tryFile.value = ''; });
+  ['dragenter', 'dragover'].forEach(function (ev) {
+    tryDrop.addEventListener(ev, function (e) { e.preventDefault(); tryDrop.classList.add('over'); });
+  });
+  ['dragleave', 'drop'].forEach(function (ev) {
+    tryDrop.addEventListener(ev, function () { tryDrop.classList.remove('over'); });
+  });
+  tryDrop.addEventListener('drop', function (e) { e.preventDefault(); handleFile(e.dataTransfer && e.dataTransfer.files[0]); });
+  tryBtn.addEventListener('click', function () { listName = 'my-list.csv'; run('paste', urlItems(extractProfiles(tryInput.value))); });
+
+  // « Pas de liste ? » (10 nov. 2026) : une recherche LinkedIn sans cookies
+  // (fonction Supabase lead-search, action preview : gratuite, 2 par jour et
+  // par IP, 60 par jour en tout) donne jusqu'à 50 profils complets ; la page
+  // cherche ensuite les emails comme pour une liste déposée.
+  var LS_API = 'https://snxhsboboatjywgwdeds.supabase.co/functions/v1/lead-search';
+  var qBtn = document.getElementById('qBtn');
+  function leadToItem(l) {
+    var exps = (l.exp_list || []).map(function (e) { return { title: e.title, companyName: e.company, jobStartedOn: e.start, jobEndedOn: e.end, jobStillWorking: !e.end || /present|aujourd/i.test(e.end) }; });
+    var edus = (l.edu_list || []).map(function (e) { return { title: e.degree, fieldOfStudy: e.field, subtitle: e.school, startedOn: e.start, endedOn: e.end }; });
+    return { url: l.linkedin_url, label: l.full_name || l.linkedin_url,
+      pre: { name: l.full_name, jobTitle: l.job_title, company: l.company, location: l.location, headline: l.headline, photo: l.photo, experiences: exps, educations: edus } };
+  }
+  async function lsCall(body) {
+    var r = await fetch(LS_API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    var d = {}; try { d = await r.json(); } catch (e) {}
+    return { status: r.status, d: d };
+  }
+  async function runQuery() {
+    if (running) return;
+    if (used()) { track('us_list_blocked', { source: 'query' }); showUsed(); return; }
+    var what = document.getElementById('qWhat').value.trim();
+    var where = document.getElementById('qWhere').value.trim();
+    var n = Number(document.getElementById('qCount').value) || 50;
+    if (what.length < 2) { tryMsg.textContent = 'Enter a job title or keywords.'; document.getElementById('qWhat').focus(); return; }
+    tryMsg.textContent = '';
+    qBtn.disabled = true; qBtn.textContent = 'Searching LinkedIn…';
+    tryCount.textContent = 'Searching LinkedIn. Allow 1 to 3 minutes, keep the page open.';
+    track('us_list_query_started', { has_location: !!where, n: n });
+    var t0 = Date.now();
+    var reset = function () { qBtn.disabled = false; qBtn.textContent = 'Find the profiles'; };
+    var s = await lsCall({ action: 'preview', criteria: { query: what, locations: where, maxItems: n } }).catch(function () { return { status: 0, d: {} }; });
+    if (s.status !== 200 || !s.d.id) {
+      reset(); tryCount.textContent = '';
+      tryMsg.textContent = s.d.error === 'limit_ip' ? 'You already ran 2 searches today. Create a free account to keep going.'
+        : s.d.error === 'limit_day' ? 'Lots of searches today: try again tomorrow, or create a free account.'
+        : 'The search could not start. Try again in a minute.';
+      track('us_list_query_failed', { reason: s.d.error || ('http_' + s.status) });
+      return;
+    }
+    var leads = null;
+    for (var k = 0; k < 80; k++) {
+      await pause(5000);
+      var sec = Math.round((Date.now() - t0) / 1000);
+      tryCount.textContent = 'Searching LinkedIn… ' + Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0') + '. Keep the page open.';
+      var st = await lsCall({ action: 'preview_status', id: s.d.id }).catch(function () { return { status: 0, d: {} }; });
+      if (st.status === 200 && st.d.status === 'done') { leads = st.d.leads || []; break; }
+      if (st.status === 200 && st.d.status === 'failed') { leads = []; break; }
+    }
+    reset();
+    if (!leads || !leads.length) {
+      tryCount.textContent = '';
+      tryMsg.textContent = leads ? 'Nobody found on LinkedIn for this search. Try broader words.' : 'The search is taking too long. Try again in a moment.';
+      track('us_list_query_empty', { timeout: !leads });
+      return;
+    }
+    track('us_list_query_done', { profiles: leads.length, seconds: Math.round((Date.now() - t0) / 1000) });
+    listName = ('search-' + what + (where ? '-' + where : '')).toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 60) + '.csv';
+    run('query', leads.filter(function (l) { return l.linkedin_url; }).map(leadToItem));
+  }
+  qBtn.addEventListener('click', runQuery);
+  ['qWhat', 'qWhere'].forEach(function (id) { document.getElementById(id).addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); runQuery(); } }); });
+  if (used()) showUsed();
+
+  // Le prospect venu du lien envoyé par email : on garde son adresse pour
+  // préremplir l'inscription (sign-up.html lit lf_agency_lead_email).
+  var leadEmail = window.__lfLeadEmail || null;
+  if (leadEmail) {
+    try { posthog.setPersonProperties({ email: leadEmail, fr_list_lead: true }); } catch (e) {}
+    try { localStorage.setItem('lf_agency_lead_email', leadEmail); } catch (e) {}
+  }
+  track('us_list_page_viewed', { email_link: !!leadEmail });
+})();
+</script>
+</body>
+</html>

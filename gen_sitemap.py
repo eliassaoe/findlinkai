@@ -51,6 +51,7 @@ NOINDEX_ONLY = {
     "100free",            # cold-email landing; bounces to /sign-up?gift=coldemail_1000
     "agency",             # outbound landing, sent by hand to agencies that replied yes
     "lifetime-deal",      # LTD campaign landing, email-only (docs/ltd-campaign.md)
+    "free-list",          # US cold-email landing, English /liste-gratuite (docs/black-friday-ltd-2026.md)
     "best-recruitment-sofware-tools",  # typo URL, redirect stub -> /best-recruitment-software-tools
     "redeem",                          # -> /redeem-code (partner link, docs/partner-ltd-codes.md)
     # Redirect stubs. Each one used to compete with the page it now bounces to.
