@@ -96,3 +96,28 @@ campaigns), so nothing to recover there.
   (eliassaoe, branch patch-1); the PR itself is opened by the owner.
 - DealMirror: owner already in. SaaSMantra and SenderCircle: owner sent.
 - Each partner has its own `utm_source`; filter `utm_campaign=bf2026`.
+
+## Site-wide banner (live from 11 Nov 2026)
+
+`js/lf-bf-banner.js`, loaded by `js/lf-attribution.js` (258 of 268 pages,
+including `/app`, the home page and every free tool). "Early Black Friday" bar
+until 27 Nov, "Black Friday" + countdown in the last 5 days, gone after
+1 Dec 07:59 UTC on its own. Hidden on `/lifetime-deal`, `/redeem-code`,
+`/account`, after a dismiss (24 h), and for accounts that already paid or hold
+a lifetime plan (`ltd_eligibility`). Link `utm_source=site_banner`,
+`utm_content=<page path>`. PostHog events `bf_banner_shown / _clicked /
+_dismissed`. Idea from a founder video the owner shared (11 Nov): banner +
+short countdown, start before Black Friday. `tests/bf-banner.test.mjs`.
+
+## Platforms checked 11 Nov
+
+- Dealify: the old **UnlimitedLeads** LTD ran there (payouts to May 2026) and
+  was ended by Dealify on 1 Sept 2026 for a 36% refund rate. LinkFinder AI is
+  not listed. Pitched LinkFinder AI for BF in the same Gmail thread (Raul).
+- DealFuel: **LinkFinder AI is live** ($79–149). Asked them in the deal thread to
+  feature it in their BF page and newsletter; apologised for the unanswered
+  May support ticket.
+- RocketHub: rejected UnlimitedLeads in Aug 2025 because it had run LTDs
+  elsewhere ("we are the first stop"). LinkFinder AI is on DealFuel, so not
+  pitched.
+- StackSocial: inbound-only and weak founder results; not pitched.

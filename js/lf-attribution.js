@@ -346,3 +346,16 @@
 
     window.LFSegment = LFSegment;
 })();
+
+// Black Friday 2026 banner (docs/black-friday-ltd-2026.md). Separate file so
+// the 258 pages that load this one get it without being edited; the banner
+// script stops itself after 1 Dec 2026, and this loader after that date too.
+(function () {
+    try {
+        if (Date.now() >= Date.parse('2026-12-01T07:59:00Z')) return;
+        var s = document.createElement('script');
+        s.src = '/js/lf-bf-banner.js';
+        s.defer = true;
+        (document.head || document.documentElement).appendChild(s);
+    } catch (e) {}
+})();
