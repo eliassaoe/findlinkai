@@ -26,3 +26,12 @@ test('n8n asks the database for the credits; Agency resets instead of rolling ov
   assert.match(mig, /create or replace function ltd_credits_for_product\(p_product text\)/);
   assert.match(mig, /when ltd_monthly_credits = 25000\s+then greatest\(coalesce\(credits, 0\), 25000\)/);
 });
+
+test('every sale carries its channel: last click + first touch go to Dodo', () => {
+  assert.match(page, /source: qs\.get\('utm_source'\) \|\| LA\.last_utm_source \|\| LA\.last_referrer_domain \|\| 'direct'/);
+  assert.match(page, /u\.searchParams\.set\('metadata_first_source', attribution\.first_source\)/);
+  const t = readFileSync(new URL('../supabase/migrations/20261111233000_ltd_sales_tracking.sql', import.meta.url), 'utf8');
+  assert.match(t, /create table if not exists ltd_sales/);
+  assert.match(t, /create or replace view ltd_sales_by_channel/);
+  assert.match(t, /revoke all on ltd_sales_by_channel from public, anon, authenticated/);
+});

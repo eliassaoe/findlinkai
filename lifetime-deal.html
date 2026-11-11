@@ -290,14 +290,21 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
   if (token && token.length < 8) token = null;
 
   var qs = new URLSearchParams(location.search);
+  // Which channel sold it (docs/black-friday-ltd-2026.md, "Tracking"): the
+  // click that brought them here (utm on this URL), else the last campaign touch
+  // of this session, else direct. First touch (how they first found us, e.g.
+  // explee for cold email) travels separately so both are on the Dodo payment.
+  var LA = window.LF_ATTRIBUTION || {};
   var attribution = {
-    source: qs.get('utm_source') || 'direct',
-    campaign: qs.get('utm_campaign') || 'ltd_launch',
-    content: qs.get('utm_content') || null
+    source: qs.get('utm_source') || LA.last_utm_source || LA.last_referrer_domain || 'direct',
+    campaign: qs.get('utm_campaign') || LA.last_utm_campaign || 'ltd_launch',
+    content: qs.get('utm_content') || LA.last_utm_content || null,
+    first_source: LA.first_utm_source || LA.first_referrer_domain || '(direct)',
+    first_campaign: LA.first_utm_campaign || null
   };
 
   function capture(ev, props) {
-    try { posthog.capture(ev, Object.assign({ utm_source: attribution.source, utm_campaign: attribution.campaign, utm_content: attribution.content, logged_in: !!token }, props || {})); } catch (e) {}
+    try { posthog.capture(ev, Object.assign({ utm_source: attribution.source, utm_campaign: attribution.campaign, utm_content: attribution.content, first_source: attribution.first_source, logged_in: !!token }, props || {})); } catch (e) {}
   }
   if (token) { try { posthog.identify(token); } catch (e) {} }
   capture('ltd_page_viewed');
@@ -325,6 +332,9 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
     if (token) u.searchParams.set('metadata_user_token', token);
     u.searchParams.set('metadata_attribution_source', attribution.source);
     u.searchParams.set('metadata_attribution_campaign', attribution.campaign);
+    if (attribution.content) u.searchParams.set('metadata_attribution_content', attribution.content);
+    u.searchParams.set('metadata_first_source', attribution.first_source);
+    if (attribution.first_campaign) u.searchParams.set('metadata_first_campaign', attribution.first_campaign);
     u.searchParams.set('metadata_source', 'ltd_page');
     return u.toString();
   }

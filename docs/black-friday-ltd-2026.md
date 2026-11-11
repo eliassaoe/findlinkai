@@ -224,6 +224,27 @@ campaign: pause the FR ones 24–30 Nov if the US ones should get the full volum
 Expected, at last month's rates (1% reply, ~1/3 of replies hot): ~2,700 emails →
 ~27 replies → ~9 interested → 1–3 sales. Cold email is the test, not the $5k.
 
+## Tracking: which channel sold each lifetime deal (11 Nov, 23:50)
+
+| Channel | What the buyer clicked | `source` on the sale |
+| --- | --- | --- |
+| Emails to our base (PostHog workflows) | `/lifetime-deal?utm_source=email&utm_content=e1..e3` | `email` |
+| Site banner | `utm_source=site_banner&utm_content=<page>` | `site_banner` |
+| Partners / newsletters / lists | their own `utm_source` (saaspirate, rarebigdeal, blackfridaytimes, gauravtiwari, saasblackfriday…) | that name |
+| US cold email | `/free-list` (sets `utm_source=explee`) → signup → deal page | usually `site_banner` (last click) with **`first_source = explee`** |
+| InfoStack | codes on `/redeem-code` | not here: `appsumo_codes where partner='infostack'` |
+
+- `/lifetime-deal` sends to Dodo: `attribution_source/campaign/content` (utm on the
+  URL, else the session's last campaign touch, else `direct`) and
+  `first_source/first_campaign` (from `lf-attribution.js`, first touch ever).
+- `ltd_sales` (migration `20261111233000_ltd_sales_tracking.sql`): one row per
+  payment, written by n8n "upgrade dodo" `Postgres46` (a `WITH rec AS (INSERT …)`
+  in front of the grant). Rendered SQL tested in a rolled-back transaction.
+  **The n8n change is saved as a draft; the owner must click Publish** (my
+  publish was blocked).
+- Morning report: `select * from ltd_sales_by_channel;` (day × source × first
+  source × sales × revenue). Ask Claude for it each day of BF week.
+
 ## InfoStack price renegotiation (sent 11 Nov, 22:45)
 
 Owner: $99 for 10,000 credits/month is too low next to our own $299/7,500 and
