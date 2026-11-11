@@ -191,6 +191,12 @@ number in September (`enrichment_history`, type `linkedin_profile_to_phone`,
 week of 28 Sept). Check the free-tools workflow (`KmQzVWHBMOXOWXZD`) uses the same
 credential.
 
+**Fixed 11 Nov, 22:31 Paris**: the owner put the API token of his current
+Apify account in the n8n credential "apify api key" (the SaaS-only Apify account
+is no longer reachable). Re-test: 9 of 9 US profiles that had a number in
+September returned one again (app path), the free tool `business_phone_finder`
+too. Rotate that token once things are stable (it was pasted in a chat).
+
 ## InfoStack price renegotiation (sent 11 Nov, 22:45)
 
 Owner: $99 for 10,000 credits/month is too low next to our own $299/7,500 and
