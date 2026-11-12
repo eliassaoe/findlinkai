@@ -124,6 +124,9 @@ short countdown, start before Black Friday. `tests/bf-banner.test.mjs`.
     - Offer: our Core/Plus/Agency ladder plus an exclusive tier or code with
       commission.
   - `/changelog` was created for the form's required "public changelog" field.
+- GPToast (FR AI newsletter, ~5k subs), 12 Nov: no variable pay, €190 for 2 editions
+  (27 and 30 Nov). **Declined by the owner.** The audience is general AI-curious
+  readers, and ~40–80 clicks can't reach 2x at $149.
 - DealFuel, 12 Nov: Andy asked whether we lower the price and join their sitewide BFCM
   discount. Owner's answer: **join the BFCM discount, base prices unchanged**:
   - Tier 1 is $79 for 10K credits/month; Tier 2 is $149 for 25K credits/month.
