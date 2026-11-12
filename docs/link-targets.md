@@ -53,6 +53,20 @@ Given in return: AdaptlyPost as #12 (entry + table row, dofollow to adaptlypost.
 `/best-recruitment-software-tools`. Keep them: removing a swapped link is how
 partners notice and pull theirs.
 
+## Swaps proposed 12 Nov 2026 (MentionAgent, waiting on their answer)
+
+SEMrush (US) checked before replying. Nothing on our side is published until they confirm.
+
+| Partner | AS / US traffic | They place | We give |
+| --- | --- | --- | --- |
+| goodday.work | 39 / 10.2K | Bitrix24 alternatives guide, "refreshing stale contact records" → `/enrich-crm-contact-list` (they refuse alternative pages) | GoodDay standalone entry, 2nd place, `/best-software-for-crm` |
+| ecommerce.folio3.com | 42 / 2.1K | Shopify apps guide, "Apify alternative" → `/apify-alternative` | "Shopify development services" → folio3 on `/top-best-marketing-automation-platforms` |
+| ecomify.net | 24 / 939 | Shopify wholesale apps guide, "Apify alternative" → `/apify-alternative` | Ecomify link on `/top-best-marketing-automation-platforms` |
+| mailneo.co | 22 / 467 | AI outreach tools guide, "Skrapp alternative" → `/skrapp-alternative` | their best-time-to-email study, from `/resources/scraped-vs-purchased-email-lists-deliverability` |
+| noon.ai | 25 / 1.5K | asked $500; countered with a free swap, "ContactOut alternative" → `/contact-out-alternative` | Noon on `/best-recruitment-software-tools` |
+
+Archived the same day: smartpostly (paid, traffic from junk pages), tomoson (says its sites are not indexed), sourcingtools ($500, AS 7), templatery, gopublish, b2btimes (no traffic), meetharlow (sponsorship only), pwskills and sparrowdesk (support bots).
+
 ## Internal links pointing at them (9 Nov 2026)
 
 Free and immediate, so done first:
