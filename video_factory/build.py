@@ -35,12 +35,61 @@ def lines(sc):
     return out
 
 
-async def tts_all(items, adir):
+VOICES = [VOICE, "en-US-ChristopherNeural", "en-US-GuyNeural", "en-US-AndrewMultilingualNeural"]
+PIPER_VOICE = os.environ.get("LF_PIPER_VOICE", "en_US-ryan-high")
+
+
+async def edge_one(text, f):
     import edge_tts
+    last = None
+    for v in VOICES:
+        for _ in range(2):
+            try:
+                await edge_tts.Communicate(text, v, rate=RATE).save(str(f))
+                if f.exists() and f.stat().st_size > 1000:
+                    return v
+            except Exception as e:  # NoAudioReceived, 403, network
+                last = e
+            await asyncio.sleep(2)
+    raise RuntimeError(f"edge-tts failed: {last}")
+
+
+def piper_one(text, f):
+    """Offline neural TTS fallback (runner downloads the voice once)."""
+    vdir = Path(os.environ.get("LF_PIPER_DIR", Path.home() / ".piper"))
+    model = vdir / f"{PIPER_VOICE}.onnx"
+    if not model.exists():
+        vdir.mkdir(parents=True, exist_ok=True)
+        lang, name, q = PIPER_VOICE.split("-")
+        base = f"https://huggingface.co/rhasspy/piper-voices/resolve/main/en/{lang}/{name}/{q}/{PIPER_VOICE}"
+        run(["curl", "-sSL", "-o", model, base + ".onnx"])
+        run(["curl", "-sSL", "-o", str(model) + ".json", base + ".onnx.json"])
+    wav = f.with_suffix(".wav")
+    subprocess.run(["piper", "--model", str(model), "--output_file", str(wav), "--sentence_silence", "0.25"],
+                   input=text, text=True, check=True)
+    run(["ffmpeg", "-y", "-loglevel", "error", "-i", wav, "-c:a", "libmp3lame", "-q:a", "3", f])
+    wav.unlink()
+
+
+async def tts_all(items, adir):
+    engine = os.environ.get("LF_TTS", "edge")
+    used = set()
     for key, text in items:
         f = adir / f"{key}.mp3"
-        if not f.exists():
-            await edge_tts.Communicate(text, VOICE, rate=RATE).save(str(f))
+        if f.exists():
+            continue
+        if engine == "edge":
+            try:
+                used.add(await edge_one(text, f))
+                continue
+            except Exception as e:
+                print("edge-tts unavailable, switching to piper:", e, flush=True)
+                os.environ["LF_TTS"] = "piper"
+                for g in adir.glob("*.mp3"):  # one voice for the whole video
+                    g.unlink()
+                return await tts_all(items, adir)
+        piper_one(text, f)
+    print("voices:", used or {PIPER_VOICE}, flush=True)
 
 
 def fake_tts(items, adir):
