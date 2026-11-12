@@ -83,3 +83,39 @@ Black Friday LTD is one-off cash, not MRR.
 
 Re-check monthly: paying-country clicks, accepted signups, first-lookup find
 rate, new payers, churn.
+
+## YouTube, measured (added 12 Nov, owner asked)
+
+- Channel (YouTube Analytics, Dec 2025 – 11 Nov 2026): ~19k views, ~13.5k
+  engaged. Peaks Jan (3.5k) and Aug–Sep (4.1k, 3.2k views; engaged 2.3k, 1.4k).
+  Since Aug the views are mostly **France** (1,803 of the country-attributed
+  views vs US 266), average view 83 s.
+- Site (PostHog, `$referring_domain` youtube or `utm_source=youtube`): **614
+  visitors all-time** (312 in Aug), 91 signups (15%, higher than SEO), 64 ran
+  a lookup, 19 uploaded a CSV, 28 opened pricing, **0 tracked payments**.
+  Visitors by country: IN 160, US 149, FR 72.
+- Caveat: clicks from the YouTube mobile app often lose the referrer, so
+  this undercounts; but no payer has a YouTube touch anywhere in PostHog.
+- Read: YouTube brings engaged, list-minded people (CSV 21% of signups) but
+  too few, mostly French and Indian. It works as a trust/education asset and
+  for US-targeted tutorials, not yet as a sales channel.
+
+## Referral, measured
+
+- The affiliate program exists (link, 30% payouts, PayPal). 6 months: the
+  nudge was shown to 361 people, 329 dismissed it, **2 copied a link**.
+- `linkfinderai_users.refered_by`: 12 real referrers ever; their referrals
+  produced **3 of ~133 paying accounts**.
+- Word of mouth scales with happy customers. With ~13 active subscribers who
+  mostly leave after one list, there is no base for it yet. At this size the
+  referral that works is borrowed audiences: creators, newsletters, deal
+  platforms and agencies paid on commission (InfoStack, SaaS Pirate,
+  Passionfroot…), not customer-to-customer invites.
+
+## The 41 pages of 11–12 Nov
+
+All 41 (26 English + FR/DE/ES of 5 tool pages) answer 200 on
+linkfinderai.com and are in `sitemap.xml` (checked 12 Nov 22:10). Search
+Console: "URL is unknown to Google" for the 6 inspected, normal at <1 day.
+Request indexing by hand in Search Console for the money pages
+(`/export-sales-navigator-leads`, `/b2b-lead-lists`, `/email-finder`).
