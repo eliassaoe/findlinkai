@@ -1,0 +1,75 @@
+name: Video factory
+
+# Builds tutorial videos from video_factory/scenarios/*.json (real app UI,
+# real lookup values, neural narration) and attaches each MP4 to the
+# "video-factory" release. See video_factory/README.md.
+on:
+  workflow_dispatch:
+    inputs:
+      slugs:
+        description: "Space-separated scenario slugs; empty = every scenario without an MP4 in the release"
+        required: false
+        default: ""
+  push:
+    branches: [main]
+    paths:
+      - "video_factory/scenarios/**"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: video-factory
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Tools
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg fonts-inter >/dev/null || sudo apt-get install -y -qq ffmpeg >/dev/null
+          npm install --no-save playwright@1.48.2
+          npx playwright install --with-deps chromium
+          pip install edge-tts==6.1.12
+      - name: Release
+        run: gh release view video-factory >/dev/null 2>&1 || gh release create video-factory --title "Video factory" --notes "MP4s built by .github/workflows/video-factory.yml" --prerelease
+      - name: Build
+        run: |
+          have=$(gh release view video-factory --json assets -q '.assets[].name' || true)
+          slugs="${{ github.event.inputs.slugs }}"
+          if [ -z "$slugs" ]; then
+            for f in video_factory/scenarios/*.json; do
+              s=$(basename "$f" .json)
+              echo "$have" | grep -qx "$s.mp4" || slugs="$slugs $s"
+            done
+          fi
+          echo "Building:$slugs"
+          mkdir -p out checks
+          for s in $slugs; do
+            if python3 video_factory/build.py "video_factory/scenarios/$s.json" "out/$s"; then
+              cp "out/$s/meta.json" "out/$s/$s.meta.json"
+              gh release upload video-factory "out/$s/$s.mp4" "out/$s/$s.meta.json" --clobber
+              cp "out/$s/meta.json" "checks/$s.meta.json"
+              for t in 3 15 35 60; do ffmpeg -loglevel error -y -ss $t -i "out/$s/$s.mp4" -frames:v 1 -vf scale=960:-1 "checks/$s-$t.jpg" || true; done
+            else
+              echo "FAILED $s" | tee -a checks/failed.txt
+              cp out/$s/error-*.png checks/ 2>/dev/null || true
+            fi
+          done
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: video-checks
+          path: checks/
+          retention-days: 14
