@@ -114,6 +114,12 @@ short countdown, start before Black Friday. `tests/bf-banner.test.mjs`.
 - Dealify: the old **UnlimitedLeads** LTD ran there (payouts to May 2026) and
   was ended by Dealify on 1 Sept 2026 for a 36% refund rate. LinkFinder AI is
   not listed. Pitched LinkFinder AI for BF in the same Gmail thread (Raul).
+- DealFuel, 12 Nov: Andy asked whether we lower the price and join their sitewide BFCM
+  discount. Owner's answer: **join the BFCM discount, base prices unchanged**:
+  - Tier 1 is $79 for 10K credits/month; Tier 2 is $149 for 25K credits/month.
+  - Updated feature list sent; the HD screenshots from 11 Nov were pointed to.
+  - Note: DealFuel's tiers give far more credits per dollar than our own Core LTD
+    ($149 for 2,500 credits/month).
 - DealFuel: **LinkFinder AI is live** ($79–149). Asked them in the deal thread to
   feature it in their BF page and newsletter; apologised for the unanswered
   May support ticket.
