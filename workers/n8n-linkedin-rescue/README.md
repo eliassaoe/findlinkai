@@ -9,6 +9,26 @@ LinkedIn search: execute once (owner 12 Nov)"; it was the only difference from
 the live version. The free-tools workflow's `LinkedIn search` node was not
 changed.
 
+### 12 Nov 13:00: harvest never runs without a company LinkedIn page, in both workflows
+
+Owner saw name-only harvest runs: "if we don't have the company LinkedIn don't even run
+harvest".
+
+- **App v4.** The gate (`LI rescue: company page found?`) was still a draft; the live version
+  fell back to a name search. The draft holds only that change. **Owner must click
+  Publish** (the dialog was left open; the agent's publish was blocked).
+- **Free tools (`KmQzVWHBMOXOWXZD`).** Same chain added and **published 12 Nov 13:00**:
+  1. `FT rescue: company page search` (Serper, `"<company>" site:linkedin.com/company`).
+  2. `FT rescue: company URL` (page title words must all be in the typed company).
+  3. `FT rescue: company page found?`.
+     - No page goes to `Respond to Webhook80` with an empty link, and no harvest runs.
+     - With a page, `FT rescue: LinkedIn search` runs with `currentCompanies` (Execute
+       Once).
+  4. `FT rescue: pick LinkedIn search` requires the first and last name. It no longer falls
+     back to Google's first link.
+  - When Google already found a link, it is still returned as before (`FT rescue: done?`
+    unchanged).
+
 ### 12 Nov 01:55: no company page means no search, plus location and title (draft, owner publishes)
 
 Owner: "si on ne trouve pas le LinkedIn de l'entreprise… je préfère rien retourner que
