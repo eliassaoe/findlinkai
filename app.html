@@ -4264,6 +4264,15 @@ function updateAffordabilityWarning(){
 // country code 23% vs 56% (docs/find-rate.md). Strip both before searching.
 const LF_LEGAL_SUFFIX = /^(inc|incorporated|llc|l\.l\.c|ltd|limited|gmbh|mbh|corp|corporation|co|s\.?r\.?o|s\.?r\.?l|s\.?p\.?a|s\.?a\.?s|sarl|sa|pvt|plc|ag|kg|bv|b\.v|nv|n\.v|oy|oyj|ab|as|asa|pty|lp|llp|pllc|bhd|sdn|spa|srl|gmbh&co|kft|zrt|sp\.?z\.?o\.?o)\.?$/i;
 const LF_COUNTRY_CODE = /^\(?(US|USA|UK|GB|CZ|AT|HU|DE|FR|IT|ES|IN|NL|BE|CH|PL|SE|NO|DK|FI|IE|PT|BR|MX|CA|AU|NZ|SG|AE|SA|ZA|JP|CN|HK|TR|RO|GR|SK|SI|HR|BG|LT|LV|EE|LU)\)?$/;
+// 12 Nov 2026: name -> LinkedIn sends "name · company · location · job title" so n8n's
+// LinkedIn rescue can use company, location and title as separate filters. The worker only
+// forwards input_data. "·" is ignored by Google, so the original search step is unchanged.
+// See workers/n8n-linkedin-rescue/README.md.
+function lfLiNameInput(name, company, location, jobTitle) {
+    const clean = v => String(v || '').replace(/·/g, ' ').replace(/\s+/g, ' ').trim();
+    return [clean(name), clean(company), clean(location), clean(jobTitle)].join(' · ');
+}
+
 function lfSearchCompany(raw) {
     const words = String(raw || '').replace(/[,;]/g, ' ').trim().split(/\s+/).filter(Boolean);
     const kept = words.filter(function (w, i) {
@@ -4447,7 +4456,7 @@ async function enrichData(event) {
             const leadLocation = document.getElementById('leadLocation').value.trim();
             const leadJobTitle = document.getElementById('leadJobTitle').value.trim();
             if (!leadCompany) { showAlert('Company name is required.', 'error'); restoreBtn(); return; }
-            effectiveInputValue = [inputValue, lfSearchCompany(leadCompany), leadLocation, leadJobTitle].filter(Boolean).join(' ');
+            effectiveInputValue = lfLiNameInput(inputValue, lfSearchCompany(leadCompany), leadLocation, leadJobTitle);
         }
     }
 
@@ -5313,7 +5322,7 @@ async function processBulk(resuming) {
             }
             const response = await bulkFetchWithRetry({
                     type: generateCombinationType(currentInputType, currentOutputType),
-                    input_data: row.inputData,
+                    input_data: (currentInputType === 'lead_full_name' && currentOutputType === 'linkedin_url' && row.company) ? lfLiNameInput(row.name, row.company, row.location, row.job_title) : row.inputData,
                     first_name: bulkFirstName,
                     last_name: bulkLastName,
                     domain: bulkDomain,

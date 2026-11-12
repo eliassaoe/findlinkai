@@ -9,6 +9,36 @@ LinkedIn search: execute once (owner 12 Nov)"; it was the only difference from
 the live version. The free-tools workflow's `LinkedIn search` node was not
 changed.
 
+### 12 Nov 01:55: no company page means no search, plus location and title (draft, owner publishes)
+
+Owner: "si on ne trouve pas le LinkedIn de l'entreprise… je préfère rien retourner que
+retourner un truc incertain", and use location and job title if harvest has them.
+
+- **New gate.** `LI rescue: company page found?` sits between `LI rescue: company URL` and
+  `LI rescue: LinkedIn search`.
+  - No company page means `Respond to Webhook88`: empty answer and refund.
+  - No name-only Apify run is made any more.
+- **Company page rule.** A page is accepted when every word of its title (minus "Inc", "LLC"
+  and the like) is in the typed company. The slug counts only if the title is empty.
+  - Microsoft is accepted for "Microsoft Redmond CEO".
+  - "Acme Corp Industries" is rejected for "Acme Widgets".
+- **Separate fields.** The app now sends `input_data` as `name · company · location · job title`
+  (`lfLiNameInput` in `app.html`, single lookup and CSV rows; test
+  `tests/li-name-slots.test.mjs`).
+  - The worker only forwards `input_data`, so this is the only channel.
+  - Google ignores "·", so the original search step and `If35` see the same words as
+    before.
+  - Old clients and the API (plain space-joined) behave as before.
+- **What harvest does with them.**
+  - `locations: [location]` goes to harvest when a location is given.
+  - The job title is **not** a harvest filter: the by-name actor's `currentJobTitles` is
+    exact match ("VP of Sales" ≠ "Vice President, Sales") and would turn right people into
+    misses.
+  - Instead, when several same-name people work at that company, `LI rescue: pick match`
+    takes the one whose headline shares the most title words.
+- **Checked** in the browser on Gallimard, Microsoft + Redmond + CEO, US Foods + Chicago +
+  Buyer and Cartiga. Not run live.
+
 ### Same night: the LinkedIn search now filters by company (draft, owner publishes)
 
 Owner: "le harvest me sort des résultats… pas les bons… uniquement nom et prénom, ça va pas
