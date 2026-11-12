@@ -330,6 +330,14 @@ Split, guarantee, dates and codes unchanged. If he picks option 2:
 `update appsumo_codes set monthly_credits = 3000 where partner = 'infostack';`
 (before redemption; redeemed codes also need `ltd_monthly_credits` updated).
 
+**12 Nov, 19:37:** Cary asked for $99 / 5,000 credits a month instead. Owner: yes.
+Replied 20:08 accepting, and proposed a ladder so buyers who would pay more can:
+Tier 1 $99 / 5,000, Tier 2 $199 / 12,000, optional Tier 3 $399 / 25,000 a month
+for life, same split, guarantee and dates. All 501 `infostack` codes (none
+redeemed) set to `monthly_credits = 5000`. If he takes Tier 2/3: generate a
+separate batch per tier (`partner = 'infostack'`, own `batch`, `monthly_credits`
+12000 / 25000); `appsumo_redeem` already credits whatever the code carries.
+
 ## Cold email: no price (owner, 11 Nov 22:22)
 
 Prices in cold email land in spam. `brief.bf-us.json` now has no figure at all:

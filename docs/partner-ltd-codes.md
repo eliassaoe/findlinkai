@@ -17,7 +17,7 @@ list and sends each buyer one single-use code. Terms agreed with Cary Richards
 Same table, page and RPC as AppSumo (`docs/appsumo-codes.md`):
 
 - `appsumo_codes` has two new columns: `monthly_credits` and `partner`.
-- InfoStack codes start with `LFIS-`, `partner = 'infostack'`, `monthly_credits = 10000`.
+- InfoStack codes start with `LFIS-`, `partner = 'infostack'`, `monthly_credits = 5000` (was 10000; switched 12 Nov 2026 when Cary agreed $99 for 5,000/month, none redeemed yet).
 - `/redeem-code` sends `LFAS-` and `LFIS-` codes to `rpc appsumo_redeem`. A code
   with `monthly_credits > 0` adds 10,000 credits now and sets `ltd_monthly_credits`;
   the existing `ltd_monthly_topup` cron refills it every month. The account is
