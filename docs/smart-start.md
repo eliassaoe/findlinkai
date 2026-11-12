@@ -47,7 +47,8 @@ auto-run, they ask for a LinkedIn URL the person may not have open.
 5. **`confirmation-signup.html`: new `signup_google_result` {success, error}.** `signup_success` fell from ~170/week to
    ~40/week from the week of 20 Sep 2026 while `signup_google_clicked` stayed ~210/week and `auth.users` kept rising
    (655 Aug, 743 Sep, 817 Oct). PostHog therefore under-counts signups by ~3/4 since then; this event shows what the
-   signup worker answers.
+   signup worker answers. **Corrected 12 Nov 2026:** not an under-count. The signup worker refuses
+   `country_not_supported` (IN, PK, ID, PH…); see `docs/growth-diagnosis-2026-11.md`.
 
 ## Events
 
