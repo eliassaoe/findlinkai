@@ -148,7 +148,7 @@ def main():
     lst.write_text("".join(f"file '{p.resolve()}'\n" for p in segs))
     final = out / f"{sc['slug']}.mp4"
     run(["ffmpeg", "-y", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", lst,
-         "-c", "copy", "-movflags", "+faststart", final])
+         "-c:v", "copy", "-af", "loudnorm=I=-16:TP=-1.5:LRA=11", *aenc, "-movflags", "+faststart", final])
     meta = {k: sc[k] for k in ("slug", "title", "description", "tags") if k in sc}
     meta["duration"] = dur(final)
     (out / "meta.json").write_text(json.dumps(meta, indent=1))
