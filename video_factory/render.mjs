@@ -12,7 +12,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import http from 'node:http';
 
-const [scenarioPath, durationsPath, outDir] = process.argv.slice(2);
+const [scenarioPath, durationsPath, outDirArg] = process.argv.slice(2);
+const outDir = path.resolve(outDirArg);
 const sc = JSON.parse(fs.readFileSync(scenarioPath, 'utf8'));
 const durations = JSON.parse(fs.readFileSync(durationsPath, 'utf8'));
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
@@ -49,7 +50,11 @@ await page.route('**/*', async route => {
   if (u.includes('linkfinderapp.hamoureliasse')) {
     let d = {}; try { d = JSON.parse(req.postData() || '{}'); } catch (e) {}
     const key = String(d.input_data || '');
-    const hit = (mocks.byInput || {})[key];
+    let hit = (mocks.byInput || {})[key];
+    if (hit === undefined) { // name inputs arrive as "Name · Company ·  · " (lfLiNameInput)
+      const k2 = Object.keys(mocks.byInput || {}).find(k => key.startsWith(k + ' ·') || key.split(' · ')[0] === k);
+      if (k2) hit = mocks.byInput[k2];
+    }
     await sleep(d.is_bulk ? (mocks.bulkDelayMs ?? 600) : (mocks.singleDelayMs ?? 2200));
     const body = hit === undefined ? { status: 'success', result: 'Not found' } : (typeof hit === 'object' ? hit : { status: 'success', result: hit });
     return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) });

@@ -13,7 +13,7 @@ import asyncio, json, os, subprocess, sys
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-VOICE = os.environ.get("LF_VOICE", "en-US-AndrewNeural")
+VOICE = os.environ.get("LF_VOICE", "en-US-ChristopherNeural")
 RATE = os.environ.get("LF_RATE", "+0%")
 
 
@@ -35,23 +35,22 @@ def lines(sc):
     return out
 
 
-VOICES = [VOICE, "en-US-ChristopherNeural", "en-US-GuyNeural", "en-US-AndrewMultilingualNeural"]
+VOICES = list(dict.fromkeys([VOICE, "en-US-ChristopherNeural", "en-US-GuyNeural", "en-US-EricNeural"]))
 PIPER_VOICE = os.environ.get("LF_PIPER_VOICE", "en_US-ryan-high")
 
 
-async def edge_one(text, f):
+async def edge_one(text, f, voice):
     import edge_tts
     last = None
-    for v in VOICES:
-        for _ in range(2):
-            try:
-                await edge_tts.Communicate(text, v, rate=RATE).save(str(f))
-                if f.exists() and f.stat().st_size > 1000:
-                    return v
-            except Exception as e:  # NoAudioReceived, 403, network
-                last = e
-            await asyncio.sleep(2)
-    raise RuntimeError(f"edge-tts failed: {last}")
+    for _ in range(4):
+        try:
+            await edge_tts.Communicate(text, voice, rate=RATE).save(str(f))
+            if f.exists() and f.stat().st_size > 1000:
+                return voice
+        except Exception as e:  # NoAudioReceived, 403, network
+            last = e
+        await asyncio.sleep(3)
+    raise RuntimeError(f"edge-tts failed with {voice}: {last}")
 
 
 def piper_one(text, f):
@@ -72,24 +71,22 @@ def piper_one(text, f):
 
 
 async def tts_all(items, adir):
-    engine = os.environ.get("LF_TTS", "edge")
-    used = set()
-    for key, text in items:
-        f = adir / f"{key}.mp3"
-        if f.exists():
-            continue
-        if engine == "edge":
+    """One voice for the whole video: a voice that fails mid-way is dropped and
+    every line is redone with the next one; Piper (offline) is the last resort."""
+    if os.environ.get("LF_TTS", "edge") == "edge":
+        for voice in VOICES:
             try:
-                used.add(await edge_one(text, f))
-                continue
+                for key, text in items:
+                    await edge_one(text, adir / f"{key}.mp3", voice)
+                print("voice:", voice, flush=True)
+                return
             except Exception as e:
-                print("edge-tts unavailable, switching to piper:", e, flush=True)
-                os.environ["LF_TTS"] = "piper"
-                for g in adir.glob("*.mp3"):  # one voice for the whole video
+                print("voice failed, next:", e, flush=True)
+                for g in adir.glob("*.mp3"):
                     g.unlink()
-                return await tts_all(items, adir)
-        piper_one(text, f)
-    print("voices:", used or {PIPER_VOICE}, flush=True)
+    for key, text in items:
+        piper_one(text, adir / f"{key}.mp3")
+    print("voice: piper", PIPER_VOICE, flush=True)
 
 
 def fake_tts(items, adir):
@@ -101,7 +98,7 @@ def fake_tts(items, adir):
 
 
 def main():
-    scen, out = Path(sys.argv[1]), Path(sys.argv[2])
+    scen, out = Path(sys.argv[1]).resolve(), Path(sys.argv[2]).resolve()
     fake = "--fake-tts" in sys.argv
     sc = json.loads(scen.read_text())
     out.mkdir(parents=True, exist_ok=True)
