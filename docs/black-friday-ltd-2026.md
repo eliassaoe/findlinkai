@@ -114,6 +114,16 @@ short countdown, start before Black Friday. `tests/bf-banner.test.mjs`.
 - Dealify: the old **UnlimitedLeads** LTD ran there (payouts to May 2026) and
   was ended by Dealify on 1 Sept 2026 for a 36% refund rate. LinkFinder AI is
   not listed. Pitched LinkFinder AI for BF in the same Gmail thread (Raul).
+- LTDG (Lifetime Deals Group, "24,000+ entrepreneurs"), 12 Nov:
+  - Partner application submitted on Tally:
+    - Answers: side project, solo founder, hybrid stack.
+    - Numbers given: 274 active users (30 days), 36 subscribers, 5 LTD users, ~$400 MRR,
+      bootstrapped.
+    - Demo video: youtube x7nSXdMRAsQ.
+    - Affiliate page `/affiliate` at 25%.
+    - Offer: our Core/Plus/Agency ladder plus an exclusive tier or code with
+      commission.
+  - `/changelog` was created for the form's required "public changelog" field.
 - DealFuel, 12 Nov: Andy asked whether we lower the price and join their sitewide BFCM
   discount. Owner's answer: **join the BFCM discount, base prices unchanged**:
   - Tier 1 is $79 for 10K credits/month; Tier 2 is $149 for 25K credits/month.
