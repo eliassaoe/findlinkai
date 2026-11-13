@@ -289,6 +289,7 @@ def long_scenario(idea, company, ind, rel):
     kind, nm = idea["kind"], NAMEK[idea["kind"]]
     main = sc["mocks"]["byType"][G.OPS[kind]["op"]][company]
     act = idea["action"]
+    sc["slug"] = slug
     sc["series"] = "ideas500"
     sc["release"] = rel
     sc["family"] = idea["family"]

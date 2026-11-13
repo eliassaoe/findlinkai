@@ -186,7 +186,7 @@ def build(slug, title, kind, company, ind_key, kw):
     utm = f"utm_source=youtube&utm_medium=video&utm_campaign={slug}"
     page = G.OPS[kind]["page"]
     sc = {
-        "slug": slug, "title": title, "keyword": kw,
+        "slug": f"best-{slug}", "title": title, "keyword": kw,  # = file name; build.py names the MP4 after it
         "coverSub": f"The real {NAME[kind]} of any company, free",
         "cover": f"In this video we are going to see the best free way to find a company's {NAME[kind]} using LinkFinder AI.",
         "payoff": f"That's {company}'s real {NAME[kind]}: {say(kind, main)}, found in about three seconds. This is the best {spoken} that's actually free. Go to the first link in the description to try it yourself.",
