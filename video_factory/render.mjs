@@ -50,7 +50,8 @@ await page.route('**/*', async route => {
   if (u.includes('linkfinderapp.hamoureliasse')) {
     let d = {}; try { d = JSON.parse(req.postData() || '{}'); } catch (e) {}
     const key = String(d.input_data || '');
-    let hit = (mocks.byInput || {})[key];
+    const typ = String(d.type || d.enrichment_type || d.enrichmentType || '');
+    let hit = (mocks.byType && mocks.byType[typ] && mocks.byType[typ][key] !== undefined) ? mocks.byType[typ][key] : (mocks.byInput || {})[key];
     if (hit === undefined) { // name inputs arrive as "Name · Company ·  · " (lfLiNameInput)
       const k2 = Object.keys(mocks.byInput || {}).find(k => key.startsWith(k + ' ·') || key.split(' · ')[0] === k);
       if (k2) hit = mocks.byInput[k2];
@@ -179,11 +180,13 @@ for (const step of sc.steps) {
   const need = (durations[step.id] || 2) + (step.tail ?? 0.5);
   const spent = Date.now() / 1000 - start;
   if (need > spent) await sleep((need - spent) * 1000);
+  if (sc.payoffAt === step.id) await page.screenshot({ path: path.join(outDir, 'payoff-at.jpg'), type: 'jpeg', quality: 92 });
 }
 await sleep(300);
 const tEnd = Date.now() / 1000;
 await page.screenshot({ path: path.join(outDir, 'payoff.jpg'), type: 'jpeg', quality: 92 });
-if (sc.payoffScrollTo) {
+if (sc.payoffAt && fs.existsSync(path.join(outDir, 'payoff-at.jpg'))) fs.copyFileSync(path.join(outDir, 'payoff-at.jpg'), path.join(outDir, 'payoff.jpg'));
+else if (sc.payoffScrollTo) {
   // a second, framed shot of the finished result for step 01
   await locate(sc.payoffScrollTo).scrollIntoViewIfNeeded();
   await page.evaluate(([dy]) => window.scrollBy(0, dy), [sc.payoffOffset || 0]);
