@@ -135,6 +135,10 @@ def main():
         still(out / "cover.png", adir / "cover.mp3", durations["cover"] + 0.7, out / "s0.mp4"); segs.append(out / "s0.mp4")
     still(out / "payoff.jpg", adir / "payoff.mp3", durations["payoff"] + 0.6, out / "s1.mp4", zoom=True); segs.append(out / "s1.mp4")
 
+    # the screencast only emits a frame on change: run to the last frame's time
+    # (cutting at tl.total drops a long still at the end and shortens the video)
+    vid_len = 0.1 + sum(float(l.split()[1]) for l in (out / "frames.ffconcat").read_text().splitlines() if l.startswith("duration"))
+    vid_len = max(vid_len, tl["total"])
     # main recording, narration of each step placed at the step's start
     inputs, filt = [], []
     for i, s in enumerate(tl["steps"]):
@@ -145,8 +149,8 @@ def main():
     filt.append(f"{mix}amix=inputs={len(tl['steps'])}:normalize=0,apad[aout]")
     run(["ffmpeg", "-y", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", out / "frames.ffconcat", *inputs,
          "-filter_complex", ";".join(filt), "-map", "0:v", "-map", "[aout]",
-         "-vf", "scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2:white",
-         "-t", f"{tl['total']:.2f}", *enc, *aenc, out / "s2.mp4"]); segs.append(out / "s2.mp4")
+         "-vf", "scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2:white'",
+         "-t", f"{vid_len:.2f}", *enc, *aenc, out / "s2.mp4"]); segs.append(out / "s2.mp4")
 
     if not short:
         still(out / "outro.png", adir / "outro.mp3", durations["outro"] + 1.5, out / "s3.mp4"); segs.append(out / "s3.mp4")
@@ -160,8 +164,9 @@ def main():
         land = final.with_name("landscape.mp4"); final.rename(land)
         cap = sc.get("shortCaption", sc.get("thumb", {}).get("top", "")).upper().replace("'", "\u2019").replace(":", "\\:")
         font = HERE / "assets" / "fonts" / "Anton.ttf"
+        fsz = min(110, int(2000 / max(1, len(cap))))
         vf = ("crop=1240:1080:(iw-1240)/2+60:0,scale=1080:-2,pad=1080:1920:0:560:color=0x191a4a,"
-              f"drawtext=fontfile={font}:text='{cap}':fontsize=96:fontcolor=black:box=1:boxcolor=0xfde047:boxborderw=24:x=(w-tw)/2:y=250,"
+              f"drawtext=fontfile={font}:text='{cap}':fontsize={fsz}:fontcolor=black:box=1:boxcolor=0xfde047:boxborderw=24:x=(w-tw)/2:y=250,"
               f"drawtext=fontfile={font}:text='LINKFINDERAI.COM':fontsize=64:fontcolor=white:x=(w-tw)/2:y=1600")
         run(["ffmpeg", "-y", "-loglevel", "error", "-i", land, "-vf", vf, *enc, "-c:a", "copy", "-movflags", "+faststart", final])
     meta = {k: sc[k] for k in ("slug", "title", "description", "tags") if k in sc}

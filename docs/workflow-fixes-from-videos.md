@@ -21,6 +21,14 @@ Not fixed yet (seen, needs a decision or more data):
   `modernadirect.com` for big brands: same country/sub-site problem as phones.
 - `lead_full_name_to_linkedin_url` found nobody for Tobi Lutke (Shopify) and
   Whitney Wolfe Herd (Bumble).
+- 13 Nov (shorts batch): `lead_full_name_to_linkedin_url` "Mark Cuban" + "Cost Plus Drugs"
+  → `linkedin.com/in/jonhorbaly` — **a different person**, returned as success. Worse
+  than a miss: the user pays and gets a wrong profile. Needs a name check on the
+  result (slug or title must contain the surname) before returning it.
+- 13 Nov: `company_name_to_employee_count` (MCP `find_company_employee_count`) →
+  **500 "Workflow execution failed"** for Netflix and OpenAI; Tesla and Nvidia
+  returned only the LinkedIn range "10001+". Not filmable as a "how many employees"
+  short until it returns a number. Look at the n8n execution log for those two inputs.
 
 Check after publishing: re-run Salesforce phone, HubSpot employee count
 (`https://www.linkedin.com/company/hubspot/`), Microsoft company info, Moss Adams email.
