@@ -40,3 +40,29 @@ Not fixed yet (seen, needs a decision or more data):
 
 Check after publishing: re-run Salesforce phone, HubSpot employee count
 (`https://www.linkedin.com/company/hubspot/`), Microsoft company info, Moss Adams email.
+
+
+## 13 Nov 2026 — 1,280 API lookups for the 360-video plan
+
+`video_factory/data/lookups.json` (40 industries × 8 well-known US companies ×
+website / phone / LinkedIn page / contact email, through the public API).
+`video_factory/tools/gen360.py` checks every value before it is filmed;
+**151 of 1,280 (11.8%) failed** — list with reasons in
+`video_factory/data/rejected.json`. Grouped:
+
+| Lookup | Failures | What comes back |
+| --- | --- | --- |
+| company email | 38 wrong inbox | `privacy@`, `legal@`, `ir@`, `press@`, `admin@`, `billingsupport@`, and garbage like `amgen@careers.pure`, `contact@anchorage.compress` |
+| company email | 19 other domain | `sunnovasupport@goodleap.com`, `freedomforever@interdependence.com` (a vendor's / partner's domain) |
+| company email | 11 named person | `brad.curry@benfranklinplumbing.com`, `john.smith@erickson.com` |
+| company phone | 19 non-US, 8 malformed | Crowe `216 71 236`, BDO `+632) 8840-7000`, CrowdStrike `+44…`, Clark Construction `2000-2026` (a year range read as a phone) |
+| website | 12 country site, 7 wrong company, 18 empty | `chipotle.ca`, `planetfitness.ca`, `webfx.co.uk`; Root Insurance → `autoinsurance.com`, Barry's → `barry.edu` |
+| LinkedIn page | 5 wrong page | Skanska USA → `skansa-usa`, a franchise office page for Express Employment |
+
+The phone and email ranking fixes are in the app v4 draft (not yet published,
+see the table above). Re-run `video-data.yml` after publishing and compare.
+Still missing in n8n: (1) reject a phone that is not 10 digits for a US
+company, or whose country code differs from the company's HQ; (2) reject a
+website whose domain does not carry the company name; (3) never return a named
+person's address as the "company email"; (4) parse the email domain strictly
+(`.compress`, `.pure` are scraping artefacts).

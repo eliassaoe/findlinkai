@@ -28,6 +28,28 @@ def dom(url):
     return m[4:] if m.startswith("www.") else m
 
 
+STOP = {"the", "and", "company", "companies", "group", "inc", "llc", "services", "service", "of", "for", "us", "usa", "co",
+        # industry words: a domain carrying only these is someone else's site (Root Insurance -> autoinsurance.com)
+        "insurance", "solar", "dental", "plumbing", "mortgage", "roofing", "law", "construction", "fitness", "pest", "control",
+        "senior", "living", "hotels", "resorts", "animal", "hospitals", "hospital", "pet", "health", "healthcare", "realty",
+        "motors", "automotive", "home", "homes", "cleaning", "systems", "building", "solutions", "landscape", "tree", "expert",
+        "heating", "air", "conditioning", "cooling", "injury", "attorneys", "firm", "capital", "partners", "digital",
+        "marketing", "advertising", "consulting", "media", "sciences", "pharmaceuticals", "electric", "works", "freight",
+        "line", "national", "express", "professionals", "employment", "care", "centers", "veterinary", "associates",
+        "research", "children", "clubs", "america", "american", "world", "retirement", "communities", "training", "supply",
+        "remodeling", "independent", "wholesale", "united", "pro", "rescue"}
+
+
+def matches(company, text):
+    """The value must carry the company's name: a word of it, or its initials."""
+    t = re.sub(r"[^a-z0-9]", "", text.lower())
+    words = [w for w in re.findall(r"[a-z0-9]+", company.lower().replace("'", "")) if w not in STOP]
+    if any(len(w) >= 3 and w in t for w in words):
+        return True
+    ini = "".join(w[0] for w in words)
+    return len(ini) >= 2 and ini in t or (len(words) == 1 and words[0] in t)
+
+
 def check(op, company, v):
     """None if the value is fine to film, else the reason it is not."""
     if v in (None, "", "Not found") or not isinstance(v, str):
@@ -41,6 +63,8 @@ def check(op, company, v):
             return "country site"
         if any(x in d for x in ("linkedin.", "facebook.", "wikipedia.", "yelp.", "bloomberg.", "crunchbase.")):
             return "not the company site"
+        if not matches(company, d.rsplit(".", 1)[0]):
+            return "domain does not carry the company name"
     elif op == "company_name_to_phone":
         digits = re.sub(r"\D", "", v)
         if v.startswith("+") and not v.startswith("+1"):
@@ -54,6 +78,9 @@ def check(op, company, v):
     elif op == "company_name_to_linkedin_url":
         if "linkedin.com/company/" not in v and "linkedin.com/school/" not in v:
             return "not a company page"
+        slug = v.rstrip("/").split("/")[-1]
+        if not slug.isdigit() and not matches(company, slug):
+            return "page slug does not carry the company name"
     elif op == "company_name_to_email":
         if "@" not in v:
             return "not an email"
@@ -174,6 +201,28 @@ GENERIC = [
     ("g-local-seo-clients", "How to Find Clients for Local SEO (Websites in Bulk)", "how to find clients for local seo (5.8K)", "website", "bulk", "cleaning", "pest-control", "LOCAL SEO CLIENTS", "How to find local SEO clients and check their websites."),
     ("g-ai-voice-agent-clients", "How to Find Clients for AI Voice Agents (Phone Numbers)", "how to find clients for ai voice agents (5K)", "phone", "bulk", "auto-dealers", "senior-living", "AI VOICE AGENT CLIENTS", "Find clients for your AI voice agents: businesses that answer the phone."),
     ("g-shopify-clients", "How to Find Shopify Clients and Their Emails", "how to find shopify clients (9.5K, +96%)", "email", "bulk", "shopify", "beauty", "SHOPIFY CLIENTS", "How to find Shopify clients and the email to reach them."),
+    ("g-leads-linkedin-search", "How to Find Leads With LinkedIn Search (Faster Way)", "how to find leads with linkedin search (8.2K)", "linkedin", "bulk", "hotels", "travel", "LINKEDIN SEARCH LEADS", "Find leads faster than LinkedIn search: company pages in bulk."),
+    ("g-linkedin-leads-ai", "How to Find LinkedIn Leads With AI (Company Pages in Bulk)", "how to find linkedin leads with ai (6.7K)", "linkedin", "bulk", "ai-startups", "edtech", "LINKEDIN LEADS WITH AI", "Find LinkedIn leads with AI: the page of every company on your list."),
+    ("g-coaching-leads", "How to Get Coaching Leads (Company Emails in Bulk)", "coaching leads (13K)", "email", "bulk", "fitness", "hr-software", "COACHING LEADS", "Coaching leads: companies and the email to reach them."),
+    ("g-website-dev-leads", "How to Get Leads for Website Development", "how to get leads for website development (13K)", "website", "bulk", "plumbing", "roofing", "WEBSITE DEV LEADS", "Leads for website development: check every business's site in bulk."),
+    ("g-home-service-business-leads", "How to Generate Leads for a Home Service Business", "how to generate leads for my home service business (9.5K)", "phone", "bulk", "cleaning", "landscaping", "HOME SERVICE LEADS", "Home service leads with a phone number for each business."),
+    ("g-sell-leads", "How to Sell Leads to Clients: Build the List First", "how to sell leads to clients (8.4K)", "email", "bulk", "mortgage", "insurance", "SELL LEADS", "Want to sell leads? Build the list first: companies and their emails."),
+    ("g-10k-leads", "How to Get 10K Leads From Company Names (Websites)", "10k leads (8.7K)", "website", "long", "manufacturing", "biotech", "", "turn thousands of company names into leads with websites"),
+    ("g-unlimited-leads-free", "How to Get Unlimited Leads for Free (LinkedIn Pages)", "how to get unlimited leads for free (8.4K)", "linkedin", "bulk", "veterinary", "dental", "UNLIMITED LEADS FREE", "Unlimited leads for free: start with the LinkedIn page of every company."),
+    ("g-more-leads-business", "Get More Leads for Your Business: Build a Call List", "get more leads for your business (9.4K)", "phone", "bulk", "fitness", "restaurants", "MORE LEADS", "Get more leads for your business with a ready call list."),
+    ("g-leads-for-your-business", "How to Get Leads for Your Business (Emails in Bulk)", "how to get leads for your business (9.5K)", "email", "bulk", "senior-living", "veterinary", "LEADS FOR YOUR BUSINESS", "How to get leads for your business, with an email for each."),
+    ("g-right-clients-outreach", "How to Find the Right Clients to Outreach on LinkedIn", "how to find the right clients to outreach (8.8K)", "linkedin", "bulk", "cybersecurity", "saas", "RIGHT CLIENTS TO OUTREACH", "Find the right clients to outreach: their LinkedIn pages, in bulk."),
+    ("g-high-ticket-clients", "How to Find High Ticket Clients (Contact Emails)", "how to find high ticket clients (7.8K)", "email", "long", "biotech", "fintech", "", "find high ticket clients and the email to reach them"),
+    ("g-web-dev-clients-usa", "How to Find Website Development Clients in the USA", "how to find website development clients usa (6.6K)", "website", "bulk", "auto-dealers", "home-builders", "US WEB DEV CLIENTS", "Find US website development clients and their sites in bulk."),
+    ("g-graphic-design-clients", "How to Find Clients for Graphic Design (Brand Websites)", "how to find clients for graphic design (6.5K)", "website", "bulk", "beauty", "furniture", "GRAPHIC DESIGN CLIENTS", "Find graphic design clients: brands and their websites."),
+    ("g-growth-ops-clients", "How to Find Clients for Growth Ops (LinkedIn Pages)", "how to find clients for growth ops (6.2K)", "linkedin", "bulk", "saas", "hr-software", "GROWTH OPS CLIENTS", "Find growth ops clients: SaaS companies and their LinkedIn pages."),
+    ("g-ecom-web-dev-clients", "How to Find E-commerce Clients for Website Development", "how to find e-commerce clients for website development (5K)", "website", "bulk", "shopify", "furniture", "E-COMMERCE CLIENTS", "Find e-commerce clients for your web development services."),
+    ("g-clients-any-service", "How to Find Clients for Any Service (Call List in Seconds)", "how to find clients for any service (5.1K)", "phone", "bulk", "dental", "pest-control", "CLIENTS FOR ANY SERVICE", "Find clients for any service: a call list in seconds."),
+    ("g-freelance-seo-clients", "How to Find Freelance Clients for SEO", "how to find freelance clients for seo (6.5K)", "website", "bulk", "senior-living", "landscaping", "FREELANCE SEO CLIENTS", "Find freelance SEO clients and audit their sites."),
+    ("g-linkedin-client-hunting", "LinkedIn Client Hunting: Find Every Target Company Page", "linkedin client hunting (32K)", "linkedin", "long", "logistics", "proptech", "", "do LinkedIn client hunting: find every target company page"),
+    ("g-client-hunting-linkedin-short", "Client Hunting on LinkedIn in 30 Seconds", "client hunting on linkedin (12.4K)", "linkedin", "bulk", "auto-dealers", "nonprofits", "CLIENT HUNTING", "Client hunting on LinkedIn: thirty seconds, a whole list."),
+    ("g-lead-finder", "Lead Finder: Turn Company Names Into Leads", "lead finder (13K)", "website", "bulk", "telehealth", "crypto", "LEAD FINDER", "A lead finder that starts from company names."),
+    ("g-mortgage-calling", "Calling Mortgage Leads? Get the Numbers in Bulk", "calling mortgage leads (8.3K)", "phone", "bulk", "mortgage", "proptech", "MORTGAGE CALL LIST", "Calling mortgage leads? Get every number in bulk first."),
 ]
 
 
