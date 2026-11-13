@@ -159,3 +159,17 @@ as a long video and as a short.
   (12:00 / 14:00 / 16:00 / 20:00 UTC), biggest search first, then families
   interleaved; the new shorts take 10:00 / 18:00 on days that have none.
   Upload waves follow `schedule1000.json` from now on.
+
+### Automatic daily wave (owner, 13 Nov 2026: "envoie tout sur vidIQ")
+
+vidIQ cannot hold 830 videos and send them later: `vidiq_social_post_publish`
+uploads to YouTube at once (private, public at `publishAt`), so YouTube's daily
+upload limit applies on the day of the upload. A daily scheduled task
+("YouTube daily upload wave", 08:34 Paris) therefore does ~30 a day:
+`tools/wave.py next 30` (earliest-dated, built, not yet uploaded, with title,
+description, tags, publishAt and thumbnail) → vidIQ upload / draft / publish /
+status → `tools/wave.py record` → commit `[skip ci]`. Thumbnails of long videos
+are served from the orphan branch `thumbs` (`thumbs.yml`, re-run after each
+factory build) because vidIQ refuses release-asset redirects.
+`wave.py` only picks posts not in `data/uploaded360.json`, so always `git pull`
+before a manual wave to avoid uploading a video twice.
