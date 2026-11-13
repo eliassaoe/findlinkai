@@ -69,5 +69,23 @@ is not used.
 4. Title must score ≥ 80 on `vidiq_score_title` (type long, channel above).
 5. Push: the workflow builds it.
 
+## Thumbnails
+
+`thumb.mjs` draws a 1280x720 PNG from the scenario's real values
+(`mocks.byInput`), in one of six styles set by `thumb.style`: `banner`
+(yellow + black banners, red arrow — the look of the channel's best LinkFinder
+thumbnails), `card` (huge 3-line hook), `flow` (empty list -> filled list),
+`number` (giant "10/10 FOUND"), `white` (one name -> one result, huge), `sheet`
+(Google Sheets look). Owner's rule (13 Nov): **vary the styles, never one look
+for every video** — the point is to find which one gets clicked. `build.py` makes
+`<slug>.thumb.png` with every video and the workflow uploads it to the release.
+Committed copies live in `thumbnails/` so `raw.githubusercontent.com` can serve
+them to `vidiq_update_video_thumbnail` (it refuses redirects, so not release URLs).
+
+`vidiq_score_thumbnail` only scores the live YouTube thumbnail of a **public**
+video (it refuses outside image hosts), so a scheduled video is scored the day
+it goes public; the score goes in `schedule.json` (`thumbScore`). After ~10
+public videos, compare CTR by `thumbStyle` and drop the losing styles.
+
 YouTube refuses `<` or `>` anywhere in a description or tag (so no `->` arrows).
 Pilot drafts and their ids: `schedule.json`.
