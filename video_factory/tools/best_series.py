@@ -86,28 +86,42 @@ def lookup(kind, company, v, first, slow):
 
 SERIES = [
     # slug, title, main kind, company, industry for the CSV, hook word, keyword
-    ("best-company-email-finder", "Best Company Email Finder (Free & Verified)", "email", "Calendly", "saas", "best company email finder"),
+    ("best-company-email-finder", "Best Free Email Finder (Free & Verified)", "email", "Calendly", "saas", "free email finder"),
     ("free-email-finder-tool-2026", "Free Email Finder Tool 2026 (Company Emails in Bulk)", "email", "Brooklinen", "shopify", "free email finder tool"),
-    ("best-company-phone-finder", "Best Company Phone Number Finder (Free)", "phone", "Lemonade", "insurance", "company phone number finder"),
+    ("best-company-phone-finder", "Best Lead Generation Tool for Phone Numbers (Free)", "phone", "Lemonade", "insurance", "lead generation tools"),
     ("free-phone-number-finder-business", "Free Phone Number Finder for Businesses 2026", "phone", "Carrier", "hvac", "free phone number finder"),
     ("best-company-website-finder", "Best Company Website Finder From a Name (Free)", "website", "Policygenius", "insurance", "find website from company name"),
     ("best-linkedin-company-page-finder", "Best LinkedIn Company Page Finder (Free & Bulk)", "linkedin", "Airtable", "saas", "linkedin company page finder"),
-    ("hunter-io-alternative-free", "Hunter.io Alternative: Free Company Email Finder", "email", "Loom", "saas", "hunter io alternative"),
-    ("apollo-alternative-company-data", "Apollo Alternative for Company Emails and Phones (Free)", "email", "Skims", "shopify", "apollo alternative"),
+    ("hunter-io-alternative-free", "Email Hunter Alternative (Free & Verified)", "email", "Loom", "saas", "email hunter"),
+    ("apollo-alternative-company-data", "Apollo.io Alternative: Free Company Emails and Phones", "email", "Skims", "shopify", "apollo.io"),
     ("zoominfo-alternative-free", "ZoomInfo Alternative: Free Company Phone Numbers", "phone", "Sunrun", "solar", "zoominfo alternative"),
     ("clearbit-alternative-free", "Clearbit Alternative: Free Company Enrichment", "linkedin", "Figma", "saas", "clearbit alternative"),
     ("lusha-alternative-free", "Lusha Alternative: Free Company Phone Numbers", "phone", "loanDepot", "mortgage", "lusha alternative"),
     ("rocketreach-alternative-free", "RocketReach Alternative (Free Company Emails)", "email", "Lemonade", "insurance", "rocketreach alternative"),
-    ("best-b2b-contact-finder", "Best B2B Contact Finder (Free & Verified)", "email", "Tinuiti", "marketing-agency", "b2b contact finder"),
+    ("best-b2b-contact-finder", "Best B2B Lead Generation Tool (Free & Verified)", "email", "Tinuiti", "marketing-agency", "b2b lead generation"),
     ("best-bulk-email-finder", "Best Bulk Email Finder (Free CSV Upload)", "email", "Airtable", "saas", "bulk email finder"),
     ("best-domain-finder", "Best Free Domain Finder: Company Name to Domain", "website", "Carrier", "hvac", "company name to domain"),
-    ("best-cold-calling-list-builder", "Best Cold Calling List Builder (Free)", "phone", "Brooklinen", "shopify", "cold calling list"),
-    ("best-lead-enrichment-tool", "Best Lead Enrichment Tool 2026 (Free)", "email", "Policygenius", "insurance", "lead enrichment tool"),
-    ("free-b2b-data-tool-2026", "Best Company Data Finder 2026 (Free)", "phone", "Calendly", "saas", "b2b data"),
+    ("best-cold-calling-list-builder", "Sales Prospecting Tool: Free Cold Calling List", "phone", "Brooklinen", "shopify", "sales prospecting"),
+    ("best-lead-enrichment-tool", "Lead Enrichment Tool 2026 (Free & Verified)", "email", "Policygenius", "insurance", "lead enrichment"),
+    ("free-b2b-data-tool-2026", "Lead Finder: Best Free Company Data Tool 2026", "phone", "Calendly", "saas", "lead finder"),
 ]
 
 
+SPOKEN = {  # what the narrator calls the tool ("This is the best ... that's actually free")
+    "apollo-alternative-company-data": "Apollo alternative", "best-b2b-contact-finder": "B2B lead generation tool",
+    "best-cold-calling-list-builder": "sales prospecting tool", "best-company-phone-finder": "lead generation tool for phone numbers",
+    "best-company-website-finder": "company website finder", "best-domain-finder": "domain finder",
+    "best-lead-enrichment-tool": "lead enrichment tool", "best-linkedin-company-page-finder": "LinkedIn company page finder",
+    "free-b2b-data-tool-2026": "lead finder", "free-email-finder-tool-2026": "free email finder tool",
+    "free-phone-number-finder-business": "business phone number finder", "hunter-io-alternative-free": "Email Hunter alternative",
+    "best-company-email-finder": "email finder", "best-bulk-email-finder": "bulk email finder",
+    "clearbit-alternative-free": "Clearbit alternative", "lusha-alternative-free": "Lusha alternative",
+    "rocketreach-alternative-free": "RocketReach alternative", "zoominfo-alternative-free": "ZoomInfo alternative",
+}
+
+
 def build(slug, title, kind, company, ind_key, kw):
+    spoken = SPOKEN.get(slug, kw)
     MORE["open"] = False
     vals = {k: G.best(G.OPS[k]["op"], company) for k in G.OPS}
     for k, v in vals.items():
@@ -175,8 +189,8 @@ def build(slug, title, kind, company, ind_key, kw):
         "slug": slug, "title": title, "keyword": kw,
         "coverSub": f"The real {NAME[kind]} of any company, free",
         "cover": f"In this video we are going to see the best free way to find a company's {NAME[kind]} using LinkFinder AI.",
-        "payoff": f"That's {company}'s real {NAME[kind]}: {say(kind, main)}, found in about three seconds. This is the {title.split('(')[0].split(':')[0].strip().lower().replace('free ', 'free ')} that's actually free. Go to the first link in the description to try it yourself.",
-        "outro": f"No more guessing. The real {NAME[kind]}, for one company or a whole list. That's why this is the {title.split('(')[0].split(':')[0].strip().lower()} to use today. The link is in the description.",
+        "payoff": f"That's {company}'s real {NAME[kind]}: {say(kind, main)}, found in about three seconds. This is the best {spoken} that's actually free. Go to the first link in the description to try it yourself.",
+        "outro": f"No more guessing. The real {NAME[kind]}, for one company or a whole list. That's why this is the best {spoken} to use today. The link is in the description.",
         "outroHeadline": f"Find {NAME[kind]}s free", "outroSub": "Free account, credits included. First link in the description.",
         "mocks": mocks, "setup": [{"click": {"text": "I just need one lookup for now"}}], "steps": steps,
         "payoffScrollTo": None,
