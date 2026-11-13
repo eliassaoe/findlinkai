@@ -171,5 +171,11 @@ description, tags, publishAt and thumbnail) → vidIQ upload / draft / publish /
 status → `tools/wave.py record` → commit `[skip ci]`. Thumbnails of long videos
 are served from the orphan branch `thumbs` (`thumbs.yml`, re-run after each
 factory build) because vidIQ refuses release-asset redirects.
+Every video gets its thumbnail (shorts included, `thumbs` branch; Best series
+as a JPEG under YouTube's 2 MB limit), attached at upload with
+`thumbnailImageId`. Videos uploaded before 13 Nov evening had none: all 71
+scheduled ones were set with `vidiq_update_video_thumbnail` (5 credits each);
+YouTube allows ~10 thumbnail changes per ~15 minutes. State:
+`data/thumbs_applied.json`.
 `wave.py` only picks posts not in `data/uploaded360.json`, so always `git pull`
 before a manual wave to avoid uploading a video twice.
