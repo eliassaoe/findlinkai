@@ -50,7 +50,9 @@ def built_assets():
 
 def thumbs_on_branch():
     out = subprocess.run(["gh", "api", f"repos/{REPO}/git/trees/thumbs", "-q", ".tree[].path"], capture_output=True, text=True).stdout
-    return {p[:-4] for p in out.split() if p.endswith(".png")}
+    files = [p for p in out.split() if p.endswith((".png", ".jpg"))]
+    # a .jpg (Best series AI thumbnail) wins over the factory's .png
+    return {p.rsplit(".", 1)[0]: p for p in sorted(files, key=lambda p: p.endswith(".jpg"))}
 
 
 def nxt(n):
@@ -71,12 +73,7 @@ def nxt(n):
             continue
         sc = json.loads((HERE / "scenarios" / f"{s}.json").read_text())
         short = sc.get("format") == "short"
-        thumb = None
-        if not short:
-            if s in best:
-                thumb = best[s]["url"]
-            elif s in thumbs:
-                thumb = f"https://raw.githubusercontent.com/{REPO}/thumbs/{s}.png"
+        thumb = f"https://raw.githubusercontent.com/{REPO}/thumbs/{thumbs[s]}" if s in thumbs else None
         rows.append({"slug": s, "url": f"https://github.com/{REPO}/releases/download/{built[s]}/{s}.mp4",
                      "title": p["title"] if short else sc["title"], "text": sc["description"], "tags": sc["tags"][:30],
                      "publishAt": p["date"], "thumb": thumb, "short": short})
@@ -85,7 +82,10 @@ def nxt(n):
     Path("/tmp/wave.json").write_text(json.dumps(rows, indent=1, ensure_ascii=False))
     print(f"{len(rows)} to upload, {len(late)} late (date passed): {late[:5]}")
     for r in rows:
-        print(r["publishAt"], r["slug"], "thumb" if r["thumb"] else ("short" if r["short"] else "NO THUMB"))
+        print(r["publishAt"], r["slug"], "thumb" if r["thumb"] else "NO THUMB")
+    missing = [r["slug"] for r in rows if not r["thumb"]]
+    if missing:
+        print("::warning:: no thumbnail on the thumbs branch for", missing)
 
 
 def record():
