@@ -100,3 +100,22 @@ public videos, compare CTR by `thumbStyle` and drop the losing styles.
 
 YouTube refuses `<` or `>` anywhere in a description or tag (so no `->` arrows).
 Pilot drafts and their ids: `schedule.json`.
+
+
+## The 363 + 18 plan: daily upload waves (owner approved 13 Nov 2026, "c'est un grand oui")
+
+- Plan and dates: `schedule360.json` (titles and dates the owner approved in the
+  "360 YouTube Plan" page). Upload state: `data/uploaded360.json`
+  (`uploadId`, `postId`). Thumbnails for the Best series: `data/best_thumbs.json`.
+- Each wave (~30 a day, YouTube caps uploads per channel per day): take the
+  earliest-dated posts that are built (MP4 in the `video-factory` release) and not
+  in `uploaded360.json`; `vidiq_video_upload(url=release asset)` →
+  `vidiq_social_post_draft_create` (YOUTUBE, public, categoryId 28, publishAt =
+  the plan date, title/tags/description from the scenario; Best series also
+  `thumbnailImageId` from `vidiq_upload_image(best_thumbs url)`) →
+  `vidiq_social_post_publish` → record `postId` in `uploaded360.json`, commit with
+  `[skip ci]`.
+- Release assets cannot be deleted from a Claude session (403); to rebuild a
+  video, dispatch `video-factory.yml` with `slugs` — the upload uses `--clobber`.
+- 108 v360 videos were rebuilt on 13 Nov for title case / "a/an" (list in the
+  commit "gen360: proper title case"); upload only after that run finished.
