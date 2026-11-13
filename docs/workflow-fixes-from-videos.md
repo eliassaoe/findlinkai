@@ -66,3 +66,15 @@ company, or whose country code differs from the company's HQ; (2) reject a
 website whose domain does not carry the company name; (3) never return a named
 person's address as the "company email"; (4) parse the email domain strictly
 (`.compress`, `.pure` are scraping artefacts).
+
+### Fixes saved 13 Nov 11:00 (draft 65ed0f17 — active is still e754fb7d until the owner publishes)
+
+| Node(s) | Change |
+| --- | --- |
+| `Code in JavaScript19`, `Code in JavaScript4b (Fallback Score)1` (company website), `Extract Best Domain [Phone]1`, `Extract Best Domain [Email]1` | With 2+ name words the first one must be in the domain (Root Insurance no longer gets autoinsurance.com); country sites ×0.8 (chipotle.com beats chipotle.ca, us.sunpower.com loses to sunpower.com); `.edu` only for schools (Barry's no longer barry.edu) |
+| `Extract Phone (Domain-Scoped) [Phone]1` | Drops 555 placeholders, year ranges (`2000-2026`), `+1` numbers with extra digits, unbalanced `+632)` fragments |
+| `Extract Email (Domain-Scoped) [Email]1`, `Code40`, `Code53` | A company email is never a named person, a privacy/legal/IR/careers/billing/admin inbox, or a bad TLD (`.pure`, `.compress`); nothing left → not found → refund |
+
+Not changed, owner's call: the name → LinkedIn original step (`HTTP Request64` → `If35`) still
+returns whatever the first search hit is (Mark Cuban → jonhorbaly). A surname check there would
+fix it but touches the step the owner chose to leave alone.
