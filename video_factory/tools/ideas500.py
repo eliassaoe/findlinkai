@@ -197,6 +197,15 @@ CLIENT_VOL = {"video editing": "79K", "copywriting": "14K", "social media market
               "growth ops": "6.2K", "AI ads": "4.6K", "AI video": "4.4K", "gaming video editing": "4K"}
 
 
+SMALL = {"a", "an", "the", "for", "of", "on", "in", "to", "and", "or", "from", "with", "vs", "by", "at"}
+
+
+def title_case(t):
+    """YouTube title case: every word capitalised except small words; AI, B2B, LinkedIn kept as written."""
+    w = t.split(" ")
+    return " ".join(x if (k and x.lower() in SMALL) or not x[:1].islower() else x[0].upper() + x[1:] for k, x in enumerate(w))
+
+
 def an(word):
     return "an" if word[:1].lower() in "aeiou" else "a"
 
@@ -230,6 +239,7 @@ def ideas():
                         action=f"find clients for {svc if svc.isupper() or svc[:2].isupper() else svc.lower()}",
                         pitch=f"{L} companies"))
     for i, x in enumerate(out):
+        x["title"] = title_case(x["title"])
         x["slug"] = "i5-" + G.re.sub(r"[^a-z0-9]+", "-", x["title"].lower()).strip("-")[:60].rstrip("-")
     seen = collections.Counter(x["slug"] for x in out)
     assert all(n == 1 for n in seen.values()), [s for s, n in seen.items() if n > 1]

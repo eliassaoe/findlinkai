@@ -44,7 +44,15 @@ jobs:
         run: |
           git config user.name "video-factory-bot"
           git config user.email "video-factory-bot@users.noreply.github.com"
-          git add video_factory/data/lookups.json || true
-          git diff --cached --quiet && exit 0
-          git commit -m "video data: lookups $(date -u +%FT%TZ)"
-          for i in 1 2 3; do git pull --rebase -q && git push -q && break; sleep 5; done
+          f=video_factory/data/lookups.json
+          cp "$f" /tmp/ours.json
+          for i in 1 2 3 4 5; do
+            git fetch -q origin main && git reset -q --hard origin/main
+            python3 video_factory/tools/merge_lookups.py /tmp/ours.json "$f" > /tmp/merged.json && cp /tmp/merged.json "$f"
+            git add "$f"
+            git diff --cached --quiet && exit 0
+            git commit -q -m "video data: lookups $(date -u +%FT%TZ)"
+            git push -q && exit 0
+            sleep 5
+          done
+          exit 1

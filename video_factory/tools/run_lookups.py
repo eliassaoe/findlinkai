@@ -31,6 +31,7 @@ def main():
     ap.add_argument("--limit", type=int, default=0)
     ap.add_argument("--only", default="")
     ap.add_argument("--ops", default=",".join(OPS))
+    ap.add_argument("--minutes", type=float, default=100, help="stop starting new lookups after this (job timeout is 120)")
     a = ap.parse_args()
     ind = json.loads((HERE / "data" / "industries.json").read_text())
     out_f = HERE / "data" / "lookups.json"
@@ -56,8 +57,13 @@ def main():
 
     lf = LinkFinder(opener=opener)
 
+    t0 = time.time()
+    state = {"fails": 0}  # consecutive server errors: the API is down, stop instead of sleeping for hours
+
     def one(t):
         op, c = t
+        if time.time() - t0 > a.minutes * 60 or state["fails"] >= 8:
+            return None
         for attempt in range(3):
             try:
                 raw = lf._post({"type": op, "input_data": c})
@@ -65,20 +71,26 @@ def main():
                 if raw.get("job_id"):
                     res = lf.run(op, c, OPS[op])
                 time.sleep(1.5)  # stay under the API's Cloudflare rate limit
+                state["fails"] = 0
                 return {"type": op, "input": c, "result": res, "raw_status": raw.get("status"),
                         "at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}
             except LinkFinderError as e:
                 err = f"{e}"[:200]
                 time.sleep(20 * (attempt + 1))
+        state["fails"] += 1
         return {"type": op, "input": c, "result": None, "error": err}
 
     with ThreadPoolExecutor(max_workers=2) as ex:
         for i, r in enumerate(ex.map(one, todo), 1):
+            if r is None:
+                continue
             rows = [x for x in rows if not (x["type"] == r["type"] and x["input"] == r["input"])] + [r]
             if i % 20 == 0 or i == len(todo):
                 out_f.write_text(json.dumps(rows, indent=1, ensure_ascii=False) + "\n")
                 print(f"{i}/{len(todo)}", flush=True)
     out_f.write_text(json.dumps(rows, indent=1, ensure_ascii=False) + "\n")
+    if state["fails"] >= 8:
+        print("::warning::stopped: the API failed 8 lookups in a row (last error kept in the rows)")
     ok = sum(1 for r in rows if r.get("result") not in (None, "", "Not found"))
     print(f"rows {len(rows)}, with a value {ok}, credits ~{lf.credits_spent}")
 
