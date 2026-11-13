@@ -239,7 +239,7 @@ def ideas():
                         action=f"find clients for {svc if svc.isupper() or svc[:2].isupper() else svc.lower()}",
                         pitch=f"{L} companies"))
     for i, x in enumerate(out):
-        x["title"] = title_case(x["title"])
+        x["title"] = G.re.sub(r"\b(Company|Companies) (Company|Companies)\b", r"\2", title_case(x["title"]))
         x["slug"] = "i5-" + G.re.sub(r"[^a-z0-9]+", "-", x["title"].lower()).strip("-")[:60].rstrip("-")
     seen = collections.Counter(x["slug"] for x in out)
     assert all(n == 1 for n in seen.values()), [s for s, n in seen.items() if n > 1]
