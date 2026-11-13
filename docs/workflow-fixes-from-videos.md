@@ -89,3 +89,23 @@ code that answers the call (API worker or an n8n Code node). Not visible from a 
 (no browser, no Cloudflare connector), owner told 15:45. 840 lookups for 28 industries wait
 on it; `run_lookups.py` now stops after 8 failures in a row instead of sleeping through the
 job's timeout, and the commit step merges rows instead of losing them to a push race.
+
+#### Root cause found 13 Nov 19:10 Paris: two problems stacked
+
+1. **API worker bug (Cloudflare `linkedfinderapiaccess`, unchanged since 18 Aug).** When n8n
+   answers 401 or 403, the worker logs `Upstream body: text.slice(0, 500)`, but `text` only
+   exists inside the `try` above it. The log line throws, and the customer gets
+   `500 {"message":"text is not defined"}` instead of the real 401/403. So **every bad,
+   revoked or out-of-credit key has received a 500 since August**. `tools/api_smoke.py`
+   proves it: a wrong key gets 500, while a missing key gets a clean 401.
+   Fix, one token: in that `console.error`, replace `text.slice(0, 500)` with
+   `JSON.stringify(data).slice(0, 500)`. Not deployed: a production deploy from the agent was refused,
+   so the owner applies it (Cloudflare → Workers → linkedfinderapiaccess → Edit code).
+2. **Since ~12:10 UTC, n8n answers 401/403 to the `LINKFINDER_API_KEY` used by the video
+   factory and the LinkFinder MCP.** Its sha256 prefix is `cbdd5153d364`, and it matches no
+   `token` in `linkfinderai_users` (all columns checked). So the key was rotated, or its
+   account is gone, or it is out of credits. Once the worker fix is live, the API returns the
+   real reason.
+
+`.github/workflows/api-smoke.yml` runs one call per public operation plus the error cases;
+run it after any change to the worker or the n8n API workflow.
