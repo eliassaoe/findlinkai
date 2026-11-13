@@ -46,11 +46,14 @@ bot noise (`docs/gsc-seo-2026-10.md`); the position is what matters here.
 | 9 Nov 2026 | apollotechnical.com/top-company-data-apis-by-use-case-tools-compared | company data API | `/company-data-api` |
 | 9 Nov 2026 | apollotechnical.com/what-is-pipeline-management-why-it-matters | B2B data enrichment | `/b2b-data-enrichment` |
 | 9 Nov 2026 | adaptlypost.com/blog/facebook-phone-number-search-guide | LinkedIn phone number finder API | `/linkedin-phone-number-finder-api` |
+| 13 Nov 2026 | ecomify.net/blogs/guides/shopify-wholesale-apps | Apify alternative | `/apify-alternative` |
 
 Given in return: AdaptlyPost as #12 (entry + table row, dofollow to adaptlypost.com) on `/best-instagram-api-for-automations`; `workinsiders.com/deliverability/` (anchor "land in spam") on
 `/resources/scraped-vs-purchased-email-lists-deliverability`, and
 `workinsiders.com/ats/` (anchor "applicant tracking systems") on
-`/best-recruitment-software-tools`. Keep them: removing a swapped link is how
+`/best-recruitment-software-tools`; Ecomify (anchor "Fast Shopify themes", dofollow to
+`ecomify.net/collections/themes`) in the Klaviyo section of
+`/top-best-marketing-automation-platforms`, 13 Nov 2026. Keep them: removing a swapped link is how
 partners notice and pull theirs.
 
 ## Swaps proposed 12 Nov 2026 (MentionAgent, waiting on their answer)
@@ -61,7 +64,7 @@ SEMrush (US) checked before replying. Nothing on our side is published until the
 | --- | --- | --- | --- |
 | goodday.work | 39 / 10.2K | Bitrix24 alternatives guide, "refreshing stale contact records" → `/enrich-crm-contact-list` (they refuse alternative pages) | GoodDay standalone entry, 2nd place, `/best-software-for-crm` |
 | ecommerce.folio3.com | 42 / 2.1K | Shopify apps guide, "Apify alternative" → `/apify-alternative` | "Shopify development services" → folio3 on `/top-best-marketing-automation-platforms` |
-| ecomify.net | 24 / 939 | Shopify wholesale apps guide, "Apify alternative" → `/apify-alternative` | Ecomify link on `/top-best-marketing-automation-platforms` |
+| ecomify.net | 24 / 939 | **Done 13 Nov 2026**: their link is live, ours is placed (see "Links already placed") | Ecomify link on `/top-best-marketing-automation-platforms` |
 | mailneo.co | 22 / 467 | AI outreach tools guide, "Skrapp alternative" → `/skrapp-alternative` | their best-time-to-email study, from `/resources/scraped-vs-purchased-email-lists-deliverability` |
 | noon.ai | 25 / 1.5K | asked $500; countered with a free swap, "ContactOut alternative" → `/contact-out-alternative` | Noon on `/best-recruitment-software-tools` |
 
