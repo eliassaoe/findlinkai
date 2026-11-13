@@ -1,0 +1,58 @@
+name: Thumbnails branch
+
+# Copies every long video's <slug>.thumb.png from the video-factory* releases to
+# the orphan branch `thumbs`, so vidIQ can fetch it from
+# https://raw.githubusercontent.com/eliassaoe/findlinkai/thumbs/<slug>.png
+# (vidiq_upload_image refuses the redirecting release URLs). Shorts are skipped:
+# YouTube does not use a custom thumbnail on a Short.
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: ["Video factory"]
+    types: [completed]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: thumbs
+  cancel-in-progress: false
+
+jobs:
+  thumbs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: main
+      - name: Collect long-video thumbnails
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p t
+          cd main
+          longs=$(python3 -c "
+          import json,glob,os
+          for f in glob.glob('video_factory/scenarios/*.json'):
+              d=json.load(open(f))
+              if d.get('format')!='short': print(os.path.basename(f)[:-5])
+          ")
+          cd ..
+          for r in $(gh release list -R ${{ github.repository }} -L 50 --json tagName -q '.[].tagName' | grep '^video-factory'); do
+            gh release download "$r" -R ${{ github.repository }} -p '*.thumb.png' -D "dl-$r" --skip-existing || true
+          done
+          for s in $longs; do
+            f=$(ls -t dl-*/"$s.thumb.png" 2>/dev/null | head -1)
+            [ -n "$f" ] && cp "$f" "t/$s.png"
+          done
+          ls t | wc -l
+      - name: Push to the thumbs branch
+        run: |
+          cd t
+          git init -q -b thumbs
+          git config user.name "video-factory-bot"
+          git config user.email "video-factory-bot@users.noreply.github.com"
+          git add -A
+          git commit -qm "thumbnails $(date -u +%FT%TZ)"
+          git push -q -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" thumbs
