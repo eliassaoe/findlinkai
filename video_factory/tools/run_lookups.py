@@ -48,7 +48,13 @@ def main():
     if a.limit:
         todo = todo[: a.limit]
     print(f"{len(todo)} lookups to run", flush=True)
-    lf = LinkFinder()
+    import urllib.request
+
+    def opener(req, timeout=60):  # Cloudflare 1010 blocks the default Python-urllib signature
+        req.add_header("User-Agent", "LinkFinderAI-video-factory/1.0 (+https://linkfinderai.com)")
+        return urllib.request.urlopen(req, timeout=timeout)
+
+    lf = LinkFinder(opener=opener)
 
     def one(t):
         op, c = t
@@ -58,14 +64,15 @@ def main():
                 res = raw.get("result")
                 if raw.get("job_id"):
                     res = lf.run(op, c, OPS[op])
+                time.sleep(1.5)  # stay under the API's Cloudflare rate limit
                 return {"type": op, "input": c, "result": res, "raw_status": raw.get("status"),
                         "at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}
             except LinkFinderError as e:
-                err = f"{e}"
-                time.sleep(3 * (attempt + 1))
+                err = f"{e}"[:200]
+                time.sleep(20 * (attempt + 1))
         return {"type": op, "input": c, "result": None, "error": err}
 
-    with ThreadPoolExecutor(max_workers=6) as ex:
+    with ThreadPoolExecutor(max_workers=2) as ex:
         for i, r in enumerate(ex.map(one, todo), 1):
             rows = [x for x in rows if not (x["type"] == r["type"] and x["input"] == r["input"])] + [r]
             if i % 20 == 0 or i == len(todo):
