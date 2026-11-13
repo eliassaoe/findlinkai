@@ -3,8 +3,12 @@ name: Video factory
 # Builds tutorial videos from video_factory/scenarios/*.json (real app UI,
 # real lookup values, neural narration) and attaches each MP4 (+ meta, thumbnail)
 # to the "video-factory" release. See video_factory/README.md.
-# Scenarios without an MP4 in the release are split into shards of SHARD and
-# built in parallel (one runner per shard).
+# Scenarios without an MP4 in any video-factory* release are split into shards of
+# SHARD and built in parallel (one runner per shard).
+# GitHub caps a release at 1000 assets (3 per video), so "video-factory" is full:
+# a scenario uploads to its "release" field, default "video-factory-2". Generators
+# give new batches their own release (about 300 videos each). The MP4 URL is
+# https://github.com/eliassaoe/findlinkai/releases/download/<release>/<slug>.mp4
 on:
   workflow_dispatch:
     inputs:
@@ -41,7 +45,17 @@ jobs:
         run: gh release view video-factory >/dev/null 2>&1 || gh release create video-factory --title "Video factory" --notes "MP4s built by .github/workflows/video-factory.yml" --prerelease
       - id: p
         run: |
-          have=$(gh release view video-factory --json assets -q '.assets[].name' || true)
+          have=""
+          for r in $(gh release list -L 50 --json tagName -q '.[].tagName' | grep '^video-factory'); do
+            id=$(gh api "repos/${{ github.repository }}/releases/tags/$r" -q .id)
+            for p in $(seq 1 12); do
+              page=$(gh api "repos/${{ github.repository }}/releases/$id/assets?per_page=100&page=$p" -q '.[].name' || true)
+              [ -z "$page" ] && break
+              have="$have
+          $page"
+            done
+          done
+          have=$(echo "$have" | sed 's/^ *//')
           slugs="${{ github.event.inputs.slugs }}"
           if [ -z "$slugs" ]; then
             for f in video_factory/scenarios/*.json; do
@@ -86,9 +100,11 @@ jobs:
         run: |
           mkdir -p out checks
           for s in ${{ matrix.slugs }}; do
+            rel=$(python3 -c "import json,sys; print(json.load(open(sys.argv[1])).get('release') or 'video-factory-2')" "video_factory/scenarios/$s.json")
+            gh release view "$rel" >/dev/null 2>&1 || gh release create "$rel" --title "Video factory ($rel)" --notes "MP4s built by .github/workflows/video-factory.yml" --prerelease || true
             if python3 video_factory/build.py "video_factory/scenarios/$s.json" "out/$s"; then
               cp "out/$s/meta.json" "out/$s/$s.meta.json"
-              for i in 1 2 3 4; do gh release upload video-factory "out/$s/$s.mp4" "out/$s/$s.meta.json" "out/$s/$s.thumb.png" --clobber && break; echo "upload retry $i"; sleep 20; done || true
+              for i in 1 2 3 4; do gh release upload "$rel" "out/$s/$s.mp4" "out/$s/$s.meta.json" "out/$s/$s.thumb.png" --clobber && break; echo "upload retry $i"; sleep 20; done || true
               cp "out/$s/meta.json" "checks/$s.meta.json"; cp "out/$s/$s.thumb.png" checks/ || true
               ffmpeg -loglevel error -y -sseof -2 -i "out/$s/$s.mp4" -frames:v 1 -vf scale=480:-1 "checks/$s-end.jpg" || true
               rm -rf "out/$s"
