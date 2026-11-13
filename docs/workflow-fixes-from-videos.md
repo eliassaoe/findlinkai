@@ -78,3 +78,14 @@ person's address as the "company email"; (4) parse the email domain strictly
 Not changed, owner's call: the name → LinkedIn original step (`HTTP Request64` → `If35`) still
 returns whatever the first search hit is (Mark Cuban → jonhorbaly). A surname check there would
 fix it but touches the step the owner chose to leave alone.
+
+### 13 Nov ~12:10 UTC: the API answers 500 "text is not defined" to every company lookup
+
+Found by the video-data runs: from about 12:10 UTC, `company_name_to_website`, `_phone`,
+`_email` and `_linkedin_url` all return
+`500 {"error":"Internal server error","message":"text is not defined"}` through the public
+API (and the LinkFinder MCP; checked 15:45 on Poshmark). A JavaScript ReferenceError in the
+code that answers the call (API worker or an n8n Code node). Not visible from a Claude session
+(no browser, no Cloudflare connector), owner told 15:45. 840 lookups for 28 industries wait
+on it; `run_lookups.py` now stops after 8 failures in a row instead of sleeping through the
+job's timeout, and the commit step merges rows instead of losing them to a push race.
