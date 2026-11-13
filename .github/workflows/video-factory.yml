@@ -59,7 +59,7 @@ jobs:
           for s in $slugs; do
             if python3 video_factory/build.py "video_factory/scenarios/$s.json" "out/$s"; then
               cp "out/$s/meta.json" "out/$s/$s.meta.json"
-              gh release upload video-factory "out/$s/$s.mp4" "out/$s/$s.meta.json" --clobber
+              for i in 1 2 3 4; do gh release upload video-factory "out/$s/$s.mp4" "out/$s/$s.meta.json" --clobber && break; echo "upload retry $i"; sleep 20; done || true
               cp "out/$s/meta.json" "checks/$s.meta.json"
               for t in 3 15 35 60; do ffmpeg -loglevel error -y -ss $t -i "out/$s/$s.mp4" -frames:v 1 -vf scale=960:-1 "checks/$s-$t.jpg" || true; done
             else
