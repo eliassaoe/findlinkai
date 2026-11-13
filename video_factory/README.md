@@ -41,7 +41,13 @@ Local test without network: `python3 video_factory/build.py video_factory/scenar
 ## Publishing
 
 The MP4 public URL is
-`https://github.com/eliassaoe/findlinkai/releases/download/video-factory/<slug>.mp4`.
+`https://github.com/eliassaoe/findlinkai/releases/download/<release>/<slug>.mp4`.
+GitHub caps a release at **1000 assets** (3 per video: mp4, meta, thumb), and
+`video-factory` hit it on 13 Nov with 338 videos. Since then a scenario uploads to
+its `release` field, default `video-factory-2`: ideas500 longs go to
+`video-factory-3` (first 300) and `video-factory-4`, its shorts to
+`video-factory-5`. An MP4 that is not in `video-factory` is in the release its
+scenario names (or `video-factory-2` if it names none).
 `vidiq_video_upload(url=…)` imports it, `vidiq_social_post_draft_create`
 schedules it on the YouTube channel with `publishAt` (max one year ahead).
 Scheduled posts cannot be cancelled through vidIQ — only in YouTube Studio.
@@ -108,7 +114,7 @@ Pilot drafts and their ids: `schedule.json`.
   "360 YouTube Plan" page). Upload state: `data/uploaded360.json`
   (`uploadId`, `postId`). Thumbnails for the Best series: `data/best_thumbs.json`.
 - Each wave (~30 a day, YouTube caps uploads per channel per day): take the
-  earliest-dated posts that are built (MP4 in the `video-factory` release) and not
+  earliest-dated posts that are built (MP4 in the scenario's release, see Publishing) and not
   in `uploaded360.json`; `vidiq_video_upload(url=release asset)` →
   `vidiq_social_post_draft_create` (YOUTUBE, public, categoryId 28, publishAt =
   the plan date, title/tags/description from the scenario; Best series also
@@ -119,3 +125,37 @@ Pilot drafts and their ids: `schedule.json`.
   video, dispatch `video-factory.yml` with `slugs` — the upload uses `--clobber`.
 - 108 v360 videos were rebuilt on 13 Nov for title case / "a/an" (list in the
   commit "gen360: proper title case"); upload only after that run finished.
+
+## The 1,000-video plan: 3 long + 2 shorts a day (owner, 13 Nov 2026)
+
+The owner's call: 5 videos a day, **3 long + 2 shorts** (long videos bring the
+site visitors), about 1,000 videos, which means about 500 new ideas, each usable
+as a long video and as a short.
+
+- `tools/ideas500.py` holds the ideas, every one a searched YouTube phrase from
+  `vidiq_keyword_research` (13 Nov; measured volume in `volume` when vidIQ
+  measures it, "" when it is under its 750/month floor). Four families:
+  `head` (tool and how-to searches: "cold email" 265K, "how to scrape leads from
+  search" 79K, "ai lead generation" 80K…), `alt` ("Snov.io alternative"…),
+  `industry` ("law firm email list"…, 50 industries added 13 Nov plus the two
+  missing longs of the 40 old ones), `clients` ("how to find clients for video
+  editing" 79K, copywriting 14K, thumbnail design 12.6K…).
+- Long = the flagship format (`best_series.build`): first line "In this video we
+  are going to see how to … using LinkFinder AI", the result, one company step by
+  step, the same lookup on a CSV, Sheets / API / History, close on the next action.
+  Short = the same main lookup on the same company, ~20 s. Only the 120
+  biggest-volume ideas get a short now (2 a day after the 284 already planned);
+  the others can be cut later from the same data.
+- Title templates scored with `vidiq_score_title` (13 Nov): head 84, industry
+  85-95, clients 89, short 88; the alternative form "X Alternative: Free Company
+  Emails (2026)" scored 79 and was replaced by "X Alternative: How to Find Company
+  Emails Free" (82).
+- Main company: the least-used company whose four lookups all pass
+  `gen360.check`; Best-series companies go to the back of the queue. An idea whose
+  industry has no checked data yet is listed under `skipped` in
+  `data/ideas500.json` and comes back when the lookups exist.
+- `tools/schedule1000.py` writes `schedule1000.json`: every date of
+  `schedule360.json` kept (plan=360), the new longs fill each day up to 3
+  (12:00 / 14:00 / 16:00 / 20:00 UTC), biggest search first, then families
+  interleaved; the new shorts take 10:00 / 18:00 on days that have none.
+  Upload waves follow `schedule1000.json` from now on.

@@ -136,11 +136,12 @@ ALT = [("Snov.io", "email"), ("Kaspr", "phone"), ("Seamless.AI", "phone"), ("UpL
        ("Datanyze", "phone"), ("Swordfish AI", "phone"), ("AeroLeads", "email"), ("PhantomBuster", "linkedin"), ("Lemlist", "email"),
        ("Saleshandy", "email"), ("Clay", "linkedin"), ("RocketReach", "phone"), ("ZoomInfo", "email"), ("Lusha", "email"),
        ("Clearbit", "website"), ("Apollo", "phone"), ("Hunter", "phone"), ("Instantly lead finder", "email"), ("Waalaxy", "linkedin"),
-       ("Dux-Soup", "linkedin"), ("Phantombuster LinkedIn", "website"), ("Wiza", "email"), ("Lead411", "phone"), ("D7 Lead Finder", "email"),
+       ("Dux-Soup", "linkedin"), ("Coldlytics", "email"), ("Wiza", "email"), ("Lead411", "phone"), ("D7 Lead Finder", "email"),
        ("Tomba", "email"), ("Nymeria", "email"), ("Enrow", "email"), ("Icypeas", "email"), ("LeadMagic", "email"), ("Datagma", "phone"),
        ("Crunchbase", "linkedin"), ("Owler", "website"), ("BuiltWith", "website"), ("Leadfeeder", "linkedin"), ("Kendo", "email")]
-ALT_TITLE = {"email": "{c} Alternative: Free Company Emails (2026)", "phone": "{c} Alternative: Free Company Phone Numbers",
-             "linkedin": "{c} Alternative: LinkedIn Company Pages, No Code", "website": "{c} Alternative: Company Websites From Names"}
+ALT_TITLE = {  # vidIQ score_title 13 Nov: "X Alternative: How to Find Company Emails Free" 82 (the "(2026)" form scored 79)
+    "email": "{c} Alternative: How to Find Company Emails Free", "phone": "{c} Alternative: How to Find Company Phone Numbers Free",
+    "linkedin": "{c} Alternative: How to Find LinkedIn Company Pages Free", "website": "{c} Alternative: How to Find Company Websites Free"}
 
 # 40 industries already in plan360 got 6 shorts + email/phone longs: add the two missing longs.
 OLD_IND_LONGS = [("linkedin", "How to Find {L} Companies on LinkedIn (Bulk)", "{l} companies on linkedin"),
@@ -319,7 +320,14 @@ def short_scenario(idea, company, main):
     }
 
 
+def seed_used():
+    """Companies already on screen as the main subject (best series) go to the back of the queue."""
+    for row in B.SERIES:
+        USED[row[3]] += 1
+
+
 def main(write=True, n_shorts=120):
+    seed_used()
     ids = ideas()
     rr = {k: [i for i in G.IND if len(G.good(G.OPS[k]["op"], G.IND[i]["companies"])) >= 6] for k in G.OPS}
     made, skipped = [], []
