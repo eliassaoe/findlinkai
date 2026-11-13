@@ -206,6 +206,11 @@ def title_case(t):
     return " ".join(x if (k and x.lower() in SMALL) or not x[:1].islower() else x[0].upper() + x[1:] for k, x in enumerate(w))
 
 
+def dedup(text):
+    """'cleaning company' + ' company websites' -> 'cleaning company websites' (titles, narration, tags)."""
+    return G.re.sub(r"\b([Cc]ompan(?:y|ies)) ([Cc]ompan(?:y|ies))\b", r"\2", text)
+
+
 def an(word):
     return "an" if word[:1].lower() in "aeiou" else "a"
 
@@ -355,7 +360,7 @@ def main(write=True, n_shorts=120):
                 skipped.append({"slug": idea["slug"], "why": str(e)})
                 USED[company] -= 1
                 continue
-            (HERE / "scenarios" / f"{idea['slug']}.json").write_text(json.dumps(sc, indent=2, ensure_ascii=False) + "\n")
+            (HERE / "scenarios" / f"{idea['slug']}.json").write_text(dedup(json.dumps(sc, indent=2, ensure_ascii=False)) + "\n")
             idea["main"] = sc["mocks"]["byType"][G.OPS[idea["kind"]]["op"]][company]
         made.append(idea)
     # shorts: the measured-volume head ideas first, then the rest in plan order
@@ -364,7 +369,7 @@ def main(write=True, n_shorts=120):
         idea["short"] = idea["slug"].replace("i5-", "i5s-", 1)
         if write:
             ss = short_scenario(idea, idea["company"], idea["main"])
-            (HERE / "scenarios" / f"{ss['slug']}.json").write_text(json.dumps(ss, indent=2, ensure_ascii=False) + "\n")
+            (HERE / "scenarios" / f"{ss['slug']}.json").write_text(dedup(json.dumps(ss, indent=2, ensure_ascii=False)) + "\n")
     (HERE / "data" / "ideas500.json").write_text(json.dumps({"_note": __doc__.strip().splitlines()[0], "ideas": made, "skipped": skipped},
                                                             indent=1, ensure_ascii=False) + "\n")
     fam = collections.Counter(x["family"] for x in made)
