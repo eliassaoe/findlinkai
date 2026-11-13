@@ -52,6 +52,7 @@ into a file here in the same session, or it is gone.
 | What | Where |
 | --- | --- |
 | Video rules | `claude/youtube/METHOD.md`, `claude/guidee/STYLE.md` |
+| **Video factory: daily tutorials built with no human step** (real app UI from this repo + real lookup values, narration, scheduled via vidIQ on Elias IA) and the data-quality list of flows not to film | `video_factory/README.md` — read it before adding a video; it replaces the Guidde recording step for single-lookup + CSV flows |
 | Storyboards | `claude/guidee/scripts/`, catalog in `claude/guidee/catalog.json` |
 | App UI ground truth (never invent a label) | `claude/guidee/app-ui.md` |
 | CSV enrichments in History | `docs/csv-enrichment-history.md` |
