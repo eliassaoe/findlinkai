@@ -69,6 +69,17 @@ is not used.
 4. Title must score ≥ 80 on `vidiq_score_title` (type long, channel above).
 5. Push: the workflow builds it.
 
+## Shorts (owner's rule, 13 Nov 2026: YouTube SEO, not viral)
+
+Shorts target **what people type in YouTube search**: one searched keyword per
+short ("how to find cold email leads", "company name to domain"…), picked with
+`vidiq_keyword_research` (volume and competition noted in each scenario's
+`keyword` field), title built on that keyword and scored ≥ 85 with
+`vidiq_score_title type=short`. Never a famous brand or person as the hook
+("Nike's phone number" — nobody searches it; tried and dropped 13 Nov).
+`tools/seo_shorts.py` holds the specs; `format: short` renders 1080x1920.
+No personal contact data (a person's email or mobile) on screen, ever.
+
 ## Thumbnails
 
 `thumb.mjs` draws a 1280x720 PNG from the scenario's real values

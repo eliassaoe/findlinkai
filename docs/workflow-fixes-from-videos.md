@@ -29,6 +29,9 @@ Not fixed yet (seen, needs a decision or more data):
   **500 "Workflow execution failed"** for Netflix and OpenAI; Tesla and Nvidia
   returned only the LinkedIn range "10001+". Not filmable as a "how many employees"
   short until it returns a number. Look at the n8n execution log for those two inputs.
+- 13 Nov: `company_name_to_phone` "RPM Living" → `+1 718 555 55 55`, a fake 555
+  placeholder number returned as success. Reject numbers whose exchange is 555
+  (and other obvious placeholders) in `Extract Phone (Domain-Scoped) [Phone]1`.
 - 13 Nov: `linkedin_profile_to_linkedin_info` — `jobTitle` and `company` come from
   different experiences: Reid Hoffman → title "Member, World Economy Advisory Board"
   (Semafor) with company "Manas AI". Satya Nadella → `isCurrentlyEmployed: "false"`
