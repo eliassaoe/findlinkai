@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<title>Dossiers · Admin Dossier Express</title>
+<style>
+/* ====== À MODIFIER : liens et prix (voir aussi le script en bas) ====== */
+:root{
+  --bg:#f7f6f2; --surface:#ffffff; --text:#1d1f1e; --muted:#5b605d; --line:#e3e1da;
+  --accent:#1f6f54; --accent-ink:#ffffff; --soft:#e8f2ed;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#121413; --surface:#1b1e1c; --text:#eceeec; --muted:#a3aaa6; --line:#2c312e;
+    --accent:#5fbf97; --accent-ink:#0d1a14; --soft:#1d2a24;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#121413; --surface:#1b1e1c; --text:#eceeec; --muted:#a3aaa6; --line:#2c312e;
+  --accent:#5fbf97; --accent-ink:#0d1a14; --soft:#1d2a24;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.wrap{max-width:980px;margin:0 auto;padding:0 16px}
+header{padding:18px 0;border-bottom:1px solid var(--line)}
+header .wrap{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.logo{font-weight:700;letter-spacing:-.01em}
+.btn{display:inline-block;padding:12px 18px;border-radius:10px;text-decoration:none;font-weight:600;border:1px solid var(--accent)}
+.btn-primary{background:var(--accent);color:var(--accent-ink)}
+.btn-ghost{color:var(--accent);background:transparent}
+.hero{padding:56px 0 40px}
+h1{font-size:clamp(28px,5vw,44px);line-height:1.15;margin:0 0 16px;letter-spacing:-.02em}
+.lead{font-size:18px;color:var(--muted);max-width:640px;margin:0 0 24px}
+.ctas{display:flex;flex-wrap:wrap;gap:12px}
+.note{font-size:14px;color:var(--muted);margin-top:12px}
+section{padding:36px 0;border-top:1px solid var(--line)}
+h2{font-size:24px;margin:0 0 18px;letter-spacing:-.01em}
+.grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px}
+.card h3{margin:0 0 6px;font-size:17px}
+.card p{margin:0;color:var(--muted)}
+.step{font-size:13px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.06em}
+ul.check{list-style:none;padding:0;margin:0;display:grid;gap:8px}
+ul.check li{padding-left:26px;position:relative}
+ul.check li::before{content:"✓";position:absolute;left:0;color:var(--accent);font-weight:700}
+.price{background:var(--soft);border:1px solid var(--line);border-radius:14px;padding:24px;display:flex;flex-wrap:wrap;gap:20px;align-items:center;justify-content:space-between}
+.amount{font-size:40px;font-weight:700;letter-spacing:-.02em}
+details{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:10px}
+summary{cursor:pointer;font-weight:600}
+details p{color:var(--muted);margin:10px 0 0}
+footer{padding:28px 0;color:var(--muted);font-size:14px;border-top:1px solid var(--line)}
+
+[hidden]{display:none !important}
+.wrap{max-width:1100px}
+.box{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;margin:0 0 16px}
+input,select,textarea{font:inherit;color:var(--text);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px}
+textarea{width:100%;min-height:110px}
+table{width:100%;border-collapse:collapse;font-size:15px}
+th,td{text-align:left;padding:10px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--muted);font-weight:600;font-size:13px;text-transform:uppercase;letter-spacing:.04em}
+tbody tr{cursor:pointer}tbody tr:hover{background:var(--soft)}
+.table-scroll{overflow-x:auto}
+.kv{display:grid;grid-template-columns:minmax(140px,30%) 1fr;gap:6px 12px;margin:0}
+.kv dt{color:var(--muted)}.kv dd{margin:0;white-space:pre-wrap;overflow-wrap:anywhere}
+.thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.thumbs a{display:block;border:1px solid var(--line);border-radius:8px;overflow:hidden;text-decoration:none;color:var(--text);font-size:13px}
+.thumbs img{display:block;width:100%;height:120px;object-fit:cover;background:var(--soft)}
+.thumbs span{display:block;padding:6px 8px}
+.toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:12px}
+.btn{cursor:pointer}
+.flash{color:var(--accent);font-weight:600}
+.alert{color:#b42318;font-weight:600}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div class="logo">Dossier Express <span style="font-weight:400;color:var(--muted)">· admin</span></div>
+    <button class="btn btn-ghost" id="logout" hidden>Se déconnecter</button>
+  </div>
+</header>
+<main class="wrap" style="padding:24px 16px 48px">
+  <section id="login" class="box" hidden style="max-width:460px;border-top:1px solid var(--line)">
+    <h1 style="font-size:24px">Connexion</h1>
+    <form id="loginForm">
+      <label style="display:block;font-weight:600;margin:12px 0">Votre email<input type="email" name="email" required autocomplete="email" style="display:block;width:100%;margin-top:6px"></label>
+      <button class="btn btn-primary" type="submit">Recevoir le lien de connexion</button>
+      <p class="note" id="loginMsg" aria-live="polite"></p>
+    </form>
+  </section>
+
+  <p id="denied" class="alert" hidden>Ce compte n'a pas accès aux dossiers.</p>
+
+  <section id="list" hidden style="border-top:0;padding-top:0">
+    <div class="toolbar">
+      <h1 style="font-size:26px;margin:0;flex:1">Dossiers</h1>
+      <select id="filter" aria-label="Filtrer par statut">
+        <option value="">Tous les statuts</option>
+      </select>
+    </div>
+    <div class="box table-scroll" style="padding:0">
+      <table>
+        <thead><tr><th>Date</th><th>Entreprise</th><th>Ville</th><th>Type</th><th>Statut</th><th>Montant</th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="detail" hidden style="border-top:0;padding-top:0">
+    <div class="toolbar">
+      <a href="#" class="btn btn-ghost" id="back">← Tous les dossiers</a>
+      <h1 id="dTitle" style="font-size:24px;margin:0;flex:1"></h1>
+      <button class="btn btn-primary" id="copy">Copier pour Claude</button>
+    </div>
+    <p class="flash" id="flash" aria-live="polite"></p>
+    <div class="box">
+      <div class="toolbar">
+        <label>Statut <select id="dStatus"></select></label>
+        <button class="btn btn-ghost" id="save">Enregistrer</button>
+      </div>
+      <label for="dNotes" style="font-weight:600">Notes</label>
+      <textarea id="dNotes"></textarea>
+    </div>
+    <div class="box"><h2 style="font-size:19px">Photos et fichiers</h2><div class="thumbs" id="dFiles"></div></div>
+    <div class="box"><h2 style="font-size:19px">Commande</h2><dl class="kv" id="dFields"></dl></div>
+  </section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const CONFIG = {
+  supabaseUrl: "https://snxhsboboatjywgwdeds.supabase.co",
+  supabaseKey: "sb_publishable_RKidGRs4ch1ixmRfXoYSww_UsQMSe5w"
+};
+</script>
+<script src="/admin/dossiers.js"></script>
+</body>
+</html>
