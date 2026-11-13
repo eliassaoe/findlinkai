@@ -61,6 +61,9 @@ is not used.
    city = Bratislava). Good: website, LinkedIn page, name → LinkedIn profile,
    phone for US mid-size companies.
 2. Run the real lookups (LinkFinder MCP or API) and keep only correct values.
+   **Every wrong value is a product bug (owner rule, 13 Nov 2026):** log it in
+   `docs/workflow-fixes-from-videos.md` with the input, the wrong output and the
+   cause, fix the n8n node in a draft, and tell the owner to publish.
 3. Write the scenario with a generator, run it locally with `--fake-tts`, look
    at `payoff.jpg` and a few frames.
 4. Title must score ≥ 80 on `vidiq_score_title` (type long, channel above).
