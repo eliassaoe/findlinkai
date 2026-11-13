@@ -29,6 +29,11 @@ Not fixed yet (seen, needs a decision or more data):
   **500 "Workflow execution failed"** for Netflix and OpenAI; Tesla and Nvidia
   returned only the LinkedIn range "10001+". Not filmable as a "how many employees"
   short until it returns a number. Look at the n8n execution log for those two inputs.
+- 13 Nov: `linkedin_profile_to_linkedin_info` — `jobTitle` and `company` come from
+  different experiences: Reid Hoffman → title "Member, World Economy Advisory Board"
+  (Semafor) with company "Manas AI". Satya Nadella → `isCurrentlyEmployed: "false"`
+  while his Microsoft "Chairman and CEO" role has `jobStillWorking: true`. Both
+  should be derived from the same current experience (latest `jobStillWorking`).
 
 Check after publishing: re-run Salesforce phone, HubSpot employee count
 (`https://www.linkedin.com/company/hubspot/`), Microsoft company info, Moss Adams email.

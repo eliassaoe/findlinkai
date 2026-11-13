@@ -45,7 +45,7 @@ const mocks = sc.mocks || {};
 await page.route('**/*', async route => {
   const req = route.request(); const u = req.url();
   if (u.startsWith(BASE)) return route.continue();
-  if (/fonts\.googleapis|fonts\.gstatic|cdnjs\.cloudflare/.test(u)) return route.continue();
+  if (/fonts\.googleapis|fonts\.gstatic|cdnjs\.cloudflare|storage\.googleapis\.com\/linkedin_profile_picture|media\.licdn\.com/.test(u)) return route.continue().catch(() => {});
   if (u.includes('linkfinderaicredits')) return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ credits: mocks.credits ?? 5000, is_unlimited: true, email_verified: true }) });
   if (u.includes('linkfinderapp.hamoureliasse')) {
     let d = {}; try { d = JSON.parse(req.postData() || '{}'); } catch (e) {}
@@ -129,7 +129,8 @@ async function runAction(a) {
     const loc = locate(a.type); const { x, y } = await pointAt(loc);
     await page.evaluate(([p, q]) => window.__lfRipple && window.__lfRipple(p, q), [x, y]);
     await loc.click();
-    await loc.pressSequentially(a.type.value, { delay: 90 });
+    if (a.type.clear) await loc.fill('');
+    await loc.pressSequentially(a.type.value, { delay: a.type.delay ?? 90 });
   } else if (a.upload) {
     const target = locate(a.upload); const { x, y } = await pointAt(target);
     await page.evaluate(([p, q]) => window.__lfRipple && window.__lfRipple(p, q), [x, y]);

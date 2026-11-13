@@ -29,7 +29,11 @@ const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
 const short = v => String(v).replace(/^https?:\/\/(www\.|[a-z]{2}\.)?/, '').replace(/\/$/, '');
 const by = sc.mocks?.byInput || {};
 const keys = (t.rows || Object.keys(by)).filter(k => by[k]);
-const rows = keys.map(k => [k.split(' · ')[0], short(by[k])]);
+const rows = keys.map(k => {
+  const v = by[k]; const r = v && typeof v === 'object' ? (v.result || v) : null;
+  if (r) return [r.name || k, String(r.jobTitle && r.company ? `${r.jobTitle}, ${r.company}` : r.headline || '').slice(0, 34)];
+  return [k.split(' · ')[0], short(v)];
+});
 const n = Object.keys(by).length;
 const colName = t.colIn || 'Input';
 const colOut = t.colOut || 'Result';
