@@ -110,6 +110,7 @@ def main():
 
     run(["node", HERE / "render.mjs", scen, out / "durations.json", out])
     run(["node", HERE / "cards.mjs", scen, out])
+    run(["node", HERE / "thumb.mjs", scen, out / "payoff.jpg", out / f"{sc['slug']}.thumb.png"])
     tl = json.loads((out / "timeline.json").read_text())
 
     fps = "30"
