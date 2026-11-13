@@ -145,11 +145,11 @@ OPS = {
 # 6 shorts per industry: title templates use searched phrasings
 SHORTS = [
     ("phone", "bulk", "How to Find {L} Leads With Phone Numbers (Bulk)", "{L} leads with a phone number for every company, in bulk.", "{U} LEADS + PHONES"),
-    ("email", "bulk", "How to Build a {L} Email List (Free Tool)", "How to build a {l} email list from nothing but company names.", "{U} EMAIL LIST"),
+    ("email", "bulk", "How to Build {A} {L} Email List (Free Tool)", "How to build {a} {l} email list from nothing but company names.", "{U} EMAIL LIST"),
     ("website", "bulk", "How to Find {L} Company Websites in Bulk", "Every {l} company on your list, with its website, in seconds.", "{U} WEBSITES"),
     ("linkedin", "bulk", "How to Find {L} Companies on LinkedIn (Bulk)", "Find the LinkedIn page of every {l} company on your list.", "{U} ON LINKEDIN"),
-    ("email", "single", "How to Find the Email of Any {L} Company", "Need to email a {l} company? Type the name, get the inbox.", "{U} COMPANY EMAIL"),
-    ("phone", "single", "How to Get a {L} Company's Phone Number", "Here's how to get a {l} company's phone number from its name.", "{U} PHONE NUMBER"),
+    ("email", "single", "How to Find the Email of Any {L} Company", "Need to email {a} {l} company? Type the name, get the inbox.", "{U} COMPANY EMAIL"),
+    ("phone", "single", "How to Get {A} {L} Company's Phone Number", "Here's how to get {a} {l} company's phone number from its name.", "{U} PHONE NUMBER"),
 ]
 LONGS = [
     ("email", "Find {L} Leads and Their Emails With LinkFinder AI", "find {l} leads and their contact emails"),
@@ -243,6 +243,7 @@ def generic(plan):
                            [ind["kw"], "lead generation", "b2b leads", o["word"], "LinkFinder AI"],
                            "find the people who work at these companies", "Run your own list", single_wait=o["wait"](single[1]))
             d["keyword"] = kw
+            d["description"] = d["description"].replace(" ()", "")
             d["mocks"]["_source"] = "Real results from the LinkFinder AI API (data/lookups.json), checked by tools/gen360.py"
             d["thumb"] = {"style": ["card", "flow", "number", "banner", "sheet"][len(slug) % 5], "top": title.split(":")[0].split("(")[0][:22].upper(),
                           "bottom": o["word"].capitalize(), "hook": "|".join(title.upper().split(":")[0].split()[:3]), "colIn": "Company", "colOut": o["word"].split()[0].capitalize()}
@@ -268,19 +269,23 @@ def generic(plan):
 def spec_common(kind, slug, title, hook, caption, ind):
     o = OPS[kind]
     return dict(keyword=ind["kw"], base=o["base"], title=title, hook=hook, caption=caption, pick_say=o["pick"],
-                tags=[ind["kw"], f"{ind['label'].lower()} leads", f"{ind['label'].lower()} {o['word']}", "lead generation", "b2b leads"],
+                tags=list(dict.fromkeys([ind["kw"], f"{ind['label'].lower()} leads", f"{ind['label'].lower()} {o['word']}", "lead generation", "b2b leads"])),
                 page=f"https://linkfinderai.com/{o['page']}")
 
 
 def main():
     plan = []
     for key, ind in IND.items():
-        L, l, U = ind["label"], ind["label"].lower(), ind["label"].upper()
+        lab = ind["label"]
+        L = " ".join(w if w in ("and", "of") or any(c.isupper() for c in w[1:]) else w[:1].upper() + w[1:] for w in lab.split())
+        l = " ".join(w if any(c.isupper() for c in w[1:]) or w.isupper() else w.lower() for w in lab.split())
+        U = lab.upper()
         data = {k: good(OPS[k]["op"], ind["companies"]) for k in OPS}
         for kind, shape, t, h, c in SHORTS:
             vals = data[kind]
             slug = f"v360-{key}-{kind}-{shape}"
-            f = dict(L=L, l=l, U=U)
+            an = "an" if L[0].lower() in "aeiou" or L.startswith(("HR", "HVAC")) else "a"
+            f = dict(L=L, l=l, U=U, A=an.capitalize() if False else an, a=an)
             spec = spec_common(kind, slug, t.format(**f), h.format(**f), c.format(**f), ind)
             if shape == "bulk":
                 if len(vals) < 5:
@@ -313,6 +318,8 @@ def main():
                            f"find the {('emails' if kind == 'phone' else 'phone numbers')} of these same companies",
                            f"Run your own {l} list", single_wait=o["wait"](single[1]))
             d["mocks"]["_source"] = "Real results from the LinkFinder AI API (data/lookups.json), checked by tools/gen360.py"
+            d["description"] = d["description"].replace(" ()", "")
+            d["tags"] = list(dict.fromkeys(d["tags"]))
             d["thumb"] = {"style": ["banner", "card", "number", "sheet", "flow"][hash(slug) % 5], "top": f"{U} LEADS"[:22],
                           "bottom": o["word"].capitalize(), "hook": f"{U}|LEADS|{o['word'].split()[0].upper()}",
                           "colIn": "Company", "colOut": o["word"].split()[0].capitalize()}
