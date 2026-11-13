@@ -100,10 +100,10 @@ SERIES = [
     ("rocketreach-alternative-free", "RocketReach Alternative (Free Company Emails)", "email", "Lemonade", "insurance", "rocketreach alternative"),
     ("best-b2b-contact-finder", "Best B2B Contact Finder (Free & Verified)", "email", "Tinuiti", "marketing-agency", "b2b contact finder"),
     ("best-bulk-email-finder", "Best Bulk Email Finder (Free CSV Upload)", "email", "Airtable", "saas", "bulk email finder"),
-    ("best-domain-finder", "Company Name to Domain: Best Free Domain Finder", "website", "Carrier", "hvac", "company name to domain"),
+    ("best-domain-finder", "Best Free Domain Finder: Company Name to Domain", "website", "Carrier", "hvac", "company name to domain"),
     ("best-cold-calling-list-builder", "Best Cold Calling List Builder (Free)", "phone", "Brooklinen", "shopify", "cold calling list"),
     ("best-lead-enrichment-tool", "Best Lead Enrichment Tool 2026 (Free)", "email", "Policygenius", "insurance", "lead enrichment tool"),
-    ("free-b2b-data-tool-2026", "Free B2B Data Tool 2026: Website, LinkedIn, Phone, Email", "phone", "Calendly", "saas", "b2b data"),
+    ("free-b2b-data-tool-2026", "Best Company Data Finder 2026 (Free)", "phone", "Calendly", "saas", "b2b data"),
 ]
 
 
