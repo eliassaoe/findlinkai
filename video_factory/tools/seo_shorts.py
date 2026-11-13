@@ -230,7 +230,7 @@ SPECS = [
         caption="FIND B2B LEADS", pick_say=["Open More searches.", "Pick company LinkedIn page."],
         by=load(LIPAGE_BASE)["mocks"]["byInput"], last=None, fill="The LinkedIn pages come in, row by row.",
         tags=["how to find b2b leads", "b2b leads", "b2b lead generation", "linkedin company pages"],
-        page="https://linkfinderai.com/company-linkedin-finder")),
+        page="https://linkfinderai.com/app")),
 ]
 
 
