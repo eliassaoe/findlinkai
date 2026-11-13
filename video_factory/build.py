@@ -29,9 +29,12 @@ def dur(f):
 
 
 def lines(sc):
-    out = [("cover", sc["cover"]), ("payoff", sc["payoff"])]
+    short = sc.get("format") == "short"
+    out = [] if short else [("cover", sc["cover"])]
+    out.append(("payoff", sc["payoff"]))
     out += [(s["id"], s["narration"]) for s in sc["steps"]]
-    out.append(("outro", sc["outro"]))
+    if not short:
+        out.append(("outro", sc["outro"]))
     return out
 
 
@@ -127,7 +130,9 @@ def main():
              "-vf", vf, "-t", f"{seconds:.2f}", *enc, *aenc, "-af", "apad", "-shortest", dst])
 
     segs = []
-    still(out / "cover.png", adir / "cover.mp3", durations["cover"] + 0.7, out / "s0.mp4"); segs.append(out / "s0.mp4")
+    short = sc.get("format") == "short"
+    if not short:
+        still(out / "cover.png", adir / "cover.mp3", durations["cover"] + 0.7, out / "s0.mp4"); segs.append(out / "s0.mp4")
     still(out / "payoff.jpg", adir / "payoff.mp3", durations["payoff"] + 0.6, out / "s1.mp4", zoom=True); segs.append(out / "s1.mp4")
 
     # main recording, narration of each step placed at the step's start
@@ -143,13 +148,22 @@ def main():
          "-vf", "scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2:white",
          "-t", f"{tl['total']:.2f}", *enc, *aenc, out / "s2.mp4"]); segs.append(out / "s2.mp4")
 
-    still(out / "outro.png", adir / "outro.mp3", durations["outro"] + 1.5, out / "s3.mp4"); segs.append(out / "s3.mp4")
+    if not short:
+        still(out / "outro.png", adir / "outro.mp3", durations["outro"] + 1.5, out / "s3.mp4"); segs.append(out / "s3.mp4")
 
     lst = out / "segs.txt"
     lst.write_text("".join(f"file '{p.resolve()}'\n" for p in segs))
     final = out / f"{sc['slug']}.mp4"
     run(["ffmpeg", "-y", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", lst,
          "-c:v", "copy", "-af", "loudnorm=I=-16:TP=-1.5:LRA=11", *aenc, "-movflags", "+faststart", final])
+    if short:  # YouTube Short: 1080x1920, centre of the app zoomed, caption on top
+        land = final.with_name("landscape.mp4"); final.rename(land)
+        cap = sc.get("shortCaption", sc.get("thumb", {}).get("top", "")).upper().replace("'", "\u2019").replace(":", "\\:")
+        font = HERE / "assets" / "fonts" / "Anton.ttf"
+        vf = ("crop=1240:1080:(iw-1240)/2+60:0,scale=1080:-2,pad=1080:1920:0:560:color=0x191a4a,"
+              f"drawtext=fontfile={font}:text='{cap}':fontsize=96:fontcolor=black:box=1:boxcolor=0xfde047:boxborderw=24:x=(w-tw)/2:y=250,"
+              f"drawtext=fontfile={font}:text='LINKFINDERAI.COM':fontsize=64:fontcolor=white:x=(w-tw)/2:y=1600")
+        run(["ffmpeg", "-y", "-loglevel", "error", "-i", land, "-vf", vf, *enc, "-c:a", "copy", "-movflags", "+faststart", final])
     meta = {k: sc[k] for k in ("slug", "title", "description", "tags") if k in sc}
     meta["duration"] = dur(final)
     (out / "meta.json").write_text(json.dumps(meta, indent=1))
