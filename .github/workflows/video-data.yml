@@ -1,0 +1,50 @@
+name: Video data (real lookups)
+
+# Runs the LinkFinder AI lookups the video factory needs
+# (video_factory/tools/run_lookups.py) and commits data/lookups.json.
+# Needs the repository secret LINKFINDER_API_KEY.
+on:
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: "Max lookups this run (0 = all missing)"
+        required: false
+        default: "0"
+      only:
+        description: "Comma-separated industry keys (empty = all)"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+concurrency:
+  group: video-data
+  cancel-in-progress: false
+
+jobs:
+  lookups:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Key present?
+        env:
+          K: ${{ secrets.LINKFINDER_API_KEY }}
+        run: if [ -z "$K" ]; then echo "::error::LINKFINDER_API_KEY secret is not set"; exit 1; fi; echo "key set"
+      - name: Lookups
+        env:
+          LINKFINDER_API_KEY: ${{ secrets.LINKFINDER_API_KEY }}
+        run: python3 video_factory/tools/run_lookups.py --limit "${{ github.event.inputs.limit }}" --only "${{ github.event.inputs.only }}"
+      - name: Commit
+        if: always()
+        run: |
+          git config user.name "video-factory-bot"
+          git config user.email "video-factory-bot@users.noreply.github.com"
+          git add video_factory/data/lookups.json || true
+          git diff --cached --quiet && exit 0
+          git commit -m "video data: lookups $(date -u +%FT%TZ)"
+          for i in 1 2 3; do git pull --rebase -q && git push -q && break; sleep 5; done
