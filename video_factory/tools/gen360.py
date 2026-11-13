@@ -130,6 +130,92 @@ LONGS = [
 ]
 
 
+# Searched keywords that are not one industry (vidIQ, 13 Nov 2026). Each mixes two
+# industries' companies so the footage is never the same list as an industry video.
+# (slug, title, keyword (volume/mo), kind, shape, industry A, industry B, caption, hook)
+GENERIC = [
+    ("g-scrape-leads", "How to Scrape Leads Without Coding (Emails in Bulk)", "how to scrape leads (25.8K)", "email", "long", "saas", "fintech", "", "scrape leads without writing a line of code"),
+    ("g-how-to-find-leads", "How to Find Leads: Company Names to Phone Numbers", "how to find leads (24.3K)", "phone", "long", "logistics", "construction", "", "find leads with a phone number for every company"),
+    ("g-b2b-leads", "B2B Leads: Get the Email of Every Company on Your List", "b2b leads (30K, +89%)", "email", "bulk", "cybersecurity", "hr-software", "B2B LEADS IN BULK", "B2B leads: a contact email for every company on your list."),
+    ("g-unlimited-leads", "How to Get Unlimited Leads From a List of Company Names", "unlimited leads (16K)", "website", "long", "hr-software", "edtech", "", "turn a list of company names into leads"),
+    ("g-business-leads", "How to Get Business Leads With Phone Numbers", "business leads (12K)", "phone", "bulk", "staffing", "accounting", "BUSINESS LEADS", "Business leads with a phone number for each one, in bulk."),
+    ("g-scrape-leads-linkedin-pages", "Scrape Leads From LinkedIn Company Pages (No Code)", "scrape leads (9.6K, +97%)", "linkedin", "bulk", "construction", "manufacturing", "SCRAPE LEADS", "Scrape leads from LinkedIn company pages without code."),
+    ("g-scrape-leads-from-linkedin", "How to Scrape Leads From LinkedIn Without Sales Navigator", "how to scrape leads from linkedin (7.2K, +90%)", "linkedin", "long", "staffing", "biotech", "", "scrape leads from LinkedIn without Sales Navigator"),
+    ("g-scrape-linkedin-for-leads", "How to Scrape LinkedIn for Leads (Company Pages in Bulk)", "how to scrape linkedin for leads (5.2K)", "linkedin", "bulk", "ai-startups", "fintech", "SCRAPE LINKEDIN FOR LEADS", "How to scrape LinkedIn for leads: company pages, in bulk."),
+    ("g-clients-from-linkedin", "How to Get Clients From LinkedIn: Find Every Company Page", "how to get clients from linkedin (23K)", "linkedin", "long", "marketing-agency", "saas", "", "get clients from LinkedIn by finding every target company's page"),
+    ("g-linkedin-lead-generation", "LinkedIn Lead Generation: Build a Company List in Minutes", "linkedin lead generation (40K)", "linkedin", "bulk", "biotech", "cybersecurity", "LINKEDIN LEAD GENERATION", "LinkedIn lead generation, the fast way: names in, company pages out."),
+    ("g-b2b-lead-generation", "B2B Lead Generation: From Company Names to Contact Emails", "b2b lead generation (46K)", "email", "long", "manufacturing", "logistics", "", "do B2B lead generation from a plain list of company names"),
+    ("g-cold-email-lead-gen", "Cold Email Lead Generation: Get Contact Emails in Bulk", "cold email lead generation (25K)", "email", "bulk", "beauty", "furniture", "COLD EMAIL LEAD GEN", "Cold email lead generation: the inbox of every company on your list."),
+    ("g-email-lead-generation", "Email Lead Generation: Turn Company Names Into Emails", "email lead generation (14.8K)", "email", "bulk", "furniture", "travel", "EMAIL LEAD GENERATION", "Email lead generation from nothing but company names."),
+    ("g-build-email-list", "How to Build an Email List of Businesses (Fast)", "how to build an email list (24K, +98%)", "email", "bulk", "travel", "edtech", "BUILD AN EMAIL LIST", "How to build an email list of businesses in about thirty seconds."),
+    ("g-email-extractor", "Email Extractor: Get Company Emails From Just Their Names", "email extractor (14.6K)", "email", "bulk", "edtech", "nonprofits", "EMAIL EXTRACTOR", "An email extractor that only needs the company name."),
+    ("g-scrape-emails-free", "How to Scrape Emails for Free (Company Inboxes in Bulk)", "how to scrape emails for free (5K)", "email", "bulk", "nonprofits", "crypto", "SCRAPE EMAILS FREE", "How to scrape company emails with a free account."),
+    ("g-scrape-email-from-google", "How to Get a Company's Email Without Searching Google", "how to scrape email from google (7.2K, +98%)", "email", "single", "restaurants", None, "SKIP THE GOOGLE SEARCH", "Stop digging through Google for a company's email. Type the name instead."),
+    ("g-email-hunter", "Email Hunter Alternative: Find Company Emails in Bulk", "email hunter (4.7K)", "email", "bulk", "crypto", "telehealth", "EMAIL HUNTER ALTERNATIVE", "An email hunter alternative that works from company names."),
+    ("g-free-email-finder", "Free Email Finder Tool: Find Any Company's Email", "free email finder tool (4.4K)", "email", "single", "telehealth", None, "FREE EMAIL FINDER", "A free email finder: type a company, get its inbox."),
+    ("g-find-email-address", "How to Find an Email Address for Any Business", "how to find email address (5.1K)", "email", "single", "home-builders", None, "FIND AN EMAIL ADDRESS", "How to find the email address of any business, from its name."),
+    ("g-cold-calling-b2b", "Cold Calling B2B: Build Your Call List in 30 Seconds", "cold calling b2b (9.8K, +89%)", "phone", "bulk", "accounting", "home-builders", "B2B COLD CALLING LIST", "Cold calling B2B? Build the call list in thirty seconds."),
+    ("g-b2b-prospecting", "B2B Prospecting: Build a Call List From Company Names", "b2b prospecting (9.3K)", "phone", "long", "pest-control", "cleaning", "", "build a B2B prospecting call list from company names"),
+    ("g-web-dev-clients", "How to Find Clients for Web Development (Their Websites in Bulk)", "how to find clients for web development (7.9K, +90%)", "website", "bulk", "restaurants", "fitness", "WEB DEV CLIENTS", "How to find web development clients: start with their websites."),
+    ("g-web-design-clients", "How to Find Website Design Clients (Fast Method)", "how to find website design clients (7K)", "website", "bulk", "dental", "veterinary", "WEB DESIGN CLIENTS", "Find website design clients: every business on your list, with its site."),
+    ("g-seo-clients", "How to Find SEO Clients: Get Their Websites in Bulk", "how to find seo clients (5K)", "website", "bulk", "personal-injury", "senior-living", "FIND SEO CLIENTS", "How to find SEO clients and their websites in one go."),
+    ("g-copywriting-clients", "How to Find Clients for Copywriting (Brand Emails)", "how to find clients for copywriting (11.3K)", "email", "bulk", "ai-startups", "beauty", "COPYWRITING CLIENTS", "How to find copywriting clients and the email to pitch them."),
+    ("g-video-editing-clients", "How to Find Clients for Video Editing (Get Their Emails)", "how to find clients for video editing (77K, +98%)", "email", "long", "media", "beauty", "", "find clients for video editing and the email to reach them"),
+    ("g-video-editing-clients-short", "Video Editing Clients: Find Brands to Pitch in Bulk", "how to find video editing clients (23K)", "linkedin", "bulk", "media", "shopify", "VIDEO EDITING CLIENTS", "Find brands to pitch your video editing to, in bulk."),
+    ("g-clients-to-outreach", "How to Find Clients to Outreach (Emails in Bulk)", "how to find clients to outreach (8.3K)", "email", "bulk", "fintech", "saas", "CLIENTS TO OUTREACH", "How to find clients to outreach, with an email for each."),
+    ("g-import-export-clients", "How to Find Import Export Clients (Company Emails)", "how to find import export clients (5.1K)", "email", "bulk", "logistics", "manufacturing", "IMPORT EXPORT CLIENTS", "How to find import and export clients and their contact emails."),
+    ("g-us-software-clients", "How to Find US Clients for a Software Development Agency", "how to find us clients for software dev agency (5.2K)", "linkedin", "bulk", "manufacturing", "home-builders", "US SOFTWARE CLIENTS", "Find US clients for your software agency: their LinkedIn pages, in bulk."),
+    ("g-app-dev-clients", "How to Find Clients for App Development (Contact Emails)", "how to find clients for app development (5.4K)", "email", "bulk", "fitness", "restaurants", "APP DEV CLIENTS", "How to find app development clients and the email to reach them."),
+    ("g-smm-clients", "How to Find Clients for Social Media Management", "how to find clients for social media management (9K, +92%)", "linkedin", "bulk", "restaurants", "beauty", "SMM CLIENTS", "Find social media management clients: brands and their LinkedIn pages."),
+    ("g-home-service-leads", "How to Get Home Service Leads (Phone Numbers)", "how to get home service leads (8.9K)", "phone", "long", "hvac", "plumbing", "", "get home service leads with phone numbers"),
+    ("g-real-estate-leads", "How to Generate Leads in Real Estate (Builder Phone Numbers)", "how to generate leads in real estate (13K)", "phone", "bulk", "home-builders", "proptech", "REAL ESTATE LEADS", "Real estate leads: every builder and brokerage with its phone number."),
+    ("g-ugc-clients", "How to Find Clients for UGC Ads (Brands on LinkedIn)", "how to find clients for ugc ads (5K)", "linkedin", "bulk", "furniture", "shopify", "UGC CLIENTS", "Find UGC ad clients: the brands and their LinkedIn pages."),
+    ("g-thumbnail-clients", "How to Find Thumbnail Clients (Media Brands in Bulk)", "how to find thumbnail clients (17.6K)", "website", "bulk", "media", "edtech", "THUMBNAIL CLIENTS", "Find thumbnail design clients: media brands and their websites."),
+    ("g-local-seo-clients", "How to Find Clients for Local SEO (Websites in Bulk)", "how to find clients for local seo (5.8K)", "website", "bulk", "cleaning", "pest-control", "LOCAL SEO CLIENTS", "How to find local SEO clients and check their websites."),
+    ("g-ai-voice-agent-clients", "How to Find Clients for AI Voice Agents (Phone Numbers)", "how to find clients for ai voice agents (5K)", "phone", "bulk", "auto-dealers", "senior-living", "AI VOICE AGENT CLIENTS", "Find clients for your AI voice agents: businesses that answer the phone."),
+    ("g-shopify-clients", "How to Find Shopify Clients and Their Emails", "how to find shopify clients (9.5K, +96%)", "email", "bulk", "shopify", "beauty", "SHOPIFY CLIENTS", "How to find Shopify clients and the email to reach them."),
+]
+
+
+def generic(plan):
+    for slug, title, kw, kind, shape, a, b, cap, hook in GENERIC:
+        o = OPS[kind]
+        va = list(good(o["op"], IND[a]["companies"]).items())
+        vb = list(good(o["op"], IND[b]["companies"]).items()) if b else []
+        vals = dict(va[:4] + vb[:4])
+        slug = "v360-" + slug
+        ind = {"kw": kw.split(" (")[0], "label": IND[a]["label"]}
+        if shape == "long":
+            if len(vals) < 6:
+                continue
+            items = list(vals.items()); single, rest = items[0], dict(items[1:])
+            d = write_long(slug, title, hook, o["long_pick"], single, f"In a couple of seconds you get {o['say'](single[1])}.",
+                           rest, "", o["word"], o["wait"](list(rest.values())[-1]), o["page"],
+                           [ind["kw"], "lead generation", "b2b leads", o["word"], "LinkFinder AI"],
+                           "find the people who work at these companies", "Run your own list", single_wait=o["wait"](single[1]))
+            d["keyword"] = kw
+            d["mocks"]["_source"] = "Real results from the LinkFinder AI API (data/lookups.json), checked by tools/gen360.py"
+            d["thumb"] = {"style": ["card", "flow", "number", "banner", "sheet"][len(slug) % 5], "top": title.split(":")[0].split("(")[0][:22].upper(),
+                          "bottom": o["word"].capitalize(), "hook": "|".join(title.upper().split(":")[0].split()[:3]), "colIn": "Company", "colOut": o["word"].split()[0].capitalize()}
+            (HERE / "scenarios" / f"{slug}.json").write_text(json.dumps(d, indent=2, ensure_ascii=False))
+        else:
+            spec = spec_common(kind, slug, title, hook, cap, ind)
+            spec["keyword"] = kw
+            if shape == "bulk":
+                if len(vals) < 5:
+                    continue
+                spec.update(by=vals, last=o["wait"](list(vals.values())[-1]), fill=f"The {o['word']} fill in, row by row.")
+                S.bulk(slug, spec)
+            else:
+                if not vals:
+                    continue
+                name, v = list(vals.items())[-1]
+                spec.update(inputs={"input[placeholder*='Tesla']": name}, wait=o["wait"](v), by={name: v},
+                            run_say=[f"Type the company. {name}.", "Enrich.", f"There it is: {o['say'](v)}."])
+                S.single(slug, spec)
+        plan.append({"slug": slug, "format": "long" if shape == "long" else "short", "industry": a, "kind": kind, "keyword": kw})
+
+
 def spec_common(kind, slug, title, hook, caption, ind):
     o = OPS[kind]
     return dict(keyword=ind["kw"], base=o["base"], title=title, hook=hook, caption=caption, pick_say=o["pick"],
@@ -183,6 +269,7 @@ def main():
                           "colIn": "Company", "colOut": o["word"].split()[0].capitalize()}
             (HERE / "scenarios" / f"{slug}.json").write_text(json.dumps(d, indent=2, ensure_ascii=False))
             plan.append({"slug": slug, "format": "long", "industry": key, "kind": kind})
+    generic(plan)
     (HERE / "data" / "plan360.json").write_text(json.dumps(plan, indent=1))
     (HERE / "data" / "rejected.json").write_text(json.dumps(REJECTED, indent=1, ensure_ascii=False))
     print(len(plan), "videos;", len(REJECTED), "values rejected")
