@@ -1,0 +1,46 @@
+name: API smoke test
+
+# One call per public API operation, plus the error cases (no key, wrong key,
+# unknown type, empty input, unknown job). See tools/api_smoke.py.
+on:
+  workflow_dispatch:
+    inputs:
+      only:
+        description: "Comma-separated types (empty = all)"
+        required: false
+        default: ""
+      auth_only:
+        description: "Only the error-handling checks (no credits spent)"
+        required: false
+        default: "false"
+      skip_expensive:
+        description: "Skip linkedin_profile_to_phone (50 credits)"
+        required: false
+        default: "false"
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Smoke test
+        env:
+          LINKFINDER_API_KEY: ${{ secrets.LINKFINDER_API_KEY }}
+        run: |
+          args=""
+          [ -n "${{ github.event.inputs.only }}" ] && args="$args --only ${{ github.event.inputs.only }}"
+          [ "${{ github.event.inputs.auth_only }}" = "true" ] && args="$args --auth-only"
+          [ "${{ github.event.inputs.skip_expensive }}" = "true" ] && args="$args --skip-expensive"
+          python3 tools/api_smoke.py $args
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: api-smoke
+          path: api_smoke.json
