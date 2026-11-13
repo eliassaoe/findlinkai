@@ -1,4 +1,4 @@
-"""Name + company -> LinkedIn profile scenario, templated on
+"""Name + company to LinkedIn profile scenario, templated on
 scenarios/linkedin-profiles-from-names.json. Values must come from real lookups."""
 import json, copy
 from pathlib import Path
@@ -35,6 +35,6 @@ def write(slug, title, cover_how, who, single, rows, last_wait, tags, single_sai
     d["description"] = (f"Find the LinkedIn profile of every person on your list, in bulk, from their name and company.\n\n"
                         f"Try LinkFinder AI free: https://linkfinderai.com/linkedin-url-finder?{utm}\n"
                         f"Get a free list of 50 leads with emails: https://linkfinderai.com/free-list?{utm}\n\n"
-                        f"In this video:\n- One lookup: {single[0]} at {single[1]} (1 credit)\n- A CSV of names and companies -> LinkedIn profiles, then export\n\n"
+                        f"In this video:\n- One lookup: {single[0]} at {single[1]} (1 credit)\n- A CSV of names and companies to LinkedIn profiles, then export\n\n"
                         "The values on screen are real LinkFinder AI results.")
     (HERE / "scenarios" / f"{slug}.json").write_text(json.dumps(d, indent=2, ensure_ascii=False))

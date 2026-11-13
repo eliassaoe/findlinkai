@@ -65,3 +65,6 @@ is not used.
    at `payoff.jpg` and a few frames.
 4. Title must score ≥ 80 on `vidiq_score_title` (type long, channel above).
 5. Push: the workflow builds it.
+
+YouTube refuses `<` or `>` anywhere in a description or tag (so no `->` arrows).
+Pilot drafts and their ids: `schedule.json`.
