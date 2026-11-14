@@ -53,6 +53,21 @@ Deno.serve(async (req) => {
         });
     }
 
+    // Avis client (demandé par email à la livraison) : publié seulement après validation dans l'admin.
+    if (body.action === 'review') {
+        const note = Number(body.note);
+        if (!(Number.isInteger(note) && note >= 1 && note <= 5)) return json({ error: 'note' }, 422);
+        const commentaire = String(body.commentaire ?? '').trim().slice(0, 1500) || null;
+        const { error } = await db.from('dossier_avis').upsert({
+            order_id: o.id, note, commentaire, prenom: String(o.contact_nom).split(' ')[0], entreprise: o.entreprise, ville: o.ville,
+        }, { onConflict: 'order_id' });
+        if (error) { console.error(error); return json({ error: 'db' }, 500); }
+        await sendEmail(env('ADMIN_EMAIL'), `Nouvel avis ${note}/5 – ${o.entreprise}`,
+            emailShell(`<p><strong>${note}/5</strong> de ${esc(o.contact_nom)} (${esc(o.entreprise)}, ${esc(o.ville)})</p><p>${esc(commentaire ?? '')}</p><p><a href="${esc(SITE_URL)}/admin/dossiers#avis">Valider dans l'admin</a></p>`),
+            `${note}/5 de ${o.contact_nom} (${o.entreprise}) : ${commentaire ?? ''}`);
+        return json({ ok: true });
+    }
+
     if (body.action === 'upload_url') {
         const kind = String(body.kind ?? '');
         const type = String(body.type ?? '');

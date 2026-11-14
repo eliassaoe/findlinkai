@@ -10,7 +10,7 @@
 // ADMIN_SESSION_SECRET : aléatoire, dans dossier_settings ; le changer déconnecte tout le monde.
 // Déployer avec --no-verify-jwt.
 
-import { admin, json, loadSettings, CORS, env, BUCKET } from '../_shared/dossier-express.ts';
+import { admin, json, loadSettings, CORS, env, BUCKET, SITE_URL, sendEmail, emailShell, esc, TYPES, TypeDossier } from '../_shared/dossier-express.ts';
 
 const STATUSES = ['en_attente_paiement', 'payee', 'en_preparation', 'en_relecture', 'livree', 'deposee', 'annulee', 'remboursee'];
 const DAYS_30 = 30 * 86_400_000;
@@ -91,7 +91,30 @@ Deno.serve(async (req) => {
             patch.status = body.status;
         }
         if (typeof body.admin_notes === 'string') patch.admin_notes = body.admin_notes.slice(0, 20000);
-        const { error } = await db.from('orders').update(patch).eq('id', String(body.id ?? ''));
+        const { data: o, error } = await db.from('orders').update(patch).eq('id', String(body.id ?? '')).select('*').maybeSingle();
+        if (error) { console.error(error); return json({ error: 'db' }, 500); }
+        // Livré : on demande un avis au client, une seule fois.
+        if (o && o.status === 'livree' && !o.review_requested_at) {
+            const lien = `${SITE_URL}/avis?token=${o.client_token}`;
+            const ok = await sendEmail(o.contact_email, 'Votre dossier est livré – un avis en 30 secondes ?', emailShell(`
+<p>Bonjour ${esc(String(o.contact_nom).split(' ')[0])},</p>
+<p>Votre ${esc(TYPES[o.type_dossier as TypeDossier].label.toLowerCase())} pour ${esc(o.ville)} est livré. Merci pour votre confiance.</p>
+<p>Votre avis aide d'autres artisans à nous choisir. Ça prend 30 secondes :</p>
+<p><a href="${esc(lien)}" style="display:inline-block;background:#0b0b0c;color:#fff;padding:12px 18px;border-radius:10px;text-decoration:none;font-weight:600">Donner mon avis</a></p>`),
+                `Votre dossier est livré. Votre avis en 30 secondes : ${lien}`);
+            if (ok) await db.from('orders').update({ review_requested_at: new Date().toISOString() }).eq('id', o.id);
+        }
+        return json({ ok: true });
+    }
+
+    if (body.action === 'reviews') {
+        const { data, error } = await db.from('dossier_avis').select('*').order('created_at', { ascending: false }).limit(500);
+        if (error) { console.error(error); return json({ error: 'db' }, 500); }
+        return json({ reviews: data ?? [] });
+    }
+
+    if (body.action === 'review_approve') {
+        const { error } = await db.from('dossier_avis').update({ approved: Boolean(body.approved) }).eq('id', String(body.id ?? ''));
         if (error) { console.error(error); return json({ error: 'db' }, 500); }
         return json({ ok: true });
     }

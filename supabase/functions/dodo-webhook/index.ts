@@ -60,7 +60,7 @@ Deno.serve(async (req) => {
     if (orderErr) { console.error(orderErr); return json({ error: 'db' }, 500); }
     if (!order) {
         await record('commande_introuvable', null);
-        await sendEmail(env('ADMIN_EMAIL'), 'Paiement Urbaa sans commande', `<p>Paiement ${esc(paymentId)} reçu pour une commande introuvable (${esc(orderId)}). À vérifier dans Dodo.</p>`,
+        await sendEmail(env('ADMIN_EMAIL'), 'Paiement Urbatik sans commande', `<p>Paiement ${esc(paymentId)} reçu pour une commande introuvable (${esc(orderId)}). À vérifier dans Dodo.</p>`,
             `Paiement ${paymentId} reçu pour une commande introuvable (${orderId}). À vérifier dans Dodo.`);
         return json({ ok: true, warning: 'commande introuvable' });
     }

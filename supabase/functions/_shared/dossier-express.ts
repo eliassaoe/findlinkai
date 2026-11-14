@@ -150,7 +150,7 @@ export async function sendEmail(to: string, subject: string, html: string, text:
         const res = await fetch(hook, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ to, subject, html, text, from_name: 'Urbaa' }),
+            body: JSON.stringify({ to, subject, html, text, from_name: env('BRAND', 'Urbatik') }),
         });
         if (!res.ok) console.error('n8n a refusé l’email', res.status, await res.text());
         return res.ok;
@@ -163,7 +163,7 @@ export async function sendEmail(to: string, subject: string, html: string, text:
 export function emailShell(inner: string): string {
     return `<!doctype html><html lang="fr"><body style="margin:0;background:#f7f6f2;font:16px/1.55 -apple-system,'Segoe UI',Roboto,sans-serif;color:#1d1f1e">
 <div style="max-width:600px;margin:0 auto;padding:24px 16px">
-<div style="font-weight:700;font-size:18px;letter-spacing:-.02em;margin-bottom:16px">Urbaa</div>
+<div style="font-weight:700;font-size:18px;letter-spacing:-.02em;margin-bottom:16px">${esc(env('BRAND', 'Urbatik'))}</div>
 <div style="background:#fff;border:1px solid #e3e1da;border-radius:12px;padding:20px">${inner}</div>
 </div></body></html>`;
 }
