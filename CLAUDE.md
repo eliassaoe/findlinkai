@@ -51,6 +51,7 @@ into a file here in the same session, or it is gone.
 
 | What | Where |
 | --- | --- |
+| **Urbatik (dossiers de mairie, ex-Dossier Express / Urbaa)** — not part of LinkFinder AI any more | Lives entirely in the repo **eliassaoe/urbatik** (site on https://urbatik.com, Supabase functions, migrations, Explee notes). Only redirect stubs remain here (`declaration-prealable/*.html`, `admin/dossiers.html` → urbatik.com). Never touch Explee project 30475 (linkfinderai.com) for Urbatik. |
 | Video rules | `claude/youtube/METHOD.md`, `claude/guidee/STYLE.md` |
 | **Video factory: daily tutorials built with no human step** (real app UI from this repo + real lookup values, narration, scheduled via vidIQ on Elias IA) and the data-quality list of flows not to film; **the 1,000-video plan (3 long + 2 shorts a day, 500 searched ideas, `schedule1000.json`) and the overflow releases (a GitHub release holds 1000 assets max)** | `video_factory/README.md` — read it before adding a video; it replaces the Guidde recording step for single-lookup + CSV flows |
 | **Wrong results found while filming → fixed in n8n** (owner rule 13 Nov 2026: videos double as product tests) | `docs/workflow-fixes-from-videos.md` — log every fix there |
