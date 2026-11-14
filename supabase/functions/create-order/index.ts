@@ -11,7 +11,7 @@
 // Déployer avec --no-verify-jwt : la page est publique, sans compte.
 
 import {
-    admin, json, loadSettings, CORS, TYPES, OUVRAGES, FILE_KINDS, REQUIRED_PHOTOS, BUCKET, MAX_FILE_BYTES, ALLOWED_TYPES,
+    admin, json, loadSettings, CORS, TYPES, OUVRAGES, FILE_KINDS, BUCKET, MAX_FILE_BYTES, ALLOWED_TYPES,
     SITE_URL, env, randomToken, safeName, TypeDossier,
 } from '../_shared/dossier-express.ts';
 
@@ -73,7 +73,7 @@ function checkFiles(files: unknown): { list?: Manifest[]; errors: string[] } {
         else if (!(m.size > 0 && m.size <= MAX_FILE_BYTES)) errors.push(`${m.kind}: 15 Mo maximum`);
         list.push(m);
     }
-    for (const k of REQUIRED_PHOTOS) if (!list.some(m => m.kind === k)) errors.push(k);
+    // Photos facultatives à la commande : celles qui manquent s'envoient ensuite depuis le lien de suivi.
     return errors.length ? { errors } : { list, errors };
 }
 
@@ -159,10 +159,6 @@ Deno.serve(async (req) => {
             const { error: e } = await db.from('order_files').insert(rows);
             if (e) { console.error(e); return json({ error: 'db' }, 500); }
         }
-        const kinds = new Set([...rows.map(r => r.kind), ...(known ?? []).map(r => r.storage_path.split('/')[1].split('-')[0])]);
-        const missing = REQUIRED_PHOTOS.filter(k => !kinds.has(k));
-        if (missing.length) return json({ error: 'photos_manquantes', fields: missing }, 422);
-
         const url = checkoutUrl(order);
         if (!url) return json({ error: 'paiement_non_configure' }, 503);
         return json({ checkout_url: url });

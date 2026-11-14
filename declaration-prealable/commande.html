@@ -65,6 +65,9 @@ textarea{resize:vertical;min-height:110px}
 .btn[disabled]{opacity:.55;cursor:progress}
 .ghost{background:none;border:0;font:inherit;color:var(--muted);cursor:pointer;padding:8px 4px;font-size:15px}
 .ghost:hover{color:var(--text)}
+.later{background:#fff;border:1.5px solid var(--line);border-radius:12px;color:var(--text);font-weight:600;font-size:16px;padding:13px 20px}
+.later:hover{border-color:var(--accent)}
+.note-later{background:#fff8e6;border:1px solid #f3e1a8;border-radius:12px;padding:12px 14px;font-size:15px;margin:0 0 16px}
 .hint{font-size:14px;color:var(--muted)}
 .err{color:var(--red);font-size:15px;margin:14px 0 0;min-height:1em}
 .invalid{border-color:var(--red)!important}
@@ -179,25 +182,25 @@ textarea{resize:vertical;min-height:110px}
     <label class="f" id="abri">Hauteur de l'abri de piscine, s'il y en a un (m)<input name="piscine_abri_hauteur_m" inputmode="decimal" placeholder="Laissez vide s'il n'y en a pas"></label>
   </section>
 
-  <section class="q" data-key="photo_facade">
+  <section class="q" data-key="photo_facade" data-optional data-later>
     <p class="kicker">Photo 1 sur 3</p>
     <h1>Une photo de la façade concernée.</h1>
-    <p class="help">De face, là où seront les travaux. Une photo de téléphone suffit.</p>
-    <label class="drop"><input type="file" name="photo_facade" accept="image/*,application/pdf" required><span class="ico">📷</span><strong>Ajouter la photo</strong><span>JPG, PNG, HEIC ou PDF · 15 Mo max</span></label>
+    <p class="help">De face, là où seront les travaux. Une photo de téléphone suffit. Pas sous la main ? Envoyez-la plus tard.</p>
+    <label class="drop"><input type="file" name="photo_facade" accept="image/*,application/pdf"><span class="ico">📷</span><strong>Ajouter la photo</strong><span>JPG, PNG, HEIC ou PDF · 15 Mo max</span></label>
   </section>
 
-  <section class="q" data-key="photo_ensemble">
+  <section class="q" data-key="photo_ensemble" data-optional data-later>
     <p class="kicker">Photo 2 sur 3</p>
     <h1>Une vue d'ensemble de la maison.</h1>
-    <p class="help">Prenez du recul pour qu'on voie toute la maison.</p>
-    <label class="drop"><input type="file" name="photo_ensemble" accept="image/*,application/pdf" required><span class="ico">🏠</span><strong>Ajouter la photo</strong><span>JPG, PNG, HEIC ou PDF · 15 Mo max</span></label>
+    <p class="help">Prenez du recul pour qu'on voie toute la maison. Pas sous la main ? Envoyez-la plus tard.</p>
+    <label class="drop"><input type="file" name="photo_ensemble" accept="image/*,application/pdf"><span class="ico">🏠</span><strong>Ajouter la photo</strong><span>JPG, PNG, HEIC ou PDF · 15 Mo max</span></label>
   </section>
 
-  <section class="q" data-key="photo_rue">
+  <section class="q" data-key="photo_rue" data-optional data-later>
     <p class="kicker">Photo 3 sur 3</p>
     <h1>La maison vue depuis la rue.</h1>
-    <p class="help">Comme la verra un passant. La mairie en a besoin.</p>
-    <label class="drop"><input type="file" name="photo_rue" accept="image/*,application/pdf" required><span class="ico">🛣️</span><strong>Ajouter la photo</strong><span>JPG, PNG, HEIC ou PDF · 15 Mo max</span></label>
+    <p class="help">Comme la verra un passant. Pas sous la main ? Envoyez-la plus tard.</p>
+    <label class="drop"><input type="file" name="photo_rue" accept="image/*,application/pdf"><span class="ico">🛣️</span><strong>Ajouter la photo</strong><span>JPG, PNG, HEIC ou PDF · 15 Mo max</span></label>
   </section>
 
   <section class="q" data-key="plan" data-optional>
@@ -237,6 +240,7 @@ textarea{resize:vertical;min-height:110px}
     <p class="kicker">Votre dossier est prêt à partir</p>
     <h1>Dernière étape : envoyer la commande.</h1>
     <div class="recap" id="recap"></div>
+    <p class="note-later" id="laterNote" hidden></p>
     <div class="price">
       <p style="margin:0 0 6px;font-weight:600">Offre de bienvenue : -50 % sur votre premier dossier</p>
       <p style="margin:0 0 12px"><s id="full"></s>&nbsp; <span class="big" id="half"></span></p>
@@ -324,9 +328,13 @@ const DRAFT = "dx_draft_v1";
     const isChoice = !!s.querySelector(".choices");
     nav.hidden = isFinal;
     skip.hidden = !s.hasAttribute("data-optional");
+    const later = s.hasAttribute("data-later");
+    skip.textContent = later ? "Je l'enverrai plus tard" : "Passer";
+    skip.className = later ? "later" : "ghost";
     next.hidden = isChoice && !s.querySelector("input:checked");
     enter.hidden = isChoice;
     back.hidden = i === 0;
+    if (later) { const has = !!s.querySelector("input[type=file]").files[0]; next.hidden = !has; enter.hidden = true; }
     document.getElementById("logo").hidden = i !== 0;
     stepErr.textContent = "";
     bar.style.width = Math.round(((i + (isFinal ? 1 : 0)) / (steps.length - 1)) * 100) + "%";
@@ -398,9 +406,13 @@ const DRAFT = "dx_draft_v1";
       ["Dossier", TYPE_LABEL[t]],
       ["Travaux", ouvrage ? ouvrage.parentElement.textContent.replace(/^[A-J]/, "").trim() : ""],
       ["Chantier", `${v("adresse_chantier")}, ${v("code_postal")} ${v("ville")}`],
-      ["Photos", `${photos} fichier${photos > 1 ? "s" : ""}`],
+      ["Photos", photos ? `${photos} fichier${photos > 1 ? "s" : ""}` : "À envoyer plus tard"],
       ["Envoi à", v("contact_email")],
     ];
+    const missingPhotos = ["photo_facade", "photo_ensemble", "photo_rue"].filter(n => !form.elements[n].files[0]).length;
+    const ln = document.getElementById("laterNote");
+    ln.hidden = !missingPhotos;
+    ln.textContent = `📷 ${missingPhotos} photo${missingPhotos > 1 ? "s" : ""} à envoyer plus tard : après le paiement, vous recevez un lien pour les ajouter. On commence dès qu'on les a.`;
     const recap = document.getElementById("recap");
     recap.innerHTML = "";
     rows.forEach(([k, val]) => { const d = document.createElement("div"); const a = document.createElement("span"); a.textContent = k; const b = document.createElement("strong"); b.textContent = val; d.append(a, b); recap.append(d); });
