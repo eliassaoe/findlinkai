@@ -1,22 +1,9 @@
-# Explee project 30475 — auto-replies switched to Urbaa (14 Nov 2026)
+# Explee auto-replies for Urba (14 Nov 2026)
 
-Owner decision (14 Nov 2026, 12:06): replies send the Urbaa site, never the LinkFinder Calendly.
-The auto-reply instructions and booking link are **project-wide** in Explee: every campaign of
-project 30475 (all paused on 14 Nov) now answers with the Urbaa site. To roll back, paste the
-old instructions below and set the booking link back to
-`https://calendly.com/hamoureliasse/offre-linkfinder-ai-outbound/`.
-
-## New instructions (live)
-
-See `urbaa-instructions.txt` next to this file.
-
-## Old instructions (LinkFinder outbound offer, 200 € per meeting) — kept for rollback
-
-Objective was a booking in the calendar; signature « Pete »; price 200 € per meeting held,
-pilot of 5 meetings for 1000 €. Full text was 3000 characters; the cases were: interested →
-15 min + link; price; brochure request → no document, 15 min; how it works (target accounts,
-email campaign in their name, meeting in their calendar); sceptical; proposes a slot; not
-interested; out of office; wants a call; redirects to a colleague; left the company; "are you
-an AI?"; not the right time; unsubscribe. Forbidden: vague closing questions, more than one
-question, two links or any non-booking link, attachments, invented results, promising a number
-of meetings, naming clients.
+- **creha.fr project (61157)** — this is the Urba outbound project. Auto-replies now send the site
+  only (no calendar): text in `creha-61157-instructions.txt`. Booking link field set to the site.
+  Previous booking link was a creHA Calendly (aurelie-dubois-creha/30min) and the old rules made
+  every reply end with it; prices and refund are now given only when the lead asks.
+- **linkfinderai.com project (30475)** — owner rule: do not touch. It was changed by mistake on
+  14 Nov around 12:10 and restored at 13:05 (booking link and the exact 3000-character
+  instructions, kept in `linkfinder-30475-instructions-original.txt`).
