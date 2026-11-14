@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
-<title>Votre dossier · Dossier Express</title>
+<title>Votre dossier · Urbaa</title>
 <script>
     !function(t,e){var o,n,p,r;e.__SV||(window.posthog && window.posthog.__loaded)||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]),t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}(p=t.createElement("script")).type="text/javascript",p.crossOrigin="anonymous",p.async=!0,p.src=s.api_host.replace(".i.posthog.com","-assets.i.posthog.com")+"/static/array.js",(r=t.getElementsByTagName("script")[0]).parentNode.insertBefore(p,r);var u=e;for(void 0!==a?u=e[a]=[]:a="posthog",u.people=u.people||[],u.toString=function(t){var e="posthog";return"posthog"!==a&&(e+="."+a),t||(e+=" (stub)"),e},u.people.toString=function(){return u.toString(1)+".people (stub)"},o="init capture register register_once identify reset get_distinct_id opt_in_capturing opt_out_capturing".split(" "),n=0;n<o.length;n++)g(u,o[n]);e._i.push([i,s,a])},e.__SV=1)}(document,window.posthog||[]);
     posthog.init('phc_HqgzMyWAMtzH7K5j9CLw0dijB0I9W1VjPkkyzg9KOFG', {
@@ -82,6 +82,9 @@ textarea{resize:vertical;min-height:110px}
 .price s{color:var(--muted)}
 .price .big{font-size:30px;font-weight:700;letter-spacing:-.02em}
 .code{font-family:ui-monospace,Menlo,monospace;font-weight:700;background:#fff;border:1.5px dashed var(--accent);border-radius:8px;padding:4px 10px;letter-spacing:.04em}
+.offer-tag{margin:0;font-weight:600;color:#9a3412}
+.timer{margin:0;font-size:15px;color:#9a3412}
+.timer strong{font-variant-numeric:tabular-nums}
 .copy{font:inherit;font-size:14px;font-weight:500;background:#fff;border:1px solid var(--line);border-radius:8px;padding:5px 10px;cursor:pointer}
 .ticks{list-style:none;padding:0;margin:16px 0 0;display:grid;gap:6px;font-size:15px;color:var(--muted)}
 .ticks li::before{content:"✓ ";color:var(--green);font-weight:700}
@@ -92,7 +95,7 @@ textarea{resize:vertical;min-height:110px}
 <body>
 <div class="bar" aria-hidden="true"><i id="bar"></i></div>
 <header>
-  <a class="logo" id="logo" href="/declaration-prealable">Dossier Express</a>
+  <a class="logo" id="logo" href="/declaration-prealable">Urbaa</a>
   <button type="button" class="back" id="back" hidden>← Retour</button>
   <span class="count" id="count"></span>
 </header>
@@ -242,10 +245,15 @@ textarea{resize:vertical;min-height:110px}
     <div class="recap" id="recap"></div>
     <p class="note-later" id="laterNote" hidden></p>
     <div class="price">
-      <p style="margin:0 0 6px;font-weight:600">Offre de bienvenue : -50 % sur votre premier dossier</p>
-      <p style="margin:0 0 12px"><s id="full"></s>&nbsp; <span class="big" id="half"></span></p>
-      <p style="margin:0;display:flex;flex-wrap:wrap;align-items:center;gap:8px">Code <span class="code">PREMIER50</span> <button type="button" class="copy" id="copy">Copier</button></p>
-      <p class="hint" style="margin:8px 0 0">À coller dans « code de réduction » sur la page de paiement.</p>
+      <div id="offerOn" hidden>
+        <p class="offer-tag">⚡ Offre premier dossier : -30 % si vous commandez maintenant</p>
+        <p style="margin:6px 0 4px"><s id="full"></s>&nbsp; <span class="big" id="offerPrice"></span></p>
+        <p class="timer">L'offre expire dans <strong id="timer">10:00</strong></p>
+      </div>
+      <div id="offerOff">
+        <p style="margin:0 0 4px;color:var(--muted)">Prix fixe, tout compris</p>
+        <p style="margin:0"><span class="big" id="normal"></span></p>
+      </div>
     </div>
     <button id="submit" class="btn pay" type="submit">Envoyer ma commande et payer</button>
     <p class="err" id="error" role="alert"></p>
@@ -273,10 +281,9 @@ const CONFIG = {
   supabaseKey: "sb_publishable_RKidGRs4ch1ixmRfXoYSww_UsQMSe5w", // clé publique (publishable), déjà utilisée sur le site
   call: "https://calendly.com/hamoureliasse/offre-linkfinder-ai-outbound/"
 };
-const PRICES = { dp: "179 € HT", pc: "590 € HT", a_determiner: "179 € HT" };
-const HALF = { dp: "89,50 € HT", pc: "295 € HT", a_determiner: "89,50 € HT" };
+const PRICES = { dp: "249 € HT", pc: "790 € HT", a_determiner: "249 € HT" };
+const OFFER = { dp: "174 € HT", pc: "553 € HT", a_determiner: "174 € HT" };
 const TYPE_LABEL = { dp: "Déclaration préalable", pc: "Permis de construire", a_determiner: "À déterminer" };
-const PROMO = "PREMIER50";
 const FILE_FIELDS = ["photo_facade", "photo_ensemble", "photo_rue", "plan_ou_devis"];
 const DRAFT = "dx_draft_v1";
 
@@ -417,15 +424,41 @@ const DRAFT = "dx_draft_v1";
     recap.innerHTML = "";
     rows.forEach(([k, val]) => { const d = document.createElement("div"); const a = document.createElement("span"); a.textContent = k; const b = document.createElement("strong"); b.textContent = val; d.append(a, b); recap.append(d); });
     document.getElementById("full").textContent = PRICES[t];
-    document.getElementById("half").textContent = HALF[t];
-    document.getElementById("submit").textContent = `Payer ${HALF[t]} et envoyer`;
+    document.getElementById("offerPrice").textContent = OFFER[t];
+    document.getElementById("normal").textContent = PRICES[t];
+    setPrice(t, offerEnd && Date.now() < offerEnd);
     track("dossier_express_final_step_view", { type: t });
+    startOffer(t, v("contact_email"));
   }
 
-  document.getElementById("copy").addEventListener("click", async e => {
-    try { await navigator.clipboard.writeText(PROMO); e.target.textContent = "Copié ✓"; } catch (x) { e.target.textContent = PROMO; }
-    track("dossier_express_promo_copied");
-  });
+  // Offre « 10 minutes » : le chrono est tenu par le serveur (un rechargement ne le relance pas).
+  let offerEnd = 0, tick = null;
+  function setPrice(t, on) {
+    document.getElementById("offerOn").hidden = !on;
+    document.getElementById("offerOff").hidden = on;
+    document.getElementById("submit").textContent = `Payer ${on ? OFFER[t] : PRICES[t]} et envoyer`;
+  }
+  async function startOffer(t, email) {
+    try {
+      const r = await call("create-order", {
+        action: "offer_start", email, type_dossier: t, nom: form.elements.contact_nom.value,
+        entreprise: form.elements.entreprise.value, tel: form.elements.contact_tel.value, utm: utmParams(),
+      });
+      try { posthog.identify(email.toLowerCase(), { email: email.toLowerCase(), offer: "dossier_express" }); } catch (x) {}
+      if (!r.active || !r.expires_at) { setPrice(t, false); track("dossier_express_offer_shown", { active: false, eligible: r.eligible }); return; }
+      offerEnd = Date.now() + (new Date(r.expires_at) - new Date(r.server_now));
+      track("dossier_express_offer_shown", { active: true, seconds_left: Math.round((offerEnd - Date.now()) / 1000) });
+      clearInterval(tick);
+      const draw = () => {
+        const left = Math.max(0, offerEnd - Date.now());
+        const m = Math.floor(left / 60000), s = Math.floor(left / 1000) % 60;
+        document.getElementById("timer").textContent = `${m}:${String(s).padStart(2, "0")}`;
+        if (!left) { clearInterval(tick); setPrice(form.type_dossier.value || "dp", false); track("dossier_express_offer_expired"); }
+      };
+      setPrice(t, true); draw(); tick = setInterval(draw, 1000);
+    } catch (e) { setPrice(t, false); }
+  }
+  const utmParams = () => { const u = {}; ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term"].forEach(k => { if (params.get(k)) u[k] = params.get(k); }); return u; };
 
   // Réduit les grosses photos (> 2,5 Mo) à 2400 px en JPEG : envoi plus rapide en 4G.
   async function shrink(file) {
@@ -478,7 +511,7 @@ const DRAFT = "dx_draft_v1";
         action: "create", fields, utm,
         files: files.map(x => ({ kind: x.kind, name: x.file.name, type: x.file.type || "application/octet-stream", size: x.file.size }))
       });
-      track("dossier_express_order_submitted", { type: fields.type_dossier, ouvrage: fields.type_ouvrage });
+      track("dossier_express_order_submitted", { type: fields.type_dossier, ouvrage: fields.type_ouvrage, offre_10min: !!created.offre_10min, photos: files.length });
 
       const sb = window.supabase.createClient(CONFIG.supabaseUrl, CONFIG.supabaseKey, { auth: { persistSession: false } });
       for (const [k, up] of created.uploads.entries()) {
@@ -488,8 +521,7 @@ const DRAFT = "dx_draft_v1";
         if (error) throw Object.assign(new Error("upload"), { data: { error: "upload" } });
       }
 
-      try { await navigator.clipboard.writeText(PROMO); } catch (x) {}
-      progress.textContent = "Ouverture du paiement… le code PREMIER50 est copié.";
+      progress.textContent = "Ouverture du paiement sécurisé…";
       const out = await call("create-order", { action: "checkout", order_id: created.order_id, token: created.token });
       track("dossier_express_redirect_to_payment", { type: fields.type_dossier });
       try { localStorage.removeItem(DRAFT); } catch (x) {}

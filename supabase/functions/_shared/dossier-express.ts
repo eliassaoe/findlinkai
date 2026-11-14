@@ -46,11 +46,33 @@ export type TypeDossier = 'dp' | 'pc' | 'a_determiner';
 
 // « Je ne sais pas » est facturé comme une déclaration préalable ; le complément
 // d'un permis éventuel est facturé à la main.
-export const TYPES: Record<TypeDossier, { label: string; cents: number; product: () => string }> = {
-    dp: { label: 'Déclaration préalable', cents: 17900, product: () => env('DODO_PRODUCT_DP') },
-    pc: { label: 'Permis de construire (maison individuelle)', cents: 59000, product: () => env('DODO_PRODUCT_PC') },
-    a_determiner: { label: 'À déterminer (facturé comme une déclaration préalable)', cents: 17900, product: () => env('DODO_PRODUCT_DP') },
+// Prix HT (14 nov. 2026) : 249 € / 790 €. Offre « 10 minutes » : -30 % sur le premier dossier
+// (174 € / 553 €), via des produits Dodo dédiés pour qu'aucun code ne soit à saisir.
+export const TYPES: Record<TypeDossier, { label: string; cents: number; offerCents: number; product: () => string; offerProduct: () => string }> = {
+    dp: { label: 'Déclaration préalable', cents: 24900, offerCents: 17400, product: () => env('DODO_PRODUCT_DP'), offerProduct: () => env('DODO_PRODUCT_DP_OFFRE') },
+    pc: { label: 'Permis de construire (maison individuelle)', cents: 79000, offerCents: 55300, product: () => env('DODO_PRODUCT_PC'), offerProduct: () => env('DODO_PRODUCT_PC_OFFRE') },
+    a_determiner: { label: 'À déterminer (facturé comme une déclaration préalable)', cents: 24900, offerCents: 17400, product: () => env('DODO_PRODUCT_DP'), offerProduct: () => env('DODO_PRODUCT_DP_OFFRE') },
 };
+
+export const OFFER_MINUTES = 10;
+
+// Offre accordée une fois par email, à quelqu'un qui n'a jamais payé, pendant OFFER_MINUTES
+// à partir du premier passage au dernier écran (horodaté ici, pas dans le navigateur).
+export async function offerStatus(db: SupabaseClient, email: string, start = false, graceSeconds = 0):
+    Promise<{ eligible: boolean; active: boolean; expires_at: string | null }> {
+    const { count } = await db.from('orders').select('id', { count: 'exact', head: true })
+        .eq('contact_email', email).not('status', 'in', '(en_attente_paiement,annulee)');
+    if ((count ?? 0) > 0) return { eligible: false, active: false, expires_at: null };
+    let { data: c } = await db.from('dossier_clients').select('offer_started_at').eq('email', email).maybeSingle();
+    if (start && !c?.offer_started_at) {
+        const now = new Date().toISOString();
+        await db.from('dossier_clients').upsert({ email, offer_started_at: now, updated_at: now }, { onConflict: 'email' });
+        c = { offer_started_at: now };
+    }
+    if (!c?.offer_started_at) return { eligible: true, active: false, expires_at: null };
+    const end = new Date(c.offer_started_at).getTime() + OFFER_MINUTES * 60_000;
+    return { eligible: true, active: Date.now() <= end + graceSeconds * 1000, expires_at: new Date(end).toISOString() };
+}
 
 export const OUVRAGES: Record<string, string> = {
     veranda: 'Véranda', extension: 'Extension', pergola: 'Pergola', carport: 'Carport',
@@ -128,7 +150,7 @@ export async function sendEmail(to: string, subject: string, html: string, text:
         const res = await fetch(hook, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ to, subject, html, text, from_name: 'Dossier Express' }),
+            body: JSON.stringify({ to, subject, html, text, from_name: 'Urbaa' }),
         });
         if (!res.ok) console.error('n8n a refusé l’email', res.status, await res.text());
         return res.ok;
@@ -141,7 +163,7 @@ export async function sendEmail(to: string, subject: string, html: string, text:
 export function emailShell(inner: string): string {
     return `<!doctype html><html lang="fr"><body style="margin:0;background:#f7f6f2;font:16px/1.55 -apple-system,'Segoe UI',Roboto,sans-serif;color:#1d1f1e">
 <div style="max-width:600px;margin:0 auto;padding:24px 16px">
-<div style="font-weight:700;margin-bottom:16px">Dossier Express <span style="font-weight:400;color:#5b605d">· par Linkfinder AI</span></div>
+<div style="font-weight:700;font-size:18px;letter-spacing:-.02em;margin-bottom:16px">Urbaa</div>
 <div style="background:#fff;border:1px solid #e3e1da;border-radius:12px;padding:20px">${inner}</div>
 </div></body></html>`;
 }

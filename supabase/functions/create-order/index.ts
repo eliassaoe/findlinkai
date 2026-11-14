@@ -12,7 +12,7 @@
 
 import {
     admin, json, loadSettings, CORS, TYPES, OUVRAGES, FILE_KINDS, BUCKET, MAX_FILE_BYTES, ALLOWED_TYPES,
-    SITE_URL, env, randomToken, safeName, TypeDossier,
+    SITE_URL, env, randomToken, safeName, offerStatus, TypeDossier,
 } from '../_shared/dossier-express.ts';
 
 const TEXT = ['entreprise', 'contact_nom', 'contact_email', 'contact_tel', 'nom_client_final', 'adresse_chantier',
@@ -77,8 +77,7 @@ function checkFiles(files: unknown): { list?: Manifest[]; errors: string[] } {
     return errors.length ? { errors } : { list, errors };
 }
 
-function checkoutUrl(order: Record<string, unknown>): string | null {
-    const product = TYPES[order.type_dossier as TypeDossier].product();
+function checkoutUrl(order: Record<string, unknown>, product: string): string | null {
     if (!product) return null;
     const u = new URL(env('DODO_CHECKOUT_BASE', 'https://checkout.dodopayments.com/buy/').replace(/\/?$/, '/') + product);
     u.searchParams.set('quantity', '1');
@@ -100,7 +99,7 @@ Deno.serve(async (req) => {
     try { body = await req.json(); } catch { return json({ error: 'json' }, 400); }
     // Présence des réglages (oui/non, jamais les valeurs) : diagnostic sans accès au tableau de bord.
     if (body.action === 'health') {
-        const names = ['DODO_WEBHOOK_SECRET', 'DODO_PRODUCT_DP', 'DODO_PRODUCT_PC', 'N8N_EMAIL_WEBHOOK',
+        const names = ['DODO_WEBHOOK_SECRET', 'DODO_PRODUCT_DP', 'DODO_PRODUCT_PC', 'DODO_PRODUCT_DP_OFFRE', 'DODO_PRODUCT_PC_OFFRE', 'N8N_EMAIL_WEBHOOK',
             'ADMIN_EMAIL', 'DODO_CHECKOUT_BASE', 'CALL_URL', 'SITE_URL'];
         return json({
             settings: Object.fromEntries(names.map(n => [n, Boolean(env(n))])),
@@ -108,6 +107,23 @@ Deno.serve(async (req) => {
         });
     }
     const db = admin();
+
+    // Dernier écran atteint : on enregistre le contact (même s'il ne paie pas) et on lance le chrono de l'offre.
+    if (body.action === 'offer_start') {
+        const email = str(body.email, 200).toLowerCase();
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return json({ error: 'validation', fields: ['contact_email'] }, 422);
+        const utm: Record<string, string> = {};
+        for (const [k, val] of Object.entries((body.utm ?? {}) as Record<string, unknown>)) {
+            if (/^utm_(source|medium|campaign|content|term)$/.test(k)) utm[k] = str(val, 120);
+        }
+        await db.from('dossier_clients').upsert({
+            email, nom: str(body.nom, 200) || null, entreprise: str(body.entreprise, 200) || null, tel: str(body.tel, 50) || null,
+            updated_at: new Date().toISOString(), ...(Object.keys(utm).length ? { utm } : {}),
+        }, { onConflict: 'email' });
+        const o = await offerStatus(db, email, true);
+        const t = (str(body.type_dossier) in TYPES ? str(body.type_dossier) : 'dp') as TypeDossier;
+        return json({ ...o, price_cents: TYPES[t].cents, offer_cents: TYPES[t].offerCents, server_now: new Date().toISOString() });
+    }
 
     if (body.action === 'create') {
         const v = validate((body.fields ?? {}) as Record<string, unknown>);
@@ -120,8 +136,15 @@ Deno.serve(async (req) => {
             if (/^utm_(source|medium|campaign|content|term)$/.test(k)) utm[k] = str(val, 120);
         }
         const token = randomToken();
+        const t = TYPES[v.row!.type_dossier as TypeDossier];
+        // 2 minutes de marge : le clic a eu lieu à temps, l'envoi des photos peut prendre un moment.
+        const offer = await offerStatus(db, String(v.row!.contact_email), false, 120);
+        await db.from('dossier_clients').upsert({
+            email: v.row!.contact_email, nom: v.row!.contact_nom, entreprise: v.row!.entreprise, tel: v.row!.contact_tel,
+            updated_at: new Date().toISOString(),
+        }, { onConflict: 'email' });
         const { data: order, error } = await db.from('orders').insert({
-            ...v.row, montant_ht_cents: TYPES[v.row!.type_dossier as TypeDossier].cents, client_token: token, utm,
+            ...v.row, montant_ht_cents: offer.active ? t.offerCents : t.cents, offre_10min: offer.active, client_token: token, utm,
         }).select('id').single();
         if (error || !order) { console.error(error); return json({ error: 'db' }, 500); }
 
@@ -132,7 +155,7 @@ Deno.serve(async (req) => {
             if (e || !data) { console.error(e); return json({ error: 'storage' }, 500); }
             uploads.push({ kind: m.kind, path, token: data.token });
         }
-        return json({ order_id: order.id, token, uploads });
+        return json({ order_id: order.id, token, uploads, offre_10min: offer.active });
     }
 
     if (body.action === 'checkout') {
@@ -159,8 +182,11 @@ Deno.serve(async (req) => {
             const { error: e } = await db.from('order_files').insert(rows);
             if (e) { console.error(e); return json({ error: 'db' }, 500); }
         }
-        const url = checkoutUrl(order);
+        const t = TYPES[order.type_dossier as TypeDossier];
+        const product = order.offre_10min ? (t.offerProduct() || t.product()) : t.product();
+        const url = checkoutUrl(order, product);
         if (!url) return json({ error: 'paiement_non_configure' }, 503);
+        await db.from('orders').update({ checkout_product: product }).eq('id', order.id);
         return json({ checkout_url: url });
     }
 

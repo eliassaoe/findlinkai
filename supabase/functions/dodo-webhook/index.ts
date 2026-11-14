@@ -60,13 +60,13 @@ Deno.serve(async (req) => {
     if (orderErr) { console.error(orderErr); return json({ error: 'db' }, 500); }
     if (!order) {
         await record('commande_introuvable', null);
-        await sendEmail(env('ADMIN_EMAIL'), 'Paiement Dossier Express sans commande', `<p>Paiement ${esc(paymentId)} reçu pour une commande introuvable (${esc(orderId)}). À vérifier dans Dodo.</p>`,
+        await sendEmail(env('ADMIN_EMAIL'), 'Paiement Urbaa sans commande', `<p>Paiement ${esc(paymentId)} reçu pour une commande introuvable (${esc(orderId)}). À vérifier dans Dodo.</p>`,
             `Paiement ${paymentId} reçu pour une commande introuvable (${orderId}). À vérifier dans Dodo.`);
         return json({ ok: true, warning: 'commande introuvable' });
     }
 
     // Contrôle : le produit payé correspond-il au type de dossier ?
-    const expectedProduct = TYPES[order.type_dossier as TypeDossier].product();
+    const expectedProduct = order.checkout_product || TYPES[order.type_dossier as TypeDossier].product();
     const paidProducts: string[] = (data.product_cart ?? []).map((p: { product_id?: string }) => p.product_id).filter(Boolean);
     const productOk = !expectedProduct || paidProducts.length === 0 || paidProducts.includes(expectedProduct);
     const alerte = productOk ? '' : `ATTENTION : produit payé (${paidProducts.join(', ')}) différent du produit attendu pour ce type de dossier.\n`;
@@ -115,9 +115,9 @@ function emailClient(o: Record<string, any>, missing: string[]): Promise<boolean
         `<tr><td style="padding:6px 8px 6px 0;color:#5b605d;vertical-align:top">${esc(k)}</td><td style="padding:6px 0">${esc(v)}</td></tr>`).join('')}</table>
 <p>Votre dossier arrive en <strong>${DELAI}</strong>. Satisfait ou remboursé pendant 40 jours.</p>
 ${manque}
-<p><a href="${esc(lien)}" style="display:inline-block;background:#1f6f54;color:#fff;padding:12px 18px;border-radius:10px;text-decoration:none;font-weight:600">Suivre mon dossier et ajouter des fichiers</a></p>
+<p><a href="${esc(lien)}" style="display:inline-block;background:#0b0b0c;color:#fff;padding:12px 18px;border-radius:10px;text-decoration:none;font-weight:600">Suivre mon dossier et ajouter des fichiers</a></p>
 <p>Une question ? <a href="${esc(CALL_URL)}">Réservez 15 minutes</a>.</p>
-<p style="background:#e8f2ed;border-radius:8px;padding:12px"><strong>Aucuns travaux ne doivent commencer avant l'accord de la mairie et l'affichage sur le terrain.</strong></p>
+<p style="background:#f6f6f7;border-radius:8px;padding:12px"><strong>Aucuns travaux ne doivent commencer avant l'accord de la mairie et l'affichage sur le terrain.</strong></p>
 <p>Ce lien de suivi est personnel : ne le transférez pas.</p>`);
     const text = [
         `Bonjour ${o.contact_nom},`, '', 'Votre commande est confirmée. Merci.', '',
@@ -134,7 +134,7 @@ ${manque}
 
 function emailAdmin(o: Record<string, any>, alerte: string): Promise<boolean> {
     const lien = `${SITE_URL}/admin/dossiers#${o.id}`;
-    const montant = o.amount_paid_cents ? `${euros(o.amount_paid_cents)} TTC payés (${euros(o.montant_ht_cents)} HT)` : `${euros(o.montant_ht_cents)} HT`;
+    const montant = o.amount_paid_cents ? `${euros(o.amount_paid_cents)} TTC payés (${euros(o.montant_ht_cents)} HT${o.offre_10min ? ', offre 10 min' : ''})` : `${euros(o.montant_ht_cents)} HT`;
     const rows: [string, string][] = [
         ['Type de dossier', TYPES[o.type_dossier as TypeDossier].label],
         ['Contact', `${o.contact_nom} · ${o.contact_email}`],
