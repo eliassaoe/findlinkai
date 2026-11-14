@@ -1,4 +1,4 @@
-// Admin Urbaa. Connexion par mot de passe : l'Edge Function admin-dossiers vérifie le mot de passe
+// Admin Urba. Connexion par mot de passe : l'Edge Function admin-dossiers vérifie le mot de passe
 // (ADMIN_PASSWORD dans dossier_settings) et renvoie un jeton signé de 30 jours, gardé dans ce navigateur.
 // Le navigateur n'a aucun accès direct aux tables : tout passe par la fonction (clé service côté serveur).
 (function () {
