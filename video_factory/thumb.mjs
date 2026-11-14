@@ -80,12 +80,12 @@ ${redArrow(30, 290)}
 ${logo}</body>`,
 
   flow: () => `<body class="dark"><style>
-.lab{font-size:70px;color:#fff;text-transform:uppercase}</style>
-<div class="lab A" style="left:40px;top:30px">${esc(t.top)}</div>
-<div class="lab A" style="left:690px;top:30px;color:#fde047">${esc(t.bottom)}</div>
-<div class="cardbox" style="left:30px;top:150px;transform:rotate(-3deg)">${table(rows.slice(0, 6), { fs: 27, found: false, empty: true })}</div>
+.lab{font-size:84px;color:#fff;text-transform:uppercase}</style>
+<div class="lab A fit" data-max="600" style="left:40px;top:26px">${esc(t.flowIn || t.colIn || 'Names')}</div>
+<div class="lab A fit flowL" style="left:700px;top:26px;color:#fde047">${esc(t.flowOut || t.colOut || 'Found')} ✓</div>
+<div class="cardbox" style="left:30px;top:140px;transform:rotate(-3deg)">${table(rows.slice(0, 6), { fs: 33, found: false, empty: true })}</div>
 <svg style="position:absolute;left:var(--ax);top:330px;width:150px;height:110px;z-index:5" viewBox="0 0 200 140"><path d="M10 50 H120 V10 L190 70 L120 130 V90 H10 Z" fill="#fde047" stroke="#0b0b0b" stroke-width="6"/></svg>
-<div class="cardbox fitl flowR" style="left:640px;top:150px;transform:rotate(2deg)">${table(rows.slice(0, 6), { fs: 27, found: false })}</div>
+<div class="cardbox fitl flowR" style="left:640px;top:140px;transform:rotate(2deg)">${table(rows.slice(0, 6), { fs: 33, found: false })}</div>
 </body>`,
 
   number: () => `<body class="dark"><style>
@@ -149,6 +149,9 @@ await page.evaluate(() => {
   let fs = parseFloat(getComputedStyle(tb).fontSize);
   while (r.getBoundingClientRect().right > 1265 && fs > 12) { fs -= 1; tb.style.fontSize = fs + 'px'; }
   document.body.style.setProperty('--ax', (l - 30) + 'px');
+  const lab = document.querySelector('.flowL');
+  if (lab) { lab.style.left = r.style.left; let f = parseFloat(getComputedStyle(lab).fontSize);
+    while (lab.getBoundingClientRect().right > 1260 && f > 30) { f -= 2; lab.style.fontSize = f + 'px'; } }
 });
 await page.screenshot({ path: outPath });
 await browser.close();
