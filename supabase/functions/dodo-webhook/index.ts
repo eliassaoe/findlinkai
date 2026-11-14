@@ -113,7 +113,7 @@ function emailClient(o: Record<string, any>, missing: string[]): Promise<boolean
 <p>Votre commande est confirmée. Merci.</p>
 <table style="border-collapse:collapse;width:100%;margin:12px 0">${rows.map(([k, v]) =>
         `<tr><td style="padding:6px 8px 6px 0;color:#5b605d;vertical-align:top">${esc(k)}</td><td style="padding:6px 0">${esc(v)}</td></tr>`).join('')}</table>
-<p>Votre dossier arrive sous <strong>${DELAI}</strong>.</p>
+<p>Votre dossier arrive en <strong>${DELAI}</strong>. Satisfait ou remboursé pendant 40 jours.</p>
 ${manque}
 <p><a href="${esc(lien)}" style="display:inline-block;background:#1f6f54;color:#fff;padding:12px 18px;border-radius:10px;text-decoration:none;font-weight:600">Suivre mon dossier et ajouter des fichiers</a></p>
 <p>Une question ? <a href="${esc(CALL_URL)}">Réservez 15 minutes</a>.</p>
@@ -122,7 +122,7 @@ ${manque}
     const text = [
         `Bonjour ${o.contact_nom},`, '', 'Votre commande est confirmée. Merci.', '',
         ...rows.map(([k, v]) => `${k} : ${v}`), '',
-        `Votre dossier arrive sous ${DELAI}.`, '',
+        `Votre dossier arrive en ${DELAI}. Satisfait ou remboursé pendant 40 jours.`, '',
         ...(missing.length ? ["Ce qu'il nous manque encore :", ...missing.map(m => `- ${m}`), 'Ajoutez-le depuis votre lien de suivi.'] : ["Nous avons tout ce qu'il faut pour commencer."]),
         '', `Suivre mon dossier et ajouter des fichiers : ${lien}`,
         `Une question ? Réservez 15 minutes : ${CALL_URL}`, '',

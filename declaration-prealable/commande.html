@@ -59,6 +59,7 @@ ul.check li::before{content:"✓";position:absolute;left:0;color:var(--accent);f
 details{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:10px}
 summary{cursor:pointer;font-weight:600}
 details p{color:var(--muted);margin:10px 0 0}
+a{color:var(--accent)}
 footer{padding:28px 0;color:var(--muted);font-size:14px;border-top:1px solid var(--line)}
 
 .form-wrap{max-width:680px}
@@ -82,6 +83,13 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,.btn:focus-visib
 .submit{width:100%;font-size:17px;padding:15px 18px;cursor:pointer}
 .submit[disabled]{opacity:.6;cursor:progress}
 [hidden]{display:none !important}
+.promo{background:var(--soft)}
+.code{font-family:ui-monospace,Menlo,monospace;font-weight:700;font-size:17px;background:var(--surface);border:1px dashed var(--accent);border-radius:6px;padding:3px 8px}
+.copy{font:inherit;font-size:14px;padding:4px 10px;border-radius:6px;border:1px solid var(--accent);background:transparent;color:var(--accent);cursor:pointer}
+.total{margin:0;font-size:20px}
+.total s{color:var(--muted);font-size:16px;margin-right:6px}
+.trust{list-style:none;padding:0;margin:14px 0 0;display:flex;flex-wrap:wrap;gap:6px 16px;font-size:14px;color:var(--muted)}
+.trust li::before{content:"✓ ";color:var(--accent);font-weight:700}
 </style>
 </head>
 <body>
@@ -95,12 +103,12 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,.btn:focus-visib
 <main class="wrap form-wrap">
   <div class="hero" style="padding-bottom:16px">
     <h1>Envoyer un projet</h1>
-    <p class="lead">Cinq minutes. Vous payez à la fin, puis vous recevez le dossier sous 5 à 7 jours ouvrés après réception de toutes les informations.</p>
+    <p class="lead">Cinq minutes : le type de dossier, le projet, trois photos. Vous payez seulement à la fin, pour envoyer la commande. Dossier livré en moins d'une semaine.</p>
   </div>
 
   <form id="order" novalidate>
     <fieldset>
-      <legend>Type de dossier</legend>
+      <legend>1. Type de dossier</legend>
       <label class="choice"><input type="radio" name="type_dossier" value="dp" required checked> <span><strong>Déclaration préalable</strong> – 179 € HT</span></label>
       <label class="choice"><input type="radio" name="type_dossier" value="pc"> <span><strong>Permis de construire maison individuelle</strong> – 590 € HT</span></label>
       <label class="choice"><input type="radio" name="type_dossier" value="a_determiner"> <span><strong>Je ne sais pas, vérifiez pour moi</strong> – 179 € HT, facturé comme une déclaration préalable. S'il faut un permis, nous vous facturons le complément.</span></label>
@@ -108,7 +116,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,.btn:focus-visib
     </fieldset>
 
     <fieldset>
-      <legend>Vous</legend>
+      <legend>2. Vous</legend>
       <label>Nom de votre entreprise<input name="entreprise" required autocomplete="organization"></label>
       <label>Votre nom<input name="contact_nom" required autocomplete="name"></label>
       <label>Votre email<input name="contact_email" type="email" required autocomplete="email"></label>
@@ -116,7 +124,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,.btn:focus-visib
     </fieldset>
 
     <fieldset>
-      <legend>Le chantier</legend>
+      <legend>3. Le chantier</legend>
       <label>Nom du propriétaire (votre client)<input name="nom_client_final" required></label>
       <label>Adresse du chantier<input name="adresse_chantier" required placeholder="Numéro et rue"></label>
       <div class="row2">
@@ -157,7 +165,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,.btn:focus-visib
     </fieldset>
 
     <fieldset>
-      <legend>Photos et plans</legend>
+      <legend>4. Photos et plans</legend>
       <p class="hint">Trois photos obligatoires. JPG, PNG, HEIC ou PDF, 15 Mo maximum chacune.</p>
       <label>Photo de la façade concernée<input type="file" name="photo_facade" accept="image/*,application/pdf" required></label>
       <label>Photo de la vue d'ensemble de la maison<input type="file" name="photo_ensemble" accept="image/*,application/pdf" required></label>
@@ -165,10 +173,21 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,.btn:focus-visib
       <label>Plan, croquis ou devis du projet <span class="opt">facultatif</span><input type="file" name="plan_ou_devis" accept="image/*,application/pdf"></label>
     </fieldset>
 
+    <fieldset class="promo">
+      <legend>5. Envoyer la commande</legend>
+      <p style="margin:0 0 10px"><strong>Offre de bienvenue : -50 % sur votre premier dossier.</strong></p>
+      <p style="margin:0 0 12px">Saisissez ce code sur la page de paiement : <span class="code" id="code">PREMIER50</span> <button type="button" class="copy" id="copy">Copier</button></p>
+      <p class="total"><s id="full">179 € HT</s> <strong id="half">89,50 € HT</strong></p>
+    </fieldset>
     <p id="error" class="error" role="alert" hidden></p>
-    <button id="submit" class="btn btn-primary submit" type="submit">Payer 179 € HT et envoyer le dossier</button>
+    <button id="submit" class="btn btn-primary submit" type="submit">Envoyer ma commande et payer</button>
     <p class="note" id="progress" aria-live="polite"></p>
-    <p class="note">Paiement sécurisé par Dodo Payments. Accepté ou remboursé.</p>
+    <ul class="trust">
+      <li>Livré en moins d'une semaine</li>
+      <li>Satisfait ou remboursé pendant 40 jours</li>
+      <li>Paiement sécurisé par Dodo Payments</li>
+    </ul>
+    <p class="note">Une question avant de payer ? <a data-link="call" href="#">Réservez 15 minutes avec nous</a>.</p>
   </form>
 </main>
 
@@ -185,6 +204,8 @@ const CONFIG = {
   call: "https://calendly.com/hamoureliasse/offre-linkfinder-ai-outbound/"
 };
 const PRICES = { dp: "179 € HT", pc: "590 € HT", a_determiner: "179 € HT" };
+const HALF = { dp: "89,50 € HT", pc: "295 € HT", a_determiner: "89,50 € HT" };
+const PROMO = "PREMIER50";
 const FILE_FIELDS = ["photo_facade", "photo_ensemble", "photo_rue", "plan_ou_devis"];
 const LABELS = {
   type_dossier: "Type de dossier", entreprise: "Entreprise", contact_nom: "Votre nom", contact_email: "Email",
@@ -210,12 +231,18 @@ const LABELS = {
   if (pre && PRICES[pre]) form.querySelector(`input[name=type_dossier][value=${pre}]`).checked = true;
   const updateButton = () => {
     const t = form.type_dossier.value || "dp";
-    btn.textContent = `Payer ${PRICES[t]} et envoyer le dossier`;
+    document.getElementById("full").textContent = PRICES[t];
+    document.getElementById("half").textContent = HALF[t];
+    btn.textContent = `Envoyer ma commande et payer ${HALF[t]}`;
   };
   form.addEventListener("change", e => { if (e.target.name === "type_dossier") updateButton(); });
   form.addEventListener("input", e => { if (e.target.classList) e.target.classList.remove("invalid"); });
   form.addEventListener("change", e => { if (e.target.classList) e.target.classList.remove("invalid"); });
   updateButton();
+  document.getElementById("copy").addEventListener("click", async e => {
+    try { await navigator.clipboard.writeText(PROMO); e.target.textContent = "Copié"; } catch (x) { e.target.textContent = PROMO; }
+    track("dossier_express_promo_copied");
+  });
   track("dossier_express_order_form_view", { type: form.type_dossier.value });
 
   function showError(msg, names) {
@@ -290,7 +317,8 @@ const LABELS = {
         if (error) throw Object.assign(new Error("upload"), { data: { error: "upload" } });
       }
 
-      progress.textContent = "Ouverture du paiement…";
+      progress.textContent = "Ouverture du paiement… code PREMIER50 copié, collez-le dans « code de réduction ».";
+      try { await navigator.clipboard.writeText(PROMO); } catch (x) {}
       const out = await call("create-order", { action: "checkout", order_id: created.order_id, token: created.token });
       track("dossier_express_redirect_to_payment", { type: fields.type_dossier });
       location.href = out.checkout_url;
