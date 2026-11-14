@@ -23,7 +23,7 @@ let SETTINGS: Record<string, string> = {};
 export const env = (k: string, fallback = ''): string => Deno.env.get(k) || SETTINGS[k] || fallback;
 
 export let SITE_URL = 'https://linkfinderai.com';
-export let CALL_URL = 'https://calendly.com/hamoureliasse/offre-linkfinder-ai-outbound/';
+export let CALL_URL = 'https://calendly.com/hamoureliasse/appel-avec-urbaa';
 
 // À appeler au début de chaque requête : lit `dossier_settings` (clé service, la RLS bloque le reste).
 export async function loadSettings(): Promise<void> {
@@ -35,7 +35,7 @@ export async function loadSettings(): Promise<void> {
         console.error('dossier_settings illisible', e);
     }
     SITE_URL = env('SITE_URL', 'https://linkfinderai.com').replace(/\/$/, '');
-    CALL_URL = env('CALL_URL', 'https://calendly.com/hamoureliasse/offre-linkfinder-ai-outbound/');
+    CALL_URL = env('CALL_URL', 'https://calendly.com/hamoureliasse/appel-avec-urbaa');
 }
 export const DELAI = "moins d'une semaine après réception de toutes les informations";
 export const BUCKET = 'dossiers';
