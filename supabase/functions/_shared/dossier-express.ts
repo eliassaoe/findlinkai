@@ -4,9 +4,12 @@
 //   DODO_WEBHOOK_SECRET   whsec_… (Dodo → Développeur → Webhooks)
 //   DODO_PRODUCT_DP       id du produit « Déclaration préalable – Dossier Express » (pdt_…)
 //   DODO_PRODUCT_PC       id du produit « Permis de construire – Dossier Express » (pdt_…)
-//   RESEND_API_KEY        re_… (envoi des emails)
-//   EMAIL_FROM            ex. « Dossier Express <dossiers@linkfinderai.com> » (domaine vérifié chez Resend)
 //   ADMIN_EMAIL           votre adresse : notifications de commande et de fichier
+//   N8N_EMAIL_WEBHOOK     webhook n8n « Dossier Express – emails » : envoie l'email avec le compte SMTP
+//                         de n8n (support@linkfinderai.com). Pas de Resend.
+// Seul DODO_WEBHOOK_SECRET doit être un secret Supabase. Les autres réglages (ids produits, adresses,
+// mode de paiement, webhook n8n) peuvent aussi vivre dans la table privée `dossier_settings`
+// (RLS active, aucun accès anon) : un secret Supabase du même nom l'emporte toujours.
 // Facultatifs :
 //   DODO_CHECKOUT_BASE    https://checkout.dodopayments.com/buy/ (test : https://test.checkout.dodopayments.com/buy/)
 //   SITE_URL              https://linkfinderai.com
@@ -15,10 +18,25 @@
 
 import { createClient, SupabaseClient } from 'jsr:@supabase/supabase-js@2';
 
-export const env = (k: string, fallback = ''): string => Deno.env.get(k) ?? fallback;
+let SETTINGS: Record<string, string> = {};
 
-export const SITE_URL = env('SITE_URL', 'https://linkfinderai.com').replace(/\/$/, '');
-export const CALL_URL = env('CALL_URL', 'https://calendly.com/hamoureliasse/offre-linkfinder-ai-outbound/');
+export const env = (k: string, fallback = ''): string => Deno.env.get(k) || SETTINGS[k] || fallback;
+
+export let SITE_URL = 'https://linkfinderai.com';
+export let CALL_URL = 'https://calendly.com/hamoureliasse/offre-linkfinder-ai-outbound/';
+
+// À appeler au début de chaque requête : lit `dossier_settings` (clé service, la RLS bloque le reste).
+export async function loadSettings(): Promise<void> {
+    try {
+        const { data, error } = await admin().from('dossier_settings').select('key, value');
+        if (error) console.error('dossier_settings illisible', error.message);
+        SETTINGS = Object.fromEntries((data ?? []).map((r: { key: string; value: string }) => [r.key, r.value]));
+    } catch (e) {
+        console.error('dossier_settings illisible', e);
+    }
+    SITE_URL = env('SITE_URL', 'https://linkfinderai.com').replace(/\/$/, '');
+    CALL_URL = env('CALL_URL', 'https://calendly.com/hamoureliasse/offre-linkfinder-ai-outbound/');
+}
 export const DELAI = '5 à 7 jours ouvrés après réception de toutes les informations';
 export const BUCKET = 'dossiers';
 export const MAX_FILE_BYTES = 15 * 1024 * 1024;
@@ -61,7 +79,7 @@ export function json(body: unknown, status = 200): Response {
 }
 
 export function admin(): SupabaseClient {
-    return createClient(env('SUPABASE_URL'), env('SUPABASE_SERVICE_ROLE_KEY'), { auth: { persistSession: false } });
+    return createClient(Deno.env.get('SUPABASE_URL') ?? '', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '', { auth: { persistSession: false } });
 }
 
 export function euros(cents: number): string {
@@ -101,19 +119,18 @@ export function suiviUrl(token: string): string {
 }
 
 export async function sendEmail(to: string, subject: string, html: string, text: string): Promise<boolean> {
-    const key = env('RESEND_API_KEY');
-    const from = env('EMAIL_FROM');
-    if (!key || !from || !to) {
-        console.error('email non envoyé : RESEND_API_KEY, EMAIL_FROM ou destinataire manquant', { subject });
+    const hook = env('N8N_EMAIL_WEBHOOK');
+    if (!hook || !to) {
+        console.error('email non envoyé : N8N_EMAIL_WEBHOOK ou destinataire manquant', { subject });
         return false;
     }
     try {
-        const res = await fetch('https://api.resend.com/emails', {
+        const res = await fetch(hook, {
             method: 'POST',
-            headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ from, to: [to], subject, html, text }),
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ to, subject, html, text, from_name: 'Dossier Express' }),
         });
-        if (!res.ok) console.error('Resend a refusé l’email', res.status, await res.text());
+        if (!res.ok) console.error('n8n a refusé l’email', res.status, await res.text());
         return res.ok;
     } catch (e) {
         console.error('échec envoi email', e);

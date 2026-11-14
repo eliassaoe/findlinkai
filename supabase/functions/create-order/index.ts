@@ -11,7 +11,7 @@
 // Déployer avec --no-verify-jwt : la page est publique, sans compte.
 
 import {
-    admin, json, CORS, TYPES, OUVRAGES, FILE_KINDS, REQUIRED_PHOTOS, BUCKET, MAX_FILE_BYTES, ALLOWED_TYPES,
+    admin, json, loadSettings, CORS, TYPES, OUVRAGES, FILE_KINDS, REQUIRED_PHOTOS, BUCKET, MAX_FILE_BYTES, ALLOWED_TYPES,
     SITE_URL, env, randomToken, safeName, TypeDossier,
 } from '../_shared/dossier-express.ts';
 
@@ -92,11 +92,21 @@ function checkoutUrl(order: Record<string, unknown>): string | null {
 }
 
 Deno.serve(async (req) => {
+    await loadSettings();
     if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
     if (req.method !== 'POST') return json({ error: 'method' }, 405);
 
     let body: Record<string, unknown>;
     try { body = await req.json(); } catch { return json({ error: 'json' }, 400); }
+    // Présence des réglages (oui/non, jamais les valeurs) : diagnostic sans accès au tableau de bord.
+    if (body.action === 'health') {
+        const names = ['DODO_WEBHOOK_SECRET', 'DODO_PRODUCT_DP', 'DODO_PRODUCT_PC', 'N8N_EMAIL_WEBHOOK',
+            'ADMIN_EMAIL', 'DODO_CHECKOUT_BASE', 'CALL_URL', 'SITE_URL'];
+        return json({
+            settings: Object.fromEntries(names.map(n => [n, Boolean(env(n))])),
+            checkout_mode: env('DODO_CHECKOUT_BASE').includes('test.') ? 'test' : 'live',
+        });
+    }
     const db = admin();
 
     if (body.action === 'create') {

@@ -11,11 +11,12 @@
 // est la signature.
 
 import {
-    admin, json, env, verifyStandardWebhook, TYPES, OUVRAGES, missingItems, suiviUrl, sendEmail, emailShell,
+    admin, json, loadSettings, env, verifyStandardWebhook, TYPES, OUVRAGES, missingItems, suiviUrl, sendEmail, emailShell,
     esc, euros, SITE_URL, CALL_URL, DELAI, TypeDossier,
 } from '../_shared/dossier-express.ts';
 
 Deno.serve(async (req) => {
+    await loadSettings();
     if (req.method !== 'POST') return json({ error: 'method' }, 405);
     // Comme ltd-webhook : 503 tant que le secret n'est pas posé, pour que Dodo
     // réessaie au lieu de perdre un paiement.

@@ -8,7 +8,7 @@
 // Déployer avec --no-verify-jwt.
 
 import {
-    admin, json, CORS, env, TYPES, OUVRAGES, FILE_KINDS, BUCKET, MAX_FILE_BYTES, ALLOWED_TYPES, SITE_URL, CALL_URL,
+    admin, json, loadSettings, CORS, env, TYPES, OUVRAGES, FILE_KINDS, BUCKET, MAX_FILE_BYTES, ALLOWED_TYPES, SITE_URL, CALL_URL,
     DELAI, missingItems, safeName, sendEmail, emailShell, esc, TypeDossier,
 } from '../_shared/dossier-express.ts';
 
@@ -24,6 +24,7 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 Deno.serve(async (req) => {
+    await loadSettings();
     if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
     if (req.method !== 'POST') return json({ error: 'method' }, 405);
     let body: Record<string, any>;
