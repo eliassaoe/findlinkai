@@ -107,6 +107,23 @@ async function moveTo(x, y, ms = 700) {
   }
   cur = { x, y };
 }
+// A real hand resting on a mouse never holds perfectly still for seconds at a
+// time. When narration runs longer than the action takes, drift the cursor in
+// small, slow, natural steps instead of freezing it (the exact gap that made
+// the recording look dead during any wait longer than ~1s).
+async function idleDrift(ms) {
+  const anchor = { x: cur.x, y: cur.y }; // stay near where the action left off, never wander
+  let remaining = ms;
+  while (remaining > 60) {
+    const chunk = Math.min(remaining, 500 + Math.random() * 400);
+    const x = anchor.x + (Math.random() - 0.5) * 20;
+    const y = anchor.y + (Math.random() - 0.5) * 14;
+    await moveTo(x, y, chunk * 0.55);
+    await sleep(chunk * 0.45);
+    remaining -= chunk;
+  }
+  if (remaining > 0) await sleep(remaining);
+}
 function locate(a) {
   if (a.selector) return page.locator(a.selector).first();
   if (a.role) return page.getByRole(a.role, { name: a.name, exact: !!a.exact }).first();
@@ -179,7 +196,7 @@ for (const step of sc.steps) {
   catch (e) { await page.screenshot({ path: path.join(outDir, 'error-' + step.id + '.png') }); throw e; }
   const need = (durations[step.id] || 2) + (step.tail ?? 0.5);
   const spent = Date.now() / 1000 - start;
-  if (need > spent) await sleep((need - spent) * 1000);
+  if (need > spent) await idleDrift((need - spent) * 1000);
   if (sc.payoffAt === step.id) await page.screenshot({ path: path.join(outDir, 'payoff-at.jpg'), type: 'jpeg', quality: 92 });
 }
 await sleep(300);

@@ -122,9 +122,10 @@ def main():
 
     def still(img, audio, seconds, dst, zoom=False):
         vf = "scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2:white"
-        if zoom:  # slow push-in on the finished result
+        if zoom:  # slow push-in on the finished result (was min(1+0.0006*on,1.12): over
+            # a typical 5s payoff that reaches only ~1.09x, too subtle to read as motion)
             frames = int(float(seconds) * 30)
-            vf = ("scale=3840:-1,zoompan=z='min(1+0.0006*on,1.12)':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)'"
+            vf = ("scale=3840:-1,zoompan=z='min(1+0.0022*on,1.16)':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)'"
                   f":d={frames}:s=1920x1080:fps=30")
         run(["ffmpeg", "-y", "-loglevel", "error", "-loop", "1", "-i", img, "-i", audio,
              "-vf", vf, "-t", f"{seconds:.2f}", *enc, *aenc, "-af", "apad", "-shortest", dst])
@@ -149,7 +150,7 @@ def main():
     filt.append(f"{mix}amix=inputs={len(tl['steps'])}:normalize=0,apad[aout]")
     run(["ffmpeg", "-y", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", out / "frames.ffconcat", *inputs,
          "-filter_complex", ";".join(filt), "-map", "0:v", "-map", "[aout]",
-         "-vf", "scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2:white'",
+         "-vf", "scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2:white",
          "-t", f"{vid_len:.2f}", *enc, *aenc, out / "s2.mp4"]); segs.append(out / "s2.mp4")
 
     if not short:
