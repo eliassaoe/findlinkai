@@ -70,6 +70,16 @@ SEMrush (US) checked before replying. Nothing on our side is published until the
 
 Archived the same day: smartpostly (paid, traffic from junk pages), tomoson (says its sites are not indexed), sourcingtools ($500, AS 7), templatery, gopublish, b2btimes (no traffic), meetharlow (sponsorship only), pwskills and sparrowdesk (support bots).
 
+## Swaps proposed 15 Nov 2026 (MentionAgent)
+
+Owner rule (15 Nov): the link to us must sit on **their highest-traffic relevant page**, so every proposal names two candidate pages and asks them which gets more organic traffic. Semrush was not reachable (RankerFox opens it in the Kloow app, not in Chrome), so traffic was not checked on our side.
+
+| Partner | DR | They place | We give | Status |
+| --- | --- | --- | --- | --- |
+| shopthemedetector.com | 71 | "Clearbit alternative" → `/clearbit-alternative`, on "6 Best Shopify CRM Apps" or "Top-Rated Shopify Apps", whichever has more traffic | "Shopify theme detector" → their tool, Shopify section of `/top-best-marketing-automation-platforms` | proposed, waiting |
+| gainhq.com | 42 | "Proxycurl alternative" → `/proxycurl-alternative`, on "MCP vs API" or their highest-traffic API/SaaS article | link to that article from `/best-linkedin-api` | they asked for ABC; we have no third site, so offered a direct swap. Drop if they refuse |
+| publishiqhub.com | 10 | homepage link, entry #16 of their data-enrichment list (live, checked 15 Nov) | $10 paid placement agreed 10 Nov | **owner must pay the $10 PayPal link in the thread by ~17 Nov** or they remove it |
+
 ## Internal links pointing at them (9 Nov 2026)
 
 Free and immediate, so done first:
