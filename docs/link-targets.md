@@ -80,6 +80,18 @@ Owner rule (15 Nov): the link to us must sit on **their highest-traffic relevant
 | gainhq.com | 42 | "Proxycurl alternative" → `/proxycurl-alternative`, on "MCP vs API" or their highest-traffic API/SaaS article | link to that article from `/best-linkedin-api` | they asked for ABC; we have no third site, so offered a direct swap. Drop if they refuse |
 | publishiqhub.com | 10 | homepage link, entry #16 of their data-enrichment list (live, checked 15 Nov) | $10 paid placement agreed 10 Nov | **owner must pay the $10 PayPal link in the thread by ~17 Nov** or they remove it |
 
+### Semrush check, 15 Nov 2026 (US, via RankerFox → Semrush Guru "Option 1" opens in Chrome)
+
+**Rule from now on:** before proposing a swap, open Semrush → Top Pages for their domain and ask for the link on their highest-traffic page that fits our topic. Don't ask them for traffic.
+
+| Partner | Site US traffic | Page we proposed | Its traffic | Their best relevant page |
+| --- | --- | --- | --- | --- |
+| shopthemedetector.com | 879 (89% on the homepage tool) | Shopify CRM apps | ~0 | the blog has ~0 everywhere (best: recurring-payment-apps, 30). The value is DR 71 only |
+| gainhq.com | 163, down 20% | MCP vs API | ~0 | software-development-life-cycle (56), off-topic. **Not worth it** |
+| mailneo.co | 467 | /blog/ai-outreach-tools | ~0 | finding-peoples-email-address (4), the only on-topic page |
+| goodday.work | 10.2K | Bitrix24 alternatives | 6 | **best-monday-com-alternatives (179)**, best-enterprise-project-management-software (112) |
+| ecommerce.folio3.com | 2.1K (mostly service pages) | Shopify apps guide | not measured | blog posts get 50–80 each |
+
 ## Internal links pointing at them (9 Nov 2026)
 
 Free and immediate, so done first:
