@@ -92,6 +92,12 @@ Owner rule (15 Nov): the link to us must sit on **their highest-traffic relevant
 | goodday.work | 10.2K | Bitrix24 alternatives | 6 | **best-monday-com-alternatives (179)**, best-enterprise-project-management-software (112) |
 | ecommerce.folio3.com | 2.1K (mostly service pages) | Shopify apps guide | not measured | blog posts get 50–80 each |
 
+### Danish Lead Co (danishleadco.io), proposed 16 Nov 2026
+
+They offered to mention us in "10 best outbound sales agencies for B2B lead generation" in exchange for an entry on `/best-b2b-lead-generation-agencies`.
+Semrush US, 16 Nov: site 612/month. The page they offered gets 33. Their best relevant page is `/blog/best-b2b-lead-generation-agencies-private-equity-ma` (253).
+Counter-proposal: link on that PE/M&A page, anchor "Kaspr alternative" → `/kaspr-alternative`. In return: Danish Lead Co entry + dofollow homepage link on `/best-b2b-lead-generation-agencies`, added only after their link is live.
+
 ### webpeak.org network (paid links, checked 16 Nov 2026, Semrush US/UK organic traffic)
 
 They answered our swap outreach with a price list for 11 sites they own. **Verdict: don't buy.** It's a link-selling network: off-topic posts (bike rentals in Lewisham, clothing brands in Turkmenistan, "gd7 playz blogspot") and almost no traffic.
