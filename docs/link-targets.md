@@ -99,6 +99,11 @@ Semrush, 16 Nov, all Top Pages read: site 612/month US, ~4 UK. 253 of it is a pr
 Decision: accept their page, anchor "Kaspr alternative" → `/kaspr-alternative`. In return: Danish Lead Co entry + dofollow homepage link on `/best-b2b-lead-generation-agencies`, added only after their link is live.
 Rule learned: "highest-traffic page" means highest-traffic **on-topic** page. A page about a market we don't sell to doesn't qualify, however big.
 
+### gigmit.com (DR 59), proposed 16 Nov 2026
+
+Music booking platform (German). Semrush, 16 Nov: 312 US / 2.5K DE organic. Top US page is livestreaming tips (155), off-topic. Best on-topic page: the sponsorship-deals guide (`/blog/en/sponsorship-deals-how-to/`, ~7 US), where artists contact brands; our original pitch was on their cold-email tips for musicians, which has no measurable traffic.
+Proposed: on their sponsorship guide, "Skrapp alternative" → `/skrapp-alternative` (stacks with mailneo). In return: dofollow link to gigmit.com on `/instagram-email-finder`, in the "connect with brands and creators" part. Nothing on our side until their link is live.
+
 ### webpeak.org network (paid links, checked 16 Nov 2026, Semrush US/UK organic traffic)
 
 They answered our swap outreach with a price list for 11 sites they own. **Verdict: don't buy.** It's a link-selling network: off-topic posts (bike rentals in Lewisham, clothing brands in Turkmenistan, "gd7 playz blogspot") and almost no traffic.
