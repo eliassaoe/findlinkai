@@ -95,8 +95,9 @@ Owner rule (15 Nov): the link to us must sit on **their highest-traffic relevant
 ### Danish Lead Co (danishleadco.io), proposed 16 Nov 2026
 
 They offered to mention us in "10 best outbound sales agencies for B2B lead generation" in exchange for an entry on `/best-b2b-lead-generation-agencies`.
-Semrush US, 16 Nov: site 612/month. The page they offered gets 33. Their best relevant page is `/blog/best-b2b-lead-generation-agencies-private-equity-ma` (253).
-Counter-proposal: link on that PE/M&A page, anchor "Kaspr alternative" → `/kaspr-alternative`. In return: Danish Lead Co entry + dofollow homepage link on `/best-b2b-lead-generation-agencies`, added only after their link is live.
+Semrush, 16 Nov, all Top Pages read: site 612/month US, ~4 UK. 253 of it is a private equity / M&A guide, **off-topic for us, so not a candidate**. The page they offered (33) is their best on-topic page; the next ones are AI sales-engagement tools 2025 (11) and AI outbound prospecting tools 2026 (7).
+Decision: accept their page, anchor "Kaspr alternative" → `/kaspr-alternative`. In return: Danish Lead Co entry + dofollow homepage link on `/best-b2b-lead-generation-agencies`, added only after their link is live.
+Rule learned: "highest-traffic page" means highest-traffic **on-topic** page. A page about a market we don't sell to doesn't qualify, however big.
 
 ### webpeak.org network (paid links, checked 16 Nov 2026, Semrush US/UK organic traffic)
 
