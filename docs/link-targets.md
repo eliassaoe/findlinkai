@@ -92,6 +92,21 @@ Owner rule (15 Nov): the link to us must sit on **their highest-traffic relevant
 | goodday.work | 10.2K | Bitrix24 alternatives | 6 | **best-monday-com-alternatives (179)**, best-enterprise-project-management-software (112) |
 | ecommerce.folio3.com | 2.1K (mostly service pages) | Shopify apps guide | not measured | blog posts get 50–80 each |
 
+### webpeak.org network (paid links, checked 16 Nov 2026, Semrush US/UK organic traffic)
+
+They answered our swap outreach with a price list for 11 sites they own. **Verdict: don't buy.** It's a link-selling network: off-topic posts (bike rentals in Lewisham, clothing brands in Turkmenistan, "gd7 playz blogspot") and almost no traffic.
+
+| Site | Price | Traffic/month |
+| --- | --- | --- |
+| aamax.co | $80 | 3.4K US (AS 29), almost all on 2 generic posts (Google Lens, cached pages) |
+| webpeak.org | $50 | 150; the AI sales tools article we pitched is not in their top pages |
+| listaaj.com | $25 | 163 |
+| enests.co | $25 | 133 |
+| bestagencies.co.uk | $25 | 56 UK |
+| aamconsultants.org | $25 | 14 |
+| digiextent.co.uk | $25 | 2 UK |
+| zklocal.com, brushfirebiz.com, linkbuildo.com, clothingbrands.co | $15–25 | 0 |
+
 ## Internal links pointing at them (9 Nov 2026)
 
 Free and immediate, so done first:
