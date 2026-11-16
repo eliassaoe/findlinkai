@@ -139,3 +139,11 @@ Free and immediate, so done first:
 | `/company-url-finder` | Clearbit, Coresignal, People Data Labs, Apify |
 
 Re-check positions in Search Console around 9 Dec 2026.
+
+### gigmit.com — trial account (16 Nov 2026)
+Marcus (gigmit) will decide on the swap "in a few weeks" and wants to test the product first.
+Sent him a single-use code from batch `partner-trial-gigmit` (1,000 credits, redeemed on
+`/redeem-code`, account created there). Code not committed. Check whether he used it:
+`select status, redeemed_email, redeemed_at from appsumo_codes where batch = 'partner-trial-gigmit';`
+Revoke if needed: `select appsumo_revoke(code) from appsumo_codes where batch = 'partner-trial-gigmit';`
+Pattern for any partner who asks to try before linking: one code per partner, 1,000 credits.
