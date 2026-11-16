@@ -147,3 +147,11 @@ Sent him a single-use code from batch `partner-trial-gigmit` (1,000 credits, red
 `select status, redeemed_email, redeemed_at from appsumo_codes where batch = 'partner-trial-gigmit';`
 Revoke if needed: `select appsumo_revoke(code) from appsumo_codes where batch = 'partner-trial-gigmit';`
 Pattern for any partner who asks to try before linking: one code per partner, 1,000 credits.
+
+## Proposed 16 Nov 2026 (evening, MentionAgent)
+
+| Site | Their traffic (Semrush US) | Asked for | We give |
+| --- | --- | --- | --- |
+| aureliatalent.com (DR 9) | ~770/mo, growing | "Wiza alternative" → `/wiza-alternative` in `/insights/find-brand-emails` | dofollow to aureliatalent.com on `/youtube-email-finder` (creators & brand deals) |
+| mahwords.com (DR 39) | ~0, sells guest posts | entry in their email-finder roundup, "ContactOut alternative" → `/contact-out-alternative` | nothing but a free trial account — declined paying; no link back to a zero-traffic link seller |
+| brightseotools.com (DR 62) | 1.9K/mo, −74% | line in "17 free AI tools for small business" | declined $50/$100; offered a free swap |
