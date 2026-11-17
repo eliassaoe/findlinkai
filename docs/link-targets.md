@@ -155,3 +155,15 @@ Pattern for any partner who asks to try before linking: one code per partner, 1,
 | aureliatalent.com (DR 9) | ~770/mo, growing | "Wiza alternative" → `/wiza-alternative` in `/insights/find-brand-emails` | dofollow to aureliatalent.com on `/youtube-email-finder` (creators & brand deals) |
 | mahwords.com (DR 39) | ~0, sells guest posts | entry in their email-finder roundup, "ContactOut alternative" → `/contact-out-alternative` | nothing but a free trial account — declined paying; no link back to a zero-traffic link seller |
 | brightseotools.com (DR 62) | 1.9K/mo, −74% | line in "17 free AI tools for small business" | declined $50/$100; offered a free swap |
+
+## Vetting rule (owner, 17 Nov 2026): Semrush Authority Score first
+
+Only work with sites that have a good Semrush **Authority Score** (ours: 26). Then check that the AS is real:
+- **Network Graph** on the Backlinks overview: "Dangerous" = part of a link network → no.
+- **Referring domains** jumping in a few weeks, and **outbound domains** far above the site's page count → link seller → no.
+- **Top Pages**: is the traffic on the article we'd be in, or on unrelated free tools?
+
+Checked 17 Nov: brightseotools.com AS 30 / 15.1K visits, but 87% of UK traffic is one age calculator,
+its "free AI tools for X" posts get 0 visits, referring domains went 1.3K → 3.2K in Sep–Nov 2026,
+3.9K outbound domains for 826 pages, Network Graph "Dangerous". Inflated AS → not worth $50.
+mahwords.com AS 2 and mentionova.com AS 15 (47 visits) archived.
