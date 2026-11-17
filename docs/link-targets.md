@@ -172,3 +172,8 @@ mahwords.com AS 2 and mentionova.com AS 15 (47 visits) archived.
 - **goodday.work** (DR 51, ~28k visits): they link "refreshing stale contact records" → `/enrich-crm-contact-list` from the "Data migration and integrations" part of `goodday.work/blog/best-bitrix24-alternatives/`, publishing first. **We owe:** GoodDay as standalone 2nd-place entry on `/best-software-for-crm` once their link is live.
 - **traksource.com** (DR 14): wanted paid content; offered the affiliate program (25%, up to $500/customer) + a free account for a LinkFinder AI vs Hunter/Snov.io comparison.
 - Archived: ecommerce.folio3.com (declined us), publishiqhub.com (removed the link, wanted $35 for #3 on a zero-traffic page), syedfarzamsaadat.com (DR 0), veltima.app (DR 0).
+
+## 18 Nov 2026
+- Archived (MentionAgent): marketinglad.io (AS 46, but ~45% of its 70k traffic comes from French brand-hijack pages, spiking since Aug 2026, 0% branded: inflated), thefrontkit.com (AS 13).
+- Danish Lead Co (AS 20, 646 visits, 305k backlinks from 10.1k domains: link-farm profile) accepted "Kaspr alternative" → `/kaspr-alternative`; they wait for us to add them to `/best-b2b-lead-generation-agencies` first. We had said yes on 16 Nov. Below the AS rule: owner to decide.
+- Inbound paid guest post request (support inbox): quoted $250 upfront, B2B topics only, one contextual dofollow link, no casino/CBD/adult/crypto/loans.
