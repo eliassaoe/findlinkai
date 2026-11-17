@@ -167,3 +167,8 @@ Checked 17 Nov: brightseotools.com AS 30 / 15.1K visits, but 87% of UK traffic i
 its "free AI tools for X" posts get 0 visits, referring domains went 1.3K → 3.2K in Sep–Nov 2026,
 3.9K outbound domains for 826 pages, Network Graph "Dangerous". Inflated AS → not worth $50.
 mahwords.com AS 2 and mentionova.com AS 15 (47 visits) archived.
+
+## 17 Nov 2026 (evening)
+- **goodday.work** (DR 51, ~28k visits): they link "refreshing stale contact records" → `/enrich-crm-contact-list` from the "Data migration and integrations" part of `goodday.work/blog/best-bitrix24-alternatives/`, publishing first. **We owe:** GoodDay as standalone 2nd-place entry on `/best-software-for-crm` once their link is live.
+- **traksource.com** (DR 14): wanted paid content; offered the affiliate program (25%, up to $500/customer) + a free account for a LinkFinder AI vs Hunter/Snov.io comparison.
+- Archived: ecommerce.folio3.com (declined us), publishiqhub.com (removed the link, wanted $35 for #3 on a zero-traffic page), syedfarzamsaadat.com (DR 0), veltima.app (DR 0).
