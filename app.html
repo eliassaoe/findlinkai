@@ -1011,6 +1011,29 @@ body.sp-has-pick #creditCost{display:none !important;}
 .lf-fl-a{display:flex;flex-wrap:wrap;gap:.6rem;margin-top:.9rem;}
 .lf-fl-c{margin:.6rem 0 0;font-size:.85rem;color:var(--gray-600);}
 .lf-fl-glow{box-shadow:0 0 0 4px rgba(34,197,94,.45);transition:box-shadow .3s;}
+    .starter{border:1px solid #c7d7fe;background:#f5f8ff;border-radius:12px;padding:0.9rem 1.1rem;margin-bottom:0.9rem;}
+    .starter-head{display:flex;align-items:center;gap:0.6rem;font-size:0.95rem;color:#0f172a;}
+    .starter-count{font-size:0.8rem;color:#475569;}
+    .starter-bar{flex:1;height:6px;background:#e2e8f0;border-radius:3px;overflow:hidden;max-width:160px;}
+    .starter-bar span{display:block;height:100%;width:0;background:var(--primary);transition:width .4s ease;}
+    .starter-x{margin-left:auto;background:none;border:none;font-size:1.2rem;color:#94a3b8;cursor:pointer;line-height:1;}
+    .starter-steps{list-style:none;margin:0.6rem 0 0;padding:0;display:grid;gap:0.45rem;}
+    .starter-steps li{display:flex;align-items:flex-start;gap:0.6rem;font-size:0.88rem;color:#0f172a;}
+    .starter-steps em{display:block;font-style:normal;font-size:0.78rem;color:#64748b;}
+    .starter-dot{flex:0 0 18px;height:18px;border-radius:50%;border:2px solid #94a3b8;margin-top:1px;}
+    .starter-steps li.done .starter-dot{background:#16a34a;border-color:#16a34a;box-shadow:inset 0 0 0 3px #fff;}
+    .starter-steps li.done .starter-txt{color:#64748b;text-decoration:line-through;}
+    .starter-steps li.next .starter-dot{border-color:var(--primary);}
+    .starter-rew{margin-left:auto;font-size:0.78rem;font-weight:700;color:#16a34a;white-space:nowrap;}
+    .starter-steps li.done .starter-rew{color:#94a3b8;}
+    .starter-tour{position:relative;background:#0f172a;color:#fff;border-radius:10px;padding:0.8rem 1rem;margin-bottom:0.8rem;font-size:0.9rem;}
+    .starter-tour:after{content:"";position:absolute;left:28px;bottom:-7px;border:7px solid transparent;border-bottom:0;border-top-color:#0f172a;}
+    .starter-tour .st-step{font-size:0.72rem;color:#93c5fd;text-transform:uppercase;letter-spacing:.06em;margin-bottom:0.2rem;}
+    .starter-tour .st-row{display:flex;gap:0.5rem;margin-top:0.6rem;align-items:center;}
+    .starter-tour button{border:none;border-radius:6px;padding:0.35rem 0.8rem;font-weight:600;cursor:pointer;font-family:inherit;font-size:0.82rem;}
+    .starter-tour .st-next{background:#2563eb;color:#fff;}
+    .starter-tour .st-skip{background:transparent;color:#cbd5e1;}
+    @media (max-width:640px){.starter-rew{font-size:0.72rem}.starter-bar{display:none}}
     .sp-try-hint{font-size:0.85rem;color:#64748b;margin:-0.4rem 0 0.9rem;}
 </style>
 <script async src="https://plausible.io/js/pa-LTP3nlbjr9NybMEgzpwxU.js"></script>
@@ -1117,6 +1140,18 @@ body.sp-has-pick #creditCost{display:none !important;}
 <aside id="tasksRail" class="tasks-rail" aria-label="Earn free credits"></aside>
     <div class="main">
 
+        <!-- "Get started" checklist (docs/onboarding-checklist.md, 18 Nov 2026).
+             New accounts only; steps 2 and 3 pay credits via lf_starter_reward. -->
+        <div id="starterList" class="starter hidden" aria-label="Get started">
+            <div class="starter-head"><b>Get started</b> <span id="starterCount" class="starter-count">0 of 3</span>
+                <div class="starter-bar"><span id="starterBar"></span></div>
+                <button type="button" class="starter-x" onclick="starterDismiss()" aria-label="Hide">&times;</button></div>
+            <ol class="starter-steps">
+                <li data-step="example"><span class="starter-dot"></span><span class="starter-txt">Try a real example <em>one click on a card below</em></span></li>
+                <li data-step="own"><span class="starter-dot"></span><span class="starter-txt">Find someone of your own <em>a name, company or LinkedIn URL you care about</em></span><span class="starter-rew">+25 credits</span></li>
+                <li data-step="list"><span class="starter-dot"></span><span class="starter-txt">Enrich a list <em><a href="#" onclick="starterRunSample();return false;">use our sample list</a> or upload yours</em></span><span class="starter-rew">+50 credits</span></li>
+            </ol>
+        </div>
         <div class="quickstart-section" id="quickstartSection">
             <!-- First visit only (see maybeShowRouteChooser). Inline, not a
                  popup: every interrupt-style prompt this app ever shipped
@@ -1370,6 +1405,7 @@ body.sp-has-pick #creditCost{display:none !important;}
         </div>
 
         <div id="resultsSection" class="hidden">
+            <div id="starterTour" class="starter-tour hidden"></div>
             <div id="singleResult" class="result-card">
                 <textarea id="resultText" class="result-text" readonly placeholder="Enriched data will appear here..."></textarea>
                 <div id="resultLink" class="result-link"></div>
@@ -3935,6 +3971,118 @@ function syncSearchPicker() {
         + havesHTML;
     chosen.classList.remove('hidden');
 }
+// ---------------------------------------------------------------------------
+// "Get started" checklist + first-result tour (owner, 18 Nov 2026;
+// docs/onboarding-checklist.md). Patterns from Apollo / Clay / Notion: start
+// with a real result, a short checklist with progress and a reward, and a
+// 3-step tour of the first result that ends on "run your list".
+// State is per browser (lf_starter); the credits are paid server-side by
+// lf_starter_reward, which re-checks the work and pays each step once.
+// ---------------------------------------------------------------------------
+const STARTER_KEY = 'lf_starter';
+const STARTER_EXAMPLES = /satyanadella|^satya nadella|linkedin\.com\/company\/microsoft|^(tesla|tesla\.com|microsoft|microsoft\.com)$/i;
+function starterState() { try { return JSON.parse(localStorage.getItem(STARTER_KEY) || 'null'); } catch (e) { return null; } }
+function starterSave(st) { try { localStorage.setItem(STARTER_KEY, JSON.stringify(st)); } catch (e) {} }
+// Called once on load: a brand-new account gets the checklist.
+function starterInit() {
+    let st = starterState();
+    if (!st) {
+        if (lfHasUsedProduct()) return;
+        st = { example: 0, own: 0, list: 0, hidden: 0, tour: 0 };
+        starterSave(st);
+        try { posthog.capture('starter_checklist_shown'); } catch (e) {}
+    }
+    starterRender();
+}
+function starterRender() {
+    const st = starterState(), el = document.getElementById('starterList');
+    if (!el) return;
+    const done = st ? ['example', 'own', 'list'].filter(k => st[k]).length : 0;
+    if (!st || st.hidden || done === 3) { el.classList.add('hidden'); return; }
+    el.classList.remove('hidden');
+    let nextSet = false;
+    el.querySelectorAll('li[data-step]').forEach(function (li) {
+        const k = li.getAttribute('data-step');
+        li.classList.toggle('done', !!st[k]);
+        const isNext = !st[k] && !nextSet; if (isNext) nextSet = true;
+        li.classList.toggle('next', isNext);
+    });
+    document.getElementById('starterCount').textContent = done + ' of 3';
+    document.getElementById('starterBar').style.width = Math.round(done / 3 * 100) + '%';
+}
+function starterDismiss() {
+    const st = starterState() || {}; st.hidden = 1; starterSave(st); starterRender();
+    try { posthog.capture('starter_checklist_dismissed', { example: !!st.example, own: !!st.own, list: !!st.list }); } catch (e) {}
+}
+function starterRunSample() {
+    try { posthog.capture('starter_sample_clicked'); } catch (e) {}
+    switchMode('bulk');
+    const ua = document.getElementById('uploadArea');
+    if (ua && ua.scrollIntoView) ua.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    setTimeout(function () { if (typeof useSampleCsv === 'function') useSampleCsv(); }, 150);
+}
+async function starterClaim(step, tries) {
+    if (!userToken) return;
+    try {
+        const r = await fetch(CSV_BATCH_SUPABASE_URL + '/rest/v1/rpc/lf_starter_reward', {
+            method: 'POST', headers: csvBatchHeaders(), body: JSON.stringify({ p_token: userToken, p_step: step }) });
+        const d = await r.json().catch(() => ({}));
+        if (d && d.credits_awarded) {
+            addCredits(Number(d.credits_awarded));
+            try { otpCreditToast('+' + d.credits_awarded + ' credits: ' + (step === 'own_search' ? 'your first own search' : 'your first list')); } catch (e) {}
+            try { posthog.capture('starter_reward_paid', { step: step, credits: d.credits_awarded }); } catch (e) {}
+        } else if (d && d.error === 'not done yet' && (tries || 0) < 4) {
+            // The list's batch row is written a moment after the table fills.
+            setTimeout(function () { starterClaim(step, (tries || 0) + 1); }, 5000);
+        }
+    } catch (e) {}
+}
+// Every successful lookup goes through checkEnrichmentMilestone(), which calls this.
+function starterOnSuccess() {
+    const st = starterState();
+    if (!st) return;
+    const bulk = (typeof currentMode !== 'undefined' && currentMode === 'bulk');
+    const input = ((document.getElementById('inputData') || {}).value || '').trim();
+    let changed = false;
+    if (bulk) {
+        if (!st.list) { st.list = 1; changed = true; starterClaim('first_list'); }
+    } else if (STARTER_EXAMPLES.test(input)) {
+        if (!st.example) { st.example = 1; changed = true; }
+    } else if (!st.own) {
+        st.own = 1; st.example = 1; changed = true; starterClaim('own_search');
+    }
+    if (!bulk && !st.tour) { st.tour = 1; changed = true; setTimeout(function () { starterTour(0); }, 400); }
+    if (changed) {
+        starterSave(st); starterRender();
+        try { posthog.capture('starter_step_done', { example: !!st.example, own: !!st.own, list: !!st.list }); } catch (e) {}
+    }
+}
+// Three bubbles over the first single result. Skippable, once per browser.
+function starterTour(i) {
+    const box = document.getElementById('starterTour');
+    if (!box) return;
+    const left = (typeof currentCredits === 'number') ? (Math.round(currentCredits * 10) / 10).toLocaleString() : null;
+    const cost = getCreditCost(currentInputType, currentOutputType);
+    const steps = [
+        { t: 'Here is your result', b: 'Copy it, or open it. Every result is also saved in History.' },
+        { t: 'What it cost', b: 'That search used ' + cost + ' credit' + (cost === 1 ? '' : 's') + (left !== null ? '. You have ' + left + ' left.' : '.') + ' No result, no full charge.' },
+        { t: 'Now do your whole list', b: 'Upload a CSV and every row is done for you, then download it. Try it on our sample list first.', cta: 'Try a sample list' },
+    ];
+    if (i >= steps.length) { box.classList.add('hidden'); return; }
+    const s = steps[i];
+    box.innerHTML = '<div class="st-step">Step ' + (i + 1) + ' of 3</div><b>' + s.t + '</b><div>' + s.b + '</div>'
+        + '<div class="st-row">'
+        + (s.cta ? '<button type="button" class="st-next" onclick="starterTourEnd(\'sample\')">' + s.cta + '</button>'
+                 : '<button type="button" class="st-next" onclick="starterTour(' + (i + 1) + ')">Next</button>')
+        + '<button type="button" class="st-skip" onclick="starterTourEnd(\'skip\')">' + (s.cta ? 'Done' : 'Skip') + '</button></div>';
+    box.classList.remove('hidden');
+    try { posthog.capture('starter_tour_step', { step: i + 1 }); } catch (e) {}
+}
+function starterTourEnd(how) {
+    const box = document.getElementById('starterTour'); if (box) box.classList.add('hidden');
+    try { posthog.capture('starter_tour_end', { how: how }); } catch (e) {}
+    if (how === 'sample') starterRunSample();
+}
 // First card click of a brand-new account runs that card's real example
 // (owner, 18 Nov 2026). This is what the Jun-Aug "Popular searches - click to
 // try instantly" cards did, when 24h activation was 65-77%. Only once, only
@@ -6434,6 +6582,7 @@ function checkAuth(){
 
     });
     maybeShowRouteChooser();
+    try { starterInit(); } catch (e) {}
     try { smartStartCreditsLine(); smartStartDetect(); } catch (e) {}
 
     // Arriving from a done-for-you link elsewhere. The panel lives on this
@@ -8218,6 +8367,7 @@ function checkEnrichmentMilestone() {
     const n = parseInt(localStorage.getItem(key) || '0') + 1;
     localStorage.setItem(key, n);
     hideRouteChooser(); // they have found their own way in
+    try { starterOnSuccess(); } catch (e) {}
     // Low-conversion geo: wait until the 2nd enrichment before auto-showing
     // the task popup, so people experience real value first. Before that,
     // they can still open it early anytime via the "Tasks" fab.
