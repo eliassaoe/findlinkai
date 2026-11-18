@@ -66,9 +66,28 @@ test('it hands over to the existing lookup, not a copy of it', () => {
   assert.ok(appFn('smartStartRoute').includes("pickRoute(route, 'smart_start')"));
 });
 
-// Owner, 7 Nov 2026 22:18: the "Where is your data?" question is back on first
-// visit, to push people towards bulk / Sheets / API. The cards wait under it.
-test('first visit asks where the data is, and the cards wait until a route is picked', () => {
+// Owner, 18 Nov 2026: the blocking question is off on first visit (38% of new
+// accounts stopped at it). New accounts get the cards at once plus the
+// one-line route strip; the full question only shows with ?route_test=1.
+test('first visit shows the cards and the route strip, not the blocking question', () => {
+  const fn = appFn('maybeShowRouteChooser');
+  const gate = fn.indexOf('if (!forced) {');
+  assert.ok(gate > 0 && gate < fn.indexOf("classList.add('rc-open')"), 'only a forced visit reaches the blocking chooser');
+  assert.ok(fn.slice(gate, fn.indexOf("classList.add('rc-open')")).includes("strip.classList.remove('hidden')"));
+});
+
+test('the first card click of a new account runs its real example, once, if it costs 10 credits or less', () => {
+  const fn = appFn('lfFirstExampleRun');
+  assert.ok(fn.includes('lfHasUsedProduct()'));
+  assert.ok(fn.includes("localStorage.getItem('lf_first_example_run')"));
+  assert.ok(fn.includes('cost <= 10'));
+  assert.ok(fn.includes("posthog.capture('first_example_run'"));
+  assert.ok(appFn('pickSearch').includes('if (fromCard && lfFirstExampleRun(input, output)) return;'));
+  assert.ok(appFn('renderSearchPicker').includes(",true)\">'"), 'only the big cards pass fromCard');
+});
+
+// Forced chooser (?route_test=1): the cards wait under it.
+test('the forced route question holds the cards until a route is picked', () => {
   const fn = appFn('maybeShowRouteChooser');
   assert.ok(!fn.includes("document.getElementById('searchPicker')"));
   assert.ok(fn.includes("classList.add('rc-open')"));

@@ -199,3 +199,35 @@ while a search is picked, since the bar already shows the cost.
 Code: `SEARCH_GOALS`, `searchGoalFor`, `searchGoalCostLine`, the `sp-have-pill`
 buttons in `syncSearchPicker`. Each pill calls `pickSearch`, so `search_picked`
 still records the exact pair.
+
+## 18 Nov 2026 — the blocking question is off; the first card click runs a real example (owner's call)
+
+**Why.** 24h activation (auth.users joined to `enrichment_history`, by signup week):
+65–77% from late May to early Sep, with no route question and the August
+"Popular searches — click to try instantly" cards that auto-ran an example.
+The route chooser first shipped 9 Sep (`ca475402`): the next week fell to 50%,
+and Sep–Oct sat around 40–63%. After it came back as a blocking screen on
+7 Nov 22:18, the weeks of 9 and 16 Nov were 31% and 40%. PostHog, people who
+saw the question: 37% ran a first search before 7 Nov, 27% after; **20 of 53
+never answered it and 19 of those did nothing else**. Of those who answered,
+API/CRM gave 0 of 4 first searches. Traffic also changed in Sep (signups fell
+from ~150 to ~40 a week), so not all of the Jun–Aug level is the UI.
+
+**What changed.**
+- `maybeShowRouteChooser()`: a new account no longer gets the full question.
+  It gets the cards at once and the one-line "Where is your data? CSV · Google
+  Sheets · API / n8n · HubSpot" strip above them. `?route_test=1` still shows
+  the full question; `?intent=` still lands on its route.
+- `lfFirstExampleRun()`: the first click on a big card, by an account that has
+  never run a lookup, fills that card's example and runs it (Satya Nadella /
+  Microsoft → LinkedIn, Satya's profile → email, Tesla → website…), once
+  (`lf_first_example_run`). Examples costing more than 10 credits (phone, 50)
+  are filled only. Cards with no example (employees) behave as before.
+- "Click one to try it on a real example." under "What do you want to find?",
+  only until that first run.
+- New event: `first_example_run` {input_type, output_type, auto_run, cost}.
+
+**Re-check 28 Nov 2026.** Same 24h-activation query by signup week, target
+≥ 50%; PostHog share of new accounts with `enrich_started`; checkout visits.
+If the routes to CSV/Sheets/API lose their pickers, the strip and the
+in-result next steps (`docs/next-step-routing.md`) are where they live now.

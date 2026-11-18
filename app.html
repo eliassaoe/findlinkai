@@ -1011,6 +1011,7 @@ body.sp-has-pick #creditCost{display:none !important;}
 .lf-fl-a{display:flex;flex-wrap:wrap;gap:.6rem;margin-top:.9rem;}
 .lf-fl-c{margin:.6rem 0 0;font-size:.85rem;color:var(--gray-600);}
 .lf-fl-glow{box-shadow:0 0 0 4px rgba(34,197,94,.45);transition:box-shadow .3s;}
+    .sp-try-hint{font-size:0.85rem;color:#64748b;margin:-0.4rem 0 0.9rem;}
 </style>
 <script async src="https://plausible.io/js/pa-LTP3nlbjr9NybMEgzpwxU.js"></script>
 <script>window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};plausible.init()</script>
@@ -1159,6 +1160,7 @@ body.sp-has-pick #creditCost{display:none !important;}
                  searches, bulk and the API panel all set them, and a card click
                  sets them the same way. -->
             <div class="search-picker-label">What do you want to find?</div>
+            <div id="spTryHint" class="sp-try-hint hidden">Click one to try it on a real example.</div>
             <div id="searchPicker" class="search-picker"></div>
             <div class="qs-list-line">
                 <span>Have a list? Upload a CSV:</span>
@@ -3862,7 +3864,7 @@ function renderSearchPicker() {
         g = Object.assign({}, g, { haves: g.haves.filter(function (h) { return ok(h.pair[0], h.pair[1]); }) });
         if (!g.haves.length) return '';
         const h0 = g.haves[0].pair;
-        return '<button type="button" class="sp-card sp-big" data-goal="' + g.id + '" onclick="pickSearch(\'' + h0[0] + '\',\'' + h0[1] + '\')">'
+        return '<button type="button" class="sp-card sp-big" data-goal="' + g.id + '" onclick="pickSearch(\'' + h0[0] + '\',\'' + h0[1] + '\',true)">'
             + '<i class="' + g.icon + ' sp-big-icon"></i>'
             + '<span class="sp-card-title">' + g.title + '</span>'
             + '<span class="sp-card-sub">' + (g.sub ? g.sub : 'From ' + g.haves.map(function (h) { return h.label.replace(/ \(.*\)$/, '').replace(/^(Name|Email|Company|Person)/, function (m) { return m.toLowerCase(); }); }).join(', ')) + '</span>'
@@ -3933,13 +3935,33 @@ function syncSearchPicker() {
         + havesHTML;
     chosen.classList.remove('hidden');
 }
-function pickSearch(input, output) {
+// First card click of a brand-new account runs that card's real example
+// (owner, 18 Nov 2026). This is what the Jun-Aug "Popular searches - click to
+// try instantly" cards did, when 24h activation was 65-77%. Only once, only
+// before any lookup, and only when the example costs 10 credits or less (a
+// phone example at 50 would eat a free balance): otherwise it is filled only.
+function lfFirstExampleRun(input, output) {
+    try {
+        if (lfHasUsedProduct() || localStorage.getItem('lf_first_example_run')) return false;
+        const l = searchPickerLabel(input, output);
+        if (!l || !l.example) return false;
+        const cost = (typeof creditCosts === 'object' && creditCosts) ? creditCosts[input + '_to_' + output] : null;
+        const run = cost != null && cost <= 10;
+        localStorage.setItem('lf_first_example_run', input + '__' + output);
+        const hint = document.getElementById('spTryHint'); if (hint) hint.classList.add('hidden');
+        try { posthog.capture('first_example_run', { input_type: input, output_type: output, auto_run: run, cost: cost }); } catch (e) {}
+        quickStart(input, output, l.example[0], null, run, l.example[1]);
+        return true;
+    } catch (e) { return false; }
+}
+function pickSearch(input, output, fromCard) {
     const inputSel = document.getElementById('inputType');
     const outputSel = document.getElementById('outputType');
     inputSel.value = input; inputSel.dispatchEvent(new Event('change'));
     outputSel.value = input + '__' + output; outputSel.dispatchEvent(new Event('change'));
     syncSearchPicker();
     try { posthog.capture('search_picked', { input_type: input, output_type: output, mode: (typeof currentMode !== 'undefined') ? currentMode : null }); } catch (e) {}
+    if (fromCard && lfFirstExampleRun(input, output)) return;
     setTimeout(function () {
         const target = (input === 'lead_full_name' && output === 'email') ? document.getElementById('leadFirstName') : document.getElementById('inputData');
         if (target && target.offsetParent !== null && target.focus) { target.focus(); if (target.scrollIntoView) target.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
@@ -6469,10 +6491,19 @@ function maybeShowRouteChooser() {
             if (strip) strip.classList.remove('hidden');
             return;
         }
-        // Back on first visit (owner, 7 Nov 2026 22:18): the question pushes people
-        // towards bulk / Sheets / API instead of only single lookups. While it is
-        // up, the search cards wait under it (body.rc-open) so the two are not
-        // stacked; any pick, including "one lookup", reveals them.
+        // Off on first visit again (owner, 18 Nov 2026). Back on 7 Nov 22:18 it
+        // hid the cards until answered: 20 of 53 new accounts never answered and
+        // did nothing else, first-search rate 37% -> 27%. Activation was 65-77%
+        // in Jun-Aug, before the chooser first shipped (9 Sep). New accounts now
+        // see the cards at once, with the routes as the one-line strip above
+        // them. ?route_test=1 still shows the full question.
+        if (!forced) {
+            const hint = document.getElementById('spTryHint');
+            if (hint && !localStorage.getItem('lf_first_example_run')) hint.classList.remove('hidden');
+            const strip = document.getElementById('routeStrip');
+            if (strip) strip.classList.remove('hidden');
+            return;
+        }
         const el = document.getElementById('routeChooser');
         if (!el) return;
         el.classList.remove('hidden');
