@@ -177,3 +177,5 @@ mahwords.com AS 2 and mentionova.com AS 15 (47 visits) archived.
 - Archived (MentionAgent): marketinglad.io (AS 46, but ~45% of its 70k traffic comes from French brand-hijack pages, spiking since Aug 2026, 0% branded: inflated), thefrontkit.com (AS 13).
 - Danish Lead Co (AS 20, 646 visits, 305k backlinks from 10.1k domains: link-farm profile) accepted "Kaspr alternative" → `/kaspr-alternative`; they wait for us to add them to `/best-b2b-lead-generation-agencies` first. We had said yes on 16 Nov. Below the AS rule: owner to decide.
 - Inbound paid guest post request (support inbox): quoted $250 upfront, B2B topics only, one contextual dofollow link, no casino/CBD/adult/crypto/loans.
+- themexpert.com (DR 79, ~6.9k visits, Zapier alternatives list): paid placements only. Asked their price, which article, dofollow/permanent, who writes. Semrush AS check still to do before paying anything.
+- namasteui.com (DR 29, ~170 visits): guest post $10 (1 link) / $20 (3 links). Archived: link seller, no traffic.
