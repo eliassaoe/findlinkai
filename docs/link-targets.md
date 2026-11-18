@@ -180,9 +180,15 @@ mahwords.com AS 2 and mentionova.com AS 15 (47 visits) archived.
 - themexpert.com (DR 79, ~6.9k visits, Zapier alternatives list): paid placements only. Asked their price, which article, dofollow/permanent, who writes. Semrush AS check still to do before paying anything.
 - namasteui.com (DR 29, ~170 visits): guest post $10 (1 link) / $20 (3 links). Archived: link seller, no traffic.
 
-## 18 Nov 2026 (evening) — new replies, waiting on the Semrush AS check
+## 18 Nov 2026 (evening) — new replies, Semrush AS checked (US)
 - **adlibrary.com** (DR 57, ~155k visits): no swaps, €200 one-time for a permanent dofollow mention in their "stage-gated stack" article; has followed up twice. Owner's money decision, AS check first.
 - **emailsorters.com** (DR 31, ~13k visits): "It's paid" for their "28 Best Content Marketing Tools" roundup, no price given yet.
 - **thesponsorshipguy.com** (DR 21, ~134 visits): interested, wants info before a call. Low traffic.
 - **collabmedium.com** (DR 31, ~55 visits): open to "a collaboration". Low traffic, likely a guest-post seller.
 - **hackerearth.com** (DR 77): automatic support-ticket reply only, nothing to answer.
+
+Semrush results (US, 18 Nov):
+- adlibrary.com: **AS 38**, 19.1K organic (+96%), 6K ref. domains. Traffic is real but sits on their Facebook / Meta ad library pages; the "stage-gated stack" article we'd be in is not in their top 100 pages (≤6 visits). €200 buys the domain authority, not readers. Owner's call; if yes, ask for a page with traffic.
+- emailsorters.com: **AS 27** (ours 26), 1.2K organic (+542%, recent spike), traffic on Gmail how-tos (noreply 273, custom email domain 258, create an email account 169). The content-marketing roundup has ~0. Reply drafted: ask price and page, offer a free swap. Not sent yet.
+- thesponsorshipguy.com: AS 15, 88 visits → archive.
+- collabmedium.com: AS 5, 10 visits → archive.
