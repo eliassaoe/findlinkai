@@ -192,3 +192,4 @@ Semrush results (US, 18 Nov):
 - emailsorters.com: **AS 27** (ours 26), 1.2K organic (+542%, recent spike), traffic on Gmail how-tos (noreply 273, custom email domain 258, create an email account 169). The content-marketing roundup has ~0. Reply drafted: ask price and page, offer a free swap. Not sent yet.
 - thesponsorshipguy.com: AS 15, 88 visits → archive.
 - collabmedium.com: AS 5, 10 visits → archive.
+Done 18 Nov 21:20: owner declined adlibrary's €200 (archived, no reply sent); emailsorters reply sent (price + page asked, free swap offered); thesponsorshipguy and collabmedium archived; hackerearth left open (support ticket auto-reply, a human may follow).
