@@ -179,3 +179,10 @@ mahwords.com AS 2 and mentionova.com AS 15 (47 visits) archived.
 - Inbound paid guest post request (support inbox): quoted $250 upfront, B2B topics only, one contextual dofollow link, no casino/CBD/adult/crypto/loans.
 - themexpert.com (DR 79, ~6.9k visits, Zapier alternatives list): paid placements only. Asked their price, which article, dofollow/permanent, who writes. Semrush AS check still to do before paying anything.
 - namasteui.com (DR 29, ~170 visits): guest post $10 (1 link) / $20 (3 links). Archived: link seller, no traffic.
+
+## 18 Nov 2026 (evening) — new replies, waiting on the Semrush AS check
+- **adlibrary.com** (DR 57, ~155k visits): no swaps, €200 one-time for a permanent dofollow mention in their "stage-gated stack" article; has followed up twice. Owner's money decision, AS check first.
+- **emailsorters.com** (DR 31, ~13k visits): "It's paid" for their "28 Best Content Marketing Tools" roundup, no price given yet.
+- **thesponsorshipguy.com** (DR 21, ~134 visits): interested, wants info before a call. Low traffic.
+- **collabmedium.com** (DR 31, ~55 visits): open to "a collaboration". Low traffic, likely a guest-post seller.
+- **hackerearth.com** (DR 77): automatic support-ticket reply only, nothing to answer.
