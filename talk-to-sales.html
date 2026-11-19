@@ -352,6 +352,7 @@ const OFFERS = {
 };
 
 const qs = new URLSearchParams(location.search);
+try { const r0 = (qs.get('ref') || '').trim().slice(0, 40); if (r0) localStorage.setItem('lf_partner_ref', JSON.stringify({ r: r0, t: Date.now() })); } catch (e) {}
 let offer = (qs.get('offer') || '').toLowerCase() === 'dfy' ? 'dfy' : 'enterprise';
 
 function setOffer(next, fromClick) {
@@ -422,6 +423,15 @@ form.addEventListener('submit', async (ev) => {
     p_src:     qs.get('src') || null,
     p_landing: location.pathname + location.search,
     p_utm: {
+      // Sales partner code (?ref=), kept 90 days in this browser (sales-partners.html, 19 Nov 2026).
+      ref: (function () {
+        const r = (qs.get('ref') || '').trim().slice(0, 40);
+        try {
+          if (r) { localStorage.setItem('lf_partner_ref', JSON.stringify({ r: r, t: Date.now() })); return r; }
+          const s = JSON.parse(localStorage.getItem('lf_partner_ref') || 'null');
+          return s && Date.now() - s.t < 90 * 864e5 ? s.r : null;
+        } catch (e) { return r || null; }
+      })(),
       utm_source:   qs.get('utm_source') || null,
       utm_medium:   qs.get('utm_medium') || null,
       utm_campaign: qs.get('utm_campaign') || null,
