@@ -193,3 +193,7 @@ Semrush results (US, 18 Nov):
 - thesponsorshipguy.com: AS 15, 88 visits → archive.
 - collabmedium.com: AS 5, 10 visits → archive.
 Done 18 Nov 21:20: owner declined adlibrary's €200 (archived, no reply sent); emailsorters reply sent (price + page asked, free swap offered); thesponsorshipguy and collabmedium archived; hackerearth left open (support ticket auto-reply, a human may follow).
+
+## 19 Nov 2026 (evening)
+- **exeedin.com** (DR 19) replied "open to discussing": Semrush AS 14, 150 US organic (−35%), 2.4K ref. domains for 4.1K backlinks → below the AS rule, archived without reply.
+- **goodday.work** refused `/enrich-crm-contact-list` as the target (too product-focused) and asked for a practical educational guide (outdated records, field mapping, validation). Wrote `/resources/clean-stale-crm-contact-records` (9-step cleanup, field map, checklist, FAQ; one contextual link to `/enrich-crm-contact-list`, one to `/crm-enrichment-pipeline`) and sent its text. Placement unchanged: "Data migration and integrations" of `goodday.work/blog/best-bitrix24-alternatives/`, anchor "refreshing stale contact records". **We owe:** GoodDay as standalone 2nd-place entry on `/best-software-for-crm` once their link is live.
