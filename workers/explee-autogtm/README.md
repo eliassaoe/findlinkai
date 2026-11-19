@@ -325,6 +325,19 @@ does not phone. Every other project (Prescient, eastrategies, spoctus,
 linkfinderai-outbound) is emailed from the page. Adding a project file moves
 that project to the loop automatically.
 
+**Before a big batch, check bookings outside Explee (owner rule, 19 Nov 2026).**
+Most hot leads book through a Calendly / cal.link link, which never shows in the
+Explee thread or note, so the page can propose a relance to someone who already
+has a call in the diary. Before "Tout envoyer" or a scripted batch: open Calendly
+→ Réunions (past + upcoming), match names against the page, and write
+`RDV calé (réservé sur Calendly)` in the note of every match (the note makes
+them `booked` for good). Also skip: a meeting agreed by email in the thread,
+"revenez en Q1"-type answers (note `Attendre jusqu'au …`), leads who asked to be
+phoned and refuse links, and Email 3 when our answer + 2 relances already sit
+after their last message (Explee 429). Le P'tit Logiciel books on
+`rdv.leptitlogiciel.fr`, which we cannot see: leave its leads out of batches.
+19 Nov 2026: 254 leads reviewed, 31 marked booked, 113 relancés.
+
 **Local version:** `python3 relance.py <EXPLEE_API_KEY>` serves the same
 cockpit on localhost (state in `relance_state.json`), `--demo` for sample data.
 
