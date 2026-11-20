@@ -168,3 +168,24 @@ scheduled-task permission check; the owner has to approve it before it can exist
   sends passes the 80% rule *if* it does not get the LinkedIn account restricted. Candidate for a 60-day refundable test.
 - A-Leads, CluGTM: contact-data providers (competitors / possible suppliers), not visibility. Nothing for Reddit,
   X, influencers or newsletters in the BF drops.
+
+### Microsoft Ads — volume reality check and expansion (20 Nov 2026, 21:30)
+Microsoft Keyword Planner, United States, average monthly searches over 12 months (Bing network):
+- Every launch keyword (email→LinkedIn, LinkedIn URL finder): **0–10 each**. Alone they would spend a few € a week.
+- linkedin email finder **100–1k** (suggested bid €6.50, high competition); email finder **100–1k** (€3.39);
+  find email from linkedin 10–100; linkfinder ai (brand) 10–100; apollo alternative 10–100 (€2.36);
+  company email finder 10–100 (€20.30); email finder tool 10–100 (€22.87); lead enrichment 10–100 (€6.52);
+  linkedin scraper / linkedin profile scraper / linkedin profile lookup 10–100.
+- All 35 keywords together: 930–1,800 searches a month in the US.
+Added the same evening:
+- Ad group **"LinkedIn email finder"** → new LP `/lp/linkedin-email-finder` (ads_lp/build.py), bid €2.00, phrase
+  keywords linkedin email finder, find email (address) from linkedin, get email from linkedin, linkedin email
+  extractor, email from linkedin profile, linkedin profile email finder, linkedin to email, email finder.
+  utm_campaign=lf-search-li-email.
+- Ad group **"Brand"** → home page, bid €0.60, linkfinder ai / linkfinder / link finder ai / linkfinderai,
+  [linkfinderai.com]. Someone bids on our brand on Google ($7.73); this keeps our own ad on top on Bing.
+- 13 more campaign negatives (gmail, outlook, yahoo, hotmail, scam, who is, spokeo, truepeoplesearch, people search,
+  dating, instagram, facebook, tiktok) to keep consumer "who emailed me" searches out.
+Expected: roughly 30–100 clicks and €50–150 spend a month → the €600 needed to unlock the €1,200 credit takes
+4–10 months (offer open to 30 Jun 2027). 1–3 paying customers over six months at best. Bing is a test of the LP's
+conversion rate; the volume that matters is on Google.
