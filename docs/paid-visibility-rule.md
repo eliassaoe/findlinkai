@@ -110,3 +110,18 @@ Everything else costs more per click than it earns.
 - Plan for the €1,800 total: paying countries only (US, GB, CA, FR, ES, DE…), keywords of the pages that sold
   (table above), LinkedIn-profile targeting (sales, recruiting, marketing). Bing volume on our keywords is small, so
   check after 2 weeks that the €600 can actually be spent; if not, the credit is lost after 90 days.
+
+### Microsoft Ads account, built 20 Nov 2026
+- Account **LinkFinderAI (G107SHQ7)**, signed in with the owner's Google, currency EUR, card added by the owner.
+  The sign-up banner confirms the offer: €1,200 credit after €600 spent.
+- Campaign **"LF Search - LinkedIn lookups - rich countries"**: Search only, AI Max **off**, distribution
+  "Sites Microsoft et sélectionner le trafic" (no wide partner network), 19 countries (US, GB, CA, AU, IE, NZ, DE, FR,
+  ES, NL, BE, CH, AT, IT, PT, SE, DK, NO, FI), physical presence only, English, enhanced CPC, **€20/day**.
+  - Ad group 1 → `/linkedin-search-by-email`, 12 phrase keywords (linkedin search by email…), bid €1.20,
+    suffix `utm_source=bing&utm_medium=cpc&utm_campaign=lf-search-email&utm_term={keyword}`.
+  - Ad group "LinkedIn URL finder" → `/linkedin-url-finder`, 10 phrase keywords, bid €1.00, `utm_campaign=lf-search-url`.
+  - 17 campaign negatives (job, login, sign in, my, copy, hyperlink, premium…).
+  - Ad texts only state what the pages say (first search free, no credit card, bulk CSV, API); Microsoft's AI drafts
+    ("verified", "hiring", "local talent") were replaced.
+- Blocked until the owner finishes **advertiser identity verification** (red banner "Terminer la vérification").
+- Read results in PostHog by `utm_source = bing`. Review point: ~€300 spent (cost per signup, payers).
