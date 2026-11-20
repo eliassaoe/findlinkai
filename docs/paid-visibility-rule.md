@@ -144,5 +144,8 @@ Everything else costs more per click than it earns.
   Conversion goals created in Microsoft Ads: **Signup** (custom event, action `signup`) and **Purchase** (action
   `purchase`, variable revenue, used for bidding). The action names are Microsoft's, not PostHog's — keep them.
 - **Callouts** added: No Credit Card Required, First Search Free, Bulk CSV Upload, API Access, Google Sheets Add-on.
-- **Sitelinks** refused at entry ("Produits et services trompeurs") even with neutral text and URLs without query
-  strings; retry after the account is verified, pointing at the /lp/ pages.
+- **Sitelinks** refused at entry ("Produits et services trompeurs") whatever the text or target — including the
+  noindex /lp/ pages with no claims on them. So the flag is on the domain or the unverified account, not the copy.
+  If the two ads come back disapproved for the same reason after review, appeal from the ad's status
+  ("Demander un examen") or ask Microsoft support; do not rewrite the pages again first.
+- Both conversion goals count in "Conversions" and feed bidding; enhanced conversions (hashed email/phone) is off.
