@@ -204,3 +204,22 @@ conversion rate; the volume that matters is on Google.
 - **Prior that matters:** the Oct 2026 lifetime-deal email to 559 free never-paid users sold 0 (37 clicks, 1 checkout
   started) — see docs/ltd-campaign.md. A Meta retargeting ad with the same $149 LTD to the same kind of people is
   unlikely to do better; the message should push the behaviour that does pay (running a list), not the LTD.
+
+### Meta pixel — audit and fix (20 Nov 2026, 22:15)
+Pixel 2717863625238535 ("linkfinder ai pixel", business Linkfinder AI) is healthy, not "burnt": 250–580 events a day
+over the last 4 weeks, base code on ~200 pages, Conversions API connected (server copy of part of the PageViews).
+Kept it: a new pixel would throw away nine months of visitors and the existing audiences.
+Diagnostics found:
+1. "Unnamed events" — 7 `__missing_event` hits whose only URL is https://www.facebook.com/ (Meta's own preview/test
+   traffic), not our site. Nothing to fix.
+2. Conversions API covers fewer PageViews than the pixel (2,787 fewer in 7 days). Informational; the server sender is
+   outside this repo (system user "Conversions API System User").
+3. "Confirm the domain" — no allow-list exists, so every domain is accepted and nothing is blocked. Left as is.
+What was really missing: **no conversion event at all** — only PageView. Added (js/lf-attribution.js `window.lfMeta`,
+no-op without fbq; `tests/meta-pixel-events.test.mjs`):
+- `CompleteRegistration` on every signup path (sign-up.html ×2, confirmation-signup.html);
+- `InitiateCheckout` with value/currency/plan when the Dodo redirect starts (app.html);
+- `Purchase` with value + USD + eventID (payment id) on checkout return (app.html; account.html sends value 0);
+- custom `UploadList` (rows) when a CSV run completes — the behaviour that predicts payment.
+Next: audiences "Signed up − Purchase" and "UploadList" fill from now on; the historical buyer list "paid users" is
+outdated (Feb 2026) and should be refreshed before excluding buyers.
