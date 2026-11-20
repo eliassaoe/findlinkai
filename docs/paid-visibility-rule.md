@@ -70,3 +70,29 @@ Decision: only as a capped test, and only if the 2× credit shows up when the ac
   Worth it only as a cheap test if the threshold is ≈$250 for ≈$1,000: wider keywords (email finder, linkedin
   email finder) restricted with LinkedIn-profile targeting (sales, recruiting, marketing), paying countries only.
   Break-even then ≈ 1–2 new payers.
+
+### Every page that ever sold, with its keywords (20 Nov 2026, owner's method)
+PostHog, 365 days, first page from a search engine, "rich" = US, GB, CA, AU, FR, DE, NL, BE, CH, ES, IT, IE, Nordics,
+AT, NZ, PT, PL. Value per click = conversion × LTV ≈ $255. CPC = Semrush US.
+
+| Page | Rich search visitors | Paid | Conv. | Click worth | Keywords (US vol/mo, CPC) |
+| --- | --- | --- | --- | --- | --- |
+| `/` (brand) | 2,549 | 9 | 0.35% | ~$0.90 | linkfinder ai 50 **$7.73 (someone bids on our brand)**, linkfinder 320 $1.79 |
+| `/linkedin-search-by-email` | 1,223 | 5 | 0.41% | ~$1.05 | linkedin search by email 110 $1.94, linkedin email lookup 70 $2.73, search linkedin by email 50 $2.95, linkedin lookup by email 40 $2.47 |
+| `/linkedin-url-finder` | 1,525 | 2 | 0.13% | ~$0.33 | linkedin profile link finder 210 **$0**, find linkedin profile by name and company 110 **$0**, linkedin profile url finder 90 **$0**, linkedin profile lookup 140 $2.28, linkedin finder 90 $4.29 |
+| `/company-url-finder` | 634 | 1 | 0.16% | ~$0.40 | company url finder 20 $5.24 |
+| `/linkedin-phone-number-finder` | 481 | 1 | 0.21% | ~$0.53 | linkedin phone number finder 40 $5.39 |
+| `/best-social-media-finder` | 1,032 | 1 | 0.10% | ~$0.25 | social media finder 2,400 $1.56, find social media accounts by email 1,600 $1.92 |
+| `/company-details-finder` | 44 | 1 | — | — | company information lookup 110 $2.09 |
+| `/enrichlayer-alternative` | 1 | 1 | — | — | proxycurl alternative 30 $11.50, enrichlayer alternative ~0 |
+
+Countries (non-brand search, 365 d): US 4,956 → 4 payers (7 payments: they stay), GB 1,416 → 2 (3 payments),
+CA 845 → 1, FR 746 → 1, ES 397 → 1; **India 16,177 → 0, Pakistan 2,295 → 0**. Samples are small.
+
+Candidates (all small, ~1 new payer a month at best):
+1. `/linkedin-search-by-email` keywords, US/GB/CA/EU, **only with the 2× Google credit**.
+2. `/linkedin-url-finder` keywords with **$0 CPC** (no advertiser): if the real click is ≤ ~$0.30, profitable even
+   without credit. Cheapest test to run first.
+3. Brand: an advertiser bids on "linkfinder ai" ($7.73). Our own brand ad would be cheap (high quality score); only
+   worth it if their ad sits above our #1 result. Check the live SERP before deciding.
+Everything else costs more per click than it earns.
