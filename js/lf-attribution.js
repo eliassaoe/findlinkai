@@ -359,3 +359,62 @@
         (document.head || document.documentElement).appendChild(s);
     } catch (e) {}
 })();
+
+// Microsoft Ads UET tag (docs/paid-visibility-rule.md). Loaded only for visitors
+// who arrived from a Microsoft ad (msclkid or utm_source=bing) in the last 90 days,
+// so organic visitors never download bat.bing.com. window.lfAdConversion() is a
+// no-op for everyone else; call sites stay one line.
+(function () {
+    var TAG_ID = '187299983';
+    var KEY = 'lf_ms_ad_until';
+    var WINDOW_MS = 90 * 24 * 60 * 60 * 1000;
+    var until = 0;
+    try { until = Number(window.localStorage.getItem(KEY)) || 0; } catch (e) {}
+    try {
+        var p = new URLSearchParams(window.location.search);
+        if (p.has('msclkid') || String(p.get('utm_source') || '').toLowerCase() === 'bing') {
+            until = Date.now() + WINDOW_MS;
+            try { window.localStorage.setItem(KEY, String(until)); } catch (e) {}
+        }
+    } catch (e) {}
+    var active = until > Date.now();
+
+    window.lfAdConversion = function (action, valueUsd) {
+        if (!active) return;
+        try {
+            var data = {};
+            if (typeof valueUsd === 'number' && valueUsd > 0) {
+                data.revenue_value = valueUsd;
+                data.currency = 'USD';
+            }
+            window.uetq = window.uetq || [];
+            window.uetq.push('event', action, data);
+        } catch (e) {}
+    };
+
+    if (!active) return;
+    try {
+        (function (w, d, t, r, u) {
+            var f, n, i;
+            w[u] = w[u] || [];
+            f = function () {
+                var o = { ti: TAG_ID, enableAutoSpaTracking: true };
+                o.q = w[u];
+                w[u] = new UET(o);
+                w[u].push('pageLoad');
+            };
+            n = d.createElement(t);
+            n.src = r;
+            n.async = 1;
+            n.onload = n.onreadystatechange = function () {
+                var s = this.readyState;
+                if (!s || s === 'loaded' || s === 'complete') {
+                    f();
+                    n.onload = n.onreadystatechange = null;
+                }
+            };
+            i = d.getElementsByTagName(t)[0];
+            i.parentNode.insertBefore(n, i);
+        })(window, document, 'script', 'https://bat.bing.com/bat.js', 'uetq');
+    } catch (e) {}
+})();
