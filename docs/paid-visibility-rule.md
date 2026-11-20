@@ -96,3 +96,17 @@ Candidates (all small, ~1 new payer a month at best):
 3. Brand: an advertiser bids on "linkfinder ai" ($7.73). Our own brand ad would be cheap (high quality score); only
    worth it if their ad sits above our #1 result. Check the live SERP before deciding.
 Everything else costs more per click than it earns.
+
+### The real offers, read on the official pages (20 Nov 2026, evening)
+- **Google Ads France** (business.google.com/fr/google-ads): spend €400 in 60 days → €400 credit; €1,200 → €800;
+  €2,400 → €1,200. At best 1:1, **no 2× offer in France**. Not launched.
+- **Microsoft Advertising France** (about.ads.microsoft.com/fr/h/a/microsoft-advertising-smb-advertiser): spend
+  €200 → €400 credit; €400 → €800; **€600 → €1,200**. That is the owner's "500 in, 1,000 out" (2×). Conditions
+  (Offer Details): new Microsoft Advertising customers billed in France only; credit added automatically once the
+  spend threshold is reached, valid **90 days**, unused credit lost; ends 30 Jun 2027.
+- Chosen: the €600 → €1,200 tier. Sign-up link carries the promo code `ccl=ADIEM4804FY27FR1200`
+  (ui.ads.microsoft.com/campaign/pmaxlitelanding/signup?ccl=ADIEM4804FY27FR1200). The sign-up starts with
+  "S'inscrire avec Google / Microsoft": the owner signs in and adds the card himself.
+- Plan for the €1,800 total: paying countries only (US, GB, CA, FR, ES, DE…), keywords of the pages that sold
+  (table above), LinkedIn-profile targeting (sales, recruiting, marketing). Bing volume on our keywords is small, so
+  check after 2 weeks that the €600 can actually be spent; if not, the credit is lost after 90 days.
