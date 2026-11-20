@@ -189,3 +189,18 @@ Added the same evening:
 Expected: roughly 30–100 clicks and €50–150 spend a month → the €600 needed to unlock the €1,200 credit takes
 4–10 months (offer open to 30 Jun 2027). 1–3 paying customers over six months at best. Bing is a test of the LP's
 conversion rate; the volume that matters is on Google.
+
+### 20 Nov 2026, 22:00 — Microsoft bids raised, Meta retargeting checked
+- Owner wants Microsoft to move faster. Volume is capped by searches, not by the €20/day budget (left as is), so the
+  lever is position: bids raised to LinkedIn email finder €3.50, Ad Group 1 (email→LinkedIn) €2.00, LinkedIn URL
+  finder €1.50, Brand €0.60. Watch CPC against the ~€1 a click is worth on these pages.
+- Meta: business "Linkfinder AI" (684968217970909), ad account **947878880921996 "Linkfinder ai ads account"** (never
+  ran a campaign), pixel **2717863625238535** with PageView only (no Purchase/Lead events; a `__missing_event`
+  error), Conversions API connected. Website audiences already exist since 20 Feb 2026: LF - Signups, LF - Acheteurs,
+  LF - All Visitors, LF - Pricing Page; customer list "paid users" (outdated). The owner's personal ad account
+  1698628710593670 has no access to the pixel — do not use it.
+- Audience (PostHog, signup_success last 180 days): US/UK/CA/AU/NZ/IE 576 signups, 559 never paid; Western Europe
+  310 / 304; rest of world 1,775 / 1,769.
+- **Prior that matters:** the Oct 2026 lifetime-deal email to 559 free never-paid users sold 0 (37 clicks, 1 checkout
+  started) — see docs/ltd-campaign.md. A Meta retargeting ad with the same $149 LTD to the same kind of people is
+  unlikely to do better; the message should push the behaviour that does pay (running a list), not the LTD.
