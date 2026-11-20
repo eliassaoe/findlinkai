@@ -149,3 +149,22 @@ Everything else costs more per click than it earns.
   If the two ads come back disapproved for the same reason after review, appeal from the ad's status
   ("Demander un examen") or ask Microsoft support; do not rewrite the pages again first.
 - Both conversion goals count in "Conversions" and feed bidding; enhanced conversions (hashed email/phone) is off.
+
+### Microsoft Ads launched — 20 Nov 2026, 20:40
+Owner finished identity verification; account and campaign "Aucun problème", both ads "En instance / Éligible" (editorial
+review). The twice-weekly monitoring task (Mon/Thu, Chrome + PostHog, stop rules 300 € / 600 €) was refused by the
+scheduled-task permission check; the owner has to approve it before it can exist.
+
+### AppSumo Black Friday 2026 — tested / read (20 Nov 2026)
+- **Press Ranger** (journalists, publishers, podcasts DB + pitching; LTD $66.60 tier 1, $133 tier 2 for 2,000 CSV
+  exports/mo; 4.57★, 145 reviews). Free account created (Google, hamoureliasse54@gmail.com, company LinkFinder AI,
+  media room private). **The free plan already shows journalist profiles with their email** (checked on a "SaaS"
+  search). Paid adds connected inbox, AI campaigns, pitch alerts, exports. Press releases are NOT in the deal
+  ($299–399 each, syndication links). Verdict: use the free account; buy tier 1 only if a real pitch campaign
+  (sales/growth podcasts, data stories) runs into the free limits. Not an 80%-off-with-obvious-ROI case.
+- **Sbl.so** (AI LinkedIn outreach SDR; $89 tier 1 = 10,000 connection credits lifetime + 900 lead-gen credits/mo,
+  LinkedIn only; 4.47★, 73 reviews; 60-day refund). The only BF deal that is a real acquisition channel for us
+  (buyers are sales/recruiting people on LinkedIn). Equivalent tools cost $50–80/month, so ~$89 for ~a year of
+  sends passes the 80% rule *if* it does not get the LinkedIn account restricted. Candidate for a 60-day refundable test.
+- A-Leads, CluGTM: contact-data providers (competitors / possible suppliers), not visibility. Nothing for Reddit,
+  X, influencers or newsletters in the BF drops.
