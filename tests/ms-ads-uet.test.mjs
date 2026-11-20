@@ -39,7 +39,7 @@ test('an organic visitor never loads bat.bing.com and conversions are no-ops', (
   const r = run('?utm_source=google');
   assert.equal(r.inserted.length, 0);
   r.window.lfAdConversion('sign_up');
-  assert.equal(r.window.uetq, undefined);
+  assert.equal(r.window.uetq_lf, undefined);
 });
 
 test('a visitor from a Microsoft ad loads the tag and is remembered', () => {
@@ -47,7 +47,7 @@ test('a visitor from a Microsoft ad loads the tag and is remembered', () => {
   assert.deepEqual(r.inserted, ['https://bat.bing.com/bat.js']);
   assert.ok(Number(r.store.get('lf_ms_ad_until')) > Date.now());
   r.window.lfAdConversion('purchase', 49);
-  assert.equal(JSON.stringify(r.window.uetq.slice(-3)),
+  assert.equal(JSON.stringify(r.window.uetq_lf.slice(-3)),
     JSON.stringify(['event', 'purchase', { revenue_value: 49, currency: 'USD' }]));
 });
 
@@ -62,6 +62,11 @@ test('signup and purchase call sites fire the Microsoft conversion', () => {
   assert.ok(read('confirmation-signup.html').includes("lfAdConversion('sign_up')"));
   assert.ok(read('app.html').includes("lfAdConversion('purchase'"));
   assert.ok(read('account.html').includes("lfAdConversion('purchase')"));
+});
+
+test('our tag never shares the default uetq queue with the older hard-coded tag', () => {
+  assert.ok(block.includes("'uetq_lf');"));
+  assert.ok(!/window\.uetq\b(?!_lf)/.test(block));
 });
 
 console.log(`\n${passed} passed`);

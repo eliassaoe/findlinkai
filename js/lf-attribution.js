@@ -364,6 +364,9 @@
 // who arrived from a Microsoft ad (msclkid or utm_source=bing) in the last 90 days,
 // so organic visitors never download bat.bing.com. window.lfAdConversion() is a
 // no-op for everyone else; call sites stay one line.
+// It uses its own queue name (uetq_lf): 171 pages also hard-code an older UET tag
+// (ti 343223134, added Dec 2025, not this account) on the default `uetq`, and two
+// tags on one queue would send our conversions to the wrong account.
 (function () {
     var TAG_ID = '187299983';
     var KEY = 'lf_ms_ad_until';
@@ -387,8 +390,8 @@
                 data.revenue_value = valueUsd;
                 data.currency = 'USD';
             }
-            window.uetq = window.uetq || [];
-            window.uetq.push('event', action, data);
+            window.uetq_lf = window.uetq_lf || [];
+            window.uetq_lf.push('event', action, data);
         } catch (e) {}
     };
 
@@ -415,6 +418,6 @@
             };
             i = d.getElementsByTagName(t)[0];
             i.parentNode.insertBefore(n, i);
-        })(window, document, 'script', 'https://bat.bing.com/bat.js', 'uetq');
+        })(window, document, 'script', 'https://bat.bing.com/bat.js', 'uetq_lf');
     } catch (e) {}
 })();
