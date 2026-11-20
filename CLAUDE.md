@@ -88,6 +88,7 @@ into a file here in the same session, or it is gone.
 | **InfoStack partner lifetime codes** — `LFIS-` codes, 5,000 credits/month for life ($99, changed 12 Nov; tiers proposed), redeemed on `/redeem-code` (`/redeem` redirects), refunds via `appsumo_revoke`; deal terms, dates and the 30-day guarantee | `docs/partner-ltd-codes.md` — codes never committed; `tests/partner-ltd-codes.test.mjs` pins it |
 | **AppSumo codes** — `/redeem-code` with `LFAS-` codes, 60,000 credits/year, account created on redeem; generating, exporting and revoking codes | `docs/appsumo-codes.md` — never commit codes, this repo is public |
 | Selling Done For You to the 67 idle pack buyers | `docs/dfy-activation-campaign.md` — read the correction in it before quoting any "paying accounts" number |
+| **Paying for visibility (links, ads, sponsorships): outreach first, pay only for ~80%-off offers** | `docs/paid-visibility-rule.md` — read it before buying links, ads or sponsorships |
 | **Link building: which page every swap or paid link points at** (mid-size competitor *alternative* pages on page 2-3, keyword anchor; never the big names) and the links already traded | `docs/link-targets.md` — read it before answering any MentionAgent thread |
 | Who the SEO traffic actually is, before aiming an offer at it | `docs/traffic-capture-verdict.md` |
 | **Which pages bring organic visitors, signups and payments** — and why more competitor pages won't move it | `docs/organic-to-paid-2026-10.md` |
