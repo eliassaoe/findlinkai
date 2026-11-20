@@ -79,7 +79,7 @@ NOINDEX_ONLY = {
 # Console showed all three as "Discovered - currently not indexed".
 APP_ONLY = {"history", "history-beta", "api-access-beta"}
 
-EXCLUDE_DIRS = {"workflow", "clusters/workflows", "workers",
+EXCLUDE_DIRS = {"workflow", "clusters/workflows", "workers", "lp",
                 "integrations/google-sheets-addon", "integrations/google-sheets"}
 # ----------------------------------------
 

@@ -142,11 +142,10 @@ def build(cfg):
     head = re.sub(r'\s*<meta (property|name)="(og:[^"]*|twitter:[^"]*|robots)"[^>]*>', "", head)
     head = re.sub(r"<title>.*?</title>", f"<title>{e(cfg['title'])}</title>", head, flags=re.S)
     head = re.sub(r'<meta name="description"[^>]*>', f'<meta name="description" content="{e(cfg["description"])}"/>', head)
-    head += (
-        f'<meta name="robots" content="noindex, follow"/>\n'
-        f'<link rel="canonical" href="{cfg["canonical"]}"/>\n'
-        + LP_CSS
-    )
+    # robots + canonical first: gen_sitemap.py only reads the first 20,000 characters.
+    head = head.replace("<head>", f'<head>\n<meta name="robots" content="noindex, follow"/>\n'
+                        f'<link rel="canonical" href="{cfg["canonical"]}"/>', 1)
+    head += LP_CSS
 
     # Google Sheets top bar: an exit, not a conversion.
     if "<!-- LF-SHEETS-TOPBAR:START -->" in body:
