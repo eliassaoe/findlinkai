@@ -58,3 +58,15 @@ linkedin email lookup 70 $2.73 · search linkedin by email 50 $2.95 · linkedin 
 - Broad "reverse email lookup" ($1.57, 8.1k/mo) is people-search intent; our 0.5% is from LinkedIn-specific searchers,
   so it would not hold. Not included.
 Decision: only as a capped test, and only if the 2× credit shows up when the account is created.
+
+### Microsoft Ads (Bing) for LinkFinder AI (20 Nov 2026)
+- Our own organic data, 180 days: Google 31,985 visitors → 20 paid; **Bing 1,209 → 1 paid**; Yahoo 153 → 1;
+  DuckDuckGo 169 → 0. On `/linkedin-search-by-email`: Google 4,048 visitors, **Bing 2**. Bing ≈ 4% of our search traffic.
+- Clicks are ~20–40% cheaper than Google for B2B SaaS (TripleDart benchmarks), conversion ~10–15% lower, and
+  Microsoft can target by LinkedIn profile (job function, industry).
+- Sign-up offers shown on Microsoft's SMB page: $500, $1,000 or $1,500 credit once a spend threshold is met; the
+  threshold, window and countries are only shown at account creation (third parties report ~$250 spend → $1,000).
+- Verdict: the reverse-email-lookup keywords have almost no Bing volume, so the credit could not be spent there.
+  Worth it only as a cheap test if the threshold is ≈$250 for ≈$1,000: wider keywords (email finder, linkedin
+  email finder) restricted with LinkedIn-profile targeting (sales, recruiting, marketing), paying countries only.
+  Break-even then ≈ 1–2 new payers.
