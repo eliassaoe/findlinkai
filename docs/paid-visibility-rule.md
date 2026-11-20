@@ -21,3 +21,17 @@ promo (20% off Rhino Rank, FatJoe, 10% off AppSumo) is **not** worth the effort:
 
 Before spending ad credit on LinkFinder: signups are refused from many countries
 (docs/growth-diagnosis-2026-11.md), so target only allowed countries.
+
+## Google Ads for LinkFinder AI: the calculation (20 Nov 2026) — not profitable, not launched
+Semrush US CPCs: email lookup $1.51 (9.9k/mo), reverse email lookup $1.57 (8.1k), phone number finder $1.23
+(8.1k), email finder $3.59 (6.6k), find email address $3.59, linkedin email finder $5.94 (1k), linkedin scraper
+$7.93, email finder tool $6.34, apollo alternative $23, lusha alternative $43, data enrichment tool $77.
+
+What a visitor is worth (docs/organic-to-paid-2026-10.md, docs/growth-diagnosis-2026-11.md):
+- organic visitor → paid ≈ 10 / 14,000 = 0.07% (best page, `/`, 0.3%);
+- ~73% of organic clicks come from countries refused at signup; ads would target allowed countries only, so
+  an eligible visitor converts ≈ 0.07% ÷ 0.27 ≈ 0.26%;
+- LTV ≈ $56 ARPU ÷ 22% churn ≈ $255 (pack buyers less).
+→ a click is worth ≈ 0.26% × $255 ≈ **$0.65**, against $1.2–$8 per click (×3 cheaper with a 2× credit at best:
+$0.41–$2.65). Only the cheapest consumer queries ("email lookup") come near break-even, and their intent is
+people-search, not B2B. Re-run when signup → paid improves (the pricing-modal leak) or LTV rises (annual/agency).
