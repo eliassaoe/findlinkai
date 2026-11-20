@@ -35,3 +35,26 @@ What a visitor is worth (docs/organic-to-paid-2026-10.md, docs/growth-diagnosis-
 → a click is worth ≈ 0.26% × $255 ≈ **$0.65**, against $1.2–$8 per click (×3 cheaper with a 2× credit at best:
 $0.41–$2.65). Only the cheapest consumer queries ("email lookup") come near break-even, and their intent is
 people-search, not B2B. Re-run when signup → paid improves (the pricing-modal leak) or LTV rises (annual/agency).
+
+### Per page, not site-wide (owner's correction, 20 Nov 2026)
+Organic visitors landing on one tool page, last 180 days (PostHog, first pageview from a search engine):
+
+| Landing page | Visitors | Signups | Paid |
+| --- | --- | --- | --- |
+| `/linkedin-search-by-email` (reverse email lookup) | 4,051 | 229 | **4** (GB, FR, UA, CY) |
+| `/` | 3,049 | 410 | 9 (US 3, FR 2, IN, CA, AE, UY) |
+| `/linkedin-phone-number-finder` | 5,943 | 154 | 1 (4,252 visitors from India, 0 paid) |
+| `/linkedin-email-finder` | 4,279 | 314 | 0 |
+| `/linkedin-profile-scraper` | 2,222 | 61 | 0 |
+
+`/linkedin-search-by-email`, visitors from the countries we would target (US, GB, CA, FR, …): ~800 → ~4 paid ≈ **0.5%**.
+At LTV ≈ $200–255 a click there is worth **≈ $1.00–1.25** (4 payers: small sample).
+
+Targeted keywords for that page (Semrush US): linkedin search by email 110/mo $1.94 · email to linkedin 110 $4.60 ·
+linkedin email lookup 70 $2.73 · search linkedin by email 50 $2.95 · linkedin lookup by email 40 $2.47.
+- At list price: every one costs more than a click is worth → no.
+- With a confirmed 2× credit (cost ÷ 3): $0.65–0.98 for the first four → **profitable**, but ~270 searches/mo in the
+  US → roughly 100 clicks/month → about one new payer every 2 months.
+- Broad "reverse email lookup" ($1.57, 8.1k/mo) is people-search intent; our 0.5% is from LinkedIn-specific searchers,
+  so it would not hold. Not included.
+Decision: only as a capped test, and only if the 2× credit shows up when the account is created.
