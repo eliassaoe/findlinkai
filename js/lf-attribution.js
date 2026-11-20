@@ -421,3 +421,15 @@
         })(window, document, 'script', 'https://bat.bing.com/bat.js', 'uetq_lf');
     } catch (e) {}
 })();
+
+// Meta pixel standard events (docs/paid-visibility-rule.md, "Meta pixel").
+// The base pixel (2717863625238535) is pasted in each page and only sends PageView;
+// these are the conversion events Meta needs to optimise and to exclude buyers.
+// No-op when the page has no pixel. eventID lets Meta deduplicate with a server copy.
+window.lfMeta = function (eventName, params, eventId, custom) {
+    try {
+        if (typeof window.fbq !== 'function') return;
+        var opts = eventId ? { eventID: String(eventId) } : undefined;
+        window.fbq(custom ? 'trackCustom' : 'track', eventName, params || {}, opts);
+    } catch (e) {}
+};

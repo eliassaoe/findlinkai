@@ -2821,6 +2821,7 @@ async function launchCheckout({ planKey, analyticsPlanName, value, billingLabel,
         // can tell us whether they ever came back. Without these two lines the
         // redirect is the last thing we ever hear about a checkout attempt.
         rememberPendingCheckout({ planKey, analyticsPlanName, value, billingLabel, checkoutUrl: data.checkout_url });
+        try { window.lfMeta && lfMeta('InitiateCheckout', { value: Number(value) || 0, currency: 'USD', content_name: planKey || '' }, lastCheckoutAttemptId); } catch(e) {}
         await captureBeforeUnload('checkout_redirect_started', {
             attempt_id: lastCheckoutAttemptId,
             plan: analyticsPlanName,
@@ -2980,6 +2981,7 @@ function handleDodoReturnStatus() {
             });
         } catch(e) {}
         try { window.lfAdConversion && lfAdConversion('purchase', typeof pending?.value === 'number' ? pending.value : undefined); } catch(e) {}
+        try { window.lfMeta && lfMeta('Purchase', { value: Number(pending?.value) || 0, currency: 'USD', content_name: pending?.plan_key || '' }, paymentId || subscriptionId || pending?.attempt_id); } catch(e) {}
         fireGoogleAdsConversion({ data: { payment_id: paymentId, subscription_id: subscriptionId } });
 
         if (pending?.replaces_subscription_id) {
@@ -5134,6 +5136,7 @@ async function csvBatchFinalize(processedThisRun, creditsConsumed, creditsExhaus
     currentCsvBatchId = null;
 
     await csvBatchUpdate(batchId, { status, completed_at: new Date().toISOString() });
+    try { if (status === 'completed' && window.lfMeta) lfMeta('UploadList', { rows: csvData.length }, batchId, true); } catch(e) {}
     try {
         posthog.capture('csv_batch_saved', {
             status,
