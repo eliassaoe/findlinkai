@@ -133,16 +133,16 @@ Everything else costs more per click than it earns.
   no exits to other tools, Google-first signup (`source=lp_<slug>_<where>`, event `lp_signup_clicked`).
   They drop the SEO pages' testimonial ("Rachel Chen"), "90%/95% accuracy", "5,000+ sales teams", "50K+ API calls"
   — none of these can be backed and ad review rejects misleading pages. `tests/ads-lp.test.mjs` pins it.
-  **To do when the browser is back: switch both ads' final URLs to the /lp/ pages.**
+  Both ads' final URLs now point at the /lp/ pages (20 Nov, 19:50).
 - **UET tag 187299983** (this account), loaded by `js/lf-attribution.js` only for visitors who arrived with
   `msclkid` or `utm_source=bing` (remembered 90 days in `lf_ms_ad_until`), on its own queue `uetq_lf`.
-  `lfAdConversion('sign_up')` in sign-up.html (x2) and confirmation-signup.html; `lfAdConversion('purchase', value)`
+  `lfAdConversion('signup')` in sign-up.html (x2) and confirmation-signup.html; `lfAdConversion('purchase', value)`
   in app.html and account.html. Checked live: the tag loads for an ad visit and `pageLoad` reaches
   `bat.bing.com/p/action/187299983.js`. `tests/ms-ads-uet.test.mjs` pins it.
   Note: 171 pages already hard-code another UET tag (ti 343223134, "Ajout du script UET Bing", 8 Dec 2025) for an
   account that is not this one; left in place.
-  Still to do in Microsoft Ads: conversion goals "sign_up" (event action = sign_up) and "purchase" (action = purchase,
-  variable revenue) once the tag shows as verified.
+  Conversion goals created in Microsoft Ads: **Signup** (custom event, action `signup`) and **Purchase** (action
+  `purchase`, variable revenue, used for bidding). The action names are Microsoft's, not PostHog's — keep them.
 - **Callouts** added: No Credit Card Required, First Search Free, Bulk CSV Upload, API Access, Google Sheets Add-on.
 - **Sitelinks** refused at entry ("Produits et services trompeurs") even with neutral text and URLs without query
   strings; retry after the account is verified, pointing at the /lp/ pages.

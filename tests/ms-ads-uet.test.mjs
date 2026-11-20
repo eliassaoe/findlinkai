@@ -38,7 +38,7 @@ console.log('Microsoft Ads UET');
 test('an organic visitor never loads bat.bing.com and conversions are no-ops', () => {
   const r = run('?utm_source=google');
   assert.equal(r.inserted.length, 0);
-  r.window.lfAdConversion('sign_up');
+  r.window.lfAdConversion('signup');
   assert.equal(r.window.uetq_lf, undefined);
 });
 
@@ -58,8 +58,8 @@ test('msclkid alone is enough, and the 90-day memory brings the tag back on late
 });
 
 test('signup and purchase call sites fire the Microsoft conversion', () => {
-  assert.equal((read('sign-up.html').match(/lfAdConversion\('sign_up'\)/g) || []).length, 2);
-  assert.ok(read('confirmation-signup.html').includes("lfAdConversion('sign_up')"));
+  assert.equal((read('sign-up.html').match(/lfAdConversion\('signup'\)/g) || []).length, 2);
+  assert.ok(read('confirmation-signup.html').includes("lfAdConversion('signup')"));
   assert.ok(read('app.html').includes("lfAdConversion('purchase'"));
   assert.ok(read('account.html').includes("lfAdConversion('purchase')"));
 });
