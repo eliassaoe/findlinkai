@@ -223,3 +223,20 @@ no-op without fbq; `tests/meta-pixel-events.test.mjs`):
 - custom `UploadList` (rows) when a CSV run completes — the behaviour that predicts payment.
 Next: audiences "Signed up − Purchase" and "UploadList" fill from now on; the historical buyer list "paid users" is
 outdated (Feb 2026) and should be refreshed before excluding buyers.
+
+### Meta retargeting test — prepared 20 Nov 2026, 22:30 (not live yet)
+Blocked on one owner step: creating the "LinkFinder AI" Facebook Page (owner approved) does nothing until the owner's
+Facebook account turns on **Advanced Protection (passkey)** — Meta's prompt on page creation. The only Page in the
+business is "Elias IA" (deactivated). Ad account 947878880921996 is ready: USD, Mastercard ···4350, auto-pay.
+Plan once the Page exists:
+- One campaign, Traffic → landing-page views, $10/day to 1 Dec 2026 07:59 UTC (~$100), two ads:
+  A "Black Friday lifetime" (`docs/assets/meta-2026-11/ad-bf-lifetime.png`) → `/lifetime-deal?utm_source=meta&utm_medium=paid_social&utm_campaign=rt-bf-ltd`;
+  B "Run the whole list" (`docs/assets/meta-2026-11/ad-csv-list.png`) → `/app?action=bulk&utm_source=meta&utm_medium=paid_social&utm_campaign=rt-csv`.
+- Audience: website audience "LF - Signups" (exists since Feb 2026), excluding "LF - Acheteurs"; US, UK, CA, AU, NZ, IE.
+- Stop: cut an ad after $30 with no click-through to the page; cut all if no lifetime sale and no list run by 28 Nov.
+Competitors in the Ad Library (20 Nov): Apollo runs social proof ("4M+ teams", "Your next 10 customers are already in
+Apollo") and its Claude integration; Lusha runs the pain of list building ("If your reps are buried in list building…")
+and AI-ranked prospect lists. Kaspr and Wiza have no relevant ads running.
+Expected (honest): ~350 reachable people, 5,000 impressions, 50–100 clicks. A: 0–1 lifetime sale ($0–299; the Oct email
+to the same kind of list sold 0). B: 3–8 list runs → at the 5.4% list-to-paid rate, 0.2–0.4 customers (~$50–100 of
+lifetime value). Total ≈ $50–400 back for ~$100: break-even test, the value is learning which message moves this list.
