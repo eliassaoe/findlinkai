@@ -77,6 +77,31 @@ PAGES = [
             ("Can I cancel anytime?", "Yes. You can cancel a subscription at any time with no cancellation fee; access runs to the end of the billing period."),
         ],
     },
+    {
+        "slug": "linkedin-email-finder",
+        "source": "linkedin-email-finder.html",
+        "canonical": "https://linkfinderai.com/linkedin-email-finder",
+        "title": "Find a Work Email From a LinkedIn Profile | LinkFinder AI",
+        "description": "Paste a LinkedIn profile URL, get the person's work email. First search free, no credit card. Upload a CSV to run a whole list.",
+        "h1": "Get the work email behind any LinkedIn profile",
+        "sub": "Paste a LinkedIn profile URL and get the person's work email when one can be found. Try one search free below, then run your whole list from a CSV.",
+        "list_title": "Got a list of LinkedIn profiles?",
+        "list_body": "Upload a CSV of LinkedIn profile URLs and get a work email back for every row we can find. A free account comes with credits to start. No credit card.",
+        "steps": [
+            ("Paste or upload", "One LinkedIn profile URL, or a CSV with a column of them."),
+            ("We look up the email", "LinkFinder AI checks its sources for the person's work email."),
+            ("Use the result", "Copy the email, or download your CSV with an email column added."),
+        ],
+        "cost": "Each LinkedIn-to-email lookup costs 10 credits, so Starter covers up to 500 lookups a month.",
+        "faq": [
+            ("Is the first search really free?", "Yes. Your first search needs no account. A free account then gives you credits to keep going, and no credit card is asked."),
+            ("Will every profile return an email?", "No. Some people have no findable work email. You see the result for each profile, and you can run a list to see your own hit rate before paying anything."),
+            ("Can I run a whole list?", "Yes. Sign up, upload a CSV of LinkedIn profile URLs, and download it back with the work email for each row we could find."),
+            ("What does it cost?", "Each LinkedIn-to-email lookup costs 10 credits. " + PLANS + "."),
+            ("Is there an API?", "Yes. Paid plans include API access, so you can run the same lookup from your CRM or your own code."),
+            ("Can I cancel anytime?", "Yes. You can cancel a subscription at any time with no cancellation fee; access runs to the end of the billing period."),
+        ],
+    },
 ]
 
 LP_CSS = """
@@ -156,7 +181,8 @@ def build(cfg):
     rest = body[header_end:]
 
     # Keep the free-search counter element exactly (the widget script writes to it).
-    counter = re.search(r'<span class="credits-counter" id="\w+">.*?free search remaining\s*</span>', rest, re.S).group(0)
+    m_counter = re.search(r'<span class="credits-counter" id="\w+">.*?free search remaining\s*</span>', rest, re.S)
+    counter = m_counter.group(0) if m_counter else ""
 
     # The widget: from the main card to the Sheets banner (which we drop).
     card_start = rest.index('<div class="main-card">')

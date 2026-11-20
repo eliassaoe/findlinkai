@@ -11,7 +11,7 @@ function test(name, fn) {
   catch (e) { console.error('  FAIL ' + name + '\n       ' + e.message); process.exitCode = 1; }
 }
 console.log('ad landing pages');
-for (const slug of ['linkedin-search-by-email', 'linkedin-url-finder']) {
+for (const slug of ['linkedin-search-by-email', 'linkedin-url-finder', 'linkedin-email-finder']) {
   const lp = read(`lp/${slug}.html`);
   test(`${slug}: noindex, canonical to the SEO page, doctype first`, () => {
     assert.ok(lp.startsWith('<!DOCTYPE html>'));
