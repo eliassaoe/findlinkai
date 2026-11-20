@@ -35,11 +35,12 @@ function run(search, stored) {
 
 console.log('Microsoft Ads UET');
 
-test('an organic visitor never loads bat.bing.com and conversions are no-ops', () => {
+test('an organic visitor loads the tag too (remarketing lists need every visitor, 20 Nov 2026)', () => {
   const r = run('?utm_source=google');
-  assert.equal(r.inserted.length, 0);
+  assert.deepEqual(r.inserted, ['https://bat.bing.com/bat.js']);
+  assert.equal(r.store.get('lf_ms_ad_until'), undefined);
   r.window.lfAdConversion('signup');
-  assert.equal(r.window.uetq_lf, undefined);
+  assert.equal(JSON.stringify(r.window.uetq_lf.slice(-3)), JSON.stringify(['event', 'signup', {}]));
 });
 
 test('a visitor from a Microsoft ad loads the tag and is remembered', () => {
@@ -51,10 +52,11 @@ test('a visitor from a Microsoft ad loads the tag and is remembered', () => {
     JSON.stringify(['event', 'purchase', { revenue_value: 49, currency: 'USD' }]));
 });
 
-test('msclkid alone is enough, and the 90-day memory brings the tag back on later pages', () => {
-  assert.equal(run('?msclkid=abc').inserted.length, 1);
-  assert.equal(run('', Date.now() + 1000).inserted.length, 1);
-  assert.equal(run('', Date.now() - 1000).inserted.length, 0);
+test('msclkid alone marks a Microsoft ad arrival for 90 days', () => {
+  const r = run('?msclkid=abc');
+  assert.equal(r.inserted.length, 1);
+  assert.ok(Number(r.store.get('lf_ms_ad_until')) > Date.now());
+  assert.equal(run('', Date.now() - 1000).inserted.length, 1);
 });
 
 test('signup and purchase call sites fire the Microsoft conversion', () => {

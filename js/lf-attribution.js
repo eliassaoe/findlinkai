@@ -360,10 +360,12 @@
     } catch (e) {}
 })();
 
-// Microsoft Ads UET tag (docs/paid-visibility-rule.md). Loaded only for visitors
-// who arrived from a Microsoft ad (msclkid or utm_source=bing) in the last 90 days,
-// so organic visitors never download bat.bing.com. window.lfAdConversion() is a
-// no-op for everyone else; call sites stay one line.
+// Microsoft Ads UET tag (docs/paid-visibility-rule.md). Loaded for EVERY visitor
+// since 20 Nov 2026 (it used to load only after a Microsoft ad click): Microsoft
+// remarketing lists only fill from visitors the tag has seen, and the €1,200 promo
+// credit has to be spent within 90 days. Conversions are still credited by Microsoft
+// only to its own ad clicks, so organic signups do not inflate the ad numbers.
+// lf_ms_ad_until still records a Microsoft ad arrival (90 days) for our own reading.
 // It uses its own queue name (uetq_lf): 171 pages also hard-code an older UET tag
 // (ti 343223134, added Dec 2025, not this account) on the default `uetq`, and two
 // tags on one queue would send our conversions to the wrong account.
@@ -380,7 +382,7 @@
             try { window.localStorage.setItem(KEY, String(until)); } catch (e) {}
         }
     } catch (e) {}
-    var active = until > Date.now();
+    var active = true; // see header: remarketing needs every visitor tagged
 
     window.lfAdConversion = function (action, valueUsd) {
         if (!active) return;
