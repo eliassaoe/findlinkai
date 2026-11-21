@@ -224,3 +224,4 @@ Why: the keyword list had drifted into creator/newsletter/podcast/wedding/e-comm
 - 21 Nov ~18:20: inbox refreshed, no other conversation waiting on us. Today's 52 autopilot emails went out 12:00–12:25 Paris; replies to those should start Monday.
 
 - **Reply rule refined (owner, 21 Nov 18:20):** ~4,000 visits/month is a guide, not a hard cut. A site just under it (e.g. ~3–4k) whose article or proposed topic is close to ours (lead gen, LinkedIn, sales tools, CRM, recruiting) is worth answering. Read what they propose before archiving.
+- 21 Nov ~23:40: **writewiser.co.uk** (DR 26, ~1.2k visits per MentionAgent) said "interested, send your site". Semrush UK: AS 20, ~125 organic/month. Far under the threshold (not a near miss) → archived without reply. Postoria and Opinion Stage: no answer yet.
