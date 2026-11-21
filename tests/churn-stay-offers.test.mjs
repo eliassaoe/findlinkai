@@ -31,3 +31,8 @@ test('the server side refuses non-subscribers and ends with the deal', () => {
   assert.match(sql, /u\.subscription_id is null/);
   assert.match(sql, /timestamptz '2026-12-01 07:59:00\+00'/);
 });
+
+test('pay-per-list is hidden for HubSpot-connected users (never PAYG to a CRM user)', () => {
+  assert.match(html, /id="stayPaygBtn"/);
+  assert.match(html, /if \(d && d\.connected\) paygBtn\.style\.display = 'none'/);
+});

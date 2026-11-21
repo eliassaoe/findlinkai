@@ -591,7 +591,7 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
            once for life. Both stay below the cancel button: offers, not a wall. -->
       <div id="stayOptionsCard" style="border:1px dashed var(--gray-300);border-radius:10px;padding:1rem;margin-top:1rem;">
         <p style="font-size:.85rem;color:var(--gray-700);margin-bottom:.6rem;text-align:center;"><strong>Lists come and go?</strong> You don't need a subscription for that.</p>
-        <button class="btn" onclick="stayOffer('payg')" style="width:100%;display:flex;justify-content:center;margin-bottom:.5rem;"><i class="fas fa-coins"></i>&nbsp;Pay per list instead: packs from $25, credits never expire</button>
+        <button id="stayPaygBtn" class="btn" onclick="stayOffer('payg')" style="width:100%;display:flex;justify-content:center;margin-bottom:.5rem;"><i class="fas fa-coins"></i>&nbsp;Pay per list instead: packs from $25, credits never expire</button>
         <button id="stayLtdBtn" class="btn btn-success" onclick="stayOffer('ltd')" style="width:100%;display:none;justify-content:center;"><i class="fas fa-infinity"></i>&nbsp;Black Friday: pay $149 once, 2,500 credits every month for life</button>
         <div id="stayLtdStatus" style="display:none;text-align:center;font-size:.8rem;color:var(--gray-600);margin-top:.5rem;"></div>
       </div>
@@ -1665,6 +1665,15 @@ function declineAllSolutions() {
   surveyTrack('all_solutions_declined', { reason: selectedCancellationReason });
   const ltdBtn = document.getElementById('stayLtdBtn');
   if (ltdBtn) ltdBtn.style.display = ltdSaveOfferLive() ? 'flex' : 'none';
+  // CLAUDE.md: never recommend PAYG to a CRM user. Hide pay-per-list when
+  // HubSpot is connected (same status check the app uses).
+  const paygBtn = document.getElementById('stayPaygBtn');
+  if (paygBtn && userToken) {
+    fetch('https://nango-connect-session.hamoureliasse.workers.dev/status', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: userToken })
+    }).then(r => r.json()).then(d => { if (d && d.connected) paygBtn.style.display = 'none'; }).catch(() => {});
+  }
   // The reasons whose step 2 was a pause offer already saw it; don't ask twice.
   const lp = document.getElementById('lastPauseCard');
   if (lp) lp.style.display = (selectedCancellationReason === 'notUsing' || selectedCancellationReason === 'projectDone') ? 'none' : 'block';
