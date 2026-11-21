@@ -208,3 +208,11 @@ Done 18 Nov 21:20: owner declined adlibrary's €200 (archived, no reply sent); 
 - Archived without reply: stratilyze.com (DR 1, ~121 visits, wants a fee), khod.io (~71 visits/month).
 - **theadcompare.com** (DR 22) said "yes, interested". Semrush US, 21 Nov (owner OK'd the agent opening Semrush via RankerFox → Semrush Guru Option 1): **AS 8**, 175 organic/month, spiky. Below the AS rule → archived without reply.
 - MentionAgent autopilot: last run found **no new prospects** (keywords covered). Add keywords in its campaign settings or outreach stops.
+
+### MentionAgent retargeted on relevance (21 Nov 2026, owner's ask: closer sites to ours)
+Why: the keyword list had drifted into creator/newsletter/podcast/wedding/e-commerce niches, and the agent had run out of new prospects.
+- Keywords: +47 on-topic (email finder / LinkedIn / "X alternatives" for Kaspr, Wiza, Skrapp, ContactOut, Coresignal, Clearbit, Proxycurl, PDL, RocketReach, PhantomBuster, Lusha, Hunter, Snov, Seamless, ZoomInfo, Clay; sales prospecting, lead gen, enrichment, RevOps, recruiting sourcing). Removed 135 off-topic (creators, newsletters, podcasts, VAs, photographers, Etsy/Shopify, events, coaches). 461 → 373.
+- Who to target (workspace): B2B sales / lead gen / contact data / CRM / recruiting / B2B SaaS sites and tool-review sites; avoid creator, lifestyle, e-commerce and any-topic guest-post blogs.
+- Campaign settings: minimum traffic ~300+/mo; "Only email sites about": b2b sales, lead generation, sales prospecting, cold email, sales intelligence, contact data, crm, revenue operations, recruiting, b2b saas, marketing automation.
+- Backlink targets (from this file's Priority list): `/coresignal-alternative` (main), plus `/kaspr-alternative`, `/skrapp-alternative`, `/wiza-alternative`, `/clearbit-alternative`, each with its "X alternative" anchor. Roundup entries still link the homepage (MentionAgent's rule).
+- Manual run launched 21 Nov ~09:30 Paris to check the new prospects.
