@@ -20,6 +20,19 @@ since Aug 2026), got **1 request in ~3 months** (`ai_sdr_requests`).
   is in `OUTREACH_URL` (app.html), clicks go to heyreach.io with UTMs and earn
   nothing — the click count is the test either way.
 
+## The funnel we can read (owner, 21 Nov)
+
+| Step | Where it is counted |
+| --- | --- |
+| Saw the offer | PostHog `next_step_panel_shown` (context=bulk) + pageviews of the tab |
+| Clicked | PostHog `outreach_clicked` (by `source`, distinct people) |
+| Signed up / started a HeyReach trial | Tolt dashboard (`heyreach.tolt.io`) — referrals, once the affiliate link is in `OUTREACH_URL` |
+| Paid | Tolt dashboard — paying referrals and commission |
+
+Clicks are only half the answer: a click is curiosity, a paid HeyReach
+referral is someone who would also pay us for a white-label version. Read
+both on 21 Dec. Before the affiliate link is live, Tolt counts nothing.
+
 ## Decision on 21 Dec 2026
 
 ```sql
