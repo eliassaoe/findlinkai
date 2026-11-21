@@ -71,3 +71,10 @@ secrets by the owner), and whether a non-US phone costs more credits.
 - Workflow 31: sends, opens, `csv_uploaded` within 14 d.
 - `bulk_gate_direct_checkout` by choice; share of annual among new payments.
 - `retention_offer_clicked`, `retention_pause`, cancels.
+
+## India re-opened, paid-only (21 Nov 2026)
+
+Owner call after the country numbers (12 months: India 978 signups, 1 payer;
+US 456 / 13). Indian visitors can sign up again but start with **0 credits**;
+they can buy a pack or a plan. Other blocked countries stay refused. Details,
+the three code edits and the rollback: `workers/signup/README.md`.

@@ -85,3 +85,35 @@ silently ignores it.
 Both signup paths run through this Worker — the email/password form in
 `sign-up.html` and the Google flow in `confirmation-signup.html`, which posts
 here with `provider:'google'` — so one edit covers both.
+
+## ⚠️ This copy is stale since 22 Sep 2026
+
+The live Worker moved on (country allowlist, farm rules, verification hold) and
+`worker.js` here was never refreshed. Read the live code with the Cloudflare
+connector (`workers_get_worker_code linkfinderai-sign-up`) before changing
+anything.
+
+## 21 Nov 2026: India re-opened, paid-only
+
+Owner decision. 12 months of PostHog: India 978 signups, 119 ran a list, 1 paid
+(US: 456 / 68 / 13). The need is there, the free credits were a cost. Three
+edits to the live Worker (deployed through the dashboard API, bindings kept —
+`RATE_LIMITS` is the only one; there is no `PROVISION_SECRET` or
+`DISPOSABLE_DOMAINS` binding on the live Worker, so the verification hold and
+the disposable-domain check both run in their fail-open branch):
+
+```js
+const PAID_ONLY_COUNTRIES = new Set(['IN']);
+// isBlockedCountry, allowlist branch:
+return !ALLOWED_COUNTRIES.has(country) && !PAID_ONLY_COUNTRIES.has(country);
+// grant:
+const startingCredits = PAID_ONLY_COUNTRIES.has(country) ? 0 : giftCode ? ... : ...;
+```
+
+Pakistan, Nigeria, Bangladesh, Egypt and every other non-listed country stay
+refused. To undo: remove `'IN'` from `PAID_ONLY_COUNTRIES`.
+
+To check (first Indian signups): the new `linkfinderai_users` row really has 0
+credits (n8n stores `startingCredits` as given — if it turns 0 into a default,
+the grant leaks), and `checkout_payment_success` from IN in PostHog. Re-check
+21 Dec: IN signups, IN payments, Dodo disputes/chargebacks from IN.
