@@ -1139,6 +1139,7 @@ body.sp-has-pick #creditCost{display:none !important;}
             <a href="#" class="nav-tab" data-page="api"><i class="fas fa-code"></i> API & MCP</a>
             <a href="#" class="nav-tab" data-page="crmSync"><i class="fab fa-hubspot"></i> CRM Sync</a>
             <a href="#" class="nav-tab" data-page="integrations"><i class="fas fa-puzzle-piece"></i> Integrations</a>
+            <a href="#" class="nav-tab" data-page="outreach"><i class="fas fa-paper-plane"></i> Outreach</a>
             <a href="#" class="nav-tab" data-page="history"><i class="fas fa-history"></i> History</a>
             <a href="#" class="nav-tab" data-page="account"><i class="fas fa-user"></i> Account</a>
         </div>
@@ -6063,7 +6064,22 @@ function navigateToPage(page){
         // app-integrations, not /integrations — the latter is the signed-out
         // landing page. A logged-in user should see what THEY have connected.
         case 'integrations': window.location.href=addGclid(`https://linkfinderai.com/app-integrations?token=${userToken}`); break;
+        case 'outreach': openOutreach('nav'); document.querySelector('[data-page="outreach"]').classList.remove('active'); document.querySelector('[data-page="enrichment"]').classList.add('active'); break;
     }
+}
+
+/* ---------------------------------------------------------------- Outreach
+ * Demand test (owner, 21 Nov 2026): do our users want LinkedIn outreach after
+ * finding their contacts? Before building or white-labelling anything, the
+ * "Outreach" tab and a route after a finished list send people to HeyReach
+ * (LinkedIn outreach tool, our affiliate partner, 30% recurring) and count the
+ * clicks. Decision on 21 Dec 2026: if a meaningful share of list finishers click
+ * (>5%), talk white label; if not, remove. See docs/outreach-test.md.
+ */
+const OUTREACH_URL = 'https://www.heyreach.io/?utm_source=linkfinderai&utm_medium=app&utm_campaign=outreach_test';
+function openOutreach(source) {
+    try { posthog.capture('outreach_clicked', { source: source, input_type: currentInputType, output_type: currentOutputType }); } catch (e) {}
+    window.open(OUTREACH_URL, '_blank', 'noopener');
 }
 
 /* ---------------------------------------------------------------- AI SDR
@@ -8198,6 +8214,7 @@ function renderNextStepPanel(context, opts) {
             + '<div class="next-step-head"><div class="next-step-title">' + rows.toLocaleString() + ' of ' + total.toLocaleString() + ' rows enriched. Next time, skip the upload.</div>'
             + '<div class="next-step-sub">Export is above. These run the same lookup without the CSV round-trip.</div></div>'
             + '<div class="next-step-routes">'
+            + '<button type="button" class="ns-route ns-outreach" onclick="openOutreach(\'bulk_panel\')"><b><i class="fas fa-paper-plane"></i> Reach them on LinkedIn</b><span>Automated LinkedIn outreach with HeyReach, our partner.</span></button>'
             + '<a href="' + SHEETS_ADDON_URL + '" target="_blank" rel="noopener" class="ns-route ns-sheets" onclick="nextStepClicked(\'sheets\',\'bulk\')"><b><i class="fas fa-table"></i> Enrich inside Google Sheets</b><span>No export, no re-import: the column fills itself.</span></a>'
             + '<button type="button" class="ns-route ns-api" onclick="nextStepClicked(\'api\',\'bulk\')"><b>&lt;/&gt; Automate this run</b><span>The API call that does exactly this, nightly if you like.</span></button>'
             + (hubspotConnected === true
