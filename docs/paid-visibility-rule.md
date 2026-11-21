@@ -240,3 +240,20 @@ and AI-ranked prospect lists. Kaspr and Wiza have no relevant ads running.
 Expected (honest): ~350 reachable people, 5,000 impressions, 50–100 clicks. A: 0–1 lifetime sale ($0–299; the Oct email
 to the same kind of list sold 0). B: 3–8 list runs → at the 5.4% list-to-paid rate, 0.2–0.4 customers (~$50–100 of
 lifetime value). Total ≈ $50–400 back for ~$100: break-even test, the value is learning which message moves this list.
+
+### 21 Nov 2026 — Meta retargeting live, Microsoft still pending
+
+- **Meta**: campaign "LF Retargeting signups - BF lifetime vs CSV list" published (in review).
+  One ad set, $10/day, ends 1 Dec 2026 08:30 Paris, original audience mode (not Advantage+):
+  include LF - Signups, exclude LF - Acheteurs, "use as suggestion" OFF; US/UK/CA/AU/NZ/IE.
+  Optimises for landing-page views. Ad A → /lifetime-deal (utm_campaign=rt-bf-ltd),
+  image `ad-bf-lifetime-v2.png`; Ad B → /app?action=bulk (utm_campaign=rt-csv), image `ad-csv-list.png`.
+  Meta AI text rewrites and text overlays switched OFF on both (offer wording must stay exact).
+- **Pixel fix found while publishing**: the LinkFinder pixel (2717863625238535) was not connected
+  to the business ad account 947878880921996; ads defaulted to an inactive "pixel agence ia okko"
+  (1251747963766808). Connected it in Business settings → Datasets → Connected assets, and both
+  ads now track with the LinkFinder pixel. Any new Meta ad: check "Suivi" shows linkfinder ai pixel.
+- **Microsoft**: all 4 ads still "En instance" (editorial review), 0 impressions on 20 Nov.
+  UET tag 187299983 now loads for every visitor (commit 48bcab3a) so remarketing lists fill.
+  The promo-credit terms sit on the Billing page, which the agent cannot read (screenshots are
+  blocked there): the owner reads the spend threshold and deadline himself.
