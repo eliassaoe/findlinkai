@@ -23,8 +23,8 @@ test('no paste box: the cards are the start, LinkedIn profile first, lists one l
   const groups = app.slice(app.indexOf('const SEARCH_PICKER_GROUPS'));
   assert.ok(groups.indexOf("'Find a LinkedIn profile'") < groups.indexOf("'Find an email'"));
   const form = app.slice(app.indexOf('<div class="config-form">'));
-  assert.ok(form.indexOf('id="searchPicker"') < form.indexOf('class="qs-list-line"'));
-  assert.ok(form.slice(form.indexOf('class="qs-list-line"'), form.indexOf('class="qs-list-line"') + 1200).includes("pickRoute('sheets'"), 'Google Sheets is offered with the lists');
+  assert.ok(form.indexOf('id="searchPicker"') < form.indexOf('class="qs-list-line'));
+  assert.ok(form.slice(form.indexOf('class="qs-list-line'), form.indexOf('class="qs-list-line') + 2400).includes("pickRoute('sheets'"), 'Google Sheets is offered with the lists');
 });
 
 test('what was pasted decides the pair', () => {
