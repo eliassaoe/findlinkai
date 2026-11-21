@@ -21,11 +21,14 @@ test('the list-stopped event carries what the finish-your-list email needs', () 
   assert.match(app, /found_rows: \(function\(\)\{ try \{ return csvResumeFoundRows \+ csvBatchFoundRows\(\); \}/);
 });
 
-test('list-stopped banner checks out directly, monthly, with the pack as second door', () => {
+test('list-stopped banner checks out directly, ANNUAL first (owner 21 Nov), monthly and pack as other doors', () => {
   const html = readFileSync(new URL('../app.html', import.meta.url), 'utf8');
   assert.match(html, /\$\{lfGateButtonsHTML\(sized, lockedCount, totalCount,/);
   const fn = html.slice(html.indexOf('async function lfGateCheckout'), html.indexOf('function showUpgradeBanner('));
-  assert.match(fn, /billingMode = 'monthly';\s*return proceedToCheckoutDirect\(/);
+  assert.match(fn, /billingMode = choice === 'annual' \? 'annual' : 'monthly';\s*return proceedToCheckoutDirect\(/);
+  const btns = html.slice(html.indexOf('function lfGateButtonsHTML'), html.indexOf('async function lfGateCheckout'));
+  // The first button in the row is the annual one.
+  assert.ok(btns.indexOf("lfGateCheckout(\\'annual\\'") < btns.indexOf("lfGateCheckout(\\'plan\\'"));
   assert.match(fn, /proceedToPaygCheckout\(pack\.index, btnEl\)/);
   assert.match(fn, /choice === 'all'\) return handleUpgradeFromBulk\(\)/);
   assert.match(html, /if \(typeof isExistingSubscriber !== 'undefined' && isExistingSubscriber\) return legacyButtonHTML;/);

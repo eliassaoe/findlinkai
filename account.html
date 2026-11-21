@@ -585,6 +585,16 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
         <button id="lastPauseBtn" class="btn btn-success" onclick="retentionAction('pause','lastPauseBtn','lastPauseStatus')" style="width:100%;display:flex;justify-content:center;"><i class="fas fa-pause"></i> Pause for 1 month instead</button>
         <div id="lastPauseStatus" style="display:none;text-align:center;font-size:.85rem;color:var(--success);margin-top:.5rem;"></div>
       </div>
+      <!-- Two more ways to stay, shown to every leaver (owner, 21 Nov 2026,
+           docs/churn-pause.md "Ways to stay"): stop the subscription but keep
+           paying per list, or (Black Friday only, until 1 Dec 07:59 UTC) pay
+           once for life. Both stay below the cancel button: offers, not a wall. -->
+      <div id="stayOptionsCard" style="border:1px dashed var(--gray-300);border-radius:10px;padding:1rem;margin-top:1rem;">
+        <p style="font-size:.85rem;color:var(--gray-700);margin-bottom:.6rem;text-align:center;"><strong>Lists come and go?</strong> You don't need a subscription for that.</p>
+        <button class="btn" onclick="stayOffer('payg')" style="width:100%;display:flex;justify-content:center;margin-bottom:.5rem;"><i class="fas fa-coins"></i>&nbsp;Pay per list instead: packs from $25, credits never expire</button>
+        <button id="stayLtdBtn" class="btn btn-success" onclick="stayOffer('ltd')" style="width:100%;display:none;justify-content:center;"><i class="fas fa-infinity"></i>&nbsp;Black Friday: pay $149 once, 2,500 credits every month for life</button>
+        <div id="stayLtdStatus" style="display:none;text-align:center;font-size:.8rem;color:var(--gray-600);margin-top:.5rem;"></div>
+      </div>
     </div>
 
     <!-- Exit survey: one question at a time, then the real cancel button on step5.
@@ -1621,8 +1631,40 @@ function submitFeatureRequest()  { submitFeedback('feature_request',  'featureRe
 function submitTechnicalIssue()  { submitFeedback('technical_issue',   'technicalIssueText',  'technical_issue_submitted'); }
 function submitOtherFeedback()   { submitFeedback('other_feedback',    'otherReasonText',     'other_feedback_submitted'); }
 
+// Black Friday lifetime deal, offered to leavers only while it runs.
+const LTD_SAVE_OFFER_ENDS = Date.parse('2026-12-01T07:59:00Z');
+function ltdSaveOfferLive() { return Date.now() < LTD_SAVE_OFFER_ENDS; }
+
+async function stayOffer(kind) {
+  surveyTrack('retention_offer_clicked', { offer: kind, reason: selectedCancellationReason, subscription_id: currentSubscriptionId || null });
+  if (surveyPreview) { alert('PREVIEW — the ' + kind + ' offer was not opened.'); return; }
+  if (kind === 'payg') {
+    closeCancellationModal();
+    showPricingModal('cancel_flow_payg');
+    setBilling('payg');
+    return;
+  }
+  if (kind === 'ltd') {
+    const status = document.getElementById('stayLtdStatus');
+    // A subscriber is refused by ltd_eligibility() unless allowlisted; this
+    // puts them on the list (server checks they are a subscriber and the
+    // deal is still live), then opens the deal page.
+    try {
+      await fetch(`${VALUE_SUPABASE_URL}/rest/v1/rpc/ltd_allow_leaver`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', apikey: VALUE_SUPABASE_ANON_KEY, Authorization: `Bearer ${VALUE_SUPABASE_ANON_KEY}` },
+        body: JSON.stringify({ p_token: userToken }),
+      });
+    } catch (e) {}
+    if (status) { status.textContent = 'Opening the lifetime deal. Cancel your subscription after you buy it, so you are not billed twice.'; status.style.display = 'block'; }
+    window.open('/lifetime-deal?utm_source=app&utm_medium=cancel_flow&utm_campaign=ltd-save', '_blank', 'noopener');
+  }
+}
+
 function declineAllSolutions() {
   surveyTrack('all_solutions_declined', { reason: selectedCancellationReason });
+  const ltdBtn = document.getElementById('stayLtdBtn');
+  if (ltdBtn) ltdBtn.style.display = ltdSaveOfferLive() ? 'flex' : 'none';
   // The reasons whose step 2 was a pause offer already saw it; don't ask twice.
   const lp = document.getElementById('lastPauseCard');
   if (lp) lp.style.display = (selectedCancellationReason === 'notUsing' || selectedCancellationReason === 'projectDone') ? 'none' : 'block';

@@ -5771,8 +5771,14 @@ function lfGateButtonsHTML(sized, lockedCount, totalCount, legacyButtonHTML) {
     const pack = lfGatePackFor(sized.needed);
     const btn = 'background:var(--primary);color:#fff;border:none;padding:0.625rem 1.1rem;border-radius:6px;font-weight:600;cursor:pointer;font-size:0.875rem;font-family:inherit;display:inline-flex;align-items:center;gap:0.5rem;';
     const btn2 = 'background:#fff;color:var(--gray-800);border:1px solid var(--gray-300);padding:0.6rem 1rem;border-radius:6px;font-weight:600;cursor:pointer;font-size:0.875rem;font-family:inherit;';
+    // Annual leads (owner, 21 Nov 2026): a list buyer who pays monthly tends to
+    // leave once the list is done (~22% churn a month); a year up front at 40%
+    // off keeps them. Monthly stays one button away, same direct checkout.
+    const annualMo = Math.round(sized.plan.monthlyPrice * 0.6);
+    const annualTotal = Math.round(sized.plan.monthlyPrice * 0.6 * 12);
     return '<div class="lf-gate-actions" style="display:flex;flex-wrap:wrap;gap:0.5rem;align-items:center;">'
-        + '<button class="lf-gate-sub" onclick="lfGateCheckout(\'plan\', this)" style="' + btn + '"><i class="fas fa-rocket"></i> Finish my list &middot; ' + sized.plan.name + ' $' + sized.plan.monthlyPrice + '/mo</button>'
+        + '<button class="lf-gate-annual" onclick="lfGateCheckout(\'annual\', this)" style="' + btn + '"><i class="fas fa-rocket"></i> Finish my list &middot; ' + sized.plan.name + ' $' + annualMo + '/mo, billed yearly ($' + annualTotal + ') &middot; save 40%</button>'
+        + '<button class="lf-gate-sub" onclick="lfGateCheckout(\'plan\', this)" style="' + btn2 + '">Monthly &middot; $' + sized.plan.monthlyPrice + '/mo</button>'
         + (pack ? '<button class="lf-gate-pack" onclick="lfGateCheckout(\'pack\', this)" style="' + btn2 + '">$' + pack.price + ' one-time &middot; ' + pack.credits.toLocaleString() + ' credits</button>' : '')
         + '<a onclick="lfGateCheckout(\'all\', this)" style="font-size:0.8125rem;color:var(--gray-600);cursor:pointer;text-decoration:underline;">See all plans</a>'
         + '</div>';
@@ -5800,7 +5806,7 @@ async function lfGateCheckout(choice, btnEl) {
         const pack = lfGatePackFor(gate.credits || 1);
         if (pack) return proceedToPaygCheckout(pack.index, btnEl);
     }
-    billingMode = 'monthly';
+    billingMode = choice === 'annual' ? 'annual' : 'monthly';
     return proceedToCheckoutDirect(typeof gate.planIndex === 'number' ? gate.planIndex : 0, btnEl);
 }
 

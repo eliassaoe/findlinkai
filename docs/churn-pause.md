@@ -53,3 +53,31 @@ and timestamp > '2026-11-11' group by 1,2;
 `workers/dodo-webhook` (server-side `subscription_cancelled_server`, failed
 payments) was never deployed: no `_server` events exist in PostHog. Cancels
 made in Dodo's portal and failed-card churn are invisible until it is.
+
+## Ways to stay (21 Nov 2026)
+
+Owner: "everything possible to keep people". Step 3 of the cancel flow (every
+reason, after the reason offer was declined) now has, under the cancel button:
+
+- **Pay per list instead** → pricing modal on the pay-as-you-go tab (packs from
+  $25, credits never expire). For the "one list then gone" leaver this keeps a
+  paying relationship without a subscription.
+- **Black Friday lifetime deal** ($149 once, 2,500 credits/month), shown only
+  until 1 Dec 2026 07:59 UTC. Subscribers are normally refused by
+  `ltd_eligibility()`, so the click calls the new RPC `ltd_allow_leaver(token)`
+  (security definer: subscriber only, refuses after the deadline) which adds
+  them to `ltd_allowlist` with reason `cancel_flow_offer`, then opens
+  `/lifetime-deal`. The note tells them to cancel the subscription after buying.
+  Owner's open question: whether the lifetime deal outlives Black Friday, since
+  it competes with annual. It does not by default here.
+
+Event: `retention_offer_clicked {offer: payg|ltd, reason}`. Pinned by
+`tests/churn-stay-offers.test.mjs`. Migration
+`supabase/migrations/20261121110000_ltd_cancel_flow_offer.sql` (applied via MCP).
+
+Also 21 Nov: the list-stopped banner in the app (`lfGateButtonsHTML`) now leads
+with the **annual** plan (40% off, billed yearly, same direct checkout); monthly
+and the one-time pack are the other two buttons. `docs/paste-a-list.md` §3 had
+chosen monthly on 8 Nov because the few past payers were monthly; the owner
+prefers annual to cut churn. Re-check `bulk_gate_direct_checkout` by `choice`
+on 21 Dec: if annual clicks fall far below the old monthly clicks, revisit.
