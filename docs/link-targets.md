@@ -47,6 +47,7 @@ bot noise (`docs/gsc-seo-2026-10.md`); the position is what matters here.
 | 9 Nov 2026 | apollotechnical.com/what-is-pipeline-management-why-it-matters | B2B data enrichment | `/b2b-data-enrichment` |
 | 9 Nov 2026 | adaptlypost.com/blog/facebook-phone-number-search-guide | LinkedIn phone number finder API | `/linkedin-phone-number-finder-api` |
 | 13 Nov 2026 | ecomify.net/blogs/guides/shopify-wholesale-apps | Apify alternative | `/apify-alternative` |
+| 20 Nov 2026 | aureliatalent.com/insights/find-brand-emails (LinkedIn section) | Wiza alternative | `/wiza-alternative` |
 
 Given in return: AdaptlyPost as #12 (entry + table row, dofollow to adaptlypost.com) on `/best-instagram-api-for-automations`; `workinsiders.com/deliverability/` (anchor "land in spam") on
 `/resources/scraped-vs-purchased-email-lists-deliverability`, and
@@ -200,3 +201,6 @@ Done 18 Nov 21:20: owner declined adlibrary's €200 (archived, no reply sent); 
 
 ## 20 Nov 2026
 - **digest.pro** (Semrush AS 19, 112 US organic, so below the AS rule): kept anyway at the owner's call ("he's insisting, why not"). They promote **Epicflow** (PPM / resource management) and refused the recruitment guide as off-topic. Offered two placements, their pick: the Monday Sales CRM section of `/best-software-for-crm`, or the "Same workflow for every client" section of `/agency`, with a dofollow "Epicflow" → epicflow.com. **They give:** LinkFinder AI at #2 in `digest.pro/news/best-autonomous-ai-agents/` (entry text already sent 13 Nov). We publish the same day theirs is live.
+
+## 21 Nov 2026
+- **aureliatalent.com**: their link is live (verified by MentionAgent). Our side placed: "Aurelia" → aureliatalent.com/ on `/youtube-email-finder`, end of "Other places creators list a contact" (source: `seo_2026_11/pages_d_tools.py`).

@@ -261,7 +261,8 @@ PAGES = [
         <li>Video descriptions, often next to "for business inquiries".</li>
         <li>Their other social profiles; the <a href="https://linkfinderai.com/best-social-media-finder">social media finder</a> helps you find them.</li>
         <li>Their management or agency, when the description names one.</li>
-      </ul>"""),
+      </ul>
+      <p>Working on the creator side? Creators looking for paid brand collaborations can find them on <a href="https://www.aureliatalent.com/">Aurelia</a>.</p>"""),
             ("When a company is behind the channel", """
       <p>Brand channels and larger creators are run by a company. Find the right person there on LinkedIn, then get their work email: the <a href="https://linkfinderai.com/linkedin-url-finder">LinkedIn profile finder</a> turns a name and company into a profile, and the <a href="https://linkfinderai.com/linkedin-email-finder">LinkedIn email finder</a> returns the verified email for 10 credits. For the company's general address, the <a href="https://linkfinderai.com/company-email-finder">company email finder</a> works from the company name.</p>
       <div class="note">LinkFinder AI does not read emails from YouTube channels; it finds work emails of people and companies.</div>"""),
