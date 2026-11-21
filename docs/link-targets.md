@@ -206,4 +206,5 @@ Done 18 Nov 21:20: owner declined adlibrary's €200 (archived, no reply sent); 
 - **aureliatalent.com**: their link is live (verified by MentionAgent). Our side placed: "Aurelia" → aureliatalent.com/ on `/youtube-email-finder`, end of "Other places creators list a contact" (source: `seo_2026_11/pages_d_tools.py`).
 - Aurelia: confirmation sent with our page, deal marked closed in MentionAgent.
 - Archived without reply: stratilyze.com (DR 1, ~121 visits, wants a fee), khod.io (~71 visits/month).
-- **theadcompare.com** (DR 22, ~4.6k visits/month; MentionAgent says their "10 Best CRMs" roundup gets no search traffic) said "yes, interested". Waiting on the owner's Semrush AS check before replying: the agent's attempt to open Semrush through RankerFox was refused by the permission system.
+- **theadcompare.com** (DR 22) said "yes, interested". Semrush US, 21 Nov (owner OK'd the agent opening Semrush via RankerFox → Semrush Guru Option 1): **AS 8**, 175 organic/month, spiky. Below the AS rule → archived without reply.
+- MentionAgent autopilot: last run found **no new prospects** (keywords covered). Add keywords in its campaign settings or outreach stops.
