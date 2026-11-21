@@ -348,3 +348,13 @@ test('the monthly value receipt: worker, event, email and landing', () => {
 });
 
 console.log(`\n${passed} passed`);
+
+// 21 Nov 2026: a list can be dropped straight onto the single-result panel.
+{
+  const { readFileSync } = await import('node:fs');
+  const a = readFileSync(new URL('../app.html', import.meta.url), 'utf8');
+  const panel = a.slice(a.indexOf('function renderNextStepPanel'), a.indexOf('function renderNextStepPanel') + 4000);
+  if (!panel.includes('id="nsDrop"') || !a.includes('function nsHandlePanelFile') || !/switchMode\('bulk'\);[\s\S]{0,200}handleFile\(file\);/.test(a)) {
+    console.error('  FAIL single-result panel drop zone'); process.exitCode = 1;
+  } else console.log('  ok   single-result panel drop zone');
+}

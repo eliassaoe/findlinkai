@@ -845,6 +845,10 @@ window.__lfSanitize=function(p){['$current_url','$referrer','$initial_current_ur
 .next-step-head{display:flex;align-items:baseline;justify-content:space-between;gap:0.75rem;flex-wrap:wrap;margin-bottom:0.75rem;}
 .next-step-title{font-weight:700;color:#1e3a8a;font-size:0.95rem;}
 .next-step-sub{font-size:0.8rem;color:#3b5b8c;}
+.ns-drop{display:flex;align-items:center;gap:0.75rem;border:2px dashed #93c5fd;background:#fff;border-radius:10px;padding:0.85rem 1rem;margin:0.6rem 0 0.75rem;cursor:pointer;color:#1e3a8a;font-size:0.85rem;transition:background .15s,border-color .15s;}
+.ns-drop i{font-size:1.4rem;color:var(--primary);}
+.ns-drop b{color:var(--gray-900);}
+.ns-drop:hover,.ns-drop.over{background:#eff6ff;border-color:var(--primary);}
 .next-step-sheet{overflow-x:auto;border:1px solid #c7d7f5;border-radius:8px;background:#fff;margin-bottom:0.9rem;}
 .next-step-sheet table{border-collapse:collapse;width:100%;font-size:0.8rem;min-width:360px;}
 .next-step-sheet th{background:#f1f5f9;color:#475569;font-weight:600;text-align:left;padding:0.45rem 0.7rem;border-bottom:1px solid #e2e8f0;border-right:1px solid #e2e8f0;white-space:nowrap;}
@@ -8160,6 +8164,12 @@ function renderNextStepPanel(context, opts) {
         html += '<div class="next-step" id="nextStepSingle">'
             + '<div class="next-step-head"><div class="next-step-title">That&rsquo;s one row. Your whole list is next.</div>'
             + '<div class="next-step-sub">Same lookup, ' + cost + ' credit' + (cost === 1 ? '' : 's') + ' a row, any number of rows.</div></div>'
+            // 21 Nov 2026: the panel's CSV button was clicked by 3 of 63 people
+            // in 30 days. The file can now be dropped right here, on the result
+            // they just got, with the same search already set.
+            + '<label class="ns-drop" id="nsDrop" ondragover="event.preventDefault();this.classList.add(\'over\')" ondragleave="this.classList.remove(\'over\')" ondrop="nsDropFile(event)">'
+            + '<input type="file" accept=".csv,.tsv,.txt,.xlsx,.xlsm,.xls,.ods" onchange="nsPickFile(this)" hidden>'
+            + '<i class="fas fa-cloud-upload-alt"></i><span><b>Drop your list here</b> or click to choose a CSV or Excel file. Every row gets the same lookup.</span></label>'
             + '<div class="next-step-sheet"><table><thead><tr><th></th><th>' + nsEsc(inputHeader) + '</th>'
             + cells.map(c => '<th>' + nsEsc(c.h) + '</th>').join('') + '</tr></thead><tbody>'
             + '<tr class="ns-filled"><td>1</td><td title="' + nsEsc(row.inputData) + '">' + nsEsc(nsTrunc(row.inputData, 48)) + '</td>'
@@ -8299,6 +8309,25 @@ async function runNextStepApiTest(context) {
         if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-play"></i> Run it again'; }
     }
 }
+
+// A file dropped (or chosen) in the single-result panel: open bulk with the
+// search the person just ran, and load the file as if dropped on the uploader.
+function nsHandlePanelFile(file, how) {
+    if (!file) return;
+    try { posthog.capture('next_step_clicked', { route: 'csv_drop', context: 'single', how: how, input_type: currentInputType, output_type: currentOutputType }); } catch (e) {}
+    try { localStorage.setItem(ROUTE_PICKED_KEY, 'csv'); } catch (e) {}
+    switchMode('bulk');
+    const bulk = document.getElementById('bulkSearch');
+    if (bulk && bulk.scrollIntoView) bulk.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    handleFile(file);
+}
+function nsDropFile(ev) {
+    ev.preventDefault();
+    const el = document.getElementById('nsDrop'); if (el) el.classList.remove('over');
+    const f = ev.dataTransfer && ev.dataTransfer.files && ev.dataTransfer.files[0];
+    nsHandlePanelFile(f, 'drop');
+}
+function nsPickFile(input) { nsHandlePanelFile(input.files && input.files[0], 'pick'); }
 
 function nextStepClicked(route, context) {
     try { posthog.capture('next_step_clicked', { route: route, context: context, input_type: currentInputType, output_type: currentOutputType }); } catch (e) {}
