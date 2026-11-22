@@ -225,3 +225,8 @@ Why: the keyword list had drifted into creator/newsletter/podcast/wedding/e-comm
 
 - **Reply rule refined (owner, 21 Nov 18:20):** ~4,000 visits/month is a guide, not a hard cut. A site just under it (e.g. ~3–4k) whose article or proposed topic is close to ours (lead gen, LinkedIn, sales tools, CRM, recruiting) is worth answering. Read what they propose before archiving.
 - 21 Nov ~23:40: **writewiser.co.uk** (DR 26, ~1.2k visits per MentionAgent) said "interested, send your site". Semrush UK: AS 20, ~125 organic/month. Far under the threshold (not a near miss) → archived without reply. Postoria and Opinion Stage: no answer yet.
+
+## 22 Nov 2026 (evening)
+- **sorank.com** (DR 57, ~16k visits; Semrush worldwide: AS 32, 13.1K organic/month, +95%, 3.2K referring domains). Camille (partnerships) offered a swap: a followed link to us in an existing lead-gen/outreach article, against a link to their Gemini visibility tracker in one of ours. Accepted 22 Nov ~20:15 Paris, asking their link to point at `/kaspr-alternative` ("Kaspr alternative"); ours: "using a Gemini visibility tracker" → sorank.com/gemini-visibility-tracker on `/top-best-marketing-automation-platforms`, **after theirs is live**. `/kaspr-alternative` now has three links in progress (Opinion Stage, Postoria, Sorank) — the stacking rule.
+- **thefrontkit.com** (DR 25, ~251 visits): $140 "Black Friday" listing → archived (traffic far under the rule, paid).
+- **socialk.it** (DR 36, ~12k visits): sponsored post €100. Not answered yet (browser dropped): under the paid rule, counter with a free swap or archive.
