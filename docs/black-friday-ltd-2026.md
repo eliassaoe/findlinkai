@@ -512,3 +512,11 @@ Post (r/SideProject; trim for megathreads), link
 >
 > Happy to run 10 of your prospects through it for free in the comments if you
 > want to check the find rate before buying anything.
+
+## Black Friday tools worth buying for us? (checked 22 Nov 2026)
+
+Owner asked for the best customer-finding tool on the BF deal lists. Checked blackfridaydeals.dev (Marketing 194 + Business 60 live deals; our own $149 LTD listing is live there) and trungdq88/Awesome-Black-Friday-Cyber-Monday (Marketing, SEO, Startup, Social).
+Verdict: **nothing is a must-buy**. Our bottleneck is conversion, not leads, and outbound (Explee, Instantly), link outreach (MentionAgent), AI visibility (Semrush via RankerFox) and contact data (our own product) are covered.
+- Only cheap candidates: Radar Lab $99/yr (67% off; ranks 4,700 newsletters, shows which ones competitors sponsor; only useful if we keep buying newsletter slots), Citation Rocket lifetime $59 (one-off AI-search audit; Semrush already shows AI visibility).
+- Too expensive for ~$400 MRR: AffiliateFinder.ai $799/yr (done-for-you 100 affiliates), Emelia €259+/yr, Sorank $588+/yr, Scrap.io $354/yr (a competitor's data).
+- Duplicates what we have: Snov.io, SalesHandy, Reply, SmartReach, Warmy/TrulyInbox, Bearconnect, LeadMerlin. Nothing for Reddit marketing on either list.
