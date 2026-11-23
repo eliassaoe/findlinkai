@@ -354,7 +354,7 @@
     try {
         if (Date.now() >= Date.parse('2026-12-01T07:59:00Z')) return;
         var s = document.createElement('script');
-        s.src = '/js/lf-bf-banner.js';
+        s.src = '/js/lf-bf-banner.js?v=20261123';
         s.defer = true;
         (document.head || document.documentElement).appendChild(s);
     } catch (e) {}

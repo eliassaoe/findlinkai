@@ -7,7 +7,7 @@ const banner = readFileSync(new URL('../js/lf-bf-banner.js', import.meta.url), '
 const attr = readFileSync(new URL('../js/lf-attribution.js', import.meta.url), 'utf8');
 
 test('the shared script loads the banner, and stops loading it after the deal', () => {
-    assert.match(attr, /s\.src = '\/js\/lf-bf-banner\.js'/);
+    assert.match(attr, /s\.src = '\/js\/lf-bf-banner\.js(\?v=\d+)?'/);
     assert.match(attr, /Date\.parse\('2026-12-01T07:59:00Z'\)/);
 });
 
