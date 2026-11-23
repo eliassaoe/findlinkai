@@ -378,6 +378,17 @@
                 a.href = href; a.textContent = 'Affiliates'; a.setAttribute('data-lf-affiliate-link', 'nav');
                 nav.appendChild(a);
             }
+            // Most tool pages have no menu, only the logo and the Login / Start buttons.
+            var auth = !nav && document.querySelector('header .auth-buttons');
+            if (auth && auth.parentElement && !auth.parentElement.querySelector('a[href*="/affiliate"]')) {
+                var st = document.createElement('style');
+                st.textContent = '.lf-aff-link{color:#4b5563;font-weight:500;font-size:0.9rem;text-decoration:none;margin-right:16px;white-space:nowrap}.lf-aff-link:hover{color:#111827}@media(max-width:640px){.lf-aff-link{display:none}}';
+                document.head.appendChild(st);
+                var h = document.createElement('a');
+                h.href = href; h.className = 'lf-aff-link'; h.textContent = 'Affiliates';
+                h.setAttribute('data-lf-affiliate-link', 'header');
+                auth.parentElement.insertBefore(h, auth);
+            }
             var foot = document.querySelector('footer');
             if (foot && !foot.querySelector('a[href*="/affiliate"]')) {
                 var lists = foot.querySelectorAll('ul');
