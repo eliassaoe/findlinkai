@@ -1,0 +1,43 @@
+name: Explee - affiliate sites import
+
+# Website domains (from AffiliateFinder) -> one decision-maker each -> email ->
+# a new AutoGTM campaign in project 37934 with an affiliate brief, created
+# Not started. See workers/explee-autogtm/affiliate_sites.py. Prints counts only.
+on:
+  workflow_dispatch:
+    inputs:
+      domains:
+        description: 'Space-separated website domains (public sites only)'
+        type: string
+        required: true
+      apply:
+        description: 'Spend credits and import (false = dry run)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: workers/explee-autogtm
+    env:
+      EXPLEE_API_KEY: ${{ secrets.EXPLEE_API_KEY }}
+      DOMAINS: ${{ inputs.domains }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Run
+        run: |
+          printf '%s\n' "$DOMAINS" > "$RUNNER_TEMP/domains.txt"
+          if [ "${{ inputs.apply }}" = "true" ]; then
+            python3 affiliate_sites.py --domains-file "$RUNNER_TEMP/domains.txt" --apply
+          else
+            python3 affiliate_sites.py --domains-file "$RUNNER_TEMP/domains.txt"
+          fi
