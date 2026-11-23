@@ -32,3 +32,14 @@ Answered in AffiliateFinder's Inbox. A yes → send them to linkfinderai.com/aff
 At least 1–2 serious affiliates interested out of 15 → the yearly offer can pay for
 itself (one referral on Pro annual ≈ $178 commission-side cost, ~$713 kept). None → cancel
 the monthly plan.
+
+## Affiliates onboarding (first one: 23 Nov 2026)
+- First "yes" came 30 min after launch (a TikTok creator from the list). Reply sent from
+  AffiliateFinder's Inbox: sign up with Google on /sign-up, reply when done → we add
+  **500 test credits** (~50 LinkedIn→email lookups); affiliate link on /affiliate.
+  Contact details stay in AffiliateFinder, never in this public repo.
+- Test credits: once the account exists, add 500 to that account's `credits` in
+  `linkfinderai_users` (check the row first; never touch subscription fields).
+- **Country block:** /sign-up refuses countries outside the allowlist, see
+  `workers/signup/README.md`. We told them to say so if refused; the account then has to be
+  created by hand. For a known affiliate with credits we chose, that is fine.
