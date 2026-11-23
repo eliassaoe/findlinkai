@@ -57,3 +57,11 @@ the monthly plan.
 - Bottleneck now = **sending capacity**: one inbox (owner's Gmail), 30 emails/day shared by both campaigns incl. follow-ups → ~588 emails ≈ 4 weeks. A second connected inbox doubles it.
 - "Add your own" in AffiliateFinder takes a URL and spends an AF enrichment credit; you cannot paste an email you found elsewhere. So emails found with LinkFinder for the remaining ~340 websites must be sent from Instantly/Explee, not AF.
 - 80 saved leads have no email (mostly TikTok/Instagram).
+
+### The ~310 remaining websites → Explee (23 Nov, 18:40)
+- Owner: send them from Explee. Script `workers/explee-autogtm/affiliate_sites.py` + workflow `explee-affiliate-sites.yml` (dispatch with the domain list; dry run by default): one decision-maker per site (founder/editor/owner/partnerships) via `people-by-domains`, emails via `enrich/email/batch`, imported into project **37934** as *"Affiliates - B2B tool review sites (AffiliateFinder)"* with an English affiliate brief, created *Not started*. Worst case ~$7.70 for 308 domains.
+- **Blocked: Explee balance is negative** (`billing/balance` = -3021, i.e. about -$30). `people-by-domains` returns 402 `insufficient_credits`; nothing was spent or imported. Rerun the workflow with `apply=true` after a top-up. The domain list (public sites, filtered: no vendors, no off-topic) is rebuilt from AffiliateFinder: websites not saved there.
+- LinkFinder's own API was not usable for this: every call with our key returns 500 `text is not defined` (see below).
+
+### Bug found: API worker `linkedfinderapiaccess` turns 401/403 into a 500
+In the sync path, `const text = await response.text()` is declared inside the `try` block, then `text.slice(0, 500)` is used outside it in the `if (response.status === 403 || 401)` log line → `ReferenceError: text is not defined` → the caller gets 500 *Internal server error / text is not defined* instead of the real 401/403 (bad key, no credits). Seen 23 Nov on the smoke test: even the "wrong key" case returns 500. Fix: declare `let text = ''` before the `try`. Also, our own key (GitHub secret `LINKFINDER_API_KEY`, used by the MCP server and the smoke test) is now refused upstream; it passed on 13 Nov. Check which account it belongs to and its credits.
