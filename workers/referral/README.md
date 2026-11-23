@@ -179,6 +179,29 @@ Known gap left: `/attribute` accepts any account with no attribution yet, so an
 existing customer who later clicks a partner link becomes that partner's referral.
 Limiting it to accounts created in the last few days needs a worker redeploy.
 
+## End-to-end test, 23 Nov 2026
+
+Two test accounts in `linkfinderai_users` (emails `affiliate-test-partner@…` and
+`affiliate-test-customer@…` on the linkfinderaiapp.com domain, tokens starting
+`lftest`). Partner opened `/affiliate` → code created. Browser visited
+`linkfinderai.com/?ref=<code>` then `/app` as the customer → `referral_attributions`
+row written, partner dashboard showed 1 signup (the same-domain flag was cleared by
+hand for the test). Remaining step: a real $25 pack bought on the test customer
+account, then refunded in Dodo → expect a `pending` commission of $6.25, then `void`.
+Delete both test accounts and their referral rows afterwards.
+
+## Visibility (23 Nov 2026)
+
+- `/affiliate` logged out is now a public program page (no more dead end), indexable,
+  with "Get my affiliate link" → sign-up → the app sends them back to `/affiliate`
+  (`lf_after_auth`).
+- App: an **Affiliates 25%** tab next to Outreach.
+- Site: "Affiliates" in the header (menu or, on menu-less tool pages, beside Login)
+  and "Affiliate program (earn 25%)" in the footer, injected by `js/lf-attribution.js`
+  on every page that loads it; hard-coded on the home page.
+- `?ref=` is now captured on every page (not only the home page) and logs one click per
+  session with the worker's `/r/` route, so partners see clicks.
+
 ## Not done yet
 
 - **The payout run.** `approved` → `paid` is still manual: nothing here sends
