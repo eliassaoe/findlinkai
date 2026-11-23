@@ -163,6 +163,22 @@ shared invite link could swap `ref=` for `token=` and be inside that account.
 v2 codes are generated (`abc123xy`), authenticate nothing, and are safe to post
 anywhere. Fixed in `app.html` in the same change that repointed the modal.
 
+## Attribution bug fixed 23 Nov 2026
+
+Until then `referral_attributions` held **zero rows**: `confirmation-signup.html`
+deleted `lf_ref` from localStorage just before redirecting to `/app`, so
+`lfAttributeReferral()` never had a code to send, and the email/password path
+never stored the code at all. Every referred signup was lost, so no partner could
+ever have been paid. Fixed in `sign-up.html` (stores `?ref=`/cookie on load),
+`confirmation-signup.html` (no longer deletes it) and `app.html` (`lfCaptureRef()`
+falls back to the 90-day `lf_ref` cookie; `lf_ref_done` stops repeat calls).
+Pinned by `tests/referral-attribution.test.mjs`. Verified live: `/sign-up?ref=X`
+stores the code.
+
+Known gap left: `/attribute` accepts any account with no attribution yet, so an
+existing customer who later clicks a partner link becomes that partner's referral.
+Limiting it to accounts created in the last few days needs a worker redeploy.
+
 ## Not done yet
 
 - **The payout run.** `approved` → `paid` is still manual: nothing here sends
