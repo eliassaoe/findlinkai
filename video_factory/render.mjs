@@ -69,7 +69,7 @@ await page.addInitScript(() => {
     localStorage.setItem('lf_onboarding_popup_seen', '1');
   } catch (e) {}
   // Video hygiene: no time-limited banner, no floating chat bubbles, a visible cursor.
-  const css = `#lf-bf26,.review-notification,#reviewNotification{display:none!important}
+  const css = `#lf-bf26,.review-notification,#reviewNotification,#starterTour{display:none!important}
     #lf-cursor{position:fixed;left:0;top:0;width:22px;height:22px;z-index:2147483647;pointer-events:none;transition:transform .05s linear}
     #lf-cursor svg{width:22px;height:22px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.35))}
     .lf-ripple{position:fixed;width:34px;height:34px;margin:-17px 0 0 -17px;border-radius:50%;border:3px solid #2563eb;z-index:2147483646;pointer-events:none;animation:lfr .6s ease-out forwards}
