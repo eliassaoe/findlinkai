@@ -237,3 +237,10 @@ Why: the keyword list had drifted into creator/newsletter/podcast/wedding/e-comm
 - **socialthink.io** (DR 37; Semrush AS 29, 6.9K organic): accepts a swap (else $200). Sent: their link → `/coresignal-alternative`; ours → SocialThink on `/best-social-media-finder`, after theirs is live.
 - **hirebasis.com** (DR 26; Semrush AS 25, 5.3K organic; recruiting): asked where they'd be mentioned. Proposed: LinkFinder AI in their "Top 15 Candidate Sourcing Tools" → `/contact-out-alternative` ("ContactOut alternative"); HireBasis on `/best-recruitment-software-tools`. Offered to place ours first.
 - makesaasbetter.com (~1.3k visits, paid $150) → archived.
+
+## 23 Nov 2026 (evening)
+- **postoria.io**: they write "Best Affordable Tools for B2B Lead Generation and LinkedIn Marketing in 2026"; we sent the ready-made LinkFinder AI section (features, pricing from $49/mo or $25 packs, LinkedIn-marketing use case, link "Kaspr alternative" → `/kaspr-alternative`). Ours (Postoria on `/linkedin-post-formatter`) once theirs is live.
+- **sleekflow.io** (DR 74, ~174k visits): swaps only, guidelines ask partners for DR 50+ / ~20k organic and contextual links to homepage/blog/service pages (no product pages). Proposed: LinkFinder AI in their HubSpot integrations list or a prospecting article → our homepage ("B2B contact enrichment"); SleekFlow in `/top-best-marketing-automation-platforms` (customer engagement part). We may be under their bar; waiting.
+- **hirebasis.com**: asked $75 or swap → answered swap only, no fees; offered to place ours first.
+- **socialthink.io**: wants a blog page and brand anchor "SocialThink" → proposed `/best-instagram-scrapers` (anchor "SocialThink"); ours in one of their influencer / creator-economy posts → homepage.
+- Archived: sfapps.info ($250), ai-tutor.ai ($1,000 review, off-topic), wpmayor.com (paid, WordPress), featurebase.app (auto survey), europeanmartech.eu (~100 visits).
