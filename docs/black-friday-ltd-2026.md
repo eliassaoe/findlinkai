@@ -298,6 +298,22 @@ then send from PostHog after identifying the survivors (as for cohort 616375).
 
 Reminder set for 23 Nov to build the warm cohort + sequence before Tue 24.
 
+**Built 23 Nov (16:05 UTC), all drafts, nothing scheduled:**
+- `refresh_ltd_campaign_audience()` → 3,023 rows (free 1,583 used + 1,321 never; winback 52 + 67).
+  PostHog warehouse table reloaded right after.
+- Cohort **752297** "warm (used LinkFinder + past customers)": free with enrichments > 0 and no
+  payment event + winback (minus LTD buyers) → **1,492** people matched in PostHog.
+- Cohort **752298** "cold (never ran a lookup)": free with enrichments = 0, no payment event → **890**.
+- Workflow **`01a20927-9e02-0000-8ddb-7e3394cc5a39`** "warm sequence": Tue 24 early access (dispatch
+  ~14:00 UTC), +3d Fri 27, +1d Sat 28 (the math), +1d Sun 29 (use cases), +1d Mon 30 (last day);
+  links `utm_content=w1..w5`; exits on payment; test-ran (mocked) clean.
+- Workflow **`01a1cbcf`** now targets cohort 752298 with 2 emails (Fri 27, +3d Mon 30); the Sun 29
+  step was removed.
+- **Do not dispatch the win-back workflow `01a1cc36`**: past customers are in the warm sequence.
+- ⚠️ Blast-radius shows a project limit of **62 emails/hour**: 1,492 sends take ~24 h, so the
+  "Tue 24" email lands Tue–Wed and every later step spreads the same way. Raise the sending limit
+  (PostHog sending rules / domain reputation) or accept the spread before dispatching.
+
 ## Partner outreach at scale
 
 The project 37934 campaign "Partnerships — newsletters, affiliates, creators,
