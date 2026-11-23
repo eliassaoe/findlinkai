@@ -337,6 +337,15 @@ phoned and refuse links, and Email 3 when our answer + 2 relances already sit
 after their last message (Explee 429). Le P'tit Logiciel books on
 `rdv.leptitlogiciel.fr`, which we cannot see: leave its leads out of batches.
 19 Nov 2026: 254 leads reviewed, 31 marked booked, 113 relancés.
+23 Nov 2026 (owner: relance only leads with no call booked, asked or planned, silent 3+ days):
+Calendly checked (30 meetings past + upcoming); 46 relancés in two runs (40 + 6, 0 refused) on
+linkfinderai.com (`override_auto`, recover.py still failing) and isbecologis.fr. Left out on purpose:
+creha.fr (Urbatik has its own relances longues for Explee repliers), Le P'tit Logiciel (rule above),
+54 threads already at Explee's 3-replies cap, 2 Calendly matches (Marko Pavlović noted `RDV calé`;
+"Michel" ambiguous, left alone), 21 leads who asked to be phoned / gave a time / asked to wait or
+whose thread was unclear. Drafts for English, Dutch, Swedish, Romanian and Spanish speakers were
+rewritten in English/Spanish before sending: **the page's drafts are always French**, check the
+language before a batch.
 
 **Local version:** `python3 relance.py <EXPLEE_API_KEY>` serves the same
 cockpit on localhost (state in `relance_state.json`), `--demo` for sample data.

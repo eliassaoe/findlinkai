@@ -231,3 +231,9 @@ Why: the keyword list had drifted into creator/newsletter/podcast/wedding/e-comm
 - **thefrontkit.com** (DR 25, ~251 visits): $140 "Black Friday" listing → archived (traffic far under the rule, paid).
 - **socialk.it** (DR 36, ~12k visits; Semrush worldwide AS 27, 30.3K organic, +242%): asked €100 for a sponsored post. Owner: free swap only, no money; archive if they refuse. Sent 22 Nov ~20:40: their link → `/kaspr-alternative`; ours → Socialk on `/linkedin-post-formatter` (scheduling line), after theirs is live.
 - **Sorank** asked us to go first (they place theirs once ours is live). Placed 22 Nov ~20:45: "Gemini visibility tracker" → sorank.com/gemini-visibility-tracker in the intro of `/top-best-marketing-automation-platforms` (hand-edited page). Verified live, Camille told. If no link from them by ~6 Dec, remove ours. Also asked to be considered at their next data enrichment top 10 refresh (they declined it for now).
+
+## 23 Nov 2026 (morning)
+- **sorank.com**: their link is live (followed) in "Outbound Marketing: Definition, Channels and Strategy", but to the homepage, anchor "work email addresses and phone numbers", not `/kaspr-alternative` as agreed. Asked Camille to switch the URL. Deal done otherwise; drop the 6 Dec removal check.
+- **socialthink.io** (DR 37; Semrush AS 29, 6.9K organic): accepts a swap (else $200). Sent: their link → `/coresignal-alternative`; ours → SocialThink on `/best-social-media-finder`, after theirs is live.
+- **hirebasis.com** (DR 26; Semrush AS 25, 5.3K organic; recruiting): asked where they'd be mentioned. Proposed: LinkFinder AI in their "Top 15 Candidate Sourcing Tools" → `/contact-out-alternative` ("ContactOut alternative"); HireBasis on `/best-recruitment-software-tools`. Offered to place ours first.
+- makesaasbetter.com (~1.3k visits, paid $150) → archived.
